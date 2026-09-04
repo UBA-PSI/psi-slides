@@ -31,7 +31,7 @@ involved in this scene, `.muted` the apparatus.
 
 ## figure: For transport, each network layer relies on addresses {.full #ns-a03}
 
-::: draw {unit=150x54}
+::: draw 150x54
 default box {.tone-3 .sharp} w 0.88 h 0.85
 
 box fh "Frame\nHeader"    at 0,0
@@ -63,7 +63,7 @@ step ports
 
 ## figure: Besides spoofing, adversaries may attack address resolution {.full #ns-a07}
 
-::: draw {unit=170x50}
+::: draw 170x50
 default box {.tone-3 .sharp} w 1.15 h 0.6
 
 box dn  "domain name" at 0,0
@@ -91,7 +91,7 @@ step surface
 
 ## figure: ARP Cache Poisoning | allows A to eavesdrop on communication between local network devices {.full #ns-a10}
 
-::: draw {unit=170x50}
+::: draw 170x50
 box sw "Ethernet\nSwitch" at 0,0 w 1.0 h 0.9 {.tone-1}
 box gw "Default\nGateway" right of sw gap 1.15 same as sw {.tone-1}
 edge sw -- gw {.muted}
@@ -123,7 +123,7 @@ step poisoning
 
 ## figure: B wants to visit webserver at example.com | knows IP of DNS resolver of ISP and gateway {.full #ns-a08}
 
-::: draw {unit=190x54}
+::: draw 190x54
 # Diese Topologie tragen vier Figuren gemeinsam (A-08, A-12, A-13, A-14):
 # the same names in the same places, so the run reads as one drawing that
 # develops.
@@ -167,7 +167,7 @@ step wants
 
 ## figure: DNS Spoofing | Adversary forges IP address in DNS reply to redirect victim to malicious server, e.g., for phishing credentials {.full #ns-a12}
 
-::: draw {unit=190x54}
+::: draw 190x54
 # The same topology as #ns-a08, the same names, the same places.
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
@@ -218,7 +218,7 @@ step redirect
 
 ## figure: Forgery trivial for on-path attacker (on routers or endpoints) | prevent reply from reaching B and inject own reply {.full #ns-a13}
 
-::: draw {unit=190x54}
+::: draw 190x54
 # The same topology as #ns-a08 and #ns-a12, the same names and places.
 box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
 box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
@@ -273,7 +273,7 @@ step question
 
 ## figure: Off-path attackers (E) must generate a valid reply | that reaches B before the reply sent by the real DNS resolver {.full #ns-a14}
 
-::: draw {unit=190x54}
+::: draw 190x54
 # The same topology as #ns-a08, #ns-a12 and #ns-a13, the same names and
 # places. All that is new is who the attacker is: A steps back and the box at
 # the bottom left of the internet gets a name.
@@ -330,7 +330,7 @@ step cache
 
 ## figure: Distributed Denial of Service (DDoS) attack | attacker instructs hosts infected with malware to flood a victim with traffic {.full #ns-a28}
 
-::: draw {unit=100x76}
+::: draw 100x76
 # In the original the bots lie on a world map. That stays out here: a raster
 # image follows no theme and costs over 100 kB. Scattered sources all round
 # say the same thing - "distributed" was the argument, the geography never
@@ -379,7 +379,7 @@ step unfilterable
 
 ## figure: DoS attacks are also possible without access to a botnet | Attackers can use connectionless protocols and spoof their Src IP to hide their identity {.full #ns-a29}
 
-::: draw {unit=96x74}
+::: draw 96x74
 # Again with no world map, for the same reasons as the figure before. The
 # dashed boxes with the question mark are the "faked sources": what is not
 # genuine about them is the outline. Text verbatim from the original; only the
@@ -457,7 +457,7 @@ Example: Spamhouse  (75 Gbps)
 <https://blog.cloudflare.com/the-ddos-that-knocked-spamhaus-offline-and-ho/>
 
 ::: flip
-::: draw {unit=130x62}
+::: draw 130x62
 # "Spamhouse" is what the original says (the company is called Spamhaus) and it
 # stays; the evidence for it is the capture beside it, not this picture. The
 # two triangles are the size comparison: the area is the volume, the point
@@ -512,7 +512,7 @@ with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
 ```
 
 ::: flip
-::: draw {unit=112x58}
+::: draw 112x58
 # The original's typo stays: the code on the left says
 # print('Connected by', add) rather than addr.
 # The slide's block arrows are .chevron (pointing right, client -> server) and
@@ -547,7 +547,7 @@ step state
 
 ## figure: One technique to defend against SYN flooding is to enable SYN Cookies | so that server does not have to store the state {.full #ns-a33}
 
-::: draw {unit=126x62}
+::: draw 126x62
 # The slide highlights seq=e and ack=e+1 in yellow. There are no free colours
 # here and none are needed: *e* sets the variable in the accent, and the beat
 # "cookie" emphasises the two block arrows in which
@@ -575,7 +575,7 @@ step encode
 
 ## figure: TLS 1.3 performs a handshake to start a secure network connection | and to negotiate cryptographic keys between the client and the server {.full #ns-a41}
 
-::: draw {unit=120x46}
+::: draw 120x46
 default box {.tone-3} w 2.3
 
 text cl "Client" at 0,0 {.large .muted}
@@ -608,7 +608,7 @@ step verify
 
 ## figure: Certificate chains {.full #ns-a43}
 
-::: draw {unit=124x50}
+::: draw 124x50
 default box {.tone-3} w 1.55
 
 box  os "Browser/OS" at 0,0 {.tone-1}
@@ -652,7 +652,7 @@ step real
 
 ## figure: Certificates are stored in a X.509 (v3) data structure. {.standard #ns-a45}
 
-::: draw {unit=150x40}
+::: draw 150x40
 default box {.tone-3} w 2.6 pad 0.3
 
 box f1 "X.509 version\nSerial number\nSignature algorithm\nValid from/until\nIssuer Name\n*Subject Name*\n*Public Key*" at 0,0
@@ -673,7 +673,7 @@ step signature
 
 ## figure: Extensions of a server certificate | github.com, as a certificate viewer lists them {.standard #ns-a49}
 
-::: draw {unit=150x30}
+::: draw 150x30
 default text {.small}
 
 text l1 "Extension\nCritical\nUsage" at 0,0 {.right .muted}
@@ -720,7 +720,7 @@ step domains
 
 ## figure: Upgrading HTTP to HTTPS {.full #ns-a60}
 
-::: draw {unit=110x110}
+::: draw 110x110
 box  br "Browser" at 0,0 w 1.1 {.tone-2}
 box  sv "Server"  at 4.0,0 same as br {.tone-2}
 
@@ -764,7 +764,7 @@ or
 
 ## figure: Operation of sslstrip {.full #ns-a62}
 
-::: draw {unit=90x90}
+::: draw 90x90
 box  br "Browser"  at 0,0   w 1.3 {.tone-2}
 box  sv "Server"   at 5.4,0 same as br {.tone-2}
 text ss "sslstrip" at 2.7,0 {.turn .accent @mitm}
@@ -817,7 +817,7 @@ Go to secure Login Form</a>[...]
 
 ## figure: Firewalls enforce rules that limit who is allowed to talk to whom. {.full #ns-b04}
 
-::: draw {unit=132x78}
+::: draw 132x78
 # Every label verbatim from the original - including "publically reachable",
 # which is spelled exactly that way in the original and stays. The line break
 # in "demilitarized zone (DMZ)" is only a break in the original (hyphenated
@@ -879,7 +879,7 @@ step trusted
 
 ## figure: Not only used to secure the perimeter, also for network segmentation. | cf. lateral movement, ransomware {.full #ns-b05}
 
-::: draw {unit=132x78}
+::: draw 132x78
 # The same drawing as on the previous slide: the same names, coordinates and
 # stand-in shapes. All that is new are the two inner firewalls and the zone
 # caption "segmented net", so the run reads as one drawing that develops.
@@ -934,7 +934,7 @@ step contained
 
 ## figure: Firewalls are also run on hosts to limit chatty applications' network access. {.full #ns-b06}
 
-::: draw {unit=132x78}
+::: draw 132x78
 # The same drawing again, the same names and coordinates. What is new is the
 # FIREWALL on the host - in the original it stands horizontally beside the
 # caption "desktops", so it stands in the same place here and "desktops"
@@ -1014,7 +1014,7 @@ ssh –D1080 91.1.1.5 # SOCKS proxy
 ssh –L2222:44.11.1.4:22 92.1.1.5
 ```
 ::: flip
-::: draw {unit=138x74}
+::: draw 138x74
 # The slide's command lines stand beside the figure as an ordinary code
 # block, not in the diagram. And they stand there verbatim: the second line
 # names 91.1.1.5, the others 92.1.1.5. That is how the original has it, and the
@@ -1077,7 +1077,7 @@ Proxy-Connection: close
 .`...\ÇÈÀœÁ.Û3Xjè*...=diffie- […]
 ```
 ::: flip
-::: draw {unit=118x150}
+::: draw 118x150
 # A chain on one horizontal line - the same shape as on the slide after it.
 # The HTTP capture stands beside it as a code block, not in the picture. The
 # labels "ssh client" and "ssh server" run to two lines as in the original;
@@ -1121,7 +1121,7 @@ ssh […] 92.1.1.5
  ▶ <more TLS records> (SSH)
 ```
 ::: flip
-::: draw {unit=118x104}
+::: draw 118x104
 # Two chains on one horizontal line each, formally like the slide before it:
 # the naive attempt above, the one that gets through below. The original's
 # prohibition sign and two stickers are trimming and are left out - the gap
@@ -1168,7 +1168,7 @@ step futile
 
 ## figure: Why should we deploy an intrusion detection system (IDS) at all? {.full #ns-b26}
 
-::: draw {unit=118x78}
+::: draw 118x78
 default box {.tone-1} w 1.15 h 0.66
 
 # The five proactive measures are the wall itself: a row with no joint except
@@ -1209,7 +1209,7 @@ step detect
 
 ## figure: Two Deployment Approaches | Host- (HIDS) and Network-based (NIDS) {.full #ns-b27}
 
-::: draw {unit=150x62}
+::: draw 150x62
 default box {.tone-1}
 
 # The backbone: uplink, firewall, switch. The original's pale blue full-bleed
@@ -1258,7 +1258,7 @@ step hids
 
 ## figure: The observable input depends on the placement of the sensor. {.full #ns-b28}
 
-::: draw {unit=150x58}
+::: draw 150x58
 # The original has no arrows between the three stages, and the two variants
 # hang beside them with no connection. Both are supplied here without a word
 # changing.
@@ -1285,7 +1285,7 @@ step sensor
 
 ## figure: Given some input data, the detection result of an IDS can be classified into one of four cases. {.full #ns-b39}
 
-::: draw {unit=150x60}
+::: draw 150x60
 default box {.sharp}
 
 box tp  "true positive\nTP"  at 0,0 w 1.45 h 1.05 {.tone-2}
@@ -1318,7 +1318,7 @@ step alarm
 
 ## figure: Misuse-based IDS can only detect what is known. | Anomaly-based IDS might detect novel attacks. {.full #ns-b48}
 
-::: draw {unit=150x62}
+::: draw 150x62
 default box {.sharp}
 
 text mh "Misuse detection"  at 0.85,0 {.large .bold}
@@ -1366,7 +1366,7 @@ step rest
 
 ## figure: Observed character freq. | Anomaly? {.full #ns-b55}
 
-::: draw {unit=150x58}
+::: draw 150x58
 # The string under the columns is verbatim from the original, letter-spaced:
 # "t / p r e n . ; l m o b". The second string splits on spaces, so one label
 # per column. The values are chosen so that the bins on #ns-b57 - the same
@@ -1417,7 +1417,7 @@ step metric
 
 ## figure: Training stage | Chi-square statistic (goodness of fit) {.full #ns-b56}
 
-::: draw {unit=150x56}
+::: draw 150x56
 bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 2.5 h 0.9
 text cap "Char. freq. distribution for\nnormal payloads" above f gap 0.16 flush right {.right}
 
@@ -1445,7 +1445,7 @@ step weights
 
 ## figure: Detection at Runtime {.full #ns-b57}
 
-::: draw {unit=150x56}
+::: draw 150x56
 # The same values as the observed distribution on #ns-b55 - it is the same
 # packet - and the bins sum to exactly the original's numbers: 20+12+11 = 43,
 # 10+9+9+8 = 36, 8+7+6 = 21. These used to be the values of the *training*
@@ -1480,7 +1480,7 @@ and the sensor raises an alarm as soon as $\chi^2 > t$. What value $t$ should ta
 
 ## figure: Reaction of IDS {.full #ns-b59}
 
-::: draw {unit=62x62}
+::: draw 62x62
 # The ten labelled packets lie on an axis: the anomaly score the sensor
 # computes across (the chi-squared of the slide before), the true class down.
 # Only that lets the threshold separate anything at all - in the version
@@ -1581,7 +1581,7 @@ step tradeoff
 
 ## figure: Receiver operating characteristic (ROC) curves {.full #ns-b60}
 
-::: draw {unit=104x104}
+::: draw 104x104
 # "False Postive Rate" is the original slide's typo and stays.
 # The unit is square, so that the ROC frame comes out square.
 plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
@@ -1611,7 +1611,7 @@ step lenient
 
 ## figure: Comparing detection techniques | ROC curves for alternative binnings {.full #ns-b61}
 
-::: draw {unit=104x104}
+::: draw 104x104
 # The same frame as before, typo "False Postive Rate" included.
 plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
 
@@ -1647,7 +1647,7 @@ step question
 
 ## figure: Sketch of a Similar Situation {.full #ns-b63}
 
-::: draw {unit=70x70}
+::: draw 70x70
 # 96 faces out of four grids rather than 96 lines: the rule is one line per
 # grid, the exception a grid of its own. The asset is embedded once, however
 # often it appears.

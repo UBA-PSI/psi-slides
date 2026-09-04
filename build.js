@@ -31,6 +31,15 @@ import katex from 'katex';
 // Imported for the build; its *text* is also read and inlined into the live
 // views, the same way bundledFaces() reads woff2 out of node_modules.
 import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD, DG_SHAPE_CLASSES, dgBarFillCss } from './diagram-core.mjs';
+// The {…} tail grammar and the ::: draw opener, shared with lint.js so the
+// two files cannot disagree about a tail. Tables plus small pure helpers,
+// zero dependencies - see the header of tails.mjs and CLAUDE.md.
+import {
+  CHUNK_SLOTS, CHUNK_STYLE_CLASSES,
+  CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS,
+  splitTail, parseTail, slotTable,
+  parseDrawOpener, formatDrawOpener, drawCompilerAttrs,
+} from './tails.mjs';
 
 // KaTeX ships its stylesheet and fonts as plain files next to the module.
 // They are not importable as ESM, so resolve them the CommonJS way.
@@ -53,37 +62,12 @@ const VALID_TAGS = new Set([
   'question', 'figure', 'exercise', 'free',
 ]);
 
-const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
-// Classes an attribute tail may carry that are not a width. There is exactly
-// one, and it exists because a heading is two different things at once: the
-// slide's title, and the chunk's name in the table of contents, in search,
-// and in the printed document. Leaving the heading text out gives up all
-// four; `.bare` gives up only the first.
-//
-// The case is a talk that is a run of figures with speaker notes - the room
-// looks at the drawing, and the deck still needs a name for each slide to
-// navigate by and to print. Refused rather than ignored when misspelled: an
-// unknown class in this tail used to be dropped without a word by the build
-// while lint.js called it an unknown width, which named the wrong thing.
-//
-// The rest of the tail is the other family: a class that answers a `style:`
-// key for one chunk. Each is spelled `<key>-<value>` off STYLE_SPEC below,
-// so an author who knows `style: {wrap: none}` can guess `.wrap-none` and
-// an author who meets `.blocks-left` in a source can guess the key. Only
-// two keys are in it, and deliberately: these are the two whose right answer
-// changes from slide to slide - a chunk whose one paragraph balances into a
-// ragged block, a chunk whose formula wants to sit under the sentence that
-// introduced it - where `headings`, `rules` and `labels` are decisions a deck
-// makes once. Both directions of both keys are here, because the class has to
-// be able to say the non-default thing under either global default: under
-// `wrap: none` a chunk asks for balancing back with `.wrap-balance`.
-const CHUNK_STYLE_CLASSES = {
-  'wrap-balance':  ['wrap', 'balance'],
-  'wrap-none':     ['wrap', 'none'],
-  'blocks-center': ['blocks', 'center'],
-  'blocks-left':   ['blocks', 'left'],
-};
-const VALID_CHUNK_CLASSES = new Set(['bare', 'center', ...Object.keys(CHUNK_STYLE_CLASSES)]);
+// The width and class vocabulary of a chunk heading's {…} tail is
+// CHUNK_SLOTS in tails.mjs, next to the slot tables of the five directives
+// that take one. `.bare` exists because a heading is two things at once -
+// the slide's title and the chunk's name in the TOC, in search and in print
+// - and leaving the text out gives up all four where `.bare` gives up one.
+// The `.wrap-*` / `.blocks-*` classes answer a `style:` key for one chunk.
 
 // ── syntax highlighting ──────────────────────────────────────────────
 // Shiki is loaded once per process and reused across rebuilds. Output
@@ -1461,7 +1445,7 @@ function fontStyleTag(embed) {
 }
 
 // ── ::: draw autoplay ───────────────────────────────────────────────
-// `::: draw {autoplay=1200}` walks the figure's own steps on a timer once
+// `::: draw autoplay 1200` walks the figure's own steps on a timer once
 // the slide is on screen, one delay for every step. A cover figure that
 // animates while the room files in is the case it was asked for, and it
 // works on any chunk because nothing about it is cover-specific.
@@ -1478,43 +1462,8 @@ function fontStyleTag(embed) {
 //     taken over, and a timer that resumes underneath them is worse than
 //     no timer.
 //
-// Bounded at both ends: under 200 ms the room cannot read a beat, and over
-// 60 s a "moving" figure is a still one that changes when nobody is
-// looking. Both ends are refused rather than clamped, because a clamped
-// number is a number the author did not write.
-const AUTOPLAY_MIN = 200;
-const AUTOPLAY_MAX = 60000;
-function takeAutoplay(attrs) {
-  let rest = String(attrs);
-  // `cycle` is a bare word, so it is taken out first: left in, it would
-  // reach the compiler's unknown-option gate, which is right about the
-  // word and wrong about whose word it is.
-  let cycle = false;
-  rest = rest.replace(/(^|\s)cycle(?=\s|$)/, () => { cycle = true; return ' '; });
-  const m = rest.match(/(^|\s)autoplay=([^\s}]*)/);
-  if (!m) {
-    if (cycle) {
-      const err = new Error(
-        '::: draw {cycle} has no autoplay to repeat.\n' +
-        '  cycle says what happens after the last step; autoplay=N is what walks to it.\n' +
-        '  Write {autoplay=1200 cycle}.');
-      err.userFacing = true;
-      throw err;
-    }
-    return { autoplay: null, cycle: false, rest: attrs };
-  }
-  const n = Number(m[2]);
-  if (!Number.isFinite(n) || n < AUTOPLAY_MIN || n > AUTOPLAY_MAX) {
-    const err = new Error(
-      `::: draw {autoplay=${m[2]}} is not a delay in milliseconds between ` +
-      `${AUTOPLAY_MIN} and ${AUTOPLAY_MAX}.\n` +
-      `  It is one delay for every step of the figure: autoplay=1200`);
-    err.userFacing = true;
-    throw err;
-  }
-  rest = (rest.slice(0, m.index) + ' ' + rest.slice(m.index + m[0].length)).replace(/\s+/g, ' ').trim();
-  return { autoplay: n, cycle, rest };
-}
+// The bounds (200 ms to 60 s), the opener grammar that carries the number
+// and the refusals live in tails.mjs (parseDrawOpener), shared with lint.js.
 function withAutoplay(ms, cycle, html) {
   if (!ms) return html;
   // On the <figure>, not the <svg>: the runtime finds the chunk from it,
@@ -1684,23 +1633,9 @@ const COVER_ALIGN_VARIANTS = new Set(['classic', 'stack', 'panel', 'quote', 'spl
 // still wins, exactly as it does on the cover.
 const CLOSING_IMAGE_COVER = 'cover';
 
-// Slot tables. The first member of each list is the default, which is why
-// `cover` and `veil` are named at all: a word an author can write is a word
-// an author can read back off the line, and "the one you get by saying
-// nothing" is not something a reader can look up.
-const BACKDROP_SLOTS = {
-  fill:  ['cover', 'contain'],
-  crop:  ['middle', 'top', 'bottom'],
-  scrim: ['veil', 'clear', 'invert'],
-  focus: ['sharp', 'blur'],
-  // Which side of the type the picture is on. `under` is what a backdrop
-  // has always been. `over` exists for exactly one move: a picture that
-  // opens as a band beside the title and then covers it - the title is
-  // revealed *away* rather than added to, which is the one thing the reveal
-  // counter cannot do by adding segments. It stays below .overlay-layer, so
-  // an ::: overlay is how words go back on top of the covering picture.
-  layer: ['under', 'over'],
-};
+// The slot tables (BACKDROP_SLOTS, CARDS_SLOTS, OVERLAY_SLOTS, SIDE_SLOTS)
+// live in tails.mjs with the parser that reads them, and the collision
+// assertion - no word in two slots of one table - runs there at load.
 // Where a backdrop sits on the slide, and the whole of the reveal vocabulary.
 // A band against one edge, the whole slide, or nothing - which is enough for
 // both directions of the move: a picture that retreats to free the paper the
@@ -1755,168 +1690,38 @@ function parseBackdropReveal(spec, where) {
   }
   return parts.map(p => parseBackdropExtent(p, where));
 }
-// A card row answers four questions, and one of them it can answer itself.
-const CARDS_SLOTS = {
-  // How big the type is. `auto` reads the longest item: a row of single
-  // words wants to be read across the room, a row of sentences wants to
-  // fit. It is the block's decision and not each card's, because cards at
-  // three different sizes in one row read as a mistake rather than as a
-  // hierarchy.
-  size:   ['auto', 'large', 'medium', 'small'],
-  // `auto` follows the size, because that is how one would set it by hand:
-  // a word centres, a sentence ranges left.
-  align:  ['auto', 'left', 'center'],
-  // Where the text sits when the card is taller than its content - and it
-  // always is, because a grid row is as tall as its longest card. On a
-  // ::: rows block it is the term against the body beside it instead, and
-  // the *default* there is `middle` rather than `top`: see renderCardsBlock.
-  anchor: ['top', 'middle'],
-  // What happens to the levels under the first. `fold` keeps them off the
-  // projection and gives them to the document and to the reader who
-  // presses C. `show` puts them on the slide too. `page` is the third answer and it exists for the case
-  // the other two cannot serve: a second level that is a paragraph rather
-  // than a bullet. Unfolded in place that wrecks the row, so `page` never
-  // unfolds - the detail is the hand-out's and C leaves it alone.
-  detail: ['fold', 'show', 'page'],
-  // What the card sits on. The same word does the same job on ::: overlay,
-  // and three of the five values are shared with it.
-  //
-  // The default was a tinted fill *and* a hairline, which is the one
-  // combination to avoid: a grey box inside a grey border reads as a form
-  // field rather than as a card. One device or the other.
-  //
-  // Six is the whole list and it is meant to stay six: filled, outlined,
-  // nothing, the accent, the paper, and a picture. Anyone who wants a
-  // seventh ground wants a drawing, and there is a language for that.
-  ground: ['panel', 'outline', 'clear', 'accent', 'paper', 'photo'],
-  // Rounded or not. Its own slot rather than a ground, because it is a
-  // different question - a square accent card and a round accent card are
-  // the same ground with two shapes, and folding shape into ground would
-  // have doubled that list instead of adding one word to a second one.
-  corner: ['round', 'square'],
-  // What a `photo` card's picture is veiled with, and it is the same
-  // question ::: backdrop answers with the same three words. `veil` is the
-  // theme's own paper over the picture, so ordinary ink stays legible in
-  // all seven themes and in dark mode without a second palette; `invert`
-  // darkens instead and turns the card's ink light; `clear` leaves the
-  // picture alone, which is the author saying the picture is quiet enough.
-  //
-  // It is a slot of its own rather than three more grounds, because it is
-  // orthogonal: every scrim applies to the one ground that has a picture,
-  // and folding it in would have made six grounds into eight.
-  // `plain` and not `clear`, which is what ::: backdrop calls the same
-  // value: `clear` is already a *ground* here, and a word in two slots of
-  // one table is decided by whichever slot is listed first - the exact
-  // ambiguity a `row` slot was dropped for two rounds ago. Two tables may
-  // share a word; one table may not.
-  scrim: ['veil', 'invert', 'plain'],
-};
-const OVERLAY_SLOTS = {
-  place:  ['center', 'top-left', 'top', 'top-right', 'left', 'right',
-           'bottom-left', 'bottom', 'bottom-right'],
-  ground: ['paper', 'ink', 'accent', 'clear', 'glass'],
-  width:  ['standard', 'narrow', 'wide', 'full'],
-};
-// ::: side asks exactly one question beyond the ratio: where a pane sits
-// when the other one is taller. It is the same question a card row answers
-// with `anchor`, so it is spelled with the same two words - two tables may
-// share a word, and an author who has learned `anchor: middle` on a row has
-// learned it here.
-//
-// One slot and two words, and it is the *block's* switch rather than each
-// pane's, which looks like the wrong granularity and is not: a grid row is
-// as tall as its tallest item, so the tall pane already fills the row and
-// centring cannot move it. `align-items: center` therefore centres exactly
-// the short pane - which is the whole of what "prose beside a tall figure"
-// asked for - and a per-pane word would have bought a second thing to write
-// for a case nothing can reach. `top` stays the default and is what a bare
-// ::: side has always drawn: a caption above a figure is aligned from the
-// top on purpose, and plenty of them are.
-const SIDE_SLOTS = {
-  anchor: ['top', 'middle'],
-};
-
-// No word may appear in two slots of one table: parseSlotClasses assigns a
-// word to whichever slot lists it first, so a collision makes one of the
-// two slots silently unreachable. Asserted at load rather than remembered -
-// `clear` was a ground and very nearly also a scrim.
-//
-// A word that is the *default* of every slot holding it is exempt, and the
-// distinction is exact rather than lenient: writing a default changes
-// nothing whichever slot receives it, so `auto` may be both the size and
-// the align default. A word that means something in one slot and is merely
-// the default of another is not exempt - that is the case where the first
-// slot listed wins and the second becomes unreachable.
-for (const [name, table] of Object.entries({ CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS })) {
-  const where = new Map();   // word -> [{slot, isDefault}]
-  for (const [slot, words] of Object.entries(table)) {
-    words.forEach((w, i) => {
-      if (!where.has(w)) where.set(w, []);
-      where.get(w).push({ slot, isDefault: i === 0 });
-    });
-  }
-  for (const [w, hits] of where) {
-    if (hits.length < 2 || hits.every(h => h.isDefault)) continue;
-    throw new Error(
-      `${name}: "${w}" is in the ${hits.map(h => h.slot).join(' and ')} slots and means ` +
-      'something in at least one of them. parseSlotClasses assigns it to the first, ' +
-      'leaving the other unreachable.');
-  }
+// Resolve a `{.a .b}` tail against a slot table, or refuse the build. The
+// parser reports the three failures this grammar refuses everywhere - a
+// word without its dot, a word from no slot, two words from one - and this
+// turns the first into the userFacing error, with the whole vocabulary
+// under it. Returns the resolved values plus `written`, which says whether
+// the author wrote the word or the table supplied it: a written default is
+// legal and changes nothing, and two constructs (`::: rows`, a scrim with no
+// photo) need the difference.
+// A ::: draw opener with a problem stops the build on the first one; the
+// message spells the line to write.
+function refuseDrawOpener(opener) {
+  if (!opener.problems.length) return;
+  const err = new Error(opener.problems[0].msg);
+  err.userFacing = true;
+  throw err;
 }
-
-// Resolve a `{.a .b}` tail against a slot table. Reports the three failures
-// this grammar refuses everywhere else: a word without its dot, a word from
-// no slot, and two words from one.
-//
-// The dot is required, not tolerated. It was stripped here at first, so
-// `{outline middle}` and `{.outline .middle}` both built - and the same tail
-// on a chunk heading or a draw box takes the dot and nothing else, so an
-// author learned two spellings of one thing and could not tell which was
-// the real one. One sigil rule for every {…} tail in the format: `.word` is
-// a setting, `#word` an id, `@word` a group.
-function slotTable(slots) {
-  return Object.entries(slots)
-    .map(([s, m]) => `  ${s.padEnd(6)} ${m.map(w => '.' + w).join(' | ')}   (default: .${m[0]})`)
-    .join('\n');
-}
-function parseSlotClasses(attrs, slots, what, where) {
-  const tokens = String(attrs || '').trim().split(/\s+/).filter(Boolean);
-  const out = {};
-  for (const [slot, members] of Object.entries(slots)) out[slot] = members[0];
-  const seen = {};
-  for (const tok of tokens) {
-    if (!tok.startsWith('.') || tok.length < 2) {
-      const err = new Error(
-        `::: ${what} in ${where}: "${tok}" is not a .word.\n` +
-        `  Every setting in a {…} tail is written with its dot, here as on a chunk heading\n` +
-        `  and in a draw block: {.${tok.replace(/^[.#@!]/, '')}}.\n` +
-        slotTable(slots));
-      err.userFacing = true;
-      throw err;
-    }
-    const w = tok.slice(1);
-    const slot = Object.keys(slots).find(s => slots[s].includes(w));
-    if (!slot) {
-      const err = new Error(
-        `::: ${what} in ${where}: ".${w}" is not a word this directive knows.\n` +
-        slotTable(slots));
-      err.userFacing = true;
-      throw err;
-    }
-    if (seen[slot]) {
-      const err = new Error(
-        `::: ${what} in ${where}: ".${seen[slot]}" and ".${w}" both answer "${slot}",\n` +
-        `  and one of them would be thrown away with nothing in the line to say which.\n` +
-        `  ${slot}: ${slots[slot].map(x => '.' + x).join(' | ')}`);
-      err.userFacing = true;
-      throw err;
-    }
-    seen[slot] = w;
-    out[slot] = w;
+function readTail(attrs, slots, what, where) {
+  const t = parseTail(attrs, slots, `::: ${what}`, { id: 'none' });
+  if (t.problems.length) {
+    const err = new Error(
+      `${t.problems[0].msg.replace(/^::: \w+:/, m => `${m.slice(0, -1)} in ${where}:`)}\n` +
+      slotTable(slots));
+    err.userFacing = true;
+    throw err;
+  }
+  const out = { written: {} };
+  for (const [slot, { value, written }] of Object.entries(t.slots)) {
+    out[slot] = value;
+    out.written[slot] = written;
   }
   return out;
 }
-
 // marked wraps a lone image in a <p> and passes a raw <figure> through as a
 // block, so the same divider written two ways produced two different trees -
 // and the side-by-side rule, which keys on the figure being a child of the
@@ -1947,7 +1752,7 @@ function renderBackdrop(bd, where) {
     err.userFacing = true;
     throw err;
   }
-  const o = parseSlotClasses(bd.attrs, BACKDROP_SLOTS, 'backdrop', where);
+  const o = readTail(bd.attrs, BACKDROP_SLOTS, 'backdrop', where);
   const cls = ['chunk-backdrop', `bd-${o.fill}`, `bd-${o.crop}`, `bd-${o.scrim}`, `bd-${o.focus}`,
                `bd-${o.layer}`];
   // The reveal is live-only, and that is not an omission. On paper a
@@ -2025,7 +1830,7 @@ function markCardLeads(lines) {
 }
 
 function renderCardsBlock(b) {
-  const o = parseSlotClasses(b.attrs, CARDS_SLOTS, 'cards', b.where);
+  const o = readTail(b.attrs, CARDS_SLOTS, b.rows ? 'rows' : 'cards', b.where);
   // An item is its `- ` line *plus its continuation lines* - the indented
   // lines under it that are not themselves list items. Counting the marker
   // line alone read `- **Measure**\` as one word and sized a row of full
@@ -2102,25 +1907,24 @@ function renderCardsBlock(b) {
     // lead-in question is a card question only.
     body = markCardLeads(b.lines);
   }
-  const wrote = String(b.attrs).split(/\s+/).map(w => w.replace(/^\./, ''));
   // A row's default anchor is `middle`, and a card's is `top`. The default
   // differs by construct because the constructs differ: a card is a block
   // of text in a box and reads from its first line, while a row is a term
   // *beside* a body, and a one-line term against a three-line body's first
-  // line reads as a mistake. parseSlotClasses cannot tell a written `top`
-  // from the defaulted one, so the written tail is what decides - and this
-  // has to run *before* the class list is built, which it did not at first.
-  if (b.rows && !wrote.includes('top') && !wrote.includes('middle')) o.anchor = 'middle';
+  // line reads as a mistake. `written` is what tells a written `top` from
+  // the defaulted one - and this has to run *before* the class list is
+  // built, which it did not at first.
+  if (b.rows && !o.written.anchor) o.anchor = 'middle';
   const cls = [b.rows ? 'cards rows' : 'cards', `cards-${b.n}`, `cs-${size}`, `ca-${align}`,
     `cv-${o.anchor}`, `cd-${o.detail}`, `cg-${o.ground}`, `ck-${o.corner}`,
     `cx-${o.scrim}`];
   // A scrim with no picture to veil is a word the drawing ignores, which
   // this format refuses rather than drops. Checked against the *written*
   // tail, so `{.veil}` alone is caught even though veil is the default.
-  if (o.ground !== 'photo' && wrote.some(w => CARDS_SLOTS.scrim.includes(w))) {
+  if (o.ground !== 'photo' && o.written.scrim) {
     const err = new Error(
-      `::: cards in ${b.where}: a scrim needs a picture to veil.\n` +
-      `  ${wrote.find(w => CARDS_SLOTS.scrim.includes(w))} applies to the photo ground; this row is ${o.ground}.`);
+      `::: ${b.rows ? 'rows' : 'cards'} in ${b.where}: a scrim needs a picture to veil.\n` +
+      `  ${o.scrim} applies to the photo ground; this row is ${o.ground}.`);
     err.userFacing = true;
     throw err;
   }
@@ -2134,7 +1938,7 @@ function renderCardsBlock(b) {
 function renderOverlayLayer(overlays, where) {
   if (!overlays || !overlays.length) return '';
   const cards = overlays.map((ov) => {
-    const o = parseSlotClasses(ov.attrs, OVERLAY_SLOTS, 'overlay', where);
+    const o = readTail(ov.attrs, OVERLAY_SLOTS, 'overlay', where);
     const body = marked.parse(ov.lines.join('\n'));
     // `from n` is the counterpart to a backdrop's reveal, and it is what
     // makes the picture half useful on a slide with no body to split: a
@@ -3082,59 +2886,26 @@ function initDiagrams() {
 
 // ── parsing ──────────────────────────────────────────────────────────
 
-function parseAttributeTail(text) {
-  const m = text.match(/^(.*?)\s*\{([^}]*)\}\s*$/);
-  // `classes` is always an array, including on the no-tail path: two callers
-  // read its length, and a heading with no {…} at all is by far the common
-  // case - it crashed every lecture whose first column heading carries no id.
-  if (!m) return { text: text.trim(), classes: [] };
-  // Every class token is recorded, recognised or not. Dropping the ones it
-  // did not know left the build silent on a typo while lint.js reported an
-  // unknown width - a linter stricter than the build, which is the one
-  // direction this project does not allow. The callers decide what is legal
-  // where; this only reads the line.
-  const out = { text: m[1].trim(), classes: [] };
-  const refuse = (msg) => {
-    const err = new Error(`{${m[2].trim()}} on "${out.text}": ${msg}`);
+// A heading line's tail, read through the shared parser and refused on the
+// first problem. Every class token is recorded, recognised or not, and the
+// callers decide what is legal where - a column heading takes an id and
+// nothing else, a title chunk refuses a width - because that is a question
+// about the line's place in the deck, which the parser cannot see.
+function parseAttributeTail(line) {
+  const { text, tail } = splitTail(line);
+  const t = parseTail(tail, CHUNK_SLOTS, `{${String(tail ?? '').trim()}} on "${text}"`, { id: 'one' });
+  if (t.problems.length) {
+    const err = new Error(t.problems[0].msg);
     err.userFacing = true;
     throw err;
-  };
-  // Every token is `.class` or `#id`, and one that is neither is refused
-  // rather than skipped. `{wide #id}` once parsed as a bare id and the
-  // width vanished without a word - the silent no-op this format refuses,
-  // and the one place in the grammar where the dot was optional by accident.
-  const answered = {};   // slot -> the class that answered it
-  for (const token of m[2].trim().split(/\s+/).filter(Boolean)) {
-    if (token.startsWith('.') && token.length > 1) {
-      const cls = token.slice(1);
-      // Width and each `style:` key are slots: two classes answering one
-      // would leave the last to win in silence. The same rule cards, rows,
-      // overlay, backdrop and side already apply.
-      const slot = VALID_WIDTHS.has(cls) ? 'width'
-        : CHUNK_STYLE_CLASSES[cls] ? CHUNK_STYLE_CLASSES[cls][0]
-        : cls;
-      if (answered[slot]) {
-        refuse(answered[slot] === cls
-          ? `.${cls} is written twice.`
-          : `.${answered[slot]} and .${cls} both answer "${slot}", and one of them\n` +
-            '  would be thrown away with nothing in the line to say which.');
-      }
-      answered[slot] = cls;
-      out.classes.push(cls);
-      if (VALID_WIDTHS.has(cls)) out.width = cls;
-      else if (CHUNK_STYLE_CLASSES[cls]) {
-        const [key, value] = CHUNK_STYLE_CLASSES[cls];
-        (out.styleOverrides ??= {})[key] = value;
-      }
-      else if (VALID_CHUNK_CLASSES.has(cls)) out[cls] = true;
-    } else if (token.startsWith('#') && token.length > 1) {
-      if (out.id !== undefined) refuse(`#${out.id} and ${token} are two ids for one heading.`);
-      out.id = token.slice(1);
-    } else {
-      refuse(`"${token}" is not a .class or an #id.\n` +
-        '  Every setting in a {…} tail is written with its dot: ' +
-        `{.${token.replace(/^[.#@!]/, '')}}.`);
-    }
+  }
+  const out = { text, classes: t.classes, id: t.id };
+  if (t.slots.width.written) out.width = t.slots.width.value;
+  if (t.slots.bare.written) out.bare = true;
+  if (t.slots.center.written) out.center = true;
+  for (const key of ['wrap', 'blocks']) {
+    if (!t.slots[key].written) continue;
+    (out.styleOverrides ??= {})[key] = CHUNK_STYLE_CLASSES[t.slots[key].value][1];
   }
   return out;
 }
@@ -3328,13 +3099,29 @@ function parseLecture(src) {
           body: dgBody,
           chunk: currentChunk ? currentChunk.id : null,
         });
-        target.push('', withAutoplay(diagramBlock.autoplay, diagramBlock.cycle, renderDiagram(dgBody, diagramBlock.attrs, {
+        // The compiler learns one thing from the opener, the grid, and takes
+        // it as the `unit=WxH` string it always has. The whole opener rides
+        // in the payload as one canonical line so the editor can write the
+        // block back verbatim without knowing the grammar.
+        target.push('', withAutoplay(diagramBlock.autoplay, diagramBlock.cycle, renderDiagram(dgBody, drawCompilerAttrs(diagramBlock), {
           // The block body's byte range in source.md. Emitted with the
           // diagram so the editor can patch exactly those bytes back.
           range: [diagramBlock.bodyAt, diagramBlock.bodyAt + dgBody.length],
           chunk: currentChunk ? currentChunk.id : null,
           width: currentChunk ? currentChunk.width : null,
-          where: currentChunk && currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id',
+          opener: formatDrawOpener(diagramBlock),
+          // Names the slide a broken figure is on. A divider figure has no
+          // chunk, and used to be reported as "a chunk with no id" even
+          // when its column had one.
+          where: currentChunk
+            ? (currentChunk.id ? `chunk #${currentChunk.id}`
+                               : currentChunk.heading ? `chunk "${currentChunk.heading}"`
+                                                      : 'an unnamed chunk')
+            : currentColumn
+              ? (currentColumn.id ? `the divider of column #${currentColumn.id}`
+                                  : currentColumn.heading ? `the divider of column "${currentColumn.heading}"`
+                                                          : 'an unnamed column divider')
+              : 'an unattached diagram',
           alt: currentChunk ? currentChunk.heading : '',
           base: diagramBase,
           onCompile: (model) => { for (const tag of model.tags.keys()) dgLectureTags.add(tag); },
@@ -3413,18 +3200,6 @@ function parseLecture(src) {
         }
         const h2Attr = parseAttributeTail(h2[1]);
         const { text, width, id, bare, center } = h2Attr;
-        // Same rule one heading level down: a class this tail does not know
-        // was dropped in silence here while lint.js called it an unknown
-        // width, so the two programs disagreed about a typo.
-        const strayCls = h2Attr.classes.find(c => !VALID_WIDTHS.has(c) && !VALID_CHUNK_CLASSES.has(c));
-        if (strayCls) {
-          const err = new Error(
-            `A chunk heading carries .${strayCls}, which is not a class this tail takes ("${text}").\n` +
-            `  Valid: ${[...VALID_WIDTHS].map(w => '.' + w).join(', ')}, ` +
-            `${[...VALID_CHUNK_CLASSES].map(c => '.' + c).join(', ')}.`);
-          err.userFacing = true;
-          throw err;
-        }
         const { tag, heading, headingSub } = parseTagPrefix(text);
         // A title or closing chunk is placed by its cover composition: both
         // renderers hardcode data-width="full", and the heading is the
@@ -3538,13 +3313,14 @@ function parseLecture(src) {
             err.userFacing = true;
             throw err;
           }
-          currentColumn.backdrop = { ref: colBd[1], attrs: colBd[2] || '', reveal: colBd[3] || null };
+          currentColumn.backdrop = { ref: colBd[1], attrs: colBd[2] ?? null, reveal: colBd[3] || null };
           continue;
         }
-        const colDraw = line.match(/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/);
+        const colDraw = parseDrawOpener(line);
         if (colDraw) {
-          const { autoplay, cycle, rest } = takeAutoplay(colDraw[1] || '');
-          diagramBlock = { attrs: rest, autoplay, cycle, lines: [], bodyAt: fmOffset + lineAt };
+          refuseDrawOpener(colDraw);
+          diagramBlock = { unit: colDraw.unit, autoplay: colDraw.autoplay, cycle: colDraw.cycle,
+                           lines: [], bodyAt: fmOffset + lineAt };
           continue;
         }
       }
@@ -3572,7 +3348,7 @@ function parseLecture(src) {
           }
           currentChunk.backdrop = {
             ref: backdropOpen[1],
-            attrs: backdropOpen[2] || '',
+            attrs: backdropOpen[2] ?? null,
             reveal: backdropOpen[3] || null,
           };
           continue;
@@ -3618,7 +3394,7 @@ function parseLecture(src) {
             throw err;
           }
           flushExpansion();
-          currentOverlay = { attrs: overlayOpen[1] || '', from: overlayOpen[2] || null, lines: [] };
+          currentOverlay = { attrs: overlayOpen[1] ?? null, from: overlayOpen[2] || null, lines: [] };
           continue;
         }
 
@@ -3746,9 +3522,9 @@ function parseLecture(src) {
             throw err;
           }
           cardsBlock = rowsOpen
-            ? { n: 1, rows: true, attrs: rowsOpen[1] || '', lines: [],
+            ? { n: 1, rows: true, attrs: rowsOpen[1] ?? null, lines: [],
                 where: currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id' }
-            : { n: cardsOpen[1], attrs: cardsOpen[2] || '', lines: [],
+            : { n: cardsOpen[1], attrs: cardsOpen[2] ?? null, lines: [],
                 where: currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id' };
           continue;
         }
@@ -3792,7 +3568,7 @@ function parseLecture(src) {
           const style = sideOpen[1]
             ? ` style="--side-a:${sideOpen[1]}fr;--side-b:${sideOpen[2]}fr"`
             : '';
-          const so = parseSlotClasses(sideOpen[3], SIDE_SLOTS, 'side',
+          const so = readTail(sideOpen[3] ?? null, SIDE_SLOTS, 'side',
             currentChunk && currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id');
           // Only the written word reaches the markup. `top` is what a bare
           // ::: side has always drawn, so emitting a class for it would
@@ -3836,15 +3612,16 @@ function parseLecture(src) {
         // DSL and compiled to inline SVG at build time. Like ::: embed it
         // earns its own directive rather than overloading a fence, because
         // the body is not markdown and must not be parsed as any.
-        const diagramOpen = line.match(/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/);
+        const diagramOpen = parseDrawOpener(line);
         if (diagramOpen) {
-          // `autoplay=N` is pulled out here and never reaches the compiler.
-          // Playback is not part of the drawing: the compiler's job ends at
-          // a set of per-beat geometries, and teaching it a wall-clock
-          // number would put a runtime concern in the one file that also
-          // runs in the editor, where there is no deck to play.
-          const { autoplay, cycle, rest } = takeAutoplay(diagramOpen[1] || '');
-          diagramBlock = { attrs: rest, autoplay, cycle, lines: [], bodyAt: fmOffset + lineAt };
+          // `autoplay N` and `cycle` are the host's and never reach the
+          // compiler. Playback is not part of the drawing: the compiler's
+          // job ends at a set of per-beat geometries, and teaching it a
+          // wall-clock number would put a runtime concern in the one file
+          // that also runs in the editor, where there is no deck to play.
+          refuseDrawOpener(diagramOpen);
+          diagramBlock = { unit: diagramOpen.unit, autoplay: diagramOpen.autoplay, cycle: diagramOpen.cycle,
+                           lines: [], bodyAt: fmOffset + lineAt };
           continue;
         }
         // Explicit-slide mode (§4.5). These two are the escape hatch from
@@ -11647,7 +11424,7 @@ function resettleAfterReveal() {
 }
 
 // ── ::: draw autoplay ──
-// A figure written {autoplay=N} walks its own steps once the slide is on
+// A figure written with autoplay N walks its own steps once the slide is on
 // screen. It calls advanceReveal(), so it IS the Space key on a timer:
 // one counter, one broadcast, one freeze gate, and the speaker view follows
 // without knowing this exists.
@@ -16874,7 +16651,7 @@ async function runSquint(absIn, viewport, outArg) {
   for (let i = 0; i < 2000; i++) {
     const st = await page.evaluate(squintScan);
     if (!st) break;
-    // A `{autoplay cycle}` diagram changes its own step on a timer, so its
+    // An autoplay-cycle diagram changes its own step on a timer, so its
     // signature never settles and the two-identical-states rule never fires.
     // Every other slide walks off it on the next key press; the last slide in
     // a deck has nowhere to walk to, and would press the key two thousand

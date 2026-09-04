@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Six gates, and they prove six different things – which is worth stating
+ * Eight gates, and they prove eight different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -17,13 +17,20 @@
  *   accepts    every construct the grammar offers still parses
  *   semantics  the emitted SVG means what the source says, and what the
  *              source means to the editor that rewrites it
- *   corpus     every block in the repository still compiles
+ *   corpus     every block in the repository still compiles, and each file
+ *              holds exactly the number of blocks it is said to
  *   step-classes  which classes a beat can actually carry, derived from the
  *              compiler's own table rather than restated
  *   inlined    the two characters that mean something else inside one of
  *              build.js's template literals: a raw backtick, which ends the
  *              literal, and a single-backslash regex escape, which the
  *              literal eats and which therefore ships
+ *   tails      the one {…} tail parser and the ::: draw opener parser in
+ *              tails.mjs: every code they can emit, the written-default rule,
+ *              and the formatter round trip
+ *   legacy-draw-syntax  the old braced ::: draw opener stays out of every
+ *              source.md, and every other survivor of it is on a reviewed
+ *              allowlist
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -41,6 +48,8 @@ const GATES = [
   './corpus.mjs',
   './step-classes.mjs',
   './inlined.mjs',
+  './tails.mjs',
+  './legacy-draw-syntax.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

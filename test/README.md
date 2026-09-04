@@ -2,9 +2,9 @@
 
 Two suites, split by one question: **can this be decided without a browser?**
 
-- **`test/gates/`** – everything about the figure language that can. Six gates,
-  440 assertions, under a second, no browser and no `npm install`. Run by
-  `gates.yml` on push and pull request.
+- **`test/gates/`** – everything about the figure language and the `{…}` tail
+  grammar that can. Eight gates, under a second, no browser and no
+  `npm install`. Run by `gates.yml` on push and pull request.
 - **`test/`** – the things that only break in a built page. 33 specs, ~834
   assertions, about five minutes, one Chromium for the whole run.
 
@@ -22,7 +22,7 @@ node test/run.mjs                   # all specs
 node test/run.mjs nav               # specs whose name matches
 ```
 
-## The gates: six contracts
+## The gates: eight contracts
 
 Both `diagram-core.mjs` and `lint.js` are zero-dependency, which is what makes
 this suite runnable with nothing installed.
@@ -32,9 +32,11 @@ this suite runnable with nothing installed.
 | `refusals` | build and lint agree on what is refused |
 | `accepts` | every construct still parses |
 | `semantics` | the emitted SVG *means* what the source says, plus what the source means to the editor that rewrites it – the span table |
-| `corpus` | every `::: draw` block in the repository still compiles |
+| `corpus` | every `::: draw` block in the repository still compiles, and each file holds exactly the number it is said to |
 | `step-classes` | which classes a beat can carry, derived from `DG_STEP_FIXED` rather than restated |
 | `inlined` | the two characters that mean something else inside build.js's own template literals |
+| `tails` | the one `{…}` tail parser and the `::: draw` opener parser in `tails.mjs`: every code, the written-default rule, the formatter round trip |
+| `legacy-draw-syntax` | the old braced `::: draw` opener stays out of every `source.md`; every other survivor is on the reviewed allowlist `legacy-draw-syntax.txt` |
 
 **`inlined` is about two characters and twelve literals.** A raw backtick ends
 the literal; a single-backslash regex escape is eaten by the literal and

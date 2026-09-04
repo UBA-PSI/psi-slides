@@ -935,13 +935,13 @@ export const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid un
 // This matters far more to the editor than to a terminal. `dgeSetSource`
 // rolls a refused edit back and shows `problems[0]` and nothing else, so
 // whichever problem lands first *is* the whole message a panel user gets.
-// Fence options the compiler does not own. `autoplay=N` and `cycle` say
+// Opener words the compiler does not own. `autoplay N` and `cycle` say
 // how a finished figure is *played*, which is a fact about the deck and not
 // about the drawing - and this file also runs inside the browser editor,
-// where there is no deck to play. Exported so the one vocabulary has one
-// home: build.js reads the values, lint.js checks them, the compiler steps
-// over them, and any future embedder is correct without being told.
-export const DG_HOST_OPTS = ['autoplay', 'cycle'];
+// where there is no deck to play. The host (build.js) reads them off the
+// opener through tails.mjs and hands this compiler only `unit=WxH`; the
+// compiler refuses anything else, so no embedder can pass a host word
+// through by accident.
 
 export const DG_PHASES = ['syntax', 'reference', 'semantic', 'layout'];
 export function dgErr(errors, line, msg, phase = 'syntax') { errors.push({ line, msg, phase }); }
@@ -1852,7 +1852,7 @@ export function dgArticle(word) {
 // sees labelled 4.
 export const DG_BARE_OPTS = { bars: ['stacked', 'horizontal'], sequence: ['unnumbered'] };
 // Options whose value is a ratio, `W:H`, rather than a number. `w` and `h` are
-// in *grid units*, and a grid cell is not square - at `unit=150x52` a plot
+// in *grid units*, and a grid cell is not square - on a 150x52 grid a plot
 // written `w 1.9 h 1.5` lands 285px by 78px, which is nobody's idea of 1.9 by
 // 1.5. `aspect` says the proportion the reader will actually see, and the
 // build works the other number out.
@@ -3014,20 +3014,13 @@ export function createDiagramCompiler(env = {}) {
     const layer = { defaults: model.defaults, tagDefaults: model.tagDefaults };
     const scopeWord = 'draw';
 
+    // The head attributes are the compiler's adapter string, not the source
+    // line: the host reads `::: draw WxH autoplay N cycle` and passes on the
+    // grid alone as `unit=WxH`. Anything else here is an embedder's mistake.
     for (const tok of String(headAttrs || '').trim().split(/\s+/).filter(Boolean)) {
       const m = tok.match(/^unit=(\d+)x(\d+)$/);
       if (m) { model.unit = [Number(m[1]), Number(m[2])]; continue; }
-      if (tok.startsWith('#')) { model.id = tok.slice(1); continue; }
-      // Options that belong to whoever embeds this compiler rather than to
-      // the drawing. Skipped rather than refused, because a fence carrying
-      // one is legal source and every embedder would otherwise have to
-      // strip it: build.js does (it needs the value), but the corpus gate
-      // and the browser editor compile blocks straight out of a file, and
-      // both broke on the first lecture that used one.
-      if (DG_HOST_OPTS.includes(tok.split('=')[0])) continue;
-      dgErr(errors, 0,
-        `unknown ::: draw option "${tok}" (expected #id, unit=WxH, ` +
-        `${DG_HOST_OPTS.join(' or ')})`);
+      dgErr(errors, 0, `unknown ::: draw option "${tok}" (expected unit=WxH)`);
     }
 
     // Returns whether the name is now this element's. A caller that would go on
@@ -3482,7 +3475,7 @@ export function createDiagramCompiler(env = {}) {
         // `space` on a table converted the way `grid` converts it, and for the
         // sentence `grid`'s own comment already gives: one number that meant
         // `uw` across and `uh` down produces two distances in the same drawing –
-        // measured at unit=150x52, 30.0 px between two columns and 10.4 px
+        // measured on a 150x52 grid, 30.0 px between two columns and 10.4 px
         // between two rows. A table is the one construct whose whole promise is
         // regularity, and its single spacing control was irregular by
         // construction. `grid` and `table` are read side by side and only one
@@ -4258,7 +4251,7 @@ export function createDiagramCompiler(env = {}) {
         }
         if (bad) continue;
         // `w` and `h` are grid units and a grid cell is not square, so a plot
-        // written `w 1.9 h 1.5` at unit=150x52 lands 285px by 78px - very wide
+        // written `w 1.9 h 1.5` on a 150x52 grid lands 285px by 78px - very wide
         // and very flat, which is not what those two numbers look like on the
         // page. `aspect 4:3` or `aspect 1:1` says the proportion the reader
         // actually sees and lets the build work the other number out.
@@ -4505,7 +4498,7 @@ export function createDiagramCompiler(env = {}) {
           // multiplied by the cell's width upright and its height flat, so
           // **adding the word `horizontal` to an existing `bars` line silently
           // rescaled its column spacing** – 30.0 px between columns upright and
-          // 10.4 px flat at unit=150x52, with the two words on the same line and
+          // 10.4 px flat on a 150x52 grid, with the two words on the same line and
           // nothing between them to suggest a connection. `horizontal` is
           // documented as a *reading* of the same chart, and every other number
           // on the line survives the flip because the expansion works in px
@@ -5619,7 +5612,7 @@ export function createDiagramCompiler(env = {}) {
           // against `uh` today, so `gap` was the outlier rather than the rule;
           // `uw` would contradict `pad`, the word an author reaches for on the
           // next line; and a dedicated unit adds a fence word nobody would set,
-          // when the author already writes `unit=150x52` and the clearance
+          // when the author already writes `::: draw 150x52` and the clearance
           // ruler is its second number, visible in the source.
           else if (place.dir === 'right' || place.dir === 'left') {
             cx = place.dir === 'right'
@@ -5892,7 +5885,7 @@ export function createDiagramCompiler(env = {}) {
   // the shapes at either end, where it is painted over and arrives at the
   // back of the room with its first and last syllables missing.
   //
-  // The tutorial shipped one. At `unit=126x38`, three boxes at `gap 1.05`
+  // The tutorial shipped one. On a 126x38 grid, three boxes at `gap 1.05`
   // leave 40 px of clear paper between them and the word `encrypted`
   // measures 71, so the room read `crypte`. Nothing said anything: the
   // compiler knew both numbers and compared them nowhere. Drawing order is
@@ -6674,7 +6667,7 @@ export function createDiagramCompiler(env = {}) {
       dgSortProblems(errors);
       const where = opts.where ? ` in ${opts.where}` : '';
       const err = new Error(
-        `::: draw${model.id ? ` #${model.id}` : ''}${where} has ${errors.length} problem(s):\n` +
+        `::: draw${where} has ${errors.length} problem(s):\n` +
         errors.map(e => `  ${e.line ? `line ${e.line} of the block: ` : ''}${e.msg}`).join('\n')
       );
       err.userFacing = true;
@@ -7007,6 +7000,10 @@ export function createDiagramCompiler(env = {}) {
       + JSON.stringify({
         body: String(body),
         attrs: String(headAttrs || ''),
+        // The opener line as the host formatted it, so the editor can
+        // rebuild the whole block without knowing the opener grammar - the
+        // compiler-only `attrs` above is not the line the author wrote.
+        opener: opts.opener || null,
         range: opts.range || null,
         chunk: opts.chunk || null,
         width: opts.width || null,

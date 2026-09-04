@@ -862,3 +862,334 @@ All six reviews are resolved in place; this list is the index.
   the tail change as well as after it (`node test/run.mjs select` on a
   stash of 87bcc86's parent: 34 passed, 3 failed). Environment or a real
   regression in the selection gesture – undecided, and outside this change.
+
+---
+
+## Implementation log
+
+Kept while implementing (session of 2026-09-04). Decisions and deviations
+from the plan above are marked **[decision]** / **[deviation]** with the
+reason; everything else landed as written.
+
+### What landed
+
+- [x] Item 1: `tails.mjs` – `CHUNK_SLOTS`, `CARDS_SLOTS`, `OVERLAY_SLOTS`,
+  `BACKDROP_SLOTS`, `SIDE_SLOTS`, `CHUNK_STYLE_CLASSES`, `VALID_WIDTHS`,
+  `VALID_CHUNK_CLASSES`, `SLOT_TABLES`, `splitTail`, `parseTail`, `slotTable`,
+  the collision assertion with the default exemption; plus (item 4)
+  `parseDrawOpener`, `formatDrawOpener`, `drawCompilerAttrs`,
+  `parseLegacyDrawTail`, `AUTOPLAY_MIN/MAX`, `DRAW_OPENER_EXAMPLE`.
+- [x] Item 1: build.js – `parseAttributeTail` is a thin adapter over
+  `splitTail` + `parseTail` (same return shape as before, so the h1/h2
+  callers did not move); `readTail()` replaces `parseSlotClasses` at the
+  backdrop, cards/rows, overlay and side sites and returns the resolved
+  values plus `written`. Column-heading refusal and the title/closing
+  refusal stay at the callers. Directive `attrs` are stored as `null` when
+  no braces were written (was `''`), so the parser can tell `{}` apart.
+- [x] Item 2: `renderCardsBlock` reads `o.written.anchor` and
+  `o.written.scrim`; the raw-tail re-split is gone.
+- [x] Item 1/3: lint.js – both parsers and all five mirrored tables deleted;
+  every tail goes through `parseTail`, every problem is reported under the
+  parser's code. `unknown-width`, `bad-{side,cards,rows,overlay,backdrop}-class`
+  and `unknown-diagram-option` no longer exist.
+- [x] Item 3: diagram-body codes – `name-in-tail`, `empty-tag`,
+  `stray-attribute`, `duplicate-removal`, `conflicting-class`;
+  `draw-defaults` non-class → `stray-attribute`. `bad-diagram-attribute` is
+  gone (asserted in `test/settings.mjs`).
+- [x] Item 4: opener grammar in all four callers; `DG_HOST_OPTS`, the skip
+  branch and the `#id` branch removed from `diagram-core.mjs`, the compiler
+  refuses `autoplay=` and `#id` as unknown options (gated); `takeAutoplay`
+  removed from build.js; `where` names chunk id / heading / divider column
+  id / heading per the review-5 expression (tested).
+- [x] Item 4: payload `opener` (serialised by `renderDiagram`), editor reads
+  `data.opener`, `dgeBlockText()` writes it verbatim; round trip pinned in
+  `test/editor-guides.mjs` (second fixture chunk `#rt`).
+- [x] Item 4: `tools/migrate-draw-opener.mjs` (dry run / `--write` /
+  `--check <root>`), run with `--write` on both repos: 13 files here, 2 in
+  mylectures; `--check` clean on both afterwards.
+- [x] Item 4: `test/gates/legacy-draw-syntax.mjs` + `.txt` (regenerated
+  with `--write` as the last step of the work; the row count is whatever
+  the checked-in file holds, not a number quoted here), registered in
+  `run.mjs` `GATES`; header and `test/README.md` say eight gates (six +
+  `tails` + `legacy-draw-syntax`).
+- [x] Item 4: corpus gate imports `parseDrawOpener`, synthesises
+  `unit=WxH`, records a refused opener as a failure, asserts per-file
+  counts, covers `decoration`.
+- [x] Tests: `test/gates/tails.mjs` (128 assertions: every code, written
+  defaults, `.auto` slot, formatter round trip, compiler refusal of host
+  words); `test/settings.mjs` gains the ten-row adapter matrix, the flag
+  spellings, `{.auto .left}` / `{.auto .large}`, rows/scrim `written`
+  cases, the opener refusals, the `where` diagnostics and the five
+  diagram-body codes.
+- [x] Item 5 / 1c: `CLAUDE.md` (lint-independence section, chunk-grammar
+  section, draw section, command comment), both figure skills, the
+  decoration skill, `PRD.md`, `CHANGELOG.md` (Unreleased → Changed),
+  `editor.md` §15, `test/README.md`, mylectures `HOUSE-STYLE.md`.
+- [x] Verification: all 29 lectures of both repos built before and after
+  the migration into a scratch dir; `print.html` / `print-notes.html`
+  byte-identical everywhere except the tutorial (its prose changed by
+  hand); in `audience.html` / `speaker.html` the only differences are the
+  inlined `diagram-core.mjs` / `editor.mjs` text, the new `opener` payload
+  field and the `range` offsets (every opener shrank by seven bytes). All
+  `psi-diagram-frames` payloads identical. `refresh-figures.mjs` re-run and
+  `--check` clean. `npm run gate` green (631 assertions after the review
+  pass, eight gates); `node test/settings.mjs` 408 passed; `node test/run.mjs` 855 passed and
+  the same three `text-select` Alt-drag assertions failing that the section
+  below recorded before this change. Migration `--check` clean on both
+  repos. The tracked views of `tutorial`, `diagrams` and `decoration` were
+  rebuilt; `decoration/print.html` is byte-identical and therefore
+  unchanged.
+
+### Decisions and deviations
+
+- **[decision] `CHUNK_SLOTS.width.default` is `null`, not `'standard'`** (1a
+  wrote `'standard'`). The chunk width default is per type – `outline` is
+  `wide` – and lives at the caller; a table default of `standard` would
+  have reported an outline chunk as resolving to a width it does not have.
+  The flags `bare` / `center` default to `false` as planned.
+- **[decision] Slot tables are `{ default, words }` objects** everywhere,
+  including the four directive tables that used to be arrays with the
+  default first. `slotTable()` prints `(default: .x)` only for a string
+  default.
+- **[decision] One message format, double quotes.** build.js and lint.js
+  used to quote tokens differently (`"width"` vs `'width'`); the shared
+  parser uses double quotes and the lint greps in `test/settings.mjs`
+  were updated accordingly. The phrases the tests grep (`is not a word this
+  directive knows`, `both answer "anchor"`, `is not a .word`, `is not a
+  .class or an #id`) are kept.
+- **[decision] `parseDrawOpener` is strict about order** – grid, then
+  `autoplay N`, then `cycle`; `::: draw autoplay 900 150x56` is
+  `stray-attribute` ("the grid comes first"). One spelling per line was the
+  point of the exercise, and the message always quotes the canonical form.
+- **[decision] `parseDrawOpener` reuses `parseLegacyDrawTail`** to spell
+  the exact new line in the refusal of an old opener
+  (`Write  ::: draw 150x56 autoplay 1400 cycle`), and adds "(a draw #id was
+  diagnostic only; drop it)" when the old tail carried one.
+- **[decision] The migration script lives in `tools/`** (new directory; the
+  repo had no home for a one-off tool). It scans all matches first and
+  writes nothing if any opener cannot be rewritten, rather than aborting on
+  the first – the hand-fix list is then complete after one run. Six
+  openers needed a hand fix before the first `--write`: the symbolic forms
+  in the figures skill, `CLAUDE.md`, `editor.md`, the tutorial heading,
+  `test/autoplay.mjs`'s header comment, and the negative test
+  `::: draw {cycle}` in `test/settings.mjs` (now `::: draw cycle`).
+- **[deviation] The migration excludes `test/settings.mjs` and
+  `test/gates/tails.mjs`** beyond the planned exclusion set: both hold the
+  old opener as negative tests on purpose, and `--check` would otherwise
+  never be clean. They are reviewed on the gate's allowlist instead.
+- **[deviation] The `cycle` inventory pattern is narrower than planned.**
+  `\{[^}]*\bcycle\b[^}]*\}` matched every JS object literal and template
+  placeholder that mentions `cycle` (`{ autoplay, cycle, rest }`,
+  `${cycle}`). The gate uses
+  `(?<!\$)\{[^}\n:,$]*\bcycle\b[^}\n:,$]*\}` – one line, no `:` `,` `$`
+  inside, which a draw tail never had and code always has.
+- **[deviation] `editor.md` is allowlistable.** The plan's "no current
+  authoring documentation" is enforced as: no `source.md`, nothing under
+  `.claude/`, not `figure-design.md`, `README.md`, `CLAUDE.md`, `PRD.md`,
+  `speaker.md`, nothing under `docs/site/`. `editor.md` is a spec and build
+  log; its one surviving row is the payload example `"attrs": "unit=130x76"`,
+  which is the compiler's adapter string and still true.
+- **[deviation] `unit=WxH` in build.js / diagram-core.mjs / editor.mjs
+  comments is allowlisted**, not rewritten: it names the compiler's
+  head-attribute adapter string, which still exists (`drawCompilerAttrs`).
+  Prose that meant the *opener* was rewritten to "on a 150x52 grid" /
+  "`::: draw 150x52`" instead, in skills, PRD, figure-design, editor.md,
+  the site's index pages and the three lecture sources.
+- **[deviation] Corpus count for the tutorial is 10, not 11.** The plan's
+  count was `grep -c '^::: draw'`, which includes one opener inside a
+  fenced syntax example; the extractor is fence-aware. Total corpus 134.
+- **[deviation] The chunk-grammar signature keeps `{.width #id}`.** Item 5
+  asked for one placeholder convention; `{…}` plus an example is applied
+  to every *directive* signature (backdrop, overlay, cards, rows, side) in
+  the skills and PRD. `## type: Heading | Sub {.width #id}` is the 1.0.0
+  grammar line quoted in README, CLAUDE.md, the tutorial and the skill
+  description, and rewriting it would have rebuilt tracked views for no
+  reader's benefit.
+- **[deviation] `--check-fit` was not run** on every lecture: the compiled
+  SVGs and frame payloads are byte-identical before and after, which is a
+  stronger statement than a fit walk. `docs/site/shoot-gallery.mjs` was not
+  executed either (needs a browser and an encoder, and rewrites the site's
+  images); its `DRAW` template was migrated and the same opener shape is
+  built by the settings tests.
+- **[decision] `readTail()` in build.js rewrites the parser's `::: side:`
+  prefix to `::: side in chunk #a:`** so the build's message keeps naming
+  the slide, as before, while the parser stays ignorant of where it is.
+- **[note] The 87bcc86 heading path recorded unknown classes silently in
+  `parseAttributeTail` and refused them at the h2 caller.** Now the parser
+  refuses them (`unknown-class`); the h2-site check was deleted. `classes`
+  records every written `.word`, known or not (the contract the plan
+  states; the first cut dropped unknown and repeated words and the review
+  caught it), so the linter reports `unknown-class` *and* `class-on-column`
+  for an unknown class on a column heading. The build's adapter throws on
+  the first problem, so there the message is the parser's `unknown-class`
+  one; a *known* class on a column heading still gets the dedicated
+  "carries .x" refusal.
+- **[deviation] `tails.mjs` is about 400 lines, not under 200** as 1c
+  wrote. The parsing and formatting code is roughly a third of it; the
+  rest is the slot tables with the comments that used to sit beside them
+  in build.js (why `plain` and not `clear`, why `over` exists, why a
+  written default is legal) and the contract comments on each export. The
+  property 1c protects is the zero-dependency boundary and "nothing pulled
+  in behind it", and both hold; shortening the module would have meant
+  deleting the reasoning that keeps the tables from being edited wrongly.
+  `CLAUDE.md` says "under 400 lines".
+- **[deviation] The syntax gate scans tracked *and* untracked-not-ignored
+  files** (`git ls-files` plus `--others --exclude-standard`), where the
+  plan said tracked. With tracked only, the new files (`tails.mjs`, the
+  migration tool, the negative tests in `test/gates/tails.mjs`) were
+  invisible to the gate until committed and would have failed it on the
+  first run after `git add`. Consequence worth knowing: this planning file
+  is on the allowlist with a count, so editing its old-form mentions means
+  regenerating the list (`node test/gates/legacy-draw-syntax.mjs --write`)
+  in the same commit – that is the "does not rot" rule doing its job.
+- **[found on the way] A backtick in a comment inside `AUDIENCE_JS`** (from
+  rewording `{autoplay=N}` to `` `autoplay N` `` at build.js:11427) broke
+  every build until the `inlined` gate named it. The comment now reads
+  "written with autoplay N". Exactly the trap CLAUDE.md describes.
+
+---
+
+## Post-implementation code review (Codex, 2026-09-04)
+
+**Status: all findings below resolved in place (second pass, same day);
+each item carries a note.** The shared-parser shape, the four opener
+callers, the editor payload, the corpus ratchet and the registered syntax gate
+are in place. The current contents of both repositories also pass the migration
+check. The remaining findings are edge cases in the reusable parser/migrator
+and two claims in this document that the implementation does not currently
+satisfy.
+
+### Blocking findings
+
+- [x] **[P1] The migration can emit an opener that the new parser refuses.**
+  *Resolved:* `validUnit()` in `tails.mjs` requires two positive sides;
+  `formatDrawOpener` throws on `0x56`; `parseLegacyDrawTail` now returns
+  `why` (the one sentence a caller prints) and names a zero-side grid;
+  `migrateText` leaves such a line alone and reports it; the old-opener
+  diagnostic falls back to the example line with "(the old tail has a zero
+  side …)" instead of recommending `::: draw 0x56`. `migrateText` itself is
+  tested end to end in `test/gates/tails.mjs` (eight refused rows, three
+  rewritten ones).
+  `migrateText('::: draw {unit=0x56}')` reports one change and produces
+  `::: draw 0x56` with no problem; `parseDrawOpener` then reports `bad-unit`.
+  The same hole is in `formatDrawOpener`: despite accepting only a valid field
+  set by contract, it checks the `WxH` shape but not that both sides are
+  positive. It also lets the old-opener diagnostic recommend that invalid new
+  line. Validate the numeric sides in the formatter, make the migration refuse
+  an invalid legacy grid before writing, and test `migrateText` itself (not
+  only the legacy reader and formatter separately).
+
+- [x] **[P1] A repeated legacy autoplay changes meaning silently.**
+  *Resolved:* `parseLegacyDrawTail` records `repeated` for `unit`,
+  `autoplay`, `cycle` and `#id`, and `why` says "writes autoplay twice -
+  which one was meant is not for a script to guess"; the migration refuses
+  the line, the parser's refusal message shows the example form rather than
+  a guessed line. Tested for all four fields. The old
+  build's `takeAutoplay` consumed the first occurrence and the compiler skipped
+  a later host option. `parseLegacyDrawTail` overwrites its field on every
+  match, so migrating
+  `::: draw {autoplay=900 autoplay=1200}` produces
+  `::: draw autoplay 1200`: first-wins became last-wins. Repeated fields are
+  ambiguous migration input and should abort (preferably all repeated legacy
+  `unit`, `autoplay`, `cycle` and `#id` fields), with a regression test around
+  the complete transform.
+
+- [x] **[P1] The promised cross-repository `--check` is only an old-opener
+  check.** *Resolved:* the tool now owns `LEGACY_TOKENS` (the five patterns)
+  and `isActiveSurface(rel)` – a `source.md` anywhere, anything under
+  `.claude/` or `docs/site/`, and every root-level `.md` except the history
+  exclusions, `editor.md`, `HANDOFF.md`, `CONTRIBUTING.md` and
+  `revision-implementation.md` – and `--check` scans *every* text file
+  under the root, reporting each old-form token on an active surface as
+  well as each file the write mode would change. The gate imports both
+  definitions (`unallowlistable = isActiveSurface`), so the single-checkout
+  gate and the cross-repository check cannot disagree about what "stale"
+  means. The first run of the new check found what the old one could not:
+  two stale mentions in mylectures' `HOUSE-STYLE.md` (a literal old opener
+  in the "Attribute tails" section and a `unit=112x40` in the figure
+  advice), both reworded; both repos are clean under the new check. Item 4 / review 6 requires it to report both files it would rewrite
+  *and any forbidden legacy token on an active authoring surface*. The script
+  only applies `OPENER_RE`, and even skips a file unless it contains
+  `::: draw`; an active document containing only symbolic `unit=WxH` or
+  `autoplay=N` therefore passes. The committed inventory gate covers this
+  checkout, but there is no corresponding token check for mylectures. Either
+  implement the documented active-surface inventory in `--check` for an
+  arbitrary root or explicitly narrow the acceptance contract and provide a
+  second cross-repository check.
+
+### Parser and diagnostic findings
+
+- [x] **[P2] Duplicate/out-of-order autoplay produces a false diagnostic and
+  a cascade.** *Resolved:* the parser tracks `sawAutoplay` / `sawCycle`; a
+  second `autoplay` is "written twice", one after `cycle` is "after cycle",
+  and either consumes its delay so nothing is read as a grid; a repeated
+  `cycle` says so. Rows added to the parser table plus three assertions on
+  the exact problem lists. `::: draw autoplay 900 autoplay 1200` says the second keyword
+  is “after cycle” although there is no cycle, then reads `1200` as a grid and
+  adds `bad-unit`. `::: draw cycle autoplay 900` has the same spurious grid
+  error. Track which keyword was actually seen, report duplicate vs.
+  out-of-order accurately, and consume the associated delay while recovering.
+  Add these rows to the parser table; the current matrix has no duplicate
+  opener keyword.
+
+- [x] **[P2] A formerly accepted no-space legacy opener is no longer an
+  opener to build or lint.** *Resolved:* the opener regex is
+  `/^:::\s+draw(?=\s|$|\{)/`, so `::: draw{unit=150x56}` is refused with
+  the new spelling in build and lint (one finding, body captured), and the
+  migration rewrites it; `::: drawing` stays `null`. Pinned in the parser
+  table, in `migrateText`'s tests and in the settings adapter tests. The old build's opener regex and the migration
+  regex both accept `::: draw{unit=150x56}`, but `parseDrawOpener` returns
+  `null` because of the
+  look-ahead after `draw`. If such a stale source misses migration, the parser
+  does not give the promised old-syntax refusal and the body falls through to
+  unrelated parsing. Recognise `{` after `draw` as a malformed legacy opener
+  (while keeping genuinely unrelated words such as `::: drawing` as `null`),
+  and pin the case in the parser plus adapter tests.
+
+- [x] **[P2] `parseTail().classes` does not match its documented return
+  contract.** *Resolved:* the plan's contract stands – every written
+  `.word` in written order, known or not – and the parser now honours it;
+  three gate assertions pin `.foo`, `.wide .full` and `.wide .wide`. The
+  lint adapter therefore reports `unknown-class` and `class-on-column`
+  together, which the settings tests now assert; the implementation-log
+  note was corrected to say what the build does (throws the first problem). The plan says “every `.word` in written order”, and build.js's
+  adapter comment says every class token is recorded. In fact, the `continue`
+  branches omit unknown and repeated words: `.bogus` returns `classes: []`,
+  and `.wide .full` returns only `['wide']`. Consequently the implementation
+  log's claim that lint emits both `unknown-class` and `class-on-column` for an
+  unknown class on a column heading is false; it emits only `unknown-class`.
+  Decide the intended contract, test it explicitly, and then either preserve
+  all written class tokens for contextual checks or correct the plan, adapter
+  comment and implementation-log claim together.
+
+### Documentation discrepancy
+
+- [x] **[P3] The architecture size claim changed without being recorded as a
+  deviation.** *Resolved:* recorded under "Decisions and deviations" with
+  the rationale (the tables' reasoning moved with them; the protected
+  property is the dependency boundary). Item 1c specifies a shared module under 200 lines;
+  `tails.mjs` is 396 lines and `CLAUDE.md` now says “under 400 lines”, while the
+  implementation log says everything not marked as a decision/deviation landed
+  as written. The zero-dependency boundary is the important property, so the
+  larger commented module may be reasonable; record the deviation and its
+  rationale (or split/shorten the module) rather than silently rewriting the
+  acceptance claim elsewhere.
+
+- [x] **[P3] The implementation log's allowlist count is stale.**
+  *Resolved:* the log no longer quotes a count; the file is regenerated with
+  `--write` as the last step and the gate holds it exact. It says
+  `legacy-draw-syntax.txt` has 21 rows; the checked-in inventory has 36 rows.
+  This is only bookkeeping, but an implementation log presented as the final
+  verification record should quote the generated artifact's actual count.
+
+### Verification performed in this review
+
+- `git diff --check`: clean.
+- `npm run gate`: green (597 assertions, eight gates).
+- `node test/settings.mjs`: 405 passed, 0 failed.
+- Migration `--check`: clean for this repository and
+  `../psi-slides-mylectures`; this validates current content, not the missing
+  symbolic-token behavior described above.
+- `node test/run.mjs`: 855 passed, 3 failed in 450.8 s. The failures are the
+  same three pre-existing `text-select` Alt-drag assertions already documented
+  above; no new browser failure appeared in this review run.

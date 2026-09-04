@@ -289,16 +289,19 @@ console.log('\nlayout generations');
 {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-auto-'));
   fs.writeFileSync(path.join(dir, 'source.md'),
-    '---\ntitle: T\n---\n\n## figure: F {#f}\n\n::: draw {unit=150x56 autoplay=900}\nbox a "A"\nbox b "B" right of a gap 1\n\nstep one\n  dim a\n:::\n');
+    '---\ntitle: T\n---\n\n## figure: F {#f}\n\n::: draw 150x56 autoplay 900\nbox a "A"\nbox b "B" right of a gap 1\n\nstep one\n  dim a\n:::\n');
   const r = spawnSync(process.execPath,
     [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
     { cwd: ROOT, encoding: 'utf8' });
-  ok(r.status === 0, 'a draw fence takes autoplay=N without the compiler refusing it',
+  ok(r.status === 0, 'a draw opener takes autoplay N without the compiler refusing it',
      (r.stdout || '') + (r.stderr || ''));
   if (r.status === 0) {
     const out = fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
     ok(/data-autoplay="900"/.test(out), 'and it lands on the figure as data-autoplay');
-    ok(!/unit=150x56 autoplay/.test(out), 'with the option no longer in the block source');
+    // The compiler sees the grid alone; the whole opener rides beside it as
+    // one canonical line, which is what the editor writes back.
+    ok(/"attrs":"unit=150x56"/.test(out), 'the compiler payload carries the grid and nothing else');
+    ok(/"opener":"::: draw 150x56 autoplay 900"/.test(out), 'and the payload carries the whole opener, formatted');
   }
 }
 
@@ -306,11 +309,11 @@ console.log('\nlayout generations');
 {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-cycle-'));
   fs.writeFileSync(path.join(dir, 'source.md'),
-    '---\ntitle: T\n---\n\n## figure: F {#f}\n\n::: draw {unit=150x56 autoplay=900 cycle}\nbox a "A"\nbox b "B" right of a gap 1\n\nstep one\n  dim a\n:::\n');
+    '---\ntitle: T\n---\n\n## figure: F {#f}\n\n::: draw 150x56 autoplay 900 cycle\nbox a "A"\nbox b "B" right of a gap 1\n\nstep one\n  dim a\n:::\n');
   const r = spawnSync(process.execPath,
     [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
     { cwd: ROOT, encoding: 'utf8' });
-  ok(r.status === 0, 'a draw fence takes autoplay=N with cycle', (r.stdout || '') + (r.stderr || ''));
+  ok(r.status === 0, 'a draw opener takes autoplay N with cycle', (r.stdout || '') + (r.stderr || ''));
   if (r.status === 0) {
     const out = fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
     ok(/data-autoplay="900" data-autoplay-cycle=""/.test(out),
@@ -323,7 +326,7 @@ console.log('\nlayout generations');
   }
   // cycle alone is meaningless and is refused rather than ignored.
   fs.writeFileSync(path.join(dir, 'source.md'),
-    '---\ntitle: T\n---\n\n## figure: F {#f}\n\n::: draw {cycle}\nbox a "A"\n:::\n');
+    '---\ntitle: T\n---\n\n## figure: F {#f}\n\n::: draw cycle\nbox a "A"\n:::\n');
   const bad = spawnSync(process.execPath,
     [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
     { cwd: ROOT, encoding: 'utf8' });
@@ -423,7 +426,7 @@ console.log('\nlayout generations');
   }
   // A figure in a column flow is the same defect the card row was.
   {
-    const r = refuses('::: cols 2\nsome prose\n\n::: draw {unit=140x52}\nbox a "A"\n:::\n\nmore prose\n:::\n');
+    const r = refuses('::: cols 2\nsome prose\n\n::: draw 140x52\nbox a "A"\n:::\n\nmore prose\n:::\n');
     ok(r.failed && /breaks the flow/.test(r.out),
        'and a ::: draw inside ::: cols is refused for the same reason', r.out.split('\n')[0]);
   }
@@ -625,7 +628,7 @@ console.log('\nlayout generations');
   // Every slot has to *do* something on a row or be refused - `anchor` did
   // neither: align-items was `center` unconditionally, so `top` and
   // `middle` rendered identically. The default differs by construct, which
-  // is why the written tail decides rather than parseSlotClasses.
+  // is why the parser's `written` flag decides rather than the resolved value.
   ok(/cards rows [^"]*cv-middle/.test(rows),
      'a row anchors its term to the middle by default');
   const rowsTop = mk('::: rows {.top}\n- **A** one line\n:::\n');
@@ -1921,12 +1924,12 @@ console.log('\nlayout generations');
   const sideBad = sideOf('::: side {.sideways}');
   ok(sideBad.code !== 0 && /is not a word this directive knows/.test(sideBad.out),
      'a word from no slot is refused rather than dropped');
-  ok(/bad-side-class/.test(lintOf(FM + '## free: A {#a}\n\n::: side {.sideways}\nP.\n::: flip\nQ.\n:::\n')),
+  ok(/unknown-class/.test(lintOf(FM + '## free: A {#a}\n\n::: side {.sideways}\nP.\n::: flip\nQ.\n:::\n')),
      'and the linter refuses it too, or the build accepts what the gate does not');
   const sideTwo = sideOf('::: side {.top .middle}');
   ok(sideTwo.code !== 0 && /both answer "anchor"/.test(sideTwo.out),
      'two words from one slot are refused, because one of them would be thrown away');
-  ok(/bad-side-class/.test(lintOf(FM + '## free: A {#a}\n\n::: side {.top .middle}\nP.\n::: flip\nQ.\n:::\n')),
+  ok(/same-slot/.test(lintOf(FM + '## free: A {#a}\n\n::: side {.top .middle}\nP.\n::: flip\nQ.\n:::\n')),
      'and the linter says the same');
   // One sigil rule for every {…} tail: a setting is written with its dot.
   // The dot was stripped here at first, so `{middle}` and `{.middle}` both
@@ -1935,7 +1938,7 @@ console.log('\nlayout generations');
   const sideNoDot = sideOf('::: side {middle}');
   ok(sideNoDot.code !== 0 && /"middle" is not a \.word/.test(sideNoDot.out) && /\{\.middle\}/.test(sideNoDot.out),
      'a slot word without its dot is refused, and the message spells it with one');
-  ok(/bad-side-class.*'middle' is not a \.word/.test(lintOf(FM + '## free: A {#a}\n\n::: side {middle}\nP.\n::: flip\nQ.\n:::\n')),
+  ok(/stray-attribute.*"middle" is not a \.word/.test(lintOf(FM + '## free: A {#a}\n\n::: side {middle}\nP.\n::: flip\nQ.\n:::\n')),
      'and the linter refuses the dotless word too');
   const cardsNoDot = raw(FM + '## free: A {#a}\n\n::: cards 2 {outline}\n- One\n- Two\n:::\n');
   ok(cardsNoDot.code !== 0 && /"outline" is not a \.word/.test(cardsNoDot.out),
@@ -1952,12 +1955,107 @@ console.log('\nlayout generations');
   const twoWidths = raw(FM + '## free: A {.wide .full #a}\n\nProse.\n');
   ok(twoWidths.code !== 0 && /both answer "width"/.test(twoWidths.out),
      'two widths on one chunk heading are refused');
-  ok(/same-slot.*both answer 'width'/.test(lintOf(FM + '## free: A {.wide .full #a}\n\nProse.\n')),
+  ok(/same-slot.*both answer "width"/.test(lintOf(FM + '## free: A {.wide .full #a}\n\nProse.\n')),
      'and the linter reports same-slot');
-  ok(/same-slot.*both answer 'wrap'/.test(lintOf(FM + '## free: A {.wrap-none .wrap-balance #a}\n\nProse.\n')),
+  ok(/same-slot.*both answer "wrap"/.test(lintOf(FM + '## free: A {.wrap-none .wrap-balance #a}\n\nProse.\n')),
      'as it does for two answers to one style key');
   ok(!/stray-attribute|same-slot/.test(lintOf(FM + '## free: A {.wide .bare .wrap-none #a}\n\nProse.\n')),
      'while one answer per slot is what the tail has always taken');
+
+  // ── one parser, both files: the adapter matrix ─────────────────────
+  // tails.mjs is proved on its own in test/gates/tails.mjs. What is left to
+  // prove here is the adapters: that build.js refuses with a userFacing error
+  // carrying the parser's message, and that lint.js reports the same source
+  // under the parser's code. One row per code per caller kind, following the
+  // id policy - a directive takes no id, so its first #id is stray-attribute
+  // and multiple-ids never fires there.
+  const matrix = [
+    ['stray-attribute', '## free: A {wide #a}\n\nProse.\n',                          /"wide" is not a \.class or an #id/],
+    ['stray-attribute', '## free: A {#a}\n\n::: cards 2 {outline}\n- One\n- Two\n:::\n', /"outline" is not a \.word/],
+    ['unknown-class',   '## free: A {.shown #a}\n\nProse.\n',                        /"\.shown" is not a class this tail takes/],
+    ['unknown-class',   '## free: A {#a}\n\n::: cards 2 {.sideways}\n- One\n- Two\n:::\n', /"\.sideways" is not a word this directive knows/],
+    ['same-slot',       '## free: A {.wide .full #a}\n\nProse.\n',                   /both answer "width"/],
+    ['same-slot',       '## free: A {#a}\n\n::: cards 2 {.auto .large}\n- One\n- Two\n:::\n', /both answer "size"/],
+    ['multiple-ids',    '## free: A {#a #b}\n\nProse.\n',                            /#a and #b are two ids for one heading/],
+    ['stray-attribute', '## free: A {#a}\n\n::: cards 3 {#x}\n- One\n- Two\n- Three\n:::\n', /"#x" - this directive takes no id/],
+    ['stray-attribute', '## free: A {}\n\nProse.\n',                                 /empty \{\}/],
+    ['stray-attribute', '## free: A {#a}\n\n::: side {}\nP.\n::: flip\nQ.\n:::\n',   /empty \{\}/],
+  ];
+  for (const [code, src, msg] of matrix) {
+    const b = raw(FM + src);
+    ok(b.code !== 0 && msg.test(b.out), `build refuses ${JSON.stringify(src.split('\n').find(l => /\{/.test(l)))} with the parser's message`, b.out.split('\n').slice(0, 3).join(' / '));
+    ok(new RegExp(`error\\s+${code}\\s`).test(lintOf(FM + src)), `and lint reports it as ${code}`, lintOf(FM + src).split('\n')[0]);
+  }
+  // (`## free: A {} {#a}` would not be that case: splitTail takes the last
+  // brace pair, so the `{}` there is heading prose.)
+  // The flags have no writable default, and the chunk tail invents none.
+  for (const w of ['.shown', '.left', '.top']) {
+    ok(/unknown-class/.test(lintOf(FM + `## free: A {${w} #a}\n\nProse.\n`)), `${w} on a chunk heading is unknown-class`);
+  }
+  // A word that is the default of two slots marks the first as written.
+  const autoLeft = raw(FM + '## free: A {#a}\n\n::: cards 2 {.auto .left}\n- One\n- Two\n:::\n');
+  // `cs-auto` never reaches the markup - the auto size resolves to a real
+  // size from the longest item - so the written align is what is checked.
+  ok(autoLeft.code === 0 && /ca-left/.test(autoLeft.html || ''), '{.auto .left} builds: .auto answers size, .left answers align', autoLeft.out.split('\n')[0]);
+  ok(/0 error\(s\)/.test(lintOf(FM + '## free: A {#a}\n\n::: cards 2 {.auto .left}\n- One\n- Two\n:::\n')), 'and lints clean');
+  // `written` is the fix for the raw-tail re-split: a rows block anchors
+  // middle unless the author wrote an anchor, and a scrim needs its photo.
+  const rowsPlain = raw(FM + '## free: A {#a}\n\n::: rows\n- **One**\n  body\n:::\n');
+  ok(rowsPlain.code === 0 && /cv-middle/.test(rowsPlain.html || ''), 'a bare ::: rows anchors middle');
+  const rowsTop = raw(FM + '## free: A {#a}\n\n::: rows {.top}\n- **One**\n  body\n:::\n');
+  ok(rowsTop.code === 0 && /cv-top/.test(rowsTop.html || ''), 'and a written .top is honoured, because it was written');
+  const veilNoPhoto = raw(FM + '## free: A {#a}\n\n::: cards 2 {.veil}\n- One\n- Two\n:::\n');
+  ok(veilNoPhoto.code !== 0 && /scrim needs a picture/.test(veilNoPhoto.out), 'a written default scrim with no photo is still refused');
+
+  // ── the ::: draw opener: positional grid, keyword playback ─────────
+  const drawOf = (open) => raw(FM + `## figure: F {#f}\n\n${open}\nbox a "A"\nbox b "B" right of a gap 1\n\nstep one\n  dim a\n:::\n`, ['--audience-only']);
+  const oldSpelling = drawOf('::: draw {unit=150x56 autoplay=1400 cycle}');
+  ok(oldSpelling.code !== 0 && /Write  ::: draw 150x56 autoplay 1400 cycle/.test(oldSpelling.out),
+     'the old braced opener is refused with the new spelling of that very line in the message', oldSpelling.out.split('\n')[0]);
+  ok(/stray-attribute.*::: draw 150x56 autoplay 1400 cycle/.test(lintOf(FM + '## figure: F {#f}\n\n::: draw {unit=150x56 autoplay=1400 cycle}\nbox a "A"\n:::\n')),
+     'and lint says the same under stray-attribute');
+  const lintOld = lintOf(FM + '## figure: F {#f}\n\n::: draw {unit=150x56}\nbox a "A"\nbox b "B" right of a gap 1\n:::\n');
+  ok((lintOld.match(/:\d+\s+error\s/g) || []).length === 1, 'a refused opener still captures its body: one finding, no cascade', lintOld);
+  ok(/bad-autoplay/.test(lintOf(FM + '## figure: F {#f}\n\n::: draw 150x56 cycle\nbox a "A"\n:::\n')), 'cycle without autoplay is bad-autoplay in lint');
+  const noSpace = raw(FM + '## figure: F {#f}\n\n::: draw{unit=150x56}\nbox a "A"\n:::\n');
+  ok(noSpace.code !== 0 && /Write  ::: draw 150x56/.test(noSpace.out), 'the old opener written without a space is refused by the build, not read as prose');
+  const lintNoSpace = lintOf(FM + '## figure: F {#f}\n\n::: draw{unit=150x56}\nbox a "A"\nbox b "B" right of a gap 1\n:::\n');
+  ok(/stray-attribute/.test(lintNoSpace) && (lintNoSpace.match(/:\d+\s+error\s/g) || []).length === 1, 'and lint refuses it as one finding with the body captured', lintNoSpace);
+  // An unknown class on a column heading: the parser's objection and the
+  // caller's contextual one, both, because `classes` records what was written.
+  const colUnknown = lintOf('---\ntitle: T\n---\n\n## title: {#title}\n\n# Part {.foo #p}\n\n## free: A {#a}\n\nProse.\n');
+  ok(/unknown-class/.test(colUnknown) && /class-on-column/.test(colUnknown), 'an unknown class on a column heading is unknown-class and class-on-column in lint', colUnknown);
+  ok(/bad-unit/.test(lintOf(FM + '## figure: F {#f}\n\n::: draw 150X56\nbox a "A"\n:::\n')), 'and a capital X is bad-unit');
+  const sized = drawOf('::: draw 150x56');
+  const unsized = drawOf('::: draw');
+  const viewBox = (h) => ((h || '').match(/<svg[^>]*viewBox="([^"]+)"/) || [])[1];
+  ok(sized.code === 0 && unsized.code === 0 && viewBox(sized.html) && viewBox(sized.html) !== viewBox(unsized.html),
+     'the positional WxH reaches the compiler as the grid: the viewBox differs from the default grid', `${viewBox(sized.html)} vs ${viewBox(unsized.html)}`);
+  ok(/"attrs":"unit=150x56"/.test(sized.html || '') && /"attrs":""/.test(unsized.html || ''),
+     'and the compiler payload is unit=150x56, or empty when no grid was written');
+
+  // ── a broken figure names the slide it is on ───────────────────────
+  const brokenChunk = raw(FM + '## figure: F {#f}\n\n::: draw\nbox a "A"\nedge a -> nowhere\n:::\n');
+  ok(brokenChunk.code !== 0 && /in chunk #f has/.test(brokenChunk.out), 'a broken chunk figure names its chunk', brokenChunk.out.split('\n')[0]);
+  const brokenDivider = raw('---\ntitle: T\n---\n\n## title: {#title}\n\n# Part one {#p1}\n\n::: draw\nbox a "A"\nedge a -> nowhere\n:::\n\n## free: A {#a}\n\nProse.\n');
+  ok(brokenDivider.code !== 0 && /in the divider of column #p1 has/.test(brokenDivider.out),
+     'a broken divider figure names its column rather than "a chunk with no id"', brokenDivider.out.split('\n')[0]);
+  const brokenNamed = raw('---\ntitle: T\n---\n\n## title: {#title}\n\n# Part one\n\n::: draw\nbox a "A"\nedge a -> nowhere\n:::\n\n## free: A {#a}\n\nProse.\n');
+  ok(brokenNamed.code !== 0 && /in the divider of column "Part one" has/.test(brokenNamed.out),
+     'or its heading when the column has no id', brokenNamed.out.split('\n')[0]);
+
+  // ── the diagram-body codes: one name per mistake ───────────────────
+  const dg = (body) => lintOf(FM + `## figure: F {#f}\n\n::: draw\n${body}\n:::\n`);
+  ok(/name-in-tail/.test(dg('box a "A" {#a}')), '#id in an element tail is name-in-tail');
+  ok(/empty-tag/.test(dg('box a "A" {@}')), 'an empty @ is empty-tag');
+  ok(/stray-attribute/.test(dg('box a "A" {tone-1}')), 'a bare word in an element tail is stray-attribute');
+  ok(/duplicate-removal/.test(dg('default box {.tone-1}\nbox a "A" {!tone-1 !tone-1}')), 'a repeated !class is duplicate-removal');
+  ok(/conflicting-class/.test(dg('box a "A" {.tone-1 !tone-1}')), '.class with !class is conflicting-class');
+  ok(/stray-attribute/.test(lintOf('---\ntitle: T\ndraw-defaults: |\n  default box {tone-1}\n---\n\n## title: {#title}\n\n## free: A {#a}\n\nProse.\n')),
+     'a non-.class in a draw-defaults tail is stray-attribute');
+  const lintSrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
+  ok(!/bad-diagram-attribute|bad-(side|cards|rows|overlay|backdrop)-class|unknown-width|unknown-diagram-option/.test(lintSrc),
+     'the retired codes are gone from lint.js');
   // The old refusal grew rather than moved: an unreadable line is still a
   // hard error and its message now names the tail as well as the ratio.
   const sideJunk = sideOf('::: side 2:1 wide');

@@ -40,7 +40,7 @@ figure you write today may need an edit. The editor is experimental too.
 
 ## figure: Types of memory unsafety | keeping two columns level {.full #unsafety}
 
-::: draw {unit=150x52}
+::: draw 150x52
 default box {.tone-2} w 1.05
 
 text tlab "Temporal" at 0,0 {.left .large}
@@ -89,7 +89,7 @@ int main(void) {
 }
 ```
 ::: flip
-::: draw {unit=150x52}
+::: draw 150x52
 default box {.tone-2 .sharp} w 1.5 pad 0.16
 
 box buf "Local variable: mystring\n(char[], 16 bytes)" at 0,0 h 1.5
@@ -120,7 +120,7 @@ step reached
 
 ## figure: Cipher Block Chaining, decryption | four beats and a routed arrow {.full #cbc}
 
-::: draw {unit=112x74}
+::: draw 112x74
 default box {.tone-3} w 0.82
 default box @dec {.round .tone-2} w 0.48
 default text {.mono}
@@ -187,7 +187,7 @@ Each `step` is one press of the forward key. The chaining arrows carry one waypo
 
 ## figure: Counter mode, encryption | twelve arrows nobody has to name {.full #ctr}
 
-::: draw {unit=104x66}
+::: draw 104x66
 default text {.mono}
 default box @enc {.round .tone-3}
 default box @stream {.tone-2}
@@ -264,7 +264,7 @@ step cipher
 
 ## figure: Identity lifecycle | three lines that hold the rows level {.full #lifecycle}
 
-::: draw {unit=176x56}
+::: draw 176x56
 default box {.tone-3} w 1.15
 default text {.small .muted}
 
@@ -323,7 +323,7 @@ step self
 
 ## figure: Message authentication | a drawing that follows the theme {.full #mac}
 
-::: draw {unit=150x60}
+::: draw 150x60
 image alice avatar-alice "Alice" w 0.42
 image eve   avatar-bob   "Eve"   right of alice gap 3.5 same as alice {.ghost @attack}
 image bob   avatar-bob   "Bob"   right of eve gap 3.5 same as alice
@@ -367,7 +367,7 @@ drawing can say it without a caption repeating it.
 
 ## figure: The pieces {.wide #primitives}
 
-::: draw {unit=130x76}
+::: draw 130x76
 box  a "Sender"
 box  b "Mix"        right of a gap 1.05
 box  c "Receiver"   right of b gap 1.05
@@ -384,7 +384,7 @@ edge b -> x {.dashed}
 
 ## figure: Alignment {.wide #alignment}
 
-::: draw {unit=140x70}
+::: draw 140x70
 default box {.tone-2}
 
 box a "one"                     at 0,0
@@ -406,7 +406,7 @@ edge a.left-0.8,a.cy -> a "from outside" {.muted}
 
 ## figure: Containers and braces {.wide #grouping}
 
-::: draw {unit=130x76}
+::: draw 130x76
 default box {.tone-1} w 1.0
 
 box r1 "Registration"  at 0,0
@@ -429,7 +429,7 @@ A `container` lays itself around its members and re-fits when they move. A `brac
 
 ## figure: The look of a thing | fill and family {.full #look}
 
-::: draw {unit=118x74}
+::: draw 118x74
 default box {.sharp} w 0.62 h 0.42
 
 # Every fill the vocabulary has, drawn over a line so that .clear and .paper
@@ -464,7 +464,7 @@ and `.clear` apart: one knocks the line out, the other lets it through.
 
 ## figure: One slot, seven members | and the one reading direction beside it {.full #outlines}
 
-::: draw {unit=118x74}
+::: draw 118x74
 default box {.sharp} w 0.62 h 0.42
 
 box  s1 "hex"      at 0,0 w 0.66 h 0.42 {.hex .tone-2}
@@ -512,7 +512,7 @@ it.
 
 ## figure: Two outlines argue with their own size {.full #outline-size}
 
-::: draw {unit=118x74}
+::: draw 118x74
 # Nothing here is given a width on purpose: the rectangle takes one, and the
 # other two are left to size themselves, which is the whole slide. Laid across
 # rather than down, because the diamond's cost is a comparison - it only reads
@@ -547,7 +547,7 @@ line still wins, that being a statement about this one element.
 
 ## figure: One channel, spelled the same in three places {.full #prominence}
 
-::: draw {unit=118x74}
+::: draw 118x74
 default box {.sharp} w 0.62 h 0.42
 
 # The three prominence words, on free text rather than on boxes: they occupy
@@ -592,7 +592,7 @@ than the last.
 
 ## figure: When the type does not fit the box {.full #typefit}
 
-::: draw {unit=118x74}
+::: draw 118x74
 # One width, three answers: leave the type as it is and let it run over the
 # border, shrink it until it fits, or let it fill the box in both directions.
 box g1 "a label that is too long" at 0,0 w 1.2 h 0.46 {.sharp}
@@ -618,7 +618,7 @@ one warning this lecture builds with.
 
 ## figure: Steps that move {.wide #motion}
 
-::: draw {unit=140x72}
+::: draw 140x72
 default box w 0.92
 
 box  cl "Client"  at 0,0
@@ -664,7 +664,7 @@ step all-again
 ## figure: Where the words sit {.full #justify}
 
 ::: side 1:1
-::: draw {unit=126x86}
+::: draw 126x86
 default box {.sharp} w 0.66 h 0.72
 
 # A tall box with a short label is the case these words exist for. Without
@@ -709,7 +709,7 @@ With more than one line **the whole block of lines moves, not the single line**,
 
 ## figure: Six statements that expand {.full #expand}
 
-::: draw {unit=150x62}
+::: draw 150x62
 bars f "20,19,17,12,11,10,9,9,8,7,6,5" at 0,0 w 2.4 h 1.0
 brace b1 over f-0,f-1,f-2 side bottom "Bin 1" pad 0.4 {.muted}
 brace b2 over f-3,f-4,f-5,f-6,f-7 side bottom "Bin 2" pad 0.4 {.muted}
@@ -735,7 +735,7 @@ step exception
 
 ## figure: A second run of columns {.full #series}
 
-::: draw {unit=150x64}
+::: draw 150x64
 # The same eight numbers, drawn twice. The second line lays no frame of its
 # own, it joins the first - and the first one's columns narrow for it, so the
 # pair takes the room a single run did.
@@ -758,7 +758,7 @@ text bn "stacked" below b gap 0.55 {.muted}
 
 ## figure: Columns laid flat | the same six numbers, twice {.full #flat}
 
-::: draw {unit=150x54}
+::: draw 150x54
 # The same values left and right. On the left a category is as wide as a
 # column, so it carries a number and the names would have to go elsewhere; on
 # the right the names are the axis. The same emph column in both figures, so
@@ -778,7 +778,7 @@ text incn "the names are the axis" below inc gap 0.55 {.small .muted}
 
 ## figure: A frame to draw in {.full #plot}
 
-::: draw {unit=150x58}
+::: draw 150x58
 # A ROC curve belongs in a square: both axes carry the same unit, and the
 # diagonal has to run at 45 degrees or the picture claims a slope it does not
 # have. w and h cannot say that - here 2.2 and 5.69 would stand side by side
@@ -821,7 +821,7 @@ step judge
 
 **A `plot` is a frame to draw in, not a chart library.** It lays down gridlines, axis labels and the two axis titles, plus a conversion, so that `roc@0.35` names a value in the plot's own units. That is resolved into an ordinary `roc.left+n` only once the block has been read, so a point may name a plot written further down.
 
-**`w` and `h` are counted in grid units, and a grid cell is not square. That is the trap.** At `unit=150x58` a `plot … w 1.9 h 1.5` comes out 285 by 87 pixels: the two numbers are a quarter apart, the picture more than three times. **`aspect W:H` states the proportion the reader actually sees** and lets the build work the missing number out. This ROC curve is therefore written `aspect 1:1` and comes out square, as two axes carrying the same unit should – the chance diagonal runs at 45 degrees, the only slope at which it says what it is called. `4:3`, `1:1` or a single number (that many wide to one tall) are all allowed; `w`, `h` and `aspect` together is an error, because two of the three can contradict each other. The same word and the same rule apply on `bars`.
+**`w` and `h` are counted in grid units, and a grid cell is not square. That is the trap.** On a `150x58` grid a `plot … w 1.9 h 1.5` comes out 285 by 87 pixels: the two numbers are a quarter apart, the picture more than three times. **`aspect W:H` states the proportion the reader actually sees** and lets the build work the missing number out. This ROC curve is therefore written `aspect 1:1` and comes out square, as two axes carrying the same unit should – the chance diagonal runs at 45 degrees, the only slope at which it says what it is called. `4:3`, `1:1` or a single number (that many wide to one tall) are all allowed; `w`, `h` and `aspect` together is an error, because two of the three can contradict each other. The same word and the same rule apply on `bars`.
 
 ## free: A curve, and the label beside it {.wide #plot-curves}
 
@@ -834,7 +834,7 @@ step judge
 
 ## figure: One size, two frames | two plots that can be compared {.full #sameframe}
 
-::: draw {unit=150x54}
+::: draw 150x54
 # Two frames meant to be compared. The left one writes its size out, the right
 # one points at it. The grey curve is the same in both: it is the reference
 # both sites are read against.
@@ -855,7 +855,7 @@ edge sb pb@0,pb@3.2 -- pb@8,pb@7.6 via pb@2,pb@4.4 pb@4,pb@5.2 pb@6,pb@6.8 {.smo
 
 ## figure: A raster does not follow the theme {.standard #raster}
 
-::: draw {unit=150x60}
+::: draw 150x60
 image swatch swatch w 0.6
 text  note "a raster keeps its own colours\nin every theme" right of swatch gap 0.9 -- swatch {.small .muted .left}
 :::
@@ -866,7 +866,7 @@ Cycle the themes with `A` and the raster image stays as it is, while boxes, arro
 
 ## figure: The road straight down | a flowchart {.wide #flowchart}
 
-::: draw {unit=132x70}
+::: draw 132x70
 default box {.tone-2}
 
 # The main road runs straight down and every branch leaves sideways: follow
@@ -902,7 +902,7 @@ edge d2 -> drop "no"  {.paper}
 
 ## figure: Three roles, one incident | a swimlane {.full #swimlane}
 
-::: draw {unit=118x72}
+::: draw 118x72
 # lanes draws the frame, the bands and the turned names in front of them. What
 # lies in the bands is placed one by one as everywhere else - against the
 # middle of a band (swim-1.cy) and against the frame (swim.left+n).
@@ -935,7 +935,7 @@ step answered
 
 ## figure: Leaves first, and the brackets follow | a tree {.full #tree}
 
-::: draw {unit=112x96}
+::: draw 112x96
 default box {.tone-2} w 1.35
 
 # The leaves are the fixed points, because they are what this is about. Every
@@ -978,7 +978,7 @@ step certificates
 
 ## figure: One line per row | a table {.full #table}
 
-::: draw {unit=150x54}
+::: draw 150x54
 # The heading is one string split on |; the data rows are the bare strings
 # under it. Every cell is an ordinary box and carries two generated tags,
 # @t-row-N and @t-col-N.
@@ -1011,7 +1011,7 @@ step every-one-has-an-answer
 
 ## figure: A protocol down the page | a sequence {.full #sequence}
 
-::: draw {unit=150x40}
+::: draw 150x40
 # The participants are lines of their own, because each needs a name to hold
 # on to and an attribute tail of its own. Everything below is either a message
 # (an arrow between two names) or a note.
@@ -1067,7 +1067,7 @@ step everything
 
 ## figure: What else a message can be {.wide #seqmore}
 
-::: draw {unit=140x44}
+::: draw 140x44
 sequence x at 0,0 unnumbered space 0.34
   actor c "Client"
   actor p "Proxy"
@@ -1104,7 +1104,7 @@ brace tun over tunnel side right "this is the payload" pad 0.35 {.muted .small}
 
 ## figure: A figure that plays itself | `autoplay` and `cycle` {.wide #autoplay}
 
-::: draw {unit=150x56 autoplay=1400 cycle}
+::: draw 150x56 autoplay 1400 cycle
 box  cr  "Crawler"                       {.tone-1}
 box  wb  "Web site"  right of cr  gap 1.5
 box  dt  "Detector"  right of wb  gap 1.5 {.tone-4}
@@ -1121,7 +1121,7 @@ step verdict
   label dt "Detected"
 :::
 
-**`autoplay=1400` walks this figure's beats by itself, and `cycle` starts again at the end.** One delay in milliseconds, the same for every beat. A cover figure moving while the room settles is the case it was built for; it stands on an ordinary slide here, because nothing about it is tied to a cover.
+**`autoplay 1400` walks this figure's beats by itself, and `cycle` starts again at the end.** One delay in milliseconds, the same for every beat. A cover figure moving while the room settles is the case it was built for; it stands on an ordinary slide here, because nothing about it is tied to a cover.
 
 **It calls the same advance the space bar does.** A counter of its own would have let the drawing and the beat counter drift apart, and the next keypress would have jumped. Because it *is* the counter, the speaker window follows through the ordinary sync and the freeze gate applies. `cycle` rewinds through the same counter, so the speaker window follows the rewind too.
 

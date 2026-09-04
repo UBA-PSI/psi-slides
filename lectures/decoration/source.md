@@ -191,7 +191,7 @@ the quotation divider in Part 1 comes out.
 
 # Cards, rows and panes {#grounds}
 
-::: draw {unit=140x54}
+::: draw 140x54
 box  cards "cards 3"  at 0,0 w 1.1 h 0.5 {.tone-2}
 box  rows  "rows"     below cards gap 0.5 same as cards {.tone-3}
 box  side  "side 2:1" below rows  gap 0.5 same as cards {.tone-1}
@@ -301,7 +301,7 @@ second one. Any two numbers work.
 On paper the panes stack one after the other and the ratio is ignored.
 
 ::: flip
-::: draw {unit=150x60}
+::: draw 150x60
 box a "2fr" at 0,0 w 1.9 h 1.9 {.tone-2}
 box b "1fr" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}
 :::
@@ -430,7 +430,7 @@ type above it, and each is still a row in the search index.
 > note: This slide has a heading, *The measurement loop*. It is in `print.html`
 > and in the search index, and it is not on the projection.
 
-::: draw {unit=150x56}
+::: draw 150x56
 box crawl "Crawler"         at 0,0
 box site  "Site"            right of crawl gap 2.0
 box score "Scoring service" below site gap 1.3
@@ -441,12 +441,12 @@ edge site -> score {.dashed}
 
 ## figure: A figure that walks itself {.full #autoplay .bare}
 
-> note: `{autoplay=1400 cycle}` walks the figure's steps on a timer once the
+> note: `autoplay 1400 cycle` walks the figure's steps on a timer once the
 > slide is on screen, and starts again at the end. The first key, click or
 > scroll *on this slide* stops it: once you have touched the figure it is
 > yours. It also declines to start on a slide you arrive at half-revealed.
 
-::: draw {unit=150x56 autoplay=1400 cycle}
+::: draw 150x56 autoplay 1400 cycle
 box  raw  "raw crawl"    at 0,0 w 1.0 {.tone-2}
 box  inst "instrumented" right of raw gap 1.4 w 1.0 {.tone-3}
 box  diff "difference"   below inst gap 1.0 w 1.0 {.tone-1}

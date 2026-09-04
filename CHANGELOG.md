@@ -7,6 +7,45 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Changed
+
+- **The `::: draw` opener has no braces: `::: draw 150x56 autoplay 1200 cycle`.**
+  It was the one block line whose tail held `key=value` options
+  (`{unit=150x56 autoplay=1200 cycle}`) where every other `{…}` in the format
+  holds sigil tokens – `.word`, `#word`, and inside a draw body `@word` and
+  `!word`. Now the grid is positional, as the ratio is on `::: side 2:1`,
+  and playback is two keywords after it. The old form is refused with the new
+  spelling of that very line in the message; `tools/migrate-draw-opener.mjs`
+  rewrites a whole repository (`--check` reports without writing). The
+  opener's `{#id}` is gone with the braces – it was stored and used for
+  nothing but the compiler's error prefix, which now names the chunk, or for a
+  divider figure the column, instead of "a chunk with no id". The compiler is
+  handed `unit=WxH` alone and refuses anything else; `DG_HOST_OPTS` no
+  longer exists. The figure's source payload carries the whole opener as one
+  formatted line, which is what the editor's clipboard tier writes – it used
+  to rebuild the opener from the compiler's attributes and so dropped
+  `autoplay` and `cycle` on every copy.
+- **One `{…}` tail parser for build.js and lint.js**, in the new zero-dependency
+  `tails.mjs`, together with the slot tables that were declared in both
+  files. A word from no slot is `unknown-class` on every tail (it was
+  `unknown-width` on a heading and `bad-side-class`, `bad-cards-class`,
+  `bad-rows-class`, `bad-overlay-class`, `bad-backdrop-class` on the
+  directives); two words from one slot are `same-slot`; a token without its
+  sigil, an `#id` on a directive, or an empty `{}` is `stray-attribute`. The
+  directive is named in the message, never in the code. Inside a draw body
+  `bad-diagram-attribute` is split into what it meant: `name-in-tail`,
+  `empty-tag`, `stray-attribute`, `duplicate-removal` and the previously
+  missing `conflicting-class`. No lecture ignored any of the old codes.
+- **A written default is now known to be written.** `::: rows` anchors
+  `middle` unless the author wrote an anchor, and a scrim with no photo is
+  refused even when the scrim word is the default – both used to re-split the
+  raw tail by hand; the parser's `written` flag answers them.
+- **Two new gates.** `tails` holds the shared parser to its contract without a
+  build; `legacy-draw-syntax` keeps the old opener out of every `source.md`
+  and inventories every other survivor against a reviewed allowlist. The
+  corpus gate now asserts how many blocks each file holds, and covers
+  `lectures/decoration/` too.
+
 ### Added
 
 - **`style: {bold: …}` and `style: {print-bold: …}` set how a `**bold**` phrase

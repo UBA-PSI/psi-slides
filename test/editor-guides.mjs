@@ -60,12 +60,22 @@ collapse: none
 
 ## figure: Guides {#fix}
 
-::: draw {unit=118x74}
+::: draw 118x74
 box a   "a"   at 0,0   w 0.6 h 0.4 {.tone-2}
 box mid "mid" at 0,1.2 w 0.6 h 0.4 {.tone-3}
 box b   "b"   below a gap 2.6 same as a {.tone-2}
 box c   "c"   at 3,4.2 w 0.6 h 0.4 {.tone-2}
 box d   "d"   at 3,5.6 w 0.6 h 0.4 {.tone-3}
+:::
+
+## figure: Round trip {#rt}
+
+::: draw 150x56 autoplay 1200 cycle
+box a "A"
+box b "B" right of a gap 1
+
+step one
+  dim a
 :::
 `;
 
@@ -328,6 +338,19 @@ export async function run({ page, report, walkTo, ed }) {
     note('written: ' + written);
     ok(/ at [a-z]\w*\.cx,5\.6 /.test(written || ''),
       'and the coincidence is written down as the relation it was all along', written);
+
+    // ── the opener survives the round trip ──
+    // The clipboard tier rebuilds the whole block from the payload. It used
+    // to spell the opener from the compiler's attrs, which had already lost
+    // `autoplay` and `cycle` - a figure copied out of the editor came back
+    // without its clock. The build now hands the editor the canonical line.
+    await leave();
+    ok(await walkTo('rt'), 'the deck walks on to the round-trip figure');
+    ok(await ed.open('rt'), 'the editor is open on the round-trip figure');
+    const block = await page.evaluate(() => dgeBlockText());
+    ok(block.startsWith('::: draw 150x56 autoplay 1200 cycle\n'),
+      'the block text starts with the opener verbatim, playback included', block.split('\n')[0]);
+    ok(/\nbox a "A"\n/.test(block) && block.endsWith('\n:::'), 'and the body and closer follow it');
   } finally {
     server.close();
   }

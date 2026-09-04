@@ -346,7 +346,7 @@ export async function run({ report }) {
   // ── a label wider than the room between the things it joins ───────
   // The compiler knows the label's width and knows the gap, and until this
   // check it compared them nowhere. The tutorial shipped the consequence: at
-  // `unit=126x38` three boxes at `gap 1.05` leave 40 px of clear paper and
+  // On a 126x38 grid three boxes at `gap 1.05` leave 40 px of clear paper and
   // the word `encrypted` measures 71, so the room read `crypte` – a clean
   // build, a clean lint and a broken slide.
   //

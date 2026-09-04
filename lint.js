@@ -5,15 +5,18 @@
  * Zero-dep – nothing from node_modules – so it runs as a pre-commit gate
  * without the Markdown/Shiki stack, and independent of build.js so the two
  * can evolve without sharing state. It re-states the parser's ground truth
- * rather than importing it: VALID_TAGS (the chunk types), VALID_WIDTHS, attribute-tail syntax,
- * fence-aware reveal splits, ::: directives.
+ * rather than importing it: VALID_TAGS (the chunk types), fence-aware reveal
+ * splits, ::: directives.
  *
- * The one exception is the diagram vocabulary, which comes from
- * diagram-core.mjs. That module is pure JS with no dependencies of its own,
- * so importing its *tables* costs this file nothing it was protecting, and it
- * removes thirteen copies that had to change in two files in one commit. The
- * rule there: tables only. A function would pull the whole compiler in behind
- * it.
+ * Two exceptions. The diagram vocabulary comes from diagram-core.mjs: that
+ * module is pure JS with no dependencies of its own, so importing its
+ * *tables* costs this file nothing it was protecting, and it removes
+ * thirteen copies that had to change in two files in one commit. The rule
+ * there: tables only. A function would pull the whole compiler in behind it.
+ * The {…} tail grammar and the ::: draw opener come from tails.mjs, which is
+ * the same kind of file - zero dependencies, tables plus a few pure parsing
+ * and formatting helpers, nothing behind it - so build.js and this file read
+ * every tail through one parser and cannot disagree about one.
  *
  * Usage:
  *   node lint.js <source.md>
@@ -37,26 +40,8 @@ const VALID_TAGS = new Set([
   'question', 'figure', 'exercise', 'free',
 ]);
 
-const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
-// The non-width classes an attribute tail may carry. Mirrors
-// VALID_CHUNK_CLASSES in build.js: `.bare` takes the heading off the slide
-// and leaves it in the TOC, in search and in the printed document;
-// `.center` sets the chunk's prose on a centre axis. Both are decisions
-// about the slide, so both are audience-only and the document is unchanged.
-// Mirrors CHUNK_STYLE_CLASSES in build.js: the other family in the tail,
-// each one a `style:` key and one of its values, spelled key-value so the
-// two forms are guessable from each other. Only `wrap` and `blocks` are in
-// it - the two settings whose right answer changes from slide to slide -
-// and both directions of both, because under a deck-wide `wrap: none` the
-// only way left to ask for balancing is to ask for it on the chunk.
-const CHUNK_STYLE_CLASSES = new Set([
-  'wrap-balance', 'wrap-none', 'blocks-center', 'blocks-left',
-]);
-// The `style:` key each class answers - the slot, for the same-slot check
-// that refuses `.wrap-none .wrap-balance` on one heading.
-const CHUNK_STYLE_KEYS = Object.fromEntries(
-  [...CHUNK_STYLE_CLASSES].map(c => [c, c.split('-')[0]]));
-const VALID_CHUNK_CLASSES = new Set(['bare', 'center', ...CHUNK_STYLE_CLASSES]);
+// The chunk tail's vocabulary (widths, `.bare`, `.center`, the `.wrap-*` /
+// `.blocks-*` style classes) is CHUNK_SLOTS in tails.mjs, imported below.
 // Mirrors COVER_RATIO_VARIANTS / COVER_IMAGE_VARIANTS in build.js: which
 // covers divide the slide, and which draw a picture of their own.
 const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
@@ -143,76 +128,10 @@ const STYLE_ENUMS = {
   'print-bold': ['plain', 'bold', 'italic', 'accent', 'accent-bold', 'accent-italic'],
 };
 
-// Mirrors BACKDROP_SLOTS / OVERLAY_SLOTS in build.js. Two words from one
-// slot is refused for the reason the diagram grammar refuses it: the second
-// lands, the first is thrown away, and nothing in the line says which.
-const BACKDROP_SLOTS = {
-  fill:  ['cover', 'contain'],
-  crop:  ['middle', 'top', 'bottom'],
-  scrim: ['veil', 'clear', 'invert'],
-  focus: ['sharp', 'blur'],
-  // Which side of the type the picture is on. `over` is the one that covers
-  // it, which is how a title is revealed *away* rather than added to.
-  layer: ['under', 'over'],
-};
-// Mirrors CARDS_SLOTS in build.js. The auto size is the build's - it
-// counts words in the source - but the vocabulary is shared.
-const CARDS_SLOTS = {
-  size:   ['auto', 'large', 'medium', 'small'],
-  align:  ['auto', 'left', 'center'],
-  anchor: ['top', 'middle'],
-  detail: ['fold', 'show', 'page'],
-  ground: ['panel', 'outline', 'clear', 'accent', 'paper', 'photo'],
-  corner: ['round', 'square'],
-  // `plain` and not `clear`: `clear` is already a ground in this same
-  // table, and a word in two slots of one table makes the second slot
-  // unreachable. build.js asserts that invariant at load.
-  scrim: ['veil', 'invert', 'plain'],
-  // `align` is the text inside the card, `anchor` where the block sits when
-  // the row is taller than it. Two questions, two slots, no shared word.
-};
-const OVERLAY_SLOTS = {
-  place:  ['center', 'top-left', 'top', 'top-right', 'left', 'right',
-           'bottom-left', 'bottom', 'bottom-right'],
-  ground: ['paper', 'ink', 'accent', 'clear', 'glass'],
-  width:  ['standard', 'narrow', 'wide', 'full'],
-};
-// Mirrors SIDE_SLOTS in build.js. One question beyond the ratio - where a
-// pane sits when the other is taller - spelled with the two words a card
-// row already uses for it. The block's switch and not each pane's: the tall
-// pane is what makes the row tall, so centring can only move the short one.
-const SIDE_SLOTS = {
-  anchor: ['top', 'middle'],
-};
-// Returns [] when the tail resolves, or one message per problem.
-// The dot is required, mirroring build.js: one sigil rule for every {…}
-// tail in the format, `.word` a setting, `#word` an id, `@word` a group.
-function slotProblems(attrs, slots) {
-  const out = [];
-  const seen = {};
-  const table = () => Object.entries(slots)
-    .map(([k, m]) => `${k}: ${m.map(w => '.' + w).join('|')}`).join(', ');
-  for (const raw of String(attrs || '').trim().split(/\s+/).filter(Boolean)) {
-    if (!raw.startsWith('.') || raw.length < 2) {
-      out.push(`'${raw}' is not a .word – every setting in a {…} tail is written `
-        + `with its dot, as on a chunk heading: {.${raw.replace(/^[.#@!]/, '')}}`);
-      continue;
-    }
-    const w = raw.slice(1);
-    const slot = Object.keys(slots).find(k => slots[k].includes(w));
-    if (!slot) {
-      out.push(`'.${w}' is not a word this directive knows – ${table()}`);
-      continue;
-    }
-    if (seen[slot]) {
-      out.push(`'.${seen[slot]}' and '.${w}' both answer '${slot}', `
-        + `and one of them would be thrown away with nothing in the line to say which`);
-      continue;
-    }
-    seen[slot] = w;
-  }
-  return out;
-}
+// The slot tables of ::: backdrop, ::: cards / ::: rows, ::: overlay and
+// ::: side, and the parser that reads a {…} tail against one, are imported
+// from tails.mjs - one parser for both files, so a linter stricter or laxer
+// than the build about a tail cannot happen by construction.
 
 // Mirrors build.js: the per-image inline cap, and the extension search order
 // used to resolve `![](fig-id)` shorthand. An asset over the cap fails the
@@ -323,8 +242,12 @@ import {
   DG_EDGE_ARROWS, DG_STEP_NAME,
   rejectHeadClassIn, rejectSlotPair, rejectStepClass,
   rejectClassOn, DG_WORD_OPTS, dgTakes, dgArticle,
-  DG_PLACED_HEADS, DG_PLACE_INTRO, dgNoPlacement, DG_HOST_OPTS,
+  DG_PLACED_HEADS, DG_PLACE_INTRO, dgNoPlacement,
 } from './diagram-core.mjs';
+import {
+  CHUNK_SLOTS, CHUNK_STYLE_CLASSES, CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS,
+  splitTail, parseTail, parseDrawOpener,
+} from './tails.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
 const ORPHAN_MIN = 2;
@@ -363,39 +286,15 @@ function splitFrontmatter(src) {
   return { body, fmLines, header };
 }
 
-function parseAttributeTail(text) {
-  const m = text.match(/^(.*?)\s*\{([^}]*)\}\s*$/);
-  if (!m) return { text: text.trim(), classes: [], ids: [], stray: [] };
-  // `stray` holds every token that is neither .class nor #id. The build
-  // refuses them; here they were dropped, so `{wide #id}` linted clean and
-  // built without its width.
-  const out = { text: m[1].trim(), classes: [], ids: [], stray: [] };
-  for (const tok of m[2].trim().split(/\s+/).filter(Boolean)) {
-    if (tok.startsWith('.') && tok.length > 1) out.classes.push(tok.slice(1));
-    else if (tok.startsWith('#') && tok.length > 1) out.ids.push(tok.slice(1));
-    else out.stray.push(tok);
-  }
-  return out;
-}
-
-// Width and each `style:` key are slots, so two classes answering one are
-// refused the way cards/rows/overlay/backdrop/side refuse them - the build
-// does the same. Returns lint messages, or none.
-function tailSlotProblems(classes) {
-  const out = [];
-  const answered = {};
-  for (const cls of classes) {
-    const slot = VALID_WIDTHS.has(cls) ? 'width'
-      : CHUNK_STYLE_KEYS[cls] || cls;
-    if (answered[slot]) {
-      out.push(answered[slot] === cls
-        ? `'.${cls}' is written twice`
-        : `'.${answered[slot]}' and '.${cls}' both answer '${slot}', and one of them `
-          + 'would be thrown away with nothing in the line to say which');
-    }
-    answered[slot] = cls;
-  }
-  return out;
+// A heading line's tail through the shared parser. Every problem it found
+// is reported under the parser's own code - stray-attribute, unknown-class,
+// same-slot, multiple-ids - and the callers add what only the line's place
+// in the deck can decide (a class on a column heading, a width on a cover
+// chunk).
+function parseAttributeTail(line, what) {
+  const { text, tail } = splitTail(line);
+  const t = parseTail(tail, CHUNK_SLOTS, what, { id: 'one' });
+  return { text, classes: t.classes, ids: t.ids, problems: t.problems };
 }
 
 // A file that *documents* this directive must not thereby *use* it. The scan
@@ -705,14 +604,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     for (const tok of m[1].trim().split(/\s+/).filter(Boolean)) {
       // `{#id}` is gone from the language: an element's name goes in front.
       if (tok.startsWith('#')) {
-        add(ln, 'error', 'bad-diagram-attribute', `'${tok}' – an element's name goes in front, `
+        add(ln, 'error', 'name-in-tail', `'${tok}' – an element's name goes in front, `
             + 'not in the tail. On a box, dot, text, image, container, brace or a chart it is the '
             + 'word after the statement; on an edge or a sequence message it is an optional word '
             + `before the arrow's first endpoint, as in 'edge ${tok.slice(1) || 'name'} a -> b'.`);
       }
       else if (tok.startsWith('@')) {
         if (tok.length > 1) { if (carries) tags.add(tok.slice(1)); out.tags.push(tok.slice(1)); }
-        else add(ln, 'error', 'bad-diagram-attribute', 'an empty @tag means nothing');
+        else add(ln, 'error', 'empty-tag', 'an empty @tag means nothing');
       }
       // `!class` removes that exact class – from a `default` layer, or from
       // the beat before it inside a `style` step. Additive syntax, so the only
@@ -723,7 +622,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
           add(ln, 'error', 'unknown-diagram-class',
               `unknown diagram class '${tok}' – valid: ${[...DG_CLASSES].map(c => '!' + c).join(', ')}`);
         } else if (out.removedClasses.includes(tok.slice(1))) {
-          add(ln, 'error', 'bad-diagram-attribute', `'${tok}' is written twice – one removal says it`);
+          add(ln, 'error', 'duplicate-removal', `'${tok}' is written twice – one removal says it`);
         } else out.removedClasses.push(tok.slice(1));
       }
       else if (tok.startsWith('.')) {
@@ -732,13 +631,13 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
               `unknown diagram class '${tok}' – valid: ${[...DG_CLASSES].map(c => '.' + c).join(', ')}`);
         } else out.classes.push(tok.slice(1));
       } else {
-        add(ln, 'error', 'bad-diagram-attribute',
-            `'${tok}' in {…} is not #id, .class, !class or @tag`);
+        add(ln, 'error', 'stray-attribute',
+            `'${tok}' in {…} is not a .class, !class or @tag`);
       }
     }
     for (const c of out.removedClasses) {
       if (out.classes.includes(c)) {
-        add(ln, 'error', 'bad-diagram-attribute', `'.${c}' and '!${c}' are both written – `
+        add(ln, 'error', 'conflicting-class', `'.${c}' and '!${c}' are both written – `
             + 'one tail cannot both add and remove a class. Keep one.');
       }
     }
@@ -2380,7 +2279,7 @@ function lintFile(filePath) {
             addFm(ln, 'error', 'unknown-diagram-class',
                   `unknown diagram class '${tok}' – valid: ${[...DG_CLASSES].map(c => '.' + c).join(', ')}`);
           } else if (!tok.startsWith('.')) {
-            addFm(ln, 'error', 'bad-diagram-attribute',
+            addFm(ln, 'error', 'stray-attribute',
                   `'${tok}' in a draw-defaults {…} tail is not a .class`);
           }
         }
@@ -2531,7 +2430,7 @@ function lintFile(filePath) {
     // a syntax example, not a diagram. build.js guards the same way, and a
     // linter that disagrees with the build is worse than none – this one
     // failed any lecture that documented the directive.
-    const diagramOpen = line.match(/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/);
+    const diagramOpen = parseDrawOpener(line);
     if (diagramOpen) {
       // A column heading's own slide may carry a figure - that is how a part
       // opens on a drawing. Outside both a chunk and a column there is
@@ -2539,39 +2438,12 @@ function lintFile(filePath) {
       if (!chunk && !col) {
         add(ln, 'error', 'stray-directive', '::: draw outside any chunk');
       }
-      for (const tok of (diagramOpen[1] || '').trim().split(/\s+/).filter(Boolean)) {
-        // `autoplay=N` is build.js's, not the compiler's: playback is not
-        // part of the drawing, so build.js strips it before the block is
-        // compiled. The linter has to know the word for the same reason -
-        // it never reaches the compiler's own option error.
-        // `cycle` repeats the walk. Bare word, and meaningless without a
-        // delay to repeat - the build says so and so does this.
-        if (tok === 'cycle') {
-          if (!/(^|\s)autoplay=/.test(diagramOpen[1] || '')) {
-            add(ln, 'error', 'bad-autoplay',
-                "'cycle' has no autoplay to repeat – write {autoplay=1200 cycle}");
-          }
-          continue;
-        }
-        const auto = tok.match(/^autoplay=(.*)$/);
-        if (auto) {
-          const n = Number(auto[1]);
-          if (!Number.isFinite(n) || n < 200 || n > 60000) {
-            add(ln, 'error', 'bad-autoplay',
-                `'${tok}' is not a delay in milliseconds between 200 and 60000 – `
-                + 'it is one delay for every step of the figure');
-          }
-          continue;
-        }
-        // DG_HOST_OPTS is imported rather than restated: the two words
-        // above are checked here in detail, and this is the gate that has
-        // to agree with the compiler about which words exist at all.
-        if (!tok.startsWith('#') && !/^unit=\d+x\d+$/.test(tok)
-            && !DG_HOST_OPTS.includes(tok.split('=')[0])) {
-          add(ln, 'error', 'unknown-diagram-option',
-              `unknown ::: draw option '${tok}' – expected #id, unit=WxH, autoplay=N or cycle`);
-        }
-      }
+      // The opener's grammar is the shared parser's, so what it refuses here
+      // is exactly what the build refuses. A refused opener is still an
+      // opener: the body is captured below either way, or its lines would
+      // fall into the Markdown walker and report a cascade of unrelated
+      // errors under one authored mistake.
+      for (const p of diagramOpen.problems) add(ln, 'error', p.code, p.msg);
       // Mirrors build.js: `.cols` is `column-count`, so it is a text flow,
       // and a figure placed in it breaks the flow - the figure appears, the
       // second column never fills, and the author who wrote `cols 2` gets
@@ -2598,16 +2470,8 @@ function lintFile(filePath) {
 
     if (h1) {
       flushChunk();
-      const attr = parseAttributeTail(h1[1]);
-      if (attr.ids.length > 1) {
-        add(ln, 'error', 'multiple-ids',
-            `column heading has ${attr.ids.length} {#id} tokens; only the first is used`);
-      }
-      for (const tok of attr.stray) {
-        add(ln, 'error', 'stray-attribute',
-            `'${tok}' in the {…} tail is not a .class or an #id – every setting is `
-            + `written with its dot: {.${tok.replace(/^[.#@!]/, '')}}`);
-      }
+      const attr = parseAttributeTail(h1[1], 'column heading');
+      for (const p of attr.problems) add(ln, 'error', p.code, p.msg);
       // A column heading takes an {#id} and nothing else - width and .bare
       // are a chunk's business. The build refuses them here; unmirrored, a
       // `.bare` written one heading level up parsed, was dropped, and neither
@@ -2637,20 +2501,9 @@ function lintFile(filePath) {
         col = { line: ln, heading: null, id: null, chunks: [] };
         columns.push(col);
       }
-      const attr = parseAttributeTail(h2[1]);
+      const attr = parseAttributeTail(h2[1], 'chunk heading');
       const id = attr.ids[0];
-      if (attr.ids.length > 1) {
-        add(ln, 'error', 'multiple-ids',
-            `chunk heading has ${attr.ids.length} {#id} tokens; only the first is used`);
-      }
-      for (const tok of attr.stray) {
-        add(ln, 'error', 'stray-attribute',
-            `'${tok}' in the {…} tail is not a .class or an #id – every setting is `
-            + `written with its dot: {.${tok.replace(/^[.#@!]/, '')}}`);
-      }
-      for (const msg of tailSlotProblems(attr.classes)) {
-        add(ln, 'error', 'same-slot', msg);
-      }
+      for (const p of attr.problems) add(ln, 'error', p.code, p.msg);
       const tagMatch = attr.text.match(/^([a-z]+):\s*(.*)$/);
       let tag = null, heading = attr.text;
       if (tagMatch) {
@@ -2662,12 +2515,11 @@ function lintFile(filePath) {
               `unknown chunk type '${tagMatch[1]}:' – valid: ${[...VALID_TAGS].join(', ')}`);
         }
       }
+      // An unknown class is the parser's (`unknown-class`, above); what is
+      // left to decide here is a class the tail knows on a chunk that cannot
+      // act on it.
       for (const cls of attr.classes) {
-        if (!VALID_WIDTHS.has(cls) && !VALID_CHUNK_CLASSES.has(cls)) {
-          add(ln, 'error', 'unknown-width',
-              `unknown class '.${cls}' – valid: ${[...VALID_WIDTHS].map(w => '.' + w).join(', ')}`
-              + `, or ${[...VALID_CHUNK_CLASSES].map(c => '.' + c).join(', ')}`);
-        } else if ((tag === 'title' || tag === 'closing') && !CHUNK_STYLE_CLASSES.has(cls)) {
+        if ((tag === 'title' || tag === 'closing') && !(cls in CHUNK_STYLE_CLASSES)) {
           // Both are placed by the cover composition: full width, and a
           // heading that is the composition's rather than the slide's. The
           // build refuses these; unmirrored, the two disagreed about a class
@@ -2738,8 +2590,8 @@ function lintFile(filePath) {
       } else {
         bdHost.backdropSeen = ln;
       }
-      for (const msg of slotProblems(backdropOpen[2], BACKDROP_SLOTS)) {
-        add(ln, 'error', 'bad-backdrop-class', `::: backdrop: ${msg}`);
+      for (const p of parseTail(backdropOpen[2], BACKDROP_SLOTS, '::: backdrop').problems) {
+        add(ln, 'error', p.code, p.msg);
       }
       // `reveal` is a comma list of places, one per beat. Mirrored because
       // the shape is decidable from the line alone; which asset it names is
@@ -2785,8 +2637,8 @@ function lintFile(filePath) {
             + 'from 1 up; beat 0 is the beat the slide opens on, which is what writing '
             + 'no `from` already says');
       }
-      for (const msg of slotProblems(overlayOpen[1], OVERLAY_SLOTS)) {
-        add(ln, 'error', 'bad-overlay-class', `::: overlay: ${msg}`);
+      for (const p of parseTail(overlayOpen[1], OVERLAY_SLOTS, '::: overlay').problems) {
+        add(ln, 'error', p.code, p.msg);
       }
       if (activeDirective) {
         add(ln, 'error', 'nested-directive',
@@ -2816,8 +2668,8 @@ function lintFile(filePath) {
     }
     if (cardsOpen || rowsOpen) {
       const kind = rowsOpen ? 'rows' : 'cards';
-      for (const msg of slotProblems((rowsOpen ? rowsOpen[1] : cardsOpen[2]), CARDS_SLOTS)) {
-        add(ln, 'error', `bad-${kind}-class`, `::: ${kind}: ${msg}`);
+      for (const p of parseTail((rowsOpen ? rowsOpen[1] : cardsOpen[2]), CARDS_SLOTS, `::: ${kind}`).problems) {
+        add(ln, 'error', p.code, p.msg);
       }
       // Mirrors build.js: a card row is N containers side by side, so it
       // needs the whole measure, and every directive that could enclose it
@@ -2850,8 +2702,8 @@ function lintFile(filePath) {
           + 'write ::: side, ::: side 2:1, or ::: side {.middle}');
     }
     if (sideOpen) {
-      for (const msg of slotProblems(sideMatch[1], SIDE_SLOTS)) {
-        add(ln, 'error', 'bad-side-class', `::: side: ${msg}`);
+      for (const p of parseTail(sideMatch[1], SIDE_SLOTS, '::: side').problems) {
+        add(ln, 'error', p.code, p.msg);
       }
     }
     const flipMark = /^:::\s+flip\s*$/.test(line);

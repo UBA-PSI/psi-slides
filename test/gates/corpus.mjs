@@ -28,16 +28,23 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeCore, ROOT } from './harness.mjs';
+import { parseDrawOpener, drawCompilerAttrs } from '../../tails.mjs';
 
 export const name = 'every corpus figure compiles';
 
+// Each with the number of blocks it holds, asserted exactly: a census that
+// counts whatever it finds passes vacuously the day the opener grammar moves
+// and the extractor matches nothing. When a lecture gains or loses a figure,
+// the number changes in the same commit.
 const FILES = [
-  'lectures/diagrams/source.md',
-  'lectures/network-security/source.md',
-  'docs/artifact/figure-rules/source.md',
-  // Six compiled blocks, four tracked views, published by the Pages job. Left
-  // out of a corpus census it is invisible.
-  'lectures/tutorial/source.md',
+  ['lectures/diagrams/source.md', 29],
+  ['lectures/network-security/source.md', 36],
+  ['docs/artifact/figure-rules/source.md', 55],
+  // Ten compiled blocks (an eleventh opener sits in a code fence as a syntax
+  // example), four tracked views, published by the Pages job.
+  // Left out of a corpus census it is invisible.
+  ['lectures/tutorial/source.md', 10],
+  ['lectures/decoration/source.md', 4],
 ];
 
 // A ratchet, not a snapshot. Three of the warnings below are deliberate – the
@@ -57,7 +64,10 @@ const FILES = [
 const WARNING_CEILING = 3;
 
 // Extract `::: draw` blocks the way lint.js does: fence-aware, because a
-// block inside a code fence is a syntax example and must not be compiled.
+// block inside a code fence is a syntax example and must not be compiled,
+// and through the shared opener parser. A refused opener is still a block -
+// it is recorded with its problems rather than dropped, or a stale spelling
+// would silently shrink the corpus.
 export function blocks(src) {
   const lines = src.split('\n');
   const out = [];
@@ -72,8 +82,8 @@ export function blocks(src) {
     }
     if (fence) { if (cur) cur.body.push(ln); continue; }
     if (!cur) {
-      const m = ln.match(/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/);
-      if (m) cur = { head: m[1] || '', body: [], line: i + 1 };
+      const o = parseDrawOpener(ln);
+      if (o) cur = { head: drawCompilerAttrs(o), problems: o.problems, body: [], line: i + 1 };
     } else if (/^:::\s*$/.test(ln)) { out.push(cur); cur = null; }
     else cur.body.push(ln);
   }
@@ -86,13 +96,18 @@ export async function run({ report }) {
   const warnings = [];
   let n = 0;
 
-  for (const rel of FILES) {
+  for (const [rel, expected] of FILES) {
     const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
     const found = blocks(src);
+    ok(found.length === expected, `${rel} holds ${expected} block(s)`, `found ${found.length}`);
     for (const b of found) {
       n++;
       const { core, warns } = makeCore();
       const where = `${rel}:${b.line}`;
+      if (b.problems.length) {
+        failures.push(`${where}\n      ${b.problems.map(p => p.msg).join('\n      ')}`);
+        continue;
+      }
       try {
         core.renderDiagram(b.body.join('\n'), b.head, {});
         for (const w of warns) warnings.push(`${where}  ${w}`);

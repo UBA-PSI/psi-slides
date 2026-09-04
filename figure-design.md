@@ -311,7 +311,7 @@ clipped, and what reaches the back of the room is the middle of the word. The
 build says so and gives you both numbers, because the fix is a number.
 
 ```
-# wrong: at unit=126x38, gap 1.05 leaves 40px of paper and "encrypted" needs 71
+# wrong: on a 126x38 grid, gap 1.05 leaves 40px of paper and "encrypted" needs 71
 box src "Sender"
 box mix "Mix"      right of src gap 1.05
 edge src -> mix "encrypted"
@@ -854,7 +854,7 @@ sequence s at 0,0
 ## Charts: six decisions the grammar will not make for you
 
 **Say what shape the chart is with `aspect`, not with `w` and `h`.** Those two
-are counts of *grid cells*, and a grid cell is not square: at `unit=150x52` a
+are counts of *grid cells*, and a grid cell is not square: on a `150x52` grid a
 plot written `w 1.9 h 1.5` arrives 285 pixels by 78, which is very wide and
 very flat and looks nothing like the two numbers that produced it. It is the one
 place where the coordinate grid shows through into a decision about the picture,

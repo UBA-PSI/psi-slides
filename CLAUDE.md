@@ -53,6 +53,8 @@ node build.js <source.md> --optimize-images --max-width 2600   # also downscale
 
 # diagrams need no flag either: a ::: draw block compiles to inline SVG
 # at build time, and its `step` blocks become beats on the reveal counter.
+# The opener is `::: draw [WxH] [autoplay N [cycle]]` - the grid positional,
+# playback as keywords, no braces (braces hold sigil tokens only, everywhere).
 # See the `psi-slides-figures` skill and lectures/diagrams/source.md.
 # The graphical editor for those blocks ships into the live views whenever
 # the lecture has one; `editor: none` in the frontmatter declines it, and
@@ -152,7 +154,7 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 
 `build.js` holds the entire rendering stack: parser, three renderers, inlined audience/speaker runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file, and a large one – roughly two thirds of it is the embedded CSS and runtime JS, so the Node-side build logic is much smaller than the file size suggests.
 
-**`diagram-core.mjs` is the one documented exception**, and the reason is narrow: the graphical editor answers a drag by rewriting the source and re-running the compiler *in the browser*, so exactly one text has to compile a diagram in Node and in the page. Two copies of a 6,500-line compiler is not a duplication anyone can maintain. The file is pure JS with **zero imports and zero Node APIs**; the four leaves that were Node-only (asset resolution, aspect reading, the warning sink, `escapeHtml`) plus a fifth (`assetMarkup`, which splices a vector file inline) are injected by `createDiagramCompiler({…})`. build.js keeps those leaves, the diagram CSS and the step runtime. The move also *removes* a duplication: `lint.js` imports the vocabulary tables instead of mirroring them by hand – tables only, never a function, or the whole compiler comes in behind it and the linter stops being runnable without the Markdown/Shiki stack. See `editor.md` §8.1.
+**`diagram-core.mjs` is the one documented exception** (with `tails.mjs`, the tail grammar shared with `lint.js`, as a much smaller second – see *lint.js is independent* below), and the reason is narrow: the graphical editor answers a drag by rewriting the source and re-running the compiler *in the browser*, so exactly one text has to compile a diagram in Node and in the page. Two copies of a 6,500-line compiler is not a duplication anyone can maintain. The file is pure JS with **zero imports and zero Node APIs**; the four leaves that were Node-only (asset resolution, aspect reading, the warning sink, `escapeHtml`) plus a fifth (`assetMarkup`, which splices a vector file inline) are injected by `createDiagramCompiler({…})`. build.js keeps those leaves, the diagram CSS and the step runtime. The move also *removes* a duplication: `lint.js` imports the vocabulary tables instead of mirroring them by hand – tables only, never a function, or the whole compiler comes in behind it and the linter stops being runnable without the Markdown/Shiki stack. See `editor.md` §8.1.
 
 Navigate build.js by the `// ── section ──` banners – `grep -n '^// ── ' build.js`
 lists all forty in order, which is the map that cannot go stale. Two of them carry
@@ -175,13 +177,13 @@ Design implications:
 
 ### lint.js is independent
 
-`lint.js` is a **zero-dep** linter – nothing from `node_modules`, so it runs as a pre-commit gate without the Markdown/Shiki stack. It deliberately does not import anything from `build.js`; it re-implements the parsing contract and mirrors the constants (`VALID_TAGS`, `VALID_WIDTHS`, `DENSITY_BUDGET`, `VIEW_DEFAULTS`). When you change the parser vocabulary in `build.js`, update `lint.js` in the same commit – the duplication is the price paid for keeping the linter runnable without the Markdown/Shiki stack.
+`lint.js` is a **zero-dep** linter – nothing from `node_modules`, so it runs as a pre-commit gate without the Markdown/Shiki stack. It deliberately does not import anything from `build.js`; it re-implements the parsing contract and mirrors the constants (`VALID_TAGS`, `DENSITY_BUDGET`, `VIEW_DEFAULTS`). When you change the parser vocabulary in `build.js`, update `lint.js` in the same commit – the duplication is the price paid for keeping the linter runnable without the Markdown/Shiki stack.
 
-**The four `::: draw` refusals live in the `psi-slides-figures` skill**, with the reasoning each one encodes. The **diagram vocabulary is the exception** to this file's no-imports rule: it is imported from `diagram-core.mjs`, which has no dependencies of its own, so importing it costs nothing this file was protecting and removes every table that used to have to change in two places in one commit. **Tables only.** A function from that module would pull the whole compiler in behind it – with the one bend recorded in the `psi-slides-figures` skill, for rules that ARE the vocabulary.
+**Two exceptions to that no-imports rule, and both are the same kind of file.** The **diagram vocabulary** is imported from `diagram-core.mjs`, which has no dependencies of its own, so importing it costs nothing this file was protecting and removes every table that used to have to change in two places in one commit. **Tables only.** A function from that module would pull the whole compiler in behind it – with the one bend recorded in the `psi-slides-figures` skill, for rules that ARE the vocabulary. The **`{…}` tail grammar and the `::: draw` opener** are imported from `tails.mjs`: zero dependencies, under 400 lines, the slot tables (`CHUNK_SLOTS`, `CARDS_SLOTS`, `OVERLAY_SLOTS`, `BACKDROP_SLOTS`, `SIDE_SLOTS`) plus `splitTail`, `parseTail`, `parseDrawOpener` and `formatDrawOpener`, and nothing behind them – so the concern the tables-only rule guards against does not arise, and both files read every tail through one parser. Before it existed the grammar was implemented four times and lint.js reported the same refusal under six codes. `parseTail` never throws; it returns `problems: [{code, msg}]` under four codes – `stray-attribute`, `unknown-class`, `same-slot`, `multiple-ids` – and build.js throws the first as a `userFacing` error while lint.js reports each. **The four `::: draw` refusals live in the `psi-slides-figures` skill**, with the reasoning each one encodes.
 
 Checks enforced:
 
-- Unknown type, unknown width class.
+- Unknown type, unknown class (`unknown-class`, one code for a word from no slot of any `{…}` tail, the directive named in the message).
 - Duplicate or missing chunk IDs (required on every non-title chunk).
 - Unclosed `:::` directives and orphan `:::` closers.
 - Per-type word-count budgets (principle/question 80, definition 200, example 250, free 250, exercise 350; title/figure unlimited). Counted against the **on-screen** half only: the `::: slide` block if the chunk has one, otherwise everything outside `::: script`.
@@ -235,9 +237,12 @@ A chunk can opt out of that derivation with `::: slide` (this block is the scree
 Chunk grammar: `## type: Heading | Sub-Heading {.width #id}` where `type` is one of `title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow` (28em), `standard` (36em), `wide` (52em), `full` (72em). The `|` sub-heading and the `{...}` attribute tail are both optional; width defaults to `standard`.
 
 An attribute tail may also carry six non-width classes: `.bare` and `.center`
-(`VALID_CHUNK_CLASSES`, audience-only) and `.wrap-none` / `.wrap-balance` /
-`.blocks-left` / `.blocks-center` (`CHUNK_STYLE_CLASSES`, a `style:` key answered
-for one chunk, and these four reach print). All six are refused on a `title` or
+(audience-only) and `.wrap-none` / `.wrap-balance` / `.blocks-left` /
+`.blocks-center` (`CHUNK_STYLE_CLASSES`, a `style:` key answered for one chunk,
+and these four reach print). The whole tail vocabulary is `CHUNK_SLOTS` in
+`tails.mjs`, a slot table like the five directives': width is a slot of four,
+each style key a slot of two, `.bare` and `.center` flags with no writable
+default. All six are refused on a `title` or
 `closing` chunk except the `style:` four. **The vocabulary, what each one costs,
 the character budget a code line has and why `.bare` hides rather than drops are
 in the `psi-slides-authoring` and `psi-slides-appearance` skills** – authoring
@@ -272,8 +277,13 @@ that sits on top of it; `editor.md` §15 is the build log.
 **What stays true here:** `lint.js` imports the diagram vocabulary from
 `diagram-core.mjs` – tables only, never a function, or the whole compiler comes
 in behind it and the linter stops being runnable without the Markdown/Shiki
-stack. Steps ride the existing reveal counter, so `revealed[chunkId]` remains the
-only state sync, the freeze gate and localStorage recovery share.
+stack. The opener `::: draw [WxH] [autoplay N [cycle]]` is read by
+`parseDrawOpener` in `tails.mjs` for build.js, lint.js and the corpus gate
+alike; the compiler is handed the grid alone as its head-attribute string, and the whole
+opener rides in the figure's source payload as one formatted line so the
+editor can write the block back verbatim. Steps ride the existing reveal
+counter, so `revealed[chunkId]` remains the only state sync, the freeze gate
+and localStorage recovery share.
 
 ### Slide decoration and section dividers
 
@@ -292,8 +302,8 @@ decoration or divider renderers, their `lint.js` mirrors, or `test/settings.mjs`
 described.
 
 **What stays true here:** the class tails are closed vocabularies resolved into
-slots by `parseSlotClasses`, and **no word may appear in two slots of one table** –
-`build.js` asserts it at load. A check that can refuse a deck belongs in the
+slots by `parseTail` in `tails.mjs`, and **no word may appear in two slots of one table** –
+`tails.mjs` asserts it at load. A check that can refuse a deck belongs in the
 `buildOnce` pre-flight beside `assertInlinable`, not in a renderer, or
 `--print-only` never reaches it.
 
@@ -317,9 +327,9 @@ otherwise invisible.
 rules and the 1.0.0 recipe are in the `psi-slides-appearance` skill.**
 
 **What stays true here:** `FONT_STACK_TAILS`, `THEME_NAMES` / `DARK_THEME_NAMES`,
-`VIEW_DEFAULT_SPEC`, `STYLE_SPEC` and `CHUNK_STYLE_CLASSES` are each a single
-source of truth that `lint.js` mirrors –
-change them in the same commit. And **`dgCharW` in `diagram-core.mjs` is
+`VIEW_DEFAULT_SPEC` and `STYLE_SPEC` are each a single source of truth that
+`lint.js` mirrors – change them in the same commit. (`CHUNK_STYLE_CLASSES` is
+not mirrored any more: it lives in `tails.mjs` and both files import it.) And **`dgCharW` in `diagram-core.mjs` is
 calibrated to the bundled sans**: a roster change that does not re-measure it
 overflows figure labels silently.
 
@@ -401,7 +411,7 @@ position with it. See `speaker.md` §2.
   and `test/README.md` says why and lists the five others that do it.
 
   The lecture-wide `draw-defaults` block is in its frontmatter.
-- `lectures/decoration/source.md` – **every slide-decoration construct, shown rather than described**: the card and row vocabulary, `::: side` with a ratio, `::: backdrop` with a `reveal` in both directions, `::: overlay` with `from`, `{.bare}`, `::: draw {autoplay cycle}`, a `## outline:` chunk, a `## closing:` slide, and the three kinds of divider content – a quotation, a photograph and a figure, one per column. It is the third tracked lecture, for the same reason `lectures/diagrams/` is the second: a reader should be able to see a construct working before writing it.
+- `lectures/decoration/source.md` – **every slide-decoration construct, shown rather than described**: the card and row vocabulary, `::: side` with a ratio, `::: backdrop` with a `reveal` in both directions, `::: overlay` with `from`, `{.bare}`, `::: draw … autoplay N cycle`, a `## outline:` chunk, a `## closing:` slide, and the three kinds of divider content – a quotation, a photograph and a figure, one per column. It is the third tracked lecture, for the same reason `lectures/diagrams/` is the second: a reader should be able to see a construct working before writing it.
 
   **A deck has exactly one cover and one `section:` variant, so one lecture cannot show ten and six.** This one wears `cover: quote` and `section: outline` and names the rest in a card row; the gallery of all ten compositions lives on the project site, where ten compositions side by side is what the page is for.
 

@@ -135,6 +135,10 @@ function dgeCollectFigures() {
       prefix: sc.dataset.for.replace(/root$/, ''),
       body: data.body,
       attrs: data.attrs,
+      // The canonical opener line, formatted by the build. Copied, never
+      // rebuilt here: this file runs as a classic script and cannot import
+      // the formatter.
+      opener: data.opener || null,
       range: data.range,
       chunk: data.chunk,
       // Which diagram this is inside its chunk, counted here rather than
@@ -660,7 +664,7 @@ const dgeNum = (n, places) => {
 
 // ── the frame (editor.md §5) ────────────────────────────────────────
 // You cannot judge a figure without knowing how large it lands, and in this
-// project that is not a property of the figure: `unit=WxH` sets only the grid
+// project that is not a property of the figure: the opener's `WxH` sets only the grid
 // cell and therefore the proportions inside the picture, while how large it
 // arrives is the chunk's width class. An editor that let you pick an
 // arbitrary canvas size would be lying to you.
@@ -1116,7 +1120,7 @@ function dgeDrawGuides() {
   const vb = (g.getAttribute('viewBox') || '0 0 1 1').split(/\s+/).map(Number);
   const [vx, vy, vw, vh] = vb;
 
-  // A faint cell grid, at very low contrast, behind the figure. `unit=WxH`
+  // A faint cell grid, at very low contrast, behind the figure. The `WxH`
   // is the coordinate system every number in the block is written in, and
   // `gap 0.55` needs somewhere to be read off.
   const grid = dgeEl('g', { class: 'dge-cell' });
@@ -7240,8 +7244,7 @@ function dgePaste(inPlace) {
 // never owns a parallel copy.
 
 function dgeBlockText() {
-  return '::: draw' + (DGE.fig.attrs ? ' {' + DGE.fig.attrs + '}' : '') + '\n'
-    + DGE.source + '\n:::';
+  return (DGE.fig.opener || '::: draw') + '\n' + DGE.source + '\n:::';
 }
 
 function dgeCommit() {

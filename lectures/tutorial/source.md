@@ -44,7 +44,7 @@ goes in it.
 
 ## figure: One file in, four files out {.wide #four-views .bare .center}
 
-::: draw {unit=152x52}
+::: draw 152x52
 default box {.mono}
 
 # The four outputs stand in one column and source.md sits opposite their
@@ -728,7 +728,7 @@ lang: de                # the language the lecture is written in:
 
 **A `::: draw` block is a figure written as text.** The build draws it into the page: you name the boxes and say where each one goes, and the arrows between them are routed for you.
 
-::: draw {unit=126x38}
+::: draw 126x38
 box src "Sender"
 box mix "Mix"       right of src gap 2.1
 box dst "Receiver"  right of mix gap 2.1
@@ -753,7 +753,7 @@ edge mix -> dst "recoded"
 
 **Write `step` blocks and the figure changes with each forward press.** One step is one press of the same key that uncovers a segment, so steps and segments arrive in the order you wrote them and the speaker view reads ahead exactly as it does for text. Press forward twice here.
 
-::: draw {unit=126x72}
+::: draw 126x72
 box  src  "Sender"
 box  mix  "Mix"        right of src gap 1.05
 box  dst  "Receiver"   right of mix gap 1.05
@@ -849,7 +849,7 @@ A tag goes wherever a name goes, so `show @crypto` in a step selects every eleme
 
 **Only one member of a group is ever in force.** The names come from a fixed list, and `{.tone-1}` on a box therefore *replaces* a `default box {.tone-4}` rather than piling on top of it, which is what makes the groups worth knowing.
 
-::: draw {unit=112x82}
+::: draw 112x82
 default box {.sharp} w 0.62 h 0.42 pad 0.12
 
 # The fills sit across a rule, so that .clear and .paper can be told apart:
@@ -955,7 +955,7 @@ Which way a pointed outline aims is the `point` option – `up`, `down`, `left` 
 
 **Three statements draw data, and each turns into ordinary boxes, texts and edges first.** `bars` becomes one box per column plus a baseline, `grid` one box per cell, and `plot` a frame of gridlines, ticks and two axis titles.
 
-::: draw {unit=148x64}
+::: draw 148x64
 bars wc "18,16,15,12,11,9,8,7,6,5,4,3" at 0,0 w 2.3 h 1.05 space 0.06
 brace long over wc-0,wc-1,wc-2 side bottom "the three to rewrite" pad 0.45 {.small .muted}
 # In front, or the columns cover the line and it shows only in the gaps.
@@ -995,7 +995,7 @@ step figures
 **Laid flat**, the bars run left to right, the categories stack downwards, the tick labels become a right-aligned column down the left margin, and the baseline stands on the left. A tick string containing `|` splits on that instead of on spaces, so a label can be as many words as it needs – the same mark that separates a `table` row and a `lanes` name list.
 :::
 
-::: draw {unit=150x50}
+::: draw 150x50
 bars hour "31,24,18,9" "writing the prose | drawing the figures | fixing one wording | fighting the tooling" at 0,0 horizontal w 1.7 h 1.25 emph 1
 text hourn "minutes, in the hour before a lecture" below hour gap 0.5 {.small .muted}
 :::
@@ -1004,7 +1004,7 @@ text hourn "minutes, in the hour before a lecture" below hour gap 0.5 {.small .m
 
 **A `plot` draws a frame and a scale, and nothing else.**
 
-::: draw {unit=150x54}
+::: draw 150x54
 plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 tick 10
 edge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}
 edge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}
@@ -1028,7 +1028,7 @@ step lesson
 **A `plot` takes two ranges and one `tick` interval, and draws nothing but the frame and the scale** – after which `pace@26` names a value in the plot's own units anywhere a coordinate can go, and the curves over it are ordinary edges.
 
 ::: expand Sizing, curves, and two charts that match
-**`aspect 4:3`, `aspect 1:1`, or a single number meaning that many wide to one tall**, states the proportion the reader sees and lets the build work the other number out. Both `bars` and `plot` take it. At the `unit=150x54` of the figure above, a plot written `w 1.9 h 1.5` comes out 285 by 81 pixels, which is nothing like 1.9 by 1.5. Giving `w`, `h` and `aspect` together is an error, because two of the three would have to lose and nothing on the line says which.
+**`aspect 4:3`, `aspect 1:1`, or a single number meaning that many wide to one tall**, states the proportion the reader sees and lets the build work the other number out. Both `bars` and `plot` take it. On the `150x54` grid of the figure above, a plot written `w 1.9 h 1.5` comes out 285 by 81 pixels, which is nothing like 1.9 by 1.5. Giving `w`, `h` and `aspect` together is an error, because two of the three would have to lose and nothing on the line says which.
 
 **`pace@26` goes anywhere a coordinate can** – in a waypoint, in an `at`, at the end of a pointer line. `.smooth` runs a curve *through* the waypoints you wrote rather than joining them with straight segments, `--` draws a line with no arrowhead, and the two steps bring the second curve in and then emphasise it while the reference line recedes.
 
@@ -1041,7 +1041,7 @@ step lesson
 
 **A figure with steps is an argument in stages – the setting, the intruder, the cut wire, and what it costs.** Press forward three times.
 
-::: draw {unit=138x70}
+::: draw 138x70
 default box {.tone-2} w 1.25 h 0.5
 
 box alice "Alice" at 0,0
@@ -1080,12 +1080,12 @@ step damage
 
 **Two tags do all the revealing: `@attack` and `@cut`.** `show @attack` brings Eve in and the handwritten caption with her, because both lines carry that tag; `show @cut` brings the three arrows through her a step later. The pair running to Bob leaves Eve's right edge at `:0.2` and `:0.8`, a fraction along a side being how two arrows between the same two boxes run parallel instead of on top of each other, and `side top` and `side bottom` put one label above its line and the other below.
 
-## example: A figure that advances on a timer | `::: draw {autoplay=N}` {.wide #autoplay}
+## example: A figure that advances on a timer | `::: draw autoplay N` {.wide #autoplay}
 
 **A figure written with `autoplay` advances its own steps on a timer once the slide is on screen** – one delay, in milliseconds, for every step. A cover figure that moves while the audience files in is the case it was asked for, but it works on any chunk.
 
 ```markdown
-::: draw {unit=150x56 autoplay=1200}
+::: draw 150x56 autoplay 1200
 box crawler "Crawler" {.tone-1}
 box det "Detector" right of crawler gap 1.6
 edge crawler -> det "request"
@@ -1101,11 +1101,11 @@ The timer presses the same key you would press, so the speaker view follows and 
 
 The delay has to be between 200 ms and 60 s; outside that the build refuses the number rather than quietly moving it.
 
-**`cycle` repeats the run of steps** – `{autoplay=1200 cycle}` – which is usually what a cover figure wants while the audience is arriving. It rewinds the same way it advanced, so the speaker view follows the rewind too. The last step is held for one delay like every other, and there is no second number for how long to hold the finished picture.
+**`cycle` repeats the run of steps** – `autoplay 1200 cycle` – which is usually what a cover figure wants while the audience is arriving. It rewinds the same way it advanced, so the speaker view follows the rewind too. The last step is held for one delay like every other, and there is no second number for how long to hold the finished picture.
 
 **The figure below is running now**, written exactly as the block on the slide before with `cycle` added. Press any key and it stops where it stands – that is the take-over, and it is why you can read the rest of this slide without it moving underneath you.
 
-::: draw {unit=150x56 autoplay=1200 cycle}
+::: draw 150x56 autoplay 1200 cycle
 box crawler "Crawler" {.tone-1}
 box det "Detector" right of crawler gap 1.6
 edge crawler -> det "request"
@@ -1264,7 +1264,7 @@ That drawing is a `::: draw` block inside the second pane. In `print.html` and `
 
 ::: flip
 
-::: draw {unit=140x60}
+::: draw 140x60
 box a "Crawler" {.tone-1}
 box b "Detector" below a gap 1.1 {.tone-4}
 edge a -> b "request"

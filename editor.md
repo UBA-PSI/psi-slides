@@ -534,7 +534,7 @@ doubles as the "what refers to what" view.
 ## 5. The canvas is a frame, not a canvas size
 
 You cannot judge a figure without knowing how large it lands, and in this
-project that is **not a property of the figure**. `unit=WxH` sets only the grid
+project that is **not a property of the figure**. `::: draw WxH` sets only the grid
 cell and therefore the proportions inside the picture; how large it arrives is
 the chunk's width class, and the vertical cap is `max-height: 62vh` in the live
 views and `none` in print. So an editor that lets you pick an arbitrary canvas
@@ -768,7 +768,7 @@ declines to drag a follower along its constrained axis; if that axis is already
 drawn as a line through the set, the refusal is something the author saw coming
 rather than something the tool did to them.
 
-**A faint cell grid and rulers in grid units.** `unit=WxH` is the coordinate
+**A faint cell grid and rulers in grid units.** The opener's `WxH` is the coordinate
 system every number in the block is written in, and it is currently something
 an author has to hold in their head. Show it: the grid at very low contrast
 behind the figure, ruler ticks in **cells, not pixels**, along the frame edges.
@@ -1244,7 +1244,7 @@ rather than deleted, because the reasoning is what a later reader will want.
 - **A shared preamble: sensible, still deferred.** §7.2 carries defaults by
   copying them into each block, and that decays – change the look later and it
   is twelve edits again. The durable fix is a lecture-level default that
-  several figures name, `::: draw {unit=130x76 use=house}` against presets
+  several figures name, `::: draw 130x76 use house` against presets
   in the frontmatter. It is *additive*, so it stays available after the grammar
   freezes, which is exactly why it does not have to be decided now. **Build
   §7.2 first.** The trigger for building the preamble is concrete: if an author
@@ -1514,7 +1514,7 @@ Verified (§11.8's row for §3.2, run, not asserted in prose):
 
 - a lecture whose `draw-defaults` sets `w 1.0`, a block overriding with
   `w 0.5`, an element overriding with `w 2.0`, plus a `@dec` tag default at
-  `w 0.4` → emitted widths 100 / 50 / 200 / 40 px at `unit=100x60`, and the
+  `w 0.4` → emitted widths 100 / 50 / 200 / 40 px on a `100x60` grid, and the
   block's bare `default box` beating the lecture's `@dec` one (scope before
   selector, both directions).
 - `default box @nobody` with no diagram carrying `@nobody` → build fails,
@@ -1576,7 +1576,7 @@ Verified (§11.8's row for §3.3):
 - `.fit` on a box with `w 1.5 h 0.55` emits `font-size="16.00"` against
   `DG_FONT` 15; `.shrink` on the same box with a label that does not fit emits
   `13.31`. Both labels measure inside their boxes.
-- `pad 0.3` at `unit=130x76`: rect 96.45 × 64.35 for a label measuring
+- `pad 0.3` on a `130x76` grid: rect 96.45 × 64.35 for a label measuring
   50.85 × 18.75 – exactly `2 × 0.3 × 76` added on both axes.
 - `lint --strict` on `{.tone-4 .accent}` warns, and on `{.thick .bare}` too,
   which is the new stroke-weight slot doing its job.
@@ -2056,13 +2056,13 @@ draw-defaults: |
 ---
 ## title: Lecture defaults {#cover}
 ## figure: Styled by the lecture {.full #styled}
-::: draw {unit=130x76}
+::: draw 130x76
 box a "Alpha"
 box b "Beta" right of a gap 0.4 {@dec}
 text n "a note" below a gap 0.5
 :::
 ## figure: A fit that needs the lecture width {.full #fitted}
-::: draw {unit=130x76}
+::: draw 130x76
 box f "fits the box" {.fit}
 :::
 ```
@@ -3002,3 +3002,18 @@ removal of a class the element's own line gives it, and a mixed selection that
 needs two different negations to reach one look), each asserting the opening
 line and the opening state, plus the four greyed rows with their reasons and the
 half-settled one with only its half taken away. 17 assertions became 46.
+
+### The opener payload · **done**
+
+The `::: draw` opener lost its braces (`::: draw 150x56 autoplay 1200 cycle`,
+see the `psi-slides-figures` skill), and the payload gained an `opener` field
+beside the compiler-only `attrs`. The build formats the line once with
+`formatDrawOpener()` from `tails.mjs`; `dgeBlockText()` writes
+`DGE.fig.opener + body + ':::'`. Before this the clipboard tier rebuilt the
+opener by wrapping `attrs` in braces, and `attrs` was the string build.js
+had already stripped `autoplay` and `cycle` out of – so a figure copied out
+of the editor came back without its clock. Tiers 1 and 1b patch the body
+range only and were never affected. The editor copies the line rather than
+formatting it because `editor.mjs` is inlined as a classic script and cannot
+import the formatter. Pinned by the round-trip section of
+`test/editor-guides.mjs`.

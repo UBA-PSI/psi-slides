@@ -1,8 +1,8 @@
 /*
- * `::: draw {autoplay=N cycle}` – the clock, and who is allowed to stop it.
+ * `::: draw autoplay N cycle` – the clock, and who is allowed to stop it.
  *
  * This spec exists because the feature shipped broken and nothing noticed.
- * `test/settings.mjs` asserted that `autoplay=N` reaches the figure as
+ * `test/settings.mjs` asserted that `autoplay N` reaches the figure as
  * `data-autoplay`, which it did; no test ever ran the clock. The stop flag was
  * session-wide, and you reach a slide by pressing a key – so the keypress that
  * navigated to the figure retired the timer before the figure was on screen,
@@ -43,7 +43,7 @@ Nothing here. This slide exists so the next one is reached by pressing a key.
 
 ## figure: Plays itself {#auto}
 
-::: draw {unit=150x56 autoplay=260 cycle}
+::: draw 150x56 autoplay 260 cycle
 box a "A" at 0,0
 box b "B" right of a gap 1
 box c "C" right of b gap 1

@@ -90,9 +90,17 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   classes.
 - **One sigil rule for every `{…}` tail in the format**, on a heading, on a
   `:::` directive and inside a `::: draw` block: `.word` is a setting, `#word`
-  an id, `@word` a group (draw only). A token without its sigil is a
-  `stray-attribute` error, never silently dropped – `{wide #id}` once built
-  without its width. Settings that answer one question are exclusive: the
+  an id, and inside a draw body also `@word` a group and `!word` a removal.
+  Braces hold sigil tokens only, and a line that has no sigil tokens to carry
+  has no braces – which is why the `::: draw` opener is written
+  `::: draw 150x56 autoplay 1200 cycle`, the one primary argument positional
+  and everything optional that carries a value a keyword after it. A token
+  without its sigil is a `stray-attribute` error, never silently dropped –
+  `{wide #id}` once built without its width – and so is an empty `{}`.
+  A chunk class that answers a `style:` key is spelled `key-value`
+  (`.wrap-none`, `.blocks-center`), because it names the key it overrides; a
+  directive's slot words are bare (`.outline`, `.middle`), because the
+  directive has a vocabulary of its own. Settings that answer one question are exclusive: the
   width, each `style:` key, and every slot of `cards`, `rows`, `overlay`,
   `backdrop` and `side`. Two answers to one question are a `same-slot` error
   (`{.wide .full}`, `{.wrap-none .wrap-balance}`, `{.top .middle}`); a flag
@@ -592,7 +600,7 @@ comparison needs counting.
 items, so everything written in a card is on the slide; folding the nested
 level is the only thing that takes anything away.
 
-### `::: backdrop <ref> {.classes}` and `::: overlay {.classes}`
+### `::: backdrop <ref> {…}` and `::: overlay {…}` – `::: backdrop dusk {.cover .invert}`, `::: overlay {.bottom-left .ink}`
 
 A full-bleed picture behind the whole slide, and a grounded text block laid over
 it. The backdrop is one line with no closer; the overlay is a block.
@@ -636,12 +644,12 @@ One backdrop per chunk. A second is an error.
 `::: draw` and `::: embed` are also `:::` blocks, and neither is a layout
 wrapper or an aside: each compiles to something of its own.
 
-- **`::: draw`** takes `{autoplay=N}` - N milliseconds per step - which walks
+- **`::: draw`** takes `autoplay N` - N milliseconds per step - which walks
   the figure's own beats once the slide is on screen, and the first key, click
   or scroll *on that slide* retires the clock for it. (Scoped to the slide, not
   to the session: you reach a slide by pressing a key, so a session-wide flag
   meant the arrival keypress killed the figure before it was on screen.) Between 200 and 60000. Add `cycle` to repeat the
-  walk (`{autoplay=1200 cycle}`); `cycle` alone is an error. Use it on a cover
+  walk (`autoplay 1200 cycle`); `cycle` alone is an error. Use it on a cover
   figure; on a slide you are talking over, press Space.
 - **`::: draw`** is a figure written as text - named boxes, arrows,
   containers, charts, tables, swimlanes and sequence diagrams, laid out at build
@@ -736,7 +744,7 @@ still supplies the meta; everywhere else a non-empty body replaces `info`.
 ```markdown
 ## title: {#title}
 
-::: draw {unit=150x56}
+::: draw 150x56
 box crawler "Crawler" {.tone-1}
 box site "Web site" below crawler gap 1.1
 edge crawler -> site "request"
@@ -918,18 +926,19 @@ node lint.js lectures/<slug>/source.md    # one file
 node lint.js lectures/ --strict           # warnings exit 2
 ```
 
-Rules you will meet while authoring: `unknown-type`, `unknown-width`,
-`missing-id`, `duplicate-id`, `multiple-ids`, `title-count`, `density`,
+Rules you will meet while authoring: `unknown-type`, `unknown-class`,
+`stray-attribute`, `same-slot` (the three every `{…}` tail can raise, heading
+or directive – the message names which), `missing-id`, `duplicate-id`,
+`multiple-ids`, `title-count`, `density`,
 `duplicate-explicit-block`, `unclosed-directive`, `stray-directive`,
 `stray-directive-close`, `nested-directive`, `unclosed-math`, `reveal-overuse`,
 `orphan-column` (a column with fewer than two chunks),
 `figure-caption-redundant`, `single-word-bold`, `figure-type-without-figure`,
 `oversized-asset`,
 `unknown-view-default`,
-`unknown-style-setting`, `bad-backdrop`, `bad-backdrop-class`,
-`duplicate-backdrop`, `bad-overlay-class`, `bad-cards`, `bad-cards-class`,
-`bad-rows`, `bad-rows-class`, `cards-nested`, `bad-side`, `draw-in-cols`,
-`bad-cover-ratio`, `bad-autoplay`.
+`unknown-style-setting`, `bad-backdrop`, `duplicate-backdrop`, `bad-cards`,
+`bad-rows`, `cards-nested`, `bad-side`, `draw-in-cols`, `bad-cover-ratio`,
+`bad-unit`, `bad-autoplay`.
 
 `single-word-bold` is the collapse audit made mechanical: a bold of two words
 or fewer that lands *after* a paragraph's first sentence, where the projection
