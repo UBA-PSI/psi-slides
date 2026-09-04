@@ -155,7 +155,7 @@ function diagramImageRefs(src) {
     if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
     if (inFence) continue;
     if (!inDiagram) {
-      if (/^:::\s+draw\b/.test(line)) inDiagram = true;
+      if (parseDrawOpener(line)) inDiagram = true;
       continue;
     }
     if (/^:::\s*$/.test(line)) { inDiagram = false; continue; }
@@ -245,8 +245,9 @@ import {
   DG_PLACED_HEADS, DG_PLACE_INTRO, dgNoPlacement,
 } from './diagram-core.mjs';
 import {
-  CHUNK_SLOTS, CHUNK_STYLE_CLASSES, CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS,
-  splitTail, parseTail, parseDrawOpener,
+  CHUNK_SLOTS, CHUNK_STYLE_CLASSES, VALID_WIDTHS, VALID_CHUNK_CLASSES,
+  CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS,
+  splitTail, parseTail, strayTailProblem, parseDrawOpener,
 } from './tails.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
@@ -291,9 +292,10 @@ function splitFrontmatter(src) {
 // same-slot, multiple-ids - and the callers add what only the line's place
 // in the deck can decide (a class on a column heading, a width on a cover
 // chunk).
-function parseAttributeTail(line, what) {
-  const { text, tail } = splitTail(line);
-  const t = parseTail(tail, CHUNK_SLOTS, what, { id: 'one' });
+function parseAttributeTail(line, what, { column = false } = {}) {
+  const { text, tail, stray } = splitTail(line);
+  const t = parseTail(tail, CHUNK_SLOTS, what, { id: 'one', classes: column ? 'none' : 'slots' });
+  if (stray) t.problems.unshift(strayTailProblem(what, stray));
   return { text, classes: t.classes, ids: t.ids, problems: t.problems };
 }
 
@@ -2470,17 +2472,11 @@ function lintFile(filePath) {
 
     if (h1) {
       flushChunk();
-      const attr = parseAttributeTail(h1[1], 'column heading');
-      for (const p of attr.problems) add(ln, 'error', p.code, p.msg);
       // A column heading takes an {#id} and nothing else - width and .bare
-      // are a chunk's business. The build refuses them here; unmirrored, a
-      // `.bare` written one heading level up parsed, was dropped, and neither
-      // file said a word.
-      for (const cls of attr.classes) {
-        add(ln, 'error', 'class-on-column',
-            `column heading carries '.${cls}' – a # heading takes an {#id} and `
-            + 'nothing else; width and .bare belong on the ## chunks under it');
-      }
+      // are a chunk's business. The parser says so (`class-on-column`), the
+      // same way and under the same code as the build.
+      const attr = parseAttributeTail(h1[1], 'column heading', { column: true });
+      for (const p of attr.problems) add(ln, 'error', p.code, p.msg);
       const id = attr.ids[0];
       if (id) {
         if (ids.has(id)) {
@@ -2516,9 +2512,10 @@ function lintFile(filePath) {
         }
       }
       // An unknown class is the parser's (`unknown-class`, above); what is
-      // left to decide here is a class the tail knows on a chunk that cannot
-      // act on it.
+      // left to decide here is a class the tail *knows* on a chunk that
+      // cannot act on it - so an unknown one is not reported twice.
       for (const cls of attr.classes) {
+        if (!VALID_WIDTHS.has(cls) && !VALID_CHUNK_CLASSES.has(cls)) continue;
         if ((tag === 'title' || tag === 'closing') && !(cls in CHUNK_STYLE_CLASSES)) {
           // Both are placed by the cover composition: full width, and a
           // heading that is the composition's rather than the slide's. The

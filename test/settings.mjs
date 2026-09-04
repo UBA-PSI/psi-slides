@@ -1161,7 +1161,7 @@ console.log('\nlayout generations');
   // 9 · a class on a column heading parsed, was dropped, and neither file
   // said anything.
   const clsCol = raw(FM + '# A part {#p .bare}\n\n## free: A {#a}\n\nX.\n', ['--audience-only']);
-  ok(clsCol.code !== 0 && /column heading carries \.bare/.test(clsCol.out),
+  ok(clsCol.code !== 0 && /"\.bare" - a # heading takes an \{#id\} and nothing else/.test(clsCol.out),
      'a class on a column heading is refused rather than dropped');
   ok(/class-on-column/.test(lintOf(FM + '# A part {#p .bare}\n\n## free: A {#a}\n\nX.\n')),
      'and the linter says the same');
@@ -2023,8 +2023,25 @@ console.log('\nlayout generations');
   ok(/stray-attribute/.test(lintNoSpace) && (lintNoSpace.match(/:\d+\s+error\s/g) || []).length === 1, 'and lint refuses it as one finding with the body captured', lintNoSpace);
   // An unknown class on a column heading: the parser's objection and the
   // caller's contextual one, both, because `classes` records what was written.
-  const colUnknown = lintOf('---\ntitle: T\n---\n\n## title: {#title}\n\n# Part {.foo #p}\n\n## free: A {#a}\n\nProse.\n');
-  ok(/unknown-class/.test(colUnknown) && /class-on-column/.test(colUnknown), 'an unknown class on a column heading is unknown-class and class-on-column in lint', colUnknown);
+  const colSrc = '---\ntitle: T\n---\n\n## title: {#title}\n\n# Part {.wid #p}\n\n## free: A {#a}\n\nProse.\n';
+  const colUnknown = lintOf(colSrc);
+  ok(/class-on-column/.test(colUnknown) && !/unknown-class/.test(colUnknown), 'a class on a column heading is class-on-column in lint, said once', colUnknown);
+  const colBuild = raw(colSrc);
+  ok(colBuild.code !== 0 && /takes an \{#id\} and nothing else/.test(colBuild.out) && !/valid: width/.test(colBuild.out),
+     'and the build says the same, never listing a chunk vocabulary for a line that takes none', colBuild.out.split('\n')[0]);
+  const coverUnknown = lintOf(FM + '## free: A {#a}\n\nProse.\n'.replace('## free: A {#a}', '## closing: Bye {.foo #c}'));
+  ok(/unknown-class/.test(coverUnknown) && !/class-on-cover-chunk/.test(coverUnknown), 'an unknown class on a cover chunk is reported once, as unknown-class');
+  // A tail that does not end the line is neither prose nor a tail.
+  for (const [line, re] of [['## free: Two tails {.narrow}{#tt}', /\{\.narrow\}/], ['## free: Head {.wide #tbs} | Sub', /\{\.wide #tbs\}/], ['# Part {#c1} trailing', /\{#c1\}/]]) {
+    const b = raw(FM + line + '\n\nProse.\n');
+    ok(b.code !== 0 && /does not end the line/.test(b.out) && re.test(b.out), `${line} is refused by the build`, b.out.split('\n')[0]);
+    ok(/stray-attribute.*does not end the line/.test(lintOf(FM + line + '\n\nProse.\n')), 'and by lint');
+  }
+  const bracePro = raw(FM + '## free: The {x} syntax {#bp}\n\nProse.\n');
+  ok(bracePro.code === 0, 'while plain braces in heading prose still build', bracePro.out.split('\n')[0]);
+  const drawDash = raw(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n:::\n\n:::\n');
+  ok(drawDash.code === 0 && !/0 error/.test('') , '::: draw-x is prose in the build (no cols refusal)', drawDash.out.split('\n')[0]);
+  ok(!/draw-in-cols/.test(lintOf(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n:::\n\n:::\n')), 'and lint agrees');
   ok(/bad-unit/.test(lintOf(FM + '## figure: F {#f}\n\n::: draw 150X56\nbox a "A"\n:::\n')), 'and a capital X is bad-unit');
   const sized = drawOf('::: draw 150x56');
   const unsized = drawOf('::: draw');

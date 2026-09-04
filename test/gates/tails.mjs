@@ -14,7 +14,7 @@
  */
 import {
   CHUNK_SLOTS, CARDS_SLOTS, SIDE_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SLOT_TABLES,
-  splitTail, parseTail, parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseLegacyDrawTail,
+  splitTail, strayTailProblem, parseTail, parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseLegacyDrawTail,
   AUTOPLAY_MIN, AUTOPLAY_MAX, DRAW_OPENER_EXAMPLE,
 } from '../../tails.mjs';
 import { render } from './harness.mjs';
@@ -28,11 +28,30 @@ export async function run({ report }) {
   const { ok } = report;
 
   // ── splitTail ────────────────────────────────────────────────────
-  ok(JSON.stringify(splitTail('Heading {.wide #id}')) === JSON.stringify({ text: 'Heading', tail: '.wide #id' }),
+  ok(JSON.stringify(splitTail('Heading {.wide #id}')) === JSON.stringify({ text: 'Heading', tail: '.wide #id', stray: null }),
      'splitTail separates prose from the brace contents');
   ok(splitTail('Heading').tail === null, 'and answers null when there are no braces');
   ok(splitTail('Heading {}').tail === '', 'and the empty string when the author wrote {}');
   ok(splitTail('type: A | B {.wide #id}').text === 'type: A | B', 'a sub-heading bar is prose, not a tail');
+  // A sigil group that does not end the line is neither prose nor a tail.
+  for (const [line, stray] of [
+    ['Two tails {.narrow}{#tt}', '{.narrow}'],
+    ['Head {.wide #tbs} | Sub', '{.wide #tbs}'],
+    ['Part {#c1} trailing', '{#c1}'],
+    ['Head {.wide', '{.wide'],
+    ['the {x} syntax {#ok}', null],
+    ['Eight tags | `## tag: Heading {.width #id}` {.narrow #grammar}', null],
+    ['plain {x} prose', null],
+  ]) {
+    ok(splitTail(line).stray === stray, `splitTail(${JSON.stringify(line)}).stray is ${JSON.stringify(stray)}`, String(splitTail(line).stray));
+  }
+  ok(/does not end the line/.test(strayTailProblem('chunk heading', '{.narrow}').msg) && strayTailProblem('x', '{#a}').code === 'stray-attribute',
+     'and the problem for it is stray-attribute, naming the group');
+  // The column-heading policy: no class at all, said by the parser.
+  const col = parseTail('.wide #p', {}, 'column heading', { id: 'one', classes: 'none' });
+  ok(codes(col) === 'class-on-column' && col.id === 'p' && /takes an \{#id\} and nothing else/.test(col.problems[0].msg),
+     'a .word on a column heading is class-on-column, and the id is still read');
+  ok(codes(parseTail('#p', {}, 'column heading', { id: 'one', classes: 'none' })) === '', 'and an id alone is fine');
 
   // ── parseTail: the four codes ────────────────────────────────────
   const heading = (tail) => parseTail(tail, CHUNK_SLOTS, 'chunk heading', { id: 'one' });
@@ -152,6 +171,11 @@ export async function run({ report }) {
     ['::: draw {autoplay=900 autoplay=1200}', 'stray-attribute', /writes autoplay twice/],
     ['::: draw autoplay 900 autoplay 1200', 'stray-attribute', /"autoplay" is written twice/],
     ['::: draw 150x56 cycle cycle',         'bad-autoplay', null],
+    ['::: draw 150x56 1200',                 'stray-attribute', /autoplay 1200/],
+    ['::: draw {#fig unit=0x5}',             'stray-attribute', /zero side/],
+    ['::: draw {#fig autoplay=50}',          'stray-attribute', /out of range/],
+    ['::: draw {#fig cycle}',                'stray-attribute', /no autoplay to repeat/],
+    ['::: draw {#fig unit=150x56}',          'stray-attribute', /Write  ::: draw 150x56  \(a draw #id/],
   ];
   for (const [line, code, re] of refused) {
     const o = parseDrawOpener(line);
@@ -198,6 +222,11 @@ export async function run({ report }) {
   const mig = (src) => migrateText(src);
   ok(mig('x\n::: draw {unit=150x56 autoplay=1400 cycle}\ny').text === 'x\n::: draw 150x56 autoplay 1400 cycle\ny', 'a sound old opener is rewritten to the canonical line');
   ok(mig('::: draw{unit=150x56}').text === '::: draw 150x56', 'including one written without the space');
+  ok(mig(':::\tdraw {unit=10x10}\n:::  draw {unit=10x10}').changes.length === 2, 'and ones written with a tab or two spaces after :::');
+  const twoLines = mig('::: draw\n{unit=20x20}\nbox a');
+  ok(twoLines.changes.length === 0 && twoLines.text === '::: draw\n{unit=20x20}\nbox a', 'a bare opener above a brace line is not an opener and is left alone');
+  const unclosed = mig('::: draw {unit=150x56\nbox a "A"\ntext t "set {x}"\n:::\n::: draw {unit=10x10}');
+  ok(unclosed.changes.length === 1 && unclosed.changes[0].to === '::: draw 10x10', 'an opener missing its } never swallows the body, and the sound one after it is still rewritten');
   ok(mig('::: draw {unit=150x56}\n::: draw {}').changes.length === 2 && mig('::: draw {}').text === '::: draw', 'and an empty old tail becomes a bare opener');
   const refusedMig = [
     ['::: draw {unit=0x56}',                 /zero side/],

@@ -867,7 +867,7 @@ All six reviews are resolved in place; this list is the index.
 
 ## Implementation log
 
-Kept while implementing (session of 2026-09-04). Decisions and deviations
+Kept while implementing. Decisions and deviations
 from the plan above are marked **[decision]** / **[deviation]** with the
 reason; everything else landed as written.
 
@@ -1049,10 +1049,11 @@ reason; everything else landed as written.
 
 ---
 
-## Post-implementation code review (Codex, 2026-09-04)
+## Post-implementation code review (Codex)
 
-**Status: all findings below resolved in place (second pass, same day);
-each item carries a note.** The shared-parser shape, the four opener
+**Status: all findings below resolved in place (second pass); each item
+carries a note.** A third pass, `/code-review high` over both repositories,
+followed and is recorded in the next section. The shared-parser shape, the four opener
 callers, the editor payload, the corpus ratchet and the registered syntax gate
 are in place. The current contents of both repositories also pass the migration
 check. The remaining findings are edge cases in the reusable parser/migrator
@@ -1193,3 +1194,71 @@ satisfy.
 - `node test/run.mjs`: 855 passed, 3 failed in 450.8 s. The failures are the
   same three pre-existing `text-select` Alt-drag assertions already documented
   above; no new browser failure appeared in this review run.
+
+---
+
+## Third pass: `/code-review high` over both repositories
+
+All ten ranked findings and the confirmed-but-cut list were addressed in
+place. What changed, one line each:
+
+- **`carries #id` refusal no longer throws.** `parseLegacyDrawTail` checks
+  the id last, so `why` says "carries #" only when the rest is sound and
+  the formatter is safe to call; `{#fig unit=0x5}`, `{#fig autoplay=50}`
+  and `{#fig cycle}` now name the real defect. Gated.
+- **`OPENER_RE` is line-bounded and reads `:::` + any blank run + `draw`**
+  (`/:::[ \t]+draw[ \t]*\{([^}\n]*)\}/g`), so a bare `::: draw` above a
+  `{…}` line is left alone and a tab- or double-spaced opener is migrated.
+  Gated both ways.
+- **No pre-regex survives.** `collectDiagramImageRefs` (build.js),
+  `diagramImageRefs` (lint.js) and the cols refusal all call
+  `parseDrawOpener`; `::: draw-x` is prose in both files.
+- **The tool's CLI:** the main guard compares paths (`fileURLToPath`), not a
+  URL against a path; every positional root is processed; a root that is not
+  a repository top level is refused with one line, because every exclusion
+  is root-relative.
+- **The spliced pages' prose is an active surface.** `proseOf()` blanks
+  `<svg>`, `<script>` and `<style>` regions; the gate and `--check` scan
+  what is left for the old opener and the old tokens. That found two
+  sentences in `figures-you-write.html` teaching the braced form; both
+  reworded. `docs/site/example/` is no longer excluded (only its built views
+  are, by basename) and its `source.md` is in the corpus with a count of 0.
+- **The gate and `--check` share one notion of stale:** the old-opener
+  scan runs on every active surface, not only `source.md`; the file list,
+  the generated/history/self exclusions and `OPENER_RE` are imported from
+  the tool.
+- **`splitTail` reports a sigil group that does not end the line**
+  (`{.narrow}{#tt}`, `Head {.wide #id} | Sub`, `# Part {#c1} trailing`, an
+  unclosed `{.wide`) as `stray-attribute` through `strayTailProblem`; plain
+  `{x}` in prose is untouched.
+- **A column heading's tail is parsed with `classes: 'none'`**: any `.word`
+  is `class-on-column`, said once, by the parser, in both files; the
+  dedicated build refusal and the lint loop are gone. On a title/closing
+  chunk lint no longer doubles `unknown-class` with `class-on-cover-chunk`.
+- **A bare number on the opener** (`::: draw 150x56 1200`) says "a delay
+  is written with its keyword: autoplay 1200".
+- **Docs:** PRD's reference example names its edge in front (`edge leak
+  mix -> log`); the Unreleased autoplay entry in CHANGELOG spells the new
+  opener; CLAUDE.md's command comment counts eight gates; HOUSE-STYLE.md
+  says where `#word` is legal and lists the whole chunk-tail vocabulary; the
+  appearance skill says `CHUNK_STYLE_CLASSES` lives in `tails.mjs`;
+  diagram-core's element-tail error no longer offers `#id`; the dates in
+  this file's headings are gone (`~/.claude/CLAUDE.md`: no dates in task
+  files).
+- **Allowlist noise:** the `cycle` line in `parseLegacyDrawTail` is written
+  on two lines so the bare-`cycle` pattern does not match a JS block.
+  `VALID_WIDTHS` / `VALID_CHUNK_CLASSES` now have an importer (lint's
+  cover-chunk filter).
+
+**Left as found, out of this change's scope (pre-existing, confirmed by the
+review):** `::: backdrop {.blur}`, `::: cols 4` and `::: overlay … junk`
+fall through to prose in the build while lint errors on them; `autoplay N`
+on a figure with no step block is a silent no-op; a CRLF source builds to 0
+chunks with exit 0. Each is a build/lint disagreement or a silent no-op of
+the kind this project refuses, and each deserves its own entry.
+
+**Verification of the third pass:** `npm run gate` 655 green;
+`node test/settings.mjs` 419 green; `node test/run.mjs` 855 green with the
+same three pre-existing `text-select` Alt-drag failures; migration `--check`
+clean on both repositories including the spliced pages' prose;
+`refresh-figures.mjs --check` up to date; tracked views rebuilt.

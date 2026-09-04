@@ -110,10 +110,11 @@ node lint.js lectures/tutorial/source.md       # single file
 node lint.js lectures/ --strict                # warnings → exit 2
 
 # two test suites, split by one question: can this be decided without a
-# browser? test/gates/ is everything about the figure language that can - six
-# gates, 440 assertions, under a second, no browser and no `npm install`
-# (diagram-core.mjs and lint.js are both zero-dep). test/ is the things that
-# only break in a built page - 33 specs, ~834 assertions, ~5 min, one Chromium.
+# browser? test/gates/ is everything about the figure language and the {…}
+# tail grammar that can - eight gates, under a second, no browser and no
+# `npm install` (diagram-core.mjs, tails.mjs and lint.js are all zero-dep).
+# test/ is the things that only break in a built page - 33 specs, ~5 min,
+# one Chromium.
 # `npm test` runs the gates first so a compiler regression fails in a second
 # rather than in four minutes; gates.yml runs them on push and PR.
 #

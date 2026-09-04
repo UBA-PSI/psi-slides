@@ -187,10 +187,25 @@ function slotLine(slots) {
 // Split a heading line into its prose and the contents of a trailing `{…}`.
 // `tail` is null when there are no braces, and '' when the author wrote `{}`
 // - parseTail treats the two differently.
+// A tail ends the line. A sigil group anywhere else - `{.narrow}{#tt}`,
+// `Head {.wide #id} | Sub`, `# Part {#c1} trailing`, an unclosed `{.wide` -
+// is neither prose nor a tail, and it used to ship as heading text at the
+// wrong width with a green lint. `stray` names the offending group; the
+// adapters turn it into a stray-attribute problem. Plain braces in prose
+// (`the {x} syntax`) are left alone: only a group opening with `.` or `#`
+// looks like a tail.
 export function splitTail(line) {
   const m = String(line).match(/^(.*?)\s*\{([^}]*)\}\s*$/);
-  if (!m) return { text: String(line).trim(), tail: null };
-  return { text: m[1].trim(), tail: m[2] };
+  const text = (m ? m[1] : String(line)).trim();
+  // A code span is prose: the tutorial's own heading quotes `{.width #id}`.
+  const strayM = text.replace(/`[^`]*`/g, '').match(/\{[.#][^}]*\}?/);
+  return { text, tail: m ? m[2] : null, stray: strayM ? strayM[0] : null };
+}
+// The problem a stray group is, in the parser's own shape.
+export function strayTailProblem(what, stray) {
+  return { code: 'stray-attribute',
+    msg: `${what}: "${stray}" is a tail that does not end the line. One {…} tail, last on the line, ` +
+         'and nothing after it.' };
 }
 
 // Resolve the contents of a `{…}` tail against a slot table. Never throws:
@@ -209,8 +224,11 @@ export function splitTail(line) {
 // The directive is named in the message (`what`), never in the code.
 // `opts.id` is the id policy: 'one' for a heading, 'none' for a directive -
 // a generic parser that took `#id` everywhere would let a directive carry an
-// id nothing reads, the silent no-op this format refuses.
-export function parseTail(tail, slots, what, { id: idPolicy = 'none' } = {}) {
+// id nothing reads, the silent no-op this format refuses. `opts.classes:
+// 'none'` is the column heading's policy: it takes an id and no class at
+// all, and a `.word` there is `class-on-column` - said once, by the parser,
+// rather than as an unknown-class listing a vocabulary the line never had.
+export function parseTail(tail, slots, what, { id: idPolicy = 'none', classes: classPolicy = 'slots' } = {}) {
   const out = { classes: [], id: undefined, ids: [], slots: {}, problems: [] };
   for (const [slot, spec] of Object.entries(slots)) out.slots[slot] = { value: spec.default, written: false };
   const problem = (code, msg) => out.problems.push({ code, msg: `${what}: ${msg}` });
@@ -226,6 +244,11 @@ export function parseTail(tail, slots, what, { id: idPolicy = 'none' } = {}) {
     if (tok.startsWith('.') && tok.length > 1) {
       const w = tok.slice(1);
       out.classes.push(w);
+      if (classPolicy === 'none') {
+        problem('class-on-column', `".${w}" - a # heading takes an {#id} and nothing else; ` +
+          'a width and .bare belong on the ## chunks under it.');
+        continue;
+      }
       const slot = Object.keys(slots).find(s => slots[s].words.includes(w));
       if (!slot) {
         problem('unknown-class', idsTaken
@@ -289,16 +312,21 @@ export function parseLegacyDrawTail(text) {
     const a = tok.match(/^autoplay=(\d+)$/);
     if (u) { once('unit'); out.unit = u[1]; }
     else if (a) { once('autoplay'); out.autoplay = Number(a[1]); }
-    else if (tok === 'cycle') { once('cycle'); out.cycle = true; }
+    else if (tok === 'cycle') {
+      once('cycle');
+      out.cycle = true;
+    }
     else if (tok.startsWith('#') && tok.length > 1) { once('id'); out.id = tok.slice(1); }
     else out.unknown.push(tok);
   }
+  // The id last: when `why` says "carries #", everything else is sound, and
+  // the refusal message may format the rest as the line to write.
   if (out.unknown.length) out.why = `does not understand "${out.unknown.join(' ')}"`;
   else if (out.repeated.length) out.why = `writes ${out.repeated.join(' and ')} twice - which one was meant is not for a script to guess`;
-  else if (out.id) out.why = `carries #${out.id} - draw ids were diagnostic-only and are no longer supported; remove it by hand`;
   else if (out.unit != null && !validUnit(out.unit)) out.why = `has a zero side in its grid (${out.unit})`;
   else if (out.cycle && out.autoplay == null) out.why = 'has cycle with no autoplay to repeat';
   else if (out.autoplay != null && (out.autoplay < AUTOPLAY_MIN || out.autoplay > AUTOPLAY_MAX)) out.why = `autoplay ${out.autoplay} is out of range`;
+  else if (out.id) out.why = `carries #${out.id} - draw ids were diagnostic-only and are no longer supported; remove it by hand`;
   return out;
 }
 
@@ -354,11 +382,10 @@ export function parseDrawOpener(line) {
     // Spell the exact new line when the old one was sound; when it was not,
     // say why and show the shape, because a line the parser would refuse
     // next is no help as a recommendation.
-    const spelled = old.why === null
+    const sound = old.why === null || old.why.startsWith('carries #');
+    const spelled = sound
       ? formatDrawOpener({ unit: old.unit, autoplay: old.autoplay, cycle: old.cycle })
-      : (old.why.startsWith('carries #')
-          ? formatDrawOpener({ unit: old.unit, autoplay: old.autoplay, cycle: old.cycle })
-          : DRAW_OPENER_EXAMPLE);
+      : DRAW_OPENER_EXAMPLE;
     problem('stray-attribute',
       `the braced tail is gone - the grid is positional and playback is a keyword. Write  ${spelled}` +
       (old.id ? `  (a draw #id was diagnostic only; drop it)` : '') +
@@ -380,7 +407,11 @@ export function parseDrawOpener(line) {
       else { out.unit = `${Number(u[1])}x${Number(u[2])}`; stage = 1; }
       continue;
     }
-    if (/^\d+\s*[xX×]\s*\d+$|^\d+[xX×]$|^[xX×]\d+$|^\d+$/.test(tok) || /^\d+[xX×]\d+[^\s]*$/.test(tok)) {
+    if (/^\d+$/.test(tok)) {
+      problem('stray-attribute', `"${tok}" is a bare number. A delay is written with its keyword:  autoplay ${tok}`);
+      continue;
+    }
+    if (/^\d+\s*[xX×]\s*\d+$|^\d+[xX×]$|^[xX×]\d+$/.test(tok) || /^\d+[xX×]\d+[^\s]*$/.test(tok)) {
       problem('bad-unit', `"${tok}" is not a grid. Write WxH with a lowercase x and no spaces, as in 150x56`);
       continue;
     }

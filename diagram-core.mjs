@@ -1252,7 +1252,7 @@ export function dgParseAttrs(raw, errors, lineNo) {
       if (!DG_CLASSES.has(cls)) {
         dgErr(errors, lineNo, `unknown class .${cls} (known: ${[...DG_CLASSES].join(', ')})`);
       } else out.classes.push(cls);
-    } else dgErr(errors, lineNo, `attribute "${tok}" is not #id, .class, !class or @tag`);
+    } else dgErr(errors, lineNo, `attribute "${tok}" is not a .class, !class or @tag`);
   }
   // Adding and removing the same class in one tail is two answers to one
   // question, and there is no order that makes it mean something: resolution

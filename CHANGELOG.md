@@ -723,10 +723,10 @@ from building the same way is a major version.
   prose - a change to finished decks made in the name of not changing
   finished decks.
 
-- **`::: draw {autoplay=N}` walks a figure's steps on a timer.** One delay for
+- **`::: draw autoplay N` walks a figure's steps on a timer.** One delay for
   every step, so a cover figure animates while the room files in; it works on
-  any chunk. `autoplay=` never reaches the compiler - build.js strips it from
-  the fence and puts it on the emitted figure - because playback is not part
+  any chunk. `autoplay` never reaches the compiler - build.js reads it off
+  the opener and puts it on the emitted figure - because playback is not part
   of the drawing and `diagram-core.mjs` also runs inside the browser editor,
   where there is no deck to play. The runtime calls the same advance the Space
   key calls, so there is one counter, one broadcast and one freeze gate, and

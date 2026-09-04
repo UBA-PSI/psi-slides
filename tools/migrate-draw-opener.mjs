@@ -37,30 +37,59 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { execFileSync } from 'node:child_process';
+import { fileURLToPath } from 'node:url';
 import { parseLegacyDrawTail, formatDrawOpener } from '../tails.mjs';
 
-const args = process.argv.slice(2);
-const root = path.resolve(args.find(a => !a.startsWith('-')) || '.');
-const write = args.includes('--write');
-const check = args.includes('--check');
-
-// Basenames excluded at any depth, and path prefixes excluded from the root.
-export const EXCLUDED_BASENAMES = new Set([
+// Three kinds of file the rewrite never touches, kept apart because the
+// syntax gate needs two of them and not the third: *generated* files are
+// rebuilt by the build, by refresh-figures.mjs or by build-site.js; *history*
+// explains the old form on purpose and is inventoried, not rewritten; and the
+// *self* group carries the old spelling as pattern text or as negative tests.
+export const GENERATED_BASENAMES = new Set([
   'audience.html', 'speaker.html', 'print.html', 'print-notes.html', 'squint.txt',
-  'CHANGELOG.md', 'TODO-inconsistencies.md', 'revision-proposal.md',
 ]);
-export const EXCLUDED_PREFIXES = [
-  'docs/artifact/figures-you-write.html', 'docs/site/figures.html', 'docs/site/example/',
-  '_site/', 'node_modules/',
-  // The gate that inventories the old form, its allowlist, and this script:
-  // all three carry the old spelling as pattern text.
+// The two spliced figure pages: their figure regions are generated, their
+// prose shell is hand-written - so they are excluded from the rewrite and
+// their prose is scanned separately (`proseOf`).
+export const GENERATED_PROSE_PAGES = ['docs/artifact/figures-you-write.html', 'docs/site/figures.html'];
+export const GENERATED_PREFIXES = [...GENERATED_PROSE_PAGES, '_site/', 'node_modules/'];
+export const HISTORY_BASENAMES = new Set(['CHANGELOG.md', 'TODO-inconsistencies.md', 'revision-proposal.md']);
+export const SELF_PREFIXES = [
   'test/gates/legacy-draw-syntax.mjs', 'test/gates/legacy-draw-syntax.txt',
   'tools/migrate-draw-opener.mjs',
   // Negative tests that refuse the old form keep it on purpose; the
   // legacy-draw-syntax allowlist is where they are reviewed.
   'test/settings.mjs', 'test/gates/tails.mjs',
 ];
-const TEXT_EXT = new Set(['.md', '.mjs', '.js', '.html', '.yml', '.yaml', '.txt', '.json', '.css']);
+export const TEXT_EXT = new Set(['.md', '.mjs', '.js', '.html', '.yml', '.yaml', '.txt', '.json', '.css']);
+
+const startsAny = (rel, list) => list.some(p => rel === p || rel.startsWith(p));
+export const isGenerated = (rel) => GENERATED_BASENAMES.has(path.basename(rel)) || startsAny(rel, GENERATED_PREFIXES);
+export const isHistory = (rel) => HISTORY_BASENAMES.has(path.basename(rel)) || /^todo-[^/]*\.md$/i.test(rel);
+export const isSelf = (rel) => startsAny(rel, SELF_PREFIXES);
+
+// What is left of a spliced page once its generated regions are blanked:
+// the hand-written prose, which is an active surface like any other page.
+export function proseOf(html) {
+  return String(html)
+    .replace(/<svg[\s\S]*?<\/svg>/g, '')
+    .replace(/<script[\s\S]*?<\/script>/g, '')
+    .replace(/<style[\s\S]*?<\/style>/g, '');
+}
+
+// Every text file git knows or would not ignore under `root`, relative,
+// sorted. `root` has to be a repository's top level, because every rule
+// here is written against root-relative paths.
+export function listFiles(root) {
+  const git = (...a) => execFileSync('git', ['-C', root, ...a], { encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
+    .split('\n').filter(Boolean);
+  const top = path.resolve(git('rev-parse', '--show-toplevel')[0]);
+  if (top !== path.resolve(root)) {
+    throw new Error(`${root} is not a repository root (that is ${top}); every exclusion here is root-relative`);
+  }
+  const files = new Set([...git('ls-files'), ...git('ls-files', '--others', '--exclude-standard')]);
+  return [...files].filter(f => TEXT_EXT.has(path.extname(f))).sort();
+}
 
 // The old-form tokens, as the syntax gate inventories them. `cycle` only
 // inside a one-line brace tail holding no `:`, `,` or `$` - a JS object
@@ -88,18 +117,15 @@ export function isActiveSurface(rel) {
 }
 
 export function excluded(rel) {
-  if (EXCLUDED_BASENAMES.has(path.basename(rel))) return true;
-  if (/^todo-[^/]*\.md$/i.test(rel)) return true;   // root planning notes
-  return EXCLUDED_PREFIXES.some(p => rel === p || rel.startsWith(p));
+  return isGenerated(rel) || isHistory(rel) || isSelf(rel);
 }
 
-function listFiles() {
-  const git = (...a) => execFileSync('git', ['-C', root, ...a], { encoding: 'utf8' }).split('\n').filter(Boolean);
-  const files = new Set([...git('ls-files'), ...git('ls-files', '--others', '--exclude-standard')]);
-  return [...files].filter(f => TEXT_EXT.has(path.extname(f)) && !excluded(f)).sort();
-}
-
-const OPENER_RE = /::: draw\s*\{([^}]*)\}/g;
+// The old opener, wherever it sits in a line - mid-line too, because a
+// template literal or a prose example carries it there. Never across a line:
+// `\s*` used to, and a bare `::: draw` followed by a `{…}` line, or an
+// opener missing its `}`, was matched over the line break and rewritten.
+// `:::` then any blank run then `draw`, as the old build regex read it.
+export const OPENER_RE = /:::[ \t]+draw[ \t]*\{([^}\n]*)\}/g;
 
 // Old-form tokens in a text, as `{ line, match }` rows.
 export function legacyTokens(src) {
@@ -124,21 +150,34 @@ export function migrateText(src) {
   return { text, changes, problems };
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  const files = listFiles();
+function runRoot(root, { write, check }) {
+  let files;
+  try { files = listFiles(root); } catch (e) {
+    console.log(`  ✗ ${root}: ${String(e.message).split('\n')[0]}`);
+    return 1;
+  }
   let changed = 0, problemCount = 0, stale = 0;
   const pending = [];
+  const staleIn = (rel, text) => {
+    for (const t of legacyTokens(text)) {
+      stale++;
+      console.log(`  ✗ ${rel}:${t.line}  old-form token "${t.match}" on an active authoring surface`);
+    }
+    for (const m of text.matchAll(OPENER_RE)) {
+      stale++;
+      console.log(`  ✗ ${rel}:${text.slice(0, m.index).split('\n').length}  old opener "${m[0]}" on an active authoring surface`);
+    }
+  };
   for (const rel of files) {
     const abs = path.join(root, rel);
     let src;
     try { src = fs.readFileSync(abs, 'utf8'); } catch { continue; }
-    if (check && isActiveSurface(rel)) {
-      for (const t of legacyTokens(src)) {
-        stale++;
-        console.log(`  ✗ ${rel}:${t.line}  old-form token "${t.match}" on an active authoring surface`);
-      }
-    }
-    if (!src.includes('::: draw')) continue;
+    // The spliced pages: the rewrite leaves them alone (refresh-figures.mjs
+    // owns their figures), the check reads their prose.
+    if (check && GENERATED_PROSE_PAGES.includes(rel)) { staleIn(rel, proseOf(src)); continue; }
+    if (excluded(rel)) continue;
+    if (check && isActiveSurface(rel)) staleIn(rel, src);
+    if (!/:::[ \t]+draw/.test(src)) continue;
     const { text, changes, problems } = migrateText(src);
     for (const p of problems) {
       problemCount++;
@@ -151,19 +190,39 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     pending.push({ abs, text });
   }
   if (problemCount) {
-    console.log(`\n${problemCount} opener(s) this script cannot rewrite - fix them by hand, then run again. Nothing written.`);
-    process.exit(1);
+    console.log(`\n${problemCount} opener(s) this script cannot rewrite under ${root} - fix them by hand, then run again. Nothing written.`);
+    return 1;
   }
   if (check) {
     console.log(changed || stale
       ? `\n${changed} file(s) still carry the old opener and ${stale} old-form token(s) sit on active surfaces under ${root}`
       : `clean: no old ::: draw opener, no old-form token on an active surface under ${root}`);
-    process.exit(changed || stale ? 1 : 0);
+    return changed || stale ? 1 : 0;
   }
   if (write) {
     for (const { abs, text } of pending) fs.writeFileSync(abs, text);
-    console.log(`\nrewrote ${changed} file(s)`);
+    console.log(`\nrewrote ${changed} file(s) under ${root}`);
   } else {
-    console.log(`\n${changed} file(s) would change; run with --write to apply`);
+    console.log(`\n${changed} file(s) would change under ${root}; run with --write to apply`);
   }
+  return 0;
+}
+
+// Run as a script, not when imported by the gate. Compared as paths, not as
+// a URL against a path: a checkout under a directory with a space in its
+// name percent-encodes in the URL and the old comparison silently ran
+// nothing and exited 0.
+const isMain = process.argv[1] && path.resolve(process.argv[1]) === fileURLToPath(import.meta.url);
+if (isMain) {
+  const args = process.argv.slice(2);
+  const write = args.includes('--write');
+  const check = args.includes('--check');
+  const roots = args.filter(a => !a.startsWith('-'));
+  if (!roots.length) roots.push('.');
+  let exit = 0;
+  for (const r of roots) {
+    if (roots.length > 1) console.log(`── ${r}`);
+    exit = Math.max(exit, runRoot(path.resolve(r), { write, check }));
+  }
+  process.exit(exit);
 }

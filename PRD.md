@@ -393,7 +393,7 @@ box mix    "Mix"       right of sender gap 0.6
 box log    "Logfile"   below mix gap 0.8   {.dashed}
 
 edge sender -> mix "encrypted"
-edge mix -> log    {#leak .dashed}
+edge leak mix -> log    {.dashed}
 
 text why "here the anonymity breaks" right of log gap 0.8 -> log {.hand}
 

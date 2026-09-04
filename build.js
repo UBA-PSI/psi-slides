@@ -37,7 +37,7 @@ import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPat
 import {
   CHUNK_SLOTS, CHUNK_STYLE_CLASSES,
   CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS,
-  splitTail, parseTail, slotTable,
+  splitTail, parseTail, slotTable, strayTailProblem,
   parseDrawOpener, formatDrawOpener, drawCompilerAttrs,
 } from './tails.mjs';
 
@@ -465,7 +465,7 @@ function collectDiagramImageRefs(src) {
     if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
     if (inFence) continue;
     if (!inDiagram) {
-      if (/^:::\s+draw\b/.test(line)) inDiagram = true;
+      if (parseDrawOpener(line)) inDiagram = true;
       continue;
     }
     if (/^:::\s*$/.test(line)) { inDiagram = false; continue; }
@@ -2891,9 +2891,11 @@ function initDiagrams() {
 // callers decide what is legal where - a column heading takes an id and
 // nothing else, a title chunk refuses a width - because that is a question
 // about the line's place in the deck, which the parser cannot see.
-function parseAttributeTail(line) {
-  const { text, tail } = splitTail(line);
-  const t = parseTail(tail, CHUNK_SLOTS, `{${String(tail ?? '').trim()}} on "${text}"`, { id: 'one' });
+function parseAttributeTail(line, { column = false } = {}) {
+  const { text, tail, stray } = splitTail(line);
+  const what = `{${String(tail ?? '').trim()}} on "${text}"`;
+  const t = parseTail(tail, CHUNK_SLOTS, what, { id: 'one', classes: column ? 'none' : 'slots' });
+  if (stray) t.problems.unshift(strayTailProblem(what, stray));
   if (t.problems.length) {
     const err = new Error(t.problems[0].msg);
     err.userFacing = true;
@@ -3168,22 +3170,14 @@ function parseLecture(src) {
       if (h1) {
         flushChunk();
         flushColBody();
-        const h1Attr = parseAttributeTail(h1[1]);
-        const { text, id } = h1Attr;
         // A column heading takes an id and nothing else. Width and `.bare`
         // are a chunk's business, and left unchecked they parsed here, were
         // dropped, and neither file said anything - which is the silent no-op
-        // this format refuses everywhere else. Reported off the class list
-        // and not off the parsed keys, or a width came back as the *key* and
-        // the message named a class called `.width` that does not exist.
-        if (h1Attr.classes.length) {
-          const err = new Error(
-            `A column heading carries .${h1Attr.classes[0]} ("${text}").\n` +
-            '  A `# Heading` takes an {#id} and nothing else - a width and .bare\n' +
-            '  belong on the `## tag:` chunks under it.');
-          err.userFacing = true;
-          throw err;
-        }
+        // this format refuses everywhere else. The parser says so itself
+        // (`classes: 'none'`), so a typo is not first answered with a
+        // vocabulary this line never had.
+        const h1Attr = parseAttributeTail(h1[1], { column: true });
+        const { text, id } = h1Attr;
         currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null };
         colBody = [];
         columns.push(currentColumn);
@@ -3442,7 +3436,7 @@ function parseLecture(src) {
         // gets one column with nothing to say why. Measured before it was
         // refused. ::: side is the construct that holds a figure beside
         // prose, and the message says so.
-        if (colsDepth > 0 && /^:::\s+draw\b/.test(line)) {
+        if (colsDepth > 0 && parseDrawOpener(line)) {
           const err = new Error(
             `::: draw inside ::: cols (${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}).\n` +
             '  ::: cols is one text flow balanced across columns, and a figure in it\n' +

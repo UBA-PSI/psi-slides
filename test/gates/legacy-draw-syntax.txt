@@ -3,19 +3,21 @@
 #   node test/gates/legacy-draw-syntax.mjs --write
 # and review the diff: a new row is a claim that this file may keep the old form.
 CHANGELOG.md	autoplay=1200	1
-CHANGELOG.md	autoplay=N	1
 CHANGELOG.md	unit=150x52	1
 CHANGELOG.md	unit=150x56	1
 CHANGELOG.md	unit=WxH	1
 CHANGELOG.md	{unit=150x56 autoplay=1200 cycle}	1
 TODO-inconsistencies.md	autoplay=1200	2
+TODO-inconsistencies.md	autoplay=50	1
 TODO-inconsistencies.md	autoplay=900	1
 TODO-inconsistencies.md	autoplay=N	4
+TODO-inconsistencies.md	unit=0x5	1
 TODO-inconsistencies.md	unit=0x56	1
 TODO-inconsistencies.md	unit=112x40	1
 TODO-inconsistencies.md	unit=130x76	1
 TODO-inconsistencies.md	unit=150x56	4
 TODO-inconsistencies.md	unit=WxH	12
+TODO-inconsistencies.md	{#fig cycle}	1
 TODO-inconsistencies.md	{cycle}	1
 build.js	unit=WxH	1
 diagram-core.mjs	unit=WxH	3
@@ -24,17 +26,21 @@ revision-proposal.md	unit=150x52	4
 revision-proposal.md	unit=170x56	1
 tails.mjs	autoplay=N	1
 tails.mjs	unit=WxH	1
-tails.mjs	{ once('cycle'); out.cycle = true; }	1
 tails.mjs	{unit=WxH #id autoplay=N cycle}	1
 test/gates/semantics.mjs	unit=126x38	1
 test/gates/tails.mjs	autoplay=100	1
 test/gates/tails.mjs	autoplay=1200	2
 test/gates/tails.mjs	autoplay=1400	3
+test/gates/tails.mjs	autoplay=50	1
 test/gates/tails.mjs	autoplay=900	5
+test/gates/tails.mjs	unit=0x5	1
 test/gates/tails.mjs	unit=0x56	5
+test/gates/tails.mjs	unit=10x10	3
 test/gates/tails.mjs	unit=140x50	3
-test/gates/tails.mjs	unit=150x56	18
+test/gates/tails.mjs	unit=150x56	20
+test/gates/tails.mjs	unit=20x20	2
 test/gates/tails.mjs	unit=WxH	2
+test/gates/tails.mjs	{#fig cycle}	1
 test/gates/tails.mjs	{cycle cycle}	1
 test/gates/tails.mjs	{unit=150x56 autoplay=1400 cycle}	2
 test/gates/tails.mjs	{unit=150x56 cycle}	1
