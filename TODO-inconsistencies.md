@@ -653,7 +653,9 @@ key=value options and one bare flag.
    **Register the gate:** `test/gates/run.mjs` does not discover files; it
    runs the fixed `GATES` array at line 37. Add
    `./legacy-draw-syntax.mjs` there and update the header from six to seven
-   gates, including a one-line `legacy-draw-syntax` entry. Otherwise the new
+   gates, including a one-line `legacy-draw-syntax` entry. `test/README.md:5`
+   counts "Six gates" as well (checked); change both, or the two documents
+   disagree about how many gates exist. Otherwise the new
    file never runs even though `npm test` appears green. Built views containing
    highlighted source remain excluded, so they neither hide a miss nor create
    false failures.
