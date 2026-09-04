@@ -3,10 +3,13 @@
 Collected while making every setting in a tail dot-mandatory (commit
 87bcc86). That commit left the format with one *spelling* rule but still
 four implementations of it, one directive that breaks the rule, and lint
-codes that name the same refusal five ways. This file is written so a fresh
+codes that name the same refusal six ways. This file is written so a fresh
 session can implement each item without re-deriving it. Every entry has:
-what it is, what has been checked, what to check before touching it, the
-plan, the risks, and the tests that pin it.
+what it is, what has been checked (with anchors), what to check before
+touching it, the plan, the risks, and the tests that pin it.
+
+A review of the first draft (Codex, 2026-09-04) found six gaps; each is
+resolved in place below and marked **[review]** where the text changed.
 
 The end state all items aim at, in one line each:
 
@@ -26,7 +29,7 @@ is positional, before the braces.** **Anything optional that carries a value
 is a keyword after the braces.**
 
 Suggested order: item 1 (one parser module, with 2 and 3 folded in), then
-item 4 (draw), then item 5 (docs). Items 6–7 are already resolved or
+item 4 (draw opener), then item 5 (docs). Items 6–7 are already resolved or
 explicitly deferred.
 
 ---
@@ -42,84 +45,151 @@ maintained code and message text. Every slot table is declared twice with a
 "Mirrors X in build.js" comment on the lint side.
 
 **Checked.**
-- `build.js` is ESM (`import … from './diagram-core.mjs'` at line 33), and
-  `lint.js` imports the compiler from `diagram-core.mjs` too (lint.js:327).
-  A shared `tails.mjs` needs no module-system work.
-- The five mirrored constants: `grep -oE "Mirrors? [A-Z_]+ in build.js" lint.js`
-  → `CARDS_SLOTS`, `CHUNK_STYLE_CLASSES`, `SIDE_SLOTS`, `STYLE_SPEC`,
-  `VIEW_DEFAULT_SPEC`. `OVERLAY_SLOTS` and `BACKDROP_SLOTS` are mirrored
-  without the comment. `STYLE_SPEC` and `VIEW_DEFAULT_SPEC` are frontmatter,
-  not tails – out of scope here, but they would move into the same module
-  or a sibling for the same reason.
+- `build.js` is ESM (`import … from './diagram-core.mjs'`, line 33).
+  `lint.js` is ESM and imports **tables and small helpers** from
+  `diagram-core.mjs` (lint.js:311–327: `DG_KEYWORDS`, `DG_CLASSES`, …,
+  `rejectSlotPair`, `DG_HOST_OPTS`) – not `createDiagramCompiler` or
+  `parseDiagramSource`. **[review]** The first draft said "imports the
+  compiler"; it does not, and the distinction is the contract in item 1c.
+- The five mirrored constants with the comment
+  (`grep -oE "Mirrors? [A-Z_]+ in build.js" lint.js`): `CARDS_SLOTS`,
+  `CHUNK_STYLE_CLASSES`, `SIDE_SLOTS`, `STYLE_SPEC`, `VIEW_DEFAULT_SPEC`.
+  `OVERLAY_SLOTS` and `BACKDROP_SLOTS` are mirrored without the comment.
+  `STYLE_SPEC` and `VIEW_DEFAULT_SPEC` are frontmatter, not tails – out of
+  scope here, but they would move into the same module or a sibling for the
+  same reason.
 - Call sites in build.js: `parseAttributeTail` at the `h1`/`h2` branches
   (~3380–3420); `parseSlotClasses` at `renderBackdrop` (~1950),
   `renderCardsBlock` (~2028), overlay rendering (~2137), and the `side`
   opener (~3795). In lint.js: `parseAttributeTail` at the `h1`/`h2`
   branches (~2600–2640); `slotProblems` at backdrop (~2692), overlay
-  (~2739), cards/rows (~2770), side (~2853).
+  (~2739), cards/rows (2819, code `bad-${kind}-class`), side (~2853).
 - The load-time assertion that no word sits in two slots of one table
   (build.js ~1850, "clear was a ground and very nearly also a scrim") must
   move with the tables.
 - The chunk tail already *is* a slot table in disguise: `CHUNK_STYLE_CLASSES`
   maps `wrap-none → [wrap, none]`, `blocks-center → [blocks, center]`;
-  width is a slot of four; `.bare` and `.center` are two-valued slots whose
-  default is unwritten.
+  width is a slot of four; `.bare` and `.center` are flags.
+- **[review]** The public chunk grammar accepts exactly `.narrow .standard
+  .wide .full .bare .center .wrap-balance .wrap-none .blocks-left
+  .blocks-center` (`VALID_WIDTHS`, `VALID_CHUNK_CLASSES`, build.js:56–86).
+  There is no `.shown` and no `.left`; a slot model must not invent them.
+
+**1a. The slot model. [review]** A slot has a *default* and a list of
+*writable words*, and the two are separate fields, because on a directive
+the default may be written (`::: side {.top}` is legal and "changes
+nothing") while on a chunk heading the default of a flag has no spelling:
+
+```js
+// tails.mjs
+export const SIDE_SLOTS = {
+  anchor: { default: 'top', words: ['top', 'middle'] },          // default writable
+};
+export const CHUNK_SLOTS = {
+  width:  { default: 'standard', words: ['narrow', 'standard', 'wide', 'full'] },
+  wrap:   { default: null, words: ['wrap-balance', 'wrap-none'] },      // null: no override
+  blocks: { default: null, words: ['blocks-left', 'blocks-center'] },
+  bare:   { default: false, words: ['bare'] },                         // flag: default unwritable
+  center: { default: false, words: ['center'] },
+};
+```
+
+The parser accepts only `words`; `default` is what the slot resolves to
+when nothing is written. `.shown` and `.left` are therefore refused as
+`unknown-class`, exactly as today. The `wrap`/`blocks` value the build
+needs (`none`, `balance`, `left`, `center`) is derived from the written
+class by the existing `CHUNK_STYLE_CLASSES` map, which moves into the
+module unchanged. The load-time no-word-in-two-slots assertion runs over
+`words` of every table, including `CHUNK_SLOTS`.
+
+**1b. One code for "a word from no slot". [review]** The first draft left
+open when a heading word is `unknown-class` and a directive word
+`unknown-slot-word`. Resolution: there is no distinction to keep. Both are
+written `.word` now and both mean "this tail does not take that word", so
+the parser emits **`unknown-class`** for every table, and the *message*
+names the tail (`::: side: '.sideways' is not a word this directive
+knows – anchor: .top | .middle` vs `chunk heading: '.bar' is not a class
+this tail takes – valid: .narrow, …`). The message text is what the tests
+grep; the code is what a `linter: ignore` would name, and nobody ignores
+either today (see item 3). So `parseTail` takes no `opts.unknownCode`; it
+takes a `what` string for the message only.
+
+**1c. The architecture contract in `CLAUDE.md`. [review]** `CLAUDE.md:176–180`
+("lint.js is independent") says lint.js "deliberately does not import
+anything from build.js; it re-implements the parsing contract and mirrors
+the constants", and that the diagram vocabulary is the one exception,
+**"tables only – a function from that module would pull the whole compiler
+in behind it"**. A shared `tails.mjs` is a second exception and has to be
+written into that section in the same commit, with its reason: the file is
+zero-dependency, under 200 lines, exports tables plus one pure function,
+and pulls nothing in behind it – the concern the "tables only" rule
+guards against does not arise. The sentence listing the mirrored constants
+(`VALID_TAGS`, `VALID_WIDTHS`, `DENSITY_BUDGET`, `VIEW_DEFAULTS`) loses
+`VALID_WIDTHS`. Also fix the same paragraph's claim if it is read as
+"lint imports the compiler" – it imports vocabulary, and after this item
+it imports vocabulary plus the tail parser.
 
 **To check before implementing.**
 - Whether any code reads `parseAttributeTail(...).classes` as an ordered
-  list (the column-heading refusal prints `classes[0]`); the new return
-  shape must keep that or the caller must change.
-- Whether `parseDiagramDefaults` in diagram-core has its own `{…}` reader
-  for element tails (lint.js ~2343 reads them for draw defaults). It does –
-  element tails inside a draw body stay in diagram-core; this item covers
-  only the *block-level* tails (heading, `:::` directive).
+  list (the column-heading refusal prints `classes[0]`); keep `classes` in
+  the return shape, in written order.
+- `parseDiagramDefaults` in diagram-core has its own `{…}` reader for
+  *element* tails inside a draw body (lint.js ~2343 reads them for draw
+  defaults). Those stay in diagram-core; this item covers only the
+  *block-level* tails (heading, `:::` directive, and after item 4 the draw
+  opener's `{#id}`).
 - `test/settings.mjs` greps message text: `/is not a word this directive knows/`,
   `/both answer "anchor"/`, `/is not a \.word/`, `/is not a \.class or an #id/`,
-  `/both answer "width"/`. Keep the phrases or update the tests in the
-  same commit.
+  `/both answer "width"/`, `/both answer "wrap"/`. Keep the phrases or
+  update the tests in the same commit.
 
 **Plan.**
-1. Create `tails.mjs` exporting the tables (`WIDTHS`, `CHUNK_SLOTS`,
-   `CARDS_SLOTS`, `OVERLAY_SLOTS`, `BACKDROP_SLOTS`, `SIDE_SLOTS`) and one
-   function `parseTail(text, slots, opts)` that returns data and never
-   throws:
+1. Create `tails.mjs` exporting the tables (`CHUNK_SLOTS`, `CARDS_SLOTS`,
+   `OVERLAY_SLOTS`, `BACKDROP_SLOTS`, `SIDE_SLOTS`, `CHUNK_STYLE_CLASSES`,
+   `VALID_WIDTHS` derived from `CHUNK_SLOTS.width.words`) and one function
+   that returns data and never throws:
    ```js
-   { text, id, ids, slots: { width: {value, written}, … }, problems: [{code, msg}] }
+   parseTail(text, slots, what) → {
+     text,                      // the heading text before the tail ('' for a directive)
+     classes,                   // every .word in written order, dots stripped
+     id, ids,                   // first #id, all #ids
+     slots: { anchor: { value, written }, … },
+     problems: [{ code, msg }], // codes: stray-attribute | unknown-class | same-slot | multiple-ids
+   }
    ```
-   `problems` codes: `stray-attribute`, `unknown-slot-word`, `same-slot`,
-   `multiple-ids`. `written` is the fix for item 2.
-2. `CHUNK_SLOTS` expresses the heading tail as slots:
-   `width: ['standard','narrow','wide','full']`, `wrap: ['wrap-balance','wrap-none']`
-   (with the value derived from the class name), `blocks: […]`,
-   `heading: ['shown','bare']`, `axis: ['left','center']`. The class
-   *spelling* does not change (item 6).
-3. build.js: replace both parsers with `parseTail`; on `problems.length`,
-   throw a `userFacing` error built from `problems[0].msg` plus the slot
-   table listing (keep `slotTable()` there or move it).
-4. lint.js: replace both parsers; `for (const p of problems) add(ln, 'error', p.code, `::: ${what}: ${p.msg}`)`.
-   This is where item 3 lands for free.
-5. Delete the five mirrored constants and their comments in lint.js.
-6. Run `npm test`; expect `test/settings.mjs` message greps to need the
+   `written` is the fix for item 2.
+2. build.js: replace both parsers with `parseTail`; on `problems.length`,
+   throw a `userFacing` error from `problems[0].msg` plus the slot-table
+   listing (`slotTable()` moves into the module so lint can print the same
+   listing).
+3. lint.js: replace both parsers;
+   `for (const p of problems) add(ln, 'error', p.code, p.msg)`. Item 3
+   lands here for free.
+4. Delete the mirrored tail constants and their comments in lint.js;
+   update `CLAUDE.md` (1c).
+5. Run `npm test`; expect `test/settings.mjs` message greps to need the
    new phrasing; expect no lecture change.
 
 **Risks.**
 - The heading tail is 1.0.0 interface; the refactor must be byte-identical
-  in output for every existing tail. Diff `audience.html`/`print.html` of
-  every lecture in both repos before/after (build all, `git diff --stat`
-  on the tracked views in the engine repo; for mylectures build to a
-  scratch dir and diff).
-- `parseAttributeTail` also handles the *title* chunk's tail, where width
-  and `.bare` are refused later by the caller ("cover composition decides").
-  Keep that refusal at the caller, not in the parser.
-- `lint.js` must never be stricter than the build. With one parser that is
-  structural; but the build's *callers* add refusals (scrim without photo,
-  width on a title chunk) that lint mirrors by hand – list them and check
-  each has a lint twin after the refactor.
+  in output for every existing tail. Build every lecture in both repos
+  before and after and diff the views (engine: `git diff --stat` on the
+  tracked views; mylectures: build into a scratch dir and diff).
+- `parseAttributeTail` also handles the *title* and *closing* chunks, where
+  width and `.bare` are refused later by the caller ("cover composition
+  decides"). Keep that refusal at the caller, not in the parser.
+- lint.js must never be stricter than the build. With one parser that is
+  structural for the three tail refusals; but the build's *callers* add
+  refusals (scrim without photo, width on a title chunk, class on a column
+  heading, cards inside a narrowing directive) that lint mirrors by hand –
+  list them and check each has a lint twin after the refactor.
 
 **Tests.** The twelve assertions added in 87bcc86 (`test/settings.mjs`,
 search `One sigil rule`) plus the existing side/cards/overlay/backdrop
-refusals. Add one: the same source produces the same problem list from
-both files (call `parseTail` directly, no build).
+refusals. Add: (a) the same tail text yields the same `problems` from
+`parseTail` as the build's error and the lint's code – one table-driven
+loop, no build; (b) `.shown`, `.left`, `.top` on a chunk heading are
+`unknown-class`; (c) `::: side {.top}` still builds and "changes nothing".
 
 ---
 
@@ -129,7 +199,7 @@ both files (call `parseTail` directly, no build).
 it to `top`. The parser returns only the resolved value, so `renderCardsBlock`
 (build.js ~2105–2113) re-splits the raw tail and tests for `top`/`middle`
 by hand before deciding. The scrim-without-photo check (~2118) does the
-same raw-split for a different reason.
+same raw split for a different reason.
 
 **Checked.** Both hacks are in one function and read `b.attrs` directly.
 No other directive has a per-construct default yet.
@@ -145,36 +215,40 @@ written default "changes nothing"; that stays true.
 
 ## 3. Lint codes: one family for one refusal
 
-**What it is.** The same three refusals carry different codes per directive:
-`bad-side-class`, `bad-overlay-class`, `bad-backdrop-class`, and cards/rows
-report under whatever code sits at lint.js ~2770 (check – the grep for a
-quoted code after `slotProblems(` found only the three above, so cards may
-be using a shared code already). The chunk tail says `stray-attribute` /
-`same-slot` since 87bcc86. `unknown-width` fires for *any* unknown chunk
-class (`.bar` for `.bare`), and its message says "unknown class".
-`bad-diagram-attribute` is one code for at least five mistakes (lint.js
-~670–700 and ~2343): element name in the tail, empty `@`, unknown sigil,
-`!x` written twice, bare word.
+**What it is.** The same three refusals carry different codes per directive.
+**[review]** The concrete names, all from lint.js: `bad-side-class` (~2854),
+`bad-overlay-class` (~2740), `bad-backdrop-class` (~2693), and
+`bad-cards-class` / `bad-rows-class` from the template ``bad-${kind}-class``
+at lint.js:2820. The chunk tail says `stray-attribute` / `same-slot` since
+87bcc86, and `unknown-width` for *any* unknown chunk class (`.bar` for
+`.bare`) although its message says "unknown class". `bad-diagram-attribute`
+is one code for at least five mistakes (lint.js ~670–700 and ~2343):
+element name in the tail, empty `@`, unknown sigil, `!x` written twice,
+bare word.
 
 **Checked.**
 - No lecture in either repo ignores any of these codes:
   `grep -rhoE 'linter:\s*ignore[^>]*' lectures/ …/psi-slides-mylectures/lectures/`
   finds only `reveal-overuse` and `density`. Renaming breaks no source.
-- `test/settings.mjs` references `bad-side-class` (3×), and the others
-  possibly via message text; `grep -rn "bad-\(side\|overlay\|backdrop\)-class\|unknown-width\|bad-diagram-attribute" test/`.
-- The lint README / skill docs list codes? `grep -rn "bad-side-class\|unknown-width" .claude docs *.md` – update wherever listed.
+- `test/settings.mjs` references `bad-side-class` three times (~1923–1930)
+  and `same-slot` / `stray-attribute` in the 87bcc86 block; `bad-cards-class`,
+  `bad-rows-class`, `bad-overlay-class`, `bad-backdrop-class` are not
+  referenced by any test (`grep -rn "bad-.*-class" test/` → settings.mjs only,
+  side).
+- Where codes are documented: `grep -rn "bad-side-class\|unknown-width\|bad-diagram-attribute" .claude docs *.md`
+  – update every hit.
 
 **Plan.** With item 1's `problems[].code`:
-- `unknown-slot-word` (was `bad-*-class`, and the "not a word this
-  directive knows" branch of the chunk tail, was `unknown-width`)
-- `same-slot`, `stray-attribute`, `multiple-ids` as today
-- `unknown-class` replaces `unknown-width` for a chunk class outside every
-  slot (keep the message naming the valid classes)
+- `unknown-class` replaces `bad-side-class`, `bad-overlay-class`,
+  `bad-backdrop-class`, `bad-cards-class`, `bad-rows-class` (their
+  "not a word this directive knows" branch) and `unknown-width`.
+- `same-slot` replaces the "both answer" branch of the five `bad-*-class`
+  codes.
+- `stray-attribute` and `multiple-ids` as today, now on directives too.
 - `bad-diagram-attribute` splits into `name-in-tail`, `empty-tag`,
   `stray-attribute` (reuse), `duplicate-removal`; `unknown-diagram-class`
   stays.
-The directive is named in the message (`::: side: '.sideways' is not a word
-this directive knows`), never in the code.
+The directive is named in the message, never in the code.
 
 **Risks.** Anyone's shell history or CI grep on old codes. None known.
 
@@ -183,9 +257,7 @@ this directive knows`), never in the code.
 ## 4. `::: draw` is the one tail that holds values: `unit=WxH`, `autoplay=N`, `cycle`
 
 **What it is.** Every other block tail holds sigil tokens; draw's holds
-key=value options and one bare flag. In the two repos: ~100 lines
-`::: draw {unit=118x74}` and the like (every figure in mylectures carries
-one), 9 with `autoplay=…`, 3 of those with `cycle`.
+key=value options and one bare flag.
 
 **Checked.**
 - `unit=` is parsed in `diagram-core.mjs` `parseDiagramSource` (~3018,
@@ -193,33 +265,73 @@ one), 9 with `autoplay=…`, 3 of those with `cycle`.
   listing `#id, unit=WxH, …`. `DG_HOST_OPTS = ['autoplay', 'cycle']`
   (diagram-core.mjs:944) is the list of words the *host* (build.js) owns and
   strips before compiling.
-- build.js strips `cycle` and `autoplay=` from the tail at ~1488–1512
-  before handing the rest to the compiler; lint.js validates both at
-  ~2543–2565 and passes `unit=` and `#id` through, everything else to
-  `DG_HOST_OPTS`.
+- `takeAutoplay(attrs)` (build.js:1487–1512) strips `cycle` and `autoplay=`
+  and returns `{ autoplay, cycle, rest }`; both openers store
+  `diagramBlock = { attrs: rest, autoplay, cycle, lines, bodyAt }`
+  (build.js:3547 for a column heading's own figure, :3847 for a chunk).
+  lint.js validates both words at ~2543–2565 and passes `unit=` and `#id`
+  through, everything else to `DG_HOST_OPTS`.
 - The opener regex is the same in both files and in the column path:
-  `/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/` at lint.js:2534, build.js:3544
-  (column heading's own figure) and build.js:3839.
-- The editor does **not** write `unit=`: `editor.mjs:7243` reproduces
-  `DGE.fig.attrs` verbatim when it re-serialises the block, and no code
-  there assigns `fig.attrs`. Authors write the grid by hand (which is why
-  there are 60 distinct values). So a migration is a text rewrite plus the
-  parser, not an editor feature.
-- The rendered `<figure>` carries `data-autoplay`/cycle attributes read by
-  the viewer (build.js `autoplayTimer`, `data-autoplay`); those are
-  downstream of the parse and unaffected by *where* the words are written.
+  `/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/` at lint.js:2534, build.js:3544 and
+  build.js:3839.
+- **[review] The editor's payload carries the stripped tail, not the
+  opener.** The build emits the figure's source payload from `diagramBlock`
+  (`range: [bodyAt, bodyAt + body.length]`, build.js ~3327–3334) and the
+  editor reads it as `attrs: data.attrs` (editor.mjs:137) – i.e. `rest`,
+  which is `unit=… #id` with `autoplay`/`cycle` already removed.
+  `dgeBlockText()` (editor.mjs:7242) rebuilds the block as
+  `'::: draw' + ' {' + DGE.fig.attrs + '}'` and therefore **already drops
+  `autoplay` and `cycle` today** on the paths that use it. Which paths:
+  - Tier 1, watch server: `window.psiWatch.patch(DGE.fig.range, DGE.source, DGE.fig.body)`
+    (editor.mjs:7255) – patches the **body range only**, the opener line
+    is untouched. Safe.
+  - Tier 1b, File System Access: `dgeWriteToFile()` (editor.mjs:7317–7331)
+    splices `src.slice(0,a) + DGE.source + src.slice(b)` over the body
+    range – opener untouched. Safe.
+  - Tier 2, clipboard: `dgeCopyBlock()` (editor.mjs:7288) copies
+    `dgeBlockText()` – **loses `autoplay`/`cycle`**, today, before any
+    change. This is a live bug independent of the syntax question.
+- Inventory of the old spelling outside built views, by file
+  (`grep -rnE "unit=[0-9]+x[0-9]+|autoplay=[0-9]" --include='*.mjs' --include='*.js' --include='*.md' --include='*.html' --include='*.yml' .`
+  minus `lectures/*/{audience,speaker,print,print-notes}.html`):
+  `docs/artifact/figure-rules/source.md` 54 · `lectures/network-security/source.md` 36
+  · `docs/artifact/figures-you-write.html` 32 (generated, see below)
+  · `lectures/diagrams/source.md` 31 · `lectures/tutorial/source.md` 13
+  · `.claude/skills/psi-slides-figures/SKILL.md` 7 · `editor.md` 6
+  · `diagram-core.mjs` 6 (regex + comments) · `revision-proposal.md` 5
+  · `lectures/decoration/source.md` 5 · `todo-review-language-and-docs.md` 4
+  · `test/settings.mjs` 4 · `PRD.md` 3 · `build.js` 3 · `test/gates/semantics.mjs` 2
+  · `figure-design.md` 2 · `docs/site/figures.html` 2 (generated)
+  · `.claude/skills/psi-slides-authoring/SKILL.md` 2 · `todo-revision-of-system.md` 1
+  · `test/editor-guides.mjs` 1 · `test/autoplay.mjs` 1 · `lint.js` 1
+  · **`docs/site/shoot-gallery.mjs` 1** (line 83, ``const DRAW = `::: draw {unit=150x56}``,
+    an executable template the gallery shooter builds) · `docs/site/index.html` 1
+  · `docs/site/index.de.html` 1 · `CHANGELOG.md` 1. Plus psi-slides-mylectures:
+  every `::: draw` in `lectures/introsp/*/source.md` (~100 lines, ~60 distinct
+  `unit=` values).
+- **[review] `docs/artifact/figures-you-write.html` is not hand-migrated.**
+  Its page shell is hand-written, but every compiled figure, stepped demo
+  and the diagram runtime are spliced in from a real build of
+  `docs/artifact/figure-rules/source.md` by `docs/artifact/refresh-figures.mjs`
+  (header comment: "those parts are not authored here and must never be
+  edited here"). The same script writes `docs/site/figures.html`
+  (refresh-figures.mjs:709) and has `--check` (report drift, write
+  nothing). So: migrate `figure-rules/source.md`, run the script, then run
+  it with `--check`.
+- The rendered `<figure>` carries the autoplay/cycle state as data
+  attributes read by the viewer; those are downstream of the parse and do
+  not care where the words were written.
 
 **To check before implementing.**
 - Whether `parseDiagramSource(body, headAttrs, base)` reads anything from
   `headAttrs` other than `unit=` and `#id` (grep `headAttrs` in
-  diagram-core.mjs). If `#id` comes through the attrs string, it stays in
-  the braces – it is a sigil token.
-- Whether the editor's own tests (`test/editor-*.mjs`) build sources with
-  `{unit=…}` – they will need the new spelling.
-- `docs/artifact/figures-you-write.html` and `figure-design.md` show the
-  `{unit=…}` form; both are hand-maintained and must be rewritten by hand.
-- The tutorial's autoplay chunk (`lectures/tutorial/source.md`, id
-  `#autoplay`) explains the syntax in prose.
+  diagram-core.mjs, ~2986–3035).
+- `test/editor-*.mjs`, `test/autoplay.mjs`, `test/gates/semantics.mjs`
+  build sources with `{unit=…}` – they need the new spelling.
+- Whether `docs/site/build-site.js` or `shoot.mjs` embed any further opener
+  text that the grep above did not match (they did not match on
+  `unit=`/`autoplay=`, but a bare `::: draw {` with other options should be
+  looked for: `grep -rn "::: draw {" docs/ test/`).
 
 **Plan (option B from the discussion – the recommended one).**
 1. New opener grammar, one regex in `tails.mjs` used by all three sites:
@@ -227,49 +339,75 @@ one), 9 with `autoplay=…`, 3 of those with `cycle`.
    ::: draw [WxH] [{#id}] [autoplay N [cycle]]
    ```
    `WxH` positional (the grid is the figure's one primary argument, as the
-   ratio is for `side`); braces hold `#id` only for now; `autoplay N` and
-   `cycle` are keywords after, in that order, `cycle` refused without
-   `autoplay` as today.
-2. build.js passes `{unit, id}` to the compiler as an object rather than
-   re-serialising a string; `parseDiagramSource` takes the object (or keep
-   the string path and synthesise `unit=WxH #id` – the smaller change,
-   acceptable as a first step).
-3. `DG_HOST_OPTS` is no longer needed as a *string* gate; keep it as the
-   list of keywords the host recognises after the braces.
-4. Migration script over both repos: `{unit=WxH}` → ` WxH`,
-   `autoplay=N` → ` autoplay N`, `cycle` → ` cycle`, preserving order,
-   for `::: draw` lines only. Dry-run, review, apply. Also
-   `TODO-tutorial-lecture.md`, the skills, CHANGELOG (Unreleased →
-   Changed).
-5. lint.js: the old spelling (`unit=` inside braces, `autoplay=`, bare
-   `cycle`) becomes a `stray-attribute` with the new spelling in the
-   message, so a stale source says exactly what to type.
+   ratio is for `side`); braces hold `#id` only; `autoplay N` and `cycle`
+   are keywords after, in that order, `cycle` refused without `autoplay`
+   as today. `parseDrawOpener(line) → { unit, id, autoplay, cycle, problems }`.
+2. build.js: both opener sites call `parseDrawOpener`; `diagramBlock`
+   keeps `{ unit, id, autoplay, cycle }` as fields. `parseDiagramSource`
+   keeps its string signature for a first step – the host synthesises
+   `unit=WxH #id` from the fields – so diagram-core changes only its
+   error text. (Second step, optional: pass an object.)
+3. **[review] The editor payload carries the whole opener.** The build
+   puts `opener: { unit, id, autoplay, cycle }` into the figure's source
+   payload next to `attrs`; the editor stores it on `DGE.fig`;
+   `dgeBlockText()` serialises the new spelling from it:
+   `'::: draw' + (unit ? ' ' + unit : '') + (id ? ' {#' + id + '}' : '') + (autoplay ? ' autoplay ' + autoplay + (cycle ? ' cycle' : '') : '')`.
+   Tiers 1 and 1b keep patching the body range only. This also fixes the
+   pre-existing clipboard bug in the same commit.
+4. lint.js: the old spelling (`unit=` inside braces, `autoplay=`, bare
+   `cycle`) becomes a `stray-attribute` whose message spells the new form
+   (`write ::: draw 150x56 {#fig} autoplay 1200 cycle`), so a stale source
+   says exactly what to type. `DG_HOST_OPTS` stays as the list of keywords
+   the host recognises after the braces.
+5. Migration script, dry-run first, over **both repos and the whole tree**,
+   not only lines starting with `::: draw`: match `::: draw\s*\{([^}]*)\}`
+   anywhere (that catches the template literal in `shoot-gallery.mjs`, the
+   test sources, and prose in the skills), rewrite `unit=WxH` → ` WxH`,
+   `#id` → ` {#id}`, `autoplay=N` → ` autoplay N`, `cycle` → ` cycle`,
+   in that order. Then `refresh-figures.mjs` and `refresh-figures.mjs --check`;
+   then `node docs/site/shoot-gallery.mjs` (or whatever `build-site.js`
+   runs) to prove the gallery shooter still builds; then `npm test`; then a
+   final repo-wide grep for `unit=\d+x\d+` and `autoplay=` that must come
+   back empty outside CHANGELOG history and diagram-core's own comments.
+6. CHANGELOG (Unreleased → Changed), both figure skills, `figure-design.md`,
+   `editor.md`, `PRD.md`, the mylectures `HOUSE-STYLE.md` "Attribute tails"
+   section.
 
 **Option A, if B is judged too expensive.** Keep key=value in the draw tail
 and *document* draw as the one options-tail: "on `::: draw` the tail holds
 `key=value` options, no sigils; everywhere else the tail holds sigils".
 Then `cycle` must stop being a bare word: `cycle=1200` replacing
-`autoplay=1200 cycle` (two keys, refused together), or `autoplay=1200,cycle`.
-Cheaper by an order of magnitude, but the sigil rule then has a stated
-exception, which is what the whole exercise set out to remove.
+`autoplay=1200 cycle` (two keys, refused together). Cheaper by an order of
+magnitude, but the sigil rule then has a stated exception, which is what
+the whole exercise set out to remove. Step 3 (the editor payload) is
+needed under A as well, because the clipboard bug exists today.
 
 **Risks.**
 - Draw is post-1.0.0 and unreleased, so the source change is allowed, but
-  it is the widest text migration in the set (~100 lines, every figure in
-  mylectures). The script must be dry-run and the built views diffed –
-  `unit` changes geometry, so a mis-migrated line is a visibly different
-  figure. `--check-fit` on every lecture after.
-- The column-heading path (build.js:3544) is easy to forget; it has its
-  own copy of the regex.
-- The editor round-trips the opener line; after the change it must
-  serialise the new form (editor.mjs:7243), or the first save from the
-  editor rewrites a migrated line back to the old spelling – which lint
-  will then refuse, so the failure is loud, not silent.
+  it is the widest text migration in the set. `unit` sets geometry, so a
+  mis-migrated line is a visibly different figure: build every lecture in
+  both repos before and after, diff the views, and run `--check-fit` on
+  each.
+- Three opener regexes; the column-heading path (build.js:3544) is the one
+  to forget. One regex in the module, three callers.
+- Generated pages: `figures-you-write.html` and `docs/site/figures.html`
+  must come from the refresh script, never from the migration sed – the
+  sed would rewrite the spliced code regions and `--check` would then
+  report drift forever.
+- The editor: without step 3 the clipboard tier drops `autoplay`/`cycle`
+  (today) or writes the old spelling (after the change), which lint then
+  refuses – loud, not silent, but a regression an author meets on the
+  first "New figure…" click.
 
-**Tests.** `test/settings.mjs` around the autoplay block (`grep -n autoplay test/settings.mjs`);
-`test/autoplay.mjs` (browser). Add: old spelling refused with the new one
-in the message; `WxH` positional reaches the compiler as the same unit as
-`unit=WxH` did (compare one built figure byte-for-byte across the migration).
+**Tests.** `test/settings.mjs` around the autoplay block
+(`grep -n autoplay test/settings.mjs`); `test/autoplay.mjs` (browser).
+Add: (a) old spelling refused with the new one in the message; (b) `WxH`
+positional reaches the compiler as the same unit as `unit=WxH` did –
+compare one built figure byte-for-byte across the migration; (c) **[review]
+editor round-trip**: open a figure whose opener is
+`::: draw 150x56 {#f} autoplay 1200 cycle`, press "New figure…" / copy
+block, and assert the clipboard text (or `dgeBlockText()` via the page)
+reproduces the opener verbatim – `test/editor-*.mjs` has the harness.
 
 ---
 
@@ -292,13 +430,14 @@ in the message; `WxH` positional reaches the compiler as the same unit as
   `CHANGELOG.md`, `docs/comparison.md`, `test/README.md`.
 
 **Checked.** `grep -rn "{\.classes}\|{\.anchor}\|{\.width #id}" .claude PRD.md CHANGELOG.md docs test/README.md`
-lists every placeholder. `figure-design.md` and
-`docs/artifact/figures-you-write.html` are the draw-side docs and are
-hand-maintained.
+lists every placeholder. `figure-design.md` is hand-maintained;
+`docs/artifact/figures-you-write.html` is **not** (item 4) – its prose
+shell may be edited, its figure regions may not.
 
 **Plan.** One commit after items 1–4, when the rules are final. Also
-update `HOUSE-STYLE.md` in psi-slides-mylectures (section "Attribute
-tails") to the four-sigil sentence and, if item 4 lands, the draw opener.
+`CLAUDE.md` (item 1c) and `HOUSE-STYLE.md` in psi-slides-mylectures
+(section "Attribute tails") to the four-sigil sentence and, if item 4
+lands, the draw opener.
 
 ---
 
@@ -316,8 +455,7 @@ tails") to the four-sigil sentence and, if item 4 lands, the draw opener.
 ## 7. Resolved in 87bcc86
 
 - Column heading with two ids: `parseAttributeTail` in build.js now refuses
-  a second `#id` on any heading; lint reports `multiple-ids`. (Was listed
-  as "last wins".)
+  a second `#id` on any heading; lint reports `multiple-ids`.
 - Dot-less slot words on cards/rows/overlay/backdrop/side; sigil-less
   tokens on a chunk tail; two widths or two `style:` answers on one
   heading. All errors in both files, with tests.
@@ -326,6 +464,9 @@ tails") to the four-sigil sentence and, if item 4 lands, the draw opener.
 
 ## Seen on the way, not a syntax matter
 
+- **The editor's clipboard tier drops `autoplay`/`cycle` today** – see
+  item 4, "Checked". Independent of the syntax decision; fixed by item 4
+  step 3 under either option.
 - **`test/text-select.mjs` fails three Alt-drag assertions on this machine**
   ("Alt-dragging the listing selects text", "the highlight survives the key
   release", "a drag that outlives the key still selects") on the tree before
