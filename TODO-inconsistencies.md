@@ -8,11 +8,10 @@ session can implement each item without re-deriving it. Every entry has:
 what it is, what has been checked (with anchors), what to check before
 touching it, the plan, the risks, and the tests that pin it.
 
-Four reviews of earlier drafts (Codex, 2026-09-04) found six, seven, seven
-and eight gaps. Each is resolved in place below and marked **[review]**,
-**[review 2]**, **[review 3]** or **[review 4]** where the text changed; the
-"Review trail" section at the end lists them so nothing was folded in
-silently.
+Five reviews of earlier drafts (Codex, 2026-09-04) found six, seven, seven,
+eight and twelve gaps. Each is resolved in place below and marked
+**[review]** through **[review 5]** where the text changed; the "Review
+trail" section at the end lists them so nothing was folded in silently.
 
 The end state all items aim at, in one line each:
 
@@ -166,7 +165,11 @@ const t = parseTail(cardsOpen[2], CARDS_SLOTS, 'cards', { id: 'none' });
 `tail === null` or `undefined` means "no braces" and yields every slot at
 its default with no problems. `text` is not part of `parseTail`'s result;
 it is `splitTail`'s. An implementation can therefore never mistake `.wide`
-for heading prose.
+for heading prose. **[review 5]** An explicitly present but empty tail is
+different: `tail === ''` or whitespace means the author wrote `{}`. It
+returns the defaults plus one `stray-attribute` problem telling them to
+remove the empty braces. This pins the end-state rule that a line with no
+sigil tokens has no braces; a census finds no block-level `{}` to migrate.
 
 **1c. The architecture contract in `CLAUDE.md`. [review]** `CLAUDE.md:176–180`
 ("lint.js is independent") says lint.js "deliberately does not import
@@ -175,18 +178,18 @@ the constants", and that the diagram vocabulary is the one exception,
 **"tables only – a function from that module would pull the whole compiler
 in behind it"**. A shared `tails.mjs` is a second exception and has to be
 written into that section in the same commit, with its reason: the file is
-zero-dependency, under 200 lines, exports tables plus one pure function,
-and pulls nothing in behind it – the concern the "tables only" rule
-guards against does not arise. The sentence listing the mirrored constants
+zero-dependency, under 200 lines, exports tables plus small pure parsing and
+formatting helpers, and pulls nothing in behind it – the concern the
+"tables only" rule guards against does not arise. The sentence listing the mirrored constants
 (`VALID_TAGS`, `VALID_WIDTHS`, `DENSITY_BUDGET`, `VIEW_DEFAULTS`) loses
 `VALID_WIDTHS`. Also fix the same paragraph's claim if it is read as
 "lint imports the compiler" – it imports vocabulary, and after this item
 it imports vocabulary plus the tail parser.
 
-**To check before implementing.**
-- Whether any code reads `parseAttributeTail(...).classes` as an ordered
-  list (the column-heading refusal prints `classes[0]`); keep `classes` in
-  the return shape, in written order.
+**Implementation notes (pre-checks resolved in review 5).**
+- `.classes` is order-sensitive: the column-heading refusal prints
+  `classes[0]` (build.js:3392–3394), the chunk path uses `.find`, and lint
+  iterates it. Keep `classes` in the return shape, in written order.
 - `parseDiagramDefaults` in diagram-core has its own `{…}` reader for
   *element* tails inside a draw body (lint.js ~2343 reads them for draw
   defaults). Those stay in diagram-core; this item covers only heading and
@@ -201,7 +204,12 @@ it imports vocabulary plus the tail parser.
 1. Create `tails.mjs` exporting the tables (`CHUNK_SLOTS`, `CARDS_SLOTS`,
    `OVERLAY_SLOTS`, `BACKDROP_SLOTS`, `SIDE_SLOTS`, `CHUNK_STYLE_CLASSES`,
    `VALID_WIDTHS` derived from `CHUNK_SLOTS.width.words`), `splitTail`,
-   `parseTail` (signatures in 1b″) and `parseDrawOpener` (item 4).
+   `parseTail` (signatures in 1b″), `slotTable`, `parseDrawOpener` and
+   `formatDrawOpener` (item 4). **[review 5]** The prior export list omitted
+   the formatter that Plan 3 and the migration import. Its contract is
+   `formatDrawOpener({ unit, autoplay, cycle }) → canonical line`; it accepts
+   a valid parser-result shape and throws on an impossible combination such
+   as `cycle: true` with no autoplay.
    `parseTail` returns data and never throws:
    ```js
    {
@@ -217,8 +225,9 @@ it imports vocabulary plus the tail parser.
    listing (`slotTable()` moves into the module so lint can print the same
    listing).
 3. lint.js: replace both parsers;
-   `for (const p of problems) add(ln, 'error', p.code, p.msg)`. Item 3
-   lands here for free.
+   `for (const p of problems) add(ln, 'error', p.code, p.msg)`. The
+   block-level half of item 3 lands here for free; its diagram-body half is
+   explicit in item 3.
 4. Delete the mirrored tail constants and their comments in lint.js;
    update `CLAUDE.md` (1c).
 5. Run `npm test`; expect `test/settings.mjs` message greps to need the
@@ -253,9 +262,10 @@ parser's code. **[review 3] The matrix follows the id policy:**
 `stray-attribute`, `unknown-class`, `same-slot` once each on a heading and
 once on a directive; `multiple-ids` on a heading only (`## free: A {#a #b}`);
 and the first `#id` on a directive (`::: cards 3 {#x}`) as
-`stray-attribute`, which is the directive-side twin of `multiple-ids`.
-Nine rows. The existing `raw()` / `lintOf()` helpers in `test/settings.mjs`
-are the harness.
+`stray-attribute`, which is the directive-side twin of `multiple-ids`; and
+an empty `{}` once on each caller kind. **[review 5]** That is ten rows,
+not the previous draft's unexplained nine. The existing `raw()` /
+`lintOf()` helpers in `test/settings.mjs` are the harness.
 
 ---
 
@@ -288,9 +298,9 @@ written default "changes nothing"; that stays true.
 at lint.js:2820. The chunk tail says `stray-attribute` / `same-slot` since
 87bcc86, and `unknown-width` for *any* unknown chunk class (`.bar` for
 `.bare`) although its message says "unknown class". `bad-diagram-attribute`
-is one code for at least five mistakes (lint.js ~670–700 and ~2343):
+is one code for at least six mistakes (lint.js ~670–741 and ~2383):
 element name in the tail, empty `@`, unknown sigil, `!x` written twice,
-bare word.
+bare word, and the same class both added and removed.
 
 **Checked.**
 - No lecture in either repo ignores any of these codes:
@@ -304,7 +314,7 @@ bare word.
 - Where codes are documented: `grep -rn "bad-side-class\|unknown-width\|bad-diagram-attribute" .claude docs *.md`
   – update every hit.
 
-**Plan.** With item 1's `problems[].code`:
+**Plan.** For the block-level tails, with item 1's `problems[].code`:
 - `unknown-class` replaces `bad-side-class`, `bad-overlay-class`,
   `bad-backdrop-class`, `bad-cards-class`, `bad-rows-class` (their
   "not a word this directive knows" branch) and `unknown-width`.
@@ -313,12 +323,25 @@ bare word.
 - `stray-attribute` as today, now on directives too (and it is what a
   first `#id` on a directive gets). `multiple-ids` stays a heading code;
   it never fires on a directive (1b′).
-- `bad-diagram-attribute` splits into `name-in-tail`, `empty-tag`,
-  `stray-attribute` (reuse), `duplicate-removal`; `unknown-diagram-class`
-  stays.
 The directive is named in the message, never in the code.
 
+**[review 5] The diagram-body split does not land "for free" with item
+1.** `attrsOf()` remains local to lint.js, and `draw-defaults` has a second
+local tail loop; neither calls `parseTail`. Change those branches explicitly:
+`#id` → `name-in-tail`; empty `@` → `empty-tag`; an unknown sigil, bare
+word, or a non-`.class` in `draw-defaults` → `stray-attribute`; a repeated
+`!class` → `duplicate-removal`; and `.class` together with `!class` → the
+previously missing `conflicting-class`. `unknown-diagram-class` stays.
+This removes `bad-diagram-attribute` completely instead of leaving its
+sixth meaning behind.
+
 **Risks.** Anyone's shell history or CI grep on old codes. None known.
+
+**Tests.** One `lintDiagram` case for each of `name-in-tail`, `empty-tag`,
+`stray-attribute`, `duplicate-removal` and `conflicting-class`, plus one
+frontmatter `draw-defaults` non-class case for `stray-attribute`; finally
+assert that `rg bad-diagram-attribute lint.js test docs .claude` has no
+active rule/documentation hit.
 
 ---
 
@@ -410,16 +433,16 @@ key=value options and one bare flag.
   attributes read by the viewer; those are downstream of the parse and do
   not care where the words were written.
 
-**To check before implementing.**
-- Whether `parseDiagramSource(body, headAttrs, base)` reads anything from
-  `headAttrs` other than `unit=` and `#id` (grep `headAttrs` in
-  diagram-core.mjs, ~2986–3035).
+**Implementation notes (pre-checks resolved in review 5).**
+- `headAttrs` has four uses: the parser signature, the token loop, the
+  `renderDiagram` hand-off and payload serialization
+  (`diagram-core.mjs:2986,3017,6608–6614,7009`). The token loop accepts
+  only `unit=`, `#id` and `DG_HOST_OPTS`; item 4 removes the latter two.
 - `test/editor-*.mjs`, `test/autoplay.mjs`, `test/gates/semantics.mjs`
   build sources with `{unit=…}` – they need the new spelling.
-- Whether `docs/site/build-site.js` or `shoot.mjs` embed any further opener
-  text that the grep above did not match (they did not match on
-  `unit=`/`autoplay=`, but a bare `::: draw {` with other options should be
-  looked for: `grep -rn "::: draw {" docs/ test/`).
+- A full `rg "::: draw \{" docs test` found no hidden opener in
+  `build-site.js` or `shoot.mjs`; beyond the already inventoried sources and
+  tests, the only executable template is `docs/site/shoot-gallery.mjs:83`.
 
 **Plan (option B from the discussion – the recommended one).**
 1. New opener grammar, one regex in `tails.mjs` used by all **four**
@@ -453,6 +476,14 @@ key=value options and one bare flag.
    formatter, payload and migration; `parseDiagramSource` alone converts it
    to the numeric `[w, h]` model value.
 
+   **[review 5] A refused opener is still an opener.** After reporting its
+   problems, lint.js must capture through the matching closing `:::` and
+   lint that body once; it must not let
+   draw-language lines fall back into the Markdown/directive walker and emit
+   cascaded unrelated errors. Build.js stops immediately on the first opener
+   problem. `corpus.mjs` records the opener as a gate failure rather than
+   silently omitting its block.
+
    **[review 3] `DG_HOST_OPTS` is removed, not kept beside the new parser.**
    Today `diagram-core.mjs:944` exports `['autoplay', 'cycle']`, the
    compiler's option loop skips them (`:3027`, with a comment saying the
@@ -484,16 +515,23 @@ key=value options and one bare flag.
    scope in the same function. The replacement:
    ```js
    where: currentChunk
-     ? (currentChunk.id ? `chunk #${currentChunk.id}` : 'a chunk with no id')
+     ? (currentChunk.id ? `chunk #${currentChunk.id}`
+                        : currentChunk.heading ? `chunk "${currentChunk.heading}"`
+                                               : 'an unnamed chunk')
      : currentColumn
        ? (currentColumn.id ? `the divider of column #${currentColumn.id}`
-                           : `the divider of column "${currentColumn.heading}"`)
-       : 'outside any chunk or column',
+                           : currentColumn.heading ? `the divider of column "${currentColumn.heading}"`
+                                                   : 'an unnamed column divider')
+       : 'an unattached diagram',
    ```
-   The same choice goes into the payload's `chunk` field (`:3329`, today
-   `currentChunk ? currentChunk.id : null`) as a `column` sibling, so the
-   editor's reopen key (`DGE_REOPEN`, editor.mjs ~7254) can name a divider
-   figure instead of falling back to its index.
+   **[review 5]** The former concrete expression contradicted its own prose:
+   it ignored a chunk heading and rendered an implicit column's null heading
+   as `"null"`. The guarded fallbacks above cover both. Do **not** add a
+   `column` sibling to the editor payload in this change. Merely emitting it
+   has no effect: `dgeCollectFigures`, `DGE_REOPEN`, `dgeStoreKey`, labels and
+   per-chunk numbering all read `fig.chunk`. Wiring a second identity through
+   all of those is a separate editor change and is unnecessary to replace the
+   compiler error prefix.
    Then the opener id can be removed without degrading the one behaviour it
    had. If a figure-level id is ever wanted, it is a new feature with
    observable semantics and its own tests, not a leftover.
@@ -513,16 +551,21 @@ key=value options and one bare flag.
 2. build.js: both opener sites call `parseDrawOpener`; `diagramBlock`
    keeps `{ unit, autoplay, cycle }` as fields. `parseDiagramSource`
    keeps its string signature for a first step – the host synthesises
-   `unit=WxH` from the fields (nothing when unit is null) – so diagram-core
-   changes only by losing the `#id` and `DG_HOST_OPTS` branches and their
-   error text. (Second step, optional: pass an object.)
+   `unit=WxH` from the fields (nothing when unit is null). At the parsing
+   layer diagram-core only loses the `#id` and `DG_HOST_OPTS` branches and
+   their error text; Plan 3 also changes its source-payload serialization.
+   (Second step, optional: pass an object.)
 3. **[review] The editor payload carries the whole opener. [review 4]**
    Make it the already-formatted canonical line, not an object the browser
    must format again. The build calls
-   `formatDrawOpener({ unit, autoplay, cycle })` from `tails.mjs` and puts
-   the resulting `opener: '::: draw 150x56 autoplay 1200 cycle'` into the
-   figure's source payload next to the compiler-only `attrs: 'unit=150x56'`;
-   the editor stores both on `DGE.fig`, and `dgeBlockText()` uses
+   `formatDrawOpener({ unit, autoplay, cycle })` from `tails.mjs` and passes
+   the resulting `opener: '::: draw 150x56 autoplay 1200 cycle'` to
+   `renderDiagram` as `opts.opener`. **[review 5]** `renderDiagram`,
+   not build.js, constructs the `psi-diagram-source` JSON
+   (`diagram-core.mjs:7006–7017`), so it must serialize
+   `opener: opts.opener` next to the compiler-only
+   `attrs: 'unit=150x56'`. The editor reads both onto `DGE.fig`, and
+   `dgeBlockText()` uses
    `DGE.fig.opener + '\n' + DGE.source + '\n:::'`. This module boundary is
    deliberate: `editor.mjs` is read as text and inserted into a classic
    inline `<script>` (`build.js:2532–2536, :6461`), so an import from
@@ -571,13 +614,31 @@ key=value options and one bare flag.
    and the basename rule catches those too. Then `refresh-figures.mjs` and
    `refresh-figures.mjs --check`; then `node docs/site/shoot-gallery.mjs`
    (or whatever `build-site.js` runs) to prove the gallery shooter still
-   builds; then `npm test`; then a final repo-wide scan that must come
-   back empty outside CHANGELOG history and diagram-core's own comments –
-   **numeric and symbolic forms both**: `unit=\d+x\d+`, `unit=WxH`,
-   `autoplay=\d+`, `autoplay=N`, `\{[^}]*\bcycle\b[^}]*\}` – run over the
-   same file list as the migration, with the same exclusions, because the
-   built views carry the old spelling inside highlighted code and source
-   payloads and would never come back empty.
+   builds; then `npm test`.
+
+   **[review 5] The former "final repo-wide scan must be empty" could not
+   pass:** this TODO alone intentionally contains every old numeric and
+   symbolic form, and negative tests plus the migration parser must retain
+   some of them. Use two explicit checks instead. First, the authored-source
+   gate must have zero old openers in both repositories' non-generated
+   `source.md` files. Second, scan active documentation, skills and executable
+   templates for `unit=\d+x\d+`, `unit=WxH`, `autoplay=\d+`, `autoplay=N`
+   and `\{[^}]*\bcycle\b[^}]*\}`. Review every remaining hit against a short
+   checked-in `test/gates/legacy-draw-syntax.txt` allowlist, one sorted
+   `path<TAB>matched-text<TAB>count` row per intentional match, limited to
+   negative tests, migration recognition, `CHANGELOG.md` history and
+   historical/planning documents (including this file); a gate recomputes
+   and compares that inventory. Put both the zero-source check and that
+   comparison in `test/gates/legacy-draw-syntax.mjs`. **Register it:**
+   `test/gates/run.mjs` does not discover gates, it runs a fixed `GATES`
+   array (run.mjs:37, today `./refusals.mjs`, `./accepts.mjs`, `./semantics.mjs`, `./corpus.mjs`, `./step-classes.mjs`, `./inlined.mjs`); a file
+   that is not listed there never runs, and `corpus.mjs` is only enforced
+   because it is. Add the new gate to that array in the same commit, and
+   the `--check`-style self-test of the allowlist with it. No lecture source, current authoring
+   documentation or executable template may be allowlisted. Both scans use
+   the migration's nested generated-file exclusions, so built views
+   containing highlighted source neither hide a miss nor create false
+   failures.
 6. CHANGELOG (Unreleased → Changed), both figure skills, `figure-design.md`,
    `editor.md`, `PRD.md`, the mylectures `HOUSE-STYLE.md` "Attribute tails"
    section.
@@ -618,7 +679,17 @@ needed under A as well, because the clipboard bug exists today.
 
 **Tests.** `test/settings.mjs` around the autoplay block
 (`grep -n autoplay test/settings.mjs`); `test/autoplay.mjs` (browser).
-Add: (a) old spelling refused with the new one in the message; (b) `WxH`
+**[review 5] Start with a table-driven `parseDrawOpener` unit test:** null
+for prose and `::: drawing`; valid results for bare draw, unit only,
+autoplay without a unit, and the full unit/autoplay/cycle form; then
+`stray-attribute` for the old braces, `autoplay=` and a trailing unknown
+word, `bad-unit` for `150X56`, and `bad-autoplay` for a non-number, 199/60001
+and cycle without autoplay. Round-trip every valid field combination through
+`formatDrawOpener` and the parser. Add adapter tests proving that a malformed
+opener produces one causal lint family rather than body-line cascades and
+that the corpus extractor counts it instead of dropping it.
+
+Then add: (a) old spelling refused with the new one in the message; (b) `WxH`
 positional reaches the compiler as the same unit as `unit=WxH` did.
 **[review 2] Not byte-for-byte on the whole figure**: the source payload
 (`<script type="application/json">`, emitted by `renderDiagram` inside the
@@ -690,7 +761,7 @@ lands, the draw opener.
 
 ## Review trail
 
-All four reviews are resolved in place; this list is the index.
+All five reviews are resolved in place; this list is the index.
 
 - Review 1: chunk slots must not invent `.shown`/`.left` (1a); one code
   for a word from no slot (1b); `CLAUDE.md` lint-independence contract
@@ -714,12 +785,8 @@ All four reviews are resolved in place; this list is the index.
   diagram-core and lint (4, Plan 1); exclusions by basename at any depth
   and a scan over the same file list (4, Plan 5); `{#id}` dropped from the
   opener, with the reason (4, Plan 1 + end state).
-- Review 4 was applied by the reviewer in place rather than listed; its
-  three code claims were re-checked afterwards (`build.js:3337` and
-  `:3400` for `where`/`currentColumn`; `:2532–2536` and `:6461` for the
-  editor being inlined as a classic script) and hold.
 - Review 4: removed the last stale draw-tail/`{#id}` grammar references
-  (1, To check; 4, Plan 1 + Plan 4); preserved the real diagnostic value of
+  (1, implementation notes; 4, Plan 1 + Plan 4); preserved the real diagnostic value of
   draw ids through chunk/divider-aware `where` before removing them (4,
   Plan 1 + Tests); made `unit` one canonical `WxH` string across parser,
   adapter, formatter and migration (4, Plan 1); crossed the classic-script
@@ -727,7 +794,30 @@ All four reviews are resolved in place; this list is the index.
   unavailable module export (4, Plan 3); removed the contradictory
   `DG_HOST_OPTS` instruction and the overlapping `cycle` error codes (4,
   Plan 4); made an unexpected old `#id` abort migration instead of losing
-  authored text (4, Plan 5).
+  authored text (4, Plan 5). Its code claims were re-checked afterwards at
+  `build.js:3337`, `:3400`, `:2532–2536` and `:6461`.
+- Review 5 was applied in place; its code claims were re-checked
+  afterwards and hold: `classes[0]` at `build.js:3394` and `.find` at
+  `:3419`; six `bad-diagram-attribute` sites at `lint.js:708, 715, 726,
+  735, 741, 2383`, the last of the body ones being the add/remove conflict;
+  `attrsOf` is defined at lint.js:701; `headAttrs` at `diagram-core.mjs:2986, 3017, 6608–6614, 7009`;
+  the `psi-diagram-source` payload written by `renderDiagram` at
+  `diagram-core.mjs:7006`; `fig.chunk` read by `dgeCollectFigures`, the
+  self-test report, the figure list labels and `DGE_REOPEN`; no block-level
+  `{}` in any `source.md` of either repo. One addition from that check:
+  the gate runner's fixed `GATES` list (4, Plan 5).
+- Review 5: defined empty `{}` as a refused no-op and corrected the parser
+  matrix to ten rows (1b″ + Tests); described the module as exporting
+  several pure helpers rather than one (1c); made the diagram-body lint-code
+  migration explicit and added the missing add/remove conflict code (3);
+  corrected the concrete chunk/divider `where` fallbacks and removed an
+  inert, out-of-scope editor `column` payload (4, Plan 1); named
+  `renderDiagram` as the source-payload owner (4, Plans 2–3); replaced the
+  impossible self-matching zero-hit scan with authored-source and reviewed-
+  allowlist gates (4, Plan 5); specified lint/corpus recovery for a refused
+  opener and a complete parser/formatter test matrix (4, Plan 1 + Tests);
+  completed the shared module's export list and formatter contract (1,
+  Plan 1).
 
 ---
 
