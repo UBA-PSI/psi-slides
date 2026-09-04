@@ -8,86 +8,10 @@ session can implement each item without re-deriving it. Every entry has:
 what it is, what has been checked (with anchors), what to check before
 touching it, the plan, the risks, and the tests that pin it.
 
-Two reviews of earlier drafts (Codex, 2026-09-04) found six and then
-seven gaps. Each is resolved in place below and marked **[review]** or
-**[review 2]** where the text changed; the "Review trail" section at the
+Three reviews of earlier drafts (Codex, 2026-09-04) found six, seven and
+seven gaps. Each is resolved in place below and marked **[review]**,
+**[review 2]** or **[review 3]** where the text changed; the "Review trail" section at the
 end lists them so nothing was folded in silently.
-
-### Review 3 – unresolved comments (Codex, 2026-09-04)
-
-- **P1 – `parseTail` still has no unambiguous input contract.** The heading
-  parser currently receives the complete text (`Heading {.wide #id}`) and
-  separates prose from the tail, while every directive parser receives only
-  the already-captured contents of the braces (`.wide #id`). The proposed
-  result says `text` is empty for a directive, but the signature does not say
-  how the function can distinguish directive tail contents from heading text;
-  its code sample also still omits the required `{ id: 'none' | 'one' }`
-  argument introduced in 1b′. Choose one invariant input shape – for example
-  `parseTail({ text, tail }, slots, what, { id })`, or always pass the complete
-  pre-tail text plus the literal braced tail – and show one heading and one
-  directive call. Otherwise an implementation can legitimately treat `.wide`
-  as heading text rather than as the directive's tail.
-
-- **P1 – the integration-test matrix contradicts the ID policy.** Section
-  1b′ correctly says `multiple-ids` never fires on cards/rows/side/overlay/
-  backdrop because their first `#id` is already `stray-attribute`. Item 3
-  still says `multiple-ids` is "now on directives too", and the test plan asks
-  for every code once on a heading and once on a directive. That requires an
-  impossible `multiple-ids` directive case. Test `multiple-ids` on a heading
-  and on the draw opener; test the first directive id as `stray-attribute`.
-
-- **P1 – the corpus gate's scope and proposed counts are still wrong.** Its
-  `FILES` list omits `lectures/decoration/source.md`, although that tracked
-  lecture contains four real draw blocks. The actual per-file draw counts are
-  diagrams 29, network-security 36, figure-rules 55, tutorial 11, decoration
-  4: 135 when decoration is added, but only 131 in the gate today. The example
-  ratchet value `lectures/diagrams/source.md: 31` is a count of grep hits for
-  old option spellings, not a count of draw blocks, and would fail immediately.
-  Add decoration and ratchet those exact block counts. When `blocks()` adopts
-  `parseDrawOpener`, it must also synthesise the compiler's `unit=WxH #id`
-  string from the parsed result before calling `renderDiagram`; merely using
-  the opener parser would otherwise compile every figure at the default unit.
-
-- **P2 – `parseDrawOpener` needs a caller-facing match contract.** Build and
-  lint scan every source line and must distinguish (a) an unrelated line,
-  (b) a valid draw opener, and (c) a line beginning `::: draw` whose syntax is
-  invalid and must be refused. The proposed return type has no `matched`
-  discriminator and does not say whether unrelated input returns `null` or an
-  empty successful result. Define this explicitly so callers do not need a
-  second `^:::\s+draw` pre-regex, which would recreate the duplicated opener
-  recognition the shared function is meant to remove.
-
-- **P2 – `DG_HOST_OPTS` would become a second source of truth again.** The new
-  `parseDrawOpener` in zero-dependency `tails.mjs` must itself know the words
-  `autoplay` and `cycle`, while the plan says `DG_HOST_OPTS` remains in
-  `diagram-core.mjs`. The compiler will no longer receive host options once
-  build, corpus and editor all pass the synthesised compiler-only attributes,
-  so decide explicitly: remove `DG_HOST_OPTS` and its skip branch from
-  diagram-core, or document and test why the compiler API must continue to
-  accept those obsolete strings. Leaving both lists creates exactly the
-  vocabulary drift this refactor is intended to eliminate, and importing
-  diagram-core from `tails.mjs` would violate the zero-dependency architecture.
-
-- **P2 – the migration exclusions do not cover nested lecture outputs in the
-  second repository.** `lectures/*/{audience,speaker,print,print-notes}.html`
-  matches the engine's one-level lecture directories, but mylectures stores
-  sources and generated views under paths such as
-  `lectures/introsp/10-welcome/`. The migration matcher itself may not see a
-  raw opener in highlighted HTML, but the final broad `unit=`/`autoplay=` scan
-  does see source-payload attributes there and cannot come back empty. Exclude
-  generated views by basename at any depth (`lectures/**/...`) or restrict the
-  scan to tracked source files. Also update the stale Risk text that still says
-  "three opener regexes" and "three callers" after Plan 1 correctly says four.
-
-- **P2 – decide whether a draw-level `{#id}` is real syntax before making it
-  the canonical example.** Today `parseDiagramSource` stores it only as
-  `model.id`, and the only consumer is the prefix of a thrown compiler error;
-  it does not become an SVG/figure id, an editor identity, or a link target.
-  No source in either repo uses it. Keeping it is defensible as a diagnostic
-  label, but the end-state example strongly suggests a normal addressable id
-  and the project otherwise refuses settings that do nothing in successful
-  output. Either remove `{#id}` from the new opener while migration is free,
-  or define its observable semantics and test them.
 
 The end state all items aim at, in one line each:
 
@@ -98,13 +22,14 @@ The end state all items aim at, in one line each:
 ::: side 2:1 {.middle}
 ::: backdrop dusk {.cover .invert} reveal full, right 45%
 ::: overlay {.bottom-left .ink} from 2
-::: draw 150x56 {#fig} autoplay 1200 cycle
+::: draw 150x56 autoplay 1200 cycle
 ```
 
 **Braces hold sigil tokens only** (`.word` setting, `#word` id, and inside a
-draw body also `@word` group and `!word` removal). **The one primary argument
-is positional, before the braces.** **Anything optional that carries a value
-is a keyword after the braces.**
+draw body also `@word` group and `!word` removal), **and a line that has no
+sigil tokens to carry has no braces** – the draw opener, after item 4, is
+one. **The one primary argument is positional, before the braces.**
+**Anything optional that carries a value is a keyword after the braces.**
 
 Suggested order: item 1 (one parser module, with 2 and 3 folded in), then
 item 4 (draw opener), then item 5 (docs). Items 6–7 are already resolved or
@@ -207,15 +132,40 @@ takes a `what` string for the message only.
 **1b′. ID policy is per caller. [review 2]** Today only column and chunk
 headings take an `#id` through the tail; `cards`, `rows`, `side`,
 `overlay` and `backdrop` refuse even a first `#id` as "not a .word"
-(parseSlotClasses: any token not starting with `.`), and the draw opener
-(item 4) takes exactly one. A generic parser that accepted `#id`
-everywhere would let a directive carry an id nothing reads – the silent
-no-op this format refuses. So `parseTail(text, slots, what, { id })` with
-`id: 'none' | 'one'`: under `none` the first `#word` is a
+(parseSlotClasses: any token not starting with `.`). A generic parser that
+accepted `#id` everywhere would let a directive carry an id nothing reads –
+the silent no-op this format refuses. So `parseTail` takes
+`{ id: 'none' | 'one' }`: under `none` the first `#word` is a
 `stray-attribute` ("this directive takes no id"); under `one` the first is
-the id and a second is `multiple-ids`. Headings and the draw opener pass
-`one`; the five slot directives pass `none`. `multiple-ids` never fires on
-a directive.
+the id and a second is `multiple-ids`. Headings pass `one`; the five slot
+directives pass `none`. **[review 3]** The draw opener is no longer a
+caller: it has no braces after item 4 (see 4, "`{#id}` is dropped").
+`multiple-ids` therefore fires on headings only.
+
+**1b″. The input contract. [review 3]** The heading path receives a whole
+line (`Heading {.wide #id}`) and has to split prose from tail; every
+directive path receives the brace contents its opener regex already
+captured (`.outline .middle`). One invariant: **`parseTail` always receives
+brace contents, never a line**, and a separate two-line helper does the
+split for headings:
+
+```js
+export function splitTail(line)  // 'Heading {.wide #id}' → { text: 'Heading', tail: '.wide #id' }
+                                 // 'Heading'             → { text: 'Heading', tail: null }
+export function parseTail(tail, slots, what, { id })
+  → { classes, id, ids, slots: { name: { value, written } }, problems: [{ code, msg }] }
+
+// heading (build.js h2 branch)
+const { text, tail } = splitTail(h2[1]);
+const t = parseTail(tail, CHUNK_SLOTS, 'chunk heading', { id: 'one' });
+// directive (cards opener; cardsOpen[2] is the captured brace contents, or undefined)
+const t = parseTail(cardsOpen[2], CARDS_SLOTS, 'cards', { id: 'none' });
+```
+
+`tail === null` or `undefined` means "no braces" and yields every slot at
+its default with no problems. `text` is not part of `parseTail`'s result;
+it is `splitTail`'s. An implementation can therefore never mistake `.wide`
+for heading prose.
 
 **1c. The architecture contract in `CLAUDE.md`. [review]** `CLAUDE.md:176–180`
 ("lint.js is independent") says lint.js "deliberately does not import
@@ -249,13 +199,13 @@ it imports vocabulary plus the tail parser.
 **Plan.**
 1. Create `tails.mjs` exporting the tables (`CHUNK_SLOTS`, `CARDS_SLOTS`,
    `OVERLAY_SLOTS`, `BACKDROP_SLOTS`, `SIDE_SLOTS`, `CHUNK_STYLE_CLASSES`,
-   `VALID_WIDTHS` derived from `CHUNK_SLOTS.width.words`) and one function
-   that returns data and never throws:
+   `VALID_WIDTHS` derived from `CHUNK_SLOTS.width.words`), `splitTail`,
+   `parseTail` (signatures in 1b″) and `parseDrawOpener` (item 4).
+   `parseTail` returns data and never throws:
    ```js
-   parseTail(text, slots, what) → {
-     text,                      // the heading text before the tail ('' for a directive)
+   {
      classes,                   // every .word in written order, dots stripped
-     id, ids,                   // first #id, all #ids
+     id, ids,                   // first #id, all #ids (id policy per 1b′)
      slots: { anchor: { value, written }, … },
      problems: [{ code, msg }], // codes: stray-attribute | unknown-class | same-slot | multiple-ids
    }
@@ -298,10 +248,13 @@ still builds and "changes nothing"; (d) `{.auto .left}` builds and
 the adapters**, so keep two integration rows per code: one source that
 build.js must refuse with a `userFacing` error whose text contains the
 parser's message, and the same source that lint.js must report under the
-parser's code – for `stray-attribute`, `unknown-class`, `same-slot`,
-`multiple-ids`, once each on a heading and once on a directive. The
-existing `raw()` / `lintOf()` helpers in `test/settings.mjs` are the
-harness.
+parser's code. **[review 3] The matrix follows the id policy:**
+`stray-attribute`, `unknown-class`, `same-slot` once each on a heading and
+once on a directive; `multiple-ids` on a heading only (`## free: A {#a #b}`);
+and the first `#id` on a directive (`::: cards 3 {#x}`) as
+`stray-attribute`, which is the directive-side twin of `multiple-ids`.
+Nine rows. The existing `raw()` / `lintOf()` helpers in `test/settings.mjs`
+are the harness.
 
 ---
 
@@ -356,7 +309,9 @@ bare word.
   "not a word this directive knows" branch) and `unknown-width`.
 - `same-slot` replaces the "both answer" branch of the five `bad-*-class`
   codes.
-- `stray-attribute` and `multiple-ids` as today, now on directives too.
+- `stray-attribute` as today, now on directives too (and it is what a
+  first `#id` on a directive gets). `multiple-ids` stays a heading code;
+  it never fires on a directive (1b′).
 - `bad-diagram-attribute` splits into `name-in-tail`, `empty-tag`,
   `stray-attribute` (reuse), `duplicate-removal`; `unknown-diagram-class`
   stays.
@@ -390,10 +345,17 @@ key=value options and one bare flag.
   block from the repository "the way lint.js does" and the gate asserts
   ``all ${n} corpus figures compile`` (line 106) **with no expected count**.
   After a migration to positional `WxH` it would match zero blocks and
-  pass vacuously as "all 0 corpus figures compile".
+  pass vacuously as "all 0 corpus figures compile". **[review 3]** Its
+  `FILES` list (lines 34–40) names `diagrams`, `network-security`,
+  `figure-rules`, `tutorial` and **omits `lectures/decoration/source.md`**,
+  which has four real draw blocks – the gate covers 131 of 135 today.
+  `blocks()` hands `b.head` (the old brace contents) straight to
+  `core.renderDiagram(body, b.head, {})` (line 97), which is how the
+  compiler learns the unit.
 - No source in either repo writes `#id` inside the draw braces today
-  (`grep -rhE "^::: draw \{[^}]*#" … --include=source.md` → 0), so the
-  `{#id}` part of the new opener has no migration cases, only tests.
+  (`grep -rhE "^::: draw \{[^}]*#" … --include=source.md` → 0). **[review 3]**
+  Together with the fact that `model.id` has no consumer but an error
+  prefix, that is why the new opener has no `{#id}` at all (Plan 1).
 - **[review] The editor's payload carries the stripped tail, not the
   opener.** The build emits the figure's source payload from `diagramBlock`
   (`range: [bodyAt, bodyAt + body.length]`, build.js ~3327–3334) and the
@@ -464,24 +426,75 @@ key=value options and one bare flag.
    ::: draw [WxH] [{#id}] [autoplay N [cycle]]
    ```
    `WxH` positional (the grid is the figure's one primary argument, as the
-   ratio is for `side`); braces hold `#id` only; `autoplay N` and `cycle`
-   are keywords after, in that order, `cycle` refused without `autoplay`
-   as today. `parseDrawOpener(line) → { unit, id, autoplay, cycle, problems }`
-   (id policy `one`, see 1b′). **[review 2]** `corpus.mjs` `blocks()` uses
-   it too, and the gate gets a ratchet: a per-file expected block count
-   (`{ 'lectures/diagrams/source.md': 31, … }` from the census below, or a
-   total that must be ≥ the number at migration time) so the gate can
-   never again pass on zero.
+   ratio is for `side`); no braces (see "`{#id}` is dropped" below);
+   `autoplay N` and `cycle` are keywords after, in that order, `cycle`
+   refused without `autoplay` as today.
+
+   **[review 3] Caller-facing contract**, so no caller keeps a
+   `^:::\s+draw` pre-regex of its own:
+   ```js
+   parseDrawOpener(line)
+     → null                                          // not a draw opener: line does not match /^:::\s+draw(?=\s|$)/
+     → { unit: [w, h] | null, autoplay: n | null, cycle: bool, problems: [] }   // valid opener
+     → { …, problems: [{ code, msg }] }              // begins `::: draw`, must be refused; codes:
+                                                     //   stray-attribute (old `{unit=…}`, `autoplay=`, bare `cycle`, any braces),
+                                                     //   bad-autoplay (range, or cycle without autoplay), bad-unit
+   ```
+   `null` is the only "unrelated line" answer; a non-null result with
+   problems is a refusal, and build.js throws `problems[0].msg` as
+   `userFacing` while lint.js adds every problem under its code. The unit
+   is `null` when unwritten (compiler default), never a synthesised value.
+
+   **[review 3] `DG_HOST_OPTS` is removed, not kept beside the new parser.**
+   Today `diagram-core.mjs:944` exports `['autoplay', 'cycle']`, the
+   compiler's option loop skips them (`:3027`, with a comment saying the
+   corpus gate and the editor "compile blocks straight out of a file"), and
+   lint.js imports the list for its own gate (`:2570`). After this item no
+   caller hands the compiler a host option: build.js, `corpus.mjs` and the
+   editor's payload all pass only the synthesised `unit=WxH`. So: delete
+   `DG_HOST_OPTS`, delete the skip branch, let the compiler refuse
+   `autoplay=…` as an unknown option (test that), and have lint's draw gate
+   call `parseDrawOpener` instead of consulting the list. `tails.mjs` then
+   owns the two words alone, and must not import diagram-core (zero-dep
+   both ways).
+
+   **[review 3] `{#id}` is dropped from the opener.** Checked: the
+   compiler stores it as `model.id` (`diagram-core.mjs:3020`) and the only
+   consumer is the prefix of the "has N problem(s)" error (`:6677`); it
+   becomes no SVG id, no editor identity, no link target, and no source in
+   either repo writes one. A setting that changes nothing in successful
+   output is what this format refuses, so the opener takes none, the
+   compiler's `#` branch goes with the `DG_HOST_OPTS` branch, and the error
+   prefix keeps the `where` (chunk id) it already has. Migration cost:
+   zero. If a figure-level id is ever wanted, it is a new feature with
+   observable semantics and its own tests, not a leftover.
+
+   `parseDrawOpener(line) → { unit, autoplay, cycle, problems }`
+   **[review 2]** `corpus.mjs` `blocks()` uses it too, and the gate gets a
+   ratchet. **[review 3] Exact counts, counted with `grep -cE '^::: draw'`
+   per file:** `diagrams` 29, `network-security` 36, `figure-rules` 55,
+   `tutorial` 11, `decoration` 4 – 135. (The draft's "31" for diagrams was
+   a count of old-spelling grep hits, not blocks, and would have failed on
+   day one.) Add `decoration` to `FILES`, assert the per-file counts
+   exactly, and when a lecture gains or loses a figure the number in the
+   gate changes in the same commit. And because step 2 keeps the
+   compiler's string signature, `blocks()` must synthesise `unit=WxH` from
+   the parsed opener before calling `renderDiagram` – handing it the raw
+   opener would compile every figure at the default unit and still pass.
 2. build.js: both opener sites call `parseDrawOpener`; `diagramBlock`
-   keeps `{ unit, id, autoplay, cycle }` as fields. `parseDiagramSource`
+   keeps `{ unit, autoplay, cycle }` as fields. `parseDiagramSource`
    keeps its string signature for a first step – the host synthesises
-   `unit=WxH #id` from the fields – so diagram-core changes only its
+   `unit=WxH` from the fields (nothing when unit is null) – so diagram-core
+   changes only by losing the `#id` and `DG_HOST_OPTS` branches and their
    error text. (Second step, optional: pass an object.)
 3. **[review] The editor payload carries the whole opener.** The build
-   puts `opener: { unit, id, autoplay, cycle }` into the figure's source
+   puts `opener: { unit, autoplay, cycle }` into the figure's source
    payload next to `attrs`; the editor stores it on `DGE.fig`;
    `dgeBlockText()` serialises the new spelling from it:
-   `'::: draw' + (unit ? ' ' + unit : '') + (id ? ' {#' + id + '}' : '') + (autoplay ? ' autoplay ' + autoplay + (cycle ? ' cycle' : '') : '')`.
+   `'::: draw' + (unit ? ' ' + unit : '') + (autoplay ? ' autoplay ' + autoplay + (cycle ? ' cycle' : '') : '')`
+   – the same function as the migration script's serialiser, exported from
+   `tails.mjs` as `formatDrawOpener({ unit, autoplay, cycle })` so the two
+   cannot drift.
    Tiers 1 and 1b keep patching the body range only. This also fixes the
    pre-existing clipboard bug in the same commit.
 4. lint.js: the old spelling (`unit=` inside braces, `autoplay=`, bare
@@ -496,21 +509,32 @@ key=value options and one bare flag.
    replaces the whole matched opener, it does not substitute tokens in
    place**: parse the captured old tail into `{unit, id, autoplay, cycle}`
    (refusing anything else, so a tail the script does not understand stops
-   the run rather than being half-rewritten), then emit the canonical new
-   opener from those fields with the same serialiser `dgeBlockText()` will
-   use – `::: draw 150x56 {#fig} autoplay 1200 cycle`. The old braces go
-   with the old tail. **Exclusions, in the script:** everything under
-   `lectures/*/{audience,speaker,print,print-notes}.html`, `squint.txt`,
-   `docs/artifact/figures-you-write.html`, `docs/site/figures.html`,
-   `docs/site/example/`, `_site/`, `node_modules/` – the first two are
-   rebuilt by the build, the next two by `refresh-figures.mjs`, the rest
-   by `build-site.js`. Then `refresh-figures.mjs` and
+   the run rather than being half-rewritten; a `#id` in an old tail is
+   reported and dropped, and the census says there are none), then emit
+   the canonical new opener with `formatDrawOpener` –
+   `::: draw 150x56 autoplay 1200 cycle`. The old braces go with the old
+   tail. **Exclusions, in the script, by basename at any depth [review 3]:**
+   `**/audience.html`, `**/speaker.html`, `**/print.html`,
+   `**/print-notes.html`, `**/squint.txt` (mylectures nests lectures as
+   `lectures/<course>/<NN>-<slug>/`, so a one-level `lectures/*/` pattern
+   misses every view there), `docs/artifact/figures-you-write.html`,
+   `docs/site/figures.html`, `docs/site/example/`, `_site/`,
+   `node_modules/` – the first group is rebuilt by the build, the next two
+   by `refresh-figures.mjs`, the rest by `build-site.js`. Simplest
+   implementation: iterate `git ls-files` in the engine repo and
+   `git ls-files --others --exclude-standard` plus tracked files in
+   mylectures, then apply the basename exclusions – the built views in
+   mylectures are gitignored except where they were committed by accident,
+   and the basename rule catches those too. Then `refresh-figures.mjs` and
    `refresh-figures.mjs --check`; then `node docs/site/shoot-gallery.mjs`
    (or whatever `build-site.js` runs) to prove the gallery shooter still
    builds; then `npm test`; then a final repo-wide scan that must come
    back empty outside CHANGELOG history and diagram-core's own comments –
    **numeric and symbolic forms both**: `unit=\d+x\d+`, `unit=WxH`,
-   `autoplay=\d+`, `autoplay=N`, `\{[^}]*\bcycle\b[^}]*\}`.
+   `autoplay=\d+`, `autoplay=N`, `\{[^}]*\bcycle\b[^}]*\}` – run over the
+   same file list as the migration, with the same exclusions, because the
+   built views carry the old spelling inside highlighted code and source
+   payloads and would never come back empty.
 6. CHANGELOG (Unreleased → Changed), both figure skills, `figure-design.md`,
    `editor.md`, `PRD.md`, the mylectures `HOUSE-STYLE.md` "Attribute tails"
    section.
@@ -536,8 +560,10 @@ needed under A as well, because the clipboard bug exists today.
   lecture build into untracked or ignored files. So `git diff` covers
   three of nine; the rest need a scratch snapshot of the views before the
   migration and a diff against it after.
-- Three opener regexes; the column-heading path (build.js:3544) is the one
-  to forget. One regex in the module, three callers.
+- Four opener readers today (build.js ×2, lint.js, `corpus.mjs`); the
+  column-heading path (build.js:3544) is the one to forget. One function in
+  the module, four callers, and `parseDrawOpener` returning `null` for an
+  unrelated line so no caller keeps a pre-regex.
 - Generated pages: `figures-you-write.html` and `docs/site/figures.html`
   must come from the refresh script, never from the migration sed – the
   sed would rewrite the spliced code regions and `--check` would then
@@ -559,7 +585,7 @@ step 3, so the figure element changes by design. Compare the compiled
 (outerHTML, or at least `viewBox` and the first `<g>`'s transform) before
 and after – those must be identical; (c) **[review]
 editor round-trip**: open a figure whose opener is
-`::: draw 150x56 {#f} autoplay 1200 cycle`, press "New figure…" / copy
+`::: draw 150x56 autoplay 1200 cycle`, press "New figure…" / copy
 block, and assert the clipboard text (or `dgeBlockText()` via the page)
 reproduces the opener verbatim – `test/editor-*.mjs` has the harness.
 
@@ -634,6 +660,14 @@ Both reviews are resolved in place; this list is the index.
   unit test (1, Tests); comparison target for the figure after the payload
   change (4, Tests); verification scope for untracked views and the
   corrected census (4, Risks + Checked).
+- Review 3: `splitTail` + `parseTail(tail, …)` as the one input contract
+  (1b″); test matrix follows the id policy, `multiple-ids` on headings only
+  (1 Tests, 3); corpus gate adds `decoration`, exact per-file counts,
+  synthesises `unit=WxH` (4, Checked + Plan 1); `parseDrawOpener` returns
+  `null` / valid / refused (4, Plan 1); `DG_HOST_OPTS` removed from
+  diagram-core and lint (4, Plan 1); exclusions by basename at any depth
+  and a scan over the same file list (4, Plan 5); `{#id}` dropped from the
+  opener, with the reason (4, Plan 1 + end state).
 
 ---
 
