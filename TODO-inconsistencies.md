@@ -8,10 +8,11 @@ session can implement each item without re-deriving it. Every entry has:
 what it is, what has been checked (with anchors), what to check before
 touching it, the plan, the risks, and the tests that pin it.
 
-Five reviews of earlier drafts (Codex, 2026-09-04) found six, seven, seven,
-eight and twelve gaps. Each is resolved in place below and marked
-**[review]** through **[review 5]** where the text changed; the "Review
-trail" section at the end lists them so nothing was folded in silently.
+Six reviews of earlier drafts (Codex, 2026-09-04) are resolved in place and
+marked **[review]** through **[review 6]** where the text changed. The
+"Review trail" section at the end lists them so nothing was folded in
+silently; counts are deliberately omitted now that follow-up verification
+itself keeps finding and resolving small additions.
 
 The end state all items aim at, in one line each:
 
@@ -605,8 +606,13 @@ key=value options and one bare flag.
    `lectures/<course>/<NN>-<slug>/`, so a one-level `lectures/*/` pattern
    misses every view there), `docs/artifact/figures-you-write.html`,
    `docs/site/figures.html`, `docs/site/example/`, `_site/`,
-   `node_modules/` – the first group is rebuilt by the build, the next two
-   by `refresh-figures.mjs`, the rest by `build-site.js`. Simplest
+   `node_modules/`, plus `CHANGELOG.md`, `TODO-inconsistencies.md`,
+   `revision-proposal.md` and root `todo-*.md`. **[review 6]** The last
+   group is history/planning: the syntax gate inventories it through its
+   explicit allowlist, but the automatic migration must not rewrite history
+   that explains the old form. The first generated group is rebuilt by the
+   build, the next two by `refresh-figures.mjs`, and the site outputs by
+   `build-site.js`. Simplest
    implementation: iterate `git ls-files` in the engine repo and
    `git ls-files --others --exclude-standard` plus tracked files in
    mylectures, then apply the basename exclusions – the built views in
@@ -619,26 +625,38 @@ key=value options and one bare flag.
    **[review 5] The former "final repo-wide scan must be empty" could not
    pass:** this TODO alone intentionally contains every old numeric and
    symbolic form, and negative tests plus the migration parser must retain
-   some of them. Use two explicit checks instead. First, the authored-source
-   gate must have zero old openers in both repositories' non-generated
-   `source.md` files. Second, scan active documentation, skills and executable
-   templates for `unit=\d+x\d+`, `unit=WxH`, `autoplay=\d+`, `autoplay=N`
-   and `\{[^}]*\bcycle\b[^}]*\}`. Review every remaining hit against a short
-   checked-in `test/gates/legacy-draw-syntax.txt` allowlist, one sorted
-   `path<TAB>matched-text<TAB>count` row per intentional match, limited to
-   negative tests, migration recognition, `CHANGELOG.md` history and
-   historical/planning documents (including this file); a gate recomputes
-   and compares that inventory. Put both the zero-source check and that
-   comparison in `test/gates/legacy-draw-syntax.mjs`. **Register it:**
-   `test/gates/run.mjs` does not discover gates, it runs a fixed `GATES`
-   array (run.mjs:37, today `./refusals.mjs`, `./accepts.mjs`, `./semantics.mjs`, `./corpus.mjs`, `./step-classes.mjs`, `./inlined.mjs`); a file
-   that is not listed there never runs, and `corpus.mjs` is only enforced
-   because it is. Add the new gate to that array in the same commit, and
-   the `--check`-style self-test of the allowlist with it. No lecture source, current authoring
-   documentation or executable template may be allowlisted. Both scans use
-   the migration's nested generated-file exclusions, so built views
-   containing highlighted source neither hide a miss nor create false
-   failures.
+   some of them. **[review 6] Keep the committed gate self-contained.** The
+   gate runner promises to work from a bare psi-slides checkout and therefore
+   cannot require the adjacent psi-slides-mylectures repo. Do this in three
+   layers:
+   1. `test/gates/legacy-draw-syntax.mjs` scans this repository's tracked,
+      non-generated text. It hard-fails any old opener in a `source.md`, then
+      inventories `unit=\d+x\d+`, `unit=WxH`, `autoplay=\d+`, `autoplay=N`
+      and `\{[^}]*\bcycle\b[^}]*\}` everywhere else.
+   2. Compare that inventory with the checked-in
+      `test/gates/legacy-draw-syntax.txt`, one sorted
+      `path<TAB>matched-text<TAB>count` row per intentional match. Exclude the
+      gate `.mjs` and its `.txt` from their own input or they recursively
+      inventory their pattern literals and allowlist rows. Allowed entries are
+      limited to negative tests, migration recognition, `CHANGELOG.md`
+      history and historical/planning documents (including this file); no
+      lecture source, current authoring documentation or executable template
+      may be allowlisted.
+   3. Give the migration script a non-writing `--check <repo-root>` mode and
+      run it explicitly once for this repo and once for
+      `../psi-slides-mylectures`. That is the cross-repo acceptance check; it
+      uses the exact same generated and historical exclusions as the write
+      mode, reports every file that would change plus any forbidden legacy
+      token on an active authoring surface, and is not smuggled into the
+      single-repo gate contract.
+
+   **Register the gate:** `test/gates/run.mjs` does not discover files; it
+   runs the fixed `GATES` array at line 37. Add
+   `./legacy-draw-syntax.mjs` there and update the header from six to seven
+   gates, including a one-line `legacy-draw-syntax` entry. Otherwise the new
+   file never runs even though `npm test` appears green. Built views containing
+   highlighted source remain excluded, so they neither hide a miss nor create
+   false failures.
 6. CHANGELOG (Unreleased → Changed), both figure skills, `figure-design.md`,
    `editor.md`, `PRD.md`, the mylectures `HOUSE-STYLE.md` "Attribute tails"
    section.
@@ -761,7 +779,7 @@ lands, the draw opener.
 
 ## Review trail
 
-All five reviews are resolved in place; this list is the index.
+All six reviews are resolved in place; this list is the index.
 
 - Review 1: chunk slots must not invent `.shown`/`.left` (1a); one code
   for a word from no slot (1b); `CLAUDE.md` lint-independence contract
@@ -818,6 +836,16 @@ All five reviews are resolved in place; this list is the index.
   opener and a complete parser/formatter test matrix (4, Plan 1 + Tests);
   completed the shared module's export list and formatter contract (1,
   Plan 1).
+- Review 6: separated the single-checkout syntax gate from the explicit
+  two-repository migration check; excluded the gate and its allowlist from
+  their own scan; made the inventory truly repo-wide rather than describing
+  an active-doc-only scan whose allowlist named tests and history; and
+  required `run.mjs`'s gate count and prose to be updated together with its
+  fixed `GATES` array. It also made migration write/check modes share one
+  exclusion set and kept allowlisted history out of the automatic rewrite
+  (4, Plan 5). The review-count scoreboard was removed from the introduction
+  because verification additions made it a source of noise rather than an
+  implementation contract.
 
 ---
 
