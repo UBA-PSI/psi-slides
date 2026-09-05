@@ -15,9 +15,11 @@
     "stage-engine": "node scripts/stage-engine.mjs",
     "test": "node --test test/events.test.mjs test/settings.test.mjs test/strings.test.mjs test/validation.test.mjs",
     "smoke": "node test/smoke.mjs",
-    "dist": "node scripts/stage-engine.mjs && electron-builder"
+    "dist": "node scripts/stage-engine.mjs && electron-builder",
+    "dist:signed": "node scripts/stage-engine.mjs && dotenv -- electron-builder --mac --publish never"
   },
   "devDependencies": {
+    "dotenv-cli": "^8.0.0",
     "electron": "^44.0.0",
     "electron-builder": "^26.0.0",
     "playwright-core": "^1.61.1"
@@ -51,7 +53,8 @@
       "category": "public.app-category.productivity",
       "hardenedRuntime": true,
       "entitlements": "build/entitlements.mac.plist",
-      "entitlementsInherit": "build/entitlements.mac.plist"
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true
     },
     "win": {
       "target": [

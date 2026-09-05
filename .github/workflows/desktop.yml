@@ -89,36 +89,25 @@ jobs:
         working-directory: desktop
         run: npm ci
 
-      # Code signing reads five repository secrets (Settings -> Secrets and
-      # variables -> Actions; they live there and in no file):
+      # Unsigned on purpose, and explicitly: with no identity configured
+      # electron-builder on macOS would still look for one in the runner's
+      # keychain, and an empty CSC_LINK from an unset secret is read as a
+      # file path rather than as absent (the second run here failed with
+      # "desktop not a file" for exactly that reason).
       #
-      #   CSC_LINK                      the Developer ID Application
-      #                                 certificate with its private key,
-      #                                 exported from Keychain Access as a
-      #                                 .p12 and base64-encoded
-      #   CSC_KEY_PASSWORD              the password given at export
-      #   APPLE_ID                      the Apple ID that owns the team
-      #   APPLE_APP_SPECIFIC_PASSWORD   made at appleid.apple.com, for
-      #                                 notarisation
-      #   APPLE_TEAM_ID                 the ten-character team id
-      #
-      # The Apple certificate signs macOS only. Windows needs a code-signing
-      # certificate of its own (WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD) and has
-      # none, so its installer stays unsigned and SmartScreen warns once.
-      # While the secrets are unset the packages are unsigned and are build
-      # artefacts here rather than release assets: an unsigned installer
-      # produces exactly the warnings this app exists to avoid.
+      # The signed and notarised macOS release is built on the maintainer's
+      # machine with `npm run dist:signed`, the way the Booklet Tool does it:
+      # the Developer ID certificate lives in that keychain and the three
+      # notarisation variables (APPLE_ID, APPLE_APP_SPECIFIC_PASSWORD,
+      # APPLE_TEAM_ID) in a gitignored desktop/.env. Nothing of that is on
+      # GitHub. Windows has no code-signing certificate at all, so its
+      # installer is unsigned wherever it is built and SmartScreen warns once.
+      # What this job produces is for testing, and it is attached to the run
+      # rather than to a release.
       - name: Package
         working-directory: desktop
-        # An unset repository secret expands to an empty string, and
-        # electron-builder treats an empty CSC_LINK as absent: with no
-        # secrets configured this step builds unsigned and says so.
         env:
-          CSC_LINK: ${{ secrets.CSC_LINK }}
-          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-          APPLE_ID: ${{ secrets.APPLE_ID }}
-          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+          CSC_IDENTITY_AUTO_DISCOVERY: "false"
         run: npm run dist -- --publish never
 
       - uses: actions/upload-artifact@v4

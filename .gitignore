@@ -73,3 +73,6 @@ desktop/dist/
 
 # smoke-test screenshots; the design is reviewed from them, they are not tracked
 desktop/test/shots/
+
+# Apple notarisation credentials for a local signed build (see desktop/README.md)
+desktop/.env

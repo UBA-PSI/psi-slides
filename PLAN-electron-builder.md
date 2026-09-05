@@ -1117,9 +1117,15 @@ bestätigt, soweit nichts anderes steht.
 
 1. **Signierung:** das Apple-Developer-Zertifikat darf benutzt werden.
    Unsigniert ist vorerst in Ordnung; **ein Release muss signiert sein.**
-   `desktop.yml` liest die fünf Secrets jetzt aus den Repository-Secrets
-   (leer heißt unsigniert). Windows hat kein Zertifikat und bleibt
-   unsigniert.
+   Der Weg ist der des Booklet-Tools (`/Users/dh/r/psi-pdf-merger-tool`):
+   signieren und notarisieren lokal, mit dem Zertifikat im Schlüsselbund und
+   den drei Notarisierungs-Variablen (`APPLE_ID`,
+   `APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID`) in einer gitignorierten
+   `desktop/.env`, die dieselbe Datei wie dort ist. `npm run dist:signed`
+   in `desktop/` macht das (`dotenv-cli` lädt die Datei,
+   `mac.notarize: true` lässt electron-builder selbst einreichen und
+   stapeln). CI bleibt ausdrücklich unsigniert; nichts davon liegt auf
+   GitHub. Windows hat kein Zertifikat und bleibt unsigniert.
 2. **Plattformen:** macOS und Windows, Linux ebenfalls unterstützt; alle
    drei kommen aus GitHub Actions.
 3.–5., 7., 8. Annahmen bestätigt.
@@ -1156,6 +1162,14 @@ bestätigt, soweit nichts anderes steht.
   danach, und lokal war nie ein Linux-Ziel gebaut worden. Beides steht
   jetzt in `desktop/package.json`; AppImage und deb bauen seither auch auf
   dem Mac (electron-builder bringt die Werkzeuge mit).
+
+- **Ein leeres `CSC_LINK` ist für electron-builder kein fehlendes.** Der
+  erste Versuch, die fünf Signier-Secrets im Workflow zu verdrahten, ließ
+  den macOS-Job mit „desktop not a file“ sterben: ein nicht gesetztes
+  Repository-Secret expandiert zu `""`, und electron-builder liest das als
+  Pfad zur Zertifikatsdatei. Der Workflow setzt jetzt
+  `CSC_IDENTITY_AUTO_DISCOVERY=false` und kennt keine Secrets; das Signieren
+  ist lokal (Antwort 1).
 
 ## Fortschritt
 

@@ -36,8 +36,9 @@ blue "Windows protected your PC" panel; "More info" then "Run anyway" installs
 it. On Linux, an AppImage needs the executable bit (`chmod +x`), and the `.deb`
 installs with your usual package tool.
 
-Signing and, on macOS, notarisation are planned before the app is recommended
-to people who should not have to read a paragraph like the one above.
+A release will be signed and, on macOS, notarised, so that nobody who is
+handed the app has to read the paragraph above. Windows has no certificate
+yet and keeps its one SmartScreen warning until it does.
 
 ## Using it
 
@@ -80,7 +81,8 @@ npm start                # run the app against the engine in the repository root
 npm test                 # unit tests: the event parser, settings, paths, strings
 npm run smoke            # start the app, build a real lecture, take screenshots
 npm run stage-engine     # copy the engine into desktop/engine/ and install it
-npm run dist             # stage the engine, then build the installers
+npm run dist             # stage the engine, then build the installers (unsigned)
+npm run dist:signed      # the macOS release: signed and notarised, see below
 ```
 
 `npm start` runs against the repository root, so the engine you are testing is
@@ -91,6 +93,24 @@ the four files it splices in at run time, and a production-only
 
 The smoke test writes its screenshots to `test/shots/` (not tracked). They are
 how the interface is reviewed against `DESIGN.md`.
+
+### Signing the macOS release
+
+The signed build is made on the maintainer's Mac, not in CI, the same way
+the Booklet Tool is released. Two things have to be in place:
+
+- the "Developer ID Application" certificate in the login keychain –
+  electron-builder finds it by itself;
+- a file `desktop/.env` (gitignored) with the three notarisation variables
+  `APPLE_ID`, `APPLE_APP_SPECIFIC_PASSWORD` (made at appleid.apple.com) and
+  `APPLE_TEAM_ID`. It is the same file the Booklet Tool uses; copy it.
+
+`npm run dist:signed` then stages the engine, signs every binary in the app
+under the hardened runtime, submits the app to Apple's notary service, waits,
+staples the ticket, and writes the DMG and the zip to `dist/`. CI stays
+unsigned on purpose (`CSC_IDENTITY_AUTO_DISCOVERY=false`): the certificate
+does not leave this machine, and an empty `CSC_LINK` from an unset repository
+secret is read by electron-builder as a file path, not as absent.
 
 ## The security model, in five lines
 

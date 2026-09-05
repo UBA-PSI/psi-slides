@@ -180,15 +180,18 @@ runs on a push that touches `desktop/` or one of the engine files the app
 stages (`build.js`, `diagram-core.mjs`, `tails.mjs`, `editor.mjs`,
 `editor.css`, the root `package.json` and lockfile): it runs the app's tests
 and its smoke test, then builds unsigned packages for macOS, Windows and Linux
-and attaches them to the run as artefacts. The app and the engine carry the
-same version number; the desktop packages are meant to become additional
-assets on the same release tag once signing exists, beside `psi-slides.tar.gz`
-and `psi-slides.zip`, whose names do not change. Signing needs secrets the
-repository does not have yet – the workflow names them in a comment
-(`CSC_LINK`, `CSC_KEY_PASSWORD` for the certificate, `APPLE_ID`,
-`APPLE_APP_SPECIFIC_PASSWORD`, `APPLE_TEAM_ID` for notarisation) – and until
-they exist the packages are for testing on machines whose owners know what an
-unsigned app means. `desktop/README.md` says what that is on each platform.
+and attaches them to the run as artefacts, for testing. The app and the engine
+carry the same version number, and the desktop packages become additional
+assets on the same release tag beside `psi-slides.tar.gz` and
+`psi-slides.zip`, whose names do not change.
+
+**The macOS release is signed and notarised on the maintainer's machine**, not
+in CI – `npm run dist:signed` in `desktop/`, with the Developer ID
+certificate in the keychain and the three notarisation variables in a
+gitignored `desktop/.env`, exactly as the Booklet Tool is released;
+`desktop/README.md` has the steps. Nothing of that is a repository secret.
+Windows has no code-signing certificate and stays unsigned; Linux packages
+are not signed by convention.
 
 Cutting a release:
 
