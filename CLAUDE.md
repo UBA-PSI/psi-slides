@@ -384,6 +384,34 @@ own message types rather than through the state snapshot – `applyRemoteState` 
 a *full* apply, so a snapshot sent for one field drags the receiver's slide
 position with it. See `speaker.md` §2.
 
+### Desktop app (`desktop/`)
+
+An Electron window around the build for people who will not open a terminal:
+open a `source.md`, build on every save, open the four views. **It is its own
+package** – `desktop/package.json`, its own lockfile, its own `node_modules/`
+– and nothing of it reaches the root: no Electron in the root `package.json`,
+no root script that touches `desktop/`, `desktop/ export-ignore` in
+`.gitattributes` so the engine tarball stays what the README says it is, and
+`desktop.yml` is path-filtered so a lecture commit does not run a
+three-platform matrix. Its tests live in `desktop/test/` with their own
+runner; `npm test` in the root does not run them.
+
+**The app drives `build.js` through `--events`, never through the human log.**
+It spawns the engine as a child (`ELECTRON_RUN_AS_NODE`, argument array, no
+shell) with `--watch --events`, reads the JSON lines on stdout as state and
+everything else on stdout and stderr as the raw log, and sends `rebuild` and
+`auto` commands on stdin. So the event names and fields in the `--events`
+section of `build.js` are an interface with one consumer: change one there
+and `desktop/main/builder.js` and its `events.test.mjs` change in the same
+commit. The human log lines are free to move. The engine the packaged app
+runs is a copy staged by `desktop/scripts/stage-engine.mjs` – `build.js` and
+the four files it reads relative to itself plus a production `npm ci` – so a
+new runtime file that `build.js` reads via `import.meta.url` has to be added
+to that script's list or the packaged app builds without it.
+
+The design brief the interface is built against is `desktop/DESIGN.md`; the
+plan, its decisions and its build log are `PLAN-electron-builder.md`.
+
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.

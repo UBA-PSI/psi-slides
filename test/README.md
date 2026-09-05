@@ -15,6 +15,12 @@ Anything checkable without a browser belongs in `lint.js`, where it runs on
 every commit, or in `test/gates/`, where it runs on every push. The browser
 suite is not a unit-test suite.
 
+A third place exists and is deliberately not one of these two: `desktop/test/`
+holds the desktop app's own tests, run by `npm test` inside `desktop/` and by
+`desktop.yml`, never by `npm test` here. What it guards is the app's reading
+of `--events`, its settings file and its window, none of which a lecture
+depends on.
+
 ```bash
 npm run gate                        # all gates
 node test/gates/run.mjs semantics   # gates whose name matches
