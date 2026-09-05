@@ -1,0 +1,158 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<!-- The window loads three local files and nothing else, ever. No remote
+     script, no remote style, no remote font, and no connection of any kind:
+     `default-src 'none'` is the honest statement of an app that says on its
+     own start screen that nothing is uploaded. -->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'none'; script-src 'self'; style-src 'self'; font-src 'self'; img-src 'self' data:">
+<title>psi-slides Builder</title>
+<link rel="stylesheet" href="app.css">
+</head>
+<body>
+
+<div id="drop-frame" hidden></div>
+
+<header class="bar">
+  <button type="button" id="btn-back" class="text-btn back" hidden>&lsaquo;&nbsp;<span data-t="project.back"></span></button>
+  <div class="bar-spacer"></div>
+  <button type="button" id="lang-de" class="lang">DE</button>
+  <button type="button" id="lang-en" class="lang">EN</button>
+  <button type="button" id="btn-settings" class="gear" data-t-title="settings.title" data-t-aria="settings.title">&#9881;</button>
+</header>
+
+<main id="content">
+
+  <p id="notice" class="notice" hidden>
+    <span id="notice-text"></span>
+    <button type="button" id="notice-dismiss" class="text-btn" data-t="error.dismiss"></button>
+  </p>
+
+  <!-- ── start screen ────────────────────────────────────────────── -->
+  <section id="screen-start">
+    <h1 data-t="start.title"></h1>
+    <p id="start-lead" class="lead" data-t="start.lead"></p>
+
+    <p class="buttons">
+      <button type="button" id="btn-open" class="primary" data-t="start.open"></button>
+      <button type="button" id="btn-new" class="secondary" data-t="start.new"></button>
+    </p>
+
+    <h2 class="section-head" data-t="start.recent"></h2>
+    <ul id="recent" class="recent"></ul>
+    <p id="recent-empty" class="soft" data-t="start.recentEmpty"></p>
+
+    <p class="footer soft" data-t="start.local"></p>
+  </section>
+
+  <!-- ── project screen ──────────────────────────────────────────── -->
+  <section id="screen-project" hidden>
+    <h1 id="project-name"></h1>
+    <p class="pathline">
+      <span id="project-path" class="mono soft"></span>
+      <button type="button" id="btn-folder" class="text-btn" data-t="project.showFolder"></button>
+    </p>
+
+    <div class="status" aria-live="polite">
+      <p class="status-line"><span id="status-dot" class="dot"></span><span id="status-text"></span></p>
+      <p id="status-sub" class="soft" hidden></p>
+      <p id="status-bug" class="soft" hidden data-t="status.bug"></p>
+      <pre id="status-message" class="block mono" hidden></pre>
+    </div>
+
+    <p class="buttons">
+      <button type="button" id="btn-build" class="primary" data-t="actions.build"></button>
+      <label class="check"><input type="checkbox" id="chk-auto"><span data-t="actions.auto"></span></label>
+    </p>
+
+    <div class="grid" role="group" data-t-aria="outputs.title">
+      <button type="button" class="cell" id="out-audience" data-kind="audience">
+        <span class="cell-name" data-t="outputs.audience"></span>
+        <span class="cell-hint" data-t="outputs.audienceHint"></span>
+      </button>
+      <button type="button" class="cell" id="out-speaker" data-kind="speaker">
+        <span class="cell-name" data-t="outputs.speaker"></span>
+        <span class="cell-hint" data-t="outputs.speakerHint"></span>
+      </button>
+      <button type="button" class="cell" id="out-print" data-kind="print">
+        <span class="cell-name" data-t="outputs.print"></span>
+        <span class="cell-hint" data-t="outputs.printHint"></span>
+      </button>
+      <button type="button" class="cell" id="out-print-notes" data-kind="print-notes">
+        <span class="cell-name" data-t="outputs.printNotes"></span>
+        <span class="cell-hint" data-t="outputs.printNotesHint"></span>
+      </button>
+    </div>
+
+    <div id="hints" class="hints" hidden>
+      <p id="hint-browser" class="soft" hidden data-t="hint.browser"></p>
+      <p id="hint-embeds" class="soft" hidden data-t="hint.embeds"></p>
+    </div>
+
+    <div class="serve">
+      <label class="check"><input type="checkbox" id="chk-serve"><span data-t="serve.label"></span></label>
+      <p class="soft" data-t="serve.hint"></p>
+      <p id="serve-address" class="soft mono" hidden></p>
+      <p id="serve-restarting" class="soft" hidden data-t="serve.restarting"></p>
+    </div>
+
+    <p class="editor">
+      <button type="button" id="btn-source" class="text-btn" data-t="project.openSource"></button>
+    </p>
+    <p class="soft" data-t="project.editorNote"></p>
+
+    <div class="details">
+      <button type="button" id="btn-details" class="text-btn disclosure" aria-expanded="false" aria-controls="details-body"></button>
+      <div id="details-body" hidden>
+        <pre id="log" class="block mono log"></pre>
+        <button type="button" id="btn-copy" class="text-btn" data-t="details.copy"></button>
+      </div>
+    </div>
+  </section>
+</main>
+
+<!-- ── new lecture ───────────────────────────────────────────────── -->
+<div id="sheet-new" class="sheet" role="dialog" aria-modal="true" data-t-aria="new.title" hidden>
+  <h2 data-t="new.title"></h2>
+  <p class="field">
+    <label for="new-name" data-t="new.nameLabel"></label>
+    <input type="text" id="new-name" spellcheck="false" autocomplete="off">
+    <span class="soft" data-t="new.nameHint"></span>
+  </p>
+  <p class="field">
+    <span class="label" data-t="new.whereLabel"></span>
+    <span id="new-folder" class="mono soft"></span>
+    <button type="button" id="btn-choose-folder" class="secondary" data-t="new.choose"></button>
+  </p>
+  <p id="new-error" class="error" hidden></p>
+  <p class="buttons">
+    <button type="button" id="btn-create" class="primary" data-t="new.create"></button>
+    <button type="button" id="btn-cancel-new" class="secondary" data-t="new.cancel"></button>
+  </p>
+</div>
+
+<!-- ── settings ──────────────────────────────────────────────────── -->
+<div id="sheet-settings" class="sheet" role="dialog" aria-modal="true" data-t-aria="settings.title" hidden>
+  <h2 data-t="settings.title"></h2>
+  <fieldset>
+    <legend data-t="settings.language"></legend>
+    <label class="radio"><input type="radio" name="lang" value="en" id="set-lang-en"><span data-t="settings.languageEn"></span></label>
+    <label class="radio"><input type="radio" name="lang" value="de" id="set-lang-de"><span data-t="settings.languageDe"></span></label>
+  </fieldset>
+  <fieldset>
+    <legend data-t="settings.browser"></legend>
+    <label class="radio"><input type="radio" name="browser" value="auto" id="set-br-auto"><span data-t="settings.browserAuto"></span></label>
+    <label class="radio"><input type="radio" name="browser" value="default" id="set-br-default"><span data-t="settings.browserDefault"></span></label>
+  </fieldset>
+  <p id="settings-version" class="soft"></p>
+  <p class="buttons">
+    <button type="button" id="btn-settings-done" class="primary" data-t="settings.done"></button>
+  </p>
+</div>
+
+<script src="strings.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
