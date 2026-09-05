@@ -15588,10 +15588,17 @@ function buildOnce(absIn, only, opts = {}) {
     ['speaker',     renderSpeaker],
   ].filter(([name]) => !only || only === `--${name}-only`);
 
+  // Render every view first, write afterwards. The pre-flights above catch
+  // what can be seen before a renderer runs, but a defect that only one
+  // renderer trips over used to leave two new files and two old ones beside
+  // each other - a deck whose projection had moved on from its handout, with
+  // nothing on disk saying so. In two passes the last good build survives a
+  // failure whole: either all four files are the new one, or none of them is.
+  const rendered = targets.map(([name, render]) => [name, render(lecture, renderOpts)]);
   const written = [];
-  for (const [name, render] of targets) {
+  for (const [name, html] of rendered) {
     const p = path.join(outDir, `${name}.html`);
-    fs.writeFileSync(p, render(lecture, renderOpts));
+    fs.writeFileSync(p, html);
     written.push(path.relative(process.cwd(), p));
   }
   if (embedsThisBuild.length) {

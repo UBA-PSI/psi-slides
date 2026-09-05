@@ -56,6 +56,12 @@ from building the same way is a major version.
   and inventories every other survivor against a reviewed allowlist. The
   corpus gate now asserts how many blocks each file holds, and covers
   `lectures/decoration/` too.
+- **A build renders all four views before it writes any of them.** The
+  pre-flights refuse what can be seen before a renderer runs, but a defect
+  that only one renderer trips over used to leave two new files and two old
+  ones side by side – a projection that had moved on from its handout, with
+  nothing on disk saying so. Now either all four files are the new build or
+  none of them is, and a failed rebuild leaves the last good one whole.
 - **`ws` is a dependency, not a devDependency.** `--watch` is a documented
   command and loads `ws` through `import('ws')`, so an installation made with
   `npm ci --omit=dev` – which is what a packaged copy of the engine gets – had
