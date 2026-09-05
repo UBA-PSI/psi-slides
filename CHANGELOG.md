@@ -40,6 +40,17 @@ from building the same way is a major version.
   `middle` unless the author wrote an anchor, and a scrim with no photo is
   refused even when the scrim word is the default – both used to re-split the
   raw tail by hand; the parser's `written` flag answers them.
+- **A directive line the build cannot read is refused, never left as
+  prose.** `::: backdrop {.blur}` (no picture), `::: cols 4` and
+  `::: overlay {.ink} junk` printed themselves on the slide with exit 0
+  while `lint.js` refused them; the build now says which line it could not
+  read and what the directive takes, the guard `::: side`, `::: cards` and
+  `::: rows` already had. `lint.js` gains `bad-cols` and `bad-overlay`. `autoplay N` on a figure
+  with no `step` block is refused in both files – it was a number the
+  drawing ignored. A source with Windows line endings used to build to a
+  deck with no chunks and exit 0, because every matcher anchors on `$`;
+  build and lint normalise to LF on read, and the watch server splices an
+  editor patch in the same coordinates.
 - **Two new gates.** `tails` holds the shared parser to its contract without a
   build; `legacy-draw-syntax` keeps the old opener out of every `source.md`
   and inventories every other survivor against a reviewed allowlist. The

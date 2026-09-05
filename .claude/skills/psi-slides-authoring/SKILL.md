@@ -936,9 +936,11 @@ or directive – the message names which), `missing-id`, `duplicate-id`,
 `figure-caption-redundant`, `single-word-bold`, `figure-type-without-figure`,
 `oversized-asset`,
 `unknown-view-default`,
-`unknown-style-setting`, `bad-backdrop`, `duplicate-backdrop`, `bad-cards`,
-`bad-rows`, `cards-nested`, `bad-side`, `draw-in-cols`, `bad-cover-ratio`,
-`bad-unit`, `bad-autoplay`.
+`unknown-style-setting`, `bad-backdrop`, `duplicate-backdrop`, `bad-overlay`,
+`bad-cols`, `bad-cards`, `bad-rows`, `cards-nested`, `bad-side`,
+`draw-in-cols`, `bad-cover-ratio`, `bad-unit`, `bad-autoplay` (a delay
+outside 200–60000 ms, `cycle` with no autoplay, or autoplay on a figure
+with no `step` block).
 
 `single-word-bold` is the collapse audit made mechanical: a bold of two words
 or fewer that lands *after* a paragraph's first sentence, where the projection

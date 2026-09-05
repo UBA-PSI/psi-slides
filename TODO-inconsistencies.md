@@ -1250,15 +1250,33 @@ place. What changed, one line each:
   `VALID_WIDTHS` / `VALID_CHUNK_CLASSES` now have an importer (lint's
   cover-chunk filter).
 
-**Left as found, out of this change's scope (pre-existing, confirmed by the
-review):** `::: backdrop {.blur}`, `::: cols 4` and `::: overlay … junk`
-fall through to prose in the build while lint errors on them; `autoplay N`
-on a figure with no step block is a silent no-op; a CRLF source builds to 0
-chunks with exit 0. Each is a build/lint disagreement or a silent no-op of
-the kind this project refuses, and each deserves its own entry.
+**The three pre-existing holes the review confirmed, fixed in a fourth
+pass:**
+- `::: backdrop {.blur}`, `::: cols 4`, `::: overlay {.ink} junk` (and a
+  malformed backdrop on a divider) are refused by the build with "is not a
+  line this directive reads" plus the directive's shape, the guard
+  `::: side`, `::: cards` and `::: rows` already had (a first cut added a
+  second cards/rows guard in front of the existing one and two existing
+  tests caught the changed message; removed). lint.js gains `bad-cols` and
+  `bad-overlay` beside its existing `bad-backdrop`, `bad-cards`,
+  `bad-rows`; all five pairs are asserted in `test/settings.mjs`.
+- `autoplay N` on a figure with no `step` block: the build refuses it in
+  `onCompile` (the model knows its steps), lint under `bad-autoplay` from a
+  `hasStep` flag in `lintDiagram`.
+- CRLF: `parseLecture` and `lintFile` normalise to LF on read; the watch
+  server's patch handler normalises the file the same way before splicing,
+  so the editor's byte ranges hold, and writes LF back. **[decision]**
+  Normalise rather than refuse: a source that renders identically on every
+  platform is what the format promises, and an author on Windows should not
+  meet a build error for their editor's default.
 
 **Verification of the third pass:** `npm run gate` 655 green;
 `node test/settings.mjs` 419 green; `node test/run.mjs` 855 green with the
 same three pre-existing `text-select` Alt-drag failures; migration `--check`
 clean on both repositories including the spliced pages' prose;
 `refresh-figures.mjs --check` up to date; tracked views rebuilt.
+
+**Verification of the fourth pass:** `npm run gate` 655 green;
+`node test/settings.mjs` 434 green; `node test/run.mjs` 855 green with the
+same three pre-existing `text-select` Alt-drag failures; lint clean on both
+repositories; tracked views rebuilt.

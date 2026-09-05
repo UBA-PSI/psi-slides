@@ -2042,6 +2042,37 @@ console.log('\nlayout generations');
   const drawDash = raw(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n:::\n\n:::\n');
   ok(drawDash.code === 0 && !/0 error/.test('') , '::: draw-x is prose in the build (no cols refusal)', drawDash.out.split('\n')[0]);
   ok(!/draw-in-cols/.test(lintOf(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n:::\n\n:::\n')), 'and lint agrees');
+
+  // ── a directive line the matcher does not read is refused, not prose ──
+  // These used to print themselves on the slide with exit 0 while lint.js
+  // refused them - the direction CLAUDE.md names as the one that matters.
+  for (const [line, code] of [
+    ['::: backdrop {.blur}', 'bad-backdrop'],
+    ['::: cols 4', 'bad-cols'],
+    ['::: overlay {.ink} junk\nWords.\n:::', 'bad-overlay'],
+    ['::: cards 9\n- One\n:::', 'bad-cards'],
+    ['::: rows 2\n- One\n:::', 'bad-rows'],
+  ]) {
+    const src = FM + `## free: A {#a}\n\n${line}\n\nProse.\n`;
+    const b = raw(src);
+    ok(b.code !== 0 && /is not a line this directive reads|could not be read/.test(b.out), `the build refuses ${JSON.stringify(line.split('\n')[0])}`, b.out.split('\n')[0]);
+    ok(new RegExp(`error\\s+${code}\\s`).test(lintOf(src)), `and lint reports ${code}`, lintOf(src).split('\n')[0]);
+  }
+  const colBdBad = raw('---\ntitle: T\n---\n\n## title: {#title}\n\n# Part {#p}\n\n::: backdrop {.blur}\n\n## free: A {#a}\n\nProse.\n');
+  ok(colBdBad.code !== 0 && /is not a line this directive reads/.test(colBdBad.out), 'and so is a malformed backdrop on a divider');
+
+  // ── autoplay with nothing to walk ──
+  const noSteps = drawOf('::: draw 150x56 autoplay 900').out;
+  const noStepsBuild = raw(FM + '## figure: F {#f}\n\n::: draw 150x56 autoplay 900\nbox a "A"\n:::\n', ['--audience-only']);
+  ok(noStepsBuild.code !== 0 && /no step block/.test(noStepsBuild.out), 'autoplay on a figure with no steps is refused by the build', noStepsBuild.out.split('\n')[0]);
+  ok(/bad-autoplay.*no step block/.test(lintOf(FM + '## figure: F {#f}\n\n::: draw 150x56 autoplay 900\nbox a "A"\n:::\n')), 'and by lint, as bad-autoplay');
+  void noSteps;
+
+  // ── a CRLF source is the same lecture ──
+  const crlfSrc = (FM + '## free: A {#a}\n\nProse.\n\n## free: B {#b}\n\nMore.\n').replace(/\n/g, '\r\n');
+  const crlf = raw(crlfSrc, ['--audience-only']);
+  ok(crlf.code === 0 && /3 chunks\)/.test(crlf.out) && /data-chunk-id="b"/.test(crlf.html || ''), 'a CRLF source builds to the same chunks as an LF one', crlf.out.split('\n').slice(-2).join(' / '));
+  ok(/0 error\(s\)/.test(lintOf(crlfSrc)), 'and lints clean');
   ok(/bad-unit/.test(lintOf(FM + '## figure: F {#f}\n\n::: draw 150X56\nbox a "A"\n:::\n')), 'and a capital X is bad-unit');
   const sized = drawOf('::: draw 150x56');
   const unsized = drawOf('::: draw');

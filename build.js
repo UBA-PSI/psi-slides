@@ -2932,6 +2932,13 @@ function splitHeading(text) {
 }
 
 function parseLecture(src) {
+  // Windows line endings. Every matcher below anchors on `$`, and a `\r`
+  // before it made every heading and every directive miss - a CRLF source
+  // built to a deck with no chunks and exit 0. Normalised once here, so
+  // every byte range this parser records (the editor's patch targets) is in
+  // LF coordinates; the watch server normalises the file the same way
+  // before it splices.
+  src = String(src).replace(/\r\n?/g, '\n');
   const { data: frontmatter, content } = matter(src);
   // The lecture-wide diagram layer, parsed once and handed to every block.
   // Validated here rather than at the first diagram, because a lecture whose
@@ -3126,7 +3133,20 @@ function parseLecture(src) {
               : 'an unattached diagram',
           alt: currentChunk ? currentChunk.heading : '',
           base: diagramBase,
-          onCompile: (model) => { for (const tag of model.tags.keys()) dgLectureTags.add(tag); },
+          onCompile: (model) => {
+            for (const tag of model.tags.keys()) dgLectureTags.add(tag);
+            // A clock with nothing to walk. `autoplay N` advances the
+            // figure's steps; a figure with none was a number the drawing
+            // ignored, and this format refuses those rather than drops them.
+            if (diagramBlock.autoplay != null && !model.steps.length) {
+              const err = new Error(
+                `::: draw autoplay ${diagramBlock.autoplay} on a figure with no step block.\n` +
+                '  autoplay walks the steps, one delay each; write a  step  block, or drop\n' +
+                '  the autoplay.');
+              err.userFacing = true;
+              throw err;
+            }
+          },
         })), '');
         diagramBlock = null;
       } else {
@@ -3299,6 +3319,14 @@ function parseLecture(src) {
       // half-supported.
       if (!currentChunk && currentColumn) {
         const colBd = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*(?:reveal\s+(.+?))?\s*$/);
+        if (!colBd && /^:::\s+backdrop\b/.test(line)) {
+          const err = new Error(
+            `::: backdrop: "${line.trim()}" is not a line this directive reads.\n` +
+            '  It takes one asset id, path or URL, then an optional {.class} tail and an\n' +
+            '  optional  reveal <place>, <place>:  ::: backdrop dusk {.cover .invert}');
+          err.userFacing = true;
+          throw err;
+        }
         if (colBd) {
           if (currentColumn.backdrop) {
             const err = new Error(
@@ -3332,6 +3360,20 @@ function parseLecture(src) {
         // words - and a comma list of `left 45%` inside braces would have
         // been a second grammar wearing the slot table's syntax.
         const backdropOpen = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*(?:reveal\s+(.+?))?\s*$/);
+        // A directive line the matcher does not read is refused, never left
+        // to fall through as prose: `::: backdrop {.blur}` with no picture,
+        // `::: cols 4`, `::: overlay {.ink} junk` used to print themselves
+        // on the slide with exit 0 while lint.js refused them. Same guard on
+        // every directive that takes arguments; ::: side has had one since
+        // the ratio was added.
+        if (!backdropOpen && /^:::\s+backdrop\b/.test(line)) {
+          const err = new Error(
+            `::: backdrop: "${line.trim()}" is not a line this directive reads.\n` +
+            '  It takes one asset id, path or URL, then an optional {.class} tail and an\n' +
+            '  optional  reveal <place>, <place>:  ::: backdrop dusk {.cover .invert}');
+          err.userFacing = true;
+          throw err;
+        }
         if (backdropOpen) {
           if (currentChunk.backdrop) {
             const err = new Error(
@@ -3357,6 +3399,14 @@ function parseLecture(src) {
         // all, the build said nothing, and `::: overlay …` printed as literal
         // text on the projection while the linter blamed the closing `:::`.
         const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
+        if (!overlayOpen && /^:::\s+overlay\b/.test(line)) {
+          const err = new Error(
+            `::: overlay: "${line.trim()}" is not a line this directive reads.\n` +
+            '  It takes an optional {.class} tail and an optional  from <beat>, and\n' +
+            '  nothing else:  ::: overlay {.bottom-left .ink} from 2');
+          err.userFacing = true;
+          throw err;
+        }
         if (overlayOpen) {
           // Assigned unconditionally, a second opener replaced the first and
           // its words were gone from every output with the build exiting 0 -
@@ -3446,6 +3496,14 @@ function parseLecture(src) {
           throw err;
         }
         const colsOpen = line.match(/^:::\s+cols\s+(2|3)\s*$/);
+        if (!colsOpen && /^:::\s+cols\b/.test(line)) {
+          const err = new Error(
+            `::: cols: "${line.trim()}" is not a line this directive reads.\n` +
+            '  It takes 2 or 3 and nothing else - more columns than three is a table,\n' +
+            '  and a card row is  ::: cards N');
+          err.userFacing = true;
+          throw err;
+        }
         if (colsOpen) {
           target.push('', `<div class="cols cols-${colsOpen[1]}">`, '');
           colsDepth += 1;
@@ -15723,6 +15781,9 @@ async function runWatch(absIn, only, baseOpts = {}) {
       if (!hit) return reply(false, 'that is not a ::: draw block this build emitted');
       let src;
       try { src = fs.readFileSync(absIn, 'utf8'); } catch (e) { return reply(false, 'cannot read the source: ' + e.message); }
+      // The ranges are in LF coordinates (parseLecture normalises); a CRLF
+      // file is spliced in the same coordinates and written back as LF.
+      src = src.replace(/\r\n?/g, '\n');
       const there = src.slice(range[0], range[1]);
       if (there !== hit.body) {
         return reply(false, lastBuildError

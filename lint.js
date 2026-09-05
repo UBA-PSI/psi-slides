@@ -594,6 +594,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   const referenced = [];         // { name, ln, what }
   const setMoves = [];           // `move @tag to …`, checked once tags are known
   let inStep = false;
+  let hasStep = false;           // for `autoplay N`, which walks the steps
 
   // `carries` is false on a `default` or `step` line: a tag written there is
   // a *use*, and the compiler's lecture-tag rule still wants some element to
@@ -1062,6 +1063,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     // later lines and the editor's beat navigation both address, and the rule
     // for it is imported rather than paraphrased so the two cannot disagree.
     if (head === 'step') {
+      hasStep = true;
       if (words[1] && !DG_STEP_NAME.test(words[1])) {
         add(ln, 'error', 'bad-diagram-step', `'${words[1]}' is not a step name – a step name `
             + 'starts with a letter or an underscore and then takes letters, digits, '
@@ -2106,12 +2108,20 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
           `${r.what} refers to '${r.raw ?? r.name}', which is not defined in this diagram${hint}`);
     }
   }
+  // Mirrors the build: autoplay on a figure with no steps is a number the
+  // drawing ignores.
+  if (block.autoplay && !hasStep) {
+    addOuter(block.open, 'error', 'bad-autoplay',
+        'autoplay walks the figure\'s steps, and this figure has no step block – write one, or drop the autoplay');
+  }
   if (lectureTags) for (const t of tags) lectureTags.add(t);
 }
 
 function lintFile(filePath) {
   let diagram = null;   // { open, lines } while inside a ::: draw block
-  const src = fs.readFileSync(filePath, 'utf8');
+  // LF coordinates, as parseLecture reads them: a CRLF source used to miss
+  // every `$`-anchored matcher here as well as in the build.
+  const src = fs.readFileSync(filePath, 'utf8').replace(/\r\n?/g, '\n');
   const ignores = parseIgnores(src);
   const { body, fmLines, header } = splitFrontmatter(src);
   const lines = body.split('\n');
@@ -2456,7 +2466,7 @@ function lintFile(filePath) {
             '::: draw inside ::: cols – a figure breaks the column flow, so the columns '
             + 'silently stop working; use ::: side to put a figure beside prose');
       }
-      diagram = { open: ln, lines: [] };
+      diagram = { open: ln, lines: [], autoplay: diagramOpen.autoplay != null };
       chunkHasDrawing = true;
       continue;
     }
@@ -2622,6 +2632,12 @@ function lintFile(filePath) {
       continue;
     }
     const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
+    if (!overlayOpen && /^:::\s+overlay\b/.test(line)) {
+      add(ln, 'error', 'bad-overlay',
+          '::: overlay takes an optional {.class} tail and an optional `from <beat>`, '
+          + 'and nothing else');
+      continue;
+    }
     if (overlayOpen) {
       if (!chunk) {
         add(ln, 'error', 'stray-directive', '::: overlay outside any chunk');
@@ -2650,6 +2666,11 @@ function lintFile(filePath) {
     // own small stack so bare `:::` closes the innermost layout first,
     // and the outer sidebar directive only after.
     const colsOpen = line.match(/^:::\s+cols\s+(2|3)\s*$/);
+    if (!colsOpen && /^:::\s+cols\b/.test(line)) {
+      add(ln, 'error', 'bad-cols',
+          '::: cols takes 2 or 3 and nothing else – more columns than three is a table, '
+          + 'and a card row is ::: cards N');
+    }
     // `::: rows` is the same container as `::: cards`, turned ninety
     // degrees: same slots, same refusals, one column by definition.
     const rowsOpen = line.match(/^:::\s+rows\s*(?:\{([^}]*)\})?\s*$/);
