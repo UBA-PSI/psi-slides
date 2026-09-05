@@ -56,6 +56,13 @@ from building the same way is a major version.
   and inventories every other survivor against a reviewed allowlist. The
   corpus gate now asserts how many blocks each file holds, and covers
   `lectures/decoration/` too.
+- **`--watch` watches the folder and filters on the file name.** An editor
+  that saves atomically – vim, gedit, VS Code by default – writes a temporary
+  file and renames it over the original, which gives the name a new inode. On
+  Linux inotify follows the inode, so a watch on `source.md` itself went quiet
+  after the first such save and every later one built nothing. A directory
+  watch survives the rename. The 80 ms debounce and the one rebuild per save
+  are unchanged, and an event for any other name in the folder is ignored.
 - **A build renders all four views before it writes any of them.** The
   pre-flights refuse what can be seen before a renderer runs, but a defect
   that only one renderer trips over used to leave two new files and two old

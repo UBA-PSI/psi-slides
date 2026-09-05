@@ -15774,8 +15774,9 @@ async function runWatch(absIn, only, baseOpts = {}) {
           fs.writeFileSync(dest, bytes);
         } catch (e) { return reply(false, 'cannot write the asset: ' + e.message); }
         console.log(`[asset] assets/${name} (${bytes.length < 1024 ? bytes.length + ' B' : (bytes.length / 1024).toFixed(0) + ' KB'})`);
-        // Deliberately no rebuild here. fs.watch is on source.md, so writing
-        // the asset alone changes nothing on screen – the `patch` that adds
+        // Deliberately no rebuild here. The watcher only answers to
+        // source.md, so writing the asset alone changes nothing on screen
+        // – the `patch` that adds
         // the `image` line is what kicks the build, and by then the file is
         // on disk. Sending them the other way round fails the rebuild on an
         // asset it cannot find.
@@ -15818,10 +15819,24 @@ async function runWatch(absIn, only, baseOpts = {}) {
   rebuild('initial');
   console.log(`Watching ${path.relative(process.cwd(), absIn)} – live-reload active (open the HTML files in Chrome)`);
 
+  // The folder, not the file. An editor that saves atomically – vim, gedit,
+  // VS Code by default – writes a temporary file and renames it over the
+  // original, so the name gets a new inode. On Linux inotify follows the
+  // inode, so a watch on the file itself keeps reporting on a file nobody
+  // reads any more and the second save onwards is silent. A watch on the
+  // directory survives the rename; the filter below is what keeps it from
+  // rebuilding on every asset and every output the build just wrote.
+  //
+  // `filename` is null on some platforms and event types, and a lost name is
+  // not a reason to stop watching, so an unnamed event rebuilds.
+  //
   // Editors typically emit two close-spaced events per save (write +
   // rename on atomic save). Debounce so we rebuild once per save.
+  const watchDir = path.dirname(absIn);
+  const watchBase = path.basename(absIn);
   let timer = null;
-  fs.watch(absIn, { persistent: true }, () => {
+  fs.watch(watchDir, { persistent: true }, (_event, filename) => {
+    if (filename && filename !== watchBase) return;
     clearTimeout(timer);
     timer = setTimeout(() => rebuild('rebuild'), 80);
   });
