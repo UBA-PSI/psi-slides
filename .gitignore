@@ -64,3 +64,9 @@ docs/artifact/figure-rules/squint.txt
 
 # playwright smoke-test scratch
 .playwright-mcp/
+
+# the desktop app is its own package (desktop/package.json); its dependency
+# tree, the staged engine copy and the built installers are generated
+desktop/node_modules/
+desktop/engine/
+desktop/dist/

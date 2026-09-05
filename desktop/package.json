@@ -1,0 +1,24 @@
+{
+  "name": "psi-slides-builder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A desktop window around the psi-slides build: open a lecture's source.md, build it on every save, open the four views.",
+  "license": "MIT",
+  "author": {
+    "name": "Dominik Herrmann",
+    "url": "https://herdom.net"
+  },
+  "main": "main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "stage-engine": "node scripts/stage-engine.mjs",
+    "test": "node --test test/",
+    "smoke": "node test/smoke.mjs",
+    "dist": "node scripts/stage-engine.mjs && electron-builder"
+  },
+  "devDependencies": {
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.0",
+    "playwright-core": "^1.61.1"
+  }
+}

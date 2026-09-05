@@ -958,6 +958,14 @@ Kommandos (stdin, nur mit `--events`, ein JSON-Objekt pro Zeile):
 {"type":"auto","enabled":false}          Dateiänderungen melden statt bauen
 ```
 
+Beim Bauen ergänzt: im Watch heißt das Log-Präfix des Datei-Watchers
+weiter `[rebuild]`, und nur das Ereignis sagt `change`; das Log bleibt
+wörtlich, wie `CLAUDE.md` es verlangt. Fehler stehen im lesbaren Log auf
+stderr (`[rebuild] build failed: …`, `Watch failed: …`), Information auf
+stdout; die App muss beide Ströme in der Reihenfolge des Eintreffens in die
+Build-Details schreiben. Ein fehlgeschlagener Rebuild beendet den Prozess
+nicht; nur `kill()` beendet ihn.
+
 Der Watch-Prozess läuft, solange ein Projekt offen ist, auch bei
 ausgeschaltetem Auto-Build: Live-Reload und der Draw-Write-back hängen an
 seinem WebSocket und seiner Nonce, und ein Prozess, der bei jedem Umschalten
@@ -1057,15 +1065,32 @@ Gesammelt während des Bauens; bis zur Antwort gilt die Annahme.
 
 ## Probleme und Lösungen
 
-(wird beim Bauen gefüllt)
+- **npm auf dieser Maschine installiert nichts, was jünger als eine Woche
+  ist** (`npm config get before` steht auf einem Datum). `electron@^44.2.0`
+  war zwei Tage alt und schlug fehl. Die Bereiche in `desktop/package.json`
+  sind deshalb `^44.0.0` und `^26.0.0`; npm nimmt dann die jüngste Version,
+  die die Richtlinie zulässt. Das ist kein Fehler, den man umgeht, sondern
+  eine Schutzregel, der man folgt.
+- **Spike bestanden: die Engine läuft unter Electrons eingebautem Node.**
+  Electron 44.0.0 bringt Node 24.18.1 mit. `ELECTRON_RUN_AS_NODE=1 electron
+  build.js source.md` baut die Tutorial-Vorlesung mit Shiki, den gebündelten
+  Schriften und KaTeX, also mit allen drei Abhängigkeiten, die zur Laufzeit
+  aus `node_modules` lesen. Entscheidung E2 steht damit auf Messung.
+- **`desktop/` ist unter dem Root-`package.json` mit `"type": "module"`.**
+  Eine `.js`-Datei in `desktop/` wäre ESM, sobald `desktop/package.json`
+  fehlt. Das Unterpaket setzt keinen `type`, also CommonJS für Main und
+  Preload, was der gut belegte Weg für Electron ist; die Renderer-Skripte
+  sind klassische Skripte ohne Modulsyntax, weil ein Modulskript von
+  `file://` in einem sandboxed Renderer nicht garantiert lädt. Die Tests
+  laden `strings.js` deshalb über `vm`, nicht per `require`.
 
 ## Fortschritt
 
-- [ ] A1 `ws` nach `dependencies`
-- [ ] A2 `--new <slug> --into <dir>`, Presenter-Platzhalter
-- [ ] A3 `buildOnce` rendert erst alle Views, schreibt dann
-- [ ] A4 Ordner-Watch statt Datei-Watch
-- [ ] A5 `--events` (NDJSON auf stdout, Kommandos auf stdin)
+- [x] A1 `ws` nach `dependencies`
+- [x] A2 `--new <slug> --into <dir>`, Presenter-Platzhalter
+- [x] A3 `buildOnce` rendert erst alle Views, schreibt dann
+- [x] A4 Ordner-Watch statt Datei-Watch
+- [x] A5 `--events` (NDJSON auf stdout, Kommandos auf stdin)
 - [ ] B1 `desktop/` Paketgerüst, Main Process, Preload, Prozess-Manager
 - [ ] B2 Startfenster und Projektfenster, zweisprachig
 - [ ] B3 Neues Projekt, Recent Projects, Drag-and-drop, `open-file`
