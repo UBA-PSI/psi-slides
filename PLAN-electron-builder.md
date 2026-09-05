@@ -1041,6 +1041,41 @@ Vollständigkeit), läuft als Unit-Test. Der Smoke-Test startet die App mit
 `build-success`; er braucht ein installiertes Electron und die
 Root-`node_modules`, und `desktop.yml` führt ihn aus.
 
+### E10. Entscheidungen, die die Implementierung nachgetragen hat
+
+- **`extraResources` lässt `node_modules` weg.** electron-builder filtert
+  einen Ordner dieses Namens vor dem Kopieren heraus, unabhängig vom
+  `filter`. Die Engine kam als acht Dateien ohne Baum im Paket an.
+  `desktop/scripts/after-pack.js` kopiert den Baum im `afterPack`-Hook
+  nach `resources/engine/node_modules`, also vor der macOS-Signierung, damit
+  er in der Signatur liegt. Das ist tragend: ohne den Hook baut die gepackte
+  App keine Vorlesung.
+- **Signieren läuft über jede der rund 3200 Dateien der Engine** mit
+  `codesign --timestamp`, ein Netz-Roundtrip pro Datei. Auf dieser Maschine
+  liegt eine Developer-ID im Schlüsselbund, also signiert electron-builder
+  von selbst; ein signierter Lauf wurde nach 400 s abgebrochen. Für lokale
+  Prüfbauten gilt `CSC_IDENTITY_AUTO_DISCOVERY=false`. Vor einem Release ist
+  `mac.signIgnore` für die Datendateien der Engine zu messen; auf dem
+  GitHub-Runner ohne Zertifikat stellt sich die Frage nicht.
+- **`onCommand` im Preload**, über die Kanalliste des Plans hinaus: „Neue
+  Vorlesung…“ und „Einstellungen…“ im App-Menü öffnen Oberfläche im Fenster,
+  und ein fehlgeschlagenes `open-file` vom Dock kommt auf demselben Weg an.
+- **`window-all-closed` schließt das Projekt**, nicht nur den Kindprozess.
+  Auf macOS überlebt die App ihr Fenster; ein Zustand „Bereit“ ohne Prozess
+  dahinter wäre gelogen.
+- **Englisch formatiert als `en-GB`**, damit die Uhrzeit auf beiden Seiten
+  des Sprachschalters 14:32 lautet.
+- **Der Auto-Build-Wunsch überlebt einen Neustart des Kindes.** Der
+  Serve-Schalter startet einen frischen Prozess, dessen Watcher mit Auto an
+  beginnt; ohne die Merkung hätte „Auto aus, dann Serve an“ Auto wieder
+  eingeschaltet.
+- **`npm test` nennt seine vier Dateien**, weil Nodes Verzeichnis-Matcher
+  alles unter `test/` als Test nähme und `smoke.mjs` dann bei jedem `npm
+  test` Electron startete.
+- **Kein Icon.** electron-builder nimmt das Electron-Icon und sagt es. Eine
+  `icon.icns`/`icon.png` in `desktop/build/` wird ohne Konfiguration
+  aufgenommen (offene Frage 6).
+
 ## Offene Fragen an den Maintainer
 
 Gesammelt während des Bauens; bis zur Antwort gilt die Annahme.
@@ -1062,6 +1097,19 @@ Gesammelt während des Bauens; bis zur Antwort gilt die Annahme.
 5. **Soll die Serve-Adresse auch im Netz erreichbar sein** (Hörsaal-Rechner
    zeigt, Laptop baut)? Annahme: nein, Loopback bleibt; das ist der
    Sicherheitsrahmen des Plans.
+6. **App-Icon.** Es gibt keines; das Paket trägt das Electron-Icon.
+   Annahme: bleibt so, bis Artwork da ist.
+7. **Schriften in der Engine kürzen?** 21 der 42 MB der gestageten Engine
+   sind `@fontsource-variable`, und das meiste davon sind Griechisch,
+   Kyrillisch und Vietnamesisch, die `build.js` nie inlined. Ein Beschnitt
+   in `stage-engine.mjs` halbierte das Paket und die Signierzeit, machte
+   die gestagete Engine aber ungleich der veröffentlichten. Annahme: nicht
+   beschneiden, bis die Paketgröße jemanden stört.
+8. **`--serve` liefert den ganzen Projektordner aus, `source.md`
+   eingeschlossen.** Der Plan lässt das offen; die App hat jetzt einen
+   Schalter, der es einschaltet. Annahme: bleibt, weil Loopback-only und
+   die Person es bewusst einschaltet; ein engerer Server wäre eine
+   Engine-Änderung.
 
 ## Probleme und Lösungen
 
@@ -1091,12 +1139,12 @@ Gesammelt während des Bauens; bis zur Antwort gilt die Annahme.
 - [x] A3 `buildOnce` rendert erst alle Views, schreibt dann
 - [x] A4 Ordner-Watch statt Datei-Watch
 - [x] A5 `--events` (NDJSON auf stdout, Kommandos auf stdin)
-- [ ] B1 `desktop/` Paketgerüst, Main Process, Preload, Prozess-Manager
-- [ ] B2 Startfenster und Projektfenster, zweisprachig
-- [ ] B3 Neues Projekt, Recent Projects, Drag-and-drop, `open-file`
-- [ ] B4 Browserwahl, Serve-Schalter, Einstellungen
-- [ ] B5 Engine-Staging, electron-builder-Konfiguration, `desktop.yml`
-- [ ] B6 Tests unter `desktop/test/`
-- [ ] C1 Doku: `desktop/README.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `CHANGELOG.md`
-- [ ] C2 `.gitignore`, `.gitattributes`, `pages.yml` paths-ignore
+- [x] B1 `desktop/` Paketgerüst, Main Process, Preload, Prozess-Manager
+- [x] B2 Startfenster und Projektfenster, zweisprachig
+- [x] B3 Neues Projekt, Recent Projects, Drag-and-drop, `open-file`
+- [x] B4 Browserwahl, Serve-Schalter, Einstellungen
+- [x] B5 Engine-Staging, electron-builder-Konfiguration, `desktop.yml`
+- [x] B6 Tests unter `desktop/test/`
+- [x] C1 Doku: `desktop/README.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `CHANGELOG.md`
+- [x] C2 `.gitignore`, `.gitattributes`, `pages.yml` paths-ignore
 - [ ] V Verifikation: Paket gebaut, App gestartet, Projekt gebaut, Draw-Editor schreibt zurück
