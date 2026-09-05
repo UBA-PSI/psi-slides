@@ -17,11 +17,21 @@
  * modifier down a drag selects and does not focus, without it a click still
  * focuses - and never a coordinate.
  *
- * One harness note, learned by chasing it for an hour: aim at the vertical
- * middle of a *rendered line*, never at the middle of the block. The couple
- * of pixels between two line boxes is not a place Chrome will start a
- * selection drag from, and a spec that starts there measures nothing while
- * looking exactly like a product defect.
+ * Two harness notes, each learned by chasing it for an hour. Aim at the
+ * vertical middle of a *rendered line*, never at the middle of the block: the
+ * couple of pixels between two line boxes is not a place Chrome will start a
+ * selection drag from. And never start the drag on the exact midpoint of a
+ * glyph: at that one pixel column - the middle of the first character, on a
+ * stage that a fractional translate has put on fractional pixels - Chrome
+ * 149 answers its two hit tests differently (caretRangeFromPoint says offset
+ * 0, the press lands on offset 1) and never enters the selection drag; the
+ * caret just follows the pointer. The three assertions that started at
+ * `x + 8` failed for months because 8 px happened to be that column on this
+ * font, while every other column passed and the same drag on the focus card
+ * never failed. Both measure nothing while looking exactly like a product
+ * defect, and neither is one: an article with every listener detached fails
+ * the same way. So the drag starts a quarter of the way into the first
+ * glyph, measured off a one-character range.
  */
 export const name = 'text selection · Alt over a listing';
 export const lecture = 'tutorial';
@@ -45,6 +55,18 @@ const boxWithLine = (page, sel) => page.evaluate((s) => {
     .map(l => l.getBoundingClientRect())
     .find(b => b.top > y + 4 && b.bottom < bottom - 4 && b.height > 4 && b.width > 60);
   box.cy = line ? line.top + line.height / 2 : y + box.h / 2;
+  // Where the drag starts: a quarter of the way into the line's first
+  // glyph, measured off a one-character range, so the press lands inside a
+  // character and away from its midpoint, where Chrome's hit tests disagree.
+  box.x0 = x + 8;
+  const lineEl = [...el.querySelectorAll('.line')].find(l => Math.abs(l.getBoundingClientRect().top + l.getBoundingClientRect().height / 2 - box.cy) < 2);
+  const walker = lineEl && document.createTreeWalker(lineEl, NodeFilter.SHOW_TEXT);
+  const t = walker && walker.nextNode();
+  if (t && t.data.length) {
+    const r = document.createRange(); r.setStart(t, 0); r.setEnd(t, 1);
+    const g = r.getBoundingClientRect();
+    if (g.width > 0) box.x0 = g.left + g.width / 4;
+  }
   return box;
 }, sel);
 
@@ -61,7 +83,7 @@ const look = (page) => page.evaluate(() => ({
 // keyboard at click time and the keyboard at pointerdown disagree.
 async function dragAlong(page, box, { alt = false, dropKey = false } = {}) {
   if (alt) { await page.keyboard.down('Alt'); await page.waitForTimeout(140); }
-  await page.mouse.move(box.x + 8, box.cy);
+  await page.mouse.move(box.x0 ?? box.x + 8, box.cy);
   await page.mouse.down();
   await page.mouse.move(box.x + box.w * 0.4, box.cy, { steps: 8 });
   await page.mouse.move(box.x + box.w * 0.7, box.cy, { steps: 8 });

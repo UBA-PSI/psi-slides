@@ -856,12 +856,26 @@ All six reviews are resolved in place; this list is the index.
 - **The editor's clipboard tier drops `autoplay`/`cycle` today** – see
   item 4, "Checked". Independent of the syntax decision; fixed by item 4
   step 3 under either option.
-- **`test/text-select.mjs` fails three Alt-drag assertions on this machine**
+- **`test/text-select.mjs` failed three Alt-drag assertions on this machine**
   ("Alt-dragging the listing selects text", "the highlight survives the key
   release", "a drag that outlives the key still selects") on the tree before
-  the tail change as well as after it (`node test/run.mjs select` on a
-  stash of 87bcc86's parent: 34 passed, 3 failed). Environment or a real
-  regression in the selection gesture – undecided, and outside this change.
+  the tail change as well as after it. **Resolved – a harness defect, not a
+  product one.** Traced with a probe against the built tutorial: the spec
+  started every drag at `x + 8`, and on this font that is the exact midpoint
+  of the listing's first glyph (14.8 px wide), on a stage that a fractional
+  camera translate puts on fractional pixels. At that one pixel column
+  Chrome 149 answers its two hit tests differently – `caretRangeFromPoint`
+  says offset 0, the press lands on offset 1 – and never enters the
+  selection drag: the caret follows the pointer and the selection stays
+  collapsed. One pixel left or right, or the focus card's listing (whole
+  pixels), selects fine; an article with every listener detached fails the
+  same way, so no runtime handler is involved; a minimal page with the same
+  DOM and CSS does not reproduce it. The spec now starts a quarter of the
+  way into the first glyph, measured off a one-character range – the
+  horizontal twin of its existing "aim at a rendered line, not the block"
+  rule – and all 37 assertions pass. **[decision]** No product change: the
+  only mitigation would be snapping the camera translate to whole pixels,
+  which merely moves the bad column, and a real pointer meets it rarely.
 
 ---
 
@@ -1280,3 +1294,6 @@ clean on both repositories including the spliced pages' prose;
 `node test/settings.mjs` 434 green; `node test/run.mjs` 855 green with the
 same three pre-existing `text-select` Alt-drag failures; lint clean on both
 repositories; tracked views rebuilt.
+
+**Alt-drag follow-up:** the three `text-select` failures are resolved as a
+harness defect (see "Seen on the way"); `node test/run.mjs` is fully green.
