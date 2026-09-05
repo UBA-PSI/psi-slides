@@ -60,6 +60,12 @@ if (install.status !== 0) {
   process.exit(install.status || 1);
 }
 
+// npm links every package's CLI into node_modules/.bin as a relative
+// symlink. Nothing in the app runs those, and a symlink inside a signed
+// macOS bundle fails `codesign --verify --strict` with "invalid destination
+// for symbolic link" – which is how a 14-minute signed build ended once.
+fs.rmSync(path.join(engine, 'node_modules', '.bin'), { recursive: true, force: true });
+
 // ── licences ────────────────────────────────────────────────────────
 //
 // The plan is explicit that the licence and notice files of everything

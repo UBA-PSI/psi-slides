@@ -1171,6 +1171,18 @@ bestätigt, soweit nichts anderes steht.
   `CSC_IDENTITY_AUTO_DISCOVERY=false` und kennt keine Secrets; das Signieren
   ist lokal (Antwort 1).
 
+- **Der erste signierte Bau scheiterte nach 872 s an
+  `codesign --verify --strict`: „invalid destination for symbolic link in
+  bundle“.** npm legt in `node_modules/.bin` relative Symlinks auf die
+  CLIs der Pakete an, und die landeten über den `afterPack`-Hook im Bundle.
+  Nichts in der App ruft sie auf; `stage-engine.mjs` entfernt `.bin` jetzt
+  nach dem `npm ci`. Zugleich signiert electron-builder den Engine-Baum
+  nicht mehr (`mac.signIgnore: ["/Contents/Resources/engine/"]`): er
+  enthält kein einziges Mach-O (geprüft über die Magic-Bytes aller
+  ausführbaren Dateien), nur JS, CSS, WOFF2, WASM und JSON, und Datendateien
+  werden durch die `CodeResources`-Siegel der App ohnehin erfasst. Das
+  spart rund 3200 `codesign --timestamp`-Aufrufe, jeder ein Netz-Roundtrip.
+
 ## Fortschritt
 
 - [x] A1 `ws` nach `dependencies`
@@ -1220,7 +1232,19 @@ dem Befehl oder dem Weg, damit es jemand wiederholen kann.
 - **Beenden:** `quit app` lässt weder App- noch Engine-Prozess zurück
   (`ps` über `engine/build.js` und die App leer).
 
-Nicht geprüft, weil hier nicht möglich: Windows und Linux (nur der
-Workflow baut sie), ein signiertes Paket, und ein Rechner ohne Node – die
+- **Signiert und notarisiert (macOS arm64, `npm run dist:signed` mit der
+  `.env` des Booklet-Tools):** 294 s vom Staging bis zu DMG und ZIP,
+  Notarisierung eingeschlossen. `spctl --assess` sagt „Notarized Developer
+  ID“, `stapler validate` bestätigt das Ticket, `codesign --verify --deep
+  --strict` ist sauber, die Entitlements sind `allow-jit` und
+  `allow-unsigned-executable-memory`. Die signierte App baute die
+  Testvorlesung unter Hardened Runtime (die Engine läuft weiter über
+  `ELECTRON_RUN_AS_NODE`) und ließ beim Beenden nichts zurück.
+- **CI:** der dritte Lauf von `desktop.yml` ist auf allen drei Runnern
+  grün: Tests und Smoke-Test unter xvfb, Pakete für macOS, Windows und
+  Linux als Artefakte am Lauf.
+
+Nicht geprüft, weil hier nicht möglich: ein Start der Windows- und
+Linux-Pakete (nur der Workflow baut sie), ein signiertes Paket, und ein Rechner ohne Node – die
 Prüfmaschine hat eines, wenn auch die App es nicht benutzt (die Engine lief
 nachweislich unter `process.execPath` der App mit `ELECTRON_RUN_AS_NODE`).
