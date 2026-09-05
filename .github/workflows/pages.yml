@@ -11,6 +11,10 @@ name: Pages
 on:
   push:
     branches: [main]
+    # The desktop app is its own package with its own workflow, and the site
+    # it would redeploy is byte-identical. A commit that only touches
+    # desktop/ deploys nothing new, so it does not deploy at all.
+    paths-ignore: ['desktop/**']
   workflow_dispatch:
 
 permissions:

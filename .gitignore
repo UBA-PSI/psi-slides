@@ -70,3 +70,6 @@ docs/artifact/figure-rules/squint.txt
 desktop/node_modules/
 desktop/engine/
 desktop/dist/
+
+# smoke-test screenshots; the design is reviewed from them, they are not tracked
+desktop/test/shots/

@@ -1,0 +1,117 @@
+# The desktop app: its unit tests, its smoke test, and one package per
+# platform.
+#
+# Path-filtered on purpose. The app is a sub-package with its own dependency
+# tree, and a three-platform matrix on every lecture commit would be minutes
+# of runner time for a change that cannot reach it. The engine files are in
+# the filter as well, because the app runs them: a change to build.js can
+# break the smoke test without touching a single file under desktop/.
+name: Desktop
+
+on:
+  push:
+    paths:
+      - 'desktop/**'
+      - 'build.js'
+      - 'diagram-core.mjs'
+      - 'tails.mjs'
+      - 'editor.mjs'
+      - 'editor.css'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/desktop.yml'
+  pull_request:
+    paths:
+      - 'desktop/**'
+      - 'build.js'
+      - 'diagram-core.mjs'
+      - 'tails.mjs'
+      - 'editor.mjs'
+      - 'editor.css'
+      - 'package.json'
+      - 'package-lock.json'
+      - '.github/workflows/desktop.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    name: Tests and smoke test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      # The engine's own dependencies, because in development the app runs
+      # build.js straight out of the repository root.
+      - name: Install the engine
+        run: npm ci
+
+      - name: Install the app
+        working-directory: desktop
+        run: npm ci
+
+      - name: Unit tests
+        working-directory: desktop
+        run: npm test
+
+      # Electron needs a display even to open a window it never shows, and a
+      # headless runner has none.
+      - name: Install xvfb
+        run: sudo apt-get update && sudo apt-get install -y xvfb
+
+      - name: Smoke test
+        working-directory: desktop
+        run: xvfb-run --auto-servernum npm run smoke
+
+  package:
+    name: Package (${{ matrix.os }})
+    needs: test
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [macos-latest, windows-latest, ubuntu-latest]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install the engine
+        run: npm ci
+
+      - name: Install the app
+        working-directory: desktop
+        run: npm ci
+
+      # Code signing is not configured yet. When it is, electron-builder
+      # reads these from the environment and needs nothing else here:
+      #
+      #   CSC_LINK                      base64 .p12 (macOS and Windows)
+      #   CSC_KEY_PASSWORD              its password
+      #   APPLE_ID                      for notarisation
+      #   APPLE_APP_SPECIFIC_PASSWORD   for notarisation
+      #   APPLE_TEAM_ID                 for notarisation
+      #
+      # Until then the packages are unsigned, which is why they are build
+      # artefacts here rather than release assets: an unsigned installer
+      # produces exactly the warnings this app exists to avoid.
+      - name: Package
+        working-directory: desktop
+        run: npm run dist -- --publish never
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: psi-slides-builder-${{ matrix.os }}
+          if-no-files-found: error
+          path: |
+            desktop/dist/*.dmg
+            desktop/dist/*.zip
+            desktop/dist/*.exe
+            desktop/dist/*.AppImage
+            desktop/dist/*.deb
