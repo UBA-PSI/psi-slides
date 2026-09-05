@@ -63,6 +63,14 @@ from building the same way is a major version.
 
 ### Added
 
+- **`--new <slug> --into <dir>` scaffolds the lecture folder somewhere else.**
+  Without `--into` nothing changes: the folder is still made under `lectures/`
+  in the working directory, which is right inside a checkout of this
+  repository and wrong for a content repository beside it or for a tool that
+  asks the author where the project should live. The template's `presenter:`
+  is now `TODO – presenter` like every other placeholder, rather than this
+  repository's maintainer.
+
 - **`style: {bold: …}` and `style: {print-bold: …}` set how a `**bold**` phrase
   looks, per view.** In this tool bold is a selection mark first – the collapse
   lifts it onto the slide as a bullet of its own – and a weight only by the

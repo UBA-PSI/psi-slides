@@ -66,7 +66,9 @@ node build.js <source.md> --optimize-images --max-width 2600   # also downscale
 # inlined only into views that contain math; the build logs the payload.
 
 # scaffold a new lecture folder with valid frontmatter + example chunks
+# (in lectures/ by default; --into puts it anywhere else)
 node build.js --new my-slug
+node build.js --new my-slug --into ~/Documents/talks
 
 # integrate exported live annotations back into source.md – paste the
 # speaker's Shift-E snippet (marker-wrapped) at the end of source.md, then:

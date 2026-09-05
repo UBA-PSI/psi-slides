@@ -15827,7 +15827,7 @@ async function runWatch(absIn, only, baseOpts = {}) {
 function scaffoldSource(slug) {
   return `---
 title: TODO – Lecture title
-presenter: Prof. Dr. Dominik Herrmann
+presenter: TODO – presenter
 info: |
   TODO – first info line (date, location)
   TODO – second info line (course code, semester)
@@ -15860,9 +15860,14 @@ those are text, and this is the two lines that give it something to open.
 
 const SLUG_RE = /^[a-z][a-z0-9-]*$/;
 
-function runNew(slug) {
+// `into` is the folder the new lecture folder is created in. Without it the
+// destination is `lectures/` under the working directory, which is right for
+// somebody working inside a checkout of this repository and wrong for every
+// other caller - a content repository beside it, or the desktop builder,
+// which asks the author where the project should live.
+function runNew(slug, into) {
   if (!slug) {
-    console.error('Usage: node build.js --new <slug>   (e.g. --new wlab02)');
+    console.error('Usage: node build.js --new <slug> [--into <dir>]   (e.g. --new wlab02)');
     process.exit(1);
   }
   if (!SLUG_RE.test(slug)) {
@@ -15870,7 +15875,7 @@ function runNew(slug) {
     process.exit(1);
   }
 
-  const dir = path.resolve('lectures', slug);
+  const dir = into ? path.resolve(into, slug) : path.resolve('lectures', slug);
   if (fs.existsSync(dir)) {
     console.error(`Error: ${path.relative(process.cwd(), dir)} already exists. Pick a different slug or delete it first.`);
     process.exit(1);
@@ -15980,7 +15985,7 @@ async function runServe(rootDir, wantedPort) {
 
 // Flags that consume the following argv token as their value, so it is not
 // mistaken for the source path.
-const VALUE_FLAGS = new Set(['--max-width', '--port', '--viewport', '--squint-out']);
+const VALUE_FLAGS = new Set(['--max-width', '--port', '--viewport', '--squint-out', '--into']);
 
 // ── driving the built projection (shared by --check-fit and --squint) ─
 // Two commands answer questions that only a rendered page can answer - does
@@ -16790,7 +16795,12 @@ async function main() {
     !a.startsWith('--') && !VALUE_FLAGS.has(argv[i - 1]));
 
   if (flags.has('--new')) {
-    runNew(positional[0]);
+    const intoIdx = argv.indexOf('--into');
+    if (intoIdx >= 0 && !argv[intoIdx + 1]) {
+      console.error('--into takes a directory: node build.js --new <slug> --into <dir>');
+      process.exit(1);
+    }
+    runNew(positional[0], intoIdx >= 0 ? argv[intoIdx + 1] : null);
     return;
   }
 
@@ -16834,7 +16844,7 @@ async function main() {
     console.error('  node build.js <source.md> --squint [--squint-out PATH] [--viewport 1600x900]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
-    console.error('  node build.js --new <slug>');
+    console.error('  node build.js --new <slug> [--into <dir>]');
     console.error('');
     console.error('Image inlining (default: auto – inline iff referenced images sum < 10 MB; per-image cap 2 MB):');
     console.error('  --inline-images       force inlining regardless of total size');

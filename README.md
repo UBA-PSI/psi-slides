@@ -60,6 +60,7 @@ Start your own:
 
 ```bash
 node build.js --new my-lecture          # scaffold lectures/my-lecture/source.md
+node build.js --new my-lecture --into ~/talks   # …or scaffold it somewhere else
 node build.js lectures/my-lecture/source.md --watch   # live reload on every save
 node lint.js lectures/my-lecture/source.md            # static checks
 ```
@@ -249,7 +250,7 @@ node build.js <source.md> --watch            # live reload
 node build.js <source.md> --serve            # serve over http on loopback
 node build.js <source.md> --watch --serve    # both
 node build.js <source.md> --audience-only    # also --print-only, --print-notes-only, --speaker-only
-node build.js --new <slug>                   # scaffold a lecture
+node build.js --new <slug> [--into <dir>]    # scaffold a lecture (default: lectures/)
 
 node build.js <source.md> --inline-images    # force inlining
 node build.js <source.md> --no-inline-images # force external asset paths
