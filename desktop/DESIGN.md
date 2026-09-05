@@ -51,8 +51,9 @@ Line height 1.45 for prose, 1.3 for buttons.
 
 ## Layout
 
-Two screens in one window, 760 × 600 to start, resizable, minimum
-600 × 480. Everything is left-aligned on a 32 px margin; the content column
+Two screens in one window, 760 × 680 to start, resizable, minimum
+600 × 480. The ready state, the error state and the German text all fit in
+that height without scrolling; that is what set it. Everything is left-aligned on a 32 px margin; the content column
 is capped at 640 px so long paths and hints keep a readable measure.
 
 ### Start screen
@@ -88,8 +89,10 @@ Recent entries are rows, not cards. The name is the folder name; the path is
 middle-truncated with CSS (`direction: rtl` on an inline-block is the
 usual trick, but it mangles mixed text – truncate in JS instead, keeping the
 last two path segments). A missing file keeps its row, in `--ink-soft`,
-with "not found" where the time was and a remove button that appears on
-hover and on focus.
+with "not found" where the time was and a remove button. The button is
+always visible on a missing row – it is the row's only action, and a
+control that shows on hover cannot be found by someone who does not know
+it is there.
 
 ### Project screen
 
@@ -163,8 +166,10 @@ The disclosure state is remembered for the session, not saved.
 
 ### Settings
 
-A sheet inside the window (a bordered panel on `--paper`, no dimming of the
-rest), 400 px wide, with three rows – Language (two radio buttons), Open the
+A sheet that takes the place of the screen: while it is open the screen
+behind it is hidden and inert, the top bar stays, and the sheet sits in the
+same margin column as a bordered panel on `--paper`, 520 px wide (wide
+enough that the folder-name hint does not break at its hyphen). Three rows – Language (two radio buttons), Open the
 views in (two radio buttons), and the version line – and one "Done" button.
 The `⚙` in the bar and the app menu both open it. Language changes apply
 immediately to everything on screen, including the menu.

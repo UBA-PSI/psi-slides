@@ -246,6 +246,10 @@ button {
    is supposed to reveal it. */
 .recent .remove { opacity: 0; flex: 0 0 auto; font-size: 15px; line-height: 1; }
 .recent li:hover .remove, .recent li:focus-within .remove { opacity: 1; }
+/* On a row whose file is gone the button is the only thing left to do with
+   it, so it stays visible: a control that shows on hover cannot be found by
+   someone who does not know it is there. */
+.recent li.missing .remove { opacity: 1; }
 
 /* ── the status ───────────────────────────────────────────────── */
 

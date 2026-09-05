@@ -1147,4 +1147,41 @@ Gesammelt während des Bauens; bis zur Antwort gilt die Annahme.
 - [x] B6 Tests unter `desktop/test/`
 - [x] C1 Doku: `desktop/README.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `CHANGELOG.md`
 - [x] C2 `.gitignore`, `.gitattributes`, `pages.yml` paths-ignore
-- [ ] V Verifikation: Paket gebaut, App gestartet, Projekt gebaut, Draw-Editor schreibt zurück
+- [x] V Verifikation: Paket gebaut, App gestartet, Projekt gebaut, Draw-Editor schreibt zurück
+
+## Verifikation
+
+Was am Ende tatsächlich geprüft wurde, in der Reihenfolge der Prüfung, mit
+dem Befehl oder dem Weg, damit es jemand wiederholen kann.
+
+- **Engine byte-identisch.** `node build.js` über `lectures/tutorial`,
+  `lectures/diagrams`, `lectures/decoration`; `git status --short lectures/`
+  leer. Gates 655/0, `test/settings.mjs` 434/0, `lint.js lectures/` sauber.
+- **`--events` von Hand getrieben:** `build-start`/`build-success`/
+  `watching` beim Start, `rebuild` über stdin ergibt `reason: manual`,
+  `auto: false` ergibt `changed` ohne Build, ein kaputter Chunk ergibt
+  `build-error` mit `userFacing: true`. Fünf atomare Saves (Rename) ergeben
+  fünf Rebuilds.
+- **App-Tests:** `npm test` in `desktop/` 32/32; `npm run smoke` grün
+  (Start, Öffnen, Sprachwechsel, manueller Build, Fehlerzustand mit
+  erhaltenem letzten Build, Recent-Liste, kein überlebender Prozess).
+  Neun Screenshots unter `desktop/test/shots/`, alle gegen `DESIGN.md`
+  gelesen.
+- **Paket (macOS arm64, unsigniert,
+  `CSC_IDENTITY_AUTO_DISCOVERY=false npm run dist -- --mac`):** DMG 134 MB,
+  ZIP 149 MB, Engine im Paket 40,5 MB. Die gepackte App wurde mit
+  `open -a … "<Pfad mit Leerzeichen und ä>/source.md"` gestartet
+  (`open-file`-Weg) und schrieb die vier Views innerhalb weniger Sekunden.
+- **Draw-Write-back aus dem Paket heraus:** `audience.html` in Chrome
+  (playwright-core, `file://`), über `window.psiWatch.patch` einen Block der
+  Diagramm-Vorlesung erweitert: Antwort `ok`, `source.md` um 39 Bytes
+  gewachsen, Seite neu geladen, der neue Text im neu gebauten
+  `audience.html`; derselbe Patch ein zweites Mal wird mit „that is not a
+  ::: draw block this build emitted“ abgelehnt.
+- **Beenden:** `quit app` lässt weder App- noch Engine-Prozess zurück
+  (`ps` über `engine/build.js` und die App leer).
+
+Nicht geprüft, weil hier nicht möglich: Windows und Linux (nur der
+Workflow baut sie), ein signiertes Paket, und ein Rechner ohne Node – die
+Prüfmaschine hat eines, wenn auch die App es nicht benutzt (die Engine lief
+nachweislich unter `process.execPath` der App mit `ELECTRON_RUN_AS_NODE`).
