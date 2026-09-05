@@ -20,6 +20,9 @@
   var detailsOpen = false;
   var serveRestarting = false;
   var newFolder = '';
+  // The control a sheet was opened from, so that closing it puts the focus
+  // back where the person left it.
+  var sheetOpener = null;
 
   // ── words ────────────────────────────────────────────────────────
 
@@ -307,8 +310,16 @@
 
   // ── the sheets ───────────────────────────────────────────────────
 
-  function openSheet(id) {
+  // A sheet takes the screen's place rather than covering it: #content goes
+  // away for as long as one is open. `hidden` is what removes it, and `inert`
+  // is there for the day a stylesheet overrides `[hidden]` – the two say the
+  // same thing, and nothing behind a sheet may take focus or a click.
+  function openSheet(id, opener) {
     closeSheets();
+    sheetOpener = opener || (document.activeElement !== document.body ? document.activeElement : null);
+    var content = $('content');
+    content.hidden = true;
+    content.setAttribute('inert', '');
     show($(id), true);
     var first = $(id).querySelector('input, button');
     if (first) first.focus();
@@ -317,14 +328,21 @@
   function closeSheets() {
     show($('sheet-new'), false);
     show($('sheet-settings'), false);
+    var content = $('content');
+    content.hidden = false;
+    content.removeAttribute('inert');
+    // The focus goes back to the control that opened the sheet, so that a
+    // person who tabbed to the gear is not returned to the top of the window.
+    if (sheetOpener && document.contains(sheetOpener)) sheetOpener.focus();
+    sheetOpener = null;
   }
 
-  function openNew() {
+  function openNew(opener) {
     newFolder = '';
     $('new-name').value = '';
     $('new-folder').textContent = '';
     show($('new-error'), false);
-    openSheet('sheet-new');
+    openSheet('sheet-new', opener);
   }
 
   function newErrorText(message) {
@@ -354,7 +372,7 @@
 
   function wire() {
     $('btn-open').addEventListener('click', function () { api.chooseSource(); });
-    $('btn-new').addEventListener('click', openNew);
+    $('btn-new').addEventListener('click', function () { openNew($('btn-new')); });
     $('btn-back').addEventListener('click', function () { api.closeProject(); });
 
     $('btn-build').addEventListener('click', function () {
@@ -400,7 +418,7 @@
 
     $('lang-de').addEventListener('click', function () { api.setLanguage('de'); });
     $('lang-en').addEventListener('click', function () { api.setLanguage('en'); });
-    $('btn-settings').addEventListener('click', function () { openSheet('sheet-settings'); });
+    $('btn-settings').addEventListener('click', function () { openSheet('sheet-settings', $('btn-settings')); });
     $('btn-settings-done').addEventListener('click', closeSheets);
     $('set-lang-en').addEventListener('change', function () { api.setLanguage('en'); });
     $('set-lang-de').addEventListener('change', function () { api.setLanguage('de'); });

@@ -5,7 +5,9 @@
 // word, and that killing the window leaves no build process behind.
 //
 // It also takes the screenshots the design is reviewed against, at the
-// window's own 760 x 600, into test/shots/ (gitignored).
+// window's own 760 x 680, into test/shots/ (gitignored) – including the two
+// the light English shots cannot answer for, German (the longest words) and
+// dark mode (the dot, the primary button and the error block).
 //
 // Run: npm run smoke   (from desktop/)
 
@@ -99,17 +101,35 @@ try {
     (await page.textContent('#project-name')).trim() === 'smoke-lecture');
   await shoot(page, 'project-ready');
 
+  // The one line this app exists to show must not be somewhere the person
+  // scrolls to, so the whole ready state has to stand in the window the app
+  // opens at. This is that promise as a number rather than as an eye.
+  const fits = await page.evaluate(() =>
+    document.documentElement.scrollHeight <= window.innerHeight);
+  check('the ready state needs no scrollbar at the default window size', fits);
+
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await shoot(page, 'project-ready-dark');
+  await page.emulateMedia({ colorScheme: 'light' });
+
   // ── the settings sheet ───────────────────────────────────────────
   await page.click('#btn-settings');
   check('the settings sheet opens', await page.isVisible('#sheet-settings'));
+  check('the project screen is out of the way behind it', await page.isHidden('#content'));
   await shoot(page, 'settings');
   await page.click('#btn-settings-done');
+  check('closing the sheet brings the project screen back', await page.isVisible('#content'));
+  check('the focus goes back to the gear that opened it',
+    await page.evaluate(() => document.activeElement && document.activeElement.id === 'btn-settings'));
 
   // ── the language switch ──────────────────────────────────────────
   await page.evaluate(() => window.builder.setLanguage('de'));
   await waitFor(page, '#status-text', v => /^Bereit\./.test(v.trim()), 15000);
   check('the status sentence is German', /^Bereit\./.test((await page.textContent('#status-text')).trim()));
   check('the build button is German', (await page.textContent('#btn-build')).trim() === 'Jetzt bauen');
+  await shoot(page, 'project-ready-de');
+  check('the German ready state needs no scrollbar either', await page.evaluate(() =>
+    document.documentElement.scrollHeight <= window.innerHeight));
   await page.evaluate(() => window.builder.setLanguage('en'));
   await waitFor(page, '#status-text', v => /^Ready\./.test(v.trim()), 15000);
 
@@ -146,6 +166,31 @@ try {
   check('the recent list has the lecture in it', await page.evaluate(() =>
     document.querySelectorAll('#recent li').length === 1));
   await shoot(page, 'start-recent');
+
+  // ── a recent entry whose lecture is gone ─────────────────────────
+  //
+  // The row a person meets after moving a folder, which no other state in
+  // this run produces: a second lecture, opened so that it enters the list,
+  // and then deleted off the disk.
+  const gone = path.join(work, 'moved-away');
+  fs.mkdirSync(gone);
+  fs.copyFileSync(source, path.join(gone, 'source.md'));
+  await page.evaluate(p => window.builder.openProject(p), path.join(gone, 'source.md'));
+  await waitFor(page, '#project-name', v => v.trim() === 'moved-away', 15000);
+  await page.evaluate(() => window.builder.closeProject());
+  await waitFor(page, '#screen-start h1', v => v.includes('Open a lecture'), 10000);
+  // Its build process is killed by closeProject; the pause is so that the
+  // folder is deleted after the last thing that could write into it, not
+  // while it is still writing.
+  await new Promise(r => setTimeout(r, 500));
+  fs.rmSync(gone, { recursive: true, force: true });
+  // `exists` is recomputed every time the main process sends the settings,
+  // and removing a path that is not in the list is the cheapest way to ask
+  // for that without inventing a channel only the test would use.
+  await page.evaluate(() => window.builder.removeRecent(''));
+  check('the deleted lecture keeps its row and says so', await page.evaluate(() =>
+    document.querySelectorAll('#recent li.missing').length === 1));
+  await shoot(page, 'start-recent-missing');
 } catch (err) {
   failures++;
   console.error('  ✘', err && err.message ? err.message : err);

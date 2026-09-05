@@ -91,17 +91,20 @@
       <p id="hint-embeds" class="soft" hidden data-t="hint.embeds"></p>
     </div>
 
+    <!-- The editor button belongs with the outputs: it is the other thing a
+         person does every day. The web address below it is a switch they touch
+         once a term, so it sits after the hairline and out of the way. -->
+    <p class="editor">
+      <button type="button" id="btn-source" class="text-btn" data-t="project.openSource"></button>
+    </p>
+    <p class="soft" data-t="project.editorNote"></p>
+
     <div class="serve">
       <label class="check"><input type="checkbox" id="chk-serve"><span data-t="serve.label"></span></label>
       <p class="soft" data-t="serve.hint"></p>
       <p id="serve-address" class="soft mono" hidden></p>
       <p id="serve-restarting" class="soft" hidden data-t="serve.restarting"></p>
     </div>
-
-    <p class="editor">
-      <button type="button" id="btn-source" class="text-btn" data-t="project.openSource"></button>
-    </p>
-    <p class="soft" data-t="project.editorNote"></p>
 
     <div class="details">
       <button type="button" id="btn-details" class="text-btn disclosure" aria-expanded="false" aria-controls="details-body"></button>
@@ -114,7 +117,11 @@
 </main>
 
 <!-- ── new lecture ───────────────────────────────────────────────── -->
-<div id="sheet-new" class="sheet" role="dialog" aria-modal="true" data-t-aria="new.title" hidden>
+<!-- Not `aria-modal`: a sheet does not sit over the project screen, it takes
+     its place, and #content is hidden while one is open. A dialog that claims
+     to be modal over content that is not there tells a screen reader about a
+     layer nobody can perceive. -->
+<div id="sheet-new" class="sheet" role="dialog" data-t-aria="new.title" hidden>
   <h2 data-t="new.title"></h2>
   <p class="field">
     <label for="new-name" data-t="new.nameLabel"></label>
@@ -134,7 +141,7 @@
 </div>
 
 <!-- ── settings ──────────────────────────────────────────────────── -->
-<div id="sheet-settings" class="sheet" role="dialog" aria-modal="true" data-t-aria="settings.title" hidden>
+<div id="sheet-settings" class="sheet" role="dialog" data-t-aria="settings.title" hidden>
   <h2 data-t="settings.title"></h2>
   <fieldset>
     <legend data-t="settings.language"></legend>

@@ -80,7 +80,11 @@ function rebuildMenu() {
 function createWindow() {
   win = new BrowserWindow({
     width: 760,
-    height: 600,
+    // 680 rather than 600, because the ready state has to be complete without
+    // a scrollbar: the status sentence, the four views, the editor button and
+    // the closed disclosure all at once. Below the minimum the window scrolls,
+    // which is the right answer to a person who made it small on purpose.
+    height: 680,
     minWidth: 600,
     minHeight: 480,
     show: false,

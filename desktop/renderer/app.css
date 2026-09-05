@@ -142,8 +142,14 @@ body { user-select: none; cursor: default; }
 
 /* ── the content column ────────────────────────────────────────── */
 
+/* The vertical rhythm here is tighter than a document's would be, and the
+   reason is a number: the ready state has to be readable in the window the
+   app opens at (760 x 680) without a scrollbar, because the one line this
+   app exists to show must never be somewhere the person has to scroll to.
+   The type sizes are the design's; the space between the blocks is what
+   pays for it. */
 #content {
-  padding: 12px 32px 40px;
+  padding: 12px 32px 24px;
   max-width: 704px; /* 640 px of measure inside the 32 px margins */
 }
 
@@ -151,8 +157,10 @@ h1 {
   font-size: 22px;
   font-weight: 500;
   line-height: 1.25;
-  margin: 8px 0 6px;
+  margin: 2px 0 4px;
 }
+
+.pathline { display: flex; align-items: baseline; gap: 10px; flex-wrap: wrap; margin: 0; }
 
 .lead { margin: 0 0 22px; color: var(--ink-soft); max-width: 42em; }
 
@@ -168,7 +176,7 @@ h1 {
 
 /* ── buttons ──────────────────────────────────────────────────── */
 
-.buttons { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 18px 0; }
+.buttons { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; margin: 16px 0; }
 
 button {
   font-family: inherit;
@@ -241,7 +249,7 @@ button {
 
 /* ── the status ───────────────────────────────────────────────── */
 
-.status { margin: 22px 0 0; }
+.status { margin: 16px 0 0; }
 .status-line { font-size: 17px; margin: 0; display: flex; align-items: baseline; gap: 10px; }
 .dot {
   flex: 0 0 auto;
@@ -281,16 +289,18 @@ button {
   border: 1px solid var(--rule);
   border-radius: 4px;
   overflow: hidden;
-  margin: 22px 0 0;
+  margin: 18px 0 0;
 }
+/* A cell is 58 px tall: two lines of type and the smallest padding that still
+   reads as a cell rather than as a table row. */
 .cell {
   display: flex;
   flex-direction: column;
-  gap: 2px;
+  gap: 1px;
   align-items: flex-start;
   background: var(--paper);
   border: 0;
-  padding: 12px 14px;
+  padding: 9px 14px;
   font: inherit;
   color: inherit;
   text-align: left;
@@ -305,18 +315,18 @@ button {
 /* ── hints, serve, editor, details ────────────────────────────── */
 
 .hints, .serve {
-  margin-top: 20px;
-  padding-top: 16px;
+  margin-top: 16px;
+  padding-top: 14px;
   border-top: 1px solid var(--rule);
 }
-.hints p, .serve p { margin: 0 0 8px; font-size: 13px; max-width: 44em; }
+.hints p, .serve p { margin: 0 0 6px; font-size: 13px; max-width: 44em; }
 .serve p:last-child { margin-bottom: 0; }
-.serve .check { margin-bottom: 8px; }
+.serve .check { margin-bottom: 6px; }
 
-.editor { margin: 24px 0 4px; }
+.editor { margin: 18px 0 3px; }
 #content .editor + .soft { margin: 0; font-size: 13px; max-width: 44em; }
 
-.details { margin-top: 26px; }
+.details { margin-top: 16px; }
 .disclosure::before { content: '\25B8\00a0'; }
 .disclosure.open::before { content: '\25BE\00a0'; }
 .log {
@@ -343,14 +353,19 @@ button {
 
 /* ── the sheets ───────────────────────────────────────────────── */
 
-/* A panel on the paper, not a modal over a dimmed window: there is nothing
-   behind it worth hiding, and dimming would make a settings sheet look like
-   a warning. */
+/* A sheet replaces the screen rather than floating over it. It used to be
+   `position: fixed` on top of #content, and the project screen then bled out
+   around all four of its edges – a window that looked half-drawn rather than
+   one that had changed what it was showing. Now #content is hidden while a
+   sheet is open and the sheet takes its place in the flow, in the same 32 px
+   margin column and under the same bar, so the person still knows where they
+   are. No dimming either: there is nothing behind it to dim, and a dimmed
+   settings panel would read as a warning.
+   The width is 520 px so that the folder-name hint sets on one line at 13 px
+   in both languages rather than breaking inside `netsec-04`. */
 .sheet {
-  position: fixed;
-  top: 46px;
-  left: 32px;
-  width: 400px;
+  margin: 12px 32px 24px;
+  width: 520px;
   max-width: calc(100vw - 64px);
   background: var(--paper);
   border: 1px solid var(--rule);
@@ -365,7 +380,13 @@ button {
 .radio span { font-size: 13px; }
 .field { display: flex; flex-direction: column; gap: 5px; margin: 0 0 14px; }
 .field label, .field .label { font-weight: 500; }
+/* The sheet is 520 px wide for the sake of the hint under this field, not for
+   the field: a folder name is a slug, and a box the full width of the panel
+   invites a sentence into it. */
 .field input[type=text] {
+  align-self: flex-start;
+  width: 24em;
+  max-width: 100%;
   font-family: var(--mono);
   font-size: 13px;
   padding: 6px 8px;
