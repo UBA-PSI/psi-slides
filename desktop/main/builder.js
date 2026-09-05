@@ -145,6 +145,12 @@ class Builder {
     // Set while we are the ones ending the process, so that the `exit` that
     // follows is not reported as a crash.
     this.expectingExit = false;
+    // What the person last asked for. A restart – a project switch, or the
+    // serve switch – starts a fresh child whose watcher always begins with
+    // auto-build on, so the wish has to be re-sent once the new one says it
+    // is watching. Without this, turning auto off and then turning serve on
+    // would quietly turn auto back on.
+    this.desiredAuto = true;
     this.outBuf = '';
     this.errBuf = '';
   }
@@ -181,6 +187,9 @@ class Builder {
       const c = classifyLine(line);
       if (c.kind === 'event') {
         this.state = reduceState(this.state, c.event);
+        if (c.event.type === 'watching' && this.desiredAuto === false) {
+          this.send({ type: 'auto', enabled: false });
+        }
       } else if (line.length) {
         this.addLog(line);
       }
@@ -212,7 +221,7 @@ class Builder {
       name: path.basename(dir),
       serve: { enabled: serve, url: null },
       browser: this.state.browser,
-      auto: this.state.auto,
+      auto: this.desiredAuto,
       log: [],
     };
     this.emit();
@@ -280,6 +289,7 @@ class Builder {
   }
 
   setAuto(enabled) {
+    this.desiredAuto = !!enabled;
     // The flag is mirrored locally as well as sent, because the checkbox
     // should answer the click rather than the round trip; the confirming
     // `auto` event then sets the same value again.

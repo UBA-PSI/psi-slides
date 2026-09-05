@@ -39,6 +39,7 @@
         "to": "engine"
       }
     ],
+    "afterPack": "scripts/after-pack.js",
     "asar": true,
     "npmRebuild": false,
     "mac": {

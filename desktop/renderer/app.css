@@ -232,9 +232,12 @@ button {
 .recent .when { font-size: 13px; color: var(--ink-soft); flex: 0 0 auto; }
 .recent li.missing .name, .recent li.missing .path { color: var(--ink-soft); }
 /* The remove button appears on hover and on focus, so that it is reachable
-   by keyboard as well as by mouse and never sits there as a hazard. */
-.recent .remove { visibility: hidden; flex: 0 0 auto; font-size: 15px; line-height: 1; }
-.recent li:hover .remove, .recent .remove:focus-visible { visibility: visible; }
+   by keyboard as well as by mouse and never sits there as a hazard. It hides
+   with opacity rather than with visibility, because a visibility: hidden
+   button is not in the tab order at all – it could never take the focus that
+   is supposed to reveal it. */
+.recent .remove { opacity: 0; flex: 0 0 auto; font-size: 15px; line-height: 1; }
+.recent li:hover .remove, .recent li:focus-within .remove { opacity: 1; }
 
 /* ── the status ───────────────────────────────────────────────── */
 

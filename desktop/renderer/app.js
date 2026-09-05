@@ -239,7 +239,10 @@
     $('chk-auto').checked = !!state.auto;
     $('chk-auto').disabled = restart;
 
-    var browserHint = state.browser && state.browser.kind === 'default';
+    // Only when the search ran and found nothing. Somebody who chose "always
+    // the default browser" in the settings is not missing anything, and a
+    // hint that tells them so would be the app arguing with a decision.
+    var browserHint = state.browser && state.browser.kind === 'default' && settings.browser === 'auto';
     var embedHint = state.embeds > 0 && !(state.serve && state.serve.enabled);
     show($('hint-browser'), browserHint);
     show($('hint-embeds'), embedHint);

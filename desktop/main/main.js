@@ -135,7 +135,11 @@ function start() {
   });
 
   app.on('window-all-closed', () => {
-    if (builder) builder.stop();
+    // Not just a kill: on macOS the app stays alive with no window, and a
+    // state that still said "Ready" would describe a build process that is
+    // no longer there. Closing the project is the truthful thing, and the
+    // dock icon then reopens the start screen.
+    if (builder) builder.close();
     if (process.platform !== 'darwin') app.quit();
   });
 
