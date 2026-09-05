@@ -20,6 +20,15 @@ node build.js lectures/tutorial/source.md
 # live-reload authoring (WebSocket reload to open tabs on every save)
 node build.js lectures/tutorial/source.md --watch
 
+# for a program that drives the build rather than reads it (the desktop
+# builder is the first): one JSON object per line on stdout – build-start,
+# build-success, build-error, watching, serving, changed, patch, asset,
+# watch-error – and commands on stdin, {"type":"rebuild"} and
+# {"type":"auto","enabled":false}. The human log is untouched beside it; a
+# driver tells the two apart by the leading `{"type":`. Without the flag,
+# stdin is not read at all.
+node build.js <source.md> --watch --events
+
 # partial builds (useful for iterating on one renderer)
 node build.js <source.md> --audience-only
 node build.js <source.md> --print-only

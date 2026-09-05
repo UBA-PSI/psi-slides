@@ -76,6 +76,20 @@ from building the same way is a major version.
 
 ### Added
 
+- **`--events` writes the build's state as JSON lines on stdout and reads
+  commands on stdin.** For a program that drives the build rather than reads
+  it – a desktop builder is the first – the alternative was to parse the human
+  log, which would have made a rewording of `[rebuild] …` a breaking change.
+  One object per line: `build-start`, `build-success` (with the views, the
+  shape, the duration and the number of hosted embeds), `build-error` (with
+  `userFacing` from the error object, and the stack when it is a defect here
+  rather than in the deck), `watching`, `serving`, `changed`, `patch`, `asset`
+  and `watch-error`. `{"type":"rebuild"}` builds now and
+  `{"type":"auto","enabled":false}` turns the watcher into a reporter without
+  ending the watch, because live reload and the diagram editor's write-back
+  hang off its socket. The human log is untouched beside it, and without the
+  flag nothing is written and stdin is not read at all.
+
 - **`--new <slug> --into <dir>` scaffolds the lecture folder somewhere else.**
   Without `--into` nothing changes: the folder is still made under `lectures/`
   in the working directory, which is right inside a checkout of this
