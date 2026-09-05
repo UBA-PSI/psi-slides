@@ -4,6 +4,7 @@
   "private": true,
   "description": "A desktop window around the psi-slides build: open a lecture's source.md, build it on every save, open the four views.",
   "license": "MIT",
+  "homepage": "https://uba-psi.github.io/psi-slides/",
   "author": {
     "name": "Dominik Herrmann",
     "url": "https://herdom.net"
@@ -62,7 +63,8 @@
         "AppImage",
         "deb"
       ],
-      "category": "Office"
+      "category": "Office",
+      "maintainer": "Dominik Herrmann <dominik.herrmann@uni-bamberg.de>"
     }
   }
 }

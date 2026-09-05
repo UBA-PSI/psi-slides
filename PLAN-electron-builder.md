@@ -1150,6 +1150,13 @@ bestätigt, soweit nichts anderes steht.
   `file://` in einem sandboxed Renderer nicht garantiert lädt. Die Tests
   laden `strings.js` deshalb über `vm`, nicht per `require`.
 
+- **Der erste CI-Lauf war auf Ubuntu rot: „Please specify project
+  homepage“.** Das `.deb`-Ziel verlangt `homepage` und einen Maintainer in
+  der `package.json` des Unterpakets; macOS und Windows fragten nicht
+  danach, und lokal war nie ein Linux-Ziel gebaut worden. Beides steht
+  jetzt in `desktop/package.json`; AppImage und deb bauen seither auch auf
+  dem Mac (electron-builder bringt die Werkzeuge mit).
+
 ## Fortschritt
 
 - [x] A1 `ws` nach `dependencies`
