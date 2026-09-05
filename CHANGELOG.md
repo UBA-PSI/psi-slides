@@ -56,6 +56,10 @@ from building the same way is a major version.
   and inventories every other survivor against a reviewed allowlist. The
   corpus gate now asserts how many blocks each file holds, and covers
   `lectures/decoration/` too.
+- **`ws` is a dependency, not a devDependency.** `--watch` is a documented
+  command and loads `ws` through `import('ws')`, so an installation made with
+  `npm ci --omit=dev` – which is what a packaged copy of the engine gets – had
+  everything it needed except the one module the watch server starts with.
 
 ### Added
 
