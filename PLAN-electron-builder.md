@@ -896,3 +896,182 @@ das Authoring-Modell nicht und testet mit vergleichsweise wenig neuer
 Oberfläche die wichtigste Annahme: Ob ein verlässlicher Doppelklick-Workflow
 genug Reibung entfernt, damit deutlich mehr Menschen das System tatsächlich
 ausprobieren und weiterverwenden.
+
+---
+
+# Umsetzung: Build-Log
+
+Ab hier ist das Dokument kein Vorschlag mehr, sondern das Protokoll der
+Umsetzung. Entscheidungen, die erst beim Bauen fallen mussten, stehen unter
+„Entscheidungen beim Bauen“, jeweils mit dem Grund. Der Fortschritt steht
+unter „Fortschritt“ und wird mit jedem Commit nachgeführt. Was schiefging und
+wie es gelöst wurde, steht unter „Probleme und Lösungen“. Fragen, die nur
+der Maintainer beantworten kann, sammeln sich unter „Offene Fragen an den
+Maintainer“ und werden gebündelt gestellt; bis dahin gilt die dort notierte
+Annahme.
+
+## Entscheidungen beim Bauen
+
+### E1. `--events` kommt sofort, nicht erst „wenn das Log zu fragil wird“
+
+Der Plan stellt Punkt 5 der build.js-Änderungen zurück, bis die
+Logzeilen-Erkennung Probleme macht. Sie würde am ersten Tag Probleme machen:
+die Kopplung „eine Umformulierung von `[rebuild] …` bricht die App“ müsste
+in `CLAUDE.md` als Regel stehen, und eine Regel, die ein Flag von zwanzig
+Zeilen überflüssig macht, ist die falsche Sparsamkeit. Also gibt es
+`--events` von Anfang an, und die App liest **nur** Ereignisse; das lesbare
+Log bleibt daneben unverändert und wird als Roh-Log in den Build-Details
+gezeigt.
+
+Format: ein JSON-Objekt pro Zeile auf stdout, erkennbar daran, dass die
+Zeile mit `{"type":` beginnt und als JSON parst. Keine Logzeile von
+`build.js` beginnt so. Ein eigener Kanal (Node-IPC, MessagePort) fiel weg,
+weil `build.js` reines Node bleiben soll und der Prozess-Manager der App
+sonst auf eine Electron-spezifische Startart festgelegt wäre.
+
+Ereignisse (stdout):
+
+```json
+{"type":"watching","source":"<abs>","dir":"<abs>","auto":true}
+{"type":"serving","url":"http://localhost:<port>"}
+{"type":"build-start","reason":"initial|change|manual|patch"}
+{"type":"build-success","reason":"…","views":["print","print-notes","audience","speaker"],"shape":"3 columns, 12 chunks","durationMs":412,"embeds":0}
+{"type":"build-error","reason":"…","message":"…","userFacing":true,"stack":null,"durationMs":80}
+{"type":"changed"}                       nur wenn auto=false: Quelle geändert, nicht gebaut
+{"type":"auto","enabled":false}          Bestätigung eines Kommandos
+{"type":"patch","chunk":"intro-figure","delta":12}
+{"type":"asset","file":"x.png","bytes":1234}
+{"type":"watch-error","message":"…"}     danach exit 1
+```
+
+`userFacing` kommt vom Fehlerobjekt; bei `false` trägt `stack` den Stack,
+weil die App dann „Fehler in psi-slides, bitte melden“ zeigt. `views` sind
+Basisnamen ohne `.html`, weil die App den Ordner kennt und `buildOnce` seine
+Pfade relativ zu `process.cwd()` meldet. `embeds` ist die Zahl der Hosted
+Embeds, damit die App den Serve-Modus vorschlagen kann, ohne die
+`[embed]`-Zeile zu parsen.
+
+Kommandos (stdin, nur mit `--events`, ein JSON-Objekt pro Zeile):
+
+```json
+{"type":"rebuild"}                       rebuild('manual')
+{"type":"auto","enabled":false}          Dateiänderungen melden statt bauen
+```
+
+Der Watch-Prozess läuft, solange ein Projekt offen ist, auch bei
+ausgeschaltetem Auto-Build: Live-Reload und der Draw-Write-back hängen an
+seinem WebSocket und seiner Nonce, und ein Prozess, der bei jedem Umschalten
+stirbt, macht offene Seiten unschreibbar. Auto aus heißt deshalb: der
+Watcher meldet `changed` und baut nicht. Ein Patch aus dem Draw-Editor baut
+trotzdem, weil die Person ihn gerade bewusst geschrieben hat.
+
+### E2. Kindprozess per `child_process.spawn` mit `ELECTRON_RUN_AS_NODE`, nicht `utilityProcess`
+
+`utilityProcess.fork` hat kein stdin, und E1 braucht eines für die
+Kommandos. `spawn(process.execPath, [build.js, …], {env: {ELECTRON_RUN_AS_NODE: '1'}})`
+verhält sich wie ein gewöhnliches `node`, `process.argv` und `cwd` stimmen
+ohne Umweg, `kill()` genügt (build.js installiert keine Signal-Handler). Die
+Isolation, auf die es dem Plan ankommt, ist dieselbe: kein Renderer, keine
+Electron-APIs im Kind. Der `runAsNode`-Fuse bleibt an; das ist die
+Voreinstellung von electron-builder.
+
+### E3. Die Engine liegt ausgepackt unter `resources/engine/`
+
+`desktop/scripts/stage-engine.mjs` kopiert `build.js`, `diagram-core.mjs`,
+`tails.mjs`, `editor.mjs`, `editor.css`, `package.json`, `package-lock.json`
+und `LICENSE` nach `desktop/engine/` (gitignored) und führt dort
+`npm ci --omit=dev` aus. electron-builder nimmt den Ordner als
+`extraResources`, also außerhalb des asar. Im Entwicklungsmodus zeigt der
+Engine-Pfad auf das Repo-Root (`..`), das dann sein eigenes `node_modules`
+braucht.
+
+### E4. Ein Projekt pro App-Instanz, Wechsel ersetzt den Prozess
+
+Produktentscheidung 1 nach Empfehlung. Ein zweites Fenster hätte zwei
+Watch-Prozesse, zwei Recent-Listen und die Frage, welches Fenster ein
+`open-file` bekommt. Ein Projektwechsel beendet den laufenden Prozess und
+startet den neuen.
+
+### E5. Browser: Chrome oder Edge bevorzugt, Standardbrowser als Einstellung
+
+Produktentscheidung 7 nach Empfehlung. Die App sucht Chrome, dann Edge, dann
+Chromium an den bekannten Installationsorten der drei Plattformen und öffnet
+die Ausgaben dort; findet sie keinen, nimmt sie den Standardbrowser und sagt
+im Projektfenster einmal, dass die Ansichten in Chrome geprüft sind. Die
+Einstellung „Immer Standardbrowser“ schaltet die Suche ab.
+
+### E6. Serve-Modus ist ein Schalter im Projektfenster, nicht Phase 3
+
+Der Plan empfiehlt Variante 1 („Lokal bereitstellen“ explizit) und schiebt
+sie zugleich nach Phase 3. Der Schalter kostet ein Flag im Prozess-Manager
+(`--serve`) und eine Ereigniszeile; die App zeigt ihn an und schlägt ihn vor,
+wenn `embeds > 0`. Er startet den Watch-Prozess neu, weil `--serve` beim
+Start entschieden wird; offene Seiten müssen danach neu geladen werden, und
+die App sagt das.
+
+### E7. Sprache: Systemsprache beim ersten Start, danach Einstellung
+
+Die GUI ist in Englisch und Deutsch; `app.getLocale()` entscheidet beim
+ersten Start, ein Umschalter im Fenster danach. Die Wahl wird in den
+Einstellungen gespeichert. Es gibt eine Wörterbuchdatei pro Sprache, und
+jeder String hat in beiden Sprachen einen Eintrag; fehlt einer, fällt die
+App auf Englisch zurück und meldet das im Entwicklungsmodus.
+
+### E8. Keine Abhängigkeit außer Electron und electron-builder
+
+Einstellungen und Recent-Liste sind eine JSON-Datei in `app.getPath('userData')`.
+Kein `electron-store`, kein UI-Framework, kein Bundler. Die Oberfläche ist
+drei Dateien (HTML, CSS, JS) und ein Wörterbuch. Das hält das Audit auf das
+beschränkt, was Electron selbst mitbringt.
+
+### E9. Tests: Unit-Tests ohne Electron, Smoke-Test mit Electron über Playwright
+
+`desktop/test/` hat einen eigenen Runner (`node --test`). Was ohne Electron
+prüfbar ist (Ereignis-Parser, Einstellungen, Pfadregeln, Wörterbuch-
+Vollständigkeit), läuft als Unit-Test. Der Smoke-Test startet die App mit
+`playwright-core` (`_electron.launch`), öffnet ein Projekt und wartet auf
+`build-success`; er braucht ein installiertes Electron und die
+Root-`node_modules`, und `desktop.yml` führt ihn aus.
+
+## Offene Fragen an den Maintainer
+
+Gesammelt während des Bauens; bis zur Antwort gilt die Annahme.
+
+1. **Signierung.** Gibt es ein Apple-Developer-Konto und ein
+   Windows-Zertifikat, und sollen die Secrets in `desktop.yml`? Annahme:
+   noch nicht; der Workflow baut unsignierte Pakete als Artefakte, die
+   Signierung ist ein Platzhalter mit Kommentar.
+2. **Welche Plattform blockiert den ersten Release?** Annahme: macOS ist die
+   Referenz, Windows und Linux gelten als experimentell, bis jemand sie auf
+   einer sauberen Maschine geprüft hat.
+3. **Texteditor-Empfehlung.** Soll die App bei fehlender `.md`-Zuordnung
+   einen Editor nennen (z. B. VS Code, TextEdit, Notepad)? Annahme: sie nennt
+   keinen; „Quelldatei öffnen“ nimmt, was das System zuordnet, und der
+   Hilfetext sagt, dass jeder Texteditor genügt.
+4. **App-Name.** „psi-slides Builder“ ist der Arbeitstitel. Annahme: bleibt
+   bis auf Weiteres; der Name steht an genau einer Stelle
+   (`desktop/package.json` → `build.productName`).
+5. **Soll die Serve-Adresse auch im Netz erreichbar sein** (Hörsaal-Rechner
+   zeigt, Laptop baut)? Annahme: nein, Loopback bleibt; das ist der
+   Sicherheitsrahmen des Plans.
+
+## Probleme und Lösungen
+
+(wird beim Bauen gefüllt)
+
+## Fortschritt
+
+- [ ] A1 `ws` nach `dependencies`
+- [ ] A2 `--new <slug> --into <dir>`, Presenter-Platzhalter
+- [ ] A3 `buildOnce` rendert erst alle Views, schreibt dann
+- [ ] A4 Ordner-Watch statt Datei-Watch
+- [ ] A5 `--events` (NDJSON auf stdout, Kommandos auf stdin)
+- [ ] B1 `desktop/` Paketgerüst, Main Process, Preload, Prozess-Manager
+- [ ] B2 Startfenster und Projektfenster, zweisprachig
+- [ ] B3 Neues Projekt, Recent Projects, Drag-and-drop, `open-file`
+- [ ] B4 Browserwahl, Serve-Schalter, Einstellungen
+- [ ] B5 Engine-Staging, electron-builder-Konfiguration, `desktop.yml`
+- [ ] B6 Tests unter `desktop/test/`
+- [ ] C1 Doku: `desktop/README.md`, `CLAUDE.md`, `CONTRIBUTING.md`, `CHANGELOG.md`
+- [ ] C2 `.gitignore`, `.gitattributes`, `pages.yml` paths-ignore
+- [ ] V Verifikation: Paket gebaut, App gestartet, Projekt gebaut, Draw-Editor schreibt zurück
