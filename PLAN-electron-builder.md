@@ -1072,9 +1072,8 @@ Root-`node_modules`, und `desktop.yml` führt ihn aus.
 - **`npm test` nennt seine vier Dateien**, weil Nodes Verzeichnis-Matcher
   alles unter `test/` als Test nähme und `smoke.mjs` dann bei jedem `npm
   test` Electron startete.
-- **Kein Icon.** electron-builder nimmt das Electron-Icon und sagt es. Eine
-  `icon.icns`/`icon.png` in `desktop/build/` wird ohne Konfiguration
-  aufgenommen (offene Frage 6).
+- **Icon:** siehe Antwort 6; bis dahin nahm electron-builder das
+  Electron-Icon.
 
 ## Offene Fragen an den Maintainer
 
@@ -1110,6 +1109,25 @@ Gesammelt während des Bauens; bis zur Antwort gilt die Annahme.
    Schalter, der es einschaltet. Annahme: bleibt, weil Loopback-only und
    die Person es bewusst einschaltet; ein engerer Server wäre eine
    Engine-Änderung.
+
+### Antworten des Maintainers
+
+Gegeben nach der ersten vollständigen Fassung; die Annahmen oben sind damit
+bestätigt, soweit nichts anderes steht.
+
+1. **Signierung:** das Apple-Developer-Zertifikat darf benutzt werden.
+   Unsigniert ist vorerst in Ordnung; **ein Release muss signiert sein.**
+   `desktop.yml` liest die fünf Secrets jetzt aus den Repository-Secrets
+   (leer heißt unsigniert). Windows hat kein Zertifikat und bleibt
+   unsigniert.
+2. **Plattformen:** macOS und Windows, Linux ebenfalls unterstützt; alle
+   drei kommen aus GitHub Actions.
+3.–5., 7., 8. Annahmen bestätigt.
+6. **Icon:** ein angedeutetes Dokument mit zwei überlappenden Zahnrädern,
+   gezeichnet in `desktop/build/make-icon.mjs`; `icon.sh` erzeugt daraus
+   `icon.png`, `icon.icns` und `icon.ico`, die electron-builder ohne
+   Konfiguration aufnimmt. Grund: Akzent, Papier und Tinte der Site, damit
+   das Dock-Symbol zur App und zur Vorlesung gehört.
 
 ## Probleme und Lösungen
 

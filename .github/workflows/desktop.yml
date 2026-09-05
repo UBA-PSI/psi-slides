@@ -89,20 +89,36 @@ jobs:
         working-directory: desktop
         run: npm ci
 
-      # Code signing is not configured yet. When it is, electron-builder
-      # reads these from the environment and needs nothing else here:
+      # Code signing reads five repository secrets (Settings -> Secrets and
+      # variables -> Actions; they live there and in no file):
       #
-      #   CSC_LINK                      base64 .p12 (macOS and Windows)
-      #   CSC_KEY_PASSWORD              its password
-      #   APPLE_ID                      for notarisation
-      #   APPLE_APP_SPECIFIC_PASSWORD   for notarisation
-      #   APPLE_TEAM_ID                 for notarisation
+      #   CSC_LINK                      the Developer ID Application
+      #                                 certificate with its private key,
+      #                                 exported from Keychain Access as a
+      #                                 .p12 and base64-encoded
+      #   CSC_KEY_PASSWORD              the password given at export
+      #   APPLE_ID                      the Apple ID that owns the team
+      #   APPLE_APP_SPECIFIC_PASSWORD   made at appleid.apple.com, for
+      #                                 notarisation
+      #   APPLE_TEAM_ID                 the ten-character team id
       #
-      # Until then the packages are unsigned, which is why they are build
+      # The Apple certificate signs macOS only. Windows needs a code-signing
+      # certificate of its own (WIN_CSC_LINK / WIN_CSC_KEY_PASSWORD) and has
+      # none, so its installer stays unsigned and SmartScreen warns once.
+      # While the secrets are unset the packages are unsigned and are build
       # artefacts here rather than release assets: an unsigned installer
       # produces exactly the warnings this app exists to avoid.
       - name: Package
         working-directory: desktop
+        # An unset repository secret expands to an empty string, and
+        # electron-builder treats an empty CSC_LINK as absent: with no
+        # secrets configured this step builds unsigned and says so.
+        env:
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npm run dist -- --publish never
 
       - uses: actions/upload-artifact@v4
