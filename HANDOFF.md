@@ -1149,11 +1149,13 @@ Audience den `MediaStream` des Cockpits direkt (`peer.psiDemoAttach`), unter
 zwischen Fenstern, gemessen, deshalb Aufruf statt Transfer. Ungated wie `B`,
 nicht im Snapshot. Vollständig: `speaker.md` §2, Skill `psi-slides-media`.
 
-Geprüft: beide Transporte headless mit Canvas-Stream statt Capture. Nicht
-geprüft: der echte Picker und die macOS-Bildschirmaufnahme-Freigabe (Xvfb-
-Chromium hat keinen Desktop-Capturer), Firefox und Safari. Offen: Audience-
-Reload während einer Demo verliert das Bild; Esc lässt die Demo bewusst
-stehen, weil Esc im Demo-Fenster eine andere Bedeutung hat.
+Geprüft: `test/demo.mjs` fährt beide Transporte mit Canvas-Stream statt
+Capture, dazu die Fälle aus dem Review (D während der Picker offen ist,
+Cockpit ohne Projektion, D in der Übersicht, Reload der Projektion unter
+laufender Demo, Stop von der Projektionsseite). Nicht geprüft: der echte
+Picker und die macOS-Bildschirmaufnahme-Freigabe (Xvfb-Chromium hat keinen
+Desktop-Capturer), Firefox und Safari. Esc lässt die Demo bewusst stehen,
+weil Esc im Demo-Fenster eine andere Bedeutung hat.
 
 ## Gaps / Bekannte Limits
 

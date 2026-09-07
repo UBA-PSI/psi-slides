@@ -55,7 +55,8 @@ fixture is compiled *and* linted.
 
 ## The browser suite: four families
 
-**Navigation** – `nav`, `nav-cockpit`. The navigation model.
+**Navigation** – `nav`, `nav-cockpit`. The navigation model. `demo` sits
+beside them: the two windows handing a live demo across, over both transports.
 
 **The geometry the live chrome leaves the slide** – `expansion`, `marginalia`,
 `touch-rail`, `math-focus`, `block-align`, `auto-fit`, `text-select` (what a

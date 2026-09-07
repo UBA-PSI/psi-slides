@@ -415,6 +415,7 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 - `A` cycles the **theme**: four light ones with different accent colours, a neutral dark one, and two green-and-amber terminal ones.
 - `+` `-` `0` set the **text size**; `#` cycles **auto-fit** through its three modes, which is worth trying right here – this chunk is longer than the screen.
 - `B` **blanks the projection**.
+- `D` **puts a live demo on the projection**: a window or a screen of this machine, chosen in a picker, until `D` again.
 - `L` cycles the **slide numbers**: stacked, in a row, or off.
 
 `Shift` with `C`, `F`, `A` or `L` goes backwards. `#` has three modes and no `Shift`, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting are not remembered beyond the talk you are giving.
@@ -431,7 +432,7 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 
 **`#` cycles auto-fit through three modes, and the middle one, *shrink*, leaves your zoom where you set it and only ever makes a slide that is too big fit.** So the audience reads one size all hour, except on the slides that would otherwise run off the bottom. *Full* sizes every slide to the screen, growing a short chunk as readily as shrinking a long one, which suits a lecture whose chunks vary a lot. *Off* is neither.
 
-**While the audience sees black, the speaker window keeps everything.** The slide, the notes and the thumbnails stay where they were, so you can move on or read ahead with nothing showing. A small `BLANK · hit B to toggle` marker sits at the bottom of the speaker window, or at the bottom of the projection when there is no speaker window.
+**While the audience sees black, the speaker window keeps everything.** The slide, the notes and the thumbnails stay where they were, so you can move on or read ahead with nothing showing. A small `BLANK · hit B to toggle` marker sits at the bottom of the speaker window, or at the bottom of the projection when there is no speaker window. `D` has the same shape: pressed in the speaker window, it opens the browser's picker there, and the window or screen you choose fills the projection while a `DEMO · hit D to end it` marker sits where the blank marker would. That is what a live demo on an extended desktop needs – the demo stays on the laptop, where the pointer is, and nothing has to be mirrored.
 
 # Authoring layouts {#layouts}
 
