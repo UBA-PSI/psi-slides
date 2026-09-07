@@ -106,7 +106,7 @@ nächste Folie erbt wieder.
 Folie zurück.
 :::
 
-## figure: Geerbtes Dock über einem Foto {.full #dock-photo}
+## free: Geerbtes Dock über einem Foto {.wide #dock-photo}
 
 **Ein `::: backdrop` mit `{.cover}` und dazu das geerbte linke Dock.**
 Die Frage: Steht die Liste auf einem eigenen Grund, oder auf dem Foto? Mit
