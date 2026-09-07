@@ -388,8 +388,10 @@ at the start of Part 2 does.
 
 ## free: An overlay is a block of text over the slide {.wide #overlay-slots}
 
-**Nine places, five backgrounds, four widths.** Aim two overlays at the same
-corner and they stack rather than landing on top of each other.
+**Nine places, five backgrounds, four widths, two shapes.** Aim two overlays
+at the same corner and they stack rather than landing on top of each other.
+A `panel` is the card grown to the frame - the next part shows the three
+compositions - and `third` / `half` are a band's height.
 
 ::: cards 3
 - **place**\
@@ -407,12 +409,72 @@ corner and they stack rather than landing on top of each other.
   `full`
 :::
 
+::: cards 2
+- **shape**\
+  `card`\
+  `panel` (an edge or `center`, never a corner)
+- **height**\
+  `snug`\
+  `third`\
+  `half` (bands only)
+:::
+
+# Panels: the card grown to the frame {#panels}
+
+## figure: A column the full height of the slide {.full .bare #panel-column}
+
+::: backdrop dusk {.cover .clear}
+
+::: overlay {.left .glass .panel .standard}
+## The picture stays sharp beside the words
+
+**`{.left .glass .panel .standard}` is a column, not a card.** It reaches the
+top and the foot of the frame, its width is a share of the slide, and the glass
+blurs only what is behind the words.
+
+The backdrop is `{.cover .clear}`: no veil, because the panel sets the words
+off. A `.clear` picture under words outside a panel, an overlay or a dock earns
+the linter's `text-on-picture`.
+:::
+
+## figure: A band across the foot, a third high, with a beat inside {.full .bare #panel-band}
+
+::: backdrop dusk {.cover .clear}
+
+::: overlay {.bottom .ink .panel .wide .third}
+**`{.bottom .ink .panel .wide .third}` is a band the whole width and a third
+of the height,** the words centred in it and capped at the wide measure.
+
+---
+
+A `---` inside the panel is a beat: this line arrives on the first press, and
+the band was this tall from the start.
+:::
+
+## figure: The whole frame veiled, and a card on top of it {.full .bare #panel-frame}
+
+::: backdrop dusk {.cover .clear}
+
+::: overlay {.center .glass .panel .standard}
+## Words in the middle of a veiled picture
+
+**`{.center .glass .panel}` covers the frame.** A corner with `.panel` is
+refused: a panel runs along one edge, or takes them all.
+:::
+
+::: overlay {.bottom-right .ink .narrow}
+**A card lies on top of a panel.**
+:::
+
 # A dock at the frame's edge {#docks}
 
 ::: dock {.left .every}
 - [Why a dock](#dock-why)
+- [Beside two columns](#dock-cols)
 - [A band](#dock-band)
+- [A band at the head](#dock-top)
 - [On a beat](#dock-from)
+- [The words](#dock-slots)
 :::
 
 ## free: A dock is part of the frame, and the text yields to it {.wide #dock-why}
@@ -428,6 +490,24 @@ top or bottom dock is a band across the whole width and the text sits above or
 below it. A chunk that writes its own `::: dock` replaces the inherited one for
 that slide.
 
+## free: The text column narrows, and two columns still fit beside a dock {.wide #dock-cols}
+
+**A `.wide` chunk keeps `::: cols 2` beside the inherited dock.** The chunk
+reserves the dock's track as padding, so the content column is what the
+slide leaves - and the linter says when that falls under the measure
+(`dock-narrows-measure`) or under what a column needs (`layout-too-narrow`).
+
+::: cols 2
+The dock's ground is `tint` by default: the card row's panel tint, five per
+cent of the ink on the paper, which is what gives a column on the slide's own
+paper an edge. `paper` has none there and stays a choice for a dock over a
+picture; `ink` is the loud version.
+
+The dock's type is the overlay's, 0.92 of the slide's and zoomed with it, so
+the reserved track grows with the lecturer's zoom and auto-fit converges on
+the size at which the list and the text both fit.
+:::
+
 ## free: A band replaces the inherited column {.wide #dock-band}
 
 **This chunk writes `::: dock {.bottom .accent .third}` of its own,** so the
@@ -437,6 +517,17 @@ carries the line under the words.
 ::: dock {.bottom .accent .third}
 **One dock per slide.** An own one replaces the inherited one; the next chunk
 inherits again.
+:::
+
+## free: A band at the head, and the chrome moves to the foot {.wide #dock-top}
+
+**`::: dock {.top .accent}` is a line above the words,** as wide as the slide
+and as tall as its own text. The slide number and the note button, which live
+at the head, move to the foot under it.
+
+::: dock {.top .accent}
+**A running line.** The same on the projector and in the printed document,
+where it is a box before the text.
 :::
 
 ## free: A dock held to a beat arrives into a track kept free {.wide #dock-from}
@@ -456,6 +547,94 @@ The second brings the dock.
 
 ::: dock {.right .glass} from 2
 **Merke:** the frame, not the words, made room for this.
+:::
+
+## free: The dock's words {.wide #dock-slots}
+
+**Four edges, six grounds, three widths, three heights, two scopes.** One
+dock per slide; a `#id` link in the body is the live marker.
+
+::: cards 3
+- **edge**\
+  `left`\
+  `right`\
+  `top`\
+  `bottom`
+- **ground**\
+  `tint`\
+  `paper`\
+  `ink`\
+  `accent`\
+  `clear`\
+  `glass`
+- **width**\
+  `narrow`\
+  `standard`\
+  `wide`
+:::
+
+::: cards 2
+- **height**\
+  `snug`\
+  `third`\
+  `half` (bands only)
+- **scope**\
+  `once`\
+  `every` (under a `#` heading only)
+:::
+
+# Beats below the top level {#beats}
+
+## free: Six beats in source order, and nothing moves {.wide #beats-panes}
+
+**A `---` inside a pane, a card row or a dock is a beat on the slide's own
+counter.** Left one, left two, right one, right two, then the card row, then
+its third card - the order they were written in, top-level and nested mixed.
+
+::: side
+**Left one.** A nested beat keeps its box: the pane stands at its final height
+from the first press.
+
+---
+
+**Left two.** So nothing above or beside it moves when it arrives.
+
+::: flip
+
+---
+
+**Right one.** The right pane waited for the third beat, because its first line
+is a `---`.
+
+---
+
+**Right two.** The fourth.
+:::
+
+---
+
+::: cards 3
+- **Fifth beat.** The row is a top-level segment.
+- **Still the fifth.** It closes up before its beat and the chunk grows - the
+  1.0.0 behaviour, `style: {reveal: grow}`.
+
+---
+
+- **Sixth.** The third card had its cell from the fifth beat on.
+:::
+
+## free: Rows that arrive one at a time {.wide #beats-rows}
+
+**A `---` between two rows shows the second on the next press,** and the
+first does not move: the block is laid out with both rows from beat 0.
+
+::: rows {.accent}
+- **Nested** beats keep their place, so the slide is quiet under them.
+---
+- **Top-level** segments grow the chunk, unless the frontmatter says
+  `style: {reveal: hold}` - then every segment in the deck stands still too.
+  This deck keeps the default, so the difference can be seen in the part
+  before this one.
 :::
 
 # A heading that stays off the slide {#bare}

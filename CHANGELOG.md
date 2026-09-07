@@ -99,6 +99,14 @@ from building the same way is a major version.
   through a dock); a bold on an ink or accent ground kept its accent colour
   in print and vanished; the slide number and the note button sat on a top
   band (they move to the foot).
+- **`lectures/decoration` shows the frame work.** Two new parts – *Panels:
+  the card grown to the frame* (a column, a band with a beat, the whole
+  frame with a card on top) and *Beats below the top level* (six beats
+  through two panes and a card row; rows one at a time) – and the dock part
+  grew a `.wide` chunk with two columns beside the dock, a band at the head
+  and the slot card; the overlay slot card names `shape` and `height`.
+  `lectures/frame-lab/` stays as the untracked edge-case deck, now built
+  with `style: {reveal: hold}`.
 - **`style: {reveal: hold}`.** A top-level `---` segment keeps its box
   before its beat, so the chunk stands at its final height from beat 0 and
   the words fade in where they were going to be – deck-wide what a beat
