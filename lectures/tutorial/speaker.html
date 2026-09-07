@@ -839,15 +839,26 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 .reveal-segment { transition: opacity 180ms ease; }
 .reveal-segment[data-hidden] { display: none; }
 /* A --- below the top level (BEAT_MARK). The marker itself is never shown;
-   the elements it governs carry data-beat-hidden until their beat. */
-/* Three classes deep on purpose: a card item (.cards.cg-panel > :not(ul),
-   0-2-2) and a dissolved list (.cards > ul, 0-1-1) set their own display,
-   and the beat has to win over both without !important - because the
-   speaker's ghost has to win over *this* in turn, and the collapse rules
-   (0-4-x) have to keep winning over the ghost, or the cockpit announces as
-   next a block the projector never shows. */
-.chunk .chunk-content .beat-mark, .chunk .overlay-layer .beat-mark, .chunk .dock .beat-mark,
-.chunk .chunk-content [data-beat-hidden], .chunk .overlay-layer [data-beat-hidden], .chunk .dock [data-beat-hidden] { display: none; }
+   the elements it governs carry data-beat-hidden until their beat - and
+   keep their box. A top-level segment closes up (display: none) and the
+   chunk grows beat by beat, which is the reveal 1.0.0 shipped; a nested
+   beat lives inside a block whose shape the room has already seen, and a
+   row that grew a line per beat, or a card row whose three cards changed
+   height when the tallest arrived, made the whole slide jump on every
+   press. So the block is laid out at its final height from beat 0 and the
+   words fade in where they were always going to be. Auto-fit measures the
+   same height on every beat as a consequence. */
+/* Three classes deep on purpose: the speaker's ghost has to win over this
+   rule in turn, and the collapse rules (0-4-x) have to keep winning over
+   the ghost, or the cockpit announces as next a block the projector never
+   shows. */
+.chunk .chunk-content .beat-mark, .chunk .overlay-layer .beat-mark, .chunk .dock .beat-mark { display: none; }
+.chunk .chunk-content [data-beat-hidden], .chunk .overlay-layer [data-beat-hidden], .chunk .dock [data-beat-hidden] {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.4s ease, visibility 0.4s;
+}
+.chunk .chunk-content [data-beat-hidden] { pointer-events: none; }
 
 /* per-tag treatments */
 .chunk[data-tag=principle] .chunk-content::before {
@@ -4535,7 +4546,7 @@ body[data-view=speaker] .figure-video video { cursor: pointer; }
 
    The audience is untouched – [data-hidden] keeps its display:none there,
    and this override is scoped to the speaker. */
-body[data-view=speaker] :is(.reveal-segment[data-hidden], [data-beat-hidden])[data-next] {
+body[data-view=speaker] .reveal-segment[data-hidden][data-next] {
   display: block;
   /* Absolute with no offsets: the box renders at its static position –
      exactly where it will land when revealed – but contributes nothing to
@@ -4551,7 +4562,7 @@ body[data-view=speaker] :is(.reveal-segment[data-hidden], [data-beat-hidden])[da
   outline: 2px dashed var(--emph);
   outline-offset: 7px;
 }
-body[data-view=speaker] :is(.reveal-segment[data-hidden], [data-beat-hidden])[data-next]::before {
+body[data-view=speaker] :is(.reveal-segment[data-hidden], .chunk [data-beat-hidden])[data-next]::before {
   content: '';
   position: absolute;
   inset: -5px;
@@ -4562,7 +4573,7 @@ body[data-view=speaker] :is(.reveal-segment[data-hidden], [data-beat-hidden])[da
     color-mix(in oklch, var(--emph) 14%, transparent) 7px 9px
   );
 }
-body[data-view=speaker] :is(.reveal-segment[data-hidden], [data-beat-hidden])[data-next]::after {
+body[data-view=speaker] :is(.reveal-segment[data-hidden], .chunk [data-beat-hidden])[data-next]::after {
   content: 'next';
   position: absolute;
   top: -1.5em; right: 0;
@@ -4576,23 +4587,26 @@ body[data-view=speaker] :is(.reveal-segment[data-hidden], [data-beat-hidden])[da
 }
 /* Not on the overview board: at that scale the hatch is noise, and the
    board is for finding a slide, not for pacing one. */
-body[data-view=speaker].overview-mode :is(.reveal-segment[data-hidden], [data-beat-hidden])[data-next] { display: none; }
-/* A nested beat's ghost keeps the segment ghost's contract - absolute, so
-   the cockpit's chunk is exactly as tall as the projector's, which the laser
-   pointer relies on (it travels as a fraction of the active chunk's box) -
-   but sized against its own block rather than the chunk: the block is made
-   the containing block here, in the cockpit only, so the hatch ends at the
-   pane's edge instead of running off the slide. It was position: relative
-   for a day, and a two-paragraph ghost made the cockpit chunk 1215px tall
-   against the projector's 360. */
-body[data-view=speaker] :is(.side-a, .side-b, .cards, .overlay-card, .section-body, .slide-explicit, .cols) { position: relative; }
-/* A list dissolved into a card grid has no box to hatch, and blockifying it
-   put its ghost items in a narrower, indented column than the cards they
-   will become. Kept dissolved; the items carry the hatch instead. */
-body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next] { display: contents; position: static; outline: 0; }
+body[data-view=speaker].overview-mode .reveal-segment[data-hidden][data-next] { display: none; }
+body[data-view=speaker].overview-mode .chunk [data-beat-hidden][data-next] { visibility: hidden; }
+/* A nested beat keeps its box on both screens (see the hide rule in the
+   audience sheet), so its ghost is simply the box made visible at half
+   strength, in the flow, the same height in the cockpit as on the
+   projector - which the laser pointer relies on. Positioned only so the
+   hatch and the label have something to anchor to. */
+body[data-view=speaker] .chunk [data-beat-hidden][data-next] {
+  visibility: visible;
+  opacity: 0.5;
+  position: relative;
+  outline: 2px dashed var(--emph);
+  outline-offset: 5px;
+}
+/* A list dissolved into a card grid has no box to hatch; the items carry
+   the outline instead. */
+body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next] { position: static; outline: 0; }
 body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next]::before,
 body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next]::after { content: none; }
-body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next] > li { opacity: 0.5; outline: 2px dashed var(--emph); outline-offset: 3px; }
+body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next] > li { outline: 2px dashed var(--emph); outline-offset: 3px; }
 
 /* A diagram step has no block to hatch the way a hidden reveal segment
    does, so the cockpit gets the next step's name in words instead. Same

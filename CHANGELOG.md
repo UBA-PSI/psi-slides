@@ -120,7 +120,12 @@ from building the same way is a major version.
   inside its block waits for its beat, and the counter runs over the whole
   slide, top-level and nested mixed – left pane's second paragraph, right
   pane's first, then the card row written after the block. In an
-  `::: overlay from N` the inner beats count from `N`. Print shows every
+  `::: overlay from N` the inner beats count from `N`. A nested beat keeps
+  its box: the pane, the row or the card row is laid out at its final
+  height from beat 0 and the words fade in where they were always going to
+  be, so a row that grew a line per beat, or three cards that changed
+  height when the tallest arrived, no longer make the slide jump (a
+  top-level `---` still closes up, as since 1.0.0). Print shows every
   beat at once; an `::: expand` and a `::: script` keep the rule, since
   neither is on the projection. **One meaning changes:** a `---` under a
   `# Heading`, before the first chunk, used to render a rule in the divider

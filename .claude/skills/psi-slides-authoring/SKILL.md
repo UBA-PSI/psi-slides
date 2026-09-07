@@ -349,7 +349,12 @@ Right, second paragraph.
 ```
 
 walks left one, left two, right one, right two, cards one and two, card three –
-six beats, top-level and nested mixed, each in the place it was written. A `---`
+six beats, top-level and nested mixed, each in the place it was written. A
+nested beat **keeps its place from beat 0**: the pane, the row or the card is
+laid out at its final height and the words fade in where they were always
+going to be, so the slide does not jump on every press (a top-level `---`
+still closes up and the chunk grows, as it has since 1.0.0). Put the beats
+inside the block when the block's shape should stand still. A `---`
 as the first line of a pane holds the whole pane back. In an `::: overlay from N`
 the inner beats count from `N`: the card on `N`, its second block on `N + 1`.
 Print shows every beat at once. An `::: expand` and a `::: script` keep the

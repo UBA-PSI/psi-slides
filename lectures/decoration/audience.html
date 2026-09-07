@@ -839,15 +839,26 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 .reveal-segment { transition: opacity 180ms ease; }
 .reveal-segment[data-hidden] { display: none; }
 /* A --- below the top level (BEAT_MARK). The marker itself is never shown;
-   the elements it governs carry data-beat-hidden until their beat. */
-/* Three classes deep on purpose: a card item (.cards.cg-panel > :not(ul),
-   0-2-2) and a dissolved list (.cards > ul, 0-1-1) set their own display,
-   and the beat has to win over both without !important - because the
-   speaker's ghost has to win over *this* in turn, and the collapse rules
-   (0-4-x) have to keep winning over the ghost, or the cockpit announces as
-   next a block the projector never shows. */
-.chunk .chunk-content .beat-mark, .chunk .overlay-layer .beat-mark, .chunk .dock .beat-mark,
-.chunk .chunk-content [data-beat-hidden], .chunk .overlay-layer [data-beat-hidden], .chunk .dock [data-beat-hidden] { display: none; }
+   the elements it governs carry data-beat-hidden until their beat - and
+   keep their box. A top-level segment closes up (display: none) and the
+   chunk grows beat by beat, which is the reveal 1.0.0 shipped; a nested
+   beat lives inside a block whose shape the room has already seen, and a
+   row that grew a line per beat, or a card row whose three cards changed
+   height when the tallest arrived, made the whole slide jump on every
+   press. So the block is laid out at its final height from beat 0 and the
+   words fade in where they were always going to be. Auto-fit measures the
+   same height on every beat as a consequence. */
+/* Three classes deep on purpose: the speaker's ghost has to win over this
+   rule in turn, and the collapse rules (0-4-x) have to keep winning over
+   the ghost, or the cockpit announces as next a block the projector never
+   shows. */
+.chunk .chunk-content .beat-mark, .chunk .overlay-layer .beat-mark, .chunk .dock .beat-mark { display: none; }
+.chunk .chunk-content [data-beat-hidden], .chunk .overlay-layer [data-beat-hidden], .chunk .dock [data-beat-hidden] {
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.4s ease, visibility 0.4s;
+}
+.chunk .chunk-content [data-beat-hidden] { pointer-events: none; }
 
 /* per-tag treatments */
 .chunk[data-tag=principle] .chunk-content::before {
