@@ -1136,6 +1136,25 @@ das Dock mit); eine Kartenreihe im Trenner kann über die Folienhöhe
 wachsen; der Speaker-Filmstreifen rendert Bänder als Mini-Kästchen; die
 Breiten 13/18/25em sind am Fixture gemessen, nicht an einer Vorlesung.
 
+## Live-Demo-Slice (`D`)
+
+Ein Prototyp gegen das Extend/Mirror-Umschalten bei Live-Demos: `D` im Cockpit
+nimmt per `getDisplayMedia` ein Fenster oder einen Bildschirm auf, die
+Projektion zeigt das Video vollflächig, `D` beendet es von beiden Seiten. Zwei
+Transporte, zur Laufzeit gewählt: unter `--serve` (same origin) spielt die
+Audience den `MediaStream` des Cockpits direkt (`peer.psiDemoAttach`), unter
+`file://` geht er per `RTCPeerConnection` über loopback, Handshake als
+`demo-offer` / `demo-answer` / `demo-ice` über den bestehenden
+`postMessage`-Kanal. Chromium 141 transferiert keinen `MediaStreamTrack`
+zwischen Fenstern, gemessen, deshalb Aufruf statt Transfer. Ungated wie `B`,
+nicht im Snapshot. Vollständig: `speaker.md` §2, Skill `psi-slides-media`.
+
+Geprüft: beide Transporte headless mit Canvas-Stream statt Capture. Nicht
+geprüft: der echte Picker und die macOS-Bildschirmaufnahme-Freigabe (Xvfb-
+Chromium hat keinen Desktop-Capturer), Firefox und Safari. Offen: Audience-
+Reload während einer Demo verliert das Bild; Esc lässt die Demo bewusst
+stehen, weil Esc im Demo-Fenster eine andere Bedeutung hat.
+
 ## Gaps / Bekannte Limits
 
 - **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.

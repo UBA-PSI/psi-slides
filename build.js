@@ -6697,6 +6697,14 @@ const LINK_OVERLAY_HTML = `<div id="link-overlay" class="hidden" role="dialog" a
   </div>
 </div>`;
 
+// D puts a window or a screen of this machine on the projection as video.
+// Audience only: the cockpit never shows the picture (the lecturer is
+// looking at the real window), it shows the badge. See the runtime section.
+const DEMO_OVERLAY_HTML = `<div id="demo-overlay" class="hidden" role="region" aria-label="Live demo">
+  <video id="demo-video" autoplay muted playsinline></video>
+</div>`;
+const DEMO_BADGE_HTML = `<div id="demo-badge" class="hidden" role="status">DEMO<span> &middot; hit D to end it</span></div>`;
+
 const SEARCH_PANEL_HTML = `<div id="search-panel" class="hidden" role="dialog" aria-label="Search slides">
   <input id="search-input" type="text" placeholder="search the lecture..." autocomplete="off" spellcheck="false" aria-controls="search-results">
   <ul id="search-results" role="listbox"></ul>
@@ -6754,6 +6762,7 @@ function renderHelpOverlay(view, withEditor) {
       ['<kbd>#</kbd>', 'auto-fit: off → shrink a slide that is too big → size every slide to the screen'],
       ['<kbd>L</kbd>', 'slide numbers: stacked → in a row → off'],
       ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working, frozen or not'],
+      ['<kbd>D</kbd>', 'live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop'],
       ['<kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd>', 'cycle that knob backwards'],
       ['on a touchscreen', 'the same settings sit behind the ⋯ button on the toolbar'],
     ]],
@@ -6925,7 +6934,9 @@ ${renderHelpOverlay('audience', !!editorPayload(frontmatter, columnsHtml, 'audie
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
 ${BLANK_BADGE_HTML}
+${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
+${DEMO_OVERLAY_HTML}
 ${renderTocNav(columns)}
 <script>
 const LECTURE_TITLE = ${titleJson};
@@ -10185,7 +10196,7 @@ body:not([data-view=speaker]).blanked #stage { opacity: 0; }
    window it always shows while blanked; in the audience it shows only when
    there is no speaker window to show it instead, so a lecturer working from
    one screen still knows what happened and how to undo it. */
-#blank-badge {
+#blank-badge, #demo-badge {
   position: fixed;
   bottom: 1.2rem;
   left: 50%;
@@ -10201,11 +10212,14 @@ body:not([data-view=speaker]).blanked #stage { opacity: 0; }
   z-index: 45;
   pointer-events: none;
 }
-#blank-badge.hidden { display: none; }
+#blank-badge.hidden, #demo-badge.hidden { display: none; }
 /* The speaker footer already owns the bottom edge; clear it rather than
    sitting on top of the push indicator and the hotkey legend. */
-body[data-view=speaker] #blank-badge { bottom: 3.4rem; }
-#blank-badge span { font-weight: 400; opacity: 0.72; }
+body[data-view=speaker] #blank-badge, body[data-view=speaker] #demo-badge { bottom: 3.4rem; }
+#blank-badge span, #demo-badge span { font-weight: 400; opacity: 0.72; }
+/* Both up at once: the demo is still running behind a blanked projection. */
+body.blanked #demo-badge { bottom: 3.1rem; }
+body[data-view=speaker].blanked #demo-badge { bottom: 5.3rem; }
 
 /* overlays */
 
@@ -10378,6 +10392,24 @@ body[data-link-codes=off] .link-code { display: none; }
    the cockpit, because that window goes on working while the room is dark. */
 body:not([data-view=speaker]).blanked #link-overlay { display: none; }
 #link-overlay-inner { max-width: 46em; text-align: center; }
+
+/* ── Live demo (hotkey D) ─────────────────────────────────────────
+   A captured window or screen, letterboxed on black over the whole frame.
+   Below the address overlay, so a URL can still be put up during a demo,
+   and below the laser pointer. Blank takes it off the projection like
+   everything else; the capture itself keeps running in the cockpit. */
+#demo-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 44;
+  background: oklch(0.06 0 0);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+#demo-overlay.hidden { display: none; }
+#demo-overlay video { width: 100%; height: 100%; object-fit: contain; display: block; }
+body:not([data-view=speaker]).blanked #demo-overlay { display: none; }
 #link-overlay-label {
   font-family: var(--sans-font);
   font-variant-caps: all-small-caps;
@@ -11442,6 +11474,22 @@ window.addEventListener('message', (ev) => {
     hideLinkOverlay();
     return;
   }
+  // The live demo is a command to the projector like blank: outside the
+  // snapshot, past the freeze gate. Four types, one for the state and three
+  // that carry the WebRTC handshake when the windows are not one origin.
+  if (m.type === 'demo') {
+    if (m.action === 'stop') {
+      endDemoLocally();
+      if (VIEW === 'speaker') showModeBadge('demo ended');
+    } else if (m.action === 'live') {
+      demoRemoteLive = true;
+      applyDemoBadge();
+    }
+    return;
+  }
+  if (m.type === 'demo-offer') { demoReceiveOffer(m); return; }
+  if (m.type === 'demo-answer') { demoReceiveAnswer(m); return; }
+  if (m.type === 'demo-ice') { demoReceiveIce(m); return; }
   // Blank travels outside the snapshot so it still lands while frozen.
   if (m.type === 'blank' && VIEW === 'audience') {
     state.blanked = !!m.blanked;
@@ -11666,12 +11714,22 @@ function applyBlankBadge() {
   const show = state.blanked && (VIEW === 'speaker' || !hasLivePeer());
   blankBadge.classList.toggle('hidden', !show);
 }
+// Live demo (D): the capture this window holds, the loopback connection at
+// either end, and whether the other window told us it is showing one.
+// Declared here, next to the blank badge, because applyState reads them
+// through applyDemoBadge before the demo section further down has run.
+// The functions are in the "live demo" section.
+let demoStream = null;
+let demoPc = null;
+let demoRemoteLive = false;
+let demoIceQueue = [];
 
 function applyState() {
   document.body.dataset.collapse = state.collapse;
   document.documentElement.style.setProperty('--zoom', state.zoom);
   document.body.classList.toggle('blanked', state.blanked);
   applyBlankBadge();
+  applyDemoBadge();
   flatChunks.forEach((c, i) => c.el.classList.toggle('active', i === state.activeIdx));
   updateEmbedLoading();
   updateNavHints();
@@ -13395,6 +13453,189 @@ document.addEventListener('click', (e) => {
   if (VIEW === 'speaker') flashMode('address shown on the projection');
 }, true);
 
+// ── live demo (D) ───────────────────────────────────────────────────
+// A window or a screen of this machine, put on the projection as video.
+// The problem it answers is the extended desktop: the demo runs on the
+// laptop screen, where the pointer and the keyboard are, and the room sees
+// it without the displays being mirrored and un-mirrored around it, which
+// loses every window position on the way back.
+//
+// getDisplayMedia needs a key press in the window that calls it and opens
+// its picker in that window. So the cockpit captures and the projection
+// shows: the picker lands on the laptop, never on the wall. Running alone,
+// the audience window captures and shows for itself.
+//
+// Two ways from the capturing window to the showing one, chosen at run
+// time. Served over http (--serve) the two windows are one origin and the
+// projection plays the cockpit's MediaStream directly – a property call on
+// the peer window, no copy, no encoder, no added latency. From file:// the
+// windows are two opaque origins and that call throws, so the stream goes
+// through an RTCPeerConnection on loopback, signalled over the same
+// postMessage link as everything else. That path costs one encode; the
+// contentHint and a raised bitrate keep text legible through it. Chromium
+// 141 cannot transfer a MediaStreamTrack between windows in either case
+// (measured), which is why the direct path is a call and not a transfer.
+//
+// A command to the projector, like blank: outside the snapshot, past the
+// freeze gate, and D again ends it from either window. Chrome's own "stop
+// sharing" bar ends the track, and that ends the demo the same way.
+// track.stop() fires no 'ended' on the other side, so the stop is always
+// also a message.
+const DEMO_MAX_BITRATE = 40e6;
+function demoOverlayEl() { return document.getElementById('demo-overlay'); }
+function demoVideoEl() { return document.getElementById('demo-video'); }
+function demoShowing() {
+  const o = demoOverlayEl();
+  return !!o && !o.classList.contains('hidden');
+}
+// The badge sits where the lecturer looks: the cockpit, or the audience
+// window when it runs alone. Same rule as the blank badge.
+function applyDemoBadge() {
+  const b = document.getElementById('demo-badge');
+  if (!b) return;
+  const show = (!!demoStream || demoRemoteLive) && (VIEW === 'speaker' || !hasLivePeer());
+  b.classList.toggle('hidden', !show);
+}
+// The showing side. The stream may belong to another realm (the direct
+// path) – srcObject takes it all the same.
+function attachDemo(stream) {
+  const o = demoOverlayEl(), v = demoVideoEl();
+  if (!o || !v) return;
+  v.srcObject = stream;
+  o.classList.remove('hidden');
+  v.play().catch(() => {});
+}
+function detachDemo() {
+  const o = demoOverlayEl(), v = demoVideoEl();
+  if (v) v.srcObject = null;
+  if (o) o.classList.add('hidden');
+  if (demoPc) { try { demoPc.close(); } catch (e) {} demoPc = null; }
+  demoIceQueue = [];
+}
+// The direct path's entry point, called by a same-origin peer window.
+window.psiDemoAttach = function (stream) { attachDemo(stream); };
+
+function endDemoLocally() {
+  const s = demoStream;
+  demoStream = null;
+  demoRemoteLive = false;
+  if (s) s.getTracks().forEach(t => t.stop());
+  detachDemo();
+  applyDemoBadge();
+}
+function stopDemo() {
+  endDemoLocally();
+  if (hasLivePeer()) sendToPeer({ type: 'demo', source: VIEW, action: 'stop' });
+  flashMode('demo ended');
+}
+async function startDemo() {
+  if (!navigator.mediaDevices || !navigator.mediaDevices.getDisplayMedia) {
+    flashMode('no screen capture in this browser');
+    return;
+  }
+  let stream;
+  try {
+    stream = await navigator.mediaDevices.getDisplayMedia({
+      video: { frameRate: { ideal: 30 } },
+      audio: false,
+      // The picker offers windows and screens; not this browser window,
+      // which would only ever show the room a picture of itself.
+      selfBrowserSurface: 'exclude',
+      surfaceSwitching: 'include',
+      monitorTypeSurfaces: 'include',
+    });
+  } catch (e) {
+    // Cancelled in the picker, or refused by the OS (macOS asks once for
+    // screen-recording rights and the first attempt fails).
+    flashMode('demo cancelled');
+    return;
+  }
+  const track = stream.getVideoTracks()[0];
+  if (!track) return;
+  // Text over motion: the encoder keeps resolution and drops frames.
+  try { track.contentHint = 'detail'; } catch (e) {}
+  demoStream = stream;
+  track.addEventListener('ended', () => { if (demoStream === stream) stopDemo(); });
+  applyDemoBadge();
+  if (VIEW === 'speaker' && hasLivePeer()) deliverDemo(stream);
+  else attachDemo(stream);
+  if (hasLivePeer()) sendToPeer({ type: 'demo', source: VIEW, action: 'live' });
+  flashMode('demo live');
+}
+function toggleDemo() {
+  if (demoStream || demoRemoteLive || demoShowing()) stopDemo();
+  else startDemo();
+}
+// Same origin first; the read on a cross-origin window throws and the
+// loopback connection takes over.
+function deliverDemo(stream) {
+  try {
+    if (typeof peer.psiDemoAttach === 'function') { peer.psiDemoAttach(stream); return; }
+  } catch (e) { /* cross-origin: fall through */ }
+  demoSendOffer(stream);
+}
+function demoIceHandler(ev) {
+  if (ev.candidate) sendToPeer({ type: 'demo-ice', source: VIEW, candidate: ev.candidate.toJSON() });
+}
+function demoFlushIce() {
+  if (!demoPc || !demoPc.remoteDescription) return;
+  for (const c of demoIceQueue) demoPc.addIceCandidate(c).catch(() => {});
+  demoIceQueue = [];
+}
+function demoSendOffer(stream) {
+  if (typeof RTCPeerConnection !== 'function') { flashMode('demo: no WebRTC'); return; }
+  const pc = new RTCPeerConnection();
+  demoPc = pc;
+  demoIceQueue = [];
+  const sender = pc.addTrack(stream.getVideoTracks()[0], stream);
+  // Loopback has bandwidth to spare; the default cap is tuned for the
+  // internet and blurs a terminal the moment it scrolls.
+  try {
+    const p = sender.getParameters();
+    if (!p.encodings || !p.encodings.length) p.encodings = [{}];
+    p.encodings[0].maxBitrate = DEMO_MAX_BITRATE;
+    p.degradationPreference = 'maintain-resolution';
+    sender.setParameters(p).catch(() => {});
+  } catch (e) {}
+  pc.onicecandidate = demoIceHandler;
+  pc.createOffer()
+    .then(o => pc.setLocalDescription(o))
+    .then(() => sendToPeer({ type: 'demo-offer', source: VIEW, sdp: pc.localDescription.sdp }))
+    .catch(() => flashMode('demo: could not connect'));
+}
+async function demoReceiveOffer(m) {
+  if (typeof RTCPeerConnection !== 'function') return;
+  detachDemo();
+  const pc = new RTCPeerConnection();
+  demoPc = pc;
+  pc.ontrack = (ev) => attachDemo(ev.streams[0] || new MediaStream([ev.track]));
+  pc.onicecandidate = demoIceHandler;
+  try {
+    await pc.setRemoteDescription({ type: 'offer', sdp: m.sdp });
+    const a = await pc.createAnswer();
+    await pc.setLocalDescription(a);
+    sendToPeer({ type: 'demo-answer', source: VIEW, sdp: pc.localDescription.sdp });
+    demoFlushIce();
+  } catch (e) {
+    flashMode('demo: could not connect');
+  }
+}
+async function demoReceiveAnswer(m) {
+  if (!demoPc) return;
+  try { await demoPc.setRemoteDescription({ type: 'answer', sdp: m.sdp }); } catch (e) { return; }
+  demoFlushIce();
+}
+// A candidate can arrive while setRemoteDescription is still pending on
+// this side; it waits in the queue until the description is in.
+function demoReceiveIce(m) {
+  if (!demoPc) return;
+  demoIceQueue.push(m.candidate);
+  demoFlushIce();
+}
+// Closing or reloading the capturing window ends its tracks; tell the
+// other window, or the projection keeps a frozen last frame.
+window.addEventListener('pagehide', () => { if (demoStream) stopDemo(); });
+
 // ── text selection ──────────────────────────────────────────────────
 // The live views disable selection globally: drag pans the stage, and a
 // stray highlight on the projection is a distraction that never stops being
@@ -13696,6 +13937,13 @@ document.addEventListener('keydown', (e) => {
       e.preventDefault(); break;
     case 'p': case 'P':
       window.open('print.html', '_blank');
+      e.preventDefault(); break;
+    case 'd': case 'D':
+      // Live demo: a window or a screen of this machine on the projection.
+      // Pressed in the cockpit, the picker opens on the laptop and the room
+      // sees the picture; pressed again anywhere, it ends on both screens.
+      if (overview) break;
+      toggleDemo();
       e.preventDefault(); break;
     case 'e': case 'E':
       // Shift-E on the speaker copies live annotation drafts to the
@@ -14273,7 +14521,7 @@ ${columnsHtml}
   <button id="speaker-help-btn" type="button" title="Keyboard and mouse reference (?)">? help</button>
   <span id="slug">${escapeHtml(slug)}</span>
   <span class="spacer"></span>
-  <span class="kbd-hint"><kbd>V</kbd> freeze &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export</span>
+  <span class="kbd-hint"><kbd>V</kbd> freeze &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>D</kbd> demo &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export</span>
 </footer>
 <div id="note-templates">
 ${noteTemplates.join('\n')}
@@ -14285,6 +14533,7 @@ ${renderHelpOverlay('speaker', !!editorPayload(frontmatter, columnsHtml, 'speake
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
 ${BLANK_BADGE_HTML}
+${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
 ${renderTocNav(columns)}
 <script>
