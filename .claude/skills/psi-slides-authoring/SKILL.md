@@ -310,6 +310,51 @@ Use reveals for pacing, not per chunk. Over half the chunks using reveals
 raises a `reveal-overuse` warning, and a chunk needing many reveals is usually
 several chunks.
 
+### Beats below the top level
+
+A `---` inside a `::: side` pane, a `::: cards` / `::: rows` block, a
+`::: overlay` card or under a `# Heading` is the same beat counter, one level
+down: it does not split the chunk (a block cannot straddle two segments) but
+holds back everything that follows it *inside that block* until its beat. The
+counter runs in source order over the whole slide, so this
+
+```md
+::: side
+Left, first paragraph.
+
+---
+
+Left, second paragraph.
+::: flip
+
+---
+
+Right, first paragraph.
+
+---
+
+Right, second paragraph.
+:::
+
+---
+
+::: cards 3
+- one
+- two
+
+---
+
+- three
+:::
+```
+
+walks left one, left two, right one, right two, cards one and two, card three –
+six beats, top-level and nested mixed, each in the place it was written. A `---`
+as the first line of a pane holds the whole pane back. In an `::: overlay from N`
+the inner beats count from `N`: the card on `N`, its second block on `N + 1`.
+Print shows every beat at once. An `::: expand` keeps the horizontal rule – its
+body is not on the projection and has no beats to give.
+
 ## Speaker notes
 
 ```md
@@ -496,8 +541,39 @@ they nest inside `::: cols` or `::: side`, they work inside an `expand` or
 
 ### Nesting
 
-Layout wrappers nest inside an `expand` or `margin`. Do not nest `expand`
-inside `expand`, or `margin` inside `expand`.
+The directives combine, but not freely: each one is either a *wrapper* whose
+body stays in the chunk (`cols`, `side`, `marginalia`, `embed`, `slide`,
+`script`), a *captured block* whose body is taken out of it (`expand`,
+`footnote`, `overlay`, `cards`, `rows`, `draw`), or a one-liner that belongs
+to the slide wherever it stands (`backdrop`). What may open inside what
+follows from that, and the build refuses the rest – every refusal below
+was a slide that rendered wrong with exit 0 before it was one.
+
+| inside …                    | may hold                                   | refused                                                  |
+|-----------------------------|--------------------------------------------|----------------------------------------------------------|
+| `expand` / `footnote`       | any wrapper, `draw`, prose                 | another aside, `overlay`, `cards` / `rows`               |
+| `overlay`                   | prose, lists, an image, `draw`             | every other directive (`directive-in-overlay`, `cards-nested`) |
+| `cards` / `rows`            | prose, lists, an image – per item; `draw` as a card of its own | every other directive (`directive-in-cards`) |
+| `embed`                     | the caption's prose                        | every directive (`directive-in-embed`, `cards-nested`)   |
+| `cols`                      | prose, `marginalia`, `slide` / `script`    | `draw`, `side`, `cards` / `rows` – a grid breaks the flow |
+| `side` (either pane)        | prose, `draw`, `cards` / `rows`, `cols`    | a second `flip`                                          |
+| `slide` / `script`          | any wrapper, `draw`, `cards` / `rows`      | `slide` or `script` again (`explicit-nested`)            |
+| any wrapper                 | a `---` (a beat below the top level, see *Reveal segments*) | `expand`, `footnote`, `overlay` (`aside-in-layout`, `overlay-in-layout`) |
+| a column heading (divider)  | prose, `backdrop`, `draw`, `cards` / `rows`, `overlay`, `---` | everything else (`stray-directive`)               |
+
+`draw` is the one construct meant to go nearly everywhere – a pane, a card, an
+overlay card over a photograph, an expansion, a divider – because a figure is
+what makes a frame a design rather than a text column. The two places it does
+not go are a text flow (`cols`) and a caption (`embed`). A figure in an
+`overlay from N` walks its steps on the chunk's counter from beat 1, so with
+`N` of 2 or more the first steps play before the card is on the slide
+(`overlay-steps-early`); write `from 1`, or give the beats to the body. A `---`
+inside the overlay is different: those beats do count from `N`.
+
+The last row is the one that bites: an aside or an overlay is folded under
+or laid over the *whole* chunk, so a place inside a block means nothing for
+it, and its closing `:::` would end the block instead. Write it after the
+block's closer.
 
 ```md
 ::: expand compare
@@ -510,6 +586,18 @@ Right
 ```
 
 The first closer ends `side`, the second ends `expand`.
+
+Four combinations build and still earn a warning, because the slide is not
+the one the author pictured: a `::: side` with no `flip` (`side-without-flip`,
+one pane at half width), `cols` inside `cols` (`cols-in-cols`), a `::: slide`
+or `::: script` inside one pane (`explicit-in-side` – the collapse hides the
+other pane and keeps its track), and two `::: marginalia` on one chunk
+(`duplicate-marginalia` – both anchor at the top of the margin and overlap).
+Two more are about numbers: `layout-too-narrow` when the chunk's measure,
+divided by every open `cols`, `cards` and `side` pane, leaves a track under
+10em (six cards in a wide chunk, three columns in a narrow one), and
+`overlay-from-beyond` when `from N` is past the chunk's last beat plus one,
+which the projector answers with empty advances before the card arrives.
 
 ### `::: cards N`
 
@@ -630,6 +718,32 @@ no slot.
 | `overlay` | place | `.center` `.top-left` `.top` `.top-right` `.left` `.right` `.bottom-left` `.bottom` `.bottom-right` |
 | | ground | `.paper` `.ink` `.accent` `.clear` `.glass` |
 | | width | `.standard` `.narrow` `.wide` `.full` |
+| | shape | `.card` `.panel` |
+| | height | `.snug` `.third` `.half` (top / bottom panels only) |
+
+**`.panel` is the card grown to the frame** – the composition a photograph
+with a text area wants: `{.left .glass .panel}` is a column the full height
+of the slide, the picture blurred behind the words and vivid beside them;
+`{.bottom .ink .panel}` a band across the bottom, edge to edge; `{.center
+.glass .panel}` the whole frame veiled with the words in the middle. The width
+word is the column's width (`left` / `right`) or the text measure inside the
+band; `.third` / `.half` give a band that share of the slide's height, with the
+words centred in it (a column centres its words in the slide's height as it
+is); a corner place is refused, since a panel runs along one edge. Write the
+backdrop `{.cover .clear}` with a panel – the default `veil` washes the whole
+picture, and the panel's own ground is what sets the words off. A panel held
+to a beat slides in from its edge.
+
+```markdown
+## figure: {#lock .full .bare}
+
+::: backdrop lock {.cover .clear}
+
+::: overlay {.left .glass .panel .narrow}
+## The weakest link
+**A column the full height of the slide.** The picture stays vivid outside it.
+:::
+```
 
 `veil` is the theme's own paper at 80%, so ordinary ink stays readable over a
 photograph in every theme; `invert` turns the slide's ink light instead. Give a
@@ -938,7 +1052,13 @@ or directive – the message names which), `missing-id`, `duplicate-id`,
 `unknown-view-default`,
 `unknown-style-setting`, `bad-backdrop`, `duplicate-backdrop`, `bad-overlay`,
 `bad-cols`, `bad-cards`, `bad-rows`, `cards-nested`, `bad-side`,
-`draw-in-cols`, `bad-cover-ratio`, `bad-unit`, `bad-autoplay` (a delay
+`draw-in-cols`, `side-in-cols`, `aside-in-layout`,
+`overlay-in-layout`, `directive-in-overlay`, `directive-in-cards`,
+`directive-in-embed`, `duplicate-flip`, `explicit-nested` (the nesting
+refusals, each mirrored by the build – see *Nesting*), `side-without-flip`,
+`cols-in-cols`, `explicit-in-side`, `duplicate-marginalia`,
+`layout-too-narrow`, `overlay-from-beyond`, `overlay-steps-early` (the
+nesting warnings, which only the linter raises), `bad-cover-ratio`, `bad-unit`, `bad-autoplay` (a delay
 outside 200–60000 ms, `cycle` with no autoplay, or autoplay on a figure
 with no `step` block).
 

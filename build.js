@@ -1838,6 +1838,7 @@ function renderCardsBlock(b) {
   // rest of the item on the next line.
   const top = [];
   for (const raw of b.lines) {
+    if (raw === BEAT_MARK) continue;
     if (/^[-*+]\s+/.test(raw)) { top.push(raw); continue; }
     if (!top.length) continue;
     if (/^\s+[-*+]\s+/.test(raw)) continue;   // a nested item is the detail
@@ -1895,8 +1896,9 @@ function renderCardsBlock(b) {
       if (m) { out.push({ head: m[1] + m[2], rest: m[3] ? [m[3]] : [] }); continue; }
       const last = out[out.length - 1];
       // An indented list item under a row is the detail level, and it
-      // belongs to the fold rather than to the body beside the term.
-      if (!last || /^\s+[-*+]\s+/.test(raw) || !raw.trim()) { out.push(raw); continue; }
+      // belongs to the fold rather than to the body beside the term. A beat
+      // marker is neither and stays a block of its own between the rows.
+      if (!last || /^\s+[-*+]\s+/.test(raw) || !raw.trim() || raw === BEAT_MARK) { out.push(raw); continue; }
       if (typeof last === 'string') { out.push(raw); continue; }
       last.rest.push(raw.trim());
     }
@@ -1948,7 +1950,31 @@ function renderOverlayLayer(overlays, where) {
     // the picture is at each beat, which is a different question and is why
     // the two do not share a word.
     const from = ov.from == null ? '' : ` data-from="${Number(ov.from)}"`;
-    return `<div class="overlay-card ov-${o.place} ov-${o.ground} ov-w-${o.width}"${from}>${body}</div>`;
+    // lint.js: bad-overlay-panel. A panel reaches an edge, and a corner
+    // names two; which one the slab should run along is not a question the
+    // renderer can answer for the author.
+    if (o.shape === 'panel' && /-/.test(o.place)) {
+      const err = new Error(
+        `::: overlay {.panel .${o.place}} in ${where}: a panel reaches one edge of the frame, and a\n` +
+        '  corner names two. Write left, right, top or bottom for a column or a band,\n' +
+        '  or center for the whole frame.');
+      err.userFacing = true;
+      throw err;
+    }
+    // lint.js: bad-overlay-height. A band's height is the one dimension a
+    // panel does not take from the frame; a column's is the slide's and a
+    // card's is its words', so the word would draw nothing there.
+    if (o.height !== 'snug' && !(o.shape === 'panel' && (o.place === 'top' || o.place === 'bottom'))) {
+      const err = new Error(
+        `::: overlay {.${o.height}} in ${where}: a height belongs to a top or bottom panel.\n` +
+        '  A column is as tall as the slide and a card as tall as its words, so\n' +
+        '  the word has nothing to set. Write  {.bottom .panel .' + o.height + '}.');
+      err.userFacing = true;
+      throw err;
+    }
+    const shape = o.shape === 'panel' ? ' ov-panel' : '';
+    const height = o.height === 'snug' ? '' : ` ov-h-${o.height}`;
+    return `<div class="overlay-card ov-${o.place} ov-${o.ground} ov-w-${o.width}${shape}${height}"${from}>${body}</div>`;
   }).join('\n');
   return `<div class="overlay-layer">\n${cards}\n</div>`;
 }
@@ -2931,6 +2957,16 @@ function splitHeading(text) {
   return { heading: parts[0], headingSub: parts.slice(1).join(' ') };
 }
 
+// A reveal separator below the top level of a chunk. A `---` between two
+// top-level blocks splits the body into reveal segments, and a wrapper
+// cannot straddle two of those - so inside a ::: side pane, a card row, an
+// overlay card or a divider's body the same line becomes this marker
+// instead, and the runtime hides everything that follows it inside its
+// parent until the beat it stands for. One counter over the whole slide,
+// in source order: the left pane's second paragraph, then the right pane's
+// first, then the card row under both. Hidden in print by the stylesheet.
+const BEAT_MARK = '<div class="beat-mark"></div>';
+
 function parseLecture(src) {
   // Windows line endings. Every matcher below anchors on `$`, and a `\r`
   // before it made every heading and every directive miss - a CRLF source
@@ -2978,6 +3014,104 @@ function parseLecture(src) {
   let pendingAnnotation = '';  // annotation that appeared before a chunk, attach to the next one
   let layoutStack = [];        // closing HTML tokens for open layout directives
 
+  // What may open inside what. Every directive below asks the same question
+  // - what is already open around this line - and for a long time nothing
+  // answered it: a ::: expand inside ::: cols let the expansion's closer
+  // close the columns instead, a --- inside ::: side split the pane's <div>
+  // across two reveal segments so the second pane arrived on the first
+  // beat, a ::: cols inside ::: overlay put its wrapper in the body and its
+  // words in the card, and a ::: draw inside ::: cards printed itself as
+  // text. All of it built with exit 0, and none of it was ever a picture an
+  // author meant. The corpus nests exactly one thing, a figure in a pane,
+  // so these refusals cost no existing lecture a build. lint.js mirrors
+  // each one under the code named beside it.
+  const chunkRef = () => currentChunk ? (currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id')
+    : currentColumn ? (currentColumn.id ? `the divider of column #${currentColumn.id}`
+                                        : `the divider of column "${currentColumn.heading}"`)
+    : 'a chunk with no id';
+  const refuse = (msg) => { const err = new Error(msg); err.userFacing = true; throw err; };
+  // The innermost open aside (a captured block) and the innermost open
+  // layout wrapper, named the way the author wrote them.
+  const openAside = () => currentOverlay ? '::: overlay'
+    : currentExpansion ? `::: ${currentExpansion.word}` : null;
+  const openLayout = () => layoutStack.length ? `::: ${layoutStack[layoutStack.length - 1].kind}` : null;
+  const inLayout = (kind) => layoutStack.some(l => l.kind === kind);
+  // ::: overlay, read the same way on a chunk and on a divider. Returns true
+  // when the line was an overlay line - opened, or refused.
+  const readOverlayLine = (line) => {
+    // ::: overlay {.classes} – a text block laid over the slide rather
+    // than set in its column. Collected on the chunk for the same
+    // reason the backdrop is: it has to escape the content track.
+    // `from` takes a token rather than digits, and the token is checked
+    // below. Matched narrowly, anything `from` could not swallow made the
+    // whole line fail to match - so `from later` was not an overlay at
+    // all, the build said nothing, and `::: overlay …` printed as literal
+    // text on the projection while the linter blamed the closing `:::`.
+    const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
+    if (!overlayOpen && /^:::\s+overlay\b/.test(line)) {
+      const err = new Error(
+        `::: overlay: "${line.trim()}" is not a line this directive reads.\n` +
+        '  It takes an optional {.class} tail and an optional  from <beat>, and\n' +
+        '  nothing else:  ::: overlay {.bottom-left .ink} from 2');
+      err.userFacing = true;
+      throw err;
+    }
+    if (overlayOpen) {
+      // Assigned unconditionally, a second opener replaced the first and
+      // its words were gone from every output with the build exiting 0 -
+      // while lint.js reported `nested-directive`. Content loss and a
+      // divergence in one line.
+      if (currentOverlay) {
+        const err = new Error(
+          `::: overlay opened while one is still open (${chunkRef()}).\n` +
+          '  An overlay is a block, not a marker: close the first with a ::: line\n' +
+          '  before opening the second. Two overlays on one chunk are fine.');
+        err.userFacing = true;
+        throw err;
+      }
+      if (overlayOpen[2] != null && !/^[1-9]\d*$/.test(overlayOpen[2])) {
+        const err = new Error(
+          `::: overlay from ${overlayOpen[2]} in ${chunkRef()}.\n` +
+          '  `from` takes a whole beat number from 1 up - the beat the block\n' +
+          '  arrives on. Beat 0 is the beat the slide opens on, which is what\n' +
+          '  writing no `from` already says.');
+        err.userFacing = true;
+        throw err;
+      }
+      if (overlayOpen[2] === '0') {
+        const err = new Error(
+          `::: overlay from 0 in ${chunkRef()}.\n` +
+          '  Beat 0 is the beat the slide opens on, which is what writing no\n' +
+          '  `from` already says. Write `from 1` for the next one.');
+        err.userFacing = true;
+        throw err;
+      }
+      // lint.js: nested-directive / overlay-in-layout. Opened inside an
+      // expansion, the overlay used to close it silently (flushExpansion
+      // ran here); opened inside a wrapper, the wrapper's closer was
+      // taken as the overlay's and the prose after it went into the
+      // card. An overlay escapes the content track altogether, so no
+      // position inside the body means anything for it.
+      if (currentExpansion) {
+        refuse(
+          `::: overlay inside ::: ${currentExpansion.word} (${chunkRef()}).\n` +
+          '  An overlay is laid over the whole slide and an expansion is folded\n' +
+          '  under it, so one cannot hold the other. Close the expansion first;\n' +
+          '  a chunk can carry both side by side.');
+      }
+      if (layoutStack.length) {
+        refuse(
+          `::: overlay inside ${openLayout()} (${chunkRef()}).\n` +
+          '  An overlay is laid over the whole slide, so its place in the body\n' +
+          '  means nothing - and the block\'s closing ::: was read as the overlay\'s.\n' +
+          '  Write the overlay outside the block, at chunk level.');
+      }
+      currentOverlay = { attrs: overlayOpen[1] ?? null, from: overlayOpen[2] || null, lines: [] };
+      return true;
+    }
+    return false;
+  };
+
   const flushExpansion = () => {
     if (!currentExpansion || !currentChunk) return;
     currentChunk.expansions.push({
@@ -2989,8 +3123,9 @@ function parseLecture(src) {
   };
 
   const flushOverlay = () => {
-    if (!currentOverlay || !currentChunk) return;
-    currentChunk.overlays.push({
+    const host = currentChunk || currentColumn;
+    if (!currentOverlay || !host) return;
+    host.overlays.push({
       attrs: currentOverlay.attrs,
       from: currentOverlay.from,
       lines: currentOverlay.lines,
@@ -3100,7 +3235,15 @@ function parseLecture(src) {
     // directive table. Nothing inside it is markdown.
     if (diagramBlock) {
       if (/^:::\s*$/.test(line)) {
-        const target = currentExpansion ? currentExpansion.lines
+        // A figure goes wherever it was opened: into the card row being
+        // captured, the overlay card, the expansion, the chunk body or the
+        // divider. The first two are recent - a ::: draw in an overlay used
+        // to land in the body behind it, and one in a card row printed as
+        // text - and both are places a figure earns: a small drawing on a
+        // card laid over a photograph, three figures side by side.
+        const target = cardsBlock ? cardsBlock.lines
+          : currentOverlay ? currentOverlay.lines
+          : currentExpansion ? currentExpansion.lines
           : currentChunk ? bodyLines : colBody;
         const dgBody = diagramBlock.lines.join('\n');
         dgEmittedBlocks.push({
@@ -3161,11 +3304,37 @@ function parseLecture(src) {
     // the source that cannot be recovered from CSS. Fence-aware: a ::: in a
     // code sample inside a card must not close the row.
     if (cardsBlock) {
+      const cardDraw = inFence ? null : parseDrawOpener(line);
       if (!inFence && /^:::\s*$/.test(line)) {
         const target = currentOverlay ? currentOverlay.lines
-          : currentExpansion ? currentExpansion.lines : bodyLines;
+          : currentExpansion ? currentExpansion.lines
+          : currentChunk ? bodyLines : colBody;
         target.push('', renderCardsBlock(cardsBlock), '');
         cardsBlock = null;
+      } else if (!inFence && line.trim() === '---') {
+        // A row that arrives card by card.
+        cardsBlock.lines.push('', BEAT_MARK, '');
+      } else if (cardDraw) {
+        // A figure is a card. In the block form of a row every top-level
+        // block is one card, so the figure stands in a card of its own,
+        // beside the text cards - which is what three small figures side
+        // by side, or a figure next to two claims, need. The compiled svg is
+        // an html block to marked and passes through renderCardsBlock like
+        // a paragraph would.
+        refuseDrawOpener(cardDraw);
+        diagramBlock = { unit: cardDraw.unit, autoplay: cardDraw.autoplay, cycle: cardDraw.cycle,
+                         lines: [], bodyAt: fmOffset + lineAt };
+      } else if (!inFence && /^:::\s+\S/.test(line)) {
+        // lint.js: directive-in-cards. The body is captured, not parsed, so a
+        // directive in a card was printed on the slide as its own text and
+        // its closer ended the row early - every item after it fell out of
+        // the grid.
+        const kw = cardsBlock.rows ? 'rows' : 'cards';
+        refuse(
+          `${line.trim().split(/\s+/).slice(0, 2).join(' ')} inside ::: ${kw} (${cardsBlock.where}).\n` +
+          '  A card holds prose - paragraphs, a list, an image - and no directive:\n' +
+          '  the row\'s body is read as text, so the directive printed itself on the\n' +
+          '  slide and its closing ::: ended the row early. Put it outside the row.');
       } else {
         cardsBlock.lines.push(line);
       }
@@ -3198,7 +3367,7 @@ function parseLecture(src) {
         // vocabulary this line never had.
         const h1Attr = parseAttributeTail(h1[1], { column: true });
         const { text, id } = h1Attr;
-        currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null };
+        currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null, overlays: [] };
         colBody = [];
         columns.push(currentColumn);
         continue;
@@ -3209,7 +3378,7 @@ function parseLecture(src) {
         flushColBody();
         if (!currentColumn) {
           // A chunk before any `# Column` (e.g. the title chunk).
-          currentColumn = { heading: null, id: null, chunks: [] };
+          currentColumn = { heading: null, id: null, chunks: [], overlays: [] };
           columns.push(currentColumn);
         }
         const h2Attr = parseAttributeTail(h2[1]);
@@ -3312,12 +3481,20 @@ function parseLecture(src) {
 
       // What a column heading's own slide may carry, and the list is short
       // on purpose. A divider is one slide with one heading and one thing on
-      // it: a picture behind it, a figure on it, or the words under it. A
-      // column layout, an expansion or a card row there is a slide that has
-      // stopped being a divider - so those stay chunk-only, and writing one
-      // there falls through to the stray-directive path rather than being
-      // half-supported.
+      // it: a picture behind it, a figure or a card row on it, or the words
+      // under it. A column layout, an expansion or an overlay there is a
+      // slide that has stopped being a divider - so those stay chunk-only,
+      // and writing one there is refused below rather than half-supported
+      // (it used to fall through and print itself under the heading).
       if (!currentChunk && currentColumn) {
+        // A divider takes an overlay: a photograph behind the part's heading
+        // and a card of words in a corner is the composition a section
+        // opener most often wants, and every piece of it already existed.
+        if (currentOverlay) {
+          if (/^:::\s*$/.test(line)) { flushOverlay(); continue; }
+          if (line.trim() === '---') { currentOverlay.lines.push('', BEAT_MARK, ''); continue; }
+        }
+        if (readOverlayLine(line)) continue;
         const colBd = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*(?:reveal\s+(.+?))?\s*$/);
         if (!colBd && /^:::\s+backdrop\b/.test(line)) {
           const err = new Error(
@@ -3345,9 +3522,56 @@ function parseLecture(src) {
                            lines: [], bodyAt: fmOffset + lineAt };
           continue;
         }
+        // A divider's content walks the same counter a chunk's does.
+        if (line.trim() === '---') { colBody.push('', BEAT_MARK, ''); continue; }
+        // A card row or a row block is the one more thing a divider takes:
+        // three figures, three claims or three names under the part's
+        // heading is still one slide with one heading and one thing on it.
+        // Unreadable lines get the same message a chunk's would.
+        const colRows = line.match(/^:::\s+rows\s*(?:\{([^}]*)\})?\s*$/);
+        const colCards = line.match(/^:::\s+cards\s+([1-6])\s*(?:\{([^}]*)\})?\s*$/);
+        const colWhere = currentColumn.id ? `the divider of column #${currentColumn.id}`
+          : `the divider of column "${currentColumn.heading}"`;
+        if (colCards || colRows) {
+          cardsBlock = colRows
+            ? { n: 1, rows: true, attrs: colRows[1] ?? null, lines: [], where: colWhere }
+            : { n: colCards[1], attrs: colCards[2] ?? null, lines: [], where: colWhere };
+          continue;
+        }
+        if (/^:::\s+(cards|rows)\b/.test(line)) {
+          const kw = /rows/.test(line) ? 'rows' : 'cards';
+          refuse(
+            `::: ${kw} could not be read: "${line.trim()}".\n` +
+            (kw === 'cards'
+              ? '  Write  ::: cards N  with N from 1 to 6, and an optional {class} tail.'
+              : '  Write  ::: rows  with an optional {class} tail - a row block has one column,\n  so it takes no count.'));
+        }
+        // lint.js: stray-directive. Everything else a chunk can open is a
+        // slide that has stopped being a divider - a column layout, an
+        // expansion, an overlay - and used to print itself under the heading
+        // as text, since nothing here read it.
+        if (/^:::\s+\S/.test(line)) {
+          refuse(
+            `${line.trim().split(/\s+/).slice(0, 2).join(' ')} under a column heading (${colWhere}).\n` +
+            '  A divider is one slide with one heading and one thing on it: a\n' +
+            '  ::: backdrop behind it, a ::: draw or a ::: cards / ::: rows on it, or\n' +
+            '  the words under it. Anything else belongs in a ## chunk.');
+        }
       }
 
       if (currentChunk) {
+
+        // A --- inside a wrapper or an overlay is a beat, not a segment split:
+        // flushChunk splits the body at every top-level --- and a wrapper
+        // cannot straddle two segments (the opening <div> landed in one, the
+        // closing in the next, and the browser's repair put the second pane
+        // on the first beat). So below the top level the line becomes
+        // BEAT_MARK and the runtime does the hiding. An expansion keeps the
+        // <hr>: its body is not on the projection and has no beats to give.
+        if ((layoutStack.length || currentOverlay) && !currentExpansion && line.trim() === '---') {
+          (currentOverlay ? currentOverlay.lines : bodyLines).push('', BEAT_MARK, '');
+          continue;
+        }
 
         // ::: backdrop <ref> {.classes} – a full-bleed image behind the
         // whole slide. Chunk-level rather than a body wrapper, and that is
@@ -3390,57 +3614,7 @@ function parseLecture(src) {
           continue;
         }
 
-        // ::: overlay {.classes} – a text block laid over the slide rather
-        // than set in its column. Collected on the chunk for the same
-        // reason the backdrop is: it has to escape the content track.
-        // `from` takes a token rather than digits, and the token is checked
-        // below. Matched narrowly, anything `from` could not swallow made the
-        // whole line fail to match - so `from later` was not an overlay at
-        // all, the build said nothing, and `::: overlay …` printed as literal
-        // text on the projection while the linter blamed the closing `:::`.
-        const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
-        if (!overlayOpen && /^:::\s+overlay\b/.test(line)) {
-          const err = new Error(
-            `::: overlay: "${line.trim()}" is not a line this directive reads.\n` +
-            '  It takes an optional {.class} tail and an optional  from <beat>, and\n' +
-            '  nothing else:  ::: overlay {.bottom-left .ink} from 2');
-          err.userFacing = true;
-          throw err;
-        }
-        if (overlayOpen) {
-          // Assigned unconditionally, a second opener replaced the first and
-          // its words were gone from every output with the build exiting 0 -
-          // while lint.js reported `nested-directive`. Content loss and a
-          // divergence in one line.
-          if (currentOverlay) {
-            const err = new Error(
-              `::: overlay opened while one is still open (${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}).\n` +
-              '  An overlay is a block, not a marker: close the first with a ::: line\n' +
-              '  before opening the second. Two overlays on one chunk are fine.');
-            err.userFacing = true;
-            throw err;
-          }
-          if (overlayOpen[2] != null && !/^[1-9]\d*$/.test(overlayOpen[2])) {
-            const err = new Error(
-              `::: overlay from ${overlayOpen[2]} in ${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}.\n` +
-              '  `from` takes a whole beat number from 1 up - the beat the block\n' +
-              '  arrives on. Beat 0 is the beat the slide opens on, which is what\n' +
-              '  writing no `from` already says.');
-            err.userFacing = true;
-            throw err;
-          }
-          if (overlayOpen[2] === '0') {
-            const err = new Error(
-              `::: overlay from 0 in ${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}.\n` +
-              '  Beat 0 is the beat the slide opens on, which is what writing no\n' +
-              '  `from` already says. Write `from 1` for the next one.');
-            err.userFacing = true;
-            throw err;
-          }
-          flushExpansion();
-          currentOverlay = { attrs: overlayOpen[1] ?? null, from: overlayOpen[2] || null, lines: [] };
-          continue;
-        }
+        if (readOverlayLine(line)) continue;
 
         // ::: expand <label>  or  ::: footnote  –  open an aside block.
         // Both are modeled as expansions for the print renderer; the
@@ -3458,11 +3632,31 @@ function parseLecture(src) {
         const expandOpen = line.match(/^:::\s+expand\s+(.+?)\s*$/);
         const marginOpen = line.match(/^:::\s+(footnote|margin)\s*$/);
         if (expandOpen || marginOpen) {
-          flushExpansion();
+          const word = marginOpen ? marginOpen[1] : 'expand';
+          // lint.js: nested-directive / aside-in-layout. A second aside used
+          // to close the first without a word (flushExpansion ran here) and
+          // print the leftover ::: as text. Inside a wrapper, the closer that
+          // should end the aside popped the wrapper instead, so the prose
+          // after the aside was folded into it.
+          if (openAside()) {
+            refuse(
+              `::: ${word} inside ${openAside()} (${chunkRef()}).\n` +
+              '  Asides do not nest: an expansion or footnote is folded under the\n' +
+              '  chunk and an overlay is laid over it. Close the open block with a\n' +
+              '  ::: line first; a chunk can carry several, one after the other.');
+          }
+          if (layoutStack.length) {
+            refuse(
+              `::: ${word} inside ${openLayout()} (${chunkRef()}).\n` +
+              '  An expansion or footnote is folded under the whole chunk, so a\n' +
+              '  place inside a block means nothing - and its closing ::: ended the\n' +
+              '  block instead. A block inside the aside is fine; write the aside\n' +
+              '  after the block\'s closing :::.');
+          }
           currentExpansion = {
             label: expandOpen ? expandOpen[1].trim() : 'note',
             kind: marginOpen ? 'margin' : 'expand',
-            word: marginOpen ? marginOpen[1] : 'expand',
+            word,
             lines: [],
           };
           continue;
@@ -3486,14 +3680,36 @@ function parseLecture(src) {
         // gets one column with nothing to say why. Measured before it was
         // refused. ::: side is the construct that holds a figure beside
         // prose, and the message says so.
-        if (colsDepth > 0 && parseDrawOpener(line)) {
-          const err = new Error(
-            `::: draw inside ::: cols (${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}).\n` +
+        const diagramOpen = parseDrawOpener(line);
+        if (diagramOpen && colsDepth > 0) {
+          refuse(
+            `::: draw inside ::: cols (${chunkRef()}).\n` +
             '  ::: cols is one text flow balanced across columns, and a figure in it\n' +
             '  breaks the flow - the columns silently stop working. Use ::: side to\n' +
             '  put a figure beside prose, or take the figure out of the columns.');
-          err.userFacing = true;
-          throw err;
+        }
+        // lint.js: directive-in-overlay / directive-in-embed. An overlay's
+        // lines are captured while a wrapper's markup went to the body, so
+        // `::: cols` in an overlay drew an empty column block on the slide
+        // and the card kept the words. A figure is different: the diagram
+        // close above sends it into the overlay, where a small drawing on a
+        // card over a photograph is a design the format wants. An embed's
+        // lines are its caption, and a wrapper or an svg inside a
+        // <figcaption> is markup no reader asked for.
+        const layoutWord = diagramOpen ? 'draw'
+          : (line.match(/^:::\s+(cols|side|flip|marginalia|embed|slide|script)\b/) || [])[1];
+        if (layoutWord && layoutWord !== 'draw' && currentOverlay) {
+          refuse(
+            `::: ${layoutWord} inside ::: overlay (${chunkRef()}).\n` +
+            '  An overlay is a card laid over the slide - prose, a list, an image,\n' +
+            '  a ::: draw - and holds no layout block. Close the overlay and write\n' +
+            '  the block in the chunk body.');
+        }
+        if (layoutWord && inLayout('embed')) {
+          refuse(
+            `::: ${layoutWord} inside ::: embed (${chunkRef()}).\n` +
+            '  The lines under ::: embed are the player\'s caption, and a caption is\n' +
+            '  prose. Close the embed before the block.');
         }
         const colsOpen = line.match(/^:::\s+cols\s+(2|3)\s*$/);
         if (!colsOpen && /^:::\s+cols\b/.test(line)) {
@@ -3617,6 +3833,18 @@ function parseLecture(src) {
         const sideOpen = line.match(
           /^:::\s+side(?:\s+(\d{1,2})\s*:\s*(\d{1,2}))?\s*(?:\{([^}]*)\})?\s*$/);
         if (sideOpen) {
+          // lint.js: side-in-cols. The same measurement as ::: draw and
+          // ::: cards in a column flow: a grid placed in `column-count`
+          // breaks the flow, and the author who wrote `cols 2` got one
+          // column with the panes wedged into it.
+          if (colsDepth > 0) {
+            refuse(
+              `::: side inside ::: cols (${chunkRef()}).\n` +
+              '  ::: cols is one text flow balanced across columns, and a two-pane\n' +
+              '  grid in it breaks the flow - the columns silently stop working. Use\n' +
+              '  one or the other: ::: side for a figure beside prose, ::: cols for\n' +
+              '  prose balanced across columns.');
+          }
           const style = sideOpen[1]
             ? ` style="--side-a:${sideOpen[1]}fr;--side-b:${sideOpen[2]}fr"`
             : '';
@@ -3641,6 +3869,25 @@ function parseLecture(src) {
           throw err;
         }
         if (/^:::\s+flip\s*$/.test(line)) {
+          // lint.js: stray-directive / duplicate-flip. The marker emits a
+          // closer for pane A and an opener for pane B, and used to do so
+          // wherever it stood: outside a ::: side it closed whatever block
+          // was innermost, and a second one opened a third pane in a
+          // two-track grid, which wrapped onto a row of its own.
+          const top = layoutStack[layoutStack.length - 1];
+          if (!top || top.kind !== 'side') {
+            refuse(
+              `::: flip ${top ? `inside ${openLayout()}` : 'outside any ::: side'} (${chunkRef()}).\n` +
+              '  flip is the middle of a ::: side pair and switches from the first pane\n' +
+              '  to the second; it has to stand directly inside the ::: side block.');
+          }
+          if (top.flipped) {
+            refuse(
+              `A second ::: flip in one ::: side (${chunkRef()}).\n` +
+              '  ::: side has two panes and one flip between them. For three things in\n' +
+              '  a row write ::: cards 3.');
+          }
+          top.flipped = true;
           target.push('', `</div><div class="side-b">`, '');
           continue;
         }
@@ -3664,7 +3911,6 @@ function parseLecture(src) {
         // DSL and compiled to inline SVG at build time. Like ::: embed it
         // earns its own directive rather than overloading a fence, because
         // the body is not markdown and must not be parsed as any.
-        const diagramOpen = parseDrawOpener(line);
         if (diagramOpen) {
           // `autoplay N` and `cycle` are the host's and never reach the
           // compiler. Playback is not part of the drawing: the compiler's
@@ -3684,6 +3930,17 @@ function parseLecture(src) {
         // Both are plain wrappers; the whole mode lives in CSS (see the
         // [data-collapse=topic-bold] rules), so there is no new runtime
         // state, no new sync field, and no third entry in the C cycle.
+        // lint.js: explicit-nested. One block says "this is the screen", the
+        // other "this is not", and one inside the other is a sentence with
+        // both halves. Rendered, the CSS picked a winner nobody chose.
+        const explicitOpen = /^:::\s+(slide|script)\s*$/.exec(line);
+        if (explicitOpen && (inLayout('slide') || inLayout('script'))) {
+          refuse(
+            `::: ${explicitOpen[1]} inside ::: ${inLayout('slide') ? 'slide' : 'script'} (${chunkRef()}).\n` +
+            '  ::: slide says "this block is the screen" and ::: script says "this\n' +
+            '  block is not"; neither can hold the other or itself. Close the open\n' +
+            '  block first - a chunk may carry one of each, side by side.');
+        }
         if (/^:::\s+slide\s*$/.test(line)) {
           target.push('', `<div class="slide-explicit">`, '');
           layoutStack.push({ close: '</div>', kind: 'slide', narrows: false });
@@ -3719,7 +3976,8 @@ function parseLecture(src) {
       else if (currentExpansion) currentExpansion.lines.push(line);
       else bodyLines.push(line);
     } else if (currentColumn) {
-      colBody.push(line);
+      if (currentOverlay) currentOverlay.lines.push(line);
+      else colBody.push(line);
     }
   }
   flushColBody();
@@ -4756,6 +5014,7 @@ function renderColumn(col, frontmatter, nextNum, chunkOpts = {}) {
   <h1 class="column-heading">${escapeHtml(col.heading)}</h1>
   ${bd.html}
   ${lede}
+  ${renderOverlayLayer(col.overlays, `the divider for "${col.heading}"`)}
 ${chunksHtml}
 </section>`;
 }
@@ -4887,6 +5146,8 @@ ${namedHtml}
 // ── print CSS ────────────────────────────────────────────────────────
 
 const PRINT_CSS = `
+/* A reveal marker below the top level (BEAT_MARK): print shows every beat at once. */
+.beat-mark { display: none !important; }
 :root {
   --heading-scale: 1;
   --body-scale: 1;
@@ -6010,6 +6271,7 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
     </div>
     ${own}
   </div>
+  ${renderOverlayLayer(col.overlays, where)}
 </article>`;
 }
 
@@ -7179,6 +7441,12 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 /* reveal segments: first visible, rest hidden until advanced */
 .reveal-segment { transition: opacity 180ms ease; }
 .reveal-segment[data-hidden] { display: none; }
+/* A --- below the top level (BEAT_MARK). The marker itself is never shown;
+   the elements it governs carry data-beat-hidden until their beat. */
+.beat-mark, [data-beat-hidden] { display: none !important; }
+/* !important is the point: a card item, a list dissolved into a grid and a
+   pane child each set their own display, and a beat is state over all of
+   them - the same element must vanish whatever box it would otherwise be. */
 
 /* per-tag treatments */
 .chunk[data-tag=principle] .chunk-content::before {
@@ -8041,7 +8309,11 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    flow rather than N. */
 .overlay-layer {
   position: absolute;
-  inset: var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
+  /* inset: 0 plus padding rather than an inset, so that a panel (below)
+     has the whole slide as its containing block. The grid's content box is
+     where it always was, so no card moves. */
+  inset: 0;
+  padding: var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
   z-index: 3;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -8148,11 +8420,89 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 }
 .overlay-card.ov-accent strong, .overlay-card.ov-accent b { color: currentColor; }
 .overlay-card.ov-glass {
-  background: color-mix(in oklch, var(--paper) 26%, transparent);
-  backdrop-filter: blur(14px) saturate(1.2);
+  /* 26% was frosted glass over a photograph and the ink on it fell under
+     3:1 on any mid-tone picture - measured on a panel, where there is a
+     lot of it. Half the paper keeps the picture legible through it and the
+     words legible on it; a panel goes further still, because it is the
+     text area of the slide and not an object on the picture. */
+  background: color-mix(in oklch, var(--paper) 52%, transparent);
+  backdrop-filter: blur(16px) saturate(1.15);
   border: 1px solid color-mix(in oklch, var(--ink) 12%, transparent);
 }
+.overlay-card.ov-glass.ov-panel { background: color-mix(in oklch, var(--paper) 68%, transparent); }
 .overlay-card.ov-clear { background: none; padding: 0; backdrop-filter: none; }
+/* shape: panel - the card grown to the frame. The layer keeps a card off
+   the slide's edges with its padding; a panel wants exactly the edge, so it
+   leaves the grid (position: absolute against the layer, whose padding box
+   is the slide) and takes the same padding inside, which keeps its words
+   on the slide's own text grid. Absolute rather than negative margins
+   because --slide-pad-x is a percentage: a margin resolves it against the
+   grid area and came up a third short of the edge, while an absolute
+   box's width and padding resolve it against the layer, which is the
+   slide. grid-area: auto, or the grid lines would still be the containing
+   block. A square slab, not a rounded card: rounding says "object on the
+   picture" and a panel is a region of it. The width word is the column's
+   width for left / right and the text measure inside a band. */
+.overlay-card.ov-panel {
+  position: absolute;
+  grid-area: auto;
+  /* The card's align-self: center still applies to an absolutely positioned
+     grid child and shrank a top: 0 / bottom: 0 column to its words, centred. */
+  align-self: stretch; justify-self: stretch;
+  margin: 0;
+  max-width: none;
+  border-radius: 0;
+  box-shadow: none;
+  border: 0;
+  --ov-inset-x: calc(var(--slide-pad-x) * 0.62);
+  --ov-pad-x: calc(var(--ov-inset-x) + 1.05em);
+  --ov-pad-y: calc(var(--slide-pad-y) + 0.85em);
+}
+.overlay-card.ov-panel.ov-left, .overlay-card.ov-panel.ov-right {
+  top: 0; bottom: 0;
+  display: flex; flex-direction: column; justify-content: center;
+}
+/* The same air on the picture side as on the frame side: with a card's
+   1.05em there, the words sat against the photograph's edge. So the width
+   is the measure plus the inset twice. */
+.overlay-card.ov-panel.ov-left  { left: 0;  padding: var(--ov-pad-y) var(--ov-pad-x); }
+.overlay-card.ov-panel.ov-right { right: 0; padding: var(--ov-pad-y) var(--ov-pad-x); }
+.overlay-card.ov-panel.ov-left.ov-w-narrow,   .overlay-card.ov-panel.ov-right.ov-w-narrow   { width: calc(19em + 2 * var(--ov-inset-x)); }
+.overlay-card.ov-panel.ov-left.ov-w-standard, .overlay-card.ov-panel.ov-right.ov-w-standard { width: calc(29em + 2 * var(--ov-inset-x)); }
+.overlay-card.ov-panel.ov-left.ov-w-wide,     .overlay-card.ov-panel.ov-right.ov-w-wide     { width: calc(42em + 2 * var(--ov-inset-x)); }
+.overlay-card.ov-panel.ov-left.ov-w-full,     .overlay-card.ov-panel.ov-right.ov-w-full     { width: 50%; }
+/* A band's padding is the same above and below, and its words are centred
+   in whatever height it has: with the slide padding on the outer side only,
+   a two-line band had its text a line too high and read as a mistake. The
+   height words give the band a share of the slide; the words stay centred. */
+.overlay-card.ov-panel.ov-top, .overlay-card.ov-panel.ov-bottom {
+  left: 0; right: 0;
+  padding: var(--ov-pad-y) var(--ov-pad-x);
+  display: flex; flex-direction: column; justify-content: center;
+}
+.overlay-card.ov-panel.ov-top    { top: 0; }
+.overlay-card.ov-panel.ov-bottom { bottom: 0; }
+.overlay-card.ov-panel.ov-h-third { min-height: 33.333%; }
+.overlay-card.ov-panel.ov-h-half  { min-height: 50%; }
+.overlay-card.ov-panel.ov-top.ov-w-narrow > *,   .overlay-card.ov-panel.ov-bottom.ov-w-narrow > *   { max-width: 19em; }
+.overlay-card.ov-panel.ov-top.ov-w-standard > *, .overlay-card.ov-panel.ov-bottom.ov-w-standard > * { max-width: 29em; }
+.overlay-card.ov-panel.ov-top.ov-w-wide > *,     .overlay-card.ov-panel.ov-bottom.ov-w-wide > *     { max-width: 42em; }
+.overlay-card.ov-panel.ov-center {
+  inset: 0;
+  padding: var(--ov-pad-y) var(--ov-pad-x);
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  text-align: center;
+}
+.overlay-card.ov-panel.ov-center.ov-w-narrow > *   { max-width: 19em; }
+.overlay-card.ov-panel.ov-center.ov-w-standard > * { max-width: 29em; }
+.overlay-card.ov-panel.ov-center.ov-w-wide > *     { max-width: 42em; }
+/* A panel that arrives on a beat slides in from its edge rather than
+   lifting like a card. */
+.overlay-card.ov-panel.ov-left[data-hidden]   { transform: translateX(-1.2em); }
+.overlay-card.ov-panel.ov-right[data-hidden]  { transform: translateX(1.2em); }
+.overlay-card.ov-panel.ov-bottom[data-hidden] { transform: translateY(1.2em); }
+.overlay-card.ov-panel.ov-top[data-hidden]    { transform: translateY(-1.2em); }
+.overlay-card.ov-panel.ov-center[data-hidden] { transform: none; }
 
 /* ── card grid (::: cards N) ─────────────────────────────────────────
    Not a second spelling of cols. cols is one text flow the browser
@@ -10838,13 +11188,31 @@ function applyState() {
 function chunkBeats(el) {
   const out = [];
   let segIdx = 0;
-  el.querySelectorAll('.reveal-segment, svg.psi-diagram').forEach(node => {
+  el.querySelectorAll('.reveal-segment, svg.psi-diagram, .beat-mark').forEach(node => {
     // A diagram inside an expansion body is not on the projection, so its
     // steps must not consume beats – Space would advance a counter and the
     // room would see nothing happen.
     if (node.closest('.exp-body, .chunk-expansion')) return;
     if (node.classList.contains('reveal-segment')) {
       if (segIdx++ > 0) out.push({ type: 'seg', el: node });
+      return;
+    }
+    // A --- below the top level: the beat owns every element sibling after
+    // the marker up to the next marker in the same parent. Document order
+    // is source order, so a marker in the left pane comes before one in the
+    // right and both before a top-level segment written after the block.
+    if (node.classList.contains('beat-mark')) {
+      const els = [];
+      for (let n = node.nextElementSibling; n && !n.classList.contains('beat-mark'); n = n.nextElementSibling) els.push(n);
+      // Inside an overlay held to a beat, the card's own beats start after
+      // it arrives: from 3 and two markers is the card on 3, its second
+      // block on 4, its third on 5 - whatever position the marker has in
+      // the slide's list. Without at, the overlay layer comes after the
+      // body in document order, so its inner beats would be numbered
+      // before its own from-beat and play behind a card not yet shown.
+      const ov = node.closest('.overlay-card[data-from]');
+      const at = ov ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node) : null;
+      out.push({ type: 'mark', els, at });
       return;
     }
     const d = node.psiDiagram;
@@ -10872,9 +11240,11 @@ function bdFrames(el) {
 // Positions, not beats: 1 means "in the chunk, nothing advanced yet", which
 // is the convention jumpTo and advanceReveal were already written against.
 function countSegments(el) {
-  const beats = chunkBeats(el).length;
+  const all = chunkBeats(el);
+  const beats = all.length;
   const bd = bdFrames(el);
   let n = beats ? beats + 1 : (el.querySelector('.reveal-segment') ? 1 : 0);
+  all.forEach(b => { if (b.at != null) n = Math.max(n, b.at + 1); });
   if (bd) n = Math.max(n, bd.frames.length);
   el.querySelectorAll('.overlay-card[data-from]').forEach(c => {
     n = Math.max(n, Number(c.dataset.from) + 1);
@@ -10899,6 +11269,13 @@ function applyReveal(el, id, instant) {
       // views so the two DOMs stay identical.
       if (i === consumed) b.el.setAttribute('data-next', '');
       else b.el.removeAttribute('data-next');
+    } else if (b.type === 'mark') {
+      const shown = b.at != null ? consumed >= b.at : on;
+      const next = b.at != null ? consumed === b.at - 1 : i === consumed;
+      b.els.forEach((e, k) => {
+        e.toggleAttribute('data-beat-hidden', !shown);
+        e.toggleAttribute('data-next', !shown && next && k === 0);
+      });
     } else if (on) {
       steps.set(b.d, Math.max(steps.get(b.d) || 0, b.step));
     }
@@ -13794,8 +14171,11 @@ body[data-view=speaker] .figure-video video { cursor: pointer; }
 
    The audience is untouched – [data-hidden] keeps its display:none there,
    and this override is scoped to the speaker. */
-body[data-view=speaker] .reveal-segment[data-hidden][data-next] {
-  display: block;
+body[data-view=speaker] :is(.reveal-segment[data-hidden], [data-beat-hidden])[data-next] {
+  /* !important because the audience hides a nested beat with one too - a
+     card item and a dissolved list set their own display, and state has
+     to win there; here the preview has to win over the state. */
+  display: block !important;
   /* Absolute with no offsets: the box renders at its static position –
      exactly where it will land when revealed – but contributes nothing to
      the chunk's height. That matters more than it looks. The laser pointer
@@ -13810,7 +14190,7 @@ body[data-view=speaker] .reveal-segment[data-hidden][data-next] {
   outline: 2px dashed var(--emph);
   outline-offset: 7px;
 }
-body[data-view=speaker] .reveal-segment[data-hidden][data-next]::before {
+body[data-view=speaker] :is(.reveal-segment[data-hidden], [data-beat-hidden])[data-next]::before {
   content: '';
   position: absolute;
   inset: -5px;
@@ -13821,7 +14201,7 @@ body[data-view=speaker] .reveal-segment[data-hidden][data-next]::before {
     color-mix(in oklch, var(--emph) 14%, transparent) 7px 9px
   );
 }
-body[data-view=speaker] .reveal-segment[data-hidden][data-next]::after {
+body[data-view=speaker] :is(.reveal-segment[data-hidden], [data-beat-hidden])[data-next]::after {
   content: 'next';
   position: absolute;
   top: -1.5em; right: 0;
@@ -13835,7 +14215,14 @@ body[data-view=speaker] .reveal-segment[data-hidden][data-next]::after {
 }
 /* Not on the overview board: at that scale the hatch is noise, and the
    board is for finding a slide, not for pacing one. */
-body[data-view=speaker].overview-mode .reveal-segment[data-hidden][data-next] { display: none; }
+body[data-view=speaker].overview-mode :is(.reveal-segment[data-hidden], [data-beat-hidden])[data-next] { display: none !important; }
+/* A nested beat's ghost stays in the flow. The segment's box is absolute
+   so the slide below it does not move, but absolute means sized against
+   the chunk, and inside a pane that ran the hatch past the pane's edge and
+   off the slide. In the flow it is as wide as the pane and pushes only the
+   pane's own later blocks, which is the picture the speaker wants anyway:
+   where the next paragraph lands. */
+body[data-view=speaker] .chunk [data-beat-hidden][data-next] { position: relative; width: auto; }
 
 /* A diagram step has no block to hatch the way a hidden reveal segment
    does, so the cockpit gets the next step's name in words instead. Same
@@ -14587,6 +14974,7 @@ function populatePreviewStrip() {
     clone.classList.add('chunk-clone');
     clone.classList.remove('active', 'expanded', 'annot-visible', 'has-annot', 'overview-selected');
     clone.querySelectorAll('.reveal-segment').forEach(s => s.removeAttribute('data-hidden'));
+    clone.querySelectorAll('[data-beat-hidden]').forEach(s => { s.removeAttribute('data-beat-hidden'); s.removeAttribute('data-next'); });
     // Thumbnails show slides fully revealed (PRD §4.6) so the speaker can
     // see where each one lands. A cloned diagram carries whatever step the
     // live one is on, because the runtime writes geometry onto attributes -

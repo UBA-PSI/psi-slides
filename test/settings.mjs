@@ -432,6 +432,180 @@ console.log('\nlayout generations');
   }
 }
 
+// ── what may open inside what ─────────────────────────────────────────
+//    The directives combine freely in the grammar and did not in the
+//    output: a --- inside ::: side split the pane's <div> across two reveal
+//    segments, a ::: expand inside ::: cols handed its closer to the
+//    columns, a ::: cols inside ::: overlay drew an empty column block on
+//    the slide, a ::: draw inside ::: cards printed itself as text. All of
+//    it built with exit 0 and lint.js flagged one case of fourteen. Every
+//    row here is one fixture through both files: the build refuses it with
+//    the words given, and the linter reports the code given - or, for the
+//    `accept` rows, both let it through, because the other direction is
+//    half the value of a differential check.
+{
+  const FMX = '---\ntitle: T\n---\n\n## title: {#title}\n\n## free: F {#f}\n\n';
+  const run = (body) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-nest2-'));
+    fs.writeFileSync(path.join(dir, 'source.md'), FMX + body);
+    const b = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    const l = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: b.status !== 0, out: (b.stdout || '') + (b.stderr || ''),
+             lint: (l.stdout || '') + (l.stderr || '') };
+  };
+  const DRAW = '::: draw 140x52\nbox a "A"\n:::\n';
+  const cases = [
+    // [name, body, build message, lint code]  – or [name, body, 'accept']
+    ['::: expand inside ::: cols',
+     '::: cols 2\nA.\n::: expand more\nB.\n:::\nC.\n:::\n', /::: expand inside ::: cols/, 'aside-in-layout'],
+    ['::: footnote inside ::: side',
+     '::: side\nA.\n::: footnote\nB.\n:::\n::: flip\nC.\n:::\n', /::: footnote inside ::: side/, 'aside-in-layout'],
+    ['::: overlay inside ::: cols',
+     '::: cols 2\nA.\n::: overlay\nB.\n:::\nC.\n:::\n', /::: overlay inside ::: cols/, 'overlay-in-layout'],
+    ['::: expand inside ::: expand',
+     '::: expand outer\nA.\n::: expand inner\nB.\n:::\n:::\n', /::: expand inside ::: expand/, 'nested-directive'],
+    ['::: overlay inside ::: expand',
+     '::: expand outer\nA.\n::: overlay\nB.\n:::\n:::\n', /::: overlay inside ::: expand/, 'nested-directive'],
+    ['::: footnote inside ::: overlay',
+     '::: overlay\nA.\n::: footnote\nB.\n:::\n:::\n', /::: footnote inside ::: overlay/, 'nested-directive'],
+    ['::: cols inside ::: overlay',
+     '::: overlay\n::: cols 2\nA.\n:::\n:::\n', /::: cols inside ::: overlay/, 'directive-in-overlay'],
+    ['::: cols inside ::: rows',
+     '::: rows\n::: cols 2\nA.\n:::\n:::\n', /::: cols inside ::: rows/, 'directive-in-cards'],
+    ['::: side inside ::: embed',
+     '::: embed https://youtu.be/dQw4w9WgXcQ\n::: side\nA.\n::: flip\nB.\n:::\n:::\n', /::: side inside ::: embed/, 'directive-in-embed'],
+    ['::: side inside ::: cols',
+     '::: cols 2\nA.\n::: side\nL\n::: flip\nR\n:::\nB.\n:::\n', /::: side inside ::: cols/, 'side-in-cols'],
+    ['a second ::: flip',
+     '::: side\nA.\n::: flip\nB.\n::: flip\nC.\n:::\n', /second ::: flip/, 'duplicate-flip'],
+    ['::: flip outside ::: side',
+     '::: cols 2\nA.\n::: flip\nB.\n:::\n', /::: flip inside ::: cols/, 'stray-directive'],
+    ['::: slide inside ::: script',
+     '::: script\nA.\n::: slide\nB.\n:::\n:::\n', /::: slide inside ::: script/, 'explicit-nested'],
+    ['::: script inside ::: script',
+     '::: script\nA.\n::: script\nB.\n:::\n:::\n', /::: script inside ::: script/, 'explicit-nested'],
+    // Everything else under a column heading is a slide that has stopped
+    // being a divider, and used to print itself under the heading as text.
+    ['::: cols under a column heading',
+     '# Part {#p}\n\n::: cols 2\nA.\n:::\n\n## free: G {#g}\n\nB.\n', /::: cols under a column heading/, 'stray-directive'],
+    ['::: expand under a column heading',
+     '# Part {#p}\n\n::: expand more\nA.\n:::\n\n## free: G {#g}\n\nB.\n', /::: expand under a column heading/, 'stray-directive'],
+    // The combinations the format means to support, and the refusals must
+    // not reach: a figure or a card row beside prose, a column block in an
+    // aside or an explicit block, a reveal that ends before the block.
+    ['a figure in a pane', '::: side\nA.\n::: flip\n' + DRAW + ':::\n', 'accept'],
+    ['a card row in a pane', '::: side\nA.\n::: flip\n::: cards 2\n- A\n- B\n:::\n:::\n', 'accept'],
+    ['columns in an expansion', '::: expand more\n::: cols 2\nA.\n\nB.\n:::\n:::\n', 'accept'],
+    ['a pane block in a slide block', '::: slide\n::: side\nA.\n::: flip\nB.\n:::\n:::\n', 'accept'],
+    ['a reveal after the block', '::: side\nA.\n::: flip\nB.\n:::\n\n---\n\nC.\n', 'accept'],
+    // A --- below the top level is a beat marker, not a segment split (the
+    // split put the second pane on the first beat). beats-nested.mjs walks
+    // the order in a browser; here it is enough that both files take it.
+    ['a reveal inside a pane', '::: side\nL\n\n---\n\nM\n::: flip\n\n---\n\nR\n:::\n', 'accept'],
+    ['a reveal inside a card row', '::: cards 2\n- A\n\n---\n\n- B\n:::\n', 'accept'],
+    ['a reveal inside an overlay', '::: overlay from 1\nA.\n\n---\n\nB.\n:::\n', 'accept'],
+    ['an overlay under a column heading',
+     '# Part {#p}\n\n::: backdrop https://example.invalid/x.jpg\n\n::: overlay {.bottom-right} from 1\nA.\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
+    ['a --- in an expansion is a rule, not a beat', '::: expand more\nA.\n\n---\n\nB.\n:::\n', 'accept'],
+    ['a backdrop line inside a block is still the slide\'s',
+     '::: backdrop https://example.invalid/x.jpg\n\n::: cols 2\nA.\n\nB.\n:::\n', 'accept'],
+    // A figure goes wherever it was opened. These two were refusals for a
+    // day: a ::: draw in an overlay landed in the body behind the card and
+    // one in a card row printed as text, and the first answer was to refuse
+    // both. The right one was to send the figure where the author put it.
+    ['a figure in an overlay', '::: overlay {.bottom-right}\nA.\n' + DRAW + ':::\n', 'accept'],
+    ['a figure as a card', '::: cards 2\n' + DRAW + '\nB.\n:::\n', 'accept'],
+    // A divider takes a card row beside its backdrop and its figure.
+    ['a card row under a column heading', '# Part {#p}\n\n::: cards 2\n- A\n- B\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
+    ['a figure card under a column heading', '# Part {#p}\n\n::: cards 2\n' + DRAW + '\nB.\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
+  ];
+  for (const [name, body, msg, code] of cases) {
+    const r = run(body);
+    if (msg === 'accept') {
+      ok(!r.failed, `${name} builds`, r.out.split('\n')[0]);
+      // A finding line reads `path:ln  error  code`; the summary's `0 error(s)` must not match.
+      ok(!/\s+error\s+\S/.test(r.lint), `and lints clean`, r.lint.split('\n')[0]);
+      continue;
+    }
+    ok(r.failed && msg.test(r.out), `${name} is refused`, r.out.split('\n')[0]);
+    ok(new RegExp('\\b' + code + '\\b').test(r.lint), `and the linter says ${code}`, r.lint.split('\n')[0]);
+  }
+  // ::: overlay {.panel}: the class reaches the markup, a corner is refused
+  // in both files, and the layer's grid content box did not move (inset: 0
+  // plus padding replaces the inset, so the padding must carry the values).
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-panel-'));
+    fs.writeFileSync(path.join(dir, 'source.md'), FMX + '::: overlay {.left .glass .panel .narrow}\nA.\n:::\n');
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    const html = r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '';
+    ok(r.status === 0 && /class="overlay-card ov-left ov-glass ov-w-narrow ov-panel"/.test(html),
+       'a panel overlay carries ov-panel beside its place, ground and width', (r.stderr || '').split('\n')[0]);
+    ok(/\.overlay-layer \{[^}]*inset: 0;[^}]*padding: var\(--slide-pad-y\) calc\(var\(--slide-pad-x\) \* 0\.62\);/.test(html),
+       'and the layer is inset 0 with the old inset as padding, so no card moves');
+    ok(/\.overlay-card\.ov-panel \{[^}]*position: absolute;[^}]*grid-area: auto;[^}]*align-self: stretch/.test(html),
+       'a panel is absolute against the layer, off the grid lines, and stretched');
+    const bad = run('::: overlay {.bottom-left .panel}\nA.\n:::\n');
+    ok(bad.failed && /a panel reaches one edge/.test(bad.out), 'a panel in a corner is refused', bad.out.split('\n')[0]);
+    ok(/bad-overlay-panel/.test(bad.lint), 'and the linter says bad-overlay-panel', bad.lint.split('\n')[0]);
+    const fine = run('::: overlay {.bottom .ink .panel .wide .third} from 1\nA.\n:::\n');
+    ok(!fine.failed && !/\s+error\s+\S/.test(fine.lint), 'a bottom band a third high, on a beat, builds and lints clean', fine.out.split('\n')[0]);
+    // A height belongs to a band: a column is as tall as the slide and a
+    // card as tall as its words, so the word would draw nothing there.
+    for (const tail of ['.left .panel .half', '.bottom .half']) {
+      const h = run(`::: overlay {${tail}}\nA.\n:::\n`);
+      ok(h.failed && /a height belongs to a top or bottom panel/.test(h.out), `{${tail}} is refused`, h.out.split('\n')[0]);
+      ok(/bad-overlay-height/.test(h.lint), 'and the linter says bad-overlay-height', h.lint.split('\n')[0]);
+    }
+  }
+
+  // The marker itself, and that the segment split did not happen: one
+  // reveal-segment, one beat-mark inside the pane, nothing straddled.
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-beat-'));
+    fs.writeFileSync(path.join(dir, 'source.md'), FMX + '::: side\nL\n\n---\n\nM\n::: flip\nR\n:::\n');
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    const html = fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
+    const chunk = (html.match(/<article class="chunk chunk-free"[\s\S]*?<\/article>/) || [''])[0];
+    ok(r.status === 0 && (chunk.match(/class="reveal-segment"/g) || []).length === 1,
+       'a --- inside a pane splits no segment', r.stderr.split('\n')[0]);
+    ok(/<div class="side-a">[\s\S]*?<div class="beat-mark"><\/div>[\s\S]*?<p>M<\/p>[\s\S]*?<\/div><div class="side-b">/.test(chunk),
+       'and leaves a beat marker before the second block of the first pane');
+    const print = fs.readFileSync(path.join(dir, 'print.html'), 'utf8');
+    ok(/\.beat-mark \{ display: none !important; \}/.test(print), 'print hides the marker and shows every beat at once');
+  }
+
+  // The four the build draws and the linter has an opinion about. Each is
+  // a warning, never an error: the output is a slide, only not the one the
+  // author pictured.
+  for (const [name, body, code] of [
+    ['a ::: side with no flip', '::: side\nOnly.\n:::\n', 'side-without-flip'],
+    ['columns inside columns', '::: cols 2\nA.\n::: cols 2\nB.\n:::\n:::\n', 'cols-in-cols'],
+    ['an explicit block in one pane', '::: side\n::: slide\nA.\n:::\n::: flip\nB.\n:::\n', 'explicit-in-side'],
+    ['two marginalia on one chunk', '::: marginalia\nA.\n:::\n::: marginalia\nB.\n:::\n', 'duplicate-marginalia'],
+    ['an overlay past the last beat', 'A.\n\n---\n\nB.\n\n::: overlay from 4\nC.\n:::\n', 'overlay-from-beyond'],
+    ['a stepped figure in a late overlay',
+     'A.\n\n---\n\nB.\n\n::: overlay from 2\n::: draw 140x52\nbox a "A"\nbox b "B" right of a gap 1\nstep one\n  show b\n:::\n:::\n', 'overlay-steps-early'],
+    ['six cards in a wide chunk', '## free: W {.wide #w}\n\n::: cards 6\n- a\n- b\n- c\n- d\n- e\n- f\n:::\n', 'layout-too-narrow'],
+  ]) {
+    const r = run(body);
+    ok(!r.failed, `${name} still builds`, r.out.split('\n')[0]);
+    ok(new RegExp('warn\\s+' + code + '\\b').test(r.lint), `and the linter warns ${code}`, r.lint.split('\n')[0]);
+  }
+  // And the measure rule is calibrated on the corpus: five cards in a wide
+  // chunk is the widest row a real lecture has, and it passes.
+  {
+    const r = run('## free: W {.wide #w}\n\n::: cards 5\n- a\n- b\n- c\n- d\n- e\n:::\n');
+    ok(!/layout-too-narrow/.test(r.lint), 'five cards in a wide chunk pass the measure rule', r.lint.split('\n')[0]);
+    const r2 = run('::: overlay from 2\nC.\n:::\n\nA.\n\n---\n\nB.\n');
+    ok(!/overlay-from-beyond/.test(r2.lint), 'an overlay one beat after the last is not a gap', r2.lint.split('\n')[0]);
+  }
+}
+
 // ── the card row's own vocabulary ─────────────────────────────────────
 {
   const mk = (body) => {

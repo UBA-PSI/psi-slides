@@ -91,13 +91,15 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The five specs that build a deck of their own
+### The six specs that build a deck of their own
 
 Three different reasons, and the third is the one to remember.
 
 **Because nothing that ships can reach the case** – `math-focus` (no lecture has
-a two-row display formula) and `side-anchor` (nothing writes `::: side {.middle}`
-yet).
+a two-row display formula), `side-anchor` (nothing writes `::: side {.middle}`
+yet) and `beats-nested` (no lecture puts a `---` inside a pane, a card row or an
+overlay yet, and the assertion is a six-beat *sequence* mixing nested and
+top-level markers, which only a deck written for it has).
 
 **Because the thing is only legible as a pair** – `block-align` shows the same
 content centred and left, and `cards` two cards differing in one character.

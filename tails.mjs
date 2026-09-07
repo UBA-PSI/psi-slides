@@ -129,6 +129,19 @@ export const OVERLAY_SLOTS = {
                                          'bottom-left', 'bottom', 'bottom-right'] },
   ground: { default: 'paper',    words: ['paper', 'ink', 'accent', 'clear', 'glass'] },
   width:  { default: 'standard', words: ['standard', 'narrow', 'wide', 'full'] },
+  // A card sits in its cell, sized to its words, inside the slide's padding.
+  // A panel reaches the frame: `left` / `right` is a column the full height
+  // of the slide, `top` / `bottom` a band the full width, `center` the
+  // whole frame - the composition a photograph with a text area wants, the
+  // area set off by its ground (glass over the picture, or ink). The width
+  // word is the column's width or the band's measure; a corner place has no
+  // edge to reach and is refused.
+  shape:  { default: 'card',     words: ['card', 'panel'] },
+  // How tall a top / bottom band is: as tall as its words and padding, a
+  // third of the slide, or half of it - the words centred in it either
+  // way. A column's height is the slide's and a card's is its words', so
+  // the two taller words are refused anywhere but on a band.
+  height: { default: 'snug',     words: ['snug', 'third', 'half'] },
 };
 
 // ::: side asks exactly one question beyond the ratio: where a pane sits

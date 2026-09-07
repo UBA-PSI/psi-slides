@@ -170,7 +170,7 @@ a decision the name does not:
 
 Design implications:
 
-- A line that is exactly `---` inside a chunk body but **outside a code fence** is a reveal-segment separator, not a thematic break. `***` is available if an author needs a true horizontal rule.
+- A line that is exactly `---` inside a chunk body but **outside a code fence** is a reveal-segment separator, not a thematic break. `***` is available if an author needs a true horizontal rule. **At the top level it splits the body into `.reveal-segment` divs; below it – inside a `::: side` pane, a captured `::: cards` / `::: rows` body, an `::: overlay` card or a divider's body – it becomes `BEAT_MARK`, an empty `.beat-mark` div, because a wrapper cannot straddle two segments.** `chunkBeats` in `AUDIENCE_JS` reads segments, diagram steps and markers in one document-order walk, so nested beats interleave with top-level ones in source order; a marker inside an `.overlay-card[data-from]` carries `at` and counts from the card's own `from`. The elements a marker governs get `data-beat-hidden` (with `!important`, since card items and dissolved lists set their own `display`); print hides only the marker. `::: expand` keeps the `<hr>` – its body is off the projection.
 - `::: expand <label>` and `::: footnote` / `::: marginalia` become separate nodes attached to the chunk (`::: margin` is the older spelling of `::: footnote`, still accepted and documented nowhere); `::: cols N`, `::: side` / `::: flip`, `::: slide` / `::: script` are layout wrappers that stay inline in the body as `<div>`/`<aside>` elements and let `marked`'s html-block passthrough render the inner Markdown.
 - `::: slide` / `::: script` are the **explicit slide-content** escape hatch from topic-sentence extraction (PRD §4.5). They add no runtime state and no sync field: the parser emits `.slide-explicit` / `.script-only` wrappers and the whole mode is CSS (`:has()` rules under `[data-collapse=topic-bold]`), plus a `closest()` guard in `splitSentencesIn` so explicit blocks are never abridged. The hiding selector must match at any depth (`*:not(.slide-explicit):not(:has(.slide-explicit)):not(.slide-explicit *)`) – matching only `.reveal-segment > *` breaks as soon as a `::: slide` sits inside a `::: side` or `::: cols` wrapper.
 - `::: cols N` **folds to a single column while collapsed** (`[data-collapse=topic-bold] .cols-2, .cols-3 { column-count: 1 }`). Collapsed content is one topic sentence per paragraph, and `.cols > *` sets `break-inside: avoid`, so the browser can only balance in whole paragraphs – a one-line and a five-line paragraph land as a stub beside a wall of text, and two short ones as two stubs with the full gutter between them. Print and the un-collapsed reading mode keep the author's columns, where there is enough content to balance.
@@ -189,6 +189,25 @@ Checks enforced:
 - Unclosed `:::` directives and orphan `:::` closers.
 - Per-type word-count budgets (principle/question 80, definition 200, example 250, free 250, exercise 350; title/figure unlimited). Counted against the **on-screen** half only: the `::: slide` block if the chunk has one, otherwise everything outside `::: script`.
 - Duplicate `::: slide` / `::: script` blocks in one chunk (warning).
+- **What may open inside what.** Ten refusals the build mirrors line for line
+  (`aside-in-layout`, `overlay-in-layout`,
+  `directive-in-overlay`, `directive-in-cards`, `directive-in-embed`,
+  `side-in-cols`, `duplicate-flip`, `explicit-nested`, a directive other than
+  `backdrop` / `draw` / `cards` / `rows` under a column heading, plus the older
+  `cards-nested` / `draw-in-cols` / `nested-directive`) and seven warnings only
+  the linter raises (`side-without-flip`, `cols-in-cols`, `explicit-in-side`,
+  `duplicate-marginalia`, `layout-too-narrow`, `overlay-from-beyond`,
+  `overlay-steps-early`). A `---` inside a wrapper is not one of them: it is
+  a beat below the top level (see *Parser* above), and `test/beats-nested.mjs`
+  walks the order in a browser. `::: draw` deliberately goes nearly everywhere – a
+  pane, a card, an overlay, an expansion, a divider – and is refused only in a
+  text flow (`cols`) and a caption (`embed`). The
+  table is in the `psi-slides-authoring` skill under *Nesting*; the pairs are
+  fixtures in `test/settings.mjs`. Every refusal was a slide that rendered
+  wrong with exit 0 – a `::: expand` inside `::: cols` handed its closer to
+  the columns, a `::: cols` inside `::: overlay` drew an empty column block
+  – and the corpus nests exactly one thing, a figure in a pane, so none of
+  them costs an existing lecture a build.
 - Unknown value for a viewer-default frontmatter key (`unknown-view-default`, error) or for a `style:` key (`unknown-style-setting`, error). Both mirror a build refusal that now runs in the `buildOnce` pre-flight, so `--print-only` refuses a typo in `auto-fit` and `--audience-only` refuses one in `print-slide-numbers`.
 - Assets over the 2 MB inline cap (`oversized-asset`, warning) – the pre-commit gate for the single-file property.
 - Unclosed display math (`unclosed-math`, warning). Fence-aware. Inline `$…$` is deliberately not checked: a lone dollar in prose is legitimate and the build leaves it alone.

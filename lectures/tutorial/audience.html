@@ -838,6 +838,12 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 /* reveal segments: first visible, rest hidden until advanced */
 .reveal-segment { transition: opacity 180ms ease; }
 .reveal-segment[data-hidden] { display: none; }
+/* A --- below the top level (BEAT_MARK). The marker itself is never shown;
+   the elements it governs carry data-beat-hidden until their beat. */
+.beat-mark, [data-beat-hidden] { display: none !important; }
+/* !important is the point: a card item, a list dissolved into a grid and a
+   pane child each set their own display, and a beat is state over all of
+   them - the same element must vanish whatever box it would otherwise be. */
 
 /* per-tag treatments */
 .chunk[data-tag=principle] .chunk-content::before {
@@ -1700,7 +1706,11 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    flow rather than N. */
 .overlay-layer {
   position: absolute;
-  inset: var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
+  /* inset: 0 plus padding rather than an inset, so that a panel (below)
+     has the whole slide as its containing block. The grid's content box is
+     where it always was, so no card moves. */
+  inset: 0;
+  padding: var(--slide-pad-y) calc(var(--slide-pad-x) * 0.62);
   z-index: 3;
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1807,11 +1817,89 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 }
 .overlay-card.ov-accent strong, .overlay-card.ov-accent b { color: currentColor; }
 .overlay-card.ov-glass {
-  background: color-mix(in oklch, var(--paper) 26%, transparent);
-  backdrop-filter: blur(14px) saturate(1.2);
+  /* 26% was frosted glass over a photograph and the ink on it fell under
+     3:1 on any mid-tone picture - measured on a panel, where there is a
+     lot of it. Half the paper keeps the picture legible through it and the
+     words legible on it; a panel goes further still, because it is the
+     text area of the slide and not an object on the picture. */
+  background: color-mix(in oklch, var(--paper) 52%, transparent);
+  backdrop-filter: blur(16px) saturate(1.15);
   border: 1px solid color-mix(in oklch, var(--ink) 12%, transparent);
 }
+.overlay-card.ov-glass.ov-panel { background: color-mix(in oklch, var(--paper) 68%, transparent); }
 .overlay-card.ov-clear { background: none; padding: 0; backdrop-filter: none; }
+/* shape: panel - the card grown to the frame. The layer keeps a card off
+   the slide's edges with its padding; a panel wants exactly the edge, so it
+   leaves the grid (position: absolute against the layer, whose padding box
+   is the slide) and takes the same padding inside, which keeps its words
+   on the slide's own text grid. Absolute rather than negative margins
+   because --slide-pad-x is a percentage: a margin resolves it against the
+   grid area and came up a third short of the edge, while an absolute
+   box's width and padding resolve it against the layer, which is the
+   slide. grid-area: auto, or the grid lines would still be the containing
+   block. A square slab, not a rounded card: rounding says "object on the
+   picture" and a panel is a region of it. The width word is the column's
+   width for left / right and the text measure inside a band. */
+.overlay-card.ov-panel {
+  position: absolute;
+  grid-area: auto;
+  /* The card's align-self: center still applies to an absolutely positioned
+     grid child and shrank a top: 0 / bottom: 0 column to its words, centred. */
+  align-self: stretch; justify-self: stretch;
+  margin: 0;
+  max-width: none;
+  border-radius: 0;
+  box-shadow: none;
+  border: 0;
+  --ov-inset-x: calc(var(--slide-pad-x) * 0.62);
+  --ov-pad-x: calc(var(--ov-inset-x) + 1.05em);
+  --ov-pad-y: calc(var(--slide-pad-y) + 0.85em);
+}
+.overlay-card.ov-panel.ov-left, .overlay-card.ov-panel.ov-right {
+  top: 0; bottom: 0;
+  display: flex; flex-direction: column; justify-content: center;
+}
+/* The same air on the picture side as on the frame side: with a card's
+   1.05em there, the words sat against the photograph's edge. So the width
+   is the measure plus the inset twice. */
+.overlay-card.ov-panel.ov-left  { left: 0;  padding: var(--ov-pad-y) var(--ov-pad-x); }
+.overlay-card.ov-panel.ov-right { right: 0; padding: var(--ov-pad-y) var(--ov-pad-x); }
+.overlay-card.ov-panel.ov-left.ov-w-narrow,   .overlay-card.ov-panel.ov-right.ov-w-narrow   { width: calc(19em + 2 * var(--ov-inset-x)); }
+.overlay-card.ov-panel.ov-left.ov-w-standard, .overlay-card.ov-panel.ov-right.ov-w-standard { width: calc(29em + 2 * var(--ov-inset-x)); }
+.overlay-card.ov-panel.ov-left.ov-w-wide,     .overlay-card.ov-panel.ov-right.ov-w-wide     { width: calc(42em + 2 * var(--ov-inset-x)); }
+.overlay-card.ov-panel.ov-left.ov-w-full,     .overlay-card.ov-panel.ov-right.ov-w-full     { width: 50%; }
+/* A band's padding is the same above and below, and its words are centred
+   in whatever height it has: with the slide padding on the outer side only,
+   a two-line band had its text a line too high and read as a mistake. The
+   height words give the band a share of the slide; the words stay centred. */
+.overlay-card.ov-panel.ov-top, .overlay-card.ov-panel.ov-bottom {
+  left: 0; right: 0;
+  padding: var(--ov-pad-y) var(--ov-pad-x);
+  display: flex; flex-direction: column; justify-content: center;
+}
+.overlay-card.ov-panel.ov-top    { top: 0; }
+.overlay-card.ov-panel.ov-bottom { bottom: 0; }
+.overlay-card.ov-panel.ov-h-third { min-height: 33.333%; }
+.overlay-card.ov-panel.ov-h-half  { min-height: 50%; }
+.overlay-card.ov-panel.ov-top.ov-w-narrow > *,   .overlay-card.ov-panel.ov-bottom.ov-w-narrow > *   { max-width: 19em; }
+.overlay-card.ov-panel.ov-top.ov-w-standard > *, .overlay-card.ov-panel.ov-bottom.ov-w-standard > * { max-width: 29em; }
+.overlay-card.ov-panel.ov-top.ov-w-wide > *,     .overlay-card.ov-panel.ov-bottom.ov-w-wide > *     { max-width: 42em; }
+.overlay-card.ov-panel.ov-center {
+  inset: 0;
+  padding: var(--ov-pad-y) var(--ov-pad-x);
+  display: flex; flex-direction: column; justify-content: center; align-items: center;
+  text-align: center;
+}
+.overlay-card.ov-panel.ov-center.ov-w-narrow > *   { max-width: 19em; }
+.overlay-card.ov-panel.ov-center.ov-w-standard > * { max-width: 29em; }
+.overlay-card.ov-panel.ov-center.ov-w-wide > *     { max-width: 42em; }
+/* A panel that arrives on a beat slides in from its edge rather than
+   lifting like a card. */
+.overlay-card.ov-panel.ov-left[data-hidden]   { transform: translateX(-1.2em); }
+.overlay-card.ov-panel.ov-right[data-hidden]  { transform: translateX(1.2em); }
+.overlay-card.ov-panel.ov-bottom[data-hidden] { transform: translateY(1.2em); }
+.overlay-card.ov-panel.ov-top[data-hidden]    { transform: translateY(-1.2em); }
+.overlay-card.ov-panel.ov-center[data-hidden] { transform: none; }
 
 /* ── card grid (::: cards N) ─────────────────────────────────────────
    Not a second spelling of cols. cols is one text flow the browser
@@ -3933,6 +4021,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
 </article>
 <article class="chunk chunk-principle" id="one-source" data-chunk-id="one-source" data-tag="principle" data-width="standard" data-chunk-num="2">
   
@@ -4091,6 +4180,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
 </article>
 <article class="chunk chunk-principle" id="pace" data-chunk-id="pace" data-tag="principle" data-width="standard" data-chunk-num="6">
   
@@ -4255,6 +4345,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
 </article>
 <article class="chunk chunk-principle" id="jumping" data-chunk-id="jumping" data-tag="principle" data-width="standard" data-chunk-num="12">
   
@@ -4359,6 +4450,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
 </article>
 <article class="chunk chunk-principle" id="two-modes" data-chunk-id="two-modes" data-tag="principle" data-width="standard" data-chunk-num="16">
   
@@ -4499,6 +4591,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
 </article>
 <article class="chunk chunk-principle" id="grammar" data-chunk-id="grammar" data-tag="principle" data-width="wide" data-chunk-num="21">
   
@@ -4605,6 +4698,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
 </article>
 <article class="chunk chunk-principle" id="two-screens" data-chunk-id="two-screens" data-tag="principle" data-width="standard" data-chunk-num="24">
   
@@ -4800,6 +4894,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
 </article>
 <article class="chunk chunk-principle" id="layout-axes" data-chunk-id="layout-axes" data-tag="principle" data-width="standard" data-chunk-num="31">
   
@@ -5139,6 +5234,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
 </article>
 <article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="wide" data-chunk-num="42">
   
@@ -5236,6 +5332,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
 </article>
 <article class="chunk chunk-principle" id="start-writing" data-chunk-id="start-writing" data-tag="principle" data-width="standard" data-chunk-num="45">
   
@@ -5379,6 +5476,7 @@ are tagged into a release.</p>
 </blockquote>
 </div>
   </div>
+  
 </article>
 <article class="chunk chunk-principle" id="drawn-from-text" data-chunk-id="drawn-from-text" data-tag="principle" data-width="standard" data-chunk-num="50">
   
@@ -6028,6 +6126,7 @@ are tagged into a release.</p>
 </blockquote>
 </div>
   </div>
+  
 </article>
 <article class="chunk chunk-principle" id="deco-idea" data-chunk-id="deco-idea" data-tag="principle" data-width="standard" data-chunk-num="67">
   
@@ -8095,13 +8194,31 @@ function applyState() {
 function chunkBeats(el) {
   const out = [];
   let segIdx = 0;
-  el.querySelectorAll('.reveal-segment, svg.psi-diagram').forEach(node => {
+  el.querySelectorAll('.reveal-segment, svg.psi-diagram, .beat-mark').forEach(node => {
     // A diagram inside an expansion body is not on the projection, so its
     // steps must not consume beats – Space would advance a counter and the
     // room would see nothing happen.
     if (node.closest('.exp-body, .chunk-expansion')) return;
     if (node.classList.contains('reveal-segment')) {
       if (segIdx++ > 0) out.push({ type: 'seg', el: node });
+      return;
+    }
+    // A --- below the top level: the beat owns every element sibling after
+    // the marker up to the next marker in the same parent. Document order
+    // is source order, so a marker in the left pane comes before one in the
+    // right and both before a top-level segment written after the block.
+    if (node.classList.contains('beat-mark')) {
+      const els = [];
+      for (let n = node.nextElementSibling; n && !n.classList.contains('beat-mark'); n = n.nextElementSibling) els.push(n);
+      // Inside an overlay held to a beat, the card's own beats start after
+      // it arrives: from 3 and two markers is the card on 3, its second
+      // block on 4, its third on 5 - whatever position the marker has in
+      // the slide's list. Without at, the overlay layer comes after the
+      // body in document order, so its inner beats would be numbered
+      // before its own from-beat and play behind a card not yet shown.
+      const ov = node.closest('.overlay-card[data-from]');
+      const at = ov ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node) : null;
+      out.push({ type: 'mark', els, at });
       return;
     }
     const d = node.psiDiagram;
@@ -8129,9 +8246,11 @@ function bdFrames(el) {
 // Positions, not beats: 1 means "in the chunk, nothing advanced yet", which
 // is the convention jumpTo and advanceReveal were already written against.
 function countSegments(el) {
-  const beats = chunkBeats(el).length;
+  const all = chunkBeats(el);
+  const beats = all.length;
   const bd = bdFrames(el);
   let n = beats ? beats + 1 : (el.querySelector('.reveal-segment') ? 1 : 0);
+  all.forEach(b => { if (b.at != null) n = Math.max(n, b.at + 1); });
   if (bd) n = Math.max(n, bd.frames.length);
   el.querySelectorAll('.overlay-card[data-from]').forEach(c => {
     n = Math.max(n, Number(c.dataset.from) + 1);
@@ -8156,6 +8275,13 @@ function applyReveal(el, id, instant) {
       // views so the two DOMs stay identical.
       if (i === consumed) b.el.setAttribute('data-next', '');
       else b.el.removeAttribute('data-next');
+    } else if (b.type === 'mark') {
+      const shown = b.at != null ? consumed >= b.at : on;
+      const next = b.at != null ? consumed === b.at - 1 : i === consumed;
+      b.els.forEach((e, k) => {
+        e.toggleAttribute('data-beat-hidden', !shown);
+        e.toggleAttribute('data-next', !shown && next && k === 0);
+      });
     } else if (on) {
       steps.set(b.d, Math.max(steps.get(b.d) || 0, b.step));
     }

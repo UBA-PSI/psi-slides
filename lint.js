@@ -252,6 +252,14 @@ import {
 
 const REVEAL_PCT_WARN = 0.5;
 const ORPHAN_MIN = 2;
+// The measure each chunk width gives its body, in em, mirroring the audience
+// CSS (`narrow` 28, `standard` 36, `wide` 52, `full` 72), and the least a
+// column, a pane or a card may be given before the linter says so. Ten em is
+// about twenty characters a line: below that a paragraph is a ribbon. The
+// widest row in the corpus, five cards in a wide chunk, is 10.4em a card and
+// passes; six would not, and six cards in a row is a table.
+const WIDTH_EM = { narrow: 28, standard: 36, wide: 52, full: 72 };
+const MIN_TRACK_EM = 10;
 
 // One sentence per statement, and then it stops. Until now this file had no
 // option check at all on the seven statements a newcomer meets first, so
@@ -2324,6 +2332,14 @@ function lintFile(filePath) {
   // does the density budget care where a line came from.
   let proseEntries = [];
   let chunkHasReveal = false;
+  // The chunk's own beats, counted for the one check that needs a number
+  // rather than a flag: an ::: overlay `from N` beyond the last beat adds
+  // empty advances to the slide. Segments are the --- lines, steps are the
+  // `step` blocks of every figure on the chunk, and a backdrop reveal has
+  // one place per beat, the first of which is the beat the slide opens on.
+  let chunkReveals = 0;
+  let chunkSteps = 0;
+  let chunkOverlays = [];
   // A ::: draw opener never reaches chunkBody - it is captured into `diagram`
   // and its body with it - so a chunk-level flag is the only way a later check
   // can know the chunk drew something. Same shape as chunkHasReveal.
@@ -2338,7 +2354,18 @@ function lintFile(filePath) {
   let inMetaBlock = false;
 
   const flushChunk = () => {
-    if (!chunk) return;
+    // A divider's own card row, left open: the build captures every line
+    // after it, headings included, and refuses at the end of the file. With
+    // no chunk to hang the report on, it is named here at the heading that
+    // ended the divider.
+    if (!chunk) {
+      while (layoutStack.length) {
+        const l = layoutStack.pop();
+        add(l.line, 'error', 'unclosed-directive',
+            `::: ${l.kind} not closed before next chunk or column`);
+      }
+      return;
+    }
     const budget = DENSITY_BUDGET[chunk.tag ?? 'free'];
     if (budget !== null) {
       // What counts against the budget is the on-screen half: the ::: slide
@@ -2402,6 +2429,20 @@ function lintFile(filePath) {
       add(l.line, 'error', 'unclosed-directive',
           `::: ${l.kind} not closed before next chunk or column`);
     }
+    // Mirrors countSegments in the audience runtime: the beat count is the
+    // greater of the chunk's own beats and what the overlays ask for, so a
+    // `from` past the last beat is honoured - with nothing happening on the
+    // beats in between. `from` one past the last beat is the card arriving
+    // after everything else and is fine.
+    const beats = Math.max(chunkReveals + chunkSteps, (chunk.bdPlaces || 1) - 1);
+    for (const ov of chunkOverlays) {
+      if (ov.from > beats + 1) {
+        add(ov.line, 'warn', 'overlay-from-beyond',
+            `::: overlay from ${ov.from}, but the chunk has ${beats === 0 ? 'no beats' : beats === 1 ? 'one beat' : beats + ' beats'} `
+            + `of its own – the projector shows ${ov.from - beats - 1} empty advance${ov.from - beats - 1 === 1 ? '' : 's'} before the card; `
+            + `write from ${beats + 1} or add a --- / step it can follow`);
+      }
+    }
     chunk.hasReveal = chunkHasReveal;
     col.chunks.push(chunk);
     chunk = null;
@@ -2410,8 +2451,34 @@ function lintFile(filePath) {
     scriptBody = [];
     proseEntries = [];
     chunkHasReveal = false;
+    chunkReveals = 0;
+    chunkSteps = 0;
+    chunkOverlays = [];
     chunkHasDrawing = false;
   };
+
+  // What is open around a line, asked the way build.js asks it. The two
+  // files have to agree here or a lecture loses a pane between a clean
+  // lint and a clean build; each refusal below names its counterpart.
+  const stackHas = (re) => layoutStack.find(l => re.test(l.kind));
+  const innermost = () => layoutStack.length ? `::: ${layoutStack[layoutStack.length - 1].kind.split(' ')[0]}` : null;
+  // The measure a new block would be given, in em: the chunk's width,
+  // divided by every open ::: cols / ::: cards, and by a ::: side pane's
+  // share of its ratio (gap ignored, panes get the benefit of the doubt).
+  const measureHere = () => {
+    if (!chunk) return Infinity;
+    const wcls = [...(chunk.classes || [])].find(c => WIDTH_EM[c]);
+    let em = WIDTH_EM[wcls || (chunk.tag === 'outline' ? 'wide' : 'standard')];
+    for (const l of layoutStack) {
+      const m = l.kind.match(/^(cols|cards) (\d)/);
+      if (m) em /= Number(m[2]);
+      else if (l.kind === 'side') em *= (l.flipped ? l.ratio[1] : l.ratio[0]) / (l.ratio[0] + l.ratio[1]);
+    }
+    return em;
+  };
+  // Named the way the width was written: a chunk with no class is standard.
+  const widthWord = () => [...(chunk && chunk.classes || [])].find(c => WIDTH_EM[c])
+    || (chunk && chunk.tag === 'outline' ? 'wide' : 'standard');
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -2425,6 +2492,11 @@ function lintFile(filePath) {
     if (diagram) {
       if (/^:::\s*$/.test(line)) {
         lintDiagram(diagram, add, fmLines, lectureTags);
+        const steps = diagram.lines.filter(l => /^step\b/.test(l.text)).length;
+        chunkSteps += steps;
+        // A figure inside an overlay walks its steps on the chunk's counter
+        // from beat 1, whatever beat the card itself arrives on.
+        if (activeDirective && activeDirective.kind === 'overlay') activeDirective.steps = (activeDirective.steps || 0) + steps;
         diagram = null;
       } else {
         diagram.lines.push({ text: line, ln });
@@ -2442,8 +2514,30 @@ function lintFile(filePath) {
     // a syntax example, not a diagram. build.js guards the same way, and a
     // linter that disagrees with the build is worse than none – this one
     // failed any lecture that documented the directive.
+    // Mirrors build.js: a card row's body is captured, not parsed, so any
+    // directive in a card printed itself on the slide as text and its
+    // closer ended the row early. A ::: draw is the exception the build
+    // makes - a figure is a card of its own - so it is not one here. The
+    // line is then handled as usual so the closers still balance and one
+    // mistake is one report.
+    if ((chunk || col) && /^:::\s+\S/.test(line) && !parseDrawOpener(line)) {
+      const host = stackHas(/^(cards|rows)\b/);
+      if (host) {
+        add(ln, 'error', 'directive-in-cards',
+            `${line.trim().split(/\s+/).slice(0, 2).join(' ')} inside ::: ${host.kind.split(' ')[0]} (line ${host.line}) – `
+            + 'a card holds prose and no directive; the row\'s body is read as text');
+      }
+    }
+
     const diagramOpen = parseDrawOpener(line);
     if (diagramOpen) {
+      // Mirrors build.js: an embed's body is its caption, and a figure
+      // opened there sits inside a <figcaption>. An overlay takes a figure -
+      // a small drawing on a card over a photograph - and so does a card.
+      if (stackHas(/^embed$/)) {
+        add(ln, 'error', 'directive-in-embed',
+            `::: draw inside ::: embed (line ${stackHas(/^embed$/).line}) – the lines under an embed are its caption`);
+      }
       // A column heading's own slide may carry a figure - that is how a part
       // opens on a drawing. Outside both a chunk and a column there is
       // nothing for it to be on.
@@ -2573,6 +2667,13 @@ function lintFile(filePath) {
         add(ln, 'error', 'stray-directive',
             `::: directive outside any chunk`);
       }
+      // Mirrors build.js: the aside's closing ::: popped the wrapper instead,
+      // and the prose after the aside was folded into it.
+      if (layoutStack.length) {
+        add(ln, 'error', 'aside-in-layout',
+            `::: ${expandOpen ? 'expand' : marginOpen[1]} inside ${innermost()} (line ${layoutStack[layoutStack.length - 1].line}) – `
+            + 'an expansion or footnote is folded under the whole chunk, so write it after the block\'s closing :::');
+      }
       activeDirective = { kind: expandOpen ? 'expand' : marginOpen[1], line: ln };
       continue;
     }
@@ -2605,6 +2706,7 @@ function lintFile(filePath) {
       // still the build's, like every other reference in this file.
       if (backdropOpen[3] != null) {
         const places = backdropOpen[3].split(',').map(s => s.trim()).filter(Boolean);
+        if (chunk) chunk.bdPlaces = places.length;
         if (places.length < 2) {
           add(ln, 'error', 'bad-backdrop-reveal',
               '::: backdrop: reveal needs at least two places, one per beat – '
@@ -2639,7 +2741,9 @@ function lintFile(filePath) {
       continue;
     }
     if (overlayOpen) {
-      if (!chunk) {
+      // A divider takes an overlay too - a card of words over the picture a
+      // part opens on - so only a line before any heading is stray.
+      if (!chunk && !col) {
         add(ln, 'error', 'stray-directive', '::: overlay outside any chunk');
       }
       // `from 0` is the beat the slide opens on, which is what writing no
@@ -2650,14 +2754,37 @@ function lintFile(filePath) {
             + 'from 1 up; beat 0 is the beat the slide opens on, which is what writing '
             + 'no `from` already says');
       }
-      for (const p of parseTail(overlayOpen[1], OVERLAY_SLOTS, '::: overlay').problems) {
+      const ovTail = parseTail(overlayOpen[1], OVERLAY_SLOTS, '::: overlay');
+      for (const p of ovTail.problems) {
         add(ln, 'error', p.code, p.msg);
+      }
+      // Mirrors build.js: a panel reaches one edge, and a corner names two.
+      const ovH = ovTail.slots.height.value, ovP = ovTail.slots.place.value;
+      if (ovH !== 'snug' && !(ovTail.slots.shape.value === 'panel' && (ovP === 'top' || ovP === 'bottom'))) {
+        add(ln, 'error', 'bad-overlay-height',
+            `::: overlay {.${ovH}} – a height belongs to a top or bottom panel; a column is as tall as the slide `
+            + 'and a card as tall as its words');
+      }
+      if (ovTail.slots.shape.value === 'panel' && /-/.test(ovTail.slots.place.value)) {
+        add(ln, 'error', 'bad-overlay-panel',
+            `::: overlay {.panel .${ovTail.slots.place.value}} – a panel reaches one edge of the frame and a corner names two; `
+            + 'write left, right, top or bottom for a column or a band, or center for the whole frame');
       }
       if (activeDirective) {
         add(ln, 'error', 'nested-directive',
             `::: overlay inside still-open ::: ${activeDirective.kind} (line ${activeDirective.line})`);
       }
-      activeDirective = { kind: 'overlay', line: ln };
+      // Mirrors build.js: the wrapper's closing ::: was read as the
+      // overlay's, and the prose after it went into the card.
+      if (layoutStack.length) {
+        add(ln, 'error', 'overlay-in-layout',
+            `::: overlay inside ${innermost()} (line ${layoutStack[layoutStack.length - 1].line}) – `
+            + 'an overlay is laid over the whole slide, so write it outside the block, at chunk level');
+      }
+      if (overlayOpen[2] != null && /^[1-9]\d*$/.test(overlayOpen[2])) {
+        chunkOverlays.push({ from: Number(overlayOpen[2]), line: ln });
+      }
+      activeDirective = { kind: 'overlay', line: ln, from: Number(overlayOpen[2]) || 0 };
       continue;
     }
 
@@ -2747,9 +2874,13 @@ function lintFile(filePath) {
       }
     }
     if (colsOpen || cardsOpen || rowsOpen || sideOpen || marginaliaOpen || slideOpen || scriptOpen || embedOpen) {
-      if (!chunk) {
+      // A divider takes a card row or a row block beside its backdrop and
+      // its figure; every other directive there is a slide that has stopped
+      // being a divider, and the build refuses it with the same words.
+      if (!chunk && !(col && (cardsOpen || rowsOpen))) {
         add(ln, 'error', 'stray-directive',
-            `::: layout directive outside any chunk`);
+            col ? `::: layout directive under a column heading – a divider takes ::: backdrop, ::: draw, ::: cards / ::: rows and prose; anything else belongs in a ## chunk`
+                : `::: layout directive outside any chunk`);
       }
       const kind = colsOpen ? `cols ${colsOpen[1]}`
         : rowsOpen ? 'rows'
@@ -2758,6 +2889,68 @@ function lintFile(filePath) {
         : marginaliaOpen ? 'marginalia'
         : embedOpen ? 'embed'
         : slideOpen ? 'slide' : 'script';
+      const word = kind.split(' ')[0];
+      const isCards = cardsOpen || rowsOpen;
+      // Mirrors build.js, one refusal per line of it. A card row inside an
+      // overlay or an embed is already `cards-nested` above, so those two
+      // are not reported twice.
+      if (!isCards && activeDirective && activeDirective.kind === 'overlay') {
+        add(ln, 'error', 'directive-in-overlay',
+            `::: ${word} inside ::: overlay (line ${activeDirective.line}) – an overlay holds prose and no block or figure`);
+      }
+      if (!isCards && stackHas(/^embed$/)) {
+        add(ln, 'error', 'directive-in-embed',
+            `::: ${word} inside ::: embed (line ${stackHas(/^embed$/).line}) – the lines under an embed are its caption`);
+      }
+      if (sideOpen && stackHas(/^cols/)) {
+        add(ln, 'error', 'side-in-cols',
+            '::: side inside ::: cols – a two-pane grid breaks the column flow, so the columns '
+            + 'silently stop working; use one or the other');
+      }
+      if ((slideOpen || scriptOpen) && stackHas(/^(slide|script)$/)) {
+        add(ln, 'error', 'explicit-nested',
+            `::: ${word} inside ::: ${stackHas(/^(slide|script)$/).kind} – one says "this is the screen", `
+            + 'the other "this is not"; neither can hold the other or itself');
+      }
+      // From here on the build draws it and the linter has an opinion.
+      if (colsOpen && stackHas(/^cols/)) {
+        add(ln, 'warn', 'cols-in-cols',
+            '::: cols inside ::: cols – a flow balanced inside a flow; the inner block '
+            + 'is kept whole in one outer column and splits that column again');
+      }
+      if ((slideOpen || scriptOpen) && stackHas(/^side$/)) {
+        add(ln, 'warn', 'explicit-in-side',
+            `::: ${word} inside ::: side – the collapse hides the other pane on the projection `
+            + 'and the grid keeps its track, so the slide shows one pane at half width; '
+            + 'wrap the whole ::: side in the explicit block instead');
+      }
+      if (marginaliaOpen && chunk) {
+        if (chunk.marginaliaSeen) {
+          add(ln, 'warn', 'duplicate-marginalia',
+              `second ::: marginalia in one chunk (first at line ${chunk.marginaliaSeen}) – `
+              + 'both are anchored at the top of the margin and overlap; merge them');
+        } else {
+          chunk.marginaliaSeen = ln;
+        }
+      }
+      // What the measure divides down to. A ::: side ratio is read here for
+      // the pane share; the anchor tail is the slot table's business above.
+      const sideRatio = sideOpen
+        ? (line.match(/side\s+(\d{1,2})\s*:\s*(\d{1,2})/) || [, 1, 1]).slice(1, 3).map(Number)
+        : null;
+      const tracks = colsOpen ? Number(colsOpen[1]) : cardsOpen ? Number(cardsOpen[1]) : null;
+      if (chunk && (tracks || sideOpen)) {
+        const em = measureHere();
+        const track = tracks ? em / tracks
+          : em * Math.min(...sideRatio) / (sideRatio[0] + sideRatio[1]);
+        if (track < MIN_TRACK_EM) {
+          const each = tracks ? (colsOpen ? 'column' : 'card') : 'pane';
+          const host = layoutStack.length ? `${innermost()} in ` : '';
+          add(ln, 'warn', 'layout-too-narrow',
+              `::: ${kind} in ${host}a ${widthWord()} chunk gives each ${each} about ${Math.round(track)}em – `
+              + `under ${MIN_TRACK_EM}em a paragraph is a ribbon; use a wider chunk or fewer ${each}s`);
+        }
+      }
       if (slideOpen || scriptOpen) {
         // One explicit block of each kind per chunk. A second one would
         // render fine but splits the on-screen content into pieces the
@@ -2770,7 +2963,7 @@ function lintFile(filePath) {
           chunk[seen + 'Seen'] = ln;
         }
       }
-      layoutStack.push({ kind, line: ln });
+      layoutStack.push({ kind, line: ln, ratio: sideRatio, flipped: false });
       continue;
     }
     if (flipMark) {
@@ -2778,24 +2971,49 @@ function lintFile(filePath) {
       if (!top || top.kind !== 'side') {
         add(ln, 'error', 'stray-directive',
             `::: flip without an enclosing ::: side`);
+      } else if (top.flipped) {
+        // Mirrors build.js: a second flip opened a third pane in a two-track
+        // grid, which wrapped onto a row of its own.
+        add(ln, 'error', 'duplicate-flip',
+            `second ::: flip in one ::: side (line ${top.line}) – a side has two panes; for three things in a row write ::: cards 3`);
+      } else {
+        top.flipped = true;
       }
       continue;
     }
     if (/^:::\s*$/.test(line)) {
       if (layoutStack.length) {
-        layoutStack.pop();
+        const closed = layoutStack.pop();
+        // Not an error: the build draws one pane in a two-track grid, at
+        // half the measure with nothing beside it - which is a narrow
+        // chunk written the long way round.
+        if (closed.kind === 'side' && !closed.flipped) {
+          add(closed.line, 'warn', 'side-without-flip',
+              '::: side with no ::: flip – one pane in a two-track grid renders at half width '
+              + 'with nothing beside it; add the second pane or drop the ::: side');
+        }
         continue;
       }
       if (!activeDirective) {
         add(ln, 'error', 'stray-directive-close',
             `::: without a matching open directive`);
+      } else if (activeDirective.kind === 'overlay' && activeDirective.steps && activeDirective.from >= 2) {
+        add(activeDirective.line, 'warn', 'overlay-steps-early',
+            `::: overlay from ${activeDirective.from} holds a figure with ${activeDirective.steps} step${activeDirective.steps === 1 ? '' : 's'} – `
+            + `steps ride the chunk's counter from beat 1, so the first ${Math.min(activeDirective.from - 1, activeDirective.steps)} `
+            + 'play before the card is on the slide; write from 1, or give the beats to the body instead');
       }
       activeDirective = null;
       continue;
     }
 
     if (chunk && !activeDirective && line.trim() === '---') {
+      // At the top level the build splits the body into segments here;
+      // below it - in a pane, a card row, a column block - the same line is
+      // a beat marker the runtime honours in source order. Either way it is
+      // one beat on the chunk's counter, which is all this file needs.
       chunkHasReveal = true;
+      chunkReveals += 1;
       inMetaBlock = false;
       continue;
     }

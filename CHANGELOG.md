@@ -59,6 +59,83 @@ from building the same way is a major version.
 
 ### Added
 
+- **A `---` below the top level is a beat.** Inside a `::: side` pane, a
+  `::: cards` / `::: rows` block, an `::: overlay` card or under a
+  `# Heading`, a reveal separator used to split the chunk body around the
+  block – the opening `<div>` in one segment, the closing in the next, and
+  the browser's repair put the second pane on the first beat. Now the line
+  becomes a marker the runtime honours in source order: everything after it
+  inside its block waits for its beat, and the counter runs over the whole
+  slide, top-level and nested mixed – left pane's second paragraph, right
+  pane's first, then the card row written after the block. In an
+  `::: overlay from N` the inner beats count from `N`. Print shows every
+  beat at once; an `::: expand` keeps the rule. `test/beats-nested.mjs` walks
+  a six-beat sequence in a browser.
+- **`::: overlay {.panel}` – the card grown to the frame.** A photograph
+  with a text area set off from it is the slide that most often wanted an
+  overlay and could not quite have one: a card sits inside the slide's
+  padding, sized to its words. `.panel` with `left` / `right` is a column
+  the full height of the slide, with `top` / `bottom` a band the full
+  width, with `center` the whole frame; the width word is the column's
+  width or the band's text measure, `.third` / `.half` a band's share of
+  the slide's height with the words centred in it, the ground is what sets
+  the words off (`glass` went from 26% to 52% of the paper, and 68% on a
+  panel, because ink on frosted glass over a mid-tone photograph fell
+  under 3:1)
+  (`glass` blurs the picture behind them and leaves it vivid beside them),
+  and a corner place is refused. A panel held to a beat slides in from its
+  edge. The overlay layer is `inset: 0` plus padding now rather than an
+  inset, so a panel can be positioned against the slide; no card moves.
+- **A divider takes an `::: overlay`.** A photograph behind the part's
+  heading and a card of words in a corner is the composition a section
+  opener most often wants, and every piece of it existed; `from N` and the
+  beats inside the card work as on a chunk. The opener is read by one
+  function for chunks and dividers.
+- **A `::: draw` goes into an overlay, a card and a divider's card row; a
+  divider takes `::: cards` / `::: rows`.** A figure is what makes a frame a
+  design rather than a text column, so it now goes wherever it was opened:
+  a `::: draw` inside `::: overlay` is a small drawing on the card (it used
+  to land in the body behind it), one inside `::: cards` or `::: rows` is a
+  card of its own beside the text cards (it used to print as text), and a
+  part can open on three small figures or three names under its heading –
+  `::: cards N` and `::: rows` under a `# Heading` join `::: backdrop` and
+  `::: draw` as the divider's content, in the projection and in the printed
+  `.column-lede`. The two places a figure still does not go are a text flow
+  (`::: cols`, measured: it breaks the column count) and a caption
+  (`::: embed`).
+- **What may open inside what is now a rule, in the build and in the linter.**
+  The directives combined freely in the grammar and did not in the output: a
+  `::: expand` inside `::: cols` handed its closer to the columns
+  and folded the prose after it into the expansion; a `::: cols` inside
+  `::: overlay` drew an empty column block on the slide and kept the words in
+  the card; any directive inside `::: cards` printed itself as text and
+  ended the row early; a second `::: flip` opened a third pane; `::: slide`
+  inside `::: script` said two things at once; a `::: cols` under a column
+  heading printed itself under the heading. All of it built with exit 0, and
+  lint.js flagged one case of fourteen. (The `---` inside a wrapper, the
+  first case found, became a feature instead – see above.) The build
+  refuses each with the enclosing directive named and what to do instead;
+  lint.js reports the same line under `aside-in-layout`,
+  `overlay-in-layout`, `directive-in-overlay`, `directive-in-cards`,
+  `directive-in-embed`, `side-in-cols`, `duplicate-flip`, `explicit-nested`,
+  `stray-directive` for the divider, and the build now also refuses what
+  `nested-directive` alone reported – a second aside opened while one is
+  open used to close the first silently.
+  Seven combinations that render a slide, only not the one the author
+  pictured, are warnings in the linter alone: `side-without-flip`,
+  `cols-in-cols`, `explicit-in-side` (the collapse hides the other pane and
+  keeps its track), `duplicate-marginalia` (both anchor at the top of the
+  margin), `layout-too-narrow` (the measure divided by every open `cols`,
+  `cards` and `side` pane leaves a track under 10em – calibrated so the
+  widest row in the corpus, five cards in a wide chunk, passes) and
+  `overlay-from-beyond` (`from N` past the last beat plus one is answered
+  with empty advances) and `overlay-steps-early` (a stepped figure in an
+  overlay walks its steps from beat 1, whatever beat the card arrives on).
+  The table is in the `psi-slides-authoring` skill
+  under *Nesting*; every pair is a fixture in `test/settings.mjs`. Across
+  both repositories the corpus nests exactly one thing, a figure in a pane,
+  so no existing lecture changes.
+
 - **`style: {bold: …}` and `style: {print-bold: …}` set how a `**bold**` phrase
   looks, per view.** In this tool bold is a selection mark first – the collapse
   lifts it onto the slide as a bullet of its own – and a weight only by the

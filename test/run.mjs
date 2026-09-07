@@ -31,6 +31,7 @@ const SPECS = [
   './block-align.mjs',
   './side-anchor.mjs',
   './cards.mjs',
+  './beats-nested.mjs',
   './autoplay.mjs',
   './camera-fit.mjs',
   './squint.mjs',
