@@ -592,6 +592,13 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 :is(.overlay-card, .dock).ov-ink a  { color: #fff; }
 :is(.overlay-card, .dock).ov-accent { background: var(--emph); color: #fff; }
 :is(.overlay-card, .dock).ov-clear  { padding: 0; background: none; border: 0; }
+.dock.ov-tint { background: color-mix(in oklch, var(--ink) 4%, transparent); }
+/* Ink and accent grounds on paper: a bold keeps its accent on a light
+   card and loses it on a dark or accent one, or it vanishes (measured:
+   "Merke:" gone on an accent band, lead-ins dark red on black). */
+:is(.overlay-card, .dock).ov-ink strong, :is(.overlay-card, .dock).ov-ink b,
+:is(.overlay-card, .dock).ov-accent strong, :is(.overlay-card, .dock).ov-accent b,
+.cards.cg-accent strong, .cards.cg-accent b { color: currentColor; }
 .cards {
   display: grid;
   grid-template-columns: repeat(var(--card-n), minmax(0, 1fr));
@@ -1689,7 +1696,7 @@ corner and they stack rather than landing on top of each other.</p>
   <h1 class="column-heading">A dock at the frame's edge</h1>
   
   
-  <aside class="dock dock-left ov-paper dock-w-narrow"><ul>
+  <aside class="dock dock-left ov-tint dock-w-narrow"><ul>
 <li><a href="#dock-why">Why a dock</a></li>
 <li><a href="#dock-band">A band</a></li>
 <li><a href="#dock-from">On a beat</a></li>

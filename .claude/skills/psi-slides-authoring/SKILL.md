@@ -795,7 +795,7 @@ Three uses, and they are the reason it exists:
 | slot   | members (first is the default)                  |
 |--------|-------------------------------------------------|
 | edge   | `.left` `.right` `.top` `.bottom`               |
-| ground | `.paper` `.ink` `.accent` `.clear` `.glass`     |
+| ground | `.tint` `.paper` `.ink` `.accent` `.clear` `.glass` – `tint` is the card row's panel tint, and the default: on the slide's own paper a `paper` dock has no edge |
 | width  | `.narrow` `.standard` `.wide` (a column's width, a band's text measure) |
 | height | `.snug` `.third` `.half` (bands only)           |
 | scope  | `.once` `.every` (`.every` only under a `#` heading) |
@@ -804,7 +804,7 @@ The body holds prose, a list, an image, a `::: draw` and a `---`; no other
 directive. `.every` takes no `from` and no `---`: an inherited dock is on every
 slide from the moment each opens, and a beat is one slide's. A `::: marginalia`
 cannot share a slide with a right dock, which occupies the margin it extends
-into. `--squint` writes a dock as `[ dock · left · paper · w-narrow` (plus
+into. `--squint` writes a dock as `[ dock · left · tint · w-narrow` (plus
 `· inherited`). In print an own dock is a box after the chunk's text, an
 inherited one prints once, at the divider.
 

@@ -63,9 +63,11 @@ from building the same way is a major version.
   the slide; a dock is part of the frame: a `left` / `right` dock is a column
   the full height of the slide and the text column narrows beside it, a
   `top` / `bottom` dock a band across the whole width with the text above or
-  below it. It carries the overlay's vocabulary – the five grounds, three
-  widths, `from N` – plus a band height (`.third`, `.half`) and one word the
-  overlay does not have: `.every`, legal only under a `#` heading, which puts
+  below it. It carries the overlay's vocabulary – the five grounds plus
+  `tint` (the card row's panel tint, and the default, because a `paper` dock
+  on the slide's own paper has no edge), three widths, `from N` – plus a
+  band height (`.third`, `.half`) and one word the overlay does not have:
+  `.every`, legal only under a `#` heading, which puts
   the same dock on every chunk of the part, an own `::: dock` replacing it for
   one slide. A `#id` link in the body is a live marker (`done` / `now` /
   `next`, `all` on the divider, as `section: outline` draws them), and a link
@@ -86,6 +88,17 @@ from building the same way is a major version.
   `test/dock.mjs` measures the geometry in a browser;
   `lectures/decoration/source.md` shows all three uses under
   *A dock at the frame's edge*.
+- **What a lecture built to push the frame to its edges found.** A `---`
+  inside a dock was a beat the hide rule did not reach; a panel or dock held
+  to a beat was nudged past the frame while hidden and auto-fit read that as
+  overflow at every zoom (both wipe in now); a panel column's width was a
+  measure of type and followed the zoom to three quarters of a bare photo
+  slide (it is a share of the slide now: 30 / 40 / 52 / 62 %), and its inner
+  padding was the slide's text inset twice over; auto-fit could not see a
+  panel's words (it looks through the layer to its panels now, as it looks
+  through a dock); a bold on an ink or accent ground kept its accent colour
+  in print and vanished; the slide number and the note button sat on a top
+  band (they move to the foot).
 - **A directive before the first heading is refused.** It used to be
   dropped without a word – a `::: dock` above `## title:` simply vanished.
 - **A `---` below the top level is a beat.** Inside a `::: side` pane, a

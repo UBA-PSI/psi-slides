@@ -846,8 +846,8 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    speaker's ghost has to win over *this* in turn, and the collapse rules
    (0-4-x) have to keep winning over the ghost, or the cockpit announces as
    next a block the projector never shows. */
-.chunk .chunk-content .beat-mark, .chunk .overlay-layer .beat-mark,
-.chunk .chunk-content [data-beat-hidden], .chunk .overlay-layer [data-beat-hidden] { display: none; }
+.chunk .chunk-content .beat-mark, .chunk .overlay-layer .beat-mark, .chunk .dock .beat-mark,
+.chunk .chunk-content [data-beat-hidden], .chunk .overlay-layer [data-beat-hidden], .chunk .dock [data-beat-hidden] { display: none; }
 
 /* per-tag treatments */
 .chunk[data-tag=principle] .chunk-content::before {
@@ -1835,6 +1835,10 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   border: 1px solid color-mix(in oklch, var(--ink) 12%, transparent);
 }
 :is(.overlay-card.ov-panel, .dock).ov-glass { background: color-mix(in oklch, var(--paper) 68%, transparent); }
+/* tint - the card row's panel ground, the dock's default: a column on the
+   slide's own paper needs an edge, and paper has none. Follows the theme
+   through --ink, so a dark mode tints lighter. */
+.dock.ov-tint { background: color-mix(in oklch, var(--ink) 5%, transparent); }
 :is(.overlay-card, .dock).ov-clear { background: none; padding: 0; backdrop-filter: none; }
 /* shape: panel - the card grown to the frame. The layer keeps a card off
    the slide's edges with its padding; a panel wants exactly the edge, so it
@@ -1867,15 +1871,27 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   top: 0; bottom: 0;
   display: flex; flex-direction: column; justify-content: center;
 }
-/* The same air on the picture side as on the frame side: with a card's
-   1.05em there, the words sat against the photograph's edge. So the width
-   is the measure plus the inset twice. */
-.overlay-card.ov-panel.ov-left  { left: 0;  padding: var(--ov-pad-y) var(--ov-pad-x); }
-.overlay-card.ov-panel.ov-right { right: 0; padding: var(--ov-pad-y) var(--ov-pad-x); }
-.overlay-card.ov-panel.ov-left.ov-w-narrow,   .overlay-card.ov-panel.ov-right.ov-w-narrow   { width: calc(19em + 2 * var(--ov-inset-x)); }
-.overlay-card.ov-panel.ov-left.ov-w-standard, .overlay-card.ov-panel.ov-right.ov-w-standard { width: calc(29em + 2 * var(--ov-inset-x)); }
-.overlay-card.ov-panel.ov-left.ov-w-wide,     .overlay-card.ov-panel.ov-right.ov-w-wide     { width: calc(42em + 2 * var(--ov-inset-x)); }
-.overlay-card.ov-panel.ov-left.ov-w-full,     .overlay-card.ov-panel.ov-right.ov-w-full     { width: 50%; }
+/* The same air on the picture side as on the frame side - with a card's
+   1.05em there, the words sat against the photograph's edge - and neither
+   is the slide's text inset: 139px twice out of a 30% column left 200px
+   for the words and auto-fit shrank the type to 0.85 to make them fit.
+   A share of the slide's width, so it neither follows the zoom nor eats
+   the column. */
+.overlay-card.ov-panel.ov-left, .overlay-card.ov-panel.ov-right { padding: var(--ov-pad-y) calc(var(--slide-w) * 0.045); }
+.overlay-card.ov-panel.ov-left  { left: 0; }
+.overlay-card.ov-panel.ov-right { right: 0; }
+/* A column's width is a share of the slide, not a measure of type: in em
+   it followed the zoom, and on a bare photo slide - where auto-fit has no
+   body to measure and goes to its ceiling - a narrow panel came out at
+   three quarters of the frame with a strip of picture left. The text
+   measure inside it is still capped in em by the width word. */
+.overlay-card.ov-panel.ov-left.ov-w-narrow,   .overlay-card.ov-panel.ov-right.ov-w-narrow   { width: 30%; }
+.overlay-card.ov-panel.ov-left.ov-w-standard, .overlay-card.ov-panel.ov-right.ov-w-standard { width: 40%; }
+.overlay-card.ov-panel.ov-left.ov-w-wide,     .overlay-card.ov-panel.ov-right.ov-w-wide     { width: 52%; }
+.overlay-card.ov-panel.ov-left.ov-w-full,     .overlay-card.ov-panel.ov-right.ov-w-full     { width: 62%; }
+.overlay-card.ov-panel.ov-left.ov-w-narrow > *,   .overlay-card.ov-panel.ov-right.ov-w-narrow > *   { max-width: 19em; }
+.overlay-card.ov-panel.ov-left.ov-w-standard > *, .overlay-card.ov-panel.ov-right.ov-w-standard > * { max-width: 29em; }
+.overlay-card.ov-panel.ov-left.ov-w-wide > *,     .overlay-card.ov-panel.ov-right.ov-w-wide > *     { max-width: 42em; }
 /* A band's padding is the same above and below, and its words are centred
    in whatever height it has: with the slide padding on the outer side only,
    a two-line band had its text a line too high and read as a mistake. The
@@ -1901,13 +1917,17 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .overlay-card.ov-panel.ov-center.ov-w-narrow > *   { max-width: 19em; }
 .overlay-card.ov-panel.ov-center.ov-w-standard > * { max-width: 29em; }
 .overlay-card.ov-panel.ov-center.ov-w-wide > *     { max-width: 42em; }
-/* A panel that arrives on a beat slides in from its edge rather than
-   lifting like a card. */
-.overlay-card.ov-panel.ov-left[data-hidden]   { transform: translateX(-1.2em); }
-.overlay-card.ov-panel.ov-right[data-hidden]  { transform: translateX(1.2em); }
-.overlay-card.ov-panel.ov-bottom[data-hidden] { transform: translateY(1.2em); }
-.overlay-card.ov-panel.ov-top[data-hidden]    { transform: translateY(-1.2em); }
-.overlay-card.ov-panel.ov-center[data-hidden] { transform: none; }
+/* A panel that arrives on a beat wipes in from its edge rather than
+   lifting like a card - and wipes rather than slides, because a hidden
+   panel nudged past the frame overflowed the chunk by its nudge and
+   auto-fit, which asks the chunk whether anything overflows, shrank the
+   type to the floor on every slide with a panel held to a beat. */
+.overlay-card.ov-panel { clip-path: inset(0); transition: opacity 0.5s ease 0.14s, clip-path 0.5s ease 0.14s, visibility 0.5s; }
+.overlay-card.ov-panel[data-hidden] { transform: none; }
+.overlay-card.ov-panel.ov-left[data-hidden]   { clip-path: inset(0 100% 0 0); }
+.overlay-card.ov-panel.ov-right[data-hidden]  { clip-path: inset(0 0 0 100%); }
+.overlay-card.ov-panel.ov-bottom[data-hidden] { clip-path: inset(100% 0 0 0); }
+.overlay-card.ov-panel.ov-top[data-hidden]    { clip-path: inset(0 0 100% 0); }
 
 /* ── docks (::: dock) ───────────────────────────────────────────────
    A dock is a panel that the text yields to. A column is absolute against
@@ -2013,7 +2033,9 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .dock a[data-state=now] { color: var(--ink); font-weight: var(--bold-weight); }
 
 /* chrome that would land on a column moves off it by the column's width;
-   over a band it stays (a band's height is not a number CSS has) */
+   under a top band the badge and the note button move to the foot, which
+   a top band never reaches (a band's height is not a number CSS has) */
+.chunk[data-dock=top] > .chunk-num, .chunk[data-dock=top] > .annot-add { top: auto; bottom: var(--slide-pad-y); }
 .chunk[data-dock=right] > .chunk-num { right: calc(var(--dock-px) + var(--slide-pad-x) * 0.35); }
 .chunk[data-dock=right] > .exps      { right: calc(var(--dock-px) + var(--dock-gap)); }
 .chunk[data-dock=left]  > .overlay-layer { padding-left:  calc(var(--dock-px) + var(--dock-gap) + var(--slide-pad-x) * 0.62); }
@@ -8306,7 +8328,7 @@ function flowHeightProbe(el) {
       // rather than the slide height it is stretched to. Skipped, a
       // seven-item list in a 13em column could grow past the frame with
       // nothing telling auto-fit.
-      if ((cs.position === 'absolute' || cs.position === 'fixed') && !c.classList.contains('dock')) continue;
+      if ((cs.position === 'absolute' || cs.position === 'fixed') && !c.classList.contains('dock') && !c.classList.contains('overlay-layer')) continue;
       if (cs.display === 'contents') { out.push(...flowKids(c)); continue; }
       out.push(c);
     }
@@ -8342,7 +8364,36 @@ function flowHeightProbe(el) {
   // because it carries no ground - no background, no border, no min-height -
   // and its own padding is added back below. Nothing deeper is looked
   // through: a card row keeps its min-height, a figure keeps its frame.
-  const inner = outer.flow.map((c) => (c.classList.contains('chunk-content') || c.classList.contains('dock') ? levelOf(c) : null));
+  // The overlay layer is looked through twice: the layer to its panels
+  // (cards keep their cell and are not measured), a panel to its words -
+  // so a bare photo slide whose only text is a panel is fitted to that
+  // text rather than zoomed to the ceiling.
+  const panelLevel = (layer) => {
+    const panels = [...layer.children].filter((k) => k.classList.contains('ov-panel'));
+    if (!panels.length) return null;
+    const lv = levelOf(layer);
+    // A panel is positioned against the layer's padding box, not inside its
+    // padding, so the layer's own paddings are not part of the height.
+    lv.padT = 0; lv.padB = 0;
+    const levels = panels.map(levelOf);
+    // A panel is the offsetParent of its words (it is absolute), so a
+    // word's extent is the panel's offset plus its own, less the panel's
+    // padding - the same arithmetic the closure below does one level up.
+    lv.spanFn = () => {
+      let top = Infinity, bottom = -Infinity;
+      panels.forEach((p, j) => {
+        const s = span(levels[j]);
+        if (!s) return;
+        const t = p.offsetTop + s.top - levels[j].padT, b = p.offsetTop + s.bottom + levels[j].padB;
+        if (t < top) top = t;
+        if (b > bottom) bottom = b;
+      });
+      return bottom < top ? null : { top, bottom };
+    };
+    return lv;
+  };
+  const inner = outer.flow.map((c) => (c.classList.contains('chunk-content') || c.classList.contains('dock') ? levelOf(c)
+    : c.classList.contains('overlay-layer') ? panelLevel(c) : null));
 
   return () => {
     let top = Infinity, bottom = -Infinity;
@@ -8351,7 +8402,7 @@ function flowHeightProbe(el) {
       if (!c.offsetHeight && !c.offsetWidth) continue;
       let t = c.offsetTop, b = c.offsetTop + c.offsetHeight;
       const lvl = inner[i];
-      const s = lvl && span(lvl);
+      const s = lvl && (lvl.spanFn ? lvl.spanFn() : span(lvl));
       if (s) {
         // .chunk-content is the offsetParent of its own children, so the
         // grandchildren's offsets are relative to it.

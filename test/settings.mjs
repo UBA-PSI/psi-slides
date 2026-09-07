@@ -735,9 +735,11 @@ console.log('\nlayout generations');
     ok(seg.indexOf('chunk-content') < seg.indexOf('class="dock') && seg.indexOf('class="dock') < seg.indexOf('overlay-layer'),
        'and stands after the content and before the overlay layer');
     const d = build(FMX + '::: dock\nA.\n:::\n');
-    ok(/<aside class="dock dock-left ov-paper dock-w-narrow">/.test(d.html), 'the defaults are left, paper, narrow, with no height class');
+    ok(/<aside class="dock dock-left ov-tint dock-w-narrow">/.test(d.html), 'the defaults are left, tint, narrow, with no height class');
     const h = build(FMX + '::: dock {.bottom .half}\nA.\n:::\n');
-    ok(/dock dock-bottom ov-paper dock-w-narrow dock-h-half/.test(h.html), 'a band height is a class of its own');
+    ok(/dock dock-bottom ov-tint dock-w-narrow dock-h-half/.test(h.html), 'a band height is a class of its own');
+    ok(/\.dock\.ov-tint \{ background: color-mix\(in oklch, var\(--ink\) 5%, transparent\); \}/.test(h.html),
+       'tint is the card row\'s panel ground on the projection');
   }
   // Inheritance and the live marker, read out of the built page.
   {
@@ -757,6 +759,7 @@ console.log('\nlayout generations');
     ok(!/data-state="now"/.test(article('p-section')) && /data-state="all"/.test(article('p-section')), 'on the divider nobody is live yet, so the list reads at full strength');
     ok(/href="#p" data-state="now"/.test(article('a')) && /href="#p" data-state="now"/.test(article('c')), 'a link to the part is live on every chunk of the part');
     ok(!/ data-state="/.test(r.print), 'print carries no state (the stylesheet may name the attribute, the markup never carries it)');
+    ok(/\.dock\.ov-tint \{/.test(r.print), 'and the tint ground is in the print stylesheet too');
     const nums = (h) => (h.match(/data-chunk-num="(\d+)"/g) || []).join(' ');
     ok(nums(r.html) === nums(r.print), 'audience and print number the chunks the same way', nums(r.html) + ' vs ' + nums(r.print));
   }

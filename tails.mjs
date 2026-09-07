@@ -159,7 +159,11 @@ export const SIDE_SLOTS = {
 // overlay does not have, and it is legal only under a # heading.
 export const DOCK_SLOTS = {
   edge:   { default: 'left',     words: ['left', 'right', 'top', 'bottom'] },
-  ground: { default: 'paper',    words: ['paper', 'ink', 'accent', 'clear', 'glass'] },
+  // The overlay's five grounds plus `tint`, the card row's panel tint, as
+  // the default: a dock stands on the slide's own paper, and `paper` there
+  // has no edge - a column that reads as part of the page is not a dock.
+  // The quiet way to set it off is the tint, the loud way is `ink`.
+  ground: { default: 'tint',     words: ['tint', 'paper', 'ink', 'accent', 'clear', 'glass'] },
   // The column's width for left / right, the text measure inside a band.
   // No `full`: a dock that takes half the slide is a ::: side.
   width:  { default: 'narrow',   words: ['narrow', 'standard', 'wide'] },
