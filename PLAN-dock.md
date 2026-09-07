@@ -2,7 +2,11 @@
 
 ## Status
 
-Spezifikation, noch nicht gebaut. Zweite Fassung: der erste Entwurf hieß
+Gebaut: `e019c8a` (Direktive, Renderer, Runtime, Linter, Tests, Doku), danach
+`ed68ce8` und `6f20362` mit dem, was das Frame-Lab-Deck fand, und `25dba2b`
+(verschachtelte Beats behalten ihre Box). Was die Umsetzung an dieser
+Spezifikation geändert hat, steht im letzten Abschnitt; der Rest ist die
+Bauanleitung, wie sie vor dem Bau stand. Zweite Fassung: der erste Entwurf hieß
 `::: rail` und ist gegen den Code geprüft worden, der nach den beiden
 Commits `c5600d8` (Nesting-Regeln, verschachtelte Beats, Divider-Overlays,
 `.panel`) und `4cfd149` (der Entwurf selbst) auf `main` liegt. Was die Prüfung

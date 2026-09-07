@@ -1086,6 +1086,56 @@ Nebenwirkung, dokumentiert in `CLAUDE.md`: das Zeichenbudget einer Code-Zeile
 wächst von ~57 auf ~78 Zeichen (16:9, Default-Zoom), und es ist bei **jeder**
 Chunk-Breite gleich, weil ein Top-Level-`pre` ohnehin auf 72vw ausbricht.
 
+## Frame-Slice: was in was darf, Beats unter der Oberfläche, Panels, Docks
+
+Ausgangsfrage: die post-1.0.0-Konstrukte (cols, side, cards, rows, backdrop,
+overlay, draw) lassen sich frei kombinieren – was davon geht, was bricht,
+und wer sagt es. Vierzehn Kombinationen in einem Fixture gebaut: alle
+bauten mit Exit 0, der Linter meldete eine. Zehn davon erzeugten kaputtes
+HTML (ein `::: expand` in `::: cols` gab seinen Closer den Spalten, ein
+`::: cols` in `::: overlay` zeichnete einen leeren Spaltenblock, jede
+Direktive in `::: cards` druckte sich als Text). Was daraus wurde, in
+Commit-Reihenfolge:
+
+- **Nesting-Regeln** (`4f6923c`, Review-Pass `c5600d8`): Refusals in
+  `parseLecture`, jeder mit Linter-Spiegel; sechs Warnungen nur im Linter
+  (`side-without-flip`, `layout-too-narrow` mit Maßrechnung, …). Der Korpus
+  beider Repos verschachtelt genau eine Sache, eine Figur in einem Pane.
+- **Beats unter der Oberfläche:** ein `---` in Pane, Karte, Overlay, Dock
+  oder Trenner ist `BEAT_MARK`, `chunkBeats` liest Segmente, Steps und Marker
+  in einem Document-Order-Walk; im Overlay zählen Marker ab `from`
+  (`at`, nicht positionell – doppelt gezählt gab es einen toten Beat).
+- **`draw` geht fast überall** (Overlay, Karte, Trenner-Kartenreihe);
+  Trenner nehmen `cards`/`rows`/`overlay`. Nicht in `cols` (gemessen), nicht
+  in `embed`.
+- **`::: overlay {.panel}`** (Spalte, Band, Vollfläche) mit `third`/`half`.
+  Drei Fallen: `--slide-pad-x` ist ein Prozentwert (deshalb absolute
+  Positionierung gegen den Layer, der `inset: 0` plus Padding bekam), die
+  Spaltenbreite ist ein Folienanteil und kein Schriftmaß (in em folgte sie
+  dem Zoom auf drei Viertel einer leeren Fotofolie), und das Einfahren ist
+  ein `clip-path`-Wipe, weil ein Translate über den Rahmen Auto-Fit als
+  Überlauf las.
+- **`::: dock`** (`PLAN-dock.md`, gebaut in `e019c8a`): das Overlay-Vokabular
+  mit dem anderen Vertrag – Teil des Rahmens, der Text weicht. Seitendock
+  absolut plus Chunk-Padding, Band als Grid-Zeile; `--dock-em` als Zahl und
+  `@property --dock-px` als `<length>`, weil ein em-Wert dreimal gegen drei
+  Schriften aufgelöst wurde. `.every` erbt vom Trenner, `#id`-Links sind
+  der Live-Marker. Standardgrund `tint`. Ein Implementierungs-Agent blieb
+  dreimal am Watchdog hängen; ab dem CSS ist es von Hand.
+- **Frame-Lab** (`lectures/frame-lab/`, ungetrackt, `reveal: hold`): 24
+  Randfall-Chunks; fand zehn Defekte, alle behoben (`ed68ce8`, `6f20362`),
+  darunter `text-on-picture` als Lint-Warnung für Wörter auf einem
+  `.clear`-Backdrop.
+- **Verschachtelte Beats behalten ihre Box** (`visibility: hidden`), damit
+  Reihen und Karten nicht springen; `style: {reveal: hold}` zieht das für
+  Top-Level-Segmente deckweit nach, Default bleibt `grow`.
+- **Decoration** zeigt jetzt Panels, sechs Dock-Folien und die Beats.
+
+Offen: ein zu langer Dock-Text schrumpft die ganze Folie (Auto-Fit misst
+das Dock mit); eine Kartenreihe im Trenner kann über die Folienhöhe
+wachsen; der Speaker-Filmstreifen rendert Bänder als Mini-Kästchen; die
+Breiten 13/18/25em sind am Fixture gemessen, nicht an einer Vorlesung.
+
 ## Gaps / Bekannte Limits
 
 - **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.
