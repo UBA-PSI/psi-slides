@@ -592,7 +592,7 @@ console.log('\nlayout generations');
     // middle third, over the prose and the slide number.
     const pn = build('Prose.\n\n::: overlay {.right .ink .panel}\nA.\n:::\n');
     ok(/<article class="chunk chunk-free"[^>]* data-has-panel=""/.test(pn), 'a chunk carrying a panel says so on its article');
-    ok(/\.chunk\[data-has-panel\] \{ min-height: var\(--slide-h\); \}/.test(pn) && /\.chunk\[data-has-panel\] > \.chunk-num \{ z-index: 3; \}/.test(pn),
+    ok(/\.chunk\[data-has-panel\] \{ min-height: var\(--slide-h\); \}/.test(pn) && /\.chunk\[data-has-panel\] > \.chunk-num[^{]*\{ z-index: 3; \}/.test(pn),
        'and takes the slide\'s height with the slide number lifted above the layer');
     // The hide rule and the ghost rule are ordinary declarations at three
     // classes and above, so the collapse (0-4-x) still wins over both.
@@ -648,6 +648,149 @@ console.log('\nlayout generations');
   }
 }
 
+// ── ::: dock – the overlay's vocabulary with the other layout contract ──
+//    A dock is part of the frame and the text column yields to it; an
+//    overlay lies over the slide. Every refusal is a pair through both
+//    files, the markup is asserted for the classes the CSS keys on, the
+//    inheritance from a # heading and the live marker are read out of the
+//    built page, and the lint arithmetic is checked at its edges. Geometry
+//    is test/dock.mjs.
+{
+  const FM0 = '---\ntitle: T\n---\n\n## title: {#title}\n\n';
+  const FMX = FM0 + '## free: F {#f}\n\n';
+  const build = (src, args = ['--audience-only']) => {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-dock-'));
+    fs.writeFileSync(path.join(dir, 'source.md'), src);
+    const b = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), ...args],
+      { cwd: ROOT, encoding: 'utf8' });
+    const l = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    const read = (f) => fs.existsSync(path.join(dir, f)) ? fs.readFileSync(path.join(dir, f), 'utf8') : '';
+    return { failed: b.status !== 0, out: (b.stdout || '') + (b.stderr || ''),
+             lint: (l.stdout || '') + (l.stderr || ''), html: read('audience.html'), print: read('print.html'), notes: read('print-notes.html') };
+  };
+  const lintCodes = (r) => [...r.lint.matchAll(/\s(?:error|warn)\s+(\S+)/g)].map(m => m[1]);
+  const PART = (dock, chunks) => FM0 + '# Part {#p}\n\n' + dock + '\n' + chunks;
+  const refusals = [
+    ['::: dock inside ::: cols', FMX + '::: cols 2\nA.\n::: dock\nB.\n:::\n:::\n', /::: dock inside ::: cols/, 'dock-in-layout'],
+    ['::: dock inside ::: expand', FMX + '::: expand more\nA.\n::: dock\nB.\n:::\n:::\n', /::: dock inside ::: expand/, 'nested-directive'],
+    ['::: dock inside ::: overlay', FMX + '::: overlay\nA.\n::: dock\nB.\n:::\n:::\n', /::: dock inside ::: overlay/, 'nested-directive'],
+    ['::: overlay inside ::: dock', FMX + '::: dock\nA.\n::: overlay\nB.\n:::\n:::\n', /::: overlay inside ::: dock/, 'nested-directive'],
+    ['::: cols inside ::: dock', FMX + '::: dock\nA.\n::: cols 2\nB.\n:::\n:::\n', /::: cols inside ::: dock/, 'directive-in-dock'],
+    ['::: backdrop inside ::: dock', FMX + '::: dock\nA.\n::: backdrop https://example.invalid/x.jpg\n:::\n', /::: backdrop inside ::: dock/, 'directive-in-dock'],
+    ['::: cards inside ::: dock', FMX + '::: dock\n::: cards 2\n- a\n- b\n:::\n:::\n', /::: cards inside ::: dock/, 'cards-nested'],
+    ['a height on a column dock', FMX + '::: dock {.left .third}\nA.\n:::\n', /a height belongs to a top or bottom dock/, 'bad-dock-height'],
+    ['from 0', FMX + '::: dock from 0\nA.\n:::\n', /::: dock from 0/, 'bad-dock-from'],
+    ['from later', FMX + '::: dock from later\nA.\n:::\n', /::: dock from later/, 'bad-dock-from'],
+    ['.every with from', PART('::: dock {.every} from 2\nA.\n:::\n', '## free: G {#g}\n\nB.\n'), /::: dock \{\.every\} from 2/, 'bad-dock-from'],
+    ['.every on a chunk', FMX + '::: dock {.every}\nA.\n:::\n', /::: dock \{\.every\} in #f/, 'dock-scope'],
+    ['a dock on the title', FM0.replace('## title: {#title}\n\n', '## title: {#title}\n\n::: dock\nA.\n:::\n\n') + '## free: F {#f}\n\nB.\n', /::: dock on a title chunk/, 'dock-on-cover'],
+    ['two docks on a chunk', FMX + '::: dock\nA.\n:::\n\n::: dock {.right}\nB.\n:::\n', /two ::: dock blocks/, 'duplicate-dock'],
+    ['two docks under a heading', PART('::: dock\nA.\n:::\n\n::: dock {.right}\nB.\n:::\n', '## free: G {#g}\n\nB.\n'), /two ::: dock blocks/, 'duplicate-dock'],
+    ['a dead #link', FMX + '::: dock\n- [x](#nope)\n:::\n', /links #nope, and no chunk or column carries that id/, 'dock-link'],
+    ['marginalia with an own right dock', FMX + '::: dock {.right}\nA.\n:::\n\n::: marginalia\nM.\n:::\n', /::: marginalia on a slide with a right dock/, 'marginalia-in-dock'],
+    ['marginalia under an inherited right dock', PART('::: dock {.right .every}\nA.\n:::\n', '## free: G {#g}\n\nB.\n\n::: marginalia\nM.\n:::\n'), /::: marginalia on a slide with a right dock/, 'marginalia-in-dock'],
+    ['a --- in an .every dock', PART('::: dock {.every}\nA.\n\n---\n\nB.\n:::\n', '## free: G {#g}\n\nB.\n'), /--- inside ::: dock \{\.every\}/, 'bad-dock-beat'],
+    ['a dock before any heading', '---\ntitle: T\n---\n\n::: dock\nA.\n:::\n\n## title: {#title}\n', /::: dock before the first heading/, 'stray-directive'],
+    ['a dock never closed', FMX + '::: dock\nA.\n', /::: dock was never closed/, 'unclosed-directive'],
+    ['two edges', FMX + '::: dock {.left .right}\nA.\n:::\n', /left|right/, 'same-slot'],
+    ['a word from no slot', FMX + '::: dock {.center}\nA.\n:::\n', /center/, 'unknown-class'],
+    ['an id in the tail', FMX + '::: dock {#x}\nA.\n:::\n', /#x/, 'stray-attribute'],
+    ['a line the directive does not read', FMX + '::: dock {.left} extra\nA.\n:::\n', /is not a line this directive reads/, 'bad-dock'],
+  ];
+  for (const [name, src, msg, code] of refusals) {
+    const r = build(src);
+    ok(r.failed && msg.test(r.out), `${name} is refused`, r.out.split('\n')[0]);
+    ok(lintCodes(r).includes(code), `and the linter says ${code}`, lintCodes(r).join(',') || r.lint.split('\n')[0]);
+  }
+  // The dead link is a renderer refusal, so --print-only has to reach it too.
+  {
+    const r = build(FMX + '::: dock\n- [x](#nope)\n:::\n', ['--print-only']);
+    ok(r.failed && /links #nope/.test(r.out), 'and --print-only refuses the dead link as well', r.out.split('\n')[0]);
+  }
+  const accepts = [
+    ['a figure in a dock', FMX + '::: dock\n::: draw 60x30\nbox a "A"\n:::\n:::\n'],
+    ['a --- in a once dock on a chunk', FMX + '::: dock {.bottom}\nA.\n\n---\n\nB.\n:::\n'],
+    ['a --- in a once dock on a divider', PART('::: dock {.bottom}\nA.\n\n---\n\nB.\n:::\n', '## free: G {#g}\n\nB.\n\n## free: H {#h}\n\nC.\n')],
+    ['.every under a heading', PART('::: dock {.every}\n- [G](#g)\n:::\n', '## free: G {#g}\n\nB.\n\n## free: H {#h}\n\nC.\n')],
+    ['.once written out on a chunk', FMX + '::: dock {.once}\nA.\n:::\n'],
+    ['a left dock with a marginalia', FMX + '::: dock {.left}\nA.\n:::\n\n::: marginalia\nM.\n:::\n'],
+    ['a dock followed by an overlay', FMX + '::: dock\nA.\n:::\n\n::: overlay {.top-right}\nB.\n:::\n'],
+  ];
+  for (const [name, src] of accepts) {
+    const r = build(src);
+    ok(!r.failed, `${name} builds`, r.out.split('\n')[0]);
+    ok(!/\s+error\s+\S/.test(r.lint), 'and lints clean', r.lint.split('\n')[0]);
+  }
+  // Markup: the article carries the edge and the width (the padding is the
+  // chunk's), the aside the classes the CSS keys on, in the order the
+  // renderer promises.
+  {
+    const r = build(FMX + 'Body.\n\n::: dock {.left .ink .standard}\nA.\n:::\n\n::: overlay {.top-right}\nO.\n:::\n');
+    const art = (r.html.match(/<article class="chunk chunk-free"[^>]*id="f"[^>]*>/) || [''])[0];
+    ok(/ data-dock="left" data-dock-w="standard"/.test(art), 'the article says which edge and how wide', art);
+    const i = r.html.indexOf('id="f"');
+    const seg = r.html.slice(i, r.html.indexOf('</article>', i));
+    ok(/<aside class="dock dock-left ov-ink dock-w-standard">/.test(seg), 'the aside carries edge, ground and width', (seg.match(/<aside class="dock[^"]*"/) || [''])[0]);
+    ok(seg.indexOf('chunk-content') < seg.indexOf('class="dock') && seg.indexOf('class="dock') < seg.indexOf('overlay-layer'),
+       'and stands after the content and before the overlay layer');
+    const d = build(FMX + '::: dock\nA.\n:::\n');
+    ok(/<aside class="dock dock-left ov-paper dock-w-narrow">/.test(d.html), 'the defaults are left, paper, narrow, with no height class');
+    const h = build(FMX + '::: dock {.bottom .half}\nA.\n:::\n');
+    ok(/dock dock-bottom ov-paper dock-w-narrow dock-h-half/.test(h.html), 'a band height is a class of its own');
+  }
+  // Inheritance and the live marker, read out of the built page.
+  {
+    const r = build(PART('::: dock {.every}\n- [A](#a)\n- [B](#b)\n- [C](#c)\n- [Part](#p)\n:::\n',
+      '## free: A {#a}\n\nA.\n\n## free: B {#b}\n\nB.\n\n::: dock {.right}\nOwn.\n:::\n\n## free: C {#c}\n\nC.\n\n# Next {#q}\n\n## free: D {#d}\n\nD.\n'), []);
+    const article = (id) => { const i = r.html.indexOf(`data-chunk-id="${id}"`); return r.html.slice(r.html.lastIndexOf('<article', i), r.html.indexOf('</article>', i)); };
+    ok(/data-dock="left"/.test(article('a')) && /data-inherited/.test(article('a')), 'chunk 1 carries the inherited dock');
+    ok(/data-dock="right"/.test(article('b')) && !/data-inherited/.test(article('b')) && /dock-right/.test(article('b')), 'chunk 2 replaces it with its own');
+    ok(/data-inherited/.test(article('c')), 'chunk 3 inherits again');
+    ok(!/data-dock/.test(article('d')), 'and the next part is free of it');
+    ok((r.print.match(/class="dock/g) || []).length === 2 && (r.notes.match(/class="dock/g) || []).length === 2,
+       'print carries the inherited dock once, at the divider, plus the own one', String((r.print.match(/class="dock/g) || []).length));
+    ok(/href="#a" data-state="done"/.test(article('c')) && /href="#b" data-state="done"/.test(article('c')) && /href="#c" data-state="now"/.test(article('c')),
+       'on chunk 3 the marker reads done, done, now');
+    ok(/href="#a" data-state="now"/.test(article('a')) && /href="#b" data-state="next"/.test(article('a')) && /href="#c" data-state="next"/.test(article('a')),
+       'and on chunk 1 now, next, next');
+    ok(!/data-state="now"/.test(article('p-section')) && /data-state="all"/.test(article('p-section')), 'on the divider nobody is live yet, so the list reads at full strength');
+    ok(/href="#p" data-state="now"/.test(article('a')) && /href="#p" data-state="now"/.test(article('c')), 'a link to the part is live on every chunk of the part');
+    ok(!/ data-state="/.test(r.print), 'print carries no state (the stylesheet may name the attribute, the markup never carries it)');
+    const nums = (h) => (h.match(/data-chunk-num="(\d+)"/g) || []).join(' ');
+    ok(nums(r.html) === nums(r.print), 'audience and print number the chunks the same way', nums(r.html) + ' vs ' + nums(r.print));
+  }
+  // Guards in the built source: the one selector, the probe's exception,
+  // the shared ground rules, no collapse inside a dock.
+  {
+    const r = build(FMX + 'Two sentences here. And a second one.\n\n::: dock\nTwo sentences here. And a second one.\n:::\n', []);
+    ok(/const FROM_SEL = '\.overlay-card\[data-from\], \.dock\[data-from\]'/.test(r.html), 'FROM_SEL is one constant');
+    ok((r.html.match(/\.overlay-card\[data-from\]/g) || []).length === 1, 'and the only place the overlay selector is spelled', String((r.html.match(/\.overlay-card\[data-from\]/g) || []).length));
+    ok(/flowKids[\s\S]*?classList\.contains\('dock'\)/.test(r.html), 'flowHeightProbe looks through a dock');
+    ok(/:is\(\.overlay-card, \.dock\)\.ov-paper/.test(r.html) && /:is\(\.overlay-card, \.dock\)\.ov-paper/.test(r.print), 'the ground rules are shared, in both stylesheets');
+    ok(/\[data-dock-w=narrow\]\s*\{ --dock-em: 13; \}/.test(r.html), 'the narrow width is 13 of the dock\'s own em');
+    const dockSeg = (r.html.match(/<aside class="dock[\s\S]*?<\/aside>/) || [''])[0];
+    ok(!/sentence-head/.test(dockSeg), 'a dock is not abridged by the collapse');
+  }
+  // Lint arithmetic at its edges, and density.
+  {
+    const codes = (src) => lintCodes(build(src));
+    // 68.4 - 9.6 - 25 - 1.6 = 32.2em beside a wide dock: three columns of
+    // 10.7em pass, four cards of 8em do not.
+    ok(codes(FMX.replace('## free: F {#f}', '## free: F {.wide #f}') + '::: dock {.wide}\nA.\n:::\n\n::: cards 4\n- a\n- b\n- c\n- d\n:::\n').includes('layout-too-narrow'),
+       'a wide dock beside four cards leaves them under the floor');
+    ok(codes(FMX + '::: dock {.wide}\nA.\n:::\n').includes('dock-narrows-measure'), 'a wide dock narrows a standard chunk below its measure');
+    const quiet = codes(FMX + '::: dock {.narrow}\nA.\n:::\n');
+    ok(!quiet.includes('dock-narrows-measure') && !quiet.includes('layout-too-narrow'), 'a narrow dock beside a standard chunk is fine', quiet.join(','));
+    ok(!codes(FMX.replace('## free: F {#f}', '## free: F {.wide #f}') + '::: dock {.bottom .wide}\nA.\n:::\n\n::: cols 3\nA.\n\nB.\n\nC.\n:::\n').includes('layout-too-narrow'),
+       'a band takes no measure from the columns');
+    const words = (n) => Array.from({ length: n }, (_, i) => 'word' + i).join(' ');
+    ok(codes(FMX + words(240) + '.\n\n::: dock\n' + words(20) + '.\n:::\n').includes('density'), 'an own dock counts against the density budget');
+    ok(!codes(PART('::: dock {.every}\n' + words(20) + '.\n:::\n', '## free: G {#g}\n\n' + words(240) + '.\n\n## free: H {#h}\n\nB.\n')).includes('density'),
+       'an inherited one does not - it stands on every slide of the part');
+  }
+}
+
 // ── the card row's own vocabulary ─────────────────────────────────────
 {
   const mk = (body) => {
@@ -674,7 +817,7 @@ console.log('\nlayout generations');
   const accentBlock = (one.match(/\.cards\.cg-accent > ul > li,[\s\S]{0,400}?\}/) || [''])[0];
   ok(accentBlock && !/--emph:/.test(accentBlock),
      'and the accent ground does not redefine the token its own fill reads');
-  const overlayAccent = (one.match(/\.overlay-card\.ov-accent \{[\s\S]{0,400}?\}/) || [''])[0];
+  const overlayAccent = (one.match(/:is\(\.overlay-card, \.dock\)\.ov-accent \{[\s\S]{0,400}?\}/) || [''])[0];
   ok(overlayAccent && !/--emph:/.test(overlayAccent),
      'nor does the overlay card, which had the identical defect');
 }

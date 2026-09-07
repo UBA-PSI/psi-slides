@@ -899,3 +899,40 @@ Die Nummern verweisen auf die Entscheidungen oben.
     Konstante ist.
 15. **Der Aufwandsabschnitt** ist gestrichen; Zeitangaben stehen nicht in
     Plan-Dateien.
+
+## Was die Umsetzung an der Spezifikation geändert hat
+
+Gemessen am gebauten Fixture und an `lectures/decoration`, jeweils mit dem
+Grund:
+
+1. **`--dock-w: 13em` ist `--dock-em: 13` plus `@property --dock-px`.** Als
+   em-Wert wurde die Breite dreimal aufgelöst – im Chunk-Padding gegen die
+   Chunk-Schrift, in der Spalte gegen die gezoomte Dock-Schrift (616 px statt
+   300 bei Zoom 2,2), im Versatz der Foliennummer gegen deren kleine Ziffern.
+   Die Zahl steht am Chunk, `--dock-px` ist als `<length>` registriert und wird
+   dort einmal zu Pixeln; Padding, Dockbreite, Foliennummer und Overlay-Layer
+   lesen dieselben Pixel. Die Spur wächst also mit dem Zoom, wie die
+   Dock-Schrift auch; Auto-Fit misst nach jedem Schritt neu und konvergiert.
+2. **Das Band blutet per Längen-Margin, nicht per Breite.** `width:
+   var(--slide-w)` über drei Spuren ließ die `fr`-Rinnen alles nehmen und die
+   `minmax(0, …)`-Textspur auf null fallen – ein Wort pro Zeile.
+   `margin-inline: calc(-0.14 * var(--slide-w))` ist eine Länge, kein
+   Prozentwert, und lässt die Spuren in Ruhe.
+3. **Die Kamera rahmt einen Dock-Chunk als Ganzes.** Sie zentriert sonst
+   `.chunk-content`; mit einem Band steht der Inhalt absichtlich außermittig,
+   und das Band lag unter der Unterkante.
+4. **Einfahren ist ein `clip-path`-Wipe, kein `translate`.** Ein verstecktes
+   rechtes Dock stand um seinen Versatz über dem Rahmen, `nowrapProbe`
+   meldete bei jedem Zoom Überlauf, Auto-Fit fiel auf 0,6.
+5. **`--dock-gap` ist 1,6em**, nicht 2; `DOCK_GAP_EM` in `lint.js` ebenso.
+6. **Eine Direktive vor der ersten Überschrift wird verweigert.** Sie fiel
+   bisher stumm weg; der Linter sagte `stray-directive`.
+7. **`overlay-steps-early` gibt es nicht mehr** (Review-Befund des vorigen
+   Commits); die Spec nennt es nicht, der Vollständigkeit halber hier.
+8. **Test 17 prüft `--dock-em: 13`** unter `[data-dock-w=narrow]` statt
+   `--dock-w: 13em`; Test 18 nimmt `cards 4` statt `cols 3` neben dem
+   `wide`-Dock, weil drei Spalten bei 32,2em noch 10,7em bekommen und die
+   Rechnung sie zu Recht durchlässt.
+9. **Die Breiten 13/18/25 sind geblieben:** 13em fasst die siebenzeilige
+   Liste des Fixtures bei Zoom 2,2 ohne Umbruch, 18em die zweizeilige
+   Bemerkung, 25em einen kurzen Absatz.

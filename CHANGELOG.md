@@ -59,6 +59,35 @@ from building the same way is a major version.
 
 ### Added
 
+- **`::: dock` – a frame element the text yields to.** An overlay lies over
+  the slide; a dock is part of the frame: a `left` / `right` dock is a column
+  the full height of the slide and the text column narrows beside it, a
+  `top` / `bottom` dock a band across the whole width with the text above or
+  below it. It carries the overlay's vocabulary – the five grounds, three
+  widths, `from N` – plus a band height (`.third`, `.half`) and one word the
+  overlay does not have: `.every`, legal only under a `#` heading, which puts
+  the same dock on every chunk of the part, an own `::: dock` replacing it for
+  one slide. A `#id` link in the body is a live marker (`done` / `now` /
+  `next`, `all` on the divider, as `section: outline` draws them), and a link
+  that names no chunk or column is a build error. Three uses: a running table
+  of contents, a rule that stays in view under the words, a remark that
+  arrives on a beat into a track the text has kept free since beat 0 – so
+  nothing on the slide moves. Its own directive rather than a word on
+  `::: overlay`, because a word deciding between *covers the text* and
+  *moves the text* was too much weight for a class. Additive: a `source.md`
+  with no dock builds as before (the ground rules are written once as
+  `:is(.overlay-card, .dock)` and emit the same declarations). Print shows
+  an own dock as a box after the chunk's text and an inherited one once, at
+  the divider. lint.js mirrors every refusal (`bad-dock`, `bad-dock-from`,
+  `bad-dock-height`, `bad-dock-beat`, `dock-on-cover`, `dock-scope`,
+  `dock-in-layout`, `directive-in-dock`, `duplicate-dock`, `dock-link`,
+  `marginalia-in-dock`) and warns `dock-narrows-measure` when a side dock
+  leaves a chunk less than its measure; `layout-too-narrow` counts the dock.
+  `test/dock.mjs` measures the geometry in a browser;
+  `lectures/decoration/source.md` shows all three uses under
+  *A dock at the frame's edge*.
+- **A directive before the first heading is refused.** It used to be
+  dropped without a word – a `::: dock` above `## title:` simply vanished.
 - **A `---` below the top level is a beat.** Inside a `::: side` pane, a
   `::: cards` / `::: rows` block, an `::: overlay` card or under a
   `# Heading`, a reveal separator used to split the chunk body around the

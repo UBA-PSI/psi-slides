@@ -246,7 +246,7 @@ import {
 } from './diagram-core.mjs';
 import {
   CHUNK_SLOTS, CHUNK_STYLE_CLASSES, VALID_WIDTHS, VALID_CHUNK_CLASSES,
-  CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS,
+  CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
   splitTail, parseTail, strayTailProblem, parseDrawOpener,
 } from './tails.mjs';
 
@@ -259,6 +259,15 @@ const ORPHAN_MIN = 2;
 // widest row in the corpus, five cards in a wide chunk, is 10.4em a card and
 // passes; six would not, and six cards in a row is a table.
 const WIDTH_EM = { narrow: 28, standard: 36, wide: 52, full: 72 };
+// A side dock takes its column out of the slide, so the measure a chunk
+// beside it can have is what the slide leaves: the slide's width in em
+// (16:9 at font-size 0.026 x slide-h, the viewport --check-fit uses), less
+// the padding on the free side, the dock and its gap. The dock widths mirror
+// the audience CSS (--dock-em); change them together.
+const DOCK_EM = { narrow: 13, standard: 18, wide: 25 };
+const DOCK_GAP_EM = 1.6;
+const SLIDE_EM = 68.4;
+const SLIDE_PAD_EM = 9.6;
 const MIN_TRACK_EM = 10;
 
 // One sentence per statement, and then it stops. Until now this file had no
@@ -2318,6 +2327,10 @@ function lintFile(filePath) {
   }
 
   const ids = new Map();
+  // Column ids, for the dock's #links: a link may name a part as well as a
+  // slide, and it may point forward, so links are checked after the walk.
+  const colIds = new Set();
+  const dockLinks = [];
   const columns = [];
   let col = null;
   let chunk = null;
@@ -2386,6 +2399,23 @@ function lintFile(filePath) {
     }
     lintCollapsedBolds(proseEntries, add);
     lintChunkShape(chunk, chunkBody, chunkHasDrawing, add);
+    // Mirrors build.js: the aside extends into the right margin, which a
+    // right dock occupies - the inherited one included.
+    if (chunk.marginaliaSeen && chunk.dock && chunk.dock.edge === 'right') {
+      add(chunk.marginaliaSeen, 'error', 'marginalia-in-dock',
+          `::: marginalia on a slide with a right dock (${chunk.dock.inherited ? 'inherited from line ' : 'line '}${chunk.dock.line}) – `
+          + 'put the dock on the left, or drop the aside');
+    }
+    if (chunk.dock && (chunk.dock.edge === 'left' || chunk.dock.edge === 'right')) {
+      const w = widthWord();
+      const avail = SLIDE_EM - SLIDE_PAD_EM - DOCK_EM[chunk.dock.width] - DOCK_GAP_EM;
+      const floor = Math.min(WIDTH_EM[w], WIDTH_EM.standard);
+      if (avail < floor) {
+        add(chunk.line, 'warn', 'dock-narrows-measure',
+            `::: dock {.${chunk.dock.width}} beside a ${w} chunk leaves the text about ${Math.round(avail)}em – `
+            + `under the ${w === 'narrow' ? 'narrow' : 'standard'} measure; use a narrower dock or a narrower chunk`);
+      }
+    }
     // Figure chunks where the image sits directly below the heading:
     // the image alt text renders as a <figcaption>, stacking a second
     // title on top of the artwork (often itself titled internally).
@@ -2472,6 +2502,9 @@ function lintFile(filePath) {
     if (!chunk) return Infinity;
     const wcls = [...(chunk.classes || [])].find(c => WIDTH_EM[c]);
     let em = WIDTH_EM[wcls || (chunk.tag === 'outline' ? 'wide' : 'standard')];
+    if (chunk.dock && (chunk.dock.edge === 'left' || chunk.dock.edge === 'right')) {
+      em = Math.min(em, SLIDE_EM - SLIDE_PAD_EM - DOCK_EM[chunk.dock.width] - DOCK_GAP_EM);
+    }
     for (const l of layoutStack) {
       const m = l.kind.match(/^(cols|cards) (\d)/);
       if (m) em /= Number(m[2]);
@@ -2589,7 +2622,8 @@ function lintFile(filePath) {
           ids.set(id, fmLines + ln);
         }
       }
-      col = { line: ln, heading: attr.text, id, chunks: [], backdropSeen: 0 };
+      col = { line: ln, heading: attr.text, id, chunks: [], backdropSeen: 0, dock: null };
+      if (id) colIds.add(id);
       columns.push(col);
       continue;
     }
@@ -2646,7 +2680,10 @@ function lintFile(filePath) {
       } else {
         ids.set(id, fmLines + ln);
       }
-      chunk = { line: ln, tag, heading, id, classes: attr.classes };
+      chunk = { line: ln, tag, heading, id, classes: attr.classes,
+                // Mirrors flushChunk in build.js: a part's .every dock is on
+                // every chunk of it unless the chunk writes its own.
+                dock: col && col.dock && col.dock.scope === 'every' ? { ...col.dock, inherited: true } : null };
       continue;
     }
 
@@ -2688,7 +2725,9 @@ function lintFile(filePath) {
       // inside a captured block it became the picture while reading as the
       // card's.
       if (activeDirective) {
-        add(ln, 'error', activeDirective.kind === 'overlay' ? 'directive-in-overlay' : 'nested-directive',
+        const code = activeDirective.kind === 'overlay' ? 'directive-in-overlay'
+          : activeDirective.kind === 'dock' ? 'directive-in-dock' : 'nested-directive';
+        add(ln, 'error', code,
             `::: backdrop inside ::: ${activeDirective.kind} (line ${activeDirective.line}) – a backdrop is the slide's ground, not the block's`);
       }
       // A divider takes one too: that is the picture a part opens on. The
@@ -2737,6 +2776,61 @@ function lintFile(filePath) {
       add(ln, 'error', 'bad-backdrop',
           '::: backdrop takes one asset id, path or URL, then an optional {.class} tail '
           + 'and an optional `reveal <place>, <place>`');
+      continue;
+    }
+    // ::: dock {.classes} from N … ::: – the overlay's vocabulary with the
+    // other layout contract: part of the frame, the text yields to it.
+    // Mirrors readDockLine in build.js refusal for refusal.
+    const dockOpen = line.match(/^:::\s+dock\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
+    if (!dockOpen && /^:::\s+dock\b/.test(line)) {
+      add(ln, 'error', 'bad-dock',
+          '::: dock takes an optional {.class} tail and an optional `from <beat>`, and nothing else');
+      continue;
+    }
+    if (dockOpen) {
+      const host = chunk || col;
+      if (!host) add(ln, 'error', 'stray-directive', '::: dock outside any chunk');
+      const dt = parseTail(dockOpen[1], DOCK_SLOTS, '::: dock');
+      for (const p of dt.problems) add(ln, 'error', p.code, p.msg);
+      const edge = dt.slots.edge.value, width = dt.slots.width.value,
+            height = dt.slots.height.value, scope = dt.slots.scope.value;
+      const from = dockOpen[2];
+      if (from != null && !/^[1-9]\d*$/.test(from)) {
+        add(ln, 'error', 'bad-dock-from',
+            `::: dock from ${from} – \`from\` takes a whole beat number from 1 up; beat 0 is the beat `
+            + 'the slide opens on, which is what writing no `from` already says');
+      }
+      if (chunk && (chunk.tag === 'title' || chunk.tag === 'closing')) {
+        add(ln, 'error', 'dock-on-cover',
+            `::: dock on a ${chunk.tag} chunk – the cover composition frames that slide; a dock belongs on the chunks after it`);
+      }
+      if (height !== 'snug' && (edge === 'left' || edge === 'right')) {
+        add(ln, 'error', 'bad-dock-height',
+            `::: dock {.${height}} – a height belongs to a top or bottom dock; a column is as tall as the slide`);
+      }
+      if (chunk && scope === 'every') {
+        add(ln, 'error', 'dock-scope',
+            '::: dock {.every} on a chunk – a dock is inherited from the part\'s # heading; write it under the heading');
+      }
+      if (scope === 'every' && from != null) {
+        add(ln, 'error', 'bad-dock-from',
+            `::: dock {.every} from ${from} – an inherited dock is on every slide of the part from the moment each opens; drop from, or drop .every`);
+      }
+      if (activeDirective) {
+        add(ln, 'error', 'nested-directive',
+            `::: dock inside still-open ::: ${activeDirective.kind} (line ${activeDirective.line})`);
+      }
+      if (layoutStack.length) {
+        add(ln, 'error', 'dock-in-layout',
+            `::: dock inside ${innermost()} (line ${layoutStack[layoutStack.length - 1].line}) – `
+            + 'a dock is part of the slide\'s frame, so write it outside the block, at chunk level');
+      }
+      if (host && host.dock && !host.dock.inherited) {
+        add(ln, 'error', 'duplicate-dock',
+            `second ::: dock on one ${chunk ? 'chunk' : 'column heading'} (first at line ${host.dock.line}) – one slide has one dock`);
+      }
+      if (host) host.dock = { edge, width, height, scope, line: ln, inherited: false };
+      activeDirective = { kind: 'dock', line: ln, scope };
       continue;
     }
     const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
@@ -2900,6 +2994,10 @@ function lintFile(filePath) {
       // Mirrors build.js, one refusal per line of it. A card row inside an
       // overlay or an embed is already `cards-nested` above, so those two
       // are not reported twice.
+      if (!isCards && activeDirective && activeDirective.kind === 'dock') {
+        add(ln, 'error', 'directive-in-dock',
+            `::: ${word} inside ::: dock (line ${activeDirective.line}) – a dock holds prose, a list, an image or a ::: draw, and no other directive`);
+      }
       if (!isCards && activeDirective && activeDirective.kind === 'overlay') {
         add(ln, 'error', 'directive-in-overlay',
             `::: ${word} inside ::: overlay (line ${activeDirective.line}) – an overlay holds prose and no block or figure`);
@@ -3008,7 +3106,12 @@ function lintFile(filePath) {
       continue;
     }
 
-    if (chunk && (!activeDirective || activeDirective.kind === 'overlay') && line.trim() === '---') {
+    if (activeDirective && activeDirective.kind === 'dock' && activeDirective.scope === 'every' && line.trim() === '---') {
+      add(ln, 'error', 'bad-dock-beat',
+          '--- inside ::: dock {.every} – an inherited dock is on every slide of the part, and a beat is one slide\'s; write *** for a rule, or drop .every');
+      continue;
+    }
+    if (chunk && (!activeDirective || activeDirective.kind === 'overlay' || activeDirective.kind === 'dock') && line.trim() === '---') {
       // At the top level the build splits the body into segments here;
       // below it - in a pane, a card row, an overlay card - the same line is
       // a beat marker the runtime honours in source order. Either way it is
@@ -3021,6 +3124,10 @@ function lintFile(filePath) {
       continue;
     }
 
+    if (activeDirective && activeDirective.kind === 'dock') {
+      const bare = line.replace(/`[^`]*`/g, '');
+      for (const m of bare.matchAll(/\]\(#([^)\s]+)\)/g)) dockLinks.push({ id: decodeURIComponent(m[1]), ln });
+    }
     if (chunk) {
       if (/^>\s*(note|annot):/i.test(line)) { inMetaBlock = true; continue; }
       if (inMetaBlock) {
@@ -3046,6 +3153,15 @@ function lintFile(filePath) {
     }
   }
   flushChunk();
+
+  // Mirrors renderDock in build.js: a #link in a dock is the live marker, so
+  // one that names no slide and no part can never light.
+  for (const l of dockLinks) {
+    if (!ids.has(l.id) && !colIds.has(l.id)) {
+      add(l.ln, 'error', 'dock-link',
+          `::: dock links #${l.id}, and no chunk or column carries that id – fix the id, or write the item without a link`);
+    }
+  }
 
   const allChunks = columns.flatMap(c => c.chunks);
   const titleChunks = allChunks.filter(c => c.tag === 'title');

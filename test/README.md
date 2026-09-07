@@ -91,7 +91,7 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The six specs that build a deck of their own
+### The seven specs that build a deck of their own
 
 Three different reasons, and the third is the one to remember.
 
@@ -99,7 +99,10 @@ Three different reasons, and the third is the one to remember.
 a two-row display formula), `side-anchor` (nothing writes `::: side {.middle}`
 yet) and `beats-nested` (no lecture puts a `---` inside a pane, a card row or an
 overlay yet, and the assertion is a six-beat *sequence* mixing nested and
-top-level markers, which only a deck written for it has).
+top-level markers, which only a deck written for it has) and `dock` (no lecture
+writes a `::: dock`, and the claims are geometry: the column and the text share
+no pixel, the dock reaches the frame, `from N` moves nothing, auto-fit holds
+beside a slide-high column).
 
 **Because the thing is only legible as a pair** – `block-align` shows the same
 content centred and left, and `cards` two cards differing in one character.

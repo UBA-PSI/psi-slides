@@ -354,6 +354,8 @@ as the first line of a pane holds the whole pane back. In an `::: overlay from N
 the inner beats count from `N`: the card on `N`, its second block on `N + 1`.
 Print shows every beat at once. An `::: expand` and a `::: script` keep the
 horizontal rule – neither is on the projection, so neither has beats to give.
+A `---` inside a `::: dock {.every}` is refused: the dock is on every slide of
+the part, and a beat is one slide's.
 Under a `# Heading` a `---` used to render a rule in the divider and the printed
 lede; it is a beat now, and `***` is the spelling of a rule there.
 
@@ -560,8 +562,9 @@ was a slide that rendered wrong with exit 0 before it was one.
 | `cols`                      | prose, `marginalia`, `slide` / `script`    | `draw`, `side`, `cards` / `rows` – a grid breaks the flow |
 | `side` (either pane)        | prose, `draw`, `cards` / `rows`, `cols`    | a second `flip`                                          |
 | `slide` / `script`          | any wrapper, `draw`, `cards` / `rows`      | `slide` or `script` again (`explicit-nested`)            |
-| any wrapper                 | a `---` (a beat below the top level, see *Reveal segments*) | `expand`, `footnote`, `overlay` (`aside-in-layout`, `overlay-in-layout`) |
-| a column heading (divider)  | prose, `backdrop`, `draw`, `cards` / `rows`, `overlay`, `---` | everything else (`stray-directive`)               |
+| `dock`                      | prose, lists, an image, `draw`, `---`      | every other directive (`directive-in-dock`, `cards-nested`) |
+| any wrapper                 | a `---` (a beat below the top level, see *Reveal segments*) | `expand`, `footnote`, `overlay`, `dock` (`aside-in-layout`, `overlay-in-layout`, `dock-in-layout`) |
+| a column heading (divider)  | prose, `backdrop`, `draw`, `cards` / `rows`, `overlay`, `dock`, `---` | everything else (`stray-directive`)          |
 
 `draw` is the one construct meant to go nearly everywhere – a pane, a card, an
 overlay card over a photograph, an expansion, a divider – because a figure is
@@ -753,6 +756,57 @@ words laid straight onto a picture are unreadable at the back of a room, and the
 overlay's ground is what fixes that.
 
 One backdrop per chunk. A second is an error.
+
+### `::: dock {…} from N` – `::: dock {.left .every}`
+
+An overlay lies over the slide; a dock is part of the frame, and the text
+yields to it. A `left` or `right` dock is a column the full height of the
+slide and the text column narrows beside it; a `top` or `bottom` dock is a band
+across the whole width, the text above or below it. Same grounds and beat as
+the overlay, one dock per slide.
+
+```markdown
+# Fuzzing {#fuzz}
+
+::: dock {.left .every}
+- [Introduction](#intro)
+- [Mutations](#mut)
+- [Coverage](#cov)
+:::
+
+## free: Introduction {#intro}
+…
+```
+
+Three uses, and they are the reason it exists:
+
+- **A running table of contents.** Written under the `#` heading with `.every`,
+  the dock is on every chunk of the part. Each item is a link to a chunk's
+  `{#id}` (or a column's), and the item the room is on lights up – `done`,
+  `now`, `next`, like `section: outline`. A link to an id nothing carries is a
+  build error.
+- **A line that stays.** `::: dock {.bottom .accent .third}` on one chunk is a
+  band a third of the slide high under the words – a definition or a rule the
+  slide keeps in view. An own dock replaces an inherited one for that slide.
+- **A remark that arrives.** `::: dock {.right .glass} from 2` wipes in on the
+  second beat; the text column has been narrow from the start, so nothing
+  moves when it comes.
+
+| slot   | members (first is the default)                  |
+|--------|-------------------------------------------------|
+| edge   | `.left` `.right` `.top` `.bottom`               |
+| ground | `.paper` `.ink` `.accent` `.clear` `.glass`     |
+| width  | `.narrow` `.standard` `.wide` (a column's width, a band's text measure) |
+| height | `.snug` `.third` `.half` (bands only)           |
+| scope  | `.once` `.every` (`.every` only under a `#` heading) |
+
+The body holds prose, a list, an image, a `::: draw` and a `---`; no other
+directive. `.every` takes no `from` and no `---`: an inherited dock is on every
+slide from the moment each opens, and a beat is one slide's. A `::: marginalia`
+cannot share a slide with a right dock, which occupies the margin it extends
+into. `--squint` writes a dock as `[ dock · left · paper · w-narrow` (plus
+`· inherited`). In print an own dock is a box after the chunk's text, an
+inherited one prints once, at the divider.
 
 ### Two more directives this skill does not cover
 
@@ -1059,7 +1113,12 @@ or directive – the message names which), `missing-id`, `duplicate-id`,
 refusals, each mirrored by the build – see *Nesting*), `side-without-flip`,
 `cols-in-cols`, `explicit-in-side`, `duplicate-marginalia`,
 `layout-too-narrow`, `overlay-from-beyond` (the nesting warnings, which only
-the linter raises), `bad-overlay-panel`, `bad-overlay-height`, `bad-cover-ratio`, `bad-unit`, `bad-autoplay` (a delay
+the linter raises), `bad-overlay-panel`, `bad-overlay-height`, `bad-dock`,
+`bad-dock-from`, `bad-dock-height`, `bad-dock-beat`, `dock-on-cover`,
+`dock-scope`, `dock-in-layout`, `directive-in-dock`, `duplicate-dock`,
+`dock-link`, `marginalia-in-dock` (the dock's refusals, each mirrored by the
+build), `dock-narrows-measure` (a side dock leaves a chunk less than its
+measure; warning), `bad-cover-ratio`, `bad-unit`, `bad-autoplay` (a delay
 outside 200–60000 ms, `cycle` with no autoplay, or autoplay on a figure
 with no `step` block).
 

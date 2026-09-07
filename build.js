@@ -36,7 +36,7 @@ import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPat
 // zero dependencies - see the header of tails.mjs and CLAUDE.md.
 import {
   CHUNK_SLOTS, CHUNK_STYLE_CLASSES,
-  CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS,
+  CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
   splitTail, parseTail, slotTable, strayTailProblem,
   parseDrawOpener, formatDrawOpener, drawCompilerAttrs,
 } from './tails.mjs';
@@ -1999,6 +1999,53 @@ function renderOverlayLayer(overlays, where) {
   return `<div class="overlay-layer">\n${cards}\n</div>`;
 }
 
+// A ::: dock, shared by the audience and the print renderer. The dock is the
+// overlay's vocabulary with the other layout contract - part of the frame,
+// and the text column yields to it - so it wears the same ov-<ground> class
+// and its own dock-* classes for edge, width and height. `pos` is where the
+// slide is in the one numbering: the chunk's number, `firstNum - 0.5` for a
+// divider (it stands before the first chunk of its column), null for print,
+// which carries no state. A #link in the body is the live marker: it lights
+// the item the room is on, so a link that names no slide can never light,
+// and that is refused - for print too, because the check stands before the
+// state and only the state is skipped there.
+function refuseDockLink(where, id) {
+  const err = new Error(
+    `::: dock in ${where} links #${id}, and no chunk or column carries that id.\n` +
+    '  A #link in a dock is the live marker - it lights the item the room is on -\n' +
+    '  so a link that names no slide can never light. Fix the id, or write the\n' +
+    '  item without a link.');
+  err.userFacing = true;
+  throw err;
+}
+function renderDock(dock, where, pos, nums) {
+  if (!dock) return '';
+  let body = marked.parse(dock.lines.join('\n'));
+  const states = [];
+  body = body.replace(/<a href="#([^"]+)"/g, (m, id) => {
+    const span = nums.byId.get(decodeURIComponent(id));
+    if (!span) refuseDockLink(where, id);
+    if (pos == null) return m;
+    const st = pos < span[0] ? 'next' : pos > span[1] ? 'done' : 'now';
+    states.push(st);
+    return `<a href="#${id}" data-state="${st}"`;
+  });
+  // A list nobody has started is a plan, read at full strength - the same
+  // rule renderOutlineList applies when now is 0.
+  if (states.length && !states.some(st => st !== 'next')) body = body.replace(/ data-state="next"/g, ' data-state="all"');
+  const cls = ['dock', `dock-${dock.edge}`, `ov-${dock.ground}`, `dock-w-${dock.width}`,
+    dock.height !== 'snug' ? `dock-h-${dock.height}` : ''].filter(Boolean).join(' ');
+  const from = dock.from == null ? '' : ` data-from="${dock.from}"`;
+  const inh = dock.inherited ? ' data-inherited=""' : '';
+  return `<aside class="${cls}"${from}${inh}>${body}</aside>`;
+}
+// The attributes a chunk with a dock carries on its article. The width word
+// rides on the article, not only on the aside, because the reserved track
+// is the chunk's padding and the padding resolves --dock-px there.
+function dockAttrs(dock) {
+  return dock ? ` data-dock="${dock.edge}" data-dock-w="${dock.width}"` : '';
+}
+
 // ── marked renderer overrides (code highlighting + image shorthand) ──
 
 marked.use({
@@ -3020,6 +3067,7 @@ function parseLecture(src) {
   let inFence = false;
   let currentExpansion = null; // { label, lines } while inside a ::: expand block
   let currentOverlay = null;   // { attrs, lines } while inside a ::: overlay block
+  let currentDock = null;      // { edge, ground, width, height, scope, from, lines } while inside a ::: dock block
   let cardsBlock = null;      // { n, attrs, lines } while inside a ::: cards block
   let colsDepth = 0;          // open ::: cols blocks; a figure in one breaks its flow
   let noteBlock = null;        // { lines: string[] } – current `> note:` block
@@ -3052,10 +3100,126 @@ function parseLecture(src) {
   const refuse = (msg) => { const err = new Error(msg); err.userFacing = true; throw err; };
   // The innermost open aside (a captured block) and the innermost open
   // layout wrapper, named the way the author wrote them.
-  const openAside = () => currentOverlay ? '::: overlay'
+  const openAside = () => currentDock ? '::: dock'
+    : currentOverlay ? '::: overlay'
     : currentExpansion ? `::: ${currentExpansion.word}` : null;
   const openLayout = () => layoutStack.length ? `::: ${layoutStack[layoutStack.length - 1].kind}` : null;
   const inLayout = (kind) => layoutStack.some(l => l.kind === kind);
+  // The two checks a `from <beat>` token gets, shared by ::: overlay and
+  // ::: dock: the wording is the overlay's, the directive is the parameter.
+  // A third copy of these two messages would be the reason tails.mjs exists.
+  const checkFromBeat = (tok, directive) => {
+    if (tok == null) return;
+    if (!/^[1-9]\d*$/.test(tok)) {
+      const err = new Error(
+        `::: ${directive} from ${tok} in ${chunkRef()}.\n` +
+        '  `from` takes a whole beat number from 1 up - the beat the block\n' +
+        '  arrives on. Beat 0 is the beat the slide opens on, which is what\n' +
+        '  writing no `from` already says.');
+      err.userFacing = true;
+      throw err;
+    }
+    if (tok === '0') {
+      const err = new Error(
+        `::: ${directive} from 0 in ${chunkRef()}.\n` +
+        '  Beat 0 is the beat the slide opens on, which is what writing no\n' +
+        '  `from` already says. Write `from 1` for the next one.');
+      err.userFacing = true;
+      throw err;
+    }
+  };
+  // ::: dock, read the same way on a chunk and on a divider. Returns true
+  // when the line was a dock line - opened, or refused. The overlay's
+  // vocabulary with the other layout contract: the dock is part of the
+  // frame and the text column yields to it. The tail is read *here* and not
+  // in the renderer, because an inherited dock (`.every`) is rendered by
+  // print exactly once, so a renderer-side refusal would be unreachable
+  // for it; and because inheritance needs `scope` before anything renders.
+  const readDockLine = (line) => {
+    const dockOpen = line.match(/^:::\s+dock\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
+    if (!dockOpen && /^:::\s+dock\b/.test(line)) {
+      refuse(
+        `::: dock: "${line.trim()}" is not a line this directive reads.\n` +
+        '  It takes an optional {.class} tail and an optional  from <beat>, and\n' +
+        '  nothing else:  ::: dock {.left .paper .every}');
+    }
+    if (!dockOpen) return false;
+    // lint.js: nested-directive.
+    if (currentDock) {
+      refuse(
+        `::: dock opened while one is still open (${chunkRef()}).\n` +
+        '  A slide has one dock: close the first with a ::: line. If a second\n' +
+        '  dock was meant, it cannot be - put its words in the first.');
+    }
+    // lint.js: unknown-class / same-slot / stray-attribute, via the shared
+    // tail parser.
+    const d = readTail(dockOpen[1] ?? null, DOCK_SLOTS, 'dock', chunkRef());
+    // lint.js: bad-dock-from.
+    checkFromBeat(dockOpen[2], 'dock');
+    const from = dockOpen[2] == null ? null : Number(dockOpen[2]);
+    // lint.js: dock-on-cover. A title or closing slide is framed by its
+    // cover composition, which decides where the type and the picture sit.
+    if (currentChunk && (currentChunk.tag === 'title' || currentChunk.tag === 'closing')) {
+      refuse(
+        `::: dock on a ${currentChunk.tag} chunk (${chunkRef()}).\n` +
+        '  A title or closing slide is framed by its cover composition, which\n' +
+        '  decides where the type and the picture sit. A dock belongs on the\n' +
+        '  chunks after it.');
+    }
+    // lint.js: bad-dock-height. A column is as tall as the slide.
+    if (d.height !== 'snug' && (d.edge === 'left' || d.edge === 'right')) {
+      refuse(
+        `::: dock {.${d.height}} in ${chunkRef()}: a height belongs to a top or bottom dock.\n` +
+        '  A column is as tall as the slide, so the word has nothing to set.\n' +
+        `  Write  {.bottom .${d.height}}.`);
+    }
+    // lint.js: dock-scope. Inheritance runs from the part's heading.
+    if (currentChunk && d.scope === 'every') {
+      refuse(
+        `::: dock {.every} in ${chunkRef()}.\n` +
+        '  A dock is inherited from the part\'s # heading, not from a chunk: write\n' +
+        '  it under the heading, and every chunk of the part carries it.');
+    }
+    // lint.js: bad-dock-from. A beat is one slide's; an inherited dock is
+    // on every slide of the part from the moment each opens.
+    if (d.scope === 'every' && from != null) {
+      refuse(
+        `::: dock {.every} from ${from} (${chunkRef()}).\n` +
+        '  An inherited dock is on every slide of the part from the moment each\n' +
+        '  opens, and a beat is one slide\'s. Drop from, or drop .every.');
+    }
+    // lint.js: nested-directive. A dock is part of the frame; an aside is
+    // folded under the slide or laid over it.
+    if (currentExpansion || currentOverlay) {
+      refuse(
+        `::: dock inside ${openAside()} (${chunkRef()}).\n` +
+        '  A dock is part of the slide\'s frame and an aside is folded under it or\n' +
+        '  laid over it, so one cannot hold the other. Close the block first; a\n' +
+        '  chunk can carry both side by side.');
+    }
+    // lint.js: dock-in-layout. Same failure as the overlay's: the wrapper's
+    // closing ::: was read as the dock's.
+    if (layoutStack.length) {
+      refuse(
+        `::: dock inside ${openLayout()} (${chunkRef()}).\n` +
+        '  A dock is part of the slide\'s frame, so its place in the body means\n' +
+        '  nothing - and the block\'s closing ::: was read as the dock\'s. Write the\n' +
+        '  dock outside the block, at chunk level.');
+    }
+    // lint.js: duplicate-dock. One slide has one dock (decision 2 of
+    // PLAN-dock.md): two docks plus content is a frame, and the corner rule
+    // of two edges would be arbitrary.
+    const host = currentChunk || currentColumn;
+    if (host && host.dock) {
+      refuse(
+        `A ${currentChunk ? 'chunk' : 'column heading'} has two ::: dock blocks (${chunkRef()}).\n` +
+        '  One slide has one dock; the second would silently win. Put the words\n' +
+        '  in the first, or move it to another slide.');
+    }
+    currentDock = { edge: d.edge, ground: d.ground, width: d.width, height: d.height,
+                    scope: d.scope, from, lines: [] };
+    return true;
+  };
   // ::: overlay, read the same way on a chunk and on a divider. Returns true
   // when the line was an overlay line - opened, or refused.
   const readOverlayLine = (line) => {
@@ -3089,22 +3253,15 @@ function parseLecture(src) {
         err.userFacing = true;
         throw err;
       }
-      if (overlayOpen[2] != null && !/^[1-9]\d*$/.test(overlayOpen[2])) {
-        const err = new Error(
-          `::: overlay from ${overlayOpen[2]} in ${chunkRef()}.\n` +
-          '  `from` takes a whole beat number from 1 up - the beat the block\n' +
-          '  arrives on. Beat 0 is the beat the slide opens on, which is what\n' +
-          '  writing no `from` already says.');
-        err.userFacing = true;
-        throw err;
-      }
-      if (overlayOpen[2] === '0') {
-        const err = new Error(
-          `::: overlay from 0 in ${chunkRef()}.\n` +
-          '  Beat 0 is the beat the slide opens on, which is what writing no\n' +
-          '  `from` already says. Write `from 1` for the next one.');
-        err.userFacing = true;
-        throw err;
+      checkFromBeat(overlayOpen[2], 'overlay');
+      // lint.js: nested-directive. A dock is part of the frame and an
+      // overlay is laid over it; neither holds the other.
+      if (currentDock) {
+        refuse(
+          `::: overlay inside ::: dock (${chunkRef()}).\n` +
+          '  A dock is part of the slide\'s frame and an overlay is laid over it,\n' +
+          '  so one cannot hold the other. Close the dock first; a chunk can carry\n' +
+          '  both side by side.');
       }
       // lint.js: nested-directive / overlay-in-layout. Opened inside an
       // expansion, the overlay used to close it silently (flushExpansion
@@ -3152,6 +3309,12 @@ function parseLecture(src) {
     });
     currentOverlay = null;
   };
+  const flushDock = () => {
+    const host = currentChunk || currentColumn;
+    if (!currentDock || !host) return;
+    host.dock = { ...currentDock, inherited: false };
+    currentDock = null;
+  };
 
   const flushNoteBlock = () => {
     if (!noteBlock) return;
@@ -3194,6 +3357,24 @@ function parseLecture(src) {
     flushNoteBlock();
     flushAnnotBlock();
     flushOverlay();
+    flushDock();
+    // Inheritance happens here, once, so the data model says for every
+    // slide what is on it and both renderers stay dumb. A chunk's own dock
+    // replaces the part's entirely, at whichever edge. The copy shares
+    // `lines`; nothing is duplicated.
+    if (!currentChunk.dock && currentColumn && currentColumn.dock && currentColumn.dock.scope === 'every') {
+      currentChunk.dock = { ...currentColumn.dock, inherited: true };
+    }
+    // lint.js: marginalia-in-dock. The aside is anchored at the right edge
+    // of .chunk-content and runs into the right margin, which a right dock
+    // occupies. Checked at the flush and not when the aside opens, because
+    // the chunk's own dock may follow it in the body.
+    if (currentChunk.hasMarginalia && currentChunk.dock && currentChunk.dock.edge === 'right') {
+      refuse(
+        `::: marginalia on a slide with a right dock (${chunkRef()}).\n` +
+        '  The aside extends into the right margin, which the dock occupies. Put the\n' +
+        '  dock on the left, or drop the aside.');
+    }
     flushExpansion();
     // Close any still-open layout directives defensively so the emitted
     // body HTML stays balanced. The linter will flag these separately.
@@ -3262,6 +3443,7 @@ function parseLecture(src) {
         // text - and both are places a figure earns: a small drawing on a
         // card laid over a photograph, three figures side by side.
         const target = cardsBlock ? cardsBlock.lines
+          : currentDock ? currentDock.lines
           : currentOverlay ? currentOverlay.lines
           : currentExpansion ? currentExpansion.lines
           : currentChunk ? bodyLines : colBody;
@@ -3371,7 +3553,7 @@ function parseLecture(src) {
     // heading. Guarding here rather than reordering the loop keeps the one
     // real diagnostic - a block that is genuinely never closed is now an
     // unclosed `:::`, which is what it is.
-    const inCaptured = !!(currentOverlay || currentExpansion);
+    const inCaptured = !!(currentDock || currentOverlay || currentExpansion);
     if (!inFence) {
       const h1 = inCaptured ? null : line.match(/^#\s+(.*)$/);
       const h2 = inCaptured ? null : line.match(/^##\s+(.*)$/);
@@ -3387,7 +3569,7 @@ function parseLecture(src) {
         // vocabulary this line never had.
         const h1Attr = parseAttributeTail(h1[1], { column: true });
         const { text, id } = h1Attr;
-        currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null, overlays: [] };
+        currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null, overlays: [], dock: null };
         colBody = [];
         columns.push(currentColumn);
         continue;
@@ -3398,7 +3580,7 @@ function parseLecture(src) {
         flushColBody();
         if (!currentColumn) {
           // A chunk before any `# Column` (e.g. the title chunk).
-          currentColumn = { heading: null, id: null, chunks: [], overlays: [] };
+          currentColumn = { heading: null, id: null, chunks: [], overlays: [], dock: null };
           columns.push(currentColumn);
         }
         const h2Attr = parseAttributeTail(h2[1]);
@@ -3452,6 +3634,7 @@ function parseLecture(src) {
           expansions: [],
           overlays: [],
           backdrop: null,
+          dock: null,
           speakerNotes: pendingNotes,
           annotation: pendingAnnotation,
         };
@@ -3510,20 +3693,42 @@ function parseLecture(src) {
         // A divider takes an overlay: a photograph behind the part's heading
         // and a card of words in a corner is the composition a section
         // opener most often wants, and every piece of it already existed.
-        if (currentOverlay) {
-          if (/^:::\s*$/.test(line)) { flushOverlay(); continue; }
-          if (line.trim() === '---') { currentOverlay.lines.push('', BEAT_MARK, ''); continue; }
-          // lint.js: cards-nested / directive-in-overlay. The chunk path
-          // refuses these; this one let a ::: cards through and drew the
-          // grid inside the card, and a ::: backdrop written here became
-          // the column's picture without a word.
+        // A dock is captured the same way, and the two need the same three
+        // lines: the closer, the beat, the directive refusal.
+        const cap = currentDock || currentOverlay;
+        if (cap) {
+          if (/^:::\s*$/.test(line)) { if (currentDock) flushDock(); else flushOverlay(); continue; }
+          if (line.trim() === '---') {
+            // lint.js: bad-dock-beat. An inherited dock is on every slide of
+            // the part, and a beat is one slide's.
+            if (currentDock && currentDock.scope === 'every') {
+              refuse(
+                `--- inside ::: dock {.every} (${chunkRef()}).\n` +
+                '  An inherited dock is on every slide of the part, and a beat is one\n' +
+                '  slide\'s. Write *** for a rule, or drop .every.');
+            }
+            cap.lines.push('', BEAT_MARK, '');
+            continue;
+          }
+          // lint.js: cards-nested / directive-in-overlay / directive-in-dock.
+          // The chunk path refuses these; this one let a ::: cards through
+          // and drew the grid inside the card, and a ::: backdrop written
+          // here became the column's picture without a word.
           if (/^:::\s+\S/.test(line) && !parseDrawOpener(line)) {
+            const head = line.trim().split(/\s+/).slice(0, 2).join(' ');
+            if (currentDock) {
+              refuse(
+                `${head} inside ::: dock (${chunkRef()}).\n` +
+                '  A dock holds prose, a list, an image or a ::: draw, and no other\n' +
+                '  directive. Close the dock first.');
+            }
             refuse(
-              `${line.trim().split(/\s+/).slice(0, 2).join(' ')} inside ::: overlay (${chunkRef()}).\n` +
+              `${head} inside ::: overlay (${chunkRef()}).\n` +
               '  An overlay is a card laid over the slide - prose, a list, an image,\n' +
               '  a ::: draw - and holds no other directive. Close the overlay first.');
           }
         }
+        if (readDockLine(line)) continue;
         if (readOverlayLine(line)) continue;
         const colBd = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*(?:reveal\s+(.+?))?\s*$/);
         if (!colBd && /^:::\s+backdrop\b/.test(line)) {
@@ -3598,14 +3803,35 @@ function parseLecture(src) {
         // on the first beat). So below the top level the line becomes
         // BEAT_MARK and the runtime does the hiding. An expansion keeps the
         // <hr>: its body is not on the projection and has no beats to give.
-        if ((layoutStack.length || currentOverlay) && !currentExpansion && line.trim() === '---') {
+        if ((layoutStack.length || currentOverlay || currentDock) && !currentExpansion && line.trim() === '---') {
+          // lint.js: bad-dock-beat. Unreachable on a chunk today - `.every`
+          // is refused there - and kept so the two paths read the same.
+          if (currentDock && currentDock.scope === 'every') {
+            refuse(
+              `--- inside ::: dock {.every} (${chunkRef()}).\n` +
+              '  An inherited dock is on every slide of the part, and a beat is one\n' +
+              '  slide\'s. Write *** for a rule, or drop .every.');
+          }
           // Inside ::: script the line stays what marked makes of it, a
           // rule: the block is narration, off the projection under the
           // default collapse, and a beat there is a Space that shows nothing.
           // Written back as ***, the other spelling of a rule, because
           // flushChunk would otherwise split the segment on the --- itself.
-          (currentOverlay ? currentOverlay.lines : bodyLines).push('', inLayout('script') ? '***' : BEAT_MARK, '');
+          (currentDock ? currentDock.lines : currentOverlay ? currentOverlay.lines : bodyLines)
+            .push('', inLayout('script') ? '***' : BEAT_MARK, '');
           continue;
+        }
+        // lint.js: directive-in-dock / cards-nested / nested-directive. A
+        // dock's body is captured, and it holds prose, a list, an image or a
+        // figure - no other directive. One guard for the whole list, the
+        // same three lines the divider path has, so the two cannot drift.
+        // Read after ::: dock itself, whose own opener names the open one.
+        if (readDockLine(line)) continue;
+        if (currentDock && /^:::\s+\S/.test(line) && !parseDrawOpener(line)) {
+          refuse(
+            `${line.trim().split(/\s+/).slice(0, 2).join(' ')} inside ::: dock (${chunkRef()}).\n` +
+            '  A dock holds prose, a list, an image or a ::: draw, and no other\n' +
+            '  directive. Close the dock first.');
         }
 
         // ::: backdrop <ref> {.classes} – a full-bleed image behind the
@@ -3821,9 +4047,7 @@ function parseLecture(src) {
           // defeated the column count.
           const encl = layoutStack.filter(l => l.narrows).pop();
           const where = encl ? `::: ${encl.kind}`
-            : currentOverlay ? '::: overlay'
-            : currentExpansion ? `::: ${currentExpansion.word || 'expand'}`
-            : null;
+            : openAside();
           if (where) {
             const err = new Error(
               `::: ${kw} inside ${where} (${currentChunk.id ? '#' + currentChunk.id : 'a chunk with no id'}).\n` +
@@ -3936,6 +4160,7 @@ function parseLecture(src) {
           continue;
         }
         if (/^:::\s+marginalia\s*$/.test(line)) {
+          currentChunk.hasMarginalia = true;
           target.push('', `<aside class="marginalia">`, '');
           layoutStack.push({ close: '</aside>', kind: 'marginalia', narrows: true });
           continue;
@@ -4003,6 +4228,10 @@ function parseLecture(src) {
             target.push('', closed.close, '');
             continue;
           }
+          if (currentDock) {
+            flushDock();
+            continue;
+          }
           if (currentOverlay) {
             flushOverlay();
             continue;
@@ -4016,11 +4245,21 @@ function parseLecture(src) {
     }
 
     if (currentChunk) {
-      if (currentOverlay) currentOverlay.lines.push(line);
+      if (currentDock) currentDock.lines.push(line);
+      else if (currentOverlay) currentOverlay.lines.push(line);
       else if (currentExpansion) currentExpansion.lines.push(line);
       else bodyLines.push(line);
+    } else if (!currentColumn && !inFence && /^:::\s+\S/.test(line)) {
+      // lint.js: stray-directive. Before the first heading there is no slide
+      // for a directive to be on, and the lines used to be dropped without
+      // a word - a ::: dock written above `## title:` simply vanished.
+      refuse(
+        `${line.trim().split(/\s+/).slice(0, 2).join(' ')} before the first heading.\n` +
+        '  A directive belongs to a slide, and no ## chunk or # column has opened\n' +
+        '  yet. Move it below the heading of the slide it is for.');
     } else if (currentColumn) {
-      if (currentOverlay) currentOverlay.lines.push(line);
+      if (currentDock) currentDock.lines.push(line);
+      else if (currentOverlay) currentOverlay.lines.push(line);
       else colBody.push(line);
     }
   }
@@ -4041,8 +4280,8 @@ function parseLecture(src) {
   // aside and the build exited 0. The linter reported it; the build has to
   // as well, or a lecture loses slides between a clean lint and a clean
   // build.
-  if (currentOverlay || currentExpansion) {
-    const kind = currentOverlay ? 'overlay'
+  if (currentDock || currentOverlay || currentExpansion) {
+    const kind = currentDock ? 'dock' : currentOverlay ? 'overlay'
       : (currentExpansion.kind === 'margin' ? currentExpansion.word : `expand ${currentExpansion.label}`);
     const err = new Error(
       `::: ${kind} was never closed. Everything after it was read as that\n`
@@ -4936,6 +5175,7 @@ function renderHeadingHtml(chunk, cls = 'chunk-heading') {
 
 function renderChunk(chunk, frontmatter, num, opts = {}) {
   const { tag, body = '', id, width, expansions = [], annotation = '', speakerNotes = [] } = chunk;
+  const nums = opts.nums || chunkNumbers([]);
   // An `outline:` chunk is an ordinary chunk whose body ends with the list,
   // and that is the whole of it. Rendering it through a shell of its own
   // dropped five things the ordinary path reads - its speaker notes, its
@@ -5018,6 +5258,11 @@ ${inner}
   const where = id ? `chunk #${id}` : `chunk "${chunk.heading || 'untitled'}"`;
   const bd = renderBackdrop(chunk.backdrop, where);
   const overlayHtml = renderOverlayLayer(chunk.overlays, where);
+  // A chunk's own dock prints as a box after the body, before the overlay
+  // cards - the overlay's pattern, one line beside it. An inherited dock
+  // prints once, under the column heading (renderColumn), not on every
+  // chunk of the part.
+  const dockHtml = chunk.dock && !chunk.dock.inherited ? renderDock(chunk.dock, where, null, nums) : '';
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdAttr = bd.html ? ' data-has-backdrop=""' : '';
 
@@ -5027,6 +5272,7 @@ ${inner}
   ${label}
   ${renderHeadingHtml(chunk)}
   ${bodyHtml}
+  ${dockHtml}
   ${overlayHtml}
   ${expansionsHtml}
   ${annotationHtml}
@@ -5034,8 +5280,8 @@ ${inner}
 </article>`;
 }
 
-function renderColumn(col, frontmatter, nextNum, chunkOpts = {}) {
-  const chunksHtml = col.chunks.map(c => renderChunk(c, frontmatter, nextNum ? nextNum() : undefined, chunkOpts)).join('\n');
+function renderColumn(col, frontmatter, nums, chunkOpts = {}) {
+  const chunksHtml = col.chunks.map(c => renderChunk(c, frontmatter, nums.of.get(c), { ...chunkOpts, nums })).join('\n');
   if (!col.heading) {
     return `<section class="column column-anon">\n${chunksHtml}\n</section>`;
   }
@@ -5058,6 +5304,7 @@ function renderColumn(col, frontmatter, nextNum, chunkOpts = {}) {
   <h1 class="column-heading">${escapeHtml(col.heading)}</h1>
   ${bd.html}
   ${lede}
+  ${renderDock(col.dock, `the divider for "${col.heading}"`, null, nums)}
   ${renderOverlayLayer(col.overlays, `the divider for "${col.heading}"`)}
 ${chunksHtml}
 </section>`;
@@ -5131,10 +5378,10 @@ function renderDocument(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const title = lectureTitle(frontmatter);
   const toc = renderToc(columns);
-  // Single monotonic counter shared across anon + named columns so
-  // the print numbers match the audience's chunk-num badges 1:1.
-  let chunkCounter = 0;
-  const nextNum = () => ++chunkCounter;
+  // The one numbering, shared with renderColumnsHtml, so the print numbers
+  // match the audience's chunk-num badges 1:1 - and so a dock's link
+  // states in both views compare against the same "slide 12".
+  const nums = chunkNumbers(columns);
   // Title / anon columns render above the TOC (cover page first),
   // named columns render after (body of the document).
   const chunkOpts = { withNotes: !!opts.withNotes };
@@ -5148,9 +5395,9 @@ function renderDocument(lecture, opts = {}) {
   { let n = 0; for (const c of columns) if (c.heading) partNoOf.set(c, ++n); }
   const colOpts = (c) => ({ ...chunkOpts, parts, partNo: partNoOf.get(c) || 0 });
   const anonHtml = forPrint(columns.filter(c => !c.heading)
-    .map(c => renderColumn(c, frontmatter, nextNum, colOpts(c))).join('\n'));
+    .map(c => renderColumn(c, frontmatter, nums, colOpts(c))).join('\n'));
   const namedHtml = forPrint(columns.filter(c => c.heading)
-    .map(c => renderColumn(c, frontmatter, nextNum, colOpts(c))).join('\n'));
+    .map(c => renderColumn(c, frontmatter, nums, colOpts(c))).join('\n'));
 
   const titleSuffix = opts.withNotes ? 'print + notes' : 'print';
   // Print has no keyboard, so the frontmatter is its only say over the
@@ -5753,20 +6000,23 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 :is(.chunk, .column) > .chunk-backdrop.bd-top { background-position: center top; }
 :is(.chunk, .column) > .chunk-backdrop.bd-bottom { background-position: center bottom; }
 .overlay-layer { display: block; margin: 0.9rem 0; }
-.overlay-card {
+/* A dock prints as the same kind of box an overlay card does: the frame is
+   what the paper cannot have, the treatment is kept. */
+:is(.overlay-card, .dock) {
   padding: 0.75rem 0.95rem;
   border-radius: 5px;
   margin: 0 0 0.7rem;
   max-width: 34em;
 }
-.overlay-card > :first-child { margin-top: 0; }
-.overlay-card > :last-child { margin-bottom: 0; }
-.overlay-card.ov-paper  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
-.overlay-card.ov-glass  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
-.overlay-card.ov-ink    { background: #1b1b20; color: #fff; }
-.overlay-card.ov-ink a  { color: #fff; }
-.overlay-card.ov-accent { background: var(--emph); color: #fff; }
-.overlay-card.ov-clear  { padding: 0; background: none; border: 0; }
+.dock { display: block; margin: 0.9rem 0; }
+:is(.overlay-card, .dock) > :first-child { margin-top: 0; }
+:is(.overlay-card, .dock) > :last-child { margin-bottom: 0; }
+:is(.overlay-card, .dock).ov-paper  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
+:is(.overlay-card, .dock).ov-glass  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
+:is(.overlay-card, .dock).ov-ink    { background: #1b1b20; color: #fff; }
+:is(.overlay-card, .dock).ov-ink a  { color: #fff; }
+:is(.overlay-card, .dock).ov-accent { background: var(--emph); color: #fff; }
+:is(.overlay-card, .dock).ov-clear  { padding: 0; background: none; border: 0; }
 .cards {
   display: grid;
   grid-template-columns: repeat(var(--card-n), minmax(0, 1fr));
@@ -6118,7 +6368,8 @@ function renderTitleChunk(chunk, frontmatter, num) {
 </article>`;
 }
 
-function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = [], now = 0) {
+function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts = [], now = 0) {
+  const num = nums.of.get(chunk);
   if (chunk.tag === 'title' || chunk.tag === 'closing') return renderTitleChunk(chunk, frontmatter, num);
   const { tag, heading, id, width, expansions = [], annotation = '' } = chunk;
   // Same rule as the document renderer: the list is the end of the body, so
@@ -6210,10 +6461,14 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = 
   const where = id ? `chunk #${id}` : `chunk "${heading || chunkId}"`;
   const bd = renderBackdrop(chunk.backdrop, where);
   const overlayHtml = renderOverlayLayer(chunk.overlays, where);
+  // After .chunk-content and before .overlay-layer, as a sibling: outside
+  // every .reveal-segment, so the collapse never abridges it (decision 10
+  // of PLAN-dock.md), and under the overlay layer in the z-ladder.
+  const dockHtml = renderDock(chunk.dock, where, num, nums);
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdAttr = (bd.html ? ' data-has-backdrop=""' : '') + (overlaysHavePanel(chunk.overlays) ? ' data-has-panel=""' : '');
 
-  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}>
+  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}${dockAttrs(chunk.dock)}>
   ${bd.html}
   <div class="chunk-content">
     ${tagLabel}
@@ -6226,6 +6481,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = 
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  ${dockHtml}
   ${overlayHtml}
   ${chevsHtml}
   ${expBodiesHtml}
@@ -6253,6 +6509,20 @@ function lectureParts(columns) {
   for (const col of columns) if (col.heading) out.push({ no: out.length + 1, heading: col.heading });
   return out;
 }
+// The one walk that numbers the slides. renderColumnsHtml and the print
+// renderer both read it, because a dock's link states compare a target's
+// number with the slide's, and a second counter would be a second
+// definition of "slide 12". A column maps to the span of its chunks, which
+// is what lets a dock link a part and light it while the reader is inside.
+function chunkNumbers(columns) {
+  const of = new Map(); const byId = new Map(); let n = 0;
+  for (const col of columns) {
+    const first = n + 1;
+    for (const c of col.chunks) { n += 1; of.set(c, n); if (c.id) byId.set(c.id, [n, n]); }
+    if (col.id && col.chunks.length) byId.set(col.id, [first, n]);
+  }
+  return { of, byId };
+}
 // The list itself, shared by the divider and the chunk. `now` is the part
 // the reader is inside, or 0 for an agenda that sits before any of them -
 // and 0 is not "nothing is live" rendered as a wall of grey. A list nobody
@@ -6277,7 +6547,7 @@ function renderOutlineList(parts, now) {
   }).join('');
   return `<ol class="section-outline">${items}</ol>`;
 }
-function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []) {
+function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = [], nums = chunkNumbers([])) {
   const chunkId = col.id ? `${col.id}-section` : `__section-c${ci}`;
   const sec = sectionSettings(frontmatter);
   const mark = sec.mark
@@ -6300,13 +6570,18 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
     ? `<div class="section-body">${unwrapLoneFigure(marked.parse(col.body))}</div>` : '';
   const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
   const bdAttr = (art.html ? ' data-has-backdrop=""' : '') + (overlaysHavePanel(col.overlays) ? ' data-has-panel=""' : '');
+  // The divider stands before the first chunk of its column, so its
+  // position is half a slide before it; a column with no chunks is after
+  // everything.
+  const firstNum = col.chunks.length ? nums.of.get(col.chunks[0]) : Infinity;
+  const dockHtml = renderDock(col.dock, where, firstNum - 0.5, nums);
   // The mark and the heading (or the list) are one block, and saying so in
   // the markup is what lets the beside layout be a two-column grid with one
   // row. Left as siblings they were separate grid rows, the figure spanned
   // all of them, and the extra height it forced was shared out among them -
   // measured, the list's centre sat 132px below the figure's. Everywhere
   // else the wrapper is `display: contents`, so it changes nothing.
-  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${bdAttr}${scrimAttr} data-chunk-id="${escapeHtml(chunkId)}">
+  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${bdAttr}${scrimAttr}${dockAttrs(col.dock)} data-chunk-id="${escapeHtml(chunkId)}">
   ${art.html}
   <div class="chunk-content">
     <div class="section-lead">
@@ -6315,6 +6590,7 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
     </div>
     ${own}
   </div>
+  ${dockHtml}
   ${renderOverlayLayer(col.overlays, where)}
 </article>`;
 }
@@ -6327,7 +6603,7 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
 // dividers are auto-inserted, not authored, and stay unnumbered – this
 // keeps audience numbering aligned with print.
 function renderColumnsHtml(columns, frontmatter) {
-  let num = 0;
+  const nums = chunkNumbers(columns);
   // Which named column this is, counted over the columns that *have* a
   // heading - so `section: number` numbers the parts a reader sees rather
   // than the array index, which counts the anonymous opening column too.
@@ -6336,12 +6612,9 @@ function renderColumnsHtml(columns, frontmatter) {
   return columns.map((col, ci) => {
     if (col.heading) sectionNo += 1;
     const sectionHtml = col.heading
-      ? renderColumnSectionChunk(col, ci, frontmatter, sectionNo, parts) : '';
+      ? renderColumnSectionChunk(col, ci, frontmatter, sectionNo, parts, nums) : '';
     const chunks = col.chunks
-      .map((c, xi) => {
-        num += 1;
-        return renderAudienceChunk(c, frontmatter, ci, xi, num, parts, col.heading ? sectionNo : 0);
-      })
+      .map((c, xi) => renderAudienceChunk(c, frontmatter, ci, xi, nums, parts, col.heading ? sectionNo : 0))
       .join('\n');
     const idAttr = col.id ? ` id="${escapeHtml(col.id)}"` : '';
     return `<section class="column" data-col="${ci}"${idAttr}>
@@ -8344,7 +8617,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    restating position: relative on it dropped the whole layer back into
    the text flow, where its three 1fr rows stretched the chunk to twice
    the viewport and pushed the card off the bottom of the slide. */
-.chunk[data-has-backdrop] > .chunk-content, .chunk[data-has-panel] > .chunk-content { z-index: 1; }
+.chunk[data-has-backdrop] > .chunk-content, .chunk[data-has-panel] > .chunk-content, .chunk[data-dock] > .chunk-content { z-index: 1; }
 /* The over word is the one backdrop that sits on the type. It stops short of the
    overlay layer deliberately: a picture that covers the title is a move
    that usually wants a word left standing on top of it, and an ::: overlay
@@ -8352,7 +8625,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    backdrop 0, content 1, an over-layer picture 2, overlays and the slide number
    3 - so changing one means reading all of them. */
 .chunk-backdrop.bd-over { z-index: 2; }
-.chunk[data-has-backdrop] > .chunk-num, .chunk[data-has-panel] > .chunk-num { z-index: 3; }
+.chunk[data-has-backdrop] > .chunk-num, .chunk[data-has-panel] > .chunk-num, .chunk[data-dock] > .chunk-num { z-index: 3; }
 
 /* ── overlay cards (::: overlay) ─────────────────────────────────────
    One 3x3 grid over the whole slide inside its padding, rather than each
@@ -8396,8 +8669,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   transform: translateY(0.45em);
 }
 @media (prefers-reduced-motion: reduce) {
-  .overlay-card { transition: none; }
-  .overlay-card[data-hidden] { transform: none; }
+  .overlay-card, .dock { transition: none; }
+  .overlay-card[data-hidden], .dock[data-hidden] { transform: none; }
 }
 .overlay-card > :first-child { margin-top: 0; }
 .overlay-card > :last-child { margin-bottom: 0; }
@@ -8445,7 +8718,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    the theme's own two grounds, so both follow a theme change; accent
    is --emph; glass is the paper at low alpha over whatever is behind,
    which is the only one that needs the picture to still show through. */
-.overlay-card.ov-paper {
+:is(.overlay-card, .dock).ov-paper {
   background: color-mix(in oklch, var(--paper) 94%, transparent);
   box-shadow: 0 2px 22px oklch(0.2 0.01 260 / 0.16);
   color: var(--ink);
@@ -8455,7 +8728,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* ov-ink's fill is a literal rather than var(--emph), so redefining --emph
    here is safe - and it is wanted, because an accent on a dark slab has to
    lift to stay legible. Kept as the counter-example to the rule above. */
-.overlay-card.ov-ink {
+:is(.overlay-card, .dock).ov-ink {
   background: oklch(0.16 0.015 260 / 0.9);
   color: oklch(0.99 0 0);
   --ink: oklch(0.99 0 0);
@@ -8463,15 +8736,15 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   --emph: oklch(0.90 0.10 75);
   text-shadow: none;
 }
-.overlay-card.ov-accent {
+:is(.overlay-card, .dock).ov-accent {
   background: color-mix(in oklch, var(--emph) 92%, transparent);
   color: var(--paper);
   --ink: var(--paper);
   --ink-soft: color-mix(in oklch, var(--paper) 80%, transparent);
   text-shadow: none;
 }
-.overlay-card.ov-accent strong, .overlay-card.ov-accent b { color: currentColor; }
-.overlay-card.ov-glass {
+:is(.overlay-card, .dock).ov-accent strong, :is(.overlay-card, .dock).ov-accent b { color: currentColor; }
+:is(.overlay-card, .dock).ov-glass {
   /* 26% was frosted glass over a photograph and the ink on it fell under
      3:1 on any mid-tone picture - measured on a panel, where there is a
      lot of it. Half the paper keeps the picture legible through it and the
@@ -8481,8 +8754,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   backdrop-filter: blur(16px) saturate(1.15);
   border: 1px solid color-mix(in oklch, var(--ink) 12%, transparent);
 }
-.overlay-card.ov-glass.ov-panel { background: color-mix(in oklch, var(--paper) 68%, transparent); }
-.overlay-card.ov-clear { background: none; padding: 0; backdrop-filter: none; }
+:is(.overlay-card.ov-panel, .dock).ov-glass { background: color-mix(in oklch, var(--paper) 68%, transparent); }
+:is(.overlay-card, .dock).ov-clear { background: none; padding: 0; backdrop-filter: none; }
 /* shape: panel - the card grown to the frame. The layer keeps a card off
    the slide's edges with its padding; a panel wants exactly the edge, so it
    leaves the grid (position: absolute against the layer, whose padding box
@@ -8555,6 +8828,116 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .overlay-card.ov-panel.ov-bottom[data-hidden] { transform: translateY(1.2em); }
 .overlay-card.ov-panel.ov-top[data-hidden]    { transform: translateY(-1.2em); }
 .overlay-card.ov-panel.ov-center[data-hidden] { transform: none; }
+
+/* ── docks (::: dock) ───────────────────────────────────────────────
+   A dock is a panel that the text yields to. A column is absolute against
+   the chunk, and the chunk reserves the column as padding on that side -
+   the content track stays minmax(0, --content-w) and the 1fr gutters absorb
+   the rest, so no grid-column rule changes. A band is a grid row, because
+   its height at snug is its words', which only an auto row can measure.
+   The width is a bare number on .chunk (--dock-em) and both sides multiply
+   it out themselves: the column in its own em, which is 0.92 of the
+   chunk's times the zoom, and the chunk's padding in the chunk's em times
+   the same two factors. Written as one em value it resolved twice - 13em
+   of the chunk in the padding, 13em of the zoomed dock in the column - and
+   the column ran 300px into the text at zoom 2.2. So the reserved track
+   grows with the lecturer's zoom, as the dock's type does, and auto-fit
+   converges on the zoom at which both fit: it re-measures after every
+   applyZoom. */
+/* Registered as a <length>, so the em in it is resolved once, at the chunk,
+   and every reader below - the chunk's padding, the dock's width, the slide
+   number's offset, the overlay layer's inset - gets the same pixels. As a
+   plain custom property the em would be re-read where it is used: in the
+   dock's zoomed type, in the badge's small digits, each a different width. */
+@property --dock-px { syntax: '<length>'; inherits: true; initial-value: 0px; }
+.chunk[data-dock] { min-height: var(--slide-h); --dock-gap: 1.6em; --dock-px: calc(var(--dock-em) * 0.92em * var(--zoom)); }
+/* The width word rides on the article as data-dock-w, beside data-dock,
+   because the padding is the chunk's. Measured on the weakest-link photo
+   at 1600x900: 13em holds a seven-item list of one-word headings, 18em a
+   two-line remark, 25em a short paragraph. lint.js mirrors them as DOCK_EM. */
+.chunk[data-dock-w=narrow]   { --dock-em: 13; }
+.chunk[data-dock-w=standard] { --dock-em: 18; }
+.chunk[data-dock-w=wide]     { --dock-em: 25; }
+.chunk[data-dock=left]  { padding-left:  calc(var(--dock-px) + var(--dock-gap)); }
+.chunk[data-dock=right] { padding-right: calc(var(--dock-px) + var(--dock-gap)); }
+
+.dock {
+  z-index: 1;                       /* the content's rung: beside it, not over it */
+  font-size: calc(0.92em * var(--zoom));
+  line-height: 1.45;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.dock > :first-child { margin-top: 0; }
+.dock > :last-child  { margin-bottom: 0; }
+.dock p { margin: 0 0 0.5em; }
+.dock ul, .dock ol { margin: 0; padding-left: 1.1em; }
+.dock li + li { margin-top: 0.35em; }
+.dock strong { font-weight: var(--bold-weight); color: var(--emph); }
+.dock img { max-width: 100%; height: auto; display: block; }
+.dock figure { margin: 0; }
+
+/* column: absolute against the chunk, whose padding is the reserved track.
+   Vertical padding is the slide's; horizontal is fixed, because 14% of a
+   13em column is not a padding. */
+.dock.dock-left, .dock.dock-right {
+  position: absolute; top: 0; bottom: 0;
+  width: var(--dock-px);
+  padding: var(--slide-pad-y) 1.2em;
+}
+.dock.dock-left  { left: 0; }
+.dock.dock-right { right: 0; }
+
+/* band: a grid row across every track, bled to the frame by a negative
+   margin. The margin is a *length* - --slide-pad-x is 14% of the chunk,
+   and 14% of --slide-w is the same distance written so that it does not
+   resolve against the grid area (the panel's trap, recorded in the
+   decoration skill). Not a width: an item wider than its three tracks made
+   the fr gutters take everything and the minmax(0, …) content track went
+   to zero, one word per line. */
+.chunk[data-dock=top]    { grid-template-rows: auto minmax(0, 1fr); padding-top: 0; }
+.chunk[data-dock=bottom] { grid-template-rows: minmax(0, 1fr) auto; padding-bottom: 0; }
+.dock.dock-top, .dock.dock-bottom {
+  grid-column: 1 / -1;
+  margin-inline: calc(-0.14 * var(--slide-w));
+  /* the same inset the overlay layer and the panel use, as a length */
+  padding: 0.85em calc(var(--slide-w) * 0.14 * 0.62);
+  align-items: center; text-align: center;
+}
+.dock.dock-top    { grid-row: 1; }
+.dock.dock-bottom { grid-row: 2; }
+.chunk[data-dock=top]    > .chunk-content { grid-row: 2; }
+.chunk[data-dock=bottom] > .chunk-content { grid-row: 1; }
+.dock.dock-h-third { min-height: calc(var(--slide-h) / 3); }   /* a length: a % min-height against an auto row is ignored */
+.dock.dock-h-half  { min-height: calc(var(--slide-h) / 2); }
+.dock.dock-top.dock-w-narrow > *,   .dock.dock-bottom.dock-w-narrow > *   { max-width: 19em; }
+.dock.dock-top.dock-w-standard > *, .dock.dock-bottom.dock-w-standard > * { max-width: 29em; }
+.dock.dock-top.dock-w-wide > *,     .dock.dock-bottom.dock-w-wide > *     { max-width: 42em; }
+
+/* from N: the track is reserved from beat 0 and the dock arrives into it,
+   so the text never moves - the rule overlay cards already follow ("keeps
+   its cell in both states"). It wipes in from its edge rather than sliding:
+   a translate past the frame made the hidden dock overflow the chunk by
+   its own nudge, and auto-fit, which asks the chunk whether anything
+   overflows, shrank the type to the floor on every slide with a right
+   dock held to a beat. A clip is not overflow. */
+.dock { clip-path: inset(0); transition: opacity 0.5s ease 0.14s, clip-path 0.5s ease 0.14s, visibility 0.5s; }
+.dock[data-hidden] { opacity: 0; visibility: hidden; }
+.dock.dock-left[data-hidden]   { clip-path: inset(0 100% 0 0); }
+.dock.dock-right[data-hidden]  { clip-path: inset(0 0 0 100%); }
+.dock.dock-top[data-hidden]    { clip-path: inset(0 0 100% 0); }
+.dock.dock-bottom[data-hidden] { clip-path: inset(100% 0 0 0); }
+
+/* the live marker: two greys a projector can tell apart, three it cannot */
+.dock a { color: inherit; text-decoration: none; }
+.dock a[data-state=done], .dock a[data-state=next] { color: var(--ink-soft); }
+.dock a[data-state=now] { color: var(--ink); font-weight: var(--bold-weight); }
+
+/* chrome that would land on a column moves off it by the column's width;
+   over a band it stays (a band's height is not a number CSS has) */
+.chunk[data-dock=right] > .chunk-num { right: calc(var(--dock-px) + var(--slide-pad-x) * 0.35); }
+.chunk[data-dock=right] > .exps      { right: calc(var(--dock-px) + var(--dock-gap)); }
+.chunk[data-dock=left]  > .overlay-layer { padding-left:  calc(var(--dock-px) + var(--dock-gap) + var(--slide-pad-x) * 0.62); }
+.chunk[data-dock=right] > .overlay-layer { padding-right: calc(var(--dock-px) + var(--dock-gap) + var(--slide-pad-x) * 0.62); }
 
 /* ── card grid (::: cards N) ─────────────────────────────────────────
    Not a second spelling of cols. cols is one text flow the browser
@@ -10436,6 +10819,10 @@ viewport.addEventListener('scroll', resetViewportScroll);
 // Display math is in the list because a formula on a projector is exactly
 // the thing a room asks to see bigger.
 const FOCUSABLE_SEL = 'figure.figure-img, figure.figure-diagram, .chunk-body pre, .chunk-body .math-display, .marginalia';
+// Everything that is held to a beat by from N. One string, or the three
+// walks below (chunkBeats, countSegments, applyReveal) disagree about what
+// arrives when. A dock with from is, for the counter, an overlay card.
+const FROM_SEL = '.overlay-card[data-from], .dock[data-from]';
 
 // ── Slide-size sync ─────────────────────────────────────────────────
 // --slide-w / --slide-h hold the AUDIENCE window's pixel dimensions so
@@ -11269,7 +11656,7 @@ function chunkBeats(el) {
       // the slide's list. Without at, the overlay layer comes after the
       // body in document order, so its inner beats would be numbered
       // before its own from-beat and play behind a card not yet shown.
-      const ov = node.closest('.overlay-card[data-from]');
+      const ov = node.closest(FROM_SEL);
       const at = ov ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node) : null;
       push({ type: 'mark', els, at });
       return;
@@ -11305,7 +11692,7 @@ function countSegments(el) {
   let n = beats ? beats + 1 : (el.querySelector('.reveal-segment') ? 1 : 0);
   all.forEach(b => { if (b.at != null) n = Math.max(n, b.at + 1); });
   if (bd) n = Math.max(n, bd.frames.length);
-  el.querySelectorAll('.overlay-card[data-from]').forEach(c => {
+  el.querySelectorAll(FROM_SEL).forEach(c => {
     n = Math.max(n, Number(c.dataset.from) + 1);
   });
   return n;
@@ -11344,7 +11731,7 @@ function applyReveal(el, id, instant) {
   // stored reveal state to forty chunks at boot must not start forty tweens.
   const jump = instant || !el.classList.contains('active');
   steps.forEach((step, d) => dgStep(d, step, jump));
-  el.querySelectorAll('.overlay-card[data-from]').forEach(c => {
+  el.querySelectorAll(FROM_SEL).forEach(c => {
     c.toggleAttribute('data-hidden', consumed < Number(c.dataset.from));
   });
   const bd = bdFrames(el);
@@ -11437,7 +11824,10 @@ function focusCamera(instant = false) {
     // The walk branch below still measures the box. A chunk whose *content*
     // overflows is genuinely walked, and the head pin and the foot-following
     // are a pair that has to stay in one coordinate system.
-    const fitEl = entry.el.querySelector('.chunk-content');
+    // A chunk with a dock is framed as a whole: a band takes a grid row of
+    // its own, so the content box sits above (or below) the slide's middle
+    // by design, and centring it pushed the band off the bottom edge.
+    const fitEl = entry.el.hasAttribute('data-dock') ? null : entry.el.querySelector('.chunk-content');
     const fit = fitEl ? getOffset(fitEl, stage) : { top, height };
     if (fit.height <= vp.height) {
       ty = vp.height / 2 - (fit.top + fit.height / 2);
@@ -12345,7 +12735,12 @@ function flowHeightProbe(el) {
     for (const c of node.children) {
       if (typeof c.offsetHeight !== 'number') continue;      // an <svg> has no offset box
       const cs = getComputedStyle(c);
-      if (cs.position === 'absolute' || cs.position === 'fixed') continue;
+      // A side dock is absolute and still counts: it is looked through
+      // below, so it contributes the extent of its words plus its paddings
+      // rather than the slide height it is stretched to. Skipped, a
+      // seven-item list in a 13em column could grow past the frame with
+      // nothing telling auto-fit.
+      if ((cs.position === 'absolute' || cs.position === 'fixed') && !c.classList.contains('dock')) continue;
       if (cs.display === 'contents') { out.push(...flowKids(c)); continue; }
       out.push(c);
     }
@@ -12381,7 +12776,7 @@ function flowHeightProbe(el) {
   // because it carries no ground - no background, no border, no min-height -
   // and its own padding is added back below. Nothing deeper is looked
   // through: a card row keeps its min-height, a figure keeps its frame.
-  const inner = outer.flow.map((c) => (c.classList.contains('chunk-content') ? levelOf(c) : null));
+  const inner = outer.flow.map((c) => (c.classList.contains('chunk-content') || c.classList.contains('dock') ? levelOf(c) : null));
 
   return () => {
     let top = Infinity, bottom = -Infinity;
@@ -16957,6 +17352,8 @@ function squintScan() {
       ctx = Object.assign({}, ctx, { inCards: true });
     } else if (cl.contains('overlay-card')) {
       put('[', 'overlay · ' + slots(el, 'ov-').replace(/ · w-[a-z]+/, ''));
+    } else if (cl.contains('dock')) {
+      put('[', 'dock · ' + slots(el, 'dock-') + (el.hasAttribute('data-inherited') ? ' · inherited' : ''));
     } else if (cl.contains('margin-note')) {
       put('[', 'footnote "' + norm(el.dataset.label || '') + '"');
     } else if (cl.contains('marginalia')) {

@@ -1697,7 +1697,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    restating position: relative on it dropped the whole layer back into
    the text flow, where its three 1fr rows stretched the chunk to twice
    the viewport and pushed the card off the bottom of the slide. */
-.chunk[data-has-backdrop] > .chunk-content, .chunk[data-has-panel] > .chunk-content { z-index: 1; }
+.chunk[data-has-backdrop] > .chunk-content, .chunk[data-has-panel] > .chunk-content, .chunk[data-dock] > .chunk-content { z-index: 1; }
 /* The over word is the one backdrop that sits on the type. It stops short of the
    overlay layer deliberately: a picture that covers the title is a move
    that usually wants a word left standing on top of it, and an ::: overlay
@@ -1705,7 +1705,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    backdrop 0, content 1, an over-layer picture 2, overlays and the slide number
    3 - so changing one means reading all of them. */
 .chunk-backdrop.bd-over { z-index: 2; }
-.chunk[data-has-backdrop] > .chunk-num, .chunk[data-has-panel] > .chunk-num { z-index: 3; }
+.chunk[data-has-backdrop] > .chunk-num, .chunk[data-has-panel] > .chunk-num, .chunk[data-dock] > .chunk-num { z-index: 3; }
 
 /* ── overlay cards (::: overlay) ─────────────────────────────────────
    One 3x3 grid over the whole slide inside its padding, rather than each
@@ -1749,8 +1749,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   transform: translateY(0.45em);
 }
 @media (prefers-reduced-motion: reduce) {
-  .overlay-card { transition: none; }
-  .overlay-card[data-hidden] { transform: none; }
+  .overlay-card, .dock { transition: none; }
+  .overlay-card[data-hidden], .dock[data-hidden] { transform: none; }
 }
 .overlay-card > :first-child { margin-top: 0; }
 .overlay-card > :last-child { margin-bottom: 0; }
@@ -1798,7 +1798,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    the theme's own two grounds, so both follow a theme change; accent
    is --emph; glass is the paper at low alpha over whatever is behind,
    which is the only one that needs the picture to still show through. */
-.overlay-card.ov-paper {
+:is(.overlay-card, .dock).ov-paper {
   background: color-mix(in oklch, var(--paper) 94%, transparent);
   box-shadow: 0 2px 22px oklch(0.2 0.01 260 / 0.16);
   color: var(--ink);
@@ -1808,7 +1808,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* ov-ink's fill is a literal rather than var(--emph), so redefining --emph
    here is safe - and it is wanted, because an accent on a dark slab has to
    lift to stay legible. Kept as the counter-example to the rule above. */
-.overlay-card.ov-ink {
+:is(.overlay-card, .dock).ov-ink {
   background: oklch(0.16 0.015 260 / 0.9);
   color: oklch(0.99 0 0);
   --ink: oklch(0.99 0 0);
@@ -1816,15 +1816,15 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   --emph: oklch(0.90 0.10 75);
   text-shadow: none;
 }
-.overlay-card.ov-accent {
+:is(.overlay-card, .dock).ov-accent {
   background: color-mix(in oklch, var(--emph) 92%, transparent);
   color: var(--paper);
   --ink: var(--paper);
   --ink-soft: color-mix(in oklch, var(--paper) 80%, transparent);
   text-shadow: none;
 }
-.overlay-card.ov-accent strong, .overlay-card.ov-accent b { color: currentColor; }
-.overlay-card.ov-glass {
+:is(.overlay-card, .dock).ov-accent strong, :is(.overlay-card, .dock).ov-accent b { color: currentColor; }
+:is(.overlay-card, .dock).ov-glass {
   /* 26% was frosted glass over a photograph and the ink on it fell under
      3:1 on any mid-tone picture - measured on a panel, where there is a
      lot of it. Half the paper keeps the picture legible through it and the
@@ -1834,8 +1834,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   backdrop-filter: blur(16px) saturate(1.15);
   border: 1px solid color-mix(in oklch, var(--ink) 12%, transparent);
 }
-.overlay-card.ov-glass.ov-panel { background: color-mix(in oklch, var(--paper) 68%, transparent); }
-.overlay-card.ov-clear { background: none; padding: 0; backdrop-filter: none; }
+:is(.overlay-card.ov-panel, .dock).ov-glass { background: color-mix(in oklch, var(--paper) 68%, transparent); }
+:is(.overlay-card, .dock).ov-clear { background: none; padding: 0; backdrop-filter: none; }
 /* shape: panel - the card grown to the frame. The layer keeps a card off
    the slide's edges with its padding; a panel wants exactly the edge, so it
    leaves the grid (position: absolute against the layer, whose padding box
@@ -1908,6 +1908,116 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .overlay-card.ov-panel.ov-bottom[data-hidden] { transform: translateY(1.2em); }
 .overlay-card.ov-panel.ov-top[data-hidden]    { transform: translateY(-1.2em); }
 .overlay-card.ov-panel.ov-center[data-hidden] { transform: none; }
+
+/* ── docks (::: dock) ───────────────────────────────────────────────
+   A dock is a panel that the text yields to. A column is absolute against
+   the chunk, and the chunk reserves the column as padding on that side -
+   the content track stays minmax(0, --content-w) and the 1fr gutters absorb
+   the rest, so no grid-column rule changes. A band is a grid row, because
+   its height at snug is its words', which only an auto row can measure.
+   The width is a bare number on .chunk (--dock-em) and both sides multiply
+   it out themselves: the column in its own em, which is 0.92 of the
+   chunk's times the zoom, and the chunk's padding in the chunk's em times
+   the same two factors. Written as one em value it resolved twice - 13em
+   of the chunk in the padding, 13em of the zoomed dock in the column - and
+   the column ran 300px into the text at zoom 2.2. So the reserved track
+   grows with the lecturer's zoom, as the dock's type does, and auto-fit
+   converges on the zoom at which both fit: it re-measures after every
+   applyZoom. */
+/* Registered as a <length>, so the em in it is resolved once, at the chunk,
+   and every reader below - the chunk's padding, the dock's width, the slide
+   number's offset, the overlay layer's inset - gets the same pixels. As a
+   plain custom property the em would be re-read where it is used: in the
+   dock's zoomed type, in the badge's small digits, each a different width. */
+@property --dock-px { syntax: '<length>'; inherits: true; initial-value: 0px; }
+.chunk[data-dock] { min-height: var(--slide-h); --dock-gap: 1.6em; --dock-px: calc(var(--dock-em) * 0.92em * var(--zoom)); }
+/* The width word rides on the article as data-dock-w, beside data-dock,
+   because the padding is the chunk's. Measured on the weakest-link photo
+   at 1600x900: 13em holds a seven-item list of one-word headings, 18em a
+   two-line remark, 25em a short paragraph. lint.js mirrors them as DOCK_EM. */
+.chunk[data-dock-w=narrow]   { --dock-em: 13; }
+.chunk[data-dock-w=standard] { --dock-em: 18; }
+.chunk[data-dock-w=wide]     { --dock-em: 25; }
+.chunk[data-dock=left]  { padding-left:  calc(var(--dock-px) + var(--dock-gap)); }
+.chunk[data-dock=right] { padding-right: calc(var(--dock-px) + var(--dock-gap)); }
+
+.dock {
+  z-index: 1;                       /* the content's rung: beside it, not over it */
+  font-size: calc(0.92em * var(--zoom));
+  line-height: 1.45;
+  display: flex; flex-direction: column; justify-content: center;
+}
+.dock > :first-child { margin-top: 0; }
+.dock > :last-child  { margin-bottom: 0; }
+.dock p { margin: 0 0 0.5em; }
+.dock ul, .dock ol { margin: 0; padding-left: 1.1em; }
+.dock li + li { margin-top: 0.35em; }
+.dock strong { font-weight: var(--bold-weight); color: var(--emph); }
+.dock img { max-width: 100%; height: auto; display: block; }
+.dock figure { margin: 0; }
+
+/* column: absolute against the chunk, whose padding is the reserved track.
+   Vertical padding is the slide's; horizontal is fixed, because 14% of a
+   13em column is not a padding. */
+.dock.dock-left, .dock.dock-right {
+  position: absolute; top: 0; bottom: 0;
+  width: var(--dock-px);
+  padding: var(--slide-pad-y) 1.2em;
+}
+.dock.dock-left  { left: 0; }
+.dock.dock-right { right: 0; }
+
+/* band: a grid row across every track, bled to the frame by a negative
+   margin. The margin is a *length* - --slide-pad-x is 14% of the chunk,
+   and 14% of --slide-w is the same distance written so that it does not
+   resolve against the grid area (the panel's trap, recorded in the
+   decoration skill). Not a width: an item wider than its three tracks made
+   the fr gutters take everything and the minmax(0, …) content track went
+   to zero, one word per line. */
+.chunk[data-dock=top]    { grid-template-rows: auto minmax(0, 1fr); padding-top: 0; }
+.chunk[data-dock=bottom] { grid-template-rows: minmax(0, 1fr) auto; padding-bottom: 0; }
+.dock.dock-top, .dock.dock-bottom {
+  grid-column: 1 / -1;
+  margin-inline: calc(-0.14 * var(--slide-w));
+  /* the same inset the overlay layer and the panel use, as a length */
+  padding: 0.85em calc(var(--slide-w) * 0.14 * 0.62);
+  align-items: center; text-align: center;
+}
+.dock.dock-top    { grid-row: 1; }
+.dock.dock-bottom { grid-row: 2; }
+.chunk[data-dock=top]    > .chunk-content { grid-row: 2; }
+.chunk[data-dock=bottom] > .chunk-content { grid-row: 1; }
+.dock.dock-h-third { min-height: calc(var(--slide-h) / 3); }   /* a length: a % min-height against an auto row is ignored */
+.dock.dock-h-half  { min-height: calc(var(--slide-h) / 2); }
+.dock.dock-top.dock-w-narrow > *,   .dock.dock-bottom.dock-w-narrow > *   { max-width: 19em; }
+.dock.dock-top.dock-w-standard > *, .dock.dock-bottom.dock-w-standard > * { max-width: 29em; }
+.dock.dock-top.dock-w-wide > *,     .dock.dock-bottom.dock-w-wide > *     { max-width: 42em; }
+
+/* from N: the track is reserved from beat 0 and the dock arrives into it,
+   so the text never moves - the rule overlay cards already follow ("keeps
+   its cell in both states"). It wipes in from its edge rather than sliding:
+   a translate past the frame made the hidden dock overflow the chunk by
+   its own nudge, and auto-fit, which asks the chunk whether anything
+   overflows, shrank the type to the floor on every slide with a right
+   dock held to a beat. A clip is not overflow. */
+.dock { clip-path: inset(0); transition: opacity 0.5s ease 0.14s, clip-path 0.5s ease 0.14s, visibility 0.5s; }
+.dock[data-hidden] { opacity: 0; visibility: hidden; }
+.dock.dock-left[data-hidden]   { clip-path: inset(0 100% 0 0); }
+.dock.dock-right[data-hidden]  { clip-path: inset(0 0 0 100%); }
+.dock.dock-top[data-hidden]    { clip-path: inset(0 0 100% 0); }
+.dock.dock-bottom[data-hidden] { clip-path: inset(100% 0 0 0); }
+
+/* the live marker: two greys a projector can tell apart, three it cannot */
+.dock a { color: inherit; text-decoration: none; }
+.dock a[data-state=done], .dock a[data-state=next] { color: var(--ink-soft); }
+.dock a[data-state=now] { color: var(--ink); font-weight: var(--bold-weight); }
+
+/* chrome that would land on a column moves off it by the column's width;
+   over a band it stays (a band's height is not a number CSS has) */
+.chunk[data-dock=right] > .chunk-num { right: calc(var(--dock-px) + var(--slide-pad-x) * 0.35); }
+.chunk[data-dock=right] > .exps      { right: calc(var(--dock-px) + var(--dock-gap)); }
+.chunk[data-dock=left]  > .overlay-layer { padding-left:  calc(var(--dock-px) + var(--dock-gap) + var(--slide-pad-x) * 0.62); }
+.chunk[data-dock=right] > .overlay-layer { padding-right: calc(var(--dock-px) + var(--dock-gap) + var(--slide-pad-x) * 0.62); }
 
 /* ── card grid (::: cards N) ─────────────────────────────────────────
    Not a second spelling of cols. cols is one text flow the browser
@@ -4841,6 +4951,7 @@ goes in it.</p>
     
   </div>
   
+  
 </article>
 <article class="chunk chunk-principle" id="one-source" data-chunk-id="one-source" data-tag="principle" data-width="standard" data-chunk-num="2">
   
@@ -4858,6 +4969,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -4936,6 +5048,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i></div>
 </article>
 <article class="chunk chunk-definition" id="chunks-columns" data-chunk-id="chunks-columns" data-tag="definition" data-width="standard" data-chunk-num="4">
@@ -4954,6 +5067,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -4986,6 +5100,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>5</i></div>
 </article>
 </section>
@@ -4999,6 +5114,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
   
 </article>
 <article class="chunk chunk-principle" id="pace" data-chunk-id="pace" data-tag="principle" data-width="standard" data-chunk-num="6">
@@ -5016,6 +5132,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5049,6 +5166,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>7</i></div>
 </article>
 <article class="chunk chunk-example" id="expand" data-chunk-id="expand" data-tag="example" data-width="wide" data-chunk-num="8">
@@ -5066,6 +5184,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
@@ -5110,6 +5229,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>9</i></div>
 </article>
 <article class="chunk chunk-example" id="select-text" data-chunk-id="select-text" data-tag="example" data-width="standard" data-chunk-num="10">
@@ -5126,6 +5246,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5151,6 +5272,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>1</i></div>
 </article>
 </section>
@@ -5164,6 +5286,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
   
 </article>
 <article class="chunk chunk-principle" id="jumping" data-chunk-id="jumping" data-tag="principle" data-width="standard" data-chunk-num="12">
@@ -5186,6 +5309,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5215,6 +5339,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></div>
 </article>
 <article class="chunk chunk-example" id="toc" data-chunk-id="toc" data-tag="example" data-width="standard" data-chunk-num="14">
@@ -5232,6 +5357,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5256,6 +5382,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></div>
 </article>
 </section>
@@ -5269,6 +5396,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
   
 </article>
 <article class="chunk chunk-principle" id="two-modes" data-chunk-id="two-modes" data-tag="principle" data-width="standard" data-chunk-num="16">
@@ -5286,6 +5414,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5311,6 +5440,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></div>
 </article>
 <article class="chunk chunk-example" id="derived-mode" data-chunk-id="derived-mode" data-tag="example" data-width="wide" data-chunk-num="18">
@@ -5331,6 +5461,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5362,6 +5493,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5397,6 +5529,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></div>
 </article>
 </section>
@@ -5410,6 +5543,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
   
 </article>
 <article class="chunk chunk-principle" id="grammar" data-chunk-id="grammar" data-tag="principle" data-width="wide" data-chunk-num="21">
@@ -5432,6 +5566,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
@@ -5466,6 +5601,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
@@ -5504,6 +5640,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></div>
 </article>
 </section>
@@ -5517,6 +5654,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
   
 </article>
 <article class="chunk chunk-principle" id="two-screens" data-chunk-id="two-screens" data-tag="principle" data-width="standard" data-chunk-num="24">
@@ -5534,6 +5672,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5564,6 +5703,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5601,6 +5741,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></div>
 </article>
 <article class="chunk chunk-example" id="notes-vs-annot" data-chunk-id="notes-vs-annot" data-tag="example" data-width="wide" data-chunk-num="27">
@@ -5628,6 +5769,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5659,6 +5801,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></div>
 </article>
 <article class="chunk chunk-example" id="knobs-touch" data-chunk-id="knobs-touch" data-tag="example" data-width="wide" data-chunk-num="29">
@@ -5675,6 +5818,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5700,6 +5844,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></div>
 </article>
 </section>
@@ -5713,6 +5858,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
   
 </article>
 <article class="chunk chunk-principle" id="layout-axes" data-chunk-id="layout-axes" data-tag="principle" data-width="standard" data-chunk-num="31">
@@ -5730,6 +5876,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5759,6 +5906,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5793,6 +5941,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
 </article>
 <article class="chunk chunk-example" id="marginalia-demo" data-chunk-id="marginalia-demo" data-tag="example" data-width="standard" data-chunk-num="34">
@@ -5822,6 +5971,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
 </article>
 <article class="chunk chunk-example" id="margin-demo" data-chunk-id="margin-demo" data-tag="example" data-width="standard" data-chunk-num="35">
@@ -5840,6 +5990,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5908,6 +6059,7 @@ goes in it.</p>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
   
+  
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
          <span class="caret">›</span>
@@ -5940,6 +6092,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
 </article>
 <article class="chunk chunk-example" id="video-more" data-chunk-id="video-more" data-tag="example" data-width="wide" data-chunk-num="38">
@@ -5960,6 +6113,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -5985,6 +6139,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -6015,6 +6170,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>0</i></div>
 </article>
 <article class="chunk chunk-example" id="math" data-chunk-id="math" data-tag="example" data-width="wide" data-blocks="left" data-chunk-num="41">
@@ -6040,6 +6196,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>1</i></div>
 </article>
 </section>
@@ -6053,6 +6210,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
   
 </article>
 <article class="chunk chunk-principle" id="topic-sentence" data-chunk-id="topic-sentence" data-tag="principle" data-width="wide" data-chunk-num="42">
@@ -6076,6 +6234,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -6112,6 +6271,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>3</i></div>
 </article>
 <article class="chunk chunk-exercise" id="squint-test" data-chunk-id="squint-test" data-tag="exercise" data-width="wide" data-chunk-num="44">
@@ -6138,6 +6298,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>4</i></div>
 </article>
 </section>
@@ -6151,6 +6312,7 @@ goes in it.</p>
     </div>
     
   </div>
+  
   
 </article>
 <article class="chunk chunk-principle" id="start-writing" data-chunk-id="start-writing" data-tag="principle" data-width="standard" data-chunk-num="45">
@@ -6168,6 +6330,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -6196,6 +6359,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>6</i></div>
 </article>
 <article class="chunk chunk-free" id="authoring" data-chunk-id="authoring" data-tag="free" data-width="wide" data-chunk-num="47">
@@ -6218,6 +6382,7 @@ goes in it.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -6253,6 +6418,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>8</i></div>
 </article>
 <article class="chunk chunk-example" id="view-lang" data-chunk-id="view-lang" data-tag="example" data-width="wide" data-chunk-num="49">
@@ -6277,6 +6443,7 @@ goes in it.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></div>
 </article>
 </section>
@@ -6296,6 +6463,7 @@ are tagged into a release.</p>
 </div>
   </div>
   
+  
 </article>
 <article class="chunk chunk-principle" id="drawn-from-text" data-chunk-id="drawn-from-text" data-tag="principle" data-width="standard" data-chunk-num="50">
   
@@ -6312,6 +6480,7 @@ are tagged into a release.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -6350,6 +6519,7 @@ are tagged into a release.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>5</i><i>1</i></div>
 </article>
 <article class="chunk chunk-example" id="diagram-beats" data-chunk-id="diagram-beats" data-tag="example" data-width="full" data-chunk-num="52">
@@ -6376,6 +6546,7 @@ are tagged into a release.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -6412,6 +6583,7 @@ are tagged into a release.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></div>
 </article>
 <article class="chunk chunk-example" id="diagram-slots" data-chunk-id="diagram-slots" data-tag="example" data-width="full" data-blocks="left" data-chunk-num="54">
@@ -6440,6 +6612,7 @@ are tagged into a release.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>5</i><i>4</i></div>
 </article>
 <article class="chunk chunk-example" id="diagram-placement" data-chunk-id="diagram-placement" data-tag="example" data-width="full" data-chunk-num="55">
@@ -6465,6 +6638,7 @@ are tagged into a release.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>5</i><i>5</i></div>
 </article>
 <article class="chunk chunk-example" id="diagram-coords" data-chunk-id="diagram-coords" data-tag="example" data-width="full" data-chunk-num="56">
@@ -6484,6 +6658,7 @@ are tagged into a release.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
@@ -6560,6 +6735,7 @@ are tagged into a release.</p>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
   
+  
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
          <span class="caret">›</span>
@@ -6595,6 +6771,7 @@ are tagged into a release.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
@@ -6687,6 +6864,7 @@ are tagged into a release.</p>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
   
+  
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
          <span class="caret">›</span>
@@ -6720,6 +6898,7 @@ are tagged into a release.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></div>
 </article>
 <article class="chunk chunk-example" id="diagram-flat" data-chunk-id="diagram-flat" data-tag="example" data-width="full" data-chunk-num="61">
@@ -6748,6 +6927,7 @@ are tagged into a release.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
@@ -6812,6 +6992,7 @@ are tagged into a release.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>2</i></div>
 </article>
 <article class="chunk chunk-example" id="diagram-plot-scale" data-chunk-id="diagram-plot-scale" data-tag="example" data-width="wide" data-chunk-num="63">
@@ -6829,6 +7010,7 @@ are tagged into a release.</p>
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
@@ -6876,6 +7058,7 @@ are tagged into a release.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>4</i></div>
 </article>
 <article class="chunk chunk-example" id="autoplay" data-chunk-id="autoplay" data-tag="example" data-width="wide" data-chunk-num="65">
@@ -6904,6 +7087,7 @@ are tagged into a release.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>5</i></div>
 </article>
 <article class="chunk chunk-example" id="autoplay-bounds" data-chunk-id="autoplay-bounds" data-tag="example" data-width="wide" data-chunk-num="66">
@@ -6929,6 +7113,7 @@ are tagged into a release.</p>
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>6</i></div>
 </article>
 </section>
@@ -6945,6 +7130,7 @@ are tagged into a release.</p>
 </blockquote>
 </div>
   </div>
+  
   
 </article>
 <article class="chunk chunk-principle" id="deco-idea" data-chunk-id="deco-idea" data-tag="principle" data-width="standard" data-chunk-num="67">
@@ -6964,6 +7150,7 @@ of them are shown one per slide in
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -6994,6 +7181,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>8</i></div>
 </article>
 <article class="chunk chunk-example" id="backdrop-words" data-chunk-id="backdrop-words" data-tag="example" data-width="wide" data-chunk-num="69">
@@ -7016,6 +7204,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>9</i></div>
 </article>
 <article class="chunk chunk-example" id="deco-picture" data-chunk-id="deco-picture" data-tag="example" data-width="full" data-chunk-num="70" data-has-backdrop="" data-backdrop="invert">
@@ -7031,6 +7220,7 @@ of them are shown one per slide in
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   <div class="overlay-layer">
 <div class="overlay-card ov-bottom-left ov-ink ov-w-standard"><p><strong>The backdrop is the slide&#39;s ground</strong><br>and this block is an overlay, placed on a 3×3 grid.</p>
 </div>
@@ -7080,6 +7270,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>1</i></div>
 </article>
 <article class="chunk chunk-example" id="cards-open" data-chunk-id="cards-open" data-tag="example" data-width="wide" data-chunk-num="72">
@@ -7109,6 +7300,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>2</i></div>
 </article>
 <article class="chunk chunk-example" id="cards-look" data-chunk-id="cards-look" data-tag="example" data-width="wide" data-chunk-num="73">
@@ -7131,6 +7323,7 @@ of them are shown one per slide in
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -7176,6 +7369,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>4</i></div>
 </article>
 <article class="chunk chunk-example" id="cards-anchor" data-chunk-id="cards-anchor" data-tag="example" data-width="wide" data-chunk-num="75">
@@ -7205,6 +7399,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>5</i></div>
 </article>
 <article class="chunk chunk-example" id="rows" data-chunk-id="rows" data-tag="example" data-width="wide" data-chunk-num="76">
@@ -7231,6 +7426,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>6</i></div>
 </article>
 <article class="chunk chunk-example" id="rows-rules" data-chunk-id="rows-rules" data-tag="example" data-width="wide" data-chunk-num="77">
@@ -7249,6 +7445,7 @@ of them are shown one per slide in
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -7289,6 +7486,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>8</i></div>
 </article>
 <article class="chunk chunk-example" id="style-block" data-chunk-id="style-block" data-tag="example" data-width="wide" data-chunk-num="79">
@@ -7324,6 +7522,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>9</i></div>
 </article>
 <article class="chunk chunk-example" id="style-keys" data-chunk-id="style-keys" data-tag="example" data-width="wide" data-chunk-num="80">
@@ -7343,6 +7542,7 @@ of them are shown one per slide in
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -7378,6 +7578,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>1</i></div>
 </article>
 <article class="chunk chunk-example" id="bundled-fonts" data-chunk-id="bundled-fonts" data-tag="example" data-width="wide" data-chunk-num="82">
@@ -7406,6 +7607,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>2</i></div>
 </article>
 <article class="chunk chunk-example" id="fonts" data-chunk-id="fonts" data-tag="example" data-width="wide" data-chunk-num="83">
@@ -7429,6 +7631,7 @@ of them are shown one per slide in
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -7461,6 +7664,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>4</i></div>
 </article>
 <article class="chunk chunk-example" id="cover-list" data-chunk-id="cover-list" data-tag="example" data-width="wide" data-chunk-num="85">
@@ -7487,6 +7691,7 @@ of them are shown one per slide in
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -7517,6 +7722,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>6</i></div>
 </article>
 <article class="chunk chunk-example" id="cover-keys" data-chunk-id="cover-keys" data-tag="example" data-width="wide" data-chunk-num="87">
@@ -7534,6 +7740,7 @@ of them are shown one per slide in
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   <div class="exps"><button class="exp-chev" type="button" data-exp="0">
          <span>Exp</span>
@@ -7575,6 +7782,7 @@ of them are shown one per slide in
   
   
   
+  
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>8</i></div>
 </article>
 <article class="chunk chunk-example" id="section-quiet" data-chunk-id="section-quiet" data-tag="example" data-width="wide" data-chunk-num="89">
@@ -7595,6 +7803,7 @@ of them are shown one per slide in
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -7619,6 +7828,7 @@ of them are shown one per slide in
     </aside>
   </div>
   <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
   
   
   
@@ -8285,6 +8495,10 @@ viewport.addEventListener('scroll', resetViewportScroll);
 // Display math is in the list because a formula on a projector is exactly
 // the thing a room asks to see bigger.
 const FOCUSABLE_SEL = 'figure.figure-img, figure.figure-diagram, .chunk-body pre, .chunk-body .math-display, .marginalia';
+// Everything that is held to a beat by from N. One string, or the three
+// walks below (chunkBeats, countSegments, applyReveal) disagree about what
+// arrives when. A dock with from is, for the counter, an overlay card.
+const FROM_SEL = '.overlay-card[data-from], .dock[data-from]';
 
 // ── Slide-size sync ─────────────────────────────────────────────────
 // --slide-w / --slide-h hold the AUDIENCE window's pixel dimensions so
@@ -9118,7 +9332,7 @@ function chunkBeats(el) {
       // the slide's list. Without at, the overlay layer comes after the
       // body in document order, so its inner beats would be numbered
       // before its own from-beat and play behind a card not yet shown.
-      const ov = node.closest('.overlay-card[data-from]');
+      const ov = node.closest(FROM_SEL);
       const at = ov ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node) : null;
       push({ type: 'mark', els, at });
       return;
@@ -9154,7 +9368,7 @@ function countSegments(el) {
   let n = beats ? beats + 1 : (el.querySelector('.reveal-segment') ? 1 : 0);
   all.forEach(b => { if (b.at != null) n = Math.max(n, b.at + 1); });
   if (bd) n = Math.max(n, bd.frames.length);
-  el.querySelectorAll('.overlay-card[data-from]').forEach(c => {
+  el.querySelectorAll(FROM_SEL).forEach(c => {
     n = Math.max(n, Number(c.dataset.from) + 1);
   });
   return n;
@@ -9193,7 +9407,7 @@ function applyReveal(el, id, instant) {
   // stored reveal state to forty chunks at boot must not start forty tweens.
   const jump = instant || !el.classList.contains('active');
   steps.forEach((step, d) => dgStep(d, step, jump));
-  el.querySelectorAll('.overlay-card[data-from]').forEach(c => {
+  el.querySelectorAll(FROM_SEL).forEach(c => {
     c.toggleAttribute('data-hidden', consumed < Number(c.dataset.from));
   });
   const bd = bdFrames(el);
@@ -9286,7 +9500,10 @@ function focusCamera(instant = false) {
     // The walk branch below still measures the box. A chunk whose *content*
     // overflows is genuinely walked, and the head pin and the foot-following
     // are a pair that has to stay in one coordinate system.
-    const fitEl = entry.el.querySelector('.chunk-content');
+    // A chunk with a dock is framed as a whole: a band takes a grid row of
+    // its own, so the content box sits above (or below) the slide's middle
+    // by design, and centring it pushed the band off the bottom edge.
+    const fitEl = entry.el.hasAttribute('data-dock') ? null : entry.el.querySelector('.chunk-content');
     const fit = fitEl ? getOffset(fitEl, stage) : { top, height };
     if (fit.height <= vp.height) {
       ty = vp.height / 2 - (fit.top + fit.height / 2);
@@ -10194,7 +10411,12 @@ function flowHeightProbe(el) {
     for (const c of node.children) {
       if (typeof c.offsetHeight !== 'number') continue;      // an <svg> has no offset box
       const cs = getComputedStyle(c);
-      if (cs.position === 'absolute' || cs.position === 'fixed') continue;
+      // A side dock is absolute and still counts: it is looked through
+      // below, so it contributes the extent of its words plus its paddings
+      // rather than the slide height it is stretched to. Skipped, a
+      // seven-item list in a 13em column could grow past the frame with
+      // nothing telling auto-fit.
+      if ((cs.position === 'absolute' || cs.position === 'fixed') && !c.classList.contains('dock')) continue;
       if (cs.display === 'contents') { out.push(...flowKids(c)); continue; }
       out.push(c);
     }
@@ -10230,7 +10452,7 @@ function flowHeightProbe(el) {
   // because it carries no ground - no background, no border, no min-height -
   // and its own padding is added back below. Nothing deeper is looked
   // through: a card row keeps its min-height, a figure keeps its frame.
-  const inner = outer.flow.map((c) => (c.classList.contains('chunk-content') ? levelOf(c) : null));
+  const inner = outer.flow.map((c) => (c.classList.contains('chunk-content') || c.classList.contains('dock') ? levelOf(c) : null));
 
   return () => {
     let top = Infinity, bottom = -Infinity;

@@ -575,20 +575,23 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 :is(.chunk, .column) > .chunk-backdrop.bd-top { background-position: center top; }
 :is(.chunk, .column) > .chunk-backdrop.bd-bottom { background-position: center bottom; }
 .overlay-layer { display: block; margin: 0.9rem 0; }
-.overlay-card {
+/* A dock prints as the same kind of box an overlay card does: the frame is
+   what the paper cannot have, the treatment is kept. */
+:is(.overlay-card, .dock) {
   padding: 0.75rem 0.95rem;
   border-radius: 5px;
   margin: 0 0 0.7rem;
   max-width: 34em;
 }
-.overlay-card > :first-child { margin-top: 0; }
-.overlay-card > :last-child { margin-bottom: 0; }
-.overlay-card.ov-paper  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
-.overlay-card.ov-glass  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
-.overlay-card.ov-ink    { background: #1b1b20; color: #fff; }
-.overlay-card.ov-ink a  { color: #fff; }
-.overlay-card.ov-accent { background: var(--emph); color: #fff; }
-.overlay-card.ov-clear  { padding: 0; background: none; border: 0; }
+.dock { display: block; margin: 0.9rem 0; }
+:is(.overlay-card, .dock) > :first-child { margin-top: 0; }
+:is(.overlay-card, .dock) > :last-child { margin-bottom: 0; }
+:is(.overlay-card, .dock).ov-paper  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
+:is(.overlay-card, .dock).ov-glass  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
+:is(.overlay-card, .dock).ov-ink    { background: #1b1b20; color: #fff; }
+:is(.overlay-card, .dock).ov-ink a  { color: #fff; }
+:is(.overlay-card, .dock).ov-accent { background: var(--emph); color: #fff; }
+:is(.overlay-card, .dock).ov-clear  { padding: 0; background: none; border: 0; }
 .cards {
   display: grid;
   grid-template-columns: repeat(var(--card-n), minmax(0, 1fr));
@@ -1090,6 +1093,7 @@ the pictures now and read the notes again after.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-principle width-standard" id="preview" data-chunk-num="3">
   
@@ -1103,6 +1107,7 @@ against that download.</p>
 project page. The figure language may still change before it is tagged, so a
 figure you write today may need an edit. The editor is experimental too.</p>
 
+  
   
   
   
@@ -1121,6 +1126,7 @@ figure you write today may need an edit. The editor is experimental too.</p>
 </nav>
 <section class="column">
   <h1 class="column-heading">Memory safety</h1>
+  
   
   
   
@@ -1147,6 +1153,7 @@ figure you write today may need an edit. The editor is experimental too.</p>
 
 <p><strong>Two families, one shape.</strong> <code>flush left</code> at the end of a placement keeps each <code class="nb">below</code> chain level at its left edge, though the upper listing runs to two lines and the lower one is a different width; <code>same as</code> gives each pair boxes of one size. The <em>statement</em> <code>align x middle tobj, sobj</code> is a different thing: it hands one coordinate from the first element named to the rest, and it is needed here because the two small boxes hang beside words of different lengths. The two steps name <code class="nb">@temporal</code> and <code class="nb">@spatial</code> instead of listing eight names.</p>
 
+  
   
   
   
@@ -1195,10 +1202,12 @@ figure you write today may need an edit. The editor is experimental too.</p>
   
   
   
+  
 </article>
 </section>
 <section class="column">
   <h1 class="column-heading">Block ciphers</h1>
+  
   
   
   
@@ -1244,6 +1253,7 @@ figure you write today may need an edit. The editor is experimental too.</p>
 
 <p>Each <code class="nb">step</code> is one press of the forward key. The chaining arrows carry one waypoint each (<code class="nb">via</code>), which is as much routing as these figures ever need.</p>
 
+  
   
   
   
@@ -1306,10 +1316,12 @@ figure you write today may need an edit. The editor is experimental too.</p>
   
   
   
+  
 </article>
 </section>
 <section class="column">
   <h1 class="column-heading">Identity and authentication</h1>
+  
   
   
   
@@ -1349,6 +1361,7 @@ figure you write today may need an edit. The editor is experimental too.</p>
 
 <p><strong>Without <code>align y middle</code> the two columns drift apart.</strong> They are separate <code class="nb">below</code> chains, and the captions run to one line or to two; three <code class="nb">align</code> lines hold the rows level.</p>
 
+  
   
   
   
@@ -1433,10 +1446,12 @@ drawing can say it without a caption repeating it.</p>
   
   
   
+  
 </article>
 </section>
 <section class="column">
   <h1 class="column-heading">The vocabulary</h1>
+  
   
   
   
@@ -1461,6 +1476,7 @@ drawing can say it without a caption repeating it.</p>
 <p><code class="nb">box</code>, <code class="nb">dot</code>, <code class="nb">text</code>, <code class="nb">image</code>, <code class="nb">edge</code>, <code class="nb">brace</code>, <code class="nb">container</code>, <code class="nb">bars</code>, <code class="nb">grid</code>, <code class="nb">plot</code>, <code class="nb">table</code>, <code class="nb">lanes</code>, <code class="nb">sequence</code>, <code class="nb">align</code>, <code class="nb">spread</code>, <code class="nb">default</code>, <code class="nb">step</code> – seventeen statements, and no more. <code>-- x</code> on a <code class="nb">text</code> draws a short line to what it is about: a leader, not an arrow. An arrow claims a connection, a leader only says what the note refers to.</p>
 <p><strong>Everything in it is measured in grid units, including what carries no label.</strong> The <code class="nb">dot</code> in the middle has no <code class="nb">r</code> and so has a <em>radius</em> of 0.18 units – 0.36 across – rather than a fixed number of pixels. The difference shows the moment a block changes its <code class="nb">unit=</code>: a pixel figure would stay where it was while every box around it grew.</p>
 
+  
   
   
   
@@ -1490,6 +1506,7 @@ drawing can say it without a caption repeating it.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-wide" id="grouping" data-chunk-num="12">
   
@@ -1512,6 +1529,7 @@ drawing can say it without a caption repeating it.</p>
 <p><strong>Swimlanes are not a <code class="nb">container</code>, and the reason is what a container does.</strong> A container measures itself against what it holds, so three lanes holding different numbers of things come out different lengths at both ends. A swimlane diagram says the opposite: the bands are equal, and only what happens inside them differs. <code class="nb">lanes</code> is for that – bands of equal width that want to know nothing about their contents. Part 5 draws one, under <em>Three roles, one incident</em>.</p>
 <p><strong><code class="nb">.turn</code> applies to every label, not only to a box&#39;s.</strong> The left brace reads bottom to top, and the same class does the same thing on a container caption and on an edge label – at all four places, that is, where a label is set at all.</p>
 
+  
   
   
   
@@ -1550,6 +1568,7 @@ free <code class="nb">text</code> gets no background at all without it – that 
 a line out behind a label. The rule drawn through the row is what tells <code class="nb">.paper</code>
 and <code class="nb">.clear</code> apart: one knocks the line out, the other lets it through.</p>
 
+  
   
   
   
@@ -1600,6 +1619,7 @@ it.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="outline-size" data-chunk-num="15">
   
@@ -1631,6 +1651,7 @@ carries a <code class="nb">w</code> reaches every rectangle in the block and the
 the same exception <code class="nb">bars</code> makes for outlines. A <code class="nb">w</code> written on the element&#39;s own
 line still wins, that being a statement about this one element.</p>
 
+  
   
   
   
@@ -1677,6 +1698,7 @@ than the last.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="typefit" data-chunk-num="17">
   
@@ -1708,6 +1730,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-wide" id="motion" data-chunk-num="18">
   
@@ -1734,6 +1757,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-wide" id="motion-implicit" data-chunk-num="19">
   
@@ -1743,6 +1767,7 @@ one warning this lecture builds with.</p>
   <p><strong>Anything hanging off something invisible stays invisible.</strong> So neither the <code class="nb">container</code> nor the dashed arrows nor the handwritten label needs a <code class="nb">show</code> of its own: an arrow is only as visible as its ends, a <code class="nb">container</code> only as visible as its members, and a <code class="nb">text</code> with a leader only as visible as what it points at. The first step says <code>show px</code> and nothing else – the two dashed arrows arrive with the proxy.</p>
 <p><strong>Naming an element overrides that rule, in both directions.</strong> <code>hide direct</code> takes the direct arrow away though both its ends are still there; a written <code class="nb">show</code> does the reverse and brings something on screen whose source is still missing – an outline, say, that should stand around its whole set before the set is assembled (the tree in Part 5, under <em>Leaves first, and the brackets follow</em>). Both hold from the beat they are written in onwards. Write one only where the rule says the wrong thing. Write a <code class="nb">show</code> on every element and you have a figure that stays incomplete the next time one is added: the element is in the block, no step names it, and it never appears.</p>
 
+  
   
   
   
@@ -1783,6 +1808,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-wide" id="justify-edges" data-chunk-num="21">
   
@@ -1791,6 +1817,7 @@ one warning this lecture builds with.</p>
   <h2 class="chunk-heading">One question across, one question along</h2>
   <p><strong>A box label and an edge label are two different questions, and only one of them has nine answers.</strong> A box label sits somewhere in a rectangle of space, so there are three answers across and three down. An edge label lies on one side of its line or the other, and that is all. The same four words for both meant <code>{.top .left}</code> was writable on an edge, which has only one side to pick. On an edge it is therefore <code>side &lt;word&gt;</code>, the pattern <code class="nb">point</code> follows on the outlines: a closed word list as an option instead of a class per word. Which pair can choose at all is settled only once the line is routed, so naming the other one draws a warning.</p>
 
+  
   
   
   
@@ -1881,6 +1908,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="series" data-chunk-num="23">
   
@@ -1938,6 +1966,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="flat" data-chunk-num="24">
   
@@ -1982,6 +2011,7 @@ one warning this lecture builds with.</p>
 <p><strong>Flat, the proportions are easier to read.</strong> Every bar starts at the same vertical edge, and the eye compares lengths from one shared start line more reliably than heights over a shared floor: on the left you have to visit the tops of the columns in turn, on the right you read the ranking at a glance. A run of bars sorted downwards also looks like a ranking by itself.</p>
 <p><strong>And only flat is there room for the names at all.</strong> A category called “DNS cache poisoning” cannot be written under an upright column, so the left-hand figure carries numbers and the room looks them up in a legend that does not exist here. The second string is what makes it possible: <strong>a <code class="nb">|</code> in it splits on that instead of on spaces</strong>, so a label may be as many words as it needs. <code class="nb">|</code> already separates the cells of a <code class="nb">table</code> row and the names in a <code class="nb">lanes</code> list.</p>
 
+  
   
   
   
@@ -2036,6 +2066,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-wide" id="plot-curves" data-chunk-num="26">
   
@@ -2046,6 +2077,7 @@ one warning this lecture builds with.</p>
 <p><strong>“weaker” is an edge label <em>beside</em> the line, and the ground travels with it.</strong> A fill class on an edge draws a ground behind the label; without a <code>side top</code>, <code>side bottom</code>, <code>side left</code> or <code>side right</code> it stays on the line and knocks it out, which is what <em>The road straight down</em> does with “yes” and “no”. With one of them it moves clear and takes the ground along. For the name of a curve that is the only choice: on the line it would knock out exactly what it names. The ground still has work to do, because the diagonal and two gridlines run under the curve.</p>
 <p><strong>The word is short, and on a curve that is not a matter of taste.</strong> The label is moved clear along the normal <em>at the middle</em> of the curve, but the curve goes on climbing, so a long label runs back into its own line at both ends instead of staying beside it. Beside a horizontal or vertical edge the question does not arise, and there a label may be as long as it needs to be.</p>
 
+  
   
   
   
@@ -2118,6 +2150,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-standard" id="raster" data-chunk-num="28">
   
@@ -2137,10 +2170,12 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 </section>
 <section class="column">
   <h1 class="column-heading">Four arrangements</h1>
+  
   
   
   
@@ -2169,6 +2204,7 @@ one warning this lecture builds with.</p>
 <p><strong>The diamond is the outline a room needs no explanation for.</strong> It learned it at school: a question is asked here, and it goes on in two ways. What that costs is room. The widest strip a diamond offers is half its width by half its height, so the build sizes it at twice what a rectangle would need – two or three words, with the explanation in a note beside it, as on the left here. A whole sentence in a diamond would take four times the area of the boxes around it and become the figure.</p>
 <p><strong>The four labels sit <em>on</em> the line, and each one says so on its own tail.</strong> A fill class on an edge draws a ground behind the label; with no <code>side top</code>, <code>side bottom</code>, <code>side left</code> or <code>side right</code> beside it, the label stays on the line and knocks it out behind itself. That is the right form for a word that <em>names</em> the line – “yes”, “no”, a port number, a message type – the way a street sign belongs to the street and the street runs past it either side. A sentence describing what <em>travels</em> along the line belongs beside it: <em>Three roles, one incident</em> does that, and the ROC curves on <em>A frame to draw in</em> take the ground along when they do. Mixing the two in one figure means the room has to sort each label before it can read any of them, so everything here is on the line.</p>
 
+  
   
   
   
@@ -2205,6 +2241,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="tree" data-chunk-num="31">
   
@@ -2235,6 +2272,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-wide" id="tree-elbow" data-chunk-num="32">
   
@@ -2244,6 +2282,7 @@ one warning this lecture builds with.</p>
   <p><strong>Every bracket in that tree is the same word, written six times.</strong> <code class="nb">.elbow</code> leaves one end on the axis the two are further apart on, runs a rail halfway across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements&#39; <em>facing edges</em>, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with <code class="nb">via</code>; both on one line is an error. <code class="nb">.elbow</code> shares a slot with <code class="nb">.smooth</code>: how a line is drawn is a question with exactly one answer.</p>
 <p><strong>Its dashed box stands around the whole set before the set is assembled.</strong> It is written into the same beat as the issuers (<code>show @issuers, scope</code>), though its other two members arrive a beat later. Without the written <code class="nb">show</code> the usual rule applies: an outline is only as visible as its members and fits itself to the ones you can see, so it would first have grown around the issuer alone and then opened downwards. Naming it gets you both the visibility <em>and</em> the full extent. That is what the exception is for, and it is expressly not for the ordinary case.</p>
 
+  
   
   
   
@@ -2279,6 +2318,7 @@ one warning this lecture builds with.</p>
 <p><strong>Every cell carries two generated tags, <code class="nb">@t-row-N</code> and <code class="nb">@t-col-N</code>.</strong> So a row is one beat and a column is one beat, one line of source each – where otherwise every beat would carry three cell names to keep in step with the table by hand. Row 0 is the heading, so count from 1 when you mean data.</p>
 <p><strong>The last beat is the one that reaches the handout.</strong> A figure that lights one row after another and then stops comes out of the printer with its last row glowing, reporting a moment in the talk rather than the table. A fourth beat here takes the emphasis off again and tints the countermeasures column instead – the picture that says something without a talk around it. That it costs a beat is why the prominence verbs need no such thing: prominence a <code class="nb">step</code> sets is an act in the talk, and print takes its prominence from the opening beat. Prominence on an element&#39;s own line describes the drawing, and reaches the handout.</p>
 
+  
   
   
   
@@ -2336,6 +2376,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-wide" id="seq-names" data-chunk-num="35">
   
@@ -2346,6 +2387,7 @@ one warning this lecture builds with.</p>
 <p><strong>Everything else it answers by keeping a name on every part, not by adding words.</strong> Each head keeps the name its <code class="nb">actor</code> line gives it; each lifeline is <code class="nb">&lt;actor&gt;-life</code>, each message <code class="nb">wa-N</code> (counted from 0, so the number drawn is <code class="nb">N+1</code>), its number <code class="nb">wa-n-N</code>, its smaller second line <code class="nb">wa-sub-N</code>, each note <code class="nb">wa-note-N</code>. Plus tags for the sets: <code class="nb">@wa-msg-N</code> for one message with its number and second line, <code class="nb">@wa-msgs</code> for all of them, <code class="nb">@au-msgs</code> for all that touch the authenticator, <code class="nb">@wa-notes</code>, <code class="nb">@wa-actors</code>, <code class="nb">@wa-lives</code>. The brace and the handwritten annotation on <em>A protocol down the page</em> are therefore ordinary lines hung off <code class="nb">wa-3</code> and <code class="nb">wa-2</code>, and the statement knows nothing about either.</p>
 <p><strong>There is no <code class="nb">alt</code> / <code class="nb">else</code>.</strong> Enclosing a group of messages and naming it is what <code>container … pad n</code> already draws, and two of the nine figures in the measured corpus wanted it. A word that freezes with the first release deserves more cases than that.</p>
 
+  
   
   
   
@@ -2382,6 +2424,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-wide" id="seq-entries" data-chunk-num="37">
   
@@ -2395,6 +2438,7 @@ one warning this lecture builds with.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-wide" id="seq-labels" data-chunk-num="38">
   
@@ -2404,6 +2448,7 @@ one warning this lecture builds with.</p>
   <p><strong>Every message label brings its own ground.</strong> A lifeline crosses every label a sequence draws, so the ground is drawn from the start and the dashed line is knocked out behind the words. <code class="nb">{.clear}</code> takes it away, <code class="nb">{.tone-2}</code> colours it. The smaller second line gets the same ground; the numbers on the left get none, standing outside the frame and crossing nothing.</p>
 <p><strong><code class="nb">unnumbered</code> takes the column of numbers away.</strong> It is there otherwise because renumbering by hand is exactly the work the statement removes, and because the number drawn and the index in the tag are the same number: <code class="nb">@x-msg-3</code> is the arrow the room reads as 4. Where an exchange is short enough that nobody points at a number, the column is just paper.</p>
 
+  
   
   
   
@@ -2428,6 +2473,7 @@ one warning this lecture builds with.</p>
 <p><strong>The first keypress, click or scroll on this slide stops it.</strong> Whoever has touched the figure has taken over, and a timer running on underneath them is worse than none. It is the <em>slide</em> that is taken over and not the session, because you reach a slide by pressing a key: a session-wide flag was retired by the very keypress that navigated here, and the figure then never moved at all. For the same reason it does not start on a slide that is already half revealed: half revealed means somebody left it that way.</p>
 <p><strong>Between 200 ms and 60 s, and outside that refused rather than clamped.</strong> Under 200 ms the room reads no beat; over a minute a “moving” figure is a still one that changes while nobody is watching. A clamped number is a number nobody wrote.</p>
 
+  
   
   
   

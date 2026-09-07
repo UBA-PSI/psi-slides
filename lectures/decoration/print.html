@@ -575,20 +575,23 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 :is(.chunk, .column) > .chunk-backdrop.bd-top { background-position: center top; }
 :is(.chunk, .column) > .chunk-backdrop.bd-bottom { background-position: center bottom; }
 .overlay-layer { display: block; margin: 0.9rem 0; }
-.overlay-card {
+/* A dock prints as the same kind of box an overlay card does: the frame is
+   what the paper cannot have, the treatment is kept. */
+:is(.overlay-card, .dock) {
   padding: 0.75rem 0.95rem;
   border-radius: 5px;
   margin: 0 0 0.7rem;
   max-width: 34em;
 }
-.overlay-card > :first-child { margin-top: 0; }
-.overlay-card > :last-child { margin-bottom: 0; }
-.overlay-card.ov-paper  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
-.overlay-card.ov-glass  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
-.overlay-card.ov-ink    { background: #1b1b20; color: #fff; }
-.overlay-card.ov-ink a  { color: #fff; }
-.overlay-card.ov-accent { background: var(--emph); color: #fff; }
-.overlay-card.ov-clear  { padding: 0; background: none; border: 0; }
+.dock { display: block; margin: 0.9rem 0; }
+:is(.overlay-card, .dock) > :first-child { margin-top: 0; }
+:is(.overlay-card, .dock) > :last-child { margin-bottom: 0; }
+:is(.overlay-card, .dock).ov-paper  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
+:is(.overlay-card, .dock).ov-glass  { background: color-mix(in oklch, var(--ink) 4%, transparent); border: 1px solid var(--rule); }
+:is(.overlay-card, .dock).ov-ink    { background: #1b1b20; color: #fff; }
+:is(.overlay-card, .dock).ov-ink a  { color: #fff; }
+:is(.overlay-card, .dock).ov-accent { background: var(--emph); color: #fff; }
+:is(.overlay-card, .dock).ov-clear  { padding: 0; background: none; border: 0; }
 .cards {
   display: grid;
   grid-template-columns: repeat(var(--card-n), minmax(0, 1fr));
@@ -1081,7 +1084,8 @@ pre.shiki .line { display: inline; }
   <h2 class="chunk-heading">What this lecture shows</h2>
   <p>Every way psi-slides has of decorating a slide, each one used on the slide that
 describes it.</p>
-<ol class="section-outline"><li data-state="all"><span class="so-num">1</span><span class="so-text">The cover, and the slide that closes it</span></li><li data-state="all"><span class="so-num">2</span><span class="so-text">Dividers carry their own slide</span></li><li data-state="all"><span class="so-num">3</span><span class="so-text">Cards, rows and panes</span></li><li data-state="all"><span class="so-num">4</span><span class="so-text">Revealing a picture</span></li><li data-state="all"><span class="so-num">5</span><span class="so-text">A heading that stays off the slide</span></li></ol>
+<ol class="section-outline"><li data-state="all"><span class="so-num">1</span><span class="so-text">The cover, and the slide that closes it</span></li><li data-state="all"><span class="so-num">2</span><span class="so-text">Dividers carry their own slide</span></li><li data-state="all"><span class="so-num">3</span><span class="so-text">Cards, rows and panes</span></li><li data-state="all"><span class="so-num">4</span><span class="so-text">Revealing a picture</span></li><li data-state="all"><span class="so-num">5</span><span class="so-text">A dock at the frame's edge</span></li><li data-state="all"><span class="so-num">6</span><span class="so-text">A heading that stays off the slide</span></li></ol>
+  
   
   
   
@@ -1103,6 +1107,7 @@ project page, and the <code class="nb">build.js</code> inside it. The source for
   
   
   
+  
 </article>
 </section>
 <nav class="toc" aria-label="Contents">
@@ -1112,6 +1117,7 @@ project page, and the <code class="nb">build.js</code> inside it. The source for
     <li><a href="#dividers">Dividers carry their own slide</a></li>
     <li><a href="#grounds">Cards, rows and panes</a></li>
     <li><a href="#reveal">Revealing a picture</a></li>
+    <li><a href="#docks">A dock at the frame's edge</a></li>
     <li><a href="#bare">A heading that stays off the slide</a></li>
   </ol>
 </nav>
@@ -1124,6 +1130,7 @@ project page, and the <code class="nb">build.js</code> inside it. The source for
 build. This deck wears <code class="nb">quote</code>.</p>
 </blockquote>
 </div>
+  
   
 <article class="chunk chunk-free width-wide" id="cover-list" data-chunk-num="4">
   
@@ -1173,6 +1180,7 @@ of the ten is shot from a real build in the
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-wide" id="cover-keys" data-chunk-num="5">
   
@@ -1196,6 +1204,7 @@ question and the build stops with an error rather than ignoring the line.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-standard" id="cover-quote" data-chunk-num="6">
   
@@ -1208,6 +1217,7 @@ words, no rule beside them.</p>
 <p>The claim is what you write under the <code>## title:</code> heading. A <code class="nb">quote</code> cover
 without one fails the build.</p>
 
+  
   
   
   
@@ -1228,11 +1238,13 @@ talking and where an hour ago. The last slide of this lecture is one.</p>
   
   
   
+  
 </article>
 </section>
 <section class="column" id="dividers" data-has-backdrop="" data-backdrop="invert">
   <h1 class="column-heading">Dividers carry their own slide</h1>
   <div class="chunk-backdrop bd-cover bd-middle bd-invert bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
+  
   
   
 <article class="chunk chunk-free width-wide" id="section-list" data-chunk-num="8">
@@ -1272,6 +1284,7 @@ same rule: a deck settles on one and wears it at every part.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-principle width-standard" id="outline-why" data-chunk-num="9">
   
@@ -1284,6 +1297,7 @@ from it.</p>
 <p>That only works while the list stays the same from divider to divider, so the
 heading is the live item in the list rather than a second copy set beside it.</p>
 
+  
   
   
   
@@ -1301,6 +1315,7 @@ and not a third shade: two greys read from the back of a room, three do not.</p>
 <p><code class="nb">section-mark:</code> puts a short word over the heading. This lecture writes <code class="nb">Part</code>.
 Write nothing and nothing is drawn there.</p>
 
+  
   
   
   
@@ -1332,6 +1347,7 @@ divider slide itself never prints.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-standard" id="divider-beside" data-chunk-num="12">
   
@@ -1348,6 +1364,7 @@ the quotation divider in Part 1 comes out.</p>
   
   
   
+  
 </article>
 </section>
 <section class="column" id="grounds">
@@ -1360,6 +1377,7 @@ the quotation divider in Part 1 comes out.</p>
 <g id="dg1-side" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg1-side--r" x="-77.00" y="94.50" width="154.00" height="27.00" rx="4"/><g id="dg1-side--lw0" data-lab="side--l" class="dg-lwrap" transform="translate(0.00,108.00)"><g id="dg1-side--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">side 2:1</tspan></text></g></g></g>
 <g id="dg1-note" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg1-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(136.40,54.00)"><g id="dg1-note--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">three containers,</tspan><tspan x="0" y="11.58">three jobs</tspan></text></g></g></g>
 </svg></figure></div>
+  
   
 <article class="chunk chunk-free width-wide" id="cards-why" data-chunk-num="13">
   
@@ -1381,6 +1399,7 @@ than as a card</li>
 </ul>
 
 </div>
+  
   
   
   
@@ -1419,6 +1438,7 @@ its top</li>
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-wide" id="cards-size" data-chunk-num="15">
   
@@ -1443,6 +1463,7 @@ whole row, never one per card.</p>
 left. A row that carries a second level ranges left whatever its heads measure,
 so the heads do not jump when the reader presses <code class="nb">C</code>.</p>
 
+  
   
   
   
@@ -1480,6 +1501,7 @@ deck opens with everything showing, because its frontmatter says
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-wide" id="rows" data-chunk-num="17">
   
@@ -1503,6 +1525,7 @@ differs.</p>
 <p>Every term gets the same column width, so the explanations line up down the
 slide however long the terms are.</p>
 
+  
   
   
   
@@ -1533,10 +1556,12 @@ second one. Any two numbers work.</p>
   
   
   
+  
 </article>
 </section>
 <section class="column" id="reveal">
   <h1 class="column-heading">Revealing a picture</h1>
+  
   
   
   
@@ -1557,12 +1582,14 @@ or slides about while it is being revealed.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="reveal-open" data-chunk-num="20" data-has-backdrop="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></span>
   
   <h2 class="chunk-heading">A picture that retreats</h2>
+  
   
   <div class="overlay-layer">
 <div class="overlay-card ov-left ov-clear ov-w-standard" data-from="1"><h3>The picture retreats</h3>
@@ -1589,12 +1616,14 @@ its own cell over the picture and nothing else moves.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-figure width-full" id="reveal-close" data-chunk-num="22" data-has-backdrop="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-over" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
   <span class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></span>
   
   <h2 class="chunk-heading">A picture that covers the words</h2>
+  
   
   <div class="overlay-layer">
 <div class="overlay-card ov-bottom-left ov-ink ov-w-standard" data-from="1"><p><strong>A title can be covered</strong><br>as well as added to.</p>
@@ -1632,6 +1661,7 @@ at the start of Part 2 does.</p>
   
   
   
+  
 </article>
 <article class="chunk chunk-free width-wide" id="overlay-slots" data-chunk-num="24">
   
@@ -1652,6 +1682,76 @@ corner and they stack rather than landing on top of each other.</p>
   
   
   
+  
+</article>
+</section>
+<section class="column" id="docks">
+  <h1 class="column-heading">A dock at the frame's edge</h1>
+  
+  
+  <aside class="dock dock-left ov-paper dock-w-narrow"><ul>
+<li><a href="#dock-why">Why a dock</a></li>
+<li><a href="#dock-band">A band</a></li>
+<li><a href="#dock-from">On a beat</a></li>
+</ul>
+</aside>
+  
+<article class="chunk chunk-free width-wide" id="dock-why" data-chunk-num="25">
+  
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></span>
+  
+  <h2 class="chunk-heading">A dock is part of the frame, and the text yields to it</h2>
+  <p><strong>An overlay lies over the slide; a dock takes its room from it.</strong> The list on
+the left is one <code>::: dock {.left .every}</code> written under this part&#39;s <code class="nb">#</code> heading,
+and every chunk of the part carries it - the item the room is on lights up,
+because each entry is a link to a chunk&#39;s <code class="nb">{#id}</code>.</p>
+<p><strong>Four edges, the overlay&#39;s grounds, three widths.</strong> A left or right dock is a
+column the full height of the slide and the text column narrows beside it; a
+top or bottom dock is a band across the whole width and the text sits above or
+below it. A chunk that writes its own <code>::: dock</code> replaces the inherited one for
+that slide.</p>
+
+  
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-free width-wide" id="dock-band" data-chunk-num="26">
+  
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></span>
+  
+  <h2 class="chunk-heading">A band replaces the inherited column</h2>
+  <p><strong>This chunk writes <code>::: dock {.bottom .accent .third}</code> of its own,</strong> so the
+part&#39;s list steps aside for one slide and a band a third of the slide high
+carries the line under the words.</p>
+
+  <aside class="dock dock-bottom ov-accent dock-w-narrow dock-h-third"><p><strong>One dock per slide.</strong> An own one replaces the inherited one; the next chunk
+inherits again.</p>
+</aside>
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-free width-wide" id="dock-from" data-chunk-num="27">
+  
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></span>
+  
+  <h2 class="chunk-heading">A dock held to a beat arrives into a track kept free</h2>
+  <p><strong><code>from 2</code> holds this remark back until the second beat.</strong> The text column
+has been narrow from the start, so nothing moves when the dock slides in - the
+rule an overlay card follows, kept here because a slide that reflows under the
+room&#39;s eyes reads as a fault.</p>
+<p>The first beat shows this line.</p>
+<p>The second brings the dock.</p>
+
+  <aside class="dock dock-right ov-glass dock-w-narrow" data-from="2"><p><strong>Merke:</strong> the frame, not the words, made room for this.</p>
+</aside>
+  
+  
+  
+  
 </article>
 </section>
 <section class="column" id="bare">
@@ -1659,9 +1759,10 @@ corner and they stack rather than landing on top of each other.</p>
   
   
   
-<article class="chunk chunk-free width-wide" id="bare-why" data-chunk-num="25">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></span>
+<article class="chunk chunk-free width-wide" id="bare-why" data-chunk-num="28">
+  
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></span>
   
   <h2 class="chunk-heading"><code class="nb">{.bare}</code> gives up the projection and nothing else</h2>
   <p><strong><code class="nb">{.bare}</code> keeps a heading out of the projection</strong> and leaves it everywhere
@@ -1680,10 +1781,11 @@ type above it, and each is still a row in the search index.</p>
   
   
   
-</article>
-<article class="chunk chunk-figure width-full" id="bare-loop" data-chunk-num="26">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></span>
+</article>
+<article class="chunk chunk-figure width-full" id="bare-loop" data-chunk-num="29">
+  
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></span>
   
   <h2 class="chunk-heading">The measurement loop</h2>
   <figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" width="2000" height="1111" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
@@ -1698,10 +1800,11 @@ type above it, and each is still a row in the search index.</p>
   
   
   
-</article>
-<article class="chunk chunk-figure width-full" id="autoplay" data-chunk-num="27">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></span>
+</article>
+<article class="chunk chunk-figure width-full" id="autoplay" data-chunk-num="30">
+  
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></span>
   
   <h2 class="chunk-heading">A figure that walks itself</h2>
   <figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
@@ -1717,10 +1820,11 @@ type above it, and each is still a row in the search index.</p>
   
   
   
-</article>
-<article class="chunk chunk-title" data-cover="quote" data-closing="" data-chunk-num="28" id="end">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></span>
+</article>
+<article class="chunk chunk-title" data-cover="quote" data-closing="" data-chunk-num="31" id="end">
+  
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
   <h1 class="title-main">A slide is a frame</h1>
     <p class="title-subtitle">and the frame can carry more than a column of text</p>
     <div class="closing-body"><p>None of these constructions changes a lecture that does not use them. A

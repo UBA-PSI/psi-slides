@@ -407,6 +407,57 @@ corner and they stack rather than landing on top of each other.
   `full`
 :::
 
+# A dock at the frame's edge {#docks}
+
+::: dock {.left .every}
+- [Why a dock](#dock-why)
+- [A band](#dock-band)
+- [On a beat](#dock-from)
+:::
+
+## free: A dock is part of the frame, and the text yields to it {.wide #dock-why}
+
+**An overlay lies over the slide; a dock takes its room from it.** The list on
+the left is one `::: dock {.left .every}` written under this part's `#` heading,
+and every chunk of the part carries it - the item the room is on lights up,
+because each entry is a link to a chunk's `{#id}`.
+
+**Four edges, the overlay's grounds, three widths.** A left or right dock is a
+column the full height of the slide and the text column narrows beside it; a
+top or bottom dock is a band across the whole width and the text sits above or
+below it. A chunk that writes its own `::: dock` replaces the inherited one for
+that slide.
+
+## free: A band replaces the inherited column {.wide #dock-band}
+
+**This chunk writes `::: dock {.bottom .accent .third}` of its own,** so the
+part's list steps aside for one slide and a band a third of the slide high
+carries the line under the words.
+
+::: dock {.bottom .accent .third}
+**One dock per slide.** An own one replaces the inherited one; the next chunk
+inherits again.
+:::
+
+## free: A dock held to a beat arrives into a track kept free {.wide #dock-from}
+
+**`from 2` holds this remark back until the second beat.** The text column
+has been narrow from the start, so nothing moves when the dock slides in - the
+rule an overlay card follows, kept here because a slide that reflows under the
+room's eyes reads as a fault.
+
+---
+
+The first beat shows this line.
+
+---
+
+The second brings the dock.
+
+::: dock {.right .glass} from 2
+**Merke:** the frame, not the words, made room for this.
+:::
+
 # A heading that stays off the slide {#bare}
 
 ## free: `{.bare}` gives up the projection and nothing else {.wide #bare-why}

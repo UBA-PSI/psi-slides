@@ -122,7 +122,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # createSpanTable, or anything that moves a label or an extent. Anything
 # checkable without a browser belongs in lint.js or in test/gates/, never here.
 #
-# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the five specs that build a
+# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the seven specs that build a
 # deck of their own rather than hunting shapes in a real one: test/README.md.
 npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
@@ -307,10 +307,14 @@ and localStorage recovery share.
 
 ### Slide decoration and section dividers
 
-Four constructs are one idea – **a slide is a frame, and the frame can carry more
+Five constructs are one idea – **a slide is a frame, and the frame can carry more
 than a text column**: `cover:` (ten compositions, with `subtitle:`,
 `cover-image:`, `cover-ratio:`, `cover-align:`), `::: backdrop`, `::: overlay`,
-and `::: cards` / `::: rows`. `## closing:` is the cover's bookend and
+`::: dock`, and `::: cards` / `::: rows`. Overlay and dock share one vocabulary
+and differ in one contract: an overlay lies *over* the slide, a dock is *part of
+the frame* and the text column yields to it (a side column reserved as the
+chunk's padding, a band as a grid row); `.every` under a `#` heading puts a dock
+on every chunk of the part, and a `#id` link in it is a live marker. `## closing:` is the cover's bookend and
 `## outline:` the running agenda; `section:` gives a column's divider slide six
 compositions, every one of them quieter than the cover. All of it is additive: a
 `source.md` using none of it builds byte-identically to before.
@@ -395,7 +399,7 @@ position with it. See `speaker.md` §2.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the six gates guards, the four browser-spec families, and the five specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the six gates guards, the four browser-spec families, and the seven specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
@@ -449,7 +453,7 @@ position with it. See `speaker.md` §2.
 - `{#id}` attributes on chunks are **frozen once authored**. They are the anchor for cross-references, TOC entries, speaker-sync snapshots, and localStorage persistence. Don't renumber them reflexively when headings change.
 - Shiki is loaded once and cached across `--watch` rebuilds; adding a new language means extending `SHIKI_LANGS` (and optionally `LANG_ALIAS`) at the top of `build.js`.
 - **Math delimiters are `marked` extensions, and the inline rule must keep refusing to cross a backtick.** marked runs custom inline extensions *before* its own `codespan` tokenizer, so relaxing the content class lets a stray `$` in prose pair with one inside a following code span and swallow the delimiting backtick. This was a real regression, not a hypothetical: `a price of $5 and $10, ` + backtick-`$PATH` rendered as a formula reading `10, ` + backtick.
-- **`FOCUSABLE_SEL` in `AUDIENCE_JS` must stay a single constant.** Audience and speaker each resolve `figureIdx` against their own DOM, so the two windows focus different elements the moment their selectors disagree. Adding a focusable element type means editing that one string.
+- **`FOCUSABLE_SEL` in `AUDIENCE_JS` must stay a single constant.** Audience and speaker each resolve `figureIdx` against their own DOM, so the two windows focus different elements the moment their selectors disagree. Adding a focusable element type means editing that one string. **`FROM_SEL` beside it is the same rule for everything held to a beat by `from N`** (`.overlay-card[data-from], .dock[data-from]`): `chunkBeats`, `countSegments` and `applyReveal` read it, and a fourth reader spelled by hand is how two windows disagree about what arrives when.
 - **Everything inlined lives in a template literal.** Three edit mistakes are easy and expensive there:
   - A raw backtick, **even inside a comment**, ends the literal. Throws at parse time. Never write one in `AUDIENCE_JS` / `SPEAKER_JS` / the CSS constants – name the identifier plainly instead.
   - An unterminated `/*` in a CSS block silently swallows every rule to the next `*/`. This used to ship broken, so `assertStylesheetsWellFormed()` runs on every `buildOnce` and turns it into a hard error.

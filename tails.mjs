@@ -2,9 +2,9 @@
  * tails.mjs – the `{…}` tail grammar and the `::: draw` opener, once.
  *
  * Every attribute tail in the source format is read here: the one on a
- * heading (`## type: Heading {.wide .bare #id}`) and the one on the five
+ * heading (`## type: Heading {.wide .bare #id}`) and the one on the six
  * slot directives (`::: cards 3 {.outline .middle}`, `::: rows`, `::: side`,
- * `::: overlay`, `::: backdrop`). One sigil rule for all of them: `.word` is
+ * `::: overlay`, `::: backdrop`, `::: dock`). One sigil rule for all of them: `.word` is
  * a setting, `#word` an id, and a token that is neither is refused rather
  * than dropped. The `::: draw` opener is the one block line that carries
  * values rather than sigils, and it therefore has no braces at all:
@@ -153,6 +153,24 @@ export const SIDE_SLOTS = {
   anchor: { default: 'top', words: ['top', 'middle'] },
 };
 
+// A dock is the overlay's vocabulary with the other layout contract: it is
+// part of the frame and the text column yields to it. Four edges and no
+// corner, because a corner reserves nothing; `every` is the one word the
+// overlay does not have, and it is legal only under a # heading.
+export const DOCK_SLOTS = {
+  edge:   { default: 'left',     words: ['left', 'right', 'top', 'bottom'] },
+  ground: { default: 'paper',    words: ['paper', 'ink', 'accent', 'clear', 'glass'] },
+  // The column's width for left / right, the text measure inside a band.
+  // No `full`: a dock that takes half the slide is a ::: side.
+  width:  { default: 'narrow',   words: ['narrow', 'standard', 'wide'] },
+  // A band's height; refused on a column, whose height is the slide's.
+  height: { default: 'snug',     words: ['snug', 'third', 'half'] },
+  // `once` is the divider's own slide; `every` puts the same dock on every
+  // chunk of the part. On a chunk only `once` is legal, and writing it
+  // changes nothing.
+  scope:  { default: 'once',     words: ['once', 'every'] },
+};
+
 // No word may appear in two slots of one table: parseTail assigns a word to
 // whichever slot lists it first, so a collision makes one of the two slots
 // silently unreachable. Asserted at load rather than remembered - `clear`
@@ -164,7 +182,7 @@ export const SIDE_SLOTS = {
 // the align default. A word that means something in one slot and is merely
 // the default of another is not exempt - that is the case where the first
 // slot listed wins and the second becomes unreachable.
-export const SLOT_TABLES = { CHUNK_SLOTS, CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS };
+export const SLOT_TABLES = { CHUNK_SLOTS, CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS };
 for (const [name, table] of Object.entries(SLOT_TABLES)) {
   const where = new Map();   // word -> [{slot, isDefault}]
   for (const [slot, spec] of Object.entries(table)) {
