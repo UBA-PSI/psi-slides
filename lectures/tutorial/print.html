@@ -1685,7 +1685,7 @@ goes in it.</p>
 <div class="side"><div class="side-a">
 
 
-<p><strong><code class="nb">N</code> in either window writes an annotation on the chunk you are on.</strong> A typing box appears under the chunk, and whatever you write appears in the other window as you type it. Use it for the things a talk produces: a rule you want on screen, a question from the audience, a correction.</p>
+<p><strong><code class="nb">N</code> in either window writes an annotation on the chunk you are on.</strong> While you type, the note is the slide: it fills the frame, a single word stands large and centred, several lines stand as a block, and an address in it gets a QR code the room can scan. Whatever you write appears in the other window as you type it, and <code class="nb">Esc</code> leaves it beside the text as a margin note. Use it for the things a talk produces: the word that turned out to be missing, a question from the audience, a correction, a link.</p>
 <p>Annotations are kept in the browser, one set per lecture. <code class="nb">Shift-E</code> in the speaker view copies all of them to your clipboard as <code>&gt; annot:</code> Markdown; paste that under the matching chunk heading in <code class="nb">source.md</code>, run <code>node build.js &lt;source.md&gt; --integrate-annotations</code>, and the text becomes permanent – already in the typing box next time, and printed under the chunk in <code class="nb">print.html</code> and <code class="nb">print-notes.html</code>.</p>
 </div><div class="side-b">
 

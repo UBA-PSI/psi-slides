@@ -2434,6 +2434,20 @@ const editorJs = () => (editorJsCache ??= fs.readFileSync(EDITOR_JS_PATH, 'utf8'
 let editorCssCache = null;
 const editorCss = () => (editorCssCache ??= fs.readFileSync(EDITOR_CSS_PATH, 'utf8'));
 
+// The QR encoder, for the live annotation. Build-time codes (qrSvg) stay as
+// they are - a lecture's links are known when it is built. The one address
+// that is not is the one typed into an annotation mid-talk, so both live
+// views carry the very encoder the build uses, read out of node_modules as
+// text for the reason diagram-core.mjs is: no template literal, so no
+// escape to get wrong, and the same maths on both sides of the build. Its
+// UMD wrapper leaves a global named qrcode when loaded as a plain script.
+// 56 KB per live view; print pays nothing.
+// Resolved as the package, not the file: its exports map hides the path.
+const QR_LIB_PATH = nodeRequire.resolve('qrcode-generator');
+let qrLibCache = null;
+const qrLibJs = () => (qrLibCache ??= fs.readFileSync(QR_LIB_PATH, 'utf8')
+  .replace(/<\/(script)/gi, '<\\/$1'));
+
 const dgCore = createDiagramCompiler({
   resolveImage: dgResolveImage,
   imageAspect: dgAspect,
@@ -6494,6 +6508,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
     ${marginsHtml}
     <aside class="annot-box" data-annot-for="${escapeHtml(chunkId)}">
       <div class="annot-box-label">annotation · ${escapeHtml(chunkId)}</div>
+      <div class="annot-qr qr-card" aria-hidden="true"></div>
       <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1">${escapeHtml(annotation)}</textarea>
     </aside>
   </div>
@@ -6692,7 +6707,7 @@ const LINK_OVERLAY_HTML = `<div id="link-overlay" class="hidden" role="dialog" a
   <div id="link-overlay-inner">
     <div id="link-overlay-label"></div>
     <a id="link-overlay-url" target="_blank" rel="noopener noreferrer"></a>
-    <div id="link-overlay-qr" aria-hidden="true"></div>
+    <div id="link-overlay-qr" class="qr-card" aria-hidden="true"></div>
     <div id="link-overlay-hint">scan it, or click the address to open it &middot; Esc closes</div>
   </div>
 </div>`;
@@ -6770,9 +6785,9 @@ function renderHelpOverlay(view, withEditor) {
     ]],
     ['Notes', [
       ['<kbd>Shift</kbd>-<kbd>N</kbd>', 'private notes for this chunk – never shown to the room'],
-      ['<kbd>N</kbd>', 'annotation on the slide itself – the room sees you type'],
+      ['<kbd>N</kbd>', 'annotation on the slide itself – it fills the frame while you type and the room reads along; an address in it gets a QR code'],
       ['<kbd>Shift</kbd>-<kbd>E</kbd>', 'copy annotations out as Markdown for source.md'],
-      ['<kbd>Esc</kbd> in a note', 'back to the slide, so the arrows work again'],
+      ['<kbd>Esc</kbd> in a note', 'back to the slide, so the arrows work again – the annotation stays as a margin note'],
     ]],
     ['The projector', [
       ['<kbd>V</kbd>', 'freeze the projection – the room holds this slide while you move on'],
@@ -6927,6 +6942,9 @@ ${SEARCH_PANEL_HTML}
 ${BLANK_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
 ${renderTocNav(columns)}
+<script>
+${qrLibJs()}
+</script>
 <script>
 const LECTURE_TITLE = ${titleJson};
 const VIEW_DEFAULTS = ${jsonForScript(defaults)};
@@ -9780,6 +9798,71 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
   line-height: 1.5;
 }
 .annot-textarea::placeholder { color: oklch(0.78 0 0); font-style: italic; }
+/* While it is being typed, the annotation is the slide. Pressing N used to
+   pan the camera a third of the way right and open a 21vw column beside the
+   text, which is a margin note the room reads at 0.56em - fine for a remark,
+   useless for the word the talk turned out to need. Now the box grows to the
+   frame and the type to the room: fitAnnotation() in AUDIENCE_JS sets the
+   three custom properties from the text alone - the largest size at which
+   the longest line stands in 70% of the frame and every line in its height,
+   capped at three times the slide's own type - so both windows compute the
+   same picture from the same string and nothing new has to travel. One line
+   is centred, more than one stand as a left-aligned block, and that is one
+   rule, not two: the block is exactly as wide as its longest line.
+
+   Three things the geometry needs. The chunk takes the slide's height, as a
+   backdrop chunk does, so inset: 0 is the frame the room sees and not the
+   40% minimum a short chunk keeps. .chunk-content gives up position:
+   relative for the duration, because the box is its child and would
+   otherwise be sized to the measure; nothing else in there is positioned
+   against it but the marginalia, which the scrim covers anyway. And the
+   scrim is nearly the paper - the address someone is reading has no
+   business competing with the slide behind it, which stays in the print. */
+.chunk.annot-visible { min-height: var(--slide-h); }
+.chunk.annot-visible > .chunk-content { position: static; }
+.chunk.annot-visible .annot-box {
+  inset: 0;
+  width: auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  /* safe: a note taller than the frame overflows downward from the top,
+     rather than losing its first lines above the frame to the centring */
+  justify-content: safe center;
+  gap: calc(var(--slide-h) * 0.03);
+  padding: var(--slide-pad-y) var(--slide-pad-x);
+  border: 0;
+  background: color-mix(in oklch, var(--paper) 96%, transparent);
+  /* above the overlay layer and the slide number (3) and an open expansion
+     pane (5): the note is the topmost thing on the slide while it is up */
+  z-index: 6;
+}
+.chunk.annot-visible .annot-box-label { display: none; }
+.chunk.annot-visible .annot-textarea {
+  width: var(--annot-w, 100%);
+  max-width: 100%;
+  font-size: var(--annot-fs, inherit);
+  line-height: 1.3;
+  text-align: left;
+  /* A word growing into a sentence shrinks as it goes; without this the
+     projector flickers through sizes on every keystroke. */
+  transition: font-size 200ms ease, width 200ms ease;
+}
+/* The QR the note derives from the last URL in its text, above the words.
+   Empty until there is one, and never in the resting margin note - the
+   address is still there as text, and the room scanned it while it was up. */
+.annot-qr { display: none; }
+.chunk.annot-visible .annot-qr:not(:empty) { display: block; width: var(--annot-qr, 20vh); box-sizing: border-box; flex: none; }
+/* The white ground under a code, shared with the link overlay: scanners
+   cope badly with inverted codes, so a dark theme must not invert this one -
+   the card doubles as the quiet zone the spec requires. */
+.qr-card {
+  background: #fff;
+  padding: 0.6rem;
+  border-radius: 4px;
+  line-height: 0;
+}
+.qr-card svg { width: 100%; height: auto; display: block; }
 /* The affordance sits in the *slide's* left gutter, not beside the content
    column, and it is a sibling of .chunk-content for exactly that reason: as
    a child it was positioned against the measure, so on a wide chunk or a
@@ -10402,19 +10485,12 @@ body:not([data-view=speaker]).blanked #link-overlay { display: none; }
   cursor: pointer;
 }
 #link-overlay-url:hover { text-decoration: underline; text-underline-offset: 0.18em; }
-/* The QR keeps its own white ground on every theme. Scanners cope badly
-   with inverted codes, so a dark theme must not invert this one - the white
-   card doubles as the quiet zone the spec requires. */
+/* The white ground is .qr-card, shared with the live annotation's code. */
 #link-overlay-qr {
   margin: 1.6rem auto 0;
   width: min(38vh, 300px);
-  background: #fff;
-  padding: 0.6rem;
-  border-radius: 4px;
-  line-height: 0;
 }
 #link-overlay-qr:empty { display: none; }
-#link-overlay-qr svg { width: 100%; height: auto; display: block; }
 
 #link-overlay-hint {
   margin-top: 1.4rem;
@@ -11330,7 +11406,7 @@ function applyRemoteState(payload) {
       const ta = c.el.querySelector('.annot-textarea');
       if (!ta) return;
       const v = (c.id in annotations) ? annotations[c.id] : ta.defaultValue;
-      if (ta.value !== v) { ta.value = v; autosize(ta); }
+      if (ta.value !== v) { ta.value = v; autosize(ta); fitAnnotation(c); }
       c.el.classList.toggle('has-annot', !!v.trim());
     });
     // Mirror the remote editing state: only the peer that owns the
@@ -11340,14 +11416,11 @@ function applyRemoteState(payload) {
     // reads annotEditingId below.
     const remoteEditingId = payload.annotEditingId || null;
     if (annotEditingId !== remoteEditingId) {
-      if (annotEditingId) {
-        const prev = flatChunks.find(c => c.id === annotEditingId);
-        if (prev) prev.el.classList.remove('annot-visible');
-      }
+      if (annotEditingId) annotRest(flatChunks.find(c => c.id === annotEditingId));
       annotEditingId = remoteEditingId;
       if (annotEditingId) {
         const cur = flatChunks.find(c => c.id === annotEditingId);
-        if (cur) cur.el.classList.add('annot-visible', 'has-annot');
+        if (cur) { cur.el.classList.add('annot-visible', 'has-annot'); fitAnnotation(cur); }
       }
     }
     applyBlankBadge();
@@ -11673,6 +11746,8 @@ function applyState() {
   document.body.classList.toggle('blanked', state.blanked);
   applyBlankBadge();
   flatChunks.forEach((c, i) => c.el.classList.toggle('active', i === state.activeIdx));
+  // The cap on the live annotation's type is in slide sizes, so zoom moves it.
+  if (annotEditingId) fitAnnotation(flatChunks.find(c => c.id === annotEditingId));
   updateEmbedLoading();
   updateNavHints();
   viewHooks.onActiveChange();
@@ -11855,10 +11930,14 @@ function focusCamera(instant = false) {
 
   let tx, ty;
   if (annotEditingId === entry.id) {
-    const contentEl = entry.el.querySelector('.chunk-content');
-    const co = contentEl ? getOffset(contentEl, stage) : { left: left + width / 2 };
-    tx = vp.width * 0.33 - co.left;
-    ty = (height <= vp.height) ? vp.height / 2 - (top + height / 2) : vp.height * 0.05 - top;
+    // The annotation being typed is a layer over the whole chunk, which
+    // takes the slide's height for the duration (the annot-visible rules in
+    // AUDIENCE_CSS), so framing it is centring the chunk - whatever its
+    // height, because the layer is centred on the chunk and the words are
+    // centred in the layer. It used to park the slide a third of the way
+    // right to uncover a margin column; that column is now the frame.
+    tx = vp.width / 2 - (left + width / 2);
+    ty = vp.height / 2 - (top + height / 2);
   } else if (expPane) {
     const bo = getOffset(expPane, stage);
     // An expanded chunk is one composition and the stylesheet says so - the
@@ -12593,6 +12672,109 @@ function autosize(ta) {
   ta.style.height = 'auto';
   ta.style.height = Math.max(ta.scrollHeight, parseFloat(getComputedStyle(ta).lineHeight || 20)) + 'px';
 }
+
+// ── the annotation being typed is the slide ─────────────────────────
+// While a chunk carries .annot-visible its annotation box is a layer over
+// the frame (the CSS beside .annot-box), and these set the three custom
+// properties that layer is drawn from. Everything is derived from the text,
+// so the two windows agree without a field in the snapshot: the peer gets
+// the keystrokes it already got and runs the same arithmetic.
+//
+// The size is one rule, not a short/long switch: the largest type at which
+// the longest line stands in 70% of the frame and every line in its height,
+// capped at three times the slide's own size. A word lands on the cap, a
+// sentence is held by the width, ASCII art by its longest line, a long note
+// by the height. Below 0.35 of the slide's type the lines wrap instead of
+// shrinking further - a note that long is the signal that it is too long.
+// The face is monospace, and that is what makes this arithmetic rather than
+// measurement: the width of a line is its length times one advance, read
+// once from the face itself.
+//
+// The block is exactly as wide as its longest line, so one line is centred
+// and several stand left-aligned - the same rule, no line count to test.
+const ANNOT_LH = 1.3;           // the line-height the stage rule sets
+const ANNOT_CAP = 3;            // in slide type sizes
+const ANNOT_FLOOR = 0.35;
+const ANNOT_QR_MIN = 0.2;       // of the frame's height; smaller does not scan from the back row
+const ANNOT_QR_MAX = 0.5;
+let annotCharEm = { font: '', em: 0 };
+function annotCharWidth(box, font) {
+  if (annotCharEm.font === font && annotCharEm.em) return annotCharEm.em;
+  const probe = document.createElement('span');
+  probe.textContent = 'M'.repeat(40);
+  // offsetWidth, not a bounding rect: the speaker's stage is scaled and a
+  // rect would report the scaled width against an unscaled font size.
+  probe.style.cssText = 'position:absolute;visibility:hidden;white-space:pre;font:inherit;font-size:100px';
+  box.appendChild(probe);
+  annotCharEm = { font, em: probe.offsetWidth / 40 / 100 };
+  probe.remove();
+  return annotCharEm.em;
+}
+// The last http(s) address in the text, trailing punctuation dropped. The
+// last one because that is the one just typed, and because the choice has
+// to come from the text: a cursor position travels to nobody.
+function annotUrl(text) {
+  const m = String(text || '').match(/https?:\\/\\/[^\\s<>"']+/g);
+  return m ? m[m.length - 1].replace(/[.,;:!?)\\]]+$/, '') : null;
+}
+// Same encoder, level and quiet zone as the build's qrSvg; the library's
+// own SVG writer, because size is not the concern here that it is in a
+// file every link of the lecture is inlined into.
+function liveQrSvg(url) {
+  if (typeof qrcode !== 'function') return '';
+  const qr = qrcode(0, 'M');
+  qr.addData(url);
+  qr.make();
+  return qr.createSvgTag({ cellSize: 1, margin: 4, scalable: true });
+}
+function fitAnnotation(entry) {
+  if (!entry || !entry.el.classList.contains('annot-visible')) return;
+  const box = entry.el.querySelector('.annot-box');
+  const ta = box && box.querySelector('.annot-textarea');
+  if (!ta) return;
+  const cs = getComputedStyle(box);
+  const W = box.clientWidth - parseFloat(cs.paddingLeft) - parseFloat(cs.paddingRight);
+  const H = box.clientHeight - parseFloat(cs.paddingTop) - parseFloat(cs.paddingBottom);
+  const gap = parseFloat(cs.rowGap) || 0;
+  const base = parseFloat(getComputedStyle(entry.el).fontSize) * state.zoom;
+  const cw = annotCharWidth(box, cs.fontFamily);
+  const lines = (ta.value || ta.placeholder || ' ').split('\\n');
+  const chars = Math.max(1, ...lines.map(l => l.length)) + 1;   // one for the caret
+  const url = annotUrl(ta.value);
+  const maxW = 0.7 * W;
+  const textRoom = url ? H * (1 - ANNOT_QR_MIN) - gap : H;
+  let fs = Math.min(base * ANNOT_CAP, maxW / (chars * cw), textRoom / (lines.length * ANNOT_LH));
+  fs = Math.max(fs, base * ANNOT_FLOOR);
+  const w = Math.min(maxW, chars * cw * fs);
+  // At the floor a line may be longer than the block and wraps; count the
+  // rows it takes rather than measure them, so a size transition in flight
+  // cannot be read back as the height.
+  const perRow = Math.max(1, Math.floor(w / (cw * fs)));
+  const rows = lines.reduce((n, l) => n + Math.max(1, Math.ceil(l.length / perRow)), 0);
+  const textH = rows * ANNOT_LH * fs;
+  box.style.setProperty('--annot-fs', fs + 'px');
+  box.style.setProperty('--annot-w', w + 'px');
+  ta.style.height = textH + 'px';
+  const qrEl = box.querySelector('.annot-qr');
+  if (!qrEl) return;
+  if ((qrEl.dataset.url || '') !== (url || '')) {
+    qrEl.innerHTML = url ? liveQrSvg(url) : '';
+    qrEl.dataset.url = url || '';
+  }
+  if (url) {
+    const side = Math.max(H * ANNOT_QR_MIN, Math.min(H * ANNOT_QR_MAX, H - textH - gap));
+    box.style.setProperty('--annot-qr', side + 'px');
+  }
+}
+// Back to the margin note: the layer's properties go, and the textarea is
+// sized by its content again rather than by the arithmetic above.
+function annotRest(entry) {
+  if (!entry) return;
+  entry.el.classList.remove('annot-visible');
+  const box = entry.el.querySelector('.annot-box');
+  if (box) ['--annot-fs', '--annot-w', '--annot-qr'].forEach(p => box.style.removeProperty(p));
+  autosize(entry.el.querySelector('.annot-textarea'));
+}
 function startAnnotate(chunkId) {
   const entry = flatChunks.find(c => c.id === chunkId);
   if (!entry) return;
@@ -12625,6 +12807,7 @@ function wireAnnotations() {
     ta.addEventListener('input', () => {
       annotations[id] = ta.value;
       autosize(ta);
+      fitAnnotation(flatChunks.find(c => c.id === id));
       el.classList.toggle('has-annot', !!ta.value.trim());
       saveAnnotations();
       broadcastState();
@@ -12633,13 +12816,14 @@ function wireAnnotations() {
       annotEditingId = id;
       el.classList.add('annot-visible');
       autosize(ta);
+      fitAnnotation(flatChunks.find(c => c.id === id));
       requestAnimationFrame(() => requestAnimationFrame(() => focusCamera(false)));
       // Tell the peer so it can raise its box opacity and mirror the pan.
       broadcastState();
     });
     ta.addEventListener('blur', () => {
       if (annotEditingId === id) annotEditingId = null;
-      el.classList.remove('annot-visible');
+      annotRest(flatChunks.find(c => c.id === id));
       setTimeout(() => focusCamera(false), 20);
       // Signals the peer to drop .annot-visible and pan back to center.
       broadcastState();
@@ -13800,7 +13984,11 @@ viewport.addEventListener('pointerdown', (e) => {
 // A narrower window can start cutting a code line that fitted a moment ago,
 // and a wider one gives the lecturer's zoom back – clampZoomToWidth always
 // re-derives from the chosen value, so it does both.
-window.addEventListener('resize', () => { clampZoomToWidth(); focusCamera(true); });
+window.addEventListener('resize', () => {
+  clampZoomToWidth();
+  if (annotEditingId) fitAnnotation(flatChunks.find(c => c.id === annotEditingId));
+  focusCamera(true);
+});
 
 // ── figure focus / marginalia pan (§figures) ────────────────────────
 // Click a <figure>, a <pre>, or a .marginalia inside the active chunk
@@ -14287,6 +14475,9 @@ ${SEARCH_PANEL_HTML}
 ${BLANK_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
 ${renderTocNav(columns)}
+<script>
+${qrLibJs()}
+</script>
 <script>
 const LECTURE_TITLE = ${titleJson};
 const VIEW_DEFAULTS = ${jsonForScript(defaults)};

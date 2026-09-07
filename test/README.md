@@ -58,8 +58,10 @@ fixture is compiled *and* linted.
 **Navigation** – `nav`, `nav-cockpit`. The navigation model.
 
 **The geometry the live chrome leaves the slide** – `expansion`, `marginalia`,
-`touch-rail`, `math-focus`, `block-align`, `auto-fit`, `text-select` (what a
-pointer gesture means while Alt is held).
+`annotation` (the note typed with `N` fills the frame, sized from its text, with
+a QR code for an address, and in the cockpit fills the stage rather than the
+window), `touch-rail`, `math-focus`, `block-align`, `auto-fit`, `text-select`
+(what a pointer gesture means while Alt is held).
 
 **The editor** – the `editor-*` specs: its gestures, its panel, and the
 neighbour-alignment guides, which are what a gesture snaps to.

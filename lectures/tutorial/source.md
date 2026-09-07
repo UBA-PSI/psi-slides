@@ -390,7 +390,7 @@ Put the thumbnails down the right-hand side if the screen has width to spare: th
 
 ::: side
 
-**`N` in either window writes an annotation on the chunk you are on.** A typing box appears under the chunk, and whatever you write appears in the other window as you type it. Use it for the things a talk produces: a rule you want on screen, a question from the audience, a correction.
+**`N` in either window writes an annotation on the chunk you are on.** While you type, the note is the slide: it fills the frame, a single word stands large and centred, several lines stand as a block, and an address in it gets a QR code the room can scan. Whatever you write appears in the other window as you type it, and `Esc` leaves it beside the text as a margin note. Use it for the things a talk produces: the word that turned out to be missing, a question from the audience, a correction, a link.
 
 Annotations are kept in the browser, one set per lecture. `Shift-E` in the speaker view copies all of them to your clipboard as `> annot:` Markdown; paste that under the matching chunk heading in `source.md`, run `node build.js <source.md> --integrate-annotations`, and the text becomes permanent – already in the typing box next time, and printed under the chunk in `print.html` and `print-notes.html`.
 

@@ -1136,6 +1136,61 @@ das Dock mit); eine Kartenreihe im Trenner kann über die Folienhöhe
 wachsen; der Speaker-Filmstreifen rendert Bänder als Mini-Kästchen; die
 Breiten 13/18/25em sind am Fixture gemessen, nicht an einer Vorlesung.
 
+## Annotation-Slice: die Notiz ist die Folie, solange man tippt
+
+Ausgangswunsch: während eines Vortrags ein Wort, das noch gesagt werden
+muss, ordentlich zeigen können – nicht in der kleinen Notiz neben der
+Folie. Erster Entwurf war ein live eingefügter Chunk hinter dem aktuellen,
+mit Splice in source.md unter `--watch`. Verworfen, bevor eine Zeile stand:
+`state.activeIdx` ist ein Index in `flatChunks`, ein eingefügter Chunk hätte
+also selbst Sync-Zustand sein müssen, beide Fenster hätten ihn aus denselben
+Daten rendern müssen (ein Markdown-Subset im Browser, ein zweiter Parser, der
+von `parseLecture` wegdriftet), und der Splice hätte auf dem Beamer einen
+`location.reload()` ausgelöst. Stattdessen die Annotation (N) aufgebohrt, die
+schon alles hatte: Textarea auf der Folie, Sync per Tastenanschlag, localStorage,
+Shift-E-Export, `--integrate-annotations`.
+
+Was gebaut wurde, in vier Sätzen. Der Chunk nimmt mit `.annot-visible` die
+Folienhöhe (wie ein Backdrop-Chunk), `.chunk-content` verliert für die Dauer
+sein `position: relative`, und die bestehende `.annot-box` wird ein
+`inset: 0`-Layer mit Scrim. `fitAnnotation()` in `AUDIENCE_JS` setzt drei
+Custom Properties aus dem Text allein: Schriftgröße (längste Zeile in 70 %
+der Breite, alle Zeilen in der Höhe, Deckel 3× Folienschrift, Untergrenze
+0,35× – darunter wird umbrochen, nicht weiter geschrumpft), Blockbreite
+(genau die längste Zeile, deshalb ist ein Wort zentriert und ein Block
+linksbündig, ohne Zeilenzähler), Code-Kante (die letzte URL im Text, zwischen
+20 % und 50 % der Rahmenhöhe, aus dem, was der Text übrig lässt). Nichts
+davon reist im Snapshot: beide Fenster rechnen dasselbe aus demselben String.
+Der Kamera-Zweig für `annotEditingId` zentriert den Chunk statt ihn bei 33 %
+zu parken.
+
+Drei Entscheidungen, die man nicht aus dem Code liest:
+
+- **Die letzte URL bekommt den Code, nicht die unter dem Cursor.** Die
+  Cursorposition reist nicht mit, die Scrollposition auch nicht. Alles, was
+  die Projektion bestimmt, muss aus dem Text ableitbar sein. Deshalb auch
+  keine Scroll-Variante, bei der der Code mit der nächsten URL wechselt.
+- **Keine harte Untergrenze mit Scrollen.** Der Text schrumpft stetig; eine
+  Notiz mit dreißig Zeilen steht klein und vollständig, und das ist das
+  Signal, dass sie zu lang ist.
+- **Der Encoder kommt in die Live-Views.** Der Kommentar bei `qrSvg` nannte
+  zwei Gründe für Build-Zeit: kein selbstgeschriebenes Reed-Solomon, nichts in
+  einem Template-Literal. Beides erledigt das Muster von `diagramCoreJs()`:
+  `qrcode-generator/dist/qrcode.js` als Text gelesen, als eigenes `<script>`
+  gespleißt, dieselbe Bibliothek. 56 KB pro Live-View. Die Exports-Map des
+  Pakets versteckt den Dateipfad, daher `nodeRequire.resolve('qrcode-generator')`.
+
+Gemessen (1440×900, Tutorial `#chunks-columns`): ein Wort 94,8 px = 3 × 23,4 × 1,35,
+zentriert auf 720; ein fünfzeiliger Block mit ASCII-Kasten 43 px, Block 726 px
+breit = 70 % der Innenbreite; mit URL darunter 29,5 px Text und 406 px Code =
+halbe Innenhöhe. Im Cockpit ist der Layer exakt `#stage-viewport`.
+
+Nicht angefasst, aber gesehen: die ruhende Randnotiz steht bei zentriertem
+Chunk mit 21vw Breite links teilweise außerhalb des Rahmens (x = −39 bei
+1440 px). Das war vorher so – die Kamera hat sie nur beim Tippen freigelegt –
+und ist jetzt der Zustand nach Esc. Ob die Ruheposition an die neue Rolle
+angepasst gehört (unter den Text statt daneben?), ist eine offene Frage.
+
 ## Gaps / Bekannte Limits
 
 - **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.

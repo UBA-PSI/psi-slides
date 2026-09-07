@@ -389,7 +389,10 @@ than getting a directive of its own; over `MAX_INLINE_VIDEO_BYTES` (12 MB) it is
 image does. `::: embed <url>` is its own directive precisely because it is the
 single construct that makes an output fetch from a third party at run time. An
 external link puts its **address plus a build-time QR code** on both screens
-instead of opening a page on the projector.
+instead of opening a page on the projector. The live views also carry the
+encoder itself, spliced in as text like `diagram-core.mjs`, for the one address
+a build cannot know: the one typed into a live annotation (`N`), which fills
+the frame while it is typed and puts a code above the words.
 
 **The extension tables, the sync protocols, the staging rules and the
 `file://` Error 153 case are in the `psi-slides-media` skill.**
