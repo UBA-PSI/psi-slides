@@ -835,9 +835,13 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
    click that lets it go, and the cursor is the only place that can say so. */
 body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 
-/* reveal segments: first visible, rest hidden until advanced */
+/* reveal segments: first visible, rest hidden until advanced. Under
+   style: {reveal: hold} a hidden segment keeps its box - the chunk stands
+   at its final height from beat 0, as a nested beat's block does - and the
+   words fade in; the default closes the segment up and the chunk grows. */
 .reveal-segment { transition: opacity 180ms ease; }
 .reveal-segment[data-hidden] { display: none; }
+body[data-reveal=hold] .reveal-segment[data-hidden] { display: block; visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; pointer-events: none; }
 /* A --- below the top level (BEAT_MARK). The marker itself is never shown;
    the elements it governs carry data-beat-hidden until their beat - and
    keep their box. A top-level segment closes up (display: none) and the

@@ -99,6 +99,15 @@ from building the same way is a major version.
   through a dock); a bold on an ink or accent ground kept its accent colour
   in print and vanished; the slide number and the note button sat on a top
   band (they move to the foot).
+- **`style: {reveal: hold}`.** A top-level `---` segment keeps its box
+  before its beat, so the chunk stands at its final height from beat 0 and
+  the words fade in where they were going to be – deck-wide what a beat
+  below the top level does anyway. `grow`, the default, is what 1.0.0 did:
+  the segment takes no room and the chunk grows by a block per press. A
+  default it is not, because it moves every existing deck's slides. lint.js
+  now reads the flow form of the block too, `style: {bold: accent, reveal:
+  hold}`, which the documentation writes everywhere and the linter never
+  looked at - a typo in it passed the gate and failed the build.
 - **`text-on-picture` (lint, warning).** A `::: backdrop {.clear}` under
   words that stand on the bare picture: the heading unless the chunk is
   `.bare`, prose outside an overlay or a dock, and a divider's heading or

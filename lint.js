@@ -126,6 +126,10 @@ const STYLE_ENUMS = {
   // weight, which is why `plain` is a legal answer.
   'bold':       ['plain', 'bold', 'italic', 'accent', 'accent-bold', 'accent-italic'],
   'print-bold': ['plain', 'bold', 'italic', 'accent', 'accent-bold', 'accent-italic'],
+  // What a top-level reveal segment does before its beat: closes up and the
+  // chunk grows (the default, and 1.0.0's behaviour), or keeps its box so
+  // the chunk stands at its final height from beat 0.
+  'reveal': ['grow', 'hold'],
 };
 
 // The slot tables of ::: backdrop, ::: cards / ::: rows, ::: overlay and
@@ -2276,18 +2280,31 @@ function lintFile(filePath) {
   {
     const lines = header.split('\n');
     let inStyle = false;
+    const rule = (i, key, value) => {
+      const allowed = STYLE_ENUMS[key];
+      if (!allowed) return;
+      const v = value.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+      if (!v || allowed.includes(v)) return;
+      addFm(i + 2, 'error', 'unknown-style-setting',
+        `'style.${key}: ${v}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
+    };
     lines.forEach((raw, i) => {
+      // The flow form, `style: {bold: accent, reveal: hold}`, which is how
+      // the documentation writes the block. It was not read at all, so a
+      // typo in it passed the pre-commit gate and failed the build.
+      const flow = raw.match(/^style:[ \t]*\{(.*)\}[ \t]*$/);
+      if (flow) {
+        for (const pair of flow[1].split(',')) {
+          const kv = pair.match(/^\s*["']?([A-Za-z][A-Za-z0-9_-]*)["']?\s*:\s*(.*?)\s*$/);
+          if (kv) rule(i, kv[1], kv[2]);
+        }
+        return;
+      }
       if (/^style:[ \t]*$/.test(raw)) { inStyle = true; return; }
       if (!inStyle) return;
       if (!/^[ \t]+\S/.test(raw)) { if (raw.trim()) inStyle = false; return; }
       const m = raw.match(/^[ \t]+([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
-      if (!m) return;
-      const allowed = STYLE_ENUMS[m[1]];
-      if (!allowed) return;
-      const value = m[2].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
-      if (!value || allowed.includes(value)) return;
-      addFm(i + 2, 'error', 'unknown-style-setting',
-        `'style.${m[1]}: ${value}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
+      if (m) rule(i, m[1], m[2]);
     });
   }
 

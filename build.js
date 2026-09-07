@@ -4681,6 +4681,15 @@ const STYLE_SPEC = {
   // see BOLD_LOOKS. The old look of both is `accent-bold`.
   'bold':       { kind: 'enum', values: Object.keys(BOLD_LOOKS), dflt: 'plain' },
   'print-bold': { kind: 'enum', values: Object.keys(BOLD_LOOKS), dflt: 'bold' },
+  // What a top-level reveal segment does before its beat. `grow` is what
+  // the tool has always done: the segment takes no room and the chunk grows
+  // by a block per press. `hold` lays the chunk out at its final height
+  // from beat 0 and the segment fades in where it was always going to be,
+  // which is what a beat below the top level does anyway - so a deck that
+  // wants nothing to move on a press sets this once. The default stays
+  // `grow`, because it moves every existing deck's slides: a chunk with
+  // three segments opens with two blocks of air under the first.
+  reveal: { kind: 'enum', values: ['grow', 'hold'], dflt: 'grow' },
 };
 function styleSettings(frontmatter = {}) {
   const raw = frontmatter.style;
@@ -4752,6 +4761,7 @@ function styleBodyAttrs(st, frontmatter = {}) {
   if (st['print-body'] !== 'serif') parts.push(`data-print-body="${st['print-body']}"`);
   if (st.bold !== 'plain') parts.push(`data-bold="${st.bold}"`);
   if (st['print-bold'] !== 'bold') parts.push(`data-print-bold="${st['print-bold']}"`);
+  if (st.reveal !== 'grow') parts.push(`data-reveal="${st.reveal}"`);
   return parts.join(' ');
 }
 // The same two settings answered on one chunk, from its attribute tail. The
@@ -7762,9 +7772,13 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
    click that lets it go, and the cursor is the only place that can say so. */
 body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 
-/* reveal segments: first visible, rest hidden until advanced */
+/* reveal segments: first visible, rest hidden until advanced. Under
+   style: {reveal: hold} a hidden segment keeps its box - the chunk stands
+   at its final height from beat 0, as a nested beat's block does - and the
+   words fade in; the default closes the segment up and the chunk grows. */
 .reveal-segment { transition: opacity 180ms ease; }
 .reveal-segment[data-hidden] { display: none; }
+body[data-reveal=hold] .reveal-segment[data-hidden] { display: block; visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; pointer-events: none; }
 /* A --- below the top level (BEAT_MARK). The marker itself is never shown;
    the elements it governs carry data-beat-hidden until their beat - and
    keep their box. A top-level segment closes up (display: none) and the
@@ -14762,6 +14776,10 @@ body[data-view=speaker] :is(.reveal-segment[data-hidden], .chunk [data-beat-hidd
 /* Not on the overview board: at that scale the hatch is noise, and the
    board is for finding a slide, not for pacing one. */
 body[data-view=speaker].overview-mode .reveal-segment[data-hidden][data-next] { display: none; }
+/* Under reveal: hold the segment already has its box on both screens, so
+   its ghost is the nested beat's: in the flow, half strength. */
+body[data-view=speaker][data-reveal=hold] .reveal-segment[data-hidden][data-next] { position: relative; width: auto; visibility: visible; opacity: 0.5; }
+body[data-view=speaker][data-reveal=hold].overview-mode .reveal-segment[data-hidden][data-next] { visibility: hidden; }
 body[data-view=speaker].overview-mode .chunk [data-beat-hidden][data-next] { visibility: hidden; }
 /* A nested beat keeps its box on both screens (see the hide rule in the
    audience sheet), so its ghost is simply the box made visible at half

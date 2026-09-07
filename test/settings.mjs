@@ -606,6 +606,30 @@ console.log('\nlayout generations');
     ok(!/overlay-from-beyond/.test(leak.lint), 'a divider\'s overlay is not judged against the next chunk', leak.lint.split('\n')[0]);
   }
 
+  // style: {reveal: hold} - a top-level segment keeps its box before its
+  // beat, as a nested beat's block does; the default grows, as 1.0.0 did.
+  {
+    const hold = run('A.\n\n---\n\nB.\n');
+    ok(!hold.failed, 'a deck with no reveal key builds', hold.out.split('\n')[0]);
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-hold-'));
+    const buildWith = (fm) => {
+      fs.writeFileSync(path.join(dir, 'source.md'), `---\ntitle: T\n${fm}---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n\n---\n\nB.\n`);
+      const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
+      return { code: r.status, out: (r.stdout || '') + (r.stderr || ''), html: r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '' };
+    };
+    const g = buildWith('');
+    ok(g.code === 0 && !/<body[^>]* data-reveal=/.test(g.html), 'grow is the default and writes no attribute, so an old deck\'s body tag is unchanged');
+    const h = buildWith('style: {reveal: hold}\n');
+    ok(h.code === 0 && /<body[^>]* data-reveal="hold"/.test(h.html), 'hold reaches the body');
+    ok(/body\[data-reveal=hold\] \.reveal-segment\[data-hidden\] \{ display: block; visibility: hidden;/.test(h.html),
+       'and a hidden segment keeps its box under it');
+    const bad = buildWith('style: {reveal: keep}\n');
+    ok(bad.code !== 0, 'an unknown value is refused', bad.out.split('\n')[0]);
+    fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\nstyle: {reveal: keep}\n---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n');
+    const l = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')], { cwd: ROOT, encoding: 'utf8' });
+    ok(/unknown-style-setting/.test((l.stdout || '') + (l.stderr || '')), 'and the linter says so');
+  }
+
   // The marker itself, and that the segment split did not happen: one
   // reveal-segment, one beat-mark inside the pane, nothing straddled.
   {
