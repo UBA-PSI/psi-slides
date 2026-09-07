@@ -2856,17 +2856,26 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
    rule, not two: the block is exactly as wide as its longest line.
 
    Three things the geometry needs. The chunk takes the slide's height, as a
-   backdrop chunk does, so inset: 0 is the frame the room sees and not the
-   40% minimum a short chunk keeps. .chunk-content gives up position:
-   relative for the duration, because the box is its child and would
-   otherwise be sized to the measure; nothing else in there is positioned
-   against it but the marginalia, which the scrim covers anyway. And the
-   scrim is nearly the paper - the address someone is reading has no
-   business competing with the slide behind it, which stays in the print. */
+   backdrop chunk does, and the camera centres it (the annotEditingId branch
+   of focusCamera), so the frame the room sees is the slide-high band around
+   the chunk's middle - which is where the box is pinned, at the slide's
+   height, whatever the chunk's: a short chunk is exactly that band, and a
+   chunk taller than the frame (auto-fit off, a long exercise) gets a layer
+   that is still the frame rather than one that runs off both edges of it.
+   .chunk-content gives up position: relative for the duration, because the
+   box is its child and would otherwise be sized to the measure; nothing
+   else in there is positioned against it but the marginalia, which the
+   scrim covers anyway. And the scrim is nearly the paper - the address
+   someone is reading has no business competing with the slide behind it,
+   which stays in the print. */
 .chunk.annot-visible { min-height: var(--slide-h); }
 .chunk.annot-visible > .chunk-content { position: static; }
 .chunk.annot-visible .annot-box {
   inset: 0;
+  top: 50%;
+  bottom: auto;
+  height: var(--slide-h);
+  transform: translateY(-50%);
   width: auto;
   display: flex;
   flex-direction: column;
@@ -2889,6 +2898,14 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
   font-size: var(--annot-fs, inherit);
   line-height: 1.3;
   text-align: left;
+  /* Below the floor size a line wraps rather than shrinking further, and it
+     wraps between any two characters: fitAnnotation counts the rows a line
+     takes as its length over the block's columns, and word-wrapping would
+     take more rows than that and clip the last of them (the textarea is
+     overflow: hidden and sized to the count). A tab or a double-width
+     glyph still counts as one column; that is the one case the count can
+     be short by. */
+  word-break: break-all;
   /* A word growing into a sentence shrinks as it goes; without this the
      projector flickers through sizes on every keystroke. */
   transition: font-size 200ms ease, width 200ms ease;
@@ -10549,7 +10566,9 @@ function applyRemoteState(payload) {
       const ta = c.el.querySelector('.annot-textarea');
       if (!ta) return;
       const v = (c.id in annotations) ? annotations[c.id] : ta.defaultValue;
-      if (ta.value !== v) { ta.value = v; autosize(ta); fitAnnotation(c); }
+      // Under the layer the size is fitAnnotation's, run once from applyState
+      // below; autosize here would be a forced layout thrown away.
+      if (ta.value !== v) { ta.value = v; if (!c.el.classList.contains('annot-visible')) autosize(ta); }
       c.el.classList.toggle('has-annot', !!v.trim());
     });
     // Mirror the remote editing state: only the peer that owns the
@@ -10563,7 +10582,8 @@ function applyRemoteState(payload) {
       annotEditingId = remoteEditingId;
       if (annotEditingId) {
         const cur = flatChunks.find(c => c.id === annotEditingId);
-        if (cur) { cur.el.classList.add('annot-visible', 'has-annot'); fitAnnotation(cur); }
+        // fitAnnotation follows in applyState, which every apply reaches.
+        if (cur) cur.el.classList.add('annot-visible', 'has-annot');
       }
     }
     applyBlankBadge();
@@ -11860,15 +11880,24 @@ function annotUrl(text) {
   const m = String(text || '').match(/https?:\/\/[^\s<>"']+/g);
   return m ? m[m.length - 1].replace(/[.,;:!?)\]]+$/, '') : null;
 }
-// Same encoder, level and quiet zone as the build's qrSvg; the library's
-// own SVG writer, because size is not the concern here that it is in a
-// file every link of the lecture is inlined into.
+// Same encoder, level, byte function and quiet zone as the build's qrSvg;
+// the library's own SVG writer, because size is not the concern here that
+// it is in a file every link of the lecture is inlined into. An address the
+// largest symbol cannot hold (the library throws a string past ~2.3 KB at
+// level M) is no code rather than an exception out of the input handler -
+// that would have stopped the keystroke from reaching the peer and the
+// draft from reaching localStorage until the address was shortened.
 function liveQrSvg(url) {
   if (typeof qrcode !== 'function') return '';
-  const qr = qrcode(0, 'M');
-  qr.addData(url);
-  qr.make();
-  return qr.createSvgTag({ cellSize: 1, margin: 4, scalable: true });
+  try {
+    qrcode.stringToBytes = (s) => Array.from(new TextEncoder().encode(s));
+    const qr = qrcode(0, 'M');
+    qr.addData(url);
+    qr.make();
+    return qr.createSvgTag({ cellSize: 1, margin: 4, scalable: true });
+  } catch (e) {
+    return '';
+  }
 }
 function fitAnnotation(entry) {
   if (!entry || !entry.el.classList.contains('annot-visible')) return;
@@ -11949,8 +11978,10 @@ function wireAnnotations() {
     autosize(ta);
     ta.addEventListener('input', () => {
       annotations[id] = ta.value;
-      autosize(ta);
-      fitAnnotation(flatChunks.find(c => c.id === id));
+      // Under the layer the height is fitAnnotation's; autosize would force
+      // a layout only to be overwritten.
+      if (el.classList.contains('annot-visible')) fitAnnotation(flatChunks.find(c => c.id === id));
+      else autosize(ta);
       el.classList.toggle('has-annot', !!ta.value.trim());
       saveAnnotations();
       broadcastState();
@@ -11958,7 +11989,6 @@ function wireAnnotations() {
     ta.addEventListener('focus', () => {
       annotEditingId = id;
       el.classList.add('annot-visible');
-      autosize(ta);
       fitAnnotation(flatChunks.find(c => c.id === id));
       requestAnimationFrame(() => requestAnimationFrame(() => focusCamera(false)));
       // Tell the peer so it can raise its box opacity and mirror the pan.

@@ -76,6 +76,11 @@ from building the same way is a major version.
   leaves the note as the margin note it was; `Shift-E` and
   `--integrate-annotations` are unchanged. `test/annotation.mjs` holds the
   geometry, the encoding and the cockpit.
+- **QR codes encode UTF-8.** The encoder's default masked each code unit to
+  one byte, so a link with a non-Latin-1 character in its path – a Wikipedia
+  article in Cyrillic – scanned to a different string and looked right on the
+  slide. Build-time codes and the live annotation's now use `TextEncoder`;
+  an all-ASCII address encodes exactly as before.
 - **`::: dock` – a frame element the text yields to.** An overlay lies over
   the slide; a dock is part of the frame: a `left` / `right` dock is a column
   the full height of the slide and the text column narrows beside it, a

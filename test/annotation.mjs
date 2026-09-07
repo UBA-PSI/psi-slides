@@ -58,7 +58,11 @@ const geometry = (page) => page.evaluate(() => {
   function drawing(viewBox, d) { return viewBox + ' ' + d; }
 });
 
-// The same two attributes out of the encoder's own SVG string in Node.
+// The same two attributes out of the encoder's own SVG string in Node, with
+// the byte function both sides of the build set: the library's default masks
+// each code unit to a byte, and a path with a non-Latin-1 character then
+// scans to a different string.
+qrcode.stringToBytes = (s) => Array.from(new TextEncoder().encode(s));
 function drawn(url) {
   const qr = qrcode(0, 'M');
   qr.addData(url);
@@ -130,6 +134,30 @@ export async function run({ page, report, press, walkTo }) {
   ok(two.qrSvg === drawn('https://doi.org/10.1145/3133956.3134027'),
     'the last address in the text is the one encoded, trailing punctuation dropped');
 
+  // A non-ASCII path is encoded as UTF-8, so the room scans the string on
+  // the slide and not a Latin-1 mangling of it.
+  const cyrillic = 'https://ru.wikipedia.org/wiki/Энтропия';
+  await page.keyboard.type('\n' + cyrillic);
+  await page.waitForTimeout(500);
+  ok((await geometry(page)).qrSvg === drawn(cyrillic), 'a non-Latin-1 address is encoded as UTF-8');
+
+  // An address the largest symbol cannot hold is no code, not an exception:
+  // the keystroke still reaches the peer and the draft still reaches storage.
+  // Set rather than typed: three thousand keystrokes are two minutes of
+  // spec, and the input event is what the handler answers either way.
+  await page.evaluate(() => {
+    const ta = document.querySelector('.chunk.annot-visible .annot-textarea');
+    ta.value += '\nhttps://example.org/?q=' + 'x'.repeat(3000);
+    ta.dispatchEvent(new Event('input', { bubbles: true }));
+  });
+  await page.waitForTimeout(500);
+  const huge = await geometry(page);
+  ok(huge && huge.qr === null && huge.qrSvg === '', 'an unencodable address draws no code');
+  ok(await page.evaluate(() => {
+    try { return JSON.parse(localStorage.getItem('psi-slides:' + LECTURE_TITLE + ':annotations') || '{}')['chunks-columns'].length > 3000; }
+    catch (e) { return false; }
+  }), 'and the draft with it still reached localStorage');
+
   // Esc: back to the slide, and the note back to its margin. Nothing of the
   // layer's arithmetic may survive into the resting box.
   await press('Escape', 500);
@@ -150,6 +178,23 @@ export async function run({ page, report, press, walkTo }) {
   ok(!rest.qrShown, 'without the code');
   ok(rest.fsVar === '', 'and without the layer\'s sizes');
   ok(rest.text.startsWith('Merke:'), 'the text is kept');
+
+  // A chunk taller than the frame (auto-fit off, a long exercise): the layer
+  // is still the frame, pinned to the slide-high band the camera centres,
+  // not a box that runs off both edges of it. The tutorial has no such
+  // chunk at this viewport, so the spec makes this one tall.
+  await page.evaluate(() => { document.querySelector('.chunk.active').style.minHeight = '2000px'; });
+  await press('n', 500);
+  await page.keyboard.press('Control+A');
+  await page.keyboard.type('Kurz');
+  await page.waitForTimeout(400);
+  const tall = await geometry(page);
+  ok(!!tall && near(tall.box.y, 0, 1) && near(tall.box.h, vp.height, 1),
+    'on a chunk taller than the frame the layer is still the frame', tall && JSON.stringify(tall.box));
+  ok(!!tall && near(tall.ta.y + tall.ta.h / 2, vp.height / 2, 3),
+    'and the word is centred in the frame, not in the chunk', tall && String(tall.ta.y + tall.ta.h / 2));
+  await press('Escape', 400);
+  await page.evaluate(() => { document.querySelector('.chunk.active').style.minHeight = ''; });
 
   // The cockpit: the same layer fills the scaled stage, never the window.
   const port = new URL(page.url()).port;

@@ -1180,6 +1180,19 @@ Drei Entscheidungen, die man nicht aus dem Code liest:
   gespleißt, dieselbe Bibliothek. 56 KB pro Live-View. Die Exports-Map des
   Pakets versteckt den Dateipfad, daher `nodeRequire.resolve('qrcode-generator')`.
 
+Review nach dem ersten Commit, fünf Befunde, alle behoben: der Layer war die
+Chunk-Höhe statt der Rahmenhöhe (ein Chunk höher als der Rahmen bei
+`auto-fit: false` bekam einen Layer über beide Kanten hinaus – jetzt ein
+`--slide-h` hohes Band um die Chunk-Mitte, die die Kamera zentriert); ein
+zu langer Link warf aus `qr.make()` bis in den Input-Handler und stoppte
+damit Sync und localStorage (jetzt kein Code statt Exception); die Zeilen-
+zählung an der Untergrenze unterschätzte Wortumbrüche, deshalb
+`word-break: break-all` im Layer; die Bibliothek maskiert Zeichen auf ein
+Byte, also `TextEncoder` als Byte-Funktion auf Build-Seite, in den
+Live-Views und im Spec (die ESM-Variante der Bibliothek hat keine
+UTF-8-Tabelle); und `autosize` plus ein doppelter Fit pro Snapshot auf der
+Gegenseite waren verschenkte Layouts.
+
 Gemessen (1440×900, Tutorial `#chunks-columns`): ein Wort 94,8 px = 3 × 23,4 × 1,35,
 zentriert auf 720; ein fünfzeiliger Block mit ASCII-Kasten 43 px, Block 726 px
 breit = 70 % der Innenbreite; mit URL darunter 29,5 px Text und 406 px Code =
