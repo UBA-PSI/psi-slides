@@ -1837,8 +1837,14 @@ function renderCardsBlock(b) {
   // sentences as a row of single words, because a hard line break puts the
   // rest of the item on the next line.
   const top = [];
+  // A compiled figure arrives as html - a <figure> line and the svg's own
+  // lines under it, blank-padded - and is a card, not words: counted, its
+  // markup landed on the last claim and forced the whole row small.
+  let inHtml = false;
   for (const raw of b.lines) {
     if (raw === BEAT_MARK) continue;
+    if (inHtml) { if (!raw.trim()) inHtml = false; continue; }
+    if (/^\s*<(figure|div|svg)\b/.test(raw)) { inHtml = true; continue; }
     if (/^[-*+]\s+/.test(raw)) { top.push(raw); continue; }
     if (!top.length) continue;
     if (/^\s+[-*+]\s+/.test(raw)) continue;   // a nested item is the detail
@@ -1891,14 +1897,17 @@ function renderCardsBlock(b) {
   let body = b.lines;
   if (b.rows) {
     const out = [];
+    let inHtml = false;
     for (const raw of b.lines) {
+      // A figure's markup passes through whole, as the block it is.
+      if (inHtml) { out.push(raw); if (!raw.trim()) inHtml = false; continue; }
+      if (/^\s*<(figure|div|svg)\b/.test(raw)) { inHtml = true; out.push(raw); continue; }
       const m = raw.match(/^([-*+]\s+)(\*\*[^*]+\*\*)[ \t]*\\?[ \t]*(.*)$/);
       if (m) { out.push({ head: m[1] + m[2], rest: m[3] ? [m[3]] : [] }); continue; }
       const last = out[out.length - 1];
       // An indented list item under a row is the detail level, and it
-      // belongs to the fold rather than to the body beside the term. A beat
-      // marker is neither and stays a block of its own between the rows.
-      if (!last || /^\s+[-*+]\s+/.test(raw) || !raw.trim() || raw === BEAT_MARK) { out.push(raw); continue; }
+      // belongs to the fold rather than to the body beside the term.
+      if (!last || /^\s+[-*+]\s+/.test(raw) || !raw.trim()) { out.push(raw); continue; }
       if (typeof last === 'string') { out.push(raw); continue; }
       last.rest.push(raw.trim());
     }
@@ -1937,6 +1946,17 @@ function renderCardsBlock(b) {
 // slide inside its padding, rather than each being positioned on its own.
 // That is what makes two cards in one corner stack instead of overlap, and
 // it is one element to keep out of the text flow instead of N.
+// Whether a chunk's overlays include a panel, read the way the renderer
+// reads them. A panel positions itself against the slide, and a chunk with
+// no backdrop is only as tall as its text plus a minimum - so the article
+// has to be told to take the slide's height, the way one with a picture
+// does, or a full-height column comes out as a slab across the middle.
+function overlaysHavePanel(overlays) {
+  return (overlays || []).some(ov => {
+    const t = parseTail(ov.attrs, OVERLAY_SLOTS, '::: overlay', { id: 'none' });
+    return !t.problems.length && t.slots.shape.value === 'panel';
+  });
+}
 function renderOverlayLayer(overlays, where) {
   if (!overlays || !overlays.length) return '';
   const cards = overlays.map((ov) => {
@@ -3493,6 +3513,16 @@ function parseLecture(src) {
         if (currentOverlay) {
           if (/^:::\s*$/.test(line)) { flushOverlay(); continue; }
           if (line.trim() === '---') { currentOverlay.lines.push('', BEAT_MARK, ''); continue; }
+          // lint.js: cards-nested / directive-in-overlay. The chunk path
+          // refuses these; this one let a ::: cards through and drew the
+          // grid inside the card, and a ::: backdrop written here became
+          // the column's picture without a word.
+          if (/^:::\s+\S/.test(line) && !parseDrawOpener(line)) {
+            refuse(
+              `${line.trim().split(/\s+/).slice(0, 2).join(' ')} inside ::: overlay (${chunkRef()}).\n` +
+              '  An overlay is a card laid over the slide - prose, a list, an image,\n' +
+              '  a ::: draw - and holds no other directive. Close the overlay first.');
+          }
         }
         if (readOverlayLine(line)) continue;
         const colBd = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*(?:reveal\s+(.+?))?\s*$/);
@@ -3569,7 +3599,12 @@ function parseLecture(src) {
         // BEAT_MARK and the runtime does the hiding. An expansion keeps the
         // <hr>: its body is not on the projection and has no beats to give.
         if ((layoutStack.length || currentOverlay) && !currentExpansion && line.trim() === '---') {
-          (currentOverlay ? currentOverlay.lines : bodyLines).push('', BEAT_MARK, '');
+          // Inside ::: script the line stays what marked makes of it, a
+          // rule: the block is narration, off the projection under the
+          // default collapse, and a beat there is a Space that shows nothing.
+          // Written back as ***, the other spelling of a rule, because
+          // flushChunk would otherwise split the segment on the --- itself.
+          (currentOverlay ? currentOverlay.lines : bodyLines).push('', inLayout('script') ? '***' : BEAT_MARK, '');
           continue;
         }
 
@@ -3599,6 +3634,15 @@ function parseLecture(src) {
           throw err;
         }
         if (backdropOpen) {
+          // lint.js: directive-in-overlay / nested-directive. The line is
+          // the slide's wherever it stands, so inside a captured block it
+          // silently became the chunk's picture while reading as the card's.
+          if (openAside()) {
+            refuse(
+              `::: backdrop inside ${openAside()} (${chunkRef()}).\n` +
+              '  A backdrop is the slide\'s ground, not the block\'s. Write it at chunk\n' +
+              '  level, outside the block.');
+          }
           if (currentChunk.backdrop) {
             const err = new Error(
               `A chunk has two ::: backdrop lines (${currentChunk.id ? '#' + currentChunk.id : 'no id'}).\n`
@@ -6167,7 +6211,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, num, parts = 
   const bd = renderBackdrop(chunk.backdrop, where);
   const overlayHtml = renderOverlayLayer(chunk.overlays, where);
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
-  const bdAttr = bd.html ? ' data-has-backdrop=""' : '';
+  const bdAttr = (bd.html ? ' data-has-backdrop=""' : '') + (overlaysHavePanel(chunk.overlays) ? ' data-has-panel=""' : '');
 
   return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}>
   ${bd.html}
@@ -6255,7 +6299,7 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
   const own = (col.body || '').trim()
     ? `<div class="section-body">${unwrapLoneFigure(marked.parse(col.body))}</div>` : '';
   const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
-  const bdAttr = art.html ? ' data-has-backdrop=""' : '';
+  const bdAttr = (art.html ? ' data-has-backdrop=""' : '') + (overlaysHavePanel(col.overlays) ? ' data-has-panel=""' : '');
   // The mark and the heading (or the list) are one block, and saying so in
   // the markup is what lets the beside layout be a two-column grid with one
   // row. Left as siblings they were separate grid rows, the figure spanned
@@ -7443,10 +7487,14 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 .reveal-segment[data-hidden] { display: none; }
 /* A --- below the top level (BEAT_MARK). The marker itself is never shown;
    the elements it governs carry data-beat-hidden until their beat. */
-.beat-mark, [data-beat-hidden] { display: none !important; }
-/* !important is the point: a card item, a list dissolved into a grid and a
-   pane child each set their own display, and a beat is state over all of
-   them - the same element must vanish whatever box it would otherwise be. */
+/* Three classes deep on purpose: a card item (.cards.cg-panel > :not(ul),
+   0-2-2) and a dissolved list (.cards > ul, 0-1-1) set their own display,
+   and the beat has to win over both without !important - because the
+   speaker's ghost has to win over *this* in turn, and the collapse rules
+   (0-4-x) have to keep winning over the ghost, or the cockpit announces as
+   next a block the projector never shows. */
+.chunk .chunk-content .beat-mark, .chunk .overlay-layer .beat-mark,
+.chunk .chunk-content [data-beat-hidden], .chunk .overlay-layer [data-beat-hidden] { display: none; }
 
 /* per-tag treatments */
 .chunk[data-tag=principle] .chunk-content::before {
@@ -8214,6 +8262,10 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    text slide is right and for a picture would have painted a band across
    the middle third and left paper above and below it. */
 .chunk[data-has-backdrop] { min-height: var(--slide-h); }
+/* A panel positions itself against the slide, so a chunk carrying one is
+   the slide's height even with no picture - measured without this, a
+   right column on a prose chunk was a slab across the middle third. */
+.chunk[data-has-panel] { min-height: var(--slide-h); }
 .chunk-backdrop {
   position: absolute;
   inset: 0;
@@ -8292,7 +8344,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    restating position: relative on it dropped the whole layer back into
    the text flow, where its three 1fr rows stretched the chunk to twice
    the viewport and pushed the card off the bottom of the slide. */
-.chunk[data-has-backdrop] > .chunk-content { z-index: 1; }
+.chunk[data-has-backdrop] > .chunk-content, .chunk[data-has-panel] > .chunk-content { z-index: 1; }
 /* The over word is the one backdrop that sits on the type. It stops short of the
    overlay layer deliberately: a picture that covers the title is a move
    that usually wants a word left standing on top of it, and an ::: overlay
@@ -8300,7 +8352,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    backdrop 0, content 1, an over-layer picture 2, overlays and the slide number
    3 - so changing one means reading all of them. */
 .chunk-backdrop.bd-over { z-index: 2; }
-.chunk[data-has-backdrop] > .chunk-num { z-index: 3; }
+.chunk[data-has-backdrop] > .chunk-num, .chunk[data-has-panel] > .chunk-num { z-index: 3; }
 
 /* ── overlay cards (::: overlay) ─────────────────────────────────────
    One 3x3 grid over the whole slide inside its padding, rather than each
@@ -11185,16 +11237,23 @@ function applyState() {
 // all of that, and it is still the only state involved. Document order
 // also gets the interleaving right: a diagram inside segment 1 advances
 // only once segment 1 is up.
+// Every beat carries pos, its index among the beats that are counted by
+// position - a mark with at is not one of them. It used to be, and a
+// mark inside an overlay was then counted twice: once by its place in this
+// list and once by at, which gave the slide a dead Space at the end and
+// shifted every positional beat after it by one.
 function chunkBeats(el) {
   const out = [];
   let segIdx = 0;
+  let pos = 0;
+  const push = (b) => { if (b.at == null) b.pos = pos++; out.push(b); };
   el.querySelectorAll('.reveal-segment, svg.psi-diagram, .beat-mark').forEach(node => {
     // A diagram inside an expansion body is not on the projection, so its
     // steps must not consume beats – Space would advance a counter and the
     // room would see nothing happen.
     if (node.closest('.exp-body, .chunk-expansion')) return;
     if (node.classList.contains('reveal-segment')) {
-      if (segIdx++ > 0) out.push({ type: 'seg', el: node });
+      if (segIdx++ > 0) push({ type: 'seg', el: node });
       return;
     }
     // A --- below the top level: the beat owns every element sibling after
@@ -11212,12 +11271,12 @@ function chunkBeats(el) {
       // before its own from-beat and play behind a card not yet shown.
       const ov = node.closest('.overlay-card[data-from]');
       const at = ov ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node) : null;
-      out.push({ type: 'mark', els, at });
+      push({ type: 'mark', els, at });
       return;
     }
     const d = node.psiDiagram;
     if (!d || d.data.n < 2) return;
-    for (let s = 1; s < d.data.n; s++) out.push({ type: 'diag', d, step: s });
+    for (let s = 1; s < d.data.n; s++) push({ type: 'diag', d, step: s });
   });
   return out;
 }
@@ -11241,7 +11300,7 @@ function bdFrames(el) {
 // is the convention jumpTo and advanceReveal were already written against.
 function countSegments(el) {
   const all = chunkBeats(el);
-  const beats = all.length;
+  const beats = all.filter(b => b.at == null).length;
   const bd = bdFrames(el);
   let n = beats ? beats + 1 : (el.querySelector('.reveal-segment') ? 1 : 0);
   all.forEach(b => { if (b.at != null) n = Math.max(n, b.at + 1); });
@@ -11259,8 +11318,9 @@ function applyReveal(el, id, instant) {
   if (segs[0]) { segs[0].removeAttribute('data-hidden'); segs[0].removeAttribute('data-next'); }
   const steps = new Map();
   beats.forEach(b => { if (b.type === 'diag' && !steps.has(b.d)) steps.set(b.d, 0); });
-  beats.forEach((b, i) => {
-    const on = i < consumed;
+  beats.forEach((b) => {
+    const i = b.pos;
+    const on = b.at == null && i < consumed;
     if (b.type === 'seg') {
       if (on) b.el.removeAttribute('data-hidden');
       else b.el.setAttribute('data-hidden', '');
@@ -14172,10 +14232,7 @@ body[data-view=speaker] .figure-video video { cursor: pointer; }
    The audience is untouched – [data-hidden] keeps its display:none there,
    and this override is scoped to the speaker. */
 body[data-view=speaker] :is(.reveal-segment[data-hidden], [data-beat-hidden])[data-next] {
-  /* !important because the audience hides a nested beat with one too - a
-     card item and a dissolved list set their own display, and state has
-     to win there; here the preview has to win over the state. */
-  display: block !important;
+  display: block;
   /* Absolute with no offsets: the box renders at its static position –
      exactly where it will land when revealed – but contributes nothing to
      the chunk's height. That matters more than it looks. The laser pointer
@@ -14215,14 +14272,23 @@ body[data-view=speaker] :is(.reveal-segment[data-hidden], [data-beat-hidden])[da
 }
 /* Not on the overview board: at that scale the hatch is noise, and the
    board is for finding a slide, not for pacing one. */
-body[data-view=speaker].overview-mode :is(.reveal-segment[data-hidden], [data-beat-hidden])[data-next] { display: none !important; }
-/* A nested beat's ghost stays in the flow. The segment's box is absolute
-   so the slide below it does not move, but absolute means sized against
-   the chunk, and inside a pane that ran the hatch past the pane's edge and
-   off the slide. In the flow it is as wide as the pane and pushes only the
-   pane's own later blocks, which is the picture the speaker wants anyway:
-   where the next paragraph lands. */
-body[data-view=speaker] .chunk [data-beat-hidden][data-next] { position: relative; width: auto; }
+body[data-view=speaker].overview-mode :is(.reveal-segment[data-hidden], [data-beat-hidden])[data-next] { display: none; }
+/* A nested beat's ghost keeps the segment ghost's contract - absolute, so
+   the cockpit's chunk is exactly as tall as the projector's, which the laser
+   pointer relies on (it travels as a fraction of the active chunk's box) -
+   but sized against its own block rather than the chunk: the block is made
+   the containing block here, in the cockpit only, so the hatch ends at the
+   pane's edge instead of running off the slide. It was position: relative
+   for a day, and a two-paragraph ghost made the cockpit chunk 1215px tall
+   against the projector's 360. */
+body[data-view=speaker] :is(.side-a, .side-b, .cards, .overlay-card, .section-body, .slide-explicit, .cols) { position: relative; }
+/* A list dissolved into a card grid has no box to hatch, and blockifying it
+   put its ghost items in a narrower, indented column than the cards they
+   will become. Kept dissolved; the items carry the hatch instead. */
+body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next] { display: contents; position: static; outline: 0; }
+body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next]::before,
+body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next]::after { content: none; }
+body[data-view=speaker] .cards > :is(ul, ol)[data-beat-hidden][data-next] > li { opacity: 0.5; outline: 2px dashed var(--emph); outline-offset: 3px; }
 
 /* A diagram step has no block to hatch the way a hidden reveal segment
    does, so the cockpit gets the next step's name in words instead. Same

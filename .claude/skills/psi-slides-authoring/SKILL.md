@@ -352,8 +352,10 @@ walks left one, left two, right one, right two, cards one and two, card three �
 six beats, top-level and nested mixed, each in the place it was written. A `---`
 as the first line of a pane holds the whole pane back. In an `::: overlay from N`
 the inner beats count from `N`: the card on `N`, its second block on `N + 1`.
-Print shows every beat at once. An `::: expand` keeps the horizontal rule – its
-body is not on the projection and has no beats to give.
+Print shows every beat at once. An `::: expand` and a `::: script` keep the
+horizontal rule – neither is on the projection, so neither has beats to give.
+Under a `# Heading` a `---` used to render a rule in the divider and the printed
+lede; it is a beat now, and `***` is the spelling of a rule there.
 
 ## Speaker notes
 
@@ -564,11 +566,10 @@ was a slide that rendered wrong with exit 0 before it was one.
 `draw` is the one construct meant to go nearly everywhere – a pane, a card, an
 overlay card over a photograph, an expansion, a divider – because a figure is
 what makes a frame a design rather than a text column. The two places it does
-not go are a text flow (`cols`) and a caption (`embed`). A figure in an
-`overlay from N` walks its steps on the chunk's counter from beat 1, so with
-`N` of 2 or more the first steps play before the card is on the slide
-(`overlay-steps-early`); write `from 1`, or give the beats to the body. A `---`
-inside the overlay is different: those beats do count from `N`.
+not go are a text flow (`cols`) and a caption (`embed`). A figure with steps
+inside an `overlay from N` walks them after the body's own beats, in document
+order; a `---` inside the overlay counts from `N` instead (the card on `N`, its
+second block on `N + 1`).
 
 The last row is the one that bites: an aside or an overlay is folded under
 or laid over the *whole* chunk, so a place inside a block means nothing for
@@ -1057,8 +1058,8 @@ or directive – the message names which), `missing-id`, `duplicate-id`,
 `directive-in-embed`, `duplicate-flip`, `explicit-nested` (the nesting
 refusals, each mirrored by the build – see *Nesting*), `side-without-flip`,
 `cols-in-cols`, `explicit-in-side`, `duplicate-marginalia`,
-`layout-too-narrow`, `overlay-from-beyond`, `overlay-steps-early` (the
-nesting warnings, which only the linter raises), `bad-cover-ratio`, `bad-unit`, `bad-autoplay` (a delay
+`layout-too-narrow`, `overlay-from-beyond` (the nesting warnings, which only
+the linter raises), `bad-overlay-panel`, `bad-overlay-height`, `bad-cover-ratio`, `bad-unit`, `bad-autoplay` (a delay
 outside 200–60000 ms, `cycle` with no autoplay, or autoplay on a figure
 with no `step` block).
 

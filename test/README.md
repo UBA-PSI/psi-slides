@@ -5,7 +5,7 @@ Two suites, split by one question: **can this be decided without a browser?**
 - **`test/gates/`** – everything about the figure language and the `{…}` tail
   grammar that can. Eight gates, under a second, no browser and no
   `npm install`. Run by `gates.yml` on push and pull request.
-- **`test/`** – the things that only break in a built page. 33 specs, ~834
+- **`test/`** – the things that only break in a built page. 34 specs, ~872
   assertions, about five minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second

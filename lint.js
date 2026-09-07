@@ -2364,6 +2364,9 @@ function lintFile(filePath) {
         add(l.line, 'error', 'unclosed-directive',
             `::: ${l.kind} not closed before next chunk or column`);
       }
+      // A divider's overlays and its figure's steps are its own; left
+      // standing they were judged against the next chunk's beats.
+      chunkReveals = 0; chunkSteps = 0; chunkOverlays = [];
       return;
     }
     const budget = DENSITY_BUDGET[chunk.tag ?? 'free'];
@@ -2492,11 +2495,7 @@ function lintFile(filePath) {
     if (diagram) {
       if (/^:::\s*$/.test(line)) {
         lintDiagram(diagram, add, fmLines, lectureTags);
-        const steps = diagram.lines.filter(l => /^step\b/.test(l.text)).length;
-        chunkSteps += steps;
-        // A figure inside an overlay walks its steps on the chunk's counter
-        // from beat 1, whatever beat the card itself arrives on.
-        if (activeDirective && activeDirective.kind === 'overlay') activeDirective.steps = (activeDirective.steps || 0) + steps;
+        chunkSteps += diagram.lines.filter(l => /^step\b/.test(l.text)).length;
         diagram = null;
       } else {
         diagram.lines.push({ text: line, ln });
@@ -2685,6 +2684,13 @@ function lintFile(filePath) {
     // the line and on the class tail, which is what it can decide alone.
     const backdropOpen = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*(?:reveal\s+(.+?))?\s*$/);
     if (backdropOpen) {
+      // Mirrors build.js: the line is the slide's wherever it stands, and
+      // inside a captured block it became the picture while reading as the
+      // card's.
+      if (activeDirective) {
+        add(ln, 'error', activeDirective.kind === 'overlay' ? 'directive-in-overlay' : 'nested-directive',
+            `::: backdrop inside ::: ${activeDirective.kind} (line ${activeDirective.line}) – a backdrop is the slide's ground, not the block's`);
+      }
       // A divider takes one too: that is the picture a part opens on. The
       // duplicate check is the same rule read against whichever slide the
       // line is on - one slide has one ground.
@@ -2784,7 +2790,7 @@ function lintFile(filePath) {
       if (overlayOpen[2] != null && /^[1-9]\d*$/.test(overlayOpen[2])) {
         chunkOverlays.push({ from: Number(overlayOpen[2]), line: ln });
       }
-      activeDirective = { kind: 'overlay', line: ln, from: Number(overlayOpen[2]) || 0 };
+      activeDirective = { kind: 'overlay', line: ln };
       continue;
     }
 
@@ -2997,21 +3003,18 @@ function lintFile(filePath) {
       if (!activeDirective) {
         add(ln, 'error', 'stray-directive-close',
             `::: without a matching open directive`);
-      } else if (activeDirective.kind === 'overlay' && activeDirective.steps && activeDirective.from >= 2) {
-        add(activeDirective.line, 'warn', 'overlay-steps-early',
-            `::: overlay from ${activeDirective.from} holds a figure with ${activeDirective.steps} step${activeDirective.steps === 1 ? '' : 's'} – `
-            + `steps ride the chunk's counter from beat 1, so the first ${Math.min(activeDirective.from - 1, activeDirective.steps)} `
-            + 'play before the card is on the slide; write from 1, or give the beats to the body instead');
       }
       activeDirective = null;
       continue;
     }
 
-    if (chunk && !activeDirective && line.trim() === '---') {
+    if (chunk && (!activeDirective || activeDirective.kind === 'overlay') && line.trim() === '---') {
       // At the top level the build splits the body into segments here;
-      // below it - in a pane, a card row, a column block - the same line is
+      // below it - in a pane, a card row, an overlay card - the same line is
       // a beat marker the runtime honours in source order. Either way it is
       // one beat on the chunk's counter, which is all this file needs.
+      // Inside ::: script it stays a rule, as in the build.
+      if (layoutStack.some(l => l.kind === 'script')) continue;
       chunkHasReveal = true;
       chunkReveals += 1;
       inMetaBlock = false;

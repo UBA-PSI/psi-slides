@@ -491,6 +491,12 @@ console.log('\nlayout generations');
     // being a divider, and used to print itself under the heading as text.
     ['::: cols under a column heading',
      '# Part {#p}\n\n::: cols 2\nA.\n:::\n\n## free: G {#g}\n\nB.\n', /::: cols under a column heading/, 'stray-directive'],
+    ['::: cards inside a divider overlay',
+     '# Part {#p}\n\n::: overlay\nWords.\n::: cards 2\n- A\n- B\n:::\n:::\n\n## free: G {#g}\n\nB.\n', /::: cards inside ::: overlay/, 'cards-nested'],
+    ['::: backdrop inside an overlay',
+     '::: overlay\nA.\n::: backdrop https://example.invalid/x.jpg\n:::\n', /::: backdrop inside ::: overlay/, 'directive-in-overlay'],
+    ['::: backdrop inside an expansion',
+     '::: expand more\nA.\n::: backdrop https://example.invalid/x.jpg\n:::\n', /::: backdrop inside ::: expand/, 'nested-directive'],
     ['::: expand under a column heading',
      '# Part {#p}\n\n::: expand more\nA.\n:::\n\n## free: G {#g}\n\nB.\n', /::: expand under a column heading/, 'stray-directive'],
     // The combinations the format means to support, and the refusals must
@@ -562,6 +568,44 @@ console.log('\nlayout generations');
     }
   }
 
+  // What the review of the first cut found, each as the failure it named.
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-review-'));
+    const build = (body) => {
+      fs.writeFileSync(path.join(dir, 'source.md'), FMX + body);
+      const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
+      return r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '';
+    };
+    // A figure in a card row is a card, not words: counted as words it
+    // forced the row small.
+    const fig = build('## free: W {.wide #w}\n\n::: cards 3\n- Claim one\n- Claim two\n\n::: draw 60x30\nbox a "A"\n:::\n:::\n');
+    ok(/class="cards cards-3 cs-large/.test(fig),
+       'a figure card leaves the row\'s auto size to the claims', (fig.match(/class="cards cards-3 [^"]*"/) || [''])[0]);
+    // A --- inside ::: script is a rule, not a beat: narration is off the
+    // projection and a beat there is a Space that shows nothing.
+    const sc = build('::: script\nOne.\n\n---\n\nTwo.\n:::\n');
+    const scBlock = (sc.split('<div class="script-only">')[1] || '').split('</div>')[0];
+    ok(/<hr>/.test(scBlock) && !/beat-mark/.test(scBlock) && (sc.match(/class="reveal-segment"/g) || []).length === 1,
+       'a --- inside ::: script stays a rule and adds no beat');
+    // A panel positions itself against the slide, so a chunk with one is
+    // the slide's height even without a picture - it was a slab across the
+    // middle third, over the prose and the slide number.
+    const pn = build('Prose.\n\n::: overlay {.right .ink .panel}\nA.\n:::\n');
+    ok(/<article class="chunk chunk-free"[^>]* data-has-panel=""/.test(pn), 'a chunk carrying a panel says so on its article');
+    ok(/\.chunk\[data-has-panel\] \{ min-height: var\(--slide-h\); \}/.test(pn) && /\.chunk\[data-has-panel\] > \.chunk-num \{ z-index: 3; \}/.test(pn),
+       'and takes the slide\'s height with the slide number lifted above the layer');
+    // The hide rule and the ghost rule are ordinary declarations at three
+    // classes and above, so the collapse (0-4-x) still wins over both.
+    ok(!/\[data-beat-hidden\] \{ display: none !important; \}/.test(pn) && /\.chunk \.chunk-content \[data-beat-hidden\]/.test(pn),
+       'a nested beat hides by specificity, not by !important');
+    // lint: a --- in an overlay is a beat, and a divider's overlay does not
+    // leak into the next chunk's arithmetic.
+    const ovBeats = run('::: overlay {.top-left}\nOne.\n\n---\n\nTwo.\n\n---\n\nThree.\n:::\n\n::: overlay {.bottom-right} from 3\nLate.\n:::\n');
+    ok(!/overlay-from-beyond/.test(ovBeats.lint), 'the beats inside an overlay count for overlay-from-beyond', ovBeats.lint.split('\n')[0]);
+    const leak = run('# Part {#p}\n\nQuote.\n\n---\n\nMore.\n\n::: overlay {.bottom-right} from 2\nA.\n:::\n\n## free: X {#x}\n\nBody.\n');
+    ok(!/overlay-from-beyond/.test(leak.lint), 'a divider\'s overlay is not judged against the next chunk', leak.lint.split('\n')[0]);
+  }
+
   // The marker itself, and that the segment split did not happen: one
   // reveal-segment, one beat-mark inside the pane, nothing straddled.
   {
@@ -588,8 +632,6 @@ console.log('\nlayout generations');
     ['an explicit block in one pane', '::: side\n::: slide\nA.\n:::\n::: flip\nB.\n:::\n', 'explicit-in-side'],
     ['two marginalia on one chunk', '::: marginalia\nA.\n:::\n::: marginalia\nB.\n:::\n', 'duplicate-marginalia'],
     ['an overlay past the last beat', 'A.\n\n---\n\nB.\n\n::: overlay from 4\nC.\n:::\n', 'overlay-from-beyond'],
-    ['a stepped figure in a late overlay',
-     'A.\n\n---\n\nB.\n\n::: overlay from 2\n::: draw 140x52\nbox a "A"\nbox b "B" right of a gap 1\nstep one\n  show b\n:::\n:::\n', 'overlay-steps-early'],
     ['six cards in a wide chunk', '## free: W {.wide #w}\n\n::: cards 6\n- a\n- b\n- c\n- d\n- e\n- f\n:::\n', 'layout-too-narrow'],
   ]) {
     const r = run(body);

@@ -69,8 +69,13 @@ from building the same way is a major version.
   slide, top-level and nested mixed – left pane's second paragraph, right
   pane's first, then the card row written after the block. In an
   `::: overlay from N` the inner beats count from `N`. Print shows every
-  beat at once; an `::: expand` keeps the rule. `test/beats-nested.mjs` walks
-  a six-beat sequence in a browser.
+  beat at once; an `::: expand` and a `::: script` keep the rule, since
+  neither is on the projection. **One meaning changes:** a `---` under a
+  `# Heading`, before the first chunk, used to render a rule in the divider
+  and in the printed lede and is a beat now – write `***` for the rule. No
+  deck in either repository writes one. `test/beats-nested.mjs` walks a
+  six-beat sequence in a browser, and a body with beats under an overlay
+  that has its own.
 - **`::: overlay {.panel}` – the card grown to the frame.** A photograph
   with a text area set off from it is the slide that most often wanted an
   overlay and could not quite have one: a card sits inside the slide's
@@ -121,7 +126,7 @@ from building the same way is a major version.
   `stray-directive` for the divider, and the build now also refuses what
   `nested-directive` alone reported – a second aside opened while one is
   open used to close the first silently.
-  Seven combinations that render a slide, only not the one the author
+  Six combinations that render a slide, only not the one the author
   pictured, are warnings in the linter alone: `side-without-flip`,
   `cols-in-cols`, `explicit-in-side` (the collapse hides the other pane and
   keeps its track), `duplicate-marginalia` (both anchor at the top of the
@@ -129,9 +134,7 @@ from building the same way is a major version.
   `cards` and `side` pane leaves a track under 10em – calibrated so the
   widest row in the corpus, five cards in a wide chunk, passes) and
   `overlay-from-beyond` (`from N` past the last beat plus one is answered
-  with empty advances) and `overlay-steps-early` (a stepped figure in an
-  overlay walks its steps from beat 1, whatever beat the card arrives on).
-  The table is in the `psi-slides-authoring` skill
+  with empty advances). The table is in the `psi-slides-authoring` skill
   under *Nesting*; every pair is a fixture in `test/settings.mjs`. Across
   both repositories the corpus nests exactly one thing, a figure in a pane,
   so no existing lecture changes.

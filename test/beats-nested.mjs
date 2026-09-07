@@ -80,6 +80,26 @@ Right two.
 - Card C
 :::
 
+## free: Overlay beats over body beats {.wide #mixed}
+
+Topic.
+
+---
+
+B.
+
+---
+
+C.
+
+::: overlay {.top-right} from 1
+Card.
+
+---
+
+Card two.
+:::
+
 ## free: Rows {.wide #rows}
 
 Topic.
@@ -151,7 +171,7 @@ export async function run({ page, report }) {
     await page.keyboard.press('Space');
     await page.waitForTimeout(300);
     const after = await page.evaluate(() => document.querySelector('.chunk.active')?.dataset.chunkId);
-    ok(after === 'rows', 'and the beat after the last one is the next chunk', after);
+    ok(after === 'mixed', 'and the beat after the last one is the next chunk', after);
     note(`panes: ${got.length} states walked`);
 
     // ── the segment split did not happen: one segment holds the panes ──
@@ -173,6 +193,24 @@ export async function run({ page, report }) {
     const r1 = await visible(page, 'rows');
     ok(r0 === 'Topic. | Onefirst' && r1 === 'Topic. | Onefirst | Twosecond',
        'a --- between two rows shows the second on the next beat', `${r0} → ${r1}`);
+
+    // ── an overlay's own beats over a body that has beats of its own ──
+    // The mark inside the card is counted by its `at` (from + 1), never by
+    // its place in the list as well: counted twice, the slide gained a
+    // dead Space at the end and every body beat after the mark moved.
+    await jump(page, 'mixed');
+    await page.waitForTimeout(300);
+    const mx = [await visible(page, 'mixed')];
+    for (let k = 0; k < 3; k++) {
+      await page.keyboard.press('Space');
+      await page.waitForTimeout(250);
+      mx.push(await visible(page, 'mixed'));
+    }
+    ok(mx[0] === 'Topic.', 'mixed: beat 0 is the topic alone', mx[0]);
+    ok(mx[1] === 'Topic. | B. | Card. Card | Card.', 'beat 1 brings B and the card (from 1) with its first block', mx[1]);
+    ok(mx[2] === 'Topic. | B. | C. | Card. Card | Card. | Card two.', 'beat 2 brings C and the card\'s second block', mx[2]);
+    const mxAfter = await page.evaluate(() => document.querySelector('.chunk.active')?.dataset.chunkId);
+    ok(mxAfter === 'rows', 'and the third Space leaves the chunk - no dead beat', mxAfter);
 
     // ── a divider's overlay: from 1, its own second block on 2 ──
     await jump(page, 'part-section');

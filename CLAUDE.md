@@ -113,7 +113,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # browser? test/gates/ is everything about the figure language and the {…}
 # tail grammar that can - eight gates, under a second, no browser and no
 # `npm install` (diagram-core.mjs, tails.mjs and lint.js are all zero-dep).
-# test/ is the things that only break in a built page - 33 specs, ~5 min,
+# test/ is the things that only break in a built page - 34 specs, ~8 min,
 # one Chromium.
 # `npm test` runs the gates first so a compiler regression fails in a second
 # rather than in four minutes; gates.yml runs them on push and PR.
@@ -193,11 +193,11 @@ Checks enforced:
   (`aside-in-layout`, `overlay-in-layout`,
   `directive-in-overlay`, `directive-in-cards`, `directive-in-embed`,
   `side-in-cols`, `duplicate-flip`, `explicit-nested`, a directive other than
-  `backdrop` / `draw` / `cards` / `rows` under a column heading, plus the older
-  `cards-nested` / `draw-in-cols` / `nested-directive`) and seven warnings only
-  the linter raises (`side-without-flip`, `cols-in-cols`, `explicit-in-side`,
-  `duplicate-marginalia`, `layout-too-narrow`, `overlay-from-beyond`,
-  `overlay-steps-early`). A `---` inside a wrapper is not one of them: it is
+  `backdrop` / `draw` / `cards` / `rows` / `overlay` under a column heading,
+  plus the older `cards-nested` / `draw-in-cols` / `nested-directive`) and six
+  warnings only the linter raises (`side-without-flip`, `cols-in-cols`,
+  `explicit-in-side`, `duplicate-marginalia`, `layout-too-narrow`,
+  `overlay-from-beyond`). A `---` inside a wrapper is not one of them: it is
   a beat below the top level (see *Parser* above), and `test/beats-nested.mjs`
   walks the order in a browser. `::: draw` deliberately goes nearly everywhere – a
   pane, a card, an overlay, an expansion, a divider – and is refused only in a
