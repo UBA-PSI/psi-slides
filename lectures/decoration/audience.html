@@ -1914,6 +1914,15 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   display: flex; flex-direction: column; justify-content: center; align-items: center;
   text-align: center;
 }
+/* A band takes the foot (or the head) of the frame, and a slide's words
+   are centred in the frame's height, so on a slide with a heading and
+   little else the band covered the heading's last line - measured on a
+   divider whose two-line heading lost the word "Panel". The words move
+   away from the band, up for a bottom band, down for a top one, and a
+   the camera frames such a chunk as a whole (see the fit branch), or it
+   would centre the moved words and push the band off the edge. */
+.chunk:has(> .overlay-layer > .ov-panel.ov-bottom) > .chunk-content { align-self: start; }
+.chunk:has(> .overlay-layer > .ov-panel.ov-top)    > .chunk-content { align-self: end; }
 .overlay-card.ov-panel.ov-center.ov-w-narrow > *   { max-width: 19em; }
 .overlay-card.ov-panel.ov-center.ov-w-standard > * { max-width: 29em; }
 .overlay-card.ov-panel.ov-center.ov-w-wide > *     { max-width: 42em; }
@@ -6707,7 +6716,7 @@ function focusCamera(instant = false) {
     // A chunk with a dock is framed as a whole: a band takes a grid row of
     // its own, so the content box sits above (or below) the slide's middle
     // by design, and centring it pushed the band off the bottom edge.
-    const fitEl = entry.el.hasAttribute('data-dock') ? null : entry.el.querySelector('.chunk-content');
+    const fitEl = entry.el.hasAttribute('data-dock') || entry.el.hasAttribute('data-has-panel') ? null : entry.el.querySelector('.chunk-content');
     const fit = fitEl ? getOffset(fitEl, stage) : { top, height };
     if (fit.height <= vp.height) {
       ty = vp.height / 2 - (fit.top + fit.height / 2);
@@ -7620,7 +7629,11 @@ function flowHeightProbe(el) {
       // rather than the slide height it is stretched to. Skipped, a
       // seven-item list in a 13em column could grow past the frame with
       // nothing telling auto-fit.
-      if ((cs.position === 'absolute' || cs.position === 'fixed') && !c.classList.contains('dock') && !c.classList.contains('overlay-layer')) continue;
+      // The overlay layer counts only when it holds a side panel, which is
+      // looked through below; with cards or a band alone it is skipped as the
+      // slide-high absolute box it is, or the fit would read it as content.
+      const sidePanel = c.classList.contains('overlay-layer') && c.querySelector(':scope > .ov-panel.ov-left, :scope > .ov-panel.ov-right');
+      if ((cs.position === 'absolute' || cs.position === 'fixed') && !c.classList.contains('dock') && !sidePanel) continue;
       if (cs.display === 'contents') { out.push(...flowKids(c)); continue; }
       out.push(c);
     }
@@ -7661,7 +7674,13 @@ function flowHeightProbe(el) {
   // so a bare photo slide whose only text is a panel is fitted to that
   // text rather than zoomed to the ceiling.
   const panelLevel = (layer) => {
-    const panels = [...layer.children].filter((k) => k.classList.contains('ov-panel'));
+    // Side panels only. A band sits at the foot (or head) of the frame, so
+    // one extent from the words above it to the words in it is the slide's
+    // height whatever the type size, and the fit ran to the floor. A band's
+    // own height is its words' (snug) or a fixed share, and the words above
+    // it are measured through .chunk-content as on any slide.
+    const panels = [...layer.children].filter((k) => k.classList.contains('ov-panel')
+      && (k.classList.contains('ov-left') || k.classList.contains('ov-right')));
     if (!panels.length) return null;
     const lv = levelOf(layer);
     // A panel is positioned against the layer's padding box, not inside its
@@ -7704,8 +7723,14 @@ function flowHeightProbe(el) {
       if (t < top) top = t;
       if (b > bottom) bottom = b;
     }
+    // A band at the head or foot is not in the span (see panelLevel) but
+    // it takes its height from the frame all the same, so the words have
+    // that much less: a two-line divider heading lost its second line under
+    // a snug band at the zoom the span alone allowed.
+    let bands = 0;
+    for (const b of el.querySelectorAll(':scope > .overlay-layer > .ov-panel.ov-top, :scope > .overlay-layer > .ov-panel.ov-bottom')) bands += b.offsetHeight;
     if (bottom < top) return el.scrollHeight;
-    return Math.min(el.scrollHeight, (bottom - top) + outer.padT + outer.padB);
+    return Math.min(el.scrollHeight, (bottom - top) + outer.padT + outer.padB + bands);
   };
 }
 

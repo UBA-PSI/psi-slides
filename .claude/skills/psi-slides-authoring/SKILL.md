@@ -1118,7 +1118,11 @@ the linter raises), `bad-overlay-panel`, `bad-overlay-height`, `bad-dock`,
 `dock-scope`, `dock-in-layout`, `directive-in-dock`, `duplicate-dock`,
 `dock-link`, `marginalia-in-dock` (the dock's refusals, each mirrored by the
 build), `dock-narrows-measure` (a side dock leaves a chunk less than its
-measure; warning), `bad-cover-ratio`, `bad-unit`, `bad-autoplay` (a delay
+measure; warning), `text-on-picture` (a `::: backdrop {.clear}` under words
+that stand on the bare picture – a heading unless the chunk is `.bare`, prose
+outside an overlay or a dock, a divider's heading always; drop `.clear`, write
+`.invert`, or put the words in a `::: overlay {.panel}` or a `::: dock`;
+warning), `bad-cover-ratio`, `bad-unit`, `bad-autoplay` (a delay
 outside 200–60000 ms, `cycle` with no autoplay, or autoplay on a figure
 with no `step` block).
 

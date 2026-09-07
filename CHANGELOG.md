@@ -99,6 +99,16 @@ from building the same way is a major version.
   through a dock); a bold on an ink or accent ground kept its accent colour
   in print and vanished; the slide number and the note button sat on a top
   band (they move to the foot).
+- **`text-on-picture` (lint, warning).** A `::: backdrop {.clear}` under
+  words that stand on the bare picture: the heading unless the chunk is
+  `.bare`, prose outside an overlay or a dock, and a divider's heading or
+  agenda always. Found on a divider whose agenda in grey sat on a photograph
+  of a chain and could not be read from the room. The fixes it names are
+  the other two scrims (drop `.clear`, or `.invert`) or a `::: overlay
+  {.panel}` / `::: dock` for the words. Two more things the same lecture
+  taught: a chunk with a panel is framed as a whole by the camera, and the
+  words move away from a band (up for a bottom band, down for a top one),
+  with auto-fit counting the band's height against the frame.
 - **A directive before the first heading is refused.** It used to be
   dropped without a word – a `::: dock` above `## title:` simply vanished.
 - **A `---` below the top level is a beat.** Inside a `::: side` pane, a

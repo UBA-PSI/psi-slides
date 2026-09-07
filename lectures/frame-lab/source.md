@@ -108,10 +108,12 @@ Folie zurück.
 
 ## figure: Geerbtes Dock über einem Foto {.full #dock-photo}
 
-**Ein `::: backdrop` mit `{.cover .clear}` und dazu das geerbte linke Dock.**
-Die Frage: Steht die Liste auf einem eigenen Grund, oder auf dem Foto?
+**Ein `::: backdrop` mit `{.cover}` und dazu das geerbte linke Dock.**
+Die Frage: Steht die Liste auf einem eigenen Grund, oder auf dem Foto? Mit
+`.clear` stünde dieser Absatz auf dem nackten Bild – der Linter warnt dann
+`text-on-picture`; der Schleier hält ihn lesbar.
 
-::: backdrop assets/photo.jpg {.cover .clear}
+::: backdrop assets/photo.jpg {.cover}
 
 ## free: Ein Band unten mit einem Beat darin {.wide #dock-band-beat}
 
@@ -310,7 +312,7 @@ Zweiter Beat des Textes.
 
 # Ein Teiler mit Foto und Panel {#divider-panel}
 
-::: backdrop assets/photo.jpg {.cover .clear}
+::: backdrop assets/photo.jpg {.cover}
 
 ::: overlay {.bottom .glass .panel} from 1
 **Der Teiler trägt ein Foto und ein Glasband, das auf Beat 1 kommt.**

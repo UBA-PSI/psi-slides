@@ -2353,6 +2353,7 @@ function lintFile(filePath) {
   let chunkReveals = 0;
   let chunkSteps = 0;
   let chunkOverlays = [];
+  let exposedWords = 0;
   // A ::: draw opener never reaches chunkBody - it is captured into `diagram`
   // and its body with it - so a chunk-level flag is the only way a later check
   // can know the chunk drew something. Same shape as chunkHasReveal.
@@ -2399,6 +2400,19 @@ function lintFile(filePath) {
     }
     lintCollapsedBolds(proseEntries, add);
     lintChunkShape(chunk, chunkBody, chunkHasDrawing, add);
+    // Words on an unveiled picture: the heading unless the chunk is .bare,
+    // and any prose outside an overlay or a dock. Measured on a photograph
+    // of a chain: an agenda in grey on it was unreadable from the room.
+    if (chunk.clearBackdrop) {
+      const bare = (chunk.classes || []).includes('bare');
+      const what = [!bare && chunk.heading ? 'the heading' : null, exposedWords ? `${exposedWords} words of prose` : null].filter(Boolean);
+      if (what.length) {
+        add(chunk.clearBackdrop, 'warn', 'text-on-picture',
+            `::: backdrop {.clear} with ${what.join(' and ')} standing on the unveiled picture – `
+            + 'drop .clear (veil), write .invert, or put the words in a ::: overlay or a ::: dock'
+            + (bare ? '' : '; {.bare} on the chunk takes the heading off the slide'));
+      }
+    }
     // Mirrors build.js: the aside extends into the right margin, which a
     // right dock occupies - the inherited one included.
     if (chunk.marginaliaSeen && chunk.dock && chunk.dock.edge === 'right') {
@@ -2487,6 +2501,7 @@ function lintFile(filePath) {
     chunkReveals = 0;
     chunkSteps = 0;
     chunkOverlays = [];
+    exposedWords = 0;
     chunkHasDrawing = false;
   };
 
@@ -2743,8 +2758,22 @@ function lintFile(filePath) {
       } else {
         bdHost.backdropSeen = ln;
       }
-      for (const p of parseTail(backdropOpen[2], BACKDROP_SLOTS, '::: backdrop').problems) {
+      const bdTail = parseTail(backdropOpen[2], BACKDROP_SLOTS, '::: backdrop');
+      for (const p of bdTail.problems) {
         add(ln, 'error', p.code, p.msg);
+      }
+      // A picture with no scrim under words. On a divider the heading (or
+      // the agenda) always stands on it; on a chunk the check waits for
+      // flushChunk, which knows whether any words stand outside an overlay
+      // or a dock. The other two scrims are the two answers: veil keeps the
+      // ink readable, invert turns it light; a panel or a dock is the third.
+      if (!bdTail.problems.length && bdTail.slots.scrim.value === 'clear') {
+        if (chunk) chunk.clearBackdrop = ln;
+        else if (col) {
+          add(ln, 'warn', 'text-on-picture',
+              '::: backdrop {.clear} under a column heading – the divider\'s heading and agenda stand on the '
+              + 'unveiled picture; drop .clear (veil), write .invert, or give the words a ::: overlay {.panel} or a ::: dock');
+        }
       }
       // `reveal` is a comma list of places, one per beat. Mirrored because
       // the shape is decidable from the line alone; which asset it names is
@@ -3142,6 +3171,9 @@ function lintFile(filePath) {
       else if (inKind('script')) scriptBody.push(line);
       else {
         chunkBody.push(line);
+        // Words that stand on the slide itself, outside an overlay or a
+        // dock - what a .clear backdrop would leave on the bare picture.
+        if (!activeDirective && !/^:::|^<div class="beat-mark"/.test(line.trim()) && line.trim()) exposedWords += line.trim().split(/\s+/).length;
         // A card or a row is a list, and splitSentencesIn never abridges a
         // list item, so nothing written in one can be orphaned by the
         // collapse. An explicit block opts out of the split altogether and

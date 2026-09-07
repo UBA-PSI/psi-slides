@@ -787,6 +787,16 @@ console.log('\nlayout generations');
     ok(!quiet.includes('dock-narrows-measure') && !quiet.includes('layout-too-narrow'), 'a narrow dock beside a standard chunk is fine', quiet.join(','));
     ok(!codes(FMX.replace('## free: F {#f}', '## free: F {.wide #f}') + '::: dock {.bottom .wide}\nA.\n:::\n\n::: cols 3\nA.\n\nB.\n\nC.\n:::\n').includes('layout-too-narrow'),
        'a band takes no measure from the columns');
+    // text-on-picture: words on an unveiled photograph. The heading counts
+    // unless the chunk is .bare; prose counts unless it is in an overlay or
+    // a dock; a divider's heading always stands on it.
+    const BD = '::: backdrop https://example.invalid/x.jpg {.cover .clear}\n\n';
+    ok(codes(FMX + BD + 'Prose on the picture.\n').includes('text-on-picture'), 'prose on a .clear backdrop is warned');
+    ok(codes(FMX.replace('## free: F {#f}', '## free: F {.bare #f}') + BD + '::: overlay {.left .glass .panel}\nA.\n:::\n').every(c => c !== 'text-on-picture'),
+       'a .bare chunk whose words are all in a panel is not');
+    ok(codes(FMX.replace('## free: F {#f}', '## free: F {.bare #f}') + BD.replace(' .clear', '') + 'Prose.\n').every(c => c !== 'text-on-picture'),
+       'nor is prose on a veiled picture');
+    ok(codes(PART(BD, '## free: G {#g}\n\nB.\n')).includes('text-on-picture'), 'a divider with a .clear backdrop is, since its heading always stands on it');
     const words = (n) => Array.from({ length: n }, (_, i) => 'word' + i).join(' ');
     ok(codes(FMX + words(240) + '.\n\n::: dock\n' + words(20) + '.\n:::\n').includes('density'), 'an own dock counts against the density budget');
     ok(!codes(PART('::: dock {.every}\n' + words(20) + '.\n:::\n', '## free: G {#g}\n\n' + words(240) + '.\n\n## free: H {#h}\n\nB.\n')).includes('density'),

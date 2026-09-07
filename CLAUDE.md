@@ -197,7 +197,10 @@ Checks enforced:
   plus the older `cards-nested` / `draw-in-cols` / `nested-directive`) and six
   warnings only the linter raises (`side-without-flip`, `cols-in-cols`,
   `explicit-in-side`, `duplicate-marginalia`, `layout-too-narrow`,
-  `overlay-from-beyond`). A `---` inside a wrapper is not one of them: it is
+  `overlay-from-beyond`), plus `text-on-picture` for words standing on a
+  `::: backdrop {.clear}` – measured on a photograph of a chain, where a grey
+  agenda was unreadable from the room; the fixes are the other two scrims or
+  a panel / dock. A `---` inside a wrapper is not one of them: it is
   a beat below the top level (see *Parser* above), and `test/beats-nested.mjs`
   walks the order in a browser. `::: draw` deliberately goes nearly everywhere – a
   pane, a card, an overlay, an expansion, a divider – and is refused only in a
