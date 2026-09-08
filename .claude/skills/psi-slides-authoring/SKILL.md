@@ -425,6 +425,40 @@ The linter warns `note-in-empty-beat` when a note stands alone behind a
 `---` that is not the last one: the cards would show it a beat earlier than
 you probably meant.
 
+**`> note: from N` pins a note to an advance by number**, and it is what a
+chunk whose beats are a figure's steps needs: a `::: draw` block's `step`
+blocks are beats on the same counter, but they all sit inside one segment,
+so no `---` can be written between two of them. The number counts presses on
+this slide the way `::: overlay from N` counts them – `from 1` is said after
+the first press, `from 3` after the third – and a note with no `from` keeps
+the position rule. The line carries nothing but the number:
+
+```md
+## figure: The process as it runs {.wide #process}
+
+::: draw 132x54
+box antrag "Request" at 0,0
+box gen "Approval: supervisor" right of antrag gap 0.5
+edge antrag -> gen
+
+step locked
+  dim gen
+step around
+  show mail
+:::
+
+> note: It is **not the system**.
+
+> note: from 1
+> **First click**: the supervisor **cannot log in**.
+
+> note: from 2
+> **Second click: Ms K.** She approves with **HR's own rights**.
+```
+
+The linter warns `note-from-beyond` when the number is past the chunk's last
+beat: the card would be filed on a press the slide never takes.
+
 ## Images
 
 ```md

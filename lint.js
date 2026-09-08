@@ -2392,6 +2392,7 @@ function lintFile(filePath) {
   // segment is not the chunk's last: the author probably meant the note
   // for the beat the `---` opens, and the build will show it one earlier.
   let noteSegs = [];        // { ln, seg } per note block, seg = raw segment index
+  let notePins = [];        // { ln, from } per `> note: from N` block
   let rawSegHasText = [];   // per raw segment: does any body line stand in it
   let rawSeg = 0;
 
@@ -2526,6 +2527,15 @@ function lintFile(filePath) {
             + 'move it behind the next ---, or give this beat its text');
       }
     }
+    for (const n of notePins) {
+      if (n.from > beats) {
+        add(n.ln, 'warn', 'note-from-beyond',
+            `> note: from ${n.from}, but the chunk has `
+            + `${beats === 0 ? 'no beats' : beats === 1 ? 'one beat' : beats + ' beats'} of its own – `
+            + 'the cue cards would file this note on an advance the slide never reaches; '
+            + `write from ${beats} or lower, or give the slide the beats`);
+      }
+    }
     chunk.hasReveal = chunkHasReveal;
     col.chunks.push(chunk);
     chunk = null;
@@ -2539,7 +2549,7 @@ function lintFile(filePath) {
     chunkOverlays = [];
     exposedWords = 0;
     chunkHasDrawing = false;
-    noteSegs = []; rawSegHasText = []; rawSeg = 0;
+    noteSegs = []; notePins = []; rawSegHasText = []; rawSeg = 0;
   };
 
   // What is open around a line, asked the way build.js asks it. The two
@@ -3196,7 +3206,13 @@ function lintFile(filePath) {
       for (const m of bare.matchAll(/\]\(#([^)\s]+)\)/g)) dockLinks.push({ id: decodeURIComponent(m[1]), ln });
     }
     if (chunk) {
-      if (/^>\s*note:/i.test(line)) noteSegs.push({ ln, seg: rawSeg });
+      // `> note: from N` pins the block to an advance by number instead of
+      // to where it stands - the escape hatch for a chunk whose beats are a
+      // diagram's steps, which no separator line can sit between. A pinned
+      // note is not judged by its position, so it stays out of noteSegs.
+      const notePin = /^>\s*note:\s*from\s+(\d+)\s*$/i.exec(line);
+      if (notePin) notePins.push({ ln, from: Number(notePin[1]) });
+      else if (/^>\s*note:/i.test(line)) noteSegs.push({ ln, seg: rawSeg });
       if (/^>\s*(note|annot):/i.test(line)) { inMetaBlock = true; continue; }
       if (inMetaBlock) {
         if (/^>/.test(line)) continue;

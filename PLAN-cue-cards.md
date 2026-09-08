@@ -469,12 +469,38 @@ Gebaut ist jeweils die erste Variante; die zweite ist ein kleiner Umbau.
    Textarea im Kartenmodus pro Beat editierbar sein?
 6. **Uhr ohne Pause.** Siehe §12. Wenn du doch eine Pause willst: Doppelklick
    wäre der Weg, der nicht aus Versehen passiert.
-7. **Diagrammschritte tragen keine Karten** (§2, „Nur top-level `---` zählt“).
-   Ein `::: draw` mit drei `step`-Blöcken bekommt alle Karten des Chunks auf
-   Beat 1 und die drei Klicks danach – die Verzahnung, die `---` gibt, fehlt.
-   Das fällt beim ersten echten Vortrag auf: „Erster Klick … zweiter Klick …“
-   ist genau die Stelle. Der Umbau ist in §2 beschrieben (Parser zählt
-   `BEAT_MARK`-Pushes und `model.steps.length` mit) und hat den Preis einer
-   zweiten Stelle, die mit `chunkBeats` kongruent bleiben muss. In
-   `lectures/keynote-2036` sind Folie 5 und 6 deshalb mit `---` gebaut und
-   nicht als Figur mit Schritten.
+7. ~~Diagrammschritte tragen keine Karten.~~ **Erledigt mit
+   `> note: from N`** – siehe §14. Der Parser zählt nichts mit; die Zahl ist
+   die Absicht des Autors, und die Runtime gruppiert Karten seit dem Umbau
+   nach `consumed` statt nach Segment, also fällt jeder Beat-Typ von selbst
+   an seinen Platz.
+
+## 14. Nachtrag: `from N`, das Layout, die Schriftgröße
+
+Nach dem ersten echten Deck (`lectures/keynote-2036`, das erste Drittel einer
+45-Minuten-Keynote) vier Änderungen, alle aus dem Gebrauch:
+
+- **`> note: from N` pinnt eine Note an eine Vorrückung.** Das war die offene
+  Frage 7: eine Figur mit `step`-Blöcken hat Beats, zwischen die kein `---`
+  passt. Die Zahl zählt Drücke wie `::: overlay from N` (0 = die Folie, wie
+  sie aufgeht). Der Parser merkt sich die Zahl statt der Position
+  (`data-at` am Template statt `data-seg`), lint warnt `note-from-beyond`.
+- **Die Runtime gruppiert Karten nach `consumed`, nicht nach Segment.** Das
+  ist der Umbau, der es billig macht: `cueEntries` läuft über die
+  Vorrückungen 0…total-1 und hängt an jede die Karten und den Druck, der sie
+  verlässt – ein Reveal, ein Diagrammschritt, ein verschachtelter Beat. Die
+  Segment-Ableitung ist nur noch eine Umrechnung (`segAt`), und ein
+  Diagrammschritt zeigt den Namen, den der Autor ihm gegeben hat.
+- **Der Spiegel steht in der Mitte des Filmstreifens.** Vorher gab es die
+  aktuelle Folie zweimal: als Spiegel oben links und als Miniatur mit
+  `NOW`-Rahmen – und nur der Spiegel war so gelayoutet, wie der Raum sie
+  sieht. Jetzt ist `#stage-cell` ein Kind des Streifens an der Stelle der
+  aktuellen Miniatur, und die Miniatur ist per CSS ausgeblendet. Die linke
+  Spalte ist ein Streifen mit der echten Projektion in der Mitte. Das Grid
+  hat dafür eine Zeile weniger.
+- **Karten größer, Uhr nicht mehr abgeschnitten.** Die Basisgröße der Spur
+  ist `clamp(17px, 2.7vh, 32px)`; erledigte Karten schrumpfen stärker
+  (0.72em), damit die aktuelle mehr Kontrast hat. Die Kopfzeile hatte
+  `overflow: hidden`, und die Uhr ist zweieinhalbmal so groß wie deren
+  Zeilentyp – ihr wurde oben die Hälfte der Ziffern abgeschnitten. Jetzt
+  kürzen die zwei Textkinder selbst und die Kopfzeile schneidet nichts ab.

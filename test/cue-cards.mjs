@@ -105,6 +105,40 @@ Opening.
 
 Last.
 
+## figure: Steps {#steps}
+
+::: draw 120x40
+box a "A" at 0,0
+box b "B" right of a gap 0.6
+box c "C" right of b gap 0.6
+edge a -> b
+edge b -> c
+
+step second
+  show b
+step third
+  show c
+:::
+
+> note: **on the opening beat**, before either step
+
+> note: from 1
+> **after the first step**
+
+> note: from 2
+> **after the second step**
+
+## free: Pinned too far {#toofar}
+
+Only one beat here.
+
+---
+
+Second.
+
+> note: from 5
+> **pinned past the end**
+
 ## free: Last {#last}
 
 The end.
@@ -138,6 +172,16 @@ export async function run({ page, report }) {
      'and lint.js names exactly that one as note-in-empty-beat', lint.trim().split('\n').filter(l => /note-in/.test(l)).join(' | '));
   ok(/window\.PSI_CARDS/.test(speaker), 'the page carries the card grammar');
 
+  // ── the from-pin: the escape hatch for a diagram's steps ─────────
+  const pinsOf = (id) =>
+    [...speaker.matchAll(new RegExp('<template data-cards-for="' + id + '" data-(at|seg)="(\\d+)">', 'g'))]
+      .map(m => m[1] + m[2]);
+  ok(JSON.stringify(pinsOf('steps')) === JSON.stringify(['seg0', 'at1', 'at2']),
+     'a note that writes from N is filed by that number, not by its position', JSON.stringify(pinsOf('steps')));
+  ok(/note-from-beyond/.test(lint) && (lint.match(/note-from-beyond/g) || []).length === 1,
+     'and lint.js warns once when the number is past the chunk\'s last beat',
+     lint.trim().split('\n').filter(l => /note-from/.test(l)).join(' | '));
+
   // ── two windows on the fixture ───────────────────────────────────
   const { server, port } = await serve(dir);
   const aud = await page.context().newPage();
@@ -157,7 +201,7 @@ export async function run({ page, report }) {
     return { a, s, same: a.idx === s.idx && a.rev === s.rev };
   };
   const cursor = () => spk.evaluate(() => ({
-    card: cue.card, seg: cue.seg,
+    card: cue.card, beat: cue.beat,
     cur: (document.querySelector('.cue-entry.cur') || {}).textContent?.replace(/\s+/g, ' ').trim().slice(0, 60) || null,
     n: document.querySelectorAll('.cue-entry').length,
   }));
@@ -178,7 +222,7 @@ export async function run({ page, report }) {
   ok(await spk.evaluate(() => document.getElementById('cue-btn').getAttribute('aria-pressed')) === 'true', 'the footer button shows pressed');
 
   let c = await cursor();
-  ok(c.card === 0 && c.seg === 0 && /one.*two/.test(c.cur), 'the cursor opens on the first card of beat 1', JSON.stringify(c));
+  ok(c.card === 0 && c.beat === 0 && /one.*two/.test(c.cur), 'the cursor opens on the first card of beat 1', JSON.stringify(c));
   ok(c.n === 6, 'the column lists two cards, a reveal, a card, a reveal, the next slide', JSON.stringify(c));
 
   // Space × 6 through the chunk: card, card, reveal, card, reveal, slide
@@ -187,7 +231,7 @@ export async function run({ page, report }) {
   ok(walk.every(w => w.same), 'after every Space the projection and the cockpit agree on slide and reveal', JSON.stringify(walk.map(w => [w.a.rev, w.s.rev])));
   ok(walk[0].s.rev === 1 && /three/.test(walk[0].c.cur), 'first Space: the second card, the room saw nothing', JSON.stringify(walk[0]));
   ok(walk[1].s.rev === 1 && /reveal 1/.test(walk[1].c.cur), 'second: the cards are said, the reveal is next', JSON.stringify(walk[1]));
-  ok(walk[2].s.rev === 2 && /four/.test(walk[2].c.cur) && walk[2].c.seg === 1 && walk[2].c.card === 0, 'third: the room got its reveal, the cursor is on beat 2 card 1', JSON.stringify(walk[2]));
+  ok(walk[2].s.rev === 2 && /four/.test(walk[2].c.cur) && walk[2].c.beat === 1 && walk[2].c.card === 0, 'third: the room got its reveal, the cursor is on beat 2 card 1', JSON.stringify(walk[2]));
   ok(walk[3].s.rev === 2 && /reveal 2/.test(walk[3].c.cur), 'fourth: beat 2 said, the second reveal is next', JSON.stringify(walk[3]));
   ok(walk[4].s.rev === 3 && /slide/.test(walk[4].c.cur), 'fifth: the last reveal, and the next slide is what is left', JSON.stringify(walk[4]));
   ok(walk[5].s.id === 'legacy' && walk[5].c.card === 0, 'sixth: the next slide, cursor on its first card', JSON.stringify(walk[5]));
@@ -212,9 +256,47 @@ export async function run({ page, report }) {
   c = await cursor();
   ok((await both()).s.id === 'legacy' && c.card === 0, 'an arrow onto a slide puts the cursor on its first card', JSON.stringify(c));
 
+  // ── a diagram's steps carry cards ───────────────────────────────
+  // The case the pin exists for: three beats that are figure steps, with a
+  // card on each. No separator line can sit between two steps, so before
+  // the pin every card of such a chunk landed on the opening beat.
+  for (let i = 0; i < 30; i++) {
+    if ((await both()).s.id === 'steps') break;
+    await press('ArrowDown', 90);
+  }
+  ok((await both()).s.id === 'steps', 'the cockpit reaches the stepped figure');
+  const fig = [];
+  for (let i = 0; i < 6; i++) { fig.push({ ...(await both()), c: await cursor() }); await press('Space'); }
+  ok(fig.every(w => w.same), 'the two windows agree through a stepped figure', JSON.stringify(fig.map(w => [w.a.rev, w.s.rev])));
+  ok(/on the opening beat/.test(fig[0].c.cur), 'the unpinned note opens it', JSON.stringify(fig[0].c));
+  ok(/step 1/.test(fig[1].c.cur), 'then the first step, as its own entry', JSON.stringify(fig[1].c));
+  ok(fig[2].s.rev === 2 && /after the first step/.test(fig[2].c.cur),
+     'then the card pinned to from 1, with the figure already advanced', JSON.stringify(fig[2]));
+  ok(/step 2/.test(fig[3].c.cur), 'then the second step', JSON.stringify(fig[3].c));
+  ok(fig[4].s.rev === 3 && /after the second step/.test(fig[4].c.cur),
+     'then the card pinned to from 2', JSON.stringify(fig[4]));
+  ok(await spk.evaluate(() => !!document.querySelector('.cue-step .cue-what')),
+     'a figure beat shows the step name the author gave it');
+
+  // ── the mirror is in the strip, and there is only one of it ──────
+  ok(await spk.evaluate(() => document.getElementById('stage-cell').parentElement.id === 'preview-strip'),
+     'the mirror sits inside the preview strip, in the place of the current thumbnail');
+  ok(await spk.evaluate(() => {
+    const cur = document.querySelector('.preview-slot.current');
+    return !cur || getComputedStyle(cur).display === 'none';
+  }), 'and that thumbnail is not drawn, so the slide is on screen once');
+
   // the drift: the card marked @0:00 was said, so the clock is behind it
-  // by however long it has run
-  await press('ArrowLeft');
+  // by however long it has run. #three is the chunk that carries the mark,
+  // so walk back to it rather than assuming where the last section left off.
+  // Arriving from further on shows the slide fully revealed, so every card
+  // of it is said and the mark of the last one that carries a mark is what
+  // the clock is measured against - no further presses needed, and three of
+  // them would leave the chunk again.
+  for (let i = 0; i < 30; i++) {
+    if ((await both()).s.id === 'three') break;
+    await press('ArrowUp', 90);
+  }
   const drift = await spk.evaluate(() => ({ hidden: document.getElementById('drift').hidden, text: document.getElementById('drift').textContent }));
   ok(!drift.hidden && /^[+±−]\d+:\d\d$/.test(drift.text), 'on a card with a time mark the drift stands beside the clock', JSON.stringify(drift));
   await spk.click('#clock');

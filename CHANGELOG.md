@@ -19,9 +19,14 @@ from building the same way is a major version.
   slide. The cursor is local to the cockpit and in front of the reveal
   counter, so the projection never learns the cards exist and nothing in
   the sync changes. `@12:30` on a card puts the drift beside the clock.
-  Built for a 45-minute keynote with a written-out script and minimal
-  slides. `cue-cards.mjs` is the grammar, spliced into the cockpit as text;
-  `note-in-empty-beat` is the linter's one new warning.
+  A note can also pin itself to an advance by number with
+  `> note: from N`, which is what a slide whose beats are a figure's steps
+  needs – `step` blocks are beats on the same counter, but they sit inside
+  one segment, so no `---` can be written between two of them. Built for a
+  45-minute keynote with a written-out script and minimal slides.
+  `cue-cards.mjs` is the grammar, spliced into the cockpit as text;
+  `note-in-empty-beat` and `note-from-beyond` are the linter's two new
+  warnings.
 - **The clock is a button over the stage,** large and tabular, and a click
   restarts it at 0:00. It was an 11 px span in the footer.
 

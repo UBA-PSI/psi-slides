@@ -4974,24 +4974,32 @@ body.has-notes #add-note-btn { display: none; }
    dot is the cursor. */
 #cue-cards { display: none; }
 body[data-view=speaker].cue-cards {
-  grid-template-rows: 3vh auto 1fr 2.2rem;
-  grid-template-columns: clamp(220px, 21vw, 340px) 1fr;
+  grid-template-rows: 3vh 1fr 2.2rem;
+  grid-template-columns: clamp(240px, 23vw, 400px) 1fr;
 }
 body[data-view=speaker].cue-cards #scrubber { grid-column: 1 / -1; grid-row: 1; }
+/* The mirror is a child of the strip here, in the place the current
+   thumbnail would have taken - so the left column is one film strip with
+   the real projection in the middle of it instead of a thumbnail beside a
+   mirror of the same slide. Two of them was the confusing part, and only
+   one of the two was laid out the way the room sees it. */
 body[data-view=speaker].cue-cards #stage-cell {
-  grid-column: 1; grid-row: 2;
+  position: relative;
+  flex: 0 0 auto;
+  width: 100%;
   height: auto;
   aspect-ratio: var(--audience-aspect, 16 / 9);
-  border-right: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
+  border: 1px solid var(--emph);
 }
+body[data-view=speaker].cue-cards .preview-slot.current { display: none; }
 body[data-view=speaker].cue-cards #add-note-btn { display: none; }
 body[data-view=speaker].cue-cards #notes-pane { display: none; }
 body[data-view=speaker].cue-cards #preview-resizer { display: none; }
 body[data-view=speaker].cue-cards #preview-strip {
-  grid-column: 1; grid-row: 3;
+  grid-column: 1; grid-row: 2;
   flex-direction: column;
-  padding: 0.6rem 0.6rem;
+  gap: 0.5rem;
+  padding: 0.5rem;
   border-top: 0;
   border-right: 1px solid var(--rule);
   overflow-x: hidden;
@@ -4999,9 +5007,9 @@ body[data-view=speaker].cue-cards #preview-strip {
 }
 body[data-view=speaker].cue-cards #preview-strip::-webkit-scrollbar { width: 6px; height: auto; }
 body[data-view=speaker].cue-cards .preview-slot { height: auto; width: auto; }
-body[data-view=speaker].cue-cards #speaker-footer { grid-column: 1 / -1; grid-row: 4; }
+body[data-view=speaker].cue-cards #speaker-footer { grid-column: 1 / -1; grid-row: 3; }
 body[data-view=speaker].cue-cards #cue-cards {
-  grid-column: 2; grid-row: 2 / 4;
+  grid-column: 2; grid-row: 2;
   display: flex;
   flex-direction: column;
   min-height: 0;
@@ -5013,25 +5021,28 @@ body[data-view=speaker].cue-cards #cue-cards {
    its corner position and its scrim. */
 body[data-view=speaker].cue-cards #clock {
   position: static;
+  flex: 0 0 auto;
   background: transparent;
   padding: 0;
   margin-left: 1.2em;
-  font-size: clamp(20px, 3vh, 34px);
+  font-size: clamp(22px, 3.4vh, 40px);
 }
+/* No overflow: hidden here - the clock is two and a half times the size of
+   this line's own type and sits on it, so a clipped box took the top off
+   the digits. The two text children do their own truncating instead. */
 #cue-where {
   display: flex;
-  align-items: baseline;
+  align-items: center;
   gap: 1em;
-  padding: 1.4vh 2.4vw 0 calc(2.4vw + 2.2em);
-  font-size: clamp(11px, 1.5vh, 14px);
+  padding: 1.2vh 2.4vw 0 calc(2.4vw + 2.2em);
+  font-size: clamp(11px, 1.6vh, 15px);
   color: var(--ink-soft);
   white-space: nowrap;
-  overflow: hidden;
 }
 #cue-crumb { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink); font-weight: 500; }
 #cue-crumb .cue-col { color: var(--ink-soft); font-weight: 400; }
 #cue-crumb .cue-col::after { content: ' › '; }
-#cue-pos { font-family: var(--mono-font); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+#cue-pos { flex: 0 0 auto; font-family: var(--mono-font); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
 #cue-pos b { font-weight: 500; color: var(--ink); }
 #cue-rail {
   flex: 1 1 auto;
@@ -5042,8 +5053,10 @@ body[data-view=speaker].cue-cards #clock {
   display: grid;
   grid-template-columns: 2.2em 1fr;
   align-content: start;
-  /* the size everything in the rail is measured against */
-  font-size: clamp(15px, 2vh, 22px);
+  /* The size everything in the rail is measured against. Generous on
+     purpose: this is read at a glance while talking, from a laptop that is
+     further away than a screen being worked at. */
+  font-size: clamp(17px, 2.7vh, 32px);
 }
 @media (prefers-reduced-motion: no-preference) { #cue-rail { scroll-behavior: smooth; } }
 .cue-tick { position: relative; }
@@ -5062,14 +5075,14 @@ body[data-view=speaker].cue-cards #clock {
   background: var(--paper);
   transition: transform 160ms, background-color 160ms;
 }
-.cue-entry { padding: 0.15em 0 0.9em; min-width: 0; max-width: 34em; }
+.cue-entry { padding: 0.15em 0 0.9em; min-width: 0; max-width: 30em; }
 .cue-entry:last-child { padding-bottom: 0; }
 .cue-tick:last-of-type::before { bottom: auto; height: 1em; }
 /* done: small, faint, still legible */
-.cue-entry.done { color: var(--ink-soft); opacity: 0.8; font-size: 0.85em; padding-bottom: 0.6em; }
+.cue-entry.done { color: var(--ink-soft); opacity: 0.75; font-size: 0.72em; padding-bottom: 0.5em; }
 .cue-tick.done i { background: var(--ink-soft); border-color: var(--ink-soft); top: 0.42em; }
 /* current: the one large thing */
-.cue-entry.cur { color: var(--ink); font-size: 1.5em; padding: 0.05em 0 0.55em; }
+.cue-entry.cur { color: var(--ink); font-size: 1.45em; padding: 0.05em 0 0.6em; }
 .cue-tick.cur i {
   top: 0.95em;
   background: var(--emph); border-color: var(--emph);
@@ -5079,7 +5092,7 @@ body[data-view=speaker].cue-cards #clock {
 /* coming: a little smaller than current, full ink for the next one and
    softer for the rest, so the next is seen coming */
 .cue-entry.next { color: var(--ink); font-size: 1.05em; }
-.cue-entry.later { color: var(--ink-soft); font-size: 1em; }
+.cue-entry.later { color: var(--ink-soft); font-size: 0.92em; }
 .cue-card ul { list-style: none; margin: 0; padding: 0; }
 .cue-card li { position: relative; padding-left: 0.9em; line-height: 1.3; margin: 0.1em 0; }
 .cue-card li::before {
@@ -14279,11 +14292,14 @@ function populatePreviewStrip() {
       clone.style.height = (slot.clientHeight / baseScale) + 'px';
     });
   });
+  cuePlaceStage();
   scrollPreviewToActive(false);
 }
 
 function scrollPreviewToActive(smooth) {
-  const el = previewStrip.querySelector('.preview-slot.current');
+  // In cue-card mode the mirror stands in for the current thumbnail, so it
+  // is what has to end up in the middle of the strip.
+  const el = cueOn() ? stageCell : previewStrip.querySelector('.preview-slot.current');
   if (!el) return;
   // Center the current slot along the strip's main axis.
   const stripRect = previewStrip.getBoundingClientRect();
@@ -14309,6 +14325,7 @@ function markPreviewCurrent() {
       lbl.textContent = off === 0 ? 'now' : (off > 0 ? '+' + off : String(off));
     }
   });
+  cuePlaceStage();
   scrollPreviewToActive(true);
 }
 
@@ -14415,15 +14432,30 @@ const cueCrumb = document.getElementById('cue-crumb');
 const cuePos = document.getElementById('cue-pos');
 const cueBtn = document.getElementById('cue-btn');
 const clockEl = document.getElementById('clock');
-// { id, seg, card } - the chunk, the top-level reveal segment the counter
-// is in, and how many of that segment's cards have been said.
-let cue = { id: null, seg: -1, card: 0 };
+// Where the stage sits in the classic arrangement, so the cue-card mode can
+// put it back: it moves into the preview strip while the cards are up.
+const stageHome = stageCell.nextElementSibling;
+// { id, beat, card } - the chunk, the number of advances it has taken,
+// and how many of that beat's cards have been said.
+let cue = { id: null, beat: -1, card: 0 };
 let cueLast = { idx: -1, pos: 0 };
 // The time mark the clock measures against: that of the current card, or
 // of the last card before it that carried one. null when none has yet.
 let cueDriftAt = null;
 
 function cueOn() { return document.body.classList.contains('cue-cards'); }
+// The mirror goes where the current thumbnail would have been, and CSS hides
+// that thumbnail - so the left column is one film strip with the real
+// projection in the middle of it, rather than two copies of one slide only
+// one of which is laid out the way the room sees it. populatePreviewStrip
+// replaces every child of the strip, so this runs after it and after every
+// re-mark.
+function cuePlaceStage() {
+  if (!cueOn()) return;
+  const cur = previewStrip.querySelector('.preview-slot.current');
+  if (cur) previewStrip.insertBefore(stageCell, cur);
+  else previewStrip.appendChild(stageCell);
+}
 function applyCueMode(on) {
   document.body.classList.toggle('cue-cards', on);
   cueBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -14431,8 +14463,9 @@ function applyCueMode(on) {
   // the classic arrangement, in the column's header here.
   if (on) document.getElementById('cue-where').appendChild(clockEl);
   else stageCell.appendChild(clockEl);
+  if (!on) document.body.insertBefore(stageCell, stageHome);
   populatePreviewStrip();
-  if (on) cueRender();
+  if (on) cueSync();
 }
 function toggleCueMode() {
   const on = !cueOn();
@@ -14444,14 +14477,23 @@ viewHooks.onK = toggleCueMode;
 cueBtn.addEventListener('click', toggleCueMode);
 try { if (localStorage.getItem(CUE_MODE_KEY) === 'on') applyCueMode(true); } catch (e) {}
 
-// The cards of a chunk, keyed by top-level segment. Source notes come one
-// template per block with the segment the parser gave it; a rehearsal
-// override from the textarea replaces the whole chunk's text and knows no
-// segments, so everything it says lands on segment 0.
-function cueCardsFor(id, segCount) {
+// The cards of a chunk, keyed by the number of advances after which they are
+// said - the same number an overlay's from N counts, and the same one
+// applyReveal calls consumed. 0 is the slide as it opens.
+//
+// A note pins itself with a note-from line and is filed under exactly that.
+// Otherwise the parser gave it a top-level segment, and the segment's own
+// beat says which advance brings it up - which is what lets a chunk whose
+// beats are a diagram's steps carry cards at all: no separator line can sit
+// between two steps, but a number can name one. A rehearsal override in the
+// textarea replaces the whole chunk's text and knows neither, so everything
+// it says lands on the opening beat.
+function cueCardsFor(id, beats, maxC) {
   const by = new Map();
-  const put = (seg, cards) => {
-    const k = Math.max(0, Math.min(segCount - 1, seg));
+  const segAt = [0];
+  beats.forEach(b => { if (b.type === 'seg') segAt.push(b.pos + 1); });
+  const put = (c, cards) => {
+    const k = Math.max(0, Math.min(maxC, c));
     if (!by.has(k)) by.set(k, []);
     by.get(k).push(...cards);
   };
@@ -14462,20 +14504,20 @@ function cueCardsFor(id, segCount) {
     return by;
   }
   document.querySelectorAll('template[data-cards-for="' + CSS.escape(id) + '"]').forEach(t => {
-    put(Number(t.dataset.seg) || 0, PSI_CARDS.notesToCards(t.content.textContent));
+    const c = t.dataset.at != null ? Number(t.dataset.at)
+      : (segAt[Number(t.dataset.seg) || 0] ?? 0);
+    put(c, PSI_CARDS.notesToCards(t.content.textContent));
   });
   return by;
 }
-// Where the counter stands: the position (1 = nothing advanced, as
-// countSegments counts) and the top-level segment that position is in.
+// Where the counter stands. pos is what revealed[] holds (1 = nothing
+// advanced); consumed is pos - 1, the number of presses this slide has
+// taken, which is what every beat and every card is filed under.
 function cuePosition(entry) {
   const total = countSegments(entry.el);
   const pos = Math.max(1, revealed[entry.id] ?? 1);
   const beats = chunkBeats(entry.el).filter(b => b.at == null);
-  let seg = 0;
-  beats.forEach(b => { if (b.type === 'seg' && b.pos < pos - 1) seg += 1; });
-  const segCount = 1 + beats.filter(b => b.type === 'seg').length;
-  return { pos, total, seg, segCount, beats };
+  return { pos, consumed: pos - 1, total, maxC: Math.max(0, total - 1), beats };
 }
 function cueText(node, max) {
   const t = (node ? node.textContent : '').replace(/\s+/g, ' ').trim();
@@ -14495,55 +14537,58 @@ function cueColumnTitle(entry) {
   const t = btn ? btn.textContent.trim() : '';
   return t === '·' ? '' : t;
 }
-// The column as a list: the cards of segment 0, then every positional beat
-// as a click with the cards of the segment it opens behind it, then the
-// next slide. Document order, the same order chunkBeats reads.
+// The column as one list: for every advance this slide takes, the cards said
+// on it and then the press that leaves it - a reveal, a diagram step, a
+// nested beat - and at the end the next slide. That is the order the room
+// experiences, so it is the order to read down.
 function cueEntries(entry) {
-  const { pos, total, seg: curSeg, segCount, beats } = cuePosition(entry);
-  const cards = cueCardsFor(entry.id, segCount);
+  const { consumed, pos, total, maxC, beats } = cuePosition(entry);
+  const cards = cueCardsFor(entry.id, beats, maxC);
+  const segTotal = beats.filter(b => b.type === 'seg').length;
   const out = [];
-  let seg = 0;
-  const pushCards = (s) => (cards.get(s) || []).forEach((card, k) => out.push({ type: 'card', seg: s, k, card }));
-  pushCards(0);
-  beats.forEach((b) => {
-    const at = b.pos + 2;   // the position this beat is consumed at
-    if (b.type === 'seg') {
-      out.push({ type: 'step', at, k: 'reveal ' + (seg + 1) + '/' + (segCount - 1), what: cueText(b.el, 120) });
-      seg += 1;
-      pushCards(seg);
-    } else if (b.type === 'diag') {
-      out.push({ type: 'step', at, k: 'figure · step ' + b.step, what: '' });
-    } else {
-      out.push({ type: 'step', at, k: 'beat', what: cueText(b.els[0], 120) });
+  let segN = 0;
+  for (let c = 0; c <= maxC; c++) {
+    (cards.get(c) || []).forEach((card, k) => out.push({ type: 'card', c, k, card }));
+    const b = beats.find(x => x.pos === c);
+    if (b && b.type === 'seg') {
+      out.push({ type: 'step', at: c + 1, k: 'reveal ' + (++segN) + '/' + segTotal, what: cueText(b.el, 120) });
+    } else if (b && b.type === 'diag') {
+      // The author's own name for the beat if the step carries one - it
+      // says what the picture is about to do, which "step 2" does not.
+      const nm = (b.d.data.names || [])[b.step - 1] || '';
+      out.push({ type: 'step', at: c + 1, k: 'figure · step ' + b.step, what: nm });
+    } else if (b) {
+      out.push({ type: 'step', at: c + 1, k: 'beat', what: cueText(b.els[0], 120) });
+    } else if (c < maxC) {
+      // An advance the beat list does not carry: an overlay held by from,
+      // a backdrop frame. It is still a press.
+      out.push({ type: 'step', at: c + 1, k: 'advance', what: '' });
     }
-  });
-  // Beats the list does not carry - an overlay from N past the last, a
-  // backdrop's frames - are still advances on the counter.
-  for (let p = beats.length + 2; p <= total; p++) out.push({ type: 'step', at: p, k: 'advance', what: '' });
+  }
   const nxt = flatChunks[state.activeIdx + 1];
   const nxtK = !nxt ? 'end'
     : nxt.el.dataset.tag === 'section' ? 'next part'
     : 'slide ' + (state.activeIdx + 2);
   out.push({ type: 'chunk', k: nxtK, what: nxt ? cueChunkTitle(nxt) : 'the last slide' });
-  // consumed or not, and the first that is not is the cursor
+  // said or not, and the first that is not is the cursor
   let cur = -1;
   out.forEach((e, i) => {
-    e.done = e.type === 'card' ? (e.seg < curSeg || (e.seg === curSeg && e.k < cue.card))
-           : e.type === 'step' ? e.at <= pos : false;
+    e.done = e.type === 'card' ? (e.c < consumed || (e.c === consumed && e.k < cue.card))
+           : e.type === 'step' ? e.at <= consumed : false;
     if (!e.done && cur < 0) cur = i;
   });
-  return { out, cur, pos, total, curSeg, segCount, cards };
+  return { out, cur, pos, total, consumed, cards };
 }
 // Keep the cursor on the chunk and segment the counter is in. Arriving at
 // a new segment going forward starts its cards from the first; arriving
 // going back lands past its last, so the next Backspace takes the last
 // card - each press back undoes one press forward.
 function cueBind(entry) {
-  const { seg, pos, segCount } = cuePosition(entry);
-  if (cue.id !== entry.id || cue.seg !== seg) {
+  const { consumed, pos, maxC, beats } = cuePosition(entry);
+  if (cue.id !== entry.id || cue.beat !== consumed) {
     const back = state.activeIdx < cueLast.idx || (state.activeIdx === cueLast.idx && pos < cueLast.pos);
-    const n = (cueCardsFor(entry.id, segCount).get(seg) || []).length;
-    cue = { id: entry.id, seg, card: back ? n : 0 };
+    const n = (cueCardsFor(entry.id, beats, maxC).get(consumed) || []).length;
+    cue = { id: entry.id, beat: consumed, card: back ? n : 0 };
   }
   cueLast = { idx: state.activeIdx, pos };
 }
@@ -14573,9 +14618,9 @@ viewHooks.consumeBack = () => {
   const entry = flatChunks[state.activeIdx];
   if (!entry) return false;
   cueBind(entry);
-  const { out, cur, curSeg } = cueEntries(entry);
+  const { out, cur, consumed } = cueEntries(entry);
   const prev = cur < 0 ? out[out.length - 1] : out[cur - 1];
-  if (!prev || prev.type !== 'card' || prev.seg !== curSeg || cue.card <= 0) return false;
+  if (!prev || prev.type !== 'card' || prev.c !== consumed || cue.card <= 0) return false;
   cue.card -= 1;
   cueRender();
   return true;
@@ -14607,10 +14652,10 @@ setInterval(renderDrift, 1000);
 function cueRender() {
   const entry = flatChunks[state.activeIdx];
   if (!entry) return;
-  const { out, cur, pos, total, curSeg, cards } = cueEntries(entry);
+  const { out, cur, pos, total, consumed, cards } = cueEntries(entry);
   const col = cueColumnTitle(entry);
   cueCrumb.innerHTML = (col ? '<span class="cue-col">' + escText(col) + '</span>' : '') + escText(cueChunkTitle(entry));
-  const here = cards.get(curSeg) || [];
+  const here = cards.get(consumed) || [];
   cuePos.innerHTML = 'slide <b>' + (state.activeIdx + 1) + '</b>/' + flatChunks.length
     + (total > 1 ? ' · beat <b>' + pos + '</b>/' + total : '')
     + (here.length ? ' · card <b>' + Math.min(cue.card + 1, here.length) + '</b>/' + here.length : '');
