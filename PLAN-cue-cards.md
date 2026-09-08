@@ -9,8 +9,9 @@ zur nächsten Folie. Anlass: eine 45-Minuten-Keynote mit ausformuliertem
 Redetext und minimalen Folien, bei der das Textarea rechts zu schmal, zu
 lang und zu scrollbedürftig ist, um aus dem Augenwinkel gelesen zu werden.
 
-Status: im Bau auf Branch `cue-cards`. Fortschritt in §11, Entscheidungen
-unterwegs in §12, offene Fragen in §13 – alle drei am Ende der Datei.
+Status: gebaut auf Branch `cue-cards`, im Gebrauch an einer echten Keynote
+geprüft. Fortschritt in §11, Entscheidungen unterwegs in §12, die
+beantworteten Fragen in §13 – alle drei am Ende der Datei.
 
 Gestalterische Vorgabe (aus den zwei Entwürfen gewählt): **Entwurf B
 „Spur“** – keine Kästen, eine Spur mit Punkten links neben dem Text, Klicks
@@ -19,7 +20,8 @@ visuelle Unruhe ist. Abweichend vom Entwurf: der Spiegel deutlich kleiner,
 der Redetext bekommt den Platz; und der Redetext serifenlos (die
 Sans-Familie der Vorlesung), nicht in der Serifen.
 
-Status: alle sieben Slices gebaut und im Browser geprüft; die Gates und der Spec sind grün. Was noch aussteht, steht in §13. Keine Änderung am Quellformat, die einen
+Alle sieben Slices sind gebaut und im Browser geprüft, Gates, Linter und
+Browser-Suite sind grün. Keine Änderung am Quellformat, die einen
 bestehenden `source.md` anders baut – das Feature liest nur ein Feld mehr.
 
 ## 1. Die drei Entscheidungen
@@ -441,9 +443,10 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
   nichts bewegt, `onActiveChange` ist nicht gefallen, und der erste Space
   hätte gegen einen Cursor gezählt, der zu keinem Chunk gehört (`cueBind`).
 
-## 13. Offene Fragen an den Autor
+## 13. Die Fragen an den Autor, beantwortet
 
-Gebaut ist jeweils die erste Variante; die zweite ist ein kleiner Umbau.
+Gebaut war jeweils die erste Variante. Nach der Keynote sind alle sechs
+beantwortet – fünf davon dadurch, dass sie im Gebrauch nicht auffielen.
 
 1. **Enter auf der Fernbedienung.** Enter geht im Kartenmodus zur nächsten
    Folie. Sendet dein Presenter „weiter“ als Enter (die meisten senden
@@ -453,22 +456,33 @@ Gebaut ist jeweils die erste Variante; die zweite ist ein kleiner Umbau.
    vertikal, mit −1 / now / +1. Er kostet die halbe linke Spalte. Alternative:
    nur die nächste Folie als eine Miniatur, oder gar keine – die Spalte
    nennt die nächste Folie ohnehin als letzten Eintrag.
+   **Beantwortet durch den Griff statt durch eine Entscheidung:** die Naht
+   zwischen Streifen und Karten ist seit dem Nachtrag (§15) dieselbe
+   Ziehleiste, die die anderen zwei Anordnungen tragen. Wie breit der
+   Streifen ist, ist damit eine Eigenschaft des Abends, keine des Builds –
+   und weil der Spiegel im Streifen sitzt, zieht man mit ihm die
+   Projektion groß.
 3. **Karten ohne Bold zeigen den ganzen Absatz** in kleinerer Type, damit
    beim Umstellen einer alten Vorlesung nichts verschwindet. Für einen
    ausformulierten Redetext ohne Bolds heißt das: Fließtext auf der Karte,
    also genau das, was der Modus vermeiden will. Alternative: die erste
    Sätze als Bullet (wie die Collapse-Regel der Folien), der Rest weg.
+   **Bleibt wie gebaut.** Wer den Modus benutzt, fettet; wer eine alte
+   Vorlesung aufmacht, will nichts verschwinden sehen.
 4. **Bullet = Bold-Phrase ohne Kontext.** „**Erster Klick**: der Vorgesetzte
    kommt nicht rein“ wird zur Karte „Erster Klick“. Reicht dir das als
    Stütze, oder soll der Satz um die Bold-Phrase mitkommen (gedimmt, die
    Phrase hell)? Letzteres wäre näher am Entwurf und ein reiner
    Rendering-Unterschied in `notesToCards` plus CSS.
+   **Bleibt wie gebaut** – die strenge Regel macht die Autorenarbeit klar.
 5. **Textarea-Overrides landen alle auf Beat 1** (§5). Wenn du in der Probe
    im Textarea korrigierst, verlieren die Karten dieses Chunks ihre
    Beat-Zuordnung, bis die Quelle geändert ist. Reicht das, oder soll das
    Textarea im Kartenmodus pro Beat editierbar sein?
+   **Reicht.** Die Probe korrigiert die Quelle, nicht das Textarea.
 6. **Uhr ohne Pause.** Siehe §12. Wenn du doch eine Pause willst: Doppelklick
    wäre der Weg, der nicht aus Versehen passiert.
+   **Keine Pause, aber der Klick sagt jetzt, was er tut** – siehe §15.
 7. ~~Diagrammschritte tragen keine Karten.~~ **Erledigt mit
    `> note: from N`** – siehe §14. Der Parser zählt nichts mit; die Zahl ist
    die Absicht des Autors, und die Runtime gruppiert Karten seit dem Umbau
@@ -509,3 +523,43 @@ Nach dem ersten echten Deck (`lectures/keynote-2036`, das erste Drittel einer
   `overflow: hidden`, und die Uhr ist zweieinhalbmal so groß wie deren
   Zeilentyp – ihr wurde oben die Hälfte der Ziffern abgeschnitten. Jetzt
   kürzen die zwei Textkinder selbst und die Kopfzeile schneidet nichts ab.
+
+## 15. Nachtrag: der Griff, die Uhr, die Drift, eine ID zu viel
+
+Nach dem Aufräumdurchgang vor dem Merge, alle vier aus dem Gebrauch bzw.
+aus dem Ausmessen der neuen Anordnung:
+
+- **Die Naht zwischen Streifen und Karten ist eine Ziehleiste.** Der
+  `#preview-resizer` war im Kartenmodus per CSS abgeschaltet; jetzt sitzt er
+  auf der Spaltengrenze und schreibt `--cue-strip-w`. Der Umbau ist ein
+  Deskriptor statt eines dritten Zweigs: `PREVIEW_AXES` nennt pro Anordnung
+  Achse, Wuchsrichtung, Custom Property und Schlüssel, und die drei Handler
+  lesen nur noch daraus – aus demselben Grund, aus dem die Consume-Hooks an
+  `goForward` hängen und nicht in der Key-Map. Die Obergrenze ist hier nicht
+  die Bühne, sondern die Kartenspur (`CUE_RAIL_MIN_PX`): der Spiegel *wächst*
+  in dieser Anordnung mit dem Streifen, weil er in ihm liegt.
+- **Die Uhr sagt auf Hover, was der Klick tut.** Das Zurückspringen auf 0:00
+  war die Überraschung, die der Titel-Tooltip nicht verhindert hat; jetzt
+  steht RESET im Knopf, sobald der Zeiger darauf liegt. Keine Pause, aus dem
+  Grund in §12.
+- **Die Drift misst gegen das ganze Deck, nicht gegen die aktuelle Folie.**
+  Vorher wurde sie aus den Karten des aktiven Chunks gelesen: sie erschien
+  an der ersten Marke und verschwand auf jeder Folie ohne eigene Marke
+  wieder. Eine Zahl, die kommt und geht, liest sich als Defekt. `cueMarkList`
+  sammelt jetzt alle Marken des Decks in Vortragsreihenfolge; Bezug ist die
+  letzte passierte Marke, und vor der ersten diese erste – ein Vortrag, der
+  seine 5:00-Karte noch nicht erreicht hat, ist um den Rest der fünf Minuten
+  voraus. Nichts steht nur dann da, wenn das Deck gar keine Marke trägt.
+- **`#cue-cards` war zwei Elemente.** Die Sektion des Cockpits und der
+  Tutorial-Chunk, der den Modus erklärt, hießen gleich – die IDs der
+  Cockpit-Chrome teilen sich einen Namensraum mit den Chunk-IDs der
+  Vorlesung, weil die Chunks im selben Dokument stehen (im Spiegel), und
+  `getElementById` antwortet mit dem ersten in Dokumentreihenfolge. Welcher
+  das ist, hat `cuePlaceStage` beim Umhängen der Bühne auch noch gewechselt.
+  Sichtbar wurde es an einer Ziehleiste, die nach 75 px stehenblieb, und an
+  der Regel `#cue-cards { display: none }`, die im Cockpit den Tutorial-Chunk
+  traf. Die Sektion heißt jetzt `#cue-panel`, und der Rest der Kartenchrome
+  wird innerhalb der Sektion gesucht statt über die globale ID-Tabelle.
+  **Die allgemeine Falle bleibt** – ein Chunk namens `clock` oder `timer`
+  träfe dieselbe Kollision. Wer Cockpit-Chrome benennt, wählt ein Wort, das
+  keine Folie tragen will.

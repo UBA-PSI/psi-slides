@@ -1262,6 +1262,21 @@ letzten Beat gelegt (daher die Chunk-Notes-Regel); ein Aufruf aus
 vor den Karten steht (daher zwei Intervalle); ein `\s` im Template-Literal,
 das das `inlined`-Gate sofort fand.
 
+**Aufräumdurchgang vor dem Merge** (§15 des Plans hat die Begründungen):
+die Naht zwischen Streifen und Karten ist jetzt dieselbe Ziehleiste wie in
+den anderen zwei Anordnungen – ein Deskriptor `PREVIEW_AXES` statt eines
+dritten Zweigs in den drei Handlern, und weil der Spiegel im Streifen sitzt,
+zieht man mit ihm die Projektion groß. Die Uhr sagt auf Hover RESET, weil
+der Sprung auf 0:00 sonst wie ein Defekt aussieht. Die Drift misst gegen
+alle Marken des Decks statt gegen die der aktuellen Folie, also steht sie ab
+der ersten Folie da und verschwindet nicht auf jeder Folie ohne eigene
+Marke. Und der Fund, der die Ziehleiste nach 75 px anhalten ließ:
+**`#cue-cards` war zwei Elemente** – die Sektion des Cockpits und der
+Tutorial-Chunk über den Modus. Cockpit-Chrome und Chunk-IDs teilen sich
+einen Namensraum; die Sektion heißt jetzt `#cue-panel`, ihre Kinder werden
+über die Sektion statt über `getElementById` gesucht, und die Regel steht in
+CLAUDE.md unter *Conventions*.
+
 ## Gaps / Bekannte Limits
 
 - **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.

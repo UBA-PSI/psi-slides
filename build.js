@@ -6882,7 +6882,7 @@ function renderHelpOverlay(view, withEditor) {
       ['<kbd>Shift</kbd>-<kbd>V</kbd>', 'preview strip: along the bottom ↔ down the right edge'],
       ['drag the bar above the notes', 'resize the notes pane; the slide preview rescales to fit'],
       ['the hatched block on a slide', 'what the next Space or ↓ will reveal – cockpit only'],
-      ['drag the bar on the preview strip', 'resize the strip, either orientation'],
+      ['drag the bar on the preview strip', 'resize the strip, any of the three arrangements – in the cue cards it sizes the mirror with it; double-click resets'],
       ['<kbd>&minus;</kbd> <kbd>+</kbd> in the notes corner', 'notes text size (no hotkey – you type in there)'],
       ['double-click either bar', 'back to automatic size'],
       ['drag the preview strip', 'scroll it · click a thumbnail to jump'],
@@ -14909,9 +14909,9 @@ ${columnsHtml}
     </div>
   </div>
   <button id="add-note-btn" type="button" title="Open speaker notes (Shift-N)">+ note</button>
-  <button id="clock" type="button" title="Elapsed since the talk began · click to restart from 0:00"><span id="timer">0:00</span><span id="drift" hidden></span></button>
+  <button id="clock" type="button" title="Elapsed since the talk began · click to restart from 0:00"><span id="timer">0:00</span><span id="drift" hidden></span><span id="clock-hint" aria-hidden="true">reset</span></button>
 </div>
-<section id="cue-cards" aria-label="Cue cards">
+<section id="cue-panel" aria-label="Cue cards">
   <header id="cue-where">
     <span id="cue-crumb"></span>
     <span id="cue-pos"></span>
@@ -15373,6 +15373,21 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
 }
 #clock:hover { border-color: var(--rule); }
 #clock:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; }
+/* What the click does, said before it is clicked. A tooltip is not enough
+   for a control whose one action is destructive-looking: a clock that
+   jumps to 0:00 under a stray click reads as a fault unless the button
+   announced it. In flow at zero opacity, so nothing shifts on hover. */
+#clock #clock-hint {
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+  font-size: 0.45em;
+  color: var(--ink-soft);
+  opacity: 0;
+  transition: opacity 120ms;
+}
+#clock:hover #clock-hint,
+#clock:focus-visible #clock-hint { opacity: 1; }
 #clock #drift { font-size: 0.6em; color: var(--emph); }
 #clock #drift.ahead { color: var(--ink-soft); }
 /* Freeze state, and the control for it – one element, because a status light
@@ -15727,10 +15742,13 @@ body.has-notes #add-note-btn { display: none; }
    glancing. No boxes: a line down the left with a dot per card and a
    diamond per click on the projector is the whole apparatus, and the red
    dot is the cursor. */
-#cue-cards { display: none; }
+#cue-panel { display: none; }
 body[data-view=speaker].cue-cards {
   grid-template-rows: 3vh 1fr 2.2rem;
-  grid-template-columns: clamp(240px, 23vw, 400px) 1fr;
+  /* The strip's width is a variable so the handle can write it. The clamp
+     is what an unsized cockpit opens at; --cue-strip-w outlives the
+     session in localStorage. */
+  grid-template-columns: var(--cue-strip-w, clamp(240px, 23vw, 400px)) 1fr;
 }
 body[data-view=speaker].cue-cards #scrubber { grid-column: 1 / -1; grid-row: 1; }
 /* The mirror is a child of the strip here, in the place the current
@@ -15744,12 +15762,43 @@ body[data-view=speaker].cue-cards #stage-cell {
   width: 100%;
   height: auto;
   aspect-ratio: var(--audience-aspect, 16 / 9);
-  border: 1px solid var(--emph);
+  /* Heavier than a thumbnail's hairline, and the same ring the current
+     slot wears in the classic strip: this is the slide the room is
+     looking at, and it has to be findable in a column of look-alikes. */
+  border: 2px solid var(--emph);
+  box-shadow: 0 0 0 2px var(--emph);
 }
 body[data-view=speaker].cue-cards .preview-slot.current { display: none; }
 body[data-view=speaker].cue-cards #add-note-btn { display: none; }
 body[data-view=speaker].cue-cards #notes-pane { display: none; }
-body[data-view=speaker].cue-cards #preview-resizer { display: none; }
+/* The handle is not switched off in this mode - it is the seam between the
+   film strip and the cards, and it sizes both at once: the mirror is a
+   child of the strip here, so a wider strip is a bigger projection. Third
+   axis, third stored value; see the drag code for why one descriptor
+   rather than a third branch. */
+body[data-view=speaker].cue-cards #preview-resizer {
+  grid-column: 1;
+  grid-row: 2;
+  justify-self: end;
+  align-self: stretch;
+  width: 9px;
+  height: auto;
+  margin-top: 0;
+  margin-right: -4px;
+  cursor: ew-resize;
+}
+body[data-view=speaker].cue-cards #preview-resizer::before {
+  top: 50%; left: 3px;
+  transform: translateY(-50%);
+  width: 2px; height: 42px;
+}
+body[data-view=speaker].cue-cards #preview-resizer:hover::before,
+body.cue-cards.preview-resizing #preview-resizer::before { width: 2px; height: 84px; }
+/* The label hangs into the strip: above the handle is the scrubber. */
+body[data-view=speaker].cue-cards #preview-resizer::after {
+  top: 8px; right: 10px; left: auto;
+  transform: none;
+}
 body[data-view=speaker].cue-cards #preview-strip {
   grid-column: 1; grid-row: 2;
   flex-direction: column;
@@ -15763,7 +15812,7 @@ body[data-view=speaker].cue-cards #preview-strip {
 body[data-view=speaker].cue-cards #preview-strip::-webkit-scrollbar { width: 6px; height: auto; }
 body[data-view=speaker].cue-cards .preview-slot { height: auto; width: auto; }
 body[data-view=speaker].cue-cards #speaker-footer { grid-column: 1 / -1; grid-row: 3; }
-body[data-view=speaker].cue-cards #cue-cards {
+body[data-view=speaker].cue-cards #cue-panel {
   grid-column: 2; grid-row: 2;
   display: flex;
   flex-direction: column;
@@ -15914,18 +15963,18 @@ body[data-view=speaker].cue-cards #clock {
    footer span both cols. Slot aspect-ratio handles sizing so slots
    grow taller when the strip is wider – more text legibility than
    the horizontal mode. */
-body[data-view=speaker].preview-right {
+body[data-view=speaker].preview-right:not(.cue-cards) {
   grid-template-rows: 3vh 1fr auto 2.2rem;
   grid-template-columns: 1fr var(--preview-w, clamp(180px, 18vw, 300px));
 }
-body[data-view=speaker].preview-right.notes-sized {
+body[data-view=speaker].preview-right:not(.cue-cards).notes-sized {
   grid-template-rows: 3vh 1fr var(--notes-height, auto) 2.2rem;
 }
-body[data-view=speaker].preview-right #scrubber     { grid-column: 1 / -1; grid-row: 1; }
-body[data-view=speaker].preview-right #stage-cell   { grid-column: 1; grid-row: 2; }
-body[data-view=speaker].preview-right #notes-pane   { grid-column: 1 / -1; grid-row: 3; }
-body[data-view=speaker].preview-right #speaker-footer { grid-column: 1 / -1; grid-row: 4; }
-body[data-view=speaker].preview-right #preview-strip {
+body[data-view=speaker].preview-right:not(.cue-cards) #scrubber     { grid-column: 1 / -1; grid-row: 1; }
+body[data-view=speaker].preview-right:not(.cue-cards) #stage-cell   { grid-column: 1; grid-row: 2; }
+body[data-view=speaker].preview-right:not(.cue-cards) #notes-pane   { grid-column: 1 / -1; grid-row: 3; }
+body[data-view=speaker].preview-right:not(.cue-cards) #speaker-footer { grid-column: 1 / -1; grid-row: 4; }
+body[data-view=speaker].preview-right:not(.cue-cards) #preview-strip {
   grid-column: 2;
   grid-row: 2;
   flex-direction: column;
@@ -15935,15 +15984,15 @@ body[data-view=speaker].preview-right #preview-strip {
   overflow-x: hidden;
   overflow-y: auto;
 }
-body[data-view=speaker].preview-right #preview-strip::-webkit-scrollbar { width: 6px; height: auto; }
-body[data-view=speaker].preview-right .preview-slot {
+body[data-view=speaker].preview-right:not(.cue-cards) #preview-strip::-webkit-scrollbar { width: 6px; height: auto; }
+body[data-view=speaker].preview-right:not(.cue-cards) .preview-slot {
   height: auto;
   width: auto;
   /* align-items: stretch on the flex parent fills cross-axis (width). */
 }
 /* The handle rotates with the strip: same cell, now hugging its left edge,
    and the drag axis becomes horizontal. */
-body[data-view=speaker].preview-right #preview-resizer {
+body[data-view=speaker].preview-right:not(.cue-cards) #preview-resizer {
   grid-row: 2;
   grid-column: 2;
   justify-self: start;
@@ -15954,16 +16003,16 @@ body[data-view=speaker].preview-right #preview-resizer {
   margin-left: -4px;
   cursor: ew-resize;
 }
-body[data-view=speaker].preview-right #preview-resizer::before {
+body[data-view=speaker].preview-right:not(.cue-cards) #preview-resizer::before {
   top: 50%; left: 3px;
   transform: translateY(-50%);
   width: 2px; height: 42px;
 }
-body[data-view=speaker].preview-right #preview-resizer:hover::before,
-body.preview-right.preview-resizing #preview-resizer::before { width: 2px; height: 84px; }
+body[data-view=speaker].preview-right:not(.cue-cards) #preview-resizer:hover::before,
+body.preview-right:not(.cue-cards).preview-resizing #preview-resizer::before { width: 2px; height: 84px; }
 /* Label hangs into the strip instead of above it – there is no room above
    in this orientation, that cell is the stage. */
-body[data-view=speaker].preview-right #preview-resizer::after {
+body[data-view=speaker].preview-right:not(.cue-cards) #preview-resizer::after {
   top: 8px; left: 10px;
   transform: none;
 }
@@ -16353,6 +16402,8 @@ notesContent.addEventListener('input', () => {
   const entry = flatChunks[state.activeIdx];
   if (entry) {
     try { localStorage.setItem(noteOverrideKey(entry.id), notesContent.value); } catch (e) {}
+    // The override replaces this chunk's cards, marks and all.
+    cueMarks = null;
   }
   autoSizeNotes();
 });
@@ -16618,10 +16669,16 @@ viewHooks.onStateChange = () => { cueSync(); };
 // revealed[chunkId] stays the only thing the two windows share.
 const CUE_MODE_KEY = 'psi-slides:cue-cards';
 const CUE_SCALE_KEY = 'psi-slides:cue-scale';
-const cueRoot = document.getElementById('cue-cards');
-const cueRail = document.getElementById('cue-rail');
-const cueCrumb = document.getElementById('cue-crumb');
-const cuePos = document.getElementById('cue-pos');
+// The cockpit's own ids share one namespace with the lecture's chunk ids -
+// the chunks are in this document too, inside the mirror - and
+// getElementById answers with whichever comes first in the DOM. The
+// tutorial has a chunk about this mode, so cue-cards was two elements and
+// the loser moved when cuePlaceStage reordered the body. Hence a name no
+// slide is likely to want, and a lookup scoped to the section for the rest.
+const cueRoot = document.querySelector('body > #cue-panel');
+const cueRail = cueRoot.querySelector('#cue-rail');
+const cueCrumb = cueRoot.querySelector('#cue-crumb');
+const cuePos = cueRoot.querySelector('#cue-pos');
 const cueBtn = document.getElementById('cue-btn');
 const clockEl = document.getElementById('clock');
 // Where the stage sits in the classic arrangement, so the cue-card mode can
@@ -16653,7 +16710,7 @@ function applyCueMode(on) {
   cueBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
   // The clock is one element in two places: over the stage's letterbox in
   // the classic arrangement, in the column's header here.
-  if (on) document.getElementById('cue-where').appendChild(clockEl);
+  if (on) cueRoot.querySelector('#cue-where').appendChild(clockEl);
   else stageCell.appendChild(clockEl);
   if (!on) document.body.insertBefore(stageCell, stageHome);
   populatePreviewStrip();
@@ -16679,8 +16736,8 @@ function cueScale() {
 function nudgeCueScale(d) {
   applyCueScale(Math.min(1.8, Math.max(0.7, Math.round((cueScale() + d) * 20) / 20)));
 }
-document.getElementById('cue-zoom-in').addEventListener('click', () => nudgeCueScale(0.1));
-document.getElementById('cue-zoom-out').addEventListener('click', () => nudgeCueScale(-0.1));
+cueRoot.querySelector('#cue-zoom-in').addEventListener('click', () => nudgeCueScale(0.1));
+cueRoot.querySelector('#cue-zoom-out').addEventListener('click', () => nudgeCueScale(-0.1));
 try {
   const saved = Number(localStorage.getItem(CUE_SCALE_KEY));
   if (saved > 0) applyCueScale(saved);
@@ -16845,9 +16902,46 @@ viewHooks.onEnter = () => {
   return true;
 };
 
+// Every time mark in the deck, in the order the talk reaches them. The
+// drift used to be read off the active slide alone, so it appeared at the
+// first mark and vanished again on every slide that carried none - a
+// number that comes and goes reads as a fault, and the question it
+// answers ("am I late") does not stop being asked on an unmarked slide.
+// Built once and kept; a rehearsal override in the textarea drops it.
+let cueMarks = null;
+function cueMarkList() {
+  if (cueMarks) return cueMarks;
+  cueMarks = [];
+  flatChunks.forEach((entry, idx) => {
+    const { maxC, beats } = cuePosition(entry);
+    cueCardsFor(entry.id, beats, maxC).forEach((list, c) => list.forEach((card, k) => {
+      if (card.at != null) cueMarks.push({ idx, c, k, at: card.at });
+    }));
+  });
+  cueMarks.sort((a, b) => a.idx - b.idx || a.c - b.c || a.k - b.k);
+  return cueMarks;
+}
+// The mark the clock is measured against: the last one at or before the
+// cursor, and before the first one has been reached, that first one - a
+// talk that has not got to its 5:00 card yet is ahead by whatever is left
+// of the five minutes, which is exactly what the lecturer wants to know.
+// Null only when the deck carries no mark at all.
+function cueDriftRef(consumed) {
+  const marks = cueMarkList();
+  if (!marks.length) return null;
+  let ref = null;
+  for (const m of marks) {
+    const reached = m.idx < state.activeIdx
+      || (m.idx === state.activeIdx && (m.c < consumed || (m.c === consumed && m.k <= cue.card)));
+    if (reached) ref = m;
+  }
+  return (ref || marks[0]).at;
+}
 // Beside the clock: how far the talk is from the card's mark. Behind is
-// the number that matters and is red; ahead is grey. A minute is not
-// worth a number, so the display is coarse to the ten seconds.
+// the number that matters and is red; ahead is grey; on the mark it is
+// a signed zero rather than nothing, because a blank where a number
+// belongs is read as a broken clock, not as good timekeeping. A minute
+// is not worth a number, so the display is coarse to the ten seconds.
 const driftEl = document.getElementById('drift');
 function renderDrift() {
   if (cueDriftAt == null || !cueOn()) { driftEl.hidden = true; return; }
@@ -16856,7 +16950,8 @@ function renderDrift() {
   driftEl.hidden = false;
   driftEl.textContent = (shown > 0 ? '+' : shown < 0 ? '\u2212' : '\u00b1') + PSI_CARDS.formatClock(Math.abs(shown));
   driftEl.classList.toggle('ahead', shown <= 0);
-  driftEl.title = 'against the @' + PSI_CARDS.formatClock(cueDriftAt) + ' mark of the current card';
+  driftEl.title = 'against the @' + PSI_CARDS.formatClock(cueDriftAt) + ' mark'
+    + (elapsedSeconds() < cueDriftAt ? ' still ahead' : ' last passed');
 }
 // Its own tick rather than a call from renderTimer: the clock starts
 // earlier in this script than the cards exist.
@@ -16872,8 +16967,7 @@ function cueRender() {
     + (total > 1 ? ' · beat <b>' + pos + '</b>/' + total : '')
     + (here.length ? ' · card <b>' + Math.min(cue.card + 1, here.length) + '</b>/' + here.length : '');
   const hasCards = [...cards.values()].some(a => a.length);
-  cueDriftAt = null;
-  out.forEach((e, i) => { if (e.type === 'card' && e.card.at != null && (e.done || i === cur)) cueDriftAt = e.card.at; });
+  cueDriftAt = cueDriftRef(consumed);
   renderDrift();
   const html = [];
   let seenCur = false;
@@ -17039,66 +17133,91 @@ function stepNotesFont(dir) {
 // ResizeObserver re-runs sizeStageViewport, so the mirror stays at the
 // audience aspect instead of stretching into whatever room is left.
 const previewResizer = document.getElementById('preview-resizer');
-const PREVIEW_H_KEY = 'psi-slides:preview-height';
-const PREVIEW_W_KEY = 'psi-slides:preview-width';
 const PREVIEW_MIN_PX = 70;
-
-function previewIsVertical() { return document.body.classList.contains('preview-right'); }
-function applyPreviewSize(px, vertical) {
-  document.documentElement.style.setProperty(vertical ? '--preview-w' : '--preview-h', px + 'px');
+// What has to be left of the cue column for it to still be a cue column:
+// the cards are the thing being read, and a strip dragged over them is a
+// gesture with no way back except the double-click.
+const CUE_RAIL_MIN_PX = 260;
+// Three arrangements of this window, one drag. Each says which axis it
+// moves on, which way the strip grows, the custom property that carries
+// its size and the key it is remembered under. A third branch inside the
+// handlers is how the cue mode would come to resize differently from the
+// other two - the same reason the consume hooks live on goForward rather
+// than in the key map.
+const PREVIEW_AXES = {
+  bottom: { axis: 'y', grow: -1, prop: '--preview-h', key: 'psi-slides:preview-height' },
+  right: { axis: 'x', grow: -1, prop: '--preview-w', key: 'psi-slides:preview-width' },
+  cue: { axis: 'x', grow: 1, prop: '--cue-strip-w', key: 'psi-slides:cue-strip-width' },
+};
+function previewAxis() {
+  return PREVIEW_AXES[cueOn() ? 'cue'
+    : document.body.classList.contains('preview-right') ? 'right' : 'bottom'];
+}
+function applyPreviewSize(px, ax) {
+  document.documentElement.style.setProperty(ax.prop, px + 'px');
 }
 try {
-  const h = parseFloat(localStorage.getItem(PREVIEW_H_KEY));
-  if (h >= PREVIEW_MIN_PX) applyPreviewSize(h, false);
-  const w = parseFloat(localStorage.getItem(PREVIEW_W_KEY));
-  if (w >= PREVIEW_MIN_PX) applyPreviewSize(w, true);
+  Object.values(PREVIEW_AXES).forEach(ax => {
+    const v = parseFloat(localStorage.getItem(ax.key));
+    if (v >= PREVIEW_MIN_PX) applyPreviewSize(v, ax);
+  });
 } catch (e) {}
 
 let previewSizeDrag = null;
+// How far the strip may grow before it eats the thing it sits beside: the
+// mirror in the two classic arrangements, the cards in this one - where
+// the mirror grows *with* the strip instead, because it is inside it.
+function previewRoom(ax) {
+  if (ax.prop === '--cue-strip-w') {
+    return Math.max(0, cueRoot.getBoundingClientRect().width - CUE_RAIL_MIN_PX);
+  }
+  const cell = stageCell.getBoundingClientRect();
+  return Math.max(0, (ax.axis === 'x' ? cell.width : cell.height) - STAGE_MIN_PX);
+}
 previewResizer?.addEventListener('pointerdown', (ev) => {
   ev.preventDefault();
   try { previewResizer.setPointerCapture(ev.pointerId); } catch (e) {}
-  const vertical = previewIsVertical();
+  const ax = previewAxis();
   const strip = previewStrip.getBoundingClientRect();
-  const cell = stageCell.getBoundingClientRect();
   previewSizeDrag = {
     pointerId: ev.pointerId,
-    vertical,
-    start: vertical ? ev.clientX : ev.clientY,
-    startSize: vertical ? strip.width : strip.height,
-    // How much the stage can give up before it stops being a usable mirror.
-    room: Math.max(0, (vertical ? cell.width : cell.height) - STAGE_MIN_PX),
+    ax,
+    start: ax.axis === 'x' ? ev.clientX : ev.clientY,
+    startSize: ax.axis === 'x' ? strip.width : strip.height,
+    room: previewRoom(ax),
   };
   document.body.classList.add('preview-resizing');
 });
 previewResizer?.addEventListener('pointermove', (ev) => {
   if (!previewSizeDrag || ev.pointerId !== previewSizeDrag.pointerId) return;
-  // Both orientations grow toward the leading edge: drag up to grow the
-  // bottom strip, drag left to grow the right one.
-  const moved = previewSizeDrag.start - (previewSizeDrag.vertical ? ev.clientX : ev.clientY);
+  const { ax } = previewSizeDrag;
+  // Every strip grows away from the edge it hangs on, which is what grow
+  // records: up for the bottom strip, left for the right one, right for
+  // the cue column, which hangs on the left edge of the window.
+  const moved = ax.grow * ((ax.axis === 'x' ? ev.clientX : ev.clientY) - previewSizeDrag.start);
   const next = Math.max(
     PREVIEW_MIN_PX,
     Math.min(previewSizeDrag.startSize + moved, previewSizeDrag.startSize + previewSizeDrag.room)
   );
-  applyPreviewSize(next, previewSizeDrag.vertical);
+  applyPreviewSize(next, ax);
 });
 function endPreviewDrag() {
   if (!previewSizeDrag) return;
+  const { ax } = previewSizeDrag;
   try { previewResizer.releasePointerCapture(previewSizeDrag.pointerId); } catch (e) {}
   document.body.classList.remove('preview-resizing');
   const strip = previewStrip.getBoundingClientRect();
-  const px = Math.round(previewSizeDrag.vertical ? strip.width : strip.height);
-  const key = previewSizeDrag.vertical ? PREVIEW_W_KEY : PREVIEW_H_KEY;
-  try { localStorage.setItem(key, String(px)); } catch (e) {}
+  const px = Math.round(ax.axis === 'x' ? strip.width : strip.height);
+  try { localStorage.setItem(ax.key, String(px)); } catch (e) {}
   previewSizeDrag = null;
   populatePreviewStrip();
 }
 previewResizer?.addEventListener('pointerup', endPreviewDrag);
 previewResizer?.addEventListener('pointercancel', endPreviewDrag);
 previewResizer?.addEventListener('dblclick', () => {
-  const vertical = previewIsVertical();
-  try { localStorage.removeItem(vertical ? PREVIEW_W_KEY : PREVIEW_H_KEY); } catch (e) {}
-  document.documentElement.style.removeProperty(vertical ? '--preview-w' : '--preview-h');
+  const ax = previewAxis();
+  try { localStorage.removeItem(ax.key); } catch (e) {}
+  document.documentElement.style.removeProperty(ax.prop);
   populatePreviewStrip();
   flashMode('preview size: auto');
 });

@@ -28,7 +28,9 @@ from building the same way is a major version.
   `note-in-empty-beat` and `note-from-beyond` are the linter's two new
   warnings.
 - **The clock is a button over the stage,** large and tabular, and a click
-  restarts it at 0:00. It was an 11 px span in the footer.
+  restarts it at 0:00 – the word RESET appears in it on hover, because a
+  clock that jumps to zero under a stray click reads as a fault unless the
+  button said so first. It was an 11 px span in the footer.
 
 - **`D` puts a live demo on the projection.** A window or a screen of the
   machine, captured with `getDisplayMedia` and shown full-frame in the

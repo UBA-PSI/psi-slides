@@ -139,6 +139,12 @@ Second.
 > note: from 5
 > **pinned past the end**
 
+## free: Named after the cockpit {#cue-panel}
+
+A lecture may name a chunk anything, including what the cockpit calls its
+own furniture. The chunks are in the cockpit's document too, inside the
+mirror, so this one used to win getElementById against the panel.
+
 ## free: Last {#last}
 
 The end.
@@ -341,6 +347,39 @@ export async function run({ page, report }) {
   await spk.keyboard.press('Escape');
   await press('k', 300);
   ok(await spk.evaluate(() => document.body.classList.contains('cue-cards')), 'and K brings the cards back');
+
+  // ── the strip is draggable here, and it takes the mirror with it ──
+  const stripW = () => spk.evaluate(() => Math.round(document.getElementById('preview-strip').getBoundingClientRect().width));
+  const before = await stripW();
+  const handle = await spk.locator('#preview-resizer').boundingBox();
+  ok(handle && handle.width < handle.height, 'the resizer stands on the seam as a vertical handle in this mode', JSON.stringify(handle));
+  const mirrorBefore = await spk.evaluate(() => Math.round(document.getElementById('stage-cell').getBoundingClientRect().width));
+  await spk.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
+  await spk.mouse.down();
+  for (let d = 20; d <= 120; d += 20) { await spk.mouse.move(handle.x + handle.width / 2 + d, handle.y + handle.height / 2); await spk.waitForTimeout(40); }
+  await spk.mouse.up();
+  await spk.waitForTimeout(300);
+  const after = await stripW();
+  ok(Math.abs((after - before) - 120) <= 4, 'dragging it right widens the strip by what the pointer moved', before + ' -> ' + after);
+  ok(await spk.evaluate(() => Math.round(document.getElementById('stage-cell').getBoundingClientRect().width)) > mirrorBefore,
+     'and the mirror grows with it, because it is a child of the strip');
+  ok(Number(await spk.evaluate(() => localStorage.getItem('psi-slides:cue-strip-width'))) === after, 'the width is remembered');
+  await spk.locator('#preview-resizer').dblclick();
+  await spk.waitForTimeout(300);
+  ok(await stripW() === before, 'and a double-click puts it back', String(await stripW()));
+
+  // ── the cockpit's own ids are not the lecture's ──────────────────
+  ok(await spk.evaluate(() => document.querySelectorAll('body > #cue-panel').length === 1
+      && document.querySelector('body > #cue-panel').tagName === 'SECTION'),
+     'the cue panel is the section, not a chunk that happens to share its name');
+  ok(await spk.evaluate(() => {
+    const chunk = [...document.querySelectorAll('.chunk')].find(c => c.id === 'cue-panel');
+    return !!chunk && getComputedStyle(chunk).display !== 'none';
+  }), 'and a chunk carrying that id is still drawn in the mirror');
+
+  // ── the drift is measured against the deck, not the slide ────────
+  ok(await spk.evaluate(() => !document.getElementById('drift').hidden),
+     'the drift stands beside the clock on a slide that carries no mark of its own');
 
   ok(errors.length === 0, 'no page errors in either window', errors.join(' | '));
   await spk.close();
