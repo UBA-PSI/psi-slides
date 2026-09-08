@@ -14868,6 +14868,7 @@ ${columnsHtml}
     </div>
   </div>
   <button id="add-note-btn" type="button" title="Open speaker notes (Shift-N)">+ note</button>
+  <button id="clock" type="button" title="Elapsed since the talk began · click to restart from 0:00"><span id="timer">0:00</span><span id="drift" hidden></span></button>
 </div>
 <aside id="notes-pane">
   <div id="notes-resizer" role="separator" aria-orientation="horizontal" title="Drag to resize notes · double-click to reset"></div>
@@ -14881,7 +14882,6 @@ ${columnsHtml}
 <div id="preview-resizer" role="separator" title="Drag to resize the preview strip · double-click to reset"></div>
 <div id="figure-overlay" aria-hidden="true"></div>
 <footer id="speaker-footer">
-  <span id="timer">00:00</span>
   <button id="freeze-btn" type="button" aria-pressed="false">● live</button>
   <button id="preview-orient-btn" type="button" title="Preview strip: along the bottom or down the right edge (Shift-V)">⇄ layout</button>
   <button id="export-annot-btn" type="button" title="Copy live annotations as &gt; annot: Markdown (Shift-E)">export notes</button>
@@ -15290,10 +15290,38 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
   font-size: 11px;
   color: var(--ink-soft);
 }
-#speaker-footer #timer {
+/* The clock. It used to be an 11 px span in the footer, between the freeze
+   button and the key crib, and it was the one thing there the lecturer
+   looks at every minute - and could not find. Now a button over the
+   letterbox corner of the stage, large, tabular, and a button because it
+   is pressed: tStart is the page load, ten minutes early when the cockpit
+   is opened before the room fills, so a click restarts it at 0:00. The
+   cue-card mode moves this same element into its header. */
+#clock {
+  position: absolute;
+  right: 0.7rem;
+  top: 0.6rem;
+  z-index: 10;
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  margin: 0;
+  padding: 0.1em 0.45em;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: color-mix(in oklab, var(--paper) 82%, transparent);
   font-family: var(--mono-font);
+  font-variant-numeric: tabular-nums;
+  font-size: clamp(18px, 2.4vh, 30px);
+  line-height: 1.2;
   color: var(--ink);
+  cursor: pointer;
+  transition: border-color 120ms;
 }
+#clock:hover { border-color: var(--rule); }
+#clock:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; }
+#clock #drift { font-size: 0.6em; color: var(--emph); }
+#clock #drift.ahead { color: var(--ink-soft); }
 /* Freeze state, and the control for it – one element, because a status light
    you cannot press is a question with no answer next to it. */
 #speaker-footer #freeze-btn {
@@ -16294,16 +16322,23 @@ previewStrip.addEventListener('wheel', (e) => {
   e.preventDefault();
 }, { passive: false });
 
-// Timer: elapsed since page load, mm:ss.
-const tStart = Date.now();
+// The clock: elapsed since the page loaded, or since the last click on
+// it. A click is the whole control - no pause, because a paused clock
+// is one stray click away from a drift that is wrong for the rest of the
+// talk, and a restart is the case that actually happens: the cockpit was
+// opened while the room was still filling.
+let tStart = Date.now();
+function elapsedSeconds() { return Math.floor((Date.now() - tStart) / 1000); }
 function renderTimer() {
-  const s = Math.floor((Date.now() - tStart) / 1000);
-  const mm = String(Math.floor(s / 60)).padStart(2, '0');
-  const ss = String(s % 60).padStart(2, '0');
-  timerEl.textContent = mm + ':' + ss;
+  timerEl.textContent = PSI_CARDS.formatClock(elapsedSeconds());
 }
 setInterval(renderTimer, 1000);
 renderTimer();
+document.getElementById('clock').addEventListener('click', () => {
+  tStart = Date.now();
+  renderTimer();
+  flashCenter('clock restarted');
+});
 
 // Hook: refresh scrubber on every state change, notes+preview on chunk
 // change only. The full-strip rebuild (populatePreviewStrip) happens

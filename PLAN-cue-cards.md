@@ -379,7 +379,7 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
 
 - [x] Slice 1 Parser + lint – `noteSegments()` in build.js, `speakerNoteSegs` parallel zu `speakerNotes`, zweites Template `data-cards-for`/`data-seg`; lint `note-in-empty-beat`. Fixture-Deck mit fünf Fällen von Hand geprüft, Korpus und Content-Repo linten ohne neue Warnung.
 - [x] Slice 2 `cue-cards.mjs` + Gate – `notesToCards`, `parseTimeMark`, `formatClock`, `plainInline`; als `window.PSI_CARDS` in speaker.html gespleißt; Gate `cue-cards` mit 26 Prüfungen, im Runner registriert.
-- [ ] Slice 3 Uhr
+- [x] Slice 3 Uhr – `#clock` als Button über dem Letterbox-Rand oben rechts, `#timer` + `#drift` darin, Klick = Neustart bei 0:00, Footer-Span raus. Im Browser geprüft.
 - [ ] Slice 4 Kartenspalte + Layout
 - [ ] Slice 5 Cursor
 - [ ] Slice 6 Zeitmarken + Drift
@@ -401,5 +401,9 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
   stehen soll, wird fett. Wer den Satz will, macht ihn fett.
 - **`@12:30` ohne `@` ist Text.** „12:30 Uhr ist spät“ am Absatzanfang darf
   keine Sollzeit sein; das `@` ist die Absicht.
+- **Uhr: Klick = Neustart, keine Pause.** Der Plan sah einen zweiten Klick
+  als Pause vor; gebaut ist nur der Neustart. Eine angehaltene Uhr ist einen
+  Fehlklick vom Rest des Vortrags mit falscher Drift entfernt, und der
+  Fall, der wirklich vorkommt, ist das zu früh geöffnete Cockpit.
 
 ## 13. Offene Fragen an den Autor
