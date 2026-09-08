@@ -406,6 +406,27 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 
 :::
 
+## example: Your notes as cue cards | `K`, and what to write so it reads from the corner of an eye {.wide #cue-cards}
+
+**A talk with a written-out script and minimal slides needs the script where you can glance at it.** `K` in the speaker view rearranges the window: your notes for this chunk as cards down a rail, the projection small in the corner, the clock in the header. `Space` says the next card; when the cards of this beat are said, it clicks the projector, and the clicks stand in the same column as diamonds, so you read one list from top to bottom. `Backspace` takes one press back, whatever it was. `Enter` skips to the next slide.
+
+> note: The slide has opened. **Three beats on this chunk**, and the cards of the first stand above the first diamond.
+>
+> #### What to bold
+> **The words you want to see**, not the ones you want to stress. This card has a title; the one above has none.
+
+---
+
+**A paragraph in a `> note:` is a card, and its bold phrases are the bullets.** Bold the words you want to see, not the words you want to stress. A paragraph with no bold shows whole, in smaller type. A `#### Title` above a paragraph titles the card, and `@12:30` on it is when you meant to reach it: the drift stands beside the clock.
+
+> note: @0:30 **Second beat.** This note was written under the first `---` in the source, so it arrives with the second segment. The mark at its start puts the drift beside the clock.
+
+---
+
+**Where the note stands is when it is said.** A note before the first `---` belongs to the beat the slide opens on, a note after it to the beat that `---` opens. Open the speaker view on this chunk, press `K`, and walk it with `Space`: the cards under each diamond are the notes written under the matching `---` in the source. A chunk whose notes all sit at the end shows them all on the first beat, so a lecture written before this feature does not move.
+
+> note: **Third beat**: the last card, and the next slide is what is left.
+
 ## example: Changing how the lecture reads | `C` `F` `A` and zoom {.wide #knobs}
 
 **Single keys change how the lecture reads, and each one applies to both windows at once.**

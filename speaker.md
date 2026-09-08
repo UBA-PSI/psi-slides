@@ -18,7 +18,7 @@ Short spec for the speaker view and its sync protocol with `audience.html`. Comm
 - Live sketch-slot editing (no sketch slots in the current lectures anyway – `::: sketch` is parsed but not rendered).
 - Full-thumbnail scrubber.
 - Second-machine / WebSocket sync (explicit PRD §7 non-goal for now).
-- Pause/reset/target on timer.
+- Pause and target on the timer (a click restarts it; the cue cards carry `@mm:ss` targets per card).
 
 **Explicit non-features (Phase 2+):**
 - Student-facing `study.html` (PRD §12.3 open question).
@@ -194,7 +194,9 @@ Rebroadcast rule: **never** rebroadcast a received state. The sender is the sing
 
   Implementation note worth keeping: the handle is a **grid item of its own** sharing the strip's cell, not an absolutely positioned child of the strip – the strip is a scroll container and a handle inside it would scroll away with the thumbnails. Sharing a cell also means the strip has to be *explicitly* placed (`grid-column: 1 / -1`), because grid auto-placement avoids an occupied cell rather than overlapping it; left on `auto` the strip was pushed into an implicit second column that `grid-template-columns` never declared.
 - **Notes pane**: speaker notes extracted from `> note:` lines in source, per chunk. Drag the hairline bar on its top edge to resize (the stage preview rescales to fit via the `#stage-cell` ResizeObserver); double-click the bar to return to automatic height. The height is persisted per user. The bar names the gesture on hover, because a 2px line is not self-explanatory and “how do I make the notes bigger” turned out to be the question the pane most reliably failed to answer. Two buttons in the pane's top-right corner scale the **text** independently of the pane's height, persisted per user. Deliberately no hotkey for those: this is the one surface the lecturer types into, and every free letter key is already a navigation command that would fire mid-sentence.
-- **Footer**: mm:ss timer, then four buttons – `● live` / `❄ frozen` (the freeze state *is* the control, = `V`), `⇄ layout` (strip orientation, = `Shift-V`), `export notes` (= `Shift-E`), `? help` (= `?`) – then the lecture slug and a one-line key crib. The freeze state used to be a bare indicator span: a status light with no way to press it is a question with no answer beside it, and it was the one cockpit control with no mouse route at all.
+- **Clock**: a large tabular-figure button over the letterbox corner of the stage, top right. It used to be an 11 px span in the footer, between the freeze button and the key crib, and it was the one thing there the lecturer looks at every minute – and could not find. A click restarts it at 0:00: it starts when the page loads, which is ten minutes early whenever the cockpit is opened before the room fills. Deliberately no pause – a paused clock is one stray click from a drift that is wrong for the rest of the talk. When a cue card carries a `@mm:ss` mark, the drift against it stands beside the clock, rounded to ten seconds, red when behind.
+- **Cue cards** (`K`, or the footer's `▤ cards`): the third arrangement of the window. The notes of the active chunk as cards down a rail on the right, the mirror of the projection small in the top-left corner with the preview strip under it, the clock in the column's header, the notes textarea hidden. Each `> note:` paragraph is a card and its bold phrases are the bullets (`cue-cards.mjs`, the grammar the authoring skill documents); a note's position among the chunk's `---` says which beat it belongs to. The rail lists, in document order, the cards of the beat the slide opened on, then every click on the projector as a diamond with the words it will bring up, then the cards of the beat it opens, and at the end the next slide. The cursor is the red dot. It sits **in front of** the reveal counter: `goForward` asks `viewHooks.consumeForward` first, and a press is spent on the next card of the current beat before it reaches `advanceReveal`; `goBack` mirrors it, so each Backspace undoes exactly one Space. The cursor is local to this window and is never sent – `revealed[chunkId]` stays the only reveal state the two windows share, and the projection never learns the cards exist. `Enter` in this mode goes to the next slide, whatever is left of the cards. `Shift-N` leaves the mode, because the textarea is where notes are typed. The mode is remembered globally (`psi-slides:cue-cards`), the cursor is not.
+- **Footer**: five buttons – `● live` / `❄ frozen` (the freeze state *is* the control, = `V`), `⇄ layout` (strip orientation, = `Shift-V`), `export notes` (= `Shift-E`), `? help` (= `?`) – then the lecture slug and a one-line key crib. The freeze state used to be a bare indicator span: a status light with no way to press it is a question with no answer beside it, and it was the one cockpit control with no mouse route at all.
 
   The floating round `?` button that both live views carry bottom-left is **hidden in the speaker**: the footer already has a labelled `? help`, and the circle sat on top of the timer.
 
@@ -212,8 +214,10 @@ Speaker inherits audience nav bindings, plus:
 |---|---|
 | `←` `→` `↑` `↓` | Same as audience (nav broadcasts unless frozen) |
 | `Shift`-`←` `Shift`-`→` | Previous / next column, from any chunk (broadcasts) |
-| `Space` | Advance reveal (broadcasts) |
-| `Enter`, `1`-`9`, `Esc` | Local to speaker, never broadcast (expansions are audience-only) |
+| `Space` | Advance reveal (broadcasts) – in cue-card mode, the next card first (local), then the reveal |
+| `K` | Cue cards on / off (**local**, remembered) |
+| `Enter` | Forward, like Space – except in cue-card mode, where it is the next slide (broadcasts) |
+| `1`-`9`, `Esc` | Local to speaker, never broadcast (expansions are audience-only) |
 | `N` | Opens the audience-visible annotation on the current chunk, as on the audience: the box fills the stage while typing, the room reads along. `Shift`-`N` is the private notes pane |
 | `C` | Cycle collapse (broadcasts) |
 | `+` `-` `0` | Zoom (broadcasts) |

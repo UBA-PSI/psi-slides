@@ -8836,6 +8836,17 @@ const viewHooks = {
   onActiveChange: () => {},
   onStateChange: () => {},
   shouldBroadcast: () => true,
+  // The cockpit's cue cards sit in front of the reveal counter: a forward
+  // press is consumed by a card before it reaches advanceReveal, and a back
+  // press by the card before it. Both default to "not consumed", so the
+  // audience never sees them. They are hooks on goForward and goBack
+  // rather than cases in the key map so that a key, the touch rail and a
+  // presenter's button all go through one cursor - a second path is how
+  // a click comes to count differently from a key.
+  consumeForward: () => false,
+  consumeBack: () => false,
+  onEnter: () => false,
+  onK: () => {},
 };
 
 const stage = document.getElementById('stage');
@@ -9381,6 +9392,7 @@ function applyRemoteState(payload) {
   } finally {
     isApplyingRemote = false;
   }
+  viewHooks.onStateChange();
 }
 window.addEventListener('message', (ev) => {
   // Same-origin only. Until ::: embed there were no other windows posting
@@ -10539,11 +10551,13 @@ function unfocusAsStage() {
   return true;
 }
 function goForward() {
-  if (advanceReveal() || unfocusAsStage()) return;
+  if (viewHooks.consumeForward()) return;
+  if (advanceReveal() || unfocusAsStage()) { viewHooks.onStateChange(); return; }
   nextChunk();
 }
 function goBack() {
-  if (retreatReveal() || unfocusAsStage()) return;
+  if (viewHooks.consumeBack()) return;
+  if (retreatReveal() || unfocusAsStage()) { viewHooks.onStateChange(); return; }
   prevChunk();
 }
 
@@ -11983,6 +11997,7 @@ document.addEventListener('keydown', (e) => {
     }
     case 'Enter': {
       if (overview) { toggleOverview(); e.preventDefault(); break; }
+      if (viewHooks.onEnter()) { e.preventDefault(); break; }
       goForward();
       e.preventDefault(); break;
     }
@@ -12047,6 +12062,7 @@ document.addEventListener('keydown', (e) => {
     case 'a': case 'A': cycleTheme(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'l': case 'L': cycleSlideNums(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
+    case 'k': case 'K': if (overview) break; viewHooks.onK(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
     case '/': startSearch(); e.preventDefault(); break;
     case '#': cycleAutoFit(1); e.preventDefault(); break;

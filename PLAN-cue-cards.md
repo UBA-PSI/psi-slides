@@ -19,7 +19,7 @@ visuelle Unruhe ist. Abweichend vom Entwurf: der Spiegel deutlich kleiner,
 der Redetext bekommt den Platz; und der Redetext serifenlos (die
 Sans-Familie der Vorlesung), nicht in der Serifen.
 
-Status: Plan geschrieben, Bau läuft. Keine Änderung am Quellformat, die einen
+Status: alle sieben Slices gebaut und im Browser geprüft; die Gates und der Spec sind grün. Was noch aussteht, steht in §13. Keine Änderung am Quellformat, die einen
 bestehenden `source.md` anders baut – das Feature liest nur ein Feld mehr.
 
 ## 1. Die drei Entscheidungen
@@ -383,7 +383,7 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
 - [x] Slice 4 Kartenspalte + Layout – `body.cue-cards`-Grid (Spiegel links oben mit `aspect-ratio`, Preview-Strip darunter vertikal, Karten rechts), `#cue-cards` mit Kopfzeile und Spur, `K` + Footer-Knopf `▤ cards` + `psi-slides:cue-cards` in localStorage, Shift-N verlässt den Modus
 - [x] Slice 5 Cursor – `viewHooks.consumeForward/consumeBack/onEnter/onK`, `cueEntries()` als Liste in Dokumentreihenfolge, Cursor `{id, seg, card}`; im Browser durchgespielt: 9× Space und 9× Backspace über drei Segmente, jeder Backspace macht genau einen Space rückgängig
 - [x] Slice 6 Zeitmarken + Drift – `#drift` neben der Uhr, gerundet auf zehn Sekunden, rot wenn hinten, grau wenn vorn; Bezug ist die Marke der aktuellen Karte oder der letzten davor
-- [ ] Slice 7 Spec, Tutorial, Doku
+- [x] Slice 7 Spec, Tutorial, Doku – `test/cue-cards.mjs` (zwei Fenster, 40 Prüfungen), Tutorial-Chunk `#cue-cards` mit Notes unter den passenden `---` und einer `@0:30`-Marke, speaker.md §1/§4.1/§4.2, CLAUDE.md, Authoring-Skill, test/README, CHANGELOG, HANDOFF; alle drei getrackten Lectures neu gebaut
 
 ## 12. Entscheidungen unterwegs
 
@@ -422,5 +422,44 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
   before initialization`) – in der Konsole, nicht im Build.
 - **Enter im Kartenmodus geht zur nächsten Folie**, wie gewünscht; außerhalb
   bleibt es ein Vorwärts-Schritt. Im Help-Overlay steht der Vorbehalt.
+- **Die Zeitmarke gilt nur am Absatzanfang oder allein in einer Zeile.**
+  Ein `@0:30` mitten im Absatz ist Text und fällt mit dem Rest des Absatzes
+  von der Karte – das ist im Tutorial einmal passiert und wurde dort
+  korrigiert. Eine Marke „irgendwo im Absatz“ wäre leicht zu lesen, aber
+  dann ist eine Uhrzeit im Redetext („um 12:30 …“) mit `@` davor eine
+  Falle; Absatzanfang ist die Absicht.
+- **Kartenspalte maximal 34em breit, linksbündig neben dem Spiegel.** Auf
+  einem breiten Cockpit-Fenster bleibt rechts Luft; das ist gewollt, weil
+  der Blick vom Spiegel nach rechts in die Karten geht und eine Zeile über
+  die halbe Bildschirmbreite nicht mehr aus dem Augenwinkel lesbar ist.
+- **Der Cursor sitzt auf 28 % der Spaltenhöhe.** Erledigtes scrollt nach
+  oben weg, Kommendes hat zwei Drittel der Höhe.
 
 ## 13. Offene Fragen an den Autor
+
+Gebaut ist jeweils die erste Variante; die zweite ist ein kleiner Umbau.
+
+1. **Enter auf der Fernbedienung.** Enter geht im Kartenmodus zur nächsten
+   Folie. Sendet dein Presenter „weiter“ als Enter (die meisten senden
+   PageDown oder `→`), springt er Folien. Alternative: Enter nur mit einem
+   Modifier (`Shift-Enter`) springen lassen und Enter wie Space behandeln.
+2. **Preview-Strip im Kartenmodus.** Er steht links unter dem Spiegel,
+   vertikal, mit −1 / now / +1. Er kostet die halbe linke Spalte. Alternative:
+   nur die nächste Folie als eine Miniatur, oder gar keine – die Spalte
+   nennt die nächste Folie ohnehin als letzten Eintrag.
+3. **Karten ohne Bold zeigen den ganzen Absatz** in kleinerer Type, damit
+   beim Umstellen einer alten Vorlesung nichts verschwindet. Für einen
+   ausformulierten Redetext ohne Bolds heißt das: Fließtext auf der Karte,
+   also genau das, was der Modus vermeiden will. Alternative: die erste
+   Sätze als Bullet (wie die Collapse-Regel der Folien), der Rest weg.
+4. **Bullet = Bold-Phrase ohne Kontext.** „**Erster Klick**: der Vorgesetzte
+   kommt nicht rein“ wird zur Karte „Erster Klick“. Reicht dir das als
+   Stütze, oder soll der Satz um die Bold-Phrase mitkommen (gedimmt, die
+   Phrase hell)? Letzteres wäre näher am Entwurf und ein reiner
+   Rendering-Unterschied in `notesToCards` plus CSS.
+5. **Textarea-Overrides landen alle auf Beat 1** (§5). Wenn du in der Probe
+   im Textarea korrigierst, verlieren die Karten dieses Chunks ihre
+   Beat-Zuordnung, bis die Quelle geändert ist. Reicht das, oder soll das
+   Textarea im Kartenmodus pro Beat editierbar sein?
+6. **Uhr ohne Pause.** Siehe §12. Wenn du doch eine Pause willst: Doppelklick
+   wäre der Weg, der nicht aus Versehen passiert.

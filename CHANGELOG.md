@@ -9,6 +9,22 @@ from building the same way is a major version.
 
 ### Added
 
+- **Cue cards in the cockpit (`K`).** The notes of the active slide as cards
+  down a rail, the projection small in the corner, and Space walks the
+  cards before it walks the reveals: a `> note:` paragraph is a card, its
+  bold phrases are the bullets, and a note's place among the slide's `---`
+  says which beat it is said on. The clicks on the projector stand in the
+  same column as diamonds, so the interleaving is read rather than
+  remembered; Backspace undoes exactly one Space; Enter goes to the next
+  slide. The cursor is local to the cockpit and in front of the reveal
+  counter, so the projection never learns the cards exist and nothing in
+  the sync changes. `@12:30` on a card puts the drift beside the clock.
+  Built for a 45-minute keynote with a written-out script and minimal
+  slides. `cue-cards.mjs` is the grammar, spliced into the cockpit as text;
+  `note-in-empty-beat` is the linter's one new warning.
+- **The clock is a button over the stage,** large and tabular, and a click
+  restarts it at 0:00. It was an 11 px span in the footer.
+
 - **`D` puts a live demo on the projection.** A window or a screen of the
   machine, captured with `getDisplayMedia` and shown full-frame in the
   audience window until `D` again, so a demo can run on the laptop half of an

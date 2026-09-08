@@ -1225,6 +1225,43 @@ Chunk mit 21vw Breite links teilweise außerhalb des Rahmens (x = −39 bei
 und ist jetzt der Zustand nach Esc. Ob die Ruheposition an die neue Rolle
 angepasst gehört (unter den Text statt daneben?), ist eine offene Frage.
 
+## Cue-Cards-Slice: die Notes als Karten, der Cursor vor dem Zähler
+
+Anlass: eine 45-Minuten-Keynote mit ausformuliertem Redetext und minimalen
+Folien, bei der das Notes-Textarea im Cockpit zu schmal, zu lang und zu
+scrollbedürftig war, um aus dem Augenwinkel gelesen zu werden. Gebaut auf dem
+Branch `cue-cards`, Plan und Bautagebuch in `PLAN-cue-cards.md` (§11–13:
+Fortschritt, Entscheidungen unterwegs, offene Fragen).
+
+Was gelandet ist:
+
+- **`K` im Cockpit**: die Notes des aktiven Chunks als Karten auf einer Spur,
+  der Spiegel klein links oben, die Uhr in der Kopfzeile. Absatz = Karte,
+  Bold = Bullet, `####` = Titel, `@mm:ss` = Sollzeit mit Drift neben der Uhr.
+  Space geht über die Karten, dann über die echten Reveals (als Rauten in
+  derselben Spalte), dann zur nächsten Folie; Backspace macht genau einen
+  Space rückgängig; Enter überspringt die Karten. Entwurf „Spur“ von zwei
+  visuellen Entwürfen, gewählt wegen des geringeren Chromes.
+- **Der Cursor sitzt vor `revealed[chunkId]`** über zwei neue `viewHooks`
+  (`consumeForward`, `consumeBack`) in `goForward`/`goBack`. Kein neues
+  Sync-Feld, Audience unverändert; das ist die Entscheidung, an der alles
+  andere hängt.
+- **Parser**: `noteSegments()` gibt jeder Note ihr Segment; zwei Regeln
+  obendrauf (leeres Segment rutscht zurück; Notes nur im letzten Segment
+  sind Chunk-Notes auf Beat 1, damit kein bestehendes Deck wandert). lint.js
+  spiegelt und warnt `note-in-empty-beat`.
+- **`cue-cards.mjs`**, zero-dep, als Text ins Cockpit gespleißt wie
+  `diagram-core.mjs`; neuntes Gate; Browser-Spec `cue-cards` mit zwei
+  Fenstern.
+- **Die Uhr** ist aus dem Footer raus: großer Button über dem Letterbox-Rand,
+  Klick = Neustart. Keine Pause, absichtlich.
+
+Was unterwegs biss: die Positionsregel hätte jedes bestehende Deck auf den
+letzten Beat gelegt (daher die Chunk-Notes-Regel); ein Aufruf aus
+`renderTimer` in die Karten-Variablen lief in die TDZ, weil die Uhr im Skript
+vor den Karten steht (daher zwei Intervalle); ein `\s` im Template-Literal,
+das das `inlined`-Gate sofort fand.
+
 ## Gaps / Bekannte Limits
 
 - **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.

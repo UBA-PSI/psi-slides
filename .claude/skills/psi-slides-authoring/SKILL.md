@@ -381,6 +381,50 @@ before the first chunk attaches to the next chunk.
 Notes are the right home for reminders, caveats, timing, demo fallbacks, and
 anything you say aloud but would not project.
 
+### Notes as cue cards
+
+The cockpit can show the notes as **cue cards** (`K`): a column of cards for
+the active slide, the projection small in the corner, and Space walks the
+cards before it walks the reveals. Write the notes so that reads well from
+the corner of an eye:
+
+- **A paragraph is a card, its bold phrases are the bullets.** The rest of
+  the paragraph is dropped on the card (it stays in `print-notes.html`), so
+  bold the words you want to see, not the words you want to stress. A
+  paragraph with no bold shows whole, in smaller type.
+- **A list is a card with its items as bullets**, as written.
+- **`#### Title`** above a paragraph titles the card.
+- **`@12:30`** – alone on a line above a paragraph, or at its start – is when
+  the card should be reached, counted from the start of the talk. The
+  cockpit shows the drift beside the clock (`+0:40` behind, `−0:20` ahead).
+- **Where the note stands is when it is said.** A note before the first
+  `---` belongs to the beat the slide opens on, a note after it to the beat
+  that `---` opens. Only a top-level `---` counts; a `---` inside a pane or a
+  card row is a beat marker, not a segment. A chunk whose notes all sit
+  after its last segment (the way every deck was written before this) shows
+  them all on the first beat, so nothing you have written moves.
+
+```md
+## free: The process as it runs {#process}
+
+**Request → time sheet → ~~approval: supervisor~~**
+
+> note: It is **not the system**.
+>
+> **First click**: the supervisor cannot log in.
+
+---
+
+↳ **a mail to Ms K. → approval by HR**
+
+> note: #### Second click
+> @4:00 The secretary **mails Ms K.**, who approves with **HR's rights**.
+```
+
+The linter warns `note-in-empty-beat` when a note stands alone behind a
+`---` that is not the last one: the cards would show it a beat earlier than
+you probably meant.
+
 ## Images
 
 ```md

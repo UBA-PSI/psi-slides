@@ -22,7 +22,7 @@ node test/run.mjs                   # all specs
 node test/run.mjs nav               # specs whose name matches
 ```
 
-## The gates: eight contracts
+## The gates: nine contracts
 
 Both `diagram-core.mjs` and `lint.js` are zero-dependency, which is what makes
 this suite runnable with nothing installed.
@@ -33,6 +33,7 @@ this suite runnable with nothing installed.
 | `accepts` | every construct still parses |
 | `semantics` | the emitted SVG *means* what the source says, plus what the source means to the editor that rewrites it – the span table |
 | `corpus` | every `::: draw` block in the repository still compiles, and each file holds exactly the number it is said to |
+| `cue-cards` | the note-to-cards grammar in `cue-cards.mjs`, rule by rule, and that the module reaches `speaker.html` as `window.PSI_CARDS` |
 | `step-classes` | which classes a beat can carry, derived from `DG_STEP_FIXED` rather than restated |
 | `inlined` | the two characters that mean something else inside build.js's own template literals |
 | `tails` | the one `{…}` tail parser and the `::: draw` opener parser in `tails.mjs`: every code, the written-default rule, the formatter round trip |
@@ -94,9 +95,17 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The seven specs that build a deck of their own
+### The eight specs that build a deck of their own
 
 Three different reasons, and the third is the one to remember.
+
+**Because the property is about two windows** – `cue-cards` opens the cockpit
+from the projection with `S` on a fixture and, after every Space and
+Backspace, reads `revealed` and `activeIdx` in both: the cursor in front of
+the counter exists so that the room never learns the cards do. The same
+fixture carries the parser's note-position rule, read off the built page,
+and lint.js's mirror of it, because both need `parseLecture` and the gates
+cannot load it.
 
 **Because nothing that ships can reach the case** – `math-focus` (no lecture has
 a two-row display formula), `side-anchor` (nothing writes `::: side {.middle}`
