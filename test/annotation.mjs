@@ -113,8 +113,8 @@ export async function run({ page, report, press, walkTo }) {
   ok(block.align === 'left', 'its lines are left-aligned', block.align);
   ok(near(block.ta.x + block.ta.w / 2, vp.width / 2, 3),
     'and the block is centred', String(block.ta.x + block.ta.w / 2));
-  ok(block.ta.w <= 0.7 * (vp.width - 2 * 0.14 * vp.width) + 1,
-    'inside 70% of the frame', String(block.ta.w));
+  ok(block.ta.w <= 0.85 * vp.width + 1,
+    'inside 85% of the frame', String(block.ta.w));
 
   // An address: the code appears above the words, sized between a fifth and
   // half of the frame, and it is the library's own drawing of that string.

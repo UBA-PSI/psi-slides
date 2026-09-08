@@ -80,7 +80,7 @@ from building the same way is a major version.
   margin note the room read at 0.56em, fine for a remark, useless for the
   word the talk turned out to need. Now the box fills the frame over a
   near-opaque scrim and the type is sized from the text alone: the largest
-  size at which the longest line stands in 70% of the frame and every line in
+  size at which the longest line stands in 85% of the frame and every line in
   its height, capped at three slide sizes. A word stands large and centred,
   several lines as a left-aligned block of their longest line's width (one
   rule, not two – the block is as wide as its longest line), ASCII art keeps

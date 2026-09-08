@@ -1175,7 +1175,7 @@ Was gebaut wurde, in vier Sätzen. Der Chunk nimmt mit `.annot-visible` die
 Folienhöhe (wie ein Backdrop-Chunk), `.chunk-content` verliert für die Dauer
 sein `position: relative`, und die bestehende `.annot-box` wird ein
 `inset: 0`-Layer mit Scrim. `fitAnnotation()` in `AUDIENCE_JS` setzt drei
-Custom Properties aus dem Text allein: Schriftgröße (längste Zeile in 70 %
+Custom Properties aus dem Text allein: Schriftgröße (längste Zeile in 85 %
 der Breite, alle Zeilen in der Höhe, Deckel 3× Folienschrift, Untergrenze
 0,35× – darunter wird umbrochen, nicht weiter geschrumpft), Blockbreite
 (genau die längste Zeile, deshalb ist ein Wort zentriert und ein Block

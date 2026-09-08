@@ -2884,7 +2884,9 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
      rather than losing its first lines above the frame to the centring */
   justify-content: safe center;
   gap: calc(var(--slide-h) * 0.03);
-  padding: var(--slide-pad-y) var(--slide-pad-x);
+  /* 7.5% a side, not the slide's 14%: the longest line may take 85% of the
+     frame before the type shrinks (fitAnnotation reads the inner width) */
+  padding: var(--slide-pad-y) 7.5%;
   border: 0;
   background: color-mix(in oklch, var(--paper) 96%, transparent);
   /* above the overlay layer and the slide number (3) and an open expansion
@@ -11491,7 +11493,7 @@ function autosize(ta) {
 // the keystrokes it already got and runs the same arithmetic.
 //
 // The size is one rule, not a short/long switch: the largest type at which
-// the longest line stands in 70% of the frame and every line in its height,
+// the longest line stands in 85% of the frame and every line in its height,
 // capped at three times the slide's own size. A word lands on the cap, a
 // sentence is held by the width, ASCII art by its longest line, a long note
 // by the height. Below 0.35 of the slide's type the lines wrap instead of
@@ -11560,7 +11562,7 @@ function fitAnnotation(entry) {
   const lines = (ta.value || ta.placeholder || ' ').split('\n');
   const chars = Math.max(1, ...lines.map(l => l.length)) + 1;   // one for the caret
   const url = annotUrl(ta.value);
-  const maxW = 0.7 * W;
+  const maxW = W;                 // 85% of the frame: the layer's own padding
   const textRoom = url ? H * (1 - ANNOT_QR_MIN) - gap : H;
   let fs = Math.min(base * ANNOT_CAP, maxW / (chars * cw), textRoom / (lines.length * ANNOT_LH));
   fs = Math.max(fs, base * ANNOT_FLOOR);
