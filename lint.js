@@ -2383,6 +2383,17 @@ function lintFile(filePath) {
   // before the body is rendered. We mirror that here so density budgets
   // reflect the on-slide prose, not the meta-text.
   let inMetaBlock = false;
+  // The cue-card mode of the cockpit reads each `> note:` block as said
+  // while the reveal segment it stands in is on the screen (build.js
+  // `noteSegments`). Only a top-level `---` opens a segment - one inside a
+  // pane or a card row is a beat marker, not a split - and a note in a
+  // segment that holds nothing else slides back to the previous one. That
+  // slide is silent in the build, so it is named here when the empty
+  // segment is not the chunk's last: the author probably meant the note
+  // for the beat the `---` opens, and the build will show it one earlier.
+  let noteSegs = [];        // { ln, seg } per note block, seg = raw segment index
+  let rawSegHasText = [];   // per raw segment: does any body line stand in it
+  let rawSeg = 0;
 
   const flushChunk = () => {
     // A divider's own card row, left open: the build captures every line
@@ -2507,6 +2518,14 @@ function lintFile(filePath) {
             + `write from ${beats + 1} or add a --- / step it can follow`);
       }
     }
+    for (const n of noteSegs) {
+      if (!rawSegHasText[n.seg] && n.seg < rawSeg) {
+        add(n.ln, 'warn', 'note-in-empty-beat',
+            'this > note: stands alone behind a --- with no slide text after it before the next --- – '
+            + 'the cue cards show it one beat earlier, with the previous segment; '
+            + 'move it behind the next ---, or give this beat its text');
+      }
+    }
     chunk.hasReveal = chunkHasReveal;
     col.chunks.push(chunk);
     chunk = null;
@@ -2520,6 +2539,7 @@ function lintFile(filePath) {
     chunkOverlays = [];
     exposedWords = 0;
     chunkHasDrawing = false;
+    noteSegs = []; rawSegHasText = []; rawSeg = 0;
   };
 
   // What is open around a line, asked the way build.js asks it. The two
@@ -3167,6 +3187,7 @@ function lintFile(filePath) {
       chunkHasReveal = true;
       chunkReveals += 1;
       inMetaBlock = false;
+      if (!activeDirective && !layoutStack.length) rawSeg += 1;
       continue;
     }
 
@@ -3175,11 +3196,13 @@ function lintFile(filePath) {
       for (const m of bare.matchAll(/\]\(#([^)\s]+)\)/g)) dockLinks.push({ id: decodeURIComponent(m[1]), ln });
     }
     if (chunk) {
+      if (/^>\s*note:/i.test(line)) noteSegs.push({ ln, seg: rawSeg });
       if (/^>\s*(note|annot):/i.test(line)) { inMetaBlock = true; continue; }
       if (inMetaBlock) {
         if (/^>/.test(line)) continue;
         inMetaBlock = false;
       }
+      if (line.trim() && !/^:::\s*$/.test(line)) rawSegHasText[rawSeg] = true;
       // Density is a budget on what the *projector* shows, so explicit
       // blocks are counted separately: ::: slide content is the slide,
       // ::: script content is narration that never reaches the screen.

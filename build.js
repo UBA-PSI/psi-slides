@@ -3055,6 +3055,41 @@ function splitHeading(text) {
 // first, then the card row under both. Hidden in print by the stylesheet.
 const BEAT_MARK = '<div class="beat-mark"></div>';
 
+// Which reveal segment each speaker note belongs to - the position rule of
+// the cockpit's cue-card mode: a note before the first `---` is said while
+// beat 1 is on the screen, a note after it while beat 2 is, and so on.
+// `at` is the bodyLines index the note stood before, `segments` the raw
+// split (empty ones included, because a `---` followed by nothing but a
+// note is a real case). Two rules on top of the position:
+//  - a note in an empty segment belongs to the previous non-empty one, and
+//    the index is into the non-empty list, which is what the renderer ships;
+//  - a chunk whose notes all sit in its LAST non-empty segment has
+//    chunk-level notes and gets 0 for every one of them. That is where every
+//    deck written before this rule keeps its notes - after the last
+//    segment's text - and the position rule alone would put the whole
+//    support after the last click. The moment one note stands in an earlier
+//    segment, the author is using positions and the rule is off for the
+//    chunk. The linter mirrors this in `noteSegments` of its own.
+function noteSegments(bodyLines, segments, noteAt) {
+  if (!noteAt || !noteAt.length) return [];
+  // raw segment index -> index among the non-empty ones (or that of the
+  // previous non-empty one, or 0)
+  const rawToNonEmpty = [];
+  let seen = -1;
+  segments.forEach((seg) => { if (seg.length) seen += 1; rawToNonEmpty.push(Math.max(0, seen)); });
+  // separator positions: the bodyLines index of every top-level `---`
+  const seps = [];
+  let fence = false;
+  bodyLines.forEach((line, i) => {
+    if (/^```/.test(line)) { fence = !fence; return; }
+    if (!fence && line.trim() === '---') seps.push(i);
+  });
+  const segs = noteAt.map(at => rawToNonEmpty[seps.filter(i => i < at).length] ?? 0);
+  const last = Math.max(0, segments.filter(s => s.length).length - 1);
+  if (last > 0 && segs.every(k => k === last)) return segs.map(() => 0);
+  return segs;
+}
+
 function parseLecture(src) {
   // Windows line endings. Every matcher below anchors on `$`, and a `\r`
   // before it made every heading and every directive miss - a CRLF source
@@ -3341,8 +3376,16 @@ function parseLecture(src) {
     if (!noteBlock) return;
     const text = noteBlock.lines.join('\n').trim();
     if (text) {
-      if (currentChunk) currentChunk.speakerNotes.push(text);
-      else pendingNotes.push(text);  // orphan – attach to the next chunk
+      if (currentChunk) {
+        currentChunk.speakerNotes.push(text);
+        // The body line the note stood before. flushChunk turns it into
+        // the reveal segment the note belongs to (speakerNoteSegs), which
+        // is what the cockpit's cue-card mode reads. The note line itself
+        // is never pushed to bodyLines, so this is the index of whatever
+        // body line follows it - a `---` right after the note therefore
+        // does not count for it.
+        currentChunk.speakerNoteAt.push(bodyLines.length);
+      } else pendingNotes.push(text);  // orphan – attach to the next chunk
     }
     noteBlock = null;
   };
@@ -3428,6 +3471,8 @@ function parseLecture(src) {
     if (cur.length) segments.push(cur.join('\n').trim());
     const nonEmpty = segments.filter(s => s.length);
     currentChunk.segments = nonEmpty;
+    currentChunk.speakerNoteSegs = noteSegments(bodyLines, segments, currentChunk.speakerNoteAt);
+    delete currentChunk.speakerNoteAt;
     // Print collapses reveals: `body` is every segment joined, so the
     // print renderer can stay oblivious to the reveal split.
     currentChunk.body = nonEmpty.join('\n\n');
@@ -3657,6 +3702,9 @@ function parseLecture(src) {
           backdrop: null,
           dock: null,
           speakerNotes: pendingNotes,
+          // A note written before the chunk stands before its first body
+          // line: segment 0.
+          speakerNoteAt: pendingNotes.map(() => 0),
           annotation: pendingAnnotation,
         };
         pendingNotes = [];
@@ -14744,6 +14792,16 @@ function renderSpeaker(lecture, opts = {}) {
       noteTemplates.push(
         `<template data-notes-for="${escapeHtml(c.id)}">${escapeHtml(raw)}</template>`
       );
+      // The same blocks once more, one template each, with the reveal
+      // segment the block stood in (parser: noteSegments). The cue-card
+      // mode reads these; the textarea, --squint and the overrides keep
+      // reading the joined one above, so neither knows about the other.
+      c.speakerNotes.forEach((n, k) => {
+        const seg = (c.speakerNoteSegs || [])[k] ?? 0;
+        noteTemplates.push(
+          `<template data-cards-for="${escapeHtml(c.id)}" data-seg="${seg}">${escapeHtml(n)}</template>`
+        );
+      });
     }
   }
 
