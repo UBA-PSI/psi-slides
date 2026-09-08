@@ -434,6 +434,12 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
   die halbe Bildschirmbreite nicht mehr aus dem Augenwinkel lesbar ist.
 - **Der Cursor sitzt auf 28 % der Spaltenhöhe.** Erledigtes scrollt nach
   oben weg, Kommendes hat zwei Drittel der Höhe.
+- **Ein Teiler heißt nach seiner Spalte.** Der letzte Eintrag der Spur nennt
+  die nächste Folie; ist das ein `section:`-Teiler, hat der kein Heading, und
+  der Eintrag hieß „slide 2 · slide 2“. Jetzt „next part · ‹Spaltentitel›“.
+- **Die Consume-Hooks binden den Cursor selbst.** Beim Laden hat sich noch
+  nichts bewegt, `onActiveChange` ist nicht gefallen, und der erste Space
+  hätte gegen einen Cursor gezählt, der zu keinem Chunk gehört (`cueBind`).
 
 ## 13. Offene Fragen an den Autor
 
@@ -463,3 +469,12 @@ Gebaut ist jeweils die erste Variante; die zweite ist ein kleiner Umbau.
    Textarea im Kartenmodus pro Beat editierbar sein?
 6. **Uhr ohne Pause.** Siehe §12. Wenn du doch eine Pause willst: Doppelklick
    wäre der Weg, der nicht aus Versehen passiert.
+7. **Diagrammschritte tragen keine Karten** (§2, „Nur top-level `---` zählt“).
+   Ein `::: draw` mit drei `step`-Blöcken bekommt alle Karten des Chunks auf
+   Beat 1 und die drei Klicks danach – die Verzahnung, die `---` gibt, fehlt.
+   Das fällt beim ersten echten Vortrag auf: „Erster Klick … zweiter Klick …“
+   ist genau die Stelle. Der Umbau ist in §2 beschrieben (Parser zählt
+   `BEAT_MARK`-Pushes und `model.steps.length` mit) und hat den Preis einer
+   zweiten Stelle, die mit `chunkBeats` kongruent bleiben muss. In
+   `lectures/keynote-2036` sind Folie 5 und 6 deshalb mit `---` gebaut und
+   nicht als Figur mit Schritten.

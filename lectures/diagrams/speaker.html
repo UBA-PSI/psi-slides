@@ -14484,6 +14484,9 @@ function cueText(node, max) {
 function cueChunkTitle(entry) {
   const h = entry.el.querySelector('.chunk-heading');
   if (h) return cueText(h, 80);
+  // A column's divider carries no chunk heading - what names it is the
+  // column, which is also what the room is about to read on it.
+  if (entry.el.dataset.tag === 'section') return cueColumnTitle(entry) || 'the next part';
   const p = entry.el.querySelector('.reveal-segment p, .chunk-content p, p');
   return cueText(p, 60) || ('slide ' + (flatChunks.indexOf(entry) + 1));
 }
@@ -14518,7 +14521,10 @@ function cueEntries(entry) {
   // backdrop's frames - are still advances on the counter.
   for (let p = beats.length + 2; p <= total; p++) out.push({ type: 'step', at: p, k: 'advance', what: '' });
   const nxt = flatChunks[state.activeIdx + 1];
-  out.push({ type: 'chunk', k: nxt ? 'slide ' + (state.activeIdx + 2) : 'end', what: nxt ? cueChunkTitle(nxt) : 'the last slide' });
+  const nxtK = !nxt ? 'end'
+    : nxt.el.dataset.tag === 'section' ? 'next part'
+    : 'slide ' + (state.activeIdx + 2);
+  out.push({ type: 'chunk', k: nxtK, what: nxt ? cueChunkTitle(nxt) : 'the last slide' });
   // consumed or not, and the first that is not is the cursor
   let cur = -1;
   out.forEach((e, i) => {
@@ -14532,9 +14538,7 @@ function cueEntries(entry) {
 // a new segment going forward starts its cards from the first; arriving
 // going back lands past its last, so the next Backspace takes the last
 // card - each press back undoes one press forward.
-function cueSync() {
-  const entry = flatChunks[state.activeIdx];
-  if (!entry) return;
+function cueBind(entry) {
   const { seg, pos, segCount } = cuePosition(entry);
   if (cue.id !== entry.id || cue.seg !== seg) {
     const back = state.activeIdx < cueLast.idx || (state.activeIdx === cueLast.idx && pos < cueLast.pos);
@@ -14542,12 +14546,22 @@ function cueSync() {
     cue = { id: entry.id, seg, card: back ? n : 0 };
   }
   cueLast = { idx: state.activeIdx, pos };
+}
+// Called from onActiveChange and onStateChange, so the cursor follows a jump,
+// a TOC pick, a remote apply - anything that moves the deck. The two consume
+// hooks bind too: at boot nothing has moved yet, so a first Space would
+// otherwise count against a cursor belonging to no chunk.
+function cueSync() {
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return;
+  cueBind(entry);
   if (cueOn()) cueRender();
 }
 viewHooks.consumeForward = () => {
   if (!cueOn() || overview) return false;
   const entry = flatChunks[state.activeIdx];
   if (!entry) return false;
+  cueBind(entry);
   const { out, cur } = cueEntries(entry);
   if (cur < 0 || out[cur].type !== 'card') return false;
   cue.card += 1;
@@ -14558,6 +14572,7 @@ viewHooks.consumeBack = () => {
   if (!cueOn() || overview) return false;
   const entry = flatChunks[state.activeIdx];
   if (!entry) return false;
+  cueBind(entry);
   const { out, cur, curSeg } = cueEntries(entry);
   const prev = cur < 0 ? out[out.length - 1] : out[cur - 1];
   if (!prev || prev.type !== 'card' || prev.seg !== curSeg || cue.card <= 0) return false;
