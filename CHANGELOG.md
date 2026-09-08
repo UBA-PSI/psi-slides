@@ -7,6 +7,22 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Added
+
+- **`D` puts a live demo on the projection.** A window or a screen of the
+  machine, captured with `getDisplayMedia` and shown full-frame in the
+  audience window until `D` again, so a demo can run on the laptop half of an
+  extended desktop without mirroring the displays around it and losing every
+  window position on the way back. Pressed in the cockpit, the picker opens on
+  the laptop and the room sees the picture; running alone, the audience window
+  captures and shows for itself. Served over http (`--serve`) the two windows
+  share an origin and the projection plays the cockpit's stream directly, with
+  no encoder in between; from `file://` the stream crosses through an
+  `RTCPeerConnection` on loopback, signalled over the existing `postMessage`
+  link, at the cost of one encode. Ungated like `B`, outside the snapshot, and
+  blank hides it like everything else. Chrome's own "stop sharing" bar ends it
+  too. macOS asks once for screen-recording rights for the browser.
+
 ### Changed
 
 - **The `::: draw` opener has no braces: `::: draw 150x56 autoplay 1200 cycle`.**

@@ -30,11 +30,14 @@ The audience is the **state root**. The speaker owns a **local shadow** of the s
 
 `frozen` is the projector's metaphor, not the protocol's. It started life as a `pushEnabled` toggle with a companion `.` key that force-pushed one snapshot – two controls describing what the code does (send a snapshot) rather than what the lecturer wants (hold the image while I read ahead). Inverting and renaming it collapses the pair into one: thawing *is* the resync, because the first thing an ungated broadcast does is hand the room the current state. `toggleFreeze()` therefore sends a snapshot directly on the way out of frozen, or unfreezing on the slide you meant to land on would appear to do nothing.
 
-Four message types deliberately bypass the freeze gate, because all four are commands to the projector rather than shared state:
+Five message families deliberately bypass the freeze gate, because all of them are commands to the projector rather than shared state:
 
 - `blank` – `B` must reach the projection whether or not the cockpit is frozen. It is the key you hit when something has to come off the screen *now*, and a gated `B` would toast “projection blanked” at a projection that stayed lit.
 - `slide-ref` – the audience window's dimensions after a resize (§3).
 - `link-show` / `link-hide` – the address overlay, below.
+- `demo` (`{action: 'live' | 'stop'}`) plus `demo-offer` / `demo-answer` / `demo-ice` – the live demo, below.
+
+**Live demo (`D`).** A window or a screen of the machine, captured with `getDisplayMedia` and shown on the projection as video, so a demo can run on the laptop screen of an extended desktop without mirroring the displays around it. The capture has to start from a key press in the window that calls the API, and the picker opens in that window – so the cockpit captures and the projection shows, which puts the picker on the laptop and never on the wall. Running alone, the audience window captures and shows for itself. How the stream crosses to the other window is decided at run time: served over http (`--serve`) both windows share an origin and the audience plays the cockpit's `MediaStream` directly through `peer.psiDemoAttach(stream)` – no copy, no encoder; from `file://` that call throws and the stream goes through an `RTCPeerConnection` on loopback, its offer, answer and ICE candidates carried by the three `demo-*` messages. Chromium 141 cannot transfer a `MediaStreamTrack` between windows in either case, which is why the direct path is a call and not a `postMessage` transfer. `D` in either window ends it on both; so does Chrome's own “stop sharing” bar. A stop is always also a message, because `track.stop()` fires no `ended` on the far side. Blank hides the demo overlay on the projection like everything else while the capture keeps running. Not in the snapshot: a stream cannot be re-applied from one, only its holder can hand it over again. So the projection sends `hello` whenever it adopts a peer – a cockpit that booted, or the one it lost to its own reload – and a window holding a capture answers any `hello` by delivering it again (`demoAnnounce`). A reloaded projection gets the picture back on the cockpit's next push; a cockpit opened with `S` under a demo the projection started alone learns of it and shows the badge.
 
 **Three message types travel outside the snapshot but are still gated**, because they are shared state that simply must not be folded into a full apply: `video`, `embed` and `diagram-edit`. `applyRemoteState` is a *full* apply, so a snapshot sent to carry one of these would drag the receiver's slide position along with it. Each is addressed by the thing's own identity rather than by index – `data-fig-id` for a clip, the diagram's own id for an edit – so reordering a chunk cannot mis-target one, and each is echo-suppressed, because applying a remote change fires the local event that would otherwise bounce straight back.
 
@@ -43,6 +46,8 @@ Four message types deliberately bypass the freeze gate, because all four are com
 | `video` | `{figId, action, time}` | either, on play / pause / seek |
 | `embed` | `{figId, action, time}` | either, on a player transition |
 | `diagram-edit` | `{id, source}` | either, on every committed edit in the diagram editor |
+| `demo` | `{action}` | either, ungated (see above) – `live` when a capture starts, `stop` from whichever window ends it |
+| `demo-offer` / `demo-answer` / `demo-ice` | `{sdp}` / `{sdp}` / `{candidate}` | the WebRTC handshake, `file://` only – the capturing window offers, the showing window answers |
 
 `diagram-edit` carries the **block body**, not a diff: a diagram body is a few hundred bytes to a couple of kilobytes, and the receiver re-runs the same compiler over it. That is what makes freeze work the way a lecturer expects – freeze, fix the figure, unfreeze, and the room gets the finished picture, because the receiver simply never saw the intermediate states. A private editing mode is therefore not a separate feature; it is `V`, and the editor says which of the two it is in, in one line of chrome.
 
@@ -102,7 +107,7 @@ The speaker's “next previews” always render chunks **fully revealed** regard
 
 ## 3. Message protocol
 
-Transport: `window.postMessage(msg, '*')` between the two windows. The audience holds the speaker reference returned by `window.open(...)`; the speaker holds `window.opener`. Both views adopt any inbound `ev.source` as their peer, so an audience reload while the speaker is alive recovers the link the moment the speaker next pushes.
+Transport: `window.postMessage(msg, '*')` between the two windows. The audience holds the speaker reference returned by `window.open(...)`; the speaker holds `window.opener`. Both views adopt any inbound `ev.source` as their peer, so an audience reload while the speaker is alive recovers the link the moment the speaker next pushes. The audience answers that adoption with a `hello` of its own, which is how a running demo is handed over again (§2).
 
 Every message is a **full snapshot**, never a diff. Snapshots are cheap, and this eliminates the class of bugs where a late-joiner sees a partially-reconstructed state.
 
@@ -213,6 +218,7 @@ Speaker inherits audience nav bindings, plus:
 | `C` | Cycle collapse (broadcasts) |
 | `+` `-` `0` | Zoom (broadcasts) |
 | `B` | Blank – broadcasts **ungated**, so it lands while frozen too |
+| `D` | **Live demo** – picks a window or a screen of this machine and puts it on the projection; `D` again ends it. Ungated, like `B` (§2) |
 | `P` | Open print.html in new tab |
 | `V` | **Freeze / thaw the projection.** Thawing resyncs the room to the speaker |
 | `Shift`-`E` | **Export annotation drafts**: copy every live `annotations[id]` as a marker-wrapped `> annot:` block to the clipboard, then ask before clearing the drafts from localStorage. A declined confirm or blocked clipboard leaves drafts untouched, so the raw notes can always be rescued on a second try. The pasted block is consumed by `node build.js <source.md> --integrate-annotations`, which moves each `> annot:` under its chunk and removes the marker block. |
