@@ -75,6 +75,28 @@ from building the same way is a major version.
 
 ### Added
 
+- **The live annotation is the slide while it is typed.** `N` used to pan the
+  camera a third of the way right and open a 21vw column beside the text – a
+  margin note the room read at 0.56em, fine for a remark, useless for the
+  word the talk turned out to need. Now the box fills the frame over a
+  near-opaque scrim and the type is sized from the text alone: the largest
+  size at which the longest line stands in 70% of the frame and every line in
+  its height, capped at three slide sizes. A word stands large and centred,
+  several lines as a left-aligned block of their longest line's width (one
+  rule, not two – the block is as wide as its longest line), ASCII art keeps
+  its columns. The last `http(s)://` address in the text gets a QR code above
+  the words, sized by what the words leave, drawn by the same encoder the
+  build uses – `qrcode-generator` now ships in both live views as text, 56 KB
+  each, print unchanged. Nothing new travels in the sync snapshot: both
+  windows derive the picture from the string they already share. `Esc`
+  leaves the note as the margin note it was; `Shift-E` and
+  `--integrate-annotations` are unchanged. `test/annotation.mjs` holds the
+  geometry, the encoding and the cockpit.
+- **QR codes encode UTF-8.** The encoder's default masked each code unit to
+  one byte, so a link with a non-Latin-1 character in its path – a Wikipedia
+  article in Cyrillic – scanned to a different string and looked right on the
+  slide. Build-time codes and the live annotation's now use `TextEncoder`;
+  an all-ASCII address encodes exactly as before.
 - **`::: dock` – a frame element the text yields to.** An overlay lies over
   the slide; a dock is part of the frame: a `left` / `right` dock is a column
   the full height of the slide and the text column narrows beside it, a

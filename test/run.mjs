@@ -26,6 +26,7 @@ const SPECS = [
   './demo.mjs',
   './expansion.mjs',
   './marginalia.mjs',
+  './annotation.mjs',
   './touch-rail.mjs',
   './text-select.mjs',
   './math-focus.mjs',

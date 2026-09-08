@@ -69,7 +69,7 @@ That is the considered answer to “can I open a page on the projector”. It is
 | `zoom` | float | text scale multiplier, whichever collapse mode is live |
 | `blanked` | bool | audience blackout |
 | `annotations` | `{id: string}` | speaker-edited, mirrors to audience |
-| `annotEditingId` | id / null | so the non-editing peer raises the box and pans along |
+| `annotEditingId` | id / null | so the non-editing peer raises the box to the frame and centres the chunk; the layer's sizes and its QR code are derived from the text on each side, never sent |
 | `openExp` | `{chunkIdx, expIdx}` | expansions are mirrored, see below |
 | `audienceW`, `audienceH` | integers | audience window dims; speaker matches its preview aspect |
 | `panDx`, `panDy` | floats | manual drag-pan, layout-space |
@@ -214,7 +214,7 @@ Speaker inherits audience nav bindings, plus:
 | `Shift`-`←` `Shift`-`→` | Previous / next column, from any chunk (broadcasts) |
 | `Space` | Advance reveal (broadcasts) |
 | `Enter`, `1`-`9`, `Esc` | Local to speaker, never broadcast (expansions are audience-only) |
-| `N` | **Local**: focuses notes pane; does not open annotation |
+| `N` | Opens the audience-visible annotation on the current chunk, as on the audience: the box fills the stage while typing, the room reads along. `Shift`-`N` is the private notes pane |
 | `C` | Cycle collapse (broadcasts) |
 | `+` `-` `0` | Zoom (broadcasts) |
 | `B` | Blank – broadcasts **ungated**, so it lands while frozen too |
@@ -263,7 +263,7 @@ Chunks can carry a source-authored annotation via `> annot:` blockquotes (see PR
 All confirmed before implementation starts:
 
 - Protocol: **full-state snapshot** per change (§3).
-- Annotations: **live sync** on every keystroke, gated by freeze.
+- Annotations: **live sync** on every keystroke, gated by freeze. The typed annotation's layout (type size, block width, QR code) is computed from the text in each window – `fitAnnotation` in `AUDIENCE_JS` – so the two never disagree and the snapshot carries no field for it.
 - Current-chunk panel: **interactive** – chevron-clicks open expansions and sync to audience.
 - Notes pane: **multi-line Markdown**. Parser collects consecutive `> note:` blockquote lines into `chunk.speakerNotes: string[]`, rendered with `marked`.
 - Projection default: **live** (not frozen). `V` toggles.

@@ -142,7 +142,7 @@ Six optional frontmatter keys pin how a lecture opens – `font`, `theme`, `coll
 
 **Hosted players** are a directive of their own, `::: embed <url>`, for YouTube and Vimeo. They are the one thing that makes an output fetch from a third party while you present, so the build says so every time. The frame loads only once its chunk is on screen and unloads when you leave it, nothing autoplays, and play/pause synchronise between projection and cockpit. YouTube additionally needs a real origin, so from a `file://` page it shows a card telling you to run `--serve`; the tutorial explains the whole thing.
 
-Two kinds of note are easy to confuse. A **note** (`> note:`) is yours, written in advance, shown in the cockpit and in the handout. An **annotation** (`N` during a talk) is typed live and the room sees it; `Shift-E` plus `--integrate-annotations` writes annotations back into `source.md` as permanent text.
+Two kinds of note are easy to confuse. A **note** (`> note:`) is yours, written in advance, shown in the cockpit and in the handout. An **annotation** (`N` during a talk) is typed live and the room sees it: while you type it fills the frame at a size the room can read, a single word large and centred, several lines as a block, an address with a QR code above it; `Esc` leaves it as a margin note. `Shift-E` plus `--integrate-annotations` writes annotations back into `source.md` as permanent text.
 
 ## Writing lectures with an LLM assistant
 
