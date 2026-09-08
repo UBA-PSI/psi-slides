@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Eight gates, and they prove eight different things – which is worth stating
+ * Nine gates, and they prove nine different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -31,6 +31,9 @@
  *   legacy-draw-syntax  the old braced ::: draw opener stays out of every
  *              source.md, and every other survivor of it is on a reviewed
  *              allowlist
+ *   cue-cards  the note-to-cards grammar in cue-cards.mjs, rule by rule,
+ *              and that the module reaches the speaker page as
+ *              window.PSI_CARDS with every export on it
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -50,6 +53,7 @@ const GATES = [
   './inlined.mjs',
   './tails.mjs',
   './legacy-draw-syntax.mjs',
+  './cue-cards.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

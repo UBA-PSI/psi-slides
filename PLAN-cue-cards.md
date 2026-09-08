@@ -378,7 +378,7 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
 ## 11. Fortschritt
 
 - [x] Slice 1 Parser + lint – `noteSegments()` in build.js, `speakerNoteSegs` parallel zu `speakerNotes`, zweites Template `data-cards-for`/`data-seg`; lint `note-in-empty-beat`. Fixture-Deck mit fünf Fällen von Hand geprüft, Korpus und Content-Repo linten ohne neue Warnung.
-- [ ] Slice 2 `cue-cards.mjs` + Gate
+- [x] Slice 2 `cue-cards.mjs` + Gate – `notesToCards`, `parseTimeMark`, `formatClock`, `plainInline`; als `window.PSI_CARDS` in speaker.html gespleißt; Gate `cue-cards` mit 26 Prüfungen, im Runner registriert.
 - [ ] Slice 3 Uhr
 - [ ] Slice 4 Kartenspalte + Layout
 - [ ] Slice 5 Cursor
@@ -394,5 +394,12 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
 - **lint.js zählt nur top-level `---`** (`!activeDirective &&
   !layoutStack.length`), wie der Build: ein `---` im Pane wird dort zu
   `BEAT_MARK` und erreicht die Segment-Aufteilung nie.
+
+- **Bullet = Bold-Phrase, ohne den Satz drumherum.** Der Entwurf zeigte
+  noch „Es ist **nicht das System**“ mit Kontext; gebaut ist die strenge
+  Regel aus §2, weil sie die Autorenarbeit klar macht: was auf der Karte
+  stehen soll, wird fett. Wer den Satz will, macht ihn fett.
+- **`@12:30` ohne `@` ist Text.** „12:30 Uhr ist spät“ am Absatzanfang darf
+  keine Sollzeit sein; das `@` ist die Absicht.
 
 ## 13. Offene Fragen an den Autor

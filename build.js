@@ -2431,6 +2431,24 @@ function diagramCoreScript() {
 let diagramCoreCache = null;
 const diagramCoreJs = () => (diagramCoreCache ??= diagramCoreScript());
 
+// The cue-card grammar, same treatment: the cockpit derives the cards from
+// the note text at run time (an override typed into the textarea during a
+// rehearsal goes the same way as the source), so the one function that does
+// it is read from cue-cards.mjs as text and lands as window.PSI_CARDS. Its
+// regexes stay out of every template literal that way.
+const CUE_CARDS_PATH = new URL('./cue-cards.mjs', import.meta.url);
+function cueCardsScript() {
+  const text = fs.readFileSync(CUE_CARDS_PATH, 'utf8');
+  const names = [...text.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)]
+    .map(m => m[1]);
+  const plain = text
+    .replace(/^export\s+(function|const|let)\s/gm, '$1 ')
+    .replace(/<\/(script)/gi, '<\\/$1');
+  return `window.PSI_CARDS = (function () {\n${plain}\nreturn { ${names.join(', ')} };\n})();`;
+}
+let cueCardsCache = null;
+const cueCardsJs = () => (cueCardsCache ??= cueCardsScript());
+
 // The editor UI and its chrome, same treatment and for the same reason: read
 // as text, so a backtick or a regex backslash in it means what it says.
 const EDITOR_JS_PATH = new URL('./editor.mjs', import.meta.url);
@@ -14887,6 +14905,9 @@ ${LINK_OVERLAY_HTML}
 ${renderTocNav(columns)}
 <script>
 ${qrLibJs()}
+</script>
+<script>
+${cueCardsJs()}
 </script>
 <script>
 const LECTURE_TITLE = ${titleJson};
