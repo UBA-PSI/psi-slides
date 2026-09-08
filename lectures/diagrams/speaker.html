@@ -5055,9 +5055,25 @@ body[data-view=speaker].cue-cards #clock {
   align-content: start;
   /* The size everything in the rail is measured against. Generous on
      purpose: this is read at a glance while talking, from a laptop that is
-     further away than a screen being worked at. */
-  font-size: clamp(17px, 2.7vh, 32px);
+     further away than a screen being worked at - and adjustable, because
+     how far away that is differs per room and per person. */
+  font-size: calc(clamp(17px, 2.7vh, 32px) * var(--cue-scale, 1));
 }
+/* Two buttons rather than a hotkey, for the reason the notes pane has two:
+   every free letter is a navigation command that would fire mid-sentence. */
+#cue-zoom { flex: 0 0 auto; display: flex; gap: 2px; opacity: 0.35; transition: opacity 120ms; }
+#cue-where:hover #cue-zoom, #cue-zoom:focus-within { opacity: 1; }
+#cue-zoom button {
+  font: 500 0.95em var(--sans-font);
+  line-height: 1;
+  width: 1.9em; height: 1.6em;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: var(--paper);
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+#cue-zoom button:hover { color: var(--ink); border-color: var(--ink-soft); }
 @media (prefers-reduced-motion: no-preference) { #cue-rail { scroll-behavior: smooth; } }
 .cue-tick { position: relative; }
 .cue-tick::before {
@@ -7016,6 +7032,10 @@ renames the thing it is about.</p>
   <header id="cue-where">
     <span id="cue-crumb"></span>
     <span id="cue-pos"></span>
+    <span id="cue-zoom">
+      <button id="cue-zoom-out" type="button" title="Smaller cards" aria-label="Smaller cards">&minus;</button>
+      <button id="cue-zoom-in" type="button" title="Larger cards" aria-label="Larger cards">+</button>
+    </span>
   </header>
   <div id="cue-rail"></div>
 </section>
@@ -14426,6 +14446,7 @@ viewHooks.onStateChange = () => { cueSync(); };
 // this beat are used up does the press reach advanceReveal and the room.
 // revealed[chunkId] stays the only thing the two windows share.
 const CUE_MODE_KEY = 'psi-slides:cue-cards';
+const CUE_SCALE_KEY = 'psi-slides:cue-scale';
 const cueRoot = document.getElementById('cue-cards');
 const cueRail = document.getElementById('cue-rail');
 const cueCrumb = document.getElementById('cue-crumb');
@@ -14473,6 +14494,26 @@ function toggleCueMode() {
   try { localStorage.setItem(CUE_MODE_KEY, on ? 'on' : 'off'); } catch (e) {}
   flashMode(on ? 'cue cards · Space says the next card, then clicks the projector' : 'classic cockpit');
 }
+// Card size, per user and across lectures like the notes-pane zoom and the
+// strip orientation: how far the laptop stands from the lectern is a
+// property of the room, not of the deck.
+function applyCueScale(v) {
+  document.documentElement.style.setProperty('--cue-scale', String(v));
+  try { localStorage.setItem(CUE_SCALE_KEY, String(v)); } catch (e) {}
+}
+function cueScale() {
+  const v = Number(document.documentElement.style.getPropertyValue('--cue-scale'));
+  return v > 0 ? v : 1;
+}
+function nudgeCueScale(d) {
+  applyCueScale(Math.min(1.8, Math.max(0.7, Math.round((cueScale() + d) * 20) / 20)));
+}
+document.getElementById('cue-zoom-in').addEventListener('click', () => nudgeCueScale(0.1));
+document.getElementById('cue-zoom-out').addEventListener('click', () => nudgeCueScale(-0.1));
+try {
+  const saved = Number(localStorage.getItem(CUE_SCALE_KEY));
+  if (saved > 0) applyCueScale(saved);
+} catch (e) {}
 viewHooks.onK = toggleCueMode;
 cueBtn.addEventListener('click', toggleCueMode);
 try { if (localStorage.getItem(CUE_MODE_KEY) === 'on') applyCueMode(true); } catch (e) {}

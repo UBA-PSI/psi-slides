@@ -397,6 +397,8 @@ the corner of an eye:
 - **`@12:30`** – alone on a line above a paragraph, or at its start – is when
   the card should be reached, counted from the start of the talk. The
   cockpit shows the drift beside the clock (`+0:40` behind, `−0:20` ahead).
+- **The cards can be scaled** with the two buttons in the cockpit header, so
+  write for the wording rather than for a size.
 - **Where the note stands is when it is said.** A note before the first
   `---` belongs to the beat the slide opens on, a note after it to the beat
   that `---` opens. Only a top-level `---` counts; a `---` inside a pane or a

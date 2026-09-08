@@ -498,6 +498,11 @@ Nach dem ersten echten Deck (`lectures/keynote-2036`, das erste Drittel einer
   aktuellen Miniatur, und die Miniatur ist per CSS ausgeblendet. Die linke
   Spalte ist ein Streifen mit der echten Projektion in der Mitte. Das Grid
   hat dafür eine Zeile weniger.
+- **Textzoom für die Karten**, zwei Knöpfe in der Kopfzeile, `--cue-scale`
+  von 0.7 bis 1.8, global gemerkt – wie der Notizfeld-Zoom und aus demselben
+  Grund keine Taste: jeder freie Buchstabe ist ein Navigationsbefehl, der
+  mitten im Satz feuern würde. Wie weit das Notebook vom Pult wegsteht, ist
+  eine Eigenschaft des Raums, nicht des Decks.
 - **Karten größer, Uhr nicht mehr abgeschnitten.** Die Basisgröße der Spur
   ist `clamp(17px, 2.7vh, 32px)`; erledigte Karten schrumpfen stärker
   (0.72em), damit die aktuelle mehr Kontrast hat. Die Kopfzeile hatte

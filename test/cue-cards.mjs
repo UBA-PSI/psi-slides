@@ -219,6 +219,11 @@ export async function run({ page, report }) {
   ok(await spk.evaluate(() => document.body.classList.contains('cue-cards')), 'K turns the cue cards on');
   ok(await spk.evaluate(() => localStorage.getItem('psi-slides:cue-cards')) === 'on', 'and remembers it');
   ok(await spk.evaluate(() => document.getElementById('clock').closest('#cue-where') !== null), 'the clock moved into the column header');
+  ok(await spk.evaluate(() => {
+    const c = document.getElementById('clock').getBoundingClientRect();
+    const h = document.getElementById('cue-where').getBoundingClientRect();
+    return c.top >= h.top - 0.5 && c.bottom <= h.bottom + 0.5 && c.height > 18;
+  }), 'and stands inside that header rather than clipped by it');
   ok(await spk.evaluate(() => document.getElementById('cue-btn').getAttribute('aria-pressed')) === 'true', 'the footer button shows pressed');
 
   let c = await cursor();
@@ -277,6 +282,18 @@ export async function run({ page, report }) {
      'then the card pinned to from 2', JSON.stringify(fig[4]));
   ok(await spk.evaluate(() => !!document.querySelector('.cue-step .cue-what')),
      'a figure beat shows the step name the author gave it');
+
+  // the two buttons that scale the cards, persisted like the notes zoom
+  const size = () => spk.evaluate(() => parseFloat(getComputedStyle(document.getElementById('cue-rail')).fontSize));
+  const s0 = await size();
+  await spk.click('#cue-zoom-in');
+  await spk.waitForTimeout(150);
+  const s1 = await size();
+  ok(s1 > s0, 'the + button makes the cards larger', s0 + ' -> ' + s1);
+  ok(await spk.evaluate(() => localStorage.getItem('psi-slides:cue-scale')) !== null, 'and remembers the size');
+  await spk.click('#cue-zoom-out');
+  await spk.waitForTimeout(150);
+  ok(Math.abs((await size()) - s0) < 0.5, 'the minus button takes it back', String(await size()));
 
   // ── the mirror is in the strip, and there is only one of it ──────
   ok(await spk.evaluate(() => document.getElementById('stage-cell').parentElement.id === 'preview-strip'),
