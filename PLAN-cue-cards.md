@@ -380,9 +380,9 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
 - [x] Slice 1 Parser + lint – `noteSegments()` in build.js, `speakerNoteSegs` parallel zu `speakerNotes`, zweites Template `data-cards-for`/`data-seg`; lint `note-in-empty-beat`. Fixture-Deck mit fünf Fällen von Hand geprüft, Korpus und Content-Repo linten ohne neue Warnung.
 - [x] Slice 2 `cue-cards.mjs` + Gate – `notesToCards`, `parseTimeMark`, `formatClock`, `plainInline`; als `window.PSI_CARDS` in speaker.html gespleißt; Gate `cue-cards` mit 26 Prüfungen, im Runner registriert.
 - [x] Slice 3 Uhr – `#clock` als Button über dem Letterbox-Rand oben rechts, `#timer` + `#drift` darin, Klick = Neustart bei 0:00, Footer-Span raus. Im Browser geprüft.
-- [ ] Slice 4 Kartenspalte + Layout
-- [ ] Slice 5 Cursor
-- [ ] Slice 6 Zeitmarken + Drift
+- [x] Slice 4 Kartenspalte + Layout – `body.cue-cards`-Grid (Spiegel links oben mit `aspect-ratio`, Preview-Strip darunter vertikal, Karten rechts), `#cue-cards` mit Kopfzeile und Spur, `K` + Footer-Knopf `▤ cards` + `psi-slides:cue-cards` in localStorage, Shift-N verlässt den Modus
+- [x] Slice 5 Cursor – `viewHooks.consumeForward/consumeBack/onEnter/onK`, `cueEntries()` als Liste in Dokumentreihenfolge, Cursor `{id, seg, card}`; im Browser durchgespielt: 9× Space und 9× Backspace über drei Segmente, jeder Backspace macht genau einen Space rückgängig
+- [x] Slice 6 Zeitmarken + Drift – `#drift` neben der Uhr, gerundet auf zehn Sekunden, rot wenn hinten, grau wenn vorn; Bezug ist die Marke der aktuellen Karte oder der letzten davor
 - [ ] Slice 7 Spec, Tutorial, Doku
 
 ## 12. Entscheidungen unterwegs
@@ -405,5 +405,22 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
   als Pause vor; gebaut ist nur der Neustart. Eine angehaltene Uhr ist einen
   Fehlklick vom Rest des Vortrags mit falscher Drift entfernt, und der
   Fall, der wirklich vorkommt, ist das zu früh geöffnete Cockpit.
+- **Zurück landet auf dem Klick, nicht auf der letzten Karte.** Der Plan
+  (§3) wollte den Cursor beim Rückwärtsgehen auf der letzten Karte des
+  Ziel-Beats; gebaut ist die Symmetrie: jeder Backspace macht genau einen
+  Space rückgängig, also steht der Cursor nach dem zurückgenommenen Reveal
+  erst auf dem „reveal“-Eintrag und dann auf der letzten Karte. Vorhersagbar
+  schlägt einen Tastendruck weniger.
+- **Der Spiegel im Kartenmodus ist derselbe DOM und dieselbe Kamera.** Er
+  zeigt deshalb, wie der klassische Spiegel ohne verbundene Audience, die
+  Nachbar-Chunks gedimmt oben und unten – kein Fehler des Modus.
+- **Drift auf zehn Sekunden gerundet.** Sekundengenau flackert die Zahl im
+  Augenwinkel; ob man 40 Sekunden hinten ist, reicht.
+- **Zwei Intervalle statt eines.** Die Uhr tickt weiter in ihrem Block, die
+  Drift in ihrem: die Uhr steht im Skript vor den Karten, und ein Aufruf aus
+  `renderTimer` in die Karten-Variablen lief in die TDZ (`Cannot access
+  before initialization`) – in der Konsole, nicht im Build.
+- **Enter im Kartenmodus geht zur nächsten Folie**, wie gewünscht; außerhalb
+  bleibt es ein Vorwärts-Schritt. Im Help-Overlay steht der Vorbehalt.
 
 ## 13. Offene Fragen an den Autor

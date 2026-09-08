@@ -11046,6 +11046,17 @@ const viewHooks = {
   onActiveChange: () => {},
   onStateChange: () => {},
   shouldBroadcast: () => true,
+  // The cockpit's cue cards sit in front of the reveal counter: a forward
+  // press is consumed by a card before it reaches advanceReveal, and a back
+  // press by the card before it. Both default to "not consumed", so the
+  // audience never sees them. They are hooks on goForward and goBack
+  // rather than cases in the key map so that a key, the touch rail and a
+  // presenter's button all go through one cursor - a second path is how
+  // a click comes to count differently from a key.
+  consumeForward: () => false,
+  consumeBack: () => false,
+  onEnter: () => false,
+  onK: () => {},
 };
 
 const stage = document.getElementById('stage');
@@ -11591,6 +11602,7 @@ function applyRemoteState(payload) {
   } finally {
     isApplyingRemote = false;
   }
+  viewHooks.onStateChange();
 }
 window.addEventListener('message', (ev) => {
   // Same-origin only. Until ::: embed there were no other windows posting
@@ -12749,11 +12761,13 @@ function unfocusAsStage() {
   return true;
 }
 function goForward() {
-  if (advanceReveal() || unfocusAsStage()) return;
+  if (viewHooks.consumeForward()) return;
+  if (advanceReveal() || unfocusAsStage()) { viewHooks.onStateChange(); return; }
   nextChunk();
 }
 function goBack() {
-  if (retreatReveal() || unfocusAsStage()) return;
+  if (viewHooks.consumeBack()) return;
+  if (retreatReveal() || unfocusAsStage()) { viewHooks.onStateChange(); return; }
   prevChunk();
 }
 
@@ -14193,6 +14207,7 @@ document.addEventListener('keydown', (e) => {
     }
     case 'Enter': {
       if (overview) { toggleOverview(); e.preventDefault(); break; }
+      if (viewHooks.onEnter()) { e.preventDefault(); break; }
       goForward();
       e.preventDefault(); break;
     }
@@ -14257,6 +14272,7 @@ document.addEventListener('keydown', (e) => {
     case 'a': case 'A': cycleTheme(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'l': case 'L': cycleSlideNums(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
+    case 'k': case 'K': if (overview) break; viewHooks.onK(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
     case '/': startSearch(); e.preventDefault(); break;
     case '#': cycleAutoFit(1); e.preventDefault(); break;
@@ -14870,6 +14886,13 @@ ${columnsHtml}
   <button id="add-note-btn" type="button" title="Open speaker notes (Shift-N)">+ note</button>
   <button id="clock" type="button" title="Elapsed since the talk began · click to restart from 0:00"><span id="timer">0:00</span><span id="drift" hidden></span></button>
 </div>
+<section id="cue-cards" aria-label="Cue cards">
+  <header id="cue-where">
+    <span id="cue-crumb"></span>
+    <span id="cue-pos"></span>
+  </header>
+  <div id="cue-rail"></div>
+</section>
 <aside id="notes-pane">
   <div id="notes-resizer" role="separator" aria-orientation="horizontal" title="Drag to resize notes · double-click to reset"></div>
   <textarea id="notes-content" rows="1" spellcheck="false" placeholder=""></textarea>
@@ -14884,6 +14907,7 @@ ${columnsHtml}
 <footer id="speaker-footer">
   <button id="freeze-btn" type="button" aria-pressed="false">● live</button>
   <button id="preview-orient-btn" type="button" title="Preview strip: along the bottom or down the right edge (Shift-V)">⇄ layout</button>
+  <button id="cue-btn" type="button" aria-pressed="false" title="Cue cards: your notes as cards, the projection small in the corner (K)">▤ cards</button>
   <button id="export-annot-btn" type="button" title="Copy live annotations as &gt; annot: Markdown (Shift-E)">export notes</button>
   <button id="speaker-help-btn" type="button" title="Keyboard and mouse reference (?)">? help</button>
   <span id="slug">${escapeHtml(slug)}</span>
@@ -15352,6 +15376,7 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
    none of them depends on remembering a letter. */
 #speaker-footer #export-annot-btn,
 #speaker-footer #preview-orient-btn,
+#speaker-footer #cue-btn,
 #speaker-footer #speaker-help-btn {
   font: inherit;
   white-space: nowrap;
@@ -15364,7 +15389,9 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
 }
 #speaker-footer #export-annot-btn:hover,
 #speaker-footer #preview-orient-btn:hover,
+#speaker-footer #cue-btn:hover,
 #speaker-footer #speaker-help-btn:hover { background: oklch(0.93 0 0); }
+#speaker-footer #cue-btn[aria-pressed=true] { border-color: var(--emph); color: var(--emph); }
 
 /* Mode toast sits at the top of the *stage*, not the top of the window:
    row 1 is the scrubber, and a toast overlapping the column strip covers
@@ -15471,6 +15498,7 @@ body[data-view=speaker].overview-mode .dg-hint { display: none; }
 body[data-mode=dark] #speaker-footer kbd,
 body[data-mode=dark] #speaker-footer #export-annot-btn,
 body[data-mode=dark] #speaker-footer #preview-orient-btn,
+body[data-mode=dark] #speaker-footer #cue-btn,
 body[data-mode=dark] #speaker-footer #speaker-help-btn,
 body[data-mode=dark] #notes-zoom button,
 body[data-mode=dark] .export-modal-inner,
@@ -15659,6 +15687,168 @@ body[data-view=speaker] .annot-add { display: none !important; }
   border-color: var(--ink-soft);
 }
 body.has-notes #add-note-btn { display: none; }
+
+/* ── cue cards ────────────────────────────────────────────────────────
+   The third arrangement of the cockpit: the notes as cards in a column,
+   the projection small in the corner. One rule above all the sizes here:
+   the column is read from the corner of an eye while talking, so the
+   current card is the one large thing, what is done recedes in size and
+   ink, and what comes stands a little smaller so it can be seen coming.
+   Sans throughout - the lecture's serif is for reading, this is for
+   glancing. No boxes: a line down the left with a dot per card and a
+   diamond per click on the projector is the whole apparatus, and the red
+   dot is the cursor. */
+#cue-cards { display: none; }
+body[data-view=speaker].cue-cards {
+  grid-template-rows: 3vh auto 1fr 2.2rem;
+  grid-template-columns: clamp(220px, 21vw, 340px) 1fr;
+}
+body[data-view=speaker].cue-cards #scrubber { grid-column: 1 / -1; grid-row: 1; }
+body[data-view=speaker].cue-cards #stage-cell {
+  grid-column: 1; grid-row: 2;
+  height: auto;
+  aspect-ratio: var(--audience-aspect, 16 / 9);
+  border-right: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
+}
+body[data-view=speaker].cue-cards #add-note-btn { display: none; }
+body[data-view=speaker].cue-cards #notes-pane { display: none; }
+body[data-view=speaker].cue-cards #preview-resizer { display: none; }
+body[data-view=speaker].cue-cards #preview-strip {
+  grid-column: 1; grid-row: 3;
+  flex-direction: column;
+  padding: 0.6rem 0.6rem;
+  border-top: 0;
+  border-right: 1px solid var(--rule);
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+body[data-view=speaker].cue-cards #preview-strip::-webkit-scrollbar { width: 6px; height: auto; }
+body[data-view=speaker].cue-cards .preview-slot { height: auto; width: auto; }
+body[data-view=speaker].cue-cards #speaker-footer { grid-column: 1 / -1; grid-row: 4; }
+body[data-view=speaker].cue-cards #cue-cards {
+  grid-column: 2; grid-row: 2 / 4;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+  background: var(--paper);
+  font-family: var(--sans-font);
+}
+/* The clock moves into this header while the cards are up, so it loses
+   its corner position and its scrim. */
+body[data-view=speaker].cue-cards #clock {
+  position: static;
+  background: transparent;
+  padding: 0;
+  margin-left: 1.2em;
+  font-size: clamp(20px, 3vh, 34px);
+}
+#cue-where {
+  display: flex;
+  align-items: baseline;
+  gap: 1em;
+  padding: 1.4vh 2.4vw 0 calc(2.4vw + 2.2em);
+  font-size: clamp(11px, 1.5vh, 14px);
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+}
+#cue-crumb { flex: 1 1 auto; min-width: 0; overflow: hidden; text-overflow: ellipsis; color: var(--ink); font-weight: 500; }
+#cue-crumb .cue-col { color: var(--ink-soft); font-weight: 400; }
+#cue-crumb .cue-col::after { content: ' › '; }
+#cue-pos { font-family: var(--mono-font); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+#cue-pos b { font-weight: 500; color: var(--ink); }
+#cue-rail {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  padding: 1.6vh 2.4vw 40vh 2.4vw;
+  display: grid;
+  grid-template-columns: 2.2em 1fr;
+  align-content: start;
+  /* the size everything in the rail is measured against */
+  font-size: clamp(15px, 2vh, 22px);
+}
+@media (prefers-reduced-motion: no-preference) { #cue-rail { scroll-behavior: smooth; } }
+.cue-tick { position: relative; }
+.cue-tick::before {
+  content: '';
+  position: absolute; left: 0.5em; top: 0; bottom: 0; width: 1px;
+  background: var(--rule);
+}
+.cue-tick i {
+  position: absolute;
+  left: calc(0.5em - 0.28em); top: 0.55em;
+  width: 0.56em; height: 0.56em;
+  box-sizing: border-box;
+  border-radius: 50%;
+  border: 1px solid var(--ink-soft);
+  background: var(--paper);
+  transition: transform 160ms, background-color 160ms;
+}
+.cue-entry { padding: 0.15em 0 0.9em; min-width: 0; max-width: 34em; }
+.cue-entry:last-child { padding-bottom: 0; }
+.cue-tick:last-of-type::before { bottom: auto; height: 1em; }
+/* done: small, faint, still legible */
+.cue-entry.done { color: var(--ink-soft); opacity: 0.8; font-size: 0.85em; padding-bottom: 0.6em; }
+.cue-tick.done i { background: var(--ink-soft); border-color: var(--ink-soft); top: 0.42em; }
+/* current: the one large thing */
+.cue-entry.cur { color: var(--ink); font-size: 1.5em; padding: 0.05em 0 0.55em; }
+.cue-tick.cur i {
+  top: 0.95em;
+  background: var(--emph); border-color: var(--emph);
+  transform: scale(1.5);
+  box-shadow: 0 0 0 0.3em color-mix(in oklab, var(--emph) 18%, transparent);
+}
+/* coming: a little smaller than current, full ink for the next one and
+   softer for the rest, so the next is seen coming */
+.cue-entry.next { color: var(--ink); font-size: 1.05em; }
+.cue-entry.later { color: var(--ink-soft); font-size: 1em; }
+.cue-card ul { list-style: none; margin: 0; padding: 0; }
+.cue-card li { position: relative; padding-left: 0.9em; line-height: 1.3; margin: 0.1em 0; }
+.cue-card li::before {
+  content: ''; position: absolute; left: 0; top: 0.5em;
+  width: 0.32em; height: 0.32em; border-radius: 50%;
+  background: currentColor; opacity: 0.5;
+}
+.cue-entry.cur .cue-card li::before { background: var(--emph); opacity: 1; }
+.cue-card .cue-title {
+  font-size: 0.62em; letter-spacing: 0.08em; text-transform: uppercase;
+  color: var(--ink-soft); margin: 0 0 0.3em; font-weight: 500;
+}
+.cue-card .cue-prose { margin: 0; line-height: 1.35; font-size: 0.85em; color: inherit; }
+.cue-card .cue-at {
+  display: inline-block; margin: 0 0 0.2em;
+  font-family: var(--mono-font); font-size: 0.6em; color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+.cue-card .cue-title + .cue-at { margin-top: -0.4em; }
+/* a click on the projector: a diamond on the rail, a label, the words
+   that will arrive */
+.cue-tick.step i { border-radius: 1px; transform: rotate(45deg) scale(0.9); border-color: var(--emph); }
+.cue-tick.step.done i { border-color: var(--ink-soft); background: var(--paper); }
+.cue-tick.step.cur i { transform: rotate(45deg) scale(1.35); background: var(--emph); top: 0.6em; }
+/* a titled card's first line is the small title, so the dot rides higher */
+.cue-tick.cur.titled i { top: 0.5em; }
+.cue-tick.next i, .cue-tick.later i { top: 0.5em; }
+.cue-step { display: flex; gap: 0.7em; align-items: baseline; color: var(--emph); min-width: 0; }
+.cue-entry.done .cue-step { color: var(--ink-soft); }
+.cue-step .cue-k {
+  flex: 0 0 auto;
+  font-family: var(--mono-font); font-size: 0.68em; letter-spacing: 0.06em;
+  text-transform: uppercase; white-space: nowrap;
+}
+.cue-step .cue-what {
+  flex: 1 1 auto; min-width: 0;
+  font-size: 0.85em; font-style: italic; line-height: 1.3;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.cue-entry.cur .cue-step .cue-what { white-space: normal; font-style: normal; }
+.cue-entry.cur .cue-step { font-size: 0.9em; }
+#cue-rail .cue-empty { grid-column: 1 / -1; color: var(--ink-soft); font-size: 0.9em; padding: 1em 0; }
+#cue-rail .cue-empty kbd { font-family: var(--mono-font); font-size: 0.85em; border: 1px solid var(--rule); border-radius: 3px; padding: 0 0.35em; }
 
 /* ── preview-strip: right-mode (vertical) ─────────────────────────────
    Toggled by V. Strip moves from row 4 into row 2 / col 2, stacks
@@ -16120,6 +16310,7 @@ notesContent.addEventListener('blur', autoSizeNotes);
 // input handler keeps has-notes on. If they blur with no content,
 // autoSizeNotes collapses again.
 function focusNotesPane() {
+  if (cueOn()) applyCueMode(false);
   document.body.classList.add('has-notes');
   requestAnimationFrame(() => {
     notesContent.focus();
@@ -16182,7 +16373,7 @@ scrubberEl.addEventListener('click', (e) => {
 // that overflows, which is an acceptable trade for readable text.
 const PREVIEW_ZOOM = 1.22;
 function isPreviewVertical() {
-  return document.body.classList.contains('preview-right');
+  return document.body.classList.contains('preview-right') || document.body.classList.contains('cue-cards');
 }
 function populatePreviewStrip() {
   previewStrip.replaceChildren();
@@ -16347,11 +16538,248 @@ document.getElementById('clock').addEventListener('click', () => {
 let lastPopulatedIdx = -1;
 viewHooks.onActiveChange = () => {
   updateScrubber();
+  cueSync();
   if (state.activeIdx === lastPopulatedIdx) return;
   lastPopulatedIdx = state.activeIdx;
   populateNotesPane();
   markPreviewCurrent();
 };
+viewHooks.onStateChange = () => { cueSync(); };
+
+// ── cue cards ───────────────────────────────────────────────────────
+// The notes of the active chunk as cards in a column, the projection small
+// in the corner (speaker.md §4.1, PLAN-cue-cards.md). Everything here is
+// local to this window. The one piece of state is the cursor - which card
+// of the current beat is being said - and it sits in FRONT of the reveal
+// counter: goForward asks consumeForward first, and only when the cards of
+// this beat are used up does the press reach advanceReveal and the room.
+// revealed[chunkId] stays the only thing the two windows share.
+const CUE_MODE_KEY = 'psi-slides:cue-cards';
+const cueRoot = document.getElementById('cue-cards');
+const cueRail = document.getElementById('cue-rail');
+const cueCrumb = document.getElementById('cue-crumb');
+const cuePos = document.getElementById('cue-pos');
+const cueBtn = document.getElementById('cue-btn');
+const clockEl = document.getElementById('clock');
+// { id, seg, card } - the chunk, the top-level reveal segment the counter
+// is in, and how many of that segment's cards have been said.
+let cue = { id: null, seg: -1, card: 0 };
+let cueLast = { idx: -1, pos: 0 };
+// The time mark the clock measures against: that of the current card, or
+// of the last card before it that carried one. null when none has yet.
+let cueDriftAt = null;
+
+function cueOn() { return document.body.classList.contains('cue-cards'); }
+function applyCueMode(on) {
+  document.body.classList.toggle('cue-cards', on);
+  cueBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  // The clock is one element in two places: over the stage's letterbox in
+  // the classic arrangement, in the column's header here.
+  if (on) document.getElementById('cue-where').appendChild(clockEl);
+  else stageCell.appendChild(clockEl);
+  populatePreviewStrip();
+  if (on) cueRender();
+}
+function toggleCueMode() {
+  const on = !cueOn();
+  applyCueMode(on);
+  try { localStorage.setItem(CUE_MODE_KEY, on ? 'on' : 'off'); } catch (e) {}
+  flashMode(on ? 'cue cards · Space says the next card, then clicks the projector' : 'classic cockpit');
+}
+viewHooks.onK = toggleCueMode;
+cueBtn.addEventListener('click', toggleCueMode);
+try { if (localStorage.getItem(CUE_MODE_KEY) === 'on') applyCueMode(true); } catch (e) {}
+
+// The cards of a chunk, keyed by top-level segment. Source notes come one
+// template per block with the segment the parser gave it; a rehearsal
+// override from the textarea replaces the whole chunk's text and knows no
+// segments, so everything it says lands on segment 0.
+function cueCardsFor(id, segCount) {
+  const by = new Map();
+  const put = (seg, cards) => {
+    const k = Math.max(0, Math.min(segCount - 1, seg));
+    if (!by.has(k)) by.set(k, []);
+    by.get(k).push(...cards);
+  };
+  let override = null;
+  try { override = localStorage.getItem(noteOverrideKey(id)); } catch (e) {}
+  if (override !== null) {
+    put(0, PSI_CARDS.notesToCards(override));
+    return by;
+  }
+  document.querySelectorAll('template[data-cards-for="' + CSS.escape(id) + '"]').forEach(t => {
+    put(Number(t.dataset.seg) || 0, PSI_CARDS.notesToCards(t.content.textContent));
+  });
+  return by;
+}
+// Where the counter stands: the position (1 = nothing advanced, as
+// countSegments counts) and the top-level segment that position is in.
+function cuePosition(entry) {
+  const total = countSegments(entry.el);
+  const pos = Math.max(1, revealed[entry.id] ?? 1);
+  const beats = chunkBeats(entry.el).filter(b => b.at == null);
+  let seg = 0;
+  beats.forEach(b => { if (b.type === 'seg' && b.pos < pos - 1) seg += 1; });
+  const segCount = 1 + beats.filter(b => b.type === 'seg').length;
+  return { pos, total, seg, segCount, beats };
+}
+function cueText(node, max) {
+  const t = (node ? node.textContent : '').replace(/\\s+/g, ' ').trim();
+  return t.length > max ? t.slice(0, max - 1).trimEnd() + '…' : t;
+}
+function cueChunkTitle(entry) {
+  const h = entry.el.querySelector('.chunk-heading');
+  if (h) return cueText(h, 80);
+  const p = entry.el.querySelector('.reveal-segment p, .chunk-content p, p');
+  return cueText(p, 60) || ('slide ' + (flatChunks.indexOf(entry) + 1));
+}
+function cueColumnTitle(entry) {
+  const btn = document.querySelector('.col-entry[data-col-idx="' + entry.colIdx + '"] .col-btn');
+  const t = btn ? btn.textContent.trim() : '';
+  return t === '·' ? '' : t;
+}
+// The column as a list: the cards of segment 0, then every positional beat
+// as a click with the cards of the segment it opens behind it, then the
+// next slide. Document order, the same order chunkBeats reads.
+function cueEntries(entry) {
+  const { pos, total, seg: curSeg, segCount, beats } = cuePosition(entry);
+  const cards = cueCardsFor(entry.id, segCount);
+  const out = [];
+  let seg = 0;
+  const pushCards = (s) => (cards.get(s) || []).forEach((card, k) => out.push({ type: 'card', seg: s, k, card }));
+  pushCards(0);
+  beats.forEach((b) => {
+    const at = b.pos + 2;   // the position this beat is consumed at
+    if (b.type === 'seg') {
+      out.push({ type: 'step', at, k: 'reveal ' + (seg + 1) + '/' + (segCount - 1), what: cueText(b.el, 120) });
+      seg += 1;
+      pushCards(seg);
+    } else if (b.type === 'diag') {
+      out.push({ type: 'step', at, k: 'figure · step ' + b.step, what: '' });
+    } else {
+      out.push({ type: 'step', at, k: 'beat', what: cueText(b.els[0], 120) });
+    }
+  });
+  // Beats the list does not carry - an overlay from N past the last, a
+  // backdrop's frames - are still advances on the counter.
+  for (let p = beats.length + 2; p <= total; p++) out.push({ type: 'step', at: p, k: 'advance', what: '' });
+  const nxt = flatChunks[state.activeIdx + 1];
+  out.push({ type: 'chunk', k: nxt ? 'slide ' + (state.activeIdx + 2) : 'end', what: nxt ? cueChunkTitle(nxt) : 'the last slide' });
+  // consumed or not, and the first that is not is the cursor
+  let cur = -1;
+  out.forEach((e, i) => {
+    e.done = e.type === 'card' ? (e.seg < curSeg || (e.seg === curSeg && e.k < cue.card))
+           : e.type === 'step' ? e.at <= pos : false;
+    if (!e.done && cur < 0) cur = i;
+  });
+  return { out, cur, pos, total, curSeg, segCount, cards };
+}
+// Keep the cursor on the chunk and segment the counter is in. Arriving at
+// a new segment going forward starts its cards from the first; arriving
+// going back lands past its last, so the next Backspace takes the last
+// card - each press back undoes one press forward.
+function cueSync() {
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return;
+  const { seg, pos, segCount } = cuePosition(entry);
+  if (cue.id !== entry.id || cue.seg !== seg) {
+    const back = state.activeIdx < cueLast.idx || (state.activeIdx === cueLast.idx && pos < cueLast.pos);
+    const n = (cueCardsFor(entry.id, segCount).get(seg) || []).length;
+    cue = { id: entry.id, seg, card: back ? n : 0 };
+  }
+  cueLast = { idx: state.activeIdx, pos };
+  if (cueOn()) cueRender();
+}
+viewHooks.consumeForward = () => {
+  if (!cueOn() || overview) return false;
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return false;
+  const { out, cur } = cueEntries(entry);
+  if (cur < 0 || out[cur].type !== 'card') return false;
+  cue.card += 1;
+  cueRender();
+  return true;
+};
+viewHooks.consumeBack = () => {
+  if (!cueOn() || overview) return false;
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return false;
+  const { out, cur, curSeg } = cueEntries(entry);
+  const prev = cur < 0 ? out[out.length - 1] : out[cur - 1];
+  if (!prev || prev.type !== 'card' || prev.seg !== curSeg || cue.card <= 0) return false;
+  cue.card -= 1;
+  cueRender();
+  return true;
+};
+// Enter: the cards of this slide are said, whatever is left of them, and
+// the next slide comes up. The reveals it had left stay where they are.
+viewHooks.onEnter = () => {
+  if (!cueOn() || overview) return false;
+  nextChunk();
+  return true;
+};
+
+// Beside the clock: how far the talk is from the card's mark. Behind is
+// the number that matters and is red; ahead is grey. A minute is not
+// worth a number, so the display is coarse to the ten seconds.
+const driftEl = document.getElementById('drift');
+function renderDrift() {
+  if (cueDriftAt == null || !cueOn()) { driftEl.hidden = true; return; }
+  const d = elapsedSeconds() - cueDriftAt;
+  const shown = Math.round(d / 10) * 10;
+  driftEl.hidden = false;
+  driftEl.textContent = (shown > 0 ? '+' : shown < 0 ? '\u2212' : '\u00b1') + PSI_CARDS.formatClock(Math.abs(shown));
+  driftEl.classList.toggle('ahead', shown <= 0);
+  driftEl.title = 'against the @' + PSI_CARDS.formatClock(cueDriftAt) + ' mark of the current card';
+}
+// Its own tick rather than a call from renderTimer: the clock starts
+// earlier in this script than the cards exist.
+setInterval(renderDrift, 1000);
+function cueRender() {
+  const entry = flatChunks[state.activeIdx];
+  if (!entry) return;
+  const { out, cur, pos, total, curSeg, cards } = cueEntries(entry);
+  const col = cueColumnTitle(entry);
+  cueCrumb.innerHTML = (col ? '<span class="cue-col">' + escText(col) + '</span>' : '') + escText(cueChunkTitle(entry));
+  const here = cards.get(curSeg) || [];
+  cuePos.innerHTML = 'slide <b>' + (state.activeIdx + 1) + '</b>/' + flatChunks.length
+    + (total > 1 ? ' · beat <b>' + pos + '</b>/' + total : '')
+    + (here.length ? ' · card <b>' + Math.min(cue.card + 1, here.length) + '</b>/' + here.length : '');
+  const hasCards = [...cards.values()].some(a => a.length);
+  cueDriftAt = null;
+  out.forEach((e, i) => { if (e.type === 'card' && e.card.at != null && (e.done || i === cur)) cueDriftAt = e.card.at; });
+  renderDrift();
+  const html = [];
+  let seenCur = false;
+  out.forEach((e, i) => {
+    const cls = e.done ? 'done' : i === cur ? 'cur' : !seenCur ? 'next' : 'later';
+    if (i === cur) seenCur = true;
+    const titled = e.type === 'card' && e.card.title ? ' titled' : '';
+    const tick = '<div class="cue-tick ' + (e.type === 'card' ? '' : 'step ') + cls + titled + '"><i></i></div>';
+    if (e.type === 'card') {
+      const c = e.card;
+      let body = c.title ? '<p class="cue-title">' + escText(c.title) + '</p>' : '';
+      if (c.at != null) body += '<span class="cue-at">@ ' + PSI_CARDS.formatClock(c.at) + '</span>';
+      body += c.bullets.length
+        ? '<ul>' + c.bullets.map(b => '<li>' + escText(b) + '</li>').join('') + '</ul>'
+        : '<p class="cue-prose">' + escText(c.prose) + '</p>';
+      html.push(tick + '<div class="cue-entry ' + cls + '"><div class="cue-card">' + body + '</div></div>');
+    } else {
+      html.push(tick + '<div class="cue-entry ' + cls + '"><div class="cue-step"><span class="cue-k">' + escText(e.k) + '</span>'
+        + (e.what ? '<span class="cue-what">' + escText(e.what) + '</span>' : '') + '</div></div>');
+    }
+  });
+  if (!hasCards) {
+    html.unshift('<p class="cue-empty">No notes on this slide. Write <kbd>&gt; note:</kbd> blocks in the source, one paragraph a card, the bold phrases its bullets.</p>');
+  }
+  cueRail.innerHTML = html.join('');
+  // the cursor sits a third of the way down, so what comes has room
+  const curEl = cueRail.querySelector('.cue-entry.cur');
+  if (curEl) {
+    const top = curEl.offsetTop - cueRail.clientHeight * 0.28;
+    cueRail.scrollTo({ top: Math.max(0, top) });
+  }
+}
 
 // Preview orientation (horizontal along bottom vs vertical along the
 // right edge). Persisted globally – user preference follows them
