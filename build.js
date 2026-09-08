@@ -6856,6 +6856,14 @@ function renderHelpOverlay(view, withEditor) {
     ]],
   ];
   const speakerOnly = [
+    ['Cue cards', [
+      ['<kbd>K</kbd>', 'your notes as cards down a rail, the projection small in the corner – and back'],
+      ['<kbd>Space</kbd> · <kbd>↓</kbd> · <kbd>→</kbd>', 'the next card of this beat; when they are said, the next reveal, then the next slide – the diamonds on the rail are the clicks the room sees'],
+      ['<kbd>Backspace</kbd> · <kbd>↑</kbd> · <kbd>←</kbd>', 'one press back, whatever the last press was'],
+      ['<kbd>Enter</kbd>', 'the next slide, skipping what is left of this one\'s cards (a presenter that sends Enter for forward will do this too)'],
+      ['in source.md', 'a <code>&gt; note:</code> paragraph is a card and its <b>bold</b> phrases are the bullets; a note after a <code>---</code> belongs to that beat; <code>@12:30</code> on a card puts the drift beside the clock'],
+      ['click the clock', 'restart it at 0:00 – it started when this window opened'],
+    ]],
     ['Arranging this window', [
       ['<kbd>Shift</kbd>-<kbd>V</kbd>', 'preview strip: along the bottom ↔ down the right edge'],
       ['drag the bar above the notes', 'resize the notes pane; the slide preview rescales to fit'],
