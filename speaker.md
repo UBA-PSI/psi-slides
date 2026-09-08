@@ -218,7 +218,7 @@ Speaker inherits audience nav bindings, plus:
 | `C` | Cycle collapse (broadcasts) |
 | `+` `-` `0` | Zoom (broadcasts) |
 | `B` | Blank – broadcasts **ungated**, so it lands while frozen too |
-| `D` | **Live demo** – picks a window or a screen of this machine and puts it on the projection; `D` again ends it. Ungated, like `B` (§2) |
+| `D` | **Live demo** – picks a window or a screen of this machine and puts it on the projection; `D` again ends it. Ungated, like `B` (§2). The first capture on a Mac fails while macOS asks for screen-recording rights; the second works |
 | `P` | Open print.html in new tab |
 | `V` | **Freeze / thaw the projection.** Thawing resyncs the room to the speaker |
 | `Shift`-`E` | **Export annotation drafts**: copy every live `annotations[id]` as a marker-wrapped `> annot:` block to the clipboard, then ask before clearing the drafts from localStorage. A declined confirm or blocked clipboard leaves drafts untouched, so the raw notes can always be rescued on a second try. The pasted block is consumed by `node build.js <source.md> --integrate-annotations`, which moves each `> annot:` under its chunk and removes the marker block. |

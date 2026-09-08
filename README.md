@@ -279,7 +279,7 @@ Press `?` in either live view for the full on-screen reference. The ones you nee
 - `O` overview (the letter, not zero – zero resets the zoom), `T` table of contents, `/` search from anywhere – a hit list of every slide that mentions the word.
 - `C` collapse, `F` font, `A` accent theme, `+` `-` `0` zoom.
 - `#` auto-fit, in three: off, shrink a slide too big for the frame, size every slide to the screen. `B` blanks the projection – the speaker window keeps working so you can change slide while the room sees black.
-- `D` puts a live demo on the projection: a window or a screen of this machine, picked in the speaker window, shown to the room until `D` again. Serve the lecture with `--serve` and the picture crosses without an encoder; from a double-clicked file it goes through a loopback WebRTC connection.
+- `D` puts a live demo on the projection: a window or a screen of this machine, picked in the speaker window, shown to the room until `D` again. Serve the lecture with `--serve` and the picture crosses without an encoder; from a double-clicked file it goes through a loopback WebRTC connection. **The very first capture on a Mac does not work** – macOS asks for screen-recording rights for the browser, and that first attempt is refused or shows an empty picture that ends by itself. Allow it, press `D` again, and it works from then on; try it once before the talk.
 - `S` open the speaker window, `P` open the print view.
 - **On a touchscreen** both live views show a small rail along the bottom: forward, back, overview and zoom, with `C`, `F`, `A`, `#`, search and text selection behind the `⋯` button. It appears only on a device with no fine pointer, so an iPad with a keyboard attached does not see it.
 - `L` slide numbers: stacked, in a row, or off.

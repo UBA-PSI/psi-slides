@@ -19,7 +19,8 @@ from building the same way is a major version.
   share an origin and the projection plays the cockpit's stream directly, with
   no encoder in between; from `file://` the stream crosses through an
   `RTCPeerConnection` on loopback, signalled over the existing `postMessage`
-  link, at the cost of one encode. Ungated like `B`, outside the snapshot, and
+  link, at the cost of one encode. The very first capture on a Mac fails
+  while macOS asks for screen-recording rights – press `D` again. Ungated like `B`, outside the snapshot, and
   blank hides it like everything else. Chrome's own "stop sharing" bar ends it
   too. macOS asks once for screen-recording rights for the browser.
 

@@ -6092,7 +6092,7 @@ renames the thing it is about.</p>
         <dt><kbd>#</kbd></dt><dd>auto-fit: off → shrink a slide that is too big → size every slide to the screen</dd>
         <dt><kbd>L</kbd></dt><dd>slide numbers: stacked → in a row → off</dd>
         <dt><kbd>B</kbd></dt><dd>blank the projection – the speaker window keeps working, frozen or not</dd>
-        <dt><kbd>D</kbd></dt><dd>live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop</dd>
+        <dt><kbd>D</kbd></dt><dd>live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop; the very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk</dd>
         <dt><kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd></dt><dd>cycle that knob backwards</dd>
         <dt>on a touchscreen</dt><dd>the same settings sit behind the ⋯ button on the toolbar</dd>
       </dl>
@@ -11656,10 +11656,13 @@ async function startDemo() {
       monitorTypeSurfaces: 'include',
     });
   } catch (e) {
-    // Cancelled in the picker, or refused by the OS (macOS asks once for
-    // screen-recording rights and the first attempt fails).
+    // Cancelled in the picker, or refused by the OS: macOS asks once for
+    // screen-recording rights and the first attempt fails (seen in Chromium
+    // and Safari alike), so on a Mac the toast says what to do next.
     demoPending = false;
-    flashMode('demo cancelled');
+    flashMode(/Mac/.test(navigator.platform || '')
+      ? 'demo cancelled – the first capture on a Mac fails while macOS asks for screen-recording rights; allow it and press D again'
+      : 'demo cancelled');
     return;
   }
   demoPending = false;

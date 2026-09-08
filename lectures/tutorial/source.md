@@ -415,7 +415,7 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 - `A` cycles the **theme**: four light ones with different accent colours, a neutral dark one, and two green-and-amber terminal ones.
 - `+` `-` `0` set the **text size**; `#` cycles **auto-fit** through its three modes, which is worth trying right here – this chunk is longer than the screen.
 - `B` **blanks the projection**.
-- `D` **puts a live demo on the projection**: a window or a screen of this machine, chosen in a picker, until `D` again.
+- `D` **puts a live demo on the projection**: a window or a screen of this machine, chosen in a picker, until `D` again. The very first capture on a Mac fails while macOS asks for screen-recording rights – allow it and press `D` again, so do that once before the talk.
 - `L` cycles the **slide numbers**: stacked, in a row, or off.
 
 `Shift` with `C`, `F`, `A` or `L` goes backwards. `#` has three modes and no `Shift`, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting are not remembered beyond the talk you are giving.
