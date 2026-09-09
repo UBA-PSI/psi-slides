@@ -46,11 +46,12 @@ Drei Fragen für eine Antwort – deshalb die Zwischenspeicher auf jeder Stufe.
 
 ## example: Selbst nachsehen | zwei Zeilen im Terminal {.wide #dns-tools}
 
-**Das DNS kann man von Hand befragen – die Werkzeuge dafür sind auf jedem System schon installiert.**
+**Das DNS kann man von Hand befragen.** Auf macOS und Linux liegen `host` und `dig` bereit, unter Windows tut `nslookup` dasselbe.
 
 ```bash
 host www.uni-bamberg.de
 dig www.uni-bamberg.de
+nslookup www.uni-bamberg.de
 ```
 
 `8.8.8.8` (Google) und `1.1.1.1` (Cloudflare) sind öffentliche Resolver, die jeder benutzen kann – und die deshalb mitlesen, welche Namen man nachschlägt.
