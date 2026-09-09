@@ -100,7 +100,7 @@ const BAR_TEXT = {
     chair: 'Chair of Privacy and Security in Information Systems',
     menu: 'Menu', lang: 'Language',
     nav: {
-      home: 'Home', room: 'In the room', decoration: 'Title slides',
+      home: 'Home', room: 'In the room', decoration: 'Decoration',
       figures: 'Figures', start: 'Getting started', comparison: 'Comparison',
     },
   },
@@ -109,7 +109,7 @@ const BAR_TEXT = {
     chair: 'Lehrstuhl für Privatsphäre und Sicherheit in Informationssystemen',
     menu: 'Menü', lang: 'Sprache',
     nav: {
-      home: 'Start', room: 'Im Raum', decoration: 'Titelfolien',
+      home: 'Start', room: 'Im Raum', decoration: 'Dekoration',
       figures: 'Abbildungen', start: 'Loslegen', comparison: 'Vergleich',
     },
   },
