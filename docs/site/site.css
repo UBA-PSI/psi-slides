@@ -95,6 +95,15 @@
      it steps up a little in contrast: on the field a hairline at the old
      value disappeared. */
   --frame: oklch(0.795 0.010 78);
+  /* The window bar's own text, and the reason it is not --ink-soft: the bar
+     is the one place on the page where the soft ink sits on --frame rather
+     than on paper, and there it measured 4.25:1 at 0.8rem, under the 4.5 a
+     line that small has to reach. Measured on rendered canvas pixels, not
+     through getComputedStyle - Chrome hands oklch() back as oklch() and a
+     check built on that reports every pair at about 2.2 and passes
+     everything. 0.40 measures 4.82 here; the dark scheme's soft ink already
+     measures 4.81 on its own frame and keeps the value it had. */
+  --bar-ink: oklch(0.40 0.01 260);
   --code-bg: oklch(0.915 0.008 85);
   /* Syntax tokens for the Markdown sample. Each is picked for >= 4.5:1 on
      --code-bg, not for looking like anyone's editor theme. */
@@ -173,6 +182,7 @@
     --accent: oklch(0.78 0.12 25);
     --rule: oklch(0.36 0.008 85);
     --frame: oklch(0.36 0.008 85);
+    --bar-ink: oklch(0.745 0.01 260);
     --code-bg: oklch(0.145 0.008 85);
     --tok-head: oklch(0.80 0.12 25);
     --tok-dir: oklch(0.80 0.11 265);
@@ -482,7 +492,7 @@ figure.shot .bar {
      two lines, which makes the pair of shots two different heights and undoes
      the whole point of taking them in identical geometry. */
   font-size: 0.8rem;
-  color: var(--ink-soft);
+  color: var(--bar-ink);
   background: var(--frame);
   border-bottom: 0;
 }
