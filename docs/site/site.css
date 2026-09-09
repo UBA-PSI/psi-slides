@@ -61,14 +61,25 @@
  * is 5.1:1.
  */
 :root {
-  --paper: oklch(0.98 0.00 0);
+  /*
+   * The page is not white. Everything this site shows a picture of - a
+   * projection, a handout, a cockpit - is itself near-white, so on a white
+   * ground a screenshot dissolved into the page and only its hairline said
+   * where it ended. The ground is a soft warm grey now and the artefacts sit
+   * on it as white objects, which is the one job the colour has to do.
+   *
+   * Four surfaces, each a real step from the ground rather than the 1.5%
+   * they used to share: white for a card or a screenshot, a recess for a
+   * listing, and two rules.
+   */
+  --paper: oklch(0.955 0.005 85);
   --ink: oklch(0.20 0.01 260);
   --ink-soft: oklch(0.43 0.01 260);
   --accent: oklch(0.42 0.13 25);
-  --rule: oklch(0.85 0.01 260);
-  --frame: oklch(0.92 0.01 260);
-  --shot-bg: oklch(0.95 0.005 260);
-  --code-bg: oklch(0.945 0.005 260);
+  --rule: oklch(0.855 0.006 85);
+  --frame: oklch(0.875 0.006 85);
+  --shot-bg: oklch(0.995 0 0);
+  --code-bg: oklch(0.915 0.008 85);
   /* Syntax tokens for the Markdown sample. Each is picked for >= 4.5:1 on
      --code-bg, not for looking like anyone's editor theme. */
   --tok-head: oklch(0.42 0.14 25);
@@ -88,22 +99,24 @@
      hairline into a black rule and emptied every window bar - a custom
      property does not care that one value is a colour and the other a
      length. */
-  --page: 82rem;
-  --measure: 40rem;
+  --page: 84rem;
+  --measure: 44rem;
   --sans: 'IBM Plex Sans Var', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono Var', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    --paper: oklch(0.18 0.01 260);
+    /* Same idea the other way up: the ground is lifted off black so a card
+       can sit above it and a listing can sink below it. */
+    --paper: oklch(0.205 0.008 85);
     --ink: oklch(0.94 0.01 260);
     --ink-soft: oklch(0.74 0.01 260);
     --accent: oklch(0.78 0.12 25);
-    --rule: oklch(0.36 0.01 260);
-    --frame: oklch(0.28 0.01 260);
-    --shot-bg: oklch(0.24 0.01 260);
-    --code-bg: oklch(0.23 0.01 260);
+    --rule: oklch(0.36 0.008 85);
+    --frame: oklch(0.31 0.008 85);
+    --shot-bg: oklch(0.265 0.008 85);
+    --code-bg: oklch(0.155 0.008 85);
     --tok-head: oklch(0.80 0.12 25);
     --tok-dir: oklch(0.80 0.11 265);
     --tok-code: oklch(0.82 0.10 165);
@@ -149,28 +162,66 @@ body {
  * edges of the viewport while its text stays at 48rem. The measure moved to
  * `.wrap`, and the breakout rule below moved with it.
  */
-main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
+main { margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
 /* Only the two landing pages are banded. The documentation pages come out of
    build-site.js's shell, which has no bands and no wrap, and they keep the
    measure on `main` exactly as before. */
-main.banded { max-width: none; padding: 0; }
-.wrap { max-width: var(--page); margin: 0 auto; padding: 0 1.5rem; }
-/* More air between bands on a wide screen than on a phone, and the space
-   sits between sections rather than inside them: a band's own content is
-   tighter than the gap to the next band, so the eye reads the page as
-   sections rather than as one wall. */
-.band { padding: clamp(4.5rem, 7vw, 6.5rem) 0; }
-/* Two bands of the same ground in a row (the Markdown sample and the title
-   slides are both things to look at) have no colour change between them,
-   and two full paddings there read as a hole rather than as a seam. The
-   second closes up and its heading takes the heavy rule a heading inside a
-   band gets, so the section still begins with a mark. */
-.band-do + .band-do, .band-read + .band-read { padding-top: 0; }
-.band-do + .band-do > .wrap > h2:first-child,
-.band-read + .band-read > .wrap > h2:first-child {
-  padding-top: 1.1rem;
-  border-top: 2px solid var(--ink);
+main.banded { display: block; max-width: none; padding: 0; }
+/*
+ * Three widths on one axis. A page whose prose sits at a measure and whose
+ * pictures want the room needs both, and the first try gave them two left
+ * edges - text at the left of a frame twice its width, with the right half
+ * of every reading section empty. Here every track is centred on the same
+ * middle: prose in `text`, a listing or an aside in `wide`, a screenshot or
+ * a gallery or the table in `full`. Nothing is ever alone in a half.
+ *
+ * `rem` is the browser's 16px, not the page's 21px body size, so 44rem of
+ * text is 704px, about 68 characters.
+ */
+/* The documentation pages build-site.js renders out of Markdown have no
+   bands, so `main` is their container; it takes the same three tracks, which
+   is what lets the comparison table have the room its eight columns need
+   while its prose keeps the measure. */
+.wrap, main:not(.banded) {
+  display: grid;
+  grid-template-columns:
+    [full-start] minmax(0, 1fr)
+    [wide-start] minmax(0, 8rem)
+    [text-start] min(100%, 44rem) [text-end]
+    minmax(0, 8rem) [wide-end]
+    minmax(0, 1fr) [full-end];
+  max-width: var(--page);
+  margin: 0 auto;
+  padding: 0 1.5rem;
 }
+.wrap > *, main:not(.banded) > * { grid-column: text; }
+.wrap > pre, main:not(.banded) > pre,
+.wrap > .hint,
+.wrap > .pair-up,
+.wrap > figure.shot.drawn,
+.wrap > details { grid-column: wide; }
+.wrap > figure.shot,
+.wrap > .pair,
+.wrap > .gallery,
+.wrap > table, main:not(.banded) > table,
+.wrap > .kinds,
+.wrap > .hero { grid-column: full; }
+/* Under the widest track there is nothing to centre in, so the grid
+   collapses to the single column it is already drawing. */
+@media (max-width: 60rem) {
+  .wrap, main:not(.banded) { display: block; max-width: 48rem; }
+}
+/*
+ * One ground for the whole page, and space between the sections instead of
+ * a tint under half of them. The alternation was a 1.5% step - too faint to
+ * separate anything, but enough to add an event every few screens - and
+ * with the page off white it had nowhere left to go. What separates two
+ * sections now is the gap, so the gap has to be big enough to read as one:
+ * eight rems at the top of the range, against the two or three between a
+ * heading and its own text.
+ */
+.band { padding: clamp(4.5rem, 6vw, 8rem) 0; }
+.band-read, .band-do { background: none; }
 /* The one command that does not fit a half column is the release URL, and a
    scrollbar under a two-line command is worse than a wrap. */
 .pair-up pre { white-space: pre-wrap; overflow-wrap: anywhere; }
@@ -188,14 +239,10 @@ main.banded { max-width: none; padding: 0; }
  * turns out to mean. So the two-column device is kept for the two cases
  * where the halves match by construction, and named for each.
  */
+/* The grid track is the measure now. The cap stays for the pages that are
+   not banded - the ones build-site.js renders out of Markdown into a plain
+   column - and for prose nested inside a wide element. */
 p, li { max-width: var(--measure); }
-/* A listing is as wide as its longest line and no wider. Left at the frame's
-   width, `npm install` sat in a 1300px band of tint, which is a box drawn
-   round nothing. The cap is the Markdown sample's longest line; past that it
-   scrolls, as it always did. */
-pre { width: fit-content; max-width: min(100%, 54rem); }
-/* Parenthetical, so it reads at the measure the prose around it does. */
-.hint { max-width: var(--measure); }
 /* `.pair-up` is two things of the same kind side by side: the two versions
    under Getting started, each a paragraph over its one command. */
 .pair-up { display: grid; gap: 1.6rem 3.5rem; align-items: start; }
@@ -207,26 +254,18 @@ pre { width: fit-content; max-width: min(100%, 54rem); }
   .pair-up { grid-template-columns: 1fr 1fr; }
   .pair-up p, .pair-up li { max-width: none; }
 }
-.band-read { background: var(--shot-bg); }
-/* Named rather than left to the default, so the two kinds of band are a pair
-   in the stylesheet the way they are a pair on the page. */
-.band-do { background: var(--paper); }
-/* Tinted band, tinted card: the hint would sit 0.005 lightness from its own
-   ground and disappear. Lifted to paper, it reads as a card either way. */
-.band-read .hint { background: var(--paper); }
 /* A drawing, not a screen. It gets the shot frame - and with it the lightbox -
    but no window bar, because there is no window, and it is set narrower than a
    screenshot: a screenshot has to stay legible at a third of its size, while a
    figure is already at reading size and only looks shouted at when blown up. */
-/* Left, like everything else in the column: centred under left-aligned prose
-   it gave the page a second axis. Wider than the old 40rem cap because the
-   frame is wider now, but still short of a screenshot's width - a drawing is
-   already at reading size and only looks shouted at when blown up. */
-.shot.drawn { max-width: 46rem; }
+/* A drawing, not a screen: it sits on the listing's track rather than the
+   screenshots', because it is already at reading size and only looks shouted
+   at when blown up. */
+.shot.drawn { max-width: none; }
 .shot.drawn img { display: block; }
 /* The hero carries its own opening space, and the university bar is directly
    above it. */
-.band-hero { padding-top: 1.5rem; }
+.band-hero { padding-top: 1.5rem; padding-bottom: clamp(3rem, 4vw, 5rem); }
 .band-close { padding-bottom: 3rem; }
 
 /*
@@ -457,8 +496,8 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
 .hero .what {
   font-size: 1.05rem;
   color: var(--ink);
-  margin: 0 0 0.9rem;
-  max-width: 34rem;
+  margin: 0 0 1.6rem;
+  max-width: none;
   font-weight: 500;
 }
 /* The headline runs the full width of the hero, not a 20ch measure. The cap
@@ -485,7 +524,19 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
  * anything had said four of what. Read in a column it needs no size to be
  * found, and it has since folded back into the paragraph it belongs to.
  */
-.hero-in { width: auto; }
+/*
+ * The landing hero is the headline, one paragraph and the two pictures. It
+ * used to run two paragraphs of the same weight side by side - the promise,
+ * and a list of everything else the tool does - which is two walls where the
+ * page has room for one sentence. The second paragraph sits under the
+ * pictures now, quieter, where it reads as the bridge into the page rather
+ * than as a second opening. The text block keeps the measure and the centre
+ * every other section has, so the page has one axis from the headline down.
+ *
+ * `.hero-cols` stays for figures.html, whose hero genuinely carries two
+ * columns of the same weight.
+ */
+.hero-in { max-width: 44rem; margin: 0 auto; }
 .hero-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
 .hero-col { display: flex; flex-direction: column; }
 /* A flex container does not collapse its children's margins, so two stacked
@@ -503,12 +554,12 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
 .hero .extras {
   font-size: 1rem;
   color: var(--ink-soft);
-  max-width: 34rem;
-  margin: 0 0 1.8rem;
+  max-width: 44rem;
+  margin: 2.6rem auto 0;
 }
 .hero .extras b { color: var(--ink); font-weight: 600; }
 
-.cta { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 0 0 2.4rem; }
+.cta { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 0 0 3rem; }
 .cta a {
   display: inline-block;
   font-size: 1rem;
@@ -532,12 +583,14 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
    four short lines against four full paragraphs – stops being legible as
    text and reads as two grey blocks. */
 .hero .pair { gap: 1.4rem; margin-bottom: 0; }
+/* One line about the pair, centred under it and no wider than the measure:
+   a caption that runs the width of two screenshots is a paragraph. */
 .hero .shot-note {
   font-size: 1rem;
   color: var(--ink-soft);
   text-align: center;
-  max-width: 52rem;
-  margin: 0.2rem auto 3.4rem;
+  max-width: 44rem;
+  margin: 0.9rem auto 0;
 }
 .hero .shot-note b { color: var(--ink); font-weight: 600; }
 @media (max-width: 46rem) {
@@ -696,11 +749,11 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
  * roughly the same visual weight and made the page hard to scan.
  */
 h2 {
-  font-size: 1.6rem;
+  font-size: 1.75rem;
   font-weight: 650;
   letter-spacing: -0.015em;
   color: var(--ink);
-  margin: 0 0 1.2rem;
+  margin: 0 0 1.6rem;
 }
 /* The rule draws a boundary the band has not already drawn. A heading that
    opens its band has the band edge above it and needs no second line under
@@ -755,9 +808,11 @@ pre {
   font-size: 0.92rem;
   line-height: 1.6;
   background: var(--code-bg);
-  border: 1px solid var(--rule);
-  padding: 1rem 1.1rem;
-  border-radius: 4px;
+  /* A filled box and a border are two marks doing one job. The fill is the
+     one that survives, because it is what says "this is not prose". */
+  border: 0;
+  padding: 1.1rem 1.2rem;
+  border-radius: 6px;
   overflow-x: auto;
 }
 pre code { font-size: inherit; }
@@ -1001,13 +1056,14 @@ figure.shot figcaption strong { color: var(--ink); font-weight: 650; }
    1440px, so on a wide screen they stand at the size they were shot. */
 .wrap > figure.shot, .wrap > .pair, .hero .pair { width: auto; }
 
+/* A card: white on the page's grey, the way a screenshot is. */
 .hint {
   background: var(--shot-bg);
-  border: 1px solid var(--rule);
+  border: 1px solid var(--frame);
   border-radius: 6px;
-  padding: 1rem 1.2rem;
+  padding: 1.2rem 1.4rem;
   font-size: 1rem;
-  margin: 2rem 0 0;
+  margin: 2.4rem 0 0;
 }
 .hint p { margin: 0; max-width: none; }
 
