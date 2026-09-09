@@ -175,7 +175,21 @@ main.banded { display: block; max-width: none; padding: 0; }
  */
 .band { padding: clamp(3rem, 6vw, 7.5rem) 0; }
 .band-hero { padding-top: clamp(2rem, 3vw, 3.5rem); }
-.band-close { padding-bottom: 3.5rem; }
+.band-close {
+  /* The end of the page says so. Between the last listing and this heading
+     there used to be nothing but a large gap, which reads as a section that
+     failed to start rather than as an ending. The ground changes instead,
+     full-bleed, and carries the closing links and the byline together.
+     `--stage` rather than a fourth colour: the page already means "this is
+     an object, not more page" with it, and an ending is an object. */
+  background: var(--stage);
+  padding-top: clamp(2.6rem, 4.5vw, 4.5rem);
+  padding-bottom: clamp(2.2rem, 3vw, 3rem);
+}
+/* The rule above the byline separated it from the links when both sat on
+   paper. On the closing ground the change of surface is the separator, and a
+   second line inside it is one line too many. */
+.band-close footer { border-top: 0; padding-top: 0; margin-top: 2.6rem; }
 
 /*
  * Widths. Prose keeps the measure; anything looked at rather than read runs
@@ -193,7 +207,7 @@ main.banded { display: block; max-width: none; padding: 0; }
 .wrap > details,
 .wrap > .aside-code,
 .wrap > .picks,
-.wrap > .kinds,
+.wrap > .ways,
 .wrap > .gallery,
 .wrap > .pair-up,
 .wrap > table,
@@ -305,6 +319,15 @@ p { margin: 0 0 1.1rem; }
  * and the three-ground stack collapses to two, which is the whole reason
  * the stage exists.
  */
+/*
+ * A block that follows another picture rather than a paragraph. The space
+ * between prose and a stage is already larger than the space between two
+ * paragraphs; between two stages it has to be larger again, or the second
+ * one reads as part of the first. Measured against the section gap, not
+ * doubled from the paragraph one: this is a seam inside a section.
+ */
+.second-picture { margin-top: clamp(2.4rem, 5vw, 5.5rem); }
+
 .beside { display: grid; gap: clamp(1.4rem, 2.5vw, 3rem); align-items: start; }
 .beside > .said > :first-child { margin-top: 0; }
 .beside > .said > :last-child { margin-bottom: 0; }
@@ -497,43 +520,17 @@ figure.shot .swap button[aria-pressed="true"]:hover {
 .cta a.secondary:hover { color: var(--accent); }
 
 /*
- * ── Where the script ends up ──────────────────────────────────────────────
+ * ── The drawings in the chooser ───────────────────────────────────
  *
- * The section makes an argument in three moves: a lecture holds three kinds
- * of text, the usual tools have room for two, and here is what that costs.
- * The diagram is the second and third moves, drawn against the same three
- * columns so the rows can be compared straight down: the slide, the handout,
- * the notes.
- *
+ * Three rows, one per way a lecture's text can end up, drawn against the same
+ * three columns so they can be compared: the slide, the handout, the notes.
  * Every row is one file glyph, the run of wire leaving it, and what arrives.
  * A dashed footprint is a kind of text with nowhere to go - the same shape as
  * the thing that is missing, so the gap is legible as a gap.
  *
- * The drawing is line art on the page's own ground, not a screenshot, so it
- * needs no stage: there is nothing here that could be mistaken for the page.
+ * Line art on the page's own ground, not a screenshot, so it needs no stage:
+ * there is nothing here that could be mistaken for the page.
  */
-.kinds { display: grid; gap: clamp(1.8rem, 3vw, 3.5rem); align-items: start; }
-@media (min-width: 64rem) {
-  .kinds { grid-template-columns: minmax(0, 26rem) minmax(0, 1fr); }
-}
-.kinds-prose > p:first-child { margin-top: 0; }
-.kinds-figure { min-width: 0; }
-.paths { display: flex; flex-direction: column; gap: 1.4rem; }
-.paths > svg { display: block; width: 100%; height: auto; }
-.path { margin: 0; }
-.path svg { display: block; width: 100%; height: auto; }
-.path svg text { font-family: var(--mono); }
-.path figcaption {
-  font-family: var(--mono);
-  font-size: 0.76rem;
-  color: var(--ink-soft);
-  margin: 0 0 0.3rem;
-  padding: 0;
-  max-width: none;
-}
-/* The row that resolves the other two says so in the accent, the same way a
-   topic sentence does everywhere else on the page. */
-.path-fix figcaption { color: var(--accent); }
 
 /*
  * ── Listings ──────────────────────────────────────────────────────────────
@@ -582,7 +579,7 @@ code { font-family: var(--mono); font-size: 0.9em; overflow-wrap: break-word; }
    avoid. */
 code, pre, kbd, samp,
 .mark,
-.path svg text, .path figcaption,
+.way-fig svg text,
 figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
 
 /* `.pair-up` is two things of the same kind side by side: the two versions
@@ -861,73 +858,26 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
   .topbar-brand { font-size: 0.76rem; }
 }
 /*
- * Tying the rows to the sentences they draw.
- *
- * This earns its place only because both halves now make the same argument.
- * Pointing at "the slides take its job and fill up" raises the row where the
- * slide is full; pointing at that row raises the sentence. The pair is the
- * same claim in two notations, and the link is the thing a reader would
- * otherwise have to assemble.
- *
- * Emphasis is by recession: the two rows that are not being asked about drop
- * back, which reads as one row coming forward without anything having to
- * move. The picked row also lifts to paper, the same inversion `.hint` uses
- * inside a tinted band.
- *
- * Pointer only, and deliberately so. Everything is legible and complete at
- * rest, the sentences stay sentences rather than becoming three tab stops
- * inside a paragraph, and nothing here is the only way to reach anything.
+ * The tabs above the chooser. A reader who is not reading the option's text
+ * still has to be able to reach the other two, and the labels are where the
+ * judgement lives - "not ideal", "our approach" - which is the argument the
+ * three paragraphs used to make in prose.
  */
-/* The clause has to look connected to something before anyone points at it.
-   Dotted rather than solid: over three lines of prose a solid rule reads as
-   an underlined sentence, which is emphasis, and these are not emphasised -
-   they are attached. Dotted goes solid and accent when the pair lights up,
-   so the resting state and the active state are the same mark twice. */
-.tie {
-  cursor: pointer;
-  text-decoration: underline dotted var(--ink-soft);
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 0.24em;
-  transition: color 160ms ease, text-decoration-color 160ms ease;
-}
-.tie:hover,
-.tie.is-tied {
-  color: var(--accent);
-  text-decoration: underline solid var(--accent);
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 0.24em;
-}
-/* One row at a time, once the script has wired the switch. Without it the
-   class is never set and all three stand, which is what the markup says. */
-.paths.is-switched .path { display: none; }
-.paths.is-switched .path.is-shown { display: block; }
-/* The caption is the tab's label once there are tabs, so it would be the same
-   words twice above the same drawing. */
-.paths.is-switched .path figcaption { display: none; }
-
-/* The tabs. A reader who is not reading the three sentences still has to be
-   able to reach rows two and three, and they double as the answer to "which
-   of these am I looking at". */
-.path-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1rem; }
-.path-tabs button {
-  font-family: var(--mono);
-  font-size: 0.78rem;
-  padding: 0.3rem 0.7rem;
+.way-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1.6rem; }
+.way-tabs button {
+  font-size: 0.86rem;
+  padding: 0.35rem 0.8rem;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: 6px;
   background: none;
   color: var(--ink-soft);
   cursor: pointer;
 }
-.path-tabs button:hover { border-color: var(--accent); color: var(--accent); }
-.path-tabs button.is-tied {
+.way-tabs button:hover { border-color: var(--accent); color: var(--accent); }
+.way-tabs button.is-tied {
   background: var(--ink);
   border-color: var(--ink);
   color: var(--paper);
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .tie, .path { transition: none; }
 }
 
 /*
@@ -977,6 +927,9 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
 }
 .setup-body h3::before { content: counter(step) ". "; color: var(--ink-soft); }
 .setup-body p { max-width: none; }
+/* The line that opens a disclosure is an introduction to what is inside it,
+   not page prose: at the page size it outweighed the entries it introduces. */
+.setup-body > p:first-child { font-size: 0.94rem; color: var(--ink-soft); }
 .setup-body pre { font-size: 0.88rem; padding: 0.7rem 0.9rem; }
 
 /*
@@ -1129,7 +1082,14 @@ body.lightbox-open { overflow: hidden; }
 @media (min-width: 68rem) {
   .aside-code { grid-template-columns: minmax(0, 1fr) minmax(0, 20rem); }
   .aside-code > .said { order: 2; }
+  /* Wider, because this column carries a picture of the slide the listing
+     produces and not only words. Showing the two together is worth the
+     narrower listing: without it a reader scrolls eight screens up to find
+     the slide again and has to hold the correspondence in their head. */
+  .aside-code.with-slide { grid-template-columns: minmax(0, 1fr) minmax(0, 27rem); }
 }
+.aside-code .stage { margin-bottom: 1rem; padding: clamp(0.7rem, 1.4vw, 1.1rem); }
+.aside-code .stage figure.shot { margin: 0; }
 /* The mirror, for the two places where the words come first in the argument
    and the listing is the answer to them. */
 @media (min-width: 68rem) {
@@ -1209,3 +1169,87 @@ footer p { max-width: none; }
 @media (min-width: 68rem) {
   .folded-note { grid-template-columns: minmax(0, 1fr) minmax(0, 24rem); }
 }
+
+/*
+ * ── The three ways a lecture's text can end up ────────────────────────────
+ *
+ * Punkt 3. This section used to be three paragraphs of prose with three
+ * clauses linked to a drawing beside them. It read on a desktop and failed
+ * on a phone: the column stacks, so the drawing for the sentence you are
+ * reading sat three paragraphs below it, and by the time you reached it you
+ * had lost what it answered.
+ *
+ * It is a chooser now. One introduction, three named options, and each
+ * option is a short text AND its drawing, switched together. On a phone the
+ * two are adjacent because they are one block; there is no scrolling between
+ * a claim and its picture, because only one claim is on screen.
+ *
+ * The tab labels carry the judgement - "not ideal", "our approach" - which
+ * is the argument the three paragraphs used to make in prose. Without
+ * scripting all three stand in order with their labels as headings, and the
+ * section still reads as an argument in three moves.
+ */
+.ways { display: grid; gap: 2.2rem; }
+.ways.is-switched .way { display: none; }
+.ways.is-switched .way.is-shown { display: grid; }
+/* The label becomes the tab, so inside the chooser it would be the same
+   words twice. */
+.ways.is-switched .way-label { display: none; }
+.way { display: grid; gap: clamp(1.2rem, 2.4vw, 2.6rem); align-items: start; }
+@media (min-width: 64rem) {
+  .way { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
+}
+.way-label {
+  font-size: 1.05rem;
+  font-weight: 620;
+  margin: 0 0 0.5rem;
+  grid-column: 1 / -1;
+}
+.way-said > :first-child { margin-top: 0; }
+.way-said > :last-child { margin-bottom: 0; }
+.way-said p { max-width: none; }
+.way-fig { min-width: 0; }
+.way-fig svg { display: block; width: 100%; height: auto; }
+.way-fig svg text { font-family: var(--mono); }
+/* The column headings above the three drawings are one strip shared by all
+   three, so it sits outside them and stays put while they change. */
+.way-cols { display: block; width: 100%; height: auto; margin: 0 0 0.2rem; }
+
+/*
+ * ── The three other lectures ──────────────────────────────────────────────
+ *
+ * Punkt 1. This was the six-column table again, inside the disclosure, with
+ * python-intro and the tutorial repeated in it - the two lectures already
+ * standing as cards directly above. A table of eighteen equal links is what
+ * the cards were introduced to replace, so keeping one behind a fold only
+ * moved the problem.
+ *
+ * Three entries, and deliberately NOT cards: a card inside a disclosure is a
+ * box in a box, and these three are the ones you were not sent to. Name,
+ * length, one sentence, and the views as plain links. The name is the anchor,
+ * so it holds the left edge and everything else hangs off it.
+ */
+.more-lectures { display: grid; gap: 1.6rem; margin: 0.4rem 0 0; }
+@media (min-width: 56rem) { .more-lectures { grid-template-columns: 1fr 1fr; } }
+.more-lecture > * { max-width: none; }
+.more-lecture h4 {
+  font-size: 1rem;
+  font-weight: 650;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.more-lecture h4 .size {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+.more-lecture p { margin: 0.25rem 0 0.4rem; font-size: 0.94rem; color: var(--ink-soft); }
+/* Plain links with a middot between them, not four bordered buttons: the two
+   cards above use buttons, and repeating them here would say these three are
+   the same offer. */
+.more-lecture .opens { font-size: 0.9rem; }
+.more-lecture .opens span { color: var(--rule); padding: 0 0.25rem; }

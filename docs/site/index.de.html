@@ -104,46 +104,19 @@
 <section class="band">
  <div class="wrap">
   <h2>Eine Vorlesung besteht aus drei Sorten Text</h2>
-  <p class="lede">Und die gängigen Präsentationsprogramme haben Platz für zwei
-  davon. Die Zeichnung rechts ist dieser Mangel in drei Zeilen: was die Datei
-  verlässt, und was ankommt.</p>
+  <p class="lede">Was <strong>auf die Folie</strong> kommt, muss aus der letzten Reihe lesbar sein. <strong>Das Skript</strong> &ndash; die Sätze, die die Sache wirklich erklären &ndash; gehört in ein Handout. Und <strong>die Notizen für einen selbst</strong> gehören auf den eigenen Bildschirm und sonst nirgendwohin. Drei Texte, und die gängigen Präsentationsprogramme haben Platz für zwei. Das geht auf drei Arten aus.</p>
 
-  <div class="kinds">
-    <div class="kinds-prose">
-    <p>Da ist der Text, der <strong>auf die Folie</strong> kommt, knapp genug,
-    dass man ihn aus der letzten Reihe lesen kann. Da ist <strong>das
-    Skript</strong> &ndash; die Sätze, die die Sache wirklich erklären und die in ein
-    Handout gehören statt an die Wand. Und da sind <strong>die Notizen für einen
-    selbst</strong>: erst die Gruppe fragen; das hier weglassen, wenn die Zeit
-    knapp wird; das geht nicht raus.</p>
-
-    <p>Folien und ein Notizfeld sind zwei. Für das Skript ist darin kein Platz,
-    und ausgerechnet das ist der Teil, den Studierende am meisten wollen. Also
-    nimmt es einen von zwei Wegen.
-    <span class="tie" data-tie="1">Entweder übernehmen die Folien seine Aufgabe
-    und werden so voll, dass sie aus der letzten Reihe niemand mehr lesen kann &ndash;
-    <em>Death by PowerPoint</em>.</span> <span class="tie" data-tie="2">Oder das
-    Skript steht in einem zweiten Dokument, das ab der ersten Änderung nicht mehr
-    zu den Folien passt.</span></p>
-
-    <p><span class="tie" data-tie="3">Mit psi-slides schreibt man jeden Absatz
-    einmal und markiert den einen Satz, der ihn trägt.</span> Die Projektion
-    bekommt diesen Satz, das Handout den ganzen Absatz, und die Zeilen hinter
-    <code>&gt; note:</code> bleiben auf dem eigenen Bildschirm. Die Zeichnung
-    daneben zeigt einen dieser drei Wege auf einmal &ndash; ein Satz oder ein
-    Reiter darüber wechselt, welchen.</p>
-    </div>
-
-    <div class="kinds-figure">
-      <div class="paths">
-        <svg viewBox="0 0 448 20" aria-hidden="true" focusable="false">
+  <div class="ways">
+    <div class="way" data-tie="1">
+      <h3 class="way-label">nicht ideal: alles auf die Folien</h3>
+      <div class="way-said"><p>Das Skript kommt auf die Folien, also werden die Folien voll. Spätestens beim dritten Aufzählungspunkt liest sie in der letzten Reihe niemand mehr, und zum Verteilen gibt es hinterher trotzdem nichts.</p><p>Das ist <em>Death by PowerPoint</em>, und es passiert, wenn eine Vorlesung einen Platz für drei Texte hat.</p></div>
+      <div class="way-fig">
+        <svg class="way-cols" viewBox="0 0 448 20" aria-hidden="true" focusable="false">
           <text x="150" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">die Folie</text>
           <text x="275" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">das Handout</text>
           <text x="384" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">die Notizen</text>
         </svg>
-        <figure class="path" data-tie="1">
-          <figcaption>alles auf die Folien</figcaption>
-          <svg viewBox="0 0 448 148" role="img" aria-label="Eine Datei und ein Pfeil daraus in eine Folie, die von Rand zu Rand mit Fließtext gefüllt ist. Für Handout und Notizen ist kein Platz.">
+        <svg viewBox="0 0 448 148" role="img" aria-label="Eine Datei und ein Pfeil daraus in eine Folie, die von Rand zu Rand mit Prosa gefüllt ist. Handout und Notizen haben keinen Ort.">
           <path d="M4 49a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
           <path d="M28 45v8h8" fill="none" stroke="var(--frame)"/>
           <rect x="10" y="59" width="18" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
@@ -168,10 +141,18 @@
           <rect x="232" y="6" width="86" height="104" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="5 5"/>
           <rect x="332" y="30" width="104" height="52" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="5 5"/>
         </svg>
-        </figure>
-        <figure class="path" data-tie="2">
-          <figcaption>Folien, daneben ein Skript</figcaption>
-          <svg viewBox="0 0 448 148" role="img" aria-label="Zwei Dateien mit gerissener Verbindung und zwei Pfeilen, die sich nie treffen: einer in eine knappe Folie, einer in ein volles Handout. Für die Notizen ist weiterhin kein Platz.">
+      </div>
+    </div>
+    <div class="way" data-tie="2">
+      <h3 class="way-label">auch nicht ideal: Folien und ein Skript</h3>
+      <div class="way-said"><p>Knappe Folien, und das Argument in einem zweiten Dokument daneben. Das trägt, bis man eines von beiden ändert, und das ist meistens noch am selben Nachmittag.</p><p>Von da an beschreibt das Handout eine Vorlesung, die man so nicht mehr hält, und die eigenen Notizen haben immer noch keinen Ort.</p></div>
+      <div class="way-fig">
+        <svg class="way-cols" viewBox="0 0 448 20" aria-hidden="true" focusable="false">
+          <text x="150" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">die Folie</text>
+          <text x="275" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">das Handout</text>
+          <text x="384" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">die Notizen</text>
+        </svg>
+        <svg viewBox="0 0 448 148" role="img" aria-label="Zwei Dateien mit einer gerissenen Verbindung dazwischen und zwei Pfeilen, die sich nie treffen: einer in eine knappe Folie, einer in ein volles Handout. Die Notizen haben immer noch keinen Ort.">
           <path d="M4 18a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
           <path d="M28 14v8h8" fill="none" stroke="var(--frame)"/>
           <rect x="10" y="28" width="18" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
@@ -214,10 +195,18 @@
           <rect x="241" y="107" width="40" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
           <rect x="332" y="30" width="104" height="52" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="5 5"/>
         </svg>
-        </figure>
-        <figure class="path path-fix" data-tie="3">
-          <figcaption>psi-slides</figcaption>
-          <svg viewBox="0 0 448 148" role="img" aria-label="Eine Datei und drei Pfeile daraus hervor: in die knappe Folie, das volle Handout und die Notizkarte.">
+      </div>
+    </div>
+    <div class="way" data-tie="3">
+      <h3 class="way-label">unser Ansatz</h3>
+      <div class="way-said"><p>Jeden Absatz einmal schreiben und den einen Satz markieren, der ihn trägt. Die Projektion nimmt diesen Satz. Das Handout nimmt den ganzen Absatz. Die Zeilen hinter <code>&gt; note:</code> bleiben auf dem eigenen Bildschirm.</p><p>Eine Datei, drei Texte, und nichts, was synchron gehalten werden müsste.</p></div>
+      <div class="way-fig">
+        <svg class="way-cols" viewBox="0 0 448 20" aria-hidden="true" focusable="false">
+          <text x="150" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">die Folie</text>
+          <text x="275" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">das Handout</text>
+          <text x="384" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">die Notizen</text>
+        </svg>
+        <svg viewBox="0 0 448 148" role="img" aria-label="Eine Datei und drei Pfeile daraus: in die knappe Folie, in das volle Handout und in die Notizkarte.">
           <path d="M4 49a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
           <path d="M28 45v8h8" fill="none" stroke="var(--frame)"/>
           <rect x="10" y="59" width="18" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
@@ -256,7 +245,6 @@
           <rect x="342" y="58" width="72" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.42"/>
           <rect x="342" y="66" width="54" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.42"/>
         </svg>
-        </figure>
       </div>
     </div>
   </div>
@@ -271,8 +259,14 @@
   Chunk wird zu einer Folie. Die Vorlesung dahinter ist echt: eine
   Python-Einführung aus 36 Chunks, auf Englisch.</p>
 
-  <div class="aside-code">
+  <div class="aside-code with-slide">
    <div class="said">
+    <div class="stage">
+      <figure class="shot">
+        <div class="bar"><b>was der Raum sieht</b></div>
+        <img src="../img/collapsed.webp" alt="Die Folie, die dieses Listing erzeugt, wie projiziert: Überschrift, Unterzeile, der erste Satz jedes Absatzes und die fett markierten Stellen, einspaltig.">
+      </figure>
+    </div>
     <p class="cue">Auf das Fette achten. Das sind die Stellen, die die
     Projektion behält; die Prosa darum ist das, was das Handout behält. Das
     <code>&gt; note:</code> am Fuß ist für niemanden außer einen selbst.</p>
@@ -367,14 +361,28 @@ browser is for pages meant to be looked at.
     <h2>Was die Studierenden mitnehmen</h2>
     <p class="lede">Dieselbe Quelle als Dokument gesetzt: mit Silbentrennung, in
     einer Zeilenlänge zum Lesen, die Randnotiz als Marginalie.</p>
-    <p class="cue">Davon gibt es zwei. <code>print.html</code> trägt nur das
-    Skript und ist das für die Studierenden. <code>print-notes.html</code> legt
-    die Sprechnotizen unter die Chunks und bleibt bei einem selbst.</p>
+    <p class="cue">Davon gibt es zwei, und der Schalter in der Titelzeile zeigt
+    beide. <code>print.html</code> trägt nur das Skript und ist das für die
+    Studierenden. <code>print-notes.html</code> legt die Sprechnotizen unter die
+    Chunks und bleibt bei einem selbst.</p>
    </div>
    <div class="stage">
      <figure class="shot">
-       <div class="bar"><b>print-notes.html</b></div>
-       <img src="../img/handout.webp" alt="Das Handout: derselbe Chunk als fließender Blocksatz mit Silbentrennung, die Randnotiz als Marginalie und die Sprechnotiz in einem getönten Block darunter.">
+       <div class="bar">
+         <b>print.html</b>
+         <span class="swap" role="group" aria-label="Handout-Fassung wählen">
+           <span class="swap-label" aria-hidden="true">zeigen:</span>
+           <button type="button" aria-pressed="true"
+                   data-src="../img/handout-plain.webp"
+                   data-name="print.html"
+                   data-alt="Das Handout für die Studierenden: derselbe Chunk als fließender Blocksatz mit Silbentrennung und die Randnotiz als Marginalie.">für die Studierenden</button>
+           <button type="button" aria-pressed="false"
+                   data-src="../img/handout.webp"
+                   data-name="print-notes.html"
+                   data-alt="Dasselbe Dokument mit der Sprechnotiz in einem getönten Block unter dem Chunk.">mit den Notizen</button>
+         </span>
+       </div>
+       <img src="../img/handout-plain.webp" alt="Das Handout für die Studierenden: derselbe Chunk als fließender Blocksatz mit Silbentrennung und die Randnotiz als Marginalie.">
      </figure>
    </div>
   </div>
@@ -558,48 +566,34 @@ browser is for pages meant to be looked at.
 
   <div class="folded-note">
   <details class="setup">
-    <summary>Drei weitere, und die vollständige Tabelle</summary>
+    <summary>Die drei übrigen Vorlesungen</summary>
     <div class="setup-body">
-      <p><strong>Kurzbeispiel</strong> &ndash; 6 Folien, auf Deutsch. Ein Ausschnitt
-      aus einer Netzwerk-Vorlesung im ersten Semester, gut 80 Zeilen Markdown,
-      kurz genug, um sie ganz zu lesen und daneben zu sehen, was daraus wird
-      (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">Quelle</a>,
-      gesetzt nach den <a href="https://inf.zone/lectures/8.5-netze/notes85/">Vorlesungsnotizen</a>
-      unter CC&nbsp;BY-NC-SA&nbsp;4.0).</p>
-      <p><strong>Figures</strong> &ndash; 40 Folien. Jede Konstruktion, die die
-      Abbildungssprache kennt, gezeichnet statt beschrieben.
-      <strong>Decoration</strong> &ndash; 39 Folien. Alles, was etwas anderes als
-      eine Textspalte auf eine Folie bringt. Beide zeigen Arbeit, die nicht in
-      Version 1.0.0 steckt, und beide brauchen zum Bauen das Repository; deshalb
-      sind von Decoration nur zwei Ansichten veröffentlicht.</p>
+      <p>python-intro und das Tutorial stehen oben; das hier ist der Rest. Alle
+      drei werden aus dem Repository gebaut, nicht aus dem Release, und von
+      Decoration sind nur zwei der vier Ansichten veröffentlicht.</p>
 
-      <table>
-        <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Decoration</th><th>Kurzbeispiel</th></tr>
-        <tr><td>Die Projektion</td>
-            <td><a href="../python-intro/audience.html">audience</a></td>
-            <td><a href="../tutorial/audience.html">audience</a></td>
-            <td><a href="../diagrams/audience.html">audience</a></td>
-            <td><a href="../decoration/audience.html">audience</a></td>
-            <td><a href="../example/audience.html">audience</a></td></tr>
-        <tr><td>Das Cockpit</td>
-            <td><a href="../python-intro/speaker.html">speaker</a></td>
-            <td><a href="../tutorial/speaker.html">speaker</a></td>
-            <td><a href="../diagrams/speaker.html">speaker</a></td>
-            <td>&ndash;</td>
-            <td><a href="../example/speaker.html">speaker</a></td></tr>
-        <tr><td>Das Dokument</td>
-            <td><a href="../python-intro/print.html">print</a></td>
-            <td><a href="../tutorial/print.html">print</a></td>
-            <td><a href="../diagrams/print.html">print</a></td>
-            <td><a href="../decoration/print.html">print</a></td>
-            <td><a href="../example/print.html">print</a></td></tr>
-        <tr><td>Mit den Notizen</td>
-            <td><a href="../python-intro/print-notes.html">print-notes</a></td>
-            <td><a href="../tutorial/print-notes.html">print-notes</a></td>
-            <td><a href="../diagrams/print-notes.html">print-notes</a></td>
-            <td>&ndash;</td>
-            <td><a href="../example/print-notes.html">print-notes</a></td></tr>
-      </table>
+      <div class="more-lectures">
+        <div class="more-lecture">
+          <h4>Kurzbeispiel <span class="size">6 Folien &middot; Deutsch</span></h4>
+          <p>Ein Ausschnitt aus einer Netzwerk-Vorlesung im ersten Semester. Gut
+          80 Zeilen Markdown, kurz genug, um sie ganz zu lesen und daneben zu
+          sehen, was daraus wird.</p>
+          <p class="opens"><a href="../example/audience.html">Projektion</a><span>&middot;</span><a href="../example/speaker.html">Cockpit</a><span>&middot;</span><a href="../example/print.html">Dokument</a><span>&middot;</span><a href="../example/print-notes.html">mit Notizen</a><span>&middot;</span><a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">Quelle</a></p>
+        </div>
+        <div class="more-lecture">
+          <h4>Figures <span class="size">40 Folien</span></h4>
+          <p>Jede Konstruktion, die die Abbildungssprache kennt, gezeichnet statt
+          beschrieben, darunter Abbildungen aus einer echten Vorlesung.</p>
+          <p class="opens"><a href="../diagrams/audience.html">Projektion</a><span>&middot;</span><a href="../diagrams/speaker.html">Cockpit</a><span>&middot;</span><a href="../diagrams/print.html">Dokument</a><span>&middot;</span><a href="../diagrams/print-notes.html">mit Notizen</a></p>
+        </div>
+        <div class="more-lecture">
+          <h4>Decoration <span class="size">39 Folien</span></h4>
+          <p>Alles, was etwas anderes als eine Textspalte auf eine Folie bringt:
+          Titelfolien, Trenner, Karten, Hintergrundbilder, ein Foto, das sich mit
+          <kbd>Leertaste</kbd> öffnet.</p>
+          <p class="opens"><a href="../decoration/audience.html">Projektion</a><span>&middot;</span><a href="../decoration/print.html">Dokument</a></p>
+        </div>
+      </div>
     </div>
   </details>
 

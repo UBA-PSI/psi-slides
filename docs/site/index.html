@@ -102,44 +102,19 @@
 <section class="band">
  <div class="wrap">
   <h2>A lecture holds three kinds of text</h2>
-  <p class="lede">And the programs people present with have room for two of
-  them. The drawing on the right is that shortfall in three rows: what leaves
-  the file, and what arrives.</p>
+  <p class="lede">What goes <strong>on the slide</strong> has to read from the back row. <strong>The script</strong> &ndash; the sentences that actually explain the thing &ndash; belongs in a handout. And <strong>the notes to yourself</strong> belong on your own screen and nowhere else. Three texts, and the programs people present with have room for two. There are three ways that ends.</p>
 
-  <div class="kinds">
-    <div class="kinds-prose">
-    <p>There is what goes <strong>on the slide</strong>, which has to be sparse
-    enough to read from the back row. There is <strong>the script</strong> &ndash; the
-    full argument, the sentences that actually explain the thing, which belongs in
-    a handout and not on a wall. And there are <strong>the notes to yourself</strong>:
-    ask the room first, skip this if you are short on time, do not send this out.</p>
-
-    <p>Slides and a notes field are two. Neither is a place for the script, and
-    the script is the part students want most. So it goes one of two ways.
-    <span class="tie" data-tie="1">Either the slides take its job and fill up
-    until nobody can read them from the back row, which is <em>death by
-    PowerPoint</em>.</span> <span class="tie" data-tie="2">Or the script lives in
-    a second document that stops matching the slides the first time you edit
-    either one.</span></p>
-
-    <p><span class="tie" data-tie="3">With psi-slides you write each paragraph
-    once and mark the one sentence that carries it.</span> The projection gets
-    that sentence, the handout gets the whole paragraph, and your
-    <code>&gt; note:</code> lines stay on your own screen. The drawing beside this shows
-    one of those three ways at a time &ndash; pick a sentence, or a tab above it,
-    to change which.</p>
-    </div>
-
-    <div class="kinds-figure">
-      <div class="paths">
-        <svg viewBox="0 0 448 20" aria-hidden="true" focusable="false">
+  <div class="ways">
+    <div class="way" data-tie="1">
+      <h3 class="way-label">not ideal: everything on the slides</h3>
+      <div class="way-said"><p>The script goes onto the slides, so the slides fill up. By the third bullet nobody in the back row is reading them any more, and there is still nothing to hand out afterwards.</p><p>This is <em>death by PowerPoint</em>, and it is what happens when a lecture has one place to put three texts.</p></div>
+      <div class="way-fig">
+        <svg class="way-cols" viewBox="0 0 448 20" aria-hidden="true" focusable="false">
           <text x="150" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">the slide</text>
           <text x="275" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">the handout</text>
           <text x="384" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">your notes</text>
         </svg>
-        <figure class="path" data-tie="1">
-          <figcaption>everything on the slides</figcaption>
-          <svg viewBox="0 0 448 148" role="img" aria-label="One file, and one arrow out of it into a slide that is full of prose from edge to edge. The handout and the notes have nowhere to live.">
+        <svg viewBox="0 0 448 148" role="img" aria-label="One file, and one arrow out of it into a slide that is full of prose from edge to edge. The handout and the notes have nowhere to live.">
           <path d="M4 49a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
           <path d="M28 45v8h8" fill="none" stroke="var(--frame)"/>
           <rect x="10" y="59" width="18" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
@@ -164,10 +139,18 @@
           <rect x="232" y="6" width="86" height="104" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="5 5"/>
           <rect x="332" y="30" width="104" height="52" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="5 5"/>
         </svg>
-        </figure>
-        <figure class="path" data-tie="2">
-          <figcaption>slides, and a script beside them</figcaption>
-          <svg viewBox="0 0 448 148" role="img" aria-label="Two files with a broken link between them, and two arrows that never meet: one into a sparse slide, one into a full handout. The notes still have nowhere to live.">
+      </div>
+    </div>
+    <div class="way" data-tie="2">
+      <h3 class="way-label">also not ideal: slides and a script</h3>
+      <div class="way-said"><p>Sparse slides, and the argument in a second document beside them. That works until you edit one of the two, which is usually the same afternoon.</p><p>From then on the handout describes a lecture you no longer give, and your notes to yourself still have nowhere to live.</p></div>
+      <div class="way-fig">
+        <svg class="way-cols" viewBox="0 0 448 20" aria-hidden="true" focusable="false">
+          <text x="150" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">the slide</text>
+          <text x="275" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">the handout</text>
+          <text x="384" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">your notes</text>
+        </svg>
+        <svg viewBox="0 0 448 148" role="img" aria-label="Two files with a broken link between them, and two arrows that never meet: one into a sparse slide, one into a full handout. The notes still have nowhere to live.">
           <path d="M4 18a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
           <path d="M28 14v8h8" fill="none" stroke="var(--frame)"/>
           <rect x="10" y="28" width="18" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
@@ -210,10 +193,18 @@
           <rect x="241" y="107" width="40" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.4"/>
           <rect x="332" y="30" width="104" height="52" rx="4" fill="none" stroke="var(--rule)" stroke-dasharray="5 5"/>
         </svg>
-        </figure>
-        <figure class="path path-fix" data-tie="3">
-          <figcaption>psi-slides</figcaption>
-          <svg viewBox="0 0 448 148" role="img" aria-label="One file, and three arrows out of it: into the sparse slide, the full handout, and the note card.">
+      </div>
+    </div>
+    <div class="way" data-tie="3">
+      <h3 class="way-label">our approach</h3>
+      <div class="way-said"><p>Write each paragraph once, and mark the one sentence that carries it. The projection takes that sentence. The handout takes the whole paragraph. The lines you start with <code>&gt; note:</code> stay on your own screen.</p><p>One file, three texts, and nothing to keep in step.</p></div>
+      <div class="way-fig">
+        <svg class="way-cols" viewBox="0 0 448 20" aria-hidden="true" focusable="false">
+          <text x="150" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">the slide</text>
+          <text x="275" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">the handout</text>
+          <text x="384" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">your notes</text>
+        </svg>
+        <svg viewBox="0 0 448 148" role="img" aria-label="One file, and three arrows out of it: into the sparse slide, the full handout, and the note card.">
           <path d="M4 49a4 4 0 0 1 4-4h20l8 8v22a4 4 0 0 1-4 4H8a4 4 0 0 1-4-4z" fill="var(--paper)" stroke="var(--frame)"/>
           <path d="M28 45v8h8" fill="none" stroke="var(--frame)"/>
           <rect x="10" y="59" width="18" height="2.4" rx="1.2" fill="var(--ink-soft)" opacity="0.45"/>
@@ -252,7 +243,6 @@
           <rect x="342" y="58" width="72" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.42"/>
           <rect x="342" y="66" width="54" height="3" rx="1.5" fill="var(--ink-soft)" opacity="0.42"/>
         </svg>
-        </figure>
       </div>
     </div>
   </div>
@@ -267,8 +257,14 @@
   becomes one slide. The lecture it comes from is real: an introduction to
   Python in 36 chunks.</p>
 
-  <div class="aside-code">
+  <div class="aside-code with-slide">
    <div class="said">
+    <div class="stage">
+      <figure class="shot">
+        <div class="bar"><b>what the room sees</b></div>
+        <img src="img/collapsed.webp" alt="The slide this listing produces, as projected: heading, sub-heading, the first sentence of each paragraph and the phrases marked bold, in one column.">
+      </figure>
+    </div>
     <p class="cue">Read the bold. Those are the phrases the projection keeps;
     the prose around them is what the handout keeps. The
     <code>&gt; note:</code> at the foot is for nobody but you.</p>
@@ -360,15 +356,28 @@ browser is for pages meant to be looked at.
     <h2>What the students take away</h2>
     <p class="lede">The same source set as a document: hyphenated, at a line
     length made for reading, with the margin note as an aside.</p>
-    <p class="cue">There are two of these.
-    <code>print.html</code> carries the script alone and is the one to hand out.
-    <code>print-notes.html</code> folds your speaker notes in under each chunk and
-    stays with you.</p>
+    <p class="cue">There are two of these, and the switch in the title bar shows
+    both. <code>print.html</code> carries the script alone and is the one to hand
+    out. <code>print-notes.html</code> folds your speaker notes in under each
+    chunk and stays with you.</p>
    </div>
    <div class="stage">
      <figure class="shot">
-       <div class="bar"><b>print-notes.html</b></div>
-       <img src="img/handout.webp" alt="The handout: the same chunk set as flowing justified prose with hyphenation, the margin note as an aside, and the speaker note in a tinted block beneath it.">
+       <div class="bar">
+         <b>print.html</b>
+         <span class="swap" role="group" aria-label="Choose which handout to show">
+           <span class="swap-label" aria-hidden="true">show:</span>
+           <button type="button" aria-pressed="true"
+                   data-src="img/handout-plain.webp"
+                   data-name="print.html"
+                   data-alt="The handout for the students: the same chunk set as flowing justified prose with hyphenation and the margin note as an aside.">for the students</button>
+           <button type="button" aria-pressed="false"
+                   data-src="img/handout.webp"
+                   data-name="print-notes.html"
+                   data-alt="The same document with the speaker note folded in under the chunk, in a tinted block.">with your notes</button>
+         </span>
+       </div>
+       <img src="img/handout-plain.webp" alt="The handout for the students: the same chunk set as flowing justified prose with hyphenation and the margin note as an aside.">
      </figure>
    </div>
   </div>
@@ -545,48 +554,33 @@ browser is for pages meant to be looked at.
 
   <div class="folded-note">
   <details class="setup">
-    <summary>Three more, and the whole grid</summary>
+    <summary>The other three lectures</summary>
     <div class="setup-body">
-      <p><strong>Short example</strong> &ndash; 6 slides, in German. One section of
-      a first-year networking lecture, eighty-odd lines of Markdown, short enough
-      to read end to end beside what it produces
-      (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a>,
-      set from the <a href="https://inf.zone/lectures/8.5-netze/notes85/">lecture
-      notes</a> under CC&nbsp;BY-NC-SA&nbsp;4.0).</p>
-      <p><strong>Figures</strong> &ndash; 40 slides. Every construction the figure
-      language has, drawn rather than described.
-      <strong>Decoration</strong> &ndash; 39 slides. Everything that puts something
-      other than a text column on a slide. Both show work that is not in the
-      1.0.0 release and both need the repository to build, which is why only two
-      views of decoration are published.</p>
+      <p>python-intro and the tutorial are the two above; these are the rest.
+      All three are built from the repository rather than the release, and
+      decoration publishes only two of its four views.</p>
 
-      <table>
-        <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Decoration</th><th>Short example</th></tr>
-        <tr><td>The projection</td>
-            <td><a href="python-intro/audience.html">audience</a></td>
-            <td><a href="tutorial/audience.html">audience</a></td>
-            <td><a href="diagrams/audience.html">audience</a></td>
-            <td><a href="decoration/audience.html">audience</a></td>
-            <td><a href="example/audience.html">audience</a></td></tr>
-        <tr><td>The cockpit</td>
-            <td><a href="python-intro/speaker.html">speaker</a></td>
-            <td><a href="tutorial/speaker.html">speaker</a></td>
-            <td><a href="diagrams/speaker.html">speaker</a></td>
-            <td>&ndash;</td>
-            <td><a href="example/speaker.html">speaker</a></td></tr>
-        <tr><td>The document</td>
-            <td><a href="python-intro/print.html">print</a></td>
-            <td><a href="tutorial/print.html">print</a></td>
-            <td><a href="diagrams/print.html">print</a></td>
-            <td><a href="decoration/print.html">print</a></td>
-            <td><a href="example/print.html">print</a></td></tr>
-        <tr><td>With the notes</td>
-            <td><a href="python-intro/print-notes.html">print-notes</a></td>
-            <td><a href="tutorial/print-notes.html">print-notes</a></td>
-            <td><a href="diagrams/print-notes.html">print-notes</a></td>
-            <td>&ndash;</td>
-            <td><a href="example/print-notes.html">print-notes</a></td></tr>
-      </table>
+      <div class="more-lectures">
+        <div class="more-lecture">
+          <h4>Short example <span class="size">6 slides &middot; German</span></h4>
+          <p>One section of a first-year networking lecture. Eighty-odd lines of
+          Markdown, short enough to read end to end beside what it produces.</p>
+          <p class="opens"><a href="example/audience.html">projection</a><span>&middot;</span><a href="example/speaker.html">cockpit</a><span>&middot;</span><a href="example/print.html">document</a><span>&middot;</span><a href="example/print-notes.html">with notes</a><span>&middot;</span><a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a></p>
+        </div>
+        <div class="more-lecture">
+          <h4>Figures <span class="size">40 slides</span></h4>
+          <p>Every construction the figure language has, drawn rather than
+          described, with figures from a real course among them.</p>
+          <p class="opens"><a href="diagrams/audience.html">projection</a><span>&middot;</span><a href="diagrams/speaker.html">cockpit</a><span>&middot;</span><a href="diagrams/print.html">document</a><span>&middot;</span><a href="diagrams/print-notes.html">with notes</a></p>
+        </div>
+        <div class="more-lecture">
+          <h4>Decoration <span class="size">39 slides</span></h4>
+          <p>Everything that puts something other than a text column on a slide:
+          title slides, dividers, cards, backdrops, a photograph that opens as
+          you press <kbd>Space</kbd>.</p>
+          <p class="opens"><a href="decoration/audience.html">projection</a><span>&middot;</span><a href="decoration/print.html">document</a></p>
+        </div>
+      </div>
     </div>
   </details>
 

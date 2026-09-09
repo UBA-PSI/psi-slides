@@ -21,12 +21,19 @@
     var fig = group.closest('.shot');
     var img = fig && fig.querySelector('img');
     if (!img) return;
+    // Where the bar names a file rather than a role, the name is part of what
+    // the switch changes: the handout pair is print.html and print-notes.html,
+    // and a bar that kept saying one of them while showing the other would be
+    // the exact confusion this switch was added to remove. The hero's bar says
+    // "what the reader gets", carries no data-name, and is left alone.
+    var name = fig.querySelector('.bar > b');
     var buttons = Array.prototype.slice.call(group.querySelectorAll('button'));
     buttons.forEach(function (btn) {
       btn.addEventListener('click', function () {
         buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
         img.src = btn.getAttribute('data-src');
         img.alt = btn.getAttribute('data-alt') || '';
+        if (name && btn.getAttribute('data-name')) name.textContent = btn.getAttribute('data-name');
       });
     });
   });
@@ -49,78 +56,66 @@
    * who has already chosen.
    */
 
-  /* ── the diagram and the sentences it draws ────────────────────────────
-   * Each row of the diagram is one clause of the argument: the slide that
-   * fills up, the second document that stops matching, and psi-slides.
+  /* ── the three ways, as a chooser ──────────────────────────────────────
+   * A lecture holds three kinds of text, and there are three ways that ends:
+   * everything on the slides, slides plus a second document, or psi-slides.
    *
-   * It used to draw all three at once and dim two of them when you pointed at
-   * a clause, which meant the section always carried three stacked drawings -
-   * eight hundred pixels of picture for three sentences of text, and on a
-   * phone the row being talked about could be a screen away from the sentence
-   * talking about it. It shows ONE row now, and the clause you pick is the
-   * one drawn. Same wiring, a third of the height, and the answer arrives
-   * where the question was asked.
+   * The section used to be all three at once - three paragraphs of prose and
+   * three stacked drawings, with the clause you pointed at lighting up its
+   * row. That read on a desktop and failed on a phone: the column stacks, so
+   * the drawing answering the sentence you were reading sat three paragraphs
+   * below it. Then it was one drawing switched by the clauses, which fixed
+   * the height and left the three paragraphs standing.
    *
-   * Click, not hover: a hover-only switch has no answer on a touchscreen, and
-   * this is now the only way to reach two of the three rows. So the clauses
-   * become real controls - focusable, Enter and Space - and a row of tabs is
-   * added above the drawing for a reader who is not reading the sentences.
+   * Now the text switches with the drawing. One option is on screen at a
+   * time, its words and its picture together, and the tabs carry the
+   * judgement - "not ideal", "our approach" - that the prose used to make.
    *
-   * With scripting off the markup is untouched: all three rows stand, stacked,
-   * exactly as they did before. The switch is the enhancement, not the
-   * content.
+   * The tab labels are read out of the markup, not written here: without
+   * scripting the three options stand in order with those labels as headings,
+   * and the section still argues in three moves. The switch is the
+   * enhancement, never the content.
    */
-  (function ties() {
-    var paths = document.querySelector('.paths');
-    if (!paths) return;
-    var rows = Array.prototype.slice.call(paths.querySelectorAll('.path'));
-    var clauses = Array.prototype.slice.call(document.querySelectorAll('.tie'));
-    if (rows.length < 2 || !clauses.length) return;
+  (function ways() {
+    var box = document.querySelector('.ways');
+    if (!box) return;
+    var opts = Array.prototype.slice.call(box.querySelectorAll('.way'));
+    if (opts.length < 2) return;
 
     var tabs = document.createElement('div');
-    tabs.className = 'path-tabs';
+    tabs.className = 'way-tabs';
     tabs.setAttribute('role', 'tablist');
-    var buttons = rows.map(function (row) {
-      var cap = row.querySelector('figcaption');
+    var buttons = opts.map(function (opt) {
+      var label = opt.querySelector('.way-label');
       var btn = document.createElement('button');
       btn.type = 'button';
-      btn.textContent = cap ? cap.textContent : row.getAttribute('data-tie');
-      btn.setAttribute('data-tie', row.getAttribute('data-tie'));
+      btn.textContent = label ? label.textContent : opt.getAttribute('data-tie');
+      btn.setAttribute('data-tie', opt.getAttribute('data-tie'));
       btn.setAttribute('role', 'tab');
       tabs.appendChild(btn);
       return btn;
     });
-    paths.parentNode.insertBefore(tabs, paths);
-    paths.classList.add('is-switched');
+    box.parentNode.insertBefore(tabs, box);
+    box.classList.add('is-switched');
 
     function show(key) {
-      rows.forEach(function (row) {
-        row.classList.toggle('is-shown', row.getAttribute('data-tie') === key);
+      opts.forEach(function (opt) {
+        opt.classList.toggle('is-shown', opt.getAttribute('data-tie') === key);
       });
-      buttons.concat(clauses).forEach(function (el) {
-        var on = el.getAttribute('data-tie') === key;
-        el.classList.toggle('is-tied', on);
-        el.setAttribute('aria-pressed', String(on));
-        if (el.getAttribute('role') === 'tab') el.setAttribute('aria-selected', String(on));
+      buttons.forEach(function (btn) {
+        var on = btn.getAttribute('data-tie') === key;
+        btn.classList.toggle('is-tied', on);
+        btn.setAttribute('aria-selected', String(on));
       });
     }
-
-    clauses.forEach(function (el) {
-      el.tabIndex = 0;
-      el.setAttribute('role', 'button');
-      el.addEventListener('keydown', function (ev) {
-        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); el.click(); }
-      });
-    });
-    buttons.concat(clauses).forEach(function (el) {
-      el.addEventListener('click', function () { show(el.getAttribute('data-tie')); });
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () { show(btn.getAttribute('data-tie')); });
     });
 
-    /* The first row is the state a reader already knows - everything poured
-       onto the slides - so the section opens on the problem and the two
-       clauses after it move the picture on. Opening on the answer would
-       spend the argument before it is made. */
-    show(rows[0].getAttribute('data-tie'));
+    /* Opens on the state a reader already knows - everything poured onto the
+       slides - so the argument is made rather than assumed. Opening on the
+       answer spends it before the question is asked. */
+    show(opts[0].getAttribute('data-tie'));
   })();
 
   /* ── the narrow-width menu ─────────────────────────────────────────────
