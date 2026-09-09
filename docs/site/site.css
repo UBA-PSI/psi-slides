@@ -77,12 +77,18 @@
   /* The dimmed token still sets the `{.wide #id}` attribute tail, which is
      content a reader has to be able to read, not decoration. */
   --tok-punct: oklch(0.50 0.02 260);
-  /* The frame and the measure. The banded pages used to hold everything at
-     48rem and let four kinds of element break out to 66rem with a
-     translateX trick, which put prose and pictures on two different left
-     edges and left a third of a 1920px screen empty on either side. Now the
-     frame is the one width, and prose keeps its measure inside it. */
-  --frame: 68rem;
+  /* The page's one width, and the measure prose keeps inside it. The banded
+     pages used to hold everything at 48rem and let four kinds of element
+     break out to 66rem with a translateX trick, which put prose and
+     pictures on two different left edges and left a third of a 1920px
+     screen empty on either side.
+
+     Named --page, not --frame: `--frame` above is the screenshot chrome's
+     colour, and a width under that name silently turned every figure's
+     hairline into a black rule and emptied every window bar - a custom
+     property does not care that one value is a colour and the other a
+     length. */
+  --page: 82rem;
   --measure: 40rem;
   --sans: 'IBM Plex Sans Var', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono Var', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
@@ -148,7 +154,7 @@ main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
    build-site.js's shell, which has no bands and no wrap, and they keep the
    measure on `main` exactly as before. */
 main.banded { max-width: none; padding: 0; }
-.wrap { max-width: var(--frame); margin: 0 auto; padding: 0 1.5rem; }
+.wrap { max-width: var(--page); margin: 0 auto; padding: 0 1.5rem; }
 /* More air between bands on a wide screen than on a phone, and the space
    sits between sections rather than inside them: a band's own content is
    tighter than the gap to the next band, so the eye reads the page as
@@ -165,37 +171,41 @@ main.banded { max-width: none; padding: 0; }
   padding-top: 1.1rem;
   border-top: 2px solid var(--ink);
 }
-/* Beside a picture the prose column is the one thing on the page that is
-   allowed to wrap a code sample: the sample is Markdown prose, and a line of
-   it broken at the column edge is still that line. A scrolling box would
-   hide the end of every sentence. Shell lines in the halves wrap the same
-   way, at the one long URL. */
-.beside pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+/* The one command that does not fit a half column is the release URL, and a
+   scrollbar under a two-line command is worse than a wrap. */
+.pair-up pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 /*
- * Prose beside the thing it explains. The first column holds the words at a
- * measure, the second whatever is being looked at - a code sample, a drawn
- * figure, a row of tiles - and the two start on the same line, so a section
- * is one row rather than a stack of words-then-picture-then-words. Below
- * 64rem it stacks in source order, which is words first.
+ * One left edge, two widths. Prose sits in a --measure column at the left of
+ * the frame; anything that is looked at rather than read - a screenshot, a
+ * table, a row of tiles, a code sample - spans the frame under it. Both
+ * start at the same x, so the page has one edge to follow down and the
+ * pictures get the width they were captured at.
  *
- * `.halves` is the same device for two things of the same kind: the two
- * versions under Getting started, each a paragraph over a command.
+ * The first draft of this put prose and picture in two columns everywhere.
+ * Where the two are the same height that reads as one row; where they are
+ * not - a five-line paragraph beside a forty-line code sample - it leaves a
+ * hole the height of the difference, and a page of holes is what "busy"
+ * turns out to mean. So the two-column device is kept for the two cases
+ * where the halves match by construction, and named for each.
  */
-.beside { display: grid; gap: 1.6rem 3.5rem; align-items: start; }
-.beside > * { min-width: 0; }
-.beside-prose > :first-child { margin-top: 0; }
-.beside-prose > :last-child { margin-bottom: 0; }
-/* 76rem here is 1216px: a media query's rem is the browser's 16px, not the
-   page's 21px, so every breakpoint in this file is in sixteenths. Below it
-   the second column had 350px for a code sample. The columns are shares
-   rather than a fixed measure so the words give way as the frame narrows:
-   at the full frame the prose column is 30rem, about 60 characters. */
-@media (min-width: 76rem) {
-  .beside { grid-template-columns: minmax(0, 3fr) minmax(0, 4fr); }
-  .beside.halves { grid-template-columns: 1fr 1fr; }
-  /* The measure is the column here, not 40rem, and the words gain the wide
-     side for the picture rather than a gutter. */
-  .beside-prose p, .beside-prose li { max-width: none; }
+p, li { max-width: var(--measure); }
+/* A listing is as wide as its longest line and no wider. Left at the frame's
+   width, `npm install` sat in a 1300px band of tint, which is a box drawn
+   round nothing. The cap is the Markdown sample's longest line; past that it
+   scrolls, as it always did. */
+pre { width: fit-content; max-width: min(100%, 54rem); }
+/* Parenthetical, so it reads at the measure the prose around it does. */
+.hint { max-width: var(--measure); }
+/* `.pair-up` is two things of the same kind side by side: the two versions
+   under Getting started, each a paragraph over its one command. */
+.pair-up { display: grid; gap: 1.6rem 3.5rem; align-items: start; }
+.pair-up > * { min-width: 0; }
+.pair-up > * > :first-child { margin-top: 0; }
+/* 64rem here is 1024px: a media query's rem is the browser's 16px, not the
+   page's 21px, so every breakpoint in this file is in sixteenths. */
+@media (min-width: 64rem) {
+  .pair-up { grid-template-columns: 1fr 1fr; }
+  .pair-up p, .pair-up li { max-width: none; }
 }
 .band-read { background: var(--shot-bg); }
 /* Named rather than left to the default, so the two kinds of band are a pair
@@ -208,7 +218,11 @@ main.banded { max-width: none; padding: 0; }
    but no window bar, because there is no window, and it is set narrower than a
    screenshot: a screenshot has to stay legible at a third of its size, while a
    figure is already at reading size and only looks shouted at when blown up. */
-.shot.drawn { max-width: 40rem; margin-left: auto; margin-right: auto; }
+/* Left, like everything else in the column: centred under left-aligned prose
+   it gave the page a second axis. Wider than the old 40rem cap because the
+   frame is wider now, but still short of a screenshot's width - a drawing is
+   already at reading size and only looks shouted at when blown up. */
+.shot.drawn { max-width: 46rem; }
 .shot.drawn img { display: block; }
 /* The hero carries its own opening space, and the university bar is directly
    above it. */
@@ -812,18 +826,37 @@ hr + h2 { border-top: 0; padding-top: 0; margin-top: 1.6rem; }
  * which pixels are the tool and which are this page: without it the shots
  * read as more page, and the layout stops parsing.
  */
-figure.shot {
-  /* Tight under the picture, generous under the caption: a caption that sits
-     equidistant between its own image and the next one attaches itself to
-     whichever the eye reaches first, which on a scrolling page is the wrong
-     one. Same reason `pre + p.tiny` is pulled up below. */
-  margin: 0 0 3.2rem;
+/*
+ * A screenshot is the picture and, where it helps, the file it comes from.
+ * The frame goes round those two and stops there: the caption used to sit
+ * inside it on the same tint, which turned every figure into a grey slab
+ * with a bar on top and a paragraph at the foot, and a page of twelve slabs
+ * is what "busy" turns out to mean. The caption is prose now, under the
+ * picture, at the measure everything else on the page is read at.
+ *
+ * The bar lost its three traffic-light dots with the same edit. They said
+ * "this is a window" over a bar that already says `speaker.html`, which is
+ * decoration wearing an information's clothes.
+ *
+ * Tight under the picture, generous under the caption: a caption that sits
+ * equidistant between its own image and the next one attaches itself to
+ * whichever the eye reaches first, which on a scrolling page is the wrong
+ * one. Same reason `pre + p.tiny` is pulled up below.
+ */
+figure.shot { margin: 0 0 3.2rem; }
+figure.shot > img, figure.shot > video {
   border: 1px solid var(--frame);
   border-radius: 7px;
-  overflow: hidden;
-  background: var(--shot-bg);
+}
+/* The bar and the picture are one box, so the bar closes at the bottom and
+   the picture opens at the top. */
+figure.shot .bar + img, figure.shot .bar + video {
+  border-top: 0;
+  border-radius: 0 0 7px 7px;
 }
 figure.shot .bar {
+  border: 1px solid var(--frame);
+  border-radius: 7px 7px 0 0;
   display: flex;
   align-items: center;
   gap: 0.55rem;
@@ -947,8 +980,8 @@ body.lightbox-open { overflow: hidden; }
 figure.shot figcaption {
   font-size: 1rem;
   color: var(--ink-soft);
-  padding: 0.6rem 0.9rem 0.9rem;
-  max-width: 48rem;
+  padding: 0.65rem 0 0;
+  max-width: var(--measure);
 }
 figure.shot figcaption strong { color: var(--ink); font-weight: 650; }
 
@@ -1021,7 +1054,8 @@ footer p { max-width: none; }
 figure.shot.tile figcaption {
   font-size: 0.8rem;
   line-height: 1.4;
-  padding: 0.5rem 0.7rem 0.65rem;
+  padding: 0.5rem 0 0;
+  max-width: none;
 }
 /* The name of the composition leads the caption, so it is set as the code it
    is and given the line to itself - at this size a run-in name and its gloss
