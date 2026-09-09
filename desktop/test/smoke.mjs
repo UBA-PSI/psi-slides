@@ -191,6 +191,32 @@ try {
   check('the deleted lecture keeps its row and says so', await page.evaluate(() =>
     document.querySelectorAll('#recent li.missing').length === 1));
   await shoot(page, 'start-recent-missing');
+
+  // ── the shot the project site publishes ──────────────────────────
+  //
+  // docs/site/getting-started.html shows the ready state, and it is the only
+  // picture on that page, so it has to be reproducible rather than taken by
+  // hand. `project-ready` above cannot be it: the run's working copy is
+  // called `smoke-lecture`, and a folder name out of a test harness on a page
+  // that says "open your lecture" reads as somebody else's screen. So the
+  // same state once more under the name the design brief's own mock-ups use.
+  //
+  // To publish it, from the repository root, at the size it was taken (a 2x
+  // capture of the 760 px window) and the quality shoot.mjs encodes with. The
+  // crop takes the empty half-screen under the last control off the foot: the
+  // window is taller than this project screen needs, and on a stage that void
+  // reads as a rendering fault rather than as an app that does little.
+  //
+  //   magick desktop/test/shots/site-builder.png -crop 1520x1150+0+0 +repage /tmp/b.png
+  //   cwebp -quiet -q 86 -m 6 /tmp/b.png -o docs/site/img/builder.webp
+  const shown = path.join(work, 'netsec-04');
+  fs.mkdirSync(shown);
+  fs.copyFileSync(source, path.join(shown, 'source.md'));
+  fs.cpSync(path.join(project, 'assets'), path.join(shown, 'assets'), { recursive: true });
+  await page.evaluate(p => window.builder.openProject(p), path.join(shown, 'source.md'));
+  await waitFor(page, '#status-text', v => /^Ready\./.test(v.trim()), 30000);
+  await shoot(page, 'site-builder');
+  await page.evaluate(() => window.builder.closeProject());
 } catch (err) {
   failures++;
   console.error('  ✘', err && err.message ? err.message : err);

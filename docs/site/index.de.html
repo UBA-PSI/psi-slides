@@ -459,8 +459,8 @@ browser is for pages meant to be looked at.
   <div class="hint">
     <p><strong>Das hier ist eine Vorschau.</strong> Es steckt nicht in Version
     1.0.0: Wer ein <code>cover:</code> oder ein <code>section:</code> schreibt,
-    braucht das Repository statt des Downloads &ndash;
-    <a href="#getting-started">Loslegen</a> hat beides.</p>
+    braucht das Repository statt des Downloads, was
+    <a href="getting-started.html#preview">Loslegen</a> ausführt.</p>
     <p>Alles, was eine Vorlesung gleichzeitig tragen <em>kann</em>,
     einschließlich Karten, Hintergrundbildern und einem Foto, das sich mit
     <kbd>Leertaste</kbd> öffnet, steht in der
@@ -614,156 +614,16 @@ browser is for pages meant to be looked at.
 <section class="band">
  <div class="wrap">
   <h2 id="getting-started">Loslegen</h2>
-  <p class="lede">Zwei Fassungen, und sie unterscheiden sich in dem, was sie
-  können. Beide sind ein Ordner zum Entpacken; systemweit wird nichts
-  installiert.</p>
-
-  <div class="pair-up">
-  <div>
-  <p><strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">Das
-  aktuelle Release</a></strong> ist 1.0.0. Sein Quellformat liegt fest, eine
-  Vorlesung, die heute baut, baut morgen genauso. Tutorial, python-intro und das
-  Kurzbeispiel sind darin schon gebaut, ein Doppelklick auf
-  <code>lectures/tutorial/audience.html</code> startet die Tour also ganz ohne
-  Installation.</p>
-
-<pre><code><span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
-  <span class="t-punct">|</span> <span class="t-cmd">tar</span> <span class="t-flag">xz</span></code></pre>
-  </div>
-
-  <div>
-  <p><strong><a href="https://github.com/UBA-PSI/psi-slides">Das
-  Repository</a></strong> trägt, was 1.0.0 nicht hat: Abbildungen als
-  <code>::: draw</code>, die Titelfolien und Trenner, Karten und Zeilen und den
-  grafischen Abbildungseditor. Wer deswegen hier ist, nimmt dieses. Was man
-  aufgibt, ist die Formatzusage &ndash; diese Teile können bis zu einem Release noch
-  eine Änderung nötig machen.</p>
-
-<pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span></code></pre>
-  <p class="tiny">Ohne git nimmt man <b>Download ZIP</b> aus dem grünen
-  <b>Code</b>-Knopf des Repositories.</p>
-  </div>
-  </div>
-
-  <div class="aside-code words-first">
-   <div class="said">
-    <h3>Das Tutorial bauen</h3>
-    <p class="cue">Dafür braucht es <strong>Node 20 oder neuer</strong>, womit
-    <code>build.js</code> läuft, und sonst nichts: kein LaTeX, kein Pandoc,
-    keinen Server, nichts systemweit Installiertes.</p>
-   </div>
-<pre><code><span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
-
-<span class="t-cmt"># einmalig: die Schriften und die paar Abhängigkeiten des Builds</span>
-<span class="t-cmd">npm</span> install
-
-<span class="t-cmt"># alle vier Ansichten neben source.md bauen, dann die Projektion öffnen</span>
-<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span>
-<span class="t-cmd">open</span> <span class="t-path">lectures/tutorial/audience.html</span>   <span class="t-cmt"># macOS; sonst xdg-open oder der Browser</span></code></pre>
-  </div>
-
-  <details class="setup">
-    <summary>Wer noch nie Node installiert oder ein Terminal benutzt hat</summary>
-    <div class="setup-body">
-      <p>Die Schritte unten führen einen Windows- oder macOS-Rechner, auf dem
-      nichts installiert ist, zu einem gebauten Tutorial.</p>
-
-      <h3>Node installieren</h3>
-      <p>Auf <a href="https://nodejs.org/">nodejs.org</a> gehen. Der Knopf bietet
-      die LTS-Fassung &ndash; die mit Langzeitunterstützung &ndash; in der richtigen Datei
-      für den Rechner an, den man vor sich hat; die nehmen. Auf macOS bekommt man
-      ein <code>.pkg</code>: doppelklicken, durch den Installer klicken, das
-      Passwort eingeben, wenn danach gefragt wird. Auf Windows bekommt man ein
-      <code>.msi</code>: doppelklicken, die Voreinstellungen übernehmen, das
-      Häkchen bei den Werkzeugen für native Module in Ruhe lassen. psi-slides
-      braucht sie nicht.</p>
-      <p>Wer schon einen Paketmanager benutzt: <code>brew install node</code> auf
-      macOS und <code>winget install OpenJS.NodeJS.LTS</code> auf Windows tun
-      dasselbe.</p>
-
-      <h3>Ein Terminal öffnen</h3>
-      <p>Auf macOS Command-Leertaste drücken, <code>terminal</code> tippen,
-      Return. Auf Windows das Startmenü öffnen und <code>terminal</code> tippen:
-      Windows Terminal, wenn es erscheint, sonst PowerShell. Man bekommt ein
-      Fenster mit einem Cursor darin. Man tippt eine Zeile, drückt Return, und es
-      antwortet.</p>
-<pre><code>node --version</code></pre>
-      <p>Die Antwort ist eine Versionsnummer. Alles ab v20 passt, und ein frisches
-      LTS liegt deutlich darüber. Kommt stattdessen <code>command not found</code>
-      oder <code>ist nicht erkannt</code>, das Fenster schließen und ein neues
-      öffnen: ein Terminal, das schon lief, als Node installiert wurde, hat es
-      noch nicht gesehen.</p>
-
-      <h3>Die Dateien holen</h3>
-      <p>Eine der beiden Fassungen von oben nehmen.
-      <strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">Das
-      Release</a></strong> ist das, was man anklickt, wenn man unsicher ist;
-      <b>Download ZIP</b> aus dem grünen <b>Code</b>-Knopf des
-      <a href="https://github.com/UBA-PSI/psi-slides">Repositories</a> ist
-      dieselbe Art Datei und bringt zusätzlich die Abbildungen, die Titelfolien
-      und die Karten mit. Entpacken wie jeden anderen Download; auf beiden
-      Systemen genügt ein Doppelklick. Man bekommt einen Ordner, dessen Name mit
-      <code>psi-slides</code> anfängt, und dieser Ordner ist das ganze Werkzeug.
-      Irgendwohin legen, wo man ihn wiederfindet, denn gleich muss das Terminal
-      darauf gezeigt werden.</p>
-      <p>Unter Windows das <code>.zip</code> wirklich entpacken und nicht nur per
-      Doppelklick öffnen: Windows zeigt den Inhalt eines ZIP wie einen Ordner an,
-      aber darin lassen sich keine Befehle ausführen.</p>
-
-      <h3>Das Terminal auf den Ordner zeigen</h3>
-<pre><code>cd psi-slides</code></pre>
-      <p>Die <code>cd</code>-Zeile muss benennen, wo der Ordner tatsächlich liegt:
-      unter Windows etwa <code>cd C:\Users\du\Downloads\psi-slides</code>. Statt
-      den Pfad zu tippen, <code>cd</code> und ein Leerzeichen tippen und dann den
-      Ordner aus dem Dateimanager ins Terminalfenster ziehen &ndash; der Pfad schreibt
-      sich selbst.</p>
-
-      <h3>Holen, was der Build benutzt</h3>
-<pre><code>npm install</code></pre>
-      <p><code>npm install</code> läuft einmal, in diesem Ordner, und dauert ein
-      paar Sekunden. Es holt die Schriften, die psi-slides in jede Vorlesung
-      einbettet, und die Handvoll Pakete, die der Build benutzt. Alles landet in
-      einem Ordner <code>node_modules</code> neben <code>build.js</code>:
-      systemweit wird nichts installiert, und die gebauten Vorlesungen laden beim
-      Öffnen nichts nach.</p>
-
-      <h3>Das Tutorial bauen</h3>
-<pre><code>node build.js lectures/tutorial/source.md</code></pre>
-      <p>Dieselbe Zeile auf Windows und macOS, Schrägstriche eingeschlossen: Node
-      nimmt sie überall. Sie berichtet, was eingebettet wurde &ndash; die Bilder, die
-      Schriften, die QR-Codes, die gesetzten Formeln &ndash; und endet damit, was sie
-      geschrieben hat.</p>
-<pre class="out"><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (11 columns, 59 chunks)</code></pre>
-
-      <h3>Öffnen</h3>
-      <p>Doppelklick auf <code>lectures/tutorial/audience.html</code>. Es öffnet
-      sich im Browser, und mehr braucht es nicht: <kbd>?</kbd> listet die Tasten
-      auf, <kbd>S</kbd> öffnet das Cockpit. Die Datei an jemanden mailen, der
-      nichts davon installiert hat, und sie funktioniert trotzdem.</p>
-
-      <p class="tiny">Für Linux: all diese Werkzeuge sind schon da.
-      Distributionspakete hinken manchmal mehrere Versionen hinterher, ein
-      <code>node --version</code> lohnt sich also trotzdem.</p>
-    </div>
-  </details>
-
-  <div class="aside-code words-first">
-   <div class="said">
-    <h3>Dann die eigene Vorlesung</h3>
-    <p class="cue">Editor, Projektion und Cockpit gleichzeitig sichtbar halten:
-    <code>--watch</code> baut bei jedem Speichern neu und lädt beide
-    Browserfenster neu. Am Ende sind die vier HTML-Dateien neben der eigenen
-    <code>source.md</code> das, was man weitergibt. Sonst muss nichts
-    mitreisen.</p>
-   </div>
-<pre><code><span class="t-cmt"># einen Ordner mit gültigem Vorspann anlegen</span>
-<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
-
-<span class="t-cmt"># bei jedem Speichern neu bauen und alle offenen Tabs neu laden</span>
-<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch</span>
-
-<span class="t-cmt"># Chunk-IDs, Wortbudgets, offene Direktiven, zu große Dateien</span>
-<span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
+  <p class="lede">Zwei Wege, und beide bauen dieselben vier Dateien. <strong>Die
+  App</strong> ist ein Fenster, das man herunterlädt und in dem man eine
+  <code>source.md</code> öffnet: Sie baut die Vorlesung und baut sie bei jedem
+  Speichern erneut. <strong>Die Kommandozeile</strong> ist ein Clone und ein
+  <code>npm install</code>, für einen Rechner, auf dem ohnehin ein Terminal
+  offen ist.</p>
+  <p>Die Downloads für macOS, Windows und Linux, die Befehle und eine Anleitung,
+  die auf einem Rechner ohne alles anfängt, stehen eine Seite weiter.</p>
+  <div class="cta">
+    <a class="primary" href="getting-started.html">Beide Wege, ausführlich</a>
   </div>
  </div>
 </section>
