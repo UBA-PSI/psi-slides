@@ -46,6 +46,16 @@ does:
 The cue stays **outside** the stage on purpose. Inside it, the triad
 collapses to two and the device loses the job it was built for.
 
+**A drawing gets the same stage as a screenshot**, which was decided rather
+than inherited. A compiled `::: draw` figure is mostly air and a dozen labels,
+so it has the picture-of-text problem more weakly than a slide does &ndash; but
+it has a second one the screenshots do not: the compiler paints in the page's
+own tokens, so a box is filled `--paper` and outlined `--ink` on a page whose
+ground is `--paper`. Dropped straight onto the page a figure has no edge at
+all. What it does not get is a window bar, because there is no window; that is
+what `.shot.drawn` says on the front page and what `.fig-card` says on
+`figures.html`.
+
 ## The layout: one frame, one left edge, two stops
 
 The page is one frame, centred in the viewport. Inside it there is exactly

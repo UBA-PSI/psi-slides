@@ -262,6 +262,7 @@ main.banded { display: block; max-width: none; padding: 0; }
 .wrap > .ways,
 .wrap > .gallery,
 .wrap > .pair-up,
+.wrap > .hero-cols,
 .wrap > .scroller,
 .wrap > table,
 .wrap > pre,
