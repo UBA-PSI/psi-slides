@@ -33,8 +33,8 @@ project page, and the `build.js` inside it. The source format is frozen from
 # The cover, and the slide that closes it {#covers}
 
 > All ten covers are in the
-> [gallery](https://uba-psi.github.io/psi-slides/#covers), each shot from a real
-> build. This deck wears `quote`.
+> [gallery](https://uba-psi.github.io/psi-slides/decoration.html#covers), each
+> shot from a real build. This deck wears `quote`.
 
 ## free: Ten ways to open a lecture {.wide #cover-list}
 
@@ -72,7 +72,7 @@ loudly the opening slide announces itself rather than alphabetically.
 
 A name and a sentence carry the idea; they do not carry the shape it makes. Each
 of the ten is shot from a real build in the
-[gallery](https://uba-psi.github.io/psi-slides/#covers).
+[gallery](https://uba-psi.github.io/psi-slides/decoration.html#covers).
 
 ## free: Three keys the cover reads {.wide #cover-keys}
 
@@ -139,8 +139,9 @@ has failed at it.
 :::
 
 The six are in the same
-[gallery](https://uba-psi.github.io/psi-slides/#covers) as the covers, under the
-same rule: a deck settles on one and wears it at every part.
+[gallery](https://uba-psi.github.io/psi-slides/decoration.html#dividers) as the
+covers, under the same rule: a deck settles on one and wears it at every
+part.
 
 ## principle: What a running agenda says that a coloured field cannot {.standard #outline-why}
 

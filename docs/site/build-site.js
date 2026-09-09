@@ -133,15 +133,15 @@ const BAR_TEXT = {
  *             which is how the bar's breakpoints were measured against the
  *             full six entries rather than against today's five.
  *
- * One row still points at a section of the home page rather than at a page of
- * its own, because that is where its content is today. When PLAN-website.md
- * splits that section out, the row's target changes and the bar follows -
- * which is all `start` needed when getting-started.html was written.
+ * Every row now names a page of its own. Two of them did not: `start` and
+ * `decoration` pointed at sections of the home page until those sections were
+ * pulled out, and in both cases the move was this row's target changing and
+ * nothing else - the bar, the language switch and the link gate all read it.
  */
 const SITE_PAGES = {
   home:       { en: 'index.html',                 de: 'de/index.html',                 nav: 'home' },
   room:       { en: 'in-the-room.html',           de: 'de/in-the-room.html',           nav: 'room' },
-  decoration: { en: 'index.html#covers',          de: 'de/index.html#covers',          nav: 'decoration' },
+  decoration: { en: 'decoration.html',             de: 'de/decoration.html',            nav: 'decoration' },
   figures:    { en: 'figures.html',                                                    nav: 'figures' },
   start:      { en: 'getting-started.html',       de: 'de/getting-started.html',       nav: 'start' },
   comparison: { en: 'comparison.html',                                                 nav: 'comparison' },
@@ -625,6 +625,12 @@ function main() {
   // lecture already carries on `?`.
   landing('in-the-room.html', 'in-the-room.html', 'room', 'en', '');
   landing('in-the-room.de.html', path.join('de', 'in-the-room.html'), 'room', 'de', '../');
+  // The cover, divider, card, backdrop, overlay and dock vocabulary, pulled
+  // out of the front page's longest section. The `#covers` anchor stays on
+  // index.html as well, because the lecture's own QR codes used to point at
+  // it and older links still do.
+  landing('decoration.html', 'decoration.html', 'decoration', 'en', '');
+  landing('decoration.de.html', path.join('de', 'decoration.html'), 'decoration', 'de', '../');
   landing('getting-started.html', 'getting-started.html', 'start', 'en', '');
   landing('getting-started.de.html', path.join('de', 'getting-started.html'), 'start', 'de', '../');
   // The case for `::: diagram`. Its figures, its stepped payloads, its rails
@@ -691,6 +697,7 @@ function main() {
     { en: 'index.html', de: 'index.de.html' },
     { en: 'getting-started.html', de: 'getting-started.de.html' },
     { en: 'in-the-room.html', de: 'in-the-room.de.html' },
+    { en: 'decoration.html', de: 'decoration.de.html' },
   ]);
   if (wantWords) reportWords(written);
 }
