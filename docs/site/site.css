@@ -1529,13 +1529,106 @@ footer p { max-width: none; }
 
 /* The disclosure and the note that follows it were two half-width blocks
    stacked down the left. Side by side they are one row: the disclosure grows
-   downwards when it opens and the note stays where it is. */
+   downwards when it opens and the note stays where it is.
+ *
+ * The note is the taller half, and a closed disclosure is one 64px bar, so on
+ * the front page the row was a quarter-screen of nothing at the frame's LEFT
+ * edge - the edge reading follows, and the worst place on the page to put it.
+ * DESIGN.md's fourth answer applies: the column runs on. The two lecture
+ * cards that used to stand above the row at the frame's full width are inside
+ * its left column now, wrapped in a `.said` like every other running-on
+ * column here, and the note stands beside both of them. Nothing moved in
+ * reading order; what moved is which column each block is in.
+ * One caller and one only: a row needs two things in it. `decoration.html`
+ * used this class around a lone disclosure, which left the second column
+ * empty at every state - that page's fold takes the frame's width now. */
 .folded-note { display: grid; gap: clamp(1.2rem, 2.2vw, 2.6rem); align-items: start; }
 .folded-note > details { margin-top: 0; }
 .folded-note > .hint { margin-top: 0; max-width: none; }
+.folded-note > .said > :first-child { margin-top: 0; }
+.folded-note > .said > :last-child { margin-bottom: 0; }
+/* The cards were `.wrap`'s child and ran to the frame's edge; in the column
+   they run to the column's, and the gap under them is the row's own. */
+.folded-note .picks { margin-bottom: clamp(1.2rem, 2.2vw, 2.6rem); }
 @media (min-width: 68rem) {
   .folded-note { grid-template-columns: minmax(0, 1fr) minmax(0, 24rem); }
 }
+
+/*
+ * ── The packages, one block per system ─────────────────────────
+ *
+ * This was a three-column table on `getting-started.html`, and it read badly
+ * for one reason worth writing down: the first column a table gives its space
+ * to is the one it opens with, and that column held a filename - set in mono,
+ * underlined, forty characters long, five of them under each other. What a
+ * reader is looking for there is a SYSTEM. The filename is not the question,
+ * it is the confirmation that the thing being clicked is the right one, which
+ * is a job for the smallest type in the block rather than the loudest.
+ *
+ * So: a row of three, one system each (`.pair-up.trio` does the row), and
+ * inside each one the system, its state, and one box per package. The box is
+ * `.pick .opens a` grown by a line - the same bordered answer the front page
+ * gives to a set of links you choose one of, rather than a rule under every
+ * one of them. In a list of nothing but links an underline separates nothing.
+ *
+ * The middle line is the one the table had nowhere to put: macOS and Linux
+ * ship two packages each, and which of the two is yours is the only thing a
+ * reader actually has to decide here.
+ */
+.gets { align-items: start; }
+.get > .sys {
+  font-weight: 600;
+  font-size: var(--fs-lead);
+  margin: 0 0 0.1rem;
+  max-width: none;
+}
+.get > .sys .size {
+  font-family: var(--mono);
+  font-size: var(--fs-fine);
+  font-weight: 400;
+  color: var(--ink-soft);
+  margin-left: 0.3rem;
+}
+.get > .state {
+  font-size: var(--fs-note);
+  color: var(--ink-soft);
+  margin: 0 0 0.75rem;
+  max-width: none;
+}
+/* `strong` inside it is the word the state turns on, so it keeps the ink the
+   rest of the line gives up. */
+.get > .state strong { color: var(--ink); }
+.file {
+  display: block;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 0.5rem 0.72rem 0.58rem;
+  margin: 0 0 0.5rem;
+  text-decoration: none;
+  color: var(--ink);
+  background: var(--shot-bg);
+}
+.file:last-child { margin-bottom: 0; }
+.file:hover, .file:focus-visible { border-color: var(--accent); }
+.file:hover b { color: var(--accent); }
+.file b { display: block; font-size: var(--fs-note); font-weight: 600; }
+.file span {
+  display: block;
+  font-size: var(--fs-fine);
+  color: var(--ink-soft);
+  margin: 0.05rem 0 0.3rem;
+}
+/* The filename is the confirmation, so it is the smallest thing in the box -
+   and it is longer than the column at 1100, where the row is three tracks of
+   about 330px. It breaks rather than pushing the box open: a name that clips
+   is a name that cannot be checked, which is the one job it has. */
+.file code {
+  display: block;
+  font-size: var(--fs-fine);
+  color: var(--ink-soft);
+  overflow-wrap: anywhere;
+}
+.file:hover code, .file:focus-visible code { color: var(--ink); }
 
 /*
  * ── The three ways a lecture's text can end up ────────────────────────────
@@ -1671,13 +1764,66 @@ footer p { max-width: none; }
    column beside a picture, and `.way-said p` uncaps them: at 1100 they ran to
    the frame's full 1034px, about a hundred characters a line. */
 .ways-two .way-said p { max-width: var(--measure); }
+/*
+ * What follows the row is in the row - DESIGN.md's fourth answer to a
+ * half-empty row. The paragraph that sends a reader to the next page and the
+ * button that takes them there used to stand under the whole thing, so a
+ * three-line option beside a 500px window put a quarter-screen of nothing
+ * above the one place this page asks for an action. `.ways-on` is that
+ * material, and it is a child of `.ways` rather than a sibling so the grid can
+ * hold it: it takes the second row of the words column while the stage spans
+ * both rows beside it.
+ *
+ * Which means the two `.way` panels can no longer be the grid items - they
+ * carry a column each, and one of the two columns has to reach past them. So
+ * when the chooser is on, a panel is `display: contents` and its two parts are
+ * placed by hand: the words in row 1 column 1, the stage over rows 1 and 2 of
+ * column 2. The panels still overlap in one cell, still hide with
+ * `visibility`, and the row is still as tall as the taller of the two, which
+ * is the whole point of the arrangement (see above). What changed is only
+ * which element the grid places.
+ *
+ * The tail is outside both panels, so it does not switch with them, and it is
+ * the same paragraph and the same button whichever option is showing.
+ */
 @media (min-width: 80rem) {
   .ways-two .way { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
   .ways-two .way-said p { max-width: none; }
-  .ways-two.is-switched { grid-template-columns: minmax(0, 1fr); }
-  .ways-two.is-switched .way { display: grid; grid-area: 1 / 1; visibility: hidden; }
-  .ways-two.is-switched .way.is-shown { visibility: visible; }
+  .ways-two.is-switched {
+    grid-template-columns: minmax(0, 24rem) minmax(0, 1fr);
+    /* Both rows have to be named, and the second one has to be flexible. The
+       stage spans them, and a grid distributes a spanning item's surplus over
+       every row that sizes to its content - which put 44px of the window's
+       height above the tail as well as below it, a gap nothing had asked for.
+       With `1fr` under the words the surplus lands in the second row only, so
+       the tail sits its own row-gap under the words and the rest of the
+       window's height falls under the tail, where it is the row's margin. */
+    grid-template-rows: min-content 1fr;
+    column-gap: clamp(1.2rem, 2.4vw, 2.6rem);
+    row-gap: clamp(1.2rem, 2.4vw, 2.2rem);
+    align-items: start;
+  }
+  /* `.ways.is-switched .way.is-shown { display: grid }` above is one class
+     more specific than `.ways-two.is-switched .way`, so the shown panel has
+     to be told twice or it goes back to being a grid item with no place. */
+  .ways-two.is-switched .way,
+  .ways-two.is-switched .way.is-shown { display: contents; }
+  .ways-two.is-switched .way > .way-said { grid-area: 1 / 1 / 2 / 2; visibility: hidden; }
+  /* Rows 1 to 3, i.e. beside the words AND beside the tail under them. The
+     listing stretches to that, which is what keeps the two options the same
+     height. */
+  .ways-two.is-switched .way > .stage {
+    grid-area: 1 / 2 / 3 / 3;
+    visibility: hidden;
+    align-self: stretch;
+  }
+  .ways-two.is-switched .way.is-shown > * { visibility: visible; }
+  .ways-two.is-switched > .ways-on { grid-area: 2 / 1 / 3 / 2; }
 }
+/* Under the breakpoint the options stand one over the other in one column, so
+   the tail is simply the last block of that column and needs no placing. */
+.ways-on > p { margin-top: 0; }
+.ways-on > .cta { margin-bottom: 0; }
 /* The stage has to reach the bottom of the row, or the listing's stretch has
    nothing to stretch inside. */
 .ways-two .stage { margin-bottom: 0; display: grid; }

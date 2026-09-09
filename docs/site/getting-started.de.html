@@ -57,19 +57,27 @@
 
 <section class="band">
  <div class="wrap">
-  <!-- Halbleere Zeile, Antwort 1, und Befund 5 und 8.
-       Vorher: die Worte des Abschnitts in der schmalen Spalte, das Bild in der
-       breiten, und die Download-Tabelle darunter über die ganze Rahmenbreite –
-       drei Spalten über 1310 px, das Auge lief die volle Seitenbreite vom
-       System bis zu der Frage, ob das Paket je gestartet wurde.
-       Jetzt ist die Zeile andersherum. Worte UND Tabelle nehmen die breite
-       Spalte – die Tabelle landet bei rund 780 px, dort hören ihre drei
-       Spalten auf, wie eine Zeile mit einem Loch in der Mitte zu wirken –,
-       das Bild nimmt die schmale. Das ist das kleinste Mittel, das dieses
-       Bild zeigen kann: ein Fenster mit sechs Bedienelementen, die der Text
-       daneben benennt, also Beleg und nicht Lesestoff. Der Raum, der darunter
-       bleibt, liegt an der rechten Rahmenkante, wo Weißraum als Rand gelesen
-       wird; unter den Worten wäre es die Kante, der das Lesen folgt. -->
+  <!-- Halbleere Zeile, Antworten 1 und 4, und Befunde 5 und 8.
+       Vorher standen die Worte des Abschnitts in der schmalen Spalte und das
+       Bild in der breiten, mit der Download-Tabelle unter beiden über die
+       ganze Rahmenbreite: drei Spalten über 1310 px, das Auge lief also vom
+       System bis zu der Frage, ob dieses Paket je gestartet wurde, quer über
+       die Seite.
+       Die Zeile ist andersherum: die Worte nehmen die breite Spalte, das Bild
+       die schmale. Das ist das Kleinste, was dieses Bild zeigen muss – ein
+       Fenster mit sechs Bedienelementen, die der Text daneben benennt, es
+       steht also als Beleg da und nicht als etwas zu Lesendes.
+       Die Worte laufen darunter weiter, und das ist die vierte Antwort:
+       alles, was dieser Abschnitt über die App sagt, steht in dieser einen
+       Spalte, bis hinunter zu dem Satz, der an die Pakete übergibt, und kein
+       Teil davon beginnt unter dem Bild. Zusammen tragen die beiden die
+       Zeile: die Worte sind etwas höher als das Bild, es bleibt also eine
+       Handbreit an der rechten Rahmenkante, wo Weißraum als Rand gelesen
+       wird.
+       Was NICHT in der Spalte steht, sind die Pakete selbst. Fünf Dateien
+       über drei Systeme werden angesehen, nicht gelesen, sie nehmen also
+       unter der Zeile die Rahmenbreite – die zweite Antwort –, und der Block
+       dafür steht weiter unten. -->
   <div class="beside words-wide">
    <div class="said">
     <h2 id="app">Die App</h2>
@@ -82,45 +90,11 @@
     kein Projekt einzurichten und keine Einstellungen, die vor dem ersten Build
     auszufüllen wären.</p>
     <h3>Herunterladen</h3>
-    <p>Das Paket für das eigene System aus der Tabelle unten holen. Bis 2.0.0
+    <p>Das Paket für das eigene System aus den dreien unten holen. Bis 2.0.0
     erscheint die App getrennt von psi-slides selbst, unter einem eigenen Tag,
     <code>builder-0.1.0</code>, und auf GitHub als <strong>Pre-Release</strong>
     markiert: nicht die aktuelle Version von irgendetwas, sondern ein früh
     angebotenes Paket.</p>
-
-    <!-- Die Tabelle steht in der breiten Spalte der Zeile darüber, nicht
-         darunter. Fünf Dateien über drei Systeme sind eine Liste zum
-         Nachschlagen, keine Prosa, sie nimmt also die volle Breite ihrer
-         Spalte – und die ist rund 780 px breit, nicht die 1310 des Rahmens.
-         `.scroller` macht das möglich: Eine nackte Tabelle ist hier
-         display:block, damit sie auf dem Telefon scrollen kann, und eine
-         Block-Tabelle schrumpft auf ihre Zeilen. -->
-    <div class="scroller">
-    <table>
-     <thead>
-      <tr><th>System</th><th>Paket</th><th>Stand</th></tr>
-     </thead>
-     <tbody>
-      <tr>
-       <td>macOS, Apple&nbsp;Silicon</td>
-       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.dmg"><code>psi-slides-builder-mac-arm64.dmg</code></a><br>
-         <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.zip"><code>psi-slides-builder-mac-arm64.zip</code></a></td>
-       <td>Auf einem echten Mac ausprobiert.</td>
-      </tr>
-      <tr>
-       <td>Windows, 64 Bit</td>
-       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-win-x64.exe"><code>psi-slides-builder-win-x64.exe</code></a></td>
-       <td><strong>Experimentell.</strong> Von der CI gebaut, nie gestartet.</td>
-      </tr>
-      <tr>
-       <td>Linux, 64 Bit</td>
-       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-x86_64.AppImage"><code>psi-slides-builder-linux-x86_64.AppImage</code></a><br>
-         <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-amd64.deb"><code>psi-slides-builder-linux-amd64.deb</code></a></td>
-       <td><strong>Experimentell.</strong> Von der CI gebaut, nie gestartet.</td>
-      </tr>
-     </tbody>
-    </table>
-    </div>
    </div>
    <div class="stage">
     <figure class="shot">
@@ -130,6 +104,55 @@
    </div>
   </div>
 
+
+  <!-- Halbleere Zeile, Antwort 2: die Pakete nehmen die Breite des Rahmens,
+       als Zeile aus drei Systemen statt als Tabelle.
+       Vorher war es eine dreispaltige Tabelle (System / Paket / Stand) in der
+       Textspalte darüber. Daran war zweierlei falsch. Gesucht wird ein SYSTEM,
+       und die Tabelle begann mit einem Dateinamen als unterstrichenem
+       Monospace-Link: die Spalte, auf die es am wenigsten ankommt, war die
+       lauteste, und fünf lange unterstrichene Namen untereinander sind eine
+       Wand. Und die Tabelle machte die Textspalte so viel höher als das Bild
+       daneben, dass an der rechten Rahmenkante ein Viertelbildschirm Nichts
+       stehen blieb.
+       Jetzt ein Block je System, der Name des Systems zuerst, der Stand
+       darunter, und jedes Paket ein Kasten zum Drücken: in der ersten Zeile,
+       WAS es ist, darunter der Dateiname als Bestätigung, dass man das
+       Richtige nimmt. Ohne Unterstreichung – das ist eine Auswahl unter
+       Links, und die Vorlesungskarten auf der Startseite beantworten das
+       bereits mit einem Kasten statt mit einem Strich. macOS und Linux haben
+       je zwei Pakete, also sagt jedes in vier Worten, welches der beiden das
+       eigene ist; die Wahl war das eine, was die alte Tabelle nirgends
+       erklärt hat. -->
+  <div class="pair-up trio gets">
+   <div class="get">
+    <p class="sys">macOS <span class="size">Apple&nbsp;Silicon</span></p>
+    <p class="state">Auf einem echten Mac ausprobiert.</p>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.dmg">
+     <b>Disk-Image</b><span>öffnen, die App in „Programme“ ziehen</span>
+     <code>psi-slides-builder-mac-arm64.dmg</code></a>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.zip">
+     <b>Zip-Archiv</b><span>dieselbe App, ausgepackt statt gemountet</span>
+     <code>psi-slides-builder-mac-arm64.zip</code></a>
+   </div>
+   <div class="get">
+    <p class="sys">Windows <span class="size">64 Bit</span></p>
+    <p class="state"><strong>Experimentell.</strong> Von der CI gebaut, nie gestartet.</p>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-win-x64.exe">
+     <b>Installationsprogramm</b><span>das einzige Paket für Windows</span>
+     <code>psi-slides-builder-win-x64.exe</code></a>
+   </div>
+   <div class="get">
+    <p class="sys">Linux <span class="size">64 Bit</span></p>
+    <p class="state"><strong>Experimentell.</strong> Von der CI gebaut, nie gestartet.</p>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-x86_64.AppImage">
+     <b>AppImage</b><span>eine Datei, ausführbar machen und starten, auf jeder Distribution</span>
+     <code>psi-slides-builder-linux-x86_64.AppImage</code></a>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-amd64.deb">
+     <b>Debian-Paket</b><span>für Debian und Ubuntu, über die Paketverwaltung</span>
+     <code>psi-slides-builder-linux-amd64.deb</code></a>
+   </div>
+  </div>
 
   <h3>Der erste Start</h3>
   <!-- Halbleere Zeile, Antwort 1: zwei Warnungen derselben Art nebeneinander.
@@ -142,8 +165,7 @@
     ausprobiert: ob es läuft oder umfällt, ist ein
     <a href="https://github.com/UBA-PSI/psi-slides/issues">Issue</a> wert, in
     beide Richtungen. Das macOS-Paket ist auf einem echten Mac benutzt worden,
-    und das ist der ganze Unterschied zwischen den drei Zeilen der Tabelle
-    oben.</p>
+    und das ist der ganze Unterschied zwischen den drei Blöcken oben.</p>
    </div>
    <div>
     <p><strong>Die Pakete sind nicht signiert</strong>, außer dem für macOS: Das
