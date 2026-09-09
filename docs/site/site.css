@@ -77,6 +77,13 @@
   /* The dimmed token still sets the `{.wide #id}` attribute tail, which is
      content a reader has to be able to read, not decoration. */
   --tok-punct: oklch(0.50 0.02 260);
+  /* The frame and the measure. The banded pages used to hold everything at
+     48rem and let four kinds of element break out to 66rem with a
+     translateX trick, which put prose and pictures on two different left
+     edges and left a third of a 1920px screen empty on either side. Now the
+     frame is the one width, and prose keeps its measure inside it. */
+  --frame: 68rem;
+  --measure: 40rem;
   --sans: 'IBM Plex Sans Var', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono Var', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
@@ -141,8 +148,55 @@ main { max-width: 48rem; margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
    build-site.js's shell, which has no bands and no wrap, and they keep the
    measure on `main` exactly as before. */
 main.banded { max-width: none; padding: 0; }
-.wrap { max-width: 48rem; margin: 0 auto; padding: 0 1.5rem; }
-.band { padding: 4.5rem 0; }
+.wrap { max-width: var(--frame); margin: 0 auto; padding: 0 1.5rem; }
+/* More air between bands on a wide screen than on a phone, and the space
+   sits between sections rather than inside them: a band's own content is
+   tighter than the gap to the next band, so the eye reads the page as
+   sections rather than as one wall. */
+.band { padding: clamp(4.5rem, 7vw, 6.5rem) 0; }
+/* Two bands of the same ground in a row (the Markdown sample and the title
+   slides are both things to look at) have no colour change between them,
+   and two full paddings there read as a hole rather than as a seam. The
+   second closes up and its heading takes the heavy rule a heading inside a
+   band gets, so the section still begins with a mark. */
+.band-do + .band-do, .band-read + .band-read { padding-top: 0; }
+.band-do + .band-do > .wrap > h2:first-child,
+.band-read + .band-read > .wrap > h2:first-child {
+  padding-top: 1.1rem;
+  border-top: 2px solid var(--ink);
+}
+/* Beside a picture the prose column is the one thing on the page that is
+   allowed to wrap a code sample: the sample is Markdown prose, and a line of
+   it broken at the column edge is still that line. A scrolling box would
+   hide the end of every sentence. Shell lines in the halves wrap the same
+   way, at the one long URL. */
+.beside pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+/*
+ * Prose beside the thing it explains. The first column holds the words at a
+ * measure, the second whatever is being looked at - a code sample, a drawn
+ * figure, a row of tiles - and the two start on the same line, so a section
+ * is one row rather than a stack of words-then-picture-then-words. Below
+ * 64rem it stacks in source order, which is words first.
+ *
+ * `.halves` is the same device for two things of the same kind: the two
+ * versions under Getting started, each a paragraph over a command.
+ */
+.beside { display: grid; gap: 1.6rem 3.5rem; align-items: start; }
+.beside > * { min-width: 0; }
+.beside-prose > :first-child { margin-top: 0; }
+.beside-prose > :last-child { margin-bottom: 0; }
+/* 76rem here is 1216px: a media query's rem is the browser's 16px, not the
+   page's 21px, so every breakpoint in this file is in sixteenths. Below it
+   the second column had 350px for a code sample. The columns are shares
+   rather than a fixed measure so the words give way as the frame narrows:
+   at the full frame the prose column is 30rem, about 60 characters. */
+@media (min-width: 76rem) {
+  .beside { grid-template-columns: minmax(0, 3fr) minmax(0, 4fr); }
+  .beside.halves { grid-template-columns: 1fr 1fr; }
+  /* The measure is the column here, not 40rem, and the words gain the wide
+     side for the picture rather than a gutter. */
+  .beside-prose p, .beside-prose li { max-width: none; }
+}
 .band-read { background: var(--shot-bg); }
 /* Named rather than left to the default, so the two kinds of band are a pair
    in the stylesheet the way they are a pair on the page. */
@@ -406,9 +460,10 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
  * height; matching `.pair`'s grid exactly is what makes the split read as
  * composition rather than as a paragraph that happened to wrap.
  *
- * It also settles a second left edge. The prose used to start at main's 48rem
- * measure while the pictures broke out to 66rem, so the hero began 7.5rem to
- * the right of its own screenshots.
+ * It used to settle a second left edge too: the prose started at main's
+ * 48rem measure while the pictures broke out to 66rem, so the hero began
+ * 7.5rem to the right of its own screenshots. The frame is one width now
+ * (`--frame`), so there is nothing to break out of.
  *
  * There is one size of body text in the hero, and that is deliberate. The
  * promise sentence used to be set at 1.22rem, larger than the paragraph above
@@ -416,7 +471,7 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
  * anything had said four of what. Read in a column it needs no size to be
  * found, and it has since folded back into the paragraph it belongs to.
  */
-.hero-in { width: min(94vw, 66rem); margin-left: 50%; transform: translateX(-50%); }
+.hero-in { width: auto; }
 .hero-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
 .hero-col { display: flex; flex-direction: column; }
 /* A flex container does not collapse its children's margins, so two stacked
@@ -430,10 +485,6 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
 @media (max-width: 46rem) {
   .hero-cols { grid-template-columns: 1fr; }
   .hero-col .cta { margin-top: 0.6rem; }
-  /* Stacked, there is no second column to line up with, and the breakout
-     would put the hero 12px from the edge while the article below it sits at
-     24px. Back into the normal flow, so the phone gets one left edge too. */
-  .hero-in { width: auto; margin-left: 0; transform: none; }
 }
 .hero .extras {
   font-size: 1rem;
@@ -504,22 +555,19 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
  */
 .kinds {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1.02fr);
-  gap: 3rem;
+  /* Words at a measure, the figure with the rest of the frame: the SVG is
+     drawn to scale with its container and reads best large. */
+  grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
+  gap: 3.5rem;
   align-items: center;
-  width: min(94vw, 66rem);
-  margin-left: 50%;
-  transform: translateX(-50%);
 }
 .kinds-prose > p:first-child { margin-top: 0; }
 .kinds-figure { min-width: 0; }
 /* The heading belongs to the two columns under it, so it breaks out with
    them. Left at the 48rem measure it began 144px inboard of its own figure,
    the same two-left-edge fault the hero had. */
-.band-kinds > .wrap > h2 { width: min(94vw, 66rem); margin-left: 50%; transform: translateX(-50%); }
 @media (max-width: 56rem) {
-  .kinds { grid-template-columns: 1fr; gap: 2.4rem; width: auto; margin-left: 0; transform: none; }
-  .band-kinds > .wrap > h2 { width: auto; margin-left: 0; transform: none; }
+  .kinds { grid-template-columns: 1fr; gap: 2.4rem; }
 }
 
 .paths { display: flex; flex-direction: column; gap: 1.5rem; }
@@ -916,13 +964,9 @@ figure.shot figcaption strong { color: var(--ink); font-weight: 650; }
  * The two are set independently: the column stays narrow, the pictures
  * bleed into the margin on both sides.
  */
-.wrap > figure.shot,
-.wrap > .pair,
-.hero .pair {
-  width: min(94vw, 66rem);
-  margin-left: 50%;
-  transform: translateX(-50%);
-}
+/* A screenshot fills the frame. The frame is 68rem, the shots are taken at
+   1440px, so on a wide screen they stand at the size they were shot. */
+.wrap > figure.shot, .wrap > .pair, .hero .pair { width: auto; }
 
 .hint {
   background: var(--shot-bg);

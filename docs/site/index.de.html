@@ -277,11 +277,18 @@
 
   <h2>Was aus dem Markdown wird</h2>
 
+  <div class="beside">
+  <div class="beside-prose">
   <p>Das hier ist das Markdown hinter der Folie auf den Bildern oben. Die
   Vorlesung, aus der sie stammt, ist eine echte: eine Python-Einführung aus 36
   Chunks &ndash; ein <strong>Chunk</strong> ist eine Überschrift mit dem Text darunter,
   und jeder Chunk wird zu einer Folie. Zwei der vier Absätze sind gekürzt, damit
   der Ausschnitt auf diese Seite passt; die Vorlesung selbst ist auf Englisch.</p>
+
+  <p class="tiny">In der Projektion fallen die zwei Spalten zu einer zusammen,
+  weil sich vier gekürzte Absätze nicht ausbalancieren lassen. Ohne Kürzung und
+  im Handout bleiben die beiden Spalten aus der Quelle erhalten.</p>
+  </div>
 
 <pre><code><span class="t-head">## free: Why Playwright | the modern web is rendered, not served</span> <span class="t-punct">{.wide #why-playwright}</span>
 
@@ -309,10 +316,7 @@ browser is for pages meant to be looked at.
 
 <span class="t-note">&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
 &gt; curl it, and let them find the missing text themselves.</span></code></pre>
-
-  <p class="tiny">In der Projektion fallen die zwei Spalten zu einer zusammen,
-  weil sich vier gekürzte Absätze nicht ausbalancieren lassen. Ohne Kürzung und
-  im Handout bleiben die beiden Spalten aus der Quelle erhalten.</p>
+  </div>
 
   <figure class="shot">
     <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>speaker.html</b></div>
@@ -362,6 +366,8 @@ browser is for pages meant to be looked at.
 
   <h2 id="covers">Titelfolien und Trenner</h2>
 
+  <div class="beside">
+  <div class="beside-prose">
   <p>Die Voreinstellung steht unten, der Rest ist einen Klick entfernt.
   Anklicken zeigt eine Kachel in voller Größe.</p>
 
@@ -373,6 +379,7 @@ browser is for pages meant to be looked at.
 
   <p><strong><code>cover:</code></strong> benennt die Titelfolie. Sie sind von
   leise nach laut sortiert.</p>
+  </div>
 
   <div class="gallery">
     <figure class="shot tile"><img src="../img/classic.webp" alt="Eine Titelfolie, deren Satz im unteren linken Drittel einer sonst leeren Folie steht.">
@@ -381,6 +388,7 @@ browser is for pages meant to be looked at.
       <figcaption><code>panel</code> helle Schrift auf einem ganzflächigen Feld der Akzentfarbe</figcaption></figure>
     <figure class="shot tile"><img src="../img/hero.webp" alt="Eine Titelfolie, auf der ein Bild den Rahmen füllt und der Satz aus einem dunklen Verlauf ausgespart ist.">
       <figcaption><code>hero</code> das Bild füllt die Folie, der Satz steht auf einem dunklen Verlauf</figcaption></figure>
+  </div>
   </div>
 
   <details class="setup">
@@ -451,6 +459,8 @@ browser is for pages meant to be looked at.
 
   <h2 id="open-them-yourself">Vorlesungen selbst öffnen</h2>
 
+  <div class="beside">
+  <div class="beside-prose">
   <p>Auf dieser Seite liegen fünf Vorlesungen. <strong>python-intro</strong> ist
   die, aus der die Bilder stammen. Das <strong>Tutorial</strong> ist eine
   selbstbezügliche Tour, die das Werkzeug erklärt, indem sie es benutzt. Die
@@ -467,6 +477,7 @@ browser is for pages meant to be looked at.
   (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">Quelle</a>,
   gesetzt nach den <a href="https://inf.zone/lectures/8.5-netze/notes85/">Vorlesungsnotizen</a>
   unter CC&nbsp;BY-NC-SA&nbsp;4.0).</p>
+  </div>
 
   <table>
     <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Decoration</th><th>Kurzbeispiel</th></tr>
@@ -495,6 +506,7 @@ browser is for pages meant to be looked at.
         <td class="tiny">&ndash;</td>
         <td><a href="../example/print-notes.html">print-notes</a></td></tr>
   </table>
+  </div>
 
   <p class="tiny"><strong>Dekoration und Figuren zeigen beide, was nicht in
   Version 1.0.0 steckt</strong> &ndash; die Titelfolien, die Abschnittstrenner,
@@ -529,6 +541,8 @@ browser is for pages meant to be looked at.
 
   <p>Es gibt zwei Fassungen, und sie können unterschiedlich viel.</p>
 
+  <div class="beside halves">
+  <div class="beside-prose">
   <p><strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">Das
   aktuelle Release</a></strong> ist 1.0.0. Sein Quellformat liegt fest, eine
   Vorlesung baut also später noch genauso wie heute. Die <code>.zip</code> oder
@@ -539,7 +553,9 @@ browser is for pages meant to be looked at.
 
 <pre><code><span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
   <span class="t-punct">|</span> <span class="t-cmd">tar</span> <span class="t-flag">xz</span></code></pre>
+  </div>
 
+  <div class="beside-prose">
   <p><strong><a href="https://github.com/UBA-PSI/psi-slides">Das
   Repository</a></strong> enthält, was in 1.0.0 noch fehlt: Abbildungen als
   <code>::: draw</code>, die Titelfolien und Abschnittstrenner, Karten und
@@ -552,6 +568,8 @@ browser is for pages meant to be looked at.
 
   <p class="tiny">Ohne git: <b>Download ZIP</b> unter dem grünen
   <b>Code</b>-Knopf des Repositorys.</p>
+  </div>
+  </div>
 
   <p>Für eine eigene Vorlesung braucht man <strong>Node 20 oder neuer</strong>,
   damit läuft <code>build.js</code>, sonst nichts: kein LaTeX, kein Pandoc,
@@ -659,6 +677,15 @@ browser is for pages meant to be looked at.
 
   <h3>Dann die eigene Vorlesung schreiben</h3>
 
+  <div class="beside">
+  <div class="beside-prose">
+  <p>Editor, Projektion und Cockpit nebeneinander offen halten:
+  <code>--watch</code> baut bei jedem Speichern neu und lädt die beiden
+  Browserfenster nach, sobald der Bau fertig ist. Am Ende sind die vier
+  HTML-Dateien neben der <code>source.md</code> das, was man weitergibt. Mehr muss
+  nicht mitreisen.</p>
+  </div>
+
 <pre><code><span class="t-cmt"># ein Verzeichnis mit gültigem Frontmatter anlegen</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
 
@@ -667,12 +694,7 @@ browser is for pages meant to be looked at.
 
 <span class="t-cmt"># Chunk-IDs, Wortbudgets, offene Direktiven, zu große Assets</span>
 <span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
-
-  <p>Editor, Projektion und Cockpit nebeneinander offen halten:
-  <code>--watch</code> baut bei jedem Speichern neu und lädt die beiden
-  Browserfenster nach, sobald der Bau fertig ist. Am Ende sind die vier
-  HTML-Dateien neben der <code>source.md</code> das, was man weitergibt. Mehr muss
-  nicht mitreisen.</p>
+  </div>
 
   </div>
 </section>
@@ -682,6 +704,8 @@ browser is for pages meant to be looked at.
 
   <h2 id="figures">Auch eine Abbildung ist Text</h2>
 
+  <div class="beside">
+  <div class="beside-prose">
   <p>Die Abbildungen einer Vorlesung veralten dort, wo sie in einem
   Zeichenprogramm liegen. psi-slides hat dafür eine kleine Sprache: eine
   Abbildung besteht aus ein paar Zeilen in derselben Markdown-Datei wie die
@@ -690,10 +714,12 @@ browser is for pages meant to be looked at.
   <em>an</em> einen anderen gesetzt &ndash; also zieht ein verschobener Kasten mit,
   was an ihm hängt, und eine Abbildung kann vor dem Publikum Schritt für Schritt
   entstehen.</p>
+  </div>
 
   <figure class="shot drawn">
     <img src="../img/figure.webp" alt="Eine Abbildung aus einer Vorlesung zur Netzsicherheit: vier Kästen in einer Reihe, beschriftet Frame Header, Datagram Header, Segment Header und Payload, mit je einer Linie von den ersten drei hinauf zu einer Notiz, welche Adressen dieser Kopf trägt.">
   </figure>
+  </div>
 
   <p class="tiny">Eine Folie aus einer echten Vorlesung, vom Build gezeichnet.
   Ein Teil ihres Quelltexts steht unten: die vier Kästen, eine der drei Notizen
