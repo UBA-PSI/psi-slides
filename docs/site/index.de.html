@@ -33,12 +33,8 @@
    </div>
   </div>
 
-  <p class="cue">Eine Folie einer echten Vorlesung, zweimal: was der Raum sieht,
-  und dieselben vier Absätze vollständig. <strong>Dazwischen liegt ein
-  Tastendruck.</strong> Der Schalter in der rechten Titelzeile holt das gedruckte
-  Handout hervor. Ein Klick auf ein Bild öffnet es in voller Größe.</p>
-
-  <div class="stage">
+  <div class="beside beside-flip">
+   <div class="stage">
     <div class="stage-pair">
       <figure class="shot">
         <div class="bar"><b>was der Raum sieht</b></div>
@@ -60,6 +56,15 @@
         <img src="../img/full.webp" alt="Dieselbe Folie ohne Kürzung: alle vier Absätze vollständig, in zwei Spalten.">
       </figure>
     </div>
+   </div>
+   <div class="said">
+    <p class="cue">Eine Folie einer echten Vorlesung, zweimal. Links, was der
+    Raum sieht. Rechts, dieselben vier Absätze vollständig. <strong>Dazwischen
+    liegt ein Tastendruck.</strong></p>
+    <p class="cue">Der Schalter in der rechten Titelzeile holt dafür das
+    gedruckte Handout hervor &ndash; eine andere Datei aus derselben Quelle. Ein
+    Klick auf ein Bild öffnet es in voller Größe.</p>
+   </div>
   </div>
  </div>
 </section>
@@ -124,8 +129,9 @@
     <p><span class="tie" data-tie="3">Mit psi-slides schreibt man jeden Absatz
     einmal und markiert den einen Satz, der ihn trägt.</span> Die Projektion
     bekommt diesen Satz, das Handout den ganzen Absatz, und die Zeilen hinter
-    <code>&gt; note:</code> bleiben auf dem eigenen Bildschirm. Auf einen Satz
-    zeigen hebt die Zeile hervor, die ihn zeichnet.</p>
+    <code>&gt; note:</code> bleiben auf dem eigenen Bildschirm. Die Zeichnung
+    daneben zeigt einen dieser drei Wege auf einmal &ndash; ein Satz oder ein
+    Reiter darüber wechselt, welchen.</p>
     </div>
 
     <div class="kinds-figure">
@@ -265,10 +271,16 @@
   Chunk wird zu einer Folie. Die Vorlesung dahinter ist echt: eine
   Python-Einführung aus 36 Chunks, auf Englisch.</p>
 
-  <p class="cue">Auf das Fette achten. Das sind die Stellen, die die Projektion
-  behält; die Prosa darum ist das, was das Handout behält. Das
-  <code>&gt; note:</code> am Fuß ist für niemanden außer einen selbst.</p>
-
+  <div class="aside-code">
+   <div class="said">
+    <p class="cue">Auf das Fette achten. Das sind die Stellen, die die
+    Projektion behält; die Prosa darum ist das, was das Handout behält. Das
+    <code>&gt; note:</code> am Fuß ist für niemanden außer einen selbst.</p>
+    <p class="cue">Zwei der vier Absätze sind gekürzt, damit der Ausschnitt auf
+    diese Seite passt. In der Projektion fallen die zwei Spalten zu einer
+    zusammen, weil sich vier gekürzte Absätze nicht ausbalancieren lassen; ohne
+    Kürzung und im Handout bleiben sie erhalten.</p>
+   </div>
 <pre><code><span class="t-head">## free: Why Playwright | the modern web is rendered, not served</span> <span class="t-punct">{.wide #why-playwright}</span>
 
 <span class="t-dir">::: cols 2</span>
@@ -295,11 +307,7 @@ browser is for pages meant to be looked at.
 
 <span class="t-note">&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
 &gt; curl it, and let them find the missing text themselves.</span></code></pre>
-
-  <p class="tiny">Zwei der vier Absätze sind gekürzt, damit der Ausschnitt auf
-  diese Seite passt. In der Projektion fallen die zwei Spalten zu einer zusammen,
-  weil sich vier gekürzte Absätze nicht ausbalancieren lassen; ohne Kürzung und
-  im Handout bleiben sie erhalten.</p>
+  </div>
  </div>
 </section>
 
@@ -323,11 +331,8 @@ browser is for pages meant to be looked at.
    </div>
   </div>
 
-  <p class="cue">Eine Frage aus dem Raum betrifft meistens etwas vierzig Folien
-  weiter vorn. Zwei Wege dorthin, ohne die Stelle zu verlieren, beide über der
-  Projektion selbst.</p>
-
-  <div class="stage">
+  <div class="beside beside-flip second-picture">
+   <div class="stage">
     <div class="stage-pair">
       <figure class="shot">
         <div class="bar"><b>audience.html</b> &middot; O</div>
@@ -345,6 +350,12 @@ browser is for pages meant to be looked at.
         steht.</figcaption>
       </figure>
     </div>
+   </div>
+   <div class="said">
+    <p class="cue">Eine Frage aus dem Raum betrifft meistens etwas vierzig
+    Folien weiter vorn. Zwei Wege dorthin, ohne die Stelle zu verlieren, beide
+    über der Projektion selbst.</p>
+   </div>
   </div>
  </div>
 </section>
@@ -393,6 +404,7 @@ browser is for pages meant to be looked at.
     </div>
   </div>
 
+  <div class="folded-note">
   <details class="setup">
     <summary>Die anderen sieben Titelfolien und die sechs Trenner</summary>
     <div class="setup-body">
@@ -415,10 +427,6 @@ browser is for pages meant to be looked at.
       <figcaption><code>beside</code> der eigene Inhalt des Chunks neben dem Titel, damit eine Zeichnung das Titelbild sein kann</figcaption></figure>
       <figure class="shot tile"><img src="../img/above.webp" alt="Eine Titelfolie mit einer Zeichnung aus drei Kästen über dem Titel, der im Band darunter zentriert steht.">
       <figcaption><code>above</code> derselbe Inhalt oben, der Titel zentriert darunter</figcaption></figure>
-      <figure class="shot tile"><img src="../img/stack-bottom.webp" alt="Die Komposition stack mit dem Schriftblock auf dem unteren Rand.">
-      <figcaption><code>stack</code> mit <code>cover-align: bottom</code></figcaption></figure>
-      <figure class="shot tile"><img src="../img/beside-ratio.webp" alt="Die Komposition beside mit einem größeren Anteil der Folie für die Zeichnung.">
-      <figcaption><code>beside</code> mit <code>cover-ratio: 62%</code></figcaption></figure>
       </div>
 
       <p><code>section:</code> zeichnet den Trenner, mit dem ein neuer Teil der
@@ -440,13 +448,17 @@ browser is for pages meant to be looked at.
     </div>
   </details>
 
-  <p class="tiny"><strong>Das hier ist eine Vorschau.</strong> Es steckt nicht in
-  Version 1.0.0: Wer ein <code>cover:</code> oder ein <code>section:</code>
-  schreibt, braucht das Repository statt des Downloads &ndash;
-  <a href="#getting-started">Loslegen</a> hat beides. Alles, was eine Vorlesung
-  gleichzeitig tragen <em>kann</em>, einschließlich Karten, Hintergrundbildern und
-  einem Foto, das sich mit <kbd>Leertaste</kbd> öffnet, steht in der
-  <a href="../decoration/audience.html">Dekorations-Vorlesung</a>.</p>
+  <div class="hint">
+    <p><strong>Das hier ist eine Vorschau.</strong> Es steckt nicht in Version
+    1.0.0: Wer ein <code>cover:</code> oder ein <code>section:</code> schreibt,
+    braucht das Repository statt des Downloads &ndash;
+    <a href="#getting-started">Loslegen</a> hat beides.</p>
+    <p>Alles, was eine Vorlesung gleichzeitig tragen <em>kann</em>,
+    einschließlich Karten, Hintergrundbildern und einem Foto, das sich mit
+    <kbd>Leertaste</kbd> öffnet, steht in der
+    <a href="../decoration/audience.html">Dekorations-Vorlesung</a>.</p>
+  </div>
+  </div>
  </div>
 </section>
 
@@ -471,14 +483,17 @@ browser is for pages meant to be looked at.
    </div>
   </div>
 
-  <p class="cue">Ein Teil der Quelle: die vier Kästen, eine der drei Notizen und
-  der Schritt, der diese Notiz hereinholt. <strong>Längen sind in Rasterzellen
-  angegeben, nicht in Pixeln</strong> &ndash; die erste Zeile setzt die Zelle, also
-  behält eine Abbildung ihre Proportionen, wenn die Zelle sich ändert. Und
-  <code>-- fh.cx,fh.top</code> ist eine <strong>Hilfslinie</strong>: sie zeigt auf
-  eine Stelle an einem anderen Kasten und bleibt daran hängen, wenn der sich
-  bewegt.</p>
-
+  <div class="aside-code second-picture">
+   <div class="said">
+    <p class="cue">Ein Teil der Quelle: die vier Kästen, eine der drei Notizen
+    und der Schritt, der diese Notiz hereinholt.</p>
+    <p class="cue"><strong>Längen sind in Rasterzellen angegeben, nicht in
+    Pixeln</strong> &ndash; die erste Zeile setzt die Zelle, also behält eine
+    Abbildung ihre Proportionen, wenn die Zelle sich ändert. Und
+    <code>-- fh.cx,fh.top</code> ist eine <strong>Hilfslinie</strong>: sie zeigt
+    auf eine Stelle an einem anderen Kasten und bleibt daran hängen, wenn der
+    sich bewegt.</p>
+   </div>
 <pre><code><span class="t-dir">::: draw</span> 150x54
 <span class="t-dir">default box</span> <span class="t-punct">{.tone-3 .sharp}</span> w 0.88 h 0.85
 <span class="t-dir">box</span> fh <span class="t-strong">"Frame\nHeader"</span>    <span class="t-cmt">at</span> 0,0
@@ -489,6 +504,7 @@ browser is for pages meant to be looked at.
 <span class="t-dir">step</span> ethernet
   <span class="t-cmt">show</span> @l1
   <span class="t-cmt">emph</span> fh</code></pre>
+  </div>
 
   <div class="hint">
     <p><strong>Auch das ist eine Vorschau.</strong> Zum Ausprobieren braucht man
@@ -509,60 +525,94 @@ browser is for pages meant to be looked at.
 <section class="band">
  <div class="wrap">
   <h2 id="open-them-yourself">Vorlesungen selbst öffnen</h2>
-  <p class="lede">Fünf liegen hier, jede in allen Ansichten, die sie hat. Sie
-  sind das Werkzeug, kein Video davon: Pfeiltasten blättern, <kbd>C</kbd>
-  schaltet zwischen gekürztem und vollem Text um, <kbd>O</kbd> öffnet die
-  Übersichtstafel, <kbd>/</kbd> sucht, <kbd>?</kbd> listet alle Tasten auf.</p>
+  <p class="lede">Das hier ist das Werkzeug, kein Video davon. Pfeiltasten
+  blättern, <kbd>C</kbd> schaltet zwischen gekürztem und vollem Text um,
+  <kbd>O</kbd> öffnet die Übersichtstafel, <kbd>/</kbd> sucht, und <kbd>?</kbd>
+  listet alle Tasten auf.</p>
 
-  <table>
-    <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Decoration</th><th>Kurzbeispiel</th></tr>
-    <tr><td>Die Projektion</td>
-        <td><a href="../python-intro/audience.html">audience</a></td>
-        <td><a href="../tutorial/audience.html">audience</a></td>
-        <td><a href="../diagrams/audience.html">audience</a></td>
-        <td><a href="../decoration/audience.html">audience</a></td>
-        <td><a href="../example/audience.html">audience</a></td></tr>
-    <tr><td>Das Cockpit</td>
-        <td><a href="../python-intro/speaker.html">speaker</a></td>
-        <td><a href="../tutorial/speaker.html">speaker</a></td>
-        <td><a href="../diagrams/speaker.html">speaker</a></td>
-        <td class="tiny">&ndash;</td>
-        <td><a href="../example/speaker.html">speaker</a></td></tr>
-    <tr><td>Das Dokument</td>
-        <td><a href="../python-intro/print.html">print</a></td>
-        <td><a href="../tutorial/print.html">print</a></td>
-        <td><a href="../diagrams/print.html">print</a></td>
-        <td><a href="../decoration/print.html">print</a></td>
-        <td><a href="../example/print.html">print</a></td></tr>
-    <tr><td>Mit den Notizen</td>
-        <td><a href="../python-intro/print-notes.html">print-notes</a></td>
-        <td><a href="../tutorial/print-notes.html">print-notes</a></td>
-        <td><a href="../diagrams/print-notes.html">print-notes</a></td>
-        <td class="tiny">&ndash;</td>
-        <td><a href="../example/print-notes.html">print-notes</a></td></tr>
-  </table>
+  <div class="picks">
+    <div class="pick pick-lead">
+      <h3>Hier anfangen: <code>python-intro</code></h3>
+      <p class="size">36 Folien &middot; etwa 25 Minuten</p>
+      <p>Die Vorlesung, aus der jedes Bild auf dieser Seite stammt: eine
+      Einführung in Python für Leute, die schon einmal Code geschrieben haben.
+      Die Projektion öffnen und <kbd>C</kbd> drücken zeigt dieselbe Folie gekürzt
+      und ungekürzt. Auf Englisch.</p>
+      <p class="opens"><a href="../python-intro/audience.html">Projektion</a>
+      <a href="../python-intro/speaker.html">Cockpit</a>
+      <a href="../python-intro/print.html">Dokument</a>
+      <a href="../python-intro/print-notes.html">mit Notizen</a></p>
+    </div>
+    <div class="pick">
+      <h3>Danach: das Tutorial</h3>
+      <p class="size">92 Folien &middot; ein Nachschlagewerk</p>
+      <p>Jede Konstruktion, die das Format kennt, erklärt von einer Vorlesung,
+      die selbst daraus gebaut ist. Ihre <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">Quelle</a>
+      ist die Vorlage für die eigene.</p>
+      <p class="opens"><a href="../tutorial/audience.html">Projektion</a>
+      <a href="../tutorial/speaker.html">Cockpit</a>
+      <a href="../tutorial/print.html">Dokument</a>
+      <a href="../tutorial/print-notes.html">mit Notizen</a></p>
+    </div>
+  </div>
 
-  <p class="tiny"><strong>python-intro</strong> ist die, aus der die Bilder auf
-  dieser Seite stammen. Das <strong>Tutorial</strong> erklärt das Werkzeug,
-  indem es das Werkzeug ist. <strong>Figures</strong> zeichnet jede Konstruktion,
-  die die Abbildungssprache kennt; <strong>Decoration</strong> zeigt alles, was
-  etwas anderes als eine Textspalte auf eine Folie bringt. Das
-  <strong>Kurzbeispiel</strong> ist ein Ausschnitt aus einer Netzwerk-Vorlesung
-  im ersten Semester, auf Deutsch: gut 80 Zeilen Markdown, kurz genug, um sie
-  ganz zu lesen und daneben zu sehen, was daraus wird
-  (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">Quelle</a>,
-  gesetzt nach den <a href="https://inf.zone/lectures/8.5-netze/notes85/">Vorlesungsnotizen</a>
-  unter CC&nbsp;BY-NC-SA&nbsp;4.0). Figures und Decoration zeigen beide, was
-  nicht in Version 1.0.0 steckt, und brauchen zum Bauen das Repository.</p>
+  <div class="folded-note">
+  <details class="setup">
+    <summary>Drei weitere, und die vollständige Tabelle</summary>
+    <div class="setup-body">
+      <p><strong>Kurzbeispiel</strong> &ndash; 6 Folien, auf Deutsch. Ein Ausschnitt
+      aus einer Netzwerk-Vorlesung im ersten Semester, gut 80 Zeilen Markdown,
+      kurz genug, um sie ganz zu lesen und daneben zu sehen, was daraus wird
+      (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">Quelle</a>,
+      gesetzt nach den <a href="https://inf.zone/lectures/8.5-netze/notes85/">Vorlesungsnotizen</a>
+      unter CC&nbsp;BY-NC-SA&nbsp;4.0).</p>
+      <p><strong>Figures</strong> &ndash; 40 Folien. Jede Konstruktion, die die
+      Abbildungssprache kennt, gezeichnet statt beschrieben.
+      <strong>Decoration</strong> &ndash; 39 Folien. Alles, was etwas anderes als
+      eine Textspalte auf eine Folie bringt. Beide zeigen Arbeit, die nicht in
+      Version 1.0.0 steckt, und beide brauchen zum Bauen das Repository; deshalb
+      sind von Decoration nur zwei Ansichten veröffentlicht.</p>
+
+      <table>
+        <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Decoration</th><th>Kurzbeispiel</th></tr>
+        <tr><td>Die Projektion</td>
+            <td><a href="../python-intro/audience.html">audience</a></td>
+            <td><a href="../tutorial/audience.html">audience</a></td>
+            <td><a href="../diagrams/audience.html">audience</a></td>
+            <td><a href="../decoration/audience.html">audience</a></td>
+            <td><a href="../example/audience.html">audience</a></td></tr>
+        <tr><td>Das Cockpit</td>
+            <td><a href="../python-intro/speaker.html">speaker</a></td>
+            <td><a href="../tutorial/speaker.html">speaker</a></td>
+            <td><a href="../diagrams/speaker.html">speaker</a></td>
+            <td>&ndash;</td>
+            <td><a href="../example/speaker.html">speaker</a></td></tr>
+        <tr><td>Das Dokument</td>
+            <td><a href="../python-intro/print.html">print</a></td>
+            <td><a href="../tutorial/print.html">print</a></td>
+            <td><a href="../diagrams/print.html">print</a></td>
+            <td><a href="../decoration/print.html">print</a></td>
+            <td><a href="../example/print.html">print</a></td></tr>
+        <tr><td>Mit den Notizen</td>
+            <td><a href="../python-intro/print-notes.html">print-notes</a></td>
+            <td><a href="../tutorial/print-notes.html">print-notes</a></td>
+            <td><a href="../diagrams/print-notes.html">print-notes</a></td>
+            <td>&ndash;</td>
+            <td><a href="../example/print-notes.html">print-notes</a></td></tr>
+      </table>
+    </div>
+  </details>
 
   <div class="hint">
     <p>Alle vier Dateien sind in sich geschlossen: die Gestaltung, die Skripte,
     die Bilder, die gesetzten Formeln und die Schriften stecken in der HTML-Datei
     selbst. Zur Laufzeit wird nichts nachgeladen, und die Dateien lassen sich aus
     einem Ordner auf der Festplatte (<code>file://</code>) genauso öffnen wie von
-    diesem Server. Ein Cockpit, das über die Tabelle oben geöffnet wird, zeigt
-    zwar das Layout, ist aber mit nichts verbunden &ndash; ein verbundenes öffnet
-    man mit <kbd>S</kbd> in einer Projektion.</p>
+    diesem Server.</p>
+    <p>Ein Cockpit, das über einen Link oben geöffnet wird, zeigt zwar das
+    Layout, ist aber mit nichts verbunden &ndash; ein verbundenes öffnet man mit
+    <kbd>S</kbd> in einer Projektion.</p>
+  </div>
   </div>
  </div>
 </section>
@@ -601,10 +651,13 @@ browser is for pages meant to be looked at.
   </div>
   </div>
 
-  <p>Eine eigene Vorlesung zu bauen braucht <strong>Node 20 oder neuer</strong>,
-  womit <code>build.js</code> läuft, und sonst nichts: kein LaTeX, kein Pandoc,
-  keinen Server.</p>
-
+  <div class="aside-code words-first">
+   <div class="said">
+    <h3>Das Tutorial bauen</h3>
+    <p class="cue">Dafür braucht es <strong>Node 20 oder neuer</strong>, womit
+    <code>build.js</code> läuft, und sonst nichts: kein LaTeX, kein Pandoc,
+    keinen Server, nichts systemweit Installiertes.</p>
+   </div>
 <pre><code><span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
 
 <span class="t-cmt"># einmalig: die Schriften und die paar Abhängigkeiten des Builds</span>
@@ -613,6 +666,7 @@ browser is for pages meant to be looked at.
 <span class="t-cmt"># alle vier Ansichten neben source.md bauen, dann die Projektion öffnen</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span>
 <span class="t-cmd">open</span> <span class="t-path">lectures/tutorial/audience.html</span>   <span class="t-cmt"># macOS; sonst xdg-open oder der Browser</span></code></pre>
+  </div>
 
   <details class="setup">
     <summary>Wer noch nie Node installiert oder ein Terminal benutzt hat</summary>
@@ -685,7 +739,7 @@ browser is for pages meant to be looked at.
       nimmt sie überall. Sie berichtet, was eingebettet wurde &ndash; die Bilder, die
       Schriften, die QR-Codes, die gesetzten Formeln &ndash; und endet damit, was sie
       geschrieben hat.</p>
-<pre><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (11 columns, 59 chunks)</code></pre>
+<pre class="out"><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (11 columns, 59 chunks)</code></pre>
 
       <h3>Öffnen</h3>
       <p>Doppelklick auf <code>lectures/tutorial/audience.html</code>. Es öffnet
@@ -699,13 +753,15 @@ browser is for pages meant to be looked at.
     </div>
   </details>
 
-  <h3>Dann die eigene Vorlesung</h3>
-  <p>Editor, Projektion und Cockpit gleichzeitig sichtbar halten:
-  <code>--watch</code> baut bei jedem Speichern neu und lädt beide
-  Browserfenster neu, sobald der Build durch ist. Am Ende sind die vier
-  HTML-Dateien neben der eigenen <code>source.md</code> das, was man weitergibt.
-  Sonst muss nichts mitreisen.</p>
-
+  <div class="aside-code words-first">
+   <div class="said">
+    <h3>Dann die eigene Vorlesung</h3>
+    <p class="cue">Editor, Projektion und Cockpit gleichzeitig sichtbar halten:
+    <code>--watch</code> baut bei jedem Speichern neu und lädt beide
+    Browserfenster neu. Am Ende sind die vier HTML-Dateien neben der eigenen
+    <code>source.md</code> das, was man weitergibt. Sonst muss nichts
+    mitreisen.</p>
+   </div>
 <pre><code><span class="t-cmt"># einen Ordner mit gültigem Vorspann anlegen</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
 
@@ -714,36 +770,39 @@ browser is for pages meant to be looked at.
 
 <span class="t-cmt"># Chunk-IDs, Wortbudgets, offene Direktiven, zu große Dateien</span>
 <span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
+  </div>
  </div>
 </section>
 
 <section class="band band-close">
  <div class="wrap">
+  <div class="middle">
   <h2>Zum Weiterlesen</h2>
-  <ul>
-    <li><a href="../comparison.html">Wie psi-slides sich vergleicht</a> &ndash;
+  <ul class="reads">
+    <li><b><a href="../comparison.html">Wie psi-slides sich vergleicht</a></b>
       Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint und andere, in beide
       Richtungen, einschließlich der Stellen, an denen psi-slides verliert.</li>
-    <li><a href="../figures.html">Figures you write</a> &ndash; die Begründung für
-      die Abbildungssprache, und <a href="../figures-you-write.html">das
-      Handbuch</a> daneben, das eine Abbildung Zeile für Zeile aufbaut und jede
-      Anweisung auflistet.</li>
-    <li><a href="../tutorial/audience.html">Die Tutorial-Vorlesung</a> &ndash; jede
-      Konstruktion des Formats, im Betrieb gezeigt, mit
+    <li><b><a href="../figures.html">Figures you write</a></b>
+      Die Begründung für die Abbildungssprache, und
+      <a href="../figures-you-write.html">das Handbuch</a> daneben, das eine
+      Abbildung Zeile für Zeile aufbaut und jede Anweisung auflistet.</li>
+    <li><b><a href="../tutorial/audience.html">Die Tutorial-Vorlesung</a></b>
+      Jede Konstruktion des Formats, im Betrieb gezeigt, mit
       <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">ihrer
       Quelle</a> daneben.</li>
-    <li><a href="https://github.com/UBA-PSI/psi-slides">github.com/UBA-PSI/psi-slides</a>
-      &ndash; die README erklärt das Format und sagt, wofür das Werkzeug taugt und
-      wofür nicht.</li>
+    <li><b><a href="https://github.com/UBA-PSI/psi-slides">Das Repository</a></b>
+      Die README erklärt das Format und sagt, wofür das Werkzeug taugt und wofür
+      nicht.</li>
   </ul>
 
   <footer>
     <p>Von <a href="https://herdom.net">Dominik Herrmann</a>,
     <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
-    Universität Bamberg.<br>
+    Universität Bamberg.
     Werkzeug unter MIT-Lizenz, Vorlesungsinhalte unter CC&nbsp;BY-SA&nbsp;4.0.
     Bei jedem Push aus der Quelle neu gebaut.</p>
   </footer>
+  </div>
  </div>
 </section>
 </main>

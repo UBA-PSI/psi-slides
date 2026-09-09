@@ -51,37 +51,76 @@
 
   /* ── the diagram and the sentences it draws ────────────────────────────
    * Each row of the diagram is one clause of the argument: the slide that
-   * fills up, the second document that stops matching, and psi-slides. Point
-   * at either notation and the other one answers.
+   * fills up, the second document that stops matching, and psi-slides.
    *
-   * An earlier version of this section was an interactive stack of sheets
-   * that had to explain in a caption that hovering brought one forward. The
-   * difference is not the wiring, which is nearly the same: it is that the
-   * picture now says something, so connecting it to the sentence that says
-   * the same thing is worth a reader's attention. There is still no caption,
-   * because there is no mechanic to learn - the response is the explanation.
+   * It used to draw all three at once and dim two of them when you pointed at
+   * a clause, which meant the section always carried three stacked drawings -
+   * eight hundred pixels of picture for three sentences of text, and on a
+   * phone the row being talked about could be a screen away from the sentence
+   * talking about it. It shows ONE row now, and the clause you pick is the
+   * one drawn. Same wiring, a third of the height, and the answer arrives
+   * where the question was asked.
    *
-   * Pointer only. Both halves are complete at rest, so nothing here is the
-   * sole route to anything, and the clauses stay clauses rather than becoming
-   * three tab stops in the middle of a paragraph.
+   * Click, not hover: a hover-only switch has no answer on a touchscreen, and
+   * this is now the only way to reach two of the three rows. So the clauses
+   * become real controls - focusable, Enter and Space - and a row of tabs is
+   * added above the drawing for a reader who is not reading the sentences.
+   *
+   * With scripting off the markup is untouched: all three rows stand, stacked,
+   * exactly as they did before. The switch is the enhancement, not the
+   * content.
    */
   (function ties() {
     var paths = document.querySelector('.paths');
     if (!paths) return;
     var rows = Array.prototype.slice.call(paths.querySelectorAll('.path'));
     var clauses = Array.prototype.slice.call(document.querySelectorAll('.tie'));
-    if (!rows.length || !clauses.length) return;
+    if (rows.length < 2 || !clauses.length) return;
 
-    function paint(key) {
-      paths.classList.toggle('is-tied', !!key);
-      rows.concat(clauses).forEach(function (el) {
-        el.classList.toggle('is-tied', !!key && el.getAttribute('data-tie') === key);
+    var tabs = document.createElement('div');
+    tabs.className = 'path-tabs';
+    tabs.setAttribute('role', 'tablist');
+    var buttons = rows.map(function (row) {
+      var cap = row.querySelector('figcaption');
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = cap ? cap.textContent : row.getAttribute('data-tie');
+      btn.setAttribute('data-tie', row.getAttribute('data-tie'));
+      btn.setAttribute('role', 'tab');
+      tabs.appendChild(btn);
+      return btn;
+    });
+    paths.parentNode.insertBefore(tabs, paths);
+    paths.classList.add('is-switched');
+
+    function show(key) {
+      rows.forEach(function (row) {
+        row.classList.toggle('is-shown', row.getAttribute('data-tie') === key);
+      });
+      buttons.concat(clauses).forEach(function (el) {
+        var on = el.getAttribute('data-tie') === key;
+        el.classList.toggle('is-tied', on);
+        el.setAttribute('aria-pressed', String(on));
+        if (el.getAttribute('role') === 'tab') el.setAttribute('aria-selected', String(on));
       });
     }
-    rows.concat(clauses).forEach(function (el) {
-      el.addEventListener('mouseenter', function () { paint(el.getAttribute('data-tie')); });
-      el.addEventListener('mouseleave', function () { paint(null); });
+
+    clauses.forEach(function (el) {
+      el.tabIndex = 0;
+      el.setAttribute('role', 'button');
+      el.addEventListener('keydown', function (ev) {
+        if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); el.click(); }
+      });
     });
+    buttons.concat(clauses).forEach(function (el) {
+      el.addEventListener('click', function () { show(el.getAttribute('data-tie')); });
+    });
+
+    /* The first row is the state a reader already knows - everything poured
+       onto the slides - so the section opens on the problem and the two
+       clauses after it move the picture on. Opening on the answer would
+       spend the argument before it is made. */
+    show(rows[0].getAttribute('data-tie'));
   })();
 
   /* ── the narrow-width menu ─────────────────────────────────────────────

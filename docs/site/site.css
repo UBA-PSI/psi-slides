@@ -189,10 +189,15 @@ main.banded { display: block; max-width: none; padding: 0; }
 .wrap > * { max-width: var(--measure); }
 .wrap > .stage,
 .wrap > .beside,
+.wrap > .folded-note,
+.wrap > details,
+.wrap > .aside-code,
+.wrap > .picks,
 .wrap > .kinds,
 .wrap > .gallery,
 .wrap > .pair-up,
 .wrap > table,
+.wrap > pre,
 .wrap > footer,
 .wrap > h1 { max-width: none; }
 p, li { max-width: var(--measure); }
@@ -546,8 +551,27 @@ pre {
   font-size: 0.86rem;
   line-height: 1.62;
   margin: 0 0 1.6rem;
-  max-width: 54rem;
+  max-width: 62rem;
 }
+/*
+ * Punkt 12 in the client's list, and the one real defect in the last round:
+ * a listing sat on the prose measure with `overflow-x: auto`, so its longest
+ * line ran off behind the edge and the reader saw `# macOS; xdg-open or your
+ * browse`. A scrollbar under a code block does not fix that - the line still
+ * reads as cut.
+ *
+ * Every listing on this page wraps. The first fix was a breakpoint below
+ * which they wrapped, computed from the longest line, and it was wrong twice
+ * over: the number is only right until somebody edits a listing, and it is a
+ * viewport number for a question about a container - the same block sits at
+ * the frame width in one section and beside a 20rem column in another. A
+ * line that wraps is legible and a line that is cut is not, so they wrap
+ * everywhere, and no arithmetic has to stay true.
+ *
+ * The shell listings are written to survive it: the one long command already
+ * breaks itself with a backslash, which is how you would type it anyway.
+ */
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
 pre code { font-family: var(--mono); font-size: inherit; overflow-wrap: normal; }
 /* Inline code has no spaces to break at, so a path or a winget invocation in
    running text overflows the column unless it is allowed to break anywhere. */
@@ -567,9 +591,7 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
 .pair-up > * { min-width: 0; }
 .pair-up > * > :first-child { margin-top: 0; }
 .pair-up p, .pair-up li { max-width: none; }
-/* The one command that does not fit a half column is the release URL, and a
-   scrollbar under a two-line command is worse than a wrap. */
-.pair-up pre { white-space: pre-wrap; overflow-wrap: anywhere; max-width: none; }
+.pair-up pre { max-width: none; }
 @media (min-width: 64rem) { .pair-up { grid-template-columns: 1fr 1fr; } }
 
 /* A card: the shot's white on the page's grey, the way a screenshot is. */
@@ -621,6 +643,15 @@ footer p { max-width: none; }
 .gallery {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+/* Inside the disclosure the tiles are a catalogue, not three examples, and
+   the row is the unit: four across, where the page shows three. One count for
+   both galleries in there, and their contents are trimmed to seven and six so
+   that neither ends on a single stranded tile - five across left the sixth
+   divider alone on a row of its own, which reads as a mistake in the list
+   rather than as the end of it. */
+.setup-body .gallery { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.gallery {
   gap: clamp(0.8rem, 1.6vw, 1.6rem);
   margin: 0 0 1.4rem;
 }
@@ -641,8 +672,14 @@ figure.shot.tile figcaption code {
   margin-bottom: 0.05rem;
 }
 figure.shot.tile figcaption code + code { display: inline; margin: 0; }
-@media (max-width: 46rem) { .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
-@media (max-width: 30rem) { .gallery { grid-template-columns: minmax(0, 1fr); } }
+/* The disclosure's own count is more specific than the plain one, so the
+   narrow steps have to name it too or four tiles stay four on a phone. */
+@media (max-width: 46rem) {
+  .gallery, .setup-body .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 30rem) {
+  .gallery, .setup-body .gallery { grid-template-columns: minmax(0, 1fr); }
+}
 /*
  * The university bar, shared with psi-briefing so the chair's two tools frame
  * their pages the same way. Sticky, because it is the only affiliation the
@@ -860,11 +897,34 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
   text-decoration-thickness: 1.5px;
   text-underline-offset: 0.24em;
 }
-.path { cursor: pointer; transition: opacity 200ms ease, background-color 200ms ease; }
-/* Reserved at all times, so nothing shifts when the ground appears. */
-.path { padding: 0.5rem 0.6rem; border-radius: 8px; margin: -0.5rem -0.6rem; }
-.paths.is-tied .path { opacity: 0.3; }
-.paths.is-tied .path.is-tied { opacity: 1; background: var(--paper); }
+/* One row at a time, once the script has wired the switch. Without it the
+   class is never set and all three stand, which is what the markup says. */
+.paths.is-switched .path { display: none; }
+.paths.is-switched .path.is-shown { display: block; }
+/* The caption is the tab's label once there are tabs, so it would be the same
+   words twice above the same drawing. */
+.paths.is-switched .path figcaption { display: none; }
+
+/* The tabs. A reader who is not reading the three sentences still has to be
+   able to reach rows two and three, and they double as the answer to "which
+   of these am I looking at". */
+.path-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1rem; }
+.path-tabs button {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  padding: 0.3rem 0.7rem;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  background: none;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+.path-tabs button:hover { border-color: var(--accent); color: var(--accent); }
+.path-tabs button.is-tied {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
+}
 
 @media (prefers-reduced-motion: reduce) {
   .tie, .path { transition: none; }
@@ -891,8 +951,14 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
   border: 1px solid var(--rule);
   border-radius: 6px;
   margin: 1.6rem 0 2rem;
-  max-width: 62rem;
+  /* A grid or flex item is min-content wide by default, and the widest thing
+     in here is a six-column table. Without this the table pushed the panel,
+     the panel pushed the page, and a phone got a horizontal scrollbar on the
+     whole document instead of on the table. */
+  min-width: 0;
 }
+.setup-body { min-width: 0; }
+.setup-body > table { max-width: 100%; }
 .setup > summary {
   padding: 0.75rem 1.1rem;
   cursor: pointer;
@@ -1034,3 +1100,112 @@ body.lightbox-open { overflow: hidden; }
 .cue { font-size: 1rem; color: var(--ink-soft); margin: 0 0 0.8rem; max-width: var(--measure); }
 .cue strong { color: var(--ink); font-weight: 600; }
 .beside .cue { margin-top: 1rem; }
+
+/*
+ * ── The half-empty section ────────────────────────────────────────────────
+ *
+ * Four of the client's twelve notes were one fault: an element using half
+ * the width with nothing beside it. One-sided white space reads as a
+ * mistake; symmetrical white space reads as a decision. Three answers, and
+ * each section below is assigned one deliberately rather than by default.
+ *
+ * 1. Put a second thing in the free half - `.beside`, already here, and the
+ *    listing variants below.
+ * 2. Let the element take the width itself - the listings now do.
+ * 3. Make it narrow on purpose and centre it, so the space is even on both
+ *    sides - `.middle`, used for the closing section, where there is
+ *    genuinely nothing to put beside four links.
+ */
+
+/* A listing with its explanation beside it: the code takes the wide side
+   because it is the thing being shown, the words take the narrow one. Same
+   proportion trap as `.beside`, same escape - the words are three to five
+   lines by construction, so the space under them is margin. */
+.aside-code { display: grid; gap: clamp(1.2rem, 2.2vw, 2.6rem); align-items: start; }
+.aside-code > .said > :first-child { margin-top: 0; }
+.aside-code > .said > :last-child { margin-bottom: 0; }
+.aside-code > pre { margin-bottom: 0; max-width: none; }
+.aside-code .cue, .aside-code p { margin-bottom: 0.8rem; }
+@media (min-width: 68rem) {
+  .aside-code { grid-template-columns: minmax(0, 1fr) minmax(0, 20rem); }
+  .aside-code > .said { order: 2; }
+}
+/* The mirror, for the two places where the words come first in the argument
+   and the listing is the answer to them. */
+@media (min-width: 68rem) {
+  .aside-code.words-first { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); }
+  .aside-code.words-first > .said { order: 0; }
+}
+
+/* Deliberately narrow, evenly spaced. The closing section is four links and
+   a byline; there is nothing to put beside them and stretching them across
+   the frame would be worse than the gap. */
+.middle { max-width: 62rem; margin-inline: auto; }
+.middle > h2 { text-align: center; max-width: none; }
+
+/* The closing links, side by side rather than stacked as a bullet list: four
+   short entries down the left of a wide frame is the same half-empty fault
+   as the listings had. */
+.reads { display: grid; gap: 1.6rem 2.4rem; list-style: none; margin: 2rem 0 0; padding: 0; }
+@media (min-width: 52rem) { .reads { grid-template-columns: 1fr 1fr; } }
+.reads li { max-width: none; font-size: 0.96rem; color: var(--ink-soft); }
+.reads b { display: block; font-size: 1.05rem; font-weight: 600; margin-bottom: 0.15rem; }
+.reads b a { text-decoration: none; }
+.reads b a:hover { text-decoration: underline; }
+
+/* Punkt 11: the footer was holding the prose measure inside a frame nearly
+   three times as wide. It is the page's last line and it belongs to the
+   whole page, so it runs the width its section runs. */
+footer p { max-width: none; }
+
+/*
+ * ── The lecture picks ─────────────────────────────────────────────────────
+ *
+ * Punkt 7. This was one table of eighteen links, every one the same weight,
+ * and a reader could not tell which of five lectures to open first. It is a
+ * hierarchy now: the demo the pictures come from, then the tour, side by
+ * side and named; the other three behind a disclosure with the full grid.
+ * Each says how long it is, because "open a lecture" is a different offer at
+ * 36 slides than at 59.
+ */
+.picks { display: grid; gap: clamp(1rem, 2vw, 2rem); margin: 0 0 1.6rem; }
+@media (min-width: 60rem) { .picks { grid-template-columns: 1fr 1fr; } }
+.pick {
+  background: var(--shot-bg);
+  border: 1px solid var(--frame);
+  border-radius: 8px;
+  padding: 1.3rem 1.5rem 1.4rem;
+}
+.pick h3 { margin: 0 0 0.15rem; font-size: 1.3rem; }
+.pick h3 code { font-size: 0.92em; color: inherit; }
+.pick .size {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  margin: 0 0 0.7rem;
+}
+.pick p { max-width: none; font-size: 0.96rem; margin: 0 0 1rem; }
+.pick .opens { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0; }
+.pick .opens a {
+  font-size: 0.9rem;
+  text-decoration: none;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 0.28rem 0.66rem;
+  color: var(--ink);
+}
+.pick .opens a:hover { border-color: var(--accent); color: var(--accent); }
+/* The first pick is the one to take, so it says so with a heavier edge -
+   the only difference between the two cards, because a second signal would
+   make them two kinds of thing rather than a first and a second. */
+.pick-lead { border-color: var(--ink-soft); }
+
+/* The disclosure and the note that follows it were two half-width blocks
+   stacked down the left. Side by side they are one row: the disclosure grows
+   downwards when it opens and the note stays where it is. */
+.folded-note { display: grid; gap: clamp(1.2rem, 2.2vw, 2.6rem); align-items: start; }
+.folded-note > details { margin-top: 0; }
+.folded-note > .hint { margin-top: 0; max-width: none; }
+@media (min-width: 68rem) {
+  .folded-note { grid-template-columns: minmax(0, 1fr) minmax(0, 24rem); }
+}

@@ -32,12 +32,8 @@
    </div>
   </div>
 
-  <p class="cue">One slide of a real lecture, twice: what the room sees, and the
-  same four paragraphs in full. <strong>One keypress separates them.</strong> The
-  switch in the right-hand bar swaps in the printed handout. Click any
-  picture on this page to see it at full size.</p>
-
-  <div class="stage">
+  <div class="beside beside-flip">
+   <div class="stage">
     <div class="stage-pair">
       <figure class="shot">
         <div class="bar"><b>what the room sees</b></div>
@@ -59,8 +55,16 @@
         <img src="img/full.webp" alt="The same slide with the shortening switched off: all four paragraphs in full, laid out in two columns.">
       </figure>
     </div>
+   </div>
+   <div class="said">
+    <p class="cue">One slide of a real lecture, twice. On the left, what the room
+    sees. On the right, the same four paragraphs in full. <strong>One keypress
+    separates them.</strong></p>
+    <p class="cue">The switch in the right-hand bar swaps that view for the
+    printed handout &ndash; a different file, built from the same source. Click
+    any picture on this page to see it at full size.</p>
+   </div>
   </div>
-
  </div>
 </section>
 
@@ -121,8 +125,9 @@
     <p><span class="tie" data-tie="3">With psi-slides you write each paragraph
     once and mark the one sentence that carries it.</span> The projection gets
     that sentence, the handout gets the whole paragraph, and your
-    <code>&gt; note:</code> lines stay on your own screen. Point at a sentence to
-    light up the row it draws.</p>
+    <code>&gt; note:</code> lines stay on your own screen. The drawing beside this shows
+    one of those three ways at a time &ndash; pick a sentence, or a tab above it,
+    to change which.</p>
     </div>
 
     <div class="kinds-figure">
@@ -262,10 +267,16 @@
   becomes one slide. The lecture it comes from is real: an introduction to
   Python in 36 chunks.</p>
 
-  <p class="cue">Read the bold. Those are the phrases the projection keeps; the
-  prose around them is what the handout keeps. The
-  <code>&gt; note:</code> at the foot is for nobody but you.</p>
-
+  <div class="aside-code">
+   <div class="said">
+    <p class="cue">Read the bold. Those are the phrases the projection keeps;
+    the prose around them is what the handout keeps. The
+    <code>&gt; note:</code> at the foot is for nobody but you.</p>
+    <p class="cue">Two of the four paragraphs are shortened to fit this page. In
+    the projection the author&rsquo;s two columns fold into one, because four
+    abridged paragraphs do not balance; with the shortening off, and in the
+    handout, the columns stay.</p>
+   </div>
 <pre><code><span class="t-head">## free: Why Playwright | the modern web is rendered, not served</span> <span class="t-punct">{.wide #why-playwright}</span>
 
 <span class="t-dir">::: cols 2</span>
@@ -292,11 +303,7 @@ browser is for pages meant to be looked at.
 
 <span class="t-note">&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
 &gt; curl it, and let them find the missing text themselves.</span></code></pre>
-
-  <p class="tiny">Two of the four paragraphs are shortened to fit this page. In
-  the projection the author&rsquo;s two columns fold into one, because four
-  abridged paragraphs do not balance; with the shortening off, and in the
-  handout, the columns stay.</p>
+  </div>
  </div>
 </section>
 
@@ -319,11 +326,8 @@ browser is for pages meant to be looked at.
    </div>
   </div>
 
-  <p class="cue">A question from the room is usually about something forty
-  slides back. Two ways to get there without losing your place, both of them
-  over the projection itself.</p>
-
-  <div class="stage">
+  <div class="beside beside-flip second-picture">
+   <div class="stage">
     <div class="stage-pair">
       <figure class="shot">
         <div class="bar"><b>audience.html</b> &middot; O</div>
@@ -339,6 +343,12 @@ browser is for pages meant to be looked at.
         chunk, its heading, and the sentence the match sits in.</figcaption>
       </figure>
     </div>
+   </div>
+   <div class="said">
+    <p class="cue">A question from the room is usually about something forty
+    slides back. Two ways to get there without losing your place, both of them
+    over the projection itself.</p>
+   </div>
   </div>
  </div>
 </section>
@@ -387,6 +397,7 @@ browser is for pages meant to be looked at.
     </div>
   </div>
 
+  <div class="folded-note">
   <details class="setup">
     <summary>The other seven title slides, and the six part dividers</summary>
     <div class="setup-body">
@@ -409,10 +420,6 @@ browser is for pages meant to be looked at.
       <figcaption><code>beside</code> the chunk&rsquo;s own content beside the title, so a drawing can be the cover</figcaption></figure>
       <figure class="shot tile"><img src="img/above.webp" alt="A title slide with a three-box diagram across the top and the title centred in the band below it.">
       <figcaption><code>above</code> the same content on top, the title centred below</figcaption></figure>
-      <figure class="shot tile"><img src="img/stack-bottom.webp" alt="The stack cover with its type block moved down to sit on the bottom margin.">
-      <figcaption><code>stack</code> with <code>cover-align: bottom</code></figcaption></figure>
-      <figure class="shot tile"><img src="img/beside-ratio.webp" alt="The beside cover with the diagram given a wider share of the slide than the default.">
-      <figcaption><code>beside</code> with <code>cover-ratio: 62%</code></figcaption></figure>
       </div>
 
       <p><code>section:</code> draws the divider a new part of the lecture opens
@@ -434,13 +441,16 @@ browser is for pages meant to be looked at.
     </div>
   </details>
 
-  <p class="tiny"><strong>These are a preview.</strong> They are not in the 1.0.0
-  release, so a lecture naming a <code>cover:</code> or a <code>section:</code>
-  needs the repository rather than the download &ndash;
-  <a href="#getting-started">Getting started</a> has both. Everything one lecture
-  <em>can</em> carry at once, including cards, backdrops and a photograph that
-  opens as you press <kbd>Space</kbd>, is in the
-  <a href="decoration/audience.html">decoration lecture</a>.</p>
+  <div class="hint">
+    <p><strong>These are a preview.</strong> They are not in the 1.0.0 release,
+    so a lecture naming a <code>cover:</code> or a <code>section:</code> needs
+    the repository rather than the download &ndash;
+    <a href="#getting-started">Getting started</a> has both.</p>
+    <p>Everything one lecture <em>can</em> carry at once, including cards,
+    backdrops and a photograph that opens as you press <kbd>Space</kbd>, is in
+    the <a href="decoration/audience.html">decoration lecture</a>.</p>
+  </div>
+  </div>
  </div>
 </section>
 
@@ -464,13 +474,16 @@ browser is for pages meant to be looked at.
    </div>
   </div>
 
-  <p class="cue">Part of its source: the four boxes, one of the three notes, and
-  the step that brings that note in. <strong>Lengths are in grid cells, not
-  pixels</strong> &ndash; the opening line sets the cell, so a figure keeps its
-  proportions when the cell changes. And <code>-- fh.cx,fh.top</code> is a
-  <strong>leader line</strong>: it points at a spot on another box and stays
-  attached when that box moves.</p>
-
+  <div class="aside-code second-picture">
+   <div class="said">
+    <p class="cue">Part of its source: the four boxes, one of the three notes,
+    and the step that brings that note in.</p>
+    <p class="cue"><strong>Lengths are in grid cells, not pixels</strong> &ndash;
+    the opening line sets the cell, so a figure keeps its proportions when the
+    cell changes. And <code>-- fh.cx,fh.top</code> is a <strong>leader
+    line</strong>: it points at a spot on another box and stays attached when
+    that box moves.</p>
+   </div>
 <pre><code><span class="t-dir">::: draw</span> 150x54
 <span class="t-dir">default box</span> <span class="t-punct">{.tone-3 .sharp}</span> w 0.88 h 0.85
 <span class="t-dir">box</span> fh <span class="t-strong">"Frame\nHeader"</span>    <span class="t-cmt">at</span> 0,0
@@ -481,6 +494,7 @@ browser is for pages meant to be looked at.
 <span class="t-dir">step</span> ethernet
   <span class="t-cmt">show</span> @l1
   <span class="t-cmt">emph</span> fh</code></pre>
+  </div>
 
   <div class="hint">
     <p><strong>This one is a preview too.</strong> To try it you need the
@@ -499,58 +513,92 @@ browser is for pages meant to be looked at.
 <section class="band">
  <div class="wrap">
   <h2 id="open-them-yourself">Open the lectures yourself</h2>
-  <p class="lede">Five are published here, each in every view it has. They are
-  the tool, not a video of it: arrow keys move, <kbd>C</kbd> switches between the
-  shortened text and the full text, <kbd>O</kbd> opens the overview board,
-  <kbd>/</kbd> searches, <kbd>?</kbd> lists every key.</p>
+  <p class="lede">These are the tool, not a video of it. Arrow keys move,
+  <kbd>C</kbd> switches between the shortened text and the full text,
+  <kbd>O</kbd> opens the overview board, <kbd>/</kbd> searches, and
+  <kbd>?</kbd> lists every key.</p>
 
-  <table>
-    <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Decoration</th><th>Short example</th></tr>
-    <tr><td>The projection</td>
-        <td><a href="python-intro/audience.html">audience</a></td>
-        <td><a href="tutorial/audience.html">audience</a></td>
-        <td><a href="diagrams/audience.html">audience</a></td>
-        <td><a href="decoration/audience.html">audience</a></td>
-        <td><a href="example/audience.html">audience</a></td></tr>
-    <tr><td>The cockpit</td>
-        <td><a href="python-intro/speaker.html">speaker</a></td>
-        <td><a href="tutorial/speaker.html">speaker</a></td>
-        <td><a href="diagrams/speaker.html">speaker</a></td>
-        <td class="tiny">&ndash;</td>
-        <td><a href="example/speaker.html">speaker</a></td></tr>
-    <tr><td>The document</td>
-        <td><a href="python-intro/print.html">print</a></td>
-        <td><a href="tutorial/print.html">print</a></td>
-        <td><a href="diagrams/print.html">print</a></td>
-        <td><a href="decoration/print.html">print</a></td>
-        <td><a href="example/print.html">print</a></td></tr>
-    <tr><td>With the notes</td>
-        <td><a href="python-intro/print-notes.html">print-notes</a></td>
-        <td><a href="tutorial/print-notes.html">print-notes</a></td>
-        <td><a href="diagrams/print-notes.html">print-notes</a></td>
-        <td class="tiny">&ndash;</td>
-        <td><a href="example/print-notes.html">print-notes</a></td></tr>
-  </table>
+  <div class="picks">
+    <div class="pick pick-lead">
+      <h3>Start here: <code>python-intro</code></h3>
+      <p class="size">36 slides &middot; about 25 minutes</p>
+      <p>The lecture every picture on this page comes from: an introduction to
+      Python for people who have written some code before. Open the projection
+      and press <kbd>C</kbd> to see the same slide shorten and unshorten.</p>
+      <p class="opens"><a href="python-intro/audience.html">projection</a>
+      <a href="python-intro/speaker.html">cockpit</a>
+      <a href="python-intro/print.html">document</a>
+      <a href="python-intro/print-notes.html">with notes</a></p>
+    </div>
+    <div class="pick">
+      <h3>Then: the tutorial</h3>
+      <p class="size">92 slides &middot; a reference to dip into</p>
+      <p>Every construct the format has, explained by a lecture that is itself
+      built out of them. Its <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">source</a>
+      is what you write your own against.</p>
+      <p class="opens"><a href="tutorial/audience.html">projection</a>
+      <a href="tutorial/speaker.html">cockpit</a>
+      <a href="tutorial/print.html">document</a>
+      <a href="tutorial/print-notes.html">with notes</a></p>
+    </div>
+  </div>
 
-  <p class="tiny"><strong>python-intro</strong> is where the pictures on this
-  page come from. The <strong>tutorial</strong> explains the tool by being the
-  tool. <strong>Figures</strong> draws every construction the figure language
-  has; <strong>decoration</strong> shows everything that puts something other
-  than a text column on a slide. The <strong>short example</strong> is one
-  section of a first-year networking lecture in German, eighty-odd lines of
-  Markdown, short enough to read end to end beside what it produces
-  (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a>,
-  set from the <a href="https://inf.zone/lectures/8.5-netze/notes85/">lecture notes</a>
-  under CC&nbsp;BY-NC-SA&nbsp;4.0). Figures and decoration both show work that is
-  not in 1.0.0 and both need the repository to build.</p>
+  <div class="folded-note">
+  <details class="setup">
+    <summary>Three more, and the whole grid</summary>
+    <div class="setup-body">
+      <p><strong>Short example</strong> &ndash; 6 slides, in German. One section of
+      a first-year networking lecture, eighty-odd lines of Markdown, short enough
+      to read end to end beside what it produces
+      (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a>,
+      set from the <a href="https://inf.zone/lectures/8.5-netze/notes85/">lecture
+      notes</a> under CC&nbsp;BY-NC-SA&nbsp;4.0).</p>
+      <p><strong>Figures</strong> &ndash; 40 slides. Every construction the figure
+      language has, drawn rather than described.
+      <strong>Decoration</strong> &ndash; 39 slides. Everything that puts something
+      other than a text column on a slide. Both show work that is not in the
+      1.0.0 release and both need the repository to build, which is why only two
+      views of decoration are published.</p>
+
+      <table>
+        <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Decoration</th><th>Short example</th></tr>
+        <tr><td>The projection</td>
+            <td><a href="python-intro/audience.html">audience</a></td>
+            <td><a href="tutorial/audience.html">audience</a></td>
+            <td><a href="diagrams/audience.html">audience</a></td>
+            <td><a href="decoration/audience.html">audience</a></td>
+            <td><a href="example/audience.html">audience</a></td></tr>
+        <tr><td>The cockpit</td>
+            <td><a href="python-intro/speaker.html">speaker</a></td>
+            <td><a href="tutorial/speaker.html">speaker</a></td>
+            <td><a href="diagrams/speaker.html">speaker</a></td>
+            <td>&ndash;</td>
+            <td><a href="example/speaker.html">speaker</a></td></tr>
+        <tr><td>The document</td>
+            <td><a href="python-intro/print.html">print</a></td>
+            <td><a href="tutorial/print.html">print</a></td>
+            <td><a href="diagrams/print.html">print</a></td>
+            <td><a href="decoration/print.html">print</a></td>
+            <td><a href="example/print.html">print</a></td></tr>
+        <tr><td>With the notes</td>
+            <td><a href="python-intro/print-notes.html">print-notes</a></td>
+            <td><a href="tutorial/print-notes.html">print-notes</a></td>
+            <td><a href="diagrams/print-notes.html">print-notes</a></td>
+            <td>&ndash;</td>
+            <td><a href="example/print-notes.html">print-notes</a></td></tr>
+      </table>
+    </div>
+  </details>
 
   <div class="hint">
     <p>All four files are self-contained: the styling, the scripts, the images,
     the typeset maths and the typefaces sit inside the HTML file itself. Nothing
     is fetched at run time, and they open as happily from a folder on disk
-    (<code>file://</code>) as from this server. A cockpit opened from the table
-    above shows the layout but is connected to nothing &ndash; press <kbd>S</kbd>
-    inside a projection to open one that follows it.</p>
+    (<code>file://</code>) as from this server.</p>
+    <p>A cockpit opened from a link above shows the layout but is connected to
+    nothing &ndash; press <kbd>S</kbd> inside a projection to open one that
+    follows it.</p>
+  </div>
   </div>
  </div>
 </section>
@@ -588,10 +636,13 @@ browser is for pages meant to be looked at.
   </div>
   </div>
 
-  <p>Building a lecture of your own needs <strong>Node 20 or newer</strong>,
-  which is what runs <code>build.js</code>, and nothing else: no LaTeX, no
-  Pandoc, no server.</p>
-
+  <div class="aside-code words-first">
+   <div class="said">
+    <h3>Build the tutorial</h3>
+    <p class="cue">This needs <strong>Node 20 or newer</strong>, which is what
+    runs <code>build.js</code>, and nothing else: no LaTeX, no Pandoc, no
+    server, nothing installed system-wide.</p>
+   </div>
 <pre><code><span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
 
 <span class="t-cmt"># once: the bundled typefaces and the handful of build dependencies</span>
@@ -600,6 +651,7 @@ browser is for pages meant to be looked at.
 <span class="t-cmt"># build all four views next to source.md, then open the projection</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span>
 <span class="t-cmd">open</span> <span class="t-path">lectures/tutorial/audience.html</span>   <span class="t-cmt"># macOS; xdg-open or your browser elsewhere</span></code></pre>
+  </div>
 
   <details class="setup">
     <summary>If you have never installed Node or used a terminal</summary>
@@ -666,7 +718,7 @@ browser is for pages meant to be looked at.
       <p>The same line on Windows and macOS, forward slashes included: Node takes
       them everywhere. It reports what it embedded &ndash; the images, the typefaces,
       the QR codes, the rendered maths &ndash; and ends with what it wrote.</p>
-<pre><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (11 columns, 59 chunks)</code></pre>
+<pre class="out"><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (11 columns, 59 chunks)</code></pre>
 
       <h3>Open it</h3>
       <p>Double-click <code>lectures/tutorial/audience.html</code>. It opens in
@@ -680,13 +732,14 @@ browser is for pages meant to be looked at.
     </div>
   </details>
 
-  <h3>Then write your own</h3>
-  <p>Keep the editor, the projection and the cockpit visible at once:
-  <code>--watch</code> rebuilds on every save and reloads both browser windows as
-  soon as the rebuild finishes. At the end, the four HTML files beside your
-  <code>source.md</code> are what you hand over. Nothing else travels with
-  them.</p>
-
+  <div class="aside-code words-first">
+   <div class="said">
+    <h3>Then write your own</h3>
+    <p class="cue">Keep the editor, the projection and the cockpit visible at
+    once: <code>--watch</code> rebuilds on every save and reloads both browser
+    windows. At the end, the four HTML files beside your <code>source.md</code>
+    are what you hand over. Nothing else travels with them.</p>
+   </div>
 <pre><code><span class="t-cmt"># scaffold a folder with valid frontmatter</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
 
@@ -695,34 +748,39 @@ browser is for pages meant to be looked at.
 
 <span class="t-cmt"># chunk ids, word budgets, unclosed directives, oversized assets</span>
 <span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
+  </div>
  </div>
 </section>
 
 <section class="band band-close">
  <div class="wrap">
+  <div class="middle">
   <h2>Where to read further</h2>
-  <ul>
-    <li><a href="comparison.html">How psi-slides compares</a> &ndash; Beamer,
-      reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, in both
+  <ul class="reads">
+    <li><b><a href="comparison.html">How psi-slides compares</a></b>
+      Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, in both
       directions, including where psi-slides loses.</li>
-    <li><a href="figures.html">Figures you write</a> &ndash; the case for the
-      figure language, and <a href="figures-you-write.html">the manual</a> beside
-      it, which builds one a line at a time and lists every statement.</li>
-    <li><a href="tutorial/audience.html">The tutorial lecture</a> &ndash; every
-      construct the format has, shown working, with
+    <li><b><a href="figures.html">Figures you write</a></b>
+      The case for the figure language, and
+      <a href="figures-you-write.html">the manual</a> beside it, which builds one
+      a line at a time and lists every statement.</li>
+    <li><b><a href="tutorial/audience.html">The tutorial lecture</a></b>
+      Every construct the format has, shown working, with
       <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">its
       source</a> beside it.</li>
-    <li><a href="https://github.com/UBA-PSI/psi-slides">github.com/UBA-PSI/psi-slides</a>
-      &ndash; the README explains the format and says what the tool is good at and
-      what it is not good at.</li>
+    <li><b><a href="https://github.com/UBA-PSI/psi-slides">The repository</a></b>
+      The README explains the format and says what the tool is good at and what
+      it is not good at.</li>
   </ul>
 
   <footer>
     <p>By <a href="https://herdom.net">Dominik Herrmann</a>,
     <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
-    University of Bamberg.<br>
-    Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0. Rebuilt from source on every push.</p>
+    University of Bamberg.
+    Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0. Rebuilt from
+    source on every push.</p>
   </footer>
+  </div>
  </div>
 </section>
 </main>
