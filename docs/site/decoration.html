@@ -59,9 +59,9 @@
   <h2 id="covers">Ten ways to open a lecture</h2>
   <p class="lede">A lecture can open on a title in the corner, on a wall of
   colour, or on a photograph with the words standing over it.
-  <code>cover:</code> in the frontmatter names which. The ten below run quiet to
-  loud rather than alphabetically, because loud or quiet is the only question
-  the list asks you.</p>
+  You name the one you want in the frontmatter, with <code>cover:</code>. The ten below run
+  quiet to loud rather than alphabetically, because loud or quiet is the
+  question you answer when you pick one.</p>
 
   <p class="cue">Three of them, in that order. <code>classic</code> is the
   default, and a lecture that never names one gets it.</p>
@@ -85,10 +85,11 @@
       <code>hero</code> from <code>cover-image:</code>, <code>beside</code> and
       <code>above</code> from whatever the title slide itself carries, so a
       figure written in the lecture can be the cover. Two more settings move the
-      type rather than replacing the composition &ndash; <code>cover-align:</code>
-      sets it high, in the middle or low on the seven that leave it any
-      freedom, and <code>cover-ratio:</code> says how much of the slide the
-      picture gets on the ones that divide it.</p>
+      type rather than replacing the composition &ndash; with
+      <code>cover-align:</code> you set it high, in the middle or low on the
+      seven that leave it any freedom, and with <code>cover-ratio:</code> you
+      say how much of the slide the picture gets on the ones that divide
+      it.</p>
       <div class="gallery">
       <figure class="shot tile"><img src="img/masthead.webp" alt="A title slide with the title at the top edge, a lede in the middle, and the credits under a rule at the bottom.">
       <figcaption><code>masthead</code> the title at the top edge, credits under a rule at the foot</figcaption></figure>
@@ -117,9 +118,9 @@
   <div class="pair-up">
    <div>
     <p><strong>The last slide is the cover&rsquo;s bookend.</strong> A slide
-    written as <code>## closing:</code> is drawn in whatever composition
-    <code>cover:</code> named, so the hour ends on the shape it began with. It
-    carries your own words and neither the presenter line nor the date: those
+    written as <code>## closing:</code> is drawn in whatever composition you
+    named with <code>cover:</code>, so the hour ends on the shape it began
+    with. It carries your own words and neither the presenter line nor the date: those
     say who is talking and when, and the room learned that an hour ago.</p>
    </div>
    <div>
@@ -137,11 +138,12 @@
 <section class="band">
  <div class="wrap">
   <h2 id="dividers">The slide that opens a part</h2>
-  <p class="lede">A <code>#</code> heading in the source starts a new part, and
-  the lecture puts a divider in front of it so the room arrives at the heading
-  before the first slide of the part. <code>section:</code> names one of six, and
-  every one is quieter than any title slide: a divider that can be mistaken for
-  the cover has failed at its one job.</p>
+  <p class="lede">You start a new part with a <code>#</code> heading in the
+  source, and the lecture puts a divider in front of it so the room arrives at
+  the heading before the first slide of the part. You name one of six
+  compositions with <code>section:</code>, and every one of them is quieter
+  than the cover: a divider that can be mistaken for it has failed at its one
+  job.</p>
 
   <!-- All six at full size, where the covers keep eight of theirs folded, and
        the group is where that decision goes the other way. The dividers differ
@@ -173,13 +175,13 @@
     <p><strong>A divider can carry its own slide.</strong> Whatever you write
     between the <code>#</code> heading and the first slide under it is on that
     slide, and it used to be dropped without a word. A quotation, a photograph,
-    a figure or a row of three names: the part opens on it, and none of them
-    needs a word you have not already written.</p>
+    a figure or a row of three names: the part opens on it, and none of it
+    needs a directive of its own.</p>
    </div>
    <div>
     <p><strong>The running agenda is also a slide you can write.</strong>
-    <code>## outline:</code> draws the same list as the <code>outline</code>
-    divider, wherever you put it &ndash; usually straight after the cover, where
+    Write <code>## outline:</code> where you want it and you get the same list
+    as the <code>outline</code> divider &ndash; usually straight after the cover, where
     there is no part boundary for a divider to be generated at. Before the
     first part nothing in it is marked as current, because a plan nobody has
     started is read at full strength.</p>
@@ -196,8 +198,8 @@
   <code>::: cols</code> for the one long argument a browser may break wherever
   it likes.</p>
 
-  <p class="cue">Two arrangements of one vocabulary, and the word after the
-  colons decides which. The settings are the same either way: the size, the
+  <p class="cue">Two arrangements of one vocabulary, and you pick which with
+  the word after the colons. The settings are the same either way: the size, the
   alignment, and what the box is made of.</p>
 
   <div class="stage">
@@ -227,8 +229,8 @@
     <p><strong>One row can serve the slide and the hand-out.</strong> What you
     write under a card at a second level is off the projection and in the
     printed document, so the room gets the headline and the reader gets the
-    detail. <kbd>C</kbd>
-    brings the levels back onto the wall when a question needs them, and
+    detail. Press <kbd>C</kbd> and the levels come back onto the wall when a
+    question needs them, and
     nothing had to be written twice for that.</p>
    </div>
    <div>
@@ -256,11 +258,11 @@
    </div>
    <div class="said">
     <h2 id="backdrop">A picture behind the whole slide</h2>
-    <p class="lede"><code>::: backdrop</code> puts an image behind everything,
-    edge to edge, on any slide. One line, and the text column stays where it
-    is.</p>
+    <p class="lede">Write <code>::: backdrop</code> and an image stands behind
+    everything, edge to edge, on any slide. One line, and the text column stays
+    where it is.</p>
     <p class="cue">A veil in the theme&rsquo;s own background colour goes over
-    it by default, so ordinary text stays legible on any photograph and in any
+    it by default, so ordinary text stays legible over the picture in any
     of the seven themes.</p>
     <p class="cue">Write <code>reveal</code> after it and each press of
     <kbd>Space</kbd> changes how much of the picture shows: a band along one
