@@ -32,6 +32,10 @@ on:
       - 'package-lock.json'
       - '.github/workflows/desktop.yml'
   workflow_dispatch:
+  # desktop-release.yml runs this same matrix for a `builder-*` tag and
+  # then attaches the packages to a pre-release, so the release is built by
+  # exactly the jobs that test every push.
+  workflow_call:
 
 permissions:
   contents: read
@@ -103,7 +107,10 @@ jobs:
       # GitHub. Windows has no code-signing certificate at all, so its
       # installer is unsigned wherever it is built and SmartScreen warns once.
       # What this job produces is for testing, and it is attached to the run
-      # rather than to a release.
+      # rather than to a release – except when desktop-release.yml is the
+      # caller, which downloads these artefacts and attaches them to a
+      # pre-release under the names `artifactName` in desktop/package.json
+      # gives them (no version in the name, so a link keeps working).
       - name: Package
         working-directory: desktop
         env:

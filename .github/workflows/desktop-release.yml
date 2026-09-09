@@ -1,0 +1,86 @@
+# A pre-release of the desktop app on its own tag, before the engine's next
+# release.
+#
+# The app carries its own version until 2.0.0 (desktop/package.json, 0.x),
+# and its tag is `builder-<version>`, deliberately outside the `v*` pattern
+# release.yml listens to: a `v2.0.0-beta.1` tag would run release.yml, which
+# creates releases without --prerelease, and `releases/latest/download/`
+# would then hand every reader of the site a beta engine. A `builder-*` tag
+# reaches only this workflow, and this workflow only ever creates a
+# pre-release, which `latest` skips.
+#
+# The packages come from desktop.yml, called as a reusable workflow, so the
+# release is built by exactly the jobs that test every push. Their names
+# carry no version (`artifactName` in desktop/package.json), so the site can
+# link `releases/download/builder-<version>/psi-slides-builder-mac-arm64.dmg`
+# and the link is the package that was tested.
+#
+# What CI cannot do: sign. The macOS package here is unsigned; the signed and
+# notarised one is built on the maintainer's machine with `npm run
+# dist:signed` and uploaded over this one with `gh release upload <tag>
+# <file> --clobber` – same name, so the site's link does not change.
+# Windows has no certificate and warns once; Windows and Linux are built but
+# not yet tried on a real machine, and the release notes say so.
+name: Desktop pre-release
+
+on:
+  push:
+    tags: ['builder-*']
+
+permissions:
+  contents: write
+
+jobs:
+  check:
+    name: Tag matches desktop/package.json
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          tag="${GITHUB_REF_NAME#builder-}"
+          pkg="$(node -p "require('./desktop/package.json').version")"
+          if [ "$tag" != "$pkg" ]; then
+            echo "tag $GITHUB_REF_NAME does not match desktop/package.json version $pkg" >&2
+            exit 1
+          fi
+
+  build:
+    needs: check
+    uses: ./.github/workflows/desktop.yml
+
+  publish:
+    name: Publish the pre-release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: psi-slides-builder-*
+          path: packages
+          merge-multiple: true
+      - name: List the packages
+        run: ls -l packages
+      - name: Publish
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          ver="${GITHUB_REF_NAME#builder-}"
+          cat > NOTES.md <<'MD'
+          A pre-release of the desktop builder: a window that opens a `source.md`, builds it on every save and says whether the last save built. It bundles the engine as it is on `main` today, which is ahead of the last engine release.
+
+          **What is here, and how far each has been tried**
+
+          - **macOS** (`.dmg`, `.zip`, Apple silicon): tried on a real Mac. The package attached by CI is unsigned; the signed and notarised one is uploaded over it by hand, under the same name, and if this note is still here, that has not happened yet – open it once with a right click and *Open*.
+          - **Windows** (`.exe`, NSIS installer): **experimental** – built by CI, not yet tried on a Windows machine. Unsigned; SmartScreen shows a blue panel once, *More info* then *Run anyway* installs it.
+          - **Linux** (`.AppImage`, `.deb`): **experimental** – built by CI, not yet tried on a Linux machine. The AppImage needs the executable bit (`chmod +x`).
+
+          Nothing leaves the computer: no account, no telemetry, no update check. If one of the experimental packages does not start or does not build, an issue with the platform, the version and what the window said is the most useful thing you can send.
+          MD
+          # No blockmaps: they belong to an updater the app does not have.
+          rm -f packages/*.blockmap
+          gh release create "$GITHUB_REF_NAME" \
+            --prerelease \
+            --title "psi-slides Builder $ver (pre-release)" \
+            --notes-file NOTES.md \
+            packages/*

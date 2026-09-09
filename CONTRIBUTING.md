@@ -180,7 +180,20 @@ runs on a push that touches `desktop/` or one of the engine files the app
 stages (`build.js`, `diagram-core.mjs`, `tails.mjs`, `editor.mjs`,
 `editor.css`, the root `package.json` and lockfile): it runs the app's tests
 and its smoke test, then builds unsigned packages for macOS, Windows and Linux
-and attaches them to the run as artefacts, for testing. The app and the engine
+and attaches them to the run as artefacts, for testing.
+
+**Until 2.0.0 the app has its own version and its own tag.** `desktop/package.json`
+is at 0.x, and a tag `builder-<version>` runs
+`.github/workflows/desktop-release.yml`, which reuses `desktop.yml` as a
+reusable workflow and attaches the three platforms' packages to a
+**pre-release** – never a release, so `releases/latest/download/` keeps
+pointing at the last engine release. The tag is deliberately outside the
+`v*` pattern: a `v2.0.0-beta.1` would run `release.yml`, which creates
+releases without `--prerelease`, and every reader of the site would be
+handed a beta engine. The asset names carry no version (`artifactName` in
+`desktop/package.json`), so the site links
+`releases/download/builder-<version>/psi-slides-builder-mac-arm64.dmg` and
+the link is the package that was tested. From 2.0.0 the app and the engine
 carry the same version number, and the desktop packages become additional
 assets on the same release tag beside `psi-slides.tar.gz` and
 `psi-slides.zip`, whose names do not change.
@@ -190,6 +203,9 @@ in CI – `npm run dist:signed` in `desktop/`, with the Developer ID
 certificate in the keychain and the three notarisation variables in a
 gitignored `desktop/.env`, exactly as the Booklet Tool is released;
 `desktop/README.md` has the steps. Nothing of that is a repository secret.
+The signed package is uploaded over CI's unsigned one, under the same name:
+`gh release upload builder-<version> "desktop/dist/psi-slides-builder-mac-arm64.dmg" --clobber`,
+and the `.zip` the same way.
 Windows has no code-signing certificate and stays unsigned; Linux packages
 are not signed by convention.
 

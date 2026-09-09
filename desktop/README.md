@@ -26,7 +26,10 @@ round.
 
 Download the package for your system from the project's
 [releases page](https://github.com/UBA-PSI/psi-slides/releases) and install it
-the way you install anything else.
+the way you install anything else. Until 2.0.0 the app is published as a
+**pre-release** under its own tag, `builder-<version>`; the macOS package has
+been tried on a real Mac, the Windows and Linux packages are built by CI and
+are **experimental** – not yet tried on a real machine.
 
 The packages are **not signed yet**, so each system will warn you the first
 time. On macOS, a double click says the app cannot be opened because the
