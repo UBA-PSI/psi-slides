@@ -1,17 +1,18 @@
 #!/usr/bin/env node
 /**
- * Re-shoots the site's screenshots from lectures/python-intro, plus the one
- * of the diagram editor from lectures/diagrams and the cue-card one from
- * lectures/tutorial.
+ * Re-shoots the site's screenshots from lectures/python-intro, plus the one of
+ * the diagram editor from lectures/diagrams, the cue-card one from
+ * lectures/tutorial and the five decoration.html needs from
+ * lectures/decoration.
  *
- *   node docs/site/shoot.mjs                 # all twelve, into docs/site/img/
+ *   node docs/site/shoot.mjs                 # all seventeen, into docs/site/img/
  *   node docs/site/shoot.mjs cockpit search  # just those two
  *   node docs/site/shoot.mjs --keep-png      # leave the PNGs beside the WebP
  *
  * Requires the lectures to be built first (`node build.js
- * lectures/python-intro/source.md`, and the same for lectures/diagrams if the
- * editor shot is in the run), `playwright-core` from devDependencies,
- * and a Chromium: $PSI_CHROME wins, then a browser in the Playwright cache,
+ * lectures/python-intro/source.md`, and the same for lectures/diagrams and
+ * lectures/decoration if their shots are in the run), `playwright-core` from
+ * devDependencies, and a Chromium: $PSI_CHROME wins, then a browser in the Playwright cache,
  * then the system Google Chrome. Encoding needs cwebp or magick on PATH; with
  * neither, the PNGs are kept and the WebP step is skipped with a note.
  *
@@ -74,6 +75,14 @@ main { padding-top: 0 !important; margin-top: 0 !important; }
 </style>
 `;
 
+// The live view's own chrome is not part of any composition: the help button
+// and the edge arrows are controls, and a picture of a slide is a picture of a
+// slide. Same rig shoot-gallery.mjs uses on its tiles, and for the same
+// reason - the two sets stand on one page.
+const LIVE_RIG = `
+<style>#help-button, #nav-hints, .annot-add { display: none !important; }</style>
+`;
+
 const SHOTS = [
   { name: 'collapsed', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true },
   { name: 'full', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true,
@@ -127,6 +136,44 @@ const SHOTS = [
   // shot of it has to go through the same keystrokes a lecturer makes.
   { name: 'annotation', src: 'audience.html', w: 1440, h: 900, dsf: 1.5,
     live: true, act: typeAnnotation },
+  // ── the decoration page's five ──────────────────────────────────────────
+  // Cards, rows, a backdrop, a panel and a dock, for decoration.html. They
+  // belong here rather than in shoot-gallery.mjs, and the split is the one
+  // that script's own header draws: the gallery writes sixteen decks because
+  // a deck has exactly one `cover:` and one `section:`, so sixteen
+  // compositions cannot share a source. These five are not one per deck -
+  // they all live together in lectures/decoration, which is a tracked build
+  // and the place every construction is shown rather than described. That is
+  // this script's case exactly, and the same one the editor shot makes from
+  // lectures/diagrams: one chunk of a tracked lecture, addressed by id.
+  //
+  // 1280x720 at 1.5, which is the gallery tile's frame and not this script's
+  // usual 1440x900, because on decoration.html these five stand among the
+  // sixteen gallery tiles. Every picture on that page is a picture of the
+  // same slide shape or the page reads as two sets.
+  ...[
+    // Three outline cards under the sentence that says what a card is not.
+    { name: 'deco-cards', target: 'cards-why' },
+    // The same vocabulary turned ninety degrees, so the two stand as one
+    // pair on the page.
+    { name: 'deco-rows', target: 'rows' },
+    // The backdrop after its window has walked one beat. #reveal-close rather
+    // than #reveal-open, which is the same construct in the other direction:
+    // there the picture retreats to a right-hand band and the words stand on
+    // paper beside it, which is the composition the panel shot below already
+    // has. Here the picture grows over the title instead, so the two tiles
+    // are two pictures rather than one twice.
+    { name: 'deco-backdrop', target: 'reveal-close',
+      act: async (p) => { await p.keyboard.press(' '); await p.waitForTimeout(1400); } },
+    // An overlay panel as a column the full height of the frame.
+    { name: 'deco-panel', target: 'panel-column' },
+    // The dock inherited by `.every`, on the slide whose own words are the
+    // distinction the page is built on.
+    { name: 'deco-dock', target: 'dock-why' },
+  ].map((s) => ({
+    src: 'audience.html', w: 1280, h: 720, dsf: 1.5,
+    lecture: 'decoration', frag: true, rig: LIVE_RIG, ...s,
+  })),
 ];
 
 async function openCueCards(p) {

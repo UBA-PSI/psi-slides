@@ -1,0 +1,358 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>psi-slides &ndash; title slides and the frame</title>
+<link rel="alternate" hreflang="en" href="https://uba-psi.github.io/psi-slides/decoration.html">
+<link rel="alternate" hreflang="de" href="https://uba-psi.github.io/psi-slides/de/decoration.html">
+<link rel="alternate" hreflang="x-default" href="https://uba-psi.github.io/psi-slides/decoration.html">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<!--topbar-->
+<main class="banded">
+
+<section class="band band-hero">
+ <div class="wrap">
+  <p class="mark"><b>psi-slides</b> &middot; <a href="index.html">back to the front page</a>
+  &middot; <a href="de/decoration.html" hreflang="de" lang="de">Diese Seite auf Deutsch</a></p>
+
+  <h1>A slide is a frame</h1>
+
+  <p class="lede">Most slides in a lecture are a column of text, and that is
+  right. The ones that are not &ndash; the title slide, the divider that opens a
+  part, a row of cards, a photograph the words stand on &ndash; are what this page
+  is about.</p>
+
+  <!-- Half-empty row, answer 1. The hero is a heading and one paragraph, which
+       leaves most of the first screen empty. The two paragraphs are the two
+       things that make this page different from a gallery of themes: none of
+       it is placed by hand, and none of it costs a lecture that ignores it. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>Nothing here is drawn.</strong> A composition is one word in the
+    frontmatter or one <code>:::</code> line in the body, in the same file as
+    the lecture. There is no canvas, no second file to keep in step, and no
+    box to drag &ndash; so a slide that was rewritten the night before still
+    lays out.</p>
+   </div>
+   <div>
+    <p><strong>All of it is additive.</strong> A lecture that names none of
+    these builds exactly as it did before, and every one of them can be taken
+    off again by deleting the line that asked for it. The words never move into
+    a construction; the construction goes around the words.</p>
+   </div>
+  </div>
+
+  <div class="hint">
+    <p><strong>These are a preview.</strong> They are not in the 1.0.0 release,
+    so a lecture naming a <code>cover:</code>, a <code>::: dock</code> or any
+    of the rest needs the repository rather than the download, which
+    <a href="getting-started.html#preview">Getting started</a> spells out.</p>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="covers">Ten ways to open a lecture</h2>
+  <p class="lede"><code>cover:</code> in the frontmatter names the composition
+  of the first slide. The ten are listed quiet to loud rather than
+  alphabetically, because loud or quiet is the only question the list asks
+  you.</p>
+
+  <p class="cue">Three of them, in that order. <code>classic</code> is the
+  default, and a lecture that never names one gets it.</p>
+
+  <div class="stage">
+    <div class="gallery">
+      <figure class="shot tile"><img src="img/classic.webp" alt="A title slide with the type set in the lower left third of an otherwise empty slide.">
+        <figcaption><code>classic</code> the type in the lower left third</figcaption></figure>
+      <figure class="shot tile"><img src="img/panel.webp" alt="A title slide with white type reversed out of a full field of deep blue.">
+        <figcaption><code>panel</code> pale type on a full field of the accent</figcaption></figure>
+      <figure class="shot tile"><img src="img/hero.webp" alt="A title slide where a picture fills the frame and the type is reversed out of a dark gradient over it.">
+        <figcaption><code>hero</code> a picture fills the slide, the type over a dark gradient</figcaption></figure>
+    </div>
+  </div>
+
+  <div class="folded-note">
+  <details class="setup">
+    <summary>The other seven, and the two keys that move the type</summary>
+    <div class="setup-body">
+      <p>Four of the ten take a picture: <code>split</code> and
+      <code>hero</code> from <code>cover-image:</code>, <code>beside</code> and
+      <code>above</code> from the title chunk&rsquo;s own body, so a figure
+      written in the lecture can be the cover. Two keys then move the type
+      rather than replacing the composition &ndash; <code>cover-align:</code>
+      sets it high, in the middle or low on the seven that leave it any
+      freedom, and <code>cover-ratio:</code> says how much of the slide the
+      picture gets on the ones that divide it.</p>
+      <div class="gallery">
+      <figure class="shot tile"><img src="img/masthead.webp" alt="A title slide with the title at the top edge, a lede in the middle, and the credits under a rule at the bottom.">
+      <figcaption><code>masthead</code> the title at the top edge, credits under a rule at the foot</figcaption></figure>
+      <figure class="shot tile"><img src="img/stack.webp" alt="A title slide with the whole type block centred on both axes.">
+      <figcaption><code>stack</code> centred on both axes, for an opening that wants to be still</figcaption></figure>
+      <figure class="shot tile"><img src="img/display.webp" alt="A title slide with the title set very large, filling the upper half of the slide.">
+      <figcaption><code>display</code> the title large enough to fill the slide</figcaption></figure>
+      <figure class="shot tile"><img src="img/quote.webp" alt="A title slide that opens on a sentence set large, with the lecture title small underneath it.">
+      <figcaption><code>quote</code> the talk opens on a claim; the title reads as the attribution</figcaption></figure>
+      <figure class="shot tile"><img src="img/split.webp" alt="A title slide with the type on the left and a picture bled off the right edge.">
+      <figcaption><code>split</code> the type on the left, a picture running off the right edge</figcaption></figure>
+      <figure class="shot tile"><img src="img/beside.webp" alt="A title slide with the title on the left and a three-box diagram inset on the right.">
+      <figcaption><code>beside</code> the chunk&rsquo;s own content beside the title, so a drawing can be the cover</figcaption></figure>
+      <figure class="shot tile"><img src="img/above.webp" alt="A title slide with a three-box diagram across the top and the title centred in the band below it.">
+      <figcaption><code>above</code> the same content on top, the title centred below</figcaption></figure>
+      <figure class="shot tile"><img src="img/stack-bottom.webp" alt="The same centred title slide with the type block moved down to the foot of the frame.">
+      <figcaption><code>cover-align: bottom</code> the same <code>stack</code>, with the type at the foot</figcaption></figure>
+      </div>
+    </div>
+  </details>
+  </div>
+
+  <!-- Half-empty row, answer 1: the two things about the cover family that
+       are not in the tiles - what happens at the other end of the hour, and
+       how the six compositions with no picture slot get a picture anyway. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>The last slide is the cover&rsquo;s bookend.</strong> A
+    <code>## closing:</code> chunk is drawn in whatever composition
+    <code>cover:</code> named, so the hour ends on the shape it began with. It
+    carries your own words and neither the presenter line nor the date: those
+    say who is talking and where, and the room learned that an hour ago.</p>
+   </div>
+   <div>
+    <p><strong>The six compositions with no picture can still have one.</strong>
+    A <a href="#backdrop">backdrop</a> goes behind any slide, the title slide
+    included, and it wins over whatever the composition would have drawn there.
+    On <code>panel</code> the two make something neither has alone: the field
+    of accent becomes the veil, and the photograph reads through a plate of
+    colour.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="dividers">The slide that opens a part</h2>
+  <p class="lede">A <code>#</code> heading in the source starts a new part, and
+  the lecture puts a divider in front of it so the camera lands on the heading
+  before the first slide of it. <code>section:</code> names one of six, and
+  every one is quieter than any title slide: a divider that can be mistaken for
+  the cover has failed at its one job.</p>
+
+  <!-- All six at full size, where the covers keep eight of theirs folded, and
+       the group is where that decision goes the other way. The dividers differ
+       by so little that three of them is not a sample of the family, it is
+       three quiet slides; and six is exactly two rows of this gallery, where
+       three in the four-track one inside a disclosure would strand a cell. -->
+  <div class="stage">
+    <div class="gallery">
+      <figure class="shot tile"><img src="img/section-plain.webp" alt="A divider slide showing only the part heading on an empty slide.">
+        <figcaption><code>plain</code> the heading alone. The default</figcaption></figure>
+      <figure class="shot tile"><img src="img/section-tinted.webp" alt="A divider slide where the whole slide takes a light tint of the theme accent.">
+        <figcaption><code>tinted</code> the accent at 12%. From the back of a room the colour arrives before any word</figcaption></figure>
+      <figure class="shot tile"><img src="img/section-outline.webp" alt="A divider slide listing all three parts of the lecture with the second one set large and live.">
+        <figcaption><code>outline</code> the running agenda: which part, out of how many, and how far in</figcaption></figure>
+      <figure class="shot tile"><img src="img/section-rule.webp" alt="A divider slide with the heading between two rules across the measure.">
+        <figcaption><code>rule</code> the quietest, and one that survives a black-and-white print</figcaption></figure>
+      <figure class="shot tile"><img src="img/section-card.webp" alt="A divider slide with the heading sitting on a tinted panel.">
+        <figcaption><code>card</code> the heading on a tinted panel</figcaption></figure>
+      <figure class="shot tile"><img src="img/section-number.webp" alt="A divider slide with a large accent numeral two above the part heading.">
+        <figcaption><code>number</code> a large numeral above the heading, counting the parts</figcaption></figure>
+    </div>
+  </div>
+
+  <!-- Half-empty row, answer 1: two things a reader who has just seen the six
+       tiles asks next, and each is three sentences, so neither would fill a
+       row of its own. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>A divider can carry its own slide.</strong> Whatever you write
+    between the <code>#</code> heading and the first chunk under it is on that
+    slide, and it used to be dropped without a word. A quotation, a photograph,
+    a figure or a row of three names: the part opens on it, and no vocabulary
+    was added for any of them.</p>
+   </div>
+   <div>
+    <p><strong>The running agenda is also a slide you can write.</strong>
+    <code>## outline:</code> draws the same list as the <code>outline</code>
+    divider, wherever you put it &ndash; usually straight after the cover, where
+    there is no part boundary for a divider to be generated at. Before the
+    first part none of the items is live, because a plan nobody has started is
+    read at full strength.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="cards">Boxes, not columns</h2>
+  <p class="lede">Three boxes side by side are containers, not columns: what
+  you write in one stays in it. Cards for three things, then, and
+  <code>::: cols</code> for the one long argument a browser may break wherever
+  it likes.</p>
+
+  <p class="cue">Two arrangements of one vocabulary, and the word you open with
+  decides which. Everything in the braces is shared: the size, the alignment,
+  and what the box is made of.</p>
+
+  <div class="stage">
+   <div class="stage-pair">
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; ::: cards 3</div>
+     <img src="img/deco-cards.webp" alt="A projected slide with a paragraph and, below it, three boxes in a row, each outlined with a hairline and opening with a bold word.">
+     <figcaption><strong>One size for the whole row</strong>, taken from the
+     longest item. Three sizes in one row read as a mistake rather than as a
+     hierarchy.</figcaption>
+    </figure>
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; ::: rows</div>
+     <img src="img/deco-rows.webp" alt="A projected slide with three stacked rows, each a short term in a tinted box on the left and its explanation set beside it.">
+     <figcaption><strong>One term column for all of them</strong>, because the
+     stack is one grid rather than one grid per row. The explanations line up
+     however long the terms are.</figcaption>
+    </figure>
+   </div>
+  </div>
+
+  <!-- Half-empty row, answer 1: the two things about a card row that are not
+       visible in a picture of one - what it does on paper, and what it sits
+       on. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>One row can serve the slide and the hand-out.</strong> A second
+    level under a card is off the projection and in the printed document, so
+    the room gets the headline and the reader gets the detail. <kbd>C</kbd>
+    brings the levels back onto the wall when a question needs them, and
+    nothing had to be written twice for that.</p>
+   </div>
+   <div>
+    <p><strong>What a card sits on is one word.</strong> A tinted fill, a
+    hairline outline, the theme accent with the type reversed out of it, the
+    page colour, no box at all, or a picture as the card&rsquo;s own ground.
+    Never a fill and a hairline together: a grey box inside a grey border reads
+    as a form field rather than as a card.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <!-- Mirrored: the picture on the left. Every stage on the same side would
+       read as a template, and this is the one section whose picture is mostly
+       photograph rather than mostly type. -->
+  <div class="beside beside-flip">
+   <div class="stage">
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; ::: backdrop</div>
+     <img src="img/deco-backdrop.webp" alt="A projection filled edge to edge by a photograph of a city at dusk, with a small dark card of two lines standing in the lower left.">
+    </figure>
+   </div>
+   <div class="said">
+    <h2 id="backdrop">A picture behind the whole slide</h2>
+    <p class="lede"><code>::: backdrop</code> puts an image behind everything,
+    edge to edge, on any slide. One line, and the text column stays where it
+    is.</p>
+    <p class="cue">A veil of the theme&rsquo;s own paper goes over it by
+    default, so ordinary text stays legible on any photograph and in any of the
+    seven themes.</p>
+    <p class="cue">Write <code>reveal</code> after it and the picture gets one
+    window per press of <kbd>Space</kbd>: a band against an edge, the whole
+    slide, or nothing. What moves is the window, not the photograph &ndash; so
+    it opens over the slide rather than sliding about behind it.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="overlay-dock">Over the slide, or part of the frame</h2>
+  <p class="lede">An overlay lies <em>over</em> the slide and takes nothing
+  from it. A dock is <em>part of the frame</em>, and the text column yields to
+  it. That one sentence is the whole difference; the words you write in the
+  braces are the same for both.</p>
+
+  <p class="cue">Both take an edge, a ground and a width, and both can be held
+  back until a beat.</p>
+
+  <div class="stage">
+   <div class="stage-pair">
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; ::: overlay</div>
+     <img src="img/deco-panel.webp" alt="A projection of a photograph with a frosted column down its left edge, the height of the frame, carrying a heading and two paragraphs.">
+     <figcaption><strong>An overlay grown to the frame.</strong> A card in a
+     corner is the usual case; <code>.panel</code> makes it a column the full
+     height, a band the full width, or the whole frame. The picture underneath
+     is untouched.</figcaption>
+    </figure>
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; ::: dock</div>
+     <img src="img/deco-dock.webp" alt="A projected text slide with a standing list of six part names down a tinted column on the left, the current one in black and the rest greyed.">
+     <figcaption><strong>A dock, and the text beside it.</strong> The slide
+     reserves the column and the prose is set in what is left, so nothing is
+     covered and nothing has to be kept clear by hand.</figcaption>
+    </figure>
+   </div>
+  </div>
+
+  <!-- Half-empty row, answer 1: the two things a dock does that an overlay
+       cannot, both of which are about a whole part rather than one slide. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>One dock can belong to a whole part.</strong> Written under a
+    <code>#</code> heading with <code>.every</code>, it is on every slide of
+    that part, and a slide that writes its own replaces it for that slide only.
+    That is how the standing list in the picture gets there: once, not
+    twenty-eight times.</p>
+   </div>
+   <div>
+    <p><strong>A link in a dock is a live marker.</strong> Each item points at
+    a slide&rsquo;s own <code>{#id}</code>, and the item for the slide the room
+    is on lights up while the rest step back. An item naming nothing fails the
+    build rather than sitting there dead, which is what a hand-kept list does
+    on the third rewrite.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band band-close">
+ <div class="wrap">
+  <div class="middle">
+  <h2>Where to read further</h2>
+  <ul class="reads">
+    <li><b><a href="decoration/audience.html">The decoration lecture</a></b>
+      Every construction on this page, on the slide that describes it, in a
+      lecture you can walk through. Its <a href="decoration/print.html">printed
+      document</a> is the same source as the hand-out.</li>
+    <li><b><a href="index.html">What psi-slides is</a></b>
+      The front page: one lecture as the room sees it and as the reader gets
+      it, and why those are the same file.</li>
+    <li><b><a href="in-the-room.html">In the room</a></b>
+      The hour from behind the laptop: the cockpit, the beats, and what you
+      press when a room goes quiet.</li>
+    <li><b><a href="figures.html">Figures you write</a></b>
+      The case for the figure language, and
+      <a href="figures-you-write.html">the manual</a> beside it, which builds one
+      a line at a time and lists every statement.</li>
+  </ul>
+
+  <footer>
+    <p>By <a href="https://herdom.net">Dominik Herrmann</a>,
+    <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
+    University of Bamberg.
+    Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0. Rebuilt from
+    source on every push.</p>
+  </footer>
+  </div>
+ </div>
+</section>
+</main>
+<script src="site.js"></script>
+</body>
+</html>
