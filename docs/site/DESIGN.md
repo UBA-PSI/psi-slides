@@ -167,11 +167,45 @@ mistakes. Each is legitimate somewhere; none is a choice here.
 - An arrow appended to link or button text.
 - Motion that answers scrolling rather than a person.
 
+## Navigation
+
+One bar, not two. The university strip that says who is responsible for the
+site is also the site's navigation, because a second row under it would be a
+second sticky element for six words, and the strip is already the only thing
+that appears on every page.
+
+Its entries come from `SITE_PAGES` in `build-site.js`, one row per page, and
+that table is also what the language switch and the link gate read. Taking a
+page into the navigation is a row there and nothing else; a row marked
+`pending` is a page that has been decided on but not written, and the bar
+leaves it out until it exists.
+
+**The page you are on is marked, and the mark is not a device.** The entry
+carries `aria-current="page"`; the stylesheet answers with the other entries
+one shade back and a hairline under this one. Not an accent border, not a
+pill, and not bold – the bar's type is 0.78rem on a 30px strip, where one
+bolded word of six reads as a rendering fault. The burger panel has room for
+weight, so there it is weight: an underline in a column of stacked links reads
+as a visited link.
+
+**The strip must never grow a second line**, and it has no room to spare, so
+every entry added to it is a re-measurement. The number is in `site.css` beside
+the rule that uses it, with what was measured and in which language; build with
+`PSI_SITE_NAV_ALL=1` to put every row in the bar first, or the measurement is
+of a bar smaller than the one being planned.
+
 ## Both languages, structurally identical
 
 `index.html` and `index.de.html` are twins: same sections, same pictures,
 same order, same code blocks. What changes in one changes in the other, in
 the same commit. Code comments may be translated; the commands may not.
+
+`build-site.js` checks that rather than asking for it. Four things have to
+match – the sequence of `h2`/`h3` levels and the ids the English page gives
+them, the pictures in order, the commands once the `#` comments are cut off,
+and the link targets with the two languages' own paths folded together. The
+prose between them is free, which is the only definition that survives a real
+translation.
 
 ## How to check a change
 

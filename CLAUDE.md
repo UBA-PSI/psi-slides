@@ -140,8 +140,17 @@ node test/gates/run.mjs semantics              # gates whose name matches
 node test/run.mjs                              # all specs
 node test/run.mjs nav                          # specs whose name matches
 
-# project site (GitHub Pages)
+# project site (GitHub Pages). Assembling it also runs its two gates: every
+# link on every page it writes resolves (fragments included), and index.de.html
+# still matches index.html in headings, pictures, commands and link targets.
+# Neither is a separate step - pages.yml gets them by building the site.
 node docs/site/build-site.js _site              # assemble the site into _site/
+node docs/site/build-site.js _site --words      # …and print each page's prose
+                                                # word count, by <h2> section
+PSI_SITE_NAV_ALL=1 node docs/site/build-site.js _site   # bar carries the rows
+                                                # of SITE_PAGES that are still
+                                                # `pending` - for re-measuring
+                                                # the bar's breakpoints
 node docs/site/shoot.mjs                        # re-shoot its seven screenshots
 node docs/site/shoot.mjs cockpit search         # …or just some of them
 ```
