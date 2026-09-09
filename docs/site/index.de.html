@@ -33,6 +33,11 @@
    </div>
   </div>
 
+  <!-- Das erste Band, und gespiegelt: Die zwei Bilder SIND hier das Argument –
+       eine Folie, wie der Raum sie sieht, und wie die Lesenden sie bekommen –,
+       also führen sie, und die Worte sind das, was darüber gesagt wird. Das ist
+       die ganze Regel dafür, welche Seite die Bühne eines Bandes nimmt: Ein
+       Schritt behält die Leserichtung, ein Vergleich kehrt sie um. -->
   <div class="beside beside-flip">
    <div class="stage">
     <div class="stage-pair">
@@ -338,6 +343,9 @@ browser is for pages meant to be looked at.
 
 <section class="band">
  <div class="wrap">
+  <!-- Gespiegelt, und der zweite der beiden Vergleiche dieser Seite: Der
+       Schalter in der Titelzeile macht aus einem Bild zwei, und die beiden
+       Dokumente sind der Gegenstand des Abschnitts. -->
   <div class="beside beside-flip">
    <div class="said">
     <h2>Was die Studierenden mitnehmen</h2>
@@ -468,16 +476,15 @@ browser is for pages meant to be looked at.
   den Pfeiltasten, schaltet mit <kbd>C</kbd> zwischen gekürztem und vollem Text
   um, sieht mit <kbd>O</kbd> die ganze Vorlesung auf einmal, sucht mit
   <kbd>/</kbd> und lässt sich mit <kbd>?</kbd> die Tasten auflisten.</p>
-
-  <!-- Halbleere Zeile, Antwort 4: der Hinweiskasten daneben ist die
-       h&ouml;here H&auml;lfte, also nimmt er die Spalte, und die Karten laufen
-       unter sich selbst weiter. Vorher standen die Karten &uuml;ber die ganze
-       Breite und der Aufklapper darunter war ein 64-px-Balken neben einem
-       340-px-Kasten: ein Viertelbildschirm Nichts an der linken Kante, und der
-       Kante folgt das Lesen. Jetzt tr&auml;gt eine Spalte die beiden Karten
-       und den Aufklapper darunter, und der Kasten steht neben beiden. -->
-  <div class="folded-note">
-   <div class="said">
+  <!-- Kein Band: Hier gibt es kein Bild, neben dem Worte stehen könnten. Drei
+       Blöcke über die Rahmenbreite, einer unter dem anderen – die zwei
+       Vorlesungen zum Öffnen, der Aufklapper mit den übrigen dreien, und was
+       für alle fünf gilt. Früher war das eine zweispaltige Zeile mit Karten
+       und Aufklapper in der einen und einem weißen Kasten in der anderen
+       Spalte, die ab dem Aufklapper leer blieb. Der Kasten ist Prosa über
+       das, was man gerade bekommen hat, also ist er Prosa: Er war das dritte
+       umrandete Ding in einem Stapel von dreien, und eine Seite, die alles in
+       eine Karte fasst, sagt mit einer Karte nichts mehr. -->
   <div class="picks">
     <div class="pick pick-lead">
       <h3>Hier anfangen: <code>python-intro</code></h3>
@@ -535,19 +542,23 @@ browser is for pages meant to be looked at.
       </div>
     </div>
   </details>
-   </div>
 
-  <div class="hint">
+  <div class="pair-up">
+   <div>
     <p>Die vier Dateien einer Vorlesung sind in sich geschlossen: die
     Gestaltung, die Skripte,
     die Bilder, die gesetzten Formeln und die Schriften stecken in der HTML-Datei
     selbst. Zur Laufzeit wird nichts nachgeladen, und die Dateien lassen sich aus
     einem Ordner auf der Festplatte (<code>file://</code>) genauso öffnen wie von
     diesem Server.</p>
+   </div>
+   <div>
     <p>Ein Cockpit, das über einen Link oben geöffnet wird, zeigt zwar das
     Layout, folgt aber keiner Projektion &ndash; ein verbundenes öffnet man mit
-    <kbd>S</kbd> in einer Projektion.</p>
-  </div>
+    <kbd>S</kbd> in einer Projektion. Die vier Links auf jeder Karte öffnen die
+    vier Dateien dieser Vorlesung, und jede davon ist die Datei, die man selbst
+    gebaut hätte.</p>
+   </div>
   </div>
  </div>
 </section>
@@ -582,7 +593,10 @@ browser is for pages meant to be looked at.
     <div class="way-said">
      <p><strong>Die App</strong> lädt man herunter, und sie baut auf Knopfdruck:
      Man öffnet darin eine <code>source.md</code>, und bei jedem Speichern baut
-     sie neu.</p>
+     sie neu. Sonst muss nichts installiert werden &ndash; kein Node, kein
+     Terminal &ndash;, und nichts verlässt den Rechner: Sie führt denselben Bau
+     auf der eigenen Maschine aus und schreibt die vier Dateien neben die
+     Quelle.</p>
     </div>
     <div class="stage">
      <figure class="shot">
@@ -611,24 +625,23 @@ Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures
      </figure>
     </div>
    </div>
-  <!-- Halbleere Zeile, Antwort 4. Diese beiden Blöcke standen UNTER der
-       Zeile, und die Zeile sind 500 px Fenster neben drei Zeilen Text: die
-       Seite hatte damit einen Viertelbildschirm Nichts an ihrer linken Kante
-       und diesen Absatz samt Knopf darunter – an der einen Stelle, an der
-       sie um etwas bittet. Jetzt stehen sie in der Textspalte, unter den
-       Worten, denen sie folgen, und die Bühne spannt daneben über
-       beide Zeilen. Der Satz, der weiterschickt, und der Knopf, der
-       hinführt, stehen so neben dem Beleg statt unter einem Loch. Dass sie
-       Kind von `.ways` sind und nicht Geschwister, setzt sie ins Raster; sie
-       gehören zu keiner der beiden Optionen, stehen also außerhalb
-       beider `.way`-Tafeln und schalten nicht mit. -->
+  </div>
+
+  <!-- Was auf ein Band folgt: ein Block über die volle Rahmenbreite, an der
+       linken Rahmenkante, mit dem ganzen Band darüber statt mit einer seiner
+       Spalten. Früher war das ein Kind von `.ways`, von Hand in die zweite
+       Zeile der Textspalte gestellt, weil eine oben ausgerichtete Zeile sonst
+       einen Viertelbildschirm Nichts über die eine Stelle gelegt hätte, an
+       der diese Seite um etwas bittet. Das Band verteilt diesen Raum über und
+       unter den Text, also dürfen Satz und Knopf sein, was sie sind: der
+       Abschnitt, der nach dem Beleg wieder spricht, und zu keiner der beiden
+       Optionen gehörig. -->
   <div class="ways-on">
    <p>Auf der nächsten Seite stehen die Downloads für macOS, Windows und Linux,
    die Befehle und eine Anleitung, die auf einem Rechner ohne alles anfängt.</p>
    <div class="cta">
      <a class="primary" href="getting-started.html">Beide Wege, ausführlich</a>
    </div>
-  </div>
   </div>
 
  </div>

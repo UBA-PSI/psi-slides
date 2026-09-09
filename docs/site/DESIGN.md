@@ -96,78 +96,90 @@ prose and pictures at one width and let pictures break out with a
 transform. Prose and pictures then stood on two left edges, and a third of
 a wide screen was empty.
 
-### Never a half-empty row
+### Never a half-empty row, and the band that answers it
 
-The failure mode both earlier attempts shared: an element uses half the
+The failure mode two earlier attempts shared: an element uses half the
 width and nothing stands beside it. One-sided whitespace reads as a
-mistake; symmetrical whitespace reads as intent. So every section answers
-this in one of three ways, and the answer is named in its comment:
+mistake; symmetrical whitespace reads as intent.
 
-- a second thing goes into the free half (`.beside`, `.aside-code`),
-- the element takes the width itself (every listing, every stage),
-- or it is deliberately narrow and centred, so the whitespace is even on
-  both sides (`.middle`, used where there genuinely is nothing to put
-  beside it).
+The version before this one answered that inside the row, with a rule
+about what may be *written*: the words column had to be a heading and
+three to five lines, never a paragraph that happened to be there, so that
+the hole under it would be small enough to read as margin. That rule was
+right about the diagnosis and wrong about the remedy. It is a constraint
+on the author, it was broken by every section that needed a sixth line,
+and each break was patched where it showed rather than where it came
+from &ndash; so the same fault came back on a different page each time. The
+client's word for it, three rebuilds running, was that the page looked
+broken.
 
-`.beside` is the workhorse: a narrow column of heading plus three to five
-lines against a stage that is wider **and taller**. The height matters. If
-the two columns are close in height, the shorter one ends in a hole; if
-the stage is clearly taller, the space under the words reads as margin.
-That is why the text in a `.beside` is written to length rather than
-poured in.
+**A band takes the answer out of the writing and puts it in the geometry.**
+A band is one row at the frame's full width, words on one side and a stage
+on the other, and the words are **centred against the stage**
+(`align-items: center`, which is the whole of it). The space left over is
+then split above and below the words instead of piling up underneath.
+The column may be four lines or nine; the row is right either way, and no
+section has to be written to a length.
 
-#### The fourth answer: what follows a row is in the row
+Two things follow, and they are the rest of the rule:
 
-The three answers above are all answers *inside* one row, and that left the
-fault they were written against a place to hide: **between a row and what
-comes after it.** A stage is 500px and the words beside it are three lines,
-so a quarter of the screen under those words is empty &ndash; and then the
-next paragraph, or the button, or the table begins *under that hole*, at the
-left edge, where there is nothing above it for half a screen. Three sections
-had it, and the client's word for it each time was that it looked broken.
+- **What may follow a band is a block at the frame's width.** A band ends
+  at full width and the next thing begins at full width, so nothing after
+  a band lines itself up against anything inside it. This is where the
+  fault used to hide once it had been chased out of the rows: a stage 500px
+  tall beside three lines of words, and then the button, the table or the
+  next paragraph starting *under the hole*, at the left edge, with nothing
+  above it for half a screen. A sentence that belongs to the words goes in
+  the words column; a heading, a button, a row of three, a listing is its
+  own block. `.beside + *` carries the seam, and it is `*` on purpose: the
+  list form of that selector was itself the symptom, one line added per
+  section that opened a hole.
+- **Not everything is a band.** A band is a thought with a piece of
+  evidence beside it. Where there is no picture there is nothing to stand
+  beside, and the block takes the frame or the measure: the three lecture
+  cards and the fold under them on the front page, the two warnings about
+  unsigned packages, the four design principles, the closing links.
+  A paragraph at `--measure` with ground to its right is not a half-empty
+  row; it is the page's own margin, the same margin every lede has.
 
-The whitespace is not the fault. Whitespace under a stage, at the frame's
-right edge, reads as margin and always has. The fault is that **reading
-follows the left edge**, and a block that starts under a hole makes the eye
-cross one to reach it.
+#### Which side the stage takes
 
-So, before putting anything after a two-column row, ask what it is:
+Not alternation. A page that flips every section has stopped meaning
+anything by it, and that is the first step towards looking like a product
+page.
 
-- **More of the same column** &ndash; a sentence that hands on, a button, a
-  paragraph, a list one column wide. It belongs *in* the words column, under
-  the words it follows, while the stage spans the rows beside it. The column
-  runs on and the hole never opens. `getting-started.html`'s "The app" is the
-  plain form of this (one `.said` carrying everything), `index.html`'s
-  "Getting started" the hard one: the chooser lays two panels into one cell,
-  so a panel is `display: contents` there and its two halves are placed by
-  hand to let the stage reach past them.
-- **Its own row** &ndash; two or three things of one kind, side by side. Then
-  it takes the frame's width, which is the second answer, and it starts at the
-  frame's left edge where the reader's eye already is. Nothing has to move.
-  The five download packages are this: they were a three-column table inside
-  the words column, they are a row of three systems under it now.
+- A band that carries the argument **one step further** keeps the reading
+  direction: words left, evidence right. Most bands are this.
+- A band that shows a **comparison** &ndash; the same thing twice, two
+  executions of one job, two ways to the same place &ndash; turns it round:
+  the stage leads and the words are the verdict on it. There are two on
+  the front page (the slide as the room sees it and as the reader gets it;
+  the two handouts under one switch), one on "In the room" (the two ways
+  back to slide forty), one on "A slide is a frame" (two ways of putting
+  words on a picture).
 
-What may never follow a row is **one half-width block**, at the left edge,
-below the taller column. That is the shape the three sections had.
+The same question decides `.aside-code`, whose evidence is a listing rather
+than a picture: the listing is the wide half either way, and which side it
+takes follows the same rule.
 
-Ask the fifth rule above first, though, because a crop is cheaper than a
-rebuild: **is the picture taller than what it has to show?** Both pictures
-that opened a hole had already been answered that way and were kept &ndash;
-the one on `getting-started.html` is the small evidence shot beside text that
-names its six controls, and the one on the front page is deliberately the
-larger crop, because there a reader compares it against the listing beside it
-and the four view buttons have to be readable. A picture that has *not* been
-through that question is the first thing to fix; a stage that is tall for a
-reason is the case this answer is for.
+#### The one place centring is wrong
 
-The same reasoning applies to a row whose two halves are simply mismatched
-with nothing following at all &ndash; a 64px closed disclosure beside a 340px
-panel. The tall half takes the column, and the short half gets company in
-its own: on the front page the two lecture cards moved down into it, so one
-column now carries the cards and the fold under them and the panel stands
-beside both. And a two-column class needs two things in it: `decoration.html`
-had a lone disclosure inside one, so the second column was empty at every
-state &ndash; that fold takes the frame's width now.
+`.beside.level` exists for a row whose second column is a **disclosure**.
+A band is centred because the difference in height is fixed; a fold is
+64px shut and eight screens open, so a centred first column would sit
+still and then walk four screens down the moment a reader opened it. The
+reader sets that height, so that row stays top-aligned. One caller,
+`getting-started.html`, "From a machine with nothing on it".
+
+#### The gutter of a two-column prose row
+
+`.pair-up` used to take half the frame per column and hold its prose at
+`--measure-col` inside that. Above about 1600px the column outran the cap
+and the difference came out as gutter &ndash; 137px between two paragraphs on
+`figures.html`, which reads as two unrelated pages side by side. The cap
+belongs on the row: two measures and a 3rem gutter is what the pattern
+*is*, and what is left over stands at the frame's right edge, where the
+page already leaves ground under every paragraph.
 
 ## Colour
 

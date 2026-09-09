@@ -50,20 +50,16 @@
 
 <section class="band">
  <div class="wrap">
-  <!-- Half-empty row, answer 1: the section's words in the narrow column and
-       the picture of the cockpit in the wide one. Written to four lines, so
-       the space under them reads as margin.
-
-       Finding 2, and why this one is mirrored. The picture has to be large
-       here - the row under it discusses its parts, and it is the only whole
-       view of the cockpit on the site - so about 300px are left under the
-       short text column whichever way round it goes. With the words on the
-       left, the first column of the row below starts inside that hole, and
-       reading follows the left edge. With the words on the right the hole is
-       against the frame's right edge, where whitespace reads as margin, and
-       the row below starts under the picture. Plus the downward seam
-       `site.css` now keeps under every stage. -->
-  <div class="beside beside-flip">
+  <!-- A band, and the plainest one on the site: the words and the picture of
+       the cockpit, the words centred against it. The picture is 620px tall
+       and the words are 290, and the 330px of difference used to hang under
+       the text with the row of three annotations starting inside it. Split
+       over and under, the same 330px is margin.
+       Words on the LEFT. This band carries the argument a step further -
+       here is the second window - and a step keeps the reading direction.
+       It used to be mirrored, and the reason given was the hole; the hole is
+       gone, so the mirror goes with it. -->
+  <div class="beside">
    <div class="said">
     <h2 id="two-windows">Two windows</h2>
     <p class="lede">The projection goes on the wall. You open the
@@ -281,9 +277,12 @@ where the rest of the hour is going to be spent.
 
 <section class="band">
  <div class="wrap">
-  <!-- Half-empty row, answer 1, and the two pictures are two answers to one
-       question, so they share one stage rather than standing as two. -->
-  <div class="beside">
+  <!-- The one mirrored band on this page, and the reason is the content: two
+       pictures, two ways back to the same slide, on one stage. A comparison
+       puts the things being compared first and the verdict on them after, so
+       the stage takes the left and the words the right. Every other band here
+       carries the hour one step further and keeps the reading direction. -->
+  <div class="beside beside-flip">
    <div class="said">
     <h2 id="finding">A question about slide forty</h2>
     <p class="lede">Somebody asks about something you said half an hour ago. Two
@@ -363,15 +362,11 @@ where the rest of the hour is going to be spent.
 
 <section class="band">
  <div class="wrap">
-  <!-- Mirrored again, and a picture that is a slide rather than a window: the
-       annotation is what the room sees, so it stands as the projection. -->
-  <div class="beside beside-flip">
-   <div class="stage">
-    <figure class="shot">
-     <div class="bar"><b>audience.html</b> &middot; N</div>
-     <img src="img/annotation.webp" alt="The projection while a note is being typed: the slide behind a near-opaque veil, the words in large monospace across the lower half, and above them a QR code for the address in the text.">
-    </figure>
-   </div>
+  <!-- A step, so the reading direction stands: words, then the picture. It
+       used to be mirrored, for no reason but that the band before it was not.
+       The picture is a slide rather than a window, because the annotation is
+       what the room sees. -->
+  <div class="beside">
    <div class="said">
     <h2 id="annotation">Writing on the slide</h2>
     <p class="lede">Press <kbd>N</kbd> and a box fills the frame; what you
@@ -380,6 +375,12 @@ where the rest of the hour is going to be spent.
     <p class="cue">Type an address into it and a QR code appears above the
     words, drawn in the page: the room can take the link with a phone instead of
     copying it down.</p>
+   </div>
+   <div class="stage">
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; N</div>
+     <img src="img/annotation.webp" alt="The projection while a note is being typed: the slide behind a near-opaque veil, the words in large monospace across the lower half, and above them a QR code for the address in the text.">
+    </figure>
    </div>
   </div>
 

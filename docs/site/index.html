@@ -32,6 +32,11 @@
    </div>
   </div>
 
+  <!-- The first band, and mirrored: the two pictures ARE the argument here -
+       one slide as the room sees it and as the reader gets it - so they lead
+       and the words are what is said about them. That is the whole rule for
+       which side a band's stage takes: a step keeps the reading direction, a
+       comparison turns it round. -->
   <div class="beside beside-flip">
    <div class="stage">
     <div class="stage-pair">
@@ -337,6 +342,9 @@ browser is for pages meant to be looked at.
 
 <section class="band">
  <div class="wrap">
+  <!-- Mirrored, and the second of the two comparisons on this page: the switch
+       in the title bar makes one picture into two, and the two documents are
+       the subject of the section. -->
   <div class="beside beside-flip">
    <div class="said">
     <h2>What the students take away</h2>
@@ -462,16 +470,15 @@ browser is for pages meant to be looked at.
   keys, press <kbd>C</kbd> to switch between the shortened text and the full
   text, <kbd>O</kbd> to see the whole lecture at once, <kbd>/</kbd> to search,
   and <kbd>?</kbd> to list the keys.</p>
-
-  <!-- Half-empty row, answer 4: the note beside this is the taller half, so
-       it takes the column and the cards run on under themselves. Before this
-       the cards stood at the frame's full width and the disclosure under them
-       was a 64px bar beside a 340px panel: a quarter-screen of nothing at the
-       left edge, which is the edge reading follows. One column carries the
-       two cards and the fold under them now, and the note stands beside
-       both. -->
-  <div class="folded-note">
-   <div class="said">
+  <!-- Not a band: there is no picture here, so there is nothing for words to
+       stand beside. Three blocks at the frame's width, one under the other -
+       the two lectures to open, the fold that holds the other three, and what
+       is true of all five. It used to be a two-column row with the cards and
+       the fold in one column and a white note beside them, which left the
+       note's column empty from the fold downwards. The note is prose about
+       what a reader has just been handed, so it is prose: the box it stood in
+       was the third bordered thing in a stack of three, and a page that puts
+       a card round everything has stopped saying anything by one. -->
   <div class="picks">
     <div class="pick pick-lead">
       <h3>Start here: <code>python-intro</code></h3>
@@ -527,17 +534,20 @@ browser is for pages meant to be looked at.
       </div>
     </div>
   </details>
-   </div>
 
-  <div class="hint">
+  <div class="pair-up">
+   <div>
     <p>A lecture&rsquo;s four files are self-contained: the styling, the scripts, the images,
     the typeset maths and the typefaces sit inside the HTML file itself. Nothing
     is fetched at run time, and they open as happily from a folder on disk
     (<code>file://</code>) as from this server.</p>
+   </div>
+   <div>
     <p>A cockpit opened from a link above shows the layout but does not follow a
     projection &ndash; press <kbd>S</kbd> inside a projection to open one that
-    does.</p>
-  </div>
+    does. The four links on each card open the four files of that lecture, and
+    every one of them is the file you would have built yourself.</p>
+   </div>
   </div>
  </div>
 </section>
@@ -569,7 +579,9 @@ browser is for pages meant to be looked at.
     <div class="way-said">
      <p><strong>The app</strong> you download, and it builds at the press of a
      button: open a <code>source.md</code> in it, and it builds again every time
-     you save.</p>
+     you save. Nothing else has to be installed &ndash; no Node, no
+     terminal &ndash; and nothing leaves the computer: it runs the same build on
+     your own machine and writes the four files beside your source.</p>
     </div>
     <div class="stage">
      <figure class="shot">
@@ -598,23 +610,22 @@ Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures
      </figure>
     </div>
    </div>
-  <!-- Half-empty row, answer 4. These two blocks stood UNDER the row, and the
-       row is 500px of window against three lines of words: the page then had a
-       quarter-screen of nothing at its left edge and this paragraph and this
-       button below it, in the one place it asks a reader to act. They are in
-       the words column now, under the words they follow, and the stage spans
-       both rows beside them - so the sentence that sends you on and the button
-       that takes you there stand next to the evidence rather than under a
-       hole. Being a child of `.ways` rather than a sibling is what puts them
-       in the grid; they belong to neither option, so they are outside both
-       `.way` panels and do not switch with them. -->
+  </div>
+
+  <!-- What follows a band: a block at the frame's width, at the frame's left
+       edge, with the whole band above it rather than one of its columns. It
+       used to be a child of `.ways`, placed into the second row of the words
+       column, because a top-aligned row left a quarter-screen of nothing over
+       the one place this page asks a reader to act. The band splits that
+       space over and under the words instead, so the sentence and the button
+       can be what they are: the section speaking again after the evidence,
+       and belonging to neither of the two options. -->
   <div class="ways-on">
    <p>The next page has the downloads for macOS, Windows and Linux, the commands,
    and a walkthrough that starts on a machine with nothing installed on it.</p>
    <div class="cta">
      <a class="primary" href="getting-started.html">Both ways, in full</a>
    </div>
-  </div>
   </div>
 
  </div>

@@ -51,20 +51,16 @@
 
 <section class="band">
  <div class="wrap">
-  <!-- Halbleere Zeile, Antwort 1: die Worte des Abschnitts in der schmalen
-       Spalte, das Bild des Cockpits in der breiten. Auf vier Zeilen
-       geschrieben, damit der Raum darunter als Rand liest.
-
-       Befund 2: gespiegelt, und zwar wegen der Dreierzeile darunter. Das Bild
-       ist hier zwingend groß – der Text darunter bespricht seine Einzelheiten,
-       und die Aufnahme ist die einzige vollständige Ansicht des Cockpits auf
-       der Seite –, also bleibt unter der kurzen Textspalte ein Loch von rund
-       300 px. Steht die Textspalte links, beginnt die erste Spalte der
-       Dreierzeile in diesem Loch, und Lesen folgt der linken Kante. Steht sie
-       rechts, liegt das Loch an der rechten Rahmenkante, wo Weißraum als Rand
-       gelesen wird, und die Dreierzeile setzt unter dem Bild an. Dazu die
-       Naht nach unten, die `site.css` jetzt für jede Bühne kennt. -->
-  <div class="beside beside-flip">
+  <!-- Ein Band, und das schlichteste der Seite: die Worte und das Bild des
+       Cockpits, die Worte senkrecht mittig dazu. Das Bild ist 620 px hoch,
+       der Text 290, und die 330 px Unterschied hingen früher unter dem Text,
+       mit der Dreierzeile darunter, die in diesem Loch begann. Über und unter
+       den Text verteilt, sind dieselben 330 px Rand.
+       Worte LINKS. Dieses Band führt das Argument einen Schritt weiter – hier
+       ist das zweite Fenster –, und ein Schritt behält die Leserichtung.
+       Früher war es gespiegelt, begründet mit dem Loch; das Loch ist weg,
+       also auch die Spiegelung. -->
+  <div class="beside">
    <div class="said">
     <h2 id="two-windows">Zwei Fenster</h2>
     <p class="lede">Die Projektion geht an die Wand. Mit <kbd>S</kbd> öffnet man
@@ -286,10 +282,13 @@ where the rest of the hour is going to be spent.
 
 <section class="band">
  <div class="wrap">
-  <!-- Halbleere Zeile, Antwort 1, und zugleich sind die zwei Bilder zwei
-       Antworten auf eine Frage: Sie teilen sich eine Bühne, statt zwei zu
-       sein. -->
-  <div class="beside">
+  <!-- Das eine gespiegelte Band dieser Seite, und der Grund ist der Inhalt:
+       zwei Bilder, zwei Wege zurück zur selben Folie, auf einer Bühne. Ein
+       Vergleich stellt die verglichenen Dinge voran und das Urteil darüber
+       dahinter, also nimmt die Bühne die linke Seite und die Worte die
+       rechte. Jedes andere Band hier führt die Stunde einen Schritt weiter
+       und behält die Leserichtung. -->
+  <div class="beside beside-flip">
    <div class="said">
     <h2 id="finding">Eine Frage zu Folie vierzig</h2>
     <p class="lede">Jemand fragt nach etwas von vor einer halben Stunde. Zwei
@@ -369,16 +368,11 @@ where the rest of the hour is going to be spent.
 
 <section class="band">
  <div class="wrap">
-  <!-- Wieder gespiegelt, und diesmal ist das Bild eine Folie statt eines
-       Fensters: Die Annotation ist das, was der Saal sieht, also steht sie als
-       Projektion da. -->
-  <div class="beside beside-flip">
-   <div class="stage">
-    <figure class="shot">
-     <div class="bar"><b>audience.html</b> &middot; N</div>
-     <img src="../img/annotation.webp" alt="Die Projektion, während eine Notiz getippt wird: die Folie hinter einem fast deckenden Schleier, die Worte groß in Schreibmaschinenschrift über der unteren Hälfte, darüber ein QR-Code für die Adresse im Text.">
-    </figure>
-   </div>
+  <!-- Ein Schritt, also bleibt die Leserichtung stehen: erst die Worte, dann
+       das Bild. Früher war es gespiegelt, ohne anderen Grund, als dass das
+       Band davor es nicht war. Das Bild ist eine Folie statt eines Fensters:
+       Die Annotation ist das, was der Saal sieht. -->
+  <div class="beside">
    <div class="said">
     <h2 id="annotation">Auf die Folie schreiben</h2>
     <p class="lede">Mit <kbd>N</kbd> öffnet man ein Feld, das den Rahmen füllt,
@@ -387,6 +381,12 @@ where the rest of the hour is going to be spent.
     <p class="cue">Steht eine Adresse darin, erscheint über den Worten ein
     QR-Code, in der Seite selbst gezeichnet: Der Saal nimmt den Link mit dem
     Telefon mit, statt ihn abzuschreiben.</p>
+   </div>
+   <div class="stage">
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; N</div>
+     <img src="../img/annotation.webp" alt="Die Projektion, während eine Notiz getippt wird: die Folie hinter einem fast deckenden Schleier, die Worte groß in Schreibmaschinenschrift über der unteren Hälfte, darüber ein QR-Code für die Adresse im Text.">
+    </figure>
    </div>
   </div>
 
