@@ -72,8 +72,9 @@
   </div>
 
   <h3>Download it</h3>
-  <p>Until 2.0.0 the app is published separately from psi-slides itself, under
-  a tag of its own, <code>builder-0.1.0</code>, and marked on GitHub as a
+  <p>Take the package for your system from the table below. Until 2.0.0 the app
+  is published separately from psi-slides itself, under a tag of its own,
+  <code>builder-0.1.0</code>, and marked on GitHub as a
   <strong>pre-release</strong>: not the current version of anything, a package
   offered early.</p>
 
@@ -122,13 +123,12 @@
    </div>
    <div>
     <p><strong>The packages are not signed</strong>, apart from the macOS one,
-    which is signed and notarised by hand &ndash; Apple&rsquo;s own check &ndash; before
-    it is uploaded. If that signing has not happened for this build yet, a double click
-    gets you a warning that the developer cannot be verified: open the app once
-    with a right click and <b>Open</b> instead, and the warning does not come
-    back. Windows shows its SmartScreen warning once &ndash; <b>More info</b>, then
-    <b>Run anyway</b>. An AppImage has to be marked executable before it will
-    start.</p>
+    signed and notarised by hand before upload &ndash; Apple&rsquo;s own check. If
+    that signing has not happened yet, a double click warns that the developer
+    cannot be verified: open it once with a right click and <b>Open</b>
+    instead, and the warning is gone. Windows shows its SmartScreen warning
+    once &ndash; <b>More info</b>, then <b>Run anyway</b>. An AppImage needs to be
+    marked executable first.</p>
    </div>
   </div>
 
@@ -137,16 +137,16 @@
        refuses to do, are two answers to one question and belong in one row. -->
   <div class="pair-up">
    <div>
-    <p>When a build fails, the message from <code>build.js</code> stands there
-    as it was written, naming the line in your source. The four views keep the
-    last build that worked, so a broken save never takes your slides away in
-    the middle of a lecture.</p>
-    <p>Two switches are worth knowing about. <strong>Open the views through a
-    local web address</strong> starts a small server on this computer:
-    embedded YouTube and Vimeo players refuse to run from a file, and a local
-    address is what makes them play. <strong>Open the views in</strong> chooses
-    between Chrome or Edge &ndash; the two browsers psi-slides is tested in &ndash;
-    and whatever your system opens HTML with.</p>
+    <p>When a build fails, the message from <code>build.js</code> stands as it
+    was written, naming the line in your source. The four views keep the last
+    build that worked, so a broken save never takes your slides away
+    mid-lecture.</p>
+    <p>Two switches change what the buttons do. <strong>Open the views through
+    a local web address</strong> starts a small local server: embedded YouTube
+    and Vimeo players refuse to run from a file, and an address is what they
+    need. <strong>Open the views in</strong> chooses between Chrome or Edge,
+    the browsers psi-slides is tested in, and whatever your system opens HTML
+    with.</p>
    </div>
    <div>
     <p>It is <strong>not a Markdown editor</strong>. You write the lecture in
@@ -224,9 +224,8 @@
    <div class="said">
     <h3>From a machine with nothing on it</h3>
     <p class="cue">The steps take a Windows or macOS machine with nothing
-    installed on it to a built copy of the tutorial. Numbered, because they are
-    a sequence: doing the fourth before the second leaves you in the wrong
-    folder.</p>
+    installed on it to a built copy of the tutorial. Work down them in order:
+    the fourth before the second leaves you standing in the wrong folder.</p>
     <p class="cue">The app above needs none of this.</p>
    </div>
   <details class="setup steps">
@@ -286,9 +285,10 @@
 
       <h3>Build the tutorial</h3>
 <pre><code>node build.js lectures/tutorial/source.md</code></pre>
-      <p>The same line on Windows and macOS, forward slashes included: Node takes
-      them everywhere. It reports what it embedded &ndash; the images, the typefaces,
-      the QR codes, the rendered maths &ndash; and ends with what it wrote.</p>
+      <p>The build reports what it embedded &ndash; the images, the typefaces, the
+      QR codes, the rendered maths &ndash; and ends with what it wrote. The same
+      line works on Windows and macOS, forward slashes included: Node takes them
+      everywhere.</p>
 <pre class="out"><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (11 columns, 59 chunks)</code></pre>
 
       <h3>Open it</h3>
@@ -323,9 +323,9 @@
 <section class="band">
  <div class="wrap">
   <h2 id="preview">What the download does not have</h2>
-  <p class="lede">The tagged release is 1.0.0, and its source format is fixed: a
-  lecture that builds against it today keeps building the same way. What it does
-  not contain is everything written since.</p>
+  <p class="lede">What the tagged release does not contain is everything written
+  since it. That release is 1.0.0, and what it does give you is a fixed source
+  format: a lecture that builds against it today keeps building the same way.</p>
 
   <div class="hint wide">
    <div class="pair-up">
@@ -365,13 +365,11 @@
    <div class="said">
     <h3>Three commands</h3>
     <p class="cue"><code>--new</code> writes a folder with a valid settings
-    block and a few example chunks &ndash; a chunk is one piece of a lecture, and
-    one slide on the projection. Then you leave <code>--watch</code> running
-    while you write.</p>
-    <p class="cue"><code>lint.js</code> is the one to run before you hand
-    anything over: it catches two chunks with the same id, unclosed
-    <code>:::</code> blocks, slides over their word budget, and files too large
-    to embed.</p>
+    block and a few example chunks &ndash; one chunk, one slide. Then
+    <code>--watch</code> runs while you write.</p>
+    <p class="cue">Run <code>lint.js</code> before you hand anything over: it
+    catches repeated chunk ids, unclosed <code>:::</code> blocks, slides over
+    their word budget, and files too large to embed.</p>
    </div>
 <pre><code><span class="t-cmt"># write a new lecture folder, settings block included</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
