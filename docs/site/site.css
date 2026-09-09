@@ -591,6 +591,14 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
 .pair-up p, .pair-up li { max-width: none; }
 .pair-up pre { max-width: none; }
 @media (min-width: 64rem) { .pair-up { grid-template-columns: 1fr 1fr; } }
+/* Three of the same kind rather than two. The cockpit page keeps running into
+   sets of three - what is in the window that is not on the wall, the three
+   ways of taking the room's eyes off the slide - and a third item in a
+   two-column `.pair-up` lands alone on a second row with an empty half beside
+   it, which is the one thing this stylesheet is written against. Its own
+   modifier rather than an auto-fit minmax, because auto-fit decides the count
+   from the width and would silently make a set of four into two rows of two. */
+@media (min-width: 64rem) { .pair-up.trio { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
 
 /* A card: the shot's white on the page's grey, the way a screenshot is. */
 .hint {

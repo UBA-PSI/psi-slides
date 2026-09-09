@@ -140,7 +140,7 @@ const BAR_TEXT = {
  */
 const SITE_PAGES = {
   home:       { en: 'index.html',                 de: 'de/index.html',                 nav: 'home' },
-  room:       { en: 'in-the-room.html',           de: 'de/in-the-room.html',           nav: 'room', pending: true },
+  room:       { en: 'in-the-room.html',           de: 'de/in-the-room.html',           nav: 'room' },
   decoration: { en: 'index.html#covers',          de: 'de/index.html#covers',          nav: 'decoration' },
   figures:    { en: 'figures.html',                                                    nav: 'figures' },
   start:      { en: 'getting-started.html',       de: 'de/getting-started.html',       nav: 'start' },
@@ -621,6 +621,10 @@ function main() {
   // The two ways in, pulled out of the front page: the app and the command
   // line. It is the bar's `start` entry, so its two files and that row move
   // together.
+  // The cockpit as the hour it is used in, rather than as the key table every
+  // lecture already carries on `?`.
+  landing('in-the-room.html', 'in-the-room.html', 'room', 'en', '');
+  landing('in-the-room.de.html', path.join('de', 'in-the-room.html'), 'room', 'de', '../');
   landing('getting-started.html', 'getting-started.html', 'start', 'en', '');
   landing('getting-started.de.html', path.join('de', 'getting-started.html'), 'start', 'de', '../');
   // The case for `::: diagram`. Its figures, its stepped payloads, its rails
@@ -686,6 +690,7 @@ function main() {
   checkTwins([
     { en: 'index.html', de: 'index.de.html' },
     { en: 'getting-started.html', de: 'getting-started.de.html' },
+    { en: 'in-the-room.html', de: 'in-the-room.de.html' },
   ]);
   if (wantWords) reportWords(written);
 }

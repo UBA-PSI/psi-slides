@@ -1,9 +1,10 @@
 #!/usr/bin/env node
 /**
  * Re-shoots the site's screenshots from lectures/python-intro, plus the one
- * of the diagram editor from lectures/diagrams.
+ * of the diagram editor from lectures/diagrams and the cue-card one from
+ * lectures/tutorial.
  *
- *   node docs/site/shoot.mjs                 # all eight, into docs/site/img/
+ *   node docs/site/shoot.mjs                 # all twelve, into docs/site/img/
  *   node docs/site/shoot.mjs cockpit search  # just those two
  *   node docs/site/shoot.mjs --keep-png      # leave the PNGs beside the WebP
  *
@@ -111,7 +112,47 @@ const SHOTS = [
   { name: 'figure', src: 'print.html', w: 1200, h: 900, dsf: 2,
     lecture: 'network-security', target: 'ns-a03',
     clip: '#ns-a03 svg.psi-diagram' },
+  // The cockpit's third arrangement, for the "In the room" page. It comes from
+  // the tutorial rather than from python-intro because the cards are made of
+  // `> note:` blocks and this is the only tracked lecture whose notes are
+  // written for them: #cue-cards has three beats, a titled card, bolded
+  // bullets and an `@0:30` mark, so one frame shows the rail, the diamonds
+  // between the beats and the drift beside the clock. One Space is pressed so
+  // the red cursor is inside the list rather than on its first line.
+  { name: 'cue-cards', src: 'speaker.html', w: 1440, h: 900, dsf: 1.5,
+    lecture: 'tutorial', target: 'cue-cards', frag: true, act: openCueCards },
+  // The live annotation filling the frame, with the QR code the address gets.
+  // python-intro, so it is the same lecture as the rest of the live set, and
+  // typed rather than pre-seeded: the size is derived from the text, so a
+  // shot of it has to go through the same keystrokes a lecturer makes.
+  { name: 'annotation', src: 'audience.html', w: 1440, h: 900, dsf: 1.5,
+    live: true, act: typeAnnotation },
 ];
+
+async function openCueCards(p) {
+  await p.keyboard.press('k');
+  await p.waitForTimeout(1200);
+  if (!(await p.locator('body.cue-cards #cue-rail .cue-card').count())) {
+    throw new Error('cue cards: the rail is empty');
+  }
+  // One press, so the red cursor stands on the second card of the beat
+  // rather than at the top of the list.
+  await p.keyboard.press(' ');
+  // Long enough for the mode's toast to fade: it stands over the header,
+  // which is where the crumb, the counters, the clock and the drift are -
+  // and the drift is half of what this shot is about.
+  await p.waitForTimeout(3500);
+}
+
+async function typeAnnotation(p) {
+  await p.keyboard.press('n');
+  await p.waitForTimeout(400);
+  await p.keyboard.type('Exercise 3, due Friday\nhttps://uba-psi.github.io/psi-slides/');
+  await p.waitForTimeout(900);
+  if (!(await p.locator('.chunk.annot-visible .annot-qr svg').count())) {
+    throw new Error('annotation: no QR code for the address');
+  }
+}
 
 // What the shot has to show is not that the editor exists but what it knows:
 // the relations the figure was written with, drawn on the canvas beside the
