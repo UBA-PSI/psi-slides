@@ -15957,7 +15957,13 @@ try {
 } catch (e) {}
 viewHooks.onK = toggleCueMode;
 cueBtn.addEventListener('click', toggleCueMode);
-try { if (localStorage.getItem(CUE_MODE_KEY) === 'on') applyCueMode(true); } catch (e) {}
+// The saved mode is restored at the FOOT of this section, not here. Two of
+// the bindings cueRender reaches - cueMarks and driftEl - are declared
+// further down, so a restore at this point ran into their temporal dead
+// zone, and the try that guards localStorage swallowed the ReferenceError
+// whole: the cockpit came up in cue-card mode with an empty rail, and the
+// first arrow key filled it. Reading localStorage is what needs the try;
+// applying the mode does not, and wrapping both hid a defect for a release.
 
 // The cards of a chunk, keyed by the number of advances after which they are
 // said - the same number an overlay's from N counts, and the same one
@@ -16213,6 +16219,12 @@ function cueRender() {
     cueRail.scrollTo({ top: Math.max(0, top) });
   }
 }
+// Restore the saved arrangement, now that every binding cueRender reaches
+// exists. The read is guarded, the apply is not - see the note beside
+// toggleCueMode.
+let cueModeSaved = null;
+try { cueModeSaved = localStorage.getItem(CUE_MODE_KEY); } catch (e) {}
+if (cueModeSaved === 'on') applyCueMode(true);
 
 // Preview orientation (horizontal along bottom vs vertical along the
 // right edge). Persisted globally – user preference follows them
