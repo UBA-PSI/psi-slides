@@ -12,30 +12,33 @@
 <body>
 <!--topbar-->
 <main class="banded">
+
 <section class="band band-hero">
  <div class="wrap">
-  <div class="hero">
-   <div class="hero-in">
-    <p class="mark"><b>psi-slides</b> &middot; presentation software for lecturers
-    &middot; <a href="de/index.html" hreflang="de" lang="de">Diese Seite auf Deutsch</a></p>
-    <h1>Write the lecture once.</h1>
+  <p class="mark"><b>psi-slides</b> &middot; presentation software for lecturers
+  &middot; <a href="de/index.html" hreflang="de" lang="de">Diese Seite auf Deutsch</a></p>
 
-    <p class="what">One plain-text file in Markdown goes in, and four HTML
-    files come out: the <strong>projection</strong> for the room, a
-    <strong>presenter cockpit</strong> on your own screen (the slide, your
-    note for it, and what comes next), and <strong>two handouts</strong>
-    &ndash; the full text of the lecture on its own, and the same text with your
-    notes in it. All four are built from that one file, so they cannot drift
-    apart: there is nothing to keep in step, and each carries everything it
-    needs to open on its own.</p>
+  <h1>Write the lecture once.</h1>
 
-    <div class="cta">
-      <a class="primary" href="#getting-started">Get started</a>
-      <a class="secondary" href="#open-them-yourself">Open a live lecture</a>
-    </div>
+  <div class="hero-said">
+   <p class="lede">One Markdown file goes in. Four HTML files come out: the
+   <strong>projection</strong> for the room, a <strong>cockpit</strong> for your
+   own screen, and <strong>two handouts</strong>. Built from the same file, they
+   cannot drift apart.</p>
+
+   <div class="cta">
+     <a class="primary" href="#getting-started">Get started</a>
+     <a class="secondary" href="#open-them-yourself">Open a live lecture</a>
    </div>
+  </div>
 
-    <div class="pair">
+  <p class="cue">One slide of a real lecture, twice: what the room sees, and the
+  same four paragraphs in full. <strong>One keypress separates them.</strong> The
+  switch in the right-hand bar swaps in the printed handout. Click any
+  picture on this page to see it at full size.</p>
+
+  <div class="stage">
+    <div class="stage-pair">
       <figure class="shot">
         <div class="bar"><b>what the room sees</b></div>
         <img src="img/collapsed.webp" alt="The slide as projected: heading, sub-heading, the first sentence of each paragraph and the phrases marked bold, in one column.">
@@ -56,60 +59,48 @@
         <img src="img/full.webp" alt="The same slide with the shortening switched off: all four paragraphs in full, laid out in two columns.">
       </figure>
     </div>
-    <p class="shot-note">The same four paragraphs, written once.
-    <b>One keypress separates the first two pictures</b>; the third is a different
-    file built from the same source, and the switch marked <b>show:</b> in the
-    second picture&rsquo;s title bar brings it up. Click any picture to see it full
-    size.</p>
-
-    <p class="extras">The slide carries what the room needs to follow you;
-    the handout carries everything worth taking away. That split costs layout
-    freedom &ndash; fewer choices than PowerPoint &ndash; and buys four outputs
-    instead of one. A lecture can carry <b>highlighted code, LaTeX formulas
-    and video</b>, and every link gets a QR code the room can scan off the
-    wall. For the hour in front of the room there is an overview board,
-    full-text search, live annotation, a timer and seven colour schemes. All
-    of that runs on your own laptop and keeps working with the network
-    unplugged, without a cloud or a service provider.</p>
-      
   </div>
 
-  </div>
+ </div>
 </section>
 
-<section class="band band-do band-film">
+<section class="band">
  <div class="wrap">
+  <div class="beside">
+   <div class="said">
+    <h2 id="the-film">The one-minute version</h2>
+    <p class="lede">The argument on this page as a film: what a lecture is made
+    of, what comes out of one file, and what the hour in front of the room looks
+    like. Subtitled.
+    <a href="de/index.html#the-film" hreflang="de" lang="de">Auch auf Deutsch.</a></p>
+   </div>
 
-  <h2 id="the-film">The one-minute version</h2>
-
-  <p>The argument on this page as a film: what a lecture is made of, what comes
-  out of one file, and what the hour in front of the room looks like. Just under
-  a minute, subtitled.
-  <a href="de/index.html#the-film" hreflang="de" lang="de">Es gibt ihn auch auf
-  Deutsch.</a></p>
-
-  <!-- The film is rendered in ../psi-slides-screencast (pitch/renders/) and lives
-       on web.psi.uni-bamberg.de, not in this repository: 11 MB of binary that
-       would never come back out of the git history, for a file that is not the
-       tool. img/pitch-poster.webp is the frame at 0:40, scaled to 1280. -->
-  <figure class="shot film">
-    <div class="bar"><b>psi-slides in a minute</b></div>
-    <video controls preload="none" playsinline
-           poster="img/pitch-poster.webp"
-           src="https://web.psi.uni-bamberg.de/psi-slides/psi-slides-pitch.mp4">
-      <a href="https://web.psi.uni-bamberg.de/psi-slides/psi-slides-pitch.mp4">Download the film (MP4, 11 MB)</a>
-    </video>
-  </figure>
-  <p class="tiny">The file sits on a server of the chair at the University of
-  Bamberg, not in the repository, and it is fetched only once you press play.</p>
-
+   <!-- The film is rendered in ../psi-slides-screencast (pitch/renders/) and lives
+        on web.psi.uni-bamberg.de, not in this repository: 11 MB of binary that
+        would never come back out of the git history, for a file that is not the
+        tool. img/pitch-poster.webp is the frame at 0:40, scaled to 1280. -->
+   <div class="stage">
+     <figure class="shot film">
+       <div class="bar"><b>psi-slides in a minute</b></div>
+       <video controls preload="none" playsinline
+              poster="img/pitch-poster.webp"
+              src="https://web.psi.uni-bamberg.de/psi-slides/psi-slides-pitch.mp4">
+         <a href="https://web.psi.uni-bamberg.de/psi-slides/psi-slides-pitch.mp4">Download the film (MP4, 11 MB)</a>
+       </video>
+       <figcaption>The file sits on a server of the chair at the University of
+       Bamberg, not in this page, and it is fetched only once you press play.</figcaption>
+     </figure>
+   </div>
   </div>
+ </div>
 </section>
 
-<section class="band band-read band-kinds">
+<section class="band">
  <div class="wrap">
-
-  <h2>Every lecture has three kinds of text in it</h2>
+  <h2>A lecture holds three kinds of text</h2>
+  <p class="lede">And the programs people present with have room for two of
+  them. The drawing on the right is that shortfall in three rows: what leaves
+  the file, and what arrives.</p>
 
   <div class="kinds">
     <div class="kinds-prose">
@@ -119,25 +110,27 @@
     a handout and not on a wall. And there are <strong>the notes to yourself</strong>:
     ask the room first, skip this if you are short on time, do not send this out.</p>
 
-    <p>The programs people present with give you slides and a notes field. Neither
-    is a place for the script, and the script is the part students want most. The
-    script then goes one of two ways. <span class="tie" data-tie="1">Either the slides take its job and fill up
+    <p>Slides and a notes field are two. Neither is a place for the script, and
+    the script is the part students want most. So it goes one of two ways.
+    <span class="tie" data-tie="1">Either the slides take its job and fill up
     until nobody can read them from the back row, which is <em>death by
-    PowerPoint</em>.</span> <span class="tie" data-tie="2">Or the script lives in a second document that stops matching
-    the slides the first time you edit either one.</span></p>
+    PowerPoint</em>.</span> <span class="tie" data-tie="2">Or the script lives in
+    a second document that stops matching the slides the first time you edit
+    either one.</span></p>
 
-    <p><span class="tie" data-tie="3">With psi-slides you write each paragraph once and mark the one sentence that
-    carries the paragraph.</span> The projection gets only that sentence, the handout gets
-    the whole paragraph, and your <code>&gt; note:</code> lines stay on your
-    screen.</p>
+    <p><span class="tie" data-tie="3">With psi-slides you write each paragraph
+    once and mark the one sentence that carries it.</span> The projection gets
+    that sentence, the handout gets the whole paragraph, and your
+    <code>&gt; note:</code> lines stay on your own screen. Point at a sentence to
+    light up the row it draws.</p>
     </div>
 
     <div class="kinds-figure">
       <div class="paths">
         <svg viewBox="0 0 448 20" aria-hidden="true" focusable="false">
-          <text x="150" y="13" text-anchor="middle" font-size="13" fill="var(--ink-soft)">the slide</text>
-          <text x="275" y="13" text-anchor="middle" font-size="13" fill="var(--ink-soft)">the handout</text>
-          <text x="384" y="13" text-anchor="middle" font-size="13" fill="var(--ink-soft)">your notes</text>
+          <text x="150" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">the slide</text>
+          <text x="275" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">the handout</text>
+          <text x="384" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">your notes</text>
         </svg>
         <figure class="path" data-tie="1">
           <figcaption>everything on the slides</figcaption>
@@ -258,27 +251,20 @@
       </div>
     </div>
   </div>
-
-
-  </div>
+ </div>
 </section>
 
-<section class="band band-do">
+<section class="band">
  <div class="wrap">
+  <h2>This is the whole source of that slide</h2>
+  <p class="lede">Nine paragraphs of Markdown, no editor and no template. A
+  <strong>chunk</strong> is one heading with the text under it, and a chunk
+  becomes one slide. The lecture it comes from is real: an introduction to
+  Python in 36 chunks.</p>
 
-  <h2>What the Markdown becomes</h2>
-
-    
-  <p>This is the Markdown behind the slide in the pictures above. The lecture it
-  comes from is a real one, an introduction to Python built from 36 chunks &ndash; a
-  <strong>chunk</strong> is one heading with the text under it, and each chunk
-  becomes one slide. Two of the four paragraphs are shortened to fit this
-  page.</p>
-
-  <p class="tiny">In the projection the two columns fold into one, because four
-  abridged paragraphs do not balance. With the shortening switched off, and in
-  the handout, the author&rsquo;s two columns stay.</p>
-  
+  <p class="cue">Read the bold. Those are the phrases the projection keeps; the
+  prose around them is what the handout keeps. The
+  <code>&gt; note:</code> at the foot is for nobody but you.</p>
 
 <pre><code><span class="t-head">## free: Why Playwright | the modern web is rendered, not served</span> <span class="t-punct">{.wide #why-playwright}</span>
 
@@ -306,165 +292,217 @@ browser is for pages meant to be looked at.
 
 <span class="t-note">&gt; note: Show the difference live if the room is awake: open a JS-heavy site,
 &gt; curl it, and let them find the missing text themselves.</span></code></pre>
-  
 
-
-  <figure class="shot">
-    <div class="bar"><b>speaker.html</b></div>
-    <img src="img/cockpit.webp" alt="The presenter cockpit: a chapter scrubber across the top, a mirror of the projected slide, the private speaker note below it, a strip of neighbouring slides, and a footer with timer and key legend.">
-    <figcaption><strong>The cockpit</strong>, opened with <kbd>S</kbd> from the
-    projection. The <code>&gt; note:</code> from the source sits under the
-    mirrored slide, where only you can read it, at a size you set with the two
-    buttons beside the note; the strip shows what is coming. The two windows keep
-    each other in step directly in the browser, with no server between
-    them.</figcaption>
-  </figure>
-
-  <div class="pair">
-    <figure class="shot">
-      <div class="bar"><b>audience.html</b> &middot; O</div>
-      <img src="img/overview.webp" alt="The overview board: the whole 36-chunk lecture laid out as a grid of readable slides, with the current one outlined.">
-      <figcaption><strong>The whole lecture at once.</strong> Not thumbnails
-      &ndash; the real slides, still legible. Drag to move around the board,
-      <kbd>Enter</kbd> opens the slide you picked.</figcaption>
-    </figure>
-    <figure class="shot">
-      <div class="bar"><b>audience.html</b> &middot; /</div>
-      <img src="img/search.webp" alt="The search panel over the slide: the query async, and five results, each with its tag, heading and the matching sentence.">
-      <figcaption><strong>Full-text search</strong>, from anywhere, mid-talk.
-      Each hit shows the kind of chunk, its heading, and the sentence the match
-      sits in.</figcaption>
-    </figure>
-  </div>
-
-  <figure class="shot">
-    <div class="bar"><b>print-notes.html</b></div>
-    <img src="img/handout.webp" alt="The handout: the same chunk set as flowing justified prose with hyphenation, the margin note as an aside, and the speaker note in a tinted block beneath it.">
-    <figcaption><strong>The lecturer&rsquo;s handout.</strong> The same source set
-    as a document &ndash; hyphenated, at a line length made for reading, with the
-    speaker note folded in under its chunk. There are two handouts:
-    <code>print.html</code> carries the script alone and is the one to give the
-    students, <code>print-notes.html</code> adds the speaker notes and stays with
-    you.</figcaption>
-  </figure>
-
-  </div>
+  <p class="tiny">Two of the four paragraphs are shortened to fit this page. In
+  the projection the author&rsquo;s two columns fold into one, because four
+  abridged paragraphs do not balance; with the shortening off, and in the
+  handout, the columns stay.</p>
+ </div>
 </section>
 
-<section class="band band-do">
+<section class="band">
  <div class="wrap">
-
-  <h2 id="covers">Title slides and dividers</h2>
-
-    
-  <p>The default is below, the rest one click away. Click a tile to see it
-  full size.</p>
-
-  <p class="tiny"><strong>These are a preview, like the figure language
-  below.</strong> They are not in the 1.0.0 release, so a lecture that names a
-  <code>cover:</code> or a <code>section:</code> needs the repository rather
-  than the download on the releases page. <a href="#getting-started">Getting
-  started</a> has both.</p>
-
-  <p><strong><code>cover:</code></strong> names the title slide. They are
-  ordered quiet to loud.</p>
-  
-
-  <div class="gallery">
-    <figure class="shot tile"><img src="img/classic.webp" alt="A title slide with the type set in the lower left third of an otherwise empty slide.">
-      <figcaption><code>classic</code> the type in the lower left third. The default</figcaption></figure>
-    <figure class="shot tile"><img src="img/panel.webp" alt="A title slide with white type reversed out of a full field of deep blue.">
-      <figcaption><code>panel</code> pale type on a full field of the colour scheme&rsquo;s accent</figcaption></figure>
-    <figure class="shot tile"><img src="img/hero.webp" alt="A title slide where a picture fills the frame and the type is reversed out of a dark gradient over it.">
-      <figcaption><code>hero</code> the picture fills the slide, the type set over a dark gradient</figcaption></figure>
+  <div class="beside">
+   <div class="said">
+    <h2>The hour in front of the room</h2>
+    <p class="lede">The projection goes on the wall. This goes on your laptop.
+    Your note for the current slide sits under a mirror of it, at a size you set,
+    and the strip along the bottom shows what is coming.</p>
+    <p class="cue">The two windows keep each other in step in the browser, with
+    no server between them. <kbd>S</kbd> from the projection opens it.</p>
+   </div>
+   <div class="stage">
+     <figure class="shot">
+       <div class="bar"><b>speaker.html</b></div>
+       <img src="img/cockpit.webp" alt="The presenter cockpit: a chapter scrubber across the top, a mirror of the projected slide, the private speaker note below it, a strip of neighbouring slides, and a footer with timer and key legend.">
+     </figure>
+   </div>
   </div>
-  
 
+  <p class="cue">A question from the room is usually about something forty
+  slides back. Two ways to get there without losing your place, both of them
+  over the projection itself.</p>
+
+  <div class="stage">
+    <div class="stage-pair">
+      <figure class="shot">
+        <div class="bar"><b>audience.html</b> &middot; O</div>
+        <img src="img/overview.webp" alt="The overview board: the whole 36-chunk lecture laid out as a grid of readable slides, with the current one outlined.">
+        <figcaption><strong>The whole lecture at once.</strong> Not thumbnails
+        &ndash; the real slides, still legible. Drag to move around the board,
+        <kbd>Enter</kbd> opens the one you picked.</figcaption>
+      </figure>
+      <figure class="shot">
+        <div class="bar"><b>audience.html</b> &middot; /</div>
+        <img src="img/search.webp" alt="The search panel over the slide: the query async, and five results, each with its tag, heading and the matching sentence.">
+        <figcaption><strong>Full-text search.</strong> Each hit shows the kind of
+        chunk, its heading, and the sentence the match sits in.</figcaption>
+      </figure>
+    </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <div class="beside beside-flip">
+   <div class="said">
+    <h2>What the students take away</h2>
+    <p class="lede">The same source set as a document: hyphenated, at a line
+    length made for reading, with the margin note as an aside.</p>
+    <p class="cue">There are two of these.
+    <code>print.html</code> carries the script alone and is the one to hand out.
+    <code>print-notes.html</code> folds your speaker notes in under each chunk and
+    stays with you.</p>
+   </div>
+   <div class="stage">
+     <figure class="shot">
+       <div class="bar"><b>print-notes.html</b></div>
+       <img src="img/handout.webp" alt="The handout: the same chunk set as flowing justified prose with hyphenation, the margin note as an aside, and the speaker note in a tinted block beneath it.">
+     </figure>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="covers">A slide is a frame, not only a column of text</h2>
+  <p class="lede">A title slide, and the divider that opens each part of a
+  lecture, are the two places where that matters most. One line of frontmatter
+  picks the composition; the words stay where they are.</p>
+
+  <p class="cue">Three of the ten title slides, in the order they get louder.
+  <code>classic</code> is the default, and a lecture that never names one gets
+  it.</p>
+
+  <div class="stage">
+    <div class="gallery">
+      <figure class="shot tile"><img src="img/classic.webp" alt="A title slide with the type set in the lower left third of an otherwise empty slide.">
+        <figcaption><code>classic</code> the type in the lower left third</figcaption></figure>
+      <figure class="shot tile"><img src="img/panel.webp" alt="A title slide with white type reversed out of a full field of deep blue.">
+        <figcaption><code>panel</code> pale type on a full field of the accent</figcaption></figure>
+      <figure class="shot tile"><img src="img/hero.webp" alt="A title slide where a picture fills the frame and the type is reversed out of a dark gradient over it.">
+        <figcaption><code>hero</code> a picture fills the slide, the type over a dark gradient</figcaption></figure>
+    </div>
+  </div>
 
   <details class="setup">
-    <summary>The other seven title slides</summary>
+    <summary>The other seven title slides, and the six part dividers</summary>
     <div class="setup-body">
+      <p><code>cover:</code> names the title slide. <code>cover-align:</code> puts
+      the type high, in the middle or low, on the compositions that leave it any
+      freedom, and <code>cover-ratio:</code> says how much of the slide a picture
+      gets on the ones that divide it.</p>
       <div class="gallery">
       <figure class="shot tile"><img src="img/masthead.webp" alt="A title slide with the title at the top edge, a lede in the middle, and the credits under a rule at the bottom.">
-      <figcaption><code>masthead</code> the title at the top edge, credits under a rule at the foot, and the chunk&rsquo;s own text between them</figcaption></figure>
+      <figcaption><code>masthead</code> the title at the top edge, credits under a rule at the foot</figcaption></figure>
       <figure class="shot tile"><img src="img/stack.webp" alt="A title slide with the whole type block centred on both axes.">
       <figcaption><code>stack</code> centred on both axes, for an opening that wants to be still</figcaption></figure>
       <figure class="shot tile"><img src="img/display.webp" alt="A title slide with the title set very large, filling the upper half of the slide.">
-      <figcaption><code>display</code> the title set large enough to fill the slide, everything else small under it</figcaption></figure>
+      <figcaption><code>display</code> the title large enough to fill the slide</figcaption></figure>
       <figure class="shot tile"><img src="img/quote.webp" alt="A title slide that opens on a sentence set large, with the lecture title small underneath it.">
       <figcaption><code>quote</code> the talk opens on a claim; the title reads as the attribution</figcaption></figure>
       <figure class="shot tile"><img src="img/split.webp" alt="A title slide with the type on the left and a picture bled off the right edge.">
       <figcaption><code>split</code> the type on the left, a picture running off the right edge</figcaption></figure>
       <figure class="shot tile"><img src="img/beside.webp" alt="A title slide with the title on the left and a three-box diagram inset on the right.">
-      <figcaption><code>beside</code> the chunk&rsquo;s own content beside the title &ndash; so a drawing can be the cover</figcaption></figure>
+      <figcaption><code>beside</code> the chunk&rsquo;s own content beside the title, so a drawing can be the cover</figcaption></figure>
       <figure class="shot tile"><img src="img/above.webp" alt="A title slide with a three-box diagram across the top and the title centred in the band below it.">
-      <figcaption><code>above</code> the same content on top, the title centred in the band below</figcaption></figure>
+      <figcaption><code>above</code> the same content on top, the title centred below</figcaption></figure>
+      <figure class="shot tile"><img src="img/stack-bottom.webp" alt="The stack cover with its type block moved down to sit on the bottom margin.">
+      <figcaption><code>stack</code> with <code>cover-align: bottom</code></figcaption></figure>
+      <figure class="shot tile"><img src="img/beside-ratio.webp" alt="The beside cover with the diagram given a wider share of the slide than the default.">
+      <figcaption><code>beside</code> with <code>cover-ratio: 62%</code></figcaption></figure>
+      </div>
+
+      <p><code>section:</code> draws the divider a new part of the lecture opens
+      with. All six are quieter than any title slide.</p>
+      <div class="gallery">
+      <figure class="shot tile"><img src="img/section-plain.webp" alt="A divider slide showing only the part heading on an empty slide.">
+        <figcaption><code>plain</code> the heading alone. The default</figcaption></figure>
+      <figure class="shot tile"><img src="img/section-tinted.webp" alt="A divider slide where the whole slide takes a light tint of the theme accent.">
+        <figcaption><code>tinted</code> the accent at 12%. From the back of a room the colour arrives before any word</figcaption></figure>
+      <figure class="shot tile"><img src="img/section-rule.webp" alt="A divider slide with the heading between two rules across the measure.">
+        <figcaption><code>rule</code> the quietest, and one that survives a black-and-white print</figcaption></figure>
+      <figure class="shot tile"><img src="img/section-card.webp" alt="A divider slide with the heading sitting on a tinted panel.">
+        <figcaption><code>card</code> the heading on a tinted panel</figcaption></figure>
+      <figure class="shot tile"><img src="img/section-number.webp" alt="A divider slide with a large accent numeral two above the part heading.">
+        <figcaption><code>number</code> a large numeral above the heading, counting the parts</figcaption></figure>
+      <figure class="shot tile"><img src="img/section-outline.webp" alt="A divider slide listing all three parts of the lecture with the second one set large and live.">
+        <figcaption><code>outline</code> the running agenda: which part, out of how many, and how far in</figcaption></figure>
       </div>
     </div>
   </details>
 
-  <p class="tiny"><strong><code>cover-align:</code></strong> puts the type
-  high, in the middle or low, on the compositions that leave it any freedom.
-  <strong><code>cover-ratio:</code></strong> is a percentage saying how much of
-  the slide the picture gets, on the ones that divide it.</p>
-
-  <div class="gallery">
-    <figure class="shot tile"><img src="img/stack-bottom.webp" alt="The stack cover with its type block moved down to sit on the bottom margin.">
-      <figcaption><code>cover: stack</code> with <code>cover-align: bottom</code></figcaption></figure>
-    <figure class="shot tile"><img src="img/beside-ratio.webp" alt="The beside cover with the diagram given a wider share of the slide than the default.">
-      <figcaption><code>cover: beside</code> with <code>cover-ratio: 62%</code></figcaption></figure>
-  </div>
-
-  <p><strong><code>section:</code></strong> draws the divider slide a new part
-  of the lecture opens with. They are all quieter than any title slide.</p>
-
-  <div class="gallery">
-    <figure class="shot tile"><img src="img/section-plain.webp" alt="A divider slide showing only the part heading on an empty slide.">
-      <figcaption><code>plain</code> the heading alone. The default</figcaption></figure>
-    <figure class="shot tile"><img src="img/section-tinted.webp" alt="A divider slide where the whole slide takes a light tint of the theme accent.">
-      <figcaption><code>tinted</code> the accent at 12%. From the back of a room the colour arrives before any word</figcaption></figure>
-    <figure class="shot tile"><img src="img/section-rule.webp" alt="A divider slide with the heading between two rules across the measure.">
-      <figcaption><code>rule</code> the quietest, and one that survives a black-and-white print</figcaption></figure>
-    <figure class="shot tile"><img src="img/section-card.webp" alt="A divider slide with the heading sitting on a tinted panel.">
-      <figcaption><code>card</code> the heading on a tinted panel</figcaption></figure>
-    <figure class="shot tile"><img src="img/section-number.webp" alt="A divider slide with a large accent numeral two above the part heading.">
-      <figcaption><code>number</code> a large numeral above the heading, counting the parts of the lecture</figcaption></figure>
-    <figure class="shot tile"><img src="img/section-outline.webp" alt="A divider slide listing all three parts of the lecture with the second one set large and live.">
-      <figcaption><code>outline</code> the running agenda: which part, out of how many, and how far in</figcaption></figure>
-  </div>
-
-  <p class="tiny">Everything one lecture <em>can</em> carry at once &ndash; a
-  closing slide, dividers carrying a quotation or a photograph or a figure,
-  items laid out as cards, a full-slide photograph that opens up as you press
-  <kbd>Space</kbd> &ndash; is in the <a href="decoration/audience.html">decoration
-  lecture</a>.</p>
-
-  </div>
+  <p class="tiny"><strong>These are a preview.</strong> They are not in the 1.0.0
+  release, so a lecture naming a <code>cover:</code> or a <code>section:</code>
+  needs the repository rather than the download &ndash;
+  <a href="#getting-started">Getting started</a> has both. Everything one lecture
+  <em>can</em> carry at once, including cards, backdrops and a photograph that
+  opens as you press <kbd>Space</kbd>, is in the
+  <a href="decoration/audience.html">decoration lecture</a>.</p>
+ </div>
 </section>
 
-<section class="band band-read">
+<section class="band">
  <div class="wrap">
+  <div class="beside">
+   <div class="said">
+    <h2 id="figures">A figure is text too</h2>
+    <p class="lede">The lecture figures that go out of date are the ones that
+    live in a drawing program. psi-slides has a small language for them instead:
+    a figure is a few lines in the same file as the slide it sits on.</p>
+    <p class="cue">Nothing in this one is placed at a point on a canvas. Each box
+    is placed <em>against</em> another box, so moving one moves everything
+    attached to it &ndash; and the figure can be built up in front of the room a
+    step at a time.</p>
+   </div>
+   <div class="stage">
+     <figure class="shot drawn">
+       <img src="img/figure.webp" alt="A figure from a network security lecture: four boxes in a row, labelled Frame Header, Datagram Header, Segment Header and Payload, with a leader line from each of the first three up to a note naming the addresses that header carries.">
+     </figure>
+   </div>
+  </div>
 
+  <p class="cue">Part of its source: the four boxes, one of the three notes, and
+  the step that brings that note in. <strong>Lengths are in grid cells, not
+  pixels</strong> &ndash; the opening line sets the cell, so a figure keeps its
+  proportions when the cell changes. And <code>-- fh.cx,fh.top</code> is a
+  <strong>leader line</strong>: it points at a spot on another box and stays
+  attached when that box moves.</p>
+
+<pre><code><span class="t-dir">::: draw</span> 150x54
+<span class="t-dir">default box</span> <span class="t-punct">{.tone-3 .sharp}</span> w 0.88 h 0.85
+<span class="t-dir">box</span> fh <span class="t-strong">"Frame\nHeader"</span>    <span class="t-cmt">at</span> 0,0
+<span class="t-dir">box</span> dh <span class="t-strong">"Datagram\nHeader"</span> <span class="t-cmt">right of</span> fh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
+<span class="t-dir">box</span> sh <span class="t-strong">"Segment\nHeader"</span>  <span class="t-cmt">right of</span> dh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
+<span class="t-dir">box</span> pl <span class="t-strong">"Payload"</span>          <span class="t-cmt">right of</span> sh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh <span class="t-punct">{.paper}</span>
+<span class="t-dir">text</span> lmac <span class="t-strong">"Ethernet source\nand destination\naddresses*"</span>       <span class="t-cmt">above</span> fh <span class="t-cmt">gap</span> 0.5 -- fh.cx,fh.top <span class="t-punct">{.muted @l1}</span>
+<span class="t-dir">step</span> ethernet
+  <span class="t-cmt">show</span> @l1
+  <span class="t-cmt">emph</span> fh</code></pre>
+
+  <div class="hint">
+    <p><strong>This one is a preview too.</strong> To try it you need the
+    repository itself &ndash; a clone, or <b>Download ZIP</b> from its <b>Code</b>
+    menu. The <b>Source code (zip)</b> attached to a release is the tagged
+    release and does not contain it, and the format is still open to change.</p>
+    <p><a href="figures.html">Figures you write</a> is the case for the language:
+    what a lecture figure has to do that a drawing program and an auto-layout
+    language each do badly. <a href="figures-you-write.html">The manual</a> builds
+    one a line at a time, lists every statement, and shows the graphical editor
+    that lets you drag a box on the live slide and have the source rewritten.</p>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
   <h2 id="open-them-yourself">Open the lectures yourself</h2>
-
-    
-
-  <p>Five lectures are published on this site. <strong>python-intro</strong> is
-  the one the pictures come from. The <strong>tutorial</strong> is a
-  self-referential tour that explains the tool by being the tool. The
-  <strong>figures</strong> lecture draws every construction the figure language
-  has, with figures from a real course among them, and is the worked example
-  behind <a href="figures.html">Figures you write</a>.
-  <strong>Decoration</strong> shows every construction that puts something other
-  than a text column on a slide &ndash; the title slides, the dividers, items laid
-  out as cards, a photograph that opens up as you press <kbd>Space</kbd>.
-  The <strong>short example</strong> is one section of a
-  first-year networking lecture, in German &ndash; eighty-odd lines of Markdown, short
-  enough to read end to end beside what it produces
-  (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a>,
-  set from the <a href="https://inf.zone/lectures/8.5-netze/notes85/">lecture notes</a>
-  under CC&nbsp;BY-NC-SA&nbsp;4.0).</p>
-  
+  <p class="lede">Five are published here, each in every view it has. They are
+  the tool, not a video of it: arrow keys move, <kbd>C</kbd> switches between the
+  shortened text and the full text, <kbd>O</kbd> opens the overview board,
+  <kbd>/</kbd> searches, <kbd>?</kbd> lists every key.</p>
 
   <table>
     <tr><th></th><th>python-intro</th><th>Tutorial</th><th>Figures</th><th>Decoration</th><th>Short example</th></tr>
@@ -493,49 +531,44 @@ browser is for pages meant to be looked at.
         <td class="tiny">&ndash;</td>
         <td><a href="example/print-notes.html">print-notes</a></td></tr>
   </table>
-  
 
-
-  <p class="tiny"><strong>Decoration and Figures both show work that is not in
-  the 1.0.0 release</strong> &ndash; the title slides, the part dividers, cards
-  and rows, backdrops, and figures written as <code>::: draw</code>. Both
-  lectures say so on their third slide, and both need the repository to build.
-  Only the projection and the document are published for decoration.</p>
-
-  <p class="tiny">Start with the projection. Arrow keys move between slides,
-  <kbd>Space</kbd> brings in the next part of a slide, <kbd>C</kbd> switches
-  between the shortened text and the full text, <kbd>O</kbd> (the letter, not
-  zero) opens the overview board, <kbd>/</kbd> searches, <kbd>?</kbd> lists every
-  key. A cockpit opened from the table above shows the layout but is connected to
-  nothing &ndash; press <kbd>S</kbd> inside the projection to open one that follows
-  it.</p>
+  <p class="tiny"><strong>python-intro</strong> is where the pictures on this
+  page come from. The <strong>tutorial</strong> explains the tool by being the
+  tool. <strong>Figures</strong> draws every construction the figure language
+  has; <strong>decoration</strong> shows everything that puts something other
+  than a text column on a slide. The <strong>short example</strong> is one
+  section of a first-year networking lecture in German, eighty-odd lines of
+  Markdown, short enough to read end to end beside what it produces
+  (<a href="https://github.com/UBA-PSI/psi-slides/blob/main/docs/site/example/source.md">source</a>,
+  set from the <a href="https://inf.zone/lectures/8.5-netze/notes85/">lecture notes</a>
+  under CC&nbsp;BY-NC-SA&nbsp;4.0). Figures and decoration both show work that is
+  not in 1.0.0 and both need the repository to build.</p>
 
   <div class="hint">
-    <p>All four files are self-contained: the styling, the scripts, the images, the
-    typeset maths and the typefaces all sit inside the HTML file itself. Nothing is
-    fetched at run time, and the files open just as happily from a folder on disk
-    (<code>file://</code>) as from this server.</p>
+    <p>All four files are self-contained: the styling, the scripts, the images,
+    the typeset maths and the typefaces sit inside the HTML file itself. Nothing
+    is fetched at run time, and they open as happily from a folder on disk
+    (<code>file://</code>) as from this server. A cockpit opened from the table
+    above shows the layout but is connected to nothing &ndash; press <kbd>S</kbd>
+    inside a projection to open one that follows it.</p>
   </div>
-
-  </div>
+ </div>
 </section>
 
-<section class="band band-do">
+<section class="band">
  <div class="wrap">
-
   <h2 id="getting-started">Getting started</h2>
-
-  <p>There are two versions, and they differ in what they can do.</p>
+  <p class="lede">Two versions, and they differ in what they can do. Either one
+  is a folder you unpack; nothing is installed system-wide.</p>
 
   <div class="pair-up">
   <div>
   <p><strong><a href="https://github.com/UBA-PSI/psi-slides/releases/latest">The
   latest release</a></strong> is 1.0.0. Its source format is fixed, so a lecture
-  that builds today keeps building the same way. Download the <code>.zip</code>
-  or the <code>.tar.gz</code> and unpack it; the tutorial, python-intro and short
-  example listed above are already built inside, so opening
+  that builds today keeps building the same way. The tutorial, python-intro and
+  short example are already built inside it, so opening
   <code>lectures/tutorial/audience.html</code> runs the tour with nothing
-  installed. One line does the same without clicking:</p>
+  installed at all.</p>
 
 <pre><code><span class="t-cmd">curl</span> <span class="t-flag">-L</span> <span class="t-path">https://github.com/UBA-PSI/psi-slides/releases/latest/download/psi-slides.tar.gz</span> <span class="t-punct">\</span>
   <span class="t-punct">|</span> <span class="t-cmd">tar</span> <span class="t-flag">xz</span></code></pre>
@@ -543,23 +576,21 @@ browser is for pages meant to be looked at.
 
   <div>
   <p><strong><a href="https://github.com/UBA-PSI/psi-slides">The
-  repository</a></strong> carries work that 1.0.0 does not: figures written as
-  <code>::: draw</code>, the title slides and section dividers, cards and rows,
-  and the graphical figure editor. If you came here for any of those, this is
-  the version to take. What you give up is the format promise &ndash; those parts
-  are still open to change, so a lecture written against them may need an edit
-  when they reach a release.</p>
+  repository</a></strong> carries what 1.0.0 does not: figures written as
+  <code>::: draw</code>, the title slides and dividers, cards and rows, and the
+  graphical figure editor. If you came for any of those, take this one. What you
+  give up is the format promise &ndash; those parts may still need an edit when they
+  reach a release.</p>
 
 <pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span></code></pre>
-
   <p class="tiny">Without git, take <b>Download ZIP</b> from the
   repository&rsquo;s green <b>Code</b> button.</p>
   </div>
   </div>
 
-  <p>Building a lecture of your own needs <strong>Node 20 or newer</strong>, which
-  is what runs <code>build.js</code>, and nothing else: no LaTeX, no Pandoc, no
-  server, nothing that has to be installed system-wide.</p>
+  <p>Building a lecture of your own needs <strong>Node 20 or newer</strong>,
+  which is what runs <code>build.js</code>, and nothing else: no LaTeX, no
+  Pandoc, no server.</p>
 
 <pre><code><span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
 
@@ -649,20 +680,12 @@ browser is for pages meant to be looked at.
     </div>
   </details>
 
-  <p>The tutorial teaches the tool by being the tool. Press <kbd>?</kbd> for the
-  cheat sheet, <kbd>S</kbd> to open the cockpit. Its <code>source.md</code> is
-  the reference for writing your own, and the four files the build wrote are
-  yours to move, mail or upload &ndash; they carry everything they need.</p>
-
-  <h3>Then write your own lecture</h3>
-
-    
+  <h3>Then write your own</h3>
   <p>Keep the editor, the projection and the cockpit visible at once:
   <code>--watch</code> rebuilds on every save and reloads both browser windows as
   soon as the rebuild finishes. At the end, the four HTML files beside your
-  <code>source.md</code> are what you hand over. Nothing else has to travel with
+  <code>source.md</code> are what you hand over. Nothing else travels with
   them.</p>
-  
 
 <pre><code><span class="t-cmt"># scaffold a folder with valid frontmatter</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
@@ -672,109 +695,27 @@ browser is for pages meant to be looked at.
 
 <span class="t-cmt"># chunk ids, word budgets, unclosed directives, oversized assets</span>
 <span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
-  
-
-
-  </div>
+ </div>
 </section>
 
-<section class="band band-read">
+<section class="band band-close">
  <div class="wrap">
-
-  <h2 id="figures">A figure is text too</h2>
-
-    
-  <p>The lecture figures that get out of date are the ones that live in a
-  drawing program. psi-slides has a small language for them instead: a figure
-  is a few lines in the same Markdown file as the slide it sits on, and the
-  build draws it. Apart from the first element, nothing in it is placed at a
-  point on a canvas &ndash; each box is placed <em>against</em> another box &ndash; so
-  moving one moves everything attached to it, and a figure can be built up in
-  front of the room one step at a time.</p>
-  
-
-  <figure class="shot drawn">
-    <img src="img/figure.webp" alt="A figure from a network security lecture: four boxes in a row, labelled Frame Header, Datagram Header, Segment Header and Payload, with a leader line from each of the first three up to a note naming the addresses that header carries.">
-  </figure>
-  
-
-
-  <p class="tiny">One slide from a real course, drawn by the build. Part of its
-  source is below: the four boxes, one of the three notes, and the step that
-  brings that note in. Two things are worth knowing to read them.
-  <b>Lengths are in grid cells, not pixels</b> &ndash; the opening line sets the cell
-  to 150 by 54, so <code>w 0.88 h 0.85</code> is a box far wider than it is
-  tall, and a figure keeps its proportions when the cell changes. And
-  <code>-- fh.cx,fh.top</code> is a <b>leader line</b>: it points the note at a
-  spot on another box, so the line finds its own way and stays attached when
-  that box moves.</p>
-
-
-<pre><code><span class="t-dir">::: draw</span> 150x54
-<span class="t-dir">default box</span> <span class="t-punct">{.tone-3 .sharp}</span> w 0.88 h 0.85
-<span class="t-dir">box</span> fh <span class="t-strong">"Frame\nHeader"</span>    <span class="t-cmt">at</span> 0,0
-<span class="t-dir">box</span> dh <span class="t-strong">"Datagram\nHeader"</span> <span class="t-cmt">right of</span> fh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
-<span class="t-dir">box</span> sh <span class="t-strong">"Segment\nHeader"</span>  <span class="t-cmt">right of</span> dh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh
-<span class="t-dir">box</span> pl <span class="t-strong">"Payload"</span>          <span class="t-cmt">right of</span> sh <span class="t-cmt">gap</span> 0 <span class="t-cmt">same as</span> fh <span class="t-punct">{.paper}</span>
-<span class="t-dir">text</span> lmac <span class="t-strong">"Ethernet source\nand destination\naddresses*"</span>       <span class="t-cmt">above</span> fh <span class="t-cmt">gap</span> 0.5 -- fh.cx,fh.top <span class="t-punct">{.muted @l1}</span>
-<span class="t-dir">step</span> ethernet
-  <span class="t-cmt">show</span> @l1
-  <span class="t-cmt">emph</span> fh</code></pre>
-
-  <div class="hint">
-    <p><strong>This one is a preview.</strong> It is not in the 1.0.0 release,
-    so the download on the releases page does not have it. To try it you need
-    the repository itself &ndash; either a clone, or <b>Download ZIP</b> from the
-    repository&rsquo;s <b>Code</b> menu. The <b>Source code (zip)</b> attached to a
-    release is the tagged release and therefore does not contain this preview.</p>
-
-<pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span>
-<span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
-<span class="t-cmd">npm</span> install
-<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/diagrams/source.md</span>
-<span class="t-cmd">open</span> <span class="t-path">lectures/diagrams/audience.html</span>   <span class="t-cmt"># every construct, drawn</span></code></pre>
-
-    <p>Being a preview is not only a question of packaging: the source format
-    is still open to change, and a figure you write now may need an edit when
-    it ships. The drawing above comes from
-    <code>lectures/network-security</code>, a real course rebuilt as figures.</p>
-  </div>
-
-  <p><a href="figures.html">Figures you write</a> is the case for the language
-  &ndash; what a lecture figure has to do that a drawing program and an
-  auto-layout language each do badly. <a href="figures-you-write.html">The
-  manual</a> builds one a line at a time, then lists every statement, the
-  design rules and worked examples, and shows the graphical editor that lets
-  you drag a box on the live slide and have the source rewritten.</p>
-
-  </div>
-</section>
-
-<section class="band band-do band-close">
- <div class="wrap">
-
-  <h2>Documentation</h2>
+  <h2>Where to read further</h2>
   <ul>
-    <li><a href="comparison.html">How psi-slides compares</a> &ndash;
-      Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, in both directions,
-      including where psi-slides loses.</li>
+    <li><a href="comparison.html">How psi-slides compares</a> &ndash; Beamer,
+      reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, in both
+      directions, including where psi-slides loses.</li>
     <li><a href="figures.html">Figures you write</a> &ndash; the case for the
-      figure language, which is still a preview: what a lecture figure has to do
-      that a drawing program and an auto-layout language each do badly.
-      <a href="figures-you-write.html">The manual</a> beside it builds one a line
-      at a time, then lists every statement, the design rules and worked
-      examples.</li>
+      figure language, and <a href="figures-you-write.html">the manual</a> beside
+      it, which builds one a line at a time and lists every statement.</li>
     <li><a href="tutorial/audience.html">The tutorial lecture</a> &ndash; every
-      construct the format has, shown working, and
+      construct the format has, shown working, with
       <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">its
-      source</a> beside it, which is the reference for how each one is
-      written.</li>
+      source</a> beside it.</li>
+    <li><a href="https://github.com/UBA-PSI/psi-slides">github.com/UBA-PSI/psi-slides</a>
+      &ndash; the README explains the format and says what the tool is good at and
+      what it is not good at.</li>
   </ul>
-
-  <h2>Source</h2>
-  <p><a href="https://github.com/UBA-PSI/psi-slides">github.com/UBA-PSI/psi-slides</a> &ndash; the
-  README explains the format, and says what the tool is good at and what it is not
-  good at.</p>
 
   <footer>
     <p>By <a href="https://herdom.net">Dominik Herrmann</a>,
