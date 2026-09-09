@@ -57,30 +57,22 @@
 
 <section class="band">
  <div class="wrap">
-  <!-- Halbleere Zeile, Antworten 1 und 4, und Befunde 5 und 8.
-       Vorher standen die Worte des Abschnitts in der schmalen Spalte und das
-       Bild in der breiten, mit der Download-Tabelle unter beiden über die
-       ganze Rahmenbreite: drei Spalten über 1310 px, das Auge lief also vom
-       System bis zu der Frage, ob dieses Paket je gestartet wurde, quer über
-       die Seite.
-       Die Zeile ist andersherum: die Worte nehmen die breite Spalte, das Bild
-       die schmale. Das ist das Kleinste, was dieses Bild zeigen muss – ein
-       Fenster mit sechs Bedienelementen, die der Text daneben benennt, es
-       steht also als Beleg da und nicht als etwas zu Lesendes.
-       Die Worte laufen darunter weiter, und das ist die vierte Antwort:
-       alles, was dieser Abschnitt über die App sagt, steht in dieser einen
-       Spalte, bis hinunter zu dem Satz, der an die Pakete übergibt, und kein
-       Teil davon beginnt unter dem Bild. Zusammen tragen die beiden die
-       Zeile: die Worte sind etwas höher als das Bild, es bleibt also eine
-       Handbreit an der rechten Rahmenkante, wo Weißraum als Rand gelesen
-       wird.
-       Was NICHT in der Spalte steht, sind die Pakete selbst. Fünf Dateien
-       über drei Systeme werden angesehen, nicht gelesen, sie nehmen also
-       unter der Zeile die Rahmenbreite – die zweite Antwort –, und der Block
-       dafür steht weiter unten. -->
-  <div class="beside words-wide">
+  <!-- Ein Band. Die Worte tragen, was die App ist, das Bild ist die App, und
+       die Worte stehen senkrecht mittig dazu: Das Bild ist 480 px hoch, die
+       Spalte vier kurze Absätze, und der Unterschied hing früher unter dem
+       Text, mit „Herunterladen“, das in diesem Loch begann.
+       Das Bild ist außerdem größer als vorher. Es war die schmale Hälfte einer
+       textbreiten Zeile, und zwar genau deshalb, weil die Worte den ganzen
+       Abschnitt tragen mussten – Überschrift, Anriss, den Absatz über die App
+       UND die Download-Überschrift – und es keine andere Spalte für sie gab.
+       Ein Band endet auf voller Breite, also darf „Herunterladen“ sein, was es
+       ist: der nächste Block, an der linken Rahmenkante, mit den Paketen
+       direkt darunter.
+       Worte links: Dieses Band führt das Argument einen Schritt weiter, und
+       ein Schritt behält die Leserichtung. -->
+  <h2 id="app">Die App</h2>
+  <div class="beside">
    <div class="said">
-    <h2 id="app">Die App</h2>
     <p class="lede">Die <code>source.md</code> einer Vorlesung öffnen oder auf
     das Fenster ziehen, und die vier Ansichten sind gebaut. Das Fenster neben
     dem Texteditor offen lassen, und die App baut sie nach jedem Speichern
@@ -89,12 +81,6 @@
     über vier Knöpfe öffnet man die Ansichten, die er geschrieben hat. Es gibt auch
     kein Projekt einzurichten und keine Einstellungen, die vor dem ersten Build
     auszufüllen wären.</p>
-    <h3>Herunterladen</h3>
-    <p>Das Paket für das eigene System aus den dreien unten holen. Bis 2.0.0
-    erscheint die App getrennt von psi-slides selbst, unter einem eigenen Tag,
-    <code>builder-0.1.0</code>, und auf GitHub als <strong>Pre-Release</strong>
-    markiert: nicht die aktuelle Version von irgendetwas, sondern ein früh
-    angebotenes Paket.</p>
    </div>
    <div class="stage">
     <figure class="shot">
@@ -103,6 +89,14 @@
     </figure>
    </div>
   </div>
+
+  <h3>Herunterladen</h3>
+  <p>Das Paket für das eigene System aus den dreien unten holen. Bis 2.0.0
+  erscheint die App getrennt von psi-slides selbst, unter einem eigenen Tag,
+  <code>builder-0.1.0</code>, und auf GitHub als <strong>Pre-Release</strong>
+  markiert: nicht die aktuelle Version von irgendetwas, sondern ein früh
+  angebotenes Paket.</p>
+
 
 
   <!-- Halbleere Zeile, Antwort 2: die Pakete nehmen die Breite des Rahmens,
@@ -139,7 +133,7 @@
     <p class="sys">Windows <span class="size">64 Bit</span></p>
     <p class="state"><strong>Experimentell.</strong> Von der CI gebaut, nie gestartet.</p>
     <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-win-x64.exe">
-     <b>Installationsprogramm</b><span>das einzige Paket für Windows</span>
+     <b>Installationsprogramm</b><span>läuft ohne Rückfrage durch und startet die App</span>
      <code>psi-slides-builder-win-x64.exe</code></a>
    </div>
    <div class="get">
@@ -264,11 +258,15 @@
 <span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/tutorial/source.md</span></code></pre>
   </div>
 
-  <!-- Halbleere Zeile, Antwort 1, und zugleich ein Lesemaß: der Kasten ist
-       Prosa, und über den ganzen Rahmen lief ein Schritt auf rund 120 Zeichen.
-       Für wen die Anleitung ist, steht in der schmalen Spalte, die Anleitung
-       selbst in der breiten. -->
-  <div class="beside second-picture">
+  <!-- Zwei Spalten, und `.level` statt eines Bandes – die eine Stelle der
+       Seite, an der Zentrieren falsch wäre. Die zweite Spalte ist ein
+       Aufklapper: 64 px zugeklappt, rund acht Bildschirme offen. Eine mittig
+       gesetzte erste Spalte stünde also still, solange er zu ist, und liefe
+       vier Bildschirme nach unten, sobald jemand ihn öffnet. Ein Band ist
+       mittig, weil der Höhenunterschied feststeht; hier setzt ihn die
+       Leserin. Zugleich hält das Lesemaß: Der Kasten ist Prosa, und über den
+       ganzen Rahmen lief ein Schritt auf rund 120 Zeichen. -->
+  <div class="beside level second-picture">
    <div class="said">
     <h3>Von einem Rechner ohne alles</h3>
     <p class="cue">Die Schritte führen von diesem Rechner zu einem gebauten
@@ -411,6 +409,18 @@
   anzufangen: Der Einstellungsblock oben in einer <code>source.md</code>, ihr
   Vorspann, hat Schlüssel, die ein leeres Blatt nicht erraten kann.</p>
 
+  <!-- Was in die Datei gehört, stand früher als rechte Hälfte einer
+       zweispaltigen Zeile am Fuß dieses Abschnitts, unter einem Listing, mit
+       einer halben Bildschirmhöhe Nichts darüber und nichts daneben, wozu es
+       gehört hätte. Es ist die Antwort auf die Überschrift des Abschnitts,
+       also ist es dessen zweiter Absatz. -->
+  <p>Was in diese Datei gehört, lehrt die
+  <a href="../tutorial/audience.html">Tutorial-Vorlesung</a>, eine Vorlesung
+  über das Schreiben von Vorlesungen: das Format im Betrieb gezeigt statt
+  beschrieben, mit
+  <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">ihrer
+  Quelle</a> daneben.</p>
+
   <!-- Halbleere Zeile, Antwort 1: drei Befehle in der breiten Hälfte, wofür sie
        da sind in der schmalen, und die Seite der App darunter als Absatz. -->
   <div class="aside-code words-first">
@@ -433,29 +443,19 @@
 <span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
   </div>
 
-  <!-- Halbleere Zeile, Antwort 1: was die App von diesen drei Befehlen hat und
-       wo man lernt, was in die Datei gehört, sind zwei kurze Antworten und
-       stehen deshalb in einer Zeile statt als zwei Stummel unter der schmalen
-       Spalte. -->
-  <div class="pair-up">
-   <div>
-    <p>In der App fragt <b>Neue Vorlesung&hellip;</b> nach einem Ordnernamen und
-    einem Ort und legt dieselbe Starter-Vorlesung an, die <code>--new</code>
-    anlegt, bis hin zu einer kleinen Abbildung, die der Editor öffnen kann. Bei
-    jedem Speichern neu zu bauen ist der Normalzustand des Fensters und kein
-    Schalter, den man setzt, und es zeigt, was der Build sagt, und nicht mehr
-    als das &ndash; weshalb <code>lint.js</code> etwas bleibt, das man tippt.</p>
-   </div>
-   <div>
-    <p>Was in diese Datei gehört, lehrt die
-    <a href="../tutorial/audience.html">Tutorial-Vorlesung</a>, eine Vorlesung
-    über das Schreiben von Vorlesungen: das Format im Betrieb gezeigt statt
-    beschrieben, mit
-    <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">ihrer
-    Quelle</a> daneben. Die Meldungen des Linters nennen die Regel und die
-    Zeilennummer, man kann sie also neben der eigenen Quelle lesen.</p>
-   </div>
-  </div>
+  <!-- Ein Absatz auf Lesebreite, und bewusst keine halbe Zeile. Die andere
+       Hälfte war der Tutorial-Absatz, der jetzt der zweite Absatz des
+       Abschnitts ist; die beiden zu paaren machte eine Zeile aus zwei Dingen,
+       die verschiedene Fragen beantworten. Der Grund rechts neben einem Absatz
+       ist hier der Rand der Seite, wie unter jedem Anriss. -->
+  <p>In der App fragt <b>Neue Vorlesung&hellip;</b> nach einem Ordnernamen und
+  einem Ort und legt dieselbe Starter-Vorlesung an, die <code>--new</code>
+  anlegt, bis hin zu einer kleinen Abbildung, die der Editor öffnen kann. Bei
+  jedem Speichern neu zu bauen ist der Normalzustand des Fensters und kein
+  Schalter, den man setzt, und es zeigt, was der Build sagt, und nicht mehr
+  als das &ndash; weshalb <code>lint.js</code> etwas bleibt, das man tippt; seine
+  Meldungen nennen die Regel und die Zeilennummer, man liest sie also neben der
+  eigenen Quelle.</p>
  </div>
 </section>
 

@@ -78,11 +78,10 @@
     </div>
   </div>
 
-  <!-- The disclosure takes the frame's width. It used to sit in a
-       `.folded-note`, which is a two-column row - and there is nothing here
-       to put in the second column, so open or shut it left a 350px band of
-       nothing at the right edge over 780px of gallery. Half-empty row,
-       answer 2: the element takes the width itself. -->
+  <!-- The disclosure takes the frame's width, because it is not a band:
+       there is nothing here to put beside it, and a two-column row round it
+       left a 350px band of nothing at the right edge over 780px of gallery,
+       open or shut. A block with no evidence beside it is a block. -->
   <details class="setup">
     <summary>The other seven, and the two settings that move the type</summary>
     <div class="setup-body">
@@ -248,9 +247,11 @@
 
 <section class="band">
  <div class="wrap">
-  <!-- Mirrored: the picture on the left. Every stage on the same side would
-       read as a template, and this is the one section whose picture is mostly
-       photograph rather than mostly type. -->
+  <!-- Mirrored, and the reason is the content rather than the rhythm: this
+       band compares two ways of putting words on a picture, so the picture
+       leads and the words are the verdict on it. Alternating for its own sake
+       is what makes a page read as a template. -->
+  <h2 id="backdrop">A picture behind the whole slide</h2>
   <div class="beside beside-flip">
    <div class="stage">
     <figure class="shot">
@@ -259,7 +260,6 @@
     </figure>
    </div>
    <div class="said">
-    <h2 id="backdrop">A picture behind the whole slide</h2>
     <p class="lede">Write <code>::: backdrop</code> and an image stands behind
     everything, edge to edge, on any slide. One line, and the text column stays
     where it is.</p>

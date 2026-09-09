@@ -91,6 +91,19 @@ pre .cl, pre .kw { background: none; padding: 0; word-spacing: normal; }
 .herotop { margin-top: 1.4rem; }
 
 /*
+ * The one raster on the page, and the other branch of DESIGN.md's fifth rule.
+ * The editor's own interface type is 13px in a 1920px shot, so at the frame's
+ * width it renders at 7.9px and at any width this page can give it: nobody
+ * reads it, which means it is EVIDENCE rather than something to read, and
+ * evidence goes small. It is set to the width at which the arrangement is
+ * still legible as an arrangement - a toolbar, a canvas with a figure and the
+ * relations written on it, a panel down the right, a rail of beats, a strip of
+ * the lecture's other figures - and that is 46rem, 736px, 489 tall. It was
+ * 1163px wide and 957 tall, which is a screen and a half of one picture.
+ */
+figure.shot.evidence { max-width: 46rem; margin-inline: auto; }
+
+/*
  * ── A figure, the bar that walks it, and its source ───────────────────────
  *
  * One object in three parts, so the hairlines between them are shared and the
@@ -98,7 +111,45 @@ pre .cl, pre .kw { background: none; padding: 0; word-spacing: normal; }
  * above it, not to the page, which is why it is inside the frame and not in
  * the page's own listing recess.
  */
-.demo { display: flow-root; }
+/*
+ * ── How large a drawing is, as a number ───────────────────────────────────
+ *
+ * DESIGN.md's fifth rule - a picture is as large as what it has to show, and
+ * no larger - had no number on this page, so every figure that could not be a
+ * band took the frame by default and three of them came out as posters. The
+ * three boxes under "Beats let figures come alive" were drawn 1187px wide for
+ * a drawing 719 units across: its labels rendered at 25px against 19px prose,
+ * which is a diagram shouting over the text that introduces it.
+ *
+ * The number: a drawn figure is scaled so its labels are about the size of
+ * the prose beside them. A `::: draw` label is 15 units, prose is 19px, so
+ * the target is the viewBox's width times 19/15, plus the card's own padding.
+ * That is not a house style, it is the same reasoning DESIGN.md gives for the
+ * type scale - a figure among prose is read at the prose's size.
+ *
+ *   hero (in the hero's column, 469 units)   →  646px, and it already was 631
+ *   #seven (441 units)                       →  611px, was 827
+ *   follow (719 units)                       →  963px, was 1247
+ *   seq-demo (1053 units)                    → 1386px, and the frame is 1226
+ *
+ * The passkey sequence is the one that wants MORE than the frame, so it takes
+ * all of it and its labels still come out at 16.7px, a step under the prose.
+ * That is what a figure earning the frame looks like, and it is the only one
+ * on the page.
+ *
+ * The widths below are in rem, and a rem here is the browser's 16px, not the
+ * page's 19px body size - the same trap the type scale at the top of site.css
+ * records. 38rem is 608px, 60rem is 960.
+ *
+ * Centred, not left-aligned. A stage is a field a picture stands on, and a
+ * field's margin is even; the stage itself keeps the frame's left edge, so
+ * the page's one left edge is untouched.
+ */
+.demo { display: flow-root; margin-inline: auto; }
+.demo:has(> .fig-card) { max-width: 38rem; }
+.demo:has(> [data-demo="follow"]) { max-width: 60rem; }
+/* No cap: see above. */
+.demo:has(> [data-demo="seq-demo"]) { max-width: none; }
 .demo-stage, .demo > .fig-card { border-radius: 6px 6px 0 0; }
 /* site.css caps a listing at 62rem, which is right for a listing standing on
    the page and wrong for one that is the lower half of a framed object: it
@@ -482,9 +533,9 @@ pre .srcln:empty::before { content: "\00a0"; }
        the five ways into the lecture in the wide one. A table of links is
        looked at rather than read, so it runs to the frame's edge; it is not a
        picture, so it stands on the page's own ground rather than on a stage. -->
+  <h2 id="lecture">Open it as a lecture</h2>
   <div class="beside">
    <div class="said">
-    <h2 id="lecture">Open it as a lecture</h2>
     <p class="lede"><strong>Animated Infographics</strong> is a complete psi-slides
     lecture. Its figures live inside its
     Markdown source, the build places them into the slides, and the same source
@@ -520,26 +571,32 @@ pre .srcln:empty::before { content: "\00a0"; }
 
 <section class="band">
  <div class="wrap">
+  <!-- A band, and the one on this page that had the most to gain from being
+       one. The drawing used to take the frame's full width on its stage with
+       the heading, the lede and the cue stacked at the measure above it: three
+       lines of text, then half a screen of ground beside them, then a figure
+       whose three boxes came out 90px tall - a diagram of three words drawn
+       at the size of a poster. As a band the words stand beside it and the
+       figure is the width it needs.
+       Words left: this is the step that introduces the thing. -->
   <h2 id="seven">Figures in psi-slides</h2>
-  <p class="lede">A <strong>figure</strong> is whatever a slide shows in place of plain text &ndash; such as an image or a video clip. Our focus is on <strong>relational drawings</strong> fenced off with <code>::: draw</code>. They are described with text, rendered when you <em>build</em> the slides, and can optionally be built up in beats while you present.</p>
-
-  <!-- Half-empty row, answer 2, twice: the drawing takes the frame on its
-       stage, and the seven lines that produced it take the frame under it.
-       They are one exhibit, so the listing follows the stage directly with no
-       heading between them, and the cue that says what to look for stands in
-       front of both. -->
-  <p class="cue">This is a whole figure just as you would insert it into a slide. Note that the positions of the objects and arrows are not stored as absolute coordinates: Eve is placed <em>against</em> Alice, Bob against Eve. The arrows are described by naming their two ends and they find their own way between them.</p>
-  <div class="stage">
-   <div class="demo">
-    <div class="fig-card"><svg id="slhero-root" class="psi-diagram" viewBox="-44.05 -32.75 440.90 63.13" width="2000" height="286" data-steps="1" role="img" aria-label="hero, the whole of a figure" preserveAspectRatio="xMidYMid meet">
+  <div class="beside">
+   <div class="said">
+    <p class="lede">A <strong>figure</strong> is whatever a slide shows in place of plain text &ndash; such as an image or a video clip. Our focus is on <strong>relational drawings</strong> fenced off with <code>::: draw</code>. They are described with text, rendered when you <em>build</em> the slides, and can optionally be built up in beats while you present.</p>
+    <p class="cue">This is a whole figure just as you would insert it into a slide. Note that the positions of the objects and arrows are not stored as absolute coordinates: Eve is placed <em>against</em> Alice, Bob against Eve. The arrows are described by naming their two ends and they find their own way between them.</p>
+   </div>
+    <div class="stage">
+     <div class="demo">
+      <div class="fig-card"><svg id="slhero-root" class="psi-diagram" viewBox="-44.05 -32.75 440.90 63.13" width="2000" height="286" data-steps="1" role="img" aria-label="hero, the whole of a figure" preserveAspectRatio="xMidYMid meet">
 <g id="slhero-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="slhero-edge-1--p" class="dg-stroke" d="M32.05 0.00L146.80 0.00" fill="none"/><path id="slhero-edge-1--h" class="dg-head" d="M154.45 0.00L145.45 3.96L145.45 -3.96Z"/><g id="slhero-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(93.25,-11.38)"><g id="slhero-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
 <g id="slhero-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="slhero-edge-2--p" class="dg-stroke" d="M208.45 0.00L323.20 0.00" fill="none"/><path id="slhero-edge-2--h" class="dg-head" d="M330.85 0.00L321.85 3.96L321.85 -3.96Z"/><g id="slhero-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(269.65,-11.38)"><g id="slhero-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
 <g id="slhero-alice" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="slhero-alice--r" x="-32.05" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="slhero-alice--lw0" data-lab="alice--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="slhero-alice--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Alice</tspan></text></g></g></g>
 <g id="slhero-eve" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="slhero-eve--r" x="154.45" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="slhero-eve--lw0" data-lab="eve--l" class="dg-lwrap" transform="translate(181.45,0.00)"><g id="slhero-eve--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g></g>
 <g id="slhero-bob" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="slhero-bob--r" x="330.85" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="slhero-bob--lw0" data-lab="bob--l" class="dg-lwrap" transform="translate(357.85,0.00)"><g id="slhero-bob--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
 </svg></div>
-    <pre data-opensrc="hero"><span class="srcln">::: draw</span><span class="srcln"><span class="kw">box</span> alice <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span> eve <span class="cl">"Eve"</span>  <span class="kw">right of</span> alice <span class="kw">gap</span> 1.7 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">box</span> bob <span class="cl">"Bob"</span>  <span class="kw">right of</span> eve <span class="kw">gap</span> 1.7</span><span class="srcln"><span class="kw">edge</span> alice -&gt; eve <span class="cl">"plaintext"</span></span><span class="srcln"><span class="kw">edge</span> eve -&gt; bob <span class="cl">"plaintext"</span></span><span class="srcln">:::</span></pre><!--/opensrc-->
-   </div>
+      <pre data-opensrc="hero"><span class="srcln">::: draw</span><span class="srcln"><span class="kw">box</span> alice <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span> eve <span class="cl">"Eve"</span>  <span class="kw">right of</span> alice <span class="kw">gap</span> 1.7 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">box</span> bob <span class="cl">"Bob"</span>  <span class="kw">right of</span> eve <span class="kw">gap</span> 1.7</span><span class="srcln"><span class="kw">edge</span> alice -&gt; eve <span class="cl">"plaintext"</span></span><span class="srcln"><span class="kw">edge</span> eve -&gt; bob <span class="cl">"plaintext"</span></span><span class="srcln">:::</span></pre><!--/opensrc-->
+     </div>
+    </div>
   </div>
  </div>
 </section>
@@ -685,23 +742,36 @@ pre .srcln:empty::before { content: "\00a0"; }
   <h2 id="editor">Dragging a box rewrites the line that placed it</h2>
   <p class="lede">A drag changes the number inside a relation and leaves the relation standing, so a figure can be edited by hand without losing what holds it together. The editor therefore works differently from the ones you know: it shows you the relations, and it asks you to name your elements.</p>
 
-  <!-- Half-empty row, answer 2: the shot takes the frame on its stage. Both
-       sentences about it stand in front of it rather than under it - a
-       caption is read after the confusion it was meant to prevent. -->
-  <div class="pair-up">
-   <div>
-    <p class="cue">The selected box is <code>c1</code>, and the words drawn beside it &ndash; <code>gap 1.15</code>, <code>flush middle</code>, <code>align y middle</code> &ndash; are the relations it was written with. A finished drawing cannot show those: a box placed <code>gap 1.15</code> from its neighbour looks exactly like one that happens to sit 1.15 away, and only one of the two moves when the neighbour does.</p>
-   </div>
-   <div>
-    <p class="cue">The panel on the right describes the beat that is standing, and it describes it by what it <em>does</em> rather than by what it says: the beat is written <code>show @out</code> and <code>dim feed0, feed1, feed2</code>, and the panel names the three boxes that appear, the three arrows that come with their ends because an arrow is only as visible as the two things it joins, and the three lines dimmed under them. A drag at that beat writes a <code>move</code> into the step rather than moving the element.</p>
-   </div>
-  </div>
+  <!-- The caption belongs to its picture, and this is where it did not.
+       Both paragraphs describe a REGION of the window - the canvas and the
+       panel - and they stood in a two-column row ABOVE the picture, set as
+       cues, which put two captions between a heading and the thing they
+       caption with nothing saying which was which. DESIGN.md's second rule
+       still holds: the sentence that says what to look at goes in front. So
+       one short cue goes in front, the picture carries a caption of its own
+       naming the two regions, and the two long paragraphs stand under it,
+       each opening with the region it is about. -->
+  <p class="cue">Two places to look in the window below: the words drawn on
+  the canvas beside the box that is selected, and the panel down the
+  right-hand edge.</p>
 
   <div class="stage">
-   <figure class="shot">
+   <figure class="shot evidence">
     <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>the editor, opened on a figure with beats</b></div>
     <img src="img/editor.webp" alt="The diagram editor open over a lecture slide: a dark canvas holding a CBC decryption figure with one box selected, the relations that place it written on the canvas beside it, a panel on the right describing the beat that is standing, a rail of the figure's beats along the bottom, and a strip of the lecture's other figures under that.">
+    <figcaption><strong>The editor, over a slide of a network-security
+    lecture.</strong> The selected box is <code>c1</code>; the panel on the
+    right stands for the beat the figure is currently showing.</figcaption>
    </figure>
+  </div>
+
+  <div class="pair-up">
+   <div>
+    <p><strong>On the canvas</strong>, the words drawn beside the selected box <code>c1</code> &ndash; <code>gap 1.15</code>, <code>flush middle</code>, <code>align y middle</code> are the relations it was written with. A finished drawing cannot show those: a box placed <code>gap 1.15</code> from its neighbour looks exactly like one that happens to sit 1.15 away, and only one of the two moves when the neighbour does.</p>
+   </div>
+   <div>
+    <p><strong>In the panel down the right-hand edge</strong>, what stands there describes the beat that is standing, and it describes it by what it <em>does</em> rather than by what it says: the beat is written <code>show @out</code> and <code>dim feed0, feed1, feed2</code>, and the panel names the three boxes that appear, the three arrows that come with their ends because an arrow is only as visible as the two things it joins, and the three lines dimmed under them. A drag at that beat writes a <code>move</code> into the step rather than moving the element.</p>
+   </div>
   </div>
 
   <h3>Opening it, and where the edit goes</h3>

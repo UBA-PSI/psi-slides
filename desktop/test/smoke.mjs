@@ -207,7 +207,15 @@ try {
   // window is taller than this project screen needs, and on a stage that void
   // reads as a rendering fault rather than as an app that does little.
   //
-  //   magick desktop/test/shots/site-builder.png -crop 1520x1150+0+0 +repage /tmp/b.png
+  // 800 rather than 1150, since the site's rows became bands: the words beside
+  // this shot name the status line, the Build now button and the four view
+  // buttons, and the crop now ends one row under them. At 1150 the picture was
+  // 724px tall against 241px of words - DESIGN.md's fifth rule, and the answer
+  // it gives is a crop rather than an arrangement that manages the difference.
+  // `builder-top.webp`, the further 690-row crop the front page's chooser uses,
+  // is still taken from this file and is unaffected.
+  //
+  //   magick desktop/test/shots/site-builder.png -crop 1520x800+0+0 +repage /tmp/b.png
   //   cwebp -quiet -q 86 -m 6 /tmp/b.png -o docs/site/img/builder.webp
   const shown = path.join(work, 'netsec-04');
   fs.mkdirSync(shown);

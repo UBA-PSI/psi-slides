@@ -271,7 +271,6 @@ main.banded { display: block; max-width: none; padding: 0; }
 .wrap > * { max-width: var(--measure); }
 .wrap > .stage,
 .wrap > .beside,
-.wrap > .folded-note,
 .wrap > details,
 .wrap > .aside-code,
 .wrap > .picks,
@@ -363,7 +362,13 @@ p { margin: 0 0 1.1rem; }
 .stage {
   background: var(--stage);
   border-radius: 12px;
-  padding: clamp(0.9rem, 2.2vw, 2.2rem);
+  /*
+   * DESIGN.md says two to three rems of air inside a stage. It was 1.7rem at
+   * 1440 - the vw term topped out before the rem cap did - and a picture that
+   * runs to within 32px of the field it stands on reads as pressed into it,
+   * whatever the page has for space elsewhere. 2.2rem at 1440, 2.8 at 1920.
+   */
+  padding: clamp(1.1rem, 2.9vw, 2.8rem);
   margin: 0 0 1.4rem;
 }
 .stage > :last-child { margin-bottom: 0; }
@@ -392,14 +397,20 @@ p { margin: 0 0 1.1rem; }
  * column gap is the only separation this grid is for. Where subgrid is missing
  * the declaration is dropped and the pair behaves as it did.
  */
+/* Three rows, not two: bar, picture, caption. With two, a `figure` that has a
+   caption put it in the same row as its own picture, and on `in-the-room.html`
+   the two captions under "A question about slide forty" were printed straight
+   across the two screenshots - the exact fault of a caption that cannot be
+   told apart from the thing it captions. A pair whose figures carry no caption
+   gets a third row of zero height and pays nothing. */
 @media (min-width: 52rem) {
   .stage-pair {
     grid-template-columns: 1fr 1fr;
-    grid-template-rows: auto auto;
+    grid-template-rows: auto auto auto;
     row-gap: 0;
   }
   .stage-pair figure.shot {
-    grid-row: span 2;
+    grid-row: span 3;
     display: grid;
     grid-template-rows: subgrid;
   }
@@ -407,23 +418,45 @@ p { margin: 0 0 1.1rem; }
 .stage-pair figure.shot { margin: 0; }
 
 /*
- * ── Prose beside a stage ──────────────────────────────────────────────────
+ * ── The band: words beside a stage, centred against it ─────────────────────
  *
- * The way this page uses its width. The trap it is written against: two
- * columns of prose and picture leave a hole the height of the difference
- * whenever the two are not the same height, and a page of holes is what
- * "busy" turns out to mean.
+ * The one device this page's width is built on, and the one rule that makes
+ * it work: `align-items: center`.
  *
- * The escape is not to give the device up but to write the content for it.
- * The left column is a heading and three to five lines - never a paragraph
- * that happens to be there - and the right column is a stage that is both
- * much wider and much taller. At those proportions the space under the text
- * reads as margin, which is what it is, rather than as a column that ran
- * out. Anything longer than five lines goes above the stage instead.
+ * The trap it is written against: two columns of prose and picture leave a
+ * hole the height of the difference whenever the two are not the same
+ * height. The previous version of this stylesheet aligned both columns at
+ * the top and then wrote the content to length so the hole would be small -
+ * three to five lines against a stage that had to be taller. That is a rule
+ * about what may be written, and every section that needed a sixth line
+ * broke it, so the fault came back somewhere else each time it was patched.
+ *
+ * A band takes the fault out of the writing and puts it in the geometry.
+ * The words are centred against the stage, so the space left over is split
+ * above and below them instead of piling up underneath. Symmetrical
+ * whitespace reads as composition; one-sided whitespace reads as a hole.
+ * The column may now be four lines or nine and the row is right either way.
+ *
+ * The second half of it is what may follow a band, and the answer is: a
+ * block at the frame's full width, nothing else. A band ends at full width
+ * and the next thing begins at full width, so nothing after a band aligns
+ * itself to anything inside it - which is the fault that used to reappear
+ * between a row and its successor rather than inside the row. A sentence
+ * that belongs to the words column goes IN the column, above the band's own
+ * floor; a heading, a button, a row of three, a listing is its own block.
  *
  * The lede sits OUTSIDE the stage, on the page's own ground. Put it inside
  * and the three-ground stack collapses to two, which is the whole reason
  * the stage exists.
+ *
+ * Which side the stage takes is not alternation for its own sake. A band
+ * that carries the argument one step further keeps the reading direction -
+ * words left, evidence right. A band that shows a COMPARISON turns it round,
+ * evidence left and the verdict on it right, because in a comparison the
+ * thing is the subject and the words are what is said about it. Where a
+ * section is neither, the side does not change: `.beside-flip` is a claim
+ * about the content, and a page that flips on every section is a page that
+ * has stopped meaning anything by it.
  */
 /*
  * A block that follows another picture rather than a paragraph. The space
@@ -449,14 +482,32 @@ p { margin: 0 0 1.1rem; }
  * It is the seam magnitude and not the section gap: what follows still
  * belongs to the same section, and the section gap would read as a new one.
  */
-.beside + .pair-up,
-.beside + .aside-code,
-.beside + .beside,
+/* Everything that follows a band, not a list of the four things that happened
+   to follow one when the rule was written. A band ends at the frame's width;
+   whatever comes next begins at the frame's width and needs the seam, whether
+   it is a heading, a row of three, a listing, a button or a paragraph. The
+   list form of this rule was itself a symptom: each new section that opened a
+   hole under a picture was answered by adding its own selector to it. */
+.beside + *,
 .ways + .pair-up,
 .way-tabs + .ways + .pair-up,
 .stage + .pair-up { margin-top: clamp(2.4rem, 5vw, 5.5rem); }
+/* A heading after a band is the start of a block and carries its own top
+   space, so it needs the seam and not the seam plus its own margin. */
+.beside + :is(h2, h3) { margin-top: clamp(2.4rem, 5vw, 5.5rem); }
 
-.beside { display: grid; gap: clamp(1.4rem, 2.5vw, 3rem); align-items: start; }
+/* `center`, and this single word is the whole variant. See the note above. */
+/*
+ * The gutter is measured against the section gap, which is 172px at 1440 and
+ * 230 at 1920. At 36px the two halves of a band were a fifth of that apart and
+ * the words stood against the picture's edge; at 52 they are a third of it,
+ * which still reads as one row and no longer as two things touching.
+ */
+.beside { display: grid; gap: clamp(1.8rem, 3.6vw, 4.2rem); align-items: center; }
+/* The one exception, and it is not a picture row: where the two columns are
+   both text of the same kind, centring them makes two ragged tops out of two
+   flush ones. A band has a stage in it; this does not. */
+.beside.level { align-items: start; }
 /* A grid item is min-content wide by default, and since the download table
    moved into the words column of `.words-wide` the widest thing in one is a
    three-column table. Without this the table pushed the column, the column
@@ -465,20 +516,48 @@ p { margin: 0 0 1.1rem; }
 .beside > * { min-width: 0; }
 .beside > .said > :first-child { margin-top: 0; }
 .beside > .said > :last-child { margin-bottom: 0; }
+/* A stage carries 1.4rem under it for the case where prose follows it inside
+   one column. In a band it is the column, and that margin puts the centre
+   0.7rem out - which is exactly the amount an eye reads as "nearly centred",
+   the worst of both answers. */
+.beside > .stage,
+.aside-code > .stage { margin-bottom: 0; }
 .beside .lede { margin-bottom: 0; }
 /* 24rem, not the 21rem it was. The words in this column are the one place on
    the page where prose is read at a fixed narrow width, and at 21rem they held
    44 to 48 characters a line at 17px. Setting them at the prose size - which is
    what they are - would have put that at 40, so the column carries the extra
-   three rems instead. The stage beside it loses 3rem of about 58 and stays
-   twice the width and well over twice the height, which is the proportion
-   DESIGN.md asks of this device. */
+   three rems instead.
+   What the width no longer has to do is keep the two columns near the same
+   height. That was the old proportion rule, and it is what the centring
+   replaced; 24rem is now a number about characters a line and nothing else. */
 @media (min-width: 68rem) {
   .beside { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
 }
-/* A heading in this column cannot carry the full display size: at the section
-   size it broke every one of them into three lines. */
-.beside .said h2 { font-size: clamp(1.7rem, 2.4vw, 2.15rem); max-width: none; }
+/*
+ * The section heading is NOT in this column any more, and that is the second
+ * half of what centring cost.
+ *
+ * Centred with the rest of the words, an h2 floated at half the height of the
+ * picture beside it - a heading anywhere but at the top of what it names. The
+ * fix is not to stop centring; it is that a heading of a SECTION was never a
+ * member of one of the section's columns. It stands above the band now, at the
+ * frame's left edge, and it carries the same size every other h2 on the site
+ * carries: it used to be set two steps down to survive a 24rem column, so the
+ * page had two h2 sizes depending on whether a section happened to be a band,
+ * and a contact sheet is scanned by heading size.
+ *
+ * An h3 stays where it is. It names the COLUMN rather than the section, there
+ * can be several in one section, and lifting one out would make a sub-heading
+ * look like a section heading. What it gets instead is the row below - see
+ * "Where the thing beside a headed column starts" further down, which puts the
+ * heading on the row's first line and starts the listing level with the prose
+ * under it.
+ */
+/* The band's first line is the lede, so it needs no top margin of its own; the
+   heading above the row carries the space. */
+.wrap > h2 + .beside,
+.wrap > h2 + .aside-code { margin-top: 0; }
 /* The one lede that is not an entrance but the section's whole text: beside a
    stage there is no paragraph after it, so it is read as prose and is set at
    the prose size rather than a step under it. Uncapped, because the column it
@@ -735,7 +814,9 @@ figure.shot .swap button[aria-pressed="true"]:hover {
 pre {
   background: var(--code-bg);
   border-radius: 8px;
-  padding: 1.1rem 1.3rem;
+  /* A listing is a recess, and a recess with 21px of floor round its first
+     character reads as a box that ran out of room. */
+  padding: 1.4rem 1.7rem;
   overflow-x: auto;
   font-size: var(--fs-code);
   line-height: 1.62;
@@ -785,6 +866,28 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
 .pair-up p, .pair-up li { max-width: var(--measure-col); }
 .pair-up pre { max-width: none; }
 @media (min-width: 64rem) { .pair-up { grid-template-columns: 1fr 1fr; } }
+/*
+ * The gutter, and why the row is capped rather than the paragraph.
+ *
+ * A two-column `.pair-up` took half the frame each and then held its prose at
+ * --measure-col inside that. At 1440 the frame is 1310px, so each column was
+ * 626px carrying a 646px cap - fine - but at 1600 and above the column outran
+ * the cap and the difference came out as gutter: 137px of nothing between two
+ * paragraphs, measured on `figures.html`, where it read as two unrelated
+ * pages side by side rather than as one row of two.
+ *
+ * The cap belongs on the ROW. Two measures and a 3rem gutter is what this
+ * pattern is; wider than that is not a wider row, it is the same row with the
+ * halves pulled apart. What is left over stands at the frame's right edge,
+ * which is where the page already leaves its ground under every paragraph set
+ * at --measure. The trio is a different shape and keeps the frame: three
+ * columns of a 1310px frame are 21rem each, well under the cap, so the gutter
+ * is the 3rem it says it is.
+ */
+@media (min-width: 64rem) {
+  .wrap > .pair-up:not(.trio),
+  .hint > .pair-up:not(.trio) { max-width: calc(var(--measure-col) * 2 + 3rem); }
+}
 /* Three of the same kind rather than two. The cockpit page keeps running into
    sets of three - what is in the window that is not on the wall, the three
    ways of taking the room's eyes off the slide - and a third item in a
@@ -803,11 +906,13 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
 .hero-ways > * > :first-child { margin-top: 0; }
 
 /* A card: the shot's white on the page's grey, the way a screenshot is. */
+/* 1.5rem of padding, not 1.1: a bordered card whose text starts 21px from its
+   own edge reads as crowded next to a stage that now keeps 2.2rem. */
 .hint {
   background: var(--shot-bg);
   border: 1px solid var(--frame);
   border-radius: 6px;
-  padding: 1.1rem 1.3rem;
+  padding: 1.5rem 1.7rem;
   font-size: var(--fs-note);
   margin: 2rem 0 0;
   max-width: 42rem;
@@ -1370,22 +1475,35 @@ body.lightbox-open { overflow: hidden; }
  *
  * Four of the client's twelve notes were one fault: an element using half
  * the width with nothing beside it. One-sided white space reads as a
- * mistake; symmetrical white space reads as a decision. Three answers, and
- * each section below is assigned one deliberately rather than by default.
+ * mistake; symmetrical white space reads as a decision.
  *
- * 1. Put a second thing in the free half - `.beside`, already here, and the
- *    listing variants below.
- * 2. Let the element take the width itself - the listings now do.
- * 3. Make it narrow on purpose and centre it, so the space is even on both
- *    sides - `.middle`, used for the closing section, where there is
- *    genuinely nothing to put beside four links.
+ * There used to be three answers here and a fourth added later, and a page
+ * is now assigned one of two:
+ *
+ * 1. It is a BAND - words beside a stage, centred against it, at the frame's
+ *    full width. That is `.beside` above, `.aside-code` below when the
+ *    evidence is a listing, and `.way` inside a chooser. The whitespace is
+ *    symmetrical by construction rather than by writing the column to a
+ *    length, and nothing after the band aligns to anything inside it.
+ * 2. It is NOT a band, because there is nothing to stand beside the words,
+ *    and then it takes the frame (a row of cards, a fold, a listing, a
+ *    gallery) or the measure (a paragraph). Ground to the right of a
+ *    paragraph at --measure is the page's margin, not a half-empty row.
+ *
+ * `.middle` survives from the old list as the third shape, for the closing
+ * section, where four links are deliberately narrow and centred.
  */
 
-/* A listing with its explanation beside it: the code takes the wide side
-   because it is the thing being shown, the words take the narrow one. Same
-   proportion trap as `.beside`, same escape - the words are three to five
-   lines by construction, so the space under them is margin. */
-.aside-code { display: grid; gap: clamp(1.2rem, 2.2vw, 2.6rem); align-items: start; }
+/* A band whose evidence is a listing rather than a picture: the code takes the
+   wide side because it is the thing being shown, the words the narrow one, and
+   they are centred against it like every other band. It used to carry the same
+   rule `.beside` did - write the words to three to five lines and the space
+   under them reads as margin - and a listing is routinely eight lines against
+   four of explanation, so that space was routinely four lines of nothing.
+   Which side the listing takes follows the same question a picture band asks:
+   a step keeps the reading direction (`.words-first`), a comparison turns it
+   round. */
+.aside-code { display: grid; gap: clamp(1.6rem, 3.2vw, 3.8rem); align-items: center; }
 .aside-code > .said > :first-child { margin-top: 0; }
 .aside-code > .said > :last-child { margin-bottom: 0; }
 .aside-code > pre { margin-bottom: 0; max-width: none; }
@@ -1501,7 +1619,7 @@ footer p { max-width: none; }
   background: var(--shot-bg);
   border: 1px solid var(--frame);
   border-radius: 8px;
-  padding: 1.3rem 1.5rem 1.4rem;
+  padding: 1.6rem 1.8rem 1.7rem;
 }
 .pick h3 { margin: 0 0 0.15rem; font-size: var(--fs-lead); }
 .pick h3 code { font-size: 0.92em; color: inherit; }
@@ -1527,32 +1645,11 @@ footer p { max-width: none; }
    make them two kinds of thing rather than a first and a second. */
 .pick-lead { border-color: var(--ink-soft); }
 
-/* The disclosure and the note that follows it were two half-width blocks
-   stacked down the left. Side by side they are one row: the disclosure grows
-   downwards when it opens and the note stays where it is.
- *
- * The note is the taller half, and a closed disclosure is one 64px bar, so on
- * the front page the row was a quarter-screen of nothing at the frame's LEFT
- * edge - the edge reading follows, and the worst place on the page to put it.
- * DESIGN.md's fourth answer applies: the column runs on. The two lecture
- * cards that used to stand above the row at the frame's full width are inside
- * its left column now, wrapped in a `.said` like every other running-on
- * column here, and the note stands beside both of them. Nothing moved in
- * reading order; what moved is which column each block is in.
- * One caller and one only: a row needs two things in it. `decoration.html`
- * used this class around a lone disclosure, which left the second column
- * empty at every state - that page's fold takes the frame's width now. */
-.folded-note { display: grid; gap: clamp(1.2rem, 2.2vw, 2.6rem); align-items: start; }
-.folded-note > details { margin-top: 0; }
-.folded-note > .hint { margin-top: 0; max-width: none; }
-.folded-note > .said > :first-child { margin-top: 0; }
-.folded-note > .said > :last-child { margin-bottom: 0; }
-/* The cards were `.wrap`'s child and ran to the frame's edge; in the column
-   they run to the column's, and the gap under them is the row's own. */
-.folded-note .picks { margin-bottom: clamp(1.2rem, 2.2vw, 2.6rem); }
-@media (min-width: 68rem) {
-  .folded-note { grid-template-columns: minmax(0, 1fr) minmax(0, 24rem); }
-}
+/* `.folded-note` was here: a two-column row holding the lecture cards and
+   the fold in one column and a white note in the other. It had one caller and
+   the caller's second column was empty from the fold downwards, which is the
+   fault this variant is written against, one level up. The three blocks stand
+   under each other at the frame's width now and the class is gone. */
 
 /*
  * ── The packages, one block per system ─────────────────────────
@@ -1655,7 +1752,9 @@ footer p { max-width: none; }
 /* The label becomes the tab, so inside the chooser it would be the same
    words twice. */
 .ways.is-switched .way-label { display: none; }
-.way { display: grid; gap: clamp(1.2rem, 2.4vw, 2.6rem); align-items: start; }
+/* A `.way` is a band inside a chooser - words on one side, the thing itself on
+   the other - so it is centred like every other band on this site. */
+.way { display: grid; gap: clamp(1.6rem, 3.2vw, 3.8rem); align-items: center; }
 @media (min-width: 64rem) {
   .way { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
 }
@@ -1759,69 +1858,56 @@ footer p { max-width: none; }
  * -gravity north -extent 1520x718` - the last 28 rows are the window's own
  * background, so the table underneath it is not cut off at the edge.
  */
-.ways-two .way { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+.ways-two .way { grid-template-columns: minmax(0, 1fr); }
+/* The stage takes the row's height whatever the words do, or the listing has
+   nothing to fill and the two options stop being the same height. */
+.ways-two .way > .stage { align-self: stretch; }
 /* One column means the words are the page's own paragraph rather than a
    column beside a picture, and `.way-said p` uncaps them: at 1100 they ran to
    the frame's full 1034px, about a hundred characters a line. */
 .ways-two .way-said p { max-width: var(--measure); }
 /*
- * What follows the row is in the row - DESIGN.md's fourth answer to a
- * half-empty row. The paragraph that sends a reader to the next page and the
- * button that takes them there used to stand under the whole thing, so a
- * three-line option beside a 500px window put a quarter-screen of nothing
- * above the one place this page asks for an action. `.ways-on` is that
- * material, and it is a child of `.ways` rather than a sibling so the grid can
- * hold it: it takes the second row of the words column while the stage spans
- * both rows beside it.
+ * Each option is a band, and what follows the row follows the row.
  *
- * Which means the two `.way` panels can no longer be the grid items - they
- * carry a column each, and one of the two columns has to reach past them. So
- * when the chooser is on, a panel is `display: contents` and its two parts are
- * placed by hand: the words in row 1 column 1, the stage over rows 1 and 2 of
- * column 2. The panels still overlap in one cell, still hide with
- * `visibility`, and the row is still as tall as the taller of the two, which
- * is the whole point of the arrangement (see above). What changed is only
- * which element the grid places.
+ * The paragraph that sends a reader to the next page and the button that takes
+ * them there used to be a child of `.ways`, placed by hand into the second row
+ * of the words column, because under a top-aligned row they would otherwise
+ * have started under a quarter-screen of nothing. That answer cost the panels
+ * their place in the grid - both had to become `display: contents` and have
+ * their two halves placed one at a time - and it put the page's one call to
+ * act inside a chooser, where it switched sides with the tabs it does not
+ * belong to.
  *
- * The tail is outside both panels, so it does not switch with them, and it is
- * the same paragraph and the same button whichever option is showing.
+ * As a band neither is needed. The words are centred against the stage, so the
+ * difference in height is split above and below them and there is no hole for
+ * anything to start under; and the tail is a sibling of the row at the frame's
+ * full width, which is what may follow a band. The panels are grid items
+ * again, they still overlap in one cell, and they still hide with
+ * `visibility` rather than `display` so the row stays as tall as the taller of
+ * the two and nothing moves when the switch is pressed - which is the point of
+ * the arrangement and the one part of it that was never the problem.
  */
 @media (min-width: 80rem) {
   .ways-two .way { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
   .ways-two .way-said p { max-width: none; }
-  .ways-two.is-switched {
-    grid-template-columns: minmax(0, 24rem) minmax(0, 1fr);
-    /* Both rows have to be named, and the second one has to be flexible. The
-       stage spans them, and a grid distributes a spanning item's surplus over
-       every row that sizes to its content - which put 44px of the window's
-       height above the tail as well as below it, a gap nothing had asked for.
-       With `1fr` under the words the surplus lands in the second row only, so
-       the tail sits its own row-gap under the words and the rest of the
-       window's height falls under the tail, where it is the row's margin. */
-    grid-template-rows: min-content 1fr;
-    column-gap: clamp(1.2rem, 2.4vw, 2.6rem);
-    row-gap: clamp(1.2rem, 2.4vw, 2.2rem);
-    align-items: start;
-  }
-  /* `.ways.is-switched .way.is-shown { display: grid }` above is one class
-     more specific than `.ways-two.is-switched .way`, so the shown panel has
-     to be told twice or it goes back to being a grid item with no place. */
+  .ways-two.is-switched { display: grid; }
   .ways-two.is-switched .way,
-  .ways-two.is-switched .way.is-shown { display: contents; }
-  .ways-two.is-switched .way > .way-said { grid-area: 1 / 1 / 2 / 2; visibility: hidden; }
-  /* Rows 1 to 3, i.e. beside the words AND beside the tail under them. The
-     listing stretches to that, which is what keeps the two options the same
-     height. */
-  .ways-two.is-switched .way > .stage {
-    grid-area: 1 / 2 / 3 / 3;
+  .ways-two.is-switched .way.is-shown {
+    display: grid;
+    grid-area: 1 / 1 / 2 / 2;
     visibility: hidden;
-    align-self: stretch;
+    /* The band's own rule, one level down: the words sit centred against the
+       stage beside them. */
+    align-items: center;
   }
-  .ways-two.is-switched .way.is-shown > * { visibility: visible; }
-  .ways-two.is-switched > .ways-on { grid-area: 2 / 1 / 3 / 2; }
+  .ways-two.is-switched .way.is-shown { visibility: visible; }
+  /* The stage still stretches to the row, or the listing has nothing to fill
+     and the two options come out different heights after all. */
+  .ways-two.is-switched .way > .stage { align-self: stretch; }
 }
-/* Under the breakpoint the options stand one over the other in one column, so
-   the tail is simply the last block of that column and needs no placing. */
+/* The tail. A block at the frame's width under a band, so it starts where the
+   band started rather than under one of its columns. */
+.ways-on { margin-top: clamp(2.4rem, 5vw, 5.5rem); }
 .ways-on > p { margin-top: 0; }
 .ways-on > .cta { margin-bottom: 0; }
 /* The stage has to reach the bottom of the row, or the listing's stretch has

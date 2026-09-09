@@ -106,13 +106,19 @@ const SHOTS = [
     } },
   { name: 'cockpit', src: 'speaker.html', w: 1440, h: 900, dsf: 1.5, frag: true },
   { name: 'printed', src: 'print.html', w: 1000, h: 625, dsf: 2.15, rig: DOC_RIG },
-  { name: 'handout', src: 'print-notes.html', w: 860, h: 690, dsf: 2.5, rig: DOC_RIG },
+  // 470 rather than 690, and the reason is DESIGN.md's fifth rule. The frame
+  // held two chunks of the document, and the second one carries nothing the
+  // first does not: the claim beside it is hyphenation, a line length made
+  // for reading, and the margin note as an aside, and all three are in the
+  // first chunk. As two chunks the shot came out 762px tall against 240px of
+  // words in the row beside it - a picture three times its own argument.
+  { name: 'handout', src: 'print-notes.html', w: 860, h: 470, dsf: 2.5, rig: DOC_RIG },
   // The same frame again from print.html, so the landing page can offer the
   // two handouts as one switch rather than showing the notes version and
   // calling it what the students take away. Identical geometry to `handout`
   // on purpose: a switch that changes the crop as well as the file reads as
   // two pictures, not as one file becoming another.
-  { name: 'handout-plain', src: 'print.html', w: 860, h: 690, dsf: 2.5, rig: DOC_RIG },
+  { name: 'handout-plain', src: 'print.html', w: 860, h: 470, dsf: 2.5, rig: DOC_RIG },
   // The editor, opened on a figure with beats. 1280 is the narrowest viewport
   // that still fits the whole top bar - at 1200 the Close button is cut in
   // half, and a screenshot of a clipped UI reads as a broken one.
