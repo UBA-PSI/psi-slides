@@ -1619,6 +1619,87 @@ footer p { max-width: none; }
 .ways-frames:not(.is-switched) { gap: 2.6rem; }
 
 /*
+ * The same chooser carrying the two ways in - "Getting started" on the front
+ * page. Third caller, and deliberately not a third device: the section says
+ * there are two ways, and now it shows them.
+ *
+ * The half that is not a picture. One way is a window and photographs; the
+ * other is a terminal, and there is nothing for a screenshot script to
+ * photograph - playwright-core photographs pages, so a terminal shot would
+ * mean building a page that impersonates one. That buys a picture of text,
+ * and this site has just had to replace six of those because they showed a
+ * state the tool no longer produces. So the console half is the build's own
+ * output, set as a listing like every other listing here: sharp at any zoom,
+ * selectable, searchable, and it cannot go stale as a file.
+ *
+ * What that costs is the one thing a switch may not do: the two halves are
+ * different heights, and a switch whose sides are different sizes reads as
+ * two pictures rather than as two answers to one question. So both `.way`
+ * panels are laid into ONE grid cell and hidden with `visibility` rather than
+ * `display`. The row is then as tall as the taller of the two, the listing is
+ * stretched to exactly that height, and nothing moves when the switch is
+ * pressed. `visibility: hidden` also keeps the hidden half out of the tab
+ * order and out of the accessibility tree, which `opacity: 0` would not.
+ *
+ * Which half is the taller one has to stay the same one, and that is what the
+ * 80rem breakpoint is for. A window's height grows with the column; a
+ * listing's shrinks, because the same characters wrap into fewer lines. They
+ * cross at a shot of about 760px: above it the window is taller and the extra
+ * room lands inside the terminal, which is what a terminal looks like anyway;
+ * below it the listing is taller and the window stands in a field of grey,
+ * which reads as a fault. Measured at 1440 the window is 391px and the
+ * listing 324; at 1100 in the same two-column row the listing would be 481
+ * against 256. So the two-column row starts at 80rem, and under it the option
+ * is one column - words over a full-width stage - where the window is the
+ * taller half again. The stack is dropped there with it: two panels in one
+ * cell have their own words above their own stage, so the stage would move
+ * even though the cell did not.
+ *
+ * The picture is larger here than the 480px it has on getting-started.html,
+ * and it is a crop rather than the whole window - the reason is DESIGN.md's
+ * fifth rule. There the window is evidence beside text that names its six
+ * controls, so it keeps all six and goes small. Here it is one of two answers
+ * a reader compares against the other, so the status line and the four view
+ * buttons have to be readable rather than merely present, and everything
+ * below them belongs to a sentence this section does not make. The crop is
+ * `magick builder.webp -crop 1520x690+0+0 +repage -background '#f9f9f9'
+ * -gravity north -extent 1520x718` - the last 28 rows are the window's own
+ * background, so the table underneath it is not cut off at the edge.
+ */
+.ways-two .way { grid-template-columns: minmax(0, 1fr); align-items: stretch; }
+/* One column means the words are the page's own paragraph rather than a
+   column beside a picture, and `.way-said p` uncaps them: at 1100 they ran to
+   the frame's full 1034px, about a hundred characters a line. */
+.ways-two .way-said p { max-width: var(--measure); }
+@media (min-width: 80rem) {
+  .ways-two .way { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
+  .ways-two .way-said p { max-width: none; }
+  .ways-two.is-switched { grid-template-columns: minmax(0, 1fr); }
+  .ways-two.is-switched .way { display: grid; grid-area: 1 / 1; visibility: hidden; }
+  .ways-two.is-switched .way.is-shown { visibility: visible; }
+}
+/* The stage has to reach the bottom of the row, or the listing's stretch has
+   nothing to stretch inside. */
+.ways-two .stage { margin-bottom: 0; display: grid; }
+.ways-two figure.shot { margin: 0; display: grid; grid-template-rows: auto 1fr; }
+/* Not stretched: the window is what sets the row's height, and a stretched
+   img is a distorted one the moment that stops being true. */
+.ways-two figure.shot > img { align-self: start; }
+/* The listing wears the shot's frame rather than standing loose on the stage,
+   so the two halves have the same edges. Its ground stays --code-bg: it is
+   text, and on this site text in a recess is what a listing looks like. */
+.ways-two figure.shot > pre {
+  height: 100%;
+  margin: 0;
+  max-width: none;
+  border: 1px solid var(--frame);
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+}
+/* Without scripting the two stand under each other, so they need the air
+   between two stages rather than the gap inside one option. */
+.ways-two:not(.is-switched) { gap: 2.6rem; }
+/*
  * ── The three other lectures ──────────────────────────────────────────────
  *
  * Punkt 1. This was the six-column table again, inside the disclosure, with

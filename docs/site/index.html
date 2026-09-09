@@ -536,13 +536,61 @@ browser is for pages meant to be looked at.
 <section class="band">
  <div class="wrap">
   <h2 id="getting-started">Getting started</h2>
-  <p class="lede">Two ways in, and they build the same four files. <strong>The
-  app</strong> you download, and it builds at the press of a button: open a
-  <code>source.md</code> in it, and it builds again every time you save.
-  <strong>The command line</strong> starts with a clone of the repository and one
-  <code>npm install</code>, for people who already work in a terminal &ndash; and
-  it is the way to write a lecture with a language model beside you, because the
-  repository carries the skills that teach one the format.</p>
+  <p class="lede">Two ways in, and they build the same four files.</p>
+
+  <!-- The two ways, seen rather than only read, and the same chooser that
+       carries the three ways above and the four cockpit frames on "In the
+       room". A fourth switching device would be a fourth thing to learn and a
+       fourth thing to keep operable from a keyboard.
+       The handout switch is the nearer relative in what it answers - one
+       thing, two executions - but it swaps an <img> src, and half of this
+       pair is not an image: it is the build's own output, set as a listing.
+       That is deliberate. A terminal is text, and a picture of text is a file
+       that goes stale - this site has had to replace six screenshots that
+       showed a state the tool no longer produces - blurs at any zoom, cannot
+       be selected and needs a window frame nobody ever saw. The lines below
+       are what `node build.js lectures/tutorial/source.md` printed, all five
+       of them, nothing cut.
+       Both halves stand in one grid cell (`.ways-two` in site.css), so the
+       row is as tall as the taller of the two and neither side moves when the
+       switch is pressed. -->
+  <div class="ways ways-two">
+   <div class="way" data-tie="app">
+    <p class="way-label">the app</p>
+    <div class="way-said">
+     <p><strong>The app</strong> you download, and it builds at the press of a
+     button: open a <code>source.md</code> in it, and it builds again every time
+     you save.</p>
+    </div>
+    <div class="stage">
+     <figure class="shot">
+      <div class="bar"><b>psi-slides Builder</b></div>
+      <img src="img/builder-top.webp" alt="The builder window with a lecture open: the folder name and the path to its source.md, the line &ldquo;Ready. Built at 12:23 in 0.1 s.&rdquo;, a Build now button beside a ticked box reading &ldquo;Build again whenever source.md is saved&rdquo;, and four buttons for the presentation, the cockpit and the two handouts.">
+     </figure>
+    </div>
+   </div>
+   <div class="way" data-tie="cli">
+    <p class="way-label">the command line</p>
+    <div class="way-said">
+     <p><strong>The command line</strong> starts with a clone of the repository
+     and one <code>npm install</code>, for people who already work in a
+     terminal &ndash; and it is the way to write a lecture with a language model
+     beside you, because the repository carries the skills that teach one the
+     format.</p>
+    </div>
+    <div class="stage">
+     <figure class="shot">
+      <div class="bar"><b>node build.js</b> &middot; lectures/tutorial/source.md</div>
+<pre class="out"><code>[inline-images] auto-inlining 2 image(s), 0.00 MB total (under 10 MB budget). Use --no-inline-images to disable.
+[fonts] 6 bundled face(s) embedded &ndash; Literata, IBM Plex Sans, JetBrains Mono &ndash; 279 KB per view (OFL-1.1). Use `fonts: none` to ship without them.
+[qr] 1 link address(es) carry a QR code, 3 KB per live view.
+[math] 5 KaTeX font families inlined, 166 KB of woff2 per live view (of 254 KB for the full set); print carries only the families its formulas use. A lecture without math inlines nothing.
+Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (12 columns, 92 chunks)</code></pre>
+     </figure>
+    </div>
+   </div>
+  </div>
+
   <p>The next page has the downloads for macOS, Windows and Linux, the commands,
   and a walkthrough that starts on a machine with nothing installed on it.</p>
   <div class="cta">

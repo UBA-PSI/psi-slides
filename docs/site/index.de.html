@@ -546,14 +546,64 @@ browser is for pages meant to be looked at.
 <section class="band">
  <div class="wrap">
   <h2 id="getting-started">Loslegen</h2>
-  <p class="lede">Zwei Wege, und beide bauen dieselben vier Dateien. <strong>Die
-  App</strong> lädt man herunter, und sie baut auf Knopfdruck: Man öffnet darin
-  eine <code>source.md</code>, und bei jedem Speichern baut sie neu.
-  <strong>Die Kommandozeile</strong> beginnt mit einem Clone des Repositorys und
-  einem <code>npm install</code>, für Leute, die ohnehin im Terminal arbeiten
-  &ndash; und über sie schreibt man eine Vorlesung mit einem Sprachmodell
-  daneben, weil das Repository die Skills mitbringt, die einem das Format
-  beibringen.</p>
+  <p class="lede">Zwei Wege, und beide bauen dieselben vier Dateien.</p>
+
+  <!-- Die zwei Wege, gesehen statt nur gelesen, und zwar mit demselben
+       Umschalter, der oben die drei Wege und auf „Im Hörsaal“ die vier
+       Cockpit-Bilder trägt. Ein viertes Bedienelement wäre eine vierte Sache
+       zum Lernen und eine vierte, die mit der Tastatur bedienbar bleiben muss.
+       Der Handout-Umschalter ist der nähere Verwandte in dem, was er
+       beantwortet - eine Sache, zwei Ausführungen -, aber er tauscht ein
+       <img>-src, und die eine Hälfte dieses Paars ist kein Bild: Sie ist die
+       Ausgabe des Builds selbst, gesetzt wie jedes andere Listing der Seite.
+       Das ist Absicht. Ein Terminal ist Text, und ein Bild von Text ist eine
+       Datei, die veraltet - diese Seite musste gerade sechs Screenshots
+       ersetzen, die einen Zustand zeigten, den das Werkzeug nicht mehr
+       herstellt -, es wird bei jedem Zoom unscharf, es lässt sich nicht
+       markieren und es braucht einen Fensterrahmen, den nie jemand gesehen
+       hat. Die Zeilen unten sind das, was
+       `node build.js lectures/tutorial/source.md` ausgegeben hat, alle fünf,
+       nichts gekürzt.
+       Beide Hälften stehen in einer Rasterzelle (`.ways-two` in site.css),
+       damit die Zeile so hoch ist wie die höhere der beiden und beim Umschalten
+       nichts springt. -->
+  <div class="ways ways-two">
+   <div class="way" data-tie="app">
+    <p class="way-label">die App</p>
+    <div class="way-said">
+     <p><strong>Die App</strong> lädt man herunter, und sie baut auf Knopfdruck:
+     Man öffnet darin eine <code>source.md</code>, und bei jedem Speichern baut
+     sie neu.</p>
+    </div>
+    <div class="stage">
+     <figure class="shot">
+      <div class="bar"><b>psi-slides Builder</b></div>
+      <img src="../img/builder-top.webp" alt="Das Builder-Fenster mit einer offenen Vorlesung: der Ordnername und der Pfad zur source.md, die Zeile „Ready. Built at 12:23 in 0.1 s.“, ein Knopf „Build now“ neben einem gesetzten Häkchen „Build again whenever source.md is saved“ und vier Knöpfe für die Projektion, das Cockpit und die beiden Handouts.">
+     </figure>
+    </div>
+   </div>
+   <div class="way" data-tie="cli">
+    <p class="way-label">die Kommandozeile</p>
+    <div class="way-said">
+     <p><strong>Die Kommandozeile</strong> beginnt mit einem Clone des
+     Repositorys und einem <code>npm install</code>, für Leute, die ohnehin im
+     Terminal arbeiten &ndash; und über sie schreibt man eine Vorlesung mit einem
+     Sprachmodell daneben, weil das Repository die Skills mitbringt, die einem
+     das Format beibringen.</p>
+    </div>
+    <div class="stage">
+     <figure class="shot">
+      <div class="bar"><b>node build.js</b> &middot; lectures/tutorial/source.md</div>
+<pre class="out"><code>[inline-images] auto-inlining 2 image(s), 0.00 MB total (under 10 MB budget). Use --no-inline-images to disable.
+[fonts] 6 bundled face(s) embedded &ndash; Literata, IBM Plex Sans, JetBrains Mono &ndash; 279 KB per view (OFL-1.1). Use `fonts: none` to ship without them.
+[qr] 1 link address(es) carry a QR code, 3 KB per live view.
+[math] 5 KaTeX font families inlined, 166 KB of woff2 per live view (of 254 KB for the full set); print carries only the families its formulas use. A lecture without math inlines nothing.
+Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (12 columns, 92 chunks)</code></pre>
+     </figure>
+    </div>
+   </div>
+  </div>
+
   <p>Auf der nächsten Seite stehen die Downloads für macOS, Windows und Linux,
   die Befehle und eine Anleitung, die auf einem Rechner ohne alles anfängt.</p>
   <div class="cta">

@@ -202,8 +202,8 @@ motion.
   JavaScript the options stand under each other with their labels above them,
   and the section still says what it came to say.
 
-  It carries two things, and that it is one mechanism rather than two is the
-  point – a second way of switching something would be a second thing for a
+  It carries three things, and that it is one mechanism rather than three is
+  the point – a second way of switching something would be a second thing for a
   reader to learn and a second thing to keep operable from a keyboard.
   **The three ways** on the front page are an argument in three moves, so its
   labels carry the judgement ("not ideal", "our approach") the prose used to
@@ -212,6 +212,18 @@ motion.
   the cards and the projection together and a still cannot show a change. Its
   labels are paragraphs rather than headings: that page's headings are the
   anchors its two languages are linked by, and the twin gate counts them.
+  **The two ways in**, under "Getting started" on the front page, is the one
+  where the two halves are not the same kind of thing: the app is a window and
+  photographs, the command line is a terminal and does not – there is no
+  terminal for a screenshot script to point at, and a page built to impersonate
+  one would buy a picture of text, which is exactly the file this site has just
+  had to replace six of. So that half is the build's own output, set as a
+  listing. Both panels are laid into one grid cell and hidden with
+  `visibility`, so the row is as tall as the window and the listing is
+  stretched to it; the measured heights and the breakpoint that keeps the
+  window the taller half are in `site.css` beside the rule. The handout switch
+  is the nearer relative in what it answers – one thing, two executions – and
+  it could not be used: it swaps an `img` src.
 - **The handout switch** opens on `print.html`, the file that is handed
   out, and swaps to `print-notes.html`. The filename in the title bar
   changes with it, or the bar would be exactly the confusion the switch
