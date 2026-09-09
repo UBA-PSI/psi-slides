@@ -39,7 +39,7 @@
    </div>
    <div>
     <p><strong><a href="#command-line">Die Kommandozeile</a></strong> ist ein
-    Clone und ein <code>npm install</code>, für einen Rechner, auf dem ohnehin
+    <code>git clone</code> und ein <code>npm install</code>, für einen Rechner, auf dem ohnehin
     ein Terminal offen ist &ndash; und der einzige Weg, psi-slides unbeaufsichtigt
     auf einem Build-Server laufen zu lassen, in einem CI-Job.</p>
    </div>
@@ -60,7 +60,7 @@
     das Fenster ziehen, und die vier Ansichten sind gebaut. Das Fenster neben
     dem Texteditor offen lassen, und jedes Speichern baut sie erneut.</p>
     <p class="cue">Eine Zeile sagt, ob der letzte Build funktioniert hat, und
-    vier Knöpfe öffnen die vier Ansichten, die er geschrieben hat. Sonst wird
+    vier Knöpfe öffnen die Ansichten, die er geschrieben hat. Sonst wird
     nichts installiert: kein Node, kein Terminal, keine Projekteinstellungen
     zum Ausfüllen.</p>
    </div>
@@ -125,14 +125,13 @@
     worden.</p>
    </div>
    <div>
-    <p><strong>Die Pakete sind nicht signiert</strong>, außer dem für macOS: von
-    Hand signiert und notarisiert, bevor es hochgeladen wird &ndash; Apples
-    eigene Prüfung. Ist diese Signatur noch nicht erfolgt, warnt ein
-    Doppelklick, der Entwickler lasse sich nicht überprüfen: die App einmal mit
+    <p><strong>Die Pakete sind nicht signiert</strong>, außer dem für macOS: Das
+    wird vor dem Hochladen von Hand signiert und notarisiert &ndash; Apples eigene
+    Prüfung. Ist diese Signatur noch nicht erfolgt, sagt macOS
+    beim Doppelklick, der Entwickler lasse sich nicht überprüfen: die App einmal mit
     Rechtsklick und <b>Öffnen</b> starten, dann ist die Warnung weg. Windows
     zeigt einmal seine SmartScreen-Warnung &ndash; <b>Weitere Informationen</b>,
-    dann <b>Trotzdem ausführen</b>. Ein AppImage muss erst ausführbar gemacht
-    werden.</p>
+    dann <b>Trotzdem ausführen</b>. Ein AppImage muss erst ausführbar sein.</p>
    </div>
   </div>
 
@@ -141,8 +140,8 @@
        ablehnt, sind zwei Antworten auf eine Frage und gehören in eine Zeile. -->
   <div class="pair-up">
    <div>
-    <p>Schlägt ein Build fehl, steht die Meldung von <code>build.js</code> da,
-    wie sie geschrieben wurde, mit der Zeile in der eigenen Quelle. Die vier
+    <p>Schlägt ein Build fehl, steht die Meldung von <code>build.js</code>
+    unverändert da, mit der Zeile in der eigenen Quelle. Die vier
     Ansichten behalten den letzten funktionierenden Build; ein kaputtes
     Speichern nimmt einem nicht mitten in der Vorlesung die Folien weg.</p>
     <p>Zwei Schalter ändern, was die Knöpfe tun. <strong>Die Ansichten über
@@ -153,7 +152,7 @@
     getestet wird, und dem, womit das System HTML öffnet.</p>
    </div>
    <div>
-    <p>Sie ist <strong>kein Markdown-Editor</strong>. Die Vorlesung schreibt man
+    <p>Die App ist <strong>kein Markdown-Editor</strong>. Die Vorlesung schreibt man
     in dem Texteditor, den man ohnehin benutzt; das Fenster beobachtet die
     Datei. Es gibt keine geteilte Ansicht, keine Vorschau daneben, keinen
     Git-Client und keine Stelle, an der man Build-Befehle tippt.</p>
@@ -170,7 +169,7 @@
 <section class="band">
  <div class="wrap">
   <h2 id="command-line">Die Kommandozeile</h2>
-  <p class="lede">Derselbe Build, den die App ausführt, von Hand getippt: für
+  <p class="lede">Derselbe Build wie in der App, nur selbst getippt: für
   einen Rechner, auf dem ohnehin ein
   Terminal offen ist &ndash; und der einzige Weg, psi-slides in einer CI laufen zu
   lassen. Es braucht <strong>Node 20 oder neuer</strong>, womit
@@ -219,7 +218,7 @@
 <span class="t-cmt"># dasselbe, über http auf diesem Rechner, für eingebettete Player</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span> <span class="t-flag">--watch</span> <span class="t-flag">--serve</span>
 
-<span class="t-cmt"># Chunk-IDs, Wortbudgets, offene Direktiven, zu große Dateien</span>
+<span class="t-cmt"># Chunk-IDs, Wortbudgets, offene :::-Blöcke, zu große Dateien</span>
 <span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/tutorial/source.md</span></code></pre>
   </div>
 
@@ -247,7 +246,7 @@
       Passwort eingeben, wenn danach gefragt wird. Auf Windows bekommt man ein
       <code>.msi</code>: doppelklicken, die Voreinstellungen übernehmen, das
       Häkchen bei den Werkzeugen für native Module in Ruhe lassen. psi-slides
-      braucht sie nicht.</p>
+      braucht diese Werkzeuge nicht.</p>
       <p>Wer schon einen Paketmanager benutzt: <code>brew install node</code> auf
       macOS und <code>winget install OpenJS.NodeJS.LTS</code> auf Windows tun
       dasselbe.</p>
@@ -266,13 +265,13 @@
       noch nicht gesehen.</p>
 
       <h3>Die Dateien holen</h3>
-      <p>Wer git hat, nimmt einen Clone, sonst <b>Download ZIP</b> aus dem grünen
+      <p>Wer git hat, nimmt einen <code>git clone</code>, sonst <b>Download ZIP</b> aus dem grünen
       <b>Code</b>-Knopf des
       <a href="https://github.com/UBA-PSI/psi-slides">Repositories</a>. Das ZIP
       entpacken wie jeden anderen Download; auf beiden Systemen genügt ein Doppelklick. Man
       bekommt einen Ordner, dessen Name mit <code>psi-slides</code> anfängt, und
       dieser Ordner ist das ganze Werkzeug. Irgendwohin legen, wo man ihn
-      wiederfindet, denn gleich muss das Terminal darauf gezeigt werden.</p>
+      wiederfindet, denn gleich muss man das Terminal darauf zeigen.</p>
       <p>Unter Windows das <code>.zip</code> wirklich entpacken und nicht nur per
       Doppelklick öffnen: Windows zeigt den Inhalt eines ZIP wie einen Ordner an,
       aber darin lassen sich keine Befehle ausführen.</p>
@@ -388,7 +387,7 @@
 <span class="t-cmt"># bei jedem Speichern neu bauen und alle offenen Tabs neu laden</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch</span>
 
-<span class="t-cmt"># Chunk-IDs, Wortbudgets, offene Direktiven, zu große Dateien</span>
+<span class="t-cmt"># Chunk-IDs, Wortbudgets, offene :::-Blöcke, zu große Dateien</span>
 <span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
   </div>
 
