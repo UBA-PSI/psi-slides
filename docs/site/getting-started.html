@@ -21,8 +21,9 @@
   <h1>Getting started</h1>
 
   <p class="lede">Two ways in, and they end in the same place: both run the same
-  <code>build.js</code> and write the same four files beside your
-  <code>source.md</code>.</p>
+  <code>build.js</code> and write the same four web pages beside your
+  <code>source.md</code> &ndash; a projection for the room, a cockpit for the
+  lecturer, and two handouts.</p>
 
   <!-- Half-empty row, answer 1. A hero of a heading and one paragraph leaves
        two thirds of the first screen empty, which is the fault this page is
@@ -39,7 +40,8 @@
    <div>
     <p><strong><a href="#command-line">The command line</a></strong> is a clone
     and an <code>npm install</code>, for a machine that already has a terminal
-    on it &ndash; and the only way to run psi-slides in a CI job.</p>
+    on it &ndash; and the only way to have a build server run psi-slides
+    unattended, in a CI job.</p>
    </div>
   </div>
  </div>
@@ -70,9 +72,10 @@
   </div>
 
   <h3>Download it</h3>
-  <p>Until 2.0.0 the app is published as a <strong>pre-release</strong> of its
-  own, under the tag <code>builder-0.1.0</code>, beside the releases of the
-  engine it runs.</p>
+  <p>Until 2.0.0 the app is published separately from psi-slides itself, under
+  a tag of its own, <code>builder-0.1.0</code>, and marked on GitHub as a
+  <strong>pre-release</strong>: not the current version of anything, a package
+  offered early.</p>
 
   <!-- Half-empty row, answer 2: the table takes the frame width itself. Five
        files across three systems is a list to look things up in, not prose.
@@ -119,12 +122,13 @@
    </div>
    <div>
     <p><strong>The packages are not signed</strong>, apart from the macOS one,
-    which is signed and notarised by hand before it is uploaded. If that has
-    not happened for this build yet, macOS says the developer cannot be
-    verified on a double click: open the app once with a right click and
-    <b>Open</b> instead, and the warning does not come back. Windows shows
-    SmartScreen once &ndash; <b>More info</b>, then <b>Run anyway</b>. An AppImage
-    needs the executable bit.</p>
+    which is signed and notarised by hand &ndash; Apple&rsquo;s own check &ndash; before
+    it is uploaded. If that has not happened for this build yet, a double click
+    gets you a warning that the developer cannot be verified: open the app once
+    with a right click and <b>Open</b> instead, and the warning does not come
+    back. Windows shows its SmartScreen warning once &ndash; <b>More info</b>, then
+    <b>Run anyway</b>. An AppImage has to be marked executable before it will
+    start.</p>
    </div>
   </div>
 
@@ -194,11 +198,12 @@
    <div class="said">
     <h3>While you are writing</h3>
     <p class="cue"><code>--watch</code> rebuilds on every save and reloads
-    every open tab over a WebSocket, so the editor, the projection and the
-    cockpit stay visible at once. That is what the app does by default.</p>
-    <p class="cue"><code>--serve</code> is for the one case a file cannot
-    answer: an embedded YouTube or Vimeo player. <code>lint.js</code> has no
-    button in the app and lives here.</p>
+    every open tab, so the text editor, the projection and the cockpit stay
+    visible at once. That is what the app does by default.</p>
+    <p class="cue"><code>--serve</code> is for the one thing a file on disk
+    cannot do: play an embedded YouTube or Vimeo player. <code>lint.js</code>,
+    which reads a lecture over before you hand it out, has no button in the app
+    and lives here.</p>
    </div>
 <pre><code><span class="t-cmt"># rebuild on save, reload every open tab</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span> <span class="t-flag">--watch</span>
@@ -337,8 +342,8 @@
     <div>
 <pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span></code></pre>
      <p class="tiny">Without git, take <b>Download ZIP</b> from the
-     repository&rsquo;s green <b>Code</b> button. The app above builds all of it:
-     it carries whichever engine it was packaged with.</p>
+     repository&rsquo;s green <b>Code</b> button. The app above builds these as
+     well: it carries the copy of psi-slides it was packaged with.</p>
     </div>
    </div>
   </div>
@@ -349,21 +354,25 @@
  <div class="wrap">
   <h2 id="your-own">Write your own lecture</h2>
   <p class="lede">A lecture is one folder with one <code>source.md</code> in it.
-  Start from a scaffold rather than an empty file: the frontmatter has keys a
-  blank page cannot guess.</p>
+  Have that first one written for you rather than starting from an empty file:
+  the settings block at the top of a <code>source.md</code>, its frontmatter,
+  has keys a blank page cannot guess.</p>
 
   <!-- Half-empty row, answer 1: three commands in the wide half, what they are
        for in the narrow one, and the app's side of it as prose underneath. -->
   <div class="aside-code words-first">
    <div class="said">
     <h3>Three commands</h3>
-    <p class="cue"><code>--new</code> writes a folder with valid frontmatter and
-    a few example chunks. <code>--watch</code> is where you then live.</p>
+    <p class="cue"><code>--new</code> writes a folder with a valid settings
+    block and a few example chunks &ndash; a chunk is one piece of a lecture, and
+    one slide on the projection. Then you leave <code>--watch</code> running
+    while you write.</p>
     <p class="cue"><code>lint.js</code> is the one to run before you hand
-    anything over: it catches duplicate chunk ids, unclosed directives, slides
-    over their word budget and assets too large to inline.</p>
+    anything over: it catches two chunks with the same id, unclosed
+    <code>:::</code> blocks, slides over their word budget, and files too large
+    to embed.</p>
    </div>
-<pre><code><span class="t-cmt"># scaffold a folder with valid frontmatter</span>
+<pre><code><span class="t-cmt"># write a new lecture folder, settings block included</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
 
 <span class="t-cmt"># rebuild on save, and reload every open tab</span>
