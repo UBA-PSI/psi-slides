@@ -210,6 +210,7 @@ main.banded { display: block; max-width: none; padding: 0; }
 .wrap > .ways,
 .wrap > .gallery,
 .wrap > .pair-up,
+.wrap > .scroller,
 .wrap > table,
 .wrap > pre,
 .wrap > footer,
@@ -603,6 +604,13 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
 }
 .hint p { margin: 0 0 0.7rem; max-width: none; }
 .hint > :last-child { margin-bottom: 0; }
+/* The wide variant, used once, on getting-started.html: the box that says what
+   the tagged release does not carry, with the clone that fixes it beside the
+   sentence rather than under it. At 42rem those two halves are a paragraph and
+   a stub, which is exactly the half-empty row the page is written against; at
+   the frame width they are two halves. `.wrap > *` caps everything at the
+   measure, so this has to out-specify that rather than only raise `.hint`. */
+.wrap > .hint.wide { max-width: none; }
 
 p.tiny { font-size: 0.92rem; color: var(--ink-soft); max-width: var(--measure); }
 /* A line that explains the block above it is a caption, so it sits close to
@@ -967,6 +975,15 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
    not page prose: at the page size it outweighed the entries it introduces. */
 .setup-body > p:first-child { font-size: 0.94rem; color: var(--ink-soft); }
 .setup-body pre { font-size: 0.88rem; padding: 0.7rem 0.9rem; }
+/* The walkthrough variant. Its body is continuous prose, not a catalogue, and
+   `.setup-body p` has to stay uncapped for the two disclosures on the front
+   page, whose bodies are a gallery and a grid of cards. Uncapped here a step
+   ran to about 120 characters across the frame, so the cap is on this variant
+   only - and the panel itself stands in a `.beside`, which is what keeps the
+   row from being half empty at the same time. Inside the panel the listings
+   still run its full width and only the paragraphs stop at the measure, so the
+   slack beside a step is the box's own air rather than a hole. */
+.setup.steps .setup-body p { max-width: var(--measure); }
 
 /*
  * Tokens for the Markdown sample on the landing page. Marked up by hand in
@@ -1019,6 +1036,17 @@ table {
   display: block;
   overflow-x: auto;
 }
+/*
+ * A table that has to take the frame width rather than shrink to its own
+ * content. `table` above is display:block so that a wide comparison table can
+ * scroll inside itself instead of pushing the page; the cost is that a block
+ * box wraps an anonymous table which still sizes to its rows, so the download
+ * table on getting-started.html stood at three fifths of the frame with
+ * nothing beside it - the half-empty row this stylesheet is written against.
+ * The scrolling moves out to a wrapper, and the table is a table again.
+ */
+.scroller { overflow-x: auto; }
+.scroller > table { display: table; width: 100%; overflow: visible; }
 th, td { border-bottom: 1px solid var(--rule); padding: 0.5rem 0.6rem; text-align: left; vertical-align: top; }
 th { font-weight: 650; color: var(--ink-soft); }
 
@@ -1126,6 +1154,13 @@ body.lightbox-open { overflow: hidden; }
 }
 .aside-code .stage { margin-bottom: 1rem; padding: clamp(0.7rem, 1.4vw, 1.1rem); }
 .aside-code .stage figure.shot { margin: 0; }
+/* The seam after a listing row. `.aside-code` ends flush with its own grid, so
+   whatever follows starts one line under the narrow column and reads as that
+   column still talking rather than as the section speaking again. Measured
+   against the paragraph gap, not the section one: this is a seam inside a
+   section, the same reasoning as `.second-picture`. */
+.aside-code + p, .aside-code + .pair-up { margin-top: clamp(1.8rem, 3vw, 2.8rem); }
+
 /* The mirror, for the two places where the words come first in the argument
    and the listing is the answer to them. */
 @media (min-width: 68rem) {

@@ -133,16 +133,17 @@ const BAR_TEXT = {
  *             which is how the bar's breakpoints were measured against the
  *             full six entries rather than against today's five.
  *
- * Two rows point at a section of the home page rather than at a page of their
- * own, because that is where their content is today. When PLAN-website.md
- * splits those sections out, the row's target changes and the bar follows.
+ * One row still points at a section of the home page rather than at a page of
+ * its own, because that is where its content is today. When PLAN-website.md
+ * splits that section out, the row's target changes and the bar follows -
+ * which is all `start` needed when getting-started.html was written.
  */
 const SITE_PAGES = {
   home:       { en: 'index.html',                 de: 'de/index.html',                 nav: 'home' },
   room:       { en: 'in-the-room.html',           de: 'de/in-the-room.html',           nav: 'room', pending: true },
   decoration: { en: 'index.html#covers',          de: 'de/index.html#covers',          nav: 'decoration' },
   figures:    { en: 'figures.html',                                                    nav: 'figures' },
-  start:      { en: 'index.html#getting-started', de: 'de/index.html#getting-started', nav: 'start' },
+  start:      { en: 'getting-started.html',       de: 'de/getting-started.html',       nav: 'start' },
   comparison: { en: 'comparison.html',                                                 nav: 'comparison' },
   manual:     { en: 'figures-you-write.html' },
 };
@@ -617,6 +618,11 @@ function main() {
   // one level up. Same document, translated; the lectures it links to stay in
   // the language they are taught in.
   landing('index.de.html', path.join('de', 'index.html'), 'home', 'de', '../');
+  // The two ways in, pulled out of the front page: the app and the command
+  // line. It is the bar's `start` entry, so its two files and that row move
+  // together.
+  landing('getting-started.html', 'getting-started.html', 'start', 'en', '');
+  landing('getting-started.de.html', path.join('de', 'getting-started.html'), 'start', 'de', '../');
   // The case for `::: diagram`. Its figures, its stepped payloads, its rails
   // and the diagram stylesheet and runtime are spliced in by
   // docs/artifact/refresh-figures.mjs, which is the only text that compiles a
@@ -677,7 +683,10 @@ function main() {
   // command builds the site *and* checks it, and the workflow gets them
   // without a step of its own.
   checkLinks(outDir, written);
-  checkTwins([{ en: 'index.html', de: 'index.de.html' }]);
+  checkTwins([
+    { en: 'index.html', de: 'index.de.html' },
+    { en: 'getting-started.html', de: 'getting-started.de.html' },
+  ]);
   if (wantWords) reportWords(written);
 }
 
