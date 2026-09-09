@@ -58,7 +58,7 @@
     <p class="lede">The projection goes on the wall. <kbd>S</kbd> opens the
     cockpit in a second window; that one goes on the laptop. What you press in
     either lands in both.</p>
-    <p class="cue">They talk over the browser&rsquo;s own message channel,
+    <p class="cue">The two talk over the browser&rsquo;s own message channel,
     between the window that opened and the one it opened. No server, no port, no
     pairing code &ndash; and so it works from a file on a stick.</p>
    </div>
@@ -75,9 +75,10 @@
        row rather than as three stubs under the narrow column. -->
   <div class="pair-up trio">
    <div>
-    <p><strong>Your note for this slide</strong> stands under the mirror, at a
-    size you set with the two buttons in its corner. It arrives filled from the
-    <code>&gt; note:</code> lines in the source; <kbd>Shift</kbd>-<kbd>N</kbd>
+    <p><strong>Your note for this slide</strong> stands under the mirror of the
+    projection, at a size you set with the two buttons in its corner. It arrives
+    filled from the <code>&gt; note:</code> lines in the source;
+    <kbd>Shift</kbd>-<kbd>N</kbd>
     lets you rewrite it during the talk, for yourself only.</p>
    </div>
    <div>
@@ -100,10 +101,10 @@
 <section class="band">
  <div class="wrap">
   <h2 id="beats">One press at a time</h2>
-  <p class="lede"><kbd>Space</kbd> does not go to the next slide. It takes the
-  slide one step further, and moves on only when there is nothing left on this
-  one. Arrow keys move by slide, <kbd>Shift</kbd> with them by part of the
-  lecture.</p>
+  <p class="lede">A lecture moves in steps rather than in slides.
+  <kbd>Space</kbd> takes the slide one step further and goes on to the next one
+  only when there is nothing left on this one. Arrow keys move by slide,
+  <kbd>Shift</kbd> with them by part of the lecture.</p>
 
   <!-- Half-empty row, answer 1: the listing takes the wide half and what it is
        about the narrow one. The listing is lecture source, not a command, so
@@ -160,17 +161,17 @@ where the rest of the hour is going to be spent.
    <div class="stage">
     <figure class="shot">
      <div class="bar"><b>speaker.html</b> &middot; K</div>
-     <img src="img/cue-cards.webp" alt="The cockpit in its cue-card arrangement: the projection small in a strip on the left, and on the right a rail of cards with their bullets, diamonds between them for each click of the projector, a red dot on the card being said, and the clock with the drift beside it in the header.">
+     <img src="img/cue-cards.webp" alt="The cockpit in its cue-card arrangement: the projection small in a strip on the left, and on the right a rail of cards with their bullets, diamonds between them for each click of the projector, a red dot on the card being said, and in the header the clock with the lateness beside it.">
     </figure>
    </div>
    <div class="said">
     <h2 id="cue-cards">The script, where you can glance at it</h2>
-    <p class="lede">It was built for a keynote with a written-out script and
-    almost nothing on the slides. <kbd>K</kbd> rearranges the cockpit for that:
-    the projection small in the corner, your notes as cards down a rail.</p>
+    <p class="lede">A keynote written out word for word, with almost nothing on
+    the slides, wants a different cockpit. <kbd>K</kbd> builds it: the projection
+    small in the corner, your notes as cards down a rail.</p>
     <p class="cue">Now <kbd>Space</kbd> says the next card, and only when the
     cards of this step are used up does it click the projector. One list, top to
-    bottom, in the order the room experiences it.</p>
+    bottom, in the order the room hears them.</p>
    </div>
   </div>
 
@@ -192,9 +193,9 @@ where the rest of the hour is going to be spent.
    </div>
    <div>
     <p><strong><code>@12:30</code> at the start of a card</strong> is when you
-    meant to reach it. The cockpit then puts the drift beside the clock, rounded
-    to ten seconds and red when you are behind. A deck with no such marks shows
-    nothing, so this costs nothing until you want it.</p>
+    meant to reach it. The cockpit then shows beside the clock how far off that
+    is, rounded to ten seconds and red when you are behind. A deck with no such
+    marks shows nothing, so this costs nothing until you want it.</p>
    </div>
   </div>
  </div>
@@ -210,24 +211,25 @@ where the rest of the hour is going to be spent.
     <p class="lede">Somebody asks about something you said half an hour ago. Two
     ways back to it, both over the projection itself, and both of them leave you
     where you were when you press <kbd>Esc</kbd>.</p>
-    <p class="cue"><kbd>O</kbd> opens the board in both windows at once, so the
-    room searches with you rather than watching you scroll. <kbd>/</kbd> is
-    local to the cockpit until you pick a hit.</p>
+    <p class="cue"><kbd>O</kbd> lays the whole lecture out as a board, in both
+    windows at once, so the room searches with you rather than watching you
+    scroll. <kbd>/</kbd> stays in the cockpit until you pick a hit.</p>
    </div>
    <div class="stage">
     <div class="stage-pair">
      <figure class="shot">
       <div class="bar"><b>audience.html</b> &middot; O</div>
-      <img src="img/overview.webp" alt="The overview board: the whole 36-chunk lecture laid out as a grid of readable slides, with the current one outlined.">
+      <img src="img/overview.webp" alt="The overview board: the whole 36-slide lecture laid out as a grid of readable slides, with the current one outlined.">
       <figcaption><strong>The whole lecture at once.</strong> Not thumbnails
       &ndash; the real slides, still legible. Drag to move around the board,
       <kbd>Enter</kbd> opens the one you picked.</figcaption>
      </figure>
      <figure class="shot">
       <div class="bar"><b>audience.html</b> &middot; /</div>
-      <img src="img/search.webp" alt="The search panel over the slide: the query async, and five results, each with its tag, heading and the matching sentence.">
-      <figcaption><strong>Full-text search.</strong> Each hit shows the kind of
-      chunk, its heading, and the sentence the match sits in.</figcaption>
+      <img src="img/search.webp" alt="The search panel over the slide: the query async, and five results, each with its type, heading and the matching sentence.">
+      <figcaption><strong>Full-text search.</strong> Each hit shows what kind of
+      slide it came from, its heading, and the sentence the match sits
+      in.</figcaption>
      </figure>
     </div>
    </div>
@@ -247,23 +249,23 @@ where the rest of the hour is going to be spent.
        them alone would be a paragraph with an empty half beside it. -->
   <div class="pair-up trio">
    <div>
+    <p><strong><kbd>V</kbd> freezes the projection.</strong> The wall keeps the
+    slide it has while you go looking somewhere else &ndash; three slides ahead,
+    into a detail you folded away, wherever the answer is. <kbd>V</kbd> again
+    brings the room to where you are now, in one step.</p>
+    <p>The state is the button: the cockpit&rsquo;s footer says
+    <b>live</b> or <b>frozen</b> and clicking it does the same thing as the
+    key.</p>
+   </div>
+   <div>
     <p><strong><kbd>B</kbd> blanks the projection.</strong> The wall goes dark
-    and the room looks at you instead. It works even while the projection is
-    frozen, because it is a command to the projector rather than a piece of
-    shared state.</p>
+    and the room looks at you instead. It works while the projection is frozen
+    too: it is an order to the projector rather than something the two windows
+    have to agree on.</p>
     <p><strong>The laser has no key.</strong> Move the mouse over the mirror in
     the cockpit and a dot appears in the same place on the wall &ndash; you point
     at the slide on your own screen, at the size it is on yours, and the room
     sees where.</p>
-   </div>
-   <div>
-    <p><strong><kbd>V</kbd> freezes the projection.</strong> The wall keeps the
-    slide it has while you go looking somewhere else &ndash; three slides ahead,
-    into an expansion, wherever the answer is. <kbd>V</kbd> again brings the
-    room to where you are now, in one step.</p>
-    <p>The state is the button: the cockpit&rsquo;s footer says
-    <b>live</b> or <b>frozen</b> and clicking it does the same thing as the
-    key.</p>
    </div>
    <div>
     <p><strong><kbd>D</kbd> puts a live demo on the projection.</strong> Pick a
@@ -333,7 +335,7 @@ where the rest of the hour is going to be spent.
    <div class="said">
     <h3>Two steps, after the hour</h3>
     <p class="cue"><kbd>Shift</kbd>-<kbd>E</kbd> in the cockpit copies every
-    live annotation to the clipboard as a marked block, then asks before
+    note you typed on the wall to the clipboard as a marked block, then asks before
     clearing the drafts. Say no and they stay, so a blocked clipboard never
     costs you the text.</p>
     <p class="cue">Paste the block at the end of <code>source.md</code> and run
