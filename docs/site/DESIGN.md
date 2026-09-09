@@ -127,6 +127,34 @@ Sizes and weights are free and have moved: `h2` sits at roughly two and a
 half times the body, because at 1.3× nine sections read as one on a
 contact sheet.
 
+**Text is sized off `--fs-body`, never in `rem`.** `body` sets 19px and the
+root element stays at the browser's 16px, so a size written in `rem` is
+measured against a size no text on this page has, and every one of them came
+out smaller than its number reads – a caption at 0.92rem is 14.7px, 77 % of
+the prose beside it, and a gallery label at 0.82rem is 13.1px, 69 %. Nobody
+chose those ratios. `index.html` carried five sizes of `p` and three of
+`.lede` for that reason alone, and the client's word for the result was
+*mickrig*.
+
+Four steps, in `site.css` at the top: `--fs-body` for prose, `--fs-lead` one
+step up for the sentence under a heading, `--fs-note` at 90 % for text that
+belongs to a picture or a box rather than to the page (a cue, a caption, a
+card, a table, the footer, every button label), `--fs-fine` at 80 % for a
+label that is never a sentence. `--fs-code` is the sans scale read in mono.
+Lengths stay in `rem`: raising the root would have fixed the ratios and
+multiplied `--page`, `--measure`, every padding and every breakpoint by 1.19
+with them.
+
+Two things follow, and both are the reason a size change is not a one-line
+change. **Bigger text in a fixed column is fewer characters a line**, so
+`.beside` went from 21rem to 24rem and `.aside-code` from 20 to 23 – the
+column is the adjustment, not the size; nothing on the site now sets prose at
+under 45 characters. And **the window bar is not in the scale**: it is chrome
+inside a picture, sized by what fits one line, the same category as the
+topbar. The pair of shots on one stage now shares its grid rows, so a bar
+that does wrap makes both bars that height and the two pictures still start
+on one line – which German never did.
+
 Ligatures are off in the mono family everywhere, and the rule lists every
 selector that sets `--mono` rather than four element names. The figure
 grammar spells an arrow `->` and a plain line `--`; a face that ligates

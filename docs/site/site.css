@@ -116,6 +116,48 @@
 
   --sans: 'IBM Plex Sans Var', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono Var', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+  /*
+   * The text scale, and the one rule that makes it a scale.
+   *
+   * `body` sets 19px and the root element stays at the browser's 16px, so a
+   * size written in `rem` is measured against a size no text on this page has.
+   * Every one of them therefore came out smaller than its number reads: a
+   * caption at 0.92rem is 14.7px, which is 77 % of the prose beside it, and a
+   * gallery label at 0.82rem is 13.1px, which is 69 %. Nobody chose those
+   * ratios; they are what the mismatch produced. index.html had five sizes of
+   * `p` and three of `.lede` for that reason alone.
+   *
+   * So text is sized off --fs-body and nothing else, and LENGTHS stay in rem.
+   * Raising the root to 19px would have fixed the ratios and multiplied
+   * --page, --measure, every padding and every breakpoint by 1.19 with them,
+   * which is a different change altogether.
+   *
+   * Four steps. Each answers a question the page actually asks:
+   *
+   *   --fs-body  the prose, and the thing every other step is a fraction of.
+   *   --fs-lead  the sentence under a heading. One step up, because it is an
+   *              entrance to a section rather than part of it.
+   *   --fs-note  text that belongs to a picture or a box rather than to the
+   *              page: a cue, a caption, a card, a table, the footer. 90 %,
+   *              which is a step down that stays comfortably readable prose.
+   *   --fs-fine  a label, never a sentence: a gallery tile's name, a size, a
+   *              window bar. 80 % is the floor for a line that carries
+   *              meaning; below it a caption is decoration.
+   *
+   * --fs-code is the fifth and is not a step in the same sense: it is the sans
+   * scale read in mono, which sets larger at the same number, so a listing
+   * lands between note and fine to look the same size as the note beside it.
+   *
+   * The display sizes - h1, h2 - stay in rem clamps. They are set against the
+   * viewport rather than against the prose, and DESIGN.md's "h2 at roughly two
+   * and a half times the body" is already what the clamp produces.
+   */
+  --fs-body: 19px;
+  --fs-lead: calc(var(--fs-body) * 1.12);
+  --fs-note: calc(var(--fs-body) * 0.9);
+  --fs-fine: calc(var(--fs-body) * 0.8);
+  --fs-code: calc(var(--fs-body) * 0.85);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -146,7 +188,7 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
-  font-size: 19px;
+  font-size: var(--fs-body);
   font-weight: 420;
   line-height: 1.62;
   -webkit-font-smoothing: antialiased;
@@ -223,7 +265,8 @@ p, li { max-width: var(--measure); }
  * texture from top to bottom. The section heading is the thing that lets an
  * eye scan eight screens in three seconds, so it is given real size.
  * A media query's rem is the browser's 16px, not the page's 19px, so every
- * length here is in sixteenths.
+ * length here is in sixteenths - and that is exactly why no TEXT size is:
+ * see the scale at the top of this file.
  */
 h1 {
   font-size: clamp(2.9rem, 6vw, 4.4rem);
@@ -242,7 +285,9 @@ h2 {
   max-width: 22ch;
   text-wrap: balance;
 }
-h3 { font-size: 1.15rem; font-weight: 650; margin: 2.6rem 0 0.5rem; }
+/* A subsection heading used to be 1.15rem, which is 18.4px - smaller than the
+   paragraph under it. It takes the lead step, so it is above its own text. */
+h3 { font-size: var(--fs-lead); font-weight: 650; margin: 2.6rem 0 0.5rem; }
 h2[id], h3[id] { scroll-margin-top: 4.5rem; }
 
 /*
@@ -254,7 +299,7 @@ h2[id], h3[id] { scroll-margin-top: 4.5rem; }
  */
 .lede {
   text-wrap: pretty;
-  font-size: 1.18rem;
+  font-size: var(--fs-lead);
   line-height: 1.5;
   color: var(--ink-soft);
   margin: 0 0 2.2rem;
@@ -297,8 +342,41 @@ p { margin: 0 0 1.1rem; }
 .stage > :last-child { margin-bottom: 0; }
 /* Two pictures on one stage, when they are two views of one thing and the
    comparison is the point. */
-.stage-pair { display: grid; gap: clamp(0.9rem, 2vw, 1.8rem); }
-@media (min-width: 52rem) { .stage-pair { grid-template-columns: 1fr 1fr; } }
+/* The gap between two shots of one thing, and the second place the hero's bar
+   got its room back from. It is the one distance on the page DESIGN.md does not
+   argue about: the two pictures are a comparison, not a picture and the prose
+   around it, so they may stand closer than a stage stands to a paragraph. */
+.stage-pair { display: grid; gap: clamp(0.9rem, 1.2vw, 1.8rem); }
+/*
+ * Side by side the two shots have to line up, and the thing that decides that
+ * is the window bar: one of the pair carries the switch and a longer file
+ * name, so it can need two lines where the other needs one, and then the two
+ * pictures start at different heights and the row reads as a mistake. The
+ * `min-height` on `.bar` covers the switch being taller than a line of its own
+ * text; it cannot cover a bar that wraps. German has shipped that way since
+ * the switch was built - `was die Lesenden bekommen` plus `zeigen:` plus two
+ * segments has never fitted one line - and the narrower stage this stylesheet
+ * now gives a `.beside` brought English to the same edge.
+ *
+ * Subgrid rather than a taller floor on both bars: the pair's rows are shared,
+ * so a bar that wraps makes BOTH bars that height and the pictures still start
+ * on one line, and a bar that does not wrap costs nothing. Row gap zero,
+ * because the bar and the picture under it are one framed object and the
+ * column gap is the only separation this grid is for. Where subgrid is missing
+ * the declaration is dropped and the pair behaves as it did.
+ */
+@media (min-width: 52rem) {
+  .stage-pair {
+    grid-template-columns: 1fr 1fr;
+    grid-template-rows: auto auto;
+    row-gap: 0;
+  }
+  .stage-pair figure.shot {
+    grid-row: span 2;
+    display: grid;
+    grid-template-rows: subgrid;
+  }
+}
 .stage-pair figure.shot { margin: 0; }
 
 /*
@@ -333,18 +411,28 @@ p { margin: 0 0 1.1rem; }
 .beside > .said > :first-child { margin-top: 0; }
 .beside > .said > :last-child { margin-bottom: 0; }
 .beside .lede { margin-bottom: 0; }
+/* 24rem, not the 21rem it was. The words in this column are the one place on
+   the page where prose is read at a fixed narrow width, and at 21rem they held
+   44 to 48 characters a line at 17px. Setting them at the prose size - which is
+   what they are - would have put that at 40, so the column carries the extra
+   three rems instead. The stage beside it loses 3rem of about 58 and stays
+   twice the width and well over twice the height, which is the proportion
+   DESIGN.md asks of this device. */
 @media (min-width: 68rem) {
-  .beside { grid-template-columns: minmax(0, 21rem) minmax(0, 1fr); }
+  .beside { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
 }
-/* A heading in a 21rem column cannot carry the full display size: at the
-   section size it broke every one of them into three lines. */
+/* A heading in this column cannot carry the full display size: at the section
+   size it broke every one of them into three lines. */
 .beside .said h2 { font-size: clamp(1.7rem, 2.4vw, 2.15rem); max-width: none; }
-.beside .said .lede { font-size: 1.06rem; max-width: none; }
+/* The one lede that is not an entrance but the section's whole text: beside a
+   stage there is no paragraph after it, so it is read as prose and is set at
+   the prose size rather than a step under it. */
+.beside .said .lede { font-size: var(--fs-body); max-width: none; }
 /* Mirrored: the stage on the left, the words on the right. Used once, where
    the picture is a tall document and the words are short - the page would
    otherwise put every picture on the same side and read as a template. */
 @media (min-width: 68rem) {
-  .beside-flip { grid-template-columns: minmax(0, 1fr) minmax(0, 21rem); }
+  .beside-flip { grid-template-columns: minmax(0, 1fr) minmax(0, 24rem); }
   .beside-flip > .said { order: 2; }
 }
 
@@ -374,13 +462,25 @@ figure.shot .bar {
   border-radius: 6px 6px 0 0;
   display: flex;
   align-items: center;
-  gap: 0.55rem;
-  padding: 0.3rem 0.7rem;
+  /* Tighter than it was by a fifth of a rem in each of the two places. The
+     stage inside a `.beside` is 3rem narrower than it used to be, and the
+     hero's right-hand bar - name, `show:`, two segments - missed one line by
+     seven pixels. This is where those seven live; nothing else in the bar is
+     measured against them. */
+  gap: 0.4rem;
+  padding: 0.3rem 0.55rem;
   /* The switch is taller than a line of the bar's own text, so without a
      floor the two shots of a pair sit at different heights and the row
      reads as a mistake. */
   min-height: 2.65rem;
   font-family: var(--mono);
+  /* The one text on the page deliberately outside the scale at the top of this
+     file, and the same reason the topbar is: it is not the page's text, it is
+     chrome inside a picture, and its size is set by what has to fit on one
+     line rather than by what the prose does. Put it on --fs-fine and the
+     hero's right-hand bar - file name plus the two-segment switch - wraps to
+     two lines, which makes the pair of shots two different heights and undoes
+     the whole point of taking them in identical geometry. */
   font-size: 0.8rem;
   color: var(--ink-soft);
   background: var(--frame);
@@ -403,7 +503,7 @@ figure.shot img {
 }
 figure.shot img:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
 figure.shot figcaption {
-  font-size: 0.92rem;
+  font-size: var(--fs-note);
   line-height: 1.5;
   color: var(--ink-soft);
   padding: 0.6rem 0 0;
@@ -448,6 +548,8 @@ figure.shot .swap {
   border-radius: 6px;
   background: var(--shot-bg);
 }
+/* Both in the bar's own chrome size, not the text scale - see the note on
+   `figure.shot .bar` above. */
 figure.shot .swap .swap-label {
   font-size: 0.76rem;
   color: var(--ink-soft);
@@ -493,14 +595,17 @@ figure.shot .swap button[aria-pressed="true"]:hover {
 .mark {
   font-family: var(--mono);
   max-width: none;
-  font-size: 0.88rem;
+  font-size: var(--fs-fine);
   color: var(--ink-soft);
   letter-spacing: 0.01em;
   margin: 0 0 1.6rem;
 }
 .mark b { color: var(--ink); font-weight: 400; }
 .hero-said { max-width: 40rem; }
-.hero-said .lede { font-size: 1.3rem; max-width: none; margin-bottom: 1.8rem; }
+/* No size of its own any more. It used to be 1.3rem against a section lede's
+   1.18rem, which is 20.8px against 18.9 - a difference nobody sees under an
+   h1 of 70px, and the third of three lede sizes on the page. */
+.hero-said .lede { max-width: none; margin-bottom: 1.8rem; }
 
 .cta { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 0 0 3rem; }
 .cta a {
@@ -509,7 +614,11 @@ figure.shot .swap button[aria-pressed="true"]:hover {
   border: 1px solid var(--ink);
   border-radius: 6px;
   text-decoration: none;
-  font-size: 1rem;
+  /* Every button label on this page is one size - here, on the tabs above the
+     chooser, and on a lecture card's four links. At the prose size the two
+     buttons in figures.html's right-hand hero column stopped fitting one line
+     and stacked, which turns a pair into a list. */
+  font-size: var(--fs-note);
   font-weight: 550;
 }
 .cta a.primary { background: var(--ink); color: var(--paper); }
@@ -546,7 +655,7 @@ pre {
   border-radius: 8px;
   padding: 1.1rem 1.3rem;
   overflow-x: auto;
-  font-size: 0.86rem;
+  font-size: var(--fs-code);
   line-height: 1.62;
   margin: 0 0 1.6rem;
   max-width: 62rem;
@@ -606,7 +715,7 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
   border: 1px solid var(--frame);
   border-radius: 6px;
   padding: 1.1rem 1.3rem;
-  font-size: 0.95rem;
+  font-size: var(--fs-note);
   margin: 2rem 0 0;
   max-width: 42rem;
 }
@@ -620,7 +729,7 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
    measure, so this has to out-specify that rather than only raise `.hint`. */
 .wrap > .hint.wide { max-width: none; }
 
-p.tiny { font-size: 0.92rem; color: var(--ink-soft); max-width: var(--measure); }
+p.tiny { font-size: var(--fs-note); color: var(--ink-soft); max-width: var(--measure); }
 /* A line that explains the block above it is a caption, so it sits close to
    what it captions and keeps its distance from what follows. */
 pre + p.tiny { margin: -0.9rem 0 2.4rem; }
@@ -629,7 +738,7 @@ footer {
   margin-top: 4rem;
   padding-top: 1.2rem;
   border-top: 1px solid var(--rule);
-  font-size: 0.92rem;
+  font-size: var(--fs-note);
   color: var(--ink-soft);
 }
 footer p { max-width: none; }
@@ -669,8 +778,12 @@ footer p { max-width: none; }
   margin: 0 0 1.4rem;
 }
 .gallery figure.shot { margin: 0; }
+/* The smallest text on the site, and the floor: a tile's caption names the
+   composition above it, so it is a line that has to be read, not a legend. It
+   was 0.82rem - 13.1px, 69 % of the prose - which is where a caption stops
+   being one. */
 figure.shot.tile figcaption {
-  font-size: 0.82rem;
+  font-size: var(--fs-fine);
   line-height: 1.45;
   padding: 0.45rem 0 0;
   max-width: none;
@@ -681,7 +794,7 @@ figure.shot.tile figcaption {
 figure.shot.tile figcaption code {
   display: block;
   color: var(--ink);
-  font-size: 0.84rem;
+  font-size: var(--fs-fine);
   margin-bottom: 0.05rem;
 }
 figure.shot.tile figcaption code + code { display: inline; margin: 0; }
@@ -916,8 +1029,15 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
  * three paragraphs used to make in prose.
  */
 .way-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1.6rem; }
+/* site.js inserts this row as a sibling of `.ways`, so `.wrap > *` was capping
+   a row of controls at the prose measure. Three labels this long fitted 38rem
+   at 0.86rem and do not at the note size, and the third then dropped to a line
+   of its own, which reads as two controls rather than one. A row of buttons is
+   looked at rather than read, so it runs the frame like every other such
+   thing on this page. */
+.wrap > .way-tabs { max-width: none; }
 .way-tabs button {
-  font-size: 0.86rem;
+  font-size: var(--fs-note);
   padding: 0.35rem 0.8rem;
   border: 1px solid var(--rule);
   border-radius: 6px;
@@ -964,7 +1084,7 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
 .setup > summary {
   padding: 0.75rem 1.1rem;
   cursor: pointer;
-  font-size: 0.98rem;
+  font-size: var(--fs-body);
   font-weight: 600;
 }
 .setup[open] > summary { border-bottom: 1px solid var(--rule); }
@@ -972,17 +1092,22 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
 /* The first heading already carries a top margin; the padding above it would
    otherwise push the panel away from the summary it belongs to. */
 .setup-body > :first-child { margin-top: 0; }
+/* A numbered step inside a disclosure is not a section of the page: it takes
+   the prose size, one step under the h3 it would otherwise be. */
 .setup-body h3 {
   counter-increment: step;
-  font-size: 1.05rem;
+  font-size: var(--fs-body);
   margin: 1.9rem 0 0.5rem;
 }
 .setup-body h3::before { content: counter(step) ". "; color: var(--ink-soft); }
 .setup-body p { max-width: none; }
 /* The line that opens a disclosure is an introduction to what is inside it,
    not page prose: at the page size it outweighed the entries it introduces. */
-.setup-body > p:first-child { font-size: 0.94rem; color: var(--ink-soft); }
-.setup-body pre { font-size: 0.88rem; padding: 0.7rem 0.9rem; }
+.setup-body > p:first-child { font-size: var(--fs-note); color: var(--ink-soft); }
+/* The listings in here keep the tighter padding and drop the size override they
+   had: 0.88rem against the page's 0.86rem was two hundredths of a rem that no
+   reader could see and a fifth number in the scale. */
+.setup-body pre { padding: 0.7rem 0.9rem; }
 /* The walkthrough variant. Its body is continuous prose, not a catalogue, and
    `.setup-body p` has to stay uncapped for the two disclosures on the front
    page, whose bodies are a gallery and a grid of cards. Uncapped here a step
@@ -1040,7 +1165,7 @@ blockquote {
 table {
   border-collapse: collapse;
   width: 100%;
-  font-size: 0.95rem;
+  font-size: var(--fs-note);
   display: block;
   overflow-x: auto;
 }
@@ -1110,7 +1235,7 @@ body.lightbox-open { overflow: hidden; }
   .hero-cols { grid-template-columns: 1fr; }
   .hero-col .cta { margin-top: 0.6rem; }
 }
-.tagline, .lead { color: var(--ink-soft); margin: 0 0 2.4rem; font-size: 1.12rem; }
+.tagline, .lead { color: var(--ink-soft); margin: 0 0 2.4rem; font-size: var(--fs-lead); }
 
 /*
  * The line that goes in front of a picture.
@@ -1122,7 +1247,7 @@ body.lightbox-open { overflow: hidden; }
  * above the stage - close enough to belong to it, in the softer ink so it
  * does not compete with the section's own lede.
  */
-.cue { font-size: 1rem; color: var(--ink-soft); margin: 0 0 0.8rem; max-width: var(--measure); }
+.cue { font-size: var(--fs-note); color: var(--ink-soft); margin: 0 0 0.8rem; max-width: var(--measure); }
 .cue strong { color: var(--ink); font-weight: 600; }
 .beside .cue { margin-top: 1rem; }
 
@@ -1151,8 +1276,11 @@ body.lightbox-open { overflow: hidden; }
 .aside-code > .said > :last-child { margin-bottom: 0; }
 .aside-code > pre { margin-bottom: 0; max-width: none; }
 .aside-code .cue, .aside-code p { margin-bottom: 0.8rem; }
+/* 23rem for the words, up from 20rem, and for the same reason `.beside` went
+   from 21 to 24: the cue in here is prose at a fixed width, and a step up in
+   size without a step up in width is a step down in characters a line. */
 @media (min-width: 68rem) {
-  .aside-code { grid-template-columns: minmax(0, 1fr) minmax(0, 20rem); }
+  .aside-code { grid-template-columns: minmax(0, 1fr) minmax(0, 23rem); }
   .aside-code > .said { order: 2; }
   /* Wider, because this column carries a picture of the slide the listing
      produces and not only words. Showing the two together is worth the
@@ -1172,7 +1300,7 @@ body.lightbox-open { overflow: hidden; }
 /* The mirror, for the two places where the words come first in the argument
    and the listing is the answer to them. */
 @media (min-width: 68rem) {
-  .aside-code.words-first { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); }
+  .aside-code.words-first { grid-template-columns: minmax(0, 23rem) minmax(0, 1fr); }
   .aside-code.words-first > .said { order: 0; }
 }
 
@@ -1187,8 +1315,8 @@ body.lightbox-open { overflow: hidden; }
    as the listings had. */
 .reads { display: grid; gap: 1.6rem 2.4rem; list-style: none; margin: 2rem 0 0; padding: 0; }
 @media (min-width: 52rem) { .reads { grid-template-columns: 1fr 1fr; } }
-.reads li { max-width: none; font-size: 0.96rem; color: var(--ink-soft); }
-.reads b { display: block; font-size: 1.05rem; font-weight: 600; margin-bottom: 0.15rem; }
+.reads li { max-width: none; font-size: var(--fs-note); color: var(--ink-soft); }
+.reads b { display: block; font-size: var(--fs-body); font-weight: 600; margin-bottom: 0.15rem; }
 .reads b a { text-decoration: none; }
 .reads b a:hover { text-decoration: underline; }
 
@@ -1215,18 +1343,18 @@ footer p { max-width: none; }
   border-radius: 8px;
   padding: 1.3rem 1.5rem 1.4rem;
 }
-.pick h3 { margin: 0 0 0.15rem; font-size: 1.3rem; }
+.pick h3 { margin: 0 0 0.15rem; font-size: var(--fs-lead); }
 .pick h3 code { font-size: 0.92em; color: inherit; }
 .pick .size {
   font-family: var(--mono);
-  font-size: 0.8rem;
+  font-size: var(--fs-fine);
   color: var(--ink-soft);
   margin: 0 0 0.7rem;
 }
-.pick p { max-width: none; font-size: 0.96rem; margin: 0 0 1rem; }
+.pick p { max-width: none; font-size: var(--fs-note); margin: 0 0 1rem; }
 .pick .opens { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0; }
 .pick .opens a {
-  font-size: 0.9rem;
+  font-size: var(--fs-note);
   text-decoration: none;
   border: 1px solid var(--rule);
   border-radius: 5px;
@@ -1279,7 +1407,7 @@ footer p { max-width: none; }
   .way { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
 }
 .way-label {
-  font-size: 1.05rem;
+  font-size: var(--fs-body);
   font-weight: 620;
   margin: 0 0 0.5rem;
   grid-column: 1 / -1;
@@ -1331,7 +1459,7 @@ footer p { max-width: none; }
 @media (min-width: 56rem) { .more-lectures { grid-template-columns: 1fr 1fr; } }
 .more-lecture > * { max-width: none; }
 .more-lecture h4 {
-  font-size: 1rem;
+  font-size: var(--fs-body);
   font-weight: 650;
   margin: 0;
   display: flex;
@@ -1341,13 +1469,19 @@ footer p { max-width: none; }
 }
 .more-lecture h4 .size {
   font-family: var(--mono);
-  font-size: 0.78rem;
+  font-size: var(--fs-fine);
   font-weight: 400;
   color: var(--ink-soft);
 }
-.more-lecture p { margin: 0.25rem 0 0.4rem; font-size: 0.94rem; color: var(--ink-soft); }
+.more-lecture p { margin: 0.25rem 0 0.4rem; font-size: var(--fs-note); color: var(--ink-soft); }
 /* Plain links with a middot between them, not four bordered buttons: the two
    cards above use buttons, and repeating them here would say these three are
    the same offer. */
-.more-lecture .opens { font-size: 0.9rem; }
+/* The links and the middots between them are written with no whitespace, so
+   `projection·cockpit·document·with notes` is a single unbreakable run and it
+   is what decides how narrow this column may be. At 0.9rem that run fitted the
+   two-column grid inside the disclosure; at the note size it did not, and the
+   card pushed 24px past the panel's edge at 1100. A wrapping flex row gives the
+   line a break opportunity at every separator without touching the markup. */
+.more-lecture .opens { font-size: var(--fs-note); display: flex; flex-wrap: wrap; align-items: baseline; }
 .more-lecture .opens span { color: var(--rule); padding: 0 0.25rem; }
