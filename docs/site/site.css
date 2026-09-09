@@ -746,6 +746,29 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
 @media (min-width: 60rem) {
   .topbar-nav { display: flex; gap: 1.1rem; font-size: 0.78rem; white-space: nowrap; }
 }
+/*
+ * The page you are on. `aria-current="page"` is set on it in build-site.js;
+ * this is what makes that visible, and it is deliberately not a device from
+ * the list DESIGN.md rules out - no accent border, no eyebrow, no pill. The
+ * other entries step back one shade so the current one can be plain white,
+ * and a hairline under it does the rest. It has to work on a strip 30px tall,
+ * so weight is not available: the bar's type is already small, and bolding
+ * one of six entries at 0.78rem reads as a rendering artefact rather than as
+ * a mark.
+ *
+ * The panel has room for weight, so there it is weight - an underline in a
+ * list of stacked links reads as a link that has been visited.
+ */
+.topbar-nav a { color: #cbc7c3; }
+.topbar-nav a:hover { color: #ffffff; }
+.topbar-nav a[aria-current] {
+  color: #ffffff;
+  text-decoration: underline;
+  text-decoration-color: #8d8985;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 6px;
+}
+.topbar-panel a[aria-current] { font-weight: 600; }
 
 /*
  * The language switch. Two links, always both visible, the current one marked
@@ -807,6 +830,11 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
   border-radius: 5px;
   padding: 0.4rem 0;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.22);
+  /* The panel is inside .topbar-actions, which sets nowrap so the row cannot
+     break. Stacked links in a 358px box are the opposite case: without this
+     the chair's name ran straight out of the panel's right edge on a phone,
+     where the panel is the only place that link exists. */
+  white-space: normal;
 }
 .topbar-panel a {
   display: block;
@@ -828,17 +856,25 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
 }
 /* Dropped in stages: the chair's name is the longest string in the bar and
    the first thing that stops fitting; the person is the attribution that
-   matters, so it goes last. A sticky strip must never grow a second line. */
-@media (max-width: 56rem) {
-  .topbar-chair, .topbar-sep { display: none; }
-}
-/* The same drop again, one band higher. Above 60rem the row grows the section
-   links, and from there the whole bar needs 1050px in English and 1075px in
-   German – measured, with the chair name alone accounting for 354px of the
-   German figure. Between the two widths the chair name is what does not fit,
-   so it goes here too and comes back at 68rem. Without this the row does not
-   wrap and does not clip: the nowrap text simply runs through the nav links. */
-@media (min-width: 60rem) and (max-width: 68rem) {
+   matters, so it goes last. A sticky strip must never grow a second line.
+
+   This used to be two rules – below 56rem, and again in a band between 60rem
+   and 68rem where the four section links were wider than the room left over.
+   It is one rule now, and the number in it is the whole bar with the chair
+   name in place: measured at 1272px in English and 1306px in German with the
+   six navigation entries, against 1050 and 1075 with the four the bar carried
+   before. So the chair comes back at 83rem (1328px), which leaves 22px, and
+   is hidden at every width below that. Two things the old pair of rules got
+   wrong and this does not: between 56rem and 60rem the chair was shown and
+   the German bar clipped it at 900px, and above 68rem it came back into a row
+   that could not hold it, so the ellipsis was doing the work the breakpoint
+   is supposed to do. The chair is in the burger menu at every width where it
+   is not in the bar, so nothing is unreachable.
+
+   Re-measure this number whenever an entry is added: build with
+   PSI_SITE_NAV_ALL=1 so the bar carries every row in SITE_PAGES, then read
+   what the row needs off .topbar-row's children at a wide viewport. */
+@media (max-width: 83rem) {
   .topbar-chair, .topbar-sep { display: none; }
 }
 @media (max-width: 40rem) {

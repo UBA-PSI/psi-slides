@@ -82,11 +82,18 @@ jobs:
       - name: Check the published figure pages are current
         run: node docs/artifact/refresh-figures.mjs --check
 
+      # Renders the docs from the same Markdown the repository serves, so the
+      # site cannot drift from them, and runs the site's two gates: every link
+      # resolves, and the German pages still match their English twins.
+      #
+      # The lecture views below are copied in *after* this step, so the link
+      # gate cannot see them in _site. It does not look: `LECTURE_VIEWS` in
+      # build-site.js names the same folders this step copies, and checks each
+      # one against its source.md in the repository. The two lists are one
+      # contract - change a folder here and change it there.
       - name: Assemble the site
         run: |
           mkdir -p _site/tutorial _site/python-intro _site/diagrams _site/decoration _site/example
-          # Renders the docs from the same Markdown the repository serves, so
-          # the site cannot drift from them.
           node docs/site/build-site.js _site
           for l in tutorial python-intro diagrams; do
             cp lectures/$l/audience.html \
