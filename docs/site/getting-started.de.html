@@ -20,17 +20,23 @@
 
   <h1>Loslegen</h1>
 
-  <p class="lede">Zwei Wege, und beide enden am selben Ort: Beide führen
-  dasselbe <code>build.js</code> aus und schreiben dieselben vier Ansichten
-  neben die eigene <code>source.md</code> &ndash; eine Projektion für den Raum,
-  ein Cockpit für die Vortragenden und zwei Handouts zum Drucken.</p>
 
-  <!-- Halbleere Zeile, Antwort 1. Ein Kopf aus einer Überschrift und einem
-       Absatz lässt zwei Drittel des ersten Bildschirms leer, und das ist genau
-       der Fehler, gegen den diese Seite geschrieben ist, an der schlechtesten
-       Stelle. Die zwei Wege sind zwei Dinge derselben Art, gehören also in
-       eine Zeile und sind zugleich die Wahl, mit der die Seite anfängt. -->
-  <div class="pair-up">
+  <!-- Halbleere Zeile, Antwort 1, und Befund 7. Eine Überschrift und ein
+       Absatz lassen zwei Drittel des ersten Bildschirms leer, und das ist
+       genau der Fehler, gegen den diese Seite geschrieben ist, an der
+       schlechtesten Stelle. Vorher war es eine zweispaltige Zeile unter einem
+       Vorspann, der eine halbe Breite nahm und die andere leer ließ – der
+       Einstieg las sich als drei kurze Dinge in einem Bildschirm voll Grund.
+       Der Vorspann ist jetzt die erste von drei Spalten: er sagt, dass es
+       zwei Wege gibt, und die zwei Wege stehen daneben. Eine Zeile, drei
+       Spuren, keine leere Hälfte. -->
+  <div class="pair-up trio hero-ways">
+   <div>
+    <p class="lede">Zwei Wege, und beide enden am selben Ort: Beide führen
+    dasselbe <code>build.js</code> aus und schreiben dieselben vier Ansichten
+    neben die eigene <code>source.md</code> &ndash; eine Projektion für den Raum,
+    ein Cockpit für die Vortragenden und zwei Handouts zum Drucken.</p>
+   </div>
    <div>
     <p><strong><a href="#app">Die App</a></strong> führt den Build in einem
     Fenster aus, das man herunterlädt und in dem man eine <code>source.md</code>
@@ -49,11 +55,20 @@
 
 <section class="band">
  <div class="wrap">
-  <!-- Halbleere Zeile, Antwort 1: die Worte des Abschnitts in die schmale
-       Spalte, das einzige Bild der Seite in die breite. Die Worte sind auf
-       vier Zeilen geschrieben, nicht hineingegossen, damit der Raum darunter
-       Rand ist und nicht eine Spalte, die ausgegangen ist. -->
-  <div class="beside">
+  <!-- Halbleere Zeile, Antwort 1, und Befund 5 und 8.
+       Vorher: die Worte des Abschnitts in der schmalen Spalte, das Bild in der
+       breiten, und die Download-Tabelle darunter über die ganze Rahmenbreite –
+       drei Spalten über 1310 px, das Auge lief die volle Seitenbreite vom
+       System bis zu der Frage, ob das Paket je gestartet wurde.
+       Jetzt ist die Zeile andersherum. Worte UND Tabelle nehmen die breite
+       Spalte – die Tabelle landet bei rund 780 px, dort hören ihre drei
+       Spalten auf, wie eine Zeile mit einem Loch in der Mitte zu wirken –,
+       das Bild nimmt die schmale. Das ist das kleinste Mittel, das dieses
+       Bild zeigen kann: ein Fenster mit sechs Bedienelementen, die der Text
+       daneben benennt, also Beleg und nicht Lesestoff. Der Raum, der darunter
+       bleibt, liegt an der rechten Rahmenkante, wo Weißraum als Rand gelesen
+       wird; unter den Worten wäre es die Kante, der das Lesen folgt. -->
+  <div class="beside words-wide">
    <div class="said">
     <h2 id="app">Die App</h2>
     <p class="lede">Die <code>source.md</code> einer Vorlesung öffnen oder auf
@@ -64,6 +79,46 @@
     über vier Knöpfe öffnet man die Ansichten, die er geschrieben hat. Es gibt auch
     kein Projekt einzurichten und keine Einstellungen, die vor dem ersten Build
     auszufüllen wären.</p>
+    <h3>Herunterladen</h3>
+    <p>Das Paket für das eigene System aus der Tabelle unten holen. Bis 2.0.0
+    erscheint die App getrennt von psi-slides selbst, unter einem eigenen Tag,
+    <code>builder-0.1.0</code>, und auf GitHub als <strong>Pre-Release</strong>
+    markiert: nicht die aktuelle Version von irgendetwas, sondern ein früh
+    angebotenes Paket.</p>
+
+    <!-- Die Tabelle steht in der breiten Spalte der Zeile darüber, nicht
+         darunter. Fünf Dateien über drei Systeme sind eine Liste zum
+         Nachschlagen, keine Prosa, sie nimmt also die volle Breite ihrer
+         Spalte – und die ist rund 780 px breit, nicht die 1310 des Rahmens.
+         `.scroller` macht das möglich: Eine nackte Tabelle ist hier
+         display:block, damit sie auf dem Telefon scrollen kann, und eine
+         Block-Tabelle schrumpft auf ihre Zeilen. -->
+    <div class="scroller">
+    <table>
+     <thead>
+      <tr><th>System</th><th>Paket</th><th>Stand</th></tr>
+     </thead>
+     <tbody>
+      <tr>
+       <td>macOS, Apple&nbsp;Silicon</td>
+       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.dmg"><code>psi-slides-builder-mac-arm64.dmg</code></a><br>
+         <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.zip"><code>psi-slides-builder-mac-arm64.zip</code></a></td>
+       <td>Auf einem echten Mac ausprobiert.</td>
+      </tr>
+      <tr>
+       <td>Windows, 64 Bit</td>
+       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-win-x64.exe"><code>psi-slides-builder-win-x64.exe</code></a></td>
+       <td><strong>Experimentell.</strong> Von der CI gebaut, nie gestartet.</td>
+      </tr>
+      <tr>
+       <td>Linux, 64 Bit</td>
+       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-x86_64.AppImage"><code>psi-slides-builder-linux-x86_64.AppImage</code></a><br>
+         <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-amd64.deb"><code>psi-slides-builder-linux-amd64.deb</code></a></td>
+       <td><strong>Experimentell.</strong> Von der CI gebaut, nie gestartet.</td>
+      </tr>
+     </tbody>
+    </table>
+    </div>
    </div>
    <div class="stage">
     <figure class="shot">
@@ -73,44 +128,6 @@
    </div>
   </div>
 
-  <h3>Herunterladen</h3>
-  <p>Das Paket für das eigene System aus der Tabelle unten holen. Bis 2.0.0
-  erscheint die App getrennt von psi-slides selbst, unter einem eigenen Tag,
-  <code>builder-0.1.0</code>, und auf GitHub als <strong>Pre-Release</strong>
-  markiert: nicht die aktuelle Version von irgendetwas, sondern ein früh
-  angebotenes Paket.</p>
-
-  <!-- Halbleere Zeile, Antwort 2: die Tabelle nimmt sich die Rahmenbreite
-       selbst. Fünf Dateien für drei Systeme sind zum Nachschlagen da, nicht
-       zum Lesen. `.scroller` macht das möglich: eine nackte Tabelle ist hier
-       display:block, damit sie auf dem Telefon scrollt, und eine Block-Tabelle
-       schrumpft auf ihre Zeilen. -->
-  <div class="scroller">
-  <table>
-   <thead>
-    <tr><th>System</th><th>Paket</th><th>Stand</th></tr>
-   </thead>
-   <tbody>
-    <tr>
-     <td>macOS, Apple&nbsp;Silicon</td>
-     <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.dmg"><code>psi-slides-builder-mac-arm64.dmg</code></a><br>
-       <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.zip"><code>psi-slides-builder-mac-arm64.zip</code></a></td>
-     <td>Auf einem echten Mac ausprobiert.</td>
-    </tr>
-    <tr>
-     <td>Windows, 64 Bit</td>
-     <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-win-x64.exe"><code>psi-slides-builder-win-x64.exe</code></a></td>
-     <td><strong>Experimentell.</strong> Von der CI gebaut, nie gestartet.</td>
-    </tr>
-    <tr>
-     <td>Linux, 64 Bit</td>
-     <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-x86_64.AppImage"><code>psi-slides-builder-linux-x86_64.AppImage</code></a><br>
-       <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-amd64.deb"><code>psi-slides-builder-linux-amd64.deb</code></a></td>
-     <td><strong>Experimentell.</strong> Von der CI gebaut, nie gestartet.</td>
-    </tr>
-   </tbody>
-  </table>
-  </div>
 
   <h3>Der erste Start</h3>
   <!-- Halbleere Zeile, Antwort 1: zwei Warnungen derselben Art nebeneinander.

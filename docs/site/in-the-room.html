@@ -52,8 +52,18 @@
  <div class="wrap">
   <!-- Half-empty row, answer 1: the section's words in the narrow column and
        the picture of the cockpit in the wide one. Written to four lines, so
-       the space under them reads as margin. -->
-  <div class="beside">
+       the space under them reads as margin.
+
+       Finding 2, and why this one is mirrored. The picture has to be large
+       here - the row under it discusses its parts, and it is the only whole
+       view of the cockpit on the site - so about 300px are left under the
+       short text column whichever way round it goes. With the words on the
+       left, the first column of the row below starts inside that hole, and
+       reading follows the left edge. With the words on the right the hole is
+       against the frame's right edge, where whitespace reads as margin, and
+       the row below starts under the picture. Plus the downward seam
+       `site.css` now keeps under every stage. -->
+  <div class="beside beside-flip">
    <div class="said">
     <h2 id="two-windows">Two windows</h2>
     <p class="lede">The projection goes on the wall. You open the
@@ -66,7 +76,7 @@
    <div class="stage">
     <figure class="shot">
      <div class="bar"><b>speaker.html</b></div>
-     <img src="img/cockpit.webp" alt="The presenter cockpit: a chapter scrubber across the top, a mirror of the projected slide, the private speaker note below it, a strip of neighbouring slides, and a footer with timer and key legend.">
+     <img src="img/cockpit.webp" alt="The presenter cockpit: a chapter scrubber across the top, the clock over the corner of the mirror of the projected slide, the private speaker note below it, a strip of neighbouring slides, and a footer with the live mark and the key legend.">
     </figure>
    </div>
   </div>
@@ -157,71 +167,87 @@ where the rest of the hour is going to be spent.
 
 <section class="band">
  <div class="wrap">
-  <!-- Half-empty row, answer 2: the sequence takes the width itself. It used
-       to be one still beside four lines of prose, and a still cannot make this
-       argument - what the mode does is move two things on one press, which is
-       a difference between pictures. Four frames of one slide, stepped
-       through with the same chooser the front page uses for the three ways.
-       The heading count is unchanged: the frame labels are paragraphs, not
-       headings, so the twin gate still sees one h2 here. -->
-  <h2 id="cue-cards">The other cockpit, for a talk you have written out</h2>
-  <p class="lede">A talk written word for word, with almost nothing on the
-  slides, is given differently from a lecture, and <kbd>K</kbd> rearranges the
-  window for it: the projection small in a strip on the left, your notes as
-  cards down a rail on the right. It is a mode you switch into and stay in
-  rather than a panel you open, and it changes what <kbd>Space</kbd> does.</p>
-  <p class="cue">You go card by card, and only when the cards of this step are
-  used up does the press click the projector. Below are four presses of one
-  slide, one frame each. That slide carries a drawing with steps of its own, and
-  three of its cards name the press they belong to, with
-  <code>&gt; note: from 1</code>, <code>from 2</code> and <code>from 3</code>:
-  a drawing&rsquo;s steps have no three-dash line between them for a note to
-  stand after.</p>
+  <!-- Half-empty row, answer 1: the section's words in the narrow column
+       and the sequence in the wide one. It used to be one still beside
+       four lines of prose, and a still cannot make this argument - what
+       the mode does is move two things on one press, which is a difference
+       between pictures. Four frames of one slide, stepped through with the
+       same chooser the front page uses for the three ways. The heading
+       count is unchanged: the frame labels are paragraphs, not headings,
+       so the twin gate still sees one h2 here. -->
+  <!-- Findings 3 and 4. A control belongs against the thing it
+       operates: site.js inserts the tab row before `.ways`, which is
+       now inside `.frames-col` and so directly above the stage. Each
+       frame's own sentence has moved under its picture rather than
+       standing between the tabs and the stage - it says what changed
+       in THIS frame, which can only be read against the frame. The
+       sequence's own cue still comes first, one column to the left.
+       And the strip takes the wide column rather than the whole
+       frame: 827px instead of 1247px, which fits one screen. -->
+  <div class="beside frames-beside">
+   <div class="said">
+    <h2 id="cue-cards">The other cockpit, for a talk you have written out</h2>
+    <p class="lede">A talk written word for word, with almost nothing on the
+    slides, is given differently from a lecture, and <kbd>K</kbd> rearranges the
+    window for it: the projection small in a strip on the left, your notes as
+    cards down a rail on the right. It is a mode you switch into and stay in
+    rather than a panel you open, and it changes what <kbd>Space</kbd> does.</p>
+    <p class="cue">You go card by card, and only when the cards of this step are
+    used up does the press click the projector. Below are four presses of one
+    slide, one frame each. That slide carries a drawing with steps of its own, and
+    three of its cards name the press they belong to, with
+    <code>&gt; note: from 1</code>, <code>from 2</code> and <code>from 3</code>:
+    a drawing&rsquo;s steps have no three-dash line between them for a note to
+    stand after.</p>
+   </div>
 
-  <div class="ways ways-frames">
-   <div class="way" data-tie="f0">
-    <p class="way-label">as the slide arrives</p>
-    <p class="cue">The card being said stands large. Below it, in grey, the
-    cards still to come; between them the diamonds, one per click of the
-    projector.</p>
-    <div class="stage">
-     <figure class="shot">
-      <div class="bar"><b>speaker.html</b> &middot; K</div>
-      <img src="img/cue-beat-0.webp" alt="The cue-card cockpit as the slide arrives: on the left the projection with a drawing of three boxes, on the right the first card large and dark, and under it the diamonds and the grey cards of the presses still to come.">
-     </figure>
-    </div>
-   </div>
-   <div class="way" data-tie="f1">
-    <p class="way-label">one press</p>
-    <p class="cue">The card above has gone grey, the press has reached the
-    projector, and a box on the drawing has faded out.</p>
-    <div class="stage">
-     <figure class="shot">
-      <div class="bar"><b>speaker.html</b> &middot; K</div>
-      <img src="img/cue-beat-1.webp" alt="One press further: the first card is grey above the cursor, the second card is the large one, and on the projection the third box of the drawing has faded to a dashed outline.">
-     </figure>
-    </div>
-   </div>
-   <div class="way" data-tie="f2">
-    <p class="way-label">two</p>
-    <p class="cue">The next card, and the two boxes it is about have arrived on
-    the drawing. One press moved both.</p>
-    <div class="stage">
-     <figure class="shot">
-      <div class="bar"><b>speaker.html</b> &middot; K</div>
-      <img src="img/cue-beat-2.webp" alt="Two presses in: the third card is the large one, and two further boxes have appeared on the drawing on the projection.">
-     </figure>
-    </div>
-   </div>
-   <div class="way" data-tie="f3">
-    <p class="way-label">three</p>
-    <p class="cue">The last of the cards pinned to a step. What has been said
-    stands above the cursor, what is left stands below it.</p>
-    <div class="stage">
-     <figure class="shot">
-      <div class="bar"><b>speaker.html</b> &middot; K</div>
-      <img src="img/cue-beat-3.webp" alt="Three presses in: the drawing on the projection is complete with its last box and its source line, and in the rail the cards already said stand grey above the cursor with the rest of the note below it.">
-     </figure>
+   <div class="frames-col">
+    <div class="ways ways-frames">
+     <div class="way" data-tie="f0">
+      <p class="way-label">as the slide arrives</p>
+      <div class="stage">
+       <figure class="shot">
+        <div class="bar"><b>speaker.html</b> &middot; K</div>
+        <img src="img/cue-beat-0.webp" alt="The cue-card cockpit as the slide arrives: on the left the projection with a drawing of three boxes, on the right the first card large and dark, and under it the diamonds and the grey cards of the presses still to come.">
+       </figure>
+      </div>
+      <p class="cue">The card being said stands large. Below it, in grey, the
+      cards still to come; between them the diamonds, one per click of the
+      projector.</p>
+     </div>
+     <div class="way" data-tie="f1">
+      <p class="way-label">one press</p>
+      <div class="stage">
+       <figure class="shot">
+        <div class="bar"><b>speaker.html</b> &middot; K</div>
+        <img src="img/cue-beat-1.webp" alt="One press further: the first card is grey above the cursor, the second card is the large one, and on the projection the third box of the drawing has faded to a dashed outline.">
+       </figure>
+      </div>
+      <p class="cue">The card above has gone grey, the press has reached the
+      projector, and a box on the drawing has faded out.</p>
+     </div>
+     <div class="way" data-tie="f2">
+      <p class="way-label">two</p>
+      <div class="stage">
+       <figure class="shot">
+        <div class="bar"><b>speaker.html</b> &middot; K</div>
+        <img src="img/cue-beat-2.webp" alt="Two presses in: the third card is the large one, and two further boxes have appeared on the drawing on the projection.">
+       </figure>
+      </div>
+      <p class="cue">The next card, and the two boxes it is about have arrived on
+      the drawing. One press moved both.</p>
+     </div>
+     <div class="way" data-tie="f3">
+      <p class="way-label">three</p>
+      <div class="stage">
+       <figure class="shot">
+        <div class="bar"><b>speaker.html</b> &middot; K</div>
+        <img src="img/cue-beat-3.webp" alt="Three presses in: the drawing on the projection is complete with its last box and its source line, and in the rail the cards already said stand grey above the cursor with the rest of the note below it.">
+       </figure>
+      </div>
+      <p class="cue">The last of the cards pinned to a step. What has been said
+      stands above the cursor, what is left stands below it.</p>
+     </div>
     </div>
    </div>
   </div>
