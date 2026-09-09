@@ -91,6 +91,19 @@ pre .cl, pre .kw { background: none; padding: 0; word-spacing: normal; }
 .herotop { margin-top: 1.4rem; }
 
 /*
+ * The one raster on the page, and the other branch of DESIGN.md's fifth rule.
+ * The editor's own interface type is 13px in a 1920px shot, so at the frame's
+ * width it renders at 7.9px and at any width this page can give it: nobody
+ * reads it, which means it is EVIDENCE rather than something to read, and
+ * evidence goes small. It is set to the width at which the arrangement is
+ * still legible as an arrangement - a toolbar, a canvas with a figure and the
+ * relations written on it, a panel down the right, a rail of beats, a strip of
+ * the lecture's other figures - and that is 46rem, 736px, 489 tall. It was
+ * 1163px wide and 957 tall, which is a screen and a half of one picture.
+ */
+figure.shot.evidence { max-width: 46rem; margin-inline: auto; }
+
+/*
  * ── A figure, the bar that walks it, and its source ───────────────────────
  *
  * One object in three parts, so the hairlines between them are shared and the
@@ -98,7 +111,45 @@ pre .cl, pre .kw { background: none; padding: 0; word-spacing: normal; }
  * above it, not to the page, which is why it is inside the frame and not in
  * the page's own listing recess.
  */
-.demo { display: flow-root; }
+/*
+ * ── How large a drawing is, as a number ───────────────────────────────────
+ *
+ * DESIGN.md's fifth rule - a picture is as large as what it has to show, and
+ * no larger - had no number on this page, so every figure that could not be a
+ * band took the frame by default and three of them came out as posters. The
+ * three boxes under "Beats let figures come alive" were drawn 1187px wide for
+ * a drawing 719 units across: its labels rendered at 25px against 19px prose,
+ * which is a diagram shouting over the text that introduces it.
+ *
+ * The number: a drawn figure is scaled so its labels are about the size of
+ * the prose beside them. A `::: draw` label is 15 units, prose is 19px, so
+ * the target is the viewBox's width times 19/15, plus the card's own padding.
+ * That is not a house style, it is the same reasoning DESIGN.md gives for the
+ * type scale - a figure among prose is read at the prose's size.
+ *
+ *   hero (in the hero's column, 469 units)   →  646px, and it already was 631
+ *   #seven (441 units)                       →  611px, was 827
+ *   follow (719 units)                       →  963px, was 1247
+ *   seq-demo (1053 units)                    → 1386px, and the frame is 1226
+ *
+ * The passkey sequence is the one that wants MORE than the frame, so it takes
+ * all of it and its labels still come out at 16.7px, a step under the prose.
+ * That is what a figure earning the frame looks like, and it is the only one
+ * on the page.
+ *
+ * The widths below are in rem, and a rem here is the browser's 16px, not the
+ * page's 19px body size - the same trap the type scale at the top of site.css
+ * records. 38rem is 608px, 60rem is 960.
+ *
+ * Centred, not left-aligned. A stage is a field a picture stands on, and a
+ * field's margin is even; the stage itself keeps the frame's left edge, so
+ * the page's one left edge is untouched.
+ */
+.demo { display: flow-root; margin-inline: auto; }
+.demo:has(> .fig-card) { max-width: 38rem; }
+.demo:has(> [data-demo="follow"]) { max-width: 60rem; }
+/* No cap: see above. */
+.demo:has(> [data-demo="seq-demo"]) { max-width: none; }
 .demo-stage, .demo > .fig-card { border-radius: 6px 6px 0 0; }
 /* site.css caps a listing at 62rem, which is right for a listing standing on
    the page and wrong for one that is the lower half of a framed object: it
@@ -482,9 +533,9 @@ pre .srcln:empty::before { content: "\00a0"; }
        the five ways into the lecture in the wide one. A table of links is
        looked at rather than read, so it runs to the frame's edge; it is not a
        picture, so it stands on the page's own ground rather than on a stage. -->
+  <h2 id="lecture">Open it as a lecture</h2>
   <div class="beside">
    <div class="said">
-    <h2 id="lecture">Open it as a lecture</h2>
     <p class="lede"><strong>Animated Infographics</strong> is a complete psi-slides
     lecture. Its figures live inside its
     Markdown source, the build places them into the slides, and the same source
@@ -528,9 +579,9 @@ pre .srcln:empty::before { content: "\00a0"; }
        at the size of a poster. As a band the words stand beside it and the
        figure is the width it needs.
        Words left: this is the step that introduces the thing. -->
+  <h2 id="seven">Figures in psi-slides</h2>
   <div class="beside">
    <div class="said">
-    <h2 id="seven">Figures in psi-slides</h2>
     <p class="lede">A <strong>figure</strong> is whatever a slide shows in place of plain text &ndash; such as an image or a video clip. Our focus is on <strong>relational drawings</strong> fenced off with <code>::: draw</code>. They are described with text, rendered when you <em>build</em> the slides, and can optionally be built up in beats while you present.</p>
     <p class="cue">This is a whole figure just as you would insert it into a slide. Note that the positions of the objects and arrows are not stored as absolute coordinates: Eve is placed <em>against</em> Alice, Bob against Eve. The arrows are described by naming their two ends and they find their own way between them.</p>
    </div>
@@ -705,7 +756,7 @@ pre .srcln:empty::before { content: "\00a0"; }
   right-hand edge.</p>
 
   <div class="stage">
-   <figure class="shot">
+   <figure class="shot evidence">
     <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>the editor, opened on a figure with beats</b></div>
     <img src="img/editor.webp" alt="The diagram editor open over a lecture slide: a dark canvas holding a CBC decryption figure with one box selected, the relations that place it written on the canvas beside it, a panel on the right describing the beat that is standing, a rail of the figure's beats along the bottom, and a strip of the lecture's other figures under that.">
     <figcaption><strong>The editor, over a slide of a network-security

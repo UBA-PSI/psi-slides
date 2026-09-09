@@ -362,7 +362,13 @@ p { margin: 0 0 1.1rem; }
 .stage {
   background: var(--stage);
   border-radius: 12px;
-  padding: clamp(0.9rem, 2.2vw, 2.2rem);
+  /*
+   * DESIGN.md says two to three rems of air inside a stage. It was 1.7rem at
+   * 1440 - the vw term topped out before the rem cap did - and a picture that
+   * runs to within 32px of the field it stands on reads as pressed into it,
+   * whatever the page has for space elsewhere. 2.2rem at 1440, 2.8 at 1920.
+   */
+  padding: clamp(1.1rem, 2.9vw, 2.8rem);
   margin: 0 0 1.4rem;
 }
 .stage > :last-child { margin-bottom: 0; }
@@ -491,7 +497,13 @@ p { margin: 0 0 1.1rem; }
 .beside + :is(h2, h3) { margin-top: clamp(2.4rem, 5vw, 5.5rem); }
 
 /* `center`, and this single word is the whole variant. See the note above. */
-.beside { display: grid; gap: clamp(1.4rem, 2.5vw, 3rem); align-items: center; }
+/*
+ * The gutter is measured against the section gap, which is 172px at 1440 and
+ * 230 at 1920. At 36px the two halves of a band were a fifth of that apart and
+ * the words stood against the picture's edge; at 52 they are a third of it,
+ * which still reads as one row and no longer as two things touching.
+ */
+.beside { display: grid; gap: clamp(1.8rem, 3.6vw, 4.2rem); align-items: center; }
 /* The one exception, and it is not a picture row: where the two columns are
    both text of the same kind, centring them makes two ragged tops out of two
    flush ones. A band has a stage in it; this does not. */
@@ -522,9 +534,30 @@ p { margin: 0 0 1.1rem; }
 @media (min-width: 68rem) {
   .beside { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
 }
-/* A heading in this column cannot carry the full display size: at the section
-   size it broke every one of them into three lines. */
-.beside .said h2 { font-size: clamp(1.7rem, 2.4vw, 2.15rem); max-width: none; }
+/*
+ * The section heading is NOT in this column any more, and that is the second
+ * half of what centring cost.
+ *
+ * Centred with the rest of the words, an h2 floated at half the height of the
+ * picture beside it - a heading anywhere but at the top of what it names. The
+ * fix is not to stop centring; it is that a heading of a SECTION was never a
+ * member of one of the section's columns. It stands above the band now, at the
+ * frame's left edge, and it carries the same size every other h2 on the site
+ * carries: it used to be set two steps down to survive a 24rem column, so the
+ * page had two h2 sizes depending on whether a section happened to be a band,
+ * and a contact sheet is scanned by heading size.
+ *
+ * An h3 stays where it is. It names the COLUMN rather than the section, there
+ * can be several in one section, and lifting one out would make a sub-heading
+ * look like a section heading. What it gets instead is the row below - see
+ * "Where the thing beside a headed column starts" further down, which puts the
+ * heading on the row's first line and starts the listing level with the prose
+ * under it.
+ */
+/* The band's first line is the lede, so it needs no top margin of its own; the
+   heading above the row carries the space. */
+.wrap > h2 + .beside,
+.wrap > h2 + .aside-code { margin-top: 0; }
 /* The one lede that is not an entrance but the section's whole text: beside a
    stage there is no paragraph after it, so it is read as prose and is set at
    the prose size rather than a step under it. Uncapped, because the column it
@@ -781,7 +814,9 @@ figure.shot .swap button[aria-pressed="true"]:hover {
 pre {
   background: var(--code-bg);
   border-radius: 8px;
-  padding: 1.1rem 1.3rem;
+  /* A listing is a recess, and a recess with 21px of floor round its first
+     character reads as a box that ran out of room. */
+  padding: 1.4rem 1.7rem;
   overflow-x: auto;
   font-size: var(--fs-code);
   line-height: 1.62;
@@ -871,11 +906,13 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
 .hero-ways > * > :first-child { margin-top: 0; }
 
 /* A card: the shot's white on the page's grey, the way a screenshot is. */
+/* 1.5rem of padding, not 1.1: a bordered card whose text starts 21px from its
+   own edge reads as crowded next to a stage that now keeps 2.2rem. */
 .hint {
   background: var(--shot-bg);
   border: 1px solid var(--frame);
   border-radius: 6px;
-  padding: 1.1rem 1.3rem;
+  padding: 1.5rem 1.7rem;
   font-size: var(--fs-note);
   margin: 2rem 0 0;
   max-width: 42rem;
@@ -1466,7 +1503,7 @@ body.lightbox-open { overflow: hidden; }
    Which side the listing takes follows the same question a picture band asks:
    a step keeps the reading direction (`.words-first`), a comparison turns it
    round. */
-.aside-code { display: grid; gap: clamp(1.2rem, 2.2vw, 2.6rem); align-items: center; }
+.aside-code { display: grid; gap: clamp(1.6rem, 3.2vw, 3.8rem); align-items: center; }
 .aside-code > .said > :first-child { margin-top: 0; }
 .aside-code > .said > :last-child { margin-bottom: 0; }
 .aside-code > pre { margin-bottom: 0; max-width: none; }
@@ -1582,7 +1619,7 @@ footer p { max-width: none; }
   background: var(--shot-bg);
   border: 1px solid var(--frame);
   border-radius: 8px;
-  padding: 1.3rem 1.5rem 1.4rem;
+  padding: 1.6rem 1.8rem 1.7rem;
 }
 .pick h3 { margin: 0 0 0.15rem; font-size: var(--fs-lead); }
 .pick h3 code { font-size: 0.92em; color: inherit; }
@@ -1717,7 +1754,7 @@ footer p { max-width: none; }
 .ways.is-switched .way-label { display: none; }
 /* A `.way` is a band inside a chooser - words on one side, the thing itself on
    the other - so it is centred like every other band on this site. */
-.way { display: grid; gap: clamp(1.2rem, 2.4vw, 2.6rem); align-items: center; }
+.way { display: grid; gap: clamp(1.6rem, 3.2vw, 3.8rem); align-items: center; }
 @media (min-width: 64rem) {
   .way { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
 }

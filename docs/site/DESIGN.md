@@ -54,6 +54,30 @@ does:
    a crop; one that stands there as evidence goes small, and the text that
    would have sat above it moves into the free half beside it.
 
+   **For a drawing the rule has a number, and it is the type.** A compiled
+   `::: draw` label is 15 units in the figure's own grid, and the prose it
+   stands among is 19px, so a figure is drawn at about its viewBox width
+   times 19/15 &ndash; its labels then read at the size of the sentences beside
+   them. Larger than that is a diagram shouting over the text that
+   introduces it: the three boxes on `figures.html` were drawn 1187px wide
+   for a drawing 719 units across and their labels came out at 25px. The
+   frame's full width is what a figure gets when the number asks for MORE
+   than the frame, which on that page is true of exactly one of the four.
+   A figure narrower than its stage is **centred** on it: the stage is a
+   field, a field's margin is even, and the stage itself still starts at
+   the frame's left edge, so the page's one left edge is untouched.
+
+   **For a screenshot the question is which branch applies**, and the test
+   is whether its own type can be read at the width the page can give it.
+   The diagram editor's interface is 13px in a 1920px shot, which is 7.9px
+   at the frame's width: nobody reads it, so it is evidence and goes small.
+   Where the answer is a crop, **crop the shot rather than arrange around
+   it** &ndash; change the height in `shoot.mjs`'s shot table and re-take it, so
+   the crop is reproducible. The two handout shots went from 690 to 470
+   viewport rows for that reason: the second chunk of the document carried
+   nothing the first did not, and the shot was 762px tall against 240px of
+   words beside it.
+
 The cue stays **outside** the stage on purpose. Inside it, the triad
 collapses to two and the device loses the job it was built for.
 
@@ -142,6 +166,22 @@ Two things follow, and they are the rest of the rule:
   A paragraph at `--measure` with ground to its right is not a half-empty
   row; it is the page's own margin, the same margin every lede has.
 
+#### The heading is not in the band
+
+A section heading names the section, not one of its columns, so it stands
+**above** the band at the frame's left edge. Inside the words column it was
+centred with everything else and floated at half the height of the picture
+beside it, which is a heading anywhere but at the top of what it names; and
+it had to be set two steps down from the site's h2 to survive a 24rem
+column, so the page carried two h2 sizes depending on whether a section
+happened to be a band. A contact sheet is scanned by heading size.
+
+An **h3** stays in the column. It names the column rather than the section,
+there can be several in one section, and lifting one out would make a
+sub-heading read as a section heading. What it gets instead is the row
+below: `site.css` puts it on the row's first line and starts the listing
+beside it level with the prose under it, which is what a listing answers.
+
 #### Which side the stage takes
 
 Not alternation. A page that flips every section has stopped meaning
@@ -170,6 +210,24 @@ A band is centred because the difference in height is fixed; a fold is
 still and then walk four screens down the moment a reader opened it. The
 reader sets that height, so that row stays top-aligned. One caller,
 `getting-started.html`, "From a machine with nothing on it".
+
+#### Airy, as numbers
+
+"Not airy" is the complaint a page gets when its distances are right in
+relative terms and small in absolute ones, so they are set against each
+other here rather than chosen.
+
+- **The gutter of a row against the gap between sections.** The section gap
+  is 172px at 1440 and 230 at 1920. A band's gutter is 52 and 67 &ndash; about a
+  third &ndash; which still reads as one row. At 36px, which is what it was, the
+  words stood against the picture's edge; at the section gap the two halves
+  would stop being a row at all.
+- **What a block keeps inside its own field.** DESIGN.md asked for two to
+  three rems of air inside a stage and got 1.7 at 1440, because the `vw`
+  term topped out before the `rem` cap did. A picture that runs to within
+  32px of the field it stands on reads as pressed into it whatever space
+  the page has elsewhere. The stage keeps 2.2rem at 1440 and 2.8 at 1920;
+  a listing's recess and a bordered card were raised with it.
 
 #### The gutter of a two-column prose row
 
