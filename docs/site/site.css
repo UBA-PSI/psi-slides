@@ -1295,6 +1295,25 @@ footer p { max-width: none; }
 .way-cols { display: block; width: 100%; height: auto; margin: 0 0 0.2rem; }
 
 /*
+ * The same chooser carrying four frames of one window instead of three
+ * arguments - "In the room", the cue-card mode. One column rather than two:
+ * what a reader compares here is the picture, and a 24rem text column beside
+ * it would leave the frame at the width the single still already had, which
+ * is the reason the still was replaced. So the stage takes the frame and the
+ * sentence stands above it, which is where a cue belongs anyway.
+ *
+ * The label is a paragraph and not a heading, unlike the three ways: this
+ * page's headings are the anchors its two languages are linked by and the
+ * twin gate counts them, so four frame labels must not become four h3.
+ */
+.ways-frames .way { grid-template-columns: minmax(0, 1fr); gap: 0; }
+.ways-frames .way-label { margin-bottom: 0.35rem; }
+.ways-frames .stage { margin-bottom: 0; }
+/* Without scripting the four stand under each other, so they need the air
+   between two stages rather than the gap inside one option. */
+.ways-frames:not(.is-switched) { gap: 2.6rem; }
+
+/*
  * ── The three other lectures ──────────────────────────────────────────────
  *
  * Punkt 1. This was the six-column table again, inside the disclosure, with

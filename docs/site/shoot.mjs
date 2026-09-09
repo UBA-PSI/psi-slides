@@ -1,11 +1,11 @@
 #!/usr/bin/env node
 /**
  * Re-shoots the site's screenshots from lectures/python-intro, plus the one of
- * the diagram editor from lectures/diagrams, the cue-card one from
- * lectures/tutorial and the five decoration.html needs from
- * lectures/decoration.
+ * the diagram editor from lectures/diagrams, the five decoration.html needs
+ * from lectures/decoration, and the four-frame cue-card sequence from
+ * lectures/spoken-talk.
  *
- *   node docs/site/shoot.mjs                 # all seventeen, into docs/site/img/
+ *   node docs/site/shoot.mjs                 # all twenty, into docs/site/img/
  *   node docs/site/shoot.mjs cockpit search  # just those two
  *   node docs/site/shoot.mjs --keep-png      # leave the PNGs beside the WebP
  *
@@ -37,6 +37,13 @@
  * lecture nobody rebuilt. It is addressed by fragment rather than walked,
  * because what the shot is about is inside a modal that opens over whichever
  * chunk the camera is on, not the walk that got there.
+ *
+ * The cue-card sequence is four frames of one slide, and it comes from
+ * lectures/spoken-talk. It has to come from somewhere written for the mode:
+ * the cards are for a talk that is written out word for word, and the
+ * tutorial's notes are examples of note syntax, so a frame of them shows the
+ * rail and not the reason for it. spoken-talk exists for this - see the
+ * comment at the top of its source.
  *
  * The audience view is walked to the target chunk with the arrow keys rather
  * than addressed by fragment. That was a workaround for the bug where the
@@ -121,15 +128,28 @@ const SHOTS = [
   { name: 'figure', src: 'print.html', w: 1200, h: 900, dsf: 2,
     lecture: 'network-security', target: 'ns-a03',
     clip: '#ns-a03 svg.psi-diagram' },
-  // The cockpit's third arrangement, for the "In the room" page. It comes from
-  // the tutorial rather than from python-intro because the cards are made of
-  // `> note:` blocks and this is the only tracked lecture whose notes are
-  // written for them: #cue-cards has three beats, a titled card, bolded
-  // bullets and an `@0:30` mark, so one frame shows the rail, the diamonds
-  // between the beats and the drift beside the clock. One Space is pressed so
-  // the red cursor is inside the list rather than on its first line.
-  { name: 'cue-cards', src: 'speaker.html', w: 1440, h: 900, dsf: 1.5,
-    lecture: 'tutorial', target: 'cue-cards', frag: true, act: openCueCards },
+  // ── the cue-card sequence, four frames of one slide ─────────────────────
+  // The cockpit's third arrangement, for the "In the room" page. One still
+  // frame of it does not explain itself: what a reader has to see is the
+  // cursor walking the rail while the figure on the projection walks its
+  // steps, and that is a change between two pictures, not a picture.
+  //
+  // #second-time is the case the mode was built for: a figure with three
+  // `step` blocks and four notes, three of them pinned with
+  // `> note: from N`. So the rail interleaves card, click, card, click - and
+  // the four frames are the cursor standing on each of the four cards, with
+  // the figure at the beat that card is spoken over.
+  //
+  // Even presses only. The rail carries an entry for the projector click
+  // itself, so the cursor lands on a card, then on a click, then on the next
+  // card: 0, 2, 4, 6 are the four frames where a card is current and the
+  // figure has just moved. Deriving them rather than counting them would
+  // need the rail's own model, and the count is asserted below instead.
+  ...[0, 2, 4, 6].map((presses, i) => ({
+    name: `cue-beat-${i}`, src: 'speaker.html', w: 1440, h: 900, dsf: 1.5,
+    lecture: 'spoken-talk', target: 'second-time', frag: true,
+    act: (p) => cueFrame(p, presses),
+  })),
   // The live annotation filling the frame, with the QR code the address gets.
   // python-intro, so it is the same lecture as the rest of the live set, and
   // typed rather than pre-seeded: the size is derived from the text, so a
@@ -176,15 +196,45 @@ const SHOTS = [
   })),
 ];
 
-async function openCueCards(p) {
+// How wide the film strip is dragged for the sequence. The mode opens at a
+// strip of about 300px, which is right for a talk whose slides are words: a
+// glance is enough to know which one is up. This slide is a drawing that
+// changes on every press, and at 300px the change is four grey rectangles
+// moving. The handle is the lecturer's own (drag the seam, double-click
+// resets), so this is a setting a room would make, not a rig.
+const CUE_STRIP_PX = 620;
+
+// One frame of the sequence: cue-card mode, the strip widened, N presses.
+async function cueFrame(p, presses) {
   await p.keyboard.press('k');
   await p.waitForTimeout(1200);
   if (!(await p.locator('body.cue-cards #cue-rail .cue-card').count())) {
     throw new Error('cue cards: the rail is empty');
   }
-  // One press, so the red cursor stands on the second card of the beat
-  // rather than at the top of the list.
-  await p.keyboard.press(' ');
+
+  const seam = await p.locator('#preview-resizer').boundingBox();
+  if (!seam) throw new Error('cue cards: no resize handle');
+  await p.mouse.move(seam.x + seam.width / 2, seam.y + seam.height / 2);
+  await p.mouse.down();
+  await p.mouse.move(CUE_STRIP_PX, seam.y + seam.height / 2, { steps: 12 });
+  await p.mouse.up();
+  // Off the handle again, or every frame carries its hover tooltip.
+  await p.mouse.move(20, 20);
+
+  for (let i = 0; i < presses; i++) {
+    await p.keyboard.press(' ');
+    await p.waitForTimeout(600);
+  }
+
+  // The frame is only the frame if a card is current. An entry for the
+  // projector click sits between two cards, and a sequence photographed one
+  // press out would show the rail moving and the figure standing still.
+  const cur = await p.evaluate(() => {
+    const e = document.querySelector('#cue-rail .cue-entry.cur');
+    return e ? (e.querySelector('.cue-card') ? 'card' : 'click') : 'none';
+  });
+  if (cur !== 'card') throw new Error(`cue-cards: after ${presses} presses the cursor is on a ${cur}`);
+
   // Long enough for the mode's toast to fade: it stands over the header,
   // which is where the crumb, the counters, the clock and the drift are -
   // and the drift is half of what this shot is about.
