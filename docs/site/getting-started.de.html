@@ -118,12 +118,13 @@
   <div class="pair-up">
    <div>
     <p><strong>Windows und Linux sind experimentell.</strong> Diese beiden
-    Pakete kommen vom Build-Rechner und sind nie auf einem echten gestartet
-    worden. Gut möglich, dass sie laufen; zugesehen hat dabei niemand. Wer eines
+    Pakete kommen vom Build-Rechner und sind auf einem echten nicht gestartet
+    worden. Gut möglich, dass sie laufen; getestet ist es nicht. Wer eines
     ausprobiert: ob es läuft oder umfällt, ist ein
     <a href="https://github.com/UBA-PSI/psi-slides/issues">Issue</a> wert, in
-    beide Richtungen. Das macOS-Paket ist auf einem echten Mac benutzt
-    worden.</p>
+    beide Richtungen. Das macOS-Paket ist auf einem echten Mac benutzt worden,
+    und das ist der ganze Unterschied zwischen den drei Zeilen der Tabelle
+    oben.</p>
    </div>
    <div>
     <p><strong>Die Pakete sind nicht signiert</strong>, außer dem für macOS: Das
@@ -160,8 +161,7 @@
     <p>Die zwei Wege sind auch nicht zwei Werkzeuge: Die App führt dasselbe
     <code>build.js</code> auf derselben <code>source.md</code> aus und erzeugt
     dieselben vier Ansichten. <strong>Nichts verlässt den Rechner.</strong> Kein
-    Konto, keine Telemetrie, kein Update-Aufruf, überhaupt kein
-    Netzzugriff.</p>
+    Konto, keine Telemetrie, kein Update-Aufruf, kein Netzzugriff.</p>
    </div>
   </div>
  </div>
@@ -172,8 +172,8 @@
   <h2 id="command-line">Die Kommandozeile</h2>
   <p class="lede">Derselbe Build wie in der App, nur selbst getippt: für
   einen Rechner, auf dem ohnehin ein
-  Terminal offen ist &ndash; und der einzige Weg, psi-slides in einer CI laufen zu
-  lassen. Es braucht <strong>Node 20 oder neuer</strong>, womit
+  Terminal offen ist &ndash; und das, was ein CI-Job ausführt. Es braucht
+  <strong>Node 20 oder neuer</strong>, womit
   <code>build.js</code> läuft, und sonst nichts: kein LaTeX, kein Pandoc, keinen
   Server, nichts systemweit Installiertes.</p>
 
@@ -230,8 +230,8 @@
   <div class="beside second-picture">
    <div class="said">
     <h3>Von einem Rechner ohne alles</h3>
-    <p class="cue">Die Schritte führen einen Windows- oder macOS-Rechner, auf
-    dem nichts installiert ist, zu einem gebauten Tutorial. Der Reihe nach
+    <p class="cue">Die Schritte führen von diesem Rechner zu einem gebauten
+    Tutorial. Der Reihe nach
     durchgehen: Wer <code>npm install</code> vor dem <code>cd</code> aufruft, installiert in den falschen
     Ordner.</p>
     <p class="cue">Die App oben braucht nichts davon.</p>
@@ -291,8 +291,8 @@
       dauert ein paar Sekunden. Es holt die Schriften, die psi-slides in jede Vorlesung
       einbettet, und die Handvoll Pakete, die der Build benutzt. Alles landet in
       einem Ordner <code>node_modules</code> neben <code>build.js</code>:
-      systemweit wird nichts installiert, und die gebauten Vorlesungen laden beim
-      Öffnen nichts nach.</p>
+      systemweit wird nichts installiert, und die gebauten Vorlesungen öffnen
+      sich auch ohne diesen Ordner.</p>
 
       <h3>Das Tutorial bauen</h3>
 <pre><code>node build.js lectures/tutorial/source.md</code></pre>
