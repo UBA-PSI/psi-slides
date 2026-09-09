@@ -42,6 +42,17 @@ does:
    `.second-picture` carries that, and it is a rule because the first
    version had the class in the markup with no CSS behind it and the two
    fields touched.
+4. **The air goes under a stage as well as over it.** The first version of
+   this system gave a picture room above and nothing below, so the row of
+   text explaining it started against the picture's edge and read as part
+   of it. The same seam is set on `.beside + .pair-up` and its siblings.
+5. **A picture is as large as what it has to show, and no larger.** A
+   screenshot at 16:10 across the whole frame is over 800px tall: it
+   pushes everything else off the screen, and a reader who scrolls past it
+   has lost where they were. So each stage answers what its picture is
+   for. One whose details the text discusses keeps its size, or is shot as
+   a crop; one that stands there as evidence goes small, and the text that
+   would have sat above it moves into the free half beside it.
 
 The cue stays **outside** the stage on purpose. Inside it, the triad
 collapses to two and the device loses the job it was built for.
@@ -65,6 +76,14 @@ is centred inside it, nothing is offset, nothing breaks out.
 To the right there are two stops. Prose ends at `--measure`; anything that
 is looked at rather than read – a screenshot, a gallery, a table, a
 listing – runs to the frame's edge.
+
+A third stop is narrower rather than wider: `--measure-col`, for text
+belonging to a column, a card or a picture instead of to the page. Prose
+at the page's measure runs to about 75 characters, which is right for a
+paragraph a reader settles into; the same width inside one half of a
+two-column row reads as a wall, because the eye is switching between the
+halves rather than running down one. This is the distinction `--fs-note`
+draws in the type scale, and the two are set together.
 
 **Why not a common centre.** The version before this one had three track
 widths centred on one middle. That gives one centre and three different
