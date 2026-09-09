@@ -116,6 +116,59 @@ the stage is clearly taller, the space under the words reads as margin.
 That is why the text in a `.beside` is written to length rather than
 poured in.
 
+#### The fourth answer: what follows a row is in the row
+
+The three answers above are all answers *inside* one row, and that left the
+fault they were written against a place to hide: **between a row and what
+comes after it.** A stage is 500px and the words beside it are three lines,
+so a quarter of the screen under those words is empty &ndash; and then the
+next paragraph, or the button, or the table begins *under that hole*, at the
+left edge, where there is nothing above it for half a screen. Three sections
+had it, and the client's word for it each time was that it looked broken.
+
+The whitespace is not the fault. Whitespace under a stage, at the frame's
+right edge, reads as margin and always has. The fault is that **reading
+follows the left edge**, and a block that starts under a hole makes the eye
+cross one to reach it.
+
+So, before putting anything after a two-column row, ask what it is:
+
+- **More of the same column** &ndash; a sentence that hands on, a button, a
+  paragraph, a list one column wide. It belongs *in* the words column, under
+  the words it follows, while the stage spans the rows beside it. The column
+  runs on and the hole never opens. `getting-started.html`'s "The app" is the
+  plain form of this (one `.said` carrying everything), `index.html`'s
+  "Getting started" the hard one: the chooser lays two panels into one cell,
+  so a panel is `display: contents` there and its two halves are placed by
+  hand to let the stage reach past them.
+- **Its own row** &ndash; two or three things of one kind, side by side. Then
+  it takes the frame's width, which is the second answer, and it starts at the
+  frame's left edge where the reader's eye already is. Nothing has to move.
+  The five download packages are this: they were a three-column table inside
+  the words column, they are a row of three systems under it now.
+
+What may never follow a row is **one half-width block**, at the left edge,
+below the taller column. That is the shape the three sections had.
+
+Ask the fifth rule above first, though, because a crop is cheaper than a
+rebuild: **is the picture taller than what it has to show?** Both pictures
+that opened a hole had already been answered that way and were kept &ndash;
+the one on `getting-started.html` is the small evidence shot beside text that
+names its six controls, and the one on the front page is deliberately the
+larger crop, because there a reader compares it against the listing beside it
+and the four view buttons have to be readable. A picture that has *not* been
+through that question is the first thing to fix; a stage that is tall for a
+reason is the case this answer is for.
+
+The same reasoning applies to a row whose two halves are simply mismatched
+with nothing following at all &ndash; a 64px closed disclosure beside a 340px
+panel. The tall half takes the column, and the short half gets company in
+its own: on the front page the two lecture cards moved down into it, so one
+column now carries the cards and the fold under them and the panel stands
+beside both. And a two-column class needs two things in it: `decoration.html`
+had a lone disclosure inside one, so the second column was empty at every
+state &ndash; that fold takes the frame's width now.
+
 ## Colour
 
 **The page is not white.** Everything the site shows a picture of is

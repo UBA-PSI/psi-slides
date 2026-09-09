@@ -463,6 +463,15 @@ browser is for pages meant to be looked at.
   text, <kbd>O</kbd> to see the whole lecture at once, <kbd>/</kbd> to search,
   and <kbd>?</kbd> to list the keys.</p>
 
+  <!-- Half-empty row, answer 4: the note beside this is the taller half, so
+       it takes the column and the cards run on under themselves. Before this
+       the cards stood at the frame's full width and the disclosure under them
+       was a 64px bar beside a 340px panel: a quarter-screen of nothing at the
+       left edge, which is the edge reading follows. One column carries the
+       two cards and the fold under them now, and the note stands beside
+       both. -->
+  <div class="folded-note">
+   <div class="said">
   <div class="picks">
     <div class="pick pick-lead">
       <h3>Start here: <code>python-intro</code></h3>
@@ -488,7 +497,6 @@ browser is for pages meant to be looked at.
     </div>
   </div>
 
-  <div class="folded-note">
   <details class="setup">
     <summary>The other three lectures</summary>
     <div class="setup-body">
@@ -519,6 +527,7 @@ browser is for pages meant to be looked at.
       </div>
     </div>
   </details>
+   </div>
 
   <div class="hint">
     <p>A lecture&rsquo;s four files are self-contained: the styling, the scripts, the images,
@@ -589,13 +598,25 @@ Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures
      </figure>
     </div>
    </div>
+  <!-- Half-empty row, answer 4. These two blocks stood UNDER the row, and the
+       row is 500px of window against three lines of words: the page then had a
+       quarter-screen of nothing at its left edge and this paragraph and this
+       button below it, in the one place it asks a reader to act. They are in
+       the words column now, under the words they follow, and the stage spans
+       both rows beside them - so the sentence that sends you on and the button
+       that takes you there stand next to the evidence rather than under a
+       hole. Being a child of `.ways` rather than a sibling is what puts them
+       in the grid; they belong to neither option, so they are outside both
+       `.way` panels and do not switch with them. -->
+  <div class="ways-on">
+   <p>The next page has the downloads for macOS, Windows and Linux, the commands,
+   and a walkthrough that starts on a machine with nothing installed on it.</p>
+   <div class="cta">
+     <a class="primary" href="getting-started.html">Both ways, in full</a>
+   </div>
+  </div>
   </div>
 
-  <p>The next page has the downloads for macOS, Windows and Linux, the commands,
-  and a walkthrough that starts on a machine with nothing installed on it.</p>
-  <div class="cta">
-    <a class="primary" href="getting-started.html">Both ways, in full</a>
-  </div>
  </div>
 </section>
 

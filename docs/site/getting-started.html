@@ -56,20 +56,27 @@
 
 <section class="band">
  <div class="wrap">
-  <!-- Half-empty row, answer 1, and findings 5 and 8.
+  <!-- Half-empty row, answers 1 and 4, and findings 5 and 8.
        It was the section's words in the narrow column and the picture in the
        wide one, with the download table under both at the frame's full width:
        three columns over 1310px, so the eye ran the width of the page from
        the system to whether that package has ever been started.
-       The row is the other way round now. The words AND the table take the
-       wide column - the table lands at about 780px, which is where its three
-       columns stop reading as one line with a hole in the middle - and the
-       picture takes the narrow one. That is the smallest thing that shows
-       what this picture has to show: a window with six controls in it that
-       the text beside it names, so it stands as evidence rather than as
-       something to read. The space left under it is against the frame's right
-       edge, where whitespace reads as margin; under the words it would be the
-       edge that reading follows. -->
+       The row is the other way round: the words take the wide column and the
+       picture the narrow one. That is the smallest thing that shows what this
+       picture has to show - a window with six controls in it that the text
+       beside it names, so it stands as evidence rather than as something to
+       read.
+       The words then run on under themselves, which is the fourth answer:
+       everything this section says about the app is in this one column, down
+       to the sentence that hands over to the packages, and no part of it
+       starts under the picture. Between them the two hold the row: the words
+       are a little taller than the picture, so the space left over is a
+       hand's breadth at the frame's right edge, where whitespace reads as
+       margin.
+       What is NOT in the column is the packages themselves. Five files across
+       three systems are looked at, not read, so they take the frame's width
+       under the row - the second answer - and the block that does that is
+       further down. -->
   <div class="beside words-wide">
    <div class="said">
     <h2 id="app">The app</h2>
@@ -80,44 +87,11 @@
     buttons let you open the four views it wrote. There is no project to set up
     either, and no settings to fill in before the first build.</p>
     <h3>Download it</h3>
-    <p>Take the package for your system from the table below. Until 2.0.0 the app
+    <p>Take the package for your system from the three below. Until 2.0.0 the app
     is published separately from psi-slides itself, under a tag of its own,
     <code>builder-0.1.0</code>, and marked on GitHub as a
     <strong>pre-release</strong>: not the current version of anything, a package
     offered early.</p>
-
-    <!-- The table stands in the wide column of the row above rather than
-         under it. Five files across three systems is a list to look things up
-         in, not prose, so it takes its column's whole width - and that column
-         is about 780px, not the frame's 1310. `.scroller` is what lets it: a
-         bare table is display:block here so it can scroll on a phone, and a
-         block table shrinks to its rows. -->
-    <div class="scroller">
-    <table>
-     <thead>
-      <tr><th>System</th><th>Package</th><th>State</th></tr>
-     </thead>
-     <tbody>
-      <tr>
-       <td>macOS, Apple&nbsp;Silicon</td>
-       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.dmg"><code>psi-slides-builder-mac-arm64.dmg</code></a><br>
-         <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.zip"><code>psi-slides-builder-mac-arm64.zip</code></a></td>
-       <td>Tried on a real Mac.</td>
-      </tr>
-      <tr>
-       <td>Windows, 64-bit</td>
-       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-win-x64.exe"><code>psi-slides-builder-win-x64.exe</code></a></td>
-       <td><strong>Experimental.</strong> Built by CI, never started.</td>
-      </tr>
-      <tr>
-       <td>Linux, 64-bit</td>
-       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-x86_64.AppImage"><code>psi-slides-builder-linux-x86_64.AppImage</code></a><br>
-         <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-amd64.deb"><code>psi-slides-builder-linux-amd64.deb</code></a></td>
-       <td><strong>Experimental.</strong> Built by CI, never started.</td>
-      </tr>
-     </tbody>
-    </table>
-    </div>
    </div>
    <div class="stage">
     <figure class="shot">
@@ -127,6 +101,53 @@
    </div>
   </div>
 
+
+  <!-- Half-empty row, answer 2: the packages take the frame's width, as a row
+       of three systems rather than as a table.
+       It was a three-column table (System / Package / State) inside the words
+       column above. Two things were wrong with it. The reader is looking for
+       a SYSTEM and the table opened with a filename set as an underlined
+       monospace link, so the column that mattered least was the loudest: five
+       long underlined names under each other read as one wall. And the table
+       made the words column so much taller than the picture beside it that the
+       row left a quarter-screen of nothing at the frame's right edge.
+       One block per system now, the system's name first, the state under it,
+       and each package a box you press with what it IS on the first line and
+       the filename under it as the confirmation that you are taking the right
+       one. No underline: this is a set of links to choose one of, and the
+       lecture cards on the front page already answer that with a bordered box
+       rather than a rule. macOS and Linux have two packages each, so each one
+       says in four words which of the two is for you - the choice was the one
+       thing the old table did not explain anywhere. -->
+  <div class="pair-up trio gets">
+   <div class="get">
+    <p class="sys">macOS <span class="size">Apple&nbsp;Silicon</span></p>
+    <p class="state">Tried on a real Mac.</p>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.dmg">
+     <b>Disk image</b><span>open it, drag the app into Applications</span>
+     <code>psi-slides-builder-mac-arm64.dmg</code></a>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.zip">
+     <b>Zip archive</b><span>the same application, unpacked rather than mounted</span>
+     <code>psi-slides-builder-mac-arm64.zip</code></a>
+   </div>
+   <div class="get">
+    <p class="sys">Windows <span class="size">64-bit</span></p>
+    <p class="state"><strong>Experimental.</strong> Built by CI, never started.</p>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-win-x64.exe">
+     <b>Installer</b><span>the only package for Windows</span>
+     <code>psi-slides-builder-win-x64.exe</code></a>
+   </div>
+   <div class="get">
+    <p class="sys">Linux <span class="size">64-bit</span></p>
+    <p class="state"><strong>Experimental.</strong> Built by CI, never started.</p>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-x86_64.AppImage">
+     <b>AppImage</b><span>one file to mark executable and run, on any distribution</span>
+     <code>psi-slides-builder-linux-x86_64.AppImage</code></a>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-amd64.deb">
+     <b>Debian package</b><span>for Debian and Ubuntu, through the package manager</span>
+     <code>psi-slides-builder-linux-amd64.deb</code></a>
+   </div>
+  </div>
 
   <h3>The first start</h3>
   <!-- Half-empty row, answer 1: two warnings of the same kind, side by side.
@@ -139,7 +160,7 @@
     runs or falls over is worth an
     <a href="https://github.com/UBA-PSI/psi-slides/issues">issue</a> either
     way. The macOS package has been used on a real Mac, which is the whole
-    difference between the three rows of the table above.</p>
+    difference between the three blocks above.</p>
    </div>
    <div>
     <p><strong>The packages are not signed</strong>, apart from the macOS one,
