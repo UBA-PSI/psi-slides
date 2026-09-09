@@ -38,7 +38,19 @@ You did not author two versions. You wrote the right-hand text and marked which 
 
 ## Quickstart
 
-Requires Node 20 or newer. Nothing else: no LaTeX, no Pandoc, no server, nothing installed globally.
+There are two ways in. **If you would rather not open a terminal**, take the
+desktop builder from the
+[releases page](https://github.com/UBA-PSI/psi-slides/releases): a window that
+you point at a `source.md` and leave open beside your editor, building the
+four views again on every save. It is published as a pre-release for now, it
+carries the engine inside it, and nothing about it leaves your computer.
+macOS has been tried on a real machine; the Windows and Linux packages are
+built by CI and are experimental, so a report of what breaks is welcome.
+`desktop/README.md` has the details.
+
+**The command line** is the other way, and it is what CI and this repository
+use. It requires Node 20 or newer. Nothing else: no LaTeX, no Pandoc, no
+server, nothing installed globally.
 
 ```bash
 # the latest release, unpacked into psi-slides/

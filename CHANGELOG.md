@@ -9,6 +9,23 @@ from building the same way is a major version.
 
 ### Added
 
+- **A desktop builder, so the tool does not begin with a terminal.** An
+  Electron window that opens a `source.md`, builds it, and then builds it
+  again on every save; one line in it says whether the last save built, and
+  the four views are one click away. It is not an editor and not an account:
+  the window runs sandboxed with no Node integration, the preload exposes a
+  fixed set of named commands and nothing else, every command re-validates
+  its arguments in the main process, and nothing leaves the computer – no
+  telemetry, no update check. The engine is staged out of this repository at
+  package time, so the app and the lectures it builds are the same build.js.
+  Its own workflow (`desktop.yml`) runs its unit tests and a smoke test that
+  drives the real window, then packages macOS, Windows and Linux. Until 2.0.0
+  the app carries its own version and ships as a **pre-release** under a
+  `builder-<version>` tag, deliberately outside the `v*` pattern `release.yml`
+  listens to: a beta on a `v*` tag would become "Latest" and hand every reader
+  of the site a beta engine. macOS has been tried on a real machine; the
+  Windows and Linux packages are built by CI and are experimental. Design
+  brief in `desktop/DESIGN.md`, the rest in `desktop/README.md`.
 - **Cue cards in the cockpit (`K`).** The notes of the active slide as cards
   down a rail, the projection small in the corner, and Space walks the
   cards before it walks the reveals: a `> note:` paragraph is a card, its
