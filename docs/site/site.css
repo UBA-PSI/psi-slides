@@ -47,38 +47,54 @@
  * with them. Full texts: fonts/ibm-plex-sans-OFL.txt and
  * fonts/jetbrains-mono-OFL.txt, copied from the two packages.
  */
-
 /*
- * Colours. The soft ink is the one that matters for accessibility: it sets
- * every caption, every window bar and the footer. At the lightness it used
- * to have (0.48) it measured 6.2:1 against the paper and 5.3:1 against the
- * window bar – so it passed WCAG 1.4.3, and the complaint about it was
- * real anyway, because it carried that contrast at 0.72rem. The sizes moved
- * up (see the type below) and this moved down with them, so the smallest
- * text on the page now has headroom rather than a bare pass.
+ * Colours.
  *
- * Every pair below is measured, not eyeballed; the lowest in either scheme
- * is 5.1:1.
+ * The page is not white, and that is load-bearing rather than taste.
+ * Everything this site shows a picture of - a projection, a handout, a
+ * cockpit - is itself near-white, so on a white ground a screenshot
+ * dissolved into the page and only its hairline said where it ended.
+ *
+ * There are now three grounds, not two, and the third is the whole answer
+ * to the problem this page has: every one of its pictures is a picture of
+ * text. Set a screenshot of a slide directly under a paragraph and the
+ * reader cannot see where the page stops and the picture starts. So a
+ * picture never sits on the page - it sits on a STAGE, a field with its own
+ * darker ground, and the picture sits white on that. Between prose and
+ * pixel there are then two edges rather than one:
+ *
+ *     --paper  (the page)  ->  --stage  (the field)  ->  --shot-bg (the shot)
+ *
+ * A ground is not a decoration: no shadow, no accent stripe, no rounded card
+ * around every paragraph. It does one job and it is the only thing doing it.
+ *
+ * The soft ink is the one that matters for accessibility: it sets every
+ * caption, every window bar and the footer, and it now has to hold on three
+ * grounds rather than two, because a caption can sit on the stage. Measured
+ * on rendered pixels, not on the token strings - Chrome reports an oklch()
+ * colour back as oklch(), so parsing getComputedStyle hands you the three
+ * oklch components as if they were RGB and every pair comes out at 2.2:1.
+ *
+ * Light:  ink-soft on paper 7.1, on stage 5.3, on the shot 8.0, on code 6.3;
+ *         ink on paper 15.9; accent on paper 7.9.
+ * Dark:   ink-soft on paper 7.8, on stage 8.9, on the shot 6.6, on code 8.8;
+ *         ink on paper 14.7; accent on paper 8.4.
+ *
+ * The lowest of those is 5.3:1, and it is the caption on the stage - the one
+ * pair the stage introduced, and the reason the stage could not go darker.
  */
 :root {
-  /*
-   * The page is not white. Everything this site shows a picture of - a
-   * projection, a handout, a cockpit - is itself near-white, so on a white
-   * ground a screenshot dissolved into the page and only its hairline said
-   * where it ended. The ground is a soft warm grey now and the artefacts sit
-   * on it as white objects, which is the one job the colour has to do.
-   *
-   * Four surfaces, each a real step from the ground rather than the 1.5%
-   * they used to share: white for a card or a screenshot, a recess for a
-   * listing, and two rules.
-   */
   --paper: oklch(0.955 0.005 85);
+  --stage: oklch(0.858 0.011 78);
+  --shot-bg: oklch(0.995 0 0);
   --ink: oklch(0.20 0.01 260);
   --ink-soft: oklch(0.43 0.01 260);
   --accent: oklch(0.42 0.13 25);
   --rule: oklch(0.855 0.006 85);
-  --frame: oklch(0.875 0.006 85);
-  --shot-bg: oklch(0.995 0 0);
+  /* The screenshot chrome. It is read against --stage now, not --paper, so
+     it steps up a little in contrast: on the field a hairline at the old
+     value disappeared. */
+  --frame: oklch(0.795 0.010 78);
   --code-bg: oklch(0.915 0.008 85);
   /* Syntax tokens for the Markdown sample. Each is picked for >= 4.5:1 on
      --code-bg, not for looking like anyone's editor theme. */
@@ -88,35 +104,34 @@
   /* The dimmed token still sets the `{.wide #id}` attribute tail, which is
      content a reader has to be able to read, not decoration. */
   --tok-punct: oklch(0.50 0.02 260);
-  /* The page's one width, and the measure prose keeps inside it. The banded
-     pages used to hold everything at 48rem and let four kinds of element
-     break out to 66rem with a translateX trick, which put prose and
-     pictures on two different left edges and left a third of a 1920px
-     screen empty on either side.
 
-     Named --page, not --frame: `--frame` above is the screenshot chrome's
-     colour, and a width under that name silently turned every figure's
-     hairline into a black rule and emptied every window bar - a custom
-     property does not care that one value is a colour and the other a
-     length. */
-  --page: 84rem;
-  --measure: 44rem;
+  /* One frame, one left edge. Everything on the page starts at the same x:
+     prose stops at --measure, a picture or a listing runs to the right edge
+     of the frame. The predecessor had three tracks centred on a common
+     middle, which gives three different left edges - and reading follows the
+     left edge, so the eye had to find the column again at every section. */
+  --page: 108rem;
+  --measure: 38rem;
+  --gutter: clamp(1.25rem, 4.5vw, 4.5rem);
+
   --sans: 'IBM Plex Sans Var', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
   --mono: 'JetBrains Mono Var', 'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
 }
 
 @media (prefers-color-scheme: dark) {
   :root {
-    /* Same idea the other way up: the ground is lifted off black so a card
-       can sit above it and a listing can sink below it. */
-    --paper: oklch(0.205 0.008 85);
+    /* The same three grounds the other way up. The stage goes DOWN from the
+       page rather than up, because the shot is the lightest thing in the
+       stack in both schemes and the field has to sit between. */
+    --paper: oklch(0.215 0.008 85);
+    --stage: oklch(0.125 0.010 85);
+    --shot-bg: oklch(0.275 0.008 85);
     --ink: oklch(0.94 0.01 260);
-    --ink-soft: oklch(0.74 0.01 260);
+    --ink-soft: oklch(0.745 0.01 260);
     --accent: oklch(0.78 0.12 25);
     --rule: oklch(0.36 0.008 85);
-    --frame: oklch(0.31 0.008 85);
-    --shot-bg: oklch(0.265 0.008 85);
-    --code-bg: oklch(0.155 0.008 85);
+    --frame: oklch(0.36 0.008 85);
+    --code-bg: oklch(0.145 0.008 85);
     --tok-head: oklch(0.80 0.12 25);
     --tok-dir: oklch(0.80 0.11 265);
     --tok-code: oklch(0.82 0.10 165);
@@ -131,146 +146,127 @@ body {
   background: var(--paper);
   color: var(--ink);
   font-family: var(--sans);
-  /* Inter Tight is a condensed grotesque: at a given size it sets lighter
-     and narrower than the serif this replaced, so it needs both a step up
-     and a little more weight to read as solid rather than as fine print. */
-  font-size: 21px;
-  font-weight: 430;
+  font-size: 19px;
+  font-weight: 420;
   line-height: 1.62;
   -webkit-font-smoothing: antialiased;
 }
 
 /*
- * Bands. The page is a single 8000px column, and on one flat background it
- * reads as one undifferentiated wall: nothing tells the eye that a section
- * has ended, so the whole length is present at once and the page looks like
- * more work than it is.
- *
- * The tint is not alternated. It marks what a section IS: a tinted band is
- * one you read (the argument, the invitation, the closing), a paper band is
- * one you look at or work through (the screenshots, the commands). That
- * happens to alternate here, which is luck, not the rule - if a section
- * changes character the tint follows the character.
- *
- * Screenshots and code stay on paper for a reason beyond rhythm: their own
- * chrome is `--shot-bg` and `--code-bg`, both within 0.035 lightness of the
- * band, so a tinted band would dissolve the very frames that make a
- * screenshot read as a window. Where a card cannot be moved out of a tinted
- * band it inverts to paper instead (see `.band-read .hint`).
- *
- * `main` no longer holds the measure, because a band has to reach both
- * edges of the viewport while its text stays at 48rem. The measure moved to
- * `.wrap`, and the breakout rule below moved with it.
+ * The frame. `main` holds it for the documentation pages build-site.js
+ * renders out of Markdown; `.wrap` holds it inside a band on the two
+ * hand-written pages. Same width, same gutter, so a reader who moves from
+ * the landing page to the comparison page does not meet a second layout.
  */
-main { margin: 0 auto; padding: 3.5rem 1.5rem 6rem; }
-/* Only the two landing pages are banded. The documentation pages come out of
-   build-site.js's shell, which has no bands and no wrap, and they keep the
-   measure on `main` exactly as before. */
+/* The Markdown pages keep one column at the same gutter. They used to take a
+   three-track grid of their own so the comparison table could outrun its
+   prose; the table scrolls inside itself instead, which costs that page
+   nothing and buys the site one left edge on every page. */
+main { margin: 0 auto; padding: 3.5rem var(--gutter) 6rem; max-width: 72rem; }
 main.banded { display: block; max-width: none; padding: 0; }
-/*
- * Three widths on one axis. A page whose prose sits at a measure and whose
- * pictures want the room needs both, and the first try gave them two left
- * edges - text at the left of a frame twice its width, with the right half
- * of every reading section empty. Here every track is centred on the same
- * middle: prose in `text`, a listing or an aside in `wide`, a screenshot or
- * a gallery or the table in `full`. Nothing is ever alone in a half.
- *
- * `rem` is the browser's 16px, not the page's 21px body size, so 44rem of
- * text is 704px, about 68 characters.
- */
-/* The documentation pages build-site.js renders out of Markdown have no
-   bands, so `main` is their container; it takes the same three tracks, which
-   is what lets the comparison table have the room its eight columns need
-   while its prose keeps the measure. */
-.wrap, main:not(.banded) {
-  display: grid;
-  grid-template-columns:
-    [full-start] minmax(0, 1fr)
-    [wide-start] minmax(0, 8rem)
-    [text-start] min(100%, 44rem) [text-end]
-    minmax(0, 8rem) [wide-end]
-    minmax(0, 1fr) [full-end];
-  max-width: var(--page);
-  margin: 0 auto;
-  padding: 0 1.5rem;
-}
-.wrap > *, main:not(.banded) > * { grid-column: text; }
-.wrap > pre, main:not(.banded) > pre,
-.wrap > .hint,
-.wrap > .pair-up,
-.wrap > figure.shot.drawn,
-.wrap > details { grid-column: wide; }
-.wrap > figure.shot,
-.wrap > .pair,
-.wrap > .gallery,
-.wrap > table, main:not(.banded) > table,
-.wrap > .kinds,
-.wrap > .hero { grid-column: full; }
-/* Under the widest track there is nothing to centre in, so the grid
-   collapses to the single column it is already drawing. */
-@media (max-width: 60rem) {
-  .wrap, main:not(.banded) { display: block; max-width: 48rem; }
-}
-/*
- * One ground for the whole page, and space between the sections instead of
- * a tint under half of them. The alternation was a 1.5% step - too faint to
- * separate anything, but enough to add an event every few screens - and
- * with the page off white it had nowhere left to go. What separates two
- * sections now is the gap, so the gap has to be big enough to read as one:
- * eight rems at the top of the range, against the two or three between a
- * heading and its own text.
- */
-.band { padding: clamp(4.5rem, 6vw, 8rem) 0; }
-.band-read, .band-do { background: none; }
-/* The one command that does not fit a half column is the release URL, and a
-   scrollbar under a two-line command is worse than a wrap. */
-.pair-up pre { white-space: pre-wrap; overflow-wrap: anywhere; }
-/*
- * One left edge, two widths. Prose sits in a --measure column at the left of
- * the frame; anything that is looked at rather than read - a screenshot, a
- * table, a row of tiles, a code sample - spans the frame under it. Both
- * start at the same x, so the page has one edge to follow down and the
- * pictures get the width they were captured at.
- *
- * The first draft of this put prose and picture in two columns everywhere.
- * Where the two are the same height that reads as one row; where they are
- * not - a five-line paragraph beside a forty-line code sample - it leaves a
- * hole the height of the difference, and a page of holes is what "busy"
- * turns out to mean. So the two-column device is kept for the two cases
- * where the halves match by construction, and named for each.
- */
-/* The grid track is the measure now. The cap stays for the pages that are
-   not banded - the ones build-site.js renders out of Markdown into a plain
-   column - and for prose nested inside a wide element. */
-p, li { max-width: var(--measure); }
-/* `.pair-up` is two things of the same kind side by side: the two versions
-   under Getting started, each a paragraph over its one command. */
-.pair-up { display: grid; gap: 1.6rem 3.5rem; align-items: start; }
-.pair-up > * { min-width: 0; }
-.pair-up > * > :first-child { margin-top: 0; }
-/* 64rem here is 1024px: a media query's rem is the browser's 16px, not the
-   page's 21px, so every breakpoint in this file is in sixteenths. */
-@media (min-width: 64rem) {
-  .pair-up { grid-template-columns: 1fr 1fr; }
-  .pair-up p, .pair-up li { max-width: none; }
-}
-/* A drawing, not a screen. It gets the shot frame - and with it the lightbox -
-   but no window bar, because there is no window, and it is set narrower than a
-   screenshot: a screenshot has to stay legible at a third of its size, while a
-   figure is already at reading size and only looks shouted at when blown up. */
-/* A drawing, not a screen: it sits on the listing's track rather than the
-   screenshots', because it is already at reading size and only looks shouted
-   at when blown up. */
-.shot.drawn { max-width: none; }
-.shot.drawn img { display: block; }
-/* The hero carries its own opening space, and the university bar is directly
-   above it. */
-.band-hero { padding-top: 1.5rem; padding-bottom: clamp(3rem, 4vw, 5rem); }
-.band-close { padding-bottom: 3rem; }
+.wrap { max-width: var(--page); margin: 0 auto; padding: 0 var(--gutter); }
 
 /*
- * One visible focus ring for everything. The screenshots became buttons for
- * the lightbox and the hero bar carries a two-state switch, so keyboard
+ * Sections are separated by space, not by a tint. A tint under every second
+ * section marks a rhythm the content does not have, and on a page this long
+ * it reads as twelve boxes rather than twelve subjects. The gap does the
+ * job, so it has to be large enough to read as one: six to nine rems,
+ * against the two between a heading and its own text.
+ */
+.band { padding: clamp(3rem, 6vw, 7.5rem) 0; }
+.band-hero { padding-top: clamp(2rem, 3vw, 3.5rem); }
+.band-close {
+  /* The end of the page says so. Between the last listing and this heading
+     there used to be nothing but a large gap, which reads as a section that
+     failed to start rather than as an ending. The ground changes instead,
+     full-bleed, and carries the closing links and the byline together.
+     `--stage` rather than a fourth colour: the page already means "this is
+     an object, not more page" with it, and an ending is an object. */
+  background: var(--stage);
+  padding-top: clamp(2.6rem, 4.5vw, 4.5rem);
+  padding-bottom: clamp(2.2rem, 3vw, 3rem);
+}
+/* The rule above the byline separated it from the links when both sat on
+   paper. On the closing ground the change of surface is the separator, and a
+   second line inside it is one line too many. */
+.band-close footer { border-top: 0; padding-top: 0; margin-top: 2.6rem; }
+
+/*
+ * Widths. Prose keeps the measure; anything looked at rather than read runs
+ * the frame. Both start at the frame's left edge, so the page has exactly
+ * one edge to follow down - and, because every kind of running text ends at
+ * --measure too (the lede, the cue before a picture, a caption, the small
+ * print), exactly one edge on the right as well. They had four between them
+ * once, stacked inside a single section, which reads as a column that keeps
+ * changing its mind.
+ */
+.wrap > * { max-width: var(--measure); }
+.wrap > .stage,
+.wrap > .beside,
+.wrap > .folded-note,
+.wrap > details,
+.wrap > .aside-code,
+.wrap > .picks,
+.wrap > .ways,
+.wrap > .gallery,
+.wrap > .pair-up,
+.wrap > table,
+.wrap > pre,
+.wrap > footer,
+.wrap > h1 { max-width: none; }
+p, li { max-width: var(--measure); }
+
+/*
+ * Type. The predecessor set h2 at 1.75rem against a 21px body - a factor of
+ * 1.3, which is not a hierarchy, and the whole page therefore had one
+ * texture from top to bottom. The section heading is the thing that lets an
+ * eye scan eight screens in three seconds, so it is given real size.
+ * A media query's rem is the browser's 16px, not the page's 19px, so every
+ * length here is in sixteenths.
+ */
+h1 {
+  font-size: clamp(2.9rem, 6vw, 4.4rem);
+  line-height: 1.02;
+  font-weight: 600;
+  letter-spacing: -0.032em;
+  margin: 0 0 1.2rem;
+  text-wrap: balance;
+}
+h2 {
+  font-size: clamp(1.9rem, 3.4vw, 2.9rem);
+  line-height: 1.1;
+  font-weight: 600;
+  letter-spacing: -0.026em;
+  margin: 0 0 1.1rem;
+  max-width: 22ch;
+  text-wrap: balance;
+}
+h3 { font-size: 1.15rem; font-weight: 650; margin: 2.6rem 0 0.5rem; }
+h2[id], h3[id] { scroll-margin-top: 4.5rem; }
+
+/*
+ * The sentence under a section heading. Every section on this page has one,
+ * and it is the rule the predecessor broke: a picture arrived with a caption
+ * under it and nothing before it, so the reader met the picture without
+ * having been told what to look at. The lede says what is coming and why,
+ * and it comes first.
+ */
+.lede {
+  text-wrap: pretty;
+  font-size: 1.18rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  margin: 0 0 2.2rem;
+  max-width: var(--measure);
+}
+.lede strong { color: var(--ink); font-weight: 560; }
+
+a { color: var(--accent); }
+p { margin: 0 0 1.1rem; }
+
+/*
+ * One visible focus ring for everything. The screenshots are buttons for the
+ * lightbox and the hero bar carries a two-state switch, so keyboard
  * operability is not hypothetical here.
  */
 :focus-visible {
@@ -279,6 +275,408 @@ p, li { max-width: var(--measure); }
   border-radius: 2px;
 }
 
+/*
+ * ── The stage ─────────────────────────────────────────────────────────────
+ *
+ * A field the width of the frame, with its own ground, and a picture on it.
+ * See the note at the top of this file for why it exists: without it a
+ * screenshot of a slide full of prose reads as more page.
+ *
+ * The padding is what does the work, not the ground alone. A picture of text
+ * needs distance from the text around it that is unmistakably larger than
+ * the space between two paragraphs, or the reader keeps reading into it.
+ * Two and a half rems at the low end, five at the high.
+ */
+.stage {
+  background: var(--stage);
+  border-radius: 12px;
+  padding: clamp(0.9rem, 2.2vw, 2.2rem);
+  margin: 0 0 1.4rem;
+}
+.stage > :last-child { margin-bottom: 0; }
+/* Two pictures on one stage, when they are two views of one thing and the
+   comparison is the point. */
+.stage-pair { display: grid; gap: clamp(0.9rem, 2vw, 1.8rem); }
+@media (min-width: 52rem) { .stage-pair { grid-template-columns: 1fr 1fr; } }
+.stage-pair figure.shot { margin: 0; }
+
+/*
+ * ── Prose beside a stage ──────────────────────────────────────────────────
+ *
+ * The way this page uses its width. The trap it is written against: two
+ * columns of prose and picture leave a hole the height of the difference
+ * whenever the two are not the same height, and a page of holes is what
+ * "busy" turns out to mean.
+ *
+ * The escape is not to give the device up but to write the content for it.
+ * The left column is a heading and three to five lines - never a paragraph
+ * that happens to be there - and the right column is a stage that is both
+ * much wider and much taller. At those proportions the space under the text
+ * reads as margin, which is what it is, rather than as a column that ran
+ * out. Anything longer than five lines goes above the stage instead.
+ *
+ * The lede sits OUTSIDE the stage, on the page's own ground. Put it inside
+ * and the three-ground stack collapses to two, which is the whole reason
+ * the stage exists.
+ */
+/*
+ * A block that follows another picture rather than a paragraph. The space
+ * between prose and a stage is already larger than the space between two
+ * paragraphs; between two stages it has to be larger again, or the second
+ * one reads as part of the first. Measured against the section gap, not
+ * doubled from the paragraph one: this is a seam inside a section.
+ */
+.second-picture { margin-top: clamp(2.4rem, 5vw, 5.5rem); }
+
+.beside { display: grid; gap: clamp(1.4rem, 2.5vw, 3rem); align-items: start; }
+.beside > .said > :first-child { margin-top: 0; }
+.beside > .said > :last-child { margin-bottom: 0; }
+.beside .lede { margin-bottom: 0; }
+@media (min-width: 68rem) {
+  .beside { grid-template-columns: minmax(0, 21rem) minmax(0, 1fr); }
+}
+/* A heading in a 21rem column cannot carry the full display size: at the
+   section size it broke every one of them into three lines. */
+.beside .said h2 { font-size: clamp(1.7rem, 2.4vw, 2.15rem); max-width: none; }
+.beside .said .lede { font-size: 1.06rem; max-width: none; }
+/* Mirrored: the stage on the left, the words on the right. Used once, where
+   the picture is a tall document and the words are short - the page would
+   otherwise put every picture on the same side and read as a template. */
+@media (min-width: 68rem) {
+  .beside-flip { grid-template-columns: minmax(0, 1fr) minmax(0, 21rem); }
+  .beside-flip > .said { order: 2; }
+}
+
+/*
+ * ── Screenshots ───────────────────────────────────────────────────────────
+ *
+ * The frame round a shot says which pixels are the tool and which are this
+ * page. On the stage it has less work to do than it used to, so it is a
+ * hairline and a window bar and nothing else - no traffic lights, which said
+ * "this is a window" over a bar that already says `speaker.html`.
+ *
+ * The caption is prose under the picture, at the measure. It used to sit
+ * inside the frame on the same tint, which turned every figure into a grey
+ * slab with a bar on top and a paragraph at the foot.
+ */
+figure.shot { margin: 0 0 1.6rem; }
+figure.shot > img, figure.shot > video {
+  border: 1px solid var(--frame);
+  border-radius: 6px;
+}
+figure.shot .bar + img, figure.shot .bar + video {
+  border-top: 0;
+  border-radius: 0 0 6px 6px;
+}
+figure.shot .bar {
+  border: 1px solid var(--frame);
+  border-radius: 6px 6px 0 0;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  padding: 0.3rem 0.7rem;
+  /* The switch is taller than a line of the bar's own text, so without a
+     floor the two shots of a pair sit at different heights and the row
+     reads as a mistake. */
+  min-height: 2.65rem;
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  color: var(--ink-soft);
+  background: var(--frame);
+  border-bottom: 0;
+}
+figure.shot .bar b { font-weight: 400; color: var(--ink); }
+/* The traffic lights are gone from this page's own window bars - they said
+   "this is a window" over a bar that already says `speaker.html` - but
+   figures.html still frames the editor with them, where the point is that
+   the editor is an application and not a slide. The rule stays for that one
+   caller; it is not used here. */
+figure.shot .dots { display: flex; gap: 0.3rem; }
+figure.shot .dots i {
+  width: 0.5rem; height: 0.5rem; border-radius: 50%;
+  background: var(--rule); display: block;
+}
+figure.shot img {
+  width: 100%; height: auto; display: block; background: var(--shot-bg);
+  cursor: zoom-in;
+}
+figure.shot img:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
+figure.shot figcaption {
+  font-size: 0.92rem;
+  line-height: 1.5;
+  color: var(--ink-soft);
+  padding: 0.6rem 0 0;
+  max-width: var(--measure);
+}
+figure.shot figcaption strong { color: var(--ink); font-weight: 620; }
+/* A drawing, not a screen: no window bar, because there is no window. */
+.shot.drawn img { border-radius: 6px; }
+
+/*
+ * The film sits on the same stage as the screenshots, for the same reason:
+ * it is a picture of the tool, not more page. It is a plain <video> with the
+ * browser's own controls and no player library - the file streams from the
+ * chair's server, so the page fetches nothing until someone presses play,
+ * and the poster underneath is a local WebP so the box has its height from
+ * the first paint and the layout never jumps. `aspect-ratio` rather than a
+ * height: stating it keeps the frame the right shape even in the moment
+ * before the poster has decoded.
+ */
+figure.shot video {
+  width: 100%;
+  height: auto;
+  aspect-ratio: 16 / 9;
+  display: block;
+  background: var(--shot-bg);
+}
+
+/*
+ * The bar doubles as a two-state switch on the hero's right-hand shot. It
+ * used to be two words in the bar's own grey, distinguishable from the file
+ * name beside them only by a faint background on the active one - so nobody
+ * pressed it. It is a segmented control now: its own framed group, a spoken
+ * label, and an active segment in full ink.
+ */
+figure.shot .swap {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.2rem;
+  margin-left: auto;
+  padding: 0.12rem;
+  border: 1px solid var(--ink-soft);
+  border-radius: 6px;
+  background: var(--shot-bg);
+}
+figure.shot .swap .swap-label {
+  font-size: 0.76rem;
+  color: var(--ink-soft);
+  padding-left: 0.35rem;
+}
+figure.shot .swap button {
+  font-family: var(--mono);
+  font-size: 0.8rem;
+  line-height: 1.5;
+  border: 1px solid transparent;
+  background: none;
+  color: var(--ink);
+  /* >= 24 px tall including the border, for WCAG 2.5.8 target size. */
+  padding: 0.2rem 0.5rem;
+  border-radius: 4px;
+  cursor: pointer;
+}
+figure.shot .swap button:hover { border-color: var(--accent); color: var(--accent); }
+figure.shot .swap button[aria-pressed="true"] {
+  background: var(--ink);
+  color: var(--paper);
+  border-color: var(--ink);
+}
+figure.shot .swap button[aria-pressed="true"]:hover {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--paper);
+}
+@media (max-width: 34rem) {
+  figure.shot .bar { flex-wrap: wrap; }
+  figure.shot .swap { margin-left: 0; }
+}
+
+/*
+ * ── The hero ──────────────────────────────────────────────────────────────
+ *
+ * The promise, one paragraph, and the proof directly under it: the same
+ * lecture as the room sees it and as the reader gets it. That is the whole
+ * idea and it does not need a second paragraph to explain it - the list of
+ * everything else the tool does used to sit here and has gone, because a
+ * feature list under a headline is the thing a visitor skips.
+ */
+.mark {
+  font-family: var(--mono);
+  max-width: none;
+  font-size: 0.88rem;
+  color: var(--ink-soft);
+  letter-spacing: 0.01em;
+  margin: 0 0 1.6rem;
+}
+.mark b { color: var(--ink); font-weight: 400; }
+.hero-said { max-width: 40rem; }
+.hero-said .lede { font-size: 1.3rem; max-width: none; margin-bottom: 1.8rem; }
+
+.cta { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 0 0 3rem; }
+.cta a {
+  display: inline-block;
+  padding: 0.6rem 1.2rem;
+  border: 1px solid var(--ink);
+  border-radius: 6px;
+  text-decoration: none;
+  font-size: 1rem;
+  font-weight: 550;
+}
+.cta a.primary { background: var(--ink); color: var(--paper); }
+.cta a.secondary { color: var(--ink); }
+.cta a:hover { border-color: var(--accent); }
+/* `--paper` rather than a literal white: on the dark scheme the accent is a
+   light red and white type on it does not clear 4.5:1. */
+.cta a.primary:hover { background: var(--accent); border-color: var(--accent); color: var(--paper); }
+.cta a.secondary:hover { color: var(--accent); }
+
+/*
+ * ── The drawings in the chooser ───────────────────────────────────
+ *
+ * Three rows, one per way a lecture's text can end up, drawn against the same
+ * three columns so they can be compared: the slide, the handout, the notes.
+ * Every row is one file glyph, the run of wire leaving it, and what arrives.
+ * A dashed footprint is a kind of text with nowhere to go - the same shape as
+ * the thing that is missing, so the gap is legible as a gap.
+ *
+ * Line art on the page's own ground, not a screenshot, so it needs no stage:
+ * there is nothing here that could be mistaken for the page.
+ */
+
+/*
+ * ── Listings ──────────────────────────────────────────────────────────────
+ *
+ * A listing is looked at as much as read, so it runs the frame like a
+ * picture and gets the same distance from the prose. It keeps its own
+ * recessed ground rather than going on a stage: it is already an object
+ * with an edge, and a field under a field is a box in a box.
+ */
+pre {
+  background: var(--code-bg);
+  border-radius: 8px;
+  padding: 1.1rem 1.3rem;
+  overflow-x: auto;
+  font-size: 0.86rem;
+  line-height: 1.62;
+  margin: 0 0 1.6rem;
+  max-width: 62rem;
+}
+/*
+ * Punkt 12 in the client's list, and the one real defect in the last round:
+ * a listing sat on the prose measure with `overflow-x: auto`, so its longest
+ * line ran off behind the edge and the reader saw `# macOS; xdg-open or your
+ * browse`. A scrollbar under a code block does not fix that - the line still
+ * reads as cut.
+ *
+ * Every listing on this page wraps. The first fix was a breakpoint below
+ * which they wrapped, computed from the longest line, and it was wrong twice
+ * over: the number is only right until somebody edits a listing, and it is a
+ * viewport number for a question about a container - the same block sits at
+ * the frame width in one section and beside a 20rem column in another. A
+ * line that wraps is legible and a line that is cut is not, so they wrap
+ * everywhere, and no arithmetic has to stay true.
+ *
+ * The shell listings are written to survive it: the one long command already
+ * breaks itself with a backslash, which is how you would type it anyway.
+ */
+pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+pre code { font-family: var(--mono); font-size: inherit; overflow-wrap: normal; }
+/* Inline code has no spaces to break at, so a path or a winget invocation in
+   running text overflows the column unless it is allowed to break anywhere. */
+code { font-family: var(--mono); font-size: 0.9em; overflow-wrap: break-word; }
+/* Every listing on this page is psi-slides source, and its grammar spells
+   things like `->` and `--` that a code ligature would fuse into one glyph -
+   which is exactly the confusion the figure language turns off ligatures to
+   avoid. */
+code, pre, kbd, samp,
+.mark,
+.way-fig svg text,
+figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
+
+/* `.pair-up` is two things of the same kind side by side: the two versions
+   under Getting started, each a paragraph over its one command. */
+.pair-up { display: grid; gap: 1.4rem 3rem; align-items: start; }
+.pair-up > * { min-width: 0; }
+.pair-up > * > :first-child { margin-top: 0; }
+.pair-up p, .pair-up li { max-width: none; }
+.pair-up pre { max-width: none; }
+@media (min-width: 64rem) { .pair-up { grid-template-columns: 1fr 1fr; } }
+
+/* A card: the shot's white on the page's grey, the way a screenshot is. */
+.hint {
+  background: var(--shot-bg);
+  border: 1px solid var(--frame);
+  border-radius: 6px;
+  padding: 1.1rem 1.3rem;
+  font-size: 0.95rem;
+  margin: 2rem 0 0;
+  max-width: 42rem;
+}
+.hint p { margin: 0 0 0.7rem; max-width: none; }
+.hint > :last-child { margin-bottom: 0; }
+
+p.tiny { font-size: 0.92rem; color: var(--ink-soft); max-width: var(--measure); }
+/* A line that explains the block above it is a caption, so it sits close to
+   what it captions and keeps its distance from what follows. */
+pre + p.tiny { margin: -0.9rem 0 2.4rem; }
+
+footer {
+  margin-top: 4rem;
+  padding-top: 1.2rem;
+  border-top: 1px solid var(--rule);
+  font-size: 0.92rem;
+  color: var(--ink-soft);
+}
+footer p { max-width: none; }
+
+/*
+ * ── The cover gallery ─────────────────────────────────────────────────────
+ *
+ * Sixteen compositions of the same words. The predecessor put all sixteen on
+ * the page as tiles a third of a measure wide with 0.8rem captions, which is
+ * the densest thing on the site and the place a reader gives up: nobody
+ * compares sixteen pictures of a title slide.
+ *
+ * Three are on the page at full size, on their own stage, and the rest are
+ * one disclosure away. The tiles keep `figure.shot`, and with it the
+ * lightbox, because a tile is a third of the width the slide was composed at
+ * and clicking one is how you actually read it.
+ *
+ * One track count for every gallery, including the two-tile one. A second
+ * grid with its own count was written first and is the drift this comment
+ * exists to prevent: two tiles across a measure sized for three came out
+ * half again as large as the ten above them, which reads as emphasis nobody
+ * meant.
+ */
+.gallery {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+/* Inside the disclosure the tiles are a catalogue, not three examples, and
+   the row is the unit: four across, where the page shows three. One count for
+   both galleries in there, and their contents are trimmed to seven and six so
+   that neither ends on a single stranded tile - five across left the sixth
+   divider alone on a row of its own, which reads as a mistake in the list
+   rather than as the end of it. */
+.setup-body .gallery { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.gallery {
+  gap: clamp(0.8rem, 1.6vw, 1.6rem);
+  margin: 0 0 1.4rem;
+}
+.gallery figure.shot { margin: 0; }
+figure.shot.tile figcaption {
+  font-size: 0.82rem;
+  line-height: 1.45;
+  padding: 0.45rem 0 0;
+  max-width: none;
+}
+/* The name of the composition leads the caption, so it is set as the code it
+   is and given the line to itself - at this size a run-in name and its gloss
+   are one grey blur. */
+figure.shot.tile figcaption code {
+  display: block;
+  color: var(--ink);
+  font-size: 0.84rem;
+  margin-bottom: 0.05rem;
+}
+figure.shot.tile figcaption code + code { display: inline; margin: 0; }
+/* The disclosure's own count is more specific than the plain one, so the
+   narrow steps have to name it too or four tiles stay four on a phone. */
+@media (max-width: 46rem) {
+  .gallery, .setup-body .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+@media (max-width: 30rem) {
+  .gallery, .setup-body .gallery { grid-template-columns: minmax(0, 1fr); }
+}
 /*
  * The university bar, shared with psi-briefing so the chair's two tools frame
  * their pages the same way. Sticky, because it is the only affiliation the
@@ -459,246 +857,27 @@ p, li { max-width: var(--measure); }
   .topbar-row { gap: 0.5rem; }
   .topbar-brand { font-size: 0.76rem; }
 }
-/* Anchored headings have to clear the bar, or the browser parks them under it. */
-h2[id], h3[id] { scroll-margin-top: 4rem; }
-
-h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -0.02em; }
-.tagline, .lead { color: var(--ink-soft); margin: 0 0 3rem; font-size: 1.1rem; }
-
 /*
- * The hero. The first draft opened with the wordmark and then a wall of
- * Markdown, which announced "this is a technical thing" before it said what
- * the thing was good for. Now the promise is the headline and the proof is
- * two pictures directly under it: the same paragraph as the room sees it and
- * as the reader gets it. That is the whole idea, and it does not need a
- * paragraph to explain it.
+ * The tabs above the chooser. A reader who is not reading the option's text
+ * still has to be able to reach the other two, and the labels are where the
+ * judgement lives - "not ideal", "our approach" - which is the argument the
+ * three paragraphs used to make in prose.
  */
-.hero { padding: 1rem 0 0; }
-.hero .mark {
-  font-family: var(--mono);
-  /* A label line, not prose, so the 40rem measure p carries does not apply to
-     it - the same reason the headline under it runs the hero's width. It only
-     started to matter with JetBrains Mono: at 0.6em per character against
-     Iosevka's 0.5em the English line went from 585px to 697px and broke in
-     two, and shrinking the type to fit would have been paying for a cap that
-     was never meant for this line. */
-  max-width: none;
-  font-size: 0.95rem;
-  color: var(--ink-soft);
-  letter-spacing: 0.02em;
-  margin: 0 0 1.2rem;
-}
-.hero .mark b { color: var(--ink); font-weight: 400; }
-/* What the thing *is*, said before the headline says what it is for. The
-   headline alone ("Write the lecture once") reads as a writing method; a
-   visitor should not have to infer from the screenshots that this is
-   presentation software. */
-.hero .what {
-  font-size: 1.05rem;
-  color: var(--ink);
-  margin: 0 0 1.6rem;
-  max-width: none;
-  font-weight: 500;
-}
-/* The headline runs the full width of the hero, not a 20ch measure. The cap
-   was set when the hero was one narrow column; against the two columns and
-   the two screenshots it now sits over, it broke the German headline into a
-   second line while two thirds of the row stood empty beside it. */
-.hero h1 { font-size: 3.1rem; margin-bottom: 0.9rem; text-wrap: balance; }
-/*
- * The hero head sits on the same width and the same left edge as the pictures
- * under it, and its prose runs in the same two columns. Stacked, it was tall
- * enough that on a 1080p screen the pair below never came into view, which
- * cost the page the one thing it is trying to show. Two columns halve that
- * height; matching `.pair`'s grid exactly is what makes the split read as
- * composition rather than as a paragraph that happened to wrap.
- *
- * It used to settle a second left edge too: the prose started at main's
- * 48rem measure while the pictures broke out to 66rem, so the hero began
- * 7.5rem to the right of its own screenshots. The frame is one width now
- * (`--frame`), so there is nothing to break out of.
- *
- * There is one size of body text in the hero, and that is deliberate. The
- * promise sentence used to be set at 1.22rem, larger than the paragraph above
- * it, so a reader scanning by size met it first and met "all four" before
- * anything had said four of what. Read in a column it needs no size to be
- * found, and it has since folded back into the paragraph it belongs to.
- */
-/*
- * The landing hero is the headline, one paragraph and the two pictures. It
- * used to run two paragraphs of the same weight side by side - the promise,
- * and a list of everything else the tool does - which is two walls where the
- * page has room for one sentence. The second paragraph sits under the
- * pictures now, quieter, where it reads as the bridge into the page rather
- * than as a second opening. The text block keeps the measure and the centre
- * every other section has, so the page has one axis from the headline down.
- *
- * `.hero-cols` stays for figures.html, whose hero genuinely carries two
- * columns of the same weight.
- */
-.hero-in { max-width: 44rem; margin: 0 auto; }
-.hero-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2rem; }
-.hero-col { display: flex; flex-direction: column; }
-/* A flex container does not collapse its children's margins, so two stacked
-   paragraphs put the first's margin-bottom and the second's margin-top between
-   them - 42px where the column rhythm is 21. The hero on index.html carries one
-   paragraph per column and never met it; figures.html carries two. */
-.hero-col > p + p { margin-top: 0; }
-/* Buttons to the foot of the column, so the two columns end on one line
-   however the prose falls. */
-.hero-col .cta { margin-top: auto; margin-bottom: 2rem; }
-@media (max-width: 46rem) {
-  .hero-cols { grid-template-columns: 1fr; }
-  .hero-col .cta { margin-top: 0.6rem; }
-}
-.hero .extras {
-  font-size: 1rem;
-  color: var(--ink-soft);
-  max-width: 44rem;
-  margin: 2.6rem auto 0;
-}
-.hero .extras b { color: var(--ink); font-weight: 600; }
-
-.cta { display: flex; flex-wrap: wrap; gap: 0.7rem; margin: 0 0 3rem; }
-.cta a {
-  display: inline-block;
-  font-size: 1rem;
-  font-weight: 550;
-  text-decoration: none;
-  padding: 0.55rem 1.1rem;
+.way-tabs { display: flex; flex-wrap: wrap; gap: 0.4rem; margin: 0 0 1.6rem; }
+.way-tabs button {
+  font-size: 0.86rem;
+  padding: 0.35rem 0.8rem;
+  border: 1px solid var(--rule);
   border-radius: 6px;
-  border: 1px solid var(--ink);
-  min-height: 2.6rem;
-}
-.cta a.primary { background: var(--ink); color: var(--paper); }
-.cta a.secondary { color: var(--ink); }
-.cta a:hover { border-color: var(--accent); }
-/* `--paper` rather than a literal white: on the dark scheme the accent is a
-   light rose, and white-on-rose is the one pairing that fails there. */
-.cta a.primary:hover { background: var(--accent); border-color: var(--accent); color: var(--paper); }
-.cta a.secondary:hover { color: var(--accent); }
-/* The hero pair breaks out of the reading measure (see the shared rule
-   further down): side by side inside a 48rem column each shot lands at a
-   third of its captured size, and the contrast the pair exists to show –
-   four short lines against four full paragraphs – stops being legible as
-   text and reads as two grey blocks. */
-.hero .pair { gap: 1.4rem; margin-bottom: 0; }
-/* One line about the pair, centred under it and no wider than the measure:
-   a caption that runs the width of two screenshots is a paragraph. */
-.hero .shot-note {
-  font-size: 1rem;
+  background: none;
   color: var(--ink-soft);
-  text-align: center;
-  max-width: 44rem;
-  margin: 0.9rem auto 0;
-}
-.hero .shot-note b { color: var(--ink); font-weight: 600; }
-@media (max-width: 46rem) {
-  .hero h1 { font-size: 2.3rem; }
-}
-
-/*
- * Where the script ends up.
- *
- * The section makes an argument in three moves: a lecture holds three kinds
- * of text, the usual tools have room for two, and here is what that costs.
- * The diagram is the second and third moves, drawn against the same three
- * columns so the rows can be compared straight down: the slide, the handout,
- * the notes.
- *
- * Every row is one file glyph, the run of wire leaving it, and what arrives.
- * A dashed footprint is a kind of text with nowhere to go - the same shape as
- * the thing that is missing, so the gap is legible as a gap. Row one pours
- * the script onto the slide and the slide fills edge to edge, which is the
- * paragraph's "death by PowerPoint" without the phrase. Row two runs two
- * files on two wires that never meet, and the break drawn between them is
- * the drift the paragraph describes. Row three is one wire reaching all
- * three.
- *
- * It carries no instructions and nothing to operate. An earlier version let
- * you lift the sheets and had to say so in a caption, which is the tell that
- * a picture has nothing to say: the reader was being given a mechanic in
- * place of an argument.
- */
-.kinds {
-  display: grid;
-  /* Words at a measure, the figure with the rest of the frame: the SVG is
-     drawn to scale with its container and reads best large. */
-  grid-template-columns: minmax(0, 30rem) minmax(0, 1fr);
-  gap: 3.5rem;
-  align-items: center;
-}
-.kinds-prose > p:first-child { margin-top: 0; }
-.kinds-figure { min-width: 0; }
-/* The heading belongs to the two columns under it, so it breaks out with
-   them. Left at the 48rem measure it began 144px inboard of its own figure,
-   the same two-left-edge fault the hero had. */
-@media (max-width: 56rem) {
-  .kinds { grid-template-columns: 1fr; gap: 2.4rem; }
-}
-
-.paths { display: flex; flex-direction: column; gap: 1.5rem; }
-.paths > svg { display: block; width: 100%; height: auto; }
-.path { margin: 0; }
-.path svg { display: block; width: 100%; height: auto; }
-.path svg text { font-family: var(--mono); }
-.path figcaption {
-  font-family: var(--mono);
-  font-size: 0.76rem;
-  color: var(--ink-soft);
-  margin: 0 0 0.3rem;
-  padding: 0;
-  max-width: none;
-}
-/* The row that resolves the other two says so in the accent, the same way a
-   topic sentence does everywhere else on the page. */
-.path-fix figcaption { color: var(--accent); }
-
-/*
- * Tying the rows to the sentences they draw.
- *
- * This earns its place only because both halves now make the same argument.
- * Pointing at "the slides take its job and fill up" raises the row where the
- * slide is full; pointing at that row raises the sentence. The pair is the
- * same claim in two notations, and the link is the thing a reader would
- * otherwise have to assemble.
- *
- * Emphasis is by recession: the two rows that are not being asked about drop
- * back, which reads as one row coming forward without anything having to
- * move. The picked row also lifts to paper, the same inversion `.hint` uses
- * inside a tinted band.
- *
- * Pointer only, and deliberately so. Everything is legible and complete at
- * rest, the sentences stay sentences rather than becoming three tab stops
- * inside a paragraph, and nothing here is the only way to reach anything.
- */
-/* The clause has to look connected to something before anyone points at it.
-   Dotted rather than solid: over three lines of prose a solid rule reads as
-   an underlined sentence, which is emphasis, and these are not emphasised -
-   they are attached. Dotted goes solid and accent when the pair lights up,
-   so the resting state and the active state are the same mark twice. */
-.tie {
   cursor: pointer;
-  text-decoration: underline dotted var(--ink-soft);
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 0.24em;
-  transition: color 160ms ease, text-decoration-color 160ms ease;
 }
-.tie:hover,
-.tie.is-tied {
-  color: var(--accent);
-  text-decoration: underline solid var(--accent);
-  text-decoration-thickness: 1.5px;
-  text-underline-offset: 0.24em;
-}
-.path { cursor: pointer; transition: opacity 200ms ease, background-color 200ms ease; }
-/* Reserved at all times, so nothing shifts when the ground appears. */
-.path { padding: 0.5rem 0.6rem; border-radius: 8px; margin: -0.5rem -0.6rem; }
-.paths.is-tied .path { opacity: 0.3; }
-.paths.is-tied .path.is-tied { opacity: 1; background: var(--paper); }
-
-@media (prefers-reduced-motion: reduce) {
-  .tie, .path { transition: none; }
+.way-tabs button:hover { border-color: var(--accent); color: var(--accent); }
+.way-tabs button.is-tied {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: var(--paper);
 }
 
 /*
@@ -722,7 +901,14 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
   border: 1px solid var(--rule);
   border-radius: 6px;
   margin: 1.6rem 0 2rem;
+  /* A grid or flex item is min-content wide by default, and the widest thing
+     in here is a six-column table. Without this the table pushed the panel,
+     the panel pushed the page, and a phone got a horizontal scrollbar on the
+     whole document instead of on the table. */
+  min-width: 0;
 }
+.setup-body { min-width: 0; }
+.setup-body > table { max-width: 100%; }
 .setup > summary {
   padding: 0.75rem 1.1rem;
   cursor: pointer;
@@ -741,81 +927,10 @@ h1 { font-size: 2.6rem; line-height: 1.08; margin: 0 0 0.5rem; letter-spacing: -
 }
 .setup-body h3::before { content: counter(step) ". "; color: var(--ink-soft); }
 .setup-body p { max-width: none; }
+/* The line that opens a disclosure is an introduction to what is inside it,
+   not page prose: at the page size it outweighed the entries it introduces. */
+.setup-body > p:first-child { font-size: 0.94rem; color: var(--ink-soft); }
 .setup-body pre { font-size: 0.88rem; padding: 0.7rem 0.9rem; }
-
-/*
- * Section headings carry the page. The first draft set them as small grey
- * uppercase eyebrows, which left the screenshots and the running text at
- * roughly the same visual weight and made the page hard to scan.
- */
-h2 {
-  font-size: 1.75rem;
-  font-weight: 650;
-  letter-spacing: -0.015em;
-  color: var(--ink);
-  margin: 0 0 1.6rem;
-}
-/* The rule draws a boundary the band has not already drawn. A heading that
-   opens its band has the band edge above it and needs no second line under
-   the first; a heading that follows something inside one band is the only
-   place left where a section starts without the ground changing colour, and
-   there it does the whole job. */
-.band > .wrap > h2 ~ h2 {
-  margin-top: 4rem;
-  padding-top: 1.1rem;
-  border-top: 2px solid var(--ink);
-}
-h3 { font-size: 1.15rem; font-weight: 650; margin: 2.2rem 0 0.5rem; }
-
-a { color: var(--accent); }
-p, li { max-width: 40rem; }
-
-/* Inline code has no spaces to break at, so a path or a winget invocation in
-   running prose pushes the page sideways on a phone. It breaks only when it
-   would otherwise overflow, which is the trade worth making: a command split
-   across two lines is readable, a page that scrolls horizontally is not.
-   Blocks are exempt - `pre` scrolls inside its own box, and breaking a
-   transcript would misquote it. */
-code { font-family: var(--mono); font-size: 0.92em; overflow-wrap: break-word; }
-/* Every listing on this page is psi-slides source, and its grammar spells
-   an arrow -> and a plain line --. A mono face that ligates those draws one
-   glyph where the author has to type two characters, so the whole family is
-   turned off here the way it is in the built views. This was written as a
-   preventive rule while Iosevka, which does not ligate by default, was the
-   face - "so the page cannot acquire the fault by changing its face". The
-   face changed, JetBrains Mono does ligate, and the rule is load-bearing now.
-   Which is also why it lists every selector that sets --mono rather than the
-   four element names it started with: the four covered the listings, and the
-   window bars, the eyebrow and the figure captions were left to acquire the
-   fault on their own. If a new rule sets --mono, it belongs in this list. */
-code, pre, kbd, samp,
-.hero .mark,
-.path svg text, .path figcaption,
-figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
-pre code { overflow-wrap: normal; }
-pre {
-  font-family: var(--mono);
-  /* 0.96rem was Iosevka's number: it reads small, so the size had to sit above
-     the 0.9rem that looked right in a specimen and read as fine print on the
-     page. JetBrains Mono is a normal-width face - measured, its advance is
-     0.6em against Iosevka's 0.5em, so the same string is 20% wider and two
-     more listings on the landing page began to scroll inside their box.
-     Matching the old line width exactly would mean 0.80rem, which is the fine
-     print again. 0.92rem is where the two claims meet: measured on the canvas,
-     its x-height is 8.10px against Iosevka's 7.99px at 0.96rem, so it reads
-     no smaller than what it replaced, and it gives back a quarter of the
-     width. A Markdown sample is meant to be read, not squinted at. */
-  font-size: 0.92rem;
-  line-height: 1.6;
-  background: var(--code-bg);
-  /* A filled box and a border are two marks doing one job. The fill is the
-     one that survives, because it is what says "this is not prose". */
-  border: 0;
-  padding: 1.1rem 1.2rem;
-  border-radius: 6px;
-  overflow-x: auto;
-}
-pre code { font-size: inherit; }
 
 /*
  * Tokens for the Markdown sample on the landing page. Marked up by hand in
@@ -877,138 +992,6 @@ hr { border: 0; border-top: 1px solid var(--rule); margin: 2.6rem 0; }
 hr + h2 { border-top: 0; padding-top: 0; margin-top: 1.6rem; }
 
 /*
- * Screenshots. The point of the frame is that a reader can tell at a glance
- * which pixels are the tool and which are this page: without it the shots
- * read as more page, and the layout stops parsing.
- */
-/*
- * A screenshot is the picture and, where it helps, the file it comes from.
- * The frame goes round those two and stops there: the caption used to sit
- * inside it on the same tint, which turned every figure into a grey slab
- * with a bar on top and a paragraph at the foot, and a page of twelve slabs
- * is what "busy" turns out to mean. The caption is prose now, under the
- * picture, at the measure everything else on the page is read at.
- *
- * The bar lost its three traffic-light dots with the same edit. They said
- * "this is a window" over a bar that already says `speaker.html`, which is
- * decoration wearing an information's clothes.
- *
- * Tight under the picture, generous under the caption: a caption that sits
- * equidistant between its own image and the next one attaches itself to
- * whichever the eye reaches first, which on a scrolling page is the wrong
- * one. Same reason `pre + p.tiny` is pulled up below.
- */
-figure.shot { margin: 0 0 3.2rem; }
-figure.shot > img, figure.shot > video {
-  border: 1px solid var(--frame);
-  border-radius: 7px;
-}
-/* The bar and the picture are one box, so the bar closes at the bottom and
-   the picture opens at the top. */
-figure.shot .bar + img, figure.shot .bar + video {
-  border-top: 0;
-  border-radius: 0 0 7px 7px;
-}
-figure.shot .bar {
-  border: 1px solid var(--frame);
-  border-radius: 7px 7px 0 0;
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
-  padding: 0.35rem 0.75rem;
-  /* The switch is taller than a line of the bar's own text, so without a
-     floor the two shots of a pair sit at different heights and the row
-     reads as a mistake. */
-  min-height: 2.55rem;
-  font-family: var(--mono);
-  font-size: 0.85rem;
-  color: var(--ink-soft);
-  background: var(--frame);
-  border-bottom: 1px solid var(--rule);
-}
-figure.shot .bar b { font-weight: 400; color: var(--ink); }
-figure.shot .dots { display: flex; gap: 0.3rem; }
-figure.shot .dots i {
-  width: 0.56rem; height: 0.56rem; border-radius: 50%;
-  background: var(--rule); display: block;
-}
-figure.shot img {
-  width: 100%; height: auto; display: block; background: var(--paper);
-  cursor: zoom-in;
-}
-figure.shot img:focus-visible { outline: 3px solid var(--accent); outline-offset: -3px; }
-
-/*
- * The film sits in the same frame as the screenshots, for the same reason:
- * it is a picture of the tool, not more page. It is a plain <video> with the
- * browser's own controls and no player library – the file streams from the
- * chair's server, so the page fetches nothing until someone presses play,
- * and the poster underneath is a local WebP so the box has its height from
- * the first paint and the layout never jumps.
- *
- * `aspect-ratio` rather than a height: the poster is 16:9 and so is the
- * clip, and stating it keeps the frame the right shape even in the moment
- * before the poster has decoded.
- */
-figure.shot video {
-  width: 100%;
-  height: auto;
-  aspect-ratio: 16 / 9;
-  display: block;
-  background: var(--paper);
-}
-
-/*
- * The bar doubles as a two-state switch on the hero's right-hand shot. It
- * used to be two words in the bar's own grey, distinguishable from the file
- * name beside them only by a faint background on the active one – so nobody
- * pressed it. It is a segmented control now: its own framed group, a spoken
- * label, and an active segment in full ink.
- */
-figure.shot .swap {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.2rem;
-  margin-left: auto;
-  padding: 0.15rem;
-  border: 1px solid var(--ink-soft);
-  border-radius: 6px;
-  background: var(--paper);
-}
-figure.shot .swap .swap-label {
-  font-size: 0.8rem;
-  color: var(--ink-soft);
-  padding-left: 0.35rem;
-}
-figure.shot .swap button {
-  font-family: var(--mono);
-  font-size: 0.85rem;
-  line-height: 1.5;
-  border: 1px solid transparent;
-  background: none;
-  color: var(--ink);
-  /* >= 24 px tall including the border, for WCAG 2.5.8 target size. */
-  padding: 0.2rem 0.5rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
-figure.shot .swap button:hover { border-color: var(--accent); color: var(--accent); }
-figure.shot .swap button[aria-pressed="true"] {
-  background: var(--ink);
-  color: var(--paper);
-  border-color: var(--ink);
-}
-figure.shot .swap button[aria-pressed="true"]:hover {
-  background: var(--accent);
-  border-color: var(--accent);
-  color: var(--paper);
-}
-@media (max-width: 34rem) {
-  figure.shot .bar { flex-wrap: wrap; }
-  figure.shot .swap { margin-left: 0; }
-}
-
-/*
  * Lightbox. `hidden` alone loses to the display rule, so it is restated.
  */
 .lightbox {
@@ -1032,100 +1015,241 @@ figure.shot .swap button[aria-pressed="true"]:hover {
   box-shadow: 0 16px 60px rgba(0, 0, 0, 0.55);
 }
 body.lightbox-open { overflow: hidden; }
-figure.shot figcaption {
-  font-size: 1rem;
-  color: var(--ink-soft);
-  padding: 0.65rem 0 0;
-  max-width: var(--measure);
-}
-figure.shot figcaption strong { color: var(--ink); font-weight: 650; }
-
-.pair { display: grid; gap: 1.2rem; grid-template-columns: 1fr 1fr; margin-bottom: 3.2rem; }
-.pair figure.shot { margin-bottom: 0; }
-@media (max-width: 46rem) { .pair { grid-template-columns: 1fr; } }
 
 /*
- * Screenshots break out of the reading measure. Prose wants 40rem or it
- * stops being readable; a screenshot wants every pixel it can get, because
- * the whole claim being made is that the projection is legible and the
- * cockpit is a workspace, and neither survives being shrunk to a third.
- * The two are set independently: the column stays narrow, the pictures
- * bleed into the margin on both sides.
+ * ── What figures.html needs from here ─────────────────────────────────────
+ *
+ * That page carries a genuine two-column hero - a claim on the left and its
+ * complication on the right, the same weight - which index.html does not.
+ * The rules live here rather than in that page's own <style> because the
+ * button, the wordmark and the measure they sit in are shared, and a second
+ * copy of the CTA would drift the first time this one is touched.
  */
-/* A screenshot fills the frame. The frame is 68rem, the shots are taken at
-   1440px, so on a wide screen they stand at the size they were shot. */
-.wrap > figure.shot, .wrap > .pair, .hero .pair { width: auto; }
-
-/* A card: white on the page's grey, the way a screenshot is. */
-.hint {
-  background: var(--shot-bg);
-  border: 1px solid var(--frame);
-  border-radius: 6px;
-  padding: 1.2rem 1.4rem;
-  font-size: 1rem;
-  margin: 2.4rem 0 0;
+.hero-cols { display: grid; grid-template-columns: 1fr 1fr; gap: 1.4rem 3rem; }
+.hero-col { display: flex; flex-direction: column; }
+/* A flex container does not collapse its children's margins, so two stacked
+   paragraphs put the first's margin-bottom and the second's margin-top
+   between them - twice the column rhythm. */
+.hero-col > p + p { margin-top: 0; }
+/* Buttons to the foot of the column, so the two columns end on one line
+   however the prose falls. */
+.hero-col .cta { margin-top: auto; margin-bottom: 2rem; }
+@media (max-width: 52rem) {
+  .hero-cols { grid-template-columns: 1fr; }
+  .hero-col .cta { margin-top: 0.6rem; }
 }
-.hint p { margin: 0; max-width: none; }
+.tagline, .lead { color: var(--ink-soft); margin: 0 0 2.4rem; font-size: 1.12rem; }
 
-p.tiny { font-size: 0.95rem; color: var(--ink-soft); }
-/* A line that explains the block above it is a caption, so it sits close to
-   what it captions and keeps its distance from what follows. */
-pre + p.tiny { margin: 0.55rem 0 3rem; }
+/*
+ * The line that goes in front of a picture.
+ *
+ * The complaint the whole redesign answers is that material was presented
+ * without comment: a screenshot arrived, and whatever explained it was a
+ * caption underneath, which a reader meets after having already tried to
+ * read the picture. A cue says what is coming and why, and it sits directly
+ * above the stage - close enough to belong to it, in the softer ink so it
+ * does not compete with the section's own lede.
+ */
+.cue { font-size: 1rem; color: var(--ink-soft); margin: 0 0 0.8rem; max-width: var(--measure); }
+.cue strong { color: var(--ink); font-weight: 600; }
+.beside .cue { margin-top: 1rem; }
 
-footer {
-  margin-top: 4rem;
-  padding-top: 1.2rem;
-  border-top: 1px solid var(--rule);
-  font-size: 0.95rem;
-  color: var(--ink-soft);
+/*
+ * ── The half-empty section ────────────────────────────────────────────────
+ *
+ * Four of the client's twelve notes were one fault: an element using half
+ * the width with nothing beside it. One-sided white space reads as a
+ * mistake; symmetrical white space reads as a decision. Three answers, and
+ * each section below is assigned one deliberately rather than by default.
+ *
+ * 1. Put a second thing in the free half - `.beside`, already here, and the
+ *    listing variants below.
+ * 2. Let the element take the width itself - the listings now do.
+ * 3. Make it narrow on purpose and centre it, so the space is even on both
+ *    sides - `.middle`, used for the closing section, where there is
+ *    genuinely nothing to put beside four links.
+ */
+
+/* A listing with its explanation beside it: the code takes the wide side
+   because it is the thing being shown, the words take the narrow one. Same
+   proportion trap as `.beside`, same escape - the words are three to five
+   lines by construction, so the space under them is margin. */
+.aside-code { display: grid; gap: clamp(1.2rem, 2.2vw, 2.6rem); align-items: start; }
+.aside-code > .said > :first-child { margin-top: 0; }
+.aside-code > .said > :last-child { margin-bottom: 0; }
+.aside-code > pre { margin-bottom: 0; max-width: none; }
+.aside-code .cue, .aside-code p { margin-bottom: 0.8rem; }
+@media (min-width: 68rem) {
+  .aside-code { grid-template-columns: minmax(0, 1fr) minmax(0, 20rem); }
+  .aside-code > .said { order: 2; }
+  /* Wider, because this column carries a picture of the slide the listing
+     produces and not only words. Showing the two together is worth the
+     narrower listing: without it a reader scrolls eight screens up to find
+     the slide again and has to hold the correspondence in their head. */
+  .aside-code.with-slide { grid-template-columns: minmax(0, 1fr) minmax(0, 27rem); }
 }
+.aside-code .stage { margin-bottom: 1rem; padding: clamp(0.7rem, 1.4vw, 1.1rem); }
+.aside-code .stage figure.shot { margin: 0; }
+/* The mirror, for the two places where the words come first in the argument
+   and the listing is the answer to them. */
+@media (min-width: 68rem) {
+  .aside-code.words-first { grid-template-columns: minmax(0, 20rem) minmax(0, 1fr); }
+  .aside-code.words-first > .said { order: 0; }
+}
+
+/* Deliberately narrow, evenly spaced. The closing section is four links and
+   a byline; there is nothing to put beside them and stretching them across
+   the frame would be worse than the gap. */
+.middle { max-width: 62rem; margin-inline: auto; }
+.middle > h2 { text-align: center; max-width: none; }
+
+/* The closing links, side by side rather than stacked as a bullet list: four
+   short entries down the left of a wide frame is the same half-empty fault
+   as the listings had. */
+.reads { display: grid; gap: 1.6rem 2.4rem; list-style: none; margin: 2rem 0 0; padding: 0; }
+@media (min-width: 52rem) { .reads { grid-template-columns: 1fr 1fr; } }
+.reads li { max-width: none; font-size: 0.96rem; color: var(--ink-soft); }
+.reads b { display: block; font-size: 1.05rem; font-weight: 600; margin-bottom: 0.15rem; }
+.reads b a { text-decoration: none; }
+.reads b a:hover { text-decoration: underline; }
+
+/* Punkt 11: the footer was holding the prose measure inside a frame nearly
+   three times as wide. It is the page's last line and it belongs to the
+   whole page, so it runs the width its section runs. */
 footer p { max-width: none; }
 
 /*
- * The cover and divider gallery. Sixteen compositions of the same words, so
- * the tiles have to be one size and one shape or the row reads as sixteen
- * different products - which is also why they are shot rather than composed
- * (docs/site/shoot-gallery.mjs).
+ * ── The lecture picks ─────────────────────────────────────────────────────
  *
- * They keep `figure.shot`, and with it the frame and the lightbox, because a
- * tile is a third of the width the slide was composed at and clicking one is
- * how you actually read it. What they drop is the window bar: a screenshot is
- * a picture of an application, and these are pictures of a slide.
- *
- * Three across at the page's measure, two below it, one on a phone - one
- * track count for every gallery on the page, including the two-tile one. A
- * second grid with its own count was written first and is the drift this
- * whole section exists to prevent: two tiles across a measure sized for three
- * came out half again as large as the ten above them, which reads as
- * emphasis nobody meant. `auto-fit` with a floor has the same fault built in,
- * because it stretches whatever the last row happens to hold.
+ * Punkt 7. This was one table of eighteen links, every one the same weight,
+ * and a reader could not tell which of five lectures to open first. It is a
+ * hierarchy now: the demo the pictures come from, then the tour, side by
+ * side and named; the other three behind a disclosure with the full grid.
+ * Each says how long it is, because "open a lecture" is a different offer at
+ * 36 slides than at 59.
  */
-.gallery {
-  display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.9rem;
-  margin: 0 0 2.4rem;
+.picks { display: grid; gap: clamp(1rem, 2vw, 2rem); margin: 0 0 1.6rem; }
+@media (min-width: 60rem) { .picks { grid-template-columns: 1fr 1fr; } }
+.pick {
+  background: var(--shot-bg);
+  border: 1px solid var(--frame);
+  border-radius: 8px;
+  padding: 1.3rem 1.5rem 1.4rem;
 }
-.gallery figure.shot { margin: 0; }
-figure.shot.tile figcaption {
+.pick h3 { margin: 0 0 0.15rem; font-size: 1.3rem; }
+.pick h3 code { font-size: 0.92em; color: inherit; }
+.pick .size {
+  font-family: var(--mono);
   font-size: 0.8rem;
-  line-height: 1.4;
-  padding: 0.5rem 0 0;
-  max-width: none;
+  color: var(--ink-soft);
+  margin: 0 0 0.7rem;
 }
-/* The name of the composition leads the caption, so it is set as the code it
-   is and given the line to itself - at this size a run-in name and its gloss
-   are one grey blur. */
-figure.shot.tile figcaption code {
-  display: block;
+.pick p { max-width: none; font-size: 0.96rem; margin: 0 0 1rem; }
+.pick .opens { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0; }
+.pick .opens a {
+  font-size: 0.9rem;
+  text-decoration: none;
+  border: 1px solid var(--rule);
+  border-radius: 5px;
+  padding: 0.28rem 0.66rem;
   color: var(--ink);
-  font-size: 0.82rem;
-  margin-bottom: 0.1rem;
 }
-figure.shot.tile figcaption code + code { display: inline; margin: 0; }
-@media (max-width: 46rem) {
-  .gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.pick .opens a:hover { border-color: var(--accent); color: var(--accent); }
+/* The first pick is the one to take, so it says so with a heavier edge -
+   the only difference between the two cards, because a second signal would
+   make them two kinds of thing rather than a first and a second. */
+.pick-lead { border-color: var(--ink-soft); }
+
+/* The disclosure and the note that follows it were two half-width blocks
+   stacked down the left. Side by side they are one row: the disclosure grows
+   downwards when it opens and the note stays where it is. */
+.folded-note { display: grid; gap: clamp(1.2rem, 2.2vw, 2.6rem); align-items: start; }
+.folded-note > details { margin-top: 0; }
+.folded-note > .hint { margin-top: 0; max-width: none; }
+@media (min-width: 68rem) {
+  .folded-note { grid-template-columns: minmax(0, 1fr) minmax(0, 24rem); }
 }
-@media (max-width: 30rem) {
-  .gallery { grid-template-columns: minmax(0, 1fr); }
+
+/*
+ * ── The three ways a lecture's text can end up ────────────────────────────
+ *
+ * Punkt 3. This section used to be three paragraphs of prose with three
+ * clauses linked to a drawing beside them. It read on a desktop and failed
+ * on a phone: the column stacks, so the drawing for the sentence you are
+ * reading sat three paragraphs below it, and by the time you reached it you
+ * had lost what it answered.
+ *
+ * It is a chooser now. One introduction, three named options, and each
+ * option is a short text AND its drawing, switched together. On a phone the
+ * two are adjacent because they are one block; there is no scrolling between
+ * a claim and its picture, because only one claim is on screen.
+ *
+ * The tab labels carry the judgement - "not ideal", "our approach" - which
+ * is the argument the three paragraphs used to make in prose. Without
+ * scripting all three stand in order with their labels as headings, and the
+ * section still reads as an argument in three moves.
+ */
+.ways { display: grid; gap: 2.2rem; }
+.ways.is-switched .way { display: none; }
+.ways.is-switched .way.is-shown { display: grid; }
+/* The label becomes the tab, so inside the chooser it would be the same
+   words twice. */
+.ways.is-switched .way-label { display: none; }
+.way { display: grid; gap: clamp(1.2rem, 2.4vw, 2.6rem); align-items: start; }
+@media (min-width: 64rem) {
+  .way { grid-template-columns: minmax(0, 24rem) minmax(0, 1fr); }
 }
+.way-label {
+  font-size: 1.05rem;
+  font-weight: 620;
+  margin: 0 0 0.5rem;
+  grid-column: 1 / -1;
+}
+.way-said > :first-child { margin-top: 0; }
+.way-said > :last-child { margin-bottom: 0; }
+.way-said p { max-width: none; }
+.way-fig { min-width: 0; }
+.way-fig svg { display: block; width: 100%; height: auto; }
+.way-fig svg text { font-family: var(--mono); }
+/* The column headings above the three drawings are one strip shared by all
+   three, so it sits outside them and stays put while they change. */
+.way-cols { display: block; width: 100%; height: auto; margin: 0 0 0.2rem; }
+
+/*
+ * ── The three other lectures ──────────────────────────────────────────────
+ *
+ * Punkt 1. This was the six-column table again, inside the disclosure, with
+ * python-intro and the tutorial repeated in it - the two lectures already
+ * standing as cards directly above. A table of eighteen equal links is what
+ * the cards were introduced to replace, so keeping one behind a fold only
+ * moved the problem.
+ *
+ * Three entries, and deliberately NOT cards: a card inside a disclosure is a
+ * box in a box, and these three are the ones you were not sent to. Name,
+ * length, one sentence, and the views as plain links. The name is the anchor,
+ * so it holds the left edge and everything else hangs off it.
+ */
+.more-lectures { display: grid; gap: 1.6rem; margin: 0.4rem 0 0; }
+@media (min-width: 56rem) { .more-lectures { grid-template-columns: 1fr 1fr; } }
+.more-lecture > * { max-width: none; }
+.more-lecture h4 {
+  font-size: 1rem;
+  font-weight: 650;
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0.5rem;
+}
+.more-lecture h4 .size {
+  font-family: var(--mono);
+  font-size: 0.78rem;
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+.more-lecture p { margin: 0.25rem 0 0.4rem; font-size: 0.94rem; color: var(--ink-soft); }
+/* Plain links with a middot between them, not four bordered buttons: the two
+   cards above use buttons, and repeating them here would say these three are
+   the same offer. */
+.more-lecture .opens { font-size: 0.9rem; }
+.more-lecture .opens span { color: var(--rule); padding: 0 0.25rem; }

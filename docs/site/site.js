@@ -21,12 +21,19 @@
     var fig = group.closest('.shot');
     var img = fig && fig.querySelector('img');
     if (!img) return;
+    // Where the bar names a file rather than a role, the name is part of what
+    // the switch changes: the handout pair is print.html and print-notes.html,
+    // and a bar that kept saying one of them while showing the other would be
+    // the exact confusion this switch was added to remove. The hero's bar says
+    // "what the reader gets", carries no data-name, and is left alone.
+    var name = fig.querySelector('.bar > b');
     var buttons = Array.prototype.slice.call(group.querySelectorAll('button'));
     buttons.forEach(function (btn) {
       btn.addEventListener('click', function () {
         buttons.forEach(function (b) { b.setAttribute('aria-pressed', String(b === btn)); });
         img.src = btn.getAttribute('data-src');
         img.alt = btn.getAttribute('data-alt') || '';
+        if (name && btn.getAttribute('data-name')) name.textContent = btn.getAttribute('data-name');
       });
     });
   });
@@ -49,39 +56,66 @@
    * who has already chosen.
    */
 
-  /* ── the diagram and the sentences it draws ────────────────────────────
-   * Each row of the diagram is one clause of the argument: the slide that
-   * fills up, the second document that stops matching, and psi-slides. Point
-   * at either notation and the other one answers.
+  /* ── the three ways, as a chooser ──────────────────────────────────────
+   * A lecture holds three kinds of text, and there are three ways that ends:
+   * everything on the slides, slides plus a second document, or psi-slides.
    *
-   * An earlier version of this section was an interactive stack of sheets
-   * that had to explain in a caption that hovering brought one forward. The
-   * difference is not the wiring, which is nearly the same: it is that the
-   * picture now says something, so connecting it to the sentence that says
-   * the same thing is worth a reader's attention. There is still no caption,
-   * because there is no mechanic to learn - the response is the explanation.
+   * The section used to be all three at once - three paragraphs of prose and
+   * three stacked drawings, with the clause you pointed at lighting up its
+   * row. That read on a desktop and failed on a phone: the column stacks, so
+   * the drawing answering the sentence you were reading sat three paragraphs
+   * below it. Then it was one drawing switched by the clauses, which fixed
+   * the height and left the three paragraphs standing.
    *
-   * Pointer only. Both halves are complete at rest, so nothing here is the
-   * sole route to anything, and the clauses stay clauses rather than becoming
-   * three tab stops in the middle of a paragraph.
+   * Now the text switches with the drawing. One option is on screen at a
+   * time, its words and its picture together, and the tabs carry the
+   * judgement - "not ideal", "our approach" - that the prose used to make.
+   *
+   * The tab labels are read out of the markup, not written here: without
+   * scripting the three options stand in order with those labels as headings,
+   * and the section still argues in three moves. The switch is the
+   * enhancement, never the content.
    */
-  (function ties() {
-    var paths = document.querySelector('.paths');
-    if (!paths) return;
-    var rows = Array.prototype.slice.call(paths.querySelectorAll('.path'));
-    var clauses = Array.prototype.slice.call(document.querySelectorAll('.tie'));
-    if (!rows.length || !clauses.length) return;
+  (function ways() {
+    var box = document.querySelector('.ways');
+    if (!box) return;
+    var opts = Array.prototype.slice.call(box.querySelectorAll('.way'));
+    if (opts.length < 2) return;
 
-    function paint(key) {
-      paths.classList.toggle('is-tied', !!key);
-      rows.concat(clauses).forEach(function (el) {
-        el.classList.toggle('is-tied', !!key && el.getAttribute('data-tie') === key);
+    var tabs = document.createElement('div');
+    tabs.className = 'way-tabs';
+    tabs.setAttribute('role', 'tablist');
+    var buttons = opts.map(function (opt) {
+      var label = opt.querySelector('.way-label');
+      var btn = document.createElement('button');
+      btn.type = 'button';
+      btn.textContent = label ? label.textContent : opt.getAttribute('data-tie');
+      btn.setAttribute('data-tie', opt.getAttribute('data-tie'));
+      btn.setAttribute('role', 'tab');
+      tabs.appendChild(btn);
+      return btn;
+    });
+    box.parentNode.insertBefore(tabs, box);
+    box.classList.add('is-switched');
+
+    function show(key) {
+      opts.forEach(function (opt) {
+        opt.classList.toggle('is-shown', opt.getAttribute('data-tie') === key);
+      });
+      buttons.forEach(function (btn) {
+        var on = btn.getAttribute('data-tie') === key;
+        btn.classList.toggle('is-tied', on);
+        btn.setAttribute('aria-selected', String(on));
       });
     }
-    rows.concat(clauses).forEach(function (el) {
-      el.addEventListener('mouseenter', function () { paint(el.getAttribute('data-tie')); });
-      el.addEventListener('mouseleave', function () { paint(null); });
+    buttons.forEach(function (btn) {
+      btn.addEventListener('click', function () { show(btn.getAttribute('data-tie')); });
     });
+
+    /* Opens on the state a reader already knows - everything poured onto the
+       slides - so the argument is made rather than assumed. Opening on the
+       answer spends it before the question is asked. */
+    show(opts[0].getAttribute('data-tie'));
   })();
 
   /* ── the narrow-width menu ─────────────────────────────────────────────

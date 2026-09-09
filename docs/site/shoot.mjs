@@ -90,6 +90,12 @@ const SHOTS = [
   { name: 'cockpit', src: 'speaker.html', w: 1440, h: 900, dsf: 1.5, frag: true },
   { name: 'printed', src: 'print.html', w: 1000, h: 625, dsf: 2.15, rig: DOC_RIG },
   { name: 'handout', src: 'print-notes.html', w: 860, h: 690, dsf: 2.5, rig: DOC_RIG },
+  // The same frame again from print.html, so the landing page can offer the
+  // two handouts as one switch rather than showing the notes version and
+  // calling it what the students take away. Identical geometry to `handout`
+  // on purpose: a switch that changes the crop as well as the file reads as
+  // two pictures, not as one file becoming another.
+  { name: 'handout-plain', src: 'print.html', w: 860, h: 690, dsf: 2.5, rig: DOC_RIG },
   // The editor, opened on a figure with beats. 1280 is the narrowest viewport
   // that still fits the whole top bar - at 1200 the Close button is cut in
   // half, and a screenshot of a clipped UI reads as a broken one.
