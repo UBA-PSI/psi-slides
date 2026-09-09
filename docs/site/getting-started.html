@@ -21,9 +21,9 @@
   <h1>Getting started</h1>
 
   <p class="lede">Two ways in, and they end in the same place: both run the same
-  <code>build.js</code> and write the same four web pages beside your
+  <code>build.js</code> and write the same four views beside your
   <code>source.md</code> &ndash; a projection for the room, a cockpit for the
-  lecturer, and two handouts.</p>
+  lecturer, and two handouts to print.</p>
 
   <!-- Half-empty row, answer 1. A hero of a heading and one paragraph leaves
        two thirds of the first screen empty, which is the fault this page is
@@ -33,8 +33,8 @@
   <div class="pair-up">
    <div>
     <p><strong><a href="#app">The app</a></strong> is a window you download and
-    open a <code>source.md</code> in. It builds the lecture, and builds it again
-    every time you save. Nothing else has to be installed: no Node, no
+    open a <code>source.md</code> in. It builds the lecture, and rebuilds it
+    every time you save the file. Nothing else has to be installed: no Node, no
     terminal.</p>
    </div>
    <div>
@@ -59,9 +59,9 @@
     <p class="lede">Open a lecture&rsquo;s <code>source.md</code>, or drop it on
     the window, and the four views are built. Leave the window open beside your
     text editor and every save builds them again.</p>
-    <p class="cue">One sentence says whether the last save built, and four
-    buttons open what it produced. Nothing else is installed: no Node, no
-    terminal, no project settings to fill in.</p>
+    <p class="cue">One line says whether the last build worked, and four
+    buttons open the four views it wrote. Nothing else is installed: no Node,
+    no terminal, no project settings to fill in.</p>
    </div>
    <div class="stage">
     <figure class="shot">
@@ -123,7 +123,7 @@
    <div>
     <p><strong>The packages are not signed</strong>, apart from the macOS one,
     which is signed and notarised by hand &ndash; Apple&rsquo;s own check &ndash; before
-    it is uploaded. If that has not happened for this build yet, a double click
+    it is uploaded. If that signing has not happened for this build yet, a double click
     gets you a warning that the developer cannot be verified: open the app once
     with a right click and <b>Open</b> instead, and the warning does not come
     back. Windows shows its SmartScreen warning once &ndash; <b>More info</b>, then
@@ -138,24 +138,24 @@
   <div class="pair-up">
    <div>
     <p>When a build fails, the message from <code>build.js</code> stands there
-    as it was written, naming the line. The four views keep the last build that
-    worked, so a broken save never takes your slides away in the middle of a
-    lecture.</p>
+    as it was written, naming the line in your source. The four views keep the
+    last build that worked, so a broken save never takes your slides away in
+    the middle of a lecture.</p>
     <p>Two switches are worth knowing about. <strong>Open the views through a
     local web address</strong> starts a small server on this computer:
-    embedded YouTube and Vimeo players refuse to run from a file, and this is
-    what makes them play. <strong>Open the views in</strong> chooses between
-    Chrome or Edge, which is what psi-slides is tested in, and whatever your
-    system opens HTML with.</p>
+    embedded YouTube and Vimeo players refuse to run from a file, and a local
+    address is what makes them play. <strong>Open the views in</strong> chooses
+    between Chrome or Edge &ndash; the two browsers psi-slides is tested in &ndash;
+    and whatever your system opens HTML with.</p>
    </div>
    <div>
     <p>It is <strong>not a Markdown editor</strong>. You write the lecture in
     whatever text editor you already use; the window watches the file. There is
     no split view, no preview pane, no Git client and nowhere to type build
     commands.</p>
-    <p>It is also not a second way of doing anything: it runs the same
+    <p>Nor are the two ways two tools: the app runs the same
     <code>build.js</code> on the same <code>source.md</code> and produces the
-    same four files. <strong>Nothing leaves the computer.</strong> No account,
+    same four views. <strong>Nothing leaves the computer.</strong> No account,
     no telemetry, no update check, no network access of any kind.</p>
    </div>
   </div>
@@ -165,7 +165,8 @@
 <section class="band">
  <div class="wrap">
   <h2 id="command-line">The command line</h2>
-  <p class="lede">The same build, for a machine that already has a terminal on
+  <p class="lede">The same build the app runs, typed out: for a machine that
+  already has a terminal on
   it &ndash; and the only way to run psi-slides in CI. It needs <strong>Node 20 or
   newer</strong>, which is what runs <code>build.js</code>, and nothing else:
   no LaTeX, no Pandoc, no server, nothing installed system-wide.</p>
@@ -175,13 +176,13 @@
   <div class="aside-code words-first">
    <div class="said">
     <h3>Build the tutorial</h3>
-    <p class="cue"><code>npm install</code> runs once and lands in a
-    <code>node_modules</code> folder beside <code>build.js</code>. It fetches
-    the typefaces psi-slides embeds into every lecture and the handful of
-    packages the build uses.</p>
-    <p class="cue">The four HTML files appear beside <code>source.md</code>,
-    and they are what you hand over: they carry their own fonts, pictures and
-    code, and fetch nothing when they are opened.</p>
+    <p class="cue"><code>npm install</code> runs once. It fetches the typefaces
+    psi-slides embeds into every lecture and the handful of packages the build
+    uses, all of it into a <code>node_modules</code> folder beside
+    <code>build.js</code>.</p>
+    <p class="cue">The four views appear beside <code>source.md</code> as HTML
+    files, and they are what you hand over: each one carries its own fonts,
+    pictures and code, and fetches nothing when it is opened.</p>
    </div>
 <pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span>
 <span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
@@ -258,7 +259,7 @@
       <h3>Get the files</h3>
       <p>Take a clone if you have git, and <b>Download ZIP</b> from the
       <a href="https://github.com/UBA-PSI/psi-slides">repository&rsquo;s</a> green
-      <b>Code</b> button otherwise. Unpack it the way you would any
+      <b>Code</b> button otherwise. Unpack that ZIP the way you would any
       other download; double-clicking is enough on both systems. You get a folder
       whose name starts with <code>psi-slides</code>, and that folder is the whole
       tool. Put it somewhere you can find again, because the terminal has to be
@@ -292,7 +293,7 @@
 
       <h3>Open it</h3>
       <p>Double-click <code>lectures/tutorial/audience.html</code>. It opens in
-      your browser and that is all it needs: <kbd>?</kbd> lists the keys,
+      your browser, and a browser is all it needs: <kbd>?</kbd> lists the keys,
       <kbd>S</kbd> opens the cockpit. Mail the file to somebody who has none of
       this installed and it still works.</p>
 
@@ -390,16 +391,17 @@
     <p>In the app, <b>New lecture&hellip;</b> asks for a folder name and a place
     to put it and writes the same starter lecture <code>--new</code> writes,
     down to a small figure for the diagram editor to open. Rebuilding on save is
-    its normal state rather than a flag, and it shows what the build says and no
-    more than that, so <code>lint.js</code> stays a command.</p>
+    the window&rsquo;s normal state rather than a switch you set, and it shows
+    what the build says and no more than that, which is why
+    <code>lint.js</code> stays something you type.</p>
    </div>
    <div>
-    <p>What to write in that file is the
-    <a href="tutorial/audience.html">tutorial lecture</a>, which is a lecture
+    <p>What goes in that file is what the
+    <a href="tutorial/audience.html">tutorial lecture</a> teaches, a lecture
     about writing lectures: every construct the format has, shown working, with
     <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">its
-    source</a> beside it. The linter&rsquo;s messages name the rule and the line,
-    so they are readable next to it.</p>
+    source</a> beside it. The linter&rsquo;s messages name the rule and the line
+    number, so you can read them with your source open.</p>
    </div>
   </div>
  </div>
