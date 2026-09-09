@@ -20,17 +20,23 @@
 
   <h1>Getting started</h1>
 
-  <p class="lede">Two ways in, and they end in the same place: both run the same
-  <code>build.js</code> and write the same four views beside your
-  <code>source.md</code> &ndash; a projection for the room, a cockpit for the
-  lecturer, and two handouts to print.</p>
 
-  <!-- Half-empty row, answer 1. A hero of a heading and one paragraph leaves
-       two thirds of the first screen empty, which is the fault this page is
-       written against at the worst possible place. The two ways are two things
-       of the same kind, so they go in one row and double as the chooser the
-       page opens with. -->
-  <div class="pair-up">
+  <!-- Half-empty row, answer 1, and finding 7. A heading and one paragraph
+       leave two thirds of the first screen empty, which is the fault this
+       page is written against at the worst possible place. It used to be a
+       two-column row under a lede that took half the width and left the other
+       half blank, so the entrance read as three short things floating in a
+       screen of ground.
+       The lede is the first of three columns now: it says there are two ways,
+       and the two ways stand beside it. One row, three tracks, no empty
+       half, and the block that opens the page is one object. -->
+  <div class="pair-up trio hero-ways">
+   <div>
+    <p class="lede">Two ways in, and they end in the same place: both run the same
+    <code>build.js</code> and write the same four views beside your
+    <code>source.md</code> &ndash; a projection for the room, a cockpit for the
+    lecturer, and two handouts to print.</p>
+   </div>
    <div>
     <p><strong><a href="#app">The app</a></strong> is a window you download and
     open a <code>source.md</code> in. It builds the lecture, and rebuilds it
@@ -49,11 +55,21 @@
 
 <section class="band">
  <div class="wrap">
-  <!-- Half-empty row, answer 1: the section's own words go in the narrow
-       column and the only picture on the page takes the wide one. The words
-       are written to four lines, not poured in, so the space under them is
-       margin rather than a column that ran out. -->
-  <div class="beside">
+  <!-- Half-empty row, answer 1, and findings 5 and 8.
+       It was the section's words in the narrow column and the picture in the
+       wide one, with the download table under both at the frame's full width:
+       three columns over 1310px, so the eye ran the width of the page from
+       the system to whether that package has ever been started.
+       The row is the other way round now. The words AND the table take the
+       wide column - the table lands at about 780px, which is where its three
+       columns stop reading as one line with a hole in the middle - and the
+       picture takes the narrow one. That is the smallest thing that shows
+       what this picture has to show: a window with six controls in it that
+       the text beside it names, so it stands as evidence rather than as
+       something to read. The space left under it is against the frame's right
+       edge, where whitespace reads as margin; under the words it would be the
+       edge that reading follows. -->
+  <div class="beside words-wide">
    <div class="said">
     <h2 id="app">The app</h2>
     <p class="lede">Open a lecture&rsquo;s <code>source.md</code>, or drop it on
@@ -62,6 +78,45 @@
     <p class="cue">One line says whether the last build worked, and four
     buttons let you open the four views it wrote. There is no project to set up
     either, and no settings to fill in before the first build.</p>
+    <h3>Download it</h3>
+    <p>Take the package for your system from the table below. Until 2.0.0 the app
+    is published separately from psi-slides itself, under a tag of its own,
+    <code>builder-0.1.0</code>, and marked on GitHub as a
+    <strong>pre-release</strong>: not the current version of anything, a package
+    offered early.</p>
+
+    <!-- The table stands in the wide column of the row above rather than
+         under it. Five files across three systems is a list to look things up
+         in, not prose, so it takes its column's whole width - and that column
+         is about 780px, not the frame's 1310. `.scroller` is what lets it: a
+         bare table is display:block here so it can scroll on a phone, and a
+         block table shrinks to its rows. -->
+    <div class="scroller">
+    <table>
+     <thead>
+      <tr><th>System</th><th>Package</th><th>State</th></tr>
+     </thead>
+     <tbody>
+      <tr>
+       <td>macOS, Apple&nbsp;Silicon</td>
+       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.dmg"><code>psi-slides-builder-mac-arm64.dmg</code></a><br>
+         <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.zip"><code>psi-slides-builder-mac-arm64.zip</code></a></td>
+       <td>Tried on a real Mac.</td>
+      </tr>
+      <tr>
+       <td>Windows, 64-bit</td>
+       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-win-x64.exe"><code>psi-slides-builder-win-x64.exe</code></a></td>
+       <td><strong>Experimental.</strong> Built by CI, never started.</td>
+      </tr>
+      <tr>
+       <td>Linux, 64-bit</td>
+       <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-x86_64.AppImage"><code>psi-slides-builder-linux-x86_64.AppImage</code></a><br>
+         <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-amd64.deb"><code>psi-slides-builder-linux-amd64.deb</code></a></td>
+       <td><strong>Experimental.</strong> Built by CI, never started.</td>
+      </tr>
+     </tbody>
+    </table>
+    </div>
    </div>
    <div class="stage">
     <figure class="shot">
@@ -71,43 +126,6 @@
    </div>
   </div>
 
-  <h3>Download it</h3>
-  <p>Take the package for your system from the table below. Until 2.0.0 the app
-  is published separately from psi-slides itself, under a tag of its own,
-  <code>builder-0.1.0</code>, and marked on GitHub as a
-  <strong>pre-release</strong>: not the current version of anything, a package
-  offered early.</p>
-
-  <!-- Half-empty row, answer 2: the table takes the frame width itself. Five
-       files across three systems is a list to look things up in, not prose.
-       `.scroller` is what lets it: a bare table is display:block here so it can
-       scroll on a phone, and a block table shrinks to its rows. -->
-  <div class="scroller">
-  <table>
-   <thead>
-    <tr><th>System</th><th>Package</th><th>State</th></tr>
-   </thead>
-   <tbody>
-    <tr>
-     <td>macOS, Apple&nbsp;Silicon</td>
-     <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.dmg"><code>psi-slides-builder-mac-arm64.dmg</code></a><br>
-       <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.zip"><code>psi-slides-builder-mac-arm64.zip</code></a></td>
-     <td>Tried on a real Mac.</td>
-    </tr>
-    <tr>
-     <td>Windows, 64-bit</td>
-     <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-win-x64.exe"><code>psi-slides-builder-win-x64.exe</code></a></td>
-     <td><strong>Experimental.</strong> Built by CI, never started.</td>
-    </tr>
-    <tr>
-     <td>Linux, 64-bit</td>
-     <td><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-x86_64.AppImage"><code>psi-slides-builder-linux-x86_64.AppImage</code></a><br>
-       <a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-amd64.deb"><code>psi-slides-builder-linux-amd64.deb</code></a></td>
-     <td><strong>Experimental.</strong> Built by CI, never started.</td>
-    </tr>
-   </tbody>
-  </table>
-  </div>
 
   <h3>The first start</h3>
   <!-- Half-empty row, answer 1: two warnings of the same kind, side by side.

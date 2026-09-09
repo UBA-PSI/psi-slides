@@ -121,6 +121,22 @@
      left edge, so the eye had to find the column again at every section. */
   --page: 108rem;
   --measure: 38rem;
+  /* The measure a paragraph takes when it is NOT the page's own column: a half
+     of a `.pair-up`, a card, the body of a disclosure. Those run to whatever
+     width their container has, and the container is sized by the row rather
+     than by reading - so a half of the frame gave 75 to 78 characters a line
+     and the body of a disclosure 114, against the 64 to 69 the page's own
+     column gives at --measure. Set from the same place as --measure and a
+     little under it, because most of the text that takes it is --fs-note and
+     a smaller face fits more characters into the same length: 34rem is 65
+     characters at the prose size and 68 at the note size, which brackets what
+     --measure already does for the page.
+     Why not simply narrow the columns: the frame grows to 1584px at 1920, so
+     a share of it grows with the viewport and no gap can hold the line length
+     down. The container keeps the frame - it is the row - and the paragraph
+     inside it stops where reading stops, which is what --measure does one
+     level up. */
+  --measure-col: 34rem;
   --gutter: clamp(1.25rem, 4.5vw, 4.5rem);
 
   --sans: 'IBM Plex Sans Var', 'IBM Plex Sans', system-ui, -apple-system, sans-serif;
@@ -418,7 +434,35 @@ p { margin: 0 0 1.1rem; }
  */
 .second-picture { margin-top: clamp(2.4rem, 5vw, 5.5rem); }
 
+/*
+ * The same seam, downwards, and the rule that was missing.
+ *
+ * DESIGN.md argues the air AROUND a picture only upwards - a stage needs more
+ * distance from the paragraph above it than two paragraphs need from each
+ * other. Under a stage there was nothing, so a row of prose that followed a
+ * `.beside` or a frame sequence began 1.4rem under the picture: it read as
+ * the picture's caption, and on `in-the-room.html` it read as the narrow
+ * column starting again after a hole, because that is where its first track
+ * happens to stand. Three text blocks glued to the underside of a screenshot
+ * was the complaint; this is the space they were missing.
+ *
+ * It is the seam magnitude and not the section gap: what follows still
+ * belongs to the same section, and the section gap would read as a new one.
+ */
+.beside + .pair-up,
+.beside + .aside-code,
+.beside + .beside,
+.ways + .pair-up,
+.way-tabs + .ways + .pair-up,
+.stage + .pair-up { margin-top: clamp(2.4rem, 5vw, 5.5rem); }
+
 .beside { display: grid; gap: clamp(1.4rem, 2.5vw, 3rem); align-items: start; }
+/* A grid item is min-content wide by default, and since the download table
+   moved into the words column of `.words-wide` the widest thing in one is a
+   three-column table. Without this the table pushed the column, the column
+   pushed the page, and a phone got a horizontal scrollbar on the whole
+   document rather than on the table - the same fault `.setup` records. */
+.beside > * { min-width: 0; }
 .beside > .said > :first-child { margin-top: 0; }
 .beside > .said > :last-child { margin-bottom: 0; }
 .beside .lede { margin-bottom: 0; }
@@ -437,15 +481,37 @@ p { margin: 0 0 1.1rem; }
 .beside .said h2 { font-size: clamp(1.7rem, 2.4vw, 2.15rem); max-width: none; }
 /* The one lede that is not an entrance but the section's whole text: beside a
    stage there is no paragraph after it, so it is read as prose and is set at
-   the prose size rather than a step under it. */
+   the prose size rather than a step under it. Uncapped, because the column it
+   stands in is 24rem and already narrower than the measure - except in
+   `.words-wide`, where that column is the wide one and the cap has to come
+   back or the sentence runs to 93 characters. */
 .beside .said .lede { font-size: var(--fs-body); max-width: none; }
-/* Mirrored: the stage on the left, the words on the right. Used once, where
-   the picture is a tall document and the words are short - the page would
-   otherwise put every picture on the same side and read as a template. */
+.beside.words-wide .said .lede { max-width: var(--measure); }
+/* Mirrored: the stage on the left, the words on the right. The page would
+   otherwise put every picture on the same side and read as a template - and
+   it is also the answer to a row whose picture cannot be made shorter. Where
+   the words are four lines and the picture is six hundred pixels tall, three
+   hundred of them are left over whichever way the row goes; against the
+   frame's right edge that reads as margin, against the left edge it is the
+   edge reading follows, and whatever stands in the next row starts inside a
+   hole. `in-the-room.html` uses it for exactly that reason under "Two
+   windows", where a row of three annotations follows the picture. */
 @media (min-width: 68rem) {
   .beside-flip { grid-template-columns: minmax(0, 1fr) minmax(0, 24rem); }
   .beside-flip > .said { order: 2; }
 }
+/* The other proportion: the words are the wide column and the picture the
+   narrow one. Used where the column carries more than a heading and four
+   lines - on `getting-started.html` it carries the download table too - and
+   where the picture is evidence rather than something to read. The picture
+   then does not need to be the taller of the two, because the words are what
+   the row is about; what is left under it stands at the frame's right edge. */
+@media (min-width: 68rem) {
+  .beside.words-wide { grid-template-columns: minmax(0, 1fr) minmax(0, 30rem); }
+}
+/* A table in that column is a list to look up in, so it takes the column
+   whole rather than the measure the prose above it keeps. */
+.beside.words-wide .said .scroller { max-width: none; }
 
 /*
  * ── Screenshots ───────────────────────────────────────────────────────────
@@ -518,7 +584,12 @@ figure.shot figcaption {
   line-height: 1.5;
   color: var(--ink-soft);
   padding: 0.6rem 0 0;
-  max-width: var(--measure);
+  /* --measure-col, not --measure. The page's own measure is set for the page's
+     own size: a caption is --fs-note, and at 90 % of the prose the same 608px
+     is 80 characters a line rather than 69. DESIGN.md's one right edge is an
+     edge for the page's column, and by its own definition this text is not
+     that column - it belongs to the picture. */
+  max-width: var(--measure-col);
 }
 figure.shot figcaption strong { color: var(--ink); font-weight: 620; }
 /* A drawing, not a screen: no window bar, because there is no window. */
@@ -708,7 +779,10 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
 .pair-up { display: grid; gap: 1.4rem 3rem; align-items: start; }
 .pair-up > * { min-width: 0; }
 .pair-up > * > :first-child { margin-top: 0; }
-.pair-up p, .pair-up li { max-width: none; }
+/* A half of this row is read, not looked at, so it takes a measure of its own
+   rather than the width of the track it stands in. Uncapped it ran to 75-78
+   characters a line at 1440 and further at 1920; see --measure-col. */
+.pair-up p, .pair-up li { max-width: var(--measure-col); }
 .pair-up pre { max-width: none; }
 @media (min-width: 64rem) { .pair-up { grid-template-columns: 1fr 1fr; } }
 /* Three of the same kind rather than two. The cockpit page keeps running into
@@ -719,6 +793,14 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
    modifier rather than an auto-fit minmax, because auto-fit decides the count
    from the width and would silently make a set of four into two rows of two. */
 @media (min-width: 64rem) { .pair-up.trio { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+/* The variant that opens `getting-started.html`: the lede is the first of the
+   three columns rather than a paragraph over them. It keeps its own size, so
+   the row reads as one sentence and the two answers to it, and the column it
+   takes is the half of the screen that was empty under it before. The three
+   are of one height only because the lede is longer than either answer, which
+   is what makes them a row at all. */
+.hero-ways .lede { max-width: none; margin: 0; }
+.hero-ways > * > :first-child { margin-top: 0; }
 
 /* A card: the shot's white on the page's grey, the way a screenshot is. */
 .hint {
@@ -730,8 +812,15 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
   margin: 2rem 0 0;
   max-width: 42rem;
 }
-.hint p { margin: 0 0 0.7rem; max-width: none; }
+.hint p { margin: 0 0 0.7rem; max-width: var(--measure-col); }
 .hint > :last-child { margin-bottom: 0; }
+/* The box's floor has to be the box's padding and nothing else. `.hint > *`
+   only reaches the row inside the wide variant, so the last paragraph of each
+   half kept its own margin under it - and the one that follows a listing kept
+   `pre + p.tiny`'s 2.4rem, which put twice as much air under the box as over
+   it. Measured, not guessed: 17.6px over the first line and 60px under the
+   last. */
+.hint .pair-up > * > :last-child { margin-bottom: 0; }
 /* The wide variant, used once, on getting-started.html: the box that says what
    the tagged release does not carry, with the clone that fixes it beside the
    sentence rather than under it. At 42rem those two halves are a paragraph and
@@ -740,7 +829,7 @@ figure.shot .bar, figure.shot .swap button { font-variant-ligatures: none; }
    measure, so this has to out-specify that rather than only raise `.hint`. */
 .wrap > .hint.wide { max-width: none; }
 
-p.tiny { font-size: var(--fs-note); color: var(--ink-soft); max-width: var(--measure); }
+p.tiny { font-size: var(--fs-note); color: var(--ink-soft); max-width: var(--measure-col); }
 /* A line that explains the block above it is a caption, so it sits close to
    what it captions and keeps its distance from what follows. */
 pre + p.tiny { margin: -0.9rem 0 2.4rem; }
@@ -1114,7 +1203,15 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
 .setup-body p { max-width: none; }
 /* The line that opens a disclosure is an introduction to what is inside it,
    not page prose: at the page size it outweighed the entries it introduces. */
-.setup-body > p:first-child { font-size: var(--fs-note); color: var(--ink-soft); }
+.setup-body > p:first-child {
+  font-size: var(--fs-note);
+  color: var(--ink-soft);
+  /* And a measure. This line is note-sized across the whole panel, which on
+     the front page and the decoration page is 858px: 114 characters a line,
+     the longest measure on the site by half again. The panel is a catalogue
+     and keeps its width; the sentence that introduces it is read. */
+  max-width: var(--measure-col);
+}
 /* The listings in here keep the tighter padding and drop the size override they
    had: 0.88rem against the page's 0.86rem was two hundredths of a rem that no
    reader could see and a fifth number in the scale. */
@@ -1128,6 +1225,9 @@ figure.shot.tile figcaption code + code { display: inline; margin: 0; }
    still run its full width and only the paragraphs stop at the measure, so the
    slack beside a step is the box's own air rather than a hole. */
 .setup.steps .setup-body p { max-width: var(--measure); }
+/* …except the ones that are note-sized. `p.tiny` at the page's measure is 80
+   characters a line, and this rule out-specifies `p.tiny`'s own cap. */
+.setup.steps .setup-body p.tiny { max-width: var(--measure-col); }
 
 /*
  * Tokens for the Markdown sample on the landing page. Marked up by hand in
@@ -1258,7 +1358,10 @@ body.lightbox-open { overflow: hidden; }
  * above the stage - close enough to belong to it, in the softer ink so it
  * does not compete with the section's own lede.
  */
-.cue { font-size: var(--fs-note); color: var(--ink-soft); margin: 0 0 0.8rem; max-width: var(--measure); }
+/* The same measure as a caption, and for the same reason: this line belongs
+   to the picture under it, not to the page's column, and at --fs-note the
+   page's measure is 81 to 84 characters a line. */
+.cue { font-size: var(--fs-note); color: var(--ink-soft); margin: 0 0 0.8rem; max-width: var(--measure-col); }
 .cue strong { color: var(--ink); font-weight: 600; }
 .beside .cue { margin-top: 1rem; }
 
@@ -1315,6 +1418,52 @@ body.lightbox-open { overflow: hidden; }
   .aside-code.words-first > .said { order: 0; }
 }
 
+/*
+ * ── Where the thing beside a headed column starts ─────────────────────────
+ *
+ * A listing or a picture set beside a column that opens with a sub-heading
+ * used to start level with the sub-heading, because `align-items: start`
+ * puts both tracks at the top of the row. That reads as two headings of
+ * different kinds on one line: the eye takes the top edge of the listing for
+ * a heading rule and then finds prose under it on one side and code on the
+ * other. The listing answers the paragraphs, not the label over them, so it
+ * starts where they start.
+ *
+ * Done as a shared grid rather than as a margin, because the sub-heading is
+ * one line in English and two in German at the same column width, and a
+ * margin in rems is right in one language and wrong in the other. `.said`
+ * goes `display: contents`, so its children become items of the row's own
+ * grid: the heading is row 1, everything after it lands in the rows below,
+ * and the listing spans from row 2 down. `row-gap: 0` because the drop IS
+ * the heading's own line box plus its margin - a gap on top of that would be
+ * a number nobody measured.
+ *
+ * Only where the column OPENS with the heading, and only where the columns
+ * exist. An `.aside-code` whose `.said` is two cues and a picture
+ * (index.html) has nothing to align to and keeps the row it had - and a
+ * `.said` that carries a further sub-heading further down (the download
+ * table's on `getting-started.html`) must not have that one hoisted into
+ * row 1, which is what `:first-child` is doing here.
+ */
+@media (min-width: 68rem) {
+  .aside-code:has(> .said > :is(h2, h3):first-child),
+  .beside:has(> .said > h3:first-child) { row-gap: 0; }
+  .aside-code:has(> .said > :is(h2, h3):first-child) > .said,
+  .beside:has(> .said > h3:first-child) > .said { display: contents; }
+  .aside-code:has(> .said > :is(h2, h3):first-child) > .said > :is(h2, h3),
+  .beside:has(> .said > h3:first-child) > .said > h3 { grid-row: 1; }
+
+  /* words on the left, the answer on the right */
+  .aside-code.words-first:has(> .said > :is(h2, h3):first-child) > .said > *,
+  .beside:has(> .said > h3:first-child) > .said > * { grid-column: 1; }
+  .aside-code.words-first:has(> .said > :is(h2, h3):first-child) > pre,
+  .beside:has(> .said > h3:first-child) > :not(.said) { grid-column: 2; grid-row: 2 / span 99; }
+
+  /* and the mirror, where the listing comes first in the file */
+  .aside-code:not(.words-first):has(> .said > :is(h2, h3):first-child) > .said > * { grid-column: 2; }
+  .aside-code:not(.words-first):has(> .said > :is(h2, h3):first-child) > pre { grid-column: 1; grid-row: 2 / span 99; }
+}
+
 /* Deliberately narrow, evenly spaced. The closing section is four links and
    a byline; there is nothing to put beside them and stretching them across
    the frame would be worse than the gap. */
@@ -1326,7 +1475,7 @@ body.lightbox-open { overflow: hidden; }
    as the listings had. */
 .reads { display: grid; gap: 1.6rem 2.4rem; list-style: none; margin: 2rem 0 0; padding: 0; }
 @media (min-width: 52rem) { .reads { grid-template-columns: 1fr 1fr; } }
-.reads li { max-width: none; font-size: var(--fs-note); color: var(--ink-soft); }
+.reads li { max-width: var(--measure-col); font-size: var(--fs-note); color: var(--ink-soft); }
 .reads b { display: block; font-size: var(--fs-body); font-weight: 600; margin-bottom: 0.15rem; }
 .reads b a { text-decoration: none; }
 .reads b a:hover { text-decoration: underline; }
@@ -1362,7 +1511,7 @@ footer p { max-width: none; }
   color: var(--ink-soft);
   margin: 0 0 0.7rem;
 }
-.pick p { max-width: none; font-size: var(--fs-note); margin: 0 0 1rem; }
+.pick p { max-width: var(--measure-col); font-size: var(--fs-note); margin: 0 0 1rem; }
 .pick .opens { display: flex; flex-wrap: wrap; gap: 0.45rem; margin: 0; }
 .pick .opens a {
   font-size: var(--fs-note);
@@ -1435,19 +1584,36 @@ footer p { max-width: none; }
 
 /*
  * The same chooser carrying four frames of one window instead of three
- * arguments - "In the room", the cue-card mode. One column rather than two:
- * what a reader compares here is the picture, and a 24rem text column beside
- * it would leave the frame at the width the single still already had, which
- * is the reason the still was replaced. So the stage takes the frame and the
- * sentence stands above it, which is where a cue belongs anyway.
+ * arguments - "In the room", the cue-card mode.
+ *
+ * It took the whole frame once, on the argument that a reader compares the
+ * pictures here and a text column beside them would give the frame back the
+ * width the single still had. That was measured wrong: the strip ran 1247px
+ * at a 16:10 crop, which is 779px tall, and a picture that tall pushes
+ * everything that explains it off the screen - a reader steps the four
+ * frames with nothing else in view and loses where in the page they are.
+ * In the narrow-plus-wide row the picture is 827px and 517 tall, the words
+ * that introduce it stay beside it, and the whole section is one screen.
+ *
+ * `.frames-col` exists because site.js inserts the tab row as a sibling
+ * BEFORE `.ways`. Without a column of its own that row would become a third
+ * track of the `.beside` and the tabs would stand under the words instead of
+ * over the picture, which is the arrangement this was written against: a
+ * control belongs against the thing it operates.
  *
  * The label is a paragraph and not a heading, unlike the three ways: this
  * page's headings are the anchors its two languages are linked by and the
  * twin gate counts them, so four frame labels must not become four h3.
  */
+.frames-col { min-width: 0; }
 .ways-frames .way { grid-template-columns: minmax(0, 1fr); gap: 0; }
 .ways-frames .way-label { margin-bottom: 0.35rem; }
 .ways-frames .stage { margin-bottom: 0; }
+/* The frame's own sentence now stands under its picture, so it needs the
+   distance a caption keeps rather than the one a cue keeps, and the measure
+   of a column rather than of the page: it sits in the wide track, which is
+   sized by the picture. */
+.ways-frames .way > .cue { margin: 0.7rem 0 0; max-width: var(--measure-col); }
 /* Without scripting the four stand under each other, so they need the air
    between two stages rather than the gap inside one option. */
 .ways-frames:not(.is-switched) { gap: 2.6rem; }
