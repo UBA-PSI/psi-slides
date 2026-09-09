@@ -115,11 +115,12 @@
   <div class="pair-up">
    <div>
     <p><strong>Windows and Linux are experimental.</strong> Those two packages
-    come off the build machine and have never been started on a real one. They
-    may well work; nobody has watched them do it. If you try one, whether it
+    come off the build machine and have not been started on a real one. They
+    may well work; that is untested. If you try one, whether it
     runs or falls over is worth an
     <a href="https://github.com/UBA-PSI/psi-slides/issues">issue</a> either
-    way. The macOS package has been used on a real Mac.</p>
+    way. The macOS package has been used on a real Mac, which is the whole
+    difference between the three rows of the table above.</p>
    </div>
    <div>
     <p><strong>The packages are not signed</strong>, apart from the macOS one,
@@ -156,7 +157,7 @@
     <p>Nor are the two ways two tools: the app runs the same
     <code>build.js</code> on the same <code>source.md</code> and produces the
     same four views. <strong>Nothing leaves the computer.</strong> No account,
-    no telemetry, no update check, no network access of any kind.</p>
+    no telemetry, no update check, no network access.</p>
    </div>
   </div>
  </div>
@@ -167,7 +168,7 @@
   <h2 id="command-line">The command line</h2>
   <p class="lede">The same build the app runs, typed out: for a machine that
   already has a terminal on
-  it &ndash; and the only way to run psi-slides in CI. It needs <strong>Node 20 or
+  it &ndash; and what a CI job runs. It needs <strong>Node 20 or
   newer</strong>, which is what runs <code>build.js</code>, and nothing else:
   no LaTeX, no Pandoc, no server, nothing installed system-wide.</p>
 
@@ -223,8 +224,8 @@
   <div class="beside second-picture">
    <div class="said">
     <h3>From a machine with nothing on it</h3>
-    <p class="cue">The steps take a Windows or macOS machine with nothing
-    installed on it to a built copy of the tutorial. Work down them in order:
+    <p class="cue">The steps go from that machine to a built copy of the
+    tutorial. Work down them in order:
     running <code>npm install</code> before the <code>cd</code> installs into whatever folder you were already in.</p>
     <p class="cue">The app above needs none of this.</p>
    </div>
@@ -281,7 +282,7 @@
       typefaces psi-slides embeds into every lecture and the handful of packages
       the build uses. All of it lands in a <code>node_modules</code> folder beside
       <code>build.js</code>: nothing is installed system-wide, and the lectures
-      you build fetch nothing when they are opened.</p>
+      you build open without it.</p>
 
       <h3>Build the tutorial</h3>
 <pre><code>node build.js lectures/tutorial/source.md</code></pre>

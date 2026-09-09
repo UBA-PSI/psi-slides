@@ -22,7 +22,7 @@ describes it.
 
 ## principle: None of this is in the 1.0.0 release {.standard #preview}
 
-**Everything this lecture shows was added after the 1.0.0 release**, so the
+**What this lecture shows was added after the 1.0.0 release**, so the
 archive on the releases page does not have it and a lecture that uses it will
 not build against that download.
 
@@ -643,14 +643,14 @@ first does not move: the block is laid out with both rows from beat 0.
 ## free: `{.bare}` gives up the projection and nothing else {.wide #bare-why}
 
 **`{.bare}` keeps a heading out of the projection** and leaves it everywhere
-else. Writing no heading at all would cost the slide, the printed document and
+else. Writing no heading would cost the slide, the printed document and
 the search index together; a talk that is a run of figures with speaker notes
 usually wants to lose only the first.
 
 So `## figure: How a crawl is scored {.full #id .bare}` prints the heading,
 indexes it, and draws nothing on screen. `style: {headings: off}` says the same
 for a whole deck. Press `/` and search for *measurement loop*: it matches this
-slide and the next one, and the next one carries no heading on screen at all.
+slide and the next one, and the next one carries no heading on screen.
 
 The two revealed photographs in Part 4 are the case the class was written for:
 each is a picture and a speaker note, each would have read wrong with a line of
@@ -698,5 +698,5 @@ step note
 
 ## closing: A slide is a frame | and the frame can carry more than a column of text {#end}
 
-None of these constructions changes a lecture that does not use them. A
-`source.md` written before any of them builds exactly as it did before.
+A `source.md` written before any of these constructions builds exactly as it
+did before.

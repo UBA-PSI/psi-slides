@@ -109,7 +109,7 @@ Each of the four files carries everything it needs inside itself – the picture
 - `S` opens `speaker.html` as a second window, the speaker view. Once both are open, they mirror each other as you move.
 - `?` shows the full keyboard and mouse reference. Everything below is in there too.
 
-**The one file that produced all four** is `lectures/tutorial/source.md`. Every slide in every view came out of it. Open it in a text editor beside this window and read the two together.
+**The one file that produced all four** is `lectures/tutorial/source.md`. Open it in a text editor beside this window and read the two together.
 
 :::
 
@@ -237,7 +237,7 @@ Search is what you want when you remember a topic but not which slide it is on. 
 
 **The projection opens in the short version**, because that is the one the audience reads. The long one is for rehearsing, for looking something up mid-talk, and for whoever reads the lecture afterwards.
 
-**The cut only ever shortens prose: a list, a figure, a code block or a formula goes up whole in both versions.** Only the sentences of a paragraph get shortened.
+**The cut shortens prose only: a list, a figure, a code block or a formula goes up whole in both versions.**
 
 **Which of those sentences survive is decided per chunk, and you choose how.** Either psi-slides works it out from your prose, or you mark the slide yourself. The next three chunks show both.
 
@@ -346,7 +346,7 @@ Counted against the on-screen half only, so narration inside a `::: script` bloc
 
 ## principle: The audience and the speaker need different screens | one file, two windows {.standard #two-screens}
 
-**Everything that helps you through a talk – the notes, the clock, the slide that comes next – is exactly what the audience must not be shown.** Putting any of it on the projection spoils the slide, and leaving it out means presenting from memory.
+**What helps you through a talk – the notes, the clock, the slide that comes next – is exactly what the audience must not be shown.** Putting any of it on the projection spoils the slide, and leaving it out means presenting from memory.
 
 **So the lecture opens twice, out of the same file.** One window is the projection and the other is your lectern screen, and the two keep each other in step with no server between them.
 
@@ -380,7 +380,7 @@ Counted against the on-screen half only, so narration inside a `::: script` bloc
 
 :::
 
-The notes pane sizes itself: up to three lines of text, one line once you have emptied it, and folded away entirely on a chunk that has no notes at all. Once you drag it, the height stays where you put it and is remembered across lectures and reloads. The slide above gives up exactly the space the notes take, so the copy of the projection keeps the projector's proportions instead of stretching.
+The notes pane sizes itself: up to three lines of text, one line once you have emptied it, and folded away entirely on a chunk that has no notes. Once you drag it, the height stays where you put it and is remembered across lectures and reloads. The slide above gives up exactly the space the notes take, so the copy of the projection keeps the projector's proportions instead of stretching.
 
 Put the thumbnails down the right-hand side if the screen has width to spare: they get larger and their text becomes readable, so you can read ahead in the strip instead of only reading your position off it. The strip's height and its width are remembered separately.
 
@@ -451,7 +451,7 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 
 **The two `C` modes keep separate zoom levels.** The short version holds whatever size you set with `+` and `-`; the full text picks its own so the whole chunk fits the screen, and switching back restores yours exactly.
 
-**`#` cycles auto-fit through three modes, and the middle one, *shrink*, leaves your zoom where you set it and only ever makes a slide that is too big fit.** So the audience reads one size all hour, except on the slides that would otherwise run off the bottom. *Full* sizes every slide to the screen, growing a short chunk as readily as shrinking a long one, which suits a lecture whose chunks vary a lot. *Off* is neither.
+**`#` cycles auto-fit through three modes, and the middle one, *shrink*, leaves your zoom where you set it and only makes a slide that is too big fit.** So the audience reads one size all hour, except on the slides that would otherwise run off the bottom. *Full* sizes every slide to the screen, growing a short chunk as readily as shrinking a long one, which suits a lecture whose chunks vary a lot. *Off* is neither.
 
 **While the audience sees black, the speaker window keeps everything.** The slide, the notes and the thumbnails stay where they were, so you can move on or read ahead with nothing showing. A small `BLANK · hit B to toggle` marker sits at the bottom of the speaker window, or at the bottom of the projection when there is no speaker window. `D` has the same shape: pressed in the speaker window, it opens the browser's picker there, and the window or screen you choose fills the projection while a `DEMO · hit D to end it` marker sits where the blank marker would. That is what a live demo on an extended desktop needs – the demo stays on the laptop, where the pointer is, and nothing has to be mirrored.
 
@@ -489,7 +489,7 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 
 ::: flip
 
-**Right pane.** A figure usually goes here with the text on the left. On the projection, click either pane to open it large; `print.html` and `print-notes.html` stack the two panes one above the other, so neither is ever lost.
+**Right pane.** A figure usually goes here with the text on the left. On the projection, click either pane to open it large; `print.html` and `print-notes.html` stack the two panes one above the other, so neither is lost.
 
 :::
 
@@ -581,7 +581,7 @@ The line under it becomes the caption. A `youtu.be/…` or a bare `vimeo.com/123
 
 **The address is always printed under the player**, with a QR code on `Shift`-click, so people can reach the video even when the player will not run. YouTube is asked for through `youtube-nocookie.com`, and Vimeo is asked not to track.
 
-**A lecture with a hosted player no longer contains everything it needs: the machine showing it – often the lecture hall's own PC – contacts that company while you teach.** A clip in `assets/`, or an `.mp4` address on a server you control, keeps the two windows in step and needs no other server. The build tells you which of the two you have chosen, every time.
+**A lecture with a hosted player no longer contains everything it needs: the machine showing it – often the lecture hall's own PC – contacts that company while you teach.** A clip in `assets/`, or an `.mp4` address on a server you control, keeps the two windows in step and needs no other server. The build tells you which of the two you have chosen.
 
 ## example: More on hosted players | what the directive does that an embed code would not {.wide #embed-more}
 
@@ -668,7 +668,7 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 # Next steps {#next}
 
-## principle: Start from a talk you have already given | the text already exists, so all that is left is cutting it into chunks {.standard #start-writing}
+## principle: Start from a talk you have already given | the text already exists, so the work left is cutting it into chunks {.standard #start-writing}
 
 **The first lecture takes the most effort, because you are still learning the vocabulary, so start with a talk you have already given.** Its text already exists. Most of the remaining work is deciding where one chunk ends and the next begins, and the vocabulary you have just read is all you need for that.
 
@@ -728,7 +728,7 @@ lang: de                # the language the lecture is written in:
 
 **`lang:` picks the hyphenation dictionary, and by default only the two printed views use it: a long German compound breaks at the end of a line there instead of leaving a hole, while the projection and the lectern view do not hyphenate.** `style: {hyphenate: all}` puts it into the projection too, which a German lecture at `.narrow` usually wants, and `none` takes it out everywhere. It is not one of the six above in the other sense either – the six are opening settings that override whatever the reader last chose, and the language is a property of the lecture.
 
-**A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.** So a lecture that sets nothing behaves as it always did – font, theme and slide numbers follow the reader from lecture to lecture.
+**A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.** So a lecture that sets nothing behaves as before – font, theme and slide numbers follow the reader from lecture to lecture.
 
 `slide-numbers` applies to `print.html` and `print-notes.html` too, and `print-slide-numbers:` overrides it there when the printed document wants different numbering from the projection. A value the tool does not know stops the build and lists the ones it does.
 
@@ -769,7 +769,7 @@ edge src -> mix "encrypted"
 edge mix -> dst "recoded"
 ```
 
-**The first element sits at the origin, so a simple figure needs no coordinates at all.** Everything after it is placed against a neighbour – `right of`, `left of`, `above`, `below` – and `gap` says how far. There is no automatic layout: an element goes where its neighbour and its `gap` put it.
+**The first element sits at the origin, so a simple figure needs no coordinates.** Everything after it is placed against a neighbour – `right of`, `left of`, `above`, `below` – and `gap` says how far. There is no automatic layout: an element goes where its neighbour and its `gap` put it.
 
 ## example: A figure that arrives in pieces | a `step` block advances on the same key as a reveal {.full #diagram-beats}
 
@@ -820,7 +820,7 @@ step blame
 
 ## example: Every line has the same six slots | `kind name label placement options tail` {.full .blocks-left #diagram-slots}
 
-**Every line in a `::: draw` block has the same six slots, always in this order**, and most lines fill three or four of them:
+**Every line in a `::: draw` block has the same six slots, in this order**, and most lines fill three or four of them:
 
 ```text
 box   mix   "Mix"   right of src gap 0.6   w 1.2    {.tone-2 @crypto}
@@ -869,7 +869,7 @@ A tag goes wherever a name goes, so `show @crypto` in a step selects every eleme
 
 ## example: Classes | thirteen groups, and one question each {.full #diagram-classes}
 
-**Only one member of a group is ever in force.** The names come from a fixed list, and `{.tone-1}` on a box therefore *replaces* a `default box {.tone-4}` rather than piling on top of it, which is what makes the groups worth knowing.
+**Only one member of a group is in force.** The names come from a fixed list, and `{.tone-1}` on a box therefore *replaces* a `default box {.tone-4}` rather than piling on top of it, which is what makes the groups worth knowing.
 
 ::: draw 112x82
 default box {.sharp} w 0.62 h 0.42 pad 0.12
@@ -947,7 +947,7 @@ align x right fl, ol, sl, tw, gl
 **Forty-one names in all, and `lint.js` refuses anything else**, so a typo stops the build rather than leaving a box unstyled.
 
 
-Only three class names belong to no group and can be combined with anything: `.bold` for a heavier label, `.turn` for a label read bottom-to-top up the side of something tall and narrow, and `.front` for a line drawn over the boxes rather than under them. Three groups have no row on the sheet. Two of them belong to edges – how a line is drawn (`.smooth` bends your waypoints into a curve running through them, `.elbow` works out a right-angled route with its turn halfway across the gap and needs no waypoints at all) and which end carries an arrowhead, which you normally say with the arrow itself (`->`, `<-`, `<->`, `--`) and only ever write as a class inside a `step`. The third is how much of the audience's attention an element asks for: `.emph`, `.dim` and `.ghost`. **Those three names are also the three verbs a step uses for the same thing.** Two members of one group on one element is an error, and `{!dim}` is how a class comes back off; there is no fourth name for ordinary prominence, the absence of all three being what that is. `.paper` fills a label with the page colour, knocking a hole in a line running behind it.
+Only three class names belong to no group and can be combined with anything: `.bold` for a heavier label, `.turn` for a label read bottom-to-top up the side of something tall and narrow, and `.front` for a line drawn over the boxes rather than under them. Three groups have no row on the sheet. Two of them belong to edges – how a line is drawn (`.smooth` bends your waypoints into a curve running through them, `.elbow` works out a right-angled route with its turn halfway across the gap and needs no waypoints at all) and which end carries an arrowhead, which you normally say with the arrow itself (`->`, `<-`, `<->`, `--`) and write as a class only inside a `step`. The third is how much of the audience's attention an element asks for: `.emph`, `.dim` and `.ghost`. **Those three names are also the three verbs a step uses for the same thing.** Two members of one group on one element is an error, and `{!dim}` is how a class comes back off; there is no fourth name for ordinary prominence, the absence of all three being what that is. `.paper` fills a label with the page colour, knocking a hole in a line running behind it.
 
 Two pairs are not one group but still draw a warning, because one of the two ends up doing nothing: `.tone-4` with `.accent`, where the fill already *is* the accent, and `.turn` with `.left` or `.right`, where a label standing on end is centred across the direction it reads. `.top` and `.bottom` do still move a turned label.
 
@@ -1024,7 +1024,7 @@ text hourn "minutes, in the hour before a lecture" below hour gap 0.5 {.small .m
 
 ## example: Plots | `plot` draws a frame and a scale, and nothing else {.full #diagram-plot}
 
-**A `plot` draws a frame and a scale, and nothing else.**
+**A `plot` draws the frame and the scale; you write the curves over it.**
 
 ::: draw 150x54
 plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 tick 10
@@ -1047,7 +1047,7 @@ step lesson
 
 **A chart is sized with `aspect`, not with `w` and `h`** – those two are counted in grid squares, and a grid square is not square, so they do not describe the shape a reader sees.
 
-**A `plot` takes two ranges and one `tick` interval, and draws nothing but the frame and the scale** – after which `pace@26` names a value in the plot's own units anywhere a coordinate can go, and the curves over it are ordinary edges.
+**A `plot` takes two ranges and one `tick` interval** – after which `pace@26` names a value in the plot's own units anywhere a coordinate can go, and the curves over it are ordinary edges.
 
 ::: expand Sizing, curves, and two charts that match
 **`aspect 4:3`, `aspect 1:1`, or a single number meaning that many wide to one tall**, states the proportion the reader sees and lets the build work the other number out. Both `bars` and `plot` take it. On the `150x54` grid of the figure above, a plot written `w 1.9 h 1.5` comes out 285 by 81 pixels, which is nothing like 1.9 by 1.5. Giving `w`, `h` and `aspect` together is an error, because two of the three would have to lose and nothing on the line says which.
@@ -1142,7 +1142,7 @@ step probe
 
 ## principle: A slide can be more than a column of text | and what makes it one is not written inside the text {.standard #deco-idea}
 
-**Write a picture into a chunk and you get a picture in the text column** – never one that fills the slide, and never three things standing side by side.
+**Write a picture into a chunk and you get a picture in the text column** – not one that fills the slide, and not three things standing side by side.
 
 **Three kinds of construction sit beside the body rather than in it: a picture behind the slide, blocks in place of the paragraphs, and the slides a lecture opens and closes with.** The rest of this part takes them one at a time, in that order, and all
 of them are shown one per slide in
@@ -1182,7 +1182,7 @@ A crawler that looks like a browser gets measured back.
 and this block is an overlay, placed on a 3×3 grid.
 :::
 
-> note: The veil laid over a backdrop is the theme's own paper, not white, so ordinary dark text stays legible over a photograph in every theme. `invert`, which this slide uses, darkens the picture and turns the text light instead. The chunk is nothing but the two blocks on the slide before it – there is no body text at all.
+> note: The veil laid over a backdrop is the theme's own paper, not white, so ordinary dark text stays legible over a photograph in every theme. `invert`, which this slide uses, darkens the picture and turns the text light instead. The chunk is nothing but the two blocks on the slide before it – there is no body text.
 
 ## example: A row of cards | `::: cards N` {.wide #cards}
 
@@ -1280,9 +1280,9 @@ Use `rows` when a term needs a sentence, and `cards` when a comparison needs cou
 
 That drawing is a `::: draw` block inside the second pane. In `print.html` and `print-notes.html` the two panes stack one after the other and the ratio is ignored, because a page has only one column to give them.
 
-**A short pane sits at the top of its half unless you say otherwise, and `{.middle}` centres it against the taller one.** Here the *figure* is the short pane, so `{middle}` is what puts it level with the middle of this column instead of at the top. `{top}` is the default and often right – a caption over a figure should be aligned from the top. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only ever move the shorter one.
+**A short pane sits at the top of its half unless you say otherwise, and `{.middle}` centres it against the taller one.** Here the *figure* is the short pane, so `{middle}` is what puts it level with the middle of this column instead of at the top. `{top}` is the default and often right – a caption over a figure should be aligned from the top. The word belongs to the block and not to either pane, because the taller pane is what makes the row tall, so centring can only move the shorter one.
 
-**A figure *above* or *below* the text needs nothing at all** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns stop working, without an error. A `::: draw` written there is refused, and the message points you at `::: side`.
+**A figure *above* or *below* the text needs nothing** – put the block first or last in the chunk body. `::: cols` is the one place a figure does not belong: a figure breaks the run of text the columns share, so the columns stop working, without an error. A `::: draw` written there is refused, and the message points you at `::: side`.
 
 ::: flip
 
@@ -1334,7 +1334,7 @@ The two scales multiply the tool's own sizes rather than replacing them, and the
 
 ::: cards 2
 - **`print.html` and `print-notes.html`** set a small line of capitals over every typed chunk. Every type has one except free and figure, so that is where most of them live.
-- **The projection** prints only the word over an exercise. The rest were taken out: a label naming the kind of slide is only ever as right as the type was.
+- **The projection** prints only the word over an exercise. The rest were taken out: a label naming the kind of slide is only as right as the type was.
 :::
 
 ```yaml
@@ -1406,7 +1406,7 @@ cover-image: skyline    # only the four picture covers take one;
 **They are ordered by how prominent the opening slide is.** Six are text and nothing else:
 
 ::: cards 3
-- **classic** the lower-left third. The default, so a lecture that names no cover at all is unchanged
+- **classic** the lower-left third. The default, so a lecture that names no cover is unchanged
 - **masthead** the title along the top edge, the credits along the bottom, your own text in the field between
 - **stack** the title block centred on both axes, for a calm opening
 - **display** the title set to fill the slide. The scale is the whole design
@@ -1454,7 +1454,7 @@ Try `panel` with a backdrop: its coloured field becomes the veil, so the picture
 
 ## example: A divider is never the title slide | and `section-mark:` puts a word over it {.wide #section-quiet}
 
-**Every one of them is less prominent than the cover**, so that a divider is never mistaken for the title slide: it says *a new part starts here, and it is part of the thing you are already in*.
+**They stay less prominent than the cover**, so that a divider is not mistaken for the title slide: it says *a new part starts here, and it is part of the thing you are already in*.
 
 ```yaml
 section: tinted         # plain | tinted | rule

@@ -1258,7 +1258,7 @@ figure you write today may need an edit. The editor is experimental too.</p>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
-<p>Each <code class="nb">step</code> is one press of the forward key. The chaining arrows carry one waypoint each (<code class="nb">via</code>), which is as much routing as these figures ever need.</p>
+<p>Each <code class="nb">step</code> is one press of the forward key. The chaining arrows carry one waypoint each (<code class="nb">via</code>), which is as much routing as these figures need.</p>
 
   
   
@@ -1534,7 +1534,7 @@ drawing can say it without a caption repeating it.</p>
 
 <p>A <code class="nb">container</code> lays itself around its members and re-fits when they move. A <code class="nb">brace</code> spans a subset and hangs its label outside. Both measure their distance to their contents with the same word, <code class="nb">pad</code> – the brace is given <code class="nb">0.62</code> here so that it comes to lie outside the container&#39;s <code class="nb">0.42</code>.</p>
 <p><strong>Swimlanes are not a <code class="nb">container</code>, and the reason is what a container does.</strong> A container measures itself against what it holds, so three lanes holding different numbers of things come out different lengths at both ends. A swimlane diagram says the opposite: the bands are equal, and only what happens inside them differs. <code class="nb">lanes</code> is for that – bands of equal width that want to know nothing about their contents. Part 5 draws one, under <em>Three roles, one incident</em>.</p>
-<p><strong><code class="nb">.turn</code> applies to every label, not only to a box&#39;s.</strong> The left brace reads bottom to top, and the same class does the same thing on a container caption and on an edge label – at all four places, that is, where a label is set at all.</p>
+<p><strong><code class="nb">.turn</code> applies to every label, not only to a box&#39;s.</strong> The left brace reads bottom to top, and the same class does the same thing on a container caption and on an edge label – at all four places where a label is set.</p>
 
   
   
@@ -1571,7 +1571,7 @@ seven themes. The editor&#39;s sidebar offers exactly these rows, one slide at a
 time, as the next four slides do.</p>
 <p><strong><code class="nb">.paper</code> here looks inert and is not.</strong> It is a box&#39;s default, but under a
 <code>default box {.tone-3}</code> a box without the class cannot find its way back, and a
-free <code class="nb">text</code> gets no background at all without it – that background is what knocks
+free <code class="nb">text</code> gets no background without it – that background is what knocks
 a line out behind a label. The rule drawn through the row is what tells <code class="nb">.paper</code>
 and <code class="nb">.clear</code> apart: one knocks the line out, the other lets it through.</p>
 
@@ -1691,7 +1691,7 @@ Learn one form and you have all three.</p>
 <p><strong>The fourth state – ordinary prominence – deliberately has no name.</strong> <code class="nb">{!dim}</code>
 takes the class off instead of adding a fourth word, and that holds for every
 class and in every tail. Without the mark there is no way back: a <code class="nb">style</code> step
-could only ever <em>add</em> a class, and many slots spell their base state as the
+could only <em>add</em> a class, and many slots spell their base state as the
 absence of every member, so a beat could leave such a state and never reach it
 again. <code class="nb">p5</code> is that case drawn – it carries <code class="nb">@prom</code>, the block gives <code class="nb">@prom</code> a
 <code class="nb">.dim</code>, and <code class="nb">{!dim}</code> beside it takes the class away again.</p>
@@ -2016,7 +2016,7 @@ one warning this lecture builds with.</p>
 
 <p><strong><code class="nb">horizontal</code> turns the columns on their side: the bars run right, the categories stack downwards.</strong> It stands as a single word on the <code class="nb">bars</code> line, exactly as <code class="nb">stacked</code> does. The strip of category names becomes a right-aligned column in the left margin, each word set by its own measured width so the right edges form a line, and the baseline stands vertically on the left instead of lying under the bars. The numbers are made up.</p>
 <p><strong>Flat, the proportions are easier to read.</strong> Every bar starts at the same vertical edge, and the eye compares lengths from one shared start line more reliably than heights over a shared floor: on the left you have to visit the tops of the columns in turn, on the right you read the ranking at a glance. A run of bars sorted downwards also looks like a ranking by itself.</p>
-<p><strong>And only flat is there room for the names at all.</strong> A category called “DNS cache poisoning” cannot be written under an upright column, so the left-hand figure carries numbers and the room looks them up in a legend that does not exist here. The second string is what makes it possible: <strong>a <code class="nb">|</code> in it splits on that instead of on spaces</strong>, so a label may be as many words as it needs. <code class="nb">|</code> already separates the cells of a <code class="nb">table</code> row and the names in a <code class="nb">lanes</code> list.</p>
+<p><strong>And only flat is there room for the names.</strong> A category called “DNS cache poisoning” cannot be written under an upright column, so the left-hand figure carries numbers and the room looks them up in a legend that does not exist here. The second string is what makes it possible: <strong>a <code class="nb">|</code> in it splits on that instead of on spaces</strong>, so a label may be as many words as it needs. <code class="nb">|</code> already separates the cells of a <code class="nb">table</code> row and the names in a <code class="nb">lanes</code> list.</p>
 
   
   
@@ -2150,8 +2150,8 @@ one warning this lecture builds with.</p>
 
 
 <p><strong><code>same as</code> on a <code class="nb">plot</code> or <code class="nb">bars</code> line copies the whole frame.</strong> The right-hand plot writes no size of its own but points at the left one, so the two figures match to the pixel. Two figures meant to be compared have to be ones the eye can lay over each other; two frames a hair apart cannot do that.</p>
-<p><strong>The copy happens as the line is read, not at layout time – unlike a box&#39;s.</strong> Gridlines, axis labels and columns are placed from <code class="nb">w</code> and <code class="nb">h</code> the moment the line is read, so a size arriving later would move the frame and leave everything in it standing. <strong>The statement being copied from has to stand above the one copying it</strong>, and the build names what went wrong: a name that appears further down, one pointing at something other than a <code class="nb">plot</code> or <code class="nb">bars</code>, or one that is not in the block at all. <code>same as</code> beside <code class="nb">w</code>, <code class="nb">h</code> or <code class="nb">aspect</code> is an error, and so is <code>same as</code> on a <code>series of</code> line, a series drawing in a frame it does not lay.</p>
-<p><strong>Frames of one size are not yet one scale.</strong> <code class="nb">x</code> and <code class="nb">y</code> stand on each <code class="nb">plot</code> line for themselves, and nothing checks that two frames carry the same ranges – above they are written out twice, and that is the place to re-read before handing the slide over. <code class="nb">bars</code> has no range to write at all: every <code class="nb">bars</code> statement scales to its own highest value, so two frames of one size can hold columns that cannot be compared.</p>
+<p><strong>The copy happens as the line is read, not at layout time – unlike a box&#39;s.</strong> Gridlines, axis labels and columns are placed from <code class="nb">w</code> and <code class="nb">h</code> the moment the line is read, so a size arriving later would move the frame and leave everything in it standing. <strong>The statement being copied from has to stand above the one copying it</strong>, and the build names what went wrong: a name that appears further down, one pointing at something other than a <code class="nb">plot</code> or <code class="nb">bars</code>, or one that is not in the block. <code>same as</code> beside <code class="nb">w</code>, <code class="nb">h</code> or <code class="nb">aspect</code> is an error, and so is <code>same as</code> on a <code>series of</code> line, a series drawing in a frame it does not lay.</p>
+<p><strong>Frames of one size are not yet one scale.</strong> <code class="nb">x</code> and <code class="nb">y</code> stand on each <code class="nb">plot</code> line for themselves, and nothing checks that two frames carry the same ranges – above they are written out twice, and that is the place to re-read before handing the slide over. <code class="nb">bars</code> has no range to write: every <code class="nb">bars</code> statement scales to its own highest value, so two frames of one size can hold columns that cannot be compared.</p>
 
   
   
@@ -2477,7 +2477,7 @@ one warning this lecture builds with.</p>
 
 <p><strong><code>autoplay 1400</code> walks this figure&#39;s beats by itself, and <code class="nb">cycle</code> starts again at the end.</strong> One delay in milliseconds, the same for every beat. A cover figure moving while the room settles is the case it was built for; it stands on an ordinary slide here, because nothing about it is tied to a cover.</p>
 <p><strong>It calls the same advance the space bar does.</strong> A counter of its own would have let the drawing and the beat counter drift apart, and the next keypress would have jumped. Because it <em>is</em> the counter, the speaker window follows through the ordinary sync and the freeze gate applies. <code class="nb">cycle</code> rewinds through the same counter, so the speaker window follows the rewind too.</p>
-<p><strong>The first keypress, click or scroll on this slide stops it.</strong> Whoever has touched the figure has taken over, and a timer running on underneath them is worse than none. It is the <em>slide</em> that is taken over and not the session, because you reach a slide by pressing a key: a session-wide flag was retired by the very keypress that navigated here, and the figure then never moved at all. For the same reason it does not start on a slide that is already half revealed: half revealed means somebody left it that way.</p>
+<p><strong>The first keypress, click or scroll on this slide stops it.</strong> Whoever has touched the figure has taken over, and a timer running on underneath them is worse than none. It is the <em>slide</em> that is taken over and not the session, because you reach a slide by pressing a key: a session-wide flag was retired by the very keypress that navigated here, and the figure then never moved. For the same reason it does not start on a slide that is already half revealed: half revealed means somebody left it that way.</p>
 <p><strong>Between 200 ms and 60 s, and outside that refused rather than clamped.</strong> Under 200 ms the room reads no beat; over a minute a “moving” figure is a still one that changes while nobody is watching. A clamped number is a number nobody wrote.</p>
 
   
