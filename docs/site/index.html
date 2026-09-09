@@ -60,9 +60,10 @@
     <p class="cue">One slide of a real lecture, twice. Once as the room sees it,
     and once with the same four paragraphs in full. <strong>One keypress
     separates them.</strong></p>
-    <p class="cue">The switch in the second picture&rsquo;s title bar swaps the
-    full text for the printed handout &ndash; a different file, built from the
-    same source. Click any picture on this page to see it at full size.</p>
+    <p class="cue">Flip the switch in the second picture&rsquo;s title bar and
+    the full text becomes the printed handout &ndash; a different file, built
+    from the same source. Click any picture on this page to see it at full
+    size.</p>
    </div>
   </div>
  </div>
@@ -103,12 +104,12 @@
 <section class="band">
  <div class="wrap">
   <h2>A lecture holds three kinds of text</h2>
-  <p class="lede">What goes <strong>on the slide</strong> has to read from the back row. <strong>The script</strong> &ndash; the sentences that do the explaining &ndash; belongs in a handout. And <strong>the notes to yourself</strong> belong on your own screen and nowhere else. Three texts, and the programs people present with have room for two. That ends in one of three ways.</p>
+  <p class="lede">What goes <strong>on the slide</strong> has to read from the back row. <strong>The script</strong> &ndash; the sentences that do the explaining &ndash; belongs in a handout. And <strong>the notes to yourself</strong> belong on your own screen and nowhere else. Three texts, and a slide with a notes field under it holds two of them. That ends in one of three ways.</p>
 
   <div class="ways">
     <div class="way" data-tie="1">
       <h3 class="way-label">not ideal: everything on the slides</h3>
-      <div class="way-said"><p>The script goes onto the slides, so the slides fill up. By the third bullet nobody in the back row is reading the slides any more, and there is still nothing to hand out afterwards.</p><p>This is <em>death by PowerPoint</em>, and it is what happens when a lecture has one place to put three texts.</p></div>
+      <div class="way-said"><p>The script goes onto the slides, so the slides fill up. By the third bullet the back row has stopped reading them, and there is still nothing to hand out afterwards.</p><p>This is <em>death by PowerPoint</em>, and it is what happens when a lecture has one place to put three texts.</p></div>
       <div class="way-fig">
         <svg class="way-cols" viewBox="0 0 448 20" aria-hidden="true" focusable="false">
           <text x="150" y="13" text-anchor="middle" font-size="9" fill="var(--ink-soft)">the slide</text>
@@ -318,8 +319,8 @@ browser is for pages meant to be looked at.
     and the two keep each other in step in the browser, with no server between
     them. Your note, what is coming, a clock, a way back to slide forty, and a
     box you can type into that the room reads along with.</p>
-    <p class="cue"><a href="in-the-room.html">In the room</a> is the whole of it:
-    everything that happens during the hour, and the key for each of them.</p>
+    <p class="cue"><a href="in-the-room.html">In the room</a> walks through the
+    hour itself: what you do at each point of it, and the key you do it with.</p>
    </div>
    <div class="stage">
     <figure class="shot">
@@ -338,8 +339,8 @@ browser is for pages meant to be looked at.
     <h2>What the students take away</h2>
     <p class="lede">The same source, typeset as a document: hyphenated, at a
     line length made for reading, with the margin note as an aside.</p>
-    <p class="cue">There are two such documents, and the switch in the title bar
-    shows both. <code>print.html</code> carries the script alone and is the one
+    <p class="cue">There are two such documents, and you see them both with the
+    switch in the title bar. <code>print.html</code> carries the script alone and is the one
     to hand out. <code>print-notes.html</code> folds your speaker notes in under
     each chunk and stays with you.</p>
    </div>
@@ -375,8 +376,8 @@ browser is for pages meant to be looked at.
   <div class="beside">
    <div class="said">
     <h2 id="covers">A slide is a frame, not only a column of text</h2>
-    <p class="lede">One line of the source picks what a slide is made of, and
-    the text of the slide stays as it was written: a title slide, the divider
+    <p class="lede">You pick what a slide is made of in one line of the source,
+    and the text of the slide stays as it was written: a title slide, the divider
     that opens each part, a row of cards, a photograph the words stand on, a
     list that stays at the edge of the frame for a whole part.</p>
     <p class="cue"><a href="decoration.html">A slide is a frame</a> shows the
@@ -398,13 +399,14 @@ browser is for pages meant to be looked at.
   <div class="beside">
    <div class="said">
     <h2 id="figures">A figure is text too</h2>
-    <p class="lede">The lecture figures that go out of date are the ones that
-    live in a drawing program. psi-slides has a small language for them instead:
-    a figure is a few lines in the same file as the slide it sits on.</p>
-    <p class="cue">Nothing in this figure is placed at a point on a canvas. Each
-    box is placed <em>against</em> another box, so moving one box moves
-    everything attached to it &ndash; and the figure can be built up in front of
-    the room a step at a time.</p>
+    <p class="lede">A figure drawn in a program of its own is a second file to
+    keep in step, and that is the one that goes out of date. psi-slides has a
+    small language for figures instead: a figure is a few lines in the same file
+    as the slide it sits on.</p>
+    <p class="cue">Only the first box in this figure has a position of its own.
+    Each of the others is placed <em>against</em> another box, so moving one box
+    moves everything attached to it &ndash; and the figure can be built up in
+    front of the room a step at a time.</p>
    </div>
    <div class="stage">
      <figure class="shot drawn">
@@ -453,17 +455,17 @@ browser is for pages meant to be looked at.
 <section class="band">
  <div class="wrap">
   <h2 id="open-them-yourself">Open the lectures yourself</h2>
-  <p class="lede">These are the tool, not a video of it. Arrow keys move,
-  <kbd>C</kbd> switches between the shortened text and the full text,
-  <kbd>O</kbd> shows every slide at once, <kbd>/</kbd> searches, and
-  <kbd>?</kbd> lists every key.</p>
+  <p class="lede">These are the tool, not a video of it. Move with the arrow
+  keys, press <kbd>C</kbd> to switch between the shortened text and the full
+  text, <kbd>O</kbd> to see every slide at once, <kbd>/</kbd> to search, and
+  <kbd>?</kbd> to list every key.</p>
 
   <div class="picks">
     <div class="pick pick-lead">
       <h3>Start here: <code>python-intro</code></h3>
       <p class="size">36 slides &middot; about 25 minutes</p>
-      <p>The lecture every picture on this page comes from: an introduction to
-      Python for people who have written some code before. Open the projection
+      <p>The lecture the slide at the top of this page comes from: an
+      introduction to Python for people who have written some code before. Open the projection
       and press <kbd>C</kbd> to see the same slide shortened and then in full.</p>
       <p class="opens"><a href="python-intro/audience.html">projection</a>
       <a href="python-intro/speaker.html">cockpit</a>
@@ -473,7 +475,7 @@ browser is for pages meant to be looked at.
     <div class="pick">
       <h3>Then: the tutorial</h3>
       <p class="size">92 slides &middot; a reference to dip into</p>
-      <p>Everything the format can do, explained by a lecture that is itself
+      <p>How the format works, explained by a lecture that is itself
       built out of it. Its <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">source</a>
       is the model to write your own lecture against.</p>
       <p class="opens"><a href="tutorial/audience.html">projection</a>
@@ -557,7 +559,7 @@ browser is for pages meant to be looked at.
       <a href="figures-you-write.html">the manual</a> beside it, which builds one
       a line at a time and lists every statement.</li>
     <li><b><a href="tutorial/audience.html">The tutorial lecture</a></b>
-      Every construct the format has, shown working, with
+      The format shown working rather than described, with
       <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">its
       source</a> beside it.</li>
     <li><b><a href="https://github.com/UBA-PSI/psi-slides">The repository</a></b>

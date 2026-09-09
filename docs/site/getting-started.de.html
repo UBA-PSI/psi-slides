@@ -58,9 +58,10 @@
     <h2 id="app">Die App</h2>
     <p class="lede">Die <code>source.md</code> einer Vorlesung öffnen oder auf
     das Fenster ziehen, und die vier Ansichten sind gebaut. Das Fenster neben
-    dem Texteditor offen lassen, und jedes Speichern baut sie erneut.</p>
+    dem Texteditor offen lassen, und die App baut sie nach jedem Speichern
+    erneut.</p>
     <p class="cue">Eine Zeile sagt, ob der letzte Build funktioniert hat, und
-    vier Knöpfe öffnen die Ansichten, die er geschrieben hat. Sonst wird
+    über vier Knöpfe öffnet man die Ansichten, die er geschrieben hat. Sonst wird
     nichts installiert: kein Node, kein Terminal, keine Projekteinstellungen
     zum Ausfüllen.</p>
    </div>
@@ -144,11 +145,11 @@
     unverändert da, mit der Zeile in der eigenen Quelle. Die vier
     Ansichten behalten den letzten funktionierenden Build; ein kaputtes
     Speichern nimmt einem nicht mitten in der Vorlesung die Folien weg.</p>
-    <p>Zwei Schalter ändern, was die Knöpfe tun. <strong>Die Ansichten über
-    eine lokale Webadresse öffnen</strong> startet einen kleinen lokalen
+    <p>Es gibt zwei Schalter. Setzt man <strong>Die Ansichten über eine lokale
+    Webadresse öffnen</strong>, bekommt man einen kleinen lokalen
     Server: Eingebettete YouTube- und Vimeo-Player laufen aus einer Datei
-    heraus nicht; sie brauchen eine Adresse. <strong>Die Ansichten
-    öffnen in</strong> entscheidet zwischen Chrome oder Edge, worin psi-slides
+    heraus nicht; sie brauchen eine Adresse. Unter <strong>Die Ansichten
+    öffnen in</strong> wählt man zwischen Chrome oder Edge, worin psi-slides
     getestet wird, und dem, womit das System HTML öffnet.</p>
    </div>
    <div>
@@ -181,7 +182,7 @@
   <div class="aside-code words-first">
    <div class="said">
     <h3>Das Tutorial bauen</h3>
-    <p class="cue"><code>npm install</code> läuft einmal. Es holt die Schriften,
+    <p class="cue">Man führt <code>npm install</code> einmal aus. Es holt die Schriften,
     die psi-slides in jede Vorlesung einbettet, und die Handvoll Pakete, die der
     Build benutzt &ndash; alles in einen Ordner <code>node_modules</code> neben
     <code>build.js</code>.</p>
@@ -204,9 +205,9 @@
   <div class="aside-code words-first second-picture">
    <div class="said">
     <h3>Während man schreibt</h3>
-    <p class="cue"><code>--watch</code> baut bei jedem Speichern neu und lädt
-    jeden offenen Tab neu, sodass Texteditor, Projektion und Cockpit
-    gleichzeitig sichtbar bleiben. Das tut die App von sich aus.</p>
+    <p class="cue">Mit <code>--watch</code> baut der Build bei jedem Speichern
+    neu und lädt jeden offenen Tab neu, sodass Texteditor, Projektion und
+    Cockpit gleichzeitig sichtbar bleiben. Das tut die App von sich aus.</p>
     <p class="cue"><code>--serve</code> ist für das Eine, was eine Datei nicht
     kann: eingebettete YouTube- und Vimeo-Player abspielen.
     <code>lint.js</code> prüft eine Vorlesung vor der Weitergabe, hat in der App
@@ -231,7 +232,7 @@
     <h3>Von einem Rechner ohne alles</h3>
     <p class="cue">Die Schritte führen einen Windows- oder macOS-Rechner, auf
     dem nichts installiert ist, zu einem gebauten Tutorial. Der Reihe nach
-    durchgehen: Wer den vierten vor dem zweiten macht, steht im falschen
+    durchgehen: Wer einen Schritt vorzieht, steht im falschen
     Ordner.</p>
     <p class="cue">Die App oben braucht nichts davon.</p>
    </div>
@@ -286,8 +287,8 @@
 
       <h3>Holen, was der Build benutzt</h3>
 <pre><code>npm install</code></pre>
-      <p><code>npm install</code> läuft einmal, in diesem Ordner, und dauert ein
-      paar Sekunden. Es holt die Schriften, die psi-slides in jede Vorlesung
+      <p>Man führt <code>npm install</code> einmal aus, in diesem Ordner, und es
+      dauert ein paar Sekunden. Es holt die Schriften, die psi-slides in jede Vorlesung
       einbettet, und die Handvoll Pakete, die der Build benutzt. Alles landet in
       einem Ordner <code>node_modules</code> neben <code>build.js</code>:
       systemweit wird nichts installiert, und die gebauten Vorlesungen laden beim
@@ -303,11 +304,11 @@
 
       <h3>Öffnen</h3>
       <p>Doppelklick auf <code>lectures/tutorial/audience.html</code>. Es öffnet
-      sich im Browser, und ein Browser ist alles, was es braucht: <kbd>?</kbd> listet die Tasten
-      auf, <kbd>S</kbd> öffnet das Cockpit. Die Datei an jemanden mailen, der
+      sich im Browser, und ein Browser ist alles, was es braucht: mit <kbd>?</kbd> bekommt man die
+      Tastenliste, mit <kbd>S</kbd> das Cockpit. Die Datei an jemanden mailen, der
       nichts davon installiert hat, und sie funktioniert trotzdem.</p>
 
-      <p class="tiny">Für Linux: all diese Werkzeuge sind schon da.
+      <p class="tiny">Für Linux: all das kommt aus dem Paketmanager.
       Distributionspakete hinken manchmal mehrere Versionen hinterher, ein
       <code>node --version</code> lohnt sich also trotzdem.</p>
     </div>
@@ -374,9 +375,9 @@
   <div class="aside-code words-first">
    <div class="said">
     <h3>Drei Befehle</h3>
-    <p class="cue"><code>--new</code> schreibt einen Ordner mit gültigem
+    <p class="cue">Mit <code>--new</code> bekommt man einen Ordner mit gültigem
     Einstellungsblock und ein paar Beispiel-Chunks &ndash; ein Chunk, eine Folie.
-    Danach läuft <code>--watch</code> mit.</p>
+    Danach lässt man <code>--watch</code> mitlaufen.</p>
     <p class="cue"><code>lint.js</code> laufen lassen, bevor man etwas
     weitergibt: doppelte Chunk-IDs, offene <code>:::</code>-Blöcke, Folien über
     ihrem Wortbudget, Dateien zu groß zum Einbetten.</p>
@@ -407,8 +408,8 @@
    <div>
     <p>Was in diese Datei gehört, lehrt die
     <a href="../tutorial/audience.html">Tutorial-Vorlesung</a>, eine Vorlesung
-    über das Schreiben von Vorlesungen: jede Konstruktion des Formats, im
-    Betrieb gezeigt, mit
+    über das Schreiben von Vorlesungen: das Format im Betrieb gezeigt statt
+    beschrieben, mit
     <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">ihrer
     Quelle</a> daneben. Die Meldungen des Linters nennen die Regel und die
     Zeilennummer, man kann sie also neben der eigenen Quelle lesen.</p>

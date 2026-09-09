@@ -58,9 +58,9 @@
     <h2 id="app">The app</h2>
     <p class="lede">Open a lecture&rsquo;s <code>source.md</code>, or drop it on
     the window, and the four views are built. Leave the window open beside your
-    text editor and every save builds them again.</p>
+    text editor and it builds them again each time you save.</p>
     <p class="cue">One line says whether the last build worked, and four
-    buttons open the four views it wrote. Nothing else is installed: no Node,
+    buttons let you open the four views it wrote. Nothing else is installed: no Node,
     no terminal, no project settings to fill in.</p>
    </div>
    <div class="stage">
@@ -124,9 +124,9 @@
    <div>
     <p><strong>The packages are not signed</strong>, apart from the macOS one,
     signed and notarised by hand before upload &ndash; Apple&rsquo;s own check. If
-    that signing has not happened yet, a double click warns that the developer
-    cannot be verified: open it once with a right click and <b>Open</b>
-    instead, and the warning is gone. Windows shows its SmartScreen warning
+    that signing has not happened yet, macOS warns on a double click that the
+    developer cannot be verified: open it once with a right click and <b>Open</b>
+    instead, and it is gone. Windows shows its SmartScreen warning
     once &ndash; <b>More info</b>, then <b>Run anyway</b>. An AppImage needs to be
     marked executable first.</p>
    </div>
@@ -141,12 +141,12 @@
     was written, naming the line in your source. The four views keep the last
     build that worked, so a broken save never takes your slides away
     mid-lecture.</p>
-    <p>Two switches change what the buttons do. <strong>Open the views through
-    a local web address</strong> starts a small local server: embedded YouTube
+    <p>There are two switches. Set <strong>Open the views through a local web
+    address</strong> and you get a small local server: embedded YouTube
     and Vimeo players refuse to run from a file, and an address is what they
-    need. <strong>Open the views in</strong> chooses between Chrome or Edge,
-    the browsers psi-slides is tested in, and whatever your system opens HTML
-    with.</p>
+    need. Under <strong>Open the views in</strong> you pick Chrome or
+    Edge, the browsers psi-slides is tested in, or whatever your system opens
+    HTML with.</p>
    </div>
    <div>
     <p>It is <strong>not a Markdown editor</strong>. You write the lecture in
@@ -176,7 +176,7 @@
   <div class="aside-code words-first">
    <div class="said">
     <h3>Build the tutorial</h3>
-    <p class="cue"><code>npm install</code> runs once. It fetches the typefaces
+    <p class="cue">You run <code>npm install</code> once. It fetches the typefaces
     psi-slides embeds into every lecture and the handful of packages the build
     uses, all of it into a <code>node_modules</code> folder beside
     <code>build.js</code>.</p>
@@ -198,9 +198,9 @@
   <div class="aside-code words-first second-picture">
    <div class="said">
     <h3>While you are writing</h3>
-    <p class="cue"><code>--watch</code> rebuilds on every save and reloads
-    every open tab, so the text editor, the projection and the cockpit stay
-    visible at once. That is what the app does by default.</p>
+    <p class="cue">Add <code>--watch</code> and the build reruns on every save
+    and reloads every open tab, so the text editor, the projection and the
+    cockpit stay visible at once. That is what the app does by default.</p>
     <p class="cue"><code>--serve</code> is for the one thing a file on disk
     cannot do: play an embedded YouTube or Vimeo player. <code>lint.js</code>,
     which reads a lecture over before you hand it out, has no button in the app
@@ -225,7 +225,7 @@
     <h3>From a machine with nothing on it</h3>
     <p class="cue">The steps take a Windows or macOS machine with nothing
     installed on it to a built copy of the tutorial. Work down them in order:
-    the fourth before the second leaves you standing in the wrong folder.</p>
+    taking one of them out of turn leaves you standing in the wrong folder.</p>
     <p class="cue">The app above needs none of this.</p>
    </div>
   <details class="setup steps">
@@ -276,8 +276,8 @@
 
       <h3>Fetch what the build uses</h3>
 <pre><code>npm install</code></pre>
-      <p><code>npm install</code> runs once, in that folder, and takes a few
-      seconds. It fetches the
+      <p>You run <code>npm install</code> once, in that folder, and it takes a
+      few seconds. It fetches the
       typefaces psi-slides embeds into every lecture and the handful of packages
       the build uses. All of it lands in a <code>node_modules</code> folder beside
       <code>build.js</code>: nothing is installed system-wide, and the lectures
@@ -293,11 +293,11 @@
 
       <h3>Open it</h3>
       <p>Double-click <code>lectures/tutorial/audience.html</code>. It opens in
-      your browser, and a browser is all it needs: <kbd>?</kbd> lists the keys,
-      <kbd>S</kbd> opens the cockpit. Mail the file to somebody who has none of
+      your browser, and a browser is all it needs: press <kbd>?</kbd> for the
+      keys, <kbd>S</kbd> for the cockpit. Mail the file to somebody who has none of
       this installed and it still works.</p>
 
-      <p class="tiny">Linux readers: you have all of these tools already.
+      <p class="tiny">Linux readers: your package manager has all of this.
       Distribution packages are sometimes several versions behind, so
       <code>node --version</code> is still worth running.</p>
     </div>
@@ -364,9 +364,9 @@
   <div class="aside-code words-first">
    <div class="said">
     <h3>Three commands</h3>
-    <p class="cue"><code>--new</code> writes a folder with a valid settings
-    block and a few example chunks &ndash; one chunk, one slide. Then
-    <code>--watch</code> runs while you write.</p>
+    <p class="cue">Run <code>--new</code> and you get a folder with a valid
+    settings block and a few example chunks &ndash; one chunk, one slide. Then
+    leave <code>--watch</code> running while you write.</p>
     <p class="cue">Run <code>lint.js</code> before you hand anything over: it
     catches repeated chunk ids, unclosed <code>:::</code> blocks, slides over
     their word budget, and files too large to embed.</p>
@@ -396,7 +396,7 @@
    <div>
     <p>What goes in that file is what the
     <a href="tutorial/audience.html">tutorial lecture</a> teaches, a lecture
-    about writing lectures: every construct the format has, shown working, with
+    about writing lectures: the format shown working rather than described, with
     <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">its
     source</a> beside it. The linter&rsquo;s messages name the rule and the line
     number, so you can read them with your source open.</p>
