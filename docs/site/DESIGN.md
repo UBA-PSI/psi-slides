@@ -134,17 +134,27 @@ those draws one glyph where the author has to type two characters.
 
 ## Interaction
 
-Two devices on the page, and both follow the same rule: **a control
+Two devices on this site, and both follow the same rule: **a control
 answers an action, it never runs on its own.** No scroll-triggered
 motion.
 
-- **The three ways** are a chooser. One option is on screen at a time, its
-  words and its drawing together, so they cannot drift apart on a narrow
-  viewport. Click rather than hover, because a hover switch has no answer
-  on a touchscreen and this is the only route to two of the three. The
-  sentences are real controls: focusable, Enter and Space. Without
-  JavaScript all three stand under each other with the tab labels as
-  headings, and the section still argues in three moves.
+- **The chooser** shows one option at a time and puts its options in a row of
+  tabs above. Click rather than hover, because a hover switch has no answer
+  on a touchscreen and it is the only route to the options that are not
+  first. The tabs are real buttons: focusable, Enter and Space. Without
+  JavaScript the options stand under each other with their labels above them,
+  and the section still says what it came to say.
+
+  It carries two things, and that it is one mechanism rather than two is the
+  point – a second way of switching something would be a second thing for a
+  reader to learn and a second thing to keep operable from a keyboard.
+  **The three ways** on the front page are an argument in three moves, so its
+  labels carry the judgement ("not ideal", "our approach") the prose used to
+  make. **The cue-card sequence** on "In the room" is four frames of one
+  window, one per press of the space bar, because what that mode does is move
+  the cards and the projection together and a still cannot show a change. Its
+  labels are paragraphs rather than headings: that page's headings are the
+  anchors its two languages are linked by, and the twin gate counts them.
 - **The handout switch** opens on `print.html`, the file that is handed
   out, and swaps to `print-notes.html`. The filename in the title bar
   changes with it, or the bar would be exactly the confusion the switch
@@ -231,5 +241,6 @@ Then, in order of how much each one has caught:
 3. **390, 768, 1100, 1440, 1920, 2560**, both languages, plus
    `figures.html` and `comparison.html`, which inherit this stylesheet.
 4. **Both colour schemes**, and contrast measured on rendered pixels.
-5. Keyboard focus visible, `prefers-reduced-motion` respected, both
-   controls operable by keyboard.
+5. Keyboard focus visible, `prefers-reduced-motion` respected, the chooser
+   and the handout switch operable by keyboard, in each place the chooser
+   appears.

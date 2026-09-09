@@ -151,12 +151,14 @@ PSI_SITE_NAV_ALL=1 node docs/site/build-site.js _site   # bar carries the rows
                                                 # of SITE_PAGES that are still
                                                 # `pending` - for re-measuring
                                                 # the bar's breakpoints
-node docs/site/shoot.mjs                        # re-shoot its seven screenshots
+node docs/site/shoot.mjs                        # re-shoot the site's screenshots
 node docs/site/shoot.mjs cockpit search         # …or just some of them
 ```
 
 `shoot.mjs` drives `lectures/python-intro` (build it first) with `playwright-core`
-and writes `docs/site/img/*.webp`. Every shot is the same chunk in a different
+and writes `docs/site/img/*.webp`; the shots that come from another lecture here
+say in the shot table why they have to. Every shot of the landing set is the
+same chunk in a different
 view, so they have to be taken the same way each time – a hand-taken set drifted
 in framing and shipped one figure at 860 px while the rest were 1440. It needs a
 Chromium (`$PSI_CHROME`, else the Playwright cache, else system Chrome) and
@@ -495,6 +497,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 
 - `lectures/network-security/source.md` – **thirty-six real lecture slides rebuilt as figures**, and the reason the outlines, `.turn`, `bars`, `grid`, `plot` and `.smooth` exist. Rebuilt from two PowerPoint decks with the wording kept verbatim (original typos included, each marked in a `#` comment) and the arrangement redrawn. Read it for what the vocabulary looks like at scale; `figure-design.md` is the rules it was built against. Linted **and built** by CI, as a compiler check on the largest body of real figures there is, but not published – unlike `lectures/diagrams/`, which is now both. Its views are not tracked, so a build here is the only thing that compiles it.
 - `lectures/python-intro/source.md` – richest example of `::: cols`, `::: side`, and `::: marginalia` in combination, 36 chunks. It is also what the project site's screenshots come from, so a change to `#why-playwright` means re-running `docs/site/shoot.mjs`.
+- `lectures/spoken-talk/source.md` – **a short talk written out word for word**, and the only lecture here whose `> note:` blocks are a script rather than reminders. It exists so the cockpit's cue-card mode can be photographed doing its job: `#second-time` is a figure with three `step` blocks and three notes pinned to those beats with `> note: from N`, so one press moves a card and the projection in turn. `docs/site/shoot.mjs` takes four frames of that chunk for `in-the-room.html`, addressed by id – **its chunk ids are the contract with that script**, like `docs/artifact/figure-rules/`. Six chunks, views not tracked.
 - `docs/artifact/` and `docs/site/figures.html` – **two pages, and the split is the point.** `docs/site/figures.html` is the *case* for the figure language; `docs/artifact/figures-you-write.html` is the *manual*. Both are produced by `docs/artifact/refresh-figures.mjs`, the only text that compiles a figure for publication, and its `--check` covers both – **run by `pages.yml` before it assembles the site and by `release.yml` beside the tracked-output check.** A staleness gate nothing runs is a comment. `docs/artifact/figure-rules/source.md` is the lecture both pages draw with, and it exists only to be compiled: CI lints it, so a compiler change that would spoil either page breaks it there first, where `node lint.js` can name the line. **Its chunk ids are the contract with the script – do not rename one without renaming it there too.** Everything else about the two pages, what the script owns and why the page fetches nothing at run time: `docs/artifact/README.md`.
 - `docs/comparison.md` – how psi-slides differs from Beamer, reveal.js, Quarto, Marp and friends, in both directions. Published as a page on the site.
 - `docs/site/DESIGN.md` – **the project site's design brief**: the one problem this site has that most do not (every picture on it is a picture of text), the stage-and-cue rules that follow from it, the one-frame-one-left-edge layout and the two layouts thrown away before it, the palette's single job, the two interactive devices, the list of what must not appear, and how to check a change – a contact sheet first, then per-container clipping, because page-level overflow does not see a box that clips its own content. Read it before changing `site.css` or either landing page. `desktop/DESIGN.md` is the same kind of document for the builder app.

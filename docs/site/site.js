@@ -75,10 +75,14 @@
    * scripting the three options stand in order with those labels as headings,
    * and the section still argues in three moves. The switch is the
    * enhancement, never the content.
+   *
+   * The same device answers a second question on "In the room": four frames of
+   * the cockpit, one per press, which a reader steps through. That is a
+   * different content and the same behaviour, so it is a second `.ways` and
+   * not a second script - a third way of switching something on this site
+   * would be a third thing to learn and a third thing to keep accessible.
    */
-  (function ways() {
-    var box = document.querySelector('.ways');
-    if (!box) return;
+  Array.prototype.forEach.call(document.querySelectorAll('.ways'), function (box) {
     var opts = Array.prototype.slice.call(box.querySelectorAll('.way'));
     if (opts.length < 2) return;
 
@@ -112,11 +116,13 @@
       btn.addEventListener('click', function () { show(btn.getAttribute('data-tie')); });
     });
 
-    /* Opens on the state a reader already knows - everything poured onto the
-       slides - so the argument is made rather than assumed. Opening on the
-       answer spends it before the question is asked. */
+    /* Opens on the first option. In the three ways that is the state a reader
+       already knows - everything poured onto the slides - so the argument is
+       made rather than assumed; opening on the answer spends it before the
+       question is asked. In the frame sequence it is the first press, which
+       is the only place a sequence can start. */
     show(opts[0].getAttribute('data-tie'));
-  })();
+  });
 
   /* ── the narrow-width menu ─────────────────────────────────────────────
    * The <details> opens, closes, and is keyboard-operable on its own. Two
