@@ -546,7 +546,7 @@ playwright install chromium
 
 ## example: Open a page | the smallest useful Playwright script {.wide #playwright-first-page}
 
-**The pattern is always the same: open a context, launch a browser, navigate, query, close.** `async with` guarantees cleanup even if the page raises.
+**Open a context, launch a browser, navigate, query, close.** `async with` guarantees cleanup even if the page raises.
 
 ```python
 import asyncio

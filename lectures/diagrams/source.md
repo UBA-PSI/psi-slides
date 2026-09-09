@@ -183,7 +183,7 @@ step recover
   dim feed0, feed1, feed2
 :::
 
-Each `step` is one press of the forward key. The chaining arrows carry one waypoint each (`via`), which is as much routing as these figures ever need.
+Each `step` is one press of the forward key. The chaining arrows carry one waypoint each (`via`), which is as much routing as these figures need.
 
 ## figure: Counter mode, encryption | twelve arrows nobody has to name {.full #ctr}
 
@@ -425,7 +425,7 @@ A `container` lays itself around its members and re-fits when they move. A `brac
 
 **Swimlanes are not a `container`, and the reason is what a container does.** A container measures itself against what it holds, so three lanes holding different numbers of things come out different lengths at both ends. A swimlane diagram says the opposite: the bands are equal, and only what happens inside them differs. `lanes` is for that – bands of equal width that want to know nothing about their contents. Part 5 draws one, under *Three roles, one incident*.
 
-**`.turn` applies to every label, not only to a box's.** The left brace reads bottom to top, and the same class does the same thing on a container caption and on an edge label – at all four places, that is, where a label is set at all.
+**`.turn` applies to every label, not only to a box's.** The left brace reads bottom to top, and the same class does the same thing on a container caption and on an edge label – at all four places where a label is set.
 
 ## figure: The look of a thing | fill and family {.full #look}
 
@@ -458,7 +458,7 @@ time, as the next four slides do.
 
 **`.paper` here looks inert and is not.** It is a box's default, but under a
 `default box {.tone-3}` a box without the class cannot find its way back, and a
-free `text` gets no background at all without it – that background is what knocks
+free `text` gets no background without it – that background is what knocks
 a line out behind a label. The rule drawn through the row is what tells `.paper`
 and `.clear` apart: one knocks the line out, the other lets it through.
 
@@ -579,7 +579,7 @@ Learn one form and you have all three.
 **The fourth state – ordinary prominence – deliberately has no name.** `{!dim}`
 takes the class off instead of adding a fourth word, and that holds for every
 class and in every tail. Without the mark there is no way back: a `style` step
-could only ever *add* a class, and many slots spell their base state as the
+could only *add* a class, and many slots spell their base state as the
 absence of every member, so a beat could leave such a state and never reach it
 again. `p5` is that case drawn – it carries `@prom`, the block gives `@prom` a
 `.dim`, and `{!dim}` beside it takes the class away again.
@@ -774,7 +774,7 @@ text incn "the names are the axis" below inc gap 0.55 {.small .muted}
 
 **Flat, the proportions are easier to read.** Every bar starts at the same vertical edge, and the eye compares lengths from one shared start line more reliably than heights over a shared floor: on the left you have to visit the tops of the columns in turn, on the right you read the ranking at a glance. A run of bars sorted downwards also looks like a ranking by itself.
 
-**And only flat is there room for the names at all.** A category called “DNS cache poisoning” cannot be written under an upright column, so the left-hand figure carries numbers and the room looks them up in a legend that does not exist here. The second string is what makes it possible: **a `|` in it splits on that instead of on spaces**, so a label may be as many words as it needs. `|` already separates the cells of a `table` row and the names in a `lanes` list.
+**And only flat is there room for the names.** A category called “DNS cache poisoning” cannot be written under an upright column, so the left-hand figure carries numbers and the room looks them up in a legend that does not exist here. The second string is what makes it possible: **a `|` in it splits on that instead of on spaces**, so a label may be as many words as it needs. `|` already separates the cells of a `table` row and the names in a `lanes` list.
 
 ## figure: A frame to draw in {.full #plot}
 
@@ -849,9 +849,9 @@ edge sb pb@0,pb@3.2 -- pb@8,pb@7.6 via pb@2,pb@4.4 pb@4,pb@5.2 pb@6,pb@6.8 {.smo
 
 **`same as` on a `plot` or `bars` line copies the whole frame.** The right-hand plot writes no size of its own but points at the left one, so the two figures match to the pixel. Two figures meant to be compared have to be ones the eye can lay over each other; two frames a hair apart cannot do that.
 
-**The copy happens as the line is read, not at layout time – unlike a box's.** Gridlines, axis labels and columns are placed from `w` and `h` the moment the line is read, so a size arriving later would move the frame and leave everything in it standing. **The statement being copied from has to stand above the one copying it**, and the build names what went wrong: a name that appears further down, one pointing at something other than a `plot` or `bars`, or one that is not in the block at all. `same as` beside `w`, `h` or `aspect` is an error, and so is `same as` on a `series of` line, a series drawing in a frame it does not lay.
+**The copy happens as the line is read, not at layout time – unlike a box's.** Gridlines, axis labels and columns are placed from `w` and `h` the moment the line is read, so a size arriving later would move the frame and leave everything in it standing. **The statement being copied from has to stand above the one copying it**, and the build names what went wrong: a name that appears further down, one pointing at something other than a `plot` or `bars`, or one that is not in the block. `same as` beside `w`, `h` or `aspect` is an error, and so is `same as` on a `series of` line, a series drawing in a frame it does not lay.
 
-**Frames of one size are not yet one scale.** `x` and `y` stand on each `plot` line for themselves, and nothing checks that two frames carry the same ranges – above they are written out twice, and that is the place to re-read before handing the slide over. `bars` has no range to write at all: every `bars` statement scales to its own highest value, so two frames of one size can hold columns that cannot be compared.
+**Frames of one size are not yet one scale.** `x` and `y` stand on each `plot` line for themselves, and nothing checks that two frames carry the same ranges – above they are written out twice, and that is the place to re-read before handing the slide over. `bars` has no range to write: every `bars` statement scales to its own highest value, so two frames of one size can hold columns that cannot be compared.
 
 ## figure: A raster does not follow the theme {.standard #raster}
 
@@ -1125,7 +1125,7 @@ step verdict
 
 **It calls the same advance the space bar does.** A counter of its own would have let the drawing and the beat counter drift apart, and the next keypress would have jumped. Because it *is* the counter, the speaker window follows through the ordinary sync and the freeze gate applies. `cycle` rewinds through the same counter, so the speaker window follows the rewind too.
 
-**The first keypress, click or scroll on this slide stops it.** Whoever has touched the figure has taken over, and a timer running on underneath them is worse than none. It is the *slide* that is taken over and not the session, because you reach a slide by pressing a key: a session-wide flag was retired by the very keypress that navigated here, and the figure then never moved at all. For the same reason it does not start on a slide that is already half revealed: half revealed means somebody left it that way.
+**The first keypress, click or scroll on this slide stops it.** Whoever has touched the figure has taken over, and a timer running on underneath them is worse than none. It is the *slide* that is taken over and not the session, because you reach a slide by pressing a key: a session-wide flag was retired by the very keypress that navigated here, and the figure then never moved. For the same reason it does not start on a slide that is already half revealed: half revealed means somebody left it that way.
 
 **Between 200 ms and 60 s, and outside that refused rather than clamped.** Under 200 ms the room reads no beat; over a minute a “moving” figure is a still one that changes while nobody is watching. A clamped number is a number nobody wrote.
 
