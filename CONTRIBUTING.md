@@ -175,6 +175,24 @@ the tutorial straight out of the archive. Building their own still needs
 `npm install`; the renderer depends on marked, Shiki and KaTeX, and the
 archive does not pretend otherwise.
 
+**The desktop app is packaged by a third workflow.** `.github/workflows/desktop.yml`
+runs on a push that touches `desktop/` or one of the engine files the app
+stages (`build.js`, `diagram-core.mjs`, `tails.mjs`, `editor.mjs`,
+`editor.css`, the root `package.json` and lockfile): it runs the app's tests
+and its smoke test, then builds unsigned packages for macOS, Windows and Linux
+and attaches them to the run as artefacts, for testing. The app and the engine
+carry the same version number, and the desktop packages become additional
+assets on the same release tag beside `psi-slides.tar.gz` and
+`psi-slides.zip`, whose names do not change.
+
+**The macOS release is signed and notarised on the maintainer's machine**, not
+in CI – `npm run dist:signed` in `desktop/`, with the Developer ID
+certificate in the keychain and the three notarisation variables in a
+gitignored `desktop/.env`, exactly as the Booklet Tool is released;
+`desktop/README.md` has the steps. Nothing of that is a repository secret.
+Windows has no code-signing certificate and stays unsigned; Linux packages
+are not signed by convention.
+
 Cutting a release:
 
 1. `node lint.js lectures/ docs/site/example/source.md` – clean.

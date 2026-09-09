@@ -96,6 +96,23 @@ from building the same way is a major version.
   and inventories every other survivor against a reviewed allowlist. The
   corpus gate now asserts how many blocks each file holds, and covers
   `lectures/decoration/` too.
+- **`--watch` watches the folder and filters on the file name.** An editor
+  that saves atomically – vim, gedit, VS Code by default – writes a temporary
+  file and renames it over the original, which gives the name a new inode. On
+  Linux inotify follows the inode, so a watch on `source.md` itself went quiet
+  after the first such save and every later one built nothing. A directory
+  watch survives the rename. The 80 ms debounce and the one rebuild per save
+  are unchanged, and an event for any other name in the folder is ignored.
+- **A build renders all four views before it writes any of them.** The
+  pre-flights refuse what can be seen before a renderer runs, but a defect
+  that only one renderer trips over used to leave two new files and two old
+  ones side by side – a projection that had moved on from its handout, with
+  nothing on disk saying so. Now either all four files are the new build or
+  none of them is, and a failed rebuild leaves the last good one whole.
+- **`ws` is a dependency, not a devDependency.** `--watch` is a documented
+  command and loads `ws` through `import('ws')`, so an installation made with
+  `npm ci --omit=dev` – which is what a packaged copy of the engine gets – had
+  everything it needed except the one module the watch server starts with.
 
 ### Added
 
@@ -274,6 +291,27 @@ from building the same way is a major version.
   under *Nesting*; every pair is a fixture in `test/settings.mjs`. Across
   both repositories the corpus nests exactly one thing, a figure in a pane,
   so no existing lecture changes.
+- **`--events` writes the build's state as JSON lines on stdout and reads
+  commands on stdin.** For a program that drives the build rather than reads
+  it – a desktop builder is the first – the alternative was to parse the human
+  log, which would have made a rewording of `[rebuild] …` a breaking change.
+  One object per line: `build-start`, `build-success` (with the views, the
+  shape, the duration and the number of hosted embeds), `build-error` (with
+  `userFacing` from the error object, and the stack when it is a defect here
+  rather than in the deck), `watching`, `serving`, `changed`, `patch`, `asset`
+  and `watch-error`. `{"type":"rebuild"}` builds now and
+  `{"type":"auto","enabled":false}` turns the watcher into a reporter without
+  ending the watch, because live reload and the diagram editor's write-back
+  hang off its socket. The human log is untouched beside it, and without the
+  flag nothing is written and stdin is not read at all.
+
+- **`--new <slug> --into <dir>` scaffolds the lecture folder somewhere else.**
+  Without `--into` nothing changes: the folder is still made under `lectures/`
+  in the working directory, which is right inside a checkout of this
+  repository and wrong for a content repository beside it or for a tool that
+  asks the author where the project should live. The template's `presenter:`
+  is now `TODO – presenter` like every other placeholder, rather than this
+  repository's maintainer.
 
 - **`style: {bold: …}` and `style: {print-bold: …}` set how a `**bold**` phrase
   looks, per view.** In this tool bold is a selection mark first – the collapse

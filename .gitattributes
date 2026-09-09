@@ -1,0 +1,5 @@
+# The engine tarball is `git archive` of everything tracked, and the desktop
+# app is not the engine: somebody who downloads psi-slides.tar.gz to build
+# slides should not find an Electron package in it that the README does not
+# explain. The app ships as its own release assets on the same tag.
+desktop/ export-ignore

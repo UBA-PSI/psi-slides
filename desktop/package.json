@@ -1,0 +1,76 @@
+{
+  "name": "psi-slides-builder",
+  "version": "1.0.0",
+  "private": true,
+  "description": "A desktop window around the psi-slides build: open a lecture's source.md, build it on every save, open the four views.",
+  "license": "MIT",
+  "homepage": "https://uba-psi.github.io/psi-slides/",
+  "author": {
+    "name": "Dominik Herrmann",
+    "url": "https://herdom.net"
+  },
+  "main": "main/main.js",
+  "scripts": {
+    "start": "electron .",
+    "stage-engine": "node scripts/stage-engine.mjs",
+    "test": "node --test test/events.test.mjs test/settings.test.mjs test/strings.test.mjs test/validation.test.mjs",
+    "smoke": "node test/smoke.mjs",
+    "dist": "node scripts/stage-engine.mjs && electron-builder",
+    "dist:signed": "node scripts/stage-engine.mjs && dotenv -- electron-builder --mac --publish never"
+  },
+  "devDependencies": {
+    "dotenv-cli": "^8.0.0",
+    "electron": "^44.0.0",
+    "electron-builder": "^26.0.0",
+    "playwright-core": "^1.61.1"
+  },
+  "build": {
+    "appId": "de.uni-bamberg.psi.slides-builder",
+    "productName": "psi-slides Builder",
+    "directories": {
+      "output": "dist",
+      "buildResources": "build"
+    },
+    "files": [
+      "main/**",
+      "renderer/**",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "engine",
+        "to": "engine"
+      }
+    ],
+    "afterPack": "scripts/after-pack.js",
+    "asar": true,
+    "npmRebuild": false,
+    "mac": {
+      "target": [
+        "dmg",
+        "zip"
+      ],
+      "category": "public.app-category.productivity",
+      "hardenedRuntime": true,
+      "signIgnore": [
+        "/Contents/Resources/engine/"
+      ],
+      "entitlements": "build/entitlements.mac.plist",
+      "entitlementsInherit": "build/entitlements.mac.plist",
+      "notarize": true
+    },
+    "win": {
+      "target": [
+        "nsis"
+      ]
+    },
+    "linux": {
+      "target": [
+        "AppImage",
+        "deb"
+      ],
+      "category": "Office",
+      "maintainer": "Dominik Herrmann <dominik.herrmann@uni-bamberg.de>"
+    }
+  }
+}

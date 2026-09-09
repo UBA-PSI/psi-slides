@@ -17706,6 +17706,33 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
 
 // ── CLI ──────────────────────────────────────────────────────────────
 
+// ── --events: NDJSON on stdout, commands on stdin ────────────────────
+//
+// For a tool that drives the build rather than reads it – the desktop
+// builder is the first. The alternative was to have that tool parse the
+// human log, which would have made a rewording of `[rebuild] …` a breaking
+// change and put a rule about it in CLAUDE.md; a flag of a few dozen lines
+// is cheaper than that rule.
+//
+// The human log is untouched: these are additional lines, and a tool tells
+// them apart by the leading `{"type":` – no log line of this build starts
+// that way. Without the flag `emitEvent` writes nothing and stdin is never
+// touched, so nothing about the ordinary command changes, not even whether
+// the process can exit.
+//
+// A channel of its own (Node IPC, a MessagePort) was the other option and
+// was dropped: build.js is plain Node started as plain Node, and a driver
+// should not have to start it any particular way to read its state.
+let eventsEnabled = false;
+// When the one-shot build started, so the top-level catch can time a failure
+// it did not start. --watch does its own timing inside `rebuild`.
+let oneShotStart = 0;
+
+function emitEvent(obj) {
+  if (!eventsEnabled) return;
+  process.stdout.write(JSON.stringify(obj) + '\n');
+}
+
 // Self-check on the inlined stylesheets. Every CSS block in this file lives
 // inside a template literal, where two edit mistakes are silent and costly:
 // an unterminated /* comment swallows the rules that follow it, and a stray
@@ -17882,10 +17909,17 @@ function buildOnce(absIn, only, opts = {}) {
     ['speaker',     renderSpeaker],
   ].filter(([name]) => !only || only === `--${name}-only`);
 
+  // Render every view first, write afterwards. The pre-flights above catch
+  // what can be seen before a renderer runs, but a defect that only one
+  // renderer trips over used to leave two new files and two old ones beside
+  // each other - a deck whose projection had moved on from its handout, with
+  // nothing on disk saying so. In two passes the last good build survives a
+  // failure whole: either all four files are the new one, or none of them is.
+  const rendered = targets.map(([name, render]) => [name, render(lecture, renderOpts)]);
   const written = [];
-  for (const [name, render] of targets) {
+  for (const [name, html] of rendered) {
     const p = path.join(outDir, `${name}.html`);
-    fs.writeFileSync(p, render(lecture, renderOpts));
+    fs.writeFileSync(p, html);
     written.push(path.relative(process.cwd(), p));
   }
   if (embedsThisBuild.length) {
@@ -17958,6 +17992,13 @@ async function runWatch(absIn, only, baseOpts = {}) {
   let nonce = crypto.randomBytes(16).toString('hex');
   const opts = { ...baseOpts, watchPort: port, watchNonce: nonce };
 
+  // Only a driver on stdin can turn this off, and the watch process stays up
+  // when it does: live reload and the editor's write-back hang off this
+  // socket and this nonce, so a process that died whenever somebody switched
+  // auto-build off would make every open page unwritable. Auto off means the
+  // watcher reports `changed` and does not build.
+  let autoBuild = true;
+
   const broadcast = (msg) => {
     for (const client of wss.clients) {
       if (client.readyState === 1) client.send(msg);
@@ -17970,15 +18011,36 @@ async function runWatch(absIn, only, baseOpts = {}) {
   // advice that cannot help while the build is broken. The pages are told,
   // and the refusal below names the real problem.
   let lastBuildError = null;
-  const rebuild = (label) => {
+  // `label` prefixes the human log line and `reason` rides in the event. They
+  // are the same word for every trigger but the file watcher, whose log line
+  // has said `[rebuild]` since the beginning and whose reason a driver wants
+  // to read as `change` – renaming the log line to match would break exactly
+  // the coupling --events exists to remove.
+  const rebuild = (label, reason = label) => {
+    emitEvent({ type: 'build-start', reason });
+    const t0 = Date.now();
     try {
       const { written, shape } = buildOnce(absIn, only, opts);
       lastBuildError = null;
       console.log(`[${label}] ${written.join(', ')} (${shape})`);
+      emitEvent({
+        type: 'build-success', reason,
+        views: written.map(p => path.basename(p, '.html')),
+        shape, durationMs: Date.now() - t0, embeds: embedsThisBuild.length,
+      });
       broadcast('reload');
     } catch (err) {
       lastBuildError = err.message;
       console.error(`[${label}] build failed: ${err.message}`);
+      emitEvent({
+        type: 'build-error', reason, message: err.message,
+        userFacing: !!err.userFacing,
+        // A userFacing error is instructions for the author, so a stack is
+        // noise; anything else is a defect here, and the driver shows it as
+        // one, which needs the stack.
+        stack: err.userFacing ? null : (err.stack || null),
+        durationMs: Date.now() - t0,
+      });
       broadcast(JSON.stringify({ type: 'build-failed', why: err.message }));
     }
   };
@@ -18061,8 +18123,10 @@ async function runWatch(absIn, only, baseOpts = {}) {
           fs.writeFileSync(dest, bytes);
         } catch (e) { return reply(false, 'cannot write the asset: ' + e.message); }
         console.log(`[asset] assets/${name} (${bytes.length < 1024 ? bytes.length + ' B' : (bytes.length / 1024).toFixed(0) + ' KB'})`);
-        // Deliberately no rebuild here. fs.watch is on source.md, so writing
-        // the asset alone changes nothing on screen – the `patch` that adds
+        emitEvent({ type: 'asset', file: name, bytes: bytes.length });
+        // Deliberately no rebuild here. The watcher only answers to
+        // source.md, so writing the asset alone changes nothing on screen
+        // – the `patch` that adds
         // the `image` line is what kicks the build, and by then the file is
         // on disk. Sending them the other way round fails the rebuild on an
         // asset it cannot find.
@@ -18096,22 +18160,72 @@ async function runWatch(absIn, only, baseOpts = {}) {
         fs.writeFileSync(absIn, src.slice(0, range[0]) + msg.text + src.slice(range[1]), 'utf8');
       } catch (e) { return reply(false, 'cannot write the source: ' + e.message); }
       console.log(`[patch] ${path.relative(process.cwd(), absIn)} – ${hit.chunk ? '#' + hit.chunk : 'a diagram'}, ${msg.text.length - hit.body.length >= 0 ? '+' : ''}${msg.text.length - hit.body.length} bytes`);
+      emitEvent({ type: 'patch', chunk: hit.chunk || null, delta: msg.text.length - hit.body.length });
       reply(true, '');
       // fs.watch fires on the write and the normal rebuild follows, so the
-      // editor never owns a parallel copy of anything.
+      // editor never owns a parallel copy of anything – unless auto-build is
+      // off, where the watcher only reports. A patch is a change the person
+      // just made on purpose, in a figure they are looking at, so it builds
+      // either way; with auto on, the file event does it and this would be a
+      // second build of the same bytes.
+      if (!autoBuild) rebuild('patch');
     });
   });
 
   rebuild('initial');
   console.log(`Watching ${path.relative(process.cwd(), absIn)} – live-reload active (open the HTML files in Chrome)`);
+  // Absolute, unlike the log line: a driver knows neither this process's
+  // working directory nor which folder a relative path is relative to.
+  emitEvent({ type: 'watching', source: absIn, dir: path.dirname(absIn), auto: autoBuild });
 
+  // The folder, not the file. An editor that saves atomically – vim, gedit,
+  // VS Code by default – writes a temporary file and renames it over the
+  // original, so the name gets a new inode. On Linux inotify follows the
+  // inode, so a watch on the file itself keeps reporting on a file nobody
+  // reads any more and the second save onwards is silent. A watch on the
+  // directory survives the rename; the filter below is what keeps it from
+  // rebuilding on every asset and every output the build just wrote.
+  //
+  // `filename` is null on some platforms and event types, and a lost name is
+  // not a reason to stop watching, so an unnamed event rebuilds.
+  //
   // Editors typically emit two close-spaced events per save (write +
   // rename on atomic save). Debounce so we rebuild once per save.
+  const watchDir = path.dirname(absIn);
+  const watchBase = path.basename(absIn);
   let timer = null;
-  fs.watch(absIn, { persistent: true }, () => {
+  fs.watch(watchDir, { persistent: true }, (_event, filename) => {
+    if (filename && filename !== watchBase) return;
     clearTimeout(timer);
-    timer = setTimeout(() => rebuild('rebuild'), 80);
+    timer = setTimeout(() => {
+      if (autoBuild) rebuild('rebuild', 'change');
+      else emitEvent({ type: 'changed' });
+    }, 80);
   });
+
+  // Commands, one JSON object per line. Only under --events, because reading
+  // stdin at all would keep an ordinary `--watch` alive past a closed pipe
+  // and change nothing for the better. An unparsable or unknown line is
+  // ignored rather than answered: this is a private channel between a driver
+  // and the process it started, and a complaint has nobody to reach.
+  //
+  // `end` is deliberately not handled. A driver may close its write end and
+  // keep reading events, and the watch is the thing the person opened; only
+  // a kill ends it.
+  if (eventsEnabled) {
+    const readline = await import('node:readline');
+    const rl = readline.createInterface({ input: process.stdin });
+    rl.on('line', (line) => {
+      let msg;
+      try { msg = JSON.parse(line); } catch { return; }
+      if (!msg || typeof msg !== 'object') return;
+      if (msg.type === 'rebuild') rebuild('manual');
+      else if (msg.type === 'auto') {
+        autoBuild = !!msg.enabled;
+        emitEvent({ type: 'auto', enabled: autoBuild });
+      }
+    });
+  }
 }
 
 // Phase-1-valid scaffold for `--new <slug>`. Builds without errors as
@@ -18121,7 +18235,7 @@ async function runWatch(absIn, only, baseOpts = {}) {
 function scaffoldSource(slug) {
   return `---
 title: TODO – Lecture title
-presenter: Prof. Dr. Dominik Herrmann
+presenter: TODO – presenter
 info: |
   TODO – first info line (date, location)
   TODO – second info line (course code, semester)
@@ -18154,9 +18268,14 @@ those are text, and this is the two lines that give it something to open.
 
 const SLUG_RE = /^[a-z][a-z0-9-]*$/;
 
-function runNew(slug) {
+// `into` is the folder the new lecture folder is created in. Without it the
+// destination is `lectures/` under the working directory, which is right for
+// somebody working inside a checkout of this repository and wrong for every
+// other caller - a content repository beside it, or the desktop builder,
+// which asks the author where the project should live.
+function runNew(slug, into) {
   if (!slug) {
-    console.error('Usage: node build.js --new <slug>   (e.g. --new wlab02)');
+    console.error('Usage: node build.js --new <slug> [--into <dir>]   (e.g. --new wlab02)');
     process.exit(1);
   }
   if (!SLUG_RE.test(slug)) {
@@ -18164,7 +18283,7 @@ function runNew(slug) {
     process.exit(1);
   }
 
-  const dir = path.resolve('lectures', slug);
+  const dir = into ? path.resolve(into, slug) : path.resolve('lectures', slug);
   if (fs.existsSync(dir)) {
     console.error(`Error: ${path.relative(process.cwd(), dir)} already exists. Pick a different slug or delete it first.`);
     process.exit(1);
@@ -18263,6 +18382,7 @@ async function runServe(rootDir, wantedPort) {
   const port = server.address().port;
   const base = `http://localhost:${port}`;
   console.log(`Serving ${path.relative(process.cwd(), rootDir) || '.'} on ${base}`);
+  emitEvent({ type: 'serving', url: base });
   for (const name of ['audience', 'speaker', 'print', 'print-notes']) {
     if (fs.existsSync(path.join(rootDir, `${name}.html`))) {
       console.log(`  ${base}/${name}.html`);
@@ -18274,7 +18394,7 @@ async function runServe(rootDir, wantedPort) {
 
 // Flags that consume the following argv token as their value, so it is not
 // mistaken for the source path.
-const VALUE_FLAGS = new Set(['--max-width', '--port', '--viewport', '--squint-out']);
+const VALUE_FLAGS = new Set(['--max-width', '--port', '--viewport', '--squint-out', '--into']);
 
 // ── driving the built projection (shared by --check-fit and --squint) ─
 // Two commands answer questions that only a rendered page can answer - does
@@ -19082,11 +19202,19 @@ async function runSquint(absIn, viewport, outArg) {
 async function main() {
   const argv = process.argv.slice(2);
   const flags = new Set(argv.filter(a => a.startsWith('--')));
+  // Set before anything else can emit: the pre-flights inside buildOnce throw
+  // through main's catch, and that catch reports a build-error.
+  eventsEnabled = flags.has('--events');
   const positional = argv.filter((a, i) =>
     !a.startsWith('--') && !VALUE_FLAGS.has(argv[i - 1]));
 
   if (flags.has('--new')) {
-    runNew(positional[0]);
+    const intoIdx = argv.indexOf('--into');
+    if (intoIdx >= 0 && !argv[intoIdx + 1]) {
+      console.error('--into takes a directory: node build.js --new <slug> --into <dir>');
+      process.exit(1);
+    }
+    runNew(positional[0], intoIdx >= 0 ? argv[intoIdx + 1] : null);
     return;
   }
 
@@ -19125,12 +19253,12 @@ async function main() {
     console.error('Usage:');
     console.error('  node build.js <source.md> [--watch] [--serve [--port N]] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
-    console.error('                            [--no-optimize-images]');
+    console.error('                            [--no-optimize-images] [--events]');
     console.error('  node build.js <source.md> --check-fit [--viewport 1600x900]');
     console.error('  node build.js <source.md> --squint [--squint-out PATH] [--viewport 1600x900]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
-    console.error('  node build.js --new <slug>');
+    console.error('  node build.js --new <slug> [--into <dir>]');
     console.error('');
     console.error('Image inlining (default: auto – inline iff referenced images sum < 10 MB; per-image cap 2 MB):');
     console.error('  --inline-images       force inlining regardless of total size');
@@ -19160,6 +19288,10 @@ async function main() {
     console.error('                        bolds, what stays whole, what the collapse withholds – to');
     console.error('                        squint.txt beside the source. Never fails a build.');
     console.error('  --squint-out PATH     write it somewhere else; "-" writes to stdout.');
+    console.error('');
+    console.error('Driving the build from another program:');
+    console.error('  --events              emit build events as JSON lines on stdout and accept');
+    console.error('                        commands on stdin; for tools that drive the build.');
     console.error('');
     console.error('Annotation integration:');
     console.error('  --integrate-annotations   move `> annot:` blocks from a trailing');
@@ -19210,6 +19342,7 @@ async function main() {
   if (flags.has('--watch')) {
     runWatch(absIn, only, opts).catch(err => {
       console.error(`Watch failed: ${err.message}`);
+      emitEvent({ type: 'watch-error', message: err.message });
       process.exit(1);
     });
     // Serving is layered on top of watching rather than instead of it, so
@@ -19220,9 +19353,16 @@ async function main() {
     return;
   }
 
+  emitEvent({ type: 'build-start', reason: 'manual' });
+  oneShotStart = Date.now();
   const { written, shape } = buildOnce(absIn, only, opts);
   reportWebpInline();
   console.log(`Wrote ${written.join(', ')} (${shape})`);
+  emitEvent({
+    type: 'build-success', reason: 'manual',
+    views: written.map(p => path.basename(p, '.html')),
+    shape, durationMs: Date.now() - oneShotStart, embeds: embedsThisBuild.length,
+  });
   // After the build, because it measures what the build just wrote. Its
   // exit code is the command's: a slide that does not fit is a defect the
   // author has to see, and a clean lint will not report it.
@@ -19250,5 +19390,16 @@ main().catch(err => {
   // userFacing errors carry instructions for the author; anything else is a
   // defect in the build and deserves its stack.
   console.error(err && err.userFacing ? err.message : err);
+  // The one-shot path has no try/catch of its own – the pre-flights throw
+  // straight through main – so this is where a driver hears that the build
+  // refused the deck. Under --watch the failure was already reported by
+  // `rebuild` and never reaches here.
+  emitEvent({
+    type: 'build-error', reason: 'manual',
+    message: (err && err.message) || String(err),
+    userFacing: !!(err && err.userFacing),
+    stack: err && err.userFacing ? null : ((err && err.stack) || null),
+    durationMs: oneShotStart ? Date.now() - oneShotStart : 0,
+  });
   process.exit(1);
 });

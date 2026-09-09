@@ -20,6 +20,15 @@ node build.js lectures/tutorial/source.md
 # live-reload authoring (WebSocket reload to open tabs on every save)
 node build.js lectures/tutorial/source.md --watch
 
+# for a program that drives the build rather than reads it (the desktop
+# builder is the first): one JSON object per line on stdout – build-start,
+# build-success, build-error, watching, serving, changed, patch, asset,
+# watch-error – and commands on stdin, {"type":"rebuild"} and
+# {"type":"auto","enabled":false}. The human log is untouched beside it; a
+# driver tells the two apart by the leading `{"type":`. Without the flag,
+# stdin is not read at all.
+node build.js <source.md> --watch --events
+
 # partial builds (useful for iterating on one renderer)
 node build.js <source.md> --audience-only
 node build.js <source.md> --print-only
@@ -66,7 +75,9 @@ node build.js <source.md> --optimize-images --max-width 2600   # also downscale
 # inlined only into views that contain math; the build logs the payload.
 
 # scaffold a new lecture folder with valid frontmatter + example chunks
+# (in lectures/ by default; --into puts it anywhere else)
 node build.js --new my-slug
+node build.js --new my-slug --into ~/Documents/talks
 
 # integrate exported live annotations back into source.md – paste the
 # speaker's Shift-E snippet (marker-wrapped) at the end of source.md, then:
@@ -401,6 +412,34 @@ the frame while it is typed and puts a code above the words.
 own message types rather than through the state snapshot – `applyRemoteState` is
 a *full* apply, so a snapshot sent for one field drags the receiver's slide
 position with it. See `speaker.md` §2.
+
+### Desktop app (`desktop/`)
+
+An Electron window around the build for people who will not open a terminal:
+open a `source.md`, build on every save, open the four views. **It is its own
+package** – `desktop/package.json`, its own lockfile, its own `node_modules/`
+– and nothing of it reaches the root: no Electron in the root `package.json`,
+no root script that touches `desktop/`, `desktop/ export-ignore` in
+`.gitattributes` so the engine tarball stays what the README says it is, and
+`desktop.yml` is path-filtered so a lecture commit does not run a
+three-platform matrix. Its tests live in `desktop/test/` with their own
+runner; `npm test` in the root does not run them.
+
+**The app drives `build.js` through `--events`, never through the human log.**
+It spawns the engine as a child (`ELECTRON_RUN_AS_NODE`, argument array, no
+shell) with `--watch --events`, reads the JSON lines on stdout as state and
+everything else on stdout and stderr as the raw log, and sends `rebuild` and
+`auto` commands on stdin. So the event names and fields in the `--events`
+section of `build.js` are an interface with one consumer: change one there
+and `desktop/main/builder.js` and its `events.test.mjs` change in the same
+commit. The human log lines are free to move. The engine the packaged app
+runs is a copy staged by `desktop/scripts/stage-engine.mjs` – `build.js` and
+the four files it reads relative to itself plus a production `npm ci` – so a
+new runtime file that `build.js` reads via `import.meta.url` has to be added
+to that script's list or the packaged app builds without it.
+
+The design brief the interface is built against is `desktop/DESIGN.md`; the
+plan, its decisions and its build log are `PLAN-electron-builder.md`.
 
 ## Reference material
 
