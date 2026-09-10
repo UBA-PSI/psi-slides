@@ -1686,15 +1686,6 @@ footer p { max-width: none; }
   color: var(--ink-soft);
   margin-left: 0.3rem;
 }
-.get > .state {
-  font-size: var(--fs-note);
-  color: var(--ink-soft);
-  margin: 0 0 0.75rem;
-  max-width: none;
-}
-/* `strong` inside it is the word the state turns on, so it keeps the ink the
-   rest of the line gives up. */
-.get > .state strong { color: var(--ink); }
 .file {
   display: block;
   border: 1px solid var(--rule);
@@ -1975,3 +1966,100 @@ footer p { max-width: none; }
    line a break opportunity at every separator without touching the markup. */
 .more-lecture .opens { font-size: var(--fs-note); display: flex; flex-wrap: wrap; align-items: baseline; }
 .more-lecture .opens span { color: var(--rule); padding: 0 0.25rem; }
+
+/* ══════════════════════════════════════════════════════════════════════════
+ * ── Later pass: three alignment faults and the download block ─────────────
+ *
+ * Everything below was added in one pass over `decoration.html`,
+ * `figures.html` and the download block on `getting-started.html`, and it is
+ * kept together at the foot of the file rather than filed beside the rules it
+ * adjusts, because a second branch was editing the middle of this stylesheet
+ * at the same time. Fold it into the sections above when that has landed.
+ * ══════════════════════════════════════════════════════════════════════════ */
+
+/*
+ * ── The hero buttons on `figures.html` stood in a hole ────────────────────
+ *
+ * `.hero-col .cta` was pushed down with `margin-top: auto` so that the two
+ * hero columns would end on one line. The right column carries a drawing, so
+ * the push was 222px against 32px underneath: a ratio of seven to one, and
+ * the client's word for it was that the buttons hang in the air. The two
+ * columns ending together is worth less than the buttons reading as the end
+ * of the sentence above them, so the push is gone and the pair now sits in
+ * the page's own rhythm – a step above, a slightly smaller step below.
+ */
+.hero-col .cta {
+  margin-top: clamp(1.8rem, 2.6vw, 2.6rem);
+  margin-bottom: clamp(1.4rem, 2vw, 2rem);
+}
+@media (max-width: 63.99rem) {
+  .hero-col .cta { margin-top: clamp(1.2rem, 3vw, 1.8rem); }
+}
+
+/*
+ * ── The editor section on `figures.html`: two rows, no sub-heading ────────
+ *
+ * The picture is followed by two paragraphs about the window and three about
+ * opening it, and an h3 used to stand between them. It sat 8px above the
+ * first of three columns, so it read as a label for that column rather than
+ * for the row, and it cut two halves of one subject apart. The heading is
+ * gone (the page carries the note) and what separates the rows is air. The
+ * number is set against the 72px above the first row rather than chosen: the
+ * two paragraphs belong to the picture over them, so the step down to the
+ * three that follow has to be the larger of the two or the block reads as
+ * belonging to the picture as well.
+ */
+.wrap > .pair-up + .pair-up.trio { margin-top: clamp(2.4rem, 6vw, 5.2rem); }
+
+/*
+ * ── A table directly under its heading ────────────────────────────────────
+ *
+ * Every h2 on the site is followed by 18px of air, which is right for a lede
+ * and wrong for a table: a table is looked at rather than read, so it is the
+ * same category as a stage, and 18px reads as pressed against the heading.
+ * The rule is on the wrapper rather than on the table, because the wrapper is
+ * what stands in the flow.
+ */
+h2 + .scroller { margin-top: clamp(1.5rem, 3vw, 2.5rem); }
+
+/*
+ * ── The packages: one card per system, the alternative as a link ──────────
+ *
+ * Five equally weighted boxes made five decisions out of one. Each system now
+ * shows the package almost everybody takes as a card, and its alternative
+ * underneath as the bare filename – close enough to the card to belong to
+ * it, far enough not to read as a second offer.
+ *
+ * `(experimental)` rides in the line that names the system. It is neither
+ * coloured nor italic: DESIGN.md's list of what must not appear covers one
+ * word in a heading set that way, and this is the smallest type of the block
+ * doing what the removed `.state` line did in a whole sentence.
+ */
+.get > .sys .try {
+  font-family: inherit;
+  font-size: var(--fs-fine);
+  font-weight: 400;
+  color: var(--ink-soft);
+}
+/* The card is the one thing in its column that is pressed, so it carries a
+   line more of padding than the old row of equals did and its first line is
+   the prose size rather than the note size. */
+.gets .file { padding: 0.62rem 0.8rem 0.7rem; }
+.gets .file b { font-size: var(--fs-body); }
+.get > .alt {
+  margin: 0.7rem 0 0;
+  font-size: var(--fs-fine);
+  max-width: none;
+}
+/* The alternative is the page's quietest link: the filename in the ink the
+   captions use, underlined so it still reads as one. In accent red it was the
+   loudest thing in its column, which is the wrong way round for the package
+   most people will not take. */
+.get > .alt a { font-family: var(--mono); overflow-wrap: anywhere; color: var(--ink-soft); }
+.get > .alt a:hover, .get > .alt a:focus-visible { color: var(--accent); }
+/* More air under the row than inside it: "The first start" answers what to do
+   with a package once it is downloaded, and it is a section of its own. */
+/* And a step above it too: the row is a thing to look at, and 18px under the
+   paragraph that introduces it is the distance between two paragraphs. */
+.gets { margin-top: clamp(1.3rem, 2.4vw, 2rem); }
+.gets + h3 { margin-top: clamp(2.6rem, 5vw, 4.4rem); }
