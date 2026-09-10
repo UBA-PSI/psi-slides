@@ -198,6 +198,18 @@ carry the same version number, and the desktop packages become additional
 assets on the same release tag beside `psi-slides.tar.gz` and
 `psi-slides.zip`, whose names do not change.
 
+**The site's download links change after the tag, never with it.** The link
+gate in `docs/site/build-site.js` resolves internal targets and fragments; it
+does not fetch an external URL, so a page pointing at
+`releases/download/builder-<next>/…` passes the gate whether or not that
+release exists – and `pages.yml` redeploys on every push to `main`, which
+makes a commit that changes a download link a publish rather than a staging
+step. So: push the tag, wait for `desktop-release.yml` to attach all five
+assets, check them (`gh release view builder-<version> --json assets`, or a
+`curl -sIL -o /dev/null -w '%{http_code}'` per link), and only then commit
+the version strings in `docs/site/getting-started.html` and
+`getting-started.de.html` – six URLs and one `<code>` per page.
+
 **The macOS release is signed and notarised on the maintainer's machine**, not
 in CI – `npm run dist:signed` in `desktop/`, with the Developer ID
 certificate in the keychain and the three notarisation variables in a
