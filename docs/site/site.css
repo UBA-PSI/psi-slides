@@ -1562,24 +1562,28 @@ body.lightbox-open { overflow: hidden; }
  * `.said` that carries a further sub-heading further down (the download
  * table's on `getting-started.html`) must not have that one hoisted into
  * row 1, which is what `:first-child` is doing here.
+ *
+ * And not where the column is MUCH shorter than the listing: there the drop
+ * is the fault rather than the fix, and `.heading-in` says so. See the last
+ * block of this file.
  */
 @media (min-width: 68rem) {
-  .aside-code:has(> .said > :is(h2, h3):first-child),
+  .aside-code:not(.heading-in):has(> .said > :is(h2, h3):first-child),
   .beside:has(> .said > h3:first-child) { row-gap: 0; }
-  .aside-code:has(> .said > :is(h2, h3):first-child) > .said,
+  .aside-code:not(.heading-in):has(> .said > :is(h2, h3):first-child) > .said,
   .beside:has(> .said > h3:first-child) > .said { display: contents; }
-  .aside-code:has(> .said > :is(h2, h3):first-child) > .said > :is(h2, h3),
+  .aside-code:not(.heading-in):has(> .said > :is(h2, h3):first-child) > .said > :is(h2, h3),
   .beside:has(> .said > h3:first-child) > .said > h3 { grid-row: 1; }
 
   /* words on the left, the answer on the right */
-  .aside-code.words-first:has(> .said > :is(h2, h3):first-child) > .said > *,
+  .aside-code.words-first:not(.heading-in):has(> .said > :is(h2, h3):first-child) > .said > *,
   .beside:has(> .said > h3:first-child) > .said > * { grid-column: 1; }
-  .aside-code.words-first:has(> .said > :is(h2, h3):first-child) > pre,
+  .aside-code.words-first:not(.heading-in):has(> .said > :is(h2, h3):first-child) > pre,
   .beside:has(> .said > h3:first-child) > :not(.said) { grid-column: 2; grid-row: 2 / span 99; }
 
   /* and the mirror, where the listing comes first in the file */
-  .aside-code:not(.words-first):has(> .said > :is(h2, h3):first-child) > .said > * { grid-column: 2; }
-  .aside-code:not(.words-first):has(> .said > :is(h2, h3):first-child) > pre { grid-column: 1; grid-row: 2 / span 99; }
+  .aside-code:not(.words-first):not(.heading-in):has(> .said > :is(h2, h3):first-child) > .said > * { grid-column: 2; }
+  .aside-code:not(.words-first):not(.heading-in):has(> .said > :is(h2, h3):first-child) > pre { grid-column: 1; grid-row: 2 / span 99; }
 }
 
 /* Deliberately narrow, evenly spaced. The closing section is four links and
@@ -2244,3 +2248,50 @@ h2 + .scroller { margin-top: clamp(1.5rem, 3vw, 2.5rem); }
     align-self: center;
   }
 }
+
+/*
+ * ── The same decision one heading level down ──────────────────────────────
+ *
+ * "Where the thing beside a headed column starts" puts a sub-heading on the
+ * row's first line and starts the listing level with the prose under it. That
+ * is right while the column is nearly as tall as the listing: the heading is
+ * at the top of what it names, the row is filled on both sides, and the two
+ * top edges do not read as one rule with code on one side and prose on the
+ * other.
+ *
+ * Where the column is MUCH shorter it is the same fault the h2 block above
+ * answers, one level down: the heading is pinned to the row's top edge, the
+ * words below it are not, and what stands between them is a hole with a
+ * listing beside it. `.heading-in` is the same answer too - heading and words
+ * are ONE block, centred against the listing - and it needs no new geometry,
+ * only the drop switched off: `.aside-code` is already `align-items: center`,
+ * so with `.said` left as a normal grid item the column centres itself. Hence
+ * `:not(.heading-in)` up in that block rather than a second mechanism here.
+ *
+ * It is a decision per row, measured, for the reason the h2 case is - and the
+ * measurement is the hole rather than a ratio, because the drop puts the hole
+ * somewhere a ratio cannot see. At 1440 on "In the room" the heading stood at
+ * the row's top edge, the prose under it started 42px lower with the listing,
+ * and the prose ENDED 99px above the listing's last line in English and 71px
+ * in German: a hole under four lines of words, beside code, with the heading
+ * out of reach above it. Centred, the same spare room is 28px over and 28
+ * under in English, 14 and 14 in German, which is margin. "Two steps, after
+ * the hour" on the same page had the identical fault (95px in English, 67 in
+ * German) and takes the class for the identical reason - a rule applied to
+ * one of two identical cases in one file is the patch-where-it-shows that
+ * DESIGN.md's band section is a record of. The three rows on
+ * "Getting started" keep the drop, and no measurement was needed to decide
+ * it: their columns are TALLER than their listings (109-120 %), so there is
+ * no hole under the words at all.
+ *
+ * THE SEAM ABOVE. The row used to open with its heading hard against its own
+ * top edge, and that edge is what separated it from the paragraph that
+ * introduces it - 35px at 1440, which is a paragraph's distance and was
+ * enough while an edge was doing the rest of the work. Centred, the row's
+ * first ink sits inside it and there is no edge left, so the seam has to
+ * carry the whole separation. The page already has a number for that: the
+ * clamp on `.beside + *`, the seam between a row and its neighbour, 72px at
+ * 1440. It is given above rather than invented.
+ */
+:is(p, .lede) + .aside-code.heading-in { margin-top: clamp(2.4rem, 5vw, 5.5rem); }
+

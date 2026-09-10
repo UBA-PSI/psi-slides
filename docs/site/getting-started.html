@@ -41,14 +41,15 @@
     <p><strong><a href="#app">The app</a></strong> you download, and it builds
     the files at the press of a button. Open a <code>source.md</code> in it and
     it rebuilds the lecture every time you save. Nothing else has to be
-    installed: no Node, no terminal.</p>
+    installed: no Node, no terminal, not even a copy of psi-slides &ndash; the
+    app carries the one it was packaged with.</p>
    </div>
    <div>
     <p><strong><a href="#command-line">The command line</a></strong> starts with
     a clone and an <code>npm install</code>, for people who already work in a
-    terminal. It is the way to have a build server run psi-slides unattended in
-    a CI job, and the way to write a lecture with a language model beside you:
-    the repository carries the skills that teach one the format.</p>
+    terminal. It is how a CI job builds a lecture unattended, and how you write
+    one with a language model beside you: the repository carries the skills that
+    teach it the format.</p>
    </div>
   </div>
  </div>
@@ -171,10 +172,9 @@
     mid-lecture.</p>
     <p>There are two switches. Set <strong>Open the views through a local web
     address</strong> and you get a small local server: embedded YouTube
-    and Vimeo players refuse to run from a file, and an address is what they
-    need. Under <strong>Open the views in</strong> you pick Chrome or
-    Edge, the browsers psi-slides is tested in, or whatever your system opens
-    HTML with.</p>
+    and Vimeo players refuse to run from a file and need an address. Under
+    <strong>Open the views in</strong> you pick Chrome or Edge, the browsers
+    psi-slides is tested in, or whatever your system opens HTML with.</p>
    </div>
    <div>
     <p>It is <strong>not a Markdown editor</strong>. You write the lecture in
@@ -184,7 +184,9 @@
     <p>Nor are the two ways two tools: the app runs the same
     <code>build.js</code> on the same <code>source.md</code> and produces the
     same four views. <strong>Nothing leaves the computer.</strong> No account,
-    no telemetry, no update check, no network access.</p>
+    no telemetry, no update check, no network access &ndash; and the local web
+    address above is bound to <code>127.0.0.1</code>, reachable from this
+    machine and from nothing else.</p>
    </div>
   </div>
  </div>
