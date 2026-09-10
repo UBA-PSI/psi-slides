@@ -1844,10 +1844,14 @@ footer p { max-width: none; }
  * controls, so it keeps all six and goes small. Here it is one of two answers
  * a reader compares against the other, so the status line and the four view
  * buttons have to be readable rather than merely present, and everything
- * below them belongs to a sentence this section does not make. The crop is
- * `magick builder.webp -crop 1520x690+0+0 +repage -background '#f9f9f9'
- * -gravity north -extent 1520x718` - the last 28 rows are the window's own
- * background, so the table underneath it is not cut off at the edge.
+ * below them belongs to a sentence this section does not make.
+ *
+ * It is the whole window again since the words column became the section
+ * itself - heading, lede, tabs, words, and the button that sends a reader on.
+ * The column has height to fill now, so the picture is given the tallest crop
+ * there is, and the two rows the old 1520x718 crop cut off are exactly the
+ * ones the paragraph beside it names: open the source.md in any editor, save
+ * it, and the four views are built again.
  */
 .ways-two .way { grid-template-columns: minmax(0, 1fr); }
 /* The stage takes the row's height whatever the words do, or the listing has
@@ -2067,3 +2071,171 @@ h2 + .scroller { margin-top: clamp(1.5rem, 3vw, 2.5rem); }
    paragraph that introduces it is the distance between two paragraphs. */
 .gets { margin-top: clamp(1.3rem, 2.4vw, 2rem); }
 .gets + h3 { margin-top: clamp(2.6rem, 5vw, 4.4rem); }
+
+/*
+ * ══ The heading that comes back into the column ═══════════════════════════
+ *
+ * A later slice, kept as one block at the end of the file so it can be read
+ * as one decision rather than hunted for in four places.
+ *
+ * The band puts a section's heading above the row, at the frame's left edge,
+ * and that is still right where the words column is nearly as tall as the
+ * stage: the heading stands at the top of what it names and the row starts
+ * under it, filled on both sides.
+ *
+ * Where the words are much shorter than the stage it is wrong, and the fault
+ * is visible rather than theoretical. The column is centred, so it starts
+ * halfway down; the heading stays at the top; and between the two there is a
+ * hole a third of a screen deep with the picture standing beside it. The
+ * heading then reads as belonging to nothing - it names a section whose text
+ * begins 200px below it - which is the same complaint the band was built to
+ * answer, moved one element up.
+ *
+ * So: where the words are much shorter than the stage, the heading goes back
+ * INTO the words column, and heading and words are centred against the stage
+ * TOGETHER, as one block. Nothing floats: the column is a single stack from
+ * its first line to its last, and the space left over is split above and
+ * below it, which is the band's own rule applied to one element more.
+ *
+ * It is a decision per section and not a rule CSS can derive - the heights
+ * are set by the picture and by the number of sentences, and the browser
+ * cannot be asked "is this much shorter". Hence a class, hence a measurement
+ * before each one is set. Measured at 1440 with both languages open, the
+ * bands carrying it are 39-68 % of their stage's height; the ones left alone
+ * are 79-88 %, and one at 43-48 % is mirrored, which is the next paragraph.
+ *
+ * THE HEADING FOLLOWS ITS TEXT COLUMN. There is no rule here that says left:
+ * the h2 is a child of `.said`, so it lands wherever `.said` lands, and a
+ * mirrored band that carried it would put it on the right. That case does
+ * not arise today, and the reason is worth writing down: a MIRRORED band has
+ * no hole under its heading, because what stands under the heading is the
+ * stage, which starts at the row's top edge and is the tall half. The fault
+ * this block answers exists only where the heading and the short column are
+ * on the same side.
+ *
+ * The heading keeps the site's one h2 size. It was set two steps down inside
+ * a column once, and the page then had two h2 sizes depending on whether a
+ * section happened to be a band - a contact sheet is scanned by heading size,
+ * so that is the one thing that may not be traded for a tidier column. What
+ * gives instead is the line count: "A slide is a frame, not only a column of
+ * text" is three lines at 24rem, and three lines of h2 is a heading rather
+ * than a problem. `text-wrap: balance` is already on it.
+ */
+.beside.heading-in > .said > h2 {
+  /* Above its own text, and no more: the h2's page-level 1.1rem is measured
+     against a lede that begins a section, not against the two sentences of a
+     column. */
+  margin-bottom: 0.7rem;
+  /* 22ch is a cap for a heading with the frame's width to run in. In a 24rem
+     column the column is the cap, and leaving 22ch on made the German
+     headings break a word earlier than they had to. */
+  max-width: none;
+}
+/* The band's first line is now the heading, and the heading carries its own
+   space; `.beside .lede { margin-bottom: 0 }` already holds for the last. */
+.beside.heading-in > .said > h2 + .lede { margin-top: 0; }
+
+/*
+ * ── Enough air over and under a heading that is not at the top ────────────
+ *
+ * A heading at the frame's left edge marks where a section starts: it is the
+ * first ink after the gap, and the gap plus the heading's own line is what a
+ * reader reads as "new section". A heading inside a band marks nothing of the
+ * kind - it stands at the row's middle, beside a picture, with the section's
+ * boundary now carried by the gap alone.
+ *
+ * So the gap has to carry more, and how much more is measurable: exactly what
+ * the heading used to contribute above the row. At 1440 that is the h2's line
+ * box, 46.4px at line-height 1.1 = 51px, plus the 1.1rem margin under it =
+ * 21px: 72px that used to stand between the previous section and this row and
+ * no longer does. Give it back, once above and once below - below as well
+ * because the section now ENDS without a structural mark too, and an ending
+ * that is only a gap is the same problem read downwards.
+ *
+ * 72px on a 172px gap is 42 %, so the band's padding is taken up by half:
+ * 6vw -> 9vw, and the two clamp ends with it. At 1440 the gap between such a
+ * band and its neighbour is 216px instead of 172, and between two of them 259.
+ * The section gap is still the thing that separates two sections; it is now
+ * doing the whole job rather than three quarters of it.
+ */
+.band:has(> .wrap > .beside.heading-in),
+.band:has(> .wrap > .two-ways) { padding: clamp(4.5rem, 9vw, 11.25rem) 0; }
+
+/*
+ * ── "Getting started" on the front page: the tail beside the picture ──────
+ *
+ * The one section of the three that is not a `.beside`, and the one where
+ * moving the heading alone would have fixed nothing: above the row stand a
+ * heading, a lede AND the chooser's tab row, so the hole is not under the
+ * heading but under the tabs, and the sentence and the button that follow the
+ * band began under it at the frame's left edge with half a screen of nothing
+ * above them.
+ *
+ * The whole section becomes one band instead. Column one is the section
+ * itself, top to bottom - heading, lede, tabs, the option's words, and the
+ * sentence and button that send a reader to the next page - and column two is
+ * the option's picture, spanning the lot. Nothing is left over to hang under
+ * anything, and the call to act stands beside the evidence rather than under
+ * a hole.
+ *
+ * What has NOT changed is the thing the arrangement was built for. The two
+ * options still lie in one cell and still hide with `visibility`, so the row
+ * is as tall as the taller of the two and nothing moves when the switch is
+ * pressed; and the tail is still outside every `.way`, so it does not switch
+ * and does not belong to one of the two options. It is a child of the row for
+ * placement and of neither option for meaning.
+ *
+ * `display: contents` on the panels is what puts their two halves into the
+ * row's own grid, and it is why `visibility` still works: visibility is
+ * inherited, so a panel that generates no box of its own still hides its
+ * children and still keeps them out of the tab order and the accessibility
+ * tree.
+ *
+ * Two `1fr` rows, above and below the words-and-tail pair, are what centres
+ * that pair against the picture. Auto rows would not: a grid item spanning
+ * several intrinsic tracks hands its extra height to those tracks, so the
+ * space would have opened up BETWEEN the words and the button rather than
+ * around them. A flexible track takes the leftover instead and leaves the
+ * intrinsic ones at their content height.
+ *
+ * Gated on `:has(.is-switched)` and on the 80rem breakpoint the arrangement
+ * already had. Without scripting, and under 80rem, `.two-ways` is a plain
+ * block: the two options stand under each other with their labels, the tail
+ * follows them, and the section still says what it came to say.
+ */
+.wrap > .two-ways { max-width: none; }
+@media (min-width: 80rem) {
+  .two-ways:has(> .ways-two.is-switched) {
+    display: grid;
+    grid-template-columns: minmax(0, 24rem) minmax(0, 1fr);
+    /* space | heading | lede | tabs | words | tail | space */
+    grid-template-rows: 1fr auto auto auto auto auto 1fr;
+    column-gap: clamp(1.6rem, 3.2vw, 3.8rem);
+    row-gap: 0;
+  }
+  .two-ways:has(> .ways-two.is-switched) > h2 { grid-area: 2 / 1 / 3 / 2; max-width: none; margin-bottom: 0.7rem; }
+  .two-ways:has(> .ways-two.is-switched) > .lede { grid-area: 3 / 1 / 4 / 2; font-size: var(--fs-body); max-width: none; margin-bottom: 1.4rem; }
+  .two-ways:has(> .ways-two.is-switched) > .way-tabs { grid-area: 4 / 1 / 5 / 2; margin-bottom: 1.4rem; }
+  .two-ways:has(> .ways-two.is-switched) > .ways-on { grid-area: 6 / 1 / 7 / 2; margin-top: 1.4rem; }
+  /* The chooser and its panels dissolve into the row; the halves are placed. */
+  .two-ways:has(> .ways-two.is-switched) > .ways-two,
+  .two-ways .ways-two.is-switched .way,
+  .two-ways .ways-two.is-switched .way.is-shown { display: contents; }
+  /* The words row is as tall as the LONGER of the two options, so the shorter
+     one has room to spare in it. Centred, not pinned to the top: the spare
+     room is then a line above and a line below rather than four lines between
+     the paragraph and the button, which is the same hole this whole slice is
+     about, one cell down. */
+  .two-ways .ways-two.is-switched .way > .way-said { grid-area: 5 / 1 / 6 / 2; align-self: center; }
+  .two-ways .ways-two.is-switched .way > .stage { grid-area: 1 / 2 / 8 / 3; align-self: stretch; }
+  /* The words column is now the taller half - it carries the section rather
+     than four lines - so the stage has room to spare under the window, and a
+     picture pinned to the top of a field it does not fill leaves that room on
+     one side only. A field's margin is even (DESIGN.md, fifth rule), so the
+     window is centred in it. The listing is exempt and keeps stretching: it
+     is text in a recess, it fills whatever height it is given, and that is
+     what a terminal looks like anyway. */
+  .two-ways .ways-two.is-switched .way > .stage > figure.shot:not(:has(> pre)) {
+    align-self: center;
+  }
+}

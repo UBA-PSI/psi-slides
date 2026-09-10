@@ -77,9 +77,9 @@
 
 <section class="band">
  <div class="wrap">
-  <h2 id="the-film">Die Kurzfassung in einer Minute</h2>
-  <div class="beside">
+  <div class="beside heading-in">
    <div class="said">
+    <h2 id="the-film">Die Kurzfassung in einer Minute</h2>
     <p class="lede">Das Argument dieser Seite als Film: woraus eine Vorlesung
     besteht, was aus einer Datei entsteht und wie die Stunde im Hörsaal aussieht.
     Mit Untertiteln.
@@ -326,9 +326,9 @@ browser is for pages meant to be looked at.
        zeigt das Cockpit, das der Absatz daneben beschreibt; vorher stand hier
        die Karteikarten-Anordnung, ein anderer Modus, und Text und Bild
        widersprachen sich. -->
-  <h2>Die Stunde im Hörsaal</h2>
-  <div class="beside">
+  <div class="beside heading-in">
    <div class="said">
+    <h2>Die Stunde im Hörsaal</h2>
     <p class="lede">Die Projektion geht an die Wand, das Cockpit auf den Laptop,
     und die beiden halten sich im Browser gegenseitig auf Stand, ohne Server
     dazwischen. Die eigene Notiz, was kommt, eine Uhr, ein Weg zurück zu Folie
@@ -390,9 +390,9 @@ browser is for pages meant to be looked at.
        der Rest des Rahmenvokabulars haben jetzt eine eigene Seite; hier bleibt
        der Satz, der den Leser dorthin schickt, und die eine Komposition, die
        die Behauptung in einem Bild macht. -->
-  <h2 id="covers">Eine Folie ist ein Rahmen, nicht nur eine Textspalte</h2>
-  <div class="beside">
+  <div class="beside heading-in">
    <div class="said">
+    <h2 id="covers">Eine Folie ist ein Rahmen, nicht nur eine Textspalte</h2>
     <p class="lede">In einer Zeile der Quelle wählt man, woraus eine Folie
     besteht, und der Text der Folie bleibt so, wie er geschrieben wurde: eine Titelfolie,
     der Trenner am Anfang jedes Teils, eine Reihe Karten, ein Foto, auf dem die
@@ -415,9 +415,9 @@ browser is for pages meant to be looked at.
 
 <section class="band">
  <div class="wrap">
-  <h2 id="figures">Eine Abbildung ist auch Text</h2>
-  <div class="beside">
+  <div class="beside heading-in">
    <div class="said">
+    <h2 id="figures">Eine Abbildung ist auch Text</h2>
     <p class="lede">Eine Abbildung in einem eigenen Zeichenprogramm hinterlässt
     eine zweite Datei, die man mitpflegen muss, und genau die veraltet. psi-slides hat
     stattdessen eine kleine Sprache für Abbildungen: eine Abbildung sind ein paar
@@ -570,6 +570,14 @@ browser is for pages meant to be looked at.
 
 <section class="band">
  <div class="wrap">
+  <!-- Der ganze Abschnitt ist ein Band, und die Textspalte ist der Abschnitt
+       selbst: Überschrift, Lead, die Reiter, der Text der Option und der
+       Satz mit dem Knopf, der weiterschickt. Spalte zwei ist das Bild der
+       Option und überspannt das Ganze. Früher standen vier Blöcke an der
+       linken Rahmenkante über einer Zeile, deren Text erst auf halber Höhe
+       anfing, und der Nachsatz begann unter einem Viertelbildschirm Nichts.
+       `.two-ways` in site.css. -->
+  <div class="two-ways">
   <h2 id="getting-started">Loslegen</h2>
   <p class="lede">Zwei Wege, und beide bauen dieselben vier Dateien.</p>
 
@@ -586,9 +594,11 @@ browser is for pages meant to be looked at.
        ersetzen, die einen Zustand zeigten, den das Werkzeug nicht mehr
        herstellt -, es wird bei jedem Zoom unscharf, es lässt sich nicht
        markieren und es braucht einen Fensterrahmen, den nie jemand gesehen
-       hat. Die Zeilen unten sind das, was
-       `node build.js lectures/tutorial/source.md` ausgegeben hat, alle fünf,
-       nichts gekürzt.
+       hat. Die Zeilen unten wurden in diesem Repository ausgeführt und
+       eingefügt, nichts gekürzt: der Bau, dann ein `ls -al` dessen, was er
+       geschrieben hat - die Hälfte der Geschichte, die ein Build-Log nicht
+       erzählt. Die vier HTML-Dateien SIND die Vorlesung; darum sind sie je
+       zwei Megabyte groß, und darum sind die acht Zeilen `ls` es wert.
        Beide Hälften stehen in einer Rasterzelle (`.ways-two` in site.css),
        damit die Zeile so hoch ist wie die höhere der beiden und beim Umschalten
        nichts springt. -->
@@ -606,7 +616,7 @@ browser is for pages meant to be looked at.
     <div class="stage">
      <figure class="shot">
       <div class="bar"><b>psi-slides Builder</b></div>
-      <img src="../img/builder-top.webp" alt="Das Builder-Fenster mit einer offenen Vorlesung: der Ordnername und der Pfad zur source.md, die Zeile „Ready. Built at 12:23 in 0.1 s.“, ein Knopf „Build now“ neben einem gesetzten Häkchen „Build again whenever source.md is saved“ und vier Knöpfe für die Projektion, das Cockpit und die beiden Handouts.">
+      <img src="../img/builder.webp" alt="Das Builder-Fenster mit einer offenen Vorlesung: der Ordnername und der Pfad zur source.md, die Zeile „Ready. Built at 12:23 in 0.1 s.“, ein Knopf „Build now“ neben einem gesetzten Häkchen „Build again whenever source.md is saved“ und vier Knöpfe für die Projektion, das Cockpit und die beiden Handouts.">
      </figure>
     </div>
    </div>
@@ -621,32 +631,37 @@ browser is for pages meant to be looked at.
     </div>
     <div class="stage">
      <figure class="shot">
-      <div class="bar"><b>node build.js</b> &middot; lectures/tutorial/source.md</div>
-<pre class="out"><code>[inline-images] auto-inlining 2 image(s), 0.00 MB total (under 10 MB budget). Use --no-inline-images to disable.
+      <div class="bar"><b>~/psi-slides</b></div>
+<pre class="out"><code>$ node build.js lectures/tutorial/source.md
+[inline-images] auto-inlining 2 image(s), 0.00 MB total (under 10 MB budget). Use --no-inline-images to disable.
 [fonts] 6 bundled face(s) embedded &ndash; Literata, IBM Plex Sans, JetBrains Mono &ndash; 279 KB per view (OFL-1.1). Use `fonts: none` to ship without them.
 [qr] 1 link address(es) carry a QR code, 3 KB per live view.
 [math] 5 KaTeX font families inlined, 166 KB of woff2 per live view (of 254 KB for the full set); print carries only the families its formulas use. A lecture without math inlines nothing.
-Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (12 columns, 92 chunks)</code></pre>
+Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (12 columns, 92 chunks)
+$ ls -al lectures/tutorial/*.html
+-rw-r--r--  1 dh  staff  2354468 Sep 10 05:20 lectures/tutorial/audience.html
+-rw-r--r--  1 dh  staff   961611 Sep 10 05:20 lectures/tutorial/print-notes.html
+-rw-r--r--  1 dh  staff   953385 Sep 10 05:20 lectures/tutorial/print.html
+-rw-r--r--  1 dh  staff  2480979 Sep 10 05:20 lectures/tutorial/speaker.html</code></pre>
      </figure>
     </div>
    </div>
   </div>
 
-  <!-- Was auf ein Band folgt: ein Block über die volle Rahmenbreite, an der
-       linken Rahmenkante, mit dem ganzen Band darüber statt mit einer seiner
-       Spalten. Früher war das ein Kind von `.ways`, von Hand in die zweite
-       Zeile der Textspalte gestellt, weil eine oben ausgerichtete Zeile sonst
-       einen Viertelbildschirm Nichts über die eine Stelle gelegt hätte, an
-       der diese Seite um etwas bittet. Das Band verteilt diesen Raum über und
-       unter den Text, also dürfen Satz und Knopf sein, was sie sind: der
-       Abschnitt, der nach dem Beleg wieder spricht, und zu keiner der beiden
-       Optionen gehörig. -->
+  <!-- Der Nachsatz, und er steht in der Textspalte neben dem Bild statt unter
+       der Zeile. Er liegt außerhalb jedes `.way`, schaltet also nicht mit und
+       gehört zu keiner der beiden Optionen - er ist der Abschnitt, der nach
+       dem Beleg wieder spricht. Früher folgte er dem Band über die volle
+       Rahmenbreite, was richtig ist, wenn die Spalte eines Bandes voll ist,
+       und hier falsch war: 230px Spalte gegen 530px Bild, also begannen Satz
+       und Knopf unter 300px Nichts. -->
   <div class="ways-on">
    <p>Auf der nächsten Seite stehen die Downloads für macOS, Windows und Linux,
    die Befehle und eine Anleitung, die auf einem Rechner ohne alles anfängt.</p>
    <div class="cta">
      <a class="primary" href="getting-started.html">Beide Wege, ausführlich</a>
    </div>
+  </div>
   </div>
 
  </div>

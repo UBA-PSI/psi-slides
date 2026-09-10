@@ -182,6 +182,69 @@ sub-heading read as a section heading. What it gets instead is the row
 below: `site.css` puts it on the row's first line and starts the listing
 beside it level with the prose under it, which is what a listing answers.
 
+#### …unless the words are much shorter than the stage
+
+That rule holds while the words column is nearly as tall as the stage: the
+heading is at the top of what it names and the row starts under it, filled on
+both sides. Where the column is **much** shorter it is wrong, and the fault is
+the band's own, moved one element up. The column is centred, so it starts
+halfway down; the heading stays at the top; and between them stands a hole a
+third of a screen deep with the picture beside it. A heading that names a
+section whose text begins 200px below it names nothing.
+
+So where the words are much shorter than the stage, **the heading goes back
+into the words column, and heading and words are centred against the stage
+together, as one block.** Nothing floats: the column is a single stack from
+its first line to its last, and the space left over is split above and below
+it – the band's own answer, applied to one element more.
+
+Three things follow.
+
+- **It is a decision per section, not a rule CSS derives.** The heights come
+  from the picture and from the number of sentences, and a stylesheet cannot
+  be asked "is this much shorter". So it is a class, `.beside.heading-in`, and
+  each one is set after measuring. Measured at 1440 in both languages, the
+  bands that carry it are 39–68 % of their stage's height; the ones left alone
+  are 79–88 %.
+- **The heading follows its text column, wherever that stands.** The h2 is a
+  child of `.said`, so a mirrored band carrying it would put the heading on
+  the right. No band does today, and the reason is the rule's own limit: a
+  **mirrored** band has no hole under its heading, because what stands under
+  the heading is the stage, which starts at the row's top edge and is the tall
+  half. The fault exists only where the heading and the short column are on
+  the same side. Which is also why mirroring a band is never the fix for it –
+  the side a band takes is decided by *Which side the stage takes* below, and
+  a band that turns round to hide a hole has stopped meaning anything by the
+  turn.
+- **Such a band needs more air over and under it**, and the amount is
+  measurable rather than chosen: exactly what the heading used to contribute
+  above the row. At 1440 that is the h2's line box (46.4px at line-height 1.1
+  = 51px) plus its 21px margin – 72px that used to stand between the previous
+  section and this row and no longer does. It is given back above *and* below,
+  because the section now ends without a structural mark too. 72px on a 172px
+  gap is 42 %, so the band's padding goes up by half: 6vw → 9vw, and the two
+  clamp ends with it. The gap is then 216px against a neighbour and 259
+  between two such bands. The section gap was doing three quarters of the work
+  of separating two sections; now it does all of it.
+
+The heading keeps the site's **one** h2 size. Setting it two steps down to
+survive a 24rem column is what gave the page two h2 sizes depending on whether
+a section happened to be a band, and a contact sheet is scanned by heading
+size. What gives instead is the line count: a heading is three or four lines
+at 24rem, and three lines of h2 is a heading, not a problem.
+
+**One section is not a `.beside` and takes the same rule further.** "Getting
+started" on the front page has a heading, a lede *and* a chooser's tab row
+above its row, so the hole is under the tabs and moving the heading alone
+would fix nothing. The whole section becomes one band instead: column one is
+the section from its heading to its button – heading, lede, tabs, the option's
+words, and the sentence and button that send a reader on – and column two is
+the option's picture, spanning the lot. The tail is inside the row and outside
+every option: it does not switch, and it no longer starts under a hole. This
+is the one documented exception to *What may follow a band* – a block at the
+frame's width is what follows a band whose column is **full**, and this
+column was 230px against a 530px picture.
+
 #### Which side the stage takes
 
 Not alternation. A page that flips every section has stopped meaning
@@ -341,10 +404,17 @@ motion.
   terminal for a screenshot script to point at, and a page built to impersonate
   one would buy a picture of text, which is exactly the file this site has just
   had to replace six of. So that half is the build's own output, set as a
-  listing. Both panels are laid into one grid cell and hidden with
-  `visibility`, so the row is as tall as the window and the listing is
-  stretched to it; the measured heights and the breakpoint that keeps the
-  window the taller half are in `site.css` beside the rule. The handout switch
+  listing – the build run in this repository and pasted, and since the section
+  became a band it carries the second half of the story too: an `ls -al` of
+  the four files it wrote, which is what a build log does not tell. Both
+  panels are laid into one grid cell and hidden with
+  `visibility`, so the row is as tall as its tallest part and the listing is
+  stretched to it; the measured heights and the breakpoint under which the row
+  goes back to one column are in `site.css` beside the rule. What sets the
+  height is now the words column, because it carries the section, so the
+  window is centred in the field it does not fill – a field's margin is even –
+  and the listing keeps stretching, which is what a terminal looks like
+  anyway. The handout switch
   is the nearer relative in what it answers – one thing, two executions – and
   it could not be used: it swaps an `img` src.
 - **The handout switch** opens on `print.html`, the file that is handed
