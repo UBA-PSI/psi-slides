@@ -29,7 +29,13 @@
        Einstieg las sich als drei kurze Dinge in einem Bildschirm voll Grund.
        Der Vorspann ist jetzt die erste von drei Spalten: er sagt, dass es
        zwei Wege gibt, und die zwei Wege stehen daneben. Eine Zeile, drei
-       Spuren, keine leere Hälfte. -->
+       Spuren, keine leere Hälfte.
+       Die zwei sind nummeriert, was die Seite sonst nicht tut: 01/02/03 ist
+       verboten, wo der Inhalt keine Reihenfolge ist, und dies ist auch keine
+       Reihenfolge – es ist eine Wahl zwischen zweien, und die Nummer sagt der
+       Leserin, dass der zweite Absatz die Alternative zum ersten ist und nicht
+       der nächste Schritt danach. Deshalb steht die Marke als Wort in der
+       Zeile und nicht als Ziffer darüber. -->
   <div class="pair-up trio hero-ways">
    <div>
     <p class="lede">Zwei Wege, und beide enden am selben Ort: Beide führen
@@ -38,18 +44,20 @@
     Raum, das Cockpit für die Vortragenden, zwei Handouts zum Drucken.</p>
    </div>
    <div>
-    <p><strong><a href="#app">Die App</a></strong> lädt man herunter, und sie
-    baut die Dateien auf Knopfdruck. Man öffnet darin eine <code>source.md</code>,
-    und nach jedem Speichern baut sie die Vorlesung neu. Sonst muss nichts
-    installiert werden: kein Node, kein Terminal, nicht einmal psi-slides
-    selbst &ndash; die App trägt die Kopie, mit der sie paketiert wurde.</p>
+    <p><b>Option 1:</b> Man lädt <strong><a href="#app">eine App</a></strong>
+    herunter, die die Dateien auf Knopfdruck baut. Man öffnet darin eine
+    <code>source.md</code>, und nach jedem Speichern baut sie neu. Sonst muss
+    nichts installiert werden: kein Node, kein Terminal, nicht einmal
+    psi-slides selbst &ndash; die App trägt die Kopie, mit der sie paketiert
+    wurde.</p>
    </div>
    <div>
-    <p><strong><a href="#command-line">Die Kommandozeile</a></strong> beginnt mit
-    einem <code>git clone</code> und einem <code>npm install</code>, für alle, die
-    ohnehin im Terminal arbeiten. Über sie baut ein CI-Job unbeaufsichtigt, und
-    über sie schreibt man mit einem Sprachmodell daneben: das Repository bringt
-    die Skills mit, die ihm das Format beibringen.</p>
+    <p><b>Option 2:</b> Man baut seine Folien auf
+    <strong><a href="#command-line">der Kommandozeile</a></strong> &ndash; oder
+    lässt einen KI-Agenten das tun. Das Repository bringt die Skills mit, die
+    einem Sprachmodell das Format beibringen. Dieser Weg beginnt mit den Quellen
+    und einem <code>npm install</code>, und so baut auch ein CI-Job
+    unbeaufsichtigt.</p>
    </div>
   </div>
  </div>
@@ -206,7 +214,10 @@
   Terminal offen ist &ndash; und das, was ein CI-Job ausführt. Es braucht
   <strong>Node 20 oder neuer</strong>, womit
   <code>build.js</code> läuft, und sonst nichts: kein LaTeX, kein Pandoc, keinen
-  Server, nichts systemweit Installiertes.</p>
+  Server, nichts systemweit Installiertes. Nicht einmal git: Der Clone unten ist
+  der schnellste Weg zu den Dateien, und das
+  <a href="https://github.com/UBA-PSI/psi-slides/archive/refs/heads/main.zip">ZIP
+  der aktuellen Quellen</a> sind dieselben Dateien, nur entpackt.</p>
 
   <!-- Halbleere Zeile, Antwort 1: das Listing ist die breite Hälfte, seine drei
        bis vier Zeilen Erklärung die schmale. -->
@@ -301,9 +312,14 @@
       noch nicht gesehen.</p>
 
       <h3>Die Dateien holen</h3>
-      <p>Wer git hat, nimmt einen <code>git clone</code>, sonst <b>Download ZIP</b> aus dem grünen
+      <p>Wer git hat, nimmt einen <code>git clone</code>, sonst das
+      <a href="https://github.com/UBA-PSI/psi-slides/archive/refs/heads/main.zip">ZIP
+      der aktuellen Quellen</a> &ndash; dieselbe Datei, die der grüne
       <b>Code</b>-Knopf des
-      <a href="https://github.com/UBA-PSI/psi-slides">Repositories</a>. Das ZIP
+      <a href="https://github.com/UBA-PSI/psi-slides">Repositories</a> als
+      <b>Download ZIP</b> anbietet. Es ist nicht das <b>Source code (zip)</b>,
+      das an einem Release hängt: Das ist der getaggte Stand 1.0.0 und nicht der
+      aktuelle. Das ZIP
       entpacken wie jeden anderen Download; auf beiden Systemen genügt ein Doppelklick. Man
       bekommt einen Ordner, dessen Name mit <code>psi-slides</code> anfängt, und
       dieser Ordner ist das ganze Werkzeug. Irgendwohin legen, wo man ihn
@@ -355,41 +371,56 @@
 <!--
   DER EINE ABSCHNITT, DEN DAS NÄCHSTE RELEASE GANZ STREICHT.
 
-  Bis 2.0.0 ist das getaggte Release 1.0.0, und es trägt weder die
-  Abbildungssprache noch die Titelfolien, die Karten und Zeilen oder den
-  Abbildungseditor. Das stand früher an vier Stellen der Startseite, einmal
-  neben jeder Konstruktion, für die es gilt; jede war richtig, und zusammen
-  waren sie das, wonach die Seite klang. Hier steht es einmal, damit das
-  Release einen Abschnitt und die zwei verlinkenden `.hint`-Blöcke streicht,
-  statt den Satz über eine Website zu jagen.
+  Er sagte früher, was das getaggte 1.0.0 NICHT hat – die Abbildungssprache,
+  die Titelfolien, die Karten und Zeilen, den Abbildungseditor –, und das war
+  richtig über das Release und falsch über diese Seite, denn diese Seite bietet
+  jenes Release seit einiger Zeit nicht mehr an. Sie bietet die App an, die die
+  Engine trägt, mit der sie paketiert wurde, und die Quellen, also `main`.
+  Beide haben alle vier. Ein Abschnitt, der jemandem sagt, was er nicht
+  bekommt, während er es bekommt, ist schlechter als gar kein Abschnitt.
 
-  Wenn 2.0.0 getaggt ist: diesen Abschnitt löschen, die beiden Preview-
-  `.hint`-Blöcke auf index.html und index.de.html löschen, dasselbe in de/.
+  Übrig bleibt die Hälfte, die weiterhin stimmt: Die Formatzusage deckt, was
+  1.0.0 festgeschrieben hat, und noch nicht, was danach kam. Das ist ein echter
+  Preis für jemanden, der gleich eine Vorlesung schreibt, und der einzige, der
+  noch übrig ist.
+
+  Wenn 2.0.0 getaggt ist: diesen Abschnitt löschen, die zwei `.hint`-Blöcke mit
+  derselben Aussage auf index.html und index.de.html löschen, den einen auf
+  decoration.html und die Entwicklungsstand-Notiz auf figures.html – dasselbe
+  in de/. Auf #preview zeigt von außen nur decoration.*.html.
 -->
 <section class="band">
  <div class="wrap">
-  <h2 id="preview">Was der Download nicht hat</h2>
-  <p class="lede">Das getaggte Release trägt nicht, was seitdem geschrieben
-  wurde. Dieses Release ist 1.0.0, und was es dafür gibt, ist ein festes
-  Quellformat: Eine Vorlesung, die heute dagegen baut, baut morgen genauso.</p>
+  <h2 id="preview">Was noch nicht festgeschrieben ist</h2>
+  <p class="lede">Beide Wege oben bauen alles, was psi-slides kann. Was sie
+  noch nicht mitgeben können, ist eine Zusage über alles davon: Das Quellformat
+  liegt seit 1.0.0 fest, und was seitdem dazugekommen ist, fällt bis zum
+  nächsten Release nicht unter diese Zusage.</p>
 
   <div class="hint wide">
    <div class="pair-up">
     <div>
      <p><strong>Abbildungen</strong> als <code>::: draw</code>, die
      <strong>Titelfolien und Trenner</strong>, <strong>Karten und
-     Zeilen</strong> und der <strong>grafische Abbildungseditor</strong> liegen
-     auf <code>main</code> und sind nicht in 1.0.0. Wer deswegen hier ist, nimmt
-     das Repository statt des Release-Archivs &ndash; auch der <b>Source code
-     (zip)</b> am Release ist nur das getaggte Release.</p>
-     <p>Was man aufgibt, ist die Formatzusage: Diese Teile können bis zum
-     Release noch eine Änderung an der eigenen Quelle nötig machen.</p>
+     Zeilen</strong> und der <strong>grafische Abbildungseditor</strong> kamen
+     nach 1.0.0. Man bekommt sie auf beiden Wegen: Die App wurde mit ihnen
+     paketiert, und ein Clone oder ein Quell-ZIP ist der aktuelle Stand des
+     Projekts.</p>
+     <p>Es sind keine Experimente. Die Referenzvorlesungen auf dieser Website
+     sind damit gebaut, ebenso die sechsunddreißig Folien Netzsicherheit, für
+     die die Abbildungssprache geschrieben wurde.</p>
     </div>
     <div>
-<pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span></code></pre>
-     <p class="tiny">Ohne git nimmt man <b>Download ZIP</b> aus dem grünen
-     <b>Code</b>-Knopf des Repositories. Die App oben baut auch das: Sie trägt
-     die Kopie von psi-slides, mit der sie paketiert wurde.</p>
+     <p>Nicht zugesagt ist, dass sie genau so bleiben, wie man sie heute
+     schreibt. Alles, was eine Vorlesung schon vor 1.0.0 benutzt hat, baut
+     unverändert weiter. Eine Vorlesung mit einem <code>cover:</code>, einem
+     <code>::: dock</code> oder einem <code>::: draw</code>-Block kann eine
+     Änderung an der eigenen Quelle nötig machen, wenn diese Teile ein eigenes
+     Release erreichen.</p>
+     <p class="tiny">Beide haben eine eigene Seite hier, geschrieben gegen den
+     Stand, den man bekommt:
+     <a href="decoration.html">Eine Folie ist ein Rahmen</a> und
+     <a href="../figures.html">Figures you write</a>.</p>
     </div>
    </div>
   </div>

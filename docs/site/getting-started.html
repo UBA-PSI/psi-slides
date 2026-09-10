@@ -29,7 +29,13 @@
        screen of ground.
        The lede is the first of three columns now: it says there are two ways,
        and the two ways stand beside it. One row, three tracks, no empty
-       half, and the block that opens the page is one object. -->
+       half, and the block that opens the page is one object.
+       The two are numbered, which the site otherwise does not do: 01/02/03 is
+       forbidden where the content is not a sequence, and this one is not a
+       sequence either - it is a choice between two, and a number is what tells
+       a reader that the second paragraph is the alternative to the first and
+       not the next step after it. So the marker is a word in the line rather
+       than a figure above it. -->
   <div class="pair-up trio hero-ways">
    <div>
     <p class="lede">Two ways in, and they end in the same place: both run the same
@@ -38,18 +44,19 @@
     lecturer, and two handouts to print.</p>
    </div>
    <div>
-    <p><strong><a href="#app">The app</a></strong> you download, and it builds
-    the files at the press of a button. Open a <code>source.md</code> in it and
-    it rebuilds the lecture every time you save. Nothing else has to be
-    installed: no Node, no terminal, not even a copy of psi-slides &ndash; the
-    app carries the one it was packaged with.</p>
+    <p><b>Option 1:</b> you download <strong><a href="#app">an app</a></strong>
+    that builds the files at the press of a button. Open a
+    <code>source.md</code> in it and it rebuilds every time you save. Nothing
+    else has to be installed: no Node, no terminal, not even psi-slides
+    itself &ndash; the app carries the copy it was packaged with.</p>
    </div>
    <div>
-    <p><strong><a href="#command-line">The command line</a></strong> starts with
-    a clone and an <code>npm install</code>, for people who already work in a
-    terminal. It is how a CI job builds a lecture unattended, and how you write
-    one with a language model beside you: the repository carries the skills that
-    teach it the format.</p>
+    <p><b>Option 2:</b> you build your slides on
+    <strong><a href="#command-line">the command line</a></strong> &ndash; or you
+    let an AI agent do it. The repository carries the skills that teach a
+    language model the format. This way starts with the sources and one
+    <code>npm install</code>, and it is how a CI job builds a lecture
+    unattended.</p>
    </div>
   </div>
  </div>
@@ -199,7 +206,10 @@
   already has a terminal on
   it &ndash; and what a CI job runs. It needs <strong>Node 20 or
   newer</strong>, which is what runs <code>build.js</code>, and nothing else:
-  no LaTeX, no Pandoc, no server, nothing installed system-wide.</p>
+  no LaTeX, no Pandoc, no server, nothing installed system-wide. Not even git:
+  the clone below is the quickest way to the files, and the
+  <a href="https://github.com/UBA-PSI/psi-slides/archive/refs/heads/main.zip">ZIP
+  of the current sources</a> is the same files unpacked.</p>
 
   <!-- Half-empty row, answer 1: the listing is the wide half, its three or
        four lines of explanation the narrow one. -->
@@ -290,9 +300,14 @@
       seen it yet.</p>
 
       <h3>Get the files</h3>
-      <p>Take a clone if you have git, and <b>Download ZIP</b> from the
-      <a href="https://github.com/UBA-PSI/psi-slides">repository&rsquo;s</a> green
-      <b>Code</b> button otherwise. Unpack that ZIP the way you would any
+      <p>Take a clone if you have git, and the
+      <a href="https://github.com/UBA-PSI/psi-slides/archive/refs/heads/main.zip">ZIP
+      of the current sources</a> otherwise &ndash; the same file the green
+      <b>Code</b> button of the
+      <a href="https://github.com/UBA-PSI/psi-slides">repository</a> offers as
+      <b>Download ZIP</b>. It is not the <b>Source code (zip)</b> hanging off a
+      release: that one is the tagged 1.0.0 rather than the current state.
+      Unpack that ZIP the way you would any
       other download; double-clicking is enough on both systems. You get a folder
       whose name starts with <code>psi-slides</code>, and that folder is the whole
       tool. Put it somewhere you can find again, because the terminal has to be
@@ -343,42 +358,53 @@
 <!--
   THE ONE SECTION THE NEXT RELEASE DELETES, WHOLE.
 
-  Until 2.0.0 the tagged release is 1.0.0 and does not carry the figure
-  language, the title slides, the cards and rows or the diagram editor. That
-  fact used to stand in four places on the front page, once beside each
-  construct it applies to; every one of them was right, and together they were
-  what the page read like. It stands here once instead, so that cutting the
-  release means cutting one section and the two `.hint` blocks that link to it,
-  rather than hunting the sentence across a site.
+  It used to say what the tagged 1.0.0 release does NOT have - the figure
+  language, the title slides, the cards and rows, the diagram editor - and that
+  was true of the release and false of this page, because this page has not
+  offered that release for some time. It offers the app, which carries the
+  engine it was packaged with, and the sources, which are `main`. Both of them
+  have all four. A section that tells a reader what he does not get, while he
+  is getting it, is worse than no section.
 
-  When 2.0.0 is tagged: delete this section, delete the two preview `.hint`
-  blocks on index.html and index.de.html, and do the same in de/.
+  What survives is the half that is still true: the format promise covers what
+  1.0.0 froze and does not yet cover what came after. That is a real cost to a
+  reader who is about to write a lecture, and it is the only one left.
+
+  When 2.0.0 is tagged: delete this section, delete the two `.hint` blocks that
+  say the same thing on index.html and index.de.html, the one on
+  decoration.html, and the development-status note on figures.html - and do the
+  same in de/. Nothing links to #preview from outside decoration.*.html.
 -->
 <section class="band">
  <div class="wrap">
-  <h2 id="preview">What the download does not have</h2>
-  <p class="lede">The tagged release does not carry what has been written since
-  it. That release is 1.0.0, and what it does give you is a fixed source
-  format: a lecture that builds against it today keeps building the same way.</p>
+  <h2 id="preview">What is not settled yet</h2>
+  <p class="lede">Both ways above build everything psi-slides can do. What they
+  cannot hand you yet is a promise about all of it: the source format has been
+  fixed since 1.0.0, and the parts written since then are not covered by that
+  promise until the next release.</p>
 
   <div class="hint wide">
    <div class="pair-up">
     <div>
      <p><strong>Figures</strong> written as <code>::: draw</code>, the
      <strong>title slides and section dividers</strong>, <strong>cards and
-     rows</strong>, and the <strong>graphical figure editor</strong> are on
-     <code>main</code> and not in 1.0.0. If you came for any of those, take the
-     repository rather than the release archive &ndash; and note that the <b>Source
-     code (zip)</b> attached to a release is the tagged release, so it does not
-     contain them either.</p>
-     <p>What you give up is the format promise: these parts may still need an
-     edit to your source when they reach a release.</p>
+     rows</strong>, and the <strong>graphical figure editor</strong> came after
+     1.0.0. You have them either way: the app was packaged with them, and a
+     clone or a source zip is the current state of the project.</p>
+     <p>They are not experiments. The reference lectures on this site are built
+     with them, and so is the thirty-six-slide network-security lecture the
+     figure language was written for.</p>
     </div>
     <div>
-<pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span></code></pre>
-     <p class="tiny">Without git, take <b>Download ZIP</b> from the
-     repository&rsquo;s green <b>Code</b> button. The app above builds these as
-     well: it carries the copy of psi-slides it was packaged with.</p>
+     <p>What is not promised is that they stay exactly as they are written
+     today. Anything a lecture used before 1.0.0 keeps building the same way,
+     and that will not change. A lecture that names a <code>cover:</code>, a
+     <code>::: dock</code> or a <code>::: draw</code> block may need an edit to
+     its source when those parts reach a release of their own.</p>
+     <p class="tiny">Both have a page of their own on this site, written
+     against the state you get:
+     <a href="decoration.html">A slide is a frame</a> and
+     <a href="figures.html">Figures you write</a>.</p>
     </div>
    </div>
   </div>
