@@ -2003,21 +2003,26 @@ footer p { max-width: none; }
 /*
  * ── The editor section on `figures.html`: two rows, no sub-heading ────────
  *
- * The picture is followed by two paragraphs about the window and three about
+ * The picture is followed by two paragraphs about the window and two about
  * opening it, and an h3 used to stand between them. It sat 8px above the
  * first of three columns, so it read as a label for that column rather than
  * for the row, and it cut two halves of one subject apart. The heading is
  * gone (the page carries the note) and what separates the rows is air. The
  * number is set against the 72px above the first row rather than chosen: the
  * two paragraphs belong to the picture over them, so the step down to the
- * three that follow has to be the larger of the two or the block reads as
+ * two that follow has to be the larger of the two or the block reads as
  * belonging to the picture as well.
+ *
+ * It was 5.2rem, and 83px against the 72 above it is a difference nobody
+ * reads: four paragraphs at one measure, ragged at the foot, with the two
+ * seams within 11px of each other, and the block read as one field of text
+ * rather than as two rows. At 6.5rem the row seam is 101px at 1440 - 1.4
+ * times the seam above it and 59 % of the 172px between two sections, so it
+ * separates two rows without pretending to be a section break. This is the
+ * only rule in the file with one caller and it stays that way: a second
+ * `.pair-up` under a first is this section and nothing else on the site.
  */
-.wrap > .pair-up + .pair-up { margin-top: clamp(2.4rem, 6vw, 5.2rem); }
-/* A line that answers the row above it rather than opening something new:
-   it keeps the row's own left edge and its measure, so it reads as the last
-   thing said about that row. */
-.wrap > .after-pair { margin-top: clamp(1.6rem, 3vw, 2.6rem); max-width: var(--measure-col); }
+.wrap > .pair-up + .pair-up { margin-top: clamp(2.8rem, 7vw, 6.5rem); }
 
 /*
  * ── A table directly under its heading ────────────────────────────────────
