@@ -97,54 +97,48 @@
   markiert: nicht die aktuelle Version von irgendetwas, sondern ein früh
   angebotenes Paket.</p>
 
-
-
-  <!-- Halbleere Zeile, Antwort 2: die Pakete nehmen die Breite des Rahmens,
-       als Zeile aus drei Systemen statt als Tabelle.
-       Vorher war es eine dreispaltige Tabelle (System / Paket / Stand) in der
-       Textspalte darüber. Daran war zweierlei falsch. Gesucht wird ein SYSTEM,
-       und die Tabelle begann mit einem Dateinamen als unterstrichenem
-       Monospace-Link: die Spalte, auf die es am wenigsten ankommt, war die
-       lauteste, und fünf lange unterstrichene Namen untereinander sind eine
-       Wand. Und die Tabelle machte die Textspalte so viel höher als das Bild
-       daneben, dass an der rechten Rahmenkante ein Viertelbildschirm Nichts
-       stehen blieb.
-       Jetzt ein Block je System, der Name des Systems zuerst, der Stand
-       darunter, und jedes Paket ein Kasten zum Drücken: in der ersten Zeile,
-       WAS es ist, darunter der Dateiname als Bestätigung, dass man das
-       Richtige nimmt. Ohne Unterstreichung – das ist eine Auswahl unter
-       Links, und die Vorlesungskarten auf der Startseite beantworten das
-       bereits mit einem Kasten statt mit einem Strich. macOS und Linux haben
-       je zwei Pakete, also sagt jedes in vier Worten, welches der beiden das
-       eigene ist; die Wahl war das eine, was die alte Tabelle nirgends
-       erklärt hat. -->
+  <!-- Halbleere Zeile, Antwort 2: Die Pakete nehmen die Rahmenbreite, als
+       Zeile aus drei Systemen statt als Tabelle.
+       Früher war das eine dreispaltige Tabelle (System / Paket / Zustand) in
+       der Textspalte darüber. Zweierlei war daran falsch. Gesucht wird ein
+       SYSTEM, und die Tabelle begann mit einem Dateinamen als unterstrichenem
+       Monospace-Link: Die unwichtigste Spalte war die lauteste, fünf lange
+       unterstrichene Namen untereinander lesen sich als eine Wand. Und die
+       Tabelle machte die Textspalte so viel höher als das Bild daneben, dass
+       am rechten Rahmenrand ein Viertelbildschirm Nichts blieb.
+       Danach war jedes Paket ein eigener Kasten, und fünf gleichrangige Kästen
+       sind fünf Entscheidungen, wo die Leserin eine zu treffen hat. Jedes
+       System hat jetzt EINE Karte, das Paket, das die meisten nehmen - das
+       Windows-Installationsprogramm, das macOS-Disk-Image, das Linux-AppImage -
+       und die Alternative als bloßen Dateinamen darunter. Ein zweiter Kasten
+       neben dem ersten sagt, beides sei dieselbe Art Wahl; ein Link sagt, es
+       sei die Ausnahme.
+       Windows zuerst, weil in den meisten Räumen eines steht, dann macOS, dann
+       Linux. Die zwei Systeme, die nie gestartet wurden, tragen das Wort in der
+       Zeile, die sie benennt, und sonst nichts: „Von der CI gebaut, nie
+       gestartet“ unter einer Überschrift war ein Satz, der sich als Etikett
+       ausgab, und das Ganze steht mitsamt dem, was zu tun ist, unten unter
+       „Der erste Start“. -->
   <div class="pair-up trio gets">
    <div class="get">
-    <p class="sys">macOS <span class="size">Apple&nbsp;Silicon</span></p>
-    <p class="state">Auf einem echten Mac ausprobiert.</p>
-    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.dmg">
-     <b>Disk-Image</b><span>öffnen, die App in „Programme“ ziehen</span>
-     <code>psi-slides-builder-mac-arm64.dmg</code></a>
-    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.zip">
-     <b>Zip-Archiv</b><span>dieselbe App, ausgepackt statt gemountet</span>
-     <code>psi-slides-builder-mac-arm64.zip</code></a>
-   </div>
-   <div class="get">
-    <p class="sys">Windows <span class="size">64 Bit</span></p>
-    <p class="state"><strong>Experimentell.</strong> Von der CI gebaut, nie gestartet.</p>
+    <p class="sys">Windows <span class="size">64 Bit</span> <span class="try">(experimentell)</span></p>
     <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-win-x64.exe">
      <b>Installationsprogramm</b><span>läuft ohne Rückfrage durch und startet die App</span>
      <code>psi-slides-builder-win-x64.exe</code></a>
    </div>
    <div class="get">
-    <p class="sys">Linux <span class="size">64 Bit</span></p>
-    <p class="state"><strong>Experimentell.</strong> Von der CI gebaut, nie gestartet.</p>
+    <p class="sys">macOS <span class="size">Apple&nbsp;Silicon</span></p>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.dmg">
+     <b>Disk-Image</b><span>öffnen, die App in „Programme“ ziehen</span>
+     <code>psi-slides-builder-mac-arm64.dmg</code></a>
+    <p class="alt"><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-mac-arm64.zip">psi-slides-builder-mac-arm64.zip</a></p>
+   </div>
+   <div class="get">
+    <p class="sys">Linux <span class="size">64 Bit</span> <span class="try">(experimentell)</span></p>
     <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-x86_64.AppImage">
-     <b>AppImage</b><span>eine Datei, ausführbar machen und starten, auf jeder Distribution</span>
+     <b>AppImage</b><span>ausführbar machen und starten, auf jeder Distribution</span>
      <code>psi-slides-builder-linux-x86_64.AppImage</code></a>
-    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-amd64.deb">
-     <b>Debian-Paket</b><span>für Debian und Ubuntu, über die Paketverwaltung</span>
-     <code>psi-slides-builder-linux-amd64.deb</code></a>
+    <p class="alt"><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.0/psi-slides-builder-linux-amd64.deb">psi-slides-builder-linux-amd64.deb</a></p>
    </div>
   </div>
 
