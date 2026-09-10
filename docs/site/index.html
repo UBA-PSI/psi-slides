@@ -76,9 +76,9 @@
 
 <section class="band">
  <div class="wrap">
-  <h2 id="the-film">The one-minute version</h2>
-  <div class="beside">
+  <div class="beside heading-in">
    <div class="said">
+    <h2 id="the-film">The one-minute version</h2>
     <p class="lede">The argument on this page as a film: what a lecture is made
     of, what comes out of one file, and what the hour in front of the room looks
     like. Subtitled.
@@ -324,9 +324,9 @@ browser is for pages meant to be looked at.
        The picture is the cockpit the paragraph beside it describes - it used
        to be the cue-card arrangement, which is a different mode and made the
        words and the picture argue with each other. -->
-  <h2>The hour in front of the room</h2>
-  <div class="beside">
+  <div class="beside heading-in">
    <div class="said">
+    <h2>The hour in front of the room</h2>
     <p class="lede">The projection goes on the wall, the cockpit on your laptop,
     and the two keep each other in step in the browser, with no server between
     them. Your note, what is coming, a clock, a way back to slide forty, and a
@@ -388,9 +388,9 @@ browser is for pages meant to be looked at.
        of the frame vocabulary are a page of their own now; what is left here
        is the sentence that sends a reader to it and the one composition that
        makes the claim in a single picture. -->
-  <h2 id="covers">A slide is a frame, not only a column of text</h2>
-  <div class="beside">
+  <div class="beside heading-in">
    <div class="said">
+    <h2 id="covers">A slide is a frame, not only a column of text</h2>
     <p class="lede">You pick what a slide is made of in one line of the source,
     and the text of the slide stays as it was written: a title slide, the divider
     that opens each part, a row of cards, a photograph the words stand on, a
@@ -411,9 +411,9 @@ browser is for pages meant to be looked at.
 
 <section class="band">
  <div class="wrap">
-  <h2 id="figures">A figure is text too</h2>
-  <div class="beside">
+  <div class="beside heading-in">
    <div class="said">
+    <h2 id="figures">A figure is text too</h2>
     <p class="lede">A figure drawn in a program of its own leaves a second file
     to keep in step, and that is the one that goes out of date. psi-slides has a
     small language for figures instead: a figure is a few lines in the same file
@@ -558,6 +558,13 @@ browser is for pages meant to be looked at.
 
 <section class="band">
  <div class="wrap">
+  <!-- The whole section is one band, and the words column is the section
+       itself: heading, lede, the tabs, the option's words, and the sentence
+       and button that send a reader on. Column two is the option's picture,
+       spanning all of it. It used to be four blocks stacked at the frame's
+       left edge over a row whose words started halfway down, so the tail
+       began under a quarter-screen of nothing. `.two-ways` in site.css. -->
+  <div class="two-ways">
   <h2 id="getting-started">Getting started</h2>
   <p class="lede">Two ways in, and they build the same four files.</p>
 
@@ -572,8 +579,10 @@ browser is for pages meant to be looked at.
        that goes stale - this site has had to replace six screenshots that
        showed a state the tool no longer produces - blurs at any zoom, cannot
        be selected and needs a window frame nobody ever saw. The lines below
-       are what `node build.js lectures/tutorial/source.md` printed, all five
-       of them, nothing cut.
+       were run in this repository and pasted, nothing cut: the build, then an
+       `ls -al` of what it wrote, which is the half of the story a build log
+       does not tell. The four HTML files ARE the lecture - that is why they
+       are two megabytes each and why the `ls` is worth the eight lines.
        Both halves stand in one grid cell (`.ways-two` in site.css), so the
        row is as tall as the taller of the two and neither side moves when the
        switch is pressed. -->
@@ -590,7 +599,7 @@ browser is for pages meant to be looked at.
     <div class="stage">
      <figure class="shot">
       <div class="bar"><b>psi-slides Builder</b></div>
-      <img src="img/builder-top.webp" alt="The builder window with a lecture open: the folder name and the path to its source.md, the line &ldquo;Ready. Built at 12:23 in 0.1 s.&rdquo;, a Build now button beside a ticked box reading &ldquo;Build again whenever source.md is saved&rdquo;, and four buttons for the presentation, the cockpit and the two handouts.">
+      <img src="img/builder.webp" alt="The builder window with a lecture open: the folder name and the path to its source.md, the line &ldquo;Ready. Built at 12:23 in 0.1 s.&rdquo;, a Build now button beside a ticked box reading &ldquo;Build again whenever source.md is saved&rdquo;, and four buttons for the presentation, the cockpit and the two handouts.">
      </figure>
     </div>
    </div>
@@ -605,31 +614,37 @@ browser is for pages meant to be looked at.
     </div>
     <div class="stage">
      <figure class="shot">
-      <div class="bar"><b>node build.js</b> &middot; lectures/tutorial/source.md</div>
-<pre class="out"><code>[inline-images] auto-inlining 2 image(s), 0.00 MB total (under 10 MB budget). Use --no-inline-images to disable.
+      <div class="bar"><b>~/psi-slides</b></div>
+<pre class="out"><code>$ node build.js lectures/tutorial/source.md
+[inline-images] auto-inlining 2 image(s), 0.00 MB total (under 10 MB budget). Use --no-inline-images to disable.
 [fonts] 6 bundled face(s) embedded &ndash; Literata, IBM Plex Sans, JetBrains Mono &ndash; 279 KB per view (OFL-1.1). Use `fonts: none` to ship without them.
 [qr] 1 link address(es) carry a QR code, 3 KB per live view.
 [math] 5 KaTeX font families inlined, 166 KB of woff2 per live view (of 254 KB for the full set); print carries only the families its formulas use. A lecture without math inlines nothing.
-Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (12 columns, 92 chunks)</code></pre>
+Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (12 columns, 92 chunks)
+$ ls -al lectures/tutorial/*.html
+-rw-r--r--  1 dh  staff  2354468 Sep 10 05:20 lectures/tutorial/audience.html
+-rw-r--r--  1 dh  staff   961611 Sep 10 05:20 lectures/tutorial/print-notes.html
+-rw-r--r--  1 dh  staff   953385 Sep 10 05:20 lectures/tutorial/print.html
+-rw-r--r--  1 dh  staff  2480979 Sep 10 05:20 lectures/tutorial/speaker.html</code></pre>
      </figure>
     </div>
    </div>
   </div>
 
-  <!-- What follows a band: a block at the frame's width, at the frame's left
-       edge, with the whole band above it rather than one of its columns. It
-       used to be a child of `.ways`, placed into the second row of the words
-       column, because a top-aligned row left a quarter-screen of nothing over
-       the one place this page asks a reader to act. The band splits that
-       space over and under the words instead, so the sentence and the button
-       can be what they are: the section speaking again after the evidence,
-       and belonging to neither of the two options. -->
+  <!-- The tail, and it stands in the words column beside the picture rather
+       than under the row. It is outside every `.way`, so it does not switch
+       and belongs to neither of the two options - it is the section speaking
+       again after the evidence. It used to follow the band at the frame's
+       width, which is right where a band's column is full and wrong here:
+       the column was 230px against a 530px picture, so the sentence and the
+       button began under 300px of nothing. -->
   <div class="ways-on">
    <p>The next page has the downloads for macOS, Windows and Linux, the commands,
    and a walkthrough that starts on a machine with nothing installed on it.</p>
    <div class="cta">
      <a class="primary" href="getting-started.html">Both ways, in full</a>
    </div>
+  </div>
   </div>
 
  </div>
