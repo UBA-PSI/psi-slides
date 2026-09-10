@@ -173,5 +173,16 @@ What is left is two things, and the second is the load-bearing one:
   paragraph explaining why the shots have to be reproducible, rather than being
   a thing everyone assumes somebody else's job.
 
+  **The rule needs its threshold in the same breath, or it reads as “re-shoot
+  on every commit”.** The test is whether the difference is visible *at reading
+  size*: both drifts that embarrassed this site were – a clock that had moved,
+  a bold style that had changed. A prose edit two tiles deep in the `overview`
+  thumbnail is not, and re-shooting for it rewrites twenty shots, churns
+  roughly eleven binaries, and drags the 1.4 MB manual along with it whenever
+  `editor.webp` moves. So the working practice is to record a known-stale shot
+  and let the next *visible* reason carry it, which is what psi-slides-c7 did
+  with `ff26d6d`. A gate cannot make that judgement, which is one more reason
+  this stays a written rule rather than a check.
+
 Not this session's, and not `lectures/`' owner's to decide: it is a `docs/site/`
 and CI question.
