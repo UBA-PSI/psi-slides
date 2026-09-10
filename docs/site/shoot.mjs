@@ -90,6 +90,38 @@ const LIVE_RIG = `
 <style>#help-button, #nav-hints, .annot-add { display: none !important; }</style>
 `;
 
+// ── when these shots are stale ───────────────────────────────────────────
+//
+// Nothing checks that. The ids above are checked, because an id is the one
+// part of a shot that can be decided without drawing it; freshness cannot,
+// and a gate that pretends otherwise is worse than none, because a green run
+// is read as an assurance.
+//
+// A shot is not a function of source.md alone. It is the lecture, plus the
+// stylesheets and runtime inlined by build.js, plus this rig, plus the
+// Chromium that drew it. So the trigger to re-shoot is not a file:
+//
+//   the live views' chrome moved, a viewer default changed, or anything
+//   moved a label or an extent.
+//
+// Both drifts that reached the published site were that and not a lecture
+// edit. cockpit.webp predated the clock becoming a large button in the top
+// right corner. Six python-intro shots predated the `bold:` default changing
+// from accent-bold to plain. A hash over the lecture sources would have
+// stayed green through both.
+//
+// The threshold is whether a reader would see the difference at the size the
+// page displays the shot. Both of those were visible at reading size. A prose
+// edit two tiles deep in the overview thumbnail is not, and the honest answer
+// there is to write the shot down as known-stale and let the next visible
+// reason carry it, rather than to churn twenty shots for pixels nobody reads.
+//
+// One coupling that is easy to miss: docs/artifact/refresh-figures.mjs inlines
+// img/editor.webp into figures-you-write.html, because that page fetches
+// nothing at run time. A re-shoot therefore drifts a page under docs/artifact/,
+// and pages.yml runs refresh-figures --check before it assembles the site. Run
+// it after shooting, and commit the manual with the images.
+
 const SHOTS = [
   { name: 'collapsed', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true },
   { name: 'full', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true,
@@ -370,6 +402,49 @@ async function assertOnScreen(p, name, target) {
   if (!r.on) throw new Error(`${name}: #${target} is off screen (x=${r.x} y=${r.y})`);
 }
 
+// ── the chunk ids this file addresses ────────────────────────────────────
+//
+// Ten shots name a chunk by id, and DOC_RIG names two more in CSS. Those ids
+// are a contract with five lecture sources that know nothing about it: the
+// `{#id}` tails are frozen once authored for other reasons, and this file is
+// not one of the places anybody looks when renaming one. A rename used to
+// surface as `never reached #foo` after a Chromium launch and a full lecture
+// build, which names the symptom and not the cause.
+//
+// So the ids are checked against the sources first, without a browser. It is
+// the only part of a shot that can be decided that way - see the note above
+// the shot table for what deliberately cannot be.
+function checkTargets(list) {
+  const need = new Map();
+  const want = (lec, id) => {
+    if (!need.has(lec)) need.set(lec, new Set());
+    need.get(lec).add(id);
+  };
+  for (const s of list) want(lectureOf(s), targetOf(s));
+  // DOC_RIG trims the document views to two chunks, and the second one is
+  // named in CSS rather than in a shot row.
+  want(LECTURE, TARGET);
+  want(LECTURE, 'playwright-install');
+
+  const missing = [];
+  for (const [dir, ids] of need) {
+    const src = path.join(dir, 'source.md');
+    if (!fs.existsSync(src)) { missing.push(`${path.relative(ROOT, src)} is missing`); continue; }
+    const have = new Set();
+    for (const line of fs.readFileSync(src, 'utf8').split('\n')) {
+      if (!line.startsWith('## ')) continue;
+      const tail = line.match(/\{([^}]*)\}\s*$/);
+      if (!tail) continue;
+      const id = tail[1].match(/#([A-Za-z0-9_-]+)/);
+      if (id) have.add(id[1]);
+    }
+    for (const id of ids) {
+      if (!have.has(id)) missing.push(`#${id} is not a chunk of ${path.relative(ROOT, src)}`);
+    }
+  }
+  return missing;
+}
+
 // ── main ─────────────────────────────────────────────────────────────────
 const argv = process.argv.slice(2);
 const keepPng = argv.includes('--keep-png');
@@ -378,6 +453,19 @@ const shots = wanted.length ? SHOTS.filter(s => wanted.includes(s.name)) : SHOTS
 if (!shots.length) {
   console.error(`unknown shot. known: ${SHOTS.map(s => s.name).join(', ')}`);
   process.exit(1);
+}
+
+// Before the browser, before the builds: the ids still exist.
+const missing = checkTargets(shots);
+if (missing.length) {
+  console.error('shoot.mjs addresses chunks that are not there:');
+  for (const m of missing) console.error(`  ${m}`);
+  console.error('A chunk id moved. Repoint the shot row, or put the id back.');
+  process.exit(2);
+}
+if (argv.includes('--check-ids')) {
+  console.log(`ids ok: ${shots.length} shot(s) address chunks that exist`);
+  process.exit(0);
 }
 
 let chromium;

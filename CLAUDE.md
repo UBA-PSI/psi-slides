@@ -167,6 +167,15 @@ Chromium (`$PSI_CHROME`, else the Playwright cache, else system Chrome) and
 `cwebp` or `magick` to encode. See the header comment for why the CLI
 screenshotter cannot do this job.
 
+**Ten shots name a chunk by id, and `node docs/site/shoot.mjs --check-ids`
+answers whether those ids still exist** – no browser, no build, a second. It
+also runs before every shoot, so a renamed chunk fails there rather than as
+`never reached #foo` after a Chromium launch. **Whether a shot is *stale* is
+not checked and cannot be**, because a shot is the lecture plus the inlined
+stylesheets plus the rig plus the Chromium that drew it; the trigger to
+re-shoot, the threshold for bothering, and the reason `refresh-figures --check`
+drifts whenever `img/editor.webp` moves are written out beside the shot table.
+
 A source file can silence specific lint warnings with an HTML comment anywhere in the body:
 
 ```
