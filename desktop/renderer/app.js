@@ -57,6 +57,28 @@
     return t('time.seconds', { n: n });
   }
 
+  // A count with the thousands separator of the language on screen: 14.149
+  // in German and 14,149 in English. Six numbers under one another are read
+  // as a set, and a four-digit one without a separator breaks the set.
+  function fmtCount(n) {
+    return new Intl.NumberFormat(locale()).format(n || 0);
+  }
+
+  // "at 14:31", "yesterday at 14:31", "on 12 Aug at 14:31". A time alone is
+  // enough for what happened today, which is nearly everything the builder
+  // shows, and a date without a time would be useless for the rest: the
+  // question these two answer is whether the build is newer than the save.
+  function fmtWhen(ms) {
+    if (!ms) return null;
+    var now = new Date();
+    var midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+    var yesterday = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 1).getTime();
+    if (ms >= midnight) return t('facts.at', { time: fmtTime(ms) });
+    if (ms >= yesterday) return t('facts.atYesterday', { time: fmtTime(ms) });
+    var date = new Intl.DateTimeFormat(locale(), { day: 'numeric', month: 'short' }).format(new Date(ms));
+    return t('facts.atDate', { date: date, time: fmtTime(ms) });
+  }
+
   function fmtAgo(ms) {
     var d = Date.now() - ms;
     if (!ms || d < 0) d = 0;
@@ -229,6 +251,32 @@
     });
   }
 
+  // What is in the lecture, from the last build that succeeded. It stays on
+  // screen through a failed build for the same reason the output cells do:
+  // the four views on disk are still that build's, and so are these numbers.
+  function renderFacts() {
+    var stats = state.lastSuccess && state.lastSuccess.stats;
+    var grid = $('fact-grid');
+    var times = $('facts-times');
+    var wait = $('facts-wait');
+    show(grid, !!stats);
+    show(wait, !stats);
+    if (!stats) { show(times, false); return; }
+
+    $('fact-sections').textContent = fmtCount(stats.sections);
+    $('fact-chunks').textContent = fmtCount(stats.chunks);
+    $('fact-page-words').textContent = fmtCount(stats.pageWords);
+    $('fact-note-words').textContent = fmtCount(stats.noteWords);
+    $('fact-pictures').textContent = fmtCount(stats.pictures);
+    $('fact-drawings').textContent = fmtCount(stats.drawings);
+
+    var saved = fmtWhen(state.sourceModifiedMs);
+    if (saved) {
+      times.textContent = t('facts.times', { saved: saved, built: fmtWhen(state.lastSuccess.at) });
+    }
+    show(times, !!saved);
+  }
+
   function renderProject() {
     $('project-name').textContent = state.name || '';
     $('project-path').textContent = shorten(state.source || '', 58);
@@ -236,6 +284,7 @@
 
     renderStatus();
     renderOutputs();
+    renderFacts();
 
     var restart = state.phase === 'process-error';
     $('btn-build').textContent = restart ? t('status.restart') : t('actions.build');

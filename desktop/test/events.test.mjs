@@ -83,6 +83,33 @@ test('changed sets the flag and a success clears it', () => {
   assert.equal(s.changedSinceBuild, false);
 });
 
+test('a build carries the lecture figures and the save time', () => {
+  const stats = { sections: 3, chunks: 12, pageWords: 2400, noteWords: 310, pictures: 4, drawings: 7 };
+  let s = reduceState({ ...initialState(), phase: 'building' }, {
+    type: 'build-success', views: ['print'], durationMs: 12,
+    stats, sourceModifiedMs: 1700,
+  }, 1800);
+  assert.deepEqual(s.lastSuccess.stats, stats);
+  assert.equal(s.sourceModifiedMs, 1700);
+  // A copy, not the event's own object: a later event must not be able to
+  // rewrite the numbers the window is showing.
+  assert.notEqual(s.lastSuccess.stats, stats);
+
+  // Auto-build off: the save is seen, the numbers stay the last build's, and
+  // only the save time moves – which is the whole reason the two are shown
+  // beside each other.
+  s = reduceState(s, { type: 'changed', modifiedMs: 2400 });
+  assert.equal(s.sourceModifiedMs, 2400);
+  assert.deepEqual(s.lastSuccess.stats, stats);
+});
+
+test('an engine that sends no figures leaves them out rather than zeroing them', () => {
+  const s = reduceState({ ...initialState(), phase: 'building' },
+    { type: 'build-success', views: ['print'], durationMs: 3 }, 5);
+  assert.equal(s.lastSuccess.stats, null);
+  assert.equal(s.sourceModifiedMs, 0);
+});
+
 test('watching names the project and auto follows the command', () => {
   let s = reduceState(initialState(), { type: 'watching', source: '/a/b/source.md', dir: '/a/b', auto: true });
   assert.equal(s.source, '/a/b/source.md');

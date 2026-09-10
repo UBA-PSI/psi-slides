@@ -51,9 +51,11 @@ Line height 1.45 for prose, 1.3 for buttons.
 
 ## Layout
 
-Two screens in one window, 760 × 680 to start, resizable, minimum
+Two screens in one window, 760 × 780 to start, resizable, minimum
 600 × 480. The ready state, the error state and the German text all fit in
-that height without scrolling; that is what set it. Everything is left-aligned on a 32 px margin; the content column
+that height without scrolling; that is what set it, and the smoke test
+measures it in both languages rather than leaving it to an eye. It was 680
+until the lecture's figures went on the project screen. Everything is left-aligned on a 32 px margin; the content column
 is capped at 640 px so long paths and hints keep a readable measure.
 
 ### Start screen
@@ -119,6 +121,15 @@ it is there.
 │  Open source.md in your text editor                  │  text button
 │  Any text editor will do. Save the file, and the     │  13 px soft
 │  builder rebuilds.                                   │
+│  ───────────────────────────────────────────────     │  hairline
+│  Sections            12   Pictures              2    │  label soft, figure ink
+│  Slides              92   Drawings             10    │
+│  Words in the       …49   Words in the       934     │
+│  handout                  speaker notes              │
+│  source.md was saved at 14:31. The last build was    │  13 px soft
+│  at 14:32.                                           │
+│  Only source.md is watched. If you change a picture  │
+│  or a font beside it, press "Build now".             │
 │                                                      │
 │  ▸ Show build details                                │  disclosure
 └──────────────────────────────────────────────────────┘
@@ -159,6 +170,45 @@ unexpectedly.", and a "Restart" button in the place of "Build now".
 Hints (no Chrome found; the lecture has embeds) are one paragraph each in
 `--ink-soft` under the output grid, with a hairline above. No icon, no
 coloured box. They appear only while they apply.
+
+### What is in the lecture
+
+Six figures under a hairline, in two columns of three: the document down the
+left – sections, slides, words the students get – and the pictures, the
+drawings and the lecturer's own words down the right. Label in `--ink-soft`
+at 13 px on the left of its row, figure in `--ink` and tabular numerals hard
+against the right of the column, so the units line up whether the number is
+one digit or five.
+
+Four decisions worth keeping:
+
+- **No heading over it.** Six rows reading "Sections 12" say what they are.
+  A "This lecture" head cost 33 px and one more level of hierarchy on a
+  screen that already carries as many as it can.
+- **No box and no rules between the rows.** The output grid is the one
+  bordered thing on this screen; a second table beside it would turn a quiet
+  reference into a dashboard.
+- **Column-major, not row-major** (`grid-auto-flow: column`). The source
+  order is then the reading order a screen reader gets – Sections, Slides,
+  Words in the handout, then Pictures, Drawings, Words in the notes – while
+  the eye still travels down a column.
+- **Below the two daily actions.** The numbers are reference, looked at when
+  a lecture is being planned rather than when it is being built, so they sit
+  under the output grid and the editor button and above the two switches
+  that are touched once a term.
+
+Under them, two soft sentences. The first is the pair of times the numbers
+raise a question about – when `source.md` was saved, when it was last built –
+written as a sentence rather than as a metadata strip, and giving a date only
+when the event was not today. The second says what the app does *not* watch:
+`source.md` and nothing else, so a changed picture reaches the views only on
+the next build. That sentence is there because the alternative was a person
+watching a stale figure on a projector and having no way to know why.
+
+Before the first successful build the six figures are replaced by one soft
+line saying they arrive after it. They survive a failed build, for the same
+reason the output cells stay enabled: the four views on disk are still the
+last good build's, and so are its numbers.
 
 "Show build details" opens a mono block of the raw log, newest at the
 bottom, 12 rows high with its own scroll, and a "Copy log" text button.

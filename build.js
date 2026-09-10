@@ -4425,6 +4425,139 @@ function parseLecture(src) {
   return { frontmatter, columns };
 }
 
+// ── lecture statistics (the `stats` payload of --events) ─────────────
+//
+// Six numbers a lecturer asks about the deck they are writing: how many
+// parts, how many slides, how much prose the students get, how much of it is
+// the lecturer's alone, and how many pictures and drawings are in it. The
+// desktop builder shows them; nothing in the build depends on them.
+//
+// It is a *counting* walk, not a second parser. Sections and chunks come from
+// the parsed lecture, which already knows them exactly. The rest is a shallow
+// line walk over the source in the style of `scanReferencedImages` above –
+// fence-aware, note-aware, and aware of `::: draw` because a diagram's source
+// lines are a drawing rather than prose. It deliberately knows nothing else
+// about the directive vocabulary: a `:::` line is markup and carries no words
+// whichever directive it opens, so that vocabulary can keep growing without
+// this walk having to hear about it.
+//
+// Two decisions the numbers do not show on their own:
+//
+//   - Fenced code is not prose. A listing is on the printed page, but
+//     `for (i = 0; i < n; i++) {` is not six words of a lecture, and counting
+//     it made a deck with two code slides read as twice the lecture it is.
+//   - `> note:` is the only thing subtracted from the page count. Everything
+//     else the author wrote – a `::: script` block, an `::: expand` body, a
+//     card, a dock – is in print.html, and print.html is what the students
+//     get, so it counts.
+
+// One line of Markdown reduced to the words a reader would say out loud. An
+// image keeps its alt text (it becomes a figcaption) and a link keeps its
+// label; everything else that is punctuation of the format goes.
+function statsWordsIn(line) {
+  const text = String(line)
+    .replace(/`[^`]*`/g, ' ')
+    .replace(/!\[([^\]]*)\]\([^)]*\)/g, ' $1 ')
+    .replace(/\[([^\]]*)\]\([^)]*\)/g, ' $1 ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/[*_~`#>|]/g, ' ');
+  let n = 0;
+  for (const w of text.split(/\s+/)) if (/[\p{L}\p{N}]/u.test(w)) n++;
+  return n;
+}
+
+// Is this reference a picture rather than a clip? `![](clip-id)` is the same
+// shorthand a picture uses – a clip is a figure that moves – so the question
+// can only be answered by resolving the reference the way the build does.
+// A reference that resolves to nothing is counted as a picture: the author
+// meant one, and the missing asset is reported elsewhere.
+function statsIsPicture(href) {
+  if (/^(?:https?:|data:|\/\/|\/)/i.test(href)) return !isVideoExt(href);
+  const shorthand = !/[\\/]/.test(href) && !/\.[a-z0-9]+$/i.test(href);
+  const rel = shorthand ? resolveFigId(href) : href;
+  return rel ? !isVideoExt(rel) : true;
+}
+
+// A heading line without its type prefix and without its {…} tail: what a
+// reader sees at the top of the slide, and nothing of the grammar around it.
+function statsHeadingWords(line) {
+  const bare = line.replace(/^#{1,6}\s*/, '').replace(/\{[^}]*\}\s*$/, '');
+  const m = bare.match(/^([a-z]+):\s*(.*)$/);
+  return statsWordsIn((m && VALID_TAGS.has(m[1]) ? m[2] : bare).replace(/\|/g, ' '));
+}
+
+// When source.md was last written. 0 rather than a throw if it is gone: a
+// missing timestamp is a line a driver leaves out, not a failed build.
+function sourceModifiedAt(file) {
+  try { return fs.statSync(file).mtimeMs; } catch { return 0; }
+}
+
+function lectureStats(src, lecture) {
+  const stats = {
+    sections: lecture.columns.length,
+    chunks: lecture.columns.reduce((n, c) => n + c.chunks.length, 0),
+    pageWords: 0,
+    noteWords: 0,
+    pictures: 0,
+    drawings: 0,
+  };
+
+  let inFence = false;
+  let inDraw = false;
+  // Which bucket the blockquote block being read belongs to, or null between
+  // blocks: `> note:` is the lecturer's, `> annot:` prints for the students.
+  let quoteBucket = null;
+
+  for (const line of matter(src).content.split('\n')) {
+    if (/^\s*```/.test(line)) { inFence = !inFence; continue; }
+    if (inFence) continue;
+
+    if (inDraw) {
+      if (/^:::\s*$/.test(line)) inDraw = false;
+      continue;
+    }
+
+    // A note or annotation block runs from its opener to the first line that
+    // is not a blockquote – the parser's own rule.
+    if (quoteBucket) {
+      if (/^\s*>/.test(line)) { stats[quoteBucket] += statsWordsIn(line); continue; }
+      quoteBucket = null;
+    }
+    const quote = line.match(/^\s*>\s*(note|annot):(.*)$/i);
+    if (quote) {
+      quoteBucket = quote[1].toLowerCase() === 'note' ? 'noteWords' : 'pageWords';
+      stats[quoteBucket] += statsWordsIn(quote[2]);
+      continue;
+    }
+
+    if (/^:::\s+draw\b/.test(line)) { inDraw = true; stats.drawings++; continue; }
+    // A backdrop names its picture on the opener; every other directive line
+    // is markup with nothing on the page.
+    if (/^:::\s+backdrop\s+[^\s{]/.test(line)) { stats.pictures++; continue; }
+    if (/^:::/.test(line)) continue;
+
+    // Inline code first: a lecture that documents the format writes
+    // `![Caption](fig-id)` in prose, and that is an example, not a picture.
+    for (const m of line.replace(/`[^`]*`/g, ' ').matchAll(/!\[[^\]]*\]\(([^)\s]+)/g)) {
+      if (statsIsPicture(m[1])) stats.pictures++;
+    }
+    stats.pageWords += /^#{1,6}\s/.test(line) ? statsHeadingWords(line) : statsWordsIn(line);
+  }
+
+  // The cover and the closing slide take their picture from the frontmatter,
+  // which the walk above never sees. Read off the parsed block rather than
+  // matched in the source, because a lecture that documents the format has a
+  // `cover-image:` line in a fenced example and that is not a picture.
+  // `closing-image: cover` names no file of its own – it is the cover's
+  // picture a second time.
+  const cover = String(lecture.frontmatter['cover-image'] || '').trim();
+  const closing = String(lecture.frontmatter['closing-image'] || '').trim();
+  if (cover) stats.pictures++;
+  if (closing && closing !== 'cover') stats.pictures++;
+
+  return stats;
+}
+
 // ── rendering ────────────────────────────────────────────────────────
 
 // Live-reload snippet for --watch mode. The build threads opts.watchPort
@@ -17983,7 +18116,10 @@ function buildOnce(absIn, only, opts = {}) {
     // the F toggle. Print has no toggle and gets only what its formulas use.
     console.log(`[math] ${lastKatexSheet.families} KaTeX font families inlined, ${kb} KB of woff2 per live view (of 254 KB for the full set); print carries only the families its formulas use. A lecture without math inlines nothing.`);
   }
-  return { written, shape };
+  // Cheap enough to do on every build (a line walk over the source), and
+  // only a driver ever reads it: the human log says nothing about it.
+  const stats = lectureStats(src, lecture);
+  return { written, shape, stats, sourceModifiedMs: sourceModifiedAt(absIn) };
 }
 
 // Watch mode: build once, start a WS server on a free port, install a
@@ -18032,13 +18168,14 @@ async function runWatch(absIn, only, baseOpts = {}) {
     emitEvent({ type: 'build-start', reason });
     const t0 = Date.now();
     try {
-      const { written, shape } = buildOnce(absIn, only, opts);
+      const { written, shape, stats, sourceModifiedMs } = buildOnce(absIn, only, opts);
       lastBuildError = null;
       console.log(`[${label}] ${written.join(', ')} (${shape})`);
       emitEvent({
         type: 'build-success', reason,
         views: written.map(p => path.basename(p, '.html')),
         shape, durationMs: Date.now() - t0, embeds: embedsThisBuild.length,
+        stats, sourceModifiedMs,
       });
       broadcast('reload');
     } catch (err) {
@@ -18211,7 +18348,10 @@ async function runWatch(absIn, only, baseOpts = {}) {
     clearTimeout(timer);
     timer = setTimeout(() => {
       if (autoBuild) rebuild('rebuild', 'change');
-      else emitEvent({ type: 'changed' });
+      // The save time rides along, so a driver showing "last saved" is right
+      // without a watcher of its own – and right while auto-build is off,
+      // which is the only state in which the two times differ.
+      else emitEvent({ type: 'changed', modifiedMs: sourceModifiedAt(absIn) });
     }, 80);
   });
 
@@ -19367,13 +19507,14 @@ async function main() {
 
   emitEvent({ type: 'build-start', reason: 'manual' });
   oneShotStart = Date.now();
-  const { written, shape } = buildOnce(absIn, only, opts);
+  const { written, shape, stats, sourceModifiedMs } = buildOnce(absIn, only, opts);
   reportWebpInline();
   console.log(`Wrote ${written.join(', ')} (${shape})`);
   emitEvent({
     type: 'build-success', reason: 'manual',
     views: written.map(p => path.basename(p, '.html')),
     shape, durationMs: Date.now() - oneShotStart, embeds: embedsThisBuild.length,
+    stats, sourceModifiedMs,
   });
   // After the build, because it measures what the build just wrote. Its
   // exit code is the command's: a slide that does not fit is a defect the

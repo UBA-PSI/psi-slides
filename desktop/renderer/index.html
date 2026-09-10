@@ -99,6 +99,25 @@
     </p>
     <p class="soft" data-t="project.editorNote"></p>
 
+    <!-- What is in the lecture. Six numbers in two columns of three: the
+         document down the left, the pictures and the lecturer's own words
+         down the right. Reference rather than action, so it sits below the
+         two things a person does every day (build, open a view) and above
+         the two switches they touch once a term. -->
+    <div class="facts">
+      <p id="facts-wait" class="soft" hidden data-t="facts.wait"></p>
+      <dl id="fact-grid" class="fact-grid" hidden>
+        <div class="fact"><dt data-t="facts.sections"></dt><dd id="fact-sections"></dd></div>
+        <div class="fact"><dt data-t="facts.chunks"></dt><dd id="fact-chunks"></dd></div>
+        <div class="fact"><dt data-t="facts.pageWords"></dt><dd id="fact-page-words"></dd></div>
+        <div class="fact"><dt data-t="facts.pictures"></dt><dd id="fact-pictures"></dd></div>
+        <div class="fact"><dt data-t="facts.drawings"></dt><dd id="fact-drawings"></dd></div>
+        <div class="fact"><dt data-t="facts.noteWords"></dt><dd id="fact-note-words"></dd></div>
+      </dl>
+      <p id="facts-times" class="soft" hidden></p>
+      <p class="soft" data-t="facts.assets"></p>
+    </div>
+
     <div class="serve">
       <label class="check"><input type="checkbox" id="chk-serve"><span data-t="serve.label"></span></label>
       <p class="soft" data-t="serve.hint"></p>

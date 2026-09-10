@@ -104,9 +104,11 @@ try {
   // The one line this app exists to show must not be somewhere the person
   // scrolls to, so the whole ready state has to stand in the window the app
   // opens at. This is that promise as a number rather than as an eye.
-  const fits = await page.evaluate(() =>
-    document.documentElement.scrollHeight <= window.innerHeight);
-  check('the ready state needs no scrollbar at the default window size', fits);
+  const room = await page.evaluate(() => ({
+    content: document.documentElement.scrollHeight, window: window.innerHeight }));
+  log(`ready state is ${room.content} px in a ${room.window} px window`);
+  check('the ready state needs no scrollbar at the default window size',
+    room.content <= room.window);
 
   await page.emulateMedia({ colorScheme: 'dark' });
   await shoot(page, 'project-ready-dark');
@@ -128,8 +130,10 @@ try {
   check('the status sentence is German', /^Bereit\./.test((await page.textContent('#status-text')).trim()));
   check('the build button is German', (await page.textContent('#btn-build')).trim() === 'Jetzt bauen');
   await shoot(page, 'project-ready-de');
-  check('the German ready state needs no scrollbar either', await page.evaluate(() =>
-    document.documentElement.scrollHeight <= window.innerHeight));
+  const roomDe = await page.evaluate(() => ({
+    content: document.documentElement.scrollHeight, window: window.innerHeight }));
+  log(`German ready state is ${roomDe.content} px in a ${roomDe.window} px window`);
+  check('the German ready state needs no scrollbar either', roomDe.content <= roomDe.window);
   await page.evaluate(() => window.builder.setLanguage('en'));
   await waitFor(page, '#status-text', v => /^Ready\./.test(v.trim()), 15000);
 

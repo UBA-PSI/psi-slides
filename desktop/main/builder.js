@@ -56,6 +56,11 @@ function initialState() {
     lastSuccess: null,
     lastError: null,
     changedSinceBuild: false,
+    // When source.md was last written, as the engine last saw it. It rides on
+    // `build-success` and on `changed`, which is the only pair of events that
+    // can make it differ from the build time: with auto-build off, a save is
+    // seen and not acted on.
+    sourceModifiedMs: 0,
     auto: true,
     serve: { enabled: false, url: null },
     embeds: 0,
@@ -92,11 +97,17 @@ function reduceState(state, event, now = Date.now()) {
         lastError: null,
         changedSinceBuild: false,
         embeds: typeof event.embeds === 'number' ? event.embeds : state.embeds,
+        sourceModifiedMs: typeof event.sourceModifiedMs === 'number'
+          ? event.sourceModifiedMs : state.sourceModifiedMs,
         lastSuccess: {
           at: now,
           durationMs: typeof event.durationMs === 'number' ? event.durationMs : 0,
           views: Array.isArray(event.views) ? event.views.slice() : [],
           shape: typeof event.shape === 'string' ? event.shape : '',
+          // What is in the lecture, as the interface's figures block shows
+          // it. Null from an engine that does not send it – the block is
+          // then left out rather than shown as six zeroes.
+          stats: event.stats && typeof event.stats === 'object' ? { ...event.stats } : null,
         },
       };
     case 'build-error':
@@ -112,7 +123,12 @@ function reduceState(state, event, now = Date.now()) {
         },
       };
     case 'changed':
-      return { ...state, changedSinceBuild: true };
+      return {
+        ...state,
+        changedSinceBuild: true,
+        sourceModifiedMs: typeof event.modifiedMs === 'number' && event.modifiedMs
+          ? event.modifiedMs : state.sourceModifiedMs,
+      };
     case 'auto':
       return { ...state, auto: !!event.enabled };
     case 'watch-error':

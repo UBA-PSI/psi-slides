@@ -60,6 +60,16 @@ fails, the message from `build.js` is shown as it was written – it names the
 line – and the four views keep the last build that worked, so a broken save
 never takes your slides away in the middle of a lecture.
 
+Under the four buttons the window says what is in the lecture: how many
+sections and slides, how many words the students get and how many are in your
+speaker notes, how many pictures and how many drawings. Beside them are the
+two times that answer the question the numbers raise – when `source.md` was
+last saved, and when it was last built.
+
+**Only `source.md` is watched.** Change a picture, a clip or a font in the
+folder beside it and nothing happens on its own: press "Build now", and the
+new file goes into the four views.
+
 Two switches are worth knowing about. **Open the views through a local web
 address** starts a small server on this computer; embedded YouTube and Vimeo
 players refuse to run from a file, and this is what makes them work. **Open

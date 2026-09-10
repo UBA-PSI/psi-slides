@@ -22,7 +22,9 @@ node build.js lectures/tutorial/source.md --watch
 
 # for a program that drives the build rather than reads it (the desktop
 # builder is the first): one JSON object per line on stdout – build-start,
-# build-success, build-error, watching, serving, changed, patch, asset,
+# build-success (carrying `stats`, the six figures lectureStats counts, and
+# `sourceModifiedMs`), build-error, watching, serving, changed (carrying
+# `modifiedMs`), patch, asset,
 # watch-error – and commands on stdin, {"type":"rebuild"} and
 # {"type":"auto","enabled":false}. The human log is untouched beside it; a
 # driver tells the two apart by the leading `{"type":`. Without the flag,

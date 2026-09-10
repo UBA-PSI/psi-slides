@@ -316,6 +316,57 @@ button {
 .cell-hint { font-size: 13px; color: var(--ink-soft); }
 .cell[disabled] { opacity: 0.45; cursor: default; }
 
+/* ── what is in the lecture ───────────────────────────────────── */
+
+/* Six label-and-number rows, in two columns of three. `grid-auto-flow:
+   column` rather than a row-major grid, so the source order is the reading
+   order a screen reader gets – Sections, Slides, Words in the handout, then
+   Pictures, Drawings, Words in the notes – and the eye still travels down a
+   column rather than across a table.
+
+   No box and no rules between the rows: the output grid is the one bordered
+   thing on this screen, and a second table beside it would turn a quiet
+   reference into a dashboard. */
+/* A hairline and the labels, with no heading of its own. Six rows reading
+   "Sections 12" need no one to announce them, and the screen already has as
+   many levels as it can carry. */
+.facts {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--rule);
+}
+.fact-grid {
+  display: grid;
+  grid-auto-flow: column;
+  grid-template-rows: repeat(3, auto);
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  column-gap: 36px;
+  margin: 0 0 12px;
+  max-width: 44em;
+}
+.fact {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 2px 0;
+  min-width: 0;
+}
+.fact dt {
+  color: var(--ink-soft);
+  font-size: 13px;
+  min-width: 0;
+}
+.fact dd {
+  margin: 0;
+  flex: 0 0 auto;
+  /* Tabular figures so the numbers in a column line up on their units even
+     when one of them is four digits and the next is one. */
+  font-variant-numeric: tabular-nums;
+}
+.facts p { margin: 0 0 6px; font-size: 13px; max-width: 44em; }
+.facts p:last-child { margin-bottom: 0; }
+
 /* ── hints, serve, editor, details ────────────────────────────── */
 
 .hints, .serve {

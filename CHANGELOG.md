@@ -18,6 +18,19 @@ from building the same way is a major version.
   its arguments in the main process, and nothing leaves the computer – no
   telemetry, no update check. The engine is staged out of this repository at
   package time, so the app and the lectures it builds are the same build.js.
+- **What is in the lecture, in the builder's window** (builder 0.1.1). Six
+  figures under the four view buttons: sections, slides, the words the
+  students get, the words in the speaker notes, pictures and drawings – and
+  beside them the two times that answer the question those numbers raise,
+  when `source.md` was last saved and when it was last built. The engine
+  supplies them: `build-success` now carries a `stats` object and a
+  `sourceModifiedMs`, and `changed` carries a `modifiedMs`, so a driver that
+  shows a save time is right without a watcher of its own. `lectureStats()`
+  is a counting walk rather than a second parser – fence-aware, note-aware
+  and aware of `::: draw`, and deliberately ignorant of the rest of the
+  directive vocabulary. The block also says the thing the window could not
+  say before: only `source.md` is watched, so a changed picture reaches the
+  views on the next build and not on its own.
   Its own workflow (`desktop.yml`) runs its unit tests and a smoke test that
   drives the real window, then packages macOS, Windows and Linux. Until 2.0.0
   the app carries its own version and ships as a **pre-release** under a
