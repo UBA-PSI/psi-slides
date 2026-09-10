@@ -500,9 +500,9 @@ pre .srcln:empty::before { content: "\00a0"; }
        and the two columns still end on one line. -->
   <div class="hero-cols">
     <div class="hero-col">
-      <p>Every lecture needs figures, and you already have a way to make them. PowerPoint, Keynote, Illustrator, Inkscape, TikZ, Mermaid, … – and for pictures that are drawn once and looked at once those are the right tools.</p>
+      <p>You already have a way to make figures. PowerPoint, Keynote, Illustrator, Inkscape, TikZ, Mermaid, … – and for a picture that is drawn once and never revised, those are the right tools.</p>
 
-      <p>We believe <strong>lecture figures</strong> are different. They should be <strong>built up in front of a room</strong> while somebody talks over them, <strong>survive the slides being reordered</strong>, and come out of the <strong>same file as the printed handout</strong>. Ideally, changes can be tracked, invisible annotations can be added, edges move with their objects, and an LLM can read and change them.</p>
+      <p>We believe <strong>lecture figures</strong> are different. They should be <strong>built up in front of a room</strong> while you talk over them, <strong>survive the slides being reordered</strong>, and come out of the <strong>same file as the printed handout</strong>. Ideally a diff shows what changed, a comment can sit in the source without reaching the screen, arrows move with the boxes they join, and a language model can read a figure and edit it.</p>
 
       <div class="cta">
         <a class="primary" href="#seven">See it in seven lines</a>
@@ -512,7 +512,7 @@ pre .srcln:empty::before { content: "\00a0"; }
     <div class="hero-col">
       <p class="lede">In psi-slides, a figure is <strong>a few lines of text in the lecture&rsquo;s own Markdown file</strong>, and <em>the build</em> &ndash; the one command that turns that file into slides &ndash; draws it.</p>
 
-      <p class="hint"><strong>Development status:</strong> The underlying <code>::: draw</code> mechanism is available as a preview in this repository; it is not part of version 1.0.0 of psi-slides &ndash; <a href="index.html#figures">getting it</a> takes a clone or the source zip. The <strong>graphical editor</strong> is experimental and desktop-oriented: it has not yet been tested broadly.</p>
+      <p class="hint"><strong>Development status:</strong> The <code>::: draw</code> mechanism behind these figures is a preview; it is not part of version 1.0.0 of psi-slides, so <a href="index.html#figures">getting it</a> means cloning the project or downloading the source zip. The <strong>graphical editor</strong> is experimental and desktop-oriented: it has not yet been tested broadly.</p>
 
       <div class="herotop" data-autoplay><svg id="sltop-root" class="psi-diagram" viewBox="-165.54 -139.66 468.68 211.08" width="2000" height="901" data-live-viewbox="-165.54 -139.66 468.68 211.08" data-live-ratio="0.450371" data-steps="6" role="img" aria-label="the picture the site opens with" preserveAspectRatio="xMidYMid meet">
 <g id="sltop-tcp" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-tcp--r" x="-126.18" y="-54.80" width="252.36" height="86.86" rx="4"/><g id="sltop-tcp--lw0" data-lab="tcp--l" class="dg-lwrap" transform="translate(-116.18,-42.43)"><g id="sltop-tcp--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">TCP</tspan></text></g></g></g>
@@ -540,8 +540,9 @@ pre .srcln:empty::before { content: "\00a0"; }
     lecture. Its figures live inside its
     Markdown source, the build places them into the slides, and the same source
     becomes the projection, the speaker cockpit and both reading views.</p>
-    <p class="cue">Start with the projection. <kbd>Space</kbd> walks through
-    the beats inside a figure; <kbd>S</kbd> opens a cockpit that follows it.</p>
+    <p class="cue">Start with the projection: <kbd>Space</kbd> steps a figure
+    forward. <kbd>S</kbd> opens a speaker cockpit that follows the
+    projection.</p>
    </div>
    <div class="scroller">
     <table class="lecture-links">
@@ -582,8 +583,8 @@ pre .srcln:empty::before { content: "\00a0"; }
   <h2 id="seven">Figures in psi-slides</h2>
   <div class="beside">
    <div class="said">
-    <p class="lede">A <strong>figure</strong> is whatever a slide shows in place of plain text &ndash; such as an image or a video clip. Our focus is on <strong>relational drawings</strong> fenced off with <code>::: draw</code>. They are described with text, rendered when you <em>build</em> the slides, and can optionally be built up in beats while you present.</p>
-    <p class="cue">This is a whole figure just as you would insert it into a slide. Note that the positions of the objects and arrows are not stored as absolute coordinates: Eve is placed <em>against</em> Alice, Bob against Eve. The arrows are described by naming their two ends and they find their own way between them.</p>
+    <p class="lede">A <strong>figure</strong> is whatever a slide shows in place of plain text &ndash; such as an image or a video clip. Our focus is on <strong>relational drawings</strong>, written inside a <code>::: draw</code> block. They are described in text, drawn when you <em>build</em> the slides, and can be built up stage by stage while you present.</p>
+    <p class="cue">Seven lines, and that is the whole figure, exactly as it goes into a slide. Nothing in it is placed by coordinates: Eve is placed <em>against</em> Alice, Bob against Eve. An arrow is written by naming its two ends, and it finds its own way between them.</p>
    </div>
     <div class="stage">
      <div class="demo">
@@ -603,8 +604,8 @@ pre .srcln:empty::before { content: "\00a0"; }
 
 <section class="band">
  <div class="wrap">
-  <h2>Beats let figures come alive</h2>
-  <p class="lede">The same three boxes, with two <strong>beats</strong> added &ndash; <strong>keyframes, in the sense video editing uses the word</strong>. Step through it: the second beat renames Eve, and her box, both arrows and the outline around her move without a line of source mentioning any of them.</p>
+  <h2>A figure can arrive one beat at a time</h2>
+  <p class="lede">The same three boxes, with two <strong>beats</strong> added &ndash; keyframes, in the sense video editing uses the word. Step through it: the second beat renames Eve, and her box, both arrows and the outline around her move without a line of source mentioning any of them.</p>
 
   <!-- Half-empty row, answer 2: the figure, the bar that walks it and the
        source it was compiled from are one object, and it takes the frame. -->
@@ -637,8 +638,8 @@ pre .srcln:empty::before { content: "\00a0"; }
 
 <section class="band">
  <div class="wrap">
-  <h2>Toy examples are nice, but what about <em>real</em> figures?</h2>
-  <p class="lede">A passkey registration: four lifelines, nine messages, two notes. The numbering, the spacing and the lifelines are generated. The four beats build it the way it is read to a room, one exchange then the next, and the note in the margin, held back a beat so it lands after the exchange it comments on.</p>
+  <h2>A <em>real</em> lecture figure, built in four beats</h2>
+  <p class="lede">A passkey registration: four participants, nine messages, two notes. The numbering, the spacing and the lines down the page are generated. The four beats build it the way it is read to a room, one exchange then the next, and one of the two notes is held back a beat so it lands after the exchange it comments on.</p>
 
   <!-- Half-empty row, answer 2. This is the tallest drawing on the page and
        the section is about what the language does at scale, so it gets the
@@ -718,19 +719,19 @@ pre .srcln:empty::before { content: "\00a0"; }
 
     <div>
       <h3>Positions are relations, and stay relations</h3>
-      <p><code>right of alice gap 1.7</code> is the whole of what the file says about where Eve is, permanently &ndash; not shorthand the build resolves once and forgets. Every element but the first is placed against another, so the file is a set of dependencies and the build follows them in whichever order resolves them.</p>
+      <p><code>right of alice gap 1.7</code> is the whole of what the file says about where Eve is, permanently &ndash; not shorthand the build resolves once and forgets. Almost every element is placed against another, so the placements form a set of dependencies that the build resolves in whatever order works.</p>
       <p class="cue">Give Alice a longer label and her box grows; Eve stays 1.7 units to its right, Bob follows Eve, and both arrows find their new ends, with nothing moved by hand. If two relations point back to each other the build stops and names the placement cycle.</p>
     </div>
 
     <div>
-      <h3>The cast is written once; the beats say what changes</h3>
-      <p>Every element a figure will ever hold &ndash; every box, arrow, label, and outline &ndash; is written at the top of the <code>::: draw</code> block, whether or not it is initially visible when the figure comes up on the projector. A static figure stops there. If the figure has beats, one or more <code>step</code> sections follow; each names a beat and lists what it changes. Pressing the space bar when the figure is shown proceeds to the next beat. A beat can change visibility (<code>show</code>, <code>hide</code>), position (<code>move</code>), labelling (<code>label</code>), prominence (<code>emph</code>, <code>dim</code>, <code>ghost</code>) and styling (<code>style</code>).</p>
-      <p class="cue">An element is hidden at the opening beat exactly when the first thing any step says about it is <code>show</code>, so there is no second list of what starts hidden &ndash; one description of the figure, and the changes to it.</p>
+      <h3>Each element once, then what the beats change</h3>
+      <p>Every box, arrow, label and outline the figure will ever hold is written at the top of the <code>::: draw</code> block, visible from the start or not. A static figure stops there. If it has beats, a <code>step</code> section follows for each, naming it and listing what it changes: visibility (<code>show</code>, <code>hide</code>), position (<code>move</code>), labelling (<code>label</code>), prominence (<code>emph</code>, <code>dim</code>, <code>ghost</code>) or styling (<code>style</code>).</p>
+      <p class="cue">An element starts hidden exactly when the first thing any step says about it is <code>show</code>, so nothing has to list what starts hidden.</p>
     </div>
 
     <div>
       <h3>A beat is the whole figure laid out again</h3>
-      <p>Every beat is the same layout evaluated again with different inputs, not a movement played over a finished picture, and the build works all of them out before the page is written. The browser is handed one drawing and a table of numbers to slide between, with no layout engine to load.</p>
+      <p>Every beat is the same layout evaluated again with different inputs, not a movement played over a finished picture, and the build works every beat out before the page is written. The browser is handed one drawing and a table of numbers to slide between, with no layout engine to load.</p>
       <p class="cue">So an arrow stays attached to a box that walks away. The arrow never held a coordinate; it held &ldquo;the right-hand edge of <code>eve</code>&rdquo;, and that still means the right-hand edge of <code>eve</code> wherever <code>eve</code> now is.</p>
     </div>
   </div>
@@ -740,7 +741,7 @@ pre .srcln:empty::before { content: "\00a0"; }
 <section class="band">
  <div class="wrap">
   <h2 id="editor">Dragging a box rewrites the line that placed it</h2>
-  <p class="lede">A drag changes the number inside a relation and leaves the relation standing, so a figure can be edited by hand without losing what holds it together. The editor therefore works differently from the ones you know: it shows you the relations, and it asks you to name your elements.</p>
+  <p class="lede">A drag changes the number inside a relation and leaves the relation itself alone, so the figure can still be edited in its text afterwards without losing what holds it together. That makes this editor work differently from a drawing program: it shows you the relations, and it asks you to name your elements.</p>
 
   <!-- The caption belongs to its picture, and this is where it did not.
        Both paragraphs describe a REGION of the window - the canvas and the
@@ -761,16 +762,16 @@ pre .srcln:empty::before { content: "\00a0"; }
     <img src="img/editor.webp" alt="The diagram editor open over a lecture slide: a dark canvas holding a CBC decryption figure with one box selected, the relations that place it written on the canvas beside it, a panel on the right describing the beat that is standing, a rail of the figure's beats along the bottom, and a strip of the lecture's other figures under that.">
     <figcaption><strong>The editor, over a slide of a network-security
     lecture.</strong> The selected box is <code>c1</code>; the panel on the
-    right stands for the beat the figure is currently showing.</figcaption>
+    right describes the beat the figure is showing.</figcaption>
    </figure>
   </div>
 
   <div class="pair-up">
    <div>
-    <p><strong>On the canvas</strong>, the words drawn beside the selected box <code>c1</code> &ndash; <code>gap 1.15</code>, <code>flush middle</code>, <code>align y middle</code> are the relations it was written with. A finished drawing cannot show those: a box placed <code>gap 1.15</code> from its neighbour looks exactly like one that happens to sit 1.15 away, and only one of the two moves when the neighbour does.</p>
+    <p><strong>On the canvas</strong>, the words drawn beside the selected box <code>c1</code> &ndash; <code>gap 1.15</code>, <code>flush middle</code>, <code>align y middle</code> &ndash; are the relations it was written with. A finished drawing cannot show those: a box placed <code>gap 1.15</code> from its neighbour looks exactly like one that happens to sit 1.15 away, and only one of the two moves when the neighbour does.</p>
    </div>
    <div>
-    <p><strong>In the panel down the right-hand edge</strong>, the beat that is standing is described by what it <em>does</em> rather than by what it says. It is written <code>show @out</code> and <code>dim feed0, feed1, feed2</code>; the panel names three boxes appearing, three arrows arriving with them &ndash; an arrow is only as visible as the two things it joins &ndash; and three lines dimmed underneath. A drag there writes a <code>move</code> into the step rather than moving the element.</p>
+    <p><strong>In the panel down the right-hand edge</strong>, the beat now showing is described by what it does, not by the source that says it. It is written <code>show @out</code> and <code>dim feed0, feed1, feed2</code>; the panel names three boxes appearing, three arrows arriving with them &ndash; an arrow is only as visible as the two things it joins &ndash; and three lines dimmed underneath. A drag there writes a <code>move</code> into that beat rather than moving the element.</p>
    </div>
   </div>
 
@@ -797,11 +798,11 @@ pre .srcln:empty::before { content: "\00a0"; }
        and the two halves come out within a line of each other. -->
   <div class="pair-up">
    <div>
-    <p>Click a figure in the live view and press <code>E</code>, or use the button in the corner of the card the click opens. It is on by default wherever a lecture has a diagram; <code>editor: speaker</code> in the frontmatter keeps it off the projection and <code>editor: none</code> ships the lecture without it.</p>
-    <p>The gestures, the panel and the rest of it are in <a href="figures-you-write.html#editor">the manual</a>. The editor is experimental and made for a desktop-sized authoring screen: it has automated coverage, but has not been tested broadly by people.</p>
+    <p>Click a figure in the projection and press <code>E</code>, or use the button in the corner of the card that click opens. The editor ships with any lecture that has a figure in it; <code>editor: speaker</code> at the top of the lecture file keeps it off the projection, and <code>editor: none</code> leaves it out altogether.</p>
+    <p>The gestures, the panel and the rest of it are in <a href="figures-you-write.html#editor">the manual</a>. Automated tests cover the editor, but few people have used it, and it is made for a desktop-sized authoring screen.</p>
    </div>
    <div>
-    <p><strong>Build with <code>--watch</code> and the edit goes straight back into <code>source.md</code>:</strong> the button in the top right then reads <em>Write to source.md</em>, the server splices the block into the file, and the rebuild that follows reloads every open tab. Without a watch server the same button copies the whole block to the clipboard, to paste over the old one. An edit that stops the block compiling is written nowhere &ndash; it is rolled back on the spot and the compiler&rsquo;s error message is shown.</p>
+    <p><strong>The edit goes straight back into <code>source.md</code></strong> if you build with <code>--watch</code>, the mode that rebuilds on every save. The button in the top right then reads <em>Write to source.md</em>, the build writes the block back into the file, and the rebuild that follows reloads every open tab. Without a watching build the same button copies the whole block to the clipboard, to paste over the old one. An edit that stops the block compiling is never written: it is rolled back and the compiler&rsquo;s error message is shown.</p>
    </div>
   </div>
   </div>
@@ -853,7 +854,7 @@ pre .srcln:empty::before { content: "\00a0"; }
           <th>The handout</th>
           <td>A second export, and a second thing to keep current</td>
           <td>The same picture</td>
-          <td>The last beat of the same figure, carrying the prominence written into it rather than the prominence a beat lent it</td>
+          <td>The last beat of the same figure. Emphasis a beat lent an element is gone; emphasis written into the figure itself stays</td>
         </tr>
         <tr>
           <th>Output and export</th>
@@ -863,8 +864,8 @@ pre .srcln:empty::before { content: "\00a0"; }
         </tr>
         <tr class="fair">
           <th>When to reach for it</th>
-          <td>One figure, drawn once and not revised. Nothing to install, no build step, and everyone already has it</td>
-          <td>Forty nodes whose arrangement carries no meaning. It places everything for you, which this will never do</td>
+          <td>One figure, drawn once and not revised. Nothing to install, no build step, and most people already have it</td>
+          <td>Forty nodes whose arrangement carries no meaning. It places everything for you, which <code>::: draw</code> will never do</td>
           <td>When the arrangement is part of the argument, or the figure has to be built up in front of a room</td>
         </tr>
       </tbody>
