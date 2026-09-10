@@ -1,59 +1,99 @@
 ---
 title: Python, from zero to a working scanner
+subtitle: One session, one file, a tool you keep
 presenter: Prof. Dr. Dominik Herrmann
 info: |
-  A practical introduction to Python
   PSI-Sem-B · PSI-Sem-M
   SoSe 2026
 course: psi-sem-sose26
 lecture: python-intro
+lang: en
+cover: beside
+cover-ratio: 34%
+section: number
+draw-defaults: |
+  default text {.small}
 ---
 
 ## title: {#title}
 
-# Welcome {#welcome}
+::: draw 120x62
+default box {.tone-1} w 1.55
 
-> note: Short welcome, ask who has written Python before and who hasn't. Tell the room we will end the session with a working CLI that crawls a website. Everyone leaves with a tool, not just slides.
-
-## principle: Use a venv | always, from the very first import {.standard #venv-principle}
-
-**Global Python belongs to the operating system**, not to your project. `pip install` on the system interpreter edits a shared dependency tree that other programs read from.
-
-A **virtual environment** is a directory with its own interpreter and its own `site-packages`. You activate it, install into it, throw it away. **Your project stays reproducible, your machine stays clean.**
-
-> note: The single most valuable sentence in a Python intro. If students remember nothing else from today, this is the one.
-
-## free: What you will build | a link-health scanner, under 80 lines {.wide #what-you-will-build}
-
-By the end of this session you will have a **small command-line tool** that visits a URL, follows every link it finds, and prints a short report for each page it touches. Broken links, missing titles, and missing meta descriptions all get flagged on one line each.
-
-::: cols 2
-
-The tool is **short**: under 80 lines of Python. **It drives a real Chromium browser** under the hood, so it sees JavaScript-rendered pages the way a human does.
-
-We will build it up **piece by piece**. Each topic in this lecture contributes one or two lines of the final script. By the last slide you will be able to trace every character of the scanner back to something you have already seen.
-
+box url   "a URL"             at 0,0 {.tone-2}
+box br    "a real browser"    below url gap 0.7
+box links "every link on it"  below br gap 0.7 {.tone-3}
+box rep   "one line per page" below links gap 0.7 {.tone-2}
+edge url -> br
+edge br -> links
+edge links -> rep
 :::
+
+## outline: The hour ahead {.wide #agenda}
+
+Nine short parts: the last three build the tool, and the six before them are
+the pieces it is made of.
+
+> note: Short welcome. Ask who has written Python before and who has not. Say
+> out loud that we end the session with a working CLI that crawls a website –
+> everyone leaves with a tool, not with slides.
+
+# What we are building {#welcome}
+
+## free: A link-health scanner | under eighty lines, and you will have read all of them {.wide #what-you-will-build}
+
+By the end of the session you will have a **small command-line tool** that
+visits a URL, follows every link it finds on that page, and prints one line
+about each page it touches.
+
+::: cards 3
+- **Broken links**\
+  any response at or above 400, with the URL that produced it
+- **Missing titles**\
+  a page whose `<title>` came back empty
+- **No description**\
+  no `meta` description tag in the head
+:::
+
+**Each topic today contributes one or two lines of the final script.** By the
+last slide you will be able to trace every character of the scanner back to
+something you have already seen.
 
 ## free: What you already need | three boxes to tick before we start {.wide #prerequisites}
 
-::: side
-
-**You bring:** Python **3.11 or newer**, a terminal you are comfortable in, and roughly **three hours of patience**. Prior Python experience is not required; prior programming experience in any language is.
-
-::: flip
-
-**You should already know** what a variable, a function, and a loop are. The shape of an `if` and a `for` should feel familiar even if the syntax does not. If not, pair with someone who does – the pace assumes this baseline.
-
+::: rows
+- **Python 3.11 or newer** `python3 --version` in a terminal has to answer, and the answer has to start with a 3.11 or better
+- **A terminal you are at home in** we install, activate and run from it all afternoon; which shell it is does not matter
+- **The shape of a loop** a variable, a function and a `for` should be familiar ideas, even if the Python spelling is not
 :::
 
-# Setup {#setup}
+Prior *Python* is not assumed. Prior programming in some language is. If that
+last box is not ticked, pair up with someone whose is – the pace takes it for
+granted.
+
+## principle: Use a venv | always, from the very first import {.standard #venv-principle}
+
+**Global Python belongs to the operating system**, not to your project. `pip
+install` on the system interpreter edits a shared dependency tree that other
+programs read from.
+
+A **virtual environment** is a directory with its own interpreter and its own
+`site-packages`. You activate it, install into it, throw it away. **Your
+project stays reproducible, your machine stays clean.**
+
+> note: The single most valuable sentence in a Python intro. If they remember
+> nothing else from today, this is the one.
+
+# Setting up {#setup}
 
 ## example: Setup with uv | the fast modern path {.wide #setup-uv}
 
 ::: side
 
-`uv` is a **modern Python package manager** written in Rust. It replaces `pip`, `virtualenv`, and `pyenv` with one binary and an order of magnitude more speed. Install it once, globally – or run the official script, `curl -LsSf https://astral.sh/uv/install.sh | sh`.
+`uv` is a **modern Python package manager** written in Rust. It replaces `pip`,
+`virtualenv` and `pyenv` with one binary and an order of magnitude more speed.
+Install it once, globally, or run the script on
+[the uv site](https://docs.astral.sh/uv/).
 
 ```bash
 pip install uv
@@ -62,7 +102,8 @@ pip install uv
 
 ::: flip
 
-Then inside your project directory, create the venv, activate it, and install the one dependency we need.
+Then, inside your project directory, create the venv, activate it, and install
+the one dependency we need.
 
 ```bash
 uv venv
@@ -72,11 +113,13 @@ uv pip install playwright
 
 :::
 
-The **activation step** matters. After it, `python` and `pip` resolve to the binaries inside `.venv/`, not the ones on your system.
+**The activation step is the one that matters.** After it, `python` and `pip`
+resolve to the binaries inside `.venv/`, not to the ones on your system.
 
 ## example: Fallback with pip and venv | same result, a few seconds slower {.standard #setup-pip}
 
-**If you cannot install `uv`, the stdlib has everything you need.** Both the venv module and pip ship with Python itself since 3.3 and 3.4 respectively – no extra tool required.
+**If you cannot install `uv`, the standard library has everything you need.**
+Both the venv module and pip ship with Python itself, since 3.3 and 3.4.
 
 ```bash
 python3 -m venv .venv
@@ -85,25 +128,51 @@ pip install --upgrade pip
 pip install playwright
 ```
 
-The only difference is **speed**: uv resolves and installs dependencies in parallel and caches aggressively; `pip` is sequential and cold-caches often. Pick one and stick with it for the rest of the session.
+The only difference is **speed**: uv resolves and installs in parallel and
+caches aggressively, `pip` is sequential and cold-caches often. Pick one and
+stay with it for the rest of the session.
 
 ::: expand deep-dive
-**Why not `conda`?** Conda solves a different problem – reproducible *binary* environments including C libraries, BLAS stacks, CUDA. For pure-Python or wheels-only stacks like ours, it is overkill and slower.
+**Why not `conda`?** Conda solves a different problem – reproducible *binary*
+environments including C libraries, BLAS stacks, CUDA. For a pure-Python,
+wheels-only stack like ours it is overkill and slower.
 
-**Why not `poetry`?** Poetry is excellent for libraries you publish. For single-file scripts and teaching material, it adds ceremony without payoff. `uv pip` covers 95% of the surface.
+**Why not `poetry`?** Poetry is excellent for libraries you publish. For
+single-file scripts and teaching material it adds ceremony without payoff.
+`uv pip` covers 95% of the surface.
 :::
 
-## figure: What a venv actually looks like on disk {.wide #venv-structure}
+## figure: What activation actually does | one directory, one line of `PATH` {.wide #venv-structure}
 
-![](venv-layout)
+::: draw 150x58
+default box {.tone-1 .mono}
 
-The **activation script** rewrites your shell's `PATH` so `.venv/bin/` comes first. Deactivating just restores the previous `PATH`. There is no global state change, no service, no daemon – only a directory.
+text b "PATH before activate" at 0,0 {.left .muted}
+box p1 "/usr/local/bin" below b gap 0.3 flush left
+box p2 "/usr/bin" right of p1 gap 0.22 same as p1
 
-# Python fundamentals {#fundamentals}
+text a "PATH after activate" below p1 gap 1.15 flush left {.left .muted}
+box v  ".venv/bin" below a gap 0.3 flush left same as p1 {.tone-4}
+box q1 "/usr/local/bin" right of v gap 0.22 same as p1
+box q2 "/usr/bin" right of q1 gap 0.22 same as p1
+
+text n "python and pip are found here first" below v gap 0.55 -- v {.muted}
+
+step activated
+  show a, v, q1, q2, n
+:::
+
+**Activation prepends one directory to `PATH`.** Deactivating restores the
+`PATH` it saved. There is no global state change, no service and no daemon –
+only a directory you are free to delete.
+
+# The language itself {#fundamentals}
 
 ## definition: Variables carry values | names do not carry types {.standard #variables-and-types}
 
-**Python is dynamically typed.** A name is bound to a value, and the value carries its own type. The same name can point at an `int` on one line and a `str` on the next, although that is usually a bug, not a feature.
+**Python is dynamically typed.** A name is bound to a value, and the value
+carries its own type. The same name can point at an `int` on one line and a
+`str` on the next, although that is usually a bug rather than a feature.
 
 ```python
 name = "Ada"       # str
@@ -113,10 +182,12 @@ ready = True       # bool
 unknown = None     # NoneType
 ```
 
-The built-in **`type(x)`** tells you what you are holding right now; **`isinstance(x, str)`** answers the question you usually actually have.
+The built-in **`type(x)`** tells you what you are holding right now;
+**`isinstance(x, str)`** answers the question you usually actually have.
 
 ::: expand None-vs-False
-`None` is **not** the same as `False`. `None` is the absence of a value; `False` is a boolean.
+`None` is **not** the same as `False`. `None` is the absence of a value;
+`False` is a boolean.
 
 ```python
 if x is None:   # explicitly unset
@@ -125,12 +196,15 @@ if not x:       # any falsy value
     ...
 ```
 
-The two guards mean different things the moment `x` can legitimately be `0` or an empty string. Use `is None` when you care about “was this ever assigned”, `not x` when you care about “is there anything useful here”.
+The two guards mean different things the moment `x` can legitimately be `0` or
+an empty string. Use `is None` when you care about “was this ever assigned”,
+`not x` when you care about “is there anything useful in here”.
 :::
 
 ## example: F-strings | self-documenting prints for debugging {.standard #fstrings}
 
-**F-strings are the modern way to build strings.** A leading `f` tells Python to evaluate expressions inside `{}` braces and insert the result.
+**F-strings are the modern way to build a string.** A leading `f` tells Python
+to evaluate the expressions inside `{}` braces and insert the results.
 
 ```python
 name = "Ada"
@@ -140,10 +214,13 @@ print(f"Next birthday: {age + 1}.")
 print(f"{name=}, {age=}")
 ```
 
-The last form – adding `=` inside the braces – prints **both the expression and its value**. `name='Ada', age=36`. It exists for one reason only: throwaway debug prints that are still readable three weeks later.
+The last form – an `=` inside the braces – prints **both the expression and its
+value**: `name='Ada', age=36`. It exists for one purpose, throwaway debug
+prints that are still readable three weeks later.
 
 ::: expand format-spec
-**F-strings carry the full format-spec mini-language** after a colon: alignment, padding, precision, thousands separators, and type-specific formatting.
+**F-strings carry the whole format-spec mini-language** after a colon:
+alignment, padding, precision, thousands separators, type-specific formatting.
 
 ```python
 f"{1234567:>12,}"    # thousands, padded
@@ -152,26 +229,26 @@ f"{0.1 + 0.2:.17f}"  # full precision
 f"{255:08b}"         # binary, 8 digits
 ```
 
-Worth remembering the two or three you use weekly; look the rest up when needed.
+Worth remembering the two or three you use weekly; look the rest up.
 :::
 
 ## free: The four core collections | each one answers a different question {.wide #collections}
 
-::: cols 2
-
-**`list`** is an **ordered, mutable** sequence. Use it when order matters and the contents change: `urls = ["a", "b", "c"]`. The workhorse for “a bunch of things in a row”.
-
-**`tuple`** is an **ordered, immutable** sequence. Use it for fixed-shape records: `(lat, lon)`, `(host, port)`. Unpacks neatly into multiple names in one line.
-
-**`dict`** is a **key-value map**. `{"host": "example.com", "port": 443}`. The workhorse for structured records when you have more than three fields and unpacking stops being readable.
-
-**`set`** is an **unordered, unique** bag. **Use it for membership checks and deduplication** – `seen = set(); seen.add(url)`. The scanner uses one to avoid visiting the same URL twice.
-
+::: rows
+- **`list`** ordered and mutable, for a run of things whose order means something: `urls = ["a", "b"]`
+- **`tuple`** ordered and immutable, for a fixed-shape record: `(lat, lon)`, `(host, port)`
+- **`dict`** a map from keys to values, for a record with more fields than you can unpack: `{"status": 200}`
+- **`set`** unordered and unique, for membership tests and deduplication: `seen.add(url)`
 :::
+
+The scanner uses a `set` so that it never visits one URL twice, and a `dict` in
+its place would say something the code does not mean.
 
 ## example: Collection operations | boringly similar across all four {.standard #collection-ops}
 
-**Most operations look the same on lists, tuples, dicts, and sets.** `in` tests membership, `len()` gives size, iteration yields elements (for dicts: keys). The differences are in *mutation* and *shape*.
+**Most operations look the same on lists, tuples, dicts and sets.** `in` tests
+membership, `len()` gives the size, iteration yields elements – for a dict, its
+keys. The differences are in *mutation* and in *shape*.
 
 ```python
 urls = ["https://a.com", "https://b.com"]
@@ -187,7 +264,9 @@ page["title"] = "A"   # dicts grow by assignment
 
 ## example: Control flow | indentation is the block delimiter {.standard #control-flow}
 
-**Python uses indentation instead of braces.** Four spaces per level is the convention, enforced by every editor and lint tool. No `end`, no `}`, no semicolons.
+**Python uses indentation where other languages use braces.** Four spaces per
+level, enforced by every editor and every lint tool. No `end`, no `}`, no
+semicolons.
 
 ```python
 status = 404
@@ -198,17 +277,26 @@ elif 300 <= status < 400:
     print("redirect")
 else:
     print("problem")
+```
 
+**`elif` is the Python spelling of `else if`.** There is no separate keyword and
+no `switch`.
+
+---
+
+**A `for` loop walks an iterable, never an index.** `continue` skips to the next
+item, `break` leaves the loop entirely, and both do what you expect.
+
+```python
 for url in urls:
     if "localhost" in url:
         continue
     print(url)
 ```
 
-The **`continue`** and **`break`** keywords do what you expect. `elif` is the Python spelling of `else if` – no separate keyword.
-
 ::: expand match
-**`match`** is available since Python 3.10 for structural pattern matching: it destructures data and dispatches on shape.
+**`match` has been available since Python 3.10** for structural pattern
+matching: it destructures data and dispatches on shape.
 
 ```python
 match page:
@@ -220,14 +308,17 @@ match page:
         print("unknown shape")
 ```
 
-Useful, but `if`/`elif` covers 90% of cases. Reach for `match` when you have four or more shapes to discriminate.
+Useful, but `if`/`elif` covers 90% of cases. Reach for `match` when you have
+four or more shapes to tell apart.
 :::
 
-## example: Functions with type hints | optional, but you should add them {.wide #functions}
+## example: Functions with type hints | optional, and you should write them anyway {.wide #functions}
 
 ::: side
 
-**Define a function with `def`**, annotate parameters and return type, and you get documentation the editor can read. **Hints are not enforced at runtime** – they are advisory.
+**Define a function with `def`**, annotate the parameters and the return type,
+and you have documentation the editor can read. **Hints are not enforced at
+runtime** – they are advisory.
 
 ```python
 def greet(
@@ -240,7 +331,10 @@ def greet(
 
 ::: flip
 
-**Call it like any other function.** Positional arguments first, then keyword arguments. Defaults let callers omit what they don't need. A signature too long for one line wraps, one parameter per line, with a trailing comma – the form every formatter produces.
+**Call it like any other function.** Positional arguments first, keyword
+arguments after them, and defaults let a caller leave out what it does not
+need. A signature too long for one line wraps one parameter per line with a
+trailing comma – the form every formatter produces.
 
 ```python
 greet("Ada")
@@ -253,13 +347,16 @@ greet(name="Ada")
 
 :::
 
-**Type hints are documentation that compiles.** A linter like `ruff` or a type checker like `mypy` reads them and flags mismatches before the code runs. Your future self will thank you.
+**Type hints are documentation that a machine reads.** `ruff` or `mypy` flags a
+mismatch before the code runs, and your future self is the one who benefits.
 
-# More Python {#more-python}
+# Idioms worth having {#more-python}
 
 ## example: Comprehensions | one line from an iterable {.standard #comprehensions}
 
-**Comprehensions build a list, dict, or set from an existing iterable in a single expression.** They read like “{element} for each item in source, optionally filtered”.
+**A comprehension builds a list, a dict or a set out of an existing iterable in
+one expression.** It reads as “this element, for each item in that source,
+optionally filtered”.
 
 ```python
 urls = ["https://a.com/", "https://b.com", "mailto:x@y"]
@@ -269,27 +366,33 @@ lengths = {u: len(u) for u in https_only}
 domains = {u.split("/")[2] for u in https_only}
 ```
 
-**Prefer a comprehension over a for-loop with `.append()`.** The comprehension form is more compact, slightly faster, and signals intent: “I am building a collection”, not “I am performing side effects”.
+**Prefer a comprehension to a for-loop with `.append()`.** It is more compact,
+a little faster, and it says which of two things you are doing: building a
+collection, rather than performing side effects.
 
 ::: expand generators
-**A generator expression is a comprehension without the brackets.** It produces values lazily, one at a time, instead of materializing the whole list in memory.
+**A generator expression is a comprehension without the brackets.** It produces
+its values lazily, one at a time, instead of materialising the whole list.
 
 ```python
 total = sum(len(u) for u in urls)   # no intermediate list
 first_https = next(u for u in urls if u.startswith("https://"))
 ```
 
-Use a generator when you feed the result straight into `sum`, `min`, `max`, `any`, `all`, or `next`. Use a list comprehension when you actually need to hold all values at once.
+Use one when the result goes straight into `sum`, `min`, `max`, `any`, `all` or
+`next`. Use a list comprehension when you genuinely need every value at once.
 :::
 
 > note: Write the for-loop version on the board first and let them convert it.
 > The nesting order trips people up: `for` clauses read left to right, the same
 > order they would be written as nested loops. Two levels is the limit worth
-> teaching; deeper than that, a loop is clearer and I say so.
+> teaching; deeper than that a loop is clearer, and I say so.
 
 ## example: Exceptions | errors are values you catch and inspect {.standard #exceptions}
 
-**Exceptions are Python's error channel.** When something goes wrong, a function *raises* an exception; a caller further up the stack *catches* it with `try`/`except` and decides what to do.
+**Exceptions are Python's error channel.** When something goes wrong a function
+*raises* one; a caller further up the stack *catches* it with `try`/`except`
+and decides what to do.
 
 ```python
 try:
@@ -299,10 +402,14 @@ except ValueError as exc:
     value = 0
 ```
 
-The **`as exc`** clause binds the exception object to a name so you can inspect it. Drop it when you only care *that* something failed, not *what* failed: `except ValueError:`.
+The **`as exc`** clause binds the exception object to a name so that you can
+inspect it. Drop it when you only care *that* something failed and not *what*
+failed: `except ValueError:`.
 
 ::: expand bare-except
-**Never write `except:` without specifying a type.** A bare `except` swallows every exception, including `KeyboardInterrupt` and `SystemExit`, which means `Ctrl-C` stops working and the process cannot be killed cleanly.
+**Never write `except:` with no type after it.** A bare `except` swallows every
+exception, `KeyboardInterrupt` and `SystemExit` included, so `Ctrl-C` stops
+working and the process cannot be killed cleanly.
 
 ```python
 try:
@@ -313,24 +420,37 @@ except:              # never do this
     ...
 ```
 
-If you genuinely want to catch everything, write `except Exception:` – it covers all *program* errors while leaving interpreter-level signals intact.
+If you genuinely want everything, write `except Exception:`. It covers all
+*program* errors and leaves the interpreter's own signals intact.
 :::
 
-## principle: Read tracebacks from the bottom | the last line is the failure {.standard #read-errors-principle}
+## principle: Read a traceback from the bottom | the last line is the failure {.standard #read-errors-principle}
 
-**The last line of a traceback names the actual failure.** Everything above it is the chain of calls that *led* to that line. Start at the bottom, read one frame up at a time, and stop at the first frame that is your own code.
+**The last line of a traceback names the actual failure.** Everything above it
+is the chain of calls that led to that line. Start at the bottom, read one
+frame upwards at a time, and stop at the first frame that is your own code.
 
 # The standard library {#stdlib}
 
+Five modules – `pathlib`, `urllib.parse`, `re`, `dataclasses`, `argparse` –
+and the scanner uses every one of them.
+
 ## question: Why lean on the standard library? | a dependency is a liability {.narrow #why-stdlib}
 
-**Every `pip install` is a future maintenance cost.** Transitive deps, security patches, breaking releases – all of it on your plate. The standard library is already there, already audited, already installed with Python itself.
+**Every `pip install` is a future maintenance cost.** Transitive dependencies,
+security patches, breaking releases – all of it lands on your plate. The
+[standard library](https://docs.python.org/3/library/) is already there,
+already audited, already installed with Python itself.
 
-> note: Quote is roughly Hynek Schlawack's. Worth naming the source if the room cares. Main point: every pip install is a future maintenance cost. The stdlib is already there.
+> note: The formulation is roughly Hynek Schlawack's; name the source if the
+> room cares. The point to leave standing: every pip install is a future
+> maintenance cost.
 
 ## example: pathlib | paths are objects, not strings {.standard #pathlib}
 
-**`pathlib` replaces string path manipulation with path objects.** The `/` operator joins segments; methods like `.read_text()`, `.mkdir(parents=True)`, and `.glob()` do what their names suggest.
+**`pathlib` replaces string surgery on paths with path objects.** The `/`
+operator joins segments, and `.read_text()`, `.mkdir(parents=True)` and
+`.glob()` do what their names say.
 
 ```python
 from pathlib import Path
@@ -344,15 +464,20 @@ for md in here.glob("**/*.md"):
     print(md.relative_to(here))
 ```
 
-**Cross-platform correctness costs no extra code.** `Path` normalizes slashes and drive letters so the same code runs on Linux, macOS, and Windows without `os.path.join` gymnastics.
+**Cross-platform correctness costs no extra code.** `Path` normalises slashes
+and drive letters, so the same lines run on Linux, macOS and Windows with no
+`os.path.join` gymnastics.
 
 ## example: urllib.parse | URL surgery without regex {.wide #urllib-parse}
 
-**Parsing URLs with a regex is almost always a mistake.** `urllib.parse` already knows about schemes, userinfo, punycode hosts, port defaults, and path normalization.
+**Parsing a URL with a regex is almost always a mistake.** `urllib.parse`
+already knows about schemes, userinfo, punycode hosts, default ports and path
+normalisation.
 
 ::: cols 2
 
-**`urlparse`** splits a URL into named parts – scheme, netloc, path, query, fragment – that you can read by attribute.
+**`urlparse`** splits a URL into named parts – scheme, netloc, path, query,
+fragment – which you then read by attribute.
 
 ```python
 from urllib.parse import urlparse
@@ -363,7 +488,8 @@ u.netloc   # "example.com"
 u.path     # "/a"
 ```
 
-**`urljoin`** resolves a relative reference against a base URL, exactly the way a browser does when it encounters `<a href>`.
+**`urljoin`** resolves a relative reference against a base URL, exactly the way
+a browser does when it meets an `<a href>`.
 
 ```python
 from urllib.parse import urljoin
@@ -374,11 +500,14 @@ urljoin("https://ex.com/a/", "/d")   # .../d
 
 :::
 
-The scanner uses both: **`urljoin`** to turn relative links into absolute URLs, and **`urlparse`** to check that a link stays on the same host before we visit it.
+The scanner uses both: **`urljoin` to make a relative link absolute**, and
+**`urlparse` to check that it stays on the same host** before we visit it.
 
 ## example: re | just enough regex {.standard #re}
 
-**Reach for `re` when pattern matching is the right tool, not before.** If you only need “starts with” or “contains”, `str.startswith`, `str.endswith`, and `in` are faster to write and faster to read.
+**Reach for `re` when pattern matching is the right tool, and not before.** If
+what you need is “starts with” or “contains”, then `str.startswith`,
+`str.endswith` and `in` are faster to write and faster to read.
 
 ```python
 import re
@@ -388,13 +517,22 @@ pattern.match("https://example.com")   # Match object
 pattern.match("mailto:x@y")            # None
 ```
 
-**Compile once, match many.** `re.compile` caches the compiled pattern; calling `.match()` on the compiled object skips the compile step on every call.
+**Compile once, match many.** `re.compile` hands back a compiled pattern, and
+calling `.match()` on it skips the compile step every time round the loop.
+
+::: marginalia
+The `r` in `r"^https?://"` is a **raw string**: backslashes stay backslashes.
+Without it, every `\d` in a pattern has to be written `\\d`, and one day one of
+them will not be.
+:::
 
 ## example: dataclasses | classes that are mostly data {.wide #dataclasses}
 
 ::: side
 
-**`@dataclass` generates `__init__`, `__repr__`, and equality for you** from the field annotations. Less boilerplate, fewer bugs in the boilerplate you don't write.
+**`@dataclass` writes `__init__`, `__repr__` and equality for you** from the
+field annotations. Less boilerplate, and so fewer bugs in the boilerplate you
+did not write.
 
 ```python
 from dataclasses import dataclass
@@ -409,7 +547,9 @@ class PageReport:
 
 ::: flip
 
-**The generated `__init__` takes each field as a keyword argument.** `__repr__` prints all fields; equality compares all fields. We will use this exact class for every page the scanner visits.
+**The generated `__init__` takes every field as a keyword argument.** `__repr__`
+prints them all, and equality compares them all. This exact class is the one
+the scanner fills in for every page it visits.
 
 ```python
 r = PageReport(
@@ -424,9 +564,11 @@ print(r)
 
 :::
 
-## example: argparse | --help you never wrote, in three lines {.standard #argparse}
+## example: argparse | the `--help` you never wrote, in three lines {.standard #argparse}
 
-**`argparse` turns a list of argument descriptions into a full CLI.** Help text, type coercion, default values, error messages – all generated from `add_argument` calls.
+**`argparse` turns a list of argument descriptions into a whole CLI.** Help
+text, type coercion, default values and error messages are all generated from
+the `add_argument` calls.
 
 ```python
 import argparse
@@ -439,38 +581,60 @@ args = p.parse_args()
 print(args.url, args.max)
 ```
 
-**`python scanner.py --help` already works.** Three lines of setup, and the user gets a standards-conforming CLI with Unix-style flags and a readable usage block.
+**`python scanner.py --help` already works.** Three lines of setup, and the
+user has a standards-conforming CLI with Unix-style flags and a readable usage
+block.
 
-# Async basics {#async}
+# Waiting well {#async}
 
-## principle: Async is for I/O, not CPU | overlapping waits, not overlapping work {.standard #async-principle}
+Almost everything the scanner does is waiting for somebody else.
 
-**Network calls spend almost all their time waiting.** Async lets one thread start many waits and serve whichever one completes first. It does not make CPU-bound code faster – for that, you need processes.
+## principle: Async is for I/O, not for CPU | overlapping waits, not overlapping work {.standard #async-principle}
+
+**A network call spends nearly all of its time waiting, so $n$ of them run one
+after another cost $T_{\text{seq}} = \sum_i t_i$ and the same $n$ started
+together cost only the longest of them.**
+
+$$
+T_{\text{conc}} \approx \max_i t_i
+$$
+
+**It does not make CPU-bound code faster.** There is nothing to overlap when
+the thread is busy rather than idle – for that you need processes.
 
 ## definition: The event loop | a scheduler for coroutines {.standard #event-loop}
 
-**An event loop is a scheduler that runs coroutines** – functions that can pause at `await` and resume later. While one coroutine is waiting for a network response, the loop runs another. **One thread, many overlapping waits.**
+**An event loop is a scheduler that runs coroutines** – functions that can
+pause at an `await` and resume later. While one coroutine waits for a network
+response, the loop runs another. **One thread, many overlapping waits.**
 
-You rarely touch the loop directly. **`asyncio.run(main())` starts the loop**, runs your top-level coroutine to completion, and shuts it down.
+You rarely touch the loop directly. **`asyncio.run(main())` starts it**, runs
+your top-level coroutine to completion, and shuts it down again.
 
 ::: expand coroutine-vs-function
-**A coroutine looks like a function but behaves differently when called.** Calling `fetch()` on an `async def` function does not run the body – it returns a *coroutine object* that represents the work to do.
+**A coroutine looks like a function and behaves differently when called.**
+Calling an `async def` function does not run its body – it hands back a
+*coroutine object* standing for the work to be done.
 
 ```python
 async def fetch():
     return 42
 
-x = fetch()           # not 42 – this is <coroutine object>
-x = await fetch()   # 42 – only inside async def
+x = fetch()               # not 42 – a coroutine object
+x = await fetch()         # 42 – only inside async def
 x = asyncio.run(fetch())  # also 42, but starts its own loop
 ```
 
-Forgetting the `await` is the most common async bug. Python will warn about “coroutine was never awaited” at runtime, but only if the object gets garbage-collected without being awaited – not always.
+Forgetting the `await` is the commonest async bug. Python warns about “coroutine
+was never awaited”, but only once the object is collected without having been
+awaited – which is not always.
 :::
 
-## example: async and await | three waits, one second total {.wide #async-await}
+## example: async and await | three waits, one second in total {.wide #async-await}
 
-**`async def` defines a coroutine; `await` suspends it until the awaited operation completes.** `asyncio.gather` starts several coroutines in parallel and waits for all of them.
+**`async def` defines a coroutine and `await` suspends it** until the awaited
+operation finishes. `asyncio.gather` starts several at once and waits for all
+of them.
 
 ```python
 import asyncio
@@ -490,10 +654,13 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-**Three one-second sleeps, total runtime: about one second.** The three waits overlapped instead of queueing up behind each other.
+**Three one-second sleeps, total runtime about one second.** The three waits
+overlapped instead of queueing up behind one another.
 
 ::: expand gather-vs-taskgroup
-**Since Python 3.11, `asyncio.TaskGroup` is the preferred alternative to `gather`.** It uses `async with` to guarantee that all tasks either complete or are cancelled – no task leaks on error.
+**Since Python 3.11 `asyncio.TaskGroup` is the preferred alternative to
+`gather`.** It uses `async with` to guarantee that every task either finishes
+or is cancelled, so no task leaks when one of them raises.
 
 ```python
 async with asyncio.TaskGroup() as tg:
@@ -502,14 +669,36 @@ async with asyncio.TaskGroup() as tg:
 # results available as t1.result(), t2.result() here
 ```
 
-`gather` is still fine for simple cases; `TaskGroup` is the new right-answer when exception handling matters.
+`gather` is still fine for simple cases; `TaskGroup` is the right answer once
+exception handling matters.
 :::
 
 ## figure: One thread, many overlapping waits {.full #async-timeline}
 
-![](async-timeline)
+::: draw 150x62
+default box {.tone-3} w 1.15 h 0.6
 
-The same three network calls. The same single thread. **The only difference is who gets to run while someone else waits.** Synchronous code blocks the thread on every wait; async code releases the thread and lets other coroutines progress.
+text s "blocking: the thread waits" at 0,0 {.left .muted}
+box s1 "wait a" below s gap 0.35 flush left
+box s2 "wait b" right of s1 gap 0.07 same as s1
+box s3 "wait c" right of s2 gap 0.07 same as s1
+brace bs over s1,s2,s3 "about three seconds" side bottom pad 0.28 {.muted}
+
+text c "awaiting: the thread is handed back" below s1 gap 1.9 flush left {.left .muted}
+box a1 "wait a" below c gap 0.35 flush left same as s1 {.tone-4}
+box a2 "wait b" below a1 gap 0.09 same as s1 {.tone-4}
+box a3 "wait c" below a2 gap 0.09 same as s1 {.tone-4}
+brace ba over a3 "about one second" side bottom pad 0.28 {.muted}
+
+step overlapping
+  show c, a1, a2, a3, ba
+:::
+
+**The same three calls and the same single thread.** What changes is who gets
+to run while somebody else waits: three one-second waits started together
+finish in $\max(1, 1, 1) = 1$ second.
+
+# Driving a real browser {#playwright}
 
 ## free: Why Playwright | the modern web is rendered, not served {.wide #why-playwright}
 
@@ -546,7 +735,8 @@ playwright install chromium
 
 ## example: Open a page | the smallest useful Playwright script {.wide #playwright-first-page}
 
-**Open a context, launch a browser, navigate, query, close.** `async with` guarantees cleanup even if the page raises.
+**Open a context, launch a browser, navigate, query, close.** `async with`
+guarantees the cleanup even if the page raises.
 
 ```python
 import asyncio
@@ -563,10 +753,13 @@ async def main() -> None:
 asyncio.run(main())
 ```
 
-**`await` on every browser call.** Each one is a round-trip over a socket to the browser process, so every call is an I/O wait – exactly what async is for.
+**There is an `await` on every browser call.** Each one is a round trip over a
+socket to the browser process, so each one is an I/O wait – which is exactly
+what async is for.
 
 ::: expand headless-vs-headed
-**`p.chromium.launch()` runs headless by default** – no visible window, faster, suitable for CI. For debugging, launch with a visible window and slow-motion.
+**`p.chromium.launch()` runs headless by default** – no visible window, faster,
+suitable for CI. For debugging, launch with a window and in slow motion.
 
 ```python
 browser = await p.chromium.launch(
@@ -575,12 +768,14 @@ browser = await p.chromium.launch(
 )
 ```
 
-Headed mode is invaluable when a selector or timing bug reproduces only against real rendering. Flip back to headless once the bug is fixed.
+Headed mode is invaluable when a selector or a timing bug reproduces only
+against real rendering. Flip back to headless once the bug is fixed.
 :::
 
-## example: Extract all links | page.evaluate bridges Python and JS {.standard #playwright-links}
+## example: Extract all links | `page.evaluate` bridges Python and JS {.standard #playwright-links}
 
-**`page.evaluate` runs JavaScript inside the page** and returns the result as plain Python data. Anything JSON-serializable crosses the boundary.
+**`page.evaluate` runs JavaScript inside the page** and returns the result as
+plain Python data. Anything JSON-serialisable crosses the boundary.
 
 ```python
 hrefs = await page.evaluate("""
@@ -589,29 +784,82 @@ hrefs = await page.evaluate("""
 """)
 ```
 
-**`hrefs` comes back as a Python list of strings, already absolute.** The browser resolves relative `<a href>` against the current page URL before handing them over.
+**`hrefs` comes back as a Python list of strings, already absolute.** The
+browser resolves a relative `<a href>` against the current page URL before it
+hands them over.
 
 # The scanner {#scanner}
 
-## free: What we are building | a single-file CLI, four steps {.wide #scanner-spec}
+## free: What we are building | one file, four steps {.full #scanner-spec}
 
-**`scanner.py` is one file, under 80 lines, and does exactly four things.** Take a URL from the command line. Open it with Playwright and grab every `<a href>`. For each link, open it and record status, title, and whether a meta description exists. Print a one-line-per-page report.
+**`scanner.py` is a single file, under eighty lines, and it does four things.**
 
-::: cols 2
+::: cards 4 {.small}
+- **Take a URL**\
+  from the command line, plus an optional `--max`
+- **Open it**\
+  in Chromium, and read every link on the page
+- **Visit each one**\
+  status, title, description
+- **Print**\
+  one line per page, flags first
+:::
 
-**Synchronous loop over pages** – simple before fast. We visit one page, then the next, then the next. The exercise at the end asks you to make it concurrent.
+**Simple before fast**: the loop over the links is sequential, and making it
+concurrent is the first exercise at the end.
 
-**No third-party libraries beyond Playwright.** Everything else is `urllib.parse`, `argparse`, `dataclasses` – the stdlib modules we just covered.
+**Nothing beyond Playwright**: everything else in the file is `urllib.parse`,
+`argparse` and `dataclasses`.
+
+## figure: How the scanner runs | one pass over the page, then one visit per link {.full #scanner-pipeline}
+
+::: side 2:3 {.middle}
+
+::: draw 132x60
+default box {.tone-1} w 2.05
+
+# A label reads `_` as subscript syntax, so no identifier with an underscore
+# goes in a box here. The prose beside the figure names the functions.
+box arg  "the arguments\na URL and --max" at 0,0
+box open "a browser\nand the starting page" below arg gap 0.55
+box coll "every link on that page\nabsolute, same host, deduped" below open gap 0.55 {.tone-3}
+box scan "one visit per link\nstatus, title, description" below coll gap 0.95 {.tone-3}
+box row  "one PageReport each" below scan gap 0.5 {.tone-2}
+box out  "one printed line each" below row gap 0.95 {.tone-2}
+edge arg -> open
+edge open -> coll
+edge coll -> scan
+edge scan -> row
+edge row -> out
+container loop "for each link" over scan,row pad 0.38 {.dashed .muted}
+
+step first-pass
+  emph arg, open, coll
+step per-link
+  dim arg, open, coll
+  emph scan, row
+step report
+  dim scan, row
+  emph out
+:::
+
+::: flip
+
+**The first pass runs once.** Parse the arguments, launch Chromium, open the
+starting page, and read every `<a href>` out of the rendered DOM. `urljoin`
+makes each one absolute, `urlparse` throws away anything on another host, and
+`dict.fromkeys` removes the duplicates while keeping the order.
+
+**The middle block runs once per link.** `page.goto` hands back a response,
+which is where the status comes from; `page.title()` and one `page.evaluate`
+supply the other two fields. Each visit produces one `PageReport`.
+
+**The last line runs once again.** The reports are printed in the order they
+were collected, flags first, so the output can be filtered with `grep`.
 
 :::
 
-## figure: Scanner pipeline | data flows left to right, top to bottom {.full #scanner-pipeline}
-
-![](scanner-flow)
-
-**Two Playwright calls per page.** `page.goto()` returns a response so we can read its status; `page.evaluate()` runs a JS snippet inside the page for DOM queries. Everything else is plain Python manipulating the resulting strings and objects.
-
-## figure: scanner.py | everything we covered, in one file {.full #scanner-source}
+## figure: `scanner.py` | everything we covered, in one file {.full #scanner-source}
 
 ```python
 import argparse
@@ -684,26 +932,31 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-**Every line here is something we covered.** Dataclasses for the report row. Type hints for documentation. `async`/`await` for concurrency-ready I/O. `urljoin`/`urlparse` for URL surgery. `argparse` for the CLI. About 55 lines, end to end.
+**Every line here is something we covered.** A dataclass for the report row,
+type hints for documentation, `async`/`await` for I/O, `urljoin` and `urlparse`
+for the URL surgery, `argparse` for the CLI. About 55 lines, end to end.
 
 ::: expand whats-missing
-**Four things this version does *not* do** – each one is an exercise at the end:
+**Four things this version does *not* do**, each of them an exercise at the end:
 
-- No retry or timeout handling (one slow page blocks the whole scan).
-- No concurrency (sequential `for` over `links`).
-- No output format beyond stdout print (no CSV, no JSON).
-- No robots.txt check (we assume we're allowed to crawl).
+- no retry and no timeout, so one slow page blocks the whole scan;
+- no concurrency, just a sequential `for` over `links`;
+- no output format beyond printing to stdout;
+- no `robots.txt` check – we assume we are allowed to crawl.
 
-Each omission is deliberate: the 80-line target leaves room for exactly one “happy path” read-through. Production hardening doubles the line count – and changes nothing about the core logic.
+Each omission is deliberate. The eighty-line target leaves room for exactly one
+happy-path read-through; production hardening doubles the line count and
+changes nothing about the core logic.
 :::
 
-## example: Running it | pipe into grep for the interesting cases {.standard #scanner-run}
+## example: Running it | pipe it into grep for the interesting cases {.standard #scanner-run}
 
 ```bash
 python scanner.py https://example.com --max 10
 ```
 
-**The output is `grep`-friendly.** One line per page, flags first, URL last. Pipe it into `grep -v '^ok'` to see only the pages that have a problem.
+**The output is `grep`-friendly**: one line per page, flags first and the URL
+last, so `grep -v '^ok'` leaves only the pages with a problem.
 
 ```
 ok                                       https://example.com/
@@ -713,24 +966,30 @@ status=404 no-title                      https://example.com/oops
 
 # Wrap-up {#wrap-up}
 
-## principle: Small scripts beat big frameworks | if you understand them end-to-end {.standard #small-scripts-principle}
+## principle: A small script you understand beats a framework you do not {.standard #small-scripts-principle}
 
-**A fifty-line script you understand is worth more than a five-hundred-line framework you do not.** The bar for a “real tool” is much lower than the ecosystem suggests. Standard library plus one dependency plus type hints plus `asyncio.run` – that is a real tool.
+**Fifty lines you can read end to end are worth more than five hundred you
+cannot.** The bar for a real tool is far lower than the ecosystem suggests:
+the standard library, one dependency, type hints and `asyncio.run` is already a
+real tool.
 
-## exercise: Extend the scanner | pick one, or two if you're bored {.wide #exercise-extend}
+## exercise: Extend the scanner | pick one, or two if you are bored {.wide #exercise-extend}
 
-**Each extension is ten to thirty extra lines.** All of them use only what we covered today, plus one stdlib module you haven't touched yet.
+**Each extension is ten to thirty extra lines**, and each uses only what we
+covered today plus one standard-library module you have not touched yet.
 
-::: cols 2
-
-**Make it concurrent.** Replace the sequential loop with `asyncio.gather` over `scan_page` calls, wrapped in a semaphore to cap concurrency at 5. Time both versions against the same site; the async version should win on any page with more than a handful of links.
-
-**Follow external links too, one hop deep.** Add a `--external` flag. **Be polite: one request per host per second**, tracked in a small dict of `host -> last_request_time`.
-
-**Write the report as CSV.** Add a `--out report.csv` option and use the stdlib `csv` module. Each `PageReport` becomes one row; field names come from `dataclasses.fields(PageReport)`.
-
-**Flag broken images.** Collect `<img src>` in addition to `<a href>` and fetch each with a `HEAD` request via `httpx` (async). Flag any non-2xx. Treat `data:` and `blob:` URLs as fine.
-
+::: rows {.small}
+- **Concurrency** replace the sequential loop with `asyncio.gather` over `scan_page`, behind a semaphore that caps it at five. Time both versions against one site
+- **One hop outwards** add `--external` and follow links off the host, politely: one request per host per second, tracked in a `dict` of host to timestamp
+- **A CSV report** add `--out report.csv` and use the `csv` module; the field names come from `dataclasses.fields(PageReport)`
+- **Broken images** collect `<img src>` as well, fetch each one, and flag anything that is not a 2xx. `data:` and `blob:` URLs are fine as they are
 :::
 
-> note: Close by asking each student which extension they will try first. That commitment turns the slide into homework.
+> note: Close by asking each student which extension they will try first. That
+> commitment is what turns the slide into homework.
+
+## closing: That is the whole tool | questions, and then the terminal {#end}
+
+Everything today is in one file you can read in five minutes. The next thing to
+read is the
+[Playwright Python guide](https://playwright.dev/python/docs/intro).
