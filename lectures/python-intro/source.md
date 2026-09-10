@@ -265,8 +265,8 @@ page["title"] = "A"   # dicts grow by assignment
 ## example: Control flow | indentation is the block delimiter {.standard #control-flow}
 
 **Python uses indentation where other languages use braces.** Four spaces per
-level, enforced by every editor and every lint tool. No `end`, no `}`, no
-semicolons.
+level – what PEP 8 asks for and what `black` and `ruff format` produce. No
+`end`, no `}`, no semicolons.
 
 ```python
 status = 404
@@ -334,7 +334,7 @@ def greet(
 **Call it like any other function.** Positional arguments first, keyword
 arguments after them, and defaults let a caller leave out what it does not
 need. A signature too long for one line wraps one parameter per line with a
-trailing comma – the form every formatter produces.
+trailing comma – the form `black` and `ruff format` both produce.
 
 ```python
 greet("Ada")
@@ -433,7 +433,7 @@ frame upwards at a time, and stop at the first frame that is your own code.
 # The standard library {#stdlib}
 
 Five modules – `pathlib`, `urllib.parse`, `re`, `dataclasses`, `argparse` –
-and the scanner uses every one of them.
+and three of them end up in the scanner.
 
 ## question: Why lean on the standard library? | a dependency is a liability {.narrow #why-stdlib}
 

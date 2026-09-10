@@ -137,6 +137,24 @@ source, so a source hash would have stayed green through both and fired only on
 changes that never caused the problem. A gate that has never been right is worse
 than no gate, because it is read as an assurance.
 
+**Two later findings say the same thing from the other end, both from
+psi-slides-c7's re-shoot (`e6d067f`).** A byte or pixel comparison over `img/`
+would fire on neither of the real failures and on plenty of non-failures:
+`cue-beat-0` changed while beats 1 to 3 did not, because the cockpit clock is
+running when the shutter opens, so those frames differ in the seconds they show.
+And `printed`, `handout` and `handout-plain` changed even though the two chunks
+they frame were byte-identical, because the margin numbers are a deck-wide count
+– the same reason the live shots moved.
+
+**A re-shoot is also never `img/`-only, and that is a coupling worth knowing
+before it costs an afternoon.** `docs/artifact/refresh-figures.mjs` inlines
+`docs/site/img/editor.webp` into `figures-you-write.html` (its `SHOT` constant),
+because that page fetches nothing at run time – so the moment `shoot.mjs`
+rewrites `editor.webp`, that page is stale, and `pages.yml` runs
+`refresh-figures --check` before it assembles the site. Shot and manual have to
+travel in one commit or the deploy fails. It was found by bisecting three clean
+worktrees looking for a break on `main` that was never there.
+
 What is left is two things, and the second is the load-bearing one:
 
 - **The chunk-id contract.** `shoot.mjs` addresses `#why-playwright`,
