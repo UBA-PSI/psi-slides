@@ -244,7 +244,8 @@ main.banded { display: block; max-width: none; padding: 0; }
 .band { padding: clamp(3rem, 6vw, 7.5rem) 0; }
 .band-hero { padding-top: clamp(2rem, 3vw, 3.5rem); }
 /*
- * The front page's hero takes its air from the window's HEIGHT.
+ * The front page's hero takes its air from the window's HEIGHT, and it is
+ * paid for by the stage under it.
  *
  * The measurements on this site scale with width, and the hero used
  * to as well – `clamp(2rem, 3vw, 3.5rem)`, the value `.band-hero` still
@@ -254,30 +255,39 @@ main.banded { display: block; max-width: none; padding: 0; }
  * with 389px to spare got no more than it. What is scarce above the first
  * picture is height, not width.
  *
- * So the extra air is gated on height and given only to the front page,
- * whose hero is the one that has to read as an entrance rather than as a
- * page heading. The gate is a media query rather than a taller clamp because
- * the guarantee that matters is about the short windows: below 1000px of
- * viewport height this rule does not apply at all, so the stage under the
- * hero cannot move by a pixel on a 1440x700 or a 1920x930 window.
- * Arithmetic would have to be re-measured after an edit near it; a selector
- * that does not match has nothing to get wrong. The floor it protects is
- * 1440x700 in German, the tightest desktop case there is, where 56 % of the
- * screenshot pair stands above the fold – see DESIGN.md, "The front page's
- * air".
+ * What the page cannot do is add air out of nothing. The thing this padding
+ * pushes down is the screenshot pair, and the size that decides whether the
+ * hero works is how much of that pair stands above the fold when the page
+ * loads – not the padding. So the height is bought rather than borrowed: the
+ * hero's stage is about a tenth narrower than a band's stage elsewhere (see
+ * "the hero's own proportion" below), the pictures are seated to their width,
+ * and the height that frees is what goes into this padding. The arithmetic
+ * the trade has to satisfy is one line: raising the padding by P while the
+ * stage loses S leaves the visible share unchanged when P = share × S, so on
+ * the tightest window of the set – 1440x700, where two thirds of the pair is
+ * above the fold – only two thirds of what the stage gives up may be spent.
+ *
+ * That is why the rule is continuous now and no longer a step at 1000px of
+ * viewport height. The step existed because a short window had no budget at
+ * all: without the narrower stage, a pixel added at 1440x700 was a pixel of
+ * the pair lost, so the safe thing was a selector that did not match there.
+ * With a budget on every desktop height, `8vh` spends it in the proportion
+ * the fold has anyway – little on a short window, more on a tall one – and
+ * there is no height at which the hero's spacing jumps.
  *
  * 68rem is the width at which `.beside` becomes two columns, i.e. where this
  * page is a desktop page at all; under it the hero stacks and a tall phone or
  * a portrait tablet keeps today's spacing.
  *
- * 7vh lands the value in the row the other bands already occupy: 70px at
- * 1000px of height, 91 at 1300, and a ceiling of 7.5rem, which is `.band`'s
- * own maximum – the hero is given room to join that rhythm, never to
- * out-space a section. The floor, 3.5rem, is what the widest short window
- * gets today, so this rule only ever adds.
+ * 8vh is 56px at 700, 62 at 780, 74 at 930 and 86 at 1080, and the ceiling is
+ * 7.5rem, which is `.band`'s own maximum – the hero is given room to join the
+ * rhythm the other sections keep, never to out-space a section. The floor,
+ * 3.5rem, is what the widest short window got before this rule, so it only
+ * ever adds. Measured against 1440x700 in German, the tightest desktop case
+ * there is – see DESIGN.md, "The front page's air".
  */
-@media (min-width: 68rem) and (min-height: 1000px) {
-  .band-hero-home { padding-top: clamp(3.5rem, 7vh, 7.5rem); }
+@media (min-width: 68rem) {
+  .band-hero-home { padding-top: clamp(3.5rem, 8vh, 7.5rem); }
 }
 .band-close {
   /* The end of the page says so. Between the last listing and this heading
@@ -615,6 +625,38 @@ p { margin: 0 0 1.1rem; }
   .beside-flip { grid-template-columns: minmax(0, 1fr) minmax(0, 24rem); }
   .beside-flip > .said { order: 2; }
 }
+/*
+ * The hero's own proportion, and the one row on the site that has one.
+ *
+ * The stage under the front page's hero is about a tenth narrower than the
+ * stage in any other band, because its height is what pays for the air above
+ * the hero – the note over `.band-hero-home` has the arithmetic. The pictures
+ * are seated to the column, so a tenth off the width is roughly a tenth off
+ * the height, and that height goes into the padding.
+ *
+ * Where the tenth GOES is the whole of this rule. The stage stands on the
+ * left here, so its right-hand neighbour is the words column: take width off
+ * the stage and leave the two numbers beside it alone, and the freed pixels
+ * land in the gutter, where 52px becomes 147 and an interval turns into a
+ * hole. So the words take most of it and the gutter a little. The column runs
+ * 24rem to 31rem instead of a flat 24: the two cues in it are --fs-note, and
+ * 31rem sets them at about 62 characters a line, which is inside what
+ * --measure-col already allows a paragraph that belongs to a picture. The
+ * gutter goes from 3.6vw to 3.9vw, which is four or five pixels – enough that
+ * it grows with the row rather than staying put while everything round it
+ * moves.
+ *
+ * The vw term is what keeps a 1100px window out of it: 33vw is under 24rem
+ * below about 1160px, so the narrowest desktop keeps the layout it had, and
+ * the trade phases in over the widths where the stage is large enough to give
+ * something up. Above 1500px the 31rem cap holds and the row is fixed again.
+ */
+@media (min-width: 68rem) {
+  .band-hero-home > .wrap > .beside-flip {
+    grid-template-columns: minmax(0, 1fr) minmax(0, clamp(24rem, 33vw, 31rem));
+    column-gap: clamp(1.8rem, 3.9vw, 4.5rem);
+  }
+}
 /* The other proportion: the words are the wide column and the picture the
    narrow one. Used where the column carries more than a heading and four
    lines - on `getting-started.html` it carries the download table too - and
@@ -799,6 +841,26 @@ figure.shot .swap button[aria-pressed="true"]:hover {
 }
 .mark b { color: var(--ink); font-weight: 400; }
 .hero-said { max-width: 40rem; }
+/*
+ * 47rem on a desktop window, and the reason is a line count rather than a
+ * measure. At 40rem the English lede set three lines and the German one four,
+ * which put the German screenshot pair 32px lower than the English one on the
+ * same window - a difference the fold sees, and the German page paid for it in
+ * exactly the place the hero has least room. German goes to three lines at
+ * 46rem and English does not drop to two until 55rem, so 47rem is the first
+ * width that levels the two pages with a rem of slack over the boundary.
+ * This paragraph is --fs-lead, so the extra length is not extra characters in
+ * the sense --measure counts: 47rem at the lead size is about the same 65
+ * characters a line that 38rem gives at the prose size.
+ *
+ * Gated at 68rem, the width where this page becomes a desktop page at all.
+ * Under it the container is narrower than either number and the rule would
+ * change nothing but the box; a phone and a portrait tablet keep the 40rem
+ * above to the pixel.
+ */
+@media (min-width: 68rem) {
+  .hero-said { max-width: 47rem; }
+}
 /* No size of its own any more. It used to be 1.3rem against a section lede's
    1.18rem, which is 20.8px against 18.9 - a difference nobody sees under an
    h1 of 70px, and the third of three lede sizes on the page. */
