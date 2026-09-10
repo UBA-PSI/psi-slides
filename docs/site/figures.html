@@ -784,16 +784,22 @@ pre .srcln:empty::before { content: "\00a0"; }
        window away from the three that say how to open it - two halves of one
        subject. What separates them now is air, which is what the rest of this
        page uses between the blocks of one section. -->
-  <div class="pair-up trio">
+  <!-- Two rows of two, not a two and a three: the second column of the pair
+       above landed 139px from the middle column of a three, which is close
+       enough to read as a miss rather than as a different grid. The third
+       paragraph was never parallel to the other two anyway - they say how
+       to use the editor, it points at the manual and names a limit - so it
+       stands on its own under the row. -->
+  <div class="pair-up">
    <div>
     <p>Click a figure in the live view and press <code>E</code>, or use the button in the corner of the card the click opens. It is on by default wherever a lecture has a diagram; <code>editor: speaker</code> in the frontmatter keeps it off the projection and <code>editor: none</code> ships the lecture without it.</p>
    </div>
    <div>
     <p><strong>Build with <code>--watch</code> and the edit goes straight back into <code>source.md</code>:</strong> the button in the top right then reads <em>Write to source.md</em>, the server splices the block into the file, and the rebuild that follows reloads every open tab. Without a watch server the same button copies the whole block to the clipboard to paste over the old one. An edit that stops the block compiling is not written anywhere &ndash; it is rolled back on the spot and the compiler&rsquo;s error message is shown.</p>
    </div>
-   <div>
-    <p>The gestures, the panel and the rest of it are in <a href="figures-you-write.html#editor">the manual</a>. The editor is experimental and made for a desktop-sized authoring screen: it has automated coverage, but has not been tested broadly by people.</p>
-   </div>
+  </div>
+
+  <p class="after-pair">The gestures, the panel and the rest of it are in <a href="figures-you-write.html#editor">the manual</a>. The editor is experimental and made for a desktop-sized authoring screen: it has automated coverage, but has not been tested broadly by people.</p>
   </div>
  </div>
 </section>

@@ -2009,7 +2009,11 @@ footer p { max-width: none; }
  * three that follow has to be the larger of the two or the block reads as
  * belonging to the picture as well.
  */
-.wrap > .pair-up + .pair-up.trio { margin-top: clamp(2.4rem, 6vw, 5.2rem); }
+.wrap > .pair-up + .pair-up { margin-top: clamp(2.4rem, 6vw, 5.2rem); }
+/* A line that answers the row above it rather than opening something new:
+   it keeps the row's own left edge and its measure, so it reads as the last
+   thing said about that row. */
+.wrap > .after-pair { margin-top: clamp(1.6rem, 3vw, 2.6rem); max-width: var(--measure-col); }
 
 /*
  * ── A table directly under its heading ────────────────────────────────────
