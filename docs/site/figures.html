@@ -770,36 +770,40 @@ pre .srcln:empty::before { content: "\00a0"; }
     <p><strong>On the canvas</strong>, the words drawn beside the selected box <code>c1</code> &ndash; <code>gap 1.15</code>, <code>flush middle</code>, <code>align y middle</code> are the relations it was written with. A finished drawing cannot show those: a box placed <code>gap 1.15</code> from its neighbour looks exactly like one that happens to sit 1.15 away, and only one of the two moves when the neighbour does.</p>
    </div>
    <div>
-    <p><strong>In the panel down the right-hand edge</strong>, what stands there describes the beat that is standing, and it describes it by what it <em>does</em> rather than by what it says: the beat is written <code>show @out</code> and <code>dim feed0, feed1, feed2</code>, and the panel names the three boxes that appear, the three arrows that come with their ends because an arrow is only as visible as the two things it joins, and the three lines dimmed under them. A drag at that beat writes a <code>move</code> into the step rather than moving the element.</p>
+    <p><strong>In the panel down the right-hand edge</strong>, the beat that is standing is described by what it <em>does</em> rather than by what it says. It is written <code>show @out</code> and <code>dim feed0, feed1, feed2</code>; the panel names three boxes appearing, three arrows arriving with them &ndash; an arrow is only as visible as the two things it joins &ndash; and three lines dimmed underneath. A drag there writes a <code>move</code> into the step rather than moving the element.</p>
    </div>
   </div>
 
   <!-- Half-empty row, answer 1: three answers to one question - how you open
-       it, where the edit lands, and what is not finished about it - in one
-       row rather than as three paragraphs down the measure.
+       it, what to expect of it, and where the edit lands - in one row rather
+       than as three paragraphs down the measure.
        It had a sub-heading over it, "Opening it, and where the edit goes",
        and the heading was the untidiness rather than the cure: it stood 8px
        above the first of three columns, so it read as a label for that column
        instead of for the row, and it cut the two paragraphs that describe the
-       window away from the three that say how to open it - two halves of one
+       window away from the ones that say how to open it - two halves of one
        subject. What separates them now is air, which is what the rest of this
        page uses between the blocks of one section. -->
   <!-- Two rows of two, not a two and a three: the second column of the pair
        above landed 139px from the middle column of a three, which is close
-       enough to read as a miss rather than as a different grid. The third
-       paragraph was never parallel to the other two anyway - they say how
-       to use the editor, it points at the manual and names a limit - so it
-       stands on its own under the row. -->
+       enough to read as a miss rather than as a different grid.
+       The third paragraph - the manual and the limit - stood alone under the
+       row for a while, three lines at a column's measure with the whole frame
+       empty beside them, which is the one shape this stylesheet is written
+       against. It is not parallel to the paragraph about where the edit goes,
+       but it is parallel to the one about how you open it: both are what a
+       reader needs before touching the thing. So the left column is now
+       getting in and what to expect, the right one is where the edit lands,
+       and the two halves come out within a line of each other. -->
   <div class="pair-up">
    <div>
     <p>Click a figure in the live view and press <code>E</code>, or use the button in the corner of the card the click opens. It is on by default wherever a lecture has a diagram; <code>editor: speaker</code> in the frontmatter keeps it off the projection and <code>editor: none</code> ships the lecture without it.</p>
+    <p>The gestures, the panel and the rest of it are in <a href="figures-you-write.html#editor">the manual</a>. The editor is experimental and made for a desktop-sized authoring screen: it has automated coverage, but has not been tested broadly by people.</p>
    </div>
    <div>
-    <p><strong>Build with <code>--watch</code> and the edit goes straight back into <code>source.md</code>:</strong> the button in the top right then reads <em>Write to source.md</em>, the server splices the block into the file, and the rebuild that follows reloads every open tab. Without a watch server the same button copies the whole block to the clipboard to paste over the old one. An edit that stops the block compiling is not written anywhere &ndash; it is rolled back on the spot and the compiler&rsquo;s error message is shown.</p>
+    <p><strong>Build with <code>--watch</code> and the edit goes straight back into <code>source.md</code>:</strong> the button in the top right then reads <em>Write to source.md</em>, the server splices the block into the file, and the rebuild that follows reloads every open tab. Without a watch server the same button copies the whole block to the clipboard, to paste over the old one. An edit that stops the block compiling is written nowhere &ndash; it is rolled back on the spot and the compiler&rsquo;s error message is shown.</p>
    </div>
   </div>
-
-  <p class="after-pair">The gestures, the panel and the rest of it are in <a href="figures-you-write.html#editor">the manual</a>. The editor is experimental and made for a desktop-sized authoring screen: it has automated coverage, but has not been tested broadly by people.</p>
   </div>
  </div>
 </section>
