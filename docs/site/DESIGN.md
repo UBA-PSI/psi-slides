@@ -344,32 +344,68 @@ room under the fold; a 2560x1300 window with 389px to spare got the same
 56. What is scarce above the first picture is height. Width is what the
 `.beside` columns already answer.
 
-**The floor belongs to the short windows, and it is a selector rather than
-a number.** Under 1000px of viewport height the taller value does not
-apply at all, so on a 1440x700, a 1512x850 or a 1920x930 window the stage
-does not move by a pixel and the tightest desktop case there is &ndash;
-1440x700 in German, where the lede wraps one line further than the English
-&ndash; keeps the 56 % of the screenshot pair it stands above the fold
-with today. A clamp tuned to come out right below the threshold would have
-to be re-measured after an edit near it; a media query that does not
-match has nothing to get wrong. It is gated on width too, at the 68rem where
-`.beside` becomes two columns, so a portrait tablet and a tall phone keep
-today's spacing.
+**The air is bought, not borrowed.** The size that decides whether the hero
+works is not the padding, it is how much of the screenshot pair stands above
+the fold when the page loads, and the two move against each other: raising
+the padding by P while the stage loses S leaves that share unchanged exactly
+when P = share &times; S. So the hero's stage was made about a tenth narrower
+than a band's stage elsewhere. The pictures are seated to their column, a
+tenth off the width is roughly a tenth off the height, and that height is the
+budget the padding spends. On the tightest window of the set, 1440x700, where
+two thirds of the pair is above the fold, only two thirds of what the stage
+gives up may be spent &ndash; and even after spending it, the visible share
+goes up rather than down.
 
-**The value lands in the row the other bands occupy** rather than
-inventing a distance of its own: `clamp(3.5rem, 7vh, 7.5rem)` is 70px at
-1000px of height, 76 at 1080, 91 at 1300, and its ceiling is `.band`'s own
-`7.5rem`. The hero is given room to join that rhythm, not to out-space a
-section. Its floor is what the widest short window already gets, so the
-rule only ever adds.
+**Where the tenth goes is the other half of the rule.** The hero's stage
+stands on the left, so its right-hand neighbour is the words column. Take
+width off the stage and change nothing else and the freed pixels all land in
+the gutter, where 52px becomes 147 and an interval reads as a hole. The words
+take most of it &ndash; the column runs `clamp(24rem, 33vw, 31rem)` instead of
+a flat 24rem, and at 31rem the two cues in it set about 62 characters a line,
+inside what `--measure-col` already allows a paragraph that belongs to a
+picture &ndash; and the gutter takes four or five pixels, enough that it grows
+with the row instead of standing still while everything round it moves. The
+`vw` term keeps the narrowest desktop out of the trade: below about 1160px
+the column is back at 24rem and the row is what it was.
+
+**The German page paid for this seam twice, so it is fixed here too.** At the
+old 40rem the English lede set three lines and the German four, which put the
+German screenshot pair 32px lower on the same window. German reaches three
+lines at 46rem and English does not fall to two until 55rem, so `.hero-said`
+takes 47rem on a desktop window. It is `--fs-lead`, so the longer line is not
+more characters than `--measure` allows the page's prose &ndash; roughly the
+same 65.
+
+**The rule is continuous now, and that is what the budget bought.** It used to
+be a step: below 1000px of viewport height the taller value did not apply at
+all, because without a narrower stage a pixel added at 1440x700 was a pixel of
+the pair lost, and the safe thing was a selector that did not match there.
+With a budget on every desktop height, `clamp(3.5rem, 8vh, 7.5rem)` spends it
+in the proportion the fold has anyway &ndash; 56px at 700, 62 at 780, 74 at
+930, 86 at 1080 &ndash; and no window meets a jump in the hero's spacing. The
+ceiling is `.band`'s own `7.5rem`: the hero joins the rhythm the other
+sections keep, it does not out-space a section. The floor is what the widest
+short window got before, so the rule only ever adds. It is still gated on
+width, at the 68rem where `.beside` becomes two columns, so a portrait tablet
+and a tall phone keep today's spacing to the pixel.
 
 **Only the front page takes it.** The four subpages open with the same
 `.band-hero` and no stage under it, and a heading that stands lower for no
 reason is a page that looks like it is missing something above the fold.
 `index.html` and `index.de.html` carry a second class, `band-hero-home`,
-and the height-gated rule names that one alone. Measured across all eleven
-built pages at 1440x1080 and 2560x1440, the two front pages move and the
-other nine are identical.
+and both the padding and the narrower stage name that one alone. Measured
+across all eleven built pages at 390x844, 768x900, 1100x800, 1440x900 and
+1920x1080, the two front pages move on the three desktop widths and nothing
+else moves anywhere.
+
+**What the measurement has to show.** Padding alone proves nothing; the check
+is the visible share of the stage at load, both languages, on every window in
+the set. After the trade it rises on the windows that had a fold problem
+&ndash; 1440x700 goes from 65 % to 67 % in English and 55 % to 65 % in German,
+1512x850 from 90 % to 98 % in German &ndash; holds at 100 % where it was
+already whole, and is unchanged on 768 and 390 where the hero stacks. Padding
+is up on every desktop window: 43 to 56 at 1440x700, 45 to 68 at 1512x850, 56
+to 74 at 1920x930, 101 to 115 at 2560x1440.
 
 ## Colour
 
