@@ -121,7 +121,11 @@ the Booklet Tool is released. Two things have to be in place:
 `npm run dist:signed` then stages the engine, signs every binary in the app
 under the hardened runtime, submits the app to Apple's notary service, waits,
 staples the ticket, and writes the DMG and the zip to `dist/` – about five
-minutes, most of it Apple's side. CI stays
+minutes, most of it Apple's side. Note the order in its log: it notarises the
+**app** and builds the DMG afterwards, so the disk image itself carries no
+signature. Sign, notarise and staple it separately before uploading –
+`CONTRIBUTING.md` has the four commands and the two `spctl` checks that say
+whether it worked. CI stays
 unsigned on purpose (`CSC_IDENTITY_AUTO_DISCOVERY=false`): the certificate
 does not leave this machine, and an empty `CSC_LINK` from an unset repository
 secret is read by electron-builder as a file path, not as absent.

@@ -218,6 +218,28 @@ gitignored `desktop/.env`, exactly as the Booklet Tool is released;
 The signed package is uploaded over CI's unsigned one, under the same name:
 `gh release upload builder-<version> "desktop/dist/psi-slides-builder-mac-arm64.dmg" --clobber`,
 and the `.zip` the same way.
+
+**`npm run dist:signed` notarises the app, not the disk image.** Read its log:
+it signs `psi-slides Builder.app`, notarises and staples *that*, and only then
+builds the `.zip` and the `.dmg` around it. So the app inside both is stapled
+and launches without a prompt, but the `.dmg` – the file that actually carries
+the quarantine bit off a download – has no signature of its own, and
+`spctl -a -t open --context context:primary-signature` on it says
+`rejected: no usable signature`. Close that before uploading:
+
+```bash
+cd desktop
+codesign --force --sign "Developer ID Application: <name> (<team>)" --timestamp   dist/psi-slides-builder-mac-arm64.dmg
+set -a; . ./.env; set +a
+xcrun notarytool submit dist/psi-slides-builder-mac-arm64.dmg   --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID"   --password "$APPLE_APP_SPECIFIC_PASSWORD" --wait
+xcrun stapler staple dist/psi-slides-builder-mac-arm64.dmg
+spctl -a -vvv -t open --context context:primary-signature   dist/psi-slides-builder-mac-arm64.dmg    # expect: accepted, Notarized Developer ID
+```
+
+The `.zip` needs none of this and cannot take a ticket of its own; the app it
+holds is stapled, which is what `xcrun stapler validate` on the extracted
+bundle confirms. Both checks are worth running before the upload rather than
+after, because the upload is what people download.
 Windows has no code-signing certificate and stays unsigned; Linux packages
 are not signed by convention.
 
