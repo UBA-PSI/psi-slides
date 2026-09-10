@@ -233,6 +233,30 @@ a section happened to be a band, and a contact sheet is scanned by heading
 size. What gives instead is the line count: a heading is three or four lines
 at 24rem, and three lines of h2 is a heading, not a problem.
 
+**The same decision one heading level down.** An h3 stays in its column, and
+what it gets instead is *the row below* – the heading on the row's first line,
+the listing beside it starting level with the prose under it. That is right
+while the column is nearly as tall as the listing, and it is the same rule
+with the same limit: where the column is **much** shorter, the heading is
+pinned to the row's top edge, its own words are not, and between them stands
+the hole again. So `.heading-in` carries this level too, on an `.aside-code`,
+and it needs no second mechanism – `.aside-code` is already centred, so
+switching the drop off (`:not(.heading-in)` on that block's selectors) leaves
+heading and words as one centred stack.
+
+Two differences from the h2 case, both from the same source: the hole is under
+the words rather than under the heading, so **the measurement is the hole and
+not a ratio.** At 1440 the two rows on "In the room" left 99px and 95px of
+nothing under four lines of words in English, 71 and 67 in German; centred,
+the same room is 28px over and under, and 14 in German. The three rows on
+"Getting started" keep the drop and needed no measuring: their columns are
+109–120 % of their listings, so there is no hole to split. And **the air is
+needed above only.** A row like this is inside a section rather than being
+one, so nothing ends without a mark; what it loses is the top edge its heading
+used to make, which was separating it from the paragraph that introduces it at
+35px. The seam takes the page's own number for a row against its neighbour,
+the clamp on `.beside + *`: 72px at 1440.
+
 **One section is not a `.beside` and takes the same rule further.** "Getting
 started" on the front page has a heading, a lede *and* a chooser's tab row
 above its row, so the hole is under the tabs and moving the heading alone

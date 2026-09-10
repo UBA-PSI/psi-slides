@@ -33,23 +33,23 @@
   <div class="pair-up trio hero-ways">
    <div>
     <p class="lede">Zwei Wege, und beide enden am selben Ort: Beide führen
-    dasselbe <code>build.js</code> aus und schreiben dieselben vier Ansichten
-    neben die eigene <code>source.md</code> &ndash; eine Projektion für den Raum,
-    ein Cockpit für die Vortragenden und zwei Handouts zum Drucken.</p>
+    dasselbe <code>build.js</code> aus und schreiben neben die
+    <code>source.md</code> dieselben vier Ansichten &ndash; die Projektion für den
+    Raum, das Cockpit für die Vortragenden, zwei Handouts zum Drucken.</p>
    </div>
    <div>
     <p><strong><a href="#app">Die App</a></strong> lädt man herunter, und sie
     baut die Dateien auf Knopfdruck. Man öffnet darin eine <code>source.md</code>,
     und nach jedem Speichern baut sie die Vorlesung neu. Sonst muss nichts
-    installiert werden: kein Node, kein Terminal.</p>
+    installiert werden: kein Node, kein Terminal, nicht einmal psi-slides
+    selbst &ndash; die App trägt die Kopie, mit der sie paketiert wurde.</p>
    </div>
    <div>
     <p><strong><a href="#command-line">Die Kommandozeile</a></strong> beginnt mit
     einem <code>git clone</code> und einem <code>npm install</code>, für alle, die
-    ohnehin im Terminal arbeiten. Über sie läuft psi-slides unbeaufsichtigt auf
-    einem Build-Server, und über sie schreibt man eine Vorlesung mit einem
-    Sprachmodell daneben: das Repository bringt die Skills mit, die einem das
-    Format beibringen.</p>
+    ohnehin im Terminal arbeiten. Über sie baut ein CI-Job unbeaufsichtigt, und
+    über sie schreibt man mit einem Sprachmodell daneben: das Repository bringt
+    die Skills mit, die ihm das Format beibringen.</p>
    </div>
   </div>
  </div>
@@ -172,15 +172,15 @@
   <div class="pair-up">
    <div>
     <p>Schlägt ein Build fehl, steht die Meldung von <code>build.js</code>
-    unverändert da, mit der Zeile in der eigenen Quelle. Die vier
-    Ansichten behalten den letzten funktionierenden Build; ein kaputtes
-    Speichern nimmt einem nicht mitten in der Vorlesung die Folien weg.</p>
+    unverändert da, mit der Zeile in der Quelle. Die vier Ansichten behalten
+    den letzten Build, der lief; ein kaputtes Speichern nimmt einem nicht
+    mitten in der Vorlesung die Folien weg.</p>
     <p>Es gibt zwei Schalter. Setzt man <strong>Die Ansichten über eine lokale
     Webadresse öffnen</strong>, bekommt man einen kleinen lokalen
     Server: Eingebettete YouTube- und Vimeo-Player laufen aus einer Datei
-    heraus nicht; sie brauchen eine Adresse. Unter <strong>Die Ansichten
-    öffnen in</strong> wählt man zwischen Chrome oder Edge, worin psi-slides
-    getestet wird, und dem, womit das System HTML öffnet.</p>
+    heraus nicht, sie brauchen eine Adresse. Unter <strong>Die Ansichten
+    öffnen in</strong> wählt man Chrome oder Edge, worin psi-slides getestet
+    wird, oder das, womit das System HTML öffnet.</p>
    </div>
    <div>
     <p>Die App ist <strong>kein Markdown-Editor</strong>. Die Vorlesung schreibt man
@@ -190,7 +190,9 @@
     <p>Die zwei Wege sind auch nicht zwei Werkzeuge: Die App führt dasselbe
     <code>build.js</code> auf derselben <code>source.md</code> aus und erzeugt
     dieselben vier Ansichten. <strong>Nichts verlässt den Rechner.</strong> Kein
-    Konto, keine Telemetrie, kein Update-Aufruf, kein Netzzugriff.</p>
+    Konto, keine Telemetrie, kein Update-Aufruf, kein Netzzugriff &ndash; und die
+    lokale Webadresse oben hängt an <code>127.0.0.1</code>, erreichbar von
+    diesem Rechner und von sonst nichts.</p>
    </div>
   </div>
  </div>
@@ -378,10 +380,9 @@
      <strong>Titelfolien und Trenner</strong>, <strong>Karten und
      Zeilen</strong> und der <strong>grafische Abbildungseditor</strong> liegen
      auf <code>main</code> und sind nicht in 1.0.0. Wer deswegen hier ist, nimmt
-     das Repository statt des Release-Archivs &ndash; und der <b>Source code
-     (zip)</b> an einem Release ist das getaggte Release, enthält sie also
-     ebenso wenig.</p>
-     <p>Was man aufgibt, ist die Formatzusage: Diese Teile können bis zu einem
+     das Repository statt des Release-Archivs &ndash; auch der <b>Source code
+     (zip)</b> am Release ist nur das getaggte Release.</p>
+     <p>Was man aufgibt, ist die Formatzusage: Diese Teile können bis zum
      Release noch eine Änderung an der eigenen Quelle nötig machen.</p>
     </div>
     <div>
