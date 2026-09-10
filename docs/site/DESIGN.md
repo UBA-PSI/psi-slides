@@ -326,6 +326,51 @@ belongs on the row: two measures and a 3rem gutter is what the pattern
 *is*, and what is left over stands at the frame's right edge, where the
 page already leaves ground under every paragraph.
 
+#### The front page's air
+
+The front page has to read as a front page in the first second, before a
+word is read, and the device for that is the air over the hero. But the
+hero is also the one seam on the site where more air costs something: the
+screenshot pair under it is the page's argument, and pushing it down the
+window is how a visitor comes to see a heading and nothing else.
+
+**So the hero's extra air is a function of the window's height, not its
+width, and it is the site's only height-gated rule.** The distances here
+scale with `vw`, and the hero did too &ndash; `clamp(2rem,
+3vw, 3.5rem)`, which `.band-hero` still carries for the pages that are not
+the front page. Measured, that turns out to be the wrong axis. A 1920x930
+window got the largest padding in the set, 56px, while having the least
+room under the fold; a 2560x1300 window with 389px to spare got the same
+56. What is scarce above the first picture is height. Width is what the
+`.beside` columns already answer.
+
+**The floor belongs to the short windows, and it is a selector rather than
+a number.** Under 1000px of viewport height the taller value does not
+apply at all, so on a 1440x700, a 1512x850 or a 1920x930 window the stage
+does not move by a pixel and the tightest desktop case there is &ndash;
+1440x700 in German, where the lede wraps one line further than the English
+&ndash; keeps the 56 % of the screenshot pair it stands above the fold
+with today. A clamp tuned to come out right below the threshold would have
+to be re-measured after an edit near it; a media query that does not
+match has nothing to get wrong. It is gated on width too, at the 68rem where
+`.beside` becomes two columns, so a portrait tablet and a tall phone keep
+today's spacing.
+
+**The value lands in the row the other bands occupy** rather than
+inventing a distance of its own: `clamp(3.5rem, 7vh, 7.5rem)` is 70px at
+1000px of height, 76 at 1080, 91 at 1300, and its ceiling is `.band`'s own
+`7.5rem`. The hero is given room to join that rhythm, not to out-space a
+section. Its floor is what the widest short window already gets, so the
+rule only ever adds.
+
+**Only the front page takes it.** The four subpages open with the same
+`.band-hero` and no stage under it, and a heading that stands lower for no
+reason is a page that looks like it is missing something above the fold.
+`index.html` and `index.de.html` carry a second class, `band-hero-home`,
+and the height-gated rule names that one alone. Measured across all eleven
+built pages at 1440x1080 and 2560x1440, the two front pages move and the
+other nine are identical.
+
 ## Colour
 
 **The page is not white.** Everything the site shows a picture of is

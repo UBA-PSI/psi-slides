@@ -243,6 +243,42 @@ main.banded { display: block; max-width: none; padding: 0; }
  */
 .band { padding: clamp(3rem, 6vw, 7.5rem) 0; }
 .band-hero { padding-top: clamp(2rem, 3vw, 3.5rem); }
+/*
+ * The front page's hero takes its air from the window's HEIGHT.
+ *
+ * The measurements on this site scale with width, and the hero used
+ * to as well – `clamp(2rem, 3vw, 3.5rem)`, the value `.band-hero` still
+ * carries above. That is the wrong axis for this one seam, and the
+ * measurements say so: a 1920x930 window got the largest padding of the set
+ * (56px) while having the least room under the fold, and a 2560x1300 window
+ * with 389px to spare got no more than it. What is scarce above the first
+ * picture is height, not width.
+ *
+ * So the extra air is gated on height and given only to the front page,
+ * whose hero is the one that has to read as an entrance rather than as a
+ * page heading. The gate is a media query rather than a taller clamp because
+ * the guarantee that matters is about the short windows: below 1000px of
+ * viewport height this rule does not apply at all, so the stage under the
+ * hero cannot move by a pixel on a 1440x700 or a 1920x930 window.
+ * Arithmetic would have to be re-measured after an edit near it; a selector
+ * that does not match has nothing to get wrong. The floor it protects is
+ * 1440x700 in German, the tightest desktop case there is, where 56 % of the
+ * screenshot pair stands above the fold – see DESIGN.md, "The front page's
+ * air".
+ *
+ * 68rem is the width at which `.beside` becomes two columns, i.e. where this
+ * page is a desktop page at all; under it the hero stacks and a tall phone or
+ * a portrait tablet keeps today's spacing.
+ *
+ * 7vh lands the value in the row the other bands already occupy: 70px at
+ * 1000px of height, 91 at 1300, and a ceiling of 7.5rem, which is `.band`'s
+ * own maximum – the hero is given room to join that rhythm, never to
+ * out-space a section. The floor, 3.5rem, is what the widest short window
+ * gets today, so this rule only ever adds.
+ */
+@media (min-width: 68rem) and (min-height: 1000px) {
+  .band-hero-home { padding-top: clamp(3.5rem, 7vh, 7.5rem); }
+}
 .band-close {
   /* The end of the page says so. Between the last listing and this heading
      there used to be nothing but a large gap, which reads as a section that
