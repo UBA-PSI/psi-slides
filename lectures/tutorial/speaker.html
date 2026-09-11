@@ -4725,6 +4725,159 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
 body[data-view=speaker] #souffleuse-badge { bottom: 5.3rem; }
 body[data-view=speaker].blanked #souffleuse-badge { bottom: 7.2rem; }
 
+/* ── the prompter's strip ─────────────────────────────────────────────
+   One line in two homes, like the clock: over the bottom edge of the stage
+   in the classic arrangement, at the head of the card column in cue-card
+   mode. Deliberately not #center-toast - that lies over the middle of the
+   stage, is built for 1.8 seconds and cannot be taken away, and a hint a
+   lecturer cannot dismiss is a hint that stands there for the rest of the
+   sentence. In 150ms, out in 400: arriving should be noticed, leaving
+   should not.
+   Both of these set display, so both need the [hidden] rule of their own -
+   an author stylesheet that sets display beats the browser's. */
+#souffleuse-strip {
+  position: absolute;
+  left: 50%;
+  bottom: 2.3rem;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  max-width: min(46rem, 88%);
+  padding: 0.4em 0.6em 0.45em;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans-font);
+  font-size: clamp(15px, 2.2vh, 22px);
+  line-height: 1.25;
+  box-shadow: 0 4px 14px oklch(0 0 0 / 0.14);
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+#souffleuse-strip[hidden] { display: none; }
+#souffleuse-strip.visible { opacity: 1; transition-duration: 150ms; }
+/* The red of the warning toast, and for the same reason: high is the one
+   that may interrupt a sentence. */
+#souffleuse-strip[data-severity=high] {
+  background: oklch(0.55 0.16 25 / 0.94);
+  border-color: oklch(0.46 0.16 25);
+  color: oklch(0.99 0 0);
+  box-shadow: 0 4px 16px oklch(0.55 0.16 25 / 0.3);
+}
+#souffleuse-strip .souffleuse-glyph { flex: 0 0 auto; opacity: 0.7; }
+#souffleuse-strip .souffleuse-text { flex: 1 1 auto; min-width: 0; }
+.souffleuse-x {
+  flex: 0 0 auto;
+  font: inherit;
+  line-height: 1;
+  padding: 0 0.15em;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.45;
+  cursor: pointer;
+}
+.souffleuse-x:hover { opacity: 1; }
+/* What the ear is hearing right now, off by default: reassuring in a
+   rehearsal, one moving line too many in a talk. */
+#souffleuse-heard {
+  position: absolute;
+  left: 50%;
+  bottom: 0.7rem;
+  transform: translateX(-50%);
+  z-index: 11;
+  max-width: min(46rem, 88%);
+  font-family: var(--sans-font);
+  font-size: clamp(11px, 1.5vh, 15px);
+  font-style: italic;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+#souffleuse-heard[hidden] { display: none; }
+/* In the card column both are ordinary block children at the head of it,
+   under the crumb line - the cards are what is being read there, and a
+   floating box over them would cover the current one. */
+body[data-view=speaker].cue-cards #souffleuse-strip,
+body[data-view=speaker].cue-cards #souffleuse-heard {
+  position: static;
+  transform: none;
+  flex: 0 0 auto;
+  max-width: none;
+  margin: 0.8vh 2.4vw 0;
+}
+body[data-view=speaker].cue-cards #souffleuse-heard { margin-top: 0.4vh; white-space: normal; }
+
+/* The history, opened by Shift-clicking the switch. The export modal's
+   shape without its scrim: this one is read beside the talk, not instead
+   of it, so nothing behind it is dimmed and nothing is blocked. */
+#souffleuse-log {
+  position: fixed;
+  right: 0.8rem;
+  bottom: 3.2rem;
+  z-index: 50;
+  width: min(30rem, 48vw);
+  max-height: 62vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  box-shadow: 0 10px 30px oklch(0 0 0 / 0.22);
+  font-family: var(--sans-font);
+  font-size: 13px;
+  color: var(--ink);
+}
+#souffleuse-log[hidden] { display: none; }
+#souffleuse-log header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  padding: 0.6em 0.7em 0.4em;
+  border-bottom: 1px solid var(--rule);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+#souffleuse-log header .souffleuse-x { margin-left: auto; font-size: 15px; }
+#souffleuse-log-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0.3em 0;
+}
+#souffleuse-log-list li {
+  display: grid;
+  grid-template-columns: 3.2em 1.3em 1fr auto;
+  gap: 0.5em;
+  align-items: baseline;
+  padding: 0.35em 0.7em;
+  line-height: 1.3;
+}
+#souffleuse-log-list li + li { border-top: 1px solid color-mix(in oklab, var(--rule) 55%, transparent); }
+#souffleuse-log-list .souffleuse-log-at { font-family: var(--mono-font); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+#souffleuse-log-list .souffleuse-log-gone { font-size: 0.82em; color: var(--ink-soft); }
+#souffleuse-log-list .souffleuse-log-empty { display: block; padding: 1em 0.8em; color: var(--ink-soft); font-style: italic; }
+#souffleuse-log footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 1.1em;
+  padding: 0.55em 0.7em;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-soft);
+}
+#souffleuse-log footer label { display: flex; align-items: center; gap: 0.4em; cursor: pointer; }
+body[data-mode=dark] #souffleuse-strip,
+body[data-mode=dark] #souffleuse-log { background: var(--paper-warm); }
+body[data-mode=dark] #souffleuse-strip[data-severity=high] { background: oklch(0.55 0.16 25 / 0.94); }
+
 /* Mode toast sits at the top of the *stage*, not the top of the window:
    row 1 is the scrubber, and a toast overlapping the column strip covers
    exactly the navigation the lecturer is checking against. */
@@ -5144,6 +5297,12 @@ body[data-view=speaker].cue-cards #clock {
 #cue-rail {
   flex: 1 1 auto;
   min-height: 0;
+  /* The rail is the frame its own entries are measured against. cueRender
+     scrolls to curEl.offsetTop, which without this is measured from
+     whatever positioned ancestor happens to be up the tree - so anything
+     that grows above the rail, the prompter's strip included, moved every
+     card by its height. */
+  position: relative;
   overflow-y: auto;
   scrollbar-width: thin;
   padding: 1.6vh 2.4vw 40vh 2.4vw;
@@ -5247,6 +5406,30 @@ body[data-view=speaker].cue-cards #clock {
 }
 .cue-entry.cur .cue-step .cue-what { white-space: normal; font-style: normal; }
 .cue-entry.cur .cue-step { font-size: 0.9em; }
+/* A card the prompter laid in rather than one the author wrote: the track
+   goes dashed, the ring goes dashed, and the words are italic behind the
+   same hollow ring the switch wears. Nothing else changes - it is read in
+   its place in the column, on the beat it belongs to. */
+.cue-tick.souffleuse::before { width: 0; background: none; border-left: 1px dashed var(--rule); }
+.cue-tick.souffleuse i { border-style: dashed; }
+.cue-card.souffleuse { font-style: italic; }
+/* The ring takes the bullet's place rather than standing on a line of its
+   own above it: a card is one or two lines read at a glance, and a glyph
+   with a line to itself doubles the height of the shortest thing in the
+   column. */
+.cue-card.souffleuse li { padding-left: 1.4em; }
+.cue-card.souffleuse li::before,
+.cue-entry.cur .cue-card.souffleuse li::before {
+  content: '\25cc';
+  top: 0;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  color: var(--ink-soft);
+  opacity: 1;
+  font-style: normal;
+}
 #cue-rail .cue-empty { grid-column: 1 / -1; color: var(--ink-soft); font-size: 0.9em; padding: 1em 0; }
 #cue-rail .cue-empty kbd { font-family: var(--mono-font); font-size: 0.85em; border: 1px solid var(--rule); border-radius: 3px; padding: 0 0.35em; }
 
@@ -11593,6 +11776,10 @@ const viewHooks = {
   // the cockpit, and the cockpit's own meaning for it lives with the code
   // that implements it.
   onShiftS: () => false,
+  // The prompter's step in the Esc chain: its history panel if that is
+  // open, otherwise the hint standing on the strip. Returns whether it took
+  // something back, so the chain carries on when it did not.
+  escapePrompter: () => false,
 };
 
 const stage = document.getElementById('stage');
@@ -14793,6 +14980,11 @@ document.addEventListener('keydown', (e) => {
       // The address overlay covers both screens, so it unwinds early – and
       // on both, or the room would be left staring at a URL.
       if (linkOverlayVisible()) { dismissLinkOverlay(); e.preventDefault(); break; }
+      // A whisper from the prompter arrived uninvited and is in the way of
+      // nothing, so it goes before a highlight the lecturer made on purpose
+      // – and it goes on the first Esc, which is what a hand reaches for
+      // when a line has been read and is now in the way.
+      if (viewHooks.escapePrompter()) { e.preventDefault(); break; }
       // A live highlight is the most recent thing the user did, so it is
       // the first thing Esc should take back.
       if (hasTextSelection() || touchSelectOn) {
@@ -16074,6 +16266,24 @@ function cuePlaceStage() {
   if (cur) previewStrip.insertBefore(stageCell, cur);
   else previewStrip.appendChild(stageCell);
 }
+// The prompter's strip is one element in two homes, exactly like the clock:
+// over the stage's bottom edge in the classic arrangement, at the head of
+// the card column here, with the line of what it is hearing under it. Looked
+// up by id rather than held in a binding, because this runs from the mode
+// restore at the foot of this section - before the prompter's own section
+// at the end of this file has declared anything at all.
+function cuePlaceStrip(on) {
+  const strip = document.getElementById('souffleuse-strip');
+  const heard = document.getElementById('souffleuse-heard');
+  if (!strip) return;
+  if (on) {
+    cueRoot.insertBefore(strip, cueRail);
+    if (heard) cueRoot.insertBefore(heard, cueRail);
+  } else {
+    stageCell.appendChild(strip);
+    if (heard) stageCell.appendChild(heard);
+  }
+}
 function applyCueMode(on) {
   document.body.classList.toggle('cue-cards', on);
   cueBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -16081,6 +16291,7 @@ function applyCueMode(on) {
   // the classic arrangement, in the column's header here.
   if (on) cueRoot.querySelector('#cue-where').appendChild(clockEl);
   else stageCell.appendChild(clockEl);
+  cuePlaceStrip(on);
   if (!on) document.body.insertBefore(stageCell, stageHome);
   populatePreviewStrip();
   if (on) cueSync();
@@ -16148,13 +16359,21 @@ function cueCardsFor(id, beats, maxC) {
   try { override = localStorage.getItem(noteOverrideKey(id)); } catch (e) {}
   if (override !== null) {
     put(0, PSI_CARDS.notesToCards(override));
-    return by;
+  } else {
+    document.querySelectorAll('template[data-cards-for="' + CSS.escape(id) + '"]').forEach(t => {
+      const c = t.dataset.at != null ? Number(t.dataset.at)
+        : (segAt[Number(t.dataset.seg) || 0] ?? 0);
+      put(c, PSI_CARDS.notesToCards(t.content.textContent));
+    });
   }
-  document.querySelectorAll('template[data-cards-for="' + CSS.escape(id) + '"]').forEach(t => {
-    const c = t.dataset.at != null ? Number(t.dataset.at)
-      : (segAt[Number(t.dataset.seg) || 0] ?? 0);
-    put(c, PSI_CARDS.notesToCards(t.content.textContent));
-  });
+  // Whatever the prompter laid into this slide, last and on the opening
+  // beat: it was sent while an earlier slide was up and it is about the
+  // whole of this one, so there is no beat it could honestly claim. It
+  // survives the rehearsal override for the same reason - the override
+  // replaces what the author wrote, and this is not that.
+  (souffleuseCues.get(id) || []).forEach(c => put(0, [{
+    title: null, at: null, bullets: [c.text], prose: null, souffleuse: true,
+  }]));
   return by;
 }
 // Where the counter stands. pos is what revealed[] holds (1 = nothing
@@ -16366,7 +16585,8 @@ function cueRender() {
     const cls = e.done ? 'done' : i === cur ? 'cur' : !seenCur ? 'next' : 'later';
     if (i === cur) seenCur = true;
     const titled = e.type === 'card' && e.card.title ? ' titled' : '';
-    const tick = '<div class="cue-tick ' + (e.type === 'card' ? '' : 'step ') + cls + titled + '"><i></i></div>';
+    const souff = e.type === 'card' && e.card.souffleuse ? ' souffleuse' : '';
+    const tick = '<div class="cue-tick ' + (e.type === 'card' ? '' : 'step ') + cls + titled + souff + '"><i></i></div>';
     if (e.type === 'card') {
       const c = e.card;
       let body = c.title ? '<p class="cue-title">' + escText(c.title) + '</p>' : '';
@@ -16374,7 +16594,7 @@ function cueRender() {
       body += c.bullets.length
         ? '<ul>' + c.bullets.map(b => '<li>' + escText(b) + '</li>').join('') + '</ul>'
         : '<p class="cue-prose">' + escText(c.prose) + '</p>';
-      html.push(tick + '<div class="cue-entry ' + cls + '"><div class="cue-card">' + body + '</div></div>');
+      html.push(tick + '<div class="cue-entry ' + cls + '"><div class="cue-card' + souff + '">' + body + '</div></div>');
     } else {
       html.push(tick + '<div class="cue-entry ' + cls + '"><div class="cue-step"><span class="cue-k">' + escText(e.k) + '</span>'
         + (e.what ? '<span class="cue-what">' + escText(e.what) + '</span>' : '') + '</div></div>');
@@ -16702,11 +16922,31 @@ if (SOUFFLEUSE && window.psiWatch) {
   const souffWatch = window.psiWatch;
   const souffBtn = document.getElementById('souffleuse-btn');
   const souffBadgeEl = document.getElementById('souffleuse-badge');
+  const souffStrip = document.getElementById('souffleuse-strip');
+  const souffStripGlyph = souffStrip && souffStrip.querySelector('.souffleuse-glyph');
+  const souffStripText = souffStrip && souffStrip.querySelector('.souffleuse-text');
+  const souffHeardEl = document.getElementById('souffleuse-heard');
+  const souffLogEl = document.getElementById('souffleuse-log');
   // sessionStorage, never local: a microphone is an act of consent and the
   // button is where it is given, so the answer lasts as long as this tab
   // and no longer. A rebuild reloads the page on every save, and a
   // rehearsal should not have to press the switch again for each of them.
   const SOUFF_ON_KEY = 'psi-slides:souffleuse';
+  // The two preferences are the other way round: how you like to rehearse
+  // is a property of you, not of this tab, so they are local and outlive
+  // the session the microphone does not.
+  const SOUFF_HEARD_KEY = 'psi-slides:souffleuse-heard';
+  const SOUFF_CUES_KEY = 'psi-slides:souffleuse-cues';
+  let souffShowHeard = false;
+  // The frontmatter is a ceiling, not a default: a deck whose souffleuse
+  // block switched cues off does not get cards because a preference in this
+  // browser says otherwise.
+  let souffCuesOn = !!SOUFFLEUSE.cues;
+  try {
+    souffShowHeard = localStorage.getItem(SOUFF_HEARD_KEY) === 'on';
+    const saved = localStorage.getItem(SOUFF_CUES_KEY);
+    if (saved !== null) souffCuesOn = saved === 'on' && !!SOUFFLEUSE.cues;
+  } catch (e) { /* a private window is allowed to refuse */ }
 
   // ── the speech-to-text adapter ─────────────────────────────────────
   // One interface, so a whisper.cpp in Node (the cwebp-on-PATH pattern) or
@@ -16951,6 +17191,7 @@ if (SOUFFLEUSE && window.psiWatch) {
     souffOn = false;
     souffState = 'off';
     try { souffStt.stop(); } catch (e) { /* never started */ }
+    if (souffHeardEl) souffHeardEl.hidden = true;
     souffRemember(false);
     if (was && !quiet) souffWatch.ask('souffleuse-toggle', { on: false });
     souffPaintBadge();
@@ -16963,7 +17204,13 @@ if (SOUFFLEUSE && window.psiWatch) {
     else souffStart(true);
   }
   viewHooks.onShiftS = () => { souffToggle(); return true; };
-  if (souffBtn) souffBtn.addEventListener('click', () => souffToggle());
+  // Shift-click rather than a key: every free letter in this window is a
+  // navigation command that would fire mid-sentence, and the history is
+  // read after a talk or between two slides, never in the middle of one.
+  if (souffBtn) souffBtn.addEventListener('click', (e) => {
+    if (e.shiftKey) { souffShowLog(souffLogEl ? souffLogEl.hidden : false); return; }
+    souffToggle();
+  });
 
   function souffHeard(seg) {
     if (!souffOn) return;
@@ -16979,10 +17226,17 @@ if (SOUFFLEUSE && window.psiWatch) {
     if (w) souffLastSent = { idx: w.idx, beat: w.beat };
   }
 
-  // The interim line is built in the next slice. The adapter reports
-  // interims all the same: what decides whether they are shown is not the
-  // ear.
-  function souffInterim() {}
+  // What the ear has provisionally heard, the last eight words of it. Off by
+  // default: reassuring while rehearsing, one moving line too many in front
+  // of a room. The adapter reports interims either way - what decides
+  // whether they are shown is not the ear.
+  function souffInterim(text) {
+    if (!souffHeardEl) return;
+    if (!souffShowHeard || !souffOn) { souffHeardEl.hidden = true; return; }
+    const words = String(text || '').split(/\s+/).filter(Boolean);
+    souffHeardEl.textContent = words.slice(-8).join(' ');
+    souffHeardEl.hidden = !words.length;
+  }
 
   function souffSttState(st) {
     // The first three are the microphone saying it will not work at all, so
@@ -17000,7 +17254,7 @@ if (SOUFFLEUSE && window.psiWatch) {
   // the cursor they keep is what the beat below is read from.
   const souffPrevActive = viewHooks.onActiveChange;
   const souffPrevState = viewHooks.onStateChange;
-  viewHooks.onActiveChange = () => { souffPrevActive(); souffMoved(); };
+  viewHooks.onActiveChange = () => { souffPrevActive(); souffMoved(); souffCueOnArrival(); };
   viewHooks.onStateChange = () => { souffPrevState(); souffMoved(); };
   function souffMoved() {
     if (!souffOn) return;
@@ -17011,6 +17265,137 @@ if (SOUFFLEUSE && window.psiWatch) {
     souffWatch.ask('souffleuse-move', {
       chunkId: w.chunkId, idx: w.idx, beat: w.beat, elapsed: souffClock(),
     });
+  }
+
+  // ── the strip: one line, the newest thing said ─────────────────────
+  // A glyph for the kind, the words, and a cross. A new hint replaces a
+  // standing one without ceremony: the policy in Node has already decided
+  // that this one may come, and two of them on the screen at once is the
+  // thing the whole design is against.
+  const SOUFF_GLYPHS = {
+    time: '\u25f7', example: '\u25c7', fact: '\u25b3',
+    delivery: '\u25cc', cue: '\u25a4',
+  };
+  let souffHint = null;
+  let souffHintTimer = null;
+  let souffHintFade = null;
+  // The last ten, for the panel. Not persisted: it is a record of this
+  // talk, and the next run of it is a different talk.
+  const souffHistory = [];
+
+  function souffShow(h) {
+    if (!souffStrip) return;
+    souffHint = h;
+    souffStrip.dataset.severity = h.severity === 'high' ? 'high' : 'low';
+    souffStripGlyph.textContent = SOUFF_GLYPHS[h.kind] || SOUFF_GLYPHS.delivery;
+    souffStripText.textContent = h.text;
+    if (souffHintFade) { clearTimeout(souffHintFade); souffHintFade = null; }
+    souffStrip.hidden = false;
+    // Two frames rather than one: the element has just come back from
+    // display: none, and a class set in the same tick has nothing to
+    // transition from.
+    requestAnimationFrame(() => requestAnimationFrame(() => {
+      if (souffHint === h) souffStrip.classList.add('visible');
+    }));
+    if (souffHintTimer) clearTimeout(souffHintTimer);
+    souffHintTimer = setTimeout(() => souffDismiss('fade'), h.severity === 'high' ? 25000 : 15000);
+    souffHistory.unshift({
+      at: elapsedSeconds(), kind: h.kind, text: h.text, hintId: h.hintId, how: null,
+    });
+    if (souffHistory.length > 10) souffHistory.length = 10;
+    souffRenderLog();
+  }
+
+  function souffDismiss(how) {
+    if (!souffHint || !souffStrip) return false;
+    const h = souffHint;
+    souffHint = null;
+    if (souffHintTimer) { clearTimeout(souffHintTimer); souffHintTimer = null; }
+    souffStrip.classList.remove('visible');
+    souffHintFade = setTimeout(() => { if (!souffHint) souffStrip.hidden = true; }, 400);
+    const seen = souffHistory.find(x => x.text === h.text && x.how === null);
+    if (seen) seen.how = how;
+    souffRenderLog();
+    // A cue shown here in the classic layout is this window's own doing -
+    // the sidecar filed it as a card for a slide, not as a hint, and has
+    // nothing to record about it going away.
+    if (h.hintId) souffWatch.ask('souffleuse-dismiss', { hintId: h.hintId, how });
+    return true;
+  }
+
+  if (souffStrip) {
+    souffStrip.querySelector('.souffleuse-x').addEventListener('click', () => souffDismiss('click'));
+  }
+  // Esc, after the help panel and the address overlay and before a
+  // highlight the lecturer made on purpose. The panel first: it was opened
+  // deliberately and is the larger thing in the way.
+  viewHooks.escapePrompter = () => {
+    if (souffLogEl && !souffLogEl.hidden) { souffShowLog(false); return true; }
+    return souffDismiss('esc');
+  };
+
+  // ── the history, and the two preferences that live in it ───────────
+  function souffLogRow(h) {
+    const gone = h.how === 'fade' ? 'faded'
+      : h.how === 'esc' ? 'Esc'
+      : h.how === 'click' ? 'dismissed'
+      : 'standing';
+    return '<li><span class="souffleuse-log-at">' + escText(PSI_CARDS.formatClock(h.at)) + '</span>'
+      + '<span class="souffleuse-glyph">' + escText(SOUFF_GLYPHS[h.kind] || '') + '</span>'
+      + '<span class="souffleuse-log-text">' + escText(h.text) + '</span>'
+      + '<span class="souffleuse-log-gone">' + gone + '</span></li>';
+  }
+  function souffRenderLog() {
+    if (!souffLogEl || souffLogEl.hidden) return;
+    const list = souffLogEl.querySelector('#souffleuse-log-list');
+    if (!list) return;
+    list.innerHTML = souffHistory.length
+      ? souffHistory.map(souffLogRow).join('')
+      : '<li class="souffleuse-log-empty">Nothing yet. The usual answer is nothing.</li>';
+  }
+  function souffShowLog(want) {
+    if (!souffLogEl) return;
+    souffLogEl.hidden = !want;
+    if (want) souffRenderLog();
+  }
+  if (souffLogEl) {
+    souffLogEl.querySelector('header .souffleuse-x')
+      .addEventListener('click', () => souffShowLog(false));
+    const heardBox = souffLogEl.querySelector('#souffleuse-heard-toggle');
+    const cuesBox = souffLogEl.querySelector('#souffleuse-cues-toggle');
+    heardBox.checked = souffShowHeard;
+    cuesBox.checked = souffCuesOn;
+    cuesBox.disabled = !SOUFFLEUSE.cues;
+    heardBox.addEventListener('change', () => {
+      souffShowHeard = heardBox.checked;
+      try { localStorage.setItem(SOUFF_HEARD_KEY, souffShowHeard ? 'on' : 'off'); } catch (e) {}
+      if (!souffShowHeard && souffHeardEl) souffHeardEl.hidden = true;
+    });
+    cuesBox.addEventListener('change', () => {
+      souffCuesOn = cuesBox.checked && !!SOUFFLEUSE.cues;
+      try { localStorage.setItem(SOUFF_CUES_KEY, souffCuesOn ? 'on' : 'off'); } catch (e) {}
+      // Switched off, the cards already laid in go with it: leaving them in
+      // the rail while the box says no is the kind of half-answer that gets
+      // read as a defect.
+      if (!souffCuesOn) { souffleuseCues.clear(); cueSync(); }
+    });
+  }
+
+  // A card for a slide that is now up, in the arrangement that has no rail
+  // to put it in. Shown once, as a hint of its own kind, so both
+  // arrangements see what the prompter laid in.
+  let souffCueIdx = -1;
+  const souffCuesShown = new Set();
+  function souffCueOnArrival() {
+    if (cueOn() || state.activeIdx === souffCueIdx) return;
+    souffCueIdx = state.activeIdx;
+    const entry = flatChunks[state.activeIdx];
+    if (!entry || !entry.id) return;
+    const cards = souffleuseCues.get(entry.id) || [];
+    const fresh = cards.find(c => !souffCuesShown.has(c.cueId));
+    if (!fresh) return;
+    souffCuesShown.add(fresh.cueId);
+    souffShow({ hintId: null, kind: 'cue', text: fresh.text, severity: 'low' });
   }
 
   // ── what the sidecar says back ─────────────────────────────────────
@@ -17039,24 +17424,25 @@ if (SOUFFLEUSE && window.psiWatch) {
   });
 
   souffWatch.on('souffleuse-hint', (m) => {
-    const high = m.severity === 'high';
-    const ms = high ? 25000 : 15000;
-    // The strip is the next slice. Until it stands, the centre toast is the
-    // only thing in this window that shows a sentence for long enough to
-    // read it - and it cannot be dismissed, so the only way one goes away
-    // is by fading, which is what the sidecar is told.
-    flashCenter(String(m.text || ''), { warn: high, duration: ms });
-    setTimeout(() => souffWatch.ask('souffleuse-dismiss', { hintId: m.hintId, how: 'fade' }), ms);
+    souffShow({
+      hintId: m.hintId,
+      kind: String(m.kind || 'delivery'),
+      text: String(m.text || ''),
+      severity: m.severity === 'high' ? 'high' : 'low',
+    });
   });
 
   souffWatch.on('souffleuse-cue', (m) => {
-    if (!SOUFFLEUSE.cues) return;
+    if (!souffCuesOn) return;
     const id = String((m && m.chunkId) || '');
     if (!id) return;
     const list = souffleuseCues.get(id) || [];
     if (list.some(c => c.cueId === m.cueId)) return;
     list.push({ cueId: m.cueId, text: String(m.text || '') });
     souffleuseCues.set(id, list);
+    // The rail is redrawn from the Map, so a card that arrives while the
+    // slide it belongs to is already open appears without a press.
+    cueSync();
   });
 
   // The socket reconnects itself; a session does not. After a reconnect the

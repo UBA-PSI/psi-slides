@@ -8494,6 +8494,10 @@ const viewHooks = {
   // the cockpit, and the cockpit's own meaning for it lives with the code
   // that implements it.
   onShiftS: () => false,
+  // The prompter's step in the Esc chain: its history panel if that is
+  // open, otherwise the hint standing on the strip. Returns whether it took
+  // something back, so the chain carries on when it did not.
+  escapePrompter: () => false,
 };
 
 const stage = document.getElementById('stage');
@@ -11694,6 +11698,11 @@ document.addEventListener('keydown', (e) => {
       // The address overlay covers both screens, so it unwinds early – and
       // on both, or the room would be left staring at a URL.
       if (linkOverlayVisible()) { dismissLinkOverlay(); e.preventDefault(); break; }
+      // A whisper from the prompter arrived uninvited and is in the way of
+      // nothing, so it goes before a highlight the lecturer made on purpose
+      // – and it goes on the first Esc, which is what a hand reaches for
+      // when a line has been read and is now in the way.
+      if (viewHooks.escapePrompter()) { e.preventDefault(); break; }
       // A live highlight is the most recent thing the user did, so it is
       // the first thing Esc should take back.
       if (hasTextSelection() || touchSelectOn) {

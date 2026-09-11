@@ -420,7 +420,14 @@ arithmetic, the Chromium bug in `available()` on macOS.
       "The prompter", and hints through `flashCenter` until the strip
       exists. Hand-tested in a Chromium against a fake OpenRouter and a
       fake recogniser: switch, badge, say, move, hint, fade-dismiss.
-- [ ] Slice 5 – strip, history, cues.
+- [x] Slice 5 – `#souffleuse-strip` in its two homes (`cuePlaceStrip`, called
+      from `applyCueMode`), the `×`, the auto-fade and the Esc step
+      (`viewHooks.escapePrompter`, after the help panel and the address
+      overlay), `#souffleuse-log` behind a Shift-click on the switch with the
+      two preferences in it, the interim line `#souffleuse-heard`, and the
+      prompter's cards merged into `cueCardsFor` on beat 0 and drawn by
+      `cueRender` as `.cue-card.souffleuse`; in the classic layout the same
+      card arrives as a strip hint of kind `cue`.
 - [ ] Slice 6 – Playwright spec.
 - [ ] Slice 7 – docs and first rehearsal.
 
@@ -508,6 +515,46 @@ arithmetic, the Chromium bug in `available()` on macOS.
   into a slide that is still to come, nobody reads it now, and the plan's table
   gives it two rules of its own – `cue_targets` and one per chunk. Those are
   the two the policy applies.
+
+- **The history opens from the switch, with Shift.** The plan said "no key"
+  and left the door unchosen. Every free letter in the cockpit is a
+  navigation command that would fire mid-sentence, and the history is read
+  after a talk or between two slides - never inside one - so it needs no key
+  at all. The switch is the only chrome the prompter owns, and a modifier on
+  it is one affordance rather than two. The `⋯` in the strip was the
+  alternative and would have been unreachable exactly when the strip is
+  empty, which is most of a talk.
+- **The beat is `cuePosition(entry).consumed`, and nothing else may compute
+  it.** It is the number of presses the slide has taken - what a cue card is
+  filed under, what an overlay's `from N` counts, and what `deckPayload`
+  numbered the beats by. A second walk of the same DOM written by hand is
+  how the two halves of this feature would come to disagree about which beat
+  a sentence was said on. The clock sent with it is `elapsedSeconds()`
+  unrounded to two decimals: the digits are floored for the display, but
+  four fifths of a second of speech is not zero seconds of speech and the
+  cadence is counted in those.
+- **The badge needs a memory, because a status arrives every tick.** The
+  first version wrote the badge directly, and the plan's rule - `idle`,
+  `listening` and `thinking` clear it - wiped the reason one message after
+  it was given: a refused key put "off - no OPENROUTER_API_KEY" up, and the
+  `idle` that answered the cockpit's own switch-off took it down again, at
+  exactly the moment a lecturer is looking for it. So the ear keeps one
+  reason and the sidecar keeps another, and the badge is painted from the
+  pair with server recognition as the quiet thing left underneath.
+- **`#cue-rail` is now `position: relative`.** `cueRender` scrolls to
+  `curEl.offsetTop`, which was measured against whatever positioned ancestor
+  happened to be up the tree - so anything growing above the rail, the strip
+  included, moved every card by its own height. The rail is the frame its
+  entries are measured against, and saying so is one line and no behaviour
+  change for a cockpit without a prompter.
+- **A cue shown in the classic layout is dismissed locally.** It has a
+  `cueId`, not a `hintId`: the sidecar filed it as a card for a slide and
+  has nothing to record about it leaving a strip it never knew it was on. So
+  a hint shown by this window alone carries a null id and the dismiss stays
+  here.
+- **The checkbox is `#souffleuse-heard-toggle`.** The plan gave that id to
+  both the interim line and the switch that shows it; one of them had to
+  move, and the line is the thing the plan names elsewhere.
 
 ## The questions to the author, answered
 
