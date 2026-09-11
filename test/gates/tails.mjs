@@ -15,9 +15,12 @@
 import {
   CHUNK_SLOTS, CARDS_SLOTS, SIDE_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SLOT_TABLES,
   splitTail, strayTailProblem, parseTail, parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseLegacyDrawTail,
+  parseRevealMark,
   AUTOPLAY_MIN, AUTOPLAY_MAX, DRAW_OPENER_EXAMPLE,
 } from '../../tails.mjs';
-import { render } from './harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { render, ROOT } from './harness.mjs';
 import { migrateText, isActiveSurface, LEGACY_TOKENS } from '../../tools/migrate-draw-opener.mjs';
 
 export const name = 'tails: one {…} parser and one ::: draw opener';
@@ -250,4 +253,55 @@ export async function run({ report }) {
   ok(!isActiveSurface('editor.md') && !isActiveSurface('CHANGELOG.md') && !isActiveSurface('test/settings.mjs') && !isActiveSurface('lectures/x/audience.html'),
      'a build log, history, a test and a built view are not');
   ok(LEGACY_TOKENS.length === 5, 'five old-form token patterns');
+
+  // ── the reveal marker ──────────────────────────────────────────────
+  // One reader behind what used to be seven hand-written `=== '---'` tests.
+  {
+    const m = (l) => parseRevealMark(l);
+    ok(m('---') && m('---').from === null && !m('---').problems.length, 'a bare --- is a beat in order');
+    ok(m('  ---  ').from === null, 'and leading or trailing space does not stop it being one');
+    ok(m('--- from 3').from === 3 && !m('--- from 3').problems.length, '--- from 3 pins the beat to the third advance');
+    ok(m('--- from 12').from === 12, 'and the number is not one digit only');
+    ok(m('----') === null, 'four dashes are not a reveal marker, so a written rule is untouched');
+    ok(m('not a mark') === null && m('') === null, 'and neither is prose or an empty line');
+    ok(m('-- from 2') === null, 'nor two dashes');
+    // Recognised and refused rather than falling through to Markdown: read as
+    // prose, `--- form 2` becomes a paragraph with nothing to say why the
+    // beat never arrived.
+    for (const bad of ['--- form 2', '--- from', '--- from x', '--- from 2 3', '--- from -1', '--- from 1.5', '--- 3']) {
+      const r = m(bad);
+      ok(r && r.problems.length === 1 && r.problems[0].code === 'bad-reveal-from',
+         `${JSON.stringify(bad)} is refused rather than read as prose`, JSON.stringify(r));
+    }
+    const zero = m('--- from 0');
+    ok(zero.problems.length === 1 && /Beat 0 is the beat the slide opens on/.test(zero.problems[0].msg),
+       'from 0 is refused, and the message says why beat 0 is not a beat');
+    ok(m('--- from 3').problems.length === 0 && m('--- from 1').from === 1,
+       'and from 1, the first advance, is the smallest one that is legal');
+  }
+
+  // ── the style block's key set, held across two files ────────────────
+  // lint.js mirrors STYLE_SPEC as STYLE_ENUMS plus STYLE_SCALE_KEYS, and the
+  // unknown-key error it raises is only as right as that pair. A key added
+  // to build.js with a kind other than `enum` would be reported as unknown
+  // on a valid deck until somebody remembered the second file, which is the
+  // drift this repository keeps paying for. Read as text: build.js cannot be
+  // imported here, and lint.js calls main() at module scope.
+  {
+    const bsrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const lsrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
+    const specBody = bsrc.slice(bsrc.indexOf('const STYLE_SPEC = {'));
+    const specKeys = new Set([...specBody.slice(0, specBody.indexOf('\n};'))
+      .matchAll(/^\s{2}'?([a-z-]+)'?:\s*\{/gm)].map(m => m[1]));
+    const enumBody = lsrc.slice(lsrc.indexOf('const STYLE_ENUMS = {'));
+    const lintKeys = new Set([...enumBody.slice(0, enumBody.indexOf('\n};'))
+      .matchAll(/^\s{2}'([a-z-]+)':/gm)].map(m => m[1]));
+    for (const k of [...lsrc.matchAll(/STYLE_SCALE_KEYS = new Set\(\[([^\]]*)\]/g)][0][1]
+      .match(/'[a-z-]+'/g).map(t => t.slice(1, -1))) lintKeys.add(k);
+    ok(specKeys.size > 5, `STYLE_SPEC's keys are findable (${specKeys.size})`, [...specKeys].join(','));
+    const missing = [...specKeys].filter(k => !lintKeys.has(k));
+    const extra = [...lintKeys].filter(k => !specKeys.has(k));
+    ok(!missing.length, 'every style key build.js accepts is one lint.js knows', missing.join(','));
+    ok(!extra.length, 'and lint.js knows no key build.js has dropped', extra.join(','));
+  }
 }

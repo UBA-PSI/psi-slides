@@ -835,17 +835,26 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
    click that lets it go, and the cursor is the only place that can say so. */
 body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 
-/* reveal segments: first visible, rest hidden until advanced. Under
-   style: {reveal: hold} a hidden segment keeps its box - the chunk stands
-   at its final height from beat 0, as a nested beat's block does - and the
-   words fade in; the default closes the segment up and the chunk grows. */
+/* reveal segments: first visible, rest hidden until advanced. A hidden
+   segment keeps its box, so the chunk stands at its final height from beat
+   0 and the words fade in where they were always going to be.
+
+   One rule now, and it used to be two. A top-level segment closed up
+   (display: none) and the chunk grew per press, while a nested beat
+   reserved - so a reveal marker meant two different things depending on how
+   deep it sat, and style: reveal: hold existed to buy the nested behaviour for
+   the top level. Reserving is what the nested form had always done for the
+   reason that decides it: a slide that changes height under the reader is a
+   slide that jumps, and auto-fit measures a different height on every beat.
+   Measured over seven lectures before the change, the set of chunks taller
+   than the frame is identical either way - the last beat shows every
+   segment whichever rule is in force - so nothing that fit stopped
+   fitting. */
 .reveal-segment { transition: opacity 180ms ease; }
-.reveal-segment[data-hidden] { display: none; }
-body[data-reveal=hold] .reveal-segment[data-hidden] { display: block; visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; pointer-events: none; }
+.reveal-segment[data-hidden] { display: block; visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; pointer-events: none; }
 /* A --- below the top level (BEAT_MARK). The marker itself is never shown;
    the elements it governs carry data-beat-hidden until their beat - and
-   keep their box. A top-level segment closes up (display: none) and the
-   chunk grows beat by beat, which is the reveal 1.0.0 shipped; a nested
+   keep their box, which is what a top-level segment does too now. A nested
    beat lives inside a block whose shape the room has already seen, and a
    row that grew a line per beat, or a card row whose three cards changed
    height when the tallest arrived, made the whole slide jump on every
@@ -4972,9 +4981,11 @@ or slides about while it is being revealed.</p>
     <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code>::: overlay {…} from 1</code> keeps the block off the slide</strong> until the first press
 of Space. One number, not a list: an overlay is either on the slide or it is
 not, where the backdrop&#39;s list says where the picture is at each beat.</p>
-<p>An overlay fades in where a reveal segment simply appears. A segment is part of
-the flowing text, so what follows it closes up as it arrives; an overlay sits in
-its own cell over the picture and nothing else moves.</p>
+<p>An overlay and a reveal segment both fade in, and neither moves anything: the
+segment has its box in the text from the first beat, and the overlay has its
+cell over the picture. What <code class="nb">from</code> adds is the <em>number</em> - a segment takes the
+next beat in order unless it is written <code>--- from N</code>, where an overlay says
+which beat it waits for and nothing else can reach it first.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="reveal-from">
@@ -5464,8 +5475,8 @@ is a <code class="nb">---</code>.</p>
 <div class="reveal-segment" data-seg="1" data-hidden><div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>Fifth beat.</strong> The row is a top-level segment.</li>
-<li><strong>Still the fifth.</strong> It closes up before its beat and the chunk grows - the
-1.0.0 behaviour, <code>style: {reveal: grow}</code>.</li>
+<li><strong>Still the fifth.</strong> A top-level segment reserves its space too, so the chunk
+is as tall on its first beat as on its last.</li>
 </ul>
 <div class="beat-mark"></div>
 
@@ -5503,7 +5514,7 @@ first does not move: the block is laid out with both rows from beat 0.</p>
 <div class="beat-mark"></div>
 
 <ul>
-<li><strong>Top-level</strong><span class="row-body">segments grow the chunk, unless the frontmatter says <code>style: {reveal: hold}</code> - then every segment in the deck stands still too. This deck keeps the default, so the difference can be seen in the part before this one.</span></li>
+<li><strong>Top-level</strong><span class="row-body">segments do the same, so a chunk is as tall on its first beat as on its last. One rule, whatever depth the mark sits at.</span></li>
 </ul>
 
 </div></div></div>
@@ -5578,7 +5589,7 @@ type above it, and each is still a row in the search index.</p>
 <g id="dg3-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg3-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg3-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
 <g id="dg3-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-site--r" x="156.35" y="-18.38" width="56.00" height="36.75" rx="4"/><g id="dg3-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(184.35,0.00)"><g id="dg3-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
 <g id="dg3-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-score--r" x="112.93" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg3-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(184.35,109.55)"><g id="dg3-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","opener":"::: draw 150x56","range":[22093,22378],"chunk":"bare-loop","width":"full","alt":"The measurement loop"}</script></figure></div></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","opener":"::: draw 150x56","range":[22154,22439],"chunk":"bare-loop","width":"full","alt":"The measurement loop"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="bare-loop">
       <div class="annot-box-label">annotation · bare-loop</div>
@@ -5606,7 +5617,7 @@ type above it, and each is still a row in the search index.</p>
 <g id="dg4-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg4-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg4-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="dg4-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
 <g id="dg4-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg4-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="dg4-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="dg4-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
 <g id="dg4-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg4-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="dg4-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","opener":"::: draw 150x56 autoplay 1400 cycle","range":[22783,23161],"chunk":"autoplay","width":"full","alt":"A figure that walks itself"}</script></figure></div></div>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","opener":"::: draw 150x56 autoplay 1400 cycle","range":[22844,23222],"chunk":"autoplay","width":"full","alt":"A figure that walks itself"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="autoplay">
       <div class="annot-box-label">annotation · autoplay</div>
@@ -8523,7 +8534,12 @@ const FOCUSABLE_SEL = 'figure.figure-img, figure.figure-diagram, .chunk-body pre
 // Everything that is held to a beat by from N. One string, or the three
 // walks below (chunkBeats, countSegments, applyReveal) disagree about what
 // arrives when. A dock with from is, for the counter, an overlay card.
-const FROM_SEL = '.overlay-card[data-from], .dock[data-from]';
+// Everything held to a beat by a written from-number. A reveal segment joins
+// the two containers because a marker inside a pinned segment has to count
+// from the segment's own beat: numbered positionally it un-hid on beat 1
+// inside a segment that does not arrive until beat 3, and then both halves
+// appeared together on 3, losing the stagger the author wrote.
+const FROM_SEL = '.overlay-card[data-from], .dock[data-from], .reveal-segment[data-from]';
 
 // ── Slide-size sync ─────────────────────────────────────────────────
 // --slide-w / --slide-h hold the AUDIENCE window's pixel dimensions so
@@ -9378,6 +9394,14 @@ function applyState() {
 // mark inside an overlay was then counted twice: once by its place in this
 // list and once by at, which gave the slide a dead Space at the end and
 // shifted every positional beat after it by one.
+// What a "--- from N" wrote, on a segment or on a marker. One reader, because
+// two spellings of "read this attribute" is how the two windows come to
+// disagree about what arrives when.
+function fromOf(node) {
+  const raw = node.dataset ? node.dataset.from : null;
+  const n = raw == null ? NaN : Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 function chunkBeats(el) {
   const out = [];
   let segIdx = 0;
@@ -9389,7 +9413,20 @@ function chunkBeats(el) {
     // room would see nothing happen.
     if (node.closest('.exp-body, .chunk-expansion')) return;
     if (node.classList.contains('reveal-segment')) {
-      if (segIdx++ > 0) push({ type: 'seg', el: node });
+      // A "--- from N" pins the segment to an advance by number instead of to
+      // its place in the order. push() then leaves it out of the positional
+      // count, which is the same arrangement a marker inside an overlay has
+      // had since a from-beat existed.
+      //
+      // The first rendered segment is normally the slide's opening state and
+      // is no beat at all - but it can be a pinned one, when the segment
+      // above it was emptied by a captured directive (a chunk that opens on
+      // its backdrop and takes its words at beat 3). Without the second test
+      // it was hidden by the FROM_SEL sweep at the foot of applyReveal and
+      // managed by nothing: no entry in the beat list, so no next-mark in
+      // the cockpit and no line in the cue list.
+      const at = fromOf(node);
+      if (segIdx++ > 0 || at != null) push({ type: 'seg', el: node, at });
       return;
     }
     // A --- below the top level: the beat owns every element sibling after
@@ -9405,8 +9442,13 @@ function chunkBeats(el) {
       // the slide's list. Without at, the overlay layer comes after the
       // body in document order, so its inner beats would be numbered
       // before its own from-beat and play behind a card not yet shown.
+      // A written number wins over the position; inside a container that is
+      // itself held to a beat the two cannot both be present, which the
+      // parser refuses, so this is a choice between one answer and none.
       const ov = node.closest(FROM_SEL);
-      const at = ov ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node) : null;
+      const at = fromOf(node) ?? (ov
+        ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node)
+        : null);
       push({ type: 'mark', els, at });
       return;
     }
@@ -9458,12 +9500,13 @@ function applyReveal(el, id, instant) {
     const i = b.pos;
     const on = b.at == null && i < consumed;
     if (b.type === 'seg') {
-      if (on) b.el.removeAttribute('data-hidden');
+      const shown = b.at != null ? consumed >= b.at : on;
+      if (shown) b.el.removeAttribute('data-hidden');
       else b.el.setAttribute('data-hidden', '');
       // Mark the one segment that Space or Down will bring up next. Only the
       // speaker's stylesheet reacts to it, but the attribute is set in both
       // views so the two DOMs stay identical.
-      if (i === consumed) b.el.setAttribute('data-next', '');
+      if (b.at != null ? consumed === b.at - 1 : i === consumed) b.el.setAttribute('data-next', '');
       else b.el.removeAttribute('data-next');
     } else if (b.type === 'mark') {
       const shown = b.at != null ? consumed >= b.at : on;
@@ -14390,17 +14433,33 @@ function dgTokenize(line, base = 0) {
       let j = i + 1, buf = '';
       while (j < line.length && line[j] !== '"') {
         if (line[j] === '\\' && j + 1 < line.length) {
-          // Two sequences are the tokenizer's own, because they are about the
-          // token and not about the words in it: a bare quote would end the
-          // string, and a label breaks its lines at `\n`. Every other
-          // backslash belongs to the label and is handed on whole - `\_` has
-          // to reach `dgSpans`, which is where a marker is escaped, and
-          // before this rule a path written `C:\tmp` silently drew as
-          // `C:tmp`. The pair `\\` is passed on as two characters for the
-          // same reason, and `dgSpans` is the one place that collapses it, so
-          // there is one escape in the language rather than two stacked.
+          // Three sequences are the tokenizer's own, because they are about
+          // the token rather than the words in it: a bare quote would end the
+          // string, a label breaks its lines at `\n`, and `\\` is how a token
+          // says one backslash. Every other backslash belongs to the label
+          // and is handed on whole - `\_` has to reach `dgSpans`, which is
+          // where a marker is escaped, and before that rule a path written
+          // `C:\tmp` silently drew as `C:tmp`.
+          //
+          // `\\` used to be handed on whole too, on the reasoning that one
+          // escape in the language beats two stacked. It cost the property
+          // that matters more: with no way to write a backslash, a token
+          // value holding one before an `n` or a quote, or at its end, had no
+          // source form at all - so the editor could not write `C:\` back
+          // without escaping its own closing quote and swallowing the line.
+          // Collapsing it here makes this function the exact inverse of
+          // `dgeQuote`, which is one assertion to test.
+          //
+          // One source form draws differently for it, and only one: `\\`
+          // immediately before a marker. `"a\\_b"` used to reach `dgSpans`
+          // as `a\\_b` - a literal backslash, then a subscript - and reaches
+          // it as `a\_b` now, an escaped underscore. Everywhere else a lone
+          // backslash and a doubled one render alike, so nothing else moves.
+          // No source in either repository writes that form; it was checked
+          // rather than assumed, and the three tracked lectures rebuild with
+          // no changed line of figure markup.
           const nxt = line[j + 1];
-          buf += nxt === 'n' ? '\n' : nxt === '"' ? '"' : ('\\' + nxt);
+          buf += nxt === 'n' ? '\n' : nxt === '"' ? '"' : nxt === '\\' ? '\\' : ('\\' + nxt);
           j += 2;
           continue;
         }
@@ -25783,8 +25842,13 @@ function dgeSwapEnds(id) {
 // panel would turn `scan\_page` into `scan\` plus a subscript on the way back
 // to the source.
 function dgeQuote(v) {
-  return String(v).replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  // The exact inverse of dgTokenize's quoted-string reader: it decodes `\\`,
+  // `\"` and `\n`, so those are the three this encodes, and the backslash
+  // goes first or it would double the ones the other two add.
+  // `test/gates/semantics.mjs` asserts the round trip rather than the pairs.
+  return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
+
 
 // One question, two callers: the panel asks it against DGE, a gesture against
 // the state it started from (dgeGestureBase). Both carry a source, a model and

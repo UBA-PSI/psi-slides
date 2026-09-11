@@ -919,9 +919,13 @@ starting page, and read every `<a href>` out of the rendered DOM. `urljoin`
 makes each one absolute, `urlparse` throws away anything on another host, and
 `dict.fromkeys` removes the duplicates while keeping the order.
 
+--- from 2
+
 **The middle block runs once per link.** `page.goto` hands back a response,
 which is where the status comes from; `page.title()` and one `page.evaluate`
 supply the other two fields. Each visit produces one `PageReport`.
+
+--- from 3
 
 **The last line runs once again.** The reports are printed in the order they
 were collected, flags first, so the output can be filtered with `grep`.

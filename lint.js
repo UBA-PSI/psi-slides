@@ -99,6 +99,11 @@ const VIEW_DEFAULTS = {
 // enum keys are checked: the two scales are bounded numbers, and reading a
 // number out of YAML with no parser is where a linter starts disagreeing
 // with the build. The build hard-fails on both halves either way.
+const STYLE_SCALE_KEYS = new Set(['heading-scale', 'body-scale']);
+// Mirrors STYLE_KEYS_REMOVED in build.js.
+const STYLE_KEYS_REMOVED = {
+  reveal: 'every reveal reserves its space now, which is what `hold` bought, so delete the key',
+};
 const STYLE_ENUMS = {
   // `off` takes the heading off the *slide* and leaves it in the TOC, in
   // search and in the printed document. Same key as the alignment, because
@@ -129,7 +134,6 @@ const STYLE_ENUMS = {
   // What a top-level reveal segment does before its beat: closes up and the
   // chunk grows (the default, and 1.0.0's behaviour), or keeps its box so
   // the chunk stands at its final height from beat 0.
-  'reveal': ['grow', 'hold'],
 };
 
 // The slot tables of ::: backdrop, ::: cards / ::: rows, ::: overlay and
@@ -251,7 +255,7 @@ import {
 import {
   CHUNK_SLOTS, CHUNK_STYLE_CLASSES, VALID_WIDTHS, VALID_CHUNK_CLASSES,
   CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
-  splitTail, parseTail, strayTailProblem, parseDrawOpener,
+  splitTail, parseTail, strayTailProblem, parseDrawOpener, parseRevealMark,
 } from './tails.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
@@ -1768,14 +1772,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       // including an unterminated one – that takes the rest of the line rather
       // than being an error, and a gate stricter than the build is worse than
       // no gate.
-      // The tokenizer decodes two sequences and hands every other backslash
+      // The tokenizer decodes three sequences and hands every other backslash
       // on whole, so that `\_` reaches the span splitter, which is where a
       // sub/superscript marker is escaped. Mirror it exactly: decoding more
       // here would split a `\|` into two columns the build keeps as one.
       const quoted = (s) => {
         const m = String(s).match(/"((?:\\[\s\S]|[^"\\])*)"?/);
         return m && m[1].replace(/\\([\s\S])/g,
-          (all, c) => (c === 'n' ? '\n' : c === '"' ? '"' : all));
+          (all, c) => (c === 'n' ? '\n' : c === '"' ? '"' : c === '\\' ? '\\' : all));
       };
       // Not `!first`: an empty string is a heading row of one nameless
       // column, which is what the build reads it as too.
@@ -2287,14 +2291,25 @@ function lintFile(filePath) {
     let inStyle = false;
     const rule = (i, key, value) => {
       const allowed = STYLE_ENUMS[key];
-      if (!allowed) return;
+      // An unknown key used to return quietly here, so the build refused what
+      // the linter passed and a deck could lint clean and fail to build. The
+      // two scales are deliberately absent from STYLE_ENUMS (their values are
+      // the build's to bound), so they are named here rather than inferred.
+      if (!allowed) {
+        if (!STYLE_SCALE_KEYS.has(key)) {
+          addFm(i + 2, 'error', 'unknown-style-setting',
+            `'style.${key}' is not a key this block has` +
+            (STYLE_KEYS_REMOVED[key] ? ` – ${STYLE_KEYS_REMOVED[key]}` : ''));
+        }
+        return;
+      }
       const v = value.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
       if (!v || allowed.includes(v)) return;
       addFm(i + 2, 'error', 'unknown-style-setting',
         `'style.${key}: ${v}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
     };
     lines.forEach((raw, i) => {
-      // The flow form, `style: {bold: accent, reveal: hold}`, which is how
+      // The flow form, `style: {bold: accent, wrap: none}`, which is how
       // the documentation writes the block. It was not read at all, so a
       // typo in it passed the pre-commit gate and failed the build.
       const flow = raw.match(/^style:[ \t]*\{(.*)\}[ \t]*$/);
@@ -2375,6 +2390,7 @@ function lintFile(filePath) {
   let chunkReveals = 0;
   let chunkSteps = 0;
   let chunkOverlays = [];
+  let chunkRevealPins = [];   // { ln, from } per `--- from N`
   let exposedWords = 0;
   // A ::: draw opener never reaches chunkBody - it is captured into `diagram`
   // and its body with it - so a chunk-level flag is the only way a later check
@@ -2414,7 +2430,7 @@ function lintFile(filePath) {
       }
       // A divider's overlays and its figure's steps are its own; left
       // standing they were judged against the next chunk's beats.
-      chunkReveals = 0; chunkSteps = 0; chunkOverlays = [];
+      chunkReveals = 0; chunkSteps = 0; chunkOverlays = []; chunkRevealPins = [];
       return;
     }
     const budget = DENSITY_BUDGET[chunk.tag ?? 'free'];
@@ -2532,6 +2548,17 @@ function lintFile(filePath) {
             + 'move it behind the next ---, or give this beat its text');
       }
     }
+    // One past the last beat is this segment arriving after everything else
+    // and is fine, which is the threshold ::: overlay from N already uses.
+    for (const r of chunkRevealPins) {
+      if (r.from > beats + 1) {
+        add(r.ln, 'warn', 'reveal-from-beyond',
+            `--- from ${r.from}, but the chunk has `
+            + `${beats === 0 ? 'no other beats' : beats === 1 ? 'one other beat' : beats + ' other beats'} to ride – `
+            + `the projector shows ${r.from - beats - 1} empty advance${r.from - beats - 1 === 1 ? '' : 's'} before this segment arrives; `
+            + `write from ${beats + 1} or lower, or give the slide the beats`);
+      }
+    }
     for (const n of notePins) {
       if (n.from > beats) {
         add(n.ln, 'warn', 'note-from-beyond',
@@ -2551,7 +2578,7 @@ function lintFile(filePath) {
     chunkHasReveal = false;
     chunkReveals = 0;
     chunkSteps = 0;
-    chunkOverlays = [];
+    chunkOverlays = []; chunkRevealPins = [];
     exposedWords = 0;
     chunkHasDrawing = false;
     noteSegs = []; notePins = []; rawSegHasText = []; rawSeg = 0;
@@ -2911,7 +2938,8 @@ function lintFile(filePath) {
             `second ::: dock on one ${chunk ? 'chunk' : 'column heading'} (first at line ${host.dock.line}) – one slide has one dock`);
       }
       if (host) host.dock = { edge, width, height, scope, line: ln, inherited: false };
-      activeDirective = { kind: 'dock', line: ln, scope };
+      activeDirective = { kind: 'dock', line: ln, scope,
+        from: from != null && /^[1-9]\d*$/.test(from) ? Number(from) : null };
       continue;
     }
     const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
@@ -2965,7 +2993,8 @@ function lintFile(filePath) {
       if (overlayOpen[2] != null && /^[1-9]\d*$/.test(overlayOpen[2])) {
         chunkOverlays.push({ from: Number(overlayOpen[2]), line: ln });
       }
-      activeDirective = { kind: 'overlay', line: ln };
+      activeDirective = { kind: 'overlay', line: ln,
+        from: overlayOpen[2] != null && /^[1-9]\d*$/.test(overlayOpen[2]) ? Number(overlayOpen[2]) : null };
       continue;
     }
 
@@ -3187,20 +3216,56 @@ function lintFile(filePath) {
       continue;
     }
 
-    if (activeDirective && activeDirective.kind === 'dock' && activeDirective.scope === 'every' && line.trim() === '---') {
+    if (activeDirective && activeDirective.kind === 'dock' && activeDirective.scope === 'every' && parseRevealMark(line)) {
       add(ln, 'error', 'bad-dock-beat',
           '--- inside ::: dock {.every} – an inherited dock is on every slide of the part, and a beat is one slide\'s; write *** for a rule, or drop .every');
       continue;
     }
-    if (chunk && (!activeDirective || activeDirective.kind === 'overlay' || activeDirective.kind === 'dock') && line.trim() === '---') {
+    // Read on every line the build reads one on, which includes a divider's
+    // body (no chunk open) and the inside of a ::: script - the build refuses
+    // a malformed marker at all of them, and a linter that is quiet where the
+    // build refuses lets a deck through the pre-commit gate and break later.
+    const revMark = (!activeDirective || activeDirective.kind === 'overlay' || activeDirective.kind === 'dock')
+      ? parseRevealMark(line) : null;
+    if (revMark) {
+      // A malformed marker is refused wherever it stands, before any question
+      // about what this one would have meant here.
+      if (revMark.problems.length) {
+        add(ln, 'error', revMark.problems[0].code, revMark.problems[0].msg.split('\n')[0].trim());
+        continue;
+      }
+      // Inside ::: script the line stays a rule, as in the build - so a
+      // number on it is a pin the drawing never takes, which is the silent
+      // no-op this format refuses everywhere else.
+      if (layoutStack.some(l => l.kind === 'script')) {
+        if (revMark.from != null) {
+          add(ln, 'error', 'bad-reveal-from',
+              `--- from ${revMark.from} inside ::: script – the block is narration and is off the `
+              + 'projection, so the line stays a rule there and the number would do nothing; write --- on its own');
+        }
+        continue;
+      }
+      // A divider's body walks the same counter, but none of the per-chunk
+      // tallies below belong to it.
+      if (!chunk) continue;
       // At the top level the build splits the body into segments here;
       // below it - in a pane, a card row, an overlay card - the same line is
       // a beat marker the runtime honours in source order. Either way it is
       // one beat on the chunk's counter, which is all this file needs.
-      // Inside ::: script it stays a rule, as in the build.
-      if (layoutStack.some(l => l.kind === 'script')) continue;
+      // A container already held to a beat numbers its own markers, so a
+      // written one is two answers to one question. Mirrors the build.
+      if (revMark.from != null && activeDirective && activeDirective.from != null) {
+        add(ln, 'error', 'bad-reveal-from',
+            `--- from ${revMark.from} inside ::: ${activeDirective.kind} from ${activeDirective.from} – `
+            + 'a block held to a beat counts its own beats from the one it arrives on, so its markers '
+            + 'are numbered already; drop the from here, or take it off the directive');
+        continue;
+      }
       chunkHasReveal = true;
-      chunkReveals += 1;
+      // A pinned beat rides one the chunk already has rather than adding a
+      // position of its own - which is what chunkBeats' push() does with it.
+      if (revMark.from == null) chunkReveals += 1;
+      else chunkRevealPins.push({ ln, from: revMark.from });
       inMetaBlock = false;
       if (!activeDirective && !layoutStack.length) rawSeg += 1;
       continue;

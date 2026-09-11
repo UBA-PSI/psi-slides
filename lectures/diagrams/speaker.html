@@ -835,17 +835,26 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
    click that lets it go, and the cursor is the only place that can say so. */
 body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 
-/* reveal segments: first visible, rest hidden until advanced. Under
-   style: {reveal: hold} a hidden segment keeps its box - the chunk stands
-   at its final height from beat 0, as a nested beat's block does - and the
-   words fade in; the default closes the segment up and the chunk grows. */
+/* reveal segments: first visible, rest hidden until advanced. A hidden
+   segment keeps its box, so the chunk stands at its final height from beat
+   0 and the words fade in where they were always going to be.
+
+   One rule now, and it used to be two. A top-level segment closed up
+   (display: none) and the chunk grew per press, while a nested beat
+   reserved - so a reveal marker meant two different things depending on how
+   deep it sat, and style: reveal: hold existed to buy the nested behaviour for
+   the top level. Reserving is what the nested form had always done for the
+   reason that decides it: a slide that changes height under the reader is a
+   slide that jumps, and auto-fit measures a different height on every beat.
+   Measured over seven lectures before the change, the set of chunks taller
+   than the frame is identical either way - the last beat shows every
+   segment whichever rule is in force - so nothing that fit stopped
+   fitting. */
 .reveal-segment { transition: opacity 180ms ease; }
-.reveal-segment[data-hidden] { display: none; }
-body[data-reveal=hold] .reveal-segment[data-hidden] { display: block; visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; pointer-events: none; }
+.reveal-segment[data-hidden] { display: block; visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; pointer-events: none; }
 /* A --- below the top level (BEAT_MARK). The marker itself is never shown;
    the elements it governs carry data-beat-hidden until their beat - and
-   keep their box. A top-level segment closes up (display: none) and the
-   chunk grows beat by beat, which is the reveal 1.0.0 shipped; a nested
+   keep their box, which is what a top-level segment does too now. A nested
    beat lives inside a block whose shape the room has already seen, and a
    row that grew a line per beat, or a card row whose three cards changed
    height when the tallest arrived, made the whole slide jump on every
@@ -4709,21 +4718,25 @@ body[data-view=speaker] .figure-video video { cursor: pointer; }
    next one: the segments behind it stay hidden, or the preview would
    just be the un-collapsed chunk with extra decoration.
 
-   The audience is untouched – [data-hidden] keeps its display:none there,
-   and this override is scoped to the speaker. */
+   The audience shows the box but not the words; this override is scoped to
+   the speaker and turns the words back on. */
 body[data-view=speaker] .reveal-segment[data-hidden][data-next] {
-  display: block;
-  /* Absolute with no offsets: the box renders at its static position –
-     exactly where it will land when revealed – but contributes nothing to
-     the chunk's height. That matters more than it looks. The laser pointer
-     travels as a fraction of the active chunk's bounding box, so a cockpit
-     chunk taller than the projected one would land the dot in the wrong
-     place; measured on a three-segment chunk, in-flow made the speaker's
-     box 840px against the audience's 718. width:100% resolves against
-     .chunk-content, which is position:relative and the same width. */
-  position: absolute;
-  width: 100%;
+  /* In the flow at half strength, which is the nested beat's ghost. It was
+     position: absolute so the cockpit's chunk stayed the height of the
+     projected one: the laser pointer travels as a fraction of the active
+     chunk's bounding box, and a taller cockpit chunk lands the dot in the
+     wrong place. The two heights match by construction now - the segment
+     reserves its box on both screens - so taking it out of the flow here
+     would make the cockpit the shorter of the two and break the pointer in
+     the other direction. */
+  visibility: visible;
   opacity: 0.5;
+  /* The hatch and the "next" label below are position: absolute; inset: -5px,
+     so they need a positioned box to resolve against. Without it they reach
+     .chunk-content and stripe the whole slide - measured, a 28px segment's
+     hatch over a 263px chunk. The nested beat's ghost carries this for the
+     same reason. */
+  position: relative;
   outline: 2px dashed var(--emph);
   outline-offset: 7px;
 }
@@ -4752,11 +4765,10 @@ body[data-view=speaker] :is(.reveal-segment[data-hidden], .chunk [data-beat-hidd
 }
 /* Not on the overview board: at that scale the hatch is noise, and the
    board is for finding a slide, not for pacing one. */
-body[data-view=speaker].overview-mode .reveal-segment[data-hidden][data-next] { display: none; }
-/* Under reveal: hold the segment already has its box on both screens, so
-   its ghost is the nested beat's: in the flow, half strength. */
-body[data-view=speaker][data-reveal=hold] .reveal-segment[data-hidden][data-next] { position: relative; width: auto; visibility: visible; opacity: 0.5; }
-body[data-view=speaker][data-reveal=hold].overview-mode .reveal-segment[data-hidden][data-next] { visibility: hidden; }
+/* Not on the overview board, and hidden rather than dropped: the segment
+   has a box on both screens, so removing it there would change the tile's
+   proportions against every other tile. */
+body[data-view=speaker].overview-mode .reveal-segment[data-hidden][data-next] { visibility: hidden; }
 body[data-view=speaker].overview-mode .chunk [data-beat-hidden][data-next] { visibility: hidden; }
 /* A nested beat keeps its box on both screens (see the hide rule in the
    audience sheet), so its ghost is simply the box made visible at half
@@ -10157,7 +10169,12 @@ const FOCUSABLE_SEL = 'figure.figure-img, figure.figure-diagram, .chunk-body pre
 // Everything that is held to a beat by from N. One string, or the three
 // walks below (chunkBeats, countSegments, applyReveal) disagree about what
 // arrives when. A dock with from is, for the counter, an overlay card.
-const FROM_SEL = '.overlay-card[data-from], .dock[data-from]';
+// Everything held to a beat by a written from-number. A reveal segment joins
+// the two containers because a marker inside a pinned segment has to count
+// from the segment's own beat: numbered positionally it un-hid on beat 1
+// inside a segment that does not arrive until beat 3, and then both halves
+// appeared together on 3, losing the stagger the author wrote.
+const FROM_SEL = '.overlay-card[data-from], .dock[data-from], .reveal-segment[data-from]';
 
 // ── Slide-size sync ─────────────────────────────────────────────────
 // --slide-w / --slide-h hold the AUDIENCE window's pixel dimensions so
@@ -11012,6 +11029,14 @@ function applyState() {
 // mark inside an overlay was then counted twice: once by its place in this
 // list and once by at, which gave the slide a dead Space at the end and
 // shifted every positional beat after it by one.
+// What a "--- from N" wrote, on a segment or on a marker. One reader, because
+// two spellings of "read this attribute" is how the two windows come to
+// disagree about what arrives when.
+function fromOf(node) {
+  const raw = node.dataset ? node.dataset.from : null;
+  const n = raw == null ? NaN : Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 function chunkBeats(el) {
   const out = [];
   let segIdx = 0;
@@ -11023,7 +11048,20 @@ function chunkBeats(el) {
     // room would see nothing happen.
     if (node.closest('.exp-body, .chunk-expansion')) return;
     if (node.classList.contains('reveal-segment')) {
-      if (segIdx++ > 0) push({ type: 'seg', el: node });
+      // A "--- from N" pins the segment to an advance by number instead of to
+      // its place in the order. push() then leaves it out of the positional
+      // count, which is the same arrangement a marker inside an overlay has
+      // had since a from-beat existed.
+      //
+      // The first rendered segment is normally the slide's opening state and
+      // is no beat at all - but it can be a pinned one, when the segment
+      // above it was emptied by a captured directive (a chunk that opens on
+      // its backdrop and takes its words at beat 3). Without the second test
+      // it was hidden by the FROM_SEL sweep at the foot of applyReveal and
+      // managed by nothing: no entry in the beat list, so no next-mark in
+      // the cockpit and no line in the cue list.
+      const at = fromOf(node);
+      if (segIdx++ > 0 || at != null) push({ type: 'seg', el: node, at });
       return;
     }
     // A --- below the top level: the beat owns every element sibling after
@@ -11039,8 +11077,13 @@ function chunkBeats(el) {
       // the slide's list. Without at, the overlay layer comes after the
       // body in document order, so its inner beats would be numbered
       // before its own from-beat and play behind a card not yet shown.
+      // A written number wins over the position; inside a container that is
+      // itself held to a beat the two cannot both be present, which the
+      // parser refuses, so this is a choice between one answer and none.
       const ov = node.closest(FROM_SEL);
-      const at = ov ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node) : null;
+      const at = fromOf(node) ?? (ov
+        ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node)
+        : null);
       push({ type: 'mark', els, at });
       return;
     }
@@ -11092,12 +11135,13 @@ function applyReveal(el, id, instant) {
     const i = b.pos;
     const on = b.at == null && i < consumed;
     if (b.type === 'seg') {
-      if (on) b.el.removeAttribute('data-hidden');
+      const shown = b.at != null ? consumed >= b.at : on;
+      if (shown) b.el.removeAttribute('data-hidden');
       else b.el.setAttribute('data-hidden', '');
       // Mark the one segment that Space or Down will bring up next. Only the
       // speaker's stylesheet reacts to it, but the attribute is set in both
       // views so the two DOMs stay identical.
-      if (i === consumed) b.el.setAttribute('data-next', '');
+      if (b.at != null ? consumed === b.at - 1 : i === consumed) b.el.setAttribute('data-next', '');
       else b.el.removeAttribute('data-next');
     } else if (b.type === 'mark') {
       const shown = b.at != null ? consumed >= b.at : on;
@@ -14606,7 +14650,10 @@ cueBtn.addEventListener('click', toggleCueMode);
 function cueCardsFor(id, beats, maxC) {
   const by = new Map();
   const segAt = [0];
-  beats.forEach(b => { if (b.type === 'seg') segAt.push(b.pos + 1); });
+  // at ?? pos + 1: a pinned segment has no positional index, and pos + 1 on
+  // undefined is NaN - which is not nullish, so the ?? below did not catch
+  // it and the cards went into the Map under a key nothing reads back.
+  beats.forEach(b => { if (b.type === 'seg') segAt.push(b.at ?? b.pos + 1); });
   const put = (c, cards) => {
     const k = Math.max(0, Math.min(maxC, c));
     if (!by.has(k)) by.set(k, []);
@@ -14631,7 +14678,15 @@ function cueCardsFor(id, beats, maxC) {
 function cuePosition(entry) {
   const total = countSegments(entry.el);
   const pos = Math.max(1, revealed[entry.id] ?? 1);
-  const beats = chunkBeats(entry.el).filter(b => b.at == null);
+  // Every beat, pinned or not. The filter that used to stand here dropped
+  // anything carrying an at-number, written when only a marker inside a
+  // pinned overlay could carry one and the cue list had nothing to say about
+  // those. A pinned segment carries text, so dropping it shifted segAt for
+  // every segment after it and left the last one falling off the end - the
+  // cards for those segments were filed on beat 0 and shown as the slide
+  // opened. cueEntries decides per type what it can name; that is the place
+  // for the question, not here.
+  const beats = chunkBeats(entry.el);
   return { pos, consumed: pos - 1, total, maxC: Math.max(0, total - 1), beats };
 }
 function cueText(node, max) {
@@ -14664,7 +14719,12 @@ function cueEntries(entry) {
   let segN = 0;
   for (let c = 0; c <= maxC; c++) {
     (cards.get(c) || []).forEach((card, k) => out.push({ type: 'card', c, k, card }));
-    const b = beats.find(x => x.pos === c);
+    // c is a 0-based index and an entry says it arrives on press c + 1, so
+    // an unpinned beat matches its own pos while a pinned one - which arrives
+    // when consumed reaches its number - matches that number minus one.
+    // cueCardsFor files the same beats one scale up; the two must not be as
+    // the same number.
+    const b = beats.find(x => (x.at != null ? x.at - 1 : x.pos) === c);
     if (b && b.type === 'seg') {
       out.push({ type: 'step', at: c + 1, k: 'reveal ' + (++segN) + '/' + segTotal, what: cueText(b.el, 120) });
     } else if (b && b.type === 'diag') {
@@ -17306,17 +17366,33 @@ function dgTokenize(line, base = 0) {
       let j = i + 1, buf = '';
       while (j < line.length && line[j] !== '"') {
         if (line[j] === '\\' && j + 1 < line.length) {
-          // Two sequences are the tokenizer's own, because they are about the
-          // token and not about the words in it: a bare quote would end the
-          // string, and a label breaks its lines at `\n`. Every other
-          // backslash belongs to the label and is handed on whole - `\_` has
-          // to reach `dgSpans`, which is where a marker is escaped, and
-          // before this rule a path written `C:\tmp` silently drew as
-          // `C:tmp`. The pair `\\` is passed on as two characters for the
-          // same reason, and `dgSpans` is the one place that collapses it, so
-          // there is one escape in the language rather than two stacked.
+          // Three sequences are the tokenizer's own, because they are about
+          // the token rather than the words in it: a bare quote would end the
+          // string, a label breaks its lines at `\n`, and `\\` is how a token
+          // says one backslash. Every other backslash belongs to the label
+          // and is handed on whole - `\_` has to reach `dgSpans`, which is
+          // where a marker is escaped, and before that rule a path written
+          // `C:\tmp` silently drew as `C:tmp`.
+          //
+          // `\\` used to be handed on whole too, on the reasoning that one
+          // escape in the language beats two stacked. It cost the property
+          // that matters more: with no way to write a backslash, a token
+          // value holding one before an `n` or a quote, or at its end, had no
+          // source form at all - so the editor could not write `C:\` back
+          // without escaping its own closing quote and swallowing the line.
+          // Collapsing it here makes this function the exact inverse of
+          // `dgeQuote`, which is one assertion to test.
+          //
+          // One source form draws differently for it, and only one: `\\`
+          // immediately before a marker. `"a\\_b"` used to reach `dgSpans`
+          // as `a\\_b` - a literal backslash, then a subscript - and reaches
+          // it as `a\_b` now, an escaped underscore. Everywhere else a lone
+          // backslash and a doubled one render alike, so nothing else moves.
+          // No source in either repository writes that form; it was checked
+          // rather than assumed, and the three tracked lectures rebuild with
+          // no changed line of figure markup.
           const nxt = line[j + 1];
-          buf += nxt === 'n' ? '\n' : nxt === '"' ? '"' : ('\\' + nxt);
+          buf += nxt === 'n' ? '\n' : nxt === '"' ? '"' : nxt === '\\' ? '\\' : ('\\' + nxt);
           j += 2;
           continue;
         }
@@ -28699,8 +28775,13 @@ function dgeSwapEnds(id) {
 // panel would turn `scan\_page` into `scan\` plus a subscript on the way back
 // to the source.
 function dgeQuote(v) {
-  return String(v).replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  // The exact inverse of dgTokenize's quoted-string reader: it decodes `\\`,
+  // `\"` and `\n`, so those are the three this encodes, and the backslash
+  // goes first or it would double the ones the other two add.
+  // `test/gates/semantics.mjs` asserts the round trip rather than the pairs.
+  return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
+
 
 // One question, two callers: the panel asks it against DGE, a gesture against
 // the state it started from (dgeGestureBase). Both carry a source, a model and

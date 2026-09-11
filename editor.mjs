@@ -5520,8 +5520,13 @@ function dgeSwapEnds(id) {
 // panel would turn `scan\_page` into `scan\` plus a subscript on the way back
 // to the source.
 function dgeQuote(v) {
-  return String(v).replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  // The exact inverse of dgTokenize's quoted-string reader: it decodes `\\`,
+  // `\"` and `\n`, so those are the three this encodes, and the backslash
+  // goes first or it would double the ones the other two add.
+  // `test/gates/semantics.mjs` asserts the round trip rather than the pairs.
+  return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
+
 
 // One question, two callers: the panel asks it against DGE, a gesture against
 // the state it started from (dgeGestureBase). Both carry a source, a model and

@@ -109,6 +109,36 @@ Topic.
 ---
 - **Two** second
 :::
+
+## figure: Pinned {.wide #pinned}
+
+::: side
+
+::: draw 120x40
+box a "A" at 0,0
+box b "B" below a gap 0.5
+step one
+  emph a
+step two
+  emph b
+:::
+
+::: flip
+
+First, from beat zero.
+
+--- from 1
+
+Second, with step one.
+
+--- from 2
+
+Third, with step two.
+:::
+
+## free: After {.wide #after}
+
+So the walk has somewhere to go.
 `;
 
 // What the room can see of a chunk: every block that is neither hidden by a
@@ -229,4 +259,30 @@ export async function run({ page, report }) {
   } finally {
     server.close();
   }
+
+    // ── a pinned beat rides one the slide already has ──────────────────
+    // The case the feature exists for, and the one no lecture can hold: a
+    // stepped figure in one pane and the prose about it in the other. Beats
+    // are document order, so unpinned the figure's two steps would come
+    // first and the prose after them - four presses, with the words arriving
+    // once the picture had finished. Pinned, they ride the same two.
+    await jump(page, 'pinned');
+    await page.waitForTimeout(450);
+    const beats = await page.evaluate(() => countSegments(
+      [...document.querySelectorAll('.chunk')].find(c => c.dataset.chunkId === 'pinned')));
+    ok(beats === 3, 'the chunk has two beats, not the four document order would give it',
+       `countSegments returned ${beats} positions`);
+    ok(await visible(page, 'pinned') === 'First, from', 'beat 0 shows only the unpinned paragraph',
+       await visible(page, 'pinned'));
+    await page.keyboard.press(' '); await page.waitForTimeout(420);
+    ok(await visible(page, 'pinned') === 'First, from | Second, with',
+       'from 1 arrives on the first press, with the figure\'s first step',
+       await visible(page, 'pinned'));
+    await page.keyboard.press(' '); await page.waitForTimeout(420);
+    ok(await visible(page, 'pinned') === 'First, from | Second, with | Third, with',
+       'and from 2 on the second, with its second step', await visible(page, 'pinned'));
+    await page.keyboard.press(' '); await page.waitForTimeout(420);
+    const still = await page.evaluate(() => document.querySelector('.chunk.active').dataset.chunkId);
+    ok(still !== 'pinned', 'and the third press leaves the chunk, so the pins added no advance of their own',
+       `still on ${still}`);
 }

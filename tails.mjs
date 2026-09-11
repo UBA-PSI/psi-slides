@@ -323,6 +323,42 @@ export function parseTail(tail, slots, what, { id: idPolicy = 'none', classes: c
 // "moving" figure is a still one that changes when nobody is looking. Both
 // ends are refused rather than clamped, because a clamped number is a number
 // the author did not write.
+// ── the reveal marker ────────────────────────────────────────────────
+// A line that is exactly `---` outside a fence is a beat. `--- from 3` pins
+// that beat to an advance by number, the way `::: overlay … from N`,
+// `::: dock … from N` and `> note: from N` already do.
+//
+// One reader, because there were seven hand-written `line.trim() === '---'`
+// tests across build.js and lint.js and a grammar implemented seven times is
+// a grammar that drifts. It is the same reason parseDrawOpener lives here.
+//
+// A line opening `---` followed by anything else is *recognised and refused*
+// rather than falling through to Markdown: `--- form 2` is a typo an author
+// makes, and read as prose it becomes a paragraph saying "--- form 2" with
+// nothing to say why the beat never arrived. Four dashes are not a candidate,
+// so a thematic rule written `----` is untouched.
+export function parseRevealMark(line) {
+  const m = /^---(?:[ \t]+(.*))?$/.exec(String(line ?? '').trim());
+  if (!m) return null;
+  const rest = (m[1] || '').trim();
+  if (!rest) return { from: null, problems: [] };
+  const f = /^from[ \t]+(.+)$/.exec(rest);
+  if (!f) {
+    return { from: null, problems: [{ code: 'bad-reveal-from',
+      msg: `--- ${rest}\n  A reveal marker takes nothing but \`from <beat>\`. Write \`---\` on its\n  own for the next beat in order, or \`--- from 3\` to pin it to the third.` }] };
+  }
+  const tok = f[1].trim();
+  if (!/^[0-9]+$/.test(tok)) {
+    return { from: null, problems: [{ code: 'bad-reveal-from',
+      msg: `--- from ${tok}\n  \`from\` takes a whole beat number from 1 up - the beat this segment\n  arrives on.` }] };
+  }
+  if (tok === '0') {
+    return { from: null, problems: [{ code: 'bad-reveal-from',
+      msg: '--- from 0\n  Beat 0 is the beat the slide opens on, and a segment that arrives\n  there is not a beat. Write the words above the marker instead.' }] };
+  }
+  return { from: Number(tok), problems: [] };
+}
+
 export const AUTOPLAY_MIN = 200;
 export const AUTOPLAY_MAX = 60000;
 export const DRAW_OPENER_EXAMPLE = '::: draw 150x56 autoplay 1200 cycle';

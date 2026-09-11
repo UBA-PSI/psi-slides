@@ -43,7 +43,7 @@ const FILES = [
   // Ten compiled blocks (an eleventh opener sits in a code fence as a syntax
   // example), four tracked views, published by the Pages job.
   // Left out of a corpus census it is invisible.
-  ['lectures/tutorial/source.md', 10],
+  ['lectures/tutorial/source.md', 11],
   ['lectures/decoration/source.md', 4],
   // The site's example lecture has no figure today; the zero is the ratchet
   // that notices the day it gets one.

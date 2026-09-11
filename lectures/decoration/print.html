@@ -1618,9 +1618,11 @@ or slides about while it is being revealed.</p>
   <p><strong><code>::: overlay {…} from 1</code> keeps the block off the slide</strong> until the first press
 of Space. One number, not a list: an overlay is either on the slide or it is
 not, where the backdrop&#39;s list says where the picture is at each beat.</p>
-<p>An overlay fades in where a reveal segment simply appears. A segment is part of
-the flowing text, so what follows it closes up as it arrives; an overlay sits in
-its own cell over the picture and nothing else moves.</p>
+<p>An overlay and a reveal segment both fade in, and neither moves anything: the
+segment has its box in the text from the first beat, and the overlay has its
+cell over the picture. What <code class="nb">from</code> adds is the <em>number</em> - a segment takes the
+next beat in order unless it is written <code>--- from N</code>, where an overlay says
+which beat it waits for and nothing else can reach it first.</p>
 
   
   
@@ -1960,8 +1962,8 @@ is a <code class="nb">---</code>.</p>
 <div class="cards cards-3 cs-small ca-left cv-top cd-fold cg-panel ck-round cx-veil">
 <ul>
 <li><strong>Fifth beat.</strong> The row is a top-level segment.</li>
-<li><strong>Still the fifth.</strong> It closes up before its beat and the chunk grows - the
-1.0.0 behaviour, <code>style: {reveal: grow}</code>.</li>
+<li><strong>Still the fifth.</strong> A top-level segment reserves its space too, so the chunk
+is as tall on its first beat as on its last.</li>
 </ul>
 <div class="beat-mark"></div>
 
@@ -1991,7 +1993,7 @@ first does not move: the block is laid out with both rows from beat 0.</p>
 <div class="beat-mark"></div>
 
 <ul>
-<li><strong>Top-level</strong><span class="row-body">segments grow the chunk, unless the frontmatter says <code>style: {reveal: hold}</code> - then every segment in the deck stands still too. This deck keeps the default, so the difference can be seen in the part before this one.</span></li>
+<li><strong>Top-level</strong><span class="row-body">segments do the same, so a chunk is as tall on its first beat as on its last. One rule, whatever depth the mark sits at.</span></li>
 </ul>
 
 </div>

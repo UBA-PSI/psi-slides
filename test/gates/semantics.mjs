@@ -31,7 +31,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { frames, render, spans, ROOT } from './harness.mjs';
-import { DG_THEMES, dgSpans, dgMeasure } from '../../diagram-core.mjs';
+import { DG_THEMES, dgSpans, dgMeasure, dgTokenize } from '../../diagram-core.mjs';
 
 export const name = 'the emitted drawing means what the source says';
 
@@ -662,4 +662,35 @@ export async function run({ report }) {
 
   note('four contracts, and this gate holds the third: what the compiler emitted, '
     + 'not whether it parsed');
+
+  // ── the editor writes back what the tokenizer reads ─────────────────
+  // dgeQuote is dgTokenize's inverse, and the property is worth one
+  // assertion rather than a table of pairs: whatever the panel holds, the
+  // source it writes has to tokenize back to exactly that. It did not, and
+  // the failures were silent - a value ending in a backslash wrote a source
+  // line whose closing quote was escaped, so the rest of the line was
+  // swallowed with no compile error at all.
+  //
+  // Read as text because editor.mjs is a classic script spliced into the
+  // page, so there is nothing to import; the same reason settings.mjs lifts
+  // splitSentencesIn out of a built audience.html.
+  {
+    const src = fs.readFileSync(path.join(ROOT, 'editor.mjs'), 'utf8');
+    const m = src.match(/function dgeQuote\(v\) \{[\s\S]*?\n\}/);
+    ok(!!m, 'dgeQuote is findable in editor.mjs');
+    const dgeQuote = new Function('return ' + m[0])();
+    const awkward = [
+      'plain', 'a"b', 'two\nlines', 'C:\\', 'C:\\new', 'a\\"b', 'a\\tb',
+      '\\', 'a\\\\b', 'scan\\_page', 'ends with "', '"', '\\n',
+    ];
+    for (const v of awkward) {
+      const t = dgTokenize('"' + dgeQuote(v) + '"');
+      ok(t.length === 1 && t[0].v === v,
+         `dgeQuote/dgTokenize round-trip: ${JSON.stringify(v)}`,
+         t.length === 1 ? JSON.stringify(t[0].v) : `split into ${t.length} tokens`);
+    }
+    // The three the tokenizer owns, and nothing else decoded.
+    ok(dgTokenize('"a\\_b"')[0].v === 'a\\_b', 'a marker escape is handed on whole, for dgSpans to read');
+    ok(dgTokenize('"a\\|b"')[0].v === 'a\\|b', 'and so is a pipe, which a table row splits on');
+  }
 }

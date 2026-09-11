@@ -350,14 +350,46 @@ Right, second paragraph.
 
 walks left one, left two, right one, right two, cards one and two, card three –
 six beats, top-level and nested mixed, each in the place it was written. A
-nested beat **keeps its place from beat 0**: the pane, the row or the card is
-laid out at its final height and the words fade in where they were always
-going to be, so the slide does not jump on every press. A top-level `---`
-still closes up and the chunk grows, as it has since 1.0.0 – unless the
-frontmatter says `style: {reveal: hold}`, which gives every top-level segment
-the same standing room, deck-wide. A `---`
+beat **keeps its place from beat 0**, wherever it sits: the chunk, the pane,
+the row or the card is laid out at its final height and the words fade in
+where they were always going to be, so the slide does not jump on a press.
+Up to this change only a nested beat did that and a top-level one closed up,
+which is why `style: {reveal: hold}` existed; there is one rule now and the
+key is refused. A `---`
 as the first line of a pane holds the whole pane back. In an `::: overlay from N`
 the inner beats count from `N`: the card on `N`, its second block on `N + 1`.
+
+**`--- from N` pins a beat to an advance by number**, the way `::: overlay … from N`
+and `> note: from N` do. Order is otherwise the order you wrote things in, and
+that is wrong for exactly one shape: two things that should arrive together,
+written in two places. A stepped `::: draw` in one pane of a `::: side` and the
+prose about it in the other cannot advance together – the figure's steps come
+first and the prose queues behind them – so the prose is pinned to the beats
+the figure already has:
+
+```md
+::: side
+::: draw 120x40
+box a "A" at 0,0
+step one
+  emph a
+:::
+::: flip
+What the picture shows at rest.
+
+--- from 1
+
+What the first step does to it.
+:::
+```
+
+A pinned beat **rides** a beat the slide already has rather than adding one, so
+that chunk takes one press per step rather than one per step plus one per
+paragraph. `from 0` is refused – that is the beat the slide opens on, so write
+the words above the marker. A `from` inside an `::: overlay from N` or a
+`::: dock from N` is refused too: a block held to a beat numbers its own
+markers already. The linter warns (`reveal-from-beyond`) when the number is
+more than one past the last beat the chunk has to ride.
 Print shows every beat at once. An `::: expand` and a `::: script` keep the
 horizontal rule – neither is on the projection, so neither has beats to give.
 A `---` inside a `::: dock {.every}` is refused: the dock is on every slide of

@@ -340,9 +340,11 @@ and the words arrive in the space it freed, on the same press of Space.
 of Space. One number, not a list: an overlay is either on the slide or it is
 not, where the backdrop's list says where the picture is at each beat.
 
-An overlay fades in where a reveal segment simply appears. A segment is part of
-the flowing text, so what follows it closes up as it arrives; an overlay sits in
-its own cell over the picture and nothing else moves.
+An overlay and a reveal segment both fade in, and neither moves anything: the
+segment has its box in the text from the first beat, and the overlay has its
+cell over the picture. What `from` adds is the *number* - a segment takes the
+next beat in order unless it is written `--- from N`, where an overlay says
+which beat it waits for and nothing else can reach it first.
 
 ## figure: A picture that covers the words {.full #reveal-close .bare}
 
@@ -616,8 +618,8 @@ is a `---`.
 
 ::: cards 3
 - **Fifth beat.** The row is a top-level segment.
-- **Still the fifth.** It closes up before its beat and the chunk grows - the
-  1.0.0 behaviour, `style: {reveal: grow}`.
+- **Still the fifth.** A top-level segment reserves its space too, so the chunk
+  is as tall on its first beat as on its last.
 
 ---
 
@@ -632,10 +634,8 @@ first does not move: the block is laid out with both rows from beat 0.
 ::: rows {.accent}
 - **Nested** beats keep their place, so the slide is quiet under them.
 ---
-- **Top-level** segments grow the chunk, unless the frontmatter says
-  `style: {reveal: hold}` - then every segment in the deck stands still too.
-  This deck keeps the default, so the difference can be seen in the part
-  before this one.
+- **Top-level** segments do the same, so a chunk is as tall on its first beat
+  as on its last. One rule, whatever depth the mark sits at.
 :::
 
 # A heading that stays off the slide {#bare}
