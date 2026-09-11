@@ -8,6 +8,8 @@ info: |
 course: psi-sem-sose26
 lecture: python-intro
 lang: en
+style:
+  blocks: left
 cover: beside
 cover-ratio: 34%
 section: number
@@ -425,23 +427,40 @@ If you do want everything, write `except Exception:`. It covers all
 *program* errors and leaves the interpreter’s own signals intact.
 :::
 
-## principle: Read a traceback from the bottom | the last line is the failure {.standard #read-errors-principle}
+## principle: Read a traceback from the bottom | the last line is the failure {.wide #read-errors-principle}
 
-**The last line of a traceback names the actual failure.** Everything above it
-is the chain of calls that led to that line. Start at the bottom, read one
-frame upwards at a time, and stop at the first frame that is your own code.
+**The last line names the actual failure.** Everything above it is the chain of
+calls that led there.
+
+```text
+Traceback (most recent call last):
+  File "scanner.py", line 50, in main
+    reports = [await scan_page(page, url) for url in links]
+  File "scanner.py", line 18, in scan_page
+    status = response.status
+AttributeError: 'NoneType' object has no attribute 'status'
+```
+
+**Read upwards, and stop at the first frame that is yours** – line 18, where
+`page.goto` returned no response.
 
 # The standard library {#stdlib}
 
 Five modules – `pathlib`, `urllib.parse`, `re`, `dataclasses`, `argparse` –
 and three of them end up in the scanner.
 
-## question: Why lean on the standard library? | a dependency is a liability {.narrow #why-stdlib}
+## question: Why lean on the standard library? {.standard #why-stdlib}
+
+**What is the argument against a second dependency?** The scanner needs one
+package that is not Python’s own, and adding another would be one more line of
+typing.
+
+---
 
 **A `pip install` is a future maintenance cost.** Transitive dependencies,
 security patches, breaking releases – they land on your plate. The
-[standard library](https://docs.python.org/3/library/) is already there,
-already audited, already installed with Python itself.
+[standard library](https://docs.python.org/3/library/) is installed already,
+and somebody else is on the hook for it.
 
 > note: The formulation is roughly Hynek Schlawack's; name the source if the
 > room cares. The point to leave standing: every pip install is a future
@@ -471,37 +490,51 @@ and drive letters, so the same lines run on Linux, macOS and Windows with no
 
 ## example: urllib.parse | URL surgery without regex {.wide #urllib-parse}
 
-**Do not parse a URL with a regex.** `urllib.parse` already knows about schemes, userinfo, punycode hosts, default ports and path
-normalisation.
+**Do not parse a URL with a regex.** `urllib.parse` already knows about
+schemes, userinfo, punycode hosts, default ports and path normalisation.
 
-::: cols 2
+::: draw 150x16
+# The svg fills the measure whatever its own extent is, so a narrow figure
+# arrives magnified. Six parts rather than four keep the type near its
+# authored size, and they are what urlparse actually returns.
+text s  "https"           at 0,0 {.mono}
+text c  "://"             right of s gap 0.06 {.mono .muted}
+text n  "example.com:443" right of c gap 0.06 {.mono}
+text p  "/docs/a"         right of n gap 0.3 {.mono}
+text q  "?x=1"            right of p gap 0.42 {.mono}
+text f  "#top"            right of q gap 1.15 {.mono}
 
-**`urlparse`** splits a URL into named parts – scheme, netloc, path, query,
-fragment – which you then read by attribute.
+text ls "scheme"   below s gap 0.5 {.small .muted}
+text ln "netloc"   below n gap 0.5 {.small .muted}
+text lp "path"     below p gap 0.5 {.small .muted}
+text lq "query"    below q gap 0.5 {.small .muted}
+text lf "fragment" below f gap 0.5 {.small .muted}
+:::
+
+::: side
+
+**`urlparse`** hands each of those back as an attribute of one object.
 
 ```python
-from urllib.parse import urlparse
-
-u = urlparse("https://example.com/a?x=1")
-u.scheme   # "https"
+u = urlparse(link)
 u.netloc   # "example.com"
-u.path     # "/a"
+u.path     # "/docs/a"
 ```
 
-**`urljoin`** resolves a relative reference against a base URL, exactly the way
-a browser does when it meets an `<a href>`.
+::: flip
+
+**`urljoin`** resolves a relative reference against a base, the way a browser
+does when it meets an `<a href>`.
 
 ```python
-from urllib.parse import urljoin
-
-urljoin("https://ex.com/a/", "b/c")  # .../a/b/c
-urljoin("https://ex.com/a/", "/d")   # .../d
+urljoin(base, "b/c")   # …/a/b/c
+urljoin(base, "/d")    # …/d
 ```
 
 :::
 
-The scanner uses both: **`urljoin` to make a relative link absolute**, and
-**`urlparse` to check that it stays on the same host** before we visit it.
+The scanner uses both: **`urljoin` to make a link absolute**, **`urlparse` to
+check it stays on the host**.
 
 ## example: re | just enough regex {.standard #re}
 
@@ -642,7 +675,11 @@ import asyncio
 async def fetch(name: str, delay: float) -> str:
     await asyncio.sleep(delay)  # a network call, pretend
     return f"done: {name}"
+```
 
+---
+
+```python
 async def main() -> None:
     results = await asyncio.gather(
         fetch("a", 1.0),
@@ -877,7 +914,11 @@ class PageReport:
     title: str | None
     has_description: bool
 
+```
 
+---
+
+```python
 async def scan_page(page, url: str) -> PageReport:
     response = await page.goto(url, wait_until="domcontentloaded")
     status = response.status if response else None
@@ -888,7 +929,11 @@ async def scan_page(page, url: str) -> PageReport:
     return PageReport(url=url, status=status, title=title or None,
                       has_description=has_desc)
 
+```
 
+---
+
+```python
 async def collect_links(page, base_url: str) -> list[str]:
     hrefs = await page.evaluate(
         "() => Array.from(document.querySelectorAll('a[href]'))"
