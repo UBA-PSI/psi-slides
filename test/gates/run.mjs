@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Nine gates, and they prove nine different things – which is worth stating
+ * Ten gates, and they prove ten different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -34,6 +34,10 @@
  *   cue-cards  the note-to-cards grammar in cue-cards.mjs, rule by rule,
  *              and that the module reaches the speaker page as
  *              window.PSI_CARDS with every export on it
+ *   souffleuse the live prompter's pure half in souffleuse.mjs: the deck
+ *              payload, the prompt, the answer, the drift arithmetic and
+ *              every row of the restraint policy - the requirement nobody
+ *              can check by watching one talk
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -54,6 +58,7 @@ const GATES = [
   './tails.mjs',
   './legacy-draw-syntax.mjs',
   './cue-cards.mjs',
+  './souffleuse.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

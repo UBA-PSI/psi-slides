@@ -397,7 +397,13 @@ arithmetic, the Chromium bug in `available()` on macOS.
       with `nestedBlockKeys` shared by the `style:` and `souffleuse:` walks,
       `bad-duration`, the key-set check in the tails gate, the pairs in
       test/settings.mjs.
-- [ ] Slice 2 – `souffleuse.mjs` plus gate.
+- [x] Slice 2 – `souffleuse.mjs`, zero-dep and zero Node API: `KINDS`,
+      `SEVERITIES`, `MAX_WORDS`, `TOOL_SCHEMA`, `wordCount`, `prefixHash`,
+      `deckPayload`, `flattenMarks`, `cueTargets`, `systemPrefix`,
+      `tickMessage`, `parseAnswer`, `driftSeconds`, `timeHintAllowed`,
+      `shouldTick`, `createPolicy`; the gate `test/gates/souffleuse.mjs`
+      (107 assertions, every row of the policy table) registered in
+      `test/gates/run.mjs` and in `test/README.md`.
 - [ ] Slice 3 – the sidecar in `build.js`.
 - [ ] Slice 4 – cockpit client, STT adapter, switch.
 - [ ] Slice 5 – strip, history, cues.
@@ -416,6 +422,41 @@ arithmetic, the Chromium bug in `available()` on macOS.
   the `souffleuse:` walk. Flow form included, so a typo in
   `souffleuse: {cues: of}` fails the pre-commit gate the way one in
   `style:` does.
+- **`notesToCards` is injected, not imported.** `deckPayload(lecture,
+  {notesToCards})` takes the cue-card grammar from its host the way
+  `createDiagramCompiler({…})` takes its Node leaves. The alternative was a
+  second copy of the `@mm:ss` parse, which is the duplication this repository
+  already pays for once between build.js and lint.js and did not need a third
+  time. Without it the notes still travel, as prose, and carry no marks – so
+  the sidecar has to inject it, and the gate proves both halves.
+- **A divider is numbered like any other slide, and `n - 1` is `idx`.**
+  `flatChunks` in the cockpit collects every `.chunk` of every `.column`, and
+  a headed column emits a divider before its first chunk, so the divider is an
+  entry there and is one in `deckPayload`. One thing does not line up and slice
+  3 has to know it: the divider's *element* id is `<col-id>-section` (or
+  `__section-cN`), while the payload gives it the column's own id, or `col:N`
+  when the column has none. So a `souffleuse-move` is resolved by `idx`, never
+  by id, and `cueTargets` skips dividers altogether – a cue is a card in a cue
+  list, and a divider has none.
+- **The hash is FNV-1a over the UTF-16 code units, eight hex digits.** It names
+  a prefix in the log and rides out as `session_id`, where a collision costs a
+  cache miss and nothing else; `crypto` would have been the first Node API in a
+  file whose contract is that it has none.
+- **A compiled figure is `[figure, steps: N]`, and a code fence keeps its
+  lines.** By the time `buildOnce` hands the lecture over, a `::: draw` block
+  is already an inline `<svg>` of a few thousand characters – none of them
+  words the room hears. The fence markers go the same way; the code between
+  them stays, because a speaker can misstate it and that is a `fact` hint.
+- **A mark carries its beat, and `flattenMarks` is the fourth export nobody
+  planned.** This document asked for `marks[]` as a list of seconds on the
+  chunk and for `driftSeconds` to read `{idx, beat, at}`, and the beat is not
+  recoverable from the first shape – it is a fact about the note the `@mm:ss`
+  stood in. So a chunk's `marks` are `{at, beat}` and `flattenMarks(deck)` adds
+  the `idx`. The prompt still prints them as clock times.
+- **A cue takes neither the standing slot nor a cool-down.** It is a card laid
+  into a slide that is still to come, nobody reads it now, and the plan's table
+  gives it two rules of its own – `cue_targets` and one per chunk. Those are
+  the two the policy applies.
 
 ## The questions to the author, answered
 

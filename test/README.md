@@ -3,7 +3,7 @@
 Two suites, split by one question: **can this be decided without a browser?**
 
 - **`test/gates/`** – everything about the figure language and the `{…}` tail
-  grammar that can. Eight gates, under a second, no browser and no
+  grammar that can. Ten gates, under a second, no browser and no
   `npm install`. Run by `gates.yml` on push and pull request.
 - **`test/`** – the things that only break in a built page. 34 specs, ~872
   assertions, about five minutes, one Chromium for the whole run.
@@ -28,7 +28,7 @@ node test/run.mjs                   # all specs
 node test/run.mjs nav               # specs whose name matches
 ```
 
-## The gates: nine contracts
+## The gates: ten contracts
 
 Both `diagram-core.mjs` and `lint.js` are zero-dependency, which is what makes
 this suite runnable with nothing installed.
@@ -44,6 +44,7 @@ this suite runnable with nothing installed.
 | `inlined` | the two characters that mean something else inside build.js's own template literals |
 | `tails` | the one `{…}` tail parser and the `::: draw` opener parser in `tails.mjs`: every code, the written-default rule, the formatter round trip |
 | `legacy-draw-syntax` | the old braced `::: draw` opener stays out of every `source.md`; every other survivor is on the reviewed allowlist `legacy-draw-syntax.txt` |
+| `souffleuse` | the live prompter's pure half in `souffleuse.mjs`: the deck payload built off a hand-made `lecture`, the byte-stable system prefix, the tick message, the answer parser, the drift arithmetic and every row of the restraint policy |
 
 **`inlined` is about two characters and twelve literals.** A raw backtick ends
 the literal; a single-backslash regex escape is eaten by the literal and
@@ -54,6 +55,15 @@ button, turned out to open with a tag on the same line and be skipped.
 
 **Why `semantics` exists**: a green `accepts` once hid a sequence `<->` that
 parsed and drew one arrowhead. Parsing is not meaning.
+
+**Why `souffleuse` is a gate and not a browser spec.** The prompter's one
+requirement is restraint, and restraint is the half of the feature that no
+rehearsal can show you: a talk where nothing came is indistinguishable from a
+talk where nothing was due. So the policy lives in code rather than in the
+prompt, and every row of its table – twelve words, one hint at a time, the
+cool-downs, the duplicate rule, the opening silence – is decided here, with no
+key, no socket and no microphone. What the model judges is the model's; what
+the code permits is checkable, and this is where it is checked.
 
 **Why the gates lint as well as build**: a check that reaches the compiler
 through a browser page reaches only the build. Two `lint.js` gaps sat behind
