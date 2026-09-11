@@ -25,6 +25,19 @@ from building the same way is a major version.
 
 ### Added
 
+- **`--- from N` pins a beat to an advance by number.** Beats are otherwise
+  taken in the order they are written, which is wrong for one shape: two
+  things that should arrive together, written in two places. A stepped
+  `::: draw` in one pane of a `::: side` and the prose about it in the other
+  could not advance together - the figure's steps came first and the prose
+  queued behind them. A pinned beat rides a beat the slide already has rather
+  than adding one, so such a chunk takes one press per step instead of one
+  per step plus one per paragraph. `from 0` is refused, and so is a `from`
+  inside an `::: overlay from N` or a `::: dock from N`, which numbers its own
+  markers already; `lint.js` warns `reveal-from-beyond` when the number is
+  more than one past the last beat there is to ride.
+
+
 - **A desktop builder, so the tool does not begin with a terminal.** An
   Electron window that opens a `source.md`, builds it, and then builds it
   again on every save; one line in it says whether the last save built, and

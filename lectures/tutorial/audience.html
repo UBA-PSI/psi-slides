@@ -11067,6 +11067,14 @@ function applyState() {
 // mark inside an overlay was then counted twice: once by its place in this
 // list and once by at, which gave the slide a dead Space at the end and
 // shifted every positional beat after it by one.
+// What a "--- from N" wrote, on a segment or on a marker. One reader, because
+// two spellings of "read this attribute" is how the two windows come to
+// disagree about what arrives when.
+function fromOf(node) {
+  const raw = node.dataset ? node.dataset.from : null;
+  const n = raw == null ? NaN : Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 function chunkBeats(el) {
   const out = [];
   let segIdx = 0;
@@ -11078,7 +11086,11 @@ function chunkBeats(el) {
     // room would see nothing happen.
     if (node.closest('.exp-body, .chunk-expansion')) return;
     if (node.classList.contains('reveal-segment')) {
-      if (segIdx++ > 0) push({ type: 'seg', el: node });
+      // A "--- from N" pins the segment to an advance by number instead of to
+      // its place in the order. push() then leaves it out of the positional
+      // count, which is the same arrangement a marker inside an overlay has
+      // had since a from-beat existed.
+      if (segIdx++ > 0) push({ type: 'seg', el: node, at: fromOf(node) });
       return;
     }
     // A --- below the top level: the beat owns every element sibling after
@@ -11094,8 +11106,13 @@ function chunkBeats(el) {
       // the slide's list. Without at, the overlay layer comes after the
       // body in document order, so its inner beats would be numbered
       // before its own from-beat and play behind a card not yet shown.
+      // A written number wins over the position; inside a container that is
+      // itself held to a beat the two cannot both be present, which the
+      // parser refuses, so this is a choice between one answer and none.
       const ov = node.closest(FROM_SEL);
-      const at = ov ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node) : null;
+      const at = fromOf(node) ?? (ov
+        ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node)
+        : null);
       push({ type: 'mark', els, at });
       return;
     }
@@ -11147,12 +11164,13 @@ function applyReveal(el, id, instant) {
     const i = b.pos;
     const on = b.at == null && i < consumed;
     if (b.type === 'seg') {
-      if (on) b.el.removeAttribute('data-hidden');
+      const shown = b.at != null ? consumed >= b.at : on;
+      if (shown) b.el.removeAttribute('data-hidden');
       else b.el.setAttribute('data-hidden', '');
       // Mark the one segment that Space or Down will bring up next. Only the
       // speaker's stylesheet reacts to it, but the attribute is set in both
       // views so the two DOMs stay identical.
-      if (i === consumed) b.el.setAttribute('data-next', '');
+      if (b.at != null ? consumed === b.at - 1 : i === consumed) b.el.setAttribute('data-next', '');
       else b.el.removeAttribute('data-next');
     } else if (b.type === 'mark') {
       const shown = b.at != null ? consumed >= b.at : on;

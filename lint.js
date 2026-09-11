@@ -255,7 +255,7 @@ import {
 import {
   CHUNK_SLOTS, CHUNK_STYLE_CLASSES, VALID_WIDTHS, VALID_CHUNK_CLASSES,
   CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
-  splitTail, parseTail, strayTailProblem, parseDrawOpener,
+  splitTail, parseTail, strayTailProblem, parseDrawOpener, parseRevealMark,
 } from './tails.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
@@ -2390,6 +2390,7 @@ function lintFile(filePath) {
   let chunkReveals = 0;
   let chunkSteps = 0;
   let chunkOverlays = [];
+  let chunkRevealPins = [];   // { ln, from } per `--- from N`
   let exposedWords = 0;
   // A ::: draw opener never reaches chunkBody - it is captured into `diagram`
   // and its body with it - so a chunk-level flag is the only way a later check
@@ -2429,7 +2430,7 @@ function lintFile(filePath) {
       }
       // A divider's overlays and its figure's steps are its own; left
       // standing they were judged against the next chunk's beats.
-      chunkReveals = 0; chunkSteps = 0; chunkOverlays = [];
+      chunkReveals = 0; chunkSteps = 0; chunkOverlays = []; chunkRevealPins = [];
       return;
     }
     const budget = DENSITY_BUDGET[chunk.tag ?? 'free'];
@@ -2547,6 +2548,17 @@ function lintFile(filePath) {
             + 'move it behind the next ---, or give this beat its text');
       }
     }
+    // One past the last beat is this segment arriving after everything else
+    // and is fine, which is the threshold ::: overlay from N already uses.
+    for (const r of chunkRevealPins) {
+      if (r.from > beats + 1) {
+        add(r.ln, 'warn', 'reveal-from-beyond',
+            `--- from ${r.from}, but the chunk has `
+            + `${beats === 0 ? 'no other beats' : beats === 1 ? 'one other beat' : beats + ' other beats'} to ride – `
+            + `the projector shows ${r.from - beats - 1} empty advance${r.from - beats - 1 === 1 ? '' : 's'} before this segment arrives; `
+            + `write from ${beats + 1} or lower, or give the slide the beats`);
+      }
+    }
     for (const n of notePins) {
       if (n.from > beats) {
         add(n.ln, 'warn', 'note-from-beyond',
@@ -2566,7 +2578,7 @@ function lintFile(filePath) {
     chunkHasReveal = false;
     chunkReveals = 0;
     chunkSteps = 0;
-    chunkOverlays = [];
+    chunkOverlays = []; chunkRevealPins = [];
     exposedWords = 0;
     chunkHasDrawing = false;
     noteSegs = []; notePins = []; rawSegHasText = []; rawSeg = 0;
@@ -3202,20 +3214,38 @@ function lintFile(filePath) {
       continue;
     }
 
-    if (activeDirective && activeDirective.kind === 'dock' && activeDirective.scope === 'every' && line.trim() === '---') {
+    if (activeDirective && activeDirective.kind === 'dock' && activeDirective.scope === 'every' && parseRevealMark(line)) {
       add(ln, 'error', 'bad-dock-beat',
           '--- inside ::: dock {.every} – an inherited dock is on every slide of the part, and a beat is one slide\'s; write *** for a rule, or drop .every');
       continue;
     }
-    if (chunk && (!activeDirective || activeDirective.kind === 'overlay' || activeDirective.kind === 'dock') && line.trim() === '---') {
+    const revMark = chunk && (!activeDirective || activeDirective.kind === 'overlay' || activeDirective.kind === 'dock')
+      ? parseRevealMark(line) : null;
+    if (revMark) {
       // At the top level the build splits the body into segments here;
       // below it - in a pane, a card row, an overlay card - the same line is
       // a beat marker the runtime honours in source order. Either way it is
       // one beat on the chunk's counter, which is all this file needs.
       // Inside ::: script it stays a rule, as in the build.
       if (layoutStack.some(l => l.kind === 'script')) continue;
+      if (revMark.problems.length) {
+        add(ln, 'error', revMark.problems[0].code, revMark.problems[0].msg.split('\n')[0].trim());
+        continue;
+      }
+      // A container already held to a beat numbers its own markers, so a
+      // written one is two answers to one question. Mirrors the build.
+      if (revMark.from != null && activeDirective && activeDirective.from != null) {
+        add(ln, 'error', 'bad-reveal-from',
+            `--- from ${revMark.from} inside ::: ${activeDirective.kind} from ${activeDirective.from} – `
+            + 'a block held to a beat counts its own beats from the one it arrives on, so its markers '
+            + 'are numbered already; drop the from here, or take it off the directive');
+        continue;
+      }
       chunkHasReveal = true;
-      chunkReveals += 1;
+      // A pinned beat rides one the chunk already has rather than adding a
+      // position of its own - which is what chunkBeats' push() does with it.
+      if (revMark.from == null) chunkReveals += 1;
+      else chunkRevealPins.push({ ln, from: revMark.from });
       inMetaBlock = false;
       if (!activeDirective && !layoutStack.length) rawSeg += 1;
       continue;

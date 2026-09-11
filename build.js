@@ -38,7 +38,7 @@ import {
   CHUNK_SLOTS, CHUNK_STYLE_CLASSES,
   CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
   splitTail, parseTail, slotTable, strayTailProblem,
-  parseDrawOpener, formatDrawOpener, drawCompilerAttrs,
+  parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseRevealMark,
 } from './tails.mjs';
 
 // KaTeX ships its stylesheet and fonts as plain files next to the module.
@@ -1849,7 +1849,7 @@ function renderCardsBlock(b) {
   // markup landed on the last claim and forced the whole row small.
   let inHtml = false;
   for (const raw of b.lines) {
-    if (raw === BEAT_MARK) continue;
+    if (isBeatMark(raw)) continue;
     if (inHtml) { if (!raw.trim()) inHtml = false; continue; }
     if (/^\s*<(figure|div|svg)\b/.test(raw)) { inHtml = true; continue; }
     if (/^[-*+]\s+/.test(raw)) { top.push(raw); continue; }
@@ -3072,6 +3072,11 @@ function splitHeading(text) {
 // in source order: the left pane's second paragraph, then the right pane's
 // first, then the card row under both. Hidden in print by the stylesheet.
 const BEAT_MARK = '<div class="beat-mark"></div>';
+// A beat marker below the top level, pinned or not. The unpinned form is the
+// constant above so that every existing comparison against it still reads.
+const beatMark = (from) => from == null ? BEAT_MARK
+  : `<div class="beat-mark" data-from="${from}"></div>`;
+const isBeatMark = (raw) => /^<div class="beat-mark"/.test(raw);
 
 // Which reveal segment each speaker note belongs to - the position rule of
 // the cockpit's cue-card mode: a note before the first `---` is said while
@@ -3100,7 +3105,7 @@ function noteSegments(bodyLines, segments, noteAt) {
   let fence = false;
   bodyLines.forEach((line, i) => {
     if (/^```/.test(line)) { fence = !fence; return; }
-    if (!fence && line.trim() === '---') seps.push(i);
+    if (!fence && parseRevealMark(line)) seps.push(i);
   });
   const segs = noteAt.map(at => rawToNonEmpty[seps.filter(i => i < at).length] ?? 0);
   const last = Math.max(0, segments.filter(s => s.length).length - 1);
@@ -3173,6 +3178,14 @@ function parseLecture(src) {
                                         : `the divider of column "${currentColumn.heading}"`)
     : 'a chunk with no id';
   const refuse = (msg) => { const err = new Error(msg); err.userFacing = true; throw err; };
+  // Every `---` in this parser goes through one reader, and a refused one is
+  // refused here rather than at six call sites. Returns null for a line that
+  // is not a reveal marker at all, which is what each caller tests.
+  const revealMark = (line) => {
+    const m = parseRevealMark(line);
+    if (m && m.problems.length) refuse(`${m.problems[0].msg}\n  (${chunkRef()})`);
+    return m;
+  };
   // The innermost open aside (a captured block) and the innermost open
   // layout wrapper, named the way the author wrote them.
   const openAside = () => currentDock ? '::: dock'
@@ -3485,20 +3498,30 @@ function parseLecture(src) {
     // A `---` inside a fenced code block stays part of the segment — the
     // `inFence` flag below tracks that.
     const segments = [];
+    // What the marker that *opened* each segment pinned it to, aligned with
+    // `segments` - null for the opening segment and for every unpinned one.
+    // A parallel array rather than a richer element, because `segments` is
+    // read as strings in three places; speakerNoteFrom is the same shape for
+    // the same reason.
+    const segFrom = [null];
     let cur = [];
     let fence = false;
     for (const line of bodyLines) {
       if (/^```/.test(line)) { fence = !fence; cur.push(line); continue; }
-      if (!fence && line.trim() === '---') {
+      const mark = fence ? null : revealMark(line);
+      if (mark) {
         segments.push(cur.join('\n').trim());
+        segFrom.push(mark.from);
         cur = [];
         continue;
       }
       cur.push(line);
     }
     if (cur.length) segments.push(cur.join('\n').trim());
-    const nonEmpty = segments.filter(s => s.length);
+    const keep = segments.map((t, i) => [t, segFrom[i]]).filter(([t]) => t.length);
+    const nonEmpty = keep.map(([t]) => t);
     currentChunk.segments = nonEmpty;
+    currentChunk.segmentFrom = keep.map(([, f]) => f);
     currentChunk.speakerNoteSegs = noteSegments(bodyLines, segments, currentChunk.speakerNoteAt);
     // A pinned note keeps its own number and takes no part in the
     // chunk-level fallback the position rule applies.
@@ -3610,9 +3633,9 @@ function parseLecture(src) {
           : currentChunk ? bodyLines : colBody;
         target.push('', renderCardsBlock(cardsBlock), '');
         cardsBlock = null;
-      } else if (!inFence && line.trim() === '---') {
+      } else if (!inFence && revealMark(line)) {
         // A row that arrives card by card.
-        cardsBlock.lines.push('', BEAT_MARK, '');
+        cardsBlock.lines.push('', beatMark(revealMark(line).from), '');
       } else if (cardDraw) {
         // A figure is a card. In the block form of a row every top-level
         // block is one card, so the figure stands in a card of its own,
@@ -3799,7 +3822,8 @@ function parseLecture(src) {
         const cap = currentDock || currentOverlay;
         if (cap) {
           if (/^:::\s*$/.test(line)) { if (currentDock) flushDock(); else flushOverlay(); continue; }
-          if (line.trim() === '---') {
+          const m = revealMark(line);
+          if (m) {
             // lint.js: bad-dock-beat. An inherited dock is on every slide of
             // the part, and a beat is one slide's.
             if (currentDock && currentDock.scope === 'every') {
@@ -3808,7 +3832,15 @@ function parseLecture(src) {
                 '  An inherited dock is on every slide of the part, and a beat is one\n' +
                 '  slide\'s. Write *** for a rule, or drop .every.');
             }
-            cap.lines.push('', BEAT_MARK, '');
+            if (m.from != null && cap.from != null) {
+              refuse(
+                `--- from ${m.from} inside ::: ${currentDock ? 'dock' : 'overlay'} ` +
+                `from ${cap.from} (${chunkRef()}).\n` +
+                '  A block held to a beat counts its own beats from the one it arrives\n' +
+                '  on, so its markers are numbered already. Drop the `from` here, or\n' +
+                '  take it off the directive.');
+            }
+            cap.lines.push('', beatMark(m.from), '');
             continue;
           }
           // lint.js: cards-nested / directive-in-overlay / directive-in-dock.
@@ -3859,7 +3891,7 @@ function parseLecture(src) {
           continue;
         }
         // A divider's content walks the same counter a chunk's does.
-        if (line.trim() === '---') { colBody.push('', BEAT_MARK, ''); continue; }
+        { const m = revealMark(line); if (m) { colBody.push('', beatMark(m.from), ''); continue; } }
         // A card row or a row block is the one more thing a divider takes:
         // three figures, three claims or three names under the part's
         // heading is still one slide with one heading and one thing on it.
@@ -3904,7 +3936,9 @@ function parseLecture(src) {
         // on the first beat). So below the top level the line becomes
         // BEAT_MARK and the runtime does the hiding. An expansion keeps the
         // <hr>: its body is not on the projection and has no beats to give.
-        if ((layoutStack.length || currentOverlay || currentDock) && !currentExpansion && line.trim() === '---') {
+        const nestedMark = (layoutStack.length || currentOverlay || currentDock) && !currentExpansion
+          ? revealMark(line) : null;
+        if (nestedMark) {
           // lint.js: bad-dock-beat. Unreachable on a chunk today - `.every`
           // is refused there - and kept so the two paths read the same.
           if (currentDock && currentDock.scope === 'every') {
@@ -3918,8 +3952,17 @@ function parseLecture(src) {
           // default collapse, and a beat there is a Space that shows nothing.
           // Written back as ***, the other spelling of a rule, because
           // flushChunk would otherwise split the segment on the --- itself.
+          const host = currentDock || currentOverlay;
+          if (nestedMark.from != null && host && host.from != null) {
+            refuse(
+              `--- from ${nestedMark.from} inside ::: ${currentDock ? 'dock' : 'overlay'} ` +
+              `from ${host.from} (${chunkRef()}).\n` +
+              '  A block held to a beat counts its own beats from the one it arrives\n' +
+              '  on, so its markers are numbered already. Drop the `from` here, or\n' +
+              '  take it off the directive.');
+          }
           (currentDock ? currentDock.lines : currentOverlay ? currentOverlay.lines : bodyLines)
-            .push('', inLayout('script') ? '***' : BEAT_MARK, '');
+            .push('', inLayout('script') ? '***' : beatMark(nestedMark.from), '');
           continue;
         }
         // lint.js: directive-in-dock / cards-nested / nested-directive. A
@@ -6674,10 +6717,14 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   // default, the rest carry data-hidden so the JS can reveal them one
   // by one with Space (§4.6). If a chunk has zero segments (empty body),
   // nothing renders for the body.
+  const segFrom = chunk.segmentFrom || [];
   const segmentsHtml = segments.map((seg, i) => {
     const inner = marked.parse(seg || '');
     const hidden = i === 0 ? '' : ' data-hidden';
-    return `<div class="reveal-segment" data-seg="${i}"${hidden}>${inner}</div>`;
+    // A pinned segment says which beat it arrives on; an unpinned one is
+    // still counted by its position, which is what `pos` in chunkBeats does.
+    const from = segFrom[i] == null ? '' : ` data-from="${segFrom[i]}"`;
+    return `<div class="reveal-segment" data-seg="${i}"${hidden}${from}>${inner}</div>`;
   }).join('\n');
 
   const headingHtml = renderHeadingHtml(chunk);
@@ -12141,6 +12188,14 @@ function applyState() {
 // mark inside an overlay was then counted twice: once by its place in this
 // list and once by at, which gave the slide a dead Space at the end and
 // shifted every positional beat after it by one.
+// What a "--- from N" wrote, on a segment or on a marker. One reader, because
+// two spellings of "read this attribute" is how the two windows come to
+// disagree about what arrives when.
+function fromOf(node) {
+  const raw = node.dataset ? node.dataset.from : null;
+  const n = raw == null ? NaN : Number(raw);
+  return Number.isFinite(n) && n > 0 ? n : null;
+}
 function chunkBeats(el) {
   const out = [];
   let segIdx = 0;
@@ -12152,7 +12207,11 @@ function chunkBeats(el) {
     // room would see nothing happen.
     if (node.closest('.exp-body, .chunk-expansion')) return;
     if (node.classList.contains('reveal-segment')) {
-      if (segIdx++ > 0) push({ type: 'seg', el: node });
+      // A "--- from N" pins the segment to an advance by number instead of to
+      // its place in the order. push() then leaves it out of the positional
+      // count, which is the same arrangement a marker inside an overlay has
+      // had since a from-beat existed.
+      if (segIdx++ > 0) push({ type: 'seg', el: node, at: fromOf(node) });
       return;
     }
     // A --- below the top level: the beat owns every element sibling after
@@ -12168,8 +12227,13 @@ function chunkBeats(el) {
       // the slide's list. Without at, the overlay layer comes after the
       // body in document order, so its inner beats would be numbered
       // before its own from-beat and play behind a card not yet shown.
+      // A written number wins over the position; inside a container that is
+      // itself held to a beat the two cannot both be present, which the
+      // parser refuses, so this is a choice between one answer and none.
       const ov = node.closest(FROM_SEL);
-      const at = ov ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node) : null;
+      const at = fromOf(node) ?? (ov
+        ? Number(ov.dataset.from) + 1 + [...ov.querySelectorAll('.beat-mark')].indexOf(node)
+        : null);
       push({ type: 'mark', els, at });
       return;
     }
@@ -12221,12 +12285,13 @@ function applyReveal(el, id, instant) {
     const i = b.pos;
     const on = b.at == null && i < consumed;
     if (b.type === 'seg') {
-      if (on) b.el.removeAttribute('data-hidden');
+      const shown = b.at != null ? consumed >= b.at : on;
+      if (shown) b.el.removeAttribute('data-hidden');
       else b.el.setAttribute('data-hidden', '');
       // Mark the one segment that Space or Down will bring up next. Only the
       // speaker's stylesheet reacts to it, but the attribute is set in both
       // views so the two DOMs stay identical.
-      if (i === consumed) b.el.setAttribute('data-next', '');
+      if (b.at != null ? consumed === b.at - 1 : i === consumed) b.el.setAttribute('data-next', '');
       else b.el.removeAttribute('data-next');
     } else if (b.type === 'mark') {
       const shown = b.at != null ? consumed >= b.at : on;

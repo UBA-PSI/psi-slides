@@ -15,6 +15,7 @@
 import {
   CHUNK_SLOTS, CARDS_SLOTS, SIDE_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SLOT_TABLES,
   splitTail, strayTailProblem, parseTail, parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseLegacyDrawTail,
+  parseRevealMark,
   AUTOPLAY_MIN, AUTOPLAY_MAX, DRAW_OPENER_EXAMPLE,
 } from '../../tails.mjs';
 import { render } from './harness.mjs';
@@ -250,4 +251,30 @@ export async function run({ report }) {
   ok(!isActiveSurface('editor.md') && !isActiveSurface('CHANGELOG.md') && !isActiveSurface('test/settings.mjs') && !isActiveSurface('lectures/x/audience.html'),
      'a build log, history, a test and a built view are not');
   ok(LEGACY_TOKENS.length === 5, 'five old-form token patterns');
+
+  // ── the reveal marker ──────────────────────────────────────────────
+  // One reader behind what used to be seven hand-written `=== '---'` tests.
+  {
+    const m = (l) => parseRevealMark(l);
+    ok(m('---') && m('---').from === null && !m('---').problems.length, 'a bare --- is a beat in order');
+    ok(m('  ---  ').from === null, 'and leading or trailing space does not stop it being one');
+    ok(m('--- from 3').from === 3 && !m('--- from 3').problems.length, '--- from 3 pins the beat to the third advance');
+    ok(m('--- from 12').from === 12, 'and the number is not one digit only');
+    ok(m('----') === null, 'four dashes are not a reveal marker, so a written rule is untouched');
+    ok(m('not a mark') === null && m('') === null, 'and neither is prose or an empty line');
+    ok(m('-- from 2') === null, 'nor two dashes');
+    // Recognised and refused rather than falling through to Markdown: read as
+    // prose, `--- form 2` becomes a paragraph with nothing to say why the
+    // beat never arrived.
+    for (const bad of ['--- form 2', '--- from', '--- from x', '--- from 2 3', '--- from -1', '--- from 1.5', '--- 3']) {
+      const r = m(bad);
+      ok(r && r.problems.length === 1 && r.problems[0].code === 'bad-reveal-from',
+         `${JSON.stringify(bad)} is refused rather than read as prose`, JSON.stringify(r));
+    }
+    const zero = m('--- from 0');
+    ok(zero.problems.length === 1 && /Beat 0 is the beat the slide opens on/.test(zero.problems[0].msg),
+       'from 0 is refused, and the message says why beat 0 is not a beat');
+    ok(m('--- from 3').problems.length === 0 && m('--- from 1').from === 1,
+       'and from 1, the first advance, is the smallest one that is legal');
+  }
 }
