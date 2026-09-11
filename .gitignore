@@ -41,6 +41,10 @@ docs/artifact/figure-rules/squint.txt
 # prints the log's full path and says so on every start.
 souffleuse-*.jsonl
 lectures/*/souffleuse-*.jsonl
+# And beside it, one per build whose deck changed: the system prompt exactly
+# as it is sent, so the deck the model reads can be read by a person.
+souffleuse-*.prompt.txt
+lectures/*/souffleuse-*.prompt.txt
 # Three lectures ship their built outputs so they can be read straight from
 # the repository without running build.js: the self-referential tutorial, the
 # diagram reference, which is the only place every ::: draw construct is

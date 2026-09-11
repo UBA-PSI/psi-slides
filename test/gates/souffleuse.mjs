@@ -23,7 +23,7 @@ import {
   KINDS, MAX_WORDS, SEVERITIES, TOOL_SCHEMA,
   deckPayload, systemPrefix, prefixHash, tickMessage, parseAnswer,
   driftSeconds, timeHintAllowed, shouldTick, createPolicy, wordCount,
-  cueTargets, flattenMarks, rebaseClock, START_QUIET_S, CLOCK_JUMP_S,
+  cueTargets, flattenMarks, rebaseClock, replayAnswers, START_QUIET_S, CLOCK_JUMP_S,
 } from '../../souffleuse.mjs';
 import { ROOT } from './harness.mjs';
 
@@ -227,6 +227,30 @@ export async function run({ report }) {
      'a cue for the slide the speaker is on is refused');
   ok(parseAnswer(answer({ action: 'cue', text: 'Jetzt sagen' }), sess).reason === 'bad-cue',
      'and so is one with no slide at all');
+  a = parseAnswer(answer({ action: 'cue', text: 'Jetzt sagen', chunk_id: 'nirgends', why: 'gehört dorthin' }), sess);
+  ok(a.reason === 'bad-cue' && a.text === 'Jetzt sagen' && a.chunk_id === 'nirgends'
+     && a.why === 'gehört dorthin',
+     'a refusal carries what was named – bad-cue used to reach the log with text: null', j(a));
+  a = parseAnswer(answer({ action: 'hint', kind: 'fact', text: long, why: 'zu lang' }), sess);
+  ok(a.reason === 'too-long' && a.text === long && a.kind === 'fact' && a.why === 'zu lang',
+     'and so does a hint that was too long, so the debrief can show what it was', j(a));
+
+  // A script that does not put a space between two words. Counted by the
+  // character, because otherwise a whole paragraph of Chinese is one word and
+  // the twelve-word gate lets it through – and the cadence, which is the same
+  // count, never reaches eight words and no speech tick can fire at all.
+  const zh = '这是一个关于共享缓存的提示它远远超过十二个词的上限所以必须被丢弃不能再使用它';
+  ok(zh.length === 38 && wordCount(zh) === 38,
+     'a Chinese sentence is counted by the character, not as one word', String(wordCount(zh)));
+  ok(parseAnswer(answer({ action: 'hint', kind: 'fact', text: zh }), sess).reason === 'too-long',
+     'so a hint of thirty-eight characters is discarded like any other too-long one');
+  const zhShort = '请先说银行的那个例子';
+  ok(zhShort.length === 10 && wordCount(zhShort) === 10
+     && parseAnswer(answer({ action: 'hint', kind: 'example', text: zhShort }), sess).action === 'hint',
+     'and one of ten is whispered', String(wordCount(zhShort)));
+  ok(wordCount('スライド said 三') === 6,
+     'kana, latin and ideographs in one line are each counted their own way',
+     String(wordCount('スライド said 三')));
 
   // ── the clock ────────────────────────────────────────────────────
   ok(j(driftSeconds({ elapsed: 600, marks, idx: 0, beat: 0 })) === j({ drift: -150, rough: false }),
@@ -316,6 +340,24 @@ export async function run({ report }) {
   ok(rb && rb.onAt === 1,
      'inside the quiet the stamp follows the clock, which at worst buys the minute again',
      j(rb && rb.onAt));
+
+  // ── the log, read back ───────────────────────────────────────────
+  const rows = replayAnswers([
+    { type: 'status', state: 'listening', elapsed: 0 },
+    { type: 'tick', elapsed: 120, chunkId: 'vorgesetzter', cueTargets: ['kette'], timeHintAllowed: false },
+    { type: 'answer', body: answer({ action: 'hint', kind: 'example', text: 'Den Fall jetzt nennen', why: 'abstrakt' }) },
+    { type: 'tick', elapsed: 140, chunkId: 'vorgesetzter', cueTargets: ['kette'], timeHintAllowed: false },
+    { type: 'answer', body: answer({ action: 'hint', kind: 'fact', text: 'Es waren zwei' }) },
+    { type: 'answer', dryRun: true },
+  ], { cooldown: 60 });
+  ok(rows.length === 2, 'a replay has one row per answer the model gave, and a dry run gave none', j(rows.length));
+  ok(rows[0].show === true && rows[0].kind === 'example' && rows[0].why === 'abstrakt',
+     'the first is whispered, with the reason the model gave for the log', j(rows[0]));
+  ok(rows[1].show === false && rows[1].reason === 'standing',
+     'and the second meets the policy the first one left behind', j(rows[1]));
+  ok(replayAnswers([{ type: 'tick', elapsed: 5 },
+    { type: 'answer', body: answer({ action: 'hint', kind: 'fact', text: 'Zu früh' }) }])[0].reason === 'start-quiet',
+     'a log too old to say when the switch was thrown measures the quiet from the first tick');
 
   // ── the policy, row by row ───────────────────────────────────────
   const hint = (kind, text, severity = 'low') => ({ action: 'hint', kind, text, severity });
@@ -446,8 +488,8 @@ export async function run({ report }) {
   ok(j(exported.slice().sort()) === j([
     'CLOCK_JUMP_S', 'KINDS', 'MAX_WORDS', 'SEVERITIES', 'START_QUIET_S', 'TOOL_SCHEMA',
     'createPolicy', 'cueTargets', 'deckPayload', 'driftSeconds', 'flattenMarks',
-    'parseAnswer', 'prefixHash', 'rebaseClock', 'shouldTick', 'systemPrefix',
-    'tickMessage', 'timeHintAllowed', 'wordCount',
+    'parseAnswer', 'prefixHash', 'rebaseClock', 'replayAnswers', 'shouldTick',
+    'systemPrefix', 'tickMessage', 'timeHintAllowed', 'wordCount',
   ]), 'the module exports exactly the names the sidecar reads', j(exported));
   ok(!/—/.test(src), 'en-dashes only, as in every other file here');
   ok(TOOL_SCHEMA.type === 'function' && TOOL_SCHEMA.function.name === 'advise'

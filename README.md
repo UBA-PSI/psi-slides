@@ -272,6 +272,12 @@ node build.js <source.md> --integrate-annotations       # fold exported live ann
 
 node build.js <source.md> --watch --souffleuse          # the live prompter in the cockpit
 node build.js <source.md> --watch --souffleuse --souffleuse-model MODEL_ID
+node build.js <source.md> --watch --souffleuse --souffleuse-dry-run
+                                             # …everything but the call to the model,
+                                             #   and no key needed: the rehearsal mode
+node build.js <source.md> --souffleuse-replay souffleuse-DATE.jsonl
+                                             # read a finished run back: what the model
+                                             #   proposed, what the policy would do now
 
 node build.js <source.md> --squint           # write what the projection paints to squint.txt
 node build.js <source.md> --check-fit        # report any slide that fits the frame and sits outside it
@@ -284,7 +290,7 @@ The linter checks unknown types and widths, duplicate or missing chunk IDs, uncl
 
 **The live prompter (`--souffleuse`) is new, opt-in, and not in a tagged release yet.** Built with `--watch --souffleuse`, the cockpit can listen to the room while you talk and whisper back at most twelve words when something needs saying – you are behind time, the example is missing, what you just said contradicts your own slide – and it can lay a cue card into a slide that is still to come. `Shift`-`S` in the cockpit switches it on and off, and nothing listens until you press it. It needs **Chrome** (the ear is the Web Speech API), it needs `--watch` (the cockpit reaches it over the watch socket), and it needs an `OPENROUTER_API_KEY` in the environment; without the key it starts disabled and only writes down what it heard.
 
-**What leaves the machine, as text.** Speech recognition runs on your own device where Chrome can do it and through Google where it cannot – a badge in the cockpit says which of the two you are getting. The transcript and the deck itself, speaker notes included, go to openrouter.ai to be answered. No audio is sent anywhere, nothing of this reaches the projection, nothing is written back into `source.md`, and the key is read in Node and never appears in the built HTML. Each run writes a log beside `source.md` (`souffleuse-<date>.jsonl`, gitignored) so you can read afterwards what it heard, what it said, and what it wanted to say and was not allowed to. And the microphone hears **the room** too, not only you: switch it off before a question round, or tell the room it is on.
+**What leaves the machine, as text.** Speech recognition runs on your own device where Chrome can do it and through Google where it cannot – a badge in the cockpit says which of the two you are getting. The transcript and the deck itself, speaker notes included, go to openrouter.ai to be answered. No audio is sent anywhere, nothing of this reaches the projection, nothing is written back into `source.md`, and the key is read in Node and never appears in the built HTML. Each run writes a log beside `source.md` (`souffleuse-<date>.jsonl`, gitignored) so you can read afterwards what it heard, what it said, and what it wanted to say and was not allowed to – `--souffleuse-replay` reads that log back and prints, answer by answer, what the policy would do with it now. Beside the log, `souffleuse-<hash>.prompt.txt` is the deck exactly as the model gets it, so you can read that too. If you would rather try the whole thing without sending anything anywhere, `--souffleuse-dry-run` runs the ear, the clock and the policy and skips the one call – it needs no key. And the microphone hears **the room** too, not only you: switch it off before a question round, or tell the room it is on.
 
 ## Hotkeys
 

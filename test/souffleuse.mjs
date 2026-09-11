@@ -43,13 +43,17 @@ export const name = 'souffleuse · the live prompter, cockpit to sidecar to stri
 export const lecture = 'tutorial';   // built for other specs already; unused here
 export const view = 'audience';
 
-// Four slides, ids that say what they are for, one note carrying a mark so
-// the drift has a reference, and a cadence at the floor of SOUFFLEUSE_SPEC
-// (10 s) so a tick is cheap to provoke.
+// Four slides, ids that say what they are for, one note whose first line
+// opens with a mark so the drift has a real reference - `@0:00` on a second
+// line applies to the card after it, which is no card, so this fixture used to
+// claim a mark it did not have and the drift was the linear estimate all along
+// - and a cadence at the floor of SOUFFLEUSE_SPEC (10 s) so a tick is cheap to
+// provoke.
 const SOURCE = `---
 title: A talk with a prompter in the box
 duration: 10
 souffleuse:
+  model: fake/prompter-under-test
   cadence: 10
   cooldown: 20
 ---
@@ -60,8 +64,7 @@ souffleuse:
 
 The ear sends what it heard, and the box answers or, almost always, stays quiet.
 
-> note: Open here, and keep one eye on the clock.
-> @0:00 The first mark of the talk.
+> note: @0:00 Open here, and keep one eye on the clock.
 
 ## free: The slide the card is for {#board}
 
@@ -346,7 +349,9 @@ export async function run({ page, report }) {
     // answers 204 for the same reason; here the browser does it instead, so
     // "no page errors" stays an assertion about the lecture.
     await page.context().route('**/favicon.ico', (r) => r.fulfill({ status: 204, body: '' }));
-    await page.addInitScript(installFakeStt);
+    // On the context, not on the page: the second cockpit further down is
+    // opened by the projection and needs an ear of its own.
+    await page.context().addInitScript(installFakeStt);
     await page.goto(serving.url + '/speaker.html', { waitUntil: 'load' });
     await page.evaluate(() => { try { localStorage.clear(); sessionStorage.clear(); } catch (e) {} });
     await page.reload({ waitUntil: 'load' });
@@ -451,6 +456,11 @@ export async function run({ page, report }) {
     ok(typeof b.session_id === 'string' && b.session_id.length > 0,
        'a session_id keeps the warm cache on one provider', String(b.session_id));
     ok(!!(b.usage && b.usage.include === true), 'and usage comes back', JSON.stringify(b.usage));
+    ok(b.model === 'fake/prompter-under-test',
+       'the model is the one the deck named in its souffleuse: block', String(b.model));
+    ok(!!(Array.isArray(b.tools) && b.tools.length === 1
+          && b.tools[0].function && b.tools[0].function.name === 'advise'),
+       'one tool goes out, and it is the answer vocabulary', JSON.stringify(b.tools && b.tools.length));
     const userMsg = String((b.messages && b.messages[1] && b.messages[1].content) || '');
     ok(/^slide 1\/4 · #opening/.test(userMsg),
        'the user turn opens with the state line', userMsg.split('\n')[0]);
@@ -458,6 +468,17 @@ export async function run({ page, report }) {
        'which names the slides a card may be laid into', userMsg.split('\n')[0]);
     ok(!userMsg.includes('planned duration'),
        'and carries none of the deck – that is the cached half');
+    // The mark is real now, so the drift is measured against it rather than
+    // against `duration:` divided by the slide count – which is what `(rough)`
+    // means, and what this fixture silently had before.
+    ok(/·\s*drift[^·]*·/.test(userMsg) && !/\(rough\)/.test(userMsg),
+       'the drift is measured against a mark, not against a straight line',
+       userMsg.split('\n')[0]);
+    const prefixText = String((b.messages && b.messages[0] && b.messages[0].content
+      && b.messages[0].content[0] && b.messages[0].content[0].text) || '');
+    ok(prefixText.includes('planned: 0:00 (beat 0)'),
+       'and the prefix carries the planned marks the drift is read off',
+       prefixText.split('\n').filter((l) => l.startsWith('planned')).join(' / '));
 
     // ── Esc takes it away, and the sidecar hears about it ───────────
     await page.keyboard.press('Escape');
@@ -492,6 +513,25 @@ export async function run({ page, report }) {
     ok(!!logLines(dir).find((l) => l.type === 'cue' && l.chunkId === 'board'),
        'and the sidecar filed it under the slide it is for',
        JSON.stringify(logLines(dir).filter((l) => l.type === 'cue')));
+    // One beat of acknowledgement, naming the slide. Without it the only sign
+    // that anything happened was a card in a slide the speaker has not reached
+    // - and the rehearsal checklist told them to look for it here.
+    const laid = await until(() => page.evaluate(() => {
+      const el = document.getElementById('souffleuse-strip');
+      return el && !el.hidden ? el.querySelector('.souffleuse-text').textContent : null;
+    }), 5000);
+    ok(!!laid && /^card for /.test(laid) && /card is for|board/.test(laid),
+       'the strip says a card was laid, and which slide it went into', JSON.stringify(laid));
+    const logged = await page.evaluate(() => {
+      const b = document.getElementById('souffleuse-btn');
+      b.dispatchEvent(new MouseEvent('click', { shiftKey: true, bubbles: true }));
+      const rows = [...document.querySelectorAll('#souffleuse-log-list li')]
+        .map((li) => li.textContent);
+      document.querySelector('#souffleuse-log header .souffleuse-x').click();
+      return rows;
+    });
+    ok(logged.some((r) => /pick up the front-row question/.test(r) && /for /.test(r)),
+       'and the history has it too, as a card rather than as a whisper', JSON.stringify(logged));
     const second = String((fake.requests[1] && fake.requests[1].body.messages[1].content) || '');
     ok(/\bNEW:/.test(second) && second.includes('the cache again'),
        'and the tick marks what is new since the last call', second.split('\n').slice(-3).join(' / '));
@@ -687,6 +727,17 @@ export async function run({ page, report }) {
     ok(await page.evaluate(() => document.getElementById('souffleuse-btn').getAttribute('aria-pressed')) === 'true',
        'the switch is still on: one failed call is not a reason to stop listening');
 
+    // ── the prefix was the same text every time ─────────────────────
+    // The whole cost case rests on it: a system block that differed per call
+    // would be paid for in full every cadence, and nothing in a single request
+    // can show that it does not.
+    const prefixes = fake.requests.map((r) => String((r.body && r.body.messages
+      && r.body.messages[0] && r.body.messages[0].content
+      && r.body.messages[0].content[0] && r.body.messages[0].content[0].text) || ''));
+    ok(prefixes.length > 2 && prefixes.every((t) => t && t === prefixes[0]),
+       'every call of the session carried byte-identical deck text, which is what the cache assumes',
+       prefixes.length + ' calls, ' + new Set(prefixes).size + ' distinct prefix(es)');
+
     // ── the projection learns none of it ────────────────────────────
     const aud = await page.context().newPage();
     extra.push(aud);
@@ -721,6 +772,24 @@ export async function run({ page, report }) {
     }))));
     ok(both[0].idx === both[1].idx && both[0].rev === both[1].rev,
        'the two windows still agree about where the talk is', JSON.stringify(both));
+
+    // ── and a second cockpit takes the prompter, out loud ───────────
+    // The sidecar whispers to the socket of the last hello, so opening a
+    // second cockpit - which is one stray `S` in the projection away - takes
+    // the hints over. It used to do that in silence: the first window kept its
+    // switch pressed and its microphone open for the rest of the talk, sending
+    // a transcript nothing would answer. It is told, with the reason.
+    await spk.evaluate(() => document.getElementById('souffleuse-btn').click());
+    ok(await until(() => spk.evaluate(() => document.getElementById('souffleuse-btn')
+       .getAttribute('aria-pressed') === 'true'), 8000),
+       'the second cockpit switches its own prompter on');
+    ok(await until(() => page.evaluate(() => document.getElementById('souffleuse-btn')
+       .getAttribute('aria-pressed') === 'false'), 8000),
+       'and the first one is switched off rather than left listening into nothing',
+       JSON.stringify(logLines(dir).filter((l) => l.type === 'status').slice(-2)));
+    ok(await page.evaluate(() => window.__stt.rec === null),
+       'its ear stops with it');
+
     ok(errs.length === 0, 'no page errors in either of the two windows', errs.join(' | '));
 
     note(`${fake.requests.length} calls to the model, ${logLines(dir).length} lines of log, `

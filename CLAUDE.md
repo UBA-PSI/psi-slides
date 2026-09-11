@@ -107,14 +107,30 @@ node build.js <source.md> --watch --serve         # live reload over http
 # the projection learns nothing of it. Chrome only (Web Speech). One log per
 # run, souffleuse-<YYYYMMDD-HHMM>.jsonl beside source.md, is the debrief:
 # every call, every hint, every hint the policy swallowed - and the spoken
-# words verbatim. This repository's .gitignore covers it and nothing else, so
-# a lecture living in a content repo of its own needs souffleuse-*.jsonl in
-# that repo's .gitignore; the sidecar prints the path and says so on start.
-# --souffleuse-model without --souffleuse is a usage error, like --souffleuse
-# without --watch: on its own it would build an ordinary deck and say nothing.
+# words verbatim. Beside it, souffleuse-<prefix hash>.prompt.txt is the deck
+# as the model gets it, one file per build whose deck changed. This
+# repository's .gitignore covers both and nothing else, so a lecture living
+# in a content repo of its own needs the two patterns in that repo's
+# .gitignore; the sidecar prints the path and says so on start.
+# --souffleuse-model and --souffleuse-dry-run without --souffleuse are usage
+# errors, like --souffleuse without --watch: on their own they would build an
+# ordinary deck and say nothing.
 # Vocabulary, protocol and failure modes: the `psi-slides-souffleuse` skill.
 node build.js <source.md> --watch --souffleuse
 node build.js <source.md> --watch --souffleuse --souffleuse-model MODEL_ID
+
+# the rehearsal mode: everything runs - the ear, the socket, the ticks, the
+# policy, the log - and the one call to the model is skipped and logged as
+# `answer {dryRun: true}`. It needs no OPENROUTER_API_KEY, so it is also the
+# way to read a tick message, with its state line and its window, on a
+# machine with no account.
+node build.js <source.md> --watch --souffleuse --souffleuse-dry-run
+
+# and the other half of a rehearsal: no watcher, no browser, no network.
+# Reads a finished run's JSONL back through today's parser and today's
+# policy and prints, per answer, what the model proposed and what the policy
+# would do with it now - which is how a threshold gets changed with evidence.
+node build.js <source.md> --souffleuse-replay souffleuse-YYYYMMDD-HHMM.jsonl
 
 # two questions only a rendered page can answer, so both drive the built
 # audience.html in a real browser with playwright-core and both degrade

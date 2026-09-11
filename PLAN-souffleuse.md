@@ -731,6 +731,80 @@ already known to make.
     null`. The review asked for both these lines and an empty
     `git diff main -- lectures/`, and those two cannot both be had.
 
+### Adversarial review
+
+A second review, adversarial this time, over the whole feature including the
+ten fixes above. Eighteen findings; four of them change what the prompter does
+and the rest are about being able to see what it is doing. One line each.
+
+1. **The cockpit's clock restarted on every save and the sidecar believed it.**
+   `tStart` is the page load and `--watch` reloads the page; the drift went
+   wildly negative, a tick stamped in the sidecar's own future stopped every
+   slide tick for the rest of the talk, and the opening quiet minute was
+   stamped afresh each time. Both ends: the cockpit keeps its origin in
+   `sessionStorage` while the prompter is on (and only then – a cockpit opened
+   while the room fills is meant to start at 0:00, and the clock button still
+   says so), and `rebaseClock` in souffleuse.mjs moves the switch-on stamp, the
+   last tick and the transcript onto any clock that drops by more than five
+   seconds. A talk past its quiet minute is not made to sit through it again.
+2. **A 200 carrying `{error: …}` and no `choices` was read as model garbage** –
+   so a model out of credits or a mistyped id was logged five times as
+   `garbage`. It routes to `trouble()` with the body's own message and code,
+   and `HTTP <status>` carries that message too.
+3. **`wordCount` answered 1 for a Chinese sentence**, so the twelve-word gate
+   let a paragraph through and the cadence's eight words were never reached.
+   Characters in the dense scripts count one each.
+4. **The prompt was invisible, there was no dry run and no replay.** The system
+   prefix is written beside the log as `souffleuse-<hash>.prompt.txt`;
+   `--souffleuse-dry-run` runs everything but the call and needs no key;
+   `--souffleuse-replay <file.jsonl>` reads a finished run back through today's
+   policy and says what it would do now (`replayAnswers`, gate-tested).
+5. **A suppressed answer said nothing on the terminal**, so a prompter that had
+   been refused six times looked exactly like one with nothing to say. One line
+   per answer the model meant something by.
+6. **`bad-cue` dropped the evidence.** A refusal now carries the text, the
+   chunk id, the kind and the model's `why` through into the log line.
+7. **A second cockpit took the prompter in silence.** The displaced socket is
+   sent `souffleuse-status {state: 'idle', why: 'another cockpit took the
+   prompter'}` before it is replaced.
+8. **The history was hints only.** A card puts a row in it too, naming the
+   slide it was filed into.
+9. **An `idx` past the end of the deck poisoned the drift silently.** Clamped,
+   with a `warn` line; and a rebuild drops cards for slides it no longer has
+   (which was finding 18).
+10. **A laid card was invisible until the speaker reached it.** The strip
+    acknowledges it for six seconds, naming the slide, and never over a hint
+    that is standing. The checklist below says *walk to the slide*.
+11. **`Shift`-`S` was in no crib, and the privacy sentence was below the fold.**
+    The footer's crib carries it under the flag; the sentence is the first row
+    of *The prompter*, which is now the first group of the speaker's help.
+12. **The switch-on toast named where recognition runs, never where the text
+    goes.** The first switch-on of a tab says both.
+13. **Cache and latency never reached the terminal.** One line on the first
+    answer of a run: how long it took and how much of the prefix was cached.
+14. **Four doc strings the code cannot produce** – the two `psiWatch.ask`
+    refusals, `souffClock` rather than `elapsedSeconds`, and `beat 2/3`, which
+    the state line promised and nothing set: `souffleuse-move` carries `beats`
+    now, because `cuePosition(entry).total` exists in the cockpit's DOM and
+    nowhere else.
+15. **The spec's fixture claimed a time mark and had none** – `@0:00` stood on
+    the note's second line, where it applies to the card after it, so every
+    drift in that spec was the linear estimate. It opens the first line now,
+    and the spec asserts the drift is not `(rough)` and that the prefix carries
+    the mark.
+16. **The request body was asserted shallowly**: the model id, the tool name,
+    and one prefix text identical across every call of the session – the cache
+    assumption, which no single request can show.
+17. **A toggle after a refused key answered `on: true`.** `setEnabled(true)`
+    refuses while the sidecar is disabled, and the 401/403 reason ends with
+    what the speaker can do: restart the watcher with a corrected key.
+18. Folded into 9.
+
+The gate is 134 assertions now and the spec 89, and the two things the spec
+still cannot show are the two it never could: whether the cache is warm on a
+real provider, and whether the model is restrained. The dry run and the replay
+are what a rehearsal has instead.
+
 ## The questions to the author, answered
 
 - **Process**: a Node sidecar in `build.js`.
@@ -757,11 +831,20 @@ because a `file://` cockpit is fine for the prompter but nothing else about a
 rehearsal should be different from a talk.
 
 ```bash
+# a dry run first, which needs no key and sends nothing: it says whether the
+# ear, the switch, the clock and the ticks are all wired, and writes the same
+# log minus the answers.
+node build.js lectures/spoken-talk/source.md --watch --serve --souffleuse --souffleuse-dry-run
+
 export OPENROUTER_API_KEY=sk-or-...
 node build.js lectures/spoken-talk/source.md --watch --serve --souffleuse
 # open the served audience.html in Chrome, press S for the cockpit,
 # then Shift-S in the cockpit, and talk for ten minutes.
 ```
+
+Read `souffleuse-<hash>.prompt.txt` beside the log before the first run: it is
+the deck exactly as the model gets it, and a slide that reads badly there reads
+badly to the prompter.
 
 Then read the log, `lectures/spoken-talk/souffleuse-<YYYYMMDD-HHMM>.jsonl`:
 
@@ -790,6 +873,12 @@ jq -c 'select(.type=="suppressed") | {reason, kind, text}' souffleuse-*.jsonl
   `time-not-allowed` on a deck that *is* behind says the thresholds are wrong
   for this talk. `bad-cue` says the model is ignoring `cue_targets`.
 - The `tick` lines' `drift` against what the clock in the room actually said.
+- Then replay the whole log against the policy, which is where a threshold gets
+  changed with evidence rather than by feel – and again after changing one:
+
+  ```bash
+  node build.js lectures/spoken-talk/source.md --souffleuse-replay lectures/spoken-talk/souffleuse-*.jsonl
+  ```
 
 Four things to eyeball while it runs:
 
@@ -800,8 +889,10 @@ Four things to eyeball while it runs:
 2. **The strip in both homes.** Over the foot of the slide in the classic
    arrangement, at the head of the card column under `K` – and the cards in the
    rail must not jump when it appears.
-3. **One cue in the rail.** A dashed `.cue-card.souffleuse` in a slide still to
-   come, under `K`; in the classic layout the same card as a `▤` hint on arrival.
+3. **One cue in the rail.** The strip says `▤ card for …` the moment it is
+   laid, wherever the talk is – then **walk to the slide**: a dashed
+   `.cue-card.souffleuse` in the rail under `K`, and in the classic layout the
+   same card as a `▤` hint on arrival.
 4. **`Shift`-`S` off and on again.** The dot goes hollow, the ear stops, the log
    takes a `status idle` saying who switched it off, and the second press starts
    a fresh quiet minute rather than whispering immediately.

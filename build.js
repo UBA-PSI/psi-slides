@@ -7290,24 +7290,32 @@ function renderHelpOverlay(view, withEditor, withSouffleuse) {
     ['<kbd>Esc</kbd>', 'step back out: deselect, then the select tool, then close'],
   ]];
   // The prompter's own section, emitted only where the sidecar is running.
-  // The last row is not a key: it is the one thing a person has to know
+  // Its first row is not a key: it is the one thing a person has to know
   // before switching a microphone on, and the console and the README say it
-  // too (PLAN-souffleuse.md § Privacy).
+  // too (PLAN-souffleuse.md § Privacy). It stands first rather than last
+  // because it is the only row in this whole overlay with a consequence
+  // somebody would want to read before pressing anything, and at the foot of
+  // the group it was the last line of a panel that scrolls.
   const souffleuseKeys = ['The prompter', [
+    ['what leaves this machine', 'speech recognition runs on this device where the browser can, otherwise through Google – the badge says which; the transcript and the deck including your notes go as text to openrouter.ai; nothing reaches the projection, nothing is written into source.md, and no audio ever leaves. The microphone hears the room too – switch it off before a question round, or tell the room'],
     ['<kbd>Shift</kbd>-<kbd>S</kbd>', 'the prompter listens, or stops – the <b>◌ prompter</b> button in the footer is the same switch'],
     ['<kbd>Esc</kbd>', 'take the hint standing on the strip away – it also goes by itself after fifteen seconds, and the × on it does the same'],
     ['where it appears', 'a line over the foot of the slide, or at the head of the card column under <kbd>K</kbd> – <code>◷</code> time · <code>◇</code> example · <code>△</code> fact · <code>◌</code> delivery · <code>▤</code> a card laid into a slide still to come'],
     ['<kbd>Shift</kbd>-click <b>◌ prompter</b>', 'the last ten it has said, and the two switches: show what it hears, and whether it may lay cards into upcoming slides'],
     ['what it may say', 'at most twelve words, one at a time, and usually nothing: behind time, a missing example, a probable slip, a word about delivery'],
-    ['what leaves this machine', 'speech recognition runs on this device where the browser can, otherwise through Google – the badge says which; the transcript and the deck including your notes go as text to openrouter.ai; nothing reaches the projection, nothing is written into source.md, and no audio ever leaves. The microphone hears the room too – switch it off before a question round, or tell the room'],
   ]];
   const otherWindows = ['The other windows', [
     ...(view === 'speaker' ? [] : [['<kbd>S</kbd>', 'open the speaker cockpit – both windows then stay in sync']]),
     ['<kbd>P</kbd>', 'open the print view in a new tab'],
     ['<kbd>?</kbd>', 'this panel'],
   ]];
+  // The prompter first where there is one. Measured at 1440x900: this panel is
+  // three screens tall and scrolls, and in fifth place the whole group - the
+  // privacy row with it - began 200 px below the fold. It is the only group
+  // here that is not about keys, and the only one whose first line is
+  // something a person would want to have read before pressing anything.
   const groups = view === 'speaker'
-    ? [...speakerOnly, ...(withSouffleuse ? [souffleuseKeys] : []), ...shared,
+    ? [...(withSouffleuse ? [souffleuseKeys] : []), ...speakerOnly, ...shared,
        ...(withEditor ? [editorKeys] : []), otherWindows]
     : [...shared, ...(withEditor ? [editorKeys] : []), otherWindows];
 
@@ -15353,6 +15361,12 @@ function renderSpeaker(lecture, opts = {}) {
   // Opens with the newline rather than standing on a line of its own in the
   // template: an empty expression on its own line still emits the line, and
   // every cockpit without a prompter carried a blank one where this is.
+  // The footer's crib names every key that is not on a button, and Shift-S is
+  // one of them: the button says `prompter` and nothing on it says which key
+  // it answers to. Conditional like the button beside it.
+  const souffleuseKbd = souffSettings
+    ? ' &nbsp; <kbd>Shift</kbd>-<kbd>S</kbd> prompter'
+    : '';
   const souffleuseChrome = souffSettings
     ? `\n<div id="souffleuse-badge" class="cmd-badge" role="status" hidden></div>
 <div id="souffleuse-log" hidden aria-label="What the prompter has said">
@@ -15439,7 +15453,7 @@ ${columnsHtml}
   <button id="speaker-help-btn" type="button" title="Keyboard and mouse reference (?)">? help</button>
   <span id="slug">${escapeHtml(slug)}</span>
   <span class="spacer"></span>
-  <span class="kbd-hint"><kbd>V</kbd> freeze &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>D</kbd> demo &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export</span>
+  <span class="kbd-hint"><kbd>V</kbd> freeze &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>D</kbd> demo &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export${souffleuseKbd}</span>
 </footer>
 <div id="note-templates">
 ${noteTemplates.join('\n')}
@@ -18142,6 +18156,10 @@ if (SOUFFLEUSE && window.psiWatch) {
   // at 0:00, and the clock button is still the way to say so. sessionStorage,
   // like the consent it sits beside - the clock of this talk in this tab.
   const SOUFF_CLOCK_KEY = 'psi-slides:souffleuse-clock';
+  // Said once per tab: the full sentence on the first switch-on, the short one
+  // after that. What a toast is for is telling somebody something they do not
+  // already know.
+  const SOUFF_TOLD_KEY = 'psi-slides:souffleuse-told';
   const souffClockBtn = document.getElementById('clock');
   let souffShowHeard = false;
   // The frontmatter is a ceiling, not a default: a deck whose souffleuse
@@ -18344,8 +18362,24 @@ if (SOUFFLEUSE && window.psiWatch) {
   function souffWhere() {
     const entry = flatChunks[state.activeIdx];
     if (!entry) return null;
-    const { consumed } = cuePosition(entry);
-    return { chunkId: entry.id || null, idx: state.activeIdx, beat: consumed };
+    // The total rides along as the beats count: how many presses this slide
+    // has in all. It exists in this window's DOM and nowhere else, and the
+    // state line the model reads says beat 2 of 3 with it - two of three is a
+    // slide nearly done, two of nine is a slide barely begun, and without the
+    // second number they are the same sentence.
+    const { consumed, total } = cuePosition(entry);
+    return {
+      chunkId: entry.id || null, idx: state.activeIdx, beat: consumed, beats: total,
+    };
+  }
+
+  // What a slide is called, for a line about a card laid into it. The id is
+  // the fallback, because it is what the author would search for.
+  function souffSlideName(id) {
+    const entry = flatChunks.find(e => e.id === id);
+    const name = entry ? cueChunkTitle(entry) : '';
+    const t = String(name || id || 'a later slide');
+    return t.length > 42 ? t.slice(0, 41).trimEnd() + '…' : t;
   }
 
   function souffRemember(on) {
@@ -18435,7 +18469,18 @@ if (SOUFFLEUSE && window.psiWatch) {
       souffLastSent = { idx: -1, beat: -1 };
       souffMoved();
       souffPaint();
-      flashMode('prompter listening \\u00b7 ' + (souffLocal ? 'on-device' : 'server recognition'));
+      // The first switch-on of a tab says where the words go, because that is
+      // the fact a person consents to and the ear is only half of it: the
+      // recogniser may well run on this machine while the transcript does not
+      // stay on it. After that the short form, so the toast stops being noise.
+      let told = false;
+      try {
+        told = sessionStorage.getItem(SOUFF_TOLD_KEY) === 'on';
+        sessionStorage.setItem(SOUFF_TOLD_KEY, 'on');
+      } catch (e) { /* a private window is allowed to refuse */ }
+      const ear = souffLocal ? 'on-device' : 'server recognition';
+      const dest = hi.dryRun ? 'dry run, nothing leaves this machine' : 'text goes to openrouter.ai';
+      flashMode('prompter listening \\u00b7 ' + ear + (told ? '' : ' \\u00b7 ' + dest));
     } finally {
       souffStarting = false;
     }
@@ -18525,7 +18570,7 @@ if (SOUFFLEUSE && window.psiWatch) {
     if (w.idx === souffLastSent.idx && w.beat === souffLastSent.beat) return;
     souffLastSent = { idx: w.idx, beat: w.beat };
     souffWatch.ask('souffleuse-move', {
-      chunkId: w.chunkId, idx: w.idx, beat: w.beat, elapsed: souffClock(),
+      chunkId: w.chunkId, idx: w.idx, beat: w.beat, beats: w.beats, elapsed: souffClock(),
     });
   }
 
@@ -18585,7 +18630,12 @@ if (SOUFFLEUSE && window.psiWatch) {
       if (souffHint === h) souffStrip.classList.add('visible');
     }));
     if (souffHintTimer) clearTimeout(souffHintTimer);
-    souffHintTimer = setTimeout(() => souffDismiss('fade'), h.severity === 'high' ? 25000 : 15000);
+    souffHintTimer = setTimeout(() => souffDismiss('fade'),
+      h.fade || (h.severity === 'high' ? 25000 : 15000));
+    // A card's arrival is acknowledged on the strip but recorded by
+    // souffCueAdd, under the slide it was filed for; entering it twice would
+    // put it in the history as a whisper as well as a card.
+    if (h.noHistory) return;
     souffHistory.unshift({
       at: elapsedSeconds(), kind: h.kind, text: h.text, hintId: h.hintId, how: null,
     });
@@ -18639,7 +18689,10 @@ if (SOUFFLEUSE && window.psiWatch) {
 
   // ── the history, and the two preferences that live in it ───────────
   function souffLogRow(h) {
-    const gone = h.how === 'fade' ? 'faded'
+    // A card is not dismissed, it is filed - so the column that says how a
+    // hint went away says which slide a card went into instead.
+    const gone = h.how === 'card' ? 'for ' + escText(h.slide || '')
+      : h.how === 'fade' ? 'faded'
       : h.how === 'esc' ? 'Esc'
       : h.how === 'click' ? 'dismissed'
       : h.how === 'off' ? 'switched off'
@@ -18704,6 +18757,17 @@ if (SOUFFLEUSE && window.psiWatch) {
     if (list.some(x => x.cueId === c.cueId)) return false;
     list.push({ cueId: c.cueId, text: String(c.text || '') });
     souffleuseCues.set(id, list);
+    // The history is what the prompter has said, and a card is the other half
+    // of that. It used to hold hints alone, so a run in which the prompter
+    // laid four cards and whispered nothing read as a prompter that had done
+    // nothing at all - and the cards are the part nobody sees until the talk
+    // walks onto the slide.
+    souffHistory.unshift({
+      at: elapsedSeconds(), kind: 'cue', text: String(c.text || ''),
+      hintId: null, how: 'card', slide: souffSlideName(id),
+    });
+    if (souffHistory.length > 10) souffHistory.length = 10;
+    souffRenderLog();
     return true;
   }
 
@@ -18779,7 +18843,20 @@ if (SOUFFLEUSE && window.psiWatch) {
   souffWatch.on('souffleuse-cue', (m) => {
     // The rail is redrawn from the Map, so a card that arrives while the
     // slide it belongs to is already open appears without a press.
-    if (souffCueAdd(m)) cueSync();
+    if (!souffCueAdd(m)) return;
+    cueSync();
+    // One beat of acknowledgement. A card is laid into a slide still to come,
+    // so without this the only sign that the prompter did anything is a row
+    // in a panel nobody has open - and the rehearsal checklist told the
+    // speaker to look for a card that will not appear until they walk there.
+    // Six seconds, low, and never over a hint that is standing: what stands
+    // was judged worth interrupting a sentence for, and this is not.
+    if (souffHint) return;
+    souffShow({
+      hintId: null, cueId: m.cueId, kind: 'cue', severity: 'low', fade: 6000,
+      noHistory: true,
+      text: 'card for ' + souffSlideName(String(m.chunkId || '')),
+    });
   });
 
   // The socket reconnects itself; a session does not. After a reconnect the
@@ -19315,11 +19392,16 @@ async function createSouffleuse({
   const base = String(process.env.OPENROUTER_BASE_URL || SOUFFLEUSE_BASE_URL)
     .trim().replace(/\/+$/, '');
   const logPath = souffleuseLogPath(absIn);
+  const dryRun = !!opts.dryRun;
 
   // Disabled is not off: the transcript, the moves and the ticks that would
   // have gone out are still logged, because the log is what a rehearsal is
   // read back from and a missing key is not a reason to lose it.
-  let disabled = key ? null : { why: 'no OPENROUTER_API_KEY in the environment' };
+  //
+  // A dry run needs no key, which is the point of it: everything but the one
+  // call runs, so the scheduler, the state line and the window can be read on
+  // a machine that has no account at all.
+  let disabled = (key || dryRun) ? null : { why: 'no OPENROUTER_API_KEY in the environment' };
 
   let deck = null;            // what deckPayload made of the last build
   let prefix = null;          // {text, hash} – the cached system prompt
@@ -19345,7 +19427,9 @@ async function createSouffleuse({
 
   let on = false;             // the switch in the cockpit
   let onAtElapsed = 0;        // and when it was thrown, on the cockpit's clock
-  const cursor = { chunkId: null, idx: 0, beat: 0, elapsed: 0, wallAt: Date.now() };
+  const cursor = {
+    chunkId: null, idx: 0, beat: 0, beats: null, elapsed: 0, wallAt: Date.now(),
+  };
   let warnedIdx = false;      // the out-of-range warning is said once, not per press
   const transcript = [];
   const hints = [];           // what went to the strip, newest last
@@ -19387,7 +19471,10 @@ async function createSouffleuse({
     const changed = !lastStatus || lastStatus.state !== state || lastStatus.why !== why;
     lastStatus = { state, why };
     sendToCockpit({ type: 'souffleuse-status', state, why });
-    logLine('status', { state, why });
+    // The clock rides along because the log is read back: `--souffleuse-replay`
+    // measures the opening quiet from the `listening` that the switch wrote,
+    // and nothing else in the log says when the switch was thrown.
+    logLine('status', { state, why, elapsed: nowElapsed() });
     emit({ type: 'souffleuse', state, why });
     // The terminal hears the states a person would want to be told about. A
     // line per tick would bury the build log the author is actually reading.
@@ -19456,9 +19543,16 @@ async function createSouffleuse({
       }
       if (fresh) {
         logSession('build');
+        // The prompt beside the log, so the deck the model is reading can be
+        // read by a person. It is 20 to 60 KB and would be on every `tick`
+        // line; one file per hash is the same text once, and a new build with
+        // a changed deck writes a new one under its own name.
+        const promptPath = path.join(path.dirname(absIn), `souffleuse-${hash}.prompt.txt`);
+        try { fs.writeFileSync(promptPath, prefix.text); } catch (e) { /* not fatal */ }
         const kb = Math.round(prefix.text.length / 1024);
         log(`[souffleuse] deck ${deck.chunks.length} slides, prompt ${kb} KB (${hash}), `
           + `model ${model}, cadence ${cadence}s, cues ${cuesAllowed ? 'on' : 'off'}`);
+        log(`             the prompt as sent: ${promptPath}`);
         emit({
           type: 'souffleuse', state: disabled ? 'off' : 'ready',
           why: disabled ? disabled.why : null,
@@ -19503,6 +19597,11 @@ async function createSouffleuse({
     cursor.idx = idx;
     if (msg.beat != null && isFinite(Number(msg.beat))) {
       cursor.beat = Math.max(0, Math.round(Number(msg.beat)));
+    }
+    // How many beats the slide has in the cockpit's own DOM, which is the only
+    // place that number exists – the state line says `beat 2/3` with it.
+    if (msg.beats != null && isFinite(Number(msg.beats))) {
+      cursor.beats = Math.max(0, Math.round(Number(msg.beats)));
     }
     cursor.chunkId = (deck && deck.chunks[idx] && deck.chunks[idx].id)
       || (msg.chunkId == null ? cursor.chunkId : String(msg.chunkId));
@@ -19575,6 +19674,9 @@ async function createSouffleuse({
       enabled: !disabled,
       model,
       cadence,
+      // So the cockpit's first toast can say where the words go without
+      // saying it of a run in which they go nowhere.
+      dryRun,
       cues: cuesAllowed,
       cueCards: cues.map(c => ({ cueId: c.cueId, chunkId: c.chunkId, text: c.text })),
       session: prefix ? prefix.hash : null,
@@ -19741,7 +19843,8 @@ async function createSouffleuse({
     }) : false;
     const targets = cuesAllowed ? souff.cueTargets(deck, idx) : [];
     const session = {
-      deck, idx, chunkId: cursor.chunkId, beat: cursor.beat, chunkCount, elapsed,
+      deck, idx, chunkId: cursor.chunkId, beat: cursor.beat, beats: cursor.beats,
+      chunkCount, elapsed,
       drift: drift ? drift.drift : null,
       rough: drift ? drift.rough : false,
       timeHintAllowed: allowed,
@@ -19784,7 +19887,34 @@ async function createSouffleuse({
     return code ? `${msg} (code ${code})` : msg;
   }
 
+  // Said once per run, and only the first time, because it answers the two
+  // questions a rehearsal is read for and both are decided by then: how long
+  // the whisper took to arrive, and whether the deck is being paid for again
+  // every cadence. The log has both on every answer; the terminal needs them
+  // once, while somebody is still watching it.
+  let saidFirstAnswer = false;
+  function firstAnswer(json, durationMs) {
+    if (saidFirstAnswer) return;
+    saidFirstAnswer = true;
+    const u = (json && json.usage) || null;
+    const cached = u && u.prompt_tokens_details ? u.prompt_tokens_details.cached_tokens : null;
+    const cache = (cached != null && u && u.prompt_tokens != null)
+      ? `${cached} of ${u.prompt_tokens} prompt tokens cached`
+      : 'no cache figures in the reply';
+    log(`[souffleuse] first answer in ${(durationMs / 1000).toFixed(1)} s · ${cache}`);
+  }
+
   async function ask(message, session) {
+    // A dry run does everything except spend money and say anything to a
+    // third party: the ear, the socket, the ticks, the log and the policy all
+    // run, and this one call is skipped. It is the rehearsal tool - and the
+    // only way to read a `tick` message, with its state line and its window,
+    // without a key.
+    if (dryRun) {
+      logLine('answer', { dryRun: true, durationMs: 0 });
+      if (on && !disabled) status('listening');
+      return finish();
+    }
     const ctrl = new AbortController();
     inflight = ctrl;
     status('thinking');
@@ -19894,6 +20024,7 @@ async function createSouffleuse({
       usage: (json && json.usage) || null,
       durationMs,
     });
+    firstAnswer(json, durationMs);
     judge(souff.parseAnswer(json, session), session);
     return finish();
   }
@@ -19922,6 +20053,22 @@ async function createSouffleuse({
     status('error', `${why}; trying again in ${Math.round(wait / 1000)}s`);
   }
 
+  // A refusal the model meant something by, on the terminal. The log has every
+  // one of them, but the log is read after the talk – and while it is running,
+  // "the prompter has said nothing for ten minutes" and "the prompter has
+  // wanted to say six things and the policy took all six" look identical from
+  // the outside. A plain `nothing` is not one of these: that is the answer the
+  // whole design expects, and a line per tick would bury the build log.
+  // `too-long` and `bad-cue` come out of `parseAnswer` as a `nothing` already,
+  // so the test is not the action alone: an answer that carries words is one
+  // the model meant, whoever refused it.
+  function heldBack(reason, answer) {
+    const action = (answer && answer.action) || '';
+    const what = String((answer && answer.text) || '').trim();
+    if (action !== 'hint' && action !== 'cue' && !what) return;
+    log(`[souffleuse] held back (${reason}): "${what}"`);
+  }
+
   function judge(answer, session) {
     const now = nowElapsed();
     const verdict = policy.judge(answer, {
@@ -19942,8 +20089,10 @@ async function createSouffleuse({
         action: answer.action || null,
         kind: answer.kind || null,
         text: answer.text || null,
+        chunkId: answer.chunk_id || null,
         why: answer.why == null ? null : answer.why,
       });
+      heldBack(reason, answer);
       if (garbageStreak >= SOUFFLEUSE_MAX_GARBAGE) {
         status('error', `${SOUFFLEUSE_MAX_GARBAGE} unusable answers in a row from ${model}`);
       } else {
@@ -19968,6 +20117,7 @@ async function createSouffleuse({
         why: answer.why == null ? null : answer.why,
         ...extra,
       });
+      heldBack(reason, answer);
       status('listening');
     };
     if (answer.action === 'cue') {
@@ -20029,11 +20179,18 @@ async function createSouffleuse({
 
   // Said once, at the start, because it is the one thing about this flag a
   // person has to know before they use it. PLAN-souffleuse.md § Privacy.
-  log('[souffleuse] the live prompter is on. What leaves this machine, as text: the deck');
-  log('             including speaker notes, and what the cockpit hears, to ' + base + '.');
-  log('             Never audio, never to the projection, never into source.md, never a key');
-  log('             into the HTML. The microphone hears the room too – switch it off before');
-  log('             a question round, or tell the room.');
+  if (dryRun) {
+    log('[souffleuse] dry run: everything runs except the call to the model. The ear, the');
+    log('             socket, the ticks, the policy and the log are all real; nothing leaves');
+    log('             this machine and no OPENROUTER_API_KEY is needed. Read the `tick` lines');
+    log('             of the log to see the state line and the window a model would get.');
+  } else {
+    log('[souffleuse] the live prompter is on. What leaves this machine, as text: the deck');
+    log('             including speaker notes, and what the cockpit hears, to ' + base + '.');
+    log('             Never audio, never to the projection, never into source.md, never a key');
+    log('             into the HTML. The microphone hears the room too – switch it off before');
+    log('             a question round, or tell the room.');
+  }
   // The full path, not the basename, and a sentence about it: the log holds
   // the words the room said, and it is written beside source.md wherever that
   // is. That is where it is worth having – the debrief belongs with the deck
@@ -20043,6 +20200,8 @@ async function createSouffleuse({
   log('[souffleuse] the debrief of this run: ' + logPath);
   log('             It holds the spoken words verbatim. In a content repository of your own,');
   log('             put souffleuse-*.jsonl in its .gitignore before the first rehearsal.');
+  log('             Beside it, souffleuse-<hash>.prompt.txt is the system prompt of each');
+  log('             build, as sent – gitignore that too.');
   if (disabled) {
     log(`[souffleuse] disabled: ${disabled.why}. Nothing is sent; the transcript is still logged.`);
     emit({ type: 'souffleuse', state: 'off', why: disabled.why });
@@ -20469,7 +20628,24 @@ async function runWatch(absIn, only, baseOpts = {}) {
       // second cockpit tab takes the hints over by saying hello; the one that
       // said it last is the one being whispered to.
       if (msg.type.startsWith('souffleuse-')) {
-        if (msg.type === 'souffleuse-hello') cockpit = sock;
+        if (msg.type === 'souffleuse-hello') {
+          // The cockpit that was being whispered to is told it has been
+          // displaced. It used to be dropped in silence: a second tab – which
+          // is one stray `S` in the projection away – left the first one with
+          // its switch pressed, its microphone open and its strip empty for
+          // the rest of the talk, sending a transcript nothing answered. An
+          // `idle` with the reason is exactly what the cockpit already knows
+          // how to act on: the ear stops and the switch goes back up.
+          if (cockpit && cockpit !== sock && cockpit.readyState === 1) {
+            try {
+              cockpit.send(JSON.stringify({
+                type: 'souffleuse-status', state: 'idle',
+                why: 'another cockpit took the prompter',
+              }));
+            } catch (e) { /* it was going away anyway */ }
+          }
+          cockpit = sock;
+        }
         if (!sidecar) return reply(false, 'start the build with --souffleuse');
         return sidecar.onMessage(msg, reply, sock);
       }
@@ -20808,7 +20984,7 @@ async function runServe(rootDir, wantedPort) {
 // Flags that consume the following argv token as their value, so it is not
 // mistaken for the source path.
 const VALUE_FLAGS = new Set(['--max-width', '--port', '--viewport', '--squint-out', '--into',
-  '--souffleuse-model']);
+  '--souffleuse-model', '--souffleuse-replay']);
 
 // ── driving the built projection (shared by --check-fit and --squint) ─
 // Two commands answer questions that only a rendered page can answer - does
@@ -21657,6 +21833,46 @@ async function main() {
     return;
   }
 
+  // Reading a finished run's debrief back through today's policy. No watcher,
+  // no browser, no renderer and no network: one log, one frontmatter, and one
+  // line per answer saying what the model proposed and what the policy would
+  // do with it now. It is how a threshold gets changed with evidence.
+  const replayIdx = argv.indexOf('--souffleuse-replay');
+  if (replayIdx >= 0) {
+    const logFile = argv[replayIdx + 1];
+    const absIn = path.resolve(positional[0] || '');
+    if (!logFile || !fs.existsSync(logFile)) {
+      const err = new Error('--souffleuse-replay takes a souffleuse-*.jsonl written by an'
+        + ' earlier run.\n  node build.js <source.md> --souffleuse-replay souffleuse-20260911-1015.jsonl');
+      err.userFacing = true;
+      throw err;
+    }
+    if (!positional[0] || !fs.existsSync(absIn)) {
+      const err = new Error('--souffleuse-replay needs the source.md the log was written beside:'
+        + ' its\n  `souffleuse:` block is what the policy is rebuilt from.');
+      err.userFacing = true;
+      throw err;
+    }
+    const souff = await import('./souffleuse.mjs');
+    const { formatClock } = await import('./cue-cards.mjs');
+    const settings = souffleuseSettings(matter(fs.readFileSync(absIn, 'utf8')).data || {});
+    const lines = fs.readFileSync(logFile, 'utf8').split('\n')
+      .filter(l => l.trim()).map((l) => { try { return JSON.parse(l); } catch (e) { return null; } });
+    const rows = souff.replayAnswers(lines, { cooldown: settings.cooldown });
+    console.log(`[replay] ${path.basename(logFile)} · cooldown ${settings.cooldown}s`
+      + ` · ${rows.length} answer(s) the model gave`);
+    for (const r of rows) {
+      const what = r.action === 'cue' ? `cue → #${r.target}` : (r.kind || r.action);
+      console.log(`  ${String(r.n).padStart(3)} · ${formatClock(r.at)} · #${r.chunkId || '?'}`
+        + ` · ${what}${r.text ? `: "${r.text}"` : ''}`
+        + `\n        → ${r.show ? 'shown' : 'held back (' + r.reason + ')'}`
+        + (r.why ? ` · the model: ${r.why}` : ''));
+    }
+    const shown = rows.filter(r => r.show).length;
+    console.log(`[replay] ${shown} would be whispered, ${rows.length - shown} held back.`);
+    return;
+  }
+
   // Shiki must be ready before any renderer runs (the highlighter
   // singleton is shared across --watch rebuilds).
   await initHighlighter();
@@ -21710,6 +21926,13 @@ async function main() {
     console.error('  --souffleuse              run the prompter sidecar beside the watch build.');
     console.error('  --souffleuse-model ID     an OpenRouter model id, overriding the deck\'s');
     console.error('                            `souffleuse: model:` and the default.');
+    console.error('  --souffleuse-dry-run      everything but the call: the ear, the ticks, the');
+    console.error('                            policy and the log all run, nothing leaves the');
+    console.error('                            machine, and no key is needed.');
+    console.error('  --souffleuse-replay FILE  no watcher and no browser: read a run\'s');
+    console.error('                            souffleuse-*.jsonl back and print, per answer,');
+    console.error('                            what the model proposed and what the policy');
+    console.error('                            would do with it now.');
     console.error('  OPENROUTER_API_KEY        required; without it the prompter starts disabled');
     console.error('                            and only logs what it heard.');
     console.error('  OPENROUTER_BASE_URL       another OpenAI-compatible endpoint');
@@ -21778,6 +22001,17 @@ async function main() {
     err.userFacing = true;
     throw err;
   }
+  // The rehearsal switch. It is read nowhere but the sidecar, so on its own it
+  // is the same silent no-op --souffleuse-model was.
+  if (flags.has('--souffleuse-dry-run') && !flags.has('--souffleuse')) {
+    const err = new Error(
+      '--souffleuse-dry-run without --souffleuse.\n'
+      + '  It says what the prompter should skip, and without a prompter there is\n'
+      + '  nothing to skip – the build would be an ordinary one.\n'
+      + '  node build.js <source.md> --watch --souffleuse --souffleuse-dry-run');
+    err.userFacing = true;
+    throw err;
+  }
   if (flags.has('--souffleuse')) {
     if (!flags.has('--watch')) {
       const err = new Error(
@@ -21788,7 +22022,10 @@ async function main() {
       err.userFacing = true;
       throw err;
     }
-    opts.souffleuse = { model: souffModelIdx >= 0 ? argv[souffModelIdx + 1] : null };
+    opts.souffleuse = {
+      model: souffModelIdx >= 0 ? argv[souffModelIdx + 1] : null,
+      dryRun: flags.has('--souffleuse-dry-run'),
+    };
   }
 
   const absIn = path.resolve(inputPath);

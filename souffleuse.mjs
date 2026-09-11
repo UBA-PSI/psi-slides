@@ -116,10 +116,31 @@ export const TOOL_SCHEMA = {
 
 // ── small pure helpers ───────────────────────────────────────────────
 
+// Scripts that do not put a space between two words: CJK ideographs and the
+// two extension blocks a talk is likely to use, kana, Hangul, Thai. One
+// character is one word there, which is the only counting rule that makes the
+// twelve-word gate mean anything in those languages – `wordCount` on a
+// Chinese sentence used to answer 1, so a hint of forty characters was inside
+// the budget and a whole paragraph could be whispered. The same number is the
+// cadence's `newWordsSince`, where the error ran the other way: eight words
+// were never reached and a speech tick could not fire at all.
+const DENSE_SCRIPT_RE = new RegExp('['
+  + '\\u0e00-\\u0e7f'      // Thai
+  + '\\u1100-\\u11ff'      // Hangul Jamo
+  + '\\u3040-\\u30ff'      // Hiragana and Katakana
+  + '\\u3130-\\u318f'      // Hangul compatibility Jamo
+  + '\\u3400-\\u4dbf'      // CJK Unified Ideographs Extension A
+  + '\\u4e00-\\u9fff'      // CJK Unified Ideographs
+  + '\\uac00-\\ud7af'      // Hangul syllables
+  + '\\uf900-\\ufaff'      // CJK Compatibility Ideographs
+  + ']', 'g');
+
 export function wordCount(text) {
   const s = String(text == null ? '' : text).trim();
   if (!s) return 0;
-  return s.split(/\s+/).filter(Boolean).length;
+  const dense = (s.match(DENSE_SCRIPT_RE) || []).length;
+  const spaced = s.replace(DENSE_SCRIPT_RE, ' ').split(/\s+/).filter(Boolean).length;
+  return dense + spaced;
 }
 
 /**
@@ -593,7 +614,12 @@ function safeJson(raw) {
  * it distinguishes a model that stayed silent from one that talked nonsense.
  */
 export function parseAnswer(response, session = {}) {
-  const no = (reason) => ({ action: 'nothing', reason });
+  // A refusal carries whatever of the answer was already legible. The log
+  // line the sidecar writes for a suppressed answer is the whole of the
+  // debrief on this call, and `bad-cue` used to reach it with `text: null` –
+  // so "the model is ignoring cue_targets" was a reason with nothing under
+  // it, and nobody could see which card it had wanted to lay where.
+  const no = (reason, extra) => Object.assign({ action: 'nothing', reason }, extra || {});
   const msg = response && response.choices && response.choices[0]
     ? response.choices[0].message : null;
   let args = null;
@@ -611,22 +637,31 @@ export function parseAnswer(response, session = {}) {
   }
   if (action !== 'hint' && action !== 'cue') return no('garbage');
 
+  // What was named, for a refusal to carry through. `kind` and `chunk_id` are
+  // still the model's raw words here: the point of putting them in a
+  // `suppressed` line is to show what it asked for, not what it should have.
+  const said = {};
+  if (why !== undefined) said.why = why;
+  if (args.kind != null) said.kind = String(args.kind).trim();
+  if (args.chunk_id != null) said.chunk_id = String(args.chunk_id).trim();
+
   const text = String(args.text == null ? '' : args.text).replace(/\s+/g, ' ').trim();
-  if (!text) return no('garbage');
-  if (wordCount(text) > MAX_WORDS) return no('too-long');
+  if (!text) return no('garbage', said);
+  said.text = text;
+  if (wordCount(text) > MAX_WORDS) return no('too-long', said);
 
   if (action === 'cue') {
     const targets = (Array.isArray(session && session.cueTargets) ? session.cueTargets : [])
       .map(String);
     const chunkId = String(args.chunk_id == null ? '' : args.chunk_id).trim();
-    if (!chunkId || targets.indexOf(chunkId) < 0) return no('bad-cue');
+    if (!chunkId || targets.indexOf(chunkId) < 0) return no('bad-cue', said);
     const out = { action: 'cue', text, chunk_id: chunkId };
     if (why !== undefined) out.why = why;
     return out;
   }
 
   const kind = String(args.kind || '').trim();
-  if (KINDS.indexOf(kind) < 0) return no('garbage');
+  if (KINDS.indexOf(kind) < 0) return no('garbage', said);
   const severity = SEVERITIES.indexOf(String(args.severity || '').trim()) >= 0
     ? String(args.severity).trim() : 'low';
   const out = { action: 'hint', kind, text, severity };
@@ -996,4 +1031,73 @@ export function createPolicy(opts = {}) {
     standing: (now) => standingAt(now),
     history: () => history.slice(),
   };
+}
+
+// ── the log, read back ───────────────────────────────────────────────
+
+/**
+ * A run's JSONL, replayed through today's parser and today's policy.
+ *
+ * The debrief holds the model's raw answer on every `answer` line, so a
+ * finished talk can be asked the question the talk itself could not: what
+ * would the prompter do with these answers now? That is how a threshold is
+ * changed with evidence rather than by feel – `--souffleuse-replay`.
+ *
+ * The switch being thrown is a `status` line carrying the clock it was thrown
+ * on, and that is where the opening quiet is measured from; an `idle` or an
+ * `off` un-throws it. A log too old to carry that falls back to the first
+ * `tick`. Each answer is judged in the state line of the tick before it.
+ *
+ * @param {Array} lines   parsed JSONL objects, or the raw lines
+ * @param {object} opts   passed straight to `createPolicy`
+ * @returns {Array} one row per answer: what was proposed, and what the policy
+ *                  would do with it now
+ */
+export function replayAnswers(lines, opts = {}) {
+  const policy = createPolicy(opts || {});
+  const rows = [];
+  let at = 0, chunkId = null, allowed = false, targets = [], onAt = null, n = 0;
+  for (const raw of (Array.isArray(lines) ? lines : [])) {
+    const line = typeof raw === 'string' ? safeJson(raw) : raw;
+    if (!line || typeof line !== 'object') continue;
+    if (line.type === 'status') {
+      const st = String(line.state || '');
+      if (st === 'idle' || st === 'off') onAt = null;
+      else if (onAt == null && line.elapsed != null) onAt = num(line.elapsed, 0);
+      continue;
+    }
+    if (line.type === 'tick') {
+      at = num(line.elapsed, at);
+      chunkId = line.chunkId == null ? chunkId : String(line.chunkId);
+      allowed = !!line.timeHintAllowed;
+      targets = Array.isArray(line.cueTargets) ? line.cueTargets.map(String) : [];
+      if (onAt == null) onAt = at;
+      continue;
+    }
+    if (line.type !== 'answer' || line.dryRun) continue;
+    n += 1;
+    const answer = parseAnswer(line.body, { cueTargets: targets });
+    const verdict = policy.judge(answer, {
+      now: at,
+      elapsedSinceOn: at - (onAt == null ? at : onAt),
+      chunkId, cueTargets: targets, timeHintAllowed: allowed,
+    });
+    if (verdict.show) {
+      policy.shown({
+        id: 'replay' + n, action: answer.action, kind: answer.kind,
+        text: answer.text, chunk_id: answer.chunk_id, chunkId, at,
+      });
+    }
+    rows.push({
+      n, at, chunkId,
+      action: answer.action,
+      kind: answer.kind || null,
+      text: answer.text || null,
+      target: answer.chunk_id || null,
+      why: answer.why == null ? null : answer.why,
+      show: !!verdict.show,
+      reason: verdict.show ? null : (verdict.reason || 'nothing'),
+    });
+  }
+  return rows;
 }
