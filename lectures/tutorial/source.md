@@ -818,6 +818,44 @@ step blame
 
 > note: `print.html` and `print-notes.html` draw the **last** step rather than every step laid over each other, so an element a step hid stays hidden. Emphasis is the exception and comes from the first step, so attention you move around during the talk never reaches the paper while a `{.dim}` written on an element's own line does: written on the line it is part of the drawing, written inside a `step` it is part of the talk.
 
+## example: Words that arrive with a step | `--- from N` pins a beat by number {.full #diagram-beats-pinned}
+
+**A beat is taken in the order it was written, and that is wrong for one shape: a figure that steps in one pane and the words about it in the other.** Written plainly the figure's steps come first and the words queue behind them, because document order is the only order there is. `--- from N` pins a beat to an advance by number instead, so the two halves move together.
+
+::: side
+
+::: draw 120x44
+box a "request" at 0,0 {.tone-2}
+box b "cache" below a gap 0.55 {.tone-1}
+box c "origin" below b gap 0.55 {.tone-1}
+edge a -> b
+edge b -> c {.dashed}
+
+step hit
+  emph b
+step miss
+  dim b
+  emph c
+:::
+
+::: flip
+
+The request reaches the cache first, and most of the time that is the end of it.
+
+--- from 1
+
+**A hit** is answered from the cache, and the dashed line is never walked.
+
+--- from 2
+
+**A miss** walks it, and the origin pays for the request instead.
+
+:::
+
+**A pinned beat rides one the slide already has rather than adding one**, so this chunk takes two presses, not four. `from 0` is refused – that is the beat the slide opens on, so write the words above the marker – and so is a `from` inside an `::: overlay from N` or a `::: dock from N`, which numbers its own markers already.
+
+> note: The two paragraphs and the two steps are written in different panes, so before `from` existed the only way to keep them together was to give the prose no beats at all and let it stand there from the start – which tells the room the answer before the question.
+
 ## example: Every line has the same six slots | `kind name label placement options tail` {.full .blocks-left #diagram-slots}
 
 **Every line in a `::: draw` block has the same six slots, in this order**, and most lines fill three or four of them:

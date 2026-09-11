@@ -8912,7 +8912,12 @@ const FOCUSABLE_SEL = 'figure.figure-img, figure.figure-diagram, .chunk-body pre
 // Everything that is held to a beat by from N. One string, or the three
 // walks below (chunkBeats, countSegments, applyReveal) disagree about what
 // arrives when. A dock with from is, for the counter, an overlay card.
-const FROM_SEL = '.overlay-card[data-from], .dock[data-from]';
+// Everything held to a beat by a written from-number. A reveal segment joins
+// the two containers because a marker inside a pinned segment has to count
+// from the segment's own beat: numbered positionally it un-hid on beat 1
+// inside a segment that does not arrive until beat 3, and then both halves
+// appeared together on 3, losing the stagger the author wrote.
+const FROM_SEL = '.overlay-card[data-from], .dock[data-from], .reveal-segment[data-from]';
 
 // ── Slide-size sync ─────────────────────────────────────────────────
 // --slide-w / --slide-h hold the AUDIENCE window's pixel dimensions so
@@ -26190,7 +26195,18 @@ function dgeSwapEnds(id) {
 // panel would turn `scan\_page` into `scan\` plus a subscript on the way back
 // to the source.
 function dgeQuote(v) {
-  return String(v).replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  // A backslash the tokenizer would eat has to be doubled first, or the value
+  // comes back changed with no error anywhere. dgTokenize reads `\n` as a
+  // newline and `\"` as a quote that does not close the string, and passes
+  // every other `\X` through whole - so a value ending in a backslash wrote
+  // `"C:\"`, which escaped the closing quote and swallowed the rest of the
+  // line, and a value holding `\` before an n wrote a newline into the label.
+  //
+  // Doubled, the drawing is right: the token gains a backslash and dgSpans
+  // collapses `\\` back to one. It is not byte-exact at the token level, so a
+  // value like `C:\` grows by one backslash per edit round-trip - the
+  // tokenizer has no encoding for it at all, which is TODO-bugfix.md entry 1.
+  return String(v).replace(/\\(?=[n"]|$)/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
 
 // One question, two callers: the panel asks it against DGE, a gesture against
