@@ -120,6 +120,18 @@ const LIVE_RIG = `
 // number off the shot before deciding; it is four pixels of evidence against
 // an afternoon of re-encoding.
 //
+// And the trigger list above is incomplete in a way worth stating, because it
+// is what the two rules on either side of it would both miss: a shot can go
+// stale from an edit to a chunk it does not frame and does not show. The stage
+// is a continuous column and the camera's translate is computed from the active
+// chunk's offset in it, so growing an upstream chunk moves the frame. Measured:
+// rewriting two sentences in the decoration chunk directly above #reveal-close
+// took that chunk from 1001px to 1271px, which landed the frame 0.56 CSS px
+// lower and changed deco-backdrop. Three builds settled it - old engine with
+// old source, new with new, and new with only those two sentences reverted, the
+// third byte-identical to the first. So neither "did the framed chunk change"
+// nor a reading of the diff decides this. Running the rig does.
+//
 // A pixel-difference count is not that measurement, and it misleads in both
 // directions. deco-backdrop is a full-frame gradient, so a one-pixel shift lit
 // up 26 % of the image; a screenshot of text where one word changed lights up
