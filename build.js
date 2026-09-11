@@ -1946,15 +1946,38 @@ function renderCardsBlock(b) {
   const cls = [b.rows ? 'cards rows' : 'cards', `cards-${b.n}`, `cs-${size}`, `ca-${align}`,
     `cv-${o.anchor}`, `cd-${o.detail}`, `cg-${o.ground}`, `ck-${o.corner}`,
     `cx-${o.scrim}`];
-  // A scrim with no picture to veil is a word the drawing ignores, which
-  // this format refuses rather than drops. Checked against the *written*
-  // tail, so `{.veil}` alone is caught even though veil is the default.
-  if (o.ground !== 'photo' && o.written.scrim) {
-    const err = new Error(
-      `::: ${b.rows ? 'rows' : 'cards'} in ${b.where}: a scrim needs a picture to veil.\n` +
-      `  ${o.scrim} applies to the photo ground; this row is ${o.ground}.`);
+  // A .photo ground, and a scrim over it, are words the drawing ignores
+  // unless a card actually carries a picture - and a word that does nothing
+  // is a refusal in this format, not a silent no-op. Both are checked against
+  // the *written* tail, so `.photo` or `{.veil}` alone is caught even though
+  // one draws nothing and the other is the default. `hasPicture` reads the
+  // block's own lines: a markdown image, or a compiled <figure>/<svg>/<img>
+  // spliced in (a ::: draw figure, an inlined asset).
+  const what = b.rows ? 'rows' : 'cards';
+  const bad = (msg) => {
+    const err = new Error(`::: ${what} in ${b.where}: ${msg}`);
     err.userFacing = true;
     throw err;
+  };
+  const hasPicture = b.lines.some(l =>
+    /!\[[^\]]*\]\([^)]*\)/.test(l) || /<(?:figure|img|svg)\b/.test(l));
+  if (o.written.ground && o.ground === 'photo' && !hasPicture) {
+    bad('.photo makes a card\'s first image its ground, and no card here carries one.\n' +
+        '  Give a card a picture, or drop .photo.');
+  }
+  if (o.written.scrim && (o.ground !== 'photo' || !hasPicture)) {
+    bad('a scrim needs a picture to veil.\n' +
+        (o.ground !== 'photo'
+          ? `  ${o.scrim} applies to the photo ground; this row is ${o.ground}.`
+          : `  ${o.scrim} veils a card's picture, and no card here carries one.`));
+  }
+  // detail decides what happens to a card's nested level - fold hides it on
+  // the projection, show keeps it there, page keeps it to the hand-out. With
+  // no nested level there is nothing for the word to act on, so a written one
+  // is refused the way a groundless scrim is.
+  if (o.written.detail && !nested) {
+    bad(`detail: ${o.detail} decides what happens to a card's nested level, and no\n` +
+        '  card here has one. Add a nested list, or drop the detail word.');
   }
   return `<div class="${cls.join(' ')}">\n${marked.parse(body.join('\n'))}\n</div>`;
 }
@@ -4436,6 +4459,18 @@ function parseLecture(src) {
             flushExpansion();
             continue;
           }
+          // Nothing is open, so this ::: closes nothing. It used to fall
+          // through to the body and render as a literal `:::` paragraph on
+          // the slide; lint.js has reported stray-directive-close on it, and
+          // the build rendering what the linter refuses is the direction this
+          // project does not allow. An intentional ::: as content goes in a
+          // code fence or an inline `code span`, both of which are handled
+          // before this line is ever reached.
+          refuse(
+            `a ::: closes a block, and none is open here (${chunkRef()}).\n` +
+            '  It would otherwise print as a literal ::: on the slide. If you\n' +
+            '  meant the characters themselves, put them in a code fence or an\n' +
+            '  inline `code span`.');
         }
       }
     }
@@ -10011,6 +10046,18 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   background: color-mix(in oklch, var(--ink) 5%, transparent);
   border-radius: 10px;
   padding: 0.5em 0.7em;
+}
+/* Over a photograph the 5% tint is invisible, so the heading stands on the
+   bare picture - the one place a divider's heading cannot move into an
+   overlay, because the renderer owns it. On a clear backdrop the card plate
+   becomes the theme's own paper (like an overlay's veil), so the heading
+   reads over any photo in any of the seven themes. This is what makes
+   section:card a real answer to a photo divider, and why the text-on-picture
+   warning yields to it. */
+.chunk[data-section=card][data-has-backdrop] .section-heading {
+  background: color-mix(in oklch, var(--paper) 90%, transparent);
+  color: var(--ink);
+  box-shadow: 0 1px 12px oklch(0 0 0 / 0.28);
 }
 /* number - the counter carries the weight, so the heading steps back. */
 .chunk[data-section=number] .section-heading { font-size: calc(2.1em * var(--zoom)); }

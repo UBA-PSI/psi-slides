@@ -241,7 +241,7 @@ A column with a `# Heading` opens with a divider slide so the camera lands on th
 | `plain` | the heading alone. **The default** |
 | `tinted` | the whole slide takes the accent, lightly – `color-mix(in oklch, var(--emph) 12%, var(--paper))` |
 | `rule` | the heading between two rules across the measure. The quietest, and the one that survives a monochrome print |
-| `card` | the heading on a panel, which is the card vocabulary borrowed rather than a fifth thing to learn |
+| `card` | the heading on a panel, which is the card vocabulary borrowed rather than a fifth thing to learn. **Over a `::: backdrop {.clear}` photo the panel becomes the theme's own paper**, so the heading reads on a plate rather than standing on the bare picture – this is the one way a divider's heading (which the renderer owns, so it cannot move into an overlay) is grounded over an unveiled photograph, and `text-on-picture` yields to it |
 | `number` | a large counter above the heading, which steps the heading back |
 | `outline` | the running agenda: every part listed, this one live |
 

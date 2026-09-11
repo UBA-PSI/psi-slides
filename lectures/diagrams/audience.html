@@ -2678,6 +2678,18 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   border-radius: 10px;
   padding: 0.5em 0.7em;
 }
+/* Over a photograph the 5% tint is invisible, so the heading stands on the
+   bare picture - the one place a divider's heading cannot move into an
+   overlay, because the renderer owns it. On a clear backdrop the card plate
+   becomes the theme's own paper (like an overlay's veil), so the heading
+   reads over any photo in any of the seven themes. This is what makes
+   section:card a real answer to a photo divider, and why the text-on-picture
+   warning yields to it. */
+.chunk[data-section=card][data-has-backdrop] .section-heading {
+  background: color-mix(in oklch, var(--paper) 90%, transparent);
+  color: var(--ink);
+  box-shadow: 0 1px 12px oklch(0 0 0 / 0.28);
+}
 /* number - the counter carries the weight, so the heading steps back. */
 .chunk[data-section=number] .section-heading { font-size: calc(2.1em * var(--zoom)); }
 

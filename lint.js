@@ -1146,8 +1146,16 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       }
       const targets = words.slice(1).join(',').split(',').map(s => s.trim()).filter(Boolean);
       const stop = new Set(['to', 'by', 'gap', 'align', 'of', 'right', 'left', 'below', 'above', 'at']);
+      // A prominence verb (emph/dim/ghost) takes element names, never column
+      // indices - `emph 1,3` means indices on a `bars` line, but in a step the
+      // same words are names, and the build refuses a numeric one as
+      // undefined. Breaking on the number left lint silent on exactly that, so
+      // refer() a numeric target for a prominence verb and let the reference
+      // check name it (the build says "refers to '2', which is not defined").
+      const isProm = DG_PROMINENCE.includes(head);
       for (const t of targets) {
-        if (stop.has(t) || /^-?[\d.]+(,-?[\d.]+)?$/.test(t)) break;
+        if (stop.has(t)) break;
+        if (/^-?[\d.]+(,-?[\d.]+)?$/.test(t) && !isProm) break;
         refer(t, ln, `step ${head}`);
       }
       continue;
@@ -2156,6 +2164,10 @@ function lintFile(filePath) {
   const { body, fmLines, header } = splitFrontmatter(src);
   const lines = body.split('\n');
   const findings = [];
+  // The section divider composition, for the one check that depends on it:
+  // `section: card` plates the divider's heading, so on a `.clear` backdrop
+  // the heading is readable and text-on-picture yields to it.
+  const sectionVariant = (header.match(/^section:[ \t]*["']?([a-z]+)/m) || [, 'plain'])[1];
 
   const add = (bodyLine, severity, rule, msg) => {
     if (ignores.has(rule)) return;
@@ -2592,10 +2604,17 @@ function lintFile(filePath) {
   // The measure a new block would be given, in em: the chunk's width,
   // divided by every open ::: cols / ::: cards, and by a ::: side pane's
   // share of its ratio (gap ignored, panes get the benefit of the doubt).
+  // A title or closing chunk is always full width (its cover composition
+  // decides it, and a width class on it is refused), and outline defaults to
+  // wide. Measuring closing as `standard` reported layout-too-narrow on a card
+  // row that fits full width - a warning the author cannot even silence, since
+  // the width class it names is not allowed on the chunk.
+  const defaultWidthFor = (tag) =>
+    tag === 'title' || tag === 'closing' ? 'full' : tag === 'outline' ? 'wide' : 'standard';
   const measureHere = () => {
     if (!chunk) return Infinity;
     const wcls = [...(chunk.classes || [])].find(c => WIDTH_EM[c]);
-    let em = WIDTH_EM[wcls || (chunk.tag === 'outline' ? 'wide' : 'standard')];
+    let em = WIDTH_EM[wcls || defaultWidthFor(chunk.tag)];
     if (chunk.dock && (chunk.dock.edge === 'left' || chunk.dock.edge === 'right')) {
       em = Math.min(em, SLIDE_EM - SLIDE_PAD_EM - DOCK_EM[chunk.dock.width] - DOCK_GAP_EM);
     }
@@ -2606,9 +2625,10 @@ function lintFile(filePath) {
     }
     return em;
   };
-  // Named the way the width was written: a chunk with no class is standard.
+  // Named the way the width was written: a chunk with no class takes its
+  // type's default (full for title/closing, wide for outline, else standard).
   const widthWord = () => [...(chunk && chunk.classes || [])].find(c => WIDTH_EM[c])
-    || (chunk && chunk.tag === 'outline' ? 'wide' : 'standard');
+    || (chunk ? defaultWidthFor(chunk.tag) : 'standard');
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
@@ -2788,6 +2808,17 @@ function lintFile(filePath) {
     // file that builds. See the ::: expand branch in build.js.
     const expandOpen = line.match(/^:::\s+expand\s+(.+?)\s*$/);
     const marginOpen = line.match(/^:::\s+(footnote|margin)\s*$/);
+    if (marginOpen && marginOpen[1] === 'margin') {
+      // ::: margin is the older spelling of ::: footnote and still builds, so
+      // no existing source breaks - but it is one keystroke from ::: marginalia,
+      // a different construct in a different place, and it names the one place
+      // the block never sits. A deprecation nudge, not a refusal: the build
+      // accepts it (a warning that failed the build would break five real
+      // lectures that still write it). Planned for removal in a future major.
+      add(ln, 'warn', 'deprecated-margin',
+          '::: margin is the old spelling of ::: footnote - rename it; the alias is '
+          + 'deprecated and a future major version will drop it');
+    }
     if (expandOpen || marginOpen) {
       if (activeDirective) {
         add(ln, 'error', 'nested-directive',
@@ -2848,10 +2879,15 @@ function lintFile(filePath) {
       // ink readable, invert turns it light; a panel or a dock is the third.
       if (!bdTail.problems.length && bdTail.slots.scrim.value === 'clear') {
         if (chunk) chunk.clearBackdrop = ln;
-        else if (col) {
+        // section: card plates the divider's heading, so it reads over the
+        // photo - the one thing a divider cannot do with an overlay, since the
+        // renderer owns the heading. So the card composition is a real answer
+        // here, and the warning does not fire when it is in force.
+        else if (col && sectionVariant !== 'card') {
           add(ln, 'warn', 'text-on-picture',
               '::: backdrop {.clear} under a column heading – the divider\'s heading and agenda stand on the '
-              + 'unveiled picture; drop .clear (veil), write .invert, or give the words a ::: overlay {.panel} or a ::: dock');
+              + 'unveiled picture; drop .clear (veil), write .invert, set section: card to plate the heading, '
+              + 'or give any prose a ::: overlay {.panel} or a ::: dock');
         }
       }
       // `reveal` is a comma list of places, one per beat. Mirrored because
@@ -3513,9 +3549,14 @@ function collectFiles(inputs) {
 function main() {
   const args = process.argv.slice(2);
   const strict = args.includes('--strict');
+  // The build does not require an {#id} on a chunk - a missing one gets a
+  // positional key, which is fine while a talk is still being prototyped and
+  // ids are not yet frozen. The linter complains by default so a finished
+  // deck gets its stable ids; this flag turns that off for the prototype.
+  const allowMissingIds = args.includes('--allow-missing-ids');
   const inputs = args.filter(a => !a.startsWith('--'));
   if (inputs.length === 0) {
-    console.error('usage: node lint.js <source.md | dir> [--strict]');
+    console.error('usage: node lint.js <source.md | dir> [--strict] [--allow-missing-ids]');
     process.exit(2);
   }
   const files = collectFiles(inputs);
@@ -3527,6 +3568,7 @@ function main() {
   let errors = 0, warnings = 0;
   for (const f of files) {
     for (const x of lintFile(f)) {
+      if (allowMissingIds && x.rule === 'missing-id') continue;
       const sev = x.severity === 'error' ? 'error' : 'warn ';
       console.log(`${x.file}:${x.line}  ${sev}  ${x.rule.padEnd(22)}  ${x.msg}`);
       if (x.severity === 'error') errors++;

@@ -902,7 +902,12 @@ Three uses, and they are the reason it exists:
   the dock is on every chunk of the part. Each item is a link to a chunk's
   `{#id}` (or a column's), and the item the room is on lights up – `done`,
   `now`, `next`, like `section: outline`. A link to an id nothing carries is a
-  build error.
+  build error. **Its scope is one part, not the whole deck** – for a nav that
+  runs through every part, repeat the same block under each `#` heading (the
+  live marker stays correct on its own, because it reads the `#id` links, not
+  where the dock sits). For a genuinely deck-wide running agenda, reach for
+  `section: outline` or the `## outline:` chunk instead; `.every` is a
+  part-level nav.
 - **A line that stays.** `::: dock {.bottom .accent .third}` on one chunk is a
   band a third of the slide high under the words – a definition or a rule the
   slide keeps in view. An own dock replaces an inherited one for that slide.
@@ -1211,7 +1216,14 @@ verifies nothing.
 node lint.js lectures/                    # everything
 node lint.js lectures/<slug>/source.md    # one file
 node lint.js lectures/ --strict           # warnings exit 2
+node lint.js <source.md> --allow-missing-ids   # while prototyping, before ids are frozen
 ```
+
+`--allow-missing-ids` silences `missing-id`. A chunk's `{#id}` is not required
+by the build – a missing one gets a positional key – so this is for a talk
+still being sketched; add the ids before the deck is finished, because they are
+the anchor the TOC, cross-references and speaker sync all use, and a positional
+key shifts when a chunk is inserted above.
 
 Rules you will meet while authoring: `unknown-type`, `unknown-class`,
 `stray-attribute`, `same-slot` (the three every `{…}` tail can raise, heading
@@ -1221,7 +1233,10 @@ or directive – the message names which), `missing-id`, `duplicate-id`,
 `stray-directive-close`, `nested-directive`, `unclosed-math`, `reveal-overuse`,
 `orphan-column` (a column with fewer than two chunks),
 `figure-caption-redundant`, `single-word-bold`, `figure-type-without-figure`,
-`oversized-asset`,
+`oversized-asset`, `unresolved-asset` (an explicit `![](path)` that names no
+file, so the build renders a placeholder rather than a broken external `src` –
+usually the fix is dropping the extension so the `assets/` shorthand resolves
+it), `deprecated-margin` (the old `::: margin` spelling of `::: footnote`),
 `unknown-view-default`,
 `unknown-style-setting`, `bad-backdrop`, `duplicate-backdrop`, `bad-overlay`,
 `bad-cols`, `bad-cards`, `bad-rows`, `cards-nested`, `bad-side`,

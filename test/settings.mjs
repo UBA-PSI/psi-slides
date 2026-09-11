@@ -369,7 +369,10 @@ console.log('\nlayout generations');
      'a row with a second level stays left even when its heads are two words');
   ok(/\[data-collapse=topic-bold\] \.cards\.cd-fold li ul/.test(nested),
      'and the second level is folded away on the projection, not in the markup');
-  const forced = mk('::: cards 2 {.small .center .middle .show .outline}\n- Measure\n- Probe\n:::\n');
+  // A nested level so `.show` has something to act on - it is refused
+  // otherwise, the same way a groundless scrim is. The written classes map to
+  // the markup regardless of content, which is what this checks.
+  const forced = mk('::: cards 2 {.small .center .middle .show .outline}\n- Measure\n  - one\n- Probe\n  - two\n:::\n');
   ok(/cs-small ca-center cv-middle cd-show cg-outline/.test(forced),
      'and every one of the five is overridable by name');
 }
@@ -869,6 +872,21 @@ console.log('\nlayout generations');
     ok(codes(FMX.replace('## free: F {#f}', '## free: F {.bare #f}') + BD.replace(' .clear', '') + 'Prose.\n').every(c => c !== 'text-on-picture'),
        'nor is prose on a veiled picture');
     ok(codes(PART(BD, '## free: G {#g}\n\nB.\n')).includes('text-on-picture'), 'a divider with a .clear backdrop is, since its heading always stands on it');
+    // …unless section: card plates the heading: over a photo the card becomes
+    // the theme's own paper, so the heading reads and the warning yields.
+    const PART_CARD = (bd, chunks) => '---\ntitle: T\nsection: card\n---\n\n## title: {#title}\n\n# Part {#p}\n\n' + bd + '\n' + chunks;
+    ok(codes(PART_CARD(BD, '## free: G {#g}\n\nB.\n')).every(c => c !== 'text-on-picture'),
+       'unless section: card plates the heading over the photo');
+    // and the plate is a real ground - the theme's paper, not the 5% tint the
+    // card gets on a plain background.
+    {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-c3-'));
+      fs.writeFileSync(path.join(dir, 'source.md'), PART_CARD(BD, '## free: G {#g}\n\nB.\n'));
+      const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
+      const html = r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '';
+      ok(/\.chunk\[data-section=card\]\[data-has-backdrop\] \.section-heading/.test(html),
+         'a card divider over a backdrop gets an opaque paper plate on its heading');
+    }
     const words = (n) => Array.from({ length: n }, (_, i) => 'word' + i).join(' ');
     ok(codes(FMX + words(240) + '.\n\n::: dock\n' + words(20) + '.\n:::\n').includes('density'), 'an own dock counts against the density budget');
     ok(!codes(PART('::: dock {.every}\n' + words(20) + '.\n:::\n', '## free: G {#g}\n\n' + words(240) + '.\n\n## free: H {#h}\n\nB.\n')).includes('density'),
@@ -2450,6 +2468,32 @@ console.log('\nlayout generations');
   ok(rowsTop.code === 0 && /cv-top/.test(rowsTop.html || ''), 'and a written .top is honoured, because it was written');
   const veilNoPhoto = raw(FM + '## free: A {#a}\n\n::: cards 2 {.veil}\n- One\n- Two\n:::\n');
   ok(veilNoPhoto.code !== 0 && /scrim needs a picture/.test(veilNoPhoto.out), 'a written default scrim with no photo is still refused');
+  // A .photo ground with no card carrying a picture is the same no-op as a
+  // scrim with no photo, and the same refusal - it used to build, and worse,
+  // .photo beside a scrim silently switched the scrim's own refusal off.
+  const photoNoImg = raw(FM + '## free: A {#a}\n\n::: cards 2 {.photo}\n- One\n- Two\n:::\n');
+  ok(photoNoImg.code !== 0 && /\.photo makes a card/.test(photoNoImg.out), '.photo with no picture in any card is refused');
+  const photoVeilNoImg = raw(FM + '## free: A {#a}\n\n::: cards 2 {.photo .veil}\n- One\n- Two\n:::\n');
+  ok(photoVeilNoImg.code !== 0, '.photo .veil together with no picture no longer slips through the scrim check');
+  // …and both build when a card actually carries one.
+  const photoWithImg = raw(FM + '## figure: A {#a}\n\n::: cards 2 {.photo .veil}\n- ![](x)\n  one\n- ![](x)\n  two\n:::\n');
+  ok(photoWithImg.code === 0, 'a photo ground with a picture in each card builds', photoWithImg.out.split('\n')[0]);
+  // detail decides what happens to a nested level; with none, the word does
+  // nothing, so a written one is refused like a groundless scrim.
+  const showNoNest = raw(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One** a\n- **Two** b\n:::\n');
+  ok(showNoNest.code !== 0 && /detail: show decides/.test(showNoNest.out), 'detail: show with no nested level is refused');
+  const showNested = raw(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One**\n  - a\n  - b\n- **Two**\n  - c\n:::\n');
+  ok(showNested.code === 0, 'and detail: show builds when a card has a nested level', showNested.out.split('\n')[0]);
+  // A ::: that closes nothing used to render as a literal ::: paragraph on
+  // the slide; the build refuses it now, congruent with lint's
+  // stray-directive-close. An intentional ::: as content goes in a code
+  // fence, which is handled before the closer is ever considered.
+  const strayClose = raw(FM + '## free: A {#a}\n\nBody.\n:::\n');
+  ok(strayClose.code !== 0 && /closes a block, and none is open/.test(strayClose.out),
+     'a ::: that closes nothing is refused, not printed as text', strayClose.out.split('\n')[0]);
+  ok(/stray-directive-close/.test(lintOf(FM + '## free: A {#a}\n\nBody.\n:::\n')), 'and the linter says stray-directive-close');
+  const fencedColon = raw(FM + '## free: A {#a}\n\n```\n:::\n```\n');
+  ok(fencedColon.code === 0 && /:::/.test(fencedColon.html || ''), 'a ::: inside a code fence stays content and builds', fencedColon.out.split('\n')[0]);
 
   // ── the ::: draw opener: positional grid, keyword playback ─────────
   const drawOf = (open) => raw(FM + `## figure: F {#f}\n\n${open}\nbox a "A"\nbox b "B" right of a gap 1\n\nstep one\n  dim a\n:::\n`, ['--audience-only']);
@@ -2483,9 +2527,12 @@ console.log('\nlayout generations');
   }
   const bracePro = raw(FM + '## free: The {x} syntax {#bp}\n\nProse.\n');
   ok(bracePro.code === 0, 'while plain braces in heading prose still build', bracePro.out.split('\n')[0]);
-  const drawDash = raw(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n:::\n\n:::\n');
-  ok(drawDash.code === 0 && !/0 error/.test('') , '::: draw-x is prose in the build (no cols refusal)', drawDash.out.split('\n')[0]);
-  ok(!/draw-in-cols/.test(lintOf(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n:::\n\n:::\n')), 'and lint agrees');
+  // `::: draw-x` is not a directive, so it is prose and opens nothing: one
+  // ::: closes the cols. (The fixture carried a second, stray ::: - harmless
+  // as prose before, a stray-directive-close refusal now.)
+  const drawDash = raw(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n\n:::\n');
+  ok(drawDash.code === 0, '::: draw-x is prose in the build (no cols refusal)', drawDash.out.split('\n')[0]);
+  ok(!/draw-in-cols/.test(lintOf(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n\n:::\n')), 'and lint agrees');
 
   // ── a directive line the matcher does not read is refused, not prose ──
   // These used to print themselves on the slide with exit 0 while lint.js
