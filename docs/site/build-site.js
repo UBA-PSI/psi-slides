@@ -342,6 +342,19 @@ const decodeEntities = (s) => s
 // Everything a page points at, in document order, from the four attributes
 // that fetch or navigate. `src` is in because a missing screenshot is exactly
 // the kind of broken link this gate is for.
+//
+// What this gate answers is "does the BUILD hold together", not "does the
+// COMMIT hold together", and the difference has bitten once. A new screenshot
+// that is written into docs/site/img/ but never `git add`ed passes here every
+// time, because the file is on disk and gets copied into the output; the same
+// gate then fails in pages.yml, which builds a clean checkout that does not
+// have it. That is the right failure in the right place - the deploy stops
+// rather than publishing a page with a hole in it - but it fails in CI after
+// a push rather than locally before one, so it reads as a workflow problem
+// when it is an unstaged file. `git status` is the check for that half, and
+// commit 12a7a9b is the instance: its own message blamed this gate for not
+// looking at `src`, which it does, and claimed a broken picture reached the
+// site, which it could not have.
 function hrefsIn(html) {
   const out = [];
   const re = /\b(?:href|src)\s*=\s*"([^"]*)"/gi;
