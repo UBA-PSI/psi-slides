@@ -3122,7 +3122,16 @@ function parseLecture(src) {
   // LF coordinates; the watch server normalises the file the same way
   // before it splices.
   src = String(src).replace(/\r\n?/g, '\n');
-  const { data: frontmatter, content } = matter(src);
+  const { data: frontmatter, content, matter: fmRaw } = matter(src);
+  // `duration: 45:00` is a clock to the author and a sexagesimal integer to
+  // YAML 1.1, which is what gray-matter speaks: it arrives as 2700, and
+  // talkDuration would read that as minutes. The one key that takes a clock
+  // is put back to the text the author wrote, so the bare form and the
+  // quoted form mean the same thing.
+  {
+    const m = String(fmRaw || '').match(/^duration:[ \t]*(\d{1,2}:\d{2}(?::\d{2})?)[ \t]*(?:#.*)?$/m);
+    if (m && typeof frontmatter.duration === 'number') frontmatter.duration = m[1];
+  }
   // The lecture-wide diagram layer, parsed once and handed to every block.
   // Validated here rather than at the first diagram, because a lecture whose
   // frontmatter is wrong should say so even when it has no diagram yet.
@@ -4725,6 +4734,34 @@ function lectureLang(frontmatter = {}) {
   return raw;
 }
 
+// The planned length of the talk, in seconds, or null when the deck does
+// not say. `duration: 45` is minutes, because that is how a slot is
+// announced; `duration: 45:00` and `1:30:00` are read as written. It is a
+// property of the talk like `lang:`, not a setting of any one view, which
+// is why it sits at the top level and not inside `souffleuse:` - the
+// cockpit's clock can measure against it whether or not a prompter is
+// listening. Refused rather than ignored: a number nothing reads is the
+// silent no-op this format refuses everywhere.
+function talkDuration(frontmatter = {}) {
+  const v = frontmatter.duration;
+  if (v == null || v === '') return null;
+  const raw = String(v).trim();
+  let secs = null;
+  if (/^\d+(\.\d+)?$/.test(raw)) secs = Math.round(Number(raw) * 60);
+  else {
+    const m = raw.match(/^(?:(\d{1,2}):)?(\d{1,3}):(\d{2})$/);
+    if (m) secs = (m[1] ? Number(m[1]) * 3600 : 0) + Number(m[2]) * 60 + Number(m[3]);
+  }
+  if (secs == null || !(secs > 0) || secs > 12 * 3600) {
+    const err = new Error(
+      `Frontmatter: "duration: ${raw}" is not a length this key reads.\n` +
+      '  Expected minutes (duration: 45) or a clock (duration: 45:00, duration: 1:30:00), up to twelve hours.');
+    err.userFacing = true;
+    throw err;
+  }
+  return secs;
+}
+
 // ── viewer defaults from frontmatter ─────────────────────────────────
 // An author can pin how a lecture opens: font, theme, collapse mode,
 // auto-fit, slide numbers on screen and slide numbers on paper. Precedence
@@ -5027,6 +5064,82 @@ function styleSettings(frontmatter = {}) {
         throw err;
       }
       out[k] = n;
+    }
+  }
+  return out;
+}
+// The `souffleuse:` block - how the live prompter (--souffleuse) behaves
+// for this deck. Read in the buildOnce pre-flight beside styleSettings so a
+// typo fails every build, not only the one that starts the sidecar. Mirrored
+// in lint.js as SOUFFLEUSE_ENUMS / SOUFFLEUSE_NUM_KEYS / SOUFFLEUSE_FREE_KEYS,
+// and test/gates/tails.mjs holds the two key sets equal. `model` is any
+// OpenRouter model id, `language` a BCP-47 tag that defaults to `lang:`,
+// `cadence` the seconds of new speech that earn the model a call, `cooldown`
+// the seconds of silence a shown hint buys, `cues` whether the prompter may
+// lay cards into upcoming chunks. PLAN-souffleuse.md has the reasoning.
+const SOUFFLEUSE_SPEC = {
+  'model':    { kind: 'text', dflt: 'anthropic/claude-sonnet-5' },
+  'language': { kind: 'lang', dflt: null },
+  'cadence':  { kind: 'number', min: 10, max: 120, dflt: 25 },
+  'cooldown': { kind: 'number', min: 20, max: 600, dflt: 60 },
+  'cues':     { kind: 'enum', values: ['on', 'off'], dflt: 'on' },
+};
+function souffleuseSettings(frontmatter = {}) {
+  const raw = frontmatter.souffleuse;
+  const out = {};
+  for (const [k, spec] of Object.entries(SOUFFLEUSE_SPEC)) out[k] = spec.dflt;
+  if (raw == null) return out;
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    const err = new Error(
+      'Frontmatter: "souffleuse:" is a block of keys, not a single value.\n' +
+      '  souffleuse:\n    model: anthropic/claude-sonnet-5\n    cadence: 25');
+    err.userFacing = true;
+    throw err;
+  }
+  for (const [k, v] of Object.entries(raw)) {
+    const spec = SOUFFLEUSE_SPEC[k];
+    if (!spec) {
+      const err = new Error(
+        `Frontmatter: souffleuse has no key "${k}".\n` +
+        `  Keys: ${Object.keys(SOUFFLEUSE_SPEC).join(', ')}`);
+      err.userFacing = true;
+      throw err;
+    }
+    const val = String(v == null ? '' : v).trim();
+    if (spec.kind === 'enum') {
+      if (!spec.values.includes(val)) {
+        const err = new Error(
+          `Frontmatter: "souffleuse.${k}: ${val}" is not a value this key accepts.\n` +
+          `  Valid values for ${k}: ${spec.values.join(', ')}`);
+        err.userFacing = true;
+        throw err;
+      }
+      out[k] = val;
+    } else if (spec.kind === 'number') {
+      const n = Number(val);
+      if (!val || !Number.isFinite(n) || n < spec.min || n > spec.max) {
+        const err = new Error(
+          `Frontmatter: "souffleuse.${k}: ${val}" is not a number of seconds between ${spec.min} and ${spec.max}.`);
+        err.userFacing = true;
+        throw err;
+      }
+      out[k] = n;
+    } else if (spec.kind === 'lang') {
+      if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(val)) {
+        const err = new Error(
+          `Frontmatter: "souffleuse.language: ${val}" is not a language tag.\n` +
+          '  Expected something like: en, de, de-DE, en-GB, fr.');
+        err.userFacing = true;
+        throw err;
+      }
+      out[k] = val;
+    } else {
+      if (!val) {
+        const err = new Error(`Frontmatter: "souffleuse.${k}" is set to nothing.`);
+        err.userFacing = true;
+        throw err;
+      }
+      out[k] = val;
     }
   }
   return out;
@@ -18123,6 +18236,11 @@ function buildOnce(absIn, only, opts = {}) {
   // would ever have looked at.
   viewDefaults(lecture.frontmatter);
   styleSettings(lecture.frontmatter);
+  // Same reasoning for the two the live prompter reads: nothing in a
+  // --print-only build looks at them, so this is the only place a typo
+  // in `duration:` or `souffleuse:` is caught for that build.
+  talkDuration(lecture.frontmatter);
+  souffleuseSettings(lecture.frontmatter);
   const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
   const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
 
@@ -18254,7 +18372,10 @@ function buildOnce(absIn, only, opts = {}) {
   // Cheap enough to do on every build (a line walk over the source), and
   // only a driver ever reads it: the human log says nothing about it.
   const stats = lectureStats(src, lecture);
-  return { written, shape, stats, sourceModifiedMs: sourceModifiedAt(absIn) };
+  // `lecture` rides along for the one caller that wants the parsed deck
+  // rather than the files: the souffleuse sidecar in runWatch builds its
+  // prompt from it on every successful build.
+  return { written, shape, stats, sourceModifiedMs: sourceModifiedAt(absIn), lecture };
 }
 
 // Watch mode: build once, start a WS server on a free port, install a

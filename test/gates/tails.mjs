@@ -303,5 +303,23 @@ export async function run({ report }) {
     const extra = [...lintKeys].filter(k => !specKeys.has(k));
     ok(!missing.length, 'every style key build.js accepts is one lint.js knows', missing.join(','));
     ok(!extra.length, 'and lint.js knows no key build.js has dropped', extra.join(','));
+
+    // The same pair for the `souffleuse:` block, whose lint mirror is three
+    // tables (an enum, the number keys, the free keys) rather than one.
+    const sBody = bsrc.slice(bsrc.indexOf('const SOUFFLEUSE_SPEC = {'));
+    const sKeys = new Set([...sBody.slice(0, sBody.indexOf('\n};'))
+      .matchAll(/^\s{2}'?([a-z-]+)'?:\s*\{/gm)].map(m => m[1]));
+    const lBody = lsrc.slice(lsrc.indexOf('const SOUFFLEUSE_ENUMS = {'));
+    const lKeys = new Set([...lBody.slice(0, lBody.indexOf('\n};'))
+      .matchAll(/^\s{2}'([a-z-]+)':/gm)].map(m => m[1]));
+    for (const table of ['SOUFFLEUSE_NUM_KEYS', 'SOUFFLEUSE_FREE_KEYS']) {
+      const m = lsrc.match(new RegExp(table + ' = new Set\\(\\[([^\\]]*)\\]'));
+      for (const k of (m ? m[1] : '').match(/'[a-z-]+'/g) || []) lKeys.add(k.slice(1, -1));
+    }
+    ok(sKeys.size >= 5, `SOUFFLEUSE_SPEC's keys are findable (${sKeys.size})`, [...sKeys].join(','));
+    const sMissing = [...sKeys].filter(k => !lKeys.has(k));
+    const sExtra = [...lKeys].filter(k => !sKeys.has(k));
+    ok(!sMissing.length, 'every souffleuse key build.js accepts is one lint.js knows', sMissing.join(','));
+    ok(!sExtra.length, 'and lint.js knows no souffleuse key build.js has dropped', sExtra.join(','));
   }
 }

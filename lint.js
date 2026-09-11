@@ -136,6 +136,47 @@ const STYLE_ENUMS = {
   // the chunk stands at its final height from beat 0.
 };
 
+// Mirrors SOUFFLEUSE_SPEC in build.js – the nested `souffleuse:` block that
+// configures the live prompter (--souffleuse). Three tables because the
+// block has three kinds of key: one enum, two bounded numbers (bounds are
+// the build's, as with the style scales), and two free strings whose
+// *presence* is all a zero-dep reader can vouch for. An unknown key is an
+// error, because the build refuses it. test/gates/tails.mjs holds the union
+// of the three equal to the build's key set.
+const SOUFFLEUSE_ENUMS = {
+  'cues': ['on', 'off'],
+};
+const SOUFFLEUSE_NUM_KEYS = new Set(['cadence', 'cooldown']);
+const SOUFFLEUSE_FREE_KEYS = new Set(['model', 'language']);
+
+// Walks one nested frontmatter block by indentation rather than with a
+// YAML parser - the same fifteen-line trick collectDiagramDefaults uses. A
+// `name:` line with no value opens the block, and any line indented under
+// it is one of its keys; the flow form `name: {k: v, k: v}`, which is how
+// the documentation writes these blocks, is read too - it was not, once,
+// and a typo in it passed the pre-commit gate and failed the build. `rule`
+// is called with the line index, the key and the raw value.
+function nestedBlockKeys(lines, name, rule) {
+  const open = new RegExp('^' + name + ':[ \\t]*$');
+  const flowRe = new RegExp('^' + name + ':[ \\t]*\\{(.*)\\}[ \\t]*$');
+  let inside = false;
+  lines.forEach((raw, i) => {
+    const flow = raw.match(flowRe);
+    if (flow) {
+      for (const pair of flow[1].split(',')) {
+        const kv = pair.match(/^\s*["']?([A-Za-z][A-Za-z0-9_-]*)["']?\s*:\s*(.*?)\s*$/);
+        if (kv) rule(i, kv[1], kv[2]);
+      }
+      return;
+    }
+    if (open.test(raw)) { inside = true; return; }
+    if (!inside) return;
+    if (!/^[ \t]+\S/.test(raw)) { if (raw.trim()) inside = false; return; }
+    const m = raw.match(/^[ \t]+([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
+    if (m) rule(i, m[1], m[2]);
+  });
+}
+
 // The slot tables of ::: backdrop, ::: cards / ::: rows, ::: overlay and
 // ::: side, and the parser that reads a {…} tail against one, are imported
 // from tails.mjs - one parser for both files, so a linter stricter or laxer
@@ -2288,7 +2329,6 @@ function lintFile(filePath) {
   // STYLE_ENUMS for why the two scales are left to the build.
   {
     const lines = header.split('\n');
-    let inStyle = false;
     const rule = (i, key, value) => {
       const allowed = STYLE_ENUMS[key];
       // An unknown key used to return quietly here, so the build refused what
@@ -2308,25 +2348,75 @@ function lintFile(filePath) {
       addFm(i + 2, 'error', 'unknown-style-setting',
         `'style.${key}: ${v}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
     };
-    lines.forEach((raw, i) => {
-      // The flow form, `style: {bold: accent, wrap: none}`, which is how
-      // the documentation writes the block. It was not read at all, so a
-      // typo in it passed the pre-commit gate and failed the build.
-      const flow = raw.match(/^style:[ \t]*\{(.*)\}[ \t]*$/);
-      if (flow) {
-        for (const pair of flow[1].split(',')) {
-          const kv = pair.match(/^\s*["']?([A-Za-z][A-Za-z0-9_-]*)["']?\s*:\s*(.*?)\s*$/);
-          if (kv) rule(i, kv[1], kv[2]);
+    nestedBlockKeys(lines, 'style', rule);
+  }
+
+  // The nested `souffleuse:` block, read by the same walk. Numbers are only
+  // checked for being numbers - the bounds are the build's - and the two
+  // free keys only for being present, which is all that can be said about
+  // a model id without asking OpenRouter.
+  {
+    const lines = header.split('\n');
+    const rule = (i, key, value) => {
+      const v = value.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+      const allowed = SOUFFLEUSE_ENUMS[key];
+      if (allowed) {
+        if (v && !allowed.includes(v)) {
+          addFm(i + 2, 'error', 'unknown-souffleuse-setting',
+            `'souffleuse.${key}: ${v}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
         }
         return;
       }
-      if (/^style:[ \t]*$/.test(raw)) { inStyle = true; return; }
-      if (!inStyle) return;
-      if (!/^[ \t]+\S/.test(raw)) { if (raw.trim()) inStyle = false; return; }
-      const m = raw.match(/^[ \t]+([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
-      if (m) rule(i, m[1], m[2]);
+      if (SOUFFLEUSE_NUM_KEYS.has(key)) {
+        if (!v || !Number.isFinite(Number(v))) {
+          addFm(i + 2, 'error', 'unknown-souffleuse-setting',
+            `'souffleuse.${key}: ${v}' is not a number of seconds`);
+        }
+        return;
+      }
+      if (SOUFFLEUSE_FREE_KEYS.has(key)) {
+        if (!v) {
+          addFm(i + 2, 'error', 'unknown-souffleuse-setting',
+            `'souffleuse.${key}' is set to nothing`);
+        } else if (key === 'language' && !/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(v)) {
+          // The same loose BCP-47 shape lectureLang holds `lang:` to.
+          addFm(i + 2, 'error', 'unknown-souffleuse-setting',
+            `'souffleuse.language: ${v}' is not a language tag – expected something like en, de, de-DE`);
+        }
+        return;
+      }
+      addFm(i + 2, 'error', 'unknown-souffleuse-setting',
+        `'souffleuse.${key}' is not a key this block has`);
+    };
+    nestedBlockKeys(lines, 'souffleuse', rule);
+    // A scalar where the block should be: `souffleuse: on` is a deck that
+    // meant to switch something on and wrote no key. The build refuses it.
+    lines.forEach((raw, i) => {
+      if (/^souffleuse:[ \t]*[^ \t{#][^#]*$/.test(raw)) {
+        addFm(i + 2, 'error', 'unknown-souffleuse-setting',
+          "'souffleuse:' is a block of keys, not a single value – souffleuse: {cues: off}");
+      }
     });
   }
+
+  // duration: the planned length of the talk. Minutes, or a clock. The
+  // build refuses anything else, so the linter does too.
+  header.split('\n').forEach((raw, i) => {
+    const m = raw.match(/^duration:[ \t]*(.*)$/);
+    if (!m) return;
+    const v = m[1].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+    if (!v) return;
+    let secs = null;
+    if (/^\d+(\.\d+)?$/.test(v)) secs = Math.round(Number(v) * 60);
+    else {
+      const c = v.match(/^(?:(\d{1,2}):)?(\d{1,3}):(\d{2})$/);
+      if (c) secs = (c[1] ? Number(c[1]) * 3600 : 0) + Number(c[2]) * 60 + Number(c[3]);
+    }
+    if (secs == null || !(secs > 0) || secs > 12 * 3600) {
+      addFm(i + 2, 'error', 'bad-duration',
+        `'duration: ${v}' is not a length this key reads – minutes (45) or a clock (45:00, 1:30:00), up to twelve hours`);
+    }
+  });
 
   // The lecture-wide diagram layer. Its `default <kind> @tag` lines cannot be
   // checked against one block – they are written once for every figure in the

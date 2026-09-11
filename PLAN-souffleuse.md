@@ -392,7 +392,11 @@ arithmetic, the Chromium bug in `available()` on macOS.
 
 - [x] Slice 0 – worktree `../psi-slides-souffleuse`, branch `souffleuse`,
       this document.
-- [ ] Slice 1 – configuration, pre-flight, lint mirror.
+- [x] Slice 1 – configuration, pre-flight, lint mirror: `talkDuration`,
+      `SOUFFLEUSE_SPEC` / `souffleuseSettings` in build.js, the lint mirror
+      with `nestedBlockKeys` shared by the `style:` and `souffleuse:` walks,
+      `bad-duration`, the key-set check in the tails gate, the pairs in
+      test/settings.mjs.
 - [ ] Slice 2 – `souffleuse.mjs` plus gate.
 - [ ] Slice 3 – the sidecar in `build.js`.
 - [ ] Slice 4 – cockpit client, STT adapter, switch.
@@ -402,7 +406,16 @@ arithmetic, the Chromium bug in `available()` on macOS.
 
 ## Decisions along the way
 
-(filled in while building)
+- **A bare clock is put back to text at the parse site.** `duration: 45:00`
+  is a clock to the author and a sexagesimal integer to YAML 1.1, which is
+  what gray-matter speaks: it arrived as 2700, and `talkDuration` would have
+  read that as minutes. Rather than require quoting, `parseLecture` restores
+  the string the author wrote from the raw frontmatter that gray-matter also
+  hands back. The linter never saw the number, so it needed nothing.
+- **The `style:` walk in lint.js is now `nestedBlockKeys`**, shared with
+  the `souffleuse:` walk. Flow form included, so a typo in
+  `souffleuse: {cues: of}` fails the pre-commit gate the way one in
+  `style:` does.
 
 ## The questions to the author, answered
 
