@@ -148,6 +148,18 @@ mirror, so this one used to win getElementById against the panel.
 ## free: Last {#last}
 
 The end.
+
+## free: Pinned {#pinned}
+
+Opens with the slide.
+
+> note: Said as the slide opens.
+
+--- from 2
+
+> note: Said on the second press, not the first.
+
+Arrives on the second press.
 `;
 
 function buildFixture() {
@@ -380,6 +392,70 @@ export async function run({ page, report }) {
   // ── the drift is measured against the deck, not the slide ────────
   ok(await spk.evaluate(() => !document.getElementById('drift').hidden),
      'the drift stands beside the clock on a slide that carries no mark of its own');
+
+  // ── every note is reachable on a beat the slide has ────────────────
+  // A property rather than a fixture: whatever a chunk's notes are, the map
+  // has to file them under a whole number between 0 and the last beat, or
+  // nothing reads them back. cueCardsFor filed a pinned segment's cards
+  // under NaN once - not nullish, so the `?? 0` beside it looked like a
+  // guard and was not - and the cockpit simply had no cards for that beat.
+  //
+  // #pinned above exists for this: the shape needs a note inside a segment
+  // written `--- from N`, and no lecture in the repository has one. The
+  // corpus could not have caught it, which is why the deck is built here.
+  {
+    const audit = await spk.evaluate(() => {
+      const out = [];
+      let withNotes = 0;
+      // One element per id, first occurrence. Not a filter on #preview-strip:
+      // cuePlaceStage moves the stage, so which copy is "the stage one"
+      // changes mid-session and the filter emptied the list - and an audit
+      // over an empty list passes, which is how this check first shipped
+      // green while seeing nothing.
+      const byId = new Map();
+      for (const c of document.querySelectorAll('.chunk')) {
+        if (!byId.has(c.dataset.chunkId)) byId.set(c.dataset.chunkId, c);
+      }
+      const chunks = [...byId.values()];
+      for (const el of chunks) {
+        const id = el.dataset.chunkId;
+        if (!document.querySelectorAll('template[data-cards-for="' + CSS.escape(id) + '"]').length) continue;
+        withNotes++;
+        // Through cuePosition, not around it: it is what the cockpit calls,
+        // and it used to filter every pinned beat out of the list before
+        // cueCardsFor could see one - so a check that built the list itself
+        // exercised code the cockpit never reaches.
+        const p = cuePosition({ el, id });
+        const maxC = p.maxC;
+        const m = cueCardsFor(id, p.beats, maxC);
+        let n = 0;
+        for (const [k, v] of m) {
+          n += v.length;
+          if (!Number.isFinite(k)) out.push(`${id}: filed under ${String(k)}`);
+          else if (k < 0 || k > maxC) out.push(`${id}: filed on ${k}, slide has 0..${maxC}`);
+        }
+        if (!n) out.push(`${id}: has notes and produced no cards`);
+      }
+      return { out, withNotes };
+    });
+    ok(audit.withNotes >= 3, 'the audit below actually saw chunks with notes',
+       `only ${audit.withNotes}`);
+    ok(audit.out.length === 0, 'every chunk\'s notes are filed on a beat the slide has', audit.out.join(' | '));
+    const pinned = await spk.evaluate(() => {
+      const el = [...document.querySelectorAll('.chunk')].find(c => c.dataset.chunkId === 'pinned');
+      if (!el) return { ids: [...document.querySelectorAll('.chunk')].map(c => c.dataset.chunkId) };
+      const p = cuePosition({ el, id: 'pinned' });
+      const m = cueCardsFor('pinned', p.beats, p.maxC);
+      return [...m.keys()].map(Number).sort((a, b) => a - b);
+    });
+    // Both notes matter: a chunk whose notes all sit in its last segment has
+    // them read as chunk notes on the opening beat, which is the rule that
+    // keeps every deck written before pinning existed working. So the
+    // opening note is what makes the second one's beat the question.
+    ok(Array.isArray(pinned) && pinned.length === 2 && pinned[0] === 0 && pinned[1] === 2,
+       'a note inside a `--- from 2` segment is filed on beat 2, and the one above it on 0',
+       JSON.stringify(pinned));
+  }
 
   ok(errors.length === 0, 'no page errors in either window', errors.join(' | '));
   await spk.close();
