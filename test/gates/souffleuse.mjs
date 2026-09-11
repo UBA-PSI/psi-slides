@@ -300,8 +300,11 @@ export async function run({ report }) {
   ok(pol.judge({ action: 'nothing', reason: 'garbage' }, ctx()).show === false,
      'policy: a nothing is not shown, whatever else is true');
 
+  // `at` is twenty seconds behind ctx()'s clock: a hint holds the slot while
+  // the strip could still be showing it, and the row below this block says
+  // what happens once it could not.
   pol = createPolicy({ cooldown: 0 });
-  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 100 });
+  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 880 });
   ok(pol.standing() && pol.standing().id === 'h1', 'policy: a shown hint stands until it is dismissed');
   ok(pol.judge(hint('fact', 'Andere Zahl'), ctx()).reason === 'standing',
      'policy: while one stands, a low one is discarded');
@@ -309,6 +312,34 @@ export async function run({ report }) {
      'policy: a high one replaces it');
   pol.dismissed('h1');
   ok(pol.standing() === null, 'policy: a dismissal clears the slot');
+
+  // The standing slot, when nobody ever answers for what is in it. Every way
+  // a hint leaves the strip sends a dismissal, so in the ordinary course this
+  // arithmetic is never reached; it is here for the case where the dismissal
+  // cannot arrive - the socket closed under the hint, or the page reloaded,
+  // which a --watch rebuild does on every save. One lost dismissal used to
+  // drop every low hint for the rest of the talk, under the reason
+  // `standing`, which in the log reads exactly like the policy working.
+  pol = createPolicy({ cooldown: 0 });
+  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 100 });
+  ok(pol.standing(120) && pol.standing(120).id === 'h1',
+     'policy: a hint holds the slot while the strip could still be showing it');
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 120 })).reason === 'standing',
+     'policy: and a low hint waits behind it');
+  ok(pol.standing(141) === null,
+     'policy: past standingMax it is treated as gone – the strip fades at 25 s');
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 141 })).show === true,
+     'policy: so a lost dismissal cannot lock the slot for the rest of the talk');
+  ok(pol.history().length === 1 && pol.history()[0].id === 'h1',
+     'policy: the aged hint keeps its place in the history – it was said');
+  ok(pol.judge(hint('example', 'Langsamer sprechen bitte'), ctx({ now: 141 })).reason === 'duplicate',
+     'policy: and in the duplicate rule with it');
+  pol = createPolicy({ cooldown: 0, standingMax: 5 });
+  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 100 });
+  ok(pol.standing(104) && pol.standing(110) === null,
+     'policy: standingMax is an option, because the fade it matches is the cockpit\'s');
+  ok(pol.standing() && pol.standing().id === 'h1',
+     'policy: and standing() without a clock still answers what is in the slot');
 
   pol = createPolicy();
   pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 100 });

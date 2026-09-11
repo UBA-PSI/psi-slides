@@ -34,8 +34,11 @@ lectures/*/squint.txt
 docs/artifact/figure-rules/squint.txt
 # --souffleuse writes one of these per run, beside the source: the transcript
 # of what the room heard, every call to the model and every hint the policy
-# let through. It is the debrief of a rehearsal and it is nobody else's, so it
-# stays out of the repository wherever a lecture lives.
+# let through. It is the debrief of a rehearsal and it is nobody else's.
+# These two lines cover this repository and nothing else – a lecture being
+# written in a content repo of its own (../psi-slides-mylectures and the like)
+# needs the same pattern in that repo's .gitignore, which is why the sidecar
+# prints the log's full path and says so on every start.
 souffleuse-*.jsonl
 lectures/*/souffleuse-*.jsonl
 # Three lectures ship their built outputs so they can be read straight from

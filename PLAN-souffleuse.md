@@ -628,6 +628,109 @@ arithmetic, the Chromium bug in `available()` on macOS.
   ever rides in one, and the auto-fade of a standing hint is left alone,
   because 15 and 25 s of real time are worth more than the assertion.
 
+### Code review
+
+A review over the finished feature found ten defects, every one reproduced
+before it was fixed. They are recorded here because eight of the ten are the
+same kind of mistake – a piece of state that two halves of the feature
+disagreed about – and the ninth and tenth are the two this repository is
+already known to make.
+
+1. **Two clock regexes, one of them narrower.** The sexagesimal restore in
+   `parseLecture` matched two digits before the first colon where
+   `talkDuration` and `lint.js` matched three, so `duration: 120:00` linted
+   clean, arrived from gray-matter as the integer `7200` and was refused as a
+   talk of 7200 minutes. One constant now, `TALK_CLOCK_SRC`, read by the
+   restore and by the reader, with the same literal mirrored by hand in
+   `lint.js` and a comment naming it. Two accepted pairs in
+   `test/settings.mjs`.
+2. **A second recogniser.** `souffStart` guarded on `souffOn`, which is only
+   true after two awaits, so a second press – or the `sessionStorage` restore
+   arriving beside a click – opened a second `SpeechRecognition` whose finals
+   all arrived twice. `souffStarting` is set before the first await and
+   cleared in a `finally`; the adapter's `start()` aborts an open recogniser
+   as the guard a caller cannot forget.
+3. **`idle` stopped the light, not the ear.** A sidecar `idle` (the `--events`
+   stdin switch) set `souffState` and left `souffOn` true with the microphone
+   open: undoing it took two presses, and a reload in between said hello and
+   switched the sidecar back on. The cockpit now treats `idle` exactly like
+   `off` – ear, switch, strip, timers and the consent in `sessionStorage` –
+   and the only difference is the badge, which `off` writes its reason onto
+   and `idle` leaves alone. **The consent is dropped deliberately**: a switch
+   somebody threw should not be undone by the next save.
+4. **A hello was a switch.** `hello()` set `on = true` whatever it answered,
+   and the cockpit undid that with a separate, un-awaited toggle when the
+   answer said `enabled: false` – so a lost reply or a `start` that threw left
+   the sidecar calling a model for a cockpit that was off. A hello now
+   registers the socket, stamps the clock and says nothing on the status
+   channel unless it is news; `toggle` and `setEnabled` are the only switches.
+   The reconnect path sends the toggle again, because the watcher may have
+   been restarted under the page.
+5. **A hint nobody held blocked every hint after it.** `policy.shown()` ran
+   before `sendToCockpit` and its answer was ignored, and the standing slot
+   had no age limit – so a hint lost to a closing socket or a rebuild mid-hint
+   dropped every `low` hint for the rest of the talk, under the reason
+   `standing`, which in the log reads exactly like the policy working. Now:
+   nothing is recorded unless the send succeeded (`suppressed … no-cockpit`
+   otherwise), `hello` calls the new `policy.forgetStanding()`, and
+   `createPolicy` takes `standingMax` (default 40 s, the cockpit's 25 s fade
+   plus a margin) with `standing(now)` treating anything older as gone. Six
+   rows in the gate.
+6. **The cards were write-only.** A cue was recorded on send but kept only in
+   the cockpit's memory, so a reload lost the card while the sidecar went on
+   holding that slide locked against a second – and the cue checkbox was a
+   cockpit-only preference the sidecar never heard, so cues were judged,
+   locked and fed to the duplicate rule with the box off. The `hello` reply
+   now carries `cueCards` (the `cues[]` array, which existed and was never
+   read) beside the existing `cues` boolean, and a new `souffleuse-prefs
+   {cues}` – its own message, because the box is changed mid-talk with the
+   switch untouched – makes `cuesAllowed` the conjunction of the deck's
+   ceiling and the speaker's answer, so `cueTargets` is empty when it is off.
+   Its reply carries the cards too, so ticking the box back on restores them.
+7. **The log's location was right and its promise was not.** The JSONL holds
+   the spoken words verbatim and belongs beside the deck – that is what a
+   debrief is – but the `.gitignore` comment read as though the pattern
+   covered every repository a lecture can live in. The comment says what it
+   covers, the sidecar prints the log's **full path** plus one sentence on
+   every start, and the README's privacy paragraph and the skill say it too.
+   `--new` scaffolds no `.gitignore`, so there was nowhere else to put it.
+8. **`--souffleuse-model` alone built an ordinary deck and said nothing** –
+   the silent no-op this CLI refuses everywhere else. A `userFacing` refusal
+   now, beside `--souffleuse` without `--watch`.
+9. **The strip outlived the switch.** `souffStop` left `souffHintTimer` and
+   `souffHintFade` running, so a standing hint faded fifteen seconds after the
+   ear had closed and sent a dismissal to a sidecar nobody was listening to.
+   `souffClearHint('off')` takes the strip, both timers and the history's `how`
+   with the switch, and sends nothing.
+10. **36 KB of prompter in every cockpit ever built.** The runtime was the
+    foot of `SPEAKER_JS` and its rules were inside `SPEAKER_CSS`, while the
+    comment in `renderSpeaker` promised that a build without the flag is the
+    file it was before the feature. They are `SOUFFLEUSE_CSS` and
+    `SOUFFLEUSE_JS` now, spliced only under the flag and **into the same
+    `<style>` and `<script>`** – the runtime is in `SPEAKER_JS`'s lexical
+    scope and a script element of its own would give it nothing but
+    `undefined`. Three things moved with them: `#cue-rail { position:
+    relative }`, which the plan had decided to leave unconditional and which
+    costs nothing to make conditional because the strip is the only thing that
+    ever grows above the rail; `cuePlaceStrip`, which now **wraps**
+    `applyCueMode` the way the two `viewHooks` are chained, and runs once
+    itself because the cue section restored the saved arrangement before this
+    text existed; and the blank line every prompter-less cockpit carried where
+    `${souffleuseChrome}` stood on a line of its own.
+
+    `lectures/tutorial/speaker.html` went from 2,533,265 bytes to 2,499,472,
+    against 2,496,976 on `main`. **The 2,496 bytes that remain are not
+    byte-identity** and cannot be without giving something else up: 21 lines
+    are `viewHooks.onShiftS`, `viewHooks.escapePrompter` and their two key-map
+    arms, which live in `AUDIENCE_JS` and so are in `audience.html` too –
+    they are the hook contract, and a hook is how a press comes to mean one
+    thing in one window; 28 are `souffleuseCues` and the merge in
+    `cueCardsFor` plus the two lines in `cueRender` that draw a prompter's
+    card as the prompter's, which the rail needs whether or not a literal was
+    spliced and which are free over an empty Map; one is `const SOUFFLEUSE =
+    null`. The review asked for both these lines and an empty
+    `git diff main -- lectures/`, and those two cannot both be had.
+
 ## The questions to the author, answered
 
 - **Process**: a Node sidecar in `build.js`.

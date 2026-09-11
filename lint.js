@@ -2400,7 +2400,13 @@ function lintFile(filePath) {
   }
 
   // duration: the planned length of the talk. Minutes, or a clock. The
-  // build refuses anything else, so the linter does too.
+  // build refuses anything else, so the linter does too. The clock below is
+  // the literal of `TALK_CLOCK_SRC` in build.js, mirrored by hand like every
+  // other constant here – and it has to be the same shape in all three
+  // places, because build.js reads the key twice: once to put a bare clock
+  // back to text before YAML makes a sexagesimal integer of it, and once to
+  // read it. A narrower restore than this let `duration: 120:00` lint clean
+  // and fail the build.
   header.split('\n').forEach((raw, i) => {
     const m = raw.match(/^duration:[ \t]*(.*)$/);
     if (!m) return;

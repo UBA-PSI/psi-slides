@@ -3114,6 +3114,20 @@ function noteSegments(bodyLines, segments, noteAt) {
 
 }
 
+// One shape for the clock a `duration:` may take, written once because three
+// readers have to agree about it: the sexagesimal restore in `parseLecture`
+// puts the author's text back, `talkDuration` reads it, and `lint.js` mirrors
+// the same literal by hand (the linter imports nothing from build.js – see
+// CLAUDE.md § lint.js is independent). They disagreed once, in the direction
+// that merges green: the restore took two digits before the first colon and
+// the other two took three, so `duration: 120:00` linted clean, arrived from
+// gray-matter as the sexagesimal integer 7200, and was refused by the build
+// as a talk of 7200 minutes.
+const TALK_CLOCK_SRC = '(?:(\\d{1,2}):)?(\\d{1,3}):(\\d{2})';
+const TALK_CLOCK_RE = new RegExp('^' + TALK_CLOCK_SRC + '$');
+const TALK_DURATION_LINE_RE = new RegExp(
+  '^duration:[ \\t]*(' + TALK_CLOCK_SRC + ')[ \\t]*(?:#.*)?$', 'm');
+
 function parseLecture(src) {
   // Windows line endings. Every matcher below anchors on `$`, and a `\r`
   // before it made every heading and every directive miss - a CRLF source
@@ -3127,9 +3141,11 @@ function parseLecture(src) {
   // YAML 1.1, which is what gray-matter speaks: it arrives as 2700, and
   // talkDuration would read that as minutes. The one key that takes a clock
   // is put back to the text the author wrote, so the bare form and the
-  // quoted form mean the same thing.
+  // quoted form mean the same thing. TALK_CLOCK_SRC is the one shape, shared
+  // with talkDuration: a restore that read a narrower clock than the reader
+  // left `duration: 120:00` arriving as the integer 7200.
   {
-    const m = String(fmRaw || '').match(/^duration:[ \t]*(\d{1,2}:\d{2}(?::\d{2})?)[ \t]*(?:#.*)?$/m);
+    const m = String(fmRaw || '').match(TALK_DURATION_LINE_RE);
     if (m && typeof frontmatter.duration === 'number') frontmatter.duration = m[1];
   }
   // The lecture-wide diagram layer, parsed once and handed to every block.
@@ -4783,7 +4799,7 @@ function talkDuration(frontmatter = {}) {
   let secs = null;
   if (/^\d+(\.\d+)?$/.test(raw)) secs = Math.round(Number(raw) * 60);
   else {
-    const m = raw.match(/^(?:(\d{1,2}):)?(\d{1,3}):(\d{2})$/);
+    const m = raw.match(TALK_CLOCK_RE);
     if (m) secs = (m[1] ? Number(m[1]) * 3600 : 0) + Number(m[2]) * 60 + Number(m[3]);
   }
   if (secs == null || !(secs > 0) || secs > 12 * 3600) {
@@ -15313,11 +15329,15 @@ function renderSpeaker(lecture, opts = {}) {
 
   // The live prompter is chrome that exists only under --souffleuse, which
   // itself only runs with --watch. Without the flag SOUFFLEUSE is null, none
-  // of the elements below are emitted, and the runtime section in SPEAKER_JS
-  // finds nothing to bind to - so a cockpit built any other way is the file
-  // it was before the feature. The visible word is `prompter`; `souffleuse`
-  // is the codename and survives in the ids, which is exactly what the
-  // cockpit's shared id namespace wants: no slide will ever want one.
+  // of the elements below are emitted, and neither SOUFFLEUSE_CSS nor
+  // SOUFFLEUSE_JS is spliced - so a cockpit built any other way is the file
+  // it was before the feature, apart from the cue-card integration the rail
+  // needs either way. The two literals are conditional exactly the way
+  // editorPayload is, and for the same reason: 36 KB of runtime and
+  // stylesheet that nothing in an ordinary cockpit could ever reach.
+  // The visible word is `prompter`; `souffleuse` is the codename and survives
+  // in the ids, which is exactly what the cockpit's shared id namespace
+  // wants: no slide will ever want one.
   const souffSettings = opts.souffleuse ? souffleuseSettings(frontmatter) : null;
   const souffleuseJs = souffSettings
     ? jsonForScript({
@@ -15330,8 +15350,11 @@ function renderSpeaker(lecture, opts = {}) {
   const souffleuseBtn = souffSettings
     ? `\n  <button id="souffleuse-btn" type="button" aria-pressed="false" data-state="off" title="The live prompter: it listens and whispers back (Shift-S) · Shift-click for what it has said"><span class="souffleuse-dot">◌</span> prompter</button>`
     : '';
+  // Opens with the newline rather than standing on a line of its own in the
+  // template: an empty expression on its own line still emits the line, and
+  // every cockpit without a prompter carried a blank one where this is.
   const souffleuseChrome = souffSettings
-    ? `<div id="souffleuse-badge" class="cmd-badge" role="status" hidden></div>
+    ? `\n<div id="souffleuse-badge" class="cmd-badge" role="status" hidden></div>
 <div id="souffleuse-log" hidden aria-label="What the prompter has said">
   <header>what the prompter has said<button class="souffleuse-x" type="button" aria-label="close">&times;</button></header>
   <ol id="souffleuse-log-list"></ol>
@@ -15339,7 +15362,7 @@ function renderSpeaker(lecture, opts = {}) {
     <label><input type="checkbox" id="souffleuse-heard-toggle"> show what it hears</label>
     <label><input type="checkbox" id="souffleuse-cues-toggle"> cards into upcoming slides</label>
   </footer>
-</div>\n`
+</div>`
     : '';
   // The strip and the line under it are emitted inside #stage-cell, because
   // that is their classic home - absolutely positioned over its bottom edge,
@@ -15349,6 +15372,12 @@ function renderSpeaker(lecture, opts = {}) {
     ? `\n  <div id="souffleuse-strip" role="status" aria-live="polite" hidden><span class="souffleuse-glyph"></span><span class="souffleuse-text"></span><button class="souffleuse-x" type="button" aria-label="dismiss">&times;</button></div>
   <div id="souffleuse-heard" hidden></div>`
     : '';
+  // Spliced into the same style and script elements the cockpit's own CSS
+  // and JS are in, so the runtime keeps SPEAKER_JS's scope and the rules keep
+  // their place in the cascade. Empty strings otherwise, and then every byte
+  // of this file is the byte it was.
+  const souffleuseCss = souffSettings ? SOUFFLEUSE_CSS : '';
+  const souffleuseRuntime = souffSettings ? SOUFFLEUSE_JS : '';
 
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(lectureLang(frontmatter))}">
@@ -15359,7 +15388,7 @@ function renderSpeaker(lecture, opts = {}) {
 <style>
 ${AUDIENCE_CSS}
 ${DIAGRAM_CSS}
-${SPEAKER_CSS}
+${SPEAKER_CSS}${souffleuseCss}
 </style>
 ${styleBlockCss(styleOpts)}
 ${fontStyleTag(opts.fontEmbed)}
@@ -15418,8 +15447,7 @@ ${noteTemplates.join('\n')}
 ${TOUCH_CONTROLS_HTML}
 ${renderHelpOverlay('speaker', !!editorPayload(frontmatter, columnsHtml, 'speaker'), !!souffSettings)}
 <div id="mode-badge"></div>
-<div id="center-toast" role="status" aria-live="polite"></div>
-${souffleuseChrome}
+<div id="center-toast" role="status" aria-live="polite"></div>${souffleuseChrome}
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
 ${BLANK_BADGE_HTML}
@@ -15439,7 +15467,7 @@ const LINK_QR = ${jsonForScript(linkQrMap(columnsHtml))};
 const SOUFFLEUSE = ${souffleuseJs};
 ${DIAGRAM_JS}
 ${AUDIENCE_JS}
-${SPEAKER_JS}
+${SPEAKER_JS}${souffleuseRuntime}
 </script>
 ${editorPayload(frontmatter, columnsHtml, 'speaker')}
 </body>
@@ -15892,7 +15920,6 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
 #speaker-footer #export-annot-btn,
 #speaker-footer #preview-orient-btn,
 #speaker-footer #cue-btn,
-#speaker-footer #souffleuse-btn,
 #speaker-footer #speaker-help-btn {
   font: inherit;
   white-space: nowrap;
@@ -15906,183 +15933,8 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
 #speaker-footer #export-annot-btn:hover,
 #speaker-footer #preview-orient-btn:hover,
 #speaker-footer #cue-btn:hover,
-#speaker-footer #souffleuse-btn:hover,
 #speaker-footer #speaker-help-btn:hover { background: oklch(0.93 0 0); }
-#speaker-footer #cue-btn[aria-pressed=true],
-#speaker-footer #souffleuse-btn[aria-pressed=true] { border-color: var(--emph); color: var(--emph); }
-/* The prompter's switch says what it is doing with the one glyph in front of
-   the word, because a lecturer glances at this footer and does not read it:
-   a hollow ring is off, a filled red dot is a microphone that is open, and
-   the dot breathing is a call in flight. The word itself stays ink - a
-   coloured label in the corner of the eye reads as an alarm. */
-#speaker-footer #souffleuse-btn .souffleuse-dot { color: var(--ink-soft); }
-#speaker-footer #souffleuse-btn[data-state=listening] .souffleuse-dot,
-#speaker-footer #souffleuse-btn[data-state=thinking] .souffleuse-dot { color: oklch(0.56 0.20 25); }
-#speaker-footer #souffleuse-btn[data-state=error] .souffleuse-dot { color: oklch(0.63 0.15 70); }
-@media (prefers-reduced-motion: no-preference) {
-  #speaker-footer #souffleuse-btn[data-state=thinking] .souffleuse-dot {
-    animation: souffleuse-breathe 1.1s ease-in-out infinite;
-  }
-}
-@keyframes souffleuse-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
-/* Degraded states only - server recognition instead of on-device, a refused
-   key, a microphone that was denied. Stacked clear of BLANK and DEMO, which
-   own the two rows below it. */
-body[data-view=speaker] #souffleuse-badge { bottom: 5.3rem; }
-body[data-view=speaker].blanked #souffleuse-badge { bottom: 7.2rem; }
-
-/* ── the prompter's strip ─────────────────────────────────────────────
-   One line in two homes, like the clock: over the bottom edge of the stage
-   in the classic arrangement, at the head of the card column in cue-card
-   mode. Deliberately not #center-toast - that lies over the middle of the
-   stage, is built for 1.8 seconds and cannot be taken away, and a hint a
-   lecturer cannot dismiss is a hint that stands there for the rest of the
-   sentence. In 150ms, out in 400: arriving should be noticed, leaving
-   should not.
-   Both of these set display, so both need the [hidden] rule of their own -
-   an author stylesheet that sets display beats the browser's. */
-#souffleuse-strip {
-  position: absolute;
-  left: 50%;
-  bottom: 2.3rem;
-  transform: translateX(-50%);
-  z-index: 12;
-  display: flex;
-  align-items: baseline;
-  gap: 0.6em;
-  max-width: min(46rem, 88%);
-  padding: 0.4em 0.6em 0.45em;
-  border: 1px solid var(--rule);
-  border-radius: 4px;
-  background: var(--paper);
-  color: var(--ink);
-  font-family: var(--sans-font);
-  font-size: clamp(15px, 2.2vh, 22px);
-  line-height: 1.25;
-  box-shadow: 0 4px 14px oklch(0 0 0 / 0.14);
-  opacity: 0;
-  transition: opacity 400ms ease;
-}
-#souffleuse-strip[hidden] { display: none; }
-#souffleuse-strip.visible { opacity: 1; transition-duration: 150ms; }
-/* The red of the warning toast, and for the same reason: high is the one
-   that may interrupt a sentence. */
-#souffleuse-strip[data-severity=high] {
-  background: oklch(0.55 0.16 25 / 0.94);
-  border-color: oklch(0.46 0.16 25);
-  color: oklch(0.99 0 0);
-  box-shadow: 0 4px 16px oklch(0.55 0.16 25 / 0.3);
-}
-#souffleuse-strip .souffleuse-glyph { flex: 0 0 auto; opacity: 0.7; }
-#souffleuse-strip .souffleuse-text { flex: 1 1 auto; min-width: 0; }
-.souffleuse-x {
-  flex: 0 0 auto;
-  font: inherit;
-  line-height: 1;
-  padding: 0 0.15em;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  opacity: 0.45;
-  cursor: pointer;
-}
-.souffleuse-x:hover { opacity: 1; }
-/* What the ear is hearing right now, off by default: reassuring in a
-   rehearsal, one moving line too many in a talk. */
-#souffleuse-heard {
-  position: absolute;
-  left: 50%;
-  bottom: 0.7rem;
-  transform: translateX(-50%);
-  z-index: 11;
-  max-width: min(46rem, 88%);
-  font-family: var(--sans-font);
-  font-size: clamp(11px, 1.5vh, 15px);
-  font-style: italic;
-  color: var(--ink-soft);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  pointer-events: none;
-}
-#souffleuse-heard[hidden] { display: none; }
-/* In the card column both are ordinary block children at the head of it,
-   under the crumb line - the cards are what is being read there, and a
-   floating box over them would cover the current one. */
-body[data-view=speaker].cue-cards #souffleuse-strip,
-body[data-view=speaker].cue-cards #souffleuse-heard {
-  position: static;
-  transform: none;
-  flex: 0 0 auto;
-  max-width: none;
-  margin: 0.8vh 2.4vw 0;
-}
-body[data-view=speaker].cue-cards #souffleuse-heard { margin-top: 0.4vh; white-space: normal; }
-
-/* The history, opened by Shift-clicking the switch. The export modal's
-   shape without its scrim: this one is read beside the talk, not instead
-   of it, so nothing behind it is dimmed and nothing is blocked. */
-#souffleuse-log {
-  position: fixed;
-  right: 0.8rem;
-  bottom: 3.2rem;
-  z-index: 50;
-  width: min(30rem, 48vw);
-  max-height: 62vh;
-  display: flex;
-  flex-direction: column;
-  background: var(--paper);
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  box-shadow: 0 10px 30px oklch(0 0 0 / 0.22);
-  font-family: var(--sans-font);
-  font-size: 13px;
-  color: var(--ink);
-}
-#souffleuse-log[hidden] { display: none; }
-#souffleuse-log header {
-  display: flex;
-  align-items: baseline;
-  gap: 0.5em;
-  padding: 0.6em 0.7em 0.4em;
-  border-bottom: 1px solid var(--rule);
-  font-variant-caps: all-small-caps;
-  letter-spacing: 0.08em;
-  color: var(--ink-soft);
-}
-#souffleuse-log header .souffleuse-x { margin-left: auto; font-size: 15px; }
-#souffleuse-log-list {
-  flex: 1 1 auto;
-  min-height: 0;
-  overflow-y: auto;
-  list-style: none;
-  margin: 0;
-  padding: 0.3em 0;
-}
-#souffleuse-log-list li {
-  display: grid;
-  grid-template-columns: 3.2em 1.3em 1fr auto;
-  gap: 0.5em;
-  align-items: baseline;
-  padding: 0.35em 0.7em;
-  line-height: 1.3;
-}
-#souffleuse-log-list li + li { border-top: 1px solid color-mix(in oklab, var(--rule) 55%, transparent); }
-#souffleuse-log-list .souffleuse-log-at { font-family: var(--mono-font); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
-#souffleuse-log-list .souffleuse-log-gone { font-size: 0.82em; color: var(--ink-soft); }
-#souffleuse-log-list .souffleuse-log-empty { display: block; padding: 1em 0.8em; color: var(--ink-soft); font-style: italic; }
-#souffleuse-log footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.4em 1.1em;
-  padding: 0.55em 0.7em;
-  border-top: 1px solid var(--rule);
-  color: var(--ink-soft);
-}
-#souffleuse-log footer label { display: flex; align-items: center; gap: 0.4em; cursor: pointer; }
-body[data-mode=dark] #souffleuse-strip,
-body[data-mode=dark] #souffleuse-log { background: var(--paper-warm); }
-body[data-mode=dark] #souffleuse-strip[data-severity=high] { background: oklch(0.55 0.16 25 / 0.94); }
+#speaker-footer #cue-btn[aria-pressed=true] { border-color: var(--emph); color: var(--emph); }
 
 /* Mode toast sits at the top of the *stage*, not the top of the window:
    row 1 is the scrubber, and a toast overlapping the column strip covers
@@ -16193,7 +16045,6 @@ body[data-mode=dark] #speaker-footer kbd,
 body[data-mode=dark] #speaker-footer #export-annot-btn,
 body[data-mode=dark] #speaker-footer #preview-orient-btn,
 body[data-mode=dark] #speaker-footer #cue-btn,
-body[data-mode=dark] #speaker-footer #souffleuse-btn,
 body[data-mode=dark] #speaker-footer #speaker-help-btn,
 body[data-mode=dark] #notes-zoom button,
 body[data-mode=dark] .export-modal-inner,
@@ -16207,7 +16058,6 @@ body[data-mode=dark] .export-modal-keep {
 body[data-mode=dark] #speaker-footer #freeze-btn:hover,
 body[data-mode=dark] #speaker-footer #export-annot-btn:hover,
 body[data-mode=dark] #speaker-footer #preview-orient-btn:hover,
-body[data-mode=dark] #speaker-footer #souffleuse-btn:hover,
 body[data-mode=dark] #speaker-footer #speaker-help-btn:hover,
 body[data-mode=dark] #notes-zoom button:hover,
 body[data-mode=dark] .export-modal-copy:hover,
@@ -16503,12 +16353,6 @@ body[data-view=speaker].cue-cards #clock {
 #cue-rail {
   flex: 1 1 auto;
   min-height: 0;
-  /* The rail is the frame its own entries are measured against. cueRender
-     scrolls to curEl.offsetTop, which without this is measured from
-     whatever positioned ancestor happens to be up the tree - so anything
-     that grows above the rail, the prompter's strip included, moved every
-     card by its height. */
-  position: relative;
   overflow-y: auto;
   scrollbar-width: thin;
   padding: 1.6vh 2.4vw 40vh 2.4vw;
@@ -16612,30 +16456,6 @@ body[data-view=speaker].cue-cards #clock {
 }
 .cue-entry.cur .cue-step .cue-what { white-space: normal; font-style: normal; }
 .cue-entry.cur .cue-step { font-size: 0.9em; }
-/* A card the prompter laid in rather than one the author wrote: the track
-   goes dashed, the ring goes dashed, and the words are italic behind the
-   same hollow ring the switch wears. Nothing else changes - it is read in
-   its place in the column, on the beat it belongs to. */
-.cue-tick.souffleuse::before { width: 0; background: none; border-left: 1px dashed var(--rule); }
-.cue-tick.souffleuse i { border-style: dashed; }
-.cue-card.souffleuse { font-style: italic; }
-/* The ring takes the bullet's place rather than standing on a line of its
-   own above it: a card is one or two lines read at a glance, and a glyph
-   with a line to itself doubles the height of the shortest thing in the
-   column. */
-.cue-card.souffleuse li { padding-left: 1.4em; }
-.cue-card.souffleuse li::before,
-.cue-entry.cur .cue-card.souffleuse li::before {
-  content: '\\25cc';
-  top: 0;
-  width: auto;
-  height: auto;
-  background: none;
-  border-radius: 0;
-  color: var(--ink-soft);
-  opacity: 1;
-  font-style: normal;
-}
 #cue-rail .cue-empty { grid-column: 1 / -1; color: var(--ink-soft); font-size: 0.9em; padding: 1em 0; }
 #cue-rail .cue-empty kbd { font-family: var(--mono-font); font-size: 0.85em; border: 1px solid var(--rule); border-radius: 3px; padding: 0 0.35em; }
 
@@ -17342,12 +17162,14 @@ viewHooks.onActiveChange = () => {
 viewHooks.onStateChange = () => { cueSync(); };
 
 // The prompter's cards for slides that have not come up yet, chunk id to a
-// list of {cueId, text}. It is declared here, a long way from the prompter's
-// own section at the foot of this file, because cueCardsFor reads it and the
-// cue section restores the saved arrangement at its end - which runs first.
-// A let still in its temporal dead zone throws there, inside the try that
-// guards localStorage, which swallows it whole: the same trap the mode
-// restore was moved down for, seen from the other side.
+// list of {cueId, text}. This and the merge in cueCardsFor are the two pieces
+// of the prompter that a cockpit carries whether or not it has one: the rail
+// is drawn from here, and drawing it cannot be conditional on a literal that
+// may not have been spliced. Over an empty Map both are free. Declared up
+// here rather than beside them because the cue section restores the saved
+// arrangement at its end, which draws the rail - and a let still in its
+// temporal dead zone throws there, inside the try that guards localStorage,
+// which swallows it whole.
 const souffleuseCues = new Map();
 
 // ── cue cards ───────────────────────────────────────────────────────
@@ -17396,24 +17218,6 @@ function cuePlaceStage() {
   if (cur) previewStrip.insertBefore(stageCell, cur);
   else previewStrip.appendChild(stageCell);
 }
-// The prompter's strip is one element in two homes, exactly like the clock:
-// over the stage's bottom edge in the classic arrangement, at the head of
-// the card column here, with the line of what it is hearing under it. Looked
-// up by id rather than held in a binding, because this runs from the mode
-// restore at the foot of this section - before the prompter's own section
-// at the end of this file has declared anything at all.
-function cuePlaceStrip(on) {
-  const strip = document.getElementById('souffleuse-strip');
-  const heard = document.getElementById('souffleuse-heard');
-  if (!strip) return;
-  if (on) {
-    cueRoot.insertBefore(strip, cueRail);
-    if (heard) cueRoot.insertBefore(heard, cueRail);
-  } else {
-    stageCell.appendChild(strip);
-    if (heard) stageCell.appendChild(heard);
-  }
-}
 function applyCueMode(on) {
   document.body.classList.toggle('cue-cards', on);
   cueBtn.setAttribute('aria-pressed', on ? 'true' : 'false');
@@ -17421,7 +17225,6 @@ function applyCueMode(on) {
   // the classic arrangement, in the column's header here.
   if (on) cueRoot.querySelector('#cue-where').appendChild(clockEl);
   else stageCell.appendChild(clockEl);
-  cuePlaceStrip(on);
   if (!on) document.body.insertBefore(stageCell, stageHome);
   populatePreviewStrip();
   if (on) cueSync();
@@ -18036,14 +17839,275 @@ figureOverlay.addEventListener('pointerleave', () => {
 // null and we run on our localStorage state.
 setPeer(window.opener);
 sendToPeer({ type: 'hello', source: 'speaker' });
+`;
 
+// ── the live prompter's CSS and runtime (--souffleuse only) ─────────
+//
+// Two literals that reach a page only when the build carries --souffleuse:
+// the stylesheet after SPEAKER_CSS inside the same style element, the script
+// after SPEAKER_JS inside the same script element. Being separate literals
+// is the whole point of them. The rules used to live in SPEAKER_CSS and the
+// runtime at the foot of SPEAKER_JS, which put 36 KB of prompter into every
+// cockpit anybody ever built - while the comment in renderSpeaker promised
+// that a build without the flag is the file it was before the feature. It is
+// now, apart from the cue-card integration the rail needs either way
+// (souffleuseCues and the merge in cueCardsFor, twenty-odd lines that are
+// free over an empty Map).
+//
+// **The runtime is spliced inside the same script element, at the point where
+// it used to stand.** It shares SPEAKER_JS's lexical scope and needs to: it
+// reads flatChunks, state, viewHooks, cueSync, cueOn, cuePosition,
+// souffleuseCues, applyCueMode, flashMode, escText, elapsedSeconds, tStart
+// and PSI_CARDS. In a script element of its own every one of those is
+// undefined.
+//
+// Template-literal rules apply to both, as everywhere else in this file: no
+// raw backtick even in a comment, every regex class escape doubled, no
+// unterminated block comment. `node test/gates/run.mjs inlined` scans them
+// by name along with the other twelve.
+
+const SOUFFLEUSE_CSS = `
+/* The switch wears the chrome of the other footer buttons, and the rules that
+   dress them are in SPEAKER_CSS - in selector lists this id is deliberately
+   not a member of, because a button that exists in one build out of two
+   cannot be a name in the stylesheet every cockpit carries. So the shape is
+   repeated here for the one selector; the declarations are the same
+   declarations, and they have to stay so. */
+#speaker-footer #souffleuse-btn {
+  font: inherit;
+  white-space: nowrap;
+  padding: 2px 8px;
+  border: 1px solid var(--rule);
+  border-radius: 3px;
+  background: oklch(0.97 0 0);
+  color: var(--ink);
+  cursor: pointer;
+}
+#speaker-footer #souffleuse-btn:hover { background: oklch(0.93 0 0); }
+#speaker-footer #souffleuse-btn[aria-pressed=true] { border-color: var(--emph); color: var(--emph); }
+body[data-mode=dark] #speaker-footer #souffleuse-btn {
+  background: var(--paper-warm);
+  color: var(--ink);
+}
+body[data-mode=dark] #speaker-footer #souffleuse-btn:hover {
+  background: oklch(from var(--paper) calc(l + 0.12) c h);
+}
+/* The prompter's switch says what it is doing with the one glyph in front of
+   the word, because a lecturer glances at this footer and does not read it:
+   a hollow ring is off, a filled red dot is a microphone that is open, and
+   the dot breathing is a call in flight. The word itself stays ink - a
+   coloured label in the corner of the eye reads as an alarm. */
+#speaker-footer #souffleuse-btn .souffleuse-dot { color: var(--ink-soft); }
+#speaker-footer #souffleuse-btn[data-state=listening] .souffleuse-dot,
+#speaker-footer #souffleuse-btn[data-state=thinking] .souffleuse-dot { color: oklch(0.56 0.20 25); }
+#speaker-footer #souffleuse-btn[data-state=error] .souffleuse-dot { color: oklch(0.63 0.15 70); }
+@media (prefers-reduced-motion: no-preference) {
+  #speaker-footer #souffleuse-btn[data-state=thinking] .souffleuse-dot {
+    animation: souffleuse-breathe 1.1s ease-in-out infinite;
+  }
+}
+@keyframes souffleuse-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+/* Degraded states only - server recognition instead of on-device, a refused
+   key, a microphone that was denied. Stacked clear of BLANK and DEMO, which
+   own the two rows below it. */
+body[data-view=speaker] #souffleuse-badge { bottom: 5.3rem; }
+body[data-view=speaker].blanked #souffleuse-badge { bottom: 7.2rem; }
+
+/* ── the prompter's strip ─────────────────────────────────────────────
+   One line in two homes, like the clock: over the bottom edge of the stage
+   in the classic arrangement, at the head of the card column in cue-card
+   mode. Deliberately not #center-toast - that lies over the middle of the
+   stage, is built for 1.8 seconds and cannot be taken away, and a hint a
+   lecturer cannot dismiss is a hint that stands there for the rest of the
+   sentence. In 150ms, out in 400: arriving should be noticed, leaving
+   should not.
+   Both of these set display, so both need the [hidden] rule of their own -
+   an author stylesheet that sets display beats the browser's. */
+#souffleuse-strip {
+  position: absolute;
+  left: 50%;
+  bottom: 2.3rem;
+  transform: translateX(-50%);
+  z-index: 12;
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  max-width: min(46rem, 88%);
+  padding: 0.4em 0.6em 0.45em;
+  border: 1px solid var(--rule);
+  border-radius: 4px;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans-font);
+  font-size: clamp(15px, 2.2vh, 22px);
+  line-height: 1.25;
+  box-shadow: 0 4px 14px oklch(0 0 0 / 0.14);
+  opacity: 0;
+  transition: opacity 400ms ease;
+}
+#souffleuse-strip[hidden] { display: none; }
+#souffleuse-strip.visible { opacity: 1; transition-duration: 150ms; }
+/* The red of the warning toast, and for the same reason: high is the one
+   that may interrupt a sentence. */
+#souffleuse-strip[data-severity=high] {
+  background: oklch(0.55 0.16 25 / 0.94);
+  border-color: oklch(0.46 0.16 25);
+  color: oklch(0.99 0 0);
+  box-shadow: 0 4px 16px oklch(0.55 0.16 25 / 0.3);
+}
+#souffleuse-strip .souffleuse-glyph { flex: 0 0 auto; opacity: 0.7; }
+#souffleuse-strip .souffleuse-text { flex: 1 1 auto; min-width: 0; }
+.souffleuse-x {
+  flex: 0 0 auto;
+  font: inherit;
+  line-height: 1;
+  padding: 0 0.15em;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  opacity: 0.45;
+  cursor: pointer;
+}
+.souffleuse-x:hover { opacity: 1; }
+/* What the ear is hearing right now, off by default: reassuring in a
+   rehearsal, one moving line too many in a talk. */
+#souffleuse-heard {
+  position: absolute;
+  left: 50%;
+  bottom: 0.7rem;
+  transform: translateX(-50%);
+  z-index: 11;
+  max-width: min(46rem, 88%);
+  font-family: var(--sans-font);
+  font-size: clamp(11px, 1.5vh, 15px);
+  font-style: italic;
+  color: var(--ink-soft);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  pointer-events: none;
+}
+#souffleuse-heard[hidden] { display: none; }
+/* In the card column both are ordinary block children at the head of it,
+   under the crumb line - the cards are what is being read there, and a
+   floating box over them would cover the current one. */
+body[data-view=speaker].cue-cards #souffleuse-strip,
+body[data-view=speaker].cue-cards #souffleuse-heard {
+  position: static;
+  transform: none;
+  flex: 0 0 auto;
+  max-width: none;
+  margin: 0.8vh 2.4vw 0;
+}
+body[data-view=speaker].cue-cards #souffleuse-heard { margin-top: 0.4vh; white-space: normal; }
+
+/* The history, opened by Shift-clicking the switch. The export modal's
+   shape without its scrim: this one is read beside the talk, not instead
+   of it, so nothing behind it is dimmed and nothing is blocked. */
+#souffleuse-log {
+  position: fixed;
+  right: 0.8rem;
+  bottom: 3.2rem;
+  z-index: 50;
+  width: min(30rem, 48vw);
+  max-height: 62vh;
+  display: flex;
+  flex-direction: column;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  box-shadow: 0 10px 30px oklch(0 0 0 / 0.22);
+  font-family: var(--sans-font);
+  font-size: 13px;
+  color: var(--ink);
+}
+#souffleuse-log[hidden] { display: none; }
+#souffleuse-log header {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5em;
+  padding: 0.6em 0.7em 0.4em;
+  border-bottom: 1px solid var(--rule);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+#souffleuse-log header .souffleuse-x { margin-left: auto; font-size: 15px; }
+#souffleuse-log-list {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  list-style: none;
+  margin: 0;
+  padding: 0.3em 0;
+}
+#souffleuse-log-list li {
+  display: grid;
+  grid-template-columns: 3.2em 1.3em 1fr auto;
+  gap: 0.5em;
+  align-items: baseline;
+  padding: 0.35em 0.7em;
+  line-height: 1.3;
+}
+#souffleuse-log-list li + li { border-top: 1px solid color-mix(in oklab, var(--rule) 55%, transparent); }
+#souffleuse-log-list .souffleuse-log-at { font-family: var(--mono-font); font-variant-numeric: tabular-nums; color: var(--ink-soft); }
+#souffleuse-log-list .souffleuse-log-gone { font-size: 0.82em; color: var(--ink-soft); }
+#souffleuse-log-list .souffleuse-log-empty { display: block; padding: 1em 0.8em; color: var(--ink-soft); font-style: italic; }
+#souffleuse-log footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4em 1.1em;
+  padding: 0.55em 0.7em;
+  border-top: 1px solid var(--rule);
+  color: var(--ink-soft);
+}
+#souffleuse-log footer label { display: flex; align-items: center; gap: 0.4em; cursor: pointer; }
+body[data-mode=dark] #souffleuse-strip,
+body[data-mode=dark] #souffleuse-log { background: var(--paper-warm); }
+body[data-mode=dark] #souffleuse-strip[data-severity=high] { background: oklch(0.55 0.16 25 / 0.94); }
+/* A card the prompter laid in rather than one the author wrote: the track
+   goes dashed, the ring goes dashed, and the words are italic behind the
+   same hollow ring the switch wears. Nothing else changes - it is read in
+   its place in the column, on the beat it belongs to. */
+.cue-tick.souffleuse::before { width: 0; background: none; border-left: 1px dashed var(--rule); }
+.cue-tick.souffleuse i { border-style: dashed; }
+.cue-card.souffleuse { font-style: italic; }
+/* The ring takes the bullet's place rather than standing on a line of its
+   own above it: a card is one or two lines read at a glance, and a glyph
+   with a line to itself doubles the height of the shortest thing in the
+   column. */
+.cue-card.souffleuse li { padding-left: 1.4em; }
+.cue-card.souffleuse li::before,
+.cue-entry.cur .cue-card.souffleuse li::before {
+  content: '\\25cc';
+  top: 0;
+  width: auto;
+  height: auto;
+  background: none;
+  border-radius: 0;
+  color: var(--ink-soft);
+  opacity: 1;
+  font-style: normal;
+}
+/* The rail is the frame its own entries are measured against. cueRender
+   scrolls to curEl.offsetTop, which without this is measured from whatever
+   positioned ancestor happens to be up the tree - so anything growing above
+   the rail moved every card by its own height. The strip is the only thing
+   that ever grows there, which is why the line is here and not in
+   SPEAKER_CSS: a cockpit with no prompter has nothing to correct for. */
+#cue-rail { position: relative; }
+`;
+
+const SOUFFLEUSE_JS = `
 // ── the live prompter (--souffleuse) ────────────────────────────────
 // The cockpit's half of PLAN-souffleuse.md: an ear, a switch, and one way
-// back to the sidecar over the watch socket that is already here. Nothing
-// of it exists in an ordinary build - renderSpeaker emits SOUFFLEUSE as
-// null and none of the chrome, and a cockpit built without --watch has no
-// window.psiWatch to speak to, which is why --souffleuse refuses to run
-// without --watch in the first place.
+// back to the sidecar over the watch socket that is already here. This whole
+// text is spliced into speaker.html only under --souffleuse, at the end of
+// the same script element SPEAKER_JS is in, so everything below reads the
+// cockpit's own bindings - flatChunks, state, viewHooks, cueSync,
+// souffleuseCues, applyCueMode, cuePosition, flashMode - as if it still
+// stood where it was written. A cockpit built any other way carries none of
+// it, and SOUFFLEUSE is null in the one line that survives.
 //
 // The projection never learns any of this. Not one field of snapshot()
 // moves, every message is its own type on the socket, and the room sees
@@ -18179,6 +18243,15 @@ if (SOUFFLEUSE && window.psiWatch) {
         try { SR.install({ langs: [lang], processLocally: true }); } catch (e) { /* not fatal */ }
       },
       start(lang, handlers, onDevice) {
+        // A second start while a recogniser is open would leave the first one
+        // running and unreferenced - open overwrites rec - and every final
+        // result would arrive twice. The switch guards against getting here
+        // twice at all; this is the guard a caller cannot forget.
+        if (rec) {
+          want = false;
+          try { rec.abort(); } catch (e) { /* already gone */ }
+          rec = null;
+        }
         cbs = handlers;
         want = true;
         local = !!onDevice;
@@ -18265,53 +18338,72 @@ if (SOUFFLEUSE && window.psiWatch) {
     });
   }
 
+  // Switching on is two awaits long - asking the browser about the recogniser
+  // and saying hello to the sidecar - and souffOn is only true at the end of
+  // it. So a second press, or the sessionStorage restore racing a click,
+  // walked straight past the souffOn guard and started a second recogniser: the
+  // adapter's open() overwrites its own handle, the first recogniser keeps
+  // listening unreferenced, and every sentence is sent twice. souffStarting is
+  // the flag for the window in between, and it is cleared on every way out.
+  let souffStarting = false;
   async function souffStart(fromGesture) {
-    if (souffOn) return;
-    let av;
-    try { av = await souffStt.available(SOUFFLEUSE.lang); }
-    catch (e) { av = { ok: false, why: 'speech recognition would not start' }; }
-    if (!av.ok) { souffEarWhy = av.why; souffPaintBadge(); souffPaint(); return; }
-    if (fromGesture && souffStt.needsDownload()) souffStt.download(SOUFFLEUSE.lang);
-    souffLocal = !!av.local;
-    souffEarWhy = null;
-    const hi = await souffHello();
-    if (!hi || !hi.ok) {
-      souffSideWhy = 'off \\u2013 ' + ((hi && hi.why) || 'the watch server is gone');
-      souffPaintBadge();
-      souffPaint();
-      return;
-    }
-    if (!hi.enabled) {
-      souffSideWhy = 'off \\u2013 ' + (hi.why || 'the prompter is not running');
-      // A hello counts as switched on inside the sidecar. Say plainly that
-      // it is not, so its log and this window agree about a talk nobody is
-      // listening to.
-      souffWatch.ask('souffleuse-toggle', { on: false });
-      souffPaintBadge();
-      souffPaint();
-      return;
-    }
-    souffSideWhy = null;
-    souffOn = true;
-    souffState = 'listening';
+    if (souffOn || souffStarting) return;
+    souffStarting = true;
     try {
-      souffStt.start(SOUFFLEUSE.lang, {
-        onFinal: souffHeard, onInterim: souffInterim, onState: souffSttState,
-      }, souffLocal);
-    } catch (e) {
-      souffOn = false;
-      souffEarWhy = 'speech recognition would not start';
+      let av;
+      try { av = await souffStt.available(SOUFFLEUSE.lang); }
+      catch (e) { av = { ok: false, why: 'speech recognition would not start' }; }
+      if (!av.ok) { souffEarWhy = av.why; souffPaintBadge(); souffPaint(); return; }
+      if (fromGesture && souffStt.needsDownload()) souffStt.download(SOUFFLEUSE.lang);
+      souffLocal = !!av.local;
+      souffEarWhy = null;
+      const hi = await souffHello();
+      if (!hi || !hi.ok) {
+        souffSideWhy = 'off \\u2013 ' + ((hi && hi.why) || 'the watch server is gone');
+        souffPaintBadge();
+        souffPaint();
+        return;
+      }
+      if (!hi.enabled) {
+        // Nothing to undo: a hello registers this window and stamps the
+        // sidecar's clock, and only a toggle switches anything on. So a
+        // refusal here is simply not followed by one.
+        souffSideWhy = 'off \\u2013 ' + (hi.why || 'the prompter is not running');
+        souffPaintBadge();
+        souffPaint();
+        return;
+      }
+      souffSideWhy = null;
+      souffOn = true;
+      souffState = 'listening';
+      try {
+        souffStt.start(SOUFFLEUSE.lang, {
+          onFinal: souffHeard, onInterim: souffInterim, onState: souffSttState,
+        }, souffLocal);
+      } catch (e) {
+        souffOn = false;
+        souffEarWhy = 'speech recognition would not start';
+        souffPaintBadge();
+        souffPaint();
+        return;
+      }
       souffPaintBadge();
+      // The preference before the switch: the sidecar decides what to offer
+      // the model out of cueTargets, and it should know whether cards are
+      // wanted before the first tick can happen.
+      souffWatch.ask('souffleuse-prefs', { cues: souffCuesOn });
+      souffWatch.ask('souffleuse-toggle', { on: true });
+      souffRemember(true);
+      // Whatever the sidecar has already laid into slides still to come. On a
+      // reload this window's Map is empty and the sidecar's list is not.
+      souffCueReplay(hi.cueCards);
+      souffLastSent = { idx: -1, beat: -1 };
+      souffMoved();
       souffPaint();
-      return;
+      flashMode('prompter listening \\u00b7 ' + (souffLocal ? 'on-device' : 'server recognition'));
+    } finally {
+      souffStarting = false;
     }
-    souffPaintBadge();
-    souffWatch.ask('souffleuse-toggle', { on: true });
-    souffRemember(true);
-    souffLastSent = { idx: -1, beat: -1 };
-    souffMoved();
-    souffPaint();
-    flashMode('prompter listening \\u00b7 ' + (souffLocal ? 'on-device' : 'server recognition'));
   }
 
   // The quiet flag is for the one case the sidecar asked for this itself:
@@ -18322,6 +18414,11 @@ if (SOUFFLEUSE && window.psiWatch) {
     souffState = 'off';
     try { souffStt.stop(); } catch (e) { /* never started */ }
     if (souffHeardEl) souffHeardEl.hidden = true;
+    // The strip goes with the switch, and so do its two timers. Left running,
+    // a hint faded fifteen seconds after the ear was closed and sent a
+    // dismissal to a sidecar that is no longer listening for one - and the
+    // speaker watched a whisper leave a prompter that was already off.
+    souffClearHint('off');
     souffRemember(false);
     if (was && !quiet) souffWatch.ask('souffleuse-toggle', { on: false });
     souffPaintBadge();
@@ -18397,6 +18494,31 @@ if (SOUFFLEUSE && window.psiWatch) {
     });
   }
 
+
+  // The strip is one element in two homes, exactly like the clock: over the
+  // stage's bottom edge in the classic arrangement, at the head of the card
+  // column under K, with the line of what it is hearing under it.
+  // applyCueMode is wrapped rather than edited for the reason the two hooks
+  // above are chained - the move belongs to the prompter, and a cockpit built
+  // without one must be the cockpit it was before. Wrapped here, it also has
+  // to be run once: the cue section restored the saved arrangement while this
+  // text did not yet exist.
+  function cuePlaceStrip(on) {
+    const strip = document.getElementById('souffleuse-strip');
+    const heard = document.getElementById('souffleuse-heard');
+    if (!strip) return;
+    if (on) {
+      cueRoot.insertBefore(strip, cueRail);
+      if (heard) cueRoot.insertBefore(heard, cueRail);
+    } else {
+      stageCell.appendChild(strip);
+      if (heard) stageCell.appendChild(heard);
+    }
+  }
+  const souffPrevCueMode = applyCueMode;
+  applyCueMode = (on) => { souffPrevCueMode(on); cuePlaceStrip(on); };
+  cuePlaceStrip(cueOn());
+
   // ── the strip: one line, the newest thing said ─────────────────────
   // A glyph for the kind, the words, and a cross. A new hint replaces a
   // standing one without ceremony: the policy in Node has already decided
@@ -18436,6 +18558,22 @@ if (SOUFFLEUSE && window.psiWatch) {
     souffRenderLog();
   }
 
+  // The strip emptied without the speaker having answered for what was on it:
+  // the switch was thrown, here or in Node. No dismissal goes out - there is
+  // nobody to tell, and the sidecar's policy hears about a hint leaving the
+  // screen from the next hello rather than from a socket that is idle.
+  function souffClearHint(how) {
+    if (souffHintTimer) { clearTimeout(souffHintTimer); souffHintTimer = null; }
+    if (souffHintFade) { clearTimeout(souffHintFade); souffHintFade = null; }
+    if (souffHint) {
+      const seen = souffHistory.find(x => x.text === souffHint.text && x.how === null);
+      if (seen) seen.how = how;
+      souffHint = null;
+      souffRenderLog();
+    }
+    if (souffStrip) { souffStrip.classList.remove('visible'); souffStrip.hidden = true; }
+  }
+
   function souffDismiss(how) {
     if (!souffHint || !souffStrip) return false;
     const h = souffHint;
@@ -18469,6 +18607,7 @@ if (SOUFFLEUSE && window.psiWatch) {
     const gone = h.how === 'fade' ? 'faded'
       : h.how === 'esc' ? 'Esc'
       : h.how === 'click' ? 'dismissed'
+      : h.how === 'off' ? 'switched off'
       : 'standing';
     return '<li><span class="souffleuse-log-at">' + escText(PSI_CARDS.formatClock(h.at)) + '</span>'
       + '<span class="souffleuse-glyph">' + escText(SOUFF_GLYPHS[h.kind] || '') + '</span>'
@@ -18508,7 +18647,41 @@ if (SOUFFLEUSE && window.psiWatch) {
       // the rail while the box says no is the kind of half-answer that gets
       // read as a defect.
       if (!souffCuesOn) { souffleuseCues.clear(); cueSync(); }
+      // And the sidecar is told, because the box changes what the model is
+      // asked: with it off there are no cue_targets, so nothing is judged, no
+      // slide is locked against a second card and nothing enters the
+      // duplicate rule. The answer carries the cards it has laid, so ticking
+      // the box again brings back what unticking it cleared.
+      souffWatch.ask('souffleuse-prefs', { cues: souffCuesOn }).then((r) => {
+        if (souffCuesOn && r && r.ok) souffCueReplay(r.cueCards);
+      });
     });
+  }
+
+  // One card into the Map the rail is drawn from. Returns whether it was new,
+  // so the two callers - a card arriving on the socket, and the list that
+  // comes back with a hello - can decide once whether to redraw.
+  function souffCueAdd(c) {
+    if (!souffCuesOn) return false;
+    const id = String((c && c.chunkId) || '');
+    if (!id || !c.cueId) return false;
+    const list = souffleuseCues.get(id) || [];
+    if (list.some(x => x.cueId === c.cueId)) return false;
+    list.push({ cueId: c.cueId, text: String(c.text || '') });
+    souffleuseCues.set(id, list);
+    return true;
+  }
+
+  // The cards the sidecar has already laid, handed back by a hello or by a
+  // preference change. They live in this window and nowhere else, so a
+  // reload - which a --watch rebuild does on every save - lost every one of
+  // them while the sidecar went on holding those slides locked against a
+  // second card: the slide was spent and the card was gone.
+  function souffCueReplay(list) {
+    if (!Array.isArray(list)) return;
+    let added = 0;
+    for (const c of list) if (souffCueAdd(c)) added += 1;
+    if (added) cueSync();
   }
 
   // A card for a slide that is now up, in the arrangement that has no rail
@@ -18532,11 +18705,18 @@ if (SOUFFLEUSE && window.psiWatch) {
   souffWatch.on('souffleuse-status', (m) => {
     const st = String((m && m.state) || '');
     // off is the sidecar saying it cannot work at all, and idle is the
-    // prompter having been switched off - the first takes the switch with
-    // it and keeps its reason on the badge, the second is what our own
-    // switch-off sounds like coming back.
-    if (st === 'off') {
-      souffSideWhy = 'off \\u2013 ' + ((m && m.why) || 'the prompter stopped');
+    // prompter having been switched off. Both stop the ear; the difference
+    // is the badge. off keeps its reason there, because the speaker has to
+    // read why; idle is a switch somebody threw and leaves the badge to
+    // whatever already stood on it - the whole reason the two reasons are
+    // remembered separately.
+    //
+    // idle used to only set souffState, which left souffOn true and the
+    // microphone open: a driver switching the prompter off through the
+    // engine's stdin took two presses in the cockpit to undo, and a reload
+    // in between said hello and switched the sidecar back on.
+    if (st === 'off' || st === 'idle') {
+      if (st === 'off') souffSideWhy = 'off \\u2013 ' + ((m && m.why) || 'the prompter stopped');
       souffStop(true);
       return;
     }
@@ -18548,7 +18728,6 @@ if (SOUFFLEUSE && window.psiWatch) {
       return;
     }
     if (st === 'listening' || st === 'thinking') { souffState = st; souffSideWhy = null; }
-    else if (st === 'idle') souffState = 'off';
     souffPaintBadge();
     souffPaint();
   });
@@ -18563,22 +18742,27 @@ if (SOUFFLEUSE && window.psiWatch) {
   });
 
   souffWatch.on('souffleuse-cue', (m) => {
-    if (!souffCuesOn) return;
-    const id = String((m && m.chunkId) || '');
-    if (!id) return;
-    const list = souffleuseCues.get(id) || [];
-    if (list.some(c => c.cueId === m.cueId)) return;
-    list.push({ cueId: m.cueId, text: String(m.text || '') });
-    souffleuseCues.set(id, list);
     // The rail is redrawn from the Map, so a card that arrives while the
     // slide it belongs to is already open appears without a press.
-    cueSync();
+    if (souffCueAdd(m)) cueSync();
   });
 
   // The socket reconnects itself; a session does not. After a reconnect the
   // sidecar has no cockpit to whisper to until one says hello, and its idea
   // of the clock is re-stamped from ours when one does.
-  souffWatch.onConnect(() => { if (souffOn) souffHello(); });
+  souffWatch.onConnect(() => {
+    if (!souffOn) return;
+    souffHello().then((hi) => {
+      if (!hi || !hi.ok || !hi.enabled) return;
+      // A hello only registers a socket. The switch has to be sent again,
+      // because the watcher may have been restarted under this page and a
+      // fresh sidecar starts off - and the preference with it, for the same
+      // reason.
+      souffWatch.ask('souffleuse-prefs', { cues: souffCuesOn });
+      souffWatch.ask('souffleuse-toggle', { on: true });
+      souffCueReplay(hi.cueCards);
+    });
+  });
 
   // Switched on, and then the page reloaded - which a rebuild does on every
   // save. The permission is still granted for this tab, so recognition
@@ -19110,6 +19294,15 @@ async function createSouffleuse({
   let lang = 'en';
   let cadence = SOUFFLEUSE_SPEC.cadence.dflt;
   let cooldown = SOUFFLEUSE_SPEC.cooldown.dflt;
+  // Two halves of one permission. The deck's `souffleuse: {cues: off}` is the
+  // ceiling and the cockpit's checkbox is the speaker's own answer under it;
+  // `cuesAllowed` is the conjunction, and it is what `cueTargets` reads. With
+  // the box off the model is offered no target at all, so no cue is judged,
+  // no slide is locked against a second and nothing enters the duplicate
+  // rule – rather than cards being laid into a rail that refuses to show
+  // them.
+  let cuesCeiling = true;
+  let cuesWanted = true;
   let cuesAllowed = true;
   let durationS = null;
   let policy = null;
@@ -19201,7 +19394,8 @@ async function createSouffleuse({
       durationS = talkDuration(fm);
       cadence = settings.cadence;
       cooldown = settings.cooldown;
-      cuesAllowed = settings.cues !== 'off';
+      cuesCeiling = settings.cues !== 'off';
+      cuesAllowed = cuesCeiling && cuesWanted;
       model = cliModel || settings.model;
       deck = souff.deckPayload(lecture, { notesToCards, durationS, lang });
       marks = souff.flattenMarks(deck);
@@ -19257,6 +19451,12 @@ async function createSouffleuse({
     return changed;
   }
 
+  // A hello registers a cockpit and stamps the clock. It does **not** switch
+  // the prompter on: `toggle` and `setEnabled` are the only two things that
+  // do. It used to, and the cockpit then had to undo it with a separate,
+  // un-awaited toggle whenever the answer said `enabled: false` – so a lost
+  // reply, or a recogniser that would not start, left the sidecar listening
+  // and calling a model for a cockpit whose switch was off.
   function hello(msg, reply) {
     stt = msg.stt && typeof msg.stt === 'object'
       ? { engine: String(msg.stt.engine || ''), local: !!msg.stt.local } : null;
@@ -19268,24 +19468,37 @@ async function createSouffleuse({
     // is exactly how the opening quiet came to be over before the prompter
     // was switched on.
     cursor.wallAt = Date.now();
-    if (!on) {
-      on = true;
-      onAtElapsed = nowElapsed();
-      sinceTick = { seconds: 0, words: 0 };
-    }
+    // A hello is a page that has just started: whatever stood on its strip a
+    // moment ago is not on this one. The standing slot is the policy's memory
+    // of "one at a time", and a hint nobody is looking at holding it would
+    // drop every low hint for the rest of the talk – which is what a --watch
+    // rebuild in the middle of a hint used to do.
+    if (policy) policy.forgetStanding();
     logSession('hello');
     // The reason rides in the reply's own `why`, not in a field of the same
     // name in the payload: `reply` spreads the extras first so a payload
     // field can never shadow a protocol one, which means a payload `why`
     // would be overwritten by the protocol's.
+    //
+    // `cues` is the permission, `cueCards` the cards already laid – they are
+    // two different things and the second is why they cannot share a name.
+    // The cards live in the cockpit's memory alone, so a reload lost every
+    // one of them while the sidecar went on holding those slides locked
+    // against a second card; the reply hands them back.
     reply(true, disabled ? disabled.why : '', {
       enabled: !disabled,
       model,
       cadence,
       cues: cuesAllowed,
+      cueCards: cues.map(c => ({ cueId: c.cueId, chunkId: c.chunkId, text: c.text })),
       session: prefix ? prefix.hash : null,
     });
-    status(disabled ? 'off' : 'listening', disabled ? disabled.why : null);
+    // Only news: the sidecar cannot work at all, or it is already running and
+    // this is a reconnect saying so again. A hello from a cockpit that is
+    // about to switch on says nothing, because nothing has happened yet – and
+    // an `idle` here would race the cockpit's own switch-on and undo it.
+    if (disabled) status('off', disabled.why);
+    else if (on) status('listening');
   }
 
   function heard(msg, reply) {
@@ -19340,6 +19553,28 @@ async function createSouffleuse({
     reply(true, disabled ? disabled.why : '', { enabled: !disabled, on });
   }
 
+  // The one preference the sidecar has to know about, because it changes what
+  // the model is asked rather than what the cockpit does with the answer. Its
+  // own message rather than a field of `souffleuse-toggle`: the checkbox is
+  // changed in the middle of a talk with the switch untouched, and a switch
+  // message that also carried a preference would mean two things at once. The
+  // reply hands the laid cards back, so ticking the box again restores what
+  // unticking it cleared.
+  function prefs(msg, reply) {
+    if (msg.cues != null) {
+      cuesWanted = !!msg.cues;
+      const want = cuesCeiling && cuesWanted;
+      if (want !== cuesAllowed) {
+        cuesAllowed = want;
+        logLine('prefs', { cues: cuesAllowed, ceiling: cuesCeiling });
+      }
+    }
+    reply(true, '', {
+      cues: cuesAllowed,
+      cueCards: cues.map(c => ({ cueId: c.cueId, chunkId: c.chunkId, text: c.text })),
+    });
+  }
+
   function setEnabled(want, who = 'the driver') {
     if (want && !on) {
       on = true;
@@ -19365,6 +19600,7 @@ async function createSouffleuse({
         case 'souffleuse-move': return moved(msg, reply);
         case 'souffleuse-dismiss': return dismissed(msg, reply);
         case 'souffleuse-toggle': return toggled(msg, reply);
+        case 'souffleuse-prefs': return prefs(msg, reply);
         default: return reply(false, `the prompter has no message "${msg.type}"`);
       }
     } catch (e) {
@@ -19587,13 +19823,30 @@ async function createSouffleuse({
     }
     garbageStreak = 0;
     const at = now;
+    // Sent first, recorded second, and nothing is recorded if the send
+    // failed. `policy.shown` is what takes the standing slot, starts the
+    // cool-downs and locks a slide against a second card – so recording a
+    // whisper that never reached a screen (the socket closing, a cockpit
+    // between two reloads) made the policy refuse everything after it for a
+    // hint the speaker never saw.
+    const gone = (reason, extra) => {
+      logLine('suppressed', {
+        reason,
+        action: answer.action || null,
+        kind: answer.kind || null,
+        text: answer.text || null,
+        why: answer.why == null ? null : answer.why,
+        ...extra,
+      });
+      status('listening');
+    };
     if (answer.action === 'cue') {
       const cueId = 'cue' + (++cueSeq);
+      if (!sendToCockpit({
+        type: 'souffleuse-cue', cueId, chunkId: answer.chunk_id, text: answer.text,
+      })) return gone('no-cockpit', { cueId });
       policy.shown({ id: cueId, action: 'cue', text: answer.text, chunk_id: answer.chunk_id, at });
       cues.push({ cueId, chunkId: answer.chunk_id, text: answer.text, at });
-      sendToCockpit({
-        type: 'souffleuse-cue', cueId, chunkId: answer.chunk_id, text: answer.text,
-      });
       logLine('cue', {
         cueId, chunkId: answer.chunk_id, text: answer.text,
         why: answer.why == null ? null : answer.why, at,
@@ -19602,6 +19855,10 @@ async function createSouffleuse({
       emit({ type: 'souffleuse', state: 'cue', chunkId: answer.chunk_id });
     } else {
       const hintId = 'hint' + (++hintSeq);
+      if (!sendToCockpit({
+        type: 'souffleuse-hint', hintId, kind: answer.kind,
+        text: answer.text, severity: answer.severity, at,
+      })) return gone('no-cockpit', { hintId });
       policy.shown({
         id: hintId, action: 'hint', kind: answer.kind, text: answer.text,
         chunkId: session.chunkId, at,
@@ -19613,10 +19870,6 @@ async function createSouffleuse({
       if (answer.kind === 'time') {
         lastTimeHint = { at, drift: session.drift == null ? 0 : session.drift };
       }
-      sendToCockpit({
-        type: 'souffleuse-hint', hintId, kind: answer.kind,
-        text: answer.text, severity: answer.severity, at,
-      });
       logLine('hint', {
         hintId, kind: answer.kind, text: answer.text, severity: answer.severity,
         chunkId: session.chunkId, why: answer.why == null ? null : answer.why, at,
@@ -19651,7 +19904,15 @@ async function createSouffleuse({
   log('             Never audio, never to the projection, never into source.md, never a key');
   log('             into the HTML. The microphone hears the room too – switch it off before');
   log('             a question round, or tell the room.');
-  log('             Transcript and hints are logged to ' + path.basename(logPath) + ' beside the source.');
+  // The full path, not the basename, and a sentence about it: the log holds
+  // the words the room said, and it is written beside source.md wherever that
+  // is. That is where it is worth having – the debrief belongs with the deck
+  // it is about – but this engine's .gitignore only covers this repository,
+  // and a lecture being written in a content repo of its own is one `git add
+  // -A` away from committing a transcript of a rehearsal.
+  log('[souffleuse] the debrief of this run: ' + logPath);
+  log('             It holds the spoken words verbatim. In a content repository of your own,');
+  log('             put souffleuse-*.jsonl in its .gitignore before the first rehearsal.');
   if (disabled) {
     log(`[souffleuse] disabled: ${disabled.why}. Nothing is sent; the transcript is still logged.`);
     emit({ type: 'souffleuse', state: 'off', why: disabled.why });
@@ -19710,7 +19971,7 @@ function assertStylesheetsWellFormed() {
   // DIAGRAM_CSS ships into all four views and was the one inlined
   // stylesheet this guard did not cover – the exact gap the guard exists
   // to close.
-  const sheets = { AUDIENCE_CSS, SPEAKER_CSS, PRINT_CSS, DIAGRAM_CSS, 'editor.css': editorCss() };
+  const sheets = { AUDIENCE_CSS, SPEAKER_CSS, SOUFFLEUSE_CSS, PRINT_CSS, DIAGRAM_CSS, 'editor.css': editorCss() };
   for (const [name, css] of Object.entries(sheets)) {
     if (typeof css !== 'string') continue;
     const opens = (css.match(/\/\*/g) || []).length;
@@ -21368,6 +21629,25 @@ async function main() {
   // The live prompter. Only with --watch, and that is not a convenience: the
   // cockpit reaches the sidecar over the watch socket and there is no other
   // channel, so a one-shot build would start something nothing could talk to.
+  const souffModelIdx = argv.indexOf('--souffleuse-model');
+  if (souffModelIdx >= 0 && !argv[souffModelIdx + 1]) {
+    const err = new Error('--souffleuse-model takes an OpenRouter model id, e.g. anthropic/claude-sonnet-5.');
+    err.userFacing = true;
+    throw err;
+  }
+  // The model id is a setting of a prompter, and it is read nowhere else: on
+  // its own it built an ordinary deck with no prompter in it and said nothing,
+  // which is the silent no-op this CLI refuses everywhere else.
+  if (souffModelIdx >= 0 && !flags.has('--souffleuse')) {
+    const err = new Error(
+      '--souffleuse-model without --souffleuse.\n'
+      + '  The model id is only ever read by the prompter, so on its own it changes\n'
+      + '  nothing about the build – no prompter would run.\n'
+      + '  node build.js <source.md> --watch --souffleuse --souffleuse-model '
+      + argv[souffModelIdx + 1]);
+    err.userFacing = true;
+    throw err;
+  }
   if (flags.has('--souffleuse')) {
     if (!flags.has('--watch')) {
       const err = new Error(
@@ -21378,13 +21658,7 @@ async function main() {
       err.userFacing = true;
       throw err;
     }
-    const mIdx = argv.indexOf('--souffleuse-model');
-    if (mIdx >= 0 && !argv[mIdx + 1]) {
-      const err = new Error('--souffleuse-model takes an OpenRouter model id, e.g. anthropic/claude-sonnet-5.');
-      err.userFacing = true;
-      throw err;
-    }
-    opts.souffleuse = { model: mIdx >= 0 ? argv[mIdx + 1] : null };
+    opts.souffleuse = { model: souffModelIdx >= 0 ? argv[souffModelIdx + 1] : null };
   }
 
   const absIn = path.resolve(inputPath);

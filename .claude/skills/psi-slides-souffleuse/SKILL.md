@@ -32,9 +32,10 @@ into the prompt, that is the thing you are giving up.
 |---|---|
 | `souffleuse.mjs` | everything pure: `KINDS`, `SEVERITIES`, `MAX_WORDS`, `TOOL_SCHEMA`, `wordCount`, `prefixHash`, `deckPayload`, `flattenMarks`, `cueTargets`, `systemPrefix`, `tickMessage`, `parseAnswer`, `driftSeconds`, `timeHintAllowed`, `shouldTick`, `createPolicy`. Zero imports, zero Node APIs, and the gate asserts both plus the exact export list |
 | `build.js` § `// ── souffleuse (--souffleuse) ──` | `createSouffleuse({absIn, opts, sendToCockpit, emitEvent, log})` → `{onBuild, onMessage, say, setEnabled, close, logPath}`, plus `souffleuseLogPath` and the constants. Both modules are imported **dynamically here**, so no other build reads either file |
-| `build.js` § `// ── the live prompter (--souffleuse) ──` (in `SPEAKER_JS`) | the cockpit: the Web Speech adapter, the switch, the strip, the badge, the history, the interim line, the cue merge |
+| `build.js` § `// ── the live prompter's CSS and runtime (--souffleuse only) ──` | `SOUFFLEUSE_CSS` and `SOUFFLEUSE_JS`: the cockpit's Web Speech adapter, switch, strip, badge, history, interim line and cue merge, and the rules that dress them. **Two literals of their own because they are spliced only under the flag**, the way `editorPayload` is – `${SPEAKER_CSS}${souffleuseCss}` inside the same `<style>`, `${SPEAKER_JS}${souffleuseRuntime}` inside the same `<script>`. The runtime must be in that script element: it reads `flatChunks`, `state`, `viewHooks`, `cueSync`, `cueOn`, `cuePosition`, `souffleuseCues`, `applyCueMode`, `flashMode`, `escText`, `elapsedSeconds`, `tStart` and `PSI_CARDS` out of `SPEAKER_JS`'s scope. Before the split, 36 KB of prompter rode in every `speaker.html` anybody ever built |
+| `build.js`, `SPEAKER_JS` § cue cards | the two pieces a cockpit carries either way: `const souffleuseCues = new Map()` and the merge at the end of `cueCardsFor`. The rail is drawn from them, and drawing it cannot depend on a literal that may not have been spliced; over an empty Map both are free. Everything else the prompter touches in this window is *chained* from `SOUFFLEUSE_JS` – `viewHooks.onActiveChange`, `onStateChange`, and `applyCueMode` (which is how `cuePlaceStrip` gets called without a line inside it) |
 | `build.js`, `SOUFFLEUSE_SPEC` / `souffleuseSettings` / `talkDuration` | the frontmatter, validated in the `buildOnce` pre-flight so `--print-only` refuses a typo too |
-| `build.js`, `renderSpeaker` | emits the chrome and `const SOUFFLEUSE = {lang, cadence, cues, label}` – `null` without the flag, and then the cockpit is the file it was before the feature |
+| `build.js`, `renderSpeaker` | emits the chrome, `const SOUFFLEUSE = {lang, cadence, cues, label}` – `null` without the flag – and the two conditional splices. Without the flag the only trace in `speaker.html` is that null, the cue merge above, and the `onShiftS` / `escapePrompter` hooks in `AUDIENCE_JS`, which the projection carries too because they are the hook contract |
 | `build.js`, `runWatch` | tracks the socket of the last `souffleuse-hello` as `cockpit`, routes the `souffleuse-*` family after the nonce check, and abandons anything in flight on `exit` |
 | `lint.js` | `SOUFFLEUSE_ENUMS`, `SOUFFLEUSE_NUM_KEYS`, `SOUFFLEUSE_FREE_KEYS` and `nestedBlockKeys`; the codes `unknown-souffleuse-setting` and `bad-duration` |
 | `test/gates/souffleuse.mjs`, `test/souffleuse.mjs` | the restraint without a network, and the three processes wired to each other |
@@ -50,7 +51,7 @@ knows the cue-card grammar, and this keeps it that way.
 | surface | what |
 |---|---|
 | `--souffleuse` | run the sidecar. **Only together with `--watch`** – a usage error otherwise, because the watch socket is the only channel the cockpit has |
-| `--souffleuse-model ID` | an OpenRouter model id; beats the frontmatter and the default |
+| `--souffleuse-model ID` | an OpenRouter model id; beats the frontmatter and the default. **Refused without `--souffleuse`**, because it is read nowhere else: on its own it built an ordinary deck with no prompter and said nothing |
 | `OPENROUTER_API_KEY` | required. Without it the sidecar starts `disabled`: nothing is sent, the console says so once, a `hello` says so, the badge says so – and the transcript is still logged, because a missing key is not a reason to lose the debrief |
 | `OPENROUTER_BASE_URL` | another OpenAI-compatible endpoint, default `https://openrouter.ai/api/v1`. This is how the spec's fake OpenRouter is reached |
 
@@ -88,17 +89,40 @@ Client → server: `souffleuse-hello {lang, stt:{engine, local}}`,
 `souffleuse-say {text, t0, t1, chunkId, idx, beat}`,
 `souffleuse-move {chunkId, idx, beat, elapsed}`,
 `souffleuse-dismiss {hintId, how}` (`esc` / `click` / `fade`),
-`souffleuse-toggle {on}`. Server → client:
+`souffleuse-toggle {on}`, `souffleuse-prefs {cues}`. Server → client:
 `souffleuse-hint {hintId, kind, text, severity, at}`,
 `souffleuse-cue {cueId, chunkId, text}`,
 `souffleuse-status {state, why}`.
 
-Four things about it that are not guessable:
+Six things about it that are not guessable:
 
-- **The `hello` reply is `{enabled, model, cadence, cues, session}` and the
-  refusal rides in the protocol's own `why`,** with `ok` still true. `reply`
-  spreads the payload *first* so that no payload field can shadow a protocol
-  one, which means a payload `why` would be overwritten by the protocol's.
+- **A `hello` is a registration, not a switch.** It says which socket to
+  whisper to, re-stamps the cockpit clock and calls `policy.forgetStanding()`,
+  because a fresh page holds no hint. `souffleuse-toggle` and `setEnabled` are
+  the only two things that turn `on` on. It used to switch on by itself, and
+  the cockpit then had to undo that with a separate, un-awaited
+  `souffleuse-toggle {on: false}` whenever the answer said `enabled: false` –
+  so a lost reply, or a `souffStt.start` that threw, left the sidecar
+  listening and calling a model for a cockpit whose switch was off. A hello
+  that is not a switch also says nothing on the status channel unless it is
+  news (`off` when disabled, `listening` when already running): an `idle` here
+  would race the cockpit's own switch-on and undo it.
+- **The `hello` reply is `{enabled, model, cadence, cues, cueCards, session}`
+  and the refusal rides in the protocol's own `why`,** with `ok` still true.
+  `reply` spreads the payload *first* so that no payload field can shadow a
+  protocol one, which means a payload `why` would be overwritten by the
+  protocol's. `cues` is the *permission* and `cueCards` the cards already laid
+  – two different things, which is why they cannot share a name. The cards
+  live in the cockpit's memory alone, so a reload lost every one of them while
+  the sidecar went on holding those slides locked against a second; the reply,
+  and `souffleuse-prefs`', hands them back.
+- **`souffleuse-prefs {cues}` is the cue checkbox**, sent after a successful
+  hello and on every change. Its own message rather than a field of
+  `souffleuse-toggle`, because the box is changed mid-talk with the switch
+  untouched. The deck's `souffleuse: {cues: off}` is the ceiling, this is the
+  speaker's answer under it, and `cuesAllowed` is the conjunction: with the
+  cards off `cueTargets` is empty, so no cue is judged, no slide is locked and
+  nothing enters the duplicate rule.
 - **A `hello` re-stamps the cockpit's clock** inside the sidecar, and switching
   on re-stamps `onAtElapsed` with it. Stamped at creation instead, the minutes an
   author spent writing slides counted as minutes of the talk and the opening
@@ -111,7 +135,13 @@ Four things about it that are not guessable:
   and `thinking` are the working pair; `off` is the sidecar saying it cannot work
   at all and carries the reason; `idle` is the prompter having been switched off,
   which reverses on the next press; `error` is a backoff or a run of unusable
-  answers. Without a sidecar the socket answers `start the build with
+  answers. **The cockpit acts on `idle` exactly as it does on `off`** – stops
+  the ear, unpresses the switch, clears the strip and its timers, drops the
+  consent in `sessionStorage` – and the only difference is the badge, which
+  `off` writes its reason onto and `idle` leaves alone. `idle` used to set the
+  button's state and nothing else, so a driver switching the prompter off on
+  stdin left the microphone open, took two presses to undo, and a reload in
+  between said hello and switched the sidecar back on behind the speaker. Without a sidecar the socket answers `start the build with
   --souffleuse`. A second cockpit tab takes the hints over by saying hello.
 
 ## The tick scheduler
@@ -179,7 +209,8 @@ precisely because they must not come back – and a rolling window of about 90 s
 
 ## The policy, as coded
 
-`createPolicy(opts)` returns `{judge, shown, dismissed, standing, history}`.
+`createPolicy(opts)` returns `{judge, shown, dismissed, forgetStanding,
+standing, history}`.
 `judge(answer, ctx)` answers `{show: true}` or `{show: false, reason}`, and the
 reason is what the log is read for afterwards. `ctx` is `{now, elapsedSinceOn,
 chunkId, cueTargets, timeHintAllowed}` – two clocks, because switching the
@@ -205,6 +236,26 @@ the speaker the same hint a second time.
 
 Only nonsense counts towards the garbage streak (`garbage`, `too-long`,
 `bad-cue`); a policy that swallows a well-formed hint is the policy working.
+
+**Nothing is recorded until the whisper has left the socket.** `policy.shown`
+is what takes the standing slot, starts the cool-downs and locks a slide
+against a second card, and the sidecar calls it only when `sendToCockpit`
+returned true; a failed send is logged as `suppressed` with the reason
+`no-cockpit` and nothing else happens. Recording a hint no screen ever had
+made the policy refuse everything after it for something the speaker never
+saw.
+
+**The standing slot can age out, and that is the second half of the same
+defence.** Every way a hint leaves the strip sends a `dismiss`, so in the
+ordinary course `standingMax` (an option of `createPolicy`, default 40 s –
+the cockpit's `high` fade of 25 s plus a margin) is never reached. It is there
+for the dismissal that cannot arrive: the socket closed under the hint, or the
+page reloaded, which a `--watch` rebuild does on every save. `standing(now)`
+treats anything older as gone – it keeps its place in the history and in the
+duplicate rule, because it was said – and `forgetStanding()` is the explicit
+version the sidecar calls from every `hello`. Without either, one lost
+dismissal dropped every `low` hint for the rest of the talk under the reason
+`standing`, which in the log reads exactly like the policy working.
 
 ## The drift rule
 
@@ -258,8 +309,7 @@ sidecar another (`souffSideWhy`), and `souffPaintBadge` paints from the pair.
 ## The log
 
 `souffleuse-<YYYYMMDD-HHMM>.jsonl` beside `source.md`, one per run of the
-watcher, gitignored (`souffleuse-*.jsonl` and `lectures/*/souffleuse-*.jsonl`).
-Every line carries `t` and `type`:
+watcher. Every line carries `t` and `type`:
 
 | type | body |
 |---|---|
@@ -269,9 +319,20 @@ Every line carries `t` and `type`:
 | `tick` | `reason`, `idx`, `chunkId`, `beat`, `elapsed`, `drift`, `rough`, `timeHintAllowed`, `cueTargets`, and the **user message** – never the prefix, which is the same 20 to 60 KB on every line and is already in the build |
 | `answer` | the raw body, `usage`, `durationMs` |
 | `hint` / `cue` | what went out, including the model's `why`, which is for the log alone |
-| `suppressed` | `reason` plus the answer the policy refused – this is the half of the debrief that says what the model wanted to say |
+| `suppressed` | `reason` plus the answer the policy refused – this is the half of the debrief that says what the model wanted to say. `no-cockpit` is the one reason that is not the policy's: the whisper was ready and there was no socket to put it on |
 | `dismiss` | `hintId`, `how` |
+| `prefs` | `cues`, `ceiling` – the cue checkbox changed in the cockpit |
 | `status`, `error` | every transition, and every failure with its streak |
+
+**Where it lies is a caution, not only a fact.** The log holds the spoken words
+verbatim, and it is written beside `source.md` wherever that is – which is
+where it is worth having, because the debrief belongs with the deck it is
+about. This repository's `.gitignore` covers `souffleuse-*.jsonl` and
+`lectures/*/souffleuse-*.jsonl` **and nothing else**: a lecture written in a
+content repo of its own is one `git add -A` away from committing a transcript
+of a rehearsal, so that repo needs the same pattern. `--new` scaffolds no
+`.gitignore` to put it in, so the sidecar prints the log's full path and says
+so on every start, and the README's privacy paragraph repeats it.
 
 `--events` carries the same transitions as `{type: 'souffleuse', state, …}`:
 `ready` / `off` after a build (with `model`, `session`, `chunks`), `listening`,
@@ -296,10 +357,15 @@ panel**, not through the global id map.
 
 - **The strip is one element in two homes**, like the clock: absolutely
   positioned over the bottom edge of `#stage-cell` in the classic arrangement,
-  inside `#cue-panel` immediately above `#cue-rail` under `K`. `cuePlaceStrip`,
-  called from `applyCueMode`, moves it and the interim line together, and looks
-  both up by id because it runs from the mode restore at the foot of the cue
-  section – before the prompter's own section has declared anything.
+  inside `#cue-panel` immediately above `#cue-rail` under `K`. `cuePlaceStrip`
+  moves it and the interim line together and looks both up by id.
+  `SOUFFLEUSE_JS` **wraps** `applyCueMode` rather than putting a call inside
+  it, the way it chains the two `viewHooks` – a cockpit without a prompter has
+  nothing to move – and then runs `cuePlaceStrip(cueOn())` once itself, because
+  the cue section restored the saved arrangement before this text existed.
+  `#cue-rail { position: relative }` lives in `SOUFFLEUSE_CSS` for the same
+  reason: `cueRender` scrolls to `curEl.offsetTop`, and the strip is the only
+  thing that ever grows above the rail.
 - Glyphs: `◷` time, `◇` example, `△` fact, `◌` delivery, `▤` cue. `high` is red
   like `#center-toast.warn`. Auto-fade 15 s, 25 s for `high`, and the fade is a
   dismissal (`how: 'fade'`).
@@ -307,13 +373,23 @@ panel**, not through the global id map.
   overlay and before a text selection – the history panel first if it is open,
   otherwise the standing hint. It returns whether it took something, so the chain
   carries on when it did not.
+- **Switching on is two awaits long** – asking the browser about the recogniser,
+  then the hello – and `souffOn` is only true at the end of it, so `souffStarting`
+  guards the window in between and is cleared in a `finally`. Without it a second
+  press, or the `sessionStorage` restore arriving beside a click, walked past the
+  guard and opened a second recogniser, whose finals all arrived twice; the
+  adapter's `start()` now aborts an open one as the guard a caller cannot forget.
 - **Storage**: `sessionStorage psi-slides:souffleuse` (on, so a `--watch` reload
   does not need the switch pressed again – and *not* `localStorage`, because the
-  microphone is an act of consent and the button is where it is given);
+  microphone is an act of consent and the button is where it is given; an `off`
+  or `idle` from the sidecar drops it, so a switch somebody threw is not undone
+  by the next reload);
   `localStorage psi-slides:souffleuse-heard` and `psi-slides:souffleuse-cues`
   (preferences of a person, not of a tab).
 - **Cues**: `souffleuseCues`, a `Map` of chunk id → `[{cueId, text}]`, is
-  declared up in the cue-cards section and read by `cueCardsFor`, which appends
+  declared up in the cue-cards section – it and the merge below are the two
+  pieces of the prompter an ordinary cockpit carries, because the rail is drawn
+  from them – and read by `cueCardsFor`, which appends
   each card on beat 0 as `{bullets: [text], souffleuse: true}`; `cueRender` draws
   it as `.cue-card.souffleuse`. In the classic layout, which has no rail,
   `souffCueOnArrival` shows the same card once as a strip hint of kind `cue` –
@@ -368,8 +444,9 @@ compiler gate – prefix stability and the hash, `tickMessage` (`NEW`, the windo
 `cue_targets`, the `✕`), `parseAnswer` (tool call, content fallback, a fenced
 object, garbage, thirteen words, a cue on the active slide), **every row of the
 policy table**, `driftSeconds` at each of its references, `timeHintAllowed`,
-`shouldTick`, the export list, the absence of imports and Node APIs, and that
-`TOOL_SCHEMA` is generated from `KINDS` and `SEVERITIES` rather than restated.
+`shouldTick`, **the standing slot ageing out at `standingMax`**, the export
+list, the absence of imports and Node APIs, and that `TOOL_SCHEMA` is generated
+from `KINDS` and `SEVERITIES` rather than restated.
 
 **`test/souffleuse.mjs`** (the browser suite, the ninth spec that builds a deck
 of its own): a real `node build.js … --watch --serve --souffleuse --events`
@@ -383,7 +460,15 @@ shown as a strip hint in the classic layout and as `.cue-card.souffleuse` under
 `K` – a `nothing` that reaches no screen, an HTTP 500 becoming a badge and not a
 dialog, **that `speaker.html` never contains the string `OPENROUTER`**, and that
 the projection has none of the chrome and no field of `snapshot()` is the
-prompter's. **It moves the clock rather than waiting it out**: `__stt.final(text,
+prompter's. Since the code review it also asserts the seven things that review
+found: two presses in one task start one recogniser, a bare `hello` switches
+nothing on, a `{"type":"souffleuse","enabled":false}` written to the child's
+stdin stops the ear and clears the consent without sending a dismissal for the
+hint it took away, one press brings it back, a reload mid-hint does not lock the
+policy and replays the cards already laid, unticking the cue box empties
+`cue_targets`, a build of the same deck **without** the flag carries none of the
+prompter (36 KB lighter), and `--souffleuse-model` on its own is a usage error
+rather than a silent ordinary build. **It moves the clock rather than waiting it out**: `__stt.final(text,
 70)` pushes the cockpit's `tStart` back seventy seconds, so the opening quiet and
 the cadence happen at once and the whole spec is about eight seconds.
 
@@ -401,7 +486,11 @@ those, the log and a rehearsal.
   gray-matter speaks: it arrives as `2700`. `parseLecture` restores the string
   the author wrote from the raw frontmatter rather than requiring quotes, so
   `talkDuration` sees a clock. The linter never saw the number and needed
-  nothing.
+  nothing – but it does need the same *shape*: the restore once took two digits
+  before the first colon where `talkDuration` and `lint.js` took three, so
+  `duration: 120:00` linted clean, arrived as `7200` and was refused as a talk
+  of 7200 minutes. One constant now, `TALK_CLOCK_SRC`, read by the restore and
+  by `talkDuration`, with the same literal mirrored by hand in `lint.js`.
 - **The `hello` reply cannot carry its own `why`** (above). The reason rides in
   the protocol's `why`, with `ok: true`.
 - **`souffleuseCues` is a `const` in another section for a reason.** Declared
@@ -409,10 +498,17 @@ those, the log and a rehearsal.
   reached it in its temporal dead zone, inside the `try` that guards
   `localStorage`, which swallowed the throw whole. The same trap the cue mode's
   own restore was moved down for, seen from the other side.
-- **`#cue-rail` is `position: relative` now.** `cueRender` scrolls to
+- **`#cue-rail` is `position: relative` under the flag.** `cueRender` scrolls to
   `curEl.offsetTop`, measured against whatever positioned ancestor happened to be
   up the tree, so the strip growing above the rail moved every card by its own
-  height.
+  height. The rule is in `SOUFFLEUSE_CSS`, not `SPEAKER_CSS`.
+- **The runtime and its stylesheet used to ride in every `speaker.html`.**
+  36 KB of prompter in a file nothing could reach it from, while the comment in
+  `renderSpeaker` promised the opposite. They are `SOUFFLEUSE_CSS` and
+  `SOUFFLEUSE_JS` now, spliced only under the flag – but **inside the same
+  `<style>` and the same `<script>`**, because the runtime lives in
+  `SPEAKER_JS`'s lexical scope and a script element of its own would give it
+  nothing but `undefined`.
 - **A comment naming the environment variable shipped it into the page.** The
   spec's `OPENROUTER` assertion failed on a comment in `SPEAKER_JS` quoting the
   badge text. Reworded rather than the assertion weakened: a privacy check that

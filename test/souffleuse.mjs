@@ -36,7 +36,7 @@ import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { ROOT } from './harness.mjs';
 
 export const name = 'souffleuse · the live prompter, cockpit to sidecar to strip';
@@ -220,7 +220,9 @@ export async function run({ page, report }) {
     fs.writeFileSync(path.join(dir, 'source.md'), SOURCE);
     const fakePort = await fake.listen();
 
-    // In order: a hint, a card for a later slide, a silence, then a server
+    // In order: a hint, a card for a later slide, a second hint that is still
+    // standing when the switch is thrown, a low one that may only come if the
+    // policy let the standing slot go on the reload, a silence, then a server
     // that falls over. Anything past the queue is a 500 too.
     fake.say({
       action: 'hint', kind: 'example', text: 'name the bank example',
@@ -229,6 +231,14 @@ export async function run({ page, report }) {
     fake.say({
       action: 'cue', chunk_id: 'board', text: 'pick up the front-row question',
       why: 'said now, belongs there',
+    });
+    fake.say({
+      action: 'hint', kind: 'fact', text: 'the figure was three, not four',
+      severity: 'high', why: 'the slide says three',
+    });
+    fake.say({
+      action: 'hint', kind: 'delivery', text: 'slower, and look up',
+      severity: 'low', why: 'the last two sentences ran together',
     });
     fake.say({ action: 'nothing', why: 'nothing worth a word' });
     fake.fail(500); fake.fail(500); fake.fail(500);
@@ -272,6 +282,47 @@ export async function run({ page, report }) {
     ok(!/OPENROUTER/.test(html), 'speaker.html never says OPENROUTER');
     ok(!html.includes('test-key-never-in-the-html'), 'and does not carry the key');
 
+    // ── and a cockpit built without the flag carries no prompter ────
+    // Not this cockpit: an ordinary one, built from the same source in a
+    // directory of its own so the watcher's files are not overwritten under
+    // the open page. SOUFFLEUSE_CSS and SOUFFLEUSE_JS are spliced only when
+    // the flag is set, the way editorPayload is - the runtime and its
+    // stylesheet used to ride in every speaker.html ever built.
+    const plainDir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-souff-plain-'));
+    fs.writeFileSync(path.join(plainDir, 'source.md'), SOURCE);
+    const plainBuild = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(plainDir, 'source.md'), '--speaker-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    ok(plainBuild.status === 0, 'the same deck builds without the flag',
+       String(plainBuild.stderr || '').slice(-300));
+    const plain = fs.readFileSync(path.join(plainDir, 'speaker.html'), 'utf8');
+    ok(!plain.includes('souffleuse-strip') && !plain.includes('souffleuse-btn')
+       && !plain.includes('souffleuse-log'),
+       'an ordinary cockpit has none of the prompter\'s chrome');
+    ok(!plain.includes('souffStart') && !plain.includes('webSpeechAdapter')
+       && !plain.includes('#souffleuse-badge'),
+       'and neither its runtime nor its stylesheet');
+    ok(plain.includes('const SOUFFLEUSE = null;'),
+       'the one line that survives says there is no prompter');
+    const saved = html.length - plain.length;
+    ok(saved > 30000,
+       'so the flag, not the build, is what costs the 36 KB', saved + ' bytes');
+    fs.rmSync(plainDir, { recursive: true, force: true });
+
+    // ── --souffleuse-model on its own is a usage error ──────────────
+    // It is only ever read by the prompter, so without --souffleuse it built
+    // an ordinary deck and said nothing - the silent no-op this CLI refuses
+    // everywhere else. Checked without --watch, which would not return.
+    const lonely = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'),
+        '--souffleuse-model', 'anthropic/claude-sonnet-5'],
+      { cwd: ROOT, encoding: 'utf8' });
+    ok(lonely.status !== 0 && /--souffleuse-model without --souffleuse/.test(String(lonely.stderr)),
+       '--souffleuse-model without --souffleuse is refused, with instructions',
+       String(lonely.stderr || lonely.stdout).slice(0, 200));
+    ok(!/at .*build\.js/.test(String(lonely.stderr)),
+       'and refused as advice, not as a stack trace');
+
     // ── the cockpit, with a fake ear in it ──────────────────────────
     const dialogs = [];
     page.on('dialog', (d) => { dialogs.push(d.message()); d.dismiss(); });
@@ -290,8 +341,41 @@ export async function run({ page, report }) {
     ok(await page.evaluate(() => window.__stt.available()) === 'available',
        'and the fake recogniser answers available');
 
+    // ── a hello is a registration, not a switch ─────────────────────
+    // It used to be both, and the cockpit then had to undo it with a
+    // separate, un-awaited toggle whenever the answer said `enabled: false` -
+    // so a lost reply or a recogniser that would not start left the sidecar
+    // listening and calling a model for a cockpit whose switch was off.
+    // Observable in the log: switching on is what says `listening`, and
+    // switching off what was never on says nothing at all.
+    const statusesBefore = logLines(dir).filter((l) => l.type === 'status').length;
+    const bareHello = await page.evaluate(() => window.psiWatch.ask('souffleuse-hello',
+      { lang: 'en', stt: { engine: 'test', local: true } }));
+    await page.waitForTimeout(300);
+    ok(!!(bareHello && bareHello.ok && bareHello.enabled === true),
+       'a bare hello is answered, and the answer says the sidecar can work',
+       JSON.stringify(bareHello));
+    ok(logLines(dir).filter((l) => l.type === 'status').length === statusesBefore,
+       'and it switched nothing on: no status came of it',
+       JSON.stringify(logLines(dir).filter((l) => l.type === 'status')));
+    await page.evaluate(() => window.psiWatch.ask('souffleuse-toggle', { on: false }));
+    await page.waitForTimeout(300);
+    ok(!logLines(dir).some((l) => l.type === 'status' && l.state === 'idle'),
+       'so switching off what was never on is not a switch-off either');
+    ok(fake.requests.length === 0, 'and nothing was asked of the model',
+       String(fake.requests.length));
+
     // ── the switch ──────────────────────────────────────────────────
-    await page.click('#souffleuse-btn');
+    // Pressed twice in one task, which is the race the flag exists for: the
+    // start is two awaits long and souffOn is only true at the end of it, so
+    // a second press - or the sessionStorage restore arriving beside a click
+    // - walked straight past the guard and opened a second recogniser, whose
+    // finals all arrived twice.
+    await page.evaluate(() => {
+      const b = document.getElementById('souffleuse-btn');
+      b.click();
+      b.click();
+    });
     await page.waitForTimeout(500);
     const sw = await page.evaluate(() => ({
       pressed: document.getElementById('souffleuse-btn').getAttribute('aria-pressed'),
@@ -303,7 +387,8 @@ export async function run({ page, report }) {
     ok(sw.pressed === 'true' && sw.state === 'listening',
        'the switch reads pressed and listening', JSON.stringify(sw));
     ok(sw.stored === 'on', 'the consent is remembered for this tab only – sessionStorage', sw.stored);
-    ok(sw.starts === 1, 'and the recogniser was started once', String(sw.starts));
+    ok(sw.starts === 1, 'and the recogniser was started once, for two presses in one task',
+       String(sw.starts));
     ok(sw.badge === true,
        'on-device recognition puts no badge up: the badge is for degraded states', JSON.stringify(sw));
     ok((await until(() => logLines(dir).some((l) => l.type === 'session' && l.via === 'hello'), 5000)) !== null,
@@ -441,6 +526,109 @@ export async function run({ page, report }) {
     // assertion is about what the "nothing" did and not about it.
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
+
+    // ── a second whisper, and then the switch thrown under it ───────
+    // The one thing a switch-off must not do is leave the hint's timers
+    // running: a standing hint faded fifteen seconds later and sent a
+    // dismissal to a sidecar nobody was listening to, and the speaker watched
+    // a whisper leave a prompter that was already off.
+    await page.evaluate(() => window.__stt.final(
+      'and the figure on the slide there is three, said out loud as four', 15));
+    const factHint = await until(() => page.evaluate(() => {
+      const el = document.getElementById('souffleuse-strip');
+      if (!el || el.hidden) return null;
+      return { text: el.querySelector('.souffleuse-text').textContent };
+    }), 6000);
+    ok(!!factHint && factHint.text === 'the figure was three, not four',
+       'a second hint arrives, and this one has a hintId the sidecar knows',
+       JSON.stringify(factHint));
+    const dismissalsBefore = logLines(dir).filter((l) => l.type === 'dismiss').length;
+
+    // ── the driver's switch, on the engine's stdin ──────────────────
+    // `idle` used to set the button's state and nothing else: souffOn stayed
+    // true, the microphone stayed open, undoing it in the cockpit took two
+    // presses, and a reload in between said hello and switched the sidecar
+    // back on behind the speaker.
+    child.stdin.write('{"type":"souffleuse","enabled":false}\n');
+    const idled = await until(() => page.evaluate(() => {
+      const b = document.getElementById('souffleuse-btn');
+      return b.getAttribute('aria-pressed') === 'false' ? {
+        state: b.dataset.state,
+        rec: window.__stt.rec,
+        stored: sessionStorage.getItem('psi-slides:souffleuse'),
+        strip: document.getElementById('souffleuse-strip').hidden,
+      } : null;
+    }), 6000);
+    ok(!!idled, 'a driver switching the prompter off on stdin switches the cockpit off too',
+       JSON.stringify(logLines(dir).filter((l) => l.type === 'status').slice(-2)));
+    ok(!!idled && idled.rec === null, 'and stops the ear rather than only the light');
+    ok(!!idled && idled.stored === null,
+       'the consent goes with it, so a reload does not start listening again', String(idled && idled.stored));
+    ok(!!idled && idled.strip === true, 'the strip goes too, timers and all');
+    await page.waitForTimeout(600);
+    ok(logLines(dir).filter((l) => l.type === 'dismiss').length === dismissalsBefore,
+       'and no dismissal was sent for a hint the switch took away',
+       JSON.stringify(logLines(dir).filter((l) => l.type === 'dismiss')));
+
+    await page.click('#souffleuse-btn');
+    ok(await until(() => page.evaluate(() => document.getElementById('souffleuse-btn')
+       .getAttribute('aria-pressed') === 'true'), 6000),
+       'one press brings it back – not two');
+
+    // ── a reload in the middle of a hint ────────────────────────────
+    // Which --watch does on every save. The hint that was standing is gone
+    // with the page, and no dismissal was ever sent for it, so the sidecar's
+    // policy was left holding a standing slot for a hint no screen had -
+    // and dropped every `low` hint for the rest of the talk under the reason
+    // `standing`, which in the log reads exactly like the policy working.
+    // A hello clears the slot, because a fresh page holds no hint.
+    await page.reload({ waitUntil: 'load' });
+    ok(await until(() => page.evaluate(() => document.getElementById('souffleuse-btn')
+       .getAttribute('aria-pressed') === 'true'), 12000),
+       'the reloaded cockpit picks the microphone back up by itself');
+    ok(await until(() => page.evaluate(() => souffleuseCues.has('board')), 5000),
+       'and the cards already laid come back with the hello – they live in this window alone');
+    // The clock restarted with the page while the sidecar still measures the
+    // opening quiet from the press, so this is a talk that has been running
+    // long enough for a hint either way.
+    await page.evaluate(() => window.__stt.final(
+       'so that is the whole of the first half, and there is the second one to come', 200));
+    const third = await until(() => page.evaluate(() => {
+      const el = document.getElementById('souffleuse-strip');
+      if (!el || el.hidden) return null;
+      return { text: el.querySelector('.souffleuse-text').textContent, sev: el.dataset.severity };
+    }), 8000);
+    ok(!!third && third.text === 'slower, and look up' && third.sev === 'low',
+       'a low hint still comes after the reload: the standing slot was not locked',
+       JSON.stringify(logLines(dir).filter((l) => l.type === 'suppressed').slice(-2)));
+    // Sent away, so the assertions further down are about what the silence
+    // and the outage did and not about what is still standing from here.
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+
+    // ── the cards switched off, in the cockpit ──────────────────────
+    // The box is the speaker's answer under the deck's ceiling, and the
+    // sidecar has to hear it: with the cards off there are no cue_targets, so
+    // nothing is judged, no slide is locked against a second card and nothing
+    // enters the duplicate rule.
+    await page.evaluate(() => {
+      const box = document.getElementById('souffleuse-cues-toggle');
+      box.checked = false;
+      box.dispatchEvent(new Event('change'));
+    });
+    await page.waitForTimeout(300);
+    ok(await page.evaluate(() => souffleuseCues.size === 0),
+       'unticking the box takes the cards out of the rail');
+    const ticksBefore = logLines(dir).filter((l) => l.type === 'tick').length;
+    await page.evaluate(() => window.__stt.final(
+      'which is where the second half of this talk would ordinarily begin', 15));
+    const noTargets = await until(() => {
+      const ticks = logLines(dir).filter((l) => l.type === 'tick');
+      return ticks.length > ticksBefore ? ticks[ticks.length - 1] : null;
+    }, 6000);
+    ok(!!noTargets && Array.isArray(noTargets.cueTargets) && noTargets.cueTargets.length === 0,
+       'and the model is offered no slide to lay one into',
+       JSON.stringify(noTargets && noTargets.cueTargets));
 
     // ── a silence, and then a server that falls over ────────────────
     await page.evaluate(() => window.__stt.final(

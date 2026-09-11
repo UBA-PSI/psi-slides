@@ -760,7 +760,8 @@ function jaccardOf(a, b) {
  *   judge(answer, ctx) -> {show: true} | {show: false, reason}
  *   shown(hint)        -> record a hint that went to the strip
  *   dismissed(hintId)  -> the speaker sent it away, by any of the three ways
- *   standing()         -> the hint currently up, or null
+ *   standing(now)      -> the hint currently up, or null
+ *   forgetStanding()   -> it left the screen without anybody sending it away
  *
  * `ctx` carries what the policy cannot know: `{now, elapsedSinceOn, chunkId,
  * cueTargets, timeHintAllowed}`. `now` and a hint's `at` are one clock – the
@@ -782,6 +783,16 @@ export function createPolicy(opts = {}) {
   );
   const deliveryMax = num(o.deliveryMax, 3);
   const jaccard = num(o.jaccard, 0.6);
+  // How long a hint may hold the standing slot without anybody answering for
+  // it. The strip takes a hint away by itself after 15 s, 25 s for a high
+  // one, and every one of those three ways sends a `dismiss` – so in the
+  // ordinary course this number is never reached. It is here for the case
+  // where the dismissal cannot arrive: the socket closed under the hint, or
+  // the page reloaded (a --watch rebuild does that on every save) and the new
+  // one holds no hint at all. Without it one lost dismissal dropped every low
+  // hint for the rest of the talk, under the reason `standing`, which reads
+  // in the log exactly like the policy working. 25 s plus a margin.
+  const standingMax = num(o.standingMax, 40);
 
   const history = [];          // every hint shown, dismissed or not
   const seen = [];             // their word sets, for the duplicate rule
@@ -793,6 +804,16 @@ export function createPolicy(opts = {}) {
   let deliveryCount = 0;
 
   const clockOf = (ctx) => num(ctx && ctx.now, num(ctx && ctx.elapsedSinceOn, 0));
+
+  // The hint that holds the slot, as of `now`. One that is older than
+  // `standingMax` is treated as gone rather than deleted: it keeps its place
+  // in the history and in the duplicate rule, because it was said.
+  function standingAt(now) {
+    if (!standingHint) return null;
+    const at = num(standingHint.at, 0);
+    if (standingMax > 0 && num(now, at) - at > standingMax) return null;
+    return standingHint;
+  }
 
   function judge(answer, ctx = {}) {
     const a = answer || {};
@@ -837,7 +858,7 @@ export function createPolicy(opts = {}) {
     // One at a time. A low hint waits its turn, which in practice means it
     // never comes – and that is the intended answer: what stands is already
     // more important than what is being proposed.
-    if (standingHint && !high) return { show: false, reason: 'standing' };
+    if (standingAt(now) && !high) return { show: false, reason: 'standing' };
 
     // The overall cool-down, with the one exception that earns it: a
     // high-severity factual slip is the thing the room is about to believe.
@@ -887,11 +908,17 @@ export function createPolicy(opts = {}) {
     if (standingHint && standingHint.id === id) standingHint = null;
   }
 
+  // The hint is off the screen and nobody sent it away: a fresh page holds no
+  // hint, and neither does a cockpit the sidecar has lost the socket to. The
+  // sidecar calls this from every `hello`.
+  function forgetStanding() { standingHint = null; }
+
   return {
     judge,
     shown,
     dismissed,
-    standing: () => standingHint,
+    forgetStanding,
+    standing: (now) => standingAt(now),
     history: () => history.slice(),
   };
 }

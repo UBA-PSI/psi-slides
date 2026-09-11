@@ -2625,6 +2625,14 @@ console.log('\nlayout generations');
       ['minutes', 'duration: 45\n'],
       ['a clock', 'duration: 1:30:00\n'],
       ['a quoted clock', 'duration: "45:00"\n'],
+      // Unquoted, these are sexagesimal integers to YAML 1.1, which is what
+      // gray-matter speaks: they arrive as 2700 and 7200, and the parser puts
+      // the author's text back before anything reads them. One shape does
+      // that job and reads the result - TALK_CLOCK_SRC - because a restore
+      // narrower than the reader let `120:00` lint clean and then be refused
+      // as a talk of 7200 minutes.
+      ['a bare clock', 'duration: 45:00\n'],
+      ['a bare clock past the hour', 'duration: 120:00\n'],
       ['the whole block', 'duration: 45\nsouffleuse:\n  model: google/gemini-2.5-flash\n  language: de-DE\n  cadence: 30\n  cooldown: 90\n  cues: off\n'],
       ['the flow form', 'souffleuse: {cues: off, cadence: 20}\n'],
     ];
