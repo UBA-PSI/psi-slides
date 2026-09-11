@@ -216,11 +216,29 @@ try {
   // buttons, and the crop now ends one row under them. At 1150 the picture was
   // 724px tall against 241px of words - DESIGN.md's fifth rule, and the answer
   // it gives is a crop rather than an arrangement that manages the difference.
-  // `builder-top.webp`, the further 690-row crop the front page's chooser uses,
-  // is still taken from this file and is unaffected.
   //
   //   magick desktop/test/shots/site-builder.png -crop 1520x800+0+0 +repage /tmp/b.png
   //   cwebp -quiet -q 86 -m 6 /tmp/b.png -o docs/site/img/builder.webp
+  //
+  // Where a crop may cut. The capture is 1520x1496 (a 2x shot of the 760x780
+  // window, whose viewport is 748), and these are its blocks in shot pixels -
+  // measured rather than estimated, so a later crop need not launch the app to
+  // find a seam. Cut in a gap; three of the blocks carry a hairline on top and
+  // a crop that lands on one leaves a stray rule along the picture's foot.
+  //
+  //   top bar            0.. 68     output grid      414.. 652  (hairline)
+  //   project name      96..152     editor button    688.. 730
+  //   path line        160..196     editor note      736.. 774
+  //   status sentence  228..278     lecture figures  806..1130  (hairline)
+  //   Build now row    310..378     serve block     1162..1320  (hairline)
+  //                                 build details   1352..1392
+  //
+  // So the seams are 790 (under the editor note, clear of the figures' rule),
+  // 1146 (under the figures, clear of serve's) and 1336. Below 1392 the shot
+  // is empty ground, which is what the crop exists to remove.
+  //
+  // The published crop of 800 still lands in a gap, six pixels above the
+  // figures' hairline. 790 is the same picture with room to spare.
   const shown = path.join(work, 'netsec-04');
   fs.mkdirSync(shown);
   fs.copyFileSync(source, path.join(shown, 'source.md'));
