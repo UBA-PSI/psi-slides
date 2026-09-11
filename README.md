@@ -270,6 +270,9 @@ node build.js <source.md> --optimize-images --dry-run   # report oversized raste
 node build.js <source.md> --optimize-images             # convert them to WebP in place
 node build.js <source.md> --integrate-annotations       # fold exported live annotations back in
 
+node build.js <source.md> --watch --souffleuse          # the live prompter in the cockpit
+node build.js <source.md> --watch --souffleuse --souffleuse-model MODEL_ID
+
 node build.js <source.md> --squint           # write what the projection paints to squint.txt
 node build.js <source.md> --check-fit        # report any slide that fits the frame and sits outside it
 
@@ -278,6 +281,10 @@ node lint.js lectures/ --strict              # warnings exit 2
 ```
 
 The linter checks unknown types and widths, duplicate or missing chunk IDs, unclosed `:::` directives and unclosed `$$` math, per-type word budgets, duplicate explicit-slide blocks, assets over the inline cap, reveal overuse, orphan columns, and redundant figure captions. A source file can silence a check with `<!-- linter: ignore reveal-overuse, density -->`.
+
+**The live prompter (`--souffleuse`) is new, opt-in, and not in a tagged release yet.** Built with `--watch --souffleuse`, the cockpit can listen to the room while you talk and whisper back at most twelve words when something needs saying – you are behind time, the example is missing, what you just said contradicts your own slide – and it can lay a cue card into a slide that is still to come. `Shift`-`S` in the cockpit switches it on and off, and nothing listens until you press it. It needs **Chrome** (the ear is the Web Speech API), it needs `--watch` (the cockpit reaches it over the watch socket), and it needs an `OPENROUTER_API_KEY` in the environment; without the key it starts disabled and only writes down what it heard.
+
+**What leaves the machine, as text.** Speech recognition runs on your own device where Chrome can do it and through Google where it cannot – a badge in the cockpit says which of the two you are getting. The transcript and the deck itself, speaker notes included, go to openrouter.ai to be answered. No audio is sent anywhere, nothing of this reaches the projection, nothing is written back into `source.md`, and the key is read in Node and never appears in the built HTML. Each run writes a log beside `source.md` (`souffleuse-<date>.jsonl`, gitignored) so you can read afterwards what it heard, what it said, and what it wanted to say and was not allowed to. And the microphone hears **the room** too, not only you: switch it off before a question round, or tell the room it is on.
 
 ## Hotkeys
 
@@ -293,6 +300,7 @@ Press `?` in either live view for the full on-screen reference. The ones you nee
 - `C` collapse, `F` font, `A` accent theme, `+` `-` `0` zoom.
 - `#` auto-fit, in three: off, shrink a slide too big for the frame, size every slide to the screen. `B` blanks the projection – the speaker window keeps working so you can change slide while the room sees black.
 - `D` puts a live demo on the projection: a window or a screen of this machine, picked in the speaker window, shown to the room until `D` again. Serve the lecture with `--serve` and the picture crosses without an encoder; from a double-clicked file it goes through a loopback WebRTC connection. **The very first capture on a Mac does not work** – macOS asks for screen-recording rights for the browser, and that first attempt is refused or shows an empty picture that ends by itself. Allow it, press `D` again, and it works from then on; try it once before the talk.
+- `Shift`-`S` in the speaker window starts and stops the live prompter, in a lecture built with `--souffleuse` – the `◌ prompter` button in the footer is the same switch, and `Shift`-clicking it shows the last ten things it has said. `Esc` takes the hint currently standing on the strip away.
 - `S` open the speaker window, `P` open the print view.
 - **On a touchscreen** both live views show a small rail along the bottom: forward, back, overview and zoom, with `C`, `F`, `A`, `#`, search and text selection behind the `⋯` button. It appears only on a device with no fine pointer, so an iPad with a keyboard attached does not see it.
 - `L` slide numbers: stacked, in a row, or off.

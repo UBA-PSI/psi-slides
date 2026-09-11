@@ -25,6 +25,36 @@ from building the same way is a major version.
 
 ### Added
 
+- **A live prompter in the cockpit (`--souffleuse`).** While the talk runs, the
+  cockpit listens to the room, and a sidecar in the watch process asks one model
+  whether anything needs saying – behind time, an example missing, a probable
+  factual slip, a word about delivery – and whispers it back onto a strip over
+  the foot of the slide: at most twelve words, one at a time, and usually
+  nothing at all. `Shift`-`S` is the switch, and the microphone is the consent:
+  nothing listens until it is pressed. What leaves the machine is text. Speech
+  recognition runs on the device where Chrome can do it and through Google where
+  it cannot – the badge says which – and the transcript plus the deck including
+  the speaker notes go to openrouter.ai; `OPENROUTER_API_KEY` is read in Node
+  and never written into the HTML, no audio goes out at all, nothing reaches the
+  projection, and nothing is written back into `source.md`. The twelve words are
+  not a request to the model but a rule in code: a longer hint is discarded
+  unread rather than shortened, one hint stands at a time, cool-downs run
+  overall and per kind, the first minute after the switch stays quiet, and a
+  hint the speaker sent away does not come back in other words. That policy is
+  `souffleuse.mjs`, and `test/gates/souffleuse.mjs` decides every row of it
+  without a key, a socket or a microphone – restraint is the requirement, and it
+  is the half of this feature no rehearsal can show you. The prompter can also
+  lay a **cue card into a slide that is still to come**, which turns up in the
+  rail under `K` as a dashed card. `duration: 45` in the frontmatter gives the
+  clock a plan to measure the drift against, and a `souffleuse:` block sets the
+  model, the cadence, the cool-down and whether cards are allowed. One log per
+  run beside `source.md` (`souffleuse-<date>.jsonl`, gitignored) is the debrief:
+  every call, what came back, and every hint the policy swallowed with its
+  reason. Chrome only, because the ear is the Web Speech API, and only together
+  with `--watch`, because the cockpit reaches the sidecar over the watch socket.
+  A deck that does not use it is untouched: without the flag none of the chrome
+  is emitted, no field of the sync snapshot is the prompter's, and the four
+  views are what they were before the flag existed.
 - **`--- from N` pins a beat to an advance by number.** Beats are otherwise
   taken in the order they are written, which is wrong for one shape: two
   things that should arrive together, written in two places. A stepped

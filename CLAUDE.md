@@ -25,8 +25,10 @@ node build.js lectures/tutorial/source.md --watch
 # build-success (carrying `stats`, the six figures lectureStats counts, and
 # `sourceModifiedMs`), build-error, watching, serving, changed (carrying
 # `modifiedMs`), patch, asset,
-# watch-error – and commands on stdin, {"type":"rebuild"} and
-# {"type":"auto","enabled":false}. The human log is untouched beside it; a
+# watch-error, souffleuse (under --souffleuse only, one per transition of the
+# live prompter) – and commands on stdin, {"type":"rebuild"},
+# {"type":"auto","enabled":false} and {"type":"souffleuse","enabled":false}.
+# The human log is untouched beside it; a
 # driver tells the two apart by the leading `{"type":`. Without the flag,
 # stdin is not read at all.
 node build.js <source.md> --watch --events
@@ -94,6 +96,21 @@ node build.js <source.md> --serve                 # build once, then serve
 node build.js <source.md> --serve --port 8080     # fixed port (default: free one)
 node build.js <source.md> --watch --serve         # live reload over http
 
+# the live prompter, only together with --watch: the cockpit listens to the
+# room, a sidecar in Node sends the transcript plus the deck (speaker notes
+# included) to one model through OpenRouter, and at most twelve words come
+# back onto a strip in speaker.html - usually nothing. Shift-S in the cockpit
+# is the switch. OPENROUTER_API_KEY is required; without it the sidecar
+# starts disabled and only logs what it heard. OPENROUTER_BASE_URL points it
+# at another OpenAI-compatible endpoint (and is how the spec's fake is
+# reached). Cockpit-local throughout: no field of the sync snapshot moves and
+# the projection learns nothing of it. Chrome only (Web Speech). One log per
+# run, souffleuse-<YYYYMMDD-HHMM>.jsonl beside source.md and gitignored, is
+# the debrief: every call, every hint, every hint the policy swallowed.
+# Vocabulary, protocol and failure modes: the `psi-slides-souffleuse` skill.
+node build.js <source.md> --watch --souffleuse
+node build.js <source.md> --watch --souffleuse --souffleuse-model MODEL_ID
+
 # two questions only a rendered page can answer, so both drive the built
 # audience.html in a real browser with playwright-core and both degrade
 # rather than fail (no browser, or no playwright-core, says so and leaves the
@@ -124,10 +141,12 @@ node lint.js lectures/ --strict                # warnings → exit 2
 
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
-# tail grammar that can - eight gates, under a second, no browser and no
-# `npm install` (diagram-core.mjs, tails.mjs and lint.js are all zero-dep).
-# test/ is the things that only break in a built page - 34 specs, ~8 min,
-# one Chromium.
+# tail grammar that can, plus the cue-card grammar and the prompter's policy
+# - ten gates, under a second, no browser and no `npm install` (diagram-core.mjs,
+# tails.mjs, cue-cards.mjs, souffleuse.mjs and lint.js are all zero-dep).
+# test/ is the things that only break in a built page - 40 specs, ~9 min,
+# one Chromium; one of them, souffleuse, starts an engine of its own beside
+# that browser.
 # `npm test` runs the gates first so a compiler regression fails in a second
 # rather than in four minutes; gates.yml runs them on push and PR.
 #
@@ -135,7 +154,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # createSpanTable, or anything that moves a label or an extent. Anything
 # checkable without a browser belongs in lint.js or in test/gates/, never here.
 #
-# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the seven specs that build a
+# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the nine specs that build a
 # deck of their own rather than hunting shapes in a real one: test/README.md.
 npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
@@ -189,6 +208,10 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 `build.js` holds the entire rendering stack: parser, three renderers, inlined audience/speaker runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file, and a large one – roughly two thirds of it is the embedded CSS and runtime JS, so the Node-side build logic is much smaller than the file size suggests.
 
 **`diagram-core.mjs` is the one documented exception** (with `tails.mjs`, the tail grammar shared with `lint.js`, as a much smaller second – see *lint.js is independent* below), and the reason is narrow: the graphical editor answers a drag by rewriting the source and re-running the compiler *in the browser*, so exactly one text has to compile a diagram in Node and in the page. Two copies of a 6,500-line compiler is not a duplication anyone can maintain. The file is pure JS with **zero imports and zero Node APIs**; the four leaves that were Node-only (asset resolution, aspect reading, the warning sink, `escapeHtml`) plus a fifth (`assetMarkup`, which splices a vector file inline) are injected by `createDiagramCompiler({…})`. build.js keeps those leaves, the diagram CSS and the step runtime. The move also *removes* a duplication: `lint.js` imports the vocabulary tables instead of mirroring them by hand – tables only, never a function, or the whole compiler comes in behind it and the linter stops being runnable without the Markdown/Shiki stack. See `editor.md` §8.1.
+
+**`souffleuse.mjs` is the fourth zero-dep module, and the one that never reaches a page.** The other three (`diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`) are spliced into an output as text because one text has to run in Node *and* in the browser. The live prompter's pure half runs in Node alone – the deck payload, the system prefix, the tick message, the answer parser, the drift arithmetic and the restraint policy – and `build.js` imports it **dynamically, inside `createSouffleuse`**, so a build without `--souffleuse` never reads the file and nothing here has to survive a template literal. It is kept zero-import and zero-Node-API anyway, for the reason the gates are fast: `test/gates/souffleuse.mjs` decides every row of the policy – twelve words, one hint at a time, the cool-downs, the opening quiet – in milliseconds, without a key, a socket or a microphone, and restraint is the one requirement no rehearsal can show you. `notesToCards` is injected rather than imported (`deckPayload(lecture, {notesToCards})`), the way `createDiagramCompiler({…})` takes its Node leaves. **The desktop app is untouched in v1** – `desktop/scripts/stage-engine.mjs`'s file list is unchanged, because the packaged app has no network entitlement and never passes the flag. If it ever grows the feature, three things move in one commit: `souffleuse.mjs` onto that list, a reducer arm for the `souffleuse` `--events` type in `desktop/main/builder.js`, and the entitlement plus a rewrite of the three published sentences promising that nothing leaves the machine.
+
+**The sidecar is one socket and nothing else.** `createSouffleuse` (section `// ── souffleuse (--souffleuse) ──`) holds the deck, the cockpit's clock and the transcript, calls one model when there is an occasion, and whispers back; the cockpit reaches it over the **existing** nonce-guarded watch socket, so the `souffleuse-*` family rides the same `<type>-result` pairing a patch does. One direction is new – the server may speak first, through `psiWatch.on(type, fn)`, the listener map consulted *after* the pairing, never instead of it. Hints and the prompter's cards are cockpit-local exactly like the cue cards: not one field of `snapshot()` moves, so a full `applyRemoteState` cannot drag them across and the projection stays ignorant. The key is read from `OPENROUTER_API_KEY` in Node and stays there – `test/souffleuse.mjs` asserts that a built `speaker.html` never contains the string `OPENROUTER`, an assertion that has already caught a *comment* inside `SPEAKER_JS` quoting a badge text. `--souffleuse` without `--watch` is a usage error, because that socket is the only channel there is.
 
 Navigate build.js by the `// ── section ──` banners – `grep -n '^// ── ' build.js`
 lists all forty in order, which is the map that cannot go stale. Two of them carry
@@ -466,7 +489,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the six gates guards, the four browser-spec families, and the seven specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the ten gates guards, the four browser-spec families, and the nine specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
@@ -475,6 +498,8 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 - `.claude/skills/psi-slides-decoration/SKILL.md` – **the cover, backdrop, overlay, card, row and divider vocabulary**, same reasoning: the slot tables, the refusals, and the CSS traps each construct cost. Invoked as the `psi-slides-decoration` skill.
 - `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the six viewer-default keys, the whole `style:` block including `labels`, `blocks`, `bold` and `print-bold`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
 - `.claude/skills/psi-slides-media/SKILL.md` – **video, hosted embeds and link addresses**: the extension tables, the two sync protocols, clip staging, and the build-time QR codes. Invoked as the `psi-slides-media` skill.
+- `.claude/skills/psi-slides-souffleuse/SKILL.md` – **the live prompter (`--souffleuse`)**: the config surface, the socket protocol, the tick scheduler, the request shape, the policy table as coded, the failure modes with their badge texts, the log records, the cockpit ids and the STT adapter. Invoked as the `psi-slides-souffleuse` skill.
+- `PLAN-souffleuse.md` – the live prompter's plan, its seven slices and **§ Decisions along the way**, which is where the code and the plan parted company and why. Read that section before changing `souffleuse.mjs`, the sidecar or the cockpit's prompter runtime; where the two disagree, the code wins.
 - `figure-design.md` – **how to lay out a `::: draw` so a room reads it**, as instructions rather than principles: fifteen rules, most with a wrong/right pair in real syntax, the tone-to-role table, the four-beat step order, and a checklist to work down before a figure is finished. Written for a person and a language model equally. Read it before authoring figures; the grammar itself is in the `psi-slides-figures` skill.
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.
 - `README.md` – short public-facing intro.
@@ -523,7 +548,8 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 - Shiki is loaded once and cached across `--watch` rebuilds; adding a new language means extending `SHIKI_LANGS` (and optionally `LANG_ALIAS`) at the top of `build.js`.
 - **Math delimiters are `marked` extensions, and the inline rule must keep refusing to cross a backtick.** marked runs custom inline extensions *before* its own `codespan` tokenizer, so relaxing the content class lets a stray `$` in prose pair with one inside a following code span and swallow the delimiting backtick. This was a real regression, not a hypothetical: `a price of $5 and $10, ` + backtick-`$PATH` rendered as a formula reading `10, ` + backtick.
 - **`viewHooks.consumeForward` / `consumeBack` are the only way a press is spent before it reaches the reveal counter.** The cockpit's cue cards (`K`; speaker.md §4.1) keep a cursor *in front of* `revealed[chunkId]`: `goForward` asks the hook first and only an unconsumed press reaches `advanceReveal`. They are hooks on `goForward` / `goBack`, not cases in the key map, so a key, the touch rail and a presenter's button all go through one cursor; a second path is how a click comes to count differently from a key. The cursor is never sent – the projection does not know the cards exist, and `--audience-only` against an older peer stays compatible. The card grammar is `cue-cards.mjs`, the third zero-dep module spliced into a live view as text (`window.PSI_CARDS`), for the reason `diagram-core.mjs` is: one text turns a `> note:` block into cards at build time and again in the browser for a rehearsal override, and its regexes stay out of every template literal. Which segment a note belongs to is `noteSegments()` in the parser, mirrored in `lint.js` (`note-in-empty-beat`); the two rules on top of the position – an empty segment slides back, notes only in the last segment are chunk notes on beat 1 – are in `PLAN-cue-cards.md` §2 and in `test/cue-cards.mjs`. **`> note: from N` pins a note to an advance by number** and is the escape hatch for the beats a position cannot name: a figure's `step` blocks are beats on the same counter but they sit inside one segment, so no `---` can be written between two of them. The cards are grouped by that number – the `consumed` count `applyReveal` uses and `::: overlay from N` shares – never by segment, which is why a diagram beat and a reveal interleave in one list.
-- **The cockpit's element ids share one namespace with the lecture's chunk ids.** Every chunk is in `speaker.html` too, inside the mirror, so `getElementById('clock')` answers with whichever of the two comes first in the DOM – and `cuePlaceStage` moves the stage, which changes *which* that is mid-session. It cost the cue panel, whose id was also a tutorial chunk's: one drag stopped after 75 px and a `display: none` rule aimed at the chrome hid a slide. Chrome ids are therefore words a slide would not want (`#cue-panel`), and the pieces inside a panel are looked up through the panel (`cueRoot.querySelector`), not through the global id map.
+- **The cockpit's element ids share one namespace with the lecture's chunk ids.** Every chunk is in `speaker.html` too, inside the mirror, so `getElementById('clock')` answers with whichever of the two comes first in the DOM – and `cuePlaceStage` moves the stage, which changes *which* that is mid-session. It cost the cue panel, whose id was also a tutorial chunk's: one drag stopped after 75 px and a `display: none` rule aimed at the chrome hid a slide. Chrome ids are therefore words a slide would not want (`#cue-panel`), and the pieces inside a panel are looked up through the panel (`cueRoot.querySelector`), not through the global id map. **The live prompter's chrome is `souffleuse-*` for exactly that reason** – the codename survives in the ids where the visible word is `prompter`, because no slide will ever want it – and the pieces of `#souffleuse-log` are looked up through the panel too.
+- **`SOUFFLEUSE_SPEC` in build.js and lint.js's three souffleuse tables change together.** The `souffleuse:` frontmatter block is validated in the `buildOnce` pre-flight (beside `styleSettings`, so `--print-only` refuses a typo too) against one spec table; `lint.js` mirrors it as `SOUFFLEUSE_ENUMS` plus `SOUFFLEUSE_NUM_KEYS` plus `SOUFFLEUSE_FREE_KEYS`, three tables because the block has three kinds of key and a zero-dep reader can only vouch for the presence of a model id. `test/gates/tails.mjs` holds the union of the three equal to the build's key set, so a key added on one side fails there rather than in a lecture. `duration:` sits at the top level, not in the block – it is a property of the talk like `lang:` – and `bad-duration` is its refusal in both files.
 - **`FOCUSABLE_SEL` in `AUDIENCE_JS` must stay a single constant.** Audience and speaker each resolve `figureIdx` against their own DOM, so the two windows focus different elements the moment their selectors disagree. Adding a focusable element type means editing that one string. **`FROM_SEL` beside it is the same rule for everything held to a beat by `from N`** (`.overlay-card[data-from], .dock[data-from]`): `chunkBeats`, `countSegments` and `applyReveal` read it, and a fourth reader spelled by hand is how two windows disagree about what arrives when.
 - **Everything inlined lives in a template literal.** Three edit mistakes are easy and expensive there:
   - A raw backtick, **even inside a comment**, ends the literal. Throws at parse time. Never write one in `AUDIENCE_JS` / `SPEAKER_JS` / the CSS constants – name the identifier plainly instead.

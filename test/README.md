@@ -5,8 +5,8 @@ Two suites, split by one question: **can this be decided without a browser?**
 - **`test/gates/`** – everything about the figure language and the `{…}` tail
   grammar that can. Ten gates, under a second, no browser and no
   `npm install`. Run by `gates.yml` on push and pull request.
-- **`test/`** – the things that only break in a built page. 35 specs, ~923
-  assertions, about five minutes, one Chromium for the whole run. One of
+- **`test/`** – the things that only break in a built page. 40 specs, ~1,070
+  assertions, about nine minutes, one Chromium for the whole run. One of
   them, `souffleuse`, starts an engine of its own beside that browser – see
   below.
 
@@ -32,8 +32,9 @@ node test/run.mjs nav               # specs whose name matches
 
 ## The gates: ten contracts
 
-Both `diagram-core.mjs` and `lint.js` are zero-dependency, which is what makes
-this suite runnable with nothing installed.
+`diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`, `souffleuse.mjs` and `lint.js`
+are all zero-dependency, which is what makes this suite runnable with nothing
+installed. Ten gates, 857 assertions, under a second.
 
 | gate | the contract |
 | --- | --- |

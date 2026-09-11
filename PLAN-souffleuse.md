@@ -443,7 +443,18 @@ arithmetic, the Chromium bug in `available()` on macOS.
       projection has none of the chrome and no field of `snapshot()` is the
       prompter's. Registered in `test/run.mjs` and in `test/README.md` as the
       ninth spec that builds a deck of its own.
-- [ ] Slice 7 – docs and first rehearsal.
+- [x] Slice 7 (docs) – the documentation that moves with the feature: CLAUDE.md
+      (the commands entry, the `souffleuse` `--events` type, the fourth zero-dep
+      module and the sidecar in *Architecture*, the `souffleuse-*` id namespace
+      and the `SOUFFLEUSE_SPEC` mirror rule in *Conventions*, the skill and this
+      plan in *Reference material*, and the stale gate and spec counts),
+      `speaker.md` (§2's local table, the new §3.1 on the watch-socket messages,
+      §4.1's five pieces of chrome, §4.2's `Shift`-`S` and the Esc chain, §5's
+      three storage keys), CHANGELOG `[Unreleased]`, HANDOFF's Souffleuse slice,
+      README (the flag, the hotkey, and what leaves the machine), the new skill
+      `.claude/skills/psi-slides-souffleuse/SKILL.md`, and `test/README.md`.
+- [ ] Slice 7 (rehearsal) – **has not happened.** The checklist is below; the
+      policy numbers it produces belong under *Decisions along the way*.
 
 ## Decisions along the way
 
@@ -634,3 +645,60 @@ arithmetic, the Chromium bug in `available()` on macOS.
 Which talk calibrates the thresholds (90 s behind, 240 s ahead, 60 s
 cool-down, cadence 25 s); the model comparison Sonnet 5 against Gemini
 Flash from the `usage` and `durationMs` lines in the log.
+
+**The checklist for that first run.** `lectures/spoken-talk` is the deck to use:
+it is the one lecture here whose `> note:` blocks are a script rather than
+reminders, and `#second-time` has three notes pinned to a figure's three steps,
+so a rehearsal exercises the cue cards and the beats at the same time. Serve it,
+because a `file://` cockpit is fine for the prompter but nothing else about a
+rehearsal should be different from a talk.
+
+```bash
+export OPENROUTER_API_KEY=sk-or-...
+node build.js lectures/spoken-talk/source.md --watch --serve --souffleuse
+# open the served audience.html in Chrome, press S for the cockpit,
+# then Shift-S in the cockpit, and talk for ten minutes.
+```
+
+Then read the log, `lectures/spoken-talk/souffleuse-<YYYYMMDD-HHMM>.jsonl`:
+
+```bash
+jq -c 'select(.type=="answer") | {durationMs, cached: .usage.prompt_tokens_details.cached_tokens}' souffleuse-*.jsonl
+jq -c 'select(.type=="suppressed") | {reason, kind, text}' souffleuse-*.jsonl
+```
+
+- **`usage.prompt_tokens_details.cached_tokens` > 0 from the second `answer`
+  line on.** Zero throughout means the prefix is under the provider's cache
+  minimum for this model, or sticky routing did not hold, and the deck is being
+  paid for in full every cadence – which is the one cost assumption this design
+  rests on. The `session` line says how large the prefix is (`prefixChars`), and
+  that is where to look first: a hand test against the fake put
+  `lectures/spoken-talk` at 4,458 characters, roughly 1,100 tokens, which is at
+  or under the minimum a cache breakpoint needs on some models. So
+  **`spoken-talk` answers the cue-card and beat questions but may not answer the
+  cache one** – a 36-chunk deck like `lectures/python-intro` is the second run to
+  make, with the two `prefixChars` and the two `cached_tokens` side by side.
+- **`durationMs` under 5000.** Past that the whisper arrives after the sentence
+  it was about, and either `reasoning.effort` or the model has to change; the
+  8 s `AbortController` is the wall, not the target.
+- **Every `suppressed` line's `reason`.** `start-quiet`, `cooldown`, `standing`
+  and `duplicate` are the policy working and are the lines worth counting. A run
+  of `garbage` or `too-long` is the prompt failing, not the policy.
+  `time-not-allowed` on a deck that *is* behind says the thresholds are wrong
+  for this talk. `bad-cue` says the model is ignoring `cue_targets`.
+- The `tick` lines' `drift` against what the clock in the room actually said.
+
+Four things to eyeball while it runs:
+
+1. **The badge on switching on.** Nothing at all means on-device recognition;
+   `PROMPTER · server speech recognition` means Google is hearing the room. This
+   is the one claim in the plan nothing has verified on macOS (Chromium bug
+   444393111).
+2. **The strip in both homes.** Over the foot of the slide in the classic
+   arrangement, at the head of the card column under `K` – and the cards in the
+   rail must not jump when it appears.
+3. **One cue in the rail.** A dashed `.cue-card.souffleuse` in a slide still to
+   come, under `K`; in the classic layout the same card as a `▤` hint on arrival.
+4. **`Shift`-`S` off and on again.** The dot goes hollow, the ear stops, the log
+   takes a `status idle` saying who switched it off, and the second press starts
+   a fresh quiet minute rather than whispering immediately.

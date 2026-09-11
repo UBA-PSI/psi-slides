@@ -1278,6 +1278,114 @@ einen Namensraum; die Sektion heißt jetzt `#cue-panel`, ihre Kinder werden
 über die Sektion statt über `getElementById` gesucht, und die Regel steht in
 CLAUDE.md unter *Conventions*.
 
+## Souffleuse-Slice: a prompter in the box, and the restraint in code
+
+Written in English, like the rest of the repository has moved to. Occasion: the
+idea came while presenting. The cockpit knows what is on the slide, what is in
+the notes and what time it is – what it lacked was an ear and a judgement.
+Everyone who heard the idea liked it and warned about the same thing in the same
+breath: a hint that is too long or too fundamental throws the speaker out of the
+sentence. That one requirement ordered everything else. Built on branch
+`souffleuse` in the worktree `../psi-slides-souffleuse`; the plan, the slices and
+the *Decisions along the way* are in `PLAN-souffleuse.md`, and where that
+document and the code disagree, the code is right and that section says why.
+
+Seven commits, one per slice:
+
+1. `duration:` and the `souffleuse:` block, refused in build.js and lint.js
+   alike – `talkDuration`, `SOUFFLEUSE_SPEC` / `souffleuseSettings` in the
+   `buildOnce` pre-flight, the three mirror tables in lint.js with the shared
+   `nestedBlockKeys` walk, the key-set check in the tails gate.
+2. `souffleuse.mjs`, the pure half, plus its gate: deck payload, system prefix,
+   tick message, answer parser, drift arithmetic, tick decision and the policy –
+   zero imports, zero Node APIs, 107 assertions.
+3. The sidecar in build.js: `createSouffleuse`, the two flags and the usage
+   block, `psiWatch.on` / `ask` / `onConnect`, the `souffleuse-*` arm of the
+   watch socket, the `souffleuse` `--events` type and stdin command, the JSONL
+   log, `souffleuse-*.jsonl` in `.gitignore`.
+4. The cockpit's ear and the switch: the Web Speech adapter behind the planned
+   interface, `SOUFFLEUSE` beside `VIEW_DEFAULTS`, the footer button and
+   `Shift`-`S`, the badge with its two reasons, the help group “The prompter”.
+5. The strip in its two homes, the `×`, the auto-fade, the Esc step, the history
+   panel behind a `Shift`-click, the interim line, and the prompter's cards
+   merged into `cueCardsFor`.
+6. `test/souffleuse.mjs`: a fixture deck, a fake OpenRouter on loopback, a fake
+   recogniser, one real `--watch --serve --souffleuse --events` child, and one
+   whisper followed the whole way. 51 assertions in about eight seconds.
+7. The documentation that moves with it: CLAUDE.md, `speaker.md` (§2, the new
+   §3.1, §4.1, §4.2, §5), CHANGELOG, README, the `psi-slides-souffleuse` skill,
+   `test/README.md` and this section.
+
+What it is: a prompter in the theatre sense. At most twelve words, one at a
+time, and the normal answer is nothing. Four kinds – `time`, `example`, `fact`,
+`delivery` – plus one action that is not a hint at all: a **cue card laid into a
+slide that is still to come**, which shows up in the rail under `K`. The
+judgement is the model's; the *restraint* is in code, which is the decision the
+whole thing rests on. A hint over twelve words is discarded unread, one stands at
+a time, cool-downs run overall and per kind, the first minute after the switch
+is quiet, and a hint the speaker sent away cannot come back in other words
+(word-Jaccard ≥ 0.6 against everything already said or dismissed). All of that is
+`createPolicy` and all of it is decided by the gate, because a talk where nothing
+came looks exactly like a talk where nothing was due.
+
+Decisions along the way that matter to whoever picks this up – the full list is
+in the plan:
+
+- **`duration: 45:00` is a sexagesimal integer to YAML 1.1**, which is what
+  gray-matter speaks: it arrived as 2700. `parseLecture` restores the string the
+  author wrote from the raw frontmatter rather than requiring quotes.
+- **The `hello` reply's refusal rides in the protocol's own `why`.** `reply`
+  spreads the payload first so no payload field can shadow a protocol one, so a
+  payload `why` would be overwritten. `ok` stays true – the hello did arrive.
+- **The cockpit's clock starts at `hello`.** Stamped when the watcher started, the
+  minutes an author spent writing slides counted as minutes of the talk and the
+  opening quiet was over before it began.
+- **`off` and `idle` are the two halves of not running**: `off` is the sidecar
+  saying it cannot work at all and carries the reason, `idle` is the speaker
+  having switched it off. The badge needs a memory for exactly that reason – a
+  status arrives every tick, and writing it straight to the badge wiped a refused
+  key's reason one message after it was given.
+- **A timeout is not a streak.** The backoff counts 429s, 5xx and network
+  failures; an eight-second abort only missed the sentence it was about.
+- **`notesToCards` is injected, not imported** (`deckPayload(lecture,
+  {notesToCards})`), so there is one `@mm:ss` grammar in the repository.
+- **A move is resolved by `idx`, never by id.** A divider's element id in the
+  cockpit is `<col-id>-section`, while the deck payload gives it the column's own
+  id: the two agree on position and not on name.
+- **`souffleuseCues` is declared up in the cue-cards section**, a long way from
+  the prompter's own, because the cue mode's restore runs first and a `const`
+  still in its temporal dead zone throws inside a `try` that swallows it whole.
+- **`#cue-rail` is `position: relative` now.** `cueRender` scrolls to
+  `curEl.offsetTop`, which was measured against whatever positioned ancestor
+  happened to be up the tree, so the strip growing above the rail moved every
+  card by its own height.
+- **A comment in `SPEAKER_JS` named the environment variable and shipped it.**
+  The spec asserts that `speaker.html` never says `OPENROUTER`; it failed on a
+  comment quoting the badge text. Reworded rather than the assertion weakened – a
+  privacy check that allows exceptions is not one.
+
+Open items:
+
+- **The classic-layout cue race**, found in slice 6 and documented rather than
+  fixed: a card that arrives while the speaker is already walking onto its slide
+  is shown by `cueSync` in the rail, but in the classic arrangement
+  `souffCueOnArrival` has already marked that slide as seen and the card is not
+  shown at all. Harmless, real, and worth a decision later.
+- **No real rehearsal has happened.** Nothing in a log has been read back from a
+  talk, and the thresholds – 90 s behind, 240 s ahead, a 60 s cool-down, a 25 s
+  cadence – are chosen rather than calibrated. The checklist for that first run
+  is `PLAN-souffleuse.md` § Open for the first rehearsal.
+- **On-device recognition is unverified on macOS.** Chromium bug 444393111
+  concerns `available({processLocally: true})` there, which is why the fallback
+  to server recognition is visible on the badge; the spec's fake claims
+  `available`, so the real path has only ever been reasoned about.
+- **The prompt cache is unmeasured.** Whether a 20 to 60 KB prefix clears the
+  provider's minimum shows up only as
+  `usage.prompt_tokens_details.cached_tokens` in the log of a real run.
+- **The desktop app knows nothing of this**, deliberately: no entitlement, no
+  flag, `stage-engine.mjs` unchanged. CLAUDE.md says what would have to move
+  together if that ever changes.
+
 ## Gaps / Bekannte Limits
 
 - **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.
