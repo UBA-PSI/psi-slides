@@ -428,7 +428,21 @@ arithmetic, the Chromium bug in `available()` on macOS.
       prompter's cards merged into `cueCardsFor` on beat 0 and drawn by
       `cueRender` as `.cue-card.souffleuse`; in the classic layout the same
       card arrives as a strip hint of kind `cue`.
-- [ ] Slice 6 – Playwright spec.
+- [x] Slice 6 – `test/souffleuse.mjs`: a fixture deck of four slides, a fake
+      OpenRouter on loopback reached through `OPENROUTER_BASE_URL`, a fake
+      `webkitSpeechRecognition` installed with `addInitScript`, and one real
+      `node build.js … --watch --serve --souffleuse --events` as a child. 51
+      assertions in about eight seconds: the switch and its sessionStorage,
+      the request body (`cache_control`, forced `advise`,
+      `parallel_tool_calls`, `reasoning.effort`, `session_id`, the state
+      line, `NEW`), the hint on the strip with its glyph and severity, Esc to
+      a `dismiss … esc` line in the JSONL, a slide tick to a card in a later
+      slide shown both as a strip hint in the classic layout and as
+      `.cue-card.souffleuse` under `K`, a `nothing` that reaches no screen,
+      an HTTP 500 to a badge and no dialog, and two windows in which the
+      projection has none of the chrome and no field of `snapshot()` is the
+      prompter's. Registered in `test/run.mjs` and in `test/README.md` as the
+      ninth spec that builds a deck of its own.
 - [ ] Slice 7 – docs and first rehearsal.
 
 ## Decisions along the way
@@ -555,6 +569,53 @@ arithmetic, the Chromium bug in `available()` on macOS.
 - **The checkbox is `#souffleuse-heard-toggle`.** The plan gave that id to
   both the interim line and the switch that shows it; one of them had to
   move, and the line is the thing the plan names elsewhere.
+- **The spec moves the clock instead of waiting it out.** The opening silence
+  is 60 s and the cadence 25 (10 at the floor of `SOUFFLEUSE_SPEC`), and both
+  are counted in seconds of the *cockpit's* clock – the adapter stamps a
+  segment with `souffClock()` and the sidecar carries that number forward.
+  So the fake ear exposes `advance(seconds)`, which pushes `tStart` back, and
+  `__stt.final(text, 70)` is seventy seconds of talk in the time it takes to
+  dispatch an event. Waiting the same arithmetic out in real time would have
+  made one spec longer than the four editor suites together; as written the
+  whole thing is about eight seconds, most of it the build.
+- **Only one HTTP 500 is asserted, because the second one costs 30 s.** The
+  plan asked for three failures in a row. The first one sets `backoffUntil`
+  to now + 30 s and `maybeTick` returns early until then, so the second
+  failure cannot be provoked at all inside a test – which is the backoff
+  working. The badge and the reason on it are decided by the first error, so
+  that is what the spec reads; the streak of five and the `disable` behind it
+  stay the gate's business and the log's.
+- **A card has to be waited for in the page, not in the log.** The sidecar
+  writes its `cue` line before it puts the message on the socket, and the
+  first version of the spec polled the file. It passed three times and then
+  did not: the walk reached the target slide a few milliseconds early,
+  `souffCueOnArrival` found an empty map, and – because it marks the slide as
+  seen on the way through – the card never appeared even once the message
+  landed. The spec now polls `souffleuseCues` in the cockpit. **The
+  behaviour is real and worth knowing**: a card that arrives while the
+  speaker is already walking onto its slide is shown by `cueSync` in the
+  rail, but in the classic layout it is not shown at all.
+- **A comment in `SPEAKER_JS` named the environment variable, and the page
+  shipped it.** The spec asserts that `speaker.html` never says
+  `OPENROUTER` – the cheapest possible check that the key's whole world stays
+  in Node. It failed on a comment inside the cockpit's own template literal
+  quoting the badge text "off – no OPENROUTER_API_KEY". Reworded rather than
+  the assertion weakened: a privacy check that has to allow exceptions is not
+  one. (The two tracked `speaker.html` files moved by that one line.)
+- **The engine's own server 404s a favicon, and the runner counts that.**
+  `test/harness.mjs` answers 204 for exactly this reason, but this spec is
+  served by `build.js --serve`, which does not. The browser answers it
+  instead, through `page.context().route`, so "no page errors" stays an
+  assertion about the lecture. The pages also go to `about:blank` before the
+  child is killed – a cockpit whose watch socket dies reconnects, and a
+  refused WebSocket is a console error.
+- **What the spec cannot say.** Recognition quality, on-device availability
+  (the fake claims it; the Chromium bug on macOS is about the real one),
+  whether the cache is warm, and the model's restraint – all four as the plan
+  said. Two more turned up: the snapshot is asserted to carry no field whose
+  *name* mentions the prompter, which is not the same as proving no value
+  ever rides in one, and the auto-fade of a standing hint is left alone,
+  because 15 and 25 s of real time are worth more than the assertion.
 
 ## The questions to the author, answered
 

@@ -15642,7 +15642,7 @@ if (SOUFFLEUSE && window.psiWatch) {
   // The badge is for degraded states only, and two things have to remember
   // which - a status arrives every tick, and the first version of this
   // wiped the reason one message after it was given: a refused key put
-  // "off - no OPENROUTER_API_KEY" up, and the idle that followed the
+  // "off - no key in the environment" up, and the idle that followed the
   // cockpit's own switch-off took it down again, which is exactly the
   // moment a lecturer needs to read it. So the ear keeps its reason and the
   // sidecar keeps its own, and the badge is painted from them rather than

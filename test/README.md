@@ -5,8 +5,10 @@ Two suites, split by one question: **can this be decided without a browser?**
 - **`test/gates/`** – everything about the figure language and the `{…}` tail
   grammar that can. Ten gates, under a second, no browser and no
   `npm install`. Run by `gates.yml` on push and pull request.
-- **`test/`** – the things that only break in a built page. 34 specs, ~872
-  assertions, about five minutes, one Chromium for the whole run.
+- **`test/`** – the things that only break in a built page. 35 specs, ~923
+  assertions, about five minutes, one Chromium for the whole run. One of
+  them, `souffleuse`, starts an engine of its own beside that browser – see
+  below.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
 rather than in four minutes.
@@ -111,9 +113,9 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The eight specs that build a deck of their own
+### The nine specs that build a deck of their own
 
-Three different reasons, and the third is the one to remember.
+Four different reasons, and the last two are the ones to remember.
 
 **Because the property is about two windows** – `cue-cards` opens the cockpit
 from the projection with `S` on a fixture and, after every Space and
@@ -134,6 +136,23 @@ beside a slide-high column).
 
 **Because the thing is only legible as a pair** – `block-align` shows the same
 content centred and left, and `cards` two cards differing in one character.
+
+**Because the property spans three processes** – `souffleuse` is the only spec
+that starts an engine of its own: `node build.js … --watch --serve
+--souffleuse --events`, with a fake OpenRouter on loopback that the sidecar
+reaches through `OPENROUTER_BASE_URL` and a fake `webkitSpeechRecognition`
+installed into the page. The gate decides the prompter's restraint without a
+network; what only a running system can say is whether the three halves are
+wired to each other – an ear in the browser, a key in Node, one socket
+between them – and whether the projection stays ignorant of all of it. Its
+deck is its own because a cue is laid into a slide *still to come*, so the
+slide order has to be known, and because the request body is asserted against
+the deck's own chunk ids. **It moves the clock rather than waiting it out**:
+the opening silence is 60 s and the cadence 25 (10 here, the floor of
+`SOUFFLEUSE_SPEC`), so `window.__stt.final(text, 70)` pushes the cockpit's
+`tStart` back seventy seconds and the same arithmetic runs at once. Without
+that the spec would be two minutes of sleeping; with it the whole thing is
+about eight seconds, most of which is the build.
 
 **Because a spec that hunted its shapes in a real deck would break the next time
 that deck was edited** – `squint`, whose four shapes (a promoted bold, a reveal
