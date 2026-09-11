@@ -541,6 +541,10 @@ console.log('\nlayout generations');
     // 0 while lint.js reported duplicate-id. `#f` is already the FMX free
     // chunk's id.
     ['a duplicate id', '## free: G {#f}\n\nBody.\n', /id 'f' is used twice/, 'duplicate-id'],
+    // The divider of a column #g renders as `g-section`, in the same
+    // getElementById namespace, so a chunk authored #g-section is a real
+    // duplicate the id check has to see through the generated name.
+    ['a generated divider-id collision', '# G {#g}\n\n## free: A {#g-section}\n\nBody.\n', /g-section' (is used twice|already defined)/, 'duplicate-id'],
   ];
   for (const [name, body, msg, code] of cases) {
     const r = run(body);
@@ -580,6 +584,15 @@ console.log('\nlayout generations');
       { cwd: ROOT, encoding: 'utf8' });
     ok(/unresolved-asset/.test((l.stdout || '') + (l.stderr || '')),
        'and the linter says unresolved-asset');
+    // …but not for a `![](path)` inside a code fence: that is documentation
+    // the build never renders, so flagging it would be the linter stricter
+    // than the build - the direction this project does not allow.
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      FMX + 'Example:\n\n```markdown\n![](assets/example.png)\n```\n');
+    const lf = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    ok(!/unresolved-asset/.test((lf.stdout || '') + (lf.stderr || '')),
+       'a ![](path) inside a code fence is not flagged (documentation, not a ref)');
   }
   // ::: overlay {.panel}: the class reaches the markup, a corner is refused
   // in both files, and the layer's grid content box did not move (inset: 0
@@ -2484,6 +2497,16 @@ console.log('\nlayout generations');
   ok(showNoNest.code !== 0 && /detail: show decides/.test(showNoNest.out), 'detail: show with no nested level is refused');
   const showNested = raw(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One**\n  - a\n  - b\n- **Two**\n  - c\n:::\n');
   ok(showNested.code === 0, 'and detail: show builds when a card has a nested level', showNested.out.split('\n')[0]);
+  // detail acts on li ul AND li ol, so a nested *ordered* list is a second
+  // level too - the nested check counted only [-*+] and refused a legitimate
+  // numbered one.
+  const showOrdered = raw(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One**\n  1. a\n  2. b\n- **Two**\n  1. c\n:::\n');
+  ok(showOrdered.code === 0, 'and a nested ordered list counts as a second level too', showOrdered.out.split('\n')[0]);
+  // .photo counts a real image, not any figure: a ::: draw compiles to a
+  // figure-diagram the ground selector never draws, so .photo on a
+  // diagram-only card is the no-op this refuses.
+  const photoDiagram = raw(FM + '## figure: A {#a}\n\n::: cards 2 {.photo}\n- ::: draw 40x30\n  box a "A"\n  :::\n- text only\n:::\n');
+  ok(photoDiagram.code !== 0 && /\.photo makes a card/.test(photoDiagram.out), '.photo on a card with only a diagram (no image) is refused');
   // A ::: that closes nothing used to render as a literal ::: paragraph on
   // the slide; the build refuses it now, congruent with lint's
   // stray-directive-close. An intentional ::: as content goes in a code
@@ -2494,6 +2517,11 @@ console.log('\nlayout generations');
   ok(/stray-directive-close/.test(lintOf(FM + '## free: A {#a}\n\nBody.\n:::\n')), 'and the linter says stray-directive-close');
   const fencedColon = raw(FM + '## free: A {#a}\n\n```\n:::\n```\n');
   ok(fencedColon.code === 0 && /:::/.test(fencedColon.html || ''), 'a ::: inside a code fence stays content and builds', fencedColon.out.split('\n')[0]);
+  // The divider body is the other region a stray ::: reached: it printed as a
+  // literal ::: in the lede while lint reported stray-directive-close.
+  const strayDivider = raw('---\ntitle: T\n---\n\n## title: {#title}\n\n# Part {#p}\n\nLede.\n:::\n\n## free: A {#a}\n\nB.\n');
+  ok(strayDivider.code !== 0 && /closes a block, and none is open/.test(strayDivider.out),
+     'a stray ::: in a divider body is refused too', strayDivider.out.split('\n')[0]);
 
   // ── the ::: draw opener: positional grid, keyword playback ─────────
   const drawOf = (open) => raw(FM + `## figure: F {#f}\n\n${open}\nbox a "A"\nbox b "B" right of a gap 1\n\nstep one\n  dim a\n:::\n`, ['--audience-only']);

@@ -2735,6 +2735,13 @@ function lintFile(filePath) {
         } else {
           ids.set(id, fmLines + ln);
         }
+        // The divider slide renders as `${id}-section` in the same
+        // getElementById namespace (renderColumnSectionChunk), so a chunk or
+        // column authored that name is a real duplicate. Mirror the build's
+        // assertDistinctIds. Registered only if not already taken, so the
+        // author's own collision on the base id is reported once, not twice.
+        const dividerId = id + '-section';
+        if (!ids.has(dividerId)) ids.set(dividerId, fmLines + ln);
       }
       col = { line: ln, heading: attr.text, id, chunks: [], backdropSeen: 0, dock: null };
       if (id) colIds.add(id);
@@ -3427,7 +3434,9 @@ function lintFile(filePath) {
   // way; the build hard-fails on an oversized one, so this gate has to reach
   // them or it lets through exactly what the build will refuse.
   const diagramRefs = new Set(diagramImageRefs(body));
+  let assetFence = false;
   lines.forEach((line, i) => {
+    if (/^\s*(```|~~~)/.test(line)) assetFence = !assetFence;
     const mdHrefs = [...line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map(m => m[1]);
     // A `![](path)` whose path is an explicit relative one (it has a slash or
     // an extension, so it is not the assets/ shorthand) and names no file:
@@ -3436,8 +3445,10 @@ function lintFile(filePath) {
     // Mirror it, or the linter is silent on what the build now flags. Skip
     // the shorthand (its miss is a placeholder by design), http(s)/data:
     // (filtered below), and root-absolute / protocol-relative refs, which the
-    // build leaves untouched as intentional external paths.
-    for (const href of mdHrefs) {
+    // build leaves untouched as intentional external paths - and skip inside a
+    // code fence, where `![](path)` is documentation the build never renders,
+    // so flagging it would be the linter stricter than the build.
+    for (const href of assetFence ? [] : mdHrefs) {
       if (/^[a-z]+:/i.test(href) || href.startsWith('/')) continue;
       const isShorthand = !href.includes('/') && !path.extname(href);
       if (isShorthand) continue;

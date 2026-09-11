@@ -1902,7 +1902,10 @@ function renderCardsBlock(b) {
   // two words: unfolded, a centred head over a left-aligned detail list
   // reads as a mistake, and the head cannot change alignment with the
   // collapse mode without the row jumping when C is pressed.
-  const nested = b.lines.some(l => /^\s+[-*+]\s+/.test(l));
+  // A nested list item, ordered or not: `detail` acts on `li ul` AND `li ol`,
+  // so an ordered sub-list (`  1.`) is a second level too - counting only
+  // `[-*+]` refused a `detail` word that legitimately governs a numbered one.
+  const nested = b.lines.some(l => /^\s+(?:[-*+]|\d+[.)])\s+/.test(l));
   const align = o.align !== 'auto'
     ? o.align
     : (size === 'large' && !nested ? 'center' : 'left');
@@ -1959,8 +1962,14 @@ function renderCardsBlock(b) {
     err.userFacing = true;
     throw err;
   };
+  // What the cg-photo ground CSS can actually draw: a markdown image (still
+  // markdown here, rendered at the end), an already-spliced figure-img (a
+  // raster or an inline svg image), or a bare img. Deliberately NOT a bare
+  // <figure>/<svg> - a ::: draw compiles to a figure-diagram whose svg the
+  // ground selector never matches, so counting it would let `.photo` on a
+  // diagram-only card through as the very no-op this refuses.
   const hasPicture = b.lines.some(l =>
-    /!\[[^\]]*\]\([^)]*\)/.test(l) || /<(?:figure|img|svg)\b/.test(l));
+    /!\[[^\]]*\]\([^)]*\)/.test(l) || /class="figure-img"/.test(l) || /<img\b/.test(l));
   if (o.written.ground && o.ground === 'photo' && !hasPicture) {
     bad('.photo makes a card\'s first image its ground, and no card here carries one.\n' +
         '  Give a card a picture, or drop .photo.');
@@ -4491,6 +4500,18 @@ function parseLecture(src) {
     } else if (currentColumn) {
       if (currentDock) currentDock.lines.push(line);
       else if (currentOverlay) currentOverlay.lines.push(line);
+      // A ::: that closes nothing in a divider's body, the same stray closer
+      // the chunk path refuses - a captured cards/overlay/dock closer is
+      // handled long before here, so one reaching this point is genuinely
+      // stray. It used to print as a literal ::: in the divider lede while
+      // lint.js reported stray-directive-close.
+      else if (!inFence && /^:::\s*$/.test(line)) {
+        refuse(
+          `a ::: closes a block, and none is open in the divider of column ` +
+          `#${currentColumn.id || currentColumn.heading || '?'}.\n` +
+          '  It would otherwise print as a literal ::: on the slide. Put the\n' +
+          '  characters in a code fence or an inline `code span` if you meant them.');
+      }
       else colBody.push(line);
     }
   }
@@ -6690,7 +6711,14 @@ function assertDistinctIds(lecture) {
     seen.set(id, what);
   };
   for (const col of lecture.columns) {
-    if (col.id) check(col.id, `column "${col.heading || col.id}"`);
+    if (col.id) {
+      check(col.id, `column "${col.heading || col.id}"`);
+      // The divider slide renders with id `${col.id}-section`, in the same
+      // getElementById namespace, so a chunk (or column) authored that name is
+      // a real duplicate - two elements answer one id. renderColumnSectionChunk
+      // owns this scheme.
+      check(`${col.id}-section`, `the divider of column #${col.id}`);
+    }
     for (const chunk of col.chunks) {
       check(chunk.id, `chunk ## ${chunk.tag ? chunk.tag + ': ' : ''}${chunk.heading || chunk.id || ''}`);
     }
