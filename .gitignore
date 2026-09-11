@@ -32,6 +32,12 @@ lectures/*/speaker.html
 # it is as generated as the views are, and it moves whenever the deck does.
 lectures/*/squint.txt
 docs/artifact/figure-rules/squint.txt
+# --souffleuse writes one of these per run, beside the source: the transcript
+# of what the room heard, every call to the model and every hint the policy
+# let through. It is the debrief of a rehearsal and it is nobody else's, so it
+# stays out of the repository wherever a lecture lives.
+souffleuse-*.jsonl
+lectures/*/souffleuse-*.jsonl
 # Three lectures ship their built outputs so they can be read straight from
 # the repository without running build.js: the self-referential tutorial, the
 # diagram reference, which is the only place every ::: draw construct is

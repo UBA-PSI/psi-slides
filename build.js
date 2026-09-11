@@ -4630,11 +4630,18 @@ function reloadScript(port, nonce) {
   // diagram editor writes back through, and it is deliberately the *same*
   // socket: source.md stays the single source of truth, the normal rebuild
   // runs on the write, and every open tab reloads.
+  //
+  // And one thing more: the server may now speak first. Every message so far
+  // was an answer to a question the page had asked, paired by id; a hint from
+  // the prompter is nobody's answer. `on(type, fn)` is the listener map for
+  // those – build-failed was the precedent, hard-wired to one global, and the
+  // prompter would have been a second such wire.
   return `<script>
 window.psiWatch = (() => {
   let sock = null;
   let seq = 0;
   const waiting = new Map();
+  const listeners = new Map();
   const connect = () => {
     const ws = new WebSocket('ws://127.0.0.1:${port}');
     sock = ws;
@@ -4656,6 +4663,14 @@ window.psiWatch = (() => {
         waiting.get(m.id)(m);
         waiting.delete(m.id);
       }
+      // After the pairing, never instead of it: a listener on a type that is
+      // also awaited would otherwise decide which of the two gets the message.
+      const fns = m && typeof m.type === 'string' ? listeners.get(m.type) : null;
+      if (fns) for (const fn of fns) {
+        // A defect in a listener is not a defect in the socket, and the talk
+        // is still running.
+        try { fn(m); } catch (err) { /* ignore */ }
+      }
     });
     ws.addEventListener('close', () => { sock = null; setTimeout(connect, 500); });
   };
@@ -4673,6 +4688,14 @@ window.psiWatch = (() => {
   return {
     nonce: ${JSON.stringify(nonce || '')},
     ready: () => !!(sock && sock.readyState === 1),
+    // Unsolicited server messages, by type. Additive: a page that registers
+    // none behaves exactly as before.
+    on: (type, fn) => {
+      const l = listeners.get(type) || [];
+      l.push(fn);
+      listeners.set(type, l);
+    },
+    ask,
     patch: (range, text, was) => ask('patch', { range, text, was }),
     // Everything in assets/ beside source.md, so the picker can offer files
     // no diagram references yet. Costs no payload: the socket is already here.
@@ -18097,6 +18120,656 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
   console.log('Shorthand refs like ![](fig-id) need no edit – the resolver finds the .webp.');
 }
 
+// ── souffleuse (--souffleuse) ────────────────────────────────────────
+//
+// The live prompter's Node half. The cockpit listens to the room and sends
+// what it heard over the watch socket; this section holds the deck, the
+// clock and the transcript, calls one model through OpenRouter when there is
+// an occasion, and whispers back at most twelve words. PLAN-souffleuse.md is
+// the design; souffleuse.mjs is everything about it that is pure, and is why
+// the restraint can be tested without a network.
+//
+// Three properties this section exists to keep:
+//
+//  - The key never reaches the HTML. It is read from the environment here and
+//    stays here; a page only ever sees a finished hint.
+//  - Nothing loads without the flag. Both modules are imported dynamically
+//    inside createSouffleuse, so an ordinary build never reads either file –
+//    which is also why `desktop/scripts/stage-engine.mjs` is untouched in v1:
+//    the packaged app has no network entitlement and never passes the flag,
+//    and a file it cannot reach is a file it does not have to ship.
+//  - Nothing throws out of a handler. This runs while somebody is talking to
+//    a room. Every failure becomes a status, a log line and silence.
+//
+// The whole thing is inert until a cockpit says hello: without one there is
+// no clock, no transcript and no occasion to call anybody.
+
+const SOUFFLEUSE_TIMEOUT_MS = 8000;
+// 30 s, 60 s, then two minutes, and after five in a row the sidecar gives up
+// for this build. A prompter that keeps retrying through a talk is a prompter
+// that spends the speaker's bandwidth on nothing.
+const SOUFFLEUSE_BACKOFF_MS = [30000, 60000, 120000];
+const SOUFFLEUSE_MAX_ERRORS = 5;
+const SOUFFLEUSE_MAX_GARBAGE = 5;
+const SOUFFLEUSE_BASE_URL = 'https://openrouter.ai/api/v1';
+// OpenRouter shows both on its activity page, which is where somebody with
+// the bill in front of them goes to ask what spent it. The address is the
+// repository from package.json.
+const SOUFFLEUSE_TITLE = 'psi-slides';
+const SOUFFLEUSE_REFERER = 'https://github.com/UBA-PSI/psi-slides';
+// The transcript window the tick message rolls: seconds first, words as the
+// second cap. Both are souffleuse.mjs defaults, named here because they are a
+// cost decision rather than a grammar one.
+const SOUFFLEUSE_WINDOW_S = 90;
+const SOUFFLEUSE_WINDOW_WORDS = 600;
+// How many segments are kept at all. A two-hour talk is a few thousand, and
+// nothing older than the window is ever read, so the rest is memory nobody
+// looks at.
+const SOUFFLEUSE_TRANSCRIPT_MAX = 500;
+
+// One log per run of the watcher, beside source.md: the debrief. Minutes
+// rather than seconds in the name, because two watchers started in the same
+// minute is not a case worth a longer name.
+function souffleuseLogPath(absIn, when = new Date()) {
+  const p = (n) => String(n).padStart(2, '0');
+  const stamp = `${when.getFullYear()}${p(when.getMonth() + 1)}${p(when.getDate())}`
+    + `-${p(when.getHours())}${p(when.getMinutes())}`;
+  return path.join(path.dirname(absIn), `souffleuse-${stamp}.jsonl`);
+}
+
+/**
+ * The sidecar. One per watch process, created before the first build and fed
+ * the parsed deck by `rebuild`.
+ *
+ *   onBuild(lecture)          a build succeeded – new deck, new prefix
+ *   onMessage(msg, reply, s)  a souffleuse-* message off the watch socket
+ *   say(segment)              the same as a souffleuse-say, for a producer
+ *                             inside Node (whisper.cpp, one day)
+ *   setEnabled(on)            the --events stdin command
+ *   close()                   abandon whatever is in flight
+ *
+ * `sendToCockpit` is the caller's, because the socket of the last hello is
+ * the caller's to track: it is the one thing here that has to notice a
+ * WebSocket closing.
+ */
+async function createSouffleuse({
+  absIn, opts = {}, sendToCockpit = () => false,
+  emitEvent: emit = () => {}, log = console.log,
+} = {}) {
+  // Dynamic, and only here. souffleuse.mjs is the pure half; cue-cards.mjs is
+  // imported for `notesToCards` alone, which deckPayload takes as an injected
+  // leaf – the same arrangement createDiagramCompiler has with its four.
+  const souff = await import('./souffleuse.mjs');
+  const { notesToCards } = await import('./cue-cards.mjs');
+
+  const key = String(process.env.OPENROUTER_API_KEY || '').trim();
+  const base = String(process.env.OPENROUTER_BASE_URL || SOUFFLEUSE_BASE_URL)
+    .trim().replace(/\/+$/, '');
+  const logPath = souffleuseLogPath(absIn);
+
+  // Disabled is not off: the transcript, the moves and the ticks that would
+  // have gone out are still logged, because the log is what a rehearsal is
+  // read back from and a missing key is not a reason to lose it.
+  let disabled = key ? null : { why: 'no OPENROUTER_API_KEY in the environment' };
+
+  let deck = null;            // what deckPayload made of the last build
+  let prefix = null;          // {text, hash} – the cached system prompt
+  let marks = [];             // flattenMarks(deck), for the drift
+  let model = String(opts.model || '').trim() || null;   // --souffleuse-model
+  const cliModel = model;
+  let lang = 'en';
+  let cadence = SOUFFLEUSE_SPEC.cadence.dflt;
+  let cooldown = SOUFFLEUSE_SPEC.cooldown.dflt;
+  let cuesAllowed = true;
+  let durationS = null;
+  let policy = null;
+  let stt = null;             // what the cockpit said its ear is
+
+  let on = false;             // the switch in the cockpit
+  let onAtElapsed = 0;        // and when it was thrown, on the cockpit's clock
+  const cursor = { chunkId: null, idx: 0, beat: 0, elapsed: 0, wallAt: Date.now() };
+  const transcript = [];
+  const hints = [];           // what went to the strip, newest last
+  const cues = [];
+  let sinceTick = { seconds: 0, words: 0 };
+  let lastTickAt = null;
+  let lastTickReason = null;
+  let slideChanged = false;
+  let inflight = null;        // the AbortController of the call that is out
+  let pendingReason = null;   // an occasion that arrived while one was out
+  let errorStreak = 0;
+  let garbageStreak = 0;
+  let backoffUntil = 0;
+  let lastTimeHint = null;
+  let hintSeq = 0;
+  let cueSeq = 0;
+  let lastStatus = null;
+
+  // The cockpit's clock, carried forward between messages. Every `say` and
+  // `move` stamps it; between them the wall clock runs, which is what makes
+  // a cadence measured in seconds mean seconds and not messages.
+  const nowElapsed = () => cursor.elapsed + (Date.now() - cursor.wallAt) / 1000;
+
+  function logLine(type, body) {
+    try {
+      fs.appendFileSync(logPath,
+        JSON.stringify({ t: new Date().toISOString(), type, ...body }) + '\n');
+    } catch (e) {
+      // A log that cannot be written is not a reason to stop a talk.
+    }
+  }
+
+  // Five states, and two of them are not the same thing: `off` is the sidecar
+  // saying it cannot work at all (no key, a refused key, five failures), with
+  // the reason; `idle` is the speaker having switched the prompter off, which
+  // is a choice and reverses on the next press.
+  function status(state, why = null) {
+    const quiet = state === 'thinking' || state === 'listening';
+    const changed = !lastStatus || lastStatus.state !== state || lastStatus.why !== why;
+    lastStatus = { state, why };
+    sendToCockpit({ type: 'souffleuse-status', state, why });
+    logLine('status', { state, why });
+    emit({ type: 'souffleuse', state, why });
+    // The terminal hears the states a person would want to be told about. A
+    // line per tick would bury the build log the author is actually reading.
+    if (changed && !quiet) log(`[souffleuse] ${state}${why ? ' – ' + why : ''}`);
+  }
+
+  function disable(why) {
+    disabled = { why };
+    on = false;
+    status('off', why);
+  }
+
+  function logSession(via) {
+    logLine('session', {
+      via,
+      model,
+      base,
+      prefixHash: prefix ? prefix.hash : null,
+      prefixChars: prefix ? prefix.text.length : 0,
+      chunkCount: deck ? deck.chunks.length : 0,
+      lang,
+      durationS,
+      cadence,
+      cooldown,
+      cues: cuesAllowed,
+      stt,
+      disabled: disabled ? disabled.why : null,
+    });
+  }
+
+  // ── what a build gives it ──────────────────────────────────────────
+
+  function onBuild(lecture) {
+    try {
+      const fm = (lecture && lecture.frontmatter) || {};
+      // Already validated in the buildOnce pre-flight – read again here
+      // because both functions are pure and the sidecar wants the values.
+      const settings = souffleuseSettings(fm);
+      lang = settings.language || lectureLang(fm);
+      durationS = talkDuration(fm);
+      cadence = settings.cadence;
+      cooldown = settings.cooldown;
+      cuesAllowed = settings.cues !== 'off';
+      model = cliModel || settings.model;
+      deck = souff.deckPayload(lecture, { notesToCards, durationS, lang });
+      marks = souff.flattenMarks(deck);
+      const text = souff.systemPrefix(deck, { lang });
+      const hash = souff.prefixHash(text);
+      const fresh = !prefix || prefix.hash !== hash;
+      prefix = { text, hash };
+      // The policy is made once and kept across rebuilds. It carries what has
+      // already been whispered, and a save in the middle of a talk must not
+      // hand the speaker the same hint a second time.
+      if (!policy) policy = souff.createPolicy({ cooldown });
+      if (fresh) {
+        logSession('build');
+        const kb = Math.round(prefix.text.length / 1024);
+        log(`[souffleuse] deck ${deck.chunks.length} slides, prompt ${kb} KB (${hash}), `
+          + `model ${model}, cadence ${cadence}s, cues ${cuesAllowed ? 'on' : 'off'}`);
+        emit({
+          type: 'souffleuse', state: disabled ? 'off' : 'ready',
+          why: disabled ? disabled.why : null,
+          model, session: hash, chunks: deck.chunks.length,
+        });
+      }
+    } catch (e) {
+      // A deck the prompter cannot read is a prompter that stays quiet, not a
+      // watcher that dies.
+      logLine('error', { why: 'onBuild: ' + ((e && e.message) || String(e)) });
+    }
+  }
+
+  // ── what the cockpit says ──────────────────────────────────────────
+
+  function setCursor(msg, elapsed, fromMove) {
+    // By index, never by id. A divider's element id in the cockpit is
+    // `<col-id>-section`, while deckPayload numbers it by the column's own
+    // id – so the two agree on position and not on name, and position is
+    // what both of them actually mean.
+    let idx = cursor.idx;
+    if (msg.idx != null && isFinite(Number(msg.idx))) {
+      idx = Math.max(0, Math.round(Number(msg.idx)));
+    }
+    const changed = idx !== cursor.idx;
+    cursor.idx = idx;
+    if (msg.beat != null && isFinite(Number(msg.beat))) {
+      cursor.beat = Math.max(0, Math.round(Number(msg.beat)));
+    }
+    cursor.chunkId = (deck && deck.chunks[idx] && deck.chunks[idx].id)
+      || (msg.chunkId == null ? cursor.chunkId : String(msg.chunkId));
+    if (elapsed != null && isFinite(Number(elapsed))) {
+      cursor.elapsed = Math.max(0, Number(elapsed));
+      cursor.wallAt = Date.now();
+    }
+    if (fromMove && changed) slideChanged = true;
+    return changed;
+  }
+
+  function hello(msg, reply) {
+    stt = msg.stt && typeof msg.stt === 'object'
+      ? { engine: String(msg.stt.engine || ''), local: !!msg.stt.local } : null;
+    if (msg.lang) lang = String(msg.lang) || lang;
+    // The cockpit's clock is stamped here, before anything reads it. Until a
+    // cockpit says hello there is no talk and no clock, and `wallAt` from the
+    // moment the watcher started would otherwise make nowElapsed() count the
+    // minutes the author spent writing slides as minutes of the talk – which
+    // is exactly how the opening quiet came to be over before the prompter
+    // was switched on.
+    cursor.wallAt = Date.now();
+    if (!on) {
+      on = true;
+      onAtElapsed = nowElapsed();
+      sinceTick = { seconds: 0, words: 0 };
+    }
+    logSession('hello');
+    // The reason rides in the reply's own `why`, not in a field of the same
+    // name in the payload: `reply` spreads the extras first so a payload
+    // field can never shadow a protocol one, which means a payload `why`
+    // would be overwritten by the protocol's.
+    reply(true, disabled ? disabled.why : '', {
+      enabled: !disabled,
+      model,
+      cadence,
+      cues: cuesAllowed,
+      session: prefix ? prefix.hash : null,
+    });
+    status(disabled ? 'off' : 'listening', disabled ? disabled.why : null);
+  }
+
+  function heard(msg, reply) {
+    const text = String(msg.text == null ? '' : msg.text).replace(/\s+/g, ' ').trim();
+    const t1 = isFinite(Number(msg.t1)) ? Number(msg.t1) : nowElapsed();
+    const t0 = isFinite(Number(msg.t0)) ? Number(msg.t0) : t1;
+    if (text) {
+      transcript.push({ text, t0, t1 });
+      if (transcript.length > SOUFFLEUSE_TRANSCRIPT_MAX) {
+        transcript.splice(0, transcript.length - SOUFFLEUSE_TRANSCRIPT_MAX);
+      }
+      // Speech seconds, not wall seconds: silence is not an occasion, and the
+      // cadence is about how much was said since the last call.
+      sinceTick.seconds += Math.max(0, t1 - t0);
+      sinceTick.words += souff.wordCount(text);
+    }
+    setCursor(msg, t1, false);
+    logLine('say', {
+      text, t0, t1,
+      chunkId: cursor.chunkId, idx: cursor.idx, beat: cursor.beat,
+    });
+    reply(true, '');
+    maybeTick();
+  }
+
+  function moved(msg, reply) {
+    setCursor(msg, msg.elapsed, true);
+    logLine('move', {
+      idx: cursor.idx, chunkId: cursor.chunkId,
+      sentId: msg.chunkId == null ? null : String(msg.chunkId),
+      beat: cursor.beat, elapsed: cursor.elapsed,
+    });
+    reply(true, '');
+    maybeTick();
+  }
+
+  function dismissed(msg, reply) {
+    const id = String(msg.hintId == null ? '' : msg.hintId);
+    const how = String(msg.how == null ? '' : msg.how);
+    if (policy) policy.dismissed(id);
+    // The prompt shows dismissed hints with a ✕ precisely because they are
+    // the ones that must not come back in other words.
+    for (let i = hints.length - 1; i >= 0; i--) {
+      if (hints[i].id === id) { hints[i].dismissed = true; break; }
+    }
+    logLine('dismiss', { hintId: id, how });
+    reply(true, '');
+  }
+
+  function toggled(msg, reply) {
+    setEnabled(!!msg.on, 'the cockpit');
+    reply(true, disabled ? disabled.why : '', { enabled: !disabled, on });
+  }
+
+  function setEnabled(want, who = 'the driver') {
+    if (want && !on) {
+      on = true;
+      // The opening quiet is measured from the press, not from the start of
+      // the talk: switching the prompter on in the middle still buys the
+      // speaker a minute to find the room.
+      onAtElapsed = nowElapsed();
+      sinceTick = { seconds: 0, words: 0 };
+      status(disabled ? 'off' : 'listening', disabled ? disabled.why : null);
+    } else if (!want && on) {
+      on = false;
+      pendingReason = null;
+      if (inflight) { try { inflight.abort(); } catch (e) { /* already gone */ } }
+      status('idle', 'switched off by ' + who);
+    }
+  }
+
+  function onMessage(msg, reply, sock) {
+    try {
+      switch (msg.type) {
+        case 'souffleuse-hello': return hello(msg, reply);
+        case 'souffleuse-say': return heard(msg, reply);
+        case 'souffleuse-move': return moved(msg, reply);
+        case 'souffleuse-dismiss': return dismissed(msg, reply);
+        case 'souffleuse-toggle': return toggled(msg, reply);
+        default: return reply(false, `the prompter has no message "${msg.type}"`);
+      }
+    } catch (e) {
+      // The one place a defect in here could have reached the watcher.
+      logLine('error', { why: 'handler: ' + ((e && e.message) || String(e)) });
+      try { reply(false, 'the prompter could not handle that: ' + ((e && e.message) || '')); }
+      catch (e2) { /* the socket went away mid-answer */ }
+    }
+  }
+
+  // ── the tick ───────────────────────────────────────────────────────
+
+  function maybeTick() {
+    if (!on || disabled || !prefix || !policy) return;
+    if (Date.now() < backoffUntil) return;
+    const d = souff.shouldTick({
+      now: nowElapsed(),
+      lastTickAt, lastTickReason,
+      speechSecondsSince: sinceTick.seconds,
+      newWordsSince: sinceTick.words,
+      cadence, slideChanged, inflight: !!inflight,
+    });
+    if (!d.tick) {
+      // An occasion that arrived while a call was out is not lost, it is
+      // remembered and fired the moment the answer lands.
+      if (inflight && d.reason) pendingReason = d.reason;
+      return;
+    }
+    tick(d.reason);
+  }
+
+  function tick(reason) {
+    const elapsed = nowElapsed();
+    const idx = cursor.idx;
+    const chunkCount = deck.chunks.length;
+    const drift = souff.driftSeconds({
+      elapsed, marks, idx, beat: cursor.beat, durationS, chunkCount,
+    });
+    const allowed = drift ? souff.timeHintAllowed({
+      drift: drift.drift, rough: drift.rough, lastTimeHint, elapsed,
+    }) : false;
+    const targets = cuesAllowed ? souff.cueTargets(deck, idx) : [];
+    const session = {
+      deck, idx, chunkId: cursor.chunkId, beat: cursor.beat, chunkCount, elapsed,
+      drift: drift ? drift.drift : null,
+      rough: drift ? drift.rough : false,
+      timeHintAllowed: allowed,
+      cueTargets: targets,
+      hints, transcript, lastTickAt,
+      windowSeconds: SOUFFLEUSE_WINDOW_S,
+      windowWords: SOUFFLEUSE_WINDOW_WORDS,
+    };
+    const message = souff.tickMessage(session);
+    lastTickAt = elapsed;
+    lastTickReason = reason;
+    sinceTick = { seconds: 0, words: 0 };
+    slideChanged = false;
+    pendingReason = null;
+    // The user message, never the prefix: the prefix is the same 20 to 60 KB
+    // on every line of the log, and it is already in the build.
+    logLine('tick', {
+      reason, idx, chunkId: cursor.chunkId, beat: cursor.beat, elapsed,
+      drift: session.drift, rough: session.rough,
+      timeHintAllowed: allowed, cueTargets: targets, message,
+    });
+    // Deliberately not awaited – the tick is fired from a socket handler and
+    // the answer arrives whenever it arrives. The catch is the last net: ask
+    // handles its own failures, and anything that got past them is a defect
+    // here, which must still not reach the watcher as a rejection.
+    ask(message, session).catch((e) => {
+      logLine('error', { why: 'tick: ' + ((e && e.message) || String(e)) });
+    });
+  }
+
+  async function ask(message, session) {
+    const ctrl = new AbortController();
+    inflight = ctrl;
+    status('thinking');
+    const started = Date.now();
+    const timer = setTimeout(() => { try { ctrl.abort(); } catch (e) { /* gone */ } },
+      SOUFFLEUSE_TIMEOUT_MS);
+    let res = null;
+    let json = null;
+    let failed = null;
+    try {
+      res = await fetch(base + '/chat/completions', {
+        method: 'POST',
+        signal: ctrl.signal,
+        headers: {
+          'Authorization': 'Bearer ' + key,
+          'Content-Type': 'application/json',
+          'X-Title': SOUFFLEUSE_TITLE,
+          'HTTP-Referer': SOUFFLEUSE_REFERER,
+        },
+        body: JSON.stringify({
+          model,
+          max_tokens: 160,
+          temperature: 0.2,
+          // OpenRouter's unified parameter: think a little, and do not send
+          // the thinking back. Latency is the scarce resource here.
+          reasoning: { effort: 'low', exclude: true },
+          messages: [
+            // The deck, as one content block with a cache breakpoint on it.
+            // Byte-stable per build, which is what makes it worth caching.
+            {
+              role: 'system',
+              content: [{
+                type: 'text',
+                text: prefix.text,
+                cache_control: { type: 'ephemeral' },
+              }],
+            },
+            { role: 'user', content: message },
+          ],
+          tools: [souff.TOOL_SCHEMA],
+          // The answer's vocabulary is the tool schema, so the call is forced
+          // and there is exactly one of it.
+          tool_choice: { type: 'function', function: { name: 'advise' } },
+          parallel_tool_calls: false,
+          // Sticky routing: the provider holding the warm cache for this
+          // prefix. A rebuild changes the hash and starts a new one.
+          session_id: prefix.hash,
+          usage: { include: true },
+        }),
+      });
+      const text = await res.text();
+      try { json = JSON.parse(text); } catch (e) { json = { raw: text }; }
+    } catch (e) {
+      failed = e;
+    } finally {
+      clearTimeout(timer);
+      inflight = null;
+    }
+    const durationMs = Date.now() - started;
+
+    if (failed) {
+      if (failed.name === 'AbortError') {
+        // Too late for the sentence it was about. Not a network failure and
+        // not a streak: the answer simply missed its moment.
+        logLine('error', { why: 'timeout', durationMs });
+        if (on && !disabled) status('listening');
+      } else {
+        trouble('network: ' + ((failed && failed.message) || String(failed)), durationMs);
+      }
+      return finish();
+    }
+    if (res.status === 401 || res.status === 403) {
+      // A refused key is refused on every retry, so there are none.
+      logLine('error', { why: 'auth', status: res.status, body: json, durationMs });
+      disable(`OpenRouter refused the key (HTTP ${res.status})`);
+      return finish();
+    }
+    if (!res.ok) {
+      trouble('HTTP ' + res.status, durationMs, json);
+      return finish();
+    }
+    errorStreak = 0;
+    backoffUntil = 0;
+    logLine('answer', {
+      body: json,
+      usage: (json && json.usage) || null,
+      durationMs,
+    });
+    judge(souff.parseAnswer(json, session), session);
+    return finish();
+  }
+
+  // An occasion that was coalesced while the call was out. Fired here rather
+  // than on a timer, because "right after the answer" is exactly when the
+  // prompter is free again.
+  function finish() {
+    if (!on || disabled) return;
+    if (!pendingReason) return;
+    const reason = pendingReason;
+    pendingReason = null;
+    if (Date.now() < backoffUntil) return;
+    tick(reason);
+  }
+
+  function trouble(why, durationMs, body = null) {
+    errorStreak += 1;
+    logLine('error', { why, durationMs, body, streak: errorStreak });
+    if (errorStreak >= SOUFFLEUSE_MAX_ERRORS) {
+      disable(`${SOUFFLEUSE_MAX_ERRORS} failed calls in a row – last: ${why}`);
+      return;
+    }
+    const wait = SOUFFLEUSE_BACKOFF_MS[Math.min(errorStreak - 1, SOUFFLEUSE_BACKOFF_MS.length - 1)];
+    backoffUntil = Date.now() + wait;
+    status('error', `${why}; trying again in ${Math.round(wait / 1000)}s`);
+  }
+
+  function judge(answer, session) {
+    const now = nowElapsed();
+    const verdict = policy.judge(answer, {
+      now,
+      elapsedSinceOn: now - onAtElapsed,
+      chunkId: session.chunkId,
+      cueTargets: session.cueTargets,
+      timeHintAllowed: session.timeHintAllowed,
+    });
+    if (!verdict.show) {
+      const reason = verdict.reason || 'nothing';
+      // Only nonsense counts towards the garbage streak. A policy that
+      // swallows a well-formed hint is the policy working.
+      if (reason === 'garbage' || reason === 'too-long' || reason === 'bad-cue') garbageStreak += 1;
+      else garbageStreak = 0;
+      logLine('suppressed', {
+        reason,
+        action: answer.action || null,
+        kind: answer.kind || null,
+        text: answer.text || null,
+        why: answer.why == null ? null : answer.why,
+      });
+      if (garbageStreak >= SOUFFLEUSE_MAX_GARBAGE) {
+        status('error', `${SOUFFLEUSE_MAX_GARBAGE} unusable answers in a row from ${model}`);
+      } else {
+        status('listening');
+      }
+      return;
+    }
+    garbageStreak = 0;
+    const at = now;
+    if (answer.action === 'cue') {
+      const cueId = 'cue' + (++cueSeq);
+      policy.shown({ id: cueId, action: 'cue', text: answer.text, chunk_id: answer.chunk_id, at });
+      cues.push({ cueId, chunkId: answer.chunk_id, text: answer.text, at });
+      sendToCockpit({
+        type: 'souffleuse-cue', cueId, chunkId: answer.chunk_id, text: answer.text,
+      });
+      logLine('cue', {
+        cueId, chunkId: answer.chunk_id, text: answer.text,
+        why: answer.why == null ? null : answer.why, at,
+      });
+      log(`[souffleuse] cue → #${answer.chunk_id}: ${answer.text}`);
+      emit({ type: 'souffleuse', state: 'cue', chunkId: answer.chunk_id });
+    } else {
+      const hintId = 'hint' + (++hintSeq);
+      policy.shown({
+        id: hintId, action: 'hint', kind: answer.kind, text: answer.text,
+        chunkId: session.chunkId, at,
+      });
+      hints.push({
+        id: hintId, kind: answer.kind, text: answer.text,
+        severity: answer.severity, at, dismissed: false,
+      });
+      if (answer.kind === 'time') {
+        lastTimeHint = { at, drift: session.drift == null ? 0 : session.drift };
+      }
+      sendToCockpit({
+        type: 'souffleuse-hint', hintId, kind: answer.kind,
+        text: answer.text, severity: answer.severity, at,
+      });
+      logLine('hint', {
+        hintId, kind: answer.kind, text: answer.text, severity: answer.severity,
+        chunkId: session.chunkId, why: answer.why == null ? null : answer.why, at,
+      });
+      log(`[souffleuse] ${answer.kind}: ${answer.text}`);
+      emit({
+        type: 'souffleuse', state: 'hint',
+        kind: answer.kind, severity: answer.severity,
+      });
+    }
+    status('listening');
+  }
+
+  // The same door a socket `say` comes through, for a producer that lives
+  // inside Node – whisper.cpp on PATH, the way cwebp is. Nothing calls it in
+  // v1, and the shape it takes is the reason the protocol does not have to
+  // change when something does.
+  function say(segment) {
+    heard({ ...(segment || {}), type: 'souffleuse-say' }, () => {});
+  }
+
+  function close() {
+    if (inflight) { try { inflight.abort(); } catch (e) { /* already gone */ } }
+    inflight = null;
+    pendingReason = null;
+  }
+
+  // Said once, at the start, because it is the one thing about this flag a
+  // person has to know before they use it. PLAN-souffleuse.md § Privacy.
+  log('[souffleuse] the live prompter is on. What leaves this machine, as text: the deck');
+  log('             including speaker notes, and what the cockpit hears, to ' + base + '.');
+  log('             Never audio, never to the projection, never into source.md, never a key');
+  log('             into the HTML. The microphone hears the room too – switch it off before');
+  log('             a question round, or tell the room.');
+  log('             Transcript and hints are logged to ' + path.basename(logPath) + ' beside the source.');
+  if (disabled) {
+    log(`[souffleuse] disabled: ${disabled.why}. Nothing is sent; the transcript is still logged.`);
+    emit({ type: 'souffleuse', state: 'off', why: disabled.why });
+  }
+
+  return { onBuild, onMessage, say, setEnabled, close, logPath };
+}
+
 // ── CLI ──────────────────────────────────────────────────────────────
 
 // ── --events: NDJSON on stdout, commands on stdin ────────────────────
@@ -18116,6 +18789,13 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
 // A channel of its own (Node IPC, a MessagePort) was the other option and
 // was dropped: build.js is plain Node started as plain Node, and a driver
 // should not have to start it any particular way to read its state.
+//
+// `souffleuse` is the newest type – emitted only under --souffleuse, one per
+// transition of the live prompter, carrying `state` and whatever that state
+// needs (`kind` on a hint, `why` on an error). The desktop app never passes
+// that flag, and its reducer returns the state unchanged for a type it does
+// not know (`desktop/main/builder.js`, the `default` arm), so an engine that
+// emits it stays compatible with an app that has never heard of it.
 let eventsEnabled = false;
 // When the one-shot build started, so the top-level catch can time a failure
 // it did not start. --watch does its own timing inside `rebuild`.
@@ -18403,6 +19083,26 @@ async function runWatch(absIn, only, baseOpts = {}) {
   // watcher reports `changed` and does not build.
   let autoBuild = true;
 
+  // The live prompter, or nothing at all. Created before the first build, so
+  // the deck of that build reaches it like every other; the socket of the
+  // last `souffleuse-hello` is tracked here rather than inside the sidecar,
+  // because a closing WebSocket is this function's business.
+  let cockpit = null;
+  const sendToCockpit = (msg) => {
+    if (!cockpit || cockpit.readyState !== 1) return false;
+    try { cockpit.send(JSON.stringify(msg)); } catch (e) { return false; }
+    return true;
+  };
+  const sidecar = baseOpts.souffleuse
+    ? await createSouffleuse({
+      absIn, opts: baseOpts.souffleuse, sendToCockpit, emitEvent, log: console.log,
+    })
+    : null;
+  // Sync-only work, so it is safe here, and it is the one place that knows
+  // the process is going: a call left in flight is abandoned rather than
+  // resolved into a socket nobody is holding any more.
+  if (sidecar) process.on('exit', () => sidecar.close());
+
   const broadcast = (msg) => {
     for (const client of wss.clients) {
       if (client.readyState === 1) client.send(msg);
@@ -18424,8 +19124,11 @@ async function runWatch(absIn, only, baseOpts = {}) {
     emitEvent({ type: 'build-start', reason });
     const t0 = Date.now();
     try {
-      const { written, shape, stats, sourceModifiedMs } = buildOnce(absIn, only, opts);
+      const { written, shape, stats, sourceModifiedMs, lecture } = buildOnce(absIn, only, opts);
       lastBuildError = null;
+      // The parsed deck, to the one thing that wants it rather than the
+      // files. A new prefix hash starts a new cache and a new session id.
+      if (sidecar) sidecar.onBuild(lecture);
       console.log(`[${label}] ${written.join(', ')} (${shape})`);
       emitEvent({
         type: 'build-success', reason,
@@ -18463,16 +19166,32 @@ async function runWatch(absIn, only, baseOpts = {}) {
   // writes second is working against a range that no longer exists and gets
   // told so instead of corrupting the source.
   wss.on('connection', (sock) => {
+    // A cockpit that goes away takes its hints with it. Without this the
+    // sidecar would keep whispering into a socket in CLOSED, and the next
+    // cockpit's hello would be the second one to be answered.
+    sock.on('close', () => { if (cockpit === sock) cockpit = null; });
     sock.on('message', (raw) => {
       let msg;
       try { msg = JSON.parse(String(raw)); } catch { return; }
-      if (!msg || (msg.type !== 'patch' && msg.type !== 'assets' && msg.type !== 'asset')) return;
+      if (!msg || typeof msg.type !== 'string') return;
+      const known = msg.type === 'patch' || msg.type === 'assets' || msg.type === 'asset'
+        || msg.type.startsWith('souffleuse-');
+      if (!known) return;
       // `extra` first, so a payload field can never shadow a protocol one.
       // It could: an asset reply carries the asset's own `id`, and spreading
       // it last overwrote the message id the client pairs on – the write
       // succeeded, the promise never resolved, and the picker sat there.
       const reply = (ok, why, extra) => sock.send(JSON.stringify({ ...extra, type: msg.type + '-result', id: msg.id, ok, why }));
       if (msg.nonce !== nonce) return reply(false, 'this page is from an older build – reload it and try again');
+
+      // The live prompter, after the nonce check like everything else. A
+      // second cockpit tab takes the hints over by saying hello; the one that
+      // said it last is the one being whispered to.
+      if (msg.type.startsWith('souffleuse-')) {
+        if (msg.type === 'souffleuse-hello') cockpit = sock;
+        if (!sidecar) return reply(false, 'start the build with --souffleuse');
+        return sidecar.onMessage(msg, reply, sock);
+      }
 
       const assetDir = path.join(path.dirname(absIn), 'assets');
 
@@ -18631,6 +19350,11 @@ async function runWatch(absIn, only, baseOpts = {}) {
       else if (msg.type === 'auto') {
         autoBuild = !!msg.enabled;
         emitEvent({ type: 'auto', enabled: autoBuild });
+      } else if (msg.type === 'souffleuse' && sidecar) {
+        // The same switch the cockpit's button throws, for a driver that has
+        // a switch of its own. Silently ignored without a sidecar, like every
+        // unknown line: this channel has nobody to complain to.
+        sidecar.setEnabled(!!msg.enabled);
       }
     });
   }
@@ -18802,7 +19526,8 @@ async function runServe(rootDir, wantedPort) {
 
 // Flags that consume the following argv token as their value, so it is not
 // mistaken for the source path.
-const VALUE_FLAGS = new Set(['--max-width', '--port', '--viewport', '--squint-out', '--into']);
+const VALUE_FLAGS = new Set(['--max-width', '--port', '--viewport', '--squint-out', '--into',
+  '--souffleuse-model']);
 
 // ── driving the built projection (shared by --check-fit and --squint) ─
 // Two commands answer questions that only a rendered page can answer - does
@@ -19659,6 +20384,7 @@ async function main() {
 
   if (!inputPath || flags.has('--help') || flags.has('-h')) {
     console.error('Usage:');
+    console.error('  node build.js <source.md> --watch [--souffleuse [--souffleuse-model ID]]');
     console.error('  node build.js <source.md> [--watch] [--serve [--port N]] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
     console.error('                            [--no-optimize-images] [--events]');
@@ -19696,6 +20422,17 @@ async function main() {
     console.error('                        bolds, what stays whole, what the collapse withholds – to');
     console.error('                        squint.txt beside the source. Never fails a build.');
     console.error('  --squint-out PATH     write it somewhere else; "-" writes to stdout.');
+    console.error('');
+    console.error('Live prompter (only together with --watch; the cockpit reaches it over the');
+    console.error('watch socket). What leaves the machine is text: the deck including speaker');
+    console.error('notes, and what the cockpit hears. Never audio.');
+    console.error('  --souffleuse              run the prompter sidecar beside the watch build.');
+    console.error('  --souffleuse-model ID     an OpenRouter model id, overriding the deck\'s');
+    console.error('                            `souffleuse: model:` and the default.');
+    console.error('  OPENROUTER_API_KEY        required; without it the prompter starts disabled');
+    console.error('                            and only logs what it heard.');
+    console.error('  OPENROUTER_BASE_URL       another OpenAI-compatible endpoint');
+    console.error('                            (default https://openrouter.ai/api/v1).');
     console.error('');
     console.error('Driving the build from another program:');
     console.error('  --events              emit build events as JSON lines on stdout and accept');
@@ -19737,6 +20474,28 @@ async function main() {
   // on a machine with a different encoder version.
   if (flags.has('--no-optimize-images')) noOptimizeImages = true;
   // else: leave undefined → buildOnce decides automatically
+
+  // The live prompter. Only with --watch, and that is not a convenience: the
+  // cockpit reaches the sidecar over the watch socket and there is no other
+  // channel, so a one-shot build would start something nothing could talk to.
+  if (flags.has('--souffleuse')) {
+    if (!flags.has('--watch')) {
+      const err = new Error(
+        '--souffleuse needs --watch.\n'
+        + '  The cockpit talks to the prompter over the watch socket, and a build without\n'
+        + '  --watch has none – the sidecar would start with nothing able to reach it.\n'
+        + '  node build.js <source.md> --watch --souffleuse');
+      err.userFacing = true;
+      throw err;
+    }
+    const mIdx = argv.indexOf('--souffleuse-model');
+    if (mIdx >= 0 && !argv[mIdx + 1]) {
+      const err = new Error('--souffleuse-model takes an OpenRouter model id, e.g. anthropic/claude-sonnet-5.');
+      err.userFacing = true;
+      throw err;
+    }
+    opts.souffleuse = { model: mIdx >= 0 ? argv[mIdx + 1] : null };
+  }
 
   const absIn = path.resolve(inputPath);
   if (!fs.existsSync(absIn)) {

@@ -404,7 +404,15 @@ arithmetic, the Chromium bug in `available()` on macOS.
       `shouldTick`, `createPolicy`; the gate `test/gates/souffleuse.mjs`
       (107 assertions, every row of the policy table) registered in
       `test/gates/run.mjs` and in `test/README.md`.
-- [ ] Slice 3 – the sidecar in `build.js`.
+- [x] Slice 3 – the sidecar in build.js: `createSouffleuse` (`onBuild`,
+      `onMessage`, `say`, `setEnabled`, `close`) with `souffleuseLogPath`,
+      the `--souffleuse` / `--souffleuse-model` flags and the usage block,
+      `psiWatch.on` plus a public `ask` in `reloadScript`, the `souffleuse-*`
+      arm of the watch socket with the cockpit socket tracked in `runWatch`,
+      the `souffleuse` event type and the `souffleuse` stdin command, and
+      `souffleuse-*.jsonl` in `.gitignore`. Hand-tested against a fake
+      OpenRouter and a Node WebSocket client: hint, cue, `nothing`, HTTP 500,
+      the disabled path and the usage error.
 - [ ] Slice 4 – cockpit client, STT adapter, switch.
 - [ ] Slice 5 – strip, history, cues.
 - [ ] Slice 6 – Playwright spec.
@@ -453,6 +461,43 @@ arithmetic, the Chromium bug in `available()` on macOS.
   recoverable from the first shape – it is a fact about the note the `@mm:ss`
   stood in. So a chunk's `marks` are `{at, beat}` and `flattenMarks(deck)` adds
   the `idx`. The prompt still prints them as clock times.
+- **The reason a `hello` is refused rides in the reply's own `why`.** The plan
+  wrote the answer as `{enabled, why?, model, cadence, cues}`, and it cannot be:
+  `reply` spreads the payload *first* so that no payload field can shadow a
+  protocol one, which means a payload `why` is overwritten by the protocol's.
+  So the answer is `{enabled, model, cadence, cues, session}` and the disabled
+  reason is the reply's `why`, with `ok` still true – the hello did reach the
+  sidecar, and it is answering.
+- **The cockpit's clock starts at `hello`, not when the watcher did.** The
+  sidecar carries the cockpit's `elapsed` forward with the wall clock between
+  messages, so that a cadence in seconds means seconds. Stamped at creation,
+  that made the minutes an author spent writing slides before switching the
+  prompter on count as minutes of the talk, and the opening quiet was over
+  before it began – in the first hand test the first hint died as
+  `start-quiet` with `elapsedSinceOn` 57. `hello` re-stamps the wall clock, so
+  "switched on at the cockpit's current clock" is what `onAt` means.
+- **`off` and `idle` are the two halves of not running.** The plan's five
+  status states do not say which is which. `off` is the sidecar saying it
+  cannot work at all – no key, a refused key, five failures – and carries the
+  reason; `idle` is the speaker (or the `--events` stdin command) having
+  switched the prompter off, which reverses on the next press. `listening` and
+  `thinking` are the working pair, `error` is a backoff or a run of unusable
+  answers.
+- **A status is on the socket, in the log and in `--events`; on the terminal
+  only when it is news.** `thinking` and `listening` alternate once per tick,
+  which on a 45-minute talk is a hundred lines through the middle of the build
+  log the author is reading. The console gets the states a person would want
+  to be told about, and the log gets all of them.
+- **A timeout is not a streak.** The backoff counts 429s, 5xx and network
+  failures; an 8-second abort is logged as `error: timeout` and changes
+  nothing, because the network is not broken – the answer merely missed the
+  sentence it was about. A run of unusable *answers* is counted separately
+  (`garbage`, `too-long`, `bad-cue`) and reaches `status error` at five,
+  without disabling anything.
+- **`psiWatch` also exposes `ask`.** `on(type, fn)` was the planned half; the
+  cockpit needs the other direction too, and five `souffleuse-*` methods on
+  the object would each be a line saying the same thing. The listener map is
+  consulted *after* the `-result` pairing, never instead of it.
 - **A cue takes neither the standing slot nor a cool-down.** It is a card laid
   into a slide that is still to come, nobody reads it now, and the plan's table
   gives it two rules of its own – `cue_targets` and one per chunk. Those are
