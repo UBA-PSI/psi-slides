@@ -4728,6 +4728,13 @@ const AUTO_FIT_CYCLE = ['off', 'shrink', 'full'];
 // lint.js lists them in: the two that were always there, then the new one.
 const AUTO_FIT_FROM_KEY = { 'true': 'full', 'false': 'off', shrink: 'shrink' };
 
+// A style key that used to exist and does not any more. The message an author
+// gets for one of these has to say what happened, not just that the key is
+// unknown: they wrote it because it did something, and "no such key" reads as
+// a typo they did not make. Same courtesy the refused `::: draw` opener pays.
+const STYLE_KEYS_REMOVED = {
+  reveal: 'Every reveal reserves its space now, which is what `hold` bought – delete the key.',
+};
 const VIEW_DEFAULT_SPEC = [
   ['font',          'font',      ['serif', 'sans', 'mono']],
   ['theme',         'theme',     THEME_NAMES],
@@ -4926,7 +4933,6 @@ const STYLE_SPEC = {
   // wants nothing to move on a press sets this once. The default stays
   // `grow`, because it moves every existing deck's slides: a chunk with
   // three segments opens with two blocks of air under the first.
-  reveal: { kind: 'enum', values: ['grow', 'hold'], dflt: 'grow' },
 };
 function styleSettings(frontmatter = {}) {
   const raw = frontmatter.style;
@@ -4945,6 +4951,7 @@ function styleSettings(frontmatter = {}) {
     if (!spec) {
       const err = new Error(
         `Frontmatter: style has no key "${k}".\n` +
+        (STYLE_KEYS_REMOVED[k] ? `  ${STYLE_KEYS_REMOVED[k]}\n` : '') +
         `  Keys: ${Object.keys(STYLE_SPEC).join(', ')}`);
       err.userFacing = true;
       throw err;
@@ -4998,7 +5005,6 @@ function styleBodyAttrs(st, frontmatter = {}) {
   if (st['print-body'] !== 'serif') parts.push(`data-print-body="${st['print-body']}"`);
   if (st.bold !== 'plain') parts.push(`data-bold="${st.bold}"`);
   if (st['print-bold'] !== 'bold') parts.push(`data-print-bold="${st['print-bold']}"`);
-  if (st.reveal !== 'grow') parts.push(`data-reveal="${st.reveal}"`);
   return parts.join(' ');
 }
 // The same two settings answered on one chunk, from its attribute tail. The
@@ -8032,17 +8038,26 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
    click that lets it go, and the cursor is the only place that can say so. */
 body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 
-/* reveal segments: first visible, rest hidden until advanced. Under
-   style: {reveal: hold} a hidden segment keeps its box - the chunk stands
-   at its final height from beat 0, as a nested beat's block does - and the
-   words fade in; the default closes the segment up and the chunk grows. */
+/* reveal segments: first visible, rest hidden until advanced. A hidden
+   segment keeps its box, so the chunk stands at its final height from beat
+   0 and the words fade in where they were always going to be.
+
+   One rule now, and it used to be two. A top-level segment closed up
+   (display: none) and the chunk grew per press, while a nested beat
+   reserved - so a reveal marker meant two different things depending on how
+   deep it sat, and style: reveal: hold existed to buy the nested behaviour for
+   the top level. Reserving is what the nested form had always done for the
+   reason that decides it: a slide that changes height under the reader is a
+   slide that jumps, and auto-fit measures a different height on every beat.
+   Measured over seven lectures before the change, the set of chunks taller
+   than the frame is identical either way - the last beat shows every
+   segment whichever rule is in force - so nothing that fit stopped
+   fitting. */
 .reveal-segment { transition: opacity 180ms ease; }
-.reveal-segment[data-hidden] { display: none; }
-body[data-reveal=hold] .reveal-segment[data-hidden] { display: block; visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; pointer-events: none; }
+.reveal-segment[data-hidden] { display: block; visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; pointer-events: none; }
 /* A --- below the top level (BEAT_MARK). The marker itself is never shown;
    the elements it governs carry data-beat-hidden until their beat - and
-   keep their box. A top-level segment closes up (display: none) and the
-   chunk grows beat by beat, which is the reveal 1.0.0 shipped; a nested
+   keep their box, which is what a top-level segment does too now. A nested
    beat lives inside a block whose shape the room has already seen, and a
    row that grew a line per beat, or a card row whose three cards changed
    height when the tallest arrived, made the whole slide jump on every
@@ -15603,17 +15618,15 @@ body[data-view=speaker] .figure-video video { cursor: pointer; }
    The audience is untouched – [data-hidden] keeps its display:none there,
    and this override is scoped to the speaker. */
 body[data-view=speaker] .reveal-segment[data-hidden][data-next] {
-  display: block;
-  /* Absolute with no offsets: the box renders at its static position –
-     exactly where it will land when revealed – but contributes nothing to
-     the chunk's height. That matters more than it looks. The laser pointer
-     travels as a fraction of the active chunk's bounding box, so a cockpit
-     chunk taller than the projected one would land the dot in the wrong
-     place; measured on a three-segment chunk, in-flow made the speaker's
-     box 840px against the audience's 718. width:100% resolves against
-     .chunk-content, which is position:relative and the same width. */
-  position: absolute;
-  width: 100%;
+  /* In the flow at half strength, which is the nested beat's ghost. It was
+     position: absolute so the cockpit's chunk stayed the height of the
+     projected one: the laser pointer travels as a fraction of the active
+     chunk's bounding box, and a taller cockpit chunk lands the dot in the
+     wrong place. The two heights match by construction now - the segment
+     reserves its box on both screens - so taking it out of the flow here
+     would make the cockpit the shorter of the two and break the pointer in
+     the other direction. */
+  visibility: visible;
   opacity: 0.5;
   outline: 2px dashed var(--emph);
   outline-offset: 7px;
@@ -15643,11 +15656,10 @@ body[data-view=speaker] :is(.reveal-segment[data-hidden], .chunk [data-beat-hidd
 }
 /* Not on the overview board: at that scale the hatch is noise, and the
    board is for finding a slide, not for pacing one. */
-body[data-view=speaker].overview-mode .reveal-segment[data-hidden][data-next] { display: none; }
-/* Under reveal: hold the segment already has its box on both screens, so
-   its ghost is the nested beat's: in the flow, half strength. */
-body[data-view=speaker][data-reveal=hold] .reveal-segment[data-hidden][data-next] { position: relative; width: auto; visibility: visible; opacity: 0.5; }
-body[data-view=speaker][data-reveal=hold].overview-mode .reveal-segment[data-hidden][data-next] { visibility: hidden; }
+/* Not on the overview board, and hidden rather than dropped: the segment
+   has a box on both screens, so removing it there would change the tile's
+   proportions against every other tile. */
+body[data-view=speaker].overview-mode .reveal-segment[data-hidden][data-next] { visibility: hidden; }
 body[data-view=speaker].overview-mode .chunk [data-beat-hidden][data-next] { visibility: hidden; }
 /* A nested beat keeps its box on both screens (see the hide rule in the
    audience sheet), so its ghost is simply the box made visible at half

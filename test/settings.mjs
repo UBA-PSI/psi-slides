@@ -606,8 +606,10 @@ console.log('\nlayout generations');
     ok(!/overlay-from-beyond/.test(leak.lint), 'a divider\'s overlay is not judged against the next chunk', leak.lint.split('\n')[0]);
   }
 
-  // style: {reveal: hold} - a top-level segment keeps its box before its
-  // beat, as a nested beat's block does; the default grows, as 1.0.0 did.
+  // A top-level segment keeps its box before its beat, as a nested beat's
+  // block does, and there is no key: reserving is what a reveal is. The
+  // `reveal` key existed to buy this deck-wide and is refused now, because
+  // a key whose only value is the behaviour is a key that says nothing.
   {
     const hold = run('A.\n\n---\n\nB.\n');
     ok(!hold.failed, 'a deck with no reveal key builds', hold.out.split('\n')[0]);
@@ -618,14 +620,17 @@ console.log('\nlayout generations');
       return { code: r.status, out: (r.stdout || '') + (r.stderr || ''), html: r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '' };
     };
     const g = buildWith('');
-    ok(g.code === 0 && !/<body[^>]* data-reveal=/.test(g.html), 'grow is the default and writes no attribute, so an old deck\'s body tag is unchanged');
+    ok(g.code === 0 && !/<body[^>]* data-reveal=/.test(g.html), 'no deck carries a reveal attribute any more');
+    ok(/\.reveal-segment\[data-hidden\] \{ display: block; visibility: hidden;/.test(g.html),
+       'and a hidden segment keeps its box with no key written');
+    ok(!/display: none/.test((g.html.match(/\.reveal-segment\[data-hidden\][^\n]*/) || [''])[0]),
+       'there is no closing-up rule left for it to lose to');
     const h = buildWith('style: {reveal: hold}\n');
-    ok(h.code === 0 && /<body[^>]* data-reveal="hold"/.test(h.html), 'hold reaches the body');
-    ok(/body\[data-reveal=hold\] \.reveal-segment\[data-hidden\] \{ display: block; visibility: hidden;/.test(h.html),
-       'and a hidden segment keeps its box under it');
+    ok(h.code !== 0 && /reserves its space now/.test(h.out),
+       'the old key is refused, and the message says what replaced it', h.out.split('\n')[0]);
     const bad = buildWith('style: {reveal: keep}\n');
-    ok(bad.code !== 0, 'an unknown value is refused', bad.out.split('\n')[0]);
-    fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\nstyle: {reveal: keep}\n---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n');
+    ok(bad.code !== 0, 'and so is any other value', bad.out.split('\n')[0]);
+    fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\nstyle: {reveal: hold}\n---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n');
     const l = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')], { cwd: ROOT, encoding: 'utf8' });
     ok(/unknown-style-setting/.test((l.stdout || '') + (l.stderr || '')), 'and the linter says so');
   }

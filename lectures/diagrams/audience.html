@@ -835,17 +835,26 @@ body.figure-focused #stage { filter: blur(2px) brightness(0.9); }
    click that lets it go, and the cursor is the only place that can say so. */
 body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 
-/* reveal segments: first visible, rest hidden until advanced. Under
-   style: {reveal: hold} a hidden segment keeps its box - the chunk stands
-   at its final height from beat 0, as a nested beat's block does - and the
-   words fade in; the default closes the segment up and the chunk grows. */
+/* reveal segments: first visible, rest hidden until advanced. A hidden
+   segment keeps its box, so the chunk stands at its final height from beat
+   0 and the words fade in where they were always going to be.
+
+   One rule now, and it used to be two. A top-level segment closed up
+   (display: none) and the chunk grew per press, while a nested beat
+   reserved - so a reveal marker meant two different things depending on how
+   deep it sat, and style: reveal: hold existed to buy the nested behaviour for
+   the top level. Reserving is what the nested form had always done for the
+   reason that decides it: a slide that changes height under the reader is a
+   slide that jumps, and auto-fit measures a different height on every beat.
+   Measured over seven lectures before the change, the set of chunks taller
+   than the frame is identical either way - the last beat shows every
+   segment whichever rule is in force - so nothing that fit stopped
+   fitting. */
 .reveal-segment { transition: opacity 180ms ease; }
-.reveal-segment[data-hidden] { display: none; }
-body[data-reveal=hold] .reveal-segment[data-hidden] { display: block; visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; pointer-events: none; }
+.reveal-segment[data-hidden] { display: block; visibility: hidden; opacity: 0; transition: opacity 0.4s ease, visibility 0.4s; pointer-events: none; }
 /* A --- below the top level (BEAT_MARK). The marker itself is never shown;
    the elements it governs carry data-beat-hidden until their beat - and
-   keep their box. A top-level segment closes up (display: none) and the
-   chunk grows beat by beat, which is the reveal 1.0.0 shipped; a nested
+   keep their box, which is what a top-level segment does too now. A nested
    beat lives inside a block whose shape the room has already seen, and a
    row that grew a line per beat, or a card row whose three cards changed
    height when the tallest arrived, made the whole slide jump on every

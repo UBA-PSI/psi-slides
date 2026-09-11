@@ -99,6 +99,11 @@ const VIEW_DEFAULTS = {
 // enum keys are checked: the two scales are bounded numbers, and reading a
 // number out of YAML with no parser is where a linter starts disagreeing
 // with the build. The build hard-fails on both halves either way.
+const STYLE_SCALE_KEYS = new Set(['heading-scale', 'body-scale']);
+// Mirrors STYLE_KEYS_REMOVED in build.js.
+const STYLE_KEYS_REMOVED = {
+  reveal: 'every reveal reserves its space now, which is what `hold` bought, so delete the key',
+};
 const STYLE_ENUMS = {
   // `off` takes the heading off the *slide* and leaves it in the TOC, in
   // search and in the printed document. Same key as the alignment, because
@@ -129,7 +134,6 @@ const STYLE_ENUMS = {
   // What a top-level reveal segment does before its beat: closes up and the
   // chunk grows (the default, and 1.0.0's behaviour), or keeps its box so
   // the chunk stands at its final height from beat 0.
-  'reveal': ['grow', 'hold'],
 };
 
 // The slot tables of ::: backdrop, ::: cards / ::: rows, ::: overlay and
@@ -2287,14 +2291,25 @@ function lintFile(filePath) {
     let inStyle = false;
     const rule = (i, key, value) => {
       const allowed = STYLE_ENUMS[key];
-      if (!allowed) return;
+      // An unknown key used to return quietly here, so the build refused what
+      // the linter passed and a deck could lint clean and fail to build. The
+      // two scales are deliberately absent from STYLE_ENUMS (their values are
+      // the build's to bound), so they are named here rather than inferred.
+      if (!allowed) {
+        if (!STYLE_SCALE_KEYS.has(key)) {
+          addFm(i + 2, 'error', 'unknown-style-setting',
+            `'style.${key}' is not a key this block has` +
+            (STYLE_KEYS_REMOVED[key] ? ` – ${STYLE_KEYS_REMOVED[key]}` : ''));
+        }
+        return;
+      }
       const v = value.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
       if (!v || allowed.includes(v)) return;
       addFm(i + 2, 'error', 'unknown-style-setting',
         `'style.${key}: ${v}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
     };
     lines.forEach((raw, i) => {
-      // The flow form, `style: {bold: accent, reveal: hold}`, which is how
+      // The flow form, `style: {bold: accent, wrap: none}`, which is how
       // the documentation writes the block. It was not read at all, so a
       // typo in it passed the pre-commit gate and failed the build.
       const flow = raw.match(/^style:[ \t]*\{(.*)\}[ \t]*$/);

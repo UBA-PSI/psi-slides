@@ -632,10 +632,8 @@ first does not move: the block is laid out with both rows from beat 0.
 ::: rows {.accent}
 - **Nested** beats keep their place, so the slide is quiet under them.
 ---
-- **Top-level** segments grow the chunk, unless the frontmatter says
-  `style: {reveal: hold}` - then every segment in the deck stands still too.
-  This deck keeps the default, so the difference can be seen in the part
-  before this one.
+- **Top-level** segments do the same, so a chunk is as tall on its first beat
+  as on its last. One rule, whatever depth the mark sits at.
 :::
 
 # A heading that stays off the slide {#bare}

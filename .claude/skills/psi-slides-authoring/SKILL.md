@@ -350,12 +350,12 @@ Right, second paragraph.
 
 walks left one, left two, right one, right two, cards one and two, card three –
 six beats, top-level and nested mixed, each in the place it was written. A
-nested beat **keeps its place from beat 0**: the pane, the row or the card is
-laid out at its final height and the words fade in where they were always
-going to be, so the slide does not jump on every press. A top-level `---`
-still closes up and the chunk grows, as it has since 1.0.0 – unless the
-frontmatter says `style: {reveal: hold}`, which gives every top-level segment
-the same standing room, deck-wide. A `---`
+beat **keeps its place from beat 0**, wherever it sits: the chunk, the pane,
+the row or the card is laid out at its final height and the words fade in
+where they were always going to be, so the slide does not jump on a press.
+Up to this change only a nested beat did that and a top-level one closed up,
+which is why `style: {reveal: hold}` existed; there is one rule now and the
+key is refused. A `---`
 as the first line of a pane holds the whole pane back. In an `::: overlay from N`
 the inner beats count from `N`: the card on `N`, its second block on `N + 1`.
 Print shows every beat at once. An `::: expand` and a `::: script` keep the

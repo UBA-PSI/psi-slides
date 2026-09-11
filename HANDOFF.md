@@ -1122,13 +1122,14 @@ Commit-Reihenfolge:
   Schriften aufgelöst wurde. `.every` erbt vom Trenner, `#id`-Links sind
   der Live-Marker. Standardgrund `tint`. Ein Implementierungs-Agent blieb
   dreimal am Watchdog hängen; ab dem CSS ist es von Hand.
-- **Frame-Lab** (`lectures/frame-lab/`, ungetrackt, `reveal: hold`): 24
+- **Frame-Lab** (`lectures/frame-lab/`, ungetrackt): 24
   Randfall-Chunks; fand zehn Defekte, alle behoben (`ed68ce8`, `6f20362`),
   darunter `text-on-picture` als Lint-Warnung für Wörter auf einem
   `.clear`-Backdrop.
-- **Verschachtelte Beats behalten ihre Box** (`visibility: hidden`), damit
-  Reihen und Karten nicht springen; `style: {reveal: hold}` zieht das für
-  Top-Level-Segmente deckweit nach, Default bleibt `grow`.
+- **Beats behalten ihre Box** (`visibility: hidden`), damit Reihen und Karten
+  nicht springen. Galt zuerst nur verschachtelt; seit der Vereinheitlichung
+  gilt es auch für Top-Level-Segmente, und der Schlüssel `style: {reveal: …}`,
+  der das deckweit gekauft hat, ist weg.
 - **Decoration** zeigt jetzt Panels, sechs Dock-Folien und die Beats.
 
 Offen: ein zu langer Dock-Text schrumpft die ganze Folie (Auto-Fit misst

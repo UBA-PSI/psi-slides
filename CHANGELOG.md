@@ -7,6 +7,22 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Changed
+
+- **A reveal reserves its space, everywhere, and `style: {reveal: …}` is
+  gone.** A top-level `---` used to close up so the chunk grew a block per
+  press, while a `---` inside a pane, a card row or an overlay kept its box –
+  so one mark meant two things depending on how deep it sat, and the key
+  existed to buy the nested behaviour for the top level. Reserving is now
+  what a reveal is: the chunk stands at its final height from beat 0 and the
+  words fade in where they were going to be. A deck that still writes the key
+  is refused by the build and by `lint.js`, with a message saying what
+  replaced it. Measured over seven lectures before the change, the set of
+  chunks taller than the frame is identical either way, because the last beat
+  shows every segment under both rules – so no slide that fitted stopped
+  fitting. What does change is that a slide whose later beats are long now
+  stands at that height from the start.
+
 ### Added
 
 - **A desktop builder, so the tool does not begin with a terminal.** An
