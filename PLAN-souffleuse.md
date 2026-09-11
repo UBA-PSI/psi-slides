@@ -413,7 +413,13 @@ arithmetic, the Chromium bug in `available()` on macOS.
       `souffleuse-*.jsonl` in `.gitignore`. Hand-tested against a fake
       OpenRouter and a Node WebSocket client: hint, cue, `nothing`, HTTP 500,
       the disabled path and the usage error.
-- [ ] Slice 4 – cockpit client, STT adapter, switch.
+- [x] Slice 4 – the cockpit client: `psiWatch.onConnect`, `SOUFFLEUSE` beside
+      `VIEW_DEFAULTS`, the `webSpeechAdapter` behind the planned interface,
+      the footer switch and `viewHooks.onShiftS`, the `#souffleuse-badge`
+      with an ear reason and a sidecar reason of its own, the help group
+      "The prompter", and hints through `flashCenter` until the strip
+      exists. Hand-tested in a Chromium against a fake OpenRouter and a
+      fake recogniser: switch, badge, say, move, hint, fade-dismiss.
 - [ ] Slice 5 – strip, history, cues.
 - [ ] Slice 6 – Playwright spec.
 - [ ] Slice 7 – docs and first rehearsal.

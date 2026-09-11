@@ -4686,6 +4686,7 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
 #speaker-footer #export-annot-btn,
 #speaker-footer #preview-orient-btn,
 #speaker-footer #cue-btn,
+#speaker-footer #souffleuse-btn,
 #speaker-footer #speaker-help-btn {
   font: inherit;
   white-space: nowrap;
@@ -4699,8 +4700,30 @@ body.preview-resizing #preview-resizer::after { opacity: 1; }
 #speaker-footer #export-annot-btn:hover,
 #speaker-footer #preview-orient-btn:hover,
 #speaker-footer #cue-btn:hover,
+#speaker-footer #souffleuse-btn:hover,
 #speaker-footer #speaker-help-btn:hover { background: oklch(0.93 0 0); }
-#speaker-footer #cue-btn[aria-pressed=true] { border-color: var(--emph); color: var(--emph); }
+#speaker-footer #cue-btn[aria-pressed=true],
+#speaker-footer #souffleuse-btn[aria-pressed=true] { border-color: var(--emph); color: var(--emph); }
+/* The prompter's switch says what it is doing with the one glyph in front of
+   the word, because a lecturer glances at this footer and does not read it:
+   a hollow ring is off, a filled red dot is a microphone that is open, and
+   the dot breathing is a call in flight. The word itself stays ink - a
+   coloured label in the corner of the eye reads as an alarm. */
+#speaker-footer #souffleuse-btn .souffleuse-dot { color: var(--ink-soft); }
+#speaker-footer #souffleuse-btn[data-state=listening] .souffleuse-dot,
+#speaker-footer #souffleuse-btn[data-state=thinking] .souffleuse-dot { color: oklch(0.56 0.20 25); }
+#speaker-footer #souffleuse-btn[data-state=error] .souffleuse-dot { color: oklch(0.63 0.15 70); }
+@media (prefers-reduced-motion: no-preference) {
+  #speaker-footer #souffleuse-btn[data-state=thinking] .souffleuse-dot {
+    animation: souffleuse-breathe 1.1s ease-in-out infinite;
+  }
+}
+@keyframes souffleuse-breathe { 0%, 100% { opacity: 1; } 50% { opacity: 0.25; } }
+/* Degraded states only - server recognition instead of on-device, a refused
+   key, a microphone that was denied. Stacked clear of BLANK and DEMO, which
+   own the two rows below it. */
+body[data-view=speaker] #souffleuse-badge { bottom: 5.3rem; }
+body[data-view=speaker].blanked #souffleuse-badge { bottom: 7.2rem; }
 
 /* Mode toast sits at the top of the *stage*, not the top of the window:
    row 1 is the scrubber, and a toast overlapping the column strip covers
@@ -4811,6 +4834,7 @@ body[data-mode=dark] #speaker-footer kbd,
 body[data-mode=dark] #speaker-footer #export-annot-btn,
 body[data-mode=dark] #speaker-footer #preview-orient-btn,
 body[data-mode=dark] #speaker-footer #cue-btn,
+body[data-mode=dark] #speaker-footer #souffleuse-btn,
 body[data-mode=dark] #speaker-footer #speaker-help-btn,
 body[data-mode=dark] #notes-zoom button,
 body[data-mode=dark] .export-modal-inner,
@@ -4824,6 +4848,7 @@ body[data-mode=dark] .export-modal-keep {
 body[data-mode=dark] #speaker-footer #freeze-btn:hover,
 body[data-mode=dark] #speaker-footer #export-annot-btn:hover,
 body[data-mode=dark] #speaker-footer #preview-orient-btn:hover,
+body[data-mode=dark] #speaker-footer #souffleuse-btn:hover,
 body[data-mode=dark] #speaker-footer #speaker-help-btn:hover,
 body[data-mode=dark] #notes-zoom button:hover,
 body[data-mode=dark] .export-modal-copy:hover,
@@ -7305,6 +7330,7 @@ renames the thing it is about.</p>
 <button id="help-button" type="button" aria-label="Keyboard and mouse reference" title="Keyboard and mouse reference (?)">?</button>
 <div id="mode-badge"></div>
 <div id="center-toast" role="status" aria-live="polite"></div>
+
 <div id="overview-badge">
   <span class="hint">overview · drag pans · wheel zooms · <kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd> selects · click or <kbd>O</kbd>/<kbd>Enter</kbd> lands · <kbd>/</kbd> search · <kbd>Esc</kbd> leaves</span>
 </div>
@@ -9752,6 +9778,7 @@ return { parseTimeMark, formatClock, plainInline, notesToCards };
 const LECTURE_TITLE = "Animated Infographics";
 const VIEW_DEFAULTS = {"theme":"dark","collapse":"none","autoFit":"full"};
 const LINK_QR = {};
+const SOUFFLEUSE = null;
 
 const DG_LIST = [];
 const DG_REDUCED = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -10124,6 +10151,11 @@ const viewHooks = {
   consumeBack: () => false,
   onEnter: () => false,
   onK: () => {},
+  // Shift-S in the cockpit. A hook rather than a case in the map for the
+  // reason onK is one: the letter belongs to the audience, where it opens
+  // the cockpit, and the cockpit's own meaning for it lives with the code
+  // that implements it.
+  onShiftS: () => false,
 };
 
 const stage = document.getElementById('stage');
@@ -13433,6 +13465,13 @@ document.addEventListener('keydown', (e) => {
       }
       e.preventDefault(); break;
     case 's': case 'S':
+      // Shift-S in the cockpit switches the live prompter on and off. A bare
+      // letter would fire in the middle of a sentence, and S itself already
+      // means "open the cockpit" one window over.
+      if (VIEW === 'speaker' && e.shiftKey) {
+        if (viewHooks.onShiftS()) e.preventDefault();
+        break;
+      }
       // Only in audience: open the speaker window and remember it as our peer.
       if (VIEW === 'audience') {
         const w = window.open('speaker.html', 'psi-slides-speaker', 'width=1400,height=900');
@@ -14543,6 +14582,15 @@ viewHooks.onActiveChange = () => {
 };
 viewHooks.onStateChange = () => { cueSync(); };
 
+// The prompter's cards for slides that have not come up yet, chunk id to a
+// list of {cueId, text}. It is declared here, a long way from the prompter's
+// own section at the foot of this file, because cueCardsFor reads it and the
+// cue section restores the saved arrangement at its end - which runs first.
+// A let still in its temporal dead zone throws there, inside the try that
+// guards localStorage, which swallows it whole: the same trap the mode
+// restore was moved down for, seen from the other side.
+const souffleuseCues = new Map();
+
 // ── cue cards ───────────────────────────────────────────────────────
 // The notes of the active chunk as cards in a column, the projection small
 // in the corner (speaker.md §4.1, PLAN-cue-cards.md). Everything here is
@@ -15201,6 +15249,399 @@ figureOverlay.addEventListener('pointerleave', () => {
 // null and we run on our localStorage state.
 setPeer(window.opener);
 sendToPeer({ type: 'hello', source: 'speaker' });
+
+// ── the live prompter (--souffleuse) ────────────────────────────────
+// The cockpit's half of PLAN-souffleuse.md: an ear, a switch, and one way
+// back to the sidecar over the watch socket that is already here. Nothing
+// of it exists in an ordinary build - renderSpeaker emits SOUFFLEUSE as
+// null and none of the chrome, and a cockpit built without --watch has no
+// window.psiWatch to speak to, which is why --souffleuse refuses to run
+// without --watch in the first place.
+//
+// The projection never learns any of this. Not one field of snapshot()
+// moves, every message is its own type on the socket, and the room sees
+// exactly what it saw before the flag existed.
+if (SOUFFLEUSE && window.psiWatch) {
+  const souffWatch = window.psiWatch;
+  const souffBtn = document.getElementById('souffleuse-btn');
+  const souffBadgeEl = document.getElementById('souffleuse-badge');
+  // sessionStorage, never local: a microphone is an act of consent and the
+  // button is where it is given, so the answer lasts as long as this tab
+  // and no longer. A rebuild reloads the page on every save, and a
+  // rehearsal should not have to press the switch again for each of them.
+  const SOUFF_ON_KEY = 'psi-slides:souffleuse';
+
+  // ── the speech-to-text adapter ─────────────────────────────────────
+  // One interface, so a whisper.cpp in Node (the cwebp-on-PATH pattern) or
+  // a hosted recogniser can take this place without the socket protocol
+  // changing a word:
+  //
+  //   {name, available(lang), start(lang, {onFinal, onInterim, onState}),
+  //    stop()}
+  //
+  // available resolves {ok, local, why}; onFinal takes {text, t0, t1} in
+  // seconds of the cockpit's own clock.
+  function webSpeechAdapter() {
+    const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+    let rec = null;
+    let cbs = null;
+    let want = false;
+    let local = false;
+    let needDownload = false;
+    // The clock at the end of the last final segment. The API gives a
+    // result no start time, and the gap since the previous sentence ended
+    // is exactly the speaking this one took - which is the number the
+    // sidecar's cadence is counted in.
+    let mark = 0;
+    let restarts = [];
+
+    function open(lang) {
+      rec = new SR();
+      rec.continuous = true;
+      rec.interimResults = true;
+      rec.lang = lang;
+      if (local) { try { rec.processLocally = true; } catch (e) { /* older Chrome */ } }
+      rec.addEventListener('result', (ev) => {
+        let interim = '';
+        for (let i = ev.resultIndex; i < ev.results.length; i++) {
+          const r = ev.results[i];
+          const text = ((r[0] && r[0].transcript) || '').trim();
+          if (r.isFinal) {
+            const t1 = souffClock();
+            const t0 = Math.min(mark, t1);
+            mark = t1;
+            if (text) cbs.onFinal({ text, t0, t1 });
+          } else if (text) {
+            interim += (interim ? ' ' : '') + text;
+          }
+        }
+        if (interim) cbs.onInterim(interim);
+      });
+      rec.addEventListener('error', (ev) => {
+        const err = (ev && ev.error) || '';
+        // Silence and a deliberate abort are the ordinary course of a talk,
+        // not failures: Chrome ends an utterance whenever the room goes
+        // quiet, and end below starts the next one.
+        if (err === 'no-speech' || err === 'aborted') return;
+        if (err === 'not-allowed' || err === 'service-not-allowed') { want = false; cbs.onState('denied'); return; }
+        if (err === 'audio-capture') { want = false; cbs.onState('no-mic'); return; }
+        if (err === 'network') { cbs.onState('network'); return; }
+        cbs.onState('error');
+      });
+      rec.addEventListener('end', () => {
+        rec = null;
+        if (!want) return;
+        const now = Date.now();
+        restarts = restarts.filter(t => now - t < 60000);
+        // Ending is normal; ending six times in a minute is not pausing,
+        // it is refusing, and restarting it for the rest of the talk would
+        // hold the microphone light on for nothing.
+        if (restarts.length >= 6) { want = false; cbs.onState('stalled'); return; }
+        restarts.push(now);
+        // A beat before the next one: a restart in the same tick of an
+        // immediate end is a loop, not a recogniser.
+        setTimeout(() => { if (want && !rec) open(lang); }, 250);
+      });
+      try { rec.start(); } catch (e) { cbs.onState('error'); }
+    }
+
+    return {
+      name: 'web-speech',
+      needsDownload: () => needDownload,
+      async available(lang) {
+        if (!SR) return { ok: false, local: false, why: 'no speech recognition in this browser' };
+        needDownload = false;
+        // Chrome's on-device path. available() is young and, on macOS, the
+        // subject of an open Chromium bug - so anything that is not a plain
+        // "available" falls back to the server recogniser rather than being
+        // argued with, and the badge says which one the room is getting.
+        try {
+          if (typeof SR.available === 'function') {
+            const st = await SR.available({ langs: [lang], processLocally: true });
+            if (st === 'available') return { ok: true, local: true, why: '' };
+            if (st === 'downloadable') needDownload = true;
+          }
+        } catch (e) { /* unavailable, and the fallback is the answer */ }
+        return { ok: true, local: false, why: 'server speech recognition' };
+      },
+      // Only ever from inside a click: the download wants a user gesture,
+      // and the recogniser that carries the talk in the meantime is the
+      // server one, with the badge up.
+      download(lang) {
+        if (!SR || typeof SR.install !== 'function') return;
+        try { SR.install({ langs: [lang], processLocally: true }); } catch (e) { /* not fatal */ }
+      },
+      start(lang, handlers, onDevice) {
+        cbs = handlers;
+        want = true;
+        local = !!onDevice;
+        mark = souffClock();
+        restarts = [];
+        open(lang);
+      },
+      stop() {
+        want = false;
+        if (rec) { try { rec.abort(); } catch (e) { /* already gone */ } }
+        rec = null;
+      },
+    };
+  }
+
+  // ── the switch, and what it feeds ──────────────────────────────────
+  const souffStt = webSpeechAdapter();
+  let souffOn = false;
+  let souffState = 'off';
+  let souffLocal = false;
+  let souffLastSent = { idx: -1, beat: -1 };
+
+  // The cockpit's clock, unrounded. renderTimer floors the same number for
+  // the digits; four fifths of a second of speech is not zero seconds of
+  // speech, and the cadence is counted in those.
+  function souffClock() { return Math.round((Date.now() - tStart) / 10) / 100; }
+
+  // The badge is for degraded states only, and two things have to remember
+  // which - a status arrives every tick, and the first version of this
+  // wiped the reason one message after it was given: a refused key put
+  // "off - no OPENROUTER_API_KEY" up, and the idle that followed the
+  // cockpit's own switch-off took it down again, which is exactly the
+  // moment a lecturer needs to read it. So the ear keeps its reason and the
+  // sidecar keeps its own, and the badge is painted from them rather than
+  // written to directly.
+  let souffEarWhy = null;    // the recogniser: denied, no microphone, stalled
+  let souffSideWhy = null;   // the sidecar: no key, unreachable, five failures
+  function souffSetBadge(msg) {
+    if (!souffBadgeEl) return;
+    if (!msg) { souffBadgeEl.hidden = true; souffBadgeEl.innerHTML = ''; return; }
+    souffBadgeEl.innerHTML = 'PROMPTER<span> &middot; ' + escText(msg) + '</span>';
+    souffBadgeEl.hidden = false;
+  }
+  // A recogniser running through Google rather than on this machine is a
+  // fact about the whole session and the quietest of the degraded states,
+  // so it is what is left when nothing louder stands.
+  function souffPaintBadge() {
+    souffSetBadge(souffEarWhy || souffSideWhy
+      || ((souffOn && !souffLocal) ? 'server speech recognition' : null));
+  }
+  function souffPaint() {
+    if (!souffBtn) return;
+    const st = souffOn ? souffState : 'off';
+    souffBtn.setAttribute('aria-pressed', souffOn ? 'true' : 'false');
+    souffBtn.dataset.state = st;
+    const dot = souffBtn.querySelector('.souffleuse-dot');
+    if (dot) dot.textContent = st === 'off' ? '\u25cc' : '\u25cf';
+  }
+
+  // Where the talk stands, in the three numbers the sidecar files everything
+  // under. The beat is the consumed count - how many presses this slide has
+  // taken - which is what a cue card is filed under, what an overlay's
+  // from N counts, and what deckPayload numbered the beats by. Read from
+  // anywhere else, the two halves come to disagree about which beat a
+  // sentence was said on.
+  function souffWhere() {
+    const entry = flatChunks[state.activeIdx];
+    if (!entry) return null;
+    const { consumed } = cuePosition(entry);
+    return { chunkId: entry.id || null, idx: state.activeIdx, beat: consumed };
+  }
+
+  function souffRemember(on) {
+    try {
+      if (on) sessionStorage.setItem(SOUFF_ON_KEY, 'on');
+      else sessionStorage.removeItem(SOUFF_ON_KEY);
+    } catch (e) { /* a private window is allowed to refuse */ }
+  }
+
+  function souffHello() {
+    return souffWatch.ask('souffleuse-hello', {
+      lang: SOUFFLEUSE.lang,
+      stt: { engine: souffStt.name, local: souffLocal },
+    });
+  }
+
+  async function souffStart(fromGesture) {
+    if (souffOn) return;
+    let av;
+    try { av = await souffStt.available(SOUFFLEUSE.lang); }
+    catch (e) { av = { ok: false, why: 'speech recognition would not start' }; }
+    if (!av.ok) { souffEarWhy = av.why; souffPaintBadge(); souffPaint(); return; }
+    if (fromGesture && souffStt.needsDownload()) souffStt.download(SOUFFLEUSE.lang);
+    souffLocal = !!av.local;
+    souffEarWhy = null;
+    const hi = await souffHello();
+    if (!hi || !hi.ok) {
+      souffSideWhy = 'off \u2013 ' + ((hi && hi.why) || 'the watch server is gone');
+      souffPaintBadge();
+      souffPaint();
+      return;
+    }
+    if (!hi.enabled) {
+      souffSideWhy = 'off \u2013 ' + (hi.why || 'the prompter is not running');
+      // A hello counts as switched on inside the sidecar. Say plainly that
+      // it is not, so its log and this window agree about a talk nobody is
+      // listening to.
+      souffWatch.ask('souffleuse-toggle', { on: false });
+      souffPaintBadge();
+      souffPaint();
+      return;
+    }
+    souffSideWhy = null;
+    souffOn = true;
+    souffState = 'listening';
+    try {
+      souffStt.start(SOUFFLEUSE.lang, {
+        onFinal: souffHeard, onInterim: souffInterim, onState: souffSttState,
+      }, souffLocal);
+    } catch (e) {
+      souffOn = false;
+      souffEarWhy = 'speech recognition would not start';
+      souffPaintBadge();
+      souffPaint();
+      return;
+    }
+    souffPaintBadge();
+    souffWatch.ask('souffleuse-toggle', { on: true });
+    souffRemember(true);
+    souffLastSent = { idx: -1, beat: -1 };
+    souffMoved();
+    souffPaint();
+    flashMode('prompter listening \u00b7 ' + (souffLocal ? 'on-device' : 'server recognition'));
+  }
+
+  // The quiet flag is for the one case the sidecar asked for this itself:
+  // telling it again would be an answer to its own message.
+  function souffStop(quiet) {
+    const was = souffOn;
+    souffOn = false;
+    souffState = 'off';
+    try { souffStt.stop(); } catch (e) { /* never started */ }
+    souffRemember(false);
+    if (was && !quiet) souffWatch.ask('souffleuse-toggle', { on: false });
+    souffPaintBadge();
+    souffPaint();
+    if (was && !quiet) flashMode('prompter off');
+  }
+
+  function souffToggle() {
+    if (souffOn) { souffEarWhy = null; souffStop(false); }
+    else souffStart(true);
+  }
+  viewHooks.onShiftS = () => { souffToggle(); return true; };
+  if (souffBtn) souffBtn.addEventListener('click', () => souffToggle());
+
+  function souffHeard(seg) {
+    if (!souffOn) return;
+    const w = souffWhere();
+    souffWatch.ask('souffleuse-say', {
+      text: seg.text, t0: seg.t0, t1: seg.t1,
+      chunkId: w ? w.chunkId : null,
+      idx: w ? w.idx : 0,
+      beat: w ? w.beat : 0,
+    });
+    // A segment carries the cursor too, so the move below has nothing left
+    // to say about this position.
+    if (w) souffLastSent = { idx: w.idx, beat: w.beat };
+  }
+
+  // The interim line is built in the next slice. The adapter reports
+  // interims all the same: what decides whether they are shown is not the
+  // ear.
+  function souffInterim() {}
+
+  function souffSttState(st) {
+    // The first three are the microphone saying it will not work at all, so
+    // the switch goes with them: a listening light over a dead ear is worse
+    // than no light. The other two are conditions that pass, and the ear
+    // restarts itself underneath them.
+    if (st === 'denied') { souffEarWhy = 'microphone denied \u2013 allow it in the address bar'; souffStop(false); }
+    else if (st === 'no-mic') { souffEarWhy = 'no microphone'; souffStop(false); }
+    else if (st === 'stalled') { souffEarWhy = 'recognition keeps stopping'; souffStop(false); }
+    else if (st === 'network') { souffEarWhy = 'speech recognition lost the network'; souffPaintBadge(); }
+    else if (st === 'error') { souffEarWhy = 'speech recognition stopped with an error'; souffPaintBadge(); }
+  }
+
+  // Chained, never replaced: the cue cards already own both of these, and
+  // the cursor they keep is what the beat below is read from.
+  const souffPrevActive = viewHooks.onActiveChange;
+  const souffPrevState = viewHooks.onStateChange;
+  viewHooks.onActiveChange = () => { souffPrevActive(); souffMoved(); };
+  viewHooks.onStateChange = () => { souffPrevState(); souffMoved(); };
+  function souffMoved() {
+    if (!souffOn) return;
+    const w = souffWhere();
+    if (!w) return;
+    if (w.idx === souffLastSent.idx && w.beat === souffLastSent.beat) return;
+    souffLastSent = { idx: w.idx, beat: w.beat };
+    souffWatch.ask('souffleuse-move', {
+      chunkId: w.chunkId, idx: w.idx, beat: w.beat, elapsed: souffClock(),
+    });
+  }
+
+  // ── what the sidecar says back ─────────────────────────────────────
+  souffWatch.on('souffleuse-status', (m) => {
+    const st = String((m && m.state) || '');
+    // off is the sidecar saying it cannot work at all, and idle is the
+    // prompter having been switched off - the first takes the switch with
+    // it and keeps its reason on the badge, the second is what our own
+    // switch-off sounds like coming back.
+    if (st === 'off') {
+      souffSideWhy = 'off \u2013 ' + ((m && m.why) || 'the prompter stopped');
+      souffStop(true);
+      return;
+    }
+    if (st === 'error') {
+      souffState = 'error';
+      souffSideWhy = (m && m.why) || 'the prompter hit an error';
+      souffPaintBadge();
+      souffPaint();
+      return;
+    }
+    if (st === 'listening' || st === 'thinking') { souffState = st; souffSideWhy = null; }
+    else if (st === 'idle') souffState = 'off';
+    souffPaintBadge();
+    souffPaint();
+  });
+
+  souffWatch.on('souffleuse-hint', (m) => {
+    const high = m.severity === 'high';
+    const ms = high ? 25000 : 15000;
+    // The strip is the next slice. Until it stands, the centre toast is the
+    // only thing in this window that shows a sentence for long enough to
+    // read it - and it cannot be dismissed, so the only way one goes away
+    // is by fading, which is what the sidecar is told.
+    flashCenter(String(m.text || ''), { warn: high, duration: ms });
+    setTimeout(() => souffWatch.ask('souffleuse-dismiss', { hintId: m.hintId, how: 'fade' }), ms);
+  });
+
+  souffWatch.on('souffleuse-cue', (m) => {
+    if (!SOUFFLEUSE.cues) return;
+    const id = String((m && m.chunkId) || '');
+    if (!id) return;
+    const list = souffleuseCues.get(id) || [];
+    if (list.some(c => c.cueId === m.cueId)) return;
+    list.push({ cueId: m.cueId, text: String(m.text || '') });
+    souffleuseCues.set(id, list);
+  });
+
+  // The socket reconnects itself; a session does not. After a reconnect the
+  // sidecar has no cockpit to whisper to until one says hello, and its idea
+  // of the clock is re-stamped from ours when one does.
+  souffWatch.onConnect(() => { if (souffOn) souffHello(); });
+
+  // Switched on, and then the page reloaded - which a rebuild does on every
+  // save. The permission is still granted for this tab, so recognition
+  // starts again; if the browser refuses it without a gesture, the badge
+  // says so and the switch stays off.
+  let souffWanted = false;
+  try { souffWanted = sessionStorage.getItem(SOUFF_ON_KEY) === 'on'; } catch (e) {}
+  if (souffWanted) {
+    const waitForSocket = (left) => {
+      if (souffWatch.ready()) { souffStart(false); return; }
+      if (left > 0) setTimeout(() => waitForSocket(left - 1), 200);
+    };
+    setTimeout(() => waitForSocket(25), 200);
+  }
+  souffPaint();
+}
 
 </script>
 <style>

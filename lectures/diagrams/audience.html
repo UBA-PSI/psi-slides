@@ -8867,6 +8867,11 @@ const viewHooks = {
   consumeBack: () => false,
   onEnter: () => false,
   onK: () => {},
+  // Shift-S in the cockpit. A hook rather than a case in the map for the
+  // reason onK is one: the letter belongs to the audience, where it opens
+  // the cockpit, and the cockpit's own meaning for it lives with the code
+  // that implements it.
+  onShiftS: () => false,
 };
 
 const stage = document.getElementById('stage');
@@ -12176,6 +12181,13 @@ document.addEventListener('keydown', (e) => {
       }
       e.preventDefault(); break;
     case 's': case 'S':
+      // Shift-S in the cockpit switches the live prompter on and off. A bare
+      // letter would fire in the middle of a sentence, and S itself already
+      // means "open the cockpit" one window over.
+      if (VIEW === 'speaker' && e.shiftKey) {
+        if (viewHooks.onShiftS()) e.preventDefault();
+        break;
+      }
       // Only in audience: open the speaker window and remember it as our peer.
       if (VIEW === 'audience') {
         const w = window.open('speaker.html', 'psi-slides-speaker', 'width=1400,height=900');
