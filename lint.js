@@ -3219,19 +3219,37 @@ function lintFile(filePath) {
           '--- inside ::: dock {.every} – an inherited dock is on every slide of the part, and a beat is one slide\'s; write *** for a rule, or drop .every');
       continue;
     }
-    const revMark = chunk && (!activeDirective || activeDirective.kind === 'overlay' || activeDirective.kind === 'dock')
+    // Read on every line the build reads one on, which includes a divider's
+    // body (no chunk open) and the inside of a ::: script - the build refuses
+    // a malformed marker at all of them, and a linter that is quiet where the
+    // build refuses lets a deck through the pre-commit gate and break later.
+    const revMark = (!activeDirective || activeDirective.kind === 'overlay' || activeDirective.kind === 'dock')
       ? parseRevealMark(line) : null;
     if (revMark) {
-      // At the top level the build splits the body into segments here;
-      // below it - in a pane, a card row, an overlay card - the same line is
-      // a beat marker the runtime honours in source order. Either way it is
-      // one beat on the chunk's counter, which is all this file needs.
-      // Inside ::: script it stays a rule, as in the build.
-      if (layoutStack.some(l => l.kind === 'script')) continue;
+      // A malformed marker is refused wherever it stands, before any question
+      // about what this one would have meant here.
       if (revMark.problems.length) {
         add(ln, 'error', revMark.problems[0].code, revMark.problems[0].msg.split('\n')[0].trim());
         continue;
       }
+      // Inside ::: script the line stays a rule, as in the build - so a
+      // number on it is a pin the drawing never takes, which is the silent
+      // no-op this format refuses everywhere else.
+      if (layoutStack.some(l => l.kind === 'script')) {
+        if (revMark.from != null) {
+          add(ln, 'error', 'bad-reveal-from',
+              `--- from ${revMark.from} inside ::: script – the block is narration and is off the `
+              + 'projection, so the line stays a rule there and the number would do nothing; write --- on its own');
+        }
+        continue;
+      }
+      // A divider's body walks the same counter, but none of the per-chunk
+      // tallies below belong to it.
+      if (!chunk) continue;
+      // At the top level the build splits the body into segments here;
+      // below it - in a pane, a card row, an overlay card - the same line is
+      // a beat marker the runtime honours in source order. Either way it is
+      // one beat on the chunk's counter, which is all this file needs.
       // A container already held to a beat numbers its own markers, so a
       // written one is two answers to one question. Mirrors the build.
       if (revMark.from != null && activeDirective && activeDirective.from != null) {

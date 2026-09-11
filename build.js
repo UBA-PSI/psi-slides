@@ -3952,6 +3952,14 @@ function parseLecture(src) {
           // default collapse, and a beat there is a Space that shows nothing.
           // Written back as ***, the other spelling of a rule, because
           // flushChunk would otherwise split the segment on the --- itself.
+          // Inside ::: script the line is written back as a rule, so a number
+          // on it is a pin nothing takes - refused rather than dropped.
+          if (nestedMark.from != null && inLayout('script')) {
+            refuse(
+              `--- from ${nestedMark.from} inside ::: script (${chunkRef()}).\n` +
+              '  The block is narration and is off the projection, so the line stays a\n' +
+              '  rule there and the number would do nothing. Write --- on its own.');
+          }
           const host = currentDock || currentOverlay;
           if (nestedMark.from != null && host && host.from != null) {
             refuse(
@@ -11333,7 +11341,12 @@ const FOCUSABLE_SEL = 'figure.figure-img, figure.figure-diagram, .chunk-body pre
 // Everything that is held to a beat by from N. One string, or the three
 // walks below (chunkBeats, countSegments, applyReveal) disagree about what
 // arrives when. A dock with from is, for the counter, an overlay card.
-const FROM_SEL = '.overlay-card[data-from], .dock[data-from]';
+// Everything held to a beat by a written from-number. A reveal segment joins
+// the two containers because a marker inside a pinned segment has to count
+// from the segment's own beat: numbered positionally it un-hid on beat 1
+// inside a segment that does not arrive until beat 3, and then both halves
+// appeared together on 3, losing the stagger the author wrote.
+const FROM_SEL = '.overlay-card[data-from], .dock[data-from], .reveal-segment[data-from]';
 
 // ── Slide-size sync ─────────────────────────────────────────────────
 // --slide-w / --slide-h hold the AUDIENCE window's pixel dimensions so
@@ -15680,8 +15693,8 @@ body[data-view=speaker] .figure-video video { cursor: pointer; }
    next one: the segments behind it stay hidden, or the preview would
    just be the un-collapsed chunk with extra decoration.
 
-   The audience is untouched – [data-hidden] keeps its display:none there,
-   and this override is scoped to the speaker. */
+   The audience shows the box but not the words; this override is scoped to
+   the speaker and turns the words back on. */
 body[data-view=speaker] .reveal-segment[data-hidden][data-next] {
   /* In the flow at half strength, which is the nested beat's ghost. It was
      position: absolute so the cockpit's chunk stayed the height of the
@@ -15693,6 +15706,12 @@ body[data-view=speaker] .reveal-segment[data-hidden][data-next] {
      the other direction. */
   visibility: visible;
   opacity: 0.5;
+  /* The hatch and the "next" label below are position: absolute; inset: -5px,
+     so they need a positioned box to resolve against. Without it they reach
+     .chunk-content and stripe the whole slide - measured, a 28px segment's
+     hatch over a 263px chunk. The nested beat's ghost carries this for the
+     same reason. */
+  position: relative;
   outline: 2px dashed var(--emph);
   outline-offset: 7px;
 }
@@ -16990,7 +17009,10 @@ cueBtn.addEventListener('click', toggleCueMode);
 function cueCardsFor(id, beats, maxC) {
   const by = new Map();
   const segAt = [0];
-  beats.forEach(b => { if (b.type === 'seg') segAt.push(b.pos + 1); });
+  // at ?? pos + 1: a pinned segment has no positional index, and pos + 1 on
+  // undefined is NaN - which is not nullish, so the ?? below did not catch
+  // it and the cards went into the Map under a key nothing reads back.
+  beats.forEach(b => { if (b.type === 'seg') segAt.push(b.at ?? b.pos + 1); });
   const put = (c, cards) => {
     const k = Math.max(0, Math.min(maxC, c));
     if (!by.has(k)) by.set(k, []);
@@ -17048,7 +17070,10 @@ function cueEntries(entry) {
   let segN = 0;
   for (let c = 0; c <= maxC; c++) {
     (cards.get(c) || []).forEach((card, k) => out.push({ type: 'card', c, k, card }));
-    const b = beats.find(x => x.pos === c);
+    // A pinned beat is found by its number, an unpinned one by its position.
+    // Matching pos alone dropped a pinned segment through to the nameless
+    // "advance" branch, which was written for an overlay with no text.
+    const b = beats.find(x => (x.at != null ? x.at : x.pos) === c);
     if (b && b.type === 'seg') {
       out.push({ type: 'step', at: c + 1, k: 'reveal ' + (++segN) + '/' + segTotal, what: cueText(b.el, 120) });
     } else if (b && b.type === 'diag') {
