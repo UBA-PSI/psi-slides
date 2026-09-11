@@ -4800,10 +4800,13 @@ function boldLookCss(attr, dflt, W) {
 }
 
 const STYLE_SPEC = {
-  // Where a heading sits. `auto` keeps the per-tag treatment (a question
-  // is centred, a figure's caption is centred over its artwork); `left`
-  // overrides all of it, which is what an author who wants one axis of
-  // alignment through the whole deck is asking for.
+  // Where a heading sits. `auto` keeps the per-tag treatment (a figure's
+  // caption is centred over its artwork); `left` overrides it, and `center`
+  // puts every heading on a centre axis, which is what an author who wants one
+  // axis of alignment through the whole deck is asking for.
+  // A question used to be centred under `auto` and is not any more: it centred
+  // the heading and not the paragraph under it, so the slide carried two axes.
+  // The stylesheet says why beside `.chunk[data-tag=question]`.
   // `off` sits in this key rather than in one of its own, and the two
   // readings are one question: what does the projection do with a chunk's
   // heading. left / center are where it goes, off is that it does not go
@@ -8077,7 +8080,20 @@ body[data-reveal=hold] .reveal-segment[data-hidden] { display: block; visibility
   margin-bottom: 0.4em;
 }
 
-.chunk[data-tag=question] { text-align: center; }
+/* A question is NOT centred, and it used to be.
+   The tag carried text-align: center - the one tag treatment that set an axis -
+   and what it actually did was centre the heading alone: .chunk-body resets to
+   left a few rules down, so a question with prose under it came out as a
+   centred heading over a left-aligned paragraph, two axes on one slide. The
+   printed document never did this: PRINT_CSS gives .chunk-question an italic
+   heading and no alignment, so the two views disagreed as well.
+   The rule the rest of this stylesheet already follows is in the comment on
+   .chunk[data-center] below: centring reads well for one or two lines and badly
+   for a paragraph, and only the author knows which chunk is which, so it is a
+   class rather than a default. A question is the type most likely to be one
+   line, which is why it carried the default, and still the wrong place for it.
+   Write .center on the chunk, or headings: center in the style block for a deck
+   that wants the axis throughout. */
 .chunk[data-tag=question] .chunk-content { gap: 0.8em; align-items: flex-start; }
 .chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom) * var(--heading-scale)); font-weight: 500; }
 .chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom) * var(--body-scale)); color: var(--ink-soft); }
@@ -8141,7 +8157,6 @@ body[data-reveal=hold] .reveal-segment[data-hidden] { display: block; visibility
    they turn off is a per-tag decision and not a size. Both are written as
    overrides of the tag treatments rather than by changing those rules, so
    a lecture that sets nothing meets the same stylesheet it always did. */
-body[data-headings=left] .chunk[data-tag=question] { text-align: left; }
 body[data-headings=left] .chunk[data-tag=figure] .chunk-content { align-items: flex-start; }
 body[data-headings=left] .chunk[data-tag=figure] .chunk-body { text-align: left; }
 body[data-headings=left] .chunk-heading,
@@ -8178,7 +8193,6 @@ body[data-headings=off] .chunk-heading { display: none; }
    second, stronger way to say the same thing that style.headings: left could
    then no longer override. */
 .chunk[data-center] > .chunk-content > .chunk-body > .reveal-segment > p { text-align: center; }
-body[data-headings=center] .chunk[data-tag=question] { text-align: center; }
 /* The hairline and the thick rule above a definition / principle chunk. */
 body[data-rules=off] .chunk[data-tag=principle] .chunk-content::before,
 body[data-rules=off] .chunk[data-tag=definition] .chunk-content::before { display: none; }

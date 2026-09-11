@@ -79,6 +79,21 @@ from building the same way is a major version.
 
 ### Changed
 
+- **A `question:` chunk is no longer centred on the projection.** It was the
+  one chunk type whose treatment set an alignment axis, and the axis reached
+  half the slide: `.chunk-body` resets to left, so a question with a paragraph
+  under it drew a centred heading over left-aligned prose, and the printed
+  document never centred it at all, so the two views disagreed. The heading now
+  sits where every other type's does. Where the axis is wanted, `{.center}` on
+  the chunk sets its own paragraphs on a centre line, and
+  `style: {headings: center}` sets every heading in the deck – which is the same
+  split the format already makes everywhere else: centring reads well for one
+  or two lines and badly for a paragraph, and only the author knows which chunk
+  is which. A deck that wants exactly the old look writes
+  `style: {headings: center}`. Nothing about the source format changes, and no
+  deck stops building; a question slide with prose on it comes out on one axis
+  instead of two.
+
 - **The `::: draw` opener has no braces: `::: draw 150x56 autoplay 1200 cycle`.**
   It was the one block line whose tail held `key=value` options
   (`{unit=150x56 autoplay=1200 cycle}`) where every other `{…}` in the format

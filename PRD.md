@@ -246,7 +246,7 @@ Because each slide fills the viewport and shares one frame, visual variability l
    - `title`: lecture cover. `title` in `display` size; below it `presenter` in `lg`; below that a multiline `info` block in `sm` soft ink (date, location, course code, URL, any extra line). Left-aligned. Vertically placed so the whole block sits in the lower-left third of the slide – *not* centered. Centered cover slides look institutional and dead; lower-left-third gives asymmetric weight and reads as intentional. Content is pulled from frontmatter; a non-empty chunk body overrides the `info` lines. `closing`: the bookend, drawn in the same composition with its own heading and body and neither the presenter nor the info lines.
    - `principle`: thick rule above, larger body (1.2× zoom), larger heading. Pull-quote feel.
    - `definition`: hairline rule above, math blocks centered, tight body. Academic feel.
-   - `question`: centered, heading huge (2.4× zoom), body small + soft. Pause feel.
+   - `question`: heading huge (2.4× zoom), body small + soft. Pause feel. It was centred until the axis was measured against the rest of the slide: centring reached the heading and not the paragraph under it, so a question with prose came out on two axes. `{.center}` or `style: {headings: center}` where the axis is wanted.
    - `figure`: heading small + smallcaps, ASCII sketch dominates. Diagram feel.
    - `exercise`: `EXERCISE` smallcap label above, italic heading. Task feel.
    - `free`: no special treatment. Narrative prose.
@@ -531,7 +531,7 @@ Discipline: the same as reveal. A diagram earns steps when the *sequence* is the
 
 ### 4.7 Discipline
 
-The 70/30 rule: roughly 70% of chunks use a quiet repeating vocabulary (body prose, standard width, `free` or `definition` types). Roughly 30% take compositional risks (principle with thick rule, question centered large, figure with sketch, full-width chunk). Invert this and risk becomes the baseline; monotony returns through the opposite door. The playground's “anti-pattern” preset – every chunk widened, every type promoted to `principle` – is the concrete visualization of this failure mode.
+The 70/30 rule: roughly 70% of chunks use a quiet repeating vocabulary (body prose, standard width, `free` or `definition` types). Roughly 30% take compositional risks (principle with thick rule, question set large, figure with sketch, full-width chunk). Invert this and risk becomes the baseline; monotony returns through the opposite door. The playground's “anti-pattern” preset – every chunk widened, every type promoted to `principle` – is the concrete visualization of this failure mode.
 
 Density budget per chunk: body text should occupy no more than ~12 line-heights at default zoom, with slide padding ~14%. The linter enforces this.
 
