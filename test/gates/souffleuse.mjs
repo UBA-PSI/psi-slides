@@ -23,7 +23,7 @@ import {
   KINDS, MAX_WORDS, SEVERITIES, TOOL_SCHEMA,
   deckPayload, systemPrefix, prefixHash, tickMessage, parseAnswer,
   driftSeconds, timeHintAllowed, shouldTick, createPolicy, wordCount,
-  cueTargets, flattenMarks,
+  cueTargets, flattenMarks, rebaseClock, START_QUIET_S, CLOCK_JUMP_S,
 } from '../../souffleuse.mjs';
 import { ROOT } from './harness.mjs';
 
@@ -285,6 +285,37 @@ export async function run({ report }) {
   ok(t.reason === 'slide', 'and a coalesced slide outranks a speech occasion behind it', j(t));
   ok(shouldTick({ now: 200, lastTickAt: null, speechSecondsSince: 25, newWordsSince: 8, cadence: 25 }).tick === true,
      'the first call has no last call to wait for');
+  // The cockpit reloaded and its clock started again, so the last tick is
+  // stamped in what is now the future. It used to stop every slide tick for
+  // the rest of the talk: a negative gap is never the eight seconds a slide
+  // occasion wants.
+  t = shouldTick({ now: 3, lastTickAt: 400, slideChanged: true, cadence: 25 });
+  ok(t.tick === true && t.reason === 'slide',
+     'a clock that went backwards is a new clock, not a tick in the future', j(t));
+  ok(shouldTick({ now: 3, lastTickAt: 400, speechSecondsSince: 25, newWordsSince: 8, cadence: 25 }).tick === true,
+     'and the speech occasion behind it is not lost either');
+
+  // ── the clock going backwards ────────────────────────────────────
+  ok(rebaseClock({ prev: 300, next: 299 }) === null && rebaseClock({ prev: 300, next: 300 }) === null,
+     'two messages a second out of order are not a new clock');
+  ok(rebaseClock({ prev: 300, next: 300 - CLOCK_JUMP_S - 1 }) !== null,
+     'a drop past the tolerance is');
+  let rb = rebaseClock({
+    prev: 600, next: 2, onAt: 30, lastTickAt: 580, startQuiet: START_QUIET_S,
+    transcript: [{ text: 'lange her', t0: 10, t1: 14 }, { text: 'eben', t0: 594, t1: 598 }],
+  });
+  ok(rb && Math.round(rb.delta) === -598, 'everything moves by one delta', j(rb && rb.delta));
+  ok(rb && Math.round(2 - rb.onAt) === 570,
+     'a talk already past its quiet minute keeps how long it has been on, so it is not'
+     + ' made to sit through the quiet again', j(rb && rb.onAt));
+  ok(rb && rb.transcript.length === 1 && rb.transcript[0].text === 'eben' && rb.dropped === 1,
+     'what was said before the new zero is dropped, what was said just now is kept', j(rb && rb.transcript));
+  ok(rb && rb.lastTickAt === null,
+     'and a tick from before it is no reference at all', j(rb && rb.lastTickAt));
+  rb = rebaseClock({ prev: 40, next: 1, onAt: 20, lastTickAt: 30, startQuiet: START_QUIET_S });
+  ok(rb && rb.onAt === 1,
+     'inside the quiet the stamp follows the clock, which at worst buys the minute again',
+     j(rb && rb.onAt));
 
   // ── the policy, row by row ───────────────────────────────────────
   const hint = (kind, text, severity = 'low') => ({ action: 'hint', kind, text, severity });
@@ -413,9 +444,10 @@ export async function run({ report }) {
      'and touches no Node API, no clock and no network: the sidecar owns all three');
   const exported = [...src.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
   ok(j(exported.slice().sort()) === j([
-    'KINDS', 'MAX_WORDS', 'SEVERITIES', 'TOOL_SCHEMA', 'createPolicy', 'cueTargets',
-    'deckPayload', 'driftSeconds', 'flattenMarks', 'parseAnswer', 'prefixHash',
-    'shouldTick', 'systemPrefix', 'tickMessage', 'timeHintAllowed', 'wordCount',
+    'CLOCK_JUMP_S', 'KINDS', 'MAX_WORDS', 'SEVERITIES', 'START_QUIET_S', 'TOOL_SCHEMA',
+    'createPolicy', 'cueTargets', 'deckPayload', 'driftSeconds', 'flattenMarks',
+    'parseAnswer', 'prefixHash', 'rebaseClock', 'shouldTick', 'systemPrefix',
+    'tickMessage', 'timeHintAllowed', 'wordCount',
   ]), 'the module exports exactly the names the sidecar reads', j(exported));
   ok(!/—/.test(src), 'en-dashes only, as in every other file here');
   ok(TOOL_SCHEMA.type === 'function' && TOOL_SCHEMA.function.name === 'advise'

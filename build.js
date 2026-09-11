@@ -18131,6 +18131,18 @@ if (SOUFFLEUSE && window.psiWatch) {
   // the session the microphone does not.
   const SOUFF_HEARD_KEY = 'psi-slides:souffleuse-heard';
   const SOUFF_CUES_KEY = 'psi-slides:souffleuse-cues';
+  // The clock's origin, kept beside the consent and only while the prompter is
+  // on. tStart is the page load, and --watch reloads the page on every save:
+  // the clock used to restart in the middle of a rehearsal, which the sidecar
+  // believed - the drift went wildly negative, a negative gap since the last
+  // tick stopped every slide tick for the rest of the talk, and the opening
+  // quiet minute was stamped again on each save. Only while the prompter is
+  // on, because that is the one case where a restarted clock is wrong rather
+  // than merely new: a cockpit opened while the room fills is meant to start
+  // at 0:00, and the clock button is still the way to say so. sessionStorage,
+  // like the consent it sits beside - the clock of this talk in this tab.
+  const SOUFF_CLOCK_KEY = 'psi-slides:souffleuse-clock';
+  const souffClockBtn = document.getElementById('clock');
   let souffShowHeard = false;
   // The frontmatter is a ceiling, not a default: a deck whose souffleuse
   // block switched cues off does not get cards because a preference in this
@@ -18140,6 +18152,18 @@ if (SOUFFLEUSE && window.psiWatch) {
     souffShowHeard = localStorage.getItem(SOUFF_HEARD_KEY) === 'on';
     const saved = localStorage.getItem(SOUFF_CUES_KEY);
     if (saved !== null) souffCuesOn = saved === 'on' && !!SOUFFLEUSE.cues;
+  } catch (e) { /* a private window is allowed to refuse */ }
+  // The clock of a talk that was already running when this page was replaced.
+  // Refused if it is in the future or more than twelve hours old, which is the
+  // same ceiling talkDuration has: a stale key from yesterday's rehearsal
+  // would put the talk hours behind before a word was said.
+  try {
+    const kept = Number(sessionStorage.getItem(SOUFF_CLOCK_KEY));
+    if (sessionStorage.getItem(SOUFF_ON_KEY) === 'on' && isFinite(kept) && kept > 0
+        && kept <= Date.now() && Date.now() - kept < 12 * 3600 * 1000) {
+      tStart = kept;
+      renderTimer();
+    }
   } catch (e) { /* a private window is allowed to refuse */ }
 
   // ── the speech-to-text adapter ─────────────────────────────────────
@@ -18326,9 +18350,20 @@ if (SOUFFLEUSE && window.psiWatch) {
 
   function souffRemember(on) {
     try {
-      if (on) sessionStorage.setItem(SOUFF_ON_KEY, 'on');
-      else sessionStorage.removeItem(SOUFF_ON_KEY);
+      if (on) {
+        sessionStorage.setItem(SOUFF_ON_KEY, 'on');
+        sessionStorage.setItem(SOUFF_CLOCK_KEY, String(tStart));
+      } else {
+        sessionStorage.removeItem(SOUFF_ON_KEY);
+        sessionStorage.removeItem(SOUFF_CLOCK_KEY);
+      }
     } catch (e) { /* a private window is allowed to refuse */ }
+  }
+  // The clock button restarts the talk, and while the prompter is on that new
+  // origin is the one a reload has to come back to. This listener is added
+  // after the cockpit's own, so tStart is already the new one when it runs.
+  if (souffClockBtn) {
+    souffClockBtn.addEventListener('click', () => { if (souffOn) souffRemember(true); });
   }
 
   function souffHello() {
@@ -19311,6 +19346,7 @@ async function createSouffleuse({
   let on = false;             // the switch in the cockpit
   let onAtElapsed = 0;        // and when it was thrown, on the cockpit's clock
   const cursor = { chunkId: null, idx: 0, beat: 0, elapsed: 0, wallAt: Date.now() };
+  let warnedIdx = false;      // the out-of-range warning is said once, not per press
   const transcript = [];
   const hints = [];           // what went to the strip, newest last
   const cues = [];
@@ -19407,6 +19443,17 @@ async function createSouffleuse({
       // already been whispered, and a save in the middle of a talk must not
       // hand the speaker the same hint a second time.
       if (!policy) policy = souff.createPolicy({ cooldown });
+      // Cards laid into slides that this build no longer has. The cockpit
+      // reloads and replays what the hello hands it, so a card for a deleted
+      // slide would be replayed for ever into a rail that cannot show it –
+      // and the slide it locked against a second card is gone too.
+      const live = new Set(deck.chunks.map(c => c.id));
+      for (let i = cues.length - 1; i >= 0; i--) {
+        if (!live.has(cues[i].chunkId)) {
+          const [gone] = cues.splice(i, 1);
+          logLine('cue-dropped', { cueId: gone.cueId, chunkId: gone.chunkId, text: gone.text });
+        }
+      }
       if (fresh) {
         logSession('build');
         const kb = Math.round(prefix.text.length / 1024);
@@ -19435,6 +19482,22 @@ async function createSouffleuse({
     let idx = cursor.idx;
     if (msg.idx != null && isFinite(Number(msg.idx))) {
       idx = Math.max(0, Math.round(Number(msg.idx)));
+      // Clamped to the deck this sidecar holds. A cockpit from a build ago is
+      // refused by the nonce, but a rebuild that *shortens* the deck arrives
+      // here before the reload does, and an idx past the end made
+      // `deck.chunks[idx]` undefined: the chunk id fell back to the sent one,
+      // `cueTargets` was empty, and `driftSeconds` measured against a mark
+      // list that has nothing at that index – a drift with no meaning, silently.
+      const last = deck && deck.chunks.length ? deck.chunks.length - 1 : 0;
+      if (idx > last) {
+        logLine('warn', { why: 'slide index past the end of the deck', sent: idx, clamped: last });
+        if (!warnedIdx) {
+          warnedIdx = true;
+          log(`[souffleuse] the cockpit is on slide ${idx + 1} and this deck has `
+            + `${last + 1} – reading it as the last one. Reload the cockpit.`);
+        }
+        idx = last;
+      }
     }
     const changed = idx !== cursor.idx;
     cursor.idx = idx;
@@ -19444,7 +19507,30 @@ async function createSouffleuse({
     cursor.chunkId = (deck && deck.chunks[idx] && deck.chunks[idx].id)
       || (msg.chunkId == null ? cursor.chunkId : String(msg.chunkId));
     if (elapsed != null && isFinite(Number(elapsed))) {
-      cursor.elapsed = Math.max(0, Number(elapsed));
+      const next = Math.max(0, Number(elapsed));
+      // The cockpit's clock went backwards: its page reloaded, which a --watch
+      // rebuild does on every save, and the timer started again at zero. Every
+      // number here is stamped on the old clock, so they are all moved onto the
+      // new one at once - see `rebaseClock`. The cockpit persists its origin
+      // while the prompter is on, so this is the second line of defence rather
+      // than the first, and it holds whatever page the sidecar is talking to.
+      const jump = souff.rebaseClock({
+        prev: nowElapsed(), next, onAt: onAtElapsed, lastTickAt, transcript,
+        startQuiet: souff.START_QUIET_S,
+      });
+      if (jump) {
+        onAtElapsed = jump.onAt;
+        lastTickAt = jump.lastTickAt;
+        transcript.splice(0, transcript.length, ...jump.transcript);
+        sinceTick = { seconds: 0, words: 0 };
+        if (lastTimeHint) lastTimeHint = { ...lastTimeHint, at: lastTimeHint.at + jump.delta };
+        logLine('clock', {
+          why: 'the cockpit clock restarted', delta: Math.round(jump.delta),
+          was: Math.round(nowElapsed()), now: next,
+          onAt: jump.onAt, dropped: jump.dropped,
+        });
+      }
+      cursor.elapsed = next;
       cursor.wallAt = Date.now();
     }
     if (fromMove && changed) slideChanged = true;
@@ -19505,6 +19591,11 @@ async function createSouffleuse({
     const text = String(msg.text == null ? '' : msg.text).replace(/\s+/g, ' ').trim();
     const t1 = isFinite(Number(msg.t1)) ? Number(msg.t1) : nowElapsed();
     const t0 = isFinite(Number(msg.t0)) ? Number(msg.t0) : t1;
+    // The cursor first, and the segment after it: this segment is stamped on
+    // the clock the message carries, so a rebase inside setCursor must not
+    // move it. Everything already in the transcript is on the old clock and is
+    // exactly what the rebase is for.
+    setCursor(msg, t1, false);
     if (text) {
       transcript.push({ text, t0, t1 });
       if (transcript.length > SOUFFLEUSE_TRANSCRIPT_MAX) {
@@ -19515,7 +19606,6 @@ async function createSouffleuse({
       sinceTick.seconds += Math.max(0, t1 - t0);
       sinceTick.words += souff.wordCount(text);
     }
-    setCursor(msg, t1, false);
     logLine('say', {
       text, t0, t1,
       chunkId: cursor.chunkId, idx: cursor.idx, beat: cursor.beat,
@@ -19577,13 +19667,20 @@ async function createSouffleuse({
 
   function setEnabled(want, who = 'the driver') {
     if (want && !on) {
+      // A sidecar that cannot work does not come on because somebody pressed
+      // the switch. It used to: `on` was set whatever `disabled` said, so the
+      // reply to a toggle after a refused key read `{on: true, enabled:
+      // false}` – a switch reporting itself thrown on a prompter that will
+      // never call anybody – and every `say` after it ran a tick scheduler
+      // whose calls `maybeTick` then dropped on the floor.
+      if (disabled) { status('off', disabled.why); return; }
       on = true;
       // The opening quiet is measured from the press, not from the start of
       // the talk: switching the prompter on in the middle still buys the
       // speaker a minute to find the room.
       onAtElapsed = nowElapsed();
       sinceTick = { seconds: 0, words: 0 };
-      status(disabled ? 'off' : 'listening', disabled ? disabled.why : null);
+      status('listening');
     } else if (!want && on) {
       on = false;
       pendingReason = null;
@@ -19675,6 +19772,18 @@ async function createSouffleuse({
     });
   }
 
+  // What an OpenAI-compatible endpoint says went wrong, as one clause. The
+  // shape is `{error: {message, code}}` on both OpenRouter and OpenAI, and
+  // both halves are worth having: the message says what, the code says whose.
+  function apiErrorText(body) {
+    const e = body && typeof body === 'object' ? body.error : null;
+    if (!e || typeof e !== 'object') return '';
+    const msg = String(e.message == null ? '' : e.message).replace(/\s+/g, ' ').trim();
+    const code = e.code == null ? '' : String(e.code).trim();
+    if (!msg) return code ? 'error code ' + code : '';
+    return code ? `${msg} (code ${code})` : msg;
+  }
+
   async function ask(message, session) {
     const ctrl = new AbortController();
     inflight = ctrl;
@@ -19750,11 +19859,32 @@ async function createSouffleuse({
     if (res.status === 401 || res.status === 403) {
       // A refused key is refused on every retry, so there are none.
       logLine('error', { why: 'auth', status: res.status, body: json, durationMs });
-      disable(`OpenRouter refused the key (HTTP ${res.status})`);
+      // What the speaker can do about it, in the sentence they will read on
+      // the badge: the key is read once, at start, from the environment of the
+      // watcher – so there is nothing to press here and nothing to wait for.
+      const said = apiErrorText(json);
+      disable(`OpenRouter refused the key (HTTP ${res.status}`
+        + `${said ? ' – ' + said : ''}) – restart the watcher with a corrected key`);
       return finish();
     }
     if (!res.ok) {
-      trouble('HTTP ' + res.status, durationMs, json);
+      // The body's own message, not only the number. A mistyped model id is a
+      // 400 whose `error.message` says exactly that, and "HTTP 400" on a badge
+      // sends the author looking at their network.
+      const said = apiErrorText(json);
+      trouble('HTTP ' + res.status + (said ? ' – ' + said : ''), durationMs, json);
+      return finish();
+    }
+    // A 200 can still be a refusal: OpenRouter answers some upstream failures
+    // with `{error: {message, code}}` and no `choices` at all. That used to
+    // reach `parseAnswer`, which found no tool call and no content, and was
+    // logged as `garbage` – so a model out of credits or an unknown id read in
+    // the debrief as the model talking nonsense, five times in a row, and the
+    // one sentence saying what was actually wrong was thrown away.
+    if (json && typeof json === 'object' && json.error
+        && !(Array.isArray(json.choices) && json.choices.length)) {
+      trouble('the model answered with an error – ' + (apiErrorText(json) || 'no message'),
+        durationMs, json);
       return finish();
     }
     errorStreak = 0;

@@ -127,6 +127,15 @@ function fakeOpenRouter() {
     fail(status = 500) {
       queue.push({ status, body: { error: { message: 'fake outage' } } });
     },
+    // A 200 that is a refusal. OpenRouter answers some upstream failures this
+    // way - `{error: {message, code}}` and no `choices` at all - and the
+    // sidecar used to hand that to parseAnswer, which found neither a tool
+    // call nor content and logged `garbage`: the one sentence saying what was
+    // wrong was thrown away, and a model out of credits read in the debrief
+    // like a model talking nonsense.
+    refuse(message, code) {
+      queue.push({ status: 200, body: { error: { message, code } } });
+    },
     listen: () => new Promise((resolve) => server.listen(0, '127.0.0.1',
       () => resolve(server.address().port))),
     close: () => new Promise((resolve) => server.close(resolve)),
@@ -241,7 +250,13 @@ export async function run({ page, report }) {
       severity: 'low', why: 'the last two sentences ran together',
     });
     fake.say({ action: 'nothing', why: 'nothing worth a word' });
-    fake.fail(500); fake.fail(500); fake.fail(500);
+    // The one outage this spec can provoke, and why it is this one: the first
+    // failure sets a thirty-second backoff and `maybeTick` returns early until
+    // it passes, so a second cannot be reached inside a test - which is the
+    // backoff working. The 200-with-an-error is the case that used to be
+    // unreadable in the log; anything past the queue is an HTTP 500.
+    fake.refuse('upstream is out of credits', 402);
+    fake.fail(500); fake.fail(500);
 
     // ── the engine, as a person would start it ──────────────────────
     child = spawn(process.execPath,
@@ -582,15 +597,24 @@ export async function run({ page, report }) {
     // and dropped every `low` hint for the rest of the talk under the reason
     // `standing`, which in the log reads exactly like the policy working.
     // A hello clears the slot, because a fresh page holds no hint.
+    const clockBefore = await page.evaluate(() => elapsedSeconds());
     await page.reload({ waitUntil: 'load' });
     ok(await until(() => page.evaluate(() => document.getElementById('souffleuse-btn')
        .getAttribute('aria-pressed') === 'true'), 12000),
        'the reloaded cockpit picks the microphone back up by itself');
     ok(await until(() => page.evaluate(() => souffleuseCues.has('board')), 5000),
        'and the cards already laid come back with the hello – they live in this window alone');
-    // The clock restarted with the page while the sidecar still measures the
-    // opening quiet from the press, so this is a talk that has been running
-    // long enough for a hint either way.
+    // And it comes back to the same clock. tStart is the page load, so without
+    // the origin kept beside the consent the talk went back to 0:00 on every
+    // save: the drift went wildly negative, the sidecar saw a tick stamped in
+    // its own future and stopped firing slide ticks, and the opening quiet
+    // minute was stamped again each time.
+    const clockAfter = await page.evaluate(() => elapsedSeconds());
+    ok(clockAfter >= clockBefore && clockAfter - clockBefore < 10,
+       'and to the clock the talk was already on, not to 0:00',
+       clockBefore + 's before, ' + clockAfter + 's after');
+    ok(await page.evaluate(() => !!sessionStorage.getItem('psi-slides:souffleuse-clock')),
+       'which is one key beside the consent, for this tab and this talk');
     await page.evaluate(() => window.__stt.final(
        'so that is the whole of the first half, and there is the second one to come', 200));
     const third = await until(() => page.evaluate(() => {
@@ -647,8 +671,18 @@ export async function run({ page, report }) {
       const el = document.getElementById('souffleuse-badge');
       return el && !el.hidden ? el.textContent : null;
     }), 6000);
-    ok(!!badge && /OpenRouter|error|again|HTTP/i.test(badge),
-       'an HTTP 500 puts a badge up that says it will try again', JSON.stringify(badge));
+    ok(!!badge && /upstream is out of credits/.test(badge),
+       'a 200 carrying an error puts the endpoint\'s own sentence on the badge',
+       JSON.stringify(badge));
+    ok(!!badge && /402/.test(badge) && /again/.test(badge),
+       'with the code beside it and the promise to try again', JSON.stringify(badge));
+    const errStatus = await until(() => logLines(dir)
+      .find((l) => l.type === 'status' && l.state === 'error'
+        && /upstream is out of credits/.test(String(l.why || ''))), 5000);
+    ok(!!errStatus, 'and the same sentence in the log, as a status rather than as garbage',
+       JSON.stringify(logLines(dir).filter((l) => l.type === 'status').slice(-2)));
+    ok(!logLines(dir).some((l) => l.type === 'suppressed' && l.reason === 'garbage'),
+       'the answer never reached the policy, so nothing counted it as nonsense');
     ok(dialogs.length === 0, 'and never a dialog', dialogs.join(' | '));
     ok(await page.evaluate(() => document.getElementById('souffleuse-btn').getAttribute('aria-pressed')) === 'true',
        'the switch is still on: one failed call is not a reason to stop listening');

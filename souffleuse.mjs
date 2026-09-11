@@ -49,6 +49,12 @@ export const SEVERITIES = ['low', 'high'];
 // throws the speaker out of their own.
 export const MAX_WORDS = 12;
 
+// The quiet the prompter owes a speaker who has just switched it on, in
+// seconds of the cockpit's clock. Exported because two things need the same
+// number: `createPolicy`, which refuses everything inside it, and the clock
+// rebase below, which has to know whether a talk is already past it.
+export const START_QUIET_S = 60;
+
 // The one forced tool call. The answer's vocabulary IS the tool schema –
 // there is no read tool, because the whole deck is already in the cached
 // system prefix and a round trip would spend the one scarce resource,
@@ -694,6 +700,67 @@ export function timeHintAllowed({ drift, rough, lastTimeHint, elapsed } = {}) {
   return false;
 }
 
+// ── the clock going backwards ────────────────────────────────────────
+
+// How far the cockpit's clock may drop before it is read as a new clock
+// rather than as two messages arriving out of order. A second or two of
+// disorder is ordinary; five is not.
+export const CLOCK_JUMP_S = 5;
+
+/**
+ * The cockpit's clock restarted, and everything the sidecar remembers is
+ * stamped on the old one.
+ *
+ * `tStart` in the cockpit is the page load, and a `--watch` rebuild reloads
+ * the page on every save – so in the middle of a rehearsal the clock can go
+ * back to zero while the talk carries on. The cockpit persists its own origin
+ * now (`psi-slides:souffleuse-clock`), which is the real fix; this is the
+ * sidecar refusing to be fooled by a clock it did not set, whatever page it is
+ * talking to. Without it: the drift went wildly negative, `shouldTick`'s
+ * `since` went negative so no slide tick could fire, and the opening quiet
+ * minute was stamped again on every save.
+ *
+ * Everything is moved by the same delta, so the *relative* ages the rolling
+ * window and the cool-downs are made of survive; anything that would land
+ * before the new zero is dropped, because it is older than the clock is.
+ *
+ * @returns {null|{delta, onAt, lastTickAt, transcript, dropped}} null when the
+ *          clock did not jump, which is every ordinary message.
+ */
+export function rebaseClock({
+  prev, next, onAt, lastTickAt, transcript, startQuiet, tolerance,
+} = {}) {
+  const was = num(prev, 0);
+  const now = num(next, 0);
+  const tol = num(tolerance, CLOCK_JUMP_S);
+  if (!(was - now > tol)) return null;
+  const delta = now - was;              // negative, by more than the tolerance
+  const quiet = num(startQuiet, START_QUIET_S);
+
+  const before = was - num(onAt, 0);
+  // A talk already past its quiet minute stays past it: the clock moved, the
+  // talk did not, and re-quieting a running talk is the failure this rule
+  // exists to prevent. Inside the quiet the stamp simply follows the clock,
+  // which at worst buys the speaker the rest of the minute again.
+  const nextOnAt = before >= quiet ? now - before : now;
+
+  const tick = lastTickAt == null ? null : num(lastTickAt, 0) + delta;
+  const segs = (Array.isArray(transcript) ? transcript : [])
+    .map((s) => Object.assign({}, s, {
+      t0: num(s && s.t0, 0) + delta,
+      t1: num(s && s.t1, 0) + delta,
+    }))
+    .filter((s) => s.t1 >= 0);
+
+  return {
+    delta,
+    onAt: nextOnAt,
+    lastTickAt: tick != null && tick >= 0 ? tick : null,
+    transcript: segs,
+    dropped: (Array.isArray(transcript) ? transcript.length : 0) - segs.length,
+  };
+}
+
 // ── the tick decision ────────────────────────────────────────────────
 
 /**
@@ -716,7 +783,15 @@ export function shouldTick({
 } = {}) {
   const t = num(now, 0);
   const last = lastTickAt == null ? null : num(lastTickAt, 0);
-  const since = last == null ? Infinity : t - last;
+  // A clock that has gone backwards is a *new* clock, not a tick in the
+  // future. The cockpit's timer restarts with the page, and a --watch rebuild
+  // reloads the page on every save, so `now - last` goes negative there – and
+  // a negative `since` is never >= 8, which stopped every slide tick for the
+  // rest of the talk. The sidecar re-anchors on such a jump (`rebaseClock`);
+  // this is the same rule seen from inside, so that neither half depends on
+  // the other having noticed.
+  const raw = last == null ? Infinity : t - last;
+  const since = raw < 0 ? Infinity : raw;
   const cad = num(cadence, 25);
   let reason = null;
   if (slideChanged && since >= 8) reason = 'slide';
@@ -776,7 +851,7 @@ function jaccardOf(a, b) {
 export function createPolicy(opts = {}) {
   const o = opts || {};
   const cooldown = num(o.cooldown, 60);
-  const startQuiet = num(o.startQuiet, 60);
+  const startQuiet = num(o.startQuiet, START_QUIET_S);
   const perKind = Object.assign(
     { time: 240, delivery: 300, example: null, fact: 120 },
     o.perKind || {},
