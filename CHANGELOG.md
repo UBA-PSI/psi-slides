@@ -9,6 +9,20 @@ from building the same way is a major version.
 
 ### Changed
 
+- **The build refuses four things it used to accept and mis-render, so it no
+  longer draws what `lint.js` calls an error.** A `word:` heading prefix that
+  is not one of the ten types (`## principl:`) used to fall through to a
+  literal heading with no `data-tag`, leaving the search index and the speaker
+  lists an untyped chunk; a duplicate `{#id}` (on two chunks, or a chunk and a
+  column) shipped as invalid HTML with the two sharing one reveal/sync/
+  localStorage slot; a `:::` that closes nothing rendered as a literal `:::`
+  paragraph on the slide; and a `::: cards {.photo}` or a scrim with no card
+  carrying a picture, or a `detail:` with no nested level, was a word the
+  drawing ignored. All four now fail the build with a message, congruent with
+  the linter. An intentional `:::` as content still goes in a code fence, and
+  a chunk's `{#id}` is still optional in the build (`--allow-missing-ids`
+  silences the linter's `missing-id` while a talk is being sketched).
+
 - **A reveal reserves its space, everywhere, and `style: {reveal: …}` is
   gone.** A top-level `---` used to close up so the chunk grew a block per
   press, while a `---` inside a pane, a card row or an overlay kept its box –
@@ -24,6 +38,20 @@ from building the same way is a major version.
   stands at that height from the start.
 
 ### Added
+
+- **A photo divider with a readable heading (`section: card`).** Over a
+  `::: backdrop {.clear}` photograph the section-card plate becomes the theme's
+  own paper, so the divider's heading reads on a plate instead of on the bare
+  picture – the one heading that cannot move into an overlay, because the
+  renderer owns it. The `text-on-picture` warning yields to it. Works in all
+  seven themes, light and dark.
+- **`unresolved-asset` and `deprecated-margin`.** An explicit `![](path)` that
+  names no file now renders the visible placeholder rather than shipping a
+  broken external `src`, and warns (`[assets] not found`, mirrored as
+  `unresolved-asset` in the linter) – usually the fix is dropping the extension
+  so the `assets/` shorthand resolves it. And `::: margin`, the old spelling of
+  `::: footnote`, still builds but earns a `deprecated-margin` warning; a future
+  major will drop the alias.
 
 - **`--- from N` pins a beat to an advance by number.** Beats are otherwise
   taken in the order they are written, which is wrong for one shape: two
