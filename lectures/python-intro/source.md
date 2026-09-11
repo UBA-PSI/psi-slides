@@ -40,7 +40,7 @@ the pieces it is made of.
 
 # What we are building {#welcome}
 
-## free: A link-health scanner | under eighty lines, and you will have read all of them {.wide #what-you-will-build}
+## free: A link-health scanner | under eighty lines, and you will have read them {.wide #what-you-will-build}
 
 By the end of the session you will have a **small command-line tool** that
 visits a URL, follows every link it finds on that page, and prints one line
@@ -55,9 +55,9 @@ about each page it touches.
   no `meta` description tag in the head
 :::
 
-**Each topic today contributes one or two lines of the final script.** By the
-last slide you will be able to trace every character of the scanner back to
-something you have already seen.
+**Most of what we cover today turns up in the final script.** By the last slide
+you will be able to read it without stopping, and the parts that do not reach
+the scanner – `pathlib` and `re` – are there because the next script needs them.
 
 ## free: What you already need | three boxes to tick before we start {.wide #prerequisites}
 
@@ -71,7 +71,7 @@ Prior *Python* is not assumed. Prior programming in some language is. If that
 last box is not ticked, pair up with someone whose is – the pace takes it for
 granted.
 
-## principle: Use a venv | always, from the very first import {.standard #venv-principle}
+## principle: Use a venv | from the very first import {.standard #venv-principle}
 
 **Global Python belongs to the operating system**, not to your project. `pip
 install` on the system interpreter edits a shared dependency tree that other
@@ -118,8 +118,9 @@ resolve to the binaries inside `.venv/`, not to the ones on your system.
 
 ## example: Fallback with pip and venv | same result, a few seconds slower {.standard #setup-pip}
 
-**If you cannot install `uv`, the standard library has everything you need.**
-Both the venv module and pip ship with Python itself, since 3.3 and 3.4.
+**If you cannot install `uv`, the venv module and pip ship with Python itself.**
+They have done since 3.3 and 3.4 respectively, so there is nothing to install
+before you start.
 
 ```bash
 python3 -m venv .venv
@@ -128,8 +129,8 @@ pip install --upgrade pip
 pip install playwright
 ```
 
-The only difference is **speed**: uv resolves and installs in parallel and
-caches aggressively, `pip` is sequential and cold-caches often. Pick one and
+The difference that matters here is **speed**: uv resolves and installs in
+parallel and caches aggressively, `pip` is sequential and cold-caches often. Pick one and
 stay with it for the rest of the session.
 
 ::: expand deep-dive
@@ -380,7 +381,7 @@ first_https = next(u for u in urls if u.startswith("https://"))
 ```
 
 Use one when the result goes straight into `sum`, `min`, `max`, `any`, `all` or
-`next`. Use a list comprehension when you genuinely need every value at once.
+`next`. Use a list comprehension when you need every value at once.
 :::
 
 > note: Write the for-loop version on the board first and let them convert it.
@@ -390,7 +391,7 @@ Use one when the result goes straight into `sum`, `min`, `max`, `any`, `all` or
 
 ## example: Exceptions | errors are values you catch and inspect {.standard #exceptions}
 
-**Exceptions are Python's error channel.** When something goes wrong a function
+**Exceptions are Python’s error channel.** When something goes wrong a function
 *raises* one; a caller further up the stack *catches* it with `try`/`except`
 and decides what to do.
 
@@ -420,8 +421,8 @@ except:              # never do this
     ...
 ```
 
-If you genuinely want everything, write `except Exception:`. It covers all
-*program* errors and leaves the interpreter's own signals intact.
+If you do want everything, write `except Exception:`. It covers all
+*program* errors and leaves the interpreter’s own signals intact.
 :::
 
 ## principle: Read a traceback from the bottom | the last line is the failure {.standard #read-errors-principle}
@@ -437,8 +438,8 @@ and three of them end up in the scanner.
 
 ## question: Why lean on the standard library? | a dependency is a liability {.narrow #why-stdlib}
 
-**Every `pip install` is a future maintenance cost.** Transitive dependencies,
-security patches, breaking releases – all of it lands on your plate. The
+**A `pip install` is a future maintenance cost.** Transitive dependencies,
+security patches, breaking releases – they land on your plate. The
 [standard library](https://docs.python.org/3/library/) is already there,
 already audited, already installed with Python itself.
 
@@ -470,8 +471,7 @@ and drive letters, so the same lines run on Linux, macOS and Windows with no
 
 ## example: urllib.parse | URL surgery without regex {.wide #urllib-parse}
 
-**Parsing a URL with a regex is almost always a mistake.** `urllib.parse`
-already knows about schemes, userinfo, punycode hosts, default ports and path
+**Do not parse a URL with a regex.** `urllib.parse` already knows about schemes, userinfo, punycode hosts, default ports and path
 normalisation.
 
 ::: cols 2
@@ -587,7 +587,7 @@ block.
 
 # Waiting well {#async}
 
-Almost everything the scanner does is waiting for somebody else.
+The scanner spends its time waiting for somebody else.
 
 ## principle: Async is for I/O, not for CPU | overlapping waits, not overlapping work {.standard #async-principle}
 
@@ -704,11 +704,11 @@ finish in $\max(1, 1, 1) = 1$ second.
 
 ::: cols 2
 
-**A lot of the web is rendered by JavaScript in the browser.** **`requests` and plain `urllib` see only the HTML shell** – often just `<div id="app"></div>` plus a pile of script tags. Useful text, links, and titles never arrive.
+**A lot of the web is rendered by JavaScript in the browser.** **`requests` and plain `urllib` see only the HTML shell** – often just `<div id="app"></div>` plus a pile of script tags. The text, the links and the title are not in it.
 
 **Playwright drives a real browser** – Chromium, Firefox, or WebKit – over a debugging protocol. The page renders, scripts execute, the DOM settles, and then you query it. You see what a human sees.
 
-**For a link scanner this matters a lot.** Navigation on many real sites is built client-side: menus, footers, and even the main content are injected after load. A scanner that speaks HTTP only would miss all of it.
+**For a link scanner this matters a lot.** Navigation on many real sites is built client-side: menus, footers, and even the main content are injected after load. A scanner that speaks HTTP and nothing else does not see that navigation.
 
 **The cost is weight.** A browser is a hundred megabytes of binaries and a few hundred of RAM per instance. For a lecture scanner that is fine; for a production crawler you would measure first.
 
@@ -731,7 +731,7 @@ browser is for pages meant to be looked at.
 playwright install chromium
 ```
 
-**Pinned means reproducible.** The next developer on the project runs the same command and gets the *same* Chromium version, not whatever ships with today's operating system.
+**Pinned means reproducible.** The next developer on the project runs the same command and gets the *same* Chromium version, not whatever ships with today’s operating system.
 
 ## example: Open a page | the smallest useful Playwright script {.wide #playwright-first-page}
 
@@ -859,7 +859,7 @@ were collected, flags first, so the output can be filtered with `grep`.
 
 :::
 
-## figure: `scanner.py` | everything we covered, in one file {.full #scanner-source}
+## figure: `scanner.py` | the whole tool, in one file {.full #scanner-source}
 
 ```python
 import argparse
@@ -932,9 +932,10 @@ if __name__ == "__main__":
     asyncio.run(main())
 ```
 
-**Every line here is something we covered.** A dataclass for the report row,
-type hints for documentation, `async`/`await` for I/O, `urljoin` and `urlparse`
-for the URL surgery, `argparse` for the CLI. About 55 lines, end to end.
+**The whole file is built out of what the last four parts put on the slides.** A
+dataclass for the report row, type hints for documentation, `async`/`await` for
+the I/O, `urljoin` and `urlparse` for the URL surgery, `argparse` for the CLI.
+About 55 lines, end to end.
 
 ::: expand whats-missing
 **Four things this version does *not* do**, each of them an exercise at the end:
@@ -944,9 +945,9 @@ for the URL surgery, `argparse` for the CLI. About 55 lines, end to end.
 - no output format beyond printing to stdout;
 - no `robots.txt` check – we assume we are allowed to crawl.
 
-Each omission is deliberate. The eighty-line target leaves room for exactly one
-happy-path read-through; production hardening doubles the line count and
-changes nothing about the core logic.
+The eighty-line target leaves room for one happy-path read-through;
+production hardening doubles the line count and changes nothing about the core
+logic.
 :::
 
 ## example: Running it | pipe it into grep for the interesting cases {.standard #scanner-run}
@@ -990,6 +991,6 @@ covered today plus one standard-library module you have not touched yet.
 
 ## closing: That is the whole tool | questions, and then the terminal {#end}
 
-Everything today is in one file you can read in five minutes. The next thing to
-read is the
+The tool is one file you can read in five minutes. The next thing to read is
+the
 [Playwright Python guide](https://playwright.dev/python/docs/intro).
