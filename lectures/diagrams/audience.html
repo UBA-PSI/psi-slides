@@ -9795,7 +9795,16 @@ function chunkBeats(el) {
       // its place in the order. push() then leaves it out of the positional
       // count, which is the same arrangement a marker inside an overlay has
       // had since a from-beat existed.
-      if (segIdx++ > 0) push({ type: 'seg', el: node, at: fromOf(node) });
+      //
+      // The first rendered segment is normally the slide's opening state and
+      // is no beat at all - but it can be a pinned one, when the segment
+      // above it was emptied by a captured directive (a chunk that opens on
+      // its backdrop and takes its words at beat 3). Without the second test
+      // it was hidden by the FROM_SEL sweep at the foot of applyReveal and
+      // managed by nothing: no entry in the beat list, so no next-mark in
+      // the cockpit and no line in the cue list.
+      const at = fromOf(node);
+      if (segIdx++ > 0 || at != null) push({ type: 'seg', el: node, at });
       return;
     }
     // A --- below the top level: the beat owns every element sibling after
@@ -14817,9 +14826,16 @@ function dgTokenize(line, base = 0) {
           // source form at all - so the editor could not write `C:\` back
           // without escaping its own closing quote and swallowing the line.
           // Collapsing it here makes this function the exact inverse of
-          // `dgeQuote`, which is one assertion to test. It changes no
-          // drawing: `dgSpans` renders a lone backslash and a doubled one
-          // alike unless a marker follows.
+          // `dgeQuote`, which is one assertion to test.
+          //
+          // One source form draws differently for it, and only one: `\\`
+          // immediately before a marker. `"a\\_b"` used to reach `dgSpans`
+          // as `a\\_b` - a literal backslash, then a subscript - and reaches
+          // it as `a\_b` now, an escaped underscore. Everywhere else a lone
+          // backslash and a doubled one render alike, so nothing else moves.
+          // No source in either repository writes that form; it was checked
+          // rather than assumed, and the three tracked lectures rebuild with
+          // no changed line of figure markup.
           const nxt = line[j + 1];
           buf += nxt === 'n' ? '\n' : nxt === '"' ? '"' : nxt === '\\' ? '\\' : ('\\' + nxt);
           j += 2;

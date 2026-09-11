@@ -18,7 +18,9 @@ import {
   parseRevealMark,
   AUTOPLAY_MIN, AUTOPLAY_MAX, DRAW_OPENER_EXAMPLE,
 } from '../../tails.mjs';
-import { render } from './harness.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { render, ROOT } from './harness.mjs';
 import { migrateText, isActiveSurface, LEGACY_TOKENS } from '../../tools/migrate-draw-opener.mjs';
 
 export const name = 'tails: one {…} parser and one ::: draw opener';
@@ -276,5 +278,30 @@ export async function run({ report }) {
        'from 0 is refused, and the message says why beat 0 is not a beat');
     ok(m('--- from 3').problems.length === 0 && m('--- from 1').from === 1,
        'and from 1, the first advance, is the smallest one that is legal');
+  }
+
+  // ── the style block's key set, held across two files ────────────────
+  // lint.js mirrors STYLE_SPEC as STYLE_ENUMS plus STYLE_SCALE_KEYS, and the
+  // unknown-key error it raises is only as right as that pair. A key added
+  // to build.js with a kind other than `enum` would be reported as unknown
+  // on a valid deck until somebody remembered the second file, which is the
+  // drift this repository keeps paying for. Read as text: build.js cannot be
+  // imported here, and lint.js calls main() at module scope.
+  {
+    const bsrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const lsrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
+    const specBody = bsrc.slice(bsrc.indexOf('const STYLE_SPEC = {'));
+    const specKeys = new Set([...specBody.slice(0, specBody.indexOf('\n};'))
+      .matchAll(/^\s{2}'?([a-z-]+)'?:\s*\{/gm)].map(m => m[1]));
+    const enumBody = lsrc.slice(lsrc.indexOf('const STYLE_ENUMS = {'));
+    const lintKeys = new Set([...enumBody.slice(0, enumBody.indexOf('\n};'))
+      .matchAll(/^\s{2}'([a-z-]+)':/gm)].map(m => m[1]));
+    for (const k of [...lsrc.matchAll(/STYLE_SCALE_KEYS = new Set\(\[([^\]]*)\]/g)][0][1]
+      .match(/'[a-z-]+'/g).map(t => t.slice(1, -1))) lintKeys.add(k);
+    ok(specKeys.size > 5, `STYLE_SPEC's keys are findable (${specKeys.size})`, [...specKeys].join(','));
+    const missing = [...specKeys].filter(k => !lintKeys.has(k));
+    const extra = [...lintKeys].filter(k => !specKeys.has(k));
+    ok(!missing.length, 'every style key build.js accepts is one lint.js knows', missing.join(','));
+    ok(!extra.length, 'and lint.js knows no key build.js has dropped', extra.join(','));
   }
 }

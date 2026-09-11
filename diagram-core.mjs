@@ -1226,9 +1226,16 @@ export function dgTokenize(line, base = 0) {
           // source form at all - so the editor could not write `C:\` back
           // without escaping its own closing quote and swallowing the line.
           // Collapsing it here makes this function the exact inverse of
-          // `dgeQuote`, which is one assertion to test. It changes no
-          // drawing: `dgSpans` renders a lone backslash and a doubled one
-          // alike unless a marker follows.
+          // `dgeQuote`, which is one assertion to test.
+          //
+          // One source form draws differently for it, and only one: `\\`
+          // immediately before a marker. `"a\\_b"` used to reach `dgSpans`
+          // as `a\\_b` - a literal backslash, then a subscript - and reaches
+          // it as `a\_b` now, an escaped underscore. Everywhere else a lone
+          // backslash and a doubled one render alike, so nothing else moves.
+          // No source in either repository writes that form; it was checked
+          // rather than assumed, and the three tracked lectures rebuild with
+          // no changed line of figure markup.
           const nxt = line[j + 1];
           buf += nxt === 'n' ? '\n' : nxt === '"' ? '"' : nxt === '\\' ? '\\' : ('\\' + nxt);
           j += 2;

@@ -2938,7 +2938,8 @@ function lintFile(filePath) {
             `second ::: dock on one ${chunk ? 'chunk' : 'column heading'} (first at line ${host.dock.line}) – one slide has one dock`);
       }
       if (host) host.dock = { edge, width, height, scope, line: ln, inherited: false };
-      activeDirective = { kind: 'dock', line: ln, scope };
+      activeDirective = { kind: 'dock', line: ln, scope,
+        from: from != null && /^[1-9]\d*$/.test(from) ? Number(from) : null };
       continue;
     }
     const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
@@ -2992,7 +2993,8 @@ function lintFile(filePath) {
       if (overlayOpen[2] != null && /^[1-9]\d*$/.test(overlayOpen[2])) {
         chunkOverlays.push({ from: Number(overlayOpen[2]), line: ln });
       }
-      activeDirective = { kind: 'overlay', line: ln };
+      activeDirective = { kind: 'overlay', line: ln,
+        from: overlayOpen[2] != null && /^[1-9]\d*$/.test(overlayOpen[2]) ? Number(overlayOpen[2]) : null };
       continue;
     }
 

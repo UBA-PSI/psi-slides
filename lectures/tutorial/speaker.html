@@ -12489,7 +12489,16 @@ function chunkBeats(el) {
       // its place in the order. push() then leaves it out of the positional
       // count, which is the same arrangement a marker inside an overlay has
       // had since a from-beat existed.
-      if (segIdx++ > 0) push({ type: 'seg', el: node, at: fromOf(node) });
+      //
+      // The first rendered segment is normally the slide's opening state and
+      // is no beat at all - but it can be a pinned one, when the segment
+      // above it was emptied by a captured directive (a chunk that opens on
+      // its backdrop and takes its words at beat 3). Without the second test
+      // it was hidden by the FROM_SEL sweep at the foot of applyReveal and
+      // managed by nothing: no entry in the beat list, so no next-mark in
+      // the cockpit and no line in the cue list.
+      const at = fromOf(node);
+      if (segIdx++ > 0 || at != null) push({ type: 'seg', el: node, at });
       return;
     }
     // A --- below the top level: the beat owns every element sibling after
@@ -16106,7 +16115,15 @@ function cueCardsFor(id, beats, maxC) {
 function cuePosition(entry) {
   const total = countSegments(entry.el);
   const pos = Math.max(1, revealed[entry.id] ?? 1);
-  const beats = chunkBeats(entry.el).filter(b => b.at == null);
+  // Every beat, pinned or not. The filter that used to stand here dropped
+  // anything carrying an at-number, written when only a marker inside a
+  // pinned overlay could carry one and the cue list had nothing to say about
+  // those. A pinned segment carries text, so dropping it shifted segAt for
+  // every segment after it and left the last one falling off the end - the
+  // cards for those segments were filed on beat 0 and shown as the slide
+  // opened. cueEntries decides per type what it can name; that is the place
+  // for the question, not here.
+  const beats = chunkBeats(entry.el);
   return { pos, consumed: pos - 1, total, maxC: Math.max(0, total - 1), beats };
 }
 function cueText(node, max) {
@@ -16139,10 +16156,12 @@ function cueEntries(entry) {
   let segN = 0;
   for (let c = 0; c <= maxC; c++) {
     (cards.get(c) || []).forEach((card, k) => out.push({ type: 'card', c, k, card }));
-    // A pinned beat is found by its number, an unpinned one by its position.
-    // Matching pos alone dropped a pinned segment through to the nameless
-    // "advance" branch, which was written for an overlay with no text.
-    const b = beats.find(x => (x.at != null ? x.at : x.pos) === c);
+    // c is a 0-based index and an entry says it arrives on press c + 1, so
+    // an unpinned beat matches its own pos while a pinned one - which arrives
+    // when consumed reaches its number - matches that number minus one.
+    // cueCardsFor files the same beats one scale up; the two must not be as
+    // the same number.
+    const b = beats.find(x => (x.at != null ? x.at - 1 : x.pos) === c);
     if (b && b.type === 'seg') {
       out.push({ type: 'step', at: c + 1, k: 'reveal ' + (++segN) + '/' + segTotal, what: cueText(b.el, 120) });
     } else if (b && b.type === 'diag') {
@@ -18799,9 +18818,16 @@ function dgTokenize(line, base = 0) {
           // source form at all - so the editor could not write `C:\` back
           // without escaping its own closing quote and swallowing the line.
           // Collapsing it here makes this function the exact inverse of
-          // `dgeQuote`, which is one assertion to test. It changes no
-          // drawing: `dgSpans` renders a lone backslash and a doubled one
-          // alike unless a marker follows.
+          // `dgeQuote`, which is one assertion to test.
+          //
+          // One source form draws differently for it, and only one: `\\`
+          // immediately before a marker. `"a\\_b"` used to reach `dgSpans`
+          // as `a\\_b` - a literal backslash, then a subscript - and reaches
+          // it as `a\_b` now, an escaped underscore. Everywhere else a lone
+          // backslash and a doubled one render alike, so nothing else moves.
+          // No source in either repository writes that form; it was checked
+          // rather than assumed, and the three tracked lectures rebuild with
+          // no changed line of figure markup.
           const nxt = line[j + 1];
           buf += nxt === 'n' ? '\n' : nxt === '"' ? '"' : nxt === '\\' ? '\\' : ('\\' + nxt);
           j += 2;
