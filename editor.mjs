@@ -5520,19 +5520,13 @@ function dgeSwapEnds(id) {
 // panel would turn `scan\_page` into `scan\` plus a subscript on the way back
 // to the source.
 function dgeQuote(v) {
-  // A backslash the tokenizer would eat has to be doubled first, or the value
-  // comes back changed with no error anywhere. dgTokenize reads `\n` as a
-  // newline and `\"` as a quote that does not close the string, and passes
-  // every other `\X` through whole - so a value ending in a backslash wrote
-  // `"C:\"`, which escaped the closing quote and swallowed the rest of the
-  // line, and a value holding `\` before an n wrote a newline into the label.
-  //
-  // Doubled, the drawing is right: the token gains a backslash and dgSpans
-  // collapses `\\` back to one. It is not byte-exact at the token level, so a
-  // value like `C:\` grows by one backslash per edit round-trip - the
-  // tokenizer has no encoding for it at all, which is TODO-bugfix.md entry 1.
-  return String(v).replace(/\\(?=[n"]|$)/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  // The exact inverse of dgTokenize's quoted-string reader: it decodes `\\`,
+  // `\"` and `\n`, so those are the three this encodes, and the backslash
+  // goes first or it would double the ones the other two add.
+  // `test/gates/semantics.mjs` asserts the round trip rather than the pairs.
+  return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
+
 
 // One question, two callers: the panel asks it against DGE, a gesture against
 // the state it started from (dgeGestureBase). Both carry a source, a model and

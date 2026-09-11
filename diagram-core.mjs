@@ -1211,17 +1211,26 @@ export function dgTokenize(line, base = 0) {
       let j = i + 1, buf = '';
       while (j < line.length && line[j] !== '"') {
         if (line[j] === '\\' && j + 1 < line.length) {
-          // Two sequences are the tokenizer's own, because they are about the
-          // token and not about the words in it: a bare quote would end the
-          // string, and a label breaks its lines at `\n`. Every other
-          // backslash belongs to the label and is handed on whole - `\_` has
-          // to reach `dgSpans`, which is where a marker is escaped, and
-          // before this rule a path written `C:\tmp` silently drew as
-          // `C:tmp`. The pair `\\` is passed on as two characters for the
-          // same reason, and `dgSpans` is the one place that collapses it, so
-          // there is one escape in the language rather than two stacked.
+          // Three sequences are the tokenizer's own, because they are about
+          // the token rather than the words in it: a bare quote would end the
+          // string, a label breaks its lines at `\n`, and `\\` is how a token
+          // says one backslash. Every other backslash belongs to the label
+          // and is handed on whole - `\_` has to reach `dgSpans`, which is
+          // where a marker is escaped, and before that rule a path written
+          // `C:\tmp` silently drew as `C:tmp`.
+          //
+          // `\\` used to be handed on whole too, on the reasoning that one
+          // escape in the language beats two stacked. It cost the property
+          // that matters more: with no way to write a backslash, a token
+          // value holding one before an `n` or a quote, or at its end, had no
+          // source form at all - so the editor could not write `C:\` back
+          // without escaping its own closing quote and swallowing the line.
+          // Collapsing it here makes this function the exact inverse of
+          // `dgeQuote`, which is one assertion to test. It changes no
+          // drawing: `dgSpans` renders a lone backslash and a doubled one
+          // alike unless a marker follows.
           const nxt = line[j + 1];
-          buf += nxt === 'n' ? '\n' : nxt === '"' ? '"' : ('\\' + nxt);
+          buf += nxt === 'n' ? '\n' : nxt === '"' ? '"' : nxt === '\\' ? '\\' : ('\\' + nxt);
           j += 2;
           continue;
         }

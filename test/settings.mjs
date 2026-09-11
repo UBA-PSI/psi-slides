@@ -796,7 +796,11 @@ console.log('\nlayout generations');
   // the shared ground rules, no collapse inside a dock.
   {
     const r = build(FMX + 'Two sentences here. And a second one.\n\n::: dock\nTwo sentences here. And a second one.\n:::\n', []);
-    ok(/const FROM_SEL = '\.overlay-card\[data-from\], \.dock\[data-from\]'/.test(r.html), 'FROM_SEL is one constant');
+    // One constant, and the reveal segment is in it: a marker inside a pinned
+    // segment has to count from that segment's beat, and numbering it
+    // positionally un-hid it inside a segment that had not arrived.
+    ok(/const FROM_SEL = '\.overlay-card\[data-from\], \.dock\[data-from\], \.reveal-segment\[data-from\]'/.test(r.html),
+       'FROM_SEL is one constant and names all three things a `from` can hold');
     ok((r.html.match(/\.overlay-card\[data-from\]/g) || []).length === 1, 'and the only place the overlay selector is spelled', String((r.html.match(/\.overlay-card\[data-from\]/g) || []).length));
     ok(/flowKids[\s\S]*?classList\.contains\('dock'\)/.test(r.html), 'flowHeightProbe looks through a dock');
     ok(/:is\(\.overlay-card, \.dock\)\.ov-paper/.test(r.html) && /:is\(\.overlay-card, \.dock\)\.ov-paper/.test(r.print), 'the ground rules are shared, in both stylesheets');
