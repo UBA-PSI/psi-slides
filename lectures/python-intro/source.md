@@ -760,6 +760,38 @@ browser is for pages meant to be looked at.
 > curl it, and let them find the missing text themselves. Ninety seconds, and
 > nobody asks again why a scanner needs a browser.
 
+## figure: The same page, fetched and rendered | five lines of HTML, and the text is in none of them {.wide #shell-vs-rendered}
+
+::: side
+
+**An HTTP fetch hands back the whole file, and this is the whole file.**
+
+```html
+<!doctype html>
+<title>Team handbook</title>
+<link rel=stylesheet href=demo.css>
+<div id="app"></div>
+<script src="demo.js"></script>
+```
+
+::: flip
+
+**A browser runs `demo.js` first, and then the page has something in it.**
+
+![](rendered-demo)
+
+:::
+
+The heading, the sentence and the three links are written at run time. A
+scanner reading the left pane finds no links; one driving a browser finds
+three.
+
+> note: This is a made-up page in the lecture's own assets folder, not a real
+> site – `assets/rendered-demo.html` plus `demo.js` and `demo.css`, and
+> `assets/shoot-demo.mjs` re-renders the picture. If the room wants a real
+> example, open any single-page app and compare `view-source:` with the
+> element inspector.
+
 ## example: Install the browser once | Playwright pins the build {.narrow #playwright-install}
 
 **After `pip install playwright` you still need the browser itself.** Playwright ships a small CLI to download a pinned Chromium build into its cache.
