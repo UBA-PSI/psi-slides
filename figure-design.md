@@ -354,6 +354,32 @@ Pick the convention once per figure and keep it. Both readings are legible on
 their own; a figure that mixes them makes the reader classify every label before
 they can read one, which is more work than either convention saves.
 
+**And four characters inside a label are markup, so a label about code has to
+say so.** `_` subscripts the character after it, `^` raises it, `*a*` colours a
+run with the accent and `~a~` greys it. That is what a figure full of `c_0` and
+`m_1` wants, and it is the wrong thing to happen to a function name. Write a
+backslash in front of any of the four – `\_`, `\^`, `\*`, `\~`, and `\\` for a
+backslash – and the bare character is drawn instead.
+
+```
+# wrong: drawn as "scan", a subscript p, then "age(link)"
+box scan "scan_page(link)" below coll gap 0.6
+
+# right: one word, with the underscore in it
+box scan "scan\_page(link)" below coll gap 0.6
+```
+
+It costs nothing: the escape is resolved before the label is measured, so the
+box is the width of the word it draws. A backslash before anything else stays a
+backslash, and `\n` is still where a label breaks its lines.
+
+The escape is the way out, not the plan. A figure whose boxes carry
+`collect\_links()` and `scan\_page(link)` is usually a figure that should carry
+`every link on that page` and `one visit per link` instead, and name the
+functions in the prose beside it – rule 9. Reach for the backslash when the
+identifier *is* the point: the one line of a listing the figure is about, a
+constant the room has to recognise, a file name.
+
 ## 7. Run edges on axes, and bend them once
 
 **Do:** keep edges horizontal or vertical. When one has to get around something,
@@ -1138,7 +1164,12 @@ Work down this list. It is written so it can be checked mechanically.
 19. `.bold` is on at most one element. No leader crosses another, and no `.bare`
     *box* carries a fill paler than `.tone-3` (a `.bare` container is a ground
     and is exempt).
-20. No plot holds more than three overlapping lines; a fourth is a second frame
+20. Every `_`, `^`, `*` and `~` in a label is meant. The first two subscript
+    and raise the character after them, so an identifier written `scan_page`
+    draws with a subscript in the middle of it and nothing reports it. Write
+    `\_` for the literal, and read every label carrying code once with that in
+    mind.
+21. No plot holds more than three overlapping lines; a fourth is a second frame
     carrying the same `.muted` baseline. Every histogram is `space 0`, and no
     bar chart is.
 

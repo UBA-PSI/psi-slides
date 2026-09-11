@@ -17100,14 +17100,46 @@ function dgCharW(ch) {
 // which is unreadable as source and re-flows badly the moment a word
 // changes. An unmatched marker is left as a literal character, so a lone
 // asterisk in a label is still just an asterisk.
+//
+// `_` and `^` have no such fallback available to them - they take the next
+// character, and there is nothing to be unmatched against - so a backslash
+// escapes them: `scan\_page` is one word with an underscore in it. It escapes
+// all four markers and itself (`\_`, `\^`, `\*`, `\~`, `\\`), not only the two
+// that need it, because an escape with an exception in it is the next thing an
+// author has to remember. A backslash before anything else is an ordinary
+// backslash, and so is a trailing one. The escape is consumed here, in the one
+// function both `dgMeasure` and the emitter read the label through, so the
+// character never reaches a measured string and no box is widened by it.
+const DG_LABEL_ESCAPES = new Set(['_', '^', '*', '~', '\\']);
+function dgUnescapeLabel(s) {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '\\' && i + 1 < s.length && DG_LABEL_ESCAPES.has(s[i + 1])) { out += s[++i]; continue; }
+    out += s[i];
+  }
+  return out;
+}
 function dgSpans(text) {
   const out = [];
   let buf = '';
   let cls = '';
   const flush = (shift) => { if (buf) { out.push({ t: buf, shift, cls }); buf = ''; } };
-  const closes = (marker, from) => text.indexOf(marker, from) >= 0;
+  // An escaped marker is not a partner: `*bold\*` has no closing asterisk, so
+  // the opening one is a literal too.
+  const closes = (marker, from) => {
+    for (let j = from; j < text.length; j++) {
+      if (text[j] === '\\' && j + 1 < text.length && DG_LABEL_ESCAPES.has(text[j + 1])) { j++; continue; }
+      if (text[j] === marker) return true;
+    }
+    return false;
+  };
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
+    if (ch === '\\' && i + 1 < text.length && DG_LABEL_ESCAPES.has(text[i + 1])) {
+      buf += text[i + 1];
+      i++;
+      continue;
+    }
     if ((ch === '*' || ch === '~')) {
       const want = ch === '*' ? 'em' : 'mu';
       if (cls === want) { flush(0); cls = ''; continue; }
@@ -17120,8 +17152,13 @@ function dgSpans(text) {
       if (text[i] === '{') {
         const end = text.indexOf('}', i);
         if (end < 0) { buf = ch; continue; }
-        out.push({ t: text.slice(i + 1, end), shift, cls });
+        // A group's content is already literal, so only the backslash itself
+        // has to be unwritten - or the escape would hold everywhere but here.
+        out.push({ t: dgUnescapeLabel(text.slice(i + 1, end)), shift, cls });
         i = end;
+      } else if (text[i] === '\\' && i + 1 < text.length && DG_LABEL_ESCAPES.has(text[i + 1])) {
+        out.push({ t: text[i + 1], shift, cls });
+        i++;
       } else {
         out.push({ t: text[i], shift, cls });
       }
@@ -17269,8 +17306,17 @@ function dgTokenize(line, base = 0) {
       let j = i + 1, buf = '';
       while (j < line.length && line[j] !== '"') {
         if (line[j] === '\\' && j + 1 < line.length) {
+          // Two sequences are the tokenizer's own, because they are about the
+          // token and not about the words in it: a bare quote would end the
+          // string, and a label breaks its lines at `\n`. Every other
+          // backslash belongs to the label and is handed on whole - `\_` has
+          // to reach `dgSpans`, which is where a marker is escaped, and
+          // before this rule a path written `C:\tmp` silently drew as
+          // `C:tmp`. The pair `\\` is passed on as two characters for the
+          // same reason, and `dgSpans` is the one place that collapses it, so
+          // there is one escape in the language rather than two stacked.
           const nxt = line[j + 1];
-          buf += nxt === 'n' ? '\n' : nxt;
+          buf += nxt === 'n' ? '\n' : nxt === '"' ? '"' : ('\\' + nxt);
           j += 2;
           continue;
         }
@@ -23127,7 +23173,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, rejectClassOn, dgArticle, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, DG_LABEL_ESCAPES, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, rejectClassOn, dgArticle, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "default text {.small}\ndefault container pad 0.34\n";
 window.PSI_DG_EDIT_HTML = false;
@@ -28645,8 +28691,15 @@ function dgeSwapEnds(id) {
     + src.slice(first.end, second.start) + secondVal + src.slice(second.end));
 }
 
+// The inverse of what `dgTokenize` decodes, and only that: a quote would end
+// the string and a line break is written `\n`. A backslash is passed through
+// untouched, because the value this re-encodes is the text `dgSpans` reads -
+// the level at which `\_` is a literal underscore and `\\` a literal
+// backslash. Doubling it here would re-escape the author's own escape and the
+// panel would turn `scan\_page` into `scan\` plus a subscript on the way back
+// to the source.
 function dgeQuote(v) {
-  return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  return String(v).replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
 
 // One question, two callers: the panel asks it against DGE, a gesture against

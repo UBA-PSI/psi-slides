@@ -1768,9 +1768,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       // including an unterminated one – that takes the rest of the line rather
       // than being an error, and a gate stricter than the build is worse than
       // no gate.
+      // The tokenizer decodes two sequences and hands every other backslash
+      // on whole, so that `\_` reaches the span splitter, which is where a
+      // sub/superscript marker is escaped. Mirror it exactly: decoding more
+      // here would split a `\|` into two columns the build keeps as one.
       const quoted = (s) => {
         const m = String(s).match(/"((?:\\[\s\S]|[^"\\])*)"?/);
-        return m && m[1].replace(/\\([\s\S])/g, (_, c) => (c === 'n' ? '\n' : c));
+        return m && m[1].replace(/\\([\s\S])/g,
+          (all, c) => (c === 'n' ? '\n' : c === '"' ? '"' : all));
       };
       // Not `!first`: an empty string is a heading row of one nameless
       // column, which is what the build reads it as too.

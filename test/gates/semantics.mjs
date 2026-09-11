@@ -31,7 +31,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { frames, render, spans, ROOT } from './harness.mjs';
-import { DG_THEMES } from '../../diagram-core.mjs';
+import { DG_THEMES, dgSpans, dgMeasure } from '../../diagram-core.mjs';
 
 export const name = 'the emitted drawing means what the source says';
 
@@ -590,6 +590,74 @@ export async function run({ report }) {
     ok(not && !not.present && not.prefix === ' key "' && not.suffix === '"',
       'an absent key is an insertion that carries its own quotes',
       JSON.stringify(not));
+  }
+
+  // ── what a marker in a label means ───────────────────────────────
+  // `_` and `^` take the next character, which made every snake_case
+  // identifier unwritable: `scan_page` drew as `scan`, a subscript `p` and
+  // `age`, silently, with a clean lint and a box measured to fit exactly the
+  // wrong reading. The escape is the repair, and it covers all four markers
+  // and the backslash so that it has no exception of its own.
+  {
+    const one = (s) => dgSpans(s).map(sp => `${sp.t}|${sp.shift}|${sp.cls}`).join(' + ');
+    const cases = [
+      // written, spans as text|shift|class - both signs of every marker.
+      ['scan\\_page', 'scan_page|0|', 'an escaped underscore is one literal span'],
+      ['scan_page', 'scan|0| + p|-1| + age|0|', 'an unescaped underscore still subscripts'],
+      ['c_0', 'c|0| + 0|-1|', 'c_0 still subscripts, which is why braces were not the fix'],
+      ['x\\^2', 'x^2|0|', 'an escaped caret is one literal span'],
+      ['x^2', 'x|0| + 2|1|', 'an unescaped caret still superscripts'],
+      ['a\\*b*', 'a*b*|0|', 'an escaped asterisk is literal and is no partner for a later one'],
+      ['*a*', 'a|0|em', 'an unescaped pair still accents'],
+      ['a\\~b~', 'a~b~|0|', 'an escaped tilde is literal and is no partner for a later one'],
+      ['~a~', 'a|0|mu', 'an unescaped pair still mutes'],
+      ['a\\\\b', 'a\\b|0|', 'a doubled backslash is one backslash'],
+      ['C:\\path', 'C:\\path|0|', 'a backslash before anything else stays a backslash'],
+      ['ends with\\', 'ends with\\|0|', 'a trailing lone backslash is a backslash, not a swallowed escape'],
+      ['\\_\\_init\\_\\_', '__init__|0|', 'the identifier the defect was found on'],
+      ['c_{i\\_j}', 'c|0| + i_j|-1|', 'the escape holds inside a braced group too'],
+    ];
+    for (const [src, want, why] of cases) {
+      const got = one(src);
+      ok(got === want, `${why} (${JSON.stringify(src)})`, `drew ${got}`);
+    }
+  }
+
+  // The escape is consumed in `dgSpans`, which `dgMeasure` reads the label
+  // through, so it never reaches a measured string. Handled at the emitter
+  // instead it would widen every box carrying one - by a whole character,
+  // which on a tight row is a box that no longer fits its neighbours.
+  {
+    // The control is nine characters of the same advance class, so the two
+    // numbers are comparable without pinning the estimate to a literal.
+    const escaped = dgMeasure('scan\\_page', 15, false).w;
+    const plain = dgMeasure('scanxpage', 15, false).w;
+    const wrong = dgMeasure('scan\\xpage', 15, false).w;
+    ok(Math.abs(escaped - plain) < 0.01 && wrong > escaped,
+      'an escape costs no width: scan\\_page measures as nine characters',
+      `escaped ${escaped.toFixed(2)}, nine plain ${plain.toFixed(2)}, ten ${wrong.toFixed(2)}`);
+  }
+
+  // And the same thing read off the drawing: one tspan, one underscore, no
+  // font-size of its own. The span table is what the compiler decided; this
+  // is what a reader would see.
+  {
+    const out = fig('a label with an escaped underscore', 'box b "scan\\_page" at 0,0');
+    const m = out && out.match(/<text[^>]*>([\s\S]*?)<\/text>/);
+    const inner = m ? m[1] : '';
+    ok(/^<tspan x="0"[^>]*>scan_page<\/tspan>$/.test(inner),
+      'the emitted label is a single tspan carrying the underscore',
+      inner || 'no text element was drawn');
+  }
+
+  // It takes two layers to get there, and the other one has to keep its own
+  // two sequences: `dgTokenize` hands `\_` on whole but still decodes `\n`
+  // into a line break, which is how every multi-line label in the corpus is
+  // written.
+  {
+    const out = fig('a label broken with a backslash-n', 'box b "two\\nlines" at 0,0');
+    const n = out ? (out.match(/<tspan x="0"/g) || []).length : 0;
+    ok(n === 2, 'a label still breaks its lines at \\n', `${n} line(s) drawn`);
   }
 
   note('four contracts, and this gate holds the third: what the compiler emitted, '

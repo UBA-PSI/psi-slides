@@ -5512,8 +5512,15 @@ function dgeSwapEnds(id) {
     + src.slice(first.end, second.start) + secondVal + src.slice(second.end));
 }
 
+// The inverse of what `dgTokenize` decodes, and only that: a quote would end
+// the string and a line break is written `\n`. A backslash is passed through
+// untouched, because the value this re-encodes is the text `dgSpans` reads -
+// the level at which `\_` is a literal underscore and `\\` a literal
+// backslash. Doubling it here would re-escape the author's own escape and the
+// panel would turn `scan\_page` into `scan\` plus a subscript on the way back
+// to the source.
 function dgeQuote(v) {
-  return String(v).replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\n/g, '\\n');
+  return String(v).replace(/"/g, '\\"').replace(/\n/g, '\\n');
 }
 
 // One question, two callers: the panel asks it against DGE, a gesture against

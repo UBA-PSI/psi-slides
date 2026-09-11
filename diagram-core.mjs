@@ -1005,14 +1005,46 @@ export function dgCharW(ch) {
 // which is unreadable as source and re-flows badly the moment a word
 // changes. An unmatched marker is left as a literal character, so a lone
 // asterisk in a label is still just an asterisk.
+//
+// `_` and `^` have no such fallback available to them - they take the next
+// character, and there is nothing to be unmatched against - so a backslash
+// escapes them: `scan\_page` is one word with an underscore in it. It escapes
+// all four markers and itself (`\_`, `\^`, `\*`, `\~`, `\\`), not only the two
+// that need it, because an escape with an exception in it is the next thing an
+// author has to remember. A backslash before anything else is an ordinary
+// backslash, and so is a trailing one. The escape is consumed here, in the one
+// function both `dgMeasure` and the emitter read the label through, so the
+// character never reaches a measured string and no box is widened by it.
+export const DG_LABEL_ESCAPES = new Set(['_', '^', '*', '~', '\\']);
+function dgUnescapeLabel(s) {
+  let out = '';
+  for (let i = 0; i < s.length; i++) {
+    if (s[i] === '\\' && i + 1 < s.length && DG_LABEL_ESCAPES.has(s[i + 1])) { out += s[++i]; continue; }
+    out += s[i];
+  }
+  return out;
+}
 export function dgSpans(text) {
   const out = [];
   let buf = '';
   let cls = '';
   const flush = (shift) => { if (buf) { out.push({ t: buf, shift, cls }); buf = ''; } };
-  const closes = (marker, from) => text.indexOf(marker, from) >= 0;
+  // An escaped marker is not a partner: `*bold\*` has no closing asterisk, so
+  // the opening one is a literal too.
+  const closes = (marker, from) => {
+    for (let j = from; j < text.length; j++) {
+      if (text[j] === '\\' && j + 1 < text.length && DG_LABEL_ESCAPES.has(text[j + 1])) { j++; continue; }
+      if (text[j] === marker) return true;
+    }
+    return false;
+  };
   for (let i = 0; i < text.length; i++) {
     const ch = text[i];
+    if (ch === '\\' && i + 1 < text.length && DG_LABEL_ESCAPES.has(text[i + 1])) {
+      buf += text[i + 1];
+      i++;
+      continue;
+    }
     if ((ch === '*' || ch === '~')) {
       const want = ch === '*' ? 'em' : 'mu';
       if (cls === want) { flush(0); cls = ''; continue; }
@@ -1025,8 +1057,13 @@ export function dgSpans(text) {
       if (text[i] === '{') {
         const end = text.indexOf('}', i);
         if (end < 0) { buf = ch; continue; }
-        out.push({ t: text.slice(i + 1, end), shift, cls });
+        // A group's content is already literal, so only the backslash itself
+        // has to be unwritten - or the escape would hold everywhere but here.
+        out.push({ t: dgUnescapeLabel(text.slice(i + 1, end)), shift, cls });
         i = end;
+      } else if (text[i] === '\\' && i + 1 < text.length && DG_LABEL_ESCAPES.has(text[i + 1])) {
+        out.push({ t: text[i + 1], shift, cls });
+        i++;
       } else {
         out.push({ t: text[i], shift, cls });
       }
@@ -1174,8 +1211,17 @@ export function dgTokenize(line, base = 0) {
       let j = i + 1, buf = '';
       while (j < line.length && line[j] !== '"') {
         if (line[j] === '\\' && j + 1 < line.length) {
+          // Two sequences are the tokenizer's own, because they are about the
+          // token and not about the words in it: a bare quote would end the
+          // string, and a label breaks its lines at `\n`. Every other
+          // backslash belongs to the label and is handed on whole - `\_` has
+          // to reach `dgSpans`, which is where a marker is escaped, and
+          // before this rule a path written `C:\tmp` silently drew as
+          // `C:tmp`. The pair `\\` is passed on as two characters for the
+          // same reason, and `dgSpans` is the one place that collapses it, so
+          // there is one escape in the language rather than two stacked.
           const nxt = line[j + 1];
-          buf += nxt === 'n' ? '\n' : nxt;
+          buf += nxt === 'n' ? '\n' : nxt === '"' ? '"' : ('\\' + nxt);
           j += 2;
           continue;
         }
