@@ -753,6 +753,25 @@ figure.shot figcaption strong { color: var(--ink); font-weight: 620; }
 .shot.drawn img { border-radius: 6px; }
 
 /*
+ * A tall window, held to about its own size.
+ *
+ * `builder-lecture.webp` is a 1520x1146 crop of a 2x capture, so its natural
+ * size is a 760px window. Uncapped in its stage it is drawn 1043px wide at a
+ * 1920px viewport - 1.37x the window a reader has on their own screen, and
+ * 786px tall, which is the height DESIGN.md's fifth rule names as the one that
+ * pushes the rest of the page off the screen. The picture is a picture of
+ * small type, and showing type larger than the application draws it buys
+ * nothing: past life size the extra pixels are scale, not legibility.
+ *
+ * 55rem caps it at 1.16x. It binds only above roughly 1660px of viewport -
+ * at 1440 the stage gives it 791px on its own, under the cap - so the narrow
+ * end is untouched and this takes away only the excess. A figure narrower than
+ * its stage is centred, which is the stage's own rule rather than an exception
+ * made here: the stage is a field and a field's margin is even.
+ */
+.shot-lecture { max-width: 55rem; margin-inline: auto; }
+
+/*
  * The film sits on the same stage as the screenshots, for the same reason:
  * it is a picture of the tool, not more page. It is a plain <video> with the
  * browser's own controls and no player library - the file streams from the

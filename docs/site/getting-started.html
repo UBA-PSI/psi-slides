@@ -65,9 +65,17 @@
 <section class="band">
  <div class="wrap">
   <!-- A band. The words carry what the app is, the picture is the app, and
-       the words are centred against it: the picture is 480px and the column
-       four short paragraphs, and the difference used to hang under the text
-       with "Download it" starting inside it.
+       the words are centred against it: the picture is 596px at 1440 and the
+       column five short paragraphs, and the difference used to hang under the
+       text with "Download it" starting inside it.
+       This page takes a TALLER crop of the builder than the front page does -
+       builder-lecture.webp, 1146 rows against 790 - and the reason is what
+       stands beside each. Here the words are a column of their own and can
+       carry a sentence about the count the window shows; on the front page the
+       shot sits in the chooser, where the same crop would be 792px tall at a
+       1920 viewport, and the card beside it is about the command line and has
+       nothing to say about it. Same window, two questions, two crops. The
+       excess above roughly 1660px of viewport is taken off by .shot-lecture.
        The picture is also larger than it was. It used to be the narrow half
        of a words-wide row precisely because the words had to carry the whole
        section - heading, lede, the app's own paragraph AND the download
@@ -85,11 +93,15 @@
     <p class="cue">One line says whether the last build worked, and four
     buttons let you open the four views it wrote. There is no project to set up
     either, and no settings to fill in before the first build.</p>
+    <p class="cue">Under them the window counts what the lecture holds &ndash;
+    sections, slides, pictures, drawings, and how many words went to the
+    handout against the speaker notes &ndash; so the size of a talk is readable
+    without opening it.</p>
    </div>
    <div class="stage">
-    <figure class="shot">
+    <figure class="shot shot-lecture">
      <div class="bar"><b>psi-slides Builder</b></div>
-     <img src="img/builder.webp" alt="The builder window with a lecture open: the folder name and the path to its source.md, the line &ldquo;Ready. Built at 12:23 in 0.1 s.&rdquo;, a Build now button beside a ticked box reading &ldquo;Build again whenever source.md is saved&rdquo;, and four buttons for the presentation, the cockpit and the two handouts.">
+     <img src="img/builder-lecture.webp" alt="The builder window with a lecture open: the folder name and the path to its source.md, the line &ldquo;Ready. Built at 06:35 in 0.2 s.&rdquo;, a Build now button beside a ticked box reading &ldquo;Build again whenever source.md is saved&rdquo;, four buttons for the presentation, the cockpit and the two handouts, and under them a count of the lecture &ndash; 12 sections, 92 slides, 2 pictures, 10 drawings, 14,149 words in the handout and 934 in the speaker notes.">
     </figure>
    </div>
   </div>
