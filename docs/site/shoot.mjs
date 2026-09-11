@@ -120,11 +120,28 @@ const LIVE_RIG = `
 // number off the shot before deciding; it is four pixels of evidence against
 // an afternoon of re-encoding.
 //
+// A pixel-difference count is not that measurement, and it misleads in both
+// directions. deco-backdrop is a full-frame gradient, so a one-pixel shift lit
+// up 26 % of the image; a screenshot of text where one word changed lights up
+// almost nothing. Roll the new shot by a pixel or two and see which offset fits
+// best, then look at the two pictures. And check that the shot is reproducible
+// before blaming a change for it: two runs of deco-backdrop came back
+// byte-identical to each other and both differed from the committed file, which
+// is what turned "the rig is noisy" into "the file is out of date".
+//
 // The threshold is whether a reader would see the difference at the size the
 // page displays the shot. Both of those were visible at reading size. A prose
 // edit two tiles deep in the overview thumbnail is not, and the honest answer
 // there is to write the shot down as known-stale and let the next visible
 // reason carry it, rather than to churn twenty shots for pixels nobody reads.
+//
+// That answer is about COST, though, and the cost is not always twenty shots.
+// Where the change is real, reproducible and confined to one file, take it even
+// when it is invisible: shoot.mjs names its shots, so one is 25 KB rather than
+// eleven binaries and the manual. What that buys is a tree where running the
+// rig produces no diff - and a diff only means something where its absence
+// means something too. A repository whose shot rig always reports changes
+// teaches the next person to skip past them.
 //
 // One coupling that is easy to miss: docs/artifact/refresh-figures.mjs inlines
 // img/editor.webp into figures-you-write.html, because that page fetches
