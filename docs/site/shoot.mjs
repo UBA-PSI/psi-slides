@@ -110,6 +110,16 @@ const LIVE_RIG = `
 // from accent-bold to plain. A hash over the lecture sources would have
 // stayed green through both.
 //
+// A change that reaches the whole deck is a re-shoot only where a shot frames
+// something it touches. python-intro went to style: {blocks: left} deck-wide,
+// which moved the code slides in it and left collapsed, full and search
+// untouched - those three frame a chunk with no code block. The same walk the other way:
+// a chunk inserted between the two the document rig frames moved the margin
+// number of the second and not the first, so printed changed and the two
+// 470-row handout crops, which stop above the second number, did not. Read the
+// number off the shot before deciding; it is four pixels of evidence against
+// an afternoon of re-encoding.
+//
 // The threshold is whether a reader would see the difference at the size the
 // page displays the shot. Both of those were visible at reading size. A prose
 // edit two tiles deep in the overview thumbnail is not, and the honest answer
