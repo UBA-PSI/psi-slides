@@ -3392,7 +3392,27 @@ function lintFile(filePath) {
   // them or it lets through exactly what the build will refuse.
   const diagramRefs = new Set(diagramImageRefs(body));
   lines.forEach((line, i) => {
-    const hrefs = [...line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map(m => m[1]);
+    const mdHrefs = [...line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map(m => m[1]);
+    // A `![](path)` whose path is an explicit relative one (it has a slash or
+    // an extension, so it is not the assets/ shorthand) and names no file:
+    // the build now renders a placeholder for it and warns `[assets] not
+    // found`, where it used to ship the raw string as a broken external src.
+    // Mirror it, or the linter is silent on what the build now flags. Skip
+    // the shorthand (its miss is a placeholder by design), http(s)/data:
+    // (filtered below), and root-absolute / protocol-relative refs, which the
+    // build leaves untouched as intentional external paths.
+    for (const href of mdHrefs) {
+      if (/^[a-z]+:/i.test(href) || href.startsWith('/')) continue;
+      const isShorthand = !href.includes('/') && !path.extname(href);
+      if (isShorthand) continue;
+      if (!fs.existsSync(path.resolve(sourceDir, href))) {
+        const hint = href.includes('/') ? '' :
+          ` – if it is in assets/, write ![](${href.replace(/\.[a-z0-9]+$/i, '')}) without the extension`;
+        add(i + 1, 'warn', 'unresolved-asset',
+            `image path '${href}' names no file, so the build renders a placeholder${hint}`);
+      }
+    }
+    const hrefs = [...mdHrefs];
     const dm = line.trim().match(/^image\s+\S+\s+(\S+)/);
     if (dm && diagramRefs.has(dm[1])) hrefs.push(dm[1]);
     // A ::: backdrop is inlined as a data: URI exactly like a figure, so

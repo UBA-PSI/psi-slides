@@ -527,6 +527,17 @@ console.log('\nlayout generations');
     // A divider takes a card row beside its backdrop and its figure.
     ['a card row under a column heading', '# Part {#p}\n\n::: cards 2\n- A\n- B\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
     ['a figure card under a column heading', '# Part {#p}\n\n::: cards 2\n' + DRAW + '\nB.\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
+    // A `word:` prefix that is not one of the ten types used to fall through
+    // to a literal heading with no data-tag - the search index and the
+    // speaker lists then saw an untyped chunk, while lint.js called it
+    // unknown-type. The build rendering what the linter refuses is the
+    // direction this project does not allow.
+    ['an unknown chunk type', '## bogus: X {#x}\n\nBody.\n', /unknown chunk type 'bogus:'/, 'unknown-type'],
+    // Two chunks (or a chunk and a column) with one id is invalid HTML and a
+    // shared reveal/sync/localStorage slot; the build emitted both and exited
+    // 0 while lint.js reported duplicate-id. `#f` is already the FMX free
+    // chunk's id.
+    ['a duplicate id', '## free: G {#f}\n\nBody.\n', /id 'f' is used twice/, 'duplicate-id'],
   ];
   for (const [name, body, msg, code] of cases) {
     const r = run(body);
@@ -538,6 +549,34 @@ console.log('\nlayout generations');
     }
     ok(r.failed && msg.test(r.out), `${name} is refused`, r.out.split('\n')[0]);
     ok(new RegExp('\\b' + code + '\\b').test(r.lint), `and the linter says ${code}`, r.lint.split('\n')[0]);
+  }
+  // An explicit relative image path that names no file is a placeholder now,
+  // not a broken external src shipped in a file that promises to travel
+  // alone. The build warns `[assets] not found`, the linter warns
+  // unresolved-asset, and neither is an error - a missing asset while
+  // drafting is common and the placeholder is visible. The most common way in
+  // is writing the extension on a name meant for the assets/ shorthand.
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-asset-'));
+    fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'assets', 'pic.png'), Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'));
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      FMX + '![](pic.png)\n');   // pic.png is in assets/, the ref needs the shorthand
+    const b = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    const out = (b.stdout || '') + (b.stderr || '');
+    ok(b.status === 0 && /\[assets\] not found: pic\.png/.test(out),
+       'an unresolved explicit image path builds but warns', out.split('\n').find(l => /assets/.test(l)) || '');
+    const html = fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
+    ok(!/<img[^>]*src="pic\.png"/.test(html) && /figure-missing/.test(html),
+       'and ships a placeholder, not a broken external src');
+    const l = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    ok(/unresolved-asset/.test((l.stdout || '') + (l.stderr || '')),
+       'and the linter says unresolved-asset');
   }
   // ::: overlay {.panel}: the class reaches the markup, a corner is refused
   // in both files, and the layer's grid content box did not move (inset: 0

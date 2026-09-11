@@ -610,6 +610,16 @@ function assertInlinable(oversized, sourceDir) {
 const MATH_ERRORS = [];
 const mathCache = new Map();
 
+// An explicit relative image path (`![](sub/x.png)`, or a bare name written
+// with its extension) that resolves to no file on disk. The shorthand form
+// already degrades to a visible placeholder when it finds nothing; an explicit
+// path used to fall through and ship the raw string as an external `src`,
+// which is a broken figure everywhere the single-file output travels and the
+// one thing this format promises not to do. Collected during rendering,
+// deduplicated, warned once - the same pattern MATH_ERRORS follows.
+const UNRESOLVED_ASSETS = new Set();
+const assetOnDisk = (abs) => { try { return fs.existsSync(abs); } catch { return false; } };
+
 function renderMath(tex, displayMode) {
   const key = (displayMode ? 'd::' : 'i::') + tex;
   if (mathCache.has(key)) return mathCache.get(key);
@@ -2129,6 +2139,22 @@ marked.use({
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
       // Direct relative path: also splice SVGs inline for theme inheritance.
       const isRelative = href && currentSourceDir && !/^(?:https?:|data:|\/\/|\/)/i.test(href);
+      // A true relative path that names no file on disk is a typo, not an
+      // intentional external ref (those are http(s), data:, // and root
+      // absolute, all excluded above). Shipping the raw string as an external
+      // src is a broken figure wherever the output travels alone, so give it
+      // the same visible placeholder the shorthand branch gives a missing
+      // asset, and record it for the one warning at the end of the build. The
+      // most common way to trip this is writing the extension on a name meant
+      // for the assets/ shorthand: `![](chain.jpg)` is an explicit path (the
+      // extension takes it out of the shorthand), and the file is in assets/.
+      if (isRelative && !assetOnDisk(path.resolve(currentSourceDir, href))) {
+        UNRESOLVED_ASSETS.add(href);
+        const alt = escapeHtml(text || '');
+        return `<figure class="figure-img figure-missing" data-fig-id="${escapeHtml(href)}">`
+          + `<div class="figure-missing-placeholder">missing: ${escapeHtml(href)}</div>`
+          + (text ? `<figcaption>${alt}</figcaption>` : '') + '</figure>';
+      }
       const isSvgPath = href && /\.svg(?:[?#]|$)/i.test(href);
       if (inlineAssetsEnabled && isRelative && isSvgPath) {
         const abs = path.resolve(currentSourceDir, href);
@@ -3048,6 +3074,24 @@ function parseTagPrefix(text) {
   const m = text.match(/^([a-z]+):\s*(.*)$/);
   if (m && VALID_TAGS.has(m[1])) {
     return { tag: m[1], ...splitHeading(m[2].trim()) };
+  }
+  // A lowercase `word:` prefix that is not one of the ten types is a typo,
+  // not a heading that happens to hold a colon: `## principl: X` fell through
+  // here and rendered as the literal heading with no data-tag, so the search
+  // index and the speaker lists saw an untyped chunk. lint.js has reported
+  // `unknown-type` on exactly this since the tag vocabulary existed; the build
+  // rendering what the linter refuses is the direction this project does not
+  // allow. The regex demands lowercase, so a real colon heading (`Note: …`,
+  // `https://…` written as `[link](url)`) is unaffected - the same predicate
+  // lint uses, so the two agree line for line.
+  if (m) {
+    const err = new Error(
+      `unknown chunk type '${m[1]}:' in "## ${text}"\n` +
+      `  valid types: ${[...VALID_TAGS].join(', ')}\n` +
+      '  A `word:` prefix must be one of these; write the heading without a\n' +
+      '  colon if you did not mean a type.');
+    err.userFacing = true;
+    throw err;
   }
   return { ...splitHeading(text.trim()) };
 }
@@ -6586,6 +6630,38 @@ function abbrevForLabel(label) {
 // print-notes.html were already on disk, and --print-only never reached it
 // at all, so an invalid deck built clean. Same contract as the two above -
 // a failed build leaves no half-written artefact.
+// Chunk ids and column ids share one namespace, and a duplicate breaks four
+// things that all key off getElementById: cross-references, the TOC, the
+// speaker-sync snapshot and localStorage recovery - two `<article id="x">`
+// in one document mean the second is unreachable and the two share one
+// `revealed[]` slot. The build used to emit both and exit 0; lint.js has
+// reported `duplicate-id` on exactly this (over one shared `ids` map for `#`
+// and `##`), so the build accepting it is the direction this project does
+// not allow. A pre-flight beside assertCoverBody, walking the parsed
+// structure rather than the source, so `--print-only` refuses it too.
+function assertDistinctIds(lecture) {
+  const seen = new Map();
+  const check = (id, what) => {
+    if (!id) return;
+    if (seen.has(id)) {
+      const err = new Error(
+        `id '${id}' is used twice: first on ${seen.get(id)}, again on ${what}.\n` +
+        '  Chunk ids and column ids share one namespace, and a duplicate makes\n' +
+        '  the second element unreachable - the two share one reveal/sync slot.\n' +
+        '  Ids are frozen once authored; rename the later one.');
+      err.userFacing = true;
+      throw err;
+    }
+    seen.set(id, what);
+  };
+  for (const col of lecture.columns) {
+    if (col.id) check(col.id, `column "${col.heading || col.id}"`);
+    for (const chunk of col.chunks) {
+      check(chunk.id, `chunk ## ${chunk.tag ? chunk.tag + ': ' : ''}${chunk.heading || chunk.id || ''}`);
+    }
+  }
+}
+
 function assertCoverBody(lecture) {
   // Every frontmatter key that can refuse a deck is resolved here, not where
   // a renderer happens to need it. `section:` was read only while rendering a
@@ -9652,9 +9728,17 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   overflow: hidden;
   min-height: 7em;
 }
-.cards.cg-photo li > :is(p, figure):first-child > img:only-child,
-.cards.cg-photo li > img:first-child,
-.cards.cg-photo li > figure.figure-img:first-child img {
+/* The card's first image is its ground, wherever it sits in the item.
+   first-of-type, not first-child: a card may open with the documented bold
+   heading (a bold run then a hard break) which puts a strong plus a br ahead
+   of the image - and first-child then matched nothing, so the ground silently
+   became an ordinary inline picture with the words above and below it. An
+   inline svg (a vector asset spliced for theme inheritance) is a ground too,
+   and carried no img for the old selector to reach at all. */
+.cards.cg-photo li > :is(p, figure):first-of-type > img:first-of-type,
+.cards.cg-photo li > img:first-of-type,
+.cards.cg-photo li > figure.figure-img:first-of-type > img,
+.cards.cg-photo li > figure.figure-img:first-of-type > svg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -9664,7 +9748,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   object-fit: cover;
   z-index: -2;
 }
-.cards.cg-photo li > figure.figure-img:first-child { position: static; margin: 0; }
+.cards.cg-photo li > figure.figure-img:first-of-type { position: static; margin: 0; }
 .cards.cg-photo li::before {
   content: '';
   position: absolute;
@@ -18073,6 +18157,7 @@ function buildOnce(absIn, only, opts = {}) {
   dgWarned.clear();
   dgLectureTags.clear();
   MATH_ERRORS.length = 0;
+  UNRESOLVED_ASSETS.clear();
   lastKatexSheet = null;
   // Auto-inline decision when neither --inline-images nor --no-inline-images
   // was passed: scan referenced images, inline iff total fits AUTO_INLINE_BUDGET.
@@ -18112,6 +18197,7 @@ function buildOnce(absIn, only, opts = {}) {
   // parseLecture, so a reset further down wiped the very thing it collects.
   embedsThisBuild = [];
   const lecture = parseLecture(src);
+  assertDistinctIds(lecture);
   assertCoverBody(lecture);
   // Pre-flight, beside assertInlinable and assertCoverBody: a viewer default
   // or a style key with a value the tool does not know fails the build here
@@ -18242,6 +18328,18 @@ function buildOnce(absIn, only, opts = {}) {
       if (seen.has(e.tex)) continue;
       seen.add(e.tex);
       console.warn(`[math] could not render: ${e.tex.slice(0, 60)} – ${e.message}`);
+    }
+  }
+  // A relative image path that named no file: it is a placeholder in the
+  // output now rather than a silently broken external src, but the author has
+  // to be told which ref and, usually, that the fix is dropping the extension
+  // so the assets/ shorthand resolves it. lint.js reports the same as
+  // `unresolved-asset`.
+  if (UNRESOLVED_ASSETS.size) {
+    for (const ref of UNRESOLVED_ASSETS) {
+      const hint = /[\\/]/.test(ref) ? '' :
+        `  – if it is in assets/, write ![](${ref.replace(/\.[a-z0-9]+$/i, '')}) without the extension`;
+      console.warn(`[assets] not found: ${ref}${hint}`);
     }
   }
   if (lastKatexSheet) {

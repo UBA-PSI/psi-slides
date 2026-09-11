@@ -2394,9 +2394,17 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   overflow: hidden;
   min-height: 7em;
 }
-.cards.cg-photo li > :is(p, figure):first-child > img:only-child,
-.cards.cg-photo li > img:first-child,
-.cards.cg-photo li > figure.figure-img:first-child img {
+/* The card's first image is its ground, wherever it sits in the item.
+   first-of-type, not first-child: a card may open with the documented bold
+   heading (a bold run then a hard break) which puts a strong plus a br ahead
+   of the image - and first-child then matched nothing, so the ground silently
+   became an ordinary inline picture with the words above and below it. An
+   inline svg (a vector asset spliced for theme inheritance) is a ground too,
+   and carried no img for the old selector to reach at all. */
+.cards.cg-photo li > :is(p, figure):first-of-type > img:first-of-type,
+.cards.cg-photo li > img:first-of-type,
+.cards.cg-photo li > figure.figure-img:first-of-type > img,
+.cards.cg-photo li > figure.figure-img:first-of-type > svg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -2406,7 +2414,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   object-fit: cover;
   z-index: -2;
 }
-.cards.cg-photo li > figure.figure-img:first-child { position: static; margin: 0; }
+.cards.cg-photo li > figure.figure-img:first-of-type { position: static; margin: 0; }
 .cards.cg-photo li::before {
   content: '';
   position: absolute;
