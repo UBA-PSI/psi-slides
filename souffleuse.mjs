@@ -900,10 +900,23 @@ function jaccardOf(a, b) {
  */
 export function createPolicy(opts = {}) {
   const o = opts || {};
-  const cooldown = num(o.cooldown, 60);
+  // The cooldown across every kind, and it is the one that actually fired.
+  // It was 60 s, shorter than every per-kind figure below, so it was the only
+  // gate most answers ever met: the first rehearsal showed a fact correction
+  // at 1:22 swallowing both time hints behind it, at 1:55 and 2:10, although a
+  // clock warning and a wrong number are different jobs and neither repeats
+  // the other. Its job is to stop two whispers arriving on top of each other,
+  // which is a matter of seconds, not of a minute; the per-kind figures are
+  // what keep the same *kind* from becoming a drumbeat.
+  const cooldown = num(o.cooldown, 20);
   const startQuiet = num(o.startQuiet, START_QUIET_S);
+  // Per kind. `fact` was 120 s and that is far too long for the failure it
+  // guards: a speaker who has the numbers muddled says four wrong things in
+  // four minutes, and the room is misled by each of them. Repeating the same
+  // correction in the same words is what the duplicate rule is for, and it
+  // catches that whether or not this number is generous.
   const perKind = Object.assign(
-    { time: 240, delivery: 300, example: null, fact: 120 },
+    { time: 240, delivery: 300, example: null, fact: 45 },
     o.perKind || {},
   );
   const deliveryMax = num(o.deliveryMax, 3);

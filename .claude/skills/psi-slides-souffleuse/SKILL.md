@@ -65,7 +65,7 @@ are the build's:
 | `model` | any OpenRouter model id | `anthropic/claude-sonnet-5` | non-empty |
 | `language` | BCP-47 tag | falls back to `lang:` | `en`, `de`, `de-DE`, … |
 | `cadence` | seconds of new speech that earn a call | 25 | 10 … 120 |
-| `cooldown` | seconds a shown hint buys | 60 | 20 … 600 |
+| `cooldown` | seconds a shown hint buys, across every kind | 20 | 10 … 600 |
 | `cues` | may it lay cards into upcoming slides | `on` | `on` / `off` |
 
 `duration:` sits at the **top level**, not in the block: it is a property of the
@@ -246,8 +246,9 @@ prompter on mid-talk should still buy the speaker a quiet minute.
 | more than `MAX_WORDS` = 12 words | discarded, never shortened | `too-long` |
 | opening silence | `startQuiet` 60 s, measured from the switch | `start-quiet` |
 | one hint at a time | while one stands, a `low` one is dropped; a `high` one replaces it | `standing` |
-| cool-down overall | `cooldown` (frontmatter, default 60 s), with one exception: `fact` at `high` | `cooldown` |
-| per kind | `time` 240 s · `delivery` 300 s and at most 3 per session · `fact` 120 s · `example` no cool-down but one per slide | `kind-cooldown`, `delivery-max`, `example-per-chunk` |
+| cool-down overall | `cooldown` (frontmatter, default 20 s), with one exception: `fact` at `high`. It stops two whispers landing on top of one another and nothing more. It was 60 s, which made it shorter than every per-kind figure below and therefore the only gate most answers ever met: in the first real rehearsal one fact correction swallowed both clock warnings behind it, and a clock warning repeats nothing a number said | `cooldown` |
+| per kind | `time` 240 s · `delivery` 300 s and at most 3 per session · `fact` 45 s · `example` no cool-down but one per slide | `kind-cooldown`, `delivery-max`, `example-per-chunk` |
+| | `fact` was 120 s. A speaker with the figures muddled misleads the room once per attempt, and *repeating the same words* is what the duplicate rule refuses – which it does whether this figure is generous or not. Replaying the first rehearsal moved four whispers through instead of two, and every remaining refusal became a duplicate rather than a timer | |
 | duplicates | word Jaccard ≥ 0.6 against every hint shown **or dismissed** | `duplicate` |
 | a clock hint | only when `timeHintAllowed` said yes | `time-not-allowed` |
 | a cue | only an id from `cue_targets`, at most one per slide | `bad-cue`, `cue-per-chunk` |
@@ -343,7 +344,7 @@ watcher. Every line carries `t` and `type`:
 
 | type | body |
 |---|---|
-| `session` | `via` (`build` / `hello`), `model`, `base`, `prefixHash`, `prefixChars`, `chunkCount`, `lang`, `durationS`, `cadence`, `cooldown`, `cues`, `stt`, `disabled` |
+| `session` | `via` (`build` / `hello`), `model`, `base`, `prefixHash`, `prefixChars`, `chunkCount`, `lang`, `durationS`, `cadence`, `cooldown`, `cues`, `stt`, `disabled`. `stt` carries `engine`, `local`, and – from the hello – `onDevice`, Chrome's verdict for each spelling of the language that was tried (`en: downloadable`, `en-US: available`), plus `installing`, the tag a download was actually asked for. Without those two the log could not say why a machine with the model installed was still talking to a server |
 | `say` | `text`, `t0`, `t1`, `chunkId`, `idx`, `beat` |
 | `move` | `idx`, `chunkId`, `sentId`, `beat`, `elapsed` |
 | `tick` | `reason`, `idx`, `chunkId`, `beat`, `elapsed`, `drift`, `rough`, `timeHintAllowed`, `cueTargets`, and the **user message** – never the prefix, which is the same 20 to 60 KB on every line and is already in the build |

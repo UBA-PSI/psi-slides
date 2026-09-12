@@ -883,6 +883,45 @@ What it answered, and none of it could have been known from a fake:
 Still unmeasured: on-device recognition on macOS, a real microphone in a real
 room, and a deck long enough that the prefix is the whole cost.
 
+### The author's own rehearsal, and the numbers it moved
+
+A second run, this time with a real voice and a real room, on the same deck.
+Four and a half minutes, the speaker deliberately misstating his own figures.
+The machinery did its part: **eleven calls to the model**, roughly one every
+twenty to thirty seconds. The model wanted to whisper **nine times**. The code
+allowed **two**, and the speaker's verdict was that it spoke too rarely.
+
+The log said why, and it was not the cadence. After the first hint at 1:22 the
+cool-down across every kind, then sixty seconds, swallowed both clock warnings
+behind it, at 1:55 and 2:10 - although a clock warning and a wrong number are
+different jobs and neither repeats the other. Then the per-kind figure for
+`fact`, then two minutes, swallowed four further corrections while the speaker
+went on misstating the numbers. Sixty seconds was shorter than every per-kind
+figure, so it was the only gate most answers ever met; two minutes was long
+enough that a confused four minutes earned two sentences.
+
+So: the overall cool-down is 20 s, which is what "two whispers must not land
+together" actually costs, and `fact` is 45 s, because repeating *the same
+words* is the duplicate rule's job and it does that regardless. Replayed
+against the same log with `--souffleuse-replay`, four whispers come through
+instead of two, and every refusal that remains is a `duplicate` rather than a
+timer - the shape the design wanted in the first place.
+
+Two more things that run turned up. **The ear was not on-device**, on a machine
+whose Chrome has the en-US pack installed: the deck writes `lang: en`, Chrome's
+packs are regional, and asking only for the bare subtag is how a model that is
+present goes unused. The adapter now asks for the deck's tag, then the
+browser's own locale when it shares the primary subtag, then one default region
+(`sttTags`), installs the tag that was actually downloadable rather than the
+one the deck named, and writes every verdict into the `session` line - because
+the log could not answer "why not on-device", which is the first question a
+rehearsal asks. **And the transcript was badly mangled** by the server
+recogniser on accented English (`he attacks unverses`, `190 milliseconds`,
+`950 milliseconds`), so some of what the model was correcting was the
+recogniser's error and not the speaker's. That is the case the prompt's
+"do not flag a probable mishearing" rule exists for, and it is an argument for
+the on-device ear rather than against the feature.
+
 ## The checklist it was run against
 
 Which talk calibrates the thresholds (90 s behind, 240 s ahead, 60 s

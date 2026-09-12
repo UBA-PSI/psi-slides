@@ -450,22 +450,31 @@ export async function run({ report }) {
   pol = createPolicy();
   pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 100 });
   pol.dismissed('h1');
-  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 130 })).reason === 'cooldown',
-     'policy: sixty seconds of quiet after every hint');
-  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 170 })).show === true,
-     'policy: and then the next may come');
-  ok(pol.judge(hint('fact', 'Es waren zwei', 'high'), ctx({ now: 110 })).show === true,
-     'policy: except a factual slip at high severity, which cannot wait');
-  ok(pol.judge(hint('fact', 'Es waren zwei'), ctx({ now: 110 })).reason === 'cooldown',
+  // The cool-down across kinds keeps two whispers from arriving on top of one
+  // another, and no longer than that: it was a minute, and in the first real
+  // rehearsal that one figure swallowed both clock warnings behind a wrong
+  // number, which is a different job and repeats nothing.
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 112 })).reason === 'cooldown',
+     'policy: a few seconds of quiet after every hint, so two never land together');
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 125 })).show === true,
+     'policy: and a different kind may come while the same kind still waits');
+  ok(pol.judge(hint('fact', 'Es waren zwei', 'high'), ctx({ now: 105 })).show === true,
+     'policy: except a factual slip at high severity, which cannot wait even for that');
+  ok(pol.judge(hint('fact', 'Es waren zwei'), ctx({ now: 105 })).reason === 'cooldown',
      'policy: the exception is the severity, not the kind');
 
   pol = createPolicy();
   pol.shown({ id: 'h1', kind: 'fact', text: 'Es waren zwei', at: 100 });
   pol.dismissed('h1');
-  ok(pol.judge(hint('fact', 'Drei Klicks, nicht vier'), ctx({ now: 200 })).reason === 'kind-cooldown',
-     'policy: a second fact waits two minutes, past the overall cool-down');
-  ok(pol.judge(hint('fact', 'Drei Klicks, nicht vier'), ctx({ now: 230 })).show === true,
+  // A *different* wrong number is worth saying: a speaker with the figures
+  // muddled misleads the room once per attempt, and repeating the same words
+  // is what the duplicate rule refuses. So this waits under a minute, not two.
+  ok(pol.judge(hint('fact', 'Drei Klicks, nicht vier'), ctx({ now: 130 })).reason === 'kind-cooldown',
+     'policy: a second fact waits, but in seconds');
+  ok(pol.judge(hint('fact', 'Drei Klicks, nicht vier'), ctx({ now: 150 })).show === true,
      'policy: and then it may come');
+  ok(pol.judge(hint('fact', 'Es waren zwei'), ctx({ now: 400 })).reason === 'duplicate',
+     'policy: while the same correction in the same words stays refused for good');
 
   pol = createPolicy();
   pol.shown({ id: 'h1', kind: 'example', text: 'Nenne den Fall', at: 100, chunkId: 'vorgesetzter' });

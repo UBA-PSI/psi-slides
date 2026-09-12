@@ -5131,7 +5131,7 @@ const SOUFFLEUSE_SPEC = {
   'model':    { kind: 'text', dflt: 'anthropic/claude-sonnet-5' },
   'language': { kind: 'lang', dflt: null },
   'cadence':  { kind: 'number', min: 10, max: 120, dflt: 25 },
-  'cooldown': { kind: 'number', min: 20, max: 600, dflt: 60 },
+  'cooldown': { kind: 'number', min: 10, max: 600, dflt: 20 },
   'cues':     { kind: 'enum', values: ['on', 'off'], dflt: 'on' },
 };
 function souffleuseSettings(frontmatter = {}) {
@@ -18194,6 +18194,29 @@ if (SOUFFLEUSE && window.psiWatch) {
   //
   // available resolves {ok, local, why}; onFinal takes {text, t0, t1} in
   // seconds of the cockpit's own clock.
+  // The spellings of one language, most specific first. Chrome's on-device
+  // packs carry a region (the one on the machine this was first tested on is
+  // en-US) while a deck writes the document's language, which is usually the
+  // bare subtag. Asking only what the deck wrote is how a machine that has the
+  // model installed still talks to a server.
+  const STT_REGION = {
+    en: 'en-US', de: 'de-DE', fr: 'fr-FR', es: 'es-ES', it: 'it-IT',
+    nl: 'nl-NL', pt: 'pt-BR', pl: 'pl-PL', sv: 'sv-SE', da: 'da-DK',
+    tr: 'tr-TR', ru: 'ru-RU', ja: 'ja-JP', ko: 'ko-KR', zh: 'zh-CN',
+  };
+  function sttTags(lang) {
+    const want = String(lang || 'en').trim();
+    const primary = want.split('-')[0].toLowerCase();
+    const out = [want];
+    const add = (t) => { if (t && out.indexOf(t) < 0) out.push(t); };
+    // The browser's own locale, but only when it is the same language: a
+    // German Chrome must not be asked for German when the deck is English.
+    const nav = String((navigator.languages && navigator.languages[0]) || navigator.language || '');
+    if (nav && nav.split('-')[0].toLowerCase() === primary) add(nav);
+    add(STT_REGION[primary]);
+    return out;
+  }
+
   function webSpeechAdapter() {
     const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
     let rec = null;
@@ -18207,6 +18230,9 @@ if (SOUFFLEUSE && window.psiWatch) {
     // sidecar's cadence is counted in.
     let mark = 0;
     let restarts = [];
+    // What Chrome answered for each spelling, and which one is worth installing.
+    let verdicts = [];
+    let downloadTag = null;
 
     function open(lang) {
       // The instance is held locally as well as in the shared slot, and every
@@ -18275,25 +18301,46 @@ if (SOUFFLEUSE && window.psiWatch) {
       async available(lang) {
         if (!SR) return { ok: false, local: false, why: 'no speech recognition in this browser' };
         needDownload = false;
+        verdicts = [];
+        downloadTag = null;
         // Chrome's on-device path. available() is young and, on macOS, the
         // subject of an open Chromium bug - so anything that is not a plain
         // "available" falls back to the server recogniser rather than being
         // argued with, and the badge says which one the room is getting.
-        try {
-          if (typeof SR.available === 'function') {
-            const st = await SR.available({ langs: [lang], processLocally: true });
-            if (st === 'available') return { ok: true, local: true, why: '' };
-            if (st === 'downloadable') needDownload = true;
-          }
-        } catch (e) { /* unavailable, and the fallback is the answer */ }
-        return { ok: true, local: false, why: 'server speech recognition' };
+        //
+        // It is asked for more than one spelling of the language, because the
+        // two halves disagree about what a language is. A deck writes lang: en,
+        // which is right for the document, and Chrome's packs are regional:
+        // the one on this machine is en-US. Asking only for the bare subtag is
+        // how a machine with the model already installed still ends up on
+        // Google's servers. The candidates are the deck's own tag first, then
+        // the browser's own locale when it shares the primary subtag, then one
+        // default region - and every answer is written down, so the log can say
+        // why the room is not getting the on-device ear.
+        if (typeof SR.available !== 'function') {
+          return { ok: true, local: false, why: 'server speech recognition', verdicts };
+        }
+        for (const tag of sttTags(lang)) {
+          let st = 'threw';
+          try { st = await SR.available({ langs: [tag], processLocally: true }); }
+          catch (e) { st = 'threw'; }
+          verdicts.push(tag + ': ' + st);
+          if (st === 'available') return { ok: true, local: true, why: '', lang: tag, verdicts };
+          if (st === 'downloading' && !downloadTag) downloadTag = tag;
+          if (st === 'downloadable' && !downloadTag) { downloadTag = tag; needDownload = true; }
+        }
+        return { ok: true, local: false, why: 'server speech recognition', verdicts };
       },
       // Only ever from inside a click: the download wants a user gesture,
       // and the recogniser that carries the talk in the meantime is the
       // server one, with the badge up.
+      // The tag that was actually downloadable, not the one the deck names:
+      // installing the bare en on a machine whose pack is en-US asks for nothing.
       download(lang) {
-        if (!SR || typeof SR.install !== 'function') return;
-        try { SR.install({ langs: [lang], processLocally: true }); } catch (e) { /* not fatal */ }
+        if (!SR || typeof SR.install !== 'function') return null;
+        const tag = downloadTag || sttTags(lang)[0];
+        try { SR.install({ langs: [tag], processLocally: true }); return tag; }
+        catch (e) { return null; }
       },
       start(lang, handlers, onDevice) {
         // A second start while a recogniser is open would leave the first one
@@ -18325,6 +18372,8 @@ if (SOUFFLEUSE && window.psiWatch) {
   let souffOn = false;
   let souffState = 'off';
   let souffLocal = false;
+  let souffVerdicts = [];
+  let souffAsked = null;
   let souffLastSent = { idx: -1, beat: -1 };
 
   // The cockpit's clock, unrounded. renderTimer floors the same number for
@@ -18352,8 +18401,16 @@ if (SOUFFLEUSE && window.psiWatch) {
   // fact about the whole session and the quietest of the degraded states,
   // so it is what is left when nothing louder stands.
   function souffPaintBadge() {
-    souffSetBadge(souffEarWhy || souffSideWhy
-      || ((souffOn && !souffLocal) ? 'server speech recognition' : null));
+    // The quiet state says what would change it. A pack that is downloading
+    // will be there next time the switch is thrown, and that is worth a
+    // different sentence from one that was never asked for.
+    let ear = null;
+    if (souffOn && !souffLocal) {
+      ear = souffAsked
+        ? 'server speech recognition \u2013 fetching the ' + souffAsked + ' model, press again later'
+        : 'server speech recognition';
+    }
+    souffSetBadge(souffEarWhy || souffSideWhy || ear);
   }
   function souffPaint() {
     if (!souffBtn) return;
@@ -18414,7 +18471,14 @@ if (SOUFFLEUSE && window.psiWatch) {
   function souffHello() {
     return souffWatch.ask('souffleuse-hello', {
       lang: SOUFFLEUSE.lang,
-      stt: { engine: souffStt.name, local: souffLocal },
+      stt: {
+        engine: souffStt.name,
+        local: souffLocal,
+        // Why the ear is where it is, in Chrome's own words, one entry per
+        // spelling of the language that was tried.
+        onDevice: souffVerdicts,
+        installing: souffAsked,
+      },
     });
   }
 
@@ -18434,8 +18498,14 @@ if (SOUFFLEUSE && window.psiWatch) {
       try { av = await souffStt.available(SOUFFLEUSE.lang); }
       catch (e) { av = { ok: false, why: 'speech recognition would not start' }; }
       if (!av.ok) { souffEarWhy = av.why; souffPaintBadge(); souffPaint(); return; }
-      if (fromGesture && souffStt.needsDownload()) souffStt.download(SOUFFLEUSE.lang);
+      // The install wants a user gesture, so it can only be fired from the
+      // press itself. What it asked for is written down: a download that was
+      // never started and one that is still running look the same from the
+      // badge, and the difference decides whether pressing again will help.
+      souffAsked = null;
+      if (fromGesture && souffStt.needsDownload()) souffAsked = souffStt.download(SOUFFLEUSE.lang);
       souffLocal = !!av.local;
+      souffVerdicts = av.verdicts || [];
       souffEarWhy = null;
       const hi = await souffHello();
       if (!hi || !hi.ok) {
