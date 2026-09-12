@@ -833,6 +833,136 @@ the only defect in this feature that would have cost money at the lectern.
   over a prompter that was working. The next final result it hears is the
   proof, and it is the only one the ear has.
 
+### The delivery: tempo was missing input, not missing prompting
+
+The author asked for a prompter that watches his *delivery* – too fast, filler
+sounds piling up, an argument gone incoherent, and something his own notes
+planned that he has walked past – and for a card to be layable onto the
+conclusion for a good sentence said in passing.
+
+**The insight the work turns on: the model has no tempo information at all.**
+It receives text. Speaking rate, hesitation, filler density and long silences
+are simply absent from a transcript, so "notice that I am speaking too fast"
+was never a prompting problem – it was missing input, and no amount of asking
+would have fixed it. Anything the code can count, the code counts;
+`speechStats({transcript, now, window, lang})` measures it over the *same*
+rolling window the transcript already rides in (one walk, `windowOf`, shared
+with `tickMessage`, because two would describe two different stretches of the
+same talk) and the state line carries one extra line:
+
+```
+delivery: 272 wpm (very-fast) · 7 fillers in the last 46s spoken · longest silence 0s
+```
+
+The model is then asked only whether the numbers are worth a whisper.
+
+The thresholds, and why each is the number it is:
+
+- **The rate is over spoken seconds, never wall time.** The sum of `t1 - t0`
+  per segment, which is what the cadence already counts: a speaker who says
+  forty words in twenty seconds of talking and then thinks for a minute spoke
+  at 120 wpm, not at 30. The silence is its own figure, `longestGap`, because
+  a speaker who has lost the thread goes quiet.
+- **`PACE_WPM` is `easy` 110, `brisk` 150, `fast` 170, `veryFast` 190**, and
+  `paceVerdict` reads the five words off it – published guidance for presenting
+  sits at roughly 100 to 150 wpm. Generous at the top on purpose: 160 is brisk
+  and usually known, 190 has stopped leaving room for a thought to land. **The
+  verdict is in code**, like every other judgement of this kind here, so the
+  model is never asked to invent a boundary.
+- **`DELIVERY_MIN_SAMPLE_S` is 20 s of speech**, below which there is no
+  delivery line at all – 200 wpm off twelve seconds is noise – and the prompt
+  makes the line's *presence* the condition for a `pace` hint, so the model
+  cannot reason about numbers it was not given. In the rehearsal below the
+  first tick had no line, which is the floor working.
+- **The filler set is sounds, never words.** `ähm äh ehm öhm hm hmm uh uhm um
+  erm` with the repetitions a recogniser writes; `also`, `halt`, `eigentlich`,
+  `like` and `you know` are ordinary speech. A false positive here tells a
+  lecturer to stop doing something they were not doing, which is worse than
+  silence because it is unanswerable. `er` is out although it is an English
+  filler, because in German it is the word "he"; and **`um` counts only where
+  the language is not German**, where it is an everyday preposition. That is
+  the one place the count needs `lang`, which is why the sidecar puts it in the
+  session.
+- **A count of zero is not evidence.** Chrome's recogniser frequently strips
+  filler sounds before a final result is ever delivered. The rules say so, and
+  the line says so where the number is, so that no hint can read a zero as
+  fluency.
+
+**`pace` and `skipped` are kinds of their own, and `pace` has a cool-down of
+its own for the reason the author's first rehearsal found: one cool-down doing
+every job made the prompter speak twice out of nine.** Manner is a moment and
+tempo is a condition – it lasts minutes and it comes back – so they cannot
+share a timer. `pace` is 150 s, about how long it takes a speaker who has been
+told to slow down to have actually changed something; shorter and the prompter
+is a metronome. At most four in a talk (`paceMax`), one more than `delivery`,
+because the condition genuinely recurs – fast in the opening, fast again after
+a question from the room. `skipped` is 90 s, the shortest figure after `fact`,
+because two omissions on two slides are two different facts, but not shorter,
+because a speaker who has left a slide cannot go back to it. `delivery` keeps
+manner, and it is where an argument gone abstract lands – answered with a
+handhold rather than a diagnosis: *name the bank example*, not *you are being
+abstract*.
+
+**The conclusion is always a cue target.** `cueTargets` now offers the next
+three slides *and* the end of the deck – its last addressable slide, and its
+`closing:` chunk when it has one – because a sentence worth keeping is usually
+said long before the place it belongs, and that place is usually the
+conclusion, which a window of three slides reaches only in the last minute of
+the talk. Two decisions inside that:
+
+- **The state line names it as a field of its own, `conclusion=closing-words`,
+  rather than marking it inside the list** (`end:closing-words` was the
+  suggestion). The ids in `cue_targets` are copied verbatim into the answer,
+  and an id carrying a decoration is an id the model gets wrong – a refusal
+  under `bad-cue` instead of a card.
+- **A conclusion the speaker is standing on is not offered**, and that is the
+  right answer rather than an oversight: a card for the slide on the screen is
+  something to say now, and the thing that says something now is a hint on the
+  strip. The model is offered the strip for it either way.
+
+**A replayed card is not a second saying.** Found in the author's live run: the
+history panel held one card twice, at 5:55 and at 7:33, for one cue the sidecar
+had sent once. The cards live in the cockpit's memory alone, so a reload – or
+unticking the cue box and ticking it back – empties the Map and the sidecar
+replays what it has; `souffCueAdd` then unshifted a fresh row stamped with the
+clock at replay time. Three things: the card ids already in the record are kept
+apart from the rows (which are capped at ten, so a row that fell off the end
+must not come back as a new saying); `souffleuse-cue` and the `cueCards` of a
+`hello` both carry `at`, so the surviving row says when the card was actually
+laid rather than when it was replayed – which was the worse half, being quietly
+false rather than merely repeated; and the arrival announcement in the classic
+layout enters no row at all, because the card is already one. Its own
+once-per-card set is per page and is **left** that way: the announcement is
+owed to the speaker the first time they walk onto the slide, a fresh page
+cannot know whether they already did, and showing a card that is genuinely on
+the slide in front of them twice is cheaper than never showing it.
+
+### The rehearsal the numbers were the point of
+
+Against the real model (`anthropic/claude-sonnet-5`) on `lectures/spoken-talk`,
+with a scripted talk played down the watch socket at 250 to 290 wpm, filler
+sounds throughout, the planned second half of one slide skipped, one sentence
+that had lost its thread, and one good sentence said in passing that the deck
+does not contain. Four calls, 2.4 to 3.1 s each, 2823 of 3404 prompt tokens
+cached from the second call on. What it said, in its own words and its own
+`why`:
+
+- **`pace`**: *"Slow down, no need to rush."* – `why: "very-fast wpm plus
+  fillers"`. It used the measured line and nothing else; there is nothing in
+  the transcript it could have used instead.
+- **`skipped`**: *"Point at the ninety milliseconds number too."* – `why:
+  "note beat 0 includes pointing at ninety ms, not yet said"`. It read the
+  planned thing out of the notes in the prefix, which is what the notes are in
+  there for. The policy held it back under `cooldown`, twenty seconds after the
+  pace hint, and said so on the terminal.
+- **`cue → #ask`**: *"Quarterly reports copy, nobody remembers the date."* –
+  `why: "good concrete example for conclusion slide"`. The conclusion was four
+  slides away and was in `cue_targets` only because the end of the deck is
+  always offered. That is the author's ask, answered by the feature that was
+  built for it.
+- And the first tick, at sixteen seconds of speech, carried **no** delivery
+  line at all.
+
 ## The questions to the author, answered
 
 - **Process**: a Node sidecar in `build.js`.

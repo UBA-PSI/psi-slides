@@ -38,7 +38,18 @@
 
 // What a hint can be about. `cue` is deliberately not one of them: it is an
 // action, not a kind – a card laid into a slide that is still to come.
-export const KINDS = ['time', 'example', 'fact', 'delivery'];
+//
+// `pace` is separate from `delivery` because the two are not the same job and
+// must not share a cool-down. `delivery` is manner – talking to the slide, a
+// question left hanging, an argument that has gone abstract – and it is rare
+// by design, three in a talk. Tempo is a condition rather than a moment: it
+// lasts minutes, it comes back, and it is the one thing here the code
+// measures rather than the model judges (see `speechStats`). One cool-down
+// doing both jobs is what crippled the author's first rehearsal.
+//
+// `skipped` is the speaker's own notes: something this slide planned that has
+// not been said and is about to go past.
+export const KINDS = ['time', 'example', 'fact', 'delivery', 'pace', 'skipped'];
 
 // How loud a hint is. `high` is for something that will mislead the room if
 // it stands, and is the only thing that interrupts a hint already standing.
@@ -84,8 +95,11 @@ export const TOOL_SCHEMA = {
             'What the hint is about. time: behind or far ahead of the plan, and '
             + 'only when time_hint_allowed is yes. example: the point just made '
             + 'is abstract, or the example did not land. fact: what was just said '
-            + 'contradicts the deck. delivery: pace, filler, a question left '
-            + 'hanging.',
+            + 'contradicts the deck. delivery: manner – talking to the slide, a '
+            + 'question left hanging, a term used before it was defined. pace: '
+            + 'speaking too fast, filler sounds piling up, a silence that has run '
+            + 'on – only from the measured numbers in the delivery line. skipped: '
+            + 'the notes for this slide planned something that has not been said.',
         },
         text: {
           type: 'string',
@@ -421,21 +435,58 @@ export function flattenMarks(deck) {
   return out;
 }
 
+// A slide a cue can name: not a divider, and with an id the cockpit can
+// find. A divider is an auto-inserted camera stop with no cue list of its
+// own, and its element id is not the id this payload gives it.
+function addressable(c) {
+  if (!c || c.tag === 'section') return false;
+  const id = String(c.id || '');
+  return !!id && id.indexOf('col:') !== 0;
+}
+
 /**
- * The next `count` slides a cue may be laid into: after the active one, with
- * an id a cockpit can find. A divider is skipped – it is an auto-inserted
- * camera stop with no cue list of its own, and its element id is not the id
- * this payload gives it.
+ * The end of the deck, as the two slides worth offering from anywhere in the
+ * talk: the last addressable slide, and the `closing:` chunk if there is one.
+ *
+ * A sentence worth keeping is usually said long before the place it belongs,
+ * and that place is usually the conclusion – which a window of the next three
+ * slides reaches only in the last minute of the talk, by which time the
+ * sentence has been forgotten. So the conclusion is always a target.
+ *
+ * `from` is the first slide a card may go into, which is the one after the
+ * active slide. **A conclusion the speaker is already standing on is
+ * therefore not offered**, and that is the right answer rather than an
+ * oversight: a card for the slide on the screen is something to say now, and
+ * the thing that says something now is a hint on the strip. The model is
+ * offered the strip for it either way.
+ */
+function endTargets(deck, from) {
+  const chunks = deck && Array.isArray(deck.chunks) ? deck.chunks : [];
+  let last = null;
+  let closing = null;
+  for (let i = chunks.length - 1; i >= Math.max(0, num(from, 0)); i--) {
+    const c = chunks[i];
+    if (!addressable(c)) continue;
+    if (last === null) last = String(c.id);
+    if (closing === null && c.tag === 'closing') closing = String(c.id);
+  }
+  return { last, closing };
+}
+
+/**
+ * The slides a cue may be laid into: the next `count` after the active one,
+ * plus the deck's end – see `endTargets`.
  */
 export function cueTargets(deck, idx = -1, count = 3) {
   const chunks = deck && Array.isArray(deck.chunks) ? deck.chunks : [];
+  const from = Math.max(0, num(idx, -1) + 1);
   const out = [];
-  for (let i = Math.max(0, num(idx, -1) + 1); i < chunks.length && out.length < count; i++) {
-    const c = chunks[i];
-    if (!c || c.tag === 'section') continue;
-    const id = String(c.id || '');
-    if (!id || id.indexOf('col:') === 0) continue;
-    out.push(id);
+  for (let i = from; i < chunks.length && out.length < count; i++) {
+    if (addressable(chunks[i])) out.push(String(chunks[i].id));
+  }
+  const end = endTargets(deck, from);
+  for (const id of [end.last, end.closing]) {
+    if (id && out.indexOf(id) < 0) out.push(id);
   }
   return out;
 }
@@ -470,11 +521,25 @@ function rules(lang) {
     '  mishearing is worse than silence.',
     '- kind "example" when the point just made is abstract and the deck has the',
     '  concrete case for it, or when the example given did not land.',
-    '- kind "delivery" rarely: pace, a filler habit, a question left hanging.',
+    '- kind "delivery" rarely, and about manner rather than tempo: talking to the',
+    '  slide, a question left hanging, a term used before it was defined. An',
+    '  argument that has gone abstract or lost its thread gets a handhold, never a',
+    '  diagnosis: "name the bank example", not "you are being abstract".',
+    '- kind "pace" only from the delivery line, and only when it is there: the pace',
+    '  word is "fast" or "very-fast", or the fillers are piling up, or the longest',
+    '  silence has run on. No delivery line means the sample was too short to mean',
+    '  anything, and then there is nothing to say about tempo.',
+    '- Speech recognition often drops filler sounds before you ever see them, so a',
+    '  count of zero is no evidence that none were said. Never tell the speaker they',
+    '  are not hesitating, and never count fillers out of the transcript yourself.',
+    '- kind "skipped" when the notes for the slide on the screen planned something',
+    '  the speaker has not said and is walking past. Name the thing that was planned,',
+    '  not the omission.',
     '- severity "high" only for something that will mislead the room if it stands.',
     '- action "cue" lays a card into a slide that is still to come, for something',
     '  said now that belongs there. Only an id from cue_targets, never the slide the',
-    '  speaker is on.',
+    '  speaker is on. The slide named as conclusion= is always in that list: a',
+    '  sentence worth keeping that the deck does not have belongs there.',
     '- Write the hint in ' + lang + '.',
     // The strip is part of this tool's typography, and this tool sets
     // en-dashes. A model left to itself writes em-dashes, and the first real
@@ -516,6 +581,164 @@ export function systemPrefix(deck, opts = {}) {
   return out.join('\n');
 }
 
+// ── what the code measures: the delivery ─────────────────────────────
+//
+// The model has no tempo information at all. It receives text, and speaking
+// rate, hesitation, filler density and long silences are simply absent from
+// a transcript – so "notice that I am speaking too fast" is not a prompting
+// problem, it is missing input. Everything the code can count, the code
+// counts; the model is asked only whether a number is worth a whisper.
+//
+// The one honest caution to carry with it: Chrome's recogniser frequently
+// **strips filler sounds** before a final result is ever delivered, so a
+// filler count of zero is not evidence that none were said. The rules say so
+// and no hint may read a zero as fluency.
+
+// The rolling window, and there is one of it. Back from now until either the
+// seconds or the words run out; silence costs nothing, an old segment simply
+// falls out. `tickMessage` prints the words of this window and the figures
+// drawn from it, and a second walk written by hand is how the two would come
+// to describe different stretches of the same talk.
+const WINDOW_S = 90;
+const WINDOW_WORDS = 600;
+
+function windowOf(transcript, elapsed, windowS, windowW) {
+  const segs = (Array.isArray(transcript) ? transcript : []).filter((x) => x && x.text);
+  const kept = [];
+  let words = 0;
+  for (let i = segs.length - 1; i >= 0; i--) {
+    const seg = segs[i];
+    if (num(elapsed, 0) - num(seg.t0, 0) > windowS) break;
+    const w = wordCount(seg.text);
+    if (kept.length && words + w > windowW) break;
+    words += w;
+    kept.unshift(seg);
+  }
+  return { kept, words };
+}
+
+// Filler sounds, and only sounds. `also`, `halt`, `eigentlich`, `like` and
+// `you know` are ordinary words of German and English, and a false positive
+// here tells a lecturer to stop doing something they were not doing – which
+// is worse than saying nothing, because it is unanswerable. The repetitions
+// are in the pattern because a recogniser writes what it heard: "ähhh",
+// "ummm", "hmmm". `er` is left out although it is an English filler: in
+// German it is the word "he".
+const FILLER_RE = /^(?:[äö]h+m*|ehm+|uh+m*|h+m+|erm+)$/;
+// "um" is a filler in English and an everyday preposition in German ("um die
+// Ecke", "um zu"), so it counts only where it cannot be the word. This is the
+// one place the filler count needs to know the language.
+const FILLER_UM_RE = /^um+$/;
+const TOKEN_RE = /[^\p{L}]+/u;
+
+function fillerCount(text, lang) {
+  const de = /^de\b/i.test(String(lang == null ? '' : lang));
+  let n = 0;
+  for (const w of String(text == null ? '' : text).toLowerCase().split(TOKEN_RE)) {
+    if (!w) continue;
+    if (FILLER_RE.test(w) || (!de && FILLER_UM_RE.test(w))) n += 1;
+  }
+  return n;
+}
+
+/**
+ * Published guidance for presenting sits at roughly 100 to 150 words a
+ * minute: slower and a room drifts, faster and it stops following. These are
+ * the lower bounds of the four bands above "slow", and they are one named
+ * constant because the prompt prints the word, the state line prints the
+ * number and the gate asserts the boundary – a threshold spelled three times
+ * is a threshold that drifts. Generous at the top on purpose: a lecturer at
+ * 160 is brisk and usually knows it, one at 190 has stopped leaving room for
+ * a thought to land.
+ */
+export const PACE_WPM = { easy: 110, brisk: 150, fast: 170, veryFast: 190 };
+
+/** One of `slow | easy | brisk | fast | very-fast`, or null with no number. */
+export function paceVerdict(wpm) {
+  if (typeof wpm !== 'number' || !isFinite(wpm)) return null;
+  if (wpm < PACE_WPM.easy) return 'slow';
+  if (wpm < PACE_WPM.brisk) return 'easy';
+  if (wpm < PACE_WPM.fast) return 'brisk';
+  if (wpm < PACE_WPM.veryFast) return 'fast';
+  return 'very-fast';
+}
+
+/**
+ * The seconds of speech a delivery figure has to rest on before it is worth
+ * printing. Four words in a two-second segment is 120 wpm and means nothing;
+ * twenty seconds is about four sentences, which is a tempo. Below it the
+ * state line carries no delivery line at all, and the rules make that the
+ * condition for a `pace` hint – so the model cannot invent the numbers it was
+ * not given.
+ */
+export const DELIVERY_MIN_SAMPLE_S = 20;
+
+function statsOf(kept, words, lang) {
+  let seconds = 0;
+  let fillers = 0;
+  let longestGap = 0;
+  let prevEnd = null;
+  for (const seg of kept) {
+    const t0 = num(seg.t0, 0);
+    const t1 = num(seg.t1, t0);
+    seconds += Math.max(0, t1 - t0);
+    if (prevEnd != null) longestGap = Math.max(longestGap, t0 - prevEnd);
+    prevEnd = t1;
+    fillers += fillerCount(seg.text, lang);
+  }
+  // Per minute of *speech*, not of wall time: a speaker who said forty words
+  // in twenty seconds of talking and then thought for a minute spoke at 120
+  // wpm, not at 30. The silence is its own figure, `longestGap`.
+  const perMin = seconds > 0 ? 60 / seconds : null;
+  return {
+    words,
+    seconds,
+    // The same figure rounded: what the state line prints and what the floor
+    // is compared against, so one number is read everywhere.
+    sampled: Math.round(seconds),
+    wpm: perMin == null ? null : Math.round(words * perMin),
+    fillers,
+    fillersPerMin: perMin == null ? null : Math.round(fillers * perMin * 10) / 10,
+    longestGap: Math.max(0, longestGap),
+    segments: kept.length,
+  };
+}
+
+/**
+ * The delivery, measured over the same rolling window the transcript rides
+ * in. Pure and total: no clock, no throw, and null rather than Infinity where
+ * there is nothing to divide by.
+ *
+ * @param {object} arg  `{transcript, now, window: {seconds, words}, lang}`
+ * @returns {{words, seconds, sampled, wpm, fillers, fillersPerMin,
+ *            longestGap, segments}}
+ */
+export function speechStats({ transcript, now, window: win, lang } = {}) {
+  const w = win && typeof win === 'object' ? win : {};
+  const { kept, words } = windowOf(
+    transcript, num(now, 0), num(w.seconds, WINDOW_S), num(w.words, WINDOW_WORDS),
+  );
+  return statsOf(kept, words, lang);
+}
+
+// The delivery line, or nothing when the sample is too small to mean
+// anything. One line, because the state line above it is one line and this is
+// the same kind of fact: where the talk is, and how it is being said.
+function deliveryLine(stats) {
+  if (!stats || stats.sampled < DELIVERY_MIN_SAMPLE_S || stats.wpm == null) return null;
+  const verdict = paceVerdict(stats.wpm);
+  const spoken = stats.sampled + 's spoken';
+  // A zero is not fluency. The recogniser drops these sounds more often than
+  // it keeps them, and the line says so where the number is, not only in the
+  // rules – whoever reads the log meets it here first.
+  const filler = stats.fillers
+    ? stats.fillers + ' filler' + (stats.fillers === 1 ? '' : 's') + ' in the last ' + spoken
+    : 'no fillers counted in the last ' + spoken + ' (a recogniser often drops them)';
+  return 'delivery: ' + stats.wpm + ' wpm' + (verdict ? ' (' + verdict + ')' : '')
+    + ' · ' + filler
+    + ' · longest silence ' + Math.round(stats.longestGap) + 's';
+}
+
 // ── the tick message ─────────────────────────────────────────────────
 
 // Everything that changes from call to call, and nothing that does not: a
@@ -544,9 +767,10 @@ export function tickMessage(session = {}) {
   const beats = s.beats == null ? null : Math.max(0, Math.round(num(s.beats, 0)));
   const elapsed = num(s.elapsed, 0);
   const targets = Array.isArray(s.cueTargets) ? s.cueTargets.map(String) : cueTargets(deck, idx);
+  const lang = String(s.lang || (deck && deck.lang) || '');
 
   const out = [];
-  out.push([
+  const state = [
     'slide ' + (idx + 1) + '/' + (total || '?'),
     '#' + id,
     beats == null ? 'beat ' + beat : 'beat ' + beat + '/' + beats,
@@ -554,7 +778,23 @@ export function tickMessage(session = {}) {
     'drift ' + driftWord(s.drift == null ? null : s.drift, s.rough),
     'time_hint_allowed=' + (s.timeHintAllowed ? 'yes' : 'no'),
     'cue_targets=[' + targets.join(', ') + ']',
-  ].join(' · '));
+  ];
+  // Which of those targets is the conclusion, named as a field of its own
+  // rather than as a mark inside the list: the ids in `cue_targets` are
+  // copied verbatim into the answer, and an id carrying a decoration is an
+  // id the model gets wrong. Absent when the cards are switched off, because
+  // then there are no targets at all.
+  const end = endTargets(deck, Math.max(0, idx + 1));
+  const conclusion = end.closing || end.last;
+  if (conclusion && targets.indexOf(conclusion) >= 0) state.push('conclusion=' + conclusion);
+  out.push(state.join(' · '));
+
+  // What no transcript can say, counted here and judged there.
+  const windowS = num(s.windowSeconds, WINDOW_S);
+  const windowW = num(s.windowWords, WINDOW_WORDS);
+  const win = windowOf(s.transcript, elapsed, windowS, windowW);
+  const delivery = deliveryLine(statsOf(win.kept, win.words, lang));
+  if (delivery) out.push(delivery);
 
   // The last five, newest last, with ✕ on the ones the speaker sent away.
   // The dismissed ones are in the list precisely because they are the ones
@@ -568,21 +808,8 @@ export function tickMessage(session = {}) {
     }
   }
 
-  // The rolling window: back from now until either the seconds or the words
-  // run out. Silence costs nothing – an old segment simply falls out.
-  const windowS = num(s.windowSeconds, 90);
-  const windowW = num(s.windowWords, 600);
-  const segs = (Array.isArray(s.transcript) ? s.transcript : []).filter((x) => x && x.text);
-  const kept = [];
-  let words = 0;
-  for (let i = segs.length - 1; i >= 0; i--) {
-    const seg = segs[i];
-    if (elapsed - num(seg.t0, 0) > windowS) break;
-    const w = wordCount(seg.text);
-    if (kept.length && words + w > windowW) break;
-    words += w;
-    kept.unshift(seg);
-  }
+  // The words of the same window the figures above were drawn from.
+  const kept = win.kept;
   const lastTickAt = s.lastTickAt == null ? null : num(s.lastTickAt, 0);
   const isNew = (seg) => lastTickAt != null && num(seg.t0, 0) >= lastTickAt;
   const older = kept.filter((seg) => !isNew(seg));
@@ -915,11 +1142,27 @@ export function createPolicy(opts = {}) {
   // four minutes, and the room is misled by each of them. Repeating the same
   // correction in the same words is what the duplicate rule is for, and it
   // catches that whether or not this number is generous.
+  //
+  // `pace` is 150 s, and it has a figure of its own precisely so that it does
+  // not share one with anything else: tempo is a condition that lasts
+  // minutes, and a speaker who has just been told to slow down needs long
+  // enough to have actually changed something before being told again. Two
+  // and a half minutes is about that; shorter and the prompter is a
+  // metronome. `skipped` is 90 s, the shortest figure after `fact`, because
+  // two omissions on two slides are two different facts – but not shorter,
+  // because a speaker who has left a slide cannot go back to it and a second
+  // reminder about the same one is noise.
   const perKind = Object.assign(
-    { time: 240, delivery: 300, example: null, fact: 45 },
+    { time: 240, delivery: 300, example: null, fact: 45, pace: 150, skipped: 90 },
     o.perKind || {},
   );
   const deliveryMax = num(o.deliveryMax, 3);
+  // Four in a talk, one more than `delivery`, because the condition genuinely
+  // recurs – fast in the opening, fast again after a question from the room –
+  // and because this is the kind the speaker asked for. At 150 s apart four of
+  // them cannot happen inside ten minutes, so the ceiling is what keeps a
+  // long talk from becoming a drumbeat rather than what rations a short one.
+  const paceMax = num(o.paceMax, 4);
   const jaccard = num(o.jaccard, 0.6);
   // How long a hint may hold the standing slot without anybody answering for
   // it. The strip takes a hint away by itself after 15 s, 25 s for a high
@@ -940,6 +1183,7 @@ export function createPolicy(opts = {}) {
   let standingHint = null;
   let lastShownAt = null;
   let deliveryCount = 0;
+  let paceCount = 0;
 
   const clockOf = (ctx) => num(ctx && ctx.now, num(ctx && ctx.elapsedSinceOn, 0));
 
@@ -991,6 +1235,9 @@ export function createPolicy(opts = {}) {
     if (kind === 'delivery' && deliveryCount >= deliveryMax) {
       return { show: false, reason: 'delivery-max' };
     }
+    if (kind === 'pace' && paceCount >= paceMax) {
+      return { show: false, reason: 'pace-max' };
+    }
 
     const high = String(a.severity || 'low') === 'high';
     // One at a time. A low hint waits its turn, which in practice means it
@@ -1034,6 +1281,7 @@ export function createPolicy(opts = {}) {
     lastShownAt = at;
     if (entry.kind) lastByKind[entry.kind] = at;
     if (entry.kind === 'delivery') deliveryCount += 1;
+    if (entry.kind === 'pace') paceCount += 1;
     if (entry.kind === 'example' && entry.chunkId) exampleChunks.add(entry.chunkId);
     return entry;
   }

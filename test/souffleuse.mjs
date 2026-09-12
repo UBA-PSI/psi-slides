@@ -43,12 +43,16 @@ export const name = 'souffleuse · the live prompter, cockpit to sidecar to stri
 export const lecture = 'tutorial';   // built for other specs already; unused here
 export const view = 'audience';
 
-// Four slides, ids that say what they are for, one note whose first line
+// Seven slides, ids that say what they are for, one note whose first line
 // opens with a mark so the drift has a real reference - `@0:00` on a second
 // line applies to the card after it, which is no card, so this fixture used to
 // claim a mark it did not have and the drift was the linear estimate all along
 // - and a cadence at the floor of SOUFFLEUSE_SPEC (10 s) so a tick is cheap to
 // provoke.
+//
+// Seven rather than four because the deck's conclusion is a cue target from
+// anywhere: three middle slides put it out of reach of the next-three window,
+// which is the only way an assertion can tell the two lists apart.
 const SOURCE = `---
 title: A talk with a prompter in the box
 duration: 10
@@ -70,7 +74,19 @@ The ear sends what it heard, and the box answers or, almost always, stays quiet.
 
 A slide that is still to come, which is the only kind a cue may be laid into.
 
-## free: The last word {#closing-words}
+## free: The middle of the talk {#mid-one}
+
+Three slides that exist to put the conclusion out of reach of the next three.
+
+## free: Still the middle {#mid-two}
+
+Because a card for the end has to be offerable from four slides away.
+
+## free: The end of the middle {#mid-three}
+
+After this one the conclusion, which is a cue target from anywhere.
+
+## closing: The last word {#closing-words}
 
 Nothing more to say, which is the prompter's usual answer too.
 `;
@@ -273,6 +289,18 @@ export async function run({ page, report }) {
       action: 'hint', kind: 'delivery', text: 'slower, and look up',
       severity: 'low', why: 'the last two sentences ran together',
     });
+    // What the model can only answer because the code measured it: the
+    // transcript carries no tempo at all, so the delivery line in the state
+    // line is the whole of its evidence.
+    fake.say({
+      action: 'hint', kind: 'pace', text: 'far too fast, take a breath',
+      severity: 'low', why: '288 wpm over twenty-five seconds',
+    });
+    // And a card for the conclusion, four slides past the near window.
+    fake.say({
+      action: 'cue', chunk_id: 'closing-words', text: 'keep the measurement line',
+      why: 'said in passing, belongs at the end',
+    });
     fake.say({ action: 'nothing', why: 'nothing worth a word' });
     // The one outage this spec can provoke, and why it is this one: the first
     // failure sets a thirty-second backoff and `maybeTick` returns early until
@@ -313,8 +341,8 @@ export async function run({ page, report }) {
     ok(ready && ready.state === 'ready',
        'and the prompter reports itself ready, with a session and a slide count',
        JSON.stringify(ready));
-    ok(!!(ready && ready.session && ready.chunks === 4),
-       'the ready event names the prefix hash and the four slides', JSON.stringify(ready));
+    ok(!!(ready && ready.session && ready.chunks === 7),
+       'the ready event names the prefix hash and the seven slides', JSON.stringify(ready));
 
     // ── the key is in Node and nowhere else ─────────────────────────
     const html = fs.readFileSync(path.join(dir, 'speaker.html'), 'utf8');
@@ -519,10 +547,17 @@ export async function run({ page, report }) {
           && b.tools[0].function && b.tools[0].function.name === 'advise'),
        'one tool goes out, and it is the answer vocabulary', JSON.stringify(b.tools && b.tools.length));
     const userMsg = String((b.messages && b.messages[1] && b.messages[1].content) || '');
-    ok(/^slide 1\/4 · #opening/.test(userMsg),
+    ok(/^slide 1\/7 · #opening/.test(userMsg),
        'the user turn opens with the state line', userMsg.split('\n')[0]);
-    ok(userMsg.includes('cue_targets=[heard, board, closing-words]'),
+    ok(userMsg.includes('cue_targets=[heard, board, mid-one, closing-words]'),
        'which names the slides a card may be laid into', userMsg.split('\n')[0]);
+    // The conclusion is a target from anywhere, and it is named as a field of
+    // its own rather than marked inside the list: the ids in cue_targets are
+    // copied verbatim into the answer, so an id carrying a decoration is an
+    // id the model gets wrong.
+    ok(userMsg.includes('conclusion=closing-words'),
+       'with the conclusion named, four slides before the window would reach it',
+       userMsg.split('\n')[0]);
     ok(!userMsg.includes('planned duration'),
        'and carries none of the deck – that is the cached half');
     // The mark is real now, so the drift is measured against it rather than
@@ -734,6 +769,90 @@ export async function run({ page, report }) {
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
 
+    // ── the tempo, which no transcript carries ──────────────────────
+    // The model receives text, and speaking rate, hesitation and silence are
+    // simply absent from text: "notice that I am speaking too fast" is
+    // missing input, not missing prompting. So the sidecar measures the
+    // window it was already sending and puts one line under the state line,
+    // and the model is asked only whether the numbers are worth a whisper.
+    //
+    // A hundred and twenty words in twenty-five seconds is 288 wpm, and two
+    // of them are filler sounds. The segment before this one was two hundred
+    // seconds long, so it is outside the ninety-second window and cannot
+    // dilute the figure.
+    const fastTalk = new Array(118).fill('quickly').join(' ') + ' um um';
+    await page.evaluate((t) => window.__stt.final(t, 25), fastTalk);
+    const paced = await until(() => page.evaluate(() => {
+      const el = document.getElementById('souffleuse-strip');
+      if (!el || el.hidden) return null;
+      return {
+        text: el.querySelector('.souffleuse-text').textContent,
+        glyph: el.querySelector('.souffleuse-glyph').textContent,
+      };
+    }), 8000);
+    ok(!!paced && paced.text === 'far too fast, take a breath',
+       'a word about tempo reaches the strip', JSON.stringify(paced));
+    ok(!!paced && paced.glyph === '≫',
+       'under the two chevrons that mean pace, which is its own kind and its own'
+       + ' cool-down', paced && JSON.stringify(paced.glyph));
+    const paceMsg = String((fake.requests[fake.requests.length - 1]
+      && fake.requests[fake.requests.length - 1].body.messages[1].content) || '');
+    const deliveryLine = (paceMsg.split('\n').find((l) => l.startsWith('delivery: ')) || '');
+    ok(/^delivery: (\d+) wpm \((fast|very-fast)\) · 2 fillers in the last \d+s spoken · longest silence \d+s$/
+       .test(deliveryLine),
+       'because the request carried the numbers the transcript does not', deliveryLine);
+    ok(Number((/^delivery: (\d+)/.exec(deliveryLine) || [])[1]) > 170,
+       'measured over the seconds actually spoken, which is what makes it a rate',
+       deliveryLine);
+    await page.keyboard.press('Escape');
+    await page.waitForTimeout(500);
+
+    // ── a card for the conclusion, from four slides away ────────────
+    // The whole reason the end of the deck is always a cue target: something
+    // worth keeping is said in passing, and the place it belongs is the
+    // conclusion, which a window of the next three slides reaches only in the
+    // last minute of the talk.
+    await page.evaluate(() => window.__stt.final(
+      'and the measurement is the thing to land at the end, not the copy', 15));
+    const endCued = await until(() => page.evaluate(() => souffleuseCues.has('closing-words')), 8000);
+    ok(!!endCued, 'a card is laid into the conclusion while the speaker is on slide three',
+       JSON.stringify(logLines(dir).filter((l) => l.type === 'cue').map((l) => l.chunkId)));
+    const endCue = logLines(dir).find((l) => l.type === 'cue' && l.chunkId === 'closing-words');
+    ok(!!endCue && endCue.text === 'keep the measurement line',
+       'and the sidecar filed it under the slide it named', JSON.stringify(endCue));
+
+    // ── a replayed card is not a second saying ──────────────────────
+    // The history is what the prompter has said. The cards live in this
+    // window alone, so a reload - which a rebuild does on every save - loses
+    // them and the hello replays them; in a real talk that entered the same
+    // card twice, at 5:55 and again at 7:33, stamped with the clock at replay
+    // time. One card, one row, and the row keeps the time the card was
+    // actually laid.
+    const historyRows = () => page.evaluate(() => {
+      const b = document.getElementById('souffleuse-btn');
+      b.dispatchEvent(new MouseEvent('click', { shiftKey: true, bubbles: true }));
+      const rows = [...document.querySelectorAll('#souffleuse-log-list li')].map((li) => ({
+        at: (li.querySelector('.souffleuse-log-at') || { textContent: '' }).textContent,
+        text: (li.querySelector('.souffleuse-log-text') || { textContent: '' }).textContent,
+        gone: (li.querySelector('.souffleuse-log-gone') || { textContent: '' }).textContent,
+      }));
+      document.querySelector('#souffleuse-log header .souffleuse-x').click();
+      return rows;
+    });
+    const laidAt = Math.round(Number(endCue ? endCue.at : 0));
+    const laidClock = Math.floor(laidAt / 60) + ':' + String(laidAt % 60).padStart(2, '0');
+    await page.reload({ waitUntil: 'load' });
+    ok(await until(() => page.evaluate(() => souffleuseCues.has('closing-words')), 12000),
+       'the reloaded cockpit gets both cards back from the hello');
+    const afterReload = (await historyRows()).filter((r) => /measurement line/.test(r.text));
+    ok(afterReload.length === 1,
+       'and the card is one row in the history, not one per replay',
+       JSON.stringify(await historyRows()));
+    ok(afterReload.length === 1 && afterReload[0].at === laidClock,
+       'stamped with the clock it was laid on, which the sidecar sends back with it -'
+       + ' the replay clock would be quietly false rather than merely repeated',
+       JSON.stringify({ row: afterReload[0], laidClock }));
+
     // ── the cards switched off, in the cockpit ──────────────────────
     // The box is the speaker's answer under the deck's ceiling, and the
     // sidecar has to hear it: with the cards off there are no cue_targets, so
@@ -757,6 +876,20 @@ export async function run({ page, report }) {
     ok(!!noTargets && Array.isArray(noTargets.cueTargets) && noTargets.cueTargets.length === 0,
        'and the model is offered no slide to lay one into',
        JSON.stringify(noTargets && noTargets.cueTargets));
+    // Ticking it back on replays the cards into a window whose history still
+    // holds them - the second way the same card came to be in the panel
+    // twice, and the one that needs no reload.
+    await page.evaluate(() => {
+      const box = document.getElementById('souffleuse-cues-toggle');
+      box.checked = true;
+      box.dispatchEvent(new Event('change'));
+    });
+    ok(await until(() => page.evaluate(() => souffleuseCues.has('closing-words')), 5000),
+       'ticking it back on brings the cards back');
+    const afterRetick = (await historyRows()).filter((r) => /measurement line/.test(r.text));
+    ok(afterRetick.length === 1 && afterRetick[0].at === laidClock,
+       'and still one row, at the time it was laid: the id is remembered apart from the'
+       + ' rows, which are capped at ten', JSON.stringify(afterRetick));
 
     // ── the ear stumbles and picks itself up ────────────────────────
     // A network hiccup and a restart are conditions the recogniser passes

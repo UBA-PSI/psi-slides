@@ -28,9 +28,10 @@ from building the same way is a major version.
 - **A live prompter in the cockpit (`--souffleuse`).** While the talk runs, the
   cockpit listens to the room, and a sidecar in the watch process asks one model
   whether anything needs saying – behind time, an example missing, a probable
-  factual slip, a word about delivery – and whispers it back onto a strip over
-  the foot of the slide: at most twelve words, one at a time, and usually
-  nothing at all. `Shift`-`S` is the switch, and the microphone is the consent:
+  factual slip, a word about delivery, the tempo of the talk, or something the
+  speaker's own notes planned and the talk has walked past – and whispers it
+  back onto a strip over the foot of the slide: at most twelve words, one at a
+  time, and usually nothing at all. `Shift`-`S` is the switch, and the microphone is the consent:
   nothing listens until it is pressed. What leaves the machine is text. Speech
   recognition runs on the device where Chrome can do it and through Google where
   it cannot – the badge says which – and the transcript plus the deck including
@@ -45,7 +46,19 @@ from building the same way is a major version.
   without a key, a socket or a microphone – restraint is the requirement, and it
   is the half of this feature no rehearsal can show you. The prompter can also
   lay a **cue card into a slide that is still to come**, which turns up in the
-  rail under `K` as a dashed card. `duration: 45` in the frontmatter gives the
+  rail under `K` as a dashed card; the deck's **conclusion is always one of the
+  slides it may be laid into**, however far away it is, because a sentence
+  worth keeping is usually said long before the place it belongs.
+
+  **The tempo is measured in code, not judged by the model.** A transcript
+  carries no speaking rate, no hesitation and no silence, so the sidecar counts
+  them over the window it was already sending – words a minute over the seconds
+  actually spoken, filler sounds, the longest gap – and puts one line in the
+  state line; the model is asked only whether the numbers are worth a whisper,
+  and is told that a recogniser often strips filler sounds, so a count of zero
+  is not evidence that none were said.
+
+  `duration: 45` in the frontmatter gives the
   clock a plan to measure the drift against, and a `souffleuse:` block sets the
   model, the cadence, the cool-down and whether cards are allowed. One log per
   run beside `source.md` (`souffleuse-<date>.jsonl`, gitignored) is the debrief:

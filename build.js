@@ -7300,9 +7300,9 @@ function renderHelpOverlay(view, withEditor, withSouffleuse) {
     ['what leaves this machine', 'speech recognition runs on this device where the browser can, otherwise through Google – the badge says which; the transcript and the deck including your notes go as text to openrouter.ai; nothing reaches the projection, nothing is written into source.md, and no audio ever leaves. The microphone hears the room too – switch it off before a question round, or tell the room'],
     ['<kbd>Shift</kbd>-<kbd>S</kbd>', 'the prompter listens, or stops – the <b>◌ prompter</b> button in the footer is the same switch'],
     ['<kbd>Esc</kbd>', 'take the hint standing on the strip away – it also goes by itself after fifteen seconds, and the × on it does the same'],
-    ['where it appears', 'a line over the foot of the slide, or at the head of the card column under <kbd>K</kbd> – <code>◷</code> time · <code>◇</code> example · <code>△</code> fact · <code>◌</code> delivery · <code>▤</code> a card laid into a slide still to come'],
+    ['where it appears', 'a line over the foot of the slide, or at the head of the card column under <kbd>K</kbd> – <code>◷</code> time · <code>◇</code> example · <code>△</code> fact · <code>◌</code> delivery · <code>≫</code> pace · <code>⋯</code> something your notes planned and you have not said · <code>▤</code> a card laid into a slide still to come'],
     ['<kbd>Shift</kbd>-click <b>◌ prompter</b>', 'the last ten it has said, and the two switches: show what it hears, and whether it may lay cards into upcoming slides'],
-    ['what it may say', 'at most twelve words, one at a time, and usually nothing: behind time, a missing example, a probable slip, a word about delivery'],
+    ['what it may say', 'at most twelve words, one at a time, and usually nothing: behind time, a missing example, a probable slip, a word about delivery, how fast you are speaking, and a thing your notes planned that has gone past'],
   ]];
   const otherWindows = ['The other windows', [
     ...(view === 'speaker' ? [] : [['<kbd>S</kbd>', 'open the speaker cockpit – both windows then stay in sync']]),
@@ -18808,9 +18808,14 @@ if (SOUFFLEUSE && window.psiWatch) {
   // standing one without ceremony: the policy in Node has already decided
   // that this one may come, and two of them on the screen at once is the
   // thing the whole design is against.
+  // One glyph per kind of the sidecar's KINDS, plus one for a card. The two
+  // that are not geometric figures are the two that are about how a sentence
+  // is being said rather than what is in it: a pace hint is two chevrons
+  // pointing the way the talk is going too fast, and a skipped one is the
+  // ellipsis of something left out.
   const SOUFF_GLYPHS = {
     time: '\\u25f7', example: '\\u25c7', fact: '\\u25b3',
-    delivery: '\\u25cc', cue: '\\u25a4',
+    delivery: '\\u25cc', pace: '\\u226b', skipped: '\\u22ef', cue: '\\u25a4',
   };
   let souffHint = null;
   let souffHintTimer = null;
@@ -18818,6 +18823,10 @@ if (SOUFFLEUSE && window.psiWatch) {
   // The last ten, for the panel. Not persisted: it is a record of this
   // talk, and the next run of it is a different talk.
   const souffHistory = [];
+  // Which cards are already in that record, by cueId. Separate from the rows
+  // because the rows are capped at ten: a card whose row has fallen off the
+  // end has still been said once, and a replay must not enter it again.
+  const souffCuesLogged = new Set();
 
   function souffShow(h) {
     if (!souffStrip) return;
@@ -18966,12 +18975,27 @@ if (SOUFFLEUSE && window.psiWatch) {
     // laid four cards and whispered nothing read as a prompter that had done
     // nothing at all - and the cards are the part nobody sees until the talk
     // walks onto the slide.
-    souffHistory.unshift({
-      at: elapsedSeconds(), kind: 'cue', text: String(c.text || ''),
-      hintId: null, how: 'card', slide: souffSlideName(id),
-    });
-    if (souffHistory.length > 10) souffHistory.length = 10;
-    souffRenderLog();
+    //
+    // Once per card, though, and at the time it was actually laid. The Map is
+    // emptied by a reload and by unticking the box, and a replay then
+    // legitimately re-adds the card - which used to enter a second row,
+    // stamped with the clock at replay time. In a real talk the panel showed
+    // one card twice, at 5:55 and at 7:33, for one cue the sidecar had sent
+    // once. So the id is remembered separately from the rows (which are
+    // capped at ten, and a row that fell off the end must not come back as a
+    // new saying), and the time comes from the sidecar, which knows when it
+    // laid the card and says so again on a replay.
+    if (!souffCuesLogged.has(c.cueId)) {
+      souffCuesLogged.add(c.cueId);
+      const at = (c.at != null && isFinite(Number(c.at))) ? Number(c.at) : elapsedSeconds();
+      souffHistory.unshift({
+        at, kind: 'cue', text: String(c.text || ''), cueId: c.cueId,
+        hintId: null, how: 'card', slide: souffSlideName(id),
+      });
+      souffHistory.sort((a, b) => b.at - a.at);
+      if (souffHistory.length > 10) souffHistory.length = 10;
+      souffRenderLog();
+    }
     return true;
   }
 
@@ -19001,7 +19025,19 @@ if (SOUFFLEUSE && window.psiWatch) {
     const fresh = cards.find(c => !souffCuesShown.has(c.cueId));
     if (!fresh) return;
     souffCuesShown.add(fresh.cueId);
-    souffShow({ hintId: null, kind: 'cue', text: fresh.text, severity: 'low' });
+    // No history row: the card is already one of its own, filed under
+    // the slide it went into. Showing it on the strip is the rail's job done
+    // in an arrangement that has no rail, not a second saying - and this set
+    // is per page, so after a reload the same card may legitimately be
+    // announced again. **That one is left as it is**: the announcement is
+    // owed to the speaker the first time they walk onto the slide, a page
+    // that has just loaded cannot know whether they already did, and showing
+    // a card that is genuinely on the slide in front of them twice is
+    // cheaper than never showing it at all.
+    souffShow({
+      hintId: null, cueId: fresh.cueId, kind: 'cue', text: fresh.text,
+      severity: 'low', noHistory: true,
+    });
   }
 
   // ── what the sidecar says back ─────────────────────────────────────
@@ -19844,6 +19880,14 @@ async function createSouffleuse({
     return changed;
   }
 
+  // The cards already laid, as the cockpit gets them back from a hello or a
+  // preference change. `at` rides along because the cockpit's history is a
+  // record of when the prompter said something, and a replayed card is not
+  // said again: without it the row that survived a reload read the clock at
+  // replay time, which is quietly false rather than merely repeated.
+  const laidCards = () => cues.map(
+    c => ({ cueId: c.cueId, chunkId: c.chunkId, text: c.text, at: c.at }));
+
   // A hello registers a cockpit and stamps the clock. It does **not** switch
   // the prompter on: `toggle` and `setEnabled` are the only two things that
   // do. It used to, and the cockpit then had to undo it with a separate,
@@ -19890,7 +19934,7 @@ async function createSouffleuse({
       // then instead of leaving the speaker to guess whether the ear works.
       startQuiet: souff.START_QUIET_S,
       cues: cuesAllowed,
-      cueCards: cues.map(c => ({ cueId: c.cueId, chunkId: c.chunkId, text: c.text })),
+      cueCards: laidCards(),
       session: prefix ? prefix.hash : null,
     });
     // Only news: the sidecar cannot work at all, or it is already running and
@@ -19975,7 +20019,7 @@ async function createSouffleuse({
     }
     reply(true, '', {
       cues: cuesAllowed,
-      cueCards: cues.map(c => ({ cueId: c.cueId, chunkId: c.chunkId, text: c.text })),
+      cueCards: laidCards(),
     });
   }
 
@@ -20065,6 +20109,10 @@ async function createSouffleuse({
     const session = {
       deck, idx, chunkId: cursor.chunkId, beat: cursor.beat, beats: cursor.beats,
       chunkCount, elapsed,
+      // The language the room is being spoken to in, which the filler count
+      // needs: "um" is a hesitation in English and a preposition in German.
+      // The deck carries it too, and a hello may have corrected it.
+      lang,
       drift: drift ? drift.drift : null,
       rough: drift ? drift.rough : false,
       timeHintAllowed: allowed,
@@ -20354,7 +20402,10 @@ async function createSouffleuse({
     if (answer.action === 'cue') {
       const cueId = 'cue' + (++cueSeq);
       if (!sendToCockpit({
-        type: 'souffleuse-cue', cueId, chunkId: answer.chunk_id, text: answer.text,
+        // `at` is the cockpit's own clock, carried forward here, and it is the
+        // same field a replayed card comes back with – so the history has one
+        // rule for when a card was laid rather than two.
+        type: 'souffleuse-cue', cueId, chunkId: answer.chunk_id, text: answer.text, at,
       })) return gone('no-cockpit', { cueId });
       policy.shown({ id: cueId, action: 'cue', text: answer.text, chunk_id: answer.chunk_id, at });
       cues.push({ cueId, chunkId: answer.chunk_id, text: answer.text, at });

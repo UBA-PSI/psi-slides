@@ -11,7 +11,10 @@ the way*, the record of where the code and the plan parted company; where the tw
 disagree the code is right.
 
 It is a prompter in the theatre sense: whispers from the box, briefly, only when
-needed, and the room notices nothing. A hint has **at most twelve words** and the
+needed, and the room notices nothing. What it may be about is six kinds – the
+clock, a missing example, a probable factual slip, the manner of the delivery,
+the tempo (measured in code, not guessed at) and something the speaker's own
+notes planned that the talk has walked past. A hint has **at most twelve words** and the
 normal answer to a call is `nothing`. It may also lay a cue card into a slide
 that is still to come. It is not an author that rewrites slides, not a
 fact-checker with research, not a recorder – the log is text – and not part of
@@ -30,7 +33,7 @@ into the prompt, that is the thing you are giving up.
 
 | where | what |
 |---|---|
-| `souffleuse.mjs` | everything pure: `KINDS`, `SEVERITIES`, `MAX_WORDS`, `START_QUIET_S`, `CLOCK_JUMP_S`, `TOOL_SCHEMA`, `wordCount`, `prefixHash`, `deckPayload`, `flattenMarks`, `cueTargets`, `systemPrefix`, `tickMessage`, `parseAnswer`, `driftSeconds`, `timeHintAllowed`, `rebaseClock`, `shouldTick`, `createPolicy`, `replayAnswers`. Zero imports, zero Node APIs, and the gate asserts both plus the exact export list |
+| `souffleuse.mjs` | everything pure: `KINDS`, `SEVERITIES`, `MAX_WORDS`, `START_QUIET_S`, `CLOCK_JUMP_S`, `PACE_WPM`, `DELIVERY_MIN_SAMPLE_S`, `TOOL_SCHEMA`, `wordCount`, `prefixHash`, `deckPayload`, `flattenMarks`, `cueTargets`, `systemPrefix`, `speechStats`, `paceVerdict`, `tickMessage`, `parseAnswer`, `driftSeconds`, `timeHintAllowed`, `rebaseClock`, `shouldTick`, `createPolicy`, `replayAnswers`. Zero imports, zero Node APIs, and the gate asserts both plus the exact export list |
 | `build.js` § `// ── souffleuse (--souffleuse) ──` | `createSouffleuse({absIn, opts, sendToCockpit, emitEvent, log})` → `{onBuild, onMessage, say, setEnabled, close, logPath}`, plus `souffleuseLogPath` and the constants. Both modules are imported **dynamically here**, so no other build reads either file |
 | `build.js` § `// ── the live prompter's CSS and runtime (--souffleuse only) ──` | `SOUFFLEUSE_CSS` and `SOUFFLEUSE_JS`: the cockpit's Web Speech adapter, switch, strip, badge, history, interim line and cue merge, and the rules that dress them. **Two literals of their own because they are spliced only under the flag**, the way `editorPayload` is – `${SPEAKER_CSS}${souffleuseCss}` inside the same `<style>`, `${SPEAKER_JS}${souffleuseRuntime}` inside the same `<script>`. The runtime must be in that script element: it reads `flatChunks`, `state`, `viewHooks`, `cueSync`, `cueOn`, `cuePosition`, `souffleuseCues`, `applyCueMode`, `flashMode`, `escText`, `elapsedSeconds`, `tStart` and `PSI_CARDS` out of `SPEAKER_JS`'s scope. Before the split, 36 KB of prompter rode in every `speaker.html` anybody ever built |
 | `build.js`, `SPEAKER_JS` § cue cards | the two pieces a cockpit carries either way: `const souffleuseCues = new Map()` and the merge at the end of `cueCardsFor`. The rail is drawn from them, and drawing it cannot depend on a literal that may not have been spliced; over an empty Map both are free. Everything else the prompter touches in this window is *chained* from `SOUFFLEUSE_JS` – `viewHooks.onActiveChange`, `onStateChange`, and `applyCueMode` (which is how `cuePlaceStrip` gets called without a line inside it) |
@@ -92,8 +95,9 @@ Client → server: `souffleuse-hello {lang, stt:{engine, local}}`,
 `souffleuse-move {chunkId, idx, beat, beats, elapsed}`,
 `souffleuse-dismiss {hintId, how}` (`esc` / `click` / `fade`),
 `souffleuse-toggle {on}`, `souffleuse-prefs {cues}`. Server → client:
-`souffleuse-hint {hintId, kind, text, severity, at}`,
-`souffleuse-cue {cueId, chunkId, text}`,
+`souffleuse-hint {hintId, kind, text, severity, at}` with `kind` one of
+`time` / `example` / `fact` / `delivery` / `pace` / `skipped`,
+`souffleuse-cue {cueId, chunkId, text, at}`,
 `souffleuse-status {state, why}`.
 
 Six things about it that are not guessable:
@@ -133,6 +137,18 @@ Six things about it that are not guessable:
   cockpit is `<col-id>-section`, while `deckPayload` gives it the column's own id
   (or `col:N`): the two agree on position and not on name. `cueTargets` skips
   dividers altogether – a cue is a card in a cue list and a divider has none.
+- **The conclusion is always a cue target.** `cueTargets(deck, idx, count)`
+  offers the next `count` addressable slides *and* the end of the deck – its
+  last addressable slide, and its `closing:` chunk when it has one – because a
+  sentence worth keeping is usually said long before the place it belongs, and
+  that place is usually the conclusion, which a window of three slides reaches
+  only in the last minute of the talk. The state line names it as a field of
+  its own (`conclusion=closing-words`) rather than marking it inside the list:
+  the ids in `cue_targets` are copied verbatim into the answer, so an id
+  carrying a decoration is an id the model gets wrong. **A conclusion the
+  speaker is standing on is not offered**, and that is the answer rather than
+  an oversight: a card for the slide on the screen is something to say now, and
+  the thing that says something now is a hint on the strip.
 - **The states are five and two of them are not the same thing.** `listening`
   and `thinking` are the working pair; `off` is the sidecar saying it cannot work
   at all and carries the reason; `idle` is the prompter having been switched off,
@@ -227,10 +243,61 @@ reduced to `[figure, steps: N]` and code fences keeping their lines – a speake
 can misstate code, and that is a `fact` hint.
 
 **What the tick message holds** (`tickMessage`): a state line (`slide 12/38 · #id
-· beat 2/3 · elapsed · drift · time_hint_allowed · cue_targets=[…]`), the last
+· beat 2/3 · elapsed · drift · time_hint_allowed · cue_targets=[…] ·
+conclusion=#id`), then **the delivery line** where there is one, then the last
 five hints with `✕` on the ones the speaker dismissed – they are in the list
 precisely because they must not come back – and a rolling window of about 90 s or
 600 words with `NEW:` marking what arrived since the last call.
+
+### The delivery, measured rather than judged
+
+**The model has no tempo information at all.** It receives text, and speaking
+rate, hesitation, filler density and long silences are absent from text – so
+"notice that I am speaking too fast" was never a prompting problem, it was
+missing input. `speechStats({transcript, now, window, lang})` counts it over
+the same rolling window the transcript rides in (**one walk**, `windowOf`,
+shared with `tickMessage`, because two would describe two different stretches
+of the same talk) and answers:
+
+| field | what |
+|---|---|
+| `words` | words in the window, `wordCount`, so a CJK character counts one |
+| `seconds` | the seconds actually **spoken** – the sum of `t1 - t0`, never wall time, because silence is not speech |
+| `sampled` | the same figure rounded: what the line prints and what the floor is compared against, so one number is read everywhere |
+| `wpm` | `words` over `seconds`, or **null** with nothing to divide by |
+| `fillers`, `fillersPerMin` | filler *sounds* only, per minute of speech |
+| `longestGap` | the biggest hole between one segment's `t1` and the next's `t0` – a speaker who has lost the thread goes quiet |
+| `segments` | how many finals the figures rest on |
+
+`paceVerdict(wpm)` is `slow | easy | brisk | fast | very-fast`, read off
+`PACE_WPM` (`easy` 110, `brisk` 150, `fast` 170, `veryFast` 190 – published
+guidance for presenting sits at roughly 100 to 150 wpm, and the top is generous
+on purpose: 160 is brisk and usually known, 190 has stopped leaving room for a
+thought to land). **A verdict belongs in code, not in the model's head.**
+
+The line appears only when `sampled` reaches `DELIVERY_MIN_SAMPLE_S` (20 s),
+because 200 wpm off twelve seconds of talk is noise, and the prompt makes the
+line's presence the condition for a `pace` hint – so the model cannot invent
+numbers it was not given:
+
+```
+delivery: 272 wpm (very-fast) · 7 fillers in the last 46s spoken · longest silence 0s
+delivery: 132 wpm (easy) · no fillers counted in the last 74s spoken (a recogniser often drops them) · longest silence 3s
+```
+
+**Two honest cautions, both in the prompt and one in the line itself.**
+Chrome's recogniser frequently **strips filler sounds** before a final result
+is ever delivered, so a count of zero is not evidence that none were said – the
+line says so where the number is, and no hint may read a zero as fluency. And
+the filler set is deliberately **conservative: sounds, never words.** `ähm äh
+ehm öhm hm hmm uh uhm um erm` with the repetitions a recogniser writes
+("ähhh", "ummm"); `also`, `halt`, `eigentlich`, `like` and `you know` are
+ordinary speech and are not counted, because a false positive tells a lecturer
+to stop doing something they were not doing, which is unanswerable. `er` is
+left out although it is an English filler, because in German it is the word
+"he" – and **`um` counts only where the language is not German**, where it is an
+everyday preposition ("um die Ecke"). That is the one place the count needs to
+know the language, which is why the sidecar puts `lang` in the session.
 
 ## The policy, as coded
 
@@ -247,7 +314,9 @@ prompter on mid-talk should still buy the speaker a quiet minute.
 | opening silence | `startQuiet` 60 s, measured from the switch | `start-quiet` |
 | one hint at a time | while one stands, a `low` one is dropped; a `high` one replaces it | `standing` |
 | cool-down overall | `cooldown` (frontmatter, default 20 s), with one exception: `fact` at `high`. It stops two whispers landing on top of one another and nothing more. It was 60 s, which made it shorter than every per-kind figure below and therefore the only gate most answers ever met: in the first real rehearsal one fact correction swallowed both clock warnings behind it, and a clock warning repeats nothing a number said | `cooldown` |
-| per kind | `time` 240 s · `delivery` 300 s and at most 3 per session · `fact` 45 s · `example` no cool-down but one per slide | `kind-cooldown`, `delivery-max`, `example-per-chunk` |
+| per kind | `time` 240 s · `delivery` 300 s and at most 3 per session · `pace` 150 s and at most 4 · `skipped` 90 s · `fact` 45 s · `example` no cool-down but one per slide | `kind-cooldown`, `delivery-max`, `pace-max`, `example-per-chunk` |
+| | `pace` has a figure of its own precisely so that it shares one with nothing: tempo is a condition that lasts minutes and comes back, while manner is a moment. In the author's first rehearsal one cool-down doing every job was what made the prompter speak twice out of nine. Two and a half minutes is about how long it takes a speaker who has been told to slow down to have actually changed something; four in a talk is the ceiling, one more than `delivery`, because the condition genuinely recurs | |
+| | `skipped` is the shortest figure after `fact`, because two omissions on two slides are two different facts – but not shorter, because a speaker who has left a slide cannot go back to it and a second reminder about the same one is noise | |
 | | `fact` was 120 s. A speaker with the figures muddled misleads the room once per attempt, and *repeating the same words* is what the duplicate rule refuses – which it does whether this figure is generous or not. Replaying the first rehearsal moved four whispers through instead of two, and every remaining refusal became a duplicate rather than a timer | |
 | duplicates | word Jaccard ≥ 0.6 against every hint shown **or dismissed** | `duplicate` |
 | a clock hint | only when `timeHintAllowed` said yes | `time-not-allowed` |
@@ -425,7 +494,7 @@ below the fold.
   `#cue-rail { position: relative }` lives in `SOUFFLEUSE_CSS` for the same
   reason: `cueRender` scrolls to `curEl.offsetTop`, and the strip is the only
   thing that ever grows above the rail.
-- Glyphs: `◷` time, `◇` example, `△` fact, `◌` delivery, `▤` cue. `high` is red
+- Glyphs: `◷` time, `◇` example, `△` fact, `◌` delivery, `≫` pace, `⋯` skipped, `▤` cue. `high` is red
   like `#center-toast.warn`. Auto-fade 15 s, 25 s for `high`, and the fade is a
   dismissal (`how: 'fade'`).
 - **Esc**: `viewHooks.escapePrompter` runs after the help panel and the address
@@ -446,7 +515,20 @@ below the fold.
   card in a slide the speaker had not walked to yet. `souffCueAdd` also puts a
   row in the history for every card, whether it arrived on the socket or came
   back with a `hello`, so a run that laid four cards and whispered nothing no
-  longer reads as a run in which nothing happened.
+  longer reads as a run in which nothing happened. **One row per card, and at
+  the time the card was laid.** The Map lives in this window alone, so a reload
+  – or unticking the cue box and ticking it back – empties it and the sidecar
+  replays what it has; a replay used to enter the card a second time, stamped
+  with the clock it was replayed on, and a real talk showed one card at 5:55
+  and again at 7:33 for one cue sent once. So `souffleuse-cue` and the
+  `cueCards` of a `hello` both carry `at`, and the ids already in the record
+  are kept apart from the rows, which are capped at ten. The arrival
+  announcement in the classic layout enters no row at all – the card is already
+  one – and its own once-per-card set is per page, which is left alone: the
+  announcement is owed to the speaker the first time they walk onto the slide,
+  a fresh page cannot know whether they already did, and showing a card that is
+  genuinely on the slide in front of them twice is cheaper than never showing
+  it.
 - **The first switch-on of a tab says where the words go**: `prompter listening
   · on-device · text goes to openrouter.ai`, one line, and the short form after
   that (`psi-slides:souffleuse-told`). The ear is only half of the consent – the
@@ -577,7 +659,7 @@ something does.
 
 ## What the tests cover, and what neither can
 
-**`test/gates/souffleuse.mjs`** (134 assertions; in the gate suite, no browser,
+**`test/gates/souffleuse.mjs`** (174 assertions; in the gate suite, no browser,
 no `npm install`): `deckPayload` against a hand-built `lecture` object of the shape
 `parseLecture` returns – built in the file, so a re-worded lecture cannot fail a
 compiler gate – prefix stability and the hash, `tickMessage` (`NEW`, the window,
@@ -590,10 +672,18 @@ from `KINDS` and `SEVERITIES` rather than restated. Since the adversarial
 review also: a clock that went backwards (`shouldTick` with a negative gap, and
 `rebaseClock` at each of its branches), a refusal carrying the evidence it
 refused, a Chinese hint of 38 characters discarded and one of ten whispered,
-and `replayAnswers` over an inline log.
+and `replayAnswers` over an inline log. Since the delivery work: `speechStats`
+(a rate over spoken seconds where the wall clock would have said less than half
+of it, the filler set with the repetitions a recogniser writes, `um` counted in
+English and not in German, `also` / `like` / `er` / `ah` counted nowhere,
+`longestGap`, an empty window answering null rather than Infinity),
+`paceVerdict` at each of its four boundaries, the delivery line present and
+absent around `DELIVERY_MIN_SAMPLE_S`, the zero-filler sentence carrying its own
+caveat, `cueTargets` with a `closing:` chunk and without one, and the two new
+cool-downs with their ceilings counted apart.
 
-**`test/souffleuse.mjs`** (the browser suite, the ninth spec that builds a deck
-of its own): a real `node build.js … --watch --serve --souffleuse --events`
+**`test/souffleuse.mjs`** (111 assertions; the browser suite, the ninth spec that
+builds a deck of its own): a real `node build.js … --watch --serve --souffleuse --events`
 child, a fake OpenRouter on loopback reached through `OPENROUTER_BASE_URL`, and a
 fake `webkitSpeechRecognition` installed with `addInitScript`. It asserts the
 switch and its `sessionStorage`, the request body (`cache_control`, the forced
@@ -615,14 +705,21 @@ prompter (36 KB lighter), and `--souffleuse-model` on its own is a usage error
 rather than a silent ordinary build. **It moves the clock rather than waiting it out**: `__stt.final(text,
 70)` pushes the cockpit's `tStart` back seventy seconds, so the opening quiet and
 the cadence happen at once and the whole spec is about eleven seconds. Since the
-adversarial review it is 89 assertions, with the model id and the tool name in
+adversarial review it also has the model id and the tool name in
 the body, one prefix text identical across every call of the session (the cache
 assumption, which no single request can show), a real `@0:00` mark so the drift
 is not `(rough)`, the clock surviving a reload, the acknowledgement a landed
 card puts on the strip and the row it puts in the history, a 200 carrying
 `{error}` reaching the badge and the log as the sentence it is, and a second
 cockpit taking the prompter with the first one switched off rather than left
-listening into nothing.
+listening into nothing. Since the delivery work: a stretch of talk at 288 wpm
+with two filler sounds in it reaching the request body as one delivery line, the
+`pace` hint that comes back painted under `≫`, a card laid into the deck's
+`closing:` chunk while the speaker stands four slides away, and – after a reload
+and again after the cue box is unticked and ticked – **one history row for that
+card, carrying the clock it was laid on** rather than one row per replay. Its
+fixture deck is seven slides for that last reason: the conclusion has to sit
+beyond the next-three window to prove anything.
 
 Neither can say: recognition quality, whether the on-device path is really
 available (the fake claims it), whether the prompt cache is warm, or whether the

@@ -24,6 +24,7 @@ import {
   deckPayload, systemPrefix, prefixHash, tickMessage, parseAnswer,
   driftSeconds, timeHintAllowed, shouldTick, createPolicy, wordCount,
   cueTargets, flattenMarks, rebaseClock, replayAnswers, START_QUIET_S, CLOCK_JUMP_S,
+  speechStats, paceVerdict, PACE_WPM, DELIVERY_MIN_SAMPLE_S,
 } from '../../souffleuse.mjs';
 import { ROOT } from './harness.mjs';
 
@@ -131,10 +132,28 @@ export async function run({ report }) {
      'flattenMarks puts every mark on the slide it belongs to, in talk order', j(marks));
 
   // ── cue targets ──────────────────────────────────────────────────
-  ok(j(cueTargets(deck, 2)) === j(['beispiel', 'kette', 'schluss']),
+  ok(j(cueTargets(deck, 2)) === j(['beispiel', 'kette', 'schluss', 'zugabe']),
      'cue targets are the next three slides with an id, and a divider is skipped', j(cueTargets(deck, 2)));
-  ok(j(cueTargets(deck, 6)) === j(['zugabe']), 'near the end there are fewer than three');
-  ok(j(cueTargets(deck, 7)) === j([]), 'and on the last slide there are none');
+  ok(cueTargets(deck, 2)[3] === 'zugabe',
+     'plus the end of the deck, however far away it is: a sentence worth keeping is'
+     + ' said long before the slide it belongs in', j(cueTargets(deck, 2)));
+  ok(j(cueTargets(deck, 6)) === j(['zugabe']),
+     'near the end the two lists are the same slide, named once');
+  ok(j(cueTargets(deck, 7)) === j([]),
+     'and on the last slide there are none – a card for the slide on the screen is'
+     + ' something to say now, which is a hint and not a card');
+  // A deck with a real conclusion: the `closing:` chunk is the place a good
+  // sentence said in passing belongs, and it is offered from anywhere.
+  const withClosing = fixture();
+  withClosing.columns[2].chunks.push(chunk('closing', 'schlusswort', 'Zum Schluss', ['Ende.']));
+  const closingDeck = deckOf(withClosing);
+  ok(j(cueTargets(closingDeck, 2)) === j(['beispiel', 'kette', 'schluss', 'schlusswort']),
+     'the closing slide is a target from the third slide of nine', j(cueTargets(closingDeck, 2)));
+  ok(j(cueTargets(closingDeck, 0)) === j(['vorgesetzter', 'beispiel', 'kette', 'schlusswort']),
+     'and from the first, past the three slides the near window offers',
+     j(cueTargets(closingDeck, 0)));
+  ok(cueTargets(closingDeck, 8).length === 0,
+     'and not when the speaker is standing on it');
 
   // ── the system prefix ────────────────────────────────────────────
   const p1 = systemPrefix(deck, { lang: 'de' });
@@ -181,8 +200,14 @@ export async function run({ report }) {
   };
   const tick = tickMessage(session);
   ok(tick.split('\n')[0] === 'slide 3/8 · #vorgesetzter · beat 1/2 · elapsed 15:00 · '
-     + 'drift +95s behind · time_hint_allowed=yes · cue_targets=[beispiel, kette, schluss]',
+     + 'drift +95s behind · time_hint_allowed=yes · '
+     + 'cue_targets=[beispiel, kette, schluss, zugabe] · conclusion=zugabe',
      'the state line names where the talk is, how late it is and what a cue may reach', tick.split('\n')[0]);
+  // Named as a field rather than marked inside the list, because the ids in
+  // cue_targets are copied verbatim into the answer and an id carrying a
+  // decoration is an id the model gets wrong.
+  ok(!tickMessage(Object.assign({}, session, { cueTargets: [] })).includes('conclusion='),
+     'with the cards switched off there are no targets, so there is no conclusion either');
   ok(!tick.includes('Nenne den Fall') && tick.includes('Das Postfach'),
      'only the last five hints are listed', tick);
   ok(/✕ 8:20 fact: Es waren zwei/.test(tick), 'a dismissed hint is marked ✕, so it cannot come back', tick);
@@ -198,6 +223,90 @@ export async function run({ report }) {
   const bare = tickMessage({});
   ok(typeof bare === 'string' && bare.includes('drift unknown') && bare.includes('(nothing yet)'),
      'an empty session still yields a message rather than a throw', bare);
+
+  // ── the delivery, measured ───────────────────────────────────────
+  // The model has no tempo information at all: speaking rate, hesitation and
+  // silence are absent from a transcript, so this is missing input rather
+  // than missing prompting. Everything below is counted here and only judged
+  // there.
+  const many = (n, w = 'wort') => Array(n).fill(w).join(' ');
+  // Thirty words in fifteen seconds, forty-five seconds of thinking, thirty
+  // more in fifteen. Sixty words over thirty seconds of speech is 120 wpm;
+  // over the seventy-five seconds the wall clock saw it would be 48.
+  const talk = [
+    { text: many(30), t0: 0, t1: 15 },
+    { text: many(30), t0: 60, t1: 75 },
+  ];
+  let st = speechStats({ transcript: talk, now: 75, window: { seconds: 90, words: 600 } });
+  ok(st.words === 60 && st.seconds === 30 && st.wpm === 120,
+     'wpm is words over the seconds actually spoken, not over the wall clock', j(st));
+  ok(st.sampled === 30,
+     'and `sampled` says how much speech the figures rest on, so a number drawn from'
+     + ' eight seconds can be discounted', String(st.sampled));
+  ok(st.longestGap === 45,
+     'the longest hole between one segment and the next is its own figure: a speaker'
+     + ' who has lost the thread goes quiet', String(st.longestGap));
+  ok(speechStats({ transcript: [{ text: 'kurz', t0: 0, t1: 0 }], now: 0 }).wpm === null
+     && speechStats({}).wpm === null && speechStats().sampled === 0,
+     'with nothing to divide by there is no rate, and an empty call is not a throw');
+  ok(speechStats({ transcript: talk, now: 75, window: { seconds: 30 } }).words === 30,
+     'it rolls the same window tickMessage rolls, and the seconds cap trims the far end');
+
+  const fillersEn = 'ähm äh ehm öhm hm hmm uh uhm um erm';
+  ok(speechStats({ transcript: [{ text: fillersEn, t0: 0, t1: 30 }], now: 30, lang: 'en' }).fillers === 10,
+     'the filler set is the sounds a recogniser writes, in both languages', fillersEn);
+  ok(speechStats({ transcript: [{ text: 'Ähhh ummm hmmm uhm', t0: 0, t1: 30 }], now: 30, lang: 'en' }).fillers === 4,
+     'with the repetitions it writes them with');
+  ok(speechStats({ transcript: [{ text: fillersEn, t0: 0, t1: 30 }], now: 30, lang: 'de' }).fillers === 9,
+     '"um" is a hesitation in English and a preposition in German, so it counts only'
+     + ' where it cannot be the word');
+  ok(speechStats({ transcript: [{ text: 'um die Ecke, um zu zeigen', t0: 0, t1: 30 }], now: 30, lang: 'de-DE' }).fillers === 0,
+     'which is the difference between a hesitation and "um die Ecke"');
+  // A false positive here tells a lecturer to stop doing something they were
+  // not doing, which is worse than silence because it is unanswerable.
+  ok(speechStats({ transcript: [{ text: 'also halt eigentlich like you know er ah ihm', t0: 0, t1: 30 }],
+    now: 30, lang: 'en' }).fillers === 0,
+     'and real words are never fillers, whatever a habit they are');
+  ok(speechStats({ transcript: [{ text: 'ähm ' + many(58), t0: 0, t1: 30 }], now: 30, lang: 'de' }).fillersPerMin === 2,
+     'the density is per minute of speech, like the rate');
+
+  ok(paceVerdict(PACE_WPM.easy - 1) === 'slow' && paceVerdict(PACE_WPM.easy) === 'easy',
+     'paceVerdict: under the first boundary is slow, and on it easy', String(PACE_WPM.easy));
+  ok(paceVerdict(PACE_WPM.brisk - 1) === 'easy' && paceVerdict(PACE_WPM.brisk) === 'brisk',
+     'the second boundary is where a room has to keep up', String(PACE_WPM.brisk));
+  ok(paceVerdict(PACE_WPM.fast - 1) === 'brisk' && paceVerdict(PACE_WPM.fast) === 'fast',
+     'the third is fast', String(PACE_WPM.fast));
+  ok(paceVerdict(PACE_WPM.veryFast - 1) === 'fast' && paceVerdict(PACE_WPM.veryFast) === 'very-fast',
+     'and the fourth is a talk that has stopped leaving room for a thought to land',
+     String(PACE_WPM.veryFast));
+  ok(paceVerdict(null) === null && paceVerdict(undefined) === null && paceVerdict(NaN) === null,
+     'no number, no verdict – which is what an empty window answers');
+
+  // The line in the tick message, and the floor that keeps it out.
+  const fast = [
+    { text: many(60), t0: 0, t1: 18 },
+    { text: 'ähm ' + many(20) + ' ähm', t0: 24, t1: 30 },
+  ];
+  const delivered = tickMessage(Object.assign({}, session, {
+    elapsed: 30, lastTickAt: null, transcript: fast, lang: 'de',
+  })).split('\n')[1];
+  ok(/^delivery: \d+ wpm \(very-fast\) · 2 fillers in the last 24s spoken · longest silence 6s$/
+     .test(delivered), 'the tick message carries one delivery line under the state line', delivered);
+  const short = tickMessage(Object.assign({}, session, {
+    elapsed: 12, lastTickAt: null, transcript: [{ text: many(40), t0: 0, t1: 12 }], lang: 'de',
+  }));
+  ok(!/^delivery: /m.test(short) && short.split('\n')[1] === '',
+     'and none at all below the sample floor: 200 wpm off twelve seconds is noise',
+     j(DELIVERY_MIN_SAMPLE_S));
+  // A zero is not fluency. The recogniser drops these sounds more often than
+  // it keeps them, and the line says so where the number is rather than only
+  // in the rules.
+  const noFillers = tickMessage(Object.assign({}, session, {
+    elapsed: 30, lastTickAt: null, transcript: [{ text: many(60), t0: 0, t1: 30 }], lang: 'de',
+  })).split('\n')[1];
+  ok(/no fillers counted in the last 30s spoken \(a recogniser often drops them\)/.test(noFillers),
+     'a count of zero says that a recogniser strips them, so it cannot read as fluency',
+     noFillers);
 
   // ── the answer ───────────────────────────────────────────────────
   const answer = (args) => ({ choices: [{ message: { tool_calls: [{ function: { name: 'advise', arguments: JSON.stringify(args) } }] } }] });
@@ -236,7 +345,11 @@ export async function run({ report }) {
   ok(parseAnswer(null, sess).reason === 'garbage' && parseAnswer({}, sess).reason === 'garbage',
      'so is nothing at all');
   ok(parseAnswer(answer({ action: 'hint', kind: 'fett', text: 'Ein Wort' }), sess).reason === 'garbage',
-     'a kind from outside the four is garbage, not a hint');
+     'a kind from outside the six is garbage, not a hint');
+  a = parseAnswer(answer({ action: 'hint', kind: 'pace', text: 'Langsamer, und Luft holen' }), sess);
+  ok(a.action === 'hint' && a.kind === 'pace', 'pace is one of the six', j(a));
+  a = parseAnswer(answer({ action: 'hint', kind: 'skipped', text: 'Der Vermerk fehlt noch' }), sess);
+  ok(a.action === 'hint' && a.kind === 'skipped', 'and so is skipped', j(a));
   ok(parseAnswer(answer({ action: 'schrei', text: 'Ein Wort' }), sess).reason === 'garbage',
      'and so is an action from outside the three');
   const long = 'eins zwei drei vier fünf sechs sieben acht neun zehn elf zwölf dreizehn';
@@ -491,6 +604,42 @@ export async function run({ report }) {
   });
   ok(pol.judge(hint('delivery', 'Ins Publikum schauen'), ctx({ now: 2000 })).reason === 'delivery-max',
      'policy: three delivery hints in a talk, and no fourth');
+  // And the ceiling is per kind, not shared: tempo is a condition that comes
+  // back, manner is a moment. One cool-down doing both jobs is what crippled
+  // the author's first rehearsal.
+  ok(pol.judge(hint('pace', 'Langsamer, und Luft holen'), ctx({ now: 2000 })).show === true,
+     'policy: and a word about tempo is not one of the three');
+
+  pol = createPolicy();
+  pol.shown({ id: 'p1', kind: 'pace', text: 'Langsamer, und Luft holen', at: 100 });
+  pol.dismissed('p1');
+  // Two and a half minutes, because a speaker told to slow down needs long
+  // enough to have changed something before being told again.
+  ok(pol.judge(hint('pace', 'Zu schnell, kurz Luft'), ctx({ now: 200 })).reason === 'kind-cooldown',
+     'policy: a second word about tempo waits two and a half minutes');
+  ok(pol.judge(hint('pace', 'Zu schnell, kurz Luft'), ctx({ now: 260 })).show === true,
+     'policy: and then it may come');
+  ok(pol.judge(hint('skipped', 'Der Vermerk fehlt noch'), ctx({ now: 200 })).show === true,
+     'policy: while a thing the notes planned has a timer of its own');
+
+  pol = createPolicy();
+  pol.shown({ id: 's1', kind: 'skipped', text: 'Der Vermerk fehlt noch', at: 100 });
+  pol.dismissed('s1');
+  ok(pol.judge(hint('skipped', 'Das Postfach war geplant'), ctx({ now: 150 })).reason === 'kind-cooldown',
+     'policy: ninety seconds for a second thing left out');
+  ok(pol.judge(hint('skipped', 'Das Postfach war geplant'), ctx({ now: 200 })).show === true,
+     'policy: two omissions on two slides are two different facts');
+
+  pol = createPolicy();
+  ['Langsamer, und Luft holen', 'Zu schnell, kurz Luft', 'Tempo halbieren bitte', 'Noch etwas langsamer']
+    .forEach((text, i) => {
+      pol.shown({ id: 'p' + i, kind: 'pace', text, at: 100 + i * 400 });
+      pol.dismissed('p' + i);
+    });
+  ok(pol.judge(hint('pace', 'Ruhiger sprechen jetzt'), ctx({ now: 3000 })).reason === 'pace-max',
+     'policy: four words about tempo in a talk, and no fifth - past that it is a drumbeat');
+  ok(pol.judge(hint('delivery', 'Ins Publikum schauen'), ctx({ now: 3000 })).show === true,
+     'policy: and the two ceilings are counted apart');
 
   pol = createPolicy();
   pol.shown({ id: 'h1', kind: 'example', text: 'Nenne das Beispiel jetzt', at: 100, chunkId: 'x' });
@@ -528,10 +677,12 @@ export async function run({ report }) {
      'and touches no Node API, no clock and no network: the sidecar owns all three');
   const exported = [...src.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
   ok(j(exported.slice().sort()) === j([
-    'CLOCK_JUMP_S', 'KINDS', 'MAX_WORDS', 'SEVERITIES', 'START_QUIET_S', 'TOOL_SCHEMA',
+    'CLOCK_JUMP_S', 'DELIVERY_MIN_SAMPLE_S', 'KINDS', 'MAX_WORDS', 'PACE_WPM',
+    'SEVERITIES', 'START_QUIET_S', 'TOOL_SCHEMA',
     'createPolicy', 'cueTargets', 'deckPayload', 'driftSeconds', 'flattenMarks',
-    'parseAnswer', 'prefixHash', 'rebaseClock', 'replayAnswers', 'shouldTick',
-    'systemPrefix', 'tickMessage', 'timeHintAllowed', 'wordCount',
+    'paceVerdict', 'parseAnswer', 'prefixHash', 'rebaseClock', 'replayAnswers',
+    'shouldTick', 'speechStats', 'systemPrefix', 'tickMessage', 'timeHintAllowed',
+    'wordCount',
   ]), 'the module exports exactly the names the sidecar reads', j(exported));
   ok(!/—/.test(src), 'en-dashes only, as in every other file here');
   ok(TOOL_SCHEMA.type === 'function' && TOOL_SCHEMA.function.name === 'advise'
@@ -540,5 +691,7 @@ export async function run({ report }) {
      && j(TOOL_SCHEMA.function.parameters.properties.severity.enum) === j(SEVERITIES)
      && j(TOOL_SCHEMA.function.parameters.required) === j(['action']),
      'the tool schema is the answer vocabulary, and it is generated from the same tables');
-  ok(MAX_WORDS === 12 && KINDS.length === 4, 'twelve words, four kinds');
+  ok(MAX_WORDS === 12 && j(KINDS) === j(['time', 'example', 'fact', 'delivery', 'pace', 'skipped']),
+     'twelve words, six kinds - and `pace` is its own because it must not share a'
+     + ' cool-down with `delivery`: manner is a moment, tempo is a condition', j(KINDS));
 }
