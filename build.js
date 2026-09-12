@@ -18209,12 +18209,21 @@ if (SOUFFLEUSE && window.psiWatch) {
     let restarts = [];
 
     function open(lang) {
-      rec = new SR();
-      rec.continuous = true;
-      rec.interimResults = true;
-      rec.lang = lang;
-      if (local) { try { rec.processLocally = true; } catch (e) { /* older Chrome */ } }
-      rec.addEventListener('result', (ev) => {
+      // The instance is held locally as well as in the shared slot, and every
+      // handler below asks whether it is still the live one. Without that,
+      // start()'s own guard built the thing it guards against: it aborts the
+      // open recogniser, clears the slot and opens a new one synchronously,
+      // and the old one's end event then arrives, clears the slot - dropping
+      // the reference to the new, still-listening recogniser - and starts a
+      // third. Two ears, every sentence sent twice, the cadence counted twice.
+      const r = new SR();
+      rec = r;
+      r.continuous = true;
+      r.interimResults = true;
+      r.lang = lang;
+      if (local) { try { r.processLocally = true; } catch (e) { /* older Chrome */ } }
+      r.addEventListener('result', (ev) => {
+        if (rec !== r) return;
         let interim = '';
         for (let i = ev.resultIndex; i < ev.results.length; i++) {
           const r = ev.results[i];
@@ -18230,7 +18239,8 @@ if (SOUFFLEUSE && window.psiWatch) {
         }
         if (interim) cbs.onInterim(interim);
       });
-      rec.addEventListener('error', (ev) => {
+      r.addEventListener('error', (ev) => {
+        if (rec !== r) return;
         const err = (ev && ev.error) || '';
         // Silence and a deliberate abort are the ordinary course of a talk,
         // not failures: Chrome ends an utterance whenever the room goes
@@ -18241,7 +18251,8 @@ if (SOUFFLEUSE && window.psiWatch) {
         if (err === 'network') { cbs.onState('network'); return; }
         cbs.onState('error');
       });
-      rec.addEventListener('end', () => {
+      r.addEventListener('end', () => {
+        if (rec !== r) return;
         rec = null;
         if (!want) return;
         const now = Date.now();
@@ -18255,7 +18266,7 @@ if (SOUFFLEUSE && window.psiWatch) {
         // immediate end is a loop, not a recogniser.
         setTimeout(() => { if (want && !rec) open(lang); }, 250);
       });
-      try { rec.start(); } catch (e) { cbs.onState('error'); }
+      try { r.start(); } catch (e) { cbs.onState('error'); }
     }
 
     return {
@@ -18521,6 +18532,7 @@ if (SOUFFLEUSE && window.psiWatch) {
 
   function souffHeard(seg) {
     if (!souffOn) return;
+    souffEarRecovered();
     const w = souffWhere();
     souffWatch.ask('souffleuse-say', {
       text: seg.text, t0: seg.t0, t1: seg.t1,
@@ -18555,6 +18567,17 @@ if (SOUFFLEUSE && window.psiWatch) {
     else if (st === 'stalled') { souffEarWhy = 'recognition keeps stopping'; souffStop(false); }
     else if (st === 'network') { souffEarWhy = 'speech recognition lost the network'; souffPaintBadge(); }
     else if (st === 'error') { souffEarWhy = 'speech recognition stopped with an error'; souffPaintBadge(); }
+  }
+
+  // ...and those last two clear themselves. The ear restarts underneath both,
+  // so a hiccup that the next sentence disproves used to leave its sentence
+  // on the badge for the rest of the talk, over a prompter that was working.
+  // A final result is the proof, and it is the only one the ear has.
+  function souffEarRecovered() {
+    if (souffEarWhy !== 'speech recognition lost the network'
+        && souffEarWhy !== 'speech recognition stopped with an error') return;
+    souffEarWhy = null;
+    souffPaintBadge();
   }
 
   // Chained, never replaced: the cue cards already own both of these, and
@@ -19824,8 +19847,16 @@ async function createSouffleuse({
     });
     if (!d.tick) {
       // An occasion that arrived while a call was out is not lost, it is
-      // remembered and fired the moment the answer lands.
-      if (inflight && d.reason) pendingReason = d.reason;
+      // remembered and fired the moment the answer lands. `coalesce` is the
+      // field that says a *new* occasion arrived; `reason` under inflight
+      // falls back to the reason of the call already out, and is therefore
+      // always set. Reading it here made every say and every move schedule a
+      // follow-up call, which finish() fired at once, which was itself in
+      // flight when the next segment arrived - a call every few seconds for
+      // the whole talk. Invisible against a fast endpoint, which is why the
+      // fakes never showed it: it needs a reply slower than the gap between
+      // two sentences. Measured at 10 calls in 40 s where two were due.
+      if (inflight && d.coalesce) pendingReason = d.reason;
       return;
     }
     tick(d.reason);

@@ -322,7 +322,7 @@ and it appears only when something is degraded.
 | microphone denied | the switch goes off with it | `microphone denied – allow it in the address bar` |
 | no microphone | switch off | `no microphone` |
 | recognition ends six times in a minute | switch off; restarting it for the rest of the talk holds the microphone light on for nothing | `recognition keeps stopping` |
-| recognition loses the network, or errors | the ear restarts itself underneath the badge | `speech recognition lost the network` / `… stopped with an error` |
+| recognition loses the network, or errors | the ear restarts itself underneath the badge, and **the next final result it hears takes the badge down again** (`souffEarRecovered`) – a condition that passes must not leave its sentence standing over a working prompter | `speech recognition lost the network` / `… stopped with an error` |
 | server recognition instead of on-device | the quiet one: whatever is left when nothing louder stands | `server speech recognition` |
 
 **The badge needs a memory.** A status arrives on every tick, and a version that

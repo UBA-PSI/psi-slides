@@ -307,6 +307,17 @@ export async function run({ report }) {
      'a second occasion while one is in flight is coalesced, not sent', j(t));
   t = shouldTick({ now: 200, lastTickAt: 100, lastTickReason: 'slide', speechSecondsSince: 25, newWordsSince: 20, inflight: true, cadence: 25 });
   ok(t.reason === 'slide', 'and a coalesced slide outranks a speech occasion behind it', j(t));
+  // The two fields are not the same question, and a caller that confuses them
+  // gets a call every few seconds for the whole talk. Under inflight `reason`
+  // is the reason of the call already out, so it is always set; `coalesce` is
+  // the one that says a new occasion arrived. The sidecar read `reason` here
+  // and scheduled a follow-up on every say and every move, which it fired the
+  // moment the answer landed, which was itself in flight when the next
+  // sentence arrived. Ten calls in forty seconds where two were due, and
+  // only against an endpoint slower than the gap between two sentences.
+  t = shouldTick({ now: 200, lastTickAt: 100, lastTickReason: 'speech', speechSecondsSince: 1, newWordsSince: 2, inflight: true, cadence: 25 });
+  ok(t.coalesce === false, 'nothing new while a call is out is nothing to coalesce', j(t));
+  ok(t.reason === 'speech', 'though the reason still names the call that is out - the two differ, and that is the trap', j(t));
   ok(shouldTick({ now: 200, lastTickAt: null, speechSecondsSince: 25, newWordsSince: 8, cadence: 25 }).tick === true,
      'the first call has no last call to wait for');
   // The cockpit reloaded and its clock started again, so the last tick is

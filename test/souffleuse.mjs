@@ -158,6 +158,7 @@ function installFakeStt() {
       this.interimResults = false;
       this.lang = 'en';
       window.__stt.rec = this;
+      window.__stt.all.push(this);
     }
     start() { window.__stt.starts += 1; }
     stop() { this.dispatchEvent(new Event('end')); }
@@ -179,6 +180,7 @@ function installFakeStt() {
   };
   window.__stt = {
     rec: null,
+    all: [],
     starts: 0,
     available: () => FakeSpeechRecognition.available(),
     // The cockpit's clock, moved rather than waited out. `tStart` is the
@@ -190,6 +192,25 @@ function installFakeStt() {
       return fire(text, true);
     },
     interim(text) { return fire(text, false); },
+    // Chrome delivers end asynchronously, so a recogniser that was aborted a
+    // moment ago still has one event to give. Firing it on an instance the
+    // adapter has already replaced is the shape of a real defect, not a
+    // contrivance: it is what happens on every restart.
+    endOn(i) {
+      const r = window.__stt.all[i];
+      if (!r) return false;
+      r.dispatchEvent(new Event('end'));
+      return true;
+    },
+    // The ear reporting a condition it will recover from by itself.
+    fault(kind) {
+      const rec = window.__stt.rec;
+      if (!rec) return false;
+      const ev = new Event('error');
+      ev.error = kind;
+      rec.dispatchEvent(ev);
+      return true;
+    },
   };
 }
 
@@ -693,6 +714,48 @@ export async function run({ page, report }) {
     ok(!!noTargets && Array.isArray(noTargets.cueTargets) && noTargets.cueTargets.length === 0,
        'and the model is offered no slide to lay one into',
        JSON.stringify(noTargets && noTargets.cueTargets));
+
+    // ── the ear stumbles and picks itself up ────────────────────────
+    // A network hiccup and a restart are conditions the recogniser passes
+    // through by itself, so the badge they raise has to come down by itself
+    // too. It did not: the sentence stood over a working prompter until the
+    // switch was thrown twice.
+    await page.evaluate(() => window.__stt.fault('network'));
+    const stumbled = await until(() => page.evaluate(() => {
+      const el = document.getElementById('souffleuse-badge');
+      return el && !el.hidden ? el.textContent : null;
+    }), 3000);
+    ok(!!stumbled && /network/i.test(stumbled),
+       'a recogniser that loses the network says so on the badge', String(stumbled));
+    await page.evaluate(() => window.__stt.final('and we are back in the room', 2));
+    const recovered = await until(() => page.evaluate(() => {
+      const el = document.getElementById('souffleuse-badge');
+      return el && el.hidden ? true : null;
+    }), 3000);
+    ok(recovered === true,
+       'and the next sentence it hears is the proof that takes it down again');
+
+    // A recogniser the adapter has already replaced still has one end event
+    // to deliver. Handling it used to clear the slot holding the *live*
+    // recogniser and start a third one, so two ears ran and every sentence
+    // was sent twice.
+    // One legitimate end first, so that there is a stale instance to speak
+    // out of turn: the adapter answers an end by opening the next recogniser.
+    const stale = await page.evaluate(() => window.__stt.all.length - 1);
+    await page.evaluate((i) => window.__stt.endOn(i), stale);
+    const restarted = await until(() => page.evaluate(
+      (i) => (window.__stt.all.length > i + 1 ? window.__stt.starts : null), stale), 3000);
+    ok(typeof restarted === 'number',
+       'an end in the ordinary course of a talk opens the next recogniser');
+    const before = await page.evaluate(() => ({ starts: window.__stt.starts, n: window.__stt.all.length }));
+    await page.evaluate((i) => window.__stt.endOn(i), stale);
+    await page.waitForTimeout(500);
+    const after = await page.evaluate(() => ({ starts: window.__stt.starts, live: !!window.__stt.rec }));
+    ok(after.starts === before.starts && after.live,
+       'but a second end from that same, now replaced recogniser opens nothing',
+       JSON.stringify({ stale, before, after }));
+    const stillHeard = await page.evaluate(() => window.__stt.final('and it is still the same ear listening', 2));
+    ok(stillHeard === true, 'and the live one is still the one being heard');
 
     // ── a silence, and then a server that falls over ────────────────
     await page.evaluate(() => window.__stt.final(

@@ -805,6 +805,34 @@ still cannot show are the two it never could: whether the cache is warm on a
 real provider, and whether the model is restrained. The dry run and the replay
 are what a rehearsal has instead.
 
+### Second correctness review
+
+Three findings, after the adversarial one, on the pushed branch. The first is
+the only defect in this feature that would have cost money at the lectern.
+
+- **`maybeTick` read `shouldTick`'s `reason` where it had to read
+  `coalesce`, and called the model back to back for the whole talk.** Under
+  `inflight`, `reason` is the reason of the call already out and is therefore
+  always set; `coalesce` is the field that says a *new* occasion arrived. So
+  every `say` and every `move` scheduled a follow-up, which `finish()` fired
+  at once, which was itself in flight when the next sentence arrived. Measured
+  against a slow endpoint: ten calls in forty seconds where two were due. It
+  needs a reply slower than the gap between two sentences, which is why every
+  fake in this repository answers too fast to show it – and why the gate now
+  asserts that the two fields differ, in the one place a reader meets them.
+- **The adapter's own re-entrancy guard built the duplicate ear it guards
+  against.** `start()` aborts the open recogniser, clears the slot and opens
+  the next one synchronously; the aborted one's `end` then arrives, clears the
+  slot that now holds the *live* recogniser, and starts a third. Two ears,
+  every sentence sent twice, the cadence counted twice. Each handler now asks
+  whether it is still the live instance. The spec stales an instance
+  deliberately and fires its `end` a second time.
+- **A condition that passes left its sentence on the badge.** `network` and
+  `error` are the two states the ear restarts itself underneath, but their
+  badge came down only when the switch was thrown twice, so a hiccup wrote
+  over a prompter that was working. The next final result it hears is the
+  proof, and it is the only one the ear has.
+
 ## The questions to the author, answered
 
 - **Process**: a Node sidecar in `build.js`.
