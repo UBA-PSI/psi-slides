@@ -17536,7 +17536,9 @@ function cueRender() {
     const tick = '<div class="cue-tick ' + (e.type === 'card' ? '' : 'step ') + cls + titled + souff + '"><i></i></div>';
     if (e.type === 'card') {
       const c = e.card;
-      let body = c.title ? '<p class="cue-title">' + escText(c.title) + '</p>' : '';
+      // A card the prompter laid, said in words and not only in a line style.
+      let body = c.souffleuse ? '<p class="cue-added">added while you spoke</p>' : '';
+      body += c.title ? '<p class="cue-title">' + escText(c.title) + '</p>' : '';
       if (c.at != null) body += '<span class="cue-at">@ ' + PSI_CARDS.formatClock(c.at) + '</span>';
       body += c.bullets.length
         ? '<ul>' + c.bullets.map(b => '<li>' + escText(b) + '</li>').join('') + '</ul>'
@@ -17985,6 +17987,16 @@ body[data-view=speaker].blanked #souffleuse-badge { bottom: 7.2rem; }
 .souffleuse-x:hover { opacity: 1; }
 /* What the ear is hearing right now, off by default: reassuring in a
    rehearsal, one moving line too many in a talk. */
+/* The heartbeat is not something anybody said, so it drops the italic and
+   loses a little more contrast: it is there to be found, not read. */
+#souffleuse-heard.beat {
+  font-style: normal;
+  font-family: var(--mono-font, var(--mono));
+  font-size: clamp(10px, 1.25vh, 13px);
+  letter-spacing: 0.04em;
+  color: var(--ink-faint, var(--ink-soft));
+  opacity: 0.75;
+}
 #souffleuse-heard {
   position: absolute;
   left: 50%;
@@ -18086,6 +18098,19 @@ body[data-mode=dark] #souffleuse-strip[data-severity=high] { background: oklch(0
 .cue-tick.souffleuse::before { width: 0; background: none; border-left: 1px dashed var(--rule); }
 .cue-tick.souffleuse i { border-style: dashed; }
 .cue-card.souffleuse { font-style: italic; }
+/* The label above such a card. Small, in the chrome's own sans rather than
+   the card's serif, and in the deck's own emphasis colour, because it is the
+   one thing in the rail that arrived from outside the source file. */
+.cue-added {
+  margin: 0 0 0.35em;
+  font-family: var(--sans-font);
+  font-style: normal;
+  font-size: 0.62em;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--emph);
+  opacity: 0.85;
+}
 /* The ring takes the bullet's place rather than standing on a line of its
    own above it: a card is one or two lines read at a glance, and a glyph
    with a line to itself doubles the height of the shortest thing in the
@@ -18374,6 +18399,15 @@ if (SOUFFLEUSE && window.psiWatch) {
   let souffLocal = false;
   let souffVerdicts = [];
   let souffAsked = null;
+  // The switch-on moment on the cockpit's own clock, the opening quiet the
+  // sidecar reported, and the heartbeat: when the model was last asked, and
+  // how often this session.
+  let souffOnAt = null;
+  let souffStartQuiet = 60;
+  let souffAskedAt = null;
+  let souffAskCount = 0;
+  let souffHeardWords = [];
+  let souffBeatTimer = null;
   let souffLastSent = { idx: -1, beat: -1 };
 
   // The cockpit's clock, unrounded. renderTimer floors the same number for
@@ -18543,6 +18577,14 @@ if (SOUFFLEUSE && window.psiWatch) {
       // wanted before the first tick can happen.
       souffWatch.ask('souffleuse-prefs', { cues: souffCuesOn });
       souffWatch.ask('souffleuse-toggle', { on: true });
+      souffOnAt = souffClock();
+      if (hi.startQuiet != null && isFinite(Number(hi.startQuiet))) souffStartQuiet = Number(hi.startQuiet);
+      // Once every two seconds is enough for a line that counts in seconds,
+      // and it is what carries the opening minute's words over to the
+      // heartbeat without either of them waiting on the next spoken word.
+      if (souffBeatTimer) clearInterval(souffBeatTimer);
+      souffBeatTimer = setInterval(() => { if (souffOn) souffInterim(null); }, 2000);
+      souffInterim(null);
       souffRemember(true);
       // Whatever the sidecar has already laid into slides still to come. On a
       // reload this window's Map is empty and the sidecar's list is not.
@@ -18574,7 +18616,10 @@ if (SOUFFLEUSE && window.psiWatch) {
     souffOn = false;
     souffState = 'off';
     try { souffStt.stop(); } catch (e) { /* never started */ }
-    if (souffHeardEl) souffHeardEl.hidden = true;
+    if (souffHeardEl) { souffHeardEl.hidden = true; souffHeardEl.classList.remove('beat'); }
+    if (souffBeatTimer) { clearInterval(souffBeatTimer); souffBeatTimer = null; }
+    souffOnAt = null;
+    souffHeardWords = [];
     // The strip goes with the switch, and so do its two timers. Left running,
     // a hint faded fifteen seconds after the ear was closed and sent a
     // dismissal to a sidecar that is no longer listening for one - and the
@@ -18619,12 +18664,41 @@ if (SOUFFLEUSE && window.psiWatch) {
   // default: reassuring while rehearsing, one moving line too many in front
   // of a room. The adapter reports interims either way - what decides
   // whether they are shown is not the ear.
+  // The line under the strip, and it has two jobs at two moments.
+  //
+  // For the first minute after the switch the prompter cannot say anything at
+  // all - that is the opening quiet, and it is exactly the minute in which a
+  // speaker wonders whether the thing is working. So the words it is hearing
+  // go there, unasked, and then stop: leaving them up for the rest of the talk
+  // is a moving line in the corner of the eye, which is what the checkbox is
+  // for when somebody wants it anyway.
+  //
+  // After that the same line carries the heartbeat. It is not the transcript
+  // and it is not a hint; it is the answer to "is it still there", which in a
+  // system whose correct behaviour is silence is a question that gets asked.
+  function souffOpeningQuiet() {
+    return souffOn && souffOnAt != null && (souffClock() - souffOnAt) < souffStartQuiet;
+  }
   function souffInterim(text) {
+    if (text != null) souffHeardWords = String(text || '').split(/\\s+/).filter(Boolean);
     if (!souffHeardEl) return;
-    if (!souffShowHeard || !souffOn) { souffHeardEl.hidden = true; return; }
-    const words = String(text || '').split(/\\s+/).filter(Boolean);
-    souffHeardEl.textContent = words.slice(-8).join(' ');
-    souffHeardEl.hidden = !words.length;
+    if (!souffOn) { souffHeardEl.hidden = true; return; }
+    if (souffShowHeard || souffOpeningQuiet()) {
+      souffHeardEl.classList.remove('beat');
+      souffHeardEl.textContent = souffHeardWords.slice(-8).join(' ');
+      souffHeardEl.hidden = !souffHeardWords.length;
+      return;
+    }
+    souffHeardEl.classList.add('beat');
+    souffHeardEl.textContent = souffBeatText();
+    souffHeardEl.hidden = false;
+  }
+  function souffBeatText() {
+    if (souffState === 'thinking') return 'asking the model\u2026';
+    if (souffAskedAt == null) return 'listening';
+    const ago = Math.max(0, Math.round(souffClock() - souffAskedAt));
+    const when = ago < 90 ? ago + 's ago' : Math.round(ago / 60) + ' min ago';
+    return 'asked ' + when + (souffAskCount > 1 ? ' \u00b7 ' + souffAskCount + ' so far' : '');
   }
 
   function souffSttState(st) {
@@ -18819,7 +18893,7 @@ if (SOUFFLEUSE && window.psiWatch) {
     heardBox.addEventListener('change', () => {
       souffShowHeard = heardBox.checked;
       try { localStorage.setItem(SOUFF_HEARD_KEY, souffShowHeard ? 'on' : 'off'); } catch (e) {}
-      if (!souffShowHeard && souffHeardEl) souffHeardEl.hidden = true;
+      souffInterim(null);
     });
     cuesBox.addEventListener('change', () => {
       souffCuesOn = cuesBox.checked && !!SOUFFLEUSE.cues;
@@ -18920,6 +18994,10 @@ if (SOUFFLEUSE && window.psiWatch) {
       return;
     }
     if (st === 'listening' || st === 'thinking') { souffState = st; souffSideWhy = null; }
+    // A call going out is the one moment the cockpit can see that the whole
+    // chain is alive, so it is what the heartbeat under the strip counts.
+    if (st === 'thinking') { souffAskedAt = souffClock(); souffAskCount += 1; }
+    souffInterim(null);
     souffPaintBadge();
     souffPaint();
   });
@@ -19770,6 +19848,10 @@ async function createSouffleuse({
       // So the cockpit's first toast can say where the words go without
       // saying it of a run in which they go nowhere.
       dryRun,
+      // The opening quiet, so the cockpit knows how long the one minute it
+      // cannot be helped in actually is, and can show what it hears until
+      // then instead of leaving the speaker to guess whether the ear works.
+      startQuiet: souff.START_QUIET_S,
       cues: cuesAllowed,
       cueCards: cues.map(c => ({ cueId: c.cueId, chunkId: c.chunkId, text: c.text })),
       session: prefix ? prefix.hash : null,

@@ -16363,7 +16363,9 @@ function cueRender() {
     const tick = '<div class="cue-tick ' + (e.type === 'card' ? '' : 'step ') + cls + titled + souff + '"><i></i></div>';
     if (e.type === 'card') {
       const c = e.card;
-      let body = c.title ? '<p class="cue-title">' + escText(c.title) + '</p>' : '';
+      // A card the prompter laid, said in words and not only in a line style.
+      let body = c.souffleuse ? '<p class="cue-added">added while you spoke</p>' : '';
+      body += c.title ? '<p class="cue-title">' + escText(c.title) + '</p>' : '';
       if (c.at != null) body += '<span class="cue-at">@ ' + PSI_CARDS.formatClock(c.at) + '</span>';
       body += c.bullets.length
         ? '<ul>' + c.bullets.map(b => '<li>' + escText(b) + '</li>').join('') + '</ul>'

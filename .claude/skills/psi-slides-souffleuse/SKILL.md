@@ -406,7 +406,7 @@ through `viewHooks.onShiftS`, `Shift`-click opens the history),
 `#souffleuse-badge`, `#souffleuse-strip` with `.souffleuse-glyph`,
 `.souffleuse-text` and `.souffleuse-x`, `#souffleuse-heard`, `#souffleuse-log`
 with `#souffleuse-log-list`, `#souffleuse-heard-toggle` and
-`#souffleuse-cues-toggle`. The pieces of the panel are looked up **through the
+`#souffleuse-cues-toggle`, and `.cue-added` inside a card the prompter laid. The pieces of the panel are looked up **through the
 panel**, not through the global id map. Two more places carry the prompter only
 under the flag: the footer's key crib gains `Shift-S prompter`, and the help
 overlay gains the group *The prompter* – **first** in the speaker list, with
@@ -486,6 +486,41 @@ below the fold.
   of the state line's `beat 2/3`. It exists in the cockpit's DOM and nowhere
   else: two of three is a slide nearly done and two of nine is a slide barely
   begun, and without it the model reads the same sentence for both.
+
+### The line under the strip does two jobs
+
+`#souffleuse-heard` is one element with two roles, and the switch between them
+is the opening quiet, which the `hello` reply carries as `startQuiet`.
+
+**For the first minute after the switch** it shows the words the ear is
+picking up, with no checkbox touched (`souffOpeningQuiet`). That minute is
+exactly the one in which the prompter cannot say anything at all, and it is
+therefore the one in which a speaker wonders whether the thing is working. The
+words stop when the quiet ends; leaving them up for a whole talk is a moving
+line in the corner of the eye, which is what `#souffleuse-heard-toggle` is for
+when somebody wants it anyway.
+
+**After that the same line is the heartbeat** (`.beat`, `souffBeatText`):
+`listening`, then `asking the model…` while a call is out, then
+`asked 18s ago · 4 so far`. It drops the italic and takes the mono face,
+because it is chrome and not something anybody said. The counter comes from
+the `thinking` status, which is the one moment the cockpit can see that the
+whole chain is alive. **This exists because the correct behaviour of this
+feature is silence**, and silence is indistinguishable from a prompter that
+died twenty minutes ago; the speaker who asked for it had been opening the
+history panel to check.
+
+### A card the prompter laid says so
+
+`.cue-card.souffleuse` already had the dashed track, the hollow ring and the
+italic, which say *not yours* to a reader who knows the rail. It now also
+carries `.cue-added`, a small-caps line reading **added while you spoke**, in
+the deck's own `--emph`. The line style is for the tenth time it happens; the
+words are for the first, mid-talk, when nobody is in the mood to infer
+anything from a border. The label is generated in `cueRender`, which lives in
+the unconditional half of `SPEAKER_JS` beside the `cueCardsFor` merge - one
+line and no stylesheet, since a plain cockpit never has such a card - while
+the rule that paints it sits in `SOUFFLEUSE_CSS` with the rest.
 
 ## The STT adapter
 

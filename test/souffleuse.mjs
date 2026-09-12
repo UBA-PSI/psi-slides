@@ -435,6 +435,23 @@ export async function run({ page, report }) {
     ok((await until(() => logLines(dir).some((l) => l.type === 'session' && l.via === 'hello'), 5000)) !== null,
        'the sidecar logged a session opened by the hello');
 
+    // ── the opening minute shows what it hears, unasked ─────────────
+    // For the first minute the prompter cannot say anything at all, and that
+    // is exactly the minute in which a speaker wonders whether the ear works.
+    // So the words go up without the checkbox being touched, and come down
+    // again when the quiet ends - the checkbox is for somebody who wants them
+    // for the whole talk.
+    await page.evaluate(() => window.__stt.interim('checking whether this ear hears anything at all'));
+    const opening = await until(() => page.evaluate(() => {
+      const e = document.getElementById('souffleuse-heard');
+      return e && !e.hidden ? { beat: e.classList.contains('beat'), text: e.textContent } : null;
+    }), 3000);
+    ok(opening && !opening.beat && /ear hears/.test(opening.text),
+       'in the opening quiet the line carries what it heard, with no box ticked',
+       JSON.stringify(opening));
+    ok(await page.evaluate(() => document.getElementById('souffleuse-heard-toggle').checked === false),
+       'and the box that would keep them up for the whole talk is still off');
+
     // ── one whisper, the whole way ──────────────────────────────────
     // Seventy seconds of talk in one segment: past the opening quiet (60 s)
     // and past the cadence (10 s), with the eight words a tick also wants.
@@ -455,6 +472,17 @@ export async function run({ page, report }) {
     ok(!!strip && strip.glyph === '◇',
        'with the diamond that means example', strip && JSON.stringify(strip.glyph));
     ok(!!strip && strip.severity === 'high', 'and the severity it was given', strip && strip.severity);
+
+    // ── past the quiet, the same line becomes the heartbeat ─────────
+    // Correct behaviour here is silence, which is indistinguishable from a
+    // broken prompter. So the line stops carrying speech and starts carrying
+    // the one fact that says the chain is alive: when it last asked.
+    const beat = await until(() => page.evaluate(() => {
+      const e = document.getElementById('souffleuse-heard');
+      return e && !e.hidden && e.classList.contains('beat') ? e.textContent : null;
+    }), 6000);
+    ok(beat && /asked|asking/.test(beat),
+       'past the opening quiet the line says when it last asked the model', String(beat));
 
     // ── what the sidecar actually sent ──────────────────────────────
     ok(fake.requests.length >= 1, 'the sidecar called the model', String(fake.requests.length));
@@ -584,6 +612,7 @@ export async function run({ page, report }) {
       if (!c) return null;
       return {
         text: c.textContent.replace(/\s+/g, ' ').trim(),
+        label: (c.querySelector('.cue-added') || {}).textContent || null,
         italic: getComputedStyle(c).fontStyle,
         dashed: (() => {
           const t = document.querySelector('#cue-rail .cue-tick.souffleuse');
@@ -591,6 +620,12 @@ export async function run({ page, report }) {
         })(),
       };
     });
+    // The dashed track and the italics say "not yours" to a reader who already
+    // knows. The label is for the first time it happens, mid-talk, when nobody
+    // is in the mood to infer anything from a line style.
+    ok(!!card && /added while you spoke/i.test(card.label || ''),
+       'a card the prompter laid says so in words, above the card',
+       card && JSON.stringify(card.label));
     ok(!!card && card.text.includes('pick up the front-row question'),
        'and with the cards on, the same card is in the rail', JSON.stringify(card));
     ok(!!card && card.italic === 'italic',
