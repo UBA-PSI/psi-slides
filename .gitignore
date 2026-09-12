@@ -89,3 +89,12 @@ desktop/test/shots/
 
 # Apple notarisation credentials for a local signed build (see desktop/README.md)
 desktop/.env
+
+# An OPENROUTER_API_KEY for the live prompter, however it is spelled and
+# wherever in the tree it sits. The key is the one secret this engine can be
+# handed, and a pattern that only covered the root would be one `cd` away
+# from committing it. Load it with `node --env-file=.env build.js …`.
+.env
+.env.*
+!.env.example
+**/.env
