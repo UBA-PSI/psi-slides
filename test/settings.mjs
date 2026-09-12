@@ -536,6 +536,9 @@ console.log('\nlayout generations');
     // unknown-type. The build rendering what the linter refuses is the
     // direction this project does not allow.
     ['an unknown chunk type', '## bogus: X {#x}\n\nBody.\n', /unknown chunk type 'bogus:'/, 'unknown-type'],
+    // …but a `//` after the colon is a URL scheme, not a type - it must not be
+    // refused as one, in either file.
+    ['a URL heading', '## https://example.com/docs {#u}\n\nBody.\n', 'accept'],
     // Two chunks (or a chunk and a column) with one id is invalid HTML and a
     // shared reveal/sync/localStorage slot; the build emitted both and exited
     // 0 while lint.js reported duplicate-id. `#f` is already the FMX free
@@ -593,6 +596,18 @@ console.log('\nlayout generations');
       { cwd: ROOT, encoding: 'utf8' });
     ok(!/unresolved-asset/.test((lf.stdout || '') + (lf.stderr || '')),
        'a ![](path) inside a code fence is not flagged (documentation, not a ref)');
+    // …nor for a ?query / #fragment cache-buster: the file is assets/x.png,
+    // the ?v is a served-URL suffix, so the existence test strips it. Both
+    // the build (no placeholder) and the linter (no warning) must see through it.
+    fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'assets', 'q.png'), Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64'));
+    fs.writeFileSync(path.join(dir, 'source.md'), FMX + '![](assets/q.png?v=2)\n');
+    const bq = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
+    ok(bq.status === 0 && !/\[assets\] not found/.test((bq.stdout || '') + (bq.stderr || '')),
+       'a ?query cache-buster on a real relative path is not a missing asset');
+    const lq = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')], { cwd: ROOT, encoding: 'utf8' });
+    ok(!/unresolved-asset/.test((lq.stdout || '') + (lq.stderr || '')), 'and the linter does not flag it either');
   }
   // ::: overlay {.panel}: the class reaches the markup, a corner is refused
   // in both files, and the layer's grid content box did not move (inset: 0
@@ -2486,6 +2501,11 @@ console.log('\nlayout generations');
   // .photo beside a scrim silently switched the scrim's own refusal off.
   const photoNoImg = raw(FM + '## free: A {#a}\n\n::: cards 2 {.photo}\n- One\n- Two\n:::\n');
   ok(photoNoImg.code !== 0 && /\.photo makes a card/.test(photoNoImg.out), '.photo with no picture in any card is refused');
+  // …and the linter mirrors it now, so the pre-commit gate predicts the build.
+  ok(/cards-photo-no-image/.test(lintOf(FM + '## free: A {#a}\n\n::: cards 2 {.photo}\n- One\n- Two\n:::\n')),
+     'and the linter says cards-photo-no-image');
+  ok(/cards-scrim-no-image/.test(lintOf(FM + '## free: A {#a}\n\n::: cards 2 {.veil}\n- One\n- Two\n:::\n')),
+     'and a groundless scrim, long build-only, is mirrored as cards-scrim-no-image');
   const photoVeilNoImg = raw(FM + '## free: A {#a}\n\n::: cards 2 {.photo .veil}\n- One\n- Two\n:::\n');
   ok(photoVeilNoImg.code !== 0, '.photo .veil together with no picture no longer slips through the scrim check');
   // …and both build when a card actually carries one.
@@ -2495,8 +2515,12 @@ console.log('\nlayout generations');
   // nothing, so a written one is refused like a groundless scrim.
   const showNoNest = raw(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One** a\n- **Two** b\n:::\n');
   ok(showNoNest.code !== 0 && /detail: show decides/.test(showNoNest.out), 'detail: show with no nested level is refused');
+  ok(/cards-detail-no-nesting/.test(lintOf(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One** a\n- **Two** b\n:::\n')),
+     'and the linter mirrors it as cards-detail-no-nesting');
   const showNested = raw(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One**\n  - a\n  - b\n- **Two**\n  - c\n:::\n');
   ok(showNested.code === 0, 'and detail: show builds when a card has a nested level', showNested.out.split('\n')[0]);
+  ok(!/cards-detail-no-nesting/.test(lintOf(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One**\n  - a\n  - b\n- **Two**\n  - c\n:::\n')),
+     'and the linter passes it, like the build');
   // detail acts on li ul AND li ol, so a nested *ordered* list is a second
   // level too - the nested check counted only [-*+] and refused a legitimate
   // numbered one.

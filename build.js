@@ -2180,7 +2180,12 @@ marked.use({
       // most common way to trip this is writing the extension on a name meant
       // for the assets/ shorthand: `![](chain.jpg)` is an explicit path (the
       // extension takes it out of the shorthand), and the file is in assets/.
-      if (isRelative && !assetOnDisk(path.resolve(currentSourceDir, href))) {
+      // A ?query or #fragment is a cache-buster on the served URL, not part of
+      // the file name (the isSvgPath and video tests already read [?#]), so it
+      // is stripped before the existence test - otherwise `![](assets/x.png?v=2)`
+      // stated a file that cannot exist and fell to the placeholder.
+      const hrefFile = href.replace(/[?#].*$/, '');
+      if (isRelative && !assetOnDisk(path.resolve(currentSourceDir, hrefFile))) {
         UNRESOLVED_ASSETS.add(href);
         const alt = escapeHtml(text || '');
         return `<figure class="figure-img figure-missing" data-fig-id="${escapeHtml(href)}">`
@@ -3113,10 +3118,10 @@ function parseTagPrefix(text) {
   // index and the speaker lists saw an untyped chunk. lint.js has reported
   // `unknown-type` on exactly this since the tag vocabulary existed; the build
   // rendering what the linter refuses is the direction this project does not
-  // allow. The regex demands lowercase, so a real colon heading (`Note: …`,
-  // `https://…` written as `[link](url)`) is unaffected - the same predicate
-  // lint uses, so the two agree line for line.
-  if (m) {
+  // allow. The regex demands lowercase, so a real colon heading (`Note: …`) is
+  // unaffected; and a `//` after the colon is a URL scheme (`## https://…`),
+  // not a type - refusing that with "unknown chunk type" named the wrong thing.
+  if (m && !m[2].startsWith('//')) {
     const err = new Error(
       `unknown chunk type '${m[1]}:' in "## ${text}"\n` +
       `  valid types: ${[...VALID_TAGS].join(', ')}\n` +

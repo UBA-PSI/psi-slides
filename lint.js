@@ -2633,6 +2633,13 @@ function lintFile(filePath) {
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const ln = i + 1;
+    // Set when this line opens a ::: cards / ::: rows with a content-dependent
+    // slot written; consumed at the layoutStack push below, same iteration.
+    let pendingCardsCheck = null;
+    // Accumulate the block-body facts a content-dependent cards refusal needs,
+    // onto the open cards/rows stack entry. Runs once the fence is settled
+    // (below), so a fenced `![]()` and a ::: draw body (captured earlier) do
+    // not count - which is exactly what the build's raw-line scan does.
 
     // A ::: draw body is captured verbatim, ahead of everything else.
     // Not an optimisation: a diagram comment starts with '#', and read as
@@ -2655,6 +2662,16 @@ function lintFile(filePath) {
       continue;
     }
     if (inFence) { if (chunk) chunkBody.push(line); continue; }
+
+    // Fence settled: a non-fenced content line of an open cards/rows block
+    // records whether the block carries a picture or a nested level, for the
+    // refusal checked at its close. A ::: draw body was captured above, so it
+    // never reaches here - a diagram is not a card picture, as in the build.
+    const cardsTop = layoutStack.length && layoutStack[layoutStack.length - 1];
+    if (cardsTop && cardsTop.cardsCheck) {
+      if (/!\[[^\]]*\]\([^)\s]+[^)]*\)/.test(line)) cardsTop.hasImage = true;
+      if (/^\s+(?:[-*+]|\d+[.)])\s+/.test(line)) cardsTop.hasNested = true;
+    }
 
     // Only now, with the fence settled: a ::: draw inside a code fence is
     // a syntax example, not a diagram. build.js guards the same way, and a
@@ -2764,7 +2781,9 @@ function lintFile(filePath) {
         if (VALID_TAGS.has(tagMatch[1])) {
           tag = tagMatch[1];
           heading = tagMatch[2].trim();
-        } else {
+        } else if (!tagMatch[2].startsWith('//')) {
+          // A `//` after the colon is a URL scheme (`## https://…`), not a
+          // type; mirrors the build's parseTagPrefix guard.
           add(ln, 'error', 'unknown-type',
               `unknown chunk type '${tagMatch[1]}:' – valid: ${[...VALID_TAGS].join(', ')}`);
         }
@@ -3066,9 +3085,26 @@ function lintFile(filePath) {
     }
     if (cardsOpen || rowsOpen) {
       const kind = rowsOpen ? 'rows' : 'cards';
-      for (const p of parseTail((rowsOpen ? rowsOpen[1] : cardsOpen[2]), CARDS_SLOTS, `::: ${kind}`).problems) {
+      const cardsTail = parseTail((rowsOpen ? rowsOpen[1] : cardsOpen[2]), CARDS_SLOTS, `::: ${kind}`);
+      for (const p of cardsTail.problems) {
         add(ln, 'error', p.code, p.msg);
       }
+      // Content-dependent refusals the build makes, mirrored so the pre-commit
+      // gate predicts the build: a `.photo` ground (or a scrim over it) needs a
+      // card to carry a picture, and a `detail:` needs a nested level. The
+      // block body decides these, so the flags are accumulated on the stack
+      // entry as the body's lines go by (below) and checked when the block
+      // closes. The build scans the block's raw lines the same way, so the two
+      // agree - both count a markdown image and both ignore a ::: draw.
+      pendingCardsCheck = cardsTail.problems.length ? null : {
+        ground: cardsTail.slots.ground.value,
+        scrim: cardsTail.slots.scrim.value,
+        detail: cardsTail.slots.detail.value,
+        wroteGround: cardsTail.slots.ground.written,
+        wroteScrim: cardsTail.slots.scrim.written,
+        wroteDetail: cardsTail.slots.detail.written,
+        kind,
+      };
       // Mirrors build.js: a card row is N containers side by side, so it
       // needs the whole measure, and every directive that could enclose it
       // has already divided that measure. `slide` and `script` divide
@@ -3220,7 +3256,8 @@ function lintFile(filePath) {
           chunk[seen + 'Seen'] = ln;
         }
       }
-      layoutStack.push({ kind, line: ln, ratio: sideRatio, flipped: false });
+      layoutStack.push({ kind, line: ln, ratio: sideRatio, flipped: false,
+        cardsCheck: pendingCardsCheck, hasImage: false, hasNested: false });
       continue;
     }
     if (flipMark) {
@@ -3248,6 +3285,23 @@ function lintFile(filePath) {
           add(closed.line, 'warn', 'side-without-flip',
               '::: side with no ::: flip – one pane in a two-track grid renders at half width '
               + 'with nothing beside it; add the second pane or drop the ::: side');
+        }
+        // The content-dependent cards refusals, mirroring the build's hard
+        // errors so `lint.js` predicts the build here too (CLAUDE.md: a
+        // refusal in one file needs the same key in the other).
+        const cc = closed.cardsCheck;
+        if (cc) {
+          if (cc.wroteGround && cc.ground === 'photo' && !closed.hasImage) {
+            add(closed.line, 'error', 'cards-photo-no-image',
+                `::: ${cc.kind} {.photo} – .photo makes a card's first image its ground, and no card here carries one; add a picture or drop .photo`);
+          } else if (cc.wroteScrim && (cc.ground !== 'photo' || !closed.hasImage)) {
+            add(closed.line, 'error', 'cards-scrim-no-image',
+                `::: ${cc.kind} {.${cc.scrim}} – a scrim needs a picture to veil, and this row ${cc.ground !== 'photo' ? 'is ' + cc.ground : 'carries no image'}`);
+          }
+          if (cc.wroteDetail && !closed.hasNested) {
+            add(closed.line, 'error', 'cards-detail-no-nesting',
+                `::: ${cc.kind} {.${cc.detail}} – detail decides what happens to a card's nested level, and no card here has one; add a nested list or drop the detail word`);
+          }
         }
         continue;
       }
@@ -3450,9 +3504,12 @@ function lintFile(filePath) {
     // so flagging it would be the linter stricter than the build.
     for (const href of assetFence ? [] : mdHrefs) {
       if (/^[a-z]+:/i.test(href) || href.startsWith('/')) continue;
-      const isShorthand = !href.includes('/') && !path.extname(href);
+      // A ?query / #fragment is a served-URL cache-buster, not the file name -
+      // strip it before the existence test, the way the build does.
+      const hrefFile = href.replace(/[?#].*$/, '');
+      const isShorthand = !hrefFile.includes('/') && !path.extname(hrefFile);
       if (isShorthand) continue;
-      if (!fs.existsSync(path.resolve(sourceDir, href))) {
+      if (!fs.existsSync(path.resolve(sourceDir, hrefFile))) {
         const hint = href.includes('/') ? '' :
           ` – if it is in assets/, write ![](${href.replace(/\.[a-z0-9]+$/i, '')}) without the extension`;
         add(i + 1, 'warn', 'unresolved-asset',
