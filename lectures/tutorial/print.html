@@ -11,11 +11,20 @@
 :root {
   --heading-scale: 1;
   --body-scale: 1;
+  /* The live views' ladder, same two values and the same reasoning (see
+     --radius-card there): a corner is a proportion of the type it holds,
+     and --body-scale moves that type here too. */
+  --radius-card:  0.3em;
+  --radius-tight: 0.1em;
   --ink: #1f1f24;
   --ink-soft: #6b6b72;
   --paper: #fafaf7;
   --rule: #c8c8c0;
   --emph: #8b2e00;
+  /* The hue style: {neutrals} moves the greys onto. Print has no themes -
+     one palette, no A key - so there is one hue here and not five, and it
+     is the print accent's own: #8b2e00 is about hue 40 in oklch. */
+  --accent-h: 40;
   /* Same three families as the live views, and the same order, so all four
      outputs are one typographic set. The first entry of each is bundled and
      embedded, so these resolve even where the machine has nothing installed
@@ -23,6 +32,25 @@
   --serif: 'Literata', 'Source Serif 4', Georgia, serif;
   --sans: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', Menlo, monospace;
+}
+/* ── neutrals on paper (style: {neutrals}) ─────────────────────────
+   styleBodyAttrs writes data-neutrals onto this body too, so the rules have
+   to exist here or the attribute is a silent no-op on print.html - the
+   thing this format refuses everywhere else. Print's palette is already
+   warm (#fafaf7 paper, #c8c8c0 rule) where the live one is cool at chroma
+   0, so cool moves more on paper than warm does; that is a property of
+   the two palettes and not of the key. Written in oklch though the palette
+   above is hex, because a hue is what this key changes and hex cannot say
+   it. No terminal guard: print has no terminal themes to guard. And the
+   quiet fills are not re-mixed the way the live views' are, because a
+   printed card is a 1px rule and no fill - there is nothing there to tint. */
+body[data-neutrals=warm] { --accent-h: 70; }
+body[data-neutrals=cool] { --accent-h: 250; }
+body:is([data-neutrals=tinted], [data-neutrals=warm], [data-neutrals=cool]) {
+  --ink:      oklch(0.26 0.014 var(--accent-h));
+  --ink-soft: oklch(0.50 0.014 var(--accent-h));
+  --paper:    oklch(0.985 0.007 var(--accent-h));
+  --rule:     oklch(0.81 0.013 var(--accent-h));
 }
 
 @page {
@@ -125,7 +153,7 @@ pre {
   background: rgba(0,0,0,0.04);
   padding: 0.8em 1em;
   overflow-x: auto;
-  border-radius: 2px;
+  border-radius: var(--radius-tight);
   line-height: 1.45;
 }
 pre code { font-size: inherit; }
@@ -553,7 +581,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   aspect-ratio: 16 / 6;
   background-size: cover;
   background-position: center;
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   margin-bottom: 1.4rem;
   order: -1;
 }
@@ -567,7 +595,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   margin: 0 0 1rem;
   display: block;
 }
@@ -579,7 +607,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
    what the paper cannot have, the treatment is kept. */
 :is(.overlay-card, .dock) {
   padding: 0.75rem 0.95rem;
-  border-radius: 5px;
+  border-radius: var(--radius-card);
   margin: 0 0 0.7rem;
   max-width: 34em;
 }
@@ -616,7 +644,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   margin: 0;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: var(--radius-card);
   list-style: none;
   break-inside: avoid;
   font-size: calc(1em * var(--card-fs, 1));

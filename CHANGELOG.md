@@ -9,6 +9,43 @@ from building the same way is a major version.
 
 ### Changed
 
+- **`style: {neutrals: …}` says what hue the greys carry, and the corner
+  radius is one em ladder.** Two findings from a look at what the `A` key
+  actually produces. In the four light themes that key moves `--emph` and
+  nothing else – `--ink` is fixed at chroma 0.01 on hue 260, `--paper` and
+  `--rule` at chroma 0 – and every quiet fill is mixed out of `--ink`, so a
+  card under a warm accent is a cool grey under a warm word; `light-blue` is
+  the only one where the two agree, and there by coincidence. The new key
+  takes `neutral` (the default, and today's rendering byte for byte),
+  `tinted` (the greys take the accent's own hue and the fills are mixed from
+  `--emph`), `warm` and `cool` (a fixed hue), the last two held off the
+  terminal themes because a single phosphor tone is what those are. Second,
+  the corner radii were four absolute values that had accumulated (2, 3, 6,
+  10 px) and a card's font-size is set per slide by auto-fit, so the same
+  `::: cards` row rounded at 0.23em on one slide and 0.33em on the next; they
+  are now `--radius-card` (0.3em) and `--radius-tight` (0.1em) in both
+  stylesheets. The cockpit's own chrome keeps its pixels, being fixed-size UI
+  at one scale.
+
+- **A `::: dock` column is a share of the frame, and it keeps the frame's
+  air.** Its track was a measure of type multiplied out against `var(--zoom)`,
+  which is auto-fit's zoom rather than the lecturer's, so the same inherited
+  `{.left .every}` dock stood 406, 350 and 294 px wide on three consecutive
+  slides of one part and its running list walked sideways on every advance;
+  the air was an em for the same reason and shrank with it, so the words
+  crowded the frame and the seam hardest on the slides carrying the most
+  text. A dock is part of the frame, so the widths are now `narrow` 28%,
+  `standard` 37% and `wide` 46% of the slide, and `--dock-gap` is 3.5% of it,
+  standing both inside the column and between the column and the words. The
+  text measure a dock leaves is unchanged at the widest the old ems reached;
+  what is gone is that the track grew when the lecturer zoomed, so a large
+  manual zoom now wraps a dock's items instead of widening its column, the
+  way a `::: overlay {.panel}` already did. `lint.js` mirrors the shares as
+  `DOCK_SHARE` / `DOCK_GAP_SHARE`, where the same arithmetic was a third too
+  optimistic: it read the dock's own em as the chunk's, so
+  `dock-narrows-measure` now fires on a `standard` dock beside a `standard`
+  chunk, which really does leave about 31em.
+
 - **The build refuses four things it used to accept and mis-render, so it no
   longer draws what `lint.js` calls an error.** A `word:` heading prefix that
   is not one of the ten types (`## principl:`) used to fall through to a

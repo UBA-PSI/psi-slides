@@ -349,6 +349,55 @@ console.log('\nlayout generations');
      'and the projection rule covers the one eyebrow it still generates');
 }
 
+// ── style.neutrals: what hue the greys carry, and the radius ladder ──
+// The default has to be byte-identical, because every deck in the corpus is
+// on it: no attribute on the body, and none of the rules can match.
+{
+  const plain = build('');
+  ok(!/data-neutrals=/.test(bodyTag(plain.html)) && !/data-neutrals=/.test((plain.print.match(/<body [^>]*>/g) || []).join(' ')),
+     'a deck that says nothing emits no data-neutrals', bodyTag(plain.html));
+  for (const mode of ['tinted', 'warm', 'cool']) {
+    const r = build('style: {neutrals: ' + mode + '}');
+    ok(new RegExp('data-neutrals="' + mode + '"').test(bodyTag(r.html)),
+       mode + ' reaches the projection', bodyTag(r.html));
+  }
+  const t = build('style: {neutrals: tinted}');
+  // The two halves of the fix, and they are separate: the tokens take the
+  // accent's hue, and the quiet fills are mixed from the accent rather than
+  // from an ink that now barely carries it.
+  ok(/body\[data-theme=light-orange\]\s*\{ --accent-h: 60; \}/.test(t.html),
+     'each light theme names its own hue');
+  ok(/body\[data-neutrals=warm\] \{ --accent-h: 70; \}/.test(t.html),
+     'and warm and cool override it with a fixed one');
+  ok(/body\[data-neutrals=tinted\] \.cards\.cg-panel \{ --card-bg:/.test(t.html),
+     'the card fill is overridden through --card-bg, not through background');
+  ok(!/body\[data-theme\^=terminal\]:is\(\[data-neutrals/.test(t.html)
+     && !/terminal[^\n]*\[data-neutrals=warm\]/.test(t.html),
+     'and the terminal themes are left out of it, phosphor being the point there');
+  // Both files refuse the same typo, which is the standing rule for a
+  // vocabulary that lives in two places. Its own temp dir, because build()
+  // above throws on a non-zero exit and a refusal is the point here.
+  const BAD = '---\ntitle: T\nstyle: {neutrals: tintd}\n---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n';
+  const nDir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-neutrals-'));
+  fs.writeFileSync(path.join(nDir, 'source.md'), BAD);
+  const nBuild = spawnSync(process.execPath,
+    [path.join(ROOT, 'build.js'), path.join(nDir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
+  const nOut = (nBuild.stdout || '') + (nBuild.stderr || '');
+  ok(nBuild.status !== 0 && /is not a value this key accepts/.test(nOut),
+     'an unknown value fails the build', nOut.split('\n')[0]);
+  const nLint = spawnSync(process.execPath,
+    [path.join(ROOT, 'lint.js'), path.join(nDir, 'source.md')], { cwd: ROOT, encoding: 'utf8' });
+  ok(/unknown-style-setting/.test((nLint.stdout || '') + (nLint.stderr || '')),
+     'and the linter names it too');
+  // One ladder, in em, in both stylesheets - as pixels the same card row
+  // rounded differently on every slide, because auto-fit sets the card's
+  // font-size per slide.
+  ok(/--radius-card:\s*0\.3em/.test(plain.html) && /--radius-card:\s*0\.3em/.test(plain.print),
+     'the corner radius is one em-based token in both stylesheets');
+  ok(!/border-radius: 10px/.test(plain.html) && !/border-radius: 6px;\n\s*font-size/.test(plain.html),
+     'and no slide-content rule spells a pixel radius any more');
+}
+
 // ── cards decide their own size, and say so in the markup ─────────────
 {
   const mk = (body) => {
@@ -874,15 +923,16 @@ console.log('\nlayout generations');
     ok((r.html.match(/\.overlay-card\[data-from\]/g) || []).length === 1, 'and the only place the overlay selector is spelled', String((r.html.match(/\.overlay-card\[data-from\]/g) || []).length));
     ok(/flowKids[\s\S]*?classList\.contains\('dock'\)/.test(r.html), 'flowHeightProbe looks through a dock');
     ok(/:is\(\.overlay-card, \.dock\)\.ov-paper/.test(r.html) && /:is\(\.overlay-card, \.dock\)\.ov-paper/.test(r.print), 'the ground rules are shared, in both stylesheets');
-    ok(/\[data-dock-w=narrow\]\s*\{ --dock-em: 13; \}/.test(r.html), 'the narrow width is 13 of the dock\'s own em');
+    ok(/\[data-dock-w=narrow\]\s*\{ --dock-px: calc\(var\(--slide-w\) \* 0\.28\); \}/.test(r.html),
+       'the narrow width is a share of the slide, not a measure of type');
     const dockSeg = (r.html.match(/<aside class="dock[\s\S]*?<\/aside>/) || [''])[0];
     ok(!/sentence-head/.test(dockSeg), 'a dock is not abridged by the collapse');
   }
   // Lint arithmetic at its edges, and density.
   {
     const codes = (src) => lintCodes(build(src));
-    // 68.4 - 9.6 - 25 - 1.6 = 32.2em beside a wide dock: three columns of
-    // 10.7em pass, four cards of 8em do not.
+    // 68.4 x (1 - 0.46 - 0.035) - 9.6 = 24.9em beside a wide dock: three
+    // columns of 8.3em pass, four cards of 6.2em do not.
     ok(codes(FMX.replace('## free: F {#f}', '## free: F {.wide #f}') + '::: dock {.wide}\nA.\n:::\n\n::: cards 4\n- a\n- b\n- c\n- d\n:::\n').includes('layout-too-narrow'),
        'a wide dock beside four cards leaves them under the floor');
     ok(codes(FMX + '::: dock {.wide}\nA.\n:::\n').includes('dock-narrows-measure'), 'a wide dock narrows a standard chunk below its measure');

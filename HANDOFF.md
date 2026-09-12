@@ -1117,11 +1117,21 @@ Commit-Reihenfolge:
   Überlauf las.
 - **`::: dock`** (`PLAN-dock.md`, gebaut in `e019c8a`): das Overlay-Vokabular
   mit dem anderen Vertrag – Teil des Rahmens, der Text weicht. Seitendock
-  absolut plus Chunk-Padding, Band als Grid-Zeile; `--dock-em` als Zahl und
-  `@property --dock-px` als `<length>`, weil ein em-Wert dreimal gegen drei
-  Schriften aufgelöst wurde. `.every` erbt vom Trenner, `#id`-Links sind
-  der Live-Marker. Standardgrund `tint`. Ein Implementierungs-Agent blieb
-  dreimal am Watchdog hängen; ab dem CSS ist es von Hand.
+  absolut plus Chunk-Padding, Band als Grid-Zeile; `@property --dock-px` als
+  `<length>`, weil ein em-Wert dreimal gegen drei Schriften aufgelöst wurde.
+  `.every` erbt vom Trenner, `#id`-Links sind der Live-Marker. Standardgrund
+  `tint`. Ein Implementierungs-Agent blieb dreimal am Watchdog hängen; ab dem
+  CSS ist es von Hand.
+  **Nachtrag vor 2.0.0:** die Lehre des Panels zwei Punkte weiter oben hatte
+  das Dock nicht bekommen. `--dock-em` war zwar nur einmal aufgelöst, aber
+  gegen `var(--zoom)`, also gegen Auto-Fit: dasselbe geerbte `{.every}`-Dock
+  stand auf drei aufeinanderfolgenden Folien eines Teils 406, 350 und 294 px
+  breit, und die Luft (1,2em innen, 1,6em daneben) schrumpfte mit – am
+  engsten also genau auf den textreichsten Folien. Breite jetzt 28/37/46 %
+  der Folienbreite, `--dock-gap` 3,5 % und dieselbe Zahl innen wie außen.
+  `DOCK_SHARE`/`DOCK_GAP_SHARE` in `lint.js`; dort war die Rechnung vorher um
+  ein Drittel zu optimistisch, weil sie die em des Docks als die des Chunks
+  las.
 - **Frame-Lab** (`lectures/frame-lab/`, ungetrackt): 24
   Randfall-Chunks; fand zehn Defekte, alle behoben (`ed68ce8`, `6f20362`),
   darunter `text-on-picture` als Lint-Warnung für Wörter auf einem

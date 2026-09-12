@@ -5169,6 +5169,29 @@ const STYLE_SPEC = {
   // word and a line are not one decision: an author may well want the
   // line and not the word.
   labels: { kind: 'enum', values: ['on', 'off'], dflt: 'on' },
+  // What hue the greys carry. In the four light themes the A key moves
+  // --emph and nothing else: --ink is fixed at chroma 0.01 on hue 260,
+  // --paper and --rule at chroma 0. Every tinted surface is mixed out of
+  // --ink (a card is 5% of it, a dock and an overlay card 4%), so a card
+  // under a light-orange or light-red accent is a cool grey under a warm
+  // word - the two agree only in light-blue, and there by coincidence. The
+  // dark and terminal themes never had the problem, because there --ink
+  // moves with the theme.
+  //
+  //   neutral - today's rendering, and the default. A deck that says
+  //             nothing builds byte-identical HTML.
+  //   tinted  - the greys take the accent's own hue at low chroma, so the
+  //             slide reads as one palette whichever accent the room gets.
+  //   warm    - a fixed warm grey (hue 70), the accent notwithstanding.
+  //   cool    - a fixed cool grey (hue 250), which is where the neutrals
+  //             already sit; writing it makes today's cast a choice and
+  //             carries it into --paper and --rule, which are at chroma 0.
+  //
+  // warm and cool are held off the two terminal themes on purpose: a single
+  // phosphor tone is what those are, and a warm-grey paper under green ink
+  // is neither. tinted needs no such guard - there the accent's hue IS the
+  // theme's, so it resolves to what the theme already does.
+  neutrals: { kind: 'enum', values: ['neutral', 'tinted', 'warm', 'cool'], dflt: 'neutral' },
   // Which views break a word at the end of a line. `lang:` picks the
   // dictionary and stays out of this: the language is a property of the
   // lecture, not an opening preference, and a German deck may perfectly
@@ -5308,6 +5331,7 @@ function styleBodyAttrs(st, frontmatter = {}) {
   if (st.headings !== 'auto') parts.push(`data-headings="${st.headings}"`);
   if (st.rules !== 'on') parts.push('data-rules="off"');
   if (st.labels !== 'on') parts.push('data-labels="off"');
+  if (st.neutrals !== 'neutral') parts.push(`data-neutrals="${st.neutrals}"`);
   if (st['link-codes'] !== 'on') parts.push('data-link-codes="off"');
   // Emitted only when they differ from the default, so a lecture that says
   // nothing produces the same <body> tag it always did.
@@ -5425,6 +5449,7 @@ function themeBootScript(defaults) {
 function splitInfo(info = '') {
   return String(info).split('\n').map(l => l.trim()).filter(Boolean);
 }
+
 
 // `subtitle` is the hierarchy step the cover was missing. Without it an
 // author has nowhere to put "Prevalence, Techniques, and Implications" but
@@ -6011,11 +6036,20 @@ const PRINT_CSS = `
 :root {
   --heading-scale: 1;
   --body-scale: 1;
+  /* The live views' ladder, same two values and the same reasoning (see
+     --radius-card there): a corner is a proportion of the type it holds,
+     and --body-scale moves that type here too. */
+  --radius-card:  0.3em;
+  --radius-tight: 0.1em;
   --ink: #1f1f24;
   --ink-soft: #6b6b72;
   --paper: #fafaf7;
   --rule: #c8c8c0;
   --emph: #8b2e00;
+  /* The hue style: {neutrals} moves the greys onto. Print has no themes -
+     one palette, no A key - so there is one hue here and not five, and it
+     is the print accent's own: #8b2e00 is about hue 40 in oklch. */
+  --accent-h: 40;
   /* Same three families as the live views, and the same order, so all four
      outputs are one typographic set. The first entry of each is bundled and
      embedded, so these resolve even where the machine has nothing installed
@@ -6023,6 +6057,25 @@ const PRINT_CSS = `
   --serif: 'Literata', 'Source Serif 4', Georgia, serif;
   --sans: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', Menlo, monospace;
+}
+/* ── neutrals on paper (style: {neutrals}) ─────────────────────────
+   styleBodyAttrs writes data-neutrals onto this body too, so the rules have
+   to exist here or the attribute is a silent no-op on print.html - the
+   thing this format refuses everywhere else. Print's palette is already
+   warm (#fafaf7 paper, #c8c8c0 rule) where the live one is cool at chroma
+   0, so cool moves more on paper than warm does; that is a property of
+   the two palettes and not of the key. Written in oklch though the palette
+   above is hex, because a hue is what this key changes and hex cannot say
+   it. No terminal guard: print has no terminal themes to guard. And the
+   quiet fills are not re-mixed the way the live views' are, because a
+   printed card is a 1px rule and no fill - there is nothing there to tint. */
+body[data-neutrals=warm] { --accent-h: 70; }
+body[data-neutrals=cool] { --accent-h: 250; }
+body:is([data-neutrals=tinted], [data-neutrals=warm], [data-neutrals=cool]) {
+  --ink:      oklch(0.26 0.014 var(--accent-h));
+  --ink-soft: oklch(0.50 0.014 var(--accent-h));
+  --paper:    oklch(0.985 0.007 var(--accent-h));
+  --rule:     oklch(0.81 0.013 var(--accent-h));
 }
 
 @page {
@@ -6119,7 +6172,7 @@ pre {
   background: rgba(0,0,0,0.04);
   padding: 0.8em 1em;
   overflow-x: auto;
-  border-radius: 2px;
+  border-radius: var(--radius-tight);
   line-height: 1.45;
 }
 pre code { font-size: inherit; }
@@ -6547,7 +6600,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   aspect-ratio: 16 / 6;
   background-size: cover;
   background-position: center;
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   margin-bottom: 1.4rem;
   order: -1;
 }
@@ -6561,7 +6614,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   margin: 0 0 1rem;
   display: block;
 }
@@ -6573,7 +6626,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
    what the paper cannot have, the treatment is kept. */
 :is(.overlay-card, .dock) {
   padding: 0.75rem 0.95rem;
-  border-radius: 5px;
+  border-radius: var(--radius-card);
   margin: 0 0 0.7rem;
   max-width: 34em;
 }
@@ -6610,7 +6663,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   margin: 0;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: var(--radius-card);
   list-style: none;
   break-inside: avoid;
   font-size: calc(1em * var(--card-fs, 1));
@@ -7592,6 +7645,17 @@ const AUDIENCE_CSS = `
   --dim: 0.86;
   --camera-duration: 250ms;
   --slide-pad-x: 14%;
+  /* Corner radii, one ladder and in em, so a corner keeps its proportion to
+     the type inside it rather than to the pixel grid. As absolute pixels the
+     same card row rounded differently on every slide: auto-fit sets the
+     card's font-size per slide, so the 10px on a cards item measured
+     0.23em where the zoom was high and 0.33em two slides later. Two values,
+     not the four that had accumulated (2, 3, 6, 10) - a card and a clipped
+     frame are the only two things here that round.
+     Not shared with the cockpit's chrome below, which is fixed-size UI at
+     one scale and where a pixel is the right unit. */
+  --radius-card:  0.3em;
+  --radius-tight: 0.1em;
   /* Slide-internal sizes all derive from --slide-h so content layout is
      pixel-identical across views. --slide-w / --slide-h hold the AUDIENCE
      reference dimensions: in audience that's window.innerW/H; in speaker
@@ -7698,6 +7762,85 @@ body[data-theme=terminal-green] {
   --ink-soft:   oklch(0.58 0.12 145);
   --rule:       oklch(0.33 0.06 150);
   --emph:       oklch(0.92 0.24 145);
+}
+
+/* ── neutrals: what hue the greys carry (style: {neutrals}) ────────
+   Off by default, and the default is today's rendering: a deck that says
+   nothing emits no data-neutrals and reaches none of this.
+
+   The problem it answers: in the four light themes the A key moves --emph
+   and nothing else. --ink sits at chroma 0.01 on hue 260, --paper and
+   --rule at chroma 0, and every quiet fill is mixed out of --ink - a card
+   5% of it, a dock and an overlay card 4%. So the card under a light-orange
+   accent is a cool grey under a warm word, and the two agree only in
+   light-blue, where the accent happens to be at hue 250. The dark theme has
+   a milder version of the same (neutral ink, accent at 35); the two terminal
+   themes have none of it, because there the ink IS the theme's colour.
+
+   --accent-h is each theme's own hue, and warm / cool override it with a
+   fixed one. Held off the terminal pair deliberately: a single phosphor
+   tone is what those are, and a warm-grey paper under green ink is neither.
+   tinted needs no guard there - the accent's hue is already the theme's. */
+body[data-theme=light-red]    { --accent-h: 30; }
+body[data-theme=light-teal]   { --accent-h: 195; }
+body[data-theme=light-blue]   { --accent-h: 250; }
+body[data-theme=light-orange] { --accent-h: 60; }
+body[data-theme=dark]         { --accent-h: 35; }
+/* After the four above, and at the same specificity, so source order is
+   what makes a fixed hue win over the theme's own. */
+body[data-neutrals=warm] { --accent-h: 70; }
+body[data-neutrals=cool] { --accent-h: 250; }
+
+/* The chroma is the argument, not the hue: 0.014 on the ink is under the
+   threshold at which a grey reads as a colour, and enough for the eye to
+   stop seeing two families. The paper gets half of it, because a tinted
+   paper costs brightness in a lit room and this is the one token a
+   projector punishes. */
+body[data-theme^=light]:is([data-neutrals=tinted], [data-neutrals=warm], [data-neutrals=cool]) {
+  --ink:        oklch(var(--ink-l) 0.014 var(--accent-h));
+  --ink-soft:   oklch(var(--ink-soft-l) 0.014 var(--accent-h));
+  --paper:      oklch(0.98 0.007 var(--accent-h));
+  --paper-warm: oklch(0.96 0.014 var(--accent-h));
+  --rule:       oklch(0.78 0.013 var(--accent-h));
+}
+body[data-theme=dark]:is([data-neutrals=tinted], [data-neutrals=warm], [data-neutrals=cool]) {
+  --paper:      oklch(0.17 0.010 var(--accent-h));
+  --paper-warm: oklch(0.22 0.016 var(--accent-h));
+  --ink:        oklch(0.95 0.006 var(--accent-h));
+  --ink-soft:   oklch(0.68 0.014 var(--accent-h));
+  --rule:       oklch(0.38 0.018 var(--accent-h));
+}
+
+/* Under tinted the quiet fills are mixed from the accent itself rather than
+   from the ink, and at a higher percentage to compensate: 5% of a 0.014
+   ink is a fill with no hue left in it, which is the half of the defect a
+   token swap alone does not reach. warm and cool keep mixing from the ink,
+   because there the ink already carries the hue the author asked for. */
+/* --card-bg and not background: the fill is declared on the .cards container
+   as a custom property and read by the item, so a background here paints the
+   grid and not the card. */
+body[data-neutrals=tinted] .cards.cg-panel { --card-bg: color-mix(in oklch, var(--emph) 8%, transparent); }
+body[data-neutrals=tinted] .chunk[data-section=card] .section-heading {
+  background: color-mix(in oklch, var(--emph) 8%, transparent);
+}
+/* glass is deliberately NOT in this list, and the distinction generalises:
+   a surface that exists to keep type legible stays outside the palette, a
+   surface that exists to group or separate follows it. ov-glass is the
+   first kind, and not because of its hue but because it has a *measured
+   floor* - the 52% above, and the 68% a panel takes, are numbers derived
+   from a contrast ratio on a mid-tone photograph, so a palette key that
+   moves them is changing a measurement and not a taste. This selector is
+   one element more specific than the panel's, so an accent mix here would
+   have won and put words on a nearly unveiled picture, which is the exact
+   thing text-on-picture warns about. The invert backdrop's text-shadow is
+   outside the palette for the same reason: a tinted halo colours the type
+   it exists to protect. */
+body[data-neutrals=tinted] :is(.overlay-card, .dock).ov-paper,
+body[data-neutrals=tinted] .dock.ov-tint {
+  background: color-mix(in oklch, var(--emph) 6%, transparent);
+}
+body[data-neutrals=tinted] .cards.cg-outline {
+  --card-border: 2px solid color-mix(in oklch, var(--emph) 26%, transparent);
 }
 
 /* A dark reading theme switches shiki to its dark palette. Every token
@@ -8225,7 +8368,7 @@ figure.figure-embed {
   aspect-ratio: 16 / 9;
   max-height: 56vh;
   background: oklch(0.12 0 0);
-  border-radius: 2px;
+  border-radius: var(--radius-tight);
   overflow: hidden;
 }
 .embed-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
@@ -8251,7 +8394,7 @@ figure.figure-embed {
   text-align: center;
   padding: 1em;
   border: 2px dashed var(--rule);
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   font-family: var(--sans-font);
   color: var(--ink-soft);
 }
@@ -8267,7 +8410,7 @@ figure.figure-video video {
   height: auto;
   display: block;
   background: oklch(0.12 0 0);
-  border-radius: 2px;
+  border-radius: var(--radius-tight);
 }
 figure.figure-img img,
 figure.figure-img svg {
@@ -9339,7 +9482,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .overlay-card {
   pointer-events: auto;
   padding: 0.85em 1.05em;
-  border-radius: 6px;
+  border-radius: var(--radius-card);
   font-size: calc(0.92em * var(--zoom));
   line-height: 1.45;
   align-self: center;
@@ -9547,29 +9690,36 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    the content track stays minmax(0, --content-w) and the 1fr gutters absorb
    the rest, so no grid-column rule changes. A band is a grid row, because
    its height at snug is its words', which only an auto row can measure.
-   The width is a bare number on .chunk (--dock-em) and both sides multiply
-   it out themselves: the column in its own em, which is 0.92 of the
-   chunk's times the zoom, and the chunk's padding in the chunk's em times
-   the same two factors. Written as one em value it resolved twice - 13em
-   of the chunk in the padding, 13em of the zoomed dock in the column - and
-   the column ran 300px into the text at zoom 2.2. So the reserved track
-   grows with the lecturer's zoom, as the dock's type does, and auto-fit
-   converges on the zoom at which both fit: it re-measures after every
-   applyZoom. */
-/* Registered as a <length>, so the em in it is resolved once, at the chunk,
-   and every reader below - the chunk's padding, the dock's width, the slide
-   number's offset, the overlay layer's inset - gets the same pixels. As a
-   plain custom property the em would be re-read where it is used: in the
-   dock's zoomed type, in the badge's small digits, each a different width. */
+
+   A column's width is a share of the slide, not a measure of type. That is
+   the panel's rule (see ov-panel above) for the panel's reason and one
+   more: the track used to be a bare number on .chunk multiplied out in the
+   dock's own zoomed em, so it followed auto-fit rather than the frame, and
+   the same inherited dock stood 406, 350 and 294 px wide on three
+   consecutive slides of one part. A running agenda that shifts sideways on
+   every advance is the one thing a running agenda must not do. The shares
+   below hold the text measure those ems gave at the widest of the three. */
+/* Still registered as a <length>: the readers below - the chunk's padding,
+   the dock's width, the slide number's offset, the overlay layer's inset -
+   then all get the same pixels, and an unrecognised width word resolves to
+   0px rather than to an invalid calc. */
 @property --dock-px { syntax: '<length>'; inherits: true; initial-value: 0px; }
-.chunk[data-dock] { min-height: var(--slide-h); --dock-gap: 1.6em; --dock-px: calc(var(--dock-em) * 0.92em * var(--zoom)); }
+/* The air a dock keeps, one number on both of its sides: inside the column,
+   and between the column and the words. A share of the slide for the reason
+   the width is - written as an em (1.2em inside, 1.6em beside) it shrank
+   with auto-fit, so the words crowded the frame and the seam exactly on the
+   slides carrying the most text, which is where the crowding shows. One
+   number, so the slab's edge stands in the middle of a clear band twice its
+   own width rather than a third of the way into it. */
+.chunk[data-dock] { min-height: var(--slide-h); --dock-gap: calc(var(--slide-w) * 0.035); }
 /* The width word rides on the article as data-dock-w, beside data-dock,
-   because the padding is the chunk's. Measured on the weakest-link photo
-   at 1600x900: 13em holds a seven-item list of one-word headings, 18em a
-   two-line remark, 25em a short paragraph. lint.js mirrors them as DOCK_EM. */
-.chunk[data-dock-w=narrow]   { --dock-em: 13; }
-.chunk[data-dock-w=standard] { --dock-em: 18; }
-.chunk[data-dock-w=wide]     { --dock-em: 25; }
+   because the padding is the chunk's. Measured at 1600x900, air included:
+   28% holds a seven-item list of one-word headings, 37% a two-line remark,
+   46% a short paragraph. 46 and not the panel's 52, because a dock that
+   takes half the slide is a ::: side. lint.js mirrors them as DOCK_SHARE. */
+.chunk[data-dock-w=narrow]   { --dock-px: calc(var(--slide-w) * 0.28); }
+.chunk[data-dock-w=standard] { --dock-px: calc(var(--slide-w) * 0.37); }
+.chunk[data-dock-w=wide]     { --dock-px: calc(var(--slide-w) * 0.46); }
 .chunk[data-dock=left]  { padding-left:  calc(var(--dock-px) + var(--dock-gap)); }
 .chunk[data-dock=right] { padding-right: calc(var(--dock-px) + var(--dock-gap)); }
 
@@ -9589,12 +9739,14 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .dock figure { margin: 0; }
 
 /* column: absolute against the chunk, whose padding is the reserved track.
-   Vertical padding is the slide's; horizontal is fixed, because 14% of a
-   13em column is not a padding. */
+   Vertical padding is the slide's; horizontal is --dock-gap, the same air
+   that stands between the column and the words. Not --slide-pad-x: a
+   percentage padding here resolves against the chunk, so 14% would be the
+   slide's whole gutter inside a column a quarter of it wide. */
 .dock.dock-left, .dock.dock-right {
   position: absolute; top: 0; bottom: 0;
   width: var(--dock-px);
-  padding: var(--slide-pad-y) 1.2em;
+  padding: var(--slide-pad-y) var(--dock-gap);
 }
 .dock.dock-left  { left: 0; }
 .dock.dock-right { right: 0; }
@@ -9716,8 +9868,10 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   padding: var(--card-py, 1.05em) var(--card-px, 1.15em);
   border: var(--card-border, 0);
   /* 6px on a card 300px wide is the radius a stylesheet has when nobody
-     chose one. At slide scale it needs to be visible as a decision. */
-  border-radius: 10px;
+     chose one. At slide scale it needs to be visible as a decision, which is
+     an argument for a proportion and not for a pixel count - see
+     --radius-card. */
+  border-radius: var(--radius-card);
   background: var(--card-bg, none);
   list-style: none;
   line-height: 1.38;
@@ -9838,7 +9992,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   padding: var(--card-py, 1.05em) var(--card-px, 1.15em);
   background: var(--card-bg, none);
   border: var(--card-border, 0);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   align-self: center;
   text-align: var(--card-align, left);
   font-size: calc(1em * var(--card-fs, 1));
@@ -10011,7 +10165,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 }
 
 /* corner - shape, not ground, so the two compose. */
-.cards.ck-round  > ul > li, .cards.ck-round  > ol > li, .cards.ck-round  > :not(ul):not(ol) { border-radius: 10px; }
+.cards.ck-round  > ul > li, .cards.ck-round  > ol > li, .cards.ck-round  > :not(ul):not(ol) { border-radius: var(--radius-card); }
 .cards.ck-square > ul > li, .cards.ck-square > ol > li, .cards.ck-square > :not(ul):not(ol) { border-radius: 0; }
 /* No box at all: the gutter is what separates the cards, so it has to be
    wide enough to do that on its own, and the padding goes away with the
@@ -10243,7 +10397,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
 .chunk[data-section=card] .chunk-content { align-items: flex-start; }
 .chunk[data-section=card] .section-heading {
   background: color-mix(in oklch, var(--ink) 5%, transparent);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   padding: 0.5em 0.7em;
 }
 /* Over a photograph the 5% tint is invisible, so the heading stands on the
@@ -11047,7 +11201,7 @@ body[data-view=speaker].blanked #demo-badge { bottom: 5.3rem; }
   color: var(--ink);
   background: oklch(0.96 0 0);
   border: 1px solid var(--rule);
-  border-radius: 2px;
+  border-radius: var(--radius-tight);
   padding: 0 0.32em;
 }
 body[data-theme^=terminal] #help-inner kbd { background: oklch(0.24 0.02 90); }

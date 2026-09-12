@@ -1,6 +1,6 @@
 ---
 name: psi-slides-appearance
-description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the three-family bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels`, `blocks` and the look of a bold phrase (`bold`, `print-bold`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
+description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the three-family bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` and the look of a bold phrase (`bold`, `print-bold`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
 ---
 
 # Type, themes and viewer defaults in psi-slides
@@ -191,9 +191,28 @@ The tag word above a chunk is **two different things wearing one name**, and a s
 
 ## Where the blocks sit (`style.blocks`), and the two keys a chunk can answer
 
-`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `heading-scale` and `body-scale` (0.6–1.8).
+`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `neutrals` (neutral/tinted/warm/cool), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `heading-scale` and `body-scale` (0.6–1.8).
 
 **`reveal` was a key here and is gone.** It chose what a top-level `---` did before its beat – `grow`, the 1.0.0 behaviour, closed the segment up so the chunk grew per press, and `hold` laid it out at its final height from beat 0. Every reveal reserves its space now, at every depth, so there is nothing left for the key to pick and a deck that still writes it is refused by the build and by `lint.js` alike. `STYLE_KEYS_REMOVED` in build.js and its mirror in lint.js carry the sentence an author gets, which names what replaced the key rather than reporting a typo they did not make.
+
+## What hue the greys carry (`style.neutrals`)
+
+**In the four light themes the `A` key moves `--emph` and nothing else.** `--ink` sits at chroma 0.01 on hue 260, `--paper` and `--rule` at chroma 0, and every quiet fill is mixed out of `--ink` – a `::: cards {.panel}` item is 5% of it, a dock and an overlay card 4%. So a card under the `light-orange` accent is a cool grey under a warm word; the two agree only in `light-blue`, where the accent happens to sit at hue 250. The `dark` theme has a milder version of the same (neutral ink, accent at hue 35), and the two terminal themes have none of it at all, because there `--ink` *is* the theme's colour.
+
+`style: {neutrals: …}` is the author's say over it:
+
+| value | what it does |
+|---|---|
+| `neutral` | the default, and today's rendering – a deck that says nothing emits no `data-neutrals` and reaches none of the rules |
+| `tinted` | the greys take the accent's own hue, and the quiet fills are mixed from `--emph` rather than from the ink |
+| `warm` | a fixed warm grey, hue 70, whatever the accent is |
+| `cool` | a fixed cool grey, hue 250 – where the neutrals already sit, so writing it makes today's cast a choice and carries it into `--paper` and `--rule`, which are at chroma 0 |
+
+**Two halves, and they are separate.** The token half moves `--ink`, `--ink-soft`, `--paper`, `--paper-warm` and `--rule` onto `--accent-h` – each theme names its own hue, `warm` and `cool` override it at the same specificity from later in the stylesheet. The chroma is the argument, not the hue: 0.014 on the ink is under the threshold at which a grey reads as a colour, and the paper gets half of that, because a tinted paper costs brightness in a lit room and it is the one token a projector punishes. The fill half exists because 5% of a 0.014 ink is a fill with no hue left in it, so under `tinted` the card, the dock and the overlay grounds are mixed from `--emph` at 8% / 6% instead. **Through `--card-bg`, not through `background`** – the card's fill is declared on the `.cards` container as a custom property and read by the item, so a `background` there paints the grid and not the card.
+
+**`warm` and `cool` are held off the two terminal themes on purpose.** A single phosphor tone is what those are, and a warm-grey paper under green ink is neither. `tinted` needs no such guard: there the accent's hue is already the theme's.
+
+What it does **not** reach yet: the slide's shadows and scrims, which are hard-coded at hue 260 (`oklch(0.2 0.01 260 / 0.10)` and friends) in four different recipes. Fixing those well means one elevation ladder rather than a token swap, which is its own change.
 
 ## The printed document's face (`style.print-body`)
 
@@ -233,7 +252,7 @@ Bold is a selection mark here before it is a weight: the collapse lifts a `**bol
 
 ## Reaching the 1.0.0 look (and why there is no `layout:` key)
 
-From 1.0.0 the source format is the interface, and that promise is about more than parsing: **a lecture that laid out a certain way should be able to lay out that way again.** Exactly four things have moved since 1.0.0 that a finished deck would notice, and each is reachable as an ordinary preference:
+From 1.0.0 the source format is the interface, and that promise is about more than parsing: **a lecture that laid out a certain way should be able to lay out that way again.** Five things have moved since 1.0.0 that a finished deck would notice; four are reachable as an ordinary preference and the fifth is listed because it is not:
 
 | what moved | how to get the old behaviour back |
 |---|---|
@@ -241,6 +260,7 @@ From 1.0.0 the source format is the interface, and that promise is about more th
 | `text-wrap: balance` on headings, `pretty` on prose | `style: {wrap: none}` |
 | `font-variant-ligatures: none` on code | `ligatures: all` |
 | accent-coloured bold phrases, live and on paper | `style: {bold: accent-bold, print-bold: accent-bold}` |
+| corner radii in pixels (2 / 3 / 6 / 10) rather than the `--radius-card` / `--radius-tight` em ladder | not reachable as a setting, and deliberately: the pixel values rounded the *same* card row differently on every slide, because auto-fit sets a card's font-size per slide. There is no old behaviour here worth being able to ask for. |
 
 **There was a `layout: 1.0` umbrella over those three and it was removed. The reasoning generalises and is the part to keep.** One key naming a version reads as a promise that the engine can rebuild any past release, and that promise is unbounded: every later change to a shared stylesheet would have to be gated on a generation, the gates would compose, and the set of combinations nobody tests would grow with every release. It also puts the burden in the wrong place – an author would have to know which version their deck was authored against and write it down, and the project would have to publish and explain a layout-version history beside the software version.
 

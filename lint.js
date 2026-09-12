@@ -116,6 +116,11 @@ const STYLE_ENUMS = {
   // puts them on the prose's own axis.
   'blocks': ['center', 'left'],
   'labels': ['on', 'off'],
+  // What hue the greys carry. The four light themes move only --emph, so a
+  // card mixed out of --ink is a cool grey under whatever accent the room
+  // gets; `tinted` puts the accent's own hue into the neutrals, `warm` and
+  // `cool` fix one. `neutral` is the default and today's rendering.
+  'neutrals': ['neutral', 'tinted', 'warm', 'cool'],
   // The mark after an external link that opens its address and QR code.
   'link-codes': ['on', 'off'],
   // Which views break a word at the end of a line: the documents only
@@ -284,10 +289,15 @@ const WIDTH_EM = { narrow: 28, standard: 36, wide: 52, full: 72 };
 // A side dock takes its column out of the slide, so the measure a chunk
 // beside it can have is what the slide leaves: the slide's width in em
 // (16:9 at font-size 0.026 x slide-h, the viewport --check-fit uses), less
-// the padding on the free side, the dock and its gap. The dock widths mirror
-// the audience CSS (--dock-em); change them together.
-const DOCK_EM = { narrow: 13, standard: 18, wide: 25 };
-const DOCK_GAP_EM = 1.6;
+// the padding on the free side, the dock and its gap. The dock widths and
+// the gap mirror the audience CSS (--dock-px, --dock-gap), where both are
+// shares of the slide's width; change them together. As shares they are
+// exact here rather than an estimate: the old em values named the dock's
+// own zoomed em and were read as the chunk's, so this file put a narrow
+// dock at 13em where the page drew it at 17.4 and the warning below
+// under-reported by a third.
+const DOCK_SHARE = { narrow: 0.28, standard: 0.37, wide: 0.46 };
+const DOCK_GAP_SHARE = 0.035;
 const SLIDE_EM = 68.4;
 const SLIDE_PAD_EM = 9.6;
 const MIN_TRACK_EM = 10;
@@ -2553,7 +2563,7 @@ function lintFile(filePath) {
     }
     if (chunk.dock && (chunk.dock.edge === 'left' || chunk.dock.edge === 'right')) {
       const w = widthWord();
-      const avail = SLIDE_EM - SLIDE_PAD_EM - DOCK_EM[chunk.dock.width] - DOCK_GAP_EM;
+      const avail = SLIDE_EM * (1 - DOCK_SHARE[chunk.dock.width] - DOCK_GAP_SHARE) - SLIDE_PAD_EM;
       const floor = Math.min(WIDTH_EM[w], WIDTH_EM.standard);
       if (avail < floor) {
         add(chunk.line, 'warn', 'dock-narrows-measure',
@@ -2685,7 +2695,7 @@ function lintFile(filePath) {
     const wcls = [...(chunk.classes || [])].find(c => WIDTH_EM[c]);
     let em = WIDTH_EM[wcls || defaultWidthFor(chunk.tag)];
     if (chunk.dock && (chunk.dock.edge === 'left' || chunk.dock.edge === 'right')) {
-      em = Math.min(em, SLIDE_EM - SLIDE_PAD_EM - DOCK_EM[chunk.dock.width] - DOCK_GAP_EM);
+      em = Math.min(em, SLIDE_EM * (1 - DOCK_SHARE[chunk.dock.width] - DOCK_GAP_SHARE) - SLIDE_PAD_EM);
     }
     for (const l of layoutStack) {
       const m = l.kind.match(/^(cols|cards) (\d)/);
