@@ -1001,6 +1001,11 @@ export const CLOCK_JUMP_S = 5;
  * window and the cool-downs are made of survive; anything that would land
  * before the new zero is dropped, because it is older than the clock is.
  *
+ * **The policy is stamped on the same clock and is not in here**: it has
+ * `rebase(delta)` of its own, and the sidecar calls the two together. Moving
+ * one without the other left every cool-down answering to a clock nobody was
+ * on – see `createPolicy`'s `rebase`.
+ *
  * @returns {null|{delta, onAt, lastTickAt, transcript, dropped}} null when the
  *          clock did not jump, which is every ordinary message.
  */
@@ -1114,6 +1119,8 @@ function jaccardOf(a, b) {
  *   dismissed(hintId)  -> the speaker sent it away, by any of the three ways
  *   standing(now)      -> the hint currently up, or null
  *   forgetStanding()   -> it left the screen without anybody sending it away
+ *   rebase(delta)      -> the cockpit's clock restarted; move every timestamp
+ *                         in here onto the new one, beside `rebaseClock`
  *
  * `ctx` carries what the policy cannot know: `{now, elapsedSinceOn, chunkId,
  * cueTargets, timeHintAllowed}`. `now` and a hint's `at` are one clock – the
@@ -1299,11 +1306,43 @@ export function createPolicy(opts = {}) {
   // sidecar calls this from every `hello`.
   function forgetStanding() { standingHint = null; }
 
+  /**
+   * The cockpit's clock restarted and everything in here is stamped on the
+   * dead one. `rebaseClock` moves the switch-on stamp, the last tick and the
+   * transcript; this moves the policy's four memories by the same delta, and
+   * the sidecar calls the two together.
+   *
+   * Without it the whole policy went on answering to a clock nobody was on.
+   * A second cockpit tab taking the prompter twenty-five minutes in – a
+   * supported flow – starts near 0:00 in its own `sessionStorage`, so a hint
+   * shown at 25:00 refused every `low` hint for the next twenty-five minutes
+   * under the reason `cooldown`, which in the log reads exactly like the
+   * policy working. The relative ages are what every rule here is made of,
+   * so they survive; a stamp that lands before the new zero is left negative
+   * rather than clamped, which is the same thing as "long ago".
+   */
+  function rebase(delta) {
+    const d = num(delta, 0);
+    if (!d) return;
+    if (lastShownAt != null) lastShownAt += d;
+    for (const kind of Object.keys(lastByKind)) {
+      if (lastByKind[kind] != null) lastByKind[kind] += d;
+    }
+    // The history rows carry the times the tick message prints, and the
+    // standing hint is one of those rows – `shown` pushes the entry and keeps
+    // a reference to it – so it must not be moved twice.
+    for (const h of history) h.at = num(h.at, 0) + d;
+    if (standingHint && history.indexOf(standingHint) < 0) {
+      standingHint.at = num(standingHint.at, 0) + d;
+    }
+  }
+
   return {
     judge,
     shown,
     dismissed,
     forgetStanding,
+    rebase,
     standing: (now) => standingAt(now),
     history: () => history.slice(),
   };

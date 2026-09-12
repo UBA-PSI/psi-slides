@@ -208,6 +208,24 @@ function installFakeStt() {
       return fire(text, true);
     },
     interim(text) { return fire(text, false); },
+    // A pause and then a sentence, which is what a talk is made of - and the
+    // one shape `final` cannot model, because it moves the clock and fires in
+    // the same breath. Here the quiet comes first, then the ear notices that
+    // words have started, then the clock runs while the sentence is said. The
+    // adapter took a segment's `t0` from the end of the *previous* final, so a
+    // segment built this way spanned the pause as well and the whole delivery
+    // measurement was about the wrong seconds. `how` picks which of the two
+    // pieces of evidence the ear gets: `speechstart` is what a real Chrome
+    // sends, an interim alone is the fallback.
+    utterance(text, pause, spoken, how) {
+      if (pause) window.__stt.advance(pause);
+      const rec = window.__stt.rec;
+      if (!rec) return false;
+      if (how !== 'interim') rec.dispatchEvent(new Event('speechstart'));
+      fire(text, false);
+      if (spoken) window.__stt.advance(spoken);
+      return fire(text, true);
+    },
     // Chrome delivers end asynchronously, so a recogniser that was aborted a
     // moment ago still has one event to give. Firing it on an instance the
     // adapter has already replaced is the shape of a real defect, not a
@@ -806,6 +824,47 @@ export async function run({ page, report }) {
        deliveryLine);
     await page.keyboard.press('Escape');
     await page.waitForTimeout(500);
+
+    // ── and a pause is not speech ───────────────────────────────────
+    // Every figure in that line rests on the stamp the ear puts on a segment,
+    // and the ear used to stamp `t0` with the end of the previous final - so
+    // the silence between two sentences sat *inside* the segment. A speaker
+    // who thought for forty seconds and then said seven words had them rated
+    // at ten words a minute, `longest silence` was structurally 0s however
+    // long the room was quiet, the twenty-second sample floor was reached on
+    // silence alone, and the cadence counted the quiet as speech. The
+    // assertion that the old code could not fail: the segment is shorter than
+    // the wall gap in front of it.
+    //
+    // Two spellings of the same thing, because the ear has two pieces of
+    // evidence: `speechstart`, which is what Chrome sends, and the first
+    // interim after a final, which is the fallback where it does not arrive.
+    // Four seconds each and seven words, so neither is an occasion for a call
+    // - the cadence is ten seconds - and the queue of scripted answers below
+    // stays aligned with the ticks above.
+    const spans = async (how) => {
+      const before = logLines(dir).filter((l) => l.type === 'say').length;
+      await page.evaluate((h) => window.__stt.utterance(
+        'and after a long think, this sentence', 40, 4, h), how);
+      const says = await until(() => {
+        const all = logLines(dir).filter((l) => l.type === 'say');
+        return all.length > before ? all : null;
+      }, 6000);
+      if (!says) return null;
+      const last = says[says.length - 1];
+      const prev = says[says.length - 2] || { t1: last.t0 };
+      return { span: last.t1 - last.t0, gap: last.t0 - prev.t1 };
+    };
+    const bySpeechStart = await spans('speechstart');
+    ok(!!bySpeechStart && bySpeechStart.gap > 35 && bySpeechStart.span < 10
+       && bySpeechStart.span < bySpeechStart.gap,
+       'a segment spans the talking and not the pause in front of it, from speechstart',
+       JSON.stringify(bySpeechStart));
+    const byInterim = await spans('interim');
+    ok(!!byInterim && byInterim.gap > 35 && byInterim.span < 10
+       && byInterim.span < byInterim.gap,
+       'and the same where speechstart never arrives, from the first interim after a final',
+       JSON.stringify(byInterim));
 
     // ── a card for the conclusion, from four slides away ────────────
     // The whole reason the end of the deck is always a cue target: something

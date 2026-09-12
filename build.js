@@ -18249,10 +18249,23 @@ if (SOUFFLEUSE && window.psiWatch) {
     let want = false;
     let local = false;
     let needDownload = false;
-    // The clock at the end of the last final segment. The API gives a
-    // result no start time, and the gap since the previous sentence ended
-    // is exactly the speaking this one took - which is the number the
-    // sidecar's cadence is counted in.
+    // Where the utterance now being heard began, on the cockpit's clock. The
+    // API gives a result no start time, so it is taken from speechstart - the
+    // event that fires when the room starts talking - with the first interim
+    // after a final as the fallback for a recogniser that does not send one.
+    //
+    // It used to be the end of the *previous* final, and that made every
+    // number the delivery rests on a number about something else: the pause
+    // between two sentences sat inside t1 - t0, so longestGap was
+    // structurally 0, a speaker who thought for a minute and then said a
+    // sentence had that sentence rated at ten words a minute, the sample
+    // floor was reached on silence alone, and the cadence counted the quiet
+    // as speech. The rehearsal line reading "longest silence 0s" was the tell.
+    let speechAt = null;
+    // The clock at the end of the last final, and the floor under a span that
+    // has nothing better: a second final inside one utterance starts where the
+    // first ended, which is speech. Re-stamped on every open, so a segment can
+    // never span the silence a restart sat in.
     let mark = 0;
     let restarts = [];
     // What Chrome answered for each spelling, and which one is worth installing.
@@ -18269,10 +18282,18 @@ if (SOUFFLEUSE && window.psiWatch) {
       // third. Two ears, every sentence sent twice, the cadence counted twice.
       const r = new SR();
       rec = r;
+      // A restart is a fresh listening window, and the mark from before it is
+      // on the far side of however long the room was quiet.
+      mark = souffClock();
+      speechAt = null;
       r.continuous = true;
       r.interimResults = true;
       r.lang = lang;
       if (local) { try { r.processLocally = true; } catch (e) { /* older Chrome */ } }
+      // Talking started. Overwritten rather than kept on a second one, because
+      // the wrong direction to err in here is the one that counts silence as
+      // speech.
+      r.addEventListener('speechstart', () => { if (rec === r) speechAt = souffClock(); });
       r.addEventListener('result', (ev) => {
         if (rec !== r) return;
         let interim = '';
@@ -18281,10 +18302,18 @@ if (SOUFFLEUSE && window.psiWatch) {
           const text = ((r[0] && r[0].transcript) || '').trim();
           if (r.isFinal) {
             const t1 = souffClock();
-            const t0 = Math.min(mark, t1);
+            // The start of this utterance, never the end of the last one. The
+            // min is the floor: a clock the lecturer restarted under a
+            // sentence would otherwise hand the sidecar a negative span.
+            const t0 = Math.min(speechAt == null ? mark : speechAt, t1);
             mark = t1;
+            speechAt = null;
             if (text) cbs.onFinal({ text, t0, t1 });
           } else if (text) {
+            // Where speechstart did not arrive, the first interim after a
+            // final is the earliest evidence this ear has that words are
+            // being said.
+            if (speechAt == null) speechAt = souffClock();
             interim += (interim ? ' ' : '') + text;
           }
         }
@@ -18380,7 +18409,6 @@ if (SOUFFLEUSE && window.psiWatch) {
         cbs = handlers;
         want = true;
         local = !!onDevice;
-        mark = souffClock();
         restarts = [];
         open(lang);
       },
@@ -19867,6 +19895,17 @@ async function createSouffleuse({
         transcript.splice(0, transcript.length, ...jump.transcript);
         sinceTick = { seconds: 0, words: 0 };
         if (lastTimeHint) lastTimeHint = { ...lastTimeHint, at: lastTimeHint.at + jump.delta };
+        // And everything else stamped on the clock that died. The policy keeps
+        // four timestamps of its own, and moving the transcript without them
+        // left every cool-down answering to a clock nobody was on: a second
+        // cockpit tab taking the prompter twenty-five minutes in starts near
+        // 0:00, so a hint shown at 25:00 refused every `low` hint for the next
+        // twenty-five minutes under `cooldown` - which reads in the log exactly
+        // like the policy working. The strip's own record and the laid cards go
+        // with them, because the tick message prints those times.
+        if (policy) policy.rebase(jump.delta);
+        for (const h of hints) h.at = (Number(h.at) || 0) + jump.delta;
+        for (const c of cues) c.at = (Number(c.at) || 0) + jump.delta;
         logLine('clock', {
           why: 'the cockpit clock restarted', delta: Math.round(jump.delta),
           was: Math.round(nowElapsed()), now: next,

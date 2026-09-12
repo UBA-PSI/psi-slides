@@ -252,6 +252,26 @@ export async function run({ report }) {
   ok(speechStats({ transcript: talk, now: 75, window: { seconds: 30 } }).words === 30,
      'it rolls the same window tickMessage rolls, and the seconds cap trims the far end');
 
+  // What every figure above rests on: the stamp the ear puts on a segment. The
+  // adapter used to take `t0` from the end of the *previous* final, so the
+  // pause between two sentences sat inside `t1 - t0` - the same sixty words
+  // then come out at the wall clock's rate, `longestGap` is structurally 0
+  // however long the speaker thought, and the twenty-second sample floor is
+  // reached on silence alone. So the ear stamps the start of the utterance
+  // (speechstart, or the first interim after a final), and this row is the
+  // assertion that says why it has to.
+  const asGapless = [
+    { text: many(30), t0: 0, t1: 15 },
+    { text: many(30), t0: 15, t1: 75 },   // the same talk, stamped from the last t1
+  ];
+  const wall = speechStats({ transcript: asGapless, now: 75 });
+  ok(wall.wpm === 48 && wall.longestGap === 0 && wall.sampled === 75,
+     'a segment stamped from the end of the one before it reports the thinking as'
+     + ' speaking and hides the silence it swallowed', j(wall));
+  ok(st.wpm === 120 && st.longestGap === 45 && st.sampled === 30,
+     'while the same words stamped from the start of speech are a rate, a silence and'
+     + ' a sample - which is the difference the ear\'s stamp makes', j(st));
+
   const fillersEn = 'ähm äh ehm öhm hm hmm uh uhm um erm';
   ok(speechStats({ transcript: [{ text: fillersEn, t0: 0, t1: 30 }], now: 30, lang: 'en' }).fillers === 10,
      'the filler set is the sounds a recogniser writes, in both languages', fillersEn);
@@ -648,6 +668,40 @@ export async function run({ report }) {
      'policy: the same words in another order are the same hint');
   ok(pol.judge(hint('fact', 'Der Vermerk lag im Postfach'), ctx({ now: 900 })).show === true,
      'policy: different words are a different hint');
+
+  // The cockpit's clock can restart under all of this - tStart is the page
+  // load, a --watch rebuild reloads the page, and a second cockpit tab taking
+  // the prompter twenty-five minutes into a talk has its own sessionStorage
+  // and starts near 0:00. `rebaseClock` moved the switch-on stamp, the last
+  // tick and the transcript; the policy stayed on the clock that died, so a
+  // hint shown at 25:00 refused every low hint for the next twenty-five
+  // minutes under the reason `cooldown`, which in the log reads exactly like
+  // the policy working. The two are called together now.
+  pol = createPolicy();
+  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 1500 });
+  pol.dismissed('h1');
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 600 })).reason === 'cooldown',
+     'policy: a hint stamped at 25:00 refuses everything on a clock that restarted -'
+     + ' ten minutes into the new one, under a cool-down of twenty seconds');
+  pol.rebase(5 - 1500);
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 30 })).show === true,
+     'policy: rebase(delta) moves its timestamps onto the new clock, beside rebaseClock');
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 6 })).reason === 'cooldown',
+     'policy: and the age survives the move, exactly as it does for the transcript: a'
+     + ' hint shown a second before the jump was shown a second ago, not never');
+  ok(pol.history()[0].at === 5,
+     'policy: the history rows move with them, because the tick message prints those'
+     + ' times - and exactly once, since the standing hint is one of those rows',
+     j(pol.history()[0]));
+  ok(pol.judge(hint('delivery', 'Langsamer sprechen jetzt'), ctx({ now: 40 })).reason === 'duplicate',
+     'policy: and what was said is still what was said, on either clock');
+  pol = createPolicy({ cooldown: 0 });
+  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 1500 });
+  pol.rebase(5 - 1500);
+  ok(pol.standing(6) && pol.standing(6).id === 'h1' && pol.standing(60) === null,
+     'policy: and the standing slot ages out on the new clock rather than holding for ever');
+  ok(pol.rebase(0) === undefined && pol.history()[0].at === 5,
+     'policy: a delta of nothing moves nothing', j(pol.history()[0]));
 
   pol = createPolicy();
   ok(pol.judge(hint('time', 'Zehn Minuten über'), ctx({ timeHintAllowed: false })).reason === 'time-not-allowed',
