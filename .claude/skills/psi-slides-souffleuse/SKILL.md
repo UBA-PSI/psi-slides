@@ -55,7 +55,7 @@ knows the cue-card grammar, and this keeps it that way.
 |---|---|
 | `--souffleuse` | run the sidecar. **Only together with `--watch`** – a usage error otherwise, because the watch socket is the only channel the cockpit has |
 | `--souffleuse-model ID` | an OpenRouter model id; beats the frontmatter and the default. **Refused without `--souffleuse`**, because it is read nowhere else: on its own it built an ordinary deck with no prompter and said nothing |
-| `--souffleuse-dry-run` | everything but the one call. The ear, the socket, the moves, the tick scheduler, the policy and the log all run; `ask` is skipped and logged as `answer {dryRun: true}`. **It needs no key** – which is the point of it: it is the rehearsal tool, and the way to read a `tick` message, with its state line and its window, on a machine with no account. Refused without `--souffleuse`, like the model id |
+| `--souffleuse-dry-run` | everything but the one call. The ear, the socket, the moves, the tick scheduler, the policy and the log all run; `ask` is skipped and logged as `answer {dryRun: true}`, **between a `thinking` and a `listening`**, so the cockpit's heartbeat counts the calls that would have gone out – a dry run that only ever said `listening` showed that one word for a whole talk, in the mode whose job is answering "is this wired up". **It needs no key** – which is the point of it: it is the rehearsal tool, and the way to read a `tick` message, with its state line and its window, on a machine with no account. Refused without `--souffleuse`, like the model id |
 | `--souffleuse-replay FILE` | no watcher, no browser, no renderer, no network: read a finished run's `souffleuse-*.jsonl` back through **today's** parser and **today's** policy and print, per answer, what the model proposed and what the policy would do with it now. `node build.js <source.md> --souffleuse-replay souffleuse-20260911-1015.jsonl`. It is how a threshold gets changed with evidence rather than by feel; the pure half is `replayAnswers` in `souffleuse.mjs` |
 | `OPENROUTER_API_KEY` | required. Without it the sidecar starts `disabled`: nothing is sent, the console says so once, a `hello` says so, the badge says so – and the transcript is still logged, because a missing key is not a reason to lose the debrief |
 | `OPENROUTER_BASE_URL` | another OpenAI-compatible endpoint, default `https://openrouter.ai/api/v1`. This is how the spec's fake OpenRouter is reached |
@@ -90,7 +90,22 @@ never instead of it – with `psiWatch.onConnect(fn)` firing on every open
 including the silent reconnects, and `psiWatch.ask(type, body)` as the other
 direction.
 
-Client → server: `souffleuse-hello {lang, stt:{engine, local}}`,
+**A reconnect says hello again, and a refused hello switches the cockpit off.**
+The socket reconnects itself, a session does not: after a reconnect the sidecar
+has no cockpit to whisper to until one registers, and the switch and the
+preference are sent again because the watcher may have been restarted under the
+page. A restarted watcher has a **new nonce**, which this page does not have
+until a save reloads it – so the hello comes back `{ok: false}` and every
+segment sent after it is refused too. The handler used to return there, leaving
+the switch pressed, the microphone open and a heartbeat saying `listening`, so
+it now does what `souffStart` does with the same refusal: the reason on the
+badge, `souffStop(true)`, the switch back up.
+
+Client → server: `souffleuse-hello {lang, stt:{engine, local, onDevice, installing}}`
+(`onDevice` is Chrome's verdict for each spelling of the language that was
+tried, `installing` the tag a download was actually asked for – without the two
+the log cannot say why a machine with the model installed is still talking to a
+server),
 `souffleuse-say {text, t0, t1, chunkId, idx, beat}`,
 `souffleuse-move {chunkId, idx, beat, beats, elapsed}`,
 `souffleuse-dismiss {hintId, how}` (`esc` / `click` / `fade`),
@@ -113,9 +128,12 @@ Six things about it that are not guessable:
   that is not a switch also says nothing on the status channel unless it is
   news (`off` when disabled, `listening` when already running): an `idle` here
   would race the cockpit's own switch-on and undo it.
-- **The `hello` reply is `{enabled, model, cadence, cues, cueCards, session, dryRun}`
-  and the refusal rides in the protocol's own `why`,** with `ok` still true.
-  `reply` spreads the payload *first* so that no payload field can shadow a
+- **The `hello` reply is `{enabled, model, cadence, cues, cueCards, session,
+  dryRun, startQuiet}` and the refusal rides in the protocol's own `why`,** with
+  `ok` still true. `startQuiet` is how the cockpit knows how long the minute it
+  cannot be helped in actually is – it is what the line under the strip switches
+  on (*The line under the strip does two jobs*, below).
+  Beyond that, `reply` spreads the payload *first* so that no payload field can shadow a
   protocol one, which means a payload `why` would be overwritten by the
   protocol's. `cues` is the *permission* and `cueCards` the cards already laid
   – two different things, which is why they cannot share a name. The cards
@@ -194,6 +212,15 @@ every `move`:
   dropping what is older than the new zero. A talk already past its opening
   quiet stays past it – a running talk is not made to sit through the minute
   again – and one still inside it has the stamp re-read against the new clock.
+  **`policy.rebase(delta)` is the other half and is called beside it**, with
+  the strip's own record (`hints[].at`) and the laid cards (`cues[].at`): the
+  policy's `lastShownAt`, its per-kind stamps, the standing hint and every
+  history row are stamped on the same clock, and moving one without the other
+  left every cool-down answering to a clock nobody was on – a hint shown at
+  25:00, a new tab starting near 0:00, and every `low` hint refused as
+  `cooldown` for twenty-five minutes, which reads in the log exactly like the
+  policy working. The *ages* survive the move, which is the principle: a hint
+  shown a second before the jump was shown a second ago, not never.
   `shouldTick` reads a negative gap as *no reference*, not as *no time passed*:
   before that, one restarted clock stopped every slide tick for the rest of the
   talk.
@@ -262,7 +289,7 @@ of the same talk) and answers:
 | field | what |
 |---|---|
 | `words` | words in the window, `wordCount`, so a CJK character counts one |
-| `seconds` | the seconds actually **spoken** – the sum of `t1 - t0`, never wall time, because silence is not speech |
+| `seconds` | the seconds actually **spoken** – the sum of `t1 - t0`, never wall time, because silence is not speech. **Every figure here is only as good as the ear's stamp**: `t0` is the start of the utterance (`speechstart`, or the first interim after a final), and while it was the end of the *previous* final the pause between two sentences sat inside the segment – so `longestGap` was structurally 0, a sentence after a minute of thinking was rated at ten words a minute, and the sample floor was reached on silence alone |
 | `sampled` | the same figure rounded: what the line prints and what the floor is compared against, so one number is read everywhere |
 | `wpm` | `words` over `seconds`, or **null** with nothing to divide by |
 | `fillers`, `fillersPerMin` | filler *sounds* only, per minute of speech |
@@ -301,7 +328,7 @@ know the language, which is why the sidecar puts `lang` in the session.
 
 ## The policy, as coded
 
-`createPolicy(opts)` returns `{judge, shown, dismissed, forgetStanding,
+`createPolicy(opts)` returns `{judge, shown, dismissed, forgetStanding, rebase,
 standing, history}`.
 `judge(answer, ctx)` answers `{show: true}` or `{show: false, reason}`, and the
 reason is what the log is read for afterwards. `ctx` is `{now, elapsedSinceOn,
@@ -359,19 +386,29 @@ dismissal dropped every `low` hint for the rest of the talk under the reason
 ## The drift rule
 
 `driftSeconds({elapsed, marks, idx, beat, durationS, chunkCount})` returns
-`{drift, rough}` or `null`; positive is behind.
+`{drift, rough, beforeFirst}` or `null`; positive is behind.
 
 - With `@mm:ss` marks, the reference is the **last mark the talk has passed**,
   and before the first mark it is that first one – the same rule `cueDriftRef`
   uses, so the cockpit's own drift and the prompter's agree. A mark carries its
   beat (`{at, beat}` per chunk, flattened with the `idx` by `flattenMarks`),
   because a mark means nothing without the point in the talk it names.
+- **`beforeFirst` says that reference is a mark the talk has not reached**, and
+  then the number is only half a fact. With the first mark at 12:30 on slide 3 –
+  the natural way to write them – a speaker on slide 1 at 1:05 is 685 seconds
+  "ahead" of a clock nobody has arrived at, and the prompter was invited to
+  whisper about it on the first tick after the opening quiet. The number is kept,
+  because being *past* that mark's time while still on slide 1 is genuinely
+  behind; what the flag closes is the *ahead* branch of `timeHintAllowed`. The
+  state line says so where the number is (`drift -685s ahead (of the first mark,
+  not reached yet)`), the way the cockpit's own drift shows it grey and
+  labelled. Decks here start at `@0:00`, so `spoken-talk` never shows it.
 - With no marks but a `duration:`, the plan is a straight line through the
   slides – `durationS × idx / chunkCount` – and says so with `rough: true`.
 - With neither, `null`, and a prompter with no plan has nothing to say about the
   clock.
 
-`timeHintAllowed({drift, rough, lastTimeHint, elapsed})`: at least 90 s behind
+`timeHintAllowed({drift, rough, beforeFirst, lastTimeHint, elapsed})`: at least 90 s behind
 (180 s on the rough estimate, which is wrong by construction on any deck whose
 slides differ), and after a first time hint either 60 s more drift or five
 minutes; or at least 240 s ahead, at most once every ten minutes. Behind is
@@ -419,7 +456,7 @@ watcher. Every line carries `t` and `type`:
 | `tick` | `reason`, `idx`, `chunkId`, `beat`, `elapsed`, `drift`, `rough`, `timeHintAllowed`, `cueTargets`, and the **user message** – never the prefix, which is the same 20 to 60 KB on every line and is already in the build |
 | `answer` | the raw body, `usage`, `durationMs`; under `--souffleuse-dry-run`, `{dryRun: true}` and nothing else |
 | `hint` / `cue` | what went out, including the model's `why`, which is for the log alone |
-| `suppressed` | `reason` plus the answer the policy refused – this is the half of the debrief that says what the model wanted to say. `no-cockpit` is the one reason that is not the policy's: the whisper was ready and there was no socket to put it on |
+| `suppressed` | `reason` plus the answer the policy refused – this is the half of the debrief that says what the model wanted to say. Two reasons are not the policy's: `no-cockpit`, the whisper that was ready with no socket to put it on, and `stale-deck`, a card for a slide the build that landed while the call was out no longer has (`cueTargets` was computed against the deck of the tick; the alternative was a card replayed into every reloaded cockpit under a dead id until the next build's `cue-dropped` sweep) |
 | `dismiss` | `hintId`, `how` |
 | `prefs` | `cues`, `ceiling` – the cue checkbox changed in the cockpit |
 | `status`, `error` | every transition with the cockpit clock it happened on (`elapsed` – the replay measures the opening quiet from the `listening` the switch wrote, and nothing else in the log says when it was thrown), and every failure with its streak |
@@ -543,8 +580,16 @@ below the fold.
   `sessionStorage psi-slides:souffleuse-clock` (the cockpit's `tStart`, written
   whenever the consent is written and after a click on `#clock`, restored on
   load only when the consent is there and the value is neither in the future
-  nor twelve hours old – see *Traps*); `sessionStorage
-  psi-slides:souffleuse-told` (the long toast has been said once);
+  nor twelve hours old – see *Traps*);
+  `sessionStorage psi-slides:souffleuse-onat` (the switch-on moment on that
+  clock, written beside it and read back **only on the restore path**: the
+  opening quiet is measured from the press, and re-stamping it on every
+  `--watch` reload showed the heard-words line for another minute and said the
+  prompter could not help yet through a minute in which it could, while the
+  sidecar – which keeps its own stamp and rebases it – correctly did not
+  re-quiet. A stored value in the new clock's future is a clock somebody
+  restarted, and then the minute is owed again);
+  `sessionStorage psi-slides:souffleuse-told` (the long toast has been said once);
   `localStorage psi-slides:souffleuse-heard` and `psi-slides:souffleuse-cues`
   (preferences of a person, not of a tab).
 - **Cues**: `souffleuseCues`, a `Map` of chunk id → `[{cueId, text}]`, is
@@ -645,9 +690,18 @@ true})`, `install()` from inside the click because the download wants a gesture,
 `rec.processLocally = true`), and treats anything that is not a plain
 `available` as a reason to fall back to server recognition with the badge up
 rather than to argue. `no-speech` and `aborted` are the ordinary course of a talk
-and not failures; `end` restarts, capped at six per minute. The segment's `t0` is
-the clock at the end of the previous final result, so the gap is the speaking
-this one took – which is the number the cadence counts.
+and not failures; `end` restarts, capped at six per minute.
+
+**A segment's `t0` is where the speaking started, and that is load-bearing.**
+The API gives a result no start time, so the adapter takes it from
+`speechstart`, falling back to the first interim after a final where that event
+does not arrive, and to the end of the last final (re-stamped on every restart)
+where neither does. It used to be the end of the previous final outright, which
+put the pause between two sentences *inside* `t1 - t0`: `longestGap` was
+structurally 0, a sentence after a minute of thinking was rated at about ten
+words a minute, `sampled` reached its twenty-second floor on silence alone, and
+the cadence counted the quiet as speech. `t1 - t0` is the number the cadence and
+every delivery figure are counted in, so it has to be speech.
 
 **A Node adapter plugs in without a protocol change.** `sidecar.say(segment)` is
 the same door a socket `say` comes through, so a whisper.cpp on `PATH` (the
@@ -659,7 +713,7 @@ something does.
 
 ## What the tests cover, and what neither can
 
-**`test/gates/souffleuse.mjs`** (174 assertions; in the gate suite, no browser,
+**`test/gates/souffleuse.mjs`** (188 assertions; in the gate suite, no browser,
 no `npm install`): `deckPayload` against a hand-built `lecture` object of the shape
 `parseLecture` returns – built in the file, so a re-worded lecture cannot fail a
 compiler gate – prefix stability and the hash, `tickMessage` (`NEW`, the window,
@@ -680,9 +734,18 @@ English and not in German, `also` / `like` / `er` / `ah` counted nowhere,
 `paceVerdict` at each of its four boundaries, the delivery line present and
 absent around `DELIVERY_MIN_SAMPLE_S`, the zero-filler sentence carrying its own
 caveat, `cueTargets` with a `closing:` chunk and without one, and the two new
-cool-downs with their ceilings counted apart.
+cool-downs with their ceilings counted apart. Since the third correctness
+review: the two stampings of one stretch of talk side by side (from the end of
+the previous final, which reports the wall-clock rate and a longest silence of
+zero, and from the start of speech, which reports a rate, a silence and a
+sample), `beforeFirst` at both of its references with the *ahead* branch of
+`timeHintAllowed` closed on it and *behind* still counting, the state line
+saying so where the number is, and `policy.rebase` – the refusal that outlived
+a restarted clock, the ages surviving the move, the history rows moving exactly
+once because the standing hint is one of them, and a delta of nothing moving
+nothing.
 
-**`test/souffleuse.mjs`** (111 assertions; the browser suite, the ninth spec that
+**`test/souffleuse.mjs`** (113 assertions; the browser suite, the ninth spec that
 builds a deck of its own): a real `node build.js … --watch --serve --souffleuse --events`
 child, a fake OpenRouter on loopback reached through `OPENROUTER_BASE_URL`, and a
 fake `webkitSpeechRecognition` installed with `addInitScript`. It asserts the
@@ -720,6 +783,17 @@ and again after the cue box is unticked and ticked – **one history row for tha
 card, carrying the clock it was laid on** rather than one row per replay. Its
 fixture deck is seven slides for that last reason: the conclusion has to sit
 beyond the next-three window to prove anything.
+
+Since the third correctness review the fake ear also has `__stt.utterance(text,
+pause, spoken, how)` – quiet, then the ear noticing that words have started,
+then the clock running while the sentence is said, which `final` cannot model
+because it moves the clock and fires in the same breath. Both spellings of the
+evidence are driven (`speechstart`, and an interim alone for a recogniser that
+sends none), and the assertion is the one the tautological one should have
+been: **the segment is shorter than the wall gap in front of it.** It fails
+against the old stamp, where the gap was 0 and the span was the whole pause.
+Four seconds of speech and seven words each, deliberately under the cadence, so
+that the queue of scripted answers stays aligned with the ticks above it.
 
 Neither can say: recognition quality, whether the on-device path is really
 available (the fake claims it), whether the prompt cache is warm, or whether the
@@ -774,6 +848,17 @@ those, the log and a rehearsal.
   sidecar does about it is in `rebaseClock`, and both halves are needed: the
   sidecar must not believe a clock it did not set, whatever page it is talking
   to.
+- **A rebase only helps where the old clock is the one that died.**
+  `rebaseClock` (and `policy.rebase` beside it) rests on the sidecar's
+  `onAtElapsed` and its cool-downs being stamped on the clock that went
+  backwards. The other direction is not covered and cannot be: a **fresh
+  sidecar** meeting an **old page** – the watcher restarted, the page not
+  reloaded, which is reachable now that a refused reconnect switches the
+  cockpit off and the speaker presses again – has `onAtElapsed` near 0 while
+  the cockpit's clock reads 25:00. Nothing drops, so no rebase fires, and the
+  fresh policy has no history at all: a hint already whispered in the first
+  half of the talk can come back word for word. Not fixable without persisting
+  the policy across processes, which a rehearsal tool does not earn.
 - **The cue race in the classic layout, known and not fixed.** A card that
   arrives while the speaker is already walking onto its slide is shown by
   `cueSync` in the rail, but `souffCueOnArrival` has marked that slide as seen on

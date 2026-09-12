@@ -833,6 +833,105 @@ the only defect in this feature that would have cost money at the lectern.
   over a prompter that was working. The next final result it hears is the
   proof, and it is the only one the ear has.
 
+### Third correctness review
+
+Nine findings over the delivery work and the two clocks under it, every one of
+them reproduced against the pure module before it was touched and every probe
+then left behind as a gate row – which is how this feature is meant to be
+worked on. Two of the nine make a measurement or a policy describe something
+other than what it claims, and they are the two worth reading.
+
+1. **The "spoken seconds" included the silence, so every delivery figure was
+   about the wrong seconds.** The adapter stamped a segment's `t0` with the end
+   of the *previous* final result, so the pause between two sentences sat inside
+   `t1 - t0`. `longestGap` was therefore structurally 0 with the real ear – the
+   rehearsal line above reading `longest silence 0s` was the tell and was read
+   as a speaker who never paused; a speaker who thought for a minute and then
+   said a sentence had that sentence rated at about ten words a minute, so
+   `slow` was reported for the opposite of the truth; `sampled` reached its
+   twenty-second floor on silence alone; and the cadence counted the quiet as
+   speech, so a tick could fire without anyone having said much. **Neither suite
+   could see it**: the gate feeds hand-built `t0`/`t1`, and the spec's
+   "measured over the seconds actually spoken" was tautological, because
+   `final(text, 25)` *defines* `t1 - t0 = 25`. The ear now takes `t0` from
+   `speechstart`, with the first interim after a final as the fallback and the
+   end of the last final – re-stamped on every restart – as the floor under
+   both, and `Math.min(…, t1)` keeps a span non-negative through a clock the
+   lecturer restarted mid-sentence. The fake ear grew `__stt.utterance(text,
+   pause, spoken, how)` for the shape `final` cannot model, and the assertion
+   the tautological one should have been: **the segment is shorter than the wall
+   gap in front of it**, driven through both spellings of the evidence.
+2. **A clock rebase left the policy on the dead clock.** `rebaseClock` moved
+   `onAtElapsed`, `lastTickAt`, `lastTimeHint` and the transcript; the policy's
+   `lastShownAt`, its per-kind stamps, the standing hint and every history row
+   stayed where they were, as did `hints[].at` and `cues[].at`. A hint shown at
+   1500 with the clock restarting to 5 answered `cooldown` at 5 *and* at 600,
+   clearing only at 1525. The scenario is not hypothetical: a second cockpit tab
+   taking the prompter twenty-five minutes into a talk – supported since the
+   adversarial review – has its own `sessionStorage` and starts near 0:00, so
+   every `low` hint was refused for the next twenty-five minutes under a reason
+   that reads in the log exactly like the policy working, and the tick message
+   printed "hints given" at times in the model's future. `createPolicy` has
+   `rebase(delta)` now, called beside `rebaseClock`. The *ages* survive the
+   move, which is the same principle the transcript is moved under, so a hint
+   shown a second before the jump was shown a second ago rather than never – the
+   reviewer's own probe expected the refusal to clear outright, and that would
+   have thrown the age away.
+3. **Before the first time mark, "ahead" was a number about nothing.** With the
+   first `@mm:ss` on slide 3 – the natural way to write them – a speaker on
+   slide 1 at 1:05 was `drift -685s ahead` with `time_hint_allowed=yes`, so the
+   prompter was invited to whisper about a clock nobody had reached. Decks here
+   start at `@0:00`, which is why `spoken-talk` never showed it. `driftSeconds`
+   answers `beforeFirst` now, `timeHintAllowed` closes the *ahead* branch on it
+   and leaves *behind* alone (past that mark's time and still on slide 1 is
+   genuinely late), and the state line says so where the number is, the way the
+   cockpit's own `cueDriftRef` shows it grey and labelled.
+4. **A reconnect to a restarted watcher failed in silence.** A restarted
+   `--watch` has a new nonce, which the open page does not have until a save
+   reloads it, so `onConnect`'s hello came back refused – and the handler
+   returned. The switch stayed pressed, the ear stayed open, every segment was
+   refused by the nonce check, and the heartbeat under the strip went on saying
+   `listening`, which is the third time this feature has been caught putting a
+   light over a dead ear. It now does what `souffStart` does with the same
+   refusal. Asserting it would need a second engine on the same port, which is
+   not worth a spec; it is in the skill instead.
+5. **A dry run never beat.** The heartbeat counts `thinking`, and the dry-run
+   branch emitted only `listening` – so the mode whose whole job is answering
+   "is this wired up" showed the word `listening` for a whole talk. Both states
+   are quiet on the terminal, so the pair costs nothing.
+6. **A rebuild mid-call could lay a card into a slide that is gone.**
+   `session.cueTargets` was computed against the deck of the tick, and only
+   cards *already* laid are swept by `onBuild` – so an answer arriving after a
+   rebuild was filed under a dead id and replayed into every reloaded cockpit
+   until the next build dropped it. Checked against the current deck and logged
+   as `suppressed … stale-deck`.
+7. **A reload re-entered the opening quiet in the cockpit only.** `souffStart`
+   stamped `souffOnAt` on the restore path too, so after each save the cockpit
+   showed heard-words for another minute and said it could not help yet through
+   a minute in which it could, while the sidecar correctly did not re-quiet. The
+   stamp is kept beside the clock it is measured on
+   (`psi-slides:souffleuse-onat`) and read back only when this is not a gesture;
+   a value in the new clock's future is a clock somebody restarted, and then the
+   minute is owed again. `souffAskCount` still restarts with the page, which is
+   honest: it counts what *this* page has seen go out.
+8. **Documentation the code no longer produced**: the hello payload carries
+   `onDevice` and `installing` beside `{engine, local}`, and the reply carries
+   `startQuiet`, which the skill relies on two sections later. Both fixed in the
+   skill and in `speaker.md`, and the delivery, policy, drift and adapter
+   sections re-read against the code – finding 1 changes what `t0` means, and
+   the skill stated it as a property.
+9. **A trap worth writing down.** `rebaseClock`'s reasoning holds only where the
+   clock that died is the one the sidecar's state is stamped on. The other
+   direction – a *fresh* sidecar and an old page, reachable now that a refused
+   reconnect switches the cockpit off and the speaker presses again – has
+   `onAtElapsed` near 0 against a cockpit clock at 25:00: nothing drops, so no
+   rebase fires, and the fresh policy has no history, so a hint already
+   whispered can come back word for word. Not fixable without persisting the
+   policy across processes, which a rehearsal tool does not earn. It is in the
+   skill's *Traps*.
+
+The gate is 188 assertions now and the spec 113.
+
 ### The delivery: tempo was missing input, not missing prompting
 
 The author asked for a prompter that watches his *delivery* – too fast, filler

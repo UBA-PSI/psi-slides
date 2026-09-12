@@ -208,6 +208,12 @@ export async function run({ report }) {
   // decoration is an id the model gets wrong.
   ok(!tickMessage(Object.assign({}, session, { cueTargets: [] })).includes('conclusion='),
      'with the cards switched off there are no targets, so there is no conclusion either');
+  // Said where the number is, because a bare "-685s ahead" reads as a fact
+  // about the talk rather than as the distance to a clock it has not reached.
+  ok(/drift -685s ahead \(of the first mark, not reached yet\)/
+     .test(tickMessage(Object.assign({}, session, { drift: -685, beforeFirst: true })).split('\n')[0]),
+     'the state line says when the drift is measured against an unreached first mark',
+     tickMessage(Object.assign({}, session, { drift: -685, beforeFirst: true })).split('\n')[0]);
   ok(!tick.includes('Nenne den Fall') && tick.includes('Das Postfach'),
      'only the last five hints are listed', tick);
   ok(/✕ 8:20 fact: Es waren zwei/.test(tick), 'a dismissed hint is marked ✕, so it cannot come back', tick);
@@ -408,10 +414,25 @@ export async function run({ report }) {
      String(wordCount('スライド said 三')));
 
   // ── the clock ────────────────────────────────────────────────────
-  ok(j(driftSeconds({ elapsed: 600, marks, idx: 0, beat: 0 })) === j({ drift: -150, rough: false }),
+  ok(j(driftSeconds({ elapsed: 600, marks, idx: 0, beat: 0 }))
+     === j({ drift: -150, rough: false, beforeFirst: true }),
      'before the first mark the talk is measured against reaching it', j(driftSeconds({ elapsed: 600, marks, idx: 0, beat: 0 })));
-  ok(j(driftSeconds({ elapsed: 900, marks, idx: 2, beat: 1 })) === j({ drift: 150, rough: false }),
+  ok(j(driftSeconds({ elapsed: 900, marks, idx: 2, beat: 1 }))
+     === j({ drift: 150, rough: false, beforeFirst: false }),
      'after a mark the reference is that mark, and behind is positive');
+  // The number is kept and the flag is added, because the number is right in
+  // one direction and about nothing in the other: with the first mark at 12:30
+  // on slide 3 - the natural way to write them - a speaker on slide 1 in the
+  // opening minute is 685 seconds "ahead" of a clock nobody has arrived at,
+  // and the prompter was invited to whisper about it on the first tick after
+  // the opening quiet. Past that mark's time and still on slide 1 is late,
+  // which is why behind still counts.
+  const unreached = driftSeconds({ elapsed: 65, marks, idx: 0, beat: 0 });
+  ok(unreached.drift === -685 && unreached.beforeFirst === true,
+     'and it says that its reference is a mark the talk has not reached', j(unreached));
+  ok(driftSeconds({ elapsed: 600, marks: [], idx: 2, beat: 0, durationS: 2400, chunkCount: 8 })
+     .beforeFirst === false,
+     'the straight line has no first mark to be short of');
   ok(driftSeconds({ elapsed: 900, marks, idx: 3, beat: 0 }).drift === 0,
      'a mark on the active slide counts once its beat is reached');
   ok(driftSeconds({ elapsed: 900, marks, idx: 3, beat: 0 }).drift === 0
@@ -441,6 +462,11 @@ export async function run({ report }) {
   ok(timeHintAllowed({ drift: -300, rough: false, lastTimeHint: { at: 800, drift: -290 }, elapsed: 900 }) === false
      && timeHintAllowed({ drift: -300, rough: false, lastTimeHint: { at: 200, drift: -290 }, elapsed: 900 }) === true,
      'and ahead is said at most once every ten minutes');
+  ok(timeHintAllowed({ drift: -685, beforeFirst: true, lastTimeHint: null, elapsed: 65 }) === false,
+     'a talk far "ahead" of a mark it has not reached is not ahead of anything, so the'
+     + ' ahead branch is closed on it');
+  ok(timeHintAllowed({ drift: 200, beforeFirst: true, lastTimeHint: null, elapsed: 900 }) === true,
+     'while behind still counts: past the first mark\'s time and still on slide one is late');
   ok(timeHintAllowed({ drift: null }) === false && timeHintAllowed() === false,
      'no drift, no time hint');
 

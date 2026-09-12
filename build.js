@@ -18181,6 +18181,13 @@ if (SOUFFLEUSE && window.psiWatch) {
   // at 0:00, and the clock button is still the way to say so. sessionStorage,
   // like the consent it sits beside - the clock of this talk in this tab.
   const SOUFF_CLOCK_KEY = 'psi-slides:souffleuse-clock';
+  // And the moment the switch was thrown, on that clock. The opening quiet is
+  // measured from the press, and the restore path used to stamp it afresh on
+  // every save: the cockpit then showed the words it was hearing for another
+  // minute and said "it cannot help you yet" through a minute in which it
+  // could, while the sidecar - which keeps its own stamp and rebases it -
+  // correctly did not re-quiet. Only a gesture starts a new quiet minute.
+  const SOUFF_ONAT_KEY = 'psi-slides:souffleuse-onat';
   // Said once per tab: the full sentence on the first switch-on, the short one
   // after that. What a toast is for is telling somebody something they do not
   // already know.
@@ -18526,9 +18533,11 @@ if (SOUFFLEUSE && window.psiWatch) {
       if (on) {
         sessionStorage.setItem(SOUFF_ON_KEY, 'on');
         sessionStorage.setItem(SOUFF_CLOCK_KEY, String(tStart));
+        if (souffOnAt != null) sessionStorage.setItem(SOUFF_ONAT_KEY, String(souffOnAt));
       } else {
         sessionStorage.removeItem(SOUFF_ON_KEY);
         sessionStorage.removeItem(SOUFF_CLOCK_KEY);
+        sessionStorage.removeItem(SOUFF_ONAT_KEY);
       }
     } catch (e) { /* a private window is allowed to refuse */ }
   }
@@ -18619,7 +18628,17 @@ if (SOUFFLEUSE && window.psiWatch) {
       // wanted before the first tick can happen.
       souffWatch.ask('souffleuse-prefs', { cues: souffCuesOn });
       souffWatch.ask('souffleuse-toggle', { on: true });
+      // A reload is not a fresh switch-on. The stamp is kept beside the clock
+      // it is measured on, and read back on the restore path only: a value in
+      // the new clock's future is a clock somebody restarted under it, and
+      // then the minute is owed again.
       souffOnAt = souffClock();
+      if (!fromGesture) {
+        try {
+          const kept = Number(sessionStorage.getItem(SOUFF_ONAT_KEY));
+          if (isFinite(kept) && kept >= 0 && kept <= souffOnAt) souffOnAt = kept;
+        } catch (e) { /* a private window is allowed to refuse */ }
+      }
       if (hi.startQuiet != null && isFinite(Number(hi.startQuiet))) souffStartQuiet = Number(hi.startQuiet);
       // Once every two seconds is enough for a line that counts in seconds,
       // and it is what carries the opening minute's words over to the
@@ -19137,7 +19156,19 @@ if (SOUFFLEUSE && window.psiWatch) {
   souffWatch.onConnect(() => {
     if (!souffOn) return;
     souffHello().then((hi) => {
-      if (!hi || !hi.ok || !hi.enabled) return;
+      if (!hi || !hi.ok || !hi.enabled) {
+        // A watcher restarted under this page has a new nonce, and this page
+        // keeps the old one until a save reloads it - so the hello comes back
+        // refused, and every segment sent after it is refused too. Returning
+        // here left the switch pressed, the microphone open and a heartbeat
+        // saying listening, which is the failure class this feature has already
+        // been caught in twice: a light over a dead ear. So the same thing
+        // souffStart does with the same refusal - the reason on the badge, the
+        // ear closed, the switch back up.
+        souffSideWhy = 'off \\u2013 ' + ((hi && hi.why) || 'the watch server is gone');
+        souffStop(true);
+        return;
+      }
       // A hello only registers a socket. The switch has to be sent again,
       // because the watcher may have been restarted under this page and a
       // fresh sidecar starts off - and the preference with it, for the same
@@ -20142,7 +20173,8 @@ async function createSouffleuse({
       elapsed, marks, idx, beat: cursor.beat, durationS, chunkCount,
     });
     const allowed = drift ? souff.timeHintAllowed({
-      drift: drift.drift, rough: drift.rough, lastTimeHint, elapsed,
+      drift: drift.drift, rough: drift.rough, beforeFirst: drift.beforeFirst,
+      lastTimeHint, elapsed,
     }) : false;
     const targets = cuesAllowed ? souff.cueTargets(deck, idx) : [];
     const session = {
@@ -20154,6 +20186,10 @@ async function createSouffleuse({
       lang,
       drift: drift ? drift.drift : null,
       rough: drift ? drift.rough : false,
+      // The state line says so where the number is: a drift measured against
+      // a mark the talk has not reached is the distance to a clock nobody has
+      // arrived at, and a bare "-685s ahead" reads as a fact about the talk.
+      beforeFirst: drift ? !!drift.beforeFirst : false,
       timeHintAllowed: allowed,
       cueTargets: targets,
       hints, transcript, lastTickAt,
@@ -20170,7 +20206,7 @@ async function createSouffleuse({
     // on every line of the log, and it is already in the build.
     logLine('tick', {
       reason, idx, chunkId: cursor.chunkId, beat: cursor.beat, elapsed,
-      drift: session.drift, rough: session.rough,
+      drift: session.drift, rough: session.rough, beforeFirst: session.beforeFirst,
       timeHintAllowed: allowed, cueTargets: targets, message,
     });
     // Deliberately not awaited – the tick is fired from a socket handler and
@@ -20218,6 +20254,13 @@ async function createSouffleuse({
     // only way to read a `tick` message, with its state line and its window,
     // without a key.
     if (dryRun) {
+      // Including the two statuses around it. The heartbeat under the strip
+      // counts `thinking` - it is the one moment the cockpit can see that the
+      // whole chain is alive - so a dry run that only ever said `listening`
+      // showed the word `listening` for a whole talk and never `asked 18s ago ·
+      // 4 so far`, in the mode whose entire job is answering "is this wired
+      // up". Both states are quiet on the terminal.
+      status('thinking');
       logLine('answer', { dryRun: true, durationMs: 0 });
       if (on && !disabled) status('listening');
       return finish();
@@ -20439,6 +20482,15 @@ async function createSouffleuse({
       status('listening');
     };
     if (answer.action === 'cue') {
+      // The deck may have been rebuilt while this call was out: `cueTargets`
+      // was computed against the deck of the tick, and `onBuild` only sweeps
+      // the cards that were already laid. A card for a slide this build no
+      // longer has would be filed, replayed into every reloaded cockpit under
+      // a dead id and locked against a second - until the next build dropped
+      // it with a `cue-dropped` line nobody was waiting for.
+      if (!deck || !deck.chunks.some(c => c.id === answer.chunk_id)) {
+        return gone('stale-deck', { chunkId: answer.chunk_id || null });
+      }
       const cueId = 'cue' + (++cueSeq);
       if (!sendToCockpit({
         // `at` is the cockpit's own clock, carried forward here, and it is the

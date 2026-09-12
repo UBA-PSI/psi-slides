@@ -54,7 +54,10 @@ from building the same way is a major version.
   carries no speaking rate, no hesitation and no silence, so the sidecar counts
   them over the window it was already sending – words a minute over the seconds
   actually spoken, filler sounds, the longest gap – and puts one line in the
-  state line; the model is asked only whether the numbers are worth a whisper,
+  state line. The ear stamps a segment from where the speaking started, so a
+  pause is the silence figure and never part of the rate: a speaker who thinks
+  for a minute and then says a sentence has said a sentence, not spoken for a
+  minute. The model is asked only whether the numbers are worth a whisper,
   and is told that a recogniser often strips filler sounds, so a count of zero
   is not evidence that none were said.
 

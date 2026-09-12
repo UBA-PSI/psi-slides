@@ -746,12 +746,17 @@ function deliveryLine(stats) {
 // has heard. Stateless on purpose – the prefix stays byte-identical and
 // therefore cached, and this is the only part that is paid for per tick.
 
-function driftWord(drift, rough) {
+function driftWord(drift, rough, beforeFirst) {
   if (drift == null) return 'unknown';
   const d = Math.round(num(drift, 0));
   const w = d === 0 ? 'on plan'
     : d > 0 ? '+' + d + 's behind'
       : d + 's ahead';
+  // Said out loud, because otherwise the number reads as a fact about the
+  // talk: before the first mark it is the distance to a clock the talk has
+  // not arrived at, and being 685 seconds "ahead" of one is not news. The
+  // cockpit's own drift makes the same choice and labels it.
+  if (beforeFirst) return w + ' (of the first mark, not reached yet)';
   return rough ? w + ' (rough)' : w;
 }
 
@@ -775,7 +780,7 @@ export function tickMessage(session = {}) {
     '#' + id,
     beats == null ? 'beat ' + beat : 'beat ' + beat + '/' + beats,
     'elapsed ' + clock(elapsed),
-    'drift ' + driftWord(s.drift == null ? null : s.drift, s.rough),
+    'drift ' + driftWord(s.drift == null ? null : s.drift, s.rough, s.beforeFirst),
     'time_hint_allowed=' + (s.timeHintAllowed ? 'yes' : 'no'),
     'cue_targets=[' + targets.join(', ') + ']',
   ];
@@ -924,7 +929,15 @@ export function parseAnswer(response, session = {}) {
  * time, which no talk does. With neither there is no plan, and a prompter
  * with no plan has nothing to say about the clock.
  *
- * @returns {{drift:number, rough:boolean}|null}
+ * `beforeFirst` says the reference is a mark the talk has not reached, which
+ * makes the number a fact about the future rather than about the talk: with
+ * the first mark at 12:30 on slide 3, a speaker on slide 1 at 1:05 is 685
+ * seconds "ahead" of a clock nobody has arrived at. The number is kept,
+ * because being past that first mark while still on slide 1 is genuinely
+ * behind; what the flag buys is `timeHintAllowed` refusing the *ahead* branch
+ * on it.
+ *
+ * @returns {{drift:number, rough:boolean, beforeFirst?:boolean}|null}
  */
 export function driftSeconds({ elapsed, marks, idx, beat, durationS, chunkCount } = {}) {
   const now = num(elapsed, 0);
@@ -937,16 +950,19 @@ export function driftSeconds({ elapsed, marks, idx, beat, durationS, chunkCount 
 
   if (list.length) {
     let ref = list[0];
+    let reached = false;
     for (const m of list) {
-      if (m.idx < at || (m.idx === at && m.beat <= on)) ref = m;
+      if (m.idx < at || (m.idx === at && m.beat <= on)) { ref = m; reached = true; }
       else break;
     }
-    return { drift: now - ref.at, rough: false };
+    return { drift: now - ref.at, rough: false, beforeFirst: !reached };
   }
   const total = num(durationS, null);
   const count = Math.round(num(chunkCount, 0));
   if (total != null && total > 0 && count > 0) {
-    return { drift: now - (total * at) / count, rough: true };
+    // The straight line has no first mark to be short of: its reference is
+    // wherever the talk stands, from the first slide on.
+    return { drift: now - (total * at) / count, rough: true, beforeFirst: false };
   }
   return null;
 }
@@ -959,8 +975,15 @@ export function driftSeconds({ elapsed, marks, idx, beat, durationS, chunkCount 
  *
  * The linear estimate needs twice the slack before it is allowed to speak,
  * because it is wrong by construction on any deck whose slides differ.
+ *
+ * `beforeFirst` closes the one branch that would otherwise be a whisper about
+ * nothing. A deck whose first `@mm:ss` sits on slide 3 – which is the natural
+ * way to write them – makes a speaker on slide 1 in the opening minute 685
+ * seconds "ahead", and the prompter was then invited to mention a clock
+ * nobody had reached. Behind still counts: past the first mark's time
+ * and still on the first slide is genuinely late.
  */
-export function timeHintAllowed({ drift, rough, lastTimeHint, elapsed } = {}) {
+export function timeHintAllowed({ drift, rough, beforeFirst, lastTimeHint, elapsed } = {}) {
   if (drift == null || !isFinite(Number(drift))) return false;
   const d = Number(drift);
   const now = num(elapsed, 0);
@@ -970,6 +993,7 @@ export function timeHintAllowed({ drift, rough, lastTimeHint, elapsed } = {}) {
     const grew = d - num(last.drift, 0) >= 60;
     return grew || now - num(last.at, 0) >= 300;
   }
+  if (beforeFirst) return false;
   if (d <= -240) {
     if (!last) return true;
     return now - num(last.at, 0) >= 600;
