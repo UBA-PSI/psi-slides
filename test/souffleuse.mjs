@@ -424,6 +424,7 @@ export async function run({ page, report }) {
       stored: sessionStorage.getItem('psi-slides:souffleuse'),
       badge: document.getElementById('souffleuse-badge').hidden,
       starts: window.__stt.starts,
+      title: document.getElementById('souffleuse-btn').title,
     }));
     ok(sw.pressed === 'true' && sw.state === 'listening',
        'the switch reads pressed and listening', JSON.stringify(sw));
@@ -432,6 +433,13 @@ export async function run({ page, report }) {
        String(sw.starts));
     ok(sw.badge === true,
        'on-device recognition puts no badge up: the badge is for degraded states', JSON.stringify(sw));
+    // The language it assumed, named and not tagged. A German talk heard as
+    // English produces a transcript of plausible nonsense, and the model then
+    // sets about correcting the nonsense - so the one thing a speaker can be
+    // wrong about without noticing is said out loud at the moment of consent,
+    // and the switch carries it for the rest of the talk.
+    ok(/English/i.test(sw.title) && /machine|Google/.test(sw.title),
+       'the switch says which language it is listening in, and where', sw.title);
     ok((await until(() => logLines(dir).some((l) => l.type === 'session' && l.via === 'hello'), 5000)) !== null,
        'the sidecar logged a session opened by the hello');
 

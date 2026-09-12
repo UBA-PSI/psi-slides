@@ -510,6 +510,27 @@ feature is silence**, and silence is indistinguishable from a prompter that
 died twenty minutes ago; the speaker who asked for it had been opening the
 history panel to check.
 
+### The language it assumed, said out loud
+
+`souffLangTag` is the tag recognition actually runs in, and it is **not
+necessarily the one the deck wrote**: `available()` resolves `lang: de` to the
+`de-DE` model that is installed, and `souffStt.start` is then handed that tag.
+Resolving it for the availability question and listening under the deck's
+spelling was a real defect - it found the on-device model and then did not use
+it.
+
+`souffLangName()` names it through `Intl.DisplayNames`, from the primary subtag
+so that the region is not said twice, and keeps the tag beside it because the
+tag is what identifies the model: **Deutsch (de-DE)**. It appears at the moment
+of consent, in the switch-on toast (`prompter listening · Deutsch (de-DE) ·
+on-device`), and on the switch's own `title` for the rest of the talk, since
+the toast is gone in two seconds.
+
+Why it earns the room: a German talk heard as English yields a transcript of
+plausible nonsense, the model dutifully corrects the nonsense, and nothing on
+the screen says which of the two is wrong. It is the one thing a speaker can be
+wrong about without noticing.
+
 ### A card the prompter laid says so
 
 `.cue-card.souffleuse` already had the dashed track, the hollow ring and the

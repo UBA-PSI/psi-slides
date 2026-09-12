@@ -18402,6 +18402,10 @@ if (SOUFFLEUSE && window.psiWatch) {
   // The switch-on moment on the cockpit's own clock, the opening quiet the
   // sidecar reported, and the heartbeat: when the model was last asked, and
   // how often this session.
+  // The tag recognition actually runs in. It starts as the deck's own and
+  // becomes whatever the availability check settled on, which may carry a
+  // region the deck never wrote.
+  let souffLangTag = SOUFFLEUSE ? SOUFFLEUSE.lang : 'en';
   let souffOnAt = null;
   let souffStartQuiet = 60;
   let souffAskedAt = null;
@@ -18453,6 +18457,11 @@ if (SOUFFLEUSE && window.psiWatch) {
     souffBtn.dataset.state = st;
     const dot = souffBtn.querySelector('.souffleuse-dot');
     if (dot) dot.textContent = st === 'off' ? '\\u25cc' : '\\u25cf';
+    // The toast that named the language is gone in two seconds, so the switch
+    // itself answers the question for the rest of the talk.
+    souffBtn.title = souffOn
+      ? 'listening in ' + souffLangName() + (souffLocal ? ', on this machine' : ', through Google')
+      : 'the live prompter (Shift-S)';
   }
 
   // Where the talk stands, in the three numbers the sidecar files everything
@@ -18539,6 +18548,7 @@ if (SOUFFLEUSE && window.psiWatch) {
       souffAsked = null;
       if (fromGesture && souffStt.needsDownload()) souffAsked = souffStt.download(SOUFFLEUSE.lang);
       souffLocal = !!av.local;
+      souffLangTag = av.lang || SOUFFLEUSE.lang;
       souffVerdicts = av.verdicts || [];
       souffEarWhy = null;
       const hi = await souffHello();
@@ -18561,7 +18571,11 @@ if (SOUFFLEUSE && window.psiWatch) {
       souffOn = true;
       souffState = 'listening';
       try {
-        souffStt.start(SOUFFLEUSE.lang, {
+        // The tag the availability check settled on, not the one the deck
+        // wrote. A deck says lang: en and Chrome's model is en-US; asking for
+        // the model under one name and then listening under the other is how
+        // the on-device ear gets found and then not used.
+        souffStt.start(souffLangTag, {
           onFinal: souffHeard, onInterim: souffInterim, onState: souffSttState,
         }, souffLocal);
       } catch (e) {
@@ -18603,7 +18617,12 @@ if (SOUFFLEUSE && window.psiWatch) {
       } catch (e) { /* a private window is allowed to refuse */ }
       const ear = souffLocal ? 'on-device' : 'server recognition';
       const dest = hi.dryRun ? 'dry run, nothing leaves this machine' : 'text goes to openrouter.ai';
-      flashMode('prompter listening \\u00b7 ' + ear + (told ? '' : ' \\u00b7 ' + dest));
+      // The language it is about to listen in, named rather than tagged. It
+      // is the thing a speaker can most easily be wrong about and least
+      // easily notice: a German talk heard as English produces a transcript
+      // of plausible nonsense, and the model then corrects the nonsense.
+      flashMode('prompter listening \\u00b7 ' + souffLangName()
+        + ' \\u00b7 ' + ear + (told ? '' : ' \\u00b7 ' + dest));
     } finally {
       souffStarting = false;
     }
@@ -18693,6 +18712,24 @@ if (SOUFFLEUSE && window.psiWatch) {
     souffHeardEl.textContent = souffBeatText();
     souffHeardEl.hidden = false;
   }
+  // German, not de-DE. Intl knows the names; the tag is kept beside it when
+  // the two differ, because a speaker who set lang: en and is being heard as
+  // en-US should be able to see which model is in play.
+  function souffLangName() {
+    const tag = souffLangTag || 'en';
+    // The primary subtag is what gets a name: asking Intl for the whole tag
+    // answers "Deutsch (Deutschland)", and with the tag beside it that is the
+    // region said three times. The tag stays because it names the model.
+    const primary = tag.split('-')[0];
+    let name = primary;
+    try {
+      const dn = new Intl.DisplayNames([document.documentElement.lang || 'en'], { type: 'language' });
+      name = dn.of(primary) || primary;
+    } catch (e) { /* an older browser keeps the tag */ }
+    if (name.toLowerCase() === tag.toLowerCase()) return tag;
+    return name + ' (' + tag + ')';
+  }
+
   function souffBeatText() {
     if (souffState === 'thinking') return 'asking the model\u2026';
     if (souffAskedAt == null) return 'listening';
