@@ -476,6 +476,11 @@ function rules(lang) {
     '  said now that belongs there. Only an id from cue_targets, never the slide the',
     '  speaker is on.',
     '- Write the hint in ' + lang + '.',
+    // The strip is part of this tool's typography, and this tool sets
+    // en-dashes. A model left to itself writes em-dashes, and the first real
+    // rehearsal painted one on the projection-side screen.
+    '- Punctuation: no dashes at all if the phrase can carry a comma instead,',
+    '  and an en-dash (\u2013) never an em-dash (\u2014) if it cannot.',
   ];
 }
 
@@ -620,13 +625,23 @@ export function parseAnswer(response, session = {}) {
   // so "the model is ignoring cue_targets" was a reason with nothing under
   // it, and nobody could see which card it had wanted to lay where.
   const no = (reason, extra) => Object.assign({ action: 'nothing', reason }, extra || {});
-  const msg = response && response.choices && response.choices[0]
-    ? response.choices[0].message : null;
+  const choice = response && response.choices && response.choices[0]
+    ? response.choices[0] : null;
+  const msg = choice ? choice.message : null;
   let args = null;
   const call = msg && Array.isArray(msg.tool_calls) ? msg.tool_calls[0] : null;
   if (call && call.function) args = safeJson(call.function.arguments);
   if (!args && msg && msg.content) args = safeJson(msg.content);
-  if (!args || typeof args !== 'object' || Array.isArray(args)) return no('garbage');
+  if (!args || typeof args !== 'object' || Array.isArray(args)) {
+    // A tool call cut off mid-JSON is not nonsense, it is our own ceiling.
+    // The first real rehearsal filed a correct hint as `garbage` because the
+    // model had written a long `why` and run into max_tokens: the arguments
+    // string ended after the text and never closed. The two need separate
+    // names, because one of them is answered by raising a number here and
+    // the other by changing the model or the prompt.
+    if (choice && String(choice.finish_reason || '') === 'length') return no('truncated');
+    return no('garbage');
+  }
 
   const action = String(args.action || '').trim();
   const why = args.why == null ? undefined : String(args.why);

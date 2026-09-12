@@ -19967,7 +19967,12 @@ async function createSouffleuse({
         },
         body: JSON.stringify({
           model,
-          max_tokens: 160,
+          // Twelve words need a handful of tokens; the rest of this ceiling is the
+      // `why` that goes to the log, and the first rehearsal hit it: a truncated
+      // tool call came back as unparseable JSON and was read as the model
+      // talking nonsense. Output is billed by what is generated, not by the
+      // ceiling, so headroom here costs nothing and buys the debrief.
+      max_tokens: 320,
           temperature: 0.2,
           // OpenRouter's unified parameter: think a little, and do not send
           // the thinking back. Latency is the scarce resource here.
@@ -20112,8 +20117,12 @@ async function createSouffleuse({
     if (!verdict.show) {
       const reason = verdict.reason || 'nothing';
       // Only nonsense counts towards the garbage streak. A policy that
-      // swallows a well-formed hint is the policy working.
-      if (reason === 'garbage' || reason === 'too-long' || reason === 'bad-cue') garbageStreak += 1;
+      // swallows a well-formed hint is the policy working. `truncated` is
+      // counted too, but it says so in its own words: the answer ran into
+      // this tool's max_tokens, which is a number here and not the model's
+      // fault, and a run of them means the ceiling is wrong.
+      if (reason === 'garbage' || reason === 'too-long' || reason === 'bad-cue'
+          || reason === 'truncated') garbageStreak += 1;
       else garbageStreak = 0;
       logLine('suppressed', {
         reason,
@@ -20125,7 +20134,9 @@ async function createSouffleuse({
       });
       heldBack(reason, answer);
       if (garbageStreak >= SOUFFLEUSE_MAX_GARBAGE) {
-        status('error', `${SOUFFLEUSE_MAX_GARBAGE} unusable answers in a row from ${model}`);
+        status('error', reason === 'truncated'
+          ? `${SOUFFLEUSE_MAX_GARBAGE} answers in a row cut off by max_tokens`
+          : `${SOUFFLEUSE_MAX_GARBAGE} unusable answers in a row from ${model}`);
       } else {
         status('listening');
       }

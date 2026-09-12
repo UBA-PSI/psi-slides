@@ -190,7 +190,11 @@ every `move`:
 psi-slides`, `HTTP-Referer` the repository (both show on OpenRouter's activity
 page, which is where somebody with the bill goes to ask what spent it). Body:
 
-- `model`, `max_tokens: 160`, `temperature: 0.2`
+- `model`, `max_tokens: 320`, `temperature: 0.2`. Twelve words need a handful
+  of tokens; the ceiling is there for the `why` that goes to the log, and it
+  was 160 until the first rehearsal ran into it: the tool call came back cut
+  off mid-JSON and was read as the model talking nonsense. Output is billed
+  by what is generated, so the headroom costs nothing
 - `reasoning: {effort: 'low', exclude: true}` – think a little, do not send the
   thinking back; latency is the scarce resource
 - `messages`: the system prefix as **one content block carrying
@@ -248,6 +252,7 @@ prompter on mid-talk should still buy the speaker a quiet minute.
 | a clock hint | only when `timeHintAllowed` said yes | `time-not-allowed` |
 | a cue | only an id from `cue_targets`, at most one per slide | `bad-cue`, `cue-per-chunk` |
 | anything malformed | `parseAnswer` already turned it into `nothing` | `garbage` |
+| a tool call cut off mid-JSON | the same, under its own name, because the cure is a number in this file and not a different model. `choices[0].finish_reason === 'length'` is what tells them apart, and a run of five says so in its own words on the badge | `truncated` |
 
 **A cue is not a hint.** It goes into a slide that is still to come, nobody reads
 it now, so it takes no part in the standing slot, the overall cool-down or the
@@ -258,7 +263,7 @@ eye during the same talk. The policy is made **once**
 and kept across rebuilds, because a save in the middle of a talk must not hand
 the speaker the same hint a second time.
 
-Only nonsense counts towards the garbage streak (`garbage`, `too-long`,
+Only nonsense counts towards the garbage streak (`garbage`, `truncated`, `too-long`,
 `bad-cue`); a policy that swallows a well-formed hint is the policy working.
 
 **Nothing is recorded until the whisper has left the socket.** `policy.shown`

@@ -147,6 +147,10 @@ export async function run({ report }) {
   ok(prefixHash('') !== prefixHash('a') && prefixHash('ab') !== prefixHash('ba'),
      'the hash separates the empty string, one character and a transposition');
   ok(/Write the hint in de\./.test(p1), 'the output language is named in the rules', p1.slice(0, 80));
+  // A model left to itself writes em-dashes, and the first real rehearsal put
+  // one on the strip. The strip is this tool's own typography.
+  ok(p1.includes('en-dash (\u2013) never an em-dash (\u2014)'),
+     'and the rules ask for the dash this project sets');
   ok(p1.includes('planned duration: 40:00') && p1.includes('slides: 8'),
      'the deck header states the plan and the slide count');
   ok(p1.includes('– 3 · #vorgesetzter · principle · part: Warum'),
@@ -211,6 +215,24 @@ export async function run({ report }) {
   ok(a.action === 'hint' && a.text === 'Langsamer sprechen', 'a fenced JSON body is unwrapped', j(a));
   ok(parseAnswer(content('Ich denke, alles gut!'), sess).reason === 'garbage',
      'prose where an object belongs is garbage');
+  // A tool call that ran into max_tokens is legible JSON with its tail
+  // missing, and the first real rehearsal filed one as nonsense. The two are
+  // answered differently - one by raising a number, one by changing the model
+  // or the prompt - so they may not share a name.
+  {
+    const cut = {
+      choices: [{
+        finish_reason: 'length',
+        message: { tool_calls: [{ function: { name: 'advise', arguments: '{"action": "hint", "kind": "fact", "text": "Neunzig Millisekunden, nicht vierhundert"' } }] },
+      }],
+    };
+    ok(parseAnswer(cut, sess).reason === 'truncated',
+       'a tool call cut off by max_tokens is truncated, not garbage', JSON.stringify(parseAnswer(cut, sess)));
+    const same = JSON.parse(JSON.stringify(cut));
+    same.choices[0].finish_reason = 'stop';
+    ok(parseAnswer(same, sess).reason === 'garbage',
+       'and the same broken JSON with a finish_reason of stop is garbage after all');
+  }
   ok(parseAnswer(null, sess).reason === 'garbage' && parseAnswer({}, sess).reason === 'garbage',
      'so is nothing at all');
   ok(parseAnswer(answer({ action: 'hint', kind: 'fett', text: 'Ein Wort' }), sess).reason === 'garbage',

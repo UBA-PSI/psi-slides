@@ -845,7 +845,45 @@ the only defect in this feature that would have cost money at the lectern.
 - **Interim line**: in, off by default.
 - **Language**: plan and work in English by default.
 
-## Open for the first rehearsal
+## The first rehearsal, and what it settled
+
+Run against the real model on 2026-09-12, on `lectures/spoken-talk` with a
+scripted talk played down the watch socket: the ear is faked because nobody
+at a keyboard can speak, and everything behind it - the prompt, the cache,
+the tool call, the policy, the latency - was real. The driver is
+`rehearse.mjs` in this session's scratchpad, and it plants two faults for the
+prompter to find: a wrong number (four hundred milliseconds where the deck
+and the notes say ninety, called a factor of two where the deck says fifteen)
+and a slide talked to rather than from.
+
+What it answered, and none of it could have been known from a fake:
+
+- **It catches the planted error, in nine words.** `fact/high`, "Second load
+  was ninety milliseconds, not four hundred." The `why` in the log says
+  "contradicts stated 90ms figure". It found it from the notes, not from the
+  transcript alone.
+- **The cache breakpoint is honoured.** 2401 of about 2900 prompt tokens read
+  from cache from the second call on, and on the first call of a later run
+  inside the five-minute window. That was the one cost assumption the whole
+  design rests on, and it holds through OpenRouter to Anthropic.
+- **Latency 2.5 to 3.4 s** per answer, inside the five-second budget a
+  speaker can still act on.
+- **The restraint works.** Of four answers in a short run, two were whispered
+  and two held back by `kind-cooldown`: the model went on wanting to correct
+  the same number, and the policy refused to say it twice.
+- **`--souffleuse-replay` reads the run back** and prints, per answer, what
+  the model proposed, what the policy did with it and the model's own reason.
+- **Two defects only a live model could show**, both fixed: `max_tokens: 160`
+  truncated a correct hint mid-JSON, which was then filed as `garbage` and
+  counted against the model; and the model writes em-dashes, which the strip
+  then paints, against this project's own typography. The ceiling is 320, a
+  truncated call has its own name, and the rules ask for the dash this
+  project sets.
+
+Still unmeasured: on-device recognition on macOS, a real microphone in a real
+room, and a deck long enough that the prefix is the whole cost.
+
+## The checklist it was run against
 
 Which talk calibrates the thresholds (90 s behind, 240 s ahead, 60 s
 cool-down, cadence 25 s); the model comparison Sonnet 5 against Gemini
