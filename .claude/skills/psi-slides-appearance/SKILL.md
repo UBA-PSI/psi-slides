@@ -110,6 +110,21 @@ So the values are `text` (the default: fi and fl in prose, none in code – exac
 
 `lang:` in the frontmatter (default `en`) lands in the `lang` attribute of `<html>` for all four views. It is not decoration: the browser picks its **hyphenation dictionary** from it, so `hyphens: auto` in the print stylesheet does nothing useful for a German lecture until the author writes `lang: de`. A value that is not a plausible BCP-47 tag fails the build.
 
+**`lang:` also selects the words the build *invents*.** Everything in the four outputs that is not in `source.md` – the table-of-contents heading, the `Speaker Note` / `Presentation Note` labels, the print type eyebrow (`principle`, `exercise`, …), the projection's `EXERCISE`, the default `note` on a `::: footnote`, the `<title>` suffixes (`– lecture` / `– print` / …), the annotation box label and the `+ note` button – was English with no way to say otherwise. `lectureStrings(frontmatter)` resolves them out of the `STRINGS` table in `build.js`, looked up by the primary subtag (`de-AT` → `de`); a language the table has no wording for (`lang: fr`) builds and stays English with a one-line `[lang]` warning, because refusing it would stop an existing lecture from building. **`STRINGS.en` is the current literals transcribed character for character, so a deck with no `lang:` or with `lang: en` builds byte-identical HTML to before – the 1.0.0 contract.** The type word is stored once in canonical case and cased per site: the projection uppercases it (`AUFGABE`, which for a non-default word rides in as a same-specificity `content:` override after the main stylesheet, so English decks keep their exact bytes), the printed document lowercases it under `.chunk-label`'s small-caps.
+
+A top-level **`labels:`** block overrides any single word – free-text values under the role names of `STRINGS.en`, with a nested `type:` map for the tag words:
+
+```yaml
+lang: de
+labels:
+  contents: Verzeichnis
+  presentation-note: Präsentationsnotiz
+  type:
+    principle: Merksatz
+```
+
+It is a top-level block rather than `style: {labels: {…}}` because `style.labels` is already the on/off switch and every `style:` key is a closed vocabulary the linter whitelists, whereas these values are free text. An unknown key fails the build in the `buildOnce` pre-flight (`unknown-label-key`, the message shape `styleSettings` uses) and `lint.js` mirrors the refusal from its `LABEL_KEYS` / `LABEL_TYPE_KEYS` sets. `labels:` needs no `lang:` – an English deck may want `Contents` to read `In this lecture` – and it is legal beside `style: {labels: off}`: the switch hides the eyebrows, the block still names the TOC and the notes. Cockpit strings and the interaction-tier `?`/search/overview furniture are not localised yet (a later pass); key names on `<kbd>` never are.
+
 Hyphenation is **prose-only, and by default document-only**. A hyphenated word on a projection reads badly and the live views reflow constantly; and because the `hyphens` property inherits, headings, code, and URLs are explicitly set back to `manual`, or the build would hyphenate an identifier.
 
 `style: {hyphenate: …}` is the author's say over which views do it, and its default is exactly the behaviour above:

@@ -4806,8 +4806,8 @@ function jsonForScript(v) {
   return JSON.stringify(v).replace(/</g, '\\u003C');
 }
 
-function lectureTitle(frontmatter) {
-  return frontmatter.title || 'Untitled lecture';
+function lectureTitle(frontmatter, S) {
+  return frontmatter.title || (S && S['untitled-lecture']) || 'Untitled lecture';
 }
 
 // The document language. It is not decoration: the browser's hyphenation
@@ -4828,6 +4828,146 @@ function lectureLang(frontmatter = {}) {
     throw err;
   }
   return raw;
+}
+
+// ── the words the build invents (localised by `lang:`) ───────────────
+// Every string the four outputs carry that is NOT in source.md - the TOC
+// heading, the note labels, the type eyebrow, the <title> suffixes - is
+// English furniture. `lang:` already declares the lecture's language (and
+// already fails the build on a value that is not a language tag), so it
+// selects the wording too. One table, keyed by role and never by the
+// English text; `STRINGS.en` is the current literals transcribed character
+// for character, so a lecture with no `lang:` or `lang: en` builds
+// byte-identical HTML to before - the 1.0.0 contract.
+//
+// Casing is stored once and cased per site: the projection uppercases the
+// type word (all-small-caps leaves capitals as full caps, so EXERCISE) and
+// the printed document lowercases it (small-caps then draws it), which is
+// why the table holds `Exercise` and neither site holds the rendered form.
+const STRINGS = {
+  en: {
+    contents: 'Contents',
+    'speaker-note': 'Speaker Note',
+    'presentation-note': 'Presentation Note',
+    'aside-note': 'note',
+    type: { principle: 'Principle', definition: 'Definition', example: 'Example',
+            question: 'Question', exercise: 'Exercise', outline: 'Outline',
+            figure: 'Figure' },
+    'title-print': 'print',
+    'title-print-notes': 'print + notes',
+    'title-lecture': 'lecture',
+    'title-speaker': 'speaker',
+    'untitled-lecture': 'Untitled lecture',
+    'annotation-label': 'annotation',
+    'add-note': '+ note',
+  },
+  de: {
+    contents: 'Inhalt',
+    'speaker-note': 'Sprechernotiz',
+    'presentation-note': 'Anmerkung',
+    'aside-note': 'Anmerkung',
+    type: { principle: 'Grundsatz', definition: 'Definition', example: 'Beispiel',
+            question: 'Frage', exercise: 'Aufgabe', outline: 'Überblick',
+            figure: 'Abbildung' },
+    'title-print': 'Druck',
+    'title-print-notes': 'Druck + Notizen',
+    'title-lecture': 'Vorlesung',
+    'title-speaker': 'Sprecher',
+    'untitled-lecture': 'Vorlesung ohne Titel',
+    'annotation-label': 'Anmerkung',
+    'add-note': '+ Anmerkung',
+  },
+};
+
+// A `lang:` with no wording table is a warning, not an error, and the build
+// falls back to English: `lang: fr` is a correct tag the hyphenator honours
+// today, and refusing it would stop an existing lecture from building, which
+// the 1.0.0 contract forbids. Said once per build, like warnOversizedAsset,
+// and it names the way out.
+const localeWarned = new Set();
+function warnUnknownLocale(tag) {
+  if (localeWarned.has(tag)) return;
+  localeWarned.add(tag);
+  console.warn(
+    `[lang] no wording for "lang: ${tag}" – the generated labels stay English.\n` +
+    `        Locales this build knows: ${Object.keys(STRINGS).join(', ')}.\n` +
+    `        Override single words with a labels: block in the frontmatter.`);
+}
+
+// The resolved words for this lecture. Looked up by the primary subtag
+// (`de-AT` → `de`); an author's top-level `labels:` block overrides single
+// entries. Pure - resolved once in the buildOnce pre-flight and passed into
+// the three renderers, which never call this themselves.
+function lectureStrings(frontmatter = {}) {
+  const tag = lectureLang(frontmatter);
+  const primary = tag.split('-')[0].toLowerCase();
+  const base = STRINGS[primary];
+  if (!base && primary !== 'en') warnUnknownLocale(tag);
+  return mergeLabels(base || STRINGS.en, frontmatter);
+}
+
+// The top-level `labels:` block. Its keys are the role names of STRINGS.en
+// (with the nested `type:` map for the tag words); its values are free text,
+// used verbatim. Unknown key fails the build with the shape styleSettings
+// uses, and lint.js mirrors it as `unknown-label-key` - a top-level block
+// rather than `style: {labels: {…}}` because `style.labels` is already the
+// on/off switch and every other `style:` key is a closed vocabulary the
+// linter whitelists.
+function mergeLabels(base, frontmatter = {}) {
+  const raw = frontmatter.labels;
+  if (raw == null) return base;
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    const err = new Error(
+      'Frontmatter: "labels:" is a block of keys, not a single value.\n' +
+      '  labels:\n    contents: Inhalt\n    type:\n      exercise: Übung');
+    err.userFacing = true;
+    throw err;
+  }
+  const out = { ...base, type: { ...base.type } };
+  const topKeys = Object.keys(STRINGS.en).filter(k => k !== 'type');
+  for (const [k, v] of Object.entries(raw)) {
+    if (k === 'type') {
+      if (typeof v !== 'object' || Array.isArray(v)) {
+        const err = new Error(
+          'Frontmatter: "labels.type:" is a block of tag words, not a single value.\n' +
+          '  labels:\n    type:\n      exercise: Übung');
+        err.userFacing = true;
+        throw err;
+      }
+      for (const [tk, tv] of Object.entries(v)) {
+        if (!(tk in base.type)) {
+          const err = new Error(
+            `Frontmatter: labels.type has no key "${tk}".\n` +
+            `  Keys: ${Object.keys(STRINGS.en.type).join(', ')}`);
+          err.userFacing = true;
+          throw err;
+        }
+        out.type[tk] = String(tv);
+      }
+      continue;
+    }
+    if (!topKeys.includes(k)) {
+      const err = new Error(
+        `Frontmatter: labels has no key "${k}".\n` +
+        `  Keys: ${topKeys.join(', ')}, type`);
+      err.userFacing = true;
+      throw err;
+    }
+    out[k] = String(v);
+  }
+  return out;
+}
+
+// A CSS string literal for a `content:` value: there is no CSS.escape in
+// Node, and the word can arrive from an author's labels: block, so escape
+// the backslash, the double quote and a newline (folded to the CSS escape
+// for U+000A) before it is wrapped in quotes.
+function cssString(s) {
+  return String(s)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, '')
+    .replace(/\n/g, '\\A ');
 }
 
 // ── viewer defaults from frontmatter ─────────────────────────────────
@@ -5139,11 +5279,29 @@ function styleSettings(frontmatter = {}) {
 // The settings as one <style> element plus the two body attributes the
 // selectors key off. Emitted for every view, print included: a lecture set
 // in a larger body size should print in one.
-function styleBlockCss(st) {
-  const parts = [];
-  if (st['heading-scale'] !== 1) parts.push(`--heading-scale: ${st['heading-scale']};`);
-  if (st['body-scale'] !== 1) parts.push(`--body-scale: ${st['body-scale']};`);
-  return parts.length ? `<style>:root { ${parts.join(' ')} }</style>` : '';
+function styleBlockCss(st, S) {
+  const rootVars = [];
+  if (st['heading-scale'] !== 1) rootVars.push(`--heading-scale: ${st['heading-scale']};`);
+  if (st['body-scale'] !== 1) rootVars.push(`--body-scale: ${st['body-scale']};`);
+  const rules = [];
+  if (rootVars.length) rules.push(`:root { ${rootVars.join(' ')} }`);
+  // The projection's one generated eyebrow, EXERCISE, is a CSS `content:`
+  // string and cannot read the strings table. Rather than change the base
+  // rule in AUDIENCE_CSS – which would move a byte in every deck, localised
+  // or not, and break the 1.0.0 contract – the localised word rides in as a
+  // same-specificity override emitted here, after the main stylesheet, so it
+  // wins on source order. Emitted only for the live views (S is passed there,
+  // not for print, whose eyebrow is a <span> of real text) and only when the
+  // word differs from the default, so an English deck's CSS is byte-identical
+  // to before. Uppercased to match the projection – all-small-caps leaves
+  // capitals as full caps, which is why EXERCISE is written in caps.
+  if (S && S.type && S.type.exercise) {
+    const word = S.type.exercise.toUpperCase();
+    if (word !== STRINGS.en.type.exercise.toUpperCase()) {
+      rules.push(`.chunk[data-tag=exercise] .chunk-content::before { content: "${cssString(word)}"; }`);
+    }
+  }
+  return rules.length ? `<style>${rules.join(' ')}</style>` : '';
 }
 function styleBodyAttrs(st, frontmatter = {}) {
   const parts = [];
@@ -5584,6 +5742,7 @@ function renderHeadingHtml(chunk, cls = 'chunk-heading') {
 
 function renderChunk(chunk, frontmatter, num, opts = {}) {
   const { tag, body = '', id, width, expansions = [], annotation = '', speakerNotes = [] } = chunk;
+  const S = opts.strings || lectureStrings(frontmatter);
   const nums = opts.nums || chunkNumbers([]);
   // An `outline:` chunk is an ordinary chunk whose body ends with the list,
   // and that is the whole of it. Rendering it through a shell of its own
@@ -5628,7 +5787,7 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   // third label above the heading + sub-heading.
   const labelTag = tag && tag !== 'free' && tag !== 'figure' ? tag : null;
   const label = labelTag
-    ? `<span class="chunk-label">${escapeHtml(labelTag)}</span>`
+    ? `<span class="chunk-label">${escapeHtml((S.type[labelTag] || labelTag).toLowerCase())}</span>`
     : '';
 
   const classes = [
@@ -5640,21 +5799,21 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   const expansionsHtml = expansions.map(e => {
     const inner = marked.parse(e.body || '');
     const kind = e.kind || 'expand';
-    return `<aside class="chunk-expansion chunk-expansion-${kind}" data-label="${escapeHtml(e.label)}">
+    return `<aside class="chunk-expansion chunk-expansion-${kind}" data-label="${escapeHtml(kind === 'margin' && e.label === 'note' ? S['aside-note'] : e.label)}">
 ${inner}
 </aside>`;
   }).join('\n');
 
   const annotationHtml = annotation.trim()
     ? `<aside class="presentation-note">
-<span class="presentation-note-label">Presentation Note</span>
+<span class="presentation-note-label">${escapeHtml(S['presentation-note'])}</span>
 <div class="presentation-note-body">${marked.parse(annotation)}</div>
 </aside>`
     : '';
 
   const notesHtml = (opts.withNotes && speakerNotes.length)
     ? `<aside class="speaker-note">
-<span class="speaker-note-label">Speaker Note</span>
+<span class="speaker-note-label">${escapeHtml(S['speaker-note'])}</span>
 <div class="speaker-note-body">${speakerNotes.map(n => marked.parse(n)).join('\n')}</div>
 </aside>`
     : '';
@@ -5719,14 +5878,14 @@ ${chunksHtml}
 </section>`;
 }
 
-function renderToc(columns) {
+function renderToc(columns, S) {
   const items = columns
     .filter(c => c.heading)
     .map(c => `<li><a href="#${escapeHtml(c.id || '')}">${escapeHtml(c.heading)}</a></li>`)
     .join('\n    ');
   if (!items) return '';
-  return `<nav class="toc" aria-label="Contents">
-  <h2>Contents</h2>
+  return `<nav class="toc" aria-label="${escapeHtml(S.contents)}">
+  <h2>${escapeHtml(S.contents)}</h2>
   <ol>
     ${items}
   </ol>
@@ -5785,15 +5944,16 @@ function stripDarkTokenColors(html) {
 
 function renderDocument(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
-  const title = lectureTitle(frontmatter);
-  const toc = renderToc(columns);
+  const S = opts.strings || lectureStrings(frontmatter);
+  const title = lectureTitle(frontmatter, S);
+  const toc = renderToc(columns, S);
   // The one numbering, shared with renderColumnsHtml, so the print numbers
   // match the audience's chunk-num badges 1:1 - and so a dock's link
   // states in both views compare against the same "slide 12".
   const nums = chunkNumbers(columns);
   // Title / anon columns render above the TOC (cover page first),
   // named columns render after (body of the document).
-  const chunkOpts = { withNotes: !!opts.withNotes };
+  const chunkOpts = { withNotes: !!opts.withNotes, strings: S };
   const forPrint = (html) => stripDarkTokenColors(stripDiagramPayloads(stripBackdropFrames(html)));
   // The parts a lecture has, and which one each column is, threaded through
   // so an `outline:` chunk can list them. Print reorders the columns (anon
@@ -5808,7 +5968,7 @@ function renderDocument(lecture, opts = {}) {
   const namedHtml = forPrint(columns.filter(c => c.heading)
     .map(c => renderColumn(c, frontmatter, nums, colOpts(c))).join('\n'));
 
-  const titleSuffix = opts.withNotes ? 'print + notes' : 'print';
+  const titleSuffix = opts.withNotes ? S['title-print-notes'] : S['title-print'];
   // Print has no keyboard, so the frontmatter is its only say over the
   // slide-number markers. The other viewer defaults are live-view concepts
   // (collapse, auto-fit) or already fixed here (print has its own type).
@@ -5822,7 +5982,7 @@ function renderDocument(lecture, opts = {}) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)} – ${titleSuffix}</title>
+<title>${escapeHtml(title)} – ${escapeHtml(titleSuffix)}</title>
 <style>
 ${PRINT_CSS}
 ${DIAGRAM_CSS}
@@ -6671,17 +6831,21 @@ pre.shiki .line { display: inline; }
 function abbrevForLabel(label) {
   const l = String(label || '').toLowerCase();
   if (!l) return 'Exp';
-  if (l.startsWith('exa')) return 'Ex';
+  // The abbreviations are glyph-like and stay – it is the prefix matching
+  // that gains the German words, so a `::: expand Beispiel` reads `Ex` rather
+  // than falling to the `Exp` default. `war` (Warnung) already sits on the
+  // `!` line; the others are added beside their English counterparts.
+  if (l.startsWith('exa') || l.startsWith('bei')) return 'Ex';
   if (l.startsWith('exp') || l.startsWith('det') || l.startsWith('deep')) return 'Exp';
-  if (l.startsWith('ref') || l.startsWith('cit') || l.startsWith('bib')) return 'Ref';
-  if (l.startsWith('ans') || l.startsWith('sol')) return '?';
-  if (l.startsWith('pro')) return 'Pf';
-  if (l.startsWith('fig') || l.startsWith('dia')) return 'Fig';
+  if (l.startsWith('ref') || l.startsWith('cit') || l.startsWith('bib') || l.startsWith('lit') || l.startsWith('que')) return 'Ref';
+  if (l.startsWith('ans') || l.startsWith('sol') || l.startsWith('lös') || l.startsWith('ant')) return '?';
+  if (l.startsWith('pro') || l.startsWith('bew')) return 'Pf';
+  if (l.startsWith('fig') || l.startsWith('dia') || l.startsWith('abb')) return 'Fig';
   if (l.startsWith('cod')) return '{}';
   if (l.startsWith('set')) return 'Set';
   if (l.startsWith('note') || l.startsWith('n.b') || l.startsWith('nb')) return 'N.B.';
   if (l.startsWith('asi') || l.startsWith('asd')) return 'ASD';
-  if (l.startsWith('war') || l.startsWith('cav') || l.startsWith('pit')) return '!';
+  if (l.startsWith('war') || l.startsWith('cav') || l.startsWith('pit') || l.startsWith('ach')) return '!';
   return 'Exp';
 }
 
@@ -6823,7 +6987,8 @@ function renderTitleChunk(chunk, frontmatter, num) {
 </article>`;
 }
 
-function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts = [], now = 0) {
+function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts = [], now = 0, S = null) {
+  S = S || lectureStrings(frontmatter);
   const num = nums.of.get(chunk);
   if (chunk.tag === 'title' || chunk.tag === 'closing') return renderTitleChunk(chunk, frontmatter, num);
   const { tag, heading, id, width, expansions = [], annotation = '' } = chunk;
@@ -6888,7 +7053,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
 
   const marginsHtml = marginList.map(e => {
     const inner = marked.parse(e.body || '');
-    return `<aside class="margin-note" data-label="${escapeHtml(e.label)}">${inner}</aside>`;
+    return `<aside class="margin-note" data-label="${escapeHtml(e.label === 'note' ? S['aside-note'] : e.label)}">${inner}</aside>`;
   }).join('\n');
 
   const chevsHtml = expandList.length
@@ -6935,12 +7100,12 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
     <div class="chunk-body">${segmentsHtml}</div>
     ${marginsHtml}
     <aside class="annot-box" data-annot-for="${escapeHtml(chunkId)}">
-      <div class="annot-box-label">annotation · ${escapeHtml(chunkId)}</div>
+      <div class="annot-box-label">${escapeHtml(S['annotation-label'])} · ${escapeHtml(chunkId)}</div>
       <div class="annot-qr qr-card" aria-hidden="true"></div>
       <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1">${escapeHtml(annotation)}</textarea>
     </aside>
   </div>
-  <button class="annot-add" type="button" data-annot-add>+ note</button>
+  <button class="annot-add" type="button" data-annot-add>${escapeHtml(S['add-note'])}</button>
   ${dockHtml}
   ${overlayHtml}
   ${chevsHtml}
@@ -7062,7 +7227,7 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
 // each slide can render a corner badge with its global number. Section
 // dividers are auto-inserted, not authored, and stay unnumbered – this
 // keeps audience numbering aligned with print.
-function renderColumnsHtml(columns, frontmatter) {
+function renderColumnsHtml(columns, frontmatter, S) {
   const nums = chunkNumbers(columns);
   // Which named column this is, counted over the columns that *have* a
   // heading - so `section: number` numbers the parts a reader sees rather
@@ -7074,7 +7239,7 @@ function renderColumnsHtml(columns, frontmatter) {
     const sectionHtml = col.heading
       ? renderColumnSectionChunk(col, ci, frontmatter, sectionNo, parts, nums) : '';
     const chunks = col.chunks
-      .map((c, xi) => renderAudienceChunk(c, frontmatter, ci, xi, nums, parts, col.heading ? sectionNo : 0))
+      .map((c, xi) => renderAudienceChunk(c, frontmatter, ci, xi, nums, parts, col.heading ? sectionNo : 0, S))
       .join('\n');
     const idAttr = col.id ? ` id="${escapeHtml(col.id)}"` : '';
     return `<section class="column" data-col="${ci}"${idAttr}>
@@ -7302,14 +7467,14 @@ ${sections}
 <button id="help-button" type="button" aria-label="Keyboard and mouse reference" title="Keyboard and mouse reference (?)">?</button>`;
 }
 
-function renderTocNav(columns) {
+function renderTocNav(columns, S) {
   const items = columns
     .map((c, i) => ({ c, i }))
     .filter(x => x.c.heading)
     .map(x => `<li data-toc-col="${x.i}"><button type="button">${escapeHtml(x.c.heading)}</button></li>`)
     .join('\n    ');
-  return `<nav id="toc" aria-label="Contents">
-  <h2>Contents</h2>
+  return `<nav id="toc" aria-label="${escapeHtml(S.contents)}">
+  <h2>${escapeHtml(S.contents)}</h2>
   <ol>
     ${items}
   </ol>
@@ -7348,8 +7513,9 @@ function editorPayload(frontmatter, columnsHtml, view) {
 
 function renderAudience(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
-  const title = lectureTitle(frontmatter);
-  let columnsHtml = renderColumnsHtml(columns, frontmatter);
+  const S = opts.strings || lectureStrings(frontmatter);
+  const title = lectureTitle(frontmatter, S);
+  let columnsHtml = renderColumnsHtml(columns, frontmatter, S);
   if (!editorPayload(frontmatter, columnsHtml, 'audience')) columnsHtml = stripDiagramAssets(columnsHtml);
   const titleJson = jsonForScript(title);
   const defaults = viewDefaults(frontmatter);
@@ -7360,13 +7526,13 @@ function renderAudience(lecture, opts = {}) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)} – lecture</title>
+<title>${escapeHtml(title)} – ${escapeHtml(S['title-lecture'])}</title>
 <style>
 ${AUDIENCE_CSS}
 ${DIAGRAM_CSS}
 </style>
 ${fontStyleTag(opts.fontEmbed)}
-${styleBlockCss(styleOpts)}
+${styleBlockCss(styleOpts, S)}
 ${katexStyleTag(columnsHtml, { fontToggle: true })}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
 </head>
@@ -7388,7 +7554,7 @@ ${BLANK_BADGE_HTML}
 ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
 ${DEMO_OVERLAY_HTML}
-${renderTocNav(columns)}
+${renderTocNav(columns, S)}
 <script>
 ${qrLibJs()}
 </script>
@@ -15245,8 +15411,9 @@ if (document.fonts && document.fonts.ready) {
 
 function renderSpeaker(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
-  const title = lectureTitle(frontmatter);
-  let columnsHtml = renderColumnsHtml(columns, frontmatter);
+  const S = opts.strings || lectureStrings(frontmatter);
+  const title = lectureTitle(frontmatter, S);
+  let columnsHtml = renderColumnsHtml(columns, frontmatter, S);
   if (!editorPayload(frontmatter, columnsHtml, 'speaker')) columnsHtml = stripDiagramAssets(columnsHtml);
 
   // Speaker-source notes are emitted as <template> fragments holding
@@ -15299,13 +15466,13 @@ function renderSpeaker(lecture, opts = {}) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)} – speaker</title>
+<title>${escapeHtml(title)} – ${escapeHtml(S['title-speaker'])}</title>
 <style>
 ${AUDIENCE_CSS}
 ${DIAGRAM_CSS}
 ${SPEAKER_CSS}
 </style>
-${styleBlockCss(styleOpts)}
+${styleBlockCss(styleOpts, S)}
 ${fontStyleTag(opts.fontEmbed)}
 ${katexStyleTag(columnsHtml, { fontToggle: true })}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
@@ -15368,7 +15535,7 @@ ${SEARCH_PANEL_HTML}
 ${BLANK_BADGE_HTML}
 ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
-${renderTocNav(columns)}
+${renderTocNav(columns, S)}
 <script>
 ${qrLibJs()}
 </script>
@@ -18289,6 +18456,11 @@ function buildOnce(absIn, only, opts = {}) {
   // would ever have looked at.
   viewDefaults(lecture.frontmatter);
   styleSettings(lecture.frontmatter);
+  // Same pre-flight contract: an unknown `labels:` key fails the build here,
+  // before any view is written, rather than inside a renderer. Resolved once
+  // and passed to all three renderers via renderOpts.strings, which is why
+  // no renderer calls lectureStrings itself.
+  const strings = lectureStrings(lecture.frontmatter);
   const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
   const shape = `${lecture.columns.length} columns, ${chunkCount} chunks`;
 
@@ -18346,7 +18518,7 @@ function buildOnce(absIn, only, opts = {}) {
   }
   lastQrStats = { count: 0, bytes: 0 };
   stagedVideos.clear();
-  const renderOpts = { ...opts, fontEmbed };
+  const renderOpts = { ...opts, fontEmbed, strings };
 
   const targets = [
     ['print',       renderDocument],
@@ -19455,6 +19627,7 @@ function squintMeta() {
   });
   return {
     title: document.title || '',
+    lang: document.documentElement.lang || 'en',
     collapse: document.body.dataset.collapse || '',
     mode: document.body.dataset.mode || '',
     zoom: getComputedStyle(document.documentElement).getPropertyValue('--zoom').trim(),
@@ -19637,11 +19810,16 @@ async function runSquint(absIn, viewport, outArg) {
   }
   await browser.close();
 
+  // The audience view's <title> suffix follows `lang:` now, so the strip has
+  // to read the same table the build wrote it from – a `de` squint should not
+  // carry " – Vorlesung" into its report title.
+  const S = lectureStrings({ lang: meta.lang });
+  const suffixRe = new RegExp('\\s+–\\s+' + S['title-lecture'].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
   const doc = {
-    // The audience view's <title> is the lecture's name plus " – lecture",
-    // which is right in a browser tab and reads as a typo at the head of a
-    // file that says what it is on the next line.
-    title: (meta.title || '').replace(/\s+–\s+lecture$/, '')
+    // The audience view's <title> is the lecture's name plus " – lecture" (or
+    // its localised form), which is right in a browser tab and reads as a
+    // typo at the head of a file that says what it is on the next line.
+    title: (meta.title || '').replace(suffixRe, '')
       || path.basename(path.dirname(absIn)),
     source: path.relative(process.cwd(), absIn) || absIn,
     view: 'audience.html',

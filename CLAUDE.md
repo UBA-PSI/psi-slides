@@ -374,7 +374,16 @@ upright and italic; **which three is a per-lecture decision** made in the `fonts
 block, where a bundled name needs no file and an author-supplied one is matched
 out of `fonts/` beside `source.md`. `ligatures:` separates prose ligatures (on)
 from code ligatures (off – `->` and `--` are two different edges in the figure
-grammar). `lang:` picks the hyphenation dictionary and `style: {hyphenate: …}`
+grammar). `lang:` picks the hyphenation dictionary and, from the localisation
+pass, also selects the words the build *invents* – the TOC heading, the note
+labels, the print type eyebrow, the projection's `EXERCISE`, the `<title>`
+suffixes – out of the `STRINGS` table (`lectureStrings`, keyed by primary
+subtag, `en` fallback with a one-line `[lang]` warning for a locale it has no
+wording for); a top-level `labels:` block overrides any one word (free values,
+closed key set, `unknown-label-key` refused in the `buildOnce` pre-flight and
+mirrored in `lint.js`). `STRINGS.en` is the current literals transcribed
+character for character, so a deck with no `lang:` or `lang: en` builds
+byte-identical HTML. `style: {hyphenate: …}`
 says which views use it (`print` – the default and today's behaviour – / `all` /
 `none`); the two are separate keys because the language is a property of the
 lecture and the hyphenation is a preference. Seven themes cycle on

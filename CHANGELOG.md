@@ -39,6 +39,25 @@ from building the same way is a major version.
 
 ### Added
 
+- **`lang:` localises the words the build invents, and a `labels:` block
+  overrides any one of them.** Everything in the four outputs that is not in
+  `source.md` – the table-of-contents heading, the `Speaker Note` /
+  `Presentation Note` labels, the print type eyebrow, the projection's
+  `EXERCISE`, the default `note` on a `::: footnote`, the `<title>` suffixes,
+  the annotation box label and the `+ note` button – was English with no way
+  to say otherwise. `lang:` (which already chose the hyphenation dictionary)
+  now also selects these out of a `STRINGS` table, keyed by primary subtag
+  (`de-AT` → `de`); English and German ship. A language the table has no
+  wording for (`lang: fr`) builds and stays English with a one-line `[lang]`
+  warning, so no existing lecture stops building. A top-level `labels:` block
+  overrides any single word (free-text values, a closed key set with a nested
+  `type:` map; an unknown key fails the build and `lint.js` reports
+  `unknown-label-key`), with or without a `lang:`, and legal beside
+  `style: {labels: off}`. **A deck with no `lang:` or with `lang: en` builds
+  byte-identical HTML to before.** This first pass covers the documents and
+  the always-visible projection furniture; the interaction-tier `?` sheet,
+  search and touch controls, and the cockpit, stay English for now.
+
 - **A photo divider with a readable heading (`section: card`).** Over a
   `::: backdrop {.clear}` photograph the section-card plate becomes the theme's
   own paper, so the divider's heading reads on a plate instead of on the bare

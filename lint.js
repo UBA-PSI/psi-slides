@@ -136,6 +136,20 @@ const STYLE_ENUMS = {
   // the chunk stands at its final height from beat 0.
 };
 
+// Mirrors the role names of STRINGS.en in build.js: the closed key set of
+// the top-level `labels:` block, which localises the words the build
+// invents. Values are free text (translations), so only the keys are ruled
+// on - the same VALID_TAGS-style duplication, mirrored in the same commit.
+// `type` is the one nested map, of the tag words.
+const LABEL_KEYS = new Set([
+  'contents', 'speaker-note', 'presentation-note', 'aside-note',
+  'title-print', 'title-print-notes', 'title-lecture', 'title-speaker',
+  'untitled-lecture', 'annotation-label', 'add-note',
+]);
+const LABEL_TYPE_KEYS = new Set([
+  'principle', 'definition', 'example', 'question', 'exercise', 'outline', 'figure',
+]);
+
 // The slot tables of ::: backdrop, ::: cards / ::: rows, ::: overlay and
 // ::: side, and the parser that reads a {…} tail against one, are imported
 // from tails.mjs - one parser for both files, so a linter stricter or laxer
@@ -2337,6 +2351,61 @@ function lintFile(filePath) {
       if (!/^[ \t]+\S/.test(raw)) { if (raw.trim()) inStyle = false; return; }
       const m = raw.match(/^[ \t]+([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
       if (m) rule(i, m[1], m[2]);
+    });
+  }
+
+  // The top-level `labels:` block. Its keys are a closed set (the role names
+  // the build localises with `lang:`); its values are free text, so only the
+  // keys are ruled on. Mirrors mergeLabels in build.js: an unknown key is
+  // `unknown-label-key`, so a deck that lints clean is one the build accepts.
+  // Read by indentation, the same trick the style block uses; a bare `type:`
+  // opens a nested map of tag words one level deeper.
+  {
+    const lines = header.split('\n');
+    const indentOf = (s) => s.match(/^[ \t]*/)[0].length;
+    let inLabels = false;
+    let inType = false;
+    let typeIndent = -1;
+    lines.forEach((raw, i) => {
+      // The flow form, labels: {contents: X, ...} - top-level keys only; a
+      // nested `type: {…}` map is stripped and left to the build, which is
+      // the safe direction (the build refuses, the linter is silent).
+      const flow = raw.match(/^labels:[ \t]*\{(.*)\}[ \t]*$/);
+      if (flow) {
+        const flat = flow[1].replace(/\btype[ \t]*:[ \t]*\{[^}]*\}/g, '');
+        for (const pair of flat.split(',')) {
+          const kv = pair.match(/^\s*["']?([A-Za-z][A-Za-z0-9_-]*)["']?\s*:/);
+          if (kv && kv[1] !== 'type' && !LABEL_KEYS.has(kv[1])) {
+            addFm(i + 2, 'error', 'unknown-label-key',
+              `'labels.${kv[1]}' is not a key this block has – keys: ${[...LABEL_KEYS].join(', ')}, type`);
+          }
+        }
+        return;
+      }
+      if (/^labels:[ \t]*$/.test(raw)) { inLabels = true; inType = false; return; }
+      if (!inLabels) return;
+      if (raw.trim() && !/^[ \t]/.test(raw)) { inLabels = false; inType = false; return; }
+      if (!raw.trim()) return;
+      const m = raw.match(/^[ \t]+([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
+      if (!m) return;
+      const ind = indentOf(raw);
+      const key = m[1];
+      const val = m[2].replace(/\s+#.*$/, '').trim();
+      if (inType) {
+        if (ind > typeIndent) {
+          if (!LABEL_TYPE_KEYS.has(key)) {
+            addFm(i + 2, 'error', 'unknown-label-key',
+              `'labels.type.${key}' is not a tag word this block has – keys: ${[...LABEL_TYPE_KEYS].join(', ')}`);
+          }
+          return;
+        }
+        inType = false;   // this line is no deeper than type:, so type: closed
+      }
+      if (key === 'type' && !val) { inType = true; typeIndent = ind; return; }
+      if (!LABEL_KEYS.has(key)) {
+        addFm(i + 2, 'error', 'unknown-label-key',
+          `'labels.${key}' is not a key this block has – keys: ${[...LABEL_KEYS].join(', ')}, type`);
+      }
     });
   }
 

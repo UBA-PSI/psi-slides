@@ -2385,6 +2385,145 @@ console.log('\nlayout generations');
        'and the same values for each, in the same order',
        Object.keys(spec).filter(k => spec[k].join(',') !== (mirror[k] || []).join(',')).join(','));
   }
+
+  // ── the words the build invents, localised by `lang:` ────────────────
+  // A deck that carries an exercise (the one projection eyebrow), a footnote
+  // (the aside default), a speaker note (print-notes) and a column heading
+  // (the TOC), so every reader-tier string the first pass reaches is on it.
+  const LSRC = (fm) =>
+    `---\ntitle: My Lecture\n${fm}---\n\n`
+    + `## title: {#cover}\n\n`
+    + `# Part One {#part-1}\n\n`
+    + `## principle: A principle {#p1}\n\nFirst sentence stands alone.\n\n`
+    + `> note: A spoken note.\n\n`
+    + `::: footnote\nA footnote aside.\n:::\n\n`
+    + `## exercise: An exercise {#ex1}\n\nDo the thing.\n`;
+
+  // The 1.0.0 gate for this change, and the load-bearing one: a deck that
+  // says nothing and a deck that says `lang: en` build the same bytes, so
+  // English decks did not move. (The tracked lectures are the against-main
+  // half of the same check; the release workflow rebuilds them.)
+  {
+    const none = raw(LSRC(''), []);
+    const en = raw(LSRC('lang: en\n'), []);
+    ok(none.code === 0 && en.code === 0, 'both the no-lang and the lang: en deck build', none.out + en.out);
+    ok(none.html === en.html, 'lang: en and no lang: emit byte-identical audience HTML');
+    ok(none.print === en.print, 'byte-identical print HTML');
+    ok(none.notes === en.notes, 'byte-identical print-notes HTML');
+  }
+
+  // lang: de reaches every reader-tier site the first pass covers.
+  {
+    const de = raw(LSRC('lang: de\n'), []);
+    ok(de.code === 0, 'a de deck builds', de.out);
+    ok(/<h2>Inhalt<\/h2>/.test(de.print) && /aria-label="Inhalt"/.test(de.print),
+       'the print TOC heading and aria are Inhalt');
+    ok(/speaker-note-label">Sprechernotiz</.test(de.notes),
+       'print-notes labels the speaker note Sprechernotiz');
+    ok(/chunk-expansion-margin" data-label="Anmerkung"/.test(de.print),
+       'the footnote aside default label is Anmerkung');
+    ok(/class="chunk-label">grundsatz</.test(de.print) && /class="chunk-label">aufgabe</.test(de.print),
+       'the print type eyebrow follows the table, lowercased so the small-caps look does not move');
+    ok(/\.chunk\[data-tag=exercise\] \.chunk-content::before \{ content: "AUFGABE"; \}/.test(de.html),
+       'the projection eyebrow rides in as a same-specificity override, uppercased');
+    ok(de.html.includes("content: 'EXERCISE'"),
+       'and the base rule in AUDIENCE_CSS is untouched, so the override wins on source order');
+    ok(/annot-box-label">Anmerkung · /.test(de.html) && /data-annot-add>\+ Anmerkung</.test(de.html),
+       'the annotation box label and the + note button are localised');
+    ok(/margin-note" data-label="Anmerkung"/.test(de.html),
+       'and the projection aside default is Anmerkung too');
+    ok(/– Vorlesung<\/title>/.test(de.html) && /– Druck<\/title>/.test(de.print),
+       'the browser-tab title suffix is localised in both views');
+    ok(!/>Contents</.test(de.print + de.notes)
+       && !/aria-label="Contents"/.test(de.print + de.notes + de.html),
+       'no English Contents survives in the reader tiers');
+  }
+
+  // A regional tag resolves by its primary subtag.
+  {
+    const deAT = raw(LSRC('lang: de-AT\n'), []);
+    ok(/<h2>Inhalt<\/h2>/.test(deAT.print), 'lang: de-AT resolves to the de table');
+  }
+
+  // A language the table does not cover is a warning, not an error: it
+  // builds, exits 0, keeps English, and says so exactly once.
+  {
+    const fr = raw(LSRC('lang: fr\n'), []);
+    const warns = (fr.out.match(/no wording for "lang: fr"/g) || []).length;
+    ok(fr.code === 0, 'a lang the table does not cover still builds and exits 0', fr.out);
+    ok(warns === 1, 'and the [lang] warning is emitted exactly once across the four views', String(warns));
+    ok(/class="chunk-label">principle</.test(fr.print), 'and the labels stay English');
+  }
+
+  // A labels: block overrides single words, with or without a lang:.
+  {
+    const lbl = raw(LSRC('labels:\n  contents: In this lecture\n'), []);
+    ok(/<h2>In this lecture<\/h2>/.test(lbl.print),
+       'a labels: block overrides one word in an otherwise English deck');
+  }
+
+  // An unknown labels: key fails the build in the pre-flight (no artefact)
+  // and the linter reports it too – the build↔lint congruence contract.
+  {
+    const bad = raw(LSRC('labels:\n  contentz: X\n'), ['--print-only']);
+    ok(bad.code !== 0 && /labels has no key "contentz"/.test(bad.out),
+       'an unknown labels: key fails the build, with the styleSettings message shape');
+    ok(bad.files.length === 0, 'and leaves no half-written artefact, like every buildOnce pre-flight');
+    ok(/unknown-label-key/.test(lintOf(LSRC('labels:\n  contentz: X\n'))),
+       'and the linter reports unknown-label-key, so the two files agree');
+    ok(/labels\.type has no key "exercize"/.test(raw(LSRC('labels:\n  type:\n    exercize: Y\n'), ['--print-only']).out)
+       && /unknown-label-key/.test(lintOf(LSRC('labels:\n  type:\n    exercize: Y\n'))),
+       'a nested type typo is refused and reported the same way');
+  }
+
+  // A value carrying a double quote and a backslash survives into the CSS
+  // content: string correctly escaped. No browser here to parse it, so the
+  // exact escaped bytes are the assertion – they are valid CSS by inspection.
+  {
+    const esc = raw(LSRC("labels:\n  type:\n    exercise: 'A\"B\\C'\n"), ['--audience-only']);
+    ok(esc.code === 0 && esc.html.includes('content: "A\\"B\\\\C";'),
+       'a labels value with a quote and a backslash is CSS-escaped into content:',
+       (esc.html.match(/content: "A[^\n]*/) || [''])[0]);
+  }
+
+  // style.labels: off (hide the eyebrows) and a labels: block (name the
+  // rest) are legal together and do not fight.
+  {
+    const both = raw(LSRC('style:\n  labels: off\nlabels:\n  contents: Inhalt\n'), []);
+    ok(/data-labels="off"/.test(bodyOf(both.html)),
+       'style.labels: off still hides the eyebrows when a labels: block is present');
+    ok(/<h2>Inhalt<\/h2>/.test(both.print),
+       'and the labels: block still names the TOC heading');
+  }
+
+  // The tables are kept by hand: STRINGS.en and STRINGS.de must name the
+  // same keys, and lint.js's LABEL_KEYS / LABEL_TYPE_KEYS must mirror them,
+  // or a key added on one side lints clean and fails to build.
+  {
+    const buildSrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const lintSrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
+    const stringsBlock = (buildSrc.match(/const STRINGS = \{[\s\S]*?\n\};/) || [''])[0];
+    const sub = (name) => (stringsBlock.match(new RegExp(name + ': \\{[\\s\\S]*?\\n  \\},')) || [''])[0];
+    // Top-level keys are at 4-space indent; the inline `type: {…}` line is
+    // one of them, and its own keys sit after the brace on the same line.
+    const topKeys = (blk) => [...blk.matchAll(/^    (?:'([^']+)'|([a-z-]+)):/gm)]
+      .map(m => m[1] || m[2]).sort().join(',');
+    const typeKeys = (blk) => {
+      const t = (blk.match(/type: \{([^}]*)\}/) || [, ''])[1];
+      return [...t.matchAll(/([a-z-]+):/g)].map(m => m[1]).sort().join(',');
+    };
+    const enTop = topKeys(sub('en')), deTop = topKeys(sub('de'));
+    const enType = typeKeys(sub('en')), deType = typeKeys(sub('de'));
+    ok(enTop && enTop === deTop, 'STRINGS.en and STRINGS.de name the same top-level keys', enTop + ' | ' + deTop);
+    ok(enType && enType === deType, 'and the same type keys', enType + ' | ' + deType);
+    const setKeys = (name) => [...((lintSrc.match(new RegExp('const ' + name + ' = new Set\\(\\[([\\s\\S]*?)\\]\\)')) || [, ''])[1])
+      .matchAll(/'([a-z-]+)'/g)].map(m => m[1]).sort().join(',');
+    const labelKeys = setKeys('LABEL_KEYS'), labelTypeKeys = setKeys('LABEL_TYPE_KEYS');
+    ok(labelKeys === enTop.split(',').filter(k => k !== 'type').join(','),
+       'lint.js LABEL_KEYS mirrors STRINGS.en top-level keys (minus the nested type map)', labelKeys + ' | ' + enTop);
+    ok(labelTypeKeys === enType, 'and lint.js LABEL_TYPE_KEYS mirrors STRINGS.en.type', labelTypeKeys + ' | ' + enType);
+  }
+
   // ── ::: side {.middle} ────────────────────────────────────────────────
   // The word is a brace tail against a closed slot table, which is what the
   // rest of the language does with words; the ratio stays positional,
