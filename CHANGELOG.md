@@ -2333,6 +2333,55 @@ from building the same way is a major version.
   figures is now 49 % of the text area, and `lectures/python-intro` prints as
   27 pages instead of 31.
 
+- **A drawing in a printed document is now sized by its type, not by the
+  measure.** A slide answers how large a figure is by filling the frame: the
+  figure *is* the slide, and what that does to the label type does not matter
+  because nothing else is on the wall to compare it with. A page has running
+  text three lines above the picture, and there the answer inverts – the type
+  inside a figure belongs to the same typographic set as the type around it.
+
+  Filling the measure got that wrong by a different amount for every figure,
+  because a label's size is `DG_FONT` scaled by the measure over the viewBox
+  width, and the viewBox is however many grid units the author happened to
+  draw in. Measured before the change: **47 of 81 figures** in the corpus
+  carried type larger than the running text, from 0.53× to 2.97× – a spread of
+  5.6, invisible to the author, and nothing in a source file says which end a
+  given figure lands on. After it, **2 of 81**, both `.large` labels at 1.10×,
+  which is an author asking for a loud label and getting one.
+
+  `diagram-core` now emits two numbers no stylesheet can work out for itself:
+  `--dg-type-w`, the viewBox width measured in base labels, and `--dg-ar`.
+  Multiplying the first by `--dg-fig-size` gives the width at which a base
+  label lands at exactly that size; the second turns the height budget into a
+  width so a tall figure shrinks proportionally instead of sitting letterboxed.
+  Both are inert unless a rule reads them, and only `PRINT_CSS` does. The box
+  now hugs the drawing rather than spanning the measure, which is also what
+  finally lets `style: {blocks}` reach a diagram – it was the one figure kind
+  that could not honour the key, because its box was always full width.
+
+  The cost is at the other end and it is small: a figure with more grid units
+  than the measure can serve lands *under* the target size. Three in the whole
+  corpus sit below 7 px – `lectures/diagrams` `#sequence` and two of the
+  densest `network-security` figures – and all three were already the smallest
+  drawings there.
+
+- **The printed page keeps a margin to write in.** The text column was 16 cm
+  because nobody had picked a width, and 16 cm of 10 pt serif is about 83
+  characters to the line – half again over what a reader tracks comfortably.
+  It is now 36 rem, about 65 characters, set against the left of the page area
+  rather than centred in it, leaving 5.8 cm of clean paper down the outside
+  edge. A handout is written on, and a note belongs next to the paragraph it
+  answers; that is worth more here than symmetry. Screen keeps its centred
+  42 rem – the change is about sheets of paper, and `print.html` read in a
+  browser is not one.
+
+  Code is the one thing allowed into that margin, because it cannot reflow.
+  `pre` carries `overflow-x: auto` for the screen, and on paper `auto` is not a
+  scrollbar but a cut: the line simply ends. That was reachable at the new
+  measure – `lectures/tutorial` `#diagram-beats-rule` is 557 px wide – so print
+  now sets `overflow: visible` and a long line runs into the empty margin
+  instead of being trimmed. Nothing in the corpus reaches past the page area.
+
 - **A photograph in a printed document no longer splits across a page break.**
   The sentence `DIAGRAM_CSS` says about a diagram – one picture, and splitting
   it makes two useless halves – is as true of a photograph, and only the

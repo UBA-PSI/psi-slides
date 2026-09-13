@@ -7583,6 +7583,49 @@ figure.figure-img img,
 figure.figure-img svg,
 figure.figure-video video { max-height: 34rem; }
 
+/* ── how large a drawing is in a document ────────────────────────────
+   A slide answers this by filling the frame: the figure IS the slide, and
+   what that does to the label type does not matter, because nothing else is
+   on the wall to compare it with. A page has running text three lines above
+   the picture, and there the answer is the opposite - the type inside a
+   figure belongs to the same typographic set as the type around it.
+
+   Filling the measure gets that wrong by a different amount for every
+   figure, because a label's size is DG_FONT scaled by the measure over the
+   viewBox width, and the viewBox is however many grid units the author
+   happened to draw in. Measured before this rule: 47 of 81 figures in the
+   corpus carried type larger than the running text, from 0.53x to 2.97x -
+   a spread of 5.6, invisible to the author, and nothing in the source says
+   which end a given figure lands on.
+
+   So the width is derived from the type instead. --dg-type-w is the viewBox
+   width measured in base labels (diagram-core emits it), and multiplying by
+   --dg-fig-size gives the width at which a base label lands at exactly that
+   size. Every figure in the document then carries one label size, the way
+   every figure in a book does. The third term converts the height budget
+   into a width so a tall figure shrinks proportionally rather than sitting
+   letterboxed in a box the height cap left too wide, and 100% keeps a
+   figure with more units than the measure can serve from overflowing - that
+   one lands under the target size, which is the one case nothing can fix.
+
+   The box now hugs the drawing rather than spanning the measure, so
+   style.blocks finally means something here: the rules below are the same
+   ones figure-img has had all along, and a diagram was the one figure kind
+   that could not honour them because its box was always full width. */
+main .psi-diagram {
+  --dg-fig-size: 0.9rem;
+  width: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
+             calc(34rem * var(--dg-ar, 1)));
+  /* The default is centre, matching figure.figure-img's text-align above.
+     styleBodyAttrs writes data-blocks only when it is left, so the centre
+     case has to be the bare rule - a body[data-blocks=center] selector would
+     never match anything and every deck would quietly go flush left. */
+  margin-inline: auto;
+}
+body[data-blocks=left] main .psi-diagram,
+.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+
 @media print {
   /* The same sentence DIAGRAM_CSS says about a diagram - one picture, and
      splitting it makes two useless halves - is true of a photograph, and
@@ -7626,7 +7669,28 @@ pre.shiki .line { display: inline; }
 
 @media print {
   body { background: white; }
-  main { padding: 0; max-width: none; }
+  /* The text column sits against the left of the page area and the rest of
+     the sheet is left empty on purpose. Two reasons, and the second is the
+     one that decided it.
+     Measure: the page area is 16cm, and 16cm of 10pt serif is about 83
+     characters to the line - half again over what a reader tracks
+     comfortably, and it was the width because nobody had picked one. 36rem
+     is about 65.
+     The margin: a handout is written on. 5.8cm of clean paper down the
+     outside edge is a place to put a note next to the paragraph it belongs
+     to, which is worth more on a teaching handout than symmetry is. It also
+     gives the marginalia construct somewhere to go, which it does not use
+     yet - see the .marginalia rule above, still an inline aside.
+     margin is set explicitly because the screen rule is margin: 0 auto, and auto
+     margins on a narrowed column would centre it again. */
+  main { padding: 0; max-width: 36rem; margin: 0; }
+  /* Code cannot reflow, so it is the one thing allowed into that margin.
+     pre carries overflow-x: auto for the screen, and on paper that auto is not
+     a scrollbar, it is a cut - the line simply ends. Reachable today at
+     36rem: lectures/tutorial #diagram-beats-rule is 557px wide. Visible
+     overflow lets it run into the empty margin instead, which is the one
+     place on this page where a few characters of intrusion cost nothing. */
+  pre { overflow: visible; }
   a { text-decoration: none; color: inherit; }
   /* On paper it is a cover page again: fills the sheet, title sitting in
      the lower third (PRD §4.4), no rule under it. */
