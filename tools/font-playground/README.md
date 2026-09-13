@@ -1,23 +1,45 @@
 # Display-face playground
 
-A page that draws a cover and a section divider in each candidate face for the
-**display role** – the typeface a `cover:`, a `closing:` and a `section:` slide
-use for their headline, and that nothing else in the deck touches.
+The generator behind **`docs/site/display-faces.html`**, a page of the project
+site that draws a cover and a section divider in each face of the **display
+role** – the typeface a `cover:`, a `closing:` and a `section:` slide use for
+their headline, and that nothing else in the deck touches.
 
 ```bash
-cd tools/font-playground
-npm install
-node measure-scale.mjs           # re-measure the size correction (needs Chrome)
-node build-playground.mjs        # writes font-playground.html beside this file
-open font-playground.html
+node tools/font-playground/build-playground.mjs          # write the page
+node tools/font-playground/build-playground.mjs --check  # report drift, write nothing
+open docs/site/display-faces.html
+
+cd tools/font-playground && npm install                  # only for the next roster
+node measure-scale.mjs                                   # re-measure the size correction (needs Chrome)
 ```
 
 32 faces, **OFL-1.1 only**, in three flavours: 6 hand, 8 machine, 18 graphic
 (8 serif, 10 sans).
 
+## The page is tracked, and that is why there is a `--check`
+
+`docs/site/display-faces.html` is generated and committed, the arrangement
+`docs/artifact/figures-you-write.html` already has: nobody edits the HTML, and
+`--check` fails when it no longer matches a fresh build. `pages.yml` runs it
+before assembling the site, beside `refresh-figures.mjs --check` – a staleness
+gate nothing runs is a comment. **Edit `roster.mjs` or `scales.json`, then
+regenerate and commit the page in the same change.**
+
+There used to be a second, local `font-playground.html` beside this file with
+the same specimens in a plain shell. Two near-identical pages is a duplication
+with no reader, so there is one now and it is the published one.
+
+## Where the faces are read from
+
+The engine's own `node_modules` first: all 32 are dependencies of the root
+package, so `--check` has everything it needs after a plain `npm ci`, which is
+the only install the workflow does. This package's own tree is the fallback, for
+a candidate the engine does not carry yet.
+
 ## Why it is its own package
 
-Thirty-odd candidate faces are an exploration, not a dependency of the engine.
+Thirty-odd candidate faces were an exploration, not a dependency of the engine.
 Keeping them here meant `npm install` at the root stayed untouched while the
 roster was being decided. `desktop/` is the same arrangement for the same
 reason. *(The faces that survived are now engine dependencies as well; this
@@ -30,9 +52,28 @@ The page inlines each candidate as one latin `woff2`, base64, in an
 would be showing a face the built HTML would not have, and would hide the
 number that decides half of these candidates: **the KB on each card is what a
 deck naming that face carries in every view.** The body type behind the
-headlines is the deck's own Literata and IBM Plex Sans, read out of the
-engine's `node_modules`, so what is compared is the pairing rather than the
-face alone.
+headlines is the deck's own Literata, read out of the engine's `node_modules`,
+and the site's own IBM Plex Sans, which is the same Fontsource cut and is
+already loaded from `docs/site/fonts/` – so what is compared is the pairing
+rather than the face alone, without a second copy of a face the reader has.
+
+## What the specimens do that the first playground did not
+
+Both are the engine's behaviour rather than a preference, and a page claiming
+to show what a deck would look like has to do what the build does:
+
+- **The measured number rides as a `size-adjust` descriptor on the
+  `@font-face`,** not as a multiplier on a `font-size`. That is how it reaches
+  every cover composition, print, the zoom and `auto-fit` in the engine without
+  any of them knowing about it – see `fontStyleTag` in `build.js`. The
+  line-height *is* multiplied by it, because `size-adjust` scales the glyphs and
+  the face's own metrics while a numeric line-height resolves against the
+  nominal size and does not follow (`DISPLAY_LH`).
+- **The tracking is reset to `normal`.** A cover sets a negative
+  `letter-spacing` tuned for the body serif, and a condensed display face came
+  out with its letters touching; `DISPLAY_TRACK` in `build.js` is the list of
+  every rule that had to be reset. A specimen page that quietly put it back
+  would be showing a defect that has been fixed.
 
 ## The three fields `roster.mjs` decides
 
@@ -97,12 +138,19 @@ font. For the latin characters this page asks about, they differ.*
 | `hand` / `machine` / `graphic` | the three flavours the brief named |
 | `dark ground` | the divider is where a deck most often goes dark |
 | `caps` | several of these faces only work set in capitals |
+| `wide cards` | one card to the frame, for the long titles |
 | headline size, tracking | a face that needs tracking is not a face that has it |
-| weight | variable candidates only; the statics ignore it |
+| weight | variable candidates only, and now really only them |
 
 Click any slide to enlarge it, Escape to close. The slides are sized in `cqw`
 inside a container query, so a card and the blown-up stage are one slide at two
 sizes – a display face judged at one size is not judged.
+
+*The weight slider reaches the variable faces alone, which the first version
+only claimed: a static cut asked for a weight it does not have gets a
+browser-synthesised bold, and a synthesised bold is a specimen of the browser
+rather than of the typeface. Each card opens at the weight a headline is really
+set in – the top of a variable range, the single cut otherwise.*
 
 ## What was cut, and why
 
