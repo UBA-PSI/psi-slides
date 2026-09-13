@@ -199,6 +199,84 @@ from building the same way is a major version.
 
 ### Added
 
+- **A fourth font role: `fonts: {display: …}` gives the cover, the closing
+  slide and the section dividers a typeface nothing else in the deck wears.**
+  Those three are the one place where a loud face is not a mistake – nobody
+  reads a divider, they see that one has arrived – and the three text roles
+  cannot do that job, because they are chosen to survive a lit room at
+  paragraph length. Thirty-two faces ship, SIL OFL 1.1 only, in three
+  flavours: a hand, a machine, a poster. Exactly two selectors use the role
+  (`.chunk-title .title-main` and `.chunk-section .section-heading`), so an
+  ordinary chunk heading, a card lead and a figure label are untouched.
+
+  **A deck that names no display face embeds nothing and builds byte for
+  byte what it built before** – the role has no entry in `BUNDLED_DEFAULTS`,
+  and that absence is the feature rather than an omission. It is also the
+  one role not held to the rule that a bundled face is a variable latin
+  subset: 21 of the 32 have no variable build, because a headline carries
+  three words and no bold, and Anton *is* one weight.
+
+  **No reader keystroke reaches it, and neither immunity cost a line of
+  code.** `F` cycles a *variable* rather than a family, so pointing the two
+  selectors at `--display-stack` takes them out of the cycle by
+  construction; `A` re-points colour tokens only, and no theme names a
+  family. Both hold only while `display` stays out of `FONT_CYCLE` and
+  `--display-stack` is never assigned under a `body[data-font=…]` or
+  `body[data-theme=…]` selector, which is why that is written down rather
+  than left to be rediscovered. The face's *colour* still follows the theme,
+  so a divider stays readable on the three dark ones.
+
+  **Each face carries a measured `size-adjust`, not a guessed one.** These
+  faces disagree about advance width by a factor of three while the cover's
+  type size is tuned for Literata, so without a correction Anton looks timid
+  and Press Start 2P runs off the slide. The number is the advance width of
+  a real title against Literata's, measured in a browser by
+  `tools/font-playground/measure-scale.mjs`. It rides as an `@font-face`
+  descriptor rather than as a multiplier on a font-size, the way Noto Sans
+  Mono Condensed pins its width, so it reaches the six cover compositions
+  that set their own title size, print, the zoom, `auto-fit` and
+  `--check-fit` without any of them knowing about it.
+
+  A **numeric `line-height` does not follow `size-adjust`** – it resolves
+  against the nominal font-size – so Anton at 120% put 98.6px of apparent
+  type into a 90.3px line box and the descenders of one line landed inside
+  the letters of the next. `DISPLAY_LH` is the fix, and three of the seven
+  line-heights the role can wear are deliberately unequal (1.3 for the
+  eyebrow kicker, 1.02/0.97 under `cover: display`, and in print the eyebrow
+  subtitle's 1.12 against the title's 1.15), so a single overriding rule
+  would have flattened them.
+
+  Under `style: {headline: eyebrow}` the face **follows the loud line**:
+  `.title-subtitle` wears it and `.title-main` is handed back to the body
+  font explicitly, because left merely unmentioned the unqualified rule
+  still matched the kicker.
+
+  `lint.js` mirrors the roster as a table and gets three findings from it:
+  `unknown-display-font` (error, mirroring the build's refusal),
+  `display-pairing` (a display serif over a serif body reads as one typeface
+  set badly rather than as two – `kind` is what a face *is*, which is why
+  Chakra Petch is a machine to look at and a sans to pair with) and
+  `display-no-eszett` (Rubik Mono One has no ß and draws it from the
+  fallback mid-word). A gate holds the two tables congruent.
+
+  `lectures/display-face/` shows it; `tools/font-playground/` draws all 32
+  into a real cover and a real divider.
+
+- **`style: {display-scale: <n>}`, 0.6 to 1.8, multiplies that measured
+  value.** The `size-adjust` numbers normalise advance width, because a line
+  too many is the failure that breaks a slide – and apparent size varies as
+  a consequence: against Literata's ink height Silkscreen lands at 0.38 and
+  Patrick Hand at 1.34, so a Silkscreen divider is a thin band on an empty
+  frame where Anton fills it. No automatic correction fixes that without
+  bringing the overflow back (pulling Silkscreen's ink to 0.85 needs a scale
+  of about 1.39, at which it sets 2.2× Literata's width), so the build
+  answers the question it can measure and the author answers the one that is
+  taste. It had to be its own key because **`heading-scale` does not reach
+  `--title-lead`** – the cover title is the one heading that key never
+  governed. Set on a deck that resolves no display face it fails the build,
+  on the rule `cover-ratio` already follows: this format does not accept a
+  silent no-op.
+
 - **`lint.js` warns about a frontmatter key no renderer reads
   (`unknown-frontmatter-key`).** `author:` sat in four lectures in this repo
   looking like metadata and rendering nothing at all – it was stored, never
