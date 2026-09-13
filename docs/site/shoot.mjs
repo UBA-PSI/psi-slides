@@ -271,6 +271,32 @@ const SHOTS = [
     src: 'audience.html', w: 1280, h: 720, dsf: 1.5,
     lecture: 'decoration', frag: true, rig: LIVE_RIG, ...s,
   })),
+
+  // The display role, and it needs a lecture of its own for the reason the
+  // five above need lectures/decoration: a deck carries exactly one
+  // `fonts: {display: …}`, so the face on these two slides is the only face
+  // any one build can show. lectures/decoration wears none - giving it one
+  // would repaint every divider on the page above, which are pictures of a
+  // composition and not of a typeface.
+  //
+  // Same 1280x720 at 1.5 as the five, because on decoration.html these stand
+  // in the same run of tiles and a second frame size reads as a second set.
+  ...[
+    // `cover: display` with the title filling the slide, which is the
+    // composition that shows a face rather than merely using one.
+    { name: 'deco-display-cover', target: 'cover', frag: true },
+    // A divider, and it is addressed the long way round on purpose: a
+    // divider is not a chunk and has no id, so activeId() returns null there
+    // and neither walkTo nor assertOnScreen can name it. So the walk lands on
+    // the last chunk of the part before it - which is what `live` and the
+    // on-screen assertion are checked against - and one press steps onto the
+    // divider itself. Repoint #roster and this shot follows it.
+    { name: 'deco-display-divider', target: 'roster', live: true,
+      act: async (p) => { await p.keyboard.press('ArrowRight'); await p.waitForTimeout(900); } },
+  ].map((s) => ({
+    src: 'audience.html', w: 1280, h: 720, dsf: 1.5,
+    lecture: 'display-face', rig: LIVE_RIG, ...s,
+  })),
 ];
 
 // How wide the film strip is dragged for the sequence. The mode opens at a

@@ -223,6 +223,58 @@
 
 <section class="band">
  <div class="wrap">
+  <h2 id="display-face">Eine Schrift nur für die Übergangsfolien</h2>
+  <p class="lede">Titelfolie, Schlussfolie und Abschnittstrenner sind die eine
+  Stelle im Foliensatz, an der eine laute Schrift kein Fehler ist: einen Trenner
+  liest niemand, man sieht, dass einer gekommen ist, und weiß, wo man in der
+  Stunde steht. <code>fonts: {display: Anton}</code> gibt diesen dreien eine
+  Schrift und erreicht sonst nichts &ndash; eine gewöhnliche Überschrift, ein
+  Kartenkopf, eine Abbildungsbeschriftung behalten die Textschrift. 32 liegen
+  bei, unter der SIL Open Font License, in drei Geschmacksrichtungen:
+  handgeschrieben, maschinell, plakativ.</p>
+
+  <div class="stage">
+   <div class="stage-pair">
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; cover: display</div>
+     <img src="../img/deco-display-cover.webp" alt="Eine Titelfolie, deren zwei Titelwörter sehr groß in einer schweren schmalen Grotesk stehen, darunter Untertitel und Angaben in der Textserife.">
+     <figcaption><strong>Der Titel ist die Folie.</strong> Der Angabenblock
+     darunter bleibt in der Textschrift &ndash; das erst macht den Kontrast zu einem
+     Kontrast und nicht zu einer Folie in einer einzigen lauten
+     Schrift.</figcaption>
+    </figure>
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; section: number</div>
+     <img src="../img/deco-display-divider.webp" alt="Eine Trennerfolie mit einer großen Akzentziffer Zwei über einer Teilüberschrift in schwerer schmaler Grotesk.">
+     <figcaption><strong>Die Ziffer folgt dem Thema, die Wörter nicht.</strong>
+     <kbd>A</kbd> führt den Akzent durch sieben Farben, während die Überschrift
+     daneben die gewählte Schrift behält.</figcaption>
+    </figure>
+   </div>
+  </div>
+
+  <div class="pair-up">
+   <div>
+    <p><strong>Die Größe ist gemessen, nicht geschätzt.</strong> Diese Schriften
+    unterscheiden sich in der Breite um den Faktor drei, und die Titelgröße war
+    auf die Textserife abgestimmt &ndash; ohne Korrektur wirken die schmalen zaghaft
+    und die breiten laufen aus der Folie. Jede trägt einen gegen diese Serife
+    gemessenen Wert. <code>style: {display-scale: 1.4}</code> ist da, wenn die
+    Schrift stimmt und die Größe nicht.</p>
+   </div>
+   <div>
+    <p><strong>Kein Tastendruck kommt daran.</strong> <kbd>F</kbd> wechselt die
+    Textschrift, <kbd>A</kbd> das Akzentthema; Titelfolie und Trenner ignorieren
+    beides, während ihre Farbe weiter dem Thema folgt und sie damit auch dunkel
+    lesbar bleiben. Ein Foliensatz ohne Display-Schrift bettet nichts ein und
+    baut genau wie zuvor.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
   <h2 id="cards">Kästen, keine Spalten</h2>
   <p class="lede">Drei Kästen nebeneinander sind Behälter, keine Spalten: Was
   in einem steht, bleibt darin. Also Karten für drei Dinge und
