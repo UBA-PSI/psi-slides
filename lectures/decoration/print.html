@@ -882,6 +882,21 @@ figure.figure-img img,
 figure.figure-img svg,
 figure.figure-video video { max-height: 34rem; }
 
+@media print {
+  /* The same sentence DIAGRAM_CSS says about a diagram - one picture, and
+     splitting it makes two useless halves - is true of a photograph, and
+     only the diagram was hearing it. It is reachable rather than theoretical:
+     .chunk avoids breaking, so a figure inside a chunk that fits a page was
+     never at risk, but a chunk taller than a page cannot honour that and
+     breaks wherever it must. lectures/tutorial #images is 1073px on a 933px
+     page and holds a 365px figure that was free to split down the middle,
+     with the caption landing on the next sheet. Includes the caption by
+     sitting on the <figure>, which is the whole unit a reader needs at once. */
+  figure.figure-img,
+  figure.figure-video,
+  figure.figure-embed { break-inside: avoid; page-break-inside: avoid; }
+}
+
 figure.figure-img figcaption {
   font-family: var(--sans);
   font-size: 0.78rem;

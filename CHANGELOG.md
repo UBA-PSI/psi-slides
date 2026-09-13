@@ -2333,6 +2333,17 @@ from building the same way is a major version.
   figures is now 49 % of the text area, and `lectures/python-intro` prints as
   27 pages instead of 31.
 
+- **A photograph in a printed document no longer splits across a page break.**
+  The sentence `DIAGRAM_CSS` says about a diagram – one picture, and splitting
+  it makes two useless halves – is as true of a photograph, and only the
+  diagram was hearing it. Reachable rather than theoretical, though the path
+  is narrow: `.chunk` avoids breaking, so a figure in a chunk that fits a page
+  was never at risk, but a chunk *taller* than a page cannot honour that and
+  breaks wherever it must. `lectures/tutorial` `#images` is 1073 px on a 933 px
+  page and held a 365 px figure free to split down the middle, with the caption
+  landing on the next sheet. The rule sits on the `<figure>`, so the caption
+  travels with the picture, and covers clips and embeds for the same reason.
+
 - **A slide whose content fitted the frame could still be positioned outside
   it.** `focusCamera` measured the chunk *box* to decide whether to centre a
   chunk or walk it, and the box carries the breathing space above the heading -
