@@ -389,6 +389,34 @@ console.log('\nlayout generations');
     [path.join(ROOT, 'lint.js'), path.join(nDir, 'source.md')], { cwd: ROOT, encoding: 'utf8' });
   ok(/unknown-style-setting/.test((nLint.stdout || '') + (nLint.stderr || '')),
      'and the linter names it too');
+  // print-neutrals is its own key because the two grounds are not the same
+  // ground - print's palette is warm where the live one is cool at chroma 0 -
+  // so a deck can want the page warm and the projection cool, or the reverse.
+  // Unset it defers, which is the state '' exists to be: no written value can
+  // produce it, so "not written" stays distinguishable from all four words.
+  const both = build('style: {neutrals: cool, print-neutrals: warm}');
+  ok(/data-neutrals="cool"/.test(bodyTag(both.html))
+     && /data-print-neutrals="warm"/.test((both.print.match(/<body [^>]*>/g) || []).join(' ')),
+     'the two keys are answered independently', bodyTag(both.html));
+  const liveOnly = build('style: {neutrals: warm}');
+  ok(/data-print-neutrals="warm"/.test((liveOnly.print.match(/<body [^>]*>/g) || []).join(' ')),
+     'and an unset print-neutrals follows the live key rather than meaning neutral');
+  const printOnly = build('style: {print-neutrals: tinted}');
+  ok(!/data-neutrals=/.test(bodyTag(printOnly.html))
+     && /data-print-neutrals="tinted"/.test((printOnly.print.match(/<body [^>]*>/g) || []).join(' ')),
+     'and the deferral does not run the other way', bodyTag(printOnly.html));
+  // Each stylesheet reads its own attribute, or one view answers the other's
+  // key - which is the whole of what a second key buys.
+  ok(/body\[data-print-neutrals=warm\]/.test(both.print) && !/body\[data-neutrals=warm\]/.test(both.print),
+     'PRINT_CSS keys on data-print-neutrals and not on the live attribute');
+  ok(/body\[data-neutrals=cool\]/.test(both.html),
+     'and AUDIENCE_CSS still keys on the live one');
+  // The one accent that measured under 4.5:1 against the paper. 0.58 gave
+  // 4.23, 0.56 clears at 4.57, 0.54 at 4.96 - the wider margin, because a
+  // projector adds the room's light and nobody measured that.
+  ok(/light-orange\] \{ --emph: oklch\(0\.54 0\.17 60\)/.test(plain.html),
+     'light-orange carries the darker accent that clears 4.5:1');
+
   // One ladder, in em, in both stylesheets - as pixels the same card row
   // rounded differently on every slide, because auto-fit sets the card's
   // font-size per slide.

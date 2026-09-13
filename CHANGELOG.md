@@ -9,6 +9,28 @@ from building the same way is a major version.
 
 ### Changed
 
+- **`style: {print-neutrals: …}` answers for the page what `neutrals` answers
+  for the wall, and `light-orange` clears 4.5:1.** The two grounds are not the
+  same ground: print's palette is warm already (`#fafaf7` paper, `#8b2e00`
+  accent) where the live one is cool at chroma 0, so a deck can reasonably
+  want the page warm and the projection cool, or the reverse, and one key
+  could say only one of those. The new key takes the same four words and its
+  default is a deferral rather than a value – `''` is seeded and no written
+  value can produce it, so an unset key stays distinguishable from all four
+  and `printNeutrals()` is the one step that resolves it, exactly as
+  `printSlideNums()` does for the numbering. Writing `neutrals: warm` alone
+  therefore still warms both. Each stylesheet reads its own attribute, so
+  neither view can answer the other's key.
+
+  `light-orange` goes from `oklch(0.58 0.17 60)` to `0.54`. Measured against
+  the paper it was 4.23:1, the only one of the four accents under 4.5, and
+  the accent does land in prose because a bold phrase can be set in it – the
+  other three are 8.66, 5.99 and 4.67. 0.56 clears the line at 4.57 and 0.54
+  at 4.96; the wider margin is the one worth taking on a projector, where the
+  room's light is the variable nobody measured. `DG_THEMES` in
+  `diagram-core.mjs` mirrors the seven accents and moves with it, which is
+  what the gate that caught this exists for.
+
 - **A masthead cover with a presenter no longer sits at the auto-fit floor.**
   One `presenter:` line took such a cover from zoom 2.2 to 0.6 – minimum type
   on the opening slide – and nothing anywhere said why. `masthead` pins its

@@ -150,6 +150,13 @@ const STYLE_ENUMS = {
   // gets; `tinted` puts the accent's own hue into the neutrals, `warm` and
   // `cool` fix one. `neutral` is the default and today's rendering.
   'neutrals': ['neutral', 'tinted', 'warm', 'cool'],
+  // The same question for the two documents, and a separate key because the
+  // grounds are not the same ground: print's palette is already warm where
+  // the live one is cool at chroma 0, so a deck can want the page warm and
+  // the projection cool, or the reverse. Unset it follows `neutrals`, which
+  // is a build-side deferral this file does not have to model - it only has
+  // to accept the same four words.
+  'print-neutrals': ['neutral', 'tinted', 'warm', 'cool'],
   // Which of a title pair's two lines is the loud one. `stacked` is the
   // title over a quieter subtitle (today's rendering); `eyebrow` sets the
   // title small above a subtitle that carries the weight. One key for the

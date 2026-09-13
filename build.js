@@ -5243,6 +5243,22 @@ const STYLE_SPEC = {
   // is neither. tinted needs no such guard - there the accent's hue IS the
   // theme's, so it resolves to what the theme already does.
   neutrals: { kind: 'enum', values: ['neutral', 'tinted', 'warm', 'cool'], dflt: 'neutral' },
+  // The same question for the two documents, and a separate key because the
+  // two grounds are not the same ground. Print's palette is already warm
+  // where the live one is cool at chroma 0 - paper #fafaf7 against
+  // oklch(0.98 0 0) - so a deck can reasonably want the page warm and the
+  // projection cool, or the other way round, and one key could say only one
+  // of those.
+  //
+  // Its default is not a value but a deferral: '' is the seeded default and
+  // no written value can be '', so an unset key is a fifth state and
+  // printNeutrals() is the documented step that turns it into one. Writing
+  // `neutrals: warm` alone therefore warms both, which is what an author who
+  // writes one key means; writing both says they differ on purpose. Reading
+  // this key anywhere else with a fallback of 'neutral' would silently make
+  // an unset key mean neutral rather than follow - the trap
+  // print-slide-numbers carries the same note for.
+  'print-neutrals': { kind: 'enum', values: ['neutral', 'tinted', 'warm', 'cool'], dflt: '' },
   // Which of a title pair's two lines is the loud one. The cover has
   // carried a pair since `subtitle:` landed, and so has every divider and
   // closing slide through `Heading | Sub`; what none of them had is a way
@@ -5409,12 +5425,24 @@ function styleBlockCss(st, S) {
   }
   return rules.length ? `<style>${rules.join(' ')}</style>` : '';
 }
+// The documents' neutrals, and the one place the deferral is resolved. An
+// unset `print-neutrals` is not `neutral`, it is "whatever the live views
+// are set to" - see the note on the key in STYLE_SPEC, and printSlideNums()
+// for the same shape one block over.
+function printNeutrals(st) {
+  return st['print-neutrals'] || st.neutrals || 'neutral';
+}
 function styleBodyAttrs(st, frontmatter = {}) {
   const parts = [];
   if (st.headings !== 'auto') parts.push(`data-headings="${st.headings}"`);
   if (st.rules !== 'on') parts.push('data-rules="off"');
   if (st.labels !== 'on') parts.push('data-labels="off"');
   if (st.neutrals !== 'neutral') parts.push(`data-neutrals="${st.neutrals}"`);
+  // Both attributes on both bodies: the stylesheets pick, AUDIENCE_CSS on
+  // data-neutrals and PRINT_CSS on data-print-neutrals, so neither has to
+  // know which view it is in.
+  const pn = printNeutrals(st);
+  if (pn !== 'neutral') parts.push(`data-print-neutrals="${pn}"`);
   if (st.headline !== 'stacked') parts.push(`data-headline="${st.headline}"`);
   // `data-title-caps` and not `data-caps`: the renderer writes a bare
   // data-caps on each slot that is already in capitals, and one name doing
@@ -6292,9 +6320,9 @@ const PRINT_CSS = `
    it. No terminal guard: print has no terminal themes to guard. And the
    quiet fills are not re-mixed the way the live views' are, because a
    printed card is a 1px rule and no fill - there is nothing there to tint. */
-body[data-neutrals=warm] { --accent-h: 70; }
-body[data-neutrals=cool] { --accent-h: 250; }
-body:is([data-neutrals=tinted], [data-neutrals=warm], [data-neutrals=cool]) {
+body[data-print-neutrals=warm] { --accent-h: 70; }
+body[data-print-neutrals=cool] { --accent-h: 250; }
+body:is([data-print-neutrals=tinted], [data-print-neutrals=warm], [data-print-neutrals=cool]) {
   --ink:      oklch(0.26 0.014 var(--accent-h));
   --ink-soft: oklch(0.50 0.014 var(--accent-h));
   --paper:    oklch(0.985 0.007 var(--accent-h));
@@ -8022,7 +8050,14 @@ body[data-font=mono] .katex .mathnormal {
 body[data-theme=light-red]    { --emph: oklch(0.42 0.16 30); }
 body[data-theme=light-teal]   { --emph: oklch(0.52 0.12 195); }
 body[data-theme=light-blue]   { --emph: oklch(0.48 0.18 250); }
-body[data-theme=light-orange] { --emph: oklch(0.58 0.17 60);  }
+/* 0.54 and not the 0.58 it was: measured against the paper, 0.58 gives
+   4.23:1, which is fine for the big bold of a card term and under the 4.5:1
+   a body-text weight wants - and the accent does land in prose, because a
+   bold phrase can be set in it. 0.56 clears the line at 4.57 and 0.54 at
+   4.96, and the wider margin is the one to take on a projector, where the
+   room's light is the variable nobody measured. The other three already
+   clear it: light-red 8.66, light-blue 5.99, light-teal 4.67. */
+body[data-theme=light-orange] { --emph: oklch(0.54 0.17 60);  }
 
 /* Neutral dark mode – grey paper, white ink, the light-red accent lifted
    until it carries on a dark ground. Distinct from the terminal modes on

@@ -181,7 +181,7 @@ export const DG_THEMES = {
   'light-red':      { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.42, 0.16, 30] },
   'light-teal':     { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.52, 0.12, 195] },
   'light-blue':     { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.48, 0.18, 250] },
-  'light-orange':   { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.58, 0.17, 60] },
+  'light-orange':   { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.54, 0.17, 60] },
   'dark':           { paper: [0.17, 0.005, 260], ink: [0.95, 0, 0],      emph: [0.76, 0.15, 35] },
   'terminal-amber': { paper: [0.12, 0.02, 60],   ink: [0.82, 0.14, 75],  emph: [0.94, 0.18, 85] },
   'terminal-green': { paper: [0.11, 0.02, 150],  ink: [0.80, 0.20, 145], emph: [0.92, 0.24, 145] },
