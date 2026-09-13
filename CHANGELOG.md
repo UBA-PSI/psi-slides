@@ -2333,6 +2333,26 @@ from building the same way is a major version.
   figures is now 49 % of the text area, and `lectures/python-intro` prints as
   27 pages instead of 31.
 
+- **A card or a row is no longer sliced through the middle of a line by a page
+  break.** `.cards` is a grid and its `<ul>` is `display: contents`, so every
+  card and every `::: rows` row is a grid item – and WebKit does not fragment a
+  grid container: an item that crosses a page boundary is cut through a line of
+  type and the remainder painted on the next sheet. The `break-inside: avoid`
+  each item carries does not save it, because the box being fragmented is the
+  container, not the item. The hazard was always there; it only became visible
+  once chunks started flowing, because until then the whole chunk moved and a
+  page boundary never fell inside one.
+
+  `::: rows` is a single column, so print draws it in block flow instead: the
+  same picture, fragmenting the way prose does – between rows, each row whole
+  because its own `break-inside: avoid` now has an ordinary block container to
+  work in. The two-column grid *inside* a row, the one setting the term beside
+  its body, is untouched. A multi-column `::: cards` block is a layout block
+  flow would not reproduce, so it keeps its grid and is kept whole instead, and
+  that is a promise it can hold: the tallest in the corpus is 183 px against a
+  933 px page. Table rows are the same failure without the grid and now say
+  `break-inside: avoid` too.
+
 - **The printed document reads as a document: one type size smaller, chunks
   that flow, and no page it did not need.** Four things that all produced the
   same symptom – a text broken into pieces by page turns nothing on the page

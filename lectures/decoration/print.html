@@ -1007,6 +1007,34 @@ pre.shiki .line { display: inline; }
      margin is set explicitly because the screen rule is margin: 0 auto, and auto
      margins on a narrowed column would centre it again. */
   main { padding: 0; max-width: 38rem; margin: 0; }
+  /* WebKit does not fragment a grid container. An item that crosses a page
+     boundary is sliced through the middle of a line and the remainder painted
+     on the next sheet - and break-inside: avoid on the item does not save it,
+     because the box being fragmented is the container, not the item. .cards
+     is a grid and its ul is display: contents, so every card and every row is
+     a grid item and every one of them was exposed. It only became visible
+     when chunks started flowing: before that the whole chunk moved and the
+     page boundary never fell inside one.
+
+     ::: rows is a single column, so block flow draws the same picture and
+     fragments the way prose does - between rows, with each row whole because
+     the li keeps its own break-inside: avoid. The grid inside the li, the one
+     that sets the term beside its body, is untouched: it never has to
+     fragment now.
+
+     A multi-column ::: cards block is a layout that block flow would not
+     reproduce, so it keeps its grid and is kept whole instead. That is a
+     promise it can hold: the tallest one in the corpus is 183px against a
+     933px page, and a row of cards that no longer fits simply moves.
+
+     Table rows are the same failure without the grid, and cost nothing to
+     protect. */
+  .cards.rows { display: block; }
+  .cards.rows > ul > li + li, .cards.rows > ol > li + li { margin-top: 0.6rem; }
+  .cards:not(.rows) { break-inside: avoid; page-break-inside: avoid; }
+  tr, .chunk-expansion { break-inside: avoid; page-break-inside: avoid; }
+  thead { display: table-header-group; }
+
   /* Code cannot reflow, so it is the one thing allowed into that margin.
      pre carries overflow-x: auto for the screen, and on paper that auto is not
      a scrollbar, it is a cut - the line simply ends. Reachable today at
