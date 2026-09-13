@@ -130,6 +130,33 @@ where a headline is meant to stack), and the two stylesheets spell
 `cover: display` differently while both spellings match in both views, which
 is why `fontStyleTag` now takes the view.
 
+**The face follows the loud line, which is not always `.title-main`.**
+`style: {headline: eyebrow}` turns a title pair the other way up – the title
+is set small as a kicker and `.title-subtitle` carries the weight – so the two
+selectors alone put the poster face on the kicker and the body serif on the
+headline. Measured on a cover in that mode before the fix: `.title-main` was
+Anton at 32px over `.title-subtitle` in Literata at 82px, the exact inverse of
+what an author asking for a display face is asking for. The eyebrow pair is
+therefore restated under a `body[data-headline=eyebrow]` guard, one rule each
+way, with the kicker handed explicitly back to `--body-font` – leaving it out
+would leave the unqualified rule still matching it. The scaled line height
+moves with the face, and the eyebrow subtitle's own value is not the title's
+(1.12 against 1.15 in print), which is why `DISPLAY_LH` holds it separately.
+A divider is untouched either way: it has one line, and `headline:` does not
+reach `.section-heading`.
+
+**What normalising on width costs, recorded rather than fixed.** One
+multiplier cannot serve both fit and apparent size – a face that is wide per
+glyph has to be set small to keep the line count, and then it looks small.
+Measured against Literata after the correction, the ink height of a reference
+title runs from 0.38 (Silkscreen) to 1.34 (Patrick Hand). Width wins because
+the two failures are not equal: a headline that takes one line too many runs
+off the slide, a headline that reads small is merely weak. A clamp on the
+vertical does not help – pulling Silkscreen to parity puts its width past
+twice Literata's. It is also not an all-caps problem: Bebas Neue and
+Staatliches, the purest caps faces in the roster, land at 1.00 and 0.90,
+because their tall capitals come with no descenders.
+
 **3 – the refusals.** `fonts: {display: …}` naming an unknown family fails the
 build the way an unknown serif does, and `lint.js` mirrors it. The linter
 mirrors the display half of `BUNDLED_FONTS` as a table – name and `kind` –

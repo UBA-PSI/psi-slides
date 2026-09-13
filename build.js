@@ -1140,6 +1140,22 @@ const BUNDLED_FONTS = {
   //   a layout rule would have to be repeated in every one of them, and
   //   would be forgotten in one.
   //
+  //   WIDTH IS THE METRIC, AND APPARENT SIZE THEREFORE VARIES. That is a
+  //   decision, not an oversight. One multiplier cannot serve both fit and
+  //   apparent size: a face that is wide per glyph has to be set small to
+  //   keep the line count, and then it looks small. Measured against
+  //   Literata after the correction, the ink height of a reference title
+  //   runs from 0.38 (Silkscreen) to 1.34 (Patrick Hand) - so a Silkscreen
+  //   divider really does read as a thin band, and Anton a quarter too big.
+  //   Width wins anyway because the two failures are not equal: a headline
+  //   that takes one line too many runs off the slide, and a headline that
+  //   reads small is merely weak. Nor would a clamp on the vertical help -
+  //   pulling Silkscreen's ink to parity puts its width past twice
+  //   Literata's, which trades the weak slide for the broken one. Note that
+  //   it is not an all-caps problem: Bebas Neue and Staatliches, the two
+  //   purest caps faces, land at 1.00 and 0.90 ink height, because their
+  //   tall capitals come with no descenders.
+  //
   // THE RULE THAT KEEPS THE FACE OUT OF THE READER'S HANDS: `display` must
   // never join FONT_CYCLE, and --display-stack must never be assigned under
   // a body[data-font=…] or body[data-theme=…] selector. F cycles a
@@ -1479,28 +1495,33 @@ const FONT_ROLE_VARS = {
 // factor in the block fontStyleTag emits. A face below 1.0 (Press Start 2P
 // at 55%) correctly tightens instead.
 //
-// They live here because a blanket `line-height` on the two selectors would
-// clobber three deliberate values: 1.3 under `headline: eyebrow`, where
-// .title-main is a small kicker rather than the loud line, and the sub-1
-// ratios under `cover: display`, where a headline is meant to stack. Keyed
-// by the selector that carries them, so restating the pair cannot drift.
+// They live here because a blanket `line-height` on the display role's
+// selectors would clobber deliberate values – the sub-1 ratios under
+// `cover: display`, where a headline is meant to stack, and the 1.12 / 1.1
+// the eyebrow subtitle carries, which is not the title's number in print.
+// So this table is exactly the line heights the DISPLAY FACE WEARS, keyed by
+// the selector that carries each, and every one of them is read back out of
+// here by the block fontStyleTag emits. A line height on an element the face
+// does not reach – 1.3 on the eyebrow kicker, 1.25 / 1.3 on a quiet subtitle
+// under `headline: stacked` – stays a literal in the stylesheet, because
+// there is nothing to keep it in step with.
 //
 // THE PROPERTY THAT MAKES THE INDIRECTION SAFE: interpolating the string
 // '1.1' emits the characters `1.1`, so the two stylesheets are the same
 // bytes they were and a deck with no display face still builds byte for
 // byte what it built before the role existed. Copying the numbers into the
-// conditional block instead would have put six of them in two places.
+// conditional block instead would have put seven of them in two places.
 const DISPLAY_LH = {
   print: {
     '.chunk-title .title-main': '1.15',
-    'body[data-headline=eyebrow] .chunk-title .title-main': '1.3',
     '.chunk-title[data-cover=display] .title-main': '1.02',
+    'body[data-headline=eyebrow] .chunk-title .title-subtitle': '1.12',
   },
   live: {
     '.chunk-title .title-main': '1.1',
-    'body[data-headline=eyebrow] .chunk-title .title-main': '1.3',
     '.chunk[data-cover=display] .title-main': '0.97',
     '.chunk-section .section-heading': '1.1',
+    'body[data-headline=eyebrow] .chunk-title .title-subtitle': '1.1',
   },
 };
 // Reached through a function and not by indexing, because a mistyped key
@@ -1721,12 +1742,27 @@ function fontStyleTag(embed, view) {
       .join('\n')
   ).join('\n');
   const rootBlock = varCss ? `\n:root {\n${varCss}\n}` : '';
-  // The two selectors the display role reaches, and the whole of its reach:
-  // the cover, the closing slide (which is the cover's own element, wearing
-  // data-closing) and the section dividers. A `## principle:` heading is
-  // not one of them, and neither is .title-subtitle - a subtitle is a
-  // sentence, and a poster face set at sentence length is where these faces
-  // fail.
+  // Where the display role reaches, and the whole of its reach: the cover,
+  // the closing slide (which is the cover's own element, wearing
+  // data-closing) and the section dividers. A `## principle:` heading is not
+  // one of them.
+  //
+  // THE FACE FOLLOWS THE LOUD LINE, WHICH IS NOT ALWAYS .title-main.
+  // `style: {headline: eyebrow}` turns a title pair the other way up: the
+  // title is set small as a kicker and .title-subtitle carries the weight.
+  // Left alone, the role then put a poster face on the kicker and the body
+  // serif on the headline - measured on a cover in that mode, .title-main
+  // was Anton at 32px over .title-subtitle in Literata at 82px, which is the
+  // exact inverse of what an author asking for a display face is asking for.
+  // So the eyebrow pair is restated under a body[data-headline=eyebrow]
+  // guard, one rule each way, and specificity settles it rather than source
+  // order: the kicker is handed explicitly back to --body-font, because
+  // leaving it out would leave the unqualified rule above still matching it.
+  // Under `stacked`, the deck's default, nothing here applies and the
+  // rendering is what it was.
+  //
+  // A divider is untouched either way - it has one line, and `headline:`
+  // does not reach .section-heading.
   //
   // It rides here rather than in AUDIENCE_CSS and PRINT_CSS because those
   // are constants with no way to ask whether this lecture resolved a
@@ -1744,8 +1780,12 @@ function fontStyleTag(embed, view) {
   // match in both views. One shared block would therefore hand print the
   // projection's ratio, or the reverse, depending on which came last.
   //
-  // The line heights below it are the second half of the same condition.
-  // They are read out of DISPLAY_LH, which is also what the two stylesheets
+  // The line heights below it are the second half of the same condition, and
+  // they move with the face: under `eyebrow` it is the subtitle's own value
+  // that is scaled, not the title's, and the kicker keeps the plain 1.3 it
+  // has always had - the stylesheet's own rule is a class more specific than
+  // the unqualified one here, so nothing has to be written to hold it. They
+  // are read out of DISPLAY_LH, which is also what the two stylesheets
   // interpolated, so the numbers exist once; see the note there for why a
   // blanket line-height would be wrong and why this costs no bytes. A face
   // an author supplied from fonts/ carries no measurement, so its factor is
@@ -1754,8 +1794,13 @@ function fontStyleTag(embed, view) {
   let displayCss = '';
   if (overrides.some(o => o.role === 'display')) {
     if (!DISPLAY_LH[view]) throw new Error(`fontStyleTag: unknown view ${view}`);
-    displayCss = '\n.chunk-title .title-main,\n.chunk-section .section-heading'
-      + ' { font-family: var(--display-stack, var(--body-font)); }';
+    const wears = 'font-family: var(--display-stack, var(--body-font));';
+    displayCss = [
+      '',
+      `.chunk-title .title-main,\n.chunk-section .section-heading { ${wears} }`,
+      `body[data-headline=eyebrow] .chunk-title .title-main { font-family: var(--body-font); }`,
+      `body[data-headline=eyebrow] .chunk-title .title-subtitle { ${wears} }`,
+    ].join('\n');
     const pct = (bundled.find(f => f.role === 'display') || {}).sizeAdjust;
     // Divided in CSS rather than in JS: the emitted rule then carries the
     // measured percentage itself, beside the size-adjust descriptor it
@@ -7080,7 +7125,7 @@ body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
 body[data-headline=eyebrow] .chunk-title .title-main {
   font-size: 1rem;
   font-weight: 600;
-  line-height: ${displayLh('print', 'body[data-headline=eyebrow] .chunk-title .title-main')};
+  line-height: 1.3;
   letter-spacing: 0.015em;
   color: var(--ink-soft);
   margin: 0 0 0.25rem;
@@ -7088,7 +7133,7 @@ body[data-headline=eyebrow] .chunk-title .title-main {
 body[data-headline=eyebrow] .chunk-title .title-subtitle {
   font-size: var(--title-lead);
   font-weight: 600;
-  line-height: 1.12;
+  line-height: ${displayLh('print', 'body[data-headline=eyebrow] .chunk-title .title-subtitle')};
   letter-spacing: -0.02em;
   color: var(--ink);
   max-width: 20em;
@@ -9393,7 +9438,7 @@ body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
 body[data-headline=eyebrow] .chunk-title .title-main {
   font-size: calc(1.02em * var(--zoom));
   font-weight: 600;
-  line-height: ${displayLh('live', 'body[data-headline=eyebrow] .chunk-title .title-main')};
+  line-height: 1.3;
   letter-spacing: 0.015em;
   color: var(--ink-soft);
   /* Uncapped, and that is the point of moving the cap to --title-measure:
@@ -9409,7 +9454,7 @@ body[data-headline=eyebrow] .chunk-title .title-subtitle {
   font-size: calc(var(--title-lead) * var(--zoom));
   max-width: var(--title-measure, 20em);
   font-weight: 600;
-  line-height: 1.1;
+  line-height: ${displayLh('live', 'body[data-headline=eyebrow] .chunk-title .title-subtitle')};
   letter-spacing: -0.022em;
   color: var(--ink);
   /* In the subtitle's own em, which is now the headline's, so the measure
