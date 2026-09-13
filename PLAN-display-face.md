@@ -229,7 +229,7 @@ the work up.**
 
 ## Where it stands
 
-**The engine half is done and verified. The visible half is not started.**
+**Done.** Engine, reference deck, docs, changelog and the project site.
 
 | commit | what |
 | --- | --- |
@@ -240,6 +240,9 @@ the work up.**
 | `46c64bb` | under `headline: eyebrow` the face follows the loud line |
 | `bb8428f` | the appearance skill and `CLAUDE.md` |
 | `2aeb33d` | `style: {display-scale}` |
+| `8a64ee6` | `lectures/display-face/`, the reference deck |
+| `2486de0` | changelog and README |
+| `08512f7` | the section on `decoration.html`, both languages, two shots |
 
 Green on every check, re-run independently rather than taken from a report:
 gates `751 passed, 0 failed`; `node lint.js lectures/` 0 errors and the two
@@ -264,17 +267,19 @@ Behaviour verified in a browser, not argued:
 
 ## What is left
 
-1. **`lectures/decoration/source.md`** – the construct shown rather than
-   described, and its two tracked views (`audience.html`, `print.html`)
-   rebuilt and committed. This is the piece a reader meets first and it is
-   entirely unstarted. **A deck has one cover and one divider variant, so it
-   cannot show 32 faces**; the same problem the decoration lecture already
-   solved for the ten covers by naming the rest in a card row.
-2. **`CHANGELOG.md`** under `## [Unreleased]`.
-3. **The project site** – `docs/site/` says nothing about the role. Whether it
-   should is a judgement: the gallery of ten cover compositions is the
-   precedent for showing a roster on the site rather than in a lecture.
-4. Consider whether `README.md`'s feature list should mention it.
+Nothing in this plan. Two things were learned late and are written here
+rather than in a commit message, because they are about the *next* change:
+
+- **A divider cannot be addressed by `docs/site/shoot.mjs` directly.** It is
+  not a chunk, it has no id, and `activeId()` returns null on it, so neither
+  `walkTo` nor `assertOnScreen` can name one. `deco-display-divider` lands on
+  the last chunk of the part before it and presses once. Any future shot of a
+  divider has the same problem and the same answer.
+- **`section-mark:` and the `number` variant's counter are an either/or**,
+  not a pair: `renderColumnSectionChunk` reads the mark first and falls back
+  to the numeral only when there is none. Writing `section-mark: Part`
+  alongside `section: number` silently removes the number, which is what the
+  first cut of the reference deck did.
 
 ## What bit, and what the next person should not redo
 
