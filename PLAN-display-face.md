@@ -114,6 +114,22 @@ compositions, print, the zoom, `auto-fit` and `--check-fit` all get it for
 free; as a multiplier in a layout rule it would have to be repeated in every
 one of those and would be forgotten in one.
 
+**The one thing `size-adjust` does not carry is the line height, and that had
+to be built separately.** It scales the glyph outlines and the font's own
+metrics, but a *numeric* `line-height` resolves against the nominal font-size
+and does not follow: on a cover in Anton at 120%, `font-size` 82.13px and a
+90.35px line box hold type that paints at 98.6px. A one-line headline is
+merely tight; a three-line German one collides, ö-dots inside the line below.
+So `DISPLAY_LH` holds the six numeric line heights the two selectors carry,
+the stylesheets interpolate them back into the very declarations they came
+from – `'1.1'` emits `1.1`, so no byte moves – and the conditional block
+multiplies each by the face's own percentage. It could not be one blanket
+rule: three of the six are deliberate (1.3 under `headline: eyebrow`, where
+`.title-main` is a small kicker, and the sub-1 ratios under `cover: display`,
+where a headline is meant to stack), and the two stylesheets spell
+`cover: display` differently while both spellings match in both views, which
+is why `fontStyleTag` now takes the view.
+
 **3 – the refusals.** `fonts: {display: …}` naming an unknown family fails the
 build the way an unknown serif does, and `lint.js` mirrors it. The linter
 mirrors the display half of `BUNDLED_FONTS` as a table – name and `kind` –

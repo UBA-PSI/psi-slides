@@ -1467,6 +1467,53 @@ const FONT_ROLE_VARS = {
   display: ['--display-stack'],
 };
 
+// ── the display role's line heights ─────────────────────────────────
+//
+// `size-adjust` scales a face's glyph outlines AND its own metrics, but a
+// NUMERIC line-height resolves against the nominal font-size and does not
+// follow. Measured on a cover in Anton at size-adjust 120%: font-size
+// 82.13px, line box 90.35px (1.1 of it), apparent type 98.6px. A one-line
+// headline is merely tight; a three-line German one collides – the ö-dots
+// and the t of the first line sit inside the letters of the second. That
+// ships as a broken slide, so each of these is multiplied by the face's own
+// factor in the block fontStyleTag emits. A face below 1.0 (Press Start 2P
+// at 55%) correctly tightens instead.
+//
+// They live here because a blanket `line-height` on the two selectors would
+// clobber three deliberate values: 1.3 under `headline: eyebrow`, where
+// .title-main is a small kicker rather than the loud line, and the sub-1
+// ratios under `cover: display`, where a headline is meant to stack. Keyed
+// by the selector that carries them, so restating the pair cannot drift.
+//
+// THE PROPERTY THAT MAKES THE INDIRECTION SAFE: interpolating the string
+// '1.1' emits the characters `1.1`, so the two stylesheets are the same
+// bytes they were and a deck with no display face still builds byte for
+// byte what it built before the role existed. Copying the numbers into the
+// conditional block instead would have put six of them in two places.
+const DISPLAY_LH = {
+  print: {
+    '.chunk-title .title-main': '1.15',
+    'body[data-headline=eyebrow] .chunk-title .title-main': '1.3',
+    '.chunk-title[data-cover=display] .title-main': '1.02',
+  },
+  live: {
+    '.chunk-title .title-main': '1.1',
+    'body[data-headline=eyebrow] .chunk-title .title-main': '1.3',
+    '.chunk[data-cover=display] .title-main': '0.97',
+    '.chunk-section .section-heading': '1.1',
+  },
+};
+// Reached through a function and not by indexing, because a mistyped key
+// would interpolate the word `undefined` into a stylesheet: an invalid
+// declaration the browser drops in silence, which is the failure mode this
+// file spends its comments on. Called while the CSS constants are built, so
+// a typo throws at import rather than on somebody's cover.
+function displayLh(view, sel) {
+  const v = DISPLAY_LH[view] && DISPLAY_LH[view][sel];
+  if (!v) throw new Error(`DISPLAY_LH has no ${view} line-height for ${sel}`);
+  return v;
+}
+
 const normFontName = (s) => String(s).toLowerCase().replace(/[\s_-]/g, '');
 
 // A filename is `<family><sep><descriptor>` or just `<family>`. The
@@ -1644,7 +1691,7 @@ function wrapNames(names, lead = 0, width = 78, indent = '    ') {
 // Emits the @font-face blocks and the stack overrides for one view. Takes
 // the bundled defaults and whatever the author supplied; a role the author
 // named uses their family, every other role uses the bundle.
-function fontStyleTag(embed) {
+function fontStyleTag(embed, view) {
   if (!embed) return '';
   const { faces = [], overrides = [], bundled = [] } = embed;
   const face = (f) =>
@@ -1686,14 +1733,37 @@ function fontStyleTag(embed) {
   // display face, and the answer has to be "emit nothing" for every deck
   // that did not: a rule naming --display-stack in the two stylesheets
   // would move every existing output's bytes for a variable nothing sets.
-  // One block after both of them also serves all four views at once, and
-  // beats the one rule it has to beat - .chunk-section .section-heading
-  // sets font-family: var(--body-font) at the same specificity, so this
-  // wins on document order.
-  const displayCss = overrides.some(o => o.role === 'display')
-    ? '\n.chunk-title .title-main,\n.chunk-section .section-heading'
-      + ' { font-family: var(--display-stack, var(--body-font)); }'
-    : '';
+  // Standing after both of them also beats the one rule it has to beat -
+  // .chunk-section .section-heading sets font-family: var(--body-font) at
+  // the same specificity, so this wins on document order.
+  //
+  // `view` is 'print' or 'live' and exists for the line heights alone: the
+  // two stylesheets spell the same composition differently
+  // (.chunk-title[data-cover=display] against .chunk[data-cover=display])
+  // and give it different ratios, 1.02 against 0.97, while BOTH selectors
+  // match in both views. One shared block would therefore hand print the
+  // projection's ratio, or the reverse, depending on which came last.
+  //
+  // The line heights below it are the second half of the same condition.
+  // They are read out of DISPLAY_LH, which is also what the two stylesheets
+  // interpolated, so the numbers exist once; see the note there for why a
+  // blanket line-height would be wrong and why this costs no bytes. A face
+  // an author supplied from fonts/ carries no measurement, so its factor is
+  // 1 and nothing is restated - the correction belongs to `size-adjust`, and
+  // where there is no size-adjust there is nothing to correct.
+  let displayCss = '';
+  if (overrides.some(o => o.role === 'display')) {
+    if (!DISPLAY_LH[view]) throw new Error(`fontStyleTag: unknown view ${view}`);
+    displayCss = '\n.chunk-title .title-main,\n.chunk-section .section-heading'
+      + ' { font-family: var(--display-stack, var(--body-font)); }';
+    const pct = (bundled.find(f => f.role === 'display') || {}).sizeAdjust;
+    // Divided in CSS rather than in JS: the emitted rule then carries the
+    // measured percentage itself, beside the size-adjust descriptor it
+    // answers, and no float is formatted on the way out.
+    if (pct && pct !== 100) displayCss += '\n' + Object.entries(DISPLAY_LH[view])
+      .map(([sel, lh]) => `${sel} { line-height: calc(${lh} * ${pct} / 100); }`)
+      .join('\n');
+  }
   const notice = bundled.length
     ? oflNotice([...new Set(bundled.map(f => f.family))]) + '\n' : '';
   return `<style>\n${notice}${faceCss}${rootBlock}${displayCss}\n</style>`;
@@ -6501,7 +6571,7 @@ function renderDocument(lecture, opts = {}) {
 ${PRINT_CSS}
 ${DIAGRAM_CSS}
 </style>
-${fontStyleTag(opts.fontEmbed)}
+${fontStyleTag(opts.fontEmbed, 'print')}
 ${styleBlockCss(styleOpts)}
 ${katexStyleTag(anonHtml + namedHtml)}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
@@ -6966,7 +7036,7 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   font-size: var(--title-lead);
   max-width: var(--title-measure, none);
   margin: 0 0 0.8rem;
-  line-height: 1.15;
+  line-height: ${displayLh('print', '.chunk-title .title-main')};
 }
 .chunk-title .title-presenter {
   font-size: 1.1rem;
@@ -7010,7 +7080,7 @@ body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
 body[data-headline=eyebrow] .chunk-title .title-main {
   font-size: 1rem;
   font-weight: 600;
-  line-height: 1.3;
+  line-height: ${displayLh('print', 'body[data-headline=eyebrow] .chunk-title .title-main')};
   letter-spacing: 0.015em;
   color: var(--ink-soft);
   margin: 0 0 0.25rem;
@@ -7110,7 +7180,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 .chunk-title[data-cover=display] { --title-lead: 3.6rem; }
 .chunk-title[data-cover=display] { --title-measure: 11em; }
 .chunk-title[data-cover=display] .title-main {
-  line-height: 1.02;
+  line-height: ${displayLh('print', '.chunk-title[data-cover=display] .title-main')};
   letter-spacing: -0.03em;
 }
 
@@ -8128,7 +8198,7 @@ function renderAudience(lecture, opts = {}) {
 ${AUDIENCE_CSS}
 ${DIAGRAM_CSS}
 </style>
-${fontStyleTag(opts.fontEmbed)}
+${fontStyleTag(opts.fontEmbed, 'live')}
 ${styleBlockCss(styleOpts, S)}
 ${katexStyleTag(columnsHtml, { fontToggle: true })}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
@@ -9244,7 +9314,7 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   max-width: var(--title-measure, none);
   font-weight: 500;
   margin: 0;
-  line-height: 1.1;
+  line-height: ${displayLh('live', '.chunk-title .title-main')};
   letter-spacing: -0.02em;
 }
 .chunk-title .title-presenter {
@@ -9323,7 +9393,7 @@ body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
 body[data-headline=eyebrow] .chunk-title .title-main {
   font-size: calc(1.02em * var(--zoom));
   font-weight: 600;
-  line-height: 1.3;
+  line-height: ${displayLh('live', 'body[data-headline=eyebrow] .chunk-title .title-main')};
   letter-spacing: 0.015em;
   color: var(--ink-soft);
   /* Uncapped, and that is the point of moving the cap to --title-measure:
@@ -9556,7 +9626,7 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
 .chunk[data-cover=display] { --title-measure: 9.5em; }
 .chunk[data-cover=display] .title-main {
   font-weight: 600;
-  line-height: 0.97;
+  line-height: ${displayLh('live', '.chunk[data-cover=display] .title-main')};
   letter-spacing: -0.042em;
   text-wrap: balance;
 }
@@ -10986,7 +11056,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   font-size: calc(2.6em * var(--zoom));
   font-weight: 500;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: ${displayLh('live', '.chunk-section .section-heading')};
   margin: 0;
   color: var(--ink);
 }
@@ -16550,7 +16620,7 @@ ${DIAGRAM_CSS}
 ${SPEAKER_CSS}
 </style>
 ${styleBlockCss(styleOpts, S)}
-${fontStyleTag(opts.fontEmbed)}
+${fontStyleTag(opts.fontEmbed, 'live')}
 ${katexStyleTag(columnsHtml, { fontToggle: true })}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
 </head>
