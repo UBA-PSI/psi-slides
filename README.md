@@ -186,8 +186,9 @@ If you would rather not use the skill, the minimum useful set is:
 - [`CLAUDE.md`](CLAUDE.md) – the conventions, the parsing contract, and the
   things that are easy to get wrong.
 - `node lint.js <source.md>` after every edit. It catches unknown types and
-  widths, missing or duplicate IDs, unclosed directives, and over-budget
-  chunks, which is most of what a model gets wrong.
+  widths, missing or duplicate IDs, unclosed directives, over-budget chunks
+  and frontmatter keys that no renderer reads, which is most of what a model
+  gets wrong.
 
 Two things go wrong often enough to be worth naming. Models invent plausible
 directives that do not exist (`::: columns`, `::: note`, extra classes in

@@ -86,7 +86,7 @@
        left a 350px band of nothing at the right edge over 780px of gallery,
        open or shut. A block with no evidence beside it is a block. -->
   <details class="setup">
-    <summary>The other seven, and the two settings that move the type</summary>
+    <summary>The other seven, the settings that move the type, and the words on the slide</summary>
     <div class="setup-body">
       <p>Four of the ten take a picture: <code>split</code> and
       <code>hero</code> from <code>cover-image:</code>, <code>beside</code> and
@@ -96,7 +96,21 @@
       <code>cover-align:</code> you set it high, in the middle or low on the
       seven that leave it any freedom, and with <code>cover-ratio:</code> you
       say how much of the slide the picture gets on the ones that divide
-      it.</p>
+      it. <code>cover-ground: ink</code> opens a light lecture on a dark
+      slide with no photograph in it.</p>
+
+      <p><strong>The words on the cover are four ranks rather than a name and
+      a list.</strong> <code>presenter:</code> is your name;
+      <code>affiliation:</code> the institution, set quieter directly under
+      it; and <code>contact:</code> and <code>notice:</code> share one row
+      along the foot, the address flush left and the notice flush right. The
+      split is by job &ndash; a presenter and an institution introduce the
+      speaker, while an address and &ldquo;the slides go up on Friday&rdquo;
+      answer the room. <code>info:</code> keeps the date, the room and the
+      course line. Which of <code>title:</code> and <code>subtitle:</code> is
+      set large is <code>style: {headline: &hellip;}</code>, and
+      <code>style: {caps: on}</code> sets the small type round them in
+      capitals.</p>
       <div class="gallery">
       <figure class="shot tile"><img src="img/masthead.webp" alt="A title slide with the title at the top edge, a lede in the middle, and the credits under a rule at the bottom.">
       <figcaption><code>masthead</code> the title at the top edge, credits under a rule at the foot</figcaption></figure>
@@ -127,7 +141,11 @@
     written as <code>## closing:</code> is drawn in whatever composition you
     named with <code>cover:</code>, so the hour ends on the shape it began
     with. It carries your own words and neither the presenter line nor the date: those
-    say who is talking and when, and the room learned that an hour ago.</p>
+    say who is talking and when, and the room learned that an hour ago.
+    <code>closing-credits:</code> is how you ask for them back &ndash;
+    <code>contact</code> for the foot row alone, which is usually the one
+    line a last slide is wanted for, or <code>cover</code> for the whole
+    block.</p>
    </div>
    <div>
     <p><strong>The six compositions with no picture can still have one.</strong>

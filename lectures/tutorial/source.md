@@ -694,7 +694,9 @@ When several parallel items pile up inside one paragraph, write a real Markdown 
 
 - `node build.js --new <slug>` makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.
 - `node build.js <source.md> --watch` rebuilds and reloads every open tab on every save.
-- `node lint.js lectures/` checks what can be checked without building: unknown types, unclosed `:::` blocks, repeated ids, word budgets, too many segments, columns with only one chunk, captions that repeat the heading. `--strict` turns the warnings into failures.
+- `node lint.js lectures/` checks what can be checked without building: unknown types, unclosed `:::` blocks, repeated ids, word budgets, too many segments, one-chunk columns, captions that repeat the heading, frontmatter keys nothing reads. `--strict` turns the warnings into failures.
+
+A frontmatter key nothing reads looks like nothing is wrong – the lecture builds, the slides look right, and the key never reached a page. `author:` sat in several lectures here doing that.
 
 A source file can switch one check off with `<!-- linter: ignore reveal-overuse, density -->` anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for `density`, and says there why.
 
@@ -1306,7 +1308,9 @@ Use `cols` for an argument that runs long, and `cards` for a comparison the audi
 
 That row is `::: rows {.accent}` around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. **The explanation is optional** – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.
 
-It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: the text is centred against its term rather than against its first line; `align` says how the term sits *in its card*, and the explanation always ranges left; and the automatic size stops at `medium`, a term being a label in a column rather than a headline across the slide.
+It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: `anchor` follows the ground, `align` says how the term sits *in its card* while the explanation ranges left, and the automatic size stops at `medium`, a term being a label in a column rather than a headline across the slide.
+
+**A row block adds one anchor word, `baseline`, and picks between two by ground.** On a fill the term is a visible slab, and a one-line slab against a three-line explanation's first line reads as a mistake, so a grounded row centres it. Under `{.clear}` there is no slab and no padding, so the term is bare words in a column, and those read best on the baseline – a hanging indent, which is the form a term and its definition have taken since long before the slide. `{.baseline}` on a `::: cards` block is an error: a card has nothing beside it to line up with.
 
 Use `rows` when a term needs a sentence, and `cards` when a comparison needs counting.
 
@@ -1342,19 +1346,19 @@ style:
   rules: off            # on | off  – the hairline over a principle
   labels: off           # on | off  – the type word over a chunk
   link-codes: off       # on | off  – the mark after an external link
-  blocks: left          # center | left – where a code block,
-                        # a figure and a formula sit
-  wrap: none            # balance | none – even line lengths,
-                        # in headings and in prose alike
+  blocks: left          # center | left – a code block, a figure, a formula
+  wrap: none            # balance | none – even line lengths
   print-body: sans      # serif | sans – the printed document's face
-  bold: accent-bold     # plain | bold | italic | accent | accent-bold
-                        # | accent-italic – a **bold** phrase, live
-  print-bold: italic    # the same six – a **bold** phrase on paper
-  heading-scale: 1.15   # 0.6 … 1.8
-  body-scale: 0.95      # 0.6 … 1.8
+  neutrals: tinted      # neutral | tinted | warm | cool – the greys
+  print-neutrals: warm  # the same four, for the printed pages
+  headline: eyebrow     # stacked | eyebrow – the title pair
+  caps: on              # off | on – small type round a title
+  bold: accent-bold     # plain | bold | italic | accent |
+  print-bold: italic    #   accent-bold | accent-italic – live, then paper
+  heading-scale: 1.15   # with body-scale, bounded to 0.6 … 1.8
 ```
 
-`headings: auto` is the default, and it means the type decides: a question is centred, a figure's caption sits over its artwork. `left` overrides all of that, for one line of alignment down the whole lecture. `off` takes every heading off the projection while keeping it in `print.html`, `print-notes.html`, the contents list and the search.
+`headings: auto` is the default: the type decides, so a figure's caption sits over its artwork. `left` overrides that for one line of alignment down the lecture; `off` takes headings off the projection and keeps them in print, the contents list and search.
 
 ## example: Five keys the block's names do not explain | `wrap`, `blocks`, `print-body`, the bold pair and the scales {.wide #style-keys}
 
@@ -1365,6 +1369,34 @@ style:
 **`bold` and `print-bold` set how a `**bold**` phrase looks, and `plain` is a legal answer because bold selects before it decorates.** Live the default is `plain`, so a promoted bullet is set like the sentence above it; on paper it is `bold`, in the ink. `accent-bold` in both is how the tool drew every bold before the keys existed. A word stressed with `*em*` inside the phrase is bold and in the accent whatever the key says – except under `accent-bold`, where it stays italic.
 
 The two scales multiply the tool's own sizes rather than replacing them, and they are **bounded**. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.
+
+## example: What hue the greys carry | `neutrals`, and its counterpart for the page {.wide #neutrals}
+
+**`A` cycles the theme, and in the four light themes it moves one colour: the accent.** The ink stays on a cool hue, and every tinted surface – a card, a dock, an overlay card – is mixed out of that ink, so a card under a warm accent is a cool grey under a warm word.
+
+::: rows {.clear}
+- **`neutral`** the default, and what the tool has always drawn
+- **`tinted`** the greys take the accent's own hue, so the slide reads as one palette whichever accent the room gets
+- **`warm`** / **`cool`** a fixed hue, the accent notwithstanding
+:::
+
+**`print-neutrals` asks the same question for the two printed views**, and it is a second key because the printed page is warm already where the projection is not. Leave it out and it follows `neutrals`.
+
+## example: Which line of a title is the loud one | `headline`, and `caps` beside it {.wide #headline}
+
+**A cover carries a pair of lines, and so does a divider and a closing slide** – `title:` and `subtitle:` in the frontmatter, `Heading | Sub` in a chunk heading. `headline` says which of the two is set large.
+
+```yaml
+style:
+  headline: eyebrow     # stacked | eyebrow
+  caps: on              # off | on
+```
+
+`stacked` is the default: the title large, the subtitle quieter under it. `eyebrow` turns it over, so the title sits small above a subtitle that carries the weight – the shape a lecture title takes when the first line names the field and the second asks the question.
+
+**The words stay where they are and only their type changes**, which is what lets one key serve the cover, the dividers and the closing slide at once. `title:` is also the browser tab, the contents entry and what search reads, so putting the hook there would leave the lecture's own name nowhere.
+
+`caps` sets the small type round a title in capitals: the eyebrow, the presenter, the affiliation, never the headline. The tracking is not a second setting – the build spaces out any line already in capitals, including one you typed that way.
 
 ## example: Turning the generated labels off | `style: {labels: off}` {.wide #labels}
 
@@ -1429,15 +1461,31 @@ fonts:
 title: How Caches Forget
 subtitle: Eviction, Staleness and the Cost of Being Wrong
 presenter: Jana Wieland
+affiliation: Otto-Friedrich-Universität Bamberg
+contact: uni.example/ds
+notice: Slides go up on Friday.
 info: |
   Distributed Systems · Lecture 7 · Room WE5/00.019
-  uni.example/ds
 cover: split            # see the two rows below
 cover-image: skyline    # only the four picture covers take one;
                         # on the six text-only ones it is an error
 ```
 
-`info:` takes as many lines as you give it – the course and the room, the address students should write down, or, at a conference, its name and dates. Without `subtitle:` the one line saying what the talk is *about* has nowhere to go but `info` either, where it is set exactly like the rest.
+`info:` takes as many lines as you give it – the course and the room, or, at a conference, its name and dates. Without `subtitle:` the one line saying what the talk is *about* has nowhere to go but `info` either, where it is set exactly like the rest.
+
+## example: The credit block has four ranks | who is talking, where, and how to reach them {.wide #credits}
+
+**The four keys under `title:` are set at four different weights, because they do four different jobs.**
+
+::: rows {.clear}
+- **`presenter:`** your name, set apart from everything under it
+- **`affiliation:`** the institution, quieter, directly beneath the name
+- **`contact:` / `notice:`** one row along the foot – the address flush left, the notice flush right and in italics
+:::
+
+A presenter and an institution *introduce the speaker*; an address and “the slides go up on Friday” *answer the room*. That is why the last two share a row instead of stacking. `info:` keeps the date, the room and the course line.
+
+**Everything but `presenter:` used to go into `info:`**, which set the line that qualifies your name exactly like the line that gives the date.
 
 ## example: The ten cover compositions | six of text alone, four that take a picture {.wide #cover-list}
 
@@ -1473,6 +1521,8 @@ Four take a picture:
 On `beside`, `above`, `quote` and `masthead`, `info:` still supplies the credit lines; everywhere else writing a body replaces `info`.
 
 `cover-ratio: 42%` sets how much of the slide the picture takes on `split`, `beside` and `above`, and `cover-align: top | middle | bottom` moves the words up or down on the compositions that leave them any freedom.
+
+`cover-ground: ink` opens a light lecture on a dark slide with nothing behind it. Until it existed, a dark opening needed a photograph – `hero` inverts the slide it draws, and `::: backdrop` wants a file. It is written only where nothing has already darkened the slide, so a backdrop still wins over it, and the closing slide inherits it with the rest of the composition.
 
 Try `panel` with a backdrop: its coloured field becomes the veil, so the picture reads through a plate of the accent rather than under the paper wash every other backdrop gets.
 :::
@@ -1512,7 +1562,9 @@ section-mark: Teil      # any short word, or nothing
 Next week: certificates, and who you are actually trusting.
 ```
 
-**The heading is the first line, the sub-heading after the `|` is the second, and the body is whatever should stay on screen while the audience asks questions.** Your name and the `info` block are not drawn.
+**The heading is the first line, the sub-heading after the `|` is the second, and the body is whatever should stay on screen while the audience asks questions.** Your name and the `info` block are not drawn – the room learned both an hour ago, and a bookend that repeats them reads as a duplicate slide.
+
+The one line a last slide is often asked for anyway is where the slides can be found, so `closing-credits:` is graded rather than on and off: `none` is the default described above, `contact` brings back the foot row alone, and `cover` brings back the whole credit block.
 
 **A closing slide never uses `cover-image` by itself** – ending on the opening picture unasked would be the repetition a closing slide is meant to avoid. `closing-image: cover` in the frontmatter asks for it, and the deck closes on the picture it opened with; any other value names a different one, in the same three forms `cover-image` takes. A `::: backdrop` on the chunk is the other way and a different thing – a full-bleed ground behind the words, which works on all ten compositions and wins over both.
 

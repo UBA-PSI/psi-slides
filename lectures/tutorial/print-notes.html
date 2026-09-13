@@ -2305,8 +2305,9 @@ goes in it.</p>
 <ul>
 <li><code>node build.js --new &lt;slug&gt;</code> makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.</li>
 <li><code>node build.js &lt;source.md&gt; --watch</code> rebuilds and reloads every open tab on every save.</li>
-<li><code>node lint.js lectures/</code> checks what can be checked without building: unknown types, unclosed <code class="nb">:::</code> blocks, repeated ids, word budgets, too many segments, columns with only one chunk, captions that repeat the heading. <code class="nb">--strict</code> turns the warnings into failures.</li>
+<li><code>node lint.js lectures/</code> checks what can be checked without building: unknown types, unclosed <code class="nb">:::</code> blocks, repeated ids, word budgets, too many segments, one-chunk columns, captions that repeat the heading, frontmatter keys nothing reads. <code class="nb">--strict</code> turns the warnings into failures.</li>
 </ul>
+<p>A frontmatter key nothing reads looks like nothing is wrong – the lecture builds, the slides look right, and the key never reached a page. <code class="nb">author:</code> sat in several lectures here doing that.</p>
 <p>A source file can switch one check off with <code>&lt;!-- linter: ignore reveal-overuse, density --&gt;</code> anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for <code class="nb">density</code>, and says there why.</p>
 
   
@@ -3189,7 +3190,8 @@ of them are shown one per slide in
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What a row block does differently</span> <span class="hd-sub">no count, and three defaults of its own</span></h2>
   <p>That row is <code>::: rows {.accent}</code> around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. <strong>The explanation is optional</strong> – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.</p>
-<p>It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: the text is centred against its term rather than against its first line; <code class="nb">align</code> says how the term sits <em>in its card</em>, and the explanation always ranges left; and the automatic size stops at <code class="nb">medium</code>, a term being a label in a column rather than a headline across the slide.</p>
+<p>It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: <code class="nb">anchor</code> follows the ground, <code class="nb">align</code> says how the term sits <em>in its card</em> while the explanation ranges left, and the automatic size stops at <code class="nb">medium</code>, a term being a label in a column rather than a headline across the slide.</p>
+<p><strong>A row block adds one anchor word, <code class="nb">baseline</code>, and picks between two by ground.</strong> On a fill the term is a visible slab, and a one-line slab against a three-line explanation&#39;s first line reads as a mistake, so a grounded row centres it. Under <code class="nb">{.clear}</code> there is no slab and no padding, so the term is bare words in a column, and those read best on the baseline – a hanging indent, which is the form a term and its definition have taken since long before the slide. <code class="nb">{.baseline}</code> on a <code>::: cards</code> block is an error: a card has nothing beside it to line up with.</p>
 <p>Use <code class="nb">rows</code> when a term needs a sentence, and <code class="nb">cards</code> when a comparison needs counting.</p>
 
   
@@ -3240,17 +3242,17 @@ of them are shown one per slide in
 <span class="line"><span style="color:#22863A">  rules</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">            # on | off  – the hairline over a principle</span></span>
 <span class="line"><span style="color:#22863A">  labels</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">           # on | off  – the type word over a chunk</span></span>
 <span class="line"><span style="color:#22863A">  link-codes</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">       # on | off  – the mark after an external link</span></span>
-<span class="line"><span style="color:#22863A">  blocks</span><span style="color:#24292E">: </span><span style="color:#032F62">left</span><span style="color:#6A737D">          # center | left – where a code block,</span></span>
-<span class="line"><span style="color:#6A737D">                        # a figure and a formula sit</span></span>
-<span class="line"><span style="color:#22863A">  wrap</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">            # balance | none – even line lengths,</span></span>
-<span class="line"><span style="color:#6A737D">                        # in headings and in prose alike</span></span>
+<span class="line"><span style="color:#22863A">  blocks</span><span style="color:#24292E">: </span><span style="color:#032F62">left</span><span style="color:#6A737D">          # center | left – a code block, a figure, a formula</span></span>
+<span class="line"><span style="color:#22863A">  wrap</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">            # balance | none – even line lengths</span></span>
 <span class="line"><span style="color:#22863A">  print-body</span><span style="color:#24292E">: </span><span style="color:#032F62">sans</span><span style="color:#6A737D">      # serif | sans – the printed document's face</span></span>
-<span class="line"><span style="color:#22863A">  bold</span><span style="color:#24292E">: </span><span style="color:#032F62">accent-bold</span><span style="color:#6A737D">     # plain | bold | italic | accent | accent-bold</span></span>
-<span class="line"><span style="color:#6A737D">                        # | accent-italic – a **bold** phrase, live</span></span>
-<span class="line"><span style="color:#22863A">  print-bold</span><span style="color:#24292E">: </span><span style="color:#032F62">italic</span><span style="color:#6A737D">    # the same six – a **bold** phrase on paper</span></span>
-<span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # 0.6 … 1.8</span></span>
-<span class="line"><span style="color:#22863A">  body-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">0.95</span><span style="color:#6A737D">      # 0.6 … 1.8</span></span></code></pre>
-<p><code>headings: auto</code> is the default, and it means the type decides: a question is centred, a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides all of that, for one line of alignment down the whole lecture. <code class="nb">off</code> takes every heading off the projection while keeping it in <code class="nb">print.html</code>, <code class="nb">print-notes.html</code>, the contents list and the search.</p>
+<span class="line"><span style="color:#22863A">  neutrals</span><span style="color:#24292E">: </span><span style="color:#032F62">tinted</span><span style="color:#6A737D">      # neutral | tinted | warm | cool – the greys</span></span>
+<span class="line"><span style="color:#22863A">  print-neutrals</span><span style="color:#24292E">: </span><span style="color:#032F62">warm</span><span style="color:#6A737D">  # the same four, for the printed pages</span></span>
+<span class="line"><span style="color:#22863A">  headline</span><span style="color:#24292E">: </span><span style="color:#032F62">eyebrow</span><span style="color:#6A737D">     # stacked | eyebrow – the title pair</span></span>
+<span class="line"><span style="color:#22863A">  caps</span><span style="color:#24292E">: </span><span style="color:#005CC5">on</span><span style="color:#6A737D">              # off | on – small type round a title</span></span>
+<span class="line"><span style="color:#22863A">  bold</span><span style="color:#24292E">: </span><span style="color:#032F62">accent-bold</span><span style="color:#6A737D">     # plain | bold | italic | accent |</span></span>
+<span class="line"><span style="color:#22863A">  print-bold</span><span style="color:#24292E">: </span><span style="color:#032F62">italic</span><span style="color:#6A737D">    #   accent-bold | accent-italic – live, then paper</span></span>
+<span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # with body-scale, bounded to 0.6 … 1.8</span></span></code></pre>
+<p><code>headings: auto</code> is the default: the type decides, so a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides that for one line of alignment down the lecture; <code class="nb">off</code> takes headings off the projection and keeps them in print, the contents list and search.</p>
 
   
   
@@ -3274,9 +3276,52 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="83">
+<article class="chunk chunk-example width-wide" id="neutrals" data-chunk-num="83">
   
   <span class="chunk-num" aria-hidden="true"><i>8</i><i>3</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">What hue the greys carry</span> <span class="hd-sub"><code class="nb">neutrals</code>, and its counterpart for the page</span></h2>
+  <p><strong><code class="nb">A</code> cycles the theme, and in the four light themes it moves one colour: the accent.</strong> The ink stays on a cool hue, and every tinted surface – a card, a dock, an overlay card – is mixed out of that ink, so a card under a warm accent is a cool grey under a warm word.</p>
+<div class="cards rows cards-1 cs-medium ca-left cv-baseline cd-fold cg-clear ck-round cx-veil">
+<ul>
+<li><strong><code class="nb">neutral</code></strong><span class="row-body">the default, and what the tool has always drawn</span></li>
+<li><strong><code class="nb">tinted</code></strong><span class="row-body">the greys take the accent&#39;s own hue, so the slide reads as one palette whichever accent the room gets</span></li>
+<li><strong><code class="nb">warm</code></strong><span class="row-body">/ <strong><code class="nb">cool</code></strong> a fixed hue, the accent notwithstanding</span></li>
+</ul>
+
+</div>
+
+
+<p><strong><code class="nb">print-neutrals</code> asks the same question for the two printed views</strong>, and it is a second key because the printed page is warm already where the projection is not. Leave it out and it follows <code class="nb">neutrals</code>.</p>
+
+  
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="headline" data-chunk-num="84">
+  
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>4</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Which line of a title is the loud one</span> <span class="hd-sub"><code class="nb">headline</code>, and <code class="nb">caps</code> beside it</span></h2>
+  <p><strong>A cover carries a pair of lines, and so does a divider and a closing slide</strong> – <code class="nb">title:</code> and <code class="nb">subtitle:</code> in the frontmatter, <code>Heading | Sub</code> in a chunk heading. <code class="nb">headline</code> says which of the two is set large.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">style</span><span style="color:#24292E">:</span></span>
+<span class="line"><span style="color:#22863A">  headline</span><span style="color:#24292E">: </span><span style="color:#032F62">eyebrow</span><span style="color:#6A737D">     # stacked | eyebrow</span></span>
+<span class="line"><span style="color:#22863A">  caps</span><span style="color:#24292E">: </span><span style="color:#005CC5">on</span><span style="color:#6A737D">              # off | on</span></span></code></pre>
+<p><code class="nb">stacked</code> is the default: the title large, the subtitle quieter under it. <code class="nb">eyebrow</code> turns it over, so the title sits small above a subtitle that carries the weight – the shape a lecture title takes when the first line names the field and the second asks the question.</p>
+<p><strong>The words stay where they are and only their type changes</strong>, which is what lets one key serve the cover, the dividers and the closing slide at once. <code class="nb">title:</code> is also the browser tab, the contents entry and what search reads, so putting the hook there would leave the lecture&#39;s own name nowhere.</p>
+<p><code class="nb">caps</code> sets the small type round a title in capitals: the eyebrow, the presenter, the affiliation, never the headline. The tracking is not a second setting – the build spaces out any line already in capitals, including one you typed that way.</p>
+
+  
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="85">
+  
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>5</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Turning the generated labels off</span> <span class="hd-sub"><code>style: {labels: off}</code></span></h2>
   <p><strong>The type word above a chunk is drawn in two places, and one setting takes it out of both.</strong></p>
@@ -3300,9 +3345,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="84">
+<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="86">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Which typefaces are embedded in the file</span> <span class="hd-sub">nine come with the tool</span></h2>
   <p><strong>Three families are embedded in any one file, and you pick which three.</strong> Nine come with the tool, so naming one of those needs no font file at all.</p>
@@ -3322,9 +3367,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="85">
+<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="87">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own typefaces</span> <span class="hd-sub"><code class="nb">fonts/</code> beside <code class="nb">source.md</code>, plus a frontmatter block</span></h2>
   <p><strong>A family that is not inside the file is a family the lecture-hall machine may not have.</strong> Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and <code>fonts: none</code> leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.</p>
@@ -3342,22 +3387,24 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="86" data-blocks="left">
+<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="88" data-blocks="left">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">How the title slide is composed</span> <span class="hd-sub"><code class="nb">cover:</code> plus a <code class="nb">subtitle:</code> line</span></h2>
   <p><strong><code class="nb">cover:</code> in the frontmatter picks how the title slide is composed, and <code class="nb">subtitle:</code> gives it the line that says what the talk is about.</strong> Without those two, a cover is one weight of one colour with the subject set beside the venue, and it reads as a text file rather than as the opening of a talk.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">title</span><span style="color:#24292E">: </span><span style="color:#032F62">How Caches Forget</span></span>
 <span class="line"><span style="color:#22863A">subtitle</span><span style="color:#24292E">: </span><span style="color:#032F62">Eviction, Staleness and the Cost of Being Wrong</span></span>
 <span class="line"><span style="color:#22863A">presenter</span><span style="color:#24292E">: </span><span style="color:#032F62">Jana Wieland</span></span>
+<span class="line"><span style="color:#22863A">affiliation</span><span style="color:#24292E">: </span><span style="color:#032F62">Otto-Friedrich-Universität Bamberg</span></span>
+<span class="line"><span style="color:#22863A">contact</span><span style="color:#24292E">: </span><span style="color:#032F62">uni.example/ds</span></span>
+<span class="line"><span style="color:#22863A">notice</span><span style="color:#24292E">: </span><span style="color:#032F62">Slides go up on Friday.</span></span>
 <span class="line"><span style="color:#22863A">info</span><span style="color:#24292E">: </span><span style="color:#D73A49">|</span></span>
 <span class="line"><span style="color:#032F62">  Distributed Systems · Lecture 7 · Room WE5/00.019</span></span>
-<span class="line"><span style="color:#032F62">  uni.example/ds</span></span>
 <span class="line"><span style="color:#22863A">cover</span><span style="color:#24292E">: </span><span style="color:#032F62">split</span><span style="color:#6A737D">            # see the two rows below</span></span>
 <span class="line"><span style="color:#22863A">cover-image</span><span style="color:#24292E">: </span><span style="color:#032F62">skyline</span><span style="color:#6A737D">    # only the four picture covers take one;</span></span>
 <span class="line"><span style="color:#6A737D">                        # on the six text-only ones it is an error</span></span></code></pre>
-<p><code class="nb">info:</code> takes as many lines as you give it – the course and the room, the address students should write down, or, at a conference, its name and dates. Without <code class="nb">subtitle:</code> the one line saying what the talk is <em>about</em> has nowhere to go but <code class="nb">info</code> either, where it is set exactly like the rest.</p>
+<p><code class="nb">info:</code> takes as many lines as you give it – the course and the room, or, at a conference, its name and dates. Without <code class="nb">subtitle:</code> the one line saying what the talk is <em>about</em> has nowhere to go but <code class="nb">info</code> either, where it is set exactly like the rest.</p>
 
   
   
@@ -3365,9 +3412,34 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cover-list" data-chunk-num="87">
+<article class="chunk chunk-example width-wide" id="credits" data-chunk-num="89">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>9</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">The credit block has four ranks</span> <span class="hd-sub">who is talking, where, and how to reach them</span></h2>
+  <p><strong>The four keys under <code class="nb">title:</code> are set at four different weights, because they do four different jobs.</strong></p>
+<div class="cards rows cards-1 cs-medium ca-left cv-baseline cd-fold cg-clear ck-round cx-veil">
+<ul>
+<li><strong><code class="nb">presenter:</code></strong><span class="row-body">your name, set apart from everything under it</span></li>
+<li><strong><code class="nb">affiliation:</code></strong><span class="row-body">the institution, quieter, directly beneath the name</span></li>
+<li><strong><code class="nb">contact:</code> / <code class="nb">notice:</code></strong><span class="row-body">one row along the foot – the address flush left, the notice flush right and in italics</span></li>
+</ul>
+
+</div>
+
+
+<p>A presenter and an institution <em>introduce the speaker</em>; an address and “the slides go up on Friday” <em>answer the room</em>. That is why the last two share a row instead of stacking. <code class="nb">info:</code> keeps the date, the room and the course line.</p>
+<p><strong>Everything but <code class="nb">presenter:</code> used to go into <code class="nb">info:</code></strong>, which set the line that qualifies your name exactly like the line that gives the date.</p>
+
+  
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="cover-list" data-chunk-num="90">
+  
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The ten cover compositions</span> <span class="hd-sub">six of text alone, four that take a picture</span></h2>
   <p><strong>They are ordered by how prominent the opening slide is.</strong> Six are text and nothing else:</p>
@@ -3388,9 +3460,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cover-pictures" data-chunk-num="88">
+<article class="chunk chunk-example width-wide" id="cover-pictures" data-chunk-num="91">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The four covers that take a picture</span> <span class="hd-sub">and what each does with it</span></h2>
   <p>Four take a picture:</p>
@@ -3409,9 +3481,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cover-keys" data-chunk-num="89">
+<article class="chunk chunk-example width-wide" id="cover-keys" data-chunk-num="92">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What a cover reads besides its name</span> <span class="hd-sub">the body, a backdrop, and three more keys</span></h2>
   <p><strong><code class="nb">beside</code>, <code class="nb">above</code> and <code class="nb">quote</code> take their content from the chunk body</strong>, so a <code>::: draw</code> can be the cover – a diagram is not a file, and <code class="nb">cover-image</code> can never name one.</p>
@@ -3422,15 +3494,16 @@ of them are shown one per slide in
   <aside class="chunk-expansion chunk-expansion-expand" data-label="The rest of the cover keys">
 <p>On <code class="nb">beside</code>, <code class="nb">above</code>, <code class="nb">quote</code> and <code class="nb">masthead</code>, <code class="nb">info:</code> still supplies the credit lines; everywhere else writing a body replaces <code class="nb">info</code>.</p>
 <p><code>cover-ratio: 42%</code> sets how much of the slide the picture takes on <code class="nb">split</code>, <code class="nb">beside</code> and <code class="nb">above</code>, and <code>cover-align: top | middle | bottom</code> moves the words up or down on the compositions that leave them any freedom.</p>
+<p><code>cover-ground: ink</code> opens a light lecture on a dark slide with nothing behind it. Until it existed, a dark opening needed a photograph – <code class="nb">hero</code> inverts the slide it draws, and <code>::: backdrop</code> wants a file. It is written only where nothing has already darkened the slide, so a backdrop still wins over it, and the closing slide inherits it with the rest of the composition.</p>
 <p>Try <code class="nb">panel</code> with a backdrop: its coloured field becomes the veil, so the picture reads through a plate of the accent rather than under the paper wash every other backdrop gets.</p>
 
 </aside>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="90">
+<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="93">
   
-  <span class="chunk-num" aria-hidden="true"><i>9</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Where a new part starts</span> <span class="hd-sub"><code class="nb">section:</code></span></h2>
   <p><strong>A column with a <code># Heading</code> opens with a divider slide</strong>, and <code class="nb">section:</code> picks how that slide is drawn.</p>
@@ -3451,9 +3524,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="section-quiet" data-chunk-num="91">
+<article class="chunk chunk-example width-wide" id="section-quiet" data-chunk-num="94">
   
-  <span class="chunk-num" aria-hidden="true"><i>9</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>4</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A divider is never the title slide</span> <span class="hd-sub">and <code class="nb">section-mark:</code> puts a word over it</span></h2>
   <p><strong>They stay less prominent than the cover</strong>, so that a divider is not mistaken for the title slide: it says <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
@@ -3468,16 +3541,17 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="92">
+<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="95">
   
-  <span class="chunk-num" aria-hidden="true"><i>9</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>5</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The last slide</span> <span class="hd-sub"><code>## closing:</code></span></h2>
   <p><strong><code>## closing:</code> draws a last slide in the same composition as the cover, so the lecture ends on the shape it opened with.</strong> A lecture that starts on a designed slide and ends on the last bullet of the last argument stops rather than finishes.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold">## closing: Questions? | office hours Thursday, 14–16 {#end}</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#24292E">Next week: certificates, and who you are actually trusting.</span></span></code></pre>
-<p><strong>The heading is the first line, the sub-heading after the <code class="nb">|</code> is the second, and the body is whatever should stay on screen while the audience asks questions.</strong> Your name and the <code class="nb">info</code> block are not drawn.</p>
+<p><strong>The heading is the first line, the sub-heading after the <code class="nb">|</code> is the second, and the body is whatever should stay on screen while the audience asks questions.</strong> Your name and the <code class="nb">info</code> block are not drawn – the room learned both an hour ago, and a bookend that repeats them reads as a duplicate slide.</p>
+<p>The one line a last slide is often asked for anyway is where the slides can be found, so <code class="nb">closing-credits:</code> is graded rather than on and off: <code class="nb">none</code> is the default described above, <code class="nb">contact</code> brings back the foot row alone, and <code class="nb">cover</code> brings back the whole credit block.</p>
 <p><strong>A closing slide never uses <code class="nb">cover-image</code> by itself</strong> – ending on the opening picture unasked would be the repetition a closing slide is meant to avoid. <code>closing-image: cover</code> in the frontmatter asks for it, and the deck closes on the picture it opened with; any other value names a different one, in the same three forms <code class="nb">cover-image</code> takes. A <code>::: backdrop</code> on the chunk is the other way and a different thing – a full-bleed ground behind the words, which works on all ten compositions and wins over both.</p>
 
   
@@ -3490,9 +3564,9 @@ of them are shown one per slide in
 </div>
 </aside>
 </article>
-<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="93" id="end">
+<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="96" id="end">
   
-  <span class="chunk-num" aria-hidden="true"><i>9</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>6</i></span>
   <h1 class="title-main">That is the tour</h1>
     <p class="title-subtitle">now write your own <code class="nb">source.md</code></p>
     <div class="closing-body"><p>Everything in this tour comes out of one Markdown file and one command, <code>node build.js source.md</code>. The four views are already sitting beside it.</p>
