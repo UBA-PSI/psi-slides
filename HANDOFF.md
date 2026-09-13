@@ -4,6 +4,78 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Slice: Trackpad-Zoom – warum er prellte, und der Zeiger als Ankerpunkt
+
+Gemeldet als „das Zoomen ruckelt und prellt, ich kann nicht zuverlässig
+zoomen" – Overview und Figure-Focus gleichermaßen. Der Befund waren **drei**
+unabhängige Ursachen, und keine davon war die, nach der man zuerst sucht.
+
+Die Diagnose kam aus dem Code, die Kalibrierung aus einer Messung. Der Autor
+hat auf einer Wegwerf-Seite mit dem Trackpad gezoomt, während sie die Events
+mitschrieb: 991 Events über 12 Gesten, Abstand im Median **8,4 ms** (also
+119 Hz), `|deltaY|` zwischen **0,012 und 6 px**, ein Drittel echte Pinch-Events
+(`ctrlKey`), zwei Drittel Zweifinger-Scroll, und **9 Vorzeichenwechsel
+innerhalb einer Geste**. Drei Zahlen daraus sind nicht ableitbar gewesen und
+haben je eine Design-Entscheidung getragen.
+
+1. **Der Schritt ignorierte die Stärke des Events.** `deltaY > 0 ? 0.92 : 1.08`
+   machte den Zoom zu einer Funktion davon, *wie viele* Events ankamen, nicht
+   davon, wie weit die Finger gingen. 22 Events bei 1.1 durchqueren den ganzen
+   Bereich der Focus-Karte – 183 ms Kontakt bis zum Anschlag. In der Messung
+   ist Box A tatsächlich auf 8 gelaufen. Dazu die **Inertia-Schleppe**: macOS
+   sendet nach dem Abheben weiter, `deltaY` um 0,2, Lücken über 100 ms, am Ende
+   kippt das Vorzeichen – jedes davon war ein voller 8-%-Schritt. Das ist das
+   Prellen *nachdem* man aufgehört hat, und es war aus dem Code allein nicht zu
+   sehen, weil es eine Eigenschaft des Betriebssystems ist.
+2. **Die CSS-Transition kämpfte gegen den Event-Strom.** Bei 8,4 ms Abstand
+   wurde die 250-ms-Kamerakurve ~30-mal aus ihrem eigenen Zwischenwert neu
+   angesetzt. Dass das die Ursache war, verriet der Drag-Pfad: der schaltet die
+   Transition seit jeher ab (`body.overview-dragging`, `body.figure-dragging`),
+   der Wheel-Pfad hat dieselbe Behandlung nie bekommen.
+3. **Der Empfänger hatte denselben Fehler von der anderen Seite.** `figure-view`
+   ruft beim Peer `applyFigureTransform()` – mit laufender Transition. Die
+   Projektion hätte weitergeruckelt, obwohl das Cockpit glatt ist. Der
+   Pan-Empfänger daneben macht es richtig (`focusCamera(true)`); dem
+   Figure-Empfänger fehlte dieser Ausweg.
+
+Gebaut: `wheelZoomPx` / `zoomScaleFor` / `markZooming` als gemeinsamer Block
+über den beiden Handlern, `ZOOM_K = 0.01` (≈ 208 px Fingerweg für den vollen
+Bereich, der Wert, bei dem der Autor am Regler gelandet ist), Delta pro Event
+auf 12 px geklemmt – doppelt so viel wie das größte gemessene Trackpad-Event,
+damit eine Mausradraste 13 % statt 3,3× wird –, rAF-Bündelung auf einen
+Style-Write pro Frame, und `broadcastFigureView` von einer postMessage pro
+Event auf eine pro Frame.
+
+**Warum `exp()` und nicht ein Faktor pro Event:** `exp(-a·k)·exp(-b·k) =
+exp(-(a+b)·k)`. Zwei Events von 1 px landen exakt dort, wo eines von 2 px
+landet – ohne diese Eigenschaft würde die rAF-Bündelung das Ergebnis
+verändern. Die beiden Korrekturen sind also nicht unabhängig: die proportionale
+Skalierung ist die Voraussetzung dafür, dass man überhaupt bündeln darf.
+
+**Zeiger-Anker.** Beide Fälle reduzieren sich auf eine Zeile. Karte:
+`pan' = pan + (1 - r)·(Q - sichtbareMitte)`. Board: der Anker-Chunk und die
+Skala kürzen sich heraus, übrig bleibt ein Schritt auf `manualPan`. Zwei
+Fallen, beide teuer und beide unsichtbar, wenn man nur hinschaut: `r` muss das
+*erreichte* Verhältnis sein, sonst wandert die Karte am 8×-Anschlag unter einem
+Zeiger weiter, der nichts mehr zoomt; und die Board-Rechnung muss in
+**Layout-Space** passieren, weil `#stage-viewport` im Cockpit selbst durch
+`scale(--stage-scale)` gezeichnet wird – ein `clientX` ist dort ein
+geschrumpfter Pixel. `focusCamera` trägt dieselbe Warnung im Kommentar. Die
+Focus-Karte braucht die Umrechnung nicht, weil `#figure-overlay`
+`position: fixed` und ein Geschwister von `#stage-viewport` ist. `+`/`-` zoomen
+weiter mittig – in einem Tastendruck steckt kein Zeiger.
+
+**Wie geprüft wurde**, weil „sieht flüssig aus" hier kein Kriterium ist:
+Skalieren um einen Fixpunkt `Q` muss jeden Punkt `P` auf `Q + r·(P - Q)`
+abbilden. Gemessen am gebauten `audience.html` und `speaker.html`, rein und
+raus, Abweichung **0,00 px** in beiden Views und auf der Karte. Die
+Cockpit-Zeile ist der Beleg für die Layout-Space-Umrechnung: bei gleichem `r`
+wandert die Ecke dort 59,7 px statt 40,1 px, und der Anker sitzt trotzdem.
+
+Nicht gemacht, bewusst: kein Clamp auf `figurePan`. Man kann die Karte schon
+heute per Drag aus dem Bild schieben, `0` setzt zurück, und ein Clamp wäre eine
+zweite Entscheidung in einem Slice, der eine beantwortet.
+
 ## Slice: die Tutorial-Lecture gegen das gelesen, was der Raum sieht
 
 Ein Durchgang durch `lectures/tutorial` mit dem Autor, Folie für Folie. Der

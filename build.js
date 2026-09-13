@@ -7391,7 +7391,7 @@ function renderHelpOverlay(view, withEditor) {
     ]],
     ['Finding a slide', [
       ['<kbd>O</kbd>', 'overview – the whole lecture on one board (letter O, not zero)'],
-      ['drag · wheel', 'pan the board · zoom the board'],
+      ['drag · wheel', 'pan the board · zoom it where the pointer is'],
       ['click a slide', 'go there and leave the board'],
       ['<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>', 'move the selection (the board follows)'],
       ['<kbd>O</kbd> · <kbd>Enter</kbd>', 'land on the selected slide'],
@@ -7407,7 +7407,8 @@ function renderHelpOverlay(view, withEditor) {
     ]],
     ['On the slide', [
       ['click a figure or code block', 'zoom it into a centred card'],
-      ['drag · wheel · <kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'pan · zoom · reset the zoomed card'],
+      ['drag · wheel', 'pan the card · zoom it where the pointer is'],
+      ['<kbd>+</kbd> <kbd>-</kbd> · <kbd>0</kbd>', 'zoom from the centre · reset the zoomed card'],
       ['click a marginalia', 'slide the frame right until the whole aside is on it'],
       ['drag the slide', 'pan within a chunk that is taller than the screen'],
       ['hold <kbd>Alt</kbd>/<kbd>option</kbd> and drag', 'select text to copy – dragging pans again once you let go'],
@@ -8467,7 +8468,16 @@ body.figure-dragging #figure-overlay * { cursor: grabbing !important; }
   transition: transform 80ms ease-out;
   will-change: transform;
 }
-body.figure-dragging #figure-overlay > .figure-focus-target { transition: none; }
+/* The transition belongs to the input, not to the element: a keypress wants
+   the ease, a continuous gesture must not have it. A macOS trackpad delivers
+   a wheel event every 8.4 ms (measured), so each one restarted this 80 ms
+   curve from its own interpolated midpoint and the card never arrived
+   anywhere – the judder was the easing being re-aimed roughly ten times per
+   frame, independently of how big the zoom step was. Drag has had the rule
+   from the start; the wheel path was simply never given it. Wheel has no end
+   event, so figureZoomWheel ends the gesture on a quiet period. */
+body.figure-dragging #figure-overlay > .figure-focus-target,
+body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; }
 /* The target is always shown on a solid paper card – otherwise the
    dimmed backdrop bleeds through (shiki-highlighted code in particular
    loses legibility when translucent). !important wins over shiki's
@@ -11587,7 +11597,11 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
 body.overview-mode #stage-viewport { cursor: grab; }
 body.overview-mode #stage-viewport:active { cursor: grabbing; }
 body.overview-mode #stage { transition: transform var(--camera-duration) cubic-bezier(0.45, 0, 0.2, 1); }
-body.overview-mode.overview-dragging #stage { transition: none; }
+/* Same rule as the focus card's, and here it costs more: --camera-duration is
+   250 ms, so at 8.4 ms between trackpad events the curve was re-aimed about
+   thirty times before it could ever complete. */
+body.overview-mode.overview-dragging #stage,
+body.overview-mode.overview-zooming #stage { transition: none; }
 body.view-panning, body.view-panning * { cursor: grabbing !important; }
 body.view-panning #stage { transition: none; }
 body.overview-mode .chunk {
@@ -12475,6 +12489,14 @@ window.addEventListener('message', (ev) => {
     if (m.type === 'figure-unfocus') { unfocusFigure(); return; }
     if (m.type === 'figure-view') {
       if (!focusedFigure) return;
+      // The receiving side needs the transition off for the same reason the
+      // sending side does, and it is the half the room actually looks at: a
+      // peer zooming with a trackpad streams these at frame rate, and the
+      // 80 ms ease on the focus card would be re-aimed by every one of them.
+      // The pan receiver above solves it by passing instant=true to
+      // focusCamera; there is no such flag here, so hold the class instead
+      // and let its quiet period drop it once the messages stop.
+      markZooming('figure-zooming');
       figureScale = Math.max(FIG_MIN_SCALE, Math.min(FIG_MAX_SCALE, m.scale || 1));
       figurePan = { x: m.panX || 0, y: m.panY || 0 };
       applyFigureTransform();
@@ -15113,14 +15135,102 @@ searchResults.addEventListener('mousedown', (e) => {
   commitSearchHit();
 });
 
+// ── wheel zoom, shared by the overview camera and the focus card ──
+//
+// Both zooms used to answer a wheel event with a fixed factor picked off the
+// sign of deltaY, which got three things wrong. The numbers below are from a
+// macOS trackpad in Chrome, 991 events over 12 gestures, not from assumption:
+// events arrive every 8.4 ms, and one carries between 0.012 and 6 px.
+//
+//  - A fixed step makes the zoom a function of how many events arrived
+//    rather than of how far the fingers moved. Twenty-two events at 1.1
+//    crossed the focus card's whole 1x..8x range and thirty-three at 1.08
+//    crossed the board's 0.08x..1x - 183 ms and 276 ms of contact - so both
+//    stood at their ceiling before the gesture was properly under way.
+//    Worse, macOS keeps sending an inertia tail once the fingers lift -
+//    deltaY around 0.2, gaps widening past 100 ms, the sign flipping as it
+//    dies out - and each of those was another full 8 % in whichever
+//    direction, which is the bounce the lecturer felt.
+//  - Scaling by exp() rather than multiplying a constant also makes the
+//    gesture composable: two events of 1 px land exactly where one of 2 px
+//    does, so the coalescing below cannot change where a gesture ends up.
+//  - A mouse wheel is not a trackpad. One notch is 100-120 px where the
+//    largest measured trackpad event was 6, so an unclamped exp() would
+//    zoom 3.3x per notch. Clamping the per-event delta leaves every
+//    trackpad event untouched and turns a notch into about 13 %.
+//
+// deltaMode is 0 (pixels) for every trackpad event, but a device sending
+// lines or pages still has to mean something, so convert before clamping.
+const ZOOM_K = 0.01;           // the full 1x..8x range ~= 208 px of travel
+const ZOOM_MAX_STEP_PX = 12;   // 2x the largest delta the trackpad produced
+const ZOOM_QUIET_MS = 160;     // longer than the gaps in the inertia tail
+function wheelZoomPx(e) {
+  let dy = e.deltaY;
+  if (e.deltaMode === 1) dy *= 16;
+  else if (e.deltaMode === 2) dy *= window.innerHeight;
+  return Math.max(-ZOOM_MAX_STEP_PX, Math.min(ZOOM_MAX_STEP_PX, dy));
+}
+const zoomScaleFor = (px) => Math.exp(-px * ZOOM_K);
+// Hold the matching no-transition class for the length of the gesture. A
+// wheel stream has no end event, so a quiet period ends it; the timer is per
+// class so zooming the board and then a card cannot leave one of them stuck.
+const zoomQuietTimers = {};
+function markZooming(cls) {
+  document.body.classList.add(cls);
+  clearTimeout(zoomQuietTimers[cls]);
+  zoomQuietTimers[cls] = setTimeout(() => {
+    document.body.classList.remove(cls);
+  }, ZOOM_QUIET_MS);
+}
+
 // Overview: wheel adjusts scale, pointer drag pans.
+let overviewZoomPx = 0, overviewZoomRaf = 0, overviewZoomAt = null;
 viewport.addEventListener('wheel', (e) => {
   if (!overview) return;
   e.preventDefault();
-  const factor = e.deltaY > 0 ? 0.92 : 1.08;
-  overviewScale = Math.max(OVERVIEW_MIN_SCALE, Math.min(OVERVIEW_MAX_SCALE, overviewScale * factor));
-  applyOverviewCamera(false);
-  schedulePanBroadcast();
+  markZooming('overview-zooming');
+  // Coalesce to one apply per frame. Two events land inside a 60 Hz frame at
+  // this event rate, and applyOverviewCamera walks offsetLeft/offsetTop up
+  // the offsetParent chain before it writes the transform - so a second
+  // apply in one frame buys a second forced reflow and a paint nobody sees.
+  overviewZoomPx += wheelZoomPx(e);
+  overviewZoomAt = { x: e.clientX, y: e.clientY };
+  if (overviewZoomRaf) return;
+  overviewZoomRaf = requestAnimationFrame(() => {
+    overviewZoomRaf = 0;
+    const px = overviewZoomPx;
+    overviewZoomPx = 0;
+    const next = Math.max(OVERVIEW_MIN_SCALE,
+      Math.min(OVERVIEW_MAX_SCALE, overviewScale * zoomScaleFor(px)));
+    const r = next / overviewScale;
+    // Hold the board still under the cursor. applyOverviewCamera puts the
+    // anchor chunk's centre at the viewport centre and then adds manualPan,
+    // so both the anchor and the scale cancel out of the correction and one
+    // step on manualPan is all that is left:
+    //
+    //   pan' = pan + (1 - r) * (Q - viewportCentre - pan)
+    //
+    // Two things about the units, and the second one is the trap. #stage has
+    // transform-origin: 0 0, which is what the camera's own tx/ty already
+    // assume. And the arithmetic has to happen in LAYOUT space: in the
+    // cockpit #stage-viewport is itself drawn through scale(--stage-scale),
+    // so a clientX is a shrunken px while manualPan and the chunk offsets
+    // the camera reads are full-size ones. focusCamera carries the same
+    // warning for the same reason. The ratio is uniform, so one factor does
+    // both axes, and it is 1 in the audience view.
+    if (r !== 1 && overviewZoomAt) {
+      const rect = viewport.getBoundingClientRect();
+      const vp = vpLayout();
+      const toLayout = rect.width ? vp.width / rect.width : 1;
+      const qx = (overviewZoomAt.x - rect.left) * toLayout;
+      const qy = (overviewZoomAt.y - rect.top) * toLayout;
+      manualPan.dx += (1 - r) * (qx - vp.width / 2 - manualPan.dx);
+      manualPan.dy += (1 - r) * (qy - vp.height / 2 - manualPan.dy);
+    }
+    overviewScale = next;
+    applyOverviewCamera(false);
+    schedulePanBroadcast();
+  });
 }, { passive: false });
 
 viewport.addEventListener('pointerdown', (e) => {
@@ -15209,9 +15319,56 @@ function setFigureScale(next) {
   applyFigureTransform();
   broadcastFigureView();
 }
+// Zoom the card by a factor and leave the point under the cursor where it is.
+// setFigureScale above stays the centred version, because that is the right
+// answer for the +/- keys: there is no pointer in a keypress.
+//
+// The card is drawn as translate(pan) scale(s) about its own centre, so a
+// material point at offset u from that centre sits at centre + pan + s*u.
+// Requiring the cursor Q to describe the same point before and after a change
+// of scale collapses to one line - the centre and u both drop out:
+//
+//   pan' = pan + (1 - r) * (Q - visibleCentre)
+//
+// where visibleCentre is what getBoundingClientRect reports, since scaling
+// about the centre does not move it. Client px are the right unit:
+// #figure-overlay is position: fixed and a sibling of #stage-viewport, so the
+// cockpit's --stage-scale never composes into it.
+//
+// r must be the ratio actually achieved rather than the one asked for. At
+// FIG_MAX_SCALE the scale stops but (1 - r) would not, and the card would go
+// on sliding under a cursor that is no longer zooming anything.
+function zoomFigureAt(factor, at) {
+  if (!focusedFigure) return;
+  const next = Math.max(FIG_MIN_SCALE, Math.min(FIG_MAX_SCALE, figureScale * factor));
+  const r = next / figureScale;
+  if (r !== 1 && at) {
+    const box = focusedFigure.getBoundingClientRect();
+    figurePan = {
+      x: figurePan.x + (1 - r) * (at.x - (box.left + box.width / 2)),
+      y: figurePan.y + (1 - r) * (at.y - (box.top + box.height / 2)),
+    };
+  }
+  figureScale = next;
+  applyFigureTransform();
+  broadcastFigureView();
+}
+// Coalesced to one message per frame, the way schedulePanBroadcast already
+// is. A drag sent one per pointermove and a wheel zoom one per wheel event,
+// which on a trackpad is 119 a second - each of them a postMessage the peer
+// answers with a style write. Reading the state inside the frame rather than
+// capturing it means the message that goes out is the newest one; a frame
+// that lands after an unfocus is harmless, because the receiver returns
+// early when it has no focused figure.
+let figureViewRaf = 0;
 function broadcastFigureView() {
   if (!shouldBroadcast()) return;
-  sendToPeer({ type: 'figure-view', scale: figureScale, panX: figurePan.x, panY: figurePan.y });
+  if (figureViewRaf) return;
+  figureViewRaf = requestAnimationFrame(() => {
+    figureViewRaf = 0;
+    if (!shouldBroadcast()) return;
+    sendToPeer({ type: 'figure-view', scale: figureScale, panX: figurePan.x, panY: figurePan.y });
+  });
 }
 function unfocusFigure() {
   if (!focusedFigure) return;
@@ -15335,12 +15492,28 @@ figureOverlay.addEventListener('pointerdown', (e) => {
 
 // Wheel zoom while focused. deltaY > 0 = scroll-down = zoom out, the
 // natural direction for trackpad pinch (browsers translate pinch to
-// wheel + ctrlKey on macOS but the sign is the same).
+// wheel + ctrlKey on macOS but the sign is the same, so both gestures go
+// through one path - two thirds of the measured events were a two-finger
+// scroll rather than a pinch, and the lecturer wants both to zoom here).
+// See the wheelZoomPx block above for why the step is an exp() and not a
+// constant, and why the class is held for the length of the gesture.
+let figureZoomPx = 0, figureZoomRaf = 0, figureZoomAt = null;
 figureOverlay.addEventListener('wheel', (e) => {
   if (!focusedFigure) return;
   e.preventDefault();
-  const factor = e.deltaY > 0 ? 0.9 : 1.1;
-  setFigureScale(figureScale * factor);
+  markZooming('figure-zooming');
+  figureZoomPx += wheelZoomPx(e);
+  // The last event of the frame supplies the anchor. The cursor can travel a
+  // few px between two events 8 ms apart, and the newest position is the one
+  // the hand is actually over.
+  figureZoomAt = { x: e.clientX, y: e.clientY };
+  if (figureZoomRaf) return;
+  figureZoomRaf = requestAnimationFrame(() => {
+    figureZoomRaf = 0;
+    const px = figureZoomPx;
+    figureZoomPx = 0;
+    zoomFigureAt(zoomScaleFor(px), figureZoomAt);
+  });
 }, { passive: false });
 
 // Bring a .marginalia into the frame, or let it go again. All this does is

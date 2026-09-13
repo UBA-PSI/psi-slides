@@ -9,6 +9,51 @@ from building the same way is a major version.
 
 ### Changed
 
+- **Trackpad zoom follows the fingers rather than the event count, and it
+  zooms where the pointer is.** The board and the focus card each answered a
+  wheel event with a fixed factor picked off the sign of `deltaY` – 8 % for
+  the overview, 10 % for the card – which made the zoom a function of how many
+  events arrived rather than of how far the hand had moved. Measured on a
+  macOS trackpad in Chrome: an event every 8.4 ms, each carrying between 0.012
+  and 6 px. Twenty-two of them crossed the card's whole 1×–8× range, so 183 ms
+  of contact stood it at the ceiling, and thirty-three crossed the board's
+  0.08×–1× in 276 ms. Worse, macOS keeps sending an inertia tail once the
+  fingers lift – `deltaY` around 0.2, gaps widening past 100 ms, the sign
+  flipping as it dies out – and each of those was another full step in
+  whichever direction, so the zoom went on bouncing after the gesture was
+  over. The step is now `exp(-deltaY · k)` with `k` at 0.01, which is about
+  208 px of finger travel for the card's full range, and the per-event delta
+  is clamped at 12 px: the largest the trackpad produced was 6, so no trackpad
+  event is touched, while a mouse wheel's 100–120 px notch becomes 13 % rather
+  than 3.3×. Scaling by `exp()` also composes, which is what makes it safe to
+  coalesce several events into one frame – two events of 1 px land exactly
+  where one of 2 px does.
+
+  The judder on top of that was a second defect and it was CSS. An event every
+  8.4 ms restarted the camera's 250 ms transition from its own interpolated
+  midpoint about thirty times before it could ever complete; the focus card's
+  80 ms curve was re-aimed roughly ten times per frame. Dragging has had
+  `transition: none` since it was written – `body.overview-zooming` and
+  `body.figure-zooming` now give the wheel path the same treatment, held for
+  the length of the gesture and dropped after a quiet period, since a wheel
+  stream has no end event. The receiving window needed it too: a peer zooming
+  with a trackpad streams `figure-view` at frame rate, and the projection is
+  the half the room is looking at. Style writes and that broadcast are both
+  coalesced to one per frame.
+
+  Zoom now anchors to the pointer instead of the centre. For the card the
+  correction is `pan' = pan + (1 - r) · (Q - visibleCentre)`; for the board,
+  where the camera frames an anchor chunk and then adds `manualPan`, both the
+  anchor and the scale cancel out and one step on `manualPan` is all that is
+  left. Two things that are easy to get wrong and are worth keeping: `r` has
+  to be the ratio actually achieved rather than the one requested, or at the
+  8× ceiling the card goes on sliding under a cursor that is no longer zooming
+  anything; and the board's arithmetic has to happen in layout space, because
+  in the cockpit `#stage-viewport` is itself drawn through
+  `scale(--stage-scale)`, so a `clientX` there is a shrunken pixel while
+  `manualPan` and the chunk offsets are full-size ones. The `+` and `-` keys
+  still zoom from the centre, because a keypress carries no pointer.
+
 - **`style: {neutrals: …}` says what hue the greys carry, and the corner
   radius is one em ladder.** Two findings from a look at what the `A` key
   actually produces. In the four light themes that key moves `--emph` and
