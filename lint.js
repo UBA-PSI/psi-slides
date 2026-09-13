@@ -115,14 +115,67 @@ const VIEW_DEFAULTS = {
   'ligatures': ['text', 'none', 'all'],
 };
 
-// There is deliberately no mirror of BUNDLED_FONTS here. One stood in this
-// spot from the commit that made the roster per-lecture until the serif role
-// gained its alternates, and nothing ever read it: `fonts:` is the one piece
-// of frontmatter this file does not check, because deciding a family needs
-// the contents of `fonts/` as well as the bundle, and the build already
-// hard-fails with the list of names for that role and the files it found.
-// A table kept congruent for nobody is the duplication CLAUDE.md warns about
-// with none of the benefit that pays for it.
+// There is deliberately no mirror of the three TEXT roles of BUNDLED_FONTS
+// here. One stood in this spot from the commit that made the roster
+// per-lecture until the serif role gained its alternates, and nothing ever
+// read it: deciding a family needs the contents of `fonts/` as well as the
+// bundle, and the build already hard-fails with the list of names for that
+// role and the files it found. A table kept congruent for nobody is the
+// duplication CLAUDE.md warns about with none of the benefit that pays
+// for it.
+//
+// The display role is the exception, and for one reason: it carries a rule
+// this file has to decide anyway. `display-pairing` needs to know what each
+// face IS – a serif, a sans, a hand, a mono – so the table is here whether
+// or not it also checks the spelling, and once it is here the spelling is
+// free. The odds differ too: a serif role has five names to get right and
+// the display role has thirty-two.
+//
+// `kind` is what the face is rather than what it looks like, which is a
+// different question: Chakra Petch is a machine to look at and a sans to
+// pair with. Mirrors the display half of BUNDLED_FONTS in build.js – add a
+// face there and add it here in the same commit.
+const DISPLAY_FONTS = new Map([
+  ['Caveat', 'hand'], ['Shantell Sans', 'hand'], ['Caveat Brush', 'hand'],
+  ['Patrick Hand', 'hand'], ['Kalam', 'hand'], ['Amatic SC', 'hand'],
+  ['Press Start 2P', 'mono'], ['Silkscreen', 'mono'],
+  ['Pixelify Sans', 'sans'], ['VT323', 'mono'], ['Space Mono', 'mono'],
+  ['Rubik Mono One', 'mono'], ['Chakra Petch', 'sans'], ['Orbitron', 'sans'],
+  ['Bodoni Moda', 'serif'], ['Prata', 'serif'], ['DM Serif Display', 'serif'],
+  ['Abril Fatface', 'serif'], ['Alfa Slab One', 'serif'],
+  ['Young Serif', 'serif'], ['Instrument Serif', 'serif'],
+  ['Yeseva One', 'serif'], ['Anton', 'sans'], ['Oswald', 'sans'],
+  ['Archivo Black', 'sans'], ['Bebas Neue', 'sans'],
+  ['Big Shoulders Display', 'sans'], ['Syne', 'sans'],
+  ['Bricolage Grotesque', 'sans'], ['Space Grotesk', 'sans'],
+  ['Unbounded', 'sans'], ['Staatliches', 'sans'],
+]);
+// The one face in the roster with no eszett – a German title gets a fallback
+// glyph mid-word. Mirrors `noEszett` in build.js.
+const DISPLAY_NO_ESZETT = new Set(['Rubik Mono One']);
+// Mirrors normFontName in build.js: the build matches a family name
+// case-, space- and hyphen-insensitively, so `press start 2p` resolves and a
+// checker that compares raw strings would refuse a deck the build accepts.
+const normFontName = (s) => String(s).toLowerCase().replace(/[\s_-]/g, '');
+const DISPLAY_BY_NORM = new Map(
+  [...DISPLAY_FONTS].map(([name, kind]) => [normFontName(name), { name, kind }]));
+
+// Whether fonts/ beside source.md could hold this family. A display face is
+// a file the author dropped there just as readily as a bundled name, so the
+// spelling check has to ask. Deliberately lenient: the build reads a
+// filename as <family><separator><descriptor> through splitFontFileName and
+// this file does not re-implement that split, so it asks only whether some
+// file's name begins with the family. The leniency runs in the safe
+// direction – a name this lets through and the build refuses fails at the
+// build, where the message names the files it found; the reverse would be a
+// pre-commit gate blocking a deck that builds.
+function fontsDirHolds(srcDir, family) {
+  let entries = [];
+  try { entries = fs.readdirSync(path.join(srcDir, 'fonts')); } catch (e) { return false; }
+  const wanted = normFontName(family);
+  return entries.some(f =>
+    normFontName(path.basename(f, path.extname(f))).startsWith(wanted));
+}
 
 // Mirrors STYLE_SPEC in build.js – the nested `style:` block. Only the two
 // enum keys are checked: the two scales are bounded numbers, and reading a
@@ -2415,6 +2468,69 @@ function lintFile(filePath) {
       const m = raw.match(/^[ \t]+([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
       if (m) rule(i, m[1], m[2]);
     });
+  }
+
+  // The nested `fonts:` block, and only its `display:` key – DISPLAY_FONTS
+  // says why the other three roles are left to the build. Read by
+  // indentation like the `style:` block above, flow form included, because
+  // `fonts: {display: Anton}` is how the one-line form gets written and a
+  // reader that only sees the indented form passes a typo in it.
+  {
+    const ls = header.split('\n');
+    let hit = null;
+    let inFonts = false;
+    for (let i = 0; i < ls.length && !hit; i++) {
+      const raw = ls[i];
+      const flow = raw.match(/^fonts:[ \t]*\{(.*)\}[ \t]*$/);
+      if (flow) {
+        for (const pair of flow[1].split(',')) {
+          const kv = pair.match(/^\s*["']?display["']?\s*:\s*(.*?)\s*$/);
+          if (kv) hit = { line: i, raw: kv[1] };
+        }
+        break;
+      }
+      if (/^fonts:[ \t]*$/.test(raw)) { inFonts = true; continue; }
+      if (!inFonts) continue;
+      if (!/^[ \t]+\S/.test(raw)) { if (raw.trim()) inFonts = false; continue; }
+      const m = raw.match(/^[ \t]+display:[ \t]*(.*)$/);
+      if (m) hit = { line: i, raw: m[1] };
+    }
+    const name = hit ? hit.raw.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '') : '';
+    const face = name ? DISPLAY_BY_NORM.get(normFontName(name)) : null;
+    if (name && !face && !fontsDirHolds(path.dirname(filePath), name)) {
+      addFm(hit.line + 2, 'error', 'unknown-display-font',
+        `'fonts.display: ${name}' is neither one of the ${DISPLAY_FONTS.size} bundled `
+        + 'display faces nor a file in fonts/ – check the spelling; the build refuses '
+        + 'it too and its message prints the whole roster.');
+    } else if (face) {
+      // The one rule `kind` exists for. A display serif over a serif body,
+      // or a display sans over a sans body, does not read as two typefaces:
+      // it reads as one typeface set badly, and the divider stops announcing
+      // itself. A hand and a mono pair with anything, which is why they are
+      // absent from this test rather than listed in it.
+      const body = (header.match(/^font:[ \t]*["']?([a-z]+)/m) || [, 'serif'])[1];
+      if ((face.kind === 'serif' && body === 'serif')
+          || (face.kind === 'sans' && body === 'sans')) {
+        addFm(hit.line + 2, 'warn', 'display-pairing',
+          `'fonts.display: ${name}' is a display ${face.kind} and this deck's `
+          + `body is ${body} too – on the cover and the dividers the two read as one `
+          + 'typeface set badly rather than as two, so the transition slide stops '
+          + `announcing itself. Set 'font: ${body === 'serif' ? 'sans' : 'serif'}', or `
+          + `pick a display face that is not a ${face.kind}.`);
+      }
+      // Only one face in the roster is missing the eszett, and only one
+      // language here notices. Raised on `lang:` rather than on finding a ß
+      // in today's headings, because the headings are the part of a deck
+      // that gets rewritten and the face is the part that does not.
+      const lang = (header.match(/^lang:[ \t]*["']?([A-Za-z]+)/m) || [, 'en'])[1];
+      if (DISPLAY_NO_ESZETT.has(face.name) && /^de$/i.test(lang)) {
+        addFm(hit.line + 2, 'warn', 'display-no-eszett',
+          `'fonts.display: ${name}' has no ß and 'lang: ${lang}' says this deck `
+          + 'is German – a cover, closing or divider heading containing one gets a '
+          + 'fallback glyph mid-word. Pick another display face, or keep ß out of '
+          + 'those three headings.');
+      }
+    }
   }
 
   // The top-level `labels:` block. Its keys are a closed set (the role names

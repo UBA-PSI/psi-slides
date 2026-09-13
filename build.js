@@ -1093,9 +1093,185 @@ const BUNDLED_FONTS = {
     files: { normal: 'noto-sans-mono-latin-standard-normal.woff2' },
     variations: "'wdth' 62.5",
   },
+
+  // ── the display role ──────────────────────────────────────────────
+  //
+  // The face the three transition slides wear – the cover, the closing
+  // slide and the section dividers – and which no other slide in the deck
+  // is given. That is the one place in a lecture where a loud typeface is
+  // not a mistake: nobody reads a divider, they recognise it.
+  //
+  // Four things separate this role from the three text roles above, and
+  // each is a bend made on purpose rather than an omission.
+  //
+  //   NO DEFAULT. BUNDLED_DEFAULTS has no `display` entry, so a deck that
+  //   names none resolves the role to nothing, embeds nothing and emits no
+  //   rule – it builds byte for byte what it built before this existed.
+  //   That absence is the feature, not a gap waiting to be filled.
+  //
+  //   NOT A VARIABLE LATIN SUBSET. The rule the three text roles keep holds
+  //   because `topic-bold` puts bold fragments on every slide and that
+  //   wants a weight axis. A headline carries three words and no bold, so
+  //   the axis buys nothing here, and 21 of these have no variable build at
+  //   all. Anton is one weight; that is what Anton is.
+  //
+  //   `kind` is what the face IS, which is a different question from what
+  //   it looks like, and it drives exactly one rule: a display serif over a
+  //   serif body reads as one typeface set badly rather than as two. That
+  //   rule is lint.js's `display-pairing` warning and this field is the
+  //   table it mirrors. Chakra Petch is the case that proves the two
+  //   questions differ – a machine to look at and a sans to pair with.
+  //
+  //   `sizeAdjust` is a measured width correction, carried as the
+  //   @font-face descriptor of the same name and written here as the
+  //   percentage that descriptor takes. These faces disagree about advance
+  //   width by a factor of three while the cover's type size is tuned for
+  //   Literata: Anton set at it looks timid, Press Start 2P set at it runs
+  //   off the slide, which is what it did in the playground before this
+  //   number existed. Each one is the advance width of a German reference
+  //   title against Literata's, inverted and clamped to [55, 145] – see
+  //   tools/font-playground/measure-scale.mjs, which writes scales.json;
+  //   re-run it when a face is added and copy the number across. Same
+  //   discipline as dgCharW in diagram-core.mjs and for the same reason: a
+  //   number nobody measured is a number that silently overflows a slide.
+  //   It sits on the face rather than on a font-size rule because six cover
+  //   compositions set their own title size and print, the zoom, auto-fit
+  //   and --check-fit all work off whatever those produce. A multiplier in
+  //   a layout rule would have to be repeated in every one of them, and
+  //   would be forgotten in one.
+  //
+  // THE RULE THAT KEEPS THE FACE OUT OF THE READER'S HANDS: `display` must
+  // never join FONT_CYCLE, and --display-stack must never be assigned under
+  // a body[data-font=…] or body[data-theme=…] selector. F cycles a
+  // *variable*, not a family, so pointing the two headline selectors at
+  // --display-stack takes them out of that cycle by construction – there is
+  // no "F does not apply here" rule to write and therefore none to forget
+  // when a fourth body font is added later. A re-points colour tokens only
+  // and no theme touches a family, so the face is already immune to it
+  // while its colour still follows --ink and --emph and so stays readable
+  // on the three dark themes.
+  //
+  // All 32 are SIL OFL 1.1 like the text roster, so oflNotice() names
+  // whichever of them a view happens to carry. Three further candidates
+  // were cut for being Apache-2.0 – not because that licence forbids
+  // embedding, it does not, but because bundledFaces() emits OFL text with
+  // the bytes and a second licence regime in that path buys one typeface at
+  // the price of a special case.
+
+  // ── hand: a line that was drawn rather than set. Pairs with any body. ──
+  Caveat: { role: 'display', kind: 'hand', sizeAdjust: 139,
+    pkg: '@fontsource-variable/caveat',
+    files: [{ file: 'caveat-latin-wght-normal.woff2', style: 'normal', weight: '400 700' }] },
+  'Shantell Sans': { role: 'display', kind: 'hand', sizeAdjust: 88,
+    pkg: '@fontsource-variable/shantell-sans',
+    files: [{ file: 'shantell-sans-latin-wght-normal.woff2', style: 'normal', weight: '300 800' }] },
+  'Caveat Brush': { role: 'display', kind: 'hand', sizeAdjust: 134,
+    pkg: '@fontsource/caveat-brush',
+    files: [{ file: 'caveat-brush-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Patrick Hand': { role: 'display', kind: 'hand', sizeAdjust: 133,
+    pkg: '@fontsource/patrick-hand',
+    files: [{ file: 'patrick-hand-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  Kalam: { role: 'display', kind: 'hand', sizeAdjust: 106,
+    pkg: '@fontsource/kalam',
+    files: [{ file: 'kalam-latin-700-normal.woff2', style: 'normal', weight: '700' }] },
+  'Amatic SC': { role: 'display', kind: 'hand', sizeAdjust: 145,
+    pkg: '@fontsource/amatic-sc',
+    files: [{ file: 'amatic-sc-latin-700-normal.woff2', style: 'normal', weight: '700' }] },
+
+  // ── machine: pixel grids, terminals, exaggerated monospace. ──
+  'Press Start 2P': { role: 'display', kind: 'mono', sizeAdjust: 55,
+    pkg: '@fontsource/press-start-2p',
+    files: [{ file: 'press-start-2p-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  Silkscreen: { role: 'display', kind: 'mono', sizeAdjust: 62,
+    pkg: '@fontsource/silkscreen',
+    files: [{ file: 'silkscreen-latin-700-normal.woff2', style: 'normal', weight: '700' }] },
+  'Pixelify Sans': { role: 'display', kind: 'sans', sizeAdjust: 96,
+    pkg: '@fontsource-variable/pixelify-sans',
+    files: [{ file: 'pixelify-sans-latin-wght-normal.woff2', style: 'normal', weight: '400 700' }] },
+  VT323: { role: 'display', kind: 'mono', sizeAdjust: 119,
+    pkg: '@fontsource/vt323',
+    files: [{ file: 'vt323-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Space Mono': { role: 'display', kind: 'mono', sizeAdjust: 78,
+    pkg: '@fontsource/space-mono',
+    files: [{ file: 'space-mono-latin-700-normal.woff2', style: 'normal', weight: '700' }] },
+  // The one face here with no eszett: a German title gets a fallback glyph
+  // mid-word, and lint.js warns on a German deck that picks it. Found by
+  // eye against a Times fallback rather than by a coverage probe alone,
+  // which is also how its second oddity surfaced – it draws lowercase as
+  // capitals.
+  'Rubik Mono One': { role: 'display', kind: 'mono', sizeAdjust: 56, noEszett: true,
+    pkg: '@fontsource/rubik-mono-one',
+    files: [{ file: 'rubik-mono-one-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Chakra Petch': { role: 'display', kind: 'sans', sizeAdjust: 101,
+    pkg: '@fontsource/chakra-petch',
+    files: [{ file: 'chakra-petch-latin-700-normal.woff2', style: 'normal', weight: '700' }] },
+  Orbitron: { role: 'display', kind: 'sans', sizeAdjust: 87,
+    pkg: '@fontsource-variable/orbitron',
+    files: [{ file: 'orbitron-latin-wght-normal.woff2', style: 'normal', weight: '400 900' }] },
+
+  // ── graphic: display weight, loud serifs, poster type. ──
+  'Bodoni Moda': { role: 'display', kind: 'serif', sizeAdjust: 92,
+    pkg: '@fontsource-variable/bodoni-moda',
+    files: [{ file: 'bodoni-moda-latin-wght-normal.woff2', style: 'normal', weight: '400 900' }] },
+  Prata: { role: 'display', kind: 'serif', sizeAdjust: 100,
+    pkg: '@fontsource/prata',
+    files: [{ file: 'prata-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'DM Serif Display': { role: 'display', kind: 'serif', sizeAdjust: 108,
+    pkg: '@fontsource/dm-serif-display',
+    files: [{ file: 'dm-serif-display-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Abril Fatface': { role: 'display', kind: 'serif', sizeAdjust: 103,
+    pkg: '@fontsource/abril-fatface',
+    files: [{ file: 'abril-fatface-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Alfa Slab One': { role: 'display', kind: 'serif', sizeAdjust: 89,
+    pkg: '@fontsource/alfa-slab-one',
+    files: [{ file: 'alfa-slab-one-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Young Serif': { role: 'display', kind: 'serif', sizeAdjust: 95,
+    pkg: '@fontsource/young-serif',
+    files: [{ file: 'young-serif-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Instrument Serif': { role: 'display', kind: 'serif', sizeAdjust: 142,
+    pkg: '@fontsource/instrument-serif',
+    files: [{ file: 'instrument-serif-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Yeseva One': { role: 'display', kind: 'serif', sizeAdjust: 93,
+    pkg: '@fontsource/yeseva-one',
+    files: [{ file: 'yeseva-one-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  Anton: { role: 'display', kind: 'sans', sizeAdjust: 120,
+    pkg: '@fontsource/anton',
+    files: [{ file: 'anton-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  Oswald: { role: 'display', kind: 'sans', sizeAdjust: 116,
+    pkg: '@fontsource-variable/oswald',
+    files: [{ file: 'oswald-latin-wght-normal.woff2', style: 'normal', weight: '200 700' }] },
+  'Archivo Black': { role: 'display', kind: 'sans', sizeAdjust: 87,
+    pkg: '@fontsource/archivo-black',
+    files: [{ file: 'archivo-black-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Bebas Neue': { role: 'display', kind: 'sans', sizeAdjust: 142,
+    pkg: '@fontsource/bebas-neue',
+    files: [{ file: 'bebas-neue-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Big Shoulders Display': { role: 'display', kind: 'sans', sizeAdjust: 122,
+    pkg: '@fontsource-variable/big-shoulders-display',
+    files: [{ file: 'big-shoulders-display-latin-wght-normal.woff2', style: 'normal', weight: '100 900' }] },
+  Syne: { role: 'display', kind: 'sans', sizeAdjust: 61,
+    pkg: '@fontsource-variable/syne',
+    files: [{ file: 'syne-latin-wght-normal.woff2', style: 'normal', weight: '400 800' }] },
+  'Bricolage Grotesque': { role: 'display', kind: 'sans', sizeAdjust: 97,
+    pkg: '@fontsource-variable/bricolage-grotesque',
+    files: [{ file: 'bricolage-grotesque-latin-wght-normal.woff2', style: 'normal', weight: '200 800' }] },
+  'Space Grotesk': { role: 'display', kind: 'sans', sizeAdjust: 99,
+    pkg: '@fontsource-variable/space-grotesk',
+    files: [{ file: 'space-grotesk-latin-wght-normal.woff2', style: 'normal', weight: '300 700' }] },
+  Unbounded: { role: 'display', kind: 'sans', sizeAdjust: 73,
+    pkg: '@fontsource-variable/unbounded',
+    files: [{ file: 'unbounded-latin-wght-normal.woff2', style: 'normal', weight: '200 900' }] },
+  Staatliches: { role: 'display', kind: 'sans', sizeAdjust: 128,
+    pkg: '@fontsource/staatliches',
+    files: [{ file: 'staatliches-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
 };
 // What a lecture gets when it names nothing. `layout: 1.0` swaps the sans.
+// There is no `display` here on purpose – see the display roster above.
 const BUNDLED_DEFAULTS = { serif: 'Literata', sans: 'IBM Plex Sans', mono: 'JetBrains Mono' };
+// Every role the `fonts:` block has a slot for, in the order a stylesheet
+// wants them. Deliberately NOT the same list as FONT_CYCLE: the reader's F
+// key walks the three reading faces and must never reach the fourth.
+const FONT_ROLES = ['serif', 'sans', 'mono', 'display'];
 const bundledNamesFor = (role) =>
   Object.entries(BUNDLED_FONTS).filter(([, f]) => f.role === role).map(([n]) => n);
 
@@ -1104,7 +1280,9 @@ function bundledFaces(roster = BUNDLED_DEFAULTS) {
   const key = JSON.stringify(roster);
   if (bundledFacesCache.has(key)) return bundledFacesCache.get(key);
   const out = [];
-  for (const role of ['serif', 'sans', 'mono']) {
+  // `display` is the role that may simply be absent, and the `!family`
+  // guard below is what carries that – nothing is read, nothing is emitted.
+  for (const role of FONT_ROLES) {
     const family = roster[role];
     if (!family) continue;
     const f = BUNDLED_FONTS[family];
@@ -1130,6 +1308,10 @@ function bundledFaces(roster = BUNDLED_DEFAULTS) {
         // assumed: with the descriptor the same file measures 0.50 em per
         // character and without it 0.60.
         variations: f.variations || null,
+        // The display role's measured width correction, as a percentage.
+        // Null for the text roles, which are all set at the size the layout
+        // asks for because the layout was drawn around them.
+        sizeAdjust: f.sizeAdjust || null,
         src: `url(data:font/woff2;base64,${buf.toString('base64')}) format('woff2')`,
       });
     }
@@ -1206,7 +1388,7 @@ function bundledRoster(frontmatter = {}) {
   const roster = { ...BUNDLED_DEFAULTS };
   const spec = frontmatter.fonts;
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return roster;
-  for (const role of ['serif', 'sans', 'mono']) {
+  for (const role of FONT_ROLES) {
     if (!(role in spec)) continue;
     const family = String(spec[role]).trim();
     if (!family) continue;
@@ -1258,10 +1440,17 @@ const FONT_WEIGHT_NAMES = {
 // The tail of each default stack, kept here rather than inline in the two
 // stylesheets so an embedded family can be prepended to the *same* list the
 // build would otherwise have emitted. One source of truth, two consumers.
+const SANS_STACK_TAIL = `'IBM Plex Sans', 'Inter', system-ui, -apple-system, sans-serif`;
 const FONT_STACK_TAILS = {
   serif: `'Literata', 'Source Serif 4', Georgia, serif`,
-  sans: `'IBM Plex Sans', 'Inter', system-ui, -apple-system, sans-serif`,
+  sans: SANS_STACK_TAIL,
   mono: `'JetBrains Mono', ui-monospace, Menlo, monospace`,
+  // No sensible default chain exists for a display face – naming one would
+  // be naming a poster typeface and hoping the machine has it, which is the
+  // failure the bundle exists to end. So the tail IS the sans stack, shared
+  // rather than copied: a headline that loses its face degrades to the
+  // deck's own sans rather than to a serif pretending to be loud.
+  display: SANS_STACK_TAIL,
 };
 // Which CSS custom properties each role feeds. Audience and print use
 // different names for the same idea; setting a property a given view never
@@ -1270,6 +1459,12 @@ const FONT_ROLE_VARS = {
   serif: ['--serif-stack', '--serif'],
   sans: ['--sans-stack', '--sans'],
   mono: ['--mono-font', '--read-mono-stack', '--mono'],
+  // One property, and one that no stylesheet defines a value for: it exists
+  // only when a display face resolved, which is what lets the two headline
+  // selectors fall back through var()'s own second argument. It must never
+  // be assigned under body[data-font=…] or body[data-theme=…] – see the
+  // display roster.
+  display: ['--display-stack'],
 };
 
 const normFontName = (s) => String(s).toLowerCase().replace(/[\s_-]/g, '');
@@ -1341,7 +1536,7 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
   const notes = [];
   let bytes = 0;
 
-  for (const role of ['serif', 'sans', 'mono']) {
+  for (const role of FONT_ROLES) {
     if (!(role in spec)) continue;
     const family = String(spec[role]).trim();
     if (!family) continue;
@@ -1364,10 +1559,11 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
       // Falling back silently is exactly the failure this feature exists to
       // remove: the build would succeed and the output would look like the
       // author never asked for the font.
+      const lead = `  Bundled ${role} families (no file needed): `;
       const err = new Error(
         `Frontmatter names "fonts.${role}: ${family}" but it is neither a bundled family\n` +
         `nor a file in ${path.join(FONT_DIR, '')}/.\n` +
-        `  Bundled ${role} families (no file needed): ${bundledNamesFor(role).join(', ')}\n` +
+        `${lead}${wrapNames(bundledNamesFor(role), lead.length)}\n` +
         `  Looked in: ${dir}\n` +
         `  Expected something like ${family.replace(/\s+/g, '')}-Regular.woff2 (also .woff, .ttf, .otf).\n` +
         `  Found there: ${entries.length ? entries.join(', ') : '(nothing)'}`
@@ -1426,6 +1622,24 @@ const oflNotice = (families) =>
   '   Full text: node_modules/@fontsource-variable/<family>/LICENSE */';
 const listAnd = (xs) =>
   xs.length < 2 ? (xs[0] || '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
+// A comma list, folded onto continuation lines under a hanging indent. The
+// three text roles have two to five families each and come out on one line
+// exactly as they did; the display role has 32, and one 450-character line
+// is a list nobody reads their own typo out of. `lead` is the width of
+// whatever the caller has already written on that first line, without which
+// only the second line onwards would wrap.
+function wrapNames(names, lead = 0, width = 78, indent = '    ') {
+  const out = [];
+  let line = '';
+  const shown = () => (out.length ? 0 : lead) + line.length;
+  names.forEach((n, i) => {
+    const piece = n + (i < names.length - 1 ? ',' : '');
+    if (line && shown() + 1 + piece.length > width) { out.push(line); line = indent + piece; }
+    else line = line ? `${line} ${piece}` : piece;
+  });
+  if (line) out.push(line);
+  return out.join('\n');
+}
 
 // Emits the @font-face blocks and the stack overrides for one view. Takes
 // the bundled defaults and whatever the author supplied; a role the author
@@ -1436,6 +1650,10 @@ function fontStyleTag(embed) {
   const face = (f) =>
     `@font-face{font-family:'${f.family}';font-style:${f.style};font-weight:${f.weight};`
     + (f.variations ? `font-variation-settings:${f.variations};` : '')
+    // The display role's width correction rides on the face, not on a
+    // font-size, so every rule that sets a title's size gets it for free –
+    // the six cover compositions, print, the zoom, auto-fit and --check-fit.
+    + (f.sizeAdjust ? `size-adjust:${f.sizeAdjust}%;` : '')
     + `font-display:block;src:${f.src};}`;
   // font-display:block, not swap: a lecture must not flash a fallback face
   // on the projector and then reflow the slide under the room's eyes.
@@ -1456,9 +1674,29 @@ function fontStyleTag(embed) {
       .join('\n')
   ).join('\n');
   const rootBlock = varCss ? `\n:root {\n${varCss}\n}` : '';
+  // The two selectors the display role reaches, and the whole of its reach:
+  // the cover, the closing slide (which is the cover's own element, wearing
+  // data-closing) and the section dividers. A `## principle:` heading is
+  // not one of them, and neither is .title-subtitle - a subtitle is a
+  // sentence, and a poster face set at sentence length is where these faces
+  // fail.
+  //
+  // It rides here rather than in AUDIENCE_CSS and PRINT_CSS because those
+  // are constants with no way to ask whether this lecture resolved a
+  // display face, and the answer has to be "emit nothing" for every deck
+  // that did not: a rule naming --display-stack in the two stylesheets
+  // would move every existing output's bytes for a variable nothing sets.
+  // One block after both of them also serves all four views at once, and
+  // beats the one rule it has to beat - .chunk-section .section-heading
+  // sets font-family: var(--body-font) at the same specificity, so this
+  // wins on document order.
+  const displayCss = overrides.some(o => o.role === 'display')
+    ? '\n.chunk-title .title-main,\n.chunk-section .section-heading'
+      + ' { font-family: var(--display-stack, var(--body-font)); }'
+    : '';
   const notice = bundled.length
     ? oflNotice([...new Set(bundled.map(f => f.family))]) + '\n' : '';
-  return `<style>\n${notice}${faceCss}${rootBlock}\n</style>`;
+  return `<style>\n${notice}${faceCss}${rootBlock}${displayCss}\n</style>`;
 }
 
 // ── ::: draw autoplay ───────────────────────────────────────────────
@@ -19318,14 +19556,18 @@ function buildOnce(absIn, only, opts = {}) {
   // bundle, and only the three families this lecture resolved to are read
   // at all – which is what keeps a 3.87 MB alternate off every other deck.
   const bundleRoster = Object.fromEntries(
-    ['serif', 'sans', 'mono'].filter(r => !claimed.has(r)).map(r => [r, roster[r]]));
+    FONT_ROLES.filter(r => !claimed.has(r)).map(r => [r, roster[r]]));
   const bundled = bundleOff ? [] : bundledFaces(bundleRoster);
   // A bundled family other than the built-in default has to be named at the
   // head of the stack, or the @font-face lands and nothing asks for it:
   // --sans-font still says 'IBM Plex Sans' first and falls through to
   // whatever the machine has. Only emitted where it differs, so a default
   // lecture's CSS is byte-identical to before.
-  const rosterOverrides = ['serif', 'sans', 'mono']
+  // For `display` the two sides of that comparison are undefined when the
+  // deck names no display face, so the role drops out here exactly as it
+  // drops out of bundleRoster – and `fonts: none` takes it off with the
+  // other three.
+  const rosterOverrides = FONT_ROLES
     .filter(r => !claimed.has(r) && !bundleOff && roster[r] !== BUNDLED_DEFAULTS[r])
     .map(r => ({ role: r, family: roster[r] }));
   const fontEmbed = (authorFonts || bundled.length)

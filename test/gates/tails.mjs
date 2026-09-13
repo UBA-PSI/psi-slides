@@ -304,4 +304,42 @@ export async function run({ report }) {
     ok(!missing.length, 'every style key build.js accepts is one lint.js knows', missing.join(','));
     ok(!extra.length, 'and lint.js knows no key build.js has dropped', extra.join(','));
   }
+
+  // ── the display roster, held across two files ───────────────────────
+  // lint.js mirrors the display half of BUNDLED_FONTS as DISPLAY_FONTS,
+  // name and `kind` both, and two findings ride on it: `unknown-display-font`
+  // is only as right as the names and `display-pairing` only as right as the
+  // kinds. A face added to build.js alone would be reported as a typo on a
+  // deck that builds, which is the direction a pre-commit gate must never be
+  // wrong in; a kind changed in one file alone would warn about a pairing
+  // that is fine, or say nothing about one that is not. Read as text, for
+  // the reason the style block above is.
+  {
+    const bsrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const lsrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
+    const build = new Map([...bsrc.matchAll(
+      /^ {2}'?([A-Za-z0-9][A-Za-z0-9 ]*)'?: \{ role: 'display', kind: '(\w+)'/gm)]
+      .map(m => [m[1], m[2]]));
+    const lintBody = lsrc.slice(lsrc.indexOf('const DISPLAY_FONTS = new Map(['));
+    const lint = new Map([...lintBody.slice(0, lintBody.indexOf(']);')).matchAll(
+      /\['([^']+)', '(\w+)'\]/g)].map(m => [m[1], m[2]]));
+    ok(build.size > 20, `the display roster is findable in build.js (${build.size})`);
+    ok(build.size === lint.size,
+       'lint.js mirrors exactly as many display faces as build.js bundles',
+       `build ${build.size}, lint ${lint.size}`);
+    const off = [...build].filter(([n, k]) => lint.get(n) !== k)
+      .map(([n, k]) => `${n}: build ${k}, lint ${lint.get(n) || '(absent)'}`);
+    ok(!off.length, 'and every one of them under the same name and the same kind',
+       off.join('; '));
+    // The noEszett flag is one face today and the whole of the
+    // display-no-eszett warning, so it is checked by name rather than by
+    // counting: a second face gaining the flag must reach lint.js too.
+    const bNoEs = [...bsrc.matchAll(/^ {2}'?([A-Za-z0-9][A-Za-z0-9 ]*)'?: \{ role: 'display',[^\n]*noEszett: true/gm)]
+      .map(m => m[1]).sort();
+    const lNoEs = ([...lsrc.matchAll(/DISPLAY_NO_ESZETT = new Set\(\[([^\]]*)\]/g)][0]?.[1] || '')
+      .match(/'[^']+'/g)?.map(t => t.slice(1, -1)).sort() || [];
+    ok(bNoEs.length && bNoEs.join(',') === lNoEs.join(','),
+       'the faces with no eszett are the same list in both files',
+       `build ${bNoEs.join(',')} / lint ${lNoEs.join(',')}`);
+  }
 }
