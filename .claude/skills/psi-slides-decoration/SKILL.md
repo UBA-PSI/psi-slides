@@ -161,7 +161,7 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
   |---|---|
   | size | `.auto` `.large` `.medium` `.small` |
   | align | `.auto` `.left` `.center` |
-  | anchor | `.top` `.middle` |
+  | anchor | `.top` `.middle` `.baseline` (a `rows` word – see below) |
   | detail | `.fold` `.show` `.page` |
   | ground | `.panel` `.outline` `.clear` `.accent` `.paper` `.photo` |
   | corner | `.round` `.square` |
@@ -228,7 +228,9 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
   Four things behave differently from a card row, each for a stated reason:
 
   - **The body is wrapped at render time.** A row's body is an anonymous text run, and CSS can place a grid *item* – an anonymous run is not one, so it could not be put in column 2 at all. The wrapping is done on the **source** rather than on the rendered HTML: `marked` passes inline HTML through untouched, so one `<span class="row-body">` in the line is safe where a regex over nested `<li>` markup would not be.
-  - **`anchor` defaults to `middle`, where a card defaults to `top`.** The constructs differ: a card is a block of text in a box and reads from its first line, while a row is a term *beside* a body, and a one-line term set against a three-line body's first line reads as a mistake. `parseTail` cannot tell a written `top` from the defaulted one, so the **written tail** decides – and that test has to run *before* the class list is built.
+  - **`anchor` defaults by ground, where a card defaults to `top`.** The constructs differ: a card is a block of text in a box and reads from its first line, while a row is a term *beside* a body. On a ground – a fill, an outline, the accent, paper – the term is a visible slab, and a one-line slab set against a three-line body's first line reads as a mistake rather than as a placement, so a grounded row defaults to `middle`: measured on a four-line body it sits 66px down, and reads as a slab placed in the middle of its row, which is what it is. With `.clear` there is no slab, and the ground zeroes the padding too, so the term is bare words in a column; centred against a four-line body they read as misaligned rather than as placed, and on the baseline they read as the hanging indent this construction has always been. A `.clear` row therefore defaults to `baseline`, and `.baseline` is the third anchor word an author can write. `parseTail` cannot tell a written `top` from the defaulted one, so the **written tail** decides – and that test has to run *before* the class list is built.
+
+    **`.baseline` on a `::: cards` block is refused** (`cards-baseline-no-body`, mirrored in `lint.js`): it lines a term up with the body beside it, and a card has no body beside it, so the word would resolve to something it does not mean. That is the rule `.photo` and the scrims answer to – a word the drawing ignores is a refusal in this format, not a silent no-op.
   - **`align` names how the term sits in its card, and nothing else.** It centred the body as well at first, and a centred definition body is not something anyone wants.
   - **The automatic size is capped at `medium`.** A row's term is a label in a column rather than a headline across the slide, and at the large scale it simply did not fit: measured, `Separatism` overflowed a 229px term track and ran across the body beside it. The cap is on the *automatic* size only – a written size is the author's.
 
@@ -236,7 +238,7 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
 
   **`body[data-collapse=topic-bold] .cards` carries `:not(.rows)`, and that is load-bearing.** With a body attribute that selector outranks `.cards.rows`, so without the exclusion the collapse rule handed a row block the column grid and the term track collapsed to nothing. The rule itself only exists to stop a card row folding to one column the way `.cols` does.
 
-**The class tails are closed vocabularies resolved into slots**, exactly as `DG_CLASS_GROUPS` does for a diagram, and `parseTail` reports the two failures this grammar refuses everywhere: a word from no slot, and two words from one. The second matters most – the second word lands, the first is thrown away, and nothing in the line says which won. Four tables now: `BACKDROP_SLOTS`, `OVERLAY_SLOTS`, `CARDS_SLOTS` and `SIDE_SLOTS`. `::: side` keeps its own parser for the ratio, which is positional, and hands only the tail to `parseTail`.
+**The class tails are closed vocabularies resolved into slots**, exactly as `DG_CLASS_GROUPS` does for a diagram, and `parseTail` reports the two failures this grammar refuses everywhere: a word from no slot, and two words from one. The second matters most – the second word lands, the first is thrown away, and nothing in the line says which won. Six tables now: `CHUNK_SLOTS`, `BACKDROP_SLOTS`, `OVERLAY_SLOTS`, `CARDS_SLOTS`, `SIDE_SLOTS` and `DOCK_SLOTS`. `::: side` keeps its own parser for the ratio, which is positional, and hands only the tail to `parseTail`.
 
 **No word may appear in two slots of one table, and `build.js` asserts it at load** rather than leaving it to be remembered. `parseTail` assigns a word to whichever slot lists it *first*, so a collision makes the other slot silently unreachable – `clear` is already a card ground and was very nearly also the card scrim, which is why that value is spelled `plain` even though `::: backdrop` calls the same thing `clear`. **Two tables may share a word; one table may not.**
 
