@@ -1,7 +1,6 @@
 ---
 title: Animated Infographics
 subtitle: "Six real lecture slides, rebuilt in ::: draw"
-author: Dominik Herrmann
 theme: dark
 collapse: none
 auto-fit: true

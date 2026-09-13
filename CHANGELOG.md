@@ -156,6 +156,28 @@ from building the same way is a major version.
 
 ### Added
 
+- **`lint.js` warns about a frontmatter key no renderer reads
+  (`unknown-frontmatter-key`).** `author:` sat in four lectures in this repo
+  looking like metadata and rendering nothing at all – it was stored, never
+  looked at, and nothing on any slide changed when you edited it. That is the
+  silent no-op the build refuses wherever it can see one (a `cover-ratio` on a
+  cover that does not divide, a scrim on a row with no picture), one layer up
+  where nothing could see it. It also catches the ordinary typo: `subtitel:`
+  now says so instead of quietly doing nothing.
+
+  A **warning**, and only in `lint.js`. Refusing an unknown key in the build
+  would stop an existing `source.md` from building, and from 1.0.0 the source
+  format is the interface – so this is the one direction the build/lint split
+  allows, a warning this file raises alone, like `reveal-overuse` and
+  `orphan-column`. `KNOWN_FRONTMATTER_KEYS` is the list, kept in step with
+  what `build.js` actually reads.
+
+  `author:` itself is gone rather than given a meaning. Two spellings for one
+  thing is not simpler than one, and the case that might have justified a
+  second key – several authors on a paper, one of them presenting – needs no
+  vocabulary of its own: `info:` already takes free lines and says it in the
+  author's own words.
+
 - **A title pair can be set either way up, and the credits have four ranks
   instead of two.** Two frontmatter decisions and three new slots, all of
   them additive: a deck that writes none of them emits the same markup it

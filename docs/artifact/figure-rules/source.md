@@ -1,7 +1,6 @@
 ---
 title: Figure rules
 subtitle: "The wrong/right pairs from figure-design.md, as compilable figures"
-author: Dominik Herrmann
 collapse: none
 draw-defaults: |
   default text {.small}

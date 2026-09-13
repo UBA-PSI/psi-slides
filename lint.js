@@ -47,6 +47,35 @@ const VALID_TAGS = new Set([
 const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
 const COVER_IMAGE_VARIANTS = new Set(['split', 'hero', 'beside', 'above']);
 
+// Every top-level frontmatter key some renderer reads. Not a vocabulary the
+// build enforces – it deliberately does not, because refusing an unknown key
+// would stop an existing source.md from building and the source format is the
+// interface from 1.0.0. So this is a *warning* and lives only here, which is
+// the one direction the build/lint split allows: warnings this file raises
+// alone are ordinary (reveal-overuse, orphan-column, density all are), while
+// an *error* the build does not share is not.
+//
+// It exists because `author:` sat in four lectures in this repo reading like
+// metadata and rendering nothing at all – the same silent no-op the build
+// refuses everywhere it can see one (a cover-ratio on a cover that does not
+// divide, a scrim on a row with no picture). A key the renderers never read
+// is that defect one layer up, and nothing could see it.
+//
+// Keep it in step with what build.js actually reads. The cheap check is
+// `grep -oE "frontmatter\[?['\"]?[a-z-]+" build.js | sort -u`.
+const KNOWN_FRONTMATTER_KEYS = new Set([
+  // the cover and its credits
+  'title', 'subtitle', 'presenter', 'affiliation', 'contact', 'notice', 'info',
+  'cover', 'cover-image', 'cover-ratio', 'cover-align', 'cover-ground',
+  'closing-image', 'closing-credits',
+  // dividers, identity, type and language
+  'section', 'section-mark', 'lecture', 'course', 'lang', 'labels', 'style',
+  'fonts', 'font', 'ligatures', 'draw-defaults',
+  // viewer defaults
+  'theme', 'collapse', 'auto-fit', 'slide-numbers', 'print-slide-numbers',
+  'editor',
+]);
+
 // Mirrors VIEW_DEFAULT_SPEC in build.js: frontmatter keys that pin how a
 // lecture opens. The build hard-fails on a bad value, but a typo here is
 // otherwise invisible – the lecture still builds and still looks fine, it
@@ -2219,6 +2248,13 @@ function lintFile(filePath) {
   header.split('\n').forEach((raw, i) => {
     const m = raw.match(/^([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
     if (!m) return;
+    if (!KNOWN_FRONTMATTER_KEYS.has(m[1])) {
+      addFm(i + 2, 'warn', 'unknown-frontmatter-key',
+        `'${m[1]}:' is not a key any renderer reads – it is stored and never `
+        + 'looked at, so nothing on any slide changes when you edit it. Delete '
+        + 'it, or check the spelling.');
+      return;
+    }
     const allowed = VIEW_DEFAULTS[m[1]];
     if (!allowed) return;
     // Strip a trailing YAML comment before comparing. Without this the

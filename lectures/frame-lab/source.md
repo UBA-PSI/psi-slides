@@ -1,7 +1,6 @@
 ---
 title: Frame lab
 subtitle: Docks, panels and nested beats pushed to their edges
-author: Dominik Herrmann
 cover: quote
 section: outline
 section-mark: Teil
