@@ -121,6 +121,16 @@ const STYLE_ENUMS = {
   // gets; `tinted` puts the accent's own hue into the neutrals, `warm` and
   // `cool` fix one. `neutral` is the default and today's rendering.
   'neutrals': ['neutral', 'tinted', 'warm', 'cool'],
+  // Which of a title pair's two lines is the loud one. `stacked` is the
+  // title over a quieter subtitle (today's rendering); `eyebrow` sets the
+  // title small above a subtitle that carries the weight. One key for the
+  // cover, the dividers and the closing slide, because all three carry a
+  // pair.
+  'headline': ['stacked', 'eyebrow'],
+  // Whether the small type around a title is set in capitals. The tracking
+  // that goes with them is not a setting - build.js applies it to any slot
+  // already in capitals.
+  'caps': ['off', 'on'],
   // The mark after an external link that opens its address and QR code.
   'link-codes': ['on', 'off'],
   // Which views break a word at the end of a line: the documents only

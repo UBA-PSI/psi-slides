@@ -121,6 +121,67 @@ from building the same way is a major version.
 
 ### Added
 
+- **A title pair can be set either way up, and the credits have four ranks
+  instead of two.** Two frontmatter decisions and three new slots, all of
+  them additive: a deck that writes none of them emits the same markup it
+  did before.
+
+  `style: {headline: …}` says which line of a title pair carries the weight.
+  `stacked` is the default and today's rendering – the title large, the
+  subtitle quieter underneath. `eyebrow` sets the title small above a
+  subtitle that carries the weight: the newspaper kicker, and the shape a
+  lecture title takes when the first line names the field and the second
+  asks the question. It is a treatment and not a second pair of content
+  keys, which is the whole point: `title:` stays the `<title>` element, the
+  TOC entry and what the search index reads whichever line is loud, so
+  nothing is renamed to get a different look. One key therefore serves the
+  cover, the section dividers and the closing slide at once, because all
+  three carry a pair.
+
+  `style: {caps: …}` sets the small type around a title in capitals – the
+  eyebrow, the presenter, the affiliation, never the headline, because a key
+  that capitalises the loud line is a key that makes a talk shout. The
+  *tracking* that has to come with capitals is deliberately not a setting:
+  capitals at the tracking of lowercase read as one jammed word, which is a
+  typographic rule rather than a preference, so the build marks any title
+  slot already in capitals and tracks it out. That repairs the deck that
+  typed `presenter: PROF. DR. …` years ago and never knew why it looked
+  wrong.
+
+  `affiliation:`, `contact:` and `notice:` are the three slots the credit
+  block was missing. It used to be one strong line over a run of equals –
+  `presenter:` set apart and everything else in `info:` – so the line that
+  qualifies the speaker's name was set exactly like the one that gives the
+  date, and the block read as a log file. The institution is now a rank of
+  its own; the contact and the notice are a *row* along the foot, because an
+  address and "the slides are online" answer the room rather than introduce
+  the speaker.
+
+  `closing-credits:` gives the closing slide those fields back, graded and
+  off by default: `none`, `contact` (the foot row only) or `cover` (the
+  whole block). The slide still carries nothing unasked – repeating who is
+  talking and where is what makes a bookend read as a duplicate – but the
+  one line a last slide is most often asked to carry is where the slides can
+  be found, and that argument never covered it. `cover` is the reserved word
+  `closing-image:` already uses, and for the same reason: it names *which*
+  credits, where a word like `same` only says there are some.
+
+  `cover-ground: ink` is a dark opening slide under a light deck, without a
+  photograph. The machinery existed and was reachable only through one:
+  `cover: hero` emits an inverted backdrop, and that re-points the ink
+  tokens for one chunk. `::: backdrop` requires an asset, so a deck that
+  wanted the dark opening and no picture had no path. It is a key rather
+  than an eleventh composition because it is one question asked of all ten,
+  the same reasoning that makes `cover-align:` a key.
+
+  Under the hood the compositions now declare their headline's size and
+  measure as `--title-lead` and `--title-measure` on the chunk rather than
+  as a `font-size` and a `max-width` on `.title-main`. That is what lets the
+  eyebrow mode hand both to whichever line is loud, and it is why the swap
+  works on all ten compositions instead of on the default one. It also
+  caught a bug: masthead's 15em cap, read at the eyebrow's much smaller em,
+  computed to 483px and broke the kicker onto two lines.
+
 - **`lang:` localises the words the build invents, and a `labels:` block
   overrides any one of them.** Everything in the four outputs that is not in
   `source.md` – the table-of-contents heading, the `Speaker Note` /

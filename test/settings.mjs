@@ -398,6 +398,132 @@ console.log('\nlayout generations');
      'and no slide-content rule spells a pixel radius any more');
 }
 
+// ── the title pair, the credit ranks and the ground ───────────────────
+// Four ranks where there were two, a pair that can be set either way up,
+// and a dark opening slide. These hold the same three things the cover
+// block below holds, for the same reason: the vocabulary gate, that each
+// name reaches the markup as the attribute its rules key on, and the
+// colour rule that has already shipped an element nobody could see twice -
+// once on an accent card, once on a row's body.
+{
+  const cDir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-title-'));
+  const title = (fm, tail) => {
+    fs.writeFileSync(path.join(cDir, 'source.md'),
+      '---\ntitle: T\nsubtitle: S\npresenter: P\n' + fm + '---\n\n' +
+      '## title: {#title}\n\n## free: F {#f}\n\nBody.\n' + (tail || ''));
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(cDir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: r.status !== 0, out: (r.stdout || '') + (r.stderr || ''),
+             html: r.status === 0 ? fs.readFileSync(path.join(cDir, 'audience.html'), 'utf8') : '',
+             print: r.status === 0 ? fs.readFileSync(path.join(cDir, 'print.html'), 'utf8') : '' };
+  };
+
+  // Every one of these reads the markup and not the file: the stylesheet
+  // carries body[data-headline=eyebrow] and .title-affiliation rules in
+  // every build, so a test that greps the whole document passes before the
+  // feature exists.
+  const arts = h => h.match(/<article class="chunk chunk-title"[\s\S]*?<\/article>/g) || [];
+
+  // The default has to say nothing at all, because every deck in the corpus
+  // is on it.
+  const bare = title('');
+  ok(!/data-headline=/.test(bodyTag(bare.html)) && !/data-title-caps=/.test(bodyTag(bare.html)),
+     'a deck that says nothing emits neither title attribute', bodyTag(bare.html));
+  ok(!/title-affiliation|title-foot/.test(arts(bare.html).join('')),
+     'and none of the new credit slots appear unwritten');
+
+  // The four ranks, each as its own class: the whole point of the slot is
+  // that an institution is not another info: line.
+  const full = title('affiliation: A\ncontact: C\nnotice: N\ninfo: |\n  L\n');
+  const cov = arts(full.html)[0] || '';
+  for (const cls of ['title-presenter', 'title-affiliation', 'title-info', 'title-foot']) {
+    ok(cov.includes(cls), cls + ' reaches the cover');
+  }
+  ok(/<span class="title-contact">C<\/span><span class="title-notice">N<\/span>/.test(cov),
+     'the foot is one row of two slots, contact first');
+
+  // The pair, either way up. The swap is a treatment and not a second pair
+  // of content keys: title: stays the <title> element whichever line is loud.
+  const eb = title('style: {headline: eyebrow}\n');
+  ok(/data-headline="eyebrow"/.test(bodyTag(eb.html)), 'headline: eyebrow reaches the projection');
+  ok(/body\[data-headline=eyebrow\] \.chunk-title \.title-subtitle \{[^}]*--title-lead/.test(eb.html),
+     'and the subtitle takes the composition\'s own headline size');
+  ok(/<title>T/.test(eb.html), 'while title: is still what names the document');
+
+  // --title-lead is the mechanism the swap rides on: a composition that goes
+  // back to writing font-size on .title-main works under stacked and
+  // silently stops swapping.
+  for (const v of ['masthead', 'display', 'panel']) {
+    const r = title('cover: ' + v + '\n');
+    ok(!r.failed && new RegExp('\\[data-cover=' + v + '\\] \\{ --title-lead:').test(r.html),
+       v + ' sets its headline size as --title-lead, not as a font-size');
+  }
+
+  // Capitals, and the tracking that is deliberately not a setting.
+  const caps = title('style: {caps: on}\n');
+  ok(/data-title-caps="on"/.test(bodyTag(caps.html)), 'caps: on reaches the projection');
+  ok(/body\[data-title-caps=on\][\s\S]{0,240}text-transform: uppercase/.test(caps.html),
+     'and transforms the small type');
+  // Both directions on one slot, because the fixture's other fields are
+  // single letters and a single capital is, correctly, all capitals.
+  ok(/class="title-affiliation" data-caps=""/.test(arts(title('affiliation: OTTO-FRIEDRICH\n').html)[0] || ''),
+     'a slot already typed in capitals is marked for tracking with no key at all');
+  ok(/class="title-affiliation">/.test(arts(title('affiliation: Otto-Friedrich\n').html)[0] || ''),
+     'and a slot that is not stays unmarked');
+
+  // The closing slide gets the fields back only when asked, and graded.
+  const END = '\n## closing: Danke {#end}\n\nWords.\n';
+  const endArt = h => arts(h).find(a => /data-closing/.test(a)) || '';
+  ok(!/title-foot|title-presenter/.test(endArt(title('affiliation: A\ncontact: C\n', END).html)),
+     'a closing slide carries no credits by default');
+  const ccEnd = endArt(title('affiliation: A\ncontact: C\nclosing-credits: contact\n', END).html);
+  ok(/title-foot/.test(ccEnd) && !/title-presenter/.test(ccEnd),
+     'closing-credits: contact gives it the foot row and not the presenter');
+  const cvEnd = endArt(title('affiliation: A\ncontact: C\nclosing-credits: cover\n', END).html);
+  ok(/title-presenter/.test(cvEnd) && /title-affiliation/.test(cvEnd) && /title-foot/.test(cvEnd),
+     'closing-credits: cover gives it the whole block');
+
+  // A dark opening slide under a light deck, reusing the one place the ink
+  // tokens are re-pointed rather than restating them.
+  const ink = title('cover-ground: ink\n');
+  ok(/data-cover-ground="ink"/.test(arts(ink.html)[0] || ''), 'cover-ground: ink reaches the markup');
+  ok(/\.chunk\[data-backdrop=invert\],\s*\.chunk\[data-cover-ground=ink\] \{/.test(ink.html),
+     'and joins the invert block rather than restating the token re-pointing');
+
+  // panel reverses its ink through a token of its own, so an element it does
+  // not name comes out dark on a dark plate. Both stylesheets.
+  ok(/\.chunk\[data-cover=panel\] \.title-affiliation/.test(full.html)
+     && /\.chunk\[data-cover=panel\] \.title-foot/.test(full.html),
+     'panel names the two new slots in the live view');
+  ok(/\.chunk-title\[data-cover=panel\] \.title-affiliation/.test(full.print)
+     && /\.chunk-title\[data-cover=panel\] \.title-foot/.test(full.print),
+     'and on paper');
+
+  // Both files refuse the same typo, the standing rule for a vocabulary in
+  // two places. Checked under --print-only on purpose: both keys are
+  // validated in the buildOnce pre-flight, and a renderer check would never
+  // be reached by that flag.
+  for (const [fm, key] of [['closing-credits: bogus\n', 'closing-credits'],
+                           ['cover-ground: bogus\n', 'cover-ground']]) {
+    fs.writeFileSync(path.join(cDir, 'source.md'),
+      '---\ntitle: T\n' + fm + '---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n');
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(cDir, 'source.md'), '--print-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    const out = (r.stdout || '') + (r.stderr || '');
+    ok(r.status !== 0 && new RegExp(key).test(out),
+       key + ' refuses an unknown value, and does it under --print-only',
+       out.split('\n')[0]);
+  }
+  fs.writeFileSync(path.join(cDir, 'source.md'),
+    '---\ntitle: T\nstyle: {headline: bogus}\n---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n');
+  const hLint = spawnSync(process.execPath,
+    [path.join(ROOT, 'lint.js'), path.join(cDir, 'source.md')], { cwd: ROOT, encoding: 'utf8' });
+  ok(/unknown-style-setting/.test((hLint.stdout || '') + (hLint.stderr || '')),
+     'and the linter mirrors headline');
+}
+
 // ── cards decide their own size, and say so in the markup ─────────────
 {
   const mk = (body) => {
@@ -1320,7 +1446,7 @@ console.log('\nlayout generations');
   const mastLede = cover('cover: masthead\n', '');
   ok(!mastLede.failed && !/class="title-field"/.test(mastLede.html),
      'a masthead with no body draws no field');
-  ok(/:not\(:has\(\.title-field\)\) \.title-main/.test(mastLede.html),
+  ok(/:not\(:has\(\.title-field\)\) \{ --title-lead: 3\.05em; \}/.test(mastLede.html),
      'and sets a larger nameplate when the field is empty');
   const mastBody = (() => {
     fs.writeFileSync(path.join(dir, 'source.md'),

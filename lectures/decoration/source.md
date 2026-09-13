@@ -2,6 +2,11 @@
 title: Slide Decoration
 subtitle: What a slide can carry besides a column of text
 author: Dominik Herrmann
+presenter: Dominik Herrmann
+affiliation: Otto-Friedrich-Universität Bamberg
+contact: https://github.com/UBA-PSI/psi-slides
+notice: The four views are built from this one file.
+closing-credits: contact
 cover: quote
 cover-align: middle
 section: outline

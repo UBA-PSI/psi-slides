@@ -1650,6 +1650,37 @@ const COVER_ALIGN_VARIANTS = new Set(['classic', 'stack', 'panel', 'quote', 'spl
 // still wins, exactly as it does on the cover.
 const CLOSING_IMAGE_COVER = 'cover';
 
+// `closing-credits:` - which of the cover's credit fields the closing slide
+// repeats. The slide carries none of them by default and that stays the
+// default: the presenter line and the info block say who is talking and
+// where, which the room learned an hour ago, and setting them again in the
+// same composition is a slide that looks like a mistake in the deck.
+//
+// What the argument never covered is the one line a last slide is most
+// often asked to carry, which is where the slides can be found. So the key
+// is graded rather than boolean, and it borrows `cover` as a reserved word
+// from `closing-image:` for the same reason that key does - it names *which*
+// credits, where a word like `same` would only say there are some.
+//
+//   none     nothing, as today
+//   contact  the foot row only: `contact:` and `notice:`
+//   cover    the whole block the cover carried
+const CLOSING_CREDITS_NONE = 'none';
+const CLOSING_CREDITS_COVER = 'cover';
+const CLOSING_CREDITS = [CLOSING_CREDITS_NONE, 'contact', CLOSING_CREDITS_COVER];
+
+// `cover-ground:` - whether the opening slide is dark while the rest of the
+// deck is light. The machinery is already here and was reachable only
+// through a photograph: `cover: hero` emits an inverted backdrop, and
+// `.chunk[data-backdrop=invert]` re-points the ink tokens for that one
+// chunk. A deck that wants the dark opening and no picture had no path,
+// because `::: backdrop` requires an asset.
+//
+// It is a key rather than an eleventh composition because it is one
+// question asked of all ten - the same reasoning `cover-align:` is a key
+// and not six more variant names.
+const COVER_GROUNDS = ['paper', 'ink'];
+
 // The slot tables (BACKDROP_SLOTS, CARDS_SLOTS, OVERLAY_SLOTS, SIDE_SLOTS)
 // live in tails.mjs with the parser that reads them, and the collision
 // assertion - no word in two slots of one table - runs there at load.
@@ -5192,6 +5223,38 @@ const STYLE_SPEC = {
   // is neither. tinted needs no such guard - there the accent's hue IS the
   // theme's, so it resolves to what the theme already does.
   neutrals: { kind: 'enum', values: ['neutral', 'tinted', 'warm', 'cool'], dflt: 'neutral' },
+  // Which of a title pair's two lines is the loud one. The cover has
+  // carried a pair since `subtitle:` landed, and so has every divider and
+  // closing slide through `Heading | Sub`; what none of them had is a way
+  // to say that the first line is the quiet one.
+  //
+  //   stacked - the title large, the subtitle quieter underneath it.
+  //             Today's rendering, and the default.
+  //   eyebrow - the title set small above a subtitle that carries the
+  //             weight. The newspaper kicker, and the shape a lecture
+  //             title takes when the first line names the field and the
+  //             second asks the question.
+  //
+  // `title:` stays the content key of whichever line is loud, and that is
+  // the reason this is a treatment rather than a second pair of content
+  // keys. `title:` is also the <title> element, the TOC entry and what the
+  // search index reads: inverting the hierarchy by telling authors to put
+  // the hook in `title:` would rename the browser tab to the hook and
+  // leave the lecture's own name nowhere. So the words do not move and
+  // only their type does - which is also what lets one key serve the
+  // cover, the dividers and the closing slide at once.
+  headline: { kind: 'enum', values: ['stacked', 'eyebrow'], dflt: 'stacked' },
+  // Whether the small type around a title is set in capitals. The
+  // *tracking* that has to come with them is deliberately not a key:
+  // capitals at the tracking of lowercase read as one jammed word, which
+  // is a typographic rule and not a preference, so the build applies it
+  // itself - to the line an author typed in capitals as much as to the
+  // line this key transforms. See `isAllCaps`.
+  //
+  // It reaches the eyebrow, the presenter and the affiliation, and
+  // deliberately not the headline: a key that capitalises the loud line is
+  // a key that makes a talk shout.
+  caps: { kind: 'enum', values: ['off', 'on'], dflt: 'off' },
   // Which views break a word at the end of a line. `lang:` picks the
   // dictionary and stays out of this: the language is a property of the
   // lecture, not an opening preference, and a German deck may perfectly
@@ -5332,6 +5395,12 @@ function styleBodyAttrs(st, frontmatter = {}) {
   if (st.rules !== 'on') parts.push('data-rules="off"');
   if (st.labels !== 'on') parts.push('data-labels="off"');
   if (st.neutrals !== 'neutral') parts.push(`data-neutrals="${st.neutrals}"`);
+  if (st.headline !== 'stacked') parts.push(`data-headline="${st.headline}"`);
+  // `data-title-caps` and not `data-caps`: the renderer writes a bare
+  // data-caps on each slot that is already in capitals, and one name doing
+  // both jobs would make `body[data-caps]` and `[data-caps]` the same
+  // selector at two scales.
+  if (st.caps !== 'off') parts.push('data-title-caps="on"');
   if (st['link-codes'] !== 'on') parts.push('data-link-codes="off"');
   // Emitted only when they differ from the default, so a lecture that says
   // nothing produces the same <body> tag it always did.
@@ -5450,6 +5519,24 @@ function splitInfo(info = '') {
   return String(info).split('\n').map(l => l.trim()).filter(Boolean);
 }
 
+// Capitals set at the tracking of lowercase read as one jammed word. That
+// is a typographic rule rather than a preference, so it is not a key: the
+// build marks any title slot whose text is already in capitals and the
+// stylesheet tracks it out. It reaches the line an author typed that way
+// (`presenter: PROF. DR. ...`, which rendered jammed and nothing said why)
+// and, through the same attribute, the lines `style: {caps: on}` transforms.
+//
+// Tested as "has an uppercase letter and no lowercase one" rather than
+// `s === s.toUpperCase()`, which is a different question the moment an s-z
+// ligature is in the string: uppercasing it yields SS, so a capitalised
+// German line would never equal its own uppercase and would silently miss
+// the tracking - which is exactly the deck most likely to want this.
+function isAllCaps(s) {
+  const t = String(s || '');
+  return /\p{Lu}/u.test(t) && !/\p{Ll}/u.test(t);
+}
+const capsAttr = s => (isAllCaps(s) ? ' data-caps=""' : '');
+
 
 // `subtitle` is the hierarchy step the cover was missing. Without it an
 // author has nowhere to put "Prevalence, Techniques, and Implications" but
@@ -5457,14 +5544,64 @@ function splitInfo(info = '') {
 // room and the date – so the one line that says what the talk is about is
 // set exactly like the one that says which conference it is. That is the
 // whole of the "hard to read" complaint the variants were asked for.
-function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsArt, bodyInField, variant }) {
+// The credit block, in four ranks. It used to be one strong line over a run
+// of equals: `presenter:` was set apart and everything else went into
+// `info:`, where the institution, the venue and the date all arrived at meta
+// size in soft ink - so the one line that qualifies the speaker's name was
+// set exactly like the one that gives the date, and the block read as a log
+// file rather than as a masthead.
+//
+// `contact` and `notice` are a *row* along the foot rather than two more
+// stacked lines, because they do a different job from the two above them:
+// the presenter and the affiliation introduce the speaker, while an address
+// and "the slides are online" answer the room. One is the head of the
+// block, the other is its foot.
+//
+// Factored out of renderTitleBlock because the closing slide serves it too
+// (`closing-credits:`) and a second copy is how a bookend stops being the
+// same composition. `metaHtml` is passed rather than built from `info`
+// because the cover has one caller that overrides it: a chunk body stands
+// in for the info lines where the composition has nowhere else to put it.
+function renderCredits({ presenter, affiliation, contact, notice, metaHtml = '' }) {
+  const foot = [
+    contact ? `<span class="title-contact">${escapeHtml(contact)}</span>` : '',
+    notice ? `<span class="title-notice">${escapeHtml(notice)}</span>` : '',
+  ].filter(Boolean).join('');
+  return [
+    presenter ? `<p class="title-presenter"${capsAttr(presenter)}>${escapeHtml(presenter)}</p>` : '',
+    affiliation ? `<p class="title-affiliation"${capsAttr(affiliation)}>${escapeHtml(affiliation)}</p>` : '',
+    metaHtml || '',
+    foot ? `<div class="title-foot">${foot}</div>` : '',
+  ].filter(Boolean).join('\n    ');
+}
+
+// `cover-ground: ink` - a dark opening slide under a light deck. Written
+// only where nothing has already darkened the slide: a backdrop's own scrim
+// wins, exactly as a backdrop wins over the composition's picture. The
+// closing slide takes it too, because the ground is part of the composition
+// it inherits, and a deck that opens dark and closes light has not closed
+// the arc it opened.
+function groundAttrFor(cover, art) {
+  return (cover.ground === 'ink' && !art.scrim) ? ' data-cover-ground="ink"' : '';
+}
+
+function renderTitleBlock({ title, subtitle, presenter, affiliation, info, contact, notice, bodyHtml, bodyIsArt, bodyInField, variant }) {
   // The body stands in for `info` only where the composition has nowhere
   // else to put it. Where it does - as a picture in its own track, or as the
   // lede in a masthead's field - the info lines are still the meta.
+  //
+  // It has never stood in for the presenter, and it does not stand in for
+  // the three slots beside it either: a cover whose body is a drawing still
+  // has an author, an institution and an address.
   const bodyPlaced = bodyIsArt || bodyInField;
   const infoLines = (bodyHtml && !bodyPlaced)
     ? null // chunk body overrides `info` (PRD §3 rules)
     : splitInfo(info);
+  const metaHtml = infoLines
+    ? (infoLines.length
+        ? `<div class="title-info">${infoLines.map(l => `<p>${escapeHtml(l)}</p>`).join('')}</div>`
+        : '')
+    : (bodyPlaced ? '' : (bodyHtml || ''));
   const field = (bodyInField && bodyHtml)
     ? `<div class="title-field">${bodyHtml}</div>` : '';
   // On `quote` the field IS the slide, so it comes first and the title
@@ -5474,13 +5611,10 @@ function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsAr
   const claimFirst = bodyInField && variant === 'quote';
   return `
     ${claimFirst ? field : ''}
-    <h1 class="title-main">${escapeHtml(title || '')}</h1>
+    <h1 class="title-main"${capsAttr(title)}>${escapeHtml(title || '')}</h1>
     ${subtitle ? `<p class="title-subtitle">${escapeHtml(subtitle)}</p>` : ''}
     ${claimFirst ? '' : field}
-    ${presenter ? `<p class="title-presenter">${escapeHtml(presenter)}</p>` : ''}
-    ${infoLines
-      ? `<div class="title-info">${infoLines.map(l => `<p>${escapeHtml(l)}</p>`).join('')}</div>`
-      : (bodyPlaced ? '' : (bodyHtml || ''))}
+    ${renderCredits({ presenter, affiliation, contact, notice, metaHtml })}
   `.trim();
 }
 
@@ -5502,11 +5636,30 @@ function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsAr
 // ordinary chunk heading and code spans work in it the way they do in
 // every other one. The cover's title cannot, because it comes from
 // frontmatter and is escaped there.
-function renderClosingBlock(chunk, bodyHtml) {
+function renderClosingBlock(chunk, bodyHtml, frontmatter = {}, cover = {}) {
+  // `closing-credits:` is the author asking for the fields back, and the
+  // default is still none of them. `contact` is the value expected to earn
+  // its keep - a last slide that repeats the speaker's name reads as a
+  // duplicate, and one that repeats where the slides live is answering the
+  // question the room is about to ask - while `cover` is for the deck that
+  // ends on a full restatement.
+  const want = cover.closingCredits || CLOSING_CREDITS_NONE;
+  const all = want === CLOSING_CREDITS_COVER;
+  const infoLines = all ? splitInfo(frontmatter.info) : [];
+  const credits = want === CLOSING_CREDITS_NONE ? '' : renderCredits({
+    presenter: all ? frontmatter.presenter : '',
+    affiliation: all ? frontmatter.affiliation : '',
+    contact: frontmatter.contact,
+    notice: frontmatter.notice,
+    metaHtml: infoLines.length
+      ? `<div class="title-info">${infoLines.map(l => `<p>${escapeHtml(l)}</p>`).join('')}</div>`
+      : '',
+  });
   return `
-    <h1 class="title-main">${renderInlineMd(chunk.heading || '')}</h1>
+    <h1 class="title-main"${capsAttr(chunk.heading)}>${renderInlineMd(chunk.heading || '')}</h1>
     ${chunk.headingSub ? `<p class="title-subtitle">${renderInlineMd(chunk.headingSub)}</p>` : ''}
     ${bodyHtml ? `<div class="closing-body">${bodyHtml}</div>` : ''}
+    ${credits}
   `.trim();
 }
 
@@ -5675,8 +5828,41 @@ function coverSettings(frontmatter = {}) {
       closingImage = rawC;
     }
   }
+  // Validated here rather than in a renderer, because coverSettings runs in
+  // the buildOnce pre-flight: a check that can refuse a deck has to fire
+  // before any view is written, or `--print-only` never reaches it and a
+  // typo ships silently in half the outputs.
+  let closingCredits = CLOSING_CREDITS_NONE;
+  if (frontmatter['closing-credits'] != null) {
+    const rawCC = String(frontmatter['closing-credits']).trim();
+    if (!CLOSING_CREDITS.includes(rawCC)) {
+      const err = new Error(
+        `Frontmatter: "closing-credits: ${rawCC}" is not a value this key takes.\n` +
+        `  Valid values: ${CLOSING_CREDITS.join(', ')}\n` +
+        '    none     the closing slide carries no credits (the default)\n' +
+        '    contact  the foot row only: contact: and notice:\n' +
+        '    cover    the whole credit block the cover carried');
+      err.userFacing = true;
+      throw err;
+    }
+    closingCredits = rawCC;
+  }
+  let ground = 'paper';
+  if (frontmatter['cover-ground'] != null) {
+    const rawG = String(frontmatter['cover-ground']).trim();
+    if (!COVER_GROUNDS.includes(rawG)) {
+      const err = new Error(
+        `Frontmatter: "cover-ground: ${rawG}" is not a ground this tool draws.\n` +
+        `  Valid values: ${COVER_GROUNDS.join(', ')}\n` +
+        '    paper  the deck\'s own ground (the default)\n' +
+        '    ink    a dark opening slide while the rest of the deck stays light');
+      err.userFacing = true;
+      throw err;
+    }
+    ground = rawG;
+  }
   return {
-    variant: raw, image, ratio, align, closingImage,
+    variant: raw, image, ratio, align, closingImage, closingCredits, ground,
     bodyIsArt: COVER_BODY_ART.has(raw),
     bodyInField: COVER_BODY_FIELD.has(raw),
     bodyRequired: COVER_BODY_REQUIRED.has(raw),
@@ -5798,11 +5984,12 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
     const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
     const bdAttr = art.html ? ' data-has-backdrop=""' : '';
     const closingAttr = closing ? ' data-closing=""' : '';
-    return `<article class="chunk chunk-title" data-cover="${cover.variant}"${closingAttr}${bdAttr}${scrimAttr}${chunkStyleAttrs(chunk)}${numAttr}${idAttr}>
+    const groundAttr = groundAttrFor(cover, art);
+    return `<article class="chunk chunk-title" data-cover="${cover.variant}"${closingAttr}${bdAttr}${scrimAttr}${groundAttr}${chunkStyleAttrs(chunk)}${numAttr}${idAttr}>
   ${art.html}
   ${numHtml}
   ${closing
-    ? renderClosingBlock(chunk, bodyHtml)
+    ? renderClosingBlock(chunk, bodyHtml, frontmatter, cover)
     : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField, variant: cover.variant })}
   ${renderOverlayLayer(chunk.overlays, where)}
 </article>`;
@@ -6462,6 +6649,11 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  /* The size of the pair's loud line, so that headline: eyebrow can hand it
+     to whichever line is carrying the weight. In rem here and in em there,
+     because print is not zoomed - the mechanism is the same and only the
+     unit differs. */
+  --title-lead: 2.6rem;
   padding: 0 0 1.8rem;
   margin: 0 0 2.6rem;
   border-bottom: 1px solid var(--rule);
@@ -6469,7 +6661,8 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   page-break-inside: avoid;
 }
 .chunk-title .title-main {
-  font-size: 2.6rem;
+  font-size: var(--title-lead);
+  max-width: var(--title-measure, none);
   margin: 0 0 0.8rem;
   line-height: 1.15;
 }
@@ -6483,6 +6676,51 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   font-family: var(--sans);
   font-size: 0.88rem;
   color: var(--ink-soft);
+}
+.chunk-title .title-affiliation {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: -0.9rem 0 1.2rem;
+  color: var(--ink-soft);
+}
+/* The foot is a row on the projection because the slide is a frame with two
+   edges to hang things on. On paper the page has a measure and no such
+   edges, and an address pushed to the right margin of a document reads as a
+   mistake - so the two run together on one line instead, in source order. */
+.chunk-title .title-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1.4rem;
+  margin-top: 0.5rem;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.chunk-title .title-notice { font-style: italic; }
+.chunk-title [data-caps] { letter-spacing: 0.055em; }
+body[data-title-caps=on] .chunk-title .title-presenter,
+body[data-title-caps=on] .chunk-title .title-affiliation,
+body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+body[data-headline=eyebrow] .chunk-title .title-main {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.015em;
+  color: var(--ink-soft);
+  margin: 0 0 0.25rem;
+}
+body[data-headline=eyebrow] .chunk-title .title-subtitle {
+  font-size: var(--title-lead);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  max-width: 20em;
+  margin: 0 0 0.8rem;
 }
 
 /* The style: frontmatter block, on paper. Same two selectors as the live
@@ -6562,14 +6800,16 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 .chunk-title[data-cover=panel] .title-presenter { color: var(--paper); }
 .chunk-title[data-cover=panel] .title-subtitle,
 .chunk-title[data-cover=panel] .title-info p,
+.chunk-title[data-cover=panel] .title-affiliation,
+.chunk-title[data-cover=panel] .title-foot,
 .chunk-title[data-cover=panel] .closing-body {
   color: color-mix(in oklch, var(--paper) 78%, transparent);
 }
+.chunk-title[data-cover=display] { --title-lead: 3.6rem; }
+.chunk-title[data-cover=display] { --title-measure: 11em; }
 .chunk-title[data-cover=display] .title-main {
-  font-size: 3.6rem;
   line-height: 1.02;
   letter-spacing: -0.03em;
-  max-width: 11em;
 }
 
 /* The closing slide is a page like the cover is a page, and it carries the
@@ -7027,10 +7267,11 @@ function renderTitleChunk(chunk, frontmatter, num) {
   // opened.
   const alignAttr = cover.align ? ` data-cover-align="${cover.align}"` : '';
   const closingAttr = closing ? ' data-closing=""' : '';
+  const groundAttr = groundAttrFor(cover, art);
   const block = closing
-    ? renderClosingBlock(chunk, bodyHtml)
+    ? renderClosingBlock(chunk, bodyHtml, frontmatter, cover)
     : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField, variant: cover.variant });
-  return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${closingArtAttr}${alignAttr}${bdAttr}${scrimAttr}${chunkStyleAttrs(chunk)} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
+  return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${closingArtAttr}${alignAttr}${bdAttr}${scrimAttr}${groundAttr}${chunkStyleAttrs(chunk)} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
   ${art.html}
   <div class="chunk-content">
     ${block}
@@ -8659,14 +8900,23 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    min-height every chunk gets, the next chunk's heading crept into the
    bottom of the frame and the split variant's picture stretched to a band
    across the top third instead of bleeding down the whole right edge. */
-.chunk-title { align-items: end; min-height: var(--slide-h); }
+/* The size of a title pair's loud line, named once so the eyebrow mode can
+   hand it to whichever of the two lines is carrying the weight. Every
+   composition below sets this rather than a font-size on .title-main, which
+   is what lets style.headline: eyebrow work on all ten of them instead
+   of on the default one. It is declared on the chunk - an ancestor of both
+   lines - because a custom property inherits down and not sideways; neither
+   .chunk nor .chunk-content sets a font-size, so the em resolves against
+   exactly what it resolved against when each of these was a font-size. */
+.chunk-title { align-items: end; min-height: var(--slide-h); --title-lead: 2.6em; }
 .chunk-title .chunk-content {
   grid-column: 2;
   gap: 0.5em;
   padding-bottom: 12vh;
 }
 .chunk-title .title-main {
-  font-size: calc(2.6em * var(--zoom));
+  font-size: calc(var(--title-lead) * var(--zoom));
+  max-width: var(--title-measure, none);
   font-weight: 500;
   margin: 0;
   line-height: 1.1;
@@ -8684,6 +8934,95 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   line-height: 1.5;
 }
 .chunk-title .title-info p { margin: 0.15em 0; }
+/* The institution is a rank of its own rather than another info: line.
+   It qualifies the name directly above it, where the venue and the date
+   qualify the talk - set at one size they read as a list of four equal
+   facts, which is what made the old credit block read as a log file. */
+.chunk-title .title-affiliation {
+  font-family: var(--sans-font);
+  font-size: calc(0.82em * var(--zoom));
+  font-weight: 500;
+  margin: 0.08em 0 0;
+  color: var(--ink-soft);
+}
+/* The foot: an address on the left, the line that answers the room on the
+   right. A row and not two more stacked lines, because they do a different
+   job from the two ranks above - those introduce the speaker, these answer
+   "where do I get this" and "may I photograph it".
+
+   width: 100% is load-bearing and is the same trap the masthead's credits
+   row fell into: space-between needs a width to push against, and a flex
+   item in a column shrink-wraps to its content. */
+.chunk-title .title-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.2em 2.4em;
+  width: 100%;
+  margin-top: 0.85em;
+  font-family: var(--sans-font);
+  font-size: calc(0.7em * var(--zoom));
+  color: var(--ink-soft);
+}
+/* One device to separate the notice from the address beside it, and the one
+   that costs no colour and no weight - both of which are already carrying
+   something else on this slide. */
+.chunk-title .title-notice { font-style: italic; }
+/* Capitals at the tracking of lowercase read as one jammed word. The
+   attribute is written by the renderer for any slot already in capitals, so
+   this reaches the line an author typed that way as much as the line
+   style.caps transformed - see isAllCaps. */
+.chunk-title [data-caps] { letter-spacing: 0.055em; }
+/* style: {caps: on} - the small type around the title, never the title.
+   Under headline: eyebrow the eyebrow is small type and takes it; under
+   stacked, .title-main is the loud line and is left alone, because a key
+   that capitalises the loud line is a key that makes a talk shout. */
+body[data-title-caps=on] .chunk-title .title-presenter,
+body[data-title-caps=on] .chunk-title .title-affiliation,
+body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+/* ── style: {headline: eyebrow} ───────────────────────────────────────
+   The pair the other way up: the title small above a subtitle that carries
+   the weight. The words do not move - title: is still the lecture's name,
+   still the <title> element, still what the TOC and the search index read -
+   and only the type changes, which is what lets one key serve the cover,
+   the dividers and the closing slide at once.
+
+   The subtitle takes --title-lead, so it inherits whatever size the
+   composition chose for its headline and the swap works on all ten rather
+   than on the default one. The eyebrow's own size is fixed and small: it is
+   a kicker, and a kicker that scales with the headline stops being one. */
+body[data-headline=eyebrow] .chunk-title .title-main {
+  font-size: calc(1.02em * var(--zoom));
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.015em;
+  color: var(--ink-soft);
+  /* Uncapped, and that is the point of moving the cap to --title-measure:
+     a composition's cap is written in the headline's em, and read at the
+     eyebrow's much smaller one the same number is a third of the slide.
+     Measured, masthead's 15em came out as 483px and broke
+     "Datensicherheit im digitalen Alltag:" onto two lines. A kicker is one
+     short line by construction; the column is the only cap it needs. */
+  max-width: none;
+  margin: 0 0 0.1em;
+}
+body[data-headline=eyebrow] .chunk-title .title-subtitle {
+  font-size: calc(var(--title-lead) * var(--zoom));
+  max-width: var(--title-measure, 20em);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.022em;
+  color: var(--ink);
+  /* In the subtitle's own em, which is now the headline's, so the measure
+     has to be restated: 26em at meta size is a paragraph, 26em at 2.6em is
+     two thirds of a projector. */
+  max-width: 20em;
+  margin: 0 0 0.25em;
+}
 
 /* ── lecture-wide style settings (the style: frontmatter block) ──────
    Two of the four keys are selectors rather than numbers, because what
@@ -8792,11 +9131,11 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   gap: 0;
   justify-content: flex-start;
 }
+.chunk[data-cover=masthead] { --title-lead: 2.5em; }
+.chunk[data-cover=masthead] { --title-measure: 17em; }
 .chunk[data-cover=masthead] .title-main {
-  font-size: calc(2.5em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.026em;
-  max-width: 17em;
 }
 .chunk[data-cover=masthead] .title-subtitle {
   margin: 0.5em 0 0;
@@ -8862,10 +9201,8 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
    and the same shape of rule: the composition reads what it was given and
    sets the scale from it, rather than making the author choose a size to go
    with a decision they already made by writing (or not writing) a body. */
-.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-main {
-  font-size: calc(3.05em * var(--zoom));
-  max-width: 15em;
-}
+.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) { --title-lead: 3.05em; }
+.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) { --title-measure: 15em; }
 .chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-subtitle {
   font-size: calc(1.3em * var(--zoom));
   margin-top: 0.55em;
@@ -8890,12 +9227,12 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   padding-bottom: 0;
   gap: 0;
 }
+.chunk[data-cover=display] { --title-lead: 4.4em; }
+.chunk[data-cover=display] { --title-measure: 9.5em; }
 .chunk[data-cover=display] .title-main {
-  font-size: calc(4.4em * var(--zoom));
   font-weight: 600;
   line-height: 0.97;
   letter-spacing: -0.042em;
-  max-width: 9.5em;
   text-wrap: balance;
 }
 .chunk[data-cover=display] .title-subtitle {
@@ -8956,9 +9293,9 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   padding-bottom: 12vh;
   gap: 0.3em;
 }
+.chunk[data-cover=panel] { --title-lead: 2.85em; }
 .chunk[data-cover=panel] .title-main {
   color: var(--panel-ink);
-  font-size: calc(2.85em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.028em;
 }
@@ -8967,6 +9304,15 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   margin: 0.4em 0 0;
   font-size: calc(1.18em * var(--zoom));
   max-width: 26em;
+}
+/* panel reverses its ink through a token of its own rather than through
+   --ink, so every element on it has to be named here: an element that only
+   reads --ink-soft comes out dark on a dark plate. The affiliation and the
+   foot are the two newest, and they are the reason this list is worth
+   keeping in one place. */
+.chunk[data-cover=panel] .title-affiliation,
+.chunk[data-cover=panel] .title-foot {
+  color: color-mix(in oklch, var(--panel-ink) 76%, transparent);
 }
 .chunk[data-cover=panel] .title-presenter {
   color: var(--panel-ink);
@@ -9018,11 +9364,11 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* Under the claim the title is the attribution, so it is set at meta size
    and not as a headline - the one place in the family where the lecture's
    own name is not the largest thing on its cover. */
+.chunk[data-cover=quote] { --title-lead: 1.05em; }
+.chunk[data-cover=quote] { --title-measure: 26em; }
 .chunk[data-cover=quote] .title-main {
-  font-size: calc(1.05em * var(--zoom));
   font-weight: 600;
   letter-spacing: 0;
-  max-width: 26em;
 }
 .chunk[data-cover=quote] .title-subtitle {
   margin: 0.2em 0 0;
@@ -9079,8 +9425,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   background-position: center;
   background-repeat: no-repeat;
 }
+.chunk[data-cover=split] { --title-lead: 2.35em; }
 .chunk[data-cover=split] .title-main {
-  font-size: calc(2.35em * var(--zoom));
   font-weight: 600;
 }
 .chunk[data-cover=split] .title-presenter { margin-top: 0.5em; }
@@ -9103,8 +9449,24 @@ body[data-mode=dark] .chunk[data-cover=panel] {
     oklch(0.12 0.02 260 / 0.28) 68%,
     oklch(0.12 0.02 260 / 0.10) 100%);
 }
+/* The scrim has to follow the type, and it did not. hero places its block at
+   the foot, so the gradient is dark at the bottom - but cover-align: top
+   is accepted on hero, and it moved the reversed type onto the thinnest part
+   of the veil: white words on the bright half of a photograph. Found while
+   planning the title work, not by a test, because nothing measures contrast
+   over a picture. An even veil is not the answer here for the reason it is
+   not the answer anywhere on this composition: it greys the whole photograph
+   to protect four lines in one corner. */
+.chunk[data-cover=hero][data-cover-align=top] .chunk-backdrop.bd-invert::after {
+  background: linear-gradient(
+    to bottom,
+    oklch(0.12 0.02 260 / 0.88) 0%,
+    oklch(0.12 0.02 260 / 0.72) 34%,
+    oklch(0.12 0.02 260 / 0.28) 68%,
+    oklch(0.12 0.02 260 / 0.10) 100%);
+}
+.chunk[data-cover=hero] { --title-lead: 2.75em; }
 .chunk[data-cover=hero] .title-main {
-  font-size: calc(2.75em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.026em;
 }
@@ -9128,7 +9490,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   max-width: 34em;
   margin: 0 auto;
 }
-.chunk[data-cover=stack] .title-main { font-size: calc(2.6em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=stack] { --title-lead: 2.6em; }
+.chunk[data-cover=stack] .title-main { font-weight: 600; }
 .chunk[data-cover=stack] .title-subtitle { max-width: 30em; margin-top: 0.1em; }
 .chunk[data-cover=stack] .title-presenter { margin-top: 0.9em; font-weight: 600; }
 .chunk[data-cover=stack] .title-info { margin-top: 0.15em; }
@@ -9157,7 +9520,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   background-repeat: no-repeat;
   min-height: 42vh;
 }
-.chunk[data-cover=beside] .title-main { font-size: calc(2.25em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=beside] { --title-lead: 2.25em; }
+.chunk[data-cover=beside] .title-main { font-weight: 600; }
 
 /* above - the art on top, the title in the lower quarter and centred on
    both axes. The proportion is the point: cover-ratio is how much of the
@@ -9206,7 +9570,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   max-width: 36em;
   margin: 0 auto;
 }
-.chunk[data-cover=above] .title-main { font-size: calc(2.05em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=above] { --title-lead: 2.05em; }
+.chunk[data-cover=above] .title-main { font-weight: 600; }
 .chunk[data-cover=above] .title-subtitle { max-width: 32em; font-size: calc(1.05em * var(--zoom)); }
 .chunk[data-cover=above] .title-presenter { margin-top: 0.5em; font-weight: 600; }
 .chunk[data-cover=above] .title-info { margin-top: 0.05em; font-size: calc(0.64em * var(--zoom)); }
@@ -9278,10 +9643,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* display sets the title at four and a half ems, which is right for a
    lecture title and shouting for the word "Questions?". The bookend keeps
    the composition and steps the scale back to the cover's own. */
-.chunk[data-cover=display][data-closing] .title-main {
-  font-size: calc(3.1em * var(--zoom));
-  max-width: 14em;
-}
+.chunk[data-cover=display][data-closing] { --title-lead: 3.1em; }
+.chunk[data-cover=display][data-closing] { --title-measure: 14em; }
 /* quote is the other cover that sets .title-main to something it is not on a
    closing slide. There the lecture's title is the *attribution* under the
    claim, so it is meta-sized on purpose - but a closing slide has no claim
@@ -9289,11 +9652,11 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    size: measured, 29.9px where a heading belongs. The bookend keeps the
    composition and takes back the one rule that only made sense with a
    quotation over it. */
+.chunk[data-cover=quote][data-closing] { --title-lead: 2.2em; }
+.chunk[data-cover=quote][data-closing] { --title-measure: 20em; }
 .chunk[data-cover=quote][data-closing] .title-main {
-  font-size: calc(2.2em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.018em;
-  max-width: 20em;
 }
 .chunk[data-cover=quote][data-closing] .title-subtitle {
   font-size: calc(1.05em * var(--zoom));
@@ -9433,7 +9796,14 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* An inverted slide re-points the ink tokens rather than restating every
    colour rule: everything downstream already reads --ink / --ink-soft /
    --rule, so one block covers headings, body, lists, rules and captions. */
-.chunk[data-backdrop=invert] {
+/* cover-ground: ink joins this selector rather than restating it. The
+   token re-pointing below is the one place a dark slide is described, and a
+   second spelling of it is a second place to keep in sync; what the ground
+   adds is the dark itself, which a backdrop otherwise supplies as a
+   picture. */
+.chunk[data-cover-ground=ink] { background: oklch(0.14 0.015 260); }
+.chunk[data-backdrop=invert],
+.chunk[data-cover-ground=ink] {
   /* color: var(--ink) is declared on body, so it is *computed* there
      against body's --ink and inherited as a finished colour: redefining
      the token further down changes nothing that already resolved. The
@@ -9445,7 +9815,11 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   --ink-soft: oklch(0.99 0 0 / 0.74);
   --rule: oklch(0.99 0 0 / 0.32);
   --emph: oklch(0.90 0.10 75);
-  text-shadow: 0 1px 14px oklch(0.12 0.02 260 / 0.5);
+  /* Deliberately outside the palette, and at chroma 0 rather than 0.02 so
+     that it says so. This halo exists to separate reversed glyphs from
+     whatever the photograph is doing behind them; a halo carrying a hue
+     tints the type it is protecting, which is the opposite of its job. */
+  text-shadow: 0 1px 14px oklch(0.12 0 0 / 0.5);
 }
 /* Content has to clear the backdrop, which is z-index 0 in the same
    stacking context. Written as a z-index on each layer and never as a

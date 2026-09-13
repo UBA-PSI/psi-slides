@@ -191,7 +191,7 @@ The tag word above a chunk is **two different things wearing one name**, and a s
 
 ## Where the blocks sit (`style.blocks`), and the two keys a chunk can answer
 
-`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `neutrals` (neutral/tinted/warm/cool), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `heading-scale` and `body-scale` (0.6–1.8).
+`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `neutrals` (neutral/tinted/warm/cool), `headline` (stacked/eyebrow), `caps` (off/on), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `heading-scale` and `body-scale` (0.6–1.8).
 
 **`reveal` was a key here and is gone.** It chose what a top-level `---` did before its beat – `grow`, the 1.0.0 behaviour, closed the segment up so the chunk grew per press, and `hold` laid it out at its final height from beat 0. Every reveal reserves its space now, at every depth, so there is nothing left for the key to pick and a deck that still writes it is refused by the build and by `lint.js` alike. `STYLE_KEYS_REMOVED` in build.js and its mirror in lint.js carry the sentence an author gets, which names what replaced the key rather than reporting a typo they did not make.
 
@@ -213,6 +213,30 @@ The tag word above a chunk is **two different things wearing one name**, and a s
 **`warm` and `cool` are held off the two terminal themes on purpose.** A single phosphor tone is what those are, and a warm-grey paper under green ink is neither. `tinted` needs no such guard: there the accent's hue is already the theme's.
 
 What it does **not** reach yet: the slide's shadows and scrims, which are hard-coded at hue 260 (`oklch(0.2 0.01 260 / 0.10)` and friends) in four different recipes. Fixing those well means one elevation ladder rather than a token swap, which is its own change.
+
+## Which line of a title pair is loud (`style.headline`, `style.caps`)
+
+Every cover carries a pair (`title:` + `subtitle:`), and so does every section divider and closing slide (`Heading | Sub`). Until these keys the pair had one setting: first line large, second quieter underneath.
+
+| | |
+|---|---|
+| `stacked` | the title large, the subtitle quieter under it. **The default**, and the rendering the tool has always had |
+| `eyebrow` | the title set small above a subtitle that carries the weight – the newspaper kicker |
+
+**It is a treatment and not a second pair of content keys, and that is the load-bearing decision.** `title:` is also the `<title>` element, the TOC entry and what the search index reads. Inverting the hierarchy by telling authors to put the hook in `title:` would rename the browser tab to the hook and leave the lecture's own name nowhere. So the words never move and only their type does – which is also what lets one key serve the cover, the dividers and the closing slide at once.
+
+**The mechanism is `--title-lead` and `--title-measure`, declared on the chunk.** Each composition says how big its loud line is and how wide it may run as two custom properties rather than as a `font-size` and a `max-width` on `.title-main`; the eyebrow mode then hands both to whichever line is carrying the weight. Declared on the chunk and not on `.title-main`, because a custom property inherits down and not sideways and the subtitle has to be able to read it. **A composition that goes back to writing a `font-size` on `.title-main` will work under `stacked` and silently stop swapping** – `test/settings.mjs` checks four of them for exactly that.
+
+Neither `.chunk` nor `.chunk-content` sets a `font-size`, so moving those em values up to the chunk was lossless. That was checked rather than assumed, and it is the thing to re-check if either rule ever gains one.
+
+`style: {caps: …}` sets the small type around a title in capitals – the eyebrow, the presenter, the affiliation. **Never the headline:** a key that capitalises the loud line is a key that makes a talk shout.
+
+**The tracking that has to come with capitals is deliberately not a setting.** Capitals at the tracking of lowercase read as one jammed word, which is a typographic rule rather than a preference, so `isAllCaps` marks any title slot whose text is *already* in capitals with `data-caps` and the stylesheet tracks it out. That reaches the line an author typed in capitals years ago as much as the line this key transforms. It is spelled as "has an uppercase letter and no lowercase one" rather than `s === s.toUpperCase()`, because uppercasing an ß yields SS – so a capitalised German line would never equal its own uppercase, and the deck most likely to want this would be the one that silently missed it.
+
+Two things measured rather than chosen, both worth not re-breaking:
+
+- **A composition's measure is written in the headline's em, and the eyebrow's em is much smaller.** masthead's 15em cap computed to 483px at the eyebrow's size and broke `DATENSICHERHEIT IM DIGITALEN ALLTAG:` onto two lines. That is why the cap moved to `--title-measure` and why the kicker is uncapped: it is one short line by construction and the column is the only cap it needs.
+- **A single capital letter is, correctly, all capitals.** `presenter: P` in a fixture is marked. Harmless – tracking one letter shows nothing – but it will surprise anyone writing a test against a one-letter field.
 
 ## The printed document's face (`style.print-body`)
 

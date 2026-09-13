@@ -18,6 +18,23 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
 
 - **`subtitle:` in the frontmatter.** The hierarchy step the cover was missing, and most of the original "hard to read" complaint. Without it the one line that says what the talk is *about* has nowhere to go but the `info` block, where it renders at meta size in soft ink beside the room and the date. Four sizes now where there were two.
 
+- **`affiliation:`, `contact:` and `notice:` – the credit block in four ranks.** It used to be one strong line over a run of equals: `presenter:` set apart and everything else in `info:`, where the institution, the venue and the date all arrived at meta size in soft ink. So the line that *qualifies the speaker's name* was set exactly like the one that gives the date, and the block read as a log file rather than as a masthead.
+
+  | key | class | where |
+  |---|---|---|
+  | `presenter:` | `.title-presenter` | strong, full ink – unchanged |
+  | `affiliation:` | `.title-affiliation` | quieter, directly under the presenter |
+  | `info:` | `.title-info` | the meta – unchanged |
+  | `contact:` / `notice:` | `.title-foot` | one row, `space-between`, contact flush left, notice flush right and italic |
+
+  **The foot is a row and not two more stacked lines**, because the two do a different job from the ranks above them: a presenter and an institution *introduce the speaker*, while an address and "the slides are online" *answer the room*. `notice:` rather than `note:` (the speaker notes), `hint:` (reads as interface help) or `aside:` (`::: footnote` and `::: marginalia` are already that idea).
+
+  It carries the same trap the masthead's credits row did: **`width: 100%` is load-bearing**, because `space-between` needs a width to push against and a flex item in a column shrink-wraps to its content.
+
+  A chunk body standing in for `info:` (PRD §3) does **not** stand in for these. A cover whose body is a drawing still has an author, an institution and an address.
+
+  **`panel` reverses its ink through `--panel-ink` rather than through `--ink`**, so every element on it has to be named in that block: an element reading only `--ink-soft` comes out dark on a dark plate. Both new slots are named there, in both stylesheets. This is the third time that block has been the fix for an element nobody could see.
+
 - **`cover:` – ten compositions**, with `cover-image:` for the ones that take a picture from a file and `cover-ratio:` (15–75%) for the ones that divide the slide. The list is ordered quiet to loud rather than alphabetically, because that is the only question it asks the author.
 
   | | picture | what it is |
@@ -45,6 +62,8 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
 
   `cover-ratio` is a **percentage** and not a `W:H` ratio: what an author sets is the split of one fixed frame, and the slide's own aspect is the projector's. Written on a cover that does not divide the slide it is an error, because a number the drawing ignores is a silent no-op.
 
+  **`cover-ground:` – `paper` / `ink`, a dark opening slide under a light deck.** The machinery already existed and was reachable only through a photograph: `cover: hero` emits an inverted backdrop, and `.chunk[data-backdrop=invert]` re-points the ink tokens for that one chunk while the rest of the deck stays light. `::: backdrop` requires an asset, so a deck that wanted the dark opening and no picture had no path at all. `ink` joins that selector rather than restating it – the invert block is the one place a dark slide is described, and a second spelling is a second thing to keep in sync – and adds only the ground itself. Written only where nothing has already darkened the slide, so a backdrop's own scrim still wins. The closing slide takes it too: the ground is part of the composition it inherits, and a deck that opens dark and closes light has not closed the arc it opened. A key rather than an eleventh composition, for the reason `cover-align` is one.
+
   **`cover-align:` – `top` / `middle` / `bottom`, where the type sits on the vertical.** One question asked of seven compositions (`classic`, `stack`, `panel`, `quote`, `split`, `beside`, `hero`) rather than six more variant names: the alternative is `split-bottom` and `stack-top`, a list that multiplies every time either half of it grows. Refused on the three that place their own type – `display` sets the title to fill the slide, `above` puts it in a band under the art, `masthead` pins its two bands to the two edges – for the same reason `cover-ratio` is refused where nothing divides.
 
   **The closing slide takes it, and takes `cover-ratio` only when it has a picture.** That looked like a flat inconsistency and is a distinction: a ratio divides a slide *for a picture*, and until `closing-image:` existed the closing slide had none. A placement is where the type sits, and a deck whose cover puts its title in the lower third and whose last slide centres it has not closed the arc it opened – so the placement was always inherited. Now the ratio is inherited exactly when the picture is, because a bookend that divides the frame differently from the cover is a different composition wearing the same name.
@@ -66,6 +85,16 @@ Four additions that are one idea – **a slide is a frame, and the frame can car
   | | |
   |---|---|
   | `closing-image: cover` | the picture the deck opened with – `cover` is a reserved word |
+
+  **`closing-credits:` is the same shape for the credit fields, and off by default.** The argument above – that repeating who is talking and where is what makes a bookend read as a duplicate – holds for the presenter and the venue. It never covered the one line a last slide is most often asked to carry, which is *where the slides can be found*. So the key is graded rather than boolean:
+
+  | | |
+  |---|---|
+  | `none` | nothing, as before. **The default** |
+  | `contact` | the foot row only: `contact:` and `notice:` |
+  | `cover` | the whole block the cover carried |
+
+  `cover` is the same reserved word `closing-image:` uses and for the same reason: it names *which* credits, where a word like `same` would only say there are some.
   | `closing-image: end-photo` | a different one: the same three forms `cover-image` takes (asset id, relative path, https URL) |
 
   `cover` names *which* picture rather than merely saying there is one, which is why it is not spelled `same`; a deck with an asset literally called `cover` writes the path, which is one of the three forms anyway. It draws through `renderClosingArt`, which is `renderCoverArt` with two substitutions – the closing picture, and **no body**, because a closing chunk's body is its words and the `beside`/`above` rule that makes a chunk body the art would otherwise put a paragraph in the picture track. Refused on the six compositions that draw no picture, exactly as `cover-image` is, and refused as `cover` when there is no `cover-image` to be the same as. A `::: draw` that *is* the cover (on `beside` / `above`) cannot be reached from the frontmatter – a diagram is not a file – so that refusal names both ways out.

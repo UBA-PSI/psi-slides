@@ -76,6 +76,97 @@ Nicht gemacht, bewusst: kein Clamp auf `figurePan`. Man kann die Karte schon
 heute per Drag aus dem Bild schieben, `0` setzt zurück, und ein Clamp wäre eine
 zweite Entscheidung in einem Slice, der eine beantwortet.
 
+## Slice: the title pair, the credit ranks, and which line is loud
+
+Asked for from two real slides built with another tool: a thin tracked line of
+capitals over a heavy mixed-case line, and four clearly separated credit ranks
+underneath. The engine had neither, and the interesting part is that it turned
+out to need no new content model at all – only a treatment of a pair that has
+been there since `subtitle:` landed.
+
+### What landed
+
+- **`style: {headline: stacked | eyebrow}`.** Which line of a title pair carries
+  the weight. `stacked` is the default and byte-for-byte today's rendering.
+- **`style: {caps: off | on}`.** Capitals for the small type around a title –
+  eyebrow, presenter, affiliation, never the headline.
+- **`affiliation:`, `contact:`, `notice:`.** The credit block in four ranks
+  instead of one strong line over a run of equals, with the last two as a row
+  along the foot.
+- **`closing-credits: none | contact | cover`.** The closing slide gets those
+  fields back, graded, off by default.
+- **`cover-ground: paper | ink`.** A dark opening slide under a light deck,
+  without a photograph.
+- **The `hero` gradient reads `cover-align`.** A pre-existing bug found while
+  planning: `hero` darkens the bottom because it sets its type there, but
+  `cover-align: top` is legal on it and put reversed type on the bright half of
+  a photograph.
+- **`lectures/title-block/`**, a small source-only reference lecture that wears
+  the eyebrow and the four ranks, because `lectures/decoration` already wears
+  `cover: quote` and a deck has exactly one cover.
+
+### The decision the whole thing rests on
+
+`title:` stays the content key of whichever line is loud. It is also the
+`<title>` element, the TOC entry and what the search index reads – so inverting
+the hierarchy by telling authors to put the hook in `title:` would rename the
+browser tab to the hook and leave the lecture's own name nowhere. The words do
+not move; only their type does. That is what makes it a `style:` key rather
+than a cover variant, and therefore what lets one key serve the cover, the
+section dividers and the closing slide at once, since all three carry a pair.
+
+### What it cost
+
+**The swap could not be done with selectors, and finding that out took three
+attempts.** The compositions wrote `font-size` and `max-width` on `.title-main`,
+so the eyebrow rules had to outrank them – and `masthead`'s no-lede rule is
+`.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-main`,
+which is 0-5-0 once you notice that `:not(:has(…))` contributes a class level of
+its own. Raising specificity twice still lost. The answer was not a stronger
+selector but the realisation that **the size and the measure belong to the loud
+line, not to the element**: both are now `--title-lead` and `--title-measure`,
+declared on the chunk, and the eyebrow mode hands them to whichever line is
+carrying the weight. That is also why the swap works on all ten compositions
+rather than on the default one.
+
+Declared on the *chunk* and not on `.title-main`, because a custom property
+inherits down and not sideways and the subtitle has to read it. Neither `.chunk`
+nor `.chunk-content` sets a `font-size`, so moving the em values up was lossless
+– checked rather than assumed, and the thing to re-check if either ever gains
+one.
+
+**The measurement that proved it was needed:** masthead's 15em cap, read at the
+eyebrow's much smaller em, computed to 483px and broke
+`DATENSICHERHEIT IM DIGITALEN ALLTAG:` onto two lines. Invisible in the source.
+That is the third instance of one pattern in a single day – 75's corner radii
+(10px reading as 0.23em on one slide and 0.33em on the next) and its dock width
+(13em of one box read as 17.4em of another) were the other two. **Em is the
+right unit; *which* em is the thing to check.**
+
+**The tracking is not a setting, and that is deliberate.** Capitals set at the
+tracking of lowercase read as one jammed word – a typographic rule, not a
+preference – so `isAllCaps` marks any title slot already in capitals and the
+stylesheet tracks it out. It repairs a deck that typed `presenter: PROF. DR. …`
+years ago without being asked. Spelled as "has an uppercase letter and no
+lowercase one" rather than `s === s.toUpperCase()`, because uppercasing an ß
+yields SS and the deck most likely to want this would have silently missed it.
+
+**The gate earned its keep in half a second.** Backticks inside CSS comments in
+`AUDIENCE_CSS` – exactly what CLAUDE.md warns costs a build – were caught by
+`node test/gates/run.mjs inlined` naming the literal and the line, six of them,
+before a single build ran.
+
+### What it did not do
+
+`cover-ground: ink` was validated but unwired for part of the work, which is the
+silent no-op this format refuses everywhere; it is wired now. `lectures/decoration`
+gained the three credit slots but **not** the eyebrow, because switching it would
+restyle that reference deck's dividers and closing slide too.
+
+One thing noticed and left alone: `lectures/decoration/source.md` carries an
+`author:` key that no renderer reads. Either a relic or a silent no-op of the
+kind the pre-flight refuses elsewhere.
+
 ## Slice: die Tutorial-Lecture gegen das gelesen, was der Raum sieht
 
 Ein Durchgang durch `lectures/tutorial` mit dem Autor, Folie für Folie. Der
