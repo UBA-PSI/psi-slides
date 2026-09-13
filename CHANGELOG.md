@@ -246,6 +246,19 @@ from building the same way is a major version.
   subtitle's 1.12 against the title's 1.15), so a single overriding rule
   would have flattened them.
 
+  **The tracking is the same story as the line height and was caught later.**
+  Every composition sets a negative `letter-spacing` on its title, because it
+  is a correction for a serif set large &ndash; `cover: display` sets `-0.042em`,
+  the tightest of the ten. Applied to Anton, which is condensed and tightly
+  fitted already, the letters touched. A display face is fitted by the person
+  who drew it, so `DISPLAY_TRACK` lists every rule that tracks a slot the face
+  wears and the conditional block resets them to `normal`. The eyebrow kicker
+  is deliberately not in the list: under `headline: eyebrow` the face is on the
+  subtitle, and the kicker keeps its own tracking. A gate re-reads both
+  stylesheets and fails if a rule tracks such a slot without being listed,
+  because an eleventh cover composition is otherwise exactly the change that
+  puts the collision back on one variant, in silence.
+
   Under `style: {headline: eyebrow}` the face **follows the loud line**:
   `.title-subtitle` wears it and `.title-main` is handed back to the body
   font explicitly, because left merely unmentioned the unqualified rule

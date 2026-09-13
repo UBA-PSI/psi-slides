@@ -1535,6 +1535,41 @@ function displayLh(view, sel) {
   return v;
 }
 
+// The same oversight as the line heights, found later and by eye rather than
+// by a gate: tracking chosen for the body serif was reaching a face that never
+// asked for it. `cover: display` sets `letter-spacing: -0.042em`, because it
+// sets the title largest and a serif at that size wants tightening - and Anton,
+// already condensed and tightly fitted, came out with its letters touching.
+// The divider only looked straight because its -0.02em is a quarter of that.
+//
+// So every rule that sets tracking on a slot the display face wears is listed
+// here and reset to `normal` in the conditional block: a display face is fitted
+// by the person who drew it, and the deck's correction is a correction for
+// Literata. The eyebrow kicker is deliberately absent from both lists - under
+// `headline: eyebrow` the face is on the subtitle and the kicker keeps its own
+// 0.015em, or 0.055em when `caps: on` tracks the capitals.
+//
+// Kept complete by `node test/gates/run.mjs display-track`, which re-reads both
+// stylesheets: a new cover composition with a tracking of its own is otherwise
+// exactly the change that would put the collision back without saying so.
+const DISPLAY_TRACK = {
+  print: [
+    'body[data-headline=eyebrow] .chunk-title .title-subtitle',
+    '.chunk-title[data-cover=display] .title-main',
+  ],
+  live: [
+    '.chunk-title .title-main',
+    'body[data-headline=eyebrow] .chunk-title .title-subtitle',
+    '.chunk[data-cover=masthead] .title-main',
+    '.chunk[data-cover=display] .title-main',
+    '.chunk[data-cover=panel] .title-main',
+    '.chunk[data-cover=quote] .title-main',
+    '.chunk[data-cover=hero] .title-main',
+    '.chunk[data-cover=quote][data-closing] .title-main',
+    '.chunk-section .section-heading',
+  ],
+};
+
 const normFontName = (s) => String(s).toLowerCase().replace(/[\s_-]/g, '');
 
 // A filename is `<family><sep><descriptor>` or just `<family>`. The
@@ -1804,6 +1839,11 @@ function fontStyleTag(embed, view) {
       `.chunk-title .title-main,\n.chunk-section .section-heading { ${wears} }`,
       `body[data-headline=eyebrow] .chunk-title .title-main { font-family: var(--body-font); }`,
       `body[data-headline=eyebrow] .chunk-title .title-subtitle { ${wears} }`,
+      // Emitted whatever the size-adjust is, unlike the line heights below:
+      // the tracking is wrong for a display face at any size, and an author
+      // face from fonts/ carries no measurement but is just as badly served
+      // by a correction meant for the body serif.
+      `${DISPLAY_TRACK[view].join(',\n')} { letter-spacing: normal; }`,
     ].join('\n');
     // Both lists, because a display face can come from the bundle or from
     // fonts/, and it is the same list faceCss walks two lines above. The

@@ -306,6 +306,60 @@ export async function run({ report }) {
     ok(!extra.length, 'and lint.js knows no key build.js has dropped', extra.join(','));
   }
 
+  // ── DISPLAY_TRACK is complete ───────────────────────────────────────
+  // A display face is fitted by the person who drew it, so the conditional
+  // block resets the tracking the composition chose for the body serif. That
+  // reset is a LIST, and a list of selectors is exactly the thing that rots:
+  // add an eleventh cover with a letter-spacing of its own and the collision
+  // comes back on that composition alone, silently, on a deck nobody here
+  // builds. So the stylesheets are re-read and every rule that sets tracking
+  // on a slot the face wears has to be in the list.
+  //
+  // The eyebrow kicker is the one exclusion, and it is not an oversight: under
+  // `headline: eyebrow` the face is on the subtitle, so the kicker keeps its
+  // own tracking - 0.015em, or 0.055em when `caps: on` tracks the capitals.
+  {
+    const bsrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    // Template interpolations carry braces and break a brace-counting scan.
+    // Blanking them is not cosmetic: on the first pass they hid four rules,
+    // the -0.042em under `cover: display` among them - the one the whole
+    // reset exists for.
+    const flat = (t) => t.replace(/\$\{[^}]*\}/g, 'X').replace(/\/\*[\s\S]*?\*\//g, '');
+    const cut = (from, to) => {
+      const a = bsrc.search(from); const b = bsrc.indexOf(to, a);
+      return flat(bsrc.slice(a, b));
+    };
+    const sheets = {
+      print: cut(/const PRINT_CSS = `/, 'const AUDIENCE'),
+      live: cut(/const AUDIENCE_CSS = `/, '// \u2500\u2500 audience runtime JS'),
+    };
+    const declared = {};
+    for (const m of bsrc.slice(bsrc.indexOf('const DISPLAY_TRACK = {'))
+      .slice(0, 900).matchAll(/^\s{2}(print|live): \[([\s\S]*?)\],$/gm)) {
+      declared[m[1]] = [...m[2].matchAll(/'([^']+)'/g)].map(x => x[1]);
+    }
+    ok(declared.print && declared.live, 'DISPLAY_TRACK has both views',
+       Object.keys(declared).join(','));
+    for (const [view, css] of Object.entries(sheets)) {
+      const found = [];
+      for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        const sel = m[1].trim().replace(/\s*\n\s*/g, ' ');
+        if (!/letter-spacing/.test(m[2])) continue;
+        if (!/\.title-main|\.section-heading|\.title-subtitle/.test(sel)) continue;
+        if (/data-headline=eyebrow[^,]*\.title-main/.test(sel)) continue;  // the kicker
+        found.push(sel);
+      }
+      ok(found.length > 0, `${view}: the scan finds tracked title rules (${found.length})`);
+      const missing = found.filter(f => !(declared[view] || []).includes(f));
+      ok(!missing.length,
+         `${view}: every rule that tracks a slot the display face wears is in DISPLAY_TRACK`,
+         missing.join(' | '));
+      const stale = (declared[view] || []).filter(d => !found.includes(d));
+      ok(!stale.length, `${view}: and DISPLAY_TRACK names no rule that is gone`,
+         stale.join(' | '));
+    }
+  }
+
   // ── the display roster, held across two files ───────────────────────
   // lint.js mirrors the display half of BUNDLED_FONTS as DISPLAY_FONTS,
   // name and `kind` both, and two findings ride on it: `unknown-display-font`
