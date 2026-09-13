@@ -12618,10 +12618,26 @@ function flowHeightProbe(el) {
   };
   // One level: the in-flow children of a node and its two vertical paddings,
   // read once rather than on every zoom step.
+  //
+  // A composition may pin the foot of its type block to the bottom of a box
+  // that is already stretched to the frame. masthead does it with an auto
+  // top margin on the credits, which is also what lands its folio rule at
+  // the top of them. The extent from the words at the top to the words at
+  // the bottom is then the box's height at *every* type size, so the fit's
+  // height test never becomes false and it walks to its 0.6 floor. Measured:
+  // one presenter line took a masthead cover from zoom 2.2 to 0.6 and nothing
+  // said why. That is the same failure panelLevel already describes for a
+  // band overlay, and it gets the same answer: keep the band out of the span
+  // and add its own height back below.
   const levelOf = (node) => {
     const cs = getComputedStyle(node);
+    const flow = flowKids(node);
+    // Never cut at the first child: a block that is *entirely* the band has no
+    // words above it to measure, and an empty span falls back to the box.
+    const cut = flow.findIndex((c) => c.hasAttribute && c.hasAttribute('data-foot'));
     return {
-      flow: flowKids(node),
+      flow: cut > 0 ? flow.slice(0, cut) : flow,
+      foot: cut > 0 ? flow.slice(cut) : [],
       padT: parseFloat(cs.paddingTop) || 0,
       padB: parseFloat(cs.paddingBottom) || 0,
     };
@@ -12706,6 +12722,14 @@ function flowHeightProbe(el) {
     // a snug band at the zoom the span alone allowed.
     let bands = 0;
     for (const b of el.querySelectorAll(':scope > .overlay-layer > .ov-panel.ov-top, :scope > .overlay-layer > .ov-panel.ov-bottom')) bands += b.offsetHeight;
+    // A pinned foot is out of the span for the reason above, and its words
+    // still take room, so its own extent comes back here - exactly as a band
+    // overlay's height does on the line above.
+    for (const lvl of inner) {
+      if (!lvl || !lvl.foot || !lvl.foot.length) continue;
+      const fs = span({ flow: lvl.foot });
+      if (fs) bands += fs.bottom - fs.top;
+    }
     if (bottom < top) return el.scrollHeight;
     return Math.min(el.scrollHeight, (bottom - top) + outer.padT + outer.padB + bands);
   };

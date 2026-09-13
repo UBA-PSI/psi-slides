@@ -9,6 +9,27 @@ from building the same way is a major version.
 
 ### Changed
 
+- **A masthead cover with a presenter no longer sits at the auto-fit floor.**
+  One `presenter:` line took such a cover from zoom 2.2 to 0.6 – minimum type
+  on the opening slide – and nothing anywhere said why. `masthead` pins its
+  credits to the bottom with an auto top margin, which is also what lands its
+  folio rule at the top of them, inside a box `align-items: stretch` has
+  already stretched to the frame. The extent from the words at the top to the
+  words at the bottom is then the box's height at *every* type size, so the
+  fit's height test never comes true and it walks down to its floor.
+
+  The fix is the shape already in the file rather than a new idea: a band is
+  kept out of the span and its own height added back, exactly as `panelLevel`
+  does for a band overlay. The composition names its pinned block
+  (`FOOT_BAND_COVERS`) instead of the probe guessing from a measured gap.
+
+  This is the fifth construct to make the same mistake – the dock's reserved
+  track, the overlay layer, a band panel, this, and the stretched
+  `.chunk-content` under all of them. **A stretched or bottom-pinned box is
+  not content**, and every one of the five was found by something bottoming
+  out rather than by anybody reading the code, which is why `test/auto-fit.mjs`
+  now watches the floor itself.
+
 - **A built view is the same bytes whichever flags wrote it, a row's terms
   line up with the words beside them, and shadows are one ladder.** Four
   findings from reading what the live views draw rather than what the

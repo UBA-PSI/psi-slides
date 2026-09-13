@@ -5582,13 +5582,28 @@ const capsAttr = s => (isAllCaps(s) ? ' data-caps=""' : '');
 // same composition. `metaHtml` is passed rather than built from `info`
 // because the cover has one caller that overrides it: a chunk body stands
 // in for the info lines where the composition has nowhere else to put it.
-function renderCredits({ presenter, affiliation, contact, notice, metaHtml = '' }) {
+// `footBand` says the composition pins this block to the bottom of a box that
+// is already stretched to the frame - masthead does, with `margin-top: auto`
+// on the presenter, which is also what carries its folio rule. The marker is
+// read by flowHeightProbe, which has to keep such a band out of its span: see
+// the note there. Named here rather than sniffed there, because whether a
+// composition pins its credits is a fact about the composition and the
+// stylesheet, not something a measured gap can be trusted to reveal.
+//
+// The document renderer emits it too and print reads it nowhere - the two
+// views share renderCredits, and threading a view flag through it to drop one
+// inert data attribute would be more machinery than the attribute costs. It
+// is internal markup like data-chunk-id, not a setting an author wrote, which
+// is the line between this and the no-op lint.js warns about.
+const FOOT_BAND_COVERS = new Set(['masthead']);
+
+function renderCredits({ presenter, affiliation, contact, notice, metaHtml = '', footBand = false }) {
   const foot = [
     contact ? `<span class="title-contact">${escapeHtml(contact)}</span>` : '',
     notice ? `<span class="title-notice">${escapeHtml(notice)}</span>` : '',
   ].filter(Boolean).join('');
   return [
-    presenter ? `<p class="title-presenter"${capsAttr(presenter)}>${escapeHtml(presenter)}</p>` : '',
+    presenter ? `<p class="title-presenter"${footBand ? ' data-foot=""' : ''}${capsAttr(presenter)}>${escapeHtml(presenter)}</p>` : '',
     affiliation ? `<p class="title-affiliation"${capsAttr(affiliation)}>${escapeHtml(affiliation)}</p>` : '',
     metaHtml || '',
     foot ? `<div class="title-foot">${foot}</div>` : '',
@@ -5634,7 +5649,7 @@ function renderTitleBlock({ title, subtitle, presenter, affiliation, info, conta
     <h1 class="title-main"${capsAttr(title)}>${escapeHtml(title || '')}</h1>
     ${subtitle ? `<p class="title-subtitle">${escapeHtml(subtitle)}</p>` : ''}
     ${claimFirst ? '' : field}
-    ${renderCredits({ presenter, affiliation, contact, notice, metaHtml })}
+    ${renderCredits({ presenter, affiliation, contact, notice, metaHtml, footBand: FOOT_BAND_COVERS.has(variant) })}
   `.trim();
 }
 
@@ -5667,6 +5682,7 @@ function renderClosingBlock(chunk, bodyHtml, frontmatter = {}, cover = {}) {
   const all = want === CLOSING_CREDITS_COVER;
   const infoLines = all ? splitInfo(frontmatter.info) : [];
   const credits = want === CLOSING_CREDITS_NONE ? '' : renderCredits({
+    footBand: FOOT_BAND_COVERS.has(cover.variant),
     presenter: all ? frontmatter.presenter : '',
     affiliation: all ? frontmatter.affiliation : '',
     contact: frontmatter.contact,
@@ -14415,10 +14431,26 @@ function flowHeightProbe(el) {
   };
   // One level: the in-flow children of a node and its two vertical paddings,
   // read once rather than on every zoom step.
+  //
+  // A composition may pin the foot of its type block to the bottom of a box
+  // that is already stretched to the frame. masthead does it with an auto
+  // top margin on the credits, which is also what lands its folio rule at
+  // the top of them. The extent from the words at the top to the words at
+  // the bottom is then the box's height at *every* type size, so the fit's
+  // height test never becomes false and it walks to its 0.6 floor. Measured:
+  // one presenter line took a masthead cover from zoom 2.2 to 0.6 and nothing
+  // said why. That is the same failure panelLevel already describes for a
+  // band overlay, and it gets the same answer: keep the band out of the span
+  // and add its own height back below.
   const levelOf = (node) => {
     const cs = getComputedStyle(node);
+    const flow = flowKids(node);
+    // Never cut at the first child: a block that is *entirely* the band has no
+    // words above it to measure, and an empty span falls back to the box.
+    const cut = flow.findIndex((c) => c.hasAttribute && c.hasAttribute('data-foot'));
     return {
-      flow: flowKids(node),
+      flow: cut > 0 ? flow.slice(0, cut) : flow,
+      foot: cut > 0 ? flow.slice(cut) : [],
       padT: parseFloat(cs.paddingTop) || 0,
       padB: parseFloat(cs.paddingBottom) || 0,
     };
@@ -14503,6 +14535,14 @@ function flowHeightProbe(el) {
     // a snug band at the zoom the span alone allowed.
     let bands = 0;
     for (const b of el.querySelectorAll(':scope > .overlay-layer > .ov-panel.ov-top, :scope > .overlay-layer > .ov-panel.ov-bottom')) bands += b.offsetHeight;
+    // A pinned foot is out of the span for the reason above, and its words
+    // still take room, so its own extent comes back here - exactly as a band
+    // overlay's height does on the line above.
+    for (const lvl of inner) {
+      if (!lvl || !lvl.foot || !lvl.foot.length) continue;
+      const fs = span({ flow: lvl.foot });
+      if (fs) bands += fs.bottom - fs.top;
+    }
     if (bottom < top) return el.scrollHeight;
     return Math.min(el.scrollHeight, (bottom - top) + outer.padT + outer.padB + bands);
   };

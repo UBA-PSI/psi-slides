@@ -56,6 +56,38 @@ ${TALL}
 // walkTo only presses ArrowDown, so the deck is ordered the way the spec
 // reads it and the tall slide appears twice rather than being walked back to.
 
+// The second fixture, and it is a cover rather than a slide of prose.
+//
+// A composition may pin the foot of its type block to the bottom of a box that
+// is already stretched to the frame - masthead does, which is also what lands
+// its folio rule at the top of the credits. The extent from the words at the
+// top to the words at the bottom is then the box's height at every type size,
+// so the fit's height test never comes true and it walks to its 0.6 floor.
+// Measured before the fix: one presenter line took this cover from 2.2 to 0.6,
+// and nothing anywhere said why.
+//
+// It is the fifth construct to make that mistake - the dock's reserved track,
+// the overlay layer, a band panel, this, and the stretched .chunk-content
+// under all of them - and every one was found by something bottoming out
+// rather than by reading the code. Hence a test that watches the floor.
+//
+// auto-fit rides in the frontmatter here instead of on a # press, because the
+// cover is the first slide and walkTo only ever goes forward.
+const COVER_SOURCE = `---
+title: T
+subtitle: S
+cover: masthead
+auto-fit: true
+presenter: P
+---
+
+## title: {#title}
+
+## free: F {#f}
+
+One line, and nothing else on the slide.
+`;
+
 // The zoom the runtime settled on, and whether the slide is inside the frame.
 const measure = (page) => page.evaluate(() => {
   const zoom = parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--zoom'));
@@ -142,5 +174,36 @@ export async function run({ page, report, walkTo }) {
        String(backOff.zoom));
   } finally {
     server.close();
+  }
+
+  // ── a cover whose credits are pinned to the foot ──
+  const cdir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-autofit-cover-'));
+  fs.writeFileSync(path.join(cdir, 'source.md'), COVER_SOURCE);
+  const cbuilt = spawnSync(process.execPath,
+    [path.join(ROOT, 'build.js'), path.join(cdir, 'source.md'), '--audience-only'],
+    { cwd: ROOT, encoding: 'utf8' });
+  ok(cbuilt.status === 0, 'the cover fixture builds', (cbuilt.stdout || '') + (cbuilt.stderr || ''));
+  if (cbuilt.status !== 0) return;
+  const { server: cserver, port: cport } = await serve(cdir);
+  try {
+    await page.goto(`http://127.0.0.1:${cport}/audience.html`, { waitUntil: 'load' });
+    await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* private window */ } });
+    await page.reload({ waitUntil: 'load' });
+    await page.waitForTimeout(900);
+    const cover = await measure(page);
+    // The floor itself, not a threshold near it: the failure this guards is
+    // not "a bit small", it is the loop running out of room to shrink.
+    ok(cover.zoom > 0.61,
+       'a masthead cover with a presenter is not pinned at the auto-fit floor',
+       String(cover.zoom));
+    ok(cover.zoom > DEFAULT_ZOOM,
+       'and full mode grows it, the same claim the short slide above makes',
+       `${cover.zoom} vs ${DEFAULT_ZOOM}`);
+    ok(cover.h <= cover.frame + 1,
+       'while the slide is still inside the frame',
+       `${cover.h}px in ${cover.frame}px`);
+    note(`masthead cover under full: zoom ${cover.zoom}, ${cover.h}px in ${cover.frame}px`);
+  } finally {
+    cserver.close();
   }
 }

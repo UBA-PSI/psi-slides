@@ -484,6 +484,20 @@ console.log('\nlayout generations');
   ok(/title-presenter/.test(cvEnd) && /title-affiliation/.test(cvEnd) && /title-foot/.test(cvEnd),
      'closing-credits: cover gives it the whole block');
 
+  // The marker that keeps a pinned credits band out of the auto-fit span.
+  // Only the compositions that actually pin it may carry it: on any other
+  // cover the credits are in the flow, and excluding them from the span would
+  // under-measure the slide and let the fit grow the type past the frame.
+  // Whether the fit then lands right is a geometry and lives in
+  // test/auto-fit.mjs; that it is emitted for masthead and for nothing else
+  // needs no browser and lives here.
+  ok(/class="title-presenter" data-foot=""/.test(arts(title('cover: masthead\n').html)[0] || ''),
+     'masthead marks its pinned credits band for the fit');
+  for (const v of ['classic', 'stack', 'display']) {
+    ok(!/data-foot/.test(arts(title('cover: ' + v + '\n').html)[0] || ''),
+       v + ' does not pin its credits, so it carries no marker');
+  }
+
   // A dark opening slide under a light deck, reusing the one place the ink
   // tokens are re-pointed rather than restating them.
   const ink = title('cover-ground: ink\n');
