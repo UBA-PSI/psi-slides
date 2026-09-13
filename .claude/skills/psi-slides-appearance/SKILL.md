@@ -1,6 +1,6 @@
 ---
 name: psi-slides-appearance
-description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the three-family bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` / `print-neutrals` and the look of a bold phrase (`bold`, `print-bold`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
+description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), the `display` role that gives a cover and a section divider a face of their own and its measured `size-adjust`, `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` / `print-neutrals`, `display-scale` and the look of a bold phrase (`bold`, `print-bold`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `BUNDLED_FONTS`, `FONT_ROLES`, `DISPLAY_LH`, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
 ---
 
 # Type, themes and viewer defaults in psi-slides
@@ -96,6 +96,100 @@ Three things to keep in mind when touching this:
 `lint.js` deliberately does **not** mirror this check. It would need `fs` plus the whole filename-parsing table, and the build already hard-fails with the list of files it found – so unlike `VALID_TAGS`, the duplication would buy nothing.
 
 **Licensing is the author's problem and the docs say so.** Embedding redistributes the font file. SIL OFL and Apache-2.0 (between them nearly all of Google Fonts) permit it; most commercial *desktop* licences do not, and want a separate webfont licence. The build prints a reminder and makes no attempt to check.
+
+## A face for the transition slides (`fonts.display`)
+
+A **fourth role**, and the one place in a deck where a loud typeface is not a mistake: nobody reads a divider, they recognise it. `fonts: {display: Anton}` puts a face on the cover, the closing slide and the section dividers that nothing else in the lecture wears.
+
+```yaml
+fonts:
+  display: Anton
+  serif: Literata      # the body roles are unaffected
+```
+
+**Exactly two selectors use it** – `.chunk-title .title-main` and `.chunk-section .section-heading`, which is those three slide kinds and nothing else. A `## principle:` heading is not one of them, and neither is a card's lead or an overlay's title.
+
+Four things separate it from the three text roles, and each one is a decision rather than an oversight.
+
+**It has no default.** There is no `display` entry in `BUNDLED_DEFAULTS`, so a lecture that names none resolves the role to nothing, embeds nothing, and emits no rule. That absence *is* the feature: it is what makes the whole role cost an existing deck zero bytes, verified rather than hoped – the tutorial builds byte for byte what it built before, all four views.
+
+**It is not held to the variable-latin-subset rule.** That rule exists because `topic-bold` puts bold fragments on every slide and a text face therefore needs a weight axis. A headline carries three words and no bold, and 21 of the 32 faces have no variable build at all – Anton *is* one weight, that is what Anton is. The rule stays for serif, sans and mono.
+
+**It carries a `kind`, and that is not the same question as what it looks like.** Kind drives one rule: a display serif over a serif body reads as one typeface set badly rather than as two, so `lint.js` warns `display-pairing` when the display face's kind matches the deck's resolved `font:` role. `hand` and `mono` pair with either and never warn. **Chakra Petch is the case that proves kind and flavour have to be two fields** – a machine to look at, a sans to pair with.
+
+**It carries a measured width correction.** See below; it is the part most likely to be broken by someone tidying up.
+
+### The roster
+
+Thirty-two faces, **SIL OFL 1.1 only**, one latin `woff2` each, median 21 KB. Three Apache-2.0 candidates were cut (Permanent Marker, Rock Salt, Just Another Hand) – not because the licence forbids embedding, it does not and `fonts/` is still open to them, but because `bundledFaces()` emits OFL text with the faces and a second licence regime in that path buys one typeface at the price of a special case. Caveat Brush is the loud marker instead.
+
+| hand – pairs with anything | adj | | machine – pairs with anything | kind | adj |
+|---|---|---|---|---|---|
+| Amatic SC | 145% | | Press Start 2P | mono | 55% |
+| Caveat *(variable)* | 139% | | Rubik Mono One | mono | 56% |
+| Caveat Brush | 134% | | Silkscreen | mono | 62% |
+| Patrick Hand | 133% | | Space Mono | mono | 78% |
+| Kalam | 106% | | VT323 | mono | 119% |
+| Shantell Sans *(variable)* | 88% | | Chakra Petch | sans | 101% |
+| | | | Orbitron *(variable)* | sans | 87% |
+| | | | Pixelify Sans *(variable)* | sans | 96% |
+
+| graphic, serif – wants a **sans** body | adj | | graphic, sans – wants a **serif** body | adj |
+|---|---|---|---|---|
+| Instrument Serif | 142% | | Bebas Neue | 142% |
+| DM Serif Display | 108% | | Staatliches | 128% |
+| Abril Fatface | 103% | | Big Shoulders Display *(variable)* | 122% |
+| Prata | 100% | | Anton | 120% |
+| Young Serif | 95% | | Oswald *(variable)* | 116% |
+| Yeseva One | 93% | | Space Grotesk *(variable)* | 99% |
+| Bodoni Moda *(variable)* | 92% | | Bricolage Grotesque *(variable)* | 97% |
+| Alfa Slab One | 89% | | Archivo Black | 87% |
+| | | | Unbounded *(variable)* | 73% |
+| | | | Syne *(variable)* | 61% |
+
+**Rubik Mono One has no eszett** and draws it from the fallback mid-word; it also draws lowercase as capitals. `lint.js` warns `display-no-eszett` on a German deck. That was found by a glyph probe and then confirmed against a rendered specimen, because the probe was wrong twice before it was right – the story is in `tools/font-playground/README.md` and it is worth reading before writing another one.
+
+### `size-adjust`, and why the number is measured
+
+These faces disagree about **advance width by a factor of three** while the cover's type size is tuned for Literata. Anton set at it looks timid; Press Start 2P set at it runs off the slide, which is what it did before the correction existed. So each face carries a multiplier measured in a browser – the advance width of a real German title against Literata's, clamped to [0.55, 1.45] – by `tools/font-playground/measure-scale.mjs`, which writes `scales.json`. **Re-measure when a face is added.** Same discipline as `dgCharW`, and for the same reason: a number nobody measured is a number that silently overflows a slide.
+
+**It rides as a `size-adjust` descriptor on the `@font-face`, not as a multiplier on a font-size**, the way Noto Sans Mono Condensed pins its width with `font-variation-settings` in the same place. On the face it reaches the six cover compositions that set their own title size, print, the zoom, `auto-fit` and `--check-fit` for free; in a layout rule it would have to be repeated in each of them and would be forgotten in one.
+
+**A numeric `line-height` does not follow `size-adjust`** – it resolves against the *nominal* font-size, so Anton at 120% put 98.6px of apparent type in a 90.3px line box and the descenders of one line landed inside the letters of the next. That is why `DISPLAY_LH` exists: the seven line-heights the display face can wear are JS constants interpolated into the stylesheets (`1.1` emits the characters `1.1`, which is what keeps byte identity) and restated in the conditional block multiplied by the same percentage. **Three of the seven are deliberate and unequal** – 1.3 for the eyebrow kicker, 1.02/0.97 under `cover: display`, and in print the eyebrow subtitle carries 1.12 where the title carries 1.15. A single overriding rule would have flattened them.
+
+**Width is normalised because line count is the failure that breaks a slide**, and apparent size varies as a consequence: against Literata's ink height, Silkscreen lands at 0.38 and Patrick Hand at 1.34. Rendered, a Silkscreen divider is a thin band on an empty frame while Anton fills it. No automatic correction fixes that without bringing the overflow back – pulling Silkscreen's ink to 0.85 needs a scale of ~1.39, at which it sets 2.2× Literata's width. So the build answers the question it can measure and `style: {display-scale: …}` answers the one that is taste.
+
+### `style: {display-scale: <n>}`
+
+A bounded multiplier (0.6–1.8, default 1) on the measured `size-adjust`, for the face that is right and the size that is not:
+
+```yaml
+style:
+  display-scale: 1.4
+fonts:
+  display: Silkscreen
+```
+
+It had to be its own key because **`heading-scale` does not reach `--title-lead`** – the cover title is the one heading that key never governed. Set on a deck that resolves no display face it **fails the build**, on the rule `cover-ratio` already follows: this format does not accept a silent no-op.
+
+### What no reader keystroke can do to it, and why that needed no code
+
+`F` cycles the body font role and `A` cycles the seven colour themes. The display face is immune to both, and neither immunity is a rule someone has to remember to write:
+
+- **`F` cycles a *variable*, not a family.** `body[data-font=sans]` re-points `--body-font`, and both target selectors used to inherit it. Pointing them at `--display-stack` takes them out of the cycle **by construction** – so there is no "F does not apply here" rule that could be forgotten when a fourth body font is added.
+- **`A` re-points colour tokens only.** No theme touches a family, so the face was already immune, while its *colour* still follows `--ink` and `--emph` and stays readable on the three dark themes.
+
+**Both properties hold only while `display` stays out of `FONT_CYCLE` and `--display-stack` is never assigned under a `body[data-font=…]` or `body[data-theme=…]` selector.** That is the one rule to guard here, and it is written down beside `FONT_ROLES` and `FONT_ROLE_VARS`.
+
+### Under `style: {headline: eyebrow}` the face follows the loud line
+
+`eyebrow` inverts which line of the title pair carries the weight, so the display face moves with it: `.title-subtitle` wears it and `.title-main` is handed explicitly back to `--body-font`. Left merely unmentioned, the unqualified rule would still have matched the kicker – which is what shipped first, and it put Anton at 32px over a headline in Literata at 82px, the exact inverse of what the role is for.
+
+One thing that does **not** follow, and predates the role: under `eyebrow` a `cover: display` composition gives its loud line the composition's *size* but never its 0.97/1.02 *ratio*, because those sit on `.title-main` and no composition gives `.title-subtitle` a line-height at all.
+
+### The mirrors
+
+`lint.js` carries the display half of the roster – **names and kinds, tables only**, the established bend – and gets three findings out of it: `unknown-display-font` (error, mirroring the build's refusal), `display-pairing` and `display-no-eszett`. A gate in `test/gates/tails.mjs` holds the two tables congruent by name, count, kind and the eszett list, because a face added to one file alone would be reported as a typo on a deck that builds.
 
 ## Ligatures
 

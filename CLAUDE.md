@@ -392,6 +392,18 @@ chrome keys off rather than a theme name. Seven frontmatter keys pin how a
 lecture opens; an unknown value **fails the build**, because a typo here is
 otherwise invisible.
 
+**A fourth role, `display`, is the exception to all of that**: `fonts: {display:
+Anton}` names one of 32 OFL faces for the cover, the closing slide and the
+section dividers, and nothing else in the deck wears it. It has no default, so
+a deck that names none embeds nothing and builds byte-identically; it is not
+held to the variable-subset rule, because a headline carries no bold; and each
+face carries a **measured** `size-adjust` (these faces differ in advance width
+by a factor of three, and the cover's type size is tuned for Literata). Two
+properties are structural rather than enforced, and both break the moment
+`display` joins `FONT_CYCLE` or `--display-stack` is assigned under a
+`body[data-font=…]` / `body[data-theme=…]` selector: the reader's `F` and `A`
+keys cannot reach it.
+
 **The rosters, the slot tables, the measured advance widths, the precedence
 rules and the 1.0.0 recipe are in the `psi-slides-appearance` skill.**
 
