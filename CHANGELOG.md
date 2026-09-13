@@ -2333,6 +2333,45 @@ from building the same way is a major version.
   figures is now 49 % of the text area, and `lectures/python-intro` prints as
   27 pages instead of 31.
 
+- **The printed document reads as a document: one type size smaller, chunks
+  that flow, and no page it did not need.** Four things that all produced the
+  same symptom – a text broken into pieces by page turns nothing on the page
+  asked for. `lectures/python-intro` goes from 27 sheets to 19, and from seven
+  pages under 70 % full (one at 37 %) to one.
+
+  *The setting.* 10 pt over 1.6 is a reading size for a lit screen at arm's
+  length. On paper it set the text loosely enough that four paragraphs filled
+  most of a sheet, which is what pushed the next chunk over a boundary. Print
+  is now 9 pt over 1.44, an ordinary book setting, with the column at 38 rem –
+  about 69 characters, and 6.4 cm of margin left to write in. Everything in
+  this stylesheet is in rem, so headings, figures and the diagram label size
+  moved with it and the proportions are the ones that were tuned. Screen keeps
+  its 10 pt.
+
+  *Chunks flow.* `.chunk` said `break-inside: avoid`, which is right for a
+  picture and wrong for a run of text: a chunk that did not fit in what was
+  left of a page moved whole, and the white it left behind was however much
+  that was – repeatedly, and most visibly right under a part heading, which
+  `break-after: avoid` had faithfully kept on the page the following chunk
+  then abandoned. Prose now breaks where prose breaks, with `orphans` and
+  `widows` at 3. What must stay together still says so and is small enough to
+  mean it: a figure, an outline, a card list, a heading and the line under it.
+
+  *The cover no longer forces a blank page.* `min-height: 24cm` is A4's text
+  height of 24.7 cm with 2.8 % to spare, so it fitted exactly one paper size at
+  exactly these margins. On US Letter the same page area is 22.94 cm and the
+  box was 4 cm too tall – and since the overflow is the padding *below* the
+  title, what reached the next sheet was a blank one. A reader whose browser
+  sets its own margins got the same blank page on A4. It is 19 cm now, with
+  `break-after: page` saying the thing the height was standing in for, and the
+  padding in rem rather than vh for the reason the figure cap is.
+
+  *One contents list, not two.* An `outline:` chunk already is one –
+  `renderOutlineList` walks the same parts `renderToc` walks – so a deck
+  carrying one printed the identical run of headings twice, 29 px apart. The
+  author's version wins: it has a heading they wrote, a lede, and a place in
+  the argument. A deck without an outline chunk still gets the generated nav.
+
 - **A drawing in a printed document is now sized by its type, not by the
   measure.** A slide answers how large a figure is by filling the frame: the
   figure *is* the slide, and what that does to the label type does not matter

@@ -6653,7 +6653,15 @@ function renderDocument(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
   const S = opts.strings || lectureStrings(frontmatter);
   const title = lectureTitle(frontmatter, S);
-  const toc = renderToc(columns, S);
+  // An `outline:` chunk is already a contents list - renderOutlineList walks
+  // the same parts renderToc walks - so a deck that carries one was getting
+  // the identical run of headings twice, 29px apart, the generated nav
+  // starting under the last line of the chunk that had just said it. The
+  // author's version wins: it has a heading they wrote, a lede, and a place
+  // in the argument. A deck with no outline chunk still gets the nav, which
+  // is what it is there for.
+  const hasOutline = columns.some(c => (c.chunks || []).some(ch => ch.tag === 'outline'));
+  const toc = hasOutline ? '' : renderToc(columns, S);
   // The one numbering, shared with renderColumnsHtml, so the print numbers
   // match the audience's chunk-num badges 1:1 - and so a dock's link
   // states in both views compare against the same "slide 12".
@@ -6980,10 +6988,23 @@ a:hover { text-decoration-color: var(--ink); }
 
 .chunk {
   margin: 1.6rem 0 2.2rem;
-  page-break-inside: avoid;
-  break-inside: avoid;
+  /* A chunk flows across a page break like any other prose.
+     It used to say break-inside: avoid, which is right for a picture and
+     wrong for a run of text: a chunk that does not fit in what is left of a
+     page moves whole, and the white it leaves behind is however much was
+     left - a third of a sheet under a part heading, repeatedly, in a
+     document whose chunks are mostly paragraphs. The reader loses the thread
+     to a page turn that nothing on the page asked for.
+     What must stay together says so itself and is small enough to mean it:
+     figure, .chunk-outline, the card list, a heading and the line under it.
+     orphans and widows keep the break off the first and last lines. */
+  break-inside: auto;
+  page-break-inside: auto;
+  orphans: 3;
+  widows: 3;
   position: relative;
 }
+main p, main li, main dd, main blockquote { orphans: 3; widows: 3; }
 .chunk-heading {
   font-size: calc(1.12rem * var(--heading-scale));
   margin: 0 0 0.5rem;
@@ -7669,6 +7690,16 @@ pre.shiki .line { display: inline; }
 
 @media print {
   body { background: white; }
+  /* Smaller and tighter than the screen copy, and both halves matter.
+     10pt over 1.6 is a reading size for a lit screen at arm's length; on
+     paper it set the text so loosely that a chunk of four paragraphs filled
+     most of a sheet, which is what pushed the next one over a page boundary
+     and broke the argument into pieces. 9pt over 1.44 is an ordinary book
+     setting. Everything here is in rem, so the whole document - headings,
+     figures, the diagram label size, the column below - moves with it and
+     the proportions are the ones that were tuned. */
+  html { font-size: 9pt; line-height: 1.44; }
+  .chunk { margin: 1.2rem 0 1.7rem; }
   /* The text column sits against the left of the page area and the rest of
      the sheet is left empty on purpose. Two reasons, and the second is the
      one that decided it.
@@ -7683,7 +7714,7 @@ pre.shiki .line { display: inline; }
      yet - see the .marginalia rule above, still an inline aside.
      margin is set explicitly because the screen rule is margin: 0 auto, and auto
      margins on a narrowed column would centre it again. */
-  main { padding: 0; max-width: 36rem; margin: 0; }
+  main { padding: 0; max-width: 38rem; margin: 0; }
   /* Code cannot reflow, so it is the one thing allowed into that margin.
      pre carries overflow-x: auto for the screen, and on paper that auto is not
      a scrollbar, it is a cut - the line simply ends. Reachable today at
@@ -7694,12 +7725,26 @@ pre.shiki .line { display: inline; }
   a { text-decoration: none; color: inherit; }
   /* On paper it is a cover page again: fills the sheet, title sitting in
      the lower third (PRD §4.4), no rule under it. */
+  /* The cover is a page of its own, and says so with break-after rather
+     than by being as tall as one. It used to be min-height: 24cm, which is
+     A4's text height of 24.7cm with 2.8% to spare - so it fitted exactly one
+     paper size at exactly these margins. On US Letter the same page area is
+     22.94cm and the box was 4cm too tall; the overflow is the padding below
+     the title, so what landed on the next sheet was a blank one. A reader
+     whose browser sets its own margins - Safari's print dialog does - got
+     the same blank page on A4.
+     19cm clears both with room to spare and still puts the title low on the
+     sheet, which is the whole of what the height was for (PRD 4.4). The
+     padding is in rem for the same reason the figure cap is: vh inside a
+     page box is not a thing the engines agree on. */
   .chunk-title {
-    min-height: 24cm;
+    min-height: 19cm;
     justify-content: flex-end;
-    padding: 0 0 12vh;
+    padding: 0 0 2.5rem;
     margin: 0;
     border-bottom: 0;
+    break-after: page;
+    page-break-after: always;
   }
   pre { background: rgba(0,0,0,0.03); }
 }
