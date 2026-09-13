@@ -281,7 +281,7 @@ export async function run({ report }) {
   }
 
   // ── the style block's key set, held across two files ────────────────
-  // lint.js mirrors STYLE_SPEC as STYLE_ENUMS plus STYLE_SCALE_KEYS, and the
+  // lint.js mirrors STYLE_SPEC as STYLE_ENUMS plus STYLE_NUM_SPEC, and the
   // unknown-key error it raises is only as right as that pair. A key added
   // to build.js with a kind other than `enum` would be reported as unknown
   // on a valid deck until somebody remembered the second file, which is the
@@ -296,8 +296,9 @@ export async function run({ report }) {
     const enumBody = lsrc.slice(lsrc.indexOf('const STYLE_ENUMS = {'));
     const lintKeys = new Set([...enumBody.slice(0, enumBody.indexOf('\n};'))
       .matchAll(/^\s{2}'([a-z-]+)':/gm)].map(m => m[1]));
-    for (const k of [...lsrc.matchAll(/STYLE_SCALE_KEYS = new Set\(\[([^\]]*)\]/g)][0][1]
-      .match(/'[a-z-]+'/g).map(t => t.slice(1, -1))) lintKeys.add(k);
+    const numBody = lsrc.slice(lsrc.indexOf('const STYLE_NUM_SPEC = {'));
+    for (const m of numBody.slice(0, numBody.indexOf('\n};')).matchAll(/^\s{2}'([a-z-]+)':/gm))
+      lintKeys.add(m[1]);
     ok(specKeys.size > 5, `STYLE_SPEC's keys are findable (${specKeys.size})`, [...specKeys].join(','));
     const missing = [...specKeys].filter(k => !lintKeys.has(k));
     const extra = [...lintKeys].filter(k => !specKeys.has(k));

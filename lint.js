@@ -177,11 +177,26 @@ function fontsDirHolds(srcDir, family) {
     normFontName(path.basename(f, path.extname(f))).startsWith(wanted));
 }
 
-// Mirrors STYLE_SPEC in build.js – the nested `style:` block. Only the two
-// enum keys are checked: the two scales are bounded numbers, and reading a
-// number out of YAML with no parser is where a linter starts disagreeing
-// with the build. The build hard-fails on both halves either way.
-const STYLE_SCALE_KEYS = new Set(['heading-scale', 'body-scale']);
+// Mirrors the `kind: 'num'` half of STYLE_SPEC in build.js – the keys of the
+// nested `style:` block whose value is a bounded number rather than a word,
+// with their bounds.
+//
+// The bounds used to be left to the build, on the reasoning that reading a
+// number out of YAML with no parser is where a linter starts disagreeing with
+// it. The fix for that is not silence but leniency: a value this file cannot
+// read as a finite number is not reported at all, and only a number it can
+// read AND that falls outside the range is. That runs in the safe direction –
+// what this passes and the build refuses fails at the build, where the
+// message is the same one – and it is the direction that matters, because a
+// linter which passes a deck the build then hard-fails is the thing a
+// pre-commit gate exists to prevent.
+const STYLE_NUM_SPEC = {
+  'heading-scale': [0.6, 1.8],
+  'body-scale': [0.6, 1.8],
+  // Multiplies the display face's measured size-adjust. See the note at its
+  // STYLE_SPEC entry for why the roster normalises width and this key exists.
+  'display-scale': [0.6, 1.8],
+};
 // Mirrors STYLE_KEYS_REMOVED in build.js.
 const STYLE_KEYS_REMOVED = {
   reveal: 'every reveal reserves its space now, which is what `hold` bought, so delete the key',
@@ -2423,29 +2438,46 @@ function lintFile(filePath) {
     }
   });
 
+  // `style.display-scale`, picked up by the block below and ruled on by the
+  // `fonts:` block after it, which is the only place that knows whether this
+  // lecture has a display face for the key to scale.
+  let displayScale = null;
+
   // The nested `style:` block. Read by indentation rather than with a YAML
   // parser, the same fifteen-line trick collectDiagramDefaults uses: a
   // `style:` line with no value opens the block, and any line indented
-  // under it is one of its keys. Only the two enums are ruled on – see
-  // STYLE_ENUMS for why the two scales are left to the build.
+  // under it is one of its keys. The word keys are ruled on against
+  // STYLE_ENUMS and the number keys against STYLE_NUM_SPEC.
   {
     const lines = header.split('\n');
     let inStyle = false;
     const rule = (i, key, value) => {
+      const clean = (s) => s.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
       const allowed = STYLE_ENUMS[key];
       // An unknown key used to return quietly here, so the build refused what
       // the linter passed and a deck could lint clean and fail to build. The
-      // two scales are deliberately absent from STYLE_ENUMS (their values are
-      // the build's to bound), so they are named here rather than inferred.
+      // number keys are deliberately absent from STYLE_ENUMS, so they are
+      // named here rather than inferred.
       if (!allowed) {
-        if (!STYLE_SCALE_KEYS.has(key)) {
+        const range = STYLE_NUM_SPEC[key];
+        if (!range) {
           addFm(i + 2, 'error', 'unknown-style-setting',
             `'style.${key}' is not a key this block has` +
             (STYLE_KEYS_REMOVED[key] ? ` – ${STYLE_KEYS_REMOVED[key]}` : ''));
+          return;
         }
+        // Only a value this file can read as a finite number is ruled on;
+        // anything else is left to the build, which reads real YAML.
+        const n = Number(clean(value));
+        if (clean(value) && Number.isFinite(n) && (n < range[0] || n > range[1])) {
+          addFm(i + 2, 'error', 'unknown-style-setting',
+            `'style.${key}: ${clean(value)}' is not a number between ${range[0]} and ${range[1]} – `
+            + `1 is the tool's own scale, 1.15 is 15% larger`);
+        }
+        if (key === 'display-scale' && clean(value)) displayScale = { line: i, value: clean(value) };
         return;
       }
-      const v = value.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+      const v = clean(value);
       if (!v || allowed.includes(v)) return;
       addFm(i + 2, 'error', 'unknown-style-setting',
         `'style.${key}: ${v}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
@@ -2497,6 +2529,18 @@ function lintFile(filePath) {
     }
     const name = hit ? hit.raw.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '') : '';
     const face = name ? DISPLAY_BY_NORM.get(normFontName(name)) : null;
+    // A key that scales a face the deck does not have does nothing, and this
+    // format refuses a silent no-op – the build hard-fails on it in its
+    // pre-flight and this is the mirror. `fonts: none` counts as no display
+    // face, because it turns the whole bundle off.
+    const bundleOff = /^fonts:[ \t]*["']?none["']?[ \t]*$/m.test(header);
+    if (displayScale && (!name || bundleOff)) {
+      addFm(displayScale.line + 2, 'error', 'display-scale-without-face',
+        `'style.display-scale: ${displayScale.value}' sets the size of this lecture's display `
+        + `face, and ${bundleOff ? '`fonts: none` turns the whole bundle off, the display role '
+          + 'with it' : 'no `fonts: {display: …}` names one'} – name a display face, or delete `
+        + 'the key, which is doing nothing as it stands.');
+    }
     if (name && !face && !fontsDirHolds(path.dirname(filePath), name)) {
       addFm(hit.line + 2, 'error', 'unknown-display-font',
         `'fonts.display: ${name}' is neither one of the ${DISPLAY_FONTS.size} bundled `

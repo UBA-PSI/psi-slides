@@ -1666,7 +1666,11 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
         notes.push(`${file} is ${ext} (${(buf.length / 1024).toFixed(0)} KB) – woff2 is typically 30-50% smaller`);
       }
       faces.push({
-        family, weight: face.weight, style: face.style, file,
+        // The role rides along so a display face an author supplied from
+        // fonts/ is findable in this list the way a bundled one is in the
+        // other - `style: {display-scale}` has to reach both, and nothing
+        // else here distinguishes them. fontStyleTag ignores the field.
+        role, family, weight: face.weight, style: face.style, file,
         src: `url(data:${FONT_MIME[ext]};base64,${buf.toString('base64')}) format('${FONT_FORMAT[ext]}')`,
       });
     }
@@ -1801,7 +1805,12 @@ function fontStyleTag(embed, view) {
       `body[data-headline=eyebrow] .chunk-title .title-main { font-family: var(--body-font); }`,
       `body[data-headline=eyebrow] .chunk-title .title-subtitle { ${wears} }`,
     ].join('\n');
-    const pct = (bundled.find(f => f.role === 'display') || {}).sizeAdjust;
+    // Both lists, because a display face can come from the bundle or from
+    // fonts/, and it is the same list faceCss walks two lines above. The
+    // number is whatever the descriptor says - buildOnce has already folded
+    // style.display-scale into it - so the two cannot drift by a rounding
+    // step the way two separate products would.
+    const pct = ([...bundled, ...faces].find(f => f.role === 'display') || {}).sizeAdjust;
     // Divided in CSS rather than in JS: the emitted rule then carries the
     // measured percentage itself, beside the size-adjust descriptor it
     // answers, and no float is formatted on the way out.
@@ -5537,6 +5546,28 @@ const STYLE_SPEC = {
   // not a look but a bug report.
   'heading-scale': { kind: 'num', min: 0.6, max: 1.8, dflt: 1 },
   'body-scale':    { kind: 'num', min: 0.6, max: 1.8, dflt: 1 },
+  // The display face's own size, and the one place taste gets a say over a
+  // measurement. The roster's size-adjust numbers normalise ADVANCE WIDTH,
+  // because line count is the failure that breaks a slide - a headline that
+  // takes one line too many runs off the frame, where one that reads small is
+  // merely weak. Apparent size therefore varies, and measurably: against
+  // Literata's ink height the roster runs from 0.38 (Silkscreen) to 1.34
+  // (Patrick Hand), which rendered is a Silkscreen divider as a thin band on
+  // an empty frame beside an Anton one that fills it. No automatic correction
+  // closes that without bringing the overflow back - pulling Silkscreen's ink
+  // to 0.85 needs a scale near 1.39, at which it sets 2.2x Literata's width.
+  // So the build answers the question it can measure and this key answers the
+  // one that is taste.
+  //
+  // It is not `heading-scale`, which does not reach --title-lead: a cover's
+  // type size is set by its composition, not by the heading ladder. And it
+  // multiplies the measured percentage at the single site that emits it, so
+  // everything the correction already reaches - the six cover compositions,
+  // print, the zoom, auto-fit, --check-fit and the line heights - follows
+  // without a second place knowing the key exists. Bounded like its two
+  // neighbours; below 0.6 a headline stops being one and above 1.8 no cover
+  // composition holds it.
+  'display-scale': { kind: 'num', min: 0.6, max: 1.8, dflt: 1 },
   // Whether headings are balanced across their lines and prose gets a
   // protected last line. A preference in its own right - some authors want
   // the browser's plain greedy wrapping - and it is also the setting a deck
@@ -19647,7 +19678,7 @@ function buildOnce(absIn, only, opts = {}) {
   // one in `print-slide-numbers`, neither of which the view being built
   // would ever have looked at.
   viewDefaults(lecture.frontmatter);
-  styleSettings(lecture.frontmatter);
+  const styleOpts = styleSettings(lecture.frontmatter);
   // Same pre-flight contract: an unknown `labels:` key fails the build here,
   // before any view is written, rather than inside a renderer. Resolved once
   // and passed to all three renderers via renderOpts.strings, which is why
@@ -19685,11 +19716,42 @@ function buildOnce(absIn, only, opts = {}) {
   const rosterOverrides = FONT_ROLES
     .filter(r => !claimed.has(r) && !bundleOff && roster[r] !== BUNDLED_DEFAULTS[r])
     .map(r => ({ role: r, family: roster[r] }));
+  // `style: {display-scale}` folded into the face's own measurement, here and
+  // nowhere else: the descriptor and the line-height calc then read one
+  // number rather than computing the same product twice and rounding it
+  // differently. Kept to one decimal - 62 x 1.4 is 86.8 and an integer would
+  // throw half a percent away - and a scale of 1 leaves the integer alone, so
+  // a deck that does not set the key emits exactly the bytes it did before.
+  // A face from fonts/ carries no measurement, and 100% is its baseline: the
+  // author is scaling from the size the layout would have set it at anyway.
+  // Copied rather than written through, because bundledFaces() caches its
+  // array across rebuilds under --watch.
+  const dScale = styleOpts['display-scale'];
+  const displayScaled = (f) => {
+    if (f.role !== 'display' || dScale === 1) return f;
+    return { ...f, sizeAdjust: Math.round((f.sizeAdjust || 100) * dScale * 10) / 10 };
+  };
   const fontEmbed = (authorFonts || bundled.length)
-    ? { faces: authorFonts ? authorFonts.faces : [],
+    ? { faces: (authorFonts ? authorFonts.faces : []).map(displayScaled),
         overrides: [...(authorFonts ? authorFonts.overrides : []), ...rosterOverrides],
-        bundled }
+        bundled: bundled.map(displayScaled) }
     : null;
+  // A key that scales a face the deck does not have does nothing, and this
+  // format does not accept a silent no-op - the same rule that refuses a
+  // cover-ratio on a cover which does not divide the slide. In the pre-flight
+  // rather than in a renderer, so --print-only refuses it too.
+  if (dScale !== 1 && !(fontEmbed && fontEmbed.overrides.some(o => o.role === 'display'))) {
+    const err = new Error(
+      `Frontmatter: "style.display-scale: ${dScale}" sets the size of this lecture's\n` +
+      'display face, and the lecture has no display face to size.\n' +
+      (bundleOff
+        ? '  `fonts: none` turns the whole bundle off, the display role with it, so\n' +
+          '  either drop that line and name a display face, or delete this key.'
+        : '  Name one in the fonts: block -\n    fonts:\n      display: Anton\n' +
+          '  - or delete the key, which is doing nothing as it stands.'));
+    err.userFacing = true;
+    throw err;
+  }
   if (authorFonts) {
     const kb = Math.round(authorFonts.bytes / 1024);
     console.log(`[fonts] ${authorFonts.faces.length} face(s) from fonts/ embedded, ${kb} KB per view. Check that your licence permits redistribution.`);

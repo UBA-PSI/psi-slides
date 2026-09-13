@@ -145,6 +145,21 @@ moves with the face, and the eyebrow subtitle's own value is not the title's
 A divider is untouched either way: it has one line, and `headline:` does not
 reach `.section-heading`.
 
+**`style: {display-scale: <n>}` is the author's say over the size.** Bounded
+0.6 to 1.8 like its two neighbours in `STYLE_SPEC`, default 1, and it
+multiplies the face's measured `size-adjust` at the single site that emits the
+descriptor – so everything that correction already reaches follows, the line
+heights included, without a second place knowing the key exists. The product
+is kept to one decimal (62 × 1.4 = 86.8) and stored back on the face, so the
+descriptor and the `calc()` read one number and cannot drift by a rounding
+step. It could not be `heading-scale`, which does not reach `--title-lead`: a
+cover's type size comes from its composition, not from the heading ladder.
+**Setting it on a deck with no display face fails the build**, from the
+pre-flight so `--print-only` refuses it too, on the rule that already refuses
+a `cover-ratio` on a cover which does not divide the slide; `lint.js` mirrors
+it as `display-scale-without-face`, since both keys are in the frontmatter it
+already reads.
+
 **What normalising on width costs, recorded rather than fixed.** One
 multiplier cannot serve both fit and apparent size – a face that is wide per
 glyph has to be set small to keep the line count, and then it looks small.
