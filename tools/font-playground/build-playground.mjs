@@ -9,7 +9,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { CANDIDATES, FLAVOURS } from './roster.mjs';
+import { CANDIDATES, FLAVOURS, CLASHES } from './roster.mjs';
+const SCALES = JSON.parse(fs.readFileSync(new URL('./scales.json', import.meta.url), 'utf8'));
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const repo = path.resolve(here, '../..');
@@ -49,6 +50,12 @@ const fonts = CANDIDATES.map((c) => {
   return {
     ...c,
     family,
+    scale: SCALES[c.pkg] ?? 1,
+    // The pairing rule, shown rather than stated: a display serif is drawn
+    // over a sans body and a display sans over a serif body, which is what
+    // the linter will warn about when a deck does the opposite. A hand or a
+    // mono pairs with either, so it gets the deck's default serif.
+    body: c.kind === 'serif' ? 'IBM Plex Sans' : 'Literata',
     css: faceCss(family, b64, c.weight),
     bytes: buf.length,
     licence: meta.license?.type || 'unknown',
@@ -66,11 +73,14 @@ const totalKb = kb(fonts.reduce((a, f) => a + f.bytes, 0));
 const median = kb([...fonts].sort((a, b) => a.bytes - b.bytes)[fonts.length >> 1].bytes);
 
 const cards = fonts.map((f, i) => `
-<article class="card" data-flavour="${f.flavour}" data-i="${i}" style="--display:'${f.family}'">
+<article class="card" data-flavour="${f.flavour}" data-kind="${f.kind}" data-i="${i}"
+  style="--display:'${f.family}'; --display-scale:${f.scale}; --body:'${f.body}'">
   <header class="card-head">
     <h2>${esc(f.family)}</h2>
     <div class="meta">
       <span class="chip chip-${f.flavour}">${f.flavour}</span>
+      <span class="kind" title="what it pairs with: a display ${f.kind} wants a ${f.kind === 'serif' ? 'sans' : f.kind === 'sans' ? 'serif' : 'body face of either kind'}">${f.kind}</span>
+      <span class="scale" title="measured against Literata: this face sets ${f.scale < 1 ? 'wider' : 'narrower'}, so the headline is sized ${f.scale}x">${f.scale.toFixed(2)}&times;</span>
       <span class="size" title="one latin woff2, the payload a deck naming this face would carry">${kb(f.bytes)} KB</span>
       <span class="lic">${esc(f.licence)}</span>
       ${f.variable ? `<span class="axis">wght ${esc(f.weight)}</span>` : ''}
@@ -165,6 +175,8 @@ body[data-ground=ink] .chip-machine{color:#8fb4e0}
 body[data-ground=ink] .chip-graphic{color:#e0a07d}
 .umlaut:empty{display:none}
 .umlaut{color:var(--emph);border-color:currentColor !important}
+.scale{font-variant-numeric:tabular-nums}
+.kind{letter-spacing:.02em}
 .note{margin:.5rem 0 .25rem;font-family:var(--serif);font-size:.78rem;line-height:1.45;
   color:var(--ink-soft);max-width:52ch}
 .pkg{margin:0;font-size:.63rem;color:var(--ink-soft);opacity:.8}
@@ -188,13 +200,13 @@ body:not([data-view=both]) .stages{grid-template-columns:1fr}
 .slide .headline,.slide .section{font-family:var(--display),var(--sans);
   font-weight:var(--display-weight,400);letter-spacing:var(--display-track,0);
   line-height:1.04;margin:0;color:var(--ink);text-wrap:balance;
-  font-size:var(--headline-size,7.6cqw)}
+  font-size:calc(var(--headline-size,7.6cqw) * var(--display-scale,1))}
 .slide .eyebrow{font-family:var(--sans);font-size:2.1cqw;letter-spacing:.14em;
   text-transform:uppercase;color:var(--ink-soft);margin:0 0 1.6cqw;font-weight:500}
-.slide .subtitle{font-family:var(--serif);font-size:3cqw;line-height:1.3;margin:2.2cqw 0 0;
+.slide .subtitle{font-family:var(--body),var(--serif);font-size:3cqw;line-height:1.3;margin:2.2cqw 0 0;
   color:var(--ink-soft);max-width:34ch}
 .cover .credits{margin-top:auto;padding-top:3cqw;border-top:1px solid var(--rule)}
-.cover .credits p{margin:0;font-family:var(--sans)}
+.cover .credits p{margin:0;font-family:var(--body),var(--sans)}
 .cover .presenter{font-size:2.5cqw;font-weight:600}
 .cover .affiliation{font-size:2.1cqw;color:var(--ink-soft)}
 .cover .info{font-size:1.9cqw;color:var(--ink-soft);margin-top:1cqw;white-space:pre-line}
@@ -202,8 +214,8 @@ body:not([data-view=both]) .stages{grid-template-columns:1fr}
 .divider{justify-content:center;background:var(--panel)}
 .divider .part{font-family:var(--sans);font-size:2.1cqw;letter-spacing:.16em;
   text-transform:uppercase;color:var(--emph);margin:0 0 1.8cqw;font-weight:600}
-.divider .section{font-size:var(--divider-size,9.5cqw)}
-.divider .section-sub{font-family:var(--serif);font-size:2.7cqw;color:var(--ink-soft);
+.divider .section{font-size:calc(var(--divider-size,9.5cqw) * var(--display-scale,1))}
+.divider .section-sub{font-family:var(--body),var(--serif);font-size:2.7cqw;color:var(--ink-soft);
   margin:2.4cqw 0 0;max-width:40ch}
 
 /* ── the blown-up stage ── */
@@ -267,6 +279,12 @@ deck naming that face would carry in every view. The body type behind them is th
 Literata and IBM Plex Sans, so what you are comparing is the pairing, not the face alone.
 The slides are drawn with container queries, so a card and the blown-up stage are one slide
 at two sizes – click any slide to enlarge it, Escape to close.
+The <strong>&times; figure</strong> on each card is that face's measured advance width against
+Literata, and the headline is sized by it: these faces disagree about width by a factor of
+three, and without the correction Press Start 2P simply ran off the slide.
+The <strong>kind</strong> badge is the pairing rule – a display serif is drawn here over a
+sans body and a display sans over a serif body, which is the pairing the linter will warn
+about when a deck does the opposite.
 </p>
 
 <script>
@@ -345,21 +363,32 @@ document.getElementById('wght').addEventListener('input', (e) => {
 // candidate with a deliberately distant fallback, then in the fallback
 // alone. Same width means every glyph came from the fallback.
 (async function probe() {
-  // A face the page has not finished loading measures as its fallback, and
-  // the first cut of this reported all 26 candidates as having no umlauts
-  // while the page plainly drew "Wer hört". So: ask for each face by name -
-  // document.fonts.ready alone does not cover a family used only in canvas -
-  // and only then measure.
+  // Does this face have ÄÖÜäöüß? The browser says nothing when it silently
+  // falls back, so it has to be measured - and measured carefully, because
+  // the two obvious ways of doing it are both wrong.
+  //
+  // Wrong once: measure after page load. A face the page has not finished
+  // loading measures as its fallback, and the first cut reported all 26
+  // candidates as having no umlauts while the page plainly drew "Wer hört".
+  // Hence the explicit document.fonts.load() per family - fonts.ready alone
+  // does not cover a family used only in canvas.
+  //
+  // Wrong twice: compare the candidate against one fallback and call equal
+  // widths a miss. That flagged Pixelify Sans, whose advance happens to be
+  // exactly the fallback monospace's. So instead: render the string with the
+  // candidate over TWO fallbacks of different widths. A glyph the candidate
+  // has is drawn by the candidate either way and the widths agree; a glyph
+  // it lacks is drawn by whichever fallback is behind it, and they disagree.
   const els = [...document.querySelectorAll('.umlaut')];
-  await Promise.all(els.map((el) => document.fonts.load("64px '" + el.dataset.family + "'")));
+  await Promise.all(els.map((el) => document.fonts.load("64px '" + el.dataset.family + "'", 'ÄÖÜäöüß')));
   await document.fonts.ready;
   const cv = document.createElement('canvas').getContext('2d');
-  const TEST = 'ÄÖÜäöüß';
-  const width = (fam) => { cv.font = '64px ' + fam; return cv.measureText(TEST).width; };
-  const base = width('monospace');
+  const width = (fam, fallback, t) => { cv.font = "64px '" + fam + "', " + fallback; return cv.measureText(t).width; };
   for (const el of els) {
-    if (Math.abs(base - width("'" + el.dataset.family + "', monospace")) < 0.5)
-      el.textContent = 'no umlauts';
+    const fam = el.dataset.family;
+    const missing = [...'ÄÖÜäöüß'].filter((ch) =>
+      Math.abs(width(fam, 'monospace', ch) - width(fam, 'sans-serif', ch)) > 0.5);
+    if (missing.length) el.textContent = 'no ' + missing.join('');
   }
 })();
 
@@ -371,7 +400,8 @@ document.getElementById('grid').addEventListener('click', (e) => {
   const clone = stage.querySelector('.slide').cloneNode(true);
   const slot = document.getElementById('z-slot');
   slot.replaceChildren(clone);
-  slot.style.setProperty('--display', getComputedStyle(card).getPropertyValue('--display'));
+  for (const prop of ['--display', '--display-scale', '--body'])
+    slot.style.setProperty(prop, getComputedStyle(card).getPropertyValue(prop));
   document.getElementById('z-name').textContent = card.querySelector('h2').textContent;
   document.getElementById('z-meta').textContent =
     [...card.querySelectorAll('.meta span')].map((s) => s.textContent).filter(Boolean).join(' · ');
