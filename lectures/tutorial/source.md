@@ -1377,7 +1377,7 @@ The two scales multiply the tool's own sizes rather than replacing them, and the
 ::: rows {.clear}
 - **`neutral`** the default, and what the tool has always drawn
 - **`tinted`** the greys take the accent's own hue, so the slide reads as one palette whichever accent the room gets
-- **`warm`** / **`cool`** a fixed hue, the accent notwithstanding
+- **`warm` / `cool`** a fixed hue, the accent notwithstanding
 :::
 
 **`print-neutrals` asks the same question for the two printed views**, and it is a second key because the printed page is warm already where the projection is not. Leave it out and it follows `neutrals`.
