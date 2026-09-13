@@ -44,9 +44,9 @@
    it. No terminal guard: print has no terminal themes to guard. And the
    quiet fills are not re-mixed the way the live views' are, because a
    printed card is a 1px rule and no fill - there is nothing there to tint. */
-body[data-neutrals=warm] { --accent-h: 70; }
-body[data-neutrals=cool] { --accent-h: 250; }
-body:is([data-neutrals=tinted], [data-neutrals=warm], [data-neutrals=cool]) {
+body[data-print-neutrals=warm] { --accent-h: 70; }
+body[data-print-neutrals=cool] { --accent-h: 250; }
+body:is([data-print-neutrals=tinted], [data-print-neutrals=warm], [data-print-neutrals=cool]) {
   --ink:      oklch(0.26 0.014 var(--accent-h));
   --ink-soft: oklch(0.50 0.014 var(--accent-h));
   --paper:    oklch(0.985 0.007 var(--accent-h));

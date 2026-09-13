@@ -123,7 +123,14 @@ body[data-font=mono] .katex .mathnormal {
 body[data-theme=light-red]    { --emph: oklch(0.42 0.16 30); }
 body[data-theme=light-teal]   { --emph: oklch(0.52 0.12 195); }
 body[data-theme=light-blue]   { --emph: oklch(0.48 0.18 250); }
-body[data-theme=light-orange] { --emph: oklch(0.58 0.17 60);  }
+/* 0.54 and not the 0.58 it was: measured against the paper, 0.58 gives
+   4.23:1, which is fine for the big bold of a card term and under the 4.5:1
+   a body-text weight wants - and the accent does land in prose, because a
+   bold phrase can be set in it. 0.56 clears the line at 4.57 and 0.54 at
+   4.96, and the wider margin is the one to take on a projector, where the
+   room's light is the variable nobody measured. The other three already
+   clear it: light-red 8.66, light-blue 5.99, light-teal 4.67. */
+body[data-theme=light-orange] { --emph: oklch(0.54 0.17 60);  }
 
 /* Neutral dark mode – grey paper, white ink, the light-red accent lifted
    until it carries on a dark ground. Distinct from the terminal modes on
@@ -13899,7 +13906,7 @@ const DG_THEMES = {
   'light-red':      { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.42, 0.16, 30] },
   'light-teal':     { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.52, 0.12, 195] },
   'light-blue':     { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.48, 0.18, 250] },
-  'light-orange':   { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.58, 0.17, 60] },
+  'light-orange':   { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.54, 0.17, 60] },
   'dark':           { paper: [0.17, 0.005, 260], ink: [0.95, 0, 0],      emph: [0.76, 0.15, 35] },
   'terminal-amber': { paper: [0.12, 0.02, 60],   ink: [0.82, 0.14, 75],  emph: [0.94, 0.18, 85] },
   'terminal-green': { paper: [0.11, 0.02, 150],  ink: [0.80, 0.20, 145], emph: [0.92, 0.24, 145] },
