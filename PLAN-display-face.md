@@ -218,3 +218,107 @@ the bundle carries only a handful.
   divider stays readable on the three dark ones.
 - `--check-fit` at 1600×900 on a deck set in Anton and again in Press Start 2P –
   a display face is exactly the thing that puts a headline outside the frame.
+
+---
+
+# Build log
+
+Written while building, in the shape `editor.md` §15 uses: what landed, what it
+cost, what bit, and what is left. **Read this section first if you are picking
+the work up.**
+
+## Where it stands
+
+**The engine half is done and verified. The visible half is not started.**
+
+| commit | what |
+| --- | --- |
+| `c5c1e07` | the roster: 32 OFL faces, `kind`, measured `scale` |
+| `c66441e` | the playground README |
+| `73be6a9` | the fourth role, the two selectors, the `lint.js` mirror, a gate |
+| `ec86e96` | line height follows `size-adjust` |
+| `46c64bb` | under `headline: eyebrow` the face follows the loud line |
+| `bb8428f` | the appearance skill and `CLAUDE.md` |
+| `2aeb33d` | `style: {display-scale}` |
+
+Green on every check, re-run independently rather than taken from a report:
+gates `751 passed, 0 failed`; `node lint.js lectures/` 0 errors and the two
+pre-existing `frame-lab` warnings; the tutorial **byte-identical across all
+four views** against `main`'s `build.js`, built from the two worktrees rather
+than by copying `build.js` (which resolves its runtime files relative to
+itself and fails from a scratch directory).
+
+Behaviour verified in a browser, not argued:
+
+- `F` through all three body roles – prose and chunk headings follow
+  (Literata → IBM Plex Sans → iA Writer Duo V), cover and dividers stay Anton.
+- `A` through all seven themes – cover and dividers stay Anton.
+- `headline: eyebrow` – kicker Literata 32px at an unscaled 1.300, loud line
+  Anton 82px at 1.320.
+- `display-scale` – Silkscreen 62% × 1.4 → `size-adjust:86.8%` and
+  `line-height: calc(1.1 * 86.8 / 100)`, the descriptor and the calc reading
+  the same number so a rounding step cannot separate them; Anton 120% × 0.8 →
+  96% in both. Bounds 0.6 and 1.8 accepted, 0.5 and 1.9 refused. The key with
+  no display face refuses in `build.js`, in `--print-only` and in `lint.js`,
+  exit 1, no stack trace.
+
+## What is left
+
+1. **`lectures/decoration/source.md`** – the construct shown rather than
+   described, and its two tracked views (`audience.html`, `print.html`)
+   rebuilt and committed. This is the piece a reader meets first and it is
+   entirely unstarted. **A deck has one cover and one divider variant, so it
+   cannot show 32 faces**; the same problem the decoration lecture already
+   solved for the ten covers by naming the rest in a card row.
+2. **`CHANGELOG.md`** under `## [Unreleased]`.
+3. **The project site** – `docs/site/` says nothing about the role. Whether it
+   should is a judgement: the gallery of ten cover compositions is the
+   precedent for showing a roster on the site rather than in a lecture.
+4. Consider whether `README.md`'s feature list should mention it.
+
+## What bit, and what the next person should not redo
+
+- **A numeric `line-height` does not follow `size-adjust`.** It resolves
+  against the *nominal* font-size, so Anton at 120% put 98.6px of apparent
+  type into a 90.3px line box and the descenders of one line landed inside the
+  letters of the next. `DISPLAY_LH` is the fix and **three of its seven values
+  are deliberately unequal** – 1.3 for the eyebrow kicker, 1.02/0.97 under
+  `cover: display`, and in print the eyebrow subtitle carries 1.12 where the
+  title carries 1.15. A single overriding rule flattens them. That seventh
+  value was found by parsing the stylesheet rather than by trusting a
+  hand-written list, which is the only reason print is right.
+- **`headline: eyebrow` inverts which line is loud**, so the face has to move
+  to `.title-subtitle` *and* `.title-main` has to be handed back to
+  `--body-font` explicitly. Left merely unmentioned the unqualified rule still
+  matches the kicker, which is what shipped first.
+- **Width is normalised, apparent size is not, and that is deliberate.**
+  Against Literata's ink height Silkscreen lands at 0.38 and Patrick Hand at
+  1.34. Every automatic correction that was tried brings the overflow back:
+  pulling Silkscreen's ink to 0.85 needs a scale of ~1.39, at which it sets
+  2.2× Literata's width and a headline takes twice the lines. `display-scale`
+  is the answer and a cleverer measurement is not.
+- **The immunity to `F` and `A` is structural, not enforced.** Nothing says "F
+  does not apply here" – the face is out of the cycle because it reads a
+  different variable. It breaks silently the moment `display` joins
+  `FONT_CYCLE` or `--display-stack` is assigned under a `body[data-font=…]` or
+  `body[data-theme=…]` selector.
+
+## Two things left alone on purpose
+
+- **`cover: display` + `headline: eyebrow`** gives the loud line the
+  composition's *size* but never its 0.97/1.02 *ratio*, because those sit on
+  `.title-main` and no cover composition gives `.title-subtitle` a line-height
+  at all. **Pre-existing**, not caused by this work, and not invented around.
+- **`auto-fit` defaults to `off`**, so a `cover: display` composition with a
+  120% face and a ten-word German title reports one chunk taller than the
+  frame under `--check-fit` (exit 0; the pass condition is untouched). Same
+  report before this work. `display-scale` is the lever an author has.
+
+## The playground is the roster's editing tool, not a leftover
+
+`tools/font-playground/` is its own package and stays. `roster.mjs` +
+`measure-scale.mjs` are where a face is added or a number re-measured;
+`scales.json` feeds the literals in `BUNDLED_FONTS`, which are **copied in, not
+imported** – the engine must not depend on a tools package. So adding a face is:
+roster, re-measure, paste into `BUNDLED_FONTS`, mirror in `lint.js`, and the
+gate in `test/gates/tails.mjs` will tell you if you forgot the mirror.
