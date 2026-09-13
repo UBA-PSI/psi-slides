@@ -4362,7 +4362,14 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   height: auto;
 }
 @media print {
-  .psi-diagram { max-height: none; }
+  /* How tall a diagram may be on paper is not answered here. This block used
+     to say max-height: none, on the reasoning that a vh cap is a slide
+     proportion and a sheet of paper is not a slide - true, and it left the
+     document with no cap at all, so a portrait diagram resolved to the
+     measure times its ratio and came out taller than the page. The answer
+     now lives beside every other figure kind in PRINT_CSS, under a selector
+     specific enough to beat the 62vh above in both media. Do not re-add a
+     .psi-diagram max-height here without reading that rule. */
   /* A diagram is one picture; splitting it across a page break makes it
      two useless halves. */
   .figure-diagram { break-inside: avoid; page-break-inside: avoid; }

@@ -858,6 +858,30 @@ figure.figure-embed .embed-source { font-family: var(--sans); font-size: 0.72rem
 }
 figure.figure-img img,
 figure.figure-img svg { max-width: 100%; height: auto; }
+
+/* ── how tall a figure may be in a document ──────────────────────────
+   Width has always been answered (the measure), height never was, and the
+   two are not independent: every figure here keeps its aspect ratio, so an
+   uncapped height is whatever the measure multiplied by the ratio happens
+   to be. A ::: draw block makes that worst: it carries width="2000" so
+   max-width binds on every page, and python-intro's #scanner-pipeline
+   (1.56 tall per unit wide) resolved to 944px inside a 933px A4 text area -
+   taller than the sheet, and then moved onto a page of its own by the
+   break-inside: avoid that keeps a picture whole. A raster figure reaches
+   the same place from a portrait screenshot.
+   In rem rather than vh, and the same number on screen and on paper: what a
+   viewport unit means inside a page box is not something the engines agree
+   on, and print.html is printed by whichever browser the reader has. 34rem
+   at the 10pt root is about half the A4 text height - a figure may be the
+   largest thing on a page without being the only thing on it.
+   The selectors are (0,1,1) on purpose: DIAGRAM_CSS is concatenated after
+   this stylesheet, so a bare .psi-diagram here would lose to its 62vh on
+   screen and to its max-height: none on paper. */
+main .psi-diagram,
+figure.figure-img img,
+figure.figure-img svg,
+figure.figure-video video { max-height: 34rem; }
+
 figure.figure-img figcaption {
   font-family: var(--sans);
   font-size: 0.78rem;
@@ -935,7 +959,14 @@ pre.shiki .line { display: inline; }
   height: auto;
 }
 @media print {
-  .psi-diagram { max-height: none; }
+  /* How tall a diagram may be on paper is not answered here. This block used
+     to say max-height: none, on the reasoning that a vh cap is a slide
+     proportion and a sheet of paper is not a slide - true, and it left the
+     document with no cap at all, so a portrait diagram resolved to the
+     measure times its ratio and came out taller than the page. The answer
+     now lives beside every other figure kind in PRINT_CSS, under a selector
+     specific enough to beat the 62vh above in both media. Do not re-add a
+     .psi-diagram max-height here without reading that rule. */
   /* A diagram is one picture; splitting it across a page break makes it
      two useless halves. */
   .figure-diagram { break-inside: avoid; page-break-inside: avoid; }

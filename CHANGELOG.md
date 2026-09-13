@@ -2307,6 +2307,32 @@ from building the same way is a major version.
 
 ### Fixed
 
+- **A figure in a printed document can no longer be taller than the page.**
+  The two documents answered how *wide* a figure may be – the measure – and
+  never how tall, and with the aspect ratio fixed those are not two questions:
+  an uncapped height is whatever the measure multiplied by the ratio happens
+  to be. A `::: draw` block makes it worst, because it carries `width="2000"`
+  so that `max-width` binds on every screen, and the print stylesheet then
+  removed the live views' `max-height` on the reasoning that a `vh` cap is a
+  slide proportion and paper is not a slide. True, and it left the document
+  with no cap at all: `lectures/python-intro` `#scanner-pipeline` resolved to
+  944 px inside a 933 px A4 text area, and `break-inside: avoid` – which keeps
+  a picture whole, and should – then moved it onto a page of its own. The
+  lecture's cover did the same, so the deck opened on a page carrying a
+  flowchart and nothing else, with the title on page 2. A portrait screenshot
+  reached the same place without a diagram anywhere near it.
+
+  Diagrams, images and clips now share one ceiling of `34rem` in `print.html`
+  and `print-notes.html` – at the 10 pt root about half the A4 text height, so
+  a figure may be the largest thing on a page without being the only thing on
+  it. In `rem` rather than `vh`, and the same number on screen and on paper:
+  what a viewport unit means inside a page box is not something the engines
+  agree on, and these documents are printed by whichever browser the reader
+  has. The drawing keeps its proportions and centres in the measure. Measured
+  across the corpus, the tallest figure in any of the six lectures with
+  figures is now 49 % of the text area, and `lectures/python-intro` prints as
+  27 pages instead of 31.
+
 - **A slide whose content fitted the frame could still be positioned outside
   it.** `focusCamera` measured the chunk *box* to decide whether to centre a
   chunk or walk it, and the box carries the breathing space above the heading -
