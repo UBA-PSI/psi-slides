@@ -3194,6 +3194,17 @@ function lintFile(filePath) {
         wroteDetail: cardsTail.slots.detail.written,
         kind,
       };
+      // Mirrors build.js: `.baseline` lines a term up with the body beside
+      // it, and a card has no body beside it. Reported here rather than at
+      // the close with the content-dependent three above, because this one
+      // needs nothing but the tail and the word that opened the block - so
+      // the line it names is the line the author wrote.
+      if (!cardsTail.problems.length && kind === 'cards'
+          && cardsTail.slots.anchor.written && cardsTail.slots.anchor.value === 'baseline') {
+        add(ln, 'error', 'cards-baseline-no-body',
+            '::: cards {.baseline} – .baseline lines a term up with the body beside it, and a card has no body beside it;'
+            + ' use .top or .middle, or write ::: rows if the items are term-and-definition pairs');
+      }
       // Mirrors build.js: a card row is N containers side by side, so it
       // needs the whole measure, and every directive that could enclose it
       // has already divided that measure. `slide` and `script` divide

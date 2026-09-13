@@ -9,6 +9,41 @@ from building the same way is a major version.
 
 ### Changed
 
+- **A built view is the same bytes whichever flags wrote it, a row's terms
+  line up with the words beside them, and shadows are one ladder.** Four
+  findings from reading what the live views draw rather than what the
+  stylesheet says. `inlineSvgCounter` reset once per *build* rather than once
+  per view, so the same figure came out `psi-fig-6-` under `--audience-only`
+  and `psi-fig-8-` under a full build: content identical, bytes different,
+  and a tracked view rebuilt with a partial flag read as stale to
+  `release.yml` for a diff of pure id churn. The floor a view restarts from
+  is not zero, because `parseLecture` splices vector assets into `::: draw`
+  blocks through the same counter and that markup is shared by all four
+  views. `test/reproducible.mjs` is the check, wired into `npm test` and into
+  `release.yml` immediately before the staleness check it makes meaningful.
+  It is not a `test/gates/` entry: that suite runs on a bare checkout with no
+  `npm ci`, and this one spawns the build.
+
+  On a `::: rows` block the anchor word did not reach the term, which *is*
+  the card, so `{.top}` moved the body and left the term centred. And the
+  anchor a row defaults to now follows the ground rather than being a second
+  question about it: on a fill, an outline or the accent it stays `middle`,
+  because a visible slab beside a longer body wants placing; with `.clear`,
+  which also zeroes the padding, it is the new `baseline`, because bare words
+  centred against a four-line body read as misaligned where on the baseline
+  they read as the hanging indent this construction has always been.
+  Measured either way: 66px of offset on a four-line body. `.baseline` on a
+  `::: cards` block is refused in both files (`cards-baseline-no-body`) – a
+  card has no body beside it to line up with.
+
+  The four shadow recipes for three jobs, in two different shadow colours and
+  all in absolute pixels, are now `--shadow-rest`, `--shadow-float` and
+  `--shadow-quiet`, in em and following `--accent-h`. The shadow under a
+  heading standing on a photograph deliberately stays outside the ladder and
+  neutral, the line `ov-glass` and the invert backdrop's text-shadow are also
+  on: a surface that exists to keep type legible stays outside the palette,
+  a surface that groups or separates follows it.
+
 - **Trackpad zoom follows the fingers rather than the event count, and it
   zooms where the pointer is.** The board and the focus card each answered a
   wheel event with a fixed factor picked off the sign of `deltaY` – 8 % for

@@ -1278,6 +1278,34 @@ Commit-Reihenfolge:
   dem Zoom auf drei Viertel einer leeren Fotofolie), und das Einfahren ist
   ein `clip-path`-Wipe, weil ein Translate über den Rahmen Auto-Fit als
   Überlauf las.
+- **Palette, Radien, Schatten und die Zeilen-Grundlinie** (nach 2.0-Freeze,
+  drei Sessions parallel an `build.js`): vier Befunde, alle im Browser
+  gemessen statt im Stylesheet gelesen. Die SVG-ID-Präfixe hingen an den
+  Build-Flags (`--audience-only` schrieb `psi-fig-6-`, ein voller Build
+  `psi-fig-8-`), was `release.yml`s Staleness-Prüfung untergrub;
+  `test/reproducible.mjs` prüft es jetzt, und zwar **nicht** als
+  `test/gates/`-Eintrag, weil `gates.yml` ohne `npm ci` läuft und dieser
+  Check den Build startet. Der Reset-Boden ist nicht 0: `parseLecture`
+  spleißt Vektor-Assets über denselben Zähler in `::: draw`-Blöcke, und
+  dieses Markup teilen sich alle vier Views.
+
+  Auf `::: rows` erreichte das Anker-Wort den Begriff nicht (`align-self`
+  war hart `center`), also bewegte `{.top}` nur die Erklärung. Und der
+  Default folgt jetzt dem Grund: mit Fläche `middle`, mit `.clear` das neue
+  `baseline`. Die alte Notiz begründete `middle` mit der Sorge vor einem
+  oben gestrandeten Begriff – richtig für ein nacktes Wort, überholt für
+  eine getönte Karte, die es damals noch nicht gab.
+
+  **Die Regel, die dreimal unabhängig getragen hat und deshalb notiert
+  gehört:** eine Fläche, die Lesbarkeit herstellt, bleibt außerhalb der
+  Palette; eine Fläche, die gruppiert oder trennt, folgt ihr. `ov-glass`
+  (52 % Papier, 68 % im Panel – Zahlen aus einem Kontrastverhältnis auf
+  einem mitteltonigen Foto), der Invert-Text-Schatten und der Schatten
+  unter einer Überschrift auf einem Foto. Ohne sie tintet ein
+  Vereinheitlichungsdurchgang genau die Flächen mit, deren Farbe eine
+  gemessene Untergrenze ist – beinahe passiert, siehe die verworfene erste
+  Fassung des `tinted`-Blocks.
+
 - **`::: dock`** (`PLAN-dock.md`, gebaut in `e019c8a`): das Overlay-Vokabular
   mit dem anderen Vertrag – Teil des Rahmens, der Text weicht. Seitendock
   absolut plus Chunk-Padding, Band als Grid-Zeile; `@property --dock-px` als

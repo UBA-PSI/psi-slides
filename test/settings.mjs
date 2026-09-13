@@ -1301,6 +1301,37 @@ console.log('\nlayout generations');
   ok(/cards rows [^"]*cv-top/.test(rowsTop), 'and honours a written top');
   ok(/\.cards\.rows \{[\s\S]{0,600}?align-items: var\(--row-anchor, center\)/.test(rows),
      'and the stylesheet reads it, or the word moves nothing');
+  // The term is the card, so the anchor slot has to reach *it* - and it did
+  // not: align-self was a hard `center`, so {.top} moved the body and left
+  // the term centred. Measured before the fix: under cv-top the term's first
+  // line still sat 21px below the body's, the same offset the default gives.
+  // The container had the identical defect once and was repaired; the term
+  // was missed, which is why this assertion names the term specifically.
+  // The span is generous because the declaration sits under the comment that
+  // records why it is a variable and not a word, and a comment that grows
+  // should not fail the assertion under it.
+  ok(/\.cards\.rows li > :is\(strong, b\):first-child \{[\s\S]{0,2000}?align-self: var\(--row-anchor, center\)/.test(rows),
+     'and the term reads it too, which is the half that was hard-coded');
+
+  // The anchor a row defaults to falls out of the ground rather than being a
+  // second question about it. On a slab, centring: a block beside a longer
+  // body wants to be placed. With no slab and no padding, the baseline: bare
+  // words centred against a four-line body read as misaligned, and on the
+  // baseline they read as the hanging indent this construction has always
+  // been. Measured on a four-line body: 66px of offset either way.
+  const rowsClear = mk('::: rows {.clear}\n- **A** one line\n:::\n');
+  ok(/cards rows [^"]*cv-baseline/.test(rowsClear),
+     'a clear row anchors its term on the baseline');
+  ok(/cards rows [^"]*cv-middle/.test(rows),
+     'and a row with a ground still centres it');
+  ok(/\.cards\.cv-baseline \{[^}]*--row-anchor: baseline/.test(rows),
+     'and the stylesheet carries the third word');
+  // A written word beats the ground either way, or the default would be a
+  // rule rather than a default.
+  ok(/cards rows [^"]*cv-middle/.test(mk('::: rows {.clear .middle}\n- **A** one\n:::\n')),
+     'a written middle survives a clear ground');
+  ok(/cards rows [^"]*cv-baseline/.test(mk('::: rows {.baseline}\n- **A** one\n:::\n')),
+     'and a written baseline survives a ground');
   ok(/\.cards\.cv-top\s+\{ --card-anchor: flex-start; --row-anchor: start; \}/.test(rows),
      'through one declaration that serves both constructs');
   // The body is prose beside a card, so it ranges left whatever the row

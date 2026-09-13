@@ -1969,14 +1969,26 @@ function renderCardsBlock(b) {
     // lead-in question is a card question only.
     body = markCardLeads(b.lines);
   }
-  // A row's default anchor is `middle`, and a card's is `top`. The default
-  // differs by construct because the constructs differ: a card is a block
-  // of text in a box and reads from its first line, while a row is a term
-  // *beside* a body, and a one-line term against a three-line body's first
-  // line reads as a mistake. `written` is what tells a written `top` from
-  // the defaulted one - and this has to run *before* the class list is
-  // built, which it did not at first.
-  if (b.rows && !o.written.anchor) o.anchor = 'middle';
+  // A card's default anchor is `top`. A row's depends on what the term sits
+  // on, and that is the whole of this rule: the alignment follows from the
+  // ground rather than being a second question about it.
+  //
+  // On a ground - a fill, an outline, the accent, paper - the term is a
+  // visible block, and a block beside a longer body wants centring: this
+  // note used to say a one-line term against a three-line body's first line
+  // reads as a mistake, and on a slab that is still true. Measured on a
+  // four-line body the term's first line sits 66px below the body's, and it
+  // reads as a slab placed in the middle of its row, which is what it is.
+  //
+  // With `clear` there is no slab. The ground also zeroes the padding, so
+  // the term is bare words in a column - and bare words centred against a
+  // four-line body read as misaligned rather than as placed. On the
+  // baseline they read as a hanging indent, which is the typographic form
+  // this construction has always been: a term, and its definition beside it.
+  //
+  // `written` is what tells an authored word from a defaulted one, and this
+  // has to run *before* the class list is built, which it did not at first.
+  if (b.rows && !o.written.anchor) o.anchor = o.ground === 'clear' ? 'baseline' : 'middle';
   const cls = [b.rows ? 'cards rows' : 'cards', `cards-${b.n}`, `cs-${size}`, `ca-${align}`,
     `cv-${o.anchor}`, `cd-${o.detail}`, `cg-${o.ground}`, `ck-${o.corner}`,
     `cx-${o.scrim}`];
@@ -2001,6 +2013,14 @@ function renderCardsBlock(b) {
   // diagram-only card through as the very no-op this refuses.
   const hasPicture = b.lines.some(l =>
     /!\[[^\]]*\]\([^)]*\)/.test(l) || /class="figure-img"/.test(l) || /<img\b/.test(l));
+  // baseline aligns a term with the body beside it, and a card has no body
+  // beside it - so on a ::: cards block the word would resolve to something
+  // it does not mean. A word that does nothing is a refusal here, not a
+  // silent no-op, which is the same rule .photo answers to below.
+  if (o.written.anchor && o.anchor === 'baseline' && !b.rows) {
+    bad('.baseline lines a term up with the body beside it, and a card has no body beside it.\n' +
+        '       Use .top or .middle here, or write ::: rows if the items are term-and-definition pairs.');
+  }
   if (o.written.ground && o.ground === 'photo' && !hasPicture) {
     bad('.photo makes a card\'s first image its ground, and no card here carries one.\n' +
         '  Give a card a picture, or drop .photo.');
@@ -7898,6 +7918,22 @@ const AUDIENCE_CSS = `
      one scale and where a pixel is the right unit. */
   --radius-card:  0.3em;
   --radius-tight: 0.1em;
+  /* One elevation ladder, and in em for the reason the radii are: a shadow
+     models a card's height off the page, so it has to keep its proportion to
+     the card. The four pixel recipes this replaces did not - and they were
+     four, for three jobs, in two different shadow colours (hue 260 in some,
+     pure black in others).
+
+     The hue follows --accent-h, so a tinted palette carries the shadows with
+     it rather than leaving cool shadows under a warm card. The exception is
+     written where it is used: a shadow that separates a card from a
+     PHOTOGRAPH is a legibility device, not depth, and stays neutral - the
+     same line ov-glass and the invert text-shadow are on. */
+  --shadow-ink: 0.2 0.01 var(--accent-h, 260);
+  --shadow-rest:  0 0.04em 0.08em oklch(var(--shadow-ink) / 0.10),
+                  0 0.26em 0.85em oklch(var(--shadow-ink) / 0.10);
+  --shadow-float: 0 0.09em 0.95em oklch(var(--shadow-ink) / 0.16);
+  --shadow-quiet: 0 0.08em 0.72em oklch(var(--shadow-ink) / 0.08);
   /* Slide-internal sizes all derive from --slide-h so content layout is
      pixel-identical across views. --slide-w / --slide-h hold the AUDIENCE
      reference dimensions: in audience that's window.innerW/H; in speaker
@@ -9930,7 +9966,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    which is the only one that needs the picture to still show through. */
 :is(.overlay-card, .dock).ov-paper {
   background: color-mix(in oklch, var(--paper) 94%, transparent);
-  box-shadow: 0 2px 22px oklch(0.2 0.01 260 / 0.16);
+  box-shadow: var(--shadow-float);
   color: var(--ink);
   --ink-soft: color-mix(in oklch, var(--ink) 55%, transparent);
   text-shadow: none;
@@ -10377,7 +10413,22 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   background: var(--card-bg, none);
   border: var(--card-border, 0);
   border-radius: var(--radius-card);
-  align-self: center;
+  /* The variable, not a fixed word - the term is the card, so the anchor
+     slot has to reach it or {.top} moves the body and leaves the term where
+     it was. Measured: under cv-top the term's first line still sat 21px
+     below the body's, the same offset the default produces, so the escape
+     hatch the vocabulary offers could not reach the thing it names. The
+     slot had this defect once before on the container, where align-items
+     was center unconditionally and top and middle rendered identically;
+     it was fixed there and the term was missed.
+
+     The DEFAULT stays center, deliberately. Centring a one-line term
+     against a two-line body leaves their first lines 21px apart, which
+     does read as loose - but the alternative is a term stranded at the top
+     of a five-line body, and the note above the anchor default in the
+     renderer says that trade was already weighed and settled. Changing it
+     is a design decision and not a repair. */
+  align-self: var(--row-anchor, center);
   text-align: var(--card-align, left);
   font-size: calc(1em * var(--card-fs, 1));
   line-height: 1.25;
@@ -10415,7 +10466,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    as well and made it invisible. That one is fixed where the ground is
    declared, by putting the ink on the term rather than on the item. */
 .cards.rows.cg-paper li > :is(strong, b):first-child {
-  box-shadow: 0 1px 2px oklch(0.2 0.01 260 / 0.10), 0 6px 20px oklch(0.2 0.01 260 / 0.10);
+  box-shadow: var(--shadow-rest);
 }
 
 /* size - one decision for the row, never per card: three sizes in one row
@@ -10480,7 +10531,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 .cards.cg-paper > ol > li,
 .cards.cg-paper > :not(ul):not(ol) {
   --card-bg: var(--paper);
-  box-shadow: 0 1px 2px oklch(0.2 0.01 260 / 0.10), 0 6px 20px oklch(0.2 0.01 260 / 0.10);
+  box-shadow: var(--shadow-rest);
 }
 /* photo - the card's first picture becomes its ground rather than a band
    across its top. The image is the same <img> the bleeding rule handles;
@@ -10560,6 +10611,11 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 .cards.ca-center { --card-align: center; }
 .cards.cv-top    { --card-anchor: flex-start; --row-anchor: start; }
 .cards.cv-middle { --card-anchor: center;     --row-anchor: center; }
+/* A rows word, and the default where the term has no ground to sit on. The
+   card side is given flex-start rather than left undefined: the value is
+   refused on a ::: cards block, so this is a floor under a combination the
+   parser does not let through, not a second meaning. */
+.cards.cv-baseline { --card-anchor: flex-start; --row-anchor: baseline; }
 /* detail - the levels under the first. On the projection they are folded
    away, so the card carries the headline and the document carries the
    hierarchy; pressing C is what brings them back, and it needs no second
@@ -10794,7 +10850,14 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
 .chunk[data-section=card][data-has-backdrop] .section-heading {
   background: color-mix(in oklch, var(--paper) 90%, transparent);
   color: var(--ink);
-  box-shadow: 0 1px 12px oklch(0 0 0 / 0.28);
+  /* NOT --shadow-float, and deliberately outside the ladder: this heading
+     stands on a photograph, so the shadow is separating type from arbitrary
+     picture content rather than lifting a card off paper. A shadow that
+     carries the palette's hue tints the thing it exists to make legible -
+     the rule ov-glass and the invert backdrop's text-shadow are on. Neutral
+     black, and stronger than any resting shadow, because a picture is a
+     louder ground than paper. */
+  box-shadow: 0 0.04em 0.5em oklch(0 0 0 / 0.28);
 }
 /* number - the counter carries the weight, so the heading steps back. */
 .chunk[data-section=number] .section-heading { font-size: calc(2.1em * var(--zoom)); }
@@ -11182,7 +11245,7 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
      translateX(-50%)) and would otherwise paint on top of the card. */
   position: relative;
   z-index: 5;
-  box-shadow: 0 2px 18px oklch(0 0 0 / 0.08);
+  box-shadow: var(--shadow-quiet);
 }
 .exp-body .tag-label { text-align: left; font-size: 0.72em; margin-bottom: 0.3em; }
 .exp-body p { margin: 0 0 0.6em; }
@@ -19234,7 +19297,24 @@ function buildOnce(absIn, only, opts = {}) {
   // each other - a deck whose projection had moved on from its handout, with
   // nothing on disk saying so. In two passes the last good build survives a
   // failure whole: either all four files are the new one, or none of them is.
-  const rendered = targets.map(([name, render]) => [name, render(lecture, renderOpts)]);
+  // Each view is its own document, and an inlined SVG's id prefix only has to
+  // be unique inside one. Resetting per build instead made a view's bytes
+  // depend on the flags that produced it: --audience-only wrote psi-fig-6-
+  // where a full build wrote psi-fig-8- for the same figure, so a tracked view
+  // rebuilt with a partial flag reads as stale to release.yml and the diff is
+  // pure id churn. Measured, not inferred.
+  //
+  // The floor is not zero, and that is the whole subtlety. parseLecture above
+  // compiles the ::: draw blocks once and dgAssetMarkup splices vector assets
+  // into them there, through this same counter - and that markup is shared by
+  // all four views. So the ids minted during the parse are common property and
+  // a view has to start above them, or its own first figure would collide with
+  // a diagram's.
+  const svgIdFloor = inlineSvgCounter;
+  const rendered = targets.map(([name, render]) => {
+    inlineSvgCounter = svgIdFloor;
+    return [name, render(lecture, renderOpts)];
+  });
   const written = [];
   for (const [name, html] of rendered) {
     const p = path.join(outDir, `${name}.html`);
