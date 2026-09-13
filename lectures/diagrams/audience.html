@@ -35,6 +35,22 @@
      one scale and where a pixel is the right unit. */
   --radius-card:  0.3em;
   --radius-tight: 0.1em;
+  /* One elevation ladder, and in em for the reason the radii are: a shadow
+     models a card's height off the page, so it has to keep its proportion to
+     the card. The four pixel recipes this replaces did not - and they were
+     four, for three jobs, in two different shadow colours (hue 260 in some,
+     pure black in others).
+
+     The hue follows --accent-h, so a tinted palette carries the shadows with
+     it rather than leaving cool shadows under a warm card. The exception is
+     written where it is used: a shadow that separates a card from a
+     PHOTOGRAPH is a legibility device, not depth, and stays neutral - the
+     same line ov-glass and the invert text-shadow are on. */
+  --shadow-ink: 0.2 0.01 var(--accent-h, 260);
+  --shadow-rest:  0 0.04em 0.08em oklch(var(--shadow-ink) / 0.10),
+                  0 0.26em 0.85em oklch(var(--shadow-ink) / 0.10);
+  --shadow-float: 0 0.09em 0.95em oklch(var(--shadow-ink) / 0.16);
+  --shadow-quiet: 0 0.08em 0.72em oklch(var(--shadow-ink) / 0.08);
   /* Slide-internal sizes all derive from --slide-h so content layout is
      pixel-identical across views. --slide-w / --slide-h hold the AUDIENCE
      reference dimensions: in audience that's window.innerW/H; in speaker
@@ -846,7 +862,16 @@ body.figure-dragging #figure-overlay * { cursor: grabbing !important; }
   transition: transform 80ms ease-out;
   will-change: transform;
 }
-body.figure-dragging #figure-overlay > .figure-focus-target { transition: none; }
+/* The transition belongs to the input, not to the element: a keypress wants
+   the ease, a continuous gesture must not have it. A macOS trackpad delivers
+   a wheel event every 8.4 ms (measured), so each one restarted this 80 ms
+   curve from its own interpolated midpoint and the card never arrived
+   anywhere – the judder was the easing being re-aimed roughly ten times per
+   frame, independently of how big the zoom step was. Drag has had the rule
+   from the start; the wheel path was simply never given it. Wheel has no end
+   event, so figureZoomWheel ends the gesture on a quiet period. */
+body.figure-dragging #figure-overlay > .figure-focus-target,
+body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; }
 /* The target is always shown on a solid paper card – otherwise the
    dimmed backdrop bleeds through (shiki-highlighted code in particular
    loses legibility when translucent). !important wins over shiki's
@@ -1028,14 +1053,23 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    min-height every chunk gets, the next chunk's heading crept into the
    bottom of the frame and the split variant's picture stretched to a band
    across the top third instead of bleeding down the whole right edge. */
-.chunk-title { align-items: end; min-height: var(--slide-h); }
+/* The size of a title pair's loud line, named once so the eyebrow mode can
+   hand it to whichever of the two lines is carrying the weight. Every
+   composition below sets this rather than a font-size on .title-main, which
+   is what lets style.headline: eyebrow work on all ten of them instead
+   of on the default one. It is declared on the chunk - an ancestor of both
+   lines - because a custom property inherits down and not sideways; neither
+   .chunk nor .chunk-content sets a font-size, so the em resolves against
+   exactly what it resolved against when each of these was a font-size. */
+.chunk-title { align-items: end; min-height: var(--slide-h); --title-lead: 2.6em; }
 .chunk-title .chunk-content {
   grid-column: 2;
   gap: 0.5em;
   padding-bottom: 12vh;
 }
 .chunk-title .title-main {
-  font-size: calc(2.6em * var(--zoom));
+  font-size: calc(var(--title-lead) * var(--zoom));
+  max-width: var(--title-measure, none);
   font-weight: 500;
   margin: 0;
   line-height: 1.1;
@@ -1053,6 +1087,95 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   line-height: 1.5;
 }
 .chunk-title .title-info p { margin: 0.15em 0; }
+/* The institution is a rank of its own rather than another info: line.
+   It qualifies the name directly above it, where the venue and the date
+   qualify the talk - set at one size they read as a list of four equal
+   facts, which is what made the old credit block read as a log file. */
+.chunk-title .title-affiliation {
+  font-family: var(--sans-font);
+  font-size: calc(0.82em * var(--zoom));
+  font-weight: 500;
+  margin: 0.08em 0 0;
+  color: var(--ink-soft);
+}
+/* The foot: an address on the left, the line that answers the room on the
+   right. A row and not two more stacked lines, because they do a different
+   job from the two ranks above - those introduce the speaker, these answer
+   "where do I get this" and "may I photograph it".
+
+   width: 100% is load-bearing and is the same trap the masthead's credits
+   row fell into: space-between needs a width to push against, and a flex
+   item in a column shrink-wraps to its content. */
+.chunk-title .title-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.2em 2.4em;
+  width: 100%;
+  margin-top: 0.85em;
+  font-family: var(--sans-font);
+  font-size: calc(0.7em * var(--zoom));
+  color: var(--ink-soft);
+}
+/* One device to separate the notice from the address beside it, and the one
+   that costs no colour and no weight - both of which are already carrying
+   something else on this slide. */
+.chunk-title .title-notice { font-style: italic; }
+/* Capitals at the tracking of lowercase read as one jammed word. The
+   attribute is written by the renderer for any slot already in capitals, so
+   this reaches the line an author typed that way as much as the line
+   style.caps transformed - see isAllCaps. */
+.chunk-title [data-caps] { letter-spacing: 0.055em; }
+/* style: {caps: on} - the small type around the title, never the title.
+   Under headline: eyebrow the eyebrow is small type and takes it; under
+   stacked, .title-main is the loud line and is left alone, because a key
+   that capitalises the loud line is a key that makes a talk shout. */
+body[data-title-caps=on] .chunk-title .title-presenter,
+body[data-title-caps=on] .chunk-title .title-affiliation,
+body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+/* ── style: {headline: eyebrow} ───────────────────────────────────────
+   The pair the other way up: the title small above a subtitle that carries
+   the weight. The words do not move - title: is still the lecture's name,
+   still the <title> element, still what the TOC and the search index read -
+   and only the type changes, which is what lets one key serve the cover,
+   the dividers and the closing slide at once.
+
+   The subtitle takes --title-lead, so it inherits whatever size the
+   composition chose for its headline and the swap works on all ten rather
+   than on the default one. The eyebrow's own size is fixed and small: it is
+   a kicker, and a kicker that scales with the headline stops being one. */
+body[data-headline=eyebrow] .chunk-title .title-main {
+  font-size: calc(1.02em * var(--zoom));
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.015em;
+  color: var(--ink-soft);
+  /* Uncapped, and that is the point of moving the cap to --title-measure:
+     a composition's cap is written in the headline's em, and read at the
+     eyebrow's much smaller one the same number is a third of the slide.
+     Measured, masthead's 15em came out as 483px and broke
+     "Datensicherheit im digitalen Alltag:" onto two lines. A kicker is one
+     short line by construction; the column is the only cap it needs. */
+  max-width: none;
+  margin: 0 0 0.1em;
+}
+body[data-headline=eyebrow] .chunk-title .title-subtitle {
+  font-size: calc(var(--title-lead) * var(--zoom));
+  max-width: var(--title-measure, 20em);
+  font-weight: 600;
+  line-height: 1.1;
+  letter-spacing: -0.022em;
+  color: var(--ink);
+  /* In the subtitle's own em, which is now the headline's, so the measure
+     has to be restated: 26em at meta size is a paragraph, 26em at 2.6em is
+     two thirds of a projector. */
+  max-width: 20em;
+  margin: 0 0 0.25em;
+}
 
 /* ── lecture-wide style settings (the style: frontmatter block) ──────
    Two of the four keys are selectors rather than numbers, because what
@@ -1161,11 +1284,11 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   gap: 0;
   justify-content: flex-start;
 }
+.chunk[data-cover=masthead] { --title-lead: 2.5em; }
+.chunk[data-cover=masthead] { --title-measure: 17em; }
 .chunk[data-cover=masthead] .title-main {
-  font-size: calc(2.5em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.026em;
-  max-width: 17em;
 }
 .chunk[data-cover=masthead] .title-subtitle {
   margin: 0.5em 0 0;
@@ -1231,10 +1354,8 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
    and the same shape of rule: the composition reads what it was given and
    sets the scale from it, rather than making the author choose a size to go
    with a decision they already made by writing (or not writing) a body. */
-.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-main {
-  font-size: calc(3.05em * var(--zoom));
-  max-width: 15em;
-}
+.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) { --title-lead: 3.05em; }
+.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) { --title-measure: 15em; }
 .chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-subtitle {
   font-size: calc(1.3em * var(--zoom));
   margin-top: 0.55em;
@@ -1259,12 +1380,12 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   padding-bottom: 0;
   gap: 0;
 }
+.chunk[data-cover=display] { --title-lead: 4.4em; }
+.chunk[data-cover=display] { --title-measure: 9.5em; }
 .chunk[data-cover=display] .title-main {
-  font-size: calc(4.4em * var(--zoom));
   font-weight: 600;
   line-height: 0.97;
   letter-spacing: -0.042em;
-  max-width: 9.5em;
   text-wrap: balance;
 }
 .chunk[data-cover=display] .title-subtitle {
@@ -1325,9 +1446,9 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   padding-bottom: 12vh;
   gap: 0.3em;
 }
+.chunk[data-cover=panel] { --title-lead: 2.85em; }
 .chunk[data-cover=panel] .title-main {
   color: var(--panel-ink);
-  font-size: calc(2.85em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.028em;
 }
@@ -1336,6 +1457,15 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   margin: 0.4em 0 0;
   font-size: calc(1.18em * var(--zoom));
   max-width: 26em;
+}
+/* panel reverses its ink through a token of its own rather than through
+   --ink, so every element on it has to be named here: an element that only
+   reads --ink-soft comes out dark on a dark plate. The affiliation and the
+   foot are the two newest, and they are the reason this list is worth
+   keeping in one place. */
+.chunk[data-cover=panel] .title-affiliation,
+.chunk[data-cover=panel] .title-foot {
+  color: color-mix(in oklch, var(--panel-ink) 76%, transparent);
 }
 .chunk[data-cover=panel] .title-presenter {
   color: var(--panel-ink);
@@ -1387,11 +1517,11 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* Under the claim the title is the attribution, so it is set at meta size
    and not as a headline - the one place in the family where the lecture's
    own name is not the largest thing on its cover. */
+.chunk[data-cover=quote] { --title-lead: 1.05em; }
+.chunk[data-cover=quote] { --title-measure: 26em; }
 .chunk[data-cover=quote] .title-main {
-  font-size: calc(1.05em * var(--zoom));
   font-weight: 600;
   letter-spacing: 0;
-  max-width: 26em;
 }
 .chunk[data-cover=quote] .title-subtitle {
   margin: 0.2em 0 0;
@@ -1448,8 +1578,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   background-position: center;
   background-repeat: no-repeat;
 }
+.chunk[data-cover=split] { --title-lead: 2.35em; }
 .chunk[data-cover=split] .title-main {
-  font-size: calc(2.35em * var(--zoom));
   font-weight: 600;
 }
 .chunk[data-cover=split] .title-presenter { margin-top: 0.5em; }
@@ -1472,8 +1602,24 @@ body[data-mode=dark] .chunk[data-cover=panel] {
     oklch(0.12 0.02 260 / 0.28) 68%,
     oklch(0.12 0.02 260 / 0.10) 100%);
 }
+/* The scrim has to follow the type, and it did not. hero places its block at
+   the foot, so the gradient is dark at the bottom - but cover-align: top
+   is accepted on hero, and it moved the reversed type onto the thinnest part
+   of the veil: white words on the bright half of a photograph. Found while
+   planning the title work, not by a test, because nothing measures contrast
+   over a picture. An even veil is not the answer here for the reason it is
+   not the answer anywhere on this composition: it greys the whole photograph
+   to protect four lines in one corner. */
+.chunk[data-cover=hero][data-cover-align=top] .chunk-backdrop.bd-invert::after {
+  background: linear-gradient(
+    to bottom,
+    oklch(0.12 0.02 260 / 0.88) 0%,
+    oklch(0.12 0.02 260 / 0.72) 34%,
+    oklch(0.12 0.02 260 / 0.28) 68%,
+    oklch(0.12 0.02 260 / 0.10) 100%);
+}
+.chunk[data-cover=hero] { --title-lead: 2.75em; }
 .chunk[data-cover=hero] .title-main {
-  font-size: calc(2.75em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.026em;
 }
@@ -1497,7 +1643,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   max-width: 34em;
   margin: 0 auto;
 }
-.chunk[data-cover=stack] .title-main { font-size: calc(2.6em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=stack] { --title-lead: 2.6em; }
+.chunk[data-cover=stack] .title-main { font-weight: 600; }
 .chunk[data-cover=stack] .title-subtitle { max-width: 30em; margin-top: 0.1em; }
 .chunk[data-cover=stack] .title-presenter { margin-top: 0.9em; font-weight: 600; }
 .chunk[data-cover=stack] .title-info { margin-top: 0.15em; }
@@ -1526,7 +1673,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   background-repeat: no-repeat;
   min-height: 42vh;
 }
-.chunk[data-cover=beside] .title-main { font-size: calc(2.25em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=beside] { --title-lead: 2.25em; }
+.chunk[data-cover=beside] .title-main { font-weight: 600; }
 
 /* above - the art on top, the title in the lower quarter and centred on
    both axes. The proportion is the point: cover-ratio is how much of the
@@ -1575,7 +1723,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   max-width: 36em;
   margin: 0 auto;
 }
-.chunk[data-cover=above] .title-main { font-size: calc(2.05em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=above] { --title-lead: 2.05em; }
+.chunk[data-cover=above] .title-main { font-weight: 600; }
 .chunk[data-cover=above] .title-subtitle { max-width: 32em; font-size: calc(1.05em * var(--zoom)); }
 .chunk[data-cover=above] .title-presenter { margin-top: 0.5em; font-weight: 600; }
 .chunk[data-cover=above] .title-info { margin-top: 0.05em; font-size: calc(0.64em * var(--zoom)); }
@@ -1647,10 +1796,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* display sets the title at four and a half ems, which is right for a
    lecture title and shouting for the word "Questions?". The bookend keeps
    the composition and steps the scale back to the cover's own. */
-.chunk[data-cover=display][data-closing] .title-main {
-  font-size: calc(3.1em * var(--zoom));
-  max-width: 14em;
-}
+.chunk[data-cover=display][data-closing] { --title-lead: 3.1em; }
+.chunk[data-cover=display][data-closing] { --title-measure: 14em; }
 /* quote is the other cover that sets .title-main to something it is not on a
    closing slide. There the lecture's title is the *attribution* under the
    claim, so it is meta-sized on purpose - but a closing slide has no claim
@@ -1658,11 +1805,11 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    size: measured, 29.9px where a heading belongs. The bookend keeps the
    composition and takes back the one rule that only made sense with a
    quotation over it. */
+.chunk[data-cover=quote][data-closing] { --title-lead: 2.2em; }
+.chunk[data-cover=quote][data-closing] { --title-measure: 20em; }
 .chunk[data-cover=quote][data-closing] .title-main {
-  font-size: calc(2.2em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.018em;
-  max-width: 20em;
 }
 .chunk[data-cover=quote][data-closing] .title-subtitle {
   font-size: calc(1.05em * var(--zoom));
@@ -1802,7 +1949,14 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* An inverted slide re-points the ink tokens rather than restating every
    colour rule: everything downstream already reads --ink / --ink-soft /
    --rule, so one block covers headings, body, lists, rules and captions. */
-.chunk[data-backdrop=invert] {
+/* cover-ground: ink joins this selector rather than restating it. The
+   token re-pointing below is the one place a dark slide is described, and a
+   second spelling of it is a second place to keep in sync; what the ground
+   adds is the dark itself, which a backdrop otherwise supplies as a
+   picture. */
+.chunk[data-cover-ground=ink] { background: oklch(0.14 0.015 260); }
+.chunk[data-backdrop=invert],
+.chunk[data-cover-ground=ink] {
   /* color: var(--ink) is declared on body, so it is *computed* there
      against body's --ink and inherited as a finished colour: redefining
      the token further down changes nothing that already resolved. The
@@ -1814,7 +1968,11 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   --ink-soft: oklch(0.99 0 0 / 0.74);
   --rule: oklch(0.99 0 0 / 0.32);
   --emph: oklch(0.90 0.10 75);
-  text-shadow: 0 1px 14px oklch(0.12 0.02 260 / 0.5);
+  /* Deliberately outside the palette, and at chroma 0 rather than 0.02 so
+     that it says so. This halo exists to separate reversed glyphs from
+     whatever the photograph is doing behind them; a halo carrying a hue
+     tints the type it is protecting, which is the opposite of its job. */
+  text-shadow: 0 1px 14px oklch(0.12 0 0 / 0.5);
 }
 /* Content has to clear the backdrop, which is z-index 0 in the same
    stacking context. Written as a z-index on each layer and never as a
@@ -1925,7 +2083,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    which is the only one that needs the picture to still show through. */
 :is(.overlay-card, .dock).ov-paper {
   background: color-mix(in oklch, var(--paper) 94%, transparent);
-  box-shadow: 0 2px 22px oklch(0.2 0.01 260 / 0.16);
+  box-shadow: var(--shadow-float);
   color: var(--ink);
   --ink-soft: color-mix(in oklch, var(--ink) 55%, transparent);
   text-shadow: none;
@@ -2372,7 +2530,22 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   background: var(--card-bg, none);
   border: var(--card-border, 0);
   border-radius: var(--radius-card);
-  align-self: center;
+  /* The variable, not a fixed word - the term is the card, so the anchor
+     slot has to reach it or {.top} moves the body and leaves the term where
+     it was. Measured: under cv-top the term's first line still sat 21px
+     below the body's, the same offset the default produces, so the escape
+     hatch the vocabulary offers could not reach the thing it names. The
+     slot had this defect once before on the container, where align-items
+     was center unconditionally and top and middle rendered identically;
+     it was fixed there and the term was missed.
+
+     The DEFAULT stays center, deliberately. Centring a one-line term
+     against a two-line body leaves their first lines 21px apart, which
+     does read as loose - but the alternative is a term stranded at the top
+     of a five-line body, and the note above the anchor default in the
+     renderer says that trade was already weighed and settled. Changing it
+     is a design decision and not a repair. */
+  align-self: var(--row-anchor, center);
   text-align: var(--card-align, left);
   font-size: calc(1em * var(--card-fs, 1));
   line-height: 1.25;
@@ -2410,7 +2583,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    as well and made it invisible. That one is fixed where the ground is
    declared, by putting the ink on the term rather than on the item. */
 .cards.rows.cg-paper li > :is(strong, b):first-child {
-  box-shadow: 0 1px 2px oklch(0.2 0.01 260 / 0.10), 0 6px 20px oklch(0.2 0.01 260 / 0.10);
+  box-shadow: var(--shadow-rest);
 }
 
 /* size - one decision for the row, never per card: three sizes in one row
@@ -2475,7 +2648,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 .cards.cg-paper > ol > li,
 .cards.cg-paper > :not(ul):not(ol) {
   --card-bg: var(--paper);
-  box-shadow: 0 1px 2px oklch(0.2 0.01 260 / 0.10), 0 6px 20px oklch(0.2 0.01 260 / 0.10);
+  box-shadow: var(--shadow-rest);
 }
 /* photo - the card's first picture becomes its ground rather than a band
    across its top. The image is the same <img> the bleeding rule handles;
@@ -2555,6 +2728,11 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 .cards.ca-center { --card-align: center; }
 .cards.cv-top    { --card-anchor: flex-start; --row-anchor: start; }
 .cards.cv-middle { --card-anchor: center;     --row-anchor: center; }
+/* A rows word, and the default where the term has no ground to sit on. The
+   card side is given flex-start rather than left undefined: the value is
+   refused on a ::: cards block, so this is a floor under a combination the
+   parser does not let through, not a second meaning. */
+.cards.cv-baseline { --card-anchor: flex-start; --row-anchor: baseline; }
 /* detail - the levels under the first. On the projection they are folded
    away, so the card carries the headline and the document carries the
    hierarchy; pressing C is what brings them back, and it needs no second
@@ -2789,7 +2967,14 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
 .chunk[data-section=card][data-has-backdrop] .section-heading {
   background: color-mix(in oklch, var(--paper) 90%, transparent);
   color: var(--ink);
-  box-shadow: 0 1px 12px oklch(0 0 0 / 0.28);
+  /* NOT --shadow-float, and deliberately outside the ladder: this heading
+     stands on a photograph, so the shadow is separating type from arbitrary
+     picture content rather than lifting a card off paper. A shadow that
+     carries the palette's hue tints the thing it exists to make legible -
+     the rule ov-glass and the invert backdrop's text-shadow are on. Neutral
+     black, and stronger than any resting shadow, because a picture is a
+     louder ground than paper. */
+  box-shadow: 0 0.04em 0.5em oklch(0 0 0 / 0.28);
 }
 /* number - the counter carries the weight, so the heading steps back. */
 .chunk[data-section=number] .section-heading { font-size: calc(2.1em * var(--zoom)); }
@@ -3177,7 +3362,7 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
      translateX(-50%)) and would otherwise paint on top of the card. */
   position: relative;
   z-index: 5;
-  box-shadow: 0 2px 18px oklch(0 0 0 / 0.08);
+  box-shadow: var(--shadow-quiet);
 }
 .exp-body .tag-label { text-align: left; font-size: 0.72em; margin-bottom: 0.3em; }
 .exp-body p { margin: 0 0 0.6em; }
@@ -3972,7 +4157,11 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
 body.overview-mode #stage-viewport { cursor: grab; }
 body.overview-mode #stage-viewport:active { cursor: grabbing; }
 body.overview-mode #stage { transition: transform var(--camera-duration) cubic-bezier(0.45, 0, 0.2, 1); }
-body.overview-mode.overview-dragging #stage { transition: none; }
+/* Same rule as the focus card's, and here it costs more: --camera-duration is
+   250 ms, so at 8.4 ms between trackpad events the curve was re-aimed about
+   thirty times before it could ever complete. */
+body.overview-mode.overview-dragging #stage,
+body.overview-mode.overview-zooming #stage { transition: none; }
 body.view-panning, body.view-panning * { cursor: grabbing !important; }
 body.view-panning #stage { transition: none; }
 body.overview-mode .chunk {
@@ -4392,7 +4581,6 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
   <div class="chunk-content">
     <h1 class="title-main">Animated Infographics</h1>
     <p class="title-subtitle">Six real lecture slides, rebuilt in ::: draw</p>
-    
     
     <p>This is a psi-slides lecture: one Markdown source becomes the projected slides,
 a speaker cockpit, a reading document, and a handout with the spoken notes. The
@@ -6192,7 +6380,7 @@ renames the thing it is about.</p>
       <h3>Finding a slide</h3>
       <dl>
         <dt><kbd>O</kbd></dt><dd>overview – the whole lecture on one board (letter O, not zero)</dd>
-        <dt>drag · wheel</dt><dd>pan the board · zoom the board</dd>
+        <dt>drag · wheel</dt><dd>pan the board · zoom it where the pointer is</dd>
         <dt>click a slide</dt><dd>go there and leave the board</dd>
         <dt><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></dt><dd>move the selection (the board follows)</dd>
         <dt><kbd>O</kbd> · <kbd>Enter</kbd></dt><dd>land on the selected slide</dd>
@@ -6214,7 +6402,8 @@ renames the thing it is about.</p>
       <h3>On the slide</h3>
       <dl>
         <dt>click a figure or code block</dt><dd>zoom it into a centred card</dd>
-        <dt>drag · wheel · <kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></dt><dd>pan · zoom · reset the zoomed card</dd>
+        <dt>drag · wheel</dt><dd>pan the card · zoom it where the pointer is</dd>
+        <dt><kbd>+</kbd> <kbd>-</kbd> · <kbd>0</kbd></dt><dd>zoom from the centre · reset the zoomed card</dd>
         <dt>click a marginalia</dt><dd>slide the frame right until the whole aside is on it</dd>
         <dt>drag the slide</dt><dd>pan within a chunk that is taller than the screen</dd>
         <dt>hold <kbd>Alt</kbd>/<kbd>option</kbd> and drag</dt><dd>select text to copy – dragging pans again once you let go</dd>
@@ -9683,6 +9872,14 @@ window.addEventListener('message', (ev) => {
     if (m.type === 'figure-unfocus') { unfocusFigure(); return; }
     if (m.type === 'figure-view') {
       if (!focusedFigure) return;
+      // The receiving side needs the transition off for the same reason the
+      // sending side does, and it is the half the room actually looks at: a
+      // peer zooming with a trackpad streams these at frame rate, and the
+      // 80 ms ease on the focus card would be re-aimed by every one of them.
+      // The pan receiver above solves it by passing instant=true to
+      // focusCamera; there is no such flag here, so hold the class instead
+      // and let its quiet period drop it once the messages stop.
+      markZooming('figure-zooming');
       figureScale = Math.max(FIG_MIN_SCALE, Math.min(FIG_MAX_SCALE, m.scale || 1));
       figurePan = { x: m.panX || 0, y: m.panY || 0 };
       applyFigureTransform();
@@ -12321,14 +12518,102 @@ searchResults.addEventListener('mousedown', (e) => {
   commitSearchHit();
 });
 
+// ── wheel zoom, shared by the overview camera and the focus card ──
+//
+// Both zooms used to answer a wheel event with a fixed factor picked off the
+// sign of deltaY, which got three things wrong. The numbers below are from a
+// macOS trackpad in Chrome, 991 events over 12 gestures, not from assumption:
+// events arrive every 8.4 ms, and one carries between 0.012 and 6 px.
+//
+//  - A fixed step makes the zoom a function of how many events arrived
+//    rather than of how far the fingers moved. Twenty-two events at 1.1
+//    crossed the focus card's whole 1x..8x range and thirty-three at 1.08
+//    crossed the board's 0.08x..1x - 183 ms and 276 ms of contact - so both
+//    stood at their ceiling before the gesture was properly under way.
+//    Worse, macOS keeps sending an inertia tail once the fingers lift -
+//    deltaY around 0.2, gaps widening past 100 ms, the sign flipping as it
+//    dies out - and each of those was another full 8 % in whichever
+//    direction, which is the bounce the lecturer felt.
+//  - Scaling by exp() rather than multiplying a constant also makes the
+//    gesture composable: two events of 1 px land exactly where one of 2 px
+//    does, so the coalescing below cannot change where a gesture ends up.
+//  - A mouse wheel is not a trackpad. One notch is 100-120 px where the
+//    largest measured trackpad event was 6, so an unclamped exp() would
+//    zoom 3.3x per notch. Clamping the per-event delta leaves every
+//    trackpad event untouched and turns a notch into about 13 %.
+//
+// deltaMode is 0 (pixels) for every trackpad event, but a device sending
+// lines or pages still has to mean something, so convert before clamping.
+const ZOOM_K = 0.01;           // the full 1x..8x range ~= 208 px of travel
+const ZOOM_MAX_STEP_PX = 12;   // 2x the largest delta the trackpad produced
+const ZOOM_QUIET_MS = 160;     // longer than the gaps in the inertia tail
+function wheelZoomPx(e) {
+  let dy = e.deltaY;
+  if (e.deltaMode === 1) dy *= 16;
+  else if (e.deltaMode === 2) dy *= window.innerHeight;
+  return Math.max(-ZOOM_MAX_STEP_PX, Math.min(ZOOM_MAX_STEP_PX, dy));
+}
+const zoomScaleFor = (px) => Math.exp(-px * ZOOM_K);
+// Hold the matching no-transition class for the length of the gesture. A
+// wheel stream has no end event, so a quiet period ends it; the timer is per
+// class so zooming the board and then a card cannot leave one of them stuck.
+const zoomQuietTimers = {};
+function markZooming(cls) {
+  document.body.classList.add(cls);
+  clearTimeout(zoomQuietTimers[cls]);
+  zoomQuietTimers[cls] = setTimeout(() => {
+    document.body.classList.remove(cls);
+  }, ZOOM_QUIET_MS);
+}
+
 // Overview: wheel adjusts scale, pointer drag pans.
+let overviewZoomPx = 0, overviewZoomRaf = 0, overviewZoomAt = null;
 viewport.addEventListener('wheel', (e) => {
   if (!overview) return;
   e.preventDefault();
-  const factor = e.deltaY > 0 ? 0.92 : 1.08;
-  overviewScale = Math.max(OVERVIEW_MIN_SCALE, Math.min(OVERVIEW_MAX_SCALE, overviewScale * factor));
-  applyOverviewCamera(false);
-  schedulePanBroadcast();
+  markZooming('overview-zooming');
+  // Coalesce to one apply per frame. Two events land inside a 60 Hz frame at
+  // this event rate, and applyOverviewCamera walks offsetLeft/offsetTop up
+  // the offsetParent chain before it writes the transform - so a second
+  // apply in one frame buys a second forced reflow and a paint nobody sees.
+  overviewZoomPx += wheelZoomPx(e);
+  overviewZoomAt = { x: e.clientX, y: e.clientY };
+  if (overviewZoomRaf) return;
+  overviewZoomRaf = requestAnimationFrame(() => {
+    overviewZoomRaf = 0;
+    const px = overviewZoomPx;
+    overviewZoomPx = 0;
+    const next = Math.max(OVERVIEW_MIN_SCALE,
+      Math.min(OVERVIEW_MAX_SCALE, overviewScale * zoomScaleFor(px)));
+    const r = next / overviewScale;
+    // Hold the board still under the cursor. applyOverviewCamera puts the
+    // anchor chunk's centre at the viewport centre and then adds manualPan,
+    // so both the anchor and the scale cancel out of the correction and one
+    // step on manualPan is all that is left:
+    //
+    //   pan' = pan + (1 - r) * (Q - viewportCentre - pan)
+    //
+    // Two things about the units, and the second one is the trap. #stage has
+    // transform-origin: 0 0, which is what the camera's own tx/ty already
+    // assume. And the arithmetic has to happen in LAYOUT space: in the
+    // cockpit #stage-viewport is itself drawn through scale(--stage-scale),
+    // so a clientX is a shrunken px while manualPan and the chunk offsets
+    // the camera reads are full-size ones. focusCamera carries the same
+    // warning for the same reason. The ratio is uniform, so one factor does
+    // both axes, and it is 1 in the audience view.
+    if (r !== 1 && overviewZoomAt) {
+      const rect = viewport.getBoundingClientRect();
+      const vp = vpLayout();
+      const toLayout = rect.width ? vp.width / rect.width : 1;
+      const qx = (overviewZoomAt.x - rect.left) * toLayout;
+      const qy = (overviewZoomAt.y - rect.top) * toLayout;
+      manualPan.dx += (1 - r) * (qx - vp.width / 2 - manualPan.dx);
+      manualPan.dy += (1 - r) * (qy - vp.height / 2 - manualPan.dy);
+    }
+    overviewScale = next;
+    applyOverviewCamera(false);
+    schedulePanBroadcast();
+  });
 }, { passive: false });
 
 viewport.addEventListener('pointerdown', (e) => {
@@ -12417,9 +12702,56 @@ function setFigureScale(next) {
   applyFigureTransform();
   broadcastFigureView();
 }
+// Zoom the card by a factor and leave the point under the cursor where it is.
+// setFigureScale above stays the centred version, because that is the right
+// answer for the +/- keys: there is no pointer in a keypress.
+//
+// The card is drawn as translate(pan) scale(s) about its own centre, so a
+// material point at offset u from that centre sits at centre + pan + s*u.
+// Requiring the cursor Q to describe the same point before and after a change
+// of scale collapses to one line - the centre and u both drop out:
+//
+//   pan' = pan + (1 - r) * (Q - visibleCentre)
+//
+// where visibleCentre is what getBoundingClientRect reports, since scaling
+// about the centre does not move it. Client px are the right unit:
+// #figure-overlay is position: fixed and a sibling of #stage-viewport, so the
+// cockpit's --stage-scale never composes into it.
+//
+// r must be the ratio actually achieved rather than the one asked for. At
+// FIG_MAX_SCALE the scale stops but (1 - r) would not, and the card would go
+// on sliding under a cursor that is no longer zooming anything.
+function zoomFigureAt(factor, at) {
+  if (!focusedFigure) return;
+  const next = Math.max(FIG_MIN_SCALE, Math.min(FIG_MAX_SCALE, figureScale * factor));
+  const r = next / figureScale;
+  if (r !== 1 && at) {
+    const box = focusedFigure.getBoundingClientRect();
+    figurePan = {
+      x: figurePan.x + (1 - r) * (at.x - (box.left + box.width / 2)),
+      y: figurePan.y + (1 - r) * (at.y - (box.top + box.height / 2)),
+    };
+  }
+  figureScale = next;
+  applyFigureTransform();
+  broadcastFigureView();
+}
+// Coalesced to one message per frame, the way schedulePanBroadcast already
+// is. A drag sent one per pointermove and a wheel zoom one per wheel event,
+// which on a trackpad is 119 a second - each of them a postMessage the peer
+// answers with a style write. Reading the state inside the frame rather than
+// capturing it means the message that goes out is the newest one; a frame
+// that lands after an unfocus is harmless, because the receiver returns
+// early when it has no focused figure.
+let figureViewRaf = 0;
 function broadcastFigureView() {
   if (!shouldBroadcast()) return;
-  sendToPeer({ type: 'figure-view', scale: figureScale, panX: figurePan.x, panY: figurePan.y });
+  if (figureViewRaf) return;
+  figureViewRaf = requestAnimationFrame(() => {
+    figureViewRaf = 0;
+    if (!shouldBroadcast()) return;
+    sendToPeer({ type: 'figure-view', scale: figureScale, panX: figurePan.x, panY: figurePan.y });
+  });
 }
 function unfocusFigure() {
   if (!focusedFigure) return;
@@ -12543,12 +12875,28 @@ figureOverlay.addEventListener('pointerdown', (e) => {
 
 // Wheel zoom while focused. deltaY > 0 = scroll-down = zoom out, the
 // natural direction for trackpad pinch (browsers translate pinch to
-// wheel + ctrlKey on macOS but the sign is the same).
+// wheel + ctrlKey on macOS but the sign is the same, so both gestures go
+// through one path - two thirds of the measured events were a two-finger
+// scroll rather than a pinch, and the lecturer wants both to zoom here).
+// See the wheelZoomPx block above for why the step is an exp() and not a
+// constant, and why the class is held for the length of the gesture.
+let figureZoomPx = 0, figureZoomRaf = 0, figureZoomAt = null;
 figureOverlay.addEventListener('wheel', (e) => {
   if (!focusedFigure) return;
   e.preventDefault();
-  const factor = e.deltaY > 0 ? 0.9 : 1.1;
-  setFigureScale(figureScale * factor);
+  markZooming('figure-zooming');
+  figureZoomPx += wheelZoomPx(e);
+  // The last event of the frame supplies the anchor. The cursor can travel a
+  // few px between two events 8 ms apart, and the newest position is the one
+  // the hand is actually over.
+  figureZoomAt = { x: e.clientX, y: e.clientY };
+  if (figureZoomRaf) return;
+  figureZoomRaf = requestAnimationFrame(() => {
+    figureZoomRaf = 0;
+    const px = figureZoomPx;
+    figureZoomPx = 0;
+    zoomFigureAt(zoomScaleFor(px), figureZoomAt);
+  });
 }, { passive: false });
 
 // Bring a .marginalia into the frame, or let it go again. All this does is

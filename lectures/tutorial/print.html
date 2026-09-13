@@ -443,6 +443,11 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  /* The size of the pair's loud line, so that headline: eyebrow can hand it
+     to whichever line is carrying the weight. In rem here and in em there,
+     because print is not zoomed - the mechanism is the same and only the
+     unit differs. */
+  --title-lead: 2.6rem;
   padding: 0 0 1.8rem;
   margin: 0 0 2.6rem;
   border-bottom: 1px solid var(--rule);
@@ -450,7 +455,8 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   page-break-inside: avoid;
 }
 .chunk-title .title-main {
-  font-size: 2.6rem;
+  font-size: var(--title-lead);
+  max-width: var(--title-measure, none);
   margin: 0 0 0.8rem;
   line-height: 1.15;
 }
@@ -464,6 +470,51 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   font-family: var(--sans);
   font-size: 0.88rem;
   color: var(--ink-soft);
+}
+.chunk-title .title-affiliation {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: -0.9rem 0 1.2rem;
+  color: var(--ink-soft);
+}
+/* The foot is a row on the projection because the slide is a frame with two
+   edges to hang things on. On paper the page has a measure and no such
+   edges, and an address pushed to the right margin of a document reads as a
+   mistake - so the two run together on one line instead, in source order. */
+.chunk-title .title-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1.4rem;
+  margin-top: 0.5rem;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.chunk-title .title-notice { font-style: italic; }
+.chunk-title [data-caps] { letter-spacing: 0.055em; }
+body[data-title-caps=on] .chunk-title .title-presenter,
+body[data-title-caps=on] .chunk-title .title-affiliation,
+body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+body[data-headline=eyebrow] .chunk-title .title-main {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.015em;
+  color: var(--ink-soft);
+  margin: 0 0 0.25rem;
+}
+body[data-headline=eyebrow] .chunk-title .title-subtitle {
+  font-size: var(--title-lead);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  max-width: 20em;
+  margin: 0 0 0.8rem;
 }
 
 /* The style: frontmatter block, on paper. Same two selectors as the live
@@ -543,14 +594,16 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 .chunk-title[data-cover=panel] .title-presenter { color: var(--paper); }
 .chunk-title[data-cover=panel] .title-subtitle,
 .chunk-title[data-cover=panel] .title-info p,
+.chunk-title[data-cover=panel] .title-affiliation,
+.chunk-title[data-cover=panel] .title-foot,
 .chunk-title[data-cover=panel] .closing-body {
   color: color-mix(in oklch, var(--paper) 78%, transparent);
 }
+.chunk-title[data-cover=display] { --title-lead: 3.6rem; }
+.chunk-title[data-cover=display] { --title-measure: 11em; }
 .chunk-title[data-cover=display] .title-main {
-  font-size: 3.6rem;
   line-height: 1.02;
   letter-spacing: -0.03em;
-  max-width: 11em;
 }
 
 /* The closing slide is a page like the cover is a page, and it carries the
