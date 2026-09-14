@@ -125,7 +125,10 @@ const BAR_TEXT = {
  *             exception in topbar() below.
  *   nav       the key in BAR_TEXT[lang].nav, and the entry's presence in the
  *             bar. A row without `nav` is a page the bar does not carry - the
- *             figure manual - listed so the link gate knows what it is.
+ *             figure manual, the display-face roster - listed so the link gate
+ *             knows what it is. The bar has no room to spare (see DESIGN.md,
+ *             "The strip must never grow a second line"), and both of those
+ *             pages are reached from the one page that introduces them.
  *   pending   the destination does not exist yet. The row stays in the table
  *             so the page it names is one flag away, and the bar leaves it
  *             out until then: an entry that 404s is worse than one that is
@@ -146,6 +149,7 @@ const SITE_PAGES = {
   start:      { en: 'getting-started.html',       de: 'de/getting-started.html',       nav: 'start' },
   comparison: { en: 'comparison.html',                                                 nav: 'comparison' },
   manual:     { en: 'figures-you-write.html' },
+  faces:      { en: 'display-faces.html' },
 };
 // Bar order, left to right: the argument first, then the two catalogues, then
 // the two pages a reader opens after deciding.
@@ -644,6 +648,14 @@ function main() {
   // it and older links still do.
   landing('decoration.html', 'decoration.html', 'decoration', 'en', '');
   landing('decoration.de.html', path.join('de', 'decoration.html'), 'decoration', 'de', '../');
+  // The thirty-two display faces, each drawn into a cover and a divider. Like
+  // figures.html it is copied rather than rendered, and like the figure manual
+  // it stays out of the bar: the decoration page's display-face section is
+  // where a reader meets the role, and that is the only place it is linked
+  // from. Generated, not hand-written - tools/font-playground/
+  // build-playground.mjs writes it out of the roster and the measured scales,
+  // and its --check is what keeps the tracked page from going stale.
+  landing('display-faces.html', 'display-faces.html', 'faces', 'en', '');
   landing('getting-started.html', 'getting-started.html', 'start', 'en', '');
   landing('getting-started.de.html', path.join('de', 'getting-started.html'), 'start', 'de', '../');
   // The case for `::: diagram`. Its figures, its stepped payloads, its rails

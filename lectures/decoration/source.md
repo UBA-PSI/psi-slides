@@ -1,7 +1,11 @@
 ---
 title: Slide Decoration
 subtitle: What a slide can carry besides a column of text
-author: Dominik Herrmann
+presenter: Dominik Herrmann
+affiliation: Otto-Friedrich-Universität Bamberg
+contact: https://github.com/UBA-PSI/psi-slides
+notice: The four views are built from this one file.
+closing-credits: contact
 cover: quote
 cover-align: middle
 section: outline
@@ -506,9 +510,9 @@ cent of the ink on the paper, which is what gives a column on the slide's own
 paper an edge. `paper` has none there and stays a choice for a dock over a
 picture; `ink` is the loud version.
 
-The dock's type is the overlay's, 0.92 of the slide's and zoomed with it, so
-the reserved track grows with the lecturer's zoom and auto-fit converges on
-the size at which the list and the text both fit.
+The dock's type is the overlay's, 0.92 of the slide's and zoomed with it, but
+its track is a share of the frame and does not move: a dock is part of the
+frame, and a running list that shifts sideways per slide is not a frame.
 :::
 
 ## free: A band replaces the inherited column {.wide #dock-band}

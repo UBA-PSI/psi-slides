@@ -610,6 +610,16 @@ function assertInlinable(oversized, sourceDir) {
 const MATH_ERRORS = [];
 const mathCache = new Map();
 
+// An explicit relative image path (`![](sub/x.png)`, or a bare name written
+// with its extension) that resolves to no file on disk. The shorthand form
+// already degrades to a visible placeholder when it finds nothing; an explicit
+// path used to fall through and ship the raw string as an external `src`,
+// which is a broken figure everywhere the single-file output travels and the
+// one thing this format promises not to do. Collected during rendering,
+// deduplicated, warned once - the same pattern MATH_ERRORS follows.
+const UNRESOLVED_ASSETS = new Set();
+const assetOnDisk = (abs) => { try { return fs.existsSync(abs); } catch { return false; } };
+
 function renderMath(tex, displayMode) {
   const key = (displayMode ? 'd::' : 'i::') + tex;
   if (mathCache.has(key)) return mathCache.get(key);
@@ -1083,9 +1093,201 @@ const BUNDLED_FONTS = {
     files: { normal: 'noto-sans-mono-latin-standard-normal.woff2' },
     variations: "'wdth' 62.5",
   },
+
+  // ── the display role ──────────────────────────────────────────────
+  //
+  // The face the three transition slides wear – the cover, the closing
+  // slide and the section dividers – and which no other slide in the deck
+  // is given. That is the one place in a lecture where a loud typeface is
+  // not a mistake: nobody reads a divider, they recognise it.
+  //
+  // Four things separate this role from the three text roles above, and
+  // each is a bend made on purpose rather than an omission.
+  //
+  //   NO DEFAULT. BUNDLED_DEFAULTS has no `display` entry, so a deck that
+  //   names none resolves the role to nothing, embeds nothing and emits no
+  //   rule – it builds byte for byte what it built before this existed.
+  //   That absence is the feature, not a gap waiting to be filled.
+  //
+  //   NOT A VARIABLE LATIN SUBSET. The rule the three text roles keep holds
+  //   because `topic-bold` puts bold fragments on every slide and that
+  //   wants a weight axis. A headline carries three words and no bold, so
+  //   the axis buys nothing here, and 21 of these have no variable build at
+  //   all. Anton is one weight; that is what Anton is.
+  //
+  //   `kind` is what the face IS, which is a different question from what
+  //   it looks like, and it drives exactly one rule: a display serif over a
+  //   serif body reads as one typeface set badly rather than as two. That
+  //   rule is lint.js's `display-pairing` warning and this field is the
+  //   table it mirrors. Chakra Petch is the case that proves the two
+  //   questions differ – a machine to look at and a sans to pair with.
+  //
+  //   `sizeAdjust` is a measured width correction, carried as the
+  //   @font-face descriptor of the same name and written here as the
+  //   percentage that descriptor takes. These faces disagree about advance
+  //   width by a factor of three while the cover's type size is tuned for
+  //   Literata: Anton set at it looks timid, Press Start 2P set at it runs
+  //   off the slide, which is what it did in the playground before this
+  //   number existed. Each one is the advance width of a German reference
+  //   title against Literata's, inverted and clamped to [55, 145] – see
+  //   tools/font-playground/measure-scale.mjs, which writes scales.json;
+  //   re-run it when a face is added and copy the number across. Same
+  //   discipline as dgCharW in diagram-core.mjs and for the same reason: a
+  //   number nobody measured is a number that silently overflows a slide.
+  //   It sits on the face rather than on a font-size rule because six cover
+  //   compositions set their own title size and print, the zoom, auto-fit
+  //   and --check-fit all work off whatever those produce. A multiplier in
+  //   a layout rule would have to be repeated in every one of them, and
+  //   would be forgotten in one.
+  //
+  //   WIDTH IS THE METRIC, AND APPARENT SIZE THEREFORE VARIES. That is a
+  //   decision, not an oversight. One multiplier cannot serve both fit and
+  //   apparent size: a face that is wide per glyph has to be set small to
+  //   keep the line count, and then it looks small. Measured against
+  //   Literata after the correction, the ink height of a reference title
+  //   runs from 0.38 (Silkscreen) to 1.34 (Patrick Hand) - so a Silkscreen
+  //   divider really does read as a thin band, and Anton a quarter too big.
+  //   Width wins anyway because the two failures are not equal: a headline
+  //   that takes one line too many runs off the slide, and a headline that
+  //   reads small is merely weak. Nor would a clamp on the vertical help -
+  //   pulling Silkscreen's ink to parity puts its width past twice
+  //   Literata's, which trades the weak slide for the broken one. Note that
+  //   it is not an all-caps problem: Bebas Neue and Staatliches, the two
+  //   purest caps faces, land at 1.00 and 0.90 ink height, because their
+  //   tall capitals come with no descenders.
+  //
+  // THE RULE THAT KEEPS THE FACE OUT OF THE READER'S HANDS: `display` must
+  // never join FONT_CYCLE, and --display-stack must never be assigned under
+  // a body[data-font=…] or body[data-theme=…] selector. F cycles a
+  // *variable*, not a family, so pointing the two headline selectors at
+  // --display-stack takes them out of that cycle by construction – there is
+  // no "F does not apply here" rule to write and therefore none to forget
+  // when a fourth body font is added later. A re-points colour tokens only
+  // and no theme touches a family, so the face is already immune to it
+  // while its colour still follows --ink and --emph and so stays readable
+  // on the three dark themes.
+  //
+  // All 32 are SIL OFL 1.1 like the text roster, so oflNotice() names
+  // whichever of them a view happens to carry. Three further candidates
+  // were cut for being Apache-2.0 – not because that licence forbids
+  // embedding, it does not, but because bundledFaces() emits OFL text with
+  // the bytes and a second licence regime in that path buys one typeface at
+  // the price of a special case.
+
+  // ── hand: a line that was drawn rather than set. Pairs with any body. ──
+  Caveat: { role: 'display', kind: 'hand', sizeAdjust: 139,
+    pkg: '@fontsource-variable/caveat',
+    files: [{ file: 'caveat-latin-wght-normal.woff2', style: 'normal', weight: '400 700' }] },
+  'Shantell Sans': { role: 'display', kind: 'hand', sizeAdjust: 88,
+    pkg: '@fontsource-variable/shantell-sans',
+    files: [{ file: 'shantell-sans-latin-wght-normal.woff2', style: 'normal', weight: '300 800' }] },
+  'Caveat Brush': { role: 'display', kind: 'hand', sizeAdjust: 134,
+    pkg: '@fontsource/caveat-brush',
+    files: [{ file: 'caveat-brush-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Patrick Hand': { role: 'display', kind: 'hand', sizeAdjust: 133,
+    pkg: '@fontsource/patrick-hand',
+    files: [{ file: 'patrick-hand-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  Kalam: { role: 'display', kind: 'hand', sizeAdjust: 106,
+    pkg: '@fontsource/kalam',
+    files: [{ file: 'kalam-latin-700-normal.woff2', style: 'normal', weight: '700' }] },
+  'Amatic SC': { role: 'display', kind: 'hand', sizeAdjust: 145,
+    pkg: '@fontsource/amatic-sc',
+    files: [{ file: 'amatic-sc-latin-700-normal.woff2', style: 'normal', weight: '700' }] },
+
+  // ── machine: pixel grids, terminals, exaggerated monospace. ──
+  'Press Start 2P': { role: 'display', kind: 'mono', sizeAdjust: 55,
+    pkg: '@fontsource/press-start-2p',
+    files: [{ file: 'press-start-2p-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  Silkscreen: { role: 'display', kind: 'mono', sizeAdjust: 62,
+    pkg: '@fontsource/silkscreen',
+    files: [{ file: 'silkscreen-latin-700-normal.woff2', style: 'normal', weight: '700' }] },
+  'Pixelify Sans': { role: 'display', kind: 'sans', sizeAdjust: 96,
+    pkg: '@fontsource-variable/pixelify-sans',
+    files: [{ file: 'pixelify-sans-latin-wght-normal.woff2', style: 'normal', weight: '400 700' }] },
+  VT323: { role: 'display', kind: 'mono', sizeAdjust: 119,
+    pkg: '@fontsource/vt323',
+    files: [{ file: 'vt323-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Space Mono': { role: 'display', kind: 'mono', sizeAdjust: 78,
+    pkg: '@fontsource/space-mono',
+    files: [{ file: 'space-mono-latin-700-normal.woff2', style: 'normal', weight: '700' }] },
+  // The one face here with no eszett: a German title gets a fallback glyph
+  // mid-word, and lint.js warns on a German deck that picks it. Found by
+  // eye against a Times fallback rather than by a coverage probe alone,
+  // which is also how its second oddity surfaced – it draws lowercase as
+  // capitals.
+  'Rubik Mono One': { role: 'display', kind: 'mono', sizeAdjust: 56, noEszett: true,
+    pkg: '@fontsource/rubik-mono-one',
+    files: [{ file: 'rubik-mono-one-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Chakra Petch': { role: 'display', kind: 'sans', sizeAdjust: 101,
+    pkg: '@fontsource/chakra-petch',
+    files: [{ file: 'chakra-petch-latin-700-normal.woff2', style: 'normal', weight: '700' }] },
+  Orbitron: { role: 'display', kind: 'sans', sizeAdjust: 87,
+    pkg: '@fontsource-variable/orbitron',
+    files: [{ file: 'orbitron-latin-wght-normal.woff2', style: 'normal', weight: '400 900' }] },
+
+  // ── graphic: display weight, loud serifs, poster type. ──
+  'Bodoni Moda': { role: 'display', kind: 'serif', sizeAdjust: 92,
+    pkg: '@fontsource-variable/bodoni-moda',
+    files: [{ file: 'bodoni-moda-latin-wght-normal.woff2', style: 'normal', weight: '400 900' }] },
+  Prata: { role: 'display', kind: 'serif', sizeAdjust: 100,
+    pkg: '@fontsource/prata',
+    files: [{ file: 'prata-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'DM Serif Display': { role: 'display', kind: 'serif', sizeAdjust: 108,
+    pkg: '@fontsource/dm-serif-display',
+    files: [{ file: 'dm-serif-display-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Abril Fatface': { role: 'display', kind: 'serif', sizeAdjust: 103,
+    pkg: '@fontsource/abril-fatface',
+    files: [{ file: 'abril-fatface-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Alfa Slab One': { role: 'display', kind: 'serif', sizeAdjust: 89,
+    pkg: '@fontsource/alfa-slab-one',
+    files: [{ file: 'alfa-slab-one-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Young Serif': { role: 'display', kind: 'serif', sizeAdjust: 95,
+    pkg: '@fontsource/young-serif',
+    files: [{ file: 'young-serif-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Instrument Serif': { role: 'display', kind: 'serif', sizeAdjust: 142,
+    pkg: '@fontsource/instrument-serif',
+    files: [{ file: 'instrument-serif-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Yeseva One': { role: 'display', kind: 'serif', sizeAdjust: 93,
+    pkg: '@fontsource/yeseva-one',
+    files: [{ file: 'yeseva-one-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  Anton: { role: 'display', kind: 'sans', sizeAdjust: 120,
+    pkg: '@fontsource/anton',
+    files: [{ file: 'anton-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  Oswald: { role: 'display', kind: 'sans', sizeAdjust: 116,
+    pkg: '@fontsource-variable/oswald',
+    files: [{ file: 'oswald-latin-wght-normal.woff2', style: 'normal', weight: '200 700' }] },
+  'Archivo Black': { role: 'display', kind: 'sans', sizeAdjust: 87,
+    pkg: '@fontsource/archivo-black',
+    files: [{ file: 'archivo-black-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Bebas Neue': { role: 'display', kind: 'sans', sizeAdjust: 142,
+    pkg: '@fontsource/bebas-neue',
+    files: [{ file: 'bebas-neue-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
+  'Big Shoulders Display': { role: 'display', kind: 'sans', sizeAdjust: 122,
+    pkg: '@fontsource-variable/big-shoulders-display',
+    files: [{ file: 'big-shoulders-display-latin-wght-normal.woff2', style: 'normal', weight: '100 900' }] },
+  Syne: { role: 'display', kind: 'sans', sizeAdjust: 61,
+    pkg: '@fontsource-variable/syne',
+    files: [{ file: 'syne-latin-wght-normal.woff2', style: 'normal', weight: '400 800' }] },
+  'Bricolage Grotesque': { role: 'display', kind: 'sans', sizeAdjust: 97,
+    pkg: '@fontsource-variable/bricolage-grotesque',
+    files: [{ file: 'bricolage-grotesque-latin-wght-normal.woff2', style: 'normal', weight: '200 800' }] },
+  'Space Grotesk': { role: 'display', kind: 'sans', sizeAdjust: 99,
+    pkg: '@fontsource-variable/space-grotesk',
+    files: [{ file: 'space-grotesk-latin-wght-normal.woff2', style: 'normal', weight: '300 700' }] },
+  Unbounded: { role: 'display', kind: 'sans', sizeAdjust: 73,
+    pkg: '@fontsource-variable/unbounded',
+    files: [{ file: 'unbounded-latin-wght-normal.woff2', style: 'normal', weight: '200 900' }] },
+  Staatliches: { role: 'display', kind: 'sans', sizeAdjust: 128,
+    pkg: '@fontsource/staatliches',
+    files: [{ file: 'staatliches-latin-400-normal.woff2', style: 'normal', weight: '400' }] },
 };
 // What a lecture gets when it names nothing. `layout: 1.0` swaps the sans.
+// There is no `display` here on purpose – see the display roster above.
 const BUNDLED_DEFAULTS = { serif: 'Literata', sans: 'IBM Plex Sans', mono: 'JetBrains Mono' };
+// Every role the `fonts:` block has a slot for, in the order a stylesheet
+// wants them. Deliberately NOT the same list as FONT_CYCLE: the reader's F
+// key walks the three reading faces and must never reach the fourth.
+const FONT_ROLES = ['serif', 'sans', 'mono', 'display'];
 const bundledNamesFor = (role) =>
   Object.entries(BUNDLED_FONTS).filter(([, f]) => f.role === role).map(([n]) => n);
 
@@ -1094,7 +1296,9 @@ function bundledFaces(roster = BUNDLED_DEFAULTS) {
   const key = JSON.stringify(roster);
   if (bundledFacesCache.has(key)) return bundledFacesCache.get(key);
   const out = [];
-  for (const role of ['serif', 'sans', 'mono']) {
+  // `display` is the role that may simply be absent, and the `!family`
+  // guard below is what carries that – nothing is read, nothing is emitted.
+  for (const role of FONT_ROLES) {
     const family = roster[role];
     if (!family) continue;
     const f = BUNDLED_FONTS[family];
@@ -1120,6 +1324,10 @@ function bundledFaces(roster = BUNDLED_DEFAULTS) {
         // assumed: with the descriptor the same file measures 0.50 em per
         // character and without it 0.60.
         variations: f.variations || null,
+        // The display role's measured width correction, as a percentage.
+        // Null for the text roles, which are all set at the size the layout
+        // asks for because the layout was drawn around them.
+        sizeAdjust: f.sizeAdjust || null,
         src: `url(data:font/woff2;base64,${buf.toString('base64')}) format('woff2')`,
       });
     }
@@ -1196,7 +1404,7 @@ function bundledRoster(frontmatter = {}) {
   const roster = { ...BUNDLED_DEFAULTS };
   const spec = frontmatter.fonts;
   if (!spec || typeof spec !== 'object' || Array.isArray(spec)) return roster;
-  for (const role of ['serif', 'sans', 'mono']) {
+  for (const role of FONT_ROLES) {
     if (!(role in spec)) continue;
     const family = String(spec[role]).trim();
     if (!family) continue;
@@ -1248,10 +1456,17 @@ const FONT_WEIGHT_NAMES = {
 // The tail of each default stack, kept here rather than inline in the two
 // stylesheets so an embedded family can be prepended to the *same* list the
 // build would otherwise have emitted. One source of truth, two consumers.
+const SANS_STACK_TAIL = `'IBM Plex Sans', 'Inter', system-ui, -apple-system, sans-serif`;
 const FONT_STACK_TAILS = {
   serif: `'Literata', 'Source Serif 4', Georgia, serif`,
-  sans: `'IBM Plex Sans', 'Inter', system-ui, -apple-system, sans-serif`,
+  sans: SANS_STACK_TAIL,
   mono: `'JetBrains Mono', ui-monospace, Menlo, monospace`,
+  // No sensible default chain exists for a display face – naming one would
+  // be naming a poster typeface and hoping the machine has it, which is the
+  // failure the bundle exists to end. So the tail IS the sans stack, shared
+  // rather than copied: a headline that loses its face degrades to the
+  // deck's own sans rather than to a serif pretending to be loud.
+  display: SANS_STACK_TAIL,
 };
 // Which CSS custom properties each role feeds. Audience and print use
 // different names for the same idea; setting a property a given view never
@@ -1260,6 +1475,99 @@ const FONT_ROLE_VARS = {
   serif: ['--serif-stack', '--serif'],
   sans: ['--sans-stack', '--sans'],
   mono: ['--mono-font', '--read-mono-stack', '--mono'],
+  // One property, and one that no stylesheet defines a value for: it exists
+  // only when a display face resolved, which is what lets the two headline
+  // selectors fall back through var()'s own second argument. It must never
+  // be assigned under body[data-font=…] or body[data-theme=…] – see the
+  // display roster.
+  display: ['--display-stack'],
+};
+
+// ── the display role's line heights ─────────────────────────────────
+//
+// `size-adjust` scales a face's glyph outlines AND its own metrics, but a
+// NUMERIC line-height resolves against the nominal font-size and does not
+// follow. Measured on a cover in Anton at size-adjust 120%: font-size
+// 82.13px, line box 90.35px (1.1 of it), apparent type 98.6px. A one-line
+// headline is merely tight; a three-line German one collides – the ö-dots
+// and the t of the first line sit inside the letters of the second. That
+// ships as a broken slide, so each of these is multiplied by the face's own
+// factor in the block fontStyleTag emits. A face below 1.0 (Press Start 2P
+// at 55%) correctly tightens instead.
+//
+// They live here because a blanket `line-height` on the display role's
+// selectors would clobber deliberate values – the sub-1 ratios under
+// `cover: display`, where a headline is meant to stack, and the 1.12 / 1.1
+// the eyebrow subtitle carries, which is not the title's number in print.
+// So this table is exactly the line heights the DISPLAY FACE WEARS, keyed by
+// the selector that carries each, and every one of them is read back out of
+// here by the block fontStyleTag emits. A line height on an element the face
+// does not reach – 1.3 on the eyebrow kicker, 1.25 / 1.3 on a quiet subtitle
+// under `headline: stacked` – stays a literal in the stylesheet, because
+// there is nothing to keep it in step with.
+//
+// THE PROPERTY THAT MAKES THE INDIRECTION SAFE: interpolating the string
+// '1.1' emits the characters `1.1`, so the two stylesheets are the same
+// bytes they were and a deck with no display face still builds byte for
+// byte what it built before the role existed. Copying the numbers into the
+// conditional block instead would have put seven of them in two places.
+const DISPLAY_LH = {
+  print: {
+    '.chunk-title .title-main': '1.15',
+    '.chunk-title[data-cover=display] .title-main': '1.02',
+    'body[data-headline=eyebrow] .chunk-title .title-subtitle': '1.12',
+  },
+  live: {
+    '.chunk-title .title-main': '1.1',
+    '.chunk[data-cover=display] .title-main': '0.97',
+    '.chunk-section .section-heading': '1.1',
+    'body[data-headline=eyebrow] .chunk-title .title-subtitle': '1.1',
+  },
+};
+// Reached through a function and not by indexing, because a mistyped key
+// would interpolate the word `undefined` into a stylesheet: an invalid
+// declaration the browser drops in silence, which is the failure mode this
+// file spends its comments on. Called while the CSS constants are built, so
+// a typo throws at import rather than on somebody's cover.
+function displayLh(view, sel) {
+  const v = DISPLAY_LH[view] && DISPLAY_LH[view][sel];
+  if (!v) throw new Error(`DISPLAY_LH has no ${view} line-height for ${sel}`);
+  return v;
+}
+
+// The same oversight as the line heights, found later and by eye rather than
+// by a gate: tracking chosen for the body serif was reaching a face that never
+// asked for it. `cover: display` sets `letter-spacing: -0.042em`, because it
+// sets the title largest and a serif at that size wants tightening - and Anton,
+// already condensed and tightly fitted, came out with its letters touching.
+// The divider only looked straight because its -0.02em is a quarter of that.
+//
+// So every rule that sets tracking on a slot the display face wears is listed
+// here and reset to `normal` in the conditional block: a display face is fitted
+// by the person who drew it, and the deck's correction is a correction for
+// Literata. The eyebrow kicker is deliberately absent from both lists - under
+// `headline: eyebrow` the face is on the subtitle and the kicker keeps its own
+// 0.015em, or 0.055em when `caps: on` tracks the capitals.
+//
+// Kept complete by `node test/gates/run.mjs display-track`, which re-reads both
+// stylesheets: a new cover composition with a tracking of its own is otherwise
+// exactly the change that would put the collision back without saying so.
+const DISPLAY_TRACK = {
+  print: [
+    'body[data-headline=eyebrow] .chunk-title .title-subtitle',
+    '.chunk-title[data-cover=display] .title-main',
+  ],
+  live: [
+    '.chunk-title .title-main',
+    'body[data-headline=eyebrow] .chunk-title .title-subtitle',
+    '.chunk[data-cover=masthead] .title-main',
+    '.chunk[data-cover=display] .title-main',
+    '.chunk[data-cover=panel] .title-main',
+    '.chunk[data-cover=quote] .title-main',
+    '.chunk[data-cover=hero] .title-main',
+    '.chunk[data-cover=quote][data-closing] .title-main',
+    '.chunk-section .section-heading',
+  ],
 };
 
 const normFontName = (s) => String(s).toLowerCase().replace(/[\s_-]/g, '');
@@ -1331,7 +1639,7 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
   const notes = [];
   let bytes = 0;
 
-  for (const role of ['serif', 'sans', 'mono']) {
+  for (const role of FONT_ROLES) {
     if (!(role in spec)) continue;
     const family = String(spec[role]).trim();
     if (!family) continue;
@@ -1354,10 +1662,11 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
       // Falling back silently is exactly the failure this feature exists to
       // remove: the build would succeed and the output would look like the
       // author never asked for the font.
+      const lead = `  Bundled ${role} families (no file needed): `;
       const err = new Error(
         `Frontmatter names "fonts.${role}: ${family}" but it is neither a bundled family\n` +
         `nor a file in ${path.join(FONT_DIR, '')}/.\n` +
-        `  Bundled ${role} families (no file needed): ${bundledNamesFor(role).join(', ')}\n` +
+        `${lead}${wrapNames(bundledNamesFor(role), lead.length)}\n` +
         `  Looked in: ${dir}\n` +
         `  Expected something like ${family.replace(/\s+/g, '')}-Regular.woff2 (also .woff, .ttf, .otf).\n` +
         `  Found there: ${entries.length ? entries.join(', ') : '(nothing)'}`
@@ -1392,7 +1701,11 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
         notes.push(`${file} is ${ext} (${(buf.length / 1024).toFixed(0)} KB) – woff2 is typically 30-50% smaller`);
       }
       faces.push({
-        family, weight: face.weight, style: face.style, file,
+        // The role rides along so a display face an author supplied from
+        // fonts/ is findable in this list the way a bundled one is in the
+        // other - `style: {display-scale}` has to reach both, and nothing
+        // else here distinguishes them. fontStyleTag ignores the field.
+        role, family, weight: face.weight, style: face.style, file,
         src: `url(data:${FONT_MIME[ext]};base64,${buf.toString('base64')}) format('${FONT_FORMAT[ext]}')`,
       });
     }
@@ -1416,16 +1729,38 @@ const oflNotice = (families) =>
   '   Full text: node_modules/@fontsource-variable/<family>/LICENSE */';
 const listAnd = (xs) =>
   xs.length < 2 ? (xs[0] || '') : `${xs.slice(0, -1).join(', ')} and ${xs[xs.length - 1]}`;
+// A comma list, folded onto continuation lines under a hanging indent. The
+// three text roles have two to five families each and come out on one line
+// exactly as they did; the display role has 32, and one 450-character line
+// is a list nobody reads their own typo out of. `lead` is the width of
+// whatever the caller has already written on that first line, without which
+// only the second line onwards would wrap.
+function wrapNames(names, lead = 0, width = 78, indent = '    ') {
+  const out = [];
+  let line = '';
+  const shown = () => (out.length ? 0 : lead) + line.length;
+  names.forEach((n, i) => {
+    const piece = n + (i < names.length - 1 ? ',' : '');
+    if (line && shown() + 1 + piece.length > width) { out.push(line); line = indent + piece; }
+    else line = line ? `${line} ${piece}` : piece;
+  });
+  if (line) out.push(line);
+  return out.join('\n');
+}
 
 // Emits the @font-face blocks and the stack overrides for one view. Takes
 // the bundled defaults and whatever the author supplied; a role the author
 // named uses their family, every other role uses the bundle.
-function fontStyleTag(embed) {
+function fontStyleTag(embed, view) {
   if (!embed) return '';
   const { faces = [], overrides = [], bundled = [] } = embed;
   const face = (f) =>
     `@font-face{font-family:'${f.family}';font-style:${f.style};font-weight:${f.weight};`
     + (f.variations ? `font-variation-settings:${f.variations};` : '')
+    // The display role's width correction rides on the face, not on a
+    // font-size, so every rule that sets a title's size gets it for free –
+    // the six cover compositions, print, the zoom, auto-fit and --check-fit.
+    + (f.sizeAdjust ? `size-adjust:${f.sizeAdjust}%;` : '')
     + `font-display:block;src:${f.src};}`;
   // font-display:block, not swap: a lecture must not flash a fallback face
   // on the projector and then reflow the slide under the room's eyes.
@@ -1446,9 +1781,86 @@ function fontStyleTag(embed) {
       .join('\n')
   ).join('\n');
   const rootBlock = varCss ? `\n:root {\n${varCss}\n}` : '';
+  // Where the display role reaches, and the whole of its reach: the cover,
+  // the closing slide (which is the cover's own element, wearing
+  // data-closing) and the section dividers. A `## principle:` heading is not
+  // one of them.
+  //
+  // THE FACE FOLLOWS THE LOUD LINE, WHICH IS NOT ALWAYS .title-main.
+  // `style: {headline: eyebrow}` turns a title pair the other way up: the
+  // title is set small as a kicker and .title-subtitle carries the weight.
+  // Left alone, the role then put a poster face on the kicker and the body
+  // serif on the headline - measured on a cover in that mode, .title-main
+  // was Anton at 32px over .title-subtitle in Literata at 82px, which is the
+  // exact inverse of what an author asking for a display face is asking for.
+  // So the eyebrow pair is restated under a body[data-headline=eyebrow]
+  // guard, one rule each way, and specificity settles it rather than source
+  // order: the kicker is handed explicitly back to --body-font, because
+  // leaving it out would leave the unqualified rule above still matching it.
+  // Under `stacked`, the deck's default, nothing here applies and the
+  // rendering is what it was.
+  //
+  // A divider is untouched either way - it has one line, and `headline:`
+  // does not reach .section-heading.
+  //
+  // It rides here rather than in AUDIENCE_CSS and PRINT_CSS because those
+  // are constants with no way to ask whether this lecture resolved a
+  // display face, and the answer has to be "emit nothing" for every deck
+  // that did not: a rule naming --display-stack in the two stylesheets
+  // would move every existing output's bytes for a variable nothing sets.
+  // Standing after both of them also beats the one rule it has to beat -
+  // .chunk-section .section-heading sets font-family: var(--body-font) at
+  // the same specificity, so this wins on document order.
+  //
+  // `view` is 'print' or 'live' and exists for the line heights alone: the
+  // two stylesheets spell the same composition differently
+  // (.chunk-title[data-cover=display] against .chunk[data-cover=display])
+  // and give it different ratios, 1.02 against 0.97, while BOTH selectors
+  // match in both views. One shared block would therefore hand print the
+  // projection's ratio, or the reverse, depending on which came last.
+  //
+  // The line heights below it are the second half of the same condition, and
+  // they move with the face: under `eyebrow` it is the subtitle's own value
+  // that is scaled, not the title's, and the kicker keeps the plain 1.3 it
+  // has always had - the stylesheet's own rule is a class more specific than
+  // the unqualified one here, so nothing has to be written to hold it. They
+  // are read out of DISPLAY_LH, which is also what the two stylesheets
+  // interpolated, so the numbers exist once; see the note there for why a
+  // blanket line-height would be wrong and why this costs no bytes. A face
+  // an author supplied from fonts/ carries no measurement, so its factor is
+  // 1 and nothing is restated - the correction belongs to `size-adjust`, and
+  // where there is no size-adjust there is nothing to correct.
+  let displayCss = '';
+  if (overrides.some(o => o.role === 'display')) {
+    if (!DISPLAY_LH[view]) throw new Error(`fontStyleTag: unknown view ${view}`);
+    const wears = 'font-family: var(--display-stack, var(--body-font));';
+    displayCss = [
+      '',
+      `.chunk-title .title-main,\n.chunk-section .section-heading { ${wears} }`,
+      `body[data-headline=eyebrow] .chunk-title .title-main { font-family: var(--body-font); }`,
+      `body[data-headline=eyebrow] .chunk-title .title-subtitle { ${wears} }`,
+      // Emitted whatever the size-adjust is, unlike the line heights below:
+      // the tracking is wrong for a display face at any size, and an author
+      // face from fonts/ carries no measurement but is just as badly served
+      // by a correction meant for the body serif.
+      `${DISPLAY_TRACK[view].join(',\n')} { letter-spacing: normal; }`,
+    ].join('\n');
+    // Both lists, because a display face can come from the bundle or from
+    // fonts/, and it is the same list faceCss walks two lines above. The
+    // number is whatever the descriptor says - buildOnce has already folded
+    // style.display-scale into it - so the two cannot drift by a rounding
+    // step the way two separate products would.
+    const pct = ([...bundled, ...faces].find(f => f.role === 'display') || {}).sizeAdjust;
+    // Divided in CSS rather than in JS: the emitted rule then carries the
+    // measured percentage itself, beside the size-adjust descriptor it
+    // answers, and no float is formatted on the way out.
+    if (pct && pct !== 100) displayCss += '\n' + Object.entries(DISPLAY_LH[view])
+      .map(([sel, lh]) => `${sel} { line-height: calc(${lh} * ${pct} / 100); }`)
+      .join('\n');
+  }
   const notice = bundled.length
     ? oflNotice([...new Set(bundled.map(f => f.family))]) + '\n' : '';
-  return `<style>\n${notice}${faceCss}${rootBlock}\n</style>`;
+  return `<style>\n${notice}${faceCss}${rootBlock}${displayCss}\n</style>`;
 }
 
 // ── ::: draw autoplay ───────────────────────────────────────────────
@@ -1639,6 +2051,37 @@ const COVER_ALIGN_VARIANTS = new Set(['classic', 'stack', 'panel', 'quote', 'spl
 // picture slot of the four that have one. A backdrop written on the chunk
 // still wins, exactly as it does on the cover.
 const CLOSING_IMAGE_COVER = 'cover';
+
+// `closing-credits:` - which of the cover's credit fields the closing slide
+// repeats. The slide carries none of them by default and that stays the
+// default: the presenter line and the info block say who is talking and
+// where, which the room learned an hour ago, and setting them again in the
+// same composition is a slide that looks like a mistake in the deck.
+//
+// What the argument never covered is the one line a last slide is most
+// often asked to carry, which is where the slides can be found. So the key
+// is graded rather than boolean, and it borrows `cover` as a reserved word
+// from `closing-image:` for the same reason that key does - it names *which*
+// credits, where a word like `same` would only say there are some.
+//
+//   none     nothing, as today
+//   contact  the foot row only: `contact:` and `notice:`
+//   cover    the whole block the cover carried
+const CLOSING_CREDITS_NONE = 'none';
+const CLOSING_CREDITS_COVER = 'cover';
+const CLOSING_CREDITS = [CLOSING_CREDITS_NONE, 'contact', CLOSING_CREDITS_COVER];
+
+// `cover-ground:` - whether the opening slide is dark while the rest of the
+// deck is light. The machinery is already here and was reachable only
+// through a photograph: `cover: hero` emits an inverted backdrop, and
+// `.chunk[data-backdrop=invert]` re-points the ink tokens for that one
+// chunk. A deck that wants the dark opening and no picture had no path,
+// because `::: backdrop` requires an asset.
+//
+// It is a key rather than an eleventh composition because it is one
+// question asked of all ten - the same reasoning `cover-align:` is a key
+// and not six more variant names.
+const COVER_GROUNDS = ['paper', 'ink'];
 
 // The slot tables (BACKDROP_SLOTS, CARDS_SLOTS, OVERLAY_SLOTS, SIDE_SLOTS)
 // live in tails.mjs with the parser that reads them, and the collision
@@ -1892,7 +2335,10 @@ function renderCardsBlock(b) {
   // two words: unfolded, a centred head over a left-aligned detail list
   // reads as a mistake, and the head cannot change alignment with the
   // collapse mode without the row jumping when C is pressed.
-  const nested = b.lines.some(l => /^\s+[-*+]\s+/.test(l));
+  // A nested list item, ordered or not: `detail` acts on `li ul` AND `li ol`,
+  // so an ordered sub-list (`  1.`) is a second level too - counting only
+  // `[-*+]` refused a `detail` word that legitimately governs a numbered one.
+  const nested = b.lines.some(l => /^\s+(?:[-*+]|\d+[.)])\s+/.test(l));
   const align = o.align !== 'auto'
     ? o.align
     : (size === 'large' && !nested ? 'center' : 'left');
@@ -1925,26 +2371,75 @@ function renderCardsBlock(b) {
     // lead-in question is a card question only.
     body = markCardLeads(b.lines);
   }
-  // A row's default anchor is `middle`, and a card's is `top`. The default
-  // differs by construct because the constructs differ: a card is a block
-  // of text in a box and reads from its first line, while a row is a term
-  // *beside* a body, and a one-line term against a three-line body's first
-  // line reads as a mistake. `written` is what tells a written `top` from
-  // the defaulted one - and this has to run *before* the class list is
-  // built, which it did not at first.
-  if (b.rows && !o.written.anchor) o.anchor = 'middle';
+  // A card's default anchor is `top`. A row's depends on what the term sits
+  // on, and that is the whole of this rule: the alignment follows from the
+  // ground rather than being a second question about it.
+  //
+  // On a ground - a fill, an outline, the accent, paper - the term is a
+  // visible block, and a block beside a longer body wants centring: this
+  // note used to say a one-line term against a three-line body's first line
+  // reads as a mistake, and on a slab that is still true. Measured on a
+  // four-line body the term's first line sits 66px below the body's, and it
+  // reads as a slab placed in the middle of its row, which is what it is.
+  //
+  // With `clear` there is no slab. The ground also zeroes the padding, so
+  // the term is bare words in a column - and bare words centred against a
+  // four-line body read as misaligned rather than as placed. On the
+  // baseline they read as a hanging indent, which is the typographic form
+  // this construction has always been: a term, and its definition beside it.
+  //
+  // `written` is what tells an authored word from a defaulted one, and this
+  // has to run *before* the class list is built, which it did not at first.
+  if (b.rows && !o.written.anchor) o.anchor = o.ground === 'clear' ? 'baseline' : 'middle';
   const cls = [b.rows ? 'cards rows' : 'cards', `cards-${b.n}`, `cs-${size}`, `ca-${align}`,
     `cv-${o.anchor}`, `cd-${o.detail}`, `cg-${o.ground}`, `ck-${o.corner}`,
     `cx-${o.scrim}`];
-  // A scrim with no picture to veil is a word the drawing ignores, which
-  // this format refuses rather than drops. Checked against the *written*
-  // tail, so `{.veil}` alone is caught even though veil is the default.
-  if (o.ground !== 'photo' && o.written.scrim) {
-    const err = new Error(
-      `::: ${b.rows ? 'rows' : 'cards'} in ${b.where}: a scrim needs a picture to veil.\n` +
-      `  ${o.scrim} applies to the photo ground; this row is ${o.ground}.`);
+  // A .photo ground, and a scrim over it, are words the drawing ignores
+  // unless a card actually carries a picture - and a word that does nothing
+  // is a refusal in this format, not a silent no-op. Both are checked against
+  // the *written* tail, so `.photo` or `{.veil}` alone is caught even though
+  // one draws nothing and the other is the default. `hasPicture` reads the
+  // block's own lines: a markdown image, or a compiled <figure>/<svg>/<img>
+  // spliced in (a ::: draw figure, an inlined asset).
+  const what = b.rows ? 'rows' : 'cards';
+  const bad = (msg) => {
+    const err = new Error(`::: ${what} in ${b.where}: ${msg}`);
     err.userFacing = true;
     throw err;
+  };
+  // What the cg-photo ground CSS can actually draw: a markdown image (still
+  // markdown here, rendered at the end), an already-spliced figure-img (a
+  // raster or an inline svg image), or a bare img. Deliberately NOT a bare
+  // <figure>/<svg> - a ::: draw compiles to a figure-diagram whose svg the
+  // ground selector never matches, so counting it would let `.photo` on a
+  // diagram-only card through as the very no-op this refuses.
+  const hasPicture = b.lines.some(l =>
+    /!\[[^\]]*\]\([^)]*\)/.test(l) || /class="figure-img"/.test(l) || /<img\b/.test(l));
+  // baseline aligns a term with the body beside it, and a card has no body
+  // beside it - so on a ::: cards block the word would resolve to something
+  // it does not mean. A word that does nothing is a refusal here, not a
+  // silent no-op, which is the same rule .photo answers to below.
+  if (o.written.anchor && o.anchor === 'baseline' && !b.rows) {
+    bad('.baseline lines a term up with the body beside it, and a card has no body beside it.\n' +
+        '       Use .top or .middle here, or write ::: rows if the items are term-and-definition pairs.');
+  }
+  if (o.written.ground && o.ground === 'photo' && !hasPicture) {
+    bad('.photo makes a card\'s first image its ground, and no card here carries one.\n' +
+        '  Give a card a picture, or drop .photo.');
+  }
+  if (o.written.scrim && (o.ground !== 'photo' || !hasPicture)) {
+    bad('a scrim needs a picture to veil.\n' +
+        (o.ground !== 'photo'
+          ? `  ${o.scrim} applies to the photo ground; this row is ${o.ground}.`
+          : `  ${o.scrim} veils a card's picture, and no card here carries one.`));
+  }
+  // detail decides what happens to a card's nested level - fold hides it on
+  // the projection, show keeps it there, page keeps it to the hand-out. With
+  // no nested level there is nothing for the word to act on, so a written one
+  // is refused the way a groundless scrim is.
+  if (o.written.detail && !nested) {
+    bad(`detail: ${o.detail} decides what happens to a card's nested level, and no\n` +
+        '  card here has one. Add a nested list, or drop the detail word.');
   }
   return `<div class="${cls.join(' ')}">\n${marked.parse(body.join('\n'))}\n</div>`;
 }
@@ -2129,6 +2624,27 @@ marked.use({
       const titleAttr = title ? ` title="${escapeHtml(title)}"` : '';
       // Direct relative path: also splice SVGs inline for theme inheritance.
       const isRelative = href && currentSourceDir && !/^(?:https?:|data:|\/\/|\/)/i.test(href);
+      // A true relative path that names no file on disk is a typo, not an
+      // intentional external ref (those are http(s), data:, // and root
+      // absolute, all excluded above). Shipping the raw string as an external
+      // src is a broken figure wherever the output travels alone, so give it
+      // the same visible placeholder the shorthand branch gives a missing
+      // asset, and record it for the one warning at the end of the build. The
+      // most common way to trip this is writing the extension on a name meant
+      // for the assets/ shorthand: `![](chain.jpg)` is an explicit path (the
+      // extension takes it out of the shorthand), and the file is in assets/.
+      // A ?query or #fragment is a cache-buster on the served URL, not part of
+      // the file name (the isSvgPath and video tests already read [?#]), so it
+      // is stripped before the existence test - otherwise `![](assets/x.png?v=2)`
+      // stated a file that cannot exist and fell to the placeholder.
+      const hrefFile = href.replace(/[?#].*$/, '');
+      if (isRelative && !assetOnDisk(path.resolve(currentSourceDir, hrefFile))) {
+        UNRESOLVED_ASSETS.add(href);
+        const alt = escapeHtml(text || '');
+        return `<figure class="figure-img figure-missing" data-fig-id="${escapeHtml(href)}">`
+          + `<div class="figure-missing-placeholder">missing: ${escapeHtml(href)}</div>`
+          + (text ? `<figcaption>${alt}</figcaption>` : '') + '</figure>';
+      }
       const isSvgPath = href && /\.svg(?:[?#]|$)/i.test(href);
       if (inlineAssetsEnabled && isRelative && isSvgPath) {
         const abs = path.resolve(currentSourceDir, href);
@@ -2541,7 +3057,14 @@ const DIAGRAM_CSS = `
   height: auto;
 }
 @media print {
-  .psi-diagram { max-height: none; }
+  /* How tall a diagram may be on paper is not answered here. This block used
+     to say max-height: none, on the reasoning that a vh cap is a slide
+     proportion and a sheet of paper is not a slide - true, and it left the
+     document with no cap at all, so a portrait diagram resolved to the
+     measure times its ratio and came out taller than the page. The answer
+     now lives beside every other figure kind in PRINT_CSS, under a selector
+     specific enough to beat the 62vh above in both media. Do not re-add a
+     .psi-diagram max-height here without reading that rule. */
   /* A diagram is one picture; splitting it across a page break makes it
      two useless halves. */
   .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
@@ -3048,6 +3571,24 @@ function parseTagPrefix(text) {
   const m = text.match(/^([a-z]+):\s*(.*)$/);
   if (m && VALID_TAGS.has(m[1])) {
     return { tag: m[1], ...splitHeading(m[2].trim()) };
+  }
+  // A lowercase `word:` prefix that is not one of the ten types is a typo,
+  // not a heading that happens to hold a colon: `## principl: X` fell through
+  // here and rendered as the literal heading with no data-tag, so the search
+  // index and the speaker lists saw an untyped chunk. lint.js has reported
+  // `unknown-type` on exactly this since the tag vocabulary existed; the build
+  // rendering what the linter refuses is the direction this project does not
+  // allow. The regex demands lowercase, so a real colon heading (`Note: …`) is
+  // unaffected; and a `//` after the colon is a URL scheme (`## https://…`),
+  // not a type - refusing that with "unknown chunk type" named the wrong thing.
+  if (m && !m[2].startsWith('//')) {
+    const err = new Error(
+      `unknown chunk type '${m[1]}:' in "## ${text}"\n` +
+      `  valid types: ${[...VALID_TAGS].join(', ')}\n` +
+      '  A `word:` prefix must be one of these; write the heading without a\n' +
+      '  colon if you did not mean a type.');
+    err.userFacing = true;
+    throw err;
   }
   return { ...splitHeading(text.trim()) };
 }
@@ -4417,6 +4958,18 @@ function parseLecture(src) {
             flushExpansion();
             continue;
           }
+          // Nothing is open, so this ::: closes nothing. It used to fall
+          // through to the body and render as a literal `:::` paragraph on
+          // the slide; lint.js has reported stray-directive-close on it, and
+          // the build rendering what the linter refuses is the direction this
+          // project does not allow. An intentional ::: as content goes in a
+          // code fence or an inline `code span`, both of which are handled
+          // before this line is ever reached.
+          refuse(
+            `a ::: closes a block, and none is open here (${chunkRef()}).\n` +
+            '  It would otherwise print as a literal ::: on the slide. If you\n' +
+            '  meant the characters themselves, put them in a code fence or an\n' +
+            '  inline `code span`.');
         }
       }
     }
@@ -4437,6 +4990,18 @@ function parseLecture(src) {
     } else if (currentColumn) {
       if (currentDock) currentDock.lines.push(line);
       else if (currentOverlay) currentOverlay.lines.push(line);
+      // A ::: that closes nothing in a divider's body, the same stray closer
+      // the chunk path refuses - a captured cards/overlay/dock closer is
+      // handled long before here, so one reaching this point is genuinely
+      // stray. It used to print as a literal ::: in the divider lede while
+      // lint.js reported stray-directive-close.
+      else if (!inFence && /^:::\s*$/.test(line)) {
+        refuse(
+          `a ::: closes a block, and none is open in the divider of column ` +
+          `#${currentColumn.id || currentColumn.heading || '?'}.\n` +
+          '  It would otherwise print as a literal ::: on the slide. Put the\n' +
+          '  characters in a code fence or an inline `code span` if you meant them.');
+      }
       else colBody.push(line);
     }
   }
@@ -4760,8 +5325,8 @@ function jsonForScript(v) {
   return JSON.stringify(v).replace(/</g, '\\u003C');
 }
 
-function lectureTitle(frontmatter) {
-  return frontmatter.title || 'Untitled lecture';
+function lectureTitle(frontmatter, S) {
+  return frontmatter.title || (S && S['untitled-lecture']) || 'Untitled lecture';
 }
 
 // The document language. It is not decoration: the browser's hyphenation
@@ -4810,6 +5375,146 @@ function talkDuration(frontmatter = {}) {
     throw err;
   }
   return secs;
+}
+
+// ── the words the build invents (localised by `lang:`) ───────────────
+// Every string the four outputs carry that is NOT in source.md - the TOC
+// heading, the note labels, the type eyebrow, the <title> suffixes - is
+// English furniture. `lang:` already declares the lecture's language (and
+// already fails the build on a value that is not a language tag), so it
+// selects the wording too. One table, keyed by role and never by the
+// English text; `STRINGS.en` is the current literals transcribed character
+// for character, so a lecture with no `lang:` or `lang: en` builds
+// byte-identical HTML to before - the 1.0.0 contract.
+//
+// Casing is stored once and cased per site: the projection uppercases the
+// type word (all-small-caps leaves capitals as full caps, so EXERCISE) and
+// the printed document lowercases it (small-caps then draws it), which is
+// why the table holds `Exercise` and neither site holds the rendered form.
+const STRINGS = {
+  en: {
+    contents: 'Contents',
+    'speaker-note': 'Speaker Note',
+    'presentation-note': 'Presentation Note',
+    'aside-note': 'note',
+    type: { principle: 'Principle', definition: 'Definition', example: 'Example',
+            question: 'Question', exercise: 'Exercise', outline: 'Outline',
+            figure: 'Figure' },
+    'title-print': 'print',
+    'title-print-notes': 'print + notes',
+    'title-lecture': 'lecture',
+    'title-speaker': 'speaker',
+    'untitled-lecture': 'Untitled lecture',
+    'annotation-label': 'annotation',
+    'add-note': '+ note',
+  },
+  de: {
+    contents: 'Inhalt',
+    'speaker-note': 'Sprechernotiz',
+    'presentation-note': 'Anmerkung',
+    'aside-note': 'Anmerkung',
+    type: { principle: 'Grundsatz', definition: 'Definition', example: 'Beispiel',
+            question: 'Frage', exercise: 'Aufgabe', outline: 'Überblick',
+            figure: 'Abbildung' },
+    'title-print': 'Druck',
+    'title-print-notes': 'Druck + Notizen',
+    'title-lecture': 'Vorlesung',
+    'title-speaker': 'Sprecher',
+    'untitled-lecture': 'Vorlesung ohne Titel',
+    'annotation-label': 'Anmerkung',
+    'add-note': '+ Anmerkung',
+  },
+};
+
+// A `lang:` with no wording table is a warning, not an error, and the build
+// falls back to English: `lang: fr` is a correct tag the hyphenator honours
+// today, and refusing it would stop an existing lecture from building, which
+// the 1.0.0 contract forbids. Said once per build, like warnOversizedAsset,
+// and it names the way out.
+const localeWarned = new Set();
+function warnUnknownLocale(tag) {
+  if (localeWarned.has(tag)) return;
+  localeWarned.add(tag);
+  console.warn(
+    `[lang] no wording for "lang: ${tag}" – the generated labels stay English.\n` +
+    `        Locales this build knows: ${Object.keys(STRINGS).join(', ')}.\n` +
+    `        Override single words with a labels: block in the frontmatter.`);
+}
+
+// The resolved words for this lecture. Looked up by the primary subtag
+// (`de-AT` → `de`); an author's top-level `labels:` block overrides single
+// entries. Pure - resolved once in the buildOnce pre-flight and passed into
+// the three renderers, which never call this themselves.
+function lectureStrings(frontmatter = {}) {
+  const tag = lectureLang(frontmatter);
+  const primary = tag.split('-')[0].toLowerCase();
+  const base = STRINGS[primary];
+  if (!base && primary !== 'en') warnUnknownLocale(tag);
+  return mergeLabels(base || STRINGS.en, frontmatter);
+}
+
+// The top-level `labels:` block. Its keys are the role names of STRINGS.en
+// (with the nested `type:` map for the tag words); its values are free text,
+// used verbatim. Unknown key fails the build with the shape styleSettings
+// uses, and lint.js mirrors it as `unknown-label-key` - a top-level block
+// rather than `style: {labels: {…}}` because `style.labels` is already the
+// on/off switch and every other `style:` key is a closed vocabulary the
+// linter whitelists.
+function mergeLabels(base, frontmatter = {}) {
+  const raw = frontmatter.labels;
+  if (raw == null) return base;
+  if (typeof raw !== 'object' || Array.isArray(raw)) {
+    const err = new Error(
+      'Frontmatter: "labels:" is a block of keys, not a single value.\n' +
+      '  labels:\n    contents: Inhalt\n    type:\n      exercise: Übung');
+    err.userFacing = true;
+    throw err;
+  }
+  const out = { ...base, type: { ...base.type } };
+  const topKeys = Object.keys(STRINGS.en).filter(k => k !== 'type');
+  for (const [k, v] of Object.entries(raw)) {
+    if (k === 'type') {
+      if (typeof v !== 'object' || Array.isArray(v)) {
+        const err = new Error(
+          'Frontmatter: "labels.type:" is a block of tag words, not a single value.\n' +
+          '  labels:\n    type:\n      exercise: Übung');
+        err.userFacing = true;
+        throw err;
+      }
+      for (const [tk, tv] of Object.entries(v)) {
+        if (!(tk in base.type)) {
+          const err = new Error(
+            `Frontmatter: labels.type has no key "${tk}".\n` +
+            `  Keys: ${Object.keys(STRINGS.en.type).join(', ')}`);
+          err.userFacing = true;
+          throw err;
+        }
+        out.type[tk] = String(tv);
+      }
+      continue;
+    }
+    if (!topKeys.includes(k)) {
+      const err = new Error(
+        `Frontmatter: labels has no key "${k}".\n` +
+        `  Keys: ${topKeys.join(', ')}, type`);
+      err.userFacing = true;
+      throw err;
+    }
+    out[k] = String(v);
+  }
+  return out;
+}
+
+// A CSS string literal for a `content:` value: there is no CSS.escape in
+// Node, and the word can arrive from an author's labels: block, so escape
+// the backslash, the double quote and a newline (folded to the CSS escape
+// for U+000A) before it is wrapped in quotes.
+function cssString(s) {
+  return String(s)
+    .replace(/\\/g, '\\\\')
+    .replace(/"/g, '\\"')
+    .replace(/\r/g, '')
+    .replace(/\n/g, '\\A ');
 }
 
 // ── viewer defaults from frontmatter ─────────────────────────────────
@@ -4975,6 +5680,28 @@ const STYLE_SPEC = {
   // not a look but a bug report.
   'heading-scale': { kind: 'num', min: 0.6, max: 1.8, dflt: 1 },
   'body-scale':    { kind: 'num', min: 0.6, max: 1.8, dflt: 1 },
+  // The display face's own size, and the one place taste gets a say over a
+  // measurement. The roster's size-adjust numbers normalise ADVANCE WIDTH,
+  // because line count is the failure that breaks a slide - a headline that
+  // takes one line too many runs off the frame, where one that reads small is
+  // merely weak. Apparent size therefore varies, and measurably: against
+  // Literata's ink height the roster runs from 0.38 (Silkscreen) to 1.34
+  // (Patrick Hand), which rendered is a Silkscreen divider as a thin band on
+  // an empty frame beside an Anton one that fills it. No automatic correction
+  // closes that without bringing the overflow back - pulling Silkscreen's ink
+  // to 0.85 needs a scale near 1.39, at which it sets 2.2x Literata's width.
+  // So the build answers the question it can measure and this key answers the
+  // one that is taste.
+  //
+  // It is not `heading-scale`, which does not reach --title-lead: a cover's
+  // type size is set by its composition, not by the heading ladder. And it
+  // multiplies the measured percentage at the single site that emits it, so
+  // everything the correction already reaches - the six cover compositions,
+  // print, the zoom, auto-fit, --check-fit and the line heights - follows
+  // without a second place knowing the key exists. Bounded like its two
+  // neighbours; below 0.6 a headline stops being one and above 1.8 no cover
+  // composition holds it.
+  'display-scale': { kind: 'num', min: 0.6, max: 1.8, dflt: 1 },
   // Whether headings are balanced across their lines and prose gets a
   // protected last line. A preference in its own right - some authors want
   // the browser's plain greedy wrapping - and it is also the setting a deck
@@ -5011,6 +5738,77 @@ const STYLE_SPEC = {
   // word and a line are not one decision: an author may well want the
   // line and not the word.
   labels: { kind: 'enum', values: ['on', 'off'], dflt: 'on' },
+  // What hue the greys carry. In the four light themes the A key moves
+  // --emph and nothing else: --ink is fixed at chroma 0.01 on hue 260,
+  // --paper and --rule at chroma 0. Every tinted surface is mixed out of
+  // --ink (a card is 5% of it, a dock and an overlay card 4%), so a card
+  // under a light-orange or light-red accent is a cool grey under a warm
+  // word - the two agree only in light-blue, and there by coincidence. The
+  // dark and terminal themes never had the problem, because there --ink
+  // moves with the theme.
+  //
+  //   neutral - today's rendering, and the default. A deck that says
+  //             nothing builds byte-identical HTML.
+  //   tinted  - the greys take the accent's own hue at low chroma, so the
+  //             slide reads as one palette whichever accent the room gets.
+  //   warm    - a fixed warm grey (hue 70), the accent notwithstanding.
+  //   cool    - a fixed cool grey (hue 250), which is where the neutrals
+  //             already sit; writing it makes today's cast a choice and
+  //             carries it into --paper and --rule, which are at chroma 0.
+  //
+  // warm and cool are held off the two terminal themes on purpose: a single
+  // phosphor tone is what those are, and a warm-grey paper under green ink
+  // is neither. tinted needs no such guard - there the accent's hue IS the
+  // theme's, so it resolves to what the theme already does.
+  neutrals: { kind: 'enum', values: ['neutral', 'tinted', 'warm', 'cool'], dflt: 'neutral' },
+  // The same question for the two documents, and a separate key because the
+  // two grounds are not the same ground. Print's palette is already warm
+  // where the live one is cool at chroma 0 - paper #fafaf7 against
+  // oklch(0.98 0 0) - so a deck can reasonably want the page warm and the
+  // projection cool, or the other way round, and one key could say only one
+  // of those.
+  //
+  // Its default is not a value but a deferral: '' is the seeded default and
+  // no written value can be '', so an unset key is a fifth state and
+  // printNeutrals() is the documented step that turns it into one. Writing
+  // `neutrals: warm` alone therefore warms both, which is what an author who
+  // writes one key means; writing both says they differ on purpose. Reading
+  // this key anywhere else with a fallback of 'neutral' would silently make
+  // an unset key mean neutral rather than follow - the trap
+  // print-slide-numbers carries the same note for.
+  'print-neutrals': { kind: 'enum', values: ['neutral', 'tinted', 'warm', 'cool'], dflt: '' },
+  // Which of a title pair's two lines is the loud one. The cover has
+  // carried a pair since `subtitle:` landed, and so has every divider and
+  // closing slide through `Heading | Sub`; what none of them had is a way
+  // to say that the first line is the quiet one.
+  //
+  //   stacked - the title large, the subtitle quieter underneath it.
+  //             Today's rendering, and the default.
+  //   eyebrow - the title set small above a subtitle that carries the
+  //             weight. The newspaper kicker, and the shape a lecture
+  //             title takes when the first line names the field and the
+  //             second asks the question.
+  //
+  // `title:` stays the content key of whichever line is loud, and that is
+  // the reason this is a treatment rather than a second pair of content
+  // keys. `title:` is also the <title> element, the TOC entry and what the
+  // search index reads: inverting the hierarchy by telling authors to put
+  // the hook in `title:` would rename the browser tab to the hook and
+  // leave the lecture's own name nowhere. So the words do not move and
+  // only their type does - which is also what lets one key serve the
+  // cover, the dividers and the closing slide at once.
+  headline: { kind: 'enum', values: ['stacked', 'eyebrow'], dflt: 'stacked' },
+  // Whether the small type around a title is set in capitals. The
+  // *tracking* that has to come with them is deliberately not a key:
+  // capitals at the tracking of lowercase read as one jammed word, which
+  // is a typographic rule and not a preference, so the build applies it
+  // itself - to the line an author typed in capitals as much as to the
+  // line this key transforms. See `isAllCaps`.
+  //
+  // It reaches the eyebrow, the presenter and the affiliation, and
+  // deliberately not the headline: a key that capitalises the loud line is
+  // a key that makes a talk shout.
+  caps: { kind: 'enum', values: ['off', 'on'], dflt: 'off' },
   // Which views break a word at the end of a line. `lang:` picks the
   // dictionary and stays out of this: the language is a property of the
   // lecture, not an opening preference, and a German deck may perfectly
@@ -5197,17 +5995,54 @@ function souffleuseSettings(frontmatter = {}) {
 // The settings as one <style> element plus the two body attributes the
 // selectors key off. Emitted for every view, print included: a lecture set
 // in a larger body size should print in one.
-function styleBlockCss(st) {
-  const parts = [];
-  if (st['heading-scale'] !== 1) parts.push(`--heading-scale: ${st['heading-scale']};`);
-  if (st['body-scale'] !== 1) parts.push(`--body-scale: ${st['body-scale']};`);
-  return parts.length ? `<style>:root { ${parts.join(' ')} }</style>` : '';
+function styleBlockCss(st, S) {
+  const rootVars = [];
+  if (st['heading-scale'] !== 1) rootVars.push(`--heading-scale: ${st['heading-scale']};`);
+  if (st['body-scale'] !== 1) rootVars.push(`--body-scale: ${st['body-scale']};`);
+  const rules = [];
+  if (rootVars.length) rules.push(`:root { ${rootVars.join(' ')} }`);
+  // The projection's one generated eyebrow, EXERCISE, is a CSS `content:`
+  // string and cannot read the strings table. Rather than change the base
+  // rule in AUDIENCE_CSS – which would move a byte in every deck, localised
+  // or not, and break the 1.0.0 contract – the localised word rides in as a
+  // same-specificity override emitted here, after the main stylesheet, so it
+  // wins on source order. Emitted only for the live views (S is passed there,
+  // not for print, whose eyebrow is a <span> of real text) and only when the
+  // word differs from the default, so an English deck's CSS is byte-identical
+  // to before. Uppercased to match the projection – all-small-caps leaves
+  // capitals as full caps, which is why EXERCISE is written in caps.
+  if (S && S.type && S.type.exercise) {
+    const word = S.type.exercise.toUpperCase();
+    if (word !== STRINGS.en.type.exercise.toUpperCase()) {
+      rules.push(`.chunk[data-tag=exercise] .chunk-content::before { content: "${cssString(word)}"; }`);
+    }
+  }
+  return rules.length ? `<style>${rules.join(' ')}</style>` : '';
+}
+// The documents' neutrals, and the one place the deferral is resolved. An
+// unset `print-neutrals` is not `neutral`, it is "whatever the live views
+// are set to" - see the note on the key in STYLE_SPEC, and printSlideNums()
+// for the same shape one block over.
+function printNeutrals(st) {
+  return st['print-neutrals'] || st.neutrals || 'neutral';
 }
 function styleBodyAttrs(st, frontmatter = {}) {
   const parts = [];
   if (st.headings !== 'auto') parts.push(`data-headings="${st.headings}"`);
   if (st.rules !== 'on') parts.push('data-rules="off"');
   if (st.labels !== 'on') parts.push('data-labels="off"');
+  if (st.neutrals !== 'neutral') parts.push(`data-neutrals="${st.neutrals}"`);
+  // Both attributes on both bodies: the stylesheets pick, AUDIENCE_CSS on
+  // data-neutrals and PRINT_CSS on data-print-neutrals, so neither has to
+  // know which view it is in.
+  const pn = printNeutrals(st);
+  if (pn !== 'neutral') parts.push(`data-print-neutrals="${pn}"`);
+  if (st.headline !== 'stacked') parts.push(`data-headline="${st.headline}"`);
+  // `data-title-caps` and not `data-caps`: the renderer writes a bare
+  // data-caps on each slot that is already in capitals, and one name doing
+  // both jobs would make `body[data-caps]` and `[data-caps]` the same
+  // selector at two scales.
+  if (st.caps !== 'off') parts.push('data-title-caps="on"');
   if (st['link-codes'] !== 'on') parts.push('data-link-codes="off"');
   // Emitted only when they differ from the default, so a lecture that says
   // nothing produces the same <body> tag it always did.
@@ -5326,20 +6161,104 @@ function splitInfo(info = '') {
   return String(info).split('\n').map(l => l.trim()).filter(Boolean);
 }
 
+// Capitals set at the tracking of lowercase read as one jammed word. That
+// is a typographic rule rather than a preference, so it is not a key: the
+// build marks any title slot whose text is already in capitals and the
+// stylesheet tracks it out. It reaches the line an author typed that way
+// (`presenter: PROF. DR. ...`, which rendered jammed and nothing said why)
+// and, through the same attribute, the lines `style: {caps: on}` transforms.
+//
+// Tested as "has an uppercase letter and no lowercase one" rather than
+// `s === s.toUpperCase()`, which is a different question the moment an s-z
+// ligature is in the string: uppercasing it yields SS, so a capitalised
+// German line would never equal its own uppercase and would silently miss
+// the tracking - which is exactly the deck most likely to want this.
+function isAllCaps(s) {
+  const t = String(s || '');
+  return /\p{Lu}/u.test(t) && !/\p{Ll}/u.test(t);
+}
+const capsAttr = s => (isAllCaps(s) ? ' data-caps=""' : '');
+
+
 // `subtitle` is the hierarchy step the cover was missing. Without it an
 // author has nowhere to put "Prevalence, Techniques, and Implications" but
 // the `info` block, where it renders at meta size in soft ink beside the
 // room and the date – so the one line that says what the talk is about is
 // set exactly like the one that says which conference it is. That is the
 // whole of the "hard to read" complaint the variants were asked for.
-function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsArt, bodyInField, variant }) {
+// The credit block, in four ranks. It used to be one strong line over a run
+// of equals: `presenter:` was set apart and everything else went into
+// `info:`, where the institution, the venue and the date all arrived at meta
+// size in soft ink - so the one line that qualifies the speaker's name was
+// set exactly like the one that gives the date, and the block read as a log
+// file rather than as a masthead.
+//
+// `contact` and `notice` are a *row* along the foot rather than two more
+// stacked lines, because they do a different job from the two above them:
+// the presenter and the affiliation introduce the speaker, while an address
+// and "the slides are online" answer the room. One is the head of the
+// block, the other is its foot.
+//
+// Factored out of renderTitleBlock because the closing slide serves it too
+// (`closing-credits:`) and a second copy is how a bookend stops being the
+// same composition. `metaHtml` is passed rather than built from `info`
+// because the cover has one caller that overrides it: a chunk body stands
+// in for the info lines where the composition has nowhere else to put it.
+// `footBand` says the composition pins this block to the bottom of a box that
+// is already stretched to the frame - masthead does, with `margin-top: auto`
+// on the presenter, which is also what carries its folio rule. The marker is
+// read by flowHeightProbe, which has to keep such a band out of its span: see
+// the note there. Named here rather than sniffed there, because whether a
+// composition pins its credits is a fact about the composition and the
+// stylesheet, not something a measured gap can be trusted to reveal.
+//
+// The document renderer emits it too and print reads it nowhere - the two
+// views share renderCredits, and threading a view flag through it to drop one
+// inert data attribute would be more machinery than the attribute costs. It
+// is internal markup like data-chunk-id, not a setting an author wrote, which
+// is the line between this and the no-op lint.js warns about.
+const FOOT_BAND_COVERS = new Set(['masthead']);
+
+function renderCredits({ presenter, affiliation, contact, notice, metaHtml = '', footBand = false }) {
+  const foot = [
+    contact ? `<span class="title-contact">${escapeHtml(contact)}</span>` : '',
+    notice ? `<span class="title-notice">${escapeHtml(notice)}</span>` : '',
+  ].filter(Boolean).join('');
+  return [
+    presenter ? `<p class="title-presenter"${footBand ? ' data-foot=""' : ''}${capsAttr(presenter)}>${escapeHtml(presenter)}</p>` : '',
+    affiliation ? `<p class="title-affiliation"${capsAttr(affiliation)}>${escapeHtml(affiliation)}</p>` : '',
+    metaHtml || '',
+    foot ? `<div class="title-foot">${foot}</div>` : '',
+  ].filter(Boolean).join('\n    ');
+}
+
+// `cover-ground: ink` - a dark opening slide under a light deck. Written
+// only where nothing has already darkened the slide: a backdrop's own scrim
+// wins, exactly as a backdrop wins over the composition's picture. The
+// closing slide takes it too, because the ground is part of the composition
+// it inherits, and a deck that opens dark and closes light has not closed
+// the arc it opened.
+function groundAttrFor(cover, art) {
+  return (cover.ground === 'ink' && !art.scrim) ? ' data-cover-ground="ink"' : '';
+}
+
+function renderTitleBlock({ title, subtitle, presenter, affiliation, info, contact, notice, bodyHtml, bodyIsArt, bodyInField, variant }) {
   // The body stands in for `info` only where the composition has nowhere
   // else to put it. Where it does - as a picture in its own track, or as the
   // lede in a masthead's field - the info lines are still the meta.
+  //
+  // It has never stood in for the presenter, and it does not stand in for
+  // the three slots beside it either: a cover whose body is a drawing still
+  // has an author, an institution and an address.
   const bodyPlaced = bodyIsArt || bodyInField;
   const infoLines = (bodyHtml && !bodyPlaced)
     ? null // chunk body overrides `info` (PRD §3 rules)
     : splitInfo(info);
+  const metaHtml = infoLines
+    ? (infoLines.length
+        ? `<div class="title-info">${infoLines.map(l => `<p>${escapeHtml(l)}</p>`).join('')}</div>`
+        : '')
+    : (bodyPlaced ? '' : (bodyHtml || ''));
   const field = (bodyInField && bodyHtml)
     ? `<div class="title-field">${bodyHtml}</div>` : '';
   // On `quote` the field IS the slide, so it comes first and the title
@@ -5349,13 +6268,10 @@ function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsAr
   const claimFirst = bodyInField && variant === 'quote';
   return `
     ${claimFirst ? field : ''}
-    <h1 class="title-main">${escapeHtml(title || '')}</h1>
+    <h1 class="title-main"${capsAttr(title)}>${escapeHtml(title || '')}</h1>
     ${subtitle ? `<p class="title-subtitle">${escapeHtml(subtitle)}</p>` : ''}
     ${claimFirst ? '' : field}
-    ${presenter ? `<p class="title-presenter">${escapeHtml(presenter)}</p>` : ''}
-    ${infoLines
-      ? `<div class="title-info">${infoLines.map(l => `<p>${escapeHtml(l)}</p>`).join('')}</div>`
-      : (bodyPlaced ? '' : (bodyHtml || ''))}
+    ${renderCredits({ presenter, affiliation, contact, notice, metaHtml, footBand: FOOT_BAND_COVERS.has(variant) })}
   `.trim();
 }
 
@@ -5377,11 +6293,31 @@ function renderTitleBlock({ title, subtitle, presenter, info, bodyHtml, bodyIsAr
 // ordinary chunk heading and code spans work in it the way they do in
 // every other one. The cover's title cannot, because it comes from
 // frontmatter and is escaped there.
-function renderClosingBlock(chunk, bodyHtml) {
+function renderClosingBlock(chunk, bodyHtml, frontmatter = {}, cover = {}) {
+  // `closing-credits:` is the author asking for the fields back, and the
+  // default is still none of them. `contact` is the value expected to earn
+  // its keep - a last slide that repeats the speaker's name reads as a
+  // duplicate, and one that repeats where the slides live is answering the
+  // question the room is about to ask - while `cover` is for the deck that
+  // ends on a full restatement.
+  const want = cover.closingCredits || CLOSING_CREDITS_NONE;
+  const all = want === CLOSING_CREDITS_COVER;
+  const infoLines = all ? splitInfo(frontmatter.info) : [];
+  const credits = want === CLOSING_CREDITS_NONE ? '' : renderCredits({
+    footBand: FOOT_BAND_COVERS.has(cover.variant),
+    presenter: all ? frontmatter.presenter : '',
+    affiliation: all ? frontmatter.affiliation : '',
+    contact: frontmatter.contact,
+    notice: frontmatter.notice,
+    metaHtml: infoLines.length
+      ? `<div class="title-info">${infoLines.map(l => `<p>${escapeHtml(l)}</p>`).join('')}</div>`
+      : '',
+  });
   return `
-    <h1 class="title-main">${renderInlineMd(chunk.heading || '')}</h1>
+    <h1 class="title-main"${capsAttr(chunk.heading)}>${renderInlineMd(chunk.heading || '')}</h1>
     ${chunk.headingSub ? `<p class="title-subtitle">${renderInlineMd(chunk.headingSub)}</p>` : ''}
     ${bodyHtml ? `<div class="closing-body">${bodyHtml}</div>` : ''}
+    ${credits}
   `.trim();
 }
 
@@ -5550,8 +6486,41 @@ function coverSettings(frontmatter = {}) {
       closingImage = rawC;
     }
   }
+  // Validated here rather than in a renderer, because coverSettings runs in
+  // the buildOnce pre-flight: a check that can refuse a deck has to fire
+  // before any view is written, or `--print-only` never reaches it and a
+  // typo ships silently in half the outputs.
+  let closingCredits = CLOSING_CREDITS_NONE;
+  if (frontmatter['closing-credits'] != null) {
+    const rawCC = String(frontmatter['closing-credits']).trim();
+    if (!CLOSING_CREDITS.includes(rawCC)) {
+      const err = new Error(
+        `Frontmatter: "closing-credits: ${rawCC}" is not a value this key takes.\n` +
+        `  Valid values: ${CLOSING_CREDITS.join(', ')}\n` +
+        '    none     the closing slide carries no credits (the default)\n' +
+        '    contact  the foot row only: contact: and notice:\n' +
+        '    cover    the whole credit block the cover carried');
+      err.userFacing = true;
+      throw err;
+    }
+    closingCredits = rawCC;
+  }
+  let ground = 'paper';
+  if (frontmatter['cover-ground'] != null) {
+    const rawG = String(frontmatter['cover-ground']).trim();
+    if (!COVER_GROUNDS.includes(rawG)) {
+      const err = new Error(
+        `Frontmatter: "cover-ground: ${rawG}" is not a ground this tool draws.\n` +
+        `  Valid values: ${COVER_GROUNDS.join(', ')}\n` +
+        '    paper  the deck\'s own ground (the default)\n' +
+        '    ink    a dark opening slide while the rest of the deck stays light');
+      err.userFacing = true;
+      throw err;
+    }
+    ground = rawG;
+  }
   return {
-    variant: raw, image, ratio, align, closingImage,
+    variant: raw, image, ratio, align, closingImage, closingCredits, ground,
     bodyIsArt: COVER_BODY_ART.has(raw),
     bodyInField: COVER_BODY_FIELD.has(raw),
     bodyRequired: COVER_BODY_REQUIRED.has(raw),
@@ -5642,6 +6611,7 @@ function renderHeadingHtml(chunk, cls = 'chunk-heading') {
 
 function renderChunk(chunk, frontmatter, num, opts = {}) {
   const { tag, body = '', id, width, expansions = [], annotation = '', speakerNotes = [] } = chunk;
+  const S = opts.strings || lectureStrings(frontmatter);
   const nums = opts.nums || chunkNumbers([]);
   // An `outline:` chunk is an ordinary chunk whose body ends with the list,
   // and that is the whole of it. Rendering it through a shell of its own
@@ -5672,11 +6642,12 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
     const scrimAttr = art.scrim && art.scrim !== 'veil' ? ` data-backdrop="${art.scrim}"` : '';
     const bdAttr = art.html ? ' data-has-backdrop=""' : '';
     const closingAttr = closing ? ' data-closing=""' : '';
-    return `<article class="chunk chunk-title" data-cover="${cover.variant}"${closingAttr}${bdAttr}${scrimAttr}${chunkStyleAttrs(chunk)}${numAttr}${idAttr}>
+    const groundAttr = groundAttrFor(cover, art);
+    return `<article class="chunk chunk-title" data-cover="${cover.variant}"${closingAttr}${bdAttr}${scrimAttr}${groundAttr}${chunkStyleAttrs(chunk)}${numAttr}${idAttr}>
   ${art.html}
   ${numHtml}
   ${closing
-    ? renderClosingBlock(chunk, bodyHtml)
+    ? renderClosingBlock(chunk, bodyHtml, frontmatter, cover)
     : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField, variant: cover.variant })}
   ${renderOverlayLayer(chunk.overlays, where)}
 </article>`;
@@ -5686,7 +6657,7 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   // third label above the heading + sub-heading.
   const labelTag = tag && tag !== 'free' && tag !== 'figure' ? tag : null;
   const label = labelTag
-    ? `<span class="chunk-label">${escapeHtml(labelTag)}</span>`
+    ? `<span class="chunk-label">${escapeHtml((S.type[labelTag] || labelTag).toLowerCase())}</span>`
     : '';
 
   const classes = [
@@ -5698,21 +6669,21 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   const expansionsHtml = expansions.map(e => {
     const inner = marked.parse(e.body || '');
     const kind = e.kind || 'expand';
-    return `<aside class="chunk-expansion chunk-expansion-${kind}" data-label="${escapeHtml(e.label)}">
+    return `<aside class="chunk-expansion chunk-expansion-${kind}" data-label="${escapeHtml(kind === 'margin' && e.label === 'note' ? S['aside-note'] : e.label)}">
 ${inner}
 </aside>`;
   }).join('\n');
 
   const annotationHtml = annotation.trim()
     ? `<aside class="presentation-note">
-<span class="presentation-note-label">Presentation Note</span>
+<span class="presentation-note-label">${escapeHtml(S['presentation-note'])}</span>
 <div class="presentation-note-body">${marked.parse(annotation)}</div>
 </aside>`
     : '';
 
   const notesHtml = (opts.withNotes && speakerNotes.length)
     ? `<aside class="speaker-note">
-<span class="speaker-note-label">Speaker Note</span>
+<span class="speaker-note-label">${escapeHtml(S['speaker-note'])}</span>
 <div class="speaker-note-body">${speakerNotes.map(n => marked.parse(n)).join('\n')}</div>
 </aside>`
     : '';
@@ -5777,14 +6748,14 @@ ${chunksHtml}
 </section>`;
 }
 
-function renderToc(columns) {
+function renderToc(columns, S) {
   const items = columns
     .filter(c => c.heading)
     .map(c => `<li><a href="#${escapeHtml(c.id || '')}">${escapeHtml(c.heading)}</a></li>`)
     .join('\n    ');
   if (!items) return '';
-  return `<nav class="toc" aria-label="Contents">
-  <h2>Contents</h2>
+  return `<nav class="toc" aria-label="${escapeHtml(S.contents)}">
+  <h2>${escapeHtml(S.contents)}</h2>
   <ol>
     ${items}
   </ol>
@@ -5843,15 +6814,24 @@ function stripDarkTokenColors(html) {
 
 function renderDocument(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
-  const title = lectureTitle(frontmatter);
-  const toc = renderToc(columns);
+  const S = opts.strings || lectureStrings(frontmatter);
+  const title = lectureTitle(frontmatter, S);
+  // An `outline:` chunk is already a contents list - renderOutlineList walks
+  // the same parts renderToc walks - so a deck that carries one was getting
+  // the identical run of headings twice, 29px apart, the generated nav
+  // starting under the last line of the chunk that had just said it. The
+  // author's version wins: it has a heading they wrote, a lede, and a place
+  // in the argument. A deck with no outline chunk still gets the nav, which
+  // is what it is there for.
+  const hasOutline = columns.some(c => (c.chunks || []).some(ch => ch.tag === 'outline'));
+  const toc = hasOutline ? '' : renderToc(columns, S);
   // The one numbering, shared with renderColumnsHtml, so the print numbers
   // match the audience's chunk-num badges 1:1 - and so a dock's link
   // states in both views compare against the same "slide 12".
   const nums = chunkNumbers(columns);
   // Title / anon columns render above the TOC (cover page first),
   // named columns render after (body of the document).
-  const chunkOpts = { withNotes: !!opts.withNotes };
+  const chunkOpts = { withNotes: !!opts.withNotes, strings: S };
   const forPrint = (html) => stripDarkTokenColors(stripDiagramPayloads(stripBackdropFrames(html)));
   // The parts a lecture has, and which one each column is, threaded through
   // so an `outline:` chunk can list them. Print reorders the columns (anon
@@ -5866,7 +6846,7 @@ function renderDocument(lecture, opts = {}) {
   const namedHtml = forPrint(columns.filter(c => c.heading)
     .map(c => renderColumn(c, frontmatter, nums, colOpts(c))).join('\n'));
 
-  const titleSuffix = opts.withNotes ? 'print + notes' : 'print';
+  const titleSuffix = opts.withNotes ? S['title-print-notes'] : S['title-print'];
   // Print has no keyboard, so the frontmatter is its only say over the
   // slide-number markers. The other viewer defaults are live-view concepts
   // (collapse, auto-fit) or already fixed here (print has its own type).
@@ -5880,12 +6860,12 @@ function renderDocument(lecture, opts = {}) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)} – ${titleSuffix}</title>
+<title>${escapeHtml(title)} – ${escapeHtml(titleSuffix)}</title>
 <style>
 ${PRINT_CSS}
 ${DIAGRAM_CSS}
 </style>
-${fontStyleTag(opts.fontEmbed)}
+${fontStyleTag(opts.fontEmbed, 'print')}
 ${styleBlockCss(styleOpts)}
 ${katexStyleTag(anonHtml + namedHtml)}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
@@ -5909,11 +6889,20 @@ const PRINT_CSS = `
 :root {
   --heading-scale: 1;
   --body-scale: 1;
+  /* The live views' ladder, same two values and the same reasoning (see
+     --radius-card there): a corner is a proportion of the type it holds,
+     and --body-scale moves that type here too. */
+  --radius-card:  0.3em;
+  --radius-tight: 0.1em;
   --ink: #1f1f24;
   --ink-soft: #6b6b72;
   --paper: #fafaf7;
   --rule: #c8c8c0;
   --emph: #8b2e00;
+  /* The hue style: {neutrals} moves the greys onto. Print has no themes -
+     one palette, no A key - so there is one hue here and not five, and it
+     is the print accent's own: #8b2e00 is about hue 40 in oklch. */
+  --accent-h: 40;
   /* Same three families as the live views, and the same order, so all four
      outputs are one typographic set. The first entry of each is bundled and
      embedded, so these resolve even where the machine has nothing installed
@@ -5921,6 +6910,25 @@ const PRINT_CSS = `
   --serif: 'Literata', 'Source Serif 4', Georgia, serif;
   --sans: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', Menlo, monospace;
+}
+/* ── neutrals on paper (style: {neutrals}) ─────────────────────────
+   styleBodyAttrs writes data-neutrals onto this body too, so the rules have
+   to exist here or the attribute is a silent no-op on print.html - the
+   thing this format refuses everywhere else. Print's palette is already
+   warm (#fafaf7 paper, #c8c8c0 rule) where the live one is cool at chroma
+   0, so cool moves more on paper than warm does; that is a property of
+   the two palettes and not of the key. Written in oklch though the palette
+   above is hex, because a hue is what this key changes and hex cannot say
+   it. No terminal guard: print has no terminal themes to guard. And the
+   quiet fills are not re-mixed the way the live views' are, because a
+   printed card is a 1px rule and no fill - there is nothing there to tint. */
+body[data-print-neutrals=warm] { --accent-h: 70; }
+body[data-print-neutrals=cool] { --accent-h: 250; }
+body:is([data-print-neutrals=tinted], [data-print-neutrals=warm], [data-print-neutrals=cool]) {
+  --ink:      oklch(0.26 0.014 var(--accent-h));
+  --ink-soft: oklch(0.50 0.014 var(--accent-h));
+  --paper:    oklch(0.985 0.007 var(--accent-h));
+  --rule:     oklch(0.81 0.013 var(--accent-h));
 }
 
 @page {
@@ -6017,7 +7025,7 @@ pre {
   background: rgba(0,0,0,0.04);
   padding: 0.8em 1em;
   overflow-x: auto;
-  border-radius: 2px;
+  border-radius: var(--radius-tight);
   line-height: 1.45;
 }
 pre code { font-size: inherit; }
@@ -6143,10 +7151,23 @@ a:hover { text-decoration-color: var(--ink); }
 
 .chunk {
   margin: 1.6rem 0 2.2rem;
-  page-break-inside: avoid;
-  break-inside: avoid;
+  /* A chunk flows across a page break like any other prose.
+     It used to say break-inside: avoid, which is right for a picture and
+     wrong for a run of text: a chunk that does not fit in what is left of a
+     page moves whole, and the white it leaves behind is however much was
+     left - a third of a sheet under a part heading, repeatedly, in a
+     document whose chunks are mostly paragraphs. The reader loses the thread
+     to a page turn that nothing on the page asked for.
+     What must stay together says so itself and is small enough to mean it:
+     figure, .chunk-outline, the card list, a heading and the line under it.
+     orphans and widows keep the break off the first and last lines. */
+  break-inside: auto;
+  page-break-inside: auto;
+  orphans: 3;
+  widows: 3;
   position: relative;
 }
+main p, main li, main dd, main blockquote { orphans: 3; widows: 3; }
 .chunk-heading {
   font-size: calc(1.12rem * var(--heading-scale));
   margin: 0 0 0.5rem;
@@ -6307,6 +7328,11 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  /* The size of the pair's loud line, so that headline: eyebrow can hand it
+     to whichever line is carrying the weight. In rem here and in em there,
+     because print is not zoomed - the mechanism is the same and only the
+     unit differs. */
+  --title-lead: 2.6rem;
   padding: 0 0 1.8rem;
   margin: 0 0 2.6rem;
   border-bottom: 1px solid var(--rule);
@@ -6314,9 +7340,10 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   page-break-inside: avoid;
 }
 .chunk-title .title-main {
-  font-size: 2.6rem;
+  font-size: var(--title-lead);
+  max-width: var(--title-measure, none);
   margin: 0 0 0.8rem;
-  line-height: 1.15;
+  line-height: ${displayLh('print', '.chunk-title .title-main')};
 }
 .chunk-title .title-presenter {
   font-size: 1.1rem;
@@ -6328,6 +7355,51 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   font-family: var(--sans);
   font-size: 0.88rem;
   color: var(--ink-soft);
+}
+.chunk-title .title-affiliation {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: -0.9rem 0 1.2rem;
+  color: var(--ink-soft);
+}
+/* The foot is a row on the projection because the slide is a frame with two
+   edges to hang things on. On paper the page has a measure and no such
+   edges, and an address pushed to the right margin of a document reads as a
+   mistake - so the two run together on one line instead, in source order. */
+.chunk-title .title-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1.4rem;
+  margin-top: 0.5rem;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.chunk-title .title-notice { font-style: italic; }
+.chunk-title [data-caps] { letter-spacing: 0.055em; }
+body[data-title-caps=on] .chunk-title .title-presenter,
+body[data-title-caps=on] .chunk-title .title-affiliation,
+body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+body[data-headline=eyebrow] .chunk-title .title-main {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.015em;
+  color: var(--ink-soft);
+  margin: 0 0 0.25rem;
+}
+body[data-headline=eyebrow] .chunk-title .title-subtitle {
+  font-size: var(--title-lead);
+  font-weight: 600;
+  line-height: ${displayLh('print', 'body[data-headline=eyebrow] .chunk-title .title-subtitle')};
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  max-width: 20em;
+  margin: 0 0 0.8rem;
 }
 
 /* The style: frontmatter block, on paper. Same two selectors as the live
@@ -6407,14 +7479,16 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 .chunk-title[data-cover=panel] .title-presenter { color: var(--paper); }
 .chunk-title[data-cover=panel] .title-subtitle,
 .chunk-title[data-cover=panel] .title-info p,
+.chunk-title[data-cover=panel] .title-affiliation,
+.chunk-title[data-cover=panel] .title-foot,
 .chunk-title[data-cover=panel] .closing-body {
   color: color-mix(in oklch, var(--paper) 78%, transparent);
 }
+.chunk-title[data-cover=display] { --title-lead: 3.6rem; }
+.chunk-title[data-cover=display] { --title-measure: 11em; }
 .chunk-title[data-cover=display] .title-main {
-  font-size: 3.6rem;
-  line-height: 1.02;
+  line-height: ${displayLh('print', '.chunk-title[data-cover=display] .title-main')};
   letter-spacing: -0.03em;
-  max-width: 11em;
 }
 
 /* The closing slide is a page like the cover is a page, and it carries the
@@ -6445,7 +7519,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   aspect-ratio: 16 / 6;
   background-size: cover;
   background-position: center;
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   margin-bottom: 1.4rem;
   order: -1;
 }
@@ -6459,7 +7533,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   margin: 0 0 1rem;
   display: block;
 }
@@ -6471,7 +7545,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
    what the paper cannot have, the treatment is kept. */
 :is(.overlay-card, .dock) {
   padding: 0.75rem 0.95rem;
-  border-radius: 5px;
+  border-radius: var(--radius-card);
   margin: 0 0 0.7rem;
   max-width: 34em;
 }
@@ -6508,7 +7582,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   margin: 0;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: var(--radius-card);
   list-style: none;
   break-inside: avoid;
   font-size: calc(1em * var(--card-fs, 1));
@@ -6669,6 +7743,88 @@ figure.figure-embed .embed-source { font-family: var(--sans); font-size: 0.72rem
 }
 figure.figure-img img,
 figure.figure-img svg { max-width: 100%; height: auto; }
+
+/* ── how tall a figure may be in a document ──────────────────────────
+   Width has always been answered (the measure), height never was, and the
+   two are not independent: every figure here keeps its aspect ratio, so an
+   uncapped height is whatever the measure multiplied by the ratio happens
+   to be. A ::: draw block makes that worst: it carries width="2000" so
+   max-width binds on every page, and python-intro's #scanner-pipeline
+   (1.56 tall per unit wide) resolved to 944px inside a 933px A4 text area -
+   taller than the sheet, and then moved onto a page of its own by the
+   break-inside: avoid that keeps a picture whole. A raster figure reaches
+   the same place from a portrait screenshot.
+   In rem rather than vh, and the same number on screen and on paper: what a
+   viewport unit means inside a page box is not something the engines agree
+   on, and print.html is printed by whichever browser the reader has. 34rem
+   at the 10pt root is about half the A4 text height - a figure may be the
+   largest thing on a page without being the only thing on it.
+   The selectors are (0,1,1) on purpose: DIAGRAM_CSS is concatenated after
+   this stylesheet, so a bare .psi-diagram here would lose to its 62vh on
+   screen and to its max-height: none on paper. */
+main .psi-diagram,
+figure.figure-img img,
+figure.figure-img svg,
+figure.figure-video video { max-height: 34rem; }
+
+/* ── how large a drawing is in a document ────────────────────────────
+   A slide answers this by filling the frame: the figure IS the slide, and
+   what that does to the label type does not matter, because nothing else is
+   on the wall to compare it with. A page has running text three lines above
+   the picture, and there the answer is the opposite - the type inside a
+   figure belongs to the same typographic set as the type around it.
+
+   Filling the measure gets that wrong by a different amount for every
+   figure, because a label's size is DG_FONT scaled by the measure over the
+   viewBox width, and the viewBox is however many grid units the author
+   happened to draw in. Measured before this rule: 47 of 81 figures in the
+   corpus carried type larger than the running text, from 0.53x to 2.97x -
+   a spread of 5.6, invisible to the author, and nothing in the source says
+   which end a given figure lands on.
+
+   So the width is derived from the type instead. --dg-type-w is the viewBox
+   width measured in base labels (diagram-core emits it), and multiplying by
+   --dg-fig-size gives the width at which a base label lands at exactly that
+   size. Every figure in the document then carries one label size, the way
+   every figure in a book does. The third term converts the height budget
+   into a width so a tall figure shrinks proportionally rather than sitting
+   letterboxed in a box the height cap left too wide, and 100% keeps a
+   figure with more units than the measure can serve from overflowing - that
+   one lands under the target size, which is the one case nothing can fix.
+
+   The box now hugs the drawing rather than spanning the measure, so
+   style.blocks finally means something here: the rules below are the same
+   ones figure-img has had all along, and a diagram was the one figure kind
+   that could not honour them because its box was always full width. */
+main .psi-diagram {
+  --dg-fig-size: 0.9rem;
+  width: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
+             calc(34rem * var(--dg-ar, 1)));
+  /* The default is centre, matching figure.figure-img's text-align above.
+     styleBodyAttrs writes data-blocks only when it is left, so the centre
+     case has to be the bare rule - a body[data-blocks=center] selector would
+     never match anything and every deck would quietly go flush left. */
+  margin-inline: auto;
+}
+body[data-blocks=left] main .psi-diagram,
+.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+
+@media print {
+  /* The same sentence DIAGRAM_CSS says about a diagram - one picture, and
+     splitting it makes two useless halves - is true of a photograph, and
+     only the diagram was hearing it. It is reachable rather than theoretical:
+     .chunk avoids breaking, so a figure inside a chunk that fits a page was
+     never at risk, but a chunk taller than a page cannot honour that and
+     breaks wherever it must. lectures/tutorial #images is 1073px on a 933px
+     page and holds a 365px figure that was free to split down the middle,
+     with the caption landing on the next sheet. Includes the caption by
+     sitting on the <figure>, which is the whole unit a reader needs at once. */
+  figure.figure-img,
+  figure.figure-video,
+  figure.figure-embed { break-inside: avoid; page-break-inside: avoid; }
+}
+
 figure.figure-img figcaption {
   font-family: var(--sans);
   font-size: 0.78rem;
@@ -6697,16 +7853,89 @@ pre.shiki .line { display: inline; }
 
 @media print {
   body { background: white; }
-  main { padding: 0; max-width: none; }
+  /* Smaller and tighter than the screen copy, and both halves matter.
+     10pt over 1.6 is a reading size for a lit screen at arm's length; on
+     paper it set the text so loosely that a chunk of four paragraphs filled
+     most of a sheet, which is what pushed the next one over a page boundary
+     and broke the argument into pieces. 9pt over 1.44 is an ordinary book
+     setting. Everything here is in rem, so the whole document - headings,
+     figures, the diagram label size, the column below - moves with it and
+     the proportions are the ones that were tuned. */
+  html { font-size: 9pt; line-height: 1.44; }
+  .chunk { margin: 1.2rem 0 1.7rem; }
+  /* The text column sits against the left of the page area and the rest of
+     the sheet is left empty on purpose. Two reasons, and the second is the
+     one that decided it.
+     Measure: the page area is 16cm, and 16cm of 10pt serif is about 83
+     characters to the line - half again over what a reader tracks
+     comfortably, and it was the width because nobody had picked one. 36rem
+     is about 65.
+     The margin: a handout is written on. 5.8cm of clean paper down the
+     outside edge is a place to put a note next to the paragraph it belongs
+     to, which is worth more on a teaching handout than symmetry is. It also
+     gives the marginalia construct somewhere to go, which it does not use
+     yet - see the .marginalia rule above, still an inline aside.
+     margin is set explicitly because the screen rule is margin: 0 auto, and auto
+     margins on a narrowed column would centre it again. */
+  main { padding: 0; max-width: 38rem; margin: 0; }
+  /* WebKit does not fragment a grid container. An item that crosses a page
+     boundary is sliced through the middle of a line and the remainder painted
+     on the next sheet - and break-inside: avoid on the item does not save it,
+     because the box being fragmented is the container, not the item. .cards
+     is a grid and its ul is display: contents, so every card and every row is
+     a grid item and every one of them was exposed. It only became visible
+     when chunks started flowing: before that the whole chunk moved and the
+     page boundary never fell inside one.
+
+     ::: rows is a single column, so block flow draws the same picture and
+     fragments the way prose does - between rows, with each row whole because
+     the li keeps its own break-inside: avoid. The grid inside the li, the one
+     that sets the term beside its body, is untouched: it never has to
+     fragment now.
+
+     A multi-column ::: cards block is a layout that block flow would not
+     reproduce, so it keeps its grid and is kept whole instead. That is a
+     promise it can hold: the tallest one in the corpus is 183px against a
+     933px page, and a row of cards that no longer fits simply moves.
+
+     Table rows are the same failure without the grid, and cost nothing to
+     protect. */
+  .cards.rows { display: block; }
+  .cards.rows > ul > li + li, .cards.rows > ol > li + li { margin-top: 0.6rem; }
+  .cards:not(.rows) { break-inside: avoid; page-break-inside: avoid; }
+  tr, .chunk-expansion { break-inside: avoid; page-break-inside: avoid; }
+  thead { display: table-header-group; }
+
+  /* Code cannot reflow, so it is the one thing allowed into that margin.
+     pre carries overflow-x: auto for the screen, and on paper that auto is not
+     a scrollbar, it is a cut - the line simply ends. Reachable today at
+     36rem: lectures/tutorial #diagram-beats-rule is 557px wide. Visible
+     overflow lets it run into the empty margin instead, which is the one
+     place on this page where a few characters of intrusion cost nothing. */
+  pre { overflow: visible; }
   a { text-decoration: none; color: inherit; }
   /* On paper it is a cover page again: fills the sheet, title sitting in
      the lower third (PRD §4.4), no rule under it. */
+  /* The cover is a page of its own, and says so with break-after rather
+     than by being as tall as one. It used to be min-height: 24cm, which is
+     A4's text height of 24.7cm with 2.8% to spare - so it fitted exactly one
+     paper size at exactly these margins. On US Letter the same page area is
+     22.94cm and the box was 4cm too tall; the overflow is the padding below
+     the title, so what landed on the next sheet was a blank one. A reader
+     whose browser sets its own margins - Safari's print dialog does - got
+     the same blank page on A4.
+     19cm clears both with room to spare and still puts the title low on the
+     sheet, which is the whole of what the height was for (PRD 4.4). The
+     padding is in rem for the same reason the figure cap is: vh inside a
+     page box is not a thing the engines agree on. */
   .chunk-title {
-    min-height: 24cm;
+    min-height: 19cm;
     justify-content: flex-end;
-    padding: 0 0 12vh;
+    padding: 0 0 2.5rem;
     margin: 0;
     border-bottom: 0;
+    break-after: page;
+    page-break-after: always;
   }
   pre { background: rgba(0,0,0,0.03); }
 }
@@ -6729,17 +7958,21 @@ pre.shiki .line { display: inline; }
 function abbrevForLabel(label) {
   const l = String(label || '').toLowerCase();
   if (!l) return 'Exp';
-  if (l.startsWith('exa')) return 'Ex';
+  // The abbreviations are glyph-like and stay – it is the prefix matching
+  // that gains the German words, so a `::: expand Beispiel` reads `Ex` rather
+  // than falling to the `Exp` default. `war` (Warnung) already sits on the
+  // `!` line; the others are added beside their English counterparts.
+  if (l.startsWith('exa') || l.startsWith('bei')) return 'Ex';
   if (l.startsWith('exp') || l.startsWith('det') || l.startsWith('deep')) return 'Exp';
-  if (l.startsWith('ref') || l.startsWith('cit') || l.startsWith('bib')) return 'Ref';
-  if (l.startsWith('ans') || l.startsWith('sol')) return '?';
-  if (l.startsWith('pro')) return 'Pf';
-  if (l.startsWith('fig') || l.startsWith('dia')) return 'Fig';
+  if (l.startsWith('ref') || l.startsWith('cit') || l.startsWith('bib') || l.startsWith('lit') || l.startsWith('que')) return 'Ref';
+  if (l.startsWith('ans') || l.startsWith('sol') || l.startsWith('lös') || l.startsWith('ant')) return '?';
+  if (l.startsWith('pro') || l.startsWith('bew')) return 'Pf';
+  if (l.startsWith('fig') || l.startsWith('dia') || l.startsWith('abb')) return 'Fig';
   if (l.startsWith('cod')) return '{}';
   if (l.startsWith('set')) return 'Set';
   if (l.startsWith('note') || l.startsWith('n.b') || l.startsWith('nb')) return 'N.B.';
   if (l.startsWith('asi') || l.startsWith('asd')) return 'ASD';
-  if (l.startsWith('war') || l.startsWith('cav') || l.startsWith('pit')) return '!';
+  if (l.startsWith('war') || l.startsWith('cav') || l.startsWith('pit') || l.startsWith('ach')) return '!';
   return 'Exp';
 }
 
@@ -6749,6 +7982,45 @@ function abbrevForLabel(label) {
 // print-notes.html were already on disk, and --print-only never reached it
 // at all, so an invalid deck built clean. Same contract as the two above -
 // a failed build leaves no half-written artefact.
+// Chunk ids and column ids share one namespace, and a duplicate breaks four
+// things that all key off getElementById: cross-references, the TOC, the
+// speaker-sync snapshot and localStorage recovery - two `<article id="x">`
+// in one document mean the second is unreachable and the two share one
+// `revealed[]` slot. The build used to emit both and exit 0; lint.js has
+// reported `duplicate-id` on exactly this (over one shared `ids` map for `#`
+// and `##`), so the build accepting it is the direction this project does
+// not allow. A pre-flight beside assertCoverBody, walking the parsed
+// structure rather than the source, so `--print-only` refuses it too.
+function assertDistinctIds(lecture) {
+  const seen = new Map();
+  const check = (id, what) => {
+    if (!id) return;
+    if (seen.has(id)) {
+      const err = new Error(
+        `id '${id}' is used twice: first on ${seen.get(id)}, again on ${what}.\n` +
+        '  Chunk ids and column ids share one namespace, and a duplicate makes\n' +
+        '  the second element unreachable - the two share one reveal/sync slot.\n' +
+        '  Ids are frozen once authored; rename the later one.');
+      err.userFacing = true;
+      throw err;
+    }
+    seen.set(id, what);
+  };
+  for (const col of lecture.columns) {
+    if (col.id) {
+      check(col.id, `column "${col.heading || col.id}"`);
+      // The divider slide renders with id `${col.id}-section`, in the same
+      // getElementById namespace, so a chunk (or column) authored that name is
+      // a real duplicate - two elements answer one id. renderColumnSectionChunk
+      // owns this scheme.
+      check(`${col.id}-section`, `the divider of column #${col.id}`);
+    }
+    for (const chunk of col.chunks) {
+      check(chunk.id, `chunk ## ${chunk.tag ? chunk.tag + ': ' : ''}${chunk.heading || chunk.id || ''}`);
+    }
+  }
+}
+
 function assertCoverBody(lecture) {
   // Every frontmatter key that can refuse a deck is resolved here, not where
   // a renderer happens to need it. `section:` was read only while rendering a
@@ -6829,10 +8101,11 @@ function renderTitleChunk(chunk, frontmatter, num) {
   // opened.
   const alignAttr = cover.align ? ` data-cover-align="${cover.align}"` : '';
   const closingAttr = closing ? ' data-closing=""' : '';
+  const groundAttr = groundAttrFor(cover, art);
   const block = closing
-    ? renderClosingBlock(chunk, bodyHtml)
+    ? renderClosingBlock(chunk, bodyHtml, frontmatter, cover)
     : renderTitleBlock({ ...frontmatter, bodyHtml, bodyIsArt: cover.bodyIsArt, bodyInField: cover.bodyInField, variant: cover.variant });
-  return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${closingArtAttr}${alignAttr}${bdAttr}${scrimAttr}${chunkStyleAttrs(chunk)} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
+  return `<article class="chunk chunk-title" data-tag="${closing ? 'closing' : 'title'}" data-width="full" data-cover="${cover.variant}"${closingAttr}${closingArtAttr}${alignAttr}${bdAttr}${scrimAttr}${groundAttr}${chunkStyleAttrs(chunk)} data-chunk-id="${escapeHtml(chunkId)}"${numAttr}${idAttr}${ratioStyle}>
   ${art.html}
   <div class="chunk-content">
     ${block}
@@ -6842,7 +8115,8 @@ function renderTitleChunk(chunk, frontmatter, num) {
 </article>`;
 }
 
-function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts = [], now = 0) {
+function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts = [], now = 0, S = null) {
+  S = S || lectureStrings(frontmatter);
   const num = nums.of.get(chunk);
   if (chunk.tag === 'title' || chunk.tag === 'closing') return renderTitleChunk(chunk, frontmatter, num);
   const { tag, heading, id, width, expansions = [], annotation = '' } = chunk;
@@ -6907,7 +8181,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
 
   const marginsHtml = marginList.map(e => {
     const inner = marked.parse(e.body || '');
-    return `<aside class="margin-note" data-label="${escapeHtml(e.label)}">${inner}</aside>`;
+    return `<aside class="margin-note" data-label="${escapeHtml(e.label === 'note' ? S['aside-note'] : e.label)}">${inner}</aside>`;
   }).join('\n');
 
   const chevsHtml = expandList.length
@@ -6954,12 +8228,12 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
     <div class="chunk-body">${segmentsHtml}</div>
     ${marginsHtml}
     <aside class="annot-box" data-annot-for="${escapeHtml(chunkId)}">
-      <div class="annot-box-label">annotation · ${escapeHtml(chunkId)}</div>
+      <div class="annot-box-label">${escapeHtml(S['annotation-label'])} · ${escapeHtml(chunkId)}</div>
       <div class="annot-qr qr-card" aria-hidden="true"></div>
       <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1">${escapeHtml(annotation)}</textarea>
     </aside>
   </div>
-  <button class="annot-add" type="button" data-annot-add>+ note</button>
+  <button class="annot-add" type="button" data-annot-add>${escapeHtml(S['add-note'])}</button>
   ${dockHtml}
   ${overlayHtml}
   ${chevsHtml}
@@ -7081,7 +8355,7 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
 // each slide can render a corner badge with its global number. Section
 // dividers are auto-inserted, not authored, and stay unnumbered – this
 // keeps audience numbering aligned with print.
-function renderColumnsHtml(columns, frontmatter) {
+function renderColumnsHtml(columns, frontmatter, S) {
   const nums = chunkNumbers(columns);
   // Which named column this is, counted over the columns that *have* a
   // heading - so `section: number` numbers the parts a reader sees rather
@@ -7093,7 +8367,7 @@ function renderColumnsHtml(columns, frontmatter) {
     const sectionHtml = col.heading
       ? renderColumnSectionChunk(col, ci, frontmatter, sectionNo, parts, nums) : '';
     const chunks = col.chunks
-      .map((c, xi) => renderAudienceChunk(c, frontmatter, ci, xi, nums, parts, col.heading ? sectionNo : 0))
+      .map((c, xi) => renderAudienceChunk(c, frontmatter, ci, xi, nums, parts, col.heading ? sectionNo : 0, S))
       .join('\n');
     const idAttr = col.id ? ` id="${escapeHtml(col.id)}"` : '';
     return `<section class="column" data-col="${ci}"${idAttr}>
@@ -7192,7 +8466,7 @@ function renderHelpOverlay(view, withEditor, withSouffleuse) {
     ]],
     ['Finding a slide', [
       ['<kbd>O</kbd>', 'overview – the whole lecture on one board (letter O, not zero)'],
-      ['drag · wheel', 'pan the board · zoom the board'],
+      ['drag · wheel', 'pan the board · zoom it where the pointer is'],
       ['click a slide', 'go there and leave the board'],
       ['<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>', 'move the selection (the board follows)'],
       ['<kbd>O</kbd> · <kbd>Enter</kbd>', 'land on the selected slide'],
@@ -7208,7 +8482,8 @@ function renderHelpOverlay(view, withEditor, withSouffleuse) {
     ]],
     ['On the slide', [
       ['click a figure or code block', 'zoom it into a centred card'],
-      ['drag · wheel · <kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'pan · zoom · reset the zoomed card'],
+      ['drag · wheel', 'pan the card · zoom it where the pointer is'],
+      ['<kbd>+</kbd> <kbd>-</kbd> · <kbd>0</kbd>', 'zoom from the centre · reset the zoomed card'],
       ['click a marginalia', 'slide the frame right until the whole aside is on it'],
       ['drag the slide', 'pan within a chunk that is taller than the screen'],
       ['hold <kbd>Alt</kbd>/<kbd>option</kbd> and drag', 'select text to copy – dragging pans again once you let go'],
@@ -7342,14 +8617,14 @@ ${sections}
 <button id="help-button" type="button" aria-label="Keyboard and mouse reference" title="Keyboard and mouse reference (?)">?</button>`;
 }
 
-function renderTocNav(columns) {
+function renderTocNav(columns, S) {
   const items = columns
     .map((c, i) => ({ c, i }))
     .filter(x => x.c.heading)
     .map(x => `<li data-toc-col="${x.i}"><button type="button">${escapeHtml(x.c.heading)}</button></li>`)
     .join('\n    ');
-  return `<nav id="toc" aria-label="Contents">
-  <h2>Contents</h2>
+  return `<nav id="toc" aria-label="${escapeHtml(S.contents)}">
+  <h2>${escapeHtml(S.contents)}</h2>
   <ol>
     ${items}
   </ol>
@@ -7388,8 +8663,9 @@ function editorPayload(frontmatter, columnsHtml, view) {
 
 function renderAudience(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
-  const title = lectureTitle(frontmatter);
-  let columnsHtml = renderColumnsHtml(columns, frontmatter);
+  const S = opts.strings || lectureStrings(frontmatter);
+  const title = lectureTitle(frontmatter, S);
+  let columnsHtml = renderColumnsHtml(columns, frontmatter, S);
   if (!editorPayload(frontmatter, columnsHtml, 'audience')) columnsHtml = stripDiagramAssets(columnsHtml);
   const titleJson = jsonForScript(title);
   const defaults = viewDefaults(frontmatter);
@@ -7400,13 +8676,13 @@ function renderAudience(lecture, opts = {}) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)} – lecture</title>
+<title>${escapeHtml(title)} – ${escapeHtml(S['title-lecture'])}</title>
 <style>
 ${AUDIENCE_CSS}
 ${DIAGRAM_CSS}
 </style>
-${fontStyleTag(opts.fontEmbed)}
-${styleBlockCss(styleOpts)}
+${fontStyleTag(opts.fontEmbed, 'live')}
+${styleBlockCss(styleOpts, S)}
 ${katexStyleTag(columnsHtml, { fontToggle: true })}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
 </head>
@@ -7428,7 +8704,7 @@ ${BLANK_BADGE_HTML}
 ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
 ${DEMO_OVERLAY_HTML}
-${renderTocNav(columns)}
+${renderTocNav(columns, S)}
 <script>
 ${qrLibJs()}
 </script>
@@ -7466,6 +8742,33 @@ const AUDIENCE_CSS = `
   --dim: 0.86;
   --camera-duration: 250ms;
   --slide-pad-x: 14%;
+  /* Corner radii, one ladder and in em, so a corner keeps its proportion to
+     the type inside it rather than to the pixel grid. As absolute pixels the
+     same card row rounded differently on every slide: auto-fit sets the
+     card's font-size per slide, so the 10px on a cards item measured
+     0.23em where the zoom was high and 0.33em two slides later. Two values,
+     not the four that had accumulated (2, 3, 6, 10) - a card and a clipped
+     frame are the only two things here that round.
+     Not shared with the cockpit's chrome below, which is fixed-size UI at
+     one scale and where a pixel is the right unit. */
+  --radius-card:  0.3em;
+  --radius-tight: 0.1em;
+  /* One elevation ladder, and in em for the reason the radii are: a shadow
+     models a card's height off the page, so it has to keep its proportion to
+     the card. The four pixel recipes this replaces did not - and they were
+     four, for three jobs, in two different shadow colours (hue 260 in some,
+     pure black in others).
+
+     The hue follows --accent-h, so a tinted palette carries the shadows with
+     it rather than leaving cool shadows under a warm card. The exception is
+     written where it is used: a shadow that separates a card from a
+     PHOTOGRAPH is a legibility device, not depth, and stays neutral - the
+     same line ov-glass and the invert text-shadow are on. */
+  --shadow-ink: 0.2 0.01 var(--accent-h, 260);
+  --shadow-rest:  0 0.04em 0.08em oklch(var(--shadow-ink) / 0.10),
+                  0 0.26em 0.85em oklch(var(--shadow-ink) / 0.10);
+  --shadow-float: 0 0.09em 0.95em oklch(var(--shadow-ink) / 0.16);
+  --shadow-quiet: 0 0.08em 0.72em oklch(var(--shadow-ink) / 0.08);
   /* Slide-internal sizes all derive from --slide-h so content layout is
      pixel-identical across views. --slide-w / --slide-h hold the AUDIENCE
      reference dimensions: in audience that's window.innerW/H; in speaker
@@ -7538,7 +8841,14 @@ body[data-font=mono] .katex .mathnormal {
 body[data-theme=light-red]    { --emph: oklch(0.42 0.16 30); }
 body[data-theme=light-teal]   { --emph: oklch(0.52 0.12 195); }
 body[data-theme=light-blue]   { --emph: oklch(0.48 0.18 250); }
-body[data-theme=light-orange] { --emph: oklch(0.58 0.17 60);  }
+/* 0.54 and not the 0.58 it was: measured against the paper, 0.58 gives
+   4.23:1, which is fine for the big bold of a card term and under the 4.5:1
+   a body-text weight wants - and the accent does land in prose, because a
+   bold phrase can be set in it. 0.56 clears the line at 4.57 and 0.54 at
+   4.96, and the wider margin is the one to take on a projector, where the
+   room's light is the variable nobody measured. The other three already
+   clear it: light-red 8.66, light-blue 5.99, light-teal 4.67. */
+body[data-theme=light-orange] { --emph: oklch(0.54 0.17 60);  }
 
 /* Neutral dark mode – grey paper, white ink, the light-red accent lifted
    until it carries on a dark ground. Distinct from the terminal modes on
@@ -7572,6 +8882,85 @@ body[data-theme=terminal-green] {
   --ink-soft:   oklch(0.58 0.12 145);
   --rule:       oklch(0.33 0.06 150);
   --emph:       oklch(0.92 0.24 145);
+}
+
+/* ── neutrals: what hue the greys carry (style: {neutrals}) ────────
+   Off by default, and the default is today's rendering: a deck that says
+   nothing emits no data-neutrals and reaches none of this.
+
+   The problem it answers: in the four light themes the A key moves --emph
+   and nothing else. --ink sits at chroma 0.01 on hue 260, --paper and
+   --rule at chroma 0, and every quiet fill is mixed out of --ink - a card
+   5% of it, a dock and an overlay card 4%. So the card under a light-orange
+   accent is a cool grey under a warm word, and the two agree only in
+   light-blue, where the accent happens to be at hue 250. The dark theme has
+   a milder version of the same (neutral ink, accent at 35); the two terminal
+   themes have none of it, because there the ink IS the theme's colour.
+
+   --accent-h is each theme's own hue, and warm / cool override it with a
+   fixed one. Held off the terminal pair deliberately: a single phosphor
+   tone is what those are, and a warm-grey paper under green ink is neither.
+   tinted needs no guard there - the accent's hue is already the theme's. */
+body[data-theme=light-red]    { --accent-h: 30; }
+body[data-theme=light-teal]   { --accent-h: 195; }
+body[data-theme=light-blue]   { --accent-h: 250; }
+body[data-theme=light-orange] { --accent-h: 60; }
+body[data-theme=dark]         { --accent-h: 35; }
+/* After the four above, and at the same specificity, so source order is
+   what makes a fixed hue win over the theme's own. */
+body[data-neutrals=warm] { --accent-h: 70; }
+body[data-neutrals=cool] { --accent-h: 250; }
+
+/* The chroma is the argument, not the hue: 0.014 on the ink is under the
+   threshold at which a grey reads as a colour, and enough for the eye to
+   stop seeing two families. The paper gets half of it, because a tinted
+   paper costs brightness in a lit room and this is the one token a
+   projector punishes. */
+body[data-theme^=light]:is([data-neutrals=tinted], [data-neutrals=warm], [data-neutrals=cool]) {
+  --ink:        oklch(var(--ink-l) 0.014 var(--accent-h));
+  --ink-soft:   oklch(var(--ink-soft-l) 0.014 var(--accent-h));
+  --paper:      oklch(0.98 0.007 var(--accent-h));
+  --paper-warm: oklch(0.96 0.014 var(--accent-h));
+  --rule:       oklch(0.78 0.013 var(--accent-h));
+}
+body[data-theme=dark]:is([data-neutrals=tinted], [data-neutrals=warm], [data-neutrals=cool]) {
+  --paper:      oklch(0.17 0.010 var(--accent-h));
+  --paper-warm: oklch(0.22 0.016 var(--accent-h));
+  --ink:        oklch(0.95 0.006 var(--accent-h));
+  --ink-soft:   oklch(0.68 0.014 var(--accent-h));
+  --rule:       oklch(0.38 0.018 var(--accent-h));
+}
+
+/* Under tinted the quiet fills are mixed from the accent itself rather than
+   from the ink, and at a higher percentage to compensate: 5% of a 0.014
+   ink is a fill with no hue left in it, which is the half of the defect a
+   token swap alone does not reach. warm and cool keep mixing from the ink,
+   because there the ink already carries the hue the author asked for. */
+/* --card-bg and not background: the fill is declared on the .cards container
+   as a custom property and read by the item, so a background here paints the
+   grid and not the card. */
+body[data-neutrals=tinted] .cards.cg-panel { --card-bg: color-mix(in oklch, var(--emph) 8%, transparent); }
+body[data-neutrals=tinted] .chunk[data-section=card] .section-heading {
+  background: color-mix(in oklch, var(--emph) 8%, transparent);
+}
+/* glass is deliberately NOT in this list, and the distinction generalises:
+   a surface that exists to keep type legible stays outside the palette, a
+   surface that exists to group or separate follows it. ov-glass is the
+   first kind, and not because of its hue but because it has a *measured
+   floor* - the 52% above, and the 68% a panel takes, are numbers derived
+   from a contrast ratio on a mid-tone photograph, so a palette key that
+   moves them is changing a measurement and not a taste. This selector is
+   one element more specific than the panel's, so an accent mix here would
+   have won and put words on a nearly unveiled picture, which is the exact
+   thing text-on-picture warns about. The invert backdrop's text-shadow is
+   outside the palette for the same reason: a tinted halo colours the type
+   it exists to protect. */
+body[data-neutrals=tinted] :is(.overlay-card, .dock).ov-paper,
+body[data-neutrals=tinted] .dock.ov-tint {
+  background: color-mix(in oklch, var(--emph) 6%, transparent);
+}
+body[data-neutrals=tinted] .cards.cg-outline {
+  --card-border: 2px solid color-mix(in oklch, var(--emph) 26%, transparent);
 }
 
 /* A dark reading theme switches shiki to its dark palette. Every token
@@ -8099,7 +9488,7 @@ figure.figure-embed {
   aspect-ratio: 16 / 9;
   max-height: 56vh;
   background: oklch(0.12 0 0);
-  border-radius: 2px;
+  border-radius: var(--radius-tight);
   overflow: hidden;
 }
 .embed-frame iframe { width: 100%; height: 100%; border: 0; display: block; }
@@ -8125,7 +9514,7 @@ figure.figure-embed {
   text-align: center;
   padding: 1em;
   border: 2px dashed var(--rule);
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   font-family: var(--sans-font);
   color: var(--ink-soft);
 }
@@ -8141,7 +9530,7 @@ figure.figure-video video {
   height: auto;
   display: block;
   background: oklch(0.12 0 0);
-  border-radius: 2px;
+  border-radius: var(--radius-tight);
 }
 figure.figure-img img,
 figure.figure-img svg {
@@ -8198,7 +9587,16 @@ body.figure-dragging #figure-overlay * { cursor: grabbing !important; }
   transition: transform 80ms ease-out;
   will-change: transform;
 }
-body.figure-dragging #figure-overlay > .figure-focus-target { transition: none; }
+/* The transition belongs to the input, not to the element: a keypress wants
+   the ease, a continuous gesture must not have it. A macOS trackpad delivers
+   a wheel event every 8.4 ms (measured), so each one restarted this 80 ms
+   curve from its own interpolated midpoint and the card never arrived
+   anywhere – the judder was the easing being re-aimed roughly ten times per
+   frame, independently of how big the zoom step was. Drag has had the rule
+   from the start; the wheel path was simply never given it. Wheel has no end
+   event, so figureZoomWheel ends the gesture on a quiet period. */
+body.figure-dragging #figure-overlay > .figure-focus-target,
+body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; }
 /* The target is always shown on a solid paper card – otherwise the
    dimmed backdrop bleeds through (shiki-highlighted code in particular
    loses legibility when translucent). !important wins over shiki's
@@ -8380,17 +9778,26 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    min-height every chunk gets, the next chunk's heading crept into the
    bottom of the frame and the split variant's picture stretched to a band
    across the top third instead of bleeding down the whole right edge. */
-.chunk-title { align-items: end; min-height: var(--slide-h); }
+/* The size of a title pair's loud line, named once so the eyebrow mode can
+   hand it to whichever of the two lines is carrying the weight. Every
+   composition below sets this rather than a font-size on .title-main, which
+   is what lets style.headline: eyebrow work on all ten of them instead
+   of on the default one. It is declared on the chunk - an ancestor of both
+   lines - because a custom property inherits down and not sideways; neither
+   .chunk nor .chunk-content sets a font-size, so the em resolves against
+   exactly what it resolved against when each of these was a font-size. */
+.chunk-title { align-items: end; min-height: var(--slide-h); --title-lead: 2.6em; }
 .chunk-title .chunk-content {
   grid-column: 2;
   gap: 0.5em;
   padding-bottom: 12vh;
 }
 .chunk-title .title-main {
-  font-size: calc(2.6em * var(--zoom));
+  font-size: calc(var(--title-lead) * var(--zoom));
+  max-width: var(--title-measure, none);
   font-weight: 500;
   margin: 0;
-  line-height: 1.1;
+  line-height: ${displayLh('live', '.chunk-title .title-main')};
   letter-spacing: -0.02em;
 }
 .chunk-title .title-presenter {
@@ -8405,6 +9812,95 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   line-height: 1.5;
 }
 .chunk-title .title-info p { margin: 0.15em 0; }
+/* The institution is a rank of its own rather than another info: line.
+   It qualifies the name directly above it, where the venue and the date
+   qualify the talk - set at one size they read as a list of four equal
+   facts, which is what made the old credit block read as a log file. */
+.chunk-title .title-affiliation {
+  font-family: var(--sans-font);
+  font-size: calc(0.82em * var(--zoom));
+  font-weight: 500;
+  margin: 0.08em 0 0;
+  color: var(--ink-soft);
+}
+/* The foot: an address on the left, the line that answers the room on the
+   right. A row and not two more stacked lines, because they do a different
+   job from the two ranks above - those introduce the speaker, these answer
+   "where do I get this" and "may I photograph it".
+
+   width: 100% is load-bearing and is the same trap the masthead's credits
+   row fell into: space-between needs a width to push against, and a flex
+   item in a column shrink-wraps to its content. */
+.chunk-title .title-foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 0.2em 2.4em;
+  width: 100%;
+  margin-top: 0.85em;
+  font-family: var(--sans-font);
+  font-size: calc(0.7em * var(--zoom));
+  color: var(--ink-soft);
+}
+/* One device to separate the notice from the address beside it, and the one
+   that costs no colour and no weight - both of which are already carrying
+   something else on this slide. */
+.chunk-title .title-notice { font-style: italic; }
+/* Capitals at the tracking of lowercase read as one jammed word. The
+   attribute is written by the renderer for any slot already in capitals, so
+   this reaches the line an author typed that way as much as the line
+   style.caps transformed - see isAllCaps. */
+.chunk-title [data-caps] { letter-spacing: 0.055em; }
+/* style: {caps: on} - the small type around the title, never the title.
+   Under headline: eyebrow the eyebrow is small type and takes it; under
+   stacked, .title-main is the loud line and is left alone, because a key
+   that capitalises the loud line is a key that makes a talk shout. */
+body[data-title-caps=on] .chunk-title .title-presenter,
+body[data-title-caps=on] .chunk-title .title-affiliation,
+body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+/* ── style: {headline: eyebrow} ───────────────────────────────────────
+   The pair the other way up: the title small above a subtitle that carries
+   the weight. The words do not move - title: is still the lecture's name,
+   still the <title> element, still what the TOC and the search index read -
+   and only the type changes, which is what lets one key serve the cover,
+   the dividers and the closing slide at once.
+
+   The subtitle takes --title-lead, so it inherits whatever size the
+   composition chose for its headline and the swap works on all ten rather
+   than on the default one. The eyebrow's own size is fixed and small: it is
+   a kicker, and a kicker that scales with the headline stops being one. */
+body[data-headline=eyebrow] .chunk-title .title-main {
+  font-size: calc(1.02em * var(--zoom));
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.015em;
+  color: var(--ink-soft);
+  /* Uncapped, and that is the point of moving the cap to --title-measure:
+     a composition's cap is written in the headline's em, and read at the
+     eyebrow's much smaller one the same number is a third of the slide.
+     Measured, masthead's 15em came out as 483px and broke
+     "Datensicherheit im digitalen Alltag:" onto two lines. A kicker is one
+     short line by construction; the column is the only cap it needs. */
+  max-width: none;
+  margin: 0 0 0.1em;
+}
+body[data-headline=eyebrow] .chunk-title .title-subtitle {
+  font-size: calc(var(--title-lead) * var(--zoom));
+  max-width: var(--title-measure, 20em);
+  font-weight: 600;
+  line-height: ${displayLh('live', 'body[data-headline=eyebrow] .chunk-title .title-subtitle')};
+  letter-spacing: -0.022em;
+  color: var(--ink);
+  /* In the subtitle's own em, which is now the headline's, so the measure
+     has to be restated: 26em at meta size is a paragraph, 26em at 2.6em is
+     two thirds of a projector. */
+  max-width: 20em;
+  margin: 0 0 0.25em;
+}
 
 /* ── lecture-wide style settings (the style: frontmatter block) ──────
    Two of the four keys are selectors rather than numbers, because what
@@ -8513,11 +10009,11 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   gap: 0;
   justify-content: flex-start;
 }
+.chunk[data-cover=masthead] { --title-lead: 2.5em; }
+.chunk[data-cover=masthead] { --title-measure: 17em; }
 .chunk[data-cover=masthead] .title-main {
-  font-size: calc(2.5em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.026em;
-  max-width: 17em;
 }
 .chunk[data-cover=masthead] .title-subtitle {
   margin: 0.5em 0 0;
@@ -8583,10 +10079,8 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
    and the same shape of rule: the composition reads what it was given and
    sets the scale from it, rather than making the author choose a size to go
    with a decision they already made by writing (or not writing) a body. */
-.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-main {
-  font-size: calc(3.05em * var(--zoom));
-  max-width: 15em;
-}
+.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) { --title-lead: 3.05em; }
+.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) { --title-measure: 15em; }
 .chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-subtitle {
   font-size: calc(1.3em * var(--zoom));
   margin-top: 0.55em;
@@ -8611,12 +10105,12 @@ body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content
   padding-bottom: 0;
   gap: 0;
 }
+.chunk[data-cover=display] { --title-lead: 4.4em; }
+.chunk[data-cover=display] { --title-measure: 9.5em; }
 .chunk[data-cover=display] .title-main {
-  font-size: calc(4.4em * var(--zoom));
   font-weight: 600;
-  line-height: 0.97;
+  line-height: ${displayLh('live', '.chunk[data-cover=display] .title-main')};
   letter-spacing: -0.042em;
-  max-width: 9.5em;
   text-wrap: balance;
 }
 .chunk[data-cover=display] .title-subtitle {
@@ -8677,9 +10171,9 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   padding-bottom: 12vh;
   gap: 0.3em;
 }
+.chunk[data-cover=panel] { --title-lead: 2.85em; }
 .chunk[data-cover=panel] .title-main {
   color: var(--panel-ink);
-  font-size: calc(2.85em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.028em;
 }
@@ -8688,6 +10182,15 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   margin: 0.4em 0 0;
   font-size: calc(1.18em * var(--zoom));
   max-width: 26em;
+}
+/* panel reverses its ink through a token of its own rather than through
+   --ink, so every element on it has to be named here: an element that only
+   reads --ink-soft comes out dark on a dark plate. The affiliation and the
+   foot are the two newest, and they are the reason this list is worth
+   keeping in one place. */
+.chunk[data-cover=panel] .title-affiliation,
+.chunk[data-cover=panel] .title-foot {
+  color: color-mix(in oklch, var(--panel-ink) 76%, transparent);
 }
 .chunk[data-cover=panel] .title-presenter {
   color: var(--panel-ink);
@@ -8739,11 +10242,11 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* Under the claim the title is the attribution, so it is set at meta size
    and not as a headline - the one place in the family where the lecture's
    own name is not the largest thing on its cover. */
+.chunk[data-cover=quote] { --title-lead: 1.05em; }
+.chunk[data-cover=quote] { --title-measure: 26em; }
 .chunk[data-cover=quote] .title-main {
-  font-size: calc(1.05em * var(--zoom));
   font-weight: 600;
   letter-spacing: 0;
-  max-width: 26em;
 }
 .chunk[data-cover=quote] .title-subtitle {
   margin: 0.2em 0 0;
@@ -8800,8 +10303,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   background-position: center;
   background-repeat: no-repeat;
 }
+.chunk[data-cover=split] { --title-lead: 2.35em; }
 .chunk[data-cover=split] .title-main {
-  font-size: calc(2.35em * var(--zoom));
   font-weight: 600;
 }
 .chunk[data-cover=split] .title-presenter { margin-top: 0.5em; }
@@ -8824,8 +10327,24 @@ body[data-mode=dark] .chunk[data-cover=panel] {
     oklch(0.12 0.02 260 / 0.28) 68%,
     oklch(0.12 0.02 260 / 0.10) 100%);
 }
+/* The scrim has to follow the type, and it did not. hero places its block at
+   the foot, so the gradient is dark at the bottom - but cover-align: top
+   is accepted on hero, and it moved the reversed type onto the thinnest part
+   of the veil: white words on the bright half of a photograph. Found while
+   planning the title work, not by a test, because nothing measures contrast
+   over a picture. An even veil is not the answer here for the reason it is
+   not the answer anywhere on this composition: it greys the whole photograph
+   to protect four lines in one corner. */
+.chunk[data-cover=hero][data-cover-align=top] .chunk-backdrop.bd-invert::after {
+  background: linear-gradient(
+    to bottom,
+    oklch(0.12 0.02 260 / 0.88) 0%,
+    oklch(0.12 0.02 260 / 0.72) 34%,
+    oklch(0.12 0.02 260 / 0.28) 68%,
+    oklch(0.12 0.02 260 / 0.10) 100%);
+}
+.chunk[data-cover=hero] { --title-lead: 2.75em; }
 .chunk[data-cover=hero] .title-main {
-  font-size: calc(2.75em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.026em;
 }
@@ -8849,7 +10368,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   max-width: 34em;
   margin: 0 auto;
 }
-.chunk[data-cover=stack] .title-main { font-size: calc(2.6em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=stack] { --title-lead: 2.6em; }
+.chunk[data-cover=stack] .title-main { font-weight: 600; }
 .chunk[data-cover=stack] .title-subtitle { max-width: 30em; margin-top: 0.1em; }
 .chunk[data-cover=stack] .title-presenter { margin-top: 0.9em; font-weight: 600; }
 .chunk[data-cover=stack] .title-info { margin-top: 0.15em; }
@@ -8878,7 +10398,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   background-repeat: no-repeat;
   min-height: 42vh;
 }
-.chunk[data-cover=beside] .title-main { font-size: calc(2.25em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=beside] { --title-lead: 2.25em; }
+.chunk[data-cover=beside] .title-main { font-weight: 600; }
 
 /* above - the art on top, the title in the lower quarter and centred on
    both axes. The proportion is the point: cover-ratio is how much of the
@@ -8927,7 +10448,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   max-width: 36em;
   margin: 0 auto;
 }
-.chunk[data-cover=above] .title-main { font-size: calc(2.05em * var(--zoom)); font-weight: 600; }
+.chunk[data-cover=above] { --title-lead: 2.05em; }
+.chunk[data-cover=above] .title-main { font-weight: 600; }
 .chunk[data-cover=above] .title-subtitle { max-width: 32em; font-size: calc(1.05em * var(--zoom)); }
 .chunk[data-cover=above] .title-presenter { margin-top: 0.5em; font-weight: 600; }
 .chunk[data-cover=above] .title-info { margin-top: 0.05em; font-size: calc(0.64em * var(--zoom)); }
@@ -8999,10 +10521,8 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* display sets the title at four and a half ems, which is right for a
    lecture title and shouting for the word "Questions?". The bookend keeps
    the composition and steps the scale back to the cover's own. */
-.chunk[data-cover=display][data-closing] .title-main {
-  font-size: calc(3.1em * var(--zoom));
-  max-width: 14em;
-}
+.chunk[data-cover=display][data-closing] { --title-lead: 3.1em; }
+.chunk[data-cover=display][data-closing] { --title-measure: 14em; }
 /* quote is the other cover that sets .title-main to something it is not on a
    closing slide. There the lecture's title is the *attribution* under the
    claim, so it is meta-sized on purpose - but a closing slide has no claim
@@ -9010,11 +10530,11 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    size: measured, 29.9px where a heading belongs. The bookend keeps the
    composition and takes back the one rule that only made sense with a
    quotation over it. */
+.chunk[data-cover=quote][data-closing] { --title-lead: 2.2em; }
+.chunk[data-cover=quote][data-closing] { --title-measure: 20em; }
 .chunk[data-cover=quote][data-closing] .title-main {
-  font-size: calc(2.2em * var(--zoom));
   font-weight: 600;
   letter-spacing: -0.018em;
-  max-width: 20em;
 }
 .chunk[data-cover=quote][data-closing] .title-subtitle {
   font-size: calc(1.05em * var(--zoom));
@@ -9154,7 +10674,14 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 /* An inverted slide re-points the ink tokens rather than restating every
    colour rule: everything downstream already reads --ink / --ink-soft /
    --rule, so one block covers headings, body, lists, rules and captions. */
-.chunk[data-backdrop=invert] {
+/* cover-ground: ink joins this selector rather than restating it. The
+   token re-pointing below is the one place a dark slide is described, and a
+   second spelling of it is a second place to keep in sync; what the ground
+   adds is the dark itself, which a backdrop otherwise supplies as a
+   picture. */
+.chunk[data-cover-ground=ink] { background: oklch(0.14 0.015 260); }
+.chunk[data-backdrop=invert],
+.chunk[data-cover-ground=ink] {
   /* color: var(--ink) is declared on body, so it is *computed* there
      against body's --ink and inherited as a finished colour: redefining
      the token further down changes nothing that already resolved. The
@@ -9166,7 +10693,11 @@ body[data-mode=dark] .chunk[data-cover=panel] {
   --ink-soft: oklch(0.99 0 0 / 0.74);
   --rule: oklch(0.99 0 0 / 0.32);
   --emph: oklch(0.90 0.10 75);
-  text-shadow: 0 1px 14px oklch(0.12 0.02 260 / 0.5);
+  /* Deliberately outside the palette, and at chroma 0 rather than 0.02 so
+     that it says so. This halo exists to separate reversed glyphs from
+     whatever the photograph is doing behind them; a halo carrying a hue
+     tints the type it is protecting, which is the opposite of its job. */
+  text-shadow: 0 1px 14px oklch(0.12 0 0 / 0.5);
 }
 /* Content has to clear the backdrop, which is z-index 0 in the same
    stacking context. Written as a z-index on each layer and never as a
@@ -9213,7 +10744,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .overlay-card {
   pointer-events: auto;
   padding: 0.85em 1.05em;
-  border-radius: 6px;
+  border-radius: var(--radius-card);
   font-size: calc(0.92em * var(--zoom));
   line-height: 1.45;
   align-self: center;
@@ -9277,7 +10808,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    which is the only one that needs the picture to still show through. */
 :is(.overlay-card, .dock).ov-paper {
   background: color-mix(in oklch, var(--paper) 94%, transparent);
-  box-shadow: 0 2px 22px oklch(0.2 0.01 260 / 0.16);
+  box-shadow: var(--shadow-float);
   color: var(--ink);
   --ink-soft: color-mix(in oklch, var(--ink) 55%, transparent);
   text-shadow: none;
@@ -9421,29 +10952,36 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    the content track stays minmax(0, --content-w) and the 1fr gutters absorb
    the rest, so no grid-column rule changes. A band is a grid row, because
    its height at snug is its words', which only an auto row can measure.
-   The width is a bare number on .chunk (--dock-em) and both sides multiply
-   it out themselves: the column in its own em, which is 0.92 of the
-   chunk's times the zoom, and the chunk's padding in the chunk's em times
-   the same two factors. Written as one em value it resolved twice - 13em
-   of the chunk in the padding, 13em of the zoomed dock in the column - and
-   the column ran 300px into the text at zoom 2.2. So the reserved track
-   grows with the lecturer's zoom, as the dock's type does, and auto-fit
-   converges on the zoom at which both fit: it re-measures after every
-   applyZoom. */
-/* Registered as a <length>, so the em in it is resolved once, at the chunk,
-   and every reader below - the chunk's padding, the dock's width, the slide
-   number's offset, the overlay layer's inset - gets the same pixels. As a
-   plain custom property the em would be re-read where it is used: in the
-   dock's zoomed type, in the badge's small digits, each a different width. */
+
+   A column's width is a share of the slide, not a measure of type. That is
+   the panel's rule (see ov-panel above) for the panel's reason and one
+   more: the track used to be a bare number on .chunk multiplied out in the
+   dock's own zoomed em, so it followed auto-fit rather than the frame, and
+   the same inherited dock stood 406, 350 and 294 px wide on three
+   consecutive slides of one part. A running agenda that shifts sideways on
+   every advance is the one thing a running agenda must not do. The shares
+   below hold the text measure those ems gave at the widest of the three. */
+/* Still registered as a <length>: the readers below - the chunk's padding,
+   the dock's width, the slide number's offset, the overlay layer's inset -
+   then all get the same pixels, and an unrecognised width word resolves to
+   0px rather than to an invalid calc. */
 @property --dock-px { syntax: '<length>'; inherits: true; initial-value: 0px; }
-.chunk[data-dock] { min-height: var(--slide-h); --dock-gap: 1.6em; --dock-px: calc(var(--dock-em) * 0.92em * var(--zoom)); }
+/* The air a dock keeps, one number on both of its sides: inside the column,
+   and between the column and the words. A share of the slide for the reason
+   the width is - written as an em (1.2em inside, 1.6em beside) it shrank
+   with auto-fit, so the words crowded the frame and the seam exactly on the
+   slides carrying the most text, which is where the crowding shows. One
+   number, so the slab's edge stands in the middle of a clear band twice its
+   own width rather than a third of the way into it. */
+.chunk[data-dock] { min-height: var(--slide-h); --dock-gap: calc(var(--slide-w) * 0.035); }
 /* The width word rides on the article as data-dock-w, beside data-dock,
-   because the padding is the chunk's. Measured on the weakest-link photo
-   at 1600x900: 13em holds a seven-item list of one-word headings, 18em a
-   two-line remark, 25em a short paragraph. lint.js mirrors them as DOCK_EM. */
-.chunk[data-dock-w=narrow]   { --dock-em: 13; }
-.chunk[data-dock-w=standard] { --dock-em: 18; }
-.chunk[data-dock-w=wide]     { --dock-em: 25; }
+   because the padding is the chunk's. Measured at 1600x900, air included:
+   28% holds a seven-item list of one-word headings, 37% a two-line remark,
+   46% a short paragraph. 46 and not the panel's 52, because a dock that
+   takes half the slide is a ::: side. lint.js mirrors them as DOCK_SHARE. */
+.chunk[data-dock-w=narrow]   { --dock-px: calc(var(--slide-w) * 0.28); }
+.chunk[data-dock-w=standard] { --dock-px: calc(var(--slide-w) * 0.37); }
+.chunk[data-dock-w=wide]     { --dock-px: calc(var(--slide-w) * 0.46); }
 .chunk[data-dock=left]  { padding-left:  calc(var(--dock-px) + var(--dock-gap)); }
 .chunk[data-dock=right] { padding-right: calc(var(--dock-px) + var(--dock-gap)); }
 
@@ -9463,12 +11001,14 @@ body[data-mode=dark] .chunk[data-cover=panel] {
 .dock figure { margin: 0; }
 
 /* column: absolute against the chunk, whose padding is the reserved track.
-   Vertical padding is the slide's; horizontal is fixed, because 14% of a
-   13em column is not a padding. */
+   Vertical padding is the slide's; horizontal is --dock-gap, the same air
+   that stands between the column and the words. Not --slide-pad-x: a
+   percentage padding here resolves against the chunk, so 14% would be the
+   slide's whole gutter inside a column a quarter of it wide. */
 .dock.dock-left, .dock.dock-right {
   position: absolute; top: 0; bottom: 0;
   width: var(--dock-px);
-  padding: var(--slide-pad-y) 1.2em;
+  padding: var(--slide-pad-y) var(--dock-gap);
 }
 .dock.dock-left  { left: 0; }
 .dock.dock-right { right: 0; }
@@ -9590,8 +11130,10 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   padding: var(--card-py, 1.05em) var(--card-px, 1.15em);
   border: var(--card-border, 0);
   /* 6px on a card 300px wide is the radius a stylesheet has when nobody
-     chose one. At slide scale it needs to be visible as a decision. */
-  border-radius: 10px;
+     chose one. At slide scale it needs to be visible as a decision, which is
+     an argument for a proportion and not for a pixel count - see
+     --radius-card. */
+  border-radius: var(--radius-card);
   background: var(--card-bg, none);
   list-style: none;
   line-height: 1.38;
@@ -9712,8 +11254,23 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   padding: var(--card-py, 1.05em) var(--card-px, 1.15em);
   background: var(--card-bg, none);
   border: var(--card-border, 0);
-  border-radius: 10px;
-  align-self: center;
+  border-radius: var(--radius-card);
+  /* The variable, not a fixed word - the term is the card, so the anchor
+     slot has to reach it or {.top} moves the body and leaves the term where
+     it was. Measured: under cv-top the term's first line still sat 21px
+     below the body's, the same offset the default produces, so the escape
+     hatch the vocabulary offers could not reach the thing it names. The
+     slot had this defect once before on the container, where align-items
+     was center unconditionally and top and middle rendered identically;
+     it was fixed there and the term was missed.
+
+     The DEFAULT stays center, deliberately. Centring a one-line term
+     against a two-line body leaves their first lines 21px apart, which
+     does read as loose - but the alternative is a term stranded at the top
+     of a five-line body, and the note above the anchor default in the
+     renderer says that trade was already weighed and settled. Changing it
+     is a design decision and not a repair. */
+  align-self: var(--row-anchor, center);
   text-align: var(--card-align, left);
   font-size: calc(1em * var(--card-fs, 1));
   line-height: 1.25;
@@ -9751,7 +11308,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    as well and made it invisible. That one is fixed where the ground is
    declared, by putting the ink on the term rather than on the item. */
 .cards.rows.cg-paper li > :is(strong, b):first-child {
-  box-shadow: 0 1px 2px oklch(0.2 0.01 260 / 0.10), 0 6px 20px oklch(0.2 0.01 260 / 0.10);
+  box-shadow: var(--shadow-rest);
 }
 
 /* size - one decision for the row, never per card: three sizes in one row
@@ -9816,7 +11373,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 .cards.cg-paper > ol > li,
 .cards.cg-paper > :not(ul):not(ol) {
   --card-bg: var(--paper);
-  box-shadow: 0 1px 2px oklch(0.2 0.01 260 / 0.10), 0 6px 20px oklch(0.2 0.01 260 / 0.10);
+  box-shadow: var(--shadow-rest);
 }
 /* photo - the card's first picture becomes its ground rather than a band
    across its top. The image is the same <img> the bleeding rule handles;
@@ -9836,9 +11393,17 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   overflow: hidden;
   min-height: 7em;
 }
-.cards.cg-photo li > :is(p, figure):first-child > img:only-child,
-.cards.cg-photo li > img:first-child,
-.cards.cg-photo li > figure.figure-img:first-child img {
+/* The card's first image is its ground, wherever it sits in the item.
+   first-of-type, not first-child: a card may open with the documented bold
+   heading (a bold run then a hard break) which puts a strong plus a br ahead
+   of the image - and first-child then matched nothing, so the ground silently
+   became an ordinary inline picture with the words above and below it. An
+   inline svg (a vector asset spliced for theme inheritance) is a ground too,
+   and carried no img for the old selector to reach at all. */
+.cards.cg-photo li > :is(p, figure):first-of-type > img:first-of-type,
+.cards.cg-photo li > img:first-of-type,
+.cards.cg-photo li > figure.figure-img:first-of-type > img,
+.cards.cg-photo li > figure.figure-img:first-of-type > svg {
   position: absolute;
   inset: 0;
   width: 100%;
@@ -9848,7 +11413,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   object-fit: cover;
   z-index: -2;
 }
-.cards.cg-photo li > figure.figure-img:first-child { position: static; margin: 0; }
+.cards.cg-photo li > figure.figure-img:first-of-type { position: static; margin: 0; }
 .cards.cg-photo li::before {
   content: '';
   position: absolute;
@@ -9877,7 +11442,7 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 }
 
 /* corner - shape, not ground, so the two compose. */
-.cards.ck-round  > ul > li, .cards.ck-round  > ol > li, .cards.ck-round  > :not(ul):not(ol) { border-radius: 10px; }
+.cards.ck-round  > ul > li, .cards.ck-round  > ol > li, .cards.ck-round  > :not(ul):not(ol) { border-radius: var(--radius-card); }
 .cards.ck-square > ul > li, .cards.ck-square > ol > li, .cards.ck-square > :not(ul):not(ol) { border-radius: 0; }
 /* No box at all: the gutter is what separates the cards, so it has to be
    wide enough to do that on its own, and the padding goes away with the
@@ -9888,6 +11453,11 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
 .cards.ca-center { --card-align: center; }
 .cards.cv-top    { --card-anchor: flex-start; --row-anchor: start; }
 .cards.cv-middle { --card-anchor: center;     --row-anchor: center; }
+/* A rows word, and the default where the term has no ground to sit on. The
+   card side is given flex-start rather than left undefined: the value is
+   refused on a ::: cards block, so this is a floor under a combination the
+   parser does not let through, not a second meaning. */
+.cards.cv-baseline { --card-anchor: flex-start; --row-anchor: baseline; }
 /* detail - the levels under the first. On the projection they are folded
    away, so the card carries the headline and the document carries the
    hierarchy; pressing C is what brings them back, and it needs no second
@@ -9969,7 +11539,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   font-size: calc(2.6em * var(--zoom));
   font-weight: 500;
   letter-spacing: -0.02em;
-  line-height: 1.1;
+  line-height: ${displayLh('live', '.chunk-section .section-heading')};
   margin: 0;
   color: var(--ink);
 }
@@ -10109,8 +11679,27 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
 .chunk[data-section=card] .chunk-content { align-items: flex-start; }
 .chunk[data-section=card] .section-heading {
   background: color-mix(in oklch, var(--ink) 5%, transparent);
-  border-radius: 10px;
+  border-radius: var(--radius-card);
   padding: 0.5em 0.7em;
+}
+/* Over a photograph the 5% tint is invisible, so the heading stands on the
+   bare picture - the one place a divider's heading cannot move into an
+   overlay, because the renderer owns it. On a clear backdrop the card plate
+   becomes the theme's own paper (like an overlay's veil), so the heading
+   reads over any photo in any of the seven themes. This is what makes
+   section:card a real answer to a photo divider, and why the text-on-picture
+   warning yields to it. */
+.chunk[data-section=card][data-has-backdrop] .section-heading {
+  background: color-mix(in oklch, var(--paper) 90%, transparent);
+  color: var(--ink);
+  /* NOT --shadow-float, and deliberately outside the ladder: this heading
+     stands on a photograph, so the shadow is separating type from arbitrary
+     picture content rather than lifting a card off paper. A shadow that
+     carries the palette's hue tints the thing it exists to make legible -
+     the rule ov-glass and the invert backdrop's text-shadow are on. Neutral
+     black, and stronger than any resting shadow, because a picture is a
+     louder ground than paper. */
+  box-shadow: 0 0.04em 0.5em oklch(0 0 0 / 0.28);
 }
 /* number - the counter carries the weight, so the heading steps back. */
 .chunk[data-section=number] .section-heading { font-size: calc(2.1em * var(--zoom)); }
@@ -10498,7 +12087,7 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
      translateX(-50%)) and would otherwise paint on top of the card. */
   position: relative;
   z-index: 5;
-  box-shadow: 0 2px 18px oklch(0 0 0 / 0.08);
+  box-shadow: var(--shadow-quiet);
 }
 .exp-body .tag-label { text-align: left; font-size: 0.72em; margin-bottom: 0.3em; }
 .exp-body p { margin: 0 0 0.6em; }
@@ -10901,7 +12490,7 @@ body[data-view=speaker].blanked #demo-badge { bottom: 5.3rem; }
   color: var(--ink);
   background: oklch(0.96 0 0);
   border: 1px solid var(--rule);
-  border-radius: 2px;
+  border-radius: var(--radius-tight);
   padding: 0 0.32em;
 }
 body[data-theme^=terminal] #help-inner kbd { background: oklch(0.24 0.02 90); }
@@ -11287,7 +12876,11 @@ body.overview-mode #nav-hints span { opacity: 0 !important; }
 body.overview-mode #stage-viewport { cursor: grab; }
 body.overview-mode #stage-viewport:active { cursor: grabbing; }
 body.overview-mode #stage { transition: transform var(--camera-duration) cubic-bezier(0.45, 0, 0.2, 1); }
-body.overview-mode.overview-dragging #stage { transition: none; }
+/* Same rule as the focus card's, and here it costs more: --camera-duration is
+   250 ms, so at 8.4 ms between trackpad events the curve was re-aimed about
+   thirty times before it could ever complete. */
+body.overview-mode.overview-dragging #stage,
+body.overview-mode.overview-zooming #stage { transition: none; }
 body.view-panning, body.view-panning * { cursor: grabbing !important; }
 body.view-panning #stage { transition: none; }
 body.overview-mode .chunk {
@@ -12184,6 +13777,14 @@ window.addEventListener('message', (ev) => {
     if (m.type === 'figure-unfocus') { unfocusFigure(); return; }
     if (m.type === 'figure-view') {
       if (!focusedFigure) return;
+      // The receiving side needs the transition off for the same reason the
+      // sending side does, and it is the half the room actually looks at: a
+      // peer zooming with a trackpad streams these at frame rate, and the
+      // 80 ms ease on the focus card would be re-aimed by every one of them.
+      // The pan receiver above solves it by passing instant=true to
+      // focusCamera; there is no such flag here, so hold the class instead
+      // and let its quiet period drop it once the messages stop.
+      markZooming('figure-zooming');
       figureScale = Math.max(FIG_MIN_SCALE, Math.min(FIG_MAX_SCALE, m.scale || 1));
       figurePan = { x: m.panX || 0, y: m.panY || 0 };
       applyFigureTransform();
@@ -13665,10 +15266,26 @@ function flowHeightProbe(el) {
   };
   // One level: the in-flow children of a node and its two vertical paddings,
   // read once rather than on every zoom step.
+  //
+  // A composition may pin the foot of its type block to the bottom of a box
+  // that is already stretched to the frame. masthead does it with an auto
+  // top margin on the credits, which is also what lands its folio rule at
+  // the top of them. The extent from the words at the top to the words at
+  // the bottom is then the box's height at *every* type size, so the fit's
+  // height test never becomes false and it walks to its 0.6 floor. Measured:
+  // one presenter line took a masthead cover from zoom 2.2 to 0.6 and nothing
+  // said why. That is the same failure panelLevel already describes for a
+  // band overlay, and it gets the same answer: keep the band out of the span
+  // and add its own height back below.
   const levelOf = (node) => {
     const cs = getComputedStyle(node);
+    const flow = flowKids(node);
+    // Never cut at the first child: a block that is *entirely* the band has no
+    // words above it to measure, and an empty span falls back to the box.
+    const cut = flow.findIndex((c) => c.hasAttribute && c.hasAttribute('data-foot'));
     return {
-      flow: flowKids(node),
+      flow: cut > 0 ? flow.slice(0, cut) : flow,
+      foot: cut > 0 ? flow.slice(cut) : [],
       padT: parseFloat(cs.paddingTop) || 0,
       padB: parseFloat(cs.paddingBottom) || 0,
     };
@@ -13753,6 +15370,14 @@ function flowHeightProbe(el) {
     // a snug band at the zoom the span alone allowed.
     let bands = 0;
     for (const b of el.querySelectorAll(':scope > .overlay-layer > .ov-panel.ov-top, :scope > .overlay-layer > .ov-panel.ov-bottom')) bands += b.offsetHeight;
+    // A pinned foot is out of the span for the reason above, and its words
+    // still take room, so its own extent comes back here - exactly as a band
+    // overlay's height does on the line above.
+    for (const lvl of inner) {
+      if (!lvl || !lvl.foot || !lvl.foot.length) continue;
+      const fs = span({ flow: lvl.foot });
+      if (fs) bands += fs.bottom - fs.top;
+    }
     if (bottom < top) return el.scrollHeight;
     return Math.min(el.scrollHeight, (bottom - top) + outer.padT + outer.padB + bands);
   };
@@ -14834,14 +16459,102 @@ searchResults.addEventListener('mousedown', (e) => {
   commitSearchHit();
 });
 
+// ── wheel zoom, shared by the overview camera and the focus card ──
+//
+// Both zooms used to answer a wheel event with a fixed factor picked off the
+// sign of deltaY, which got three things wrong. The numbers below are from a
+// macOS trackpad in Chrome, 991 events over 12 gestures, not from assumption:
+// events arrive every 8.4 ms, and one carries between 0.012 and 6 px.
+//
+//  - A fixed step makes the zoom a function of how many events arrived
+//    rather than of how far the fingers moved. Twenty-two events at 1.1
+//    crossed the focus card's whole 1x..8x range and thirty-three at 1.08
+//    crossed the board's 0.08x..1x - 183 ms and 276 ms of contact - so both
+//    stood at their ceiling before the gesture was properly under way.
+//    Worse, macOS keeps sending an inertia tail once the fingers lift -
+//    deltaY around 0.2, gaps widening past 100 ms, the sign flipping as it
+//    dies out - and each of those was another full 8 % in whichever
+//    direction, which is the bounce the lecturer felt.
+//  - Scaling by exp() rather than multiplying a constant also makes the
+//    gesture composable: two events of 1 px land exactly where one of 2 px
+//    does, so the coalescing below cannot change where a gesture ends up.
+//  - A mouse wheel is not a trackpad. One notch is 100-120 px where the
+//    largest measured trackpad event was 6, so an unclamped exp() would
+//    zoom 3.3x per notch. Clamping the per-event delta leaves every
+//    trackpad event untouched and turns a notch into about 13 %.
+//
+// deltaMode is 0 (pixels) for every trackpad event, but a device sending
+// lines or pages still has to mean something, so convert before clamping.
+const ZOOM_K = 0.01;           // the full 1x..8x range ~= 208 px of travel
+const ZOOM_MAX_STEP_PX = 12;   // 2x the largest delta the trackpad produced
+const ZOOM_QUIET_MS = 160;     // longer than the gaps in the inertia tail
+function wheelZoomPx(e) {
+  let dy = e.deltaY;
+  if (e.deltaMode === 1) dy *= 16;
+  else if (e.deltaMode === 2) dy *= window.innerHeight;
+  return Math.max(-ZOOM_MAX_STEP_PX, Math.min(ZOOM_MAX_STEP_PX, dy));
+}
+const zoomScaleFor = (px) => Math.exp(-px * ZOOM_K);
+// Hold the matching no-transition class for the length of the gesture. A
+// wheel stream has no end event, so a quiet period ends it; the timer is per
+// class so zooming the board and then a card cannot leave one of them stuck.
+const zoomQuietTimers = {};
+function markZooming(cls) {
+  document.body.classList.add(cls);
+  clearTimeout(zoomQuietTimers[cls]);
+  zoomQuietTimers[cls] = setTimeout(() => {
+    document.body.classList.remove(cls);
+  }, ZOOM_QUIET_MS);
+}
+
 // Overview: wheel adjusts scale, pointer drag pans.
+let overviewZoomPx = 0, overviewZoomRaf = 0, overviewZoomAt = null;
 viewport.addEventListener('wheel', (e) => {
   if (!overview) return;
   e.preventDefault();
-  const factor = e.deltaY > 0 ? 0.92 : 1.08;
-  overviewScale = Math.max(OVERVIEW_MIN_SCALE, Math.min(OVERVIEW_MAX_SCALE, overviewScale * factor));
-  applyOverviewCamera(false);
-  schedulePanBroadcast();
+  markZooming('overview-zooming');
+  // Coalesce to one apply per frame. Two events land inside a 60 Hz frame at
+  // this event rate, and applyOverviewCamera walks offsetLeft/offsetTop up
+  // the offsetParent chain before it writes the transform - so a second
+  // apply in one frame buys a second forced reflow and a paint nobody sees.
+  overviewZoomPx += wheelZoomPx(e);
+  overviewZoomAt = { x: e.clientX, y: e.clientY };
+  if (overviewZoomRaf) return;
+  overviewZoomRaf = requestAnimationFrame(() => {
+    overviewZoomRaf = 0;
+    const px = overviewZoomPx;
+    overviewZoomPx = 0;
+    const next = Math.max(OVERVIEW_MIN_SCALE,
+      Math.min(OVERVIEW_MAX_SCALE, overviewScale * zoomScaleFor(px)));
+    const r = next / overviewScale;
+    // Hold the board still under the cursor. applyOverviewCamera puts the
+    // anchor chunk's centre at the viewport centre and then adds manualPan,
+    // so both the anchor and the scale cancel out of the correction and one
+    // step on manualPan is all that is left:
+    //
+    //   pan' = pan + (1 - r) * (Q - viewportCentre - pan)
+    //
+    // Two things about the units, and the second one is the trap. #stage has
+    // transform-origin: 0 0, which is what the camera's own tx/ty already
+    // assume. And the arithmetic has to happen in LAYOUT space: in the
+    // cockpit #stage-viewport is itself drawn through scale(--stage-scale),
+    // so a clientX is a shrunken px while manualPan and the chunk offsets
+    // the camera reads are full-size ones. focusCamera carries the same
+    // warning for the same reason. The ratio is uniform, so one factor does
+    // both axes, and it is 1 in the audience view.
+    if (r !== 1 && overviewZoomAt) {
+      const rect = viewport.getBoundingClientRect();
+      const vp = vpLayout();
+      const toLayout = rect.width ? vp.width / rect.width : 1;
+      const qx = (overviewZoomAt.x - rect.left) * toLayout;
+      const qy = (overviewZoomAt.y - rect.top) * toLayout;
+      manualPan.dx += (1 - r) * (qx - vp.width / 2 - manualPan.dx);
+      manualPan.dy += (1 - r) * (qy - vp.height / 2 - manualPan.dy);
+    }
+    overviewScale = next;
+    applyOverviewCamera(false);
+    schedulePanBroadcast();
+  });
 }, { passive: false });
 
 viewport.addEventListener('pointerdown', (e) => {
@@ -14930,9 +16643,56 @@ function setFigureScale(next) {
   applyFigureTransform();
   broadcastFigureView();
 }
+// Zoom the card by a factor and leave the point under the cursor where it is.
+// setFigureScale above stays the centred version, because that is the right
+// answer for the +/- keys: there is no pointer in a keypress.
+//
+// The card is drawn as translate(pan) scale(s) about its own centre, so a
+// material point at offset u from that centre sits at centre + pan + s*u.
+// Requiring the cursor Q to describe the same point before and after a change
+// of scale collapses to one line - the centre and u both drop out:
+//
+//   pan' = pan + (1 - r) * (Q - visibleCentre)
+//
+// where visibleCentre is what getBoundingClientRect reports, since scaling
+// about the centre does not move it. Client px are the right unit:
+// #figure-overlay is position: fixed and a sibling of #stage-viewport, so the
+// cockpit's --stage-scale never composes into it.
+//
+// r must be the ratio actually achieved rather than the one asked for. At
+// FIG_MAX_SCALE the scale stops but (1 - r) would not, and the card would go
+// on sliding under a cursor that is no longer zooming anything.
+function zoomFigureAt(factor, at) {
+  if (!focusedFigure) return;
+  const next = Math.max(FIG_MIN_SCALE, Math.min(FIG_MAX_SCALE, figureScale * factor));
+  const r = next / figureScale;
+  if (r !== 1 && at) {
+    const box = focusedFigure.getBoundingClientRect();
+    figurePan = {
+      x: figurePan.x + (1 - r) * (at.x - (box.left + box.width / 2)),
+      y: figurePan.y + (1 - r) * (at.y - (box.top + box.height / 2)),
+    };
+  }
+  figureScale = next;
+  applyFigureTransform();
+  broadcastFigureView();
+}
+// Coalesced to one message per frame, the way schedulePanBroadcast already
+// is. A drag sent one per pointermove and a wheel zoom one per wheel event,
+// which on a trackpad is 119 a second - each of them a postMessage the peer
+// answers with a style write. Reading the state inside the frame rather than
+// capturing it means the message that goes out is the newest one; a frame
+// that lands after an unfocus is harmless, because the receiver returns
+// early when it has no focused figure.
+let figureViewRaf = 0;
 function broadcastFigureView() {
   if (!shouldBroadcast()) return;
-  sendToPeer({ type: 'figure-view', scale: figureScale, panX: figurePan.x, panY: figurePan.y });
+  if (figureViewRaf) return;
+  figureViewRaf = requestAnimationFrame(() => {
+    figureViewRaf = 0;
+    if (!shouldBroadcast()) return;
+    sendToPeer({ type: 'figure-view', scale: figureScale, panX: figurePan.x, panY: figurePan.y });
+  });
 }
 function unfocusFigure() {
   if (!focusedFigure) return;
@@ -15056,12 +16816,28 @@ figureOverlay.addEventListener('pointerdown', (e) => {
 
 // Wheel zoom while focused. deltaY > 0 = scroll-down = zoom out, the
 // natural direction for trackpad pinch (browsers translate pinch to
-// wheel + ctrlKey on macOS but the sign is the same).
+// wheel + ctrlKey on macOS but the sign is the same, so both gestures go
+// through one path - two thirds of the measured events were a two-finger
+// scroll rather than a pinch, and the lecturer wants both to zoom here).
+// See the wheelZoomPx block above for why the step is an exp() and not a
+// constant, and why the class is held for the length of the gesture.
+let figureZoomPx = 0, figureZoomRaf = 0, figureZoomAt = null;
 figureOverlay.addEventListener('wheel', (e) => {
   if (!focusedFigure) return;
   e.preventDefault();
-  const factor = e.deltaY > 0 ? 0.9 : 1.1;
-  setFigureScale(figureScale * factor);
+  markZooming('figure-zooming');
+  figureZoomPx += wheelZoomPx(e);
+  // The last event of the frame supplies the anchor. The cursor can travel a
+  // few px between two events 8 ms apart, and the newest position is the one
+  // the hand is actually over.
+  figureZoomAt = { x: e.clientX, y: e.clientY };
+  if (figureZoomRaf) return;
+  figureZoomRaf = requestAnimationFrame(() => {
+    figureZoomRaf = 0;
+    const px = figureZoomPx;
+    figureZoomPx = 0;
+    zoomFigureAt(zoomScaleFor(px), figureZoomAt);
+  });
 }, { passive: false });
 
 // Bring a .marginalia into the frame, or let it go again. All this does is
@@ -15286,8 +17062,9 @@ if (document.fonts && document.fonts.ready) {
 
 function renderSpeaker(lecture, opts = {}) {
   const { frontmatter, columns } = lecture;
-  const title = lectureTitle(frontmatter);
-  let columnsHtml = renderColumnsHtml(columns, frontmatter);
+  const S = opts.strings || lectureStrings(frontmatter);
+  const title = lectureTitle(frontmatter, S);
+  let columnsHtml = renderColumnsHtml(columns, frontmatter, S);
   if (!editorPayload(frontmatter, columnsHtml, 'speaker')) columnsHtml = stripDiagramAssets(columnsHtml);
 
   // Speaker-source notes are emitted as <template> fragments holding
@@ -15398,14 +17175,14 @@ function renderSpeaker(lecture, opts = {}) {
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${escapeHtml(title)} – speaker</title>
+<title>${escapeHtml(title)} – ${escapeHtml(S['title-speaker'])}</title>
 <style>
 ${AUDIENCE_CSS}
 ${DIAGRAM_CSS}
 ${SPEAKER_CSS}${souffleuseCss}
 </style>
-${styleBlockCss(styleOpts)}
-${fontStyleTag(opts.fontEmbed)}
+${styleBlockCss(styleOpts, S)}
+${fontStyleTag(opts.fontEmbed, 'live')}
 ${katexStyleTag(columnsHtml, { fontToggle: true })}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
 </head>
@@ -15467,7 +17244,7 @@ ${SEARCH_PANEL_HTML}
 ${BLANK_BADGE_HTML}
 ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
-${renderTocNav(columns)}
+${renderTocNav(columns, S)}
 <script>
 ${qrLibJs()}
 </script>
@@ -20679,6 +22456,7 @@ function buildOnce(absIn, only, opts = {}) {
   dgWarned.clear();
   dgLectureTags.clear();
   MATH_ERRORS.length = 0;
+  UNRESOLVED_ASSETS.clear();
   lastKatexSheet = null;
   // Auto-inline decision when neither --inline-images nor --no-inline-images
   // was passed: scan referenced images, inline iff total fits AUTO_INLINE_BUDGET.
@@ -20718,6 +22496,7 @@ function buildOnce(absIn, only, opts = {}) {
   // parseLecture, so a reset further down wiped the very thing it collects.
   embedsThisBuild = [];
   const lecture = parseLecture(src);
+  assertDistinctIds(lecture);
   assertCoverBody(lecture);
   // Pre-flight, beside assertInlinable and assertCoverBody: a viewer default
   // or a style key with a value the tool does not know fails the build here
@@ -20728,7 +22507,12 @@ function buildOnce(absIn, only, opts = {}) {
   // one in `print-slide-numbers`, neither of which the view being built
   // would ever have looked at.
   viewDefaults(lecture.frontmatter);
-  styleSettings(lecture.frontmatter);
+  const styleOpts = styleSettings(lecture.frontmatter);
+  // Same pre-flight contract: an unknown `labels:` key fails the build here,
+  // before any view is written, rather than inside a renderer. Resolved once
+  // and passed to all three renderers via renderOpts.strings, which is why
+  // no renderer calls lectureStrings itself.
+  const strings = lectureStrings(lecture.frontmatter);
   // Same reasoning for the two the live prompter reads: nothing in a
   // --print-only build looks at them, so this is the only place a typo
   // in `duration:` or `souffleuse:` is caught for that build.
@@ -20752,21 +22536,56 @@ function buildOnce(absIn, only, opts = {}) {
   // bundle, and only the three families this lecture resolved to are read
   // at all – which is what keeps a 3.87 MB alternate off every other deck.
   const bundleRoster = Object.fromEntries(
-    ['serif', 'sans', 'mono'].filter(r => !claimed.has(r)).map(r => [r, roster[r]]));
+    FONT_ROLES.filter(r => !claimed.has(r)).map(r => [r, roster[r]]));
   const bundled = bundleOff ? [] : bundledFaces(bundleRoster);
   // A bundled family other than the built-in default has to be named at the
   // head of the stack, or the @font-face lands and nothing asks for it:
   // --sans-font still says 'IBM Plex Sans' first and falls through to
   // whatever the machine has. Only emitted where it differs, so a default
   // lecture's CSS is byte-identical to before.
-  const rosterOverrides = ['serif', 'sans', 'mono']
+  // For `display` the two sides of that comparison are undefined when the
+  // deck names no display face, so the role drops out here exactly as it
+  // drops out of bundleRoster – and `fonts: none` takes it off with the
+  // other three.
+  const rosterOverrides = FONT_ROLES
     .filter(r => !claimed.has(r) && !bundleOff && roster[r] !== BUNDLED_DEFAULTS[r])
     .map(r => ({ role: r, family: roster[r] }));
+  // `style: {display-scale}` folded into the face's own measurement, here and
+  // nowhere else: the descriptor and the line-height calc then read one
+  // number rather than computing the same product twice and rounding it
+  // differently. Kept to one decimal - 62 x 1.4 is 86.8 and an integer would
+  // throw half a percent away - and a scale of 1 leaves the integer alone, so
+  // a deck that does not set the key emits exactly the bytes it did before.
+  // A face from fonts/ carries no measurement, and 100% is its baseline: the
+  // author is scaling from the size the layout would have set it at anyway.
+  // Copied rather than written through, because bundledFaces() caches its
+  // array across rebuilds under --watch.
+  const dScale = styleOpts['display-scale'];
+  const displayScaled = (f) => {
+    if (f.role !== 'display' || dScale === 1) return f;
+    return { ...f, sizeAdjust: Math.round((f.sizeAdjust || 100) * dScale * 10) / 10 };
+  };
   const fontEmbed = (authorFonts || bundled.length)
-    ? { faces: authorFonts ? authorFonts.faces : [],
+    ? { faces: (authorFonts ? authorFonts.faces : []).map(displayScaled),
         overrides: [...(authorFonts ? authorFonts.overrides : []), ...rosterOverrides],
-        bundled }
+        bundled: bundled.map(displayScaled) }
     : null;
+  // A key that scales a face the deck does not have does nothing, and this
+  // format does not accept a silent no-op - the same rule that refuses a
+  // cover-ratio on a cover which does not divide the slide. In the pre-flight
+  // rather than in a renderer, so --print-only refuses it too.
+  if (dScale !== 1 && !(fontEmbed && fontEmbed.overrides.some(o => o.role === 'display'))) {
+    const err = new Error(
+      `Frontmatter: "style.display-scale: ${dScale}" sets the size of this lecture's\n` +
+      'display face, and the lecture has no display face to size.\n' +
+      (bundleOff
+        ? '  `fonts: none` turns the whole bundle off, the display role with it, so\n' +
+          '  either drop that line and name a display face, or delete this key.'
+        : '  Name one in the fonts: block -\n    fonts:\n      display: Anton\n' +
+          '  - or delete the key, which is doing nothing as it stands.'));
+    err.userFacing = true;
+    throw err;
+  }
   if (authorFonts) {
     const kb = Math.round(authorFonts.bytes / 1024);
     console.log(`[fonts] ${authorFonts.faces.length} face(s) from fonts/ embedded, ${kb} KB per view. Check that your licence permits redistribution.`);
@@ -20791,7 +22610,7 @@ function buildOnce(absIn, only, opts = {}) {
   }
   lastQrStats = { count: 0, bytes: 0 };
   stagedVideos.clear();
-  const renderOpts = { ...opts, fontEmbed };
+  const renderOpts = { ...opts, fontEmbed, strings };
 
   const targets = [
     ['print',       renderDocument],
@@ -20806,7 +22625,24 @@ function buildOnce(absIn, only, opts = {}) {
   // each other - a deck whose projection had moved on from its handout, with
   // nothing on disk saying so. In two passes the last good build survives a
   // failure whole: either all four files are the new one, or none of them is.
-  const rendered = targets.map(([name, render]) => [name, render(lecture, renderOpts)]);
+  // Each view is its own document, and an inlined SVG's id prefix only has to
+  // be unique inside one. Resetting per build instead made a view's bytes
+  // depend on the flags that produced it: --audience-only wrote psi-fig-6-
+  // where a full build wrote psi-fig-8- for the same figure, so a tracked view
+  // rebuilt with a partial flag reads as stale to release.yml and the diff is
+  // pure id churn. Measured, not inferred.
+  //
+  // The floor is not zero, and that is the whole subtlety. parseLecture above
+  // compiles the ::: draw blocks once and dgAssetMarkup splices vector assets
+  // into them there, through this same counter - and that markup is shared by
+  // all four views. So the ids minted during the parse are common property and
+  // a view has to start above them, or its own first figure would collide with
+  // a diagram's.
+  const svgIdFloor = inlineSvgCounter;
+  const rendered = targets.map(([name, render]) => {
+    inlineSvgCounter = svgIdFloor;
+    return [name, render(lecture, renderOpts)];
+  });
   const written = [];
   for (const [name, html] of rendered) {
     const p = path.join(outDir, `${name}.html`);
@@ -20853,6 +22689,18 @@ function buildOnce(absIn, only, opts = {}) {
       if (seen.has(e.tex)) continue;
       seen.add(e.tex);
       console.warn(`[math] could not render: ${e.tex.slice(0, 60)} – ${e.message}`);
+    }
+  }
+  // A relative image path that named no file: it is a placeholder in the
+  // output now rather than a silently broken external src, but the author has
+  // to be told which ref and, usually, that the fix is dropping the extension
+  // so the assets/ shorthand resolves it. lint.js reports the same as
+  // `unresolved-asset`.
+  if (UNRESOLVED_ASSETS.size) {
+    for (const ref of UNRESOLVED_ASSETS) {
+      const hint = /[\\/]/.test(ref) ? '' :
+        `  – if it is in assets/, write ![](${ref.replace(/\.[a-z0-9]+$/i, '')}) without the extension`;
+      console.warn(`[assets] not found: ${ref}${hint}`);
     }
   }
   if (lastKatexSheet) {
@@ -21953,6 +23801,7 @@ function squintMeta() {
   });
   return {
     title: document.title || '',
+    lang: document.documentElement.lang || 'en',
     collapse: document.body.dataset.collapse || '',
     mode: document.body.dataset.mode || '',
     zoom: getComputedStyle(document.documentElement).getPropertyValue('--zoom').trim(),
@@ -22135,11 +23984,16 @@ async function runSquint(absIn, viewport, outArg) {
   }
   await browser.close();
 
+  // The audience view's <title> suffix follows `lang:` now, so the strip has
+  // to read the same table the build wrote it from – a `de` squint should not
+  // carry " – Vorlesung" into its report title.
+  const S = lectureStrings({ lang: meta.lang });
+  const suffixRe = new RegExp('\\s+–\\s+' + S['title-lecture'].replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$');
   const doc = {
-    // The audience view's <title> is the lecture's name plus " – lecture",
-    // which is right in a browser tab and reads as a typo at the head of a
-    // file that says what it is on the next line.
-    title: (meta.title || '').replace(/\s+–\s+lecture$/, '')
+    // The audience view's <title> is the lecture's name plus " – lecture" (or
+    // its localised form), which is right in a browser tab and reads as a
+    // typo at the head of a file that says what it is on the next line.
+    title: (meta.title || '').replace(suffixRe, '')
       || path.basename(path.dirname(absIn)),
     source: path.relative(process.cwd(), absIn) || absIn,
     view: 'audience.html',

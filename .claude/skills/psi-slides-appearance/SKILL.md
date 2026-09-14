@@ -1,6 +1,6 @@
 ---
 name: psi-slides-appearance
-description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the three-family bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels`, `blocks` and the look of a bold phrase (`bold`, `print-bold`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
+description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), the `display` role that gives a cover and a section divider a face of their own and its measured `size-adjust`, `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` / `print-neutrals`, `display-scale` and the look of a bold phrase (`bold`, `print-bold`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `BUNDLED_FONTS`, `FONT_ROLES`, `DISPLAY_LH`, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
 ---
 
 # Type, themes and viewer defaults in psi-slides
@@ -97,6 +97,102 @@ Three things to keep in mind when touching this:
 
 **Licensing is the author's problem and the docs say so.** Embedding redistributes the font file. SIL OFL and Apache-2.0 (between them nearly all of Google Fonts) permit it; most commercial *desktop* licences do not, and want a separate webfont licence. The build prints a reminder and makes no attempt to check.
 
+## A face for the transition slides (`fonts.display`)
+
+A **fourth role**, and the one place in a deck where a loud typeface is not a mistake: nobody reads a divider, they recognise it. `fonts: {display: Anton}` puts a face on the cover, the closing slide and the section dividers that nothing else in the lecture wears.
+
+```yaml
+fonts:
+  display: Anton
+  serif: Literata      # the body roles are unaffected
+```
+
+**Exactly two selectors use it** – `.chunk-title .title-main` and `.chunk-section .section-heading`, which is those three slide kinds and nothing else. A `## principle:` heading is not one of them, and neither is a card's lead or an overlay's title.
+
+Four things separate it from the three text roles, and each one is a decision rather than an oversight.
+
+**It has no default.** There is no `display` entry in `BUNDLED_DEFAULTS`, so a lecture that names none resolves the role to nothing, embeds nothing, and emits no rule. That absence *is* the feature: it is what makes the whole role cost an existing deck zero bytes, verified rather than hoped – the tutorial builds byte for byte what it built before, all four views.
+
+**It is not held to the variable-latin-subset rule.** That rule exists because `topic-bold` puts bold fragments on every slide and a text face therefore needs a weight axis. A headline carries three words and no bold, and 21 of the 32 faces have no variable build at all – Anton *is* one weight, that is what Anton is. The rule stays for serif, sans and mono.
+
+**It carries a `kind`, and that is not the same question as what it looks like.** Kind drives one rule: a display serif over a serif body reads as one typeface set badly rather than as two, so `lint.js` warns `display-pairing` when the display face's kind matches the deck's resolved `font:` role. `hand` and `mono` pair with either and never warn. **Chakra Petch is the case that proves kind and flavour have to be two fields** – a machine to look at, a sans to pair with.
+
+**It carries a measured width correction.** See below; it is the part most likely to be broken by someone tidying up.
+
+### The roster
+
+Thirty-two faces, **SIL OFL 1.1 only**, one latin `woff2` each, median 21 KB. Three Apache-2.0 candidates were cut (Permanent Marker, Rock Salt, Just Another Hand) – not because the licence forbids embedding, it does not and `fonts/` is still open to them, but because `bundledFaces()` emits OFL text with the faces and a second licence regime in that path buys one typeface at the price of a special case. Caveat Brush is the loud marker instead.
+
+| hand – pairs with anything | adj | | machine – pairs with anything | kind | adj |
+|---|---|---|---|---|---|
+| Amatic SC | 145% | | Press Start 2P | mono | 55% |
+| Caveat *(variable)* | 139% | | Rubik Mono One | mono | 56% |
+| Caveat Brush | 134% | | Silkscreen | mono | 62% |
+| Patrick Hand | 133% | | Space Mono | mono | 78% |
+| Kalam | 106% | | VT323 | mono | 119% |
+| Shantell Sans *(variable)* | 88% | | Chakra Petch | sans | 101% |
+| | | | Orbitron *(variable)* | sans | 87% |
+| | | | Pixelify Sans *(variable)* | sans | 96% |
+
+| graphic, serif – wants a **sans** body | adj | | graphic, sans – wants a **serif** body | adj |
+|---|---|---|---|---|
+| Instrument Serif | 142% | | Bebas Neue | 142% |
+| DM Serif Display | 108% | | Staatliches | 128% |
+| Abril Fatface | 103% | | Big Shoulders Display *(variable)* | 122% |
+| Prata | 100% | | Anton | 120% |
+| Young Serif | 95% | | Oswald *(variable)* | 116% |
+| Yeseva One | 93% | | Space Grotesk *(variable)* | 99% |
+| Bodoni Moda *(variable)* | 92% | | Bricolage Grotesque *(variable)* | 97% |
+| Alfa Slab One | 89% | | Archivo Black | 87% |
+| | | | Unbounded *(variable)* | 73% |
+| | | | Syne *(variable)* | 61% |
+
+**Rubik Mono One has no eszett** and draws it from the fallback mid-word; it also draws lowercase as capitals. `lint.js` warns `display-no-eszett` on a German deck. That was found by a glyph probe and then confirmed against a rendered specimen, because the probe was wrong twice before it was right – the story is in `tools/font-playground/README.md` and it is worth reading before writing another one.
+
+### `size-adjust`, and why the number is measured
+
+These faces disagree about **advance width by a factor of three** while the cover's type size is tuned for Literata. Anton set at it looks timid; Press Start 2P set at it runs off the slide, which is what it did before the correction existed. So each face carries a multiplier measured in a browser – the advance width of a real German title against Literata's, clamped to [0.55, 1.45] – by `tools/font-playground/measure-scale.mjs`, which writes `scales.json`. **Re-measure when a face is added.** Same discipline as `dgCharW`, and for the same reason: a number nobody measured is a number that silently overflows a slide.
+
+**It rides as a `size-adjust` descriptor on the `@font-face`, not as a multiplier on a font-size**, the way Noto Sans Mono Condensed pins its width with `font-variation-settings` in the same place. On the face it reaches the six cover compositions that set their own title size, print, the zoom, `auto-fit` and `--check-fit` for free; in a layout rule it would have to be repeated in each of them and would be forgotten in one.
+
+**A numeric `line-height` does not follow `size-adjust`** – it resolves against the *nominal* font-size, so Anton at 120% put 98.6px of apparent type in a 90.3px line box and the descenders of one line landed inside the letters of the next. That is why `DISPLAY_LH` exists: the seven line-heights the display face can wear are JS constants interpolated into the stylesheets (`1.1` emits the characters `1.1`, which is what keeps byte identity) and restated in the conditional block multiplied by the same percentage. **Three of the seven are deliberate and unequal** – 1.3 for the eyebrow kicker, 1.02/0.97 under `cover: display`, and in print the eyebrow subtitle carries 1.12 where the title carries 1.15. A single overriding rule would have flattened them.
+
+**The tracking is the same trap, one property over.** Every cover composition sets a negative `letter-spacing` on its title &ndash; `cover: display` the tightest at `-0.042em` &ndash; because that is what a serif set large needs. On Anton, condensed and tightly fitted already, the letters touched. `DISPLAY_TRACK` lists every rule that tracks a slot the face wears, per view, and the conditional block resets them to `normal`: a display face is fitted by its designer, and the deck's correction is a correction for Literata. **The eyebrow kicker is deliberately absent from the list** &ndash; under `headline: eyebrow` the face is on the subtitle, so the kicker keeps its own `0.015em`, or `0.055em` when `caps: on` tracks the capitals. `node test/gates/run.mjs tails` re-reads both stylesheets and fails if a rule tracks such a slot and is not listed; it was written because an eleventh composition with a tracking of its own is exactly the change that would put the collision back on one variant and say nothing. The scan has to blank `${…}` interpolations first &ndash; braces inside them break a brace-counting parse, and on the first pass that hid four rules including the `-0.042em` the whole reset exists for.
+
+**Width is normalised because line count is the failure that breaks a slide**, and apparent size varies as a consequence: against Literata's ink height, Silkscreen lands at 0.38 and Patrick Hand at 1.34. Rendered, a Silkscreen divider is a thin band on an empty frame while Anton fills it. No automatic correction fixes that without bringing the overflow back – pulling Silkscreen's ink to 0.85 needs a scale of ~1.39, at which it sets 2.2× Literata's width. So the build answers the question it can measure and `style: {display-scale: …}` answers the one that is taste.
+
+### `style: {display-scale: <n>}`
+
+A bounded multiplier (0.6–1.8, default 1) on the measured `size-adjust`, for the face that is right and the size that is not:
+
+```yaml
+style:
+  display-scale: 1.4
+fonts:
+  display: Silkscreen
+```
+
+It had to be its own key because **`heading-scale` does not reach `--title-lead`** – the cover title is the one heading that key never governed. Set on a deck that resolves no display face it **fails the build**, on the rule `cover-ratio` already follows: this format does not accept a silent no-op.
+
+### What no reader keystroke can do to it, and why that needed no code
+
+`F` cycles the body font role and `A` cycles the seven colour themes. The display face is immune to both, and neither immunity is a rule someone has to remember to write:
+
+- **`F` cycles a *variable*, not a family.** `body[data-font=sans]` re-points `--body-font`, and both target selectors used to inherit it. Pointing them at `--display-stack` takes them out of the cycle **by construction** – so there is no "F does not apply here" rule that could be forgotten when a fourth body font is added.
+- **`A` re-points colour tokens only.** No theme touches a family, so the face was already immune, while its *colour* still follows `--ink` and `--emph` and stays readable on the three dark themes.
+
+**Both properties hold only while `display` stays out of `FONT_CYCLE` and `--display-stack` is never assigned under a `body[data-font=…]` or `body[data-theme=…]` selector.** That is the one rule to guard here, and it is written down beside `FONT_ROLES` and `FONT_ROLE_VARS`.
+
+### Under `style: {headline: eyebrow}` the face follows the loud line
+
+`eyebrow` inverts which line of the title pair carries the weight, so the display face moves with it: `.title-subtitle` wears it and `.title-main` is handed explicitly back to `--body-font`. Left merely unmentioned, the unqualified rule would still have matched the kicker – which is what shipped first, and it put Anton at 32px over a headline in Literata at 82px, the exact inverse of what the role is for.
+
+One thing that does **not** follow, and predates the role: under `eyebrow` a `cover: display` composition gives its loud line the composition's *size* but never its 0.97/1.02 *ratio*, because those sit on `.title-main` and no composition gives `.title-subtitle` a line-height at all.
+
+### The mirrors
+
+`lint.js` carries the display half of the roster – **names and kinds, tables only**, the established bend – and gets three findings out of it: `unknown-display-font` (error, mirroring the build's refusal), `display-pairing` and `display-no-eszett`. A gate in `test/gates/tails.mjs` holds the two tables congruent by name, count, kind and the eszett list, because a face added to one file alone would be reported as a typo on a deck that builds.
+
 ## Ligatures
 
 `ligatures:` in the frontmatter, and the reason it needs a key at all is that **two different questions get called "ligatures"**:
@@ -109,6 +205,21 @@ So the values are `text` (the default: fi and fl in prose, none in code – exac
 ## Document language and hyphenation
 
 `lang:` in the frontmatter (default `en`) lands in the `lang` attribute of `<html>` for all four views. It is not decoration: the browser picks its **hyphenation dictionary** from it, so `hyphens: auto` in the print stylesheet does nothing useful for a German lecture until the author writes `lang: de`. A value that is not a plausible BCP-47 tag fails the build.
+
+**`lang:` also selects the words the build *invents*.** Everything in the four outputs that is not in `source.md` – the table-of-contents heading, the `Speaker Note` / `Presentation Note` labels, the print type eyebrow (`principle`, `exercise`, …), the projection's `EXERCISE`, the default `note` on a `::: footnote`, the `<title>` suffixes (`– lecture` / `– print` / …), the annotation box label and the `+ note` button – was English with no way to say otherwise. `lectureStrings(frontmatter)` resolves them out of the `STRINGS` table in `build.js`, looked up by the primary subtag (`de-AT` → `de`); a language the table has no wording for (`lang: fr`) builds and stays English with a one-line `[lang]` warning, because refusing it would stop an existing lecture from building. **`STRINGS.en` is the current literals transcribed character for character, so a deck with no `lang:` or with `lang: en` builds byte-identical HTML to before – the 1.0.0 contract.** The type word is stored once in canonical case and cased per site: the projection uppercases it (`AUFGABE`, which for a non-default word rides in as a same-specificity `content:` override after the main stylesheet, so English decks keep their exact bytes), the printed document lowercases it under `.chunk-label`'s small-caps.
+
+A top-level **`labels:`** block overrides any single word – free-text values under the role names of `STRINGS.en`, with a nested `type:` map for the tag words:
+
+```yaml
+lang: de
+labels:
+  contents: Verzeichnis
+  presentation-note: Präsentationsnotiz
+  type:
+    principle: Merksatz
+```
+
+It is a top-level block rather than `style: {labels: {…}}` because `style.labels` is already the on/off switch and every `style:` key is a closed vocabulary the linter whitelists, whereas these values are free text. An unknown key fails the build in the `buildOnce` pre-flight (`unknown-label-key`, the message shape `styleSettings` uses) and `lint.js` mirrors the refusal from its `LABEL_KEYS` / `LABEL_TYPE_KEYS` sets. `labels:` needs no `lang:` – an English deck may want `Contents` to read `In this lecture` – and it is legal beside `style: {labels: off}`: the switch hides the eyebrows, the block still names the TOC and the notes. Cockpit strings and the interaction-tier `?`/search/overview furniture are not localised yet (a later pass); key names on `<kbd>` never are.
 
 Hyphenation is **prose-only, and by default document-only**. A hyphenated word on a projection reads badly and the live views reflow constantly; and because the `hyphens` property inherits, headings, code, and URLs are explicitly set back to `manual`, or the build would hyphenate an identifier.
 
@@ -176,9 +287,54 @@ The tag word above a chunk is **two different things wearing one name**, and a s
 
 ## Where the blocks sit (`style.blocks`), and the two keys a chunk can answer
 
-`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `heading-scale` and `body-scale` (0.6–1.8).
+`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `neutrals` and `print-neutrals` (neutral/tinted/warm/cool), `headline` (stacked/eyebrow), `caps` (off/on), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `heading-scale` and `body-scale` (0.6–1.8).
 
 **`reveal` was a key here and is gone.** It chose what a top-level `---` did before its beat – `grow`, the 1.0.0 behaviour, closed the segment up so the chunk grew per press, and `hold` laid it out at its final height from beat 0. Every reveal reserves its space now, at every depth, so there is nothing left for the key to pick and a deck that still writes it is refused by the build and by `lint.js` alike. `STYLE_KEYS_REMOVED` in build.js and its mirror in lint.js carry the sentence an author gets, which names what replaced the key rather than reporting a typo they did not make.
+
+## What hue the greys carry (`style.neutrals`)
+
+**In the four light themes the `A` key moves `--emph` and nothing else.** `--ink` sits at chroma 0.01 on hue 260, `--paper` and `--rule` at chroma 0, and every quiet fill is mixed out of `--ink` – a `::: cards {.panel}` item is 5% of it, a dock and an overlay card 4%. So a card under the `light-orange` accent is a cool grey under a warm word; the two agree only in `light-blue`, where the accent happens to sit at hue 250. The `dark` theme has a milder version of the same (neutral ink, accent at hue 35), and the two terminal themes have none of it at all, because there `--ink` *is* the theme's colour.
+
+`style: {neutrals: …}` is the author's say over it:
+
+| value | what it does |
+|---|---|
+| `neutral` | the default, and today's rendering – a deck that says nothing emits no `data-neutrals` and reaches none of the rules |
+| `tinted` | the greys take the accent's own hue, and the quiet fills are mixed from `--emph` rather than from the ink |
+| `warm` | a fixed warm grey, hue 70, whatever the accent is |
+| `cool` | a fixed cool grey, hue 250 – where the neutrals already sit, so writing it makes today's cast a choice and carries it into `--paper` and `--rule`, which are at chroma 0 |
+
+**Two halves, and they are separate.** The token half moves `--ink`, `--ink-soft`, `--paper`, `--paper-warm` and `--rule` onto `--accent-h` – each theme names its own hue, `warm` and `cool` override it at the same specificity from later in the stylesheet. The chroma is the argument, not the hue: 0.014 on the ink is under the threshold at which a grey reads as a colour, and the paper gets half of that, because a tinted paper costs brightness in a lit room and it is the one token a projector punishes. The fill half exists because 5% of a 0.014 ink is a fill with no hue left in it, so under `tinted` the card, the dock and the overlay grounds are mixed from `--emph` at 8% / 6% instead. **Through `--card-bg`, not through `background`** – the card's fill is declared on the `.cards` container as a custom property and read by the item, so a `background` there paints the grid and not the card.
+
+**Print answers the same question with its own key.** `print-neutrals` takes the same four words, and its default is a deferral rather than a value: `''` is the seeded default and no written value can produce it, so an unset key stays distinguishable from all four and `printNeutrals()` is the one step that turns it into "follow `neutrals`" – the shape `printSlideNums()` documents, with the same warning that a second reader with a fallback would silently make unset mean `neutral`. The two keys exist because the two grounds differ in temperature and nothing said so: print's paper is `#fafaf7` and its accent `#8b2e00`, both warm, where the live paper is chroma 0. Two sessions tripped over that in one day before it was written down. Each stylesheet keys on its own attribute – `AUDIENCE_CSS` on `data-neutrals`, `PRINT_CSS` on `data-print-neutrals` – so neither view can answer the other's key.
+
+**`warm` and `cool` are held off the two terminal themes on purpose.** A single phosphor tone is what those are, and a warm-grey paper under green ink is neither. `tinted` needs no such guard: there the accent's hue is already the theme's.
+
+What it does **not** reach yet: the slide's shadows and scrims, which are hard-coded at hue 260 (`oklch(0.2 0.01 260 / 0.10)` and friends) in four different recipes. Fixing those well means one elevation ladder rather than a token swap, which is its own change.
+
+## Which line of a title pair is loud (`style.headline`, `style.caps`)
+
+Every cover carries a pair (`title:` + `subtitle:`), and so does every section divider and closing slide (`Heading | Sub`). Until these keys the pair had one setting: first line large, second quieter underneath.
+
+| | |
+|---|---|
+| `stacked` | the title large, the subtitle quieter under it. **The default**, and the rendering the tool has always had |
+| `eyebrow` | the title set small above a subtitle that carries the weight – the newspaper kicker |
+
+**It is a treatment and not a second pair of content keys, and that is the load-bearing decision.** `title:` is also the `<title>` element, the TOC entry and what the search index reads. Inverting the hierarchy by telling authors to put the hook in `title:` would rename the browser tab to the hook and leave the lecture's own name nowhere. So the words never move and only their type does – which is also what lets one key serve the cover, the dividers and the closing slide at once.
+
+**The mechanism is `--title-lead` and `--title-measure`, declared on the chunk.** Each composition says how big its loud line is and how wide it may run as two custom properties rather than as a `font-size` and a `max-width` on `.title-main`; the eyebrow mode then hands both to whichever line is carrying the weight. Declared on the chunk and not on `.title-main`, because a custom property inherits down and not sideways and the subtitle has to be able to read it. **A composition that goes back to writing a `font-size` on `.title-main` will work under `stacked` and silently stop swapping** – `test/settings.mjs` checks four of them for exactly that.
+
+Neither `.chunk` nor `.chunk-content` sets a `font-size`, so moving those em values up to the chunk was lossless. That was checked rather than assumed, and it is the thing to re-check if either rule ever gains one.
+
+`style: {caps: …}` sets the small type around a title in capitals – the eyebrow, the presenter, the affiliation. **Never the headline:** a key that capitalises the loud line is a key that makes a talk shout.
+
+**The tracking that has to come with capitals is deliberately not a setting.** Capitals at the tracking of lowercase read as one jammed word, which is a typographic rule rather than a preference, so `isAllCaps` marks any title slot whose text is *already* in capitals with `data-caps` and the stylesheet tracks it out. That reaches the line an author typed in capitals years ago as much as the line this key transforms. It is spelled as "has an uppercase letter and no lowercase one" rather than `s === s.toUpperCase()`, because uppercasing an ß yields SS – so a capitalised German line would never equal its own uppercase, and the deck most likely to want this would be the one that silently missed it.
+
+Two things measured rather than chosen, both worth not re-breaking:
+
+- **A composition's measure is written in the headline's em, and the eyebrow's em is much smaller.** masthead's 15em cap computed to 483px at the eyebrow's size and broke `DATENSICHERHEIT IM DIGITALEN ALLTAG:` onto two lines. That is why the cap moved to `--title-measure` and why the kicker is uncapped: it is one short line by construction and the column is the only cap it needs.
+- **A single capital letter is, correctly, all capitals.** `presenter: P` in a fixture is marked. Harmless – tracking one letter shows nothing – but it will surprise anyone writing a test against a one-letter field.
 
 ## The printed document's face (`style.print-body`)
 
@@ -218,7 +374,7 @@ Bold is a selection mark here before it is a weight: the collapse lifts a `**bol
 
 ## Reaching the 1.0.0 look (and why there is no `layout:` key)
 
-From 1.0.0 the source format is the interface, and that promise is about more than parsing: **a lecture that laid out a certain way should be able to lay out that way again.** Exactly four things have moved since 1.0.0 that a finished deck would notice, and each is reachable as an ordinary preference:
+From 1.0.0 the source format is the interface, and that promise is about more than parsing: **a lecture that laid out a certain way should be able to lay out that way again.** Five things have moved since 1.0.0 that a finished deck would notice; four are reachable as an ordinary preference and the fifth is listed because it is not:
 
 | what moved | how to get the old behaviour back |
 |---|---|
@@ -226,6 +382,7 @@ From 1.0.0 the source format is the interface, and that promise is about more th
 | `text-wrap: balance` on headings, `pretty` on prose | `style: {wrap: none}` |
 | `font-variant-ligatures: none` on code | `ligatures: all` |
 | accent-coloured bold phrases, live and on paper | `style: {bold: accent-bold, print-bold: accent-bold}` |
+| corner radii in pixels (2 / 3 / 6 / 10) rather than the `--radius-card` / `--radius-tight` em ladder | not reachable as a setting, and deliberately: the pixel values rounded the *same* card row differently on every slide, because auto-fit sets a card's font-size per slide. There is no old behaviour here worth being able to ask for. |
 
 **There was a `layout: 1.0` umbrella over those three and it was removed. The reasoning generalises and is the part to keep.** One key naming a version reads as a promise that the engine can rebuild any past release, and that promise is unbounded: every later change to a shared stylesheet would have to be gated on a generation, the gates would compose, and the set of combinations nobody tests would grow with every release. It also puts the burden in the wrong place – an author would have to know which version their deck was authored against and write it down, and the project would have to publish and explain a layout-version history beside the software version.
 

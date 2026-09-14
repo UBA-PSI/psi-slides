@@ -96,9 +96,14 @@ export const CARDS_SLOTS = {
   // Where the text sits when the card is taller than its content - and it
   // always is, because a grid row is as tall as its longest card. On a
   // ::: rows block it is the term against the body beside it instead, and
-  // the *default* there is `middle` rather than `top`: see renderCardsBlock,
-  // which reads `written` to tell a defaulted `top` from an authored one.
-  anchor: { default: 'top',   words: ['top', 'middle'] },
+  // the *default* there is not `top`: see renderCardsBlock, which reads
+  // `written` to tell a defaulted word from an authored one, and which picks
+  // `middle` or `baseline` by the ground the term sits on.
+  //
+  // `baseline` is a rows word. On a card it has nothing to align to - a card
+  // is a block of text in a box, not a label beside a body - so writing it
+  // on a ::: cards block is refused rather than quietly read as `top`.
+  anchor: { default: 'top',   words: ['top', 'middle', 'baseline'] },
   // What happens to the levels under the first. `fold` keeps them off the
   // projection and gives them to the document and to the reader who presses
   // C. `show` puts them on the slide too. `page` is the third answer and it

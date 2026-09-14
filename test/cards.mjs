@@ -70,7 +70,24 @@ collapse: none
 - **Anonymity** comes from the others doing the same thing at the same time
 - **Unlinkability** means two actions of one person cannot be tied together
 :::
+
+## figure: Ground {.full #ground}
+
+::: cards 2 {.photo .veil}
+- ![](pic)
+  no lead, the picture is the ground
+- **Heading**\\
+  ![](pic)
+  a lead first, then the picture
+:::
 `;
+
+// The smallest valid PNG: a 1×1 image, enough for the browser to lay out an
+// <img> whose position we can read. What is under test is the CSS, not the
+// pixels.
+const TINY_PNG = Buffer.from(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+  'base64');
 
 // How many line boxes an item's text occupies. A Range over the contents
 // gives one rect per line box, so counting distinct tops counts lines - and
@@ -149,6 +166,8 @@ export async function run({ page, report }) {
 
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-cards-'));
   fs.writeFileSync(path.join(dir, 'source.md'), SOURCE);
+  fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
+  fs.writeFileSync(path.join(dir, 'assets', 'pic.png'), TINY_PNG);
   const built = spawnSync(process.execPath,
     [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
     { cwd: ROOT, encoding: 'utf8' });
@@ -208,6 +227,24 @@ export async function run({ page, report }) {
       await page.keyboard.press('a');
       await page.waitForTimeout(160);
     }
+
+    // ── 4. a photo ground survives a bold-heading lead ─────────────────
+    // `ground: photo` pulls the card's first image out as an absolute ground
+    // behind the words. The selector keyed on :first-child, so a card that
+    // opened with the documented `- **Heading**\` lead put a <strong>+<br>
+    // ahead of the picture and the ground silently became an ordinary inline
+    // image with the words above and below it - two documented features that
+    // did not combine. The property is the image's position: a ground is
+    // absolute, an inline picture is static, and both cards must draw the
+    // ground whichever way they open.
+    const imgPos = (n) => page.evaluate((n) => {
+      const img = document.querySelector(`#ground .cards.cg-photo li:nth-child(${n}) img`);
+      return img ? getComputedStyle(img).position : 'no-img';
+    }, n);
+    ok(await imgPos(1) === 'absolute',
+      'a photo-ground card with no lead draws its picture as the ground', await imgPos(1));
+    ok(await imgPos(2) === 'absolute',
+      'and a card that opens with a bold heading draws it as the ground too', await imgPos(2));
   } finally {
     server.close();
   }

@@ -1,7 +1,6 @@
 ---
 title: Frame lab
 subtitle: Docks, panels and nested beats pushed to their edges
-author: Dominik Herrmann
 cover: quote
 section: outline
 section-mark: Teil
@@ -41,9 +40,9 @@ Standardbreite noch wie eine Spalte aussieht, ist die erste Frage dieses Teils.
 bleibt.** Die Frage ist, ob beide Spalten noch eine lesbare Zeilenlänge haben.
 
 ::: cols 2
-**Linke Spalte.** Ein Dock nimmt seine Breite als `--dock-em`, und die Folie
-reserviert die Spur als Innenabstand, damit Text, Foliennummer und Overlay
-dieselben Pixel lesen.
+**Linke Spalte.** Ein Dock nimmt seine Breite als Anteil der Folie, und die
+Folie reserviert die Spur als Innenabstand, damit Text, Foliennummer und
+Overlay dieselben Pixel lesen.
 
 **Rechte Spalte.** Zwei Spalten in einer schmalen Restbreite sind der Fall, den
 `layout-too-narrow` warnen soll – hier bleibt das Maß knapp darüber.

@@ -11,11 +11,20 @@
 :root {
   --heading-scale: 1;
   --body-scale: 1;
+  /* The live views' ladder, same two values and the same reasoning (see
+     --radius-card there): a corner is a proportion of the type it holds,
+     and --body-scale moves that type here too. */
+  --radius-card:  0.3em;
+  --radius-tight: 0.1em;
   --ink: #1f1f24;
   --ink-soft: #6b6b72;
   --paper: #fafaf7;
   --rule: #c8c8c0;
   --emph: #8b2e00;
+  /* The hue style: {neutrals} moves the greys onto. Print has no themes -
+     one palette, no A key - so there is one hue here and not five, and it
+     is the print accent's own: #8b2e00 is about hue 40 in oklch. */
+  --accent-h: 40;
   /* Same three families as the live views, and the same order, so all four
      outputs are one typographic set. The first entry of each is bundled and
      embedded, so these resolve even where the machine has nothing installed
@@ -23,6 +32,25 @@
   --serif: 'Literata', 'Source Serif 4', Georgia, serif;
   --sans: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', Menlo, monospace;
+}
+/* ── neutrals on paper (style: {neutrals}) ─────────────────────────
+   styleBodyAttrs writes data-neutrals onto this body too, so the rules have
+   to exist here or the attribute is a silent no-op on print.html - the
+   thing this format refuses everywhere else. Print's palette is already
+   warm (#fafaf7 paper, #c8c8c0 rule) where the live one is cool at chroma
+   0, so cool moves more on paper than warm does; that is a property of
+   the two palettes and not of the key. Written in oklch though the palette
+   above is hex, because a hue is what this key changes and hex cannot say
+   it. No terminal guard: print has no terminal themes to guard. And the
+   quiet fills are not re-mixed the way the live views' are, because a
+   printed card is a 1px rule and no fill - there is nothing there to tint. */
+body[data-print-neutrals=warm] { --accent-h: 70; }
+body[data-print-neutrals=cool] { --accent-h: 250; }
+body:is([data-print-neutrals=tinted], [data-print-neutrals=warm], [data-print-neutrals=cool]) {
+  --ink:      oklch(0.26 0.014 var(--accent-h));
+  --ink-soft: oklch(0.50 0.014 var(--accent-h));
+  --paper:    oklch(0.985 0.007 var(--accent-h));
+  --rule:     oklch(0.81 0.013 var(--accent-h));
 }
 
 @page {
@@ -125,7 +153,7 @@ pre {
   background: rgba(0,0,0,0.04);
   padding: 0.8em 1em;
   overflow-x: auto;
-  border-radius: 2px;
+  border-radius: var(--radius-tight);
   line-height: 1.45;
 }
 pre code { font-size: inherit; }
@@ -251,10 +279,23 @@ a:hover { text-decoration-color: var(--ink); }
 
 .chunk {
   margin: 1.6rem 0 2.2rem;
-  page-break-inside: avoid;
-  break-inside: avoid;
+  /* A chunk flows across a page break like any other prose.
+     It used to say break-inside: avoid, which is right for a picture and
+     wrong for a run of text: a chunk that does not fit in what is left of a
+     page moves whole, and the white it leaves behind is however much was
+     left - a third of a sheet under a part heading, repeatedly, in a
+     document whose chunks are mostly paragraphs. The reader loses the thread
+     to a page turn that nothing on the page asked for.
+     What must stay together says so itself and is small enough to mean it:
+     figure, .chunk-outline, the card list, a heading and the line under it.
+     orphans and widows keep the break off the first and last lines. */
+  break-inside: auto;
+  page-break-inside: auto;
+  orphans: 3;
+  widows: 3;
   position: relative;
 }
+main p, main li, main dd, main blockquote { orphans: 3; widows: 3; }
 .chunk-heading {
   font-size: calc(1.12rem * var(--heading-scale));
   margin: 0 0 0.5rem;
@@ -415,6 +456,11 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  /* The size of the pair's loud line, so that headline: eyebrow can hand it
+     to whichever line is carrying the weight. In rem here and in em there,
+     because print is not zoomed - the mechanism is the same and only the
+     unit differs. */
+  --title-lead: 2.6rem;
   padding: 0 0 1.8rem;
   margin: 0 0 2.6rem;
   border-bottom: 1px solid var(--rule);
@@ -422,7 +468,8 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   page-break-inside: avoid;
 }
 .chunk-title .title-main {
-  font-size: 2.6rem;
+  font-size: var(--title-lead);
+  max-width: var(--title-measure, none);
   margin: 0 0 0.8rem;
   line-height: 1.15;
 }
@@ -436,6 +483,51 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   font-family: var(--sans);
   font-size: 0.88rem;
   color: var(--ink-soft);
+}
+.chunk-title .title-affiliation {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: -0.9rem 0 1.2rem;
+  color: var(--ink-soft);
+}
+/* The foot is a row on the projection because the slide is a frame with two
+   edges to hang things on. On paper the page has a measure and no such
+   edges, and an address pushed to the right margin of a document reads as a
+   mistake - so the two run together on one line instead, in source order. */
+.chunk-title .title-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1.4rem;
+  margin-top: 0.5rem;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.chunk-title .title-notice { font-style: italic; }
+.chunk-title [data-caps] { letter-spacing: 0.055em; }
+body[data-title-caps=on] .chunk-title .title-presenter,
+body[data-title-caps=on] .chunk-title .title-affiliation,
+body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+body[data-headline=eyebrow] .chunk-title .title-main {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.015em;
+  color: var(--ink-soft);
+  margin: 0 0 0.25rem;
+}
+body[data-headline=eyebrow] .chunk-title .title-subtitle {
+  font-size: var(--title-lead);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  max-width: 20em;
+  margin: 0 0 0.8rem;
 }
 
 /* The style: frontmatter block, on paper. Same two selectors as the live
@@ -515,14 +607,16 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 .chunk-title[data-cover=panel] .title-presenter { color: var(--paper); }
 .chunk-title[data-cover=panel] .title-subtitle,
 .chunk-title[data-cover=panel] .title-info p,
+.chunk-title[data-cover=panel] .title-affiliation,
+.chunk-title[data-cover=panel] .title-foot,
 .chunk-title[data-cover=panel] .closing-body {
   color: color-mix(in oklch, var(--paper) 78%, transparent);
 }
+.chunk-title[data-cover=display] { --title-lead: 3.6rem; }
+.chunk-title[data-cover=display] { --title-measure: 11em; }
 .chunk-title[data-cover=display] .title-main {
-  font-size: 3.6rem;
   line-height: 1.02;
   letter-spacing: -0.03em;
-  max-width: 11em;
 }
 
 /* The closing slide is a page like the cover is a page, and it carries the
@@ -553,7 +647,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   aspect-ratio: 16 / 6;
   background-size: cover;
   background-position: center;
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   margin-bottom: 1.4rem;
   order: -1;
 }
@@ -567,7 +661,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   margin: 0 0 1rem;
   display: block;
 }
@@ -579,7 +673,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
    what the paper cannot have, the treatment is kept. */
 :is(.overlay-card, .dock) {
   padding: 0.75rem 0.95rem;
-  border-radius: 5px;
+  border-radius: var(--radius-card);
   margin: 0 0 0.7rem;
   max-width: 34em;
 }
@@ -616,7 +710,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   margin: 0;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: var(--radius-card);
   list-style: none;
   break-inside: avoid;
   font-size: calc(1em * var(--card-fs, 1));
@@ -777,6 +871,88 @@ figure.figure-embed .embed-source { font-family: var(--sans); font-size: 0.72rem
 }
 figure.figure-img img,
 figure.figure-img svg { max-width: 100%; height: auto; }
+
+/* ── how tall a figure may be in a document ──────────────────────────
+   Width has always been answered (the measure), height never was, and the
+   two are not independent: every figure here keeps its aspect ratio, so an
+   uncapped height is whatever the measure multiplied by the ratio happens
+   to be. A ::: draw block makes that worst: it carries width="2000" so
+   max-width binds on every page, and python-intro's #scanner-pipeline
+   (1.56 tall per unit wide) resolved to 944px inside a 933px A4 text area -
+   taller than the sheet, and then moved onto a page of its own by the
+   break-inside: avoid that keeps a picture whole. A raster figure reaches
+   the same place from a portrait screenshot.
+   In rem rather than vh, and the same number on screen and on paper: what a
+   viewport unit means inside a page box is not something the engines agree
+   on, and print.html is printed by whichever browser the reader has. 34rem
+   at the 10pt root is about half the A4 text height - a figure may be the
+   largest thing on a page without being the only thing on it.
+   The selectors are (0,1,1) on purpose: DIAGRAM_CSS is concatenated after
+   this stylesheet, so a bare .psi-diagram here would lose to its 62vh on
+   screen and to its max-height: none on paper. */
+main .psi-diagram,
+figure.figure-img img,
+figure.figure-img svg,
+figure.figure-video video { max-height: 34rem; }
+
+/* ── how large a drawing is in a document ────────────────────────────
+   A slide answers this by filling the frame: the figure IS the slide, and
+   what that does to the label type does not matter, because nothing else is
+   on the wall to compare it with. A page has running text three lines above
+   the picture, and there the answer is the opposite - the type inside a
+   figure belongs to the same typographic set as the type around it.
+
+   Filling the measure gets that wrong by a different amount for every
+   figure, because a label's size is DG_FONT scaled by the measure over the
+   viewBox width, and the viewBox is however many grid units the author
+   happened to draw in. Measured before this rule: 47 of 81 figures in the
+   corpus carried type larger than the running text, from 0.53x to 2.97x -
+   a spread of 5.6, invisible to the author, and nothing in the source says
+   which end a given figure lands on.
+
+   So the width is derived from the type instead. --dg-type-w is the viewBox
+   width measured in base labels (diagram-core emits it), and multiplying by
+   --dg-fig-size gives the width at which a base label lands at exactly that
+   size. Every figure in the document then carries one label size, the way
+   every figure in a book does. The third term converts the height budget
+   into a width so a tall figure shrinks proportionally rather than sitting
+   letterboxed in a box the height cap left too wide, and 100% keeps a
+   figure with more units than the measure can serve from overflowing - that
+   one lands under the target size, which is the one case nothing can fix.
+
+   The box now hugs the drawing rather than spanning the measure, so
+   style.blocks finally means something here: the rules below are the same
+   ones figure-img has had all along, and a diagram was the one figure kind
+   that could not honour them because its box was always full width. */
+main .psi-diagram {
+  --dg-fig-size: 0.9rem;
+  width: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
+             calc(34rem * var(--dg-ar, 1)));
+  /* The default is centre, matching figure.figure-img's text-align above.
+     styleBodyAttrs writes data-blocks only when it is left, so the centre
+     case has to be the bare rule - a body[data-blocks=center] selector would
+     never match anything and every deck would quietly go flush left. */
+  margin-inline: auto;
+}
+body[data-blocks=left] main .psi-diagram,
+.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+
+@media print {
+  /* The same sentence DIAGRAM_CSS says about a diagram - one picture, and
+     splitting it makes two useless halves - is true of a photograph, and
+     only the diagram was hearing it. It is reachable rather than theoretical:
+     .chunk avoids breaking, so a figure inside a chunk that fits a page was
+     never at risk, but a chunk taller than a page cannot honour that and
+     breaks wherever it must. lectures/tutorial #images is 1073px on a 933px
+     page and holds a 365px figure that was free to split down the middle,
+     with the caption landing on the next sheet. Includes the caption by
+     sitting on the <figure>, which is the whole unit a reader needs at once. */
+  figure.figure-img,
+  figure.figure-video,
+  figure.figure-embed { break-inside: avoid; page-break-inside: avoid; }
+}
+
 figure.figure-img figcaption {
   font-family: var(--sans);
   font-size: 0.78rem;
@@ -806,16 +982,89 @@ pre.shiki .line { display: inline; }
 
 @media print {
   body { background: white; }
-  main { padding: 0; max-width: none; }
+  /* Smaller and tighter than the screen copy, and both halves matter.
+     10pt over 1.6 is a reading size for a lit screen at arm's length; on
+     paper it set the text so loosely that a chunk of four paragraphs filled
+     most of a sheet, which is what pushed the next one over a page boundary
+     and broke the argument into pieces. 9pt over 1.44 is an ordinary book
+     setting. Everything here is in rem, so the whole document - headings,
+     figures, the diagram label size, the column below - moves with it and
+     the proportions are the ones that were tuned. */
+  html { font-size: 9pt; line-height: 1.44; }
+  .chunk { margin: 1.2rem 0 1.7rem; }
+  /* The text column sits against the left of the page area and the rest of
+     the sheet is left empty on purpose. Two reasons, and the second is the
+     one that decided it.
+     Measure: the page area is 16cm, and 16cm of 10pt serif is about 83
+     characters to the line - half again over what a reader tracks
+     comfortably, and it was the width because nobody had picked one. 36rem
+     is about 65.
+     The margin: a handout is written on. 5.8cm of clean paper down the
+     outside edge is a place to put a note next to the paragraph it belongs
+     to, which is worth more on a teaching handout than symmetry is. It also
+     gives the marginalia construct somewhere to go, which it does not use
+     yet - see the .marginalia rule above, still an inline aside.
+     margin is set explicitly because the screen rule is margin: 0 auto, and auto
+     margins on a narrowed column would centre it again. */
+  main { padding: 0; max-width: 38rem; margin: 0; }
+  /* WebKit does not fragment a grid container. An item that crosses a page
+     boundary is sliced through the middle of a line and the remainder painted
+     on the next sheet - and break-inside: avoid on the item does not save it,
+     because the box being fragmented is the container, not the item. .cards
+     is a grid and its ul is display: contents, so every card and every row is
+     a grid item and every one of them was exposed. It only became visible
+     when chunks started flowing: before that the whole chunk moved and the
+     page boundary never fell inside one.
+
+     ::: rows is a single column, so block flow draws the same picture and
+     fragments the way prose does - between rows, with each row whole because
+     the li keeps its own break-inside: avoid. The grid inside the li, the one
+     that sets the term beside its body, is untouched: it never has to
+     fragment now.
+
+     A multi-column ::: cards block is a layout that block flow would not
+     reproduce, so it keeps its grid and is kept whole instead. That is a
+     promise it can hold: the tallest one in the corpus is 183px against a
+     933px page, and a row of cards that no longer fits simply moves.
+
+     Table rows are the same failure without the grid, and cost nothing to
+     protect. */
+  .cards.rows { display: block; }
+  .cards.rows > ul > li + li, .cards.rows > ol > li + li { margin-top: 0.6rem; }
+  .cards:not(.rows) { break-inside: avoid; page-break-inside: avoid; }
+  tr, .chunk-expansion { break-inside: avoid; page-break-inside: avoid; }
+  thead { display: table-header-group; }
+
+  /* Code cannot reflow, so it is the one thing allowed into that margin.
+     pre carries overflow-x: auto for the screen, and on paper that auto is not
+     a scrollbar, it is a cut - the line simply ends. Reachable today at
+     36rem: lectures/tutorial #diagram-beats-rule is 557px wide. Visible
+     overflow lets it run into the empty margin instead, which is the one
+     place on this page where a few characters of intrusion cost nothing. */
+  pre { overflow: visible; }
   a { text-decoration: none; color: inherit; }
   /* On paper it is a cover page again: fills the sheet, title sitting in
      the lower third (PRD §4.4), no rule under it. */
+  /* The cover is a page of its own, and says so with break-after rather
+     than by being as tall as one. It used to be min-height: 24cm, which is
+     A4's text height of 24.7cm with 2.8% to spare - so it fitted exactly one
+     paper size at exactly these margins. On US Letter the same page area is
+     22.94cm and the box was 4cm too tall; the overflow is the padding below
+     the title, so what landed on the next sheet was a blank one. A reader
+     whose browser sets its own margins - Safari's print dialog does - got
+     the same blank page on A4.
+     19cm clears both with room to spare and still puts the title low on the
+     sheet, which is the whole of what the height was for (PRD 4.4). The
+     padding is in rem for the same reason the figure cap is: vh inside a
+     page box is not a thing the engines agree on. */
   .chunk-title {
-    min-height: 24cm;
+    min-height: 19cm;
     justify-content: flex-end;
-    padding: 0 0 12vh;
+    padding: 0 0 2.5rem;
     margin: 0;
     border-bottom: 0;
+    break-after: page;
+    page-break-after: always;
   }
   pre { background: rgba(0,0,0,0.03); }
 }
@@ -854,7 +1103,14 @@ pre.shiki .line { display: inline; }
   height: auto;
 }
 @media print {
-  .psi-diagram { max-height: none; }
+  /* How tall a diagram may be on paper is not answered here. This block used
+     to say max-height: none, on the reasoning that a vh cap is a slide
+     proportion and a sheet of paper is not a slide - true, and it left the
+     document with no cap at all, so a portrait diagram resolved to the
+     measure times its ratio and came out taller than the page. The answer
+     now lives beside every other figure kind in PRINT_CSS, under a selector
+     specific enough to beat the 62vh above in both media. Do not re-add a
+     .psi-diagram max-height here without reading that rule. */
   /* A diagram is one picture; splitting it across a page break makes it
      two useless halves. */
   .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
@@ -1086,7 +1342,7 @@ your own at the lectern. A <code class="nb">masthead</code> cover leaves a field
 along the top and the credits along the bottom, and this paragraph is what
 goes in it.</p>
 </div>
-    <p class="title-presenter">Dominik Herrmann</p>
+    <p class="title-presenter" data-foot="">Dominik Herrmann</p>
     <div class="title-info"><p>Tutorial lecture built with psi-slides itself</p><p>Use the tool to learn the tool</p></div>
   
 </article>
@@ -1133,7 +1389,7 @@ goes in it.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i></span>
   
   <h2 class="chunk-heading">One file in, four files out</h2>
-  <figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-164.16 -71.85 645.30 292.80" width="2000" height="907" data-steps="1" role="img" aria-label="One file in, four files out" preserveAspectRatio="xMidYMid meet">
+  <figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-164.16 -71.85 645.30 292.80" style="--dg-type-w:43.020;--dg-ar:2.2039" width="2000" height="907" data-steps="1" role="img" aria-label="One file in, four files out" preserveAspectRatio="xMidYMid meet">
 <g id="dg1-ph2" data-base="dg-el dg-image" class="dg-el dg-image"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" id="dg1-ph2--i" role="img" x="-94.24" y="143.90" width="51.68" height="51.68" preserveAspectRatio="xMidYMid meet">
   <style>@scope (svg#dg1-ph2--i) {
 :scope { --_ink: var(--ink, #222); }
@@ -2160,8 +2416,9 @@ goes in it.</p>
 <ul>
 <li><code>node build.js --new &lt;slug&gt;</code> makes a lecture folder with working frontmatter and two chunks. It builds the moment it lands on disk.</li>
 <li><code>node build.js &lt;source.md&gt; --watch</code> rebuilds and reloads every open tab on every save.</li>
-<li><code>node lint.js lectures/</code> checks what can be checked without building: unknown types, unclosed <code class="nb">:::</code> blocks, repeated ids, word budgets, too many segments, columns with only one chunk, captions that repeat the heading. <code class="nb">--strict</code> turns the warnings into failures.</li>
+<li><code>node lint.js lectures/</code> checks what can be checked without building: unknown types, unclosed <code class="nb">:::</code> blocks, repeated ids, word budgets, too many segments, one-chunk columns, captions that repeat the heading, frontmatter keys nothing reads. <code class="nb">--strict</code> turns the warnings into failures.</li>
 </ul>
+<p>A frontmatter key nothing reads looks like nothing is wrong – the lecture builds, the slides look right, and the key never reached a page. <code class="nb">author:</code> sat in several lectures here doing that.</p>
 <p>A source file can switch one check off with <code>&lt;!-- linter: ignore reveal-overuse, density --&gt;</code> anywhere in the body. It has to be ordinary text to count: inside a code block or between backticks, as in the sentence you are reading, it is an example and not an instruction. This lecture carries a real one at the top, for <code class="nb">density</code>, and says there why.</p>
 
   
@@ -2246,7 +2503,7 @@ are tagged into a release.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Diagrams</span> <span class="hd-sub">the figure below is five lines of source</span></h2>
   <p><strong>A <code>::: draw</code> block is a figure written as text.</strong> The build draws it into the page: you name the boxes and say where each one goes, and the arrows between them are routed for you.</p>
-<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-50.35 -32.75 405.15 63.13" width="2000" height="312" data-steps="1" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-50.35 -32.75 405.15 63.13" style="--dg-type-w:27.010;--dg-ar:6.4182" width="2000" height="312" data-steps="1" role="img" aria-label="Diagrams" preserveAspectRatio="xMidYMid meet">
 <g id="dg2-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg2-edge-1--p" class="dg-stroke" d="M38.35 0.00L110.50 0.00" fill="none"/><path id="dg2-edge-1--h" class="dg-head" d="M118.15 0.00L109.15 3.96L109.15 -3.96Z"/><g id="dg2-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(78.25,-11.38)"><g id="dg2-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted</tspan></text></g></g></g>
 <g id="dg2-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg2-edge-2--p" class="dg-stroke" d="M172.35 0.00L244.50 0.00" fill="none"/><path id="dg2-edge-2--h" class="dg-head" d="M252.15 0.00L243.15 3.96L243.15 -3.96Z"/><g id="dg2-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(212.25,-11.38)"><g id="dg2-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">recoded</tspan></text></g></g></g>
 <g id="dg2-src" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg2-src--r" x="-38.35" y="-18.38" width="76.70" height="36.75" rx="4"/><g id="dg2-src--lw0" data-lab="src--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-src--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sender</tspan></text></g></g></g>
@@ -2275,7 +2532,7 @@ are tagged into a release.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that arrives in pieces</span> <span class="hd-sub">a <code class="nb">step</code> block advances on the same key as a reveal</span></h2>
   <p><strong>Write <code class="nb">step</code> blocks and the figure changes with each forward press.</strong> One step is one press of the same key that uncovers a segment, so steps and segments arrive in the order you wrote them and the speaker view reads ahead exactly as it does for text. Press forward twice here.</p>
-<figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-50.35 -32.75 485.05 165.05" width="2000" height="681" data-live-viewbox="-50.35 -32.75 485.05 165.05" data-live-ratio="0.340274" data-steps="3" role="img" aria-label="A figure that arrives in pieces" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-50.35 -32.75 485.05 165.05" style="--dg-type-w:32.337;--dg-ar:2.9388" width="2000" height="681" data-live-viewbox="-50.35 -32.75 485.05 165.05" data-live-ratio="0.340274" data-steps="3" role="img" aria-label="A figure that arrives in pieces" preserveAspectRatio="xMidYMid meet">
 <g id="dg3-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg3-edge-1--p" class="dg-stroke" d="M38.35 0.00L106.30 0.00" fill="none"/><path id="dg3-edge-1--h" class="dg-head" d="M113.95 0.00L104.95 3.96L104.95 -3.96Z"/><g id="dg3-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(76.15,-11.38)"><g id="dg3-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">encrypted</tspan></text></g></g></g>
 <g id="dg3-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg3-edge-2--p" class="dg-stroke" d="M168.15 0.00L236.10 0.00" fill="none"/><path id="dg3-edge-2--h" class="dg-head" d="M243.75 0.00L234.75 3.96L234.75 -3.96Z"/><g id="dg3-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(205.95,-11.38)"><g id="dg3-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">recoded</tspan></text></g></g></g>
 <g id="dg3-leak" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg3-leak--p" class="dg-stroke" d="M141.05 18.38L141.05 75.52" fill="none"/><path id="dg3-leak--h" class="dg-head" d="M141.05 83.17L137.09 74.17L145.01 74.17Z"/></g>
@@ -2329,7 +2586,7 @@ are tagged into a release.</p>
 
 
 
-<figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-52.23 -30.38 104.45 182.65" width="2000" height="3497" data-live-viewbox="-52.23 -30.38 104.45 182.65" data-live-ratio="1.748684" data-steps="3" role="img" aria-label="Words that arrive with a step" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-52.23 -30.38 104.45 182.65" style="--dg-type-w:6.963;--dg-ar:0.5719" width="2000" height="3497" data-live-viewbox="-52.23 -30.38 104.45 182.65" data-live-ratio="1.748684" data-steps="3" role="img" aria-label="Words that arrive with a step" preserveAspectRatio="xMidYMid meet">
 <g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M0.00 18.38L0.00 34.93" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M0.00 42.58L-3.96 33.58L3.96 33.58Z"/></g>
 <g id="dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg4-edge-2--p" class="dg-stroke" d="M0.00 79.33L0.00 95.88" fill="none"/><path id="dg4-edge-2--h" class="dg-head" d="M0.00 103.53L-3.96 94.53L3.96 94.53Z"/></g>
 <g id="dg4-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg4-a--r" x="-40.23" y="-18.38" width="80.45" height="36.75" rx="4"/><g id="dg4-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
@@ -2432,7 +2689,7 @@ are tagged into a release.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Classes</span> <span class="hd-sub">thirteen groups, and one question each</span></h2>
   <p><strong>Only one member of a group is in force.</strong> The names come from a fixed list, and <code class="nb">{.tone-1}</code> on a box therefore <em>replaces</em> a <code>default box {.tone-4}</code> rather than piling on top of it, which is what makes the groups worth knowing.</p>
-<figure class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-199.07 -29.22 794.71 453.92" width="2000" height="1142" data-steps="1" role="img" aria-label="Classes" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-199.07 -29.22 794.71 453.92" style="--dg-type-w:52.981;--dg-ar:1.7508" width="2000" height="1142" data-steps="1" role="img" aria-label="Classes" preserveAspectRatio="xMidYMid meet">
 <g id="dg5-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge muted no-head"><path id="dg5-edge-1--p" class="dg-stroke" d="M-61.60 0.00L543.20 0.00" fill="none"/><path id="dg5-edge-1--h" class="dg-head" d="M543.20 0.00L543.20 0.00L543.20 0.00Z"/></g>
 <g id="dg5-f1" data-base="dg-el dg-box" class="dg-el dg-box paper sharp"><rect id="dg5-f1--r" x="-34.72" y="-17.22" width="69.44" height="34.44" rx="4"/><g id="dg5-f1--lw0" data-lab="f1--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg5-f1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">paper</tspan></text></g></g></g>
 <g id="dg5-f2" data-base="dg-el dg-box" class="dg-el dg-box tone-1 sharp"><rect id="dg5-f2--r" x="63.42" y="-17.22" width="69.44" height="34.44" rx="4"/><g id="dg5-f2--lw0" data-lab="f2--l" class="dg-lwrap" transform="translate(98.14,0.00)"><g id="dg5-f2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">tone-1</tspan></text></g></g></g>
@@ -2519,7 +2776,7 @@ are tagged into a release.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Charts</span> <span class="hd-sub"><code class="nb">bars</code>, <code class="nb">grid</code> and <code class="nb">plot</code></span></h2>
   <p><strong>Three statements draw data, and each turns into ordinary boxes, texts and edges first.</strong> <code class="nb">bars</code> becomes one box per column plus a baseline, <code class="nb">grid</code> one box per cell, and <code class="nb">plot</code> a frame of gridlines, ticks and two axis titles.</p>
-<figure class="figure-diagram"><svg id="dg6-root" class="psi-diagram" viewBox="-199.71 -79.80 655.79 177.70" width="2000" height="542" data-live-viewbox="-199.71 -79.80 655.79 177.70" data-live-ratio="0.270971" data-steps="3" role="img" aria-label="Charts" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg6-root" class="psi-diagram" viewBox="-199.71 -79.80 655.79 177.70" style="--dg-type-w:43.719;--dg-ar:3.6904" width="2000" height="542" data-live-viewbox="-199.71 -79.80 655.79 177.70" data-live-ratio="0.270971" data-steps="3" role="img" aria-label="Charts" preserveAspectRatio="xMidYMid meet">
 <g id="dg6-long" data-base="dg-el dg-brace" class="dg-el dg-brace small muted"><path id="dg6-long--p" class="dg-stroke" d="M-168.28 62.40L-168.28 69.40L-87.02 69.40L-87.02 62.40" fill="none"/><g id="dg6-long--lw0" data-lab="long--l" class="dg-lwrap" transform="translate(-127.65,78.40)"><g id="dg6-long--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">the three to rewrite</tspan></text></g></g></g>
 <g id="dg6-wc" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg6-wc--r" x="-170.20" y="-33.60" width="340.40" height="67.20" rx="4"/></g>
 <g id="dg6-wc-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg6-wc-0--r" x="-168.28" y="-33.60" width="24.53" height="67.20" rx="4"/></g>
@@ -2618,7 +2875,7 @@ are tagged into a release.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Columns laid flat</span> <span class="hd-sub"><code class="nb">horizontal</code>, and when to use it</span></h2>
   <p><strong><code class="nb">horizontal</code> lays the columns flat</strong>, which is what a chart wants as soon as its categories have names rather than numbers – lengths from one shared left edge are easier to rank, and “DNS cache poisoning” cannot be written under an upright column at all.</p>
-<figure class="figure-diagram"><svg id="dg7-root" class="psi-diagram" viewBox="-267.54 -43.25 407.04 126.50" width="2000" height="622" data-steps="1" role="img" aria-label="Columns laid flat" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg7-root" class="psi-diagram" viewBox="-267.54 -43.25 407.04 126.50" style="--dg-type-w:27.136;--dg-ar:3.2177" width="2000" height="622" data-steps="1" role="img" aria-label="Columns laid flat" preserveAspectRatio="xMidYMid meet">
 <g id="dg7-hour" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg7-hour--r" x="-127.50" y="-31.25" width="255.00" height="62.50" rx="4"/></g>
 <g id="dg7-hour-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare"><rect id="dg7-hour-0--r" x="-127.50" y="-29.30" width="255.00" height="11.72" rx="4"/></g>
 <g id="dg7-hour-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare emph"><rect id="dg7-hour-1--r" x="-127.50" y="-13.67" width="197.42" height="11.72" rx="4"/></g>
@@ -2647,7 +2904,7 @@ are tagged into a release.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Plots</span> <span class="hd-sub"><code class="nb">plot</code> draws a frame and a scale, and nothing else</span></h2>
   <p><strong>A <code class="nb">plot</code> draws the frame and the scale; you write the curves over it.</strong></p>
-<figure class="figure-diagram"><svg id="dg8-root" class="psi-diagram" viewBox="-315.00 -120.75 536.82 271.20" width="2000" height="1010" data-live-viewbox="-315.00 -120.75 536.82 271.20" data-live-ratio="0.505197" data-steps="3" role="img" aria-label="Plots" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg8-root" class="psi-diagram" viewBox="-315.00 -120.75 536.82 271.20" style="--dg-type-w:35.788;--dg-ar:1.9794" width="2000" height="1010" data-live-viewbox="-315.00 -120.75 536.82 271.20" data-live-ratio="0.505197" data-steps="3" role="img" aria-label="Plots" preserveAspectRatio="xMidYMid meet">
 <g id="dg8-pace-gx-0" data-base="dg-el dg-edge" class="dg-el dg-edge muted dotted no-head"><path id="dg8-pace-gx-0--p" class="dg-stroke" d="M-202.50 -101.25L-202.50 101.25" fill="none"/><path id="dg8-pace-gx-0--h" class="dg-head" d="M-202.50 101.25L-202.50 101.25L-202.50 101.25Z"/></g>
 <g id="dg8-pace-gx-1" data-base="dg-el dg-edge" class="dg-el dg-edge muted dotted no-head"><path id="dg8-pace-gx-1--p" class="dg-stroke" d="M-135.00 -101.25L-135.00 101.25" fill="none"/><path id="dg8-pace-gx-1--h" class="dg-head" d="M-135.00 101.25L-135.00 101.25L-135.00 101.25Z"/></g>
 <g id="dg8-pace-gx-2" data-base="dg-el dg-edge" class="dg-el dg-edge muted dotted no-head"><path id="dg8-pace-gx-2--p" class="dg-stroke" d="M-67.50 -101.25L-67.50 101.25" fill="none"/><path id="dg8-pace-gx-2--h" class="dg-head" d="M-67.50 101.25L-67.50 101.25L-67.50 101.25Z"/></g>
@@ -2713,7 +2970,7 @@ are tagged into a release.</p>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A figure that moves</span> <span class="hd-sub"><code class="nb">hide</code>, <code class="nb">dim</code>, <code class="nb">move</code> and <code class="nb">label</code>, inside a <code class="nb">step</code></span></h2>
   <p><strong>A figure with steps is an argument in stages – the setting, the intruder, the cut wire, and what it costs.</strong> Press forward three times.</p>
-<figure class="figure-diagram"><svg id="dg9-root" class="psi-diagram" viewBox="-202.25 -87.25 949.00 220.25" width="2000" height="464" data-live-viewbox="-202.25 -148.50 949.00 281.50" data-live-ratio="0.296628" data-steps="4" role="img" aria-label="A figure that moves" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg9-root" class="psi-diagram" viewBox="-202.25 -87.25 949.00 220.25" style="--dg-type-w:63.267;--dg-ar:4.3087" width="2000" height="464" data-live-viewbox="-202.25 -148.50 949.00 281.50" data-live-ratio="0.296628" data-steps="4" role="img" aria-label="A figure that moves" preserveAspectRatio="xMidYMid meet">
 <g id="dg9-net" data-base="dg-el dg-container" class="dg-el dg-container dashed muted"><rect id="dg9-net--r" x="-190.25" y="-75.25" width="925.00" height="127.75" rx="4"/><g id="dg9-net--lw0" data-lab="net--l" class="dg-lwrap" transform="translate(-180.25,-62.88)"><g id="dg9-net--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">the intended channel</tspan></text></g></g></g>
 <g id="dg9-wire" data-base="dg-el dg-edge" class="dg-el dg-edge both-heads" style="opacity:0"><path id="dg9-wire--p" class="dg-stroke" d="M24.90 0.00L519.60 0.00" fill="none"/><path id="dg9-wire--h" class="dg-head" d="M527.25 0.00L518.25 3.96L518.25 -3.96Z"/><path id="dg9-wire--h2" class="dg-head" d="M17.25 0.00L26.25 -3.96L26.25 3.96Z"/><g id="dg9-wire--lw0" data-lab="wire--l" class="dg-lwrap" transform="translate(272.25,-11.38)"><g id="dg9-wire--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">M</tspan></text></g></g></g>
 <g id="dg9-note--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg9-note--lead--p" class="dg-stroke" d="M23.69 106.00L272.25 17.50" fill="none"/><path id="dg9-note--lead--h" class="dg-head" d="M272.25 17.50L272.25 17.50L272.25 17.50Z"/></g>
@@ -2766,7 +3023,7 @@ are tagged into a release.</p>
   <p>The delay has to be between 200 ms and 60 s; outside that the build refuses the number rather than quietly moving it.</p>
 <p><strong><code class="nb">cycle</code> repeats the run of steps</strong> – <code>autoplay 1200 cycle</code> – which is usually what a cover figure wants while the audience is arriving. It rewinds the same way it advanced, so the speaker view follows the rewind too. The last step is held for one delay like every other, and there is no second number for how long to hold the finished picture.</p>
 <p><strong>The figure below is running now</strong>, written exactly as the block on the slide before with <code class="nb">cycle</code> added. Press any key and it stops where it stands – that is the take-over, and it is why you can read the rest of this slide without it moving underneath you.</p>
-<figure data-autoplay="1200" data-autoplay-cycle="" class="figure-diagram"><svg id="dg10-root" class="psi-diagram" viewBox="-56.35 -32.75 290.70 63.13" width="2000" height="434" data-live-viewbox="-56.35 -32.75 290.70 63.13" data-live-ratio="0.217148" data-steps="2" role="img" aria-label="What the timer promises" preserveAspectRatio="xMidYMid meet">
+<figure data-autoplay="1200" data-autoplay-cycle="" class="figure-diagram"><svg id="dg10-root" class="psi-diagram" viewBox="-56.35 -32.75 290.70 63.13" style="--dg-type-w:19.380;--dg-ar:4.6051" width="2000" height="434" data-live-viewbox="-56.35 -32.75 290.70 63.13" data-live-ratio="0.217148" data-steps="2" role="img" aria-label="What the timer promises" preserveAspectRatio="xMidYMid meet">
 <g id="dg10-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg10-edge-1--p" class="dg-stroke" d="M44.35 0.00L126.30 0.00" fill="none"/><path id="dg10-edge-1--h" class="dg-head" d="M133.95 0.00L124.95 3.96L124.95 -3.96Z"/><g id="dg10-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(89.15,-11.38)"><g id="dg10-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
 <g id="dg10-crawler" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg10-crawler--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg10-crawler--lw0" data-lab="crawler--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg10-crawler--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
 <g id="dg10-det" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg10-det--r" x="133.95" y="-18.38" width="88.40" height="36.75" rx="4"/><g id="dg10-det--lw0" data-lab="det--l" class="dg-lwrap" transform="translate(178.15,0.00)"><g id="dg10-det--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Detector</tspan></text></g></g></g>
@@ -3019,7 +3276,8 @@ of them are shown one per slide in
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What a row block does differently</span> <span class="hd-sub">no count, and three defaults of its own</span></h2>
   <p>That row is <code>::: rows {.accent}</code> around one list, and every term gets the same column width, so the explanations line up down the slide however long the terms are. <strong>The explanation is optional</strong> – a term written on its own is a labelled row with nothing beside it, which is what an agenda or a list of names wants.</p>
-<p>It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: the text is centred against its term rather than against its first line; <code class="nb">align</code> says how the term sits <em>in its card</em>, and the explanation always ranges left; and the automatic size stops at <code class="nb">medium</code>, a term being a label in a column rather than a headline across the slide.</p>
+<p>It takes no count, a row block having one column by definition, and it takes every word a card row takes. Three defaults differ: <code class="nb">anchor</code> follows the ground, <code class="nb">align</code> says how the term sits <em>in its card</em> while the explanation ranges left, and the automatic size stops at <code class="nb">medium</code>, a term being a label in a column rather than a headline across the slide.</p>
+<p><strong>A row block adds one anchor word, <code class="nb">baseline</code>, and picks between two by ground.</strong> On a fill the term is a visible slab, and a one-line slab against a three-line explanation&#39;s first line reads as a mistake, so a grounded row centres it. Under <code class="nb">{.clear}</code> there is no slab and no padding, so the term is bare words in a column, and those read best on the baseline – a hanging indent, which is the form a term and its definition have taken since long before the slide. <code class="nb">{.baseline}</code> on a <code>::: cards</code> block is an error: a card has nothing beside it to line up with.</p>
 <p>Use <code class="nb">rows</code> when a term needs a sentence, and <code class="nb">cards</code> when a comparison needs counting.</p>
 
   
@@ -3044,7 +3302,7 @@ of them are shown one per slide in
 
 
 
-<figure class="figure-diagram"><svg id="dg11-root" class="psi-diagram" viewBox="-56.35 -30.38 128.68 163.50" width="2000" height="2541" data-steps="1" role="img" aria-label="A figure beside the prose" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg11-root" class="psi-diagram" viewBox="-56.35 -30.38 128.68 163.50" style="--dg-type-w:8.578;--dg-ar:0.7870" width="2000" height="2541" data-steps="1" role="img" aria-label="A figure beside the prose" preserveAspectRatio="xMidYMid meet">
 <g id="dg11-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg11-edge-1--p" class="dg-stroke" d="M0.00 18.38L0.00 76.72" fill="none"/><path id="dg11-edge-1--h" class="dg-head" d="M0.00 84.38L-3.96 75.38L3.96 75.38Z"/><g id="dg11-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(33.10,51.38)"><g id="dg11-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
 <g id="dg11-a" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg11-a--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg11-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg11-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
 <g id="dg11-b" data-base="dg-el dg-box" class="dg-el dg-box tone-4"><rect id="dg11-b--r" x="-44.20" y="84.38" width="88.40" height="36.75" rx="4"/><g id="dg11-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(0.00,102.75)"><g id="dg11-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Detector</tspan></text></g></g></g>
@@ -3070,17 +3328,17 @@ of them are shown one per slide in
 <span class="line"><span style="color:#22863A">  rules</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">            # on | off  – the hairline over a principle</span></span>
 <span class="line"><span style="color:#22863A">  labels</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">           # on | off  – the type word over a chunk</span></span>
 <span class="line"><span style="color:#22863A">  link-codes</span><span style="color:#24292E">: </span><span style="color:#005CC5">off</span><span style="color:#6A737D">       # on | off  – the mark after an external link</span></span>
-<span class="line"><span style="color:#22863A">  blocks</span><span style="color:#24292E">: </span><span style="color:#032F62">left</span><span style="color:#6A737D">          # center | left – where a code block,</span></span>
-<span class="line"><span style="color:#6A737D">                        # a figure and a formula sit</span></span>
-<span class="line"><span style="color:#22863A">  wrap</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">            # balance | none – even line lengths,</span></span>
-<span class="line"><span style="color:#6A737D">                        # in headings and in prose alike</span></span>
+<span class="line"><span style="color:#22863A">  blocks</span><span style="color:#24292E">: </span><span style="color:#032F62">left</span><span style="color:#6A737D">          # center | left – a code block, a figure, a formula</span></span>
+<span class="line"><span style="color:#22863A">  wrap</span><span style="color:#24292E">: </span><span style="color:#032F62">none</span><span style="color:#6A737D">            # balance | none – even line lengths</span></span>
 <span class="line"><span style="color:#22863A">  print-body</span><span style="color:#24292E">: </span><span style="color:#032F62">sans</span><span style="color:#6A737D">      # serif | sans – the printed document's face</span></span>
-<span class="line"><span style="color:#22863A">  bold</span><span style="color:#24292E">: </span><span style="color:#032F62">accent-bold</span><span style="color:#6A737D">     # plain | bold | italic | accent | accent-bold</span></span>
-<span class="line"><span style="color:#6A737D">                        # | accent-italic – a **bold** phrase, live</span></span>
-<span class="line"><span style="color:#22863A">  print-bold</span><span style="color:#24292E">: </span><span style="color:#032F62">italic</span><span style="color:#6A737D">    # the same six – a **bold** phrase on paper</span></span>
-<span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # 0.6 … 1.8</span></span>
-<span class="line"><span style="color:#22863A">  body-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">0.95</span><span style="color:#6A737D">      # 0.6 … 1.8</span></span></code></pre>
-<p><code>headings: auto</code> is the default, and it means the type decides: a question is centred, a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides all of that, for one line of alignment down the whole lecture. <code class="nb">off</code> takes every heading off the projection while keeping it in <code class="nb">print.html</code>, <code class="nb">print-notes.html</code>, the contents list and the search.</p>
+<span class="line"><span style="color:#22863A">  neutrals</span><span style="color:#24292E">: </span><span style="color:#032F62">tinted</span><span style="color:#6A737D">      # neutral | tinted | warm | cool – the greys</span></span>
+<span class="line"><span style="color:#22863A">  print-neutrals</span><span style="color:#24292E">: </span><span style="color:#032F62">warm</span><span style="color:#6A737D">  # the same four, for the printed pages</span></span>
+<span class="line"><span style="color:#22863A">  headline</span><span style="color:#24292E">: </span><span style="color:#032F62">eyebrow</span><span style="color:#6A737D">     # stacked | eyebrow – the title pair</span></span>
+<span class="line"><span style="color:#22863A">  caps</span><span style="color:#24292E">: </span><span style="color:#005CC5">on</span><span style="color:#6A737D">              # off | on – small type round a title</span></span>
+<span class="line"><span style="color:#22863A">  bold</span><span style="color:#24292E">: </span><span style="color:#032F62">accent-bold</span><span style="color:#6A737D">     # plain | bold | italic | accent |</span></span>
+<span class="line"><span style="color:#22863A">  print-bold</span><span style="color:#24292E">: </span><span style="color:#032F62">italic</span><span style="color:#6A737D">    #   accent-bold | accent-italic – live, then paper</span></span>
+<span class="line"><span style="color:#22863A">  heading-scale</span><span style="color:#24292E">: </span><span style="color:#005CC5">1.15</span><span style="color:#6A737D">   # with body-scale, bounded to 0.6 … 1.8</span></span></code></pre>
+<p><code>headings: auto</code> is the default: the type decides, so a figure&#39;s caption sits over its artwork. <code class="nb">left</code> overrides that for one line of alignment down the lecture; <code class="nb">off</code> takes headings off the projection and keeps them in print, the contents list and search.</p>
 
   
   
@@ -3104,9 +3362,52 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="83">
+<article class="chunk chunk-example width-wide" id="neutrals" data-chunk-num="83">
   
   <span class="chunk-num" aria-hidden="true"><i>8</i><i>3</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">What hue the greys carry</span> <span class="hd-sub"><code class="nb">neutrals</code>, and its counterpart for the page</span></h2>
+  <p><strong><code class="nb">A</code> cycles the theme, and in the four light themes it moves one colour: the accent.</strong> The ink stays on a cool hue, and every tinted surface – a card, a dock, an overlay card – is mixed out of that ink, so a card under a warm accent is a cool grey under a warm word.</p>
+<div class="cards rows cards-1 cs-medium ca-left cv-baseline cd-fold cg-clear ck-round cx-veil">
+<ul>
+<li><strong><code class="nb">neutral</code></strong><span class="row-body">the default, and what the tool has always drawn</span></li>
+<li><strong><code class="nb">tinted</code></strong><span class="row-body">the greys take the accent&#39;s own hue, so the slide reads as one palette whichever accent the room gets</span></li>
+<li><strong><code class="nb">warm</code> / <code class="nb">cool</code></strong><span class="row-body">a fixed hue, the accent notwithstanding</span></li>
+</ul>
+
+</div>
+
+
+<p><strong><code class="nb">print-neutrals</code> asks the same question for the two printed views</strong>, and it is a second key because the printed page is warm already where the projection is not. Leave it out and it follows <code class="nb">neutrals</code>.</p>
+
+  
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="headline" data-chunk-num="84">
+  
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>4</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">Which line of a title is the loud one</span> <span class="hd-sub"><code class="nb">headline</code>, and <code class="nb">caps</code> beside it</span></h2>
+  <p><strong>A cover carries a pair of lines, and so does a divider and a closing slide</strong> – <code class="nb">title:</code> and <code class="nb">subtitle:</code> in the frontmatter, <code>Heading | Sub</code> in a chunk heading. <code class="nb">headline</code> says which of the two is set large.</p>
+<pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">style</span><span style="color:#24292E">:</span></span>
+<span class="line"><span style="color:#22863A">  headline</span><span style="color:#24292E">: </span><span style="color:#032F62">eyebrow</span><span style="color:#6A737D">     # stacked | eyebrow</span></span>
+<span class="line"><span style="color:#22863A">  caps</span><span style="color:#24292E">: </span><span style="color:#005CC5">on</span><span style="color:#6A737D">              # off | on</span></span></code></pre>
+<p><code class="nb">stacked</code> is the default: the title large, the subtitle quieter under it. <code class="nb">eyebrow</code> turns it over, so the title sits small above a subtitle that carries the weight – the shape a lecture title takes when the first line names the field and the second asks the question.</p>
+<p><strong>The words stay where they are and only their type changes</strong>, which is what lets one key serve the cover, the dividers and the closing slide at once. <code class="nb">title:</code> is also the browser tab, the contents entry and what search reads, so putting the hook there would leave the lecture&#39;s own name nowhere.</p>
+<p><code class="nb">caps</code> sets the small type round a title in capitals: the eyebrow, the presenter, the affiliation, never the headline. The tracking is not a second setting – the build spaces out any line already in capitals, including one you typed that way.</p>
+
+  
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="labels" data-chunk-num="85">
+  
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>5</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Turning the generated labels off</span> <span class="hd-sub"><code>style: {labels: off}</code></span></h2>
   <p><strong>The type word above a chunk is drawn in two places, and one setting takes it out of both.</strong></p>
@@ -3130,9 +3431,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="84">
+<article class="chunk chunk-example width-wide" id="bundled-fonts" data-chunk-num="86">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>6</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Which typefaces are embedded in the file</span> <span class="hd-sub">nine come with the tool</span></h2>
   <p><strong>Three families are embedded in any one file, and you pick which three.</strong> Nine come with the tool, so naming one of those needs no font file at all.</p>
@@ -3152,9 +3453,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="85">
+<article class="chunk chunk-example width-wide" id="fonts" data-chunk-num="87">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>7</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Embedding your own typefaces</span> <span class="hd-sub"><code class="nb">fonts/</code> beside <code class="nb">source.md</code>, plus a frontmatter block</span></h2>
   <p><strong>A family that is not inside the file is a family the lecture-hall machine may not have.</strong> Safari does not tell a page which fonts a machine has, so a lecture that merely names one takes whatever that browser decides instead. The three a lecture carries are embedded in every output it writes, cost about 280 KB per file, and <code>fonts: none</code> leaves them out; the bundled three are under the SIL Open Font License, which permits exactly this.</p>
@@ -3172,22 +3473,24 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="86" data-blocks="left">
+<article class="chunk chunk-example width-wide" id="covers" data-chunk-num="88" data-blocks="left">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>8</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">How the title slide is composed</span> <span class="hd-sub"><code class="nb">cover:</code> plus a <code class="nb">subtitle:</code> line</span></h2>
   <p><strong><code class="nb">cover:</code> in the frontmatter picks how the title slide is composed, and <code class="nb">subtitle:</code> gives it the line that says what the talk is about.</strong> Without those two, a cover is one weight of one colour with the subject set beside the venue, and it reads as a text file rather than as the opening of a talk.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#22863A">title</span><span style="color:#24292E">: </span><span style="color:#032F62">How Caches Forget</span></span>
 <span class="line"><span style="color:#22863A">subtitle</span><span style="color:#24292E">: </span><span style="color:#032F62">Eviction, Staleness and the Cost of Being Wrong</span></span>
 <span class="line"><span style="color:#22863A">presenter</span><span style="color:#24292E">: </span><span style="color:#032F62">Jana Wieland</span></span>
+<span class="line"><span style="color:#22863A">affiliation</span><span style="color:#24292E">: </span><span style="color:#032F62">Otto-Friedrich-Universität Bamberg</span></span>
+<span class="line"><span style="color:#22863A">contact</span><span style="color:#24292E">: </span><span style="color:#032F62">uni.example/ds</span></span>
+<span class="line"><span style="color:#22863A">notice</span><span style="color:#24292E">: </span><span style="color:#032F62">Slides go up on Friday.</span></span>
 <span class="line"><span style="color:#22863A">info</span><span style="color:#24292E">: </span><span style="color:#D73A49">|</span></span>
 <span class="line"><span style="color:#032F62">  Distributed Systems · Lecture 7 · Room WE5/00.019</span></span>
-<span class="line"><span style="color:#032F62">  uni.example/ds</span></span>
 <span class="line"><span style="color:#22863A">cover</span><span style="color:#24292E">: </span><span style="color:#032F62">split</span><span style="color:#6A737D">            # see the two rows below</span></span>
 <span class="line"><span style="color:#22863A">cover-image</span><span style="color:#24292E">: </span><span style="color:#032F62">skyline</span><span style="color:#6A737D">    # only the four picture covers take one;</span></span>
 <span class="line"><span style="color:#6A737D">                        # on the six text-only ones it is an error</span></span></code></pre>
-<p><code class="nb">info:</code> takes as many lines as you give it – the course and the room, the address students should write down, or, at a conference, its name and dates. Without <code class="nb">subtitle:</code> the one line saying what the talk is <em>about</em> has nowhere to go but <code class="nb">info</code> either, where it is set exactly like the rest.</p>
+<p><code class="nb">info:</code> takes as many lines as you give it – the course and the room, or, at a conference, its name and dates. Without <code class="nb">subtitle:</code> the one line saying what the talk is <em>about</em> has nowhere to go but <code class="nb">info</code> either, where it is set exactly like the rest.</p>
 
   
   
@@ -3195,9 +3498,34 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cover-list" data-chunk-num="87">
+<article class="chunk chunk-example width-wide" id="credits" data-chunk-num="89">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>8</i><i>9</i></span>
+  <span class="chunk-label">example</span>
+  <h2 class="chunk-heading has-sub"><span class="hd-main">The credit block has four ranks</span> <span class="hd-sub">who is talking, where, and how to reach them</span></h2>
+  <p><strong>The four keys under <code class="nb">title:</code> are set at four different weights, because they do four different jobs.</strong></p>
+<div class="cards rows cards-1 cs-medium ca-left cv-baseline cd-fold cg-clear ck-round cx-veil">
+<ul>
+<li><strong><code class="nb">presenter:</code></strong><span class="row-body">your name, set apart from everything under it</span></li>
+<li><strong><code class="nb">affiliation:</code></strong><span class="row-body">the institution, quieter, directly beneath the name</span></li>
+<li><strong><code class="nb">contact:</code> / <code class="nb">notice:</code></strong><span class="row-body">one row along the foot – the address flush left, the notice flush right and in italics</span></li>
+</ul>
+
+</div>
+
+
+<p>A presenter and an institution <em>introduce the speaker</em>; an address and “the slides go up on Friday” <em>answer the room</em>. That is why the last two share a row instead of stacking. <code class="nb">info:</code> keeps the date, the room and the course line.</p>
+<p><strong>Everything but <code class="nb">presenter:</code> used to go into <code class="nb">info:</code></strong>, which set the line that qualifies your name exactly like the line that gives the date.</p>
+
+  
+  
+  
+  
+  
+</article>
+<article class="chunk chunk-example width-wide" id="cover-list" data-chunk-num="90">
+  
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>0</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The ten cover compositions</span> <span class="hd-sub">six of text alone, four that take a picture</span></h2>
   <p><strong>They are ordered by how prominent the opening slide is.</strong> Six are text and nothing else:</p>
@@ -3218,9 +3546,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cover-pictures" data-chunk-num="88">
+<article class="chunk chunk-example width-wide" id="cover-pictures" data-chunk-num="91">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>1</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The four covers that take a picture</span> <span class="hd-sub">and what each does with it</span></h2>
   <p>Four take a picture:</p>
@@ -3239,9 +3567,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="cover-keys" data-chunk-num="89">
+<article class="chunk chunk-example width-wide" id="cover-keys" data-chunk-num="92">
   
-  <span class="chunk-num" aria-hidden="true"><i>8</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>2</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">What a cover reads besides its name</span> <span class="hd-sub">the body, a backdrop, and three more keys</span></h2>
   <p><strong><code class="nb">beside</code>, <code class="nb">above</code> and <code class="nb">quote</code> take their content from the chunk body</strong>, so a <code>::: draw</code> can be the cover – a diagram is not a file, and <code class="nb">cover-image</code> can never name one.</p>
@@ -3252,15 +3580,16 @@ of them are shown one per slide in
   <aside class="chunk-expansion chunk-expansion-expand" data-label="The rest of the cover keys">
 <p>On <code class="nb">beside</code>, <code class="nb">above</code>, <code class="nb">quote</code> and <code class="nb">masthead</code>, <code class="nb">info:</code> still supplies the credit lines; everywhere else writing a body replaces <code class="nb">info</code>.</p>
 <p><code>cover-ratio: 42%</code> sets how much of the slide the picture takes on <code class="nb">split</code>, <code class="nb">beside</code> and <code class="nb">above</code>, and <code>cover-align: top | middle | bottom</code> moves the words up or down on the compositions that leave them any freedom.</p>
+<p><code>cover-ground: ink</code> opens a light lecture on a dark slide with nothing behind it. Until it existed, a dark opening needed a photograph – <code class="nb">hero</code> inverts the slide it draws, and <code>::: backdrop</code> wants a file. It is written only where nothing has already darkened the slide, so a backdrop still wins over it, and the closing slide inherits it with the rest of the composition.</p>
 <p>Try <code class="nb">panel</code> with a backdrop: its coloured field becomes the veil, so the picture reads through a plate of the accent rather than under the paper wash every other backdrop gets.</p>
 
 </aside>
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="90">
+<article class="chunk chunk-example width-wide" id="section-dividers" data-chunk-num="93">
   
-  <span class="chunk-num" aria-hidden="true"><i>9</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>3</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">Where a new part starts</span> <span class="hd-sub"><code class="nb">section:</code></span></h2>
   <p><strong>A column with a <code># Heading</code> opens with a divider slide</strong>, and <code class="nb">section:</code> picks how that slide is drawn.</p>
@@ -3281,9 +3610,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="section-quiet" data-chunk-num="91">
+<article class="chunk chunk-example width-wide" id="section-quiet" data-chunk-num="94">
   
-  <span class="chunk-num" aria-hidden="true"><i>9</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>4</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">A divider is never the title slide</span> <span class="hd-sub">and <code class="nb">section-mark:</code> puts a word over it</span></h2>
   <p><strong>They stay less prominent than the cover</strong>, so that a divider is not mistaken for the title slide: it says <em>a new part starts here, and it is part of the thing you are already in</em>.</p>
@@ -3298,16 +3627,17 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="92">
+<article class="chunk chunk-example width-wide" id="closing" data-chunk-num="95">
   
-  <span class="chunk-num" aria-hidden="true"><i>9</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>5</i></span>
   <span class="chunk-label">example</span>
   <h2 class="chunk-heading has-sub"><span class="hd-main">The last slide</span> <span class="hd-sub"><code>## closing:</code></span></h2>
   <p><strong><code>## closing:</code> draws a last slide in the same composition as the cover, so the lecture ends on the shape it opened with.</strong> A lecture that starts on a designed slide and ends on the last bullet of the last argument stops rather than finishes.</p>
 <pre class="shiki shiki-themes github-light github-dark-default" style="background-color:#fff;color:#24292e" tabindex="0"><code><span class="line"><span style="color:#005CC5;--shiki-light-font-weight:bold;--shiki-dark-font-weight:bold">## closing: Questions? | office hours Thursday, 14–16 {#end}</span></span>
 <span class="line"></span>
 <span class="line"><span style="color:#24292E">Next week: certificates, and who you are actually trusting.</span></span></code></pre>
-<p><strong>The heading is the first line, the sub-heading after the <code class="nb">|</code> is the second, and the body is whatever should stay on screen while the audience asks questions.</strong> Your name and the <code class="nb">info</code> block are not drawn.</p>
+<p><strong>The heading is the first line, the sub-heading after the <code class="nb">|</code> is the second, and the body is whatever should stay on screen while the audience asks questions.</strong> Your name and the <code class="nb">info</code> block are not drawn – the room learned both an hour ago, and a bookend that repeats them reads as a duplicate slide.</p>
+<p>The one line a last slide is often asked for anyway is where the slides can be found, so <code class="nb">closing-credits:</code> is graded rather than on and off: <code class="nb">none</code> is the default described above, <code class="nb">contact</code> brings back the foot row alone, and <code class="nb">cover</code> brings back the whole credit block.</p>
 <p><strong>A closing slide never uses <code class="nb">cover-image</code> by itself</strong> – ending on the opening picture unasked would be the repetition a closing slide is meant to avoid. <code>closing-image: cover</code> in the frontmatter asks for it, and the deck closes on the picture it opened with; any other value names a different one, in the same three forms <code class="nb">cover-image</code> takes. A <code>::: backdrop</code> on the chunk is the other way and a different thing – a full-bleed ground behind the words, which works on all ten compositions and wins over both.</p>
 
   
@@ -3316,9 +3646,9 @@ of them are shown one per slide in
   
   
 </article>
-<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="93" id="end">
+<article class="chunk chunk-title" data-cover="masthead" data-closing="" data-chunk-num="96" id="end">
   
-  <span class="chunk-num" aria-hidden="true"><i>9</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>9</i><i>6</i></span>
   <h1 class="title-main">That is the tour</h1>
     <p class="title-subtitle">now write your own <code class="nb">source.md</code></p>
     <div class="closing-body"><p>Everything in this tour comes out of one Markdown file and one command, <code>node build.js source.md</code>. The four views are already sitting beside it.</p>

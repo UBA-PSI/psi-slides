@@ -11,11 +11,20 @@
 :root {
   --heading-scale: 1;
   --body-scale: 1;
+  /* The live views' ladder, same two values and the same reasoning (see
+     --radius-card there): a corner is a proportion of the type it holds,
+     and --body-scale moves that type here too. */
+  --radius-card:  0.3em;
+  --radius-tight: 0.1em;
   --ink: #1f1f24;
   --ink-soft: #6b6b72;
   --paper: #fafaf7;
   --rule: #c8c8c0;
   --emph: #8b2e00;
+  /* The hue style: {neutrals} moves the greys onto. Print has no themes -
+     one palette, no A key - so there is one hue here and not five, and it
+     is the print accent's own: #8b2e00 is about hue 40 in oklch. */
+  --accent-h: 40;
   /* Same three families as the live views, and the same order, so all four
      outputs are one typographic set. The first entry of each is bundled and
      embedded, so these resolve even where the machine has nothing installed
@@ -23,6 +32,25 @@
   --serif: 'Literata', 'Source Serif 4', Georgia, serif;
   --sans: 'IBM Plex Sans', 'Inter', system-ui, sans-serif;
   --mono: 'JetBrains Mono', Menlo, monospace;
+}
+/* ── neutrals on paper (style: {neutrals}) ─────────────────────────
+   styleBodyAttrs writes data-neutrals onto this body too, so the rules have
+   to exist here or the attribute is a silent no-op on print.html - the
+   thing this format refuses everywhere else. Print's palette is already
+   warm (#fafaf7 paper, #c8c8c0 rule) where the live one is cool at chroma
+   0, so cool moves more on paper than warm does; that is a property of
+   the two palettes and not of the key. Written in oklch though the palette
+   above is hex, because a hue is what this key changes and hex cannot say
+   it. No terminal guard: print has no terminal themes to guard. And the
+   quiet fills are not re-mixed the way the live views' are, because a
+   printed card is a 1px rule and no fill - there is nothing there to tint. */
+body[data-print-neutrals=warm] { --accent-h: 70; }
+body[data-print-neutrals=cool] { --accent-h: 250; }
+body:is([data-print-neutrals=tinted], [data-print-neutrals=warm], [data-print-neutrals=cool]) {
+  --ink:      oklch(0.26 0.014 var(--accent-h));
+  --ink-soft: oklch(0.50 0.014 var(--accent-h));
+  --paper:    oklch(0.985 0.007 var(--accent-h));
+  --rule:     oklch(0.81 0.013 var(--accent-h));
 }
 
 @page {
@@ -125,7 +153,7 @@ pre {
   background: rgba(0,0,0,0.04);
   padding: 0.8em 1em;
   overflow-x: auto;
-  border-radius: 2px;
+  border-radius: var(--radius-tight);
   line-height: 1.45;
 }
 pre code { font-size: inherit; }
@@ -251,10 +279,23 @@ a:hover { text-decoration-color: var(--ink); }
 
 .chunk {
   margin: 1.6rem 0 2.2rem;
-  page-break-inside: avoid;
-  break-inside: avoid;
+  /* A chunk flows across a page break like any other prose.
+     It used to say break-inside: avoid, which is right for a picture and
+     wrong for a run of text: a chunk that does not fit in what is left of a
+     page moves whole, and the white it leaves behind is however much was
+     left - a third of a sheet under a part heading, repeatedly, in a
+     document whose chunks are mostly paragraphs. The reader loses the thread
+     to a page turn that nothing on the page asked for.
+     What must stay together says so itself and is small enough to mean it:
+     figure, .chunk-outline, the card list, a heading and the line under it.
+     orphans and widows keep the break off the first and last lines. */
+  break-inside: auto;
+  page-break-inside: auto;
+  orphans: 3;
+  widows: 3;
   position: relative;
 }
+main p, main li, main dd, main blockquote { orphans: 3; widows: 3; }
 .chunk-heading {
   font-size: calc(1.12rem * var(--heading-scale));
   margin: 0 0 0.5rem;
@@ -415,6 +456,11 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  /* The size of the pair's loud line, so that headline: eyebrow can hand it
+     to whichever line is carrying the weight. In rem here and in em there,
+     because print is not zoomed - the mechanism is the same and only the
+     unit differs. */
+  --title-lead: 2.6rem;
   padding: 0 0 1.8rem;
   margin: 0 0 2.6rem;
   border-bottom: 1px solid var(--rule);
@@ -422,7 +468,8 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   page-break-inside: avoid;
 }
 .chunk-title .title-main {
-  font-size: 2.6rem;
+  font-size: var(--title-lead);
+  max-width: var(--title-measure, none);
   margin: 0 0 0.8rem;
   line-height: 1.15;
 }
@@ -436,6 +483,51 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   font-family: var(--sans);
   font-size: 0.88rem;
   color: var(--ink-soft);
+}
+.chunk-title .title-affiliation {
+  font-family: var(--sans);
+  font-size: 0.95rem;
+  font-weight: 500;
+  margin: -0.9rem 0 1.2rem;
+  color: var(--ink-soft);
+}
+/* The foot is a row on the projection because the slide is a frame with two
+   edges to hang things on. On paper the page has a measure and no such
+   edges, and an address pushed to the right margin of a document reads as a
+   mistake - so the two run together on one line instead, in source order. */
+.chunk-title .title-foot {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.15rem 1.4rem;
+  margin-top: 0.5rem;
+  font-family: var(--sans);
+  font-size: 0.82rem;
+  color: var(--ink-soft);
+}
+.chunk-title .title-notice { font-style: italic; }
+.chunk-title [data-caps] { letter-spacing: 0.055em; }
+body[data-title-caps=on] .chunk-title .title-presenter,
+body[data-title-caps=on] .chunk-title .title-affiliation,
+body[data-title-caps=on][data-headline=eyebrow] .chunk-title .title-main {
+  text-transform: uppercase;
+  letter-spacing: 0.055em;
+}
+body[data-headline=eyebrow] .chunk-title .title-main {
+  font-size: 1rem;
+  font-weight: 600;
+  line-height: 1.3;
+  letter-spacing: 0.015em;
+  color: var(--ink-soft);
+  margin: 0 0 0.25rem;
+}
+body[data-headline=eyebrow] .chunk-title .title-subtitle {
+  font-size: var(--title-lead);
+  font-weight: 600;
+  line-height: 1.12;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  max-width: 20em;
+  margin: 0 0 0.8rem;
 }
 
 /* The style: frontmatter block, on paper. Same two selectors as the live
@@ -515,14 +607,16 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 .chunk-title[data-cover=panel] .title-presenter { color: var(--paper); }
 .chunk-title[data-cover=panel] .title-subtitle,
 .chunk-title[data-cover=panel] .title-info p,
+.chunk-title[data-cover=panel] .title-affiliation,
+.chunk-title[data-cover=panel] .title-foot,
 .chunk-title[data-cover=panel] .closing-body {
   color: color-mix(in oklch, var(--paper) 78%, transparent);
 }
+.chunk-title[data-cover=display] { --title-lead: 3.6rem; }
+.chunk-title[data-cover=display] { --title-measure: 11em; }
 .chunk-title[data-cover=display] .title-main {
-  font-size: 3.6rem;
   line-height: 1.02;
   letter-spacing: -0.03em;
-  max-width: 11em;
 }
 
 /* The closing slide is a page like the cover is a page, and it carries the
@@ -553,7 +647,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   aspect-ratio: 16 / 6;
   background-size: cover;
   background-position: center;
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   margin-bottom: 1.4rem;
   order: -1;
 }
@@ -567,7 +661,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   background-size: cover;
   background-position: center;
   background-repeat: no-repeat;
-  border-radius: 3px;
+  border-radius: var(--radius-tight);
   margin: 0 0 1rem;
   display: block;
 }
@@ -579,7 +673,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
    what the paper cannot have, the treatment is kept. */
 :is(.overlay-card, .dock) {
   padding: 0.75rem 0.95rem;
-  border-radius: 5px;
+  border-radius: var(--radius-card);
   margin: 0 0 0.7rem;
   max-width: 34em;
 }
@@ -616,7 +710,7 @@ body[data-blocks=left] .math-display .katex-display > .katex,
   margin: 0;
   padding: 0.6rem 0.75rem;
   border: 1px solid var(--rule);
-  border-radius: 5px;
+  border-radius: var(--radius-card);
   list-style: none;
   break-inside: avoid;
   font-size: calc(1em * var(--card-fs, 1));
@@ -777,6 +871,88 @@ figure.figure-embed .embed-source { font-family: var(--sans); font-size: 0.72rem
 }
 figure.figure-img img,
 figure.figure-img svg { max-width: 100%; height: auto; }
+
+/* ── how tall a figure may be in a document ──────────────────────────
+   Width has always been answered (the measure), height never was, and the
+   two are not independent: every figure here keeps its aspect ratio, so an
+   uncapped height is whatever the measure multiplied by the ratio happens
+   to be. A ::: draw block makes that worst: it carries width="2000" so
+   max-width binds on every page, and python-intro's #scanner-pipeline
+   (1.56 tall per unit wide) resolved to 944px inside a 933px A4 text area -
+   taller than the sheet, and then moved onto a page of its own by the
+   break-inside: avoid that keeps a picture whole. A raster figure reaches
+   the same place from a portrait screenshot.
+   In rem rather than vh, and the same number on screen and on paper: what a
+   viewport unit means inside a page box is not something the engines agree
+   on, and print.html is printed by whichever browser the reader has. 34rem
+   at the 10pt root is about half the A4 text height - a figure may be the
+   largest thing on a page without being the only thing on it.
+   The selectors are (0,1,1) on purpose: DIAGRAM_CSS is concatenated after
+   this stylesheet, so a bare .psi-diagram here would lose to its 62vh on
+   screen and to its max-height: none on paper. */
+main .psi-diagram,
+figure.figure-img img,
+figure.figure-img svg,
+figure.figure-video video { max-height: 34rem; }
+
+/* ── how large a drawing is in a document ────────────────────────────
+   A slide answers this by filling the frame: the figure IS the slide, and
+   what that does to the label type does not matter, because nothing else is
+   on the wall to compare it with. A page has running text three lines above
+   the picture, and there the answer is the opposite - the type inside a
+   figure belongs to the same typographic set as the type around it.
+
+   Filling the measure gets that wrong by a different amount for every
+   figure, because a label's size is DG_FONT scaled by the measure over the
+   viewBox width, and the viewBox is however many grid units the author
+   happened to draw in. Measured before this rule: 47 of 81 figures in the
+   corpus carried type larger than the running text, from 0.53x to 2.97x -
+   a spread of 5.6, invisible to the author, and nothing in the source says
+   which end a given figure lands on.
+
+   So the width is derived from the type instead. --dg-type-w is the viewBox
+   width measured in base labels (diagram-core emits it), and multiplying by
+   --dg-fig-size gives the width at which a base label lands at exactly that
+   size. Every figure in the document then carries one label size, the way
+   every figure in a book does. The third term converts the height budget
+   into a width so a tall figure shrinks proportionally rather than sitting
+   letterboxed in a box the height cap left too wide, and 100% keeps a
+   figure with more units than the measure can serve from overflowing - that
+   one lands under the target size, which is the one case nothing can fix.
+
+   The box now hugs the drawing rather than spanning the measure, so
+   style.blocks finally means something here: the rules below are the same
+   ones figure-img has had all along, and a diagram was the one figure kind
+   that could not honour them because its box was always full width. */
+main .psi-diagram {
+  --dg-fig-size: 0.9rem;
+  width: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
+             calc(34rem * var(--dg-ar, 1)));
+  /* The default is centre, matching figure.figure-img's text-align above.
+     styleBodyAttrs writes data-blocks only when it is left, so the centre
+     case has to be the bare rule - a body[data-blocks=center] selector would
+     never match anything and every deck would quietly go flush left. */
+  margin-inline: auto;
+}
+body[data-blocks=left] main .psi-diagram,
+.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+
+@media print {
+  /* The same sentence DIAGRAM_CSS says about a diagram - one picture, and
+     splitting it makes two useless halves - is true of a photograph, and
+     only the diagram was hearing it. It is reachable rather than theoretical:
+     .chunk avoids breaking, so a figure inside a chunk that fits a page was
+     never at risk, but a chunk taller than a page cannot honour that and
+     breaks wherever it must. lectures/tutorial #images is 1073px on a 933px
+     page and holds a 365px figure that was free to split down the middle,
+     with the caption landing on the next sheet. Includes the caption by
+     sitting on the <figure>, which is the whole unit a reader needs at once. */
+  figure.figure-img,
+  figure.figure-video,
+  figure.figure-embed { break-inside: avoid; page-break-inside: avoid; }
+}
+
 figure.figure-img figcaption {
   font-family: var(--sans);
   font-size: 0.78rem;
@@ -806,16 +982,89 @@ pre.shiki .line { display: inline; }
 
 @media print {
   body { background: white; }
-  main { padding: 0; max-width: none; }
+  /* Smaller and tighter than the screen copy, and both halves matter.
+     10pt over 1.6 is a reading size for a lit screen at arm's length; on
+     paper it set the text so loosely that a chunk of four paragraphs filled
+     most of a sheet, which is what pushed the next one over a page boundary
+     and broke the argument into pieces. 9pt over 1.44 is an ordinary book
+     setting. Everything here is in rem, so the whole document - headings,
+     figures, the diagram label size, the column below - moves with it and
+     the proportions are the ones that were tuned. */
+  html { font-size: 9pt; line-height: 1.44; }
+  .chunk { margin: 1.2rem 0 1.7rem; }
+  /* The text column sits against the left of the page area and the rest of
+     the sheet is left empty on purpose. Two reasons, and the second is the
+     one that decided it.
+     Measure: the page area is 16cm, and 16cm of 10pt serif is about 83
+     characters to the line - half again over what a reader tracks
+     comfortably, and it was the width because nobody had picked one. 36rem
+     is about 65.
+     The margin: a handout is written on. 5.8cm of clean paper down the
+     outside edge is a place to put a note next to the paragraph it belongs
+     to, which is worth more on a teaching handout than symmetry is. It also
+     gives the marginalia construct somewhere to go, which it does not use
+     yet - see the .marginalia rule above, still an inline aside.
+     margin is set explicitly because the screen rule is margin: 0 auto, and auto
+     margins on a narrowed column would centre it again. */
+  main { padding: 0; max-width: 38rem; margin: 0; }
+  /* WebKit does not fragment a grid container. An item that crosses a page
+     boundary is sliced through the middle of a line and the remainder painted
+     on the next sheet - and break-inside: avoid on the item does not save it,
+     because the box being fragmented is the container, not the item. .cards
+     is a grid and its ul is display: contents, so every card and every row is
+     a grid item and every one of them was exposed. It only became visible
+     when chunks started flowing: before that the whole chunk moved and the
+     page boundary never fell inside one.
+
+     ::: rows is a single column, so block flow draws the same picture and
+     fragments the way prose does - between rows, with each row whole because
+     the li keeps its own break-inside: avoid. The grid inside the li, the one
+     that sets the term beside its body, is untouched: it never has to
+     fragment now.
+
+     A multi-column ::: cards block is a layout that block flow would not
+     reproduce, so it keeps its grid and is kept whole instead. That is a
+     promise it can hold: the tallest one in the corpus is 183px against a
+     933px page, and a row of cards that no longer fits simply moves.
+
+     Table rows are the same failure without the grid, and cost nothing to
+     protect. */
+  .cards.rows { display: block; }
+  .cards.rows > ul > li + li, .cards.rows > ol > li + li { margin-top: 0.6rem; }
+  .cards:not(.rows) { break-inside: avoid; page-break-inside: avoid; }
+  tr, .chunk-expansion { break-inside: avoid; page-break-inside: avoid; }
+  thead { display: table-header-group; }
+
+  /* Code cannot reflow, so it is the one thing allowed into that margin.
+     pre carries overflow-x: auto for the screen, and on paper that auto is not
+     a scrollbar, it is a cut - the line simply ends. Reachable today at
+     36rem: lectures/tutorial #diagram-beats-rule is 557px wide. Visible
+     overflow lets it run into the empty margin instead, which is the one
+     place on this page where a few characters of intrusion cost nothing. */
+  pre { overflow: visible; }
   a { text-decoration: none; color: inherit; }
   /* On paper it is a cover page again: fills the sheet, title sitting in
      the lower third (PRD §4.4), no rule under it. */
+  /* The cover is a page of its own, and says so with break-after rather
+     than by being as tall as one. It used to be min-height: 24cm, which is
+     A4's text height of 24.7cm with 2.8% to spare - so it fitted exactly one
+     paper size at exactly these margins. On US Letter the same page area is
+     22.94cm and the box was 4cm too tall; the overflow is the padding below
+     the title, so what landed on the next sheet was a blank one. A reader
+     whose browser sets its own margins - Safari's print dialog does - got
+     the same blank page on A4.
+     19cm clears both with room to spare and still puts the title low on the
+     sheet, which is the whole of what the height was for (PRD 4.4). The
+     padding is in rem for the same reason the figure cap is: vh inside a
+     page box is not a thing the engines agree on. */
   .chunk-title {
-    min-height: 24cm;
+    min-height: 19cm;
     justify-content: flex-end;
-    padding: 0 0 12vh;
+    padding: 0 0 2.5rem;
     margin: 0;
     border-bottom: 0;
+    break-after: page;
+    page-break-after: always;
   }
   pre { background: rgba(0,0,0,0.03); }
 }
@@ -854,7 +1103,14 @@ pre.shiki .line { display: inline; }
   height: auto;
 }
 @media print {
-  .psi-diagram { max-height: none; }
+  /* How tall a diagram may be on paper is not answered here. This block used
+     to say max-height: none, on the reasoning that a vh cap is a slide
+     proportion and a sheet of paper is not a slide - true, and it left the
+     document with no cap at all, so a portrait diagram resolved to the
+     measure times its ratio and came out taller than the page. The answer
+     now lives beside every other figure kind in PRINT_CSS, under a selector
+     specific enough to beat the 62vh above in both media. Do not re-add a
+     .psi-diagram max-height here without reading that rule. */
   /* A diagram is one picture; splitting it across a page break makes it
      two useless halves. */
   .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
@@ -1080,8 +1336,9 @@ pre.shiki .line { display: inline; }
     <h1 class="title-main">Slide Decoration</h1>
     <p class="title-subtitle">What a slide can carry besides a column of text</p>
     
-    
-    <div class="title-info"></div>
+    <p class="title-presenter">Dominik Herrmann</p>
+    <p class="title-affiliation">Otto-Friedrich-Universität Bamberg</p>
+    <div class="title-foot"><span class="title-contact">https://github.com/UBA-PSI/psi-slides</span><span class="title-notice">The four views are built from this one file.</span></div>
   
 </article>
 <article class="chunk chunk-outline width-wide" id="agenda" data-chunk-num="2">
@@ -1117,19 +1374,7 @@ project page, and the <code class="nb">build.js</code> inside it. The source for
   
 </article>
 </section>
-<nav class="toc" aria-label="Contents">
-  <h2>Contents</h2>
-  <ol>
-    <li><a href="#covers">The cover, and the slide that closes it</a></li>
-    <li><a href="#dividers">Dividers carry their own slide</a></li>
-    <li><a href="#grounds">Cards, rows and panes</a></li>
-    <li><a href="#reveal">Revealing a picture</a></li>
-    <li><a href="#panels">Panels: the card grown to the frame</a></li>
-    <li><a href="#docks">A dock at the frame's edge</a></li>
-    <li><a href="#beats">Beats below the top level</a></li>
-    <li><a href="#bare">A heading that stays off the slide</a></li>
-  </ol>
-</nav>
+
 <section class="column" id="covers">
   <h1 class="column-heading">The cover, and the slide that closes it</h1>
   
@@ -1380,7 +1625,7 @@ the quotation divider in Part 1 comes out.</p>
 <section class="column" id="grounds">
   <h1 class="column-heading">Cards, rows and panes</h1>
   
-  <div class="column-lede"><figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-89.00 -25.50 338.56 159.00" width="2000" height="939" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
+  <div class="column-lede"><figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-89.00 -25.50 338.56 159.00" style="--dg-type-w:22.571;--dg-ar:2.1293" width="2000" height="939" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
 <g id="dg1-note--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg1-note--lead--p" class="dg-stroke" d="M130.46 54.00L77.00 54.00" fill="none"/><path id="dg1-note--lead--h" class="dg-head" d="M77.00 54.00L77.00 54.00L77.00 54.00Z"/></g>
 <g id="dg1-cards" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg1-cards--r" x="-77.00" y="-13.50" width="154.00" height="27.00" rx="4"/><g id="dg1-cards--lw0" data-lab="cards--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg1-cards--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">cards 3</tspan></text></g></g></g>
 <g id="dg1-rows" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg1-rows--r" x="-77.00" y="40.50" width="154.00" height="27.00" rx="4"/><g id="dg1-rows--lw0" data-lab="rows--l" class="dg-lwrap" transform="translate(0.00,54.00)"><g id="dg1-rows--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">rows</tspan></text></g></g></g>
@@ -1555,7 +1800,7 @@ second one. Any two numbers work.</p>
 </div><div class="side-b">
 
 
-<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" style="--dg-type-w:30.980;--dg-ar:3.3674" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
 <g id="dg2-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg2-a--r" x="-142.50" y="-57.00" width="285.00" height="114.00" rx="4"/><g id="dg2-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">2fr</tspan></text></g></g></g>
 <g id="dg2-b" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg2-b--r" x="155.70" y="-57.00" width="142.50" height="114.00" rx="4"/><g id="dg2-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(226.95,0.00)"><g id="dg2-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">1fr</tspan></text></g></g></g>
 </svg></figure>
@@ -1827,9 +2072,9 @@ slide leaves - and the linter says when that falls under the measure
 cent of the ink on the paper, which is what gives a column on the slide&#39;s own
 paper an edge. <code class="nb">paper</code> has none there and stays a choice for a dock over a
 picture; <code class="nb">ink</code> is the loud version.</p>
-<p>The dock&#39;s type is the overlay&#39;s, 0.92 of the slide&#39;s and zoomed with it, so
-the reserved track grows with the lecturer&#39;s zoom and auto-fit converges on
-the size at which the list and the text both fit.</p>
+<p>The dock&#39;s type is the overlay&#39;s, 0.92 of the slide&#39;s and zoomed with it, but
+its track is a share of the frame and does not move: a dock is part of the
+frame, and a running list that shifts sideways per slide is not a frame.</p>
 </div>
   
   
@@ -2038,7 +2283,7 @@ type above it, and each is still a row in the search index.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
   
   <h2 class="chunk-heading">The measurement loop</h2>
-  <figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" width="2000" height="1111" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
+  <figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" style="--dg-type-w:21.608;--dg-ar:1.8004" width="2000" height="1111" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
 <g id="dg3-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg3-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="dg3-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="dg3-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="dg3-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
 <g id="dg3-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg3-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="dg3-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="dg3-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="dg3-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
 <g id="dg3-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg3-edge-3--p" class="dg-stroke" d="M184.35 18.38L184.35 83.52" fill="none"/><path id="dg3-edge-3--h" class="dg-head" d="M184.35 91.17L180.39 82.17L188.31 82.17Z"/></g>
@@ -2057,7 +2302,7 @@ type above it, and each is still a row in the search index.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
   
   <h2 class="chunk-heading">A figure that walks itself</h2>
-  <figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
+  <figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
 <g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M75.00 0.00L145.75 0.00" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M153.40 0.00L144.40 3.96L144.40 -3.96Z"/></g>
 <g id="dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-2--p" class="dg-stroke" d="M228.40 18.38L228.40 66.72" fill="none"/><path id="dg4-edge-2--h" class="dg-head" d="M228.40 74.38L224.44 65.38L232.36 65.38Z"/></g>
 <g id="dg4-n--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg4-n--lead--p" class="dg-stroke" d="M353.24 92.75L303.40 92.75" fill="none"/><path id="dg4-n--lead--h" class="dg-head" d="M303.40 92.75L303.40 92.75L303.40 92.75Z"/></g>
@@ -2080,6 +2325,7 @@ type above it, and each is still a row in the search index.</p>
     <div class="closing-body"><p>A <code class="nb">source.md</code> written before any of these constructions builds exactly as it
 did before.</p>
 </div>
+    <div class="title-foot"><span class="title-contact">https://github.com/UBA-PSI/psi-slides</span><span class="title-notice">The four views are built from this one file.</span></div>
   
 </article>
 </section>

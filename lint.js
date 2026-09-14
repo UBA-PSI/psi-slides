@@ -47,6 +47,39 @@ const VALID_TAGS = new Set([
 const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
 const COVER_IMAGE_VARIANTS = new Set(['split', 'hero', 'beside', 'above']);
 
+// Every top-level frontmatter key some renderer reads. Not a vocabulary the
+// build enforces – it deliberately does not, because refusing an unknown key
+// would stop an existing source.md from building and the source format is the
+// interface from 1.0.0. So this is a *warning* and lives only here, which is
+// the one direction the build/lint split allows: warnings this file raises
+// alone are ordinary (reveal-overuse, orphan-column, density all are), while
+// an *error* the build does not share is not.
+//
+// It exists because `author:` sat in four lectures in this repo reading like
+// metadata and rendering nothing at all – the same silent no-op the build
+// refuses everywhere it can see one (a cover-ratio on a cover that does not
+// divide, a scrim on a row with no picture). A key the renderers never read
+// is that defect one layer up, and nothing could see it.
+//
+// Keep it in step with what build.js actually reads. The cheap check is
+// `grep -oE "frontmatter\[?['\"]?[a-z-]+" build.js | sort -u`.
+const KNOWN_FRONTMATTER_KEYS = new Set([
+  // the cover and its credits
+  'title', 'subtitle', 'presenter', 'affiliation', 'contact', 'notice', 'info',
+  'cover', 'cover-image', 'cover-ratio', 'cover-align', 'cover-ground',
+  'closing-image', 'closing-credits',
+  // dividers, identity, type and language
+  'section', 'section-mark', 'lecture', 'course', 'lang', 'labels', 'style',
+  'fonts', 'font', 'ligatures', 'draw-defaults',
+  // viewer defaults
+  'theme', 'collapse', 'auto-fit', 'slide-numbers', 'print-slide-numbers',
+  'editor',
+  // the live prompter. `duration:` sits at the top level rather than inside
+  // the block because it is a property of the talk like `lang:` – the
+  // cockpit's clock measures against it whether or not a prompter listens.
+  'duration', 'souffleuse',
+]);
+
 // Mirrors VIEW_DEFAULT_SPEC in build.js: frontmatter keys that pin how a
 // lecture opens. The build hard-fails on a bad value, but a typo here is
 // otherwise invisible – the lecture still builds and still looks fine, it
@@ -86,20 +119,88 @@ const VIEW_DEFAULTS = {
   'ligatures': ['text', 'none', 'all'],
 };
 
-// There is deliberately no mirror of BUNDLED_FONTS here. One stood in this
-// spot from the commit that made the roster per-lecture until the serif role
-// gained its alternates, and nothing ever read it: `fonts:` is the one piece
-// of frontmatter this file does not check, because deciding a family needs
-// the contents of `fonts/` as well as the bundle, and the build already
-// hard-fails with the list of names for that role and the files it found.
-// A table kept congruent for nobody is the duplication CLAUDE.md warns about
-// with none of the benefit that pays for it.
+// There is deliberately no mirror of the three TEXT roles of BUNDLED_FONTS
+// here. One stood in this spot from the commit that made the roster
+// per-lecture until the serif role gained its alternates, and nothing ever
+// read it: deciding a family needs the contents of `fonts/` as well as the
+// bundle, and the build already hard-fails with the list of names for that
+// role and the files it found. A table kept congruent for nobody is the
+// duplication CLAUDE.md warns about with none of the benefit that pays
+// for it.
+//
+// The display role is the exception, and for one reason: it carries a rule
+// this file has to decide anyway. `display-pairing` needs to know what each
+// face IS – a serif, a sans, a hand, a mono – so the table is here whether
+// or not it also checks the spelling, and once it is here the spelling is
+// free. The odds differ too: a serif role has five names to get right and
+// the display role has thirty-two.
+//
+// `kind` is what the face is rather than what it looks like, which is a
+// different question: Chakra Petch is a machine to look at and a sans to
+// pair with. Mirrors the display half of BUNDLED_FONTS in build.js – add a
+// face there and add it here in the same commit.
+const DISPLAY_FONTS = new Map([
+  ['Caveat', 'hand'], ['Shantell Sans', 'hand'], ['Caveat Brush', 'hand'],
+  ['Patrick Hand', 'hand'], ['Kalam', 'hand'], ['Amatic SC', 'hand'],
+  ['Press Start 2P', 'mono'], ['Silkscreen', 'mono'],
+  ['Pixelify Sans', 'sans'], ['VT323', 'mono'], ['Space Mono', 'mono'],
+  ['Rubik Mono One', 'mono'], ['Chakra Petch', 'sans'], ['Orbitron', 'sans'],
+  ['Bodoni Moda', 'serif'], ['Prata', 'serif'], ['DM Serif Display', 'serif'],
+  ['Abril Fatface', 'serif'], ['Alfa Slab One', 'serif'],
+  ['Young Serif', 'serif'], ['Instrument Serif', 'serif'],
+  ['Yeseva One', 'serif'], ['Anton', 'sans'], ['Oswald', 'sans'],
+  ['Archivo Black', 'sans'], ['Bebas Neue', 'sans'],
+  ['Big Shoulders Display', 'sans'], ['Syne', 'sans'],
+  ['Bricolage Grotesque', 'sans'], ['Space Grotesk', 'sans'],
+  ['Unbounded', 'sans'], ['Staatliches', 'sans'],
+]);
+// The one face in the roster with no eszett – a German title gets a fallback
+// glyph mid-word. Mirrors `noEszett` in build.js.
+const DISPLAY_NO_ESZETT = new Set(['Rubik Mono One']);
+// Mirrors normFontName in build.js: the build matches a family name
+// case-, space- and hyphen-insensitively, so `press start 2p` resolves and a
+// checker that compares raw strings would refuse a deck the build accepts.
+const normFontName = (s) => String(s).toLowerCase().replace(/[\s_-]/g, '');
+const DISPLAY_BY_NORM = new Map(
+  [...DISPLAY_FONTS].map(([name, kind]) => [normFontName(name), { name, kind }]));
 
-// Mirrors STYLE_SPEC in build.js – the nested `style:` block. Only the two
-// enum keys are checked: the two scales are bounded numbers, and reading a
-// number out of YAML with no parser is where a linter starts disagreeing
-// with the build. The build hard-fails on both halves either way.
-const STYLE_SCALE_KEYS = new Set(['heading-scale', 'body-scale']);
+// Whether fonts/ beside source.md could hold this family. A display face is
+// a file the author dropped there just as readily as a bundled name, so the
+// spelling check has to ask. Deliberately lenient: the build reads a
+// filename as <family><separator><descriptor> through splitFontFileName and
+// this file does not re-implement that split, so it asks only whether some
+// file's name begins with the family. The leniency runs in the safe
+// direction – a name this lets through and the build refuses fails at the
+// build, where the message names the files it found; the reverse would be a
+// pre-commit gate blocking a deck that builds.
+function fontsDirHolds(srcDir, family) {
+  let entries = [];
+  try { entries = fs.readdirSync(path.join(srcDir, 'fonts')); } catch (e) { return false; }
+  const wanted = normFontName(family);
+  return entries.some(f =>
+    normFontName(path.basename(f, path.extname(f))).startsWith(wanted));
+}
+
+// Mirrors the `kind: 'num'` half of STYLE_SPEC in build.js – the keys of the
+// nested `style:` block whose value is a bounded number rather than a word,
+// with their bounds.
+//
+// The bounds used to be left to the build, on the reasoning that reading a
+// number out of YAML with no parser is where a linter starts disagreeing with
+// it. The fix for that is not silence but leniency: a value this file cannot
+// read as a finite number is not reported at all, and only a number it can
+// read AND that falls outside the range is. That runs in the safe direction –
+// what this passes and the build refuses fails at the build, where the
+// message is the same one – and it is the direction that matters, because a
+// linter which passes a deck the build then hard-fails is the thing a
+// pre-commit gate exists to prevent.
+const STYLE_NUM_SPEC = {
+  'heading-scale': [0.6, 1.8],
+  'body-scale': [0.6, 1.8],
+  // Multiplies the display face's measured size-adjust. See the note at its
+  // STYLE_SPEC entry for why the roster normalises width and this key exists.
+  'display-scale': [0.6, 1.8],
+};
 // Mirrors STYLE_KEYS_REMOVED in build.js.
 const STYLE_KEYS_REMOVED = {
   reveal: 'every reveal reserves its space now, which is what `hold` bought, so delete the key',
@@ -116,6 +217,28 @@ const STYLE_ENUMS = {
   // puts them on the prose's own axis.
   'blocks': ['center', 'left'],
   'labels': ['on', 'off'],
+  // What hue the greys carry. The four light themes move only --emph, so a
+  // card mixed out of --ink is a cool grey under whatever accent the room
+  // gets; `tinted` puts the accent's own hue into the neutrals, `warm` and
+  // `cool` fix one. `neutral` is the default and today's rendering.
+  'neutrals': ['neutral', 'tinted', 'warm', 'cool'],
+  // The same question for the two documents, and a separate key because the
+  // grounds are not the same ground: print's palette is already warm where
+  // the live one is cool at chroma 0, so a deck can want the page warm and
+  // the projection cool, or the reverse. Unset it follows `neutrals`, which
+  // is a build-side deferral this file does not have to model - it only has
+  // to accept the same four words.
+  'print-neutrals': ['neutral', 'tinted', 'warm', 'cool'],
+  // Which of a title pair's two lines is the loud one. `stacked` is the
+  // title over a quieter subtitle (today's rendering); `eyebrow` sets the
+  // title small above a subtitle that carries the weight. One key for the
+  // cover, the dividers and the closing slide, because all three carry a
+  // pair.
+  'headline': ['stacked', 'eyebrow'],
+  // Whether the small type around a title is set in capitals. The tracking
+  // that goes with them is not a setting - build.js applies it to any slot
+  // already in capitals.
+  'caps': ['off', 'on'],
   // The mark after an external link that opens its address and QR code.
   'link-codes': ['on', 'off'],
   // Which views break a word at the end of a line: the documents only
@@ -176,6 +299,20 @@ function nestedBlockKeys(lines, name, rule) {
     if (m) rule(i, m[1], m[2]);
   });
 }
+
+// Mirrors the role names of STRINGS.en in build.js: the closed key set of
+// the top-level `labels:` block, which localises the words the build
+// invents. Values are free text (translations), so only the keys are ruled
+// on - the same VALID_TAGS-style duplication, mirrored in the same commit.
+// `type` is the one nested map, of the tag words.
+const LABEL_KEYS = new Set([
+  'contents', 'speaker-note', 'presentation-note', 'aside-note',
+  'title-print', 'title-print-notes', 'title-lecture', 'title-speaker',
+  'untitled-lecture', 'annotation-label', 'add-note',
+]);
+const LABEL_TYPE_KEYS = new Set([
+  'principle', 'definition', 'example', 'question', 'exercise', 'outline', 'figure',
+]);
 
 // The slot tables of ::: backdrop, ::: cards / ::: rows, ::: overlay and
 // ::: side, and the parser that reads a {…} tail against one, are imported
@@ -311,10 +448,15 @@ const WIDTH_EM = { narrow: 28, standard: 36, wide: 52, full: 72 };
 // A side dock takes its column out of the slide, so the measure a chunk
 // beside it can have is what the slide leaves: the slide's width in em
 // (16:9 at font-size 0.026 x slide-h, the viewport --check-fit uses), less
-// the padding on the free side, the dock and its gap. The dock widths mirror
-// the audience CSS (--dock-em); change them together.
-const DOCK_EM = { narrow: 13, standard: 18, wide: 25 };
-const DOCK_GAP_EM = 1.6;
+// the padding on the free side, the dock and its gap. The dock widths and
+// the gap mirror the audience CSS (--dock-px, --dock-gap), where both are
+// shares of the slide's width; change them together. As shares they are
+// exact here rather than an estimate: the old em values named the dock's
+// own zoomed em and were read as the chunk's, so this file put a narrow
+// dock at 13em where the page drew it at 17.4 and the warning below
+// under-reported by a third.
+const DOCK_SHARE = { narrow: 0.28, standard: 0.37, wide: 0.46 };
+const DOCK_GAP_SHARE = 0.035;
 const SLIDE_EM = 68.4;
 const SLIDE_PAD_EM = 9.6;
 const MIN_TRACK_EM = 10;
@@ -1187,8 +1329,16 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       }
       const targets = words.slice(1).join(',').split(',').map(s => s.trim()).filter(Boolean);
       const stop = new Set(['to', 'by', 'gap', 'align', 'of', 'right', 'left', 'below', 'above', 'at']);
+      // A prominence verb (emph/dim/ghost) takes element names, never column
+      // indices - `emph 1,3` means indices on a `bars` line, but in a step the
+      // same words are names, and the build refuses a numeric one as
+      // undefined. Breaking on the number left lint silent on exactly that, so
+      // refer() a numeric target for a prominence verb and let the reference
+      // check name it (the build says "refers to '2', which is not defined").
+      const isProm = DG_PROMINENCE.includes(head);
       for (const t of targets) {
-        if (stop.has(t) || /^-?[\d.]+(,-?[\d.]+)?$/.test(t)) break;
+        if (stop.has(t)) break;
+        if (/^-?[\d.]+(,-?[\d.]+)?$/.test(t) && !isProm) break;
         refer(t, ln, `step ${head}`);
       }
       continue;
@@ -2197,6 +2347,10 @@ function lintFile(filePath) {
   const { body, fmLines, header } = splitFrontmatter(src);
   const lines = body.split('\n');
   const findings = [];
+  // The section divider composition, for the one check that depends on it:
+  // `section: card` plates the divider's heading, so on a `.clear` backdrop
+  // the heading is readable and text-on-picture yields to it.
+  const sectionVariant = (header.match(/^section:[ \t]*["']?([a-z]+)/m) || [, 'plain'])[1];
 
   const add = (bodyLine, severity, rule, msg) => {
     if (ignores.has(rule)) return;
@@ -2214,6 +2368,13 @@ function lintFile(filePath) {
   header.split('\n').forEach((raw, i) => {
     const m = raw.match(/^([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
     if (!m) return;
+    if (!KNOWN_FRONTMATTER_KEYS.has(m[1])) {
+      addFm(i + 2, 'warn', 'unknown-frontmatter-key',
+        `'${m[1]}:' is not a key any renderer reads – it is stored and never `
+        + 'looked at, so nothing on any slide changes when you edit it. Delete '
+        + 'it, or check the spelling.');
+      return;
+    }
     const allowed = VIEW_DEFAULTS[m[1]];
     if (!allowed) return;
     // Strip a trailing YAML comment before comparing. Without this the
@@ -2322,28 +2483,45 @@ function lintFile(filePath) {
     }
   });
 
+  // `style.display-scale`, picked up by the block below and ruled on by the
+  // `fonts:` block after it, which is the only place that knows whether this
+  // lecture has a display face for the key to scale.
+  let displayScale = null;
+
   // The nested `style:` block. Read by indentation rather than with a YAML
   // parser, the same fifteen-line trick collectDiagramDefaults uses: a
   // `style:` line with no value opens the block, and any line indented
-  // under it is one of its keys. Only the two enums are ruled on – see
-  // STYLE_ENUMS for why the two scales are left to the build.
+  // under it is one of its keys. The word keys are ruled on against
+  // STYLE_ENUMS and the number keys against STYLE_NUM_SPEC.
   {
     const lines = header.split('\n');
     const rule = (i, key, value) => {
+      const clean = (s) => s.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
       const allowed = STYLE_ENUMS[key];
       // An unknown key used to return quietly here, so the build refused what
       // the linter passed and a deck could lint clean and fail to build. The
-      // two scales are deliberately absent from STYLE_ENUMS (their values are
-      // the build's to bound), so they are named here rather than inferred.
+      // number keys are deliberately absent from STYLE_ENUMS, so they are
+      // named here rather than inferred.
       if (!allowed) {
-        if (!STYLE_SCALE_KEYS.has(key)) {
+        const range = STYLE_NUM_SPEC[key];
+        if (!range) {
           addFm(i + 2, 'error', 'unknown-style-setting',
             `'style.${key}' is not a key this block has` +
             (STYLE_KEYS_REMOVED[key] ? ` – ${STYLE_KEYS_REMOVED[key]}` : ''));
+          return;
         }
+        // Only a value this file can read as a finite number is ruled on;
+        // anything else is left to the build, which reads real YAML.
+        const n = Number(clean(value));
+        if (clean(value) && Number.isFinite(n) && (n < range[0] || n > range[1])) {
+          addFm(i + 2, 'error', 'unknown-style-setting',
+            `'style.${key}: ${clean(value)}' is not a number between ${range[0]} and ${range[1]} – `
+            + `1 is the tool's own scale, 1.15 is 15% larger`);
+        }
+        if (key === 'display-scale' && clean(value)) displayScale = { line: i, value: clean(value) };
         return;
       }
-      const v = value.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+      const v = clean(value);
       if (!v || allowed.includes(v)) return;
       addFm(i + 2, 'error', 'unknown-style-setting',
         `'style.${key}: ${v}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
@@ -2423,6 +2601,136 @@ function lintFile(filePath) {
         `'duration: ${v}' is not a length this key reads – minutes (45) or a clock (45:00, 1:30:00), up to twelve hours`);
     }
   });
+
+  // The nested `fonts:` block, and only its `display:` key – DISPLAY_FONTS
+  // says why the other three roles are left to the build. Read by
+  // indentation like the `style:` block above, flow form included, because
+  // `fonts: {display: Anton}` is how the one-line form gets written and a
+  // reader that only sees the indented form passes a typo in it.
+  {
+    const ls = header.split('\n');
+    let hit = null;
+    let inFonts = false;
+    for (let i = 0; i < ls.length && !hit; i++) {
+      const raw = ls[i];
+      const flow = raw.match(/^fonts:[ \t]*\{(.*)\}[ \t]*$/);
+      if (flow) {
+        for (const pair of flow[1].split(',')) {
+          const kv = pair.match(/^\s*["']?display["']?\s*:\s*(.*?)\s*$/);
+          if (kv) hit = { line: i, raw: kv[1] };
+        }
+        break;
+      }
+      if (/^fonts:[ \t]*$/.test(raw)) { inFonts = true; continue; }
+      if (!inFonts) continue;
+      if (!/^[ \t]+\S/.test(raw)) { if (raw.trim()) inFonts = false; continue; }
+      const m = raw.match(/^[ \t]+display:[ \t]*(.*)$/);
+      if (m) hit = { line: i, raw: m[1] };
+    }
+    const name = hit ? hit.raw.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '') : '';
+    const face = name ? DISPLAY_BY_NORM.get(normFontName(name)) : null;
+    // A key that scales a face the deck does not have does nothing, and this
+    // format refuses a silent no-op – the build hard-fails on it in its
+    // pre-flight and this is the mirror. `fonts: none` counts as no display
+    // face, because it turns the whole bundle off.
+    const bundleOff = /^fonts:[ \t]*["']?none["']?[ \t]*$/m.test(header);
+    if (displayScale && (!name || bundleOff)) {
+      addFm(displayScale.line + 2, 'error', 'display-scale-without-face',
+        `'style.display-scale: ${displayScale.value}' sets the size of this lecture's display `
+        + `face, and ${bundleOff ? '`fonts: none` turns the whole bundle off, the display role '
+          + 'with it' : 'no `fonts: {display: …}` names one'} – name a display face, or delete `
+        + 'the key, which is doing nothing as it stands.');
+    }
+    if (name && !face && !fontsDirHolds(path.dirname(filePath), name)) {
+      addFm(hit.line + 2, 'error', 'unknown-display-font',
+        `'fonts.display: ${name}' is neither one of the ${DISPLAY_FONTS.size} bundled `
+        + 'display faces nor a file in fonts/ – check the spelling; the build refuses '
+        + 'it too and its message prints the whole roster.');
+    } else if (face) {
+      // The one rule `kind` exists for. A display serif over a serif body,
+      // or a display sans over a sans body, does not read as two typefaces:
+      // it reads as one typeface set badly, and the divider stops announcing
+      // itself. A hand and a mono pair with anything, which is why they are
+      // absent from this test rather than listed in it.
+      const body = (header.match(/^font:[ \t]*["']?([a-z]+)/m) || [, 'serif'])[1];
+      if ((face.kind === 'serif' && body === 'serif')
+          || (face.kind === 'sans' && body === 'sans')) {
+        addFm(hit.line + 2, 'warn', 'display-pairing',
+          `'fonts.display: ${name}' is a display ${face.kind} and this deck's `
+          + `body is ${body} too – on the cover and the dividers the two read as one `
+          + 'typeface set badly rather than as two, so the transition slide stops '
+          + `announcing itself. Set 'font: ${body === 'serif' ? 'sans' : 'serif'}', or `
+          + `pick a display face that is not a ${face.kind}.`);
+      }
+      // Only one face in the roster is missing the eszett, and only one
+      // language here notices. Raised on `lang:` rather than on finding a ß
+      // in today's headings, because the headings are the part of a deck
+      // that gets rewritten and the face is the part that does not.
+      const lang = (header.match(/^lang:[ \t]*["']?([A-Za-z]+)/m) || [, 'en'])[1];
+      if (DISPLAY_NO_ESZETT.has(face.name) && /^de$/i.test(lang)) {
+        addFm(hit.line + 2, 'warn', 'display-no-eszett',
+          `'fonts.display: ${name}' has no ß and 'lang: ${lang}' says this deck `
+          + 'is German – a cover, closing or divider heading containing one gets a '
+          + 'fallback glyph mid-word. Pick another display face, or keep ß out of '
+          + 'those three headings.');
+      }
+    }
+  }
+
+  // The top-level `labels:` block. Its keys are a closed set (the role names
+  // the build localises with `lang:`); its values are free text, so only the
+  // keys are ruled on. Mirrors mergeLabels in build.js: an unknown key is
+  // `unknown-label-key`, so a deck that lints clean is one the build accepts.
+  // Read by indentation, the same trick the style block uses; a bare `type:`
+  // opens a nested map of tag words one level deeper.
+  {
+    const lines = header.split('\n');
+    const indentOf = (s) => s.match(/^[ \t]*/)[0].length;
+    let inLabels = false;
+    let inType = false;
+    let typeIndent = -1;
+    lines.forEach((raw, i) => {
+      // The flow form, labels: {contents: X, ...} - top-level keys only; a
+      // nested `type: {…}` map is stripped and left to the build, which is
+      // the safe direction (the build refuses, the linter is silent).
+      const flow = raw.match(/^labels:[ \t]*\{(.*)\}[ \t]*$/);
+      if (flow) {
+        const flat = flow[1].replace(/\btype[ \t]*:[ \t]*\{[^}]*\}/g, '');
+        for (const pair of flat.split(',')) {
+          const kv = pair.match(/^\s*["']?([A-Za-z][A-Za-z0-9_-]*)["']?\s*:/);
+          if (kv && kv[1] !== 'type' && !LABEL_KEYS.has(kv[1])) {
+            addFm(i + 2, 'error', 'unknown-label-key',
+              `'labels.${kv[1]}' is not a key this block has – keys: ${[...LABEL_KEYS].join(', ')}, type`);
+          }
+        }
+        return;
+      }
+      if (/^labels:[ \t]*$/.test(raw)) { inLabels = true; inType = false; return; }
+      if (!inLabels) return;
+      if (raw.trim() && !/^[ \t]/.test(raw)) { inLabels = false; inType = false; return; }
+      if (!raw.trim()) return;
+      const m = raw.match(/^[ \t]+([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
+      if (!m) return;
+      const ind = indentOf(raw);
+      const key = m[1];
+      const val = m[2].replace(/\s+#.*$/, '').trim();
+      if (inType) {
+        if (ind > typeIndent) {
+          if (!LABEL_TYPE_KEYS.has(key)) {
+            addFm(i + 2, 'error', 'unknown-label-key',
+              `'labels.type.${key}' is not a tag word this block has – keys: ${[...LABEL_TYPE_KEYS].join(', ')}`);
+          }
+          return;
+        }
+        inType = false;   // this line is no deeper than type:, so type: closed
+      }
+      if (key === 'type' && !val) { inType = true; typeIndent = ind; return; }
+      if (!LABEL_KEYS.has(key)) {
+        addFm(i + 2, 'error', 'unknown-label-key',
+          `'labels.${key}' is not a key this block has – keys: ${[...LABEL_KEYS].join(', ')}, type`);
+      }
+    });
+  }
 
   // The lecture-wide diagram layer. Its `default <kind> @tag` lines cannot be
   // checked against one block – they are written once for every figure in the
@@ -2568,7 +2876,7 @@ function lintFile(filePath) {
     }
     if (chunk.dock && (chunk.dock.edge === 'left' || chunk.dock.edge === 'right')) {
       const w = widthWord();
-      const avail = SLIDE_EM - SLIDE_PAD_EM - DOCK_EM[chunk.dock.width] - DOCK_GAP_EM;
+      const avail = SLIDE_EM * (1 - DOCK_SHARE[chunk.dock.width] - DOCK_GAP_SHARE) - SLIDE_PAD_EM;
       const floor = Math.min(WIDTH_EM[w], WIDTH_EM.standard);
       if (avail < floor) {
         add(chunk.line, 'warn', 'dock-narrows-measure',
@@ -2688,12 +2996,19 @@ function lintFile(filePath) {
   // The measure a new block would be given, in em: the chunk's width,
   // divided by every open ::: cols / ::: cards, and by a ::: side pane's
   // share of its ratio (gap ignored, panes get the benefit of the doubt).
+  // A title or closing chunk is always full width (its cover composition
+  // decides it, and a width class on it is refused), and outline defaults to
+  // wide. Measuring closing as `standard` reported layout-too-narrow on a card
+  // row that fits full width - a warning the author cannot even silence, since
+  // the width class it names is not allowed on the chunk.
+  const defaultWidthFor = (tag) =>
+    tag === 'title' || tag === 'closing' ? 'full' : tag === 'outline' ? 'wide' : 'standard';
   const measureHere = () => {
     if (!chunk) return Infinity;
     const wcls = [...(chunk.classes || [])].find(c => WIDTH_EM[c]);
-    let em = WIDTH_EM[wcls || (chunk.tag === 'outline' ? 'wide' : 'standard')];
+    let em = WIDTH_EM[wcls || defaultWidthFor(chunk.tag)];
     if (chunk.dock && (chunk.dock.edge === 'left' || chunk.dock.edge === 'right')) {
-      em = Math.min(em, SLIDE_EM - SLIDE_PAD_EM - DOCK_EM[chunk.dock.width] - DOCK_GAP_EM);
+      em = Math.min(em, SLIDE_EM * (1 - DOCK_SHARE[chunk.dock.width] - DOCK_GAP_SHARE) - SLIDE_PAD_EM);
     }
     for (const l of layoutStack) {
       const m = l.kind.match(/^(cols|cards) (\d)/);
@@ -2702,13 +3017,21 @@ function lintFile(filePath) {
     }
     return em;
   };
-  // Named the way the width was written: a chunk with no class is standard.
+  // Named the way the width was written: a chunk with no class takes its
+  // type's default (full for title/closing, wide for outline, else standard).
   const widthWord = () => [...(chunk && chunk.classes || [])].find(c => WIDTH_EM[c])
-    || (chunk && chunk.tag === 'outline' ? 'wide' : 'standard');
+    || (chunk ? defaultWidthFor(chunk.tag) : 'standard');
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const ln = i + 1;
+    // Set when this line opens a ::: cards / ::: rows with a content-dependent
+    // slot written; consumed at the layoutStack push below, same iteration.
+    let pendingCardsCheck = null;
+    // Accumulate the block-body facts a content-dependent cards refusal needs,
+    // onto the open cards/rows stack entry. Runs once the fence is settled
+    // (below), so a fenced `![]()` and a ::: draw body (captured earlier) do
+    // not count - which is exactly what the build's raw-line scan does.
 
     // A ::: draw body is captured verbatim, ahead of everything else.
     // Not an optimisation: a diagram comment starts with '#', and read as
@@ -2731,6 +3054,16 @@ function lintFile(filePath) {
       continue;
     }
     if (inFence) { if (chunk) chunkBody.push(line); continue; }
+
+    // Fence settled: a non-fenced content line of an open cards/rows block
+    // records whether the block carries a picture or a nested level, for the
+    // refusal checked at its close. A ::: draw body was captured above, so it
+    // never reaches here - a diagram is not a card picture, as in the build.
+    const cardsTop = layoutStack.length && layoutStack[layoutStack.length - 1];
+    if (cardsTop && cardsTop.cardsCheck) {
+      if (/!\[[^\]]*\]\([^)\s]+[^)]*\)/.test(line)) cardsTop.hasImage = true;
+      if (/^\s+(?:[-*+]|\d+[.)])\s+/.test(line)) cardsTop.hasNested = true;
+    }
 
     // Only now, with the fence settled: a ::: draw inside a code fence is
     // a syntax example, not a diagram. build.js guards the same way, and a
@@ -2811,6 +3144,13 @@ function lintFile(filePath) {
         } else {
           ids.set(id, fmLines + ln);
         }
+        // The divider slide renders as `${id}-section` in the same
+        // getElementById namespace (renderColumnSectionChunk), so a chunk or
+        // column authored that name is a real duplicate. Mirror the build's
+        // assertDistinctIds. Registered only if not already taken, so the
+        // author's own collision on the base id is reported once, not twice.
+        const dividerId = id + '-section';
+        if (!ids.has(dividerId)) ids.set(dividerId, fmLines + ln);
       }
       col = { line: ln, heading: attr.text, id, chunks: [], backdropSeen: 0, dock: null };
       if (id) colIds.add(id);
@@ -2833,7 +3173,9 @@ function lintFile(filePath) {
         if (VALID_TAGS.has(tagMatch[1])) {
           tag = tagMatch[1];
           heading = tagMatch[2].trim();
-        } else {
+        } else if (!tagMatch[2].startsWith('//')) {
+          // A `//` after the colon is a URL scheme (`## https://…`), not a
+          // type; mirrors the build's parseTagPrefix guard.
           add(ln, 'error', 'unknown-type',
               `unknown chunk type '${tagMatch[1]}:' – valid: ${[...VALID_TAGS].join(', ')}`);
         }
@@ -2884,6 +3226,17 @@ function lintFile(filePath) {
     // file that builds. See the ::: expand branch in build.js.
     const expandOpen = line.match(/^:::\s+expand\s+(.+?)\s*$/);
     const marginOpen = line.match(/^:::\s+(footnote|margin)\s*$/);
+    if (marginOpen && marginOpen[1] === 'margin') {
+      // ::: margin is the older spelling of ::: footnote and still builds, so
+      // no existing source breaks - but it is one keystroke from ::: marginalia,
+      // a different construct in a different place, and it names the one place
+      // the block never sits. A deprecation nudge, not a refusal: the build
+      // accepts it (a warning that failed the build would break five real
+      // lectures that still write it). Planned for removal in a future major.
+      add(ln, 'warn', 'deprecated-margin',
+          '::: margin is the old spelling of ::: footnote - rename it; the alias is '
+          + 'deprecated and a future major version will drop it');
+    }
     if (expandOpen || marginOpen) {
       if (activeDirective) {
         add(ln, 'error', 'nested-directive',
@@ -2944,10 +3297,15 @@ function lintFile(filePath) {
       // ink readable, invert turns it light; a panel or a dock is the third.
       if (!bdTail.problems.length && bdTail.slots.scrim.value === 'clear') {
         if (chunk) chunk.clearBackdrop = ln;
-        else if (col) {
+        // section: card plates the divider's heading, so it reads over the
+        // photo - the one thing a divider cannot do with an overlay, since the
+        // renderer owns the heading. So the card composition is a real answer
+        // here, and the warning does not fire when it is in force.
+        else if (col && sectionVariant !== 'card') {
           add(ln, 'warn', 'text-on-picture',
               '::: backdrop {.clear} under a column heading – the divider\'s heading and agenda stand on the '
-              + 'unveiled picture; drop .clear (veil), write .invert, or give the words a ::: overlay {.panel} or a ::: dock');
+              + 'unveiled picture; drop .clear (veil), write .invert, set section: card to plate the heading, '
+              + 'or give any prose a ::: overlay {.panel} or a ::: dock');
         }
       }
       // `reveal` is a comma list of places, one per beat. Mirrored because
@@ -3119,8 +3477,36 @@ function lintFile(filePath) {
     }
     if (cardsOpen || rowsOpen) {
       const kind = rowsOpen ? 'rows' : 'cards';
-      for (const p of parseTail((rowsOpen ? rowsOpen[1] : cardsOpen[2]), CARDS_SLOTS, `::: ${kind}`).problems) {
+      const cardsTail = parseTail((rowsOpen ? rowsOpen[1] : cardsOpen[2]), CARDS_SLOTS, `::: ${kind}`);
+      for (const p of cardsTail.problems) {
         add(ln, 'error', p.code, p.msg);
+      }
+      // Content-dependent refusals the build makes, mirrored so the pre-commit
+      // gate predicts the build: a `.photo` ground (or a scrim over it) needs a
+      // card to carry a picture, and a `detail:` needs a nested level. The
+      // block body decides these, so the flags are accumulated on the stack
+      // entry as the body's lines go by (below) and checked when the block
+      // closes. The build scans the block's raw lines the same way, so the two
+      // agree - both count a markdown image and both ignore a ::: draw.
+      pendingCardsCheck = cardsTail.problems.length ? null : {
+        ground: cardsTail.slots.ground.value,
+        scrim: cardsTail.slots.scrim.value,
+        detail: cardsTail.slots.detail.value,
+        wroteGround: cardsTail.slots.ground.written,
+        wroteScrim: cardsTail.slots.scrim.written,
+        wroteDetail: cardsTail.slots.detail.written,
+        kind,
+      };
+      // Mirrors build.js: `.baseline` lines a term up with the body beside
+      // it, and a card has no body beside it. Reported here rather than at
+      // the close with the content-dependent three above, because this one
+      // needs nothing but the tail and the word that opened the block - so
+      // the line it names is the line the author wrote.
+      if (!cardsTail.problems.length && kind === 'cards'
+          && cardsTail.slots.anchor.written && cardsTail.slots.anchor.value === 'baseline') {
+        add(ln, 'error', 'cards-baseline-no-body',
+            '::: cards {.baseline} – .baseline lines a term up with the body beside it, and a card has no body beside it;'
+            + ' use .top or .middle, or write ::: rows if the items are term-and-definition pairs');
       }
       // Mirrors build.js: a card row is N containers side by side, so it
       // needs the whole measure, and every directive that could enclose it
@@ -3273,7 +3659,8 @@ function lintFile(filePath) {
           chunk[seen + 'Seen'] = ln;
         }
       }
-      layoutStack.push({ kind, line: ln, ratio: sideRatio, flipped: false });
+      layoutStack.push({ kind, line: ln, ratio: sideRatio, flipped: false,
+        cardsCheck: pendingCardsCheck, hasImage: false, hasNested: false });
       continue;
     }
     if (flipMark) {
@@ -3301,6 +3688,23 @@ function lintFile(filePath) {
           add(closed.line, 'warn', 'side-without-flip',
               '::: side with no ::: flip – one pane in a two-track grid renders at half width '
               + 'with nothing beside it; add the second pane or drop the ::: side');
+        }
+        // The content-dependent cards refusals, mirroring the build's hard
+        // errors so `lint.js` predicts the build here too (CLAUDE.md: a
+        // refusal in one file needs the same key in the other).
+        const cc = closed.cardsCheck;
+        if (cc) {
+          if (cc.wroteGround && cc.ground === 'photo' && !closed.hasImage) {
+            add(closed.line, 'error', 'cards-photo-no-image',
+                `::: ${cc.kind} {.photo} – .photo makes a card's first image its ground, and no card here carries one; add a picture or drop .photo`);
+          } else if (cc.wroteScrim && (cc.ground !== 'photo' || !closed.hasImage)) {
+            add(closed.line, 'error', 'cards-scrim-no-image',
+                `::: ${cc.kind} {.${cc.scrim}} – a scrim needs a picture to veil, and this row ${cc.ground !== 'photo' ? 'is ' + cc.ground : 'carries no image'}`);
+          }
+          if (cc.wroteDetail && !closed.hasNested) {
+            add(closed.line, 'error', 'cards-detail-no-nesting',
+                `::: ${cc.kind} {.${cc.detail}} – detail decides what happens to a card's nested level, and no card here has one; add a nested list or drop the detail word`);
+          }
         }
         continue;
       }
@@ -3487,8 +3891,35 @@ function lintFile(filePath) {
   // way; the build hard-fails on an oversized one, so this gate has to reach
   // them or it lets through exactly what the build will refuse.
   const diagramRefs = new Set(diagramImageRefs(body));
+  let assetFence = false;
   lines.forEach((line, i) => {
-    const hrefs = [...line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map(m => m[1]);
+    if (/^\s*(```|~~~)/.test(line)) assetFence = !assetFence;
+    const mdHrefs = [...line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map(m => m[1]);
+    // A `![](path)` whose path is an explicit relative one (it has a slash or
+    // an extension, so it is not the assets/ shorthand) and names no file:
+    // the build now renders a placeholder for it and warns `[assets] not
+    // found`, where it used to ship the raw string as a broken external src.
+    // Mirror it, or the linter is silent on what the build now flags. Skip
+    // the shorthand (its miss is a placeholder by design), http(s)/data:
+    // (filtered below), and root-absolute / protocol-relative refs, which the
+    // build leaves untouched as intentional external paths - and skip inside a
+    // code fence, where `![](path)` is documentation the build never renders,
+    // so flagging it would be the linter stricter than the build.
+    for (const href of assetFence ? [] : mdHrefs) {
+      if (/^[a-z]+:/i.test(href) || href.startsWith('/')) continue;
+      // A ?query / #fragment is a served-URL cache-buster, not the file name -
+      // strip it before the existence test, the way the build does.
+      const hrefFile = href.replace(/[?#].*$/, '');
+      const isShorthand = !hrefFile.includes('/') && !path.extname(hrefFile);
+      if (isShorthand) continue;
+      if (!fs.existsSync(path.resolve(sourceDir, hrefFile))) {
+        const hint = href.includes('/') ? '' :
+          ` – if it is in assets/, write ![](${href.replace(/\.[a-z0-9]+$/i, '')}) without the extension`;
+        add(i + 1, 'warn', 'unresolved-asset',
+            `image path '${href}' names no file, so the build renders a placeholder${hint}`);
+      }
+    }
+    const hrefs = [...mdHrefs];
     const dm = line.trim().match(/^image\s+\S+\s+(\S+)/);
     if (dm && diagramRefs.has(dm[1])) hrefs.push(dm[1]);
     // A ::: backdrop is inlined as a data: URI exactly like a figure, so
@@ -3589,9 +4020,14 @@ function collectFiles(inputs) {
 function main() {
   const args = process.argv.slice(2);
   const strict = args.includes('--strict');
+  // The build does not require an {#id} on a chunk - a missing one gets a
+  // positional key, which is fine while a talk is still being prototyped and
+  // ids are not yet frozen. The linter complains by default so a finished
+  // deck gets its stable ids; this flag turns that off for the prototype.
+  const allowMissingIds = args.includes('--allow-missing-ids');
   const inputs = args.filter(a => !a.startsWith('--'));
   if (inputs.length === 0) {
-    console.error('usage: node lint.js <source.md | dir> [--strict]');
+    console.error('usage: node lint.js <source.md | dir> [--strict] [--allow-missing-ids]');
     process.exit(2);
   }
   const files = collectFiles(inputs);
@@ -3603,6 +4039,7 @@ function main() {
   let errors = 0, warnings = 0;
   for (const f of files) {
     for (const x of lintFile(f)) {
+      if (allowMissingIds && x.rule === 'missing-id') continue;
       const sev = x.severity === 'error' ? 'error' : 'warn ';
       console.log(`${x.file}:${x.line}  ${sev}  ${x.rule.padEnd(22)}  ${x.msg}`);
       if (x.severity === 'error') errors++;

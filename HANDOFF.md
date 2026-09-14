@@ -4,6 +4,169 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Slice: Trackpad-Zoom – warum er prellte, und der Zeiger als Ankerpunkt
+
+Gemeldet als „das Zoomen ruckelt und prellt, ich kann nicht zuverlässig
+zoomen" – Overview und Figure-Focus gleichermaßen. Der Befund waren **drei**
+unabhängige Ursachen, und keine davon war die, nach der man zuerst sucht.
+
+Die Diagnose kam aus dem Code, die Kalibrierung aus einer Messung. Der Autor
+hat auf einer Wegwerf-Seite mit dem Trackpad gezoomt, während sie die Events
+mitschrieb: 991 Events über 12 Gesten, Abstand im Median **8,4 ms** (also
+119 Hz), `|deltaY|` zwischen **0,012 und 6 px**, ein Drittel echte Pinch-Events
+(`ctrlKey`), zwei Drittel Zweifinger-Scroll, und **9 Vorzeichenwechsel
+innerhalb einer Geste**. Drei Zahlen daraus sind nicht ableitbar gewesen und
+haben je eine Design-Entscheidung getragen.
+
+1. **Der Schritt ignorierte die Stärke des Events.** `deltaY > 0 ? 0.92 : 1.08`
+   machte den Zoom zu einer Funktion davon, *wie viele* Events ankamen, nicht
+   davon, wie weit die Finger gingen. 22 Events bei 1.1 durchqueren den ganzen
+   Bereich der Focus-Karte – 183 ms Kontakt bis zum Anschlag. In der Messung
+   ist Box A tatsächlich auf 8 gelaufen. Dazu die **Inertia-Schleppe**: macOS
+   sendet nach dem Abheben weiter, `deltaY` um 0,2, Lücken über 100 ms, am Ende
+   kippt das Vorzeichen – jedes davon war ein voller 8-%-Schritt. Das ist das
+   Prellen *nachdem* man aufgehört hat, und es war aus dem Code allein nicht zu
+   sehen, weil es eine Eigenschaft des Betriebssystems ist.
+2. **Die CSS-Transition kämpfte gegen den Event-Strom.** Bei 8,4 ms Abstand
+   wurde die 250-ms-Kamerakurve ~30-mal aus ihrem eigenen Zwischenwert neu
+   angesetzt. Dass das die Ursache war, verriet der Drag-Pfad: der schaltet die
+   Transition seit jeher ab (`body.overview-dragging`, `body.figure-dragging`),
+   der Wheel-Pfad hat dieselbe Behandlung nie bekommen.
+3. **Der Empfänger hatte denselben Fehler von der anderen Seite.** `figure-view`
+   ruft beim Peer `applyFigureTransform()` – mit laufender Transition. Die
+   Projektion hätte weitergeruckelt, obwohl das Cockpit glatt ist. Der
+   Pan-Empfänger daneben macht es richtig (`focusCamera(true)`); dem
+   Figure-Empfänger fehlte dieser Ausweg.
+
+Gebaut: `wheelZoomPx` / `zoomScaleFor` / `markZooming` als gemeinsamer Block
+über den beiden Handlern, `ZOOM_K = 0.01` (≈ 208 px Fingerweg für den vollen
+Bereich, der Wert, bei dem der Autor am Regler gelandet ist), Delta pro Event
+auf 12 px geklemmt – doppelt so viel wie das größte gemessene Trackpad-Event,
+damit eine Mausradraste 13 % statt 3,3× wird –, rAF-Bündelung auf einen
+Style-Write pro Frame, und `broadcastFigureView` von einer postMessage pro
+Event auf eine pro Frame.
+
+**Warum `exp()` und nicht ein Faktor pro Event:** `exp(-a·k)·exp(-b·k) =
+exp(-(a+b)·k)`. Zwei Events von 1 px landen exakt dort, wo eines von 2 px
+landet – ohne diese Eigenschaft würde die rAF-Bündelung das Ergebnis
+verändern. Die beiden Korrekturen sind also nicht unabhängig: die proportionale
+Skalierung ist die Voraussetzung dafür, dass man überhaupt bündeln darf.
+
+**Zeiger-Anker.** Beide Fälle reduzieren sich auf eine Zeile. Karte:
+`pan' = pan + (1 - r)·(Q - sichtbareMitte)`. Board: der Anker-Chunk und die
+Skala kürzen sich heraus, übrig bleibt ein Schritt auf `manualPan`. Zwei
+Fallen, beide teuer und beide unsichtbar, wenn man nur hinschaut: `r` muss das
+*erreichte* Verhältnis sein, sonst wandert die Karte am 8×-Anschlag unter einem
+Zeiger weiter, der nichts mehr zoomt; und die Board-Rechnung muss in
+**Layout-Space** passieren, weil `#stage-viewport` im Cockpit selbst durch
+`scale(--stage-scale)` gezeichnet wird – ein `clientX` ist dort ein
+geschrumpfter Pixel. `focusCamera` trägt dieselbe Warnung im Kommentar. Die
+Focus-Karte braucht die Umrechnung nicht, weil `#figure-overlay`
+`position: fixed` und ein Geschwister von `#stage-viewport` ist. `+`/`-` zoomen
+weiter mittig – in einem Tastendruck steckt kein Zeiger.
+
+**Wie geprüft wurde**, weil „sieht flüssig aus" hier kein Kriterium ist:
+Skalieren um einen Fixpunkt `Q` muss jeden Punkt `P` auf `Q + r·(P - Q)`
+abbilden. Gemessen am gebauten `audience.html` und `speaker.html`, rein und
+raus, Abweichung **0,00 px** in beiden Views und auf der Karte. Die
+Cockpit-Zeile ist der Beleg für die Layout-Space-Umrechnung: bei gleichem `r`
+wandert die Ecke dort 59,7 px statt 40,1 px, und der Anker sitzt trotzdem.
+
+Nicht gemacht, bewusst: kein Clamp auf `figurePan`. Man kann die Karte schon
+heute per Drag aus dem Bild schieben, `0` setzt zurück, und ein Clamp wäre eine
+zweite Entscheidung in einem Slice, der eine beantwortet.
+
+## Slice: the title pair, the credit ranks, and which line is loud
+
+Asked for from two real slides built with another tool: a thin tracked line of
+capitals over a heavy mixed-case line, and four clearly separated credit ranks
+underneath. The engine had neither, and the interesting part is that it turned
+out to need no new content model at all – only a treatment of a pair that has
+been there since `subtitle:` landed.
+
+### What landed
+
+- **`style: {headline: stacked | eyebrow}`.** Which line of a title pair carries
+  the weight. `stacked` is the default and byte-for-byte today's rendering.
+- **`style: {caps: off | on}`.** Capitals for the small type around a title –
+  eyebrow, presenter, affiliation, never the headline.
+- **`affiliation:`, `contact:`, `notice:`.** The credit block in four ranks
+  instead of one strong line over a run of equals, with the last two as a row
+  along the foot.
+- **`closing-credits: none | contact | cover`.** The closing slide gets those
+  fields back, graded, off by default.
+- **`cover-ground: paper | ink`.** A dark opening slide under a light deck,
+  without a photograph.
+- **The `hero` gradient reads `cover-align`.** A pre-existing bug found while
+  planning: `hero` darkens the bottom because it sets its type there, but
+  `cover-align: top` is legal on it and put reversed type on the bright half of
+  a photograph.
+- **`lectures/title-block/`**, a small source-only reference lecture that wears
+  the eyebrow and the four ranks, because `lectures/decoration` already wears
+  `cover: quote` and a deck has exactly one cover.
+
+### The decision the whole thing rests on
+
+`title:` stays the content key of whichever line is loud. It is also the
+`<title>` element, the TOC entry and what the search index reads – so inverting
+the hierarchy by telling authors to put the hook in `title:` would rename the
+browser tab to the hook and leave the lecture's own name nowhere. The words do
+not move; only their type does. That is what makes it a `style:` key rather
+than a cover variant, and therefore what lets one key serve the cover, the
+section dividers and the closing slide at once, since all three carry a pair.
+
+### What it cost
+
+**The swap could not be done with selectors, and finding that out took three
+attempts.** The compositions wrote `font-size` and `max-width` on `.title-main`,
+so the eyebrow rules had to outrank them – and `masthead`'s no-lede rule is
+`.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-main`,
+which is 0-5-0 once you notice that `:not(:has(…))` contributes a class level of
+its own. Raising specificity twice still lost. The answer was not a stronger
+selector but the realisation that **the size and the measure belong to the loud
+line, not to the element**: both are now `--title-lead` and `--title-measure`,
+declared on the chunk, and the eyebrow mode hands them to whichever line is
+carrying the weight. That is also why the swap works on all ten compositions
+rather than on the default one.
+
+Declared on the *chunk* and not on `.title-main`, because a custom property
+inherits down and not sideways and the subtitle has to read it. Neither `.chunk`
+nor `.chunk-content` sets a `font-size`, so moving the em values up was lossless
+– checked rather than assumed, and the thing to re-check if either ever gains
+one.
+
+**The measurement that proved it was needed:** masthead's 15em cap, read at the
+eyebrow's much smaller em, computed to 483px and broke
+`DATENSICHERHEIT IM DIGITALEN ALLTAG:` onto two lines. Invisible in the source.
+That is the third instance of one pattern in a single day – 75's corner radii
+(10px reading as 0.23em on one slide and 0.33em on the next) and its dock width
+(13em of one box read as 17.4em of another) were the other two. **Em is the
+right unit; *which* em is the thing to check.**
+
+**The tracking is not a setting, and that is deliberate.** Capitals set at the
+tracking of lowercase read as one jammed word – a typographic rule, not a
+preference – so `isAllCaps` marks any title slot already in capitals and the
+stylesheet tracks it out. It repairs a deck that typed `presenter: PROF. DR. …`
+years ago without being asked. Spelled as "has an uppercase letter and no
+lowercase one" rather than `s === s.toUpperCase()`, because uppercasing an ß
+yields SS and the deck most likely to want this would have silently missed it.
+
+**The gate earned its keep in half a second.** Backticks inside CSS comments in
+`AUDIENCE_CSS` – exactly what CLAUDE.md warns costs a build – were caught by
+`node test/gates/run.mjs inlined` naming the literal and the line, six of them,
+before a single build ran.
+
+### What it did not do
+
+`cover-ground: ink` was validated but unwired for part of the work, which is the
+silent no-op this format refuses everywhere; it is wired now. `lectures/decoration`
+gained the three credit slots but **not** the eyebrow, because switching it would
+restyle that reference deck's dividers and closing slide too.
+
+One thing noticed and left alone: `lectures/decoration/source.md` carries an
+`author:` key that no renderer reads. Either a relic or a silent no-op of the
+kind the pre-flight refuses elsewhere.
+
 ## Slice: die Tutorial-Lecture gegen das gelesen, was der Raum sieht
 
 Ein Durchgang durch `lectures/tutorial` mit dem Autor, Folie für Folie. Der
@@ -1115,13 +1278,51 @@ Commit-Reihenfolge:
   dem Zoom auf drei Viertel einer leeren Fotofolie), und das Einfahren ist
   ein `clip-path`-Wipe, weil ein Translate über den Rahmen Auto-Fit als
   Überlauf las.
+- **Palette, Radien, Schatten und die Zeilen-Grundlinie** (nach 2.0-Freeze,
+  drei Sessions parallel an `build.js`): vier Befunde, alle im Browser
+  gemessen statt im Stylesheet gelesen. Die SVG-ID-Präfixe hingen an den
+  Build-Flags (`--audience-only` schrieb `psi-fig-6-`, ein voller Build
+  `psi-fig-8-`), was `release.yml`s Staleness-Prüfung untergrub;
+  `test/reproducible.mjs` prüft es jetzt, und zwar **nicht** als
+  `test/gates/`-Eintrag, weil `gates.yml` ohne `npm ci` läuft und dieser
+  Check den Build startet. Der Reset-Boden ist nicht 0: `parseLecture`
+  spleißt Vektor-Assets über denselben Zähler in `::: draw`-Blöcke, und
+  dieses Markup teilen sich alle vier Views.
+
+  Auf `::: rows` erreichte das Anker-Wort den Begriff nicht (`align-self`
+  war hart `center`), also bewegte `{.top}` nur die Erklärung. Und der
+  Default folgt jetzt dem Grund: mit Fläche `middle`, mit `.clear` das neue
+  `baseline`. Die alte Notiz begründete `middle` mit der Sorge vor einem
+  oben gestrandeten Begriff – richtig für ein nacktes Wort, überholt für
+  eine getönte Karte, die es damals noch nicht gab.
+
+  **Die Regel, die dreimal unabhängig getragen hat und deshalb notiert
+  gehört:** eine Fläche, die Lesbarkeit herstellt, bleibt außerhalb der
+  Palette; eine Fläche, die gruppiert oder trennt, folgt ihr. `ov-glass`
+  (52 % Papier, 68 % im Panel – Zahlen aus einem Kontrastverhältnis auf
+  einem mitteltonigen Foto), der Invert-Text-Schatten und der Schatten
+  unter einer Überschrift auf einem Foto. Ohne sie tintet ein
+  Vereinheitlichungsdurchgang genau die Flächen mit, deren Farbe eine
+  gemessene Untergrenze ist – beinahe passiert, siehe die verworfene erste
+  Fassung des `tinted`-Blocks.
+
 - **`::: dock`** (`PLAN-dock.md`, gebaut in `e019c8a`): das Overlay-Vokabular
   mit dem anderen Vertrag – Teil des Rahmens, der Text weicht. Seitendock
-  absolut plus Chunk-Padding, Band als Grid-Zeile; `--dock-em` als Zahl und
-  `@property --dock-px` als `<length>`, weil ein em-Wert dreimal gegen drei
-  Schriften aufgelöst wurde. `.every` erbt vom Trenner, `#id`-Links sind
-  der Live-Marker. Standardgrund `tint`. Ein Implementierungs-Agent blieb
-  dreimal am Watchdog hängen; ab dem CSS ist es von Hand.
+  absolut plus Chunk-Padding, Band als Grid-Zeile; `@property --dock-px` als
+  `<length>`, weil ein em-Wert dreimal gegen drei Schriften aufgelöst wurde.
+  `.every` erbt vom Trenner, `#id`-Links sind der Live-Marker. Standardgrund
+  `tint`. Ein Implementierungs-Agent blieb dreimal am Watchdog hängen; ab dem
+  CSS ist es von Hand.
+  **Nachtrag vor 2.0.0:** die Lehre des Panels zwei Punkte weiter oben hatte
+  das Dock nicht bekommen. `--dock-em` war zwar nur einmal aufgelöst, aber
+  gegen `var(--zoom)`, also gegen Auto-Fit: dasselbe geerbte `{.every}`-Dock
+  stand auf drei aufeinanderfolgenden Folien eines Teils 406, 350 und 294 px
+  breit, und die Luft (1,2em innen, 1,6em daneben) schrumpfte mit – am
+  engsten also genau auf den textreichsten Folien. Breite jetzt 28/37/46 %
+  der Folienbreite, `--dock-gap` 3,5 % und dieselbe Zahl innen wie außen.
+  `DOCK_SHARE`/`DOCK_GAP_SHARE` in `lint.js`; dort war die Rechnung vorher um
+  ein Drittel zu optimistisch, weil sie die em des Docks als die des Chunks
+  las.
 - **Frame-Lab** (`lectures/frame-lab/`, ungetrackt): 24
   Randfall-Chunks; fand zehn Defekte, alle behoben (`ed68ce8`, `6f20362`),
   darunter `text-on-picture` als Lint-Warnung für Wörter auf einem

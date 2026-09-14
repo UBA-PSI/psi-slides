@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" width="1600" height="900" role="img" aria-label="An abstract dusk skyline">
+  <defs>
+    <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#101425"/>
+      <stop offset="0.55" stop-color="#3a3350"/>
+      <stop offset="0.82" stop-color="#8f6f7a"/>
+      <stop offset="1" stop-color="#c99a7d"/>
+    </linearGradient>
+    <linearGradient id="haze" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#1a1526" stop-opacity="0"/>
+      <stop offset="1" stop-color="#140f1c" stop-opacity="0.92"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#sky)"/>
+  <circle cx="1210" cy="232" r="46" fill="#f0d8b8" opacity="0.5"/>
+  <g fill="#191428" opacity="0.72">
+    <rect x="0" y="612" width="118" height="288"/><rect x="132" y="548" width="94" height="352"/>
+    <rect x="240" y="660" width="70" height="240"/><rect x="326" y="500" width="120" height="400"/>
+    <rect x="462" y="636" width="86" height="264"/><rect x="566" y="574" width="104" height="326"/>
+    <rect x="688" y="690" width="76" height="210"/><rect x="782" y="524" width="132" height="376"/>
+    <rect x="930" y="648" width="90" height="252"/><rect x="1038" y="596" width="112" height="304"/>
+    <rect x="1168" y="672" width="80" height="228"/><rect x="1264" y="540" width="126" height="360"/>
+    <rect x="1408" y="628" width="96" height="272"/><rect x="1520" y="686" width="80" height="214"/>
+  </g>
+  <g fill="#f6c975" opacity="0.5">
+    <rect x="352" y="536" width="12" height="18"/><rect x="384" y="536" width="12" height="18"/>
+    <rect x="352" y="586" width="12" height="18"/><rect x="410" y="586" width="12" height="18"/>
+    <rect x="808" y="560" width="12" height="18"/><rect x="852" y="560" width="12" height="18"/>
+    <rect x="808" y="614" width="12" height="18"/><rect x="880" y="614" width="12" height="18"/>
+    <rect x="1290" y="576" width="12" height="18"/><rect x="1334" y="576" width="12" height="18"/>
+    <rect x="1290" y="630" width="12" height="18"/><rect x="1356" y="630" width="12" height="18"/>
+    <rect x="150" y="588" width="12" height="18"/><rect x="192" y="588" width="12" height="18"/>
+    <rect x="1058" y="638" width="12" height="18"/><rect x="1108" y="638" width="12" height="18"/>
+  </g>
+  <rect y="560" width="1600" height="340" fill="url(#haze)"/>
+</svg>

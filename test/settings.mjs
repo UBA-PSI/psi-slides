@@ -349,6 +349,223 @@ console.log('\nlayout generations');
      'and the projection rule covers the one eyebrow it still generates');
 }
 
+// ── style.neutrals: what hue the greys carry, and the radius ladder ──
+// The default has to be byte-identical, because every deck in the corpus is
+// on it: no attribute on the body, and none of the rules can match.
+{
+  const plain = build('');
+  ok(!/data-neutrals=/.test(bodyTag(plain.html)) && !/data-neutrals=/.test((plain.print.match(/<body [^>]*>/g) || []).join(' ')),
+     'a deck that says nothing emits no data-neutrals', bodyTag(plain.html));
+  for (const mode of ['tinted', 'warm', 'cool']) {
+    const r = build('style: {neutrals: ' + mode + '}');
+    ok(new RegExp('data-neutrals="' + mode + '"').test(bodyTag(r.html)),
+       mode + ' reaches the projection', bodyTag(r.html));
+  }
+  const t = build('style: {neutrals: tinted}');
+  // The two halves of the fix, and they are separate: the tokens take the
+  // accent's hue, and the quiet fills are mixed from the accent rather than
+  // from an ink that now barely carries it.
+  ok(/body\[data-theme=light-orange\]\s*\{ --accent-h: 60; \}/.test(t.html),
+     'each light theme names its own hue');
+  ok(/body\[data-neutrals=warm\] \{ --accent-h: 70; \}/.test(t.html),
+     'and warm and cool override it with a fixed one');
+  ok(/body\[data-neutrals=tinted\] \.cards\.cg-panel \{ --card-bg:/.test(t.html),
+     'the card fill is overridden through --card-bg, not through background');
+  ok(!/body\[data-theme\^=terminal\]:is\(\[data-neutrals/.test(t.html)
+     && !/terminal[^\n]*\[data-neutrals=warm\]/.test(t.html),
+     'and the terminal themes are left out of it, phosphor being the point there');
+  // Both files refuse the same typo, which is the standing rule for a
+  // vocabulary that lives in two places. Its own temp dir, because build()
+  // above throws on a non-zero exit and a refusal is the point here.
+  const BAD = '---\ntitle: T\nstyle: {neutrals: tintd}\n---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n';
+  const nDir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-neutrals-'));
+  fs.writeFileSync(path.join(nDir, 'source.md'), BAD);
+  const nBuild = spawnSync(process.execPath,
+    [path.join(ROOT, 'build.js'), path.join(nDir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
+  const nOut = (nBuild.stdout || '') + (nBuild.stderr || '');
+  ok(nBuild.status !== 0 && /is not a value this key accepts/.test(nOut),
+     'an unknown value fails the build', nOut.split('\n')[0]);
+  const nLint = spawnSync(process.execPath,
+    [path.join(ROOT, 'lint.js'), path.join(nDir, 'source.md')], { cwd: ROOT, encoding: 'utf8' });
+  ok(/unknown-style-setting/.test((nLint.stdout || '') + (nLint.stderr || '')),
+     'and the linter names it too');
+  // print-neutrals is its own key because the two grounds are not the same
+  // ground - print's palette is warm where the live one is cool at chroma 0 -
+  // so a deck can want the page warm and the projection cool, or the reverse.
+  // Unset it defers, which is the state '' exists to be: no written value can
+  // produce it, so "not written" stays distinguishable from all four words.
+  const both = build('style: {neutrals: cool, print-neutrals: warm}');
+  ok(/data-neutrals="cool"/.test(bodyTag(both.html))
+     && /data-print-neutrals="warm"/.test((both.print.match(/<body [^>]*>/g) || []).join(' ')),
+     'the two keys are answered independently', bodyTag(both.html));
+  const liveOnly = build('style: {neutrals: warm}');
+  ok(/data-print-neutrals="warm"/.test((liveOnly.print.match(/<body [^>]*>/g) || []).join(' ')),
+     'and an unset print-neutrals follows the live key rather than meaning neutral');
+  const printOnly = build('style: {print-neutrals: tinted}');
+  ok(!/data-neutrals=/.test(bodyTag(printOnly.html))
+     && /data-print-neutrals="tinted"/.test((printOnly.print.match(/<body [^>]*>/g) || []).join(' ')),
+     'and the deferral does not run the other way', bodyTag(printOnly.html));
+  // Each stylesheet reads its own attribute, or one view answers the other's
+  // key - which is the whole of what a second key buys.
+  ok(/body\[data-print-neutrals=warm\]/.test(both.print) && !/body\[data-neutrals=warm\]/.test(both.print),
+     'PRINT_CSS keys on data-print-neutrals and not on the live attribute');
+  ok(/body\[data-neutrals=cool\]/.test(both.html),
+     'and AUDIENCE_CSS still keys on the live one');
+  // The one accent that measured under 4.5:1 against the paper. 0.58 gave
+  // 4.23, 0.56 clears at 4.57, 0.54 at 4.96 - the wider margin, because a
+  // projector adds the room's light and nobody measured that.
+  ok(/light-orange\] \{ --emph: oklch\(0\.54 0\.17 60\)/.test(plain.html),
+     'light-orange carries the darker accent that clears 4.5:1');
+
+  // One ladder, in em, in both stylesheets - as pixels the same card row
+  // rounded differently on every slide, because auto-fit sets the card's
+  // font-size per slide.
+  ok(/--radius-card:\s*0\.3em/.test(plain.html) && /--radius-card:\s*0\.3em/.test(plain.print),
+     'the corner radius is one em-based token in both stylesheets');
+  ok(!/border-radius: 10px/.test(plain.html) && !/border-radius: 6px;\n\s*font-size/.test(plain.html),
+     'and no slide-content rule spells a pixel radius any more');
+}
+
+// ── the title pair, the credit ranks and the ground ───────────────────
+// Four ranks where there were two, a pair that can be set either way up,
+// and a dark opening slide. These hold the same three things the cover
+// block below holds, for the same reason: the vocabulary gate, that each
+// name reaches the markup as the attribute its rules key on, and the
+// colour rule that has already shipped an element nobody could see twice -
+// once on an accent card, once on a row's body.
+{
+  const cDir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-title-'));
+  const title = (fm, tail) => {
+    fs.writeFileSync(path.join(cDir, 'source.md'),
+      '---\ntitle: T\nsubtitle: S\npresenter: P\n' + fm + '---\n\n' +
+      '## title: {#title}\n\n## free: F {#f}\n\nBody.\n' + (tail || ''));
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(cDir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return { failed: r.status !== 0, out: (r.stdout || '') + (r.stderr || ''),
+             html: r.status === 0 ? fs.readFileSync(path.join(cDir, 'audience.html'), 'utf8') : '',
+             print: r.status === 0 ? fs.readFileSync(path.join(cDir, 'print.html'), 'utf8') : '' };
+  };
+
+  // Every one of these reads the markup and not the file: the stylesheet
+  // carries body[data-headline=eyebrow] and .title-affiliation rules in
+  // every build, so a test that greps the whole document passes before the
+  // feature exists.
+  const arts = h => h.match(/<article class="chunk chunk-title"[\s\S]*?<\/article>/g) || [];
+
+  // The default has to say nothing at all, because every deck in the corpus
+  // is on it.
+  const bare = title('');
+  ok(!/data-headline=/.test(bodyTag(bare.html)) && !/data-title-caps=/.test(bodyTag(bare.html)),
+     'a deck that says nothing emits neither title attribute', bodyTag(bare.html));
+  ok(!/title-affiliation|title-foot/.test(arts(bare.html).join('')),
+     'and none of the new credit slots appear unwritten');
+
+  // The four ranks, each as its own class: the whole point of the slot is
+  // that an institution is not another info: line.
+  const full = title('affiliation: A\ncontact: C\nnotice: N\ninfo: |\n  L\n');
+  const cov = arts(full.html)[0] || '';
+  for (const cls of ['title-presenter', 'title-affiliation', 'title-info', 'title-foot']) {
+    ok(cov.includes(cls), cls + ' reaches the cover');
+  }
+  ok(/<span class="title-contact">C<\/span><span class="title-notice">N<\/span>/.test(cov),
+     'the foot is one row of two slots, contact first');
+
+  // The pair, either way up. The swap is a treatment and not a second pair
+  // of content keys: title: stays the <title> element whichever line is loud.
+  const eb = title('style: {headline: eyebrow}\n');
+  ok(/data-headline="eyebrow"/.test(bodyTag(eb.html)), 'headline: eyebrow reaches the projection');
+  ok(/body\[data-headline=eyebrow\] \.chunk-title \.title-subtitle \{[^}]*--title-lead/.test(eb.html),
+     'and the subtitle takes the composition\'s own headline size');
+  ok(/<title>T/.test(eb.html), 'while title: is still what names the document');
+
+  // --title-lead is the mechanism the swap rides on: a composition that goes
+  // back to writing font-size on .title-main works under stacked and
+  // silently stops swapping.
+  for (const v of ['masthead', 'display', 'panel']) {
+    const r = title('cover: ' + v + '\n');
+    ok(!r.failed && new RegExp('\\[data-cover=' + v + '\\] \\{ --title-lead:').test(r.html),
+       v + ' sets its headline size as --title-lead, not as a font-size');
+  }
+
+  // Capitals, and the tracking that is deliberately not a setting.
+  const caps = title('style: {caps: on}\n');
+  ok(/data-title-caps="on"/.test(bodyTag(caps.html)), 'caps: on reaches the projection');
+  ok(/body\[data-title-caps=on\][\s\S]{0,240}text-transform: uppercase/.test(caps.html),
+     'and transforms the small type');
+  // Both directions on one slot, because the fixture's other fields are
+  // single letters and a single capital is, correctly, all capitals.
+  ok(/class="title-affiliation" data-caps=""/.test(arts(title('affiliation: OTTO-FRIEDRICH\n').html)[0] || ''),
+     'a slot already typed in capitals is marked for tracking with no key at all');
+  ok(/class="title-affiliation">/.test(arts(title('affiliation: Otto-Friedrich\n').html)[0] || ''),
+     'and a slot that is not stays unmarked');
+
+  // The closing slide gets the fields back only when asked, and graded.
+  const END = '\n## closing: Danke {#end}\n\nWords.\n';
+  const endArt = h => arts(h).find(a => /data-closing/.test(a)) || '';
+  ok(!/title-foot|title-presenter/.test(endArt(title('affiliation: A\ncontact: C\n', END).html)),
+     'a closing slide carries no credits by default');
+  const ccEnd = endArt(title('affiliation: A\ncontact: C\nclosing-credits: contact\n', END).html);
+  ok(/title-foot/.test(ccEnd) && !/title-presenter/.test(ccEnd),
+     'closing-credits: contact gives it the foot row and not the presenter');
+  const cvEnd = endArt(title('affiliation: A\ncontact: C\nclosing-credits: cover\n', END).html);
+  ok(/title-presenter/.test(cvEnd) && /title-affiliation/.test(cvEnd) && /title-foot/.test(cvEnd),
+     'closing-credits: cover gives it the whole block');
+
+  // The marker that keeps a pinned credits band out of the auto-fit span.
+  // Only the compositions that actually pin it may carry it: on any other
+  // cover the credits are in the flow, and excluding them from the span would
+  // under-measure the slide and let the fit grow the type past the frame.
+  // Whether the fit then lands right is a geometry and lives in
+  // test/auto-fit.mjs; that it is emitted for masthead and for nothing else
+  // needs no browser and lives here.
+  ok(/class="title-presenter" data-foot=""/.test(arts(title('cover: masthead\n').html)[0] || ''),
+     'masthead marks its pinned credits band for the fit');
+  for (const v of ['classic', 'stack', 'display']) {
+    ok(!/data-foot/.test(arts(title('cover: ' + v + '\n').html)[0] || ''),
+       v + ' does not pin its credits, so it carries no marker');
+  }
+
+  // A dark opening slide under a light deck, reusing the one place the ink
+  // tokens are re-pointed rather than restating them.
+  const ink = title('cover-ground: ink\n');
+  ok(/data-cover-ground="ink"/.test(arts(ink.html)[0] || ''), 'cover-ground: ink reaches the markup');
+  ok(/\.chunk\[data-backdrop=invert\],\s*\.chunk\[data-cover-ground=ink\] \{/.test(ink.html),
+     'and joins the invert block rather than restating the token re-pointing');
+
+  // panel reverses its ink through a token of its own, so an element it does
+  // not name comes out dark on a dark plate. Both stylesheets.
+  ok(/\.chunk\[data-cover=panel\] \.title-affiliation/.test(full.html)
+     && /\.chunk\[data-cover=panel\] \.title-foot/.test(full.html),
+     'panel names the two new slots in the live view');
+  ok(/\.chunk-title\[data-cover=panel\] \.title-affiliation/.test(full.print)
+     && /\.chunk-title\[data-cover=panel\] \.title-foot/.test(full.print),
+     'and on paper');
+
+  // Both files refuse the same typo, the standing rule for a vocabulary in
+  // two places. Checked under --print-only on purpose: both keys are
+  // validated in the buildOnce pre-flight, and a renderer check would never
+  // be reached by that flag.
+  for (const [fm, key] of [['closing-credits: bogus\n', 'closing-credits'],
+                           ['cover-ground: bogus\n', 'cover-ground']]) {
+    fs.writeFileSync(path.join(cDir, 'source.md'),
+      '---\ntitle: T\n' + fm + '---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n');
+    const r = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(cDir, 'source.md'), '--print-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    const out = (r.stdout || '') + (r.stderr || '');
+    ok(r.status !== 0 && new RegExp(key).test(out),
+       key + ' refuses an unknown value, and does it under --print-only',
+       out.split('\n')[0]);
+  }
+  fs.writeFileSync(path.join(cDir, 'source.md'),
+    '---\ntitle: T\nstyle: {headline: bogus}\n---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n');
+  const hLint = spawnSync(process.execPath,
+    [path.join(ROOT, 'lint.js'), path.join(cDir, 'source.md')], { cwd: ROOT, encoding: 'utf8' });
+  ok(/unknown-style-setting/.test((hLint.stdout || '') + (hLint.stderr || '')),
+     'and the linter mirrors headline');
+}
+
 // ── cards decide their own size, and say so in the markup ─────────────
 {
   const mk = (body) => {
@@ -369,7 +586,10 @@ console.log('\nlayout generations');
      'a row with a second level stays left even when its heads are two words');
   ok(/\[data-collapse=topic-bold\] \.cards\.cd-fold li ul/.test(nested),
      'and the second level is folded away on the projection, not in the markup');
-  const forced = mk('::: cards 2 {.small .center .middle .show .outline}\n- Measure\n- Probe\n:::\n');
+  // A nested level so `.show` has something to act on - it is refused
+  // otherwise, the same way a groundless scrim is. The written classes map to
+  // the markup regardless of content, which is what this checks.
+  const forced = mk('::: cards 2 {.small .center .middle .show .outline}\n- Measure\n  - one\n- Probe\n  - two\n:::\n');
   ok(/cs-small ca-center cv-middle cd-show cg-outline/.test(forced),
      'and every one of the five is overridable by name');
 }
@@ -527,6 +747,24 @@ console.log('\nlayout generations');
     // A divider takes a card row beside its backdrop and its figure.
     ['a card row under a column heading', '# Part {#p}\n\n::: cards 2\n- A\n- B\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
     ['a figure card under a column heading', '# Part {#p}\n\n::: cards 2\n' + DRAW + '\nB.\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
+    // A `word:` prefix that is not one of the ten types used to fall through
+    // to a literal heading with no data-tag - the search index and the
+    // speaker lists then saw an untyped chunk, while lint.js called it
+    // unknown-type. The build rendering what the linter refuses is the
+    // direction this project does not allow.
+    ['an unknown chunk type', '## bogus: X {#x}\n\nBody.\n', /unknown chunk type 'bogus:'/, 'unknown-type'],
+    // …but a `//` after the colon is a URL scheme, not a type - it must not be
+    // refused as one, in either file.
+    ['a URL heading', '## https://example.com/docs {#u}\n\nBody.\n', 'accept'],
+    // Two chunks (or a chunk and a column) with one id is invalid HTML and a
+    // shared reveal/sync/localStorage slot; the build emitted both and exited
+    // 0 while lint.js reported duplicate-id. `#f` is already the FMX free
+    // chunk's id.
+    ['a duplicate id', '## free: G {#f}\n\nBody.\n', /id 'f' is used twice/, 'duplicate-id'],
+    // The divider of a column #g renders as `g-section`, in the same
+    // getElementById namespace, so a chunk authored #g-section is a real
+    // duplicate the id check has to see through the generated name.
+    ['a generated divider-id collision', '# G {#g}\n\n## free: A {#g-section}\n\nBody.\n', /g-section' (is used twice|already defined)/, 'duplicate-id'],
   ];
   for (const [name, body, msg, code] of cases) {
     const r = run(body);
@@ -538,6 +776,55 @@ console.log('\nlayout generations');
     }
     ok(r.failed && msg.test(r.out), `${name} is refused`, r.out.split('\n')[0]);
     ok(new RegExp('\\b' + code + '\\b').test(r.lint), `and the linter says ${code}`, r.lint.split('\n')[0]);
+  }
+  // An explicit relative image path that names no file is a placeholder now,
+  // not a broken external src shipped in a file that promises to travel
+  // alone. The build warns `[assets] not found`, the linter warns
+  // unresolved-asset, and neither is an error - a missing asset while
+  // drafting is common and the placeholder is visible. The most common way in
+  // is writing the extension on a name meant for the assets/ shorthand.
+  {
+    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-asset-'));
+    fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'assets', 'pic.png'), Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
+      'base64'));
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      FMX + '![](pic.png)\n');   // pic.png is in assets/, the ref needs the shorthand
+    const b = spawnSync(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
+      { cwd: ROOT, encoding: 'utf8' });
+    const out = (b.stdout || '') + (b.stderr || '');
+    ok(b.status === 0 && /\[assets\] not found: pic\.png/.test(out),
+       'an unresolved explicit image path builds but warns', out.split('\n').find(l => /assets/.test(l)) || '');
+    const html = fs.readFileSync(path.join(dir, 'audience.html'), 'utf8');
+    ok(!/<img[^>]*src="pic\.png"/.test(html) && /figure-missing/.test(html),
+       'and ships a placeholder, not a broken external src');
+    const l = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    ok(/unresolved-asset/.test((l.stdout || '') + (l.stderr || '')),
+       'and the linter says unresolved-asset');
+    // …but not for a `![](path)` inside a code fence: that is documentation
+    // the build never renders, so flagging it would be the linter stricter
+    // than the build - the direction this project does not allow.
+    fs.writeFileSync(path.join(dir, 'source.md'),
+      FMX + 'Example:\n\n```markdown\n![](assets/example.png)\n```\n');
+    const lf = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    ok(!/unresolved-asset/.test((lf.stdout || '') + (lf.stderr || '')),
+       'a ![](path) inside a code fence is not flagged (documentation, not a ref)');
+    // …nor for a ?query / #fragment cache-buster: the file is assets/x.png,
+    // the ?v is a served-URL suffix, so the existence test strips it. Both
+    // the build (no placeholder) and the linter (no warning) must see through it.
+    fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'assets', 'q.png'), Buffer.from(
+      'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64'));
+    fs.writeFileSync(path.join(dir, 'source.md'), FMX + '![](assets/q.png?v=2)\n');
+    const bq = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
+    ok(bq.status === 0 && !/\[assets\] not found/.test((bq.stdout || '') + (bq.stderr || '')),
+       'a ?query cache-buster on a real relative path is not a missing asset');
+    const lq = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')], { cwd: ROOT, encoding: 'utf8' });
+    ok(!/unresolved-asset/.test((lq.stdout || '') + (lq.stderr || '')), 'and the linter does not flag it either');
   }
   // ::: overlay {.panel}: the class reaches the markup, a corner is refused
   // in both files, and the layer's grid content box did not move (inset: 0
@@ -804,15 +1091,16 @@ console.log('\nlayout generations');
     ok((r.html.match(/\.overlay-card\[data-from\]/g) || []).length === 1, 'and the only place the overlay selector is spelled', String((r.html.match(/\.overlay-card\[data-from\]/g) || []).length));
     ok(/flowKids[\s\S]*?classList\.contains\('dock'\)/.test(r.html), 'flowHeightProbe looks through a dock');
     ok(/:is\(\.overlay-card, \.dock\)\.ov-paper/.test(r.html) && /:is\(\.overlay-card, \.dock\)\.ov-paper/.test(r.print), 'the ground rules are shared, in both stylesheets');
-    ok(/\[data-dock-w=narrow\]\s*\{ --dock-em: 13; \}/.test(r.html), 'the narrow width is 13 of the dock\'s own em');
+    ok(/\[data-dock-w=narrow\]\s*\{ --dock-px: calc\(var\(--slide-w\) \* 0\.28\); \}/.test(r.html),
+       'the narrow width is a share of the slide, not a measure of type');
     const dockSeg = (r.html.match(/<aside class="dock[\s\S]*?<\/aside>/) || [''])[0];
     ok(!/sentence-head/.test(dockSeg), 'a dock is not abridged by the collapse');
   }
   // Lint arithmetic at its edges, and density.
   {
     const codes = (src) => lintCodes(build(src));
-    // 68.4 - 9.6 - 25 - 1.6 = 32.2em beside a wide dock: three columns of
-    // 10.7em pass, four cards of 8em do not.
+    // 68.4 x (1 - 0.46 - 0.035) - 9.6 = 24.9em beside a wide dock: three
+    // columns of 8.3em pass, four cards of 6.2em do not.
     ok(codes(FMX.replace('## free: F {#f}', '## free: F {.wide #f}') + '::: dock {.wide}\nA.\n:::\n\n::: cards 4\n- a\n- b\n- c\n- d\n:::\n').includes('layout-too-narrow'),
        'a wide dock beside four cards leaves them under the floor');
     ok(codes(FMX + '::: dock {.wide}\nA.\n:::\n').includes('dock-narrows-measure'), 'a wide dock narrows a standard chunk below its measure');
@@ -830,6 +1118,21 @@ console.log('\nlayout generations');
     ok(codes(FMX.replace('## free: F {#f}', '## free: F {.bare #f}') + BD.replace(' .clear', '') + 'Prose.\n').every(c => c !== 'text-on-picture'),
        'nor is prose on a veiled picture');
     ok(codes(PART(BD, '## free: G {#g}\n\nB.\n')).includes('text-on-picture'), 'a divider with a .clear backdrop is, since its heading always stands on it');
+    // …unless section: card plates the heading: over a photo the card becomes
+    // the theme's own paper, so the heading reads and the warning yields.
+    const PART_CARD = (bd, chunks) => '---\ntitle: T\nsection: card\n---\n\n## title: {#title}\n\n# Part {#p}\n\n' + bd + '\n' + chunks;
+    ok(codes(PART_CARD(BD, '## free: G {#g}\n\nB.\n')).every(c => c !== 'text-on-picture'),
+       'unless section: card plates the heading over the photo');
+    // and the plate is a real ground - the theme's paper, not the 5% tint the
+    // card gets on a plain background.
+    {
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-c3-'));
+      fs.writeFileSync(path.join(dir, 'source.md'), PART_CARD(BD, '## free: G {#g}\n\nB.\n'));
+      const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
+      const html = r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '';
+      ok(/\.chunk\[data-section=card\]\[data-has-backdrop\] \.section-heading/.test(html),
+         'a card divider over a backdrop gets an opaque paper plate on its heading');
+    }
     const words = (n) => Array.from({ length: n }, (_, i) => 'word' + i).join(' ');
     ok(codes(FMX + words(240) + '.\n\n::: dock\n' + words(20) + '.\n:::\n').includes('density'), 'an own dock counts against the density budget');
     ok(!codes(PART('::: dock {.every}\n' + words(20) + '.\n:::\n', '## free: G {#g}\n\n' + words(240) + '.\n\n## free: H {#h}\n\nB.\n')).includes('density'),
@@ -1040,6 +1343,37 @@ console.log('\nlayout generations');
   ok(/cards rows [^"]*cv-top/.test(rowsTop), 'and honours a written top');
   ok(/\.cards\.rows \{[\s\S]{0,600}?align-items: var\(--row-anchor, center\)/.test(rows),
      'and the stylesheet reads it, or the word moves nothing');
+  // The term is the card, so the anchor slot has to reach *it* - and it did
+  // not: align-self was a hard `center`, so {.top} moved the body and left
+  // the term centred. Measured before the fix: under cv-top the term's first
+  // line still sat 21px below the body's, the same offset the default gives.
+  // The container had the identical defect once and was repaired; the term
+  // was missed, which is why this assertion names the term specifically.
+  // The span is generous because the declaration sits under the comment that
+  // records why it is a variable and not a word, and a comment that grows
+  // should not fail the assertion under it.
+  ok(/\.cards\.rows li > :is\(strong, b\):first-child \{[\s\S]{0,2000}?align-self: var\(--row-anchor, center\)/.test(rows),
+     'and the term reads it too, which is the half that was hard-coded');
+
+  // The anchor a row defaults to falls out of the ground rather than being a
+  // second question about it. On a slab, centring: a block beside a longer
+  // body wants to be placed. With no slab and no padding, the baseline: bare
+  // words centred against a four-line body read as misaligned, and on the
+  // baseline they read as the hanging indent this construction has always
+  // been. Measured on a four-line body: 66px of offset either way.
+  const rowsClear = mk('::: rows {.clear}\n- **A** one line\n:::\n');
+  ok(/cards rows [^"]*cv-baseline/.test(rowsClear),
+     'a clear row anchors its term on the baseline');
+  ok(/cards rows [^"]*cv-middle/.test(rows),
+     'and a row with a ground still centres it');
+  ok(/\.cards\.cv-baseline \{[^}]*--row-anchor: baseline/.test(rows),
+     'and the stylesheet carries the third word');
+  // A written word beats the ground either way, or the default would be a
+  // rule rather than a default.
+  ok(/cards rows [^"]*cv-middle/.test(mk('::: rows {.clear .middle}\n- **A** one\n:::\n')),
+     'a written middle survives a clear ground');
+  ok(/cards rows [^"]*cv-baseline/.test(mk('::: rows {.baseline}\n- **A** one\n:::\n')),
+     'and a written baseline survives a ground');
   ok(/\.cards\.cv-top\s+\{ --card-anchor: flex-start; --row-anchor: start; \}/.test(rows),
      'through one declaration that serves both constructs');
   // The body is prose beside a card, so it ranges left whatever the row
@@ -1185,7 +1519,7 @@ console.log('\nlayout generations');
   const mastLede = cover('cover: masthead\n', '');
   ok(!mastLede.failed && !/class="title-field"/.test(mastLede.html),
      'a masthead with no body draws no field');
-  ok(/:not\(:has\(\.title-field\)\) \.title-main/.test(mastLede.html),
+  ok(/:not\(:has\(\.title-field\)\) \{ --title-lead: 3\.05em; \}/.test(mastLede.html),
      'and sets a larger nameplate when the field is empty');
   const mastBody = (() => {
     fs.writeFileSync(path.join(dir, 'source.md'),
@@ -2300,6 +2634,145 @@ console.log('\nlayout generations');
        'and the same values for each, in the same order',
        Object.keys(spec).filter(k => spec[k].join(',') !== (mirror[k] || []).join(',')).join(','));
   }
+
+  // ── the words the build invents, localised by `lang:` ────────────────
+  // A deck that carries an exercise (the one projection eyebrow), a footnote
+  // (the aside default), a speaker note (print-notes) and a column heading
+  // (the TOC), so every reader-tier string the first pass reaches is on it.
+  const LSRC = (fm) =>
+    `---\ntitle: My Lecture\n${fm}---\n\n`
+    + `## title: {#cover}\n\n`
+    + `# Part One {#part-1}\n\n`
+    + `## principle: A principle {#p1}\n\nFirst sentence stands alone.\n\n`
+    + `> note: A spoken note.\n\n`
+    + `::: footnote\nA footnote aside.\n:::\n\n`
+    + `## exercise: An exercise {#ex1}\n\nDo the thing.\n`;
+
+  // The 1.0.0 gate for this change, and the load-bearing one: a deck that
+  // says nothing and a deck that says `lang: en` build the same bytes, so
+  // English decks did not move. (The tracked lectures are the against-main
+  // half of the same check; the release workflow rebuilds them.)
+  {
+    const none = raw(LSRC(''), []);
+    const en = raw(LSRC('lang: en\n'), []);
+    ok(none.code === 0 && en.code === 0, 'both the no-lang and the lang: en deck build', none.out + en.out);
+    ok(none.html === en.html, 'lang: en and no lang: emit byte-identical audience HTML');
+    ok(none.print === en.print, 'byte-identical print HTML');
+    ok(none.notes === en.notes, 'byte-identical print-notes HTML');
+  }
+
+  // lang: de reaches every reader-tier site the first pass covers.
+  {
+    const de = raw(LSRC('lang: de\n'), []);
+    ok(de.code === 0, 'a de deck builds', de.out);
+    ok(/<h2>Inhalt<\/h2>/.test(de.print) && /aria-label="Inhalt"/.test(de.print),
+       'the print TOC heading and aria are Inhalt');
+    ok(/speaker-note-label">Sprechernotiz</.test(de.notes),
+       'print-notes labels the speaker note Sprechernotiz');
+    ok(/chunk-expansion-margin" data-label="Anmerkung"/.test(de.print),
+       'the footnote aside default label is Anmerkung');
+    ok(/class="chunk-label">grundsatz</.test(de.print) && /class="chunk-label">aufgabe</.test(de.print),
+       'the print type eyebrow follows the table, lowercased so the small-caps look does not move');
+    ok(/\.chunk\[data-tag=exercise\] \.chunk-content::before \{ content: "AUFGABE"; \}/.test(de.html),
+       'the projection eyebrow rides in as a same-specificity override, uppercased');
+    ok(de.html.includes("content: 'EXERCISE'"),
+       'and the base rule in AUDIENCE_CSS is untouched, so the override wins on source order');
+    ok(/annot-box-label">Anmerkung · /.test(de.html) && /data-annot-add>\+ Anmerkung</.test(de.html),
+       'the annotation box label and the + note button are localised');
+    ok(/margin-note" data-label="Anmerkung"/.test(de.html),
+       'and the projection aside default is Anmerkung too');
+    ok(/– Vorlesung<\/title>/.test(de.html) && /– Druck<\/title>/.test(de.print),
+       'the browser-tab title suffix is localised in both views');
+    ok(!/>Contents</.test(de.print + de.notes)
+       && !/aria-label="Contents"/.test(de.print + de.notes + de.html),
+       'no English Contents survives in the reader tiers');
+  }
+
+  // A regional tag resolves by its primary subtag.
+  {
+    const deAT = raw(LSRC('lang: de-AT\n'), []);
+    ok(/<h2>Inhalt<\/h2>/.test(deAT.print), 'lang: de-AT resolves to the de table');
+  }
+
+  // A language the table does not cover is a warning, not an error: it
+  // builds, exits 0, keeps English, and says so exactly once.
+  {
+    const fr = raw(LSRC('lang: fr\n'), []);
+    const warns = (fr.out.match(/no wording for "lang: fr"/g) || []).length;
+    ok(fr.code === 0, 'a lang the table does not cover still builds and exits 0', fr.out);
+    ok(warns === 1, 'and the [lang] warning is emitted exactly once across the four views', String(warns));
+    ok(/class="chunk-label">principle</.test(fr.print), 'and the labels stay English');
+  }
+
+  // A labels: block overrides single words, with or without a lang:.
+  {
+    const lbl = raw(LSRC('labels:\n  contents: In this lecture\n'), []);
+    ok(/<h2>In this lecture<\/h2>/.test(lbl.print),
+       'a labels: block overrides one word in an otherwise English deck');
+  }
+
+  // An unknown labels: key fails the build in the pre-flight (no artefact)
+  // and the linter reports it too – the build↔lint congruence contract.
+  {
+    const bad = raw(LSRC('labels:\n  contentz: X\n'), ['--print-only']);
+    ok(bad.code !== 0 && /labels has no key "contentz"/.test(bad.out),
+       'an unknown labels: key fails the build, with the styleSettings message shape');
+    ok(bad.files.length === 0, 'and leaves no half-written artefact, like every buildOnce pre-flight');
+    ok(/unknown-label-key/.test(lintOf(LSRC('labels:\n  contentz: X\n'))),
+       'and the linter reports unknown-label-key, so the two files agree');
+    ok(/labels\.type has no key "exercize"/.test(raw(LSRC('labels:\n  type:\n    exercize: Y\n'), ['--print-only']).out)
+       && /unknown-label-key/.test(lintOf(LSRC('labels:\n  type:\n    exercize: Y\n'))),
+       'a nested type typo is refused and reported the same way');
+  }
+
+  // A value carrying a double quote and a backslash survives into the CSS
+  // content: string correctly escaped. No browser here to parse it, so the
+  // exact escaped bytes are the assertion – they are valid CSS by inspection.
+  {
+    const esc = raw(LSRC("labels:\n  type:\n    exercise: 'A\"B\\C'\n"), ['--audience-only']);
+    ok(esc.code === 0 && esc.html.includes('content: "A\\"B\\\\C";'),
+       'a labels value with a quote and a backslash is CSS-escaped into content:',
+       (esc.html.match(/content: "A[^\n]*/) || [''])[0]);
+  }
+
+  // style.labels: off (hide the eyebrows) and a labels: block (name the
+  // rest) are legal together and do not fight.
+  {
+    const both = raw(LSRC('style:\n  labels: off\nlabels:\n  contents: Inhalt\n'), []);
+    ok(/data-labels="off"/.test(bodyOf(both.html)),
+       'style.labels: off still hides the eyebrows when a labels: block is present');
+    ok(/<h2>Inhalt<\/h2>/.test(both.print),
+       'and the labels: block still names the TOC heading');
+  }
+
+  // The tables are kept by hand: STRINGS.en and STRINGS.de must name the
+  // same keys, and lint.js's LABEL_KEYS / LABEL_TYPE_KEYS must mirror them,
+  // or a key added on one side lints clean and fails to build.
+  {
+    const buildSrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const lintSrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
+    const stringsBlock = (buildSrc.match(/const STRINGS = \{[\s\S]*?\n\};/) || [''])[0];
+    const sub = (name) => (stringsBlock.match(new RegExp(name + ': \\{[\\s\\S]*?\\n  \\},')) || [''])[0];
+    // Top-level keys are at 4-space indent; the inline `type: {…}` line is
+    // one of them, and its own keys sit after the brace on the same line.
+    const topKeys = (blk) => [...blk.matchAll(/^    (?:'([^']+)'|([a-z-]+)):/gm)]
+      .map(m => m[1] || m[2]).sort().join(',');
+    const typeKeys = (blk) => {
+      const t = (blk.match(/type: \{([^}]*)\}/) || [, ''])[1];
+      return [...t.matchAll(/([a-z-]+):/g)].map(m => m[1]).sort().join(',');
+    };
+    const enTop = topKeys(sub('en')), deTop = topKeys(sub('de'));
+    const enType = typeKeys(sub('en')), deType = typeKeys(sub('de'));
+    ok(enTop && enTop === deTop, 'STRINGS.en and STRINGS.de name the same top-level keys', enTop + ' | ' + deTop);
+    ok(enType && enType === deType, 'and the same type keys', enType + ' | ' + deType);
+    const setKeys = (name) => [...((lintSrc.match(new RegExp('const ' + name + ' = new Set\\(\\[([\\s\\S]*?)\\]\\)')) || [, ''])[1])
+      .matchAll(/'([a-z-]+)'/g)].map(m => m[1]).sort().join(',');
+    const labelKeys = setKeys('LABEL_KEYS'), labelTypeKeys = setKeys('LABEL_TYPE_KEYS');
+    ok(labelKeys === enTop.split(',').filter(k => k !== 'type').join(','),
+       'lint.js LABEL_KEYS mirrors STRINGS.en top-level keys (minus the nested type map)', labelKeys + ' | ' + enTop);
+    ok(labelTypeKeys === enType, 'and lint.js LABEL_TYPE_KEYS mirrors STRINGS.en.type', labelTypeKeys + ' | ' + enType);
+  }
+
   // ── ::: side {.middle} ────────────────────────────────────────────────
   // The word is a brace tail against a closed slot table, which is what the
   // rest of the language does with words; the ratio stays positional,
@@ -2411,6 +2884,56 @@ console.log('\nlayout generations');
   ok(rowsTop.code === 0 && /cv-top/.test(rowsTop.html || ''), 'and a written .top is honoured, because it was written');
   const veilNoPhoto = raw(FM + '## free: A {#a}\n\n::: cards 2 {.veil}\n- One\n- Two\n:::\n');
   ok(veilNoPhoto.code !== 0 && /scrim needs a picture/.test(veilNoPhoto.out), 'a written default scrim with no photo is still refused');
+  // A .photo ground with no card carrying a picture is the same no-op as a
+  // scrim with no photo, and the same refusal - it used to build, and worse,
+  // .photo beside a scrim silently switched the scrim's own refusal off.
+  const photoNoImg = raw(FM + '## free: A {#a}\n\n::: cards 2 {.photo}\n- One\n- Two\n:::\n');
+  ok(photoNoImg.code !== 0 && /\.photo makes a card/.test(photoNoImg.out), '.photo with no picture in any card is refused');
+  // …and the linter mirrors it now, so the pre-commit gate predicts the build.
+  ok(/cards-photo-no-image/.test(lintOf(FM + '## free: A {#a}\n\n::: cards 2 {.photo}\n- One\n- Two\n:::\n')),
+     'and the linter says cards-photo-no-image');
+  ok(/cards-scrim-no-image/.test(lintOf(FM + '## free: A {#a}\n\n::: cards 2 {.veil}\n- One\n- Two\n:::\n')),
+     'and a groundless scrim, long build-only, is mirrored as cards-scrim-no-image');
+  const photoVeilNoImg = raw(FM + '## free: A {#a}\n\n::: cards 2 {.photo .veil}\n- One\n- Two\n:::\n');
+  ok(photoVeilNoImg.code !== 0, '.photo .veil together with no picture no longer slips through the scrim check');
+  // …and both build when a card actually carries one.
+  const photoWithImg = raw(FM + '## figure: A {#a}\n\n::: cards 2 {.photo .veil}\n- ![](x)\n  one\n- ![](x)\n  two\n:::\n');
+  ok(photoWithImg.code === 0, 'a photo ground with a picture in each card builds', photoWithImg.out.split('\n')[0]);
+  // detail decides what happens to a nested level; with none, the word does
+  // nothing, so a written one is refused like a groundless scrim.
+  const showNoNest = raw(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One** a\n- **Two** b\n:::\n');
+  ok(showNoNest.code !== 0 && /detail: show decides/.test(showNoNest.out), 'detail: show with no nested level is refused');
+  ok(/cards-detail-no-nesting/.test(lintOf(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One** a\n- **Two** b\n:::\n')),
+     'and the linter mirrors it as cards-detail-no-nesting');
+  const showNested = raw(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One**\n  - a\n  - b\n- **Two**\n  - c\n:::\n');
+  ok(showNested.code === 0, 'and detail: show builds when a card has a nested level', showNested.out.split('\n')[0]);
+  ok(!/cards-detail-no-nesting/.test(lintOf(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One**\n  - a\n  - b\n- **Two**\n  - c\n:::\n')),
+     'and the linter passes it, like the build');
+  // detail acts on li ul AND li ol, so a nested *ordered* list is a second
+  // level too - the nested check counted only [-*+] and refused a legitimate
+  // numbered one.
+  const showOrdered = raw(FM + '## free: A {#a}\n\n::: cards 2 {.show}\n- **One**\n  1. a\n  2. b\n- **Two**\n  1. c\n:::\n');
+  ok(showOrdered.code === 0, 'and a nested ordered list counts as a second level too', showOrdered.out.split('\n')[0]);
+  // .photo counts a real image, not any figure: a ::: draw compiles to a
+  // figure-diagram the ground selector never draws, so .photo on a
+  // diagram-only card is the no-op this refuses.
+  const photoDiagram = raw(FM + '## figure: A {#a}\n\n::: cards 2 {.photo}\n- ::: draw 40x30\n  box a "A"\n  :::\n- text only\n:::\n');
+  ok(photoDiagram.code !== 0 && /\.photo makes a card/.test(photoDiagram.out), '.photo on a card with only a diagram (no image) is refused');
+  // A ::: that closes nothing used to render as a literal ::: paragraph on
+  // the slide; the build refuses it now, congruent with lint's
+  // stray-directive-close. An intentional ::: as content goes in a code
+  // fence, which is handled before the closer is ever considered.
+  const strayClose = raw(FM + '## free: A {#a}\n\nBody.\n:::\n');
+  ok(strayClose.code !== 0 && /closes a block, and none is open/.test(strayClose.out),
+     'a ::: that closes nothing is refused, not printed as text', strayClose.out.split('\n')[0]);
+  ok(/stray-directive-close/.test(lintOf(FM + '## free: A {#a}\n\nBody.\n:::\n')), 'and the linter says stray-directive-close');
+  const fencedColon = raw(FM + '## free: A {#a}\n\n```\n:::\n```\n');
+  ok(fencedColon.code === 0 && /:::/.test(fencedColon.html || ''), 'a ::: inside a code fence stays content and builds', fencedColon.out.split('\n')[0]);
+  // The divider body is the other region a stray ::: reached: it printed as a
+  // literal ::: in the lede while lint reported stray-directive-close.
+  const strayDivider = raw('---\ntitle: T\n---\n\n## title: {#title}\n\n# Part {#p}\n\nLede.\n:::\n\n## free: A {#a}\n\nB.\n');
+  ok(strayDivider.code !== 0 && /closes a block, and none is open/.test(strayDivider.out),
+     'a stray ::: in a divider body is refused too', strayDivider.out.split('\n')[0]);
 
   // ── the ::: draw opener: positional grid, keyword playback ─────────
   const drawOf = (open) => raw(FM + `## figure: F {#f}\n\n${open}\nbox a "A"\nbox b "B" right of a gap 1\n\nstep one\n  dim a\n:::\n`, ['--audience-only']);
@@ -2444,9 +2967,12 @@ console.log('\nlayout generations');
   }
   const bracePro = raw(FM + '## free: The {x} syntax {#bp}\n\nProse.\n');
   ok(bracePro.code === 0, 'while plain braces in heading prose still build', bracePro.out.split('\n')[0]);
-  const drawDash = raw(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n:::\n\n:::\n');
-  ok(drawDash.code === 0 && !/0 error/.test('') , '::: draw-x is prose in the build (no cols refusal)', drawDash.out.split('\n')[0]);
-  ok(!/draw-in-cols/.test(lintOf(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n:::\n\n:::\n')), 'and lint agrees');
+  // `::: draw-x` is not a directive, so it is prose and opens nothing: one
+  // ::: closes the cols. (The fixture carried a second, stray ::: - harmless
+  // as prose before, a stray-directive-close refusal now.)
+  const drawDash = raw(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n\n:::\n');
+  ok(drawDash.code === 0, '::: draw-x is prose in the build (no cols refusal)', drawDash.out.split('\n')[0]);
+  ok(!/draw-in-cols/.test(lintOf(FM + '## free: A {#a}\n\n::: cols 2\n\n::: draw-x\nbox a\n\n:::\n')), 'and lint agrees');
 
   // ── a directive line the matcher does not read is refused, not prose ──
   // These used to print themselves on the slide with exit 0 while lint.js

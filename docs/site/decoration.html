@@ -86,7 +86,7 @@
        left a 350px band of nothing at the right edge over 780px of gallery,
        open or shut. A block with no evidence beside it is a block. -->
   <details class="setup">
-    <summary>The other seven, and the two settings that move the type</summary>
+    <summary>The other seven, the settings that move the type, and the words on the slide</summary>
     <div class="setup-body">
       <p>Four of the ten take a picture: <code>split</code> and
       <code>hero</code> from <code>cover-image:</code>, <code>beside</code> and
@@ -96,7 +96,21 @@
       <code>cover-align:</code> you set it high, in the middle or low on the
       seven that leave it any freedom, and with <code>cover-ratio:</code> you
       say how much of the slide the picture gets on the ones that divide
-      it.</p>
+      it. <code>cover-ground: ink</code> opens a light lecture on a dark
+      slide with no photograph in it.</p>
+
+      <p><strong>The words on the cover are four ranks rather than a name and
+      a list.</strong> <code>presenter:</code> is your name;
+      <code>affiliation:</code> the institution, set quieter directly under
+      it; and <code>contact:</code> and <code>notice:</code> share one row
+      along the foot, the address flush left and the notice flush right. The
+      split is by job &ndash; a presenter and an institution introduce the
+      speaker, while an address and &ldquo;the slides go up on Friday&rdquo;
+      answer the room. <code>info:</code> keeps the date, the room and the
+      course line. Which of <code>title:</code> and <code>subtitle:</code> is
+      set large is <code>style: {headline: &hellip;}</code>, and
+      <code>style: {caps: on}</code> sets the small type round them in
+      capitals.</p>
       <div class="gallery">
       <figure class="shot tile"><img src="img/masthead.webp" alt="A title slide with the title at the top edge, a lede in the middle, and the credits under a rule at the bottom.">
       <figcaption><code>masthead</code> the title at the top edge, credits under a rule at the foot</figcaption></figure>
@@ -127,7 +141,11 @@
     written as <code>## closing:</code> is drawn in whatever composition you
     named with <code>cover:</code>, so the hour ends on the shape it began
     with. It carries your own words and neither the presenter line nor the date: those
-    say who is talking and when, and the room learned that an hour ago.</p>
+    say who is talking and when, and the room learned that an hour ago.
+    <code>closing-credits:</code> is how you ask for them back &ndash;
+    <code>contact</code> for the foot row alone, which is usually the one
+    line a last slide is wanted for, or <code>cover</code> for the whole
+    block.</p>
    </div>
    <div>
     <p><strong>The six compositions with no picture can still have one.</strong>
@@ -190,6 +208,58 @@
     there is no part boundary for a divider to be generated at. Before the
     first part nothing in it is marked as current, because a plan nobody has
     started is read at full strength.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="display-face">A face the transition slides wear alone</h2>
+  <p class="lede">The cover, the closing slide and the section dividers are the
+  one place in a deck where a loud typeface is not a mistake: nobody reads a
+  divider, they see that one has arrived and know where they are in the hour.
+  <code>fonts: {display: Anton}</code> gives those three a face and reaches
+  nothing else &ndash; an ordinary heading, a card lead, a figure label all keep the
+  body type. Thirty-two ship with the tool, under the SIL Open Font License, in
+  three flavours: a hand, a machine, a poster &ndash; and
+  <a href="display-faces.html">each one is drawn here in a cover and a
+  divider</a>, with your own title in it.</p>
+
+  <div class="stage">
+   <div class="stage-pair">
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; cover: display</div>
+     <img src="img/deco-display-cover.webp" alt="A title slide with the two words of the title set very large in a heavy condensed sans, the subtitle and the credits below it in the body serif.">
+     <figcaption><strong>The title is the slide.</strong> The credit block under
+     it stays in the body face, which is what keeps the contrast a contrast
+     rather than a slide set in one loud typeface.</figcaption>
+    </figure>
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; section: number</div>
+     <img src="img/deco-display-divider.webp" alt="A divider slide with a large accent numeral two above a part heading set in a heavy condensed sans.">
+     <figcaption><strong>The numeral follows the theme, the words do not.</strong>
+     Press <kbd>A</kbd> and the accent walks through seven colours while the
+     heading beside it stays the face the deck chose.</figcaption>
+    </figure>
+   </div>
+  </div>
+
+  <div class="pair-up">
+   <div>
+    <p><strong>The size is measured, not guessed.</strong> These faces differ in
+    width by a factor of three, and the cover's type size was tuned for the body
+    serif &ndash; so without a correction the condensed ones look timid and the wide
+    ones run off the slide. Each carries one measured against that serif.
+    <code>style: {display-scale: 1.4}</code> is there for when the face is right
+    and the size is not.</p>
+   </div>
+   <div>
+    <p><strong>No keypress can disturb it.</strong> <kbd>F</kbd> cycles the body
+    face and <kbd>A</kbd> the accent theme; the cover and the dividers ignore
+    both, while their colour still follows the theme so they stay readable in
+    dark. A deck that names no display face embeds nothing and builds exactly as
+    it did before.</p>
    </div>
   </div>
  </div>

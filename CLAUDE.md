@@ -389,7 +389,10 @@ and localStorage recovery share.
 
 Five constructs are one idea – **a slide is a frame, and the frame can carry more
 than a text column**: `cover:` (ten compositions, with `subtitle:`,
-`cover-image:`, `cover-ratio:`, `cover-align:`), `::: backdrop`, `::: overlay`,
+`cover-image:`, `cover-ratio:`, `cover-align:`, `cover-ground:`, and the credit
+block's four ranks – `presenter:`, `affiliation:`, and `contact:` / `notice:`
+as one row along the foot, with `closing-credits:` saying how much of it the
+last slide repeats), `::: backdrop`, `::: overlay`,
 `::: dock`, and `::: cards` / `::: rows`. Overlay and dock share one vocabulary
 and differ in one contract: an overlay lies *over* the slide, a dock is *part of
 the frame* and the text column yields to it (a side column reserved as the
@@ -418,14 +421,48 @@ upright and italic; **which three is a per-lecture decision** made in the `fonts
 block, where a bundled name needs no file and an author-supplied one is matched
 out of `fonts/` beside `source.md`. `ligatures:` separates prose ligatures (on)
 from code ligatures (off – `->` and `--` are two different edges in the figure
-grammar). `lang:` picks the hyphenation dictionary and `style: {hyphenate: …}`
+grammar). `lang:` picks the hyphenation dictionary and, from the localisation
+pass, also selects the words the build *invents* – the TOC heading, the note
+labels, the print type eyebrow, the projection's `EXERCISE`, the `<title>`
+suffixes – out of the `STRINGS` table (`lectureStrings`, keyed by primary
+subtag, `en` fallback with a one-line `[lang]` warning for a locale it has no
+wording for); a top-level `labels:` block overrides any one word (free values,
+closed key set, `unknown-label-key` refused in the `buildOnce` pre-flight and
+mirrored in `lint.js`). `STRINGS.en` is the current literals transcribed
+character for character, so a deck with no `lang:` or `lang: en` builds
+byte-identical HTML. `style: {hyphenate: …}`
 says which views use it (`print` – the default and today's behaviour – / `all` /
 `none`); the two are separate keys because the language is a property of the
 lecture and the hyphenation is a preference. Seven themes cycle on
 `A`, and `applyFontTheme()` sets `body[data-mode]`, which is what every piece of
 chrome keys off rather than a theme name. Seven frontmatter keys pin how a
 lecture opens; an unknown value **fails the build**, because a typo here is
-otherwise invisible.
+otherwise invisible, and a top-level key no renderer reads at all is a
+`lint.js` warning (`unknown-frontmatter-key`, exit 2 under `--strict`) rather
+than a build failure – `author:` was the case that produced it.
+
+Two `style:` keys answer the same question for the two grounds separately.
+`neutrals` says what hue the greys carry, because the `A` key moves `--emph`
+alone in the four light themes while every tinted surface is mixed out of
+`--ink` at hue 260; `print-neutrals` says it for the documents, whose paper is
+warm already, and its default is a deferral rather than a value (`''` is
+seeded, `printNeutrals()` resolves it, the shape `printSlideNums()` documents).
+`headline` and `caps` are the title pair's two treatments – which of the two
+lines is loud, and whether the small type round them is set in capitals. The
+tracking capitals need is applied by the build to any slot already in capitals
+and is deliberately not a key.
+
+**A fourth role, `display`, is the exception to all of that**: `fonts: {display:
+Anton}` names one of 32 OFL faces for the cover, the closing slide and the
+section dividers, and nothing else in the deck wears it. It has no default, so
+a deck that names none embeds nothing and builds byte-identically; it is not
+held to the variable-subset rule, because a headline carries no bold; and each
+face carries a **measured** `size-adjust` (these faces differ in advance width
+by a factor of three, and the cover's type size is tuned for Literata). Two
+properties are structural rather than enforced, and both break the moment
+`display` joins `FONT_CYCLE` or `--display-stack` is assigned under a
+`body[data-font=…]` / `body[data-theme=…]` selector: the reader's `F` and `A`
+keys cannot reach it.
 
 **The rosters, the slot tables, the measured advance widths, the precedence
 rules and the 1.0.0 recipe are in the `psi-slides-appearance` skill.**
@@ -517,7 +554,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 - `.claude/skills/psi-slides-authoring/SKILL.md` – **how to write a lecture `source.md`**: the chunk grammar in practice, the `:::` directive vocabulary, reveal segments, notes, images and math, with worked examples. Invoked as the `psi-slides-authoring` skill.
 - `.claude/skills/psi-slides-figures/SKILL.md` – **the `::: draw` vocabulary and the editor's contract**, lifted out of this file so it loads when figures are the work. Every statement, class, slot table and generated name, plus the four decisions behind the compiler. Invoked as the `psi-slides-figures` skill.
 - `.claude/skills/psi-slides-decoration/SKILL.md` – **the cover, backdrop, overlay, card, row and divider vocabulary**, same reasoning: the slot tables, the refusals, and the CSS traps each construct cost. Invoked as the `psi-slides-decoration` skill.
-- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the six viewer-default keys, the whole `style:` block including `labels`, `blocks`, `bold` and `print-bold`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
+- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the six viewer-default keys, the whole sixteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
 - `.claude/skills/psi-slides-media/SKILL.md` – **video, hosted embeds and link addresses**: the extension tables, the two sync protocols, clip staging, and the build-time QR codes. Invoked as the `psi-slides-media` skill.
 - `.claude/skills/psi-slides-souffleuse/SKILL.md` – **the live prompter (`--souffleuse`)**: the config surface, the socket protocol, the tick scheduler, the request shape, the policy table as coded, the failure modes with their badge texts, the log records, the cockpit ids and the STT adapter. Invoked as the `psi-slides-souffleuse` skill.
 - `PLAN-souffleuse.md` – the live prompter's plan, its seven slices and **§ Decisions along the way**, which is where the code and the plan parted company and why. Read that section before changing `souffleuse.mjs`, the sidecar or the cockpit's prompter runtime; where the two disagree, the code wins.
@@ -555,6 +592,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 - `lectures/network-security/source.md` – **thirty-six real lecture slides rebuilt as figures**, and the reason the outlines, `.turn`, `bars`, `grid`, `plot` and `.smooth` exist. Rebuilt from two PowerPoint decks with the wording kept verbatim (original typos included, each marked in a `#` comment) and the arrangement redrawn. Read it for what the vocabulary looks like at scale; `figure-design.md` is the rules it was built against. Linted **and built** by CI, as a compiler check on the largest body of real figures there is, but not published – unlike `lectures/diagrams/`, which is now both. Its views are not tracked, so a build here is the only thing that compiles it.
 - `lectures/python-intro/source.md` – richest example of `::: cols`, `::: side`, and `::: marginalia` in combination, 36 chunks. It is also what the project site's screenshots come from, so a change to `#why-playwright` means re-running `docs/site/shoot.mjs`.
 - `lectures/spoken-talk/source.md` – **a short talk written out word for word**, and the only lecture here whose `> note:` blocks are a script rather than reminders. It exists so the cockpit's cue-card mode can be photographed doing its job: `#second-time` is a figure with three `step` blocks and three notes pinned to those beats with `> note: from N`, so one press moves a card and the projection in turn. `docs/site/shoot.mjs` takes four frames of that chunk for `in-the-room.html`, addressed by id – **its chunk ids are the contract with that script**, like `docs/artifact/figure-rules/`. Six chunks, views not tracked.
+- `lectures/title-block/source.md` – **the title pair and the credit block, shown rather than described.** Six chunks, views not tracked. It wears `style: {headline: eyebrow, caps: on}`, all four credit ranks and `closing-credits: cover`, which is why it exists as a deck of its own: `lectures/decoration/` wears `cover: quote` and a deck has exactly one cover, so it can show the credit slots but never the eyebrow. Read it for what `title:` and `subtitle:` look like the other way up.
 - `docs/artifact/` and `docs/site/figures.html` – **two pages, and the split is the point.** `docs/site/figures.html` is the *case* for the figure language; `docs/artifact/figures-you-write.html` is the *manual*. Both are produced by `docs/artifact/refresh-figures.mjs`, the only text that compiles a figure for publication, and its `--check` covers both – **run by `pages.yml` before it assembles the site and by `release.yml` beside the tracked-output check.** A staleness gate nothing runs is a comment. `docs/artifact/figure-rules/source.md` is the lecture both pages draw with, and it exists only to be compiled: CI lints it, so a compiler change that would spoil either page breaks it there first, where `node lint.js` can name the line. **Its chunk ids are the contract with the script – do not rename one without renaming it there too.** Everything else about the two pages, what the script owns and why the page fetches nothing at run time: `docs/artifact/README.md`.
 - `docs/comparison.md` – how psi-slides differs from Beamer, reveal.js, Quarto, Marp and friends, in both directions. Published as a page on the site.
 - `docs/site/DESIGN.md` – **the project site's design brief**: the one problem this site has that most do not (every picture on it is a picture of text), the stage-and-cue rules that follow from it, the one-frame-one-left-edge layout and the two layouts thrown away before it, the palette's single job, the two interactive devices, the list of what must not appear, and how to check a change – a contact sheet first, then per-container clipping, because page-level overflow does not see a box that clips its own content. Read it before changing `site.css` or either landing page. `desktop/DESIGN.md` is the same kind of document for the builder app.

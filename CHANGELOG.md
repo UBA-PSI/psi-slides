@@ -9,6 +9,180 @@ from building the same way is a major version.
 
 ### Changed
 
+- **`style: {print-neutrals: …}` answers for the page what `neutrals` answers
+  for the wall, and `light-orange` clears 4.5:1.** The two grounds are not the
+  same ground: print's palette is warm already (`#fafaf7` paper, `#8b2e00`
+  accent) where the live one is cool at chroma 0, so a deck can reasonably
+  want the page warm and the projection cool, or the reverse, and one key
+  could say only one of those. The new key takes the same four words and its
+  default is a deferral rather than a value – `''` is seeded and no written
+  value can produce it, so an unset key stays distinguishable from all four
+  and `printNeutrals()` is the one step that resolves it, exactly as
+  `printSlideNums()` does for the numbering. Writing `neutrals: warm` alone
+  therefore still warms both. Each stylesheet reads its own attribute, so
+  neither view can answer the other's key.
+
+  `light-orange` goes from `oklch(0.58 0.17 60)` to `0.54`. Measured against
+  the paper it was 4.23:1, the only one of the four accents under 4.5, and
+  the accent does land in prose because a bold phrase can be set in it – the
+  other three are 8.66, 5.99 and 4.67. 0.56 clears the line at 4.57 and 0.54
+  at 4.96; the wider margin is the one worth taking on a projector, where the
+  room's light is the variable nobody measured. `DG_THEMES` in
+  `diagram-core.mjs` mirrors the seven accents and moves with it, which is
+  what the gate that caught this exists for.
+
+- **A masthead cover with a presenter no longer sits at the auto-fit floor.**
+  One `presenter:` line took such a cover from zoom 2.2 to 0.6 – minimum type
+  on the opening slide – and nothing anywhere said why. `masthead` pins its
+  credits to the bottom with an auto top margin, which is also what lands its
+  folio rule at the top of them, inside a box `align-items: stretch` has
+  already stretched to the frame. The extent from the words at the top to the
+  words at the bottom is then the box's height at *every* type size, so the
+  fit's height test never comes true and it walks down to its floor.
+
+  The fix is the shape already in the file rather than a new idea: a band is
+  kept out of the span and its own height added back, exactly as `panelLevel`
+  does for a band overlay. The composition names its pinned block
+  (`FOOT_BAND_COVERS`) instead of the probe guessing from a measured gap.
+
+  This is the fifth construct to make the same mistake – the dock's reserved
+  track, the overlay layer, a band panel, this, and the stretched
+  `.chunk-content` under all of them. **A stretched or bottom-pinned box is
+  not content**, and every one of the five was found by something bottoming
+  out rather than by anybody reading the code, which is why `test/auto-fit.mjs`
+  now watches the floor itself.
+
+- **A built view is the same bytes whichever flags wrote it, a row's terms
+  line up with the words beside them, and shadows are one ladder.** Four
+  findings from reading what the live views draw rather than what the
+  stylesheet says. `inlineSvgCounter` reset once per *build* rather than once
+  per view, so the same figure came out `psi-fig-6-` under `--audience-only`
+  and `psi-fig-8-` under a full build: content identical, bytes different,
+  and a tracked view rebuilt with a partial flag read as stale to
+  `release.yml` for a diff of pure id churn. The floor a view restarts from
+  is not zero, because `parseLecture` splices vector assets into `::: draw`
+  blocks through the same counter and that markup is shared by all four
+  views. `test/reproducible.mjs` is the check, wired into `npm test` and into
+  `release.yml` immediately before the staleness check it makes meaningful.
+  It is not a `test/gates/` entry: that suite runs on a bare checkout with no
+  `npm ci`, and this one spawns the build.
+
+  On a `::: rows` block the anchor word did not reach the term, which *is*
+  the card, so `{.top}` moved the body and left the term centred. And the
+  anchor a row defaults to now follows the ground rather than being a second
+  question about it: on a fill, an outline or the accent it stays `middle`,
+  because a visible slab beside a longer body wants placing; with `.clear`,
+  which also zeroes the padding, it is the new `baseline`, because bare words
+  centred against a four-line body read as misaligned where on the baseline
+  they read as the hanging indent this construction has always been.
+  Measured either way: 66px of offset on a four-line body. `.baseline` on a
+  `::: cards` block is refused in both files (`cards-baseline-no-body`) – a
+  card has no body beside it to line up with.
+
+  The four shadow recipes for three jobs, in two different shadow colours and
+  all in absolute pixels, are now `--shadow-rest`, `--shadow-float` and
+  `--shadow-quiet`, in em and following `--accent-h`. The shadow under a
+  heading standing on a photograph deliberately stays outside the ladder and
+  neutral, the line `ov-glass` and the invert backdrop's text-shadow are also
+  on: a surface that exists to keep type legible stays outside the palette,
+  a surface that groups or separates follows it.
+
+- **Trackpad zoom follows the fingers rather than the event count, and it
+  zooms where the pointer is.** The board and the focus card each answered a
+  wheel event with a fixed factor picked off the sign of `deltaY` – 8 % for
+  the overview, 10 % for the card – which made the zoom a function of how many
+  events arrived rather than of how far the hand had moved. Measured on a
+  macOS trackpad in Chrome: an event every 8.4 ms, each carrying between 0.012
+  and 6 px. Twenty-two of them crossed the card's whole 1×–8× range, so 183 ms
+  of contact stood it at the ceiling, and thirty-three crossed the board's
+  0.08×–1× in 276 ms. Worse, macOS keeps sending an inertia tail once the
+  fingers lift – `deltaY` around 0.2, gaps widening past 100 ms, the sign
+  flipping as it dies out – and each of those was another full step in
+  whichever direction, so the zoom went on bouncing after the gesture was
+  over. The step is now `exp(-deltaY · k)` with `k` at 0.01, which is about
+  208 px of finger travel for the card's full range, and the per-event delta
+  is clamped at 12 px: the largest the trackpad produced was 6, so no trackpad
+  event is touched, while a mouse wheel's 100–120 px notch becomes 13 % rather
+  than 3.3×. Scaling by `exp()` also composes, which is what makes it safe to
+  coalesce several events into one frame – two events of 1 px land exactly
+  where one of 2 px does.
+
+  The judder on top of that was a second defect and it was CSS. An event every
+  8.4 ms restarted the camera's 250 ms transition from its own interpolated
+  midpoint about thirty times before it could ever complete; the focus card's
+  80 ms curve was re-aimed roughly ten times per frame. Dragging has had
+  `transition: none` since it was written – `body.overview-zooming` and
+  `body.figure-zooming` now give the wheel path the same treatment, held for
+  the length of the gesture and dropped after a quiet period, since a wheel
+  stream has no end event. The receiving window needed it too: a peer zooming
+  with a trackpad streams `figure-view` at frame rate, and the projection is
+  the half the room is looking at. Style writes and that broadcast are both
+  coalesced to one per frame.
+
+  Zoom now anchors to the pointer instead of the centre. For the card the
+  correction is `pan' = pan + (1 - r) · (Q - visibleCentre)`; for the board,
+  where the camera frames an anchor chunk and then adds `manualPan`, both the
+  anchor and the scale cancel out and one step on `manualPan` is all that is
+  left. Two things that are easy to get wrong and are worth keeping: `r` has
+  to be the ratio actually achieved rather than the one requested, or at the
+  8× ceiling the card goes on sliding under a cursor that is no longer zooming
+  anything; and the board's arithmetic has to happen in layout space, because
+  in the cockpit `#stage-viewport` is itself drawn through
+  `scale(--stage-scale)`, so a `clientX` there is a shrunken pixel while
+  `manualPan` and the chunk offsets are full-size ones. The `+` and `-` keys
+  still zoom from the centre, because a keypress carries no pointer.
+
+- **`style: {neutrals: …}` says what hue the greys carry, and the corner
+  radius is one em ladder.** Two findings from a look at what the `A` key
+  actually produces. In the four light themes that key moves `--emph` and
+  nothing else – `--ink` is fixed at chroma 0.01 on hue 260, `--paper` and
+  `--rule` at chroma 0 – and every quiet fill is mixed out of `--ink`, so a
+  card under a warm accent is a cool grey under a warm word; `light-blue` is
+  the only one where the two agree, and there by coincidence. The new key
+  takes `neutral` (the default, and today's rendering byte for byte),
+  `tinted` (the greys take the accent's own hue and the fills are mixed from
+  `--emph`), `warm` and `cool` (a fixed hue), the last two held off the
+  terminal themes because a single phosphor tone is what those are. Second,
+  the corner radii were four absolute values that had accumulated (2, 3, 6,
+  10 px) and a card's font-size is set per slide by auto-fit, so the same
+  `::: cards` row rounded at 0.23em on one slide and 0.33em on the next; they
+  are now `--radius-card` (0.3em) and `--radius-tight` (0.1em) in both
+  stylesheets. The cockpit's own chrome keeps its pixels, being fixed-size UI
+  at one scale.
+
+- **A `::: dock` column is a share of the frame, and it keeps the frame's
+  air.** Its track was a measure of type multiplied out against `var(--zoom)`,
+  which is auto-fit's zoom rather than the lecturer's, so the same inherited
+  `{.left .every}` dock stood 406, 350 and 294 px wide on three consecutive
+  slides of one part and its running list walked sideways on every advance;
+  the air was an em for the same reason and shrank with it, so the words
+  crowded the frame and the seam hardest on the slides carrying the most
+  text. A dock is part of the frame, so the widths are now `narrow` 28%,
+  `standard` 37% and `wide` 46% of the slide, and `--dock-gap` is 3.5% of it,
+  standing both inside the column and between the column and the words. The
+  text measure a dock leaves is unchanged at the widest the old ems reached;
+  what is gone is that the track grew when the lecturer zoomed, so a large
+  manual zoom now wraps a dock's items instead of widening its column, the
+  way a `::: overlay {.panel}` already did. `lint.js` mirrors the shares as
+  `DOCK_SHARE` / `DOCK_GAP_SHARE`, where the same arithmetic was a third too
+  optimistic: it read the dock's own em as the chunk's, so
+  `dock-narrows-measure` now fires on a `standard` dock beside a `standard`
+  chunk, which really does leave about 31em.
+
+- **The build refuses four things it used to accept and mis-render, so it no
+  longer draws what `lint.js` calls an error.** A `word:` heading prefix that
+  is not one of the ten types (`## principl:`) used to fall through to a
+  literal heading with no `data-tag`, leaving the search index and the speaker
+  lists an untyped chunk; a duplicate `{#id}` (on two chunks, or a chunk and a
+  column) shipped as invalid HTML with the two sharing one reveal/sync/
+  localStorage slot; a `:::` that closes nothing rendered as a literal `:::`
+  paragraph on the slide; and a `::: cards {.photo}` or a scrim with no card
+  carrying a picture, or a `detail:` with no nested level, was a word the
+  drawing ignored. All four now fail the build with a message, congruent with
+  the linter. An intentional `:::` as content still goes in a code fence, and
+  a chunk's `{#id}` is still optional in the build (`--allow-missing-ids`
+  silences the linter's `missing-id` while a talk is being sketched).
+
 - **A reveal reserves its space, everywhere, and `style: {reveal: …}` is
   gone.** A top-level `---` used to close up so the chunk grew a block per
   press, while a `---` inside a pane, a card row or an overlay kept its box –
@@ -71,6 +245,214 @@ from building the same way is a major version.
   A deck that does not use it is untouched: without the flag none of the chrome
   is emitted, no field of the sync snapshot is the prompter's, and the four
   views are what they were before the flag existed.
+
+- **A fourth font role: `fonts: {display: …}` gives the cover, the closing
+  slide and the section dividers a typeface nothing else in the deck wears.**
+  Those three are the one place where a loud face is not a mistake – nobody
+  reads a divider, they see that one has arrived – and the three text roles
+  cannot do that job, because they are chosen to survive a lit room at
+  paragraph length. Thirty-two faces ship, SIL OFL 1.1 only, in three
+  flavours: a hand, a machine, a poster. Exactly two selectors use the role
+  (`.chunk-title .title-main` and `.chunk-section .section-heading`), so an
+  ordinary chunk heading, a card lead and a figure label are untouched.
+
+  **A deck that names no display face embeds nothing and builds byte for
+  byte what it built before** – the role has no entry in `BUNDLED_DEFAULTS`,
+  and that absence is the feature rather than an omission. It is also the
+  one role not held to the rule that a bundled face is a variable latin
+  subset: 21 of the 32 have no variable build, because a headline carries
+  three words and no bold, and Anton *is* one weight.
+
+  **No reader keystroke reaches it, and neither immunity cost a line of
+  code.** `F` cycles a *variable* rather than a family, so pointing the two
+  selectors at `--display-stack` takes them out of the cycle by
+  construction; `A` re-points colour tokens only, and no theme names a
+  family. Both hold only while `display` stays out of `FONT_CYCLE` and
+  `--display-stack` is never assigned under a `body[data-font=…]` or
+  `body[data-theme=…]` selector, which is why that is written down rather
+  than left to be rediscovered. The face's *colour* still follows the theme,
+  so a divider stays readable on the three dark ones.
+
+  **Each face carries a measured `size-adjust`, not a guessed one.** These
+  faces disagree about advance width by a factor of three while the cover's
+  type size is tuned for Literata, so without a correction Anton looks timid
+  and Press Start 2P runs off the slide. The number is the advance width of
+  a real title against Literata's, measured in a browser by
+  `tools/font-playground/measure-scale.mjs`. It rides as an `@font-face`
+  descriptor rather than as a multiplier on a font-size, the way Noto Sans
+  Mono Condensed pins its width, so it reaches the six cover compositions
+  that set their own title size, print, the zoom, `auto-fit` and
+  `--check-fit` without any of them knowing about it.
+
+  A **numeric `line-height` does not follow `size-adjust`** – it resolves
+  against the nominal font-size – so Anton at 120% put 98.6px of apparent
+  type into a 90.3px line box and the descenders of one line landed inside
+  the letters of the next. `DISPLAY_LH` is the fix, and three of the seven
+  line-heights the role can wear are deliberately unequal (1.3 for the
+  eyebrow kicker, 1.02/0.97 under `cover: display`, and in print the eyebrow
+  subtitle's 1.12 against the title's 1.15), so a single overriding rule
+  would have flattened them.
+
+  **The tracking is the same story as the line height and was caught later.**
+  Every composition sets a negative `letter-spacing` on its title, because it
+  is a correction for a serif set large &ndash; `cover: display` sets `-0.042em`,
+  the tightest of the ten. Applied to Anton, which is condensed and tightly
+  fitted already, the letters touched. A display face is fitted by the person
+  who drew it, so `DISPLAY_TRACK` lists every rule that tracks a slot the face
+  wears and the conditional block resets them to `normal`. The eyebrow kicker
+  is deliberately not in the list: under `headline: eyebrow` the face is on the
+  subtitle, and the kicker keeps its own tracking. A gate re-reads both
+  stylesheets and fails if a rule tracks such a slot without being listed,
+  because an eleventh cover composition is otherwise exactly the change that
+  puts the collision back on one variant, in silence.
+
+  Under `style: {headline: eyebrow}` the face **follows the loud line**:
+  `.title-subtitle` wears it and `.title-main` is handed back to the body
+  font explicitly, because left merely unmentioned the unqualified rule
+  still matched the kicker.
+
+  `lint.js` mirrors the roster as a table and gets three findings from it:
+  `unknown-display-font` (error, mirroring the build's refusal),
+  `display-pairing` (a display serif over a serif body reads as one typeface
+  set badly rather than as two – `kind` is what a face *is*, which is why
+  Chakra Petch is a machine to look at and a sans to pair with) and
+  `display-no-eszett` (Rubik Mono One has no ß and draws it from the
+  fallback mid-word). A gate holds the two tables congruent.
+
+  `lectures/display-face/` shows it; `tools/font-playground/` draws all 32
+  into a real cover and a real divider.
+
+- **`style: {display-scale: <n>}`, 0.6 to 1.8, multiplies that measured
+  value.** The `size-adjust` numbers normalise advance width, because a line
+  too many is the failure that breaks a slide – and apparent size varies as
+  a consequence: against Literata's ink height Silkscreen lands at 0.38 and
+  Patrick Hand at 1.34, so a Silkscreen divider is a thin band on an empty
+  frame where Anton fills it. No automatic correction fixes that without
+  bringing the overflow back (pulling Silkscreen's ink to 0.85 needs a scale
+  of about 1.39, at which it sets 2.2× Literata's width), so the build
+  answers the question it can measure and the author answers the one that is
+  taste. It had to be its own key because **`heading-scale` does not reach
+  `--title-lead`** – the cover title is the one heading that key never
+  governed. Set on a deck that resolves no display face it fails the build,
+  on the rule `cover-ratio` already follows: this format does not accept a
+  silent no-op.
+
+- **`lint.js` warns about a frontmatter key no renderer reads
+  (`unknown-frontmatter-key`).** `author:` sat in four lectures in this repo
+  looking like metadata and rendering nothing at all – it was stored, never
+  looked at, and nothing on any slide changed when you edited it. That is the
+  silent no-op the build refuses wherever it can see one (a `cover-ratio` on a
+  cover that does not divide, a scrim on a row with no picture), one layer up
+  where nothing could see it. It also catches the ordinary typo: `subtitel:`
+  now says so instead of quietly doing nothing.
+
+  A **warning**, and only in `lint.js`. Refusing an unknown key in the build
+  would stop an existing `source.md` from building, and from 1.0.0 the source
+  format is the interface – so this is the one direction the build/lint split
+  allows, a warning this file raises alone, like `reveal-overuse` and
+  `orphan-column`. `KNOWN_FRONTMATTER_KEYS` is the list, kept in step with
+  what `build.js` actually reads.
+
+  `author:` itself is gone rather than given a meaning. Two spellings for one
+  thing is not simpler than one, and the case that might have justified a
+  second key – several authors on a paper, one of them presenting – needs no
+  vocabulary of its own: `info:` already takes free lines and says it in the
+  author's own words.
+
+- **A title pair can be set either way up, and the credits have four ranks
+  instead of two.** Two frontmatter decisions and three new slots, all of
+  them additive: a deck that writes none of them emits the same markup it
+  did before.
+
+  `style: {headline: …}` says which line of a title pair carries the weight.
+  `stacked` is the default and today's rendering – the title large, the
+  subtitle quieter underneath. `eyebrow` sets the title small above a
+  subtitle that carries the weight: the newspaper kicker, and the shape a
+  lecture title takes when the first line names the field and the second
+  asks the question. It is a treatment and not a second pair of content
+  keys, which is the whole point: `title:` stays the `<title>` element, the
+  TOC entry and what the search index reads whichever line is loud, so
+  nothing is renamed to get a different look. One key therefore serves the
+  cover, the section dividers and the closing slide at once, because all
+  three carry a pair.
+
+  `style: {caps: …}` sets the small type around a title in capitals – the
+  eyebrow, the presenter, the affiliation, never the headline, because a key
+  that capitalises the loud line is a key that makes a talk shout. The
+  *tracking* that has to come with capitals is deliberately not a setting:
+  capitals at the tracking of lowercase read as one jammed word, which is a
+  typographic rule rather than a preference, so the build marks any title
+  slot already in capitals and tracks it out. That repairs the deck that
+  typed `presenter: PROF. DR. …` years ago and never knew why it looked
+  wrong.
+
+  `affiliation:`, `contact:` and `notice:` are the three slots the credit
+  block was missing. It used to be one strong line over a run of equals –
+  `presenter:` set apart and everything else in `info:` – so the line that
+  qualifies the speaker's name was set exactly like the one that gives the
+  date, and the block read as a log file. The institution is now a rank of
+  its own; the contact and the notice are a *row* along the foot, because an
+  address and "the slides are online" answer the room rather than introduce
+  the speaker.
+
+  `closing-credits:` gives the closing slide those fields back, graded and
+  off by default: `none`, `contact` (the foot row only) or `cover` (the
+  whole block). The slide still carries nothing unasked – repeating who is
+  talking and where is what makes a bookend read as a duplicate – but the
+  one line a last slide is most often asked to carry is where the slides can
+  be found, and that argument never covered it. `cover` is the reserved word
+  `closing-image:` already uses, and for the same reason: it names *which*
+  credits, where a word like `same` only says there are some.
+
+  `cover-ground: ink` is a dark opening slide under a light deck, without a
+  photograph. The machinery existed and was reachable only through one:
+  `cover: hero` emits an inverted backdrop, and that re-points the ink
+  tokens for one chunk. `::: backdrop` requires an asset, so a deck that
+  wanted the dark opening and no picture had no path. It is a key rather
+  than an eleventh composition because it is one question asked of all ten,
+  the same reasoning that makes `cover-align:` a key.
+
+  Under the hood the compositions now declare their headline's size and
+  measure as `--title-lead` and `--title-measure` on the chunk rather than
+  as a `font-size` and a `max-width` on `.title-main`. That is what lets the
+  eyebrow mode hand both to whichever line is loud, and it is why the swap
+  works on all ten compositions instead of on the default one. It also
+  caught a bug: masthead's 15em cap, read at the eyebrow's much smaller em,
+  computed to 483px and broke the kicker onto two lines.
+
+- **`lang:` localises the words the build invents, and a `labels:` block
+  overrides any one of them.** Everything in the four outputs that is not in
+  `source.md` – the table-of-contents heading, the `Speaker Note` /
+  `Presentation Note` labels, the print type eyebrow, the projection's
+  `EXERCISE`, the default `note` on a `::: footnote`, the `<title>` suffixes,
+  the annotation box label and the `+ note` button – was English with no way
+  to say otherwise. `lang:` (which already chose the hyphenation dictionary)
+  now also selects these out of a `STRINGS` table, keyed by primary subtag
+  (`de-AT` → `de`); English and German ship. A language the table has no
+  wording for (`lang: fr`) builds and stays English with a one-line `[lang]`
+  warning, so no existing lecture stops building. A top-level `labels:` block
+  overrides any single word (free-text values, a closed key set with a nested
+  `type:` map; an unknown key fails the build and `lint.js` reports
+  `unknown-label-key`), with or without a `lang:`, and legal beside
+  `style: {labels: off}`. **A deck with no `lang:` or with `lang: en` builds
+  byte-identical HTML to before.** This first pass covers the documents and
+  the always-visible projection furniture; the interaction-tier `?` sheet,
+  search and touch controls, and the cockpit, stay English for now.
+
+- **A photo divider with a readable heading (`section: card`).** Over a
+  `::: backdrop {.clear}` photograph the section-card plate becomes the theme's
+  own paper, so the divider's heading reads on a plate instead of on the bare
+  picture – the one heading that cannot move into an overlay, because the
+  renderer owns it. The `text-on-picture` warning yields to it. Works in all
+  seven themes, light and dark.
+- **`unresolved-asset` and `deprecated-margin`.** An explicit `![](path)` that
+  names no file now renders the visible placeholder rather than shipping a
+  broken external `src`, and warns (`[assets] not found`, mirrored as
+  `unresolved-asset` in the linter) – usually the fix is dropping the extension
+  so the `assets/` shorthand resolves it. And `::: margin`, the old spelling of
+  `::: footnote`, still builds but earns a `deprecated-margin` warning; a future
+  major will drop the alias.
+
 - **`--- from N` pins a beat to an advance by number.** Beats are otherwise
   taken in the order they are written, which is wrong for one shape: two
   things that should arrive together, written in two places. A stepped
@@ -1971,6 +2353,151 @@ from building the same way is a major version.
   unreleased, so this is not a source-format break.
 
 ### Fixed
+
+- **A figure in a printed document can no longer be taller than the page.**
+  The two documents answered how *wide* a figure may be – the measure – and
+  never how tall, and with the aspect ratio fixed those are not two questions:
+  an uncapped height is whatever the measure multiplied by the ratio happens
+  to be. A `::: draw` block makes it worst, because it carries `width="2000"`
+  so that `max-width` binds on every screen, and the print stylesheet then
+  removed the live views' `max-height` on the reasoning that a `vh` cap is a
+  slide proportion and paper is not a slide. True, and it left the document
+  with no cap at all: `lectures/python-intro` `#scanner-pipeline` resolved to
+  944 px inside a 933 px A4 text area, and `break-inside: avoid` – which keeps
+  a picture whole, and should – then moved it onto a page of its own. The
+  lecture's cover did the same, so the deck opened on a page carrying a
+  flowchart and nothing else, with the title on page 2. A portrait screenshot
+  reached the same place without a diagram anywhere near it.
+
+  Diagrams, images and clips now share one ceiling of `34rem` in `print.html`
+  and `print-notes.html` – at the 10 pt root about half the A4 text height, so
+  a figure may be the largest thing on a page without being the only thing on
+  it. In `rem` rather than `vh`, and the same number on screen and on paper:
+  what a viewport unit means inside a page box is not something the engines
+  agree on, and these documents are printed by whichever browser the reader
+  has. The drawing keeps its proportions and centres in the measure. Measured
+  across the corpus, the tallest figure in any of the six lectures with
+  figures is now 49 % of the text area, and `lectures/python-intro` prints as
+  27 pages instead of 31.
+
+- **A card or a row is no longer sliced through the middle of a line by a page
+  break.** `.cards` is a grid and its `<ul>` is `display: contents`, so every
+  card and every `::: rows` row is a grid item – and WebKit does not fragment a
+  grid container: an item that crosses a page boundary is cut through a line of
+  type and the remainder painted on the next sheet. The `break-inside: avoid`
+  each item carries does not save it, because the box being fragmented is the
+  container, not the item. The hazard was always there; it only became visible
+  once chunks started flowing, because until then the whole chunk moved and a
+  page boundary never fell inside one.
+
+  `::: rows` is a single column, so print draws it in block flow instead: the
+  same picture, fragmenting the way prose does – between rows, each row whole
+  because its own `break-inside: avoid` now has an ordinary block container to
+  work in. The two-column grid *inside* a row, the one setting the term beside
+  its body, is untouched. A multi-column `::: cards` block is a layout block
+  flow would not reproduce, so it keeps its grid and is kept whole instead, and
+  that is a promise it can hold: the tallest in the corpus is 183 px against a
+  933 px page. Table rows are the same failure without the grid and now say
+  `break-inside: avoid` too.
+
+- **The printed document reads as a document: one type size smaller, chunks
+  that flow, and no page it did not need.** Four things that all produced the
+  same symptom – a text broken into pieces by page turns nothing on the page
+  asked for. `lectures/python-intro` goes from 27 sheets to 19, and from seven
+  pages under 70 % full (one at 37 %) to one.
+
+  *The setting.* 10 pt over 1.6 is a reading size for a lit screen at arm's
+  length. On paper it set the text loosely enough that four paragraphs filled
+  most of a sheet, which is what pushed the next chunk over a boundary. Print
+  is now 9 pt over 1.44, an ordinary book setting, with the column at 38 rem –
+  about 69 characters, and 6.4 cm of margin left to write in. Everything in
+  this stylesheet is in rem, so headings, figures and the diagram label size
+  moved with it and the proportions are the ones that were tuned. Screen keeps
+  its 10 pt.
+
+  *Chunks flow.* `.chunk` said `break-inside: avoid`, which is right for a
+  picture and wrong for a run of text: a chunk that did not fit in what was
+  left of a page moved whole, and the white it left behind was however much
+  that was – repeatedly, and most visibly right under a part heading, which
+  `break-after: avoid` had faithfully kept on the page the following chunk
+  then abandoned. Prose now breaks where prose breaks, with `orphans` and
+  `widows` at 3. What must stay together still says so and is small enough to
+  mean it: a figure, an outline, a card list, a heading and the line under it.
+
+  *The cover no longer forces a blank page.* `min-height: 24cm` is A4's text
+  height of 24.7 cm with 2.8 % to spare, so it fitted exactly one paper size at
+  exactly these margins. On US Letter the same page area is 22.94 cm and the
+  box was 4 cm too tall – and since the overflow is the padding *below* the
+  title, what reached the next sheet was a blank one. A reader whose browser
+  sets its own margins got the same blank page on A4. It is 19 cm now, with
+  `break-after: page` saying the thing the height was standing in for, and the
+  padding in rem rather than vh for the reason the figure cap is.
+
+  *One contents list, not two.* An `outline:` chunk already is one –
+  `renderOutlineList` walks the same parts `renderToc` walks – so a deck
+  carrying one printed the identical run of headings twice, 29 px apart. The
+  author's version wins: it has a heading they wrote, a lede, and a place in
+  the argument. A deck without an outline chunk still gets the generated nav.
+
+- **A drawing in a printed document is now sized by its type, not by the
+  measure.** A slide answers how large a figure is by filling the frame: the
+  figure *is* the slide, and what that does to the label type does not matter
+  because nothing else is on the wall to compare it with. A page has running
+  text three lines above the picture, and there the answer inverts – the type
+  inside a figure belongs to the same typographic set as the type around it.
+
+  Filling the measure got that wrong by a different amount for every figure,
+  because a label's size is `DG_FONT` scaled by the measure over the viewBox
+  width, and the viewBox is however many grid units the author happened to
+  draw in. Measured before the change: **47 of 81 figures** in the corpus
+  carried type larger than the running text, from 0.53× to 2.97× – a spread of
+  5.6, invisible to the author, and nothing in a source file says which end a
+  given figure lands on. After it, **2 of 81**, both `.large` labels at 1.10×,
+  which is an author asking for a loud label and getting one.
+
+  `diagram-core` now emits two numbers no stylesheet can work out for itself:
+  `--dg-type-w`, the viewBox width measured in base labels, and `--dg-ar`.
+  Multiplying the first by `--dg-fig-size` gives the width at which a base
+  label lands at exactly that size; the second turns the height budget into a
+  width so a tall figure shrinks proportionally instead of sitting letterboxed.
+  Both are inert unless a rule reads them, and only `PRINT_CSS` does. The box
+  now hugs the drawing rather than spanning the measure, which is also what
+  finally lets `style: {blocks}` reach a diagram – it was the one figure kind
+  that could not honour the key, because its box was always full width.
+
+  The cost is at the other end and it is small: a figure with more grid units
+  than the measure can serve lands *under* the target size. Three in the whole
+  corpus sit below 7 px – `lectures/diagrams` `#sequence` and two of the
+  densest `network-security` figures – and all three were already the smallest
+  drawings there.
+
+- **The printed page keeps a margin to write in.** The text column was 16 cm
+  because nobody had picked a width, and 16 cm of 10 pt serif is about 83
+  characters to the line – half again over what a reader tracks comfortably.
+  It is now 36 rem, about 65 characters, set against the left of the page area
+  rather than centred in it, leaving 5.8 cm of clean paper down the outside
+  edge. A handout is written on, and a note belongs next to the paragraph it
+  answers; that is worth more here than symmetry. Screen keeps its centred
+  42 rem – the change is about sheets of paper, and `print.html` read in a
+  browser is not one.
+
+  Code is the one thing allowed into that margin, because it cannot reflow.
+  `pre` carries `overflow-x: auto` for the screen, and on paper `auto` is not a
+  scrollbar but a cut: the line simply ends. That was reachable at the new
+  measure – `lectures/tutorial` `#diagram-beats-rule` is 557 px wide – so print
+  now sets `overflow: visible` and a long line runs into the empty margin
+  instead of being trimmed. Nothing in the corpus reaches past the page area.
+
+- **A photograph in a printed document no longer splits across a page break.**
+  The sentence `DIAGRAM_CSS` says about a diagram – one picture, and splitting
+  it makes two useless halves – is as true of a photograph, and only the
+  diagram was hearing it. Reachable rather than theoretical, though the path
+  is narrow: `.chunk` avoids breaking, so a figure in a chunk that fits a page
+  was never at risk, but a chunk *taller* than a page cannot honour that and
+  breaks wherever it must. `lectures/tutorial` `#images` is 1073 px on a 933 px
+  page and held a 365 px figure free to split down the middle, with the caption
+  landing on the next sheet. The rule sits on the `<figure>`, so the caption
+  travels with the picture, and covers clips and embeds for the same reason.
 
 - **A slide whose content fitted the frame could still be positioned outside
   it.** `focusCamera` measured the chunk *box* to decide whether to centre a

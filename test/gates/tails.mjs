@@ -281,7 +281,7 @@ export async function run({ report }) {
   }
 
   // ── the style block's key set, held across two files ────────────────
-  // lint.js mirrors STYLE_SPEC as STYLE_ENUMS plus STYLE_SCALE_KEYS, and the
+  // lint.js mirrors STYLE_SPEC as STYLE_ENUMS plus STYLE_NUM_SPEC, and the
   // unknown-key error it raises is only as right as that pair. A key added
   // to build.js with a kind other than `enum` would be reported as unknown
   // on a valid deck until somebody remembered the second file, which is the
@@ -296,8 +296,9 @@ export async function run({ report }) {
     const enumBody = lsrc.slice(lsrc.indexOf('const STYLE_ENUMS = {'));
     const lintKeys = new Set([...enumBody.slice(0, enumBody.indexOf('\n};'))
       .matchAll(/^\s{2}'([a-z-]+)':/gm)].map(m => m[1]));
-    for (const k of [...lsrc.matchAll(/STYLE_SCALE_KEYS = new Set\(\[([^\]]*)\]/g)][0][1]
-      .match(/'[a-z-]+'/g).map(t => t.slice(1, -1))) lintKeys.add(k);
+    const numBody = lsrc.slice(lsrc.indexOf('const STYLE_NUM_SPEC = {'));
+    for (const m of numBody.slice(0, numBody.indexOf('\n};')).matchAll(/^\s{2}'([a-z-]+)':/gm))
+      lintKeys.add(m[1]);
     ok(specKeys.size > 5, `STYLE_SPEC's keys are findable (${specKeys.size})`, [...specKeys].join(','));
     const missing = [...specKeys].filter(k => !lintKeys.has(k));
     const extra = [...lintKeys].filter(k => !specKeys.has(k));
@@ -321,5 +322,97 @@ export async function run({ report }) {
     const sExtra = [...lKeys].filter(k => !sKeys.has(k));
     ok(!sMissing.length, 'every souffleuse key build.js accepts is one lint.js knows', sMissing.join(','));
     ok(!sExtra.length, 'and lint.js knows no souffleuse key build.js has dropped', sExtra.join(','));
+  }
+
+  // ── DISPLAY_TRACK is complete ───────────────────────────────────────
+  // A display face is fitted by the person who drew it, so the conditional
+  // block resets the tracking the composition chose for the body serif. That
+  // reset is a LIST, and a list of selectors is exactly the thing that rots:
+  // add an eleventh cover with a letter-spacing of its own and the collision
+  // comes back on that composition alone, silently, on a deck nobody here
+  // builds. So the stylesheets are re-read and every rule that sets tracking
+  // on a slot the face wears has to be in the list.
+  //
+  // The eyebrow kicker is the one exclusion, and it is not an oversight: under
+  // `headline: eyebrow` the face is on the subtitle, so the kicker keeps its
+  // own tracking - 0.015em, or 0.055em when `caps: on` tracks the capitals.
+  {
+    const bsrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    // Template interpolations carry braces and break a brace-counting scan.
+    // Blanking them is not cosmetic: on the first pass they hid four rules,
+    // the -0.042em under `cover: display` among them - the one the whole
+    // reset exists for.
+    const flat = (t) => t.replace(/\$\{[^}]*\}/g, 'X').replace(/\/\*[\s\S]*?\*\//g, '');
+    const cut = (from, to) => {
+      const a = bsrc.search(from); const b = bsrc.indexOf(to, a);
+      return flat(bsrc.slice(a, b));
+    };
+    const sheets = {
+      print: cut(/const PRINT_CSS = `/, 'const AUDIENCE'),
+      live: cut(/const AUDIENCE_CSS = `/, '// \u2500\u2500 audience runtime JS'),
+    };
+    const declared = {};
+    for (const m of bsrc.slice(bsrc.indexOf('const DISPLAY_TRACK = {'))
+      .slice(0, 900).matchAll(/^\s{2}(print|live): \[([\s\S]*?)\],$/gm)) {
+      declared[m[1]] = [...m[2].matchAll(/'([^']+)'/g)].map(x => x[1]);
+    }
+    ok(declared.print && declared.live, 'DISPLAY_TRACK has both views',
+       Object.keys(declared).join(','));
+    for (const [view, css] of Object.entries(sheets)) {
+      const found = [];
+      for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        const sel = m[1].trim().replace(/\s*\n\s*/g, ' ');
+        if (!/letter-spacing/.test(m[2])) continue;
+        if (!/\.title-main|\.section-heading|\.title-subtitle/.test(sel)) continue;
+        if (/data-headline=eyebrow[^,]*\.title-main/.test(sel)) continue;  // the kicker
+        found.push(sel);
+      }
+      ok(found.length > 0, `${view}: the scan finds tracked title rules (${found.length})`);
+      const missing = found.filter(f => !(declared[view] || []).includes(f));
+      ok(!missing.length,
+         `${view}: every rule that tracks a slot the display face wears is in DISPLAY_TRACK`,
+         missing.join(' | '));
+      const stale = (declared[view] || []).filter(d => !found.includes(d));
+      ok(!stale.length, `${view}: and DISPLAY_TRACK names no rule that is gone`,
+         stale.join(' | '));
+    }
+  }
+
+  // ── the display roster, held across two files ───────────────────────
+  // lint.js mirrors the display half of BUNDLED_FONTS as DISPLAY_FONTS,
+  // name and `kind` both, and two findings ride on it: `unknown-display-font`
+  // is only as right as the names and `display-pairing` only as right as the
+  // kinds. A face added to build.js alone would be reported as a typo on a
+  // deck that builds, which is the direction a pre-commit gate must never be
+  // wrong in; a kind changed in one file alone would warn about a pairing
+  // that is fine, or say nothing about one that is not. Read as text, for
+  // the reason the style block above is.
+  {
+    const bsrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const lsrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
+    const build = new Map([...bsrc.matchAll(
+      /^ {2}'?([A-Za-z0-9][A-Za-z0-9 ]*)'?: \{ role: 'display', kind: '(\w+)'/gm)]
+      .map(m => [m[1], m[2]]));
+    const lintBody = lsrc.slice(lsrc.indexOf('const DISPLAY_FONTS = new Map(['));
+    const lint = new Map([...lintBody.slice(0, lintBody.indexOf(']);')).matchAll(
+      /\['([^']+)', '(\w+)'\]/g)].map(m => [m[1], m[2]]));
+    ok(build.size > 20, `the display roster is findable in build.js (${build.size})`);
+    ok(build.size === lint.size,
+       'lint.js mirrors exactly as many display faces as build.js bundles',
+       `build ${build.size}, lint ${lint.size}`);
+    const off = [...build].filter(([n, k]) => lint.get(n) !== k)
+      .map(([n, k]) => `${n}: build ${k}, lint ${lint.get(n) || '(absent)'}`);
+    ok(!off.length, 'and every one of them under the same name and the same kind',
+       off.join('; '));
+    // The noEszett flag is one face today and the whole of the
+    // display-no-eszett warning, so it is checked by name rather than by
+    // counting: a second face gaining the flag must reach lint.js too.
+    const bNoEs = [...bsrc.matchAll(/^ {2}'?([A-Za-z0-9][A-Za-z0-9 ]*)'?: \{ role: 'display',[^\n]*noEszett: true/gm)]
+      .map(m => m[1]).sort();
+    const lNoEs = ([...lsrc.matchAll(/DISPLAY_NO_ESZETT = new Set\(\[([^\]]*)\]/g)][0]?.[1] || '')
+      .match(/'[^']+'/g)?.map(t => t.slice(1, -1)).sort() || [];
+    ok(bNoEs.length && bNoEs.join(',') === lNoEs.join(','),
+       'the faces with no eszett are the same list in both files',
+       `build ${bNoEs.join(',')} / lint ${lNoEs.join(',')}`);
   }
 }

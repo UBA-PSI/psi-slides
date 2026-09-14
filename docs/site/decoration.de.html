@@ -91,7 +91,7 @@
        rechten Kante über 780 px Galerie. Ein Block ohne Beleg daneben ist
        ein Block. -->
   <details class="setup">
-    <summary>Die anderen sieben und die zwei Angaben, die die Schrift verschieben</summary>
+    <summary>Die anderen sieben, die Angaben, die die Schrift verschieben, und die Worte auf der Folie</summary>
     <div class="setup-body">
       <p>Vier der zehn nehmen ein Bild: <code>split</code> und
       <code>hero</code> aus <code>cover-image:</code>, <code>beside</code> und
@@ -101,7 +101,22 @@
       mit <code>cover-align:</code> setzt man sie nach oben, in die Mitte oder
       nach unten, bei den sieben, die überhaupt eine Wahl lassen, und mit
       <code>cover-ratio:</code> sagt man, wie viel der Folie das Bild bekommt,
-      bei denen, die sie teilen.</p>
+      bei denen, die sie teilen. <code>cover-ground: ink</code> eröffnet eine
+      helle Vorlesung auf einer dunklen Folie, ganz ohne Foto.</p>
+
+      <p><strong>Die Worte auf der Titelfolie stehen in vier Rängen statt in
+      einer Zeile und einer Liste.</strong> <code>presenter:</code> ist der
+      Name; <code>affiliation:</code> die Einrichtung, leiser direkt darunter;
+      und <code>contact:</code> und <code>notice:</code> teilen sich eine
+      Zeile am Fuß, die Adresse linksbündig, der Hinweis rechtsbündig. Die
+      Trennung folgt der Aufgabe &ndash; ein Name und eine Einrichtung stellen
+      den Vortragenden vor, eine Adresse und „die Folien kommen am Freitag
+      online“ beantworten eine Frage aus dem Saal. In <code>info:</code>
+      bleiben Datum, Raum und Veranstaltungszeile. Welche der beiden Zeilen
+      <code>title:</code> und <code>subtitle:</code> groß gesetzt wird, sagt
+      <code>style: {headline: &hellip;}</code>, und
+      <code>style: {caps: on}</code> setzt die kleine Schrift darum in
+      Versalien.</p>
       <div class="gallery">
       <figure class="shot tile"><img src="../img/masthead.webp" alt="Eine Titelfolie mit dem Titel an der Oberkante, einem Vorspann in der Mitte und den Angaben unter einer Linie am Fuß.">
       <figcaption><code>masthead</code> der Titel an der Oberkante, die Angaben unter einer Linie am Fuß</figcaption></figure>
@@ -133,7 +148,10 @@
     Komposition gezeichnet, die man mit <code>cover:</code> genannt hat, damit
     die Stunde in der Form endet, in der sie angefangen hat. Sie trägt die eigenen Worte und weder die Zeile mit dem
     Namen noch das Datum: die sagen, wer spricht und wann, und das weiß der Saal
-    seit einer Stunde.</p>
+    seit einer Stunde. Mit <code>closing-credits:</code> holt man sie zurück
+    &ndash; <code>contact</code> nur die Fußzeile, für die eine Zeile, wegen
+    der man eine letzte Folie meist stehen lässt, oder <code>cover</code> den
+    ganzen Block.</p>
    </div>
    <div>
     <p><strong>Auch die sechs Kompositionen ohne Bild können eines
@@ -198,6 +216,60 @@
     hinter dem Titel, wo mangels Teilgrenze gar kein Trenner entsteht. Vor dem
     ersten Teil ist kein Punkt aktiv: Ein Plan, den noch niemand begonnen hat,
     wird in voller Stärke gelesen.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="display-face">Eine Schrift nur für die Übergangsfolien</h2>
+  <p class="lede">Titelfolie, Schlussfolie und Abschnittstrenner sind die eine
+  Stelle im Foliensatz, an der eine laute Schrift kein Fehler ist: einen Trenner
+  liest niemand, man sieht, dass einer gekommen ist, und weiß, wo man in der
+  Stunde steht. <code>fonts: {display: Anton}</code> gibt diesen dreien eine
+  Schrift und erreicht sonst nichts &ndash; eine gewöhnliche Überschrift, ein
+  Kartenkopf, eine Abbildungsbeschriftung behalten die Textschrift. 32 liegen
+  bei, unter der SIL Open Font License, in drei Geschmacksrichtungen:
+  handgeschrieben, maschinell, plakativ &ndash; und
+  <a href="../display-faces.html">jede ist hier in Titelfolie und Trenner
+  gezeichnet</a>, mit dem eigenen Titel darin.</p>
+
+  <div class="stage">
+   <div class="stage-pair">
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; cover: display</div>
+     <img src="../img/deco-display-cover.webp" alt="Eine Titelfolie, deren zwei Titelwörter sehr groß in einer schweren schmalen Grotesk stehen, darunter Untertitel und Angaben in der Textserife.">
+     <figcaption><strong>Der Titel ist die Folie.</strong> Der Angabenblock
+     darunter bleibt in der Textschrift &ndash; das erst macht den Kontrast zu einem
+     Kontrast und nicht zu einer Folie in einer einzigen lauten
+     Schrift.</figcaption>
+    </figure>
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; section: number</div>
+     <img src="../img/deco-display-divider.webp" alt="Eine Trennerfolie mit einer großen Akzentziffer Zwei über einer Teilüberschrift in schwerer schmaler Grotesk.">
+     <figcaption><strong>Die Ziffer folgt dem Thema, die Wörter nicht.</strong>
+     <kbd>A</kbd> führt den Akzent durch sieben Farben, während die Überschrift
+     daneben die gewählte Schrift behält.</figcaption>
+    </figure>
+   </div>
+  </div>
+
+  <div class="pair-up">
+   <div>
+    <p><strong>Die Größe ist gemessen, nicht geschätzt.</strong> Diese Schriften
+    unterscheiden sich in der Breite um den Faktor drei, und die Titelgröße war
+    auf die Textserife abgestimmt &ndash; ohne Korrektur wirken die schmalen zaghaft
+    und die breiten laufen aus der Folie. Jede trägt einen gegen diese Serife
+    gemessenen Wert. <code>style: {display-scale: 1.4}</code> ist da, wenn die
+    Schrift stimmt und die Größe nicht.</p>
+   </div>
+   <div>
+    <p><strong>Kein Tastendruck kommt daran.</strong> <kbd>F</kbd> wechselt die
+    Textschrift, <kbd>A</kbd> das Akzentthema; Titelfolie und Trenner ignorieren
+    beides, während ihre Farbe weiter dem Thema folgt und sie damit auch dunkel
+    lesbar bleiben. Ein Foliensatz ohne Display-Schrift bettet nichts ein und
+    baut genau wie zuvor.</p>
    </div>
   </div>
  </div>

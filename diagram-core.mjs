@@ -181,7 +181,7 @@ export const DG_THEMES = {
   'light-red':      { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.42, 0.16, 30] },
   'light-teal':     { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.52, 0.12, 195] },
   'light-blue':     { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.48, 0.18, 250] },
-  'light-orange':   { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.58, 0.17, 60] },
+  'light-orange':   { paper: [0.98, 0, 0],       ink: [0.20, 0.01, 260], emph: [0.54, 0.17, 60] },
   'dark':           { paper: [0.17, 0.005, 260], ink: [0.95, 0, 0],      emph: [0.76, 0.15, 35] },
   'terminal-amber': { paper: [0.12, 0.02, 60],   ink: [0.82, 0.14, 75],  emph: [0.94, 0.18, 85] },
   'terminal-green': { paper: [0.11, 0.02, 150],  ink: [0.80, 0.20, 145], emph: [0.92, 0.24, 145] },
@@ -7040,7 +7040,23 @@ export function createDiagramCompiler(env = {}) {
     // proportions inside the picture, and how large it lands is the chunk's
     // width class, exactly like every other figure.
     const liveVb = `${lvX.toFixed(2)} ${lvY.toFixed(2)} ${lvW.toFixed(2)} ${lvH.toFixed(2)}`;
+    // Two numbers a stylesheet cannot work out for itself, and a document
+    // needs both. A label's rendered size is DG_FONT * (rendered width /
+    // viewBox width): the author sets the first two and the *renderer* sets
+    // the third, which is why label size across a corpus of figures varies by
+    // whatever ratio their grids happen to differ by. Turned around, the
+    // equation gives the width at which a base label lands at a wanted size -
+    // so --dg-type-w is the viewBox width measured in base labels, and a
+    // stylesheet multiplies it by the size it wants. --dg-ar is beside it
+    // because a height budget has to become a width before it can join the
+    // same min().
+    //
+    // Inert unless a rule reads them, and only PRINT_CSS does. A projection
+    // wants the opposite of this: there the figure is the slide, and it fills
+    // the frame whatever that does to the type.
+    const typeW = (vbW / DG_FONT).toFixed(3);
     const svg = `<svg id="${svgId}" class="psi-diagram" viewBox="${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}" `
+      + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)}" `
       + `width="${DG_NOMINAL_W}" height="${Math.round(DG_NOMINAL_W * vbH / vbW)}" `
       + (frameCount > 1 ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" ` : '')
       + `data-steps="${frameCount}"${aria} preserveAspectRatio="xMidYMid meet">\n${svgBody}</svg>`;

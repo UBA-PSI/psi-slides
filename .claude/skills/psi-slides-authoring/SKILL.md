@@ -57,9 +57,13 @@ Body text.
 
 ### Frontmatter
 
-`title`, `presenter` and `info` render the title slide. `course` and `lecture`
-are metadata and worth keeping stable. Two further blocks are optional and
-documented below: **viewer defaults** and **embedded fonts**.
+`title`, `subtitle`, `presenter`, `affiliation`, `contact`, `notice` and `info`
+render the title slide; the section on the cover below says what each rank is
+for. `course` and `lecture` are metadata and worth keeping stable. Two further
+blocks are optional and documented below: **viewer defaults** and **embedded
+fonts**. A top-level key that is none of these is a lint warning
+(`unknown-frontmatter-key`) rather than a build failure, so a lecture keeps
+building, but nothing reads the key either.
 
 ### Columns
 
@@ -748,7 +752,7 @@ Seven slots in the tail, and two decide themselves:
 |---|---|
 | size | `.auto` `.large` `.medium` `.small` |
 | align | `.auto` `.left` `.center` |
-| anchor | `.top` `.middle` |
+| anchor | `.top` `.middle` `.baseline` (a `::: rows` word, refused on a card) |
 | detail | `.fold` `.show` `.page` |
 | ground | `.panel` `.outline` `.clear` `.accent` `.paper` `.photo` |
 | corner | `.round` `.square` |
@@ -797,11 +801,18 @@ block has one column by definition.
 :::
 ```
 
-Three defaults differ from a card row, and each is deliberate: `anchor` is
-`middle`, because a one-line term against a three-line body's first line reads
-as a mistake; `align` names how the term sits *in its card* and the body always
-ranges left; and the automatic size is capped at `medium`, because a term is a
-label in a column rather than a headline across the slide.
+Three defaults differ from a card row. `anchor` follows the ground: on a fill,
+an outline, the accent or paper the term is a visible slab, and a one-line slab
+against a three-line body's first line reads as a mistake, so the default is
+`middle`; under `.clear` there is no slab and no padding, so the term is bare
+words in a column and the default is `baseline`, the hanging indent a term and
+its definition have always been set as. `align` names how the term sits *in its
+card* and the body ranges left. And the automatic size is capped at `medium`,
+because a term is a label in a column rather than a headline across the slide.
+
+`.baseline` is the anchor word a row adds, and writing it on a `::: cards`
+block is an error (`cards-baseline-no-body`): it lines a term up with the body
+beside it, and a card has no body beside it.
 
 Reach for `rows` when a term needs a sentence, and for `cards` when a
 comparison needs counting.
@@ -902,7 +913,12 @@ Three uses, and they are the reason it exists:
   the dock is on every chunk of the part. Each item is a link to a chunk's
   `{#id}` (or a column's), and the item the room is on lights up – `done`,
   `now`, `next`, like `section: outline`. A link to an id nothing carries is a
-  build error.
+  build error. **Its scope is one part, not the whole deck** – for a nav that
+  runs through every part, repeat the same block under each `#` heading (the
+  live marker stays correct on its own, because it reads the `#id` links, not
+  where the dock sits). For a genuinely deck-wide running agenda, reach for
+  `section: outline` or the `## outline:` chunk instead; `.every` is a
+  part-level nav.
 - **A line that stays.** `::: dock {.bottom .accent .third}` on one chunk is a
   band a third of the slide high under the words – a definition or a rule the
   slide keeps in view. An own dock replaces an inherited one for that slide.
@@ -993,13 +1009,18 @@ meta size beside the room and the date.
 title: How Caches Forget
 subtitle: Eviction, Staleness and the Cost of Being Wrong
 presenter: Jana Wieland
+affiliation: University of Bergen
+contact: caches.example/notes
+notice: Slides go up after the session.
 info: |
   Nordic Systems Days · Bergen · 12 to 15 October
 cover: masthead         # see the table below
 cover-image: skyline    # only the four picture covers take one;
                         # on the six type covers it is an error
+cover-ground: ink       # paper | ink – a dark opening slide under a light deck
 closing-image: cover    # the ## closing: slide ends on the same picture;
                         # or name a different one, same three forms
+closing-credits: contact  # none | contact | cover – see below
 ```
 
 The list runs quiet to loud, which is the only question it asks you.
@@ -1011,6 +1032,7 @@ The list runs quiet to loud, which is the only question it asks you.
 | `stack` | - | the title block centred on both axes |
 | `display` | - | the title set to fill the slide; the scale is the design |
 | `panel` | - | the type on a full field of the theme's accent |
+| `quote` | **the chunk body** | the body set as the claim, the lecture's name under it |
 | `split` | `cover-image` | type left, the picture **bled** off the right edge |
 | `hero` | `cover-image` | the picture is the slide, type reversed out of a gradient |
 | `beside` | **the chunk body** | the art **inset** to the right of the title |
@@ -1019,7 +1041,32 @@ The list runs quiet to loud, which is the only question it asks you.
 `split` or `hero` with no `cover-image` fails the build rather than drawing an
 empty half.
 
-**The five type covers each take a `::: backdrop` too**, which is how a picture
+**The credit block has four ranks, not one line and a list.** `presenter:`
+carries the name, `affiliation:` the quieter line directly under it, and
+`contact:` and `notice:` share one row along the foot – the address flush left, the notice
+flush right and italic. The split is by job: a presenter and an institution
+introduce the speaker, while an address and “the slides go up afterwards” answer
+the room. `info:` is still there for the venue, the date and the course line,
+and it is still the right place for them. Everything above it used to go in
+there too, which set the line qualifying the speaker's name exactly like the
+line giving the date.
+
+`closing-credits:` says how much of that block the `## closing:` slide
+repeats, and the default is `none`: repeating who is talking and where is what
+makes a bookend read as a duplicate. `contact` brings back the foot row alone,
+which is the line a last slide is most often asked to carry; `cover` brings
+back the whole block. `cover` is the same reserved word `closing-image:` uses,
+and it names *which* credits rather than only saying that there are some.
+
+`cover-ground: ink` opens a light deck on a dark slide with no photograph in
+it. The machinery was already there and reachable only through a picture –
+`cover: hero` inverts the ink tokens for its own chunk, and `::: backdrop`
+needs an asset – so a deck that wanted the dark opening and nothing behind it
+had no path. It is written only where nothing has already darkened the slide,
+so a backdrop's own scrim still wins, and the closing slide inherits it with
+the rest of the composition.
+
+**The six type covers each take a `::: backdrop` too**, which is how a picture
 reaches a cover with no picture slot of its own. On `panel` the field becomes
 the scrim, so the photograph reads through a plate of the accent instead of
 under the paper veil every other backdrop gets.
@@ -1120,10 +1167,18 @@ style:
   wrap: none            # balance | none        - how a heading breaks across lines
   blocks: left          # center | left         - where a code block, figure or formula sits
   hyphenate: all        # print | all | none    - which views break a word
+  print-body: sans      # serif | sans          - the printed document's face
+  neutrals: tinted      # neutral | tinted | warm | cool - what hue the greys carry
+  print-neutrals: warm  # the same four, for the two documents; unset it follows
+  headline: eyebrow     # stacked | eyebrow     - which line of a title pair is loud
+  caps: on              # off | on              - small type round a title in capitals
   bold: accent          # plain | bold | italic | accent | accent-bold | accent-italic
                         #   - how a **bold** phrase looks live; plain is the default
   print-bold: italic    # the same six - on paper; bold is the default
 ```
+
+Sixteen keys, and that YAML block is all of them – `STYLE_SPEC` in `build.js`,
+mirrored as `STYLE_ENUMS` in `lint.js` for everything but the two scales.
 
 `hyphenate: print` is the default and is what the tool has always done: the two
 document views hyphenate their prose, the projection and the cockpit do not.
@@ -1132,6 +1187,30 @@ where one compound noun opens a hole in the measure – and `none` takes it out
 of the documents as well. It is a separate key from `lang:`, which picks the
 dictionary and has to be right either way: without `lang: de` a German lecture
 does not hyphenate anywhere, whatever this key says.
+
+`neutrals` decides what hue the greys carry. In the four light themes the `A`
+key moves the accent and nothing else, and every tinted surface – a card, a
+dock, an overlay card – is mixed out of the ink, which sits at hue 260. So a
+card under a warm accent is a cool grey under a warm word, and `light-blue` is
+the only theme where the two agree. `tinted` gives the greys the accent's own
+hue, `warm` and `cool` fix one regardless of the accent, and `neutral` is the
+default and today's rendering byte for byte. `print-neutrals` asks the same
+question for the two documents, and it is a separate key because print's paper
+is already warm where the live paper is at chroma 0; unset, it follows
+`neutrals`, so writing one key alone answers for both.
+
+`headline` decides which line of a title pair is loud. A cover carries a pair
+through `title:` and `subtitle:`, a divider and a closing slide through
+`Heading | Sub`, and up to now the first line was always the large one.
+`eyebrow` sets it small above a subtitle that takes the weight – the shape a
+lecture title wants when the first line names the field and the second asks the
+question. The words do not move: `title:` stays the content key of whichever
+line is loud, because it is also the `<title>` element, the contents entry and
+what the search index reads. `caps` sets the small type round a title in
+capitals – the eyebrow, the presenter, the affiliation, never the headline. The
+tracking that has to come with them is not a second key: capitals at the
+tracking of lowercase read as one jammed word, so the build tracks out any slot
+already in capitals, including one an author typed that way.
 
 The two scales are multipliers on the tool's own scale, bounded to 0.6-1.8.
 Reach for them on a whole deck, not to fix one chunk - a chunk that needs a
@@ -1211,7 +1290,14 @@ verifies nothing.
 node lint.js lectures/                    # everything
 node lint.js lectures/<slug>/source.md    # one file
 node lint.js lectures/ --strict           # warnings exit 2
+node lint.js <source.md> --allow-missing-ids   # while prototyping, before ids are frozen
 ```
+
+`--allow-missing-ids` silences `missing-id`. A chunk's `{#id}` is not required
+by the build – a missing one gets a positional key – so this is for a talk
+still being sketched; add the ids before the deck is finished, because they are
+the anchor the TOC, cross-references and speaker sync all use, and a positional
+key shifts when a chunk is inserted above.
 
 Rules you will meet while authoring: `unknown-type`, `unknown-class`,
 `stray-attribute`, `same-slot` (the three every `{…}` tail can raise, heading
@@ -1221,10 +1307,17 @@ or directive – the message names which), `missing-id`, `duplicate-id`,
 `stray-directive-close`, `nested-directive`, `unclosed-math`, `reveal-overuse`,
 `orphan-column` (a column with fewer than two chunks),
 `figure-caption-redundant`, `single-word-bold`, `figure-type-without-figure`,
-`oversized-asset`,
+`oversized-asset`, `unresolved-asset` (an explicit `![](path)` that names no
+file, so the build renders a placeholder rather than a broken external `src` –
+usually the fix is dropping the extension so the `assets/` shorthand resolves
+it), `deprecated-margin` (the old `::: margin` spelling of `::: footnote`),
 `unknown-view-default`,
-`unknown-style-setting`, `bad-backdrop`, `duplicate-backdrop`, `bad-overlay`,
-`bad-cols`, `bad-cards`, `bad-rows`, `cards-nested`, `bad-side`,
+`unknown-style-setting`, `unknown-frontmatter-key` (a top-level key no
+renderer reads; warning – see below), `unknown-label-key` (a word `labels:`
+does not name), `bad-backdrop`, `duplicate-backdrop`, `bad-overlay`,
+`bad-cols`, `bad-cards`, `bad-rows`, `cards-baseline-no-body`,
+`cards-photo-no-image`, `cards-scrim-no-image`, `cards-detail-no-nesting`
+(a card word with nothing to act on), `cards-nested`, `bad-side`,
 `draw-in-cols`, `side-in-cols`, `aside-in-layout`,
 `overlay-in-layout`, `directive-in-overlay`, `directive-in-cards`,
 `directive-in-embed`, `duplicate-flip`, `explicit-nested` (the nesting
@@ -1243,6 +1336,18 @@ outside an overlay or a dock, a divider's heading always; drop `.clear`, write
 warning), `bad-cover-ratio`, `bad-unit`, `bad-autoplay` (a delay
 outside 200–60000 ms, `cycle` with no autoplay, or autoplay on a figure
 with no `step` block).
+
+`unknown-frontmatter-key` names a top-level key that no renderer reads, and it
+is the layer above `unknown-view-default` and `unknown-style-setting`: those
+two catch a bad *value* under a key the build knows, and this one catches the
+key itself. `author:` was the case that produced it – it sat in several of this
+repo's own lectures, looked like it was doing something, and had never reached
+a page. It is a warning, so nothing stops building and a `source.md` that was
+valid stays valid, but **`--strict` turns it into exit 2**: a repository with
+`node lint.js lectures/ --strict` in CI and a stray key gets a red build on
+upgrade. The list of keys the build reads is `KNOWN_FRONTMATTER_KEYS` in
+`lint.js`; the fix for a key that was never read is to delete it, and for one
+that should be read, to move it under `style:` or `labels:` where it belongs.
 
 `single-word-bold` is the collapse audit made mechanical: a bold of two words
 or fewer that lands *after* a paragraph's first sentence, where the projection

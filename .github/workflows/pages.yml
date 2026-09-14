@@ -72,6 +72,13 @@ jobs:
           # linting alone is not a gate on anything the compiler decides.
           node build.js lectures/network-security/source.md
           node build.js docs/artifact/figure-rules/source.md
+          # The three stress-test decks: real content that combines the whole
+          # vocabulary, built here for the same reason network-security is -
+          # linted on every push, so built on every push, or a line the build
+          # refuses and the linter passes merges green. Not published.
+          node build.js lectures/demo-tracking/source.md
+          node build.js lectures/demo-responsibility/source.md
+          node build.js lectures/demo-deco/source.md
 
       # Both pages this job publishes carry figures compiled from the lecture
       # above, and `refresh-figures.mjs` is the only text that compiles one for
@@ -81,6 +88,14 @@ jobs:
       # is what prevents that. It is a claim only if it runs.
       - name: Check the published figure pages are current
         run: node docs/artifact/refresh-figures.mjs --check
+
+      # Same arrangement for the display-face roster: display-faces.html is
+      # tracked and generated out of tools/font-playground/roster.mjs, the
+      # measured scales, and the 32 font packages the engine depends on. A
+      # roster edit that nobody regenerated would publish a page describing a
+      # set of faces that is no longer the set.
+      - name: Check the published display-face page is current
+        run: node tools/font-playground/build-playground.mjs --check
 
       # Renders the docs from the same Markdown the repository serves, so the
       # site cannot drift from them, and runs the site's two gates: every link
