@@ -4,10 +4,20 @@
 // createRequire for the bundled fonts and the KaTeX stylesheet, a dynamic
 // import() for ws, and a WASM load for Shiki's regex engine.
 //
-// What is copied is what the engine reads about itself: build.js plus the
-// four files it splices in at run time over import.meta.url, and the
-// package.json and lockfile that decide the dependency tree. Everything else
-// in the repository – the lectures, the tests, the site – is not the engine.
+// What is copied is what the engine reads about itself: build.js, the four
+// files it splices in at run time over import.meta.url (diagram-core.mjs,
+// cue-cards.mjs, editor.mjs, editor.css), the one it imports statically
+// (tails.mjs), and the package.json and lockfile that decide the dependency
+// tree. Everything else in the repository – the lectures, the tests, the site
+// – is not the engine.
+//
+// FILES is a hand-written list of files another file reads, so it rots.
+// test/stage-engine.test.mjs holds it against build.js in both directions;
+// the run-time reads are the half that matters, because a missing static
+// import fails at module load and a missing run-time read fails mid-build,
+// in a renderer, with an ENOENT stack and no output written. cue-cards.mjs
+// was missing from this list through builder-0.1.0 and builder-0.1.1, which
+// is why the test exists.
 //
 // Run: npm run stage-engine   (from desktop/, and by npm run dist)
 
@@ -25,6 +35,7 @@ const FILES = [
   'build.js',
   'diagram-core.mjs',
   'tails.mjs',
+  'cue-cards.mjs',
   'editor.mjs',
   'editor.css',
   'package.json',

@@ -1,6 +1,6 @@
 {
   "name": "psi-slides-builder",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "A desktop window around the psi-slides build: open a lecture's source.md, build it on every save, open the four views.",
   "license": "MIT",
@@ -13,7 +13,7 @@
   "scripts": {
     "start": "electron .",
     "stage-engine": "node scripts/stage-engine.mjs",
-    "test": "node --test test/events.test.mjs test/settings.test.mjs test/strings.test.mjs test/validation.test.mjs",
+    "test": "node --test test/events.test.mjs test/settings.test.mjs test/stage-engine.test.mjs test/strings.test.mjs test/validation.test.mjs",
     "smoke": "node test/smoke.mjs",
     "dist": "node scripts/stage-engine.mjs && electron-builder",
     "dist:signed": "node scripts/stage-engine.mjs && dotenv -- electron-builder --mac --publish never"

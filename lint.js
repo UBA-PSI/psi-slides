@@ -61,8 +61,21 @@ const COVER_IMAGE_VARIANTS = new Set(['split', 'hero', 'beside', 'above']);
 // divide, a scrim on a row with no picture). A key the renderers never read
 // is that defect one layer up, and nothing could see it.
 //
-// Keep it in step with what build.js actually reads. The cheap check is
-// `grep -oE "frontmatter\[?['\"]?[a-z-]+" build.js | sort -u`.
+// Keep it in step with what build.js actually reads - and don't do it by
+// hand or by grep. `node test/gates/run.mjs frontmatter` holds this set
+// against build.js in milliseconds, and it has to, because build.js reads a
+// key three structurally different ways and one of them is a *computed*
+// read (viewDefaults() loops over VIEW_DEFAULT_SPEC, so `print-slide-numbers`
+// appears nowhere near a `frontmatter[`). A fourth path is not a read at all:
+// the cover spreads the whole block into renderTitleBlock's destructured
+// parameter list, which is the only place `subtitle` is named. The obvious
+// grep over the two literal forms finds 23 of the 31 and would call this
+// list wrong where it is right.
+//
+// The direction that matters is one. A key build.js reads that is missing
+// here is a false warning on a valid deck, and exit 2 under --strict; two
+// branches that each added one half of that merged cleanly and produced
+// exactly it.
 const KNOWN_FRONTMATTER_KEYS = new Set([
   // the cover and its credits
   'title', 'subtitle', 'presenter', 'affiliation', 'contact', 'notice', 'info',

@@ -177,8 +177,10 @@ archive does not pretend otherwise.
 
 **The desktop app is packaged by a third workflow.** `.github/workflows/desktop.yml`
 runs on a push that touches `desktop/` or one of the engine files the app
-stages (`build.js`, `diagram-core.mjs`, `tails.mjs`, `editor.mjs`,
-`editor.css`, the root `package.json` and lockfile): it runs the app's tests
+stages (`build.js`, `diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`,
+`editor.mjs`, `editor.css`, `LICENSE`, the root `package.json` and lockfile –
+`desktop/test/stage-engine.test.mjs` holds that filter against the staging
+script's own list, because it is the third hand-written copy of it): it runs the app's tests
 and its smoke test, then builds unsigned packages for macOS, Windows and Linux
 and attaches them to the run as artefacts, for testing.
 

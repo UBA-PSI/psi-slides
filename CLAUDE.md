@@ -124,10 +124,17 @@ node lint.js lectures/ --strict                # warnings → exit 2
 
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
-# tail grammar that can - eight gates, under a second, no browser and no
+# tail grammar that can - ten gates, under a second, no browser and no
 # `npm install` (diagram-core.mjs, tails.mjs and lint.js are all zero-dep).
+# It is also where a hand-mirrored list one file keeps of another's belongs,
+# figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
+# against what build.js reads.
 # test/ is the things that only break in a built page - 34 specs, ~8 min,
-# one Chromium.
+# one Chromium. `npm test` also runs test/reproducible.mjs, which needs
+# neither: it builds a lecture under a partial flag and under a full one and
+# asserts the shared view is the same bytes, because release.yml's
+# tracked-output check is only meaningful if a rebuild is a function of the
+# source alone.
 # `npm test` runs the gates first so a compiler regression fails in a second
 # rather than in four minutes; gates.yml runs them on push and PR.
 #
@@ -492,10 +499,15 @@ everything else on stdout and stderr as the raw log, and sends `rebuild` and
 section of `build.js` are an interface with one consumer: change one there
 and `desktop/main/builder.js` and its `events.test.mjs` change in the same
 commit. The human log lines are free to move. The engine the packaged app
-runs is a copy staged by `desktop/scripts/stage-engine.mjs` – `build.js` and
-the four files it reads relative to itself plus a production `npm ci` – so a
-new runtime file that `build.js` reads via `import.meta.url` has to be added
-to that script's list or the packaged app builds without it.
+runs is a copy staged by `desktop/scripts/stage-engine.mjs` – `build.js`, the
+four files it reads relative to itself, the one it imports, plus a production
+`npm ci` – so a new runtime file that `build.js` reads via `import.meta.url`
+has to be added to that script's `FILES` or the packaged app fails **every**
+build: the read is a bare `readFileSync` inside a renderer, so it throws
+`ENOENT` before any view reaches disk rather than degrading one view.
+`desktop/test/stage-engine.test.mjs` holds the list against `build.js` as
+text in both directions, which is what `cue-cards.mjs` cost – it was off the
+list from the day it landed through builder 0.1.1.
 
 The design brief the interface is built against is `desktop/DESIGN.md`; the
 plan, its decisions and its build log are `PLAN-electron-builder.md`.
@@ -503,7 +515,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the six gates guards, the four browser-spec families, and the seven specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the ten gates guards, the four browser-spec families, and the seven specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.

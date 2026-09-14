@@ -2,9 +2,11 @@
 
 Two suites, split by one question: **can this be decided without a browser?**
 
-- **`test/gates/`** – everything about the figure language and the `{…}` tail
-  grammar that can. Eight gates, under a second, no browser and no
-  `npm install`. Run by `gates.yml` on push and pull request.
+- **`test/gates/`** – everything that can, which is no longer only the figure
+  language and the `{…}` tail grammar: a gate is the right home for any
+  hand-mirrored list one file keeps of another's. Ten gates, under a second,
+  no browser and no `npm install`. Run by `gates.yml` on push and pull
+  request.
 - **`test/`** – the things that only break in a built page. 34 specs, ~872
   assertions, about five minutes, one Chromium for the whole run.
 
@@ -15,20 +17,32 @@ Anything checkable without a browser belongs in `lint.js`, where it runs on
 every commit, or in `test/gates/`, where it runs on every push. The browser
 suite is not a unit-test suite.
 
-A third place exists and is deliberately not one of these two: `desktop/test/`
+A third file is in `npm test` and belongs to neither suite: `test/reproducible.mjs`
+builds a lecture under a partial flag and under a full one and asserts the view
+they share is the same bytes. It needs no browser and no `npm install` beyond
+what `build.js` already has, but it is not a gate either, because it runs a
+build. It exists because `release.yml` fails when a tracked view on disk does
+not match a rebuild, and that check is only meaningful if a rebuild is a
+function of the source alone - which, for a while, it was not.
+
+A fourth place exists and is deliberately not one of these: `desktop/test/`
 holds the desktop app's own tests, run by `npm test` inside `desktop/` and by
 `desktop.yml`, never by `npm test` here. What it guards is the app's reading
 of `--events`, its settings file and its window, none of which a lecture
-depends on.
+depends on. Since the engine it stages is a hand-written list of the files
+`build.js` reads about itself, `stage-engine.test.mjs` is there too - the same
+shape as the `frontmatter` gate, in the suite that can see the packaging
+script.
 
 ```bash
 npm run gate                        # all gates
 node test/gates/run.mjs semantics   # gates whose name matches
 node test/run.mjs                   # all specs
 node test/run.mjs nav               # specs whose name matches
+npm run reproducible                # same bytes under any flag set
 ```
 
-## The gates: nine contracts
+## The gates: ten contracts
 
 Both `diagram-core.mjs` and `lint.js` are zero-dependency, which is what makes
 this suite runnable with nothing installed.
@@ -44,6 +58,27 @@ this suite runnable with nothing installed.
 | `inlined` | the two characters that mean something else inside build.js's own template literals |
 | `tails` | the one `{…}` tail parser and the `::: draw` opener parser in `tails.mjs`: every code, the written-default rule, the formatter round trip |
 | `legacy-draw-syntax` | the old braced `::: draw` opener stays out of every `source.md`; every other survivor is on the reviewed allowlist `legacy-draw-syntax.txt` |
+| `frontmatter` | `lint.js`'s `KNOWN_FRONTMATTER_KEYS` against every top-level key `build.js` actually reads |
+
+**`frontmatter` is the one gate that is not about figures**, and it is here
+because the shape is the one this suite exists for: a closed list in one file
+that has to agree with another file, where the disagreement is silent. The
+failure it guards is a *false warning on a valid deck* – a key the build reads
+and validates, reported as unknown, exit 2 under `--strict`. It happened: one
+branch added two top-level keys while another added the warning, the two edits
+never touched as text, git merged both cleanly, and only building a deck that
+used both found it.
+
+Its scan is the interesting part. `build.js` reads a frontmatter key three
+structurally different ways, and one of them – `viewDefaults()`'s loop over
+`VIEW_DEFAULT_SPEC` – is a *computed* read, so no grep at the read site can
+ever see those seven names. A fourth path is not a read at all: the cover
+spreads the whole block into `renderTitleBlock`'s destructured parameter list,
+which is the only place `subtitle` is named. The obvious grep finds 23 of the
+31. The gate asserts the size of what it found before comparing anything,
+because a scan that silently finds nothing passes every comparison and guards
+nothing – and it earned that on its first run, reporting `bodyHtml` as a
+frontmatter key because the call site writes that argument in shorthand.
 
 **`inlined` is about two characters and twelve literals.** A raw backtick ends
 the literal; a single-backslash regex escape is eaten by the literal and

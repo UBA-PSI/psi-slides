@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Nine gates, and they prove nine different things – which is worth stating
+ * Ten gates, and they prove ten different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -28,6 +28,9 @@
  *   tails      the one {…} tail parser and the ::: draw opener parser in
  *              tails.mjs: every code they can emit, the written-default rule,
  *              and the formatter round trip
+ *   frontmatter  the top-level key set, held across build.js and lint.js in
+ *              the direction that matters: a key the build reads and the
+ *              linter does not know is a false warning on a valid deck
  *   legacy-draw-syntax  the old braced ::: draw opener stays out of every
  *              source.md, and every other survivor of it is on a reviewed
  *              allowlist
@@ -52,6 +55,7 @@ const GATES = [
   './step-classes.mjs',
   './inlined.mjs',
   './tails.mjs',
+  './frontmatter.mjs',
   './legacy-draw-syntax.mjs',
   './cue-cards.mjs',
 ];

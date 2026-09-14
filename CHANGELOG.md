@@ -487,6 +487,73 @@ from building the same way is a major version.
   blank hides it like everything else. Chrome's own "stop sharing" bar ends it
   too. macOS asks once for screen-recording rights for the browser.
 
+### Fixed
+
+- **Nothing held `KNOWN_FRONTMATTER_KEYS` against what `build.js` reads, and
+  the shape of that failure is a false warning on a valid deck.** The list is
+  `lint.js`'s closed set of top-level frontmatter keys some renderer reads;
+  anything else earns `unknown-frontmatter-key`, and exit 2 under `--strict`.
+  A key the build reads and validates in its own pre-flight, missing from the
+  list, is therefore the linter refusing a correct deck. It happened rather
+  than being imagined: one branch added two top-level keys while another
+  added the warning, the two edits never touch as text, git merged both
+  cleanly, and it was found by building a deck that used both – not by any
+  test. `node test/gates/run.mjs frontmatter` now holds the two files
+  together, in milliseconds, where `gates.yml` runs it on push and PR, which
+  is where a merge happens.
+
+  The scan is the work, not the comparison. `build.js` reads a key three
+  structurally different ways – `frontmatter.cover`, `frontmatter['cover-image']`,
+  and `frontmatter[fmKey]` inside `viewDefaults()`'s loop – and the third is a
+  *computed* read, so no grep at the read site can ever see those seven names.
+  A fourth path is not a read at all: the cover spreads the whole block into
+  `renderTitleBlock`'s destructured parameter list, the only place `subtitle`
+  is named. The check the list's own comment used to recommend finds 23 of the
+  31 and would report a correct `build.js` as carrying a dead key; that comment
+  now points at the gate instead. The gate asserts the size of what it found
+  before comparing anything, because a scan that silently finds nothing passes
+  every comparison and guards nothing – and it earned that on its first run,
+  reporting `bodyHtml` as a frontmatter key because the call site writes that
+  argument in shorthand. The milder direction, a key the linter knows and no
+  renderer reads, is asserted too, with an allowlist that is empty today: a
+  key read by a tool rather than a renderer widens the list's own definition,
+  which is a decision worth making in one place with a reason attached.
+
+- **The packaged desktop builder staged an engine that could not build**
+  (builder 0.1.2).
+  `build.js` reads four files relative to itself at run time, and
+  `cue-cards.mjs` – the note-to-cards grammar the cockpit is spliced from –
+  was not on the hand-written list in `desktop/scripts/stage-engine.mjs`. The
+  read is unconditional, inside `renderSpeaker`, with a bare `readFileSync`
+  and no fallback, so the packaged app did not ship three good views and a
+  broken cockpit: it threw `ENOENT` inside the render map before any view
+  reached disk, and **every build in builder 0.1.0 and 0.1.1 failed** with a
+  stack trace. Adding the one name is the whole fix.
+
+  What let it happen is the shape, not the name. `tails.mjs` is missing from
+  a staged engine in exactly the same way and is safe for a reason that does
+  not generalise – it is a static `import`, so its absence fails at module
+  load, loudly, on the first run of anything. A lazy `readFileSync` five
+  thousand lines into a renderer fails only on a real build of a real deck,
+  which `desktop/test/` never did. `desktop/test/stage-engine.test.mjs` now
+  reads both files as text and holds every `new URL('./x', import.meta.url)`
+  and every relative `import` in `build.js` against `FILES`, in both
+  directions; it asserts the count of run-time reads before their membership,
+  because a scan that silently finds nothing passes every comparison and
+  guards nothing.
+
+  `FILES` turned out to be the second of *three* hand-written copies of that
+  list, not the second of two. `desktop.yml` is path-filtered on the engine
+  files by hand as well, and `cue-cards.mjs` was on none of the three – so a
+  commit touching only that file ran no desktop job at all. The packaging
+  script and the workflow that would have exercised it were blind to the same
+  file for the same reason, which is the other half of why this shipped
+  twice. The filter now names every file the app stages, `LICENSE` included,
+  and the test holds it against `FILES` exactly: a matrix run on a licence
+  edit is the price of a rule with no exceptions, and that file changes about
+  never.
+
+
 ### Changed
 
 - **A `question:` chunk is no longer centred on the projection.** It was the
