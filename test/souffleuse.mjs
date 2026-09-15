@@ -102,12 +102,23 @@ function fakeOpenRouter() {
   const server = http.createServer((req, res) => {
     let raw = '';
     req.on('data', (c) => { raw += c; });
-    req.on('end', () => {
+    req.on('end', async () => {
       let body = null;
       try { body = JSON.parse(raw); } catch (e) { body = { unparsable: raw.slice(0, 400) }; }
       requests.push({ url: req.url, headers: req.headers, body });
       const step = queue.shift()
         || { status: 500, body: { error: { message: 'the fake has nothing left' } } };
+      // A step may hold its answer back until the spec says the page is ready
+      // for it. Exactly one thing needs that: a card arriving for a slide the
+      // speaker has walked onto since the call went out. Without the hold it
+      // is a sleep and a hope - which is how that race got into the code in
+      // the first place, under a spec that passed three times and then did not.
+      if (typeof step.hold === 'function') {
+        const stop = Date.now() + 10000;
+        while (!step.hold() && Date.now() < stop) {
+          await new Promise((r) => setTimeout(r, 25));
+        }
+      }
       res.writeHead(step.status, { 'content-type': 'application/json' });
       res.end(JSON.stringify(step.body));
     });
@@ -117,8 +128,9 @@ function fakeOpenRouter() {
     // The answer contract, written out once: an OpenAI-format completion
     // carrying one forced tool call named `advise`, whose arguments are the
     // JSON parseAnswer reads.
-    say(args) {
+    say(args, opts = {}) {
       queue.push({
+        hold: opts.hold || null,
         status: 200,
         body: {
           id: 'gen-fake',
@@ -289,8 +301,13 @@ export async function run({ page, report }) {
 
     // In order: a hint, a card for a later slide, a second hint that is still
     // standing when the switch is thrown, a low one that may only come if the
-    // policy let the standing slot go on the reload, a silence, then a server
-    // that falls over. Anything past the queue is a 500 too.
+    // policy let the standing slot go on the reload, a card held back until
+    // the speaker has walked onto its slide, a silence, then a server that
+    // falls over. Anything past the queue is a 500 too. **The whole script is
+    // written here, in order**, so an answer belongs at the point of the
+    // narrative that provokes it - pushing one on at the end hands it to
+    // whichever call comes next and shifts every answer after it.
+    let walkedOn = false;
     fake.say({
       action: 'hint', kind: 'example', text: 'name the bank example',
       severity: 'high', why: 'the point just made is abstract',
@@ -319,6 +336,12 @@ export async function run({ page, report }) {
       action: 'cue', chunk_id: 'closing-words', text: 'keep the measurement line',
       why: 'said in passing, belongs at the end',
     });
+    // The card that is the race: filed for the slide the speaker walks onto
+    // while this very call is out, and held in the fake until they have.
+    fake.say({
+      action: 'cue', chunk_id: 'mid-one', text: 'the hop count, before the diagram',
+      why: 'said now, belongs on the next slide',
+    }, { hold: () => walkedOn });
     fake.say({ action: 'nothing', why: 'nothing worth a word' });
     // The one outage this spec can provoke, and why it is this one: the first
     // failure sets a thirty-second backoff and `maybeTick` returns early until
@@ -911,6 +934,47 @@ export async function run({ page, report }) {
        'stamped with the clock it was laid on, which the sidecar sends back with it -'
        + ' the replay clock would be quietly false rather than merely repeated',
        JSON.stringify({ row: afterReload[0], laidClock }));
+
+    // ── the card for the slide the speaker has already walked onto ──
+    // The race the classic layout used to lose. souffCueOnArrival marks a
+    // slide as seen on the way through, so a card filed for a slide the
+    // speaker was already walking onto found that slide spent: the rail got
+    // the card, and the strip got a receipt naming the slide under the
+    // speaker's own feet. It takes a call in flight - the policy refuses a
+    // cue for the current slide, so the card has to be asked for from the
+    // slide before - which is what the fake's hold is for.
+    const raceBefore = fake.requests.length;
+    await page.evaluate(() => window.__stt.final(
+      'which brings us to the hop count, and to the diagram that comes after it', 15));
+    ok(await until(() => fake.requests.length > raceBefore, 8000),
+       'the call for the card is out, and the fake is holding its answer',
+       String(fake.requests.length - raceBefore));
+    await page.keyboard.press('ArrowDown');
+    ok(await until(() => page.evaluate(
+      () => flatChunks[state.activeIdx].id === 'mid-one'), 5000),
+       'and the speaker walks onto the slide that card is being written for');
+    walkedOn = true;
+    const lateCard = await until(() => page.evaluate(() => {
+      const el = document.getElementById('souffleuse-strip');
+      if (!el || el.hidden) return null;
+      return {
+        text: el.querySelector('.souffleuse-text').textContent,
+        glyph: el.querySelector('.souffleuse-glyph').textContent,
+      };
+    }), 8000);
+    ok(!!lateCard && lateCard.text === 'the hop count, before the diagram',
+       'the strip shows what is on the card, not a receipt naming the slide the'
+       + ' speaker is standing on', JSON.stringify(lateCard));
+    ok(!!lateCard && lateCard.glyph === '\u25a4',
+       'under the glyph that means a card', lateCard && JSON.stringify(lateCard.glyph));
+    // And the move itself is no second call: shouldTick wants eight seconds
+    // since the last tick before a slide change is an occasion, and this one
+    // happened while that tick was still in flight. If it ever becomes one,
+    // this answer script is a queue out of step rather than a mystery.
+    ok(fake.requests.length - raceBefore === 1,
+       'and the move that caused the race was not itself an occasion',
+       String(fake.requests.length - raceBefore));
+    await page.keyboard.press('Escape');
 
     // ── the cards switched off, in the cockpit ──────────────────────
     // The box is the speaker's answer under the deck's ceiling, and the

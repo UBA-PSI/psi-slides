@@ -220,9 +220,11 @@ from building the same way is a major version.
   without a key, a socket or a microphone – restraint is the requirement, and it
   is the half of this feature no rehearsal can show you. The prompter can also
   lay a **cue card into a slide that is still to come**, which turns up in the
-  rail under `K` as a dashed card; the deck's **conclusion is always one of the
-  slides it may be laid into**, however far away it is, because a sentence
-  worth keeping is usually said long before the place it belongs.
+  rail under `K` as a dashed card – and in the cockpit's ordinary arrangement,
+  which has no rail, on the strip the moment you walk onto that slide, so the
+  cards are not a reason to run in card mode. The deck's **conclusion is always
+  one of the slides it may be laid into**, however far away it is, because a
+  sentence worth keeping is usually said long before the place it belongs.
 
   **The tempo is measured in code, not judged by the model.** A transcript
   carries no speaking rate, no hesitation and no silence, so the sidecar counts

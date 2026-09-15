@@ -602,10 +602,19 @@ arithmetic, the Chromium bug in `available()` on macOS.
   did not: the walk reached the target slide a few milliseconds early,
   `souffCueOnArrival` found an empty map, and – because it marks the slide as
   seen on the way through – the card never appeared even once the message
-  landed. The spec now polls `souffleuseCues` in the cockpit. **The
-  behaviour is real and worth knowing**: a card that arrives while the
-  speaker is already walking onto its slide is shown by `cueSync` in the
-  rail, but in the classic layout it is not shown at all.
+  landed. The spec now polls `souffleuseCues` in the cockpit. **The behaviour
+  was real**, and it has since been closed: a card that arrives while the
+  speaker is already walking onto its slide was shown by `cueSync` in the rail,
+  while the classic layout got the receipt naming the slide the speaker was
+  standing on and never the card's words. The `souffleuse-cue` handler now asks
+  `souffCueOnArrival(true)` first when the card names the slide already up –
+  the `late` flag is the one caller allowed past the index guard, which is
+  otherwise what makes it one card per arrival rather than one per call. It has
+  a spec of its own, and staging it took a new capability in the fake rather
+  than a sleep: the policy refuses a cue for the current slide, so the card has
+  to be asked for from the slide before and the answer **held** until the page
+  has moved. `fakeOpenRouter`'s `say(args, {hold})` is that. A timing-based
+  spec here would have been the same bug written twice.
 - **A comment in `SPEAKER_JS` named the environment variable, and the page
   shipped it.** The spec asserts that `speaker.html` never says
   `OPENROUTER` – the cheapest possible check that the key's whole world stays

@@ -533,7 +533,10 @@ below the fold.
   thing that ever grows above the rail.
 - Glyphs: `◷` time, `◇` example, `△` fact, `◌` delivery, `≫` pace, `⋯` skipped, `▤` cue. `high` is red
   like `#center-toast.warn`. Auto-fade 15 s, 25 s for `high`, and the fade is a
-  dismissal (`how: 'fade'`).
+  dismissal (`how: 'fade'`). **A card carries its own figure**: the arrival
+  announcement passes `fade: 30000` and the receipt `fade: 6000`, because a
+  hint is glanced at and a card is read – and in the classic layout the strip
+  is the only place the card's words stand at all, the history panel apart.
 - **Esc**: `viewHooks.escapePrompter` runs after the help panel and the address
   overlay and before a text selection – the history panel first if it is open,
   otherwise the standing hint. It returns whether it took something, so the chain
@@ -600,7 +603,11 @@ below the fold.
   it as `.cue-card.souffleuse`. In the classic layout, which has no rail,
   `souffCueOnArrival` shows the same card once as a strip hint of kind `cue` –
   with a null `hintId`, so that dismissal stays local: the sidecar filed a card
-  for a slide, not a hint on a strip.
+  for a slide, not a hint on a strip. Its index guard is what makes that one
+  card per arrival rather than one per call, and the `late` argument is the one
+  caller allowed past it: the `souffleuse-cue` handler, when the card names the
+  slide already up. Without that the receipt named the slide under the
+  speaker's own feet – see the race below, now closed.
 - **Where the talk is** comes from `souffWhere`, and the beat is
   `cuePosition(entry).consumed` – the number of presses the slide has taken,
   which is what a cue card is filed under, what `::: overlay from N` counts and
@@ -754,7 +761,7 @@ switch and its `sessionStorage`, the request body (`cache_control`, the forced
 line, `NEW`), the hint on the strip with its glyph and severity, `Esc` reaching
 the JSONL as a `dismiss … esc`, a slide tick becoming a card in a later slide –
 shown as a strip hint in the classic layout and as `.cue-card.souffleuse` under
-`K` – a `nothing` that reaches no screen, an HTTP 500 becoming a badge and not a
+`K`, a card whose answer is held until the speaker has walked onto its slide – a `nothing` that reaches no screen, an HTTP 500 becoming a badge and not a
 dialog, **that `speaker.html` never contains the string `OPENROUTER`**, and that
 the projection has none of the chrome and no field of `snapshot()` is the
 prompter's. Since the code review it also asserts the seven things that review
@@ -859,9 +866,17 @@ those, the log and a rehearsal.
   fresh policy has no history at all: a hint already whispered in the first
   half of the talk can come back word for word. Not fixable without persisting
   the policy across processes, which a rehearsal tool does not earn.
-- **The cue race in the classic layout, known and not fixed.** A card that
-  arrives while the speaker is already walking onto its slide is shown by
-  `cueSync` in the rail, but `souffCueOnArrival` has marked that slide as seen on
-  the way through, so in the classic arrangement it is not shown at all. A spec
-  that polled the log rather than `souffleuseCues` in the page passed three times
-  and then did not, which is how it was found.
+- **The cue race in the classic layout, closed.** A card that arrives while the
+  speaker is already walking onto its slide was shown by `cueSync` in the rail,
+  but `souffCueOnArrival` had marked that slide as seen on the way through – so
+  the classic arrangement got the receipt, `card for …`, naming the slide under
+  the speaker's own feet, and never the card's words. The handler now asks
+  `souffCueOnArrival(true)` when the card names the slide already up, and falls
+  back to the receipt only when it declines. **Staging it needs a call held in
+  flight**, because the policy refuses a cue for the current slide: the card has
+  to be asked for from the slide before, and the speaker has to move while the
+  answer is out. `fakeOpenRouter`'s `hold` is that – a step whose answer waits
+  until the spec says the page has moved. The first attempt at a spec here
+  polled the log rather than `souffleuseCues` in the page, passed three times
+  and then did not, which is how the race was found in the first place; a
+  sleep-and-hope spec would have been the same bug again.

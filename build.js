@@ -20838,16 +20838,25 @@ if (SOUFFLEUSE && window.psiWatch) {
   // A card for a slide that is now up, in the arrangement that has no rail
   // to put it in. Shown once, as a hint of its own kind, so both
   // arrangements see what the prompter laid in.
+  //
+  // The index guard is what makes this one card per arrival rather than one
+  // per call: a slide holding two cards shows the first, and the second is
+  // read in the rail or in the panel. The late flag is the one caller that
+  // has to get past it, and it is the race this used to lose - a card that
+  // arrives while the speaker is already walking onto its slide was marked as
+  // seen on the way through, so the rail got it and the classic layout got a
+  // receipt naming the slide the speaker was standing on. Returns whether
+  // anything was shown, which is how that caller chooses between the two.
   let souffCueIdx = -1;
   const souffCuesShown = new Set();
-  function souffCueOnArrival() {
-    if (cueOn() || state.activeIdx === souffCueIdx) return;
+  function souffCueOnArrival(late) {
+    if (cueOn() || (!late && state.activeIdx === souffCueIdx)) return false;
     souffCueIdx = state.activeIdx;
     const entry = flatChunks[state.activeIdx];
-    if (!entry || !entry.id) return;
+    if (!entry || !entry.id) return false;
     const cards = souffleuseCues.get(entry.id) || [];
     const fresh = cards.find(c => !souffCuesShown.has(c.cueId));
-    if (!fresh) return;
+    if (!fresh) return false;
     souffCuesShown.add(fresh.cueId);
     // No history row: the card is already one of its own, filed under
     // the slide it went into. Showing it on the strip is the rail's job done
@@ -20858,10 +20867,16 @@ if (SOUFFLEUSE && window.psiWatch) {
     // that has just loaded cannot know whether they already did, and showing
     // a card that is genuinely on the slide in front of them twice is
     // cheaper than never showing it at all.
+    //
+    // Twice the standing time of a whisper, and its own figure rather than
+    // the high-severity one it would otherwise borrow. A hint is glanced at
+    // and a card is read - and in this arrangement the strip is the only place
+    // its words stand at all, the panel apart.
     souffShow({
       hintId: null, cueId: fresh.cueId, kind: 'cue', text: fresh.text,
-      severity: 'low', noHistory: true,
+      severity: 'low', noHistory: true, fade: 30000,
     });
+    return true;
   }
 
   // ── what the sidecar says back ─────────────────────────────────────
@@ -20920,6 +20935,15 @@ if (SOUFFLEUSE && window.psiWatch) {
     // Six seconds, low, and never over a hint that is standing: what stands
     // was judged worth interrupting a sentence for, and this is not.
     if (souffHint) return;
+    // Unless the slide is the one already up, which is not news about a slide
+    // to come: the receipt would name the slide the speaker is standing on.
+    // Then it is the arrival announcement, late - and souffCueOnArrival is
+    // asked for it rather than souffShow being called here a second way, so
+    // one text decides what a card looks like on the strip and enters it in
+    // the seen set. In cue-card mode it declines and the rail has it already.
+    const here = flatChunks[state.activeIdx];
+    if (here && here.id === String((m && m.chunkId) || '')
+        && souffCueOnArrival(true)) return;
     souffShow({
       hintId: null, cueId: m.cueId, kind: 'cue', severity: 'low', fade: 6000,
       noHistory: true,
