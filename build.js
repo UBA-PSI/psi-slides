@@ -5926,14 +5926,6 @@ const STYLE_SPEC = {
   // other such change in the format. `code: plain` is the way back, and the
   // 1.0.0 recipe in the appearance skill carries it.
   code: { kind: 'enum', values: ['plain', 'tint', 'spaced'], dflt: 'spaced' },
-  // What a top-level reveal segment does before its beat. `grow` is what
-  // the tool has always done: the segment takes no room and the chunk grows
-  // by a block per press. `hold` lays the chunk out at its final height
-  // from beat 0 and the segment fades in where it was always going to be,
-  // which is what a beat below the top level does anyway - so a deck that
-  // wants nothing to move on a press sets this once. The default stays
-  // `grow`, because it moves every existing deck's slides: a chunk with
-  // three segments opens with two blocks of air under the first.
 };
 function styleSettings(frontmatter = {}) {
   const raw = frontmatter.style;
