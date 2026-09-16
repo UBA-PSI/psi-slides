@@ -1,6 +1,6 @@
 {
   "name": "psi-slides-builder",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "private": true,
   "description": "A desktop window around the psi-slides build: open a lecture's source.md, build it on every save, open the four views.",
   "license": "MIT",

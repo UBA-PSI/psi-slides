@@ -575,6 +575,14 @@ from building the same way is a major version.
   edit is the price of a rule with no exceptions, and that file changes about
   never.
 
+- **The packaged engine catches up with running-text code** (builder 0.1.3).
+  A re-stage rather than a defect: the app had not shipped since `style:
+  {code}` landed on main, so a lecture built through the window still got the
+  flat `0.92em` span the engine no longer draws by default. The staged
+  engine now carries the spacing and the x-height sizing against the prose
+  face, so the window and the CLI build the same running text from the same
+  source.
+
 
 ### Changed
 
