@@ -11529,12 +11529,16 @@ function splitSentencesIn(root) {
         span.className = 'prose';
         span.appendChild(document.createTextNode(k.textContent));
         node.replaceChild(span, k);
-      } else if (isMathNode(k)) {
+      } else if (isMathNode(k) || k.tagName === 'CODE') {
         // Wrap rather than descend. A formula in continuation prose has to
         // disappear with the sentence it belongs to, or the collapsed slide
         // shows a bare symbol with none of the words that gave it meaning.
         // Wrapping hides it by the same rule as the surrounding text while
-        // leaving KaTeX's internal markup untouched.
+        // leaving KaTeX's internal markup untouched. A code span for the
+        // same reason and one more: descending left an empty <code> in the
+        // line, and once style.code gave a span with a space a margin (or
+        // tint a padding), that empty inline made the line box real - a
+        // blank line under the promoted bullet, 47px at 1600x900.
         const span = document.createElement('span');
         span.className = 'prose';
         node.replaceChild(span, k);
