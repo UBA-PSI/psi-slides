@@ -1355,6 +1355,7 @@ style:
   caps: on              # off | on – small type round a title
   bold: accent-bold     # plain | bold | italic | accent |
   print-bold: italic    #   accent-bold | accent-italic – live, then paper
+  code: tint            # plain | tint | spaced – code inside a sentence
   heading-scale: 1.15   # with body-scale, bounded to 0.6 … 1.8
 ```
 
@@ -1369,6 +1370,18 @@ style:
 **`bold` and `print-bold` set how a `**bold**` phrase looks, and `plain` is a legal answer because bold selects before it decorates.** Live the default is `plain`, so a promoted bullet is set like the sentence above it; on paper it is `bold`, in the ink. `accent-bold` in both is how the tool drew every bold before the keys existed. A word stressed with `*em*` inside the phrase is bold and in the accent whatever the key says – except under `accent-bold`, where it stays italic.
 
 The two scales multiply the tool's own sizes rather than replacing them, and they are **bounded**. Outside 0.6 to 1.8 the shortened view, the limit on how wide a line of code may be and the automatic zoom stop agreeing with each other.
+
+## example: Code inside a sentence | `style: {code: …}` {.wide #inline-code}
+
+**A monospaced word brings a space of its own, and it is twice the width of the one around it.** So **`async def` used to read as two words where `await` read as one** – only a span of several tokens has a gap inside it to go wrong.
+
+::: rows {.clear}
+- **`spaced`** the default: the gaps around a multi-word span are widened a hair and the ones inside it pulled in. A single token is left alone
+- **`tint`** a quiet ground behind every span, padded left and right only
+- **`plain`** the flat `0.92em` the tool drew before the setting existed
+:::
+
+Both of the first two also **size the code to the x-height of the face around it**, so a lecture that changes its serif changes this with it. A face you supplied yourself carries no measurement; the build says so and leaves the size alone.
 
 ## example: What hue the greys carry | `neutrals`, and its counterpart for the page {.wide #neutrals}
 

@@ -263,6 +263,13 @@ const STYLE_ENUMS = {
   // weight, which is why `plain` is a legal answer.
   'bold':       ['plain', 'bold', 'italic', 'accent', 'accent-bold', 'accent-italic'],
   'print-bold': ['plain', 'bold', 'italic', 'accent', 'accent-bold', 'accent-italic'],
+  // How an inline code span looks in running text. `plain` is the mono face
+  // at 0.92em and nothing else, which is the rendering up to 1.0.0; `spaced`
+  // is the default, which closes the hole a mono word space leaves inside a
+  // multi-token span and sizes the face to the prose face's x-height;
+  // `tint` puts a dimmed ground behind every span. The default is the one in
+  // this table that moves an existing deck, and `plain` is the way back.
+  'code': ['plain', 'tint', 'spaced'],
   // What a top-level reveal segment does before its beat: closes up and the
   // chunk grows (the default, and 1.0.0's behaviour), or keeps its box so
   // the chunk stands at its final height from beat 0.

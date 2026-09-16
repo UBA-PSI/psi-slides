@@ -4,6 +4,55 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Slice: inline code stopped opening a hole in the sentence (`style.code`)
+
+The complaint was `async def` in prose: the mono space is about 0.55 em where
+the prose word space is about 0.25, so a span of more than one token read as
+"async  def" – the gap inside it wider than the gaps around it. Second defect
+in the same place: the mono's x-height is the larger of the two faces
+(JetBrains Mono 0.550 against Literata 0.507), so at a flat `0.92em` the code
+was the loudest thing in its own sentence.
+
+**One new `style:` key, three looks.** `spaced` (the default) gives a span
+`margin: 0 0.15em` and `word-spacing: -0.2em`, so the outer gaps come out at
+about 0.4 em and the inner ones at about 0.31 – outer wider than inner is the
+whole of it. `tint` puts a 7%-of-`--ink` ground behind every span, padded
+horizontally only, and cancels the spaced pair first. `plain` is the way back
+to the flat rule the tool drew before, which the 1.0.0 recipe names.
+
+**Three things that were not obvious going in.**
+
+The `spaced` selector is `code:not(.nb)` and cost nothing to write, because
+`class="nb"` was already on every whitespace-free span (it was there to keep
+`-->` off a line break). The rule that needs a multi-token span and the class
+that marks one turned out to be the same distinction.
+
+The size is **per lecture**, not a constant: `0.96 × xHeight(prose) /
+xHeight(mono)` out of the measured roster. So it has to be emitted after the
+stylesheet, like `fontStyleTag` – `AUDIENCE_CSS` cannot ask what this deck
+resolved to. And the live views need one rule per reading face, because `F`
+switches the prose face under the reader's hands while the code stays mono.
+
+The key is shaped like every other one in `styleBodyAttrs` – the default is
+the unattributed rule and `data-code` appears only when a deck asks for
+something else – and that was worth an argument. The first cut wrote the
+attribute out at its default so that `plain` could be the *unguarded* rules,
+reaching the element with the 1.0.0 declarations rather than with a set of
+resets. It bought byte-identical CSS for one element and paid for it with an
+attribute on every deck's body and a key that reads differently from its
+fifteen neighbours. The recipe promises a rendering, not bytes, so the resets
+won. `plain` is emitted in the same `<style>` tag as the sizes, because that
+is the only place it can outrank them: both land after the stylesheet at the
+same specificity, and a reset written into `AUDIENCE_CSS` would lose on source
+order.
+
+Mirrors: `lint.js` `STYLE_ENUMS`, the appearance skill (new section plus the
+recipe row), the tutorial (`#inline-code`, and the key in the `style:` block
+listing), and `test/settings.mjs`, which holds the guards – the spaced rule
+unattributed in both stylesheets, `tint` behind the attribute and cancelling
+the pair, the three live sizes, `plain` emitting one reset and no size, and
+`fonts: none` falling back with a log line.
+
 ## Slice: Trackpad-Zoom – warum er prellte, und der Zeiger als Ankerpunkt
 
 Gemeldet als „das Zoomen ruckelt und prellt, ich kann nicht zuverlässig

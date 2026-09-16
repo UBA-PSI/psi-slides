@@ -1,6 +1,6 @@
 ---
 name: psi-slides-appearance
-description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), the `display` role that gives a cover and a section divider a face of their own and its measured `size-adjust`, `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` / `print-neutrals`, `display-scale` and the look of a bold phrase (`bold`, `print-bold`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `BUNDLED_FONTS`, `FONT_ROLES`, `DISPLAY_LH`, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
+description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), the `display` role that gives a cover and a section divider a face of their own and its measured `size-adjust`, `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` / `print-neutrals`, `display-scale`, the look of a bold phrase (`bold`, `print-bold`) and of an inline code span (`code`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `BUNDLED_FONTS`, `FONT_ROLES`, `DISPLAY_LH`, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
 ---
 
 # Type, themes and viewer defaults in psi-slides
@@ -21,6 +21,10 @@ without re-measuring it makes figure labels overflow their boxes in silence.
 | mono | JetBrains Mono | Noto Sans Mono Condensed |
 
 An author names one in the `fonts:` block exactly as they would name a family in `fonts/` – the difference is that **a bundled name needs no file**, which is the point of bundling it. A name that is neither a bundled family nor a file in `fonts/` still fails the build, and the message now lists the bundled names for that role, because typing one of them almost right is the likeliest way to reach it.
+
+**Every text-role entry carries a measured `xHeight`**, the height of a lowercase x as a fraction of the em: 0.507 Literata, 0.492 Source Serif 4, 0.532 Bitter, 0.536 Noto Serif, 0.537 Roboto Serif, 0.516 IBM Plex Sans, 0.546 Inter Tight, 0.550 JetBrains Mono, 0.536 Noto Sans Mono Condensed. It is there so inline code can be sized to bring the mono role's x-height level with the prose face's – at one font-size the two differ by a tenth of an em and the code reads as a shout inside the sentence.
+**Re-measure when a face joins the roster or a package ships different bytes**: `node tools/font-playground/measure-xheight.mjs` (needs a Chromium – `$PSI_CHROME`, the Playwright cache, or system Chrome) prints the table, writes `tools/font-playground/xheights.json`, and the numbers are copied into `BUNDLED_FONTS` to three decimals.
+`node test/gates/run.mjs xheight` holds the roster and that JSON together and refuses an entry with no number; the display role has no `xHeight` and needs none, since nothing but a headline wears it.
 
 All of them are SIL OFL 1.1, which permits redistribution and embedding; `OFL_NOTICE` puts the required notice in the emitted stylesheet. `bundledFaces(roster)` reads them out of `node_modules` rather than from checked-in binaries: the packages carry their own licence files, and `npm install` is required anyway.
 
@@ -287,7 +291,7 @@ The tag word above a chunk is **two different things wearing one name**, and a s
 
 ## Where the blocks sit (`style.blocks`), and the two keys a chunk can answer
 
-`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `neutrals` and `print-neutrals` (neutral/tinted/warm/cool), `headline` (stacked/eyebrow), `caps` (off/on), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `heading-scale` and `body-scale` (0.6–1.8).
+`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `neutrals` and `print-neutrals` (neutral/tinted/warm/cool), `headline` (stacked/eyebrow), `caps` (off/on), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `code` (plain/tint/spaced), `heading-scale` and `body-scale` (0.6–1.8).
 
 **`reveal` was a key here and is gone.** It chose what a top-level `---` did before its beat – `grow`, the 1.0.0 behaviour, closed the segment up so the chunk grew per press, and `hold` laid it out at its final height from beat 0. Every reveal reserves its space now, at every depth, so there is nothing left for the key to pick and a deck that still writes it is refused by the build and by `lint.js` alike. `STYLE_KEYS_REMOVED` in build.js and its mirror in lint.js carry the sentence an author gets, which names what replaced the key rather than reporting a typo they did not make.
 
@@ -372,9 +376,35 @@ Bold is a selection mark here before it is a weight: the collapse lifts a `**bol
 
 **`*em*` inside a phrase in scope is the stress mark**: upright, the view's bold weight, accent – in every look except `accent-bold`, where the phrase already has all three and the em stays italic, so the old look is exactly the old look. `***x***` is not a construct: marked emits `<em><strong>`, the strong is in scope and the em outside it, so under `plain` it reads as an italic phrase. `test/settings.mjs` holds the guards: the default rule unguarded, the others behind their attribute, the em rule guarded against `accent-bold`, the promoted-bullet rule silent on colour and weight, and `STYLE_SPEC` congruent with lint's `STYLE_ENUMS`.
 
+## Inline code in running text (`style.code`)
+
+`async def` in the middle of a sentence is set in the mono role, and two things about a monospaced face inside a proportional one are measurable rather than matters of taste.
+
+A mono space is about 0.55 em where the prose word space is about 0.25, so a span of more than one token opens a hole: the gap inside `async def` is wider than the gaps around it, and the room reads three words where the author wrote two. And the mono's x-height is the larger of the two – JetBrains Mono is 0.550 against Literata's 0.507 – so at one font-size the code shouts inside its own sentence.
+
+| value | what an inline span gets |
+|---|---|
+| `plain` | the mono face at `0.92em` and nothing else – the rendering up to 1.0.0 |
+| `spaced` | **the default**, and the unattributed rule. `margin: 0 0.15em` and `word-spacing: -0.2em`, on a span that *contains whitespace* only, plus the x-height sizing below |
+| `tint` | `padding: 0 0.28em`, a `0.2em` radius and a ground mixed 7% out of `--ink`, on every span, plus the x-height sizing |
+
+**`spaced` reaches only a multi-token span, and that is what `code.nb` is for.** The codespan renderer puts `class="nb"` on a span with no whitespace in it (it already existed, to keep `-->` off a line break), so the selector is `code:not(.nb)`. A single token has no inner hole to close, and a margin on one would be a visible indent wherever such a span opens a line. The margin lifts the gaps *around* the span to about 0.4 em of the prose; the negative word-spacing pulls the gaps *inside* it from about 0.49 down to about 0.31. Outer wider than inner is the whole point.
+
+**`tint` pads left and right and nowhere else.** Vertical padding on an inline box does not grow the line box, so it would not open the leading – it would sit over the line above instead. It also cancels the `spaced` pair it sits on top of (`margin: 0; word-spacing: normal`): a ground already separates the span from its neighbours, and the two together read as a gap.
+
+**The size is computed per lecture, from the roster.** `CODE_XHEIGHT_RATIO * xHeight(prose) / xHeight(mono)`, rounded to three decimals. The ratio is `0.96`: a deliberate 4% under the matched height, because a monospaced face still reads as the heavier of the two at level x-heights, and code inside a sentence should be the quieter one. Every text-role entry of `BUNDLED_FONTS` carries a measured `xHeight` (`tools/font-playground/measure-xheight.mjs`, held against the roster by `node test/gates/run.mjs xheight`).
+
+The prose face is a per-deck choice *and* the reader's `F` key, so the live views get one rule per reading face – `body[data-font=serif|sans|mono]` – and print gets one, for whichever face `print-body` put on the page. Under the default roster that is `0.885em` serif, `0.901em` sans and `0.96em` mono. `codeTag()` emits them after the view's stylesheet, because `AUDIENCE_CSS` and `PRINT_CSS` are constants with no way to ask what this deck resolved to.
+
+**A face from `fonts/` carries no measurement, and neither does anything under `fonts: none`.** That pairing keeps `CODE_SIZE_PLAIN` (0.92em) and the build says so in one `[fonts]` line – a silent fallback is the thing this format refuses everywhere else. The looks themselves still apply; only the size defers.
+
+**`code: plain` restores the pre-2.0 rendering of an inline span**, and it is the only value that needs saying so. The key is shaped like every other one in `styleBodyAttrs`: the default is the unattributed rule, so a deck that says nothing writes no `data-code` at all, and `tint` and `plain` are each reached through the attribute. `plain` rides in the same `<style>` tag as the sizes rather than in the stylesheet, because that is the only place it can outrank them – both land after `AUDIENCE_CSS` at the same specificity, and a reset written up there would lose on source order.
+
+`inlineCodeSel()` in build.js is the one place that says what running text is: not `.chunk-heading code`, not `pre code`, not the blocked-embed card, not `.link-code` (a `<button>`, not a `<code>`).
+
 ## Reaching the 1.0.0 look (and why there is no `layout:` key)
 
-From 1.0.0 the source format is the interface, and that promise is about more than parsing: **a lecture that laid out a certain way should be able to lay out that way again.** Five things have moved since 1.0.0 that a finished deck would notice; four are reachable as an ordinary preference and the fifth is listed because it is not:
+From 1.0.0 the source format is the interface, and that promise is about more than parsing: **a lecture that laid out a certain way should be able to lay out that way again.** Six things have moved since 1.0.0 that a finished deck would notice; five are reachable as an ordinary preference and the sixth is listed because it is not:
 
 | what moved | how to get the old behaviour back |
 |---|---|
@@ -382,6 +412,7 @@ From 1.0.0 the source format is the interface, and that promise is about more th
 | `text-wrap: balance` on headings, `pretty` on prose | `style: {wrap: none}` |
 | `font-variant-ligatures: none` on code | `ligatures: all` |
 | accent-coloured bold phrases, live and on paper | `style: {bold: accent-bold, print-bold: accent-bold}` |
+| inline code sized and spaced against the prose face | `style: {code: plain}` |
 | corner radii in pixels (2 / 3 / 6 / 10) rather than the `--radius-card` / `--radius-tight` em ladder | not reachable as a setting, and deliberately: the pixel values rounded the *same* card row differently on every slide, because auto-fit sets a card's font-size per slide. There is no old behaviour here worth being able to ask for. |
 
 **There was a `layout: 1.0` umbrella over those three and it was removed. The reasoning generalises and is the part to keep.** One key naming a version reads as a promise that the engine can rebuild any past release, and that promise is unbounded: every later change to a shared stylesheet would have to be gated on a generation, the gates would compose, and the set of combinations nobody tests would grow with every release. It also puts the burden in the wrong place – an author would have to know which version their deck was authored against and write it down, and the project would have to publish and explain a layout-version history beside the software version.
@@ -390,7 +421,7 @@ None of that buys anything the settings do not already give, and each of them is
 
 The list was arrived at by diffing `AUDIENCE_CSS` and `PRINT_CSS` between `v1.0.0` and `HEAD` rather than by reading commit titles – 185 commits, of which these are the ones that touch an existing slide. **Repeat that diff before claiming the list is still complete**, and prefer adding a setting to adding a generation.
 
-**The recipe was verified against the real thing, when it had three lines.** The same source built through `git show v1.0.0:build.js` and through HEAD with all three set came out **pixel-identical** – 0 differing pixels by `magick compare -metric AE`, at 1440×810 and `deviceScaleFactor: 2`, on a deck carrying a principle chunk, prose with `fi`/`fl` pairs, and a listing containing `->` and `!=`. The bold pair came later and was not re-measured; its one known departure is a promoted bullet under `accent-bold`, which now weighs the deck's bold weight – 600 in a sans deck where 1.0.0 had a fixed 500. That comparison cannot be a standing test, because it needs a checkout of the old build; `test/settings.mjs` is what stands in for it and guards the mechanism the comparison proved.
+**The recipe was verified against the real thing, when it had three lines.** The same source built through `git show v1.0.0:build.js` and through HEAD with all three set came out **pixel-identical** – 0 differing pixels by `magick compare -metric AE`, at 1440×810 and `deviceScaleFactor: 2`, on a deck carrying a principle chunk, prose with `fi`/`fl` pairs, and a listing containing `->` and `!=`. The bold pair came later and was not re-measured; its one known departure is a promoted bullet under `accent-bold`, which now weighs the deck's bold weight – 600 in a sans deck where 1.0.0 had a fixed 500. `code: plain` came later still, and it reaches the old rendering through a reset rather than through the original declarations: what the recipe promises is the same rendering, not the same bytes of CSS. That comparison cannot be a standing test, because it needs a checkout of the old build; `test/settings.mjs` is what stands in for it and guards the mechanism the comparison proved.
 
 **Its load-bearing assertions are the guards, not the outcomes.** An edit that drops the `body:not([data-wrap=none])` wrapper from the text-wrap rules leaves `style.wrap` silently doing nothing, and every outcome-shaped check still passes. It runs from `npm test` between the fast gates and the browser suite, and in `pages.yml` and `release.yml` – **not** in `gates.yml`, which has no `npm ci` by design and could not build a lecture.
 

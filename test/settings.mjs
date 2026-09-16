@@ -152,8 +152,9 @@ console.log('\nlayout generations');
      'and the prose rule, which only PRINT_CSS carries');
   ok(/body:not\(\[data-liga=all\]\)[\s\S]{0,220}?font-variant-ligatures: none/.test(html),
      'the code-ligature rule is guarded by data-liga');
-  ok(!/data-wrap=/.test(bodyTag(html)) && !/data-liga=/.test(bodyTag(html)),
-     'a lecture that names no layout emits neither attribute', bodyTag(html));
+  ok(!/data-wrap=/.test(bodyTag(html)) && !/data-liga=/.test(bodyTag(html))
+     && !/data-code=/.test(bodyTag(html)),
+     'a lecture that names no layout emits none of the three attributes', bodyTag(html));
   ok(/font-family:'IBM Plex Sans'/.test(html),
      'and is set in the current default sans');
   ok(!/font-family:'Inter Tight'/.test(html),
@@ -162,10 +163,13 @@ console.log('\nlayout generations');
 
 // ── the four together are the 1.0.0 recipe ───────────────────────────
 {
-  const { html, print, log } = build('ligatures: all\nfonts:\n  sans: Inter Tight\nstyle:\n  wrap: none\n  bold: accent-bold\n  print-bold: accent-bold');
+  const { html, print, log } = build('ligatures: all\nfonts:\n  sans: Inter Tight\nstyle:\n  wrap: none\n  bold: accent-bold\n  print-bold: accent-bold\n  code: plain');
   const body = bodyTag(html);
   ok(/data-wrap="none"/.test(body), 'the recipe turns the text-wrap balancing off', body);
   ok(/data-bold="accent-bold"/.test(body), 'and gives a bold phrase its old accent and weight on the slide', body);
+  ok(/data-code="plain"/.test(body) && !/font-size: 0\.885em/.test(html)
+     && /body\[data-code=plain\][\s\S]{0,200}?font-size: 0\.92em/.test(html),
+     'and resets an inline code span to the size and spacing it had, with no per-face size emitted', body);
   ok(/data-liga="all"/.test(body), 'and puts the code ligatures back', body);
   ok(/font-family:'Inter Tight'/.test(html), 'and embeds Inter Tight');
   ok(!/font-family:'IBM Plex Sans'/.test(html),
@@ -2634,6 +2638,80 @@ console.log('\nlayout generations');
        'and the same values for each, in the same order',
        Object.keys(spec).filter(k => spec[k].join(',') !== (mirror[k] || []).join(',')).join(','));
   }
+
+  // ── the look of an inline code span: style.code ─────────────────────
+  // The one style key whose own default moves an existing deck, so the
+  // load-bearing assertion is the way back: `code: plain` has to leave the
+  // element rendering the way it did before the key existed. The key is
+  // otherwise shaped like every other one here - the default is the
+  // unattributed rule, and the two other looks are reached through
+  // data-code.
+  const CDECK = (fm) => DECK(fm,
+    '## free: A {#a}\n\nProse with `async def` in it, and `await` too.\n');
+  {
+    const dflt = raw(CDECK(''), []);
+    ok(!/data-code=/.test(bodyOf(dflt.html)) && !/data-code=/.test(bodyOf(dflt.print))
+       && !/data-code=/.test(bodyOf(speakerOf(dflt))),
+       'a deck that says nothing opens spaced, and writes no attribute for it on any body',
+       bodyOf(dflt.html));
+    ok(/\n\.chunk-body code \{ font-family: var\(--mono-font\); font-size: 0\.92em; \}/.test(dflt.html)
+       && /\ncode \{ font-family: var\(--mono\); font-size: 0\.92em; \}/.test(dflt.print),
+       'the base rule is unguarded and still says 0.92em, which is what plain resets to');
+    ok(/\n\.chunk-body code:not\(pre code\):not\(\.embed-blocked code\):not\(\.nb\)[\s\S]{0,120}?word-spacing: -0\.2em/.test(dflt.html)
+       && /\ncode:not\(pre code\):not\(\.chunk-heading code\):not\(\.nb\)[\s\S]{0,120}?word-spacing: -0\.2em/.test(dflt.print),
+       'the spaced rule is the unattributed one, in both stylesheets, reaching only a span with whitespace in it');
+    ok(/body\[data-code=tint\] \.chunk-body code:not\(pre code\):not\(\.embed-blocked code\)[\s\S]{0,220}?padding: 0 0\.28em/.test(dflt.html)
+       && /body\[data-code=tint\][\s\S]{0,600}?background: color-mix\(in oklch, var\(--ink\) 7%, transparent\)/.test(dflt.html),
+       'and tint is the addition on top of it, behind the attribute');
+    ok(/body\[data-code=tint\][\s\S]{0,200}?margin: 0;\n  word-spacing: normal;/.test(dflt.html)
+       && /body\[data-code=tint\][\s\S]{0,200}?margin: 0;\n  word-spacing: normal;/.test(dflt.print),
+       'tint cancels the spaced pair, or a span would carry a ground and a gap at once');
+    // The size is per lecture, because the ratio it encodes is a property of
+    // the roster: Literata over JetBrains Mono is not IBM Plex Sans over it.
+    ok(/body\[data-font=serif\] \.chunk-body code:not\(pre code\):not\(\.embed-blocked code\),\nbody\[data-font=serif\] \.exp-body code:not\(pre code\) \{ font-size: 0\.885em; \}/.test(dflt.html)
+       && /body\[data-font=sans\][^{]*\{ font-size: 0\.901em; \}/.test(dflt.html)
+       && /body\[data-font=mono\][^{]*\{ font-size: 0\.96em; \}/.test(dflt.html),
+       'the live size is emitted once per reading face, so the code follows the F key');
+    ok(/\ncode:not\(pre code\):not\(\.chunk-heading code\) \{ font-size: 0\.885em; \}/.test(dflt.print),
+       'and once on paper, for the face print-body put on the page');
+  }
+  {
+    // The 1.0.0 line. No per-face size, and a reset that undoes the spaced
+    // pair, so the element renders the way the stylesheet alone drew it.
+    const plain = raw(CDECK('style:\n  code: plain\n'), []);
+    ok(/data-code="plain"/.test(bodyOf(plain.html)) && /data-code="plain"/.test(bodyOf(plain.print)),
+       'style.code: plain says so on the body', bodyOf(plain.html));
+    ok(!/font-size: 0\.885em|font-size: 0\.901em|font-size: 0\.96em/.test(plain.html)
+       && !/font-size: 0\.885em/.test(plain.print),
+       'and emits no per-face size at all, which is half of the way back to the 1.0.0 rendering');
+    ok(/body\[data-code=plain\] \.chunk-body code:not\(pre code\):not\(\.embed-blocked code\),\nbody\[data-code=plain\] \.exp-body code:not\(pre code\) \{\n  margin: 0;\n  word-spacing: normal;\n  font-size: 0\.92em;\n\}/.test(plain.html)
+       && /body\[data-code=plain\] code:not\(pre code\):not\(\.chunk-heading code\) \{\n  margin: 0;\n  word-spacing: normal;\n  font-size: 0\.92em;\n\}/.test(plain.print),
+       'and is the other half: one reset, after the stylesheet so it outranks any size that lands there');
+  }
+  {
+    const sans = raw(CDECK('style:\n  print-body: sans\n'), []);
+    ok(/\ncode:not\(pre code\):not\(\.chunk-heading code\) \{ font-size: 0\.901em; \}/.test(sans.print),
+       'print-body: sans moves the printed code onto the sans pairing, not the serif one');
+  }
+  {
+    // A face the build cannot measure. The pairing falls back to the size
+    // plain would have set, and the build says so rather than guessing.
+    const none = raw(CDECK('fonts: none\n'), []);
+    ok(!/body\[data-font=serif\][^{]*font-size/.test(none.html),
+       'under fonts: none no pairing is measured, so no size is emitted');
+    ok(/\[fonts\] inline code keeps its 0\.92em size/.test(none.out),
+       'and the fallback is named in the log, once per build', none.out);
+  }
+  {
+    const tint = raw(CDECK('style:\n  code: tint\n'), []);
+    ok(/data-code="tint"/.test(bodyOf(tint.html)), 'style.code: tint reaches the body', bodyOf(tint.html));
+    ok(/body\[data-code=tint\][\s\S]{0,200}?padding: 0 0\.28em/.test(tint.html)
+       && !/body\[data-code=tint\][\s\S]{0,200}?padding: 0\.[0-9]+em 0\.28em/.test(tint.html),
+       'and its padding is horizontal only, or a paragraph would set differently for carrying a span');
+  }
+  ok(/style\.code: shiny/.test(raw(CDECK('style:\n  code: shiny\n'), []).out)
+     && /'style\.code: shiny' is not a value/.test(lintOf(CDECK('style:\n  code: shiny\n'))),
+     'an unknown value fails the build and the linter alike');
 
   // ── the words the build invents, localised by `lang:` ────────────────
   // A deck that carries an exercise (the one projection eyebrow), a footnote

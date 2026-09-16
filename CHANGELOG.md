@@ -9,6 +9,28 @@ from building the same way is a major version.
 
 ### Changed
 
+- **Inline code in running text is now spaced and sized against the prose
+  face, and `style: {code: plain}` is the way back.** A monospaced space is
+  about 0.55 em where the prose word space is about 0.25, so a span of more
+  than one token used to open a hole in the sentence – the gap inside
+  `async def` wider than the gaps around it, which reads to a room as three
+  words where two were written. And the mono's x-height is the larger of the
+  two – JetBrains Mono 0.550 against Literata's 0.507 – so at one font-size
+  the code shouted inside its own sentence. The new key answers both:
+  `spaced`, the default, widens the gaps around a multi-token span and pulls
+  the ones inside it in (a single token is left alone – it has no inner gap,
+  and a margin on one would indent the line it opens), and sizes the face at
+  `0.96 × xHeight(prose) / xHeight(mono)`, computed per deck from the
+  measured roster. `tint` puts a quiet ground behind every span instead,
+  padded left and right only. `plain` puts the span back to the flat `0.92em`
+  the tool drew before.
+
+  **This is the one `style:` default that moves an existing deck's
+  rendering**, which is why `plain` is listed in the 1.0.0 recipe in the
+  appearance skill. A face supplied from `fonts/`, and anything under
+  `fonts: none`, carries no measurement: that pairing keeps `0.92em` and the
+  build says so in one `[fonts]` line rather than guessing.
+
 - **`style: {print-neutrals: …}` answers for the page what `neutrals` answers
   for the wall, and `light-orange` clears 4.5:1.** The two grounds are not the
   same ground: print's palette is warm already (`#fafaf7` paper, `#8b2e00`

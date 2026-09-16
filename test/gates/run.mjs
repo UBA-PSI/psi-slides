@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Ten gates, and they prove ten different things – which is worth stating
+ * Eleven gates, and they prove eleven different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -37,6 +37,9 @@
  *   cue-cards  the note-to-cards grammar in cue-cards.mjs, rule by rule,
  *              and that the module reaches the speaker page as
  *              window.PSI_CARDS with every export on it
+ *   xheight    every text face in BUNDLED_FONTS carries the measured
+ *              x-height that sizes inline code against the prose around
+ *              it, and the roster agrees with the JSON it was copied from
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -58,6 +61,7 @@ const GATES = [
   './frontmatter.mjs',
   './legacy-draw-syntax.mjs',
   './cue-cards.mjs',
+  './xheight.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

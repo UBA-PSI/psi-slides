@@ -995,8 +995,27 @@ function linkQrMap(html) {
 // for it, and Iosevka, which is 25x heavier than the default mono, is a
 // price the author chooses and the build prints.
 const BUNDLED_FONTS = {
+  // `xHeight` is the height of a lowercase x in this face, as a fraction of
+  // the em, and every text-role entry below carries one. It is there because
+  // inline code is set in the mono role inside a sentence set in the serif or
+  // the sans, and the three roles disagree about that height by a tenth of an
+  // em – Source Serif 4 is 0.492 and JetBrains Mono 0.550. At one font-size
+  // the code then reads as a shout inside the sentence, so the code is sized
+  // to bring the two x-heights level, which needs the number.
+  //
+  // MEASURED, NOT READ OFF A SPECIMEN: tools/font-playground/measure-xheight.mjs
+  // declares each face exactly as fontStyleTag does – the named instance of
+  // Noto Sans Mono Condensed included – and reads the CSS `ex` unit in
+  // Chromium at weight 400, cross-checked against the ink height of an x on a
+  // canvas. It writes tools/font-playground/xheights.json; the numbers here
+  // are that file, to three decimals. Re-run it when a face joins the roster
+  // or a package ships different bytes, and copy the numbers across;
+  // `node test/gates/run.mjs xheight` holds the two files together and
+  // refuses an entry with no number. Same discipline as `sizeAdjust` below
+  // and `dgCharW` in diagram-core.mjs, for the same reason: a number nobody
+  // measured is a number that is quietly wrong on every slide.
   Literata: {
-    role: 'serif', pkg: '@fontsource-variable/literata', variable: true,
+    role: 'serif', pkg: '@fontsource-variable/literata', variable: true, xHeight: 0.507,
     files: { normal: 'literata-latin-wght-normal.woff2', italic: 'literata-latin-wght-italic.woff2' },
   },
   // Four serif alternates, and the role got them for the reason the sans and
@@ -1024,18 +1043,18 @@ const BUNDLED_FONTS = {
   // fails the rule that a bundled face is a variable latin subset; an author
   // who wants it drops the static files in fonts/.
   'Source Serif 4': {
-    role: 'serif', pkg: '@fontsource-variable/source-serif-4', variable: true,
+    role: 'serif', pkg: '@fontsource-variable/source-serif-4', variable: true, xHeight: 0.492,
     files: { normal: 'source-serif-4-latin-wght-normal.woff2', italic: 'source-serif-4-latin-wght-italic.woff2' },
   },
   // The sturdiest of the four by every measure that matters on a projection,
   // and the cheapest: lowest contrast, thickest hairline, largest x-height
   // after Merriweather, and 66 KB against Literata's 106.
   Bitter: {
-    role: 'serif', pkg: '@fontsource-variable/bitter', variable: true,
+    role: 'serif', pkg: '@fontsource-variable/bitter', variable: true, xHeight: 0.532,
     files: { normal: 'bitter-latin-wght-normal.woff2', italic: 'bitter-latin-wght-italic.woff2' },
   },
   'Noto Serif': {
-    role: 'serif', pkg: '@fontsource-variable/noto-serif', variable: true,
+    role: 'serif', pkg: '@fontsource-variable/noto-serif', variable: true, xHeight: 0.536,
     files: { normal: 'noto-serif-latin-wght-normal.woff2', italic: 'noto-serif-latin-wght-italic.woff2' },
   },
   // The one alternate that re-wraps a finished deck: 8% wider than Literata,
@@ -1043,7 +1062,7 @@ const BUNDLED_FONTS = {
   // bold separation of the five, so the trade is real rather than a defect.
   // The width reaches one more place - see the note on dgCharW below.
   'Roboto Serif': {
-    role: 'serif', pkg: '@fontsource-variable/roboto-serif', variable: true,
+    role: 'serif', pkg: '@fontsource-variable/roboto-serif', variable: true, xHeight: 0.537,
     files: { normal: 'roboto-serif-latin-wght-normal.woff2', italic: 'roboto-serif-latin-wght-italic.woff2' },
   },
   // The default sans since it replaced Inter Tight. Tight is the condensed
@@ -1053,18 +1072,18 @@ const BUNDLED_FONTS = {
   // and its digits 9.7%, which is what separates 1 from I from l at a
   // distance. dgCharW in diagram-core.mjs is calibrated to this face.
   'IBM Plex Sans': {
-    role: 'sans', pkg: '@fontsource-variable/ibm-plex-sans', variable: true,
+    role: 'sans', pkg: '@fontsource-variable/ibm-plex-sans', variable: true, xHeight: 0.516,
     files: { normal: 'ibm-plex-sans-latin-wght-normal.woff2', italic: 'ibm-plex-sans-latin-wght-italic.woff2' },
   },
   // Kept selectable rather than deleted, because it is what every lecture
   // built against 1.0.0 was set in, and `layout: 1.0` has to be able to get
   // it back. `docs/site/build-site.js` self-hosts it independently.
   'Inter Tight': {
-    role: 'sans', pkg: '@fontsource-variable/inter-tight', variable: true,
+    role: 'sans', pkg: '@fontsource-variable/inter-tight', variable: true, xHeight: 0.546,
     files: { normal: 'inter-tight-latin-wght-normal.woff2', italic: 'inter-tight-latin-wght-italic.woff2' },
   },
   'JetBrains Mono': {
-    role: 'mono', pkg: '@fontsource-variable/jetbrains-mono', variable: true,
+    role: 'mono', pkg: '@fontsource-variable/jetbrains-mono', variable: true, xHeight: 0.550,
     files: { normal: 'jetbrains-mono-latin-wght-normal.woff2', italic: 'jetbrains-mono-latin-wght-italic.woff2' },
   },
   // The condensed answer, and it is a *named instance* of a variable font
@@ -1087,7 +1106,7 @@ const BUNDLED_FONTS = {
   // you can mail. An author who wants Iosevka specifically can still drop
   // it in fonts/, which is what that mechanism is for.
   'Noto Sans Mono Condensed': {
-    role: 'mono', pkg: '@fontsource-variable/noto-sans-mono', variable: true,
+    role: 'mono', pkg: '@fontsource-variable/noto-sans-mono', variable: true, xHeight: 0.536,
     // The wdth axis lives in the `standard` build; the `wght` build has
     // weight alone and would silently ignore the setting.
     files: { normal: 'noto-sans-mono-latin-standard-normal.woff2' },
@@ -5562,6 +5581,108 @@ function boldLookCss(attr, dflt, W) {
   return out.join('\n');
 }
 
+// ── inline code in running text (style: {code}) ──────────────────────
+//
+// What the two stylesheets set an inline code span at before this key
+// existed, and what `plain` puts it back to. Also the floor the other two
+// looks fall back to when a pairing carries no measurement.
+const CODE_SIZE_PLAIN = 0.92;
+// `spaced` and `tint` size the mono to the prose face's own x-height instead,
+// and then take 4% off it. The ratio of the two measurements is the part that
+// is measured (see `xHeight` in BUNDLED_FONTS); this factor is the part that
+// is taste, and it is deliberately below 1. Level x-heights still leave the
+// mono reading as the heavier face - its stems are wider and its counters
+// larger at the same height - and code inside a sentence should be the
+// quieter of the two, because the sentence is what carries the argument.
+const CODE_XHEIGHT_RATIO = 0.96;
+// Inline code in running text, and only there. A span in a heading has its
+// own treatment (.chunk-heading code, smaller again and upright), a listing
+// is a block rather than a span, and the blocked-embed card is chrome.
+// Specificity is carried by the :not() arguments - (0,2,4) live, (0,1,4) on
+// paper - so both sit above the base rules they add to.
+const INLINE_CODE_SEL = {
+  live: ['.chunk-body code:not(pre code):not(.embed-blocked code)', '.exp-body code:not(pre code)'],
+  print: ['code:not(pre code):not(.chunk-heading code)'],
+};
+// One selector list, written once and distributed over its parts, so the
+// guard a look needs and the `:not(.nb)` `spaced` needs cannot be spelled
+// two ways in the same file. `guard` is a body attribute or '' and `extra`
+// a further :not - both go on every part, which is what a comma-separated
+// list means and what hand-writing one gets wrong.
+const inlineCodeSel = (view, guard = '', extra = '') =>
+  INLINE_CODE_SEL[view].map(s => `${guard ? guard + ' ' : ''}${s}${extra}`).join(',\n');
+// The code size for one prose face, as a number of em, or null when either
+// side of the pairing carries no measurement. Three decimals: the difference
+// between two adjacent thousandths is a hundredth of a pixel on a projector,
+// and a fourth would only make the emitted CSS harder to read.
+function codeEm(proseXh, monoXh) {
+  if (!proseXh || !monoXh) return null;
+  return Math.round(CODE_XHEIGHT_RATIO * (proseXh / monoXh) * 1000) / 1000;
+}
+// Which faces this lecture resolved to, answered as x-heights. A role the
+// author filled from fonts/ has no measurement, and neither has any role
+// under `fonts: none`, where what resolves is whatever the presenting
+// machine happens to have - so both come back null and the look falls back
+// to CODE_SIZE_PLAIN for that pairing rather than guessing.
+function codeSizingFor(roster, claimed, bundleOff) {
+  const xh = (role) => {
+    if (bundleOff || claimed.has(role)) return null;
+    const f = BUNDLED_FONTS[roster[role]];
+    return (f && f.xHeight) || null;
+  };
+  const mono = xh('mono');
+  const unmeasured = ['serif', 'sans', 'mono'].filter(r => !xh(r));
+  return {
+    serif: codeEm(xh('serif'), mono),
+    sans: codeEm(xh('sans'), mono),
+    // The reading-mono body mode is the mono face set as prose, so the two
+    // x-heights are the same one and the ratio is the bare factor. Written
+    // out rather than special-cased, because --read-mono-stack may resolve
+    // to an installed iA Writer face before it reaches the bundled mono and
+    // the number is right either way: it is the deliberate undersize, not a
+    // correction between two faces.
+    mono: mono ? CODE_XHEIGHT_RATIO : null,
+    unmeasured,
+  };
+}
+// Everything about the key that the two stylesheets cannot say, emitted after
+// the view's stylesheet. Two things arrive here and they are mutually
+// exclusive.
+//
+// Under a sized look it is the size, which is per lecture: the ratio between
+// the prose face's x-height and the mono's is a property of this roster, and
+// a constant cannot know it. Live emits one rule per reading face, because
+// `F` switches the prose face under the reader's hands and the code has to
+// follow it; print emits one, for whichever face `print-body` put on the
+// page. No data-code guard on those: the sizes exist only when the look is
+// not plain, and a second guard would only be a place for the two to
+// disagree.
+//
+// Under `plain` it is the reset - the way back to the rendering before this
+// key existed. It has to undo the unattributed spaced rule AND outrank any
+// size rule, and it is emitted here rather than in the stylesheet for the
+// second of those: the sizes land after the stylesheet at the same
+// specificity, so a reset written up there would lose on source order the
+// day someone emits a size under plain too.
+function codeTag(st, sizing, view) {
+  if (st.code === 'plain') {
+    return `<style>\n${inlineCodeSel(view, 'body[data-code=plain]')} {\n` +
+           `  margin: 0;\n  word-spacing: normal;\n  font-size: ${CODE_SIZE_PLAIN}em;\n}\n</style>`;
+  }
+  if (!sizing) return '';
+  const rules = [];
+  if (view === 'print') {
+    const em = st['print-body'] === 'sans' ? sizing.sans : sizing.serif;
+    if (em) rules.push(`${inlineCodeSel('print')} { font-size: ${em}em; }`);
+  } else {
+    for (const face of ['serif', 'sans', 'mono']) {
+      if (!sizing[face]) continue;
+      rules.push(`${inlineCodeSel('live', `body[data-font=${face}]`)} { font-size: ${sizing[face]}em; }`);
+    }
+  }
+  return rules.length ? `<style>\n${rules.join('\n')}\n</style>` : '';
+}
+
 const STYLE_SPEC = {
   // Where a heading sits. `auto` keeps the per-tag treatment (a figure's
   // caption is centred over its artwork); `left` overrides it, and `center`
@@ -5774,6 +5895,37 @@ const STYLE_SPEC = {
   // see BOLD_LOOKS. The old look of both is `accent-bold`.
   'bold':       { kind: 'enum', values: Object.keys(BOLD_LOOKS), dflt: 'plain' },
   'print-bold': { kind: 'enum', values: Object.keys(BOLD_LOOKS), dflt: 'bold' },
+  // How an inline code span looks in running text - `async def` inside a
+  // sentence, not a listing. Two things about a monospaced face set inside a
+  // proportional one are measurable rather than matters of taste, and the
+  // default answers both.
+  //
+  // A mono space is about 0.55 em where the prose word space is about 0.25,
+  // so a span of more than one token reads as a hole: the gap inside
+  // "async def" is wider than the gaps around it, and the room sees three
+  // words where the author wrote two. And the mono's x-height is the larger
+  // of the two - JetBrains Mono is 0.550 against Literata's 0.507 - so at one
+  // font-size the code shouts inside its own sentence.
+  //
+  //   plain  - the rendering up to 1.0.0 and nothing else: the mono face at
+  //            0.92em. A finished deck writes this to keep the look it had.
+  //   spaced - the default. A span WITH whitespace in it gets a hair of
+  //            outer margin and has its inner word spaces pulled in, so the
+  //            gaps around the span come out wider than the gaps inside it.
+  //            A single-token span gets neither, because it has no hole to
+  //            close and an indent where a line opens with one would be
+  //            visible. Sized by x-height, see CODE_XHEIGHT_RATIO.
+  //   tint   - a dimmed ground behind every span, one token or many, padded
+  //            left and right ONLY: a vertical padding would change the
+  //            leading of whichever line the span happens to fall on, so a
+  //            paragraph would set differently for carrying one. Sized by
+  //            x-height too.
+  //
+  // This is the one key in this table whose own default moves what an
+  // existing deck renders, `slide-numbers` in the viewer defaults being the
+  // other such change in the format. `code: plain` is the way back, and the
+  // 1.0.0 recipe in the appearance skill carries it.
+  code: { kind: 'enum', values: ['plain', 'tint', 'spaced'], dflt: 'spaced' },
   // What a top-level reveal segment does before its beat. `grow` is what
   // the tool has always done: the segment takes no room and the chunk grows
   // by a block per press. `hold` lays the chunk out at its final height
@@ -5891,6 +6043,10 @@ function styleBodyAttrs(st, frontmatter = {}) {
   if (st['print-body'] !== 'serif') parts.push(`data-print-body="${st['print-body']}"`);
   if (st.bold !== 'plain') parts.push(`data-bold="${st.bold}"`);
   if (st['print-bold'] !== 'bold') parts.push(`data-print-bold="${st['print-bold']}"`);
+  // `spaced` is the unattributed rule in both stylesheets, `plain` the reset
+  // back to the rendering before the key existed (emitted by codeTag, which
+  // is where it can outrank the sizes) and `tint` an addition on top.
+  if (st.code !== 'spaced') parts.push(`data-code="${st.code}"`);
   return parts.join(' ');
 }
 // The same two settings answered on one chunk, from its attribute tail. The
@@ -6704,6 +6860,7 @@ ${DIAGRAM_CSS}
 </style>
 ${fontStyleTag(opts.fontEmbed, 'print')}
 ${styleBlockCss(styleOpts)}
+${codeTag(styleOpts, opts.codeSizing, 'print')}
 ${katexStyleTag(anonHtml + namedHtml)}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
 </head>
@@ -6856,6 +7013,23 @@ code { font-family: var(--mono); font-size: 0.92em; }
    across a line break. No backtick in this comment: PRINT_CSS is a template
    literal and one would end it. */
 code.nb { white-space: nowrap; }
+/* style: {code} on paper. Same three looks and the same reasoning as in
+   AUDIENCE_CSS – read the note there – with two differences that belong to
+   the medium. The selector is the bare element minus a listing and a
+   heading, because print wraps prose in no .chunk-body. And the tint is
+   mixed out of print's own --ink, which style: {print-neutrals} moves, so a
+   deck that warms the page warms the ground behind its code with it. */
+${inlineCodeSel('print', '', ':not(.nb)')} {
+  margin: 0 0.15em;
+  word-spacing: -0.2em;
+}
+${inlineCodeSel('print', 'body[data-code=tint]')} {
+  margin: 0;
+  word-spacing: normal;
+  padding: 0 0.28em;
+  border-radius: 0.2em;
+  background: color-mix(in oklch, var(--ink) 7%, transparent);
+}
 pre {
   font-family: var(--mono);
   font-size: 0.85em;
@@ -8499,6 +8673,7 @@ ${DIAGRAM_CSS}
 </style>
 ${fontStyleTag(opts.fontEmbed, 'live')}
 ${styleBlockCss(styleOpts, S)}
+${codeTag(styleOpts, opts.codeSizing, 'live')}
 ${katexStyleTag(columnsHtml, { fontToggle: true })}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
 </head>
@@ -9061,6 +9236,49 @@ a:hover { text-decoration-thickness: 2px; }
    not broken across lines. Bare element selector, so the heading, the
    expansions and the cockpit get it too. */
 code.nb { white-space: nowrap; }
+/* ── style: {code} – an inline span in running text ─────────────────
+   The rule below is the default look, spaced, so it carries no attribute,
+   exactly like every other key in styleBodyAttrs: an absent data-code and
+   the word spaced mean the same thing. The size that goes with it is
+   emitted per lecture after this stylesheet (codeTag): the ratio between
+   the prose face's x-height and the mono's is a property of this deck's
+   roster, which a constant cannot know. tint is an addition on top of it
+   here; plain is a reset back to the two rules above, and it rides in the
+   same emitted tag so it outranks the sizes whatever order they land in.
+   Both selector lists come from inlineCodeSel, so what counts as running
+   text is decided in one place – not a heading, not a listing, not the
+   blocked-embed card. No backtick anywhere in this comment: AUDIENCE_CSS
+   is a template literal and one would end it.
+
+   spaced reaches only a span that HAS whitespace in it – the codespan
+   renderer marks the others .nb – because the hole it closes is the mono
+   word space and one token has none. The margin lifts the gaps around the
+   span to about 0.4em of the prose; the negative word-spacing pulls the gaps
+   inside it from about 0.49em down to about 0.31em. Outer wider than inner
+   is the whole point, and a margin big enough to carry that alone would
+   indent the line a span opens.
+
+   tint pads left and right and nowhere else. Vertical padding on an inline
+   box does not grow the line box, so it would not open the leading – it
+   would sit over the line above instead, which is the worse of the two. It
+   cancels the spaced pair first: a ground behind the span already separates
+   it from its neighbours, and the two together read as a gap. */
+${inlineCodeSel('live', '', ':not(.nb)')} {
+  margin: 0 0.15em;
+  word-spacing: -0.2em;
+}
+${inlineCodeSel('live', 'body[data-code=tint]')} {
+  margin: 0;
+  word-spacing: normal;
+  padding: 0 0.28em;
+  border-radius: 0.2em;
+  /* Mixed out of --ink like every other quiet fill on a slide (a dock and an
+     overlay card are 4% of it, a panel card 5%), so it follows the seven
+     themes and style: {neutrals} without a rule of its own. A shade stronger
+     than those, because this one reads behind a line of type rather than
+     under a whole block. */
+  background: color-mix(in oklch, var(--ink) 7%, transparent);
+}
 /* Same reason as the matching rule in PRINT_CSS: the bundled mono face
    ligates the arrow tokens into one glyph, and a slide is where the room is
    reading the token rather than the prose. Bare element selectors, so the
@@ -16920,6 +17138,7 @@ ${SPEAKER_CSS}
 </style>
 ${styleBlockCss(styleOpts, S)}
 ${fontStyleTag(opts.fontEmbed, 'live')}
+${codeTag(styleOpts, opts.codeSizing, 'live')}
 ${katexStyleTag(columnsHtml, { fontToggle: true })}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
 </head>
@@ -19997,9 +20216,24 @@ function buildOnce(absIn, only, opts = {}) {
   } else if (bundleOff) {
     console.log('[fonts] bundle disabled; the outputs name their typefaces and rely on the presenting machine having them. Safari does not expose installed fonts.');
   }
+  // style: {code} sizes an inline span against the prose face's x-height, so
+  // it has to be answered here, where the roster is resolved, and not in a
+  // renderer that sees only the frontmatter. One object for all four views -
+  // the pairings are the same in every one of them, only the selector differs.
+  const codeSizing = codeSizingFor(roster, claimed, bundleOff);
+  // Said once per build rather than once per view, and only when it changes
+  // something: a role with no measurement leaves that pairing at the size
+  // `plain` would have set, which is a quiet fallback and therefore one the
+  // build has to name.
+  if (styleOpts.code !== 'plain' && codeSizing.unmeasured.length) {
+    console.log(
+      `[fonts] inline code keeps its ${CODE_SIZE_PLAIN}em size where the pairing cannot be measured ` +
+      `(${codeSizing.unmeasured.join(', ')}: ${bundleOff ? '`fonts: none`' : 'a face from fonts/'}). ` +
+      'Write `style: {code: plain}` to ask for that size everywhere.');
+  }
   lastQrStats = { count: 0, bytes: 0 };
   stagedVideos.clear();
-  const renderOpts = { ...opts, fontEmbed, strings };
+  const renderOpts = { ...opts, fontEmbed, strings, codeSizing };
 
   const targets = [
     ['print',       renderDocument],

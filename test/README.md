@@ -4,7 +4,7 @@ Two suites, split by one question: **can this be decided without a browser?**
 
 - **`test/gates/`** – everything that can, which is no longer only the figure
   language and the `{…}` tail grammar: a gate is the right home for any
-  hand-mirrored list one file keeps of another's. Ten gates, under a second,
+  hand-mirrored list one file keeps of another's. Eleven gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
 - **`test/`** – the things that only break in a built page. 34 specs, ~872
@@ -42,7 +42,7 @@ node test/run.mjs nav               # specs whose name matches
 npm run reproducible                # same bytes under any flag set
 ```
 
-## The gates: ten contracts
+## The gates: eleven contracts
 
 Both `diagram-core.mjs` and `lint.js` are zero-dependency, which is what makes
 this suite runnable with nothing installed.
@@ -59,6 +59,7 @@ this suite runnable with nothing installed.
 | `tails` | the one `{…}` tail parser and the `::: draw` opener parser in `tails.mjs`: every code, the written-default rule, the formatter round trip |
 | `legacy-draw-syntax` | the old braced `::: draw` opener stays out of every `source.md`; every other survivor is on the reviewed allowlist `legacy-draw-syntax.txt` |
 | `frontmatter` | `lint.js`'s `KNOWN_FRONTMATTER_KEYS` against every top-level key `build.js` actually reads |
+| `xheight` | every text face in `BUNDLED_FONTS` carries the measured x-height that sizes inline code against the prose around it, and the roster agrees with `tools/font-playground/xheights.json` |
 
 **`frontmatter` is the one gate that is not about figures**, and it is here
 because the shape is the one this suite exists for: a closed list in one file

@@ -124,7 +124,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
-# tail grammar that can - ten gates, under a second, no browser and no
+# tail grammar that can - eleven gates, under a second, no browser and no
 # `npm install` (diagram-core.mjs, tails.mjs and lint.js are all zero-dep).
 # It is also where a hand-mirrored list one file keeps of another's belongs,
 # figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
@@ -515,14 +515,14 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the ten gates guards, the four browser-spec families, and the seven specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the eleven gates guards, the four browser-spec families, and the seven specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
 - `.claude/skills/psi-slides-authoring/SKILL.md` – **how to write a lecture `source.md`**: the chunk grammar in practice, the `:::` directive vocabulary, reveal segments, notes, images and math, with worked examples. Invoked as the `psi-slides-authoring` skill.
 - `.claude/skills/psi-slides-figures/SKILL.md` – **the `::: draw` vocabulary and the editor's contract**, lifted out of this file so it loads when figures are the work. Every statement, class, slot table and generated name, plus the four decisions behind the compiler. Invoked as the `psi-slides-figures` skill.
 - `.claude/skills/psi-slides-decoration/SKILL.md` – **the cover, backdrop, overlay, card, row and divider vocabulary**, same reasoning: the slot tables, the refusals, and the CSS traps each construct cost. Invoked as the `psi-slides-decoration` skill.
-- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the six viewer-default keys, the whole sixteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
+- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the six viewer-default keys, the whole eighteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `code`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
 - `.claude/skills/psi-slides-media/SKILL.md` – **video, hosted embeds and link addresses**: the extension tables, the two sync protocols, clip staging, and the build-time QR codes. Invoked as the `psi-slides-media` skill.
 - `figure-design.md` – **how to lay out a `::: draw` so a room reads it**, as instructions rather than principles: fifteen rules, most with a wrong/right pair in real syntax, the tone-to-role table, the four-beat step order, and a checklist to work down before a figure is finished. Written for a person and a language model equally. Read it before authoring figures; the grammar itself is in the `psi-slides-figures` skill.
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.
