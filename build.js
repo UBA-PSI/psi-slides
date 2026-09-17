@@ -10460,8 +10460,10 @@ figure.figure-img svg {
    on the same deck, decided by nothing the author wrote. Across the corpus the
    spread was 0.53x to 2.97x of the running text.
 
-   So the width comes off the type here too: --dg-type-w is the viewBox width
-   measured in base labels (diagram-core emits it on every svg), and one base
+   So the width comes off the type here too: --dg-fit-w is the box the live
+   views show, measured in base labels - the slide canvas where the chunk has
+   one, the drawing own box where it does not (see the canvas section and
+   the .psi-diagram fallback chain just above) - and one base
    label is one em of the text the figure sits in - .chunk-body's em on a
    slide, the pane's or the card's inside one, each of which already carries
    --zoom and --body-scale. A figure in a narrow card therefore wears the
@@ -16672,7 +16674,8 @@ function nowrapProbe(el) {
 
 // The third thing a slide can fail to do, and the newest. A figure is sized
 // from the type it stands in (.chunk .psi-diagram in AUDIENCE_CSS): the width
-// it wants is --dg-type-w base labels, one label to the em. When that is more
+// it wants is --dg-fit-w base labels, one label to the em - the slide canvas
+// where the chunk has one. When that is more
 // than the column has, or more than the height cap allows, the min() caps it
 // and the drawing stops following the type - so growing the slide's words from
 // there makes the labels relatively SMALLER, which is the inconsistency the

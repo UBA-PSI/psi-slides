@@ -313,29 +313,94 @@ The tag word above a chunk is **two different things wearing one name**, and a s
 
 ## How large a figure's labels are (`style.figure-type`)
 
-**A `::: draw` is sized from the type it stands in.** `--dg-type-w` (the viewBox width measured in base labels, emitted on every svg by `diagram-core.mjs`) times one em of the surrounding text is the width at which a base label lands at exactly that text's size. The live views multiply that by `figure-type`; the documents have their own number, `--dg-fig-size: 0.9rem` in `PRINT_CSS`, and do not read this key.
+**The key says one thing: how large a base label is against the body type it
+stands in.** One em of the surrounding text is the default, which on a slide is
+the honest answer – a figure's label is a word the back row has to read, and
+there is no running text beside it to excuse a smaller one. Print's own number
+is the opposite case and is not this key: `--dg-fig-size: 0.9rem` in
+`PRINT_CSS`, a figure being apparatus inside a column of prose.
 
-The default is **1**: on a slide the figure's label is a word the back row has to read, and there is no running text beside it to excuse a smaller one. Print's 0.9 is the opposite case – there a figure is apparatus inside a column of prose, and a slightly smaller label says so.
+**Which is now also how many labels a slide's canvas holds.** A `::: draw` in a
+chunk body is laid out on a fixed canvas – the chunk's column wide, sixteen
+label-heights tall (the `psi-slides-figures` skill has the whole of it) – and
+the canvas is measured in base labels, so a bigger label is fewer of them in
+the same column and fewer rows in the same reserve. `{.figure-type-160}` on a
+`.wide` chunk gives a canvas of 22.8 × 10 labels instead of 36.5 × 16: the same
+1152 × 505 px box on the slide, with bigger type in it and less room for
+drawing. That is the whole trade the key offers, and it is the same trade it
+always offered, said in a unit an author can count.
 
-What the key actually buys is the trade on a slide where the drawing is the constraint. The figure cannot exceed its column, and `fitZoomToChunk` treats a figure at that cap as "does not fit", so the slide's own type comes *down* to meet it. Measured on a real keynote: `#umweg` carries a figure 66 labels wide in a `.wide` column, and matching them puts the whole slide at 16.4 px where it used to be 51.5 px of body type beside 17.4 px labels. `figure-type: 0.7` there asks for labels at 0.7 of the body, which lets the words back up to about 23 px – the same figure, a different answer to which of the two the room is meant to read. Bounded 0.6–1.6 because outside that the figure either is the defect or caps every drawing at the column.
+Bounded 0.6–1.6 because outside that the figure either is the defect or caps
+every drawing at the column. A deck that sets nothing emits no `--figure-type`
+at all and builds byte-identical HTML.
 
-A deck that sets nothing emits no `--figure-type` at all and builds byte-identical HTML.
+**And one chunk can answer it for itself: `{.figure-type-70}`.** The key is
+deck-wide and a drawing is not – one keynote has a figure 55 labels wide and
+another 21, and pulling the first down with the key takes the second with it.
+Eleven steps, the key's own 0.6–1.6 in tenths, spelled as **per cent** so the
+class reads as a proportion and carries no dot: `.figure-type-60` …
+`.figure-type-160`, generated into `CHUNK_STYLE_CLASSES` from
+`FIGURE_TYPE_STEPS` in `tails.mjs`. The chunk carries `data-figure-type="70"`
+and a rule per step sets `--figure-type`; the steps are generated into
+`AUDIENCE_CSS` from the same table, so a step cannot exist in one place and not
+the other. Ten per cent is the smallest step worth a slide.
 
-**And one chunk can answer it for itself: `{.figure-type-70}`.** The key is deck-wide and the complaint is not – the same keynote has `#umweg` at 66 labels and `#der-satz` at 21, and pulling the first down with the key takes the second with it. Eleven steps, the key's own 0.6–1.6 in tenths, spelled as **per cent** so the class reads as a proportion and carries no dot: `.figure-type-60` … `.figure-type-160`, generated into `CHUNK_STYLE_CLASSES` from `FIGURE_TYPE_STEPS` in `tails.mjs`. The chunk carries `data-figure-type="70"` and a rule per step sets `--figure-type`; the steps are generated into `AUDIENCE_CSS` from the same table, so a step cannot exist in one place and not the other. Ten per cent is the smallest step worth a slide.
+Unlike the four classes above it, **this one does not reach print**, and
+neither does the key: a document sizes a figure with `--dg-fig-size`, which is
+a decision about apparatus inside a column of prose rather than about a room.
+It is also legal on a `title` or `closing` chunk, like the other `style:`
+classes, where it has nothing to act on – the same latitude `.blocks-left` has
+there.
 
-Unlike the four classes above it, **this one does not reach print**, and neither does the key: a document sizes a figure with `--dg-fig-size`, which is a decision about apparatus inside a column of prose rather than about a room. It is also legal on a `title` or `closing` chunk, like the other `style:` classes, where it has nothing to act on – the same latitude `.blocks-left` has there.
+**One thing the multiplier does not do**, and confusing them wastes an
+afternoon. A base label's size is the figure's box divided by its width in
+labels *once the drawing is capped*, and that has no `figure-type` in it: the
+multiplier moves the width the figure asks for, so on an overflowing figure it
+moves the slide's body type and leaves the labels exactly where they were.
+Turning it down therefore widens a canvas and shrinks an overshoot, and does
+nothing at all for a drawing whose own labels are under 18 px. The build says
+both, separately.
 
-**Two things the multiplier does and does not do**, and confusing them wastes an afternoon. A base label's size is the figure's box divided by `--dg-type-w` once the drawing is capped, and that has no `figure-type` in it: the multiplier moves the width the figure *asks* for, so it moves the slide's body type and leaves the labels exactly where they were. Turning it down therefore fixes a slide that is out of step with its deck and does nothing at all for a drawing whose labels are under 18 px. The build says both, separately.
+## The three figure reports
 
-## The two figure-type reports, and why one of them is about the deck
+`figure-overflows-canvas` and `figure-underfills-canvas` are the pair the
+canvas made sayable: a drawing wider or taller than the box its slide reserves,
+and one using less than half of it. Both give the numbers in labels and the
+`frame WxH` that would reserve what the drawing actually draws. Read the
+`psi-slides-figures` skill for the canvas itself.
 
-`figure-type-small` is the old one: a base label under `FIG_TYPE_FLOOR_PX` (18 px at 1600×900), computed from the chunk's measured column width and the drawing's `--dg-type-w`. It still fires, and it is still not a build failure.
+`figure-type-small` is the older one and survives beside them for a figure that
+has **no** canvas – one under `frame none`, or in a card, a pane or a divider –
+where nothing else can say that a deck's figures are uniformly unreadable: a
+base label under `FIG_TYPE_FLOOR_PX` (18 px at 1600×900), computed from the
+chunk's measured column width and the drawing's own width in labels. A figure
+that is both over its canvas and under the floor is reported as the former,
+with the absolute number in the same line.
 
-**`figure-type-uneven` is the one a room actually sees.** A drawing capped at its column pulls its own slide's type down and nothing else's, so a deck with one dense figure and one sparse one reads its headings at 25 px and 44 px in consecutive slides – measured on a keynote, a factor of 1.76 between two slides of the same width class. Both absolute sizes are defensible; the difference is not, and no floor can see it. So each figure's settled body type is compared with **the deck's own median**, and anything more than 15 % under it is named, with the `{.figure-type-N}` that would bring it back and the size that step lands on.
+`figure-type-uneven` is gone. Its whole content was "this slide's type is out
+of step with the deck's", which a figure inside its canvas cannot be – the
+canvas is the column at body type, so a figure that fits it settles at the same
+body type every other figure slide settles at – and which a figure past it is
+now told in plainer words, with the axis it overflowed on.
 
-Both are emitted once, at the end of `parseLecture`, because the question cannot be asked one figure at a time. `figureSettle()` is the shared arithmetic and it is the whole reason a static check can say anything about a dynamic camera: the drawing asks for `typeW × body × figure-type` pixels, the box caps that, a capped figure counts as "does not fit", and the zoom walks down until the two meet – so the resting point is `box / (typeW × figure-type)` and there is no browser in it. Measured against the real thing on the keynote: the estimate said 17 px for `#umweg` and the browser settled at 16.4.
+All three are emitted once, at the end of `parseLecture`, and none is a build
+failure. `figureSettle()` is the shared arithmetic and it is the whole reason a
+static check can say anything about a dynamic camera: the drawing asks for
+`typeW × body × figure-type` pixels, the box caps that, a capped figure counts
+as "does not fit", and the zoom walks down until the two meet – so the resting
+point is `box / (typeW × figure-type)` and there is no browser in it. **Two
+numbers in that arithmetic were wrong until the canvas landed**: the em is
+`1rem × --zoom` and `--zoom` defaults to 1.35, so it is 31.6 px at 1600×900 and
+not the 23.4 px of the rem; and `--body-fs` is 1.2rem on a `principle`, 1.15 on
+a `question` and 0.9 on a `figure`, which `FIG_BODY_REM` mirrors and
+`node test/gates/run.mjs canvas` holds against the stylesheet. With both, the
+estimate lands within 0.8 px of the browser on all twenty figures of a keynote.
 
-**`--check-fit` carries the same comparison from the other end**, where the zoom is real: it now prints the deck's median settled body type and names every chunk with a figure more than 15 % under it. The two disagree slightly on purpose – the static median is over the figures the build compiled, the dynamic one over every slide the walk visited, which is the truer reading of "what the deck's other slides get". On the keynote the static half names `#umweg` and `#zweimal`; the dynamic half names those two and `#funktion`.
+**`--check-fit` carries the same readings from the other end**, where the zoom
+is real: the canvas fill per figure, every figure that had to be scaled past
+its canvas, and the deck's median settled body type with every slide whose
+figure took it more than 15 % under that. Those are notes and change no exit
+code.
 
 ## What hue the greys carry (`style.neutrals`)
 

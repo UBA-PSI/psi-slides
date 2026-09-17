@@ -3061,3 +3061,34 @@ assertions in `editor-placement` started reporting a correctly-drawn figure's
 overlap warning as a broken block. The helper reads the error rows only now
 (`.dge-problems:not(.dge-refused) > div:not(.dge-warn)`), which is what every
 caller meant.
+
+### The slide's canvas, on the canvas · **done**
+
+A `::: draw` in a chunk body is laid out on a fixed canvas now – the chunk's
+column wide, sixteen label-heights tall – so the editor has to reserve the same
+box or a drag would redraw the figure at a size the next build undoes. Three
+small changes and no new mechanism:
+
+- **The payload carries `canvas`**, beside `width` and `opener`, and
+  `dgeCompile` hands it to `renderDiagram`. The editor has no chunk to measure
+  and no stylesheet to read, so the box has to arrive as the two numbers the
+  build worked out.
+- **`dgeDrawGuides` draws it** as a dashed rectangle behind the drawing, placed
+  the way the compiler places it: content anchored at the canvas's vertical
+  middle, and to its left edge under `blocks: left` or centred under `center`.
+  When the drawing fits, the dashes lie on the edge of the box; when it does
+  not, they run through the picture, which is the thing worth seeing while
+  dragging. `.dge-canvas` in `editor.css` is louder than a cell line and
+  quieter than an element – it is the edge of the frame, not part of the
+  drawing.
+- **The measure note reads `--dg-fit-w`** rather than `--dg-type-w`, because
+  the box a live view shows is the canvas, and a label's size is that box over
+  its width in labels. It also says what share of the canvas the drawing takes,
+  or that it is over it – the same two readings the build warns about, at the
+  moment the author can act on them.
+
+What it does not do: the frame preview's own width is still the nominal
+`DGE_FRAME_EM` measure rather than the column the build measured, so the
+"height cap is what decides its width here" clause can fire on a figure the
+column would have bound first. That was true before this slice and is left
+alone.

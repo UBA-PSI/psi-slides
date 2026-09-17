@@ -1033,7 +1033,11 @@ function dgeApplyFrame() {
   // it (fitZoomToChunk), which the author would rather know here than find in
   // the hall. The canvas itself still shows the drawing filling the frame -
   // this is an editor, and a 14 px preview is not editable.
-  const typeW = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-type-w'));
+  // --dg-fit-w and not --dg-type-w: the box a live view shows is the slide's
+  // canvas where the chunk has one, and a label's size is the box over its
+  // width in labels. The print frame resolves the same property to the print
+  // box, which is what that frame shows.
+  const typeW = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-fit-w'));
   if (typeW > 0) {
     const box = Math.min(m.px - 28, m.capPx === Infinity ? Infinity : m.capPx / ratio);
     const lbl = box / typeW;
@@ -1052,6 +1056,17 @@ function dgeApplyFrame() {
     // leave a band of the measure empty beside the drawing; the width rule
     // hugs it now, and what is left to say is which of the two caps bound.
     note += ` · the ${Math.round(m.capPx)} px height cap is what decides its width here`;
+  }
+  // How much of the slide's canvas this drawing takes, which is the number
+  // the dashed rectangle on the canvas shows and the build warns about. Only
+  // where there is one: a figure under `frame none`, or in a card or a pane,
+  // has no such box and the note would be describing nothing.
+  const cv = (svg.dataset.canvas || '').split(/\s+/).map(Number);
+  if (DGE.frame !== 'print' && cv.length === 4 && cv.every((n) => n > 0)) {
+    const over = cv[2] - cv[0] > 0.5 || cv[3] - cv[1] > 0.5;
+    note += over
+      ? ` · over its canvas, so the slide's type comes down to meet it`
+      : ` · fills ${Math.round(100 * (cv[2] * cv[3]) / (cv[0] * cv[1]))}% of its canvas`;
   }
   frame.dataset.measure = note;
   dgeQ('#dge-frames').querySelectorAll('button').forEach((b) => {
