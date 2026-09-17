@@ -5501,7 +5501,11 @@ const STRINGS = {
     'title-speaker': 'Sprecher',
     'untitled-lecture': 'Vorlesung ohne Titel',
     'annotation-label': 'Anmerkung',
-    'add-note': '+ Anmerkung',
+    // Not "+ Anmerkung", which is the word the box below the slide already
+    // wears: at 45% opacity in the gutter of every slide the longer word is
+    // the loudest piece of chrome the projection carries, and the button is
+    // a hint for a key rather than a label for the thing it opens.
+    'add-note': '+ Notiz',
   },
 };
 
@@ -5674,6 +5678,19 @@ const VIEW_DEFAULT_SPEC = [
   // its editor. `both` is the default; `speaker` keeps it out of the
   // projection; `none` ships neither the compiler nor the UI.
   ['editor',        'editor',    ['both', 'speaker', 'none']],
+  // The `+ note` affordance in the slide's left gutter. A lecture wants it
+  // (the key it stands for is otherwise undiscoverable); a keynote that is
+  // rehearsed and has nothing to annotate wants the frame clean, and at 45%
+  // opacity on every active slide it is the one piece of chrome a
+  // photographed projection always carries. `off` hides the button and
+  // nothing else - N still opens an annotation, so this costs no ability.
+  ['note-button',   'noteButton', ['on', 'off']],
+  // What the projection does with the slide before and the slide after.
+  // `dim` is the lecture behaviour and the default: the camera pans through
+  // a column and the neighbours stand there faintly, which is the whole
+  // reason the view is one long board rather than a stack of cards. `hidden`
+  // is the keynote answer - a frame that shows the slide and nothing else.
+  ['neighbours',    'neighbours', ['dim', 'hidden']],
 ];
 // ── lecture-wide typographic settings (the `style:` block) ───────────
 // Three knobs an author reaches for on a whole lecture rather than on one
@@ -6258,6 +6275,14 @@ function viewBodyAttrs(defaults, extra = '') {
     `data-theme="${theme}"`,
     `data-mode="${DARK_THEME_NAMES.includes(theme) ? 'dark' : 'light'}"`,
     `data-slide-nums="${defaults.slideNums || SLIDE_NUM_DEFAULT}"`,
+    // These two are written only when the author turned them off, because
+    // both stylesheets ask for the off-value by name and the on-value is the
+    // absence of the attribute. A deck that says nothing about either builds
+    // exactly the bytes it did before the keys existed. applyFontTheme()
+    // writes them in full once the runtime is up, which is what lets M
+    // toggle the first of them.
+    defaults.noteButton === 'off' ? 'data-note-button="off"' : '',
+    defaults.neighbours === 'hidden' ? 'data-neighbours="hidden"' : '',
   ].filter(Boolean);
   return parts.join(' ');
 }
@@ -8678,6 +8703,7 @@ function renderHelpOverlay(view, withEditor) {
       ['<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'text size, and zero resets it (kept separately for each collapse mode)'],
       ['<kbd>#</kbd>', 'auto-fit: off → shrink a slide that is too big → size every slide to the screen'],
       ['<kbd>L</kbd>', 'slide numbers: stacked → in a row → off'],
+      ['<kbd>M</kbd>', 'the <i>+ note</i> button in the slide\'s left gutter: shown ↔ hidden – pressed here it lands on the projection too, and <kbd>N</kbd> still opens an annotation either way'],
       ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working, frozen or not'],
       ['<kbd>D</kbd>', 'live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop; the very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk'],
       ['<kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd>', 'cycle that knob backwards'],
@@ -10147,11 +10173,21 @@ body[data-headings=off] .chunk-heading { display: none; }
    ragged on both edges and hard to read. The case is one or two lines, and
    only the author knows which chunk is that case.
 
-   It is the prose and not the heading. Where a heading sits is already one
-   question with one answer - the tag's treatment, overridden for a whole
-   deck by style.headings - and a chunk class that also moved it would be a
-   second, stronger way to say the same thing that style.headings: left could
-   then no longer override. */
+   It is the whole slide and not the prose alone. It used to be the prose
+   alone, on the argument that where a heading sits is style.headings'
+   question and a chunk class answering it too would be a second, stronger
+   way to say the same thing. What that produced on a real deck was three
+   alignments on one slide: a heading on the left under style.headings: left,
+   a centred paragraph under it, and a footnote back on the left again. The
+   concern was about the reverse override - a deck-wide style.headings no
+   longer able to move a centred heading - and nobody wants that override:
+   .center is the more specific decision by construction, one chunk against a
+   whole deck, and a class written on one slide should win there. So the
+   heading and the chunk's footnotes follow the prose, and the specificity
+   (0,4,x) is above body[data-headings=left] .chunk-heading (0,2,0) on
+   purpose rather than by accident. */
+.chunk[data-center] > .chunk-content > .chunk-heading,
+.chunk[data-center] > .chunk-content > .margin-note,
 .chunk[data-center] > .chunk-content > .chunk-body > .reveal-segment > p { text-align: center; }
 /* The hairline and the thick rule above a definition / principle chunk. */
 body[data-rules=off] .chunk[data-tag=principle] .chunk-content::before,
@@ -10161,6 +10197,16 @@ body[data-rules=off] .chunk[data-tag=definition] .chunk-content::before { displa
    tag choice was; this one stayed because a task the room is meant to do
    benefits from being named. Some authors do not want it either. */
 body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content: none; }
+/* The other generated word on the projection, and the one the key used to
+   miss: the small-caps NOTE over a ::: footnote. It is invented the same way
+   the tag eyebrow is - the author wrote no label, the build supplied one -
+   so the switch that turns the tag word off has to reach it too, or
+   labels: off leaves the loudest of the two standing on every footnote.
+
+   Live views only. PRINT_CSS keeps its label, because there the aside is one
+   more block in a column of blocks with nothing to mark it as a footnote;
+   on the slide the hairline and the position already say that. */
+body[data-labels=off] .margin-note::before { content: none; }
 
 /* ── cover variants ──────────────────────────────────────────────────
    Four compositions of the same five fields. classic is what the tool
@@ -12268,6 +12314,11 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
 .chunk.active:not(.has-annot):not(.annot-visible) .annot-add { opacity: 0.45; }
 .annot-add:hover { opacity: 0.9; }
 @media (max-width: 780px) { .annot-add { display: none; } }
+/* note-button: off, and the M key, which writes the same attribute at
+   runtime. display: none rather than opacity: 0, because the button is a
+   click target as well as a hint and a hidden hint that still swallows a
+   click in the gutter is worse than the hint was. */
+body[data-note-button=off] .annot-add { display: none; }
 
 /* expansion chevrons – bottom-right of the slide */
 .exps {
@@ -12391,6 +12442,24 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
    the time the camera lands. */
 .chunk:not(.active) .chunk-backdrop { opacity: 0; }
 .chunk-backdrop { transition: opacity 260ms ease; }
+/* neighbours: hidden - the frame shows the active slide and nothing else.
+   The dimmed neighbour above is deliberate for a lecture: the camera pans
+   through a column and the slide before and after standing there faintly is
+   what makes the view one board rather than a stack of cards. A keynote
+   wants the opposite, and at the default --dim a neighbour sits at about
+   17%, which for a heading set in display type is perfectly legible from
+   the room - the frame then carries two slides and says so.
+
+   The fade is the backdrop's 260ms and not the chunk's own 500ms, for the
+   backdrop's reason: the camera takes --camera-duration (250ms) to land, and
+   a neighbour still at a tenth of its opacity when it arrives reads as a
+   smear beside the slide rather than as a slide leaving. Going the other way
+   costs nothing - a chunk that becomes .active matches the rule above, which
+   declares no transition, so the arriving slide is simply there. */
+body[data-neighbours=hidden] .chunk:not(.active) {
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
 
 /* Prose in the live views had no line-breaking treatment at all, and the
    omission was invisible because the mode the room usually sees is the
@@ -13507,6 +13576,7 @@ const state = {
   font: VIEW_DEFAULTS.font || 'serif',           // serif | sans | mono (readable)
   theme: VIEW_DEFAULTS.theme || 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
   slideNums: VIEW_DEFAULTS.slideNums || ${JSON.stringify(SLIDE_NUM_DEFAULT)},  // vertical | horizontal | off – L cycles
+  noteButton: VIEW_DEFAULTS.noteButton || 'on',  // on | off – M toggles
 };
 const FONT_CYCLE = ['serif', 'sans', 'mono'];
 const SLIDE_NUM_MODES = ${JSON.stringify(SLIDE_NUM_MODES)};
@@ -13609,6 +13679,14 @@ function loadPersisted() {
     const n = localStorage.getItem('psi-slides:slide-nums');
     if (!VIEW_DEFAULTS.slideNums && n && SLIDE_NUM_MODES.includes(n)) state.slideNums = n;
   } catch (e) {}
+  // The note button is a reading preference like the three above and is
+  // stored the same way: globally, not per lecture, and only where the
+  // frontmatter left the question open. A lecturer who hides it once has
+  // hidden it for the next deck too, which is the point of turning it off.
+  try {
+    const nb = localStorage.getItem('psi-slides:note-button');
+    if (!VIEW_DEFAULTS.noteButton && (nb === 'on' || nb === 'off')) state.noteButton = nb;
+  } catch (e) {}
 }
 function saveAnnotations() {
   try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
@@ -13623,6 +13701,25 @@ function applyFontTheme() {
   // so a new dark theme needs no new selectors.
   document.body.dataset.mode = DARK_THEMES.includes(state.theme) ? 'dark' : 'light';
   document.body.dataset.slideNums = state.slideNums;
+  document.body.dataset.noteButton = state.noteButton;
+}
+// The add-note button on the projection. Its own function rather than a
+// field of the snapshot, and its own message type, for the reason blank has
+// one: applyRemoteState is a full apply, so a snapshot sent to say "the
+// button is hidden" would drag the receiver's slide position with it. And it
+// has to travel at all because the button only exists in the audience window
+// while the lecturer's keyboard is in the cockpit - pressing M in the
+// cockpit and watching nothing happen anywhere would be the whole feature
+// missing. Past the freeze gate for the same reason blank is: it is a
+// command aimed at the projector, not shared navigation state.
+function setNoteButton(mode, announce) {
+  state.noteButton = mode === 'off' ? 'off' : 'on';
+  applyFontTheme();
+  try { localStorage.setItem('psi-slides:note-button', state.noteButton); } catch (e) {}
+  if (announce) {
+    sendToPeer({ type: 'note-button', source: VIEW, mode: state.noteButton });
+    flashMode(state.noteButton === 'off' ? 'note button hidden' : 'note button shown');
+  }
 }
 function cycleSlideNums(dir) {
   const i = SLIDE_NUM_MODES.indexOf(state.slideNums);
@@ -13965,6 +14062,14 @@ window.addEventListener('message', (ev) => {
   if (m.type === 'demo-offer') { demoReceiveOffer(m); return; }
   if (m.type === 'demo-answer') { demoReceiveAnswer(m); return; }
   if (m.type === 'demo-ice') { demoReceiveIce(m); return; }
+  // The note button, outside the snapshot for the same reason as blank: a
+  // command to the projection, not shared state. Applied in both windows
+  // rather than in the audience alone, so a cockpit that was toggled from
+  // the projection agrees about what the room is looking at.
+  if (m.type === 'note-button') {
+    setNoteButton(m.mode, false);
+    return;
+  }
   // Blank travels outside the snapshot so it still lands while frozen.
   if (m.type === 'blank' && VIEW === 'audience') {
     state.blanked = !!m.blanked;
@@ -16626,6 +16731,15 @@ document.addEventListener('keydown', (e) => {
     case 'f': case 'F': cycleFont(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'a': case 'A': cycleTheme(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'l': case 'L': cycleSlideNums(e.shiftKey ? -1 : 1); e.preventDefault(); break;
+    case 'm': case 'M':
+      // The add-note affordance on the projection, shown or hidden. A bare
+      // free letter and not a Shift pair: Shift-B was the obvious mnemonic
+      // (both take something off the screen) and is exactly the one that
+      // cannot be taken, because B is what a hand reaches for when something
+      // has to be off the projection now and a mistyped Shift must not turn
+      // that into a chrome toggle.
+      setNoteButton(state.noteButton === 'off' ? 'on' : 'off', true);
+      e.preventDefault(); break;
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
     case 'k': case 'K': if (overview) break; viewHooks.onK(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;

@@ -86,7 +86,7 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
   'fonts', 'font', 'ligatures', 'draw-defaults',
   // viewer defaults
   'theme', 'collapse', 'auto-fit', 'slide-numbers', 'print-slide-numbers',
-  'editor',
+  'editor', 'note-button', 'neighbours',
 ]);
 
 // Mirrors VIEW_DEFAULT_SPEC in build.js: frontmatter keys that pin how a
@@ -111,6 +111,13 @@ const VIEW_DEFAULTS = {
   // that, because a linter's business is which words the key takes.
   'print-slide-numbers': ['vertical', 'horizontal', 'off'],
   'editor': ['both', 'speaker', 'none'],
+  // The `+ note` affordance in the slide's left gutter. `off` hides the
+  // button; the N key it stands for is untouched. The M key writes the same
+  // thing at runtime, which is why this is a starting value and not a look.
+  'note-button': ['on', 'off'],
+  // What the projection does with the slide before and the slide after:
+  // `dim` (the default, the camera panning through a column) or `hidden`.
+  'neighbours': ['dim', 'hidden'],
   // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
   'cover': ['classic', 'masthead', 'stack', 'display', 'panel', 'quote',
             'split', 'hero', 'beside', 'above'],

@@ -88,11 +88,11 @@ export async function run({ report }) {
      [...spreadCallees].join(','));
 
   // The computed reads. viewDefaults() loops over VIEW_DEFAULT_SPEC, so the
-  // seven keys exist nowhere near a `frontmatter[`.
+  // nine keys exist nowhere near a `frontmatter[`.
   const specBody = bsrc.slice(bsrc.indexOf('const VIEW_DEFAULT_SPEC = ['));
   const viewKeys = [...specBody.slice(0, specBody.indexOf('\n];'))
     .matchAll(/^\s{2}\[\s*'([a-z-]+)'/gm)].map(m => m[1]);
-  ok(viewKeys.length === 7, `VIEW_DEFAULT_SPEC's keys are findable (${viewKeys.length})`, viewKeys.join(','));
+  ok(viewKeys.length === 9, `VIEW_DEFAULT_SPEC's keys are findable (${viewKeys.length})`, viewKeys.join(','));
   for (const k of viewKeys) add(k, 'VIEW_DEFAULT_SPEC');
 
   // A scan that silently finds nothing passes every comparison and guards

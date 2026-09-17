@@ -84,9 +84,9 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   line. Further `|` segments are joined into that second line.
 - The attribute tail recognises a width class, `#id`, and six other classes.
   Two are the chunk's own: `.bare` (keep the heading in the document and off
-  the projection) and `.center` (set this chunk's prose on a centre axis, on
-  the projection only). Four answer a `style:` key for this one chunk and are
-  spelled key-value: `.blocks-left` / `.blocks-center` (where a code block, a
+  the projection) and `.center` (set this chunk's heading, prose and footnotes
+  on a centre axis, on the projection only). Four answer a `style:` key for
+  this one chunk and are spelled key-value: `.blocks-left` / `.blocks-center` (where a code block, a
   figure and a display formula sit across the measure) and `.wrap-none` /
   `.wrap-balance` (whether this chunk's headings are balanced and its prose
   gets a protected last line). Any other class is an `unknown class` error in
@@ -196,6 +196,13 @@ and the fix is to break the line rather than to make the runtime try harder.
 
 The live views do **not** print the type name on screen. Do not write prose that
 depends on the audience seeing the word DEFINITION.
+
+**The slide before and the slide after show through faintly, and that is
+deliberate, not a rendering bug.** The audience view is one long board that a
+camera pans across, and the dimmed neighbours are what make a column read as a
+column; a screenshot of it looks like a leak until you have seen the pan. A
+deck that wants a frame showing nothing but the slide – a keynote rather than a
+lecture – writes `neighbours: hidden` in the frontmatter.
 
 ## What lands on the slide
 
@@ -1045,7 +1052,7 @@ repository and not against a released psi-slides.
 
 ## Viewer defaults in frontmatter
 
-Seven optional keys pin how the lecture opens. A key that is present wins over
+Nine optional keys pin how the lecture opens. A key that is present wins over
 the reader's stored preference; a key that is absent leaves that preference
 alone. A value outside the allowed set fails the build (and lints as
 `unknown-view-default`), because a typo here is otherwise silent.
@@ -1059,7 +1066,15 @@ slide-numbers: horizontal    # vertical | horizontal | off   (default: horizonta
 print-slide-numbers: vertical  # the same three, for print.html and print-notes.html
                                # left out, it follows slide-numbers
 editor: speaker        # both | speaker | none  - where the diagram editor ships
+note-button: off       # on | off  - the + note button in the slide's left gutter
+neighbours: hidden     # dim | hidden  - the slide before and after, faintly or not at all
 ```
+
+The last two are what a keynote sets and a lecture does not. `note-button: off`
+takes the `+ note` hint out of the gutter without taking anything away - `N`
+still opens an annotation, and `M` shows or hides the hint at any time, in
+either window. `neighbours: hidden` takes the faint slide above and below off
+the projection; the default is on purpose (see *What lands on the slide*).
 
 `auto-fit: shrink` is the mode to reach for first: it leaves the zoom where the
 lecturer set it and only ever makes a slide smaller, where `true` also grows a
@@ -1312,12 +1327,16 @@ document, the contents list and the search - for a talk that is a run of
 figures with speaker notes. `{.bare}` in a chunk's attribute tail is the same
 switch for one chunk.
 
-`{.center}` sets one chunk's prose on a centre axis, on the projection and in
-the cockpit but not in the printed document. It reaches the chunk's own
-paragraphs and nothing nested, so a list, a table, a code block and the prose
-inside a `::: side` pane or a `::: cards` row all keep their left edge. Write
-it for the one or two lines under a figure, where a left-aligned caption
-starts at the far edge of a wide slide while the drawing sits in the middle.
+`{.center}` sets one chunk on a centre axis, on the projection and in the
+cockpit but not in the printed document. It reaches the chunk's heading, its
+own paragraphs and its `::: footnote` asides – everything the chunk says in its
+own voice – and nothing nested, so a list, a table, a code block and the prose
+inside a `::: side` pane or a `::: cards` row all keep their left edge. The
+heading follows even under `style: {headings: left}`: a class on one slide is
+the more specific decision than a key on the whole deck, and the alternative
+was three alignments on one slide. Write it for the one or two lines under a
+figure, where a left-aligned caption starts at the far edge of a wide slide
+while the drawing sits in the middle.
 Not for a paragraph of any length: centred prose loses the eye at the start of
 each line, which is why this is a class you write rather than something a
 `figure:` chunk gets by default.

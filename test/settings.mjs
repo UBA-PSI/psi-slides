@@ -351,6 +351,40 @@ console.log('\nlayout generations');
      'and the document rule exists to act on it');
   ok(/body\[data-labels=off\][^{]*\.chunk\[data-tag=exercise\]/.test(off.html),
      'and the projection rule covers the one eyebrow it still generates');
+  // The second generated word on the projection, and the one the key used to
+  // miss: the small-caps NOTE over a ::: footnote. It is invented the same
+  // way the tag eyebrow is, so the same switch has to reach it - otherwise
+  // labels: off leaves the louder of the two standing on every footnote.
+  ok(/body\[data-labels=off\] \.margin-note::before \{ content: none/.test(off.html),
+     'and the footnote eyebrow, which is invented the same way and was left behind');
+  // Print keeps its label on purpose: there the aside is one more block in a
+  // column of blocks and the word is what marks it as a footnote, where on
+  // the slide the hairline and the position already do.
+  ok(!/data-labels=off\] \.chunk-expansion::before/.test(off.print),
+     'while the printed footnote keeps its label, which is what tells it from the body text');
+}
+
+// ── .center is the whole slide, not the paragraphs alone ──────────────
+// It used to be the paragraphs alone, which on a deck under
+// style: {headings: left} produced three alignments on one slide - a left
+// heading, a centred paragraph, a left footnote. The chunk class is the more
+// specific decision by construction, one slide against a whole deck.
+{
+  const c = build('style:\n  headings: left');
+  const rule = (c.html.match(/\.chunk\[data-center\][^{]*\{[^}]*\}/g) || []).join('\n');
+  ok(/\.chunk\[data-center\] > \.chunk-content > \.chunk-heading/.test(rule),
+     'the heading follows the class', rule);
+  ok(/\.chunk\[data-center\] > \.chunk-content > \.margin-note/.test(rule),
+     'and so does the chunk footnote');
+  ok(/> \.chunk-body > \.reveal-segment > p/.test(rule),
+     'while the child combinator still keeps it off a pane, a card row or a list');
+  // The specificity that makes the override go one way and not the other:
+  // (0,4,0) here against (0,2,0) on body[data-headings=left] .chunk-heading.
+  ok(c.html.indexOf('body[data-headings=left] .chunk-heading') < c.html.indexOf('.chunk[data-center] > .chunk-content > .chunk-heading')
+     || /body\[data-headings=left\] \.chunk-heading/.test(c.html),
+     'and the deck-wide key it outranks is still in the sheet, unchanged');
+  ok(!/\.chunk\[data-center\]/.test(c.print),
+     'PRINT_CSS carries none of it: the printed document keeps its left edge');
 }
 
 // ── style.neutrals: what hue the greys carry, and the radius ladder ──
@@ -2548,6 +2582,53 @@ console.log('\nlayout generations');
   ok(/unknown-view-default/.test(lintOf(DECK('print-slide-numbers: sideways\n'))),
      'and the linter refuses the same word, which is what keeps CI honest');
 
+  // ── the two keys a keynote sets and a lecture does not ───────────────────
+  // note-button and neighbours are the same shape as each other and unlike
+  // every key above them: the on-value is the *absence* of the attribute, so
+  // a deck that says nothing emits exactly the bytes it did before they
+  // existed. That is asserted from both ends, because an attribute written
+  // unconditionally would pass every other check here and still move the
+  // rendering of every deck in the corpus.
+  {
+    const quiet = raw(DECK(''), ['--audience-only']);
+    ok(!/data-note-button/.test(bodyOf(quiet.html)) && !/data-neighbours/.test(bodyOf(quiet.html)),
+       'a deck that sets neither key carries neither attribute, so its output is unmoved',
+       bodyOf(quiet.html));
+    const keynote = raw(DECK('note-button: off\nneighbours: hidden\n'), ['--audience-only']);
+    ok(/data-note-button="off"/.test(bodyOf(keynote.html)),
+       'note-button: off is on the body from the first paint, before the runtime boots',
+       bodyOf(keynote.html));
+    ok(/data-neighbours="hidden"/.test(bodyOf(keynote.html)),
+       'and so is neighbours: hidden');
+    ok(/body\[data-note-button=off\] \.annot-add \{ display: none/.test(keynote.html),
+       'the button is hidden rather than faded, because it is a click target in the gutter');
+    ok(/body\[data-neighbours=hidden\] \.chunk:not\(\.active\) \{\s*opacity: 0;/.test(keynote.html),
+       'and the neighbours go to nothing');
+    // The fade is the backdrop's and not the chunk's own 500ms: the camera
+    // lands in --camera-duration, and a neighbour still visible then reads as
+    // a smear beside the slide rather than as a slide leaving.
+    ok(/body\[data-neighbours=hidden\] \.chunk:not\(\.active\) \{[^}]*transition: opacity 260ms ease/.test(keynote.html),
+       'over the 260ms the backdrop already fades in, not the 500ms of the dim');
+    // The button is the only thing the key touches. N is what actually opens
+    // an annotation, and hiding a hint must not cost the ability it hints at.
+    ok(/data-annot-add>/.test(keynote.html) && /startAnnotate/.test(keynote.html),
+       'the button is still in the markup and N still opens the box - only the hint is off');
+    // The runtime half: a free letter, its own message type, and nothing in
+    // the snapshot. A field in snapshot() would drag the receiver's slide
+    // position along with the toggle - the reason blank has its own type.
+    ok(/case 'm': case 'M':/.test(keynote.html) && /setNoteButton\(/.test(keynote.html),
+       'M toggles it at runtime');
+    ok(/type: 'note-button', source: VIEW/.test(keynote.html),
+       'and it travels to the projection as its own message, past the freeze gate');
+    ok(!/noteButton: state\.noteButton/.test(keynote.html),
+       'and never as a field of the state snapshot, which is a full apply');
+    ok(/unknown-view-default/.test(lintOf(DECK('neighbours: faint\n')))
+       && /unknown-view-default/.test(lintOf(DECK('note-button: maybe\n'))),
+       'the linter mirrors both vocabularies');
+    ok(/neighbours/.test(raw(DECK('neighbours: faint\n'), ['--print-only']).out),
+       'and a bad value is refused by a build that renders no live view at all');
+  }
+
   // ── auto-fit grew a third mode ───────────────────────────────────────────
   // true and false are what the key has always taken and still mean what
   // they meant. shrink is the fit ceilinged at the lecturer's own zoom, so
@@ -2810,7 +2891,10 @@ console.log('\nlayout generations');
        'the projection eyebrow rides in as a same-specificity override, uppercased');
     ok(de.html.includes("content: 'EXERCISE'"),
        'and the base rule in AUDIENCE_CSS is untouched, so the override wins on source order');
-    ok(/annot-box-label">Anmerkung · /.test(de.html) && /data-annot-add>\+ Anmerkung</.test(de.html),
+    // Two German words for one English one, on purpose: the box below the
+    // slide is the Anmerkung, the button that opens it says Notiz. The button
+    // is chrome on every active slide and the shorter word is the quieter one.
+    ok(/annot-box-label">Anmerkung · /.test(de.html) && /data-annot-add>\+ Notiz</.test(de.html),
        'the annotation box label and the + note button are localised');
     ok(/margin-note" data-label="Anmerkung"/.test(de.html),
        'and the projection aside default is Anmerkung too');
