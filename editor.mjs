@@ -1293,17 +1293,23 @@ function dgeDrawRelations(g, id) {
     const ref = DGE.boxes.get(p.ref);
     if (ref) {
       // The gap itself, drawn between the two facing edges and labelled with
-      // the number that is written on the line.
+      // the number that is written on the line – or, where the line writes
+      // none, with the number the default resolved to and the word that says
+      // it was not typed. The guide has to agree with the drawing it is drawn
+      // over: labelling an unwritten gap with nothing hid the one relation the
+      // new default is most likely to have set, and labelling it with a bare
+      // number would claim a token the source does not contain.
+      const gapText = 'gap ' + dgeNum(dgeGapOf(null, p)) + (p.gap == null ? ' (default)' : '');
       if (p.dir === 'right' || p.dir === 'left') {
         const y = midY(b);
         const from = p.dir === 'right' ? ref.x + ref.w : ref.x;
         tick(from, y, p.dir === 'right' ? b.x : b.x + b.w, y, true);
-        label((from + (p.dir === 'right' ? b.x : b.x + b.w)) / 2 - 12, y - 5, 'gap ' + dgeNum(p.gap));
+        label((from + (p.dir === 'right' ? b.x : b.x + b.w)) / 2 - 12, y - 5, gapText);
       } else {
         const x = mid(b);
         const from = p.dir === 'below' ? ref.y + ref.h : ref.y;
         tick(x, from, x, p.dir === 'below' ? b.y : b.y + b.h, true);
-        label(x + 5, (from + (p.dir === 'below' ? b.y : b.y + b.h)) / 2, 'gap ' + dgeNum(p.gap));
+        label(x + 5, (from + (p.dir === 'below' ? b.y : b.y + b.h)) / 2, gapText);
       }
       // The edge the placement is flush with, as a hairline through both –
       // captioned, like the `align` statement's own hairline on the same
@@ -1552,6 +1558,19 @@ const DGE_ALIGN_TOL = 0.06;      // how close counts as "on that edge", in cells
 // the compiler reads on the other convention and nothing reports it, which is
 // exactly the silent failure squaring the gap exists to remove.
 const dgeGapUnit = (model) => dgeUnits(model).uh;
+
+// The gap a `rel` placement actually draws, as the number an author would
+// write – rows. A placement whose author wrote none carries `gap: null` and a
+// `gapAuto` in labels, resolved by the compiler once it has read the block's
+// edges, so the two units meet here exactly as they do in dgGapPx: this is
+// that function's answer divided back by the gap's own ruler. Everything in
+// this file that adds a delta to a gap, or shows one, goes through it – a drag
+// that read the raw field got NaN on the very placements the new default is
+// for, and an editor that writes NaN into a source is the failure this whole
+// file is built to avoid.
+function dgeGapOf(model, place) {
+  return window.PSI_DG.dgGapPx(place, dgeGapUnit(model)) / dgeGapUnit(model);
+}
 
 function dgeRound(v, step) {
   return Math.round(v / step) * step;
@@ -1837,7 +1856,7 @@ function dgeGuideHosts(ctx, id, eff) {
 
 // The gaps other statements in this block already carry, on the axis this
 // placement's own direction runs along. **Only gaps the author actually
-// wrote:** every `rel` placement carries one, so counting the default 0.25
+// wrote:** a placement with none carries a resolved default, so counting those
 // would have every figure offering the same number and meaning nothing by it.
 // Cached per gesture, because it is a tokenize per candidate line and the
 // lines do not change while the pointer is down.
@@ -1956,6 +1975,30 @@ function dgeEffState(ctx, el, beat) {
   };
 }
 
+// **Which point of the element meets its coordinate, written or derived.**
+// `.left` on a free `text` at an absolute placement anchors it on that edge
+// now, so the two places in this file that ask the question cannot read
+// `place.anchor`: a derived anchor is not a token on the line, and an editor
+// that missed it would draw a guide about a centre and write a number about a
+// corner. `dgPlaceAnchor` is the compiler's own answer and the only one.
+// Cached per gesture beside the effective state, because the resolved classes
+// cannot change while the pointer is down.
+function dgeAnchorOf(ctx, el, place, beat) {
+  if (!el || !place) return null;
+  // Through `dgPlaceAnchor` even when the word is on the line, because the one
+  // answer that is not a corner is `center`, and it has to come back as `null`
+  // here too: an element centred on its coordinate is exactly the one the
+  // guides are for. Short-circuiting on the field suppressed every guide on
+  // `#mac`'s note the moment `anchor center` started being recorded.
+  if (place.anchor) return window.PSI_DG.dgPlaceAnchor(el.kind, place, null);
+  if (ctx.clsFor !== beat) {
+    ctx.clsFor = beat;
+    ctx.cls = window.PSI_DG.dgStateAt(ctx.model, Math.max(0, Math.min(ctx.model.steps.length, beat)));
+  }
+  const st = ctx.cls && ctx.cls.get(el.id);
+  return window.PSI_DG.dgPlaceAnchor(el.kind, place, st ? st.classes : new Set(el.classes || []));
+}
+
 // Everything a drag lights up, resolved to the one or two candidates that
 // actually get applied. Returns the adjusted delta – so the drawing and the
 // plan agree about where the element ends up – the snap dgePlanDrag has to
@@ -1995,8 +2038,10 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
   // element's top-left corner, so the guide would draw a line through the
   // centre and write a number about a corner. The plain drag underneath still
   // works and still round-trips exactly, because it rewrites the number that
-  // is on the line rather than the position it resolves to.
-  if (place && place.anchor) return none;
+  // is on the line rather than the position it resolves to. A `.left` text at
+  // a coordinate is anchored without writing the word, so the question goes
+  // through dgeAnchorOf rather than through the field.
+  if (dgeAnchorOf(ctx, el, place, beat)) return none;
   // A `between` element is already at a relation and its own drag rewrites
   // `frac`; the two proposals below are for an element that has none to lose.
   const bare = !place || place.implicit || place.kind === 'abs';
@@ -2179,7 +2224,7 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
   }
   if (!won.length) return none;
   const out = dgeGuideApply(ctx, id, dx, dy, want, won);
-  if (beat) out.snap.to = dgeStepToText(ctx, id, out, eff, want);
+  if (beat) out.snap.to = dgeStepToText(ctx, id, out, eff, want, beat);
   return out;
 }
 
@@ -2195,7 +2240,7 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
 // source, so a reference on the axis nobody dragged survives. Where a step
 // has already moved it, the opening line's expression is no longer a true
 // statement about where it is, and the resolved number is.
-function dgeStepToText(ctx, id, out, eff, want) {
+function dgeStepToText(ctx, id, out, eff, want, beat) {
   const { uw, uh } = dgeUnits(ctx.model);
   const place = eff.place;
   if (out.snap.place) return out.snap.place;                 // between a,b frac t
@@ -2208,9 +2253,14 @@ function dgeStepToText(ctx, id, out, eff, want) {
   // dragged `anchor tl` element jumped half its own size the moment a step
   // moved it, which is the same half-size slip the carry-forward rule in
   // dgStateAt exists to prevent, arriving from the other side.
+  //
+  // The anchor may be one the author never wrote: a free `text` with `.left`
+  // at a coordinate is anchored on that edge. So this asks dgeAnchorOf and not
+  // `place.anchor`, or a step written for such a label would move it half its
+  // own width the first time a beat touched it.
   const b = ctx.boxes.get(id);
-  const anch = (place && place.anchor && b)
-    ? window.PSI_DG.dgAnchorOffset(place.anchor, b.w, b.h) : [0, 0];
+  const own = dgeAnchorOf(ctx, dgeFind(id, ctx.model), place, beat || 0);
+  const anch = (own && b) ? window.PSI_DG.dgAnchorOffset(own, b.w, b.h) : [0, 0];
   const comp = (axis, i) => {
     if (out.snap.ref[axis]) return out.snap.ref[axis];
     const sp = eff.own && place && place.kind === 'abs' && !eff.shift[i]
@@ -2805,7 +2855,7 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
     // 0.05 grid afterwards would turn 0.62 into 0.60 and quietly break the
     // equality the guide had just promised.
     const sib = guide && guide.gap;
-    const next = sib != null ? sib : Math.max(0, snap(place.gap + sign * gapDelta));
+    const next = sib != null ? sib : Math.max(0, snap(dgeGapOf(ctx.model, place) + sign * gapDelta));
     edits.push({ attr: 'gap', value: dgeNum(next), why: sib != null ? guide.why : undefined });
   }
   if (crossDelta && !crossBlocked) {
@@ -3555,10 +3605,10 @@ function dgeDockAt(ctx, id, pt) {
   // "dock it here". The chip says *which side*; the distance is whatever the
   // element already kept, and dragging adjusts it afterwards.
   // Keep the distance the element already kept – but only if the author
-  // actually wrote one. Every `rel` placement carries a default gap, so
-  // testing the model would re-emit 0.25 as an explicit token on a line that
-  // never had it, in an editor whose whole design is rewriting the smallest
-  // span it can.
+  // actually wrote one. A placement with no written `gap` carries a resolved
+  // default instead, and re-emitting that as an explicit token on a line that
+  // never had it would freeze the number against the very rule that picked it,
+  // in an editor whose whole design is rewriting the smallest span it can.
   const written = ctx.spans.spanOf(id, 'gap');
   const el = dgeFind(id, ctx.model);
   const gap = (written && written.present && el && el.place && el.place.kind === 'rel')
@@ -6350,19 +6400,32 @@ function dgeSetLeaderArrow(tok) {
 // off rather than restating it, which is what every "plain case" swatch here
 // does. Only on `at` and `between`: a relative placement answers the same
 // question with `flush`, against the element it is measured from.
+//
+// **`center` is the plain case and writes nothing – except where the default
+// is not `center`.** A free `text` carrying `.left` at a coordinate is
+// anchored on that edge with no word on the line, so the row has to press
+// `left` for it, and `center` there has to write `anchor center` out: taking
+// a token off a line that never had one would leave the swatch inert, which
+// is the one thing a swatch may not be.
 const DGE_ANCHOR_ROW = ['tl', 'top', 'tr', 'left', 'center', 'right', 'bl', 'bottom', 'br'];
 function dgeAnchorSlot(el, p) {
   const row = dgeEl('div', { class: 'dge-swatches' });
-  const now = p.anchor || 'center';
+  const state = DGE.model ? window.PSI_DG.dgStateAt(DGE.model, DGE.beat) : null;
+  const st = state && state.get(el.id);
+  const derived = window.PSI_DG.dgPlaceAnchor(
+    el.kind, { ...p, anchor: null }, st ? st.classes : new Set(el.classes || []));
+  const now = p.anchor || derived || 'center';
   for (const w of DGE_ANCHOR_ROW) {
     row.appendChild(dgeEl('button', {
       type: 'button', class: 'dge-sw', 'aria-pressed': String(now === w),
       title: w === 'center'
-        ? 'the coordinate is the element’s centre – the plain case, and no word on the line'
+        ? (derived
+          ? `anchor center – this label is anchored ${derived} by its class, and this says otherwise`
+          : 'the coordinate is the element’s centre – the plain case, and no word on the line')
         : `anchor ${w} – the element’s ${w} meets the coordinate, so a row of labels of `
           + 'different lengths lines up',
       text: w,
-      onclick: () => dgeWriteAttr(el.id, 'anchor', w === 'center' ? '' : w),
+      onclick: () => dgeWriteAttr(el.id, 'anchor', w === 'center' && !derived ? '' : w),
     }));
   }
   return dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'anchor' }), row]);
@@ -6524,7 +6587,16 @@ function dgePlacementPane(el) {
       dgeEl('label', { class: 'dge-num' }, [
         dgeEl('span', { text: 'gap' }),
         dgeEl('input', {
-          type: 'text', value: dgeNum(p.gap),
+          // The resolved number either way, because the field has to show the
+          // distance the reader sees. Where the line writes no `gap` that is
+          // the default the compiler settled – one label, or 1.6 of them
+          // between two elements an edge joins – and the title says so, so a
+          // number nobody typed cannot be mistaken for one that was. Typing
+          // into the field is the act that writes it.
+          type: 'text', value: dgeNum(dgeGapOf(null, p)),
+          title: p.gap == null
+            ? 'no gap is written on this line – this is the default, in rows'
+            : 'the gap written on this line, in rows',
           // Refuse what is not a number instead of silently writing 0 –
           // `Number('0.,4') || 0` collapsed a typo into "no gap at all".
           //
@@ -6537,7 +6609,7 @@ function dgePlacementPane(el) {
           onchange: (e) => {
             const n = Number(e.target.value.trim());
             if (!e.target.value.trim() || !Number.isFinite(n)) {
-              dgeStatus('', `"${e.target.value}" is not a number – the gap keeps its ${dgeNum(p.gap)}.`, true);
+              dgeStatus('', `"${e.target.value}" is not a number – the gap keeps its ${dgeNum(dgeGapOf(null, p))}.`, true);
               dgeRenderSide();
               return;
             }

@@ -499,40 +499,35 @@ export async function run({ report }) {
   }
 
   // ── a row of labels that is not a row ─────────────────────────────
-  // `diagram-ragged-labels` is the linter's alone, and it is the counterpart
-  // to the `anchor` option rather than a second way of saying it: `.left`
-  // aligns the lines inside each free text's own box, the box stays centred
-  // on its coordinate, and the left edges the author was lining up come out
-  // staggered by half the difference in label width. Nothing is wrong with
-  // any one line, which is why neither file said anything before.
+  // `diagram-ragged-labels` used to live here: two or more free texts sharing
+  // a written `at` x, each carrying `.left` or `.right`, each centred on the
+  // coordinate anyway and so staggered by half the difference in label width.
+  // The rule is gone because the geometry is – a `.left` free text at an
+  // absolute coordinate is anchored on that edge now – so what is asserted is
+  // that the linter has nothing to say about a row it can no longer describe,
+  // and that every one of these still builds.
   //
-  // It is a warning, so the build accepts all five of these; what is asserted
-  // is which of them the linter speaks about. Both fixes silence it, because
-  // both of them are true statements about the row: `align x left` for a set,
-  // `anchor left` for a placement that has no set to join.
+  // `align x left` is not retired with it: it is still how a set with three
+  // different coordinates is held to one edge, and it still silences nothing
+  // because there is nothing left to silence.
   {
     const ROW = (tail, extra = '') => 'box z "Z" at 0,0 w 3 h 2\n'
       + `text a "short" at z.left,z.cy ${tail}\n`
       + `text b "a much longer line" at z.left,z.top ${tail}\n${extra}`;
     const CASES = [
-      { name: 'two .left texts at one x', want: true, body: ROW('{.left}') },
-      { name: 'the same with .right', want: true, body: ROW('{.right}') },
-      { name: 'one of them anchored is still a pair', want: true,
-        body: 'box z "Z" at 0,0 w 3 h 2\ntext a "short" at z.left,z.cy anchor left {.left}\n'
-          + 'text b "a much longer line" at z.left,z.top {.left}\ntext c "third" at z.left,z.bottom {.left}' },
-      { name: 'both anchored', want: false, body: ROW('anchor left {.left}') },
-      { name: 'held by an align x', want: false, body: ROW('{.left}', 'align x left a, b') },
-      { name: 'two centred texts at one x', want: false, body: ROW('') },
-      { name: 'two .left texts at different x', want: false,
-        body: 'box z "Z" at 0,0 w 3 h 2\ntext a "short" at z.left,z.cy {.left}\n'
-          + 'text b "a much longer line" at z.cx,z.top {.left}' },
+      { name: 'two .left texts at one x', body: ROW('{.left}') },
+      { name: 'the same with .right', body: ROW('{.right}') },
+      { name: 'both anchored', body: ROW('anchor left {.left}') },
+      { name: 'one written anchor center', body: ROW('anchor center {.left}') },
+      { name: 'held by an align x', body: ROW('{.left}', 'align x left a, b') },
+      { name: 'two centred texts at one x', body: ROW('') },
     ];
     const lintOf = lintAll(CASES);
     CASES.forEach((c, i) => {
-      ok(render(c.body).ok, `ragged labels: ${c.name} still builds`, '(refused)');
-      const said = lintOf[i].some((f) => f.rule === 'diagram-ragged-labels');
-      ok(said === c.want, `${c.want ? 'reported' : 'silent'}: ${c.name}`,
-        said ? 'the linter reported it' : 'the linter said nothing');
+      ok(render(c.body).ok, `left-anchored labels: ${c.name} still builds`, '(refused)');
+      const said = lintOf[i].filter((f) => f.rule === 'diagram-ragged-labels');
+      ok(said.length === 0, `no ragged-labels rule survives: ${c.name}`,
+        said.map((f) => f.msg).join(' | '));
     });
   }
 

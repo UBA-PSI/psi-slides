@@ -462,7 +462,7 @@ Example: Spamhouse  (75 Gbps)
 # stays; the evidence for it is the capture beside it, not this picture. The
 # two triangles are the size comparison: the area is the volume, the point
 # shows where it arrives. 37 bytes out, 1194 back.
-text intro "For some protocols (e.g., DNS or\nNTP) the response can become\nmuch larger than the request." at -2.3,-1.35 {.left}
+text intro "For some protocols (e.g., DNS or\nNTP) the response can become\nmuch larger than the request." at -3.25,-1.35 {.left}
 text amp "*Amplification factor:* ratio of\nresponse and request size." below intro gap 0.45 flush left {.left}
 
 text atk "Attacker" at 0.4,-1.5 {.accent}
@@ -474,10 +474,10 @@ text victim "Victim" below res gap 0.3 {@big}
 text lreq "Small request with\nSrc IP of victim" left of req gap 1.05 {.right @small}
 text lres "Large response with\nDst IP of victim" left of res gap 0.95 {.right @big}
 
-text open "Attack possible due to liberally\noperated DNS/NTP servers." at -2.3,1.95 {.left .muted @open}
-# Both paragraphs are at x -2.3 and set .left, which aligns the lines inside
-# each box - the boxes stay centred, so their left edges staggered by half the
-# difference in width. One set, one edge.
+text open "Attack possible due to liberally\noperated DNS/NTP servers." at -3.25,1.95 {.left .muted @open}
+# .left on a free text at a coordinate anchors it on that edge, so both blocks
+# start at x -3.25 rather than straddling it; the align statement below is what
+# keeps them on one edge if either label is ever reworded.
 align x left intro, open
 
 step request

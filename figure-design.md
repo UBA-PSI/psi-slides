@@ -82,9 +82,17 @@ in that figure's own grid units, and there are two families of them. A number
 that **addresses** the grid is axis-keyed, because a grid cell is not square:
 `at`, `w`, `h`, `offset` and every nudge count cells across and cells down. A
 number that states a **clearance** is square, and its ruler is one row – `gap`,
-`pad`, `space`, and a `dot`'s `r`. So `gap 0.25` between two boxes side by side
-and `gap 0.25` between two stacked on top of each other draw the same distance,
+`pad`, `space`, and a `dot`'s `r`. So `gap 0.5` between two boxes side by side
+and `gap 0.5` between two stacked on top of each other draw the same distance,
 and the rule above is arithmetic rather than judgement.
+
+**Write the gap that means something and leave the other one off.** A placement
+with no `gap` is not a placement with no clearance: it gets one base label of
+paper, and 1.6 of them where an `edge` joins the two, which is an arrowhead plus
+as much shaft again. That default is in labels rather than in rows precisely so
+it does not change when you change the opener. So the number worth writing is
+the *wide* one – the gap that says "these two are not a pair" – and a row that
+wants no more than to be legible wants no number at all.
 
 ```
 # wrong: four boxes, one rhythm, and only the words say which two belong together
@@ -93,11 +101,11 @@ box b "Router"  right of a gap 0.5
 box c "Resolver" right of b gap 0.5
 box d "Webserver" right of c gap 0.5
 
-# right: the pair is a pair before you read it
+# right: the pair is a pair before you read it, and only the wide gap is written
 box a "Switch"  at 0,0
-box b "Router"  right of a gap 0.25
+box b "Router"  right of a
 box c "Resolver" right of b gap 0.9
-box d "Webserver" right of c gap 0.25
+box d "Webserver" right of c
 ```
 
 ## 2. Enclose what a distance cannot say

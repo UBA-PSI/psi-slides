@@ -71,6 +71,31 @@ export const DG_PAD_X = 13;           // box padding, px
 export const DG_PAD_Y = 9;
 export const DG_MIN_W = 54;           // a box never narrows past this
 export const DG_HEAD = 9;             // arrowhead length, px
+// **The default gap is stated in labels, not in rows.** A row is whatever the
+// opener says – 20 px on `20x20`, 40 on `120x40`, 72 on the default grid – so
+// the old default of 0.25 rows drew a clearance of 5 px on one figure and 18
+// on another, with nothing in either source to say so. On the grid a keynote
+// actually used it came out at 10 px against a 9 px arrowhead: a head with no
+// shaft. A label is the one ruler in a drawing that does not move with the
+// opener, and the clearance a reader judges is the clearance against the type
+// beside it, so the default gap is a multiple of the base label's height.
+// DG_GAP_JOINED is 1.6 of them – the 9 px head plus 21 px of shaft – and
+// applies to a pair some `edge` joins, which is decided after the whole block
+// is read. DG_GAP_PLAIN is one label for a pair nothing joins. A *written*
+// `gap` keeps its meaning and its unit: it stays a number of rows, because it
+// is a number the author tuned by eye against the grid in the opener and every
+// other clearance in this grammar – `pad`, `space`, `cell`, DG_DOT_R – is
+// measured against `uh` too. Only the number nobody wrote is free to be stated
+// in the unit that makes it right.
+export const DG_LABEL_H = DG_FONT * DG_LINE_H;   // one base label, px
+export const DG_GAP_PLAIN = 1;        // default gap, in labels, for an unjoined pair
+export const DG_GAP_JOINED = 1.6;     // …and for a pair an edge joins
+// An edge whose exposed run – the part of its route not under either of its
+// own endpoints – is shorter than this many labels is reported as `edge-short`.
+// 1.5 labels is 28 px: the head plus about as much shaft again, which is the
+// least that still reads as an arrow rather than a wedge between two boxes.
+// It sits just under DG_GAP_JOINED on purpose, so the default never trips it.
+export const DG_EDGE_MIN = 1.5;
 export const DG_MARGIN = 12;          // viewBox breathing room, px
 // Nominal intrinsic width. Deliberately wider than any chunk measure so
 // that max-width: 100% always binds – see the comment where it is emitted.
@@ -1214,6 +1239,41 @@ export function dgMeasure(label, fontPx, mono) {
 // The two copies this replaced disagreed once already – a label reserved on
 // the side it is not drawn on is how figures came to sit off-centre inside
 // oversized frames.
+// **`.left` on a free text at a coordinate anchors it there.** The class used
+// to align the lines *inside* the text's own box while the box stayed centred
+// on its `at`, so on a one-line label it moved nothing at all – which is what
+// made it invisible – and on a longer one it put the edge the class names half
+// a label width away from the point the author aimed at. `text l "zu Hause" at
+// haus.left+0.2,…` was meant to start its first letter on the frame line and
+// started outside the box instead. Two warnings existed for nothing but that
+// trap, one in each file, and both are gone: the geometry they detected cannot
+// arise once the class means what its name says.
+//
+// Four bounds, and each one is a figure the corpus contains. It is a **free
+// text** only: on a `box` or a `dot` the class aligns the label inside an
+// outline that has its own position, which is a different question with the
+// same word. It is an **absolute** placement only – a relative one states a
+// face of another element and answers this with `flush`, which already puts
+// the ink on the edge. A **written** `anchor` is the author's answer whatever
+// it says, and `anchor center` is how the old centring is spelled out. And a
+// `.turn`ed label is centred whichever way it reads, which is the same answer
+// `dgLabelAnchor` gives it one line down.
+// Returns `null` for the centre – written or defaulted – because the centre is
+// the identity: `dgAnchorOffset('center', …)` is [0, 0], and a caller that has
+// to special-case the one answer that changes nothing is a caller that will
+// forget to. It is also what lets the editor keep offering guides on an
+// `anchor center` element, whose centre really is on the coordinate.
+export function dgPlaceAnchor(kind, place, classes) {
+  if (!place) return null;
+  if (place.anchor) return place.anchor === 'center' ? null : place.anchor;
+  if (kind !== 'text' || place.kind !== 'abs' || place.implicit) return null;
+  const has = (c) => (classes && (classes.has ? classes.has(c) : classes.includes(c)));
+  if (has('turn')) return null;
+  if (has('left')) return 'left';
+  if (has('right')) return 'right';
+  return null;
+}
+
 export function dgLabelAnchor(classes) {
   const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
   if (has('turn')) return 'middle';
@@ -1283,6 +1343,18 @@ export function dgFontFor(classes) {
 // because 13/9 is typographic taste rather than a point on the grid.
 export function dgPadPx(pad, uh) {
   return pad != null ? [pad * uh, pad * uh] : [DG_PAD_X, DG_PAD_Y];
+}
+
+// The clearance a relational placement actually draws, in px. Two units meet
+// here and nowhere else: a written `gap` is a count of rows, the default a
+// count of labels. The one function is what keeps the layout, the editor's
+// guide and the editor's drag from each spelling the conversion themselves –
+// the mistake that made a re-dock and a swatch row disagree by uw/uh once
+// already, with both edits compiling and neither saying anything.
+export function dgGapPx(place, uh) {
+  if (!place) return 0;
+  if (place.gap != null) return place.gap * uh;
+  return (place.gapAuto ?? DG_GAP_PLAIN) * DG_LABEL_H;
 }
 
 // The size an element's label is actually set at.
@@ -1648,7 +1720,13 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     const ref = t(next);
     if (!ref) { dgErr(errors, lineNo, `${dir} expects an element name`); return [null, next, true]; }
     next++;
-    place = { kind: 'rel', dir, ref, gap: 0.25, align: 'middle' };
+    // `gap: null` is "the author wrote none", not "zero". The number is
+    // resolved once the whole block is read, by dgResolveAutoGaps, because it
+    // depends on something no single line knows: whether an edge joins the two.
+    // `gapAuto` is a count of labels and `gap` a count of rows, which is why
+    // they are two fields rather than one: the unit differs, and collapsing
+    // them would make the resolved number depend on the opener again.
+    place = { kind: 'rel', dir, ref, gap: null, gapAuto: DG_GAP_PLAIN, align: 'middle' };
   }
 
   // Trailing options, shared by every placement form. `offset` in
@@ -1721,10 +1799,17 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
             + 'which is what "align x middle" and "flush middle" say. Write "anchor center", '
             + 'or leave the word off: the centre is the default.'
           : `anchor expects ${[...DG_ANCHORS].join(' / ')}, got "${a ?? ''}"`);
-      } else if (a !== 'center') {
-        // `center` is the default, so writing it writes nothing – the same
-        // rule `flush middle` follows, and it keeps `spanOf` able to say
-        // "absent" for the plain case.
+      } else {
+        // **`anchor center` is recorded, and that is newer than it looks.**
+        // It used to write nothing, on the reasoning that the centre is the
+        // default and a token nobody needs is a token best not stored. Then
+        // `.left` on a free text at a coordinate became an anchor of its own,
+        // and `center` stopped being the default for those labels: it is the
+        // word that says "not that", and a word that says something cannot be
+        // dropped. `dgPlaceAnchor` still answers `null` for it, so the centre
+        // costs no offset and nothing downstream has to know it was written;
+        // and `spanOf` reads the source rather than this field, so the plain
+        // case is still "absent" where it matters.
         place.anchor = a;
       }
       next += 2;
@@ -5907,7 +5992,56 @@ export function createDiagramCompiler(env = {}) {
       }
     }
 
+    dgResolveAutoGaps(model);
+
     return { model, errors };
+  }
+
+  // The second half of the gap rule, and the half no single line can decide:
+  // a pair an `edge` joins needs room for the arrow, a pair nothing joins
+  // needs only to be told apart. So the default is settled here, once the
+  // whole block has been read, off the edge list the dependency walk is built
+  // from a few lines later. Nothing is written back into the source and a
+  // written `gap` is never touched: this fills `gapAuto`, which layout reads
+  // only where `gap` is null.
+  //
+  // The widening for a *labelled* edge is the same rule one step on. A label
+  // on a straight run between two facing boxes has only the paper between
+  // their near faces – the boxes are painted after the edge under them, so a
+  // word wider than the gap is read with its ends cut off, which is the defect
+  // `dgLabelClipWarnings` measures. Making the default wide enough to hold the
+  // word turns that warning into what it should always have been: a report
+  // about a number the author wrote. Only on a horizontal placement, because a
+  // label on a vertical run stands beside the line and its width costs the gap
+  // nothing; its height is one line, which the joined default already clears.
+  function dgResolveAutoGaps(model) {
+    const auto = [];
+    for (const n of model.nodes) {
+      if (n.place && n.place.kind === 'rel' && n.place.gap == null) auto.push(n);
+    }
+    if (!auto.length) return;
+    const joined = new Map();   // "a|b", a < b -> the edge, for the label
+    for (const e of model.edges) {
+      const a = e.from && !e.from.point ? e.from.ref : null;
+      const b = e.to && !e.to.point ? e.to.ref : null;
+      if (!a || !b || a === b) continue;
+      const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+      if (!joined.has(key)) joined.set(key, e);
+    }
+    for (const n of auto) {
+      const p = n.place;
+      const key = n.id < p.ref ? `${n.id}|${p.ref}` : `${p.ref}|${n.id}`;
+      const e = joined.get(key);
+      if (!e) continue;
+      p.gapAuto = DG_GAP_JOINED;
+      if (!e.label || (p.dir !== 'right' && p.dir !== 'left')) continue;
+      const classes = new Set(e.classes || []);
+      for (const layer of dgDefaultLayers(model, 'edge', e.tags)) {
+        for (const c of layer.classes) classes.add(c);
+      }
+      const m = dgMeasure(e.label, dgFontFor(classes), classes.has('mono'));
+      p.gapAuto = Math.max(p.gapAuto, (m.w + 2 * DG_PAD_X) / DG_LABEL_H);
+    }
   }
 
   function layoutDiagram(model, state, errors) {
@@ -6212,17 +6346,21 @@ export function createDiagramCompiler(env = {}) {
           // next line; and a dedicated unit adds a fence word nobody would set,
           // when the author already writes `::: draw 150x52` and the clearance
           // ruler is its second number, visible in the source.
+          //
+          // A *written* gap is rows; the default is labels. dgGapPx is the one
+          // place that difference is spent, so nothing downstream has to know
+          // which of the two a placement carries.
           else if (place.dir === 'right' || place.dir === 'left') {
             cx = place.dir === 'right'
-              ? ref.x + ref.w + place.gap * uh + w / 2
-              : ref.x - place.gap * uh - w / 2;
+              ? ref.x + ref.w + dgGapPx(place, uh) + w / 2
+              : ref.x - dgGapPx(place, uh) - w / 2;
             cy = place.align === 'top' ? rIn.y + h / 2 - ownIY
               : place.align === 'bottom' ? rIn.y + rIn.h - h / 2 + ownIY
               : rIn.y + rIn.h / 2;
           } else {
             cy = place.dir === 'below'
-              ? ref.y + ref.h + place.gap * uh + h / 2
-              : ref.y - place.gap * uh - h / 2;
+              ? ref.y + ref.h + dgGapPx(place, uh) + h / 2
+              : ref.y - dgGapPx(place, uh) - h / 2;
             cx = place.align === 'left' ? rIn.x + w / 2 - ownIX
               : place.align === 'right' ? rIn.x + rIn.w - w / 2 + ownIX
               : rIn.x + rIn.w / 2;
@@ -6234,8 +6372,9 @@ export function createDiagramCompiler(env = {}) {
         // afterwards; what the anchor moves is which point of the element the
         // coordinate above was a statement about. Before `align` / `spread`,
         // like the offset: those two hand the element a coordinate outright.
-        if (place && place.anchor) {
-          const [ox, oy] = dgAnchorOffset(place.anchor, w, h);
+        const anch = dgPlaceAnchor(node.kind, place, st.classes);
+        if (anch) {
+          const [ox, oy] = dgAnchorOffset(anch, w, h);
           cx += ox; cy += oy;
         }
         // The offset is part of the placement expression, so it lands before
@@ -6608,117 +6747,6 @@ export function createDiagramCompiler(env = {}) {
     }
   }
 
-  // A free `text` ranged left or right, placed on another element's own
-  // coordinate, and drawn centred on it anyway.
-  //
-  // `.left` aligns the lines *inside* the element's box and the box stays
-  // centred on its `at`, so `text l "zu Hause" at haus.left+0.2,… {.left}`
-  // puts half the words left of `haus` – on the frame line it was meant to
-  // sit inside. On a one-line label the class moves nothing at all, which is
-  // what makes it invisible: nothing is wrong with the line, and the drawing
-  // is wrong by half a label width. `anchor left` is the answer for the one
-  // element that has to meet a coordinate by its corner, `align x left a, b`
-  // for a set; `diagram-ragged-labels` in lint.js already names both, and
-  // fires only where **two or more** texts share a written `at` x. Measured
-  // on a real keynote: six single texts, every one of them a defect, and not
-  // one of them reachable by that rule.
-  //
-  // It is the compiler's alone for the reason the other three layout warnings
-  // are: deciding it needs the laid-out geometry, and `lint.js` imports tables
-  // from this module and never a function.
-  //
-  // The edge it is held to is the one the label is standing next to, and that
-  // is two cases rather than one. A label placed *beside* an element may not
-  // cross its outline; a label placed *inside* one has to clear the same
-  // padding the element's own label keeps, or the words sit on the stroke.
-  // Both were in the measured keynote and they read differently in the room –
-  // "3 Stunden, ohne Internet" lay entirely outside the box it names, while
-  // four copies of "zu Hause" had their first letter standing on a dashed
-  // frame line. One number would have had to miss one of them.
-  //
-  // Four things keep it narrow, and each one is a figure the corpus contains:
-  //
-  // - **The x component has to name an element.** A bare `at 4,2` states a
-  //   point on the grid and there is nothing the ink can be outside of.
-  // - **A written `anchor` is the author's, whatever it says.** `anchor
-  //   center` is the default spelled out, and an author who spelled it out
-  //   has answered this question.
-  // - **Only the side the class ranges to.** `.left` is compared against the
-  //   element's left edge and `.right` against its right; a `.left` label
-  //   that runs off the *right* of a narrow box is an overflowing caption,
-  //   which is `dgOverlapWarnings`' business and has a different fix.
-  // - **The inner edge only where the label is inside.** The outer edge is
-  //   tried first, so the two thresholds are ordered rather than chosen: a
-  //   label that has already crossed the outline is reported against the
-  //   outline, and the padding case is what is left.
-  //
-  // Reported only where the ink misses at **every** beat the text is drawn
-  // at, the rule the two checks above follow, so a `move` step sliding a
-  // label into place is mid-animation rather than a mistake.
-  const DG_ANCHOR_MISS_TOL = 2;   // px of ink past the edge before it counts
-  function dgLabelAnchorWarnings(model, states, frames, frameBoxes, warn) {
-    const [uw] = model.unit;
-    const nodeById = new Map();
-    for (const n of model.nodes) nodeById.set(n.id, n);
-    for (const n of model.nodes) {
-      if (n.kind !== 'text' || n.synth) continue;
-      const p = n.place;
-      if (!p || p.kind !== 'abs' || p.anchor || !p.at) continue;
-      const c = p.at[0];
-      if (!c || !c.ref) continue;
-      const host = nodeById.get(c.ref);
-      // A generated frame is a holder rather than a shape, the same exemption
-      // `dgOverlapWarnings` makes, and an edge's box is a route rather than
-      // something a label can be inside of.
-      if (!host || (host.synth && host.synth === host.id)) continue;
-      let drawn = 0, missed = 0, worst = null, side = null;
-      for (let k = 0; k < frames.length; k++) {
-        const st = states[k].get(n.id);
-        if (!st || !st.label) continue;
-        if ((frames[k].vis.get(n.id) ?? 1) <= 0) continue;
-        const s = st.classes.has('left') ? 'left' : st.classes.has('right') ? 'right' : null;
-        // A turned label is anchored middle whichever way it reads, so the
-        // across-pair has nothing to say about it – `DG_CLASS_CLASHES` already
-        // warns about the pair and this one would say it a second time.
-        if (!s || dgTurnOf(st.classes) !== 0) { missed = -1; break; }
-        const g = frames[k].geom.get(n.id + '--l');
-        const b = frameBoxes[k].get(c.ref);
-        const t = frameBoxes[k].get(n.id);
-        if (!g || !b || !b.w || !t) continue;
-        drawn++;
-        // `dgLabelAnchor` makes `.left` a `start` anchor and `.right` an
-        // `end` one, so the label's own origin *is* the ink edge on that
-        // side. Nothing has to be measured.
-        const pad = b.padX || 0;
-        const outer = s === 'left' ? b.x - g[0] : g[0] - (b.x + b.w);
-        const inner = outer + pad;
-        const within = t.y + t.h > b.y + DG_ANCHOR_MISS_TOL
-          && t.y < b.y + b.h - DG_ANCHOR_MISS_TOL;
-        let over = null, how = null;
-        if (outer > DG_ANCHOR_MISS_TOL) { over = outer; how = 'out'; }
-        else if (within && inner > DG_ANCHOR_MISS_TOL) { over = inner; how = 'on'; }
-        if (over === null) { missed = -1; break; }
-        missed++;
-        if (!worst || over > worst.over) { worst = { over, how, k }; side = s; }
-      }
-      if (!drawn || missed !== drawn || !worst) continue;
-      const label = String(states[worst.k].get(n.id).label || '').replace(/\n/g, ' ');
-      // The coordinate as written, nudge included: the nudge is usually the
-      // inset the author meant, and naming it without it invites the reply
-      // that there already is one.
-      const at = `${c.ref}.${c.prop}${c.nudge ? (c.nudge > 0 ? '+' : '') + c.nudge : ''}`;
-      warn(`text ${n.id}${dgSite(n)}: "${label}" carries .${side} and is placed at`
-        + ` ${at}, but with no anchor the box is centred on that point – so its`
-        + ` ${side} edge lands ${(worst.over / uw).toFixed(2)} units (${Math.round(worst.over)} px)`
-        + (worst.how === 'out'
-          ? ` outside ${c.ref}.`
-          : ` short of the inside of ${c.ref}, so the words stand on its outline.`)
-        + ` Write 'anchor ${side}' on the placement so the element meets the coordinate by`
-        + ` that corner, or 'align x ${side} …' to hold it to an edge with the labels it`
-        + ` belongs with.`);
-    }
-  }
-
   // **An elbow's vertical rail running along the side of a box.**
   //
   // `.elbow` draws its own rail halfway between the two faces, and it looks at
@@ -6793,6 +6821,109 @@ export function createDiagramCompiler(env = {}) {
         + `between the two faces and nothing moves it, so the fix is on the boxes: give the row a `
         + `gap so the halfway point is paper, or write the route yourself with via.`);
     }
+  }
+
+  // **An arrow the reader cannot see the shaft of.** The default gap now
+  // clears one (2.1), but a *written* `gap` is the author's number and is not
+  // pushed apart: it is a number other elements are chained off, and moving it
+  // silently moves them. So the other half of the rule is that the author
+  // hears about it. Measured on the **exposed** run – the part of the route
+  // that is not under either of the edge's own endpoints, because a box is
+  // painted after the edge beneath it – against DG_EDGE_MIN labels.
+  //
+  // Only the edge's own two ends are subtracted, which is the same bound
+  // dgLabelClipWarnings keeps: a third shape the line disappears under is
+  // dgOverlapWarnings' business and has a different fix. And like every other
+  // warning here it fires only where the run is short at **every** beat the
+  // edge is drawn at, so a `move` step sliding two boxes together mid-figure
+  // is animation rather than a mistake.
+  //
+  // A synthesised edge is exempt. A `sequence` message, a chart's baseline and
+  // a leader stub are all placed by the statement that made them, and the fix
+  // this warning names – a `gap` on one of the two elements – is not a line
+  // the author has. Where such a run is too short the number to change is the
+  // statement's own `space`, which is a different report and not this one.
+  function dgEdgeShortWarnings(model, states, frames, frameBoxes, warn) {
+    const [uw, uh] = model.unit;
+    const min = DG_EDGE_MIN * DG_LABEL_H;
+    for (const e of model.edges) {
+      if (e.synth) continue;
+      if (e.from.point || e.to.point) continue;
+      let worst = null, everyBeat = true, seen = 0;
+      for (let k = 0; k < frames.length && everyBeat; k++) {
+        if ((frames[k].vis.get(e.id) ?? 1) <= 0) continue;
+        const st = states[k] && states[k].get(e.id);
+        // **A headless edge is exempt, and that is the rule rather than an
+        // exception to it.** What this measures is a head crowding out its own
+        // shaft, so an edge that draws no head – a leader stub, which is what
+        // `--` is, or anything carrying `.no-head` – has nothing to crowd. A
+        // short plain connector reads as a tick joining two things, which is
+        // what a leader is for: `text note "…" below px gap 0.5 -- px` in the
+        // tutorial's motion figure leaves exactly 28 px and is correct.
+        if (!st || (st.classes.has('no-head') && !st.classes.has('both-heads'))) {
+          everyBeat = false; break;
+        }
+        // The route and not the stroke: `--p` has already been trimmed back by
+        // most of an arrowhead, and the question here is how much paper the
+        // head and the shaft have to share.
+        const pts = dgEdgeRoute(e, st.classes, frameBoxes[k], uw, uh);
+        if (!pts || pts.length < 2) { everyBeat = false; break; }
+        const ends = [frameBoxes[k].get(e.from.ref), frameBoxes[k].get(e.to.ref)]
+          .filter(b => b && b.w > 0 && b.h > 0);
+        let run = 0;
+        for (let i = 0; i + 1 < pts.length; i++) {
+          run += dgExposedRun(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], ends);
+        }
+        seen++;
+        if (run >= min) { everyBeat = false; break; }
+        if (worst == null || run < worst) worst = run;
+      }
+      if (!everyBeat || worst == null || !seen) continue;
+      // The number the author would have to write to clear it, in the unit a
+      // written gap is in – rows – so it can be typed straight onto the line.
+      const want = Math.ceil(((DG_GAP_JOINED * DG_LABEL_H - worst) / uh) * 100) / 100;
+      warn(`edge ${e.id}${dgSite(e)}: its exposed run is ${Math.round(worst)} px `
+        + `(${(worst / DG_LABEL_H).toFixed(2)} labels) and the arrowhead alone is ${DG_HEAD} px, `
+        + `so the room sees a head with almost no shaft. A written gap is never widened for you, `
+        + `because other elements are chained off it – so the fix is on the line that wrote it: `
+        + `give ${e.from.ref} and ${e.to.ref} about ${want.toFixed(2)} more rows of gap, or take `
+        + `the written gap off that placement and let the default clear the arrow.`);
+    }
+  }
+
+  // How much of one segment is neither inside the first box nor inside the
+  // second. Both are axis-aligned rectangles and the segments this walks are
+  // very nearly axis-aligned themselves, so the cheap answer – clip the
+  // segment's parameter range against each rectangle and subtract the union of
+  // what is covered – is exact for the straight and elbow routes and close
+  // enough for a diagonal, which is the one case where a pixel either way
+  // decides nothing.
+  function dgExposedRun(x1, y1, x2, y2, ends) {
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    if (!len) return 0;
+    const spans = [];
+    for (const b of ends) {
+      const axis = (p1, p2, lo, hi) => {
+        if (Math.abs(p2 - p1) < 1e-9) return (p1 >= lo && p1 <= hi) ? [0, 1] : null;
+        let t0 = (lo - p1) / (p2 - p1), t1 = (hi - p1) / (p2 - p1);
+        if (t0 > t1) { const s = t0; t0 = t1; t1 = s; }
+        return [t0, t1];
+      };
+      const sx = axis(x1, x2, b.x, b.x + b.w);
+      const sy = axis(y1, y2, b.y, b.y + b.h);
+      if (!sx || !sy) continue;
+      const t0 = Math.max(0, sx[0], sy[0]);
+      const t1 = Math.min(1, sx[1], sy[1]);
+      if (t1 > t0) spans.push([t0, t1]);
+    }
+    spans.sort((a, b) => a[0] - b[0]);
+    let covered = 0, at = 0;
+    for (const [t0, t1] of spans) {
+      if (t1 <= at) continue;
+      covered += t1 - Math.max(t0, at);
+      at = t1;
+    }
+    return len * (1 - covered);
   }
 
   function dgFrameDrawables(model, state, boxes, labelIndex) {
@@ -7469,8 +7600,8 @@ export function createDiagramCompiler(env = {}) {
       dgOverlapWarnings(model, states, frameBoxes, dgWarn);
       dgLabelGroundWarnings(model, frames, frameBoxes, dgWarn);
       dgLabelClipWarnings(model, states, frames, frameBoxes, dgWarn);
-      dgLabelAnchorWarnings(model, states, frames, frameBoxes, dgWarn);
       dgElbowRailWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgEdgeShortWarnings(model, states, frames, frameBoxes, dgWarn);
     }
     // A DG_CLASS_CLASHES row is a **warning**, and it is the compiler's alone,
     // because deciding it correctly needs the resolved state at every beat.

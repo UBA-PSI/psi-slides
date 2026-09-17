@@ -31,7 +31,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { frames, render, spans, ROOT } from './harness.mjs';
-import { DG_THEMES, dgSpans, dgMeasure, dgTokenize } from '../../diagram-core.mjs';
+import { DG_THEMES, dgSpans, dgMeasure, dgTokenize,
+  DG_LABEL_H, DG_GAP_JOINED, DG_HEAD, DG_FONT } from '../../diagram-core.mjs';
 
 export const name = 'the emitted drawing means what the source says';
 
@@ -343,6 +344,117 @@ export async function run({ report }) {
   }
 
 
+  // ── a gap is measured in labels, and its default clears an arrow ──
+  // The default used to be 0.25 rows, and a row is whatever the opener says:
+  // 5 px on a 20-row grid, 18 on a 72-row one. On the grid a real keynote used
+  // it came out at 10 px against a 9 px arrowhead. So the number nobody writes
+  // is now stated in the one ruler a drawing carries whatever its opener says
+  // – the height of a base label – and it is 1.6 of them for a pair an `edge`
+  // joins, which is the head plus as much shaft again.
+  //
+  // Every assertion below is a *difference* between two fixtures one token
+  // apart, except the two that have to be literals: the whole claim is that a
+  // particular number of pixels arrives, and a relative assertion cannot say
+  // that the opener stopped deciding it.
+  {
+    const gapOf = (what, body, head = '') => {
+      const out = fig(what, body, head);
+      if (!out) return null;
+      const ax = +attrOf(out, 'a--r', 'x'), aw = +attrOf(out, 'a--r', 'width');
+      return +attrOf(out, 'b--r', 'x') - (ax + aw);
+    };
+    const PAIR = 'box a "A" at 0,0\nbox b "B" right of a';
+    const small = gapOf('an unjoined pair on a 20-row grid', PAIR, 'unit=120x20');
+    const large = gapOf('the same pair on a 72-row grid', PAIR, 'unit=120x72');
+    ok(small != null && large != null && Math.abs(small - large) < 0.01,
+      'the default gap is the same distance whatever the opener says',
+      `${small} px on 120x20, ${large} px on 120x72`);
+    ok(small != null && Math.abs(small - DG_LABEL_H) < 0.01,
+      'and that distance is one base label',
+      `${small} px against ${DG_LABEL_H}`);
+
+    const joined = gapOf('a pair an edge joins', PAIR + '\nedge a -> b', 'unit=120x72');
+    ok(joined != null && Math.abs(joined - DG_GAP_JOINED * DG_LABEL_H) < 0.01,
+      'a pair an edge joins gets 1.6 labels instead – decided after the block is read',
+      `${joined} px against ${DG_GAP_JOINED * DG_LABEL_H}`);
+    ok(joined != null && joined - DG_HEAD >= DG_HEAD,
+      'which leaves at least as much shaft as the arrowhead is long',
+      `${joined} px of paper, ${DG_HEAD} px of head`);
+    // The direction of the edge is not the point, and neither is which of the
+    // two elements was placed against the other.
+    const back = gapOf('the same pair joined the other way', PAIR + '\nedge b -> a', 'unit=120x72');
+    ok(back != null && joined != null && Math.abs(back - joined) < 0.01,
+      'and the edge counts whichever way round it is written', `${back} vs ${joined}`);
+
+    // A written gap keeps its meaning and its unit. It is a number the author
+    // tuned against the grid in the opener, and other elements are chained off
+    // it – so it stays rows and it is never widened for you.
+    const written = gapOf('a written gap', 'box a "A" at 0,0\nbox b "B" right of a gap 0.5',
+      'unit=120x72');
+    ok(written != null && Math.abs(written - 0.5 * 72) < 0.01,
+      'a written gap is still a number of rows', `${written} px against 36`);
+    const writtenJoined = gapOf('a written gap on a joined pair',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.5\nedge a -> b', 'unit=120x72');
+    ok(writtenJoined != null && Math.abs(writtenJoined - 0.5 * 72) < 0.01,
+      'and an edge does not widen it', `${writtenJoined} px against 36`);
+
+    // The default for a *labelled* edge holds the label as well, which is what
+    // turns the clip warning below into a report about a number the author
+    // wrote. Only across: a label on a vertical run stands beside the line.
+    const labelled = gapOf('a pair joined by a labelled edge',
+      PAIR + '\nedge a -> b "a long phrase"', 'unit=120x72');
+    ok(labelled != null && joined != null && labelled > joined,
+      "a labelled edge's default gap holds its label", `${labelled} vs ${joined}`);
+    const down = (what, body) => {
+      const out = fig(what, body, 'unit=120x72');
+      if (!out) return null;
+      const ay = +attrOf(out, 'a--r', 'y'), ah = +attrOf(out, 'a--r', 'height');
+      return +attrOf(out, 'b--r', 'y') - (ay + ah);
+    };
+    const downPlain = down('a stacked pair an edge joins', 'box a "A" at 0,0\nbox b "B" below a\nedge a -> b');
+    const downLabel = down('the same stack with a long edge label',
+      'box a "A" at 0,0\nbox b "B" below a\nedge a -> b "a long phrase"');
+    ok(downPlain != null && downLabel != null && Math.abs(downPlain - downLabel) < 0.01,
+      'but a label on a vertical run does not, because it stands beside the line',
+      `${downPlain} vs ${downLabel}`);
+
+    // ── edge-short: the other half of the rule ──
+    // A written gap is the author's number and is not pushed apart, so the
+    // author hears about it instead. Measured on the exposed run, and one
+    // token apart in both directions.
+    const shorts = (what, body, head = 'unit=120x40') => {
+      const r = render(body, head);
+      if (!r.ok) { ok(false, `${what} compiles`, r.msg.split('\n')[0]); return null; }
+      return r.warns.filter(w => /its exposed run is/.test(w));
+    };
+    const tightRow = shorts("a keynote's own row", 'box a "A" at 0,0\nbox b "B" right of a gap 0.3\nedge a -> b');
+    ok(tightRow && tightRow.length === 1, 'an arrow with almost no shaft is reported',
+      tightRow ? tightRow.join(' | ') : 'did not compile');
+    ok(tightRow && tightRow.length === 1 && /\b12 px\b/.test(tightRow[0])
+      && /0\.64 labels/.test(tightRow[0]) && /more rows of gap/.test(tightRow[0]),
+      'and it states the run in px and in labels, and the number that would clear it',
+      tightRow && tightRow[0]);
+    const roomy = shorts('the same row at a wider gap',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.8\nedge a -> b');
+    ok(roomy && roomy.length === 0, 'a row with room for the arrow is silent', roomy && roomy[0]);
+    const defaulted = shorts('the same row with no written gap',
+      'box a "A" at 0,0\nbox b "B" right of a\nedge a -> b');
+    ok(defaulted && defaulted.length === 0,
+      'and the default never trips it – 1.6 labels stands clear of 1.5',
+      defaulted && defaulted[0]);
+    // A leader stub is `--`, which draws no head; a short plain connector is a
+    // tick joining two things and is what a leader is for.
+    const leader = shorts('a short leader stub',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.3\nedge a -- b');
+    ok(leader && leader.length === 0, 'a headless edge has no head to crowd, so it is exempt',
+      leader && leader[0]);
+    // A `sequence` message is placed by the statement that made it, and the
+    // fix this warning names is not a line the author has.
+    const synth = shorts('a sequence of two actors',
+      'sequence s at 0,0 space 0.1\n  actor a "A"\n  actor b "B"\n  a -> b "M"', '');
+    ok(synth && synth.length === 0, 'a synthesised edge is exempt', synth && synth[0]);
+  }
+
   // ── a label wider than the room between the things it joins ───────
   // The compiler knows the label's width and knows the gap, and until this
   // check it compared them nowhere. The tutorial shipped the consequence: at
@@ -434,77 +546,99 @@ export async function run({ report }) {
       vert && (vert[0] || 'nothing was reported'));
   }
 
-  // ── a .left text aimed at an element, with no anchor ──────────────
-  // `.left` aligns the lines inside the element's own box and the box stays
-  // centred on its `at`, so a label written `at haus.left+0.2 {.left}` starts
-  // half a label width left of `haus`. `diagram-ragged-labels` in lint.js
-  // names the same trap but fires only where two or more texts share a
-  // written x; six single cases in one measured keynote escaped it, one of
-  // them a phrase lying entirely outside the box it names.
+  // ── .left on a free text at a coordinate anchors it ───────────────
+  // The class used to align the lines *inside* the text's own box while the
+  // box stayed centred on its `at`, so on a one-line label it moved nothing at
+  // all and on a longer one it put the edge the class names half a label width
+  // from the point the author aimed at. Two warnings existed for nothing but
+  // that trap, `dgLabelAnchorWarnings` here and `diagram-ragged-labels` in
+  // lint.js, and both are retired: the geometry they detected cannot arise.
   //
-  // Held to the *geometry*, not to the shape of the line, which is the whole
-  // reason it is here and not in the linter: the same three tokens are
-  // correct the moment the nudge is large enough for the ink to clear the
-  // edge, and that is a number only the layout knows.
+  // Every assertion but two is a *difference* between two fixtures one token
+  // apart. Those two are absolute for a reason: the claim is that the box's
+  // own edge lands on the coordinate, which is a statement about a position
+  // rather than about a shift.
   {
-    // No head attributes: DG_UNIT is 120x72 and these fixtures want the
-    // default grid, so the block states nothing about it.
-    const aimed = (what, body, head = '') => {
-      const r = render(body, head);
-      if (!r.ok) { ok(false, `${what} compiles`, r.msg.split('\n')[0]); return null; }
-      return r.warns.filter(w => /with no anchor the box is centred/.test(w));
+    // **Measured on the ink**, which is the only number that answers the
+    // promise. A free `text` draws no rect, and the label wrapper alone cannot
+    // tell the two cases apart: a centred label and an anchored one both
+    // translate their wrapper to the coordinate, and what differs is the
+    // `text-anchor` the glyphs then run from. So the reader's left edge is the
+    // wrapper plus what that anchor does with the measured width, and the two
+    // halves compose exactly as a browser composes them.
+    const PHRASE = 'a long phrase indeed';
+    const inkOf = (what, body, head = '') => {
+      const out = fig(what, body, head);
+      if (!out) return null;
+      const at = labelAt(out, 'l');
+      const m = out.match(new RegExp(`id="${P}l--l0"[^>]*>\\s*<text text-anchor="([a-z]+)"`));
+      if (!at || !m) return null;
+      const w = dgMeasure(PHRASE, DG_FONT, false).w;
+      const l = at[0] + (m[1] === 'start' ? 0 : m[1] === 'end' ? -w : -w / 2);
+      const z = +attrOf(out, 'z--r', 'x');
+      return { left: l - z, right: l + w - z, w };
     };
-    // A box wide enough that the label is inside it on both axes, and a nudge
-    // far too small to carry half the words: the keynote's own line.
-    const BESIDE = (tail, at = 'haus.left-1.4,haus.cy') =>
-      'box haus "" at 4,2 w 3 h 2 {.dashed .clear}\n'
-      + `text l "a long phrase indeed" at ${at} ${tail}`;
+    const edges = inkOf;
+    const BOX = 'box z "" at 0,0 w 3 h 2 {.dashed .clear}\n';
+    const AT = (tail) => BOX + `text l "${PHRASE}" at z.left,z.cy ${tail}`;
 
-    const out = aimed('a .left label aimed at a box it sits beside', BESIDE('{.left}'));
-    ok(out && out.length === 1, 'a .left text at another element\'s coordinate is reported',
-      out ? out.join(' | ') : 'did not compile');
-    // The overshoot is the fix, so the message states it in both the unit the
-    // author writes in and the px the reader sees.
-    ok(out && out.length === 1 && /\bunits \(\d+ px\)/.test(out[0])
-      && /placed at haus\.left-1\.4\b/.test(out[0]) && /anchor left/.test(out[0]),
-      'and it names the coordinate as written, the overshoot in units and px, and the fix',
-      out && out[0]);
+    const plain = edges('a centred label on a box edge', AT('{}'));
+    const left = edges('the same label written .left', AT('{.left}'));
+    ok(left && Math.abs(left.left) < 0.01,
+      '.left puts the text box’s own left edge on the coordinate',
+      left ? `left edge at ${left.left.toFixed(2)} px from z.left` : 'not drawn');
+    ok(plain && Math.abs(plain.left + plain.w / 2) < 0.01,
+      'where a label with no such class is still centred on it',
+      plain ? `left edge at ${plain.left.toFixed(2)}, half width ${(plain.w / 2).toFixed(2)}` : 'not drawn');
+    const right = edges('the same label written .right', AT('{.right}'));
+    ok(right && Math.abs(right.right) < 0.01,
+      'and .right puts its right edge there',
+      right ? `right edge at ${right.right.toFixed(2)} px from z.left` : 'not drawn');
 
-    // One token apart, in both directions. The anchor is the fix; a bare
-    // coordinate is nothing to be outside of; and with no alignment class
-    // there is no edge the author named.
-    const anchored = aimed('the same line with anchor left', BESIDE('anchor left {.left}'));
-    ok(anchored && anchored.length === 0, 'anchor left silences it – that is the fix',
-      anchored && anchored[0]);
-    const plain = aimed('the same label centred', BESIDE('{}'));
-    ok(plain && plain.length === 0, 'a text with no .left or .right is never reported',
-      plain && plain[0]);
-    const grid = aimed('the same label on a bare coordinate',
-      'box haus "" at 4,2 w 3 h 2 {.dashed .clear}\ntext l "a long phrase indeed" at 1,2 {.left}');
-    ok(grid && grid.length === 0, 'a bare grid coordinate names no element, so there is nothing to miss',
-      grid && grid[0]);
+    // A written anchor is the author's answer whatever it says, and
+    // `anchor center` is how the old centring is spelled out.
+    const centred = edges('the same line with anchor center', AT('anchor center {.left}'));
+    ok(centred && plain && Math.abs(centred.left - plain.left) < 0.01,
+      'anchor center draws what a label with no alignment class draws',
+      centred && plain ? `${centred.left.toFixed(2)} vs ${plain.left.toFixed(2)}` : 'not drawn');
+    const tr = edges('the same line with anchor tr', AT('anchor tr {.left}'));
+    ok(tr && Math.abs(tr.right) < 0.01,
+      'and any other written anchor still wins over the class',
+      tr ? `right edge at ${tr.right.toFixed(2)}` : 'not drawn');
 
-    // Inside an element the threshold is that element's own padding, because
-    // the failure there is a first letter standing on the outline rather than
-    // ink out on the paper. Paired with a nudge one step larger, which clears
-    // it – the number really is what decides, not the shape of the line.
-    const onLine = aimed('a caption on the box outline',
-      'box haus "" at 4,2 w 3 h 2 {.dashed .clear}\ntext l "zu Hause" at haus.left+0.2,haus.top+0.35 {.left .small}');
-    ok(onLine && onLine.length === 1 && /stand on its outline/.test(onLine[0]),
-      'a label inside an element has to clear that element\'s padding',
-      onLine ? onLine.join(' | ') : 'nothing was reported');
-    const cleared = aimed('the same caption nudged in',
-      'box haus "" at 4,2 w 3 h 2 {.dashed .clear}\ntext l "zu Hause" at haus.left+0.6,haus.top+0.35 {.left .small}');
-    ok(cleared && cleared.length === 0, 'and the same line with room to clear it is silent',
-      cleared && cleared[0]);
+    // Three bounds, each a figure the corpus contains. A turned label is
+    // centred whichever way it reads; a relative placement answers the same
+    // question with `flush`; and on a box the class ranges the label inside an
+    // outline that has its own position.
+    const turned = edges('a turned .left label', AT('{.left .turn}'));
+    const turnedPlain = edges('the same turned label with no class', AT('{.turn}'));
+    ok(turned && turnedPlain && Math.abs(turned.left - turnedPlain.left) < 0.01,
+      'a .turn ed label is centred whichever way it reads', 'the turn was moved');
+    const relRef = (tail) => {
+      const r = inkOf('a .left label placed relationally', BOX
+        + `text l "${PHRASE}" below z gap 0.5 ${tail}`);
+      return r ? r.left : null;
+    };
+    ok(Math.abs(relRef('{.left}') - relRef('{}')) < 0.01,
+      'a relative placement is untouched – flush is its answer to this question',
+      `${relRef('{.left}')} vs ${relRef('{}')}`);
+    const boxRef = (tail) => {
+      const out = fig('a .left box at a coordinate',
+        `box b "${PHRASE}" at 0,0 ${tail}`);
+      return out ? +attrOf(out, 'b--r', 'x') : null;
+    };
+    ok(Math.abs(boxRef('{.left}') - boxRef('{}')) < 0.01,
+      'and a box is untouched – there the class ranges the label inside the outline',
+      `${boxRef('{.left}')} vs ${boxRef('{}')}`);
 
-    // Only the side the class ranges to. A `.right` label hanging off the
-    // left of a box has not crossed the edge `.right` names.
-    const other = aimed('a .right label placed to the left', BESIDE('{.right}'));
-    ok(other && other.length === 0,
-      '.right is compared against the right edge and nothing else',
-      other && other[0]);
+    // The compiler warning the rule replaced. It may not survive: a warning
+    // about geometry that cannot arise is a warning nobody can act on.
+    const gone = render(AT('{.left}')).warns
+      .filter((w) => /with no anchor the box is centred/.test(w));
+    ok(gone.length === 0, 'dgLabelAnchorWarnings is retired with the trap it named',
+      gone.join(' | '));
   }
+
 
   // ── emph acts on what the element actually draws ──────────────────
   // `emph` lives in the prominence slot and `.bare` in the stroke-weight
@@ -788,12 +922,15 @@ export async function run({ report }) {
   }
 
   // ── anchor: which point of the element meets the coordinate ───────
-  // The defect it repairs is a row of labels that is not a row: `.left`
-  // aligns the lines inside each free text's own box and the box stays
+  // The defect it repaired was a row of labels that is not a row: `.left`
+  // aligned the lines inside each free text's own box while the box stayed
   // centred on its coordinate, so two labels of different lengths at one x
-  // start at two different left edges. Every assertion below is about the
-  // *drawn* geometry, and the two lengths differ by design – equal-length
-  // labels would pass whether the anchor worked or not.
+  // started at two different left edges. That case is now the *default* – see
+  // the `.left` block above – and `anchor left` is the same statement written
+  // out. What this block holds is the option itself: every one of the nine
+  // words, on a placement whose class does not already decide it, and the
+  // carry-forward through a step. Every assertion is about the *drawn*
+  // geometry, and the two lengths differ by design.
   {
     const ROW = (tail) => 'box z "Z" at 0,0 w 3 h 2\n'
       + `text a "short" at z.left,z.top ${tail}\n`
@@ -808,9 +945,15 @@ export async function run({ report }) {
       return m ? { x: +m[1], y: +m[2] } : null;
     };
     const plain = { a: boxOf(ROW('{.left}'), 'a'), b: boxOf(ROW('{.left}'), 'b') };
-    ok(plain.a && plain.b && Math.abs(plain.a.x - plain.b.x) > 20,
-      'without an anchor two .left labels of different lengths start at different x',
+    ok(plain.a && plain.b && Math.abs(plain.a.x - plain.b.x) < 0.01,
+      'two .left labels of different lengths now share a left edge with no anchor written',
       plain.a && plain.b ? `${plain.a.x} vs ${plain.b.x}` : 'did not draw');
+    // What `boxOf` reads is the label wrapper, which is the *anchor point* of
+    // the glyph run and so already carries `text-anchor`. That is the right
+    // ruler for a row written the same way twice – the question is whether two
+    // such labels start at one x – and the wrong one for comparing a ranged
+    // label with a centred one, which is the ink measurement the `.left` block
+    // above makes instead.
     const anch = { a: boxOf(ROW('anchor left {.left}'), 'a'), b: boxOf(ROW('anchor left {.left}'), 'b') };
     ok(anch.a && anch.b && Math.abs(anch.a.x - anch.b.x) < 0.01,
       'anchor left puts both of them on one left edge',

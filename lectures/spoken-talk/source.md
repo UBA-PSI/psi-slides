@@ -80,8 +80,8 @@ The browser asks. The server answers. The page appears.
 default box {.tone-2} w 1.5 pad 0.16
 
 box req "Request" at 0,0
-box net "Network"                right of req gap 0.5
-box srv "Server: builds the page" right of net gap 0.5 w 2.1
+box net "Network"                right of req
+box srv "Server: builds the page" right of net w 2.1
 edge req -> net
 edge net -> srv
 
@@ -100,13 +100,13 @@ text ok "1.4 s" below req gap 0.6 flush left {.left .muted}
 default box {.tone-2} w 1.5 pad 0.16
 
 box req "Request" at 0,0
-box net "Network"                right of req gap 0.5
-box srv "Server: builds the page" right of net gap 0.5 w 2.1
+box net "Network"                right of req
+box srv "Server: builds the page" right of net w 2.1
 edge req -> net
 edge net -> srv
 
 box store "Browser cache" below net gap 1 flush left
-box hit   "The answer,\nalready here" right of store gap 0.5 w 2.1
+box hit   "The answer,\nalready here" right of store w 2.1
 edge store -> hit
 edge srv.bottom -> store.top {.dashed}
 
