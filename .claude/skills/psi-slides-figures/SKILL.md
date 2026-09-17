@@ -88,6 +88,22 @@ rows, it is a warning rather than an error and it fires only where the label is
 clipped at **every** beat it is drawn at, so a `move` step sliding a box across
 a label is mid-animation rather than a mistake.
 
+**Every `[diagram]` warning that names an element says where that element was
+written, and an edge says what it joins** – `dgSite(el)`, which composes
+`dgWhere` (`line N of the block`, the same number the error gate prints) and,
+for an edge, `dgEdgeEnds` (`a -> b`). The reason is that half the names in this
+grammar are generated: `edge-4`, `t-1-2`, `wa-3`, `f-0`, `swim-cap-1` are
+positional, none of them is in the source, and the one move a reader has –
+search the block for the name the message used – finds nothing. Measured on a
+real keynote: `edge edge-4 runs 0.5° off the axis` against fourteen figures and
+about thirty edges, not one of them named. Two things carry it: every statement
+records its own `line`, and the `edge` statement records the two endpoint
+**tokens** as written (`ends`) plus the arrow, normalised so a leftward token
+is not printed beside the ends the model has already swapped. A generated edge
+sets `ends` where the names exist – a `sequence` message names its two actors,
+a leader stub its text and its subject – and otherwise falls back to the refs,
+because `a point -> a point` names nothing at all.
+
 ## Animated infographics (`::: draw`)
 
 **Development state, not in any tagged release.** The repository and project site may carry `::: draw` as a preview independently of a versioned release; `package.json` still reports 1.0.0, and the latest tag does not include the feature. The changelog entry stays under `## [Unreleased]` – `CONTRIBUTING.md` § Building and releasing bumps the version at release time, not when a preview reaches `main`, so there is nothing to bump here.

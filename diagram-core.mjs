@@ -1934,6 +1934,53 @@ export function dgArticle(word) {
   return /^[aeiou]/i.test(String(word)) ? 'an' : 'a';
 }
 
+// ── where a warning is about ────────────────────────────────────────
+// **A `[diagram]` warning names an element, and half the names in this grammar
+// are generated.** `edge-4`, `t-1-2`, `wa-3`, `f-0`, `swim-cap-1` are
+// positional: none of them is in the source, so the one move a reader has –
+// search the block for the name the message used – finds nothing. Measured on
+// a real keynote: `edge edge-4 runs 0.5° off the axis` against fourteen
+// figures and about thirty edges, not one of them named.
+//
+// Two facts close that, and each is already on the record the warning holds.
+// Every statement carries the line it was written on (`el.line`, the same
+// number the error gate prints as "line N of the block"), and an edge carries
+// the two tokens it was written between. So every warning that names an
+// element says where it was written, and an edge says what it joins.
+export function dgWhere(el) {
+  return (el && el.line) ? `line ${el.line} of the block` : '';
+}
+// An edge as the author wrote it: the two endpoint tokens and the arrow
+// between them, in **model order**. A leftward token is normalised to the
+// rightward one because the model has already swapped the two ends, and
+// printing the written token beside swapped ends would say the opposite of the
+// source; the symmetric tokens survive as written.
+//
+// `ends` is set by the `edge` statement. A generated edge – a `sequence`
+// message, a `text … -- x` leader stub, a chart's baseline – falls back to the
+// refs it was built from, which is the same two names one level down.
+export function dgEdgeEnds(e) {
+  if (!e) return '';
+  const side = (r, raw) => {
+    if (raw) return raw;
+    if (!r) return '?';
+    if (r.ref) return r.anchor ? `${r.ref}.${r.anchor}` : r.ref;
+    return 'a point';
+  };
+  const ends = e.ends || [null, null];
+  return `${side(e.from, ends[0])} ${e.arrow || '->'} ${side(e.to, ends[1])}`;
+}
+// The parenthesis a warning ends with: what it joins, and where it was
+// written. Either half may be missing – a generated element has no line of its
+// own beyond its statement's – and an empty parenthesis is worse than none.
+export function dgSite(el) {
+  const parts = [];
+  if (el && el.kind === 'edge') parts.push(dgEdgeEnds(el));
+  const where = dgWhere(el);
+  if (where) parts.push(where);
+  return parts.length ? ` (${parts.join(', ')})` : '';
+}
+
 // What a `bars` or a `grid` may say after its shape: a placement, like every
 // other statement, plus the two or three numbers that size it. Kept in one
 // reader because the two statements differ only in which numbers they accept,
@@ -4224,6 +4271,10 @@ export function createDiagramCompiler(env = {}) {
             // words is a knockout and not a slab.
             via, pad: DG_SEQ_GROUND, side: it.side, named: !!it.own,
             autoClasses: mAuto,
+            // A message's two ends are coordinates on two lifelines, so the
+            // refs say "a point" and nothing else. The two actors are what the
+            // author wrote, and `it.from` / `it.to` are already in model order.
+            ends: [it.from, it.to], arrow: it.arrow === '<-' ? '->' : it.arrow,
           }, it.ln, 'message', it.span));
           if (!opts.unnumbered) {
             const numId = dgMsgNumName(id, p.i);
@@ -5036,6 +5087,8 @@ export function createDiagramCompiler(env = {}) {
             // written on.
             classes: [DG_ARROW_CLASS[node.leaderArrow] || 'no-head', 'muted'],
             via: [], line: lineNo, span,
+            ends: [id, node.leader],
+            arrow: node.leaderArrow === '<-' ? '->' : (node.leaderArrow || '--'),
           });
         }
         continue;
@@ -5126,6 +5179,13 @@ export function createDiagramCompiler(env = {}) {
           removedClasses: (attrs.removedClasses || []).slice(),
           tags: attrs.tags,
           via: [], pad: null, side: null, named, line: lineNo, span,
+          // The two endpoint tokens as written, in model order, and the arrow
+          // normalised to match them. Carried for the warnings alone: an
+          // anonymous edge's `edge-4` is positional and says nothing, and
+          // `from` / `to` have already been parsed into refs by the time a
+          // warning sees them. See dgEdgeEnds.
+          ends: [flip ? toTok : fromTok, flip ? fromTok : toTok],
+          arrow: body0[arrowAt].v === '<-' ? '->' : body0[arrowAt].v,
         };
         // **Every token seeds a class**, expressed through the same three the
         // emitter reads – but the injection is *derived from the arrow token*,
@@ -5491,7 +5551,7 @@ export function createDiagramCompiler(env = {}) {
         // Only when the asset resolved at all: an unresolved (or refused)
         // one already has an error naming the real problem, and a warning
         // about proportions on top of it points the author the wrong way.
-        if (node.asset) dgWarn(`image ${node.id}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
+        if (node.asset) dgWarn(`image ${node.id}${dgSite(node)}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
         return { w, h: w };
       }
       const font = fitted(nw != null ? nw * uw : 0, nh != null ? nh * uh : 0);
@@ -5513,7 +5573,7 @@ export function createDiagramCompiler(env = {}) {
       // thin column of a `bars` – which carries no text at all – reported that
       // its text was about to run over the edge.
       if (st.label && nw != null && nw * uw < m.w + 6 && !classes.has('fit') && !classes.has('shrink')) {
-        dgWarn(`box ${node.id} is ${nw} units wide but its label needs about `
+        dgWarn(`box ${node.id}${dgSite(node)} is ${nw} units wide but its label needs about `
           + `${((m.w + 2 * padX) / uw).toFixed(2)} – the text will overflow.`);
       }
       // A hexagon or a chevron has less usable interior than the rectangle
@@ -5891,7 +5951,8 @@ export function createDiagramCompiler(env = {}) {
           if (!worst || ov.iw * ov.ih > worst.iw * worst.ih) worst = ov;
         }
         if (both === 0 || hit !== both || !worst) continue;
-        warn(`${a} and ${b} overlap by ${Math.round(worst.iw)}×${Math.round(worst.ih)} px`
+        warn(`${a}${dgSite(authored[i])} and ${b}${dgSite(authored[j])}`
+          + ` overlap by ${Math.round(worst.iw)}×${Math.round(worst.ih)} px`
           + ` – nothing can be drawn between them and whichever is painted second wins.`
           + ` Place one of them relative to the other (\`right of ${a} gap …\`) rather than`
           + ` giving both an absolute \`at\`, so the spacing cannot drift when a label changes.`);
@@ -5968,7 +6029,7 @@ export function createDiagramCompiler(env = {}) {
         const frac = inside / total;
         if (frac < DG_LABEL_SWALLOW_FRAC) continue;
         seen.add(e.id);
-        warn(`edge ${e.id}: the label "${e.label}" sits on an elbow and its ground covers `
+        warn(`edge ${e.id}${dgSite(e)}: the label "${e.label}" sits on an elbow and its ground covers `
           + `${Math.round(frac * 100)}% of the part of that elbow you can actually see, so the`
           + ` connector disappears and the words are left floating in the gap. On an elbow the`
           + ` route is the information. Drop the fill class, or move the label off the line with`
@@ -6086,7 +6147,7 @@ export function createDiagramCompiler(env = {}) {
       // The label as it reads at the beat that was worst, which is not always
       // the one on the element's own line: a `label` step may have swapped it.
       const label = String(states[worst.k].get(e.id).label || '').replace(/\n/g, ' ');
-      warn(`edge ${e.id}: the label "${label}" measures ${Math.round(along)} px across`
+      warn(`edge ${e.id}${dgSite(e)}: the label "${label}" measures ${Math.round(along)} px across`
         + (room != null ? ` and has ${Math.round(Math.max(0, room))} px of clear space`
           + ` between ${ends[0]} and ${ends[1]}` : '')
         + `, so ${Math.round(worst.lost)} px of the words are painted over by`
@@ -6407,7 +6468,7 @@ export function createDiagramCompiler(env = {}) {
         const deg = Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
         const off = Math.min(deg % 90, 90 - (deg % 90));
         if (off > 0.05 && off < DG_SKEW_DEG) {
-          dgWarn(`edge ${e.id} runs ${off.toFixed(1)}° off the axis – its endpoints are probably `
+          dgWarn(`edge ${e.id}${dgSite(e)} runs ${off.toFixed(1)}° off the axis – its endpoints are probably `
             + `meant to line up. Either "align" the two elements, or, if the edge uses a `
             + `fractional anchor, give them the same height ("same as") – a fraction of two `
             + `different heights lands at two different places.`);
@@ -6537,7 +6598,7 @@ export function createDiagramCompiler(env = {}) {
         // other pair is a warning here rather than a refusal at parse time.
         const side = vertical ? (eSide === 'left' ? -1 : 1) : (eSide === 'bottom' ? -1 : 1);
         if (eSide && (vertical ? ['top', 'bottom'] : ['left', 'right']).includes(eSide)) {
-          dgWarn(`edge ${e.id}: side ${eSide} names a direction this edge runs along, so it cannot `
+          dgWarn(`edge ${e.id}${dgSite(e)}: side ${eSide} names a direction this edge runs along, so it cannot `
             + `move the label. The edge is ${vertical ? 'vertical' : 'horizontal'} – `
             + `use side ${vertical ? 'left or side right' : 'top or side bottom'}.`);
         }
@@ -6742,12 +6803,19 @@ export function createDiagramCompiler(env = {}) {
     // moment the fill is taken away. So the warning fires only where the pair
     // is live in **every** beat, which is the only reading under which one of
     // the two is definitely doing nothing.
+    // `model.byId` holds the kind and not the record, and a warning has to say
+    // where the line is – so the records are indexed once here. Everything a
+    // clash can land on is in one of these four lists.
+    const recordOf = new Map();
+    for (const el of [...model.nodes, ...model.edges, ...model.containers, ...model.braces]) {
+      if (!recordOf.has(el.id)) recordOf.set(el.id, el);
+    }
     for (const [a, b, why] of DG_CLASS_CLASHES) {
       const ids = new Set();
       for (const st of states[0].keys()) ids.add(st);
       for (const id of ids) {
         if (states.every(st => st.get(id) && st.get(id).classes.has(a) && st.get(id).classes.has(b))) {
-          dgWarn(`${id}: ${why}`);
+          dgWarn(`${id}${dgSite(recordOf.get(id))}: ${why}`);
         }
       }
     }

@@ -660,6 +660,53 @@ export async function run({ report }) {
     ok(n === 2, 'a label still breaks its lines at \\n', `${n} line(s) drawn`);
   }
 
+  // ── a warning says where the element it names was written ─────────
+  // Half the names in this grammar are generated, so the one move a reader
+  // has – search the block for the name the message used – finds nothing.
+  // Measured on a real keynote: `edge edge-4 runs 0.5° off the axis` against
+  // fourteen figures and about thirty edges, not one of them named. Every
+  // warning that names an element carries `dgSite(el)` now.
+  //
+  // The assertion is about the *site* and never about the rest of the
+  // wording: the messages themselves are the business of the checks above.
+  {
+    const sited = (what, body, head = '') => {
+      const r = render(body, head);
+      if (!r.ok) { ok(false, `${what} compiles`, r.msg.split('\n')[0]); return []; }
+      return r.warns;
+    };
+    const cases = [
+      ['a skewed edge', 'box a "A" at 0,0 w 1 h 0.5\nbox b "B" at 2,0.02 w 1 h 0.5\nedge a -> b', true, ''],
+      ['a label a side cannot move', 'box a "A" at 0,0\nbox b "B" right of a gap 2\n'
+        + 'edge a -> b "x" side left', true, ''],
+      ['a clipped label', 'box src "Sender"\nbox mix "Mix" right of src gap 1.05\n'
+        + 'edge src -> mix "encrypted"', true, 'unit=126x38'],
+      ['two boxes on one piece of paper', 'box a "A" at 0,0 w 2 h 1\nbox b "B" at 0.9,0.3 w 2 h 1', false, ''],
+      ['a box narrower than its label', 'box a "A very long label indeed" at 0,0 w 0.4', false, ''],
+      ['a class clash', 'box a "A" at 0,0 {.tone-4 .accent}', false, ''],
+    ];
+    for (const [what, body, isEdge, head] of cases) {
+      const ws = sited(what, body, head);
+      ok(ws.length === 1, `${what} draws exactly one warning`, `${ws.length} warning(s)`);
+      const w = ws[0] || '';
+      ok(/line \d+ of the block/.test(w), `${what}: the warning says which line wrote it`, w);
+      if (isEdge) {
+        ok(/\(\S+ (->|--|<->) \S+, line \d+ of the block\)/.test(w),
+          `${what}: and names the two ends it joins`, w);
+      }
+    }
+    // A generated edge has no endpoint tokens of its own, so the fallback has
+    // to name the two actors rather than the two lifeline coordinates the
+    // expansion built it from – `a point -> a point` names nothing at all.
+    {
+      const r = render('sequence s at 0,0\n  actor u "U"\n  actor r "R"\n'
+        + '  u -> r "m" side left');
+      const w = r.ok ? r.warns.find(x => /edge s-0/.test(x)) : null;
+      ok(!!w && /\(u -> r, line 4 of the block\)/.test(w),
+        'a sequence message names its two actors, not two points', w || '(no warning)');
+    }
+  }
+
   note('four contracts, and this gate holds the third: what the compiler emitted, '
     + 'not whether it parsed');
 
