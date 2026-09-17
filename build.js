@@ -22685,7 +22685,7 @@ async function runCheckFit(absIn, viewport) {
     // the canvas made askable: `data-canvas` is the box the slide reserved
     // and the box the drawing took, both in viewBox units, and it is on the
     // svg only where a canvas applies.
-    const body = act.querySelector('.chunk-body') || content;
+    const body = act.querySelector('.chunk-body') || act.querySelector('.section-body') || content;
     const bodyPx = parseFloat(getComputedStyle(body).fontSize) || 0;
     const figs = [];
     for (const svg of act.querySelectorAll('svg.psi-diagram')) {
