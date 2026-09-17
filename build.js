@@ -9268,6 +9268,23 @@ const SEARCH_PANEL_HTML = `<div id="search-panel" class="hidden" role="dialog" a
   <div id="search-foot"><kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> go · <kbd>Esc</kbd> close</div>
 </div>`;
 
+// G: the slide number in the corner, typed back. A lecturer who knows the
+// deck knows the number, and reaching that slide otherwise means either the
+// board (which puts the whole lecture on the projection) or the search panel
+// (which needs a word). The prompt reads back "N of M" while the digits are
+// typed, so a mistyped number is visible before Enter rather than after it.
+//
+// Its id is a word no slide would claim, because the cockpit's chrome shares
+// one id namespace with the lecture's chunks - see the note on #cue-panel in
+// CLAUDE.md. Everything inside it is reached through this element, never
+// through getElementById.
+const GOTO_PROMPT_HTML = `<div id="goto-prompt" class="hidden" role="dialog" aria-label="Go to slide">
+  <span class="goto-label">go to</span>
+  <span class="goto-digits" aria-live="polite"></span>
+  <span class="goto-of"></span>
+  <span class="goto-foot"><kbd>Enter</kbd> go · <kbd>Esc</kbd> cancel</span>
+</div>`;
+
 // Keyboard + mouse reference, opened with ? (or the corner button) in both
 // live views. Grouped by task rather than by key, because the thing a
 // lecturer forgets mid-talk is "how do I make the notes bigger", not "what
@@ -9291,6 +9308,7 @@ function renderHelpOverlay(view, withEditor) {
       ['click a slide', 'go there and leave the board'],
       ['<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>', 'move the selection (the board follows)'],
       ['<kbd>O</kbd> · <kbd>Enter</kbd>', 'land on the selected slide'],
+      ['<kbd>G</kbd>', 'go to a slide by the number in its corner – type the digits, <kbd>Enter</kbd> lands, <kbd>Esc</kbd> cancels'],
       ['<kbd>/</kbd>', 'search – opens from anywhere, see below'],
       ['<kbd>T</kbd>', 'column list'],
     ]],
@@ -9502,6 +9520,7 @@ ${renderHelpOverlay('audience', !!editorPayload(frontmatter, columnsHtml, 'audie
 <div id="mode-badge"></div>
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
+${GOTO_PROMPT_HTML}
 ${BLANK_BADGE_HTML}
 ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
@@ -9820,6 +9839,7 @@ body[data-mode=dark] #help-button {
   color: var(--ink-soft);
 }
 body[data-mode=dark] nav#toc,
+body[data-mode=dark] #goto-prompt,
 body[data-mode=dark] #search-panel {
   background: oklch(from var(--paper) calc(l + 0.04) c h / 0.97);
 }
@@ -14366,6 +14386,60 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
 }
 #search-foot kbd { margin-inline-end: 0.15em; }
 
+/* The go-to-slide prompt (G) --------------------------------------- */
+/* One line, low on the frame rather than in the middle of it: the number
+   being typed is a small thing and the slide it will leave is still the
+   thing to look at. It sits above the search panel in the stack for the
+   same reason the badges do - nothing else may cover a prompt that is
+   waiting for Enter. */
+#goto-prompt {
+  position: fixed;
+  left: 50%;
+  bottom: 12vh;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  padding: 0.7rem 1.2rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 0 8px 40px oklch(0 0 0 / 0.18);
+  z-index: 41;
+  font-family: var(--sans-font);
+  color: var(--ink);
+}
+#goto-prompt.hidden { display: none; }
+#goto-prompt .goto-label,
+#goto-prompt .goto-foot {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+}
+#goto-prompt .goto-digits {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+  color: var(--emph);
+}
+#goto-prompt .goto-of {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+/* A number the deck does not have is refused in place: the prompt stays
+   open with the digits still in it, so the fix is a Backspace rather than
+   a re-open. The shake is the whole of the refusal, which is why it has to
+   be able to run twice in a row - the class is taken off on animationend. */
+#goto-prompt.goto-refused { animation: goto-shake 0.32s; }
+@keyframes goto-shake {
+  0%, 100% { transform: translateX(-50%); }
+  20% { transform: translateX(calc(-50% - 7px)); }
+  45% { transform: translateX(calc(-50% + 7px)); }
+  70% { transform: translateX(calc(-50% - 4px)); }
+}
+
 /* TOC overlay (PRD §5) --------------------------------------------- */
 /* Scoped to the <nav> tag so author chunks that legitimately use
    id="toc" (see lectures/tutorial – a chunk explaining the TOC
@@ -16007,6 +16081,111 @@ function endSearch() {
   searchInput.value = '';
   searchHits = [];
   flatChunks.forEach(c => c.el.classList.remove('search-match', 'search-miss'));
+}
+
+// ── go to a slide by its number (G) ──────────────────────────────────
+//
+// The number is the one the corner badge shows, which is data-chunk-num:
+// authored chunks counted straight through the deck, dividers left out
+// because they are inserted by the build rather than written. The printed
+// document and the cockpit's list count the same way, so what a lecturer
+// reads anywhere is what they type here - and reading it off the DOM rather
+// than recomputing it is what keeps that true if the counting ever changes.
+//
+// Everything inside the prompt is reached through gotoRoot, never through
+// getElementById: in the cockpit the lecture's own chunks share the id
+// namespace with the chrome (see the note on the cue panel in CLAUDE.md).
+const gotoRoot = document.getElementById('goto-prompt');
+const gotoDigitsEl = gotoRoot.querySelector('.goto-digits');
+const gotoOfEl = gotoRoot.querySelector('.goto-of');
+let gotoActive = false;
+let gotoTyped = '';
+let gotoNums = null;
+
+// number -> index into flatChunks. Built once; the badge numbers are
+// rendered at build time and nothing moves them.
+function gotoMap() {
+  if (gotoNums) return gotoNums;
+  gotoNums = new Map();
+  flatChunks.forEach((c, idx) => {
+    const n = parseInt(c.el.dataset.chunkNum || '', 10);
+    if (n > 0 && !gotoNums.has(n)) gotoNums.set(n, idx);
+  });
+  return gotoNums;
+}
+function gotoLast() {
+  let max = 0;
+  gotoMap().forEach((idx, n) => { if (n > max) max = n; });
+  return max;
+}
+
+function gotoPaint() {
+  const last = gotoLast();
+  gotoDigitsEl.textContent = gotoTyped || '–';
+  gotoOfEl.textContent = 'of ' + last;
+}
+
+function startGoto() {
+  if (gotoActive) return;
+  gotoActive = true;
+  gotoTyped = '';
+  gotoPaint();
+  gotoRoot.classList.remove('hidden');
+}
+
+function endGoto() {
+  if (!gotoActive) return;
+  gotoActive = false;
+  gotoTyped = '';
+  gotoRoot.classList.add('hidden');
+  gotoRoot.classList.remove('goto-refused');
+}
+
+// A number the deck does not have is refused where it was typed. The class
+// has to come off before it can go on again, or a second wrong number in a
+// row would be silent.
+function gotoRefuse() {
+  gotoRoot.classList.remove('goto-refused');
+  void gotoRoot.offsetWidth;
+  gotoRoot.classList.add('goto-refused');
+}
+
+function gotoCommit() {
+  const idx = gotoTyped ? gotoMap().get(parseInt(gotoTyped, 10)) : undefined;
+  if (idx === undefined) { gotoRefuse(); return; }
+  endGoto();
+  // The same landing a click in the contents or a committed search hit uses,
+  // so the broadcast, the cue-card cursor, auto-fit and the stored position
+  // all see an ordinary jump and nothing here has to know about any of them.
+  if (overview) {
+    setSelectedIdx(idx, { recenter: true });
+    exitOverview(true);
+  } else if (idx !== state.activeIdx) {
+    jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
+  }
+}
+
+// While the prompt is open it owns the keyboard: Space would advance the
+// deck and N would open an annotation, so every key is spent here whether
+// the prompt has a use for it or not.
+function gotoKey(e) {
+  const k = e.key;
+  if (k === 'Escape') { endGoto(); e.preventDefault(); return; }
+  if (k === 'Enter') { gotoCommit(); e.preventDefault(); return; }
+  if (k === 'Backspace') {
+    gotoTyped = gotoTyped.slice(0, -1);
+    gotoPaint();
+    e.preventDefault(); return;
+  }
+  if (k.length === 1 && k >= '0' && k <= '9') {
+    // Four digits is more slides than any deck here has, and the cap stops
+    // a held key from growing a number nothing can match.
+    if (gotoTyped.length < 4) gotoTyped += k;
+    gotoPaint();
+    e.preventDefault(); return;
+  }
+  if (k === 'Shift' || k === 'Alt' || k === 'Control' || k === 'Meta') return;
+  e.preventDefault();
 }
 
 function renderSearchResults(q) {
@@ -17820,6 +17999,12 @@ document.addEventListener('keydown', (e) => {
   // key name, and Alt with a letter is a character on macOS, not a command.
   // (No backticks in this comment: one would end the template literal.)
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // The go-to prompt is modal over the key map, and it stands after the
+  // guards above rather than before them: an annotation textarea and the
+  // search box answer their own keys first, so a digit typed into either
+  // one goes where the caret is. Cmd and Ctrl have already left, so a
+  // browser shortcut still works with the prompt open.
+  if (gotoActive) { gotoKey(e); return; }
   // In overview the arrows move the *selection*, never the live slide.
   // They used to fall through to nextChunk/nextCol, which silently
   // re-pointed the active chunk while the visible outline stayed put –
@@ -17943,6 +18128,11 @@ document.addEventListener('keydown', (e) => {
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
     case 'k': case 'K': if (overview) break; viewHooks.onK(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
+    // The third way to reach a slide, beside the board and the search. It
+    // works in overview too, where it lands the same way a committed search
+    // hit does - there is no reason for the board to be the one place a
+    // lecturer who knows the number has to hunt for it.
+    case 'g': case 'G': startGoto(); e.preventDefault(); break;
     case '/': startSearch(); e.preventDefault(); break;
     case '#': cycleAutoFit(1); e.preventDefault(); break;
     case '+': case '=':
@@ -18759,6 +18949,7 @@ ${renderHelpOverlay('speaker', !!editorPayload(frontmatter, columnsHtml, 'speake
 <div id="center-toast" role="status" aria-live="polite"></div>
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
+${GOTO_PROMPT_HTML}
 ${BLANK_BADGE_HTML}
 ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}

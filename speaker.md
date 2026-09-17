@@ -233,6 +233,7 @@ Speaker inherits audience nav bindings, plus:
 | `Shift`-`V` | Preview strip along the bottom ↔ down the right edge (**local**, persisted). Moved off plain `V`, which now freezes: rearranging this window is the rarer and far less urgent act, and the footer used to label it “preview”, which read as *the preview*, not *where the preview sits* |
 | `T` | Toggle a small TOC overlay (**local**, never broadcast) |
 | `O` | Toggle overview – **broadcasts**, both windows enter and leave together |
+| `G` | **Go to a slide by its number** – the number the corner badge paints (`data-chunk-num`: authored chunks counted through the deck, the auto-inserted dividers left out, the same count the printed document and the cockpit's list use). Digits type into `#goto-prompt`, `Backspace` edits, `Enter` lands, `Esc` cancels; a number past the end is refused in place and the prompt stays open with the digits in it. The prompt is **local** and typing into it is never sent, but the landing is an ordinary `jumpTo`, so it **broadcasts** like any other move and the projection follows. Every key is spent inside the prompt while it is open, or `Space` would advance and `N` would open an annotation; an annotation textarea and the search box keep their own keys, so `G` typed into either is a character |
 | `/` | Fulltext search inside overview (**local**: the filter highlight is not synced, only the selection it commits to) |
 
 ### 4.3 Audience → speaker startup
