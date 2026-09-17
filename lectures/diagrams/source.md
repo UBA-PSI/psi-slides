@@ -5,6 +5,12 @@ theme: dark
 collapse: none
 auto-fit: true
 draw-defaults: |
+  # A catalogue, not a talk: most of these drawings are two boxes showing one
+  # statement, standing on a slide of prose that explains it. The default
+  # canvas reserves a talk's figure box for each of them, which here means
+  # half a slide of paper under a specimen and, on eleven slides, auto-fit
+  # taking the prose down to make room for it.
+  frame none
   default text {.small}
   default container pad 0.34
 ---

@@ -3,6 +3,10 @@ title: Figure rules
 subtitle: "The wrong/right pairs from figure-design.md, as compilable figures"
 collapse: none
 draw-defaults: |
+  # This deck is never projected: every figure in it is lifted out of the
+  # build and set into a manual page, where the slide's canvas is not the box
+  # it will stand in. A specimen wants the box that hugs it.
+  frame none
   default text {.small}
 ---
 
