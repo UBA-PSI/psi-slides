@@ -28,11 +28,11 @@ figure costs an hour. The order that works:
    `DG_STEP_OPS`, `DG_PROMINENCE`, `DG_WORD_OPTS`.
 4. **This file**, when something compiles and draws the wrong thing.
 
-## Four placement traps the compiler now warns about
+## Five placement traps the compiler now warns about
 
 Every one of these produced a clean build, a clean lint and a broken figure,
-and they are the reason `dgOverlapWarnings`, `dgLabelGroundWarnings` and
-`dgLabelClipWarnings` exist.
+and they are the reason `dgOverlapWarnings`, `dgLabelGroundWarnings`,
+`dgLabelClipWarnings` and `dgLabelAnchorWarnings` exist.
 
 **Place a row of elements relationally, never with absolute `at`.** Two boxes
 written `at swim.left+5.4 w 1.45` and `at swim.left+6.75 w 1.4` have centres
@@ -78,6 +78,41 @@ lifelines rather than element references. An `.elbow` needs no special case:
 its label sits on the rail, halfway across the gap and clear of both ends,
 which is the same distinction between the drawn run and the exposed one that
 the ground check above is built on. A `.front` edge is exempt outright.
+
+**A free `text` written `.left` is centred on its point like every other one,
+so the edge the class names is half a label width away from the coordinate the
+author aimed at.** `.left` aligns the lines *inside* the element's own box and
+the box stays centred on its `at` – on a one-line label the class moves nothing
+at all, which is what makes it invisible. `text l "zu Hause" at
+haus.left+0.2,haus.top+0.35 {.left}` was meant to sit 0.2 in from the frame and
+put its first letter on the frame line; `text s "3 Stunden, ohne Internet" at
+stunden.left+0.2,…` landed entirely outside the box it names. Two answers, for
+two situations: **`anchor left`** for the one element that has to meet a
+coordinate by its corner, **`align x left a, b, c`** for a set that belongs to
+one edge.
+
+`diagram-ragged-labels` in `lint.js` names the same trap from the *source* and
+fires only where **two or more** free texts share a written `at` x; measured on
+a real keynote, six single cases escaped it, and one of them was the deck's
+clearest collision. `dgLabelAnchorWarnings` is the geometric half: a free `text`
+carrying `.left` or `.right`, with no written `anchor`, whose `at` x names
+another element's coordinate, and whose drawn ink edge on that side misses that
+element. It states the overshoot in units and in px, because the fix is a
+number. The edge it is held to is **two** cases rather than one, and the outer
+one is tried first so they are ordered rather than chosen: a label placed
+*beside* an element may not cross its outline, and a label placed *inside* one
+has to clear the same padding the element's own label keeps. One threshold
+would have had to miss one of the two, and both were in the same keynote.
+
+It stays quiet in four places, and each is a figure the corpus contains: a bare
+`at 4,2` names no element, so there is nothing to be outside of; a written
+`anchor` is the author's answer whatever it says, `anchor center` included; only
+the side the class ranges to is compared, so a `.left` caption overflowing a
+narrow box to the *right* stays `dgOverlapWarnings`' business; and a `.turn`ed
+label is centred whichever way it reads, which `DG_CLASS_CLASHES` already says.
+Run over `lectures/diagrams`, `lectures/network-security`, the tutorial, the
+decoration deck and `docs/artifact/figure-rules`: not one hit. Over the keynote
+it came from: seven, every one of them a defect the review had named by hand.
 
 **It is the compiler's alone, and cannot be mirrored in `lint.js`.** Deciding
 it needs `dgMeasure`'s glyph advances and the laid-out geometry at every beat,
@@ -232,7 +267,7 @@ Consequences worth not breaking:
   **Where one of those four words cannot act it is an error, not a no-op**, and it is the general class gate that says so rather than a check of their own. Three kinds place their label by their own statement rather than through `labelBox`: a container's caption sits on its own top border, a brace's beside the spine on the side the brace was given, an edge's at the middle of the line. So the four apply to a `box`, a `dot` and a free `text`, and `DG_CLASS_KINDS` says exactly that. **On an edge they used to name which side of the line the label sits on, and that reading is the `side` option now** – one keyed word instead of four classes that mean two different geometries depending on the kind they sit on. Two things the placement still has to get right: the offset must clear whatever the label measures **along the normal** (its height beside a horizontal line, its width beside a vertical one, and the other way round again when turned), and the anchor is forced to `middle`, because `dgLabelAnchor` would otherwise read a `.left` and shift the text back across the line it had just cleared. The normal is oriented in page terms rather than travel terms, or a right-to-left arrow puts its label below while every left-to-right one puts it above. **`dgTurnOf()` answers in degrees, so the boolean that measurement needs has to be derived rather than assumed**: the comparison was written `vertical !== dgTurnOf(...)`, which is `false !== 0` – true whatever the line does – so every edge label cleared its own *width*, and on a horizontal edge that pushed the words off by half the label's length. That is why two arrows between one pair carried their labels at two different heights, each proportional to how long its own word was. `turnDeg` (the number, which rides as the third component of the label's geometry vector) and `turned` (the boolean, for the comparison) are separate now. Measured on the emitted SVG before any of this existed, `.left` moved a node label and an edge label and nothing else, and `.top` moved a node label alone; the other five combinations resolved, emitted their CSS and moved nothing. `test/figure-labels.mjs` asserts both halves – the ones refused and the ones that act – and the editor's swatch rows carry exactly the kinds the compiler allows, so the panel never offers a click that can only be refused.
 - **`at X,Y` names a point, and `anchor` says which point of the element lands on it.** Nine words, and they are `DG_ANCHORS` – `tl` / `top` / `tr` / `left` / `center` / `right` / `bl` / `bottom` / `br`, the same set an edge endpoint spells, because a ninth-of-a-box is one idea whichever end of a line or which corner of a label it names. The default is `center`, so a deck that writes no anchor builds byte-identically; `anchor center` is the default written out and draws what leaving the word off draws. **It is an option of the *placement expression*, not of the statement** (`DG_PLACE_OPTS`, with `gap`, `flush`, `frac` and `offset`), which has two consequences worth knowing: it goes directly after the placement, before `w` / `h` / `pad` and before the `{…}` tail – written after them the expression has already ended and nothing reads it, which `dgUnexpected` now names rather than listing the statement's own vocabulary at an author who did not ask for it – and it is refused on a relative placement, which states a face of another element rather than a coordinate and answers the same question with `flush`. Every statement that takes a placement takes it, `table` and `lanes` included, because it lives on the placement rather than in `DG_KIND_OPTS`. **`move … to` carries it forward**: `anchor` says how an element meets a coordinate and a step says which coordinate, so a step that answered both would silently re-centre an anchored element by half its own size the first time it moved. The arithmetic is `dgAnchorOffset`, applied in `layoutDiagram` beside the offset because it is the one placement option that needs the element's own size.
 
-  **What it is for is a row of labels that is not a row.** `.left` aligns the lines *inside* a free text's own box and the box stays centred on its coordinate, so three `text` lines at `at 0,z.cy {.left}` come out with three different left edges – one per label length, the longer the label the further left it starts. Measured on a real keynote, five figures over, and nothing was wrong with any one line, which is why neither file said anything. There are two right answers and they are for two different situations: `align x left a, b, c` holds a *set* to one edge and is what three labels that belong together want; `anchor left` is for the one element that has to meet a coordinate by its corner – a caption in the top-left of a frame, a note against an edge – where there is no set to join. `lint.js` names both in `diagram-ragged-labels` (warning, the linter's alone), which fires where two or more free texts share a written `at` x, carry `.left` or `.right`, carry no `anchor`, and are not held by an `align x`.
+  **What it is for is a row of labels that is not a row.** `.left` aligns the lines *inside* a free text's own box and the box stays centred on its coordinate, so three `text` lines at `at 0,z.cy {.left}` come out with three different left edges – one per label length, the longer the label the further left it starts. Measured on a real keynote, five figures over, and nothing was wrong with any one line, which is why neither file said anything. There are two right answers and they are for two different situations: `align x left a, b, c` holds a *set* to one edge and is what three labels that belong together want; `anchor left` is for the one element that has to meet a coordinate by its corner – a caption in the top-left of a frame, a note against an edge – where there is no set to join. `lint.js` names both in `diagram-ragged-labels` (warning, the linter's alone), which fires where two or more free texts share a written `at` x, carry `.left` or `.right`, carry no `anchor`, and are not held by an `align x`. **A single such label is `dgLabelAnchorWarnings`' half of the same trap** – the linter reads the source and needs a row to see one, the compiler reads the geometry and can see one label miss the element it was aimed at. See *Five placement traps* above.
 - **Text width is estimated, not measured.** There is no browser at build time, so `dgMeasure` uses a per-character advance table, tuned slightly generous (a box wider than its text reads as designed; narrower reads as broken). An explicit `w` that cannot hold its own label emits a `[diagram]` warning rather than overflowing in silence.
 - **Every length in the layout is in grid units, and there are two families of them.** A number that **addresses** the grid is axis-keyed, because a cell has a width and a height: `at`, `w`, `h`, `offset`, a waypoint and every nudge are addresses, and they take `uw` across and `uh` down. A number that states a **clearance** is square, and its ruler is one row – `uh` on both axes.
 
@@ -308,7 +343,7 @@ for the same key in the same commit.**
 - A statement with no name (`bad-diagram-name`, error) – the build reads the token after the head as the name and refuses the line when there is none.
 - The kind gate on a `style` step's classes, in both signs, answered **after the block is read**: a step may name an element declared below it and a tag whose members are. That is why `define()` records what each name draws, generated names included, and why a tag expands to its members with one bad member failing the statement – the compiler's own rule.
 - Everything a `bars … series of` line does not own: `w`, `h`, `space` and a placement all belong to the chart it joined, and `stacked` needs a series to stand on.
-- A row of free `text` elements that is not a row (`diagram-ragged-labels`, **warning**, and the linter's alone): two or more of them share a written `at` x, carry `.left` or `.right`, carry no `anchor`, and are not held by an `align x`. The class aligns the lines inside each element's own box and the box stays centred on its coordinate, so their edges come out staggered by half the difference in label width – nothing is wrong with any one line, which is why neither file said anything before. The message names both fixes, `align x left a, b, c` for a set and `anchor left` for a placement with no set to join. A warning rather than an error, because the same three lines are correct the moment the labels happen to be the same length.
+- A row of free `text` elements that is not a row (`diagram-ragged-labels`, **warning**, and the linter's alone): two or more of them share a written `at` x, carry `.left` or `.right`, carry no `anchor`, and are not held by an `align x`. The class aligns the lines inside each element's own box and the box stays centred on its coordinate, so their edges come out staggered by half the difference in label width – nothing is wrong with any one line, which is why neither file said anything before. The message names both fixes, `align x left a, b, c` for a set and `anchor left` for a placement with no set to join. A warning rather than an error, because the same three lines are correct the moment the labels happen to be the same length. **A single one of them is the compiler's `dgLabelAnchorWarnings`**, which decides it from the laid-out geometry rather than from the shape of the line – six single cases in one keynote were invisible to this rule and every one of them was a defect.
 - An element after the first in a `::: draw` block with no placement (`diagram-no-placement`, error), off the compiler's own `DG_PLACED_HEADS` / `DG_PLACE_INTRO`. The words are matched **positionally**: `point` takes `left` and `right`, so a line-wide test reads `box b "B" point left` as placed, and ten lines of the corpus carry that shape. It counts **nodes**, which is the build's own test for "is this the first element", and exempts a `bars … series of` line, which joins another chart's frame and refuses a placement by name. It also stays quiet on a line this gate has already reported on – one authored defect, one causal diagnostic, which is the nearest a linter gets to the build's "the statement stopped reading" rule.
 
 `lint.js` imports the vocabulary **tables** from `diagram-core.mjs` - never a

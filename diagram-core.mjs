@@ -6430,6 +6430,117 @@ export function createDiagramCompiler(env = {}) {
     }
   }
 
+  // A free `text` ranged left or right, placed on another element's own
+  // coordinate, and drawn centred on it anyway.
+  //
+  // `.left` aligns the lines *inside* the element's box and the box stays
+  // centred on its `at`, so `text l "zu Hause" at haus.left+0.2,… {.left}`
+  // puts half the words left of `haus` – on the frame line it was meant to
+  // sit inside. On a one-line label the class moves nothing at all, which is
+  // what makes it invisible: nothing is wrong with the line, and the drawing
+  // is wrong by half a label width. `anchor left` is the answer for the one
+  // element that has to meet a coordinate by its corner, `align x left a, b`
+  // for a set; `diagram-ragged-labels` in lint.js already names both, and
+  // fires only where **two or more** texts share a written `at` x. Measured
+  // on a real keynote: six single texts, every one of them a defect, and not
+  // one of them reachable by that rule.
+  //
+  // It is the compiler's alone for the reason the other three layout warnings
+  // are: deciding it needs the laid-out geometry, and `lint.js` imports tables
+  // from this module and never a function.
+  //
+  // The edge it is held to is the one the label is standing next to, and that
+  // is two cases rather than one. A label placed *beside* an element may not
+  // cross its outline; a label placed *inside* one has to clear the same
+  // padding the element's own label keeps, or the words sit on the stroke.
+  // Both were in the measured keynote and they read differently in the room –
+  // "3 Stunden, ohne Internet" lay entirely outside the box it names, while
+  // four copies of "zu Hause" had their first letter standing on a dashed
+  // frame line. One number would have had to miss one of them.
+  //
+  // Four things keep it narrow, and each one is a figure the corpus contains:
+  //
+  // - **The x component has to name an element.** A bare `at 4,2` states a
+  //   point on the grid and there is nothing the ink can be outside of.
+  // - **A written `anchor` is the author's, whatever it says.** `anchor
+  //   center` is the default spelled out, and an author who spelled it out
+  //   has answered this question.
+  // - **Only the side the class ranges to.** `.left` is compared against the
+  //   element's left edge and `.right` against its right; a `.left` label
+  //   that runs off the *right* of a narrow box is an overflowing caption,
+  //   which is `dgOverlapWarnings`' business and has a different fix.
+  // - **The inner edge only where the label is inside.** The outer edge is
+  //   tried first, so the two thresholds are ordered rather than chosen: a
+  //   label that has already crossed the outline is reported against the
+  //   outline, and the padding case is what is left.
+  //
+  // Reported only where the ink misses at **every** beat the text is drawn
+  // at, the rule the two checks above follow, so a `move` step sliding a
+  // label into place is mid-animation rather than a mistake.
+  const DG_ANCHOR_MISS_TOL = 2;   // px of ink past the edge before it counts
+  function dgLabelAnchorWarnings(model, states, frames, frameBoxes, warn) {
+    const [uw] = model.unit;
+    const nodeById = new Map();
+    for (const n of model.nodes) nodeById.set(n.id, n);
+    for (const n of model.nodes) {
+      if (n.kind !== 'text' || n.synth) continue;
+      const p = n.place;
+      if (!p || p.kind !== 'abs' || p.anchor || !p.at) continue;
+      const c = p.at[0];
+      if (!c || !c.ref) continue;
+      const host = nodeById.get(c.ref);
+      // A generated frame is a holder rather than a shape, the same exemption
+      // `dgOverlapWarnings` makes, and an edge's box is a route rather than
+      // something a label can be inside of.
+      if (!host || (host.synth && host.synth === host.id)) continue;
+      let drawn = 0, missed = 0, worst = null, side = null;
+      for (let k = 0; k < frames.length; k++) {
+        const st = states[k].get(n.id);
+        if (!st || !st.label) continue;
+        if ((frames[k].vis.get(n.id) ?? 1) <= 0) continue;
+        const s = st.classes.has('left') ? 'left' : st.classes.has('right') ? 'right' : null;
+        // A turned label is anchored middle whichever way it reads, so the
+        // across-pair has nothing to say about it – `DG_CLASS_CLASHES` already
+        // warns about the pair and this one would say it a second time.
+        if (!s || dgTurnOf(st.classes) !== 0) { missed = -1; break; }
+        const g = frames[k].geom.get(n.id + '--l');
+        const b = frameBoxes[k].get(c.ref);
+        const t = frameBoxes[k].get(n.id);
+        if (!g || !b || !b.w || !t) continue;
+        drawn++;
+        // `dgLabelAnchor` makes `.left` a `start` anchor and `.right` an
+        // `end` one, so the label's own origin *is* the ink edge on that
+        // side. Nothing has to be measured.
+        const pad = b.padX || 0;
+        const outer = s === 'left' ? b.x - g[0] : g[0] - (b.x + b.w);
+        const inner = outer + pad;
+        const within = t.y + t.h > b.y + DG_ANCHOR_MISS_TOL
+          && t.y < b.y + b.h - DG_ANCHOR_MISS_TOL;
+        let over = null, how = null;
+        if (outer > DG_ANCHOR_MISS_TOL) { over = outer; how = 'out'; }
+        else if (within && inner > DG_ANCHOR_MISS_TOL) { over = inner; how = 'on'; }
+        if (over === null) { missed = -1; break; }
+        missed++;
+        if (!worst || over > worst.over) { worst = { over, how, k }; side = s; }
+      }
+      if (!drawn || missed !== drawn || !worst) continue;
+      const label = String(states[worst.k].get(n.id).label || '').replace(/\n/g, ' ');
+      // The coordinate as written, nudge included: the nudge is usually the
+      // inset the author meant, and naming it without it invites the reply
+      // that there already is one.
+      const at = `${c.ref}.${c.prop}${c.nudge ? (c.nudge > 0 ? '+' : '') + c.nudge : ''}`;
+      warn(`text ${n.id}${dgSite(n)}: "${label}" carries .${side} and is placed at`
+        + ` ${at}, but with no anchor the box is centred on that point – so its`
+        + ` ${side} edge lands ${(worst.over / uw).toFixed(2)} units (${Math.round(worst.over)} px)`
+        + (worst.how === 'out'
+          ? ` outside ${c.ref}.`
+          : ` short of the inside of ${c.ref}, so the words stand on its outline.`)
+        + ` Write 'anchor ${side}' on the placement so the element meets the coordinate by`
+        + ` that corner, or 'align x ${side} …' to hold it to an edge with the labels it`
+        + ` belongs with.`);
+    }
+  }
+
   function dgFrameDrawables(model, state, boxes, labelIndex) {
     const [uw, uh] = model.unit;
     const geom = new Map();
@@ -7064,6 +7175,7 @@ export function createDiagramCompiler(env = {}) {
       dgOverlapWarnings(model, states, frameBoxes, dgWarn);
       dgLabelGroundWarnings(model, frames, frameBoxes, dgWarn);
       dgLabelClipWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgLabelAnchorWarnings(model, states, frames, frameBoxes, dgWarn);
     }
     // A DG_CLASS_CLASHES row is a **warning**, and it is the compiler's alone,
     // because deciding it correctly needs the resolved state at every beat.
