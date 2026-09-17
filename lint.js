@@ -2736,6 +2736,7 @@ function lintFile(filePath) {
   // slide is silent in the build, so it is named here when the empty
   // segment is not the chunk's last: the author probably meant the note
   // for the beat the `---` opens, and the build will show it one earlier.
+  // The opening segment is exempt - the heading is what stands on it.
   let noteSegs = [];        // { ln, seg } per note block, seg = raw segment index
   let notePins = [];        // { ln, from } per `> note: from N` block
   let rawSegHasText = [];   // per raw segment: does any body line stand in it
@@ -2865,7 +2866,13 @@ function lintFile(filePath) {
       }
     }
     for (const n of noteSegs) {
-      if (!rawSegHasText[n.seg] && n.seg < rawSeg) {
+      // The opening segment is never empty: the heading stands on it, and a
+      // question slide or a definition whose body arrives on the first press
+      // is written exactly that way - heading, note, `---`, body. The build
+      // agrees, and has to: an empty opening segment is dropped, so there is
+      // no earlier segment for the card to slide back to and nothing for this
+      // warning's own sentence to be true of.
+      if (n.seg > 0 && !rawSegHasText[n.seg] && n.seg < rawSeg) {
         add(n.ln, 'warn', 'note-in-empty-beat',
             'this > note: stands alone behind a --- with no slide text after it before the next --- – '
             + 'the cue cards show it one beat earlier, with the previous segment; '
