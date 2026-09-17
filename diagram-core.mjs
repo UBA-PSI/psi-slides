@@ -1852,6 +1852,42 @@ export function rejectSlotPair(classes, lineNo, errors) {
       + 'the line gives two answers to one question. Keep one.', 'semantic');
   }
 }
+// **Two classes from two slots where one of them deletes the thing the other
+// draws on.** Not a slot pair – a stroke weight and a stroke pattern are
+// genuinely different channels – but the second word has nothing left to act
+// on, and the element it produces is not a fainter version of what the author
+// meant: it is invisible.
+//
+// Measured on a real keynote. `box zone "…" {.bare .dashed}` was written for
+// a dashed outline round an area, five times in one deck, and drew nothing at
+// all: `.bare` had already taken the outline off. The author wanted `.clear`,
+// which takes off the *fill* and keeps the outline – and nothing on the page
+// or in the log said so, because both classes resolved and both were emitted.
+//
+// It is an **error** and not a `DG_CLASS_CLASHES` warning, and the reason is
+// the one that table already states for the other direction. A clash row needs
+// the resolved state at every beat and is the compiler's alone; this pair is
+// decidable from the **written tail alone**, with no beat, no layout and no
+// measurement, which is what lets `lint.js` mirror it by calling this same
+// function. A figure whose outline is meant to arrive later writes `{.dashed}`
+// on the line and `bare` in a `style` step, which is one word shorter than the
+// pair and says what it means.
+//
+// `.bare` with `.thick` needs no row: those two *are* one slot.
+export const DG_CLASS_VOIDS = [
+  ['bare', 'dashed'],
+  ['bare', 'dotted'],
+];
+export function rejectVoidPair(classes, lineNo, errors) {
+  const has = new Set(classes || []);
+  for (const [eater, eaten] of DG_CLASS_VOIDS) {
+    if (!has.has(eater) || !has.has(eaten)) continue;
+    dgErr(errors, lineNo, `.${eater} deletes the outline, so .${eaten} has no line to pattern – `
+      + `the element comes out with nothing drawn round it at all. `
+      + `.clear is the one that takes off the fill and keeps the outline: `
+      + `write {.clear .${eaten}} for a ${eaten} frame you can see through.`, 'semantic');
+  }
+}
 // `removed` is the tail's `!class` list, checked against exactly the same table
 // as the positive one. Without it the mark was an **escape hatch past the kind
 // gate**: `edge a -> b {.hex}` was refused and `edge a -> b {!hex}` compiled
@@ -1888,6 +1924,7 @@ export function rejectClassOn(kindWord, classes, lineNo, errors, what = '', remo
   // said. Answering a question the line never asked is the failure this whole
   // cluster exists to remove, so it must not be reintroduced by an ordering.
   rejectSlotPair(survivors, lineNo, errors);
+  rejectVoidPair(survivors, lineNo, errors);
 }
 // "a edge", "a image", "a x coordinate" – the same bug in three functions
 // across two files, all of them user-facing. One helper answers it and every

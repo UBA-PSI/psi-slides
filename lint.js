@@ -827,10 +827,16 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
             + 'one tail cannot both add and remove a class. Keep one.');
       }
     }
-    // The same-slot pair and the clash rows are both the compiler's now, and
-    // for two different reasons. A pair from one slot is an **error** raised by
-    // rejectSlotPair, decidable from the tail alone and mirrored there rather
-    // than here, so this file cannot print a second, different account of it.
+    // The same-slot pair, the void pair and the clash rows are all the
+    // compiler's now, and for two different reasons. A pair from one slot is an
+    // **error** raised by rejectSlotPair, decidable from the tail alone and
+    // mirrored there rather than here, so this file cannot print a second,
+    // different account of it. A DG_CLASS_VOIDS pair - `.bare` with `.dashed`
+    // or `.dotted`, where the first deletes the outline the second patterns and
+    // the element comes out with nothing drawn round it - is the same kind of
+    // error for the same reason, raised by rejectVoidPair; both run inside
+    // rejectClassOn, which this file calls at every statement site, so the
+    // mirror costs nothing and cannot drift.
     // A clash row is a **warning**, and it has to be beat-aware – `{.tone-4
     // .accent}` with a later `style x {.clear}` is a working figure, where the
     // accent ink is inert while the fill is there and becomes the ink the

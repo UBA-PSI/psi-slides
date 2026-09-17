@@ -336,6 +336,24 @@ const FIXTURES = [
   { item: 12, accept: true, name: 'a box class on a sequence tail', body: SEQ + ' {.dim}' + SEQ_BODY },
   { item: 12, accept: true, name: 'a box class on a lanes tail', body: 'lanes l "one | two" at 0,0 w 4 band 0.8 {.sharp}' },
   { item: 12, accept: true, name: 'a box class on a table tail', body: 'table t "A|B" at 0,0 col 1,1 row 0.4 {.tone-2}\n  "1|2"' },
+
+  // ── DG_CLASS_VOIDS: a class that deletes what the next one draws on ──
+  // `.bare` takes the outline off and `.dashed` patterns an outline, so the
+  // pair draws nothing at all. Found five times in one real keynote, where
+  // `.clear` – no fill, outline kept – was what was meant every time. Both
+  // signs of the fix are here, and so is `.bare` alone, because the refusal
+  // has to be about the pair rather than about either word.
+  { item: 'voids', name: 'bare and dashed', body: PAIR + 'box b "B" below a gap 1 {.bare .dashed}' },
+  { item: 'voids', name: 'bare and dotted', body: PAIR + 'box b "B" below a gap 1 {.bare .dotted}' },
+  { item: 'voids', name: 'bare and dashed in a style step', body: PAIR + 'step s\n  style a {.bare .dashed}' },
+  { item: 'voids', name: 'bare and dashed on a table tail', body: 'table t "A|B" at 0,0 col 1,1 row 0.4 {.bare .dashed}\n  "1|2"' },
+  { item: 'voids', accept: true, name: 'clear and dashed', body: PAIR + 'box b "B" below a gap 1 {.clear .dashed}' },
+  { item: 'voids', accept: true, name: 'bare alone', body: PAIR + 'box b "B" below a gap 1 {.bare}' },
+  { item: 'voids', accept: true, name: 'dashed alone', body: PAIR + 'box b "B" below a gap 1 {.dashed}' },
+  // A removal is not the pair: `{!bare .dashed}` takes the swallowing class
+  // off a `default box` and is exactly the line an author should be able to
+  // write. Only the two positives together are refused.
+  { item: 'voids', accept: true, name: 'bare removed beside dashed', body: 'default box {.bare}\n' + PAIR + 'box b "B" below a gap 1 {!bare .dashed}' },
 ];
 
 // Item 13's scope table, paired: every head state, both signs, in all three
