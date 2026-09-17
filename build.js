@@ -12595,10 +12595,28 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   letter-spacing: -0.014em;
 }
 
-/* margin notes: inline below body, dimmed, small */
+/* margin notes: inline below body, dimmed, small.
+
+   Bounded rather than a plain multiple of the zoom, because on a figure
+   slide the zoom is not the type size - it is whatever auto-fit had to solve
+   for to get the drawing into the frame, and a drawing's own labels are
+   pinned to its grid rather than to that number. So the same press that left
+   a figure's box labels at 17 px left the source line under it at 35 px, and
+   the quietest thing on the slide was the loudest. Measured on a keynote:
+   #drei-jahre solved to zoom 1.9 and set its footnote at 34.7 px against
+   figure labels of 20; #handbuch, #kolloquium and #video were the same
+   complaint one step smaller.
+
+   The ceiling is what 0.78em resolves to at the deck's own opening zoom
+   (1.35), so a slide auto-fit did not have to touch is unmoved and only the
+   ones it pushed past the default come back. The floor keeps a footnote
+   readable on a slide auto-fit had to shrink hard. In rem for the reason
+   --block-gap is: the value has to mean the same thing wherever it is read.
+   Between the two it still follows the zoom, so the key that makes the type
+   bigger still makes this bigger. */
 .margin-note {
   font-family: var(--sans-font);
-  font-size: calc(0.78em * var(--zoom));
+  font-size: clamp(0.7rem, calc(0.78rem * var(--zoom)), 1.05rem);
   line-height: 1.45;
   color: var(--ink-soft);
   padding: 0.6em 0 0.2em;
