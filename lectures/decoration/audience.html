@@ -872,6 +872,72 @@ figure.figure-img svg {
   display: block;
   background: var(--paper);
 }
+/* ── how large a drawing is in the room ───────────────────────────────
+   The document answered this first and the reasoning is written out over
+   main .psi-diagram in PRINT_CSS: a label's rendered size is DG_FONT times
+   (rendered width / viewBox width), so filling the measure sets the type
+   inside a figure by however many grid units the author happened to draw in.
+   The projection had exactly the same defect and it was worse here, because
+   auto-fit grows the slide's own words to fill the frame while an svg already
+   at 100% cannot grow with them. Measured on a real keynote at 1600x900: body
+   51.5 px, footnote 40 px, heading 80 px - and figure labels from 16 to 27 px,
+   on the same deck, decided by nothing the author wrote. Across the corpus the
+   spread was 0.53x to 2.97x of the running text.
+
+   So the width comes off the type here too: --dg-type-w is the viewBox width
+   measured in base labels (diagram-core emits it on every svg), and one base
+   label is one em of the text the figure sits in - .chunk-body's em on a
+   slide, the pane's or the card's inside one, each of which already carries
+   --zoom and --body-scale. A figure in a narrow card therefore wears the
+   card's type, which is the right answer and not a special case.
+
+   The multiplier is 1 and not print's 0.9. On paper a figure is apparatus
+   inside a column of running text and a slightly smaller label says so; in a
+   room there is no running text beside the figure to mark it against, and
+   anything under the body size is the failure this rule exists to remove -
+   the back row reads the slide's words or it does not, and a label is a word.
+   style: {figure-type: 0.9} is there for a deck that wants the document's
+   proportion; the key is bounded rather than free for the reason its two
+   neighbours are.
+
+   The second term is print's third one, and it is not optional: an inline
+   <svg> does NOT answer a binding max-height by shrinking its width the way
+   the replaced-element rules suggest. Measured - a 90x604 drawing in a .wide
+   column came out 191 px wide and 558 px tall, the whole picture centred in a
+   box three times its height with empty band above and below. (That is what
+   the height cap has always done; the editor's frame preview says so in a
+   note.) Converting the height budget into a width makes the box hug the
+   drawing, which is also what lets the figure follow the type at all: a
+   height-capped figure keeps a width its labels did not ask for.
+
+   A figure that wants more than the column has is capped at 100% and lands
+   under the target size - the one case CSS cannot fix. fitZoomToChunk sees
+   that as "does not fit" and takes the slide's type down to meet it, and the
+   build says so at compile time (figureTypeWarning).
+
+   Both terms are definite LENGTHS and the column is left to DIAGRAM_CSS's
+   max-width: 100% - print's own 100% inside the min() is correct there and
+   wrong here. Several containers on a slide are shrink-to-fit (a figure chunk
+   centres its column, a card, a pane), and a percentage
+   inside min() contributes nothing to a container's intrinsic width: the svg
+   asked its parent for zero, the parent sized itself to the words beside the
+   drawing, and the figure then got 100% of that. Measured: lectures/diagrams
+   #lifecycle at 505 px in a 1152 px column, and because shrinking the type
+   shrinks the words too, the figure stayed capped at every step and auto-fit
+   walked the slide to its 0.6 floor. A definite length contributes itself. */
+.chunk .psi-diagram {
+  width: min(calc(var(--dg-type-w, 100000) * 1em * var(--figure-type, 1)),
+             calc(var(--slide-h, 100vh) * 0.62 * var(--dg-ar, 1)));
+  /* The box hugs the drawing now instead of spanning the measure, so it has
+     somewhere to sit. Centre by default, matching figure.figure-img above;
+     styleBodyAttrs writes data-blocks only when it is left, so the centre case
+     has to be the bare rule. Same three rules as PRINT_CSS. */
+  margin-inline: auto;
+}
+body[data-blocks=left] .chunk .psi-diagram,
+.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+
 figure.figure-img figcaption {
   font-family: var(--sans-font);
   /* Every context this caption appears in is zoomed already - .chunk-body in
@@ -1077,6 +1143,62 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 .chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom) * var(--heading-scale)); font-weight: 500; }
 .chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom) * var(--body-scale)); color: var(--ink-soft); }
 
+/* A statement slide: a few lines of large type, arriving one per press.
+   The heading is the first line and every top-level paragraph is another
+   one, all at the same size, the same weight and the same ink - which is
+   what separates this from every other type, where the heading names the
+   slide and the body says something under it. Here there is nothing under
+   anything; the slide is an utterance.
+
+   Why a type and not a construction. It was faked two ways before this
+   existed: ::: cards 1 with .large and .clear, which puts the words in the
+   accent colour (a card's term is a bold run, and style.bold decides what a
+   bold looks like) and smaller than a heading, and a ::: draw of .large
+   text, which is a drawing and pays a drawing's price - no wrap,
+   no hyphenation dictionary, no search index, a fixed grid. Neither could
+   say "these are three lines of speech".
+
+   One size, named once, and it is the *heading* scale rather than the body
+   scale that carries it: the paragraphs are heading lines, so a deck that
+   turns its headings up turns these up with them. --statement-size is a
+   variable and not a number written twice because the heading and the
+   paragraphs have to be the same size to the pixel, or the run reads as a
+   title over a list. */
+.chunk[data-tag=statement] {
+  --statement-scale: 2.1;
+  --statement-size: calc(var(--statement-scale) * 1em * var(--zoom) * var(--heading-scale));
+  /* The space between two lines, written so that the one between the
+     heading and the first paragraph is the same as the one between two
+     paragraphs. It cannot be the same declaration twice: the paragraph's
+     gap is its own margin, in its own (already enlarged) em, and the
+     heading's is a flex gap on .chunk-content, whose em is the chunk's. So
+     the size is a bare number and both are derived from it - written the
+     obvious way, the heading sat about half as far from the first line as
+     the lines sat from each other, and a run of four lines read as a title
+     over three. */
+  --statement-gap: calc(var(--statement-scale) * 0.55em * var(--zoom) * var(--heading-scale));
+}
+.chunk[data-tag=statement] .chunk-heading { font-size: var(--statement-size); }
+.chunk[data-tag=statement] .chunk-body {
+  font-size: var(--statement-size);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+}
+/* The gap between two lines is one decision and it is made here rather than
+   by the paragraph margin alone, because a line can arrive as its own
+   reveal segment (a --- rule) or as a second paragraph inside one, and the room
+   must not be able to tell which. Both routes land on a top-level <p>. */
+.chunk[data-tag=statement] .chunk-body p { margin: 0 0 0.55em; }
+.chunk[data-tag=statement] .chunk-content { gap: var(--statement-gap); }
+/* What a bold inside a statement line looks like is deliberately NOT
+   answered here. DERIVED_STRONG already reaches these paragraphs at (0,4,3)
+   and hands them style.bold, which is the deck's own answer to that
+   question; a rule written here would be a second, weaker way to say the
+   same thing - it lost to DERIVED_STRONG on specificity when it was tried,
+   which is to say it did nothing at all. */
+
 .chunk[data-tag=figure] .chunk-heading {
   font-size: calc(1.05em * var(--zoom) * var(--heading-scale));
   font-weight: 500;
@@ -1086,8 +1208,28 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 }
 .chunk[data-tag=figure] .chunk-content { align-items: center; gap: 0.9em; }
 .chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
+/* That 40em is a caption measure - the words under the picture - and on a
+   figure chunk the picture is inside the same box. It did not matter while a
+   drawing filled whatever box it was given; now that the drawing is sized
+   from the type, a cap written in the same em as the type is a cap on the
+   LABEL: available = 40 ems, wanted = --dg-type-w ems, and both sides move
+   together, so a figure of more than 40 label-widths could never reach body
+   size at any zoom and auto-fit chased it to the 0.6 floor. lectures/diagrams
+   has thirteen of those, measured. The column is the picture's measure; the
+   caption keeps its own below. Only when there is a drawing in the box, so a photograph's
+   caption chunk renders exactly as before. */
+.chunk[data-tag=figure] .chunk-body:has(.figure-diagram) { max-width: none; }
+.chunk[data-tag=figure] .chunk-body:has(.figure-diagram) > :not(.figure-diagram) > p,
+.chunk[data-tag=figure] .chunk-body:has(.figure-diagram) > p { max-width: 40em; }
 .chunk[data-tag=figure] .chunk-heading { order: 2; }
 .chunk[data-tag=figure] .chunk-body pre { order: 1; font-size: 0.82em; }
+/* A figure chunk orders its .chunk-content children by hand, and an aside
+   that names no order takes 0 - so a ::: footnote, the one child written last
+   and meant to read last, came out above the caption and above the artwork.
+   A source line standing over the picture it cites reads as the slide's own
+   first words. Print needs no counterpart: the document renderer emits the
+   expansions after the body and .chunk is not a flex container there. */
+.chunk[data-tag=figure] .margin-note { order: 4; }
 
 .chunk[data-tag=exercise] .chunk-heading { font-style: italic; }
 .chunk[data-tag=exercise] .chunk-content::before {
@@ -1264,12 +1406,29 @@ body[data-headings=off] .chunk-heading { display: none; }
    ragged on both edges and hard to read. The case is one or two lines, and
    only the author knows which chunk is that case.
 
-   It is the prose and not the heading. Where a heading sits is already one
-   question with one answer - the tag's treatment, overridden for a whole
-   deck by style.headings - and a chunk class that also moved it would be a
-   second, stronger way to say the same thing that style.headings: left could
-   then no longer override. */
+   It is the whole slide and not the prose alone. It used to be the prose
+   alone, on the argument that where a heading sits is style.headings'
+   question and a chunk class answering it too would be a second, stronger
+   way to say the same thing. What that produced on a real deck was three
+   alignments on one slide: a heading on the left under style.headings: left,
+   a centred paragraph under it, and a footnote back on the left again. The
+   concern was about the reverse override - a deck-wide style.headings no
+   longer able to move a centred heading - and nobody wants that override:
+   .center is the more specific decision by construction, one chunk against a
+   whole deck, and a class written on one slide should win there. So the
+   heading and the chunk's footnotes follow the prose, and the specificity
+   (0,4,x) is above body[data-headings=left] .chunk-heading (0,2,0) on
+   purpose rather than by accident. */
+.chunk[data-center] > .chunk-content > .chunk-heading,
+.chunk[data-center] > .chunk-content > .margin-note,
 .chunk[data-center] > .chunk-content > .chunk-body > .reveal-segment > p { text-align: center; }
+/* …with one type excepted, and the paragraph above says why it has to be.
+   On a statement chunk the heading is not a title over the prose, it is
+   the first of the lines, so leaving it on the left while the lines that
+   follow move to the middle gives one utterance two axes - the exact defect
+   the question tag was fixed for. The author wrote .center on this chunk,
+   so it outranks style.headings for it and nothing else. */
+.chunk[data-tag=statement][data-center] > .chunk-content > .chunk-heading { text-align: center; }
 /* The hairline and the thick rule above a definition / principle chunk. */
 body[data-rules=off] .chunk[data-tag=principle] .chunk-content::before,
 body[data-rules=off] .chunk[data-tag=definition] .chunk-content::before { display: none; }
@@ -1278,6 +1437,16 @@ body[data-rules=off] .chunk[data-tag=definition] .chunk-content::before { displa
    tag choice was; this one stayed because a task the room is meant to do
    benefits from being named. Some authors do not want it either. */
 body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content: none; }
+/* The other generated word on the projection, and the one the key used to
+   miss: the small-caps NOTE over a ::: footnote. It is invented the same way
+   the tag eyebrow is - the author wrote no label, the build supplied one -
+   so the switch that turns the tag word off has to reach it too, or
+   labels: off leaves the loudest of the two standing on every footnote.
+
+   Live views only. PRINT_CSS keeps its label, because there the aside is one
+   more block in a column of blocks with nothing to mark it as a footnote;
+   on the slide the hairline and the position already say that. */
+body[data-labels=off] .margin-note::before { content: none; }
 
 /* ── cover variants ──────────────────────────────────────────────────
    Four compositions of the same five fields. classic is what the tool
@@ -2511,6 +2680,20 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    reached none of it - that case cost this block two extra selectors and
    now costs it none. */
 .cards li .card-lead { display: block; margin-bottom: 0.45em; }
+/* A card's term does not hyphenate either, for the reason a row's does not:
+   it is a name and not a measure, and a name broken across two lines reads
+   as a fault. Both openings are covered and have to be - the heading form
+   carries .card-lead, the run-in form is a plain leading bold, and a card
+   whose whole content is one bold ("- **Umgehen.**", the shape a keynote
+   writes) is the second of those. The sentence that follows a run-in lead
+   is prose again and keeps the li's hyphens: auto, as does every other line
+   in the card; break-word stays under all of it, where the card rule put
+   it, because a card is the narrowest measure on the slide. */
+.cards li .card-lead,
+.cards li > :is(strong, b):first-child {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 /* An author who wrote the hard break meant one separation, not two: the
    block display already broke the line, so the <br> after it adds an
    empty one. */
@@ -2556,14 +2739,43 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
      a word an author could write that moved nothing, which is the silent
      no-op this format refuses everywhere else. */
   align-items: var(--row-anchor, center);
-  /* A definite share rather than an intrinsic track. Both intrinsic
-     keywords were measured and both failed: auto resolves toward
-     min-content under pressure, and the term inherits overflow-wrap from
-     the card rule, so its min-content is one character - the column came
-     out one letter wide. max-content then resolved to 0px with an item
-     78px wide in it. A fraction is predictable, needs no puzzle, and a
-     term column of about a third is what the shape wants anyway. */
-  grid-template-columns: minmax(6em, 0.38fr) minmax(0, 1fr);
+  /* The term column is as wide as the longest term and no wider, with the
+     share it used to have as the ceiling.
+
+     It was a fixed 0.38fr share, and the note here recorded why: both
+     intrinsic keywords had been tried and both failed - auto resolved
+     toward min-content under pressure and the term, inheriting
+     overflow-wrap: break-word from the card rule, had a min-content of one
+     character, so the column came out one letter wide; max-content then
+     measured 0px with an item 78px wide in it. Those findings still stand
+     for the two bare keywords, which is why neither is what this is.
+
+     fit-content() is a third thing and is not subject to either failure. It
+     is min(max-content, max(min-content, 27%)): the max-content side sizes
+     the column to the longest term, so a row of years reads "2024 Testat
+     eingeführt" rather than putting a hand's width of paper between the
+     two; the 27% side is the ceiling, so a term of six words cannot eat the
+     body's half; and the min-content floor is the one the old note found to
+     be a single character, which here can only ever raise the track and
+     never collapse it.
+
+     27% is the width 0.38fr already had, measured rather than derived, and
+     the arithmetic is the trap: two flex tracks whose factors sum to more
+     than 1 divide the space in proportion, so 0.38fr beside 1fr was
+     0.38/1.38 of the measure - 27.5%, not 38%. The first attempt wrote 38,
+     and python-intro's #prerequisites came out WIDER than before (307.6px
+     of term column against 414.7px, at 1600x900), which is the direction
+     this was meant to fix. Pinned at the old width, a block whose longest
+     term reaches the ceiling renders as it always did and only the ones
+     with room to spare move: on that same deck #collections went from
+     307.6px to 156.5px and handed its four bodies 151px each.
+
+     What a fixed share bought and this gives up is a term column that is
+     the same width on every slide of a deck. It was never the same width
+     anyway - 0.38 of a .wide chunk and 0.38 of a .standard one are
+     different numbers - and a column that fits its own words is what a
+     reader is actually looking at. */
+  grid-template-columns: fit-content(27%) minmax(0, 1fr);
   column-gap: calc(1.1em * var(--card-fs, 1));
   row-gap: calc(0.7em * var(--card-fs, 1));
 }
@@ -2601,15 +2813,27 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   text-align: var(--card-align, left);
   font-size: calc(1em * var(--card-fs, 1));
   line-height: 1.25;
-  /* A single long term cannot wrap between words, so it hyphenates - and
-     if it is longer than even that allows, it breaks rather than running
-     across the body beside it. */
-  /* Hyphenation first and breaking only as the floor: Technocracy came
-     out as Technocrac / y when break-word got there first, which is
-     worse than the ragged edge it prevented. */
-  hyphens: auto;
+  /* A term never hyphenates, and this rule used to be the opposite.
+     hyphens: auto was here as the rescue for a long compound in a narrow
+     column, and with the column sized to the term that rescue has almost
+     nothing left to rescue - while what it cost was constant and visible:
+     a term is a name, and "Umge-hen." or "Zustän-digkeit." on a slide reads
+     as a typesetting fault rather than as a word that ran long, because a
+     term stands alone with nothing after it to explain the break. The line
+     of prose beside it still hyphenates; that is a measure, this is a
+     label. style.hyphenate: all was what made it visible on a whole deck,
+     and the key says in STYLE_SPEC that it does not reach here - it does
+     not have to, because the answer is the same in all three settings.
+
+     break-word stays as the floor under it, for the term that is one word
+     longer than the 27% ceiling: without it that word runs across the body
+     beside it. It is a worse break than a hyphenated one - Technocrac / y
+     is the measured example - and that is the price of never guessing at a
+     term's syllables. It fires only at the ceiling, where the column has
+     already stopped growing. */
+  hyphens: manual;
+  -webkit-hyphens: manual;
   overflow-wrap: break-word;
-  hyphenate-limit-chars: 7 3 3;
 }
 .cards.rows.ck-square li > :is(strong, b):first-child { border-radius: 0; }
 /* The body is the anonymous run after the term. It is prose beside a card
@@ -2948,7 +3172,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    :has(> figure:only-child) is that test, written where the compiler already
    put the answer rather than being decided again in the parser. */
 .section-lead { display: contents; }
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   align-items: center;
@@ -2958,27 +3182,78 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    cell, which is the whole of the fix: as separate grid rows the mark and the
    heading were pushed apart by the height the spanning figure forced into
    every row they sat in. */
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-lead {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) > .section-lead {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   grid-column: 1;
   grid-row: 1;
 }
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-body {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) > .section-body {
   grid-column: 2;
   grid-row: 1;
   margin-top: 0;
   max-width: none;
   align-self: center;
 }
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) .section-body svg {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) .section-body svg {
   max-height: calc(var(--slide-h) * 0.68);
 }
 .chunk-section .section-body svg {
   width: auto; height: auto;
   max-width: 100%;
   max-height: calc(var(--slide-h) * 0.52);
+}
+/* ── {.stack} on the # heading: the content under the heading, full measure ──
+   The beside layout above answers the divider that opens on *a* drawing, where
+   the heading and the picture balance each other across the frame. It cannot
+   answer the divider whose drawing IS the part - a build plan with six cells
+   and labels in them - because half a frame is not enough to read one from the
+   back of a room: the figure came out at about 55% of the slide and the labels
+   with it.
+
+   So .stack turns the composition the other way up. The heading stops being
+   the headline and becomes the figure's caption: it sits above, at the scale
+   the mark and the credits are set at rather than the cover's, and the content
+   takes the whole of the .full measure the divider article already carries.
+   Nothing else about the divider changes - all six section: variants draw
+   their own treatment of the heading exactly as before, which is why this is
+   a class on the one heading rather than a seventh variant beside them. */
+.chunk-section[data-section-layout=stack] .chunk-content { gap: 0; }
+.chunk-section[data-section-layout=stack] .section-heading {
+  /* A caption over a picture, not a part title standing alone: between the
+     mark's small caps and the plain divider's 2.6em, and quieter in colour so
+     the drawing under it is what the room reads first. */
+  font-size: calc(1.35em * var(--zoom));
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: 0.01em;
+}
+.chunk-section[data-section-layout=stack] .section-mark { margin-bottom: 0.2em; }
+.chunk-section[data-section-layout=stack] .section-mark.section-num {
+  font-size: calc(1.5em * var(--zoom));
+}
+.chunk-section[data-section-layout=stack] .section-body {
+  /* The 30em cap is the measure a quotation wants; a figure wants the frame.
+     align-self: stretch because .chunk-content is a flex column whose items
+     otherwise shrink-wrap, which leaves a centred figure in a full-width slot
+     looking like a figure that did not fit. */
+  max-width: none;
+  align-self: stretch;
+  margin-top: 0.55em;
+}
+.chunk-section[data-section-layout=stack] .section-body figure {
+  /* Ranged left, not centred: the heading above is the figure's caption now,
+     and a caption hanging off the left edge of a centred drawing reads as two
+     blocks that happen to be on one slide. A figure that fills the measure
+     looks the same either way; a narrower one lines up with its words. */
+  text-align: left;
+}
+.chunk-section[data-section-layout=stack] .section-body svg {
+  /* The heading is one line above it now, so the picture may take almost the
+     whole frame - the beside layout's own ceiling, which was measured against
+     a heading standing beside it rather than over it. */
+  max-height: calc(var(--slide-h) * 0.72);
 }
 /* A divider with a picture behind it needs the full slide, like every other
    chunk that carries one - the shared rule keys on data-has-backdrop and is
@@ -3334,6 +3609,11 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
 .chunk.active:not(.has-annot):not(.annot-visible) .annot-add { opacity: 0.45; }
 .annot-add:hover { opacity: 0.9; }
 @media (max-width: 780px) { .annot-add { display: none; } }
+/* note-button: off, and the M key, which writes the same attribute at
+   runtime. display: none rather than opacity: 0, because the button is a
+   click target as well as a hint and a hidden hint that still swallows a
+   click in the gutter is worse than the hint was. */
+body[data-note-button=off] .annot-add { display: none; }
 
 /* expansion chevrons – bottom-right of the slide */
 .exps {
@@ -3457,6 +3737,24 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
    the time the camera lands. */
 .chunk:not(.active) .chunk-backdrop { opacity: 0; }
 .chunk-backdrop { transition: opacity 260ms ease; }
+/* neighbours: hidden - the frame shows the active slide and nothing else.
+   The dimmed neighbour above is deliberate for a lecture: the camera pans
+   through a column and the slide before and after standing there faintly is
+   what makes the view one board rather than a stack of cards. A keynote
+   wants the opposite, and at the default --dim a neighbour sits at about
+   17%, which for a heading set in display type is perfectly legible from
+   the room - the frame then carries two slides and says so.
+
+   The fade is the backdrop's 260ms and not the chunk's own 500ms, for the
+   backdrop's reason: the camera takes --camera-duration (250ms) to land, and
+   a neighbour still at a tenth of its opacity when it arrives reads as a
+   smear beside the slide rather than as a slide leaving. Going the other way
+   costs nothing - a chunk that becomes .active matches the rule above, which
+   declares no transition, so the arriving slide is simply there. */
+body[data-neighbours=hidden] .chunk:not(.active) {
+  opacity: 0;
+  transition: opacity 260ms ease;
+}
 
 /* Prose in the live views had no line-breaking treatment at all, and the
    omission was invisible because the mode the room usually sees is the
@@ -3627,7 +3925,8 @@ body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
   hyphenate-limit-chars: 6 3 3;
 }
 body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
-  .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]) {
+  .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]),
+body[data-hyphenate=all] #stage .chunk[data-tag=statement] .chunk-body p {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
@@ -4402,8 +4701,14 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
      with a caption and often arrives in portrait; a diagram is landscape and
      is usually the whole point of the chunk, and at 50vh a wide one was
      height-capped hard enough to leave a third of the measure empty beside
-     it. */
-  max-height: 62vh;
+     it.
+     Off --slide-h rather than off vh, for the reason every other slide-
+     internal size is: the cockpit lays the mirror out at the AUDIENCE window's
+     dimensions and then transforms it into its cell, so a raw vh there is the
+     cockpit window's and the same figure was capped at a different height in
+     the two windows. Print defines no --slide-h and falls back to the number
+     this rule has always had; it overrides the cap anyway (PRINT_CSS). */
+  max-height: calc(var(--slide-h, 100vh) * 0.62);
   height: auto;
 }
 @media print {
@@ -4413,7 +4718,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
      document with no cap at all, so a portrait diagram resolved to the
      measure times its ratio and came out taller than the page. The answer
      now lives beside every other figure kind in PRINT_CSS, under a selector
-     specific enough to beat the 62vh above in both media. Do not re-add a
+     specific enough to beat the cap above in both media. Do not re-add a
      .psi-diagram max-height here without reading that rule. */
   /* A diagram is one picture; splitting it across a page break makes it
      two useless halves. */
@@ -4990,7 +5295,8 @@ Write nothing and nothing is drawn there.</p>
 <ul>
 <li><strong class="card-lead">A blockquote</strong><br>opens the part on a quotation. Part 1 of this lecture does</li>
 <li><strong class="card-lead">A backdrop</strong><br>opens it on a photograph. This part does</li>
-<li><strong class="card-lead">A figure</strong><br>opens it on a drawing set beside the heading. Part 3 does</li>
+<li><strong class="card-lead">A figure</strong><br>opens it on a drawing, beside the heading or, with <code class="nb">{.stack}</code>, under it.
+Parts 3 and 7 do</li>
 </ul>
 
 </div>
@@ -4999,6 +5305,10 @@ Write nothing and nothing is drawn there.</p>
 <p>Those three are what a divider takes; the other directives belong inside a
 <code class="nb">##</code> slide. The words do print, as a short paragraph under the part title. The
 divider slide itself never prints.</p>
+<p><strong>A <code>&gt; note:</code> written there is the divider&#39;s own.</strong> It reaches the cockpit as
+the card for that camera stop and <code class="nb">print-notes.html</code> under the part title, so
+the sentence that says what the part is for arrives while the part title is on
+the wall rather than one slide late.</p>
 </div></div>
     
     <aside class="annot-box" data-annot-for="divider-body">
@@ -5039,6 +5349,35 @@ the quotation divider in Part 1 comes out.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></div>
 </article>
+<article class="chunk chunk-free" id="divider-stack" data-chunk-id="divider-stack" data-tag="free" data-width="standard" data-chunk-num="13">
+  
+  <div class="chunk-content">
+    
+    <h2 class="chunk-heading">…unless the figure is the point of the part</h2>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><p><strong><code># Heading {.stack}</code> puts the content under the heading at the full measure</strong>
+and sets the heading small above it, as its caption. Beside the heading a
+figure gets about half the frame, which is right for a drawing that balances a
+part title and unreadable for one with six cells and a label in each. Part 7&#39;s
+divider wears it; Part 3&#39;s is the other layout.</p>
+<p>The class is on the one heading rather than a seventh <code class="nb">section:</code> value, because
+<code class="nb">section:</code> is how the deck treats every divider and this is a fact about one
+divider&#39;s content. A <code class="nb">{.stack}</code> over a divider with nothing under its heading
+is refused.</p>
+</div></div>
+    
+    <aside class="annot-box" data-annot-for="divider-stack">
+      <div class="annot-box-label">annotation · divider-stack</div>
+      <div class="annot-qr qr-card" aria-hidden="true"></div>
+      <textarea class="annot-textarea" placeholder="Note… (Enter for newline, Esc to exit)" rows="1"></textarea>
+    </aside>
+  </div>
+  <button class="annot-add" type="button" data-annot-add>+ note</button>
+  
+  
+  
+  
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></div>
+</article>
 </section>
 <section class="column" data-col="3" id="grounds">
 <article class="chunk chunk-section" data-tag="section" data-width="full" data-section="outline" data-chunk-id="grounds-section">
@@ -5054,12 +5393,12 @@ the quotation divider in Part 1 comes out.</p>
 <g id="dg1-rows" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg1-rows--r" x="-77.00" y="40.50" width="154.00" height="27.00" rx="4"/><g id="dg1-rows--lw0" data-lab="rows--l" class="dg-lwrap" transform="translate(0.00,54.00)"><g id="dg1-rows--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">rows</tspan></text></g></g></g>
 <g id="dg1-side" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg1-side--r" x="-77.00" y="94.50" width="154.00" height="27.00" rx="4"/><g id="dg1-side--lw0" data-lab="side--l" class="dg-lwrap" transform="translate(0.00,108.00)"><g id="dg1-side--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">side 2:1</tspan></text></g></g></g>
 <g id="dg1-note" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg1-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(136.40,54.00)"><g id="dg1-note--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">three containers,</tspan><tspan x="0" y="11.58">three jobs</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  cards \"cards 3\"  at 0,0 w 1.1 h 0.5 {.tone-2}\nbox  rows  \"rows\"     below cards gap 0.5 same as cards {.tone-3}\nbox  side  \"side 2:1\" below rows  gap 0.5 same as cards {.tone-1}\ntext note  \"three containers,\\nthree jobs\" right of rows gap 1.1 -- rows {.small .muted .left}","attrs":"unit=140x54","opener":"::: draw 140x54","range":[7289,7566],"chunk":null,"width":null,"alt":""}</script></figure></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  cards \"cards 3\"  at 0,0 w 1.1 h 0.5 {.tone-2}\nbox  rows  \"rows\"     below cards gap 0.5 same as cards {.tone-3}\nbox  side  \"side 2:1\" below rows  gap 0.5 same as cards {.tone-1}\ntext note  \"three containers,\\nthree jobs\" right of rows gap 1.1 -- rows {.small .muted .left}","attrs":"unit=140x54","opener":"::: draw 140x54","range":[8550,8827],"chunk":null,"width":null,"alt":""}</script></figure></div>
   </div>
   
   
 </article>
-<article class="chunk chunk-free" id="cards-why" data-chunk-id="cards-why" data-tag="free" data-width="wide" data-chunk-num="13">
+<article class="chunk chunk-free" id="cards-why" data-chunk-id="cards-why" data-tag="free" data-width="wide" data-chunk-num="14">
   
   <div class="chunk-content">
     
@@ -5091,9 +5430,9 @@ than as a card</li>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></div>
 </article>
-<article class="chunk chunk-free" id="cards-grounds" data-chunk-id="cards-grounds" data-tag="free" data-width="wide" data-chunk-num="14">
+<article class="chunk chunk-free" id="cards-grounds" data-chunk-id="cards-grounds" data-tag="free" data-width="wide" data-chunk-num="15">
   
   <div class="chunk-content">
     
@@ -5134,9 +5473,9 @@ its top</li>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></div>
 </article>
-<article class="chunk chunk-free" id="cards-size" data-chunk-id="cards-size" data-tag="free" data-width="wide" data-chunk-num="15">
+<article class="chunk chunk-free" id="cards-size" data-chunk-id="cards-size" data-tag="free" data-width="wide" data-chunk-num="16">
   
   <div class="chunk-content">
     
@@ -5171,9 +5510,9 @@ so the heads do not jump when the reader presses <code class="nb">C</code>.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></div>
 </article>
-<article class="chunk chunk-free" id="cards-fold" data-chunk-id="cards-fold" data-tag="free" data-width="wide" data-chunk-num="16">
+<article class="chunk chunk-free" id="cards-fold" data-chunk-id="cards-fold" data-tag="free" data-width="wide" data-chunk-num="17">
   
   <div class="chunk-content">
     
@@ -5213,9 +5552,9 @@ deck opens with everything showing, because its frontmatter says
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></div>
 </article>
-<article class="chunk chunk-free" id="rows" data-chunk-id="rows" data-tag="free" data-width="wide" data-chunk-num="17">
+<article class="chunk chunk-free" id="rows" data-chunk-id="rows" data-tag="free" data-width="wide" data-chunk-num="18">
   
   <div class="chunk-content">
     
@@ -5249,9 +5588,9 @@ slide however long the terms are.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></div>
 </article>
-<article class="chunk chunk-free" id="side" data-chunk-id="side" data-tag="free" data-width="wide" data-chunk-num="18">
+<article class="chunk chunk-free" id="side" data-chunk-id="side" data-tag="free" data-width="wide" data-chunk-num="19">
   
   <div class="chunk-content">
     
@@ -5268,7 +5607,7 @@ second one. Any two numbers work.</p>
 <figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" style="--dg-type-w:30.980;--dg-ar:3.3674" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
 <g id="dg2-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg2-a--r" x="-142.50" y="-57.00" width="285.00" height="114.00" rx="4"/><g id="dg2-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">2fr</tspan></text></g></g></g>
 <g id="dg2-b" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg2-b--r" x="155.70" y="-57.00" width="142.50" height="114.00" rx="4"/><g id="dg2-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(226.95,0.00)"><g id="dg2-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">1fr</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"box a \"2fr\" at 0,0 w 1.9 h 1.9 {.tone-2}\nbox b \"1fr\" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}","attrs":"unit=150x60","opener":"::: draw 150x60","range":[11050,11145],"chunk":"side","width":"wide","alt":"`::: side` takes a ratio"}</script></figure>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"box a \"2fr\" at 0,0 w 1.9 h 1.9 {.tone-2}\nbox b \"1fr\" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}","attrs":"unit=150x60","opener":"::: draw 150x60","range":[12311,12406],"chunk":"side","width":"wide","alt":"`::: side` takes a ratio"}</script></figure>
 
 
 </div></div></div></div>
@@ -5284,7 +5623,7 @@ second one. Any two numbers work.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></div>
 </article>
 </section>
 <section class="column" data-col="4" id="reveal">
@@ -5300,7 +5639,7 @@ second one. Any two numbers work.</p>
   
   
 </article>
-<article class="chunk chunk-free" id="reveal-why" data-chunk-id="reveal-why" data-tag="free" data-width="wide" data-chunk-num="19">
+<article class="chunk chunk-free" id="reveal-why" data-chunk-id="reveal-why" data-tag="free" data-width="wide" data-chunk-num="20">
   
   <div class="chunk-content">
     
@@ -5325,9 +5664,9 @@ or slides about while it is being revealed.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></div>
 </article>
-<article class="chunk chunk-figure" id="reveal-open" data-chunk-id="reveal-open" data-tag="figure" data-width="full" data-bare="" data-chunk-num="20" data-has-backdrop="" data-backdrop="clear">
+<article class="chunk chunk-figure" id="reveal-open" data-chunk-id="reveal-open" data-tag="figure" data-width="full" data-bare="" data-chunk-num="21" data-has-backdrop="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-under" data-bd-frames="[&quot;inset(0)&quot;,&quot;inset(0 0 0 48%)&quot;]" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;);clip-path:inset(0)" aria-hidden="true"></div>
   <div class="chunk-content">
     
@@ -5349,9 +5688,9 @@ or slides about while it is being revealed.</p>
 </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></div>
 </article>
-<article class="chunk chunk-free" id="reveal-from" data-chunk-id="reveal-from" data-tag="free" data-width="wide" data-chunk-num="21">
+<article class="chunk chunk-free" id="reveal-from" data-chunk-id="reveal-from" data-tag="free" data-width="wide" data-chunk-num="22">
   
   <div class="chunk-content">
     
@@ -5377,9 +5716,9 @@ which beat it waits for and nothing else can reach it first.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></div>
 </article>
-<article class="chunk chunk-figure" id="reveal-close" data-chunk-id="reveal-close" data-tag="figure" data-width="full" data-bare="" data-chunk-num="22" data-has-backdrop="" data-backdrop="clear">
+<article class="chunk chunk-figure" id="reveal-close" data-chunk-id="reveal-close" data-tag="figure" data-width="full" data-bare="" data-chunk-num="23" data-has-backdrop="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-over" data-bd-frames="[&quot;inset(0 0 0 55%)&quot;,&quot;inset(0)&quot;]" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;);clip-path:inset(0 0 0 55%)" aria-hidden="true"></div>
   <div class="chunk-content">
     
@@ -5400,9 +5739,9 @@ which beat it waits for and nothing else can reach it first.</p>
 </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></div>
 </article>
-<article class="chunk chunk-free" id="backdrop-slots" data-chunk-id="backdrop-slots" data-tag="free" data-width="wide" data-chunk-num="23">
+<article class="chunk chunk-free" id="backdrop-slots" data-chunk-id="backdrop-slots" data-tag="free" data-width="wide" data-chunk-num="24">
   
   <div class="chunk-content">
     
@@ -5438,9 +5777,9 @@ at the start of Part 2 does.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></div>
 </article>
-<article class="chunk chunk-free" id="overlay-slots" data-chunk-id="overlay-slots" data-tag="free" data-width="wide" data-chunk-num="24">
+<article class="chunk chunk-free" id="overlay-slots" data-chunk-id="overlay-slots" data-tag="free" data-width="wide" data-chunk-num="25">
   
   <div class="chunk-content">
     
@@ -5479,7 +5818,7 @@ compositions - and <code class="nb">third</code> / <code class="nb">half</code> 
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></div>
 </article>
 </section>
 <section class="column" data-col="5" id="panels">
@@ -5495,7 +5834,7 @@ compositions - and <code class="nb">third</code> / <code class="nb">half</code> 
   
   
 </article>
-<article class="chunk chunk-figure" id="panel-column" data-chunk-id="panel-column" data-tag="figure" data-width="full" data-bare="" data-chunk-num="25" data-has-backdrop="" data-has-panel="" data-backdrop="clear">
+<article class="chunk chunk-figure" id="panel-column" data-chunk-id="panel-column" data-tag="figure" data-width="full" data-bare="" data-chunk-num="26" data-has-backdrop="" data-has-panel="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
   <div class="chunk-content">
     
@@ -5522,9 +5861,9 @@ the linter&#39;s <code class="nb">text-on-picture</code>.</p>
 </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></div>
 </article>
-<article class="chunk chunk-figure" id="panel-band" data-chunk-id="panel-band" data-tag="figure" data-width="full" data-bare="" data-chunk-num="26" data-has-backdrop="" data-has-panel="" data-backdrop="clear">
+<article class="chunk chunk-figure" id="panel-band" data-chunk-id="panel-band" data-tag="figure" data-width="full" data-bare="" data-chunk-num="27" data-has-backdrop="" data-has-panel="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
   <div class="chunk-content">
     
@@ -5551,9 +5890,9 @@ the band was this tall from the start.</p>
 </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></div>
 </article>
-<article class="chunk chunk-figure" id="panel-frame" data-chunk-id="panel-frame" data-tag="figure" data-width="full" data-bare="" data-chunk-num="27" data-has-backdrop="" data-has-panel="" data-backdrop="clear">
+<article class="chunk chunk-figure" id="panel-frame" data-chunk-id="panel-frame" data-tag="figure" data-width="full" data-bare="" data-chunk-num="28" data-has-backdrop="" data-has-panel="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
   <div class="chunk-content">
     
@@ -5578,7 +5917,7 @@ refused: a panel runs along one edge, or takes them all.</p>
 </div>
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></div>
 </article>
 </section>
 <section class="column" data-col="6" id="docks">
@@ -5602,7 +5941,7 @@ refused: a panel runs along one edge, or takes them all.</p>
 </aside>
   
 </article>
-<article class="chunk chunk-free" id="dock-why" data-chunk-id="dock-why" data-tag="free" data-width="wide" data-chunk-num="28" data-dock="left" data-dock-w="narrow">
+<article class="chunk chunk-free" id="dock-why" data-chunk-id="dock-why" data-tag="free" data-width="wide" data-chunk-num="29" data-dock="left" data-dock-w="narrow">
   
   <div class="chunk-content">
     
@@ -5637,9 +5976,9 @@ that slide.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></div>
 </article>
-<article class="chunk chunk-free" id="dock-cols" data-chunk-id="dock-cols" data-tag="free" data-width="wide" data-chunk-num="29" data-dock="left" data-dock-w="narrow">
+<article class="chunk chunk-free" id="dock-cols" data-chunk-id="dock-cols" data-tag="free" data-width="wide" data-chunk-num="30" data-dock="left" data-dock-w="narrow">
   
   <div class="chunk-content">
     
@@ -5678,9 +6017,9 @@ frame, and a running list that shifts sideways per slide is not a frame.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></div>
 </article>
-<article class="chunk chunk-free" id="dock-band" data-chunk-id="dock-band" data-tag="free" data-width="wide" data-chunk-num="30" data-dock="bottom" data-dock-w="narrow">
+<article class="chunk chunk-free" id="dock-band" data-chunk-id="dock-band" data-tag="free" data-width="wide" data-chunk-num="31" data-dock="bottom" data-dock-w="narrow">
   
   <div class="chunk-content">
     
@@ -5703,9 +6042,9 @@ inherits again.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
 </article>
-<article class="chunk chunk-free" id="dock-top" data-chunk-id="dock-top" data-tag="free" data-width="wide" data-chunk-num="31" data-dock="top" data-dock-w="narrow">
+<article class="chunk chunk-free" id="dock-top" data-chunk-id="dock-top" data-tag="free" data-width="wide" data-chunk-num="32" data-dock="top" data-dock-w="narrow">
   
   <div class="chunk-content">
     
@@ -5728,9 +6067,9 @@ where it is a box before the text.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></div>
 </article>
-<article class="chunk chunk-free" id="dock-from" data-chunk-id="dock-from" data-tag="free" data-width="wide" data-chunk-num="32" data-dock="right" data-dock-w="narrow">
+<article class="chunk chunk-free" id="dock-from" data-chunk-id="dock-from" data-tag="free" data-width="wide" data-chunk-num="33" data-dock="right" data-dock-w="narrow">
   
   <div class="chunk-content">
     
@@ -5757,9 +6096,9 @@ room&#39;s eyes reads as a fault.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
 </article>
-<article class="chunk chunk-free" id="dock-slots" data-chunk-id="dock-slots" data-tag="free" data-width="wide" data-chunk-num="33" data-dock="left" data-dock-w="narrow">
+<article class="chunk chunk-free" id="dock-slots" data-chunk-id="dock-slots" data-tag="free" data-width="wide" data-chunk-num="34" data-dock="left" data-dock-w="narrow">
   
   <div class="chunk-content">
     
@@ -5804,23 +6143,33 @@ dock per slide; a <code class="nb">#id</code> link in the body is the live marke
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
 </article>
 </section>
 <section class="column" data-col="7" id="beats">
-<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="outline" data-chunk-id="beats-section">
+<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="outline" data-section-layout="stack" data-chunk-id="beats-section">
   
   <div class="chunk-content">
     <div class="section-lead">
       <div class="section-mark">Part</div>
       <ol class="section-outline"><li data-state="done"><span class="so-num">1</span><span class="so-text">The cover, and the slide that closes it</span></li><li data-state="done"><span class="so-num">2</span><span class="so-text">Dividers carry their own slide</span></li><li data-state="done"><span class="so-num">3</span><span class="so-text">Cards, rows and panes</span></li><li data-state="done"><span class="so-num">4</span><span class="so-text">Revealing a picture</span></li><li data-state="done"><span class="so-num">5</span><span class="so-text">Panels: the card grown to the frame</span></li><li data-state="done"><span class="so-num">6</span><span class="so-text">A dock at the frame's edge</span></li><li data-state="now" aria-current="step"><span class="so-num">7</span><span class="so-text">Beats below the top level</span></li><li data-state="next"><span class="so-num">8</span><span class="so-text">A heading that stays off the slide</span></li></ol>
     </div>
-    
+    <div class="section-body"><figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-62.74 -22.20 683.88 79.97" style="--dg-type-w:45.592;--dg-ar:8.5512" width="2000" height="234" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
+<g id="dg3-p1" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p1--p" class="dg-stroke" d="M-50.74 20.40L-50.74 27.40L162.42 27.40L162.42 20.40" fill="none"/><g id="dg3-p1--lw0" data-lab="p1--l" class="dg-lwrap" transform="translate(55.84,36.40)"><g id="dg3-p1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">left pane</tspan></text></g></g></g>
+<g id="dg3-p2" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p2--p" class="dg-stroke" d="M172.62 20.40L172.62 27.40L385.78 27.40L385.78 20.40" fill="none"/><g id="dg3-p2--lw0" data-lab="p2--l" class="dg-lwrap" transform="translate(279.20,36.40)"><g id="dg3-p2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">right pane</tspan></text></g></g></g>
+<g id="dg3-p3" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p3--p" class="dg-stroke" d="M395.98 20.40L395.98 27.40L609.14 27.40L609.14 20.40" fill="none"/><g id="dg3-p3--lw0" data-lab="p3--l" class="dg-lwrap" transform="translate(502.56,36.40)"><g id="dg3-p3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">the card row</tspan></text></g></g></g>
+<g id="dg3-b1" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg3-b1--r" x="-50.74" y="-10.20" width="101.48" height="20.40" rx="4"/><g id="dg3-b1--lw0" data-lab="b1--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg3-b1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 1</tspan></text></g></g></g>
+<g id="dg3-b2" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg3-b2--r" x="60.94" y="-10.20" width="101.48" height="20.40" rx="4"/><g id="dg3-b2--lw0" data-lab="b2--l" class="dg-lwrap" transform="translate(111.68,0.00)"><g id="dg3-b2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 2</tspan></text></g></g></g>
+<g id="dg3-b3" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg3-b3--r" x="172.62" y="-10.20" width="101.48" height="20.40" rx="4"/><g id="dg3-b3--lw0" data-lab="b3--l" class="dg-lwrap" transform="translate(223.36,0.00)"><g id="dg3-b3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 3</tspan></text></g></g></g>
+<g id="dg3-b4" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg3-b4--r" x="284.30" y="-10.20" width="101.48" height="20.40" rx="4"/><g id="dg3-b4--lw0" data-lab="b4--l" class="dg-lwrap" transform="translate(335.04,0.00)"><g id="dg3-b4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 4</tspan></text></g></g></g>
+<g id="dg3-b5" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg3-b5--r" x="395.98" y="-10.20" width="101.48" height="20.40" rx="4"/><g id="dg3-b5--lw0" data-lab="b5--l" class="dg-lwrap" transform="translate(446.72,0.00)"><g id="dg3-b5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 5</tspan></text></g></g></g>
+<g id="dg3-b6" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg3-b6--r" x="507.66" y="-10.20" width="101.48" height="20.40" rx="4"/><g id="dg3-b6--lw0" data-lab="b6--l" class="dg-lwrap" transform="translate(558.40,0.00)"><g id="dg3-b6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 6</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"default box {.tone-2} w 0.86 h 0.6 pad 0.12\n\nbox b1 \"beat 1\" at 0,0\nbox b2 \"beat 2\" right of b1 gap 0.3\nbox b3 \"beat 3\" right of b2 gap 0.3 {.tone-3}\nbox b4 \"beat 4\" right of b3 gap 0.3 {.tone-3}\nbox b5 \"beat 5\" right of b4 gap 0.3 {.tone-1}\nbox b6 \"beat 6\" right of b5 gap 0.3 {.tone-1}\nbrace p1 over b1,b2 \"left pane\" side bottom pad 0.3 {.muted}\nbrace p2 over b3,b4 \"right pane\" side bottom pad 0.3 {.muted}\nbrace p3 over b5,b6 \"the card row\" side bottom pad 0.3 {.muted}","attrs":"unit=118x34","opener":"::: draw 118x34","range":[21155,21629],"chunk":null,"width":null,"alt":""}</script></figure></div>
   </div>
   
   
 </article>
-<article class="chunk chunk-free" id="beats-panes" data-chunk-id="beats-panes" data-tag="free" data-width="wide" data-chunk-num="34">
+<article class="chunk chunk-free" id="beats-panes" data-chunk-id="beats-panes" data-tag="free" data-width="wide" data-chunk-num="35">
   
   <div class="chunk-content">
     
@@ -5876,9 +6225,9 @@ is as tall on its first beat as on its last.</li>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
 </article>
-<article class="chunk chunk-free" id="beats-rows" data-chunk-id="beats-rows" data-tag="free" data-width="wide" data-chunk-num="35">
+<article class="chunk chunk-free" id="beats-rows" data-chunk-id="beats-rows" data-tag="free" data-width="wide" data-chunk-num="36">
   
   <div class="chunk-content">
     
@@ -5908,7 +6257,7 @@ first does not move: the block is laid out with both rows from beat 0.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
 </article>
 </section>
 <section class="column" data-col="8" id="bare">
@@ -5924,7 +6273,7 @@ first does not move: the block is laid out with both rows from beat 0.</p>
   
   
 </article>
-<article class="chunk chunk-free" id="bare-why" data-chunk-id="bare-why" data-tag="free" data-width="wide" data-chunk-num="36">
+<article class="chunk chunk-free" id="bare-why" data-chunk-id="bare-why" data-tag="free" data-width="wide" data-chunk-num="37">
   
   <div class="chunk-content">
     
@@ -5953,21 +6302,21 @@ type above it, and each is still a row in the search index.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
 </article>
-<article class="chunk chunk-figure" id="bare-loop" data-chunk-id="bare-loop" data-tag="figure" data-width="full" data-bare="" data-chunk-num="37">
+<article class="chunk chunk-figure" id="bare-loop" data-chunk-id="bare-loop" data-tag="figure" data-width="full" data-bare="" data-chunk-num="38">
   
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The measurement loop</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" style="--dg-type-w:21.608;--dg-ar:1.8004" width="2000" height="1111" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
-<g id="dg3-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg3-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="dg3-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="dg3-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="dg3-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
-<g id="dg3-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg3-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="dg3-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="dg3-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="dg3-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
-<g id="dg3-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg3-edge-3--p" class="dg-stroke" d="M184.35 18.38L184.35 83.52" fill="none"/><path id="dg3-edge-3--h" class="dg-head" d="M184.35 91.17L180.39 82.17L188.31 82.17Z"/></g>
-<g id="dg3-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg3-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg3-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
-<g id="dg3-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-site--r" x="156.35" y="-18.38" width="56.00" height="36.75" rx="4"/><g id="dg3-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(184.35,0.00)"><g id="dg3-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
-<g id="dg3-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-score--r" x="112.93" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg3-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(184.35,109.55)"><g id="dg3-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","opener":"::: draw 150x56","range":[22353,22638],"chunk":"bare-loop","width":"full","alt":"The measurement loop"}</script></figure></div></div>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" style="--dg-type-w:21.608;--dg-ar:1.8004" width="2000" height="1111" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
+<g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="dg4-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="dg4-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
+<g id="dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="dg4-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="dg4-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="dg4-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
+<g id="dg4-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg4-edge-3--p" class="dg-stroke" d="M184.35 18.38L184.35 83.52" fill="none"/><path id="dg4-edge-3--h" class="dg-head" d="M184.35 91.17L180.39 82.17L188.31 82.17Z"/></g>
+<g id="dg4-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg4-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
+<g id="dg4-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-site--r" x="156.35" y="-18.38" width="56.00" height="36.75" rx="4"/><g id="dg4-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(184.35,0.00)"><g id="dg4-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
+<g id="dg4-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-score--r" x="112.93" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg4-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(184.35,109.55)"><g id="dg4-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","opener":"::: draw 150x56","range":[24117,24402],"chunk":"bare-loop","width":"full","alt":"The measurement loop"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="bare-loop">
       <div class="annot-box-label">annotation · bare-loop</div>
@@ -5980,22 +6329,22 @@ type above it, and each is still a row in the search index.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></div>
 </article>
-<article class="chunk chunk-figure" id="autoplay" data-chunk-id="autoplay" data-tag="figure" data-width="full" data-bare="" data-chunk-num="38">
+<article class="chunk chunk-figure" id="autoplay" data-chunk-id="autoplay" data-tag="figure" data-width="full" data-bare="" data-chunk-num="39">
   
   <div class="chunk-content">
     
     <h2 class="chunk-heading">A figure that walks itself</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
-<g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M75.00 0.00L145.75 0.00" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M153.40 0.00L144.40 3.96L144.40 -3.96Z"/></g>
-<g id="dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-2--p" class="dg-stroke" d="M228.40 18.38L228.40 66.72" fill="none"/><path id="dg4-edge-2--h" class="dg-head" d="M228.40 74.38L224.44 65.38L232.36 65.38Z"/></g>
-<g id="dg4-n--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg4-n--lead--p" class="dg-stroke" d="M353.24 92.75L303.40 92.75" fill="none"/><path id="dg4-n--lead--h" class="dg-head" d="M303.40 92.75L303.40 92.75L303.40 92.75Z"/></g>
-<g id="dg4-raw" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg4-raw--r" x="-75.00" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg4-raw--lw0" data-lab="raw--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-raw--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">raw crawl</tspan></text></g></g></g>
-<g id="dg4-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg4-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg4-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="dg4-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
-<g id="dg4-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg4-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="dg4-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="dg4-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
-<g id="dg4-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg4-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="dg4-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","opener":"::: draw 150x56 autoplay 1400 cycle","range":[23043,23421],"chunk":"autoplay","width":"full","alt":"A figure that walks itself"}</script></figure></div></div>
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
+<g id="dg5-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-1--p" class="dg-stroke" d="M75.00 0.00L145.75 0.00" fill="none"/><path id="dg5-edge-1--h" class="dg-head" d="M153.40 0.00L144.40 3.96L144.40 -3.96Z"/></g>
+<g id="dg5-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-2--p" class="dg-stroke" d="M228.40 18.38L228.40 66.72" fill="none"/><path id="dg5-edge-2--h" class="dg-head" d="M228.40 74.38L224.44 65.38L232.36 65.38Z"/></g>
+<g id="dg5-n--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg5-n--lead--p" class="dg-stroke" d="M353.24 92.75L303.40 92.75" fill="none"/><path id="dg5-n--lead--h" class="dg-head" d="M303.40 92.75L303.40 92.75L303.40 92.75Z"/></g>
+<g id="dg5-raw" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg5-raw--r" x="-75.00" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg5-raw--lw0" data-lab="raw--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg5-raw--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">raw crawl</tspan></text></g></g></g>
+<g id="dg5-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg5-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg5-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="dg5-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
+<g id="dg5-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg5-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="dg5-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="dg5-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
+<g id="dg5-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg5-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="dg5-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg5-root">{"p":"dg5-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg5-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","opener":"::: draw 150x56 autoplay 1400 cycle","range":[24807,25185],"chunk":"autoplay","width":"full","alt":"A figure that walks itself"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="autoplay">
       <div class="annot-box-label">annotation · autoplay</div>
@@ -6008,9 +6357,9 @@ type above it, and each is still a row in the search index.</p>
   
   
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></div>
 </article>
-<article class="chunk chunk-title" data-tag="closing" data-width="full" data-cover="quote" data-closing="" data-cover-align="middle" data-chunk-id="end" data-chunk-num="39" id="end">
+<article class="chunk chunk-title" data-tag="closing" data-width="full" data-cover="quote" data-closing="" data-cover-align="middle" data-chunk-id="end" data-chunk-num="40" id="end">
   
   <div class="chunk-content">
     <h1 class="title-main">A slide is a frame</h1>
@@ -6021,7 +6370,7 @@ did before.</p>
     <div class="title-foot"><span class="title-contact">https://github.com/UBA-PSI/psi-slides</span><span class="title-notice">The four views are built from this one file.</span></div>
   </div>
   
-  <div class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></div>
+  <div class="chunk-num" aria-hidden="true"><i>4</i><i>0</i></div>
 </article>
 </section>
   </div>
@@ -6110,6 +6459,7 @@ did before.</p>
         <dt><kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd></dt><dd>text size, and zero resets it (kept separately for each collapse mode)</dd>
         <dt><kbd>#</kbd></dt><dd>auto-fit: off → shrink a slide that is too big → size every slide to the screen</dd>
         <dt><kbd>L</kbd></dt><dd>slide numbers: stacked → in a row → off</dd>
+        <dt><kbd>M</kbd></dt><dd>the <i>+ note</i> button in the slide's left gutter: shown ↔ hidden – pressed here it lands on the projection too, and <kbd>N</kbd> still opens an annotation either way</dd>
         <dt><kbd>B</kbd></dt><dd>blank the projection – the speaker window keeps working, frozen or not</dd>
         <dt><kbd>D</kbd></dt><dd>live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop; the very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk</dd>
         <dt><kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd></dt><dd>cycle that knob backwards</dd>
@@ -9042,6 +9392,7 @@ const state = {
   font: VIEW_DEFAULTS.font || 'serif',           // serif | sans | mono (readable)
   theme: VIEW_DEFAULTS.theme || 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
   slideNums: VIEW_DEFAULTS.slideNums || "horizontal",  // vertical | horizontal | off – L cycles
+  noteButton: VIEW_DEFAULTS.noteButton || 'on',  // on | off – M toggles
 };
 const FONT_CYCLE = ['serif', 'sans', 'mono'];
 const SLIDE_NUM_MODES = ["vertical","horizontal","off"];
@@ -9144,6 +9495,14 @@ function loadPersisted() {
     const n = localStorage.getItem('psi-slides:slide-nums');
     if (!VIEW_DEFAULTS.slideNums && n && SLIDE_NUM_MODES.includes(n)) state.slideNums = n;
   } catch (e) {}
+  // The note button is a reading preference like the three above and is
+  // stored the same way: globally, not per lecture, and only where the
+  // frontmatter left the question open. A lecturer who hides it once has
+  // hidden it for the next deck too, which is the point of turning it off.
+  try {
+    const nb = localStorage.getItem('psi-slides:note-button');
+    if (!VIEW_DEFAULTS.noteButton && (nb === 'on' || nb === 'off')) state.noteButton = nb;
+  } catch (e) {}
 }
 function saveAnnotations() {
   try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
@@ -9158,6 +9517,25 @@ function applyFontTheme() {
   // so a new dark theme needs no new selectors.
   document.body.dataset.mode = DARK_THEMES.includes(state.theme) ? 'dark' : 'light';
   document.body.dataset.slideNums = state.slideNums;
+  document.body.dataset.noteButton = state.noteButton;
+}
+// The add-note button on the projection. Its own function rather than a
+// field of the snapshot, and its own message type, for the reason blank has
+// one: applyRemoteState is a full apply, so a snapshot sent to say "the
+// button is hidden" would drag the receiver's slide position with it. And it
+// has to travel at all because the button only exists in the audience window
+// while the lecturer's keyboard is in the cockpit - pressing M in the
+// cockpit and watching nothing happen anywhere would be the whole feature
+// missing. Past the freeze gate for the same reason blank is: it is a
+// command aimed at the projector, not shared navigation state.
+function setNoteButton(mode, announce) {
+  state.noteButton = mode === 'off' ? 'off' : 'on';
+  applyFontTheme();
+  try { localStorage.setItem('psi-slides:note-button', state.noteButton); } catch (e) {}
+  if (announce) {
+    sendToPeer({ type: 'note-button', source: VIEW, mode: state.noteButton });
+    flashMode(state.noteButton === 'off' ? 'note button hidden' : 'note button shown');
+  }
 }
 function cycleSlideNums(dir) {
   const i = SLIDE_NUM_MODES.indexOf(state.slideNums);
@@ -9500,6 +9878,14 @@ window.addEventListener('message', (ev) => {
   if (m.type === 'demo-offer') { demoReceiveOffer(m); return; }
   if (m.type === 'demo-answer') { demoReceiveAnswer(m); return; }
   if (m.type === 'demo-ice') { demoReceiveIce(m); return; }
+  // The note button, outside the snapshot for the same reason as blank: a
+  // command to the projection, not shared state. Applied in both windows
+  // rather than in the audience alone, so a cockpit that was toggled from
+  // the projection agrees about what the room is looking at.
+  if (m.type === 'note-button') {
+    setNoteButton(m.mode, false);
+    return;
+  }
   // Blank travels outside the snapshot so it still lands while frozen.
   if (m.type === 'blank' && VIEW === 'audience') {
     state.blanked = !!m.blanked;
@@ -9695,7 +10081,10 @@ function splitSentencesIn(root) {
     // Explicit-slide blocks opt out of sentence extraction: the author has
     // already said what belongs on screen, so splitting their paragraphs
     // into head/rest would only give the collapse CSS something to hide.
-    if (p.closest('.slide-explicit, .script-only')) return;
+    // A statement chunk opts out for the same reason without a block to
+    // write: its paragraphs ARE the lines of the slide, one per press, so
+    // abridging them would leave the room with the first word of each.
+    if (p.closest('.slide-explicit, .script-only, [data-tag=statement]')) return;
     const head = document.createElement('span'); head.className = 'sentence-head';
     const rest = document.createElement('span'); rest.className = 'sentence-rest';
     let mode = 'head';
@@ -9917,6 +10306,16 @@ function applyReveal(el, id, instant) {
   steps.forEach((step, d) => dgStep(d, step, jump));
   el.querySelectorAll(FROM_SEL).forEach(c => {
     c.toggleAttribute('data-hidden', consumed < Number(c.dataset.from));
+  });
+  // A ::: footnote follows the segment it was written in. It rides the
+  // segment rather than a beat number because the two are not the same
+  // count: a diagram step between two segments is a beat, so the second
+  // segment's number is not its index. Mirroring the segment's own state is
+  // exact whatever sits between them, and adds no beat of its own - which is
+  // why countSegments knows nothing about this.
+  el.querySelectorAll('.margin-note[data-seg]').forEach(a => {
+    const seg = segs[Number(a.dataset.seg)];
+    a.toggleAttribute('data-beat-hidden', !!seg && seg.hasAttribute('data-hidden'));
   });
   const bd = bdFrames(el);
   if (bd) {
@@ -10998,6 +11397,84 @@ function nowrapProbe(el) {
   });
 }
 
+// The third thing a slide can fail to do, and the newest. A figure is sized
+// from the type it stands in (.chunk .psi-diagram in AUDIENCE_CSS): the width
+// it wants is --dg-type-w base labels, one label to the em. When that is more
+// than the column has, or more than the height cap allows, the min() caps it
+// and the drawing stops following the type - so growing the slide's words from
+// there makes the labels relatively SMALLER, which is the inconsistency the
+// width rule was written to remove, arriving again through the camera.
+//
+// So a capped figure counts as "does not fit", in both directions. The
+// consequence is deliberate and it is the honest one: a drawing too wide for
+// its column pulls the slide's text down to meet it rather than growing away
+// from it. It converges, because the width it wants shrinks with the type -
+// the resting point is the zoom at which the figure exactly fills its column,
+// which is also the largest type at which the labels still match the words.
+//
+// A display: none figure (a collapsed ::: expand) measures zero and is
+// skipped; data-beat-hidden is visibility: hidden and keeps its box, so a
+// figure that has not arrived yet is still measured, which is what stops the
+// slide resizing under the room on the press that brings it in.
+//
+// It has one way of being wrong, and it is the expensive one, so it is
+// written into the probe rather than into a list of containers to remember.
+// Shrinking the type shrinks the width the figure ASKS for, so a cap measured
+// in pixels - the chunk's column, the height cap - is escaped by it and the
+// deficit closes. A cap measured in the same em as the type is not: both
+// sides move together, the deficit stands at every zoom, and the loop below
+// runs to its 0.6 floor with nothing on screen saying why. That is not
+// hypothetical - a figure chunk's 40em caption measure did exactly this to
+// thirteen measured slides of lectures/diagrams before the rule above moved it
+// off the picture, and a card or a pane can hold the same shape.
+//
+// So the probe watches whether shrinking is actually helping, and gives up on
+// the figure the first time a step does not close the gap. The reading is
+// memoised per zoom, because the loops below ask more than once at a zoom and
+// "no improvement since the last call" would otherwise be true immediately.
+//
+// Same shape as the two probes above: the list is collected once per fit and
+// only the widths are re-read on each zoom step.
+function figureCapProbe(el) {
+  const figs = Array.from(el.querySelectorAll('svg.psi-diagram'));
+  if (!figs.length) return () => false;
+  // The worst shortfall on the slide, as a fraction of the width the type
+  // asks for. 1 is "every figure has the width its labels want".
+  const shortfall = () => {
+    let worst = 1;
+    for (const svg of figs) {
+      const cs = getComputedStyle(svg);
+      const typeW = parseFloat(cs.getPropertyValue('--dg-type-w'));
+      const mult = parseFloat(cs.getPropertyValue('--figure-type')) || 1;
+      // The svg's own em, which is the text it stands in: the chunk body, a
+      // pane, a card. Exactly what the width rule multiplies.
+      const want = typeW * parseFloat(cs.fontSize) * mult;
+      // clientWidth and not a client rect: the cockpit scales its whole stage
+      // with a transform, and a rect there is in that scaled space while the
+      // font size is in layout pixels. Same reason flowHeightProbe reads
+      // offsets. A figure with no box at all (a collapsed expansion) is not on
+      // the slide and is skipped.
+      const got = svg.clientWidth;
+      if (want > 0 && got > 0 && got / want < worst) worst = got / want;
+    }
+    return worst;
+  };
+  let seenZoom = null, seenShort = 1, answer = false, giveUp = false;
+  return () => {
+    if (giveUp) return false;
+    if (state.zoom === seenZoom) return answer;
+    const now = shortfall();
+    if (seenZoom !== null && state.zoom < seenZoom && now <= seenShort + 0.002) {
+      giveUp = true;                  // the cap moves with the type; shrinking cannot reach it
+      answer = false;
+    } else {
+      answer = now < 0.995;
+    }
+    seenZoom = state.zoom; seenShort = now;
+    return answer;
+  };
+}
+
 // And a chunk's own box is not a measure of how much is on it. Three
 // families are pinned to the full slide height so their ground fills the
 // frame – the cover (.chunk-title), the section divider (.chunk-section)
@@ -11188,7 +11665,11 @@ function fitZoomToChunk(ceiling) {
   if (!(avail > 0)) return;
   const overflowsX = nowrapProbe(el);
   const heightOf = flowHeightProbe(el);
-  if (heightOf() <= avail && !overflowsX() && state.zoom >= cap) return;  // nothing to gain
+  const figCapped = figureCapProbe(el);
+  // "Nothing to gain" has to know about the figure too, or a slide already at
+  // the ceiling with a capped drawing on it is returned from before the shrink
+  // loop ever runs.
+  if (heightOf() <= avail && !overflowsX() && !figCapped() && state.zoom >= cap) return;
 
   // A single proportional estimate is not enough, because zoom changes line
   // wrapping and therefore height, and it is not safe either: solving for
@@ -11203,8 +11684,8 @@ function fitZoomToChunk(ceiling) {
   if (z > cap) z = cap;
   applyZoom(z);
 
-  // Shrink until it fits, in both directions.
-  while ((heightOf() > avail || overflowsX()) && z > 0.6) {
+  // Shrink until it fits, in all three senses.
+  while ((heightOf() > avail || overflowsX() || figCapped()) && z > 0.6) {
     z = clampZoom(z - STEP);
     applyZoom(z);
   }
@@ -11212,7 +11693,7 @@ function fitZoomToChunk(ceiling) {
   while (z + STEP <= cap) {
     const probe = clampZoom(z + STEP);
     applyZoom(probe);
-    if (heightOf() > avail || overflowsX()) { applyZoom(z); break; }
+    if (heightOf() > avail || overflowsX() || figCapped()) { applyZoom(z); break; }
     z = probe;
   }
 }
@@ -12151,6 +12632,15 @@ document.addEventListener('keydown', (e) => {
     case 'f': case 'F': cycleFont(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'a': case 'A': cycleTheme(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'l': case 'L': cycleSlideNums(e.shiftKey ? -1 : 1); e.preventDefault(); break;
+    case 'm': case 'M':
+      // The add-note affordance on the projection, shown or hidden. A bare
+      // free letter and not a Shift pair: Shift-B was the obvious mnemonic
+      // (both take something off the screen) and is exactly the one that
+      // cannot be taken, because B is what a hand reaches for when something
+      // has to be off the projection now and a mistyped Shift must not turn
+      // that into a chrome toggle.
+      setNoteButton(state.noteButton === 'off' ? 'on' : 'off', true);
+      e.preventDefault(); break;
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
     case 'k': case 'K': if (overview) break; viewHooks.onK(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
@@ -14307,12 +14797,37 @@ function dgShapeInsetY(shape, labelH, padY = 0) {
 }
 
 const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
+// **`at X,Y` names a point, and `anchor` says which point of the element
+// lands on it.** The default is the centre, which is what every figure written
+// before the word existed was written against, so a deck that names no anchor
+// builds byte-identically.
+//
+// It exists because a *row of labels* could not be written. Three `text` lines
+// at `at 0,z.cy` with `{.left}` came out with three different left edges: the
+// class aligns the lines *inside* the element's own box, and the box is still
+// centred on the coordinate, so a long label started further left than a short
+// one. `align x left a, b, c` is the other answer and it is the right one for
+// three elements that must stay together; `anchor l` is the answer for one
+// element that has to meet a coordinate by its corner – a caption in the
+// top-left of a zone, a note against a frame's left edge – where there is no
+// set to join.
+//
+// The nine words are `DG_ANCHORS`, which an edge endpoint already spells, and
+// the offset is the same ninth-of-a-box arithmetic `dgAnchorPt` does from the
+// other side: that one asks where a point on a laid-out box is, this one asks
+// how far a box must move for the named point to land on a coordinate.
+function dgAnchorOffset(anchor, w, h) {
+  const hx = w / 2, hy = h / 2;
+  const X = { left: hx, tl: hx, bl: hx, right: -hx, tr: -hx, br: -hx };
+  const Y = { top: hy, tl: hy, tr: hy, bottom: -hy, bl: -hy, br: -hy };
+  return [X[anchor] || 0, Y[anchor] || 0];
+}
 // The statements that bring an element into being, as opposed to arranging
 // or restyling ones that already exist. Not used by the compiler – it
 // branches on each keyword by name – but the linter needs the set, and a
 // second hand-written copy of the vocabulary is exactly what this module
 // exists to stop.
-const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
+const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'zone', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
 // Names an element cannot have, and it is a computed table rather than a
 // list: the live runtime keys plain objects by element id (a frame's vis /
 // cls / geom straight from JSON, the target cache, the kinds map), so an id
@@ -14375,7 +14890,7 @@ const DG_STEP_NAME = /^[\p{L}_][\p{L}\p{N}_-]*$/u;
 // derivable from anything a reader had already learned – and `.ghost` had no
 // verb at all, so a beat could reach it only through `style`.
 const DG_STEP_OPS = new Set(['show', 'hide', 'move', ...DG_PROMINENCE, 'style', 'label']);
-const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence', 'align', 'spread', 'default', 'step']);
+const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'zone', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence', 'align', 'spread', 'default', 'step']);
 // The three shapes a line inside a `sequence` may take. They are not
 // statements – they mean nothing anywhere else – so they stay out of
 // DG_KEYWORDS and a stray one is reported as what it is: an entry that lost
@@ -14520,6 +15035,24 @@ const DG_SEQ_SELF_H = 0.42;   // and how far down it comes back
 // padding a `pad` would otherwise resolve to is 13 by 9, which on a label
 // standing beside a line reads as a slab; this is the visible margin.
 const DG_SEQ_GROUND = 0.1;
+
+// ── zone ────────────────────────────────────────────────────────────
+// How far the caption sits inside the corner, in grid units, and square: the
+// x nudge is scaled by uh/uw at the statement, the same correction `gap` and
+// `pad` make, or the same number would be two distances on a cell that is not
+// square.
+const DG_ZONE_PAD = 0.16;
+// The four words that move the caption out of the top-left. They are the
+// element-label alignment classes one level out: on a box they place the label
+// inside the box, on a zone they place the caption inside the area – the same
+// sentence about the same four words, which is why the zone does not invent a
+// `corner` option to say it again.
+const DG_ZONE_CORNERS = new Set(['left', 'right', 'top', 'bottom']);
+// A zone's caption and the tag that holds the pair. Generated names, so they
+// are a promised interface for the same reason a `sequence`'s are: an author
+// annotating a figure has to be able to name what the statement drew.
+const dgZoneCapName = (id) => `${id}-cap`;
+const dgZoneTag = (id) => `${id}-parts`;
 // `plot` expands into a frame, two runs of grid lines, two runs of tick
 // labels and up to two axis titles. Parts: gx gy xt yt xl yl.
 const dgPlotName = (id, part, i) => (i === undefined ? `${id}-${part}` : `${id}-${part}-${i}`);
@@ -14629,6 +15162,10 @@ const DG_BRACE_SIDES = DG_SIDES;
 // different distances depending on which statement it sat on.
 const DG_KIND_OPTS = {
   box: ['w', 'h', 'pad', 'point'], text: ['w', 'h', 'pad'], image: ['w', 'h'], dot: ['r'],
+  // A zone is a box whose size is the point, so `w` and `h` are required
+  // rather than optional - the statement says so, this table only says which
+  // words it takes. No `point`: an area is not an arrow.
+  zone: ['w', 'h', 'pad'],
   container: ['pad'],
   // `side <word>` rather than a bare positional word. It was the last bare
   // option in the statement grammar – a lone `left` among keyed options, whose
@@ -14703,6 +15240,12 @@ const DG_WORD_OPTS = {
   side: DG_SIDES,
   point: [...DG_POINT_DIRS],
   flush: ['top', 'middle', 'bottom', 'left', 'right'],
+  // Which point of the element lands on the coordinate `at` or `between`
+  // resolved to. Its words are `DG_ANCHORS`, the nine an edge endpoint already
+  // names – `tl`, `top`, `tr`, `left`, `center`, `right`, `bl`, `bottom`, `br`
+  // – because a ninth-of-a-box is one idea and one vocabulary, whichever end
+  // of a line or which corner of a label it is naming. See dgAnchorOffset.
+  anchor: [...DG_ANCHORS],
 };
 const DG_LIST_OPTS = new Set(['col', ...DG_PROMINENCE]);
 const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
@@ -14795,16 +15338,35 @@ function dgCharW(ch) {
 // changes. An unmatched marker is left as a literal character, so a lone
 // asterisk in a label is still just an asterisk.
 //
-// `_` and `^` have no such fallback available to them - they take the next
-// character, and there is nothing to be unmatched against - so a backslash
-// escapes them: `scan\_page` is one word with an underscore in it. It escapes
-// all four markers and itself (`\_`, `\^`, `\*`, `\~`, `\\`), not only the two
-// that need it, because an escape with an exception in it is the next thing an
+// `_` and `^` take the next character, so a backslash escapes them:
+// `scan\_page` is one word with an underscore in it. It escapes all four
+// markers and itself (`\_`, `\^`, `\*`, `\~`, `\\`), not only the ones that
+// need it, because an escape with an exception in it is the next thing an
 // author has to remember. A backslash before anything else is an ordinary
 // backslash, and so is a trailing one. The escape is consumed here, in the one
 // function both `dgMeasure` and the emitter read the label through, so the
 // character never reaches a measured string and no box is widened by it.
 const DG_LABEL_ESCAPES = new Set(['_', '^', '*', '~', '\\']);
+// **A shift marker in the middle of a word is a literal character**, which is
+// the same fallback `*` and `~` already have one rule further up: a marker that
+// cannot do its job is not a marker. `*` and `~` cannot do it when nothing
+// closes them; `_` and `^` cannot do it when the single character they take
+// would leave the rest of the word behind at full size.
+//
+// `hausarbeit_final.pdf` on a real keynote came out as `hausarbeit` then a
+// subscript `f` then `inal.pdf`, which the room read as `hausarbeit,inal.pdf`.
+// Nobody writes that on purpose, and nobody writes `m_1`, `c_0`, `MAC_k(M)` or
+// `M_F,` meaning the underscore – which is the whole test: the shift applies
+// exactly where the character it takes ends the word. Every subscript in this
+// repository's figures passes it, and every filename, identifier and
+// snake_case word in one fails it and is drawn as typed.
+//
+// A shift of more than one character was always `_{ab}`, and a group still
+// shifts wherever it is written, so the rule costs no reachable spelling – and
+// `\_` remains the way to force a literal in the one-character case (`a\_b`).
+// `_` counts as a word character here, which is what keeps `snake_case_name`
+// literal all the way along rather than shifting at the last underscore.
+const DG_LABEL_WORD = /[\p{L}\p{N}_]/u;
 function dgUnescapeLabel(s) {
   let out = '';
   for (let i = 0; i < s.length; i++) {
@@ -14839,7 +15401,12 @@ function dgSpans(text) {
       if (cls === want) { flush(0); cls = ''; continue; }
       if (!cls && closes(ch, i + 1)) { flush(0); cls = want; continue; }
       // no closing marker – a literal character
-    } else if ((ch === '_' || ch === '^') && i + 1 < text.length) {
+    } else if ((ch === '_' || ch === '^') && i + 1 < text.length
+      // A group shifts wherever it is written, and so does an escaped
+      // character; a bare one only where it ends the word. See DG_LABEL_WORD.
+      && (text[i + 1] === '{'
+        || (text[i + 1] === '\\' && i + 2 < text.length && DG_LABEL_ESCAPES.has(text[i + 2]))
+        || !(i + 2 < text.length && DG_LABEL_WORD.test(text[i + 2])))) {
       flush(0);
       const shift = ch === '_' ? -1 : 1;
       i++;
@@ -15196,7 +15763,7 @@ function dgParsePlacement(toks, k, errors, lineNo) {
     // with "expects exactly two elements". An order-sensitive refusal of
     // valid syntax is the invisible kind of failure this grammar keeps
     // closing; a derived set cannot drift the same way again.
-    const STOP = new Set(['frac', 'offset', 'gap', 'align', 'same', '->', 'point',
+    const STOP = new Set(['frac', 'offset', 'gap', 'align', 'anchor', 'same', '->', 'point',
       ...Object.values(DG_KIND_OPTS).flat()]);
     let mEnd = k + 1;
     while (mEnd < toks.length && !STOP.has(toks[mEnd].v)) mEnd++;
@@ -15288,6 +15855,39 @@ function dgParsePlacement(toks, k, errors, lineNo) {
       next += 2;
       continue;
     }
+    // Which point of the element lands on the coordinate the placement
+    // resolved to. Only the two forms that *resolve to a point* can take it:
+    // a relative placement already states which face of which element the new
+    // one sits against, and the cross-axis word for that is `flush`. Naming
+    // `flush` in the refusal rather than leaving it to the generated sentence,
+    // for the reason the `align` refusal above does: it is the word the author
+    // is reaching for.
+    if (key === 'anchor') {
+      const a = t(next + 1);
+      if (place.kind === 'rel') {
+        dgErr(errors, lineNo, `anchor says which point of the element lands on a coordinate, and `
+          + `"${place.dir}" names a face of ${place.ref} rather than a coordinate. The cross-axis `
+          + `word for a relative placement is "flush".`, 'semantic');
+      } else if (!DG_ANCHORS.has(a)) {
+        // `middle` is the centre of an *axis*, which is what `align` and
+        // `flush` say; `center` is the centre of one element, which is what an
+        // anchor names. The two words are a real distinction in this grammar
+        // and this is the line where an author meets both, so the near-miss is
+        // named rather than left to the list.
+        dgErr(errors, lineNo, a === 'middle'
+          ? 'the centre of one element is "center" here – "middle" is the centre of an axis, '
+            + 'which is what "align x middle" and "flush middle" say. Write "anchor center", '
+            + 'or leave the word off: the centre is the default.'
+          : `anchor expects ${[...DG_ANCHORS].join(' / ')}, got "${a ?? ''}"`);
+      } else if (a !== 'center') {
+        // `center` is the default, so writing it writes nothing – the same
+        // rule `flush middle` follows, and it keeps `spanOf` able to say
+        // "absent" for the plain case.
+        place.anchor = a;
+      }
+      next += 2;
+      continue;
+    }
     if (key === 'offset') {
       const parts = t(next + 1).split(',');
       if (parts.length !== 2) { dgErr(errors, lineNo, `offset expects dx,dy – got "${t(next + 1)}"`); }
@@ -15298,8 +15898,8 @@ function dgParsePlacement(toks, k, errors, lineNo) {
     break;
   }
   // Where the placement expression sits in the source. The editor needs the
-  // *end* of it: `gap`, `align`, `offset` and `frac` are options of this
-  // expression, and appending one to the end of the line puts it after
+  // *end* of it: `gap`, `flush`, `offset`, `frac` and `anchor` are options of
+  // this expression, and appending one to the end of the line puts it after
   // `w`/`same as`, where the parser no longer reads it as part of the
   // placement. Recorded here because this is the only code that knows how
   // far the expression ran.
@@ -15641,6 +16241,42 @@ function rejectSlotPair(classes, lineNo, errors) {
       + 'the line gives two answers to one question. Keep one.', 'semantic');
   }
 }
+// **Two classes from two slots where one of them deletes the thing the other
+// draws on.** Not a slot pair – a stroke weight and a stroke pattern are
+// genuinely different channels – but the second word has nothing left to act
+// on, and the element it produces is not a fainter version of what the author
+// meant: it is invisible.
+//
+// Measured on a real keynote. `box zone "…" {.bare .dashed}` was written for
+// a dashed outline round an area, five times in one deck, and drew nothing at
+// all: `.bare` had already taken the outline off. The author wanted `.clear`,
+// which takes off the *fill* and keeps the outline – and nothing on the page
+// or in the log said so, because both classes resolved and both were emitted.
+//
+// It is an **error** and not a `DG_CLASS_CLASHES` warning, and the reason is
+// the one that table already states for the other direction. A clash row needs
+// the resolved state at every beat and is the compiler's alone; this pair is
+// decidable from the **written tail alone**, with no beat, no layout and no
+// measurement, which is what lets `lint.js` mirror it by calling this same
+// function. A figure whose outline is meant to arrive later writes `{.dashed}`
+// on the line and `bare` in a `style` step, which is one word shorter than the
+// pair and says what it means.
+//
+// `.bare` with `.thick` needs no row: those two *are* one slot.
+const DG_CLASS_VOIDS = [
+  ['bare', 'dashed'],
+  ['bare', 'dotted'],
+];
+function rejectVoidPair(classes, lineNo, errors) {
+  const has = new Set(classes || []);
+  for (const [eater, eaten] of DG_CLASS_VOIDS) {
+    if (!has.has(eater) || !has.has(eaten)) continue;
+    dgErr(errors, lineNo, `.${eater} deletes the outline, so .${eaten} has no line to pattern – `
+      + `the element comes out with nothing drawn round it at all. `
+      + `.clear is the one that takes off the fill and keeps the outline: `
+      + `write {.clear .${eaten}} for a ${eaten} frame you can see through.`, 'semantic');
+  }
+}
 // `removed` is the tail's `!class` list, checked against exactly the same table
 // as the positive one. Without it the mark was an **escape hatch past the kind
 // gate**: `edge a -> b {.hex}` was refused and `edge a -> b {!hex}` compiled
@@ -15677,6 +16313,7 @@ function rejectClassOn(kindWord, classes, lineNo, errors, what = '', removed = n
   // said. Answering a question the line never asked is the failure this whole
   // cluster exists to remove, so it must not be reintroduced by an ordering.
   rejectSlotPair(survivors, lineNo, errors);
+  rejectVoidPair(survivors, lineNo, errors);
 }
 // "a edge", "a image", "a x coordinate" – the same bug in three functions
 // across two files, all of them user-facing. One helper answers it and every
@@ -15684,6 +16321,53 @@ function rejectClassOn(kindWord, classes, lineNo, errors, what = '', removed = n
 // because `box` and `dot` happen to win a table search.
 function dgArticle(word) {
   return /^[aeiou]/i.test(String(word)) ? 'an' : 'a';
+}
+
+// ── where a warning is about ────────────────────────────────────────
+// **A `[diagram]` warning names an element, and half the names in this grammar
+// are generated.** `edge-4`, `t-1-2`, `wa-3`, `f-0`, `swim-cap-1` are
+// positional: none of them is in the source, so the one move a reader has –
+// search the block for the name the message used – finds nothing. Measured on
+// a real keynote: `edge edge-4 runs 0.5° off the axis` against fourteen
+// figures and about thirty edges, not one of them named.
+//
+// Two facts close that, and each is already on the record the warning holds.
+// Every statement carries the line it was written on (`el.line`, the same
+// number the error gate prints as "line N of the block"), and an edge carries
+// the two tokens it was written between. So every warning that names an
+// element says where it was written, and an edge says what it joins.
+function dgWhere(el) {
+  return (el && el.line) ? `line ${el.line} of the block` : '';
+}
+// An edge as the author wrote it: the two endpoint tokens and the arrow
+// between them, in **model order**. A leftward token is normalised to the
+// rightward one because the model has already swapped the two ends, and
+// printing the written token beside swapped ends would say the opposite of the
+// source; the symmetric tokens survive as written.
+//
+// `ends` is set by the `edge` statement. A generated edge – a `sequence`
+// message, a `text … -- x` leader stub, a chart's baseline – falls back to the
+// refs it was built from, which is the same two names one level down.
+function dgEdgeEnds(e) {
+  if (!e) return '';
+  const side = (r, raw) => {
+    if (raw) return raw;
+    if (!r) return '?';
+    if (r.ref) return r.anchor ? `${r.ref}.${r.anchor}` : r.ref;
+    return 'a point';
+  };
+  const ends = e.ends || [null, null];
+  return `${side(e.from, ends[0])} ${e.arrow || '->'} ${side(e.to, ends[1])}`;
+}
+// The parenthesis a warning ends with: what it joins, and where it was
+// written. Either half may be missing – a generated element has no line of its
+// own beyond its statement's – and an empty parenthesis is worse than none.
+function dgSite(el) {
+  const parts = [];
+  if (el && el.kind === 'edge') parts.push(dgEdgeEnds(el));
+  const where = dgWhere(el);
+  if (where) parts.push(where);
+  return parts.length ? ` (${parts.join(', ')})` : '';
 }
 
 // What a `bars` or a `grid` may say after its shape: a placement, like every
@@ -15701,7 +16385,17 @@ function dgArticle(word) {
 // counting to the author has given back half of what it is for. The number and
 // the generated tag carry the same index, so `@wa-msg-3` is the arrow the room
 // sees labelled 4.
-const DG_BARE_OPTS = { bars: ['stacked', 'horizontal'], sequence: ['unnumbered'] };
+// `unheaded` is the same shape of word one statement along: the first row of a
+// `table` is a heading, drawn bold, and a table of pairs has no heading at all
+// – a two-column key/value block, a legend, a run of definitions. There was no
+// way to write one, and the workaround (a heading of two empty strings) drew an
+// empty bold row that still took its height. It does not change what the
+// statement reads: the first quoted string is still the row that fixes the
+// column count, `dgCellName(id, c, 0)` is still that row's cells and
+// `@t-row-0` still names it. The only thing it takes away is the `bold`.
+const DG_BARE_OPTS = {
+  bars: ['stacked', 'horizontal'], sequence: ['unnumbered'], table: ['unheaded'],
+};
 // Options whose value is a ratio, `W:H`, rather than a number. `w` and `h` are
 // in *grid units*, and a grid cell is not square - on a 150x52 grid a plot
 // written `w 1.9 h 1.5` lands 285px by 78px, which is nobody's idea of 1.9 by
@@ -15746,7 +16440,7 @@ const DG_PLACEMENT_LONG = 'at X,Y / above X / below X / right of X / left of X /
 // each form and not the forms themselves – `right` and `left` without their
 // `of` are a different, earlier error, and a check that answered "no
 // placement" there would be a second sentence about one defect.
-const DG_PLACED_HEADS = new Set(['box', 'dot', 'text', 'image',
+const DG_PLACED_HEADS = new Set(['box', 'dot', 'text', 'image', 'zone',
   'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
 const DG_PLACE_INTRO = new Set(['at', 'between', 'below', 'above', 'right', 'left']);
 const DG_PLACEMENT_SHORT = 'at / above / below / right of / left of / between';
@@ -15754,6 +16448,7 @@ const DG_PLACEMENT_SHORT = 'at / above / below / right of / left of / between';
 // statement's vocabulary is a word in DG_KIND_OPTS.
 const DG_EXTRA_FORMS = {
   box: ['"same as X"', 'a leader "-- X" or "-> X"'],
+  zone: ['"same as X"'],
   text: ['"same as X"', 'a leader "-- X" or "-> X"'],
   dot: ['"same as X"', 'a leader "-- X" or "-> X"'],
   image: ['"same as X"', 'a leader "-- X" or "-> X"'],
@@ -15776,7 +16471,28 @@ function dgTakes(head) {
   const last = parts.pop();
   return `this statement takes ${parts.length ? parts.join(', ') + ' and ' : ''}${last}`;
 }
+// The options that belong to the *placement expression* rather than to the
+// statement, and which placement forms each one can follow. They have to be
+// written directly after the placement – `dgParsePlacement` stops at the first
+// token that is not one of them – so written after `w` or a tail they fall
+// through to the statement, which has never heard of them. `dgTakes` cannot
+// list them, because they are not the statement's; naming them here is what
+// keeps the sentence from being a list the author has already read and a
+// mistake it does not describe. `anchor` is the newest and the likeliest to be
+// written in the wrong place, because it reads like a property of the element.
+const DG_PLACE_OPTS = {
+  gap: 'above / below / right of / left of',
+  flush: 'above / below / right of / left of',
+  frac: 'between',
+  offset: 'any placement',
+  anchor: 'at / between',
+};
 function dgUnexpected(head, id, tok) {
+  if (DG_PLACE_OPTS[tok] && !DG_NO_PLACEMENT.has(head)) {
+    return `"${tok}" is an option of the placement expression (${DG_PLACE_OPTS[tok]}), not of `
+      + `${head}${id ? ` ${id}` : ''} – so it goes directly after the placement, before w / h / pad `
+      + `and before the {…} tail. Written here the placement has already ended and nothing reads it.`;
+  }
   return `unexpected "${tok}" in ${head}${id ? ` ${id}` : ''} – ${dgTakes(head)}`;
 }
 // The consequence a statement that stopped reading must not also report. A
@@ -16153,7 +16869,19 @@ function dgStateAt(model, k) {
         else if (op.op === 'label') st.label = op.text;
         else if (op.op === 'move') {
           if (op.by) { st.shift = [st.shift[0] + op.by[0], st.shift[1] + op.by[1]]; }
-          else if (op.to) { st.place = op.to; st.shift = [0, 0]; }
+          // **A `move … to` carries the element's anchor forward.** `anchor`
+          // says how this element meets a coordinate, and a step says which
+          // coordinate – two different questions, and a step that answered
+          // both would silently re-centre an anchored element the moment it
+          // was moved, by half its own size. A `to` that names an anchor of
+          // its own still wins, so the step can also change how it meets the
+          // point; it just cannot do so by omission.
+          else if (op.to) {
+            const carried = (st.place && st.place.anchor && !op.to.anchor)
+              ? { ...op.to, anchor: st.place.anchor } : op.to;
+            st.place = carried;
+            st.shift = [0, 0];
+          }
         }
       }
     }
@@ -16292,7 +17020,7 @@ function dgSplineD(v) {
 // every keystroke with a sentence about placements. The value being `4:3`
 // rather than a number is exactly what this shape does not care about – it
 // already carries `point`, whose value is a word.
-const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'flush', 'point', 'side', 'x', 'y',
+const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'flush', 'anchor', 'point', 'side', 'x', 'y',
   'aspect', 'col', ...DG_PROMINENCE,
   // the options the expanding statements take on their own line
   'space', 'cell', 'tick', 'row', 'band', 'header'];
@@ -16388,15 +17116,19 @@ function createSpanTable(model, body) {
     return at;
   };
 
-  // `gap`, `align`, `frac` and `offset` are options of the *placement
-  // expression*, not of the statement, so they have to go where that
-  // expression ends. Appending them to the end of the line puts them after
-  // `w 0.62` or `same as uaf`, and the parser stops reading placement
+  // `gap`, `flush`, `frac`, `offset` and `anchor` are options of the
+  // *placement expression*, not of the statement, so they have to go where
+  // that expression ends. Appending them to the end of the line puts them
+  // after `w 0.62` or `same as uaf`, and the parser stops reading placement
   // options the moment it leaves the expression – the line then fails to
   // build. Anything else (`w`, `h`, `r`, `pad`, `same as`) the statement
   // accepts anywhere, so it goes before the attribute tail where it reads
   // best.
-  const PLACEMENT_OPTS = new Set(['gap', 'flush', 'frac', 'offset']);
+  //
+  // Off `DG_PLACE_OPTS`, which `dgUnexpected` reads to name the same five in
+  // a refusal. Two lists would be the place the insertion point and the error
+  // message came to disagree about which words those are.
+  const PLACEMENT_OPTS = new Set(Object.keys(DG_PLACE_OPTS));
   const optionInsert = (el, toks, attr) => {
     if (!PLACEMENT_OPTS.has(attr)) return tailInsert(el, toks);
     // No span means the placement is the implicit origin the first element
@@ -17321,7 +18053,21 @@ function createDiagramCompiler(env = {}) {
               + `has ${heads.length} – rows are split on "|", one part per column`);
           }
         }
-        const rowH = opts.row ?? DG_ROW_H;
+        // **The row height follows the type size.** `row` is the author's own
+        // number and still wins; absent, the default is `DG_ROW_H` *scaled by
+        // the cells' font*, so a `.large` table is not a row of boxes 21.8 px
+        // tall holding 22.9 px of type. The base case is untouched by
+        // construction – `dgFontFor` returns `DG_FONT` when no size class is
+        // written, so the factor is exactly 1 and every existing table draws
+        // the same bytes.
+        //
+        // Off the **written tail**, not the resolved classes: the frame's
+        // geometry is fixed while the line is read, before any `default box`
+        // layer exists, which is the same reason a chart's `same as` is
+        // answered at parse time. A size arriving from a default is the
+        // author's business, and `row` says it in one number.
+        const rowH = opts.row
+          ?? DG_ROW_H * dgFontFor(new Set(attrs.classes)) / DG_FONT;
         const all = [heads, ...body.map(r => r.cells)];
         // `space` on a table converted the way `grid` converts it, and for the
         // sentence `grid`'s own comment already gives: one number that meant
@@ -17348,8 +18094,11 @@ function createDiagramCompiler(env = {}) {
               kind: 'box', id: cid, label: text,
               // The heading is set bold and nothing else: it is the same cell
               // as every other, so a table with a tinted heading says so in
-              // its own step or its own tail rather than here.
-              classes: squared(r === 0 ? ['bold', ...attrs.classes] : attrs.classes.slice()),
+              // its own step or its own tail rather than here. `unheaded`
+              // takes the bold off and changes nothing else – the row is still
+              // row 0, still `@t-row-0`, still what fixes the column count.
+              classes: squared(r === 0 && !opts.unheaded
+                ? ['bold', ...attrs.classes] : attrs.classes.slice()),
               removedClasses: attrs.removedClasses,
               // Two generated tags per cell, which is what makes a row or a
               // column a one-line beat. They are ordinary tags: an author can
@@ -17976,6 +18725,10 @@ function createDiagramCompiler(env = {}) {
             // words is a knockout and not a slab.
             via, pad: DG_SEQ_GROUND, side: it.side, named: !!it.own,
             autoClasses: mAuto,
+            // A message's two ends are coordinates on two lifelines, so the
+            // refs say "a point" and nothing else. The two actors are what the
+            // author wrote, and `it.from` / `it.to` are already in model order.
+            ends: [it.from, it.to], arrow: it.arrow === '<-' ? '->' : it.arrow,
           }, it.ln, 'message', it.span));
           if (!opts.unnumbered) {
             const numId = dgMsgNumName(id, p.i);
@@ -18621,7 +19374,7 @@ function createDiagramCompiler(env = {}) {
         continue;
       }
 
-      if (head === 'box' || head === 'dot' || head === 'text' || head === 'image') {
+      if (head === 'box' || head === 'dot' || head === 'text' || head === 'image' || head === 'zone') {
         const id = t(1);
         if (!id) { dgErr(errors, lineNo, `${head} needs a name`); continue; }
         claim(id, head, lineNo);
@@ -18762,7 +19515,93 @@ function createDiagramCompiler(env = {}) {
           if (model.nodes.length === 0) node.place = { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
           else if (!stopped) dgErr(errors, lineNo, dgNoPlacement(head, id));
         }
-        rejectClassOn(head, attrs.classes, lineNo, errors, '', attrs.removedClasses);
+        // ── zone: a named area that stands from beat 0 ─────────────────
+        // **A `zone` is a `box` with three differences, and the expansion is
+        // where all three live.** It is a statement rather than a class
+        // because two of them are not properties of a box at all: where it is
+        // painted, and where its label sits.
+        //
+        //   1. It is drawn *under* everything, whatever its position in the
+        //      source, so an area can be declared after the things standing
+        //      in it - which is the order an author writes in, because the
+        //      area's size comes from them.
+        //   2. Its label is in a corner rather than in the middle, because
+        //      the middle of an area is where its contents go. Top-left by
+        //      default; `.right` and `.bottom` in the tail move it, which is
+        //      the four alignment words meaning here what they mean on a box,
+        //      one level out.
+        //   3. It is **fixed size**, and that is what separates it from
+        //      `container`. A container fits its members and is invisible
+        //      without them; an area is a claim about the paper that holds
+        //      whether anything is standing in it yet or not, and five
+        //      figures in one keynote needed exactly that - two named regions
+        //      from beat 0, filling up as the talk went on.
+        //
+        // Everything else it needs it already had: `at` names a point, `.cx`
+        // and `.top` address it, `show` / `hide` / `emph` reach it by name.
+        // Authors were writing `box z "" {.dashed .clear}` plus a `text` and
+        // getting an overlap warning per child; the frame carries `synth` set
+        // to its own id, which is the discriminator that keeps a `table`'s or
+        // a `lanes`'s frame out of that census, so it is out of it too.
+        if (head === 'zone') {
+          const cap = quoted[0] ?? '';
+          node.kind = 'box';
+          node.zone = true;
+          node.synth = id;
+          node.label = '';
+          if (node.w == null || node.h == null) {
+            dgErr(errors, lineNo, `zone ${id} needs both "w" and "h" – an area is a fixed claim on `
+              + `the paper, which is the whole difference from a container (that one fits its `
+              + `members and is invisible without them).`, 'semantic');
+          }
+          // The look is seeded and displaceable, exactly as a column's `bare`
+          // is: through the slots, so `{.dotted}` replaces the dash, `{.tone-2}`
+          // the see-through fill and `{.accent}` the muted ink, and none of the
+          // three is written back by the editor as the author's.
+          const seeded = ['clear', 'dashed', 'muted'];
+          // Read off the written tail, before the frame's own class list is
+          // rebuilt without them: the four corner words are the caption's, not
+          // the frame's, and a frame carrying `.right` would align a label it
+          // does not have.
+          const corner = node.classes.filter(c => DG_ZONE_CORNERS.has(c));
+          const own = node.classes.filter(c => !DG_ZONE_CORNERS.has(c));
+          const flat = dgFlattenClassLayers([{ classes: seeded },
+            { classes: own, removedClasses: node.removedClasses }]);
+          node.classes = flat.classes;
+          node.removedClasses = flat.removedClasses;
+          node.autoClasses = seeded.filter(c => flat.classes.includes(c));
+          // The caption. A `text` of its own rather than the frame's label,
+          // because the frame's label is centred and a corner is what an area
+          // wants - and because a text is already the thing that knows how to
+          // be small, muted and turned. `anchor` is what puts it in the
+          // corner, which is the option this same revision added: without it
+          // the caption's box would be centred on the corner and half of it
+          // would hang outside the area it names.
+          const right = corner.includes('right');
+          const bottom = corner.includes('bottom');
+          const capId = dgZoneCapName(id);
+          claim(capId, 'text', lineNo, true);
+          const [zuw, zuh] = model.unit;
+          const padX = DG_ZONE_PAD * zuh / (zuw || 1);
+          model.nodes.push({
+            kind: 'text', id: capId, synth: id, label: cap,
+            classes: ['small', 'muted', ...corner],
+            removedClasses: [], tags: [...(attrs.tags || []), dgZoneTag(id)],
+            place: { kind: 'abs', anchor: (bottom ? 'b' : 't') + (right ? 'r' : 'l'), at: [
+              { ref: id, prop: right ? 'right' : 'left', nudge: right ? -padX : padX },
+              { ref: id, prop: bottom ? 'bottom' : 'top', nudge: bottom ? -DG_ZONE_PAD : DG_ZONE_PAD },
+            ] },
+            // The caption is only as visible as the area it names, through
+            // the face of the visibility closure that already says a text is
+            // only as visible as what it hangs off. `show z` brings both, and
+            // a caption left standing over paper nobody can see is never what
+            // the author meant.
+            leaderRef: id,
+            w: null, h: null, r: null, pad: null, line: lineNo, span,
+          });
+          node.tags = [...(attrs.tags || []), dgZoneTag(id)];
+        }
+        rejectClassOn(head === 'zone' ? 'box' : head, attrs.classes, lineNo, errors, '', attrs.removedClasses);
         model.nodes.push(node);
         if (node.leader) {
           const leadId = `${id}--lead`;
@@ -18788,6 +19627,8 @@ function createDiagramCompiler(env = {}) {
             // written on.
             classes: [DG_ARROW_CLASS[node.leaderArrow] || 'no-head', 'muted'],
             via: [], line: lineNo, span,
+            ends: [id, node.leader],
+            arrow: node.leaderArrow === '<-' ? '->' : (node.leaderArrow || '--'),
           });
         }
         continue;
@@ -18878,6 +19719,13 @@ function createDiagramCompiler(env = {}) {
           removedClasses: (attrs.removedClasses || []).slice(),
           tags: attrs.tags,
           via: [], pad: null, side: null, named, line: lineNo, span,
+          // The two endpoint tokens as written, in model order, and the arrow
+          // normalised to match them. Carried for the warnings alone: an
+          // anonymous edge's `edge-4` is positional and says nothing, and
+          // `from` / `to` have already been parsed into refs by the time a
+          // warning sees them. See dgEdgeEnds.
+          ends: [flip ? toTok : fromTok, flip ? fromTok : toTok],
+          arrow: body0[arrowAt].v === '<-' ? '->' : body0[arrowAt].v,
         };
         // **Every token seeds a class**, expressed through the same three the
         // emitter reads – but the injection is *derived from the arrow token*,
@@ -19243,7 +20091,7 @@ function createDiagramCompiler(env = {}) {
         // Only when the asset resolved at all: an unresolved (or refused)
         // one already has an error naming the real problem, and a warning
         // about proportions on top of it points the author the wrong way.
-        if (node.asset) dgWarn(`image ${node.id}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
+        if (node.asset) dgWarn(`image ${node.id}${dgSite(node)}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
         return { w, h: w };
       }
       const font = fitted(nw != null ? nw * uw : 0, nh != null ? nh * uh : 0);
@@ -19265,7 +20113,7 @@ function createDiagramCompiler(env = {}) {
       // thin column of a `bars` – which carries no text at all – reported that
       // its text was about to run over the edge.
       if (st.label && nw != null && nw * uw < m.w + 6 && !classes.has('fit') && !classes.has('shrink')) {
-        dgWarn(`box ${node.id} is ${nw} units wide but its label needs about `
+        dgWarn(`box ${node.id}${dgSite(node)} is ${nw} units wide but its label needs about `
           + `${((m.w + 2 * padX) / uw).toFixed(2)} – the text will overflow.`);
       }
       // A hexagon or a chevron has less usable interior than the rectangle
@@ -19481,6 +20329,16 @@ function createDiagramCompiler(env = {}) {
               : ref.x + ref.w / 2;
           }
         }
+        // `anchor` is part of the placement expression too, and it is the only
+        // one of these that needs the element's own size – which is why it is
+        // here and not in the parser. `cx`/`cy` are still the centre
+        // afterwards; what the anchor moves is which point of the element the
+        // coordinate above was a statement about. Before `align` / `spread`,
+        // like the offset: those two hand the element a coordinate outright.
+        if (place && place.anchor) {
+          const [ox, oy] = dgAnchorOffset(place.anchor, w, h);
+          cx += ox; cy += oy;
+        }
         // The offset is part of the placement expression, so it lands before
         // align/spread override the result – otherwise an element written as
         // `between a,b offset 0,1.35` and then aligned got the offset twice,
@@ -19643,7 +20501,8 @@ function createDiagramCompiler(env = {}) {
           if (!worst || ov.iw * ov.ih > worst.iw * worst.ih) worst = ov;
         }
         if (both === 0 || hit !== both || !worst) continue;
-        warn(`${a} and ${b} overlap by ${Math.round(worst.iw)}×${Math.round(worst.ih)} px`
+        warn(`${a}${dgSite(authored[i])} and ${b}${dgSite(authored[j])}`
+          + ` overlap by ${Math.round(worst.iw)}×${Math.round(worst.ih)} px`
           + ` – nothing can be drawn between them and whichever is painted second wins.`
           + ` Place one of them relative to the other (\`right of ${a} gap …\`) rather than`
           + ` giving both an absolute \`at\`, so the spacing cannot drift when a label changes.`);
@@ -19720,7 +20579,7 @@ function createDiagramCompiler(env = {}) {
         const frac = inside / total;
         if (frac < DG_LABEL_SWALLOW_FRAC) continue;
         seen.add(e.id);
-        warn(`edge ${e.id}: the label "${e.label}" sits on an elbow and its ground covers `
+        warn(`edge ${e.id}${dgSite(e)}: the label "${e.label}" sits on an elbow and its ground covers `
           + `${Math.round(frac * 100)}% of the part of that elbow you can actually see, so the`
           + ` connector disappears and the words are left floating in the gap. On an elbow the`
           + ` route is the information. Drop the fill class, or move the label off the line with`
@@ -19838,7 +20697,7 @@ function createDiagramCompiler(env = {}) {
       // The label as it reads at the beat that was worst, which is not always
       // the one on the element's own line: a `label` step may have swapped it.
       const label = String(states[worst.k].get(e.id).label || '').replace(/\n/g, ' ');
-      warn(`edge ${e.id}: the label "${label}" measures ${Math.round(along)} px across`
+      warn(`edge ${e.id}${dgSite(e)}: the label "${label}" measures ${Math.round(along)} px across`
         + (room != null ? ` and has ${Math.round(Math.max(0, room))} px of clear space`
           + ` between ${ends[0]} and ${ends[1]}` : '')
         + `, so ${Math.round(worst.lost)} px of the words are painted over by`
@@ -20159,7 +21018,7 @@ function createDiagramCompiler(env = {}) {
         const deg = Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
         const off = Math.min(deg % 90, 90 - (deg % 90));
         if (off > 0.05 && off < DG_SKEW_DEG) {
-          dgWarn(`edge ${e.id} runs ${off.toFixed(1)}° off the axis – its endpoints are probably `
+          dgWarn(`edge ${e.id}${dgSite(e)} runs ${off.toFixed(1)}° off the axis – its endpoints are probably `
             + `meant to line up. Either "align" the two elements, or, if the edge uses a `
             + `fractional anchor, give them the same height ("same as") – a fraction of two `
             + `different heights lands at two different places.`);
@@ -20289,7 +21148,7 @@ function createDiagramCompiler(env = {}) {
         // other pair is a warning here rather than a refusal at parse time.
         const side = vertical ? (eSide === 'left' ? -1 : 1) : (eSide === 'bottom' ? -1 : 1);
         if (eSide && (vertical ? ['top', 'bottom'] : ['left', 'right']).includes(eSide)) {
-          dgWarn(`edge ${e.id}: side ${eSide} names a direction this edge runs along, so it cannot `
+          dgWarn(`edge ${e.id}${dgSite(e)}: side ${eSide} names a direction this edge runs along, so it cannot `
             + `move the label. The edge is ${vertical ? 'vertical' : 'horizontal'} – `
             + `use side ${vertical ? 'left or side right' : 'top or side bottom'}.`);
         }
@@ -20494,12 +21353,19 @@ function createDiagramCompiler(env = {}) {
     // moment the fill is taken away. So the warning fires only where the pair
     // is live in **every** beat, which is the only reading under which one of
     // the two is definitely doing nothing.
+    // `model.byId` holds the kind and not the record, and a warning has to say
+    // where the line is – so the records are indexed once here. Everything a
+    // clash can land on is in one of these four lists.
+    const recordOf = new Map();
+    for (const el of [...model.nodes, ...model.edges, ...model.containers, ...model.braces]) {
+      if (!recordOf.has(el.id)) recordOf.set(el.id, el);
+    }
     for (const [a, b, why] of DG_CLASS_CLASHES) {
       const ids = new Set();
       for (const st of states[0].keys()) ids.add(st);
       for (const id of ids) {
         if (states.every(st => st.get(id) && st.get(id).classes.has(a) && st.get(id).classes.has(b))) {
-          dgWarn(`${id}: ${why}`);
+          dgWarn(`${id}${dgSite(recordOf.get(id))}: ${why}`);
         }
       }
     }
@@ -20535,12 +21401,22 @@ function createDiagramCompiler(env = {}) {
     // {.front}` counts too.
     const lastCls = frames[frames.length - 1].cls;
     const inFront = (e) => ` ${lastCls.get(e.id) || ''} `.includes(' front ');
+    // **A `zone`'s frame is painted first, whatever line it was written on.**
+    // That is the one thing the statement owns that a `box` could not be given
+    // by a class: an area is the paper its contents stand on, and the order an
+    // author writes in is contents-then-area, because the area's size comes
+    // from what is in it. Left in source order a zone declared last covered
+    // everything it was supposed to hold. Its caption is an ordinary text and
+    // stays where it is, at the top of the node run, so the words are over the
+    // ground and under nothing.
+    const isZone = (e) => !!e.zone;
     const elements = [
+      ...model.nodes.filter(isZone).map(e => ({ e, kind: e.kind })),
       ...model.containers.map(e => ({ e, kind: 'container' })),
-      ...model.nodes.filter(e => e.kind === 'image').map(e => ({ e, kind: 'image' })),
+      ...model.nodes.filter(e => e.kind === 'image' && !isZone(e)).map(e => ({ e, kind: 'image' })),
       ...model.braces.map(e => ({ e, kind: 'brace' })),
       ...model.edges.filter(e => !inFront(e)).map(e => ({ e, kind: 'edge' })),
-      ...model.nodes.filter(e => e.kind !== 'image').map(e => ({ e, kind: e.kind })),
+      ...model.nodes.filter(e => e.kind !== 'image' && !isZone(e)).map(e => ({ e, kind: e.kind })),
       ...model.edges.filter(inFront).map(e => ({ e, kind: 'edge' })),
     ];
 
@@ -20840,10 +21716,18 @@ function createDiagramCompiler(env = {}) {
     // because a height budget has to become a width before it can join the
     // same min().
     //
-    // Inert unless a rule reads them, and only PRINT_CSS does. A projection
-    // wants the opposite of this: there the figure is the slide, and it fills
-    // the frame whatever that does to the type.
+    // Read by PRINT_CSS and, since the room measurements, by AUDIENCE_CSS too:
+    // a projection used to want the opposite of this - the figure was the
+    // slide and filled the frame whatever that did to the type - and what it
+    // actually did was set one lecture's labels between 0.53x and 2.97x of its
+    // own running text, decided by nothing the author wrote. Both media size
+    // the drawing from the type now; they differ only in the multiplier and in
+    // what caps it.
     const typeW = (vbW / DG_FONT).toFixed(3);
+    // The same number the caller may want in Node, where the chunk's width
+    // class is known and the label size in the room can therefore be
+    // estimated. Optional: the editor compiles in the browser and passes none.
+    if (opts.onSized) opts.onSized({ typeW: Number(typeW), vbW, vbH });
     const svg = `<svg id="${svgId}" class="psi-diagram" viewBox="${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}" `
       + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)}" `
       + `width="${DG_NOMINAL_W}" height="${Math.round(DG_NOMINAL_W * vbH / vbW)}" `
@@ -20899,7 +21783,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, DG_LABEL_ESCAPES, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, rejectClassOn, dgArticle, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, dgAnchorOffset, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, DG_ZONE_PAD, DG_ZONE_CORNERS, dgZoneCapName, dgZoneTag, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, DG_LABEL_ESCAPES, DG_LABEL_WORD, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, DG_CLASS_VOIDS, rejectVoidPair, rejectClassOn, dgArticle, dgWhere, dgEdgeEnds, dgSite, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, DG_PLACE_OPTS, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
 window.PSI_DG_EDIT_HTML = false;
@@ -21602,9 +22486,10 @@ function dgeFrameMetrics() {
   const width = DGE.fig ? DGE.fig.width : 'standard';
   const em = DGE_FRAME_EM[DGE.frame][width] || 36;
   const px = em * dgeEmPx();
-  // .psi-diagram is capped at 62vh in the live views and at nothing in
-  // print. A figure that hits the cap leaves a band of the measure empty
-  // beside it, and that is invisible until you look at the built page.
+  // .psi-diagram is capped at 62% of the slide height in the live views and
+  // at nothing in print. A figure that hits the cap is the case where its
+  // width is decided by the frame rather than by its type, and that is
+  // invisible until you look at the built page.
   const capPx = DGE.frame === 'print' ? Infinity : window.innerHeight * 0.62;
   return { em, px, capPx, width };
 }
@@ -21907,8 +22792,13 @@ function dgeApplyFrame() {
   frame.style.width = (m.px * DGE.zoom) + 'px';
   frame.style.padding = (14 * DGE.zoom) + 'px';
   art.style.width = '100%';
-  // Reproduce what .psi-diagram actually does at the destination: fill the
-  // measure, and be capped in height in the live views but not in print.
+  // The canvas shows the drawing filling the frame, capped in height in the
+  // live views and not in print. That is no longer literally what
+  // .psi-diagram does at the destination - both media size the box from the
+  // drawing's own type now - and it is still what an editor wants: the
+  // question here is where a shape sits, and the destination's answer to how
+  // large the type comes out is in the measure note below rather than in a
+  // canvas too small to drag anything on.
   svg.style.maxWidth = '100%';
   svg.style.width = '100%';
   svg.style.height = 'auto';
@@ -21918,11 +22808,33 @@ function dgeApplyFrame() {
   const natural = (m.px - 28) * ratio;
   const capped = m.capPx !== Infinity && natural > m.capPx;
   let note = `${m.width} · ${m.em}em`;
+  // How large the labels land where this figure is going, which since the
+  // live views started sizing a drawing from its type is the number that
+  // decides whether a room can read it. --dg-type-w is the viewBox measured in
+  // base labels, so the box divided by it IS the label size; under the type
+  // beside it the figure is at its box and the slide will come down to meet
+  // it (fitZoomToChunk), which the author would rather know here than find in
+  // the hall. The canvas itself still shows the drawing filling the frame -
+  // this is an editor, and a 14 px preview is not editable.
+  const typeW = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-type-w'));
+  if (typeW > 0) {
+    const box = Math.min(m.px - 28, m.capPx === Infinity ? Infinity : m.capPx / ratio);
+    const lbl = box / typeW;
+    // dgeEmPx is the CHUNK's em, which does not carry the zoom, so this is
+    // the comparison at zoom 1 - the same reference figureTypeWarning
+    // estimates against, and the conservative one: the slide's words only get
+    // bigger from here while a figure at its box does not.
+    const body = DGE.frame === 'print' ? dgeEmPx() * 0.9 : dgeEmPx();
+    note += ` · ${typeW.toFixed(0)} labels wide`;
+    note += lbl < body * 0.995
+      ? ` · at its box, so its labels are ${Math.round(lbl)} px against ${Math.round(body)} px of body type`
+      : ` · labels at body size`;
+  }
   if (capped) {
-    // Say it while the author can still fix it. This is invisible until you
-    // look at the built page: a third of the measure stays empty beside the
-    // drawing, because the height cap bound before the width did.
-    note += ` · height-capped at 62vh, so ${Math.round(100 - 100 * (m.capPx / natural))}% of the measure stays empty beside it`;
+    // The height cap deciding the width rather than the measure. It used to
+    // leave a band of the measure empty beside the drawing; the width rule
+    // hugs it now, and what is left to say is which of the two caps bound.
+    note += ` · the ${Math.round(m.capPx)} px height cap is what decides its width here`;
   }
   frame.dataset.measure = note;
   dgeQ('#dge-frames').querySelectorAll('button').forEach((b) => {
@@ -22822,6 +23734,15 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
   const want = { x: b.x + b.w / 2 + dx * uw, y: b.y + b.h / 2 + dy * uh };
   const eff = dgeEffState(ctx, el, beat);
   const place = eff.place;
+  // **An anchored placement gets no guides.** Every candidate below is a
+  // proposal about where the element's *centre* lands – on a neighbour's edge
+  // line, halfway between two elements, on a shared axis – and it is written
+  // back as the coordinate in `at`. With `anchor tl` that coordinate is the
+  // element's top-left corner, so the guide would draw a line through the
+  // centre and write a number about a corner. The plain drag underneath still
+  // works and still round-trips exactly, because it rewrites the number that
+  // is on the line rather than the position it resolves to.
+  if (place && place.anchor) return none;
   // A `between` element is already at a relation and its own drag rewrites
   // `frac`; the two proposals below are for an element that has none to lose.
   const bare = !place || place.implicit || place.kind === 'abs';
@@ -23027,12 +23948,21 @@ function dgeStepToText(ctx, id, out, eff, want) {
   if (out.snap.gap != null && place && place.kind === 'rel') {
     return dgeRelText(place, out.snap.gap);
   }
+  // A `move … to` states the coordinate, and `anchor` carries forward from the
+  // element's own line – so the number written here is the coordinate the
+  // *anchor point* lands on, not the centre `want` holds. Left uncorrected a
+  // dragged `anchor tl` element jumped half its own size the moment a step
+  // moved it, which is the same half-size slip the carry-forward rule in
+  // dgStateAt exists to prevent, arriving from the other side.
+  const b = ctx.boxes.get(id);
+  const anch = (place && place.anchor && b)
+    ? window.PSI_DG.dgAnchorOffset(place.anchor, b.w, b.h) : [0, 0];
   const comp = (axis, i) => {
     if (out.snap.ref[axis]) return out.snap.ref[axis];
     const sp = eff.own && place && place.kind === 'abs' && !eff.shift[i]
       ? dgeSpanIn(ctx, id, 'at.' + axis) : null;
     if (sp && sp.present) return sp.text;
-    return dgeNum(dgeRound(want[axis] / (axis === 'x' ? uw : uh), DGE_SNAP_CELL));
+    return dgeNum(dgeRound((want[axis] - anch[i]) / (axis === 'x' ? uw : uh), DGE_SNAP_CELL));
   };
   return comp('x', 0) + ',' + comp('y', 1);
 }
@@ -25764,6 +26694,31 @@ function dgeRenderSide() {
     }
   }
 
+  // The one bare word a table's own statement reads, and the same control for
+  // the same reason: a closed list of one, present as a token or absent as an
+  // insertion point. The row names both readings rather than one and a
+  // checkbox, because "unheaded off" is not a phrase anyone thinks in.
+  if (single && single.frame === 'table') {
+    const sp = dgeSpanOf(single.id, 'unheaded');
+    if (sp) {
+      const row = dgeEl('div', { class: 'dge-swatches' });
+      for (const [word, label] of [['', 'heading row'], ['unheaded', 'no heading']]) {
+        row.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-sw',
+          'aria-pressed': String((sp.present ? 'unheaded' : '') === word),
+          text: label,
+          onclick: () => dgeWriteAttr(single.id, 'unheaded', word),
+        }));
+      }
+      side.appendChild(dgeEl('div', {}, [
+        dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'first row' }), row]),
+        dgeEl('div', { class: 'dge-hint', text:
+          'Whether the first row is set bold. It is still the row that fixes the column count '
+          + 'either way, and still @' + single.id + '-row-0.' }),
+      ]));
+    }
+  }
+
   // Which side of its members a brace stands on. A closed word list, so it is a
   // swatch row for the same reason `point` is one – and it was the only word in
   // the grammar that moves an element bodily with no control at all.
@@ -25987,6 +26942,10 @@ function dgeSlotRows(chosen, kinds) {
       // author the wrong thing about their figure.
       const fixed = opt.inherit ? '' : dgeBeatFixed(slot, opt.cls, carried);
       if (fixed) whys.add(fixed);
+      // The other reason a swatch is offered and cannot be clicked, and it is
+      // about the element rather than about the beat – so it says so on the
+      // swatch and does not join `whys`, which is the beat's sentence.
+      const voided = fixed ? '' : (opt.inherit ? '' : dgeVoidedBy(opt.cls));
       row.appendChild(dgeEl('button', {
         type: 'button', class: 'dge-sw',
         'data-fill': opt.fill === undefined ? null : (opt.fill || 'none'),
@@ -25994,14 +26953,18 @@ function dgeSlotRows(chosen, kinds) {
         // produces is whatever the default says, and that state is already the
         // swatch the default's own class owns – so it never reads as pressed.
         'aria-pressed': String(!opt.inherit && current === opt.cls),
-        disabled: !!fixed,
+        disabled: !!fixed || !!voided,
         title: fixed
           ? (opt.cls ? '.' + opt.cls : 'nothing in this slot') + ' – ' + fixed
             + ' is settled once when the figure is built, so a step has nothing to switch'
-          : (opt.inherit ? 'drop this element’s own say and take the default'
-            : (opt.cls ? (slot.arrow ? opt.cls : '.' + opt.cls) : 'nothing in this slot')),
+          : voided
+            ? `.${opt.cls} – .${voided} is on this line, and the two together draw nothing at `
+              + 'all: one deletes the outline the other patterns. Take that one off first, or '
+              + 'use .clear, which takes off the fill and keeps the outline.'
+            : (opt.inherit ? 'drop this element’s own say and take the default'
+              : (opt.cls ? (slot.arrow ? opt.cls : '.' + opt.cls) : 'nothing in this slot')),
         text: opt.fill !== undefined && !opt.inherit ? '' : (opt.label || opt.cls),
-        onclick: fixed ? null : () => dgeSetSlot(slot, opt.cls, opt),
+        onclick: (fixed || voided) ? null : () => dgeSetSlot(slot, opt.cls, opt),
       }));
     }
     // Its own class beside the shared one, the rule chips already follow: a
@@ -26120,6 +27083,34 @@ function dgeSlotCarried(names) {
 // because they are listed as exceptions; that listing is precisely the
 // narrowing this replaced, which let a fill swatch at beat 2 quietly edit the
 // printed handout.
+// **A swatch whose only outcome is a compiler refusal is not a control**, which
+// is item 15 one pair further along. `DG_CLASS_VOIDS` is the short table of
+// classes from two different slots where the first deletes the surface the
+// second draws on: `.bare` takes the outline off, so `{.bare .dashed}` draws
+// nothing round the element at all and the build refuses it. The element
+// wearing one of them gets the other greyed out with the reason on it, rather
+// than a click that rolls itself back and a sentence in the message area.
+//
+// Read off the **written tail** and only at beat 0, which is exactly the scope
+// the compiler's refusal has: it reads one tail, so a `.dashed` on the
+// element's own line and a `.bare` arriving from a `default box` are not the
+// pair, and neither is a `style` step's own tail at a later beat. A greying
+// stricter than the refusal would be a control taken away for a line the
+// author is entitled to write.
+function dgeVoidedBy(cls) {
+  if (!cls || DGE.beat) return '';
+  const pairs = (window.PSI_DG && window.PSI_DG.DG_CLASS_VOIDS) || [];
+  for (const pair of pairs) {
+    const other = cls === pair[0] ? pair[1] : cls === pair[1] ? pair[0] : null;
+    if (!other) continue;
+    for (const id of DGE.selection) {
+      const el = dgeLineOwner(id);
+      if (el && (el.classes || []).includes(other)) return other;
+    }
+  }
+  return '';
+}
+
 function dgeBeatFixed(slot, cls, carried) {
   if (!DGE.beat) return '';
   if (cls) return dgeStepFixedWhy(cls);
@@ -27094,6 +28085,35 @@ function dgeSetLeaderArrow(tok) {
   }
 }
 
+// Which point of the element lands on the coordinate `at` or `between`
+// resolved to. A swatch row like `flush`, and for the same reason: it is a
+// closed word list, so a field would be a place to make a typo the compiler
+// then has to refuse.
+//
+// Nine words in reading order rather than in `DG_ANCHORS` order, because what
+// the author is choosing is a corner of a box and the row is the box. `center`
+// writes nothing – it is the parser's default, so the swatch takes the token
+// off rather than restating it, which is what every "plain case" swatch here
+// does. Only on `at` and `between`: a relative placement answers the same
+// question with `flush`, against the element it is measured from.
+const DGE_ANCHOR_ROW = ['tl', 'top', 'tr', 'left', 'center', 'right', 'bl', 'bottom', 'br'];
+function dgeAnchorSlot(el, p) {
+  const row = dgeEl('div', { class: 'dge-swatches' });
+  const now = p.anchor || 'center';
+  for (const w of DGE_ANCHOR_ROW) {
+    row.appendChild(dgeEl('button', {
+      type: 'button', class: 'dge-sw', 'aria-pressed': String(now === w),
+      title: w === 'center'
+        ? 'the coordinate is the element’s centre – the plain case, and no word on the line'
+        : `anchor ${w} – the element’s ${w} meets the coordinate, so a row of labels of `
+          + 'different lengths lines up',
+      text: w,
+      onclick: () => dgeWriteAttr(el.id, 'anchor', w === 'center' ? '' : w),
+    }));
+  }
+  return dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'anchor' }), row]);
+}
+
 // The placement, as three answers rather than one opaque phrase.
 function dgePlacementPane(el) {
   const wrap = dgeEl('div', {});
@@ -27196,6 +28216,7 @@ function dgePlacementPane(el) {
         + 'value in a plot’s own units – roc@0.35. Each half is read on its own, '
         + 'so one may borrow and the other be a number.' }));
     }
+    wrap.appendChild(dgeAnchorSlot(el, p));
   } else if (p.kind === 'rel') {
     const dirs = dgeEl('div', { class: 'dge-chips' });
     for (const d of DGE_DIRS) {
@@ -27308,6 +28329,7 @@ function dgePlacementPane(el) {
       }),
     ]));
     wrap.appendChild(row);
+    wrap.appendChild(dgeAnchorSlot(el, p));
   }
 
   // One list for every id in the block, so the reference fields complete
