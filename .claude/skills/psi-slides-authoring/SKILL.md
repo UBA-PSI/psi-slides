@@ -134,6 +134,16 @@ Types (ten, exhaustive) and what they mean in practice:
 
 When in doubt, `free`.
 
+**`figure:` turns the heading into a caption, so it is the wrong type for a
+slide whose title should carry.** The live views set a `figure:` heading small,
+in capitals, in the quiet ink – a label for the artwork, not a line the room
+reads first – and a `::: footnote` on such a chunk sits under the picture,
+where a source line belongs. A slide where the *title* stands over a drawing is
+a `free:` chunk with the `::: draw` in its body: same picture, a heading at
+full weight. `lint.js` also warns (`figure-type-without-figure`) when a
+`figure:` chunk holds no artwork at all, because the overview board and the
+cockpit read the type and the deck then reports more figures than it has.
+
 `closing:` is the bookend and is the one exception to the rule that a
 cover-shaped slide renders from frontmatter: its heading is what it says,
 the sub-heading after the `|` is the second line, and the body is whatever
@@ -608,7 +618,26 @@ A quieter always-visible note attached to the chunk, set under the body with a
 small NOTE label over a dotted rule. Use for short context, not a second
 argument. It stays in the middle column, has nothing to click, and takes no
 label of its own – that is the whole of the difference from `::: marginalia`,
-which goes out into the slide margin and *is* clickable.
+which goes out into the slide margin and *is* clickable. On a `figure:` chunk
+it sits under the artwork.
+
+**A footnote written after a `---` arrives with that segment**, so a citation
+can come in with the sentence it supports rather than standing on the slide
+from the first beat. It rides the segment and adds no press of its own; before
+the first `---`, or in a chunk with no `---`, it is on the slide from the
+start, as it always was. Print shows every footnote at once either way.
+
+```md
+## definition: Loose coupling {.standard #loose}
+
+---
+
+Units that work largely independently of one another.
+
+::: footnote
+Weick, Educational Organizations as Loosely Coupled Systems, ASQ 1976
+:::
+```
 
 `::: margin` is the older spelling and still builds, so no existing
 `source.md` breaks. Do not write it in anything new: it was one keystroke from
@@ -854,6 +883,21 @@ relative path, an https URL. Both class tails are **closed vocabularies, one
 word per slot**; two words from one slot fails the build, as does a word from
 no slot.
 
+**`reveal` is how a photograph arrives on a press.** After the tail, name one
+place per beat – a band against an edge (`left 45%`, `bottom 30%`), the whole
+slide (`full`), or nothing (`none`) – and the picture's window opens or closes
+between them. `reveal none, full` is the plain case: a slide that opens on its
+words and takes the picture on the first press. Turn it round,
+`reveal full, none`, and the picture retreats to free the paper the words are
+written on. Two places at least; one is refused, being a static crop written
+the long way. Place *i* is simply what the slide looks like at beat *i*: the
+list **rides** the chunk's beats rather than adding to them, and only a chunk
+with fewer beats than places – a title slide, typically – gains presses from it.
+
+```markdown
+::: backdrop harbour {.cover .invert} reveal none, full
+```
+
 | directive | slot | members (first is the default) |
 |---|---|---|
 | `backdrop` | fill | `.cover` `.contain` |
@@ -977,7 +1021,13 @@ wrapper or an aside: each compiles to something of its own.
   `lanes` puts who down the side and lets the reading direction carry the time,
   `sequence` puts who across the top and makes the vertical axis the time
   itself - steps parcelled out to the people responsible for them is the first,
-  messages passing between them is the second.
+  messages passing between them is the second. An element is placed either
+  absolutely, `at 12,4`, or against another one, `right of a gap 1`; the two
+  take different options, and `flush` - which edge of the reference the new
+  element lines up with - is only legal on the relational form. `at 12,4 flush
+  left` is refused as an unexpected token, because there is no reference to be
+  flush with: move the element, or place it off the one you meant. The whole
+  vocabulary is in the `psi-slides-figures` skill.
 - **`::: embed <url>`** frames a hosted player, YouTube or Vimeo. It is the one
   construct that makes an output fetch from a third party while the lecture is
   being given, so reach for it only when a local clip - `![](clip-id)` - will
@@ -1478,6 +1528,48 @@ on the wall. `--check-fit` answers the frame; your eyes answer the rest.
 Like `--check-fit` it degrades rather than fails, and it never fails a build:
 it is a description of the projection, not a verdict on it.
 
+## `build.js --frames`
+
+The projection as pictures: one PNG per state, and a contact sheet of eight per
+page beside them.
+
+```bash
+node build.js <source.md> --frames                       # → frames/ beside the source
+node build.js <source.md> --frames shots                 # → shots/
+node build.js <source.md> --frames --viewport 1920x1080
+```
+
+It walks the built `audience.html` the way `--check-fit` and `--squint` do –
+pressing the key, so every reveal, every figure step and every backdrop place
+gets a frame – and writes each state as `NNN-<chunk-id>-b<beat>.png`. A press
+that paints the same pixels writes nothing, so the count is states and not
+presses. **The sheet is the thing to read**, because the defects this catches
+are visible at a quarter size and forty frames across five pages is a review
+while forty files is not.
+
+It exists because the other two answer narrow questions. `--check-fit` is
+geometry against the frame and `--squint` is text, and a deck goes wrong in
+ways neither asks about: type that is 12 px on a 1600 px slide, a source line
+standing over the figure it cites, a table cell that swallowed its own class, a
+row of cards where one is a third the height of its neighbours. Both probes
+were clean on the keynote that produced this command.
+
+Needs a Chromium and `playwright-core`; without either it says so and leaves
+the exit code alone. It never fails a build.
+
+**The four checks in order, and what each one cannot see:**
+
+| | sees | blind to |
+|---|---|---|
+| `node lint.js <source>` | the grammar, the budgets, the mirrors – no browser, milliseconds | anything that is a rendering |
+| `--check-fit` | whether a slide that fits the frame is inside it | colour, contrast, wording, everything that fits |
+| `--squint` | what the room reads, beat by beat, and what the collapse withholds | colour, contrast, overlap, size, the fold |
+| `--frames` | the slide as the room gets it, every state | nothing it can name for you – you are reading pictures |
+
+Run them in that order. The first three are cheap and specific; `--frames` is
+the one that needs your eyes, and it is the one that finds what the others were
+not asked about.
+
 A source file can silence checks with an HTML comment anywhere in the body:
 
 ```md
@@ -1505,6 +1597,12 @@ warning go away unread.
    to the projection. Then open `audience.html` and press `O` for the overview
    board – repeated sentence openers, type monotony and over-dense chunks show
    up there and nowhere else – and `C` on any chunk the file made you doubt.
+9. `node build.js <source.md> --frames`, then read the contact sheets.
+   **Look at the sheets before judging the wording.** A review that starts from
+   the source, or even from `squint.txt`, argues about sentences on slides that
+   are broken in ways no text can carry – a label at 12 px, a footnote standing
+   over the figure it cites, three cards at three heights. Fix what the
+   pictures show first; the wording is worth arguing about once the slide is.
 
 ## Gotchas
 

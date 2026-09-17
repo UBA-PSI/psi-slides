@@ -127,6 +127,16 @@ node build.js <source.md> --check-fit --viewport 1920x1080
 # the `psi-slides-authoring` skill.
 node build.js <source.md> --squint
 node build.js <source.md> --squint --squint-out -    # to stdout instead
+#
+# --frames writes every state of the projection as a PNG - one per press,
+# named by position, chunk id and beat - plus a contact sheet of eight per
+# page beside them, into frames/ next to the source (or into DIR). The sheet
+# is the thing to read: --check-fit is geometry against the frame and
+# --squint is text, and a deck goes wrong in ways neither asks about - type
+# that is 12 px on a 1600 px slide, a source line standing over the figure it
+# cites, a cell that swallowed its own class. Never fails a build.
+node build.js <source.md> --frames
+node build.js <source.md> --frames shots --viewport 1920x1080
 
 # static checks – run before committing
 node lint.js lectures/                         # all lectures
@@ -154,7 +164,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # createSpanTable, or anything that moves a label or an extent. Anything
 # checkable without a browser belongs in lint.js or in test/gates/, never here.
 #
-# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the seven specs that build a
+# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the nine specs that build a
 # deck of their own rather than hunting shapes in a real one: test/README.md.
 npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
@@ -223,7 +233,7 @@ a decision the name does not:
 Design implications:
 
 - A line that is exactly `---` inside a chunk body but **outside a code fence** is a reveal-segment separator, not a thematic break. `***` is available if an author needs a true horizontal rule. **At the top level it splits the body into `.reveal-segment` divs; below it – inside a `::: side` pane, a captured `::: cards` / `::: rows` body, an `::: overlay` card or a divider's body – it becomes `BEAT_MARK`, an empty `.beat-mark` div, because a wrapper cannot straddle two segments.** `chunkBeats` in `AUDIENCE_JS` reads segments, diagram steps and markers in one document-order walk, so nested beats interleave with top-level ones in source order; a marker inside an `.overlay-card[data-from]` carries `at` and counts from the card's own `from`. The elements a marker governs get `data-beat-hidden`, which is `visibility: hidden` at three classes of specificity – **not** `display: none`: a nested beat keeps its box so the pane, the row or the card row stands at its final height from beat 0 and the slide does not jump per press, while a top-level segment still closes up. Print hides only the marker. `::: expand` keeps the `<hr>` – its body is off the projection.
-- `::: expand <label>` and `::: footnote` / `::: marginalia` become separate nodes attached to the chunk (`::: margin` is the older spelling of `::: footnote`, still accepted and documented nowhere); `::: cols N`, `::: side` / `::: flip`, `::: slide` / `::: script` are layout wrappers that stay inline in the body as `<div>`/`<aside>` elements and let `marked`'s html-block passthrough render the inner Markdown.
+- `::: expand <label>` and `::: footnote` / `::: marginalia` become separate nodes attached to the chunk (`::: margin` is the older spelling of `::: footnote`, still accepted and documented nowhere); `::: cols N`, `::: side` / `::: flip`, `::: slide` / `::: script` are layout wrappers that stay inline in the body as `<div>`/`<aside>` elements and let `marked`'s html-block passthrough render the inner Markdown. **A `::: footnote` remembers which reveal segment it was written in and arrives with it.** Lifted out of the body it can carry no `BEAT_MARK` – a marker governs the element siblings after it inside one parent, and the aside has left that parent – so `segmentIndexer` resolves the position it stood at into an index among the segments the renderer ships, the aside carries it as `data-seg`, and `applyReveal` mirrors that segment's own visibility onto it. It rides the segment rather than a beat number because the two are not the same count: a diagram step between two segments is a beat, so the second segment's number is not its index. It adds no beat, so `countSegments` knows nothing about it; written before the first `---`, `data-seg` is not emitted at all and the output is byte-identical to before.
 - `::: slide` / `::: script` are the **explicit slide-content** escape hatch from topic-sentence extraction (PRD §4.5). They add no runtime state and no sync field: the parser emits `.slide-explicit` / `.script-only` wrappers and the whole mode is CSS (`:has()` rules under `[data-collapse=topic-bold]`), plus a `closest()` guard in `splitSentencesIn` so explicit blocks are never abridged. The hiding selector must match at any depth (`*:not(.slide-explicit):not(:has(.slide-explicit)):not(.slide-explicit *)`) – matching only `.reveal-segment > *` breaks as soon as a `::: slide` sits inside a `::: side` or `::: cols` wrapper.
 - `::: cols N` **folds to a single column while collapsed** (`[data-collapse=topic-bold] .cols-2, .cols-3 { column-count: 1 }`). Collapsed content is one topic sentence per paragraph, and `.cols > *` sets `break-inside: avoid`, so the browser can only balance in whole paragraphs – a one-line and a five-line paragraph land as a stub beside a wall of text, and two short ones as two stubs with the full gutter between them. Print and the un-collapsed reading mode keep the author's columns, where there is enough content to balance.
 - Speaker notes are blockquotes whose first line matches `note:` exactly; they attach to the current chunk (or to the next one if they precede the first chunk).
@@ -527,7 +537,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twelve gates guards, the four browser-spec families, and the seven specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twelve gates guards, the four browser-spec families, and the nine specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
