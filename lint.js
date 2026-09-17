@@ -3811,6 +3811,38 @@ function lintFile(filePath) {
   // way; the build hard-fails on an oversized one, so this gate has to reach
   // them or it lets through exactly what the build will refuse.
   const diagramRefs = new Set(diagramImageRefs(body));
+  // One size check, two walks: the body below and the frontmatter after it.
+  // `emit` is how the caller says which line the finding belongs to.
+  const checkOversized = (href, emit) => {
+    if (/^[a-z]+:/i.test(href)) return;
+    let abs = null;
+    if (!href.includes('/') && !path.extname(href)) {
+      for (const ext of [...IMG_EXTS, ...VIDEO_EXTS]) {
+        const cand = path.join(sourceDir, 'assets', `${href}.${ext}`);
+        if (fs.existsSync(cand)) { abs = cand; break; }
+      }
+    } else {
+      const cand = path.resolve(sourceDir, href);
+      if (fs.existsSync(cand)) abs = cand;
+    }
+    if (!abs || seenAssets.has(abs)) return;
+    seenAssets.add(abs);
+    let size;
+    try { size = fs.statSync(abs).size; } catch (e) { return; }
+    const cap = inlineCapFor(abs);
+    if (size <= cap) return;
+    const mb = (size / 1024 / 1024).toFixed(2);
+    if (cap === MAX_INLINE_VIDEO_BYTES) {
+      // Video has a defined fallback: the build stages it into videos/
+      // beside the output. Worth saying, because it is the difference
+      // between a broken figure and one companion folder to carry.
+      emit('warn', 'oversized-asset',
+           `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so the build plays it from videos/ beside the output – keep that folder with the HTML, or re-encode the clip smaller`);
+    } else {
+      emit('warn', 'oversized-asset',
+           `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so it stays an external path and the output is not self-contained – run \`node build.js <source.md> --optimize-images\``);
+    }
+  };
   let assetFence = false;
   lines.forEach((line, i) => {
     if (/^\s*(```|~~~)/.test(line)) assetFence = !assetFence;
@@ -3847,36 +3879,18 @@ function lintFile(filePath) {
     // likely to be a photograph, which is the kind that blows it.
     const bm = line.match(/^:::\s+backdrop\s+([^\s{]+)/);
     if (bm) hrefs.push(bm[1]);
-    for (const href of hrefs) {
-      if (/^[a-z]+:/i.test(href)) continue;
-      let abs = null;
-      if (!href.includes('/') && !path.extname(href)) {
-        for (const ext of [...IMG_EXTS, ...VIDEO_EXTS]) {
-          const cand = path.join(sourceDir, 'assets', `${href}.${ext}`);
-          if (fs.existsSync(cand)) { abs = cand; break; }
-        }
-      } else {
-        const cand = path.resolve(sourceDir, href);
-        if (fs.existsSync(cand)) abs = cand;
-      }
-      if (!abs || seenAssets.has(abs)) continue;
-      seenAssets.add(abs);
-      let size;
-      try { size = fs.statSync(abs).size; } catch (e) { continue; }
-      const cap = inlineCapFor(abs);
-      if (size <= cap) continue;
-      const mb = (size / 1024 / 1024).toFixed(2);
-      if (cap === MAX_INLINE_VIDEO_BYTES) {
-        // Video has a defined fallback: the build stages it into videos/
-        // beside the output. Worth saying, because it is the difference
-        // between a broken figure and one companion folder to carry.
-        add(i + 1, 'warn', 'oversized-asset',
-            `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so the build plays it from videos/ beside the output – keep that folder with the HTML, or re-encode the clip smaller`);
-      } else {
-        add(i + 1, 'warn', 'oversized-asset',
-            `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so it stays an external path and the output is not self-contained – run \`node build.js <source.md> --optimize-images\``);
-      }
-    }
+    for (const href of hrefs) checkOversized(href, (sev, rule, msg) => add(i + 1, sev, rule, msg));
+  });
+
+  // The two frontmatter keys that name a picture. They go into the output
+  // through the same data: URI as a figure, so they meet the same cap - and
+  // they live in the header, which the walk above does not see, so they need
+  // their own pass and their own line numbers. build.js:
+  // collectDecorationImageRefs is the same three forms in one function;
+  // `closing-image: cover` names no file and resolves to nothing here.
+  header.split('\n').forEach((line, i) => {
+    const cm = line.match(/^(?:cover-image|closing-image):[ \t]*["']?([^"'\s#]+)/);
+    if (cm) checkOversized(cm[1], (sev, rule, msg) => addFm(i + 2, sev, rule, msg));
   });
 
   // Unclosed display math. A `$$` that never closes swallows the rest of the

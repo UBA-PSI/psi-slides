@@ -37,6 +37,9 @@
  *   cue-cards  the note-to-cards grammar in cue-cards.mjs, rule by rule,
  *              and that the module reaches the speaker page as
  *              window.PSI_CARDS with every export on it
+ *   image-refs every way a source.md names a picture, and the one collector
+ *              both readers go through - the set that decides what the inline
+ *              cap refuses and what --optimize-images can fix
  *   xheight    every text face in BUNDLED_FONTS carries the measured
  *              x-height that sizes inline code against the prose around
  *              it, and the roster agrees with the JSON it was copied from
@@ -62,6 +65,7 @@ const GATES = [
   './legacy-draw-syntax.mjs',
   './cue-cards.mjs',
   './xheight.mjs',
+  './image-refs.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));
