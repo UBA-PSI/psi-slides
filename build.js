@@ -20759,7 +20759,7 @@ async function runServe(rootDir, wantedPort) {
 
 // Flags that consume the following argv token as their value, so it is not
 // mistaken for the source path.
-const VALUE_FLAGS = new Set(['--max-width', '--port', '--viewport', '--squint-out', '--into']);
+const VALUE_FLAGS = new Set(['--frames', '--max-width', '--port', '--viewport', '--squint-out', '--into']);
 
 // ── driving the built projection (shared by --check-fit and --squint) ─
 // Two commands answer questions that only a rendered page can answer - does
@@ -20819,6 +20819,88 @@ function readViewportFlag(argv, fallback = { width: 1600, height: 900 }) {
     process.exit(1);
   }
   return { width: Number(m[1]), height: Number(m[2]) };
+}
+
+// ── --frames ─────────────────────────────────────────────────────────
+// Every state of the projection as a picture, because the two probes above
+// answer two narrow questions and a deck goes wrong in ways neither asks
+// about: a figure whose type is 12 px on a 1600 px slide, a `.bare` cell
+// that swallowed its `.dashed`, a caption over a figure instead of under
+// it. --check-fit is geometry against the frame and --squint is text; both
+// were clean on a keynote whose author found seven of its defects only
+// after writing this walk by hand in Playwright and running it six times.
+//
+// One PNG per state at 1600x900, named by position, chunk id and beat, and
+// a contact sheet of eight per page next to them - the sheet is what one
+// actually reads, because the defects above are visible at a quarter of
+// the size and forty frames on five pages is a review, forty files is not.
+// The sheet is drawn by the same browser from an HTML page of the frames,
+// so it costs no image library. Never fails a build.
+async function runFrames(absIn, viewport, outDir) {
+  const opened = await openAudienceProbe(absIn, '--frames', viewport, 'written');
+  if (!opened.page) return opened.code;
+  const { browser, page } = opened;
+  const dir = path.resolve(path.dirname(absIn), outDir || 'frames');
+  fs.mkdirSync(dir, { recursive: true });
+  for (const f of fs.readdirSync(dir)) {
+    if (/^(\d{3}-.*\.png|sheet-\d+\.png|sheet\.html)$/.test(f)) fs.unlinkSync(path.join(dir, f));
+  }
+
+  const where = () => page.evaluate(() => {
+    const act = document.querySelector('.chunk.active');
+    return act ? (act.dataset.chunkId || act.id || 'chunk') : null;
+  });
+
+  // Same stop rule as --check-fit: the screenshot hash decides, because a
+  // figure step moves nothing the DOM can count. Duplicates are not written
+  // - a press that painted the same pixels is the same state.
+  const frames = [];
+  let lastHash = null, same = 0, lastId = null, beat = 0;
+  for (let i = 0; i < 400; i++) {
+    const id = await where();
+    if (!id) break;
+    const shot = await page.screenshot();
+    const hash = crypto.createHash('sha1').update(shot).digest('hex');
+    if (hash === lastHash) { if (++same >= 2) break; }
+    else {
+      same = 0;
+      beat = id === lastId ? beat + 1 : 0;
+      lastId = id;
+      const name = `${String(frames.length + 1).padStart(3, '0')}-${id}-b${beat}.png`;
+      fs.writeFileSync(path.join(dir, name), shot);
+      frames.push({ name, id, beat });
+    }
+    lastHash = hash;
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(360);
+  }
+
+  // The contact sheet: eight frames a page, four by two, each captioned with
+  // its file name so a defect seen on the sheet can be opened at full size.
+  const per = 8, sheets = Math.ceil(frames.length / per);
+  const cell = Math.floor((viewport.width - 5 * 16) / 4);
+  const cellH = Math.round(cell * viewport.height / viewport.width);
+  for (let s = 0; s < sheets; s++) {
+    const slice = frames.slice(s * per, s * per + per);
+    const html = `<!doctype html><meta charset="utf-8"><style>
+      body{margin:0;background:#444;font:12px/1.3 system-ui,sans-serif;color:#eee}
+      .grid{display:grid;grid-template-columns:repeat(4,${cell}px);gap:16px;padding:16px}
+      figure{margin:0}img{width:${cell}px;height:${cellH}px;display:block;background:#fff;outline:1px solid #222}
+      figcaption{padding:3px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    </style><div class="grid">${slice.map(f =>
+      `<figure><img src="${pathToFileURL(path.join(dir, f.name)).href}"><figcaption>${f.name}</figcaption></figure>`).join('')}</div>`;
+    const sheetHtml = path.join(dir, 'sheet.html');
+    fs.writeFileSync(sheetHtml, html);
+    const sp = await browser.newPage({ viewport: { width: viewport.width, height: 2 * (cellH + 40) + 16 }, deviceScaleFactor: 1 });
+    await sp.goto(pathToFileURL(sheetHtml).href, { waitUntil: 'networkidle' });
+    await sp.screenshot({ path: path.join(dir, `sheet-${s + 1}.png`), fullPage: true });
+    await sp.close();
+    fs.unlinkSync(sheetHtml);
+  }
+  await browser.close();
+  console.log(`[frames] ${frames.length} state(s) at ${viewport.width}x${viewport.height}`
+    + ` written to ${path.relative(process.cwd(), dir) || '.'}/, ${sheets} contact sheet(s).`);
+  return 0;
 }
 
 // ── --check-fit ──────────────────────────────────────────────────────
@@ -21627,6 +21709,7 @@ async function main() {
     console.error('                            [--no-optimize-images] [--events]');
     console.error('  node build.js <source.md> --check-fit [--viewport 1600x900]');
     console.error('  node build.js <source.md> --squint [--squint-out PATH] [--viewport 1600x900]');
+    console.error('  node build.js <source.md> --frames [DIR] [--viewport 1600x900]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
     console.error('  node build.js --new <slug> [--into <dir>]');
@@ -21658,6 +21741,9 @@ async function main() {
     console.error('                        what a room would see – heading, topic sentences, promoted');
     console.error('                        bolds, what stays whole, what the collapse withholds – to');
     console.error('                        squint.txt beside the source. Never fails a build.');
+    console.error('  --frames [DIR]        after building, write every state of audience.html as a PNG');
+    console.error('                        plus contact sheets of eight to DIR (default: frames/ beside');
+    console.error('                        the source). The review --check-fit and --squint cannot do.');
     console.error('  --squint-out PATH     write it somewhere else; "-" writes to stdout.');
     console.error('');
     console.error('Driving the build from another program:');
@@ -21753,6 +21839,13 @@ async function main() {
     }
     const code = await runSquint(absIn, readViewportFlag(argv),
       outIdx >= 0 ? argv[outIdx + 1] : null);
+    if (code) process.exitCode = code;
+  }
+  // Pictures of every state, for the eyes the two probes above do not have.
+  if (flags.has('--frames')) {
+    const fIdx = argv.indexOf('--frames');
+    const dirArg = argv[fIdx + 1] && !argv[fIdx + 1].startsWith('--') ? argv[fIdx + 1] : null;
+    const code = await runFrames(absIn, readViewportFlag(argv), dirArg);
     if (code) process.exitCode = code;
   }
   if (flags.has('--serve')) await runServe(path.dirname(absIn), servePort);
