@@ -9463,7 +9463,11 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
    a dock's reserve) follows it in, which is what a frame that yields to its
    content should do. FIG_COLUMN_PX in the figure-type warning carries the
    measured result; re-measure it if this number changes. */
-.chunk[data-width=full]     { --slide-pad-x: 6%; }
+.chunk[data-width=full]:not(.chunk-title):not(.chunk-section) { --slide-pad-x: 6%; }
+/* The cover, the closing slide and a divider hardcode data-width="full" and
+   compose against the 14% frame - a title flush against the edge is not
+   what "full" was meant to buy - so the wider column is the author-written
+   class's alone. */
 
 .chunk-content {
   grid-column: 2;
