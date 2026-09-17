@@ -58,8 +58,8 @@ const nodeRequire = createRequire(import.meta.url);
 // each other. And a frontmatter key could only ever repeat the cover's
 // own fields, which is the one thing the closing slide must not be.
 const VALID_TAGS = new Set([
-  'title', 'closing', 'outline', 'principle', 'definition', 'example',
-  'question', 'figure', 'exercise', 'free',
+  'title', 'closing', 'outline', 'principle', 'statement', 'definition',
+  'example', 'question', 'figure', 'exercise', 'free',
 ]);
 
 // The width and class vocabulary of a chunk heading's {…} tail is
@@ -3663,7 +3663,7 @@ function parseTagPrefix(text) {
   if (m && VALID_TAGS.has(m[1])) {
     return { tag: m[1], ...splitHeading(m[2].trim()) };
   }
-  // A lowercase `word:` prefix that is not one of the ten types is a typo,
+  // A lowercase `word:` prefix that is not one of the eleven types is a typo,
   // not a heading that happens to hold a colon: `## principl: X` fell through
   // here and rendered as the literal heading with no data-tag, so the search
   // index and the speaker lists saw an untyped chunk. lint.js has reported
@@ -6811,8 +6811,11 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   }
 
   // `figure:` is self-evident from the artwork; eyebrow would just stack a
-  // third label above the heading + sub-heading.
-  const labelTag = tag && tag !== 'free' && tag !== 'figure' ? tag : null;
+  // third label above the heading + sub-heading. `statement:` prints no
+  // label either, and for the reason the type exists: its heading and its
+  // paragraphs are one utterance set at one size, and a small-caps word over
+  // them turns three lines of speech into a labelled specimen.
+  const labelTag = tag && tag !== 'free' && tag !== 'figure' && tag !== 'statement' ? tag : null;
   const label = labelTag
     ? `<span class="chunk-label">${escapeHtml((S.type[labelTag] || labelTag).toLowerCase())}</span>`
     : '';
@@ -7171,6 +7174,15 @@ h1, h2, h3, h4, code, pre, pre *, .chunk-num, a[href^="http"] {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
+/* A statement chunk's paragraphs join that list, because they are heading
+   lines that happen to be marked up as paragraphs: same face, same size,
+   same weight, and a break across two lines reads as a fault in exactly the
+   way it does in a heading. The selector has to name the paragraph, since
+   the rule above reaches elements and this one is a p. */
+.chunk-statement > p {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 strong { color: var(--emph); font-weight: 600; }
 em { font-style: italic; }
 /* style.print-bold - the look of a bold the derivation reads, default bold
@@ -7416,6 +7428,37 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   font-size: 1.5rem;
   font-style: italic;
 }
+
+/* A statement chunk on paper. The projection sets its heading and its
+   paragraphs at one size because they are one utterance; the document
+   keeps that and pays what a document can afford for it, which is the
+   question chunk's 1.5rem rather than the slide's 2.1em. Nearest of the
+   two neighbours the type was measured against: principle was the other
+   candidate and brings a 2.5pt rule with it, and this type has no rule -
+   a bar over three lines of speech makes them a specimen.
+   No eyebrow either: renderChunk leaves statement out of labelTag.
+   The face is the heading's, which here means the document's own, so
+   nothing is declared for it - print sets no separate heading family, and
+   writing one would give this type a face the deck never chose. */
+.chunk-statement {
+  margin: 2.2rem 0;
+}
+.chunk-statement .chunk-heading { font-size: 1.5rem; margin-bottom: 0.35rem; }
+/* 500 and -0.01em are the h1, h2, h3 rule at the head of this stylesheet,
+   written out rather than inherited because a paragraph is not a heading
+   and no selector would hand it the heading's declarations. If that rule's
+   weight moves, this one moves with it, or the first line of a statement
+   stops matching the three under it. */
+.chunk-statement > p {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0 0 0.35rem;
+}
+/* Nothing here about a bold inside one of these lines: style.print-bold
+   reaches it through DERIVED_STRONG at (0,4,3), and a rule written at this
+   selector's specificity would lose to it silently. */
 
 .chunk-exercise .chunk-heading { font-style: italic; }
 .chunk-exercise .chunk-label { color: var(--emph); }
@@ -7838,6 +7881,23 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 }
 .cards.rows li > :is(strong, b):first-child { grid-column: 1; }
 .cards.rows li > .row-body { grid-column: 2; text-align: left; min-width: 0; }
+/* A term is a name and not a measure, so it does not hyphenate here either.
+   The rule above this one turns hyphens on for every li, and it inherits -
+   so without this a document set with lang: de broke "Zuständigkeit" across
+   two lines of a 5.5em column, where the live views now refuse to. The body
+   beside it is prose and keeps the hyphenation it was given.
+   What print does NOT copy from the live views is the term column itself:
+   there the grid is one grid for the whole block, so a max-content track is
+   the longest term in it; here the grid is per row, because the li has to
+   keep its box for break-inside: avoid, and fit-content would then give
+   every row a term column of its own width - a ragged left edge down the
+   page, which is worse than the share it replaced. */
+.cards.rows li > :is(strong, b):first-child,
+.cards li .card-lead,
+.cards li > :is(strong, b):first-child {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 /* A markdown line break between the term and its body would otherwise be a
    third item in the two-column grid and push the body onto its own row. */
 .cards.rows li > br { display: none; }
@@ -9979,6 +10039,62 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 .chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom) * var(--heading-scale)); font-weight: 500; }
 .chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom) * var(--body-scale)); color: var(--ink-soft); }
 
+/* A statement slide: a few lines of large type, arriving one per press.
+   The heading is the first line and every top-level paragraph is another
+   one, all at the same size, the same weight and the same ink - which is
+   what separates this from every other type, where the heading names the
+   slide and the body says something under it. Here there is nothing under
+   anything; the slide is an utterance.
+
+   Why a type and not a construction. It was faked two ways before this
+   existed: ::: cards 1 with .large and .clear, which puts the words in the
+   accent colour (a card's term is a bold run, and style.bold decides what a
+   bold looks like) and smaller than a heading, and a ::: draw of .large
+   text, which is a drawing and pays a drawing's price - no wrap,
+   no hyphenation dictionary, no search index, a fixed grid. Neither could
+   say "these are three lines of speech".
+
+   One size, named once, and it is the *heading* scale rather than the body
+   scale that carries it: the paragraphs are heading lines, so a deck that
+   turns its headings up turns these up with them. --statement-size is a
+   variable and not a number written twice because the heading and the
+   paragraphs have to be the same size to the pixel, or the run reads as a
+   title over a list. */
+.chunk[data-tag=statement] {
+  --statement-scale: 2.1;
+  --statement-size: calc(var(--statement-scale) * 1em * var(--zoom) * var(--heading-scale));
+  /* The space between two lines, written so that the one between the
+     heading and the first paragraph is the same as the one between two
+     paragraphs. It cannot be the same declaration twice: the paragraph's
+     gap is its own margin, in its own (already enlarged) em, and the
+     heading's is a flex gap on .chunk-content, whose em is the chunk's. So
+     the size is a bare number and both are derived from it - written the
+     obvious way, the heading sat about half as far from the first line as
+     the lines sat from each other, and a run of four lines read as a title
+     over three. */
+  --statement-gap: calc(var(--statement-scale) * 0.55em * var(--zoom) * var(--heading-scale));
+}
+.chunk[data-tag=statement] .chunk-heading { font-size: var(--statement-size); }
+.chunk[data-tag=statement] .chunk-body {
+  font-size: var(--statement-size);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+}
+/* The gap between two lines is one decision and it is made here rather than
+   by the paragraph margin alone, because a line can arrive as its own
+   reveal segment (a --- rule) or as a second paragraph inside one, and the room
+   must not be able to tell which. Both routes land on a top-level <p>. */
+.chunk[data-tag=statement] .chunk-body p { margin: 0 0 0.55em; }
+.chunk[data-tag=statement] .chunk-content { gap: var(--statement-gap); }
+/* What a bold inside a statement line looks like is deliberately NOT
+   answered here. DERIVED_STRONG already reaches these paragraphs at (0,4,3)
+   and hands them style.bold, which is the deck's own answer to that
+   question; a rule written here would be a second, weaker way to say the
+   same thing - it lost to DERIVED_STRONG on specificity when it was tried,
+   which is to say it did nothing at all. */
+
 .chunk[data-tag=figure] .chunk-heading {
   font-size: calc(1.05em * var(--zoom) * var(--heading-scale));
   font-weight: 500;
@@ -10189,6 +10305,13 @@ body[data-headings=off] .chunk-heading { display: none; }
 .chunk[data-center] > .chunk-content > .chunk-heading,
 .chunk[data-center] > .chunk-content > .margin-note,
 .chunk[data-center] > .chunk-content > .chunk-body > .reveal-segment > p { text-align: center; }
+/* …with one type excepted, and the paragraph above says why it has to be.
+   On a statement chunk the heading is not a title over the prose, it is
+   the first of the lines, so leaving it on the left while the lines that
+   follow move to the middle gives one utterance two axes - the exact defect
+   the question tag was fixed for. The author wrote .center on this chunk,
+   so it outranks style.headings for it and nothing else. */
+.chunk[data-tag=statement][data-center] > .chunk-content > .chunk-heading { text-align: center; }
 /* The hairline and the thick rule above a definition / principle chunk. */
 body[data-rules=off] .chunk[data-tag=principle] .chunk-content::before,
 body[data-rules=off] .chunk[data-tag=definition] .chunk-content::before { display: none; }
@@ -11440,6 +11563,20 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    reached none of it - that case cost this block two extra selectors and
    now costs it none. */
 .cards li .card-lead { display: block; margin-bottom: 0.45em; }
+/* A card's term does not hyphenate either, for the reason a row's does not:
+   it is a name and not a measure, and a name broken across two lines reads
+   as a fault. Both openings are covered and have to be - the heading form
+   carries .card-lead, the run-in form is a plain leading bold, and a card
+   whose whole content is one bold ("- **Umgehen.**", the shape a keynote
+   writes) is the second of those. The sentence that follows a run-in lead
+   is prose again and keeps the li's hyphens: auto, as does every other line
+   in the card; break-word stays under all of it, where the card rule put
+   it, because a card is the narrowest measure on the slide. */
+.cards li .card-lead,
+.cards li > :is(strong, b):first-child {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 /* An author who wrote the hard break meant one separation, not two: the
    block display already broke the line, so the <br> after it adds an
    empty one. */
@@ -11485,14 +11622,43 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
      a word an author could write that moved nothing, which is the silent
      no-op this format refuses everywhere else. */
   align-items: var(--row-anchor, center);
-  /* A definite share rather than an intrinsic track. Both intrinsic
-     keywords were measured and both failed: auto resolves toward
-     min-content under pressure, and the term inherits overflow-wrap from
-     the card rule, so its min-content is one character - the column came
-     out one letter wide. max-content then resolved to 0px with an item
-     78px wide in it. A fraction is predictable, needs no puzzle, and a
-     term column of about a third is what the shape wants anyway. */
-  grid-template-columns: minmax(6em, 0.38fr) minmax(0, 1fr);
+  /* The term column is as wide as the longest term and no wider, with the
+     share it used to have as the ceiling.
+
+     It was a fixed 0.38fr share, and the note here recorded why: both
+     intrinsic keywords had been tried and both failed - auto resolved
+     toward min-content under pressure and the term, inheriting
+     overflow-wrap: break-word from the card rule, had a min-content of one
+     character, so the column came out one letter wide; max-content then
+     measured 0px with an item 78px wide in it. Those findings still stand
+     for the two bare keywords, which is why neither is what this is.
+
+     fit-content() is a third thing and is not subject to either failure. It
+     is min(max-content, max(min-content, 27%)): the max-content side sizes
+     the column to the longest term, so a row of years reads "2024 Testat
+     eingeführt" rather than putting a hand's width of paper between the
+     two; the 27% side is the ceiling, so a term of six words cannot eat the
+     body's half; and the min-content floor is the one the old note found to
+     be a single character, which here can only ever raise the track and
+     never collapse it.
+
+     27% is the width 0.38fr already had, measured rather than derived, and
+     the arithmetic is the trap: two flex tracks whose factors sum to more
+     than 1 divide the space in proportion, so 0.38fr beside 1fr was
+     0.38/1.38 of the measure - 27.5%, not 38%. The first attempt wrote 38,
+     and python-intro's #prerequisites came out WIDER than before (307.6px
+     of term column against 414.7px, at 1600x900), which is the direction
+     this was meant to fix. Pinned at the old width, a block whose longest
+     term reaches the ceiling renders as it always did and only the ones
+     with room to spare move: on that same deck #collections went from
+     307.6px to 156.5px and handed its four bodies 151px each.
+
+     What a fixed share bought and this gives up is a term column that is
+     the same width on every slide of a deck. It was never the same width
+     anyway - 0.38 of a .wide chunk and 0.38 of a .standard one are
+     different numbers - and a column that fits its own words is what a
+     reader is actually looking at. */
+  grid-template-columns: fit-content(27%) minmax(0, 1fr);
   column-gap: calc(1.1em * var(--card-fs, 1));
   row-gap: calc(0.7em * var(--card-fs, 1));
 }
@@ -11530,15 +11696,27 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   text-align: var(--card-align, left);
   font-size: calc(1em * var(--card-fs, 1));
   line-height: 1.25;
-  /* A single long term cannot wrap between words, so it hyphenates - and
-     if it is longer than even that allows, it breaks rather than running
-     across the body beside it. */
-  /* Hyphenation first and breaking only as the floor: Technocracy came
-     out as Technocrac / y when break-word got there first, which is
-     worse than the ragged edge it prevented. */
-  hyphens: auto;
+  /* A term never hyphenates, and this rule used to be the opposite.
+     hyphens: auto was here as the rescue for a long compound in a narrow
+     column, and with the column sized to the term that rescue has almost
+     nothing left to rescue - while what it cost was constant and visible:
+     a term is a name, and "Umge-hen." or "Zustän-digkeit." on a slide reads
+     as a typesetting fault rather than as a word that ran long, because a
+     term stands alone with nothing after it to explain the break. The line
+     of prose beside it still hyphenates; that is a measure, this is a
+     label. style.hyphenate: all was what made it visible on a whole deck,
+     and the key says in STYLE_SPEC that it does not reach here - it does
+     not have to, because the answer is the same in all three settings.
+
+     break-word stays as the floor under it, for the term that is one word
+     longer than the 27% ceiling: without it that word runs across the body
+     beside it. It is a worse break than a hyphenated one - Technocrac / y
+     is the measured example - and that is the price of never guessing at a
+     term's syllables. It fires only at the ceiling, where the column has
+     already stopped growing. */
+  hyphens: manual;
+  -webkit-hyphens: manual;
   overflow-wrap: break-word;
-  hyphenate-limit-chars: 7 3 3;
 }
 .cards.rows.ck-square li > :is(strong, b):first-child { border-radius: 0; }
 /* The body is the anonymous run after the term. It is prose beside a card
@@ -12630,7 +12808,8 @@ body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
   hyphenate-limit-chars: 6 3 3;
 }
 body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
-  .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]) {
+  .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]),
+body[data-hyphenate=all] #stage .chunk[data-tag=statement] .chunk-body p {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
@@ -14265,7 +14444,10 @@ function splitSentencesIn(root) {
     // Explicit-slide blocks opt out of sentence extraction: the author has
     // already said what belongs on screen, so splitting their paragraphs
     // into head/rest would only give the collapse CSS something to hide.
-    if (p.closest('.slide-explicit, .script-only')) return;
+    // A statement chunk opts out for the same reason without a block to
+    // write: its paragraphs ARE the lines of the slide, one per press, so
+    // abridging them would leave the room with the first word of each.
+    if (p.closest('.slide-explicit, .script-only, [data-tag=statement]')) return;
     const head = document.createElement('span'); head.className = 'sentence-head';
     const rest = document.createElement('span'); rest.className = 'sentence-rest';
     let mode = 'head';

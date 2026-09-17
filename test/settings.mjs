@@ -800,7 +800,7 @@ console.log('\nlayout generations');
      '# Part {#p .stack}\n\n::: backdrop https://example.invalid/x.jpg\n\n## free: G {#g}\n\nB.\n',
      /\{\.stack\} on the divider/, 'bad-section-stack'],
     ['a figure card under a column heading', '# Part {#p}\n\n::: cards 2\n' + DRAW + '\nB.\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
-    // A `word:` prefix that is not one of the ten types used to fall through
+    // A `word:` prefix that is not one of the eleven types used to fall through
     // to a literal heading with no data-tag - the search index and the
     // speaker lists then saw an untyped chunk, while lint.js called it
     // unknown-type. The build rendering what the linter refuses is the
