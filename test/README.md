@@ -112,7 +112,12 @@ fixture is compiled *and* linted.
 
 ## The browser suite: four families
 
-**Navigation** – `nav`, `nav-cockpit`. The navigation model. `demo` sits
+**Navigation** – `nav`, `nav-cockpit`, `nav-goto`. The navigation model.
+`nav-goto` is the `G` prompt: that the number it accepts is the one the corner
+badge paints, that it holds the keyboard while it is open (`Space` would
+advance, `N` would annotate), and that `Enter` goes through `jumpTo` rather
+than assigning an index. `nav-cockpit` carries its own two lines of it, because
+the cockpit is where the prompt's id could collide with a slide's. `demo` sits
 beside them: the two windows handing a live demo across, over both transports.
 
 **The geometry the live chrome leaves the slide** – `expansion`, `marginalia`,

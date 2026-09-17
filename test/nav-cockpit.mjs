@@ -44,4 +44,22 @@ export async function run({ page, report, at, press }) {
   await press('o', 550);
   ok(Number(await opacity('down')) === 0, 'the board still hides it', await opacity('down'));
   await press('Escape', 550);
+
+  // The go-to prompt in the window where its id could collide with a slide.
+  // Every chunk of the lecture is in speaker.html too, inside the mirror, so
+  // the chrome and the lecture share one id namespace - the reason the cue
+  // panel is called #cue-panel. This is the cheap assertion that the prompt
+  // found itself and not a slide.
+  const promptOpen = () => page.evaluate(() => {
+    const r = document.getElementById('goto-prompt');
+    return !!r && r.dataset.chunkId === undefined && !r.classList.contains('hidden');
+  });
+  await press('g', 350);
+  ok(await promptOpen(), 'G opens the prompt in the cockpit, and on the chrome element');
+  await press('5', 150);
+  await press('Enter', 700);
+  ok(await page.evaluate(() =>
+    Number(document.querySelector('.chunk.active').dataset.chunkNum) === 5),
+    'and the cockpit lands on the slide wearing that number',
+    await page.evaluate(() => document.querySelector('.chunk.active').dataset.chunkId || '(section)'));
 }

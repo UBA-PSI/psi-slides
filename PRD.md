@@ -571,6 +571,7 @@ Density budget per chunk: body text should occupy no more than ~12 line-heights 
 - `1`–`9`: open the nth expansion on the active chunk.
 - `Esc`: collapse expansion, return to parent chunk. In overview, dismiss without moving.
 - `O`: toggle birds-eye overview (see below).
+- `G`: go to a slide by the number in its corner. Digits type into a small prompt in the chrome, `Backspace` edits, `Enter` lands, `Esc` cancels; a number the deck does not have is refused where it was typed rather than closing the prompt. The number is the one `data-chunk-num` paints, which counts authored chunks and leaves the auto-inserted dividers out – the same count the printed document and the cockpit's list use, so what the lecturer reads on the corner is what they type. Landing goes through `jumpTo`, so it is an ordinary jump as far as the speaker sync, the cue-card cursor, auto-fit and the stored position are concerned. It is the third way to reach a slide beside the board and the search, and the one for a lecturer who already knows where they are going.
 - `T`: toggle TOC overlay (flat list of columns; see below).
 - `/`: in overview, start fulltext search over all chunk bodies.
 - `P`: open print view in a new tab.
