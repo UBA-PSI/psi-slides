@@ -1006,16 +1006,35 @@ export function dgCharW(ch) {
 // changes. An unmatched marker is left as a literal character, so a lone
 // asterisk in a label is still just an asterisk.
 //
-// `_` and `^` have no such fallback available to them - they take the next
-// character, and there is nothing to be unmatched against - so a backslash
-// escapes them: `scan\_page` is one word with an underscore in it. It escapes
-// all four markers and itself (`\_`, `\^`, `\*`, `\~`, `\\`), not only the two
-// that need it, because an escape with an exception in it is the next thing an
+// `_` and `^` take the next character, so a backslash escapes them:
+// `scan\_page` is one word with an underscore in it. It escapes all four
+// markers and itself (`\_`, `\^`, `\*`, `\~`, `\\`), not only the ones that
+// need it, because an escape with an exception in it is the next thing an
 // author has to remember. A backslash before anything else is an ordinary
 // backslash, and so is a trailing one. The escape is consumed here, in the one
 // function both `dgMeasure` and the emitter read the label through, so the
 // character never reaches a measured string and no box is widened by it.
 export const DG_LABEL_ESCAPES = new Set(['_', '^', '*', '~', '\\']);
+// **A shift marker in the middle of a word is a literal character**, which is
+// the same fallback `*` and `~` already have one rule further up: a marker that
+// cannot do its job is not a marker. `*` and `~` cannot do it when nothing
+// closes them; `_` and `^` cannot do it when the single character they take
+// would leave the rest of the word behind at full size.
+//
+// `hausarbeit_final.pdf` on a real keynote came out as `hausarbeit` then a
+// subscript `f` then `inal.pdf`, which the room read as `hausarbeit,inal.pdf`.
+// Nobody writes that on purpose, and nobody writes `m_1`, `c_0`, `MAC_k(M)` or
+// `M_F,` meaning the underscore – which is the whole test: the shift applies
+// exactly where the character it takes ends the word. Every subscript in this
+// repository's figures passes it, and every filename, identifier and
+// snake_case word in one fails it and is drawn as typed.
+//
+// A shift of more than one character was always `_{ab}`, and a group still
+// shifts wherever it is written, so the rule costs no reachable spelling – and
+// `\_` remains the way to force a literal in the one-character case (`a\_b`).
+// `_` counts as a word character here, which is what keeps `snake_case_name`
+// literal all the way along rather than shifting at the last underscore.
+export const DG_LABEL_WORD = /[\p{L}\p{N}_]/u;
 function dgUnescapeLabel(s) {
   let out = '';
   for (let i = 0; i < s.length; i++) {
@@ -1050,7 +1069,12 @@ export function dgSpans(text) {
       if (cls === want) { flush(0); cls = ''; continue; }
       if (!cls && closes(ch, i + 1)) { flush(0); cls = want; continue; }
       // no closing marker – a literal character
-    } else if ((ch === '_' || ch === '^') && i + 1 < text.length) {
+    } else if ((ch === '_' || ch === '^') && i + 1 < text.length
+      // A group shifts wherever it is written, and so does an escaped
+      // character; a bare one only where it ends the word. See DG_LABEL_WORD.
+      && (text[i + 1] === '{'
+        || (text[i + 1] === '\\' && i + 2 < text.length && DG_LABEL_ESCAPES.has(text[i + 2]))
+        || !(i + 2 < text.length && DG_LABEL_WORD.test(text[i + 2])))) {
       flush(0);
       const shift = ch === '_' ? -1 : 1;
       i++;

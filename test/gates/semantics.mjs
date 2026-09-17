@@ -596,17 +596,30 @@ export async function run({ report }) {
   // `_` and `^` take the next character, which made every snake_case
   // identifier unwritable: `scan_page` drew as `scan`, a subscript `p` and
   // `age`, silently, with a clean lint and a box measured to fit exactly the
-  // wrong reading. The escape is the repair, and it covers all four markers
-  // and the backslash so that it has no exception of its own.
+  // wrong reading. The escape covers all four markers and the backslash so
+  // that it has no exception of its own, and **a shift marker in the middle
+  // of a word is now a literal character** – the same fallback `*` and `~`
+  // already had, so an author who writes a filename gets a filename without
+  // having to know the grammar. Both halves are asserted here, and so is the
+  // line between them: every subscript the corpus actually contains still
+  // shifts.
   {
     const one = (s) => dgSpans(s).map(sp => `${sp.t}|${sp.shift}|${sp.cls}`).join(' + ');
     const cases = [
       // written, spans as text|shift|class - both signs of every marker.
       ['scan\\_page', 'scan_page|0|', 'an escaped underscore is one literal span'],
-      ['scan_page', 'scan|0| + p|-1| + age|0|', 'an unescaped underscore still subscripts'],
-      ['c_0', 'c|0| + 0|-1|', 'c_0 still subscripts, which is why braces were not the fix'],
+      ['scan_page', 'scan_page|0|', 'and an unescaped one mid-word is literal too'],
+      ['hausarbeit_final.pdf', 'hausarbeit_final.pdf|0|', 'the filename the defect was found on'],
+      ['snake_case_name', 'snake_case_name|0|', 'an underscore is a word character, so a chain of them stays literal'],
+      ['c_0', 'c|0| + 0|-1|', 'c_0 still subscripts: the character it takes ends the word'],
+      ['MAC_k(M)', 'MAC|0| + k|-1| + (M)|0|', 'and so does a subscript before a bracket'],
+      ['M_F, T_F', 'M|0| + F|-1| + , T|0| + F|-1|', 'and before a comma, and at the end'],
+      ['k_{12}', 'k|0| + 12|-1|', 'a group shifts wherever it is written, mid-word or not'],
+      ['a\\_b', 'a_b|0|', 'the escape is still how a one-character case is forced literal'],
       ['x\\^2', 'x^2|0|', 'an escaped caret is one literal span'],
       ['x^2', 'x|0| + 2|1|', 'an unescaped caret still superscripts'],
+      ['x^2y', 'x^2y|0|', 'but not in the middle of a word'],
+      ['x_1^2', 'x|0| + 1|-1| + 2|1|', 'a marker is not a word character, so a subscript may meet a superscript'],
       ['a\\*b*', 'a*b*|0|', 'an escaped asterisk is literal and is no partner for a later one'],
       ['*a*', 'a|0|em', 'an unescaped pair still accents'],
       ['a\\~b~', 'a~b~|0|', 'an escaped tilde is literal and is no partner for a later one'],
