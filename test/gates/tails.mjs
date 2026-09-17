@@ -56,12 +56,18 @@ export async function run({ report }) {
   const column = (tail) => parseTail(tail, COLUMN_SLOTS, 'column heading', { id: 'one', classes: 'column' });
   const col = column('.wide #p');
   ok(codes(col) === 'class-on-column' && col.id === 'p'
-     && /takes an \{#id\} and \.stack, and nothing else/.test(col.problems[0].msg),
+     && /takes an \{#id\} and \.stack \| \.bare, and nothing else/.test(col.problems[0].msg),
      'a .word from no column slot is class-on-column, and the id is still read', col.problems[0].msg);
   ok(codes(column('#p')) === '', 'and an id alone is fine');
   const stacked = column('.stack #p');
   ok(codes(stacked) === '' && stacked.slots.stack.written === true && stacked.id === 'p',
      '.stack is a word the # heading takes, and it reads as written');
+  // The second word, and the one that has a namesake in the chunk table: the
+  // message above used to send .bare down to the ## chunks, so the pair is
+  // worth asserting together rather than only through the slot.
+  const bared = column('.stack .bare #p');
+  ok(codes(bared) === '' && bared.slots.bare.written === true && bared.slots.stack.written === true,
+     '.bare is the second, and the two are separate slots that combine');
   ok(codes(column('.stack .stack #p')) === 'same-slot', 'and twice is same-slot, like any other slot');
 
   // ── parseTail: the four codes ────────────────────────────────────

@@ -3207,7 +3207,11 @@ function lintFile(filePath) {
         // nothing for it to say. Mirrors the build's parse-time refusal
         // (`bad-section-stack`); `hasBody` is filled in by the divider-body
         // walk further down, which is the only place that knows.
-        stack: !!(attr.slots && attr.slots.stack && attr.slots.stack.written), hasBody: false };
+        stack: !!(attr.slots && attr.slots.stack && attr.slots.stack.written),
+        // `{.bare}` takes the divider's heading off the slide and is refused
+        // on the same condition, for the plainer reason: with nothing under
+        // the heading the slide is empty. Mirrors `bad-section-bare`.
+        bare: !!(attr.slots && attr.slots.bare && attr.slots.bare.written), hasBody: false };
       if (id) colIds.add(id);
       columns.push(col);
       continue;
@@ -3945,6 +3949,13 @@ function lintFile(filePath) {
           `{.stack} on a divider with no content under its heading – .stack puts the part's own figure, `
           + 'quotation or card row under the heading at full width instead of beside it; write something '
           + 'under the # line, or drop the class');
+    }
+    if (c.bare && !c.hasBody) {
+      add(c.line, 'error', 'bad-section-bare',
+          '{.bare} on a divider with no content under its heading – .bare takes the heading off the '
+          + 'slide and leaves it in the contents, in section: outline, in the speaker view and in '
+          + 'search, so with nothing under the # line the slide has nothing on it; write the divider\'s '
+          + 'own figure, quotation or card row there, or drop the class');
     }
     if (c.chunks.length < ORPHAN_MIN) {
       add(c.line, 'warn', 'orphan-column',

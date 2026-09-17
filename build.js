@@ -3719,6 +3719,7 @@ function parseAttributeTail(line, { column = false } = {}) {
   // it, so it leaves here rather than falling through the chunk's slots.
   if (column) {
     if (t.slots.stack.written) out.stack = true;
+    if (t.slots.bare.written) out.bare = true;
     return out;
   }
   if (t.slots.width.written) out.width = t.slots.width.value;
@@ -4448,7 +4449,7 @@ function parseLecture(src) {
         const h1Attr = parseAttributeTail(h1[1], { column: true });
         const { text, id } = h1Attr;
         currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null, overlays: [], dock: null,
-          stack: !!h1Attr.stack, speakerNotes: [], speakerNoteFrom: [] };
+          stack: !!h1Attr.stack, bare: !!h1Attr.bare, speakerNotes: [], speakerNoteFrom: [] };
         colBody = [];
         columns.push(currentColumn);
         continue;
@@ -4469,7 +4470,7 @@ function parseLecture(src) {
           // that every reader can say `col.speakerNotes.length` without a
           // guard; an anonymous column draws no divider and never fills them.
           currentColumn = { heading: null, id: null, chunks: [], overlays: [], dock: null,
-            stack: false, speakerNotes: [], speakerNoteFrom: [] };
+            stack: false, bare: false, speakerNotes: [], speakerNoteFrom: [] };
           columns.push(currentColumn);
         }
         const h2Attr = parseAttributeTail(h2[1]);
@@ -5275,14 +5276,24 @@ function parseLecture(src) {
   // divider's body is only complete when the next heading has arrived; and
   // in the parser rather than in a renderer, so `--print-only` reaches it
   // too. lint.js mirrors it as `bad-section-stack`.
+  //
+  // `.bare` is refused on the same condition and for a plainer reason: it
+  // takes the heading off the slide, so with nothing under the heading the
+  // slide is empty.
   for (const col of columns) {
-    if (!col.stack || (col.body || '').trim()) continue;
+    if ((!col.stack && !col.bare) || (col.body || '').trim()) continue;
+    const what = col.stack ? '{.stack}' : '{.bare}';
+    const why = col.stack
+      ? '  .stack puts the part\'s own figure, quotation or card row *under* the\n'
+        + '  heading at full width instead of beside it. Write something under the\n'
+        + '  `#` line, or drop the class.'
+      : '  .bare takes the divider\'s heading off the slide and leaves it in the\n'
+        + '  contents, in `section: outline`, in the speaker view and in search - so\n'
+        + '  with nothing under the `#` line the slide has nothing on it. Write the\n'
+        + '  divider\'s own figure, quotation or card row there, or drop the class.';
     const err = new Error(
-      `{.stack} on the divider of column ${col.id ? '#' + col.id : `"${col.heading}"`}, ` +
-      'which has no content under its heading.\n' +
-      '  .stack puts the part\'s own figure, quotation or card row *under* the\n' +
-      '  heading at full width instead of beside it. Write something under the\n' +
-      '  `#` line, or drop the class.');
+      `${what} on the divider of column ${col.id ? '#' + col.id : `"${col.heading}"`}, ` +
+      'which has no content under its heading.\n' + why);
     err.userFacing = true;
     throw err;
   }
@@ -8734,7 +8745,13 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
   // than a class for the reason `data-closing-art` is one - the attribute is
   // the fact the author wrote, the layout only what follows from it.
   const stackAttr = col.stack ? ' data-section-layout="stack"' : '';
-  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${stackAttr}${bdAttr}${scrimAttr}${dockAttrs(col.dock)} data-chunk-id="${escapeHtml(chunkId)}">
+  // `.bare` on the same line: the heading is still written into the markup -
+  // the contents page, the agenda, the speaker's board and the search index
+  // all read it out of the DOM - and a stylesheet takes it off the slide.
+  // Same mechanism as a chunk's `.bare`, and audience-only for the same
+  // reason: it is a decision about a projection.
+  const sBareAttr = col.bare ? ' data-section-bare=""' : '';
+  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${stackAttr}${sBareAttr}${bdAttr}${scrimAttr}${dockAttrs(col.dock)} data-chunk-id="${escapeHtml(chunkId)}">
   ${art.html}
   <div class="chunk-content">
     <div class="section-lead">
@@ -9504,7 +9521,18 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
 /* The cover, the closing slide and a divider hardcode data-width="full" and
    compose against the 14% frame - a title flush against the edge is not
    what "full" was meant to buy - so the wider column is the author-written
-   class's alone. */
+   class's alone.
+
+   With one exception, and it is the case the class was widened for. A
+   {.stack} divider's body is content the author wrote standing where a .full
+   chunk's content stands, and the documentation says it gets "the chunk
+   content width a .full chunk gets" - which it did not: measured at
+   1600x900, a build plan under a stacked heading ran 224-1359 px where the
+   same block in a .full chunk runs 135-1466, so moving a chunk onto its
+   divider cost it 15% of its size. The heading comes in with it, which is
+   right: under .stack the heading is the figure's caption and a caption
+   sits on the drawing's own edge. */
+.chunk-section[data-section-layout=stack] { --slide-pad-x: 6%; }
 
 .chunk-content {
   grid-column: 2;
@@ -12365,12 +12393,41 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
      looks the same either way; a narrower one lines up with its words. */
   text-align: left;
 }
+/* …and the drawing itself, which text-align cannot move: an svg is a block
+   with a width and auto inline margins, so the rule above reached the
+   figcaption alone and the picture stayed centred whatever the sentence said.
+   Written as the blocks: left rule is written, ink edge and all - a caption
+   twenty pixels off the drawing it captions is the same near-miss, and here
+   it is the composition rather than a key that asks for the edge, so it does
+   not wait for one to be set. */
+.chunk-section[data-section-layout=stack] .section-body .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+}
 .chunk-section[data-section-layout=stack] .section-body svg {
   /* The heading is one line above it now, so the picture may take almost the
      whole frame - the beside layout's own ceiling, which was measured against
      a heading standing beside it rather than over it. */
   max-height: calc(var(--slide-h) * 0.72);
 }
+/* {.bare} on the # heading: the heading comes off the slide and stays
+   everywhere else - the contents page, a section: outline agenda, the
+   speaker's board, the search index - exactly as on a chunk, and by the same
+   mechanism, display: none over an element that is still in the DOM. It is
+   the whole .section-lead and not the heading alone: the mark is the
+   heading's rank rather than a second thing on the slide, and a number or a
+   small-caps word standing over a drawing with no part title under it
+   announces a part whose name is missing. Audience-only, like a chunk's
+   .bare - PRINT_CSS carries neither, so the document and its contents page
+   are unchanged.
+
+   Prefixed #stage, and that is load-bearing: the beside layout above gives
+   .section-lead a display of its own through a :not() and a :has(), and a
+   :has() carries the specificity of its argument. Made of classes alone this
+   rule loses to it, and a {.bare} divider whose body is nothing but a figure
+   would keep its heading. #stage is the element every chunk in both live
+   views is inside, which is the honest way to buy the id the cascade asks
+   for - the same trick the per-chunk wrap and blocks rules use. */
+#stage .chunk-section[data-section-bare] > .chunk-content > .section-lead { display: none; }
 /* A divider with a picture behind it needs the full slide, like every other
    chunk that carries one - the shared rule keys on data-has-backdrop and is
    already there; this is the centring the divider itself needs so the

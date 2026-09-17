@@ -799,6 +799,15 @@ console.log('\nlayout generations');
     ['{.stack} over a divider that only carries a backdrop',
      '# Part {#p .stack}\n\n::: backdrop https://example.invalid/x.jpg\n\n## free: G {#g}\n\nB.\n',
      /\{\.stack\} on the divider/, 'bad-section-stack'],
+    // `.bare` is the second word the `#` heading takes, and it is refused on
+    // the same condition: it puts the heading off the slide, so a divider
+    // with nothing under it has an empty slide rather than a quieter one.
+    ['{.bare} on a divider with nothing under it',
+     '# Part {#p .bare}\n\n## free: G {#g}\n\nB.\n', /\{\.bare\} on the divider/, 'bad-section-bare'],
+    ['{.stack .bare} over a divider figure',
+     '# Part {#p .stack .bare}\n\n' + DRAW + '\n## free: G {#g}\n\nB.\n', 'accept'],
+    ['{.bare} alone over divider prose',
+     '# Part {#p .bare}\n\nA line under the heading.\n\n## free: G {#g}\n\nB.\n', 'accept'],
     ['a figure card under a column heading', '# Part {#p}\n\n::: cards 2\n' + DRAW + '\nB.\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
     // A `word:` prefix that is not one of the eleven types used to fall through
     // to a literal heading with no data-tag - the search index and the
@@ -1925,6 +1934,52 @@ console.log('\nlayout generations');
       ok(r.code === 0 && new RegExp('data-section="' + v + '"[^>]*data-section-layout="stack"').test(r.html || ''),
          'section: ' + v + ' still draws under {.stack}', r.out.split('\n')[0]);
     }
+    // The width the class promises. Every other chunk that says `.full` pads
+    // 6% instead of 14%, and the divider was excluded with the cover and the
+    // closing slide - so a stacked body ran 224-1359 px at 1600x900 where the
+    // same block in a .full chunk runs 135-1466. It is a stylesheet fact and
+    // belongs here rather than in a browser: the rule either exists or it
+    // does not, and a layout would only say the same thing more slowly.
+    ok(/\.chunk-section\[data-section-layout=stack\] \{ --slide-pad-x: 6%; \}/.test(st.html),
+       'a stacked divider pads 6% like the .full chunk whose measure it promises');
+    // And the drawing ranges left on the caption's own edge. text-align
+    // cannot move an svg - it is a block with auto inline margins - so the
+    // existing "ranged left" rule reached the figcaption alone.
+    ok(/\.chunk-section\[data-section-layout=stack\] \.section-body \.psi-diagram \{[^}]*--dg-ink-x/.test(st.html),
+       'and its drawing sits on the caption edge by its ink, not by its box');
+  }
+
+  // ── {.bare} on the `#` heading: the divider's heading off the slide ──
+  // Same semantics as a chunk's `.bare`, and the same mechanism: display
+  // none over an element that is still in the DOM, so the contents page, the
+  // agenda, the speaker's board and the search index all still read it.
+  {
+    const DR = '::: draw 140x52\nbox a "A"\n:::\n';
+    const st = raw('---\ntitle: T\n---\n\n## title: {#t}\n\n'
+      + '# Hidden {#h .stack .bare}\n\n' + DR + '\n## free: A {#a}\n\nX.\n\n'
+      + '# Shown {#s .stack}\n\n' + DR + '\n## free: B {#b}\n\nX.\n');
+    ok(st.code === 0, '{.stack .bare} builds', st.out.split('\n')[0]);
+    const art = (id) => {
+      const m = new RegExp('<article[^>]*data-chunk-id="' + id + '"').exec(st.html || '');
+      return m ? m[0] : '';
+    };
+    ok(/data-section-bare/.test(art('h-section')) && /data-section-layout="stack"/.test(art('h-section')),
+       'the two words are separate slots and both reach the divider', art('h-section'));
+    ok(!/data-section-bare/.test(art('s-section')),
+       'and a divider that wrote only {.stack} carries nothing new', art('s-section'));
+    // The heading text is still in the markup - that is the whole difference
+    // between .bare and deleting the line.
+    ok(/<h1 class="section-heading">Hidden<\/h1>/.test(st.html || ''),
+       'the heading is still written, so the contents page and search still have it');
+    ok(/#stage \.chunk-section\[data-section-bare\] > \.chunk-content > \.section-lead \{ display: none; \}/
+       .test(st.html || ''),
+       'and a stylesheet takes the whole lead off the slide, id-prefixed so the beside grid cannot outrank it');
+    // Audience-only, exactly like a chunk's .bare: the printed document keeps
+    // its part title and its contents page.
+    const pr = raw('---\ntitle: T\n---\n\n## title: {#t}\n\n'
+      + '# Hidden {#h .stack .bare}\n\n' + DR + '\n## free: A {#a}\n\nX.\n', ['--print-only']);
+    ok(pr.code === 0 && !/data-section-bare/.test(pr.print || '') && /Hidden/.test(pr.print || ''),
+       'and the printed document is untouched by it', pr.out.split('\n')[0]);
   }
 
 
@@ -1991,11 +2046,13 @@ console.log('\nlayout generations');
      'a lone image divider is a figure child, like a ::: draw one', rvImg.out.split('\n')[0]);
 
   // 9 · a class on a column heading parsed, was dropped, and neither file
-  // said anything.
-  const clsCol = raw(FM + '# A part {#p .bare}\n\n## free: A {#a}\n\nX.\n', ['--audience-only']);
-  ok(clsCol.code !== 0 && /"\.bare" - a # heading takes an \{#id\} and \.stack, and nothing else/.test(clsCol.out),
+  // said anything. Written with `.center` since `.bare` joined COLUMN_SLOTS:
+  // the check is about a word from no slot of the column's table, and the
+  // word it used was the one that later got a slot.
+  const clsCol = raw(FM + '# A part {#p .center}\n\n## free: A {#a}\n\nX.\n', ['--audience-only']);
+  ok(clsCol.code !== 0 && /"\.center" - a # heading takes an \{#id\} and \.stack \| \.bare, and nothing else/.test(clsCol.out),
      'a class from no column slot is refused rather than dropped', clsCol.out.split('\n')[0]);
-  ok(/class-on-column/.test(lintOf(FM + '# A part {#p .bare}\n\n## free: A {#a}\n\nX.\n')),
+  ok(/class-on-column/.test(lintOf(FM + '# A part {#p .center}\n\n## free: A {#a}\n\nX.\n')),
      'and the linter says the same');
 
   // 10 · `from 0` is what writing no `from` already says.
@@ -3172,7 +3229,7 @@ console.log('\nlayout generations');
   const colUnknown = lintOf(colSrc);
   ok(/class-on-column/.test(colUnknown) && !/unknown-class/.test(colUnknown), 'a class on a column heading is class-on-column in lint, said once', colUnknown);
   const colBuild = raw(colSrc);
-  ok(colBuild.code !== 0 && /takes an \{#id\} and \.stack, and nothing else/.test(colBuild.out) && !/valid: width/.test(colBuild.out),
+  ok(colBuild.code !== 0 && /takes an \{#id\} and \.stack \| \.bare, and nothing else/.test(colBuild.out) && !/valid: width/.test(colBuild.out),
      'and the build says the same, naming the column\'s own short vocabulary rather than a chunk\'s', colBuild.out.split('\n')[0]);
   const coverUnknown = lintOf(FM + '## free: A {#a}\n\nProse.\n'.replace('## free: A {#a}', '## closing: Bye {.foo #c}'));
   ok(/unknown-class/.test(coverUnknown) && !/class-on-cover-chunk/.test(coverUnknown), 'an unknown class on a cover chunk is reported once, as unknown-class');
