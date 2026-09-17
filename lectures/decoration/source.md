@@ -13,6 +13,12 @@ section-mark: Part
 theme: light-blue
 collapse: none
 auto-fit: true
+draw-defaults: |
+  # Shown rather than described: a divider of six small boxes and two
+  # specimen drawings on prose slides. The talk's figure canvas would reserve
+  # a figure box for each and call them empty; this deck declines it like
+  # lectures/diagrams does. A keynote wants the default.
+  frame none
 ---
 
 ## title: {#cover}
@@ -617,14 +623,14 @@ dock per slide; a `#id` link in the body is the live marker.
 # Beats below the top level {.stack #beats}
 
 ::: draw 118x34
-default box {.tone-2} w 0.86 h 0.6 pad 0.12
+default box {.tone-2} w 0.8 h 0.6 pad 0.12
 
 box b1 "beat 1" at 0,0
-box b2 "beat 2" right of b1 gap 0.3
-box b3 "beat 3" right of b2 gap 0.3 {.tone-3}
-box b4 "beat 4" right of b3 gap 0.3 {.tone-3}
-box b5 "beat 5" right of b4 gap 0.3 {.tone-1}
-box b6 "beat 6" right of b5 gap 0.3 {.tone-1}
+box b2 "beat 2" right of b1 gap 0.26
+box b3 "beat 3" right of b2 gap 0.26 {.tone-3}
+box b4 "beat 4" right of b3 gap 0.26 {.tone-3}
+box b5 "beat 5" right of b4 gap 0.26 {.tone-1}
+box b6 "beat 6" right of b5 gap 0.26 {.tone-1}
 brace p1 over b1,b2 "left pane" side bottom pad 0.3 {.muted}
 brace p2 over b3,b4 "right pane" side bottom pad 0.3 {.muted}
 brace p3 over b5,b6 "the card row" side bottom pad 0.3 {.muted}
