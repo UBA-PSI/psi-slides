@@ -303,7 +303,7 @@ This is the paragraph that comes and goes. It is what you would say out loud abo
 - **`{#id}`** anchors links, the contents list and your reading position – rename one and those need fixing too.
 
 ::: expand the classes that are not widths
-**`{.bare}` and `{.center}` act on the projection alone.** `.bare` keeps the heading off the slide while leaving it in the printed views and in the search index; `.center` centres the chunk's own paragraphs, which is what the slide with the four-outputs drawing does under its figure.
+**`{.bare}` and `{.center}` act on the projection alone.** `.bare` keeps the heading off the slide while leaving it in the printed views and in the search index; `.center` sets the chunk on a centre axis – its heading, its own paragraphs and its footnotes, but nothing nested inside a pane, a card or a list – which is what the slide with the four-outputs drawing does under its figure.
 
 **Four more answer a `style:` key for one slide**: `{.blocks-left}` and `{.blocks-center}`, `{.wrap-none}` and `{.wrap-balance}`. Each is the key's own name and one of its values, so knowing the frontmatter is enough to guess the class. These four do apply to the printed document, unlike the two above – where a formula sits relative to the sentence that introduces it is the same question on paper.
 :::
@@ -438,8 +438,9 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 - `B` **blanks the projection**.
 - `D` **puts a live demo on the projection**: a window or a screen of this machine, chosen in a picker, until `D` again. The very first capture on a Mac fails while macOS asks for screen-recording rights – allow it and press `D` again, so do that once before the talk.
 - `L` cycles the **slide numbers**: stacked, in a row, or off.
+- `M` shows or hides the **`+ note` button** in the slide's left gutter – the hint for `N`, which opens an annotation whether the hint is drawn or not.
 
-`Shift` with `C`, `F`, `A` or `L` goes backwards. `#` has three modes and no `Shift`, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting are not remembered beyond the talk you are giving.
+`Shift` with `C`, `F`, `A` or `L` goes backwards. `#` has three modes and no `Shift`, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme, slide numbers and the note button are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting are not remembered beyond the talk you are giving.
 
 ## example: The same controls without a keyboard | the toolbar on a phone or tablet {.wide #knobs-touch}
 
@@ -717,6 +718,10 @@ print-slide-numbers: vertical
                         # the same three. Left out, it follows
                         # whatever slide-numbers says
 editor: speaker         # both | speaker | none – the diagram editor
+note-button: off        # on | off – the + note button in the
+                        # slide's left gutter. The M key
+neighbours: hidden      # dim | hidden – whether the slide
+                        # before and after show through
 ---
 ```
 
@@ -733,6 +738,8 @@ lang: de                # the language the lecture is written in:
 **A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.** So a lecture that sets nothing behaves as before – font, theme and slide numbers follow the reader from lecture to lecture.
 
 `slide-numbers` applies to `print.html` and `print-notes.html` too, and `print-slide-numbers:` overrides it there when the printed document wants different numbering from the projection. A value the tool does not know stops the build and lists the ones it does.
+
+**The last two are the ones a keynote sets and a lecture does not.** `neighbours: hidden` takes the faint slide above and below off the projection, which is deliberate here – the live view is one long board a camera pans across, and the neighbours are what make a column read as a column. `note-button: off` hides the `+ note` hint in the slide's left gutter; `N` still opens an annotation, and `M` shows or hides the hint at any time, in either window.
 
 > note: When you finish this tour with a first-timer, ask them what they found on their own and what they did not. That is the most useful feedback the tool gets.
 

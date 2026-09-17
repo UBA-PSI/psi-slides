@@ -30,12 +30,13 @@ The audience is the **state root**. The speaker owns a **local shadow** of the s
 
 `frozen` is the projector's metaphor, not the protocol's. It started life as a `pushEnabled` toggle with a companion `.` key that force-pushed one snapshot – two controls describing what the code does (send a snapshot) rather than what the lecturer wants (hold the image while I read ahead). Inverting and renaming it collapses the pair into one: thawing *is* the resync, because the first thing an ungated broadcast does is hand the room the current state. `toggleFreeze()` therefore sends a snapshot directly on the way out of frozen, or unfreezing on the slide you meant to land on would appear to do nothing.
 
-Five message families deliberately bypass the freeze gate, because all of them are commands to the projector rather than shared state:
+Six message families deliberately bypass the freeze gate, because all of them are commands to the projector rather than shared state:
 
 - `blank` – `B` must reach the projection whether or not the cockpit is frozen. It is the key you hit when something has to come off the screen *now*, and a gated `B` would toast “projection blanked” at a projection that stayed lit.
 - `slide-ref` – the audience window's dimensions after a resize (§3).
 - `link-show` / `link-hide` – the address overlay, below.
 - `demo` (`{action: 'live' | 'stop'}`) plus `demo-offer` / `demo-answer` / `demo-ice` – the live demo, below.
+- `note-button` (`{mode: 'on' | 'off'}`) – the `+ note` affordance in the slide's left gutter, shown or hidden. `M` toggles it, and the button exists **only in the audience window** while the lecturer's keyboard is in the cockpit, so a press that did not travel would do nothing anywhere. Both windows apply it, so the cockpit agrees about what the room is looking at. It is deliberately not a field of the snapshot: `applyRemoteState` is a full apply, and a snapshot sent to say “the button is hidden” would drag the receiver's slide position with it. The frontmatter key that pins its starting value is `note-button: on | off`, and each window remembers the reader's own answer in `localStorage` under `psi-slides:note-button`.
 
 **Live demo (`D`).** A window or a screen of the machine, captured with `getDisplayMedia` and shown on the projection as video, so a demo can run on the laptop screen of an extended desktop without mirroring the displays around it. The capture has to start from a key press in the window that calls the API, and the picker opens in that window – so the cockpit captures and the projection shows, which puts the picker on the laptop and never on the wall. Running alone, the audience window captures and shows for itself. How the stream crosses to the other window is decided at run time: served over http (`--serve`) both windows share an origin and the audience plays the cockpit's `MediaStream` directly through `peer.psiDemoAttach(stream)` – no copy, no encoder; from `file://` that call throws and the stream goes through an `RTCPeerConnection` on loopback, its offer, answer and ICE candidates carried by the three `demo-*` messages. Chromium 141 cannot transfer a `MediaStreamTrack` between windows in either case, which is why the direct path is a call and not a `postMessage` transfer. `D` in either window ends it on both; so does Chrome's own “stop sharing” bar. A stop is always also a message, because `track.stop()` fires no `ended` on the far side. Blank hides the demo overlay on the projection like everything else while the capture keeps running. Not in the snapshot: a stream cannot be re-applied from one, only its holder can hand it over again. So the projection sends `hello` whenever it adopts a peer – a cockpit that booted, or the one it lost to its own reload – and a window holding a capture answers any `hello` by delivering it again (`demoAnnounce`). A reloaded projection gets the picture back on the cockpit's next push; a cockpit opened with `S` under a demo the projection started alone learns of it and shows the badge.
 
@@ -48,6 +49,7 @@ Five message families deliberately bypass the freeze gate, because all of them a
 | `diagram-edit` | `{id, source}` | either, on every committed edit in the diagram editor |
 | `demo` | `{action}` | either, ungated (see above) – `live` when a capture starts, `stop` from whichever window ends it |
 | `demo-offer` / `demo-answer` / `demo-ice` | `{sdp}` / `{sdp}` / `{candidate}` | the WebRTC handshake, `file://` only – the capturing window offers, the showing window answers |
+| `note-button` | `{mode}` | either, ungated (see above) – on every `M` |
 
 `diagram-edit` carries the **block body**, not a diff: a diagram body is a few hundred bytes to a couple of kilobytes, and the receiver re-runs the same compiler over it. That is what makes freeze work the way a lecturer expects – freeze, fix the figure, unfreeze, and the room gets the finished picture, because the receiver simply never saw the intermediate states. A private editing mode is therefore not a separate feature; it is `V`, and the editor says which of the two it is in, in one line of chrome.
 
@@ -222,6 +224,7 @@ Speaker inherits audience nav bindings, plus:
 | `C` | Cycle collapse (broadcasts) |
 | `+` `-` `0` | Zoom (broadcasts) |
 | `B` | Blank – broadcasts **ungated**, so it lands while frozen too |
+| `M` | The `+ note` button in the slide's left gutter, shown ↔ hidden. Broadcasts **ungated** as its own message (§2), because the button is on the projection and the key is pressed here. `N` still opens an annotation either way |
 | `D` | **Live demo** – picks a window or a screen of this machine and puts it on the projection; `D` again ends it. Ungated, like `B` (§2). The first capture on a Mac fails while macOS asks for screen-recording rights; the second works |
 | `P` | Open print.html in new tab |
 | `V` | **Freeze / thaw the projection.** Thawing resyncs the room to the speaker |

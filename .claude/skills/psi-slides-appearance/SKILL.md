@@ -1,6 +1,6 @@
 ---
 name: psi-slides-appearance
-description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), the `display` role that gives a cover and a section divider a face of their own and its measured `size-adjust`, `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` / `print-neutrals`, `display-scale`, the look of a bold phrase (`bold`, `print-bold`) and of an inline code span (`code`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `BUNDLED_FONTS`, `FONT_ROLES`, `DISPLAY_LH`, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
+description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), the `display` role that gives a cover and a section divider a face of their own and its measured `size-adjust`, `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the nine viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` / `print-neutrals`, `display-scale`, the look of a bold phrase (`bold`, `print-bold`) and of an inline code span (`code`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `BUNDLED_FONTS`, `FONT_ROLES`, `DISPLAY_LH`, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
 ---
 
 # Type, themes and viewer defaults in psi-slides
@@ -255,7 +255,7 @@ Seven themes cycle on `A`: four light accents, a neutral `dark` (grey paper, whi
 
 ## Viewer defaults in the frontmatter
 
-Seven optional frontmatter keys pin how a lecture opens:
+Nine optional frontmatter keys pin how a lecture opens:
 
 | key | values | default |
 |---|---|---|
@@ -266,6 +266,8 @@ Seven optional frontmatter keys pin how a lecture opens:
 | `slide-numbers` | vertical / **horizontal** / off | **horizontal** |
 | `print-slide-numbers` | vertical / horizontal / off | *follows `slide-numbers`* |
 | `editor` | both / speaker / none | both |
+| `note-button` | on / off | on |
+| `neighbours` | dim / hidden | dim |
 
 `editor` is not a look but a payload – whether the live views carry the diagram editor – and it goes through this machinery rather than growing its own because the failure mode is identical: a typo would otherwise cost the lecture its editor silently. The precedence rule is one sentence: **a key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone.** So lectures that say nothing behave exactly as before – font, theme and slide numbers keep following the reader across lectures – and an author who has designed a particular look gets it without asking anyone to press keys.
 
@@ -279,6 +281,12 @@ Seven optional frontmatter keys pin how a lecture opens:
 
 The mode also travels as **two fields in the state snapshot**, `autoFitMode` (the word) and `autoFit` (a boolean), because `audience.html` and `speaker.html` are separate files and `--audience-only` rebuilds one of them: a peer built before the third mode coerces `payload.autoFit` with `!!`, so sending it `'off'` would switch it on. `normAutoFit()` reads either back, and `applyRemoteState` prefers the word when there is one. What travels in `zoom` is the *setting* (`zoomBase()`), never the shrunk value, so each window re-solves the shrink against its own size – `applyRemoteState` calls `fitZoomToChunk(collapsedZoom)` in that mode where it calls `clampZoomToWidth()` otherwise. Full auto-fit deliberately keeps adopting the sender's fitted zoom, which is what it has always done.
 
+**`note-button` and `neighbours` are the two a keynote sets and a lecture does not, and they share one mechanism the seven above them do not have: the on-value is the *absence* of the attribute.** `viewBodyAttrs` writes `data-note-button="off"` and `data-neighbours="hidden"` only when the author asked for them, so a deck that says nothing about either emits exactly the bytes it did before the keys existed.
+
+`note-button: off` hides the `+ note` affordance in the slide's left gutter (`+ Notiz` under `lang: de`). At 45% opacity on every active slide it is the one piece of chrome a photographed projection always carries, and a rehearsed talk with nothing to annotate wants the frame clean. It costs no ability: `N` still opens an annotation, and the button is still in the markup for the search index and the cockpit's lists. **`M` toggles it at runtime in either window**, and, like `B`, it travels to the projection as its **own message type** (`{type: 'note-button', mode}`) past the freeze gate rather than as a field of the state snapshot – `applyRemoteState` is a full apply, so a snapshot sent to say "the button is hidden" would drag the receiver's slide position with it. The choice is remembered in `localStorage` under `psi-slides:note-button`, globally rather than per lecture, the way `font`, `theme` and `slide-numbers` are, and only where the frontmatter left the question open.
+
+`neighbours: hidden` takes the slide before and the slide after to opacity 0. The default `dim` (`--dim: 0.86`, so a neighbour sits at about 17%) is deliberate for a lecture: the camera pans through a column and the faint neighbours are what make the view one long board rather than a stack of cards. A keynote wants the opposite: 17% of a heading set in display type is perfectly legible from the room, and the frame then carries two slides and says so. The fade in `hidden` is the backdrop's 260ms and not the chunk's own 500ms, for the backdrop's reason: the camera lands in `--camera-duration` (250ms) and a neighbour still visible then reads as a smear beside the slide. Going the other way costs nothing – a chunk that becomes `.active` matches a rule that declares no transition, so the arriving slide is simply there. The overview board is unaffected, because `body.overview-mode .chunk` sets `opacity: 1 !important`.
+
 An unknown value **fails the build** (`err.userFacing`, no stack trace) rather than being ignored, because a typo here is otherwise invisible: the lecture still builds and still looks fine, it just looks like the author never set anything. `lint.js` mirrors the table as `VIEW_DEFAULTS` and reports `unknown-view-default` as an error – keep the two in sync, same rule as `VALID_TAGS`.
 
 See the `psi-slides-decoration` skill for `cover`, `subtitle`, `cover-image` and the `style:` block, which are the author's composition rather than the reader's preference and so are validated separately.
@@ -288,6 +296,8 @@ See the `psi-slides-decoration` skill for `cover`, `subtitle`, `cover-image` and
 The tag word above a chunk is **two different things wearing one name**, and a switch has to reach both: the document renderer emits `<span class="chunk-label">` for principle, question, definition and exercise, while the projection generates only `EXERCISE`, in CSS – the one eyebrow that survived the removal of the others (PRD §2.1). So most of what an author sees as "the eyebrows" is in `print.html`, and a check in the audience view alone will report that there is nothing to hide.
 
 `style: {labels: off}` hides both. **It is its own key rather than part of `rules`**, which hides the bar over a principle and the hairline over a definition: a word and a line are not one decision, and an author may well want the line and not the word.
+
+**It reaches a third generated word, and that one is easy to miss: the small-caps eyebrow over a `::: footnote`.** `.margin-note::before` draws `content: attr(data-label)`, and where the author wrote no label the build supplies one (`NOTE`, `ANMERKUNG` under `lang: de`) – invented the same way the tag eyebrow is, so the same switch has to reach it. It used to survive `labels: off` and was then the *louder* of the two words left on the slide. **The projection alone.** `PRINT_CSS` keeps its footnote label, because on paper the aside is one more block in a column of blocks and the word is what marks it as a footnote, where on the slide the hairline and the position already do.
 
 ## Where the blocks sit (`style.blocks`), and the two keys a chunk can answer
 

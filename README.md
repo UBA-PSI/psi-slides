@@ -298,7 +298,7 @@ Press `?` in either live view for the full on-screen reference. The ones you nee
 - `D` puts a live demo on the projection: a window or a screen of this machine, picked in the speaker window, shown to the room until `D` again. Serve the lecture with `--serve` and the picture crosses without an encoder; from a double-clicked file it goes through a loopback WebRTC connection. **The very first capture on a Mac does not work** – macOS asks for screen-recording rights for the browser, and that first attempt is refused or shows an empty picture that ends by itself. Allow it, press `D` again, and it works from then on; try it once before the talk.
 - `S` open the speaker window, `P` open the print view.
 - **On a touchscreen** both live views show a small rail along the bottom: forward, back, overview and zoom, with `C`, `F`, `A`, `#`, search and text selection behind the `⋯` button. It appears only on a device with no fine pointer, so an iPad with a keyboard attached does not see it.
-- `L` slide numbers: stacked, in a row, or off.
+- `L` slide numbers: stacked, in a row, or off. `M` shows or hides the `+ note` button that sits in the slide's left gutter – the key it stands for, `N`, works either way.
 
 ## What is stable and what is not
 
