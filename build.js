@@ -8299,13 +8299,21 @@ pre.shiki .line { display: inline; }
 
 // ── audience rendering ───────────────────────────────────────────────
 
-// Expansion labels resolve to a fixed vocabulary of chevron
-// abbreviations. The label string in source is free-form and
-// descriptive (e.g. "format-spec", "None-vs-False"); the chevron
-// only shows one of the canonical categories from PRD §2, which
-// keeps the UI readable and honest about what kind of aside the
-// student is about to open. Unknown labels fall back to "Exp" –
-// "this is an explanation" – never to a truncated slug.
+// The chip on an unopened expansion used to wear one of these
+// abbreviations instead of the author's own label, on the argument that a
+// fixed vocabulary keeps the strip readable and honest about what kind of
+// aside is behind the chip. Measured on a keynote, it is the opposite: a
+// chip reading EXP stood for an expansion labelled "Fehlermeldung", the
+// fallback screen for a live demo, and the one word that said what pressing
+// it would show had been thrown away by the renderer. Every label longer
+// than the table's prefixes lands on that fallback, so the more descriptive
+// the author was, the less the room was told.
+//
+// So the chip carries the label, and this table is what it carries when
+// there is none - a `::: expand` with no word after it, where "Exp" is
+// still better than an empty button. The open pane has always shown the
+// label in full (.tag-label), which is the other half of why the chip
+// saying something else read as a defect rather than as a convention.
 function abbrevForLabel(label) {
   const l = String(label || '').toLowerCase();
   if (!l) return 'Exp';
@@ -8548,8 +8556,8 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
 
   const chevsHtml = expandList.length
     ? `<div class="exps">${expandList.map((e, i) =>
-      `<button class="exp-chev" type="button" data-exp="${i}">
-         <span>${escapeHtml(abbrevForLabel(e.label))}</span>
+      `<button class="exp-chev" type="button" data-exp="${i}" title="${escapeHtml(e.label || abbrevForLabel(e.label))}">
+         <span class="exp-name">${escapeHtml(e.label || abbrevForLabel(e.label))}</span>
          <span class="caret">›</span>
        </button>`).join('')}</div>`
     : '';
@@ -12809,6 +12817,12 @@ body[data-note-button=off] .annot-add { display: none; }
   transition: color 150ms, border-color 150ms, background 150ms;
   white-space: nowrap;
 }
+/* A ceiling on the author's own words, because the strip is anchored to the
+   right edge of the slide and a label nobody thought about is the one thing
+   that could push a second chip off it. 14em of all-small-caps is about six
+   words; past that the chip ellipsises and the title attribute holds the
+   rest. */
+.exp-chev .exp-name { max-width: 14em; overflow: hidden; text-overflow: ellipsis; }
 .exp-chev:hover { color: var(--ink); border-color: var(--ink); }
 .exp-chev .caret { opacity: 0.55; }
 .exp-chev.on { color: var(--paper); background: var(--ink); border-color: var(--ink); }
