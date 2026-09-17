@@ -1309,11 +1309,27 @@ pre.shiki .line { display: inline; }
    different kind of thing. .muted is scaffolding - an axis, a leader, a zone
    outline - and scaffolding is drawn thinner as well as lighter. .dim is the
    other axis entirely: full colour at a third of the strength, which is what
-   the dim step operation reaches for when a beat moves on. */
+   the dim step operation reaches for when a beat moves on.
+
+   A muted *line* is --ink-soft and a muted *word* is not, and that split is
+   the correction. --ink-soft is picked against the paper, and a caption is
+   very often standing on something else: measured at 1600x900 on the default
+   theme, --ink-soft type reads 3.44:1 on the paper, 2.76:1 on a .tone-1 area
+   and 2.11:1 on a .tone-3 one, against the 3:1 anything on a projector has
+   to clear. A line has no such floor - an axis is followed, not read - so it
+   keeps the token and the 1.05 weight that say scaffolding. The words are
+   mixed straight out of the two inks instead, dark enough to hold on the
+   three light tints and still visibly quieter than --ink.
+
+   Two grounds it cannot answer for, and both are the ground being wrong
+   rather than the type: a .tone-4 area is the accent at full strength, where
+   this mix reads worse than --ink-soft did and only the inverted label two
+   rules down is legible; and a dark theme's paper, where the mix follows
+   --ink and --paper and so inverts with them. */
 .psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
-.psi-diagram .muted text { fill: var(--ink-soft); }
+.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
 
 /* .tone-4 inverts its own label, and that has to win over .accent text:
    accent ink on an accent fill is invisible, legal, and would otherwise be
@@ -1357,11 +1373,33 @@ pre.shiki .line { display: inline; }
    costs no extra font payload. */
 .psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
 
-/* .ghost and .dim deliberately do NOT set opacity here. Visibility and the
-   two softening classes share one channel, and author CSS beats a
-   presentation attribute – so an element pinned at 0.45 by this stylesheet
-   could never be hidden, and its show step did nothing at all. Both the
-   emitter and the runtime resolve the channel once, in dgOpacity(). */
+/* .ghost and .dim deliberately do NOT set opacity on the group here.
+   Visibility and the two softening classes share one channel, and author CSS
+   beats a presentation attribute – so an element pinned at 0.45 by this
+   stylesheet could never be hidden, and its show step did nothing at all.
+   Both the emitter and the runtime resolve that channel once, in
+   dgOpacity().
+
+   What the two rules below touch is a *child* of the group, which is a
+   different thing and safe for the same reason: the alphas multiply, so a
+   hide still takes the whole element to zero. They exist because one alpha
+   over a whole group fades the words as hard as the box, and a word at 0.3
+   is not quiet but unreadable – 1.95:1 against its own fill on the paper,
+   1.88:1 standing on a .tone-3 area. dgOpacity() now returns the *ink*
+   number and these put the ground back where it was: 0.6 x 0.5 is the 0.3
+   that was there before, 0.75 x 0.6 the 0.45, so every existing figure's
+   outline, fill, stroke, arrowhead and picture are unmoved to the pixel and
+   only the type gains. The factors come from DG_SOFT_GROUND rather than
+   being typed here twice.
+
+   Type is what is deliberately NOT in the selector lists. Everything else a
+   softened element can draw is. */
+.psi-diagram .dim > :is(rect, circle, .dg-shape, image),
+.psi-diagram .dim .dg-stroke,
+.psi-diagram .dim .dg-head { opacity: 0.5000; }
+.psi-diagram .ghost > :is(rect, circle, .dg-shape, image),
+.psi-diagram .ghost .dg-stroke,
+.psi-diagram .ghost .dg-head { opacity: 0.6000; }
 /* emph / dim are what a step reaches for; both stay inside the palette */
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
@@ -1427,6 +1465,31 @@ pre.shiki .line { display: inline; }
    A bordered label is a box, and there is a statement for that. */
 .psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-edge > :is(rect, circle, .dg-shape) { stroke: none; }
+
+/* An edge label its own line runs through. The compiler decides it from the
+   routed geometry and writes dg-halo into the beat's class string; this is
+   what the word means. The offset that lifts a label off its line clears it
+   at the *midpoint*, and an elbow's two outer runs, a doubled-back via route
+   and a curve that comes back on itself are all somewhere else on the same
+   path - so a label can be correctly beside the line it labels and still have
+   another stretch of that same line drawn through the middle of it, which the
+   room reads as struck through.
+
+   paint-order and not a rect, because a rect is as wide as the whole run
+   where the crossing is one word long, and on a curve that erases the arc the
+   label belongs to. The stroke is the paper, so it knocks out the glyph
+   shapes and nothing else. Written after every rule that sets a text fill, so
+   a muted or accented label keeps its own colour and only gains the knockout.
+
+   3.2px against a 1.4 line: the stroke is centred on the glyph outline, so
+   half of it is inside the letters and the gap the line sees is about 1.6px
+   each side. Less and a 1.4 stroke still touches the serifs. */
+.psi-diagram .dg-halo text {
+  paint-order: stroke fill;
+  stroke: var(--paper);
+  stroke-width: 3.2px;
+  stroke-linejoin: round;
+}
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -1772,7 +1835,7 @@ figure you write today may need an edit. The editor is experimental too.</p>
   <circle class="d" cx="58" cy="47" r="2.6"/>
   <path class="s" d="M43 57c4 3.5 10 3.5 14 0"/>
 </svg></g>
-<g id="dg6-eve" data-base="dg-el dg-image" class="dg-el dg-image ghost" style="opacity:0.45"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" id="dg6-eve--i" role="img" aria-label="Eve" x="241.50" y="-37.80" width="63.00" height="75.60" preserveAspectRatio="xMidYMid meet">
+<g id="dg6-eve" data-base="dg-el dg-image" class="dg-el dg-image ghost" style="opacity:0.75"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 120" id="dg6-eve--i" role="img" aria-label="Eve" x="241.50" y="-37.80" width="63.00" height="75.60" preserveAspectRatio="xMidYMid meet">
   <style>@scope (svg#dg6-eve--i) {
 :scope { --_ink: var(--ink, #222); --_paper: var(--paper, #fff); }
     .s { fill: none; stroke: var(--_ink); stroke-width: 3.5; stroke-linecap: round; stroke-linejoin: round; }
@@ -2050,13 +2113,13 @@ line still wins, that being a statement about this one element.</p>
   <figure class="figure-diagram"><svg id="dg13-root" class="psi-diagram" viewBox="-156.02 -19.50 704.44 128.44" style="--dg-type-w:46.963;--dg-ar:5.4846;--dg-ink-x:0.01703" width="2000" height="365" data-steps="1" role="img" aria-label="One channel, spelled the same in three places" preserveAspectRatio="xMidYMid meet">
 <g id="dg13-pr0" data-base="dg-el dg-text" class="dg-el dg-text small"><g id="dg13-pr0--lw0" data-lab="pr0--l" class="dg-lwrap" transform="translate(36.58,0.00)"><g id="dg13-pr0--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">normal</tspan></text></g></g></g>
 <g id="dg13-pr1" data-base="dg-el dg-text" class="dg-el dg-text emph small"><g id="dg13-pr1--lw0" data-lab="pr1--l" class="dg-lwrap" transform="translate(147.00,0.00)"><g id="dg13-pr1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">emph</tspan></text></g></g></g>
-<g id="dg13-pr2" data-base="dg-el dg-text" class="dg-el dg-text dim small" style="opacity:0.3"><g id="dg13-pr2--lw0" data-lab="pr2--l" class="dg-lwrap" transform="translate(247.70,0.00)"><g id="dg13-pr2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">dim</tspan></text></g></g></g>
-<g id="dg13-pr3" data-base="dg-el dg-text" class="dg-el dg-text ghost small" style="opacity:0.45"><g id="dg13-pr3--lw0" data-lab="pr3--l" class="dg-lwrap" transform="translate(348.28,0.00)"><g id="dg13-pr3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">ghost</tspan></text></g></g></g>
+<g id="dg13-pr2" data-base="dg-el dg-text" class="dg-el dg-text dim small" style="opacity:0.6"><g id="dg13-pr2--lw0" data-lab="pr2--l" class="dg-lwrap" transform="translate(247.70,0.00)"><g id="dg13-pr2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">dim</tspan></text></g></g></g>
+<g id="dg13-pr3" data-base="dg-el dg-text" class="dg-el dg-text ghost small" style="opacity:0.75"><g id="dg13-pr3--lw0" data-lab="pr3--l" class="dg-lwrap" transform="translate(348.28,0.00)"><g id="dg13-pr3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">ghost</tspan></text></g></g></g>
 <g id="dg13-prl" data-base="dg-el dg-text" class="dg-el dg-text muted small"><g id="dg13-prl--lw0" data-lab="prl--l" class="dg-lwrap" transform="translate(-95.08,0.00)"><g id="dg13-prl--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">on a text</tspan></text></g></g></g>
 <g id="dg13-p1" data-base="dg-el dg-box" class="dg-el dg-box emph sharp"><rect id="dg13-p1--r" x="-36.58" y="65.86" width="73.16" height="31.08" rx="4"/><g id="dg13-p1--lw0" data-lab="p1--l" class="dg-lwrap" transform="translate(0.00,81.40)"><g id="dg13-p1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">emph</tspan></text></g></g></g>
 <g id="dg13-p2" data-base="dg-el dg-box" class="dg-el dg-box sharp"><rect id="dg13-p2--r" x="88.38" y="65.86" width="73.16" height="31.08" rx="4"/><g id="dg13-p2--lw0" data-lab="p2--l" class="dg-lwrap" transform="translate(124.96,81.40)"><g id="dg13-p2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">normal</tspan></text></g></g></g>
-<g id="dg13-p3" data-base="dg-el dg-box" class="dg-el dg-box dim sharp" style="opacity:0.3"><rect id="dg13-p3--r" x="213.34" y="65.86" width="73.16" height="31.08" rx="4"/><g id="dg13-p3--lw0" data-lab="p3--l" class="dg-lwrap" transform="translate(249.92,81.40)"><g id="dg13-p3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">dim</tspan></text></g></g></g>
-<g id="dg13-p4" data-base="dg-el dg-box" class="dg-el dg-box ghost sharp" style="opacity:0.45"><rect id="dg13-p4--r" x="338.30" y="65.86" width="73.16" height="31.08" rx="4"/><g id="dg13-p4--lw0" data-lab="p4--l" class="dg-lwrap" transform="translate(374.88,81.40)"><g id="dg13-p4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">ghost</tspan></text></g></g></g>
+<g id="dg13-p3" data-base="dg-el dg-box" class="dg-el dg-box dim sharp" style="opacity:0.6"><rect id="dg13-p3--r" x="213.34" y="65.86" width="73.16" height="31.08" rx="4"/><g id="dg13-p3--lw0" data-lab="p3--l" class="dg-lwrap" transform="translate(249.92,81.40)"><g id="dg13-p3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">dim</tspan></text></g></g></g>
+<g id="dg13-p4" data-base="dg-el dg-box" class="dg-el dg-box ghost sharp" style="opacity:0.75"><rect id="dg13-p4--r" x="338.30" y="65.86" width="73.16" height="31.08" rx="4"/><g id="dg13-p4--lw0" data-lab="p4--l" class="dg-lwrap" transform="translate(374.88,81.40)"><g id="dg13-p4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">ghost</tspan></text></g></g></g>
 <g id="dg13-p5" data-base="dg-el dg-box" class="dg-el dg-box sharp"><rect id="dg13-p5--r" x="463.26" y="65.86" width="73.16" height="31.08" rx="4"/><g id="dg13-p5--lw0" data-lab="p5--l" class="dg-lwrap" transform="translate(499.84,81.40)"><g id="dg13-p5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">!dim</tspan></text></g></g></g>
 <g id="dg13-pl" data-base="dg-el dg-text" class="dg-el dg-text muted right small"><g id="dg13-pl--lw0" data-lab="pl--l" class="dg-lwrap" transform="translate(-95.78,81.40)"><g id="dg13-pl--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">on a box</tspan></text></g></g></g>
 </svg></figure>
@@ -2122,7 +2185,7 @@ one warning this lecture builds with.</p>
   <span class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></span>
   
   <h2 class="chunk-heading">Steps that move</h2>
-  <figure class="figure-diagram"><svg id="dg15-root" class="psi-diagram" viewBox="-100.88 -77.61 737.36 173.98" style="--dg-type-w:49.157;--dg-ar:4.2382;--dg-ink-x:0.01627" width="2000" height="472" data-live-viewbox="-100.88 -77.61 737.36 286.33" data-live-ratio="0.388318" data-live-ink-x="0.01627" data-steps="4" role="img" aria-label="Steps that move" preserveAspectRatio="xMidYMid meet">
+  <figure class="figure-diagram"><svg id="dg15-root" class="psi-diagram" viewBox="-100.88 -77.61 737.36 173.98" style="--dg-type-w:49.157;--dg-ar:4.2382;--dg-ink-x:0.02984" width="2000" height="472" data-live-viewbox="-100.88 -77.61 737.36 286.33" data-live-ratio="0.388318" data-live-ink-x="0.02984" data-steps="4" role="img" aria-label="Steps that move" preserveAspectRatio="xMidYMid meet">
 <g id="dg15-zone" data-base="dg-el dg-container" class="dg-el dg-container bare tone-2"><rect id="dg15-zone--r" x="-88.88" y="-65.61" width="713.36" height="108.46" rx="4"/><g id="dg15-zone--lw0" data-lab="zone--l" class="dg-lwrap" transform="translate(-78.88,-53.23)"><g id="dg15-zone--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">on the path</tspan></text></g></g></g>
 <g id="dg15-direct" data-base="dg-el dg-edge" class="dg-el dg-edge both-heads"><path id="dg15-direct--p" class="dg-stroke" d="M72.05 0.00L463.55 0.00" fill="none"/><path id="dg15-direct--h" class="dg-head" d="M471.20 0.00L462.20 3.96L462.20 -3.96Z"/><path id="dg15-direct--h2" class="dg-head" d="M64.40 0.00L73.40 -3.96L73.40 3.96Z"/><g id="dg15-direct--lw0" data-lab="direct--l" class="dg-lwrap" transform="translate(267.80,-11.38)"><g id="dg15-direct--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">HTTP</tspan></text></g></g></g>
 <g id="dg15-up" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg15-up--p" class="dg-stroke" d="M64.40 0.00L195.75 0.00" fill="none"/><path id="dg15-up--h" class="dg-head" d="M203.40 0.00L194.40 3.96L194.40 -3.96Z"/></g>
@@ -2220,11 +2283,11 @@ one warning this lecture builds with.</p>
 <g id="dg17-bad" data-base="dg-el dg-box" class="dg-el dg-box clear dashed muted"><rect id="dg17-bad--r" x="-217.60" y="-54.40" width="435.20" height="108.80" rx="4"/></g>
 <g id="dg17-good" data-base="dg-el dg-box" class="dg-el dg-box tone-1 dashed muted"><rect id="dg17-good--r" x="-217.60" y="76.80" width="435.20" height="108.80" rx="4"/></g>
 <g id="dg17-rule" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg17-rule--p" class="dg-stroke" d="M-96.00 -73.60L-96.00 204.80" fill="none"/><path id="dg17-rule--h" class="dg-head" d="M-96.00 204.80L-96.00 204.80L-96.00 204.80Z"/></g>
-<g id="dg17-bad-cap" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg17-bad-cap--lw0" data-lab="bad-cap--l" class="dg-lwrap" transform="translate(-177.66,-36.66)"><g id="dg17-bad-cap--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">the centre</tspan></text></g></g></g>
+<g id="dg17-bad-cap" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg17-bad-cap--lw0" data-lab="bad-cap--l" class="dg-lwrap" transform="translate(-166.78,-25.78)"><g id="dg17-bad-cap--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">the centre</tspan></text></g></g></g>
 <g id="dg17-b1" data-base="dg-el dg-text" class="dg-el dg-text left small"><g id="dg17-b1--lw0" data-lab="b1--l" class="dg-lwrap" transform="translate(-111.30,-24.32)"><g id="dg17-b1--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">short</tspan></text></g></g></g>
 <g id="dg17-b2" data-base="dg-el dg-text" class="dg-el dg-text left small"><g id="dg17-b2--lw0" data-lab="b2--l" class="dg-lwrap" transform="translate(-154.62,0.00)"><g id="dg17-b2--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a much longer label</tspan></text></g></g></g>
 <g id="dg17-b3" data-base="dg-el dg-text" class="dg-el dg-text left small"><g id="dg17-b3--lw0" data-lab="b3--l" class="dg-lwrap" transform="translate(-121.68,24.32)"><g id="dg17-b3--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">middling</tspan></text></g></g></g>
-<g id="dg17-good-cap" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg17-good-cap--lw0" data-lab="good-cap--l" class="dg-lwrap" transform="translate(-174.42,94.54)"><g id="dg17-good-cap--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">anchor left</tspan></text></g></g></g>
+<g id="dg17-good-cap" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg17-good-cap--lw0" data-lab="good-cap--l" class="dg-lwrap" transform="translate(-163.54,105.42)"><g id="dg17-good-cap--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">anchor left</tspan></text></g></g></g>
 <g id="dg17-g1" data-base="dg-el dg-text" class="dg-el dg-text left small"><g id="dg17-g1--lw0" data-lab="g1--l" class="dg-lwrap" transform="translate(-96.00,106.88)"><g id="dg17-g1--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">short</tspan></text></g></g></g>
 <g id="dg17-g2" data-base="dg-el dg-text" class="dg-el dg-text left small"><g id="dg17-g2--lw0" data-lab="g2--l" class="dg-lwrap" transform="translate(-96.00,131.20)"><g id="dg17-g2--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a much longer label</tspan></text></g></g></g>
 <g id="dg17-g3" data-base="dg-el dg-text" class="dg-el dg-text left small"><g id="dg17-g3--lw0" data-lab="g3--l" class="dg-lwrap" transform="translate(-96.00,155.52)"><g id="dg17-g3--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">middling</tspan></text></g></g></g>
@@ -2338,9 +2401,9 @@ one warning this lecture builds with.</p>
   <h2 class="chunk-heading">A second run of columns</h2>
   <figure class="figure-diagram"><svg id="dg19-root" class="psi-diagram" viewBox="-154.50 -69.30 818.00 165.10" style="--dg-type-w:54.533;--dg-ar:4.9546;--dg-ink-x:0.01467" width="2000" height="404" data-steps="1" role="img" aria-label="A second run of columns" preserveAspectRatio="xMidYMid meet">
 <g id="dg19-a" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg19-a--r" x="-142.50" y="-33.60" width="285.00" height="67.20" rx="4"/></g>
-<g id="dg19-a-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg19-a-0--r" x="-133.59" y="0.00" width="26.72" height="33.60" rx="4"/></g>
-<g id="dg19-a-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg19-a-1--r" x="-62.34" y="-8.40" width="26.72" height="42.00" rx="4"/></g>
-<g id="dg19-a-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg19-a-2--r" x="8.91" y="-19.60" width="26.72" height="53.20" rx="4"/></g>
+<g id="dg19-a-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.6"><rect id="dg19-a-0--r" x="-133.59" y="0.00" width="26.72" height="33.60" rx="4"/></g>
+<g id="dg19-a-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.6"><rect id="dg19-a-1--r" x="-62.34" y="-8.40" width="26.72" height="42.00" rx="4"/></g>
+<g id="dg19-a-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.6"><rect id="dg19-a-2--r" x="8.91" y="-19.60" width="26.72" height="53.20" rx="4"/></g>
 <g id="dg19-a-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3"><rect id="dg19-a-3--r" x="80.16" y="-33.60" width="26.72" height="67.20" rx="4"/></g>
 <g id="dg19-a-key" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3"><rect id="dg19-a-key--r" x="-142.50" y="-55.80" width="13.80" height="12.00" rx="4"/></g>
 <g id="dg19-a-key-label" data-base="dg-el dg-text" class="dg-el dg-text small"><g id="dg19-a-key-label--lw0" data-lab="a-key-label--l" class="dg-lwrap" transform="translate(-108.66,-49.80)"><g id="dg19-a-key-label--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2023</tspan></text></g></g></g>
@@ -2348,17 +2411,17 @@ one warning this lecture builds with.</p>
 <g id="dg19-a-tick-1" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg19-a-tick-1--lw0" data-lab="a-tick-1--l" class="dg-lwrap" transform="translate(-35.63,45.12)"><g id="dg19-a-tick-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q2</tspan></text></g></g></g>
 <g id="dg19-a-tick-2" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg19-a-tick-2--lw0" data-lab="a-tick-2--l" class="dg-lwrap" transform="translate(35.63,45.12)"><g id="dg19-a-tick-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q3</tspan></text></g></g></g>
 <g id="dg19-a-tick-3" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg19-a-tick-3--lw0" data-lab="a-tick-3--l" class="dg-lwrap" transform="translate(106.88,45.12)"><g id="dg19-a-tick-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q4</tspan></text></g></g></g>
-<g id="dg19-a2-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg19-a2-0--r" x="-106.88" y="8.40" width="26.72" height="25.20" rx="4"/></g>
-<g id="dg19-a2-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg19-a2-1--r" x="-35.63" y="2.80" width="26.72" height="30.80" rx="4"/></g>
-<g id="dg19-a2-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg19-a2-2--r" x="35.63" y="5.60" width="26.72" height="28.00" rx="4"/></g>
+<g id="dg19-a2-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.6"><rect id="dg19-a2-0--r" x="-106.88" y="8.40" width="26.72" height="25.20" rx="4"/></g>
+<g id="dg19-a2-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.6"><rect id="dg19-a2-1--r" x="-35.63" y="2.80" width="26.72" height="30.80" rx="4"/></g>
+<g id="dg19-a2-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.6"><rect id="dg19-a2-2--r" x="35.63" y="5.60" width="26.72" height="28.00" rx="4"/></g>
 <g id="dg19-a2-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4"><rect id="dg19-a2-3--r" x="106.88" y="-25.20" width="26.72" height="58.80" rx="4"/></g>
 <g id="dg19-a2-key" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4"><rect id="dg19-a2-key--r" x="-74.82" y="-55.80" width="13.80" height="12.00" rx="4"/></g>
 <g id="dg19-a2-key-label" data-base="dg-el dg-text" class="dg-el dg-text small"><g id="dg19-a2-key-label--lw0" data-lab="a2-key-label--l" class="dg-lwrap" transform="translate(-40.98,-49.80)"><g id="dg19-a2-key-label--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2024</tspan></text></g></g></g>
 <g id="dg19-an" data-base="dg-el dg-text" class="dg-el dg-text muted small"><g id="dg19-an--lw0" data-lab="an--l" class="dg-lwrap" transform="translate(0.00,76.30)"><g id="dg19-an--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">side by side</tspan></text></g></g></g>
 <g id="dg19-b" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg19-b--r" x="366.50" y="-33.60" width="285.00" height="67.20" rx="4"/></g>
-<g id="dg19-b-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg19-b-0--r" x="375.41" y="15.68" width="53.44" height="17.92" rx="4"/></g>
-<g id="dg19-b-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg19-b-1--r" x="446.66" y="11.20" width="53.44" height="22.40" rx="4"/></g>
-<g id="dg19-b-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.3"><rect id="dg19-b-2--r" x="517.91" y="5.23" width="53.44" height="28.37" rx="4"/></g>
+<g id="dg19-b-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.6"><rect id="dg19-b-0--r" x="375.41" y="15.68" width="53.44" height="17.92" rx="4"/></g>
+<g id="dg19-b-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.6"><rect id="dg19-b-1--r" x="446.66" y="11.20" width="53.44" height="22.40" rx="4"/></g>
+<g id="dg19-b-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3 dim" style="opacity:0.6"><rect id="dg19-b-2--r" x="517.91" y="5.23" width="53.44" height="28.37" rx="4"/></g>
 <g id="dg19-b-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3"><rect id="dg19-b-3--r" x="589.16" y="-2.24" width="53.44" height="35.84" rx="4"/></g>
 <g id="dg19-b-key" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-3"><rect id="dg19-b-key--r" x="366.50" y="-55.80" width="13.80" height="12.00" rx="4"/></g>
 <g id="dg19-b-key-label" data-base="dg-el dg-text" class="dg-el dg-text small"><g id="dg19-b-key-label--lw0" data-lab="b-key-label--l" class="dg-lwrap" transform="translate(400.34,-49.80)"><g id="dg19-b-key-label--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2023</tspan></text></g></g></g>
@@ -2366,9 +2429,9 @@ one warning this lecture builds with.</p>
 <g id="dg19-b-tick-1" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg19-b-tick-1--lw0" data-lab="b-tick-1--l" class="dg-lwrap" transform="translate(473.38,45.12)"><g id="dg19-b-tick-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q2</tspan></text></g></g></g>
 <g id="dg19-b-tick-2" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg19-b-tick-2--lw0" data-lab="b-tick-2--l" class="dg-lwrap" transform="translate(544.63,45.12)"><g id="dg19-b-tick-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q3</tspan></text></g></g></g>
 <g id="dg19-b-tick-3" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg19-b-tick-3--lw0" data-lab="b-tick-3--l" class="dg-lwrap" transform="translate(615.88,45.12)"><g id="dg19-b-tick-3--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">Q4</tspan></text></g></g></g>
-<g id="dg19-b2-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg19-b2-0--r" x="375.41" y="2.24" width="53.44" height="13.44" rx="4"/></g>
-<g id="dg19-b2-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg19-b2-1--r" x="446.66" y="-5.23" width="53.44" height="16.43" rx="4"/></g>
-<g id="dg19-b2-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.3"><rect id="dg19-b2-2--r" x="517.91" y="-9.71" width="53.44" height="14.93" rx="4"/></g>
+<g id="dg19-b2-0" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.6"><rect id="dg19-b2-0--r" x="375.41" y="2.24" width="53.44" height="13.44" rx="4"/></g>
+<g id="dg19-b2-1" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.6"><rect id="dg19-b2-1--r" x="446.66" y="-5.23" width="53.44" height="16.43" rx="4"/></g>
+<g id="dg19-b2-2" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4 dim" style="opacity:0.6"><rect id="dg19-b2-2--r" x="517.91" y="-9.71" width="53.44" height="14.93" rx="4"/></g>
 <g id="dg19-b2-3" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4"><rect id="dg19-b2-3--r" x="589.16" y="-33.60" width="53.44" height="31.36" rx="4"/></g>
 <g id="dg19-b2-key" data-base="dg-el dg-box dg-bar" class="dg-el dg-box dg-bar sharp bare tone-4"><rect id="dg19-b2-key--r" x="434.18" y="-55.80" width="13.80" height="12.00" rx="4"/></g>
 <g id="dg19-b2-key-label" data-base="dg-el dg-text" class="dg-el dg-text small"><g id="dg19-b2-key-label--lw0" data-lab="b2-key-label--l" class="dg-lwrap" transform="translate(468.02,-49.80)"><g id="dg19-b2-key-label--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">2024</tspan></text></g></g></g>
@@ -2821,7 +2884,7 @@ one warning this lecture builds with.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
   
   <h2 class="chunk-heading">What else a message can be</h2>
-  <figure class="figure-diagram"><svg id="dg29-root" class="psi-diagram" viewBox="-221.55 -209.30 512.37 418.60" style="--dg-type-w:34.158;--dg-ar:1.2240;--dg-ink-x:0.02342" width="2000" height="1634" data-steps="1" role="img" aria-label="What else a message can be" preserveAspectRatio="xMidYMid meet">
+  <figure class="figure-diagram"><svg id="dg29-root" class="psi-diagram" viewBox="-221.55 -209.30 512.37 418.60" style="--dg-type-w:34.158;--dg-ar:1.2240;--dg-ink-x:0.08490" width="2000" height="1634" data-steps="1" role="img" aria-label="What else a message can be" preserveAspectRatio="xMidYMid meet">
 <g id="dg29-tun" data-base="dg-el dg-brace" class="dg-el dg-brace muted small"><path id="dg29-tun--p" class="dg-stroke" d="M155.10 113.64L162.10 113.64L162.10 113.64L155.10 113.64" fill="none"/><g id="dg29-tun--lw0" data-lab="tun--l" class="dg-lwrap" transform="translate(170.10,113.64)"><g id="dg29-tun--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">this is the payload</tspan></text></g></g></g>
 <g id="dg29-c-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg29-c-life--p" class="dg-stroke" d="M-139.70 -160.55L-139.70 197.30" fill="none"/><path id="dg29-c-life--h" class="dg-head" d="M-139.70 197.30L-139.70 197.30L-139.70 197.30Z"/></g>
 <g id="dg29-p-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="dg29-p-life--p" class="dg-stroke" d="M0.00 -160.55L0.00 197.30" fill="none"/><path id="dg29-p-life--h" class="dg-head" d="M0.00 197.30L0.00 197.30L0.00 197.30Z"/></g>

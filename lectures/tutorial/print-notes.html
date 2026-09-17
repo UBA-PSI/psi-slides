@@ -1309,11 +1309,27 @@ pre.shiki .line { display: inline; }
    different kind of thing. .muted is scaffolding - an axis, a leader, a zone
    outline - and scaffolding is drawn thinner as well as lighter. .dim is the
    other axis entirely: full colour at a third of the strength, which is what
-   the dim step operation reaches for when a beat moves on. */
+   the dim step operation reaches for when a beat moves on.
+
+   A muted *line* is --ink-soft and a muted *word* is not, and that split is
+   the correction. --ink-soft is picked against the paper, and a caption is
+   very often standing on something else: measured at 1600x900 on the default
+   theme, --ink-soft type reads 3.44:1 on the paper, 2.76:1 on a .tone-1 area
+   and 2.11:1 on a .tone-3 one, against the 3:1 anything on a projector has
+   to clear. A line has no such floor - an axis is followed, not read - so it
+   keeps the token and the 1.05 weight that say scaffolding. The words are
+   mixed straight out of the two inks instead, dark enough to hold on the
+   three light tints and still visibly quieter than --ink.
+
+   Two grounds it cannot answer for, and both are the ground being wrong
+   rather than the type: a .tone-4 area is the accent at full strength, where
+   this mix reads worse than --ink-soft did and only the inverted label two
+   rules down is legible; and a dark theme's paper, where the mix follows
+   --ink and --paper and so inverts with them. */
 .psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
-.psi-diagram .muted text { fill: var(--ink-soft); }
+.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
 
 /* .tone-4 inverts its own label, and that has to win over .accent text:
    accent ink on an accent fill is invisible, legal, and would otherwise be
@@ -1357,11 +1373,33 @@ pre.shiki .line { display: inline; }
    costs no extra font payload. */
 .psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
 
-/* .ghost and .dim deliberately do NOT set opacity here. Visibility and the
-   two softening classes share one channel, and author CSS beats a
-   presentation attribute – so an element pinned at 0.45 by this stylesheet
-   could never be hidden, and its show step did nothing at all. Both the
-   emitter and the runtime resolve the channel once, in dgOpacity(). */
+/* .ghost and .dim deliberately do NOT set opacity on the group here.
+   Visibility and the two softening classes share one channel, and author CSS
+   beats a presentation attribute – so an element pinned at 0.45 by this
+   stylesheet could never be hidden, and its show step did nothing at all.
+   Both the emitter and the runtime resolve that channel once, in
+   dgOpacity().
+
+   What the two rules below touch is a *child* of the group, which is a
+   different thing and safe for the same reason: the alphas multiply, so a
+   hide still takes the whole element to zero. They exist because one alpha
+   over a whole group fades the words as hard as the box, and a word at 0.3
+   is not quiet but unreadable – 1.95:1 against its own fill on the paper,
+   1.88:1 standing on a .tone-3 area. dgOpacity() now returns the *ink*
+   number and these put the ground back where it was: 0.6 x 0.5 is the 0.3
+   that was there before, 0.75 x 0.6 the 0.45, so every existing figure's
+   outline, fill, stroke, arrowhead and picture are unmoved to the pixel and
+   only the type gains. The factors come from DG_SOFT_GROUND rather than
+   being typed here twice.
+
+   Type is what is deliberately NOT in the selector lists. Everything else a
+   softened element can draw is. */
+.psi-diagram .dim > :is(rect, circle, .dg-shape, image),
+.psi-diagram .dim .dg-stroke,
+.psi-diagram .dim .dg-head { opacity: 0.5000; }
+.psi-diagram .ghost > :is(rect, circle, .dg-shape, image),
+.psi-diagram .ghost .dg-stroke,
+.psi-diagram .ghost .dg-head { opacity: 0.6000; }
 /* emph / dim are what a step reaches for; both stay inside the palette */
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
@@ -1427,6 +1465,31 @@ pre.shiki .line { display: inline; }
    A bordered label is a box, and there is a statement for that. */
 .psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-edge > :is(rect, circle, .dg-shape) { stroke: none; }
+
+/* An edge label its own line runs through. The compiler decides it from the
+   routed geometry and writes dg-halo into the beat's class string; this is
+   what the word means. The offset that lifts a label off its line clears it
+   at the *midpoint*, and an elbow's two outer runs, a doubled-back via route
+   and a curve that comes back on itself are all somewhere else on the same
+   path - so a label can be correctly beside the line it labels and still have
+   another stretch of that same line drawn through the middle of it, which the
+   room reads as struck through.
+
+   paint-order and not a rect, because a rect is as wide as the whole run
+   where the crossing is one word long, and on a curve that erases the arc the
+   label belongs to. The stroke is the paper, so it knocks out the glyph
+   shapes and nothing else. Written after every rule that sets a text fill, so
+   a muted or accented label keeps its own colour and only gains the knockout.
+
+   3.2px against a 1.4 line: the stroke is centred on the glyph outline, so
+   half of it is inside the letters and the gap the line sees is about 1.6px
+   each side. Less and a 1.4 stroke still touches the serifs. */
+.psi-diagram .dg-halo text {
+  paint-order: stroke fill;
+  stroke: var(--paper);
+  stroke-width: 3.2px;
+  stroke-linejoin: round;
+}
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -2954,8 +3017,8 @@ are tagged into a release.</p>
 <g id="dg5-s2" data-base="dg-el dg-box" class="dg-el dg-box dotted clear sharp"><rect id="dg5-s2--r" x="63.42" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s2--lw0" data-lab="s2--l" class="dg-lwrap" transform="translate(98.14,184.50)"><g id="dg5-s2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">dotted</tspan></text></g></g></g>
 <g id="dg5-s3" data-base="dg-el dg-box" class="dg-el dg-box thick clear sharp"><rect id="dg5-s3--r" x="161.56" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s3--lw0" data-lab="s3--l" class="dg-lwrap" transform="translate(196.28,184.50)"><g id="dg5-s3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">thick</tspan></text></g></g></g>
 <g id="dg5-s4" data-base="dg-el dg-box" class="dg-el dg-box bare clear sharp"><rect id="dg5-s4--r" x="259.70" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s4--lw0" data-lab="s4--l" class="dg-lwrap" transform="translate(294.42,184.50)"><g id="dg5-s4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">bare</tspan></text></g></g></g>
-<g id="dg5-s5" data-base="dg-el dg-box" class="dg-el dg-box ghost tone-2 sharp" style="opacity:0.45"><rect id="dg5-s5--r" x="357.84" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s5--lw0" data-lab="s5--l" class="dg-lwrap" transform="translate(392.56,184.50)"><g id="dg5-s5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">ghost</tspan></text></g></g></g>
-<g id="dg5-s6" data-base="dg-el dg-box" class="dg-el dg-box dim tone-2 sharp" style="opacity:0.3"><rect id="dg5-s6--r" x="455.98" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s6--lw0" data-lab="s6--l" class="dg-lwrap" transform="translate(490.70,184.50)"><g id="dg5-s6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">dim</tspan></text></g></g></g>
+<g id="dg5-s5" data-base="dg-el dg-box" class="dg-el dg-box ghost tone-2 sharp" style="opacity:0.75"><rect id="dg5-s5--r" x="357.84" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s5--lw0" data-lab="s5--l" class="dg-lwrap" transform="translate(392.56,184.50)"><g id="dg5-s5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">ghost</tspan></text></g></g></g>
+<g id="dg5-s6" data-base="dg-el dg-box" class="dg-el dg-box dim tone-2 sharp" style="opacity:0.6"><rect id="dg5-s6--r" x="455.98" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s6--lw0" data-lab="s6--l" class="dg-lwrap" transform="translate(490.70,184.50)"><g id="dg5-s6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">dim</tspan></text></g></g></g>
 <g id="dg5-sl" data-base="dg-el dg-text" class="dg-el dg-text muted right"><g id="dg5-sl--lw0" data-lab="sl--l" class="dg-lwrap" transform="translate(-92.12,184.50)"><g id="dg5-sl--l0" class="dg-lbl"><text text-anchor="end" font-size="15.00"><tspan x="0" y="-4.27">stroke,</tspan><tspan x="0" y="14.48">and presence</tspan></text></g></g></g>
 <g id="dg5-t1" data-base="dg-el dg-text" class="dg-el dg-text"><g id="dg5-t1--lw0" data-lab="t1--l" class="dg-lwrap" transform="translate(33.60,262.40)"><g id="dg5-t1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">sans</tspan></text></g></g></g>
 <g id="dg5-t7" data-base="dg-el dg-text" class="dg-el dg-text bold"><g id="dg5-t7--lw0" data-lab="t7--l" class="dg-lwrap" transform="translate(511.78,262.40)"><g id="dg5-t7--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">bold</tspan></text></g></g></g>

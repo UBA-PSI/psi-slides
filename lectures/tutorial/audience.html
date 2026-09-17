@@ -3985,6 +3985,22 @@ body:not([data-wrap=none]) :is(
 body:not([data-wrap=none]) .cards li,
 body:not([data-wrap=none]) .cards > :not(ul):not(ol) { text-wrap: pretty; }
 
+/* A footnote is a phrase under the slide rather than a paragraph in it, and
+   the p rule above is half right for it. pretty fills the measure and
+   protects the last line, which is what the ranged-left case wants; it does
+   not even two lines out, and on a centred chunk a full line with two words
+   under it reads as a mistake rather than as a ragged edge. Measured on a
+   keynote: "…n = 4 910, Teilnahme freiwillig" broke with those two words
+   alone on line two, centred under a full line. So the centred case
+   balances and every other case keeps pretty, which is the same split the
+   headings below make for the same reason.
+
+   Same guard as every rule in this section, and the chunk-scoped overrides
+   further down still win on specificity: a deck that said wrap: none has
+   refused a re-wrap and this is not the rule that takes it back. */
+body:not([data-wrap=none]) .margin-note p { text-wrap: pretty; }
+body:not([data-wrap=none]) .chunk[data-center] .margin-note p { text-wrap: balance; }
+
 /* Headings are phrases in every mode, so they balance whatever the collapse
    setting is - and unlike the slide lines they are the same in the live views
    and on paper. Measured on the tutorial at 1100px, the cover subtitle was
@@ -4102,7 +4118,17 @@ body[data-blocks=left] #stage .math-display .katex-display > .katex,
    TOC entry, a search hit and the help sheet are lists a reader scans, and
    a broken word in one of those is only harder to scan. And the same
    manual reset PRINT_CSS carries, for the same reason - hyphens inherits,
-   and a hyphenated identifier or URL is wrong in any view. */
+   and a hyphenated identifier or URL is wrong in any view.
+
+   A footnote is in that reset too, and it is the one entry that is prose.
+   A ::: footnote is one or two lines of small type under the slide - a
+   source, a date, an aside - so it has no measure for a hyphen to rescue
+   and every break it takes is a word cut in half for nothing. Measured on a
+   keynote at hyphenate: all - "Pro-blemlösen" and "Teil-nahme freiwillig"
+   in two consecutive footnotes, and a "Handreichung / Z/PQM" split across
+   the slash. Print keeps its hyphens - see PRINT_CSS - because there the
+   note sits in a document at the document's measure and reads as the rest
+   of the page does. */
 body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
   hyphens: auto;
   -webkit-hyphens: auto;
@@ -4110,7 +4136,9 @@ body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
 }
 body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
   .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]),
-body[data-hyphenate=all] #stage .chunk[data-tag=statement] .chunk-body p {
+body[data-hyphenate=all] #stage .chunk[data-tag=statement] .chunk-body p,
+body[data-hyphenate=all] #stage .margin-note,
+body[data-hyphenate=all] #stage .margin-note * {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
@@ -4991,11 +5019,27 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    different kind of thing. .muted is scaffolding - an axis, a leader, a zone
    outline - and scaffolding is drawn thinner as well as lighter. .dim is the
    other axis entirely: full colour at a third of the strength, which is what
-   the dim step operation reaches for when a beat moves on. */
+   the dim step operation reaches for when a beat moves on.
+
+   A muted *line* is --ink-soft and a muted *word* is not, and that split is
+   the correction. --ink-soft is picked against the paper, and a caption is
+   very often standing on something else: measured at 1600x900 on the default
+   theme, --ink-soft type reads 3.44:1 on the paper, 2.76:1 on a .tone-1 area
+   and 2.11:1 on a .tone-3 one, against the 3:1 anything on a projector has
+   to clear. A line has no such floor - an axis is followed, not read - so it
+   keeps the token and the 1.05 weight that say scaffolding. The words are
+   mixed straight out of the two inks instead, dark enough to hold on the
+   three light tints and still visibly quieter than --ink.
+
+   Two grounds it cannot answer for, and both are the ground being wrong
+   rather than the type: a .tone-4 area is the accent at full strength, where
+   this mix reads worse than --ink-soft did and only the inverted label two
+   rules down is legible; and a dark theme's paper, where the mix follows
+   --ink and --paper and so inverts with them. */
 .psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
-.psi-diagram .muted text { fill: var(--ink-soft); }
+.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
 
 /* .tone-4 inverts its own label, and that has to win over .accent text:
    accent ink on an accent fill is invisible, legal, and would otherwise be
@@ -5039,11 +5083,33 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    costs no extra font payload. */
 .psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
 
-/* .ghost and .dim deliberately do NOT set opacity here. Visibility and the
-   two softening classes share one channel, and author CSS beats a
-   presentation attribute – so an element pinned at 0.45 by this stylesheet
-   could never be hidden, and its show step did nothing at all. Both the
-   emitter and the runtime resolve the channel once, in dgOpacity(). */
+/* .ghost and .dim deliberately do NOT set opacity on the group here.
+   Visibility and the two softening classes share one channel, and author CSS
+   beats a presentation attribute – so an element pinned at 0.45 by this
+   stylesheet could never be hidden, and its show step did nothing at all.
+   Both the emitter and the runtime resolve that channel once, in
+   dgOpacity().
+
+   What the two rules below touch is a *child* of the group, which is a
+   different thing and safe for the same reason: the alphas multiply, so a
+   hide still takes the whole element to zero. They exist because one alpha
+   over a whole group fades the words as hard as the box, and a word at 0.3
+   is not quiet but unreadable – 1.95:1 against its own fill on the paper,
+   1.88:1 standing on a .tone-3 area. dgOpacity() now returns the *ink*
+   number and these put the ground back where it was: 0.6 x 0.5 is the 0.3
+   that was there before, 0.75 x 0.6 the 0.45, so every existing figure's
+   outline, fill, stroke, arrowhead and picture are unmoved to the pixel and
+   only the type gains. The factors come from DG_SOFT_GROUND rather than
+   being typed here twice.
+
+   Type is what is deliberately NOT in the selector lists. Everything else a
+   softened element can draw is. */
+.psi-diagram .dim > :is(rect, circle, .dg-shape, image),
+.psi-diagram .dim .dg-stroke,
+.psi-diagram .dim .dg-head { opacity: 0.5000; }
+.psi-diagram .ghost > :is(rect, circle, .dg-shape, image),
+.psi-diagram .ghost .dg-stroke,
+.psi-diagram .ghost .dg-head { opacity: 0.6000; }
 /* emph / dim are what a step reaches for; both stay inside the palette */
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
@@ -5109,6 +5175,31 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    A bordered label is a box, and there is a statement for that. */
 .psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-edge > :is(rect, circle, .dg-shape) { stroke: none; }
+
+/* An edge label its own line runs through. The compiler decides it from the
+   routed geometry and writes dg-halo into the beat's class string; this is
+   what the word means. The offset that lifts a label off its line clears it
+   at the *midpoint*, and an elbow's two outer runs, a doubled-back via route
+   and a curve that comes back on itself are all somewhere else on the same
+   path - so a label can be correctly beside the line it labels and still have
+   another stretch of that same line drawn through the middle of it, which the
+   room reads as struck through.
+
+   paint-order and not a rect, because a rect is as wide as the whole run
+   where the crossing is one word long, and on a curve that erases the arc the
+   label belongs to. The stroke is the paper, so it knocks out the glyph
+   shapes and nothing else. Written after every rule that sets a text fill, so
+   a muted or accented label keeps its own colour and only gains the knockout.
+
+   3.2px against a 1.4 line: the stroke is centred on the glyph outline, so
+   half of it is inside the letters and the gap the line sees is about 1.6px
+   each side. Less and a 1.4 stroke still touches the serifs. */
+.psi-diagram .dg-halo text {
+  paint-order: stroke fill;
+  stroke: var(--paper);
+  stroke-width: 3.2px;
+  stroke-linejoin: round;
+}
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -6951,7 +7042,7 @@ are tagged into a release.</p>
 <g id="dg4-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg4-a--r" x="-40.23" y="-18.38" width="80.45" height="36.75" rx="4"/><g id="dg4-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
 <g id="dg4-b" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg4-b--r" x="-33.25" y="42.58" width="66.50" height="36.75" rx="4"/><g id="dg4-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(0.00,60.95)"><g id="dg4-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">cache</tspan></text></g></g></g>
 <g id="dg4-c" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg4-c--r" x="-35.05" y="103.53" width="70.10" height="36.75" rx="4"/><g id="dg4-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(0.00,121.90)"><g id="dg4-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">origin</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","a--r":"rect","a--l":"text","b--r":"rect","b--l":"text","c--r":"rect","c--l":"text"},"names":["hit","miss"],"frames":[{"vis":{"a":1,"b":1,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1","c":"tone-1","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-33.25,42.58,66.5,36.75],"b--l":[0,60.95,0],"c--r":[-35.05,103.53,70.1,36.75],"c--l":[0,121.9,0],"edge-1--p":[0,18.38,0,34.93],"edge-1--h":[0,42.58,-3.96,33.58,3.96,33.58],"edge-2--p":[0,79.33,0,95.88],"edge-2--h":[0,103.53,-3.96,94.53,3.96,94.53]}},{"vis":{"a":1,"b":1,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1 emph","c":"tone-1","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-33.25,42.58,66.5,36.75],"b--l":[0,60.95,0],"c--r":[-35.05,103.53,70.1,36.75],"c--l":[0,121.9,0],"edge-1--p":[0,18.38,0,34.93],"edge-1--h":[0,42.58,-3.96,33.58,3.96,33.58],"edge-2--p":[0,79.33,0,95.88],"edge-2--h":[0,103.53,-3.96,94.53,3.96,94.53]}},{"vis":{"a":1,"b":0.3,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1 dim","c":"tone-1 emph","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-33.25,42.58,66.5,36.75],"b--l":[0,60.95,0],"c--r":[-35.05,103.53,70.1,36.75],"c--l":[0,121.9,0],"edge-1--p":[0,18.38,0,34.93],"edge-1--h":[0,42.58,-3.96,33.58,3.96,33.58],"edge-2--p":[0,79.33,0,95.88],"edge-2--h":[0,103.53,-3.96,94.53,3.96,94.53]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box a \"request\" at 0,0 {.tone-2}\nbox b \"cache\" below a gap 0.55 {.tone-1}\nbox c \"origin\" below b gap 0.55 {.tone-1}\nedge a -> b\nedge b -> c {.dashed}\n\nstep hit\n  emph b\nstep miss\n  dim b\n  emph c","attrs":"unit=120x44","opener":"::: draw 120x44","range":[65912,66107],"chunk":"diagram-beats-pinned","width":"full","alt":"Words that arrive with a step"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","a--r":"rect","a--l":"text","b--r":"rect","b--l":"text","c--r":"rect","c--l":"text"},"names":["hit","miss"],"frames":[{"vis":{"a":1,"b":1,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1","c":"tone-1","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-33.25,42.58,66.5,36.75],"b--l":[0,60.95,0],"c--r":[-35.05,103.53,70.1,36.75],"c--l":[0,121.9,0],"edge-1--p":[0,18.38,0,34.93],"edge-1--h":[0,42.58,-3.96,33.58,3.96,33.58],"edge-2--p":[0,79.33,0,95.88],"edge-2--h":[0,103.53,-3.96,94.53,3.96,94.53]}},{"vis":{"a":1,"b":1,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1 emph","c":"tone-1","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-33.25,42.58,66.5,36.75],"b--l":[0,60.95,0],"c--r":[-35.05,103.53,70.1,36.75],"c--l":[0,121.9,0],"edge-1--p":[0,18.38,0,34.93],"edge-1--h":[0,42.58,-3.96,33.58,3.96,33.58],"edge-2--p":[0,79.33,0,95.88],"edge-2--h":[0,103.53,-3.96,94.53,3.96,94.53]}},{"vis":{"a":1,"b":0.6,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1 dim","c":"tone-1 emph","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-33.25,42.58,66.5,36.75],"b--l":[0,60.95,0],"c--r":[-35.05,103.53,70.1,36.75],"c--l":[0,121.9,0],"edge-1--p":[0,18.38,0,34.93],"edge-1--h":[0,42.58,-3.96,33.58,3.96,33.58],"edge-2--p":[0,79.33,0,95.88],"edge-2--h":[0,103.53,-3.96,94.53,3.96,94.53]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box a \"request\" at 0,0 {.tone-2}\nbox b \"cache\" below a gap 0.55 {.tone-1}\nbox c \"origin\" below b gap 0.55 {.tone-1}\nedge a -> b\nedge b -> c {.dashed}\n\nstep hit\n  emph b\nstep miss\n  dim b\n  emph c","attrs":"unit=120x44","opener":"::: draw 120x44","range":[65912,66107],"chunk":"diagram-beats-pinned","width":"full","alt":"Words that arrive with a step"}</script></figure>
 
 
 
@@ -7108,8 +7199,8 @@ are tagged into a release.</p>
 <g id="dg5-s2" data-base="dg-el dg-box" class="dg-el dg-box dotted clear sharp"><rect id="dg5-s2--r" x="63.42" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s2--lw0" data-lab="s2--l" class="dg-lwrap" transform="translate(98.14,184.50)"><g id="dg5-s2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">dotted</tspan></text></g></g></g>
 <g id="dg5-s3" data-base="dg-el dg-box" class="dg-el dg-box thick clear sharp"><rect id="dg5-s3--r" x="161.56" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s3--lw0" data-lab="s3--l" class="dg-lwrap" transform="translate(196.28,184.50)"><g id="dg5-s3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">thick</tspan></text></g></g></g>
 <g id="dg5-s4" data-base="dg-el dg-box" class="dg-el dg-box bare clear sharp"><rect id="dg5-s4--r" x="259.70" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s4--lw0" data-lab="s4--l" class="dg-lwrap" transform="translate(294.42,184.50)"><g id="dg5-s4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">bare</tspan></text></g></g></g>
-<g id="dg5-s5" data-base="dg-el dg-box" class="dg-el dg-box ghost tone-2 sharp" style="opacity:0.45"><rect id="dg5-s5--r" x="357.84" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s5--lw0" data-lab="s5--l" class="dg-lwrap" transform="translate(392.56,184.50)"><g id="dg5-s5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">ghost</tspan></text></g></g></g>
-<g id="dg5-s6" data-base="dg-el dg-box" class="dg-el dg-box dim tone-2 sharp" style="opacity:0.3"><rect id="dg5-s6--r" x="455.98" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s6--lw0" data-lab="s6--l" class="dg-lwrap" transform="translate(490.70,184.50)"><g id="dg5-s6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">dim</tspan></text></g></g></g>
+<g id="dg5-s5" data-base="dg-el dg-box" class="dg-el dg-box ghost tone-2 sharp" style="opacity:0.75"><rect id="dg5-s5--r" x="357.84" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s5--lw0" data-lab="s5--l" class="dg-lwrap" transform="translate(392.56,184.50)"><g id="dg5-s5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">ghost</tspan></text></g></g></g>
+<g id="dg5-s6" data-base="dg-el dg-box" class="dg-el dg-box dim tone-2 sharp" style="opacity:0.6"><rect id="dg5-s6--r" x="455.98" y="167.28" width="69.44" height="34.44" rx="4"/><g id="dg5-s6--lw0" data-lab="s6--l" class="dg-lwrap" transform="translate(490.70,184.50)"><g id="dg5-s6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">dim</tspan></text></g></g></g>
 <g id="dg5-sl" data-base="dg-el dg-text" class="dg-el dg-text muted right"><g id="dg5-sl--lw0" data-lab="sl--l" class="dg-lwrap" transform="translate(-92.12,184.50)"><g id="dg5-sl--l0" class="dg-lbl"><text text-anchor="end" font-size="15.00"><tspan x="0" y="-4.27">stroke,</tspan><tspan x="0" y="14.48">and presence</tspan></text></g></g></g>
 <g id="dg5-t1" data-base="dg-el dg-text" class="dg-el dg-text"><g id="dg5-t1--lw0" data-lab="t1--l" class="dg-lwrap" transform="translate(33.60,262.40)"><g id="dg5-t1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">sans</tspan></text></g></g></g>
 <g id="dg5-t7" data-base="dg-el dg-text" class="dg-el dg-text bold"><g id="dg5-t7--lw0" data-lab="t7--l" class="dg-lwrap" transform="translate(511.78,262.40)"><g id="dg5-t7--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">bold</tspan></text></g></g></g>
@@ -7389,7 +7480,7 @@ are tagged into a release.</p>
 <g id="dg8-mark" data-base="dg-el dg-dot" class="dg-el dg-dot accent"><circle id="dg8-mark--c" cx="-27.00" cy="40.50" r="4.32"/></g>
 <g id="dg8-evenn" data-base="dg-el dg-text" class="dg-el dg-text small paper"><rect id="dg8-evenn--r" x="100.26" y="-79.79" width="69.48" height="27.96" rx="4"/><g id="dg8-evenn--lw0" data-lab="evenn--l" class="dg-lwrap" transform="translate(135.00,-65.81)"><g id="dg8-evenn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">even pace</tspan></text></g></g></g>
 <g id="dg8-realn" data-base="dg-el dg-text" class="dg-el dg-text small hand paper"><rect id="dg8-realn--r" x="-111.18" y="-77.17" width="114.36" height="42.96" rx="4"/><g id="dg8-realn--lw0" data-lab="realn--l" class="dg-lwrap" transform="translate(-54.00,-55.69)"><g id="dg8-realn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="-3.42">the first third</tspan><tspan x="0" y="11.58">always runs long</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg8-root">{"p":"dg8-","n":3,"kinds":{"pace-gx-0--p":"path","pace-gx-0--h":"path","pace-gx-1--p":"path","pace-gx-1--h":"path","pace-gx-2--p":"path","pace-gx-2--h":"path","pace-gx-3--p":"path","pace-gx-3--h":"path","pace-gx-4--p":"path","pace-gx-4--h":"path","pace-gx-5--p":"path","pace-gx-5--h":"path","pace-gx-6--p":"path","pace-gx-6--h":"path","pace-gy-0--p":"path","pace-gy-0--h":"path","pace-gy-1--p":"path","pace-gy-1--h":"path","pace-gy-2--p":"path","pace-gy-2--h":"path","pace-gy-3--p":"path","pace-gy-3--h":"path","pace-gy-4--p":"path","pace-gy-4--h":"path","even--p":"path","even--h":"path","real--p":"spline","real--h":"path","realn--lead--p":"path","realn--lead--h":"path","pace--r":"rect","pace-xt-0--l":"text","pace-xt-1--l":"text","pace-xt-2--l":"text","pace-xt-3--l":"text","pace-xt-4--l":"text","pace-xt-5--l":"text","pace-xt-6--l":"text","pace-yt-0--l":"text","pace-yt-1--l":"text","pace-yt-2--l":"text","pace-yt-3--l":"text","pace-yt-4--l":"text","pace-xl--l":"text","pace-yl--l":"text","mark--c":"circle","evenn--r":"rect","evenn--l":"text","realn--r":"rect","realn--l":"text"},"names":["real","lesson"],"frames":[{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":0,"evenn":1,"realn":0,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":0,"realn--lead":0},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":0.3,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head dim","real":"smooth accent thick no-head emph","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg8-root">{"body":"plot pace \"minutes into the talk\" \"chunks covered\" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 tick 10\nedge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}\nedge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}\ndot  mark \"\" at pace@26,pace@12 r 0.08 {.accent}\ntext evenn \"even pace\" at pace@50,pace@33 pad 0.12 {.small .paper}\n# The leader meets the curve at one point instead of running across the field\n# and crossing both curves on the way.\ntext realn \"the first third\\nalways runs long\" at pace@22,pace@31 pad 0.12 -- mark {.small .hand .paper}\n\nstep real\n  show real, mark\nstep lesson\n  emph real\n  dim even","attrs":"unit=150x54","opener":"::: draw 150x54","range":[83521,84214],"chunk":"diagram-plot","width":"full","alt":"Plots"}</script></figure></div></div>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg8-root">{"p":"dg8-","n":3,"kinds":{"pace-gx-0--p":"path","pace-gx-0--h":"path","pace-gx-1--p":"path","pace-gx-1--h":"path","pace-gx-2--p":"path","pace-gx-2--h":"path","pace-gx-3--p":"path","pace-gx-3--h":"path","pace-gx-4--p":"path","pace-gx-4--h":"path","pace-gx-5--p":"path","pace-gx-5--h":"path","pace-gx-6--p":"path","pace-gx-6--h":"path","pace-gy-0--p":"path","pace-gy-0--h":"path","pace-gy-1--p":"path","pace-gy-1--h":"path","pace-gy-2--p":"path","pace-gy-2--h":"path","pace-gy-3--p":"path","pace-gy-3--h":"path","pace-gy-4--p":"path","pace-gy-4--h":"path","even--p":"path","even--h":"path","real--p":"spline","real--h":"path","realn--lead--p":"path","realn--lead--h":"path","pace--r":"rect","pace-xt-0--l":"text","pace-xt-1--l":"text","pace-xt-2--l":"text","pace-xt-3--l":"text","pace-xt-4--l":"text","pace-xt-5--l":"text","pace-xt-6--l":"text","pace-yt-0--l":"text","pace-yt-1--l":"text","pace-yt-2--l":"text","pace-yt-3--l":"text","pace-yt-4--l":"text","pace-xl--l":"text","pace-yl--l":"text","mark--c":"circle","evenn--r":"rect","evenn--l":"text","realn--r":"rect","realn--l":"text"},"names":["real","lesson"],"frames":[{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":0,"evenn":1,"realn":0,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":0,"realn--lead":0},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":0.6,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head dim","real":"smooth accent thick no-head emph","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-202.5,-101.25,405,202.5],"pace-xt-0--l":[-202.5,112.05,0],"pace-xt-1--l":[-135,112.05,0],"pace-xt-2--l":[-67.5,112.05,0],"pace-xt-3--l":[0,112.05,0],"pace-xt-4--l":[67.5,112.05,0],"pace-xt-5--l":[135,112.05,0],"pace-xt-6--l":[202.5,112.05,0],"pace-yt-0--l":[-216.84,101.25,0],"pace-yt-1--l":[-213.18,50.63,0],"pace-yt-2--l":[-213.18,0,0],"pace-yt-3--l":[-213.18,-50.62,0],"pace-yt-4--l":[-213.18,-101.25,0],"pace-xl--l":[0,130.95,0],"pace-yl--l":[-295.5,0,-90],"mark--c":[-27,40.5,4.32],"evenn--r":[100.26,-79.79,69.48,27.96],"evenn--l":[135,-65.81,0],"realn--r":[-111.18,-77.17,114.36,42.96],"realn--l":[-54,-55.69,0],"pace-gx-0--p":[-202.5,-101.25,-202.5,101.25],"pace-gx-0--h":[-202.5,101.25,-202.5,101.25,-202.5,101.25],"pace-gx-1--p":[-135,-101.25,-135,101.25],"pace-gx-1--h":[-135,101.25,-135,101.25,-135,101.25],"pace-gx-2--p":[-67.5,-101.25,-67.5,101.25],"pace-gx-2--h":[-67.5,101.25,-67.5,101.25,-67.5,101.25],"pace-gx-3--p":[0,-101.25,0,101.25],"pace-gx-3--h":[0,101.25,0,101.25,0,101.25],"pace-gx-4--p":[67.5,-101.25,67.5,101.25],"pace-gx-4--h":[67.5,101.25,67.5,101.25,67.5,101.25],"pace-gx-5--p":[135,-101.25,135,101.25],"pace-gx-5--h":[135,101.25,135,101.25,135,101.25],"pace-gx-6--p":[202.5,-101.25,202.5,101.25],"pace-gx-6--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-0--p":[-202.5,101.25,202.5,101.25],"pace-gy-0--h":[202.5,101.25,202.5,101.25,202.5,101.25],"pace-gy-1--p":[-202.5,50.63,202.5,50.63],"pace-gy-1--h":[202.5,50.63,202.5,50.63,202.5,50.63],"pace-gy-2--p":[-202.5,0,202.5,0],"pace-gy-2--h":[202.5,0,202.5,0,202.5,0],"pace-gy-3--p":[-202.5,-50.62,202.5,-50.62],"pace-gy-3--h":[202.5,-50.62,202.5,-50.62,202.5,-50.62],"pace-gy-4--p":[-202.5,-101.25,202.5,-101.25],"pace-gy-4--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"even--p":[-202.5,101.25,202.5,-101.25],"even--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"real--p":[-202.5,101.25,-121.5,81,-27,40.5,94.5,-30.37,162,-70.87,202.5,-101.25],"real--h":[202.5,-101.25,202.5,-101.25,202.5,-101.25],"realn--lead--p":[-54,-34.75,-27,36.18],"realn--lead--h":[-27,36.18,-27,36.18,-27,36.18]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg8-root">{"body":"plot pace \"minutes into the talk\" \"chunks covered\" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 tick 10\nedge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}\nedge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}\ndot  mark \"\" at pace@26,pace@12 r 0.08 {.accent}\ntext evenn \"even pace\" at pace@50,pace@33 pad 0.12 {.small .paper}\n# The leader meets the curve at one point instead of running across the field\n# and crossing both curves on the way.\ntext realn \"the first third\\nalways runs long\" at pace@22,pace@31 pad 0.12 -- mark {.small .hand .paper}\n\nstep real\n  show real, mark\nstep lesson\n  emph real\n  dim even","attrs":"unit=150x54","opener":"::: draw 150x54","range":[83521,84214],"chunk":"diagram-plot","width":"full","alt":"Plots"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="diagram-plot">
       <div class="annot-box-label">annotation · diagram-plot</div>
@@ -7452,7 +7543,7 @@ are tagged into a release.</p>
 <g id="dg9-bob" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg9-bob--r" x="527.25" y="-17.50" width="172.50" height="35.00" rx="4"/><g id="dg9-bob--lw0" data-lab="bob--l" class="dg-lwrap" transform="translate(613.50,0.00)"><g id="dg9-bob--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
 <g id="dg9-eve" data-base="dg-el dg-box" class="dg-el dg-box tone-4"><rect id="dg9-eve--r" x="186.00" y="-17.50" width="172.50" height="35.00" rx="4"/><g id="dg9-eve--lw0" data-lab="eve--l" class="dg-lwrap dg-variant dg-off" transform="translate(272.25,0.00)"><g id="dg9-eve--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g><g id="dg9-eve--lw1" data-lab="eve--l" class="dg-lwrap dg-variant" transform="translate(272.25,0.00)"><g id="dg9-eve--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve rewrites M</tspan></text></g></g></g>
 <g id="dg9-note" data-base="dg-el dg-text" class="dg-el dg-text hand small"><g id="dg9-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(-69.63,106.00)"><g id="dg9-note--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="-3.42">no cipher is broken here –</tspan><tspan x="0" y="11.58">she just stands in the middle</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg9-root">{"p":"dg9-","n":4,"kinds":{"net--r":"rect","net--l":"text","wire--p":"path","wire--h":"path","wire--h2":"path","wire--l":"text","note--lead--p":"path","note--lead--h":"path","in--p":"path","in--h":"path","fwd--p":"path","fwd--h":"path","fwd--l":"text","edit--p":"path","edit--h":"path","edit--l":"text","alice--r":"rect","alice--l":"text","bob--r":"rect","bob--l":"text","eve--r":"rect","eve--l":"text","note--l":"text"},"names":["spot","cut","damage"],"frames":[{"vis":{"alice":1,"bob":1,"eve":0,"note":0,"net":1,"wire":1,"note--lead":0,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[220.5,-136.5,172.5,35],"eve--l":[306.75,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[306.75,-11.37,0],"note--lead--p":[92.69,106,306.75,-101.5],"note--lead--h":[306.75,-101.5,306.75,-101.5,306.75,-101.5],"in--p":[86.25,0,214.78,-113.93],"in--h":[220.5,-119,216.39,-110.07,211.14,-115.99],"fwd--p":[393,-129.5,521.53,-15.57],"fwd--h":[527.25,-10.5,517.89,-13.51,523.14,-19.43],"fwd--l":[467.67,-78.51,0],"edit--p":[393,-108.5,521.53,5.43],"edit--h":[527.25,10.5,517.89,7.49,523.14,1.57],"edit--l":[452.58,-40.49,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":1,"note--lead":1,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[220.5,-136.5,172.5,35],"eve--l":[306.75,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[306.75,-11.37,0],"note--lead--p":[92.69,106,306.75,-101.5],"note--lead--h":[306.75,-101.5,306.75,-101.5,306.75,-101.5],"in--p":[86.25,0,214.78,-113.93],"in--h":[220.5,-119,216.39,-110.07,211.14,-115.99],"fwd--p":[393,-129.5,521.53,-15.57],"fwd--h":[527.25,-10.5,517.89,-13.51,523.14,-19.43],"fwd--l":[467.67,-78.51,0],"edit--p":[393,-108.5,521.53,5.43],"edit--h":[527.25,10.5,517.89,7.49,523.14,1.57],"edit--l":[452.58,-40.49,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[186,-17.5,172.5,35],"eve--l":[272.25,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.25,-11.37,0],"note--lead--p":[23.69,106,272.25,17.5],"note--lead--h":[272.25,17.5,272.25,17.5,272.25,17.5],"in--p":[17.25,0,178.35,0],"in--h":[186,0,177,3.96,177,-3.96],"fwd--p":[358.5,-10.5,519.6,-10.5],"fwd--h":[527.25,-10.5,518.25,-6.54,518.25,-14.46],"fwd--l":[442.88,-21.87,0],"edit--p":[358.5,10.5,519.6,10.5],"edit--h":[527.25,10.5,518.25,14.46,518.25,6.54],"edit--l":[442.88,21.88,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":0.3,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted dim","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head dashed"},"lab":{"alice":0,"bob":0,"eve":1,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[186,-17.5,172.5,35],"eve--l":[272.25,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.25,-11.37,0],"note--lead--p":[23.69,106,272.25,17.5],"note--lead--h":[272.25,17.5,272.25,17.5,272.25,17.5],"in--p":[17.25,0,178.35,0],"in--h":[186,0,177,3.96,177,-3.96],"fwd--p":[358.5,-10.5,519.6,-10.5],"fwd--h":[527.25,-10.5,518.25,-6.54,518.25,-14.46],"fwd--l":[442.88,-21.87,0],"edit--p":[358.5,10.5,519.6,10.5],"edit--h":[527.25,10.5,518.25,14.46,518.25,6.54],"edit--l":[442.88,21.88,0]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg9-root">{"body":"default box {.tone-2} w 1.25 h 0.5\n\nbox alice \"Alice\" at 0,0\nbox bob   \"Bob\"   right of alice gap 6.3 same as alice\nedge wire alice \u003c-> bob \"M\"\ncontainer net \"the intended channel\" over alice,bob pad 0.5 {.dashed .muted}\n\nbox eve \"Eve\" between alice,bob offset 0,-1.7 same as alice {.tone-4 @attack}\ntext note \"no cipher is broken here –\\nshe just stands in the middle\" below alice gap 1.05 flush left -- eve.cx,eve.bottom {.hand .small @attack}\n\n# Eve is level with the other two by the time this arrow is shown - the same\n# step moves her onto the line - so it is a plain side-to-side connection and\n# the compiler picks the two facing edges.\nedge in alice -> eve {.accent @cut}\nedge fwd eve.right:0.2 -> bob.left:0.2 \"M\" {.accent @cut} side top\nedge edit eve.right:0.8 -> bob.left:0.8 \"M′\" {.accent @cut} side bottom\n\nstep spot\n  show @attack\nstep cut\n  hide wire\n# `to` names a position, `by` shifts by an amount, and the layout is worked\n# out again at every step, so the container re-fits.\n  move eve to between alice,bob\n  move alice by -0.5,0\n  move bob by 0.5,0\n  show @cut\n  emph eve\nstep damage\n  label eve \"Eve rewrites M\"\n  style edit {.dashed}\n  dim net","attrs":"unit=138x70","opener":"::: draw 138x70","range":[86404,87571],"chunk":"diagram-steps","width":"full","alt":"A figure that moves"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg9-root">{"p":"dg9-","n":4,"kinds":{"net--r":"rect","net--l":"text","wire--p":"path","wire--h":"path","wire--h2":"path","wire--l":"text","note--lead--p":"path","note--lead--h":"path","in--p":"path","in--h":"path","fwd--p":"path","fwd--h":"path","fwd--l":"text","edit--p":"path","edit--h":"path","edit--l":"text","alice--r":"rect","alice--l":"text","bob--r":"rect","bob--l":"text","eve--r":"rect","eve--l":"text","note--l":"text"},"names":["spot","cut","damage"],"frames":[{"vis":{"alice":1,"bob":1,"eve":0,"note":0,"net":1,"wire":1,"note--lead":0,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head dg-halo"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[220.5,-136.5,172.5,35],"eve--l":[306.75,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[306.75,-11.37,0],"note--lead--p":[92.69,106,306.75,-101.5],"note--lead--h":[306.75,-101.5,306.75,-101.5,306.75,-101.5],"in--p":[86.25,0,214.78,-113.93],"in--h":[220.5,-119,216.39,-110.07,211.14,-115.99],"fwd--p":[393,-129.5,521.53,-15.57],"fwd--h":[527.25,-10.5,517.89,-13.51,523.14,-19.43],"fwd--l":[467.67,-78.51,0],"edit--p":[393,-108.5,521.53,5.43],"edit--h":[527.25,10.5,517.89,7.49,523.14,1.57],"edit--l":[452.58,-40.49,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":1,"note--lead":1,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head dg-halo"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-86.25,-17.5,172.5,35],"alice--l":[0,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[220.5,-136.5,172.5,35],"eve--l":[306.75,-119,0],"note--l":[-0.63,106,0],"net--r":[-121.25,-75.25,856,127.75],"net--l":[-111.25,-62.87,0],"wire--p":[93.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[86.25,0,95.25,-3.96,95.25,3.96],"wire--l":[306.75,-11.37,0],"note--lead--p":[92.69,106,306.75,-101.5],"note--lead--h":[306.75,-101.5,306.75,-101.5,306.75,-101.5],"in--p":[86.25,0,214.78,-113.93],"in--h":[220.5,-119,216.39,-110.07,211.14,-115.99],"fwd--p":[393,-129.5,521.53,-15.57],"fwd--h":[527.25,-10.5,517.89,-13.51,523.14,-19.43],"fwd--l":[467.67,-78.51,0],"edit--p":[393,-108.5,521.53,5.43],"edit--h":[527.25,10.5,517.89,7.49,523.14,1.57],"edit--l":[452.58,-40.49,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[186,-17.5,172.5,35],"eve--l":[272.25,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.25,-11.37,0],"note--lead--p":[23.69,106,272.25,17.5],"note--lead--h":[272.25,17.5,272.25,17.5,272.25,17.5],"in--p":[17.25,0,178.35,0],"in--h":[186,0,177,3.96,177,-3.96],"fwd--p":[358.5,-10.5,519.6,-10.5],"fwd--h":[527.25,-10.5,518.25,-6.54,518.25,-14.46],"fwd--l":[442.88,-21.87,0],"edit--p":[358.5,10.5,519.6,10.5],"edit--h":[527.25,10.5,518.25,14.46,518.25,6.54],"edit--l":[442.88,21.88,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":0.6,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted dim","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head dashed"},"lab":{"alice":0,"bob":0,"eve":1,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-155.25,-17.5,172.5,35],"alice--l":[-69,0,0],"bob--r":[527.25,-17.5,172.5,35],"bob--l":[613.5,0,0],"eve--r":[186,-17.5,172.5,35],"eve--l":[272.25,0,0],"note--l":[-69.63,106,0],"net--r":[-190.25,-75.25,925,127.75],"net--l":[-180.25,-62.87,0],"wire--p":[24.9,0,519.6,0],"wire--h":[527.25,0,518.25,3.96,518.25,-3.96],"wire--h2":[17.25,0,26.25,-3.96,26.25,3.96],"wire--l":[272.25,-11.37,0],"note--lead--p":[23.69,106,272.25,17.5],"note--lead--h":[272.25,17.5,272.25,17.5,272.25,17.5],"in--p":[17.25,0,178.35,0],"in--h":[186,0,177,3.96,177,-3.96],"fwd--p":[358.5,-10.5,519.6,-10.5],"fwd--h":[527.25,-10.5,518.25,-6.54,518.25,-14.46],"fwd--l":[442.88,-21.87,0],"edit--p":[358.5,10.5,519.6,10.5],"edit--h":[527.25,10.5,518.25,14.46,518.25,6.54],"edit--l":[442.88,21.88,0]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg9-root">{"body":"default box {.tone-2} w 1.25 h 0.5\n\nbox alice \"Alice\" at 0,0\nbox bob   \"Bob\"   right of alice gap 6.3 same as alice\nedge wire alice \u003c-> bob \"M\"\ncontainer net \"the intended channel\" over alice,bob pad 0.5 {.dashed .muted}\n\nbox eve \"Eve\" between alice,bob offset 0,-1.7 same as alice {.tone-4 @attack}\ntext note \"no cipher is broken here –\\nshe just stands in the middle\" below alice gap 1.05 flush left -- eve.cx,eve.bottom {.hand .small @attack}\n\n# Eve is level with the other two by the time this arrow is shown - the same\n# step moves her onto the line - so it is a plain side-to-side connection and\n# the compiler picks the two facing edges.\nedge in alice -> eve {.accent @cut}\nedge fwd eve.right:0.2 -> bob.left:0.2 \"M\" {.accent @cut} side top\nedge edit eve.right:0.8 -> bob.left:0.8 \"M′\" {.accent @cut} side bottom\n\nstep spot\n  show @attack\nstep cut\n  hide wire\n# `to` names a position, `by` shifts by an amount, and the layout is worked\n# out again at every step, so the container re-fits.\n  move eve to between alice,bob\n  move alice by -0.5,0\n  move bob by 0.5,0\n  show @cut\n  emph eve\nstep damage\n  label eve \"Eve rewrites M\"\n  style edit {.dashed}\n  dim net","attrs":"unit=138x70","opener":"::: draw 138x70","range":[86404,87571],"chunk":"diagram-steps","width":"full","alt":"A figure that moves"}</script></figure>
 
 
 <p><strong>Every element after the first is placed against another one, so nothing comes apart when the middle box moves in.</strong> <code>move eve to between alice,bob</code> states a position, <code>move alice by -0.5,0</code> shifts an element by an amount, and the whole figure is laid out again at every step – so Alice and Bob step aside, the <code class="nb">container</code> re-fits around them, and the arrows are drawn wherever their ends have gone. <code class="nb">hide</code> takes the direct wire away, <code class="nb">dim</code> is the opposite of <code class="nb">emph</code>, and <code class="nb">label</code> swaps in wording that was typeset when the lecture was built.</p>
@@ -17154,7 +17245,21 @@ const DG_SEQ_GROUND = 0.1;
 // x nudge is scaled by uh/uw at the statement, the same correction `gap` and
 // `pad` make, or the same number would be two distances on a cell that is not
 // square.
-const DG_ZONE_PAD = 0.16;
+//
+// A third of a row, and it was 0.16 - just under a sixth. An area's outline
+// is a dashed line and its caption is 12 px type, so at a sixth of a row the
+// words sat *on* the dashes: measured on a keynote's "zu Hause", the glyphs
+// crossed the frame at two corners of the same figure, which reads as a box
+// that failed to fit its own label. A third of a row is the same clearance a
+// box's own `pad` keeps against its outline, one step wider because a dashed
+// line has ink on both sides of where a solid one would be.
+//
+// `zone … pad n` overrides it, in grid units like every other `pad`. It was
+// in DG_KIND_OPTS.zone from the start and read nothing at all - the silent
+// no-op this grammar refuses everywhere else - because a zone forces its own
+// label empty and the caption is a separate element. It is the same sentence
+// `pad` says on a box, one level out: how far the type sits from the line.
+const DG_ZONE_PAD = 0.33;
 // The four words that move the caption out of the top-left. They are the
 // element-label alignment classes one level out: on a box they place the label
 // inside the box, on a zone they place the caption inside the area – the same
@@ -17583,11 +17688,50 @@ function dgLabelAnchor(classes) {
   return 'middle';
 }
 
+// **The number here is the element's *ink*, and the stylesheet takes its
+// ground down the rest of the way.** Group opacity is one alpha over
+// everything inside it, so a box faded to 0.3 faded its words to 0.3 as
+// well - and a word at 0.3 is not quiet, it is unreadable. Measured on a
+// probe deck at 1600x900, a dimmed box's label against its own fill: 1.95:1
+// on paper and 1.88:1 standing on a .tone-3 area, where 4.5 is the line for
+// 12 px type and 3 is the floor anything on a projector has to clear.
+//
+// So the two are split at the one place where they can be: this number goes
+// on the group, and DIAGRAM_CSS multiplies it back down for the shape, the
+// stroke, the head and an image - every drawable that is not type. The
+// product is the number that was here before, to the pixel, so no existing
+// figure's outline or fill moves; only the type inside a softened element
+// gains the ink it needed. It also stays inside the rule the comment above
+// the CSS records: the stylesheet touches a *child* of the group and never
+// the group itself, so a hide still takes the whole element to zero.
+const DG_SOFT = { dim: 0.6, ghost: 0.75 };
+// What the stylesheet multiplies by, so that ink x ground is the old number.
+const DG_SOFT_GROUND = { dim: 0.3 / DG_SOFT.dim, ghost: 0.45 / DG_SOFT.ghost };
+// Does any segment of a drawn route pass through this box? Sampled rather
+// than solved: the same walk `dgLabelGroundWarnings` makes, and a segment
+// wholly inside the box counts, which an edge-intersection test would miss.
+// `pts` is the polyline as `[[x, y], …]`; a spline through the same points
+// stays inside their hull, so the straight reading is the conservative one
+// and a curve that crosses is never missed.
+function dgSegmentsCrossBox(pts, box) {
+  const inside = (x, y) => x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
+    const len = Math.hypot(bx - ax, by - ay);
+    const steps = Math.max(2, Math.ceil(len / 2));
+    for (let k = 0; k <= steps; k++) {
+      const t = k / steps;
+      if (inside(ax + (bx - ax) * t, ay + (by - ay) * t)) return true;
+    }
+  }
+  return false;
+}
+
 function dgOpacity(visible, classes) {
   if (!visible) return 0;
   const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
-  if (has('dim')) return 0.3;
-  if (has('ghost')) return 0.45;
+  if (has('dim')) return DG_SOFT.dim;
+  if (has('ghost')) return DG_SOFT.ghost;
   return 1;
 }
 
@@ -17650,6 +17794,57 @@ function dgFitFont(label, classes, boxW, boxH, padX, padY) {
 const DG_FILL_CLASSES = ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'paper'];
 function dgHasFill(classes) {
   return DG_FILL_CLASSES.some(c => classes.has(c));
+}
+
+// **Does this element put anything on the paper where its box says it does?**
+//
+// `.bare` takes the outline off and `.clear` takes the fill off, so together
+// they leave a frame nobody can see – which is what a `table`'s and a
+// `lanes`'s own frame always is, and what a cell of a table of prose usually
+// is. The box is still there for the layout, and that is right: it is what
+// the cells are placed against. What is wrong is treating its edge as an edge
+// a reader can line something up with, because there is nothing there.
+//
+// The default differs by kind and that is the whole subtlety. A box or a dot
+// is filled with the paper unless it says `.clear`, so it knocks out whatever
+// is behind it and one of the two words is not enough. A free `text` and an
+// `edge` label have no ground at all unless a fill class asks for one, which
+// is the same asymmetry `DG_FILL_CLASSES`' own comment records. A `container`
+// draws its outline and nothing else.
+function dgDrawsGround(kind, classes) {
+  const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
+  if (kind === 'box' || kind === 'dot') return !has('bare') || !has('clear');
+  if (kind === 'container' || kind === 'brace') return !has('bare');
+  return dgHasFill(classes);
+}
+
+// **Where an element's ink starts, as an inset from its box on each axis.**
+//
+// Zero for anything that draws a ground: the outline or the fill *is* the
+// edge. For a frame that draws neither, the nearest its ink can come to the
+// box is its own padding – which for a `.left` label is exactly where the
+// words begin, and for a centred one is the honest floor. A free `text` and
+// an `image` are their own ink already: `sizeOf` gives a text the bare glyph
+// run with no padding at all, which is the same `freeText` exception
+// `labelBox` carries.
+//
+// One reader: `flush` on a relative placement. `--dg-ink-x` answers the same
+// question from the other side - it has the drawables in hand and can take
+// the leftmost painted one - so it needs no inset at all.
+//
+// A frame a statement synthesised is the one case where the padding is the
+// wrong answer, and which way it goes is not guessable from the classes. A
+// `table` puts its cells' words a padding inside the frame, so the padding is
+// exactly where its ink starts. A `bars`, a `grid`, a `plot`, a `lanes` and a
+// `sequence` all draw their parts flush with the frame - a baseline starts at
+// the corner - so insetting one moves an axis label off the axis it names.
+// Measured before this line existed: the tutorial's chart caption walked
+// 13 px out of its own figure and took the viewBox with it.
+function dgInkInset(kind, classes, padX, padY, node) {
+  if (kind === 'text' || kind === 'image') return [0, 0];
+  if (dgDrawsGround(kind, classes)) return [0, 0];
+  if (node && node.frame) return node.frame === 'table' ? [padX ?? DG_PAD_X, padY ?? DG_PAD_Y] : [0, 0];
+  return [padX ?? DG_PAD_X, padY ?? DG_PAD_Y];
 }
 
 // ── diagram source parsing ──────────────────────────────────────────
@@ -21695,14 +21890,15 @@ function createDiagramCompiler(env = {}) {
           const capId = dgZoneCapName(id);
           claim(capId, 'text', lineNo, true);
           const [zuw, zuh] = model.unit;
-          const padX = DG_ZONE_PAD * zuh / (zuw || 1);
+          const zPad = node.pad != null ? node.pad : DG_ZONE_PAD;
+          const padX = zPad * zuh / (zuw || 1);
           model.nodes.push({
             kind: 'text', id: capId, synth: id, label: cap,
             classes: ['small', 'muted', ...corner],
             removedClasses: [], tags: [...(attrs.tags || []), dgZoneTag(id)],
             place: { kind: 'abs', anchor: (bottom ? 'b' : 't') + (right ? 'r' : 'l'), at: [
               { ref: id, prop: right ? 'right' : 'left', nudge: right ? -padX : padX },
-              { ref: id, prop: bottom ? 'bottom' : 'top', nudge: bottom ? -DG_ZONE_PAD : DG_ZONE_PAD },
+              { ref: id, prop: bottom ? 'bottom' : 'top', nudge: bottom ? -zPad : zPad },
             ] },
             // The caption is only as visible as the area it names, through
             // the face of the visibility closure that already says a text is
@@ -22404,6 +22600,36 @@ function createDiagramCompiler(env = {}) {
           cy = pts[0][1] + (pts[1][1] - pts[0][1]) * f;
         } else {
           const ref = boxes.get(place.ref);
+          // **`flush` names an edge a reader can see, so it is answered
+          // against the reference's ink and not against its box.** A
+          // `table {.bare .clear}` – and every `table`'s own frame, which is
+          // always both – has an outline nobody draws, so lining a caption up
+          // with it put the caption 13 px to the left of the column of cell
+          // text it was captioning, on a slide where nothing was drawn at
+          // either coordinate to say which one was the edge. Measured on a
+          // keynote's #vorgang: the words under the table and the words in it
+          // stood 13 px apart with no line between them to explain it.
+          //
+          // The element's own inset is subtracted for the same reason, so the
+          // rule reads ink to ink: two bare tables stacked line their text up,
+          // not their invisible frames.
+          //
+          // `gap` deliberately keeps the box. A gap is a number the author
+          // tunes by eye and any ruler makes it as tunable; an alignment is
+          // either right or wrong, and only one of the two coordinates is
+          // visible. Moving both would also have re-spaced every stacked bare
+          // box in the corpus for no defect anyone had reported.
+          const rIn = (() => {
+            if (!ref) return ref;
+            const rn = nodeById.get(place.ref);
+            const rst = state.get(place.ref);
+            if (!rn || !rst) return ref;
+            const [ix, iy] = dgInkInset(rn.kind, rst.classes, ref.padX, ref.padY, rn);
+            if (!ix && !iy) return ref;
+            return { x: ref.x + ix, y: ref.y + iy,
+              w: Math.max(ref.w - 2 * ix, 0), h: Math.max(ref.h - 2 * iy, 0) };
+          })();
+          const [ownIX, ownIY] = dgInkInset(node.kind, st.classes, padX, padY, node);
           if (!ref) { cx = 0; cy = 0; }
           // **`gap` is square, and its ruler is one row.** A number that
           // *addresses* the grid is axis-keyed – a cell has a width and a
@@ -22430,16 +22656,16 @@ function createDiagramCompiler(env = {}) {
             cx = place.dir === 'right'
               ? ref.x + ref.w + place.gap * uh + w / 2
               : ref.x - place.gap * uh - w / 2;
-            cy = place.align === 'top' ? ref.y + h / 2
-              : place.align === 'bottom' ? ref.y + ref.h - h / 2
-              : ref.y + ref.h / 2;
+            cy = place.align === 'top' ? rIn.y + h / 2 - ownIY
+              : place.align === 'bottom' ? rIn.y + rIn.h - h / 2 + ownIY
+              : rIn.y + rIn.h / 2;
           } else {
             cy = place.dir === 'below'
               ? ref.y + ref.h + place.gap * uh + h / 2
               : ref.y - place.gap * uh - h / 2;
-            cx = place.align === 'left' ? ref.x + w / 2
-              : place.align === 'right' ? ref.x + ref.w - w / 2
-              : ref.x + ref.w / 2;
+            cx = place.align === 'left' ? rIn.x + w / 2 - ownIX
+              : place.align === 'right' ? rIn.x + rIn.w - w / 2 + ownIX
+              : rIn.x + rIn.w / 2;
           }
         }
         // `anchor` is part of the placement expression too, and it is the only
@@ -22933,6 +23159,82 @@ function createDiagramCompiler(env = {}) {
     }
   }
 
+  // **An elbow's vertical rail running along the side of a box.**
+  //
+  // `.elbow` draws its own rail halfway between the two faces, and it looks at
+  // nothing else in the figure - that bound is what keeps it a class rather
+  // than a router, and it is not going to change here. What can change is that
+  // the author hears about it. In a row of boxes written `gap 0` the halfway
+  // point is the seam between two of them, so every elbow leaving that row
+  // drew its rail exactly on a box's outline: the lines read as if they ran
+  // *inside* the boxes, and the arrows arrived at the target in one bundle
+  // with nothing to say which came from where.
+  //
+  // A quarter of a row is the threshold, for the reason DG_DOT_R is in grid
+  // units: it is a clearance, and a clearance's ruler is one row. Nearer than
+  // that and a 1.4 px rail and a 1.4 px outline are one line to a room.
+  //
+  // Only the *rail*, and only where it is vertical. A leaving or arriving run
+  // ends on the face it leaves, so it is against a box's side by construction
+  // and reporting it would be reporting the drawing. And only where it is true
+  // at every beat both are drawn, the same rule the clip and anchor warnings
+  // follow: a `move` step sliding a box past a rail is mid-animation.
+  //
+  // **The edge's own two ends are exempt, and that exemption is the rule.**
+  // The rail is halfway between their facing sides, so on any pair closer than
+  // half a row it is within a quarter of one by arithmetic - which is exactly
+  // the bracket the class was built to draw, and `.elbow`'s own note says why
+  // it measures from the faces: two connectors leaving one parent land their
+  // rails on one line and the drawing reads as one bracket. Run against the
+  // corpus without the exemption: five hits, every one of them a tree bracket
+  // or a swimlane hand-off doing its job, and nothing else. What is left is
+  // the case that is never intentional - a rail lying on the side of a box the
+  // edge has nothing to do with, which is what a row written `gap 0` puts
+  // under every line that passes it.
+  function dgElbowRailWarnings(model, states, frames, frameBoxes, warn) {
+    const [uw, uh] = model.unit;
+    const near = uh / 4;
+    const nodeById = new Map();
+    for (const n of model.nodes) nodeById.set(n.id, n);
+    for (const e of model.edges) {
+      let worst = null, everyBeat = true, seen = 0;
+      for (let k = 0; k < frames.length && everyBeat; k++) {
+        const st = states[k] && states[k].get(e.id);
+        if (!st || !st.classes.has('elbow')) { everyBeat = false; break; }
+        if ((frames[k].vis.get(e.id) ?? 1) <= 0) continue;
+        const pts = frames[k].geom.get(e.id + '--p');
+        // Four points, and the rail is the middle two. A `via` route suppresses
+        // the elbow entirely, so anything else is not one.
+        if (!pts || pts.length !== 8) { everyBeat = false; break; }
+        const [rx1, ry1, rx2, ry2] = [pts[2], pts[3], pts[4], pts[5]];
+        if (Math.abs(rx1 - rx2) > 0.01) { everyBeat = false; break; }
+        const lo = Math.min(ry1, ry2), hi = Math.max(ry1, ry2);
+        seen++;
+        let hit = null;
+        const ends = new Set([e.from && e.from.ref, e.to && e.to.ref]);
+        for (const n of model.nodes) {
+          if (n.synth && n.synth === n.id) continue;
+          if (ends.has(n.id)) continue;
+          if ((frames[k].vis.get(n.id) ?? 1) <= 0) continue;
+          const b = frameBoxes[k] && frameBoxes[k].get(n.id);
+          if (!b || !b.w || !b.h) continue;
+          if (b.y + b.h < lo - 0.01 || b.y > hi + 0.01) continue;
+          const d = Math.min(Math.abs(rx1 - b.x), Math.abs(rx1 - (b.x + b.w)));
+          if (d >= near) continue;
+          if (!hit || d < hit.d) hit = { d, id: n.id, node: n };
+        }
+        if (!hit) { everyBeat = false; break; }
+        if (!worst || hit.d < worst.d) worst = hit;
+      }
+      if (!everyBeat || !worst || !seen) continue;
+      warn(`edge ${e.id}${dgSite(e)}: its elbow rail runs ${(worst.d / uw).toFixed(2)} units `
+        + `(${Math.round(worst.d)} px) from the side of ${worst.id}${dgSite(worst.node)}, which is `
+        + `inside a quarter of a row – the line and that outline read as one. The rail sits halfway `
+        + `between the two faces and nothing moves it, so the fix is on the boxes: give the row a `
+        + `gap so the halfway point is paper, or write the route yourself with via.`);
+    }
+  }
+
   function dgFrameDrawables(model, state, boxes, labelIndex) {
     const [uw, uh] = model.unit;
     const geom = new Map();
@@ -23396,6 +23698,46 @@ function createDiagramCompiler(env = {}) {
           put(e, e.id + '--r', [lx - gw / 2 - gx, ly - gh / 2 - gy, gw + 2 * gx, gh + 2 * gy]);
         }
         put(e, e.id + '--l', [lx, ly, turnDeg]);
+        // **A label its own line runs through gets a halo, whatever else it
+        // carries.** The offset above clears the line at the *midpoint*, and
+        // that is all it knows about: an elbow's two outer runs, a doubled-back
+        // `via` route and a curve that comes back on itself are all somewhere
+        // else on the same path, and where one of them crosses the words the
+        // room reads the label as struck through. Measured on a keynote,
+        // "alle Werkzeuge, auch KI" with a line through the middle of it.
+        //
+        // A halo and not the ground rect, for two reasons. The rect is decided
+        // by the fill slot, so producing one here would mean writing a fill
+        // class the author did not write, which then feeds back into
+        // `grounded` and moves the words onto the line. And a rect is as wide
+        // as the whole run where the crossing is one word long - on a curve
+        // that erases the arc the label belongs to, which is the same mistake
+        // `dgLabelGroundWarnings` reports one layer along. `paint-order` knocks
+        // out the glyph shapes and nothing else.
+        //
+        // It is decided per beat, off this beat's route and this beat's label,
+        // and rides in the frame's own class string, so a `move` step that
+        // slides a box away takes the halo with it.
+        // **A free `text` a line runs through is deliberately NOT covered by
+        // this.** The case exists and it is a real defect - a note hung
+        // between two boxes with the arrow between them drawn through the
+        // middle of the words, measured on a keynote - but the compiler
+        // cannot tell it from the opposite intention, and both are in the
+        // corpus: `lectures/diagrams` `#anchors` draws one dashed rule
+        // *through* two rows of labels, because where that rule crosses each
+        // label is the whole argument of the figure. A knockout there punches
+        // a hole in the thing the slide is about. An edge's own label is the
+        // case with no such reading, which is why the rule stops there; a
+        // note on somebody else's line is the author's to ground with
+        // `{.paper}`, or to write as that edge's label and let the offset
+        // carry it clear.
+        if (!grounded) {
+          const hw = (turned ? m.h : m.w) / 2, hh = (turned ? m.w : m.h) / 2;
+          const box = { x: lx - hw, y: ly - hh, w: hw * 2, h: hh * 2 };
+          if (dgSegmentsCrossBox(drawPts, box)) {
+            cls.set(e.id, ((cls.get(e.id) || '') + ' dg-halo').trim());
+          }
+        }
       }
     }
 
@@ -23568,6 +23910,7 @@ function createDiagramCompiler(env = {}) {
       dgLabelGroundWarnings(model, frames, frameBoxes, dgWarn);
       dgLabelClipWarnings(model, states, frames, frameBoxes, dgWarn);
       dgLabelAnchorWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgElbowRailWarnings(model, states, frames, frameBoxes, dgWarn);
     }
     // A DG_CLASS_CLASHES row is a **warning**, and it is the compiler's alone,
     // because deciding it correctly needs the resolved state at every beat.
@@ -23736,11 +24079,29 @@ function createDiagramCompiler(env = {}) {
       if (explicit) return explicit;
       return dgLabelAnchor(((f.cls && f.cls.get(owner)) || '').split(/\s+/));
     };
-    const extentsOf = (f, into, visible) => {
+    // Does the drawable this gid names put anything on the paper? A rect or a
+    // circle belonging to an element that draws neither an outline nor a fill
+    // does not - see dgDrawsGround - and it is exactly the drawable that makes
+    // a figure look indented, because a `table`'s frame is always both and its
+    // cells' text starts a padding further in. Labels, images, paths and
+    // waypoints are ink by construction.
+    const paints = (f, gid) => {
+      const owner = ownerOf(gid);
+      const cls = new Set(((f.cls && f.cls.get(owner)) || '').split(/\s+/).filter(Boolean));
+      return dgDrawsGround(kindOf.get(owner), cls);
+    };
+    // `ink`, when a caller passes one, collects the same boxes minus the
+    // frames nobody can see. Two lists rather than one because the *frame* has
+    // to hold everything - a bare table still reserves its own width - while
+    // the ink edge is what a stylesheet lines the drawing up by.
+    const extentsOf = (f, into, visible, ink) => {
+      const both = (b, isInk) => { into.push(b); if (ink && isInk) ink.push(b); };
       for (const [gid, vec] of f.geom) {
         if (visible && !visible(gid)) continue;
-        if (gid.endsWith('--r') || gid.endsWith('--i')) into.push({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] });
-        else if (gid.endsWith('--c')) into.push({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 });
+        if (gid.endsWith('--r') || gid.endsWith('--i')) {
+          both({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] }, gid.endsWith('--i') || paints(f, gid));
+        }
+        else if (gid.endsWith('--c')) both({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 }, paints(f, gid));
         else if (gid.endsWith('--l')) {
           // A label with no measured width is a defect in this file, not
           // something an author can cause: the four places that position one
@@ -23766,20 +24127,20 @@ function createDiagramCompiler(env = {}) {
           const [lw, lh] = turned ? [ext2[1], ext2[0]] : ext2;
           const a = turned ? 'middle' : anchorFor(owner, f);
           const x = a === 'start' ? vec[0] : a === 'end' ? vec[0] - lw : vec[0] - lw / 2;
-          into.push({ x, y: vec[1] - lh / 2, w: lw, h: lh });
+          both({ x, y: vec[1] - lh / 2, w: lw, h: lh }, true);
         }
-        else for (let i = 0; i < vec.length; i += 2) into.push({ x: vec[i], y: vec[i + 1], w: 0, h: 0 });
+        else for (let i = 0; i < vec.length; i += 2) both({ x: vec[i], y: vec[i + 1], w: 0, h: 0 }, true);
       }
     };
-    const liveBoxes = [];
-    for (const f of frames) extentsOf(f, liveBoxes);
-    const printBoxes = [];
+    const liveBoxes = [], liveInk = [];
+    for (const f of frames) extentsOf(f, liveBoxes, null, liveInk);
+    const printBoxes = [], printInk = [];
     // printCls, not last.cls: anchorFor reads the classes to decide which side
     // of its origin a label occupies, and a pass handed no classes at all
     // silently treats every label as centred – which under-reserves a `.right`
     // one by half its width and clips it off the edge of the paper.
     extentsOf({ geom: printGeom, ext: last.ext, cls: printCls, labelAnchor: last.labelAnchor },
-      printBoxes, (gid) => (printVis.get(ownerOf(gid)) ?? 1) > 0);
+      printBoxes, (gid) => (printVis.get(ownerOf(gid)) ?? 1) > 0, printInk);
     const boxFor = (list) => {
       const bb = list.length ? dgUnion(list) : { x: 0, y: 0, w: 100, h: 100 };
       return [bb.x - DG_MARGIN, bb.y - DG_MARGIN,
@@ -23961,8 +24322,21 @@ function createDiagramCompiler(env = {}) {
     // estimate made without a browser and a deliberately generous one. On the
     // left edge that costs nothing, because the leftmost drawable is a shape
     // or a start-anchored label and both begin exactly at their origin.
-    const inkX = (DG_MARGIN / vbW).toFixed(5);
-    const liveInkX = (DG_MARGIN / lvW).toFixed(5);
+    //
+    // It used to be exactly that margin, on the reasoning that the leftmost
+    // drawable is a shape or a start-anchored label and both begin at their
+    // origin. True, and not enough: the leftmost drawable can also be a frame
+    // that draws nothing. A `table`'s own frame is always `.bare .clear`, and
+    // a table of prose usually makes its cells both as well, so the left edge
+    // the correction found was an outline nobody paints and the column of
+    // cell text stood a padding to the right of the heading above it -
+    // measured on a keynote's #vorgang, 13 px in a 618-wide viewBox. So the
+    // number is the leftmost *painted* box now, and it falls back to the
+    // frame's own edge for a figure that paints nothing at all.
+    const inkLeft = (list, fallback) => (list.length ? dgUnion(list).x : fallback);
+    const printSrc = printBoxes.length ? printInk : liveInk;
+    const inkX = ((inkLeft(printSrc, vbX + DG_MARGIN) - vbX) / vbW).toFixed(5);
+    const liveInkX = ((inkLeft(liveInk.concat(printInk), lvX + DG_MARGIN) - lvX) / lvW).toFixed(5);
     // The same number the caller may want in Node, where the chunk's width
     // class is known and the label size in the room can therefore be
     // estimated. Optional: the editor compiles in the browser and passes none.
@@ -24023,7 +24397,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, dgAnchorOffset, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, DG_ZONE_PAD, DG_ZONE_CORNERS, dgZoneCapName, dgZoneTag, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, DG_LABEL_ESCAPES, DG_LABEL_WORD, dgSpans, dgMeasure, dgLabelAnchor, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, DG_CLASS_VOIDS, rejectVoidPair, rejectClassOn, dgArticle, dgWhere, dgEdgeEnds, dgSite, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, DG_PLACE_OPTS, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, dgAnchorOffset, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, DG_ZONE_PAD, DG_ZONE_CORNERS, dgZoneCapName, dgZoneTag, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, DG_LABEL_ESCAPES, DG_LABEL_WORD, dgSpans, dgMeasure, dgLabelAnchor, DG_SOFT, DG_SOFT_GROUND, dgSegmentsCrossBox, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgDrawsGround, dgInkInset, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, DG_CLASS_VOIDS, rejectVoidPair, rejectClassOn, dgArticle, dgWhere, dgEdgeEnds, dgSite, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, DG_PLACE_OPTS, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
 window.PSI_DG_EDIT_HTML = false;
