@@ -1573,6 +1573,21 @@ backdrop was a screenshot taken 360 ms into a 620 ms reveal (the probes now
 wait for animations to settle), and the blank row in `::: rows` was a `gap`
 shorthand clobbering `row-gap`, not the beat marker.
 
+Third round, after the author went through the frames himself: the figure
+canvas. Diagnosis (his): PowerPoint has a fixed canvas per slide and the
+mess starts when someone drags one figure; here the engine dragged every
+figure by deriving its box from its content. Now every `::: draw` in a
+chunk body gets the column × 16 labels at body size, overflow and underfill
+are warned with numbers, `frame` is the exception. Two numbers that were
+load-bearing and wrong before: the em a figure stands in is 31.59 px (the
+opening zoom is 1.35, not 1), and `--body-fs` differs per tag. Plus the ink
+edge skipping invisible frames, contrast of `.muted`/`.dim` on tones, zone
+caption inset, footnotes without hyphens, edge-label halo. `lectures/diagrams`
+and `docs/artifact/figure-rules` declined the canvas (`frame none`) because
+they are catalogues of small specimens on prose slides; `lectures/tutorial`
+keeps the default and carries eight true warnings about documentation
+figures – silence with `frame none` or leave, one line either way.
+
 Open: the keynote's `#umweg` figure is 66 labels wide and stays under 18 px
 at any zoom – that is the drawing's to fix. Site screenshots of the cockpit
 frames and the editor are stale. A statement chunk's `| sub-heading` still

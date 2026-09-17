@@ -57,6 +57,42 @@ from building the same way is a major version.
 - **`--frames` and `--check-fit` wait for the slide to stop animating**
   before a screenshot; a backdrop's 620 ms reveal used to be caught halfway.
 
+### Changed (drawings, unreleased)
+
+- **A figure is drawn on a canvas.** Every `::: draw` in a chunk's own body
+  gets a fixed box: the column wide, sixteen label-heights tall, labels at
+  body size. A drawing inside it is never scaled and its slide settles at
+  the zoom every other figure slide gets – one heading size, one figure box
+  across a deck. This replaces sizing the box from the drawing's label
+  count, which made every figure slide settle at its own zoom. A drawing
+  wider or taller than the canvas is scaled to fit and warned
+  (`figure-overflows-canvas`, with the overshoot per axis); one using less
+  than half the area is warned (`figure-underfills-canvas`).
+  `::: draw frame WxH` and a `frame WxH` / `frame none` line in
+  `draw-defaults` are the deliberate exceptions; `lectures/diagrams` and
+  the figure manual decline the canvas because they are catalogues. The
+  editor draws the canvas as a dashed rectangle. `figure-type-uneven` is
+  gone; `figure-type` now says how many labels the canvas holds.
+- **The ink edge is what a reader can see.** `blocks: left` aligns a figure
+  by its leftmost painted element, skipping frames that draw neither
+  outline nor fill (a `.bare .clear` table), and `flush left` on a relative
+  placement aligns ink to ink the same way.
+- **`.muted` and `.dim` keep their contrast on a toned ground**: a muted
+  word is mixed against the ink rather than a fixed token, and a dim
+  element's ink alpha is separated from its ground alpha. Measured 4.1:1
+  or better for dim labels on every tone.
+- **A zone's caption is inset by a third of a row** (`zone … pad n` sets
+  it), at the foot as at the head.
+- **An edge label its own line runs through gets a paper halo.**
+- **A `::: footnote` never hyphenates on the projection** and wraps
+  `pretty`, or `balance` on a `.center` chunk; print keeps its hyphens.
+- **A `.left` / `.right` text placed against an element it misses** and an
+  elbow rail running along a box's seam are compiler warnings naming the
+  fix. `edge 0,1.5 -> box`, an edge from a free coordinate, is documented –
+  it always worked and no document said so.
+- `--check-fit` measures what the camera framed (a `.middle` chunk no
+  longer reports a phantom overflow) and reports each figure's canvas fill.
+
 ### Added
 
 - **`--frames [DIR]`** writes every state of the projection as a PNG at
