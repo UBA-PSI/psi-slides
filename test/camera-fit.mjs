@@ -59,6 +59,18 @@ ${para(7)}
 ## free: Far over {.wide #c4}
 
 ${para(18)}
+
+## free: Centred on what is painted {.wide .middle #c5}
+
+${para(1)}
+
+---
+
+${para(1)}
+
+---
+
+${para(3)}
 `;
 
 function buildDeck() {
@@ -127,6 +139,49 @@ export async function run({ page, report }) {
     ok(straddled,
       'and at least one chunk had a box taller than the frame while its content fit',
       'no chunk straddled the two boxes, so the regression case was not exercised');
+
+    // The second box the camera is allowed to judge, and the one --check-fit
+    // used to be blind to. A `.middle` chunk whose reveals arrive downwards
+    // keeps its final height from beat 0, so at beat 0 the content box hangs
+    // out of the frame while everything the room can see is comfortably
+    // inside it. The camera frames the painted span; the probe has to measure
+    // the same span, or it reports a slide as clipped with nothing cut - two
+    // chunks of a keynote, "184 px off the bottom" and "40 px".
+    const mid = await page.evaluate(() => {
+      const i = flatChunks.findIndex((c) => c.id === 'c5');
+      if (i < 0) return null;
+      jumpTo(i);
+      return new Promise((res) => setTimeout(() => {
+        const el = flatChunks[i].el;
+        const content = el.querySelector('.chunk-content');
+        const vp = document.getElementById('stage-viewport').getBoundingClientRect();
+        const r = content.getBoundingClientRect();
+        const sp = typeof paintedClientSpan === 'function' ? paintedClientSpan(content) : null;
+        res({
+          has: typeof paintedClientSpan === 'function',
+          middle: el.hasAttribute('data-middle'),
+          boxTop: Math.round(r.top - vp.top), boxBottom: Math.round(r.bottom - vp.top),
+          boxH: Math.round(r.height),
+          spanTop: sp ? Math.round(sp.top - vp.top) : null,
+          spanBottom: sp ? Math.round(sp.bottom - vp.top) : null,
+          spanH: sp ? Math.round(sp.height) : null,
+          vpH: Math.round(vp.height),
+        });
+      }, 520));
+    });
+    if (!mid) { ok(false, '#c5 is in the deck'); }
+    else {
+      ok(mid.has, 'paintedClientSpan is a global the probe can call');
+      ok(mid.middle, '#c5 carries data-middle');
+      note(`#c5 at beat 0: content box ${mid.boxH} px (${mid.boxTop}…${mid.boxBottom}), `
+        + `painted span ${mid.spanH} px (${mid.spanTop}…${mid.spanBottom}), frame ${mid.vpH}`);
+      ok(mid.spanH != null && mid.spanH < mid.boxH,
+        'the painted span at beat 0 is shorter than the reserved content box',
+        `span ${mid.spanH}, box ${mid.boxH}`);
+      ok(mid.spanTop >= -1 && mid.spanBottom <= mid.vpH + 1,
+        '#c5 is framed on what is painted, so the opening beat is inside the frame',
+        `span ${mid.spanTop}…${mid.spanBottom} in a ${mid.vpH} px frame`);
+    }
   } finally {
     if (prev) await page.setViewportSize(prev);
     server.close();

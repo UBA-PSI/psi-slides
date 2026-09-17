@@ -15370,11 +15370,13 @@ function getOffset(el, parent) {
 // children), and converts once at the end: the cockpit's stage is scaled,
 // and one ratio taken from the container is exactly the factor between the
 // two coordinate systems.
-function paintedSpan(el) {
-  const base = el.getBoundingClientRect();
-  const o = getOffset(el, stage);
-  if (!base.height || !o.height) return null;
-  const scale = base.height / o.height;
+// Split in two, and the client half is the one --check-fit needs. The camera
+// wants the span in the stage's layout coordinates; the probe compares
+// everything against #stage-viewport's client rect, and a probe that
+// re-derived "what is painted" from a selector list of its own would be a
+// second implementation of the exact rule the camera follows. One walk, two
+// coordinate systems.
+function paintedClientSpan(el) {
   let top = Infinity, bottom = -Infinity;
   const walk = (node) => {
     for (const k of node.children) {
@@ -15397,7 +15399,16 @@ function paintedSpan(el) {
   };
   walk(el);
   if (bottom < top) return null;
-  return { top: o.top + (top - base.top) / scale, height: (bottom - top) / scale };
+  return { top, bottom, height: bottom - top };
+}
+function paintedSpan(el) {
+  const base = el.getBoundingClientRect();
+  const o = getOffset(el, stage);
+  if (!base.height || !o.height) return null;
+  const span = paintedClientSpan(el);
+  if (!span) return null;
+  const scale = base.height / o.height;
+  return { top: o.top + (span.top - base.top) / scale, height: span.height / scale };
 }
 function focusCamera(instant = false) {
   // The transform only frames correctly from a viewport at scroll origin.
@@ -22415,8 +22426,25 @@ async function runCheckFit(absIn, viewport) {
     const act = document.querySelector('.chunk.active');
     if (!act) return null;
     const content = act.querySelector('.chunk-content') || act;
-    const r = content.getBoundingClientRect();
     const vp = document.getElementById('stage-viewport').getBoundingClientRect();
+    // The box the CAMERA framed, not a box of this probe's own choosing.
+    // focusCamera measures `.chunk-content` for an ordinary chunk, the chunk
+    // itself where a dock or a panel takes a grid row, and – on a `.middle`
+    // chunk – the span that is actually painted at this beat. A probe that
+    // kept measuring the content box on a `.middle` chunk reported the empty
+    // reserve under a growing stack as overflow: measured on a keynote,
+    // #drei-jahre "184 px off the bottom" and #busfaktor "40 px" with nothing
+    // cut off either frame. The three branches have to be one rule, so they
+    // are read off the same attributes and the same walk the camera uses.
+    const framed = act.hasAttribute('data-dock') || act.hasAttribute('data-has-panel') ? act : content;
+    let r = framed.getBoundingClientRect();
+    if (framed !== act && act.hasAttribute('data-middle') && typeof paintedClientSpan === 'function') {
+      const sp = paintedClientSpan(framed);
+      // The camera's own guard: a painted span taller than the frame is
+      // walked from its head like any other tall chunk, and framing it would
+      // be framing the middle of something with no top on screen.
+      if (sp && sp.height <= vp.height) r = sp;
+    }
     // What the height is *made of*, which is not the same question as how
     // many words the chunk holds. Under topic-bold the collapse renders the
     // first sentence of each paragraph plus every promoted bold, and hides
