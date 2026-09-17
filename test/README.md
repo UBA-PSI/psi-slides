@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Thirteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 41 specs, ~1030
+- **`test/`** – the things that only break in a built page. 42 specs, ~1050
   assertions, about nine minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
@@ -112,7 +112,10 @@ fixture is compiled *and* linted.
 
 ## The browser suite: four families
 
-**Navigation** – `nav`, `nav-cockpit`. The navigation model. `demo` sits
+**Navigation** – `nav`, `nav-cockpit`, `transition`. The navigation model, and
+what a slide change looks like under `transition: pan | cut | fade` - the one
+spec here that samples per animation frame rather than after a settle, because
+its whole subject is what happens between two states. `demo` sits
 beside them: the two windows handing a live demo across, over both transports.
 
 **The geometry the live chrome leaves the slide** – `expansion`, `marginalia`,
@@ -158,7 +161,7 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The nine specs that build a deck of their own
+### The ten specs that build a deck of their own
 
 Three different reasons, and the third is the one to remember.
 
@@ -183,7 +186,10 @@ whose first segment holds a stepped figure: the footnote rides the *segment*,
 which a rule written against beat numbers gets wrong only there).
 
 **Because the thing is only legible as a pair** – `block-align` shows the same
-content centred and left, and `cards` two cards differing in one character.
+content centred and left, `cards` two cards differing in one character, and
+`transition` builds the same five slides three times, differing in one
+frontmatter line, because the claim about each mode is a claim about what the
+other two do not do.
 
 **Because a spec that hunted its shapes in a real deck would break the next time
 that deck was edited** – `squint`, whose four shapes (a promoted bold, a reveal
