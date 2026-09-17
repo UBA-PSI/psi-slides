@@ -1975,6 +1975,30 @@ function dgeEffState(ctx, el, beat) {
   };
 }
 
+// **Which point of the element meets its coordinate, written or derived.**
+// `.left` on a free `text` at an absolute placement anchors it on that edge
+// now, so the two places in this file that ask the question cannot read
+// `place.anchor`: a derived anchor is not a token on the line, and an editor
+// that missed it would draw a guide about a centre and write a number about a
+// corner. `dgPlaceAnchor` is the compiler's own answer and the only one.
+// Cached per gesture beside the effective state, because the resolved classes
+// cannot change while the pointer is down.
+function dgeAnchorOf(ctx, el, place, beat) {
+  if (!el || !place) return null;
+  // Through `dgPlaceAnchor` even when the word is on the line, because the one
+  // answer that is not a corner is `center`, and it has to come back as `null`
+  // here too: an element centred on its coordinate is exactly the one the
+  // guides are for. Short-circuiting on the field suppressed every guide on
+  // `#mac`'s note the moment `anchor center` started being recorded.
+  if (place.anchor) return window.PSI_DG.dgPlaceAnchor(el.kind, place, null);
+  if (ctx.clsFor !== beat) {
+    ctx.clsFor = beat;
+    ctx.cls = window.PSI_DG.dgStateAt(ctx.model, Math.max(0, Math.min(ctx.model.steps.length, beat)));
+  }
+  const st = ctx.cls && ctx.cls.get(el.id);
+  return window.PSI_DG.dgPlaceAnchor(el.kind, place, st ? st.classes : new Set(el.classes || []));
+}
+
 // Everything a drag lights up, resolved to the one or two candidates that
 // actually get applied. Returns the adjusted delta – so the drawing and the
 // plan agree about where the element ends up – the snap dgePlanDrag has to
@@ -2014,8 +2038,10 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
   // element's top-left corner, so the guide would draw a line through the
   // centre and write a number about a corner. The plain drag underneath still
   // works and still round-trips exactly, because it rewrites the number that
-  // is on the line rather than the position it resolves to.
-  if (place && place.anchor) return none;
+  // is on the line rather than the position it resolves to. A `.left` text at
+  // a coordinate is anchored without writing the word, so the question goes
+  // through dgeAnchorOf rather than through the field.
+  if (dgeAnchorOf(ctx, el, place, beat)) return none;
   // A `between` element is already at a relation and its own drag rewrites
   // `frac`; the two proposals below are for an element that has none to lose.
   const bare = !place || place.implicit || place.kind === 'abs';
@@ -2198,7 +2224,7 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
   }
   if (!won.length) return none;
   const out = dgeGuideApply(ctx, id, dx, dy, want, won);
-  if (beat) out.snap.to = dgeStepToText(ctx, id, out, eff, want);
+  if (beat) out.snap.to = dgeStepToText(ctx, id, out, eff, want, beat);
   return out;
 }
 
@@ -2214,7 +2240,7 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
 // source, so a reference on the axis nobody dragged survives. Where a step
 // has already moved it, the opening line's expression is no longer a true
 // statement about where it is, and the resolved number is.
-function dgeStepToText(ctx, id, out, eff, want) {
+function dgeStepToText(ctx, id, out, eff, want, beat) {
   const { uw, uh } = dgeUnits(ctx.model);
   const place = eff.place;
   if (out.snap.place) return out.snap.place;                 // between a,b frac t
@@ -2227,9 +2253,14 @@ function dgeStepToText(ctx, id, out, eff, want) {
   // dragged `anchor tl` element jumped half its own size the moment a step
   // moved it, which is the same half-size slip the carry-forward rule in
   // dgStateAt exists to prevent, arriving from the other side.
+  //
+  // The anchor may be one the author never wrote: a free `text` with `.left`
+  // at a coordinate is anchored on that edge. So this asks dgeAnchorOf and not
+  // `place.anchor`, or a step written for such a label would move it half its
+  // own width the first time a beat touched it.
   const b = ctx.boxes.get(id);
-  const anch = (place && place.anchor && b)
-    ? window.PSI_DG.dgAnchorOffset(place.anchor, b.w, b.h) : [0, 0];
+  const own = dgeAnchorOf(ctx, dgeFind(id, ctx.model), place, beat || 0);
+  const anch = (own && b) ? window.PSI_DG.dgAnchorOffset(own, b.w, b.h) : [0, 0];
   const comp = (axis, i) => {
     if (out.snap.ref[axis]) return out.snap.ref[axis];
     const sp = eff.own && place && place.kind === 'abs' && !eff.shift[i]
@@ -6369,19 +6400,32 @@ function dgeSetLeaderArrow(tok) {
 // off rather than restating it, which is what every "plain case" swatch here
 // does. Only on `at` and `between`: a relative placement answers the same
 // question with `flush`, against the element it is measured from.
+//
+// **`center` is the plain case and writes nothing – except where the default
+// is not `center`.** A free `text` carrying `.left` at a coordinate is
+// anchored on that edge with no word on the line, so the row has to press
+// `left` for it, and `center` there has to write `anchor center` out: taking
+// a token off a line that never had one would leave the swatch inert, which
+// is the one thing a swatch may not be.
 const DGE_ANCHOR_ROW = ['tl', 'top', 'tr', 'left', 'center', 'right', 'bl', 'bottom', 'br'];
 function dgeAnchorSlot(el, p) {
   const row = dgeEl('div', { class: 'dge-swatches' });
-  const now = p.anchor || 'center';
+  const state = DGE.model ? window.PSI_DG.dgStateAt(DGE.model, DGE.beat) : null;
+  const st = state && state.get(el.id);
+  const derived = window.PSI_DG.dgPlaceAnchor(
+    el.kind, { ...p, anchor: null }, st ? st.classes : new Set(el.classes || []));
+  const now = p.anchor || derived || 'center';
   for (const w of DGE_ANCHOR_ROW) {
     row.appendChild(dgeEl('button', {
       type: 'button', class: 'dge-sw', 'aria-pressed': String(now === w),
       title: w === 'center'
-        ? 'the coordinate is the element’s centre – the plain case, and no word on the line'
+        ? (derived
+          ? `anchor center – this label is anchored ${derived} by its class, and this says otherwise`
+          : 'the coordinate is the element’s centre – the plain case, and no word on the line')
         : `anchor ${w} – the element’s ${w} meets the coordinate, so a row of labels of `
           + 'different lengths lines up',
       text: w,
-      onclick: () => dgeWriteAttr(el.id, 'anchor', w === 'center' ? '' : w),
+      onclick: () => dgeWriteAttr(el.id, 'anchor', w === 'center' && !derived ? '' : w),
     }));
   }
   return dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'anchor' }), row]);

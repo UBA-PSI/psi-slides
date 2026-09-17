@@ -353,7 +353,10 @@ edge howto ver1 -- ver2 {.muted .dotted @proto}
 text eg   "e.g." between ver1,ver2 pad 0.12 {.paper .muted @proto}
 align y middle macA, ver1
 
-text goals "Security goals: *integrity*\nand *authenticity* but\n~not non-repudiation~" at 3.55,-1.05 {.left .serif}
+# `.left` on a free text at a coordinate anchors it on that edge. This block
+# is a paragraph centred over Bob rather than a caption starting at a point,
+# so it says so: anchor center is how a ranged label keeps its old centring.
+text goals "Security goals: *integrity*\nand *authenticity* but\n~not non-repudiation~" at 3.55,-1.05 anchor center {.left .serif}
 
 step protocol
   show @proto

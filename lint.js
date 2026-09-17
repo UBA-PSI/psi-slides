@@ -1182,20 +1182,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // frame is registered as the box it draws, so nothing else needs excluding.
   const DG_CLASS_KINDS_OK = DG_CLASS_KIND_SET;   // imported: one list, not two
   const styled = [];               // { classes, removed, targets, ln } per `style` op
-  // A row of labels that only looks like a row. `.left` and `.right` align the
-  // lines *inside* a free text's own box, and the box is centred on its
-  // coordinate, so three `text` lines written `at 0,z.cy {.left}` come out with
-  // three different left edges – one per label length, and the longer the label
-  // the further left it starts. Measured on a real keynote, five figures over.
-  // Nothing is wrong with any one line, which is why neither file said anything.
-  //
-  // Collected here and ruled on once the block has been read, because the
-  // answer depends on a statement that may sit anywhere in it: `align x left
-  // a, b, c` is the other fix and makes the row true, so a figure that has one
-  // is not to be warned at. `anchor left` is the fix for the element that has
-  // no set to join.
-  const sideTexts = [];            // { id, x, cls, ln } free text, .left/.right, bare `at`
-  const alignedX = new Set();      // every element named by an `align x …`
+  // `sideTexts` and `alignedX` used to live here, for `diagram-ragged-labels`:
+  // a row of free texts sharing an `at` x, each carrying `.left` or `.right`,
+  // each centred on the coordinate anyway and so staggered by half the
+  // difference in label width. The rule is gone because the geometry is: a
+  // free `text` with `.left` at an absolute coordinate is anchored on that
+  // edge now (`dgPlaceAnchor`), so the row it described cannot be written.
+  // `align x left a, b, c` is still the way to hold a set to one edge, and is
+  // still worth writing where the three coordinates are not the same one.
   // Lines a `table` has already read as its own rows. It is the one statement
   // besides `step` that takes continuation lines, and they are bare quoted
   // strings – read as statements they would each report a keyword that is a
@@ -1288,7 +1282,6 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         add(ln, 'error', 'bad-diagram-align', `spread ${axis} needs at least three elements`);
       }
       for (const m of members) refer(m, ln, `${head} ${axis}`);
-      if (head === 'align' && axis === 'x') for (const m of members) alignedX.add(m);
       inStep = false;
       continue;
     }
@@ -2193,15 +2186,6 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         // `at c1.cx,m0.cy` – the same coordinate grammar as a waypoint.
         if (words[k] === 'at' && words[k + 1] && words[k + 1].includes(',')) {
           referPair(words[k + 1], ln, `${head} ${words[1]} at`);
-          // The x half as written, which is what "share an x" has to mean
-          // here: two texts at `z.left` are a row whatever `z` turns out to
-          // be, and comparing resolved numbers would need a layout this file
-          // does not have. An `anchor` on the line is the author having
-          // already answered the question.
-          const side = attrs.classes.find(c => c === 'left' || c === 'right');
-          if (head === 'text' && side && !words.includes('anchor')) {
-            sideTexts.push({ id: words[1], x: words[k + 1].split(',')[0], cls: side, ln });
-          }
         }
         if (words[k] === 'between') {
           // Every trailing option that can follow a placement, or the scan
@@ -2333,34 +2317,6 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   }
   if (inStep === false && block.lines.length === 0) {
     add(block.open, 'warn', 'empty-diagram', '::: draw has no content');
-  }
-  // A row of labels that is not a row. See `sideTexts` above: the class aligns
-  // the lines inside the element's box, the box stays centred on the
-  // coordinate, and the edges the author was aligning come out staggered by
-  // half the difference in label width. Reported once per shared coordinate,
-  // on the first of the group, because it is one figure-level mistake and not
-  // one per line.
-  //
-  // A warning and not an error: the same three lines are correct the moment
-  // the labels happen to be the same length, and a linter that refuses a
-  // drawing somebody can see is right is worse than one that asks.
-  {
-    const byX = new Map();
-    for (const t of sideTexts) {
-      if (alignedX.has(t.id)) continue;
-      if (!byX.has(t.x)) byX.set(t.x, []);
-      byX.get(t.x).push(t);
-    }
-    for (const [x, group] of byX) {
-      if (group.length < 2) continue;
-      const names = group.map(g => g.id);
-      add(group[0].ln, 'warn', 'diagram-ragged-labels',
-          `${names.join(', ')} are all at x ${x} and carry .${group[0].cls}, but that class aligns `
-          + `the lines inside each element's own box – the box is still centred on the coordinate, `
-          + `so their ${group[0].cls} edges come out staggered by half the difference in label `
-          + `width. Write 'anchor ${group[0].cls}' on each placement, or 'align x ${group[0].cls} `
-          + `${names.join(', ')}' to hold them to one edge as a set.`);
-    }
   }
   const tagCount = new Map();
   for (const c of carries) for (const t of c.tags) tagCount.set(t, (tagCount.get(t) || 0) + 1);
