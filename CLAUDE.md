@@ -325,14 +325,20 @@ A chunk can opt out of that derivation with `::: slide` (this block is the scree
 
 Chunk grammar: `## type: Heading | Sub-Heading {.width #id}` where `type` is one of `title`, `closing`, `outline`, `principle`, `statement`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow` (28em), `standard` (36em), `wide` (52em), `full` (72em). The `|` sub-heading and the `{...}` attribute tail are both optional; width defaults to `standard`.
 
-An attribute tail may also carry six non-width classes: `.bare` and `.center`
-(audience-only) and `.wrap-none` / `.wrap-balance` / `.blocks-left` /
+An attribute tail may also carry seven non-width classes: `.bare`, `.center`
+and `.middle` (audience-only) and `.wrap-none` / `.wrap-balance` /
+`.blocks-left` /
 `.blocks-center` (`CHUNK_STYLE_CLASSES`, a `style:` key answered for one chunk,
 and these four reach print). The whole tail vocabulary is `CHUNK_SLOTS` in
 `tails.mjs`, a slot table like the five directives': width is a slot of four,
-each style key a slot of two, `.bare` and `.center` flags with no writable
-default. All six are refused on a `title` or
-`closing` chunk except the `style:` four. **The vocabulary, what each one costs,
+each style key a slot of two, `.bare`, `.center` and `.middle` flags with no
+writable default. All seven are refused on a `title` or
+`closing` chunk except the `style:` four. **`.middle` is read by the camera and
+not by the stylesheet**: `focusCamera` frames `paintedSpan(.chunk-content)`
+rather than the content box, so the beat that is on the slide is centred
+instead of the box the reveals will fill. Every chunk-content box is centred
+already, which is why the class is about what is *painted*; the cost it buys
+the centring with is a camera glide per press, which is why it is opt-in. **The vocabulary, what each one costs,
 the character budget a code line has and why `.bare` hides rather than drops are
 in the `psi-slides-authoring` and `psi-slides-appearance` skills** – authoring
 for what to write, appearance for what the build does with it.

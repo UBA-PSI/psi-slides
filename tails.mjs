@@ -61,6 +61,13 @@ export const CHUNK_SLOTS = {
   // axis. Flags: a default with no spelling.
   bare:   { default: false, words: ['bare'] },
   center: { default: false, words: ['center'] },
+  // `.middle` is `.center`'s vertical counterpart and, like it, a fact about
+  // the slide rather than about the text: the camera frames what is *on* the
+  // slide at this beat instead of the box the whole chunk will fill. A chunk
+  // whose reveals arrive downwards therefore opens in the middle of the frame
+  // rather than at the top of a reserve nobody can see yet. Off by default,
+  // because switching it on would move every slide in every existing deck.
+  middle: { default: false, words: ['middle'] },
 };
 // The tail on a `# Heading`, which is the divider slide's own line. It used
 // to take an `{#id}` and nothing else; `.stack` is the one composition
@@ -77,7 +84,8 @@ export const COLUMN_SLOTS = {
 };
 export const VALID_WIDTHS = new Set(CHUNK_SLOTS.width.words);
 export const VALID_CHUNK_CLASSES = new Set([
-  ...CHUNK_SLOTS.bare.words, ...CHUNK_SLOTS.center.words, ...Object.keys(CHUNK_STYLE_CLASSES)]);
+  ...CHUNK_SLOTS.bare.words, ...CHUNK_SLOTS.center.words, ...CHUNK_SLOTS.middle.words,
+  ...Object.keys(CHUNK_STYLE_CLASSES)]);
 
 export const BACKDROP_SLOTS = {
   fill:  { default: 'cover',  words: ['cover', 'contain'] },

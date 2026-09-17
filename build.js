@@ -67,7 +67,11 @@ const VALID_TAGS = new Set([
 // that take one. `.bare` exists because a heading is two things at once -
 // the slide's title and the chunk's name in the TOC, in search and in print
 // - and leaving the text out gives up all four where `.bare` gives up one.
-// The `.wrap-*` / `.blocks-*` classes answer a `style:` key for one chunk.
+// `.center` and `.middle` are the two axes of the same question - where the
+// slide's words sit across the measure, and where what this beat paints sits
+// in the frame - and the second is read by focusCamera rather than by a
+// stylesheet rule. The `.wrap-*` / `.blocks-*` classes answer a `style:` key
+// for one chunk.
 
 // ── syntax highlighting ──────────────────────────────────────────────
 // Shiki is loaded once per process and reused across rebuilds. Output
@@ -3718,6 +3722,7 @@ function parseAttributeTail(line, { column = false } = {}) {
   if (t.slots.width.written) out.width = t.slots.width.value;
   if (t.slots.bare.written) out.bare = true;
   if (t.slots.center.written) out.center = true;
+  if (t.slots.middle.written) out.middle = true;
   for (const key of ['wrap', 'blocks']) {
     if (!t.slots[key].written) continue;
     (out.styleOverrides ??= {})[key] = CHUNK_STYLE_CLASSES[t.slots[key].value][1];
@@ -4467,7 +4472,7 @@ function parseLecture(src) {
           columns.push(currentColumn);
         }
         const h2Attr = parseAttributeTail(h2[1]);
-        const { text, width, id, bare, center } = h2Attr;
+        const { text, width, id, bare, center, middle } = h2Attr;
         const { tag, heading, headingSub } = parseTagPrefix(text);
         // A title or closing chunk is placed by its cover composition: both
         // renderers hardcode data-width="full", and the heading is the
@@ -4488,9 +4493,9 @@ function parseLecture(src) {
           err.userFacing = true;
           throw err;
         }
-        if ((tag === 'title' || tag === 'closing') && (width || bare || center)) {
+        if ((tag === 'title' || tag === 'closing') && (width || bare || center || middle)) {
           const err = new Error(
-            `A ${tag} chunk carries .${width || (bare ? 'bare' : 'center')}, which its cover composition decides ("${text}").\n` +
+            `A ${tag} chunk carries .${width || (bare ? 'bare' : center ? 'center' : 'middle')}, which its cover composition decides ("${text}").\n` +
             '  A title or closing slide is always full width, its heading is the\n' +
             '  composition\'s, and where its words sit is cover-align\'s - so none\n' +
             '  of these classes has anything to act on.');
@@ -4508,6 +4513,7 @@ function parseLecture(src) {
           width: width || (tag === 'outline' ? 'wide' : 'standard'),
           bare: !!bare,
           center: !!center,
+          middle: !!middle,
           // The `style:` keys this one chunk answers differently, or null.
           // Null and not an empty object so every renderer's attribute
           // helper can leave in one line, and so a chunk that wrote none of
@@ -8493,6 +8499,11 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   // prose starts at the far edge of a wide slide while the drawing sits in
   // the middle and the two read as unrelated blocks.
   const centerAttr = chunk.center ? ' data-center=""' : '';
+  // `.middle` is the same kind of decision one axis over, and it is read by
+  // the camera rather than by the stylesheet: see focusCamera. Audience-only
+  // for the reason the other two are - a printed page has no frame to be
+  // centred in.
+  const middleAttr = chunk.middle ? ' data-middle=""' : '';
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
 
   // No tag eyebrow on the projection. The word announced a taxonomy that is
@@ -8571,7 +8582,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdAttr = (bd.html ? ' data-has-backdrop=""' : '') + (overlaysHavePanel(chunk.overlays) ? ' data-has-panel=""' : '');
 
-  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}${dockAttrs(chunk.dock)}>
+  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${middleAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}${dockAttrs(chunk.dock)}>
   ${bd.html}
   <div class="chunk-content">
     ${tagLabel}
@@ -14892,6 +14903,50 @@ function getOffset(el, parent) {
   while (n && n !== parent) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
   return { left: x, top: y, width: el.offsetWidth, height: el.offsetHeight };
 }
+// The vertical extent of what is actually painted inside a box, in the same
+// layout coordinates getOffset answers in. Only a .middle chunk reads it (see
+// focusCamera), and it exists because offsetHeight cannot answer the
+// question: a segment past the opening beat keeps its box and a beat below
+// the top level keeps its row, by design, so the box is the chunk's final
+// shape from beat 0 and says nothing about what the room can see.
+//
+// Client rects and not offsets, because the things that are painted are
+// often not the things that have an offsetParent - a rows block dissolves
+// its list into the grid with display: contents, and a dissolved element has
+// no box at all. So the walk descends through anything with no box of its
+// own, stops at anything holding its own text (whose box covers its
+// children), and converts once at the end: the cockpit's stage is scaled,
+// and one ratio taken from the container is exactly the factor between the
+// two coordinate systems.
+function paintedSpan(el) {
+  const base = el.getBoundingClientRect();
+  const o = getOffset(el, stage);
+  if (!base.height || !o.height) return null;
+  const scale = base.height / o.height;
+  let top = Infinity, bottom = -Infinity;
+  const walk = (node) => {
+    for (const k of node.children) {
+      if (k.hasAttribute('data-hidden') || k.hasAttribute('data-beat-hidden')) continue;
+      const cl = k.classList;
+      // Chrome that lives inside the content box and is not the slide.
+      if (cl.contains('annot-box') || cl.contains('annot-add') || cl.contains('exps')) continue;
+      const r = k.getBoundingClientRect();
+      const boxed = r.width > 0 || r.height > 0;
+      const tag = k.tagName;
+      const atom = tag === 'svg' || tag === 'IMG' || tag === 'HR' || tag === 'PRE' || tag === 'CANVAS';
+      const ownText = [...k.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+      if (boxed && (atom || ownText || !k.children.length)) {
+        if (r.top < top) top = r.top;
+        if (r.bottom > bottom) bottom = r.bottom;
+        continue;
+      }
+      walk(k);
+    }
+  };
+  walk(el);
+  if (bottom < top) return null;
+  return { top: o.top + (top - base.top) / scale, height: (bottom - top) / scale };
+}
 function focusCamera(instant = false) {
   // The transform only frames correctly from a viewport at scroll origin.
   resetViewportScroll();
@@ -14971,7 +15026,27 @@ function focusCamera(instant = false) {
     // by design, and centring it pushed the band off the bottom edge.
     const fitEl = entry.el.hasAttribute('data-dock') || entry.el.hasAttribute('data-has-panel') ? null : entry.el.querySelector('.chunk-content');
     const fit = fitEl ? getOffset(fitEl, stage) : { top, height };
-    if (fit.height <= vp.height) {
+    // The .middle class on the chunk. The box above is the one the reveals will
+    // fill, and it is dead-centred already - measured on a keynote, every
+    // chunk-content box sat with equal paper above and below it. What the
+    // room sees at the opening beat is not that box: a chunk whose reveals
+    // arrive downwards paints its first line at the top of a reserve that is
+    // still empty, and #drei-jahre opened with one row of type 155 px from
+    // the ceiling and 698 px of paper under it.
+    //
+    // There is no arrangement that both centres every beat and leaves every
+    // beat where the last one put it - a stack that grows downwards cannot
+    // hold each prefix centred and each row still. So this is opt-in and it
+    // chooses centring: the camera frames what is painted now. Nothing in
+    // the slide moves relative to anything else in it, the reserved height
+    // is untouched, and auto-fit still measures the whole box, so the type
+    // is the same size on every beat - the frame glides, on the same 250 ms
+    // transition that already follows the foot of a chunk taller than the
+    // screen.
+    const shownFit = (fitEl && entry.el.hasAttribute('data-middle')) ? paintedSpan(fitEl) : null;
+    if (shownFit && shownFit.height <= vp.height) {
+      ty = vp.height / 2 - (shownFit.top + shownFit.height / 2);
+    } else if (fit.height <= vp.height) {
       ty = vp.height / 2 - (fit.top + fit.height / 2);
     } else {
       // A chunk taller than the frame cannot be framed, so it is walked: its
@@ -22453,6 +22528,7 @@ function squintScan() {
     section: art.dataset.section || '',
     bare: art.hasAttribute('data-bare'),
     center: art.hasAttribute('data-center'),
+    middle: art.hasAttribute('data-middle'),
     col: col ? Number(col.dataset.col) : -1,
     lines,
     sig: [art.dataset.chunkId, steps, clips, lines.length,
@@ -22533,10 +22609,10 @@ function formatSquint(doc) {
   w(...SQUINT_LEGEND);
   w('');
   w('A slide opens with its id, its type and its width, then whatever else is');
-  w('true of it: the cover or divider composition, .bare or .center, how many');
-  w('beats it has, how long its speaker note is. Notes are counted and never');
-  w('quoted - they are the one thing certainly not on the projection, and');
-  w('print-notes.html is the file for reading them.');
+  w('true of it: the cover or divider composition, .bare, .center or .middle,');
+  w('how many beats it has, how long its speaker note is. Notes are counted');
+  w('and never quoted - they are the one thing certainly not on the');
+  w('projection, and print-notes.html is the file for reading them.');
   w('');
   w('It cannot see colour, contrast, overlap, or anything below the fold -');
   w('a slide can be in this file in full and unreadable on the wall. Use');
@@ -22554,7 +22630,7 @@ function formatSquint(doc) {
     }
     const flags = [c.tag || 'free', c.width || '',
       c.cover ? 'cover=' + c.cover : '', c.section ? 'divider=' + c.section : '',
-      c.bare ? '.bare' : '', c.center ? '.center' : '',
+      c.bare ? '.bare' : '', c.center ? '.center' : '', c.middle ? '.middle' : '',
       c.beats > 1 ? c.beats + ' beats' : '',
       c.noteWords ? 'note ' + c.noteWords + ' words' : ''].filter(Boolean);
     w('');
