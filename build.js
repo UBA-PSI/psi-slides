@@ -3653,8 +3653,13 @@ const isBeatMark = (raw) => /^<div class="beat-mark"/.test(raw);
 //    support after the last click. The moment one note stands in an earlier
 //    segment, the author is using positions and the rule is off for the
 //    chunk. The linter mirrors this in `noteSegments` of its own.
-function noteSegments(bodyLines, segments, noteAt) {
-  if (!noteAt || !noteAt.length) return [];
+// Where a position in the chunk body falls among the reveal segments the
+// renderer actually ships, as a function of the `at` index into bodyLines.
+// Two readers needing the same answer: the cue-card position rule below, and
+// a `::: footnote`, which the parser lifts out of the body into a chunk-level
+// node and which therefore has to carry its segment as a number rather than
+// as a place in the DOM.
+function segmentIndexer(bodyLines, segments) {
   // raw segment index -> index among the non-empty ones (or that of the
   // previous non-empty one, or 0)
   const rawToNonEmpty = [];
@@ -3667,7 +3672,13 @@ function noteSegments(bodyLines, segments, noteAt) {
     if (/^```/.test(line)) { fence = !fence; return; }
     if (!fence && parseRevealMark(line)) seps.push(i);
   });
-  const segs = noteAt.map(at => rawToNonEmpty[seps.filter(i => i < at).length] ?? 0);
+  return (at) => rawToNonEmpty[seps.filter(i => i < at).length] ?? 0;
+}
+
+function noteSegments(bodyLines, segments, noteAt) {
+  if (!noteAt || !noteAt.length) return [];
+  const indexAt = segmentIndexer(bodyLines, segments);
+  const segs = noteAt.map(at => indexAt(at));
   const last = Math.max(0, segments.filter(s => s.length).length - 1);
   if (last > 0 && segs.every(k => k === last)) return segs.map(() => 0);
   return segs;
@@ -3942,6 +3953,9 @@ function parseLecture(src) {
     currentChunk.expansions.push({
       label: currentExpansion.label,
       kind: currentExpansion.kind,
+      // Where the opener stood in the body, resolved to a segment index at
+      // the end of the chunk - the aside itself is out of the body by then.
+      at: currentExpansion.at,
       body: currentExpansion.lines.join('\n').trim(),
     });
     currentExpansion = null;
@@ -4083,6 +4097,19 @@ function parseLecture(src) {
     currentChunk.segments = nonEmpty;
     currentChunk.segmentFrom = keep.map(([, f]) => f);
     currentChunk.speakerNoteSegs = noteSegments(bodyLines, segments, currentChunk.speakerNoteAt);
+    // An aside is lifted out of the body, so it cannot carry a beat marker -
+    // a marker's beat is the elements that follow it inside one parent, and
+    // the aside has left that parent. It carries the number of the segment it
+    // was written in instead, and the live runtime holds it back until that
+    // segment is up. Written before the first `---`, or in a chunk with no
+    // `---` at all, this is 0 and nothing about the output changes.
+    {
+      const segAt = segmentIndexer(bodyLines, segments);
+      currentChunk.expansions.forEach((e) => {
+        e.seg = segAt(e.at || 0);
+        delete e.at;
+      });
+    }
     // A pinned note keeps its own number and takes no part in the
     // chunk-level fallback the position rule applies.
     (currentChunk.speakerNoteFrom || []).forEach((f, i) => { if (f != null) currentChunk.speakerNoteSegs[i] = null; });
@@ -4639,6 +4666,9 @@ function parseLecture(src) {
             label: expandOpen ? expandOpen[1].trim() : 'note',
             kind: marginOpen ? 'margin' : 'expand',
             word,
+            // The body position the opener stood at, which is what says
+            // which reveal segment the aside was written in.
+            at: bodyLines.length,
             lines: [],
           };
           continue;
@@ -8182,9 +8212,15 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   const expandList = expansions.filter(e => (e.kind || 'expand') === 'expand');
   const marginList = expansions.filter(e => e.kind === 'margin');
 
+  // A footnote arrives with the reveal segment it was written in: `data-seg`
+  // names that segment and applyReveal mirrors its visibility. Emitted only
+  // past the opening segment, so a deck whose footnotes all stand before the
+  // first `---` - which is every deck written before this - builds the same
+  // bytes it did.
   const marginsHtml = marginList.map(e => {
     const inner = marked.parse(e.body || '');
-    return `<aside class="margin-note" data-label="${escapeHtml(e.label === 'note' ? S['aside-note'] : e.label)}">${inner}</aside>`;
+    const segAttr = e.seg > 0 ? ` data-seg="${e.seg}"` : '';
+    return `<aside class="margin-note"${segAttr} data-label="${escapeHtml(e.label === 'note' ? S['aside-note'] : e.label)}">${inner}</aside>`;
   }).join('\n');
 
   const chevsHtml = expandList.length
@@ -9787,6 +9823,13 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 .chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
 .chunk[data-tag=figure] .chunk-heading { order: 2; }
 .chunk[data-tag=figure] .chunk-body pre { order: 1; font-size: 0.82em; }
+/* A figure chunk orders its .chunk-content children by hand, and an aside
+   that names no order takes 0 - so a ::: footnote, the one child written last
+   and meant to read last, came out above the caption and above the artwork.
+   A source line standing over the picture it cites reads as the slide's own
+   first words. Print needs no counterpart: the document renderer emits the
+   expansions after the body and .chunk is not a flex container there. */
+.chunk[data-tag=figure] .margin-note { order: 4; }
 
 .chunk[data-tag=exercise] .chunk-heading { font-style: italic; }
 .chunk[data-tag=exercise] .chunk-content::before {
@@ -14147,6 +14190,16 @@ function applyReveal(el, id, instant) {
   steps.forEach((step, d) => dgStep(d, step, jump));
   el.querySelectorAll(FROM_SEL).forEach(c => {
     c.toggleAttribute('data-hidden', consumed < Number(c.dataset.from));
+  });
+  // A ::: footnote follows the segment it was written in. It rides the
+  // segment rather than a beat number because the two are not the same
+  // count: a diagram step between two segments is a beat, so the second
+  // segment's number is not its index. Mirroring the segment's own state is
+  // exact whatever sits between them, and adds no beat of its own - which is
+  // why countSegments knows nothing about this.
+  el.querySelectorAll('.margin-note[data-seg]').forEach(a => {
+    const seg = segs[Number(a.dataset.seg)];
+    a.toggleAttribute('data-beat-hidden', !!seg && seg.hasAttribute('data-hidden'));
   });
   const bd = bdFrames(el);
   if (bd) {

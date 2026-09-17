@@ -137,7 +137,7 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The eight specs that build a deck of their own
+### The nine specs that build a deck of their own
 
 Three different reasons, and the third is the one to remember.
 
@@ -156,7 +156,10 @@ overlay yet, and the assertion is a six-beat *sequence* mixing nested and
 top-level markers, which only a deck written for it has) and `dock` (no lecture
 writes a `::: dock`, and the claims are geometry: the column and the text share
 no pixel, the dock reaches the frame, `from N` moves nothing, auto-fit holds
-beside a slide-high column).
+beside a slide-high column) and `beats-footnote` (no lecture writes a
+`::: footnote` after a `---`, and the case that decides the rule is a chunk
+whose first segment holds a stepped figure: the footnote rides the *segment*,
+which a rule written against beat numbers gets wrong only there).
 
 **Because the thing is only legible as a pair** – `block-align` shows the same
 content centred and left, and `cards` two cards differing in one character.
