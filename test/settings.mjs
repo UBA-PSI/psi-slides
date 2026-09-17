@@ -2800,8 +2800,24 @@ console.log('\nlayout generations');
      'the print rule is guarded, or none would be a key that does nothing');
   ok(/body\[data-hyphenate=all\] #stage :is\(p, li, blockquote, figcaption\)/.test(dflt.html),
      'and the live rule is both gated on all and scoped to the stage, so the chrome never breaks a word');
-  ok(/body\[data-hyphenate=all\] #stage :is\(h1[\s\S]{0,200}hyphens: manual/.test(dflt.html),
+  ok(/body\[data-hyphenate=all\] #stage :is\(h1[\s\S]{0,400}hyphens: manual/.test(dflt.html),
      'with the same manual reset print carries, since hyphens inherits into code and URLs');
+  // A footnote is in that reset, and it is the one entry that is prose. One
+  // or two lines of small type have no measure for a hyphen to rescue, and a
+  // keynote at hyphenate: all broke two consecutive ones mid-word.
+  ok(/body\[data-hyphenate=all\] #stage \.margin-note,\s*\n\s*body\[data-hyphenate=all\] #stage \.margin-note \*/
+       .test(dflt.html),
+     'and a ::: footnote never hyphenates in the live views, descendants included');
+  // Print is deliberately the other way: there the note sits in a document at
+  // the document's own measure and reads as the rest of the page does.
+  ok(!/\.margin-note[^{]*\{[^}]*hyphens: manual/.test(dflt.print),
+     'while print keeps its hyphens, where the note is a paragraph of a page');
+  // pretty fills the measure; balance evens two lines. A centred footnote
+  // came out as a full line with two words under it, which reads as a
+  // mistake rather than as a ragged edge.
+  ok(/body:not\(\[data-wrap=none\]\) \.margin-note p \{ text-wrap: pretty; \}/.test(dflt.html)
+     && /body:not\(\[data-wrap=none\]\) \.chunk\[data-center\] \.margin-note p \{ text-wrap: balance; \}/.test(dflt.html),
+     'a footnote wraps pretty, and balances on a centred chunk, both under the wrap guard');
   const hAll = hyph('lang: de\nstyle:\n  hyphenate: all\n');
   ok(/data-hyphenate="all"/.test(bodyOf(hAll.html)),
      'style.hyphenate: all reaches the projection');

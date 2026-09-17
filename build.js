@@ -13248,6 +13248,22 @@ body:not([data-wrap=none]) :is(
 body:not([data-wrap=none]) .cards li,
 body:not([data-wrap=none]) .cards > :not(ul):not(ol) { text-wrap: pretty; }
 
+/* A footnote is a phrase under the slide rather than a paragraph in it, and
+   the p rule above is half right for it. pretty fills the measure and
+   protects the last line, which is what the ranged-left case wants; it does
+   not even two lines out, and on a centred chunk a full line with two words
+   under it reads as a mistake rather than as a ragged edge. Measured on a
+   keynote: "…n = 4 910, Teilnahme freiwillig" broke with those two words
+   alone on line two, centred under a full line. So the centred case
+   balances and every other case keeps pretty, which is the same split the
+   headings below make for the same reason.
+
+   Same guard as every rule in this section, and the chunk-scoped overrides
+   further down still win on specificity: a deck that said wrap: none has
+   refused a re-wrap and this is not the rule that takes it back. */
+body:not([data-wrap=none]) .margin-note p { text-wrap: pretty; }
+body:not([data-wrap=none]) .chunk[data-center] .margin-note p { text-wrap: balance; }
+
 /* Headings are phrases in every mode, so they balance whatever the collapse
    setting is - and unlike the slide lines they are the same in the live views
    and on paper. Measured on the tutorial at 1100px, the cover subtitle was
@@ -13365,7 +13381,17 @@ body[data-blocks=left] #stage .math-display .katex-display > .katex,
    TOC entry, a search hit and the help sheet are lists a reader scans, and
    a broken word in one of those is only harder to scan. And the same
    manual reset PRINT_CSS carries, for the same reason - hyphens inherits,
-   and a hyphenated identifier or URL is wrong in any view. */
+   and a hyphenated identifier or URL is wrong in any view.
+
+   A footnote is in that reset too, and it is the one entry that is prose.
+   A ::: footnote is one or two lines of small type under the slide - a
+   source, a date, an aside - so it has no measure for a hyphen to rescue
+   and every break it takes is a word cut in half for nothing. Measured on a
+   keynote at hyphenate: all - "Pro-blemlösen" and "Teil-nahme freiwillig"
+   in two consecutive footnotes, and a "Handreichung / Z/PQM" split across
+   the slash. Print keeps its hyphens - see PRINT_CSS - because there the
+   note sits in a document at the document's measure and reads as the rest
+   of the page does. */
 body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
   hyphens: auto;
   -webkit-hyphens: auto;
@@ -13373,7 +13399,9 @@ body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
 }
 body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
   .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]),
-body[data-hyphenate=all] #stage .chunk[data-tag=statement] .chunk-body p {
+body[data-hyphenate=all] #stage .chunk[data-tag=statement] .chunk-body p,
+body[data-hyphenate=all] #stage .margin-note,
+body[data-hyphenate=all] #stage .margin-note * {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
