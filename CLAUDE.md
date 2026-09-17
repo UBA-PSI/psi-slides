@@ -54,13 +54,24 @@ node build.js <source.md> --no-optimize-images  # inline the original bytes
 # shrink assets that blow the per-image cap: converts referenced PNG/JPEG to
 # WebP q92 in place, replacing the originals and rewriting explicit-path refs
 # in source.md – the markdown `](path)` form and the bare token a ::: draw
-# `image` statement carries, fenced code skipped (shorthand `![](fig-id)`
-# refs need no edit). Needs cwebp or magick on PATH; measured 12-18% of the
-# original on real lecture assets.
+# `image`, a ::: backdrop, a `cover-image:` or a `closing-image:` carries,
+# fenced code skipped (shorthand `![](fig-id)` refs need no edit). It sees
+# every reference the build inlines, through one collector the inline-cap scan
+# shares (`collectDecorationImageRefs`, guarded by the `image-refs` gate) –
+# before that a deck whose only oversized assets were a backdrop and a cover
+# photograph was refused by the build and told "nothing to do" by the verb
+# that refusal recommends. Needs cwebp or magick on PATH; measured 12-18% of
+# the original on real lecture assets.
+#
+# **A photograph that q92 alone does not bring under the 2 MB cap is
+# downscaled to 2560 px wide and re-encoded**, and the report says so per
+# asset; still over after that, it names the size and the --max-width N to try
+# next. A .webp is not a conversion candidate – it is already WebP – except
+# when it is over the cap, where it is re-encoded onto itself at that width.
 node build.js <source.md> --optimize-images --dry-run   # report, write nothing
 node build.js <source.md> --optimize-images              # apply (assets >= 512 KB)
 node build.js <source.md> --optimize-images --all        # every referenced raster
-node build.js <source.md> --optimize-images --max-width 2600   # also downscale
+node build.js <source.md> --optimize-images --max-width 2600   # cap every width
 
 # diagrams need no flag either: a ::: draw block compiles to inline SVG
 # at build time, and its `step` blocks become beats on the reveal counter.
@@ -124,11 +135,12 @@ node lint.js lectures/ --strict                # warnings → exit 2
 
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
-# tail grammar that can - eleven gates, under a second, no browser and no
+# tail grammar that can - twelve gates, under a second, no browser and no
 # `npm install` (diagram-core.mjs, tails.mjs and lint.js are all zero-dep).
 # It is also where a hand-mirrored list one file keeps of another's belongs,
 # figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
-# against what build.js reads.
+# against what build.js reads, and `image-refs` holds the two readers of the
+# image-reference set against the one collector both go through.
 # test/ is the things that only break in a built page - 34 specs, ~8 min,
 # one Chromium. `npm test` also runs test/reproducible.mjs, which needs
 # neither: it builds a lecture under a partial flag and under a full one and
@@ -285,9 +297,9 @@ The audience↔speaker sync is cross-`file://`-origin safe because it uses `wind
 
 Image assets are inlined into the single-file outputs by default (auto-inline budget: 10 MB total, per-file cap 2 MB; `--inline-images` / `--no-inline-images` overrides).
 
-An asset over the per-file cap **fails the build**. It used to be a warning, and the output then shipped with an external path: correct on the machine that built it, broken figure anywhere the HTML travelled alone. `assertInlinable()` runs as a pre-flight in `buildOnce` before any rendering, so a failed build leaves no half-written artefact, and its message branches on what the author can actually do – convert (raster), install an encoder first (no cwebp/magick), or simplify by hand (oversized SVG, which `--optimize-images` cannot help with). The escape hatch is `--no-inline-images`, which is an explicit choice to ship external paths. `lint.js` keeps a matching `oversized-asset` warning (pure `fs.statSync`, still zero-dep) so the problem surfaces before the build too.
+An asset over the per-file cap **fails the build**. It used to be a warning, and the output then shipped with an external path: correct on the machine that built it, broken figure anywhere the HTML travelled alone. `assertInlinable()` runs as a pre-flight in `buildOnce` before any rendering, so a failed build leaves no half-written artefact, and its message branches on what the author can actually do – convert (PNG, JPEG **or an oversized WebP**, all three of which that verb now handles), install an encoder first (no cwebp/magick), or simplify by hand, which is left for the formats it cannot touch and in practice means an oversized SVG. "Simplify by hand" was written for a diagram and was the wrong advice for a photograph of a room. The escape hatch is `--no-inline-images`, which is an explicit choice to ship external paths. `lint.js` keeps a matching `oversized-asset` warning (pure `fs.statSync`, still zero-dep) so the problem surfaces before the build too.
 
-Errors of this kind set `err.userFacing = true`; the top-level handler prints the message without a stack trace, because a stack only buries the instructions. Reserve the flag for things the author must act on, never for defects in the build. Note what that verb deliberately does **not** do: it does not downscale by default. The offenders measured in the content repo were not oversized in pixels (the worst was 3.03 MB at exactly 1920×1080) and figure focus zooms to `FIG_MAX_SCALE` (8×), so a 3968px-wide diagram is high-resolution on purpose. WebP q92 alone gets those files to 12–18% of their original size. `--max-width` exists for real outliers and only ever shrinks – `cwebp -resize` would happily enlarge a narrower image, so `imageSize()` (a zero-dep PNG/JPEG header reader) gates it. Raster formats become base64 `data:` URIs in `<img>` tags. **SVG assets are spliced inline as `<svg>` elements** (not `data:` URIs) so they inherit page CSS custom properties – `--ink`, `--paper`, `--ink-soft` – and re-color when the user cycles themes with the `A` hotkey. To keep multiple inlined SVGs from cross-contaminating each other, the inliner gives every instance a unique `psi-fig-N-` prefix and rewrites `id="…"`, `url(#…)`, `href="#…"`, and `xlink:href="#…"` accordingly; inline `<style>` blocks are wrapped in `@scope (svg#psi-fig-N-root) { … }` (with `@import` and `@font-face` hoisted out so they remain at top level). See `inlineSvg()` in `build.js`.
+Errors of this kind set `err.userFacing = true`; the top-level handler prints the message without a stack trace, because a stack only buries the instructions. Reserve the flag for things the author must act on, never for defects in the build. Note what that verb deliberately does **not** do: it does not downscale by default. The offenders measured in the content repo were not oversized in pixels (the worst was 3.03 MB at exactly 1920×1080) and figure focus zooms to `FIG_MAX_SCALE` (8×), so a 3968px-wide diagram is high-resolution on purpose. WebP q92 alone gets those files to 12–18% of their original size. The one exception is the asset the build would otherwise still refuse: when q92 leaves a file over the per-image cap, it is re-encoded once more at `CAP_RESCUE_WIDTH` (2560 px), because the author is running the command precisely because the build refused the deck, and answering with a smaller file that is still refused is the same dead end in fewer megabytes. `--max-width` exists for real outliers and only ever shrinks – `cwebp -resize` would happily enlarge a narrower image, so `imageSize()` (a zero-dep PNG/JPEG header reader) gates it. Raster formats become base64 `data:` URIs in `<img>` tags. **SVG assets are spliced inline as `<svg>` elements** (not `data:` URIs) so they inherit page CSS custom properties – `--ink`, `--paper`, `--ink-soft` – and re-color when the user cycles themes with the `A` hotkey. To keep multiple inlined SVGs from cross-contaminating each other, the inliner gives every instance a unique `psi-fig-N-` prefix and rewrites `id="…"`, `url(#…)`, `href="#…"`, and `xlink:href="#…"` accordingly; inline `<style>` blocks are wrapped in `@scope (svg#psi-fig-N-root) { … }` (with `@import` and `@font-face` hoisted out so they remain at top level). See `inlineSvg()` in `build.js`.
 
 ### Authoring contract
 
@@ -515,7 +527,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the eleven gates guards, the four browser-spec families, and the seven specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twelve gates guards, the four browser-spec families, and the seven specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.

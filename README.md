@@ -231,7 +231,7 @@ What is different here is the combination: one text rendered at two densities, a
 - **Node 20+** to build. Nothing at read time: each output carries everything it needs and opens from `file://`.
 - **A current browser** to read. The stylesheets use `oklch()` colours, `:has()`, and `text-wrap: balance` with no fallbacks, which puts the floor at roughly **Chrome/Edge 114, Firefox 121, Safari 17.5**. Lectures with inline-styled SVG assets additionally need `@scope`: Chrome/Edge 118, Safari 17.4, Firefox 146. Development and real use are in Chrome; other browsers are untested rather than unsupported.
 - **`cwebp` or `magick`** on `PATH`, but only if you use `--optimize-images`. macOS `sips` cannot write WebP, so there is no zero-install fallback for that one command.
-- Image assets are inlined automatically when they total under 10 MB. A single asset over 2 MB fails the build rather than silently shipping an external path – `--optimize-images` converts the offenders to WebP, and `--no-inline-images` is the escape hatch.
+- Image assets are inlined automatically when they total under 10 MB. A single asset over 2 MB fails the build rather than silently shipping an external path – `--optimize-images` converts the offenders to WebP (and downscales a photograph that WebP alone does not bring under the cap), and `--no-inline-images` is the escape hatch.
 - Math is rendered at build time, so the KaTeX fonts have to travel inside the HTML or the output stops opening from `file://`. Only the font families a lecture's formulas actually use are inlined – the tutorial's five come to 166 KB of the 254 KB the full set costs – and a lecture without math inlines none of it. The build prints what it did.
 
 ## Documentation
