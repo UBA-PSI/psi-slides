@@ -12085,7 +12085,20 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    wide enough to do that on its own, and the padding goes away with the
    ground it was insetting from. */
 .cards.cg-clear   { --card-py: 0; --card-px: 0; }
-.cards.cg-clear   { gap: calc(2.1em * var(--card-fs, 1)); }
+.cards:not(.rows).cg-clear { gap: calc(2.1em * var(--card-fs, 1)); }
+/* The gutter and nothing else. gap is a shorthand and this rule comes after
+   the one that gives a rows block its row-gap, so written as gap it set both,
+   and a stack of rows with no ground got 2.1em of air between lines about
+   1.4em tall. Measured on a keynote's #drei-jahre: three one-line rows at a
+   155 px pitch in a 900 px frame - a whole empty line between each pair - and
+   the review that found it read the air as a beat marker reserving a row,
+   which it is not. A reveal marker inside a rows block is display: none, and
+   a rows block builds the same three grid tracks with the markers and without
+   them; a fixture deck of the two says so. The wide gutter is still what
+   separates two clear cards side by side, and here it is what separates a
+   term from its body, so it stays on the column axis. Same shorthand trap as
+   the two transition rules on .chunk-backdrop, one stylesheet down. */
+.cards.rows.cg-clear { column-gap: calc(2.1em * var(--card-fs, 1)); }
 .cards.ca-left   { --card-align: left; }
 .cards.ca-center { --card-align: center; }
 .cards.cv-top    { --card-anchor: flex-start; --row-anchor: start; }
