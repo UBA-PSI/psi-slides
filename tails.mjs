@@ -62,6 +62,19 @@ export const CHUNK_SLOTS = {
   bare:   { default: false, words: ['bare'] },
   center: { default: false, words: ['center'] },
 };
+// The tail on a `# Heading`, which is the divider slide's own line. It used
+// to take an `{#id}` and nothing else; `.stack` is the one composition
+// question a divider asks that neither `section:` nor the content can
+// answer, so it is a slot here rather than a seventh `section:` value:
+// `section:` is the deck's treatment of every divider (and all six of them
+// still render either way), while whether a part's own drawing stands
+// *under* the heading at full width or beside it is a fact about that one
+// divider's content. A flag, like `.bare` on a chunk: its default is the
+// layout the format has always drawn, and a default with no spelling is
+// what a flag is.
+export const COLUMN_SLOTS = {
+  stack: { default: false, words: ['stack'] },
+};
 export const VALID_WIDTHS = new Set(CHUNK_SLOTS.width.words);
 export const VALID_CHUNK_CLASSES = new Set([
   ...CHUNK_SLOTS.bare.words, ...CHUNK_SLOTS.center.words, ...Object.keys(CHUNK_STYLE_CLASSES)]);
@@ -191,7 +204,7 @@ export const DOCK_SLOTS = {
 // the align default. A word that means something in one slot and is merely
 // the default of another is not exempt - that is the case where the first
 // slot listed wins and the second becomes unreachable.
-export const SLOT_TABLES = { CHUNK_SLOTS, CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS };
+export const SLOT_TABLES = { CHUNK_SLOTS, COLUMN_SLOTS, CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS };
 for (const [name, table] of Object.entries(SLOT_TABLES)) {
   const where = new Map();   // word -> [{slot, isDefault}]
   for (const [slot, spec] of Object.entries(table)) {
@@ -221,6 +234,12 @@ export function slotTable(slots) {
 function slotLine(slots) {
   return Object.entries(slots)
     .map(([s, spec]) => `${s}: ${spec.words.map(w => '.' + w).join(' | ')}`).join(', ');
+}
+// Every word a table takes, with no slot names around them. A one-slot table
+// reads worse as `stack: .stack` than as `.stack`, and the column heading's
+// refusal is a sentence rather than a listing.
+function wordList(slots) {
+  return Object.values(slots).flatMap(s => s.words).map(w => '.' + w).join(' | ');
 }
 
 // ── the tail parser ───────────────────────────────────────────────────
@@ -265,9 +284,10 @@ export function strayTailProblem(what, stray) {
 // `opts.id` is the id policy: 'one' for a heading, 'none' for a directive -
 // a generic parser that took `#id` everywhere would let a directive carry an
 // id nothing reads, the silent no-op this format refuses. `opts.classes:
-// 'none'` is the column heading's policy: it takes an id and no class at
-// all, and a `.word` there is `class-on-column` - said once, by the parser,
-// rather than as an unknown-class listing a vocabulary the line never had.
+// 'column'` is the column heading's policy: it resolves against COLUMN_SLOTS
+// like any other tail, and a word from no slot of it is `class-on-column` -
+// said once, by the parser, naming the short vocabulary a `#` heading has
+// rather than the chunk's, which is the line it never was.
 export function parseTail(tail, slots, what, { id: idPolicy = 'none', classes: classPolicy = 'slots' } = {}) {
   const out = { classes: [], id: undefined, ids: [], slots: {}, problems: [] };
   for (const [slot, spec] of Object.entries(slots)) out.slots[slot] = { value: spec.default, written: false };
@@ -284,12 +304,13 @@ export function parseTail(tail, slots, what, { id: idPolicy = 'none', classes: c
     if (tok.startsWith('.') && tok.length > 1) {
       const w = tok.slice(1);
       out.classes.push(w);
-      if (classPolicy === 'none') {
-        problem('class-on-column', `".${w}" - a # heading takes an {#id} and nothing else; ` +
+      const slot = Object.keys(slots).find(s => slots[s].words.includes(w));
+      if (!slot && classPolicy === 'column') {
+        problem('class-on-column', `".${w}" - a # heading takes an {#id}` +
+          (Object.keys(slots).length ? ` and ${wordList(slots)}` : '') + ', and nothing else; ' +
           'a width and .bare belong on the ## chunks under it.');
         continue;
       }
-      const slot = Object.keys(slots).find(s => slots[s].words.includes(w));
       if (!slot) {
         problem('unknown-class', idsTaken
           ? `".${w}" is not a class this tail takes - valid: ${slotLine(slots)}`

@@ -13,7 +13,7 @@
  * refuses and lint.js names the same code - is `test/settings.mjs`.
  */
 import {
-  CHUNK_SLOTS, CARDS_SLOTS, SIDE_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SLOT_TABLES,
+  CHUNK_SLOTS, COLUMN_SLOTS, CARDS_SLOTS, SIDE_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SLOT_TABLES,
   splitTail, strayTailProblem, parseTail, parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseLegacyDrawTail,
   parseRevealMark,
   AUTOPLAY_MIN, AUTOPLAY_MAX, DRAW_OPENER_EXAMPLE,
@@ -50,11 +50,19 @@ export async function run({ report }) {
   }
   ok(/does not end the line/.test(strayTailProblem('chunk heading', '{.narrow}').msg) && strayTailProblem('x', '{#a}').code === 'stray-attribute',
      'and the problem for it is stray-attribute, naming the group');
-  // The column-heading policy: no class at all, said by the parser.
-  const col = parseTail('.wide #p', {}, 'column heading', { id: 'one', classes: 'none' });
-  ok(codes(col) === 'class-on-column' && col.id === 'p' && /takes an \{#id\} and nothing else/.test(col.problems[0].msg),
-     'a .word on a column heading is class-on-column, and the id is still read');
-  ok(codes(parseTail('#p', {}, 'column heading', { id: 'one', classes: 'none' })) === '', 'and an id alone is fine');
+  // The column-heading policy: its own short table, and a word from no slot
+  // of it is class-on-column rather than an unknown-class listing a
+  // vocabulary the line never had.
+  const column = (tail) => parseTail(tail, COLUMN_SLOTS, 'column heading', { id: 'one', classes: 'column' });
+  const col = column('.wide #p');
+  ok(codes(col) === 'class-on-column' && col.id === 'p'
+     && /takes an \{#id\} and \.stack, and nothing else/.test(col.problems[0].msg),
+     'a .word from no column slot is class-on-column, and the id is still read', col.problems[0].msg);
+  ok(codes(column('#p')) === '', 'and an id alone is fine');
+  const stacked = column('.stack #p');
+  ok(codes(stacked) === '' && stacked.slots.stack.written === true && stacked.id === 'p',
+     '.stack is a word the # heading takes, and it reads as written');
+  ok(codes(column('.stack .stack #p')) === 'same-slot', 'and twice is same-slot, like any other slot');
 
   // ── parseTail: the four codes ────────────────────────────────────
   const heading = (tail) => parseTail(tail, CHUNK_SLOTS, 'chunk heading', { id: 'one' });

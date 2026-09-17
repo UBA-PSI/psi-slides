@@ -750,6 +750,21 @@ console.log('\nlayout generations');
     ['a figure as a card', '::: cards 2\n' + DRAW + '\nB.\n:::\n', 'accept'],
     // A divider takes a card row beside its backdrop and its figure.
     ['a card row under a column heading', '# Part {#p}\n\n::: cards 2\n- A\n- B\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
+    // {.stack} says where the divider's content stands, so a divider with no
+    // content has nothing for it to say - the silent no-op this format
+    // refuses. Both directions, because the accepting one is half the value.
+    ['{.stack} on a divider with nothing under it',
+     '# Part {#p .stack}\n\n## free: G {#g}\n\nB.\n', /\{\.stack\} on the divider/, 'bad-section-stack'],
+    ['{.stack} over a divider figure', '# Part {#p .stack}\n\n' + DRAW + '\n## free: G {#g}\n\nB.\n', 'accept'],
+    ['{.stack} over divider prose', '# Part {#p .stack}\n\nA line under the heading.\n\n## free: G {#g}\n\nB.\n', 'accept'],
+    ['{.stack} over a divider card row',
+     '# Part {#p .stack}\n\n::: cards 2\n- A\n- B\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
+    // A backdrop is a ground behind the heading rather than content under it,
+    // so it leaves the divider with nothing to stack - and both files have to
+    // agree about that, or one of them accepts a class the other refuses.
+    ['{.stack} over a divider that only carries a backdrop',
+     '# Part {#p .stack}\n\n::: backdrop https://example.invalid/x.jpg\n\n## free: G {#g}\n\nB.\n',
+     /\{\.stack\} on the divider/, 'bad-section-stack'],
     ['a figure card under a column heading', '# Part {#p}\n\n::: cards 2\n' + DRAW + '\nB.\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
     // A `word:` prefix that is not one of the ten types used to fall through
     // to a literal heading with no data-tag - the search index and the
@@ -1806,8 +1821,8 @@ console.log('\nlayout generations');
      && !/\.section-outline \{[^}]*max-width/.test(cls.html),
      'the outline caps each row in its own type size');
   // A divider whose body is nothing but a figure lays it beside the heading.
-  ok(/\.chunk-section \.chunk-content:has\(> \.section-body > figure:only-child\)/.test(cls.html),
-     'a divider with a lone figure lays it beside the heading, not under it');
+  ok(/\.chunk-section:not\(\[data-section-layout=stack\]\) \.chunk-content:has\(> \.section-body > figure:only-child\)/.test(cls.html),
+     'a divider with a lone figure lays it beside the heading, not under it - unless it wrote {.stack}');
 
   // ── the ten a review found, each phrased as the failure that was there ──
   // A helper that writes a whole source and reports what was left on disk,
@@ -1838,6 +1853,46 @@ console.log('\nlayout generations');
     return (r.stdout || '') + (r.stderr || '');
   };
   const FM = '---\ntitle: T\n---\n\n## title: {#title}\n\n';
+
+  // ── {.stack}: the divider's content under the heading, full measure ──
+  // Beside the heading a figure gets about 55% of the frame, which is right
+  // for a drawing that balances a part title and unusable for one with six
+  // cells and a label in each. The class is on the one `#` heading rather
+  // than a seventh `section:` value, because `section:` is how the deck
+  // treats every divider and this is a fact about one divider's content -
+  // so all six variants have to keep drawing under it.
+  {
+    const DR = '::: draw 140x52\nbox a "A"\n:::\n';
+    const st = raw('---\ntitle: T\n---\n\n## title: {#t}\n\n'
+      + '# Under {#u .stack}\n\n' + DR + '\n## free: A {#a}\n\nX.\n\n'
+      + '# Beside {#b}\n\n' + DR + '\n## free: B {#bb}\n\nX.\n');
+    ok(st.code === 0, '{.stack} builds', st.out.split('\n')[0]);
+    const art = (id) => {
+      const m = new RegExp('<article[^>]*data-chunk-id="' + id + '"').exec(st.html || '');
+      return m ? m[0] : '';
+    };
+    ok(/data-section-layout="stack"/.test(art('u-section')),
+       'the written class reaches the divider as an attribute', art('u-section'));
+    ok(!/data-section-layout/.test(art('b-section')),
+       'and a divider that did not write it carries nothing new', art('b-section'));
+    // The guard is the load-bearing half: without it the beside grid still
+    // wins on a stacked divider whose body is a lone figure, which is
+    // exactly the case the class exists for.
+    ok(/\.chunk-section:not\(\[data-section-layout=stack\]\) \.chunk-content:has\(> \.section-body > figure:only-child\)/.test(st.html),
+       'the beside grid stands down for a stacked divider');
+    ok(/\.chunk-section\[data-section-layout=stack\] \.section-body \{[^}]*max-width: none/.test(st.html),
+       'and the stacked body gives up the 30em quotation measure');
+    // All six variants still draw. A divider variant is the deck's treatment
+    // of the heading; the layout is one divider's answer about its content,
+    // and the two do not interact.
+    for (const v of ['plain', 'tinted', 'rule', 'card', 'number', 'outline']) {
+      const r = raw('---\ntitle: T\nsection: ' + v + '\n---\n\n## title: {#t}\n\n'
+        + '# Under {#u .stack}\n\n' + DR + '\n## free: A {#a}\n\nX.\n');
+      ok(r.code === 0 && new RegExp('data-section="' + v + '"[^>]*data-section-layout="stack"').test(r.html || ''),
+         'section: ' + v + ' still draws under {.stack}', r.out.split('\n')[0]);
+    }
+  }
+
 
   // 1 · colsDepth outlived the chunk that opened it, so one unclosed
   // `::: cols` made every later ::: draw in the lecture a hard failure
@@ -1904,8 +1959,8 @@ console.log('\nlayout generations');
   // 9 · a class on a column heading parsed, was dropped, and neither file
   // said anything.
   const clsCol = raw(FM + '# A part {#p .bare}\n\n## free: A {#a}\n\nX.\n', ['--audience-only']);
-  ok(clsCol.code !== 0 && /"\.bare" - a # heading takes an \{#id\} and nothing else/.test(clsCol.out),
-     'a class on a column heading is refused rather than dropped');
+  ok(clsCol.code !== 0 && /"\.bare" - a # heading takes an \{#id\} and \.stack, and nothing else/.test(clsCol.out),
+     'a class from no column slot is refused rather than dropped', clsCol.out.split('\n')[0]);
   ok(/class-on-column/.test(lintOf(FM + '# A part {#p .bare}\n\n## free: A {#a}\n\nX.\n')),
      'and the linter says the same');
 
@@ -3033,8 +3088,8 @@ console.log('\nlayout generations');
   const colUnknown = lintOf(colSrc);
   ok(/class-on-column/.test(colUnknown) && !/unknown-class/.test(colUnknown), 'a class on a column heading is class-on-column in lint, said once', colUnknown);
   const colBuild = raw(colSrc);
-  ok(colBuild.code !== 0 && /takes an \{#id\} and nothing else/.test(colBuild.out) && !/valid: width/.test(colBuild.out),
-     'and the build says the same, never listing a chunk vocabulary for a line that takes none', colBuild.out.split('\n')[0]);
+  ok(colBuild.code !== 0 && /takes an \{#id\} and \.stack, and nothing else/.test(colBuild.out) && !/valid: width/.test(colBuild.out),
+     'and the build says the same, naming the column\'s own short vocabulary rather than a chunk\'s', colBuild.out.split('\n')[0]);
   const coverUnknown = lintOf(FM + '## free: A {#a}\n\nProse.\n'.replace('## free: A {#a}', '## closing: Bye {.foo #c}'));
   ok(/unknown-class/.test(coverUnknown) && !/class-on-cover-chunk/.test(coverUnknown), 'an unknown class on a cover chunk is reported once, as unknown-class');
   // A tail that does not end the line is neither prose nor a tail.

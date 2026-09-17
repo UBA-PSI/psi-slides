@@ -29,7 +29,18 @@ const SOURCE = `---
 title: Cue cards
 ---
 
-# The part
+# The part {#part}
+
+> note: The divider's own card: **said while the part title is still up**.
+
+> note: from 1
+> **after the divider's own beat**
+
+A divider is a slide the speaker talks on, so what is written here is its own.
+
+---
+
+A second beat of the divider.
 
 ## title: Cue cards {#t}
 
@@ -170,7 +181,10 @@ function buildFixture() {
   if (r.status !== 0) throw new Error('fixture build failed:\n' + r.stdout + r.stderr);
   const lint = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')],
     { cwd: ROOT, encoding: 'utf8' });
-  return { dir, speaker: fs.readFileSync(path.join(dir, 'speaker.html'), 'utf8'), lint: lint.stdout + lint.stderr };
+  return { dir,
+           speaker: fs.readFileSync(path.join(dir, 'speaker.html'), 'utf8'),
+           printNotes: fs.readFileSync(path.join(dir, 'print-notes.html'), 'utf8'),
+           lint: lint.stdout + lint.stderr };
 }
 
 const segsOf = (html, id) =>
@@ -178,7 +192,7 @@ const segsOf = (html, id) =>
 
 export async function run({ page, report }) {
   const { ok } = report;
-  const { dir, speaker, lint } = buildFixture();
+  const { dir, speaker, printNotes, lint } = buildFixture();
 
   // ── the parser's position rule, read off the built page ──────────
   ok(JSON.stringify(segsOf(speaker, 'three')) === '[0,1]', 'a note before the first --- is segment 0, one after it segment 1', JSON.stringify(segsOf(speaker, 'three')));
@@ -199,6 +213,23 @@ export async function run({ page, report }) {
   ok(/note-from-beyond/.test(lint) && (lint.match(/note-from-beyond/g) || []).length === 1,
      'and lint.js warns once when the number is past the chunk\'s last beat',
      lint.trim().split('\n').filter(l => /note-from/.test(l)).join(' | '));
+
+  // ── a note under a # heading belongs to the divider ──────────────
+  // It used to be an orphan and arrived as the first card of the chunk after
+  // it: the sentence that says what the part is for was said one slide late,
+  // and nothing anywhere reported it. A divider has no top-level segments -
+  // a `---` under a heading is a beat marker inside one body - so an
+  // unpinned block is a chunk note on beat 0 and `from N` names a later one.
+  ok(JSON.stringify(pinsOf('part-section')) === JSON.stringify(['seg0', 'at1']),
+     'a note under a # heading is the divider\'s, on beat 0 or on the beat it pins itself to',
+     JSON.stringify(pinsOf('part-section')));
+  ok(/<template data-notes-for="part-section">/.test(speaker),
+     'and the cockpit\'s notes pane finds it under the divider\'s own id');
+  ok(!/data-notes-for="t"/.test(speaker),
+     'the chunk that follows the divider gets none of it');
+  ok(/class="column-heading">The part<\/h1>[\s\S]{0,4000}?speaker-note[\s\S]{0,400}?still up/.test(printNotes),
+     'print-notes.html carries it under the part title');
+  ok(!/\s+error\s+\S/.test(lint), 'and the linter says nothing about it', lint.split('\n')[0]);
 
   // ── two windows on the fixture ───────────────────────────────────
   const { server, port } = await serve(dir);

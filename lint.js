@@ -406,7 +406,7 @@ import {
   DG_PLACED_HEADS, DG_PLACE_INTRO, dgNoPlacement,
 } from './diagram-core.mjs';
 import {
-  CHUNK_SLOTS, CHUNK_STYLE_CLASSES, VALID_WIDTHS, VALID_CHUNK_CLASSES,
+  CHUNK_SLOTS, CHUNK_STYLE_CLASSES, COLUMN_SLOTS, VALID_WIDTHS, VALID_CHUNK_CLASSES,
   CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
   splitTail, parseTail, strayTailProblem, parseDrawOpener, parseRevealMark,
 } from './tails.mjs';
@@ -477,9 +477,10 @@ function splitFrontmatter(src) {
 // chunk).
 function parseAttributeTail(line, what, { column = false } = {}) {
   const { text, tail, stray } = splitTail(line);
-  const t = parseTail(tail, CHUNK_SLOTS, what, { id: 'one', classes: column ? 'none' : 'slots' });
+  const t = parseTail(tail, column ? COLUMN_SLOTS : CHUNK_SLOTS, what,
+    { id: 'one', classes: column ? 'column' : 'slots' });
   if (stray) t.problems.unshift(strayTailProblem(what, stray));
-  return { text, classes: t.classes, ids: t.ids, problems: t.problems };
+  return { text, classes: t.classes, ids: t.ids, slots: t.slots, problems: t.problems };
 }
 
 // A file that *documents* this directive must not thereby *use* it. The scan
@@ -3013,6 +3014,9 @@ function lintFile(filePath) {
 
     const diagramOpen = parseDrawOpener(line);
     if (diagramOpen) {
+      // A figure under a `#` heading is the divider's content, which is what
+      // {.stack} lays out - build.js splices the compiled block into colBody.
+      if (!chunk && col) col.hasBody = true;
       // Mirrors build.js: an embed's body is its caption, and a figure
       // opened there sits inside a <figcaption>. An overlay takes a figure -
       // a small drawing on a card over a photograph - and so does a card.
@@ -3079,7 +3083,13 @@ function lintFile(filePath) {
         const dividerId = id + '-section';
         if (!ids.has(dividerId)) ids.set(dividerId, fmLines + ln);
       }
-      col = { line: ln, heading: attr.text, id, chunks: [], backdropSeen: 0, dock: null };
+      col = { line: ln, heading: attr.text, id, chunks: [], backdropSeen: 0, dock: null,
+        // `{.stack}` puts the divider's own content under the heading at the
+        // full measure instead of beside it, so a divider with no content has
+        // nothing for it to say. Mirrors the build's parse-time refusal
+        // (`bad-section-stack`); `hasBody` is filled in by the divider-body
+        // walk further down, which is the only place that knows.
+        stack: !!(attr.slots && attr.slots.stack && attr.slots.stack.written), hasBody: false };
       if (id) colIds.add(id);
       columns.push(col);
       continue;
@@ -3403,6 +3413,9 @@ function lintFile(filePath) {
           + 'more than six cards in a row is a table');
     }
     if (cardsOpen || rowsOpen) {
+      // As for a figure: a card row under a `#` heading is content the
+      // divider carries, so {.stack} has something to place.
+      if (!chunk && col) col.hasBody = true;
       const kind = rowsOpen ? 'rows' : 'cards';
       const cardsTail = parseTail((rowsOpen ? rowsOpen[1] : cardsOpen[2]), CARDS_SLOTS, `::: ${kind}`);
       for (const p of cardsTail.problems) {
@@ -3735,6 +3748,20 @@ function lintFile(filePath) {
           proseEntries.push({ text: line, ln });
         }
       }
+    } else if (col && line.trim()) {
+      // A line under a `#` heading with no chunk open yet is the divider's
+      // own content - build.js pushes exactly these into `colBody`. A note
+      // is the speaker's rather than the slide's, and a line inside an
+      // overlay or a dock belongs to that block, not to the divider's body.
+      // Only `col.stack` reads this, and only to refuse a `{.stack}` with
+      // nothing under the heading to stack.
+      if (/^>\s*(note|annot):/i.test(line)) inMetaBlock = true;
+      else if (inMetaBlock && /^>/.test(line)) { /* the same block continues */ }
+      else {
+        inMetaBlock = false;
+        const capture = activeDirective && (activeDirective.kind === 'dock' || activeDirective.kind === 'overlay');
+        if (!capture) col.hasBody = true;
+      }
     }
   }
   flushChunk();
@@ -3793,6 +3820,14 @@ function lintFile(filePath) {
 
   for (const c of columns) {
     if (c.heading === null) continue;
+    // The build refuses this at parse time; a linter that let it through
+    // would be the direction this project does not allow.
+    if (c.stack && !c.hasBody) {
+      add(c.line, 'error', 'bad-section-stack',
+          `{.stack} on a divider with no content under its heading – .stack puts the part's own figure, `
+          + 'quotation or card row under the heading at full width instead of beside it; write something '
+          + 'under the # line, or drop the class');
+    }
     if (c.chunks.length < ORPHAN_MIN) {
       add(c.line, 'warn', 'orphan-column',
           `column '${c.heading}' has ${c.chunks.length} chunk${c.chunks.length === 1 ? '' : 's'} (min ${ORPHAN_MIN})`);
