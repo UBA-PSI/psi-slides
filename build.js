@@ -21725,6 +21725,37 @@ async function openAudienceProbe(absIn, label, viewport, verb = 'read') {
   return { browser, page };
 }
 
+// Hold still before looking. Both probes below press a key and then wait a
+// fixed 360 ms, which is longer than a reveal's 180 ms fade and the 260 ms
+// crossfade - and shorter than two things that matter: the camera's own
+// glide, and a `::: backdrop … reveal` at 620 ms. A picture taken at 360 ms
+// of that reveal is the clip-path part-way open, and a full-frame photograph
+// is then a centred rectangle with paper round it: measured on a keynote,
+// #klausur came out 1352x775 in a 1600x900 frame and #projektmesse 1260x708,
+// and both were read off the contact sheet as a layout defect - the backdrop
+// being scaled with the slide - which they are not. The DOM says
+// inset(0) and background-size: cover at rest; the camera had simply
+// photographed a state the projection passes through.
+//
+// So wait for the transitions rather than for a number. getAnimations() sees
+// CSS transitions and animations, which is every one of the cases above; a
+// figure `step` is tweened in JavaScript and is covered by the fixed wait the
+// callers keep. The cap is there because a deck may hold a looping animation
+// (an autoplaying figure, a caret) that never finishes, and a probe that
+// waits for one of those would never return.
+const PROBE_SETTLE_MS = 1200;
+function settleProbe(page, cap = PROBE_SETTLE_MS) {
+  return page.evaluate((ms) => new Promise((done) => {
+    const t0 = performance.now();
+    const tick = () => {
+      const running = document.getAnimations().some(a => a.playState === 'running');
+      if (!running || performance.now() - t0 > ms) { done(Math.round(performance.now() - t0)); return; }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  }), cap).catch(() => 0);
+}
+
 // WIDTHxHEIGHT off the command line, for both commands that take one. Exits
 // rather than falling back to the default: a mistyped viewport that silently
 // measures 1600x900 answers a question nobody asked.
@@ -21777,6 +21808,7 @@ async function runFrames(absIn, viewport, outDir) {
   for (let i = 0; i < 400; i++) {
     const id = await where();
     if (!id) break;
+    await settleProbe(page);
     const shot = await page.screenshot();
     const hash = crypto.createHash('sha1').update(shot).digest('hex');
     if (hash === lastHash) { if (++same >= 2) break; }
@@ -21923,6 +21955,7 @@ async function runCheckFit(absIn, viewport) {
   const figType = new Map();
   let states = 0, lastHash = null, same = 0;
   for (let i = 0; i < 400; i++) {
+    await settleProbe(page);
     const st = await probe();
     if (!st) break;
     const shot = await page.screenshot();
