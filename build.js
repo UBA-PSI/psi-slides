@@ -22191,16 +22191,30 @@ async function runCheckFit(absIn, viewport) {
   const tall = all.filter(b => b.h > b.vpH);
   const where = `${viewport.width}x${viewport.height}`;
   reportFigureType(figType, where);
+  // Named, all of them, and on their own lines. The summary used to carry a
+  // count and the first four ids, which is the shape of a line nobody can act
+  // on: a deck with nine tall chunks got "9 chunk(s) … (#a, #b, #c, #d, …)"
+  // and the author had no way to find the other five but to walk the deck.
+  // They are still not a failure and still change no exit code - a tall chunk
+  // is shown by scrolling and the author may well have meant it - so this is
+  // a list to read, with the height beside each name so the ones that are
+  // barely over can be told from the ones that are twice the frame.
   const tallNote = tall.length
-    ? ` ${tall.length} chunk(s) are taller than the frame and are read by scrolling`
-      + ` (${tall.slice(0, 4).map(b => '#' + b.id).join(', ')}${tall.length > 4 ? ', …' : ''}).`
+    ? ` ${tall.length} chunk(s) are taller than the frame and are read by scrolling:`
     : '';
+  const tallLines = tall
+    .slice()
+    .sort((a, b) => b.h - a.h)
+    .map(b => `  #${b.id} (${b.tag}${b.width ? ', .' + b.width : ''}) – ${b.h} px`
+      + ` in a ${b.vpH} px frame, walked from beat ${b.beat}.`);
   if (!clipped.length) {
     console.log(`[check-fit] ${states} state(s) at ${where}: every slide that fits the frame is inside it.${tallNote}`);
+    for (const line of tallLines) console.log(line);
     return 0;
   }
   console.error(`[check-fit] ${states} state(s) at ${where}: ${clipped.length} slide(s) fit the frame`
     + ` and are positioned outside it.${tallNote}`);
+  for (const line of tallLines) console.error(line);
   for (const b of clipped) {
     const side = b.top < 0 && b.bottom > b.vpH ? 'clipped at both ends'
       : b.top < 0 ? `${-b.top} px off the top` : `${b.bottom - b.vpH} px off the bottom`;
