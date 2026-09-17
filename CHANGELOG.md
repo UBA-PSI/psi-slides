@@ -73,6 +73,8 @@ from building the same way is a major version.
   the figure manual decline the canvas because they are catalogues. The
   editor draws the canvas as a dashed rectangle. `figure-type-uneven` is
   gone; `figure-type` now says how many labels the canvas holds.
+  A stacked divider (`# Heading {.stack}`) is on a canvas too – `.full`
+  wide and 20 labels tall, the 0.72 of the slide its rule allows.
 - **The ink edge is what a reader can see.** `blocks: left` aligns a figure
   by its leftmost painted element, skipping frames that draw neither
   outline nor fill (a `.bare .clear` table), and `flush left` on a relative
