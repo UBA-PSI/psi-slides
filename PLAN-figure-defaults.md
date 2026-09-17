@@ -545,3 +545,36 @@ After 1–5 the keynote's source should lose roughly a third of its figure
 lines (the `same as`, `anchor`, `h`, `.middle`, `.bare` rows counted in §1)
 and build with the same 0 warnings – which is the test of the plan: a deck
 written the short way should look like the deck written the long way.
+
+## 6. What the spacing pass reported
+
+The pass that set every gap, shaft and peer size in the keynote by hand
+(twenty figures, all inside their canvas, zero warnings) listed where the
+engine made it harder than it should be, ordered by time cost. It confirms
+§2 from the other side and adds five items.
+
+1. No way to say "a row of peers: one size, one gap" (§2.2 – the largest
+   lever).
+2. `same as X` copies width and height together; a one-line box beside a
+   two-line one wants the neighbour's height and its own width – `same h as`
+   / `same w as`, and `same h as` on a `zone`, which requires both numbers
+   today and so cannot take it at all.
+3. A written `h` too small for its label is silent, where a written `w` warns
+   – `#drei-orte` shipped with the text inside the padding.
+4. A visible shaft is not expressible: the head eats ~7.65 units of every
+   `gap`, a number from no document (§2.1 fixes the default; document the
+   head length either way).
+5. The label-height is the deck's real unit of spacing and is not addressable
+   – a `lh` suffix on `gap` and `pad`.
+6. No per-figure slack report: `--check-fit` speaks only past the canvas; a
+   line per figure with canvas, drawing and slack per axis is information the
+   build already has.
+7. The canvas height cannot be traded against the chunk's own caption lines
+   (§2 has no item for this: a figure chunk with four lines of prose under
+   the drawing has the same 16 labels as one with none).
+8. Two zones cannot be declared as one row (see 2).
+9. A container's `pad` is invisible to anything placed against its members –
+   a text hung off a member lands inside the container's edge with no
+   warning, because a container is outside the overlap census.
+10. A written table `row` below the type's own line height is silent.
+11. Placing a row inside a zone is y-arithmetic by hand (§2.6, `in zone`).
