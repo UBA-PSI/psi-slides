@@ -3217,7 +3217,12 @@ const FIG_UNDERFILL = 0.5;
 // a bigger label is fewer labels in the same column and fewer label-heights
 // in the same reserve; the box on the slide is the same box either way, and
 // that is the property the whole arrangement rests on.
-function figureCanvas({ width, ft, tag, frame, unit, align }) {
+// A stacked divider's figure may take 0.72 of the slide (its own max-height
+// rule), and its canvas says so: 20 labels at the ordinary em against the
+// chunk's 16, measured as floor(900 * 0.72 / 31.59). Sized to the box it is
+// drawn in, so the overflow and underfill numbers describe that box.
+const FIG_CANVAS_H_LABELS_STACK = 20;
+function figureCanvas({ width, ft, tag, frame, unit, align, hLabels = FIG_CANVAS_H_LABELS }) {
   if (frame === 'none') return null;
   const mult = ft > 0 ? ft : 1;
   const [uw, uh] = unit && unit.length === 2 ? unit : DG_UNIT;
@@ -3231,7 +3236,7 @@ function figureCanvas({ width, ft, tag, frame, unit, align }) {
   const em = figureRefEm(tag);
   return {
     w: (col / (em * mult)) * DG_FONT,
-    h: (FIG_CANVAS_H_LABELS * FIG_REF_BODY_PX / (em * mult)) * DG_FONT,
+    h: (hLabels * FIG_REF_BODY_PX / (em * mult)) * DG_FONT,
     align,
   };
 }
@@ -4677,16 +4682,29 @@ function parseLecture(src) {
         const dgInFlow = !!currentChunk && !cardsBlock && !currentDock && !currentOverlay
           && !currentExpansion
           && layoutStack.every(l => l.kind === 'slide' || l.kind === 'script');
-        const dgFt = currentChunk ? chunkFigureType(currentChunk, deckFigureType) : 1;
-        const dgCanvas = dgInFlow
+        // One divider does have a column: `# Heading {.stack}` sets its body
+        // at the .full measure, and a keynote that opens each part on a
+        // figure there wants that figure at the same type as every other
+        // figure slide - measured, the four stacked dividers of one talk
+        // settled 26% under the deck while every chunk figure sat on its
+        // canvas. So a stacked divider's figure is on the .full canvas; a
+        // beside-layout divider still hugs, because its figure shares the
+        // frame with the heading.
+        const dgStacked = !currentChunk && !!currentColumn && !!currentColumn.stack
+          && !cardsBlock && !currentDock && !currentOverlay && !currentExpansion
+          && layoutStack.length === 0;
+        const dgFt = currentChunk ? chunkFigureType(currentChunk, deckFigureType)
+          : (deckFigureType > 0 ? deckFigureType : 1);
+        const dgCanvas = dgInFlow || dgStacked
           ? figureCanvas({
-              width: currentChunk.width,
+              width: currentChunk ? currentChunk.width : 'full',
               ft: dgFt,
-              tag: currentChunk.tag,
+              tag: currentChunk ? currentChunk.tag : 'free',
               // The figure's own `frame`, else the deck's, else the default.
               frame: diagramBlock.frame != null ? diagramBlock.frame : deckDrawFrame,
               unit: dgUnit,
-              align: chunkBlocks(currentChunk, deckBlocks),
+              align: currentChunk ? chunkBlocks(currentChunk, deckBlocks) : deckBlocks,
+              hLabels: currentChunk ? FIG_CANVAS_H_LABELS : FIG_CANVAS_H_LABELS_STACK,
             })
           : null;
         // The compiler learns one thing from the opener, the grid, and takes
@@ -4709,7 +4727,9 @@ function parseLecture(src) {
           // slide, not a text column.
           onSized: currentChunk
             ? (sized) => recordFigureType(sized, currentChunk.width, dgWhere, dgFt, dgUnit, currentChunk.tag)
-            : null,
+            : dgStacked
+              ? (sized) => recordFigureType(sized, 'full', dgWhere, dgFt, dgUnit, 'free')
+              : null,
           alt: currentChunk ? currentChunk.heading : '',
           base: diagramBase,
           onCompile: (model) => {

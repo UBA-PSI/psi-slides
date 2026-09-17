@@ -481,8 +481,13 @@ resolves the fallback chain once on `.psi-diagram`, and `figureCapProbe`,
 **Which figures get one.** Only a `::: draw` in the chunk's own flow, which is
 the only place the chunk's column is the right box. A figure in a card, a
 pane, a dock, an overlay or an expansion has a fraction of that column; a
-divider figure has no width class at all and its frame is the slide. Those
-keep the hugging box. `::: slide` and `::: script` are not layout – they say
+beside-layout divider figure shares the frame with its heading. Those keep
+the hugging box. **A stacked divider (`# Heading {.stack}`) is the one
+divider with a column**, the `.full` measure, so its figure is on a canvas
+too – `.full` wide and 20 labels tall, the 0.72 of the slide its own rule
+allows – and a keynote that opens each part on a figure gets the same type
+there as on every chunk. Measured before that: four stacked dividers of one
+talk settled 26% under the deck. `::: slide` and `::: script` are not layout – they say
 which half of the chunk is the screen – so a figure inside one still gets a
 canvas.
 
