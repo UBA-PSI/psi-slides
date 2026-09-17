@@ -873,6 +873,56 @@ export async function run({ report }) {
       String(rowH(plain)));
   }
 
+  // ── flush meets ink, not an outline nobody draws ──────────────────
+  // `.bare .clear` leaves a frame the layout still uses and a reader cannot
+  // see. Lining a caption up with that edge put it a padding to the left of
+  // the words it captioned, with nothing drawn at either coordinate to say
+  // which one was the edge, and the ink correction the stylesheet reads
+  // pointed at the same invisible line. Both halves are asserted here, and
+  // each one against the control that has to stay still: an ordinary box,
+  // whose outline *is* its edge, and a chart frame, whose parts sit flush
+  // with it so insetting one would walk an axis label off its own axis.
+  {
+    const inkX = (out) => {
+      const m = out.match(/--dg-ink-x:([\d.]+)/);
+      return m ? +m[1] : null;
+    };
+    const vbW = (out) => {
+      const m = out.match(/viewBox="[-\d.]+ [-\d.]+ ([\d.]+) /);
+      return m ? +m[1] : null;
+    };
+    const bare = fig('a caption under a bare table',
+      'table t "A|B" at 0,0 col 1,1 row 0.5 {.bare .clear .left}\n  "one|two"\n\n'
+      + 'text c "caption" below t gap 0.4 flush left {.left}');
+    const solid = fig('a caption under an ordinary box',
+      'box b "B" at 0,0 w 2\ntext c "caption" below b gap 0.4 flush left {.left}');
+    const cellX = bare && labelAt(bare, 't-0-0')[0];
+    const capX = bare && labelAt(bare, 'c')[0];
+    ok(bare && Math.abs(cellX - capX) < 0.01,
+      'flush left under a bare table lands on the cell text, not on the invisible frame',
+      `cell at ${cellX}, caption at ${capX}`);
+    const bx = solid && +attrOf(solid, 'b--r', 'x');
+    ok(solid && Math.abs(bx - labelAt(solid, 'c')[0]) < 0.01,
+      'and against a box that draws its outline it still lands on the outline',
+      `box at ${bx}, caption at ${solid && labelAt(solid, 'c')[0]}`);
+    // The ink correction: the drawing starts where the paint starts.
+    const tOnly = fig('a table alone',
+      'table t "A|B" at 0,0 col 1,1 row 0.5 {.bare .clear .left}\n  "one|two"');
+    const bOnly = fig('a box alone', 'box b "B" at 0,0 w 2');
+    ok(tOnly && bOnly && inkX(tOnly) * vbW(tOnly) > inkX(bOnly) * vbW(bOnly) + 6,
+      '--dg-ink-x skips a frame that draws neither outline nor fill',
+      `table ${(inkX(tOnly) * vbW(tOnly)).toFixed(1)}px vs box ${(inkX(bOnly) * vbW(bOnly)).toFixed(1)}px`);
+    // A bars frame is `.bare .clear` too and must NOT be inset: its baseline
+    // and its columns are drawn flush with the frame, so a tick label held to
+    // it by `flush left` belongs on the frame's own edge.
+    const chart = fig('a caption under a chart',
+      'bars f "3,4,5" at 0,0 w 2 h 1\ntext c "caption" below f gap 0.4 flush left {.left}');
+    const fx = chart && +attrOf(chart, 'f--r', 'x');
+    ok(chart && Math.abs(fx - labelAt(chart, 'c')[0]) < 0.01,
+      "and a chart frame keeps its own edge, because a chart's parts start there",
+      `frame at ${fx}, caption at ${chart && labelAt(chart, 'c')[0]}`);
+  }
+
   // ── zone: an area that is painted under what stands in it ─────────
   // Three things separate it from the `box {.dashed .clear}` plus `text` that
   // authors were writing, and each is asserted on the drawing rather than on

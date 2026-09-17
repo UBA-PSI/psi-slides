@@ -1260,6 +1260,57 @@ export function dgHasFill(classes) {
   return DG_FILL_CLASSES.some(c => classes.has(c));
 }
 
+// **Does this element put anything on the paper where its box says it does?**
+//
+// `.bare` takes the outline off and `.clear` takes the fill off, so together
+// they leave a frame nobody can see – which is what a `table`'s and a
+// `lanes`'s own frame always is, and what a cell of a table of prose usually
+// is. The box is still there for the layout, and that is right: it is what
+// the cells are placed against. What is wrong is treating its edge as an edge
+// a reader can line something up with, because there is nothing there.
+//
+// The default differs by kind and that is the whole subtlety. A box or a dot
+// is filled with the paper unless it says `.clear`, so it knocks out whatever
+// is behind it and one of the two words is not enough. A free `text` and an
+// `edge` label have no ground at all unless a fill class asks for one, which
+// is the same asymmetry `DG_FILL_CLASSES`' own comment records. A `container`
+// draws its outline and nothing else.
+export function dgDrawsGround(kind, classes) {
+  const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
+  if (kind === 'box' || kind === 'dot') return !has('bare') || !has('clear');
+  if (kind === 'container' || kind === 'brace') return !has('bare');
+  return dgHasFill(classes);
+}
+
+// **Where an element's ink starts, as an inset from its box on each axis.**
+//
+// Zero for anything that draws a ground: the outline or the fill *is* the
+// edge. For a frame that draws neither, the nearest its ink can come to the
+// box is its own padding – which for a `.left` label is exactly where the
+// words begin, and for a centred one is the honest floor. A free `text` and
+// an `image` are their own ink already: `sizeOf` gives a text the bare glyph
+// run with no padding at all, which is the same `freeText` exception
+// `labelBox` carries.
+//
+// One reader: `flush` on a relative placement. `--dg-ink-x` answers the same
+// question from the other side - it has the drawables in hand and can take
+// the leftmost painted one - so it needs no inset at all.
+//
+// A frame a statement synthesised is the one case where the padding is the
+// wrong answer, and which way it goes is not guessable from the classes. A
+// `table` puts its cells' words a padding inside the frame, so the padding is
+// exactly where its ink starts. A `bars`, a `grid`, a `plot`, a `lanes` and a
+// `sequence` all draw their parts flush with the frame - a baseline starts at
+// the corner - so insetting one moves an axis label off the axis it names.
+// Measured before this line existed: the tutorial's chart caption walked
+// 13 px out of its own figure and took the viewBox with it.
+export function dgInkInset(kind, classes, padX, padY, node) {
+  if (kind === 'text' || kind === 'image') return [0, 0];
+  if (dgDrawsGround(kind, classes)) return [0, 0];
+  if (node && node.frame) return node.frame === 'table' ? [padX ?? DG_PAD_X, padY ?? DG_PAD_Y] : [0, 0];
+  return [padX ?? DG_PAD_X, padY ?? DG_PAD_Y];
+}
+
 // ── diagram source parsing ──────────────────────────────────────────
 // Line-oriented on purpose. Every statement fits on one line, every
 // reference is by name, and nothing is addressed by position – so a line
@@ -6012,6 +6063,36 @@ export function createDiagramCompiler(env = {}) {
           cy = pts[0][1] + (pts[1][1] - pts[0][1]) * f;
         } else {
           const ref = boxes.get(place.ref);
+          // **`flush` names an edge a reader can see, so it is answered
+          // against the reference's ink and not against its box.** A
+          // `table {.bare .clear}` – and every `table`'s own frame, which is
+          // always both – has an outline nobody draws, so lining a caption up
+          // with it put the caption 13 px to the left of the column of cell
+          // text it was captioning, on a slide where nothing was drawn at
+          // either coordinate to say which one was the edge. Measured on a
+          // keynote's #vorgang: the words under the table and the words in it
+          // stood 13 px apart with no line between them to explain it.
+          //
+          // The element's own inset is subtracted for the same reason, so the
+          // rule reads ink to ink: two bare tables stacked line their text up,
+          // not their invisible frames.
+          //
+          // `gap` deliberately keeps the box. A gap is a number the author
+          // tunes by eye and any ruler makes it as tunable; an alignment is
+          // either right or wrong, and only one of the two coordinates is
+          // visible. Moving both would also have re-spaced every stacked bare
+          // box in the corpus for no defect anyone had reported.
+          const rIn = (() => {
+            if (!ref) return ref;
+            const rn = nodeById.get(place.ref);
+            const rst = state.get(place.ref);
+            if (!rn || !rst) return ref;
+            const [ix, iy] = dgInkInset(rn.kind, rst.classes, ref.padX, ref.padY, rn);
+            if (!ix && !iy) return ref;
+            return { x: ref.x + ix, y: ref.y + iy,
+              w: Math.max(ref.w - 2 * ix, 0), h: Math.max(ref.h - 2 * iy, 0) };
+          })();
+          const [ownIX, ownIY] = dgInkInset(node.kind, st.classes, padX, padY, node);
           if (!ref) { cx = 0; cy = 0; }
           // **`gap` is square, and its ruler is one row.** A number that
           // *addresses* the grid is axis-keyed – a cell has a width and a
@@ -6038,16 +6119,16 @@ export function createDiagramCompiler(env = {}) {
             cx = place.dir === 'right'
               ? ref.x + ref.w + place.gap * uh + w / 2
               : ref.x - place.gap * uh - w / 2;
-            cy = place.align === 'top' ? ref.y + h / 2
-              : place.align === 'bottom' ? ref.y + ref.h - h / 2
-              : ref.y + ref.h / 2;
+            cy = place.align === 'top' ? rIn.y + h / 2 - ownIY
+              : place.align === 'bottom' ? rIn.y + rIn.h - h / 2 + ownIY
+              : rIn.y + rIn.h / 2;
           } else {
             cy = place.dir === 'below'
               ? ref.y + ref.h + place.gap * uh + h / 2
               : ref.y - place.gap * uh - h / 2;
-            cx = place.align === 'left' ? ref.x + w / 2
-              : place.align === 'right' ? ref.x + ref.w - w / 2
-              : ref.x + ref.w / 2;
+            cx = place.align === 'left' ? rIn.x + w / 2 - ownIX
+              : place.align === 'right' ? rIn.x + rIn.w - w / 2 + ownIX
+              : rIn.x + rIn.w / 2;
           }
         }
         // `anchor` is part of the placement expression too, and it is the only
@@ -7344,11 +7425,29 @@ export function createDiagramCompiler(env = {}) {
       if (explicit) return explicit;
       return dgLabelAnchor(((f.cls && f.cls.get(owner)) || '').split(/\s+/));
     };
-    const extentsOf = (f, into, visible) => {
+    // Does the drawable this gid names put anything on the paper? A rect or a
+    // circle belonging to an element that draws neither an outline nor a fill
+    // does not - see dgDrawsGround - and it is exactly the drawable that makes
+    // a figure look indented, because a `table`'s frame is always both and its
+    // cells' text starts a padding further in. Labels, images, paths and
+    // waypoints are ink by construction.
+    const paints = (f, gid) => {
+      const owner = ownerOf(gid);
+      const cls = new Set(((f.cls && f.cls.get(owner)) || '').split(/\s+/).filter(Boolean));
+      return dgDrawsGround(kindOf.get(owner), cls);
+    };
+    // `ink`, when a caller passes one, collects the same boxes minus the
+    // frames nobody can see. Two lists rather than one because the *frame* has
+    // to hold everything - a bare table still reserves its own width - while
+    // the ink edge is what a stylesheet lines the drawing up by.
+    const extentsOf = (f, into, visible, ink) => {
+      const both = (b, isInk) => { into.push(b); if (ink && isInk) ink.push(b); };
       for (const [gid, vec] of f.geom) {
         if (visible && !visible(gid)) continue;
-        if (gid.endsWith('--r') || gid.endsWith('--i')) into.push({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] });
-        else if (gid.endsWith('--c')) into.push({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 });
+        if (gid.endsWith('--r') || gid.endsWith('--i')) {
+          both({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] }, gid.endsWith('--i') || paints(f, gid));
+        }
+        else if (gid.endsWith('--c')) both({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 }, paints(f, gid));
         else if (gid.endsWith('--l')) {
           // A label with no measured width is a defect in this file, not
           // something an author can cause: the four places that position one
@@ -7374,20 +7473,20 @@ export function createDiagramCompiler(env = {}) {
           const [lw, lh] = turned ? [ext2[1], ext2[0]] : ext2;
           const a = turned ? 'middle' : anchorFor(owner, f);
           const x = a === 'start' ? vec[0] : a === 'end' ? vec[0] - lw : vec[0] - lw / 2;
-          into.push({ x, y: vec[1] - lh / 2, w: lw, h: lh });
+          both({ x, y: vec[1] - lh / 2, w: lw, h: lh }, true);
         }
-        else for (let i = 0; i < vec.length; i += 2) into.push({ x: vec[i], y: vec[i + 1], w: 0, h: 0 });
+        else for (let i = 0; i < vec.length; i += 2) both({ x: vec[i], y: vec[i + 1], w: 0, h: 0 }, true);
       }
     };
-    const liveBoxes = [];
-    for (const f of frames) extentsOf(f, liveBoxes);
-    const printBoxes = [];
+    const liveBoxes = [], liveInk = [];
+    for (const f of frames) extentsOf(f, liveBoxes, null, liveInk);
+    const printBoxes = [], printInk = [];
     // printCls, not last.cls: anchorFor reads the classes to decide which side
     // of its origin a label occupies, and a pass handed no classes at all
     // silently treats every label as centred – which under-reserves a `.right`
     // one by half its width and clips it off the edge of the paper.
     extentsOf({ geom: printGeom, ext: last.ext, cls: printCls, labelAnchor: last.labelAnchor },
-      printBoxes, (gid) => (printVis.get(ownerOf(gid)) ?? 1) > 0);
+      printBoxes, (gid) => (printVis.get(ownerOf(gid)) ?? 1) > 0, printInk);
     const boxFor = (list) => {
       const bb = list.length ? dgUnion(list) : { x: 0, y: 0, w: 100, h: 100 };
       return [bb.x - DG_MARGIN, bb.y - DG_MARGIN,
@@ -7569,8 +7668,21 @@ export function createDiagramCompiler(env = {}) {
     // estimate made without a browser and a deliberately generous one. On the
     // left edge that costs nothing, because the leftmost drawable is a shape
     // or a start-anchored label and both begin exactly at their origin.
-    const inkX = (DG_MARGIN / vbW).toFixed(5);
-    const liveInkX = (DG_MARGIN / lvW).toFixed(5);
+    //
+    // It used to be exactly that margin, on the reasoning that the leftmost
+    // drawable is a shape or a start-anchored label and both begin at their
+    // origin. True, and not enough: the leftmost drawable can also be a frame
+    // that draws nothing. A `table`'s own frame is always `.bare .clear`, and
+    // a table of prose usually makes its cells both as well, so the left edge
+    // the correction found was an outline nobody paints and the column of
+    // cell text stood a padding to the right of the heading above it -
+    // measured on a keynote's #vorgang, 13 px in a 618-wide viewBox. So the
+    // number is the leftmost *painted* box now, and it falls back to the
+    // frame's own edge for a figure that paints nothing at all.
+    const inkLeft = (list, fallback) => (list.length ? dgUnion(list).x : fallback);
+    const printSrc = printBoxes.length ? printInk : liveInk;
+    const inkX = ((inkLeft(printSrc, vbX + DG_MARGIN) - vbX) / vbW).toFixed(5);
+    const liveInkX = ((inkLeft(liveInk.concat(printInk), lvX + DG_MARGIN) - lvX) / lvW).toFixed(5);
     // The same number the caller may want in Node, where the chunk's width
     // class is known and the label size in the room can therefore be
     // estimated. Optional: the editor compiles in the browser and passes none.
