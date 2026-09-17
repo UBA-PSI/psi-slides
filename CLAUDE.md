@@ -117,8 +117,12 @@ node build.js <source.md> --watch --serve         # live reload over http
 # counts, so cards and rows overflow with a clean lint.
 # It also measures every figure's base label against the body type beside it
 # and reports the deck's spread in one line, naming any drawing that is
-# behind its own slide (under 0.8x, or under 18 px). Those are notes and
-# change no exit code; the static half is the build's `figure-type-small`.
+# behind its own slide (under 0.8x, or under 18 px) – and, since the keynote
+# work, the deck's median settled body type with every slide whose figure took
+# it more than 15% under that. Those are notes and change no exit code; the
+# static halves are the build's `figure-type-small` and `figure-type-uneven`,
+# both emitted once at the end of the parse because the second compares a
+# slide with the deck it is in.
 node build.js <source.md> --check-fit
 node build.js <source.md> --check-fit --viewport 1920x1080
 #
@@ -325,15 +329,18 @@ A chunk can opt out of that derivation with `::: slide` (this block is the scree
 
 Chunk grammar: `## type: Heading | Sub-Heading {.width #id}` where `type` is one of `title`, `closing`, `outline`, `principle`, `statement`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow` (28em), `standard` (36em), `wide` (52em), `full` (72em). The `|` sub-heading and the `{...}` attribute tail are both optional; width defaults to `standard`.
 
-An attribute tail may also carry seven non-width classes: `.bare`, `.center`
-and `.middle` (audience-only) and `.wrap-none` / `.wrap-balance` /
+An attribute tail may also carry the non-width classes: `.bare`, `.center`
+and `.middle` (audience-only), `.wrap-none` / `.wrap-balance` /
 `.blocks-left` /
 `.blocks-center` (`CHUNK_STYLE_CLASSES`, a `style:` key answered for one chunk,
-and these four reach print). The whole tail vocabulary is `CHUNK_SLOTS` in
+and these four reach print), and `.figure-type-60` … `.figure-type-160`, the
+same idea for a key whose value is a number – eleven steps spelled as per cent,
+generated from `FIGURE_TYPE_STEPS`, live-only because the key is. The whole tail
+vocabulary is `CHUNK_SLOTS` in
 `tails.mjs`, a slot table like the five directives': width is a slot of four,
-each style key a slot of two, `.bare`, `.center` and `.middle` flags with no
-writable default. All seven are refused on a `title` or
-`closing` chunk except the `style:` four. **`.middle` is read by the camera and
+each style key a slot of its own words, `.bare`, `.center` and `.middle` flags with no
+writable default. All are refused on a `title` or
+`closing` chunk except the `style:` ones. **`.middle` is read by the camera and
 not by the stylesheet**: `focusCamera` frames `paintedSpan(.chunk-content)`
 rather than the content box, so the beat that is on the slide is centred
 instead of the box the reveals will fill. Every chunk-content box is centred
@@ -394,9 +401,11 @@ the frame* and the text column yields to it (a side column reserved as the
 chunk's padding, a band as a grid row); `.every` under a `#` heading puts a dock
 on every chunk of the part, and a `#id` link in it is a live marker. `## closing:` is the cover's bookend and
 `## outline:` the running agenda; `section:` gives a column's divider slide six
-compositions, every one of them quieter than the cover, and `# Heading {.stack}`
+compositions, every one of them quieter than the cover; `# Heading {.stack}`
 says for one divider that its content stands under the heading at the full
-measure rather than beside it. All of it is additive: a
+measure rather than beside it, and `{.bare}` beside it takes the heading off
+that slide while leaving it in the contents, the agenda, the cockpit and
+search. All of it is additive: a
 `source.md` using none of it builds byte-identically to before.
 
 **The full vocabulary, the slot tables, the refusals, and the CSS traps each one

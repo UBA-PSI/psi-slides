@@ -35,7 +35,7 @@ import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPat
 // two files cannot disagree about a tail. Tables plus small pure helpers,
 // zero dependencies - see the header of tails.mjs and CLAUDE.md.
 import {
-  CHUNK_SLOTS, CHUNK_STYLE_CLASSES, COLUMN_SLOTS,
+  CHUNK_SLOTS, CHUNK_STYLE_CLASSES, COLUMN_SLOTS, FIGURE_TYPE_STEPS,
   CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
   splitTail, parseTail, slotTable, strayTailProblem,
   parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseRevealMark,
@@ -3132,6 +3132,43 @@ const FIG_REF_BODY_PX = 23.4;                      // 1em at 1600x900, zoom 1
 const FIG_COLUMN_PX = { narrow: 655, standard: 842, wide: 1152, full: 1408 };
 const FIG_REF_HEIGHT_PX = 900 * 0.62;              // the height cap at the same viewport
 const FIG_TYPE_FLOOR_PX = 18;                      // under this, the back row is guessing
+// ...and under this share of the deck's own median settled body type, the
+// slide is out of step with its neighbours whatever its absolute size. 0.85
+// because what a room sees is a heading that changes size from slide to
+// slide, and a tenth of a heading is not a change anyone notices while a
+// seventh is.
+const FIG_TYPE_EVEN_TOL = 0.85;
+
+// Where a figure's slide comes to rest, worked out the way fitZoomToChunk
+// arrives at it. The drawing asks for typeW x body x figure-type pixels; the
+// box - the column, or the height budget turned into a width - caps that, and
+// a capped figure counts as "does not fit", so the zoom walks down until the
+// two meet. The resting point is therefore box / (typeW x figure-type) for the
+// body type and box / typeW for a base label, and a drawing that never reaches
+// its box leaves the slide where the words put it.
+//
+// That equation is the whole reason a static check can say anything about a
+// dynamic camera: there is no browser in it.
+function figureSettle(typeW, ar, width, ft) {
+  const col = FIG_COLUMN_PX[width || 'standard'];
+  if (!col || !(typeW > 0)) return null;
+  const byHeight = ar > 0 ? FIG_REF_HEIGHT_PX * ar : Infinity;
+  const box = Math.min(col, byHeight);
+  const mult = ft > 0 ? ft : 1;
+  return {
+    box, byHeight, col,
+    body: Math.min(FIG_REF_BODY_PX, box / (typeW * mult)),
+    label: Math.min(FIG_REF_BODY_PX * mult, box / typeW),
+  };
+}
+
+// Every figure the current lecture compiled, with the numbers the report
+// needs. Filled by the onSized callback and ruled on once at the end of
+// parseLecture, because the question the report answers - is this slide out of
+// step with the rest of the deck? - cannot be asked one figure at a time.
+// Reset per build alongside dgWarned.
+const figureTypeSeen = [];
+
 // Not a build failure, and deliberately not: a figure this dense may be a
 // hand-out slide the lecturer walks to the screen for, and the fix is a
 // redrawing rather than a flag. One line, named by chunk, deduped by dgWarn.
@@ -3140,34 +3177,104 @@ const FIG_TYPE_FLOOR_PX = 18;                      // under this, the back row i
 // has less room than this and is warned about later than it should be. The
 // dynamic half of the check has no such blind spot: --check-fit measures the
 // labels the browser actually drew.
-function figureTypeWarning(typeW, ar, width, where) {
-  const col = FIG_COLUMN_PX[width || 'standard'];
-  if (!col || !(typeW > 0)) return;
-  // Both caps, because a tall figure is bound by the height budget turned
-  // into a width long before it reaches the column. The smaller of the two is
-  // also the estimate's lower bound: uncapped, a label is FIG_REF_BODY_PX
-  // times the zoom and only ever gets larger.
-  const byHeight = ar > 0 ? FIG_REF_HEIGHT_PX * ar : Infinity;
-  const box = Math.min(col, byHeight);
-  const px = box / typeW;
-  if (px >= FIG_TYPE_FLOOR_PX) return;
-  // Two different drawings reach this, and the fix is not the same one.
-  if (byHeight < col) {
-    dgWarn(`figure-type-small in ${where}: the figure is ${typeW.toFixed(0)} labels wide, and at`
-      + ` body-size labels it would stand ${Math.round(typeW * FIG_REF_BODY_PX / ar)} px tall against`
-      + ` the ${Math.round(FIG_REF_HEIGHT_PX)} px a slide allows – so it is scaled to that and its`
-      + ` labels land at about ${px.toFixed(0)} px at 1600x900, under the ${FIG_TYPE_FLOOR_PX} px a`
-      + ` back row can read. Here it is the height cap and not the column that decides the width:`
-      + ` less in the drawing, or a flatter arrangement of the same thing.`);
-    return;
+// The figure-type multiplier in force on one chunk: the deck's, unless the
+// chunk's tail answered the key for itself. The class carries per cent, the
+// same string the data attribute and the stylesheet trade in, so the one
+// division lives here.
+function chunkFigureType(chunk, deckFt) {
+  const w = chunk && chunk.styleOverrides && chunk.styleOverrides['figure-type'];
+  return w ? Number(w) / 100 : (deckFt || 1);
+}
+
+function recordFigureType(typeW, ar, width, where, ft) {
+  const st = figureSettle(typeW, ar, width, ft);
+  if (!st) return;
+  figureTypeSeen.push({ typeW, ar, width, where, ft: ft > 0 ? ft : 1, ...st });
+}
+
+// The two complaints, and they are not the same one.
+//
+// **Out of step** is the one a room sees. A drawing capped at its column pulls
+// its own slide's type down and nothing else's, so a deck with one dense
+// figure and one sparse one reads its headings at 25 px and 44 px in
+// consecutive slides - measured on a keynote, a factor of 1.76 between two
+// slides of the same width class. The absolute size of either is defensible;
+// the difference is not, and no absolute floor can see it. The reference is
+// the deck's own median settled body type, because "what the other slides get"
+// is what the eye compares against.
+//
+// **Under the floor** is the older complaint and still worth saying: a deck
+// whose figures are uniformly small is perfectly even, and still unreadable
+// from the back.
+//
+// One line per chunk. A figure that is both is reported as out of step, and
+// that line carries the absolute number too - two lines about one slide is how
+// a report stops being read.
+function reportFigureTypeStatic(deckFt) {
+  if (!figureTypeSeen.length) return;
+  const bodies = figureTypeSeen.map(f => f.body).sort((a, b) => a - b);
+  const median = bodies.length % 2
+    ? bodies[(bodies.length - 1) / 2]
+    : (bodies[bodies.length / 2 - 1] + bodies[bodies.length / 2]) / 2;
+  for (const f of figureTypeSeen) {
+    // Three is where a median starts meaning anything. Under it the deck has
+    // no "other slides" to be out of step with, and the floor is the only
+    // thing that can be said.
+    const uneven = bodies.length > 2 && f.body < median * FIG_TYPE_EVEN_TOL;
+    if (uneven) {
+      // What the author would have to write to bring this one into line, in
+      // the vocabulary that can answer it for one slide. Offered only when it
+      // is reachable: the class bottoms out at 0.6, and a drawing that needs
+      // less than that has to be redrawn instead.
+      const wantFt = f.box / (f.typeW * median);
+      const step = Math.max(FIGURE_TYPE_STEPS[0],
+        Math.min(FIGURE_TYPE_STEPS[FIGURE_TYPE_STEPS.length - 1], Math.round(wantFt * 10) * 10));
+      // Judged on where that step actually lands rather than on the exact
+      // number it rounded from: the steps are tenths, so demanding the class
+      // reach the median precisely turned down an .80 that closed a 22 per
+      // cent gap to two.
+      const stepped = figureSettle(f.typeW, f.ar, f.width, step / 100);
+      const reach = step / 100 < f.ft && stepped && stepped.body >= median * FIG_TYPE_EVEN_TOL;
+      dgWarn(`figure-type-uneven in ${f.where}: the figure is ${f.typeW.toFixed(0)} labels wide, so its`
+        + ` slide settles at about ${f.body.toFixed(0)} px of body type at 1600x900 against the deck's`
+        + ` median of ${median.toFixed(0)} px - ${Math.round(100 * (1 - f.body / median))}% under it, which`
+        + ` a room reads as a heading that changes size from slide to slide.`
+        + (reach
+          ? ` {.figure-type-${step}} on this chunk takes it to about ${stepped.body.toFixed(0)} px;`
+          : ' No per-chunk figure-type reaches the deck from here;')
+        + ` otherwise fewer grid units, shorter labels`
+        + (f.width === 'wide' || f.width === 'full' ? '' : ', a wider column')
+        + `, or a flatter arrangement.`
+        // The second defect, and the multiplier cannot touch it: a base label
+        // is the box over the drawing's own width in labels, so the class
+        // moves the words on the slide and leaves the words in the picture
+        // exactly where they were.
+        + (f.label < FIG_TYPE_FLOOR_PX
+          ? ` Its own labels land at about ${f.label.toFixed(0)} px either way - that is the drawing's`
+            + ` width against its box, which no multiplier changes - under the ${FIG_TYPE_FLOOR_PX} px a`
+            + ` back row can read.`
+          : ''));
+      continue;
+    }
+    if (f.label >= FIG_TYPE_FLOOR_PX) continue;
+    // Two different drawings reach this, and the fix is not the same one.
+    if (f.byHeight < f.col) {
+      dgWarn(`figure-type-small in ${f.where}: the figure is ${f.typeW.toFixed(0)} labels wide, and at`
+        + ` body-size labels it would stand ${Math.round(f.typeW * FIG_REF_BODY_PX / f.ar)} px tall against`
+        + ` the ${Math.round(FIG_REF_HEIGHT_PX)} px a slide allows - so it is scaled to that and its`
+        + ` labels land at about ${f.label.toFixed(0)} px at 1600x900, under the ${FIG_TYPE_FLOOR_PX} px a`
+        + ` back row can read. Here it is the height cap and not the column that decides the width:`
+        + ` less in the drawing, or a flatter arrangement of the same thing.`);
+      continue;
+    }
+    const roomier = f.width === 'wide' || f.width === 'full'
+      ? 'it is already as wide as the frame allows, so the drawing itself has to give'
+      : `.wide would give it ${(FIG_COLUMN_PX.wide / f.typeW).toFixed(0)} px`;
+    dgWarn(`figure-type-small in ${f.where}: the figure is ${f.typeW.toFixed(0)} labels wide, so in a`
+      + ` .${f.width || 'standard'} column its labels land at about ${f.label.toFixed(0)} px at`
+      + ` 1600x900 - under the ${FIG_TYPE_FLOOR_PX} px a back row can read. Fewer grid`
+      + ` units or shorter labels, or ${roomier}.`);
   }
-  const roomier = width === 'wide' || width === 'full'
-    ? 'it is already as wide as the frame allows, so the drawing itself has to give'
-    : `.wide would give it ${(FIG_COLUMN_PX.wide / typeW).toFixed(0)} px`;
-  dgWarn(`figure-type-small in ${where}: the figure is ${typeW.toFixed(0)} labels wide, so in a`
-    + ` .${width || 'standard'} column its labels land at about ${px.toFixed(0)} px at`
-    + ` 1600x900 – under the ${FIG_TYPE_FLOOR_PX} px a back row can read. Fewer grid`
-    + ` units or shorter labels, or ${roomier}.`);
 }
 
 // ── diagram CSS (shared by all four views) ──────────────────────────
@@ -3450,6 +3557,22 @@ ${dgShapeD.toString()}
 ${dgPathD.toString()}
 ${dgSplineD.toString()}
 
+// A live view shows the box that holds every beat, not the one that is tight
+// around the finished picture. Three things move together when it is swapped
+// in - the viewBox, the intrinsic height that keeps the box's proportion, and
+// --dg-ink-x, which says where the drawing starts inside that box and is a
+// fraction of a width that has just changed. Two callers (first paint, and an
+// editor write-back that replaces the whole svg), one function, because the
+// first version of this left the property behind in the editor's path and a
+// figure jumped sideways the moment it was edited.
+function dgUseLiveViewBox(svg) {
+  svg.setAttribute('viewBox', svg.dataset.liveViewbox);
+  const w = Number(svg.getAttribute('width'));
+  const r = Number(svg.dataset.liveRatio);
+  if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
+  if (svg.dataset.liveInkX) svg.style.setProperty('--dg-ink-x', svg.dataset.liveInkX);
+}
+
 function dgApplyVec(el, kind, v) {
   if (kind === 'rect') {
     el.setAttribute('x', v[0]); el.setAttribute('y', v[1]);
@@ -3606,12 +3729,7 @@ function dgSwapFigure(oldSvg, html) {
   const payload = holder.querySelector('script.psi-diagram-frames');
   if (!next) return null;
   const live = oldSvg.psiDiagram;
-  if (next.dataset.liveViewbox) {
-    next.setAttribute('viewBox', next.dataset.liveViewbox);
-    const w = Number(next.getAttribute('width'));
-    const r = Number(next.dataset.liveRatio);
-    if (w && r) next.setAttribute('height', String(Math.round(w * r)));
-  }
+  if (next.dataset.liveViewbox) dgUseLiveViewBox(next);
   const figure = oldSvg.closest('.figure-diagram');
   oldSvg.replaceWith(next);
   // The frames payload is what the step runtime reads. Replace it alongside
@@ -3682,12 +3800,7 @@ function initDiagrams() {
     // that walks in from outside is clipped for the whole of its journey.
     // Swapped here rather than emitted, so a view with no JavaScript keeps
     // the still it is going to show.
-    if (svg.dataset.liveViewbox) {
-      svg.setAttribute('viewBox', svg.dataset.liveViewbox);
-      const w = Number(svg.getAttribute('width'));
-      const r = Number(svg.dataset.liveRatio);
-      if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
-    }
+    if (svg.dataset.liveViewbox) dgUseLiveViewBox(svg);
     const fig = svg.closest('.figure-diagram');
     const d = {
       svg, data, step: -1, raf: 0, cur: null, cache: {},
@@ -3731,13 +3844,14 @@ function parseAttributeTail(line, { column = false } = {}) {
   // it, so it leaves here rather than falling through the chunk's slots.
   if (column) {
     if (t.slots.stack.written) out.stack = true;
+    if (t.slots.bare.written) out.bare = true;
     return out;
   }
   if (t.slots.width.written) out.width = t.slots.width.value;
   if (t.slots.bare.written) out.bare = true;
   if (t.slots.center.written) out.center = true;
   if (t.slots.middle.written) out.middle = true;
-  for (const key of ['wrap', 'blocks']) {
+  for (const key of ['wrap', 'blocks', 'figure-type']) {
     if (!t.slots[key].written) continue;
     (out.styleOverrides ??= {})[key] = CHUNK_STYLE_CLASSES[t.slots[key].value][1];
   }
@@ -3857,6 +3971,14 @@ function parseLecture(src) {
   // frontmatter is wrong should say so even when it has no diagram yet.
   dgLectureTags.clear();
   dgEmittedBlocks.length = 0;
+  figureTypeSeen.length = 0;
+  // The deck-wide half of the figure's type size, read once so every figure
+  // can be settled against the same number. In a try, because the pre-flight
+  // in buildOnce is where a bad `style:` value is refused and this must not
+  // take that refusal's place - a typo here is reported with its own message
+  // a moment later, and a report that throws first would bury it.
+  let deckFigureType = 1;
+  try { deckFigureType = styleSettings(frontmatter)['figure-type'] || 1; } catch (e) { /* the pre-flight says it */ }
   let diagramBase = null;
   if (frontmatter['draw-defaults'] != null) {
     const { layer, errors } = parseDiagramDefaults(frontmatter['draw-defaults']);
@@ -4360,7 +4482,8 @@ function parseLecture(src) {
           // class. A divider figure is not held to it - it has no width class
           // and its frame is the slide, not a text column.
           onSized: currentChunk
-            ? ({ typeW, vbW, vbH }) => figureTypeWarning(typeW, vbH ? vbW / vbH : 0, currentChunk.width, dgWhere)
+            ? ({ typeW, vbW, vbH }) => recordFigureType(typeW, vbH ? vbW / vbH : 0, currentChunk.width,
+                                                        dgWhere, chunkFigureType(currentChunk, deckFigureType))
             : null,
           alt: currentChunk ? currentChunk.heading : '',
           base: diagramBase,
@@ -4461,7 +4584,7 @@ function parseLecture(src) {
         const h1Attr = parseAttributeTail(h1[1], { column: true });
         const { text, id } = h1Attr;
         currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null, overlays: [], dock: null,
-          stack: !!h1Attr.stack, speakerNotes: [], speakerNoteFrom: [] };
+          stack: !!h1Attr.stack, bare: !!h1Attr.bare, speakerNotes: [], speakerNoteFrom: [] };
         colBody = [];
         columns.push(currentColumn);
         continue;
@@ -4482,7 +4605,7 @@ function parseLecture(src) {
           // that every reader can say `col.speakerNotes.length` without a
           // guard; an anonymous column draws no divider and never fills them.
           currentColumn = { heading: null, id: null, chunks: [], overlays: [], dock: null,
-            stack: false, speakerNotes: [], speakerNoteFrom: [] };
+            stack: false, bare: false, speakerNotes: [], speakerNoteFrom: [] };
           columns.push(currentColumn);
         }
         const h2Attr = parseAttributeTail(h2[1]);
@@ -5283,20 +5406,34 @@ function parseLecture(src) {
     }
   }
 
+  // Every figure in the lecture has compiled, which is the earliest a slide
+  // can be compared with the deck it is in - see reportFigureTypeStatic.
+  reportFigureTypeStatic(deckFigureType);
+
   // `.stack` says where the divider's own content stands, so a divider with
   // no content has nothing for it to say - the silent no-op this format
   // refuses everywhere. Checked here, at the end of the parse, because a
   // divider's body is only complete when the next heading has arrived; and
   // in the parser rather than in a renderer, so `--print-only` reaches it
   // too. lint.js mirrors it as `bad-section-stack`.
+  //
+  // `.bare` is refused on the same condition and for a plainer reason: it
+  // takes the heading off the slide, so with nothing under the heading the
+  // slide is empty.
   for (const col of columns) {
-    if (!col.stack || (col.body || '').trim()) continue;
+    if ((!col.stack && !col.bare) || (col.body || '').trim()) continue;
+    const what = col.stack ? '{.stack}' : '{.bare}';
+    const why = col.stack
+      ? '  .stack puts the part\'s own figure, quotation or card row *under* the\n'
+        + '  heading at full width instead of beside it. Write something under the\n'
+        + '  `#` line, or drop the class.'
+      : '  .bare takes the divider\'s heading off the slide and leaves it in the\n'
+        + '  contents, in `section: outline`, in the speaker view and in search - so\n'
+        + '  with nothing under the `#` line the slide has nothing on it. Write the\n'
+        + '  divider\'s own figure, quotation or card row there, or drop the class.';
     const err = new Error(
-      `{.stack} on the divider of column ${col.id ? '#' + col.id : `"${col.heading}"`}, ` +
-      'which has no content under its heading.\n' +
-      '  .stack puts the part\'s own figure, quotation or card row *under* the\n' +
-      '  heading at full width instead of beside it. Write something under the\n' +
-      '  `#` line, or drop the class.');
+      `${what} on the divider of column ${col.id ? '#' + col.id : `"${col.heading}"`}, ` +
+      'which has no content under its heading.\n' + why);
     err.userFacing = true;
     throw err;
   }
@@ -6340,6 +6477,12 @@ function chunkStyleAttrs(chunk) {
   let out = '';
   if (ov.wrap) out += ` data-wrap="${ov.wrap}"`;
   if (ov.blocks) out += ` data-blocks="${ov.blocks}"`;
+  // The third one is a number, and it carries the per cent the class spelled
+  // rather than the multiplier: an attribute selector matches a string, and a
+  // rule per step is how a bounded set of words becomes a custom property
+  // without a style attribute on the article - which the cover already uses
+  // for its ratio, and two style attributes on one element is one too many.
+  if (ov['figure-type']) out += ` data-figure-type="${ov['figure-type']}"`;
   return out;
 }
 
@@ -8163,16 +8306,47 @@ figure.figure-video video { max-height: 34rem; }
    that could not honour them because its box was always full width. */
 main .psi-diagram {
   --dg-fig-size: 0.9rem;
-  width: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
-             calc(34rem * var(--dg-ar, 1)));
+  --dg-box-w: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
+                  calc(34rem * var(--dg-ar, 1)));
+  width: var(--dg-box-w);
   /* The default is centre, matching figure.figure-img's text-align above.
      styleBodyAttrs writes data-blocks only when it is left, so the centre
      case has to be the bare rule - a body[data-blocks=center] selector would
      never match anything and every deck would quietly go flush left. */
   margin-inline: auto;
 }
+/* Flush left means the *drawing* is flush left, not the box around it. The
+   box is the viewBox, and the viewBox is the drawing plus DG_MARGIN on every
+   side - so a figure set flush left used to stop a fixed reserve short of the
+   heading above it, the same few pixels on every figure in the deck. Measured
+   on a real keynote: heading at x 223, first box at 243. A gap of twenty
+   pixels is not an alignment anyone chose; it is a near-miss, and a near-miss
+   reads worse than an honest indent. --dg-ink-x is that reserve as a fraction
+   of the box (diagram-core emits it, and the live runtime rewrites it when it
+   swaps in the viewBox that holds every beat), so the negative start margin
+   pulls the reserve back out into the gutter and the ink lands on the text's
+   own edge.
+
+   Centre is untouched: the reserve is symmetric, so a centred box is a centred
+   drawing already, and nothing moves in a deck that did not ask.
+
+   And centre stays the DEFAULT, which is the question this rule was asked
+   twice. The case for flush left by default is that a figure under a heading
+   should share that heading's edge - but where the heading sits is already a
+   key, and the two lectures answer it differently. Measured at 1600x900:
+   lectures/diagrams sets no headings key, so a figure chunk's heading is
+   centred (heads at 465-739 px in a 96-1504 column) and the drawing under it
+   is centred with it; flush left by default would pull thirty figures away
+   from their own headings. lectures/tutorial sets headings: left, every
+   heading stands at the column edge, and the centred figures sit 56-860 px
+   inside it - which is the complaint, and blocks: left is the answer to it,
+   now that it lands on the edge rather than a reserve short of it. So the
+   default follows the blocks key, as documented, and a deck that ranges its
+   headings left says so once in the same block. */
 body[data-blocks=left] main .psi-diagram,
-.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=left] .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+}
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
 
 @media print {
@@ -8730,7 +8904,13 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
   // than a class for the reason `data-closing-art` is one - the attribute is
   // the fact the author wrote, the layout only what follows from it.
   const stackAttr = col.stack ? ' data-section-layout="stack"' : '';
-  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${stackAttr}${bdAttr}${scrimAttr}${dockAttrs(col.dock)} data-chunk-id="${escapeHtml(chunkId)}">
+  // `.bare` on the same line: the heading is still written into the markup -
+  // the contents page, the agenda, the speaker's board and the search index
+  // all read it out of the DOM - and a stylesheet takes it off the slide.
+  // Same mechanism as a chunk's `.bare`, and audience-only for the same
+  // reason: it is a decision about a projection.
+  const sBareAttr = col.bare ? ' data-section-bare=""' : '';
+  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${stackAttr}${sBareAttr}${bdAttr}${scrimAttr}${dockAttrs(col.dock)} data-chunk-id="${escapeHtml(chunkId)}">
   ${art.html}
   <div class="chunk-content">
     <div class="section-lead">
@@ -9500,7 +9680,18 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
 /* The cover, the closing slide and a divider hardcode data-width="full" and
    compose against the 14% frame - a title flush against the edge is not
    what "full" was meant to buy - so the wider column is the author-written
-   class's alone. */
+   class's alone.
+
+   With one exception, and it is the case the class was widened for. A
+   {.stack} divider's body is content the author wrote standing where a .full
+   chunk's content stands, and the documentation says it gets "the chunk
+   content width a .full chunk gets" - which it did not: measured at
+   1600x900, a build plan under a stacked heading ran 224-1359 px where the
+   same block in a .full chunk runs 135-1466, so moving a chunk onto its
+   divider cost it 15% of its size. The heading comes in with it, which is
+   right: under .stack the heading is the figure's caption and a caption
+   sits on the drawing's own edge. */
+.chunk-section[data-section-layout=stack] { --slide-pad-x: 6%; }
 
 /* One gap for the whole slide, and the unit it is written in is the trap
    that made it three.
@@ -10086,17 +10277,32 @@ figure.figure-img svg {
    shrinks the words too, the figure stayed capped at every step and auto-fit
    walked the slide to its 0.6 floor. A definite length contributes itself. */
 .chunk .psi-diagram {
-  width: min(calc(var(--dg-type-w, 100000) * 1em * var(--figure-type, 1)),
-             calc(var(--slide-h, 100vh) * 0.62 * var(--dg-ar, 1)));
+  --dg-box-w: min(calc(var(--dg-type-w, 100000) * 1em * var(--figure-type, 1)),
+                  calc(var(--slide-h, 100vh) * 0.62 * var(--dg-ar, 1)));
+  width: var(--dg-box-w);
   /* The box hugs the drawing now instead of spanning the measure, so it has
      somewhere to sit. Centre by default, matching figure.figure-img above;
      styleBodyAttrs writes data-blocks only when it is left, so the centre case
-     has to be the bare rule. Same three rules as PRINT_CSS. */
+     has to be the bare rule. Same three rules as PRINT_CSS, including the
+     ink-edge correction: see the comment there for what --dg-ink-x buys. */
   margin-inline: auto;
 }
 body[data-blocks=left] .chunk .psi-diagram,
-.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=left] .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+}
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+/* style.figure-type answered for one chunk. The key is deck-wide and the
+   complaint is not: a drawing 66 labels wide is capped at its column, and
+   fitZoomToChunk then walks that slide's whole type down to meet it - so the
+   room reads that chunk's heading at 25 px and the next one's at 44. Pulling
+   it back with the key takes every other figure in the deck with it, which is
+   why a keynote with one dense figure and one sparse one could fix neither.
+   Eleven steps, the key's own 0.6-1.6 in tenths, generated from the same
+   table the tail parser reads so a step cannot exist in one place and not the
+   other. The attribute carries per cent because a selector matches a string.
+   Live-only, like the key: a document sizes a figure with --dg-fig-size. */
+${FIGURE_TYPE_STEPS.map(n => '.chunk[data-figure-type="' + n + '"] { --figure-type: ' + (n / 100) + '; }').join('\n')}
 
 figure.figure-img figcaption {
   font-family: var(--sans-font);
@@ -12437,12 +12643,41 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
      looks the same either way; a narrower one lines up with its words. */
   text-align: left;
 }
+/* …and the drawing itself, which text-align cannot move: an svg is a block
+   with a width and auto inline margins, so the rule above reached the
+   figcaption alone and the picture stayed centred whatever the sentence said.
+   Written as the blocks: left rule is written, ink edge and all - a caption
+   twenty pixels off the drawing it captions is the same near-miss, and here
+   it is the composition rather than a key that asks for the edge, so it does
+   not wait for one to be set. */
+.chunk-section[data-section-layout=stack] .section-body .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+}
 .chunk-section[data-section-layout=stack] .section-body svg {
   /* The heading is one line above it now, so the picture may take almost the
      whole frame - the beside layout's own ceiling, which was measured against
      a heading standing beside it rather than over it. */
   max-height: calc(var(--slide-h) * 0.72);
 }
+/* {.bare} on the # heading: the heading comes off the slide and stays
+   everywhere else - the contents page, a section: outline agenda, the
+   speaker's board, the search index - exactly as on a chunk, and by the same
+   mechanism, display: none over an element that is still in the DOM. It is
+   the whole .section-lead and not the heading alone: the mark is the
+   heading's rank rather than a second thing on the slide, and a number or a
+   small-caps word standing over a drawing with no part title under it
+   announces a part whose name is missing. Audience-only, like a chunk's
+   .bare - PRINT_CSS carries neither, so the document and its contents page
+   are unchanged.
+
+   Prefixed #stage, and that is load-bearing: the beside layout above gives
+   .section-lead a display of its own through a :not() and a :has(), and a
+   :has() carries the specificity of its argument. Made of classes alone this
+   rule loses to it, and a {.bare} divider whose body is nothing but a figure
+   would keep its heading. #stage is the element every chunk in both live
+   views is inside, which is the honest way to buy the id the cascade asks
+   for - the same trick the per-chunk wrap and blocks rules use. */
+#stage .chunk-section[data-section-bare] > .chunk-content > .section-lead { display: none; }
 /* A divider with a picture behind it needs the full slide, like every other
    chunk that carries one - the shared rule keys on data-has-backdrop and is
    already there; this is the centring the divider itself needs so the
@@ -22154,6 +22389,12 @@ async function runCheckFit(absIn, viewport) {
   // first stepped figure in the deck.
   const worst = new Map();
   const figType = new Map();
+  // What every slide's body type settled at, figure or not - the reference
+  // "what the deck's other slides get" has to be measured over the whole deck
+  // and not over the figures alone, or a deck whose figures are all dense
+  // reports itself as even. Smallest per chunk, for the same reason figType
+  // keeps the smallest: a chunk is as small as its worst beat made it.
+  const bodySeen = new Map();
   let states = 0, lastHash = null, same = 0;
   for (let i = 0; i < 400; i++) {
     await settleProbe(page);
@@ -22175,6 +22416,10 @@ async function runCheckFit(absIn, viewport) {
       if (!prev || f.base < prev.px) {
         figType.set(st.id, { px: f.base, min: f.min, bodyPx: st.bodyPx, width: st.width, tag: st.tag });
       }
+    }
+    if (st.bodyPx > 0) {
+      const prev = bodySeen.get(st.id);
+      if (prev == null || st.bodyPx < prev) bodySeen.set(st.id, st.bodyPx);
     }
     const over = Math.max(0, -st.top) + Math.max(0, st.bottom - st.vpH);
     if (over > 0) {
@@ -22204,7 +22449,7 @@ async function runCheckFit(absIn, viewport) {
   const clipped = all.filter(b => b.h <= b.vpH);
   const tall = all.filter(b => b.h > b.vpH);
   const where = `${viewport.width}x${viewport.height}`;
-  reportFigureType(figType, where);
+  reportFigureType(figType, bodySeen, where);
   // Named, all of them, and on their own lines. The summary used to carry a
   // count and the first four ids, which is the shape of a line nobody can act
   // on: a deck with nine tall chunks got "9 chunk(s) … (#a, #b, #c, #d, …)"
@@ -22265,7 +22510,7 @@ async function runCheckFit(absIn, viewport) {
 // legible and its figure is not, which is the inconsistency the width rule
 // removed and the one thing that can bring it back (a container measured in
 // the same ems as the type - see figureCapProbe).
-function reportFigureType(figType, where) {
+function reportFigureType(figType, bodySeen, where) {
   if (!figType.size) return;
   const rows = [...figType.entries()].map(([id, f]) => ({ id, ...f, ratio: f.bodyPx ? f.px / f.bodyPx : 0 }));
   const ratios = rows.map(f => f.ratio).filter(r => r > 0).sort((a, b) => a - b);
@@ -22289,6 +22534,31 @@ function reportFigureType(figType, where) {
     console.log(`  ${tiny.length} figure(s) are under ${FIG_TYPE_FLOOR_PX} px and match the body type`
       + ` beside them (${tiny[0].px} px at the smallest): the slide is small, not the drawing –`
       + ` ${names}${tiny.length > 6 ? ', …' : ''}.`);
+  }
+
+  // The third number, and it is about the deck rather than about a figure.
+  // A drawing capped at its column pulls its own slide's type down and
+  // nothing else's, so what the room sees is a heading that changes size
+  // between consecutive slides - measured on a keynote, 25 px against 44 px
+  // in the same width class. Neither reading above can see that: both compare
+  // a figure with the words beside it, and on a shrunken slide those agree
+  // perfectly. So compare each slide with the deck's own median instead. The
+  // build says the same thing at compile time as `figure-type-uneven`; this
+  // is the half that measures the zoom the camera actually settled on.
+  const all = [...bodySeen.values()].filter(v => v > 0).sort((a, b) => a - b);
+  if (all.length < 3) return;
+  const median = all.length % 2 ? all[(all.length - 1) / 2]
+    : (all[all.length / 2 - 1] + all[all.length / 2]) / 2;
+  const under = rows.filter(f => f.bodyPx > 0 && f.bodyPx < median * FIG_TYPE_EVEN_TOL)
+    .sort((a, b) => a.bodyPx - b.bodyPx);
+  console.log(`  the deck's body type settles between ${all[0]} and ${all[all.length - 1]} px,`
+    + ` median ${median} px${under.length ? '.' : ', and no slide with a figure is more than '
+      + Math.round((1 - FIG_TYPE_EVEN_TOL) * 100) + '% under it.'}`);
+  for (const f of under) {
+    console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''}) settles at ${f.bodyPx} px,`
+      + ` ${Math.round(100 * (1 - f.bodyPx / median))}% under the deck - its figure is what took the`
+      + ` slide down, and {.figure-type-N} on this chunk is how one slide answers that without`
+      + ` moving the rest.`);
   }
 }
 
@@ -22982,6 +23252,8 @@ async function main() {
     console.error('                        1600x900 and report any slide whose content leaves the');
     console.error('                        frame. Exit 2 if one does. The density budgets are word');
     console.error('                        counts, so cards and rows can overflow with a clean lint.');
+    console.error('                        It also reports the deck\'s median settled body type and');
+    console.error('                        names every slide with a figure more than 15% under it.');
     console.error('  --viewport WxH        measure at another size (default 1600x900, a 16:9 room).');
     console.error('');
     console.error('Reading the projection back (needs playwright-core and a Chrome or Chromium):');
