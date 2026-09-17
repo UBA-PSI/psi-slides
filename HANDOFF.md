@@ -1563,6 +1563,16 @@ Verified: gates 925, `test/settings.mjs` 816, full browser suite 1047
 tracked lectures rebuilt, the keynote clean under `--strict`, `--check-fit`
 with every figure at 1.00x of its body type, and its contact sheets read.
 
+Second round, from a critic's pass over the 90 frames
+(`~/r/psi-slides-mylectures/TODO-keynote-frames-review.md`): figures on the
+ink edge under `blocks: left`, one block gap, `{.middle}`, per-chunk
+`figure-type` with an unevenness warning, `{.stack .bare}` dividers, `emph`
+on `.bare`, a stray-label warning, the footnote clamp, the chip label. Two of
+the critic's findings were misdiagnoses worth remembering: the "shrunk"
+backdrop was a screenshot taken 360 ms into a 620 ms reveal (the probes now
+wait for animations to settle), and the blank row in `::: rows` was a `gap`
+shorthand clobbering `row-gap`, not the beat marker.
+
 Open: the keynote's `#umweg` figure is 66 labels wide and stays under 18 px
 at any zoom – that is the drawing's to fix. Site screenshots of the cockpit
 frames and the editor are stale. A statement chunk's `| sub-heading` still

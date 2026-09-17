@@ -36,6 +36,26 @@ from building the same way is a major version.
 - **A `[diagram]` warning names its source line**, and an edge's two
   endpoints.
 - **German `+ Anmerkung` is `+ Notiz`.**
+- **A figure set `style: {blocks: left}` puts its ink on the text edge**, not
+  its box: diagram-core emits the reserve as `--dg-ink-x` and the stylesheet
+  shifts by it. Measured on a keynote, the gap between heading and first box
+  went from 20–43 px to 0. Centre stays the default, because a deck without
+  `headings: left` centres its headings too.
+- **One block gap** under the heading, between reveal segments and between
+  paragraphs (`--block-gap`); a beat boundary used to be tighter than a
+  paragraph break. Live views only, and it moves existing decks by some tens
+  of px vertically.
+- **A `::: rows {.clear}` stack keeps its own row gap**: the clear ground's
+  `gap` shorthand tripled it (93 px between 61 px rows).
+- **`emph` on a `.bare` element emphasises the ink and draws no outline**,
+  the correction `bars` already had; a lit table cell is accent ink, not a
+  red rectangle around one word.
+- **A footnote stops following the zoom up**: `.margin-note` is clamped at
+  what it measures at the opening zoom.
+- **`::: expand` chips wear the author's label** instead of a three-letter
+  abbreviation.
+- **`--frames` and `--check-fit` wait for the slide to stop animating**
+  before a screenshot; a backdrop's 620 ms reveal used to be caught halfway.
 
 ### Added
 
@@ -64,6 +84,19 @@ from building the same way is a major version.
   alone leaves it over the cap, and reports per asset.
 - `lint.js`: `note-in-empty-beat` no longer fires on a note beside the
   heading; `bad-section-stack`, `oversized-asset` on frontmatter images.
+- **`{.middle}`** on a chunk: the camera frames what the beat paints rather
+  than the box the reveals will fill, so a short first beat sits centred.
+  Opt-in, because it costs a camera glide per press.
+- **`{.figure-type-60}` … `{.figure-type-160}`** answer `style: {figure-type}`
+  for one chunk; the build warns `figure-type-uneven` when a slide's settled
+  body type falls more than 15% under the deck's median, and `--check-fit`
+  names those slides with the multiplier that answers it.
+- **`# Heading {.stack .bare}`**: a stacked divider gets the `.full` measure
+  and `.bare` takes its heading off the slide while TOC, outline, cockpit
+  and search keep it.
+- **A `.left` / `.right` text aimed at an element it misses** is a compiler
+  layout warning naming the overshoot and `anchor left`.
+- `--check-fit` lists every chunk taller than the frame by name.
 
 - **Inline code in running text is now spaced and sized against the prose
   face, and `style: {code: plain}` is the way back.** A monospaced space is
