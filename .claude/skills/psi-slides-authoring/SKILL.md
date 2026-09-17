@@ -79,7 +79,7 @@ of the live deck. A chunk may appear before the first `#`; that is how the
 
 - `type:` is optional. Without one the whole line is the heading and the chunk
   renders and lints as `free`. A lowercase `word:` prefix that is *not* one of
-  the ten types is an `unknown-type` error, not a silent heading.
+  the eleven types is an `unknown-type` error, not a silent heading.
 - `|` splits the heading into a main line and a typographically quieter second
   line. Further `|` segments are joined into that second line.
 - The attribute tail recognises a width class, `#id`, and six other classes.
@@ -117,7 +117,7 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   speaker-sync snapshots, exported annotations, and `localStorage`. Renaming a
   heading is free; renaming an id is not.
 
-Types (ten, exhaustive) and what they mean in practice:
+Types (eleven, exhaustive) and what they mean in practice:
 
 | Type | Use for | Word budget the linter enforces |
 |---|---|---|
@@ -125,6 +125,7 @@ Types (ten, exhaustive) and what they mean in practice:
 | `closing` | the last slide, drawn in the cover's composition with its own heading and body | 60 |
 | `outline` | the running agenda – the lecture's parts, none live before the first one | 40 |
 | `principle` | a claim, thesis, rule, takeaway | 80 |
+| `statement` | a slide that is a few lines of large type and nothing else | 80 |
 | `question` | a posed question or framing problem | 80 |
 | `definition` | a precise concept or formal statement | 200 |
 | `example` | a concrete walkthrough or applied case | 250 |
@@ -132,7 +133,34 @@ Types (ten, exhaustive) and what they mean in practice:
 | `exercise` | a student task | 350 |
 | `figure` | an image- or diagram-led chunk | unlimited |
 
-When in doubt, `free`.
+When in doubt, `free`. And **a slide that is three lines of large type is a
+`statement:`, not cards** – that is the whole of why the type exists.
+
+`statement:` is the keynote slide the vocabulary had no word for. The heading
+is the first line and every top-level paragraph in the body is another line
+at the same size, the same weight and in the ink colour; there is no eyebrow
+and no rule, in either view. A `---` between two paragraphs makes them arrive
+one press apart, like any reveal segment. `{.center}` puts the run on a centre
+axis, and on this type alone it moves the heading with the lines, because here
+the heading is one of them. The collapse never abridges them: these paragraphs
+are the slide, so nothing is derived from a first sentence.
+
+```markdown
+## statement: Nicht der Knall. {.wide #schluss}
+
+Das Knirschen.
+
+---
+
+In keinem Diagramm steht, wozu das Ganze einmal da war.
+```
+
+The two ways this used to be faked both cost something. `::: cards 1 {.large
+.clear}` puts the words in the accent colour, because a card's term is a bold
+and `style: {bold: …}` decides what a bold looks like, and sets them smaller
+than a chunk heading. A `::: draw` of `.large` text buys the size and pays a
+drawing's price: no wrapping, no hyphenation dictionary, nothing in the search
+index, and a fixed grid to keep in step with the words.
 
 `closing:` is the bookend and is the one exception to the rule that a
 cover-shaped slide renders from frontmatter: its heading is what it says,
@@ -1496,7 +1524,7 @@ warning go away unread.
 
 ## Gotchas
 
-- Only the ten types and four widths exist. Six non-width classes exist and no
+- Only the eleven types and four widths exist. Six non-width classes exist and no
   others: `.bare`, `.center`, `.blocks-left`, `.blocks-center`, `.wrap-none`,
   `.wrap-balance`; anything else is an `unknown class` error. `.bare` and
   `.center` are not legal on a `title` or `closing` chunk, where the cover

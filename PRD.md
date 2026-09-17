@@ -56,6 +56,7 @@ The `## type: Heading` prefix marks the chunk's structural role. This list is **
 | `title` | Lecture cover slide. Pulls `title`, `presenter`, `info` from frontmatter; see §4.4 for layout. |
 | `closing` | The last slide, drawn in the composition `cover:` names. Its heading, sub-heading and body are its own – it is the one cover-shaped slide whose words are not the frontmatter's; see §4.4. |
 | `principle` | A core claim or rule. Thick rule above, larger heading. `.standard` reads better than `.narrow`: a claim of two sentences in a 28em column becomes a tall thin ribbon. |
+| `statement` | A slide that is a few lines of large type and nothing else. The heading is the first line and every top-level paragraph is another one, all at the same size, the same weight and in the ink colour; `---` between two of them makes them arrive one press apart, and `.center` moves the whole run – heading included – onto a centre axis. No eyebrow in either view and no rule above, because both turn an utterance into a labelled specimen. Budget 80 words, as `principle`. The collapse never abridges these paragraphs: they are the slide, so `splitSentencesIn` skips them the way it skips a `::: slide` block. |
 | `definition` | A formal statement. Small-caps label, typically `.standard` width. |
 | `example` | A concrete instance. Often `.wide`, often followed by a principle chunk. |
 | `question` | A posed question, often paired with an `::: expand` answer. |

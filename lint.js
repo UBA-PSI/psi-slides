@@ -36,8 +36,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 
 const VALID_TAGS = new Set([
-  'title', 'closing', 'outline', 'principle', 'definition', 'example',
-  'question', 'figure', 'exercise', 'free',
+  'title', 'closing', 'outline', 'principle', 'statement', 'definition',
+  'example', 'question', 'figure', 'exercise', 'free',
 ]);
 
 // The chunk tail's vocabulary (widths, `.bare`, `.center`, the `.wrap-*` /
@@ -356,6 +356,11 @@ const DENSITY_BUDGET = {
   outline: 40,
   principle: 80,
   question: 80,
+  // A statement slide is a few lines of large type and nothing else, so it
+  // is held to the narrowest of the prose budgets. 80 is principle's, and
+  // deliberately the same number: both are a claim the room reads whole,
+  // and the one that is set at heading size runs out of frame first.
+  statement: 80,
   definition: 200,
   example: 250,
   exercise: 350,
@@ -2772,7 +2777,11 @@ function lintFile(filePath) {
             `chunk body is ${wc} words${scope} (budget for ${chunk.tag ?? 'free'}: ${budget})`);
       }
     }
-    lintCollapsedBolds(proseEntries, add);
+    // A statement chunk's paragraphs are the slide - splitSentencesIn skips
+    // them the way it skips an explicit block - so nothing written in one can
+    // be orphaned by the collapse, and a bold inside a line is a stress mark
+    // rather than a promoted bullet.
+    if (chunk.tag !== 'statement') lintCollapsedBolds(proseEntries, add);
     lintChunkShape(chunk, chunkBody, chunkHasDrawing, add);
     // Words on an unveiled picture: the heading unless the chunk is .bare,
     // and any prose outside an overlay or a dock. Measured on a photograph

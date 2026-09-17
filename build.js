@@ -58,8 +58,8 @@ const nodeRequire = createRequire(import.meta.url);
 // each other. And a frontmatter key could only ever repeat the cover's
 // own fields, which is the one thing the closing slide must not be.
 const VALID_TAGS = new Set([
-  'title', 'closing', 'outline', 'principle', 'definition', 'example',
-  'question', 'figure', 'exercise', 'free',
+  'title', 'closing', 'outline', 'principle', 'statement', 'definition',
+  'example', 'question', 'figure', 'exercise', 'free',
 ]);
 
 // The width and class vocabulary of a chunk heading's {…} tail is
@@ -3591,7 +3591,7 @@ function parseTagPrefix(text) {
   if (m && VALID_TAGS.has(m[1])) {
     return { tag: m[1], ...splitHeading(m[2].trim()) };
   }
-  // A lowercase `word:` prefix that is not one of the ten types is a typo,
+  // A lowercase `word:` prefix that is not one of the eleven types is a typo,
   // not a heading that happens to hold a colon: `## principl: X` fell through
   // here and rendered as the literal heading with no data-tag, so the search
   // index and the speaker lists saw an untyped chunk. lint.js has reported
@@ -6639,8 +6639,11 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   }
 
   // `figure:` is self-evident from the artwork; eyebrow would just stack a
-  // third label above the heading + sub-heading.
-  const labelTag = tag && tag !== 'free' && tag !== 'figure' ? tag : null;
+  // third label above the heading + sub-heading. `statement:` prints no
+  // label either, and for the reason the type exists: its heading and its
+  // paragraphs are one utterance set at one size, and a small-caps word over
+  // them turns three lines of speech into a labelled specimen.
+  const labelTag = tag && tag !== 'free' && tag !== 'figure' && tag !== 'statement' ? tag : null;
   const label = labelTag
     ? `<span class="chunk-label">${escapeHtml((S.type[labelTag] || labelTag).toLowerCase())}</span>`
     : '';
@@ -6987,6 +6990,15 @@ h1, h2, h3, h4, code, pre, pre *, .chunk-num, a[href^="http"] {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
+/* A statement chunk's paragraphs join that list, because they are heading
+   lines that happen to be marked up as paragraphs: same face, same size,
+   same weight, and a break across two lines reads as a fault in exactly the
+   way it does in a heading. The selector has to name the paragraph, since
+   the rule above reaches elements and this one is a p. */
+.chunk-statement > p {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 strong { color: var(--emph); font-weight: 600; }
 em { font-style: italic; }
 /* style.print-bold - the look of a bold the derivation reads, default bold
@@ -7232,6 +7244,37 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   font-size: 1.5rem;
   font-style: italic;
 }
+
+/* A statement chunk on paper. The projection sets its heading and its
+   paragraphs at one size because they are one utterance; the document
+   keeps that and pays what a document can afford for it, which is the
+   question chunk's 1.5rem rather than the slide's 2.1em. Nearest of the
+   two neighbours the type was measured against: principle was the other
+   candidate and brings a 2.5pt rule with it, and this type has no rule -
+   a bar over three lines of speech makes them a specimen.
+   No eyebrow either: renderChunk leaves statement out of labelTag.
+   The face is the heading's, which here means the document's own, so
+   nothing is declared for it - print sets no separate heading family, and
+   writing one would give this type a face the deck never chose. */
+.chunk-statement {
+  margin: 2.2rem 0;
+}
+.chunk-statement .chunk-heading { font-size: 1.5rem; margin-bottom: 0.35rem; }
+/* 500 and -0.01em are the h1, h2, h3 rule at the head of this stylesheet,
+   written out rather than inherited because a paragraph is not a heading
+   and no selector would hand it the heading's declarations. If that rule's
+   weight moves, this one moves with it, or the first line of a statement
+   stops matching the three under it. */
+.chunk-statement > p {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0 0 0.35rem;
+}
+/* Nothing here about a bold inside one of these lines: style.print-bold
+   reaches it through DERIVED_STRONG at (0,4,3), and a rule written at this
+   selector's specificity would lose to it silently. */
 
 .chunk-exercise .chunk-heading { font-style: italic; }
 .chunk-exercise .chunk-label { color: var(--emph); }
@@ -9776,6 +9819,62 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 .chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom) * var(--heading-scale)); font-weight: 500; }
 .chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom) * var(--body-scale)); color: var(--ink-soft); }
 
+/* A statement slide: a few lines of large type, arriving one per press.
+   The heading is the first line and every top-level paragraph is another
+   one, all at the same size, the same weight and the same ink - which is
+   what separates this from every other type, where the heading names the
+   slide and the body says something under it. Here there is nothing under
+   anything; the slide is an utterance.
+
+   Why a type and not a construction. It was faked two ways before this
+   existed: ::: cards 1 with .large and .clear, which puts the words in the
+   accent colour (a card's term is a bold run, and style.bold decides what a
+   bold looks like) and smaller than a heading, and a ::: draw of .large
+   text, which is a drawing and pays a drawing's price - no wrap,
+   no hyphenation dictionary, no search index, a fixed grid. Neither could
+   say "these are three lines of speech".
+
+   One size, named once, and it is the *heading* scale rather than the body
+   scale that carries it: the paragraphs are heading lines, so a deck that
+   turns its headings up turns these up with them. --statement-size is a
+   variable and not a number written twice because the heading and the
+   paragraphs have to be the same size to the pixel, or the run reads as a
+   title over a list. */
+.chunk[data-tag=statement] {
+  --statement-scale: 2.1;
+  --statement-size: calc(var(--statement-scale) * 1em * var(--zoom) * var(--heading-scale));
+  /* The space between two lines, written so that the one between the
+     heading and the first paragraph is the same as the one between two
+     paragraphs. It cannot be the same declaration twice: the paragraph's
+     gap is its own margin, in its own (already enlarged) em, and the
+     heading's is a flex gap on .chunk-content, whose em is the chunk's. So
+     the size is a bare number and both are derived from it - written the
+     obvious way, the heading sat about half as far from the first line as
+     the lines sat from each other, and a run of four lines read as a title
+     over three. */
+  --statement-gap: calc(var(--statement-scale) * 0.55em * var(--zoom) * var(--heading-scale));
+}
+.chunk[data-tag=statement] .chunk-heading { font-size: var(--statement-size); }
+.chunk[data-tag=statement] .chunk-body {
+  font-size: var(--statement-size);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+}
+/* The gap between two lines is one decision and it is made here rather than
+   by the paragraph margin alone, because a line can arrive as its own
+   reveal segment (a --- rule) or as a second paragraph inside one, and the room
+   must not be able to tell which. Both routes land on a top-level <p>. */
+.chunk[data-tag=statement] .chunk-body p { margin: 0 0 0.55em; }
+.chunk[data-tag=statement] .chunk-content { gap: var(--statement-gap); }
+/* What a bold inside a statement line looks like is deliberately NOT
+   answered here. DERIVED_STRONG already reaches these paragraphs at (0,4,3)
+   and hands them style.bold, which is the deck's own answer to that
+   question; a rule written here would be a second, weaker way to say the
+   same thing - it lost to DERIVED_STRONG on specificity when it was tried,
+   which is to say it did nothing at all. */
+
 .chunk[data-tag=figure] .chunk-heading {
   font-size: calc(1.05em * var(--zoom) * var(--heading-scale));
   font-weight: 500;
@@ -9969,6 +10068,13 @@ body[data-headings=off] .chunk-heading { display: none; }
    second, stronger way to say the same thing that style.headings: left could
    then no longer override. */
 .chunk[data-center] > .chunk-content > .chunk-body > .reveal-segment > p { text-align: center; }
+/* …with one type excepted, and the paragraph above says why it has to be.
+   On a statement chunk the heading is not a title over the prose, it is
+   the first of the lines, so leaving it on the left while the lines that
+   follow move to the middle gives one utterance two axes - the exact defect
+   the question tag was fixed for. The author wrote .center on this chunk,
+   so it outranks style.headings for it and nothing else. */
+.chunk[data-tag=statement][data-center] > .chunk-content > .chunk-heading { text-align: center; }
 /* The hairline and the thick rule above a definition / principle chunk. */
 body[data-rules=off] .chunk[data-tag=principle] .chunk-content::before,
 body[data-rules=off] .chunk[data-tag=definition] .chunk-content::before { display: none; }
@@ -12326,7 +12432,8 @@ body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
   hyphenate-limit-chars: 6 3 3;
 }
 body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
-  .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]) {
+  .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]),
+body[data-hyphenate=all] #stage .chunk[data-tag=statement] .chunk-body p {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
@@ -13925,7 +14032,10 @@ function splitSentencesIn(root) {
     // Explicit-slide blocks opt out of sentence extraction: the author has
     // already said what belongs on screen, so splitting their paragraphs
     // into head/rest would only give the collapse CSS something to hide.
-    if (p.closest('.slide-explicit, .script-only')) return;
+    // A statement chunk opts out for the same reason without a block to
+    // write: its paragraphs ARE the lines of the slide, one per press, so
+    // abridging them would leave the room with the first word of each.
+    if (p.closest('.slide-explicit, .script-only, [data-tag=statement]')) return;
     const head = document.createElement('span'); head.className = 'sentence-head';
     const rest = document.createElement('span'); rest.className = 'sentence-rest';
     let mode = 'head';

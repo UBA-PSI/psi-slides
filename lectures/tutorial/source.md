@@ -298,7 +298,7 @@ This is the paragraph that comes and goes. It is what you would say out loud abo
 **Only the `{#id}` is required, and a chunk written with no type counts as `free`.** The type, the sub-heading and the width are all optional.
 
 - **The line is** `## type: Heading | Sub-heading {.width #id}`.
-- **The ten types:** `title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`.
+- **The eleven types:** `title`, `closing`, `outline`, `principle`, `statement`, `definition`, `example`, `question`, `figure`, `exercise`, `free`.
 - **`{.width}`** is `narrow`, `standard`, `wide` or `full`, and defaults to `standard`.
 - **`{#id}`** anchors links, the contents list and your reading position – rename one and those need fixing too.
 
@@ -318,15 +318,29 @@ This is the paragraph that comes and goes. It is what you would say out loud abo
 - **It labels the chunk in the printed views**, in small capitals over the heading. The projection prints only `EXERCISE`.
 - **It adds a small mark.** This chunk is typed `definition`, hence the hairline above its heading; a `principle` gets a short rule there.
 
-`title`, `closing` and `outline` each draw a whole slide instead.
+`title`, `closing` and `outline` each draw a whole slide instead, and `statement:` is the fourth exception – it wears no label and no mark, and the next slide is one.
 
 Picking the wrong type is not an error; it shows on the overview board, where a principle typed as an example stops standing out.
 
 ::: expand the-word-budgets
-**The budget per type:** `principle` and `question` 80 words, `definition` 200, `example` and `free` 250, `exercise` 350, `closing` 60, `outline` 40. `title` and `figure` have no limit.
+**The budget per type:** `principle`, `question` and `statement` 80 words, `definition` 200, `example` and `free` 250, `exercise` 350, `closing` 60, `outline` 40. `title` and `figure` have no limit.
 
-Counted against the on-screen half only, so narration inside a `::: script` block is unbudgeted. `free` and `figure` are also the two types that print no label. `node lint.js` is the checker that comes with the tool, and the last part of this tour is about running it.
+Counted against the on-screen half only, so narration inside a `::: script` block is unbudgeted. `free`, `figure` and `statement` are the three types that print no label. `node lint.js` is the checker that comes with the tool, and the last part of this tour is about running it.
 :::
+
+## statement: A slide can be three lines and nothing else. {.wide #statement-type}
+
+Type it `statement:`, and the heading is the first of those lines.
+
+---
+
+Every paragraph under it is another line, at the same size and in the same ink.
+
+---
+
+A `---` between two of them is one press.
+
+> note: This is the type that says “no”. No eyebrow, no rule above, no first-sentence derivation – whatever is written here is what the room reads, whole. It is the keynote slide the vocabulary had no word for, and authors used to fake it with `::: cards 1 {.large .clear}`, which sets the words in the accent colour and smaller than a heading, or with a `::: draw` of large text, which is a drawing and cannot wrap. `{.center}` moves the whole run onto a centre axis, heading included – the only type where the class reaches the heading, because here the heading is one of the lines. The budget is 80 words, a principle's.
 
 ## exercise: Try the vocabulary | three edits, with `--watch` running {.wide #try-tags}
 

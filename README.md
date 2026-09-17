@@ -162,7 +162,7 @@ Two kinds of note are easy to confuse. A **note** (`> note:`) is yours, written 
 ## Writing lectures with an LLM assistant
 
 A lecture source is a good thing to hand a language model. It is plain
-Markdown with a small, closed grammar: ten types, four widths, fourteen `:::`
+Markdown with a small, closed grammar: eleven types, four widths, fourteen `:::`
 directives, one reveal separator. There is nothing to guess at and no binary
 format in the way, so a model that has been shown the rules produces sources
 that build and lint on the first pass. Diffs stay reviewable, because the unit
