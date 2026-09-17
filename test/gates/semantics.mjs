@@ -434,6 +434,48 @@ export async function run({ report }) {
       vert && (vert[0] || 'nothing was reported'));
   }
 
+  // ── emph acts on what the element actually draws ──────────────────
+  // `emph` lives in the prominence slot and `.bare` in the stroke-weight
+  // slot, so neither may overwrite the other – and the stylesheet used to let
+  // it: `.emph` sets an accent stroke at the same specificity as `.bare`'s
+  // `stroke: none` and later in source order, so a lit cell in a table of
+  // type on the paper came back as a red empty rectangle. Two halves, and
+  // they need two different gates: the compiler decides that both classes are
+  // on the element, and the stylesheet decides what the pair then means.
+  {
+    const TABLE = 'table t "a | b" at 0,0 col 1,1 row 0.5 {.bare .clear}\n"x | y"\n';
+    const out = fig('a bare cell emphasised by a step', TABLE + '\nstep lit\n  emph t-0-1');
+    if (out) {
+      const fr = frames(out);
+      const at1 = fr && fr.frames && fr.frames[1] && fr.frames[1].cls;
+      const cls = at1 && at1['t-0-1'];
+      const set = new Set(String(cls || '').split(/\s+/).filter(Boolean));
+      ok(set.has('emph') && set.has('bare'),
+        'a step\'s emph leaves .bare on the element rather than displacing it',
+        `beat 1 class was ${JSON.stringify(cls)}`);
+    }
+    const stat = fig('a bare cell emphasised on its own line',
+      'box b "B" at 0,0 {.bare .emph}');
+    const sc = stat && setOf(stat, 'b');
+    ok(sc && sc.has('emph') && sc.has('bare'),
+      'and the two classes coexist when both are written on the line',
+      sc ? [...sc].join(' ') : 'b was not drawn');
+
+    // The stylesheet half. Both rules exist, the one that keeps the outline
+    // off is the more specific of the two, and it is written after the
+    // .tone-4.emph rule it ties with – so a cell carrying all three is still
+    // un-stroked. Read as text, because what it asserts is source order.
+    const css = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const emphAt = css.indexOf('.psi-diagram .emph > :is(rect, circle, .dg-shape)');
+    const bareAt = css.indexOf('.psi-diagram .bare.emph > :is(rect, circle, .dg-shape) { stroke: none; }');
+    const toneAt = css.indexOf('.psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape)');
+    ok(bareAt > 0, 'the stylesheet says emph draws no outline on a .bare element',
+      'no .bare.emph rule in build.js');
+    ok(bareAt > emphAt && emphAt > 0 && bareAt > toneAt && toneAt > 0,
+      'and it is written after both rules it has to beat, which is what settles the tie',
+      `emph ${emphAt}, tone-4.emph ${toneAt}, bare.emph ${bareAt}`);
+  }
+
   // ── prominence is one slot, and it reaches every member of a set the
   //    compiler itself mixed ──────────────────────────────────────────
   // The kind list was widened so that `emph @wa-msg-N` works: `sequence`

@@ -3391,6 +3391,20 @@ ${dgBarFillCss()}
    so source order does not decide it. (No backticks in here: this whole
    stylesheet is a template literal, and one would end it.) */
 .psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
+/* emph acts in the prominence slot and .bare in the stroke-weight slot, so
+   neither may overwrite the other - and until this rule the emphasis stroke
+   two blocks up put the outline back on an element that had just taken it
+   off, at the same specificity and later in source order. On a table of type
+   on the paper (.bare .clear cells are the spelling for that) a lit row came
+   out as a row of red empty rectangles that the room reads as a form. So on
+   a .bare element emph emphasises the *ink* - the accent fill and the weight
+   the .emph text rule above already give a free text - and draws no outline.
+   That is the same correction DG_BAR_FILLS makes one channel along, where
+   emph on a column is a solid accent fill rather than the accent outline it
+   is on every other shape: emphasis has to act on whatever the element
+   actually draws. Three classes in the selector, and written after the
+   .tone-4.emph rule, so it wins where an element carries both. */
+.psi-diagram .bare.emph > :is(rect, circle, .dg-shape) { stroke: none; }
 
 /* A label's ground is never stroked, and this is where that has to be said.
    It was written up with the two rules that create the ground, above the
