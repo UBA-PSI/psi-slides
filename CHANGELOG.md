@@ -103,6 +103,14 @@ from building the same way is a major version.
 - **`statement:`** – a chunk type for a slide that is a few lines of large
   type: the heading is the first line, each paragraph another at the same
   size in ink colour, `---` between them for beats.
+- **`G` goes to a slide by the number in its corner**: digits, Backspace,
+  Escape, Enter; a number the deck does not have shakes the prompt and
+  keeps the digits. The jump goes the way a contents click goes, so the
+  cockpit and the projection stay in step.
+- **`transition: pan | cut | fade`** – a viewer default for what a slide
+  change looks like. `pan` is today's camera glide; `cut` lands with no
+  motion; `fade` dips through the paper over 260 ms. Under `cut` and `fade`
+  the neighbours are hidden unless the author wrote `dim`.
 - **`note-button: on | off`** hides the projection's `+ note` button
   (`N` still opens an annotation), and `M` toggles it live from either
   window. **`neighbours: dim | hidden`** takes the faint previous and next

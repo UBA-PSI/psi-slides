@@ -23,6 +23,15 @@
   --body-scale: 1;
   --dim: 0.86;
   --camera-duration: 250ms;
+  /* How long anything that belongs to *the slide arriving* takes to come up
+     or go away: a backdrop's crossfade, and a neighbour under
+     neighbours: hidden. One number in three rules, named because
+     transition: cut and transition: fade have to be able to zero it -
+     under those two the mode owns the slide change itself, and an arrival
+     fade underneath it is a second answer to the same question. The camera's
+     own 250ms above is deliberately separate: a fade zeroes the one and not
+     the other. */
+  --arrive-fade: 260ms;
   --slide-pad-x: 14%;
   /* Corner radii, one ladder and in em, so a corner keeps its proportion to
      the type inside it rather than to the pixel grid. As absolute pixels the
@@ -300,6 +309,7 @@ body[data-mode=dark] #help-button {
   color: var(--ink-soft);
 }
 body[data-mode=dark] nav#toc,
+body[data-mode=dark] #goto-prompt,
 body[data-mode=dark] #search-panel {
   background: oklch(from var(--paper) calc(l + 0.04) c h / 0.97);
 }
@@ -2280,7 +2290,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    clip-path silently dropped the fade that keeps a backdrop off its
    neighbours - on exactly the backdrops that most need the crossfade. */
 .chunk-backdrop[data-bd-frames] {
-  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1), opacity 260ms ease;
+  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--arrive-fade) ease;
 }
 /* The same shorthand clobber, one media query down: transition: none here
    took the opacity crossfade away too, so under reduced motion a revealed
@@ -2288,7 +2298,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    reduced motion is asking to suppress is the picture opening across the
    frame, not a 260ms fade the tool keeps everywhere else. */
 @media (prefers-reduced-motion: reduce) {
-  .chunk-backdrop[data-bd-frames] { transition: opacity 260ms ease; }
+  .chunk-backdrop[data-bd-frames] { transition: opacity var(--arrive-fade) ease; }
 }
 /* Scaled up because a blur samples transparent pixels past the edge and
    would otherwise fade the frame out into paper on all four sides. */
@@ -3940,7 +3950,7 @@ body[data-note-button=off] .annot-add { display: none; }
    with it, a little faster than the chunk's own fade so it has arrived by
    the time the camera lands. */
 .chunk:not(.active) .chunk-backdrop { opacity: 0; }
-.chunk-backdrop { transition: opacity 260ms ease; }
+.chunk-backdrop { transition: opacity var(--arrive-fade) ease; }
 /* neighbours: hidden - the frame shows the active slide and nothing else.
    The dimmed neighbour above is deliberate for a lecture: the camera pans
    through a column and the slide before and after standing there faintly is
@@ -3953,12 +3963,54 @@ body[data-note-button=off] .annot-add { display: none; }
    backdrop's reason: the camera takes --camera-duration (250ms) to land, and
    a neighbour still at a tenth of its opacity when it arrives reads as a
    smear beside the slide rather than as a slide leaving. Going the other way
-   costs nothing - a chunk that becomes .active matches the rule above, which
-   declares no transition, so the arriving slide is simply there. */
+   is not this rule's business at all - a chunk that becomes .active stops
+   matching it, and what it falls back to is .chunk's own opacity transition
+   over --camera-duration, so the arriving slide comes up exactly as the
+   camera lands. (That third fade is the one transition: cut has to zero
+   separately; see the block below.) */
 body[data-neighbours=hidden] .chunk:not(.active) {
   opacity: 0;
-  transition: opacity 260ms ease;
+  transition: opacity var(--arrive-fade) ease;
 }
+
+/* transition: cut / fade - a slide change with no visible pan.
+
+   The stage is one continuous column and the camera glides along it, which
+   is the whole of pan. Under the other two the camera is landed instantly
+   by focusCamera(true) from the one place a chunk changes, and the *mode*
+   owns whatever the change looks like: nothing under cut, and under
+   fade a dip of the whole stage to the paper and back, with the camera's
+   jump taken at the bottom of it (fadeSwap in AUDIENCE_JS).
+
+   So the arrival fades have to go. They were written for a camera in
+   motion - a neighbour still at a tenth of its opacity when the pan lands
+   reads as a smear, a backdrop arriving under a moving frame has to catch
+   up - and under a cut they are the one thing left moving on a slide that
+   is otherwise simply there: the words cut and the photograph behind them
+   fades in over a quarter of a second after them. Under fade they are
+   worse than inconsistent, because the dip has already faded everything
+   and this would fade it a second time, on the way back up.
+
+   Only the arrival half. The camera's own 250ms is untouched, and so is the
+   0.62s a ::: backdrop's reveal takes to open across the frame: that is
+   a move *on* a slide, like a reveal segment or a figure step, and a
+   keynote asking for a cut between slides is not asking for its pictures to
+   snap open. */
+body[data-transition=cut],
+body[data-transition=fade] { --arrive-fade: 0s; }
+/* The third arrival fade, and the one that is easy to miss because it is not
+   written next to the other two: .chunk itself transitions opacity over
+   --camera-duration, which is how the arriving slide comes up *as* the pan
+   lands. Zeroing --arrive-fade left it in place, and the frames said so - a
+   cut whose words faded in over a quarter of a second, and a fade whose two
+   halves were 130ms out and 230ms back because the stage rise and the
+   chunk rise multiplied. It cannot share --arrive-fade: that number is the
+   backdrop's 260ms and this one is the camera's 250ms, and taking either to
+   the other would move what a pan renders today. So it is its own line, and
+   only the active chunk is left to it - a neighbour is answered at higher
+   specificity by the rule above. */
+body[data-transition=cut] .chunk,
+body[data-transition=fade] .chunk { transition: none; }
 
 /* Prose in the live views had no line-breaking treatment at all, and the
    omission was invisible because the mode the room usually sees is the
@@ -4863,6 +4915,60 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
   letter-spacing: 0.1em;
 }
 #search-foot kbd { margin-inline-end: 0.15em; }
+
+/* The go-to-slide prompt (G) --------------------------------------- */
+/* One line, low on the frame rather than in the middle of it: the number
+   being typed is a small thing and the slide it will leave is still the
+   thing to look at. It sits above the search panel in the stack for the
+   same reason the badges do - nothing else may cover a prompt that is
+   waiting for Enter. */
+#goto-prompt {
+  position: fixed;
+  left: 50%;
+  bottom: 12vh;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  padding: 0.7rem 1.2rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 0 8px 40px oklch(0 0 0 / 0.18);
+  z-index: 41;
+  font-family: var(--sans-font);
+  color: var(--ink);
+}
+#goto-prompt.hidden { display: none; }
+#goto-prompt .goto-label,
+#goto-prompt .goto-foot {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+}
+#goto-prompt .goto-digits {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+  color: var(--emph);
+}
+#goto-prompt .goto-of {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+/* A number the deck does not have is refused in place: the prompt stays
+   open with the digits still in it, so the fix is a Backspace rather than
+   a re-open. The shake is the whole of the refusal, which is why it has to
+   be able to run twice in a row - the class is taken off on animationend. */
+#goto-prompt.goto-refused { animation: goto-shake 0.32s; }
+@keyframes goto-shake {
+  0%, 100% { transform: translateX(-50%); }
+  20% { transform: translateX(calc(-50% - 7px)); }
+  45% { transform: translateX(calc(-50% + 7px)); }
+  70% { transform: translateX(calc(-50% - 4px)); }
+}
 
 /* TOC overlay (PRD §5) --------------------------------------------- */
 /* Scoped to the <nav> tag so author chunks that legitimately use
@@ -8573,6 +8679,7 @@ of them are shown one per slide in
         <dt>click a slide</dt><dd>go there and leave the board</dd>
         <dt><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></dt><dd>move the selection (the board follows)</dd>
         <dt><kbd>O</kbd> · <kbd>Enter</kbd></dt><dd>land on the selected slide</dd>
+        <dt><kbd>G</kbd></dt><dd>go to a slide by the number in its corner – type the digits, <kbd>Enter</kbd> lands, <kbd>Esc</kbd> cancels</dd>
         <dt><kbd>/</kbd></dt><dd>search – opens from anywhere, see below</dd>
         <dt><kbd>T</kbd></dt><dd>column list</dd>
       </dl>
@@ -8667,6 +8774,12 @@ of them are shown one per slide in
   <input id="search-input" type="text" placeholder="search the lecture..." autocomplete="off" spellcheck="false" aria-controls="search-results">
   <ul id="search-results" role="listbox"></ul>
   <div id="search-foot"><kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> go · <kbd>Esc</kbd> close</div>
+</div>
+<div id="goto-prompt" class="hidden" role="dialog" aria-label="Go to slide">
+  <span class="goto-label">go to</span>
+  <span class="goto-digits" aria-live="polite"></span>
+  <span class="goto-of"></span>
+  <span class="goto-foot"><kbd>Enter</kbd> go · <kbd>Esc</kbd> cancel</span>
 </div>
 <div id="blank-badge" class="cmd-badge hidden" role="status">BLANK<span> &middot; hit B to toggle</span></div>
 <div id="demo-badge" class="cmd-badge hidden" role="status">DEMO<span> &middot; hit D to end it</span></div>
@@ -11566,6 +11679,17 @@ const state = {
   slideNums: VIEW_DEFAULTS.slideNums || "horizontal",  // vertical | horizontal | off – L cycles
   noteButton: VIEW_DEFAULTS.noteButton || 'on',  // on | off – M toggles
 };
+// pan | cut | fade. Not a field of state: it is the author's decision about
+// what a slide change looks like, there is no key that cycles it, and the
+// snapshot is a full apply - a mode in it would be one more thing two
+// windows could disagree about for no gain. Both views read the same
+// frontmatter, so both answer the same word.
+const SLIDE_TRANSITION = VIEW_DEFAULTS.transition || 'pan';
+// The whole of a fade, half of it going and half coming back. 260ms is the
+// backdrop's number, kept deliberately: a fade and a backdrop crossfade are
+// the same gesture at different scales, and a deck that has both should not
+// have two speeds in it.
+const FADE_MS = 260;
 const FONT_CYCLE = ['serif', 'sans', 'mono'];
 const SLIDE_NUM_MODES = ["vertical","horizontal","off"];
 const THEME_CYCLE = ["light-red","light-teal","light-blue","light-orange","dark","terminal-amber","terminal-green"];
@@ -11876,6 +12000,23 @@ function applyRemoteCamera(dx, dy, ovScale, selIdx, anchorIdx) {
   if (inRange(anchorIdx)) overviewAnchorIdx = anchorIdx;
 }
 function applyRemoteState(payload) {
+  // A remote apply that changes which chunk is live is a slide change and
+  // wears the deck's transition, exactly as a local one does. The whole
+  // apply goes inside the fade rather than only the camera, because it is
+  // a *full* apply: the reveals, the zoom and the collapse all land with
+  // the slide, and letting them land before the dip would show the old
+  // slide re-dressing itself on its way out.
+  //
+  // Each window runs its own dip when it learns of the change, so the two
+  // are half a fade out of step - the cockpit dips on the press, the
+  // projection on the message that follows the cockpit's swap. 130ms, on a
+  // pair of screens nobody sees at once, was judged cheaper than teaching
+  // the snapshot to carry a phase.
+  const changed = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0)) !== state.activeIdx;
+  if (changed) landSlide(() => applyRemoteStateNow(payload, true));
+  else applyRemoteStateNow(payload, false);
+}
+function applyRemoteStateNow(payload, changed) {
   isApplyingRemote = true;
   try {
     unfocusFigure();
@@ -11965,7 +12106,12 @@ function applyRemoteState(payload) {
     if (state.autoFitMode === 'shrink') fitZoomToChunk(collapsedZoom);
     else clampZoomToWidth();
     saveActive();
-    focusCamera(false);
+    // Instant only where the slide itself changed. A remote apply is also
+    // how a reveal, a zoom and a collapse arrive, and those are moves on a
+    // slide that is already on the frame - the walk down a chunk taller
+    // than the screen and a .middle chunk's per-press glide both live here,
+    // and both keep their motion in every mode.
+    focusCamera(changed && SLIDE_TRANSITION !== 'pan');
   } finally {
     isApplyingRemote = false;
   }
@@ -12723,6 +12869,82 @@ function focusCamera(instant = false) {
   if (instant) requestAnimationFrame(() => { stage.style.transition = ''; });
 }
 
+// ── the slide change (transition: pan | cut | fade) ─────────────────
+//
+// One helper and one rule: everything that changes which chunk is live goes
+// through landSlide(), and landSlide() is what decides whether the camera
+// glides, lands, or lands inside a fade. There are exactly two callers -
+// jumpTo, for a press in this window, and applyRemoteState, for a press in
+// the other one - because a third path is how two windows come to show a
+// slide change differently.
+//
+// pan  – the camera glides over --camera-duration. The stage is one
+//        continuous column and the room watches the frame travel along it.
+// cut  – focusCamera(true), which kills the transition for one frame. The
+//        new slide is simply there.
+// fade – the stage dips to the paper and comes back, and the camera's jump
+//        is taken at the bottom, where nothing is on screen to see it move.
+//
+// WHY THE DIP AND NOT A TWO-LAYER CROSSFADE, measured rather than argued.
+// A cross-dissolve needs the two slides in the same place at the same
+// moment, which a continuous column does not give: they are a slide-height
+// and a gap apart. Duplicating the stage to get them there was never going
+// to be cheap - a second copy of every chunk, every figure and every
+// inlined photograph in the deck - but the cheap version of the same idea
+// is one line: jump the camera and hand the outgoing chunk the inverse of
+// that jump, which puts it back where the room last saw it. That was built
+// and its half-way frame shot at 1600x900 beside the dip's. It works, and
+// what it paints is two paragraphs of text standing on each other, letter
+// through letter, for a sixth of a second - on this tool a slide is dark
+// words on pale paper and nothing else, so a dissolve of two of them is a
+// double exposure, unreadable in exactly the moment the room is reading.
+// The dip's half-way frame is the slide being left, at half strength,
+// still legible, on its way out. It also costs one animation on one
+// element, and it cannot disagree with focusCamera about where the camera
+// is, because it is focusCamera that moves it.
+//
+// Traced per animation frame in Chromium, the dip is: 130ms of the stage
+// falling 1 to 0 with the transform held exactly where it was, one frame at
+// 0 in which the transform changes, 130ms back up. No dropped frame and no
+// positional motion at any opacity a room can see.
+let fadeAnim = null;    // the half in flight
+let fadePending = null; // what it still has to do at the bottom
+function fadeSwap(land) {
+  // No WAAPI, no fade. Nothing here is worth a slide change that never
+  // happens.
+  if (!stage.animate) { land(); return; }
+  // A second press before the first fade has landed must not lose the first
+  // one's state change: run it now, and start the new fade from here.
+  if (fadePending) { const p = fadePending; fadePending = null; p(); }
+  if (fadeAnim) { fadeAnim.cancel(); fadeAnim = null; }
+  fadePending = land;
+  fadeAnim = stage.animate([{ opacity: 1 }, { opacity: 0 }],
+    { duration: FADE_MS / 2, easing: 'ease-in', fill: 'forwards' });
+  fadeAnim.onfinish = () => {
+    const p = fadePending;
+    fadePending = null;
+    // The state change and the camera jump, both while the stage is at
+    // nothing. land() measures and writes; neither paints, because a paint
+    // is a frame away and this is one task.
+    if (p) p();
+    const rise = stage.animate([{ opacity: 0 }, { opacity: 1 }],
+      { duration: FADE_MS / 2, easing: 'ease-out' });
+    // After the fall is dropped the element has no opacity of its own left,
+    // which is what keeps the stage free of an inline style between slides.
+    if (fadeAnim) { fadeAnim.cancel(); fadeAnim = null; }
+    fadeAnim = rise;
+    rise.onfinish = () => { if (fadeAnim === rise) fadeAnim = null; };
+  };
+}
+// Make idx the live chunk, in whatever way this deck changes slides. land()
+// carries everything that has to happen at the moment of the change - the
+// index, the fit, the paint, the camera - so that a fade can hold all of it
+// until the stage is invisible rather than only some of it.
+function landSlide(land) {
+  if (SLIDE_TRANSITION === 'fade') fadeSwap(land);
+  else land();
+}
+
 // Overview camera: translate-and-scale to center the anchor chunk at
 // --overview-scale. The anchor is set when overview opens (the active
 // chunk) and whenever the selection is moved *by keyboard or search* –
@@ -12961,6 +13183,111 @@ function endSearch() {
   flatChunks.forEach(c => c.el.classList.remove('search-match', 'search-miss'));
 }
 
+// ── go to a slide by its number (G) ──────────────────────────────────
+//
+// The number is the one the corner badge shows, which is data-chunk-num:
+// authored chunks counted straight through the deck, dividers left out
+// because they are inserted by the build rather than written. The printed
+// document and the cockpit's list count the same way, so what a lecturer
+// reads anywhere is what they type here - and reading it off the DOM rather
+// than recomputing it is what keeps that true if the counting ever changes.
+//
+// Everything inside the prompt is reached through gotoRoot, never through
+// getElementById: in the cockpit the lecture's own chunks share the id
+// namespace with the chrome (see the note on the cue panel in CLAUDE.md).
+const gotoRoot = document.getElementById('goto-prompt');
+const gotoDigitsEl = gotoRoot.querySelector('.goto-digits');
+const gotoOfEl = gotoRoot.querySelector('.goto-of');
+let gotoActive = false;
+let gotoTyped = '';
+let gotoNums = null;
+
+// number -> index into flatChunks. Built once; the badge numbers are
+// rendered at build time and nothing moves them.
+function gotoMap() {
+  if (gotoNums) return gotoNums;
+  gotoNums = new Map();
+  flatChunks.forEach((c, idx) => {
+    const n = parseInt(c.el.dataset.chunkNum || '', 10);
+    if (n > 0 && !gotoNums.has(n)) gotoNums.set(n, idx);
+  });
+  return gotoNums;
+}
+function gotoLast() {
+  let max = 0;
+  gotoMap().forEach((idx, n) => { if (n > max) max = n; });
+  return max;
+}
+
+function gotoPaint() {
+  const last = gotoLast();
+  gotoDigitsEl.textContent = gotoTyped || '–';
+  gotoOfEl.textContent = 'of ' + last;
+}
+
+function startGoto() {
+  if (gotoActive) return;
+  gotoActive = true;
+  gotoTyped = '';
+  gotoPaint();
+  gotoRoot.classList.remove('hidden');
+}
+
+function endGoto() {
+  if (!gotoActive) return;
+  gotoActive = false;
+  gotoTyped = '';
+  gotoRoot.classList.add('hidden');
+  gotoRoot.classList.remove('goto-refused');
+}
+
+// A number the deck does not have is refused where it was typed. The class
+// has to come off before it can go on again, or a second wrong number in a
+// row would be silent.
+function gotoRefuse() {
+  gotoRoot.classList.remove('goto-refused');
+  void gotoRoot.offsetWidth;
+  gotoRoot.classList.add('goto-refused');
+}
+
+function gotoCommit() {
+  const idx = gotoTyped ? gotoMap().get(parseInt(gotoTyped, 10)) : undefined;
+  if (idx === undefined) { gotoRefuse(); return; }
+  endGoto();
+  // The same landing a click in the contents or a committed search hit uses,
+  // so the broadcast, the cue-card cursor, auto-fit and the stored position
+  // all see an ordinary jump and nothing here has to know about any of them.
+  if (overview) {
+    setSelectedIdx(idx, { recenter: true });
+    exitOverview(true);
+  } else if (idx !== state.activeIdx) {
+    jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
+  }
+}
+
+// While the prompt is open it owns the keyboard: Space would advance the
+// deck and N would open an annotation, so every key is spent here whether
+// the prompt has a use for it or not.
+function gotoKey(e) {
+  const k = e.key;
+  if (k === 'Escape') { endGoto(); e.preventDefault(); return; }
+  if (k === 'Enter') { gotoCommit(); e.preventDefault(); return; }
+  if (k === 'Backspace') {
+    gotoTyped = gotoTyped.slice(0, -1);
+    gotoPaint();
+    e.preventDefault(); return;
+  }
+  if (k.length === 1 && k >= '0' && k <= '9') {
+    // Four digits is more slides than any deck here has, and the cap stops
+    // a held key from growing a number nothing can match.
+    if (gotoTyped.length < 4) gotoTyped += k;
+    gotoPaint();
+    e.preventDefault(); return;
+  }
+  if (k === 'Shift' || k === 'Alt' || k === 'Control' || k === 'Meta') return;
+  e.preventDefault();
+}
+
 function renderSearchResults(q) {
   if (!q) {
     searchResults.innerHTML = '<li class="sr-empty">type to search headings and body text</li>';
@@ -13061,13 +13388,21 @@ function jumpTo(idx, direction) {
   // Forward revisit: preserve whatever state it was in.
   applyReveal(target.el, target.id);
 
-  state.activeIdx = idx;
-  if (autoFitOn()) fitZoomToChunk(autoFitCeiling());
-  else clampZoomToWidth();
-  applyState();
-  focusCamera(false);
-  saveActive();
-  restartAutoplay();
+  // Everything from here is the slide change itself, so it goes through
+  // landSlide: under fade the whole of it waits for the bottom of the dip,
+  // and under cut the camera lands rather than glides. applyReveal above
+  // is deliberately outside it - it dresses the chunk being arrived at,
+  // which is off the frame either way, and doing it early means the slide
+  // the fade uncovers is already finished.
+  landSlide(() => {
+    state.activeIdx = idx;
+    if (autoFitOn()) fitZoomToChunk(autoFitCeiling());
+    else clampZoomToWidth();
+    applyState();
+    focusCamera(SLIDE_TRANSITION !== 'pan');
+    saveActive();
+    restartAutoplay();
+  });
 }
 
 // A fragment in the address is an explicit request for one chunk, so it
@@ -14772,6 +15107,12 @@ document.addEventListener('keydown', (e) => {
   // key name, and Alt with a letter is a character on macOS, not a command.
   // (No backticks in this comment: one would end the template literal.)
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // The go-to prompt is modal over the key map, and it stands after the
+  // guards above rather than before them: an annotation textarea and the
+  // search box answer their own keys first, so a digit typed into either
+  // one goes where the caret is. Cmd and Ctrl have already left, so a
+  // browser shortcut still works with the prompt open.
+  if (gotoActive) { gotoKey(e); return; }
   // In overview the arrows move the *selection*, never the live slide.
   // They used to fall through to nextChunk/nextCol, which silently
   // re-pointed the active chunk while the visible outline stayed put –
@@ -14895,6 +15236,11 @@ document.addEventListener('keydown', (e) => {
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
     case 'k': case 'K': if (overview) break; viewHooks.onK(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
+    // The third way to reach a slide, beside the board and the search. It
+    // works in overview too, where it lands the same way a committed search
+    // hit does - there is no reason for the board to be the one place a
+    // lecturer who knows the number has to hunt for it.
+    case 'g': case 'G': startGoto(); e.preventDefault(); break;
     case '/': startSearch(); e.preventDefault(); break;
     case '#': cycleAutoFit(1); e.preventDefault(); break;
     case '+': case '=':
