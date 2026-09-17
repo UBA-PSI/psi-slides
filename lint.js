@@ -86,7 +86,7 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
   'fonts', 'font', 'ligatures', 'draw-defaults',
   // viewer defaults
   'theme', 'collapse', 'auto-fit', 'slide-numbers', 'print-slide-numbers',
-  'editor', 'note-button', 'neighbours',
+  'editor', 'note-button', 'neighbours', 'transition',
 ]);
 
 // Mirrors VIEW_DEFAULT_SPEC in build.js: frontmatter keys that pin how a
@@ -118,6 +118,13 @@ const VIEW_DEFAULTS = {
   // What the projection does with the slide before and the slide after:
   // `dim` (the default, the camera panning through a column) or `hidden`.
   'neighbours': ['dim', 'hidden'],
+  // What a slide change looks like: `pan` (the default, the camera gliding
+  // along the column), `cut` (it lands, no motion at all) or `fade` (the
+  // stage dips through the paper and the camera jumps inside the dip).
+  // The build resolves `neighbours` against this one - cut and fade imply
+  // `hidden` - which is the build's to do, exactly as it is for
+  // print-slide-numbers: a linter's business is which words the key takes.
+  'transition': ['pan', 'cut', 'fade'],
   // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
   'cover': ['classic', 'masthead', 'stack', 'display', 'panel', 'quote',
             'split', 'hero', 'beside', 'above'],

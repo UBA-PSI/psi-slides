@@ -2110,7 +2110,7 @@ console.log('\nlayout generations');
 
   // 8 · the [data-bd-frames] shorthand replaced the plain rule's opacity
   // transition, so a revealed backdrop snapped instead of fading.
-  ok(/\.chunk-backdrop\[data-bd-frames\] \{[^}]*clip-path[^}]*opacity 260ms/.test(rvRev.html),
+  ok(/\.chunk-backdrop\[data-bd-frames\] \{[^}]*clip-path[^}]*opacity var\(--arrive-fade\)/.test(rvRev.html),
      'and it still fades with its slide, which the shorthand had dropped');
 
   // 6 · marked wraps a lone image in a <p> and passes a raw <figure> through,
@@ -2212,7 +2212,7 @@ console.log('\nlayout generations');
   // The same shorthand clobber, one media query down: reduced motion took the
   // opacity crossfade away too, so a revealed backdrop snapped between slides
   // while every other one faded.
-  ok(/prefers-reduced-motion: reduce\) \{\s*\.chunk-backdrop\[data-bd-frames\] \{ transition: opacity 260ms ease; \}/
+  ok(/prefers-reduced-motion: reduce\) \{\s*\.chunk-backdrop\[data-bd-frames\] \{ transition: opacity var\(--arrive-fade\) ease; \}/
        .test(rvRev.html),
      'and reduced motion suppresses the picture opening, not the fade');
 
@@ -2738,8 +2738,9 @@ console.log('\nlayout generations');
     // The fade is the backdrop's and not the chunk's own 500ms: the camera
     // lands in --camera-duration, and a neighbour still visible then reads as
     // a smear beside the slide rather than as a slide leaving.
-    ok(/body\[data-neighbours=hidden\] \.chunk:not\(\.active\) \{[^}]*transition: opacity 260ms ease/.test(keynote.html),
-       'over the 260ms the backdrop already fades in, not the 500ms of the dim');
+    ok(/--arrive-fade: 260ms/.test(keynote.html)
+       && /body\[data-neighbours=hidden\] \.chunk:not\(\.active\) \{[^}]*transition: opacity var\(--arrive-fade\) ease/.test(keynote.html),
+       'over the 260ms the backdrop already fades in, not the 500ms of the dim - one number, three rules, and transition: cut zeroes it');
     // The button is the only thing the key touches. N is what actually opens
     // an annotation, and hiding a hint must not cost the ability it hints at.
     ok(/data-annot-add>/.test(keynote.html) && /startAnnotate/.test(keynote.html),
@@ -2757,6 +2758,56 @@ console.log('\nlayout generations');
        && /unknown-view-default/.test(lintOf(DECK('note-button: maybe\n'))),
        'the linter mirrors both vocabularies');
     ok(/neighbours/.test(raw(DECK('neighbours: faint\n'), ['--print-only']).out),
+       'and a bad value is refused by a build that renders no live view at all');
+  }
+
+  // ── the third key of that kind, and the one that resolves another ───────
+  // transition says what a slide CHANGE looks like. Same absence-is-the-
+  // default shape as the two above, with one step more: cut and fade imply
+  // neighbours: hidden, so the attribute viewBodyAttrs writes is the
+  // RESOLVED answer and not the frontmatter's word. The geometry is in
+  // test/transition.mjs, which walks three slides under each mode in a
+  // browser; this is the vocabulary and the bytes.
+  {
+    const quiet = raw(DECK(''), ['--audience-only']);
+    ok(!/data-transition/.test(bodyOf(quiet.html)),
+       'a deck that sets no transition carries no attribute, so its output is unmoved',
+       bodyOf(quiet.html));
+    const cut = raw(DECK('transition: cut\n'), ['--audience-only']);
+    ok(/data-transition="cut"/.test(bodyOf(cut.html)),
+       'transition: cut is on the body from the first paint', bodyOf(cut.html));
+    ok(/data-neighbours="hidden"/.test(bodyOf(cut.html)),
+       'and it brings neighbours: hidden with it, because a camera that does not travel never passes one');
+    const cutDim = raw(DECK('transition: cut\nneighbours: dim\n'), ['--audience-only']);
+    ok(!/data-neighbours/.test(bodyOf(cutDim.html)),
+       'an author who writes dim beside it keeps dim - the implication is a default, not a rule');
+    const fade = raw(DECK('transition: fade\n'), ['--audience-only']);
+    ok(/data-transition="fade"/.test(bodyOf(fade.html)) && /data-neighbours="hidden"/.test(bodyOf(fade.html)),
+       'and fade answers both the same way');
+    ok(/body\[data-transition=cut\],\s*body\[data-transition=fade\] \{ --arrive-fade: 0s; \}/.test(cut.html),
+       'both zero the arrival fade the pan was written for');
+    ok(/body\[data-transition=cut\] \.chunk,\s*body\[data-transition=fade\] \.chunk \{ transition: none; \}/.test(cut.html),
+       'and the third arrival fade too - .chunk carries one of its own over --camera-duration');
+    // The one place a chunk becomes live. Two callers, because a third path
+    // is how two windows come to draw a slide change differently.
+    ok(/function landSlide\(/.test(cut.html) && /function fadeSwap\(/.test(cut.html),
+       'the runtime carries landSlide and the fade');
+    // Counted on code lines only: the banner above the function names it
+    // twice in prose, and a count that includes those breaks the moment
+    // somebody improves the comment.
+    const landLines = cut.html.split('\n')
+      .filter(l => /landSlide\(/.test(l) && !/^\s*(\/\/|\*)/.test(l));
+    ok(landLines.length === 3,
+       'and landSlide has exactly two callers beside its definition - jumpTo and applyRemoteState',
+       landLines.join(' | '));
+    // No key cycles it: it is the author's design, not the reader's
+    // preference, and a mode in the snapshot is one more thing two windows
+    // could disagree about.
+    ok(!/state\.transition/.test(cut.html) && !/transition: state\./.test(cut.html),
+       'and it is never a field of state or of the snapshot');
+    ok(/unknown-view-default/.test(lintOf(DECK('transition: dissolve\n'))),
+       'the linter mirrors the vocabulary');
+    ok(/transition/.test(raw(DECK('transition: dissolve\n'), ['--print-only']).out),
        'and a bad value is refused by a build that renders no live view at all');
   }
 
