@@ -35,7 +35,7 @@ import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPat
 // two files cannot disagree about a tail. Tables plus small pure helpers,
 // zero dependencies - see the header of tails.mjs and CLAUDE.md.
 import {
-  CHUNK_SLOTS, CHUNK_STYLE_CLASSES,
+  CHUNK_SLOTS, CHUNK_STYLE_CLASSES, COLUMN_SLOTS,
   CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
   splitTail, parseTail, slotTable, strayTailProblem,
   parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseRevealMark,
@@ -1586,6 +1586,7 @@ const DISPLAY_TRACK = {
     '.chunk[data-cover=hero] .title-main',
     '.chunk[data-cover=quote][data-closing] .title-main',
     '.chunk-section .section-heading',
+    '.chunk-section[data-section-layout=stack] .section-heading',
   ],
 };
 
@@ -3568,7 +3569,8 @@ function initDiagrams() {
 function parseAttributeTail(line, { column = false } = {}) {
   const { text, tail, stray } = splitTail(line);
   const what = `{${String(tail ?? '').trim()}} on "${text}"`;
-  const t = parseTail(tail, CHUNK_SLOTS, what, { id: 'one', classes: column ? 'none' : 'slots' });
+  const t = parseTail(tail, column ? COLUMN_SLOTS : CHUNK_SLOTS, what,
+    { id: 'one', classes: column ? 'column' : 'slots' });
   if (stray) t.problems.unshift(strayTailProblem(what, stray));
   if (t.problems.length) {
     const err = new Error(t.problems[0].msg);
@@ -3576,6 +3578,12 @@ function parseAttributeTail(line, { column = false } = {}) {
     throw err;
   }
   const out = { text, classes: t.classes, id: t.id };
+  // A `#` heading's tail is a different table with a different question in
+  // it, so it leaves here rather than falling through the chunk's slots.
+  if (column) {
+    if (t.slots.stack.written) out.stack = true;
+    return out;
+  }
   if (t.slots.width.written) out.width = t.slots.width.value;
   if (t.slots.bare.written) out.bare = true;
   if (t.slots.center.written) out.center = true;
@@ -3986,7 +3994,19 @@ function parseLecture(src) {
         // does not count for it.
         currentChunk.speakerNoteAt.push(bodyLines.length);
         currentChunk.speakerNoteFrom.push(noteBlock.from ?? null);
-      } else pendingNotes.push(text);  // orphan – attach to the next chunk
+      } else if (currentColumn && currentColumn.heading) {
+        // A divider is a slide, and a slide the speaker talks on: it is the
+        // camera stop where the room is told what the next part is for. So a
+        // note written between a `#` heading and the first `##` is the
+        // divider's own. It used to be an orphan and arrived, silently, as
+        // the first cue card of the following chunk - the note said "this
+        // part is about X" while the projection was already on slide one.
+        // A divider has no top-level reveal segments (a `---` under a
+        // heading is a beat marker inside one body), so its notes are chunk
+        // notes on beat 0 and `from N` is the only way to name a later beat.
+        currentColumn.speakerNotes.push(text);
+        currentColumn.speakerNoteFrom.push(noteBlock.from ?? null);
+      } else pendingNotes.push(text);  // before any heading – attach to the next chunk
     }
     noteBlock = null;
   };
@@ -4239,6 +4259,11 @@ function parseLecture(src) {
       const h2 = inCaptured ? null : line.match(/^##\s+(.*)$/);
 
       if (h1) {
+        // A note block still open while no chunk is stands under the *previous*
+        // `#` heading, so it is that divider's. flushChunk cannot do it - it
+        // leaves at once when there is no chunk - and left to the line after
+        // the heading it would be flushed against the new column.
+        if (!currentChunk) flushNoteBlock();
         flushChunk();
         flushColBody();
         // A column heading takes an id and nothing else. Width and `.bare`
@@ -4249,18 +4274,29 @@ function parseLecture(src) {
         // vocabulary this line never had.
         const h1Attr = parseAttributeTail(h1[1], { column: true });
         const { text, id } = h1Attr;
-        currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null, overlays: [], dock: null };
+        currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null, overlays: [], dock: null,
+          stack: !!h1Attr.stack, speakerNotes: [], speakerNoteFrom: [] };
         colBody = [];
         columns.push(currentColumn);
         continue;
       }
 
       if (h2) {
+        // Same reason as at `#`, one level down: a `> note:` written under a
+        // column heading with no blank line before the first `##` is the
+        // divider's, and without this flush it stayed open across the
+        // boundary and landed in the chunk instead - so the same note meant
+        // two different things depending on a blank line.
+        if (!currentChunk) flushNoteBlock();
         flushChunk();
         flushColBody();
         if (!currentColumn) {
           // A chunk before any `# Column` (e.g. the title chunk).
-          currentColumn = { heading: null, id: null, chunks: [], overlays: [], dock: null };
+          // The two note arrays are here as well as on a headed column so
+          // that every reader can say `col.speakerNotes.length` without a
+          // guard; an anonymous column draws no divider and never fills them.
+          currentColumn = { heading: null, id: null, chunks: [], overlays: [], dock: null,
+            stack: false, speakerNotes: [], speakerNoteFrom: [] };
           columns.push(currentColumn);
         }
         const h2Attr = parseAttributeTail(h2[1]);
@@ -5057,6 +5093,23 @@ function parseLecture(src) {
     }
   }
 
+  // `.stack` says where the divider's own content stands, so a divider with
+  // no content has nothing for it to say - the silent no-op this format
+  // refuses everywhere. Checked here, at the end of the parse, because a
+  // divider's body is only complete when the next heading has arrived; and
+  // in the parser rather than in a renderer, so `--print-only` reaches it
+  // too. lint.js mirrors it as `bad-section-stack`.
+  for (const col of columns) {
+    if (!col.stack || (col.body || '').trim()) continue;
+    const err = new Error(
+      `{.stack} on the divider of column ${col.id ? '#' + col.id : `"${col.heading}"`}, ` +
+      'which has no content under its heading.\n' +
+      '  .stack puts the part\'s own figure, quotation or card row *under* the\n' +
+      '  heading at full width instead of beside it. Write something under the\n' +
+      '  `#` line, or drop the class.');
+    err.userFacing = true;
+    throw err;
+  }
   return { frontmatter, columns };
 }
 
@@ -6723,12 +6776,24 @@ function renderColumn(col, frontmatter, nums, chunkOpts = {}) {
   // and silently skipped every divider.
   const bdScrim = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdHas = bd.html ? ' data-has-backdrop=""' : '';
+  // A divider's own speaker notes, in the hand-out that carries notes. The
+  // aside is the chunk's, spelled the same way, because a reader of
+  // print-notes.html is reading one document and a divider's prompt is not a
+  // different kind of thing from a slide's.
+  const S = chunkOpts.strings || lectureStrings(frontmatter);
+  const notesHtml = (chunkOpts.withNotes && (col.speakerNotes || []).length)
+    ? `<aside class="speaker-note">
+<span class="speaker-note-label">${escapeHtml(S['speaker-note'])}</span>
+<div class="speaker-note-body">${col.speakerNotes.map(n => marked.parse(n)).join('\n')}</div>
+</aside>`
+    : '';
   return `<section class="column"${idAttr}${bdHas}${bdScrim}>
   <h1 class="column-heading">${escapeHtml(col.heading)}</h1>
   ${bd.html}
   ${lede}
   ${renderDock(col.dock, `the divider for "${col.heading}"`, null, nums)}
   ${renderOverlayLayer(col.overlays, `the divider for "${col.heading}"`)}
+  ${notesHtml}
 ${chunksHtml}
 </section>`;
 }
@@ -8303,8 +8368,15 @@ function renderOutlineList(parts, now) {
   }).join('');
   return `<ol class="section-outline">${items}</ol>`;
 }
+// The divider's element id, in one place. `renderColumnsHtml` draws the slide
+// with it and `renderSpeaker` files the divider's own notes under it; two
+// spellings would be a cockpit whose notes pane is empty on every divider,
+// and nothing would say so.
+function sectionChunkId(col, ci) {
+  return col.id ? `${col.id}-section` : `__section-c${ci}`;
+}
 function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = [], nums = chunkNumbers([])) {
-  const chunkId = col.id ? `${col.id}-section` : `__section-c${ci}`;
+  const chunkId = sectionChunkId(col, ci);
   const sec = sectionSettings(frontmatter);
   const mark = sec.mark
     ? `<div class="section-mark">${escapeHtml(sec.mark)}</div>`
@@ -8337,7 +8409,12 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
   // all of them, and the extra height it forced was shared out among them -
   // measured, the list's centre sat 132px below the figure's. Everywhere
   // else the wrapper is `display: contents`, so it changes nothing.
-  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${bdAttr}${scrimAttr}${dockAttrs(col.dock)} data-chunk-id="${escapeHtml(chunkId)}">
+  // `.stack` on the `#` heading: the content stands under the heading at the
+  // full measure and the heading becomes its caption. An attribute rather
+  // than a class for the reason `data-closing-art` is one - the attribute is
+  // the fact the author wrote, the layout only what follows from it.
+  const stackAttr = col.stack ? ' data-section-layout="stack"' : '';
+  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${stackAttr}${bdAttr}${scrimAttr}${dockAttrs(col.dock)} data-chunk-id="${escapeHtml(chunkId)}">
   ${art.html}
   <div class="chunk-content">
     <div class="section-lead">
@@ -11647,7 +11724,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    :has(> figure:only-child) is that test, written where the compiler already
    put the answer rather than being decided again in the parser. */
 .section-lead { display: contents; }
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   align-items: center;
@@ -11657,27 +11734,78 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    cell, which is the whole of the fix: as separate grid rows the mark and the
    heading were pushed apart by the height the spanning figure forced into
    every row they sat in. */
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-lead {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) > .section-lead {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   grid-column: 1;
   grid-row: 1;
 }
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-body {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) > .section-body {
   grid-column: 2;
   grid-row: 1;
   margin-top: 0;
   max-width: none;
   align-self: center;
 }
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) .section-body svg {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) .section-body svg {
   max-height: calc(var(--slide-h) * 0.68);
 }
 .chunk-section .section-body svg {
   width: auto; height: auto;
   max-width: 100%;
   max-height: calc(var(--slide-h) * 0.52);
+}
+/* ── {.stack} on the # heading: the content under the heading, full measure ──
+   The beside layout above answers the divider that opens on *a* drawing, where
+   the heading and the picture balance each other across the frame. It cannot
+   answer the divider whose drawing IS the part - a build plan with six cells
+   and labels in them - because half a frame is not enough to read one from the
+   back of a room: the figure came out at about 55% of the slide and the labels
+   with it.
+
+   So .stack turns the composition the other way up. The heading stops being
+   the headline and becomes the figure's caption: it sits above, at the scale
+   the mark and the credits are set at rather than the cover's, and the content
+   takes the whole of the .full measure the divider article already carries.
+   Nothing else about the divider changes - all six section: variants draw
+   their own treatment of the heading exactly as before, which is why this is
+   a class on the one heading rather than a seventh variant beside them. */
+.chunk-section[data-section-layout=stack] .chunk-content { gap: 0; }
+.chunk-section[data-section-layout=stack] .section-heading {
+  /* A caption over a picture, not a part title standing alone: between the
+     mark's small caps and the plain divider's 2.6em, and quieter in colour so
+     the drawing under it is what the room reads first. */
+  font-size: calc(1.35em * var(--zoom));
+  font-weight: 600;
+  color: var(--ink-soft);
+  letter-spacing: 0.01em;
+}
+.chunk-section[data-section-layout=stack] .section-mark { margin-bottom: 0.2em; }
+.chunk-section[data-section-layout=stack] .section-mark.section-num {
+  font-size: calc(1.5em * var(--zoom));
+}
+.chunk-section[data-section-layout=stack] .section-body {
+  /* The 30em cap is the measure a quotation wants; a figure wants the frame.
+     align-self: stretch because .chunk-content is a flex column whose items
+     otherwise shrink-wrap, which leaves a centred figure in a full-width slot
+     looking like a figure that did not fit. */
+  max-width: none;
+  align-self: stretch;
+  margin-top: 0.55em;
+}
+.chunk-section[data-section-layout=stack] .section-body figure {
+  /* Ranged left, not centred: the heading above is the figure's caption now,
+     and a caption hanging off the left edge of a centred drawing reads as two
+     blocks that happen to be on one slide. A figure that fills the measure
+     looks the same either way; a narrower one lines up with its words. */
+  text-align: left;
+}
+.chunk-section[data-section-layout=stack] .section-body svg {
+  /* The heading is one line above it now, so the picture may take almost the
+     whole frame - the beside layout's own ceiling, which was measured against
+     a heading standing beside it rather than over it. */
+  max-height: calc(var(--slide-h) * 0.72);
 }
 /* A divider with a picture behind it needs the full slide, like every other
    chunk that carries one - the shared rule keys on data-has-backdrop and is
@@ -17082,27 +17210,34 @@ function renderSpeaker(lecture, opts = {}) {
   // the default; per-chunk overrides live in localStorage so the
   // speaker can rewrite notes during rehearsal without touching source.
   const noteTemplates = [];
-  for (const col of columns) for (const c of col.chunks) {
-    if (c.id && c.speakerNotes && c.speakerNotes.length) {
-      const raw = c.speakerNotes.join('\n\n');
+  // One emitter for a chunk and for a divider, because the cockpit reads the
+  // two through the same id namespace and a second copy of these six lines
+  // is how a divider comes to show its notes in the pane and not on a card.
+  // `segOf` is the only difference: a chunk files a block by the reveal
+  // segment it stood in, a divider has no top-level segments and files every
+  // unpinned block on beat 0.
+  const pushNotes = (id, notes, froms, segOf) => {
+    if (!id || !notes || !notes.length) return;
+    noteTemplates.push(
+      `<template data-notes-for="${escapeHtml(id)}">${escapeHtml(notes.join('\n\n'))}</template>`
+    );
+    // The same blocks once more, one template each, with the reveal
+    // segment the block stood in (parser: noteSegments). The cue-card
+    // mode reads these; the textarea, --squint and the overrides keep
+    // reading the joined one above, so neither knows about the other.
+    notes.forEach((n, k) => {
+      const from = (froms || [])[k];
+      const where = from != null ? `data-at="${from}"` : `data-seg="${segOf(k)}"`;
       noteTemplates.push(
-        `<template data-notes-for="${escapeHtml(c.id)}">${escapeHtml(raw)}</template>`
+        `<template data-cards-for="${escapeHtml(id)}" ${where}>${escapeHtml(n)}</template>`
       );
-      // The same blocks once more, one template each, with the reveal
-      // segment the block stood in (parser: noteSegments). The cue-card
-      // mode reads these; the textarea, --squint and the overrides keep
-      // reading the joined one above, so neither knows about the other.
-      c.speakerNotes.forEach((n, k) => {
-        const from = (c.speakerNoteFrom || [])[k];
-        const where = from != null
-          ? `data-at="${from}"`
-          : `data-seg="${(c.speakerNoteSegs || [])[k] ?? 0}"`;
-        noteTemplates.push(
-          `<template data-cards-for="${escapeHtml(c.id)}" ${where}>${escapeHtml(n)}</template>`
-        );
-      });
-    }
-  }
+    });
+  };
+  columns.forEach((col, ci) => {
+    // The divider first, because that is where the camera lands first.
+    if (col.heading) pushNotes(sectionChunkId(col, ci), col.speakerNotes, col.speakerNoteFrom, () => 0);
+    for (const c of col.chunks) pushNotes(c.id, c.speakerNotes, c.speakerNoteFrom, k => (c.speakerNoteSegs || [])[k] ?? 0);
+  });
 
   // Scrubber: column buttons + chunk dots below.
   const scrubberHtml = columns.map((col, ci) => {

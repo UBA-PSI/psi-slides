@@ -412,7 +412,14 @@ lede; it is a beat now, and `***` is the spelling of a rule there.
 first non-blockquote line. A second `> note:` starts a **new** note, so never
 prefix continuation lines. Notes appear in the cockpit and in
 `print-notes.html`, never in the audience view or `print.html`. A note written
-before the first chunk attaches to the next chunk.
+before the very first heading attaches to the next chunk.
+
+**A note under a `# Heading`, before the first `##`, is the divider's own.**
+The divider is a slide you talk on – it is where the room is told what the
+part is for – so its notes are its own rather than the first chunk's. A
+divider has no reveal segments, so every block there is a card on the beat it
+opens with; `> note: from N` names a later one where the divider's body
+carries a `---`.
 
 Notes are the right home for reminders, caveats, timing, demo fallbacks, and
 anything you say aloud but would not project.
@@ -686,7 +693,7 @@ was a slide that rendered wrong with exit 0 before it was one.
 | `slide` / `script`          | any wrapper, `draw`, `cards` / `rows`      | `slide` or `script` again (`explicit-nested`)            |
 | `dock`                      | prose, lists, an image, `draw`, `---`      | every other directive (`directive-in-dock`, `cards-nested`) |
 | any wrapper                 | a `---` (a beat below the top level, see *Reveal segments*) | `expand`, `footnote`, `overlay`, `dock` (`aside-in-layout`, `overlay-in-layout`, `dock-in-layout`) |
-| a column heading (divider)  | prose, `backdrop`, `draw`, `cards` / `rows`, `overlay`, `dock`, `---` | everything else (`stray-directive`)          |
+| a column heading (divider)  | prose, `backdrop`, `draw`, `cards` / `rows`, `overlay`, `dock`, `---`, `> note:` | everything else (`stray-directive`)          |
 
 `draw` is the one construct meant to go nearly everywhere – a pane, a card, an
 overlay card over a photograph, an expansion, a divider – because a figure is
@@ -1112,6 +1119,28 @@ section-mark: Teil      # any short word, or none (the default)
 There is no paragraph sign over the heading any more - it read as a statute
 number to anyone outside a German law faculty. Put a word there with
 `section-mark:` if you want one.
+
+**`# Heading {.stack}` is the one class a `#` line takes**, and it answers
+where the divider's own content stands. Written, the content goes **under**
+the heading at the full measure and the heading is set small above it as its
+caption; left out, prose stays under the heading at the reading measure and a
+body that is nothing but a figure goes *beside* it. Reach for it when the
+drawing is the point of the divider – a plan with six cells and a label in
+each is unreadable at the half-frame the beside layout gives it. The class
+is per divider and works under all six `section:` variants; on a divider with
+nothing under its heading it is refused, because there is nothing to place.
+
+```md
+# Who keeps it green? {.stack #part-2}
+
+> note: The card for this slide: say what the part is for before slide one.
+
+::: draw 132x40
+box plan "Plan" at 0,0
+box run  "Operation" right of plan gap 0.6
+edge plan -> run
+:::
+```
 
 ## Typefaces, ligatures, and the 1.0 layout
 
