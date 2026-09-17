@@ -1945,7 +1945,7 @@ console.log('\nlayout generations');
     // And the drawing ranges left on the caption's own edge. text-align
     // cannot move an svg - it is a block with auto inline margins - so the
     // existing "ranged left" rule reached the figcaption alone.
-    ok(/\.chunk-section\[data-section-layout=stack\] \.section-body \.psi-diagram \{[^}]*--dg-ink-x/.test(st.html),
+    ok(/\.chunk-section\[data-section-layout=stack\] \.section-body \.psi-diagram \{[^}]*--dg-fit-ink-x/.test(st.html),
        'and its drawing sits on the caption edge by its ink, not by its box');
   }
 
@@ -1965,19 +1965,47 @@ console.log('\nlayout generations');
       + '\n## figure: Plainer {.wide #plainer}\n\n' + row(2);
     const ft = raw(deck(''), ['--audience-only']);
     ok(ft.code === 0, 'a deck with one dense figure and two sparse ones builds', ft.out.split('\n')[0]);
-    // The report. The complaint is the deck's own spread, not an absolute
-    // size: both readings above compare a figure with the words beside it,
-    // and on a shrunken slide those agree perfectly.
-    ok(/figure-type-uneven in chunk #dense/.test(ft.out)
-       && /\{\.figure-type-\d+\}/.test(ft.out) && !/uneven in chunk #plain/.test(ft.out),
-       'the dense one is named as out of step with the deck, with the step that answers it',
-       ft.out.split('\n').filter(l => /figure-type/.test(l)).join(' | '));
-    // …and writing that step silences it, which is the half that says the
-    // class and the report are talking about the same number.
+    // The report, and it is the canvas that makes both halves sayable: the
+    // dense drawing is wider than the box its slide reserves, and the sparse
+    // ones use a sixth of theirs. Before the canvas neither was a fact about
+    // one figure - the only comparison available was the deck's own median,
+    // which says nothing at all about a deck whose figures are uniformly
+    // wrong.
+    ok(/figure-overflows-canvas in chunk #dense/.test(ft.out)
+       && !/overflows-canvas in chunk #plain/.test(ft.out),
+       'the dense one is named as over its canvas',
+       ft.out.split('\n').filter(l => /canvas/.test(l)).join(' | '));
+    ok(/over by [\d.]+ across/.test(ft.out) && /frame [\d.]+x[\d.]+  on this figure/.test(ft.out),
+       'with the overshoot per axis and the frame that would reserve what it draws',
+       ft.out.split('\n').filter(l => /overflows/.test(l)).join(' | '));
+    ok(/figure-underfills-canvas in chunk #plain/.test(ft.out)
+       && !/underfills-canvas in chunk #dense/.test(ft.out),
+       'and the sparse ones are named as under theirs, with the share they fill',
+       ft.out.split('\n').filter(l => /canvas/.test(l)).join(' | '));
+    // …and writing the `frame` the message spells silences both, which is the
+    // half that says the report and the override are talking about one box.
+    const spelled = /frame ([\d.]+x[\d.]+)  on this figure/.exec(ft.out);
+    ok(!!spelled, 'the overflow message spells a frame');
+    if (spelled) {
+      const framed = raw(deck('').replace('::: draw 200x52\nbox b0 "a label of some length 0"\nbox b1',
+        '::: draw 200x52 frame ' + spelled[1] + '\nbox b0 "a label of some length 0"\nbox b1'),
+        ['--audience-only']);
+      ok(framed.code === 0 && !/overflows-canvas in chunk #dense/.test(framed.out),
+         'and the frame it spells takes that figure off the complaint',
+         framed.out.split('\n').filter(l => /canvas/.test(l)).join(' | '));
+    }
     const fixed = raw(deck(' .figure-type-70'), ['--audience-only']);
-    ok(fixed.code === 0 && !/figure-type-uneven/.test(fixed.out),
-       'and the chunk class it recommends takes the slide back into line',
-       fixed.out.split('\n').filter(l => /figure-type/.test(l)).join(' | '));
+    ok(fixed.code === 0, 'a per-chunk figure-type builds', fixed.out.split('\n')[0]);
+    // figure-type is still the one knob that says how large a label is
+    // against body type - which is now also how many labels the canvas
+    // holds, so a smaller label is a wider canvas and a smaller overshoot.
+    const overOf = (out) => {
+      const m = /over by ([\d.]+) across/.exec(out);
+      return m ? Number(m[1]) : null;
+    };
+    ok(overOf(fixed.out) !== null && overOf(ft.out) !== null && overOf(fixed.out) < overOf(ft.out),
+       'and {.figure-type-70} widens the canvas in labels, so the overshoot shrinks',
+       `${overOf(ft.out)} -> ${overOf(fixed.out)}`);
     ok(/<article[^>]*data-figure-type="70"[^>]*data-chunk-id="dense"/.test(fixed.html || '')
        || /<article[^>]*data-chunk-id="dense"[^>]*data-figure-type="70"/.test(fixed.html || ''),
        'the class reaches the chunk as data-figure-type, in per cent');

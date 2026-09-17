@@ -411,30 +411,173 @@ Ships into the live views whenever the lecture contains a diagram, gated by the 
 - **An edit syncs as its own message**, `diagram-edit`, following the `video` precedent rather than the state snapshot – see `speaker.md` §2 for why, and for the rest of that table. Three things keep that sync honest: an edit committed while frozen is queued and flushed on thaw (`psiEditorThaw`, called by `toggleFreeze`); a received edit is persisted the way a local one is, or reopening the editor loaded pre-edit source and the next gesture reverted the peer's work; and under `editor: speaker` the message carries the compiled figure too, because the projection ships no compiler. The DOM half of applying an edit – swapping the drawing, its frames payload, the runtime and the focus-card clone – is `dgSwapFigure` in the shared diagram runtime, one text for the editor's path and the no-editor path.
 - **`frozen` and `state` are top-level `let`/`const` in a classic script**, so they are *not* properties of `window`. The editor reads the freeze state off `#freeze-btn`, which is the same fact made visible. Function declarations (`sendToPeer`, `dgRenderInto`) are global and can be called directly.
 
-## How large a figure lands in the room
+## The canvas a figure is drawn on
 
-Three numbers decide it, and only one of them is in the opener.
+**A slide has a fixed canvas, and a figure is drawn on it.** Every `::: draw`
+standing in a chunk's own body gets one, by default, and it is the same
+rectangle on every ordinary slide of a deck. That is the whole answer to the
+question this section used to spend a page on – how large a figure lands in a
+room – and it replaced the arrangement where the viewBox hugged the drawing
+and every figure slide therefore settled at its own zoom.
 
-1. **The viewBox comes from the content.** `boxFor` measures what the drawables reserve and pads it; the grid in `::: draw 150x56` is the size of one unit in px, so it sets the *proportions* inside the picture and how much room a label has in a box. It frames nothing – doubling both numbers draws the same figure at the same size on the slide.
-2. **The label size follows the body type.** `--dg-type-w` is the viewBox width measured in base labels (`vbW / DG_FONT`, emitted on every svg), so `--dg-type-w × 1em` is the width at which a base label lands at exactly the size of the text the figure stands in. The live views use that as the figure's width (`.chunk .psi-diagram` in `AUDIENCE_CSS`, times `style: {figure-type: …}`, default 1), the documents use `0.9rem` per label (`main .psi-diagram` in `PRINT_CSS`). A figure in a card or a pane wears that box's type, not the slide's.
-3. **The box caps it, in two directions.** Across: at 1600x900 the frame leaves 1152 px for a chunk's content and one em is 23.4 px, so `.wide` and `.full` both resolve to 1152 px, `.standard` to 842 and `.narrow` to 655. Down: a drawing may be 62% of the slide high, and that budget is turned into a width (`--dg-ar`) so a tall figure hugs its own shape instead of sitting letterboxed. Past either cap the figure stops growing with the type, `fitZoomToChunk` reads it as "does not fit" and takes the slide's own words *down* to the figure rather than away from it, and the build warns.
+### What the default is
 
-So the number to know about a drawing is **its width in label-widths**. In a `.wide` or `.full` column anything past about **64** puts the base label under 18 px at 1600x900 – illegible from the back row whatever the lecturer presses. In `.standard` the number is 47, in `.narrow` 36. A drawing taller than about half its own width hits the height cap first and those numbers come down with it. The build prints the figure's own count in the warning (`figureTypeWarning`, which says which of the two caps bound); `--check-fit` measures what the browser actually drew, per state, and reports the label size against the body type beside it.
+| the chunk | the canvas, in base labels | on a 1600x900 slide |
+| --- | --- | --- |
+| `.narrow` | 20.7 × 16 | 655 × 505 px |
+| `.standard` | 26.7 × 16 | 842 × 505 px |
+| `.wide` | 36.5 × 16 | 1152 × 505 px |
+| `.full` | 44.6 × 16 | 1408 × 505 px |
 
-Sixty label-widths is not many: at `DG_FONT` 15 it is a viewBox 900 px wide, which on the default 120x72 grid is seven and a half units – six boxes in a row with their gaps. Of the 29 drawings in `lectures/diagrams`, six are past 54 and two past 60. A figure that reads badly in the room is nearly always one row too long rather than one label too long, and the fix is less in the drawing – fewer columns of content, shorter labels, a second figure on a second slide – rather than a wider chunk, since `.wide` is already at the frame. Stacking what was in a row buys width only until the height cap takes it back.
+The width is **the chunk's column measured in base labels**, which is exactly
+the width at which a base label lands at the size of the words beside it. So
+the canvas is not an extra rule on top of the label-size rule – it *is* that
+rule, written down as a box. The height is a fixed sixteen label-heights: a
+`.wide` chunk with a heading and a sub-heading, two lines of prose under the
+drawing and a one-line `::: footnote` costs 383 px of furniture, so such a
+slide stands at 888 px in a 900 px frame. That is the fullest a figure chunk
+can be, and it fits; eighteen label-heights did not. The ceiling is 17.7, and
+it is arithmetic rather than taste – past 62 % of the slide the height cap
+takes over and the figure comes out narrower than its own column.
 
-## The opener: `::: draw [WxH] [autoplay N [cycle]]`
+Three details that are not guessable:
+
+- **The em is 31.6 px, not 23.4.** 1rem at 1600x900 is 23.4 px, but a chunk
+  body is `1rem × --zoom × --body-scale` and `--zoom` defaults to 1.35. The
+  canvas is the column measured in *that*. Reading the rem instead makes every
+  canvas a quarter too wide and every label a quarter smaller than the prose
+  beside it.
+- **The chunk type moves it.** `--body-fs` is 1.2rem on a `principle`, 1.15rem
+  on a `question` and 0.9rem on a `figure`, so those chunks' canvases hold
+  proportionally fewer or more labels – and the box on the slide comes out the
+  same size either way. `FIG_BODY_REM` in build.js is the mirror of those
+  rules and `node test/gates/run.mjs canvas` holds the two together.
+- **`figure-type` divides both sides.** The key says how large a base label is
+  against body type, which is now also how many labels fit in the column:
+  `{.figure-type-160}` gives a canvas of 22.8 × 10 labels on a `.wide` chunk,
+  the same 1152 × 505 px box with bigger type in it.
+
+### What it does not do
+
+**It changes no drawing's rendered size.** A figure that fits inside its canvas
+is drawn at precisely the scale it was drawn at before; only the box round it
+grows to the column and the reserve. A figure past it is drawn exactly as it
+was too, because the emitted box is the union of the two. What the canvas adds
+is a measurable claim – this much slide is a figure's – and therefore two
+things the build can say that it could not say before.
+
+**It is the live views' box, not the documents'.** A slide is a fixed frame
+and a figure in it is one of a series; a figure in a printed column is
+apparatus inside running text, where reserved paper under a small drawing is a
+gap. So `print.html` and `print-notes.html` keep the box that hugs the
+drawing, and the canvas rides the channel a stepped figure's union box already
+rode: `data-live-viewbox` for the attribute the runtime swaps, and
+`--dg-live-type-w` / `--dg-live-ar` / `--dg-live-ink-x` beside the print
+numbers for the three a stylesheet reads. **Read `--dg-fit-w`, never
+`--dg-type-w`, from anything that measures a live view** – `AUDIENCE_CSS`
+resolves the fallback chain once on `.psi-diagram`, and `figureCapProbe`,
+`--check-fit` and `test/figure-type.mjs` all read the resolved value.
+
+**Which figures get one.** Only a `::: draw` in the chunk's own flow, which is
+the only place the chunk's column is the right box. A figure in a card, a
+pane, a dock, an overlay or an expansion has a fraction of that column; a
+divider figure has no width class at all and its frame is the slide. Those
+keep the hugging box. `::: slide` and `::: script` are not layout – they say
+which half of the chunk is the screen – so a figure inside one still gets a
+canvas.
+
+### The two warnings
+
+Both are one line per figure, sited like every other `[diagram]` warning, and
+neither fails a build.
+
+- **`figure-overflows-canvas`** – the drawing is wider or taller than its box.
+  The message gives both sizes in labels, the overshoot per axis, the body
+  type the slide will settle at against the one every figure that fits gets,
+  and a `frame WxH` that would reserve what this drawing actually draws. A
+  figure whose own labels also land under 18 px says so in the same line
+  rather than earning a second one.
+- **`figure-underfills-canvas`** – the drawing uses less than half the
+  canvas's area, so the slide reads empty and, on a text-heavy chunk, auto-fit
+  takes the prose down to make room for paper. The message gives the share,
+  both sizes, how many labels a narrower column would hold, and the same
+  `frame WxH`.
+
+**Neither is mirrored in `lint.js`, and neither can be**: both need the
+drawing laid out, which needs the compiler, which is the whole thing the
+linter is kept independent of. `figure-type-small` survives beside them for a
+figure with **no** canvas – under `frame: none`, or in a card, a pane or a
+divider – where nothing else can say that a deck's figures are uniformly
+unreadable. `figure-type-uneven` is gone: its whole content was "this slide's
+type is out of step with the deck's", which a figure inside its canvas cannot
+be and a figure past it is told in plainer words.
+
+`--check-fit` reports the same thing from the other end, measured rather than
+computed: the canvas fill per figure, every figure that had to be scaled past
+its canvas, and the deck's settled body type with the slides its figures took
+down.
+
+### `frame`
+
+```
+::: draw 150x56 frame 6x4          this figure's canvas, in grid units
+::: draw frame none                this figure keeps the box that hugs it
+```
+
+```yaml
+draw-defaults: |
+  frame 6x4                        every figure in the deck
+  frame none                       no figure in the deck gets a canvas
+  default text {.small}
+```
+
+`WxH` is counted in the figure's own grid units – the cells `::: draw 150x56`
+sets – so `frame 6x4` is six cells across and four down. Decimals are allowed
+where the grid's are not: a grid is the size of one cell in whole pixels, a
+frame is a count of cells, and half a row is a thing an author can want. Both
+sides positive, at most 200.
+
+The opener's order is strict and the frame comes between the grid and
+playback: `::: draw [WxH] [frame WxH|none] [autoplay N [cycle]]`. It is read
+by `parseDrawOpener` in `tails.mjs` like the rest of the line, refused under
+`bad-frame` (not a `WxH`, a zero or oversized side, the word missing) and
+`stray-attribute` (written twice, or after `autoplay`), and it rides in the
+figure's payload as part of the formatted opener – so the editor writes it
+back verbatim, exactly as it does `autoplay`.
+
+**`frame: none` is for a deck that is a catalogue rather than a talk**, and
+the two in this repository are the test of that: `lectures/diagrams` and
+`docs/artifact/figure-rules` are both sets of specimens standing on slides of
+prose that explain them, and reserving a talk's figure box for each of them
+put half a slide of paper under a two-box drawing – and, on eleven of the
+diagrams lecture's slides, took the prose down to make room for it. A deck
+whose figures are slides wants the default.
+
+### The editor draws it
+
+A dashed rectangle in the guide layer, behind the drawing, wherever the figure
+has a canvas. It is the one thing about a figure that is decided outside the
+block, and without it the only way to learn a drawing had outgrown its slide
+was to build and read a warning. Where it sits inside the viewBox follows the
+compiler's own two lines: the content is anchored at the canvas's top, and to
+its left edge under `blocks: left` or centred on it under `center`. When the
+drawing fits, the dashes lie on the edge of the box; when it does not, they
+run through the picture, which is exactly the thing worth seeing.
+
+## The opener: `::: draw [WxH] [frame WxH|none] [autoplay N [cycle]]`
 
 ```
 ::: draw                                  default grid
 ::: draw 150x56                           the grid, in units
+::: draw 150x56 frame 6x4                 …and the canvas it is drawn on
+::: draw 150x56 frame none                …or no canvas at all
 ::: draw 150x56 autoplay 1200             walks its own steps, one delay per beat
 ::: draw 150x56 autoplay 1200 cycle       and starts again at the end
 ```
 
 **No braces.** Everywhere else in the format a `{…}` tail holds sigil tokens – `.word`, `#word`, and inside a draw body `@word` and `!word` – and a line that has no sigil tokens to carry has no braces. The draw opener carries values, so it is written the way `::: side 2:1` is: the one primary argument positional, everything optional that carries a value a keyword after it. The old braced form (`unit=` and `autoplay=` keys inside `{…}`) is refused with the new spelling of that very line in the message (`stray-attribute`); `tools/migrate-draw-opener.mjs` rewrites a whole repository. There is no `#id` on the opener any more – it was stored and used for nothing but the compiler's error prefix, and that prefix now names the chunk (`in chunk #cbc`) or, for a divider figure, the column (`in the divider of column #part-2`).
 
-**One parser, four callers.** `parseDrawOpener(line)` in `tails.mjs` answers `null` for a line that is not a draw opener, a `{unit, autoplay, cycle, problems: []}` for a good one, and the same shape with `problems` for one that begins `::: draw` and must be refused – `stray-attribute` (the braced form, `autoplay=`, an unknown or out-of-order word), `bad-unit` (`150X56`, a zero side), `bad-autoplay` (not a number, outside 200–60000 ms, or `cycle` with nothing to repeat). build.js (both the chunk and the column-heading site), lint.js and `test/gates/corpus.mjs` all call it, so none keeps a pre-regex of its own. A refused opener is still an opener: lint captures the body through the closing `:::` and reports the one problem rather than a cascade of Markdown errors.
+**One parser, four callers.** `parseDrawOpener(line)` in `tails.mjs` answers `null` for a line that is not a draw opener, a `{unit, frame, autoplay, cycle, problems: []}` for a good one, and the same shape with `problems` for one that begins `::: draw` and must be refused – `stray-attribute` (the braced form, `autoplay=`, an unknown or out-of-order word), `bad-unit` (`150X56`, a zero side), `bad-frame` (not a `WxH` in grid units, a zero or oversized side, the word with nothing after it), `bad-autoplay` (not a number, outside 200–60000 ms, or `cycle` with nothing to repeat). build.js (both the chunk and the column-heading site), lint.js and `test/gates/corpus.mjs` all call it, so none keeps a pre-regex of its own. A refused opener is still an opener: lint captures the body through the closing `:::` and reports the one problem rather than a cascade of Markdown errors.
 
 **The compiler sees the grid and nothing else.** `drawCompilerAttrs()` turns the parsed opener into the `unit=` head-attribute string `parseDiagramSource` always took, and the compiler now *refuses* `autoplay=` or a `#id` there as an unknown option – there is no `DG_HOST_OPTS` skip list any more, because no caller hands it a host word. Playback is not part of the drawing: the compiler's job ends at a set of per-beat geometries, and `diagram-core.mjs` also runs inside the browser editor, where there is no deck to play. `withAutoplay()` in build.js puts the delay on the emitted `<figure>` as `data-autoplay`.
 

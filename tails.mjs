@@ -425,6 +425,28 @@ export const AUTOPLAY_MAX = 60000;
 export const DRAW_OPENER_EXAMPLE = '::: draw 150x56 autoplay 1200 cycle';
 
 const UNIT_RE = /^(\d+)x(\d+)$/;
+// The canvas, in grid units, and the word that takes it away again. Decimals
+// are allowed where the grid's are not: a grid is the size of one cell in
+// whole pixels, while a frame is a count of those cells and half a row is a
+// thing an author can want. Both sides positive and bounded, because a canvas
+// of 400 units is not a canvas, it is a typo that would take the slide's type
+// to nothing.
+const FRAME_RE = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/;
+export const FRAME_MAX_UNITS = 200;
+export function validFrame(frame) {
+  if (frame === 'none') return true;
+  const m = FRAME_RE.exec(String(frame));
+  if (!m) return false;
+  const [w, h] = [Number(m[1]), Number(m[2])];
+  return w > 0 && h > 0 && w <= FRAME_MAX_UNITS && h <= FRAME_MAX_UNITS;
+}
+// One spelling for a parsed frame, so parser, formatter and payload trade in
+// the same string: 'none', or 'WxH' with any trailing zeros gone.
+export function normaliseFrame(frame) {
+  if (frame === 'none') return 'none';
+  const m = FRAME_RE.exec(String(frame));
+  return m ? `${Number(m[1])}x${Number(m[2])}` : null;
+}
 
 // Read the old braced spelling, `{unit=WxH #id autoplay=N cycle}`, into its
 // fields. Used by the migration and by parseDrawOpener's refusal message, so
@@ -470,13 +492,15 @@ export function validUnit(unit) {
 
 // The canonical line for a valid field set. Throws on an impossible one -
 // that is a defect in the caller, not something an author wrote.
-export function formatDrawOpener({ unit = null, autoplay = null, cycle = false } = {}) {
+export function formatDrawOpener({ unit = null, frame = null, autoplay = null, cycle = false } = {}) {
   if (unit != null && !validUnit(unit)) throw new Error(`formatDrawOpener: unit "${unit}" is not WxH with two positive sides`);
+  if (frame != null && !validFrame(frame)) throw new Error(`formatDrawOpener: frame "${frame}" is not WxH in grid units, nor "none"`);
   if (autoplay != null && !(Number.isInteger(autoplay) && autoplay >= AUTOPLAY_MIN && autoplay <= AUTOPLAY_MAX)) {
     throw new Error(`formatDrawOpener: autoplay ${autoplay} is not an integer between ${AUTOPLAY_MIN} and ${AUTOPLAY_MAX}`);
   }
   if (cycle && autoplay == null) throw new Error('formatDrawOpener: cycle without autoplay');
   return '::: draw' + (unit != null ? ` ${unit}` : '') +
+    (frame != null ? ` frame ${normaliseFrame(frame)}` : '') +
     (autoplay != null ? ` autoplay ${autoplay}` : '') + (cycle ? ' cycle' : '');
 }
 
@@ -505,7 +529,7 @@ export function parseDrawOpener(line) {
   // fall through to the Markdown walker. `::: drawing` is still not ours.
   const m = String(line).match(/^:::\s+draw(?=\s|$|\{)(.*)$/);
   if (!m) return null;
-  const out = { unit: null, autoplay: null, cycle: false, problems: [] };
+  const out = { unit: null, frame: null, autoplay: null, cycle: false, problems: [] };
   const problem = (code, msg) => out.problems.push({ code, msg: `::: draw: ${msg}` });
   const rest = m[1].trim();
   const braced = rest.match(/^\{([^}]*)\}\s*$/);
@@ -525,18 +549,49 @@ export function parseDrawOpener(line) {
     return out;
   }
   const tokens = rest.split(/\s+/).filter(Boolean);
-  let stage = 0;   // 0 unit, 1 autoplay, 2 cycle, 3 done
+  let stage = 0;   // 0 unit, 1 frame, 2 autoplay, 3 cycle, 4 done
   // Which keywords have been read, so a second `autoplay` is reported as a
   // repeat and one after `cycle` as out of order - and either way its number
   // is consumed with it rather than read again as a grid.
-  let sawAutoplay = false, sawCycle = false;
+  let sawAutoplay = false, sawCycle = false, sawFrame = false;
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i];
     const u = tok.match(UNIT_RE);
     if (u) {
-      if (stage > 0) problem('stray-attribute', `"${tok}" - the grid comes first. Write  ${DRAW_OPENER_EXAMPLE}`);
+      if (stage > 0) problem('stray-attribute', `"${tok}" - the grid comes first, and a second WxH is not a second grid.`
+        + ` A canvas is written  frame ${tok} ; otherwise  ${DRAW_OPENER_EXAMPLE}`);
       else if (!validUnit(tok)) { problem('bad-unit', `"${tok}" has a zero side. A grid is WxH in units, as in 150x56`); stage = 1; }
       else { out.unit = `${Number(u[1])}x${Number(u[2])}`; stage = 1; }
+      continue;
+    }
+    // ── frame: the canvas this drawing is laid out on ───────────────
+    // It comes straight after the grid, because it is a fact about the
+    // picture and everything after it is about playback. `none` is a value
+    // and not a second keyword: what the word answers is "how big is the
+    // canvas", and "there is none" is one of the answers.
+    if (tok === 'frame') {
+      const v = tokens[i + 1];
+      if (sawFrame || sawAutoplay || sawCycle) {
+        problem('stray-attribute', sawFrame
+          ? '"frame" is written twice.'
+          : `"frame" after "${sawCycle ? 'cycle' : 'autoplay'}" - the canvas comes before playback. Write  ${DRAW_OPENER_EXAMPLE}`);
+        if (v !== undefined && (v === 'none' || FRAME_RE.test(v))) i++;   // its size goes with it
+        sawFrame = true;
+        continue;
+      }
+      sawFrame = true;
+      if (v === undefined || v === 'autoplay' || v === 'cycle') {
+        problem('bad-frame', 'frame takes a canvas in grid units, as in  frame 6x4 , or  frame none'
+          + ` to let the drawing set its own size${v === undefined ? ' - none was written.' : '.'}`);
+        stage = 2;
+        continue;
+      }
+      i++;
+      if (!validFrame(v)) {
+        problem('bad-frame', `"${v}" is not a canvas. Write WxH in grid units with a lowercase x, as in`
+          + `  frame 6x4  - both sides positive and at most ${FRAME_MAX_UNITS} - or  frame none .`);
+      } else out.frame = normaliseFrame(v);
+      stage = 2;
       continue;
     }
     if (/^\d+$/.test(tok)) {

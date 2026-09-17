@@ -75,8 +75,11 @@ node build.js <source.md> --optimize-images --max-width 2600   # cap every width
 
 # diagrams need no flag either: a ::: draw block compiles to inline SVG
 # at build time, and its `step` blocks become beats on the reveal counter.
-# The opener is `::: draw [WxH] [autoplay N [cycle]]` - the grid positional,
-# playback as keywords, no braces (braces hold sigil tokens only, everywhere).
+# The opener is `::: draw [WxH] [frame WxH|none] [autoplay N [cycle]]` - the
+# grid positional, the canvas and playback as keywords after it, no braces
+# (braces hold sigil tokens only, everywhere). Every figure in a chunk body is
+# laid out on a canvas the size of the slide's own figure box; `frame` is how
+# one figure or one deck says otherwise.
 # See the `psi-slides-figures` skill and lectures/diagrams/source.md.
 # The graphical editor for those blocks ships into the live views whenever
 # the lecture has one; `editor: none` in the frontmatter declines it, and
@@ -119,10 +122,11 @@ node build.js <source.md> --watch --serve         # live reload over http
 # and reports the deck's spread in one line, naming any drawing that is
 # behind its own slide (under 0.8x, or under 18 px) – and, since the keynote
 # work, the deck's median settled body type with every slide whose figure took
-# it more than 15% under that. Those are notes and change no exit code; the
-# static halves are the build's `figure-type-small` and `figure-type-uneven`,
-# both emitted once at the end of the parse because the second compares a
-# slide with the deck it is in.
+# it more than 15% under that, and – since the canvas – each figure's canvas
+# fill with every figure that had to be scaled past it. Those are notes and
+# change no exit code; the static halves are the build's
+# `figure-overflows-canvas`, `figure-underfills-canvas` and
+# `figure-type-small`, all emitted once at the end of the parse.
 node build.js <source.md> --check-fit
 node build.js <source.md> --check-fit --viewport 1920x1080
 #
@@ -153,7 +157,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
-# tail grammar that can - twelve gates, under a second, no browser and no
+# tail grammar that can - thirteen gates, under a second, no browser and no
 # `npm install` (diagram-core.mjs, tails.mjs and lint.js are all zero-dep).
 # It is also where a hand-mirrored list one file keeps of another's belongs,
 # figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
@@ -376,10 +380,25 @@ it before authoring a `::: draw` block or changing `diagram-core.mjs`,
 `editor.mjs`, or the diagram half of `lint.js`. `figure-design.md` is the craft
 that sits on top of it; `editor.md` §15 is the build log.
 
+**A figure is drawn on a fixed canvas.** Every `::: draw` in a chunk's own body
+gets one by default – the chunk's column wide (36 base labels on `.wide` at
+1600x900) and 16 label-heights tall – so the drawing's own extent stops
+deciding how big its slide is, which is what made a deck of twenty figures look
+like twenty decks. It changes no drawing's rendered size: a figure that fits is
+drawn exactly as before and only the box round it grows. It is the **live
+views'** box – the documents keep the one that hugs the drawing – and it rides
+the channel a stepped figure's union box already rode, so anything measuring a
+live view reads `--dg-fit-w`, never `--dg-type-w`. Two warnings follow from it
+(`figure-overflows-canvas`, `figure-underfills-canvas`), neither mirrored in
+`lint.js` because both need the drawing laid out; `frame WxH` / `frame none` on
+the opener or in `draw-defaults` overrides it, and `lectures/diagrams` and
+`docs/artifact/figure-rules` take `frame none` because both are catalogues of
+specimens rather than talks.
+
 **What stays true here:** `lint.js` imports the diagram vocabulary from
 `diagram-core.mjs` – tables only, never a function, or the whole compiler comes
 in behind it and the linter stops being runnable without the Markdown/Shiki
-stack. The opener `::: draw [WxH] [autoplay N [cycle]]` is read by
+stack. The opener `::: draw [WxH] [frame WxH|none] [autoplay N [cycle]]` is read by
 `parseDrawOpener` in `tails.mjs` for build.js, lint.js and the corpus gate
 alike; the compiler is handed the grid alone as its head-attribute string, and the whole
 opener rides in the figure's source payload as one formatted line so the
@@ -561,7 +580,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twelve gates guards, the four browser-spec families, and the nine specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the thirteen gates guards, the four browser-spec families, and the nine specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.

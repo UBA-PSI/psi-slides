@@ -421,7 +421,7 @@ import {
   DG_EDGE_ARROWS, DG_STEP_NAME,
   rejectHeadClassIn, rejectSlotPair, rejectStepClass,
   rejectClassOn, DG_WORD_OPTS, dgTakes, dgArticle,
-  DG_PLACED_HEADS, DG_PLACE_INTRO, dgNoPlacement,
+  DG_PLACED_HEADS, DG_PLACE_INTRO, dgNoPlacement, DG_FRAME_RE,
 } from './diagram-core.mjs';
 import {
   CHUNK_SLOTS, CHUNK_STYLE_CLASSES, COLUMN_SLOTS, VALID_WIDTHS, VALID_CHUNK_CLASSES,
@@ -2778,6 +2778,20 @@ function lintFile(filePath) {
     for (const { text, ln } of collectDiagramDefaults(header)) {
       const trimmed = text.trim();
       if (!trimmed || trimmed.startsWith('#')) continue;
+      // The one line in this block that is not a `default`: the deck's
+      // canvas. Mirrors parseDiagramDefaults in diagram-core.mjs, which the
+      // build calls - same shape, same words, same refusal.
+      const fm = /^frame(?:[ \t]+(\S+))?[ \t]*$/.exec(trimmed);
+      if (fm) {
+        const v = fm[1] || '';
+        if (v !== 'none' && !(DG_FRAME_RE.test(v)
+              && Number(v.split('x')[0]) > 0 && Number(v.split('x')[1]) > 0)) {
+          addFm(ln, 'error', 'bad-draw-defaults',
+                `frame takes a canvas in grid units, as in 'frame 6x4', or 'frame none' to let every `
+                + `drawing set its own size${v ? ` – got '${v}'` : ' – none was written'}`);
+        }
+        continue;
+      }
       for (const m of trimmed.matchAll(/\{([^}]*)\}/g)) {
         for (const tok of m[1].trim().split(/\s+/).filter(Boolean)) {
           if (tok.startsWith('.') && !DG_CLASSES.has(tok.slice(1))) {
@@ -2792,7 +2806,7 @@ function lintFile(filePath) {
       const words = trimmed.replace(/"[^"]*"/g, ' ').trim().split(/\s+/).filter(Boolean);
       if (words[0] !== 'default') {
         addFm(ln, 'error', 'bad-draw-defaults',
-              `draw-defaults holds 'default …' statements only, got '${trimmed}'`);
+              `draw-defaults holds 'default …' statements and one 'frame …', got '${trimmed}'`);
         continue;
       }
       lintDefaultStatement(words, ln, addFm, {

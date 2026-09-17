@@ -146,6 +146,12 @@ function dgeCollectFigures() {
       // its siblings.
       nth: 0,
       width: data.width || 'standard',
+      // The canvas the build laid this figure out on, carried so a re-render
+      // here reserves the same slide box the build did. Without it the first
+      // drag would redraw the figure hugging its content - a drawing that
+      // jumps to another size the moment it is touched and back on the next
+      // build. null for a figure the build gave no canvas.
+      canvas: data.canvas || null,
       alt: data.alt || '',
       images,
       compiler: dgeCompilerFor(images),
@@ -183,7 +189,7 @@ function dgeCompile(fig, body) {
       out.errors = window.PSI_DG.dgSortProblems(dgeDedupe(res.errors));
       return out;
     }
-    out.html = fig.compiler.renderDiagram(src, fig.attrs, { prefix: fig.prefix, alt: fig.alt, base });
+    out.html = fig.compiler.renderDiagram(src, fig.attrs, { prefix: fig.prefix, alt: fig.alt, base, canvas: fig.canvas });
     out.ok = true;
   } catch (err) {
     out.errors = dgeErrorsFrom(err);
@@ -1160,6 +1166,28 @@ function dgeDrawGuides() {
     grid.appendChild(dgeEl('line', { x1: vx, y1: y, x2: vx + vw, y2: y }));
   }
   g.appendChild(grid);
+
+  // The slide's canvas: the box this figure is given on an ordinary slide,
+  // drawn as a dashed rectangle so the author can see the edge they are
+  // dragging towards. It is the one thing about a figure that is decided
+  // outside the block - the chunk's column and the deck's height reserve -
+  // and without it the only way to learn a drawing had outgrown its slide was
+  // to build and read a warning.
+  //
+  // Where it sits inside the viewBox follows the same two lines the compiler
+  // follows: the content is anchored at the canvas's top on both, and to its
+  // left edge under `blocks: left` or centred on it under `center`. When the
+  // drawing fits, the two boxes are the same and the dashes lie on the edge
+  // of the canvas; when it does not, the dashes are inside the picture and
+  // that is exactly the thing worth seeing.
+  const cv = DGE.fig && DGE.fig.canvas;
+  if (cv && cv.w > 0 && cv.h > 0) {
+    g.appendChild(dgeEl('rect', {
+      class: 'dge-canvas',
+      x: cv.align === 'center' ? vx + (vw - cv.w) / 2 : vx,
+      y: vy, width: cv.w, height: cv.h,
+    }));
+  }
   // The origin, which is where the first element sits for free.
   g.appendChild(dgeEl('g', { class: 'dge-axis' }, [
     dgeEl('line', { x1: vx, y1: 0, x2: vx + vw, y2: 0 }),

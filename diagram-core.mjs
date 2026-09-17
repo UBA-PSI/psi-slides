@@ -60,6 +60,11 @@
 // shows the finished diagram rather than its opening step.
 
 export const DG_UNIT = [120, 72];     // default grid cell, px
+// A canvas written in grid units, decimals allowed. Mirrors FRAME_RE in
+// tails.mjs, which reads the same value off the `::: draw` opener; this copy
+// is here because diagram-core has no imports, and the gate holds the two
+// against one another.
+export const DG_FRAME_RE = /^\d+(?:\.\d+)?x\d+(?:\.\d+)?$/;
 export const DG_FONT = 15;            // base label size, px
 export const DG_LINE_H = 1.25;        // line height, multiples of font size
 export const DG_PAD_X = 13;           // box padding, px
@@ -2467,13 +2472,34 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
 // Validated even when no diagram uses it: anything but a `default` statement
 // in there is an error naming the line, because a block that quietly does
 // nothing is the failure mode this grammar keeps closing.
+//
+// **One statement in here is not a `default`, and that is deliberate.**
+// `frame WxH` / `frame none` is the deck's answer to how big a figure's
+// canvas is, in the grid units the opener's own `frame` uses, and it belongs
+// beside the defaults rather than in a frontmatter key of its own: it is
+// lecture-wide, it is about drawings, and it is overridden per figure by the
+// same word on the opener. The compiler never sees it - the canvas arrives as
+// pixels in `opts.canvas` - so it is returned beside the layer and not in it.
 export function parseDiagramDefaults(text) {
   const errors = [];
   const layer = { defaults: {}, tagDefaults: [] };
+  let frame = null;
   const lines = String(text ?? '').split('\n');
   for (let n = 0; n < lines.length; n++) {
     const trimmed = lines[n].trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
+    const fm = /^frame\s+(\S+)\s*$/.exec(trimmed);
+    if (fm || trimmed === 'frame') {
+      const v = fm ? fm[1] : '';
+      if (v === 'none') frame = 'none';
+      else if (DG_FRAME_RE.test(v) && Number(v.split('x')[0]) > 0 && Number(v.split('x')[1]) > 0) {
+        frame = `${Number(v.split('x')[0])}x${Number(v.split('x')[1])}`;
+      } else {
+        dgErr(errors, n + 1, `frame takes a canvas in grid units, as in "frame 6x4", or "frame none" `
+          + `to let every drawing set its own size${v ? ` - got "${v}"` : ' - none was written'}`);
+      }
+      continue;
+    }
     const toks = dgTokenize(trimmed);
     const attrTok = toks.find(x => x.attr);
     const attrs = attrTok ? dgParseAttrs(attrTok.v, errors, n + 1)
@@ -2481,12 +2507,12 @@ export function parseDiagramDefaults(text) {
 
     const body0 = toks.filter(x => !x.attr && !x.q);
     if ((body0[0] ? body0[0].v : '') !== 'default') {
-      dgErr(errors, n + 1, `draw-defaults holds "default …" statements only, got "${trimmed}"`);
+      dgErr(errors, n + 1, `draw-defaults holds "default …" statements and one "frame …", got "${trimmed}"`);
       continue;
     }
     dgReadDefault(body0, attrs, n + 1, errors, layer, 'lecture');
   }
-  return { layer, errors };
+  return { layer, frame, errors };
 }
 
 // ── diagram layout ──────────────────────────────────────────────────
@@ -7663,8 +7689,52 @@ export function createDiagramCompiler(env = {}) {
       return [bb.x - DG_MARGIN, bb.y - DG_MARGIN,
         Math.max(bb.w + 2 * DG_MARGIN, 1), Math.max(bb.h + 2 * DG_MARGIN, 1)];
     };
-    const [lvX, lvY, lvW, lvH] = boxFor(liveBoxes.concat(printBoxes));
-    const [vbX, vbY, vbW, vbH] = boxFor(printBoxes.length ? printBoxes : liveBoxes);
+    // ── the canvas ────────────────────────────────────────────────────
+    // **The viewBox is the slide's box, not the drawing's.** Hugging the
+    // content is what made every figure slide settle at its own zoom: the
+    // width the live views ask for is the viewBox measured in labels, so a
+    // drawing 21 labels wide got big type and one 55 wide pulled the whole
+    // slide down, and a deck of twenty figures looked like twenty decks. The
+    // host hands down a canvas in these same units - the chunk's column at
+    // body type - and the box becomes that, with the content anchored inside
+    // it. The drawing's own coordinates are untouched, so no source moves.
+    //
+    // Union, not replacement: content wider or taller than the canvas keeps
+    // the box it needs and is warned about by the host, because a figure
+    // silently cropped to a frame is worse than a figure that is too big.
+    //
+    // Where the drawing sits inside the reserve: **centred down the page,
+    // always, and across it according to `blocks`.** The vertical was written
+    // as a top anchor first, on the reasoning that the spare paper belongs at
+    // the foot of the drawing where the words after it are - and a contact
+    // sheet of a keynote settled it the other way. Reserving half a slide and
+    // anchoring the drawing at its ceiling reads as a figure that has come
+    // loose from the slide, on a bare figure chunk especially, where the
+    // reserve is the whole difference between the picture and the frame. The
+    // horizontal is not the same question: there `blocks: left` is an author
+    // putting the drawing's ink on the text edge, which is a decision about
+    // the slide's one axis and not about spare paper.
+    //
+    // **The canvas is the live views' box, and the documents keep the one
+    // that hugs the drawing.** A slide is a fixed frame and a figure standing
+    // in it is one of a series; a figure in a printed column is apparatus
+    // inside running text, where reserved paper under a small drawing is
+    // simply a gap. It rides the channel a stepped figure's union box already
+    // rides - `data-live-viewbox` for the attribute the runtime swaps, and
+    // `--dg-live-*` beside the print numbers for the three the stylesheets
+    // read - so there is one live box rather than two competing ones.
+    const canvas = opts.canvas || null;
+    const withCanvas = ([bx, by, bw, bh]) => {
+      if (!canvas || !(canvas.w > 0) || !(canvas.h > 0)) return [bx, by, bw, bh];
+      const w = Math.max(bw, canvas.w);
+      const h = Math.max(bh, canvas.h);
+      const x = canvas.align === 'center' ? bx + bw / 2 - w / 2 : bx;
+      return [x, by + bh / 2 - h / 2, w, h];
+    };
+    const contentPrint = boxFor(printBoxes.length ? printBoxes : liveBoxes);
+    const contentLive = boxFor(liveBoxes.concat(printBoxes));
+    const [lvX, lvY, lvW, lvH] = withCanvas(contentLive);
+    const [vbX, vbY, vbW, vbH] = contentPrint;
 
     const kinds = {};
     const fitOf = new Map();
@@ -7857,12 +7927,36 @@ export function createDiagramCompiler(env = {}) {
     // The same number the caller may want in Node, where the chunk's width
     // class is known and the label size in the room can therefore be
     // estimated. Optional: the editor compiles in the browser and passes none.
-    if (opts.onSized) opts.onSized({ typeW: Number(typeW), vbW, vbH });
+    // The canvas and what the drawing made of it, in viewBox units, and only
+    // when there is a canvas. Two readers: the host, which rules on overflow
+    // and underfill without a browser, and --check-fit, which reports the
+    // fill of the box the room actually saw. Neither can work it out from the
+    // viewBox alone - a canvas the content exactly fills and a canvas with
+    // nothing in its lower half have the same viewBox.
+    // The live box is the one a room sees, so it is what the two complaints
+    // are measured against: a step may put an element outside the finished
+    // picture, and a canvas is a claim about the whole talk rather than about
+    // its last beat.
+    if (opts.onSized) {
+      opts.onSized({ typeW: Number(typeW), vbW, vbH, canvas,
+                     contentW: contentLive[2], contentH: contentLive[3] });
+    }
+    const canvasAttr = canvas
+      ? ` data-canvas="${canvas.w.toFixed(2)} ${canvas.h.toFixed(2)} ${contentLive[2].toFixed(2)} ${contentLive[3].toFixed(2)}"`
+      : '';
+    // Emitted whenever the live box is not the print one - a stepped figure,
+    // a canvas, or both. The three properties sit beside the print numbers
+    // rather than replacing them, so a stylesheet picks the box its own
+    // medium shows with one var() fallback and no runtime at all; only the
+    // viewBox attribute itself, which CSS cannot set, waits for the runtime.
+    const hasLive = !!canvas || frameCount > 1;
     const svg = `<svg id="${svgId}" class="psi-diagram" viewBox="${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}" `
-      + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)};--dg-ink-x:${inkX}" `
+      + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)};--dg-ink-x:${inkX}`
+      + (hasLive ? `;--dg-live-type-w:${(lvW / DG_FONT).toFixed(3)};--dg-live-ar:${(lvW / lvH).toFixed(4)}`
+        + `;--dg-live-ink-x:${liveInkX}` : '')
+      + `"${canvasAttr} `
       + `width="${DG_NOMINAL_W}" height="${Math.round(DG_NOMINAL_W * vbH / vbW)}" `
-      + (frameCount > 1 ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" `
-        + `data-live-ink-x="${liveInkX}" ` : '')
+      + (hasLive ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" ` : '')
       + `data-steps="${frameCount}"${aria} preserveAspectRatio="xMidYMid meet">\n${svgBody}</svg>`;
     const script = frameCount > 1
       ? `<script type="application/json" class="psi-diagram-frames" data-for="${svgId}">`
@@ -7889,6 +7983,12 @@ export function createDiagramCompiler(env = {}) {
         range: opts.range || null,
         chunk: opts.chunk || null,
         width: opts.width || null,
+        // The canvas the build laid this figure out on. The editor re-runs
+        // this compiler in the browser and has no chunk to measure, so
+        // without it every edit would re-render the figure hugging its
+        // content - a drawing that jumps to another size on the first drag
+        // and back on the next build.
+        canvas: canvas || null,
         // The figure's accessible name, which the build takes from the
         // chunk heading. Carried here because the browser has no other way
         // to it, and without it a re-render differs from the build's own

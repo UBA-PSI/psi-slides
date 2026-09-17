@@ -531,6 +531,35 @@ a one-line box would hand a one-line height to the box that now has two lines in
 it. `.shrink` is the other answer where the box may not grow – but type size is
 a size claim too, and a room reads small type as less important.
 
+### And the slide has a size claim of its own
+
+**A figure is drawn on a fixed canvas, and the canvas is the same on every
+slide of the deck.** On a `.wide` chunk it is **36 base labels across and 16
+down**; `.full` gives 44 across, `.standard` 26, `.narrow` 20. That is what
+fits at the size of the words beside it, and it is not many: a base label is
+one em, so 36 across is four or five boxes in a row with their gaps. The build
+prints both numbers when a drawing misses the box in either direction.
+
+Two failures, and each has its own fix:
+
+- **Wider or taller than the canvas.** The drawing is scaled down to fit the
+  slide, so the labels come out smaller than the prose and the slide's whole
+  type follows them down – which the room reads as a heading that changes size
+  between consecutive slides. The fix is nearly always **one row too long**:
+  fewer columns of content, shorter labels, a `\n` in the long one, a second
+  figure on a second slide. Going wider does not help – `.wide` is already at
+  the frame – and stacking what was in a row buys width only until the height
+  reserve takes it back.
+- **Less than half the canvas used.** The slide stands mostly empty, and on a
+  chunk with prose under the drawing the reserve pushes the words down and
+  auto-fit shrinks them to make room for paper. Either the figure has more to
+  say than it is saying, or it is a specimen rather than a slide – and a
+  specimen writes `frame WxH` to reserve what it draws.
+
+A deck that is a catalogue of drawings rather than a talk turns the whole thing
+off with `frame none` in its `draw-defaults`. A deck whose figures are slides
+should not.
+
 ## 12. Lay the figure out the way the room reads it
 
 **Do:** start at the top left and run left to right, top to bottom. The first
@@ -1116,6 +1145,11 @@ Work down this list. It is written so it can be checked mechanically.
 1. `node lint.js <source.md>` is clean. No warnings talked past.
 2. `node build.js <source.md>` prints no `[diagram]` warning, or the source
    carries a comment saying why the remaining one is deliberate.
+2a. In particular, no `figure-overflows-canvas` and no
+   `figure-underfills-canvas`: the first is a drawing too big for the slide it
+   is on and the second is a slide standing empty, and both are told in labels
+   with the `frame WxH` that would reserve what this drawing actually draws.
+   Rule 11 is where they are explained.
 3. No edge runs at a slight angle. (The build says so; do not silence it by
    nudging – align the elements.)
 4. Every label that overlaps a line or a fill has a fill class of its own.

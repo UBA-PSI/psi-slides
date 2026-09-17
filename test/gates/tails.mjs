@@ -153,19 +153,31 @@ export async function run({ report }) {
      'null for a line that is not a draw opener');
   ok(parseDrawOpener('::: draw{unit=150x56}') !== null, 'but the old opener written without a space is an opener, refused rather than dropped');
   const valid = [
-    ['::: draw',                               { unit: null, autoplay: null, cycle: false }],
-    ['::: draw 150x56',                        { unit: '150x56', autoplay: null, cycle: false }],
-    ['::: draw autoplay 900',                  { unit: null, autoplay: 900, cycle: false }],
-    ['::: draw 150x56 autoplay 1200 cycle',    { unit: '150x56', autoplay: 1200, cycle: true }],
-    ['::: draw autoplay 200 cycle',            { unit: null, autoplay: 200, cycle: true }],
-    ['::: draw   150x56   autoplay  60000  ',  { unit: '150x56', autoplay: 60000, cycle: false }],
+    ['::: draw',                               { unit: null, frame: null, autoplay: null, cycle: false }],
+    ['::: draw 150x56',                        { unit: '150x56', frame: null, autoplay: null, cycle: false }],
+    ['::: draw autoplay 900',                  { unit: null, frame: null, autoplay: 900, cycle: false }],
+    ['::: draw 150x56 autoplay 1200 cycle',    { unit: '150x56', frame: null, autoplay: 1200, cycle: true }],
+    ['::: draw autoplay 200 cycle',            { unit: null, frame: null, autoplay: 200, cycle: true }],
+    ['::: draw   150x56   autoplay  60000  ',  { unit: '150x56', frame: null, autoplay: 60000, cycle: false }],
+    // The canvas, which comes between the two: a fact about the picture, and
+    // everything after it is about playback.
+    ['::: draw frame 6x4',                     { unit: null, frame: '6x4', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame 6x4',              { unit: '150x56', frame: '6x4', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame 6.5x3.5',          { unit: '150x56', frame: '6.5x3.5', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame none',             { unit: '150x56', frame: 'none', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame 6x4 autoplay 1200 cycle',
+                                               { unit: '150x56', frame: '6x4', autoplay: 1200, cycle: true }],
   ];
   for (const [line, want] of valid) {
     const o = parseDrawOpener(line);
-    const got = o && { unit: o.unit, autoplay: o.autoplay, cycle: o.cycle };
+    const got = o && { unit: o.unit, frame: o.frame, autoplay: o.autoplay, cycle: o.cycle };
     ok(o && !o.problems.length && JSON.stringify(got) === JSON.stringify(want), `${line.trim()} parses`, JSON.stringify(o));
     ok(formatDrawOpener(want) === line.trim().replace(/\s+/g, ' '), `and formats back to itself`);
   }
+  // A frame written with trailing zeros still formats back to one spelling,
+  // because the payload the editor writes back is the formatted line.
+  ok(formatDrawOpener({ frame: '6.0x4.50' }) === '::: draw frame 6x4.5', 'a frame has one spelling',
+     formatDrawOpener({ frame: '6.0x4.50' }));
   const refused = [
     ['::: draw {unit=150x56}',              'stray-attribute', /Write  ::: draw 150x56$/],
     ['::: draw {unit=150x56 autoplay=1400 cycle}', 'stray-attribute', /::: draw 150x56 autoplay 1400 cycle/],
@@ -193,6 +205,14 @@ export async function run({ report }) {
     ['::: draw {#fig autoplay=50}',          'stray-attribute', /out of range/],
     ['::: draw {#fig cycle}',                'stray-attribute', /no autoplay to repeat/],
     ['::: draw {#fig unit=150x56}',          'stray-attribute', /Write  ::: draw 150x56  \(a draw #id/],
+    ['::: draw 150x56 frame',                'bad-frame', /frame 6x4/],
+    ['::: draw 150x56 frame 6X4',            'bad-frame', /lowercase x/],
+    ['::: draw 150x56 frame 0x4',            'bad-frame', null],
+    ['::: draw 150x56 frame 400x4',          'bad-frame', /at most 200/],
+    ['::: draw 150x56 frame none frame 6x4', 'stray-attribute', /"frame" is written twice/],
+    ['::: draw autoplay 900 frame 6x4',      'stray-attribute', /the canvas comes before playback/],
+    ['::: draw 150x56 frame autoplay 900',   'bad-frame', /frame none/],
+    ['::: draw 150x56 6x4',                  'stray-attribute', /A canvas is written  frame 6x4/],
   ];
   for (const [line, code, re] of refused) {
     const o = parseDrawOpener(line);
@@ -219,6 +239,9 @@ export async function run({ report }) {
   ok(throws(() => formatDrawOpener({ unit: '0x56' })) && throws(() => formatDrawOpener({ unit: '150x0' })), 'and so is a zero side');
   ok(throws(() => formatDrawOpener({ autoplay: 100 })), 'an out-of-range autoplay is thrown');
   ok(throws(() => formatDrawOpener({ unit: [150, 56] })), 'an array unit is thrown - one representation crosses parser, formatter and payload');
+  ok(throws(() => formatDrawOpener({ frame: '6X4' })) && throws(() => formatDrawOpener({ frame: '0x4' })),
+     'a frame that is not WxH in grid units is thrown');
+  ok(!throws(() => formatDrawOpener({ frame: 'none' })), 'and "none" is a value, not a refusal');
 
   // ── the compiler adapter and the legacy reader ───────────────────
   ok(drawCompilerAttrs({ unit: '150x56', autoplay: 900, cycle: true }) === 'unit=150x56', 'the compiler sees the grid and nothing else');

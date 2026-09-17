@@ -30,7 +30,7 @@ import katex from 'katex';
 // and in the browser when the editor re-lays-out a figure after a drag.
 // Imported for the build; its *text* is also read and inlined into the live
 // views, the same way bundledFaces() reads woff2 out of node_modules.
-import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD, DG_SHAPE_CLASSES, dgBarFillCss, DG_SOFT_GROUND } from './diagram-core.mjs';
+import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD, DG_SHAPE_CLASSES, dgBarFillCss, DG_SOFT_GROUND, DG_FONT, DG_UNIT } from './diagram-core.mjs';
 // The {…} tail grammar and the ::: draw opener, shared with lint.js so the
 // two files cannot disagree about a tail. Tables plus small pure helpers,
 // zero dependencies - see the header of tails.mjs and CLAUDE.md.
@@ -3109,35 +3109,132 @@ function dgWarn(msg) {
   console.warn(`[diagram] ${msg}`);
 }
 
-// ── how small a figure's type lands in the room ──────────────────────
-// The live views size a drawing from the type it stands in, so a base label
-// is one em of the slide's own body text – until the drawing wants more width
-// than the column has, and the min() caps it. From there the label size is the
-// column divided by --dg-type-w and nothing the lecturer presses changes it:
-// zoom moves the width the figure *wants*, not the width it is given. That is
-// the one case CSS cannot fix, and it is invisible at the desk, because at the
-// desk the drawing is a foot from your eye.
+// ── the canvas a figure is laid out on ───────────────────────────────
+// **A slide has a fixed canvas, and a figure is drawn on it.** That is the
+// whole of this section, and it replaces the arrangement where a `::: draw`
+// viewBox hugged its own content: the live views size a drawing from the
+// viewBox measured in labels, so a figure 21 labels wide got big type, one 55
+// wide pulled the whole slide down to small type, and a deck of twenty figure
+// slides looked like twenty different decks. PowerPoint's canvas is fixed per
+// slide and the mess there starts when someone drags one figure bigger; here
+// the engine was dragging every figure, by deriving the box from the drawing.
 //
-// So the build says it, at the size it can compute without a browser.
+// So every `::: draw` in a chunk's own body gets a canvas, and it is the same
+// box on every ordinary slide of a deck: the chunk's column wide and
+// FIG_CANVAS_H_LABELS label-heights tall, which is one fixed rectangle of
+// slide whatever the drawing inside it turns out to be.
+//
+// **It changes no drawing's rendered size.** The canvas is exactly the width
+// at which a base label lands at the size of the words beside it, so a figure
+// that fits inside it is drawn at precisely the scale it was drawn at before
+// and only the box round it grows; a figure past it is drawn exactly as it
+// was too, because the box is the union of the two. What the canvas adds is a
+// measurable claim - this much slide is a figure's - and therefore two things
+// the build can say about a drawing that it could not say before.
 //
 // The column widths are measured, not derived: .chunk is a
 // `1fr minmax(0, --content-w) 1fr` grid inside 14% padding either side, so a
 // class wider than the frame allows is clipped to it. Read off a built
-// audience.html at 1600x900 with the default zoom (the base em is
-// clamp(20px, --slide-h * 0.026, 38px) = 23.4px there): .wide comes out at
-// the frame's 1152 px rather than its nominal 52em, and .full, which pads 6%
-// instead of 14%, at 1408 px rather than 72em. Re-measure them if
-// --slide-pad-x or the em changes.
-const FIG_REF_BODY_PX = 23.4;                      // 1em at 1600x900, zoom 1
+// audience.html at 1600x900: .wide comes out at the frame's 1152 px rather
+// than its nominal 52em, and .full, which pads 6% instead of 14%, at 1408 px
+// rather than 72em. Re-measure them if --slide-pad-x or the em changes.
 const FIG_COLUMN_PX = { narrow: 655, standard: 842, wide: 1152, full: 1408 };
+// **And the em a figure stands in is not 1rem.** 1rem is
+// clamp(20px, --slide-h * 0.026, 38px) = 23.4 px at 1600x900, but a chunk
+// body is `1rem * --zoom * --body-scale` and --zoom's own default is 1.35, so
+// the em the width rule multiplies is 31.6 px on an ordinary slide. Reading
+// the rem here instead is off by that factor in the direction that hurts: it
+// would make every canvas a quarter too wide, the labels inside it a quarter
+// smaller than the words beside them, and undo the one rule this file's
+// sizing exists to keep - a label is a word.
+//
+// Verified against the browser on a keynote's twenty figures: with 31.6 as
+// the ceiling, figureSettle's predicted body type lands within 0.8 px of what
+// --check-fit measured on every one of them.
+const FIG_REF_REM_PX = 23.4;                       // 1rem at 1600x900
+const FIG_REF_ZOOM = 1.35;                         // the live views' own default --zoom
+// ...and the coefficient the chunk's own type puts in front of it. These are
+// the `--body-fs:` rules of AUDIENCE_CSS, mirrored by hand because a
+// stylesheet cannot be read from here - held against those rules by
+// `node test/gates/run.mjs canvas`, which greps them out of build.js as text.
+// A `statement` chunk sizes its body from --statement-size, which is a
+// composition's own number rather than a coefficient, so it is not in the
+// table and takes the default; its figure is sized against the ordinary body
+// em and comes out a little narrow or a little capped, which is the one case
+// this table cannot answer without inventing a number.
+const FIG_BODY_REM = { principle: 1.2, question: 1.15, figure: 0.9 };
+// The em a figure in a chunk of this type stands in, at 1600x900 and the
+// default zoom. Everything about the canvas is measured in it.
+function figureRefEm(tag) {
+  return FIG_REF_REM_PX * FIG_REF_ZOOM * (FIG_BODY_REM[tag] || 1);
+}
+const FIG_REF_BODY_PX = FIG_REF_REM_PX * FIG_REF_ZOOM;   // 31.59, the ordinary chunk's em
 const FIG_REF_HEIGHT_PX = 900 * 0.62;              // the height cap at the same viewport
 const FIG_TYPE_FLOOR_PX = 18;                      // under this, the back row is guessing
 // ...and under this share of the deck's own median settled body type, the
 // slide is out of step with its neighbours whatever its absolute size. 0.85
 // because what a room sees is a heading that changes size from slide to
 // slide, and a tenth of a heading is not a change anyone notices while a
-// seventh is.
+// seventh is. Read by --check-fit, which measures the zoom the camera
+// actually settled on; with a canvas the build can no longer be out of step
+// without overflowing it, and says the latter instead.
 const FIG_TYPE_EVEN_TOL = 0.85;
+
+// **Sixteen label-heights, and the measurement is a slide with everything on
+// it.** Built a `.wide` chunk with a one-line heading and a sub-heading, two
+// lines of prose under the drawing and a one-line `::: footnote`, and
+// measured the content box at 1600x900: the furniture costs 383 px (the
+// heading pair, two lines at the body's own leading, and the footnote, minus
+// the margins they share). Sixteen label-heights is 505 px, so that slide -
+// the fullest a figure chunk can be without saying more - stands at 888 px in
+// a 900 px frame. It fits, which is the whole of the criterion; eighteen did
+// not, and fourteen would have called most of a real keynote's figures too
+// big for a slide they are plainly not too big for.
+//
+// The same number arrived at from the other side: the keynote's twenty
+// figures render between 143 and 558 px tall with a median of 505.
+//
+// The ceiling is 17.7 and it is not a matter of taste: `--dg-box-w` caps a
+// figure's width at `--slide-h * 0.62 * --dg-ar`, so a canvas past 62 % of
+// the slide is height-capped and comes out narrower than its own column -
+// which is the uniformity this exists to produce, lost. `frame WxH` may ask
+// for more and will be told by the same cap.
+const FIG_CANVAS_H_LABELS = 16;
+// Under this share of the canvas's area the slide reads empty. Half, because
+// a drawing filling half a box is the point at which the eye stops reading
+// the box as full and starts reading it as a box - and because a flatter
+// threshold would fire on every legitimately wide, flat figure.
+const FIG_UNDERFILL = 0.5;
+
+// The canvas for one figure, in viewBox units, or null for a figure that
+// keeps the box that hugs its content.
+//
+// `frame` is the author's answer and it wins: `WxH` in grid units, the same
+// unit the opener's grid is counted in, and `none` for a deck that is a
+// catalogue of drawings rather than a talk. Otherwise the default, and the
+// default is a pixel box expressed in labels - which is why `figure-type`
+// divides both sides. The key says how large a label is against body type, so
+// a bigger label is fewer labels in the same column and fewer label-heights
+// in the same reserve; the box on the slide is the same box either way, and
+// that is the property the whole arrangement rests on.
+function figureCanvas({ width, ft, tag, frame, unit, align }) {
+  if (frame === 'none') return null;
+  const mult = ft > 0 ? ft : 1;
+  const [uw, uh] = unit && unit.length === 2 ? unit : DG_UNIT;
+  if (frame) {
+    const m = /^([\d.]+)x([\d.]+)$/.exec(frame);
+    if (!m) return null;
+    return { w: Number(m[1]) * uw, h: Number(m[2]) * uh, align };
+  }
+  const col = FIG_COLUMN_PX[width || 'standard'];
+  if (!col) return null;
+  const em = figureRefEm(tag);
+  return {
+    w: (col / (em * mult)) * DG_FONT,
+    h: (FIG_CANVAS_H_LABELS * FIG_REF_BODY_PX / (em * mult)) * DG_FONT,
+    align,
+  };
+}
 
 // Where a figure's slide comes to rest, worked out the way fitZoomToChunk
 // arrives at it. The drawing asks for typeW x body x figure-type pixels; the
@@ -3148,35 +3245,29 @@ const FIG_TYPE_EVEN_TOL = 0.85;
 // its box leaves the slide where the words put it.
 //
 // That equation is the whole reason a static check can say anything about a
-// dynamic camera: there is no browser in it.
-function figureSettle(typeW, ar, width, ft) {
+// dynamic camera: there is no browser in it. With a canvas, typeW is the
+// canvas's own width in labels, so `body` comes out at exactly the chunk's
+// own em for every figure that fits its canvas - which is the uniformity,
+// arrived at rather than asserted.
+function figureSettle(typeW, ar, width, ft, tag) {
   const col = FIG_COLUMN_PX[width || 'standard'];
   if (!col || !(typeW > 0)) return null;
   const byHeight = ar > 0 ? FIG_REF_HEIGHT_PX * ar : Infinity;
   const box = Math.min(col, byHeight);
   const mult = ft > 0 ? ft : 1;
+  const em = figureRefEm(tag);
   return {
-    box, byHeight, col,
-    body: Math.min(FIG_REF_BODY_PX, box / (typeW * mult)),
-    label: Math.min(FIG_REF_BODY_PX * mult, box / typeW),
+    box, byHeight, col, em,
+    body: Math.min(em, box / (typeW * mult)),
+    label: Math.min(em * mult, box / typeW),
   };
 }
 
 // Every figure the current lecture compiled, with the numbers the report
 // needs. Filled by the onSized callback and ruled on once at the end of
-// parseLecture, because the question the report answers - is this slide out of
-// step with the rest of the deck? - cannot be asked one figure at a time.
-// Reset per build alongside dgWarned.
+// parseLecture. Reset per build alongside dgWarned.
 const figureTypeSeen = [];
 
-// Not a build failure, and deliberately not: a figure this dense may be a
-// hand-out slide the lecturer walks to the screen for, and the fix is a
-// redrawing rather than a flag. One line, named by chunk, deduped by dgWarn.
-//
-// It measures the CHUNK's column, so a figure inside a card, a pane or a dock
-// has less room than this and is warned about later than it should be. The
-// dynamic half of the check has no such blind spot: --check-fit measures the
-// labels the browser actually drew.
 // The figure-type multiplier in force on one chunk: the deck's, unless the
 // chunk's tail answered the key for itself. The class carries per cent, the
 // same string the data attribute and the stylesheet trade in, so the one
@@ -3185,82 +3276,101 @@ function chunkFigureType(chunk, deckFt) {
   const w = chunk && chunk.styleOverrides && chunk.styleOverrides['figure-type'];
   return w ? Number(w) / 100 : (deckFt || 1);
 }
-
-function recordFigureType(typeW, ar, width, where, ft) {
-  const st = figureSettle(typeW, ar, width, ft);
-  if (!st) return;
-  figureTypeSeen.push({ typeW, ar, width, where, ft: ft > 0 ? ft : 1, ...st });
+// The same question for `blocks`, which decides where the drawing sits inside
+// its canvas: on the ink edge under `left`, centred under `center`. It is the
+// same word answering the same question one level out, so there is no second
+// key for it.
+function chunkBlocks(chunk, deckBlocks) {
+  const w = chunk && chunk.styleOverrides && chunk.styleOverrides.blocks;
+  return w || deckBlocks || 'center';
 }
 
-// The two complaints, and they are not the same one.
+function recordFigureType(sized, width, where, ft, unit, tag) {
+  const { typeW, vbW, vbH, canvas, contentW, contentH } = sized;
+  // The box the room is shown, which is the canvas where there is one. typeW
+  // comes off the print viewBox, so a figure smaller than its canvas would
+  // otherwise be settled against a width the live views never use.
+  const liveW = canvas ? Math.max(canvas.w, contentW) : vbW;
+  const liveH = canvas ? Math.max(canvas.h, contentH) : vbH;
+  const ar = liveH ? liveW / liveH : 0;
+  const st = figureSettle(liveW / DG_FONT, ar, width, ft, tag);
+  if (!st) return;
+  figureTypeSeen.push({ typeW: liveW / DG_FONT, ar, width, where, ft: ft > 0 ? ft : 1,
+                        canvas, contentW, contentH, unit, ...st });
+}
+
+// The three complaints, and the canvas is what makes the first two sayable.
 //
-// **Out of step** is the one a room sees. A drawing capped at its column pulls
-// its own slide's type down and nothing else's, so a deck with one dense
-// figure and one sparse one reads its headings at 25 px and 44 px in
-// consecutive slides - measured on a keynote, a factor of 1.76 between two
-// slides of the same width class. The absolute size of either is defensible;
-// the difference is not, and no absolute floor can see it. The reference is
-// the deck's own median settled body type, because "what the other slides get"
-// is what the eye compares against.
+// **Over the canvas** is the one a room sees. The canvas is the chunk's
+// column at body type, so a drawing past it is capped and pulls its own
+// slide's type down and nothing else's: a deck with one dense figure and one
+// sparse one read its headings at 25 px and 44 px in consecutive slides,
+// measured on a keynote, a factor of 1.76 between two slides of the same
+// width class. Every figure that stays inside its canvas settles at the same
+// body type by construction, so this is now the only way a figure slide can
+// be out of step, and the message says which axis did it.
 //
-// **Under the floor** is the older complaint and still worth saying: a deck
-// whose figures are uniformly small is perfectly even, and still unreadable
-// from the back.
+// **Under the canvas** is the opposite and was never said at all: a drawing
+// using a third of its box leaves the slide standing two thirds empty, and
+// the old hugging viewBox hid it by shrinking the box to fit.
 //
-// One line per chunk. A figure that is both is reported as out of step, and
-// that line carries the absolute number too - two lines about one slide is how
-// a report stops being read.
-function reportFigureTypeStatic(deckFt) {
+// **Under the floor** is the older complaint and still worth saying for a
+// figure with no canvas - one under `frame: none`, or in a card, a pane or a
+// divider - where nothing else can: a deck whose figures are uniformly small
+// is perfectly even, and still unreadable from the back.
+//
+// One line per chunk. A figure that is both over its canvas and under the
+// floor is reported as the former, with the absolute number in the same
+// line - two lines about one slide is how a report stops being read.
+function reportFigureTypeStatic() {
   if (!figureTypeSeen.length) return;
-  const bodies = figureTypeSeen.map(f => f.body).sort((a, b) => a - b);
-  const median = bodies.length % 2
-    ? bodies[(bodies.length - 1) / 2]
-    : (bodies[bodies.length / 2 - 1] + bodies[bodies.length / 2]) / 2;
+  const lab = (px) => (px / DG_FONT).toFixed(1);
   for (const f of figureTypeSeen) {
-    // Three is where a median starts meaning anything. Under it the deck has
-    // no "other slides" to be out of step with, and the floor is the only
-    // thing that can be said.
-    const uneven = bodies.length > 2 && f.body < median * FIG_TYPE_EVEN_TOL;
-    if (uneven) {
-      // What the author would have to write to bring this one into line, in
-      // the vocabulary that can answer it for one slide. Offered only when it
-      // is reachable: the class bottoms out at 0.6, and a drawing that needs
-      // less than that has to be redrawn instead.
-      const wantFt = f.box / (f.typeW * median);
-      const step = Math.max(FIGURE_TYPE_STEPS[0],
-        Math.min(FIGURE_TYPE_STEPS[FIGURE_TYPE_STEPS.length - 1], Math.round(wantFt * 10) * 10));
-      // Judged on where that step actually lands rather than on the exact
-      // number it rounded from: the steps are tenths, so demanding the class
-      // reach the median precisely turned down an .80 that closed a 22 per
-      // cent gap to two.
-      const stepped = figureSettle(f.typeW, f.ar, f.width, step / 100);
-      const reach = step / 100 < f.ft && stepped && stepped.body >= median * FIG_TYPE_EVEN_TOL;
-      dgWarn(`figure-type-uneven in ${f.where}: the figure is ${f.typeW.toFixed(0)} labels wide, so its`
-        + ` slide settles at about ${f.body.toFixed(0)} px of body type at 1600x900 against the deck's`
-        + ` median of ${median.toFixed(0)} px - ${Math.round(100 * (1 - f.body / median))}% under it, which`
-        + ` a room reads as a heading that changes size from slide to slide.`
-        + (reach
-          ? ` {.figure-type-${step}} on this chunk takes it to about ${stepped.body.toFixed(0)} px;`
-          : ' No per-chunk figure-type reaches the deck from here;')
-        + ` otherwise fewer grid units, shorter labels`
-        + (f.width === 'wide' || f.width === 'full' ? '' : ', a wider column')
-        + `, or a flatter arrangement.`
-        // The second defect, and the multiplier cannot touch it: a base label
-        // is the box over the drawing's own width in labels, so the class
-        // moves the words on the slide and leaves the words in the picture
-        // exactly where they were.
-        + (f.label < FIG_TYPE_FLOOR_PX
-          ? ` Its own labels land at about ${f.label.toFixed(0)} px either way - that is the drawing's`
-            + ` width against its box, which no multiplier changes - under the ${FIG_TYPE_FLOOR_PX} px a`
-            + ` back row can read.`
-          : ''));
-      continue;
+    // What the author would have to write to reserve exactly what this
+    // drawing needs, in the vocabulary that can answer it for one figure.
+    // Rounded up in grid units to a tenth, because `frame` is counted in the
+    // same cells the drawing is.
+    const [uw, uh] = f.unit && f.unit.length === 2 ? f.unit : DG_UNIT;
+    const fits = (n, u) => (Math.ceil((n / u) * 10) / 10);
+    const wants = `frame ${fits(f.contentW, uw)}x${fits(f.contentH, uh)}`;
+    if (f.canvas) {
+      const overW = f.contentW - f.canvas.w, overH = f.contentH - f.canvas.h;
+      if (overW > 0.5 || overH > 0.5) {
+        const axes = [];
+        if (overW > 0.5) axes.push(`${lab(overW)} across`);
+        if (overH > 0.5) axes.push(`${lab(overH)} down`);
+        dgWarn(`figure-overflows-canvas in ${f.where}: the drawing is ${lab(f.contentW)} x`
+          + ` ${lab(f.contentH)} labels and its canvas is ${lab(f.canvas.w)} x ${lab(f.canvas.h)}`
+          + ` - over by ${axes.join(' and ')}. The canvas is the chunk's column at body type, so a`
+          + ` drawing past it takes its own slide's type down with it: about ${f.body.toFixed(0)} px`
+          + ` against the ${f.em.toFixed(0)} px every figure slide that fits its canvas settles at,`
+          + ` which a room reads as a heading that changes size from slide to slide.`
+          + ` Shorter labels, a row moved onto a second line`
+          + (f.width === 'wide' || f.width === 'full' ? '' : ', a wider column')
+          + `, or  ${wants}  on this figure to say the box is meant to be that big.`
+          + (f.label < FIG_TYPE_FLOOR_PX
+            ? ` Its own labels land at about ${f.label.toFixed(0)} px either way - that is the`
+              + ` drawing's width against its box, which no multiplier changes - under the`
+              + ` ${FIG_TYPE_FLOOR_PX} px a back row can read.`
+            : ''));
+        continue;
+      }
+      const fill = (f.contentW * f.contentH) / (f.canvas.w * f.canvas.h);
+      if (fill < FIG_UNDERFILL) {
+        dgWarn(`figure-underfills-canvas in ${f.where}: the drawing fills ${Math.round(fill * 100)}%`
+          + ` of its canvas (${lab(f.contentW)} x ${lab(f.contentH)} labels in ${lab(f.canvas.w)} x`
+          + ` ${lab(f.canvas.h)}), so the slide reads empty. More in the drawing, a narrower column`
+          + ` (.standard holds ${(FIG_COLUMN_PX.standard / (f.em * f.ft)).toFixed(0)}`
+          + ` labels against .wide's ${(FIG_COLUMN_PX.wide / (f.em * f.ft)).toFixed(0)}),`
+          + ` a larger {.figure-type-N}, or  ${wants}  to reserve only what it needs.`);
+        continue;
+      }
     }
     if (f.label >= FIG_TYPE_FLOOR_PX) continue;
     // Two different drawings reach this, and the fix is not the same one.
     if (f.byHeight < f.col) {
       dgWarn(`figure-type-small in ${f.where}: the figure is ${f.typeW.toFixed(0)} labels wide, and at`
-        + ` body-size labels it would stand ${Math.round(f.typeW * FIG_REF_BODY_PX / f.ar)} px tall against`
+        + ` body-size labels it would stand ${Math.round(f.typeW * f.em / f.ar)} px tall against`
         + ` the ${Math.round(FIG_REF_HEIGHT_PX)} px a slide allows - so it is scaled to that and its`
         + ` labels land at about ${f.label.toFixed(0)} px at 1600x900, under the ${FIG_TYPE_FLOOR_PX} px a`
         + ` back row can read. Here it is the height cap and not the column that decides the width:`
@@ -3620,20 +3730,25 @@ ${dgShapeD.toString()}
 ${dgPathD.toString()}
 ${dgSplineD.toString()}
 
-// A live view shows the box that holds every beat, not the one that is tight
-// around the finished picture. Three things move together when it is swapped
-// in - the viewBox, the intrinsic height that keeps the box's proportion, and
-// --dg-ink-x, which says where the drawing starts inside that box and is a
-// fraction of a width that has just changed. Two callers (first paint, and an
-// editor write-back that replaces the whole svg), one function, because the
-// first version of this left the property behind in the editor's path and a
-// figure jumped sideways the moment it was edited.
+// A live view shows the box that holds every beat, and - on an ordinary
+// figure chunk - the canvas the slide reserves for a drawing, which is wider
+// and taller than the picture inside it. Neither is the box the documents
+// show, which is tight around the finished drawing.
+//
+// Two things move together when that box is swapped in, and only two: the
+// viewBox and the intrinsic height that keeps its proportion. Both are
+// ATTRIBUTES, which is the whole reason a runtime is involved - the three
+// numbers a stylesheet needs (--dg-live-type-w, --dg-live-ar,
+// --dg-live-ink-x) are emitted beside the print ones and picked with a
+// var() fallback, so nothing about a figure's SIZE waits for this function.
+// It used to set --dg-ink-x here and the first version left the property
+// behind in the editor's path, so a figure jumped sideways the moment it was
+// edited; a value the compiler writes into the markup cannot be left behind.
 function dgUseLiveViewBox(svg) {
   svg.setAttribute('viewBox', svg.dataset.liveViewbox);
   const w = Number(svg.getAttribute('width'));
   const r = Number(svg.dataset.liveRatio);
   if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
-  if (svg.dataset.liveInkX) svg.style.setProperty('--dg-ink-x', svg.dataset.liveInkX);
 }
 
 function dgApplyVec(el, kind, v) {
@@ -3853,6 +3968,14 @@ function dgMirrorIntoFocus(d, step) {
 }
 
 function initDiagrams() {
+  // Every figure that has a live box, stepped or not. It used to be done
+  // inside the loop below, which walks the FRAMES payloads - so a figure with
+  // no steps never got one, and the day a still figure acquired a live box
+  // (the slide's canvas) it was laid out at the canvas's proportion and drawn
+  // at its own: the picture sat in the middle of the reserved rectangle at
+  // whatever scale the two aspect ratios happened to differ by.
+  document.querySelectorAll('svg.psi-diagram[data-live-viewbox]')
+    .forEach(svg => dgUseLiveViewBox(svg));
   document.querySelectorAll('script.psi-diagram-frames').forEach(sc => {
     const svg = document.getElementById(sc.dataset.for);
     if (!svg) return;
@@ -3861,9 +3984,8 @@ function initDiagrams() {
     // The static viewBox is the print one – tight around the finished
     // picture. A live view has to hold every frame instead, or an element
     // that walks in from outside is clipped for the whole of its journey.
-    // Swapped here rather than emitted, so a view with no JavaScript keeps
+    // Swapped above rather than emitted, so a view with no JavaScript keeps
     // the still it is going to show.
-    if (svg.dataset.liveViewbox) dgUseLiveViewBox(svg);
     const fig = svg.closest('.figure-diagram');
     const d = {
       svg, data, step: -1, raf: 0, cur: null, cache: {},
@@ -4041,10 +4163,20 @@ function parseLecture(src) {
   // take that refusal's place - a typo here is reported with its own message
   // a moment later, and a report that throws first would bury it.
   let deckFigureType = 1;
-  try { deckFigureType = styleSettings(frontmatter)['figure-type'] || 1; } catch (e) { /* the pre-flight says it */ }
+  let deckBlocks = 'center';
+  try {
+    const st = styleSettings(frontmatter);
+    deckFigureType = st['figure-type'] || 1;
+    deckBlocks = st.blocks || 'center';
+  } catch (e) { /* the pre-flight says it */ }
   let diagramBase = null;
+  // The deck's answer to "how big is a figure's canvas", when it has one:
+  // `frame WxH` or `frame none` as a line of the draw-defaults block, which
+  // is where everything else lecture-wide about drawings already lives. A
+  // figure's own `frame` in its opener wins over it.
+  let deckDrawFrame = null;
   if (frontmatter['draw-defaults'] != null) {
-    const { layer, errors } = parseDiagramDefaults(frontmatter['draw-defaults']);
+    const { layer, frame, errors } = parseDiagramDefaults(frontmatter['draw-defaults']);
     if (errors.length) {
       const err = new Error(
         `Frontmatter: draw-defaults has ${errors.length} problem(s):\n`
@@ -4053,6 +4185,7 @@ function parseLecture(src) {
       throw err;
     }
     diagramBase = layer;
+    deckDrawFrame = frame || null;
   }
   const columns = [];
   let currentColumn = null;
@@ -4528,6 +4661,34 @@ function parseLecture(src) {
                                 : currentColumn.heading ? `the divider of column "${currentColumn.heading}"`
                                                         : 'an unnamed column divider')
             : 'an unattached diagram';
+        // **Which figures get a canvas.** The default canvas is the CHUNK's
+        // column at body type, so it is the right box for exactly the figures
+        // that have that column: the ones standing in the chunk's own flow.
+        // A figure in a card, a pane, a dock, an overlay or an expansion has
+        // a fraction of it and would be laid out on a canvas several times
+        // its own box; a divider figure has no width class at all and its
+        // frame is the slide rather than a text column. Those keep the box
+        // that hugs their content, which is what they had before this
+        // existed. `::: slide` and `::: script` are not layout: they say
+        // which half of the chunk is the screen, and the column is the same
+        // either way.
+        const dgUnit = diagramBlock.unit
+          ? diagramBlock.unit.split('x').map(Number) : DG_UNIT.slice();
+        const dgInFlow = !!currentChunk && !cardsBlock && !currentDock && !currentOverlay
+          && !currentExpansion
+          && layoutStack.every(l => l.kind === 'slide' || l.kind === 'script');
+        const dgFt = currentChunk ? chunkFigureType(currentChunk, deckFigureType) : 1;
+        const dgCanvas = dgInFlow
+          ? figureCanvas({
+              width: currentChunk.width,
+              ft: dgFt,
+              tag: currentChunk.tag,
+              // The figure's own `frame`, else the deck's, else the default.
+              frame: diagramBlock.frame != null ? diagramBlock.frame : deckDrawFrame,
+              unit: dgUnit,
+              align: chunkBlocks(currentChunk, deckBlocks),
+            })
+          : null;
         // The compiler learns one thing from the opener, the grid, and takes
         // it as the `unit=WxH` string it always has. The whole opener rides
         // in the payload as one canonical line so the editor can write the
@@ -4540,13 +4701,14 @@ function parseLecture(src) {
           width: currentChunk ? currentChunk.width : null,
           opener: formatDrawOpener(diagramBlock),
           where: dgWhere,
-          // How small the labels land in a room, which only this side knows:
-          // the compiler has the viewBox and the caller has the chunk's width
-          // class. A divider figure is not held to it - it has no width class
-          // and its frame is the slide, not a text column.
+          canvas: dgCanvas,
+          // How the drawing sits in its box and how small its labels land in
+          // a room, which only this side knows: the compiler has the viewBox
+          // and the caller has the chunk's width class. A divider figure is
+          // not held to it - it has no width class and its frame is the
+          // slide, not a text column.
           onSized: currentChunk
-            ? ({ typeW, vbW, vbH }) => recordFigureType(typeW, vbH ? vbW / vbH : 0, currentChunk.width,
-                                                        dgWhere, chunkFigureType(currentChunk, deckFigureType))
+            ? (sized) => recordFigureType(sized, currentChunk.width, dgWhere, dgFt, dgUnit, currentChunk.tag)
             : null,
           alt: currentChunk ? currentChunk.heading : '',
           base: diagramBase,
@@ -4596,7 +4758,7 @@ function parseLecture(src) {
         // an html block to marked and passes through renderCardsBlock like
         // a paragraph would.
         refuseDrawOpener(cardDraw);
-        diagramBlock = { unit: cardDraw.unit, autoplay: cardDraw.autoplay, cycle: cardDraw.cycle,
+        diagramBlock = { unit: cardDraw.unit, frame: cardDraw.frame, autoplay: cardDraw.autoplay, cycle: cardDraw.cycle,
                          lines: [], bodyAt: fmOffset + lineAt };
       } else if (!inFence && /^:::\s+\S/.test(line)) {
         // lint.js: directive-in-cards. The body is captured, not parsed, so a
@@ -4855,7 +5017,7 @@ function parseLecture(src) {
         const colDraw = parseDrawOpener(line);
         if (colDraw) {
           refuseDrawOpener(colDraw);
-          diagramBlock = { unit: colDraw.unit, autoplay: colDraw.autoplay, cycle: colDraw.cycle,
+          diagramBlock = { unit: colDraw.unit, frame: colDraw.frame, autoplay: colDraw.autoplay, cycle: colDraw.cycle,
                            lines: [], bodyAt: fmOffset + lineAt };
           continue;
         }
@@ -5311,7 +5473,7 @@ function parseLecture(src) {
           // wall-clock number would put a runtime concern in the one file
           // that also runs in the editor, where there is no deck to play.
           refuseDrawOpener(diagramOpen);
-          diagramBlock = { unit: diagramOpen.unit, autoplay: diagramOpen.autoplay, cycle: diagramOpen.cycle,
+          diagramBlock = { unit: diagramOpen.unit, frame: diagramOpen.frame, autoplay: diagramOpen.autoplay, cycle: diagramOpen.cycle,
                            lines: [], bodyAt: fmOffset + lineAt };
           continue;
         }
@@ -5469,9 +5631,9 @@ function parseLecture(src) {
     }
   }
 
-  // Every figure in the lecture has compiled, which is the earliest a slide
-  // can be compared with the deck it is in - see reportFigureTypeStatic.
-  reportFigureTypeStatic(deckFigureType);
+  // Every figure in the lecture has compiled, which is the earliest the whole
+  // set can be ruled on at once - see reportFigureTypeStatic.
+  reportFigureTypeStatic();
 
   // `.stack` says where the divider's own content stands, so a divider with
   // no content has nothing for it to say - the silent no-op this format
@@ -10339,9 +10501,27 @@ figure.figure-img svg {
    #lifecycle at 505 px in a 1152 px column, and because shrinking the type
    shrinks the words too, the figure stayed capped at every step and auto-fit
    walked the slide to its 0.6 floor. A definite length contributes itself. */
+/* Which box this medium shows, resolved once for everything that asks.
+
+   A drawing has two: the one that hugs the finished picture, which is what a
+   printed column wants, and the LIVE one - the union of every beat, widened
+   and heightened to the slide's canvas where the chunk has one. The compiler
+   emits both sets of numbers and the live half only when it differs, so this
+   is a fallback chain and not a switch, and a figure with neither steps nor a
+   canvas resolves to exactly what it resolved to before.
+
+   Three readers besides the rules below: figureCapProbe, --check-fit and the
+   editor all read --dg-fit-w off the computed style, which is the substituted
+   value. Reading --dg-type-w there instead would measure the drawing against
+   a box it is not in. */
+.psi-diagram {
+  --dg-fit-w:     var(--dg-live-type-w, var(--dg-type-w, 100000));
+  --dg-fit-ar:    var(--dg-live-ar, var(--dg-ar, 1));
+  --dg-fit-ink-x: var(--dg-live-ink-x, var(--dg-ink-x, 0));
+}
 .chunk .psi-diagram {
-  --dg-box-w: min(calc(var(--dg-type-w, 100000) * 1em * var(--figure-type, 1)),
-                  calc(var(--slide-h, 100vh) * 0.62 * var(--dg-ar, 1)));
+  --dg-box-w: min(calc(var(--dg-fit-w) * 1em * var(--figure-type, 1)),
+                  calc(var(--slide-h, 100vh) * 0.62 * var(--dg-fit-ar)));
   width: var(--dg-box-w);
   /* The box hugs the drawing now instead of spanning the measure, so it has
      somewhere to sit. Centre by default, matching figure.figure-img above;
@@ -10352,7 +10532,7 @@ figure.figure-img svg {
 }
 body[data-blocks=left] .chunk .psi-diagram,
 .chunk[data-blocks=left] .psi-diagram {
-  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+  margin-inline: calc(-1 * var(--dg-fit-ink-x) * var(--dg-box-w)) auto;
 }
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
 /* style.figure-type answered for one chunk. The key is deck-wide and the
@@ -12714,7 +12894,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    it is the composition rather than a key that asks for the edge, so it does
    not wait for one to be set. */
 .chunk-section[data-section-layout=stack] .section-body .psi-diagram {
-  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+  margin-inline: calc(-1 * var(--dg-fit-ink-x) * var(--dg-box-w)) auto;
 }
 .chunk-section[data-section-layout=stack] .section-body svg {
   /* The heading is one line above it now, so the picture may take almost the
@@ -16537,7 +16717,10 @@ function figureCapProbe(el) {
     let worst = 1;
     for (const svg of figs) {
       const cs = getComputedStyle(svg);
-      const typeW = parseFloat(cs.getPropertyValue('--dg-type-w'));
+      // --dg-fit-w and not --dg-type-w: the live views show the canvas, and
+      // measuring a drawing against the box it is not in reads a figure that
+      // exactly fills its canvas as one that overflowed its column.
+      const typeW = parseFloat(cs.getPropertyValue('--dg-fit-w'));
       const mult = parseFloat(cs.getPropertyValue('--figure-type')) || 1;
       // The svg's own em, which is the text it stands in: the chunk body, a
       // pane, a card. Exactly what the width rule multiplies.
@@ -22466,7 +22649,7 @@ async function runCheckFit(absIn, viewport) {
     // question a rendered page is the only place to ask. A label's size is
     // its font-size through the viewBox transform - the attribute times the
     // screen CTM - and the figure's BASE label is that for an unclassed one,
-    // which is the rendered width over --dg-type-w by construction. The base
+    // which is the rendered width over --dg-fit-w by construction. The base
     // is what the width rule aims at and what is compared here; the smallest
     // label on the drawing is reported beside it but never tested, because
     // `.small` IS 0.8 of the base and testing it would report the vocabulary.
@@ -22474,12 +22657,17 @@ async function runCheckFit(absIn, viewport) {
     // Against the body type beside it, because "small" on a slide is a
     // relation and not only a number: the two are meant to match
     // (.chunk .psi-diagram).
+    //
+    // And how much of its canvas the drawing filled, which is the question
+    // the canvas made askable: `data-canvas` is the box the slide reserved
+    // and the box the drawing took, both in viewBox units, and it is on the
+    // svg only where a canvas applies.
     const body = act.querySelector('.chunk-body') || content;
     const bodyPx = parseFloat(getComputedStyle(body).fontSize) || 0;
     const figs = [];
     for (const svg of act.querySelectorAll('svg.psi-diagram')) {
       if (!svg.clientWidth || svg.closest('.exps')) continue;
-      const typeW = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-type-w'));
+      const typeW = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-fit-w'));
       if (!(typeW > 0)) continue;
       let min = Infinity;
       for (const t of svg.querySelectorAll('.dg-lbl text')) {
@@ -22487,7 +22675,13 @@ async function runCheckFit(absIn, viewport) {
         const px = parseFloat(getComputedStyle(t).fontSize) * (m ? m.a : 1);
         if (px > 0 && px < min) min = px;
       }
+      const cv = (svg.dataset.canvas || '').split(/\s+/).map(Number);
+      const canvas = cv.length === 4 && cv.every(n => n > 0)
+        ? { fill: Math.round(100 * (cv[2] * cv[3]) / (cv[0] * cv[1])),
+            over: Math.max(0, cv[2] - cv[0]) > 0.5 || Math.max(0, cv[3] - cv[1]) > 0.5 }
+        : null;
       figs.push({
+        canvas,
         base: Math.round((svg.clientWidth / typeW) * 10) / 10,
         min: min === Infinity ? null : Math.round(min * 10) / 10,
       });
@@ -22533,7 +22727,8 @@ async function runCheckFit(absIn, viewport) {
     for (const f of st.figs) {
       const prev = figType.get(st.id);
       if (!prev || f.base < prev.px) {
-        figType.set(st.id, { px: f.base, min: f.min, bodyPx: st.bodyPx, width: st.width, tag: st.tag });
+        figType.set(st.id, { px: f.base, min: f.min, bodyPx: st.bodyPx, width: st.width, tag: st.tag,
+                             canvas: f.canvas });
       }
     }
     if (st.bodyPx > 0) {
@@ -22629,6 +22824,13 @@ async function runCheckFit(absIn, viewport) {
 // legible and its figure is not, which is the inconsistency the width rule
 // removed and the one thing that can bring it back (a container measured in
 // the same ems as the type - see figureCapProbe).
+//
+// And, since the canvas, a third: how much of the box the slide reserved the
+// drawing actually took. That one is measured rather than computed - the
+// build says the same thing statically as `figure-overflows-canvas` and
+// `figure-underfills-canvas` - but the two are worth having side by side,
+// because this half sees a figure inside a card or a pane that the static
+// half measures against the chunk's column.
 function reportFigureType(figType, bodySeen, where) {
   if (!figType.size) return;
   const rows = [...figType.entries()].map(([id, f]) => ({ id, ...f, ratio: f.bodyPx ? f.px / f.bodyPx : 0 }));
@@ -22638,6 +22840,24 @@ function reportFigureType(figType, bodySeen, where) {
   console.log(`[check-fit] ${rows.length} chunk(s) with a figure at ${where}: base labels run`
     + ` ${ratios[0].toFixed(2)}x to ${ratios[ratios.length - 1].toFixed(2)}x of the body type beside them`
     + `${behind.length || tiny.length ? '.' : ', and none is under ' + FIG_TYPE_FLOOR_PX + ' px.'}`);
+  // The canvas, per figure, sorted by how badly it is used - a line a reader
+  // can run down to see whether a deck's figure slides are one deck.
+  const onCanvas = rows.filter(f => f.canvas).sort((a, b) => a.canvas.fill - b.canvas.fill);
+  if (onCanvas.length) {
+    const scaled = onCanvas.filter(f => f.canvas.over);
+    const empty = onCanvas.filter(f => !f.canvas.over && f.canvas.fill < Math.round(FIG_UNDERFILL * 100));
+    console.log(`  ${onCanvas.length} of them are on a canvas and take`
+      + ` ${onCanvas[0].canvas.fill}% to ${onCanvas[onCanvas.length - 1].canvas.fill}% of it`
+      + `${scaled.length ? `; ${scaled.length} had to be scaled past it.` : ', and none had to be scaled past it.'}`);
+    for (const f of scaled) {
+      console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''}) is over its canvas – the slide`
+        + ` settles at ${f.bodyPx} px of body type rather than the deck's own.`);
+    }
+    for (const f of empty) {
+      console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''}) fills ${f.canvas.fill}% of its`
+        + ` canvas, so the slide reads empty.`);
+    }
+  }
   for (const f of behind) {
     console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''}) – base label ${f.px} px against`
       + ` ${f.bodyPx} px of body type (${f.ratio.toFixed(2)}x)${f.min && f.min < f.px ? `, smallest on the drawing ${f.min} px` : ''}.`
@@ -22661,9 +22881,10 @@ function reportFigureType(figType, bodySeen, where) {
   // between consecutive slides - measured on a keynote, 25 px against 44 px
   // in the same width class. Neither reading above can see that: both compare
   // a figure with the words beside it, and on a shrunken slide those agree
-  // perfectly. So compare each slide with the deck's own median instead. The
-  // build says the same thing at compile time as `figure-type-uneven`; this
-  // is the half that measures the zoom the camera actually settled on.
+  // perfectly. So compare each slide with the deck's own median instead.
+  // With a canvas this is the proof rather than the complaint: a figure that
+  // fits its canvas settles at the same body type as every other figure
+  // slide, so a spread here is a list of the figures that did not fit.
   const all = [...bodySeen.values()].filter(v => v > 0).sort((a, b) => a - b);
   if (all.length < 3) return;
   const median = all.length % 2 ? all[(all.length - 1) / 2]
@@ -22676,8 +22897,13 @@ function reportFigureType(figType, bodySeen, where) {
   for (const f of under) {
     console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''}) settles at ${f.bodyPx} px,`
       + ` ${Math.round(100 * (1 - f.bodyPx / median))}% under the deck - its figure is what took the`
-      + ` slide down, and {.figure-type-N} on this chunk is how one slide answers that without`
-      + ` moving the rest.`);
+      + ` slide down.`
+      + (f.canvas
+        ? (f.canvas.over
+          ? ' It is over its canvas: less in the drawing, or  frame WxH  on this figure.'
+          : ' It is inside its canvas, so what took the slide down is the rest of what is on it.')
+        : ' It is not on a canvas (frame: none, or a figure in a card, a pane or a divider), so'
+          + ' {.figure-type-N} on this chunk is how one slide answers that without moving the rest.'));
   }
 }
 

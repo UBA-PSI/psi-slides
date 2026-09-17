@@ -1,8 +1,10 @@
 /*
  * A figure's labels are the size of the words beside them.
  *
- * The live views size a drawing from the type it stands in: `--dg-type-w` is
- * the viewBox measured in base labels, so `--dg-type-w × 1em` is the width at
+ * The live views size a drawing from the type it stands in: `--dg-fit-w` is
+ * the box on screen measured in base labels - the slide's canvas where the
+ * chunk has one, the drawing's own box where it does not - so `--dg-fit-w × 1em`
+ * is the width at
  * which a base label lands at exactly the size of the surrounding text. What
  * that is worth is one number per figure – the base label against the body
  * type on the same slide – and it is a number only a rendered page has. The
@@ -57,8 +59,13 @@ export async function run({ page, report, press }) {
       for (const svg of act.querySelectorAll('svg.psi-diagram')) {
         if (!svg.clientWidth || svg.closest('.exps')) continue;
         const cs = getComputedStyle(svg);
-        const typeW = parseFloat(cs.getPropertyValue('--dg-type-w'));
-        const ar = parseFloat(cs.getPropertyValue('--dg-ar')) || 1;
+        // --dg-fit-w / --dg-fit-ar and not the print pair: a live view shows
+        // the slide's canvas, and a base label is the rendered width over the
+        // width of the box actually on screen. Measuring against the print
+        // viewBox reads a figure that exactly fills its canvas as one whose
+        // labels are half as big again as the words beside them.
+        const typeW = parseFloat(cs.getPropertyValue('--dg-fit-w'));
+        const ar = parseFloat(cs.getPropertyValue('--dg-fit-ar')) || 1;
         if (!(typeW > 0)) continue;
         figs.push({
           px: Math.round((svg.clientWidth / typeW) * 10) / 10,

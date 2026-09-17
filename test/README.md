@@ -4,7 +4,7 @@ Two suites, split by one question: **can this be decided without a browser?**
 
 - **`test/gates/`** – everything that can, which is no longer only the figure
   language and the `{…}` tail grammar: a gate is the right home for any
-  hand-mirrored list one file keeps of another's. Twelve gates, under a second,
+  hand-mirrored list one file keeps of another's. Thirteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
 - **`test/`** – the things that only break in a built page. 41 specs, ~1030
@@ -42,7 +42,7 @@ node test/run.mjs nav               # specs whose name matches
 npm run reproducible                # same bytes under any flag set
 ```
 
-## The gates: eleven contracts
+## The gates: thirteen contracts
 
 Both `diagram-core.mjs` and `lint.js` are zero-dependency, which is what makes
 this suite runnable with nothing installed.
@@ -61,6 +61,7 @@ this suite runnable with nothing installed.
 | `frontmatter` | `lint.js`'s `KNOWN_FRONTMATTER_KEYS` against every top-level key `build.js` actually reads |
 | `xheight` | every text face in `BUNDLED_FONTS` carries the measured x-height that sizes inline code against the prose around it, and the roster agrees with `tools/font-playground/xheights.json` |
 | `image-refs` | every way a `source.md` names a picture, and the one collector both readers of that set go through – what the inline cap refuses and what `--optimize-images` can fix have to be the same list |
+| `canvas` | the three measured numbers behind a figure's canvas: the per-chunk-type body em (`FIG_BODY_REM` against the `--body-fs` rules it mirrors), the default `--zoom`, and the one spelling of a `frame` in two files that cannot import one another |
 
 **`frontmatter` is the one gate that is not about figures**, and it is here
 because the shape is the one this suite exists for: a closed list in one file
