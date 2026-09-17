@@ -7445,14 +7445,29 @@ export function createDiagramCompiler(env = {}) {
     // the drawing from the type now; they differ only in the multiplier and in
     // what caps it.
     const typeW = (vbW / DG_FONT).toFixed(3);
+    // Where the drawing starts inside its own box, as a fraction of the box's
+    // width. boxFor pads every side by DG_MARGIN, so the answer is always that
+    // margin over the viewBox width - but only this file knows which viewBox a
+    // view is showing, and the two differ: the print box is tight around the
+    // finished picture, the live one holds every beat. A stylesheet that wants
+    // the figure's *ink* on the text edge rather than its box has to subtract
+    // this, and it cannot work it out from the numbers it already has.
+    //
+    // It is the reserve and not the painted glyphs: the label widths are an
+    // estimate made without a browser and a deliberately generous one. On the
+    // left edge that costs nothing, because the leftmost drawable is a shape
+    // or a start-anchored label and both begin exactly at their origin.
+    const inkX = (DG_MARGIN / vbW).toFixed(5);
+    const liveInkX = (DG_MARGIN / lvW).toFixed(5);
     // The same number the caller may want in Node, where the chunk's width
     // class is known and the label size in the room can therefore be
     // estimated. Optional: the editor compiles in the browser and passes none.
     if (opts.onSized) opts.onSized({ typeW: Number(typeW), vbW, vbH });
     const svg = `<svg id="${svgId}" class="psi-diagram" viewBox="${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}" `
-      + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)}" `
+      + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)};--dg-ink-x:${inkX}" `
       + `width="${DG_NOMINAL_W}" height="${Math.round(DG_NOMINAL_W * vbH / vbW)}" `
-      + (frameCount > 1 ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" ` : '')
+      + (frameCount > 1 ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" `
+        + `data-live-ink-x="${liveInkX}" ` : '')
       + `data-steps="${frameCount}"${aria} preserveAspectRatio="xMidYMid meet">\n${svgBody}</svg>`;
     const script = frameCount > 1
       ? `<script type="application/json" class="psi-diagram-frames" data-for="${svgId}">`

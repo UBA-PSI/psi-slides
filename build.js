@@ -3432,6 +3432,22 @@ ${dgShapeD.toString()}
 ${dgPathD.toString()}
 ${dgSplineD.toString()}
 
+// A live view shows the box that holds every beat, not the one that is tight
+// around the finished picture. Three things move together when it is swapped
+// in - the viewBox, the intrinsic height that keeps the box's proportion, and
+// --dg-ink-x, which says where the drawing starts inside that box and is a
+// fraction of a width that has just changed. Two callers (first paint, and an
+// editor write-back that replaces the whole svg), one function, because the
+// first version of this left the property behind in the editor's path and a
+// figure jumped sideways the moment it was edited.
+function dgUseLiveViewBox(svg) {
+  svg.setAttribute('viewBox', svg.dataset.liveViewbox);
+  const w = Number(svg.getAttribute('width'));
+  const r = Number(svg.dataset.liveRatio);
+  if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
+  if (svg.dataset.liveInkX) svg.style.setProperty('--dg-ink-x', svg.dataset.liveInkX);
+}
+
 function dgApplyVec(el, kind, v) {
   if (kind === 'rect') {
     el.setAttribute('x', v[0]); el.setAttribute('y', v[1]);
@@ -3588,12 +3604,7 @@ function dgSwapFigure(oldSvg, html) {
   const payload = holder.querySelector('script.psi-diagram-frames');
   if (!next) return null;
   const live = oldSvg.psiDiagram;
-  if (next.dataset.liveViewbox) {
-    next.setAttribute('viewBox', next.dataset.liveViewbox);
-    const w = Number(next.getAttribute('width'));
-    const r = Number(next.dataset.liveRatio);
-    if (w && r) next.setAttribute('height', String(Math.round(w * r)));
-  }
+  if (next.dataset.liveViewbox) dgUseLiveViewBox(next);
   const figure = oldSvg.closest('.figure-diagram');
   oldSvg.replaceWith(next);
   // The frames payload is what the step runtime reads. Replace it alongside
@@ -3664,12 +3675,7 @@ function initDiagrams() {
     // that walks in from outside is clipped for the whole of its journey.
     // Swapped here rather than emitted, so a view with no JavaScript keeps
     // the still it is going to show.
-    if (svg.dataset.liveViewbox) {
-      svg.setAttribute('viewBox', svg.dataset.liveViewbox);
-      const w = Number(svg.getAttribute('width'));
-      const r = Number(svg.dataset.liveRatio);
-      if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
-    }
+    if (svg.dataset.liveViewbox) dgUseLiveViewBox(svg);
     const fig = svg.closest('.figure-diagram');
     const d = {
       svg, data, step: -1, raf: 0, cur: null, cache: {},
@@ -8143,16 +8149,47 @@ figure.figure-video video { max-height: 34rem; }
    that could not honour them because its box was always full width. */
 main .psi-diagram {
   --dg-fig-size: 0.9rem;
-  width: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
-             calc(34rem * var(--dg-ar, 1)));
+  --dg-box-w: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
+                  calc(34rem * var(--dg-ar, 1)));
+  width: var(--dg-box-w);
   /* The default is centre, matching figure.figure-img's text-align above.
      styleBodyAttrs writes data-blocks only when it is left, so the centre
      case has to be the bare rule - a body[data-blocks=center] selector would
      never match anything and every deck would quietly go flush left. */
   margin-inline: auto;
 }
+/* Flush left means the *drawing* is flush left, not the box around it. The
+   box is the viewBox, and the viewBox is the drawing plus DG_MARGIN on every
+   side - so a figure set flush left used to stop a fixed reserve short of the
+   heading above it, the same few pixels on every figure in the deck. Measured
+   on a real keynote: heading at x 223, first box at 243. A gap of twenty
+   pixels is not an alignment anyone chose; it is a near-miss, and a near-miss
+   reads worse than an honest indent. --dg-ink-x is that reserve as a fraction
+   of the box (diagram-core emits it, and the live runtime rewrites it when it
+   swaps in the viewBox that holds every beat), so the negative start margin
+   pulls the reserve back out into the gutter and the ink lands on the text's
+   own edge.
+
+   Centre is untouched: the reserve is symmetric, so a centred box is a centred
+   drawing already, and nothing moves in a deck that did not ask.
+
+   And centre stays the DEFAULT, which is the question this rule was asked
+   twice. The case for flush left by default is that a figure under a heading
+   should share that heading's edge - but where the heading sits is already a
+   key, and the two lectures answer it differently. Measured at 1600x900:
+   lectures/diagrams sets no headings key, so a figure chunk's heading is
+   centred (heads at 465-739 px in a 96-1504 column) and the drawing under it
+   is centred with it; flush left by default would pull thirty figures away
+   from their own headings. lectures/tutorial sets headings: left, every
+   heading stands at the column edge, and the centred figures sit 56-860 px
+   inside it - which is the complaint, and blocks: left is the answer to it,
+   now that it lands on the edge rather than a reserve short of it. So the
+   default follows the blocks key, as documented, and a deck that ranges its
+   headings left says so once in the same block. */
 body[data-blocks=left] main .psi-diagram,
-.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=left] .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+}
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
 
 @media print {
@@ -10001,16 +10038,20 @@ figure.figure-img svg {
    shrinks the words too, the figure stayed capped at every step and auto-fit
    walked the slide to its 0.6 floor. A definite length contributes itself. */
 .chunk .psi-diagram {
-  width: min(calc(var(--dg-type-w, 100000) * 1em * var(--figure-type, 1)),
-             calc(var(--slide-h, 100vh) * 0.62 * var(--dg-ar, 1)));
+  --dg-box-w: min(calc(var(--dg-type-w, 100000) * 1em * var(--figure-type, 1)),
+                  calc(var(--slide-h, 100vh) * 0.62 * var(--dg-ar, 1)));
+  width: var(--dg-box-w);
   /* The box hugs the drawing now instead of spanning the measure, so it has
      somewhere to sit. Centre by default, matching figure.figure-img above;
      styleBodyAttrs writes data-blocks only when it is left, so the centre case
-     has to be the bare rule. Same three rules as PRINT_CSS. */
+     has to be the bare rule. Same three rules as PRINT_CSS, including the
+     ink-edge correction: see the comment there for what --dg-ink-x buys. */
   margin-inline: auto;
 }
 body[data-blocks=left] .chunk .psi-diagram,
-.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=left] .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+}
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
 
 figure.figure-img figcaption {
