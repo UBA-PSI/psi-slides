@@ -1949,6 +1949,52 @@ console.log('\nlayout generations');
        'and its drawing sits on the caption edge by its ink, not by its box');
   }
 
+  // ── {.figure-type-N}: style.figure-type answered for one chunk ──
+  // The key is deck-wide and the complaint is not: a drawing capped at its
+  // column pulls its own slide's type down and nothing else's, so a deck with
+  // one dense figure and two sparse ones cannot fix any of them with the key.
+  {
+    // A row of n boxes with long labels: n decides how many label-widths wide
+    // the drawing is, which is the whole input to the arithmetic under test.
+    const row = (n) => '::: draw 200x52\n' + [...Array(n).keys()]
+      .map(i => 'box b' + i + ' "a label of some length ' + i + '"'
+        + (i ? ' right of b' + (i - 1) + ' gap 0.3' : '')).join('\n') + '\n:::\n';
+    const deck = (tail) => '---\ntitle: T\n---\n\n## title: {#t}\n\n'
+      + '## figure: Dense {.wide' + tail + ' #dense}\n\n' + row(5)
+      + '\n## figure: Plain {.wide #plain}\n\n' + row(2)
+      + '\n## figure: Plainer {.wide #plainer}\n\n' + row(2);
+    const ft = raw(deck(''), ['--audience-only']);
+    ok(ft.code === 0, 'a deck with one dense figure and two sparse ones builds', ft.out.split('\n')[0]);
+    // The report. The complaint is the deck's own spread, not an absolute
+    // size: both readings above compare a figure with the words beside it,
+    // and on a shrunken slide those agree perfectly.
+    ok(/figure-type-uneven in chunk #dense/.test(ft.out)
+       && /\{\.figure-type-\d+\}/.test(ft.out) && !/uneven in chunk #plain/.test(ft.out),
+       'the dense one is named as out of step with the deck, with the step that answers it',
+       ft.out.split('\n').filter(l => /figure-type/.test(l)).join(' | '));
+    // …and writing that step silences it, which is the half that says the
+    // class and the report are talking about the same number.
+    const fixed = raw(deck(' .figure-type-70'), ['--audience-only']);
+    ok(fixed.code === 0 && !/figure-type-uneven/.test(fixed.out),
+       'and the chunk class it recommends takes the slide back into line',
+       fixed.out.split('\n').filter(l => /figure-type/.test(l)).join(' | '));
+    ok(/<article[^>]*data-figure-type="70"[^>]*data-chunk-id="dense"/.test(fixed.html || '')
+       || /<article[^>]*data-chunk-id="dense"[^>]*data-figure-type="70"/.test(fixed.html || ''),
+       'the class reaches the chunk as data-figure-type, in per cent');
+    ok(!/data-chunk-id="plain"[^>]*data-figure-type/.test(fixed.html || ''),
+       'and a chunk that wrote nothing carries nothing new');
+    // Eleven rules, generated from the same table the tail parser reads - a
+    // step that exists as a word and not as a rule is a class that parses and
+    // draws nothing, which is the silent no-op this format refuses.
+    for (const n of [60, 100, 160]) {
+      ok(ft.html.includes('.chunk[data-figure-type="' + n + '"] { --figure-type: ' + (n / 100) + '; }'),
+         'step ' + n + ' has a rule behind it');
+    }
+    ok(/unknown-class/.test(lintOf('---\ntitle: T\n---\n\n## title: {#t}\n\n'
+       + '## figure: X {.wide .figure-type-75 #x}\n\nProse.\n')),
+       'and a step off the ladder is an unknown class rather than a silent no-op');
+  }
+
   // ── {.bare} on the `#` heading: the divider's heading off the slide ──
   // Same semantics as a chunk's `.bare`, and the same mechanism: display
   // none over an element that is still in the DOM, so the contents page, the

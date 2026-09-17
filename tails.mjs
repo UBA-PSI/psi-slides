@@ -47,6 +47,23 @@ export const CHUNK_STYLE_CLASSES = {
   'blocks-left':   ['blocks', 'left'],
 };
 
+// The third key, and the one whose value is a number rather than a word.
+// `style: {figure-type: N}` is deck-wide, and the complaint it answers is not:
+// a drawing 66 labels wide pulls its own slide's type down to meet it, and
+// pulling it back up with the key takes every other figure in the deck with
+// it - so a keynote with one dense figure and one sparse one cannot fix
+// either. Per chunk it is a bounded set of steps rather than a free number,
+// because a class is a word: eleven of them, the key's own 0.6-1.6 range in
+// steps of 0.1, spelled as PER CENT so the class reads as a proportion and
+// carries no dot (`.figure-type-70` is `figure-type: 0.7`). Ten per cent is
+// the smallest step worth a slide - under it nothing in the room moves.
+//
+// Unlike the four above it, this one does not reach print: neither does the
+// key. A document sizes a figure with --dg-fig-size, which is a decision
+// about apparatus inside a column of prose and not about a room.
+export const FIGURE_TYPE_STEPS = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160];
+for (const n of FIGURE_TYPE_STEPS) CHUNK_STYLE_CLASSES['figure-type-' + n] = ['figure-type', String(n)];
+
 export const CHUNK_SLOTS = {
   // The default is the caller's, not the table's: a chunk's width is
   // `standard` for every type but `outline`, which is `wide`, and the
@@ -56,6 +73,7 @@ export const CHUNK_SLOTS = {
   width:  { default: null, words: ['narrow', 'standard', 'wide', 'full'] },
   wrap:   { default: null, words: ['wrap-balance', 'wrap-none'] },
   blocks: { default: null, words: ['blocks-left', 'blocks-center'] },
+  'figure-type': { default: null, words: FIGURE_TYPE_STEPS.map(n => 'figure-type-' + n) },
   // `.bare` takes the heading off the slide and leaves it in the TOC, in
   // search and in the printed document; `.center` sets the prose on a centre
   // axis. Flags: a default with no spelling.
