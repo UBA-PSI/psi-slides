@@ -516,17 +516,29 @@ warns about this).
 Assets are inlined into the outputs by default (auto-inline while the total is
 under 10 MB). **A single asset over 2 MB fails the build**, because the
 alternative is an HTML file that looks right on your machine and shows a broken
-figure everywhere it travels. Fix it by format, not resolution:
+figure everywhere it travels. Fix it by format first, and by resolution only
+where format is not enough:
 
 ```bash
 node build.js <source.md> --optimize-images --dry-run   # report, write nothing
 node build.js <source.md> --optimize-images              # convert rasters >= 512 KB to WebP q92 in place
+node build.js <source.md> --optimize-images --max-width 1920   # …and cap every width
 ```
 
-Needs `cwebp` or `magick` on `PATH`. Shorthand refs need no edit afterwards;
-explicit paths in `source.md` are rewritten for you. SVG is never touched: it
-is spliced inline as a real `<svg>` element so it inherits the theme colours.
-`--no-inline-images` is the escape hatch that ships external paths on purpose.
+Needs `cwebp` or `magick` on `PATH`. It sees a picture however you named it –
+`![](path)`, `![](fig-id)`, a `::: draw` `image` statement, a `::: backdrop`,
+`cover-image:` or `closing-image:`. Shorthand refs need no edit afterwards;
+explicit paths in `source.md` are rewritten for you, in the frontmatter and on
+a directive line too, and a path inside a code fence is left alone. SVG is
+never touched: it is spliced inline as a real `<svg>` element so it inherits
+the theme colours. `--no-inline-images` is the escape hatch that ships external
+paths on purpose.
+
+A photograph that WebP q92 alone does not bring under the 2 MB cap is
+**downscaled to 2560 px wide and re-encoded**, and the report says so per
+asset. If it is still over after that, the report names the size and the
+`--max-width N` worth trying next; a `.webp` already over the cap is re-encoded
+onto itself the same way.
 
 ## Math
 

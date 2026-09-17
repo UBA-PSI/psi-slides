@@ -4,7 +4,7 @@ Two suites, split by one question: **can this be decided without a browser?**
 
 - **`test/gates/`** – everything that can, which is no longer only the figure
   language and the `{…}` tail grammar: a gate is the right home for any
-  hand-mirrored list one file keeps of another's. Eleven gates, under a second,
+  hand-mirrored list one file keeps of another's. Twelve gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
 - **`test/`** – the things that only break in a built page. 34 specs, ~872
@@ -60,6 +60,7 @@ this suite runnable with nothing installed.
 | `legacy-draw-syntax` | the old braced `::: draw` opener stays out of every `source.md`; every other survivor is on the reviewed allowlist `legacy-draw-syntax.txt` |
 | `frontmatter` | `lint.js`'s `KNOWN_FRONTMATTER_KEYS` against every top-level key `build.js` actually reads |
 | `xheight` | every text face in `BUNDLED_FONTS` carries the measured x-height that sizes inline code against the prose around it, and the roster agrees with `tools/font-playground/xheights.json` |
+| `image-refs` | every way a `source.md` names a picture, and the one collector both readers of that set go through – what the inline cap refuses and what `--optimize-images` can fix have to be the same list |
 
 **`frontmatter` is the one gate that is not about figures**, and it is here
 because the shape is the one this suite exists for: a closed list in one file
@@ -80,6 +81,18 @@ which is the only place `subtitle` is named. The obvious grep finds 23 of the
 because a scan that silently finds nothing passes every comparison and guards
 nothing – and it earned that on its first run, reporting `bodyHtml` as a
 frontmatter key because the call site writes that argument in shorthand.
+
+**`image-refs` is the second gate that is not about figures**, and the same
+shape again: two readers in `build.js` over one set. `scanReferencedImages`
+decides what the per-image inline cap refuses; `collectImageRefs` decides what
+`--optimize-images` can convert. They were two regex sets in one file and only
+one of them knew `::: backdrop`, `cover-image:` and `closing-image:`, so a
+keynote whose only oversized assets were a backdrop and a cover photograph was
+refused by the build with a message recommending `--optimize-images`, and that
+verb answered "Nothing to do" about the very files the build had just refused.
+The gate asserts the collector's output, the rewrite that follows a conversion
+in all four spellings of a path, and – the one that drifts – that both readers
+go through the collector rather than matching a form themselves.
 
 **`inlined` is about two characters and twelve literals.** A raw backtick ends
 the literal; a single-backslash regex escape is eaten by the literal and

@@ -199,6 +199,9 @@ function resolveFigId(figId) {
 const oversizedWarned = new Set();
 function warnOversizedAsset(absPath, size) {
   const rel = path.relative(process.cwd(), absPath);
+  noteImageOutcome(absPath, { orig: size, note: isVideoExt(absPath)
+    ? 'not inlined, over the cap – staged into videos/'
+    : 'NOT inlined, over the cap – external path' });
   if (oversizedWarned.has(rel)) return;
   oversizedWarned.add(rel);
   const mb = (size / 1024 / 1024).toFixed(2);
@@ -238,6 +241,17 @@ let webpNoticeShown = false;
 const webpInlineCache = new Map();
 let webpInlineCount = 0, webpInlineSaved = 0;
 
+// What became of each raster on its way into the HTML, so the summary can say
+// it per asset. The old summary was one line – “6 PNG/JPEG re-encoded to WebP”
+// – and it printed unchanged on a build where a seventh image was over the cap
+// and stayed an external path: a success line standing over the one outcome
+// the report exists to make visible. Keyed by absolute path, so an asset drawn
+// on four slides is one row.
+const imageOutcomes = new Map();   // absPath -> { orig, out, note }
+function noteImageOutcome(absPath, entry) {
+  imageOutcomes.set(absPath, { ...(imageOutcomes.get(absPath) || {}), ...entry });
+}
+
 function webpInlineBytes(absPath, origBytes) {
   if (noOptimizeImages) return null;
   const ext = path.extname(absPath).slice(1).toLowerCase();
@@ -250,6 +264,7 @@ function webpInlineBytes(absPath, origBytes) {
       console.log('[images] no cwebp or magick on PATH, so PNG and JPEG go in as they are.'
         + ' Install one (brew install webp) and they shrink to roughly a sixth.');
     }
+    noteImageOutcome(absPath, { orig: origBytes, note: 'original bytes (no encoder)' });
     webpInlineCache.set(absPath, null);
     return null;
   }
@@ -262,23 +277,41 @@ function webpInlineBytes(absPath, origBytes) {
     // raster, a screenshot of a terminal - can come out larger as WebP, and
     // shipping a bigger file to honour a default is not an optimisation.
     if (buf.length < origBytes) out = buf;
+    else noteImageOutcome(absPath, { orig: origBytes, out: buf.length, note: 'original bytes (WebP larger)' });
   } catch (e) {
     out = null;
+    noteImageOutcome(absPath, { orig: origBytes, note: 'original bytes (encode failed)' });
   } finally {
     try { fs.unlinkSync(tmp); } catch (e) { /* never existed */ }
   }
-  if (out) { webpInlineCount++; webpInlineSaved += origBytes - out.length; }
+  if (out) {
+    webpInlineCount++; webpInlineSaved += origBytes - out.length;
+    noteImageOutcome(absPath, { orig: origBytes, out: out.length });
+  }
   webpInlineCache.set(absPath, out);
   return out;
 }
 
-// Said once per build, after the inlining decision, because a reader wants
-// the two numbers together: how much went in, and how much of it was saved.
+// Said once per build, after the inlining decision, because a reader wants the
+// two numbers together: how much went in, and how much of it was saved – and
+// then a line per asset, because the headline alone cannot say that one of
+// them did not go in at all.
 function reportWebpInline() {
-  if (!webpInlineCount) return;
-  const mb = (webpInlineSaved / 1024 / 1024).toFixed(2);
-  console.log(`[images] ${webpInlineCount} PNG/JPEG re-encoded to WebP for the output, ${mb} MB saved.`
-    + ' The files on disk are untouched; --no-optimize-images turns this off.');
+  if (!imageOutcomes.size) return;
+  // KB under a megabyte: two decimals of a megabyte is 0.03 for every small
+  // asset, which is a column of the same number.
+  const sz = (n) => (n < 1024 * 1024
+    ? (n / 1024).toFixed(n < 10 * 1024 ? 1 : 0) + ' KB'
+    : (n / 1024 / 1024).toFixed(2) + ' MB').padStart(8);
+  if (webpInlineCount) {
+    console.log(`[images] ${webpInlineCount} PNG/JPEG re-encoded to WebP for the output, ${sz(webpInlineSaved).trim()} saved.`
+      + ' The files on disk are untouched; --no-optimize-images turns this off.');
+  }
+  for (const [abs, o] of imageOutcomes) {
+    const name = path.relative(process.cwd(), abs);
+    const to = o.out == null ? ' '.repeat(11) : ` → ${sz(o.out)}`;
+    console.log(`         ${name.padEnd(48)} ${sz(o.orig)}${to}  ${o.note || ''}`.trimEnd());
+  }
 }
 
 function toDataUri(absPath) {
@@ -478,29 +511,53 @@ function collectDiagramImageRefs(src) {
   return refs;
 }
 
+// The third way a source names a picture, after markdown and the diagram
+// DSL: a `::: backdrop` (in a chunk or under a `#` divider heading) and the
+// two frontmatter keys that name one. All three go into the output through
+// the same data: URI as a figure does, so they meet the same per-image cap –
+// and left out of a scan an oversized one fell through toDataUri to an
+// external path with no complaint, which is the exact failure
+// assertInlinable exists to stop.
+//
+// **One collector, two readers**, and that is the whole reason it is a
+// function: scanReferencedImages below weighs these refs against the cap, and
+// collectImageRefs hands them to --optimize-images. They used to be two regex
+// sets in one file and only one of them had these forms, so a keynote whose
+// only oversized assets were a backdrop and a cover-image was refused by the
+// build and then told “nothing to do” by the verb that refusal recommends.
+//
+// Line-anchored and fence-aware, the rule collectDiagramImageRefs follows and
+// for the harder half of the same reason: a ::: backdrop inside a code fence
+// is a documented example (the tutorial is full of them), and while counting
+// one against the inline budget costs nothing, handing it to --optimize-images
+// converts a file the lecture never references and then deletes the original.
+// The rewrite that follows a conversion skips fences, so a collector that did
+// not would delete a file and leave the only line naming it unedited.
+//
+// `closing-image: cover` names no file of its own – the cover-image line has
+// already contributed it – and resolves to nothing in both readers, which is
+// what each does with any token that is not an asset.
+function collectDecorationImageRefs(src) {
+  const refs = [];
+  let inFence = false;
+  for (const line of String(src).split('\n')) {
+    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
+    if (inFence) continue;
+    const bd = line.match(/^:::[ \t]+backdrop[ \t]+([^\s{]+)/);
+    if (bd) { refs.push(bd[1]); continue; }
+    const fm = line.match(/^(?:cover-image|closing-image):[ \t]*["']?([^"'\s#]+)/);
+    if (fm) refs.push(fm[1]);
+  }
+  return refs;
+}
+
 function scanReferencedImages(src, sourceDir) {
   const refs = new Set();
   for (const match of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
     refs.add(match[1]);
   }
   for (const ref of collectDiagramImageRefs(src)) refs.add(ref);
-  // A backdrop and a cover-image go through the same data: URI as a figure
-  // does, so they are subject to the same per-image cap – and left out of
-  // this scan an oversized one fell through toDataUri to an external path
-  // with no complaint, which is the exact failure assertInlinable exists
-  // to stop. The backdrop match is line-anchored and not fence-aware for
-  // the same reason the frontmatter one is not: a ::: backdrop inside a
-  // code fence is a documented example, and counting its asset costs a
-  // warning about a file the lecture does not reference. Cheap either way,
-  // and the tutorial is the file that would trip it.
-  for (const m of src.matchAll(/^:::[ \t]+backdrop[ \t]+([^\s{]+)/gm)) refs.add(m[1]);
-  for (const m of src.matchAll(/^cover-image:[ \t]*["']?([^"'\s#]+)/gm)) refs.add(m[1]);
-  // closing-image is the same picture through the same data: URI, so it
-  // meets the same cap. `closing-image: cover` names no file of its own -
-  // the cover-image line above has already contributed it - and resolves to
-  // nothing here, which is what the isShorthand/statSync path below does
-  // with any token that is not an asset.
-  for (const m of src.matchAll(/^closing-image:[ \t]*["']?([^"'\s#]+)/gm)) refs.add(m[1]);
+  for (const ref of collectDecorationImageRefs(src)) refs.add(ref);
 
   let total = 0;
   let count = 0;
@@ -557,10 +614,17 @@ function assertInlinable(oversized, sourceDir) {
     lines.push(`  ${path.relative(sourceDir, o.abs)}  ${(o.size / 1024 / 1024).toFixed(2)} MB`);
   }
   lines.push('');
-  const rasters = oversized.filter(o => OPTIMIZABLE_EXTS.has(path.extname(o.abs).slice(1).toLowerCase()));
+  // A photograph is a photograph whatever its extension, and --optimize-images
+  // reaches all three: it converts a PNG or a JPEG, and it re-encodes a WebP
+  // already over the cap at a smaller width. “Simplify by hand” was written for
+  // a diagram and is wrong advice for a picture of a room – it now reaches only
+  // the formats the verb really cannot help with, which in practice is SVG.
+  const rasters = oversized.filter(o => RESCUABLE_EXTS.has(path.extname(o.abs).slice(1).toLowerCase()));
   if (rasters.length) {
     if (detectWebpEncoder()) {
       lines.push('Fix:  node build.js <source.md> --optimize-images');
+      lines.push(`      (WebP q92, and a photograph still over the cap is downscaled to`);
+      lines.push(`      ${CAP_RESCUE_WIDTH} px wide. Add --max-width N for a smaller one.)`);
     } else {
       lines.push('No WebP encoder is installed, so the build cannot tell you to convert and');
       lines.push('expect it to work. Install one, then convert:');
@@ -575,7 +639,7 @@ function assertInlinable(oversized, sourceDir) {
   const others = oversized.filter(o => !rasters.includes(o));
   if (others.length) {
     if (rasters.length) lines.push('');
-    lines.push(`--optimize-images only handles PNG and JPEG, so it cannot help with`);
+    lines.push(`--optimize-images handles PNG, JPEG and an oversized WebP, so it cannot help with`);
     lines.push(`${others.map(o => path.basename(o.abs)).join(', ')} – simplify or split ${others.length === 1 ? 'that asset' : 'those assets'} by hand.`);
   }
   lines.push('');
@@ -19721,6 +19785,27 @@ function runIntegrate(absIn) {
 const OPTIMIZE_MIN_BYTES = 512 * 1024;   // leave small assets alone
 const WEBP_QUALITY = 92;
 const OPTIMIZABLE_EXTS = new Set(['png', 'jpg', 'jpeg']);
+// What --optimize-images can do something about when an asset is over the
+// per-image inline cap, which is a wider set than what it converts: a WebP is
+// not a conversion candidate – it is already WebP – but one over the cap is
+// exactly the asset assertInlinable refuses, and re-encoding it narrower is
+// the only thing that helps. Held here so assertInlinable's advice and this
+// verb's candidate list cannot drift.
+const RESCUABLE_EXTS = new Set([...OPTIMIZABLE_EXTS, 'webp']);
+// The width a photograph is downscaled to when q92 alone does not clear the
+// cap. Measured case: a 4032px exam-room photograph came out of cwebp at
+// 2.23 MB and only -resize 2400 0 brought it under – and before this the
+// build refused the deck after the verb it recommends had reported success.
+//
+// Downscaling still happens only here, never by default: figure focus zooms to
+// FIG_MAX_SCALE (8x), so a wide diagram is wide on purpose. This is the last
+// step before giving up on an asset the build will otherwise refuse, and
+// 2560 px is more resolution than a photographic backdrop on a 1600x900 frame
+// can show at any zoom the reader has.
+const CAP_RESCUE_WIDTH = 2560;
+// What to suggest when even that is over the cap. Two steps down a ladder
+// rather than arithmetic, because the author is going to type it.
+const nextRescueWidth = (w) => (w > 1920 ? 1920 : w > 1280 ? 1280 : 960);
 
 // Pixel dimensions straight from the file header, so --max-width can refuse
 // to enlarge and the report can show what it is working with. Zero-dep on
@@ -19825,30 +19910,57 @@ function collectImageRefs(src, sourceDir) {
     if (!refs.has(absPath)) refs.set(absPath, { absPath, ext, explicitRefs: new Set() });
     if (explicitRef) refs.get(absPath).explicitRefs.add(explicitRef);
   };
-  for (const m of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) {
-    const href = m[1];
-    if (/^[a-z]+:/i.test(href)) continue;                    // remote URL
-    if (!href.includes('/') && !path.extname(href)) {
-      const rel = resolveFigId(href);                        // shorthand
-      if (rel) add(path.join(sourceDir, rel), null);
-      continue;
-    }
-    const abs = path.resolve(sourceDir, href);
-    if (fs.existsSync(abs)) add(abs, href);
-  }
-  // Diagram images too, or the verb the oversized-asset failure tells the
-  // author to run answers "nothing to do" about the very file it refused.
-  for (const ref of collectDiagramImageRefs(src)) {
-    if (/^[a-z]+:/i.test(ref)) continue;
+  // One resolver for all three ways a source names a picture. It used to be
+  // written out twice and the third way was missing from both.
+  const addRef = (ref) => {
+    if (!ref) return;
+    if (/^[a-z]+:/i.test(ref) || ref.startsWith('//')) return;   // remote URL
     if (!ref.includes('/') && !path.extname(ref)) {
-      const rel = resolveFigId(ref);
+      const rel = resolveFigId(ref);                             // shorthand
       if (rel) add(path.join(sourceDir, rel), null);
-      continue;
+      return;
     }
     const abs = path.resolve(sourceDir, ref);
     if (fs.existsSync(abs)) add(abs, ref);
-  }
+  };
+  for (const m of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) addRef(m[1]);
+  // Diagram images too, or the verb the oversized-asset failure tells the
+  // author to run answers "nothing to do" about the very file it refused.
+  for (const ref of collectDiagramImageRefs(src)) addRef(ref);
+  // And a ::: backdrop, a cover-image: and a closing-image:, for exactly that
+  // reason: those are the references most likely to be a photograph, which is
+  // the kind of asset that blows the cap. `closing-image: cover` names no file
+  // and resolves to nothing here.
+  for (const ref of collectDecorationImageRefs(src)) addRef(ref);
   return [...refs.values()];
+}
+
+// Rewrite one converted asset's explicit references in a source.md, in every
+// spelling a source carries them:
+//
+//   ![alt](assets/room.jpg)          the markdown form
+//   image photo assets/room.jpg      the bare token a ::: draw statement takes
+//   ::: backdrop assets/room.jpg     the bare token a directive takes
+//   cover-image: assets/room.jpg     a frontmatter value, quoted or not
+//
+// Fence-aware, because a path inside a code fence is documentation, not a
+// reference – the same rule the collectors follow. Rewriting only the markdown
+// form once deleted an original a diagram still pointed at and then reported
+// the rewrite as done, so the next build failed on a file this very command
+// had removed; the bare-token form covers the other three, and the quotes are
+// in the boundary classes so a quoted frontmatter value is not missed.
+// Shorthand refs (`![](room)`, `::: backdrop room`) need no edit at all – the
+// resolver finds the .webp.
+function rewriteAssetRef(src, from, to) {
+  const esc = from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const bare = new RegExp(`(^|[\\s("'])${esc}(?=[\\s)"']|$)`, 'g');
+  let fence = false;
+  return String(src).split('\n').map((line) => {
+    if (/^\s*(```|~~~)/.test(line)) { fence = !fence; return line; }
+    if (fence) return line;
+    return line.split(`](${from})`).join(`](${to})`)
+      .replace(bare, (m0, pre) => pre + to);
+  }).join('\n');
 }
 
 function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null } = {}) {
@@ -19859,9 +19971,15 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
 
   const threshold = all ? 0 : OPTIMIZE_MIN_BYTES;
   const candidates = collectImageRefs(src, sourceDir)
-    .filter(r => OPTIMIZABLE_EXTS.has(r.ext))
+    .filter(r => RESCUABLE_EXTS.has(r.ext))
     .map(r => ({ ...r, size: fs.statSync(r.absPath).size }))
-    .filter(r => r.size >= threshold)
+    // A PNG or a JPEG over the size threshold is a conversion candidate. A
+    // WebP is not – it is already WebP, and re-encoding one on a whim is
+    // generation loss for nothing – but a WebP over the per-image inline cap
+    // is the asset the build refuses, and a narrower re-encode is the only
+    // move left. So it comes in when, and only when, it is over the cap.
+    .filter(r => (OPTIMIZABLE_EXTS.has(r.ext) && r.size >= threshold)
+      || (r.ext === 'webp' && r.size > MAX_INLINE_BYTES))
     .sort((a, b) => b.size - a.size);
 
   if (!candidates.length) {
@@ -19887,66 +20005,96 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
   let before = 0, after = 0, converted = 0;
   const sourceEdits = [];
 
+  const capMb = MAX_INLINE_BYTES / 1024 / 1024;
+
   for (const ref of candidates) {
-    const dst = ref.absPath.replace(/\.[^.]+$/, '.webp');
+    // A WebP is re-encoded onto itself: there is no second file to write and
+    // no reference to rewrite, only a narrower picture at the same path.
+    const inPlace = ref.ext === 'webp';
+    const dst = inPlace ? ref.absPath : ref.absPath.replace(/\.[^.]+$/, '.webp');
     // A .webp already sitting next to the original would be shadowed by it
     // anyway (IMG_EXTS puts png before webp), so overwriting is the right
     // move – but say so rather than clobbering silently.
-    const dstExisted = fs.existsSync(dst);
+    const dstExisted = !inPlace && fs.existsSync(dst);
     const tmp = dst + '.tmp';
     // Only ever shrink. cwebp -resize enlarges a narrower image without
     // complaint, which would waste bytes and invent detail.
     const dims = imageSize(ref.absPath);
-    const resizeTo = (maxWidth && dims && dims.width > maxWidth) ? maxWidth : null;
-    const dimLabel = dims
-      ? `${dims.width}x${dims.height}${resizeTo ? ` → ${resizeTo}w` : ''}`
-      : '?';
+    let resizeTo = (maxWidth && dims && dims.width > maxWidth) ? maxWidth : null;
     let outSize;
     try {
       encoder.encode(ref.absPath, tmp, resizeTo);
       outSize = fs.statSync(tmp).size;
     } catch (e) {
       fs.rmSync(tmp, { force: true });
-      rows.push({ name: path.basename(ref.absPath), from: ref.size, to: null, dims: dimLabel, note: 'encode failed' });
+      rows.push({ name: path.basename(ref.absPath), from: ref.size, to: null, dims: dims ? `${dims.width}x${dims.height}` : '?', note: 'encode failed' });
       continue;
     }
+    // q92 clears the cap on nearly everything, and then there is the
+    // photograph of a room: 4032 px wide, 2.23 MB as WebP, still refused. Do
+    // not stop at "converted" there – the author is running this command
+    // because the build refused the deck, and coming back to say the asset is
+    // smaller but still refused is the same dead end in fewer megabytes. One
+    // more pass at CAP_RESCUE_WIDTH, and the report says it happened.
+    let rescued = false;
+    if (outSize > MAX_INLINE_BYTES && dims && CAP_RESCUE_WIDTH < (resizeTo || dims.width)) {
+      const tmp2 = dst + '.rescue.tmp';
+      try {
+        encoder.encode(ref.absPath, tmp2, CAP_RESCUE_WIDTH);
+        const rescueSize = fs.statSync(tmp2).size;
+        fs.rmSync(tmp, { force: true });
+        fs.renameSync(tmp2, tmp);
+        outSize = rescueSize;
+        resizeTo = CAP_RESCUE_WIDTH;
+        rescued = true;
+      } catch (e) {
+        fs.rmSync(tmp2, { force: true });   // keep the first encode
+      }
+    }
+    const dimLabel = dims
+      ? `${dims.width}x${dims.height}${resizeTo ? ` → ${resizeTo}w` : ''}`
+      : '?';
     // WebP is not always smaller – an already-optimised PNG of flat colour
     // can lose. Keep whichever is smaller and never report a regression as
     // a win.
     if (outSize >= ref.size) {
       fs.rmSync(tmp, { force: true });
-      rows.push({ name: path.basename(ref.absPath), from: ref.size, to: outSize, dims: dimLabel, note: 'kept original (webp larger)' });
+      const kept = ['kept original (webp larger)'];
+      if (ref.size > MAX_INLINE_BYTES) {
+        kept.push(`still over the ${capMb} MB cap – rerun with --max-width ${nextRescueWidth(dims ? dims.width : CAP_RESCUE_WIDTH)}`);
+      }
+      rows.push({
+        name: path.basename(ref.absPath), from: ref.size, to: outSize, dims: dimLabel,
+        note: kept.join('; '), over: ref.size > MAX_INLINE_BYTES, final: ref.size,
+        width: dims ? dims.width : null,
+      });
       before += ref.size; after += ref.size;
       continue;
     }
     before += ref.size; after += outSize; converted++;
+    const notes = [];
+    if (dstExisted) notes.push('overwrote existing .webp');
+    if (rescued) notes.push(`downscaled to ${CAP_RESCUE_WIDTH}w to clear the ${capMb} MB cap`);
+    else if (inPlace) notes.push('re-encoded in place');
+    const stillOver = outSize > MAX_INLINE_BYTES;
+    if (stillOver) {
+      notes.push(`still ${(outSize / 1024 / 1024).toFixed(2)} MB, over the ${capMb} MB cap – rerun with --max-width ${nextRescueWidth(resizeTo || (dims ? dims.width : CAP_RESCUE_WIDTH))}`);
+    }
     rows.push({
       name: path.basename(ref.absPath), from: ref.size, to: outSize, dims: dimLabel,
-      note: dstExisted ? 'overwrote existing .webp' : '',
+      note: notes.join('; '), over: stillOver, final: outSize,
+      width: resizeTo || (dims ? dims.width : null),
     });
     if (dryRun) { fs.rmSync(tmp, { force: true }); continue; }
     fs.renameSync(tmp, dst);
-    fs.rmSync(ref.absPath, { force: true });
+    // Never after an in-place re-encode: dst IS absPath there, and removing it
+    // would delete the file just written.
+    if (!inPlace) fs.rmSync(ref.absPath, { force: true });
     for (const explicit of ref.explicitRefs) {
       const replacement = explicit.replace(/\.[^.]+$/, '.webp');
-      const beforeSrc = src;
-      // Both spellings of a reference – the markdown `](path)` form and the
-      // bare token a ::: draw `image` statement carries. Rewriting only
-      // the markdown form deleted an original a diagram still pointed at
-      // and then reported the rewrite as done: the next build failed on a
-      // file this very command had removed. Fence-aware, line by line,
-      // because a path inside a code fence is documentation, not a
-      // reference – the same rule the collector follows.
-      const esc = explicit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      let fence = false;
-      src = src.split('\n').map((line) => {
-        if (/^\s*(```|~~~)/.test(line)) { fence = !fence; return line; }
-        if (fence) return line;
-        return line.split(`](${explicit})`).join(`](${replacement})`)
-          .replace(new RegExp(`(^|[\\s(])${esc}(?=[\\s)]|$)`, 'g'),
-            (m0, pre) => pre + replacement);
-      }).join('\n');
-      if (src !== beforeSrc) sourceEdits.push({ from: explicit, to: replacement });
+      if (replacement === explicit) continue;      // a .webp kept its own name
+      const rewritten = rewriteAssetRef(src, explicit, replacement);
+      if (rewritten !== src) { src = rewritten; sourceEdits.push({ from: explicit, to: replacement }); }
       else console.log(`  [warn] ${explicit} was converted but no reference in ${path.basename(absIn)} matched – check the file by hand.`);
     }
   }
@@ -19958,6 +20106,18 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
   }
   console.log('');
   console.log(`  ${'total'.padEnd(44)} ${''.padEnd(16)} ${kb(before)} → ${kb(after)}  ${String(Math.round((after / before) * 100)).padStart(3)}%  (${converted} converted)`);
+
+  // Said again, apart from the table, because this is the one outcome that
+  // leaves the build still refusing the deck – and it is a row among twenty.
+  const stuck = rows.filter(r => r.over);
+  if (stuck.length) {
+    console.log('');
+    console.log(`${stuck.length} asset(s) are still over the ${capMb} MB per-image inline cap, so the build will refuse this deck:`);
+    for (const r of stuck) {
+      console.log(`  ${r.name}  ${(r.final / 1024 / 1024).toFixed(2)} MB  – rerun with --max-width ${nextRescueWidth(r.width || CAP_RESCUE_WIDTH)}`);
+    }
+    console.log('  (or --no-inline-images at build time, which ships external asset paths on purpose.)');
+  }
 
   if (dryRun) {
     console.log('');
