@@ -923,6 +923,99 @@ export async function run({ report }) {
       `frame at ${fx}, caption at ${chart && labelAt(chart, 'c')[0]}`);
   }
 
+  // -- an endpoint in empty space -----------------------------------
+  // `edge 0,1.5 -> mail` - an arrow that comes in from outside the picture
+  // with no box behind it. A literal rather than an invisible anchor element,
+  // so there is nothing to delete by accident and a drag rewrites two numbers.
+  // It has been in `dgParseRef` from the start and in two lectures, and it was
+  // in no document any author reads; these are the assertions that keep it.
+  {
+    const P1 = 'box mail "Posteingang" at 2,1.5\n';
+    const into = fig('an edge from a free point', P1 + 'edge 0,1.5 -> mail');
+    const d = into && attrOf(into, 'edge-1--p', 'd');
+    const p = points(d);
+    ok(p.length === 2 && p[0][0] === 0 && p[0][1] === p[1][1],
+      'edge 0,1.5 -> mail starts at the coordinate and runs level into the box', d);
+    ok(into && headDrawn(into, 'edge-1--h'),
+      'and it still draws its arrowhead, on the box end');
+    const out = fig('an edge to a free point', P1 + 'edge mail -> 0,1.5');
+    const q = points(attrOf(out, 'edge-1--p', 'd'));
+    ok(q.length === 2 && Math.abs(q[1][0]) < 12,
+      'and the same pair written the other way round ends at that coordinate',
+      attrOf(out, 'edge-1--p', 'd'));
+    // A coordinate is the whole coordinate grammar, so a component may name
+    // another element - which is how five edges in the corpus are written.
+    const ref = fig('an endpoint naming another element',
+      P1 + 'box b "B" at 0,0\nedge b -> mail.left-0.3,mail.cy');
+    ok(ref && points(attrOf(ref, 'edge-1--p', 'd')).length === 2,
+      'and a component of that coordinate may name an element');
+    // Both ends free: nothing in the figure to hang the line on at all.
+    const both = fig('a rule with two free ends', P1 + 'edge -0.4,0 -- 3,0 {.muted}');
+    ok(both && points(attrOf(both, 'edge-1--p', 'd')).length === 2,
+      'and both ends may be coordinates, which is how a rule under a row is drawn');
+  }
+
+  // -- a label its own line runs through -----------------------------
+  // The offset that lifts a label off its line clears it at the midpoint and
+  // knows nothing else about the route, so an elbow's outer runs and a
+  // doubled-back curve can be drawn through the middle of the words. The
+  // compiler decides it from the routed geometry and marks the beat; the
+  // stylesheet turns dg-halo into a paint-order knockout.
+  {
+    const halo = (out) => (setOf(out, 'edge-1') || new Set()).has('dg-halo');
+    const wide = fig('a straight edge with a long label',
+      'box a "Bauen" at 0,0\nbox b "Code" at 0,2\nedge a -> b "alle Werkzeuge, auch KI"');
+    ok(wide && !halo(wide),
+      'a label correctly beside its own straight line needs no halo and does not get one',
+      wide ? clsOf(wide, 'edge-1') : 'not drawn');
+    const narrow = fig('an elbow whose own rail crosses its label',
+      'box a "Bauen" at 0,0\nbox b "Code" at 0.5,1.6\nedge a -> b "alle Werkzeuge, auch KI" {.elbow}');
+    ok(narrow && halo(narrow),
+      'an elbow drawn through its own label gets the halo',
+      narrow ? clsOf(narrow, 'edge-1') : 'not drawn');
+    const curve = fig('a curve that comes back under its own label',
+      'box a "Bauen" at 0,0\nbox b "Code" at 2.4,1.4\nedge a -> b "alle Werkzeuge" via 1.2,-0.8 {.smooth}');
+    ok(curve && halo(curve), 'and so does a smooth route that crosses itself',
+      curve ? clsOf(curve, 'edge-1') : 'not drawn');
+    // A label the author already grounded is left alone: the ground is the
+    // answer, and a halo under it would be a second one nobody asked for.
+    const ground = fig('a grounded label on the same elbow',
+      'box a "Bauen" at 0,0\nbox b "Code" at 0.5,1.6\n'
+      + 'edge a -> b "alle Werkzeuge, auch KI" {.elbow .paper}');
+    ok(ground && !halo(ground), 'a label that already carries a ground gets no halo',
+      ground ? clsOf(ground, 'edge-1') : 'not drawn');
+  }
+
+  // -- an elbow rail lying on a box's side ---------------------------
+  // The rail is halfway between the two faces and nothing moves it, so the
+  // only thing the compiler can do is say so. The control is the same figure
+  // with a gap in the row: the fix the message names has to silence it.
+  {
+    const row = (gap) => 'box b1 "One" at 0,0 w 1\n'
+      + `box b2 "Two" right of b1 gap ${gap} w 1\n`
+      + `box b3 "Three" right of b2 gap ${gap} w 1\n`
+      + 'box src "Source" at b1.cx,-1.4 w 1\n'
+      + 'box dst "Target" at 3,1.4 w 1\n'
+      + 'edge src -> dst {.elbow}';
+    const tight = render(row('0'), 'unit=120x72');
+    const loose = render(row('0.6'), 'unit=120x72');
+    const said = (r) => (r.warns || []).filter(w => /elbow rail/.test(w));
+    ok(tight.ok && said(tight).length === 1 && /side of b2/.test(said(tight)[0]),
+      'a rail lying on the seam of a row written gap 0 is named, with the box it lies on',
+      said(tight)[0] || 'nothing said');
+    ok(loose.ok && said(loose).length === 0,
+      'and the gap the message asks for silences it',
+      said(loose)[0] || '');
+    // The bracket a tree is made of must stay quiet: the rail is halfway
+    // between the two faces, so on any close pair it is near its own ends'
+    // sides by arithmetic. Five corpus figures sat on exactly that.
+    const bracket = render('box p "Parent" at 1,0 w 1.4\nbox c "Child" at 0,1 w 1.2\n'
+      + 'edge p -> c {.elbow}', 'unit=120x72');
+    ok(bracket.ok && said(bracket).length === 0,
+      "and an edge's own two ends are exempt, or every tree bracket reports itself",
+      said(bracket)[0] || '');
+  }
+
   // ── zone: an area that is painted under what stands in it ─────────
   // Three things separate it from the `box {.dashed .clear}` plus `text` that
   // authors were writing, and each is asserted on the drawing rather than on
@@ -964,6 +1057,36 @@ export async function run({ report }) {
     ok(tr && bl && Math.abs(tr[0] - br[0]) < 0.01 && Math.abs(tr[1] - tl[1]) < 0.01
       && Math.abs(bl[0] - tl[0]) < 0.01 && Math.abs(bl[1] - br[1]) < 0.01,
       'and the two words act on one axis each', JSON.stringify([tr, bl]));
+    // How far inside the corner. A third of a row, square in px on both axes,
+    // and it was just under a sixth: an area's outline is a dashed line and
+    // its caption is 12 px type, so at a sixth the words sat on the dashes.
+    // Asserted as the distance from the corner rather than as a coordinate,
+    // because the coordinate is the caption's anchored corner and the number
+    // that matters is the clearance.
+    {
+      // Measured as a difference between two builds of one figure, because the
+      // label's own origin carries half its measured box and that half is an
+      // estimate. What the inset is, is the distance the caption moves.
+      const inset = (tail) => {
+        const out = fig('a zone captioned with ' + (tail || 'the default inset'),
+          `zone z at 0,0 w 3 h 2 "Zone name" ${tail}\nbox a "A" at 5,0`, 'unit=120x72');
+        const at = out && labelAt(out, 'z-cap');
+        return at ? [at[0] - +attrOf(out, 'z--r', 'x'), at[1] - +attrOf(out, 'z--r', 'y')] : null;
+      };
+      const base = inset(''), wide = inset('pad 0.6');
+      ok(base && wide && Math.abs((wide[0] - base[0]) - (wide[1] - base[1])) < 0.01,
+        "a zone caption's inset is square in px, not in grid units",
+        base && wide ? `${(wide[0] - base[0]).toFixed(2)} across, ${(wide[1] - base[1]).toFixed(2)} down` : 'not drawn');
+      // `pad` was in DG_KIND_OPTS.zone from the start and read nothing at all,
+      // which is the silent no-op this grammar refuses everywhere else.
+      ok(base && wide && Math.abs((wide[1] - base[1]) - (0.6 - 0.33) * 72) < 0.01,
+        'pad n on a zone is the caption inset, and the default it displaces is a third of a row',
+        base && wide ? String(wide[1] - base[1]) : 'not drawn');
+      const same = inset('pad 0.33');
+      ok(base && same && Math.abs(same[1] - base[1]) < 0.01,
+        'so writing the default out draws what leaving it off draws',
+        base && same ? `${base[1]} vs ${same[1]}` : 'not drawn');
+    }
     // Out of the overlap census, at both ends: the frame carries `synth` set
     // to its own id, the discriminator a table's and a lanes's frame already
     // use. A hand-built area drew one warning per child.

@@ -30,7 +30,7 @@ import katex from 'katex';
 // and in the browser when the editor re-lays-out a figure after a drag.
 // Imported for the build; its *text* is also read and inlined into the live
 // views, the same way bundledFaces() reads woff2 out of node_modules.
-import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD, DG_SHAPE_CLASSES, dgBarFillCss } from './diagram-core.mjs';
+import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD, DG_SHAPE_CLASSES, dgBarFillCss, DG_SOFT_GROUND } from './diagram-core.mjs';
 // The {…} tail grammar and the ::: draw opener, shared with lint.js so the
 // two files cannot disagree about a tail. Tables plus small pure helpers,
 // zero dependencies - see the header of tails.mjs and CLAUDE.md.
@@ -3414,11 +3414,27 @@ const DIAGRAM_CSS = `
    different kind of thing. .muted is scaffolding - an axis, a leader, a zone
    outline - and scaffolding is drawn thinner as well as lighter. .dim is the
    other axis entirely: full colour at a third of the strength, which is what
-   the dim step operation reaches for when a beat moves on. */
+   the dim step operation reaches for when a beat moves on.
+
+   A muted *line* is --ink-soft and a muted *word* is not, and that split is
+   the correction. --ink-soft is picked against the paper, and a caption is
+   very often standing on something else: measured at 1600x900 on the default
+   theme, --ink-soft type reads 3.44:1 on the paper, 2.76:1 on a .tone-1 area
+   and 2.11:1 on a .tone-3 one, against the 3:1 anything on a projector has
+   to clear. A line has no such floor - an axis is followed, not read - so it
+   keeps the token and the 1.05 weight that say scaffolding. The words are
+   mixed straight out of the two inks instead, dark enough to hold on the
+   three light tints and still visibly quieter than --ink.
+
+   Two grounds it cannot answer for, and both are the ground being wrong
+   rather than the type: a .tone-4 area is the accent at full strength, where
+   this mix reads worse than --ink-soft did and only the inverted label two
+   rules down is legible; and a dark theme's paper, where the mix follows
+   --ink and --paper and so inverts with them. */
 .psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
 .psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
-.psi-diagram .muted text { fill: var(--ink-soft); }
+.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
 
 /* .tone-4 inverts its own label, and that has to win over .accent text:
    accent ink on an accent fill is invisible, legal, and would otherwise be
@@ -3462,11 +3478,33 @@ const DIAGRAM_CSS = `
    costs no extra font payload. */
 .psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
 
-/* .ghost and .dim deliberately do NOT set opacity here. Visibility and the
-   two softening classes share one channel, and author CSS beats a
-   presentation attribute – so an element pinned at 0.45 by this stylesheet
-   could never be hidden, and its show step did nothing at all. Both the
-   emitter and the runtime resolve the channel once, in dgOpacity(). */
+/* .ghost and .dim deliberately do NOT set opacity on the group here.
+   Visibility and the two softening classes share one channel, and author CSS
+   beats a presentation attribute – so an element pinned at 0.45 by this
+   stylesheet could never be hidden, and its show step did nothing at all.
+   Both the emitter and the runtime resolve that channel once, in
+   dgOpacity().
+
+   What the two rules below touch is a *child* of the group, which is a
+   different thing and safe for the same reason: the alphas multiply, so a
+   hide still takes the whole element to zero. They exist because one alpha
+   over a whole group fades the words as hard as the box, and a word at 0.3
+   is not quiet but unreadable – 1.95:1 against its own fill on the paper,
+   1.88:1 standing on a .tone-3 area. dgOpacity() now returns the *ink*
+   number and these put the ground back where it was: 0.6 x 0.5 is the 0.3
+   that was there before, 0.75 x 0.6 the 0.45, so every existing figure's
+   outline, fill, stroke, arrowhead and picture are unmoved to the pixel and
+   only the type gains. The factors come from DG_SOFT_GROUND rather than
+   being typed here twice.
+
+   Type is what is deliberately NOT in the selector lists. Everything else a
+   softened element can draw is. */
+.psi-diagram .dim > :is(rect, circle, .dg-shape, image),
+.psi-diagram .dim .dg-stroke,
+.psi-diagram .dim .dg-head { opacity: ${DG_SOFT_GROUND.dim.toFixed(4)}; }
+.psi-diagram .ghost > :is(rect, circle, .dg-shape, image),
+.psi-diagram .ghost .dg-stroke,
+.psi-diagram .ghost .dg-head { opacity: ${DG_SOFT_GROUND.ghost.toFixed(4)}; }
 /* emph / dim are what a step reaches for; both stay inside the palette */
 .psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
 .psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
@@ -3527,6 +3565,31 @@ ${dgBarFillCss()}
    A bordered label is a box, and there is a statement for that. */
 .psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-edge > :is(rect, circle, .dg-shape) { stroke: none; }
+
+/* An edge label its own line runs through. The compiler decides it from the
+   routed geometry and writes dg-halo into the beat's class string; this is
+   what the word means. The offset that lifts a label off its line clears it
+   at the *midpoint*, and an elbow's two outer runs, a doubled-back via route
+   and a curve that comes back on itself are all somewhere else on the same
+   path - so a label can be correctly beside the line it labels and still have
+   another stretch of that same line drawn through the middle of it, which the
+   room reads as struck through.
+
+   paint-order and not a rect, because a rect is as wide as the whole run
+   where the crossing is one word long, and on a curve that erases the arc the
+   label belongs to. The stroke is the paper, so it knocks out the glyph
+   shapes and nothing else. Written after every rule that sets a text fill, so
+   a muted or accented label keeps its own colour and only gains the knockout.
+
+   3.2px against a 1.4 line: the stroke is centred on the glyph outline, so
+   half of it is inside the letters and the gap the line sees is about 1.6px
+   each side. Less and a 1.4 stroke still touches the serifs. */
+.psi-diagram .dg-halo text {
+  paint-order: stroke fill;
+  stroke: var(--paper);
+  stroke-width: 3.2px;
+  stroke-linejoin: round;
+}
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {

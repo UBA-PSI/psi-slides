@@ -762,7 +762,21 @@ export const DG_SEQ_GROUND = 0.1;
 // x nudge is scaled by uh/uw at the statement, the same correction `gap` and
 // `pad` make, or the same number would be two distances on a cell that is not
 // square.
-export const DG_ZONE_PAD = 0.16;
+//
+// A third of a row, and it was 0.16 - just under a sixth. An area's outline
+// is a dashed line and its caption is 12 px type, so at a sixth of a row the
+// words sat *on* the dashes: measured on a keynote's "zu Hause", the glyphs
+// crossed the frame at two corners of the same figure, which reads as a box
+// that failed to fit its own label. A third of a row is the same clearance a
+// box's own `pad` keeps against its outline, one step wider because a dashed
+// line has ink on both sides of where a solid one would be.
+//
+// `zone … pad n` overrides it, in grid units like every other `pad`. It was
+// in DG_KIND_OPTS.zone from the start and read nothing at all - the silent
+// no-op this grammar refuses everywhere else - because a zone forces its own
+// label empty and the caption is a separate element. It is the same sentence
+// `pad` says on a box, one level out: how far the type sits from the line.
+export const DG_ZONE_PAD = 0.33;
 // The four words that move the caption out of the top-left. They are the
 // element-label alignment classes one level out: on a box they place the label
 // inside the box, on a zone they place the caption inside the area – the same
@@ -1191,11 +1205,50 @@ export function dgLabelAnchor(classes) {
   return 'middle';
 }
 
+// **The number here is the element's *ink*, and the stylesheet takes its
+// ground down the rest of the way.** Group opacity is one alpha over
+// everything inside it, so a box faded to 0.3 faded its words to 0.3 as
+// well - and a word at 0.3 is not quiet, it is unreadable. Measured on a
+// probe deck at 1600x900, a dimmed box's label against its own fill: 1.95:1
+// on paper and 1.88:1 standing on a .tone-3 area, where 4.5 is the line for
+// 12 px type and 3 is the floor anything on a projector has to clear.
+//
+// So the two are split at the one place where they can be: this number goes
+// on the group, and DIAGRAM_CSS multiplies it back down for the shape, the
+// stroke, the head and an image - every drawable that is not type. The
+// product is the number that was here before, to the pixel, so no existing
+// figure's outline or fill moves; only the type inside a softened element
+// gains the ink it needed. It also stays inside the rule the comment above
+// the CSS records: the stylesheet touches a *child* of the group and never
+// the group itself, so a hide still takes the whole element to zero.
+export const DG_SOFT = { dim: 0.6, ghost: 0.75 };
+// What the stylesheet multiplies by, so that ink x ground is the old number.
+export const DG_SOFT_GROUND = { dim: 0.3 / DG_SOFT.dim, ghost: 0.45 / DG_SOFT.ghost };
+// Does any segment of a drawn route pass through this box? Sampled rather
+// than solved: the same walk `dgLabelGroundWarnings` makes, and a segment
+// wholly inside the box counts, which an edge-intersection test would miss.
+// `pts` is the polyline as `[[x, y], …]`; a spline through the same points
+// stays inside their hull, so the straight reading is the conservative one
+// and a curve that crosses is never missed.
+export function dgSegmentsCrossBox(pts, box) {
+  const inside = (x, y) => x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
+    const len = Math.hypot(bx - ax, by - ay);
+    const steps = Math.max(2, Math.ceil(len / 2));
+    for (let k = 0; k <= steps; k++) {
+      const t = k / steps;
+      if (inside(ax + (bx - ax) * t, ay + (by - ay) * t)) return true;
+    }
+  }
+  return false;
+}
+
 export function dgOpacity(visible, classes) {
   if (!visible) return 0;
   const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
-  if (has('dim')) return 0.3;
-  if (has('ghost')) return 0.45;
+  if (has('dim')) return DG_SOFT.dim;
+  if (has('ghost')) return DG_SOFT.ghost;
   return 1;
 }
 
@@ -5354,14 +5407,15 @@ export function createDiagramCompiler(env = {}) {
           const capId = dgZoneCapName(id);
           claim(capId, 'text', lineNo, true);
           const [zuw, zuh] = model.unit;
-          const padX = DG_ZONE_PAD * zuh / (zuw || 1);
+          const zPad = node.pad != null ? node.pad : DG_ZONE_PAD;
+          const padX = zPad * zuh / (zuw || 1);
           model.nodes.push({
             kind: 'text', id: capId, synth: id, label: cap,
             classes: ['small', 'muted', ...corner],
             removedClasses: [], tags: [...(attrs.tags || []), dgZoneTag(id)],
             place: { kind: 'abs', anchor: (bottom ? 'b' : 't') + (right ? 'r' : 'l'), at: [
               { ref: id, prop: right ? 'right' : 'left', nudge: right ? -padX : padX },
-              { ref: id, prop: bottom ? 'bottom' : 'top', nudge: bottom ? -DG_ZONE_PAD : DG_ZONE_PAD },
+              { ref: id, prop: bottom ? 'bottom' : 'top', nudge: bottom ? -zPad : zPad },
             ] },
             // The caption is only as visible as the area it names, through
             // the face of the visibility closure that already says a text is
@@ -6622,6 +6676,82 @@ export function createDiagramCompiler(env = {}) {
     }
   }
 
+  // **An elbow's vertical rail running along the side of a box.**
+  //
+  // `.elbow` draws its own rail halfway between the two faces, and it looks at
+  // nothing else in the figure - that bound is what keeps it a class rather
+  // than a router, and it is not going to change here. What can change is that
+  // the author hears about it. In a row of boxes written `gap 0` the halfway
+  // point is the seam between two of them, so every elbow leaving that row
+  // drew its rail exactly on a box's outline: the lines read as if they ran
+  // *inside* the boxes, and the arrows arrived at the target in one bundle
+  // with nothing to say which came from where.
+  //
+  // A quarter of a row is the threshold, for the reason DG_DOT_R is in grid
+  // units: it is a clearance, and a clearance's ruler is one row. Nearer than
+  // that and a 1.4 px rail and a 1.4 px outline are one line to a room.
+  //
+  // Only the *rail*, and only where it is vertical. A leaving or arriving run
+  // ends on the face it leaves, so it is against a box's side by construction
+  // and reporting it would be reporting the drawing. And only where it is true
+  // at every beat both are drawn, the same rule the clip and anchor warnings
+  // follow: a `move` step sliding a box past a rail is mid-animation.
+  //
+  // **The edge's own two ends are exempt, and that exemption is the rule.**
+  // The rail is halfway between their facing sides, so on any pair closer than
+  // half a row it is within a quarter of one by arithmetic - which is exactly
+  // the bracket the class was built to draw, and `.elbow`'s own note says why
+  // it measures from the faces: two connectors leaving one parent land their
+  // rails on one line and the drawing reads as one bracket. Run against the
+  // corpus without the exemption: five hits, every one of them a tree bracket
+  // or a swimlane hand-off doing its job, and nothing else. What is left is
+  // the case that is never intentional - a rail lying on the side of a box the
+  // edge has nothing to do with, which is what a row written `gap 0` puts
+  // under every line that passes it.
+  function dgElbowRailWarnings(model, states, frames, frameBoxes, warn) {
+    const [uw, uh] = model.unit;
+    const near = uh / 4;
+    const nodeById = new Map();
+    for (const n of model.nodes) nodeById.set(n.id, n);
+    for (const e of model.edges) {
+      let worst = null, everyBeat = true, seen = 0;
+      for (let k = 0; k < frames.length && everyBeat; k++) {
+        const st = states[k] && states[k].get(e.id);
+        if (!st || !st.classes.has('elbow')) { everyBeat = false; break; }
+        if ((frames[k].vis.get(e.id) ?? 1) <= 0) continue;
+        const pts = frames[k].geom.get(e.id + '--p');
+        // Four points, and the rail is the middle two. A `via` route suppresses
+        // the elbow entirely, so anything else is not one.
+        if (!pts || pts.length !== 8) { everyBeat = false; break; }
+        const [rx1, ry1, rx2, ry2] = [pts[2], pts[3], pts[4], pts[5]];
+        if (Math.abs(rx1 - rx2) > 0.01) { everyBeat = false; break; }
+        const lo = Math.min(ry1, ry2), hi = Math.max(ry1, ry2);
+        seen++;
+        let hit = null;
+        const ends = new Set([e.from && e.from.ref, e.to && e.to.ref]);
+        for (const n of model.nodes) {
+          if (n.synth && n.synth === n.id) continue;
+          if (ends.has(n.id)) continue;
+          if ((frames[k].vis.get(n.id) ?? 1) <= 0) continue;
+          const b = frameBoxes[k] && frameBoxes[k].get(n.id);
+          if (!b || !b.w || !b.h) continue;
+          if (b.y + b.h < lo - 0.01 || b.y > hi + 0.01) continue;
+          const d = Math.min(Math.abs(rx1 - b.x), Math.abs(rx1 - (b.x + b.w)));
+          if (d >= near) continue;
+          if (!hit || d < hit.d) hit = { d, id: n.id, node: n };
+        }
+        if (!hit) { everyBeat = false; break; }
+        if (!worst || hit.d < worst.d) worst = hit;
+      }
+      if (!everyBeat || !worst || !seen) continue;
+      warn(`edge ${e.id}${dgSite(e)}: its elbow rail runs ${(worst.d / uw).toFixed(2)} units `
+        + `(${Math.round(worst.d)} px) from the side of ${worst.id}${dgSite(worst.node)}, which is `
+        + `inside a quarter of a row – the line and that outline read as one. The rail sits halfway `
+        + `between the two faces and nothing moves it, so the fix is on the boxes: give the row a `
+        + `gap so the halfway point is paper, or write the route yourself with via.`);
+    }
+  }
+
   function dgFrameDrawables(model, state, boxes, labelIndex) {
     const [uw, uh] = model.unit;
     const geom = new Map();
@@ -7085,6 +7215,33 @@ export function createDiagramCompiler(env = {}) {
           put(e, e.id + '--r', [lx - gw / 2 - gx, ly - gh / 2 - gy, gw + 2 * gx, gh + 2 * gy]);
         }
         put(e, e.id + '--l', [lx, ly, turnDeg]);
+        // **A label its own line runs through gets a halo, whatever else it
+        // carries.** The offset above clears the line at the *midpoint*, and
+        // that is all it knows about: an elbow's two outer runs, a doubled-back
+        // `via` route and a curve that comes back on itself are all somewhere
+        // else on the same path, and where one of them crosses the words the
+        // room reads the label as struck through. Measured on a keynote,
+        // "alle Werkzeuge, auch KI" with a line through the middle of it.
+        //
+        // A halo and not the ground rect, for two reasons. The rect is decided
+        // by the fill slot, so producing one here would mean writing a fill
+        // class the author did not write, which then feeds back into
+        // `grounded` and moves the words onto the line. And a rect is as wide
+        // as the whole run where the crossing is one word long - on a curve
+        // that erases the arc the label belongs to, which is the same mistake
+        // `dgLabelGroundWarnings` reports one layer along. `paint-order` knocks
+        // out the glyph shapes and nothing else.
+        //
+        // It is decided per beat, off this beat's route and this beat's label,
+        // and rides in the frame's own class string, so a `move` step that
+        // slides a box away takes the halo with it.
+        if (!grounded) {
+          const hw = (turned ? m.h : m.w) / 2, hh = (turned ? m.w : m.h) / 2;
+          const box = { x: lx - hw, y: ly - hh, w: hw * 2, h: hh * 2 };
+          if (dgSegmentsCrossBox(drawPts, box)) {
+            cls.set(e.id, ((cls.get(e.id) || '') + ' dg-halo').trim());
+          }
+        }
       }
     }
 
@@ -7257,6 +7414,7 @@ export function createDiagramCompiler(env = {}) {
       dgLabelGroundWarnings(model, frames, frameBoxes, dgWarn);
       dgLabelClipWarnings(model, states, frames, frameBoxes, dgWarn);
       dgLabelAnchorWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgElbowRailWarnings(model, states, frames, frameBoxes, dgWarn);
     }
     // A DG_CLASS_CLASHES row is a **warning**, and it is the compiler's alone,
     // because deciding it correctly needs the resolved state at every beat.
