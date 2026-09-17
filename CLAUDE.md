@@ -115,6 +115,10 @@ node build.js <source.md> --watch --serve         # live reload over http
 # state at 1600x900 and reports any slide that fits the frame and is
 # positioned outside it. Exit 2 if one is; the density budgets are word
 # counts, so cards and rows overflow with a clean lint.
+# It also measures every figure's base label against the body type beside it
+# and reports the deck's spread in one line, naming any drawing that is
+# behind its own slide (under 0.8x, or under 18 px). Those are notes and
+# change no exit code; the static half is the build's `figure-type-small`.
 node build.js <source.md> --check-fit
 node build.js <source.md> --check-fit --viewport 1920x1080
 #
@@ -151,7 +155,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
 # against what build.js reads, and `image-refs` holds the two readers of the
 # image-reference set against the one collector both go through.
-# test/ is the things that only break in a built page - 34 specs, ~8 min,
+# test/ is the things that only break in a built page - 41 specs, ~9 min,
 # one Chromium. `npm test` also runs test/reproducible.mjs, which needs
 # neither: it builds a lecture under a partial flag and under a full one and
 # asserts the shared view is the same bytes, because release.yml's
@@ -549,7 +553,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 - `.claude/skills/psi-slides-authoring/SKILL.md` – **how to write a lecture `source.md`**: the chunk grammar in practice, the `:::` directive vocabulary, reveal segments, notes, images and math, with worked examples. Invoked as the `psi-slides-authoring` skill.
 - `.claude/skills/psi-slides-figures/SKILL.md` – **the `::: draw` vocabulary and the editor's contract**, lifted out of this file so it loads when figures are the work. Every statement, class, slot table and generated name, plus the four decisions behind the compiler. Invoked as the `psi-slides-figures` skill.
 - `.claude/skills/psi-slides-decoration/SKILL.md` – **the cover, backdrop, overlay, card, row and divider vocabulary**, same reasoning: the slot tables, the refusals, and the CSS traps each construct cost. Invoked as the `psi-slides-decoration` skill.
-- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the nine viewer-default keys, the whole eighteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `code`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
+- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the nine viewer-default keys, the whole nineteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `code`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
 - `.claude/skills/psi-slides-media/SKILL.md` – **video, hosted embeds and link addresses**: the extension tables, the two sync protocols, clip staging, and the build-time QR codes. Invoked as the `psi-slides-media` skill.
 - `figure-design.md` – **how to lay out a `::: draw` so a room reads it**, as instructions rather than principles: fifteen rules, most with a wrong/right pair in real syntax, the tone-to-role table, the four-beat step order, and a checklist to work down before a figure is finished. Written for a person and a language model equally. Read it before authoring figures; the grammar itself is in the `psi-slides-figures` skill.
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.

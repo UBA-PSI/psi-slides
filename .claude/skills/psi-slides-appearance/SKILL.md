@@ -301,9 +301,21 @@ The tag word above a chunk is **two different things wearing one name**, and a s
 
 ## Where the blocks sit (`style.blocks`), and the two keys a chunk can answer
 
-`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `neutrals` and `print-neutrals` (neutral/tinted/warm/cool), `headline` (stacked/eyebrow), `caps` (off/on), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `code` (plain/tint/spaced), `heading-scale` and `body-scale` (0.6–1.8).
+`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` for the words and `STYLE_NUM_SPEC` for the bounded numbers (a value lint.js cannot read as a finite number is not reported at all – the leniency runs in the safe direction, since what it passes and the build refuses fails at the build with the same message). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `neutrals` and `print-neutrals` (neutral/tinted/warm/cool), `headline` (stacked/eyebrow), `caps` (off/on), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `code` (plain/tint/spaced), `heading-scale` and `body-scale` (0.6–1.8), `figure-type` (0.6–1.6).
+
+**`blocks` reaches a `::: draw` now, and that is new.** It used to be listed as the one block it could not touch, because the `<svg>` was emitted 2000px wide under `max-width: 100%` and filled the measure at every chunk width – there was no space beside it to align in. Both media size a drawing from its type now, so the box hugs the picture and `left` puts it on the prose's own axis like a code block or a formula.
 
 **`reveal` was a key here and is gone.** It chose what a top-level `---` did before its beat – `grow`, the 1.0.0 behaviour, closed the segment up so the chunk grew per press, and `hold` laid it out at its final height from beat 0. Every reveal reserves its space now, at every depth, so there is nothing left for the key to pick and a deck that still writes it is refused by the build and by `lint.js` alike. `STYLE_KEYS_REMOVED` in build.js and its mirror in lint.js carry the sentence an author gets, which names what replaced the key rather than reporting a typo they did not make.
+
+## How large a figure's labels are (`style.figure-type`)
+
+**A `::: draw` is sized from the type it stands in.** `--dg-type-w` (the viewBox width measured in base labels, emitted on every svg by `diagram-core.mjs`) times one em of the surrounding text is the width at which a base label lands at exactly that text's size. The live views multiply that by `figure-type`; the documents have their own number, `--dg-fig-size: 0.9rem` in `PRINT_CSS`, and do not read this key.
+
+The default is **1**: on a slide the figure's label is a word the back row has to read, and there is no running text beside it to excuse a smaller one. Print's 0.9 is the opposite case – there a figure is apparatus inside a column of prose, and a slightly smaller label says so.
+
+What the key actually buys is the trade on a slide where the drawing is the constraint. The figure cannot exceed its column, and `fitZoomToChunk` treats a figure at that cap as "does not fit", so the slide's own type comes *down* to meet it. Measured on a real keynote: `#umweg` carries a figure 66 labels wide in a `.wide` column, and matching them puts the whole slide at 16.4 px where it used to be 51.5 px of body type beside 17.4 px labels. `figure-type: 0.7` there asks for labels at 0.7 of the body, which lets the words back up to about 23 px – the same figure, a different answer to which of the two the room is meant to read. Bounded 0.6–1.6 because outside that the figure either is the defect or caps every drawing at the column.
+
+A deck that sets nothing emits no `--figure-type` at all and builds byte-identical HTML.
 
 ## What hue the greys carry (`style.neutrals`)
 

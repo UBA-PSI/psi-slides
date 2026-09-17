@@ -7,8 +7,8 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Twelve gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 34 specs, ~872
-  assertions, about five minutes, one Chromium for the whole run.
+- **`test/`** – the things that only break in a built page. 41 specs, ~1030
+  assertions, about nine minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
 rather than in four minutes.
@@ -127,7 +127,14 @@ neighbour-alignment guides, which are what a gesture snaps to.
 `figure-framing` catches a drawing sitting off-centre in an oversized frame;
 `figure-labels` measures where an aligned label lands inside the thing that
 holds it; `figure-sequence` asserts that nothing in a `sequence` overlaps
-anything else in it and that its generated names are the documented ones.
+anything else in it and that its generated names are the documented ones;
+`figure-type` walks the whole lecture and asserts, per slide, that every
+drawing's base label is the size of the body type beside it. That is what
+breaks when a container measured in ems caps a figure: shrinking the type
+shrinks the cap with it, `fitZoomToChunk` chases a gap that cannot close, and
+the slide lands at the auto-fit floor with its figure still behind the words.
+The zoom each slide settled at rides along as a note, because sitting at the
+floor is not itself the defect.
 
 ### Why the geometry family exists
 

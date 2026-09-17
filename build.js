@@ -3105,6 +3105,66 @@ function dgWarn(msg) {
   console.warn(`[diagram] ${msg}`);
 }
 
+// ── how small a figure's type lands in the room ──────────────────────
+// The live views size a drawing from the type it stands in, so a base label
+// is one em of the slide's own body text – until the drawing wants more width
+// than the column has, and the min() caps it. From there the label size is the
+// column divided by --dg-type-w and nothing the lecturer presses changes it:
+// zoom moves the width the figure *wants*, not the width it is given. That is
+// the one case CSS cannot fix, and it is invisible at the desk, because at the
+// desk the drawing is a foot from your eye.
+//
+// So the build says it, at the size it can compute without a browser.
+//
+// The column widths are measured, not derived: .chunk is a
+// `1fr minmax(0, --content-w) 1fr` grid inside 14% padding either side, so a
+// class wider than the frame allows is clipped to it. Read off a built
+// audience.html at 1600x900 with the default zoom (the base em is
+// clamp(20px, --slide-h * 0.026, 38px) = 23.4px there), and .wide and .full
+// both come out at the frame's 1152 px rather than at their nominal 52em and
+// 72em. Re-measure them if --slide-pad-x or the em changes.
+const FIG_REF_BODY_PX = 23.4;                      // 1em at 1600x900, zoom 1
+const FIG_COLUMN_PX = { narrow: 655, standard: 842, wide: 1152, full: 1152 };
+const FIG_REF_HEIGHT_PX = 900 * 0.62;              // the height cap at the same viewport
+const FIG_TYPE_FLOOR_PX = 18;                      // under this, the back row is guessing
+// Not a build failure, and deliberately not: a figure this dense may be a
+// hand-out slide the lecturer walks to the screen for, and the fix is a
+// redrawing rather than a flag. One line, named by chunk, deduped by dgWarn.
+//
+// It measures the CHUNK's column, so a figure inside a card, a pane or a dock
+// has less room than this and is warned about later than it should be. The
+// dynamic half of the check has no such blind spot: --check-fit measures the
+// labels the browser actually drew.
+function figureTypeWarning(typeW, ar, width, where) {
+  const col = FIG_COLUMN_PX[width || 'standard'];
+  if (!col || !(typeW > 0)) return;
+  // Both caps, because a tall figure is bound by the height budget turned
+  // into a width long before it reaches the column. The smaller of the two is
+  // also the estimate's lower bound: uncapped, a label is FIG_REF_BODY_PX
+  // times the zoom and only ever gets larger.
+  const byHeight = ar > 0 ? FIG_REF_HEIGHT_PX * ar : Infinity;
+  const box = Math.min(col, byHeight);
+  const px = box / typeW;
+  if (px >= FIG_TYPE_FLOOR_PX) return;
+  // Two different drawings reach this, and the fix is not the same one.
+  if (byHeight < col) {
+    dgWarn(`figure-type-small in ${where}: the figure is ${typeW.toFixed(0)} labels wide, and at`
+      + ` body-size labels it would stand ${Math.round(typeW * FIG_REF_BODY_PX / ar)} px tall against`
+      + ` the ${Math.round(FIG_REF_HEIGHT_PX)} px a slide allows – so it is scaled to that and its`
+      + ` labels land at about ${px.toFixed(0)} px at 1600x900, under the ${FIG_TYPE_FLOOR_PX} px a`
+      + ` back row can read. Here it is the height cap and not the column that decides the width:`
+      + ` less in the drawing, or a flatter arrangement of the same thing.`);
+    return;
+  }
+  const roomier = width === 'wide' || width === 'full'
+    ? 'it is already as wide as the frame allows, so the drawing itself has to give'
+    : `.wide would give it ${(FIG_COLUMN_PX.wide / typeW).toFixed(0)} px`;
+  dgWarn(`figure-type-small in ${where}: the figure is ${typeW.toFixed(0)} labels wide, so in a`
+    + ` .${width || 'standard'} column its labels land at about ${px.toFixed(0)} px at`
+    + ` 1600x900 – under the ${FIG_TYPE_FLOOR_PX} px a back row can read. Fewer grid`
+    + ` units or shorter labels, or ${roomier}.`);
+}
+
 // ── diagram CSS (shared by all four views) ──────────────────────────
 // Everything colours through the page's custom properties, so a diagram
 // re-inks with the A theme cycle exactly like an inlined SVG asset does.
@@ -3136,8 +3196,14 @@ const DIAGRAM_CSS = `
      with a caption and often arrives in portrait; a diagram is landscape and
      is usually the whole point of the chunk, and at 50vh a wide one was
      height-capped hard enough to leave a third of the measure empty beside
-     it. */
-  max-height: 62vh;
+     it.
+     Off --slide-h rather than off vh, for the reason every other slide-
+     internal size is: the cockpit lays the mirror out at the AUDIENCE window's
+     dimensions and then transforms it into its cell, so a raw vh there is the
+     cockpit window's and the same figure was capped at a different height in
+     the two windows. Print defines no --slide-h and falls back to the number
+     this rule has always had; it overrides the cap anyway (PRINT_CSS). */
+  max-height: calc(var(--slide-h, 100vh) * 0.62);
   height: auto;
 }
 @media print {
@@ -3147,7 +3213,7 @@ const DIAGRAM_CSS = `
      document with no cap at all, so a portrait diagram resolved to the
      measure times its ratio and came out taller than the page. The answer
      now lives beside every other figure kind in PRINT_CSS, under a selector
-     specific enough to beat the 62vh above in both media. Do not re-add a
+     specific enough to beat the cap above in both media. Do not re-add a
      .psi-diagram max-height here without reading that rule. */
   /* A diagram is one picture; splitting it across a page break makes it
      two useless halves. */
@@ -4244,6 +4310,19 @@ function parseLecture(src) {
           body: dgBody,
           chunk: currentChunk ? currentChunk.id : null,
         });
+        // Names the slide a broken figure is on. A divider figure has no
+        // chunk, and used to be reported as "a chunk with no id" even
+        // when its column had one. A local rather than an inline expression
+        // because two of the options below want it.
+        const dgWhere = currentChunk
+          ? (currentChunk.id ? `chunk #${currentChunk.id}`
+                             : currentChunk.heading ? `chunk "${currentChunk.heading}"`
+                                                    : 'an unnamed chunk')
+          : currentColumn
+            ? (currentColumn.id ? `the divider of column #${currentColumn.id}`
+                                : currentColumn.heading ? `the divider of column "${currentColumn.heading}"`
+                                                        : 'an unnamed column divider')
+            : 'an unattached diagram';
         // The compiler learns one thing from the opener, the grid, and takes
         // it as the `unit=WxH` string it always has. The whole opener rides
         // in the payload as one canonical line so the editor can write the
@@ -4255,18 +4334,14 @@ function parseLecture(src) {
           chunk: currentChunk ? currentChunk.id : null,
           width: currentChunk ? currentChunk.width : null,
           opener: formatDrawOpener(diagramBlock),
-          // Names the slide a broken figure is on. A divider figure has no
-          // chunk, and used to be reported as "a chunk with no id" even
-          // when its column had one.
-          where: currentChunk
-            ? (currentChunk.id ? `chunk #${currentChunk.id}`
-                               : currentChunk.heading ? `chunk "${currentChunk.heading}"`
-                                                      : 'an unnamed chunk')
-            : currentColumn
-              ? (currentColumn.id ? `the divider of column #${currentColumn.id}`
-                                  : currentColumn.heading ? `the divider of column "${currentColumn.heading}"`
-                                                          : 'an unnamed column divider')
-              : 'an unattached diagram',
+          where: dgWhere,
+          // How small the labels land in a room, which only this side knows:
+          // the compiler has the viewBox and the caller has the chunk's width
+          // class. A divider figure is not held to it - it has no width class
+          // and its frame is the slide, not a text column.
+          onSized: currentChunk
+            ? ({ typeW, vbW, vbH }) => figureTypeWarning(typeW, vbH ? vbW / vbH : 0, currentChunk.width, dgWhere)
+            : null,
           alt: currentChunk ? currentChunk.heading : '',
           base: diagramBase,
           onCompile: (model) => {
@@ -5878,6 +5953,21 @@ const STYLE_SPEC = {
   // not a look but a bug report.
   'heading-scale': { kind: 'num', min: 0.6, max: 1.8, dflt: 1 },
   'body-scale':    { kind: 'num', min: 0.6, max: 1.8, dflt: 1 },
+  // A figure's base label against the body type it stands in. 1 means a label
+  // is set at the size of the words around it, which is what the live views do
+  // now and what the room needs: a label is a word, and there is no running
+  // text beside a projected figure to excuse a smaller one. The documents ask
+  // the same question and answer it 0.9 (--dg-fig-size in PRINT_CSS), because
+  // on paper a figure IS apparatus inside a column of prose.
+  //
+  // Bounded more tightly than the two above, and in the direction that costs
+  // something: the figure's width is this number times --dg-type-w, so 1.6
+  // already caps most drawings at the column and pulls the slide's own type
+  // down to meet them (fitZoomToChunk), and under 0.6 the labels are the
+  // defect. What it cannot do is make a figure legible that has more grid
+  // units than the column has room for - that is a drawing to redraw, and
+  // the build names it.
+  'figure-type':   { kind: 'num', min: 0.6, max: 1.6, dflt: 1 },
   // The display face's own size, and the one place taste gets a say over a
   // measurement. The roster's size-adjust numbers normalise ADVANCE WIDTH,
   // because line count is the failure that breaks a slide - a headline that
@@ -5921,9 +6011,12 @@ const STYLE_SPEC = {
   // full measure and it is the artwork, the caption and the equation inside
   // it that move.
   //
-  // A `::: draw` is deliberately not in the list. Its <svg> is emitted 2000px
-  // wide under max-width: 100%, so it fills the measure at every chunk width
-  // and there is no space beside it to align in.
+  // A `::: draw` used to be outside this key, because its <svg> was emitted
+  // 2000px wide under max-width: 100% and filled the measure at every chunk
+  // width - there was no space beside it to align in. Both media size a
+  // drawing from its type now, so the box hugs the picture and the key reaches
+  // it in both: see main .psi-diagram in PRINT_CSS and .chunk .psi-diagram in
+  // AUDIENCE_CSS.
   blocks: { kind: 'enum', values: ['center', 'left'], dflt: 'center' },
   // The generated tag word above a chunk. Two different things wear that
   // name and one switch has to reach both: the document renderer emits a
@@ -6144,6 +6237,10 @@ function styleBlockCss(st, S) {
   const rootVars = [];
   if (st['heading-scale'] !== 1) rootVars.push(`--heading-scale: ${st['heading-scale']};`);
   if (st['body-scale'] !== 1) rootVars.push(`--body-scale: ${st['body-scale']};`);
+  // Read by the live width rule (.chunk .psi-diagram) through a var() fallback
+  // of 1, so a deck that says nothing emits nothing and builds byte-identical
+  // HTML. Print has its own --dg-fig-size and does not read this.
+  if (st['figure-type'] !== 1) rootVars.push(`--figure-type: ${st['figure-type']};`);
   const rules = [];
   if (rootVars.length) rules.push(`:root { ${rootVars.join(' ')} }`);
   // The projection's one generated eyebrow, EXERCISE, is a CSS `content:`
@@ -9834,6 +9931,72 @@ figure.figure-img svg {
   display: block;
   background: var(--paper);
 }
+/* ── how large a drawing is in the room ───────────────────────────────
+   The document answered this first and the reasoning is written out over
+   main .psi-diagram in PRINT_CSS: a label's rendered size is DG_FONT times
+   (rendered width / viewBox width), so filling the measure sets the type
+   inside a figure by however many grid units the author happened to draw in.
+   The projection had exactly the same defect and it was worse here, because
+   auto-fit grows the slide's own words to fill the frame while an svg already
+   at 100% cannot grow with them. Measured on a real keynote at 1600x900: body
+   51.5 px, footnote 40 px, heading 80 px - and figure labels from 16 to 27 px,
+   on the same deck, decided by nothing the author wrote. Across the corpus the
+   spread was 0.53x to 2.97x of the running text.
+
+   So the width comes off the type here too: --dg-type-w is the viewBox width
+   measured in base labels (diagram-core emits it on every svg), and one base
+   label is one em of the text the figure sits in - .chunk-body's em on a
+   slide, the pane's or the card's inside one, each of which already carries
+   --zoom and --body-scale. A figure in a narrow card therefore wears the
+   card's type, which is the right answer and not a special case.
+
+   The multiplier is 1 and not print's 0.9. On paper a figure is apparatus
+   inside a column of running text and a slightly smaller label says so; in a
+   room there is no running text beside the figure to mark it against, and
+   anything under the body size is the failure this rule exists to remove -
+   the back row reads the slide's words or it does not, and a label is a word.
+   style: {figure-type: 0.9} is there for a deck that wants the document's
+   proportion; the key is bounded rather than free for the reason its two
+   neighbours are.
+
+   The second term is print's third one, and it is not optional: an inline
+   <svg> does NOT answer a binding max-height by shrinking its width the way
+   the replaced-element rules suggest. Measured - a 90x604 drawing in a .wide
+   column came out 191 px wide and 558 px tall, the whole picture centred in a
+   box three times its height with empty band above and below. (That is what
+   the height cap has always done; the editor's frame preview says so in a
+   note.) Converting the height budget into a width makes the box hug the
+   drawing, which is also what lets the figure follow the type at all: a
+   height-capped figure keeps a width its labels did not ask for.
+
+   A figure that wants more than the column has is capped at 100% and lands
+   under the target size - the one case CSS cannot fix. fitZoomToChunk sees
+   that as "does not fit" and takes the slide's type down to meet it, and the
+   build says so at compile time (figureTypeWarning).
+
+   Both terms are definite LENGTHS and the column is left to DIAGRAM_CSS's
+   max-width: 100% - print's own 100% inside the min() is correct there and
+   wrong here. Several containers on a slide are shrink-to-fit (a figure chunk
+   centres its column, a card, a pane), and a percentage
+   inside min() contributes nothing to a container's intrinsic width: the svg
+   asked its parent for zero, the parent sized itself to the words beside the
+   drawing, and the figure then got 100% of that. Measured: lectures/diagrams
+   #lifecycle at 505 px in a 1152 px column, and because shrinking the type
+   shrinks the words too, the figure stayed capped at every step and auto-fit
+   walked the slide to its 0.6 floor. A definite length contributes itself. */
+.chunk .psi-diagram {
+  width: min(calc(var(--dg-type-w, 100000) * 1em * var(--figure-type, 1)),
+             calc(var(--slide-h, 100vh) * 0.62 * var(--dg-ar, 1)));
+  /* The box hugs the drawing now instead of spanning the measure, so it has
+     somewhere to sit. Centre by default, matching figure.figure-img above;
+     styleBodyAttrs writes data-blocks only when it is left, so the centre case
+     has to be the bare rule. Same three rules as PRINT_CSS. */
+  margin-inline: auto;
+}
+body[data-blocks=left] .chunk .psi-diagram,
+.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+
 figure.figure-img figcaption {
   font-family: var(--sans-font);
   /* Every context this caption appears in is zoomed already - .chunk-body in
@@ -10104,6 +10267,19 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 }
 .chunk[data-tag=figure] .chunk-content { align-items: center; gap: 0.9em; }
 .chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
+/* That 40em is a caption measure - the words under the picture - and on a
+   figure chunk the picture is inside the same box. It did not matter while a
+   drawing filled whatever box it was given; now that the drawing is sized
+   from the type, a cap written in the same em as the type is a cap on the
+   LABEL: available = 40 ems, wanted = --dg-type-w ems, and both sides move
+   together, so a figure of more than 40 label-widths could never reach body
+   size at any zoom and auto-fit chased it to the 0.6 floor. lectures/diagrams
+   has thirteen of those, measured. The column is the picture's measure; the
+   caption keeps its own below. Only when there is a drawing in the box, so a photograph's
+   caption chunk renders exactly as before. */
+.chunk[data-tag=figure] .chunk-body:has(.figure-diagram) { max-width: none; }
+.chunk[data-tag=figure] .chunk-body:has(.figure-diagram) > :not(.figure-diagram) > p,
+.chunk[data-tag=figure] .chunk-body:has(.figure-diagram) > p { max-width: 40em; }
 .chunk[data-tag=figure] .chunk-heading { order: 2; }
 .chunk[data-tag=figure] .chunk-body pre { order: 1; font-size: 0.82em; }
 /* A figure chunk orders its .chunk-content children by hand, and an aside
@@ -15760,6 +15936,84 @@ function nowrapProbe(el) {
   });
 }
 
+// The third thing a slide can fail to do, and the newest. A figure is sized
+// from the type it stands in (.chunk .psi-diagram in AUDIENCE_CSS): the width
+// it wants is --dg-type-w base labels, one label to the em. When that is more
+// than the column has, or more than the height cap allows, the min() caps it
+// and the drawing stops following the type - so growing the slide's words from
+// there makes the labels relatively SMALLER, which is the inconsistency the
+// width rule was written to remove, arriving again through the camera.
+//
+// So a capped figure counts as "does not fit", in both directions. The
+// consequence is deliberate and it is the honest one: a drawing too wide for
+// its column pulls the slide's text down to meet it rather than growing away
+// from it. It converges, because the width it wants shrinks with the type -
+// the resting point is the zoom at which the figure exactly fills its column,
+// which is also the largest type at which the labels still match the words.
+//
+// A display: none figure (a collapsed ::: expand) measures zero and is
+// skipped; data-beat-hidden is visibility: hidden and keeps its box, so a
+// figure that has not arrived yet is still measured, which is what stops the
+// slide resizing under the room on the press that brings it in.
+//
+// It has one way of being wrong, and it is the expensive one, so it is
+// written into the probe rather than into a list of containers to remember.
+// Shrinking the type shrinks the width the figure ASKS for, so a cap measured
+// in pixels - the chunk's column, the height cap - is escaped by it and the
+// deficit closes. A cap measured in the same em as the type is not: both
+// sides move together, the deficit stands at every zoom, and the loop below
+// runs to its 0.6 floor with nothing on screen saying why. That is not
+// hypothetical - a figure chunk's 40em caption measure did exactly this to
+// thirteen measured slides of lectures/diagrams before the rule above moved it
+// off the picture, and a card or a pane can hold the same shape.
+//
+// So the probe watches whether shrinking is actually helping, and gives up on
+// the figure the first time a step does not close the gap. The reading is
+// memoised per zoom, because the loops below ask more than once at a zoom and
+// "no improvement since the last call" would otherwise be true immediately.
+//
+// Same shape as the two probes above: the list is collected once per fit and
+// only the widths are re-read on each zoom step.
+function figureCapProbe(el) {
+  const figs = Array.from(el.querySelectorAll('svg.psi-diagram'));
+  if (!figs.length) return () => false;
+  // The worst shortfall on the slide, as a fraction of the width the type
+  // asks for. 1 is "every figure has the width its labels want".
+  const shortfall = () => {
+    let worst = 1;
+    for (const svg of figs) {
+      const cs = getComputedStyle(svg);
+      const typeW = parseFloat(cs.getPropertyValue('--dg-type-w'));
+      const mult = parseFloat(cs.getPropertyValue('--figure-type')) || 1;
+      // The svg's own em, which is the text it stands in: the chunk body, a
+      // pane, a card. Exactly what the width rule multiplies.
+      const want = typeW * parseFloat(cs.fontSize) * mult;
+      // clientWidth and not a client rect: the cockpit scales its whole stage
+      // with a transform, and a rect there is in that scaled space while the
+      // font size is in layout pixels. Same reason flowHeightProbe reads
+      // offsets. A figure with no box at all (a collapsed expansion) is not on
+      // the slide and is skipped.
+      const got = svg.clientWidth;
+      if (want > 0 && got > 0 && got / want < worst) worst = got / want;
+    }
+    return worst;
+  };
+  let seenZoom = null, seenShort = 1, answer = false, giveUp = false;
+  return () => {
+    if (giveUp) return false;
+    if (state.zoom === seenZoom) return answer;
+    const now = shortfall();
+    if (seenZoom !== null && state.zoom < seenZoom && now <= seenShort + 0.002) {
+      giveUp = true;                  // the cap moves with the type; shrinking cannot reach it
+      answer = false;
+    } else {
+      answer = now < 0.995;
+    }
+    seenZoom = state.zoom; seenShort = now;
+    return answer;
+  };
+}
+
 // And a chunk's own box is not a measure of how much is on it. Three
 // families are pinned to the full slide height so their ground fills the
 // frame – the cover (.chunk-title), the section divider (.chunk-section)
@@ -15950,7 +16204,11 @@ function fitZoomToChunk(ceiling) {
   if (!(avail > 0)) return;
   const overflowsX = nowrapProbe(el);
   const heightOf = flowHeightProbe(el);
-  if (heightOf() <= avail && !overflowsX() && state.zoom >= cap) return;  // nothing to gain
+  const figCapped = figureCapProbe(el);
+  // "Nothing to gain" has to know about the figure too, or a slide already at
+  // the ceiling with a capped drawing on it is returned from before the shrink
+  // loop ever runs.
+  if (heightOf() <= avail && !overflowsX() && !figCapped() && state.zoom >= cap) return;
 
   // A single proportional estimate is not enough, because zoom changes line
   // wrapping and therefore height, and it is not safe either: solving for
@@ -15965,8 +16223,8 @@ function fitZoomToChunk(ceiling) {
   if (z > cap) z = cap;
   applyZoom(z);
 
-  // Shrink until it fits, in both directions.
-  while ((heightOf() > avail || overflowsX()) && z > 0.6) {
+  // Shrink until it fits, in all three senses.
+  while ((heightOf() > avail || overflowsX() || figCapped()) && z > 0.6) {
     z = clampZoom(z - STEP);
     applyZoom(z);
   }
@@ -15974,7 +16232,7 @@ function fitZoomToChunk(ceiling) {
   while (z + STEP <= cap) {
     const probe = clampZoom(z + STEP);
     applyZoom(probe);
-    if (heightOf() > avail || overflowsX()) { applyZoom(z); break; }
+    if (heightOf() > avail || overflowsX() || figCapped()) { applyZoom(z); break; }
     z = probe;
   }
 }
@@ -21601,12 +21859,43 @@ async function runCheckFit(absIn, viewport) {
         boldPx += br.height + parseFloat(getComputedStyle(b).marginTop || 0);
       }
     }
+    // How large the figure's type actually came out, which is the other
+    // question a rendered page is the only place to ask. A label's size is
+    // its font-size through the viewBox transform - the attribute times the
+    // screen CTM - and the figure's BASE label is that for an unclassed one,
+    // which is the rendered width over --dg-type-w by construction. The base
+    // is what the width rule aims at and what is compared here; the smallest
+    // label on the drawing is reported beside it but never tested, because
+    // `.small` IS 0.8 of the base and testing it would report the vocabulary.
+    //
+    // Against the body type beside it, because "small" on a slide is a
+    // relation and not only a number: the two are meant to match
+    // (.chunk .psi-diagram).
+    const body = act.querySelector('.chunk-body') || content;
+    const bodyPx = parseFloat(getComputedStyle(body).fontSize) || 0;
+    const figs = [];
+    for (const svg of act.querySelectorAll('svg.psi-diagram')) {
+      if (!svg.clientWidth || svg.closest('.exps')) continue;
+      const typeW = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-type-w'));
+      if (!(typeW > 0)) continue;
+      let min = Infinity;
+      for (const t of svg.querySelectorAll('.dg-lbl text')) {
+        const m = t.getScreenCTM();
+        const px = parseFloat(getComputedStyle(t).fontSize) * (m ? m.a : 1);
+        if (px > 0 && px < min) min = px;
+      }
+      figs.push({
+        base: Math.round((svg.clientWidth / typeW) * 10) / 10,
+        min: min === Infinity ? null : Math.round(min * 10) / 10,
+      });
+    }
     return {
       id: act.dataset.chunkId || act.id || '?',
       tag: act.dataset.tag || '', width: act.dataset.width || '',
       top: Math.round(r.top - vp.top), bottom: Math.round(r.bottom - vp.top),
       h: Math.round(r.height), vpH: Math.round(vp.height),
       collapse, bolds, boldPx: Math.round(boldPx),
+      figs, bodyPx: Math.round(bodyPx * 10) / 10,
     };
   });
 
@@ -21615,6 +21904,7 @@ async function runCheckFit(absIn, viewport) {
   // from the document reports "nothing moved" and stops the walk on the
   // first stepped figure in the deck.
   const worst = new Map();
+  const figType = new Map();
   let states = 0, lastHash = null, same = 0;
   for (let i = 0; i < 400; i++) {
     const st = await probe();
@@ -21627,6 +21917,15 @@ async function runCheckFit(absIn, viewport) {
     // puzzle a reviewer should not have to solve.
     if (hash === lastHash) { if (++same >= 2) break; } else { same = 0; states++; }
     lastHash = hash;
+    // The smallest label the slide showed at any of its beats, kept per chunk:
+    // a figure can arrive on a later beat, and a `step` can swap a label for a
+    // longer one that is typeset smaller.
+    for (const f of st.figs) {
+      const prev = figType.get(st.id);
+      if (!prev || f.base < prev.px) {
+        figType.set(st.id, { px: f.base, min: f.min, bodyPx: st.bodyPx, width: st.width, tag: st.tag });
+      }
+    }
     const over = Math.max(0, -st.top) + Math.max(0, st.bottom - st.vpH);
     if (over > 0) {
       const prev = worst.get(st.id);
@@ -21655,6 +21954,7 @@ async function runCheckFit(absIn, viewport) {
   const clipped = all.filter(b => b.h <= b.vpH);
   const tall = all.filter(b => b.h > b.vpH);
   const where = `${viewport.width}x${viewport.height}`;
+  reportFigureType(figType, where);
   const tallNote = tall.length
     ? ` ${tall.length} chunk(s) are taller than the frame and are read by scrolling`
       + ` (${tall.slice(0, 4).map(b => '#' + b.id).join(', ')}${tall.length > 4 ? ', …' : ''}).`
@@ -21687,6 +21987,45 @@ async function runCheckFit(absIn, viewport) {
   console.error(`  Measured at ${where} only. A room with a different aspect ratio wraps differently;`
     + ' --viewport WxH checks another one.');
   return 2;
+}
+
+// What the figures' type came out at, said once for the deck. It is a note
+// and never an exit code: a drawing the room cannot read is a defect, but it
+// is not the defect this command promises to police, and turning it into a
+// failure would make --check-fit refuse decks it used to pass over a rule
+// they were never written against.
+//
+// Two numbers, because "small" is two different complaints. Under
+// FIG_TYPE_FLOOR_PX is absolute - the back row is guessing whatever else is
+// on the slide. Under 0.8 of the body is relative: the slide's own words are
+// legible and its figure is not, which is the inconsistency the width rule
+// removed and the one thing that can bring it back (a container measured in
+// the same ems as the type - see figureCapProbe).
+function reportFigureType(figType, where) {
+  if (!figType.size) return;
+  const rows = [...figType.entries()].map(([id, f]) => ({ id, ...f, ratio: f.bodyPx ? f.px / f.bodyPx : 0 }));
+  const ratios = rows.map(f => f.ratio).filter(r => r > 0).sort((a, b) => a - b);
+  const behind = rows.filter(f => f.ratio && f.ratio < 0.8).sort((a, b) => a.ratio - b.ratio);
+  const tiny = rows.filter(f => f.px < FIG_TYPE_FLOOR_PX && !(f.ratio < 0.8)).sort((a, b) => a.px - b.px);
+  console.log(`[check-fit] ${rows.length} chunk(s) with a figure at ${where}: base labels run`
+    + ` ${ratios[0].toFixed(2)}x to ${ratios[ratios.length - 1].toFixed(2)}x of the body type beside them`
+    + `${behind.length || tiny.length ? '.' : ', and none is under ' + FIG_TYPE_FLOOR_PX + ' px.'}`);
+  for (const f of behind) {
+    console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''}) – base label ${f.px} px against`
+      + ` ${f.bodyPx} px of body type (${f.ratio.toFixed(2)}x)${f.min && f.min < f.px ? `, smallest on the drawing ${f.min} px` : ''}.`
+      + ` A figure is sized from the type it stands in and capped by its box, so this one is at its box:`
+      + ` fewer grid units, shorter labels, or more room for it.`);
+  }
+  // One line for the whole class, not one per chunk: every member of it says
+  // the same thing, and it is not a sentence about the figure. The labels
+  // match the words beside them and both are small, so what is small is the
+  // slide - auto-fit answering the rest of what is on it.
+  if (tiny.length) {
+    const names = tiny.slice(0, 6).map(f => '#' + f.id).join(', ');
+    console.log(`  ${tiny.length} figure(s) are under ${FIG_TYPE_FLOOR_PX} px and match the body type`
+      + ` beside them (${tiny[0].px} px at the smallest): the slide is small, not the drawing –`
+      + ` ${names}${tiny.length > 6 ? ', …' : ''}.`);
+  }
 }
 
 // ── --squint ─────────────────────────────────────────────────────────

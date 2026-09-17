@@ -697,9 +697,10 @@ function dgeFrameMetrics() {
   const width = DGE.fig ? DGE.fig.width : 'standard';
   const em = DGE_FRAME_EM[DGE.frame][width] || 36;
   const px = em * dgeEmPx();
-  // .psi-diagram is capped at 62vh in the live views and at nothing in
-  // print. A figure that hits the cap leaves a band of the measure empty
-  // beside it, and that is invisible until you look at the built page.
+  // .psi-diagram is capped at 62% of the slide height in the live views and
+  // at nothing in print. A figure that hits the cap is the case where its
+  // width is decided by the frame rather than by its type, and that is
+  // invisible until you look at the built page.
   const capPx = DGE.frame === 'print' ? Infinity : window.innerHeight * 0.62;
   return { em, px, capPx, width };
 }
@@ -1002,8 +1003,13 @@ function dgeApplyFrame() {
   frame.style.width = (m.px * DGE.zoom) + 'px';
   frame.style.padding = (14 * DGE.zoom) + 'px';
   art.style.width = '100%';
-  // Reproduce what .psi-diagram actually does at the destination: fill the
-  // measure, and be capped in height in the live views but not in print.
+  // The canvas shows the drawing filling the frame, capped in height in the
+  // live views and not in print. That is no longer literally what
+  // .psi-diagram does at the destination - both media size the box from the
+  // drawing's own type now - and it is still what an editor wants: the
+  // question here is where a shape sits, and the destination's answer to how
+  // large the type comes out is in the measure note below rather than in a
+  // canvas too small to drag anything on.
   svg.style.maxWidth = '100%';
   svg.style.width = '100%';
   svg.style.height = 'auto';
@@ -1013,11 +1019,33 @@ function dgeApplyFrame() {
   const natural = (m.px - 28) * ratio;
   const capped = m.capPx !== Infinity && natural > m.capPx;
   let note = `${m.width} · ${m.em}em`;
+  // How large the labels land where this figure is going, which since the
+  // live views started sizing a drawing from its type is the number that
+  // decides whether a room can read it. --dg-type-w is the viewBox measured in
+  // base labels, so the box divided by it IS the label size; under the type
+  // beside it the figure is at its box and the slide will come down to meet
+  // it (fitZoomToChunk), which the author would rather know here than find in
+  // the hall. The canvas itself still shows the drawing filling the frame -
+  // this is an editor, and a 14 px preview is not editable.
+  const typeW = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-type-w'));
+  if (typeW > 0) {
+    const box = Math.min(m.px - 28, m.capPx === Infinity ? Infinity : m.capPx / ratio);
+    const lbl = box / typeW;
+    // dgeEmPx is the CHUNK's em, which does not carry the zoom, so this is
+    // the comparison at zoom 1 - the same reference figureTypeWarning
+    // estimates against, and the conservative one: the slide's words only get
+    // bigger from here while a figure at its box does not.
+    const body = DGE.frame === 'print' ? dgeEmPx() * 0.9 : dgeEmPx();
+    note += ` · ${typeW.toFixed(0)} labels wide`;
+    note += lbl < body * 0.995
+      ? ` · at its box, so its labels are ${Math.round(lbl)} px against ${Math.round(body)} px of body type`
+      : ` · labels at body size`;
+  }
   if (capped) {
-    // Say it while the author can still fix it. This is invisible until you
-    // look at the built page: a third of the measure stays empty beside the
-    // drawing, because the height cap bound before the width did.
-    note += ` · height-capped at 62vh, so ${Math.round(100 - 100 * (m.capPx / natural))}% of the measure stays empty beside it`;
+    // The height cap deciding the width rather than the measure. It used to
+    // leave a band of the measure empty beside the drawing; the width rule
+    // hugs it now, and what is left to say is which of the two caps bound.
+    note += ` · the ${Math.round(m.capPx)} px height cap is what decides its width here`;
   }
   frame.dataset.measure = note;
   dgeQ('#dge-frames').querySelectorAll('button').forEach((b) => {
