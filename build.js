@@ -7697,6 +7697,23 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 }
 .cards.rows li > :is(strong, b):first-child { grid-column: 1; }
 .cards.rows li > .row-body { grid-column: 2; text-align: left; min-width: 0; }
+/* A term is a name and not a measure, so it does not hyphenate here either.
+   The rule above this one turns hyphens on for every li, and it inherits -
+   so without this a document set with lang: de broke "Zuständigkeit" across
+   two lines of a 5.5em column, where the live views now refuse to. The body
+   beside it is prose and keeps the hyphenation it was given.
+   What print does NOT copy from the live views is the term column itself:
+   there the grid is one grid for the whole block, so a max-content track is
+   the longest term in it; here the grid is per row, because the li has to
+   keep its box for break-inside: avoid, and fit-content would then give
+   every row a term column of its own width - a ragged left edge down the
+   page, which is worse than the share it replaced. */
+.cards.rows li > :is(strong, b):first-child,
+.cards li .card-lead,
+.cards li > :is(strong, b):first-child {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 /* A markdown line break between the term and its body would otherwise be a
    third item in the two-column grid and push the body onto its own row. */
 .cards.rows li > br { display: none; }
@@ -11316,6 +11333,20 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    reached none of it - that case cost this block two extra selectors and
    now costs it none. */
 .cards li .card-lead { display: block; margin-bottom: 0.45em; }
+/* A card's term does not hyphenate either, for the reason a row's does not:
+   it is a name and not a measure, and a name broken across two lines reads
+   as a fault. Both openings are covered and have to be - the heading form
+   carries .card-lead, the run-in form is a plain leading bold, and a card
+   whose whole content is one bold ("- **Umgehen.**", the shape a keynote
+   writes) is the second of those. The sentence that follows a run-in lead
+   is prose again and keeps the li's hyphens: auto, as does every other line
+   in the card; break-word stays under all of it, where the card rule put
+   it, because a card is the narrowest measure on the slide. */
+.cards li .card-lead,
+.cards li > :is(strong, b):first-child {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 /* An author who wrote the hard break meant one separation, not two: the
    block display already broke the line, so the <br> after it adds an
    empty one. */
@@ -11361,14 +11392,43 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
      a word an author could write that moved nothing, which is the silent
      no-op this format refuses everywhere else. */
   align-items: var(--row-anchor, center);
-  /* A definite share rather than an intrinsic track. Both intrinsic
-     keywords were measured and both failed: auto resolves toward
-     min-content under pressure, and the term inherits overflow-wrap from
-     the card rule, so its min-content is one character - the column came
-     out one letter wide. max-content then resolved to 0px with an item
-     78px wide in it. A fraction is predictable, needs no puzzle, and a
-     term column of about a third is what the shape wants anyway. */
-  grid-template-columns: minmax(6em, 0.38fr) minmax(0, 1fr);
+  /* The term column is as wide as the longest term and no wider, with the
+     share it used to have as the ceiling.
+
+     It was a fixed 0.38fr share, and the note here recorded why: both
+     intrinsic keywords had been tried and both failed - auto resolved
+     toward min-content under pressure and the term, inheriting
+     overflow-wrap: break-word from the card rule, had a min-content of one
+     character, so the column came out one letter wide; max-content then
+     measured 0px with an item 78px wide in it. Those findings still stand
+     for the two bare keywords, which is why neither is what this is.
+
+     fit-content() is a third thing and is not subject to either failure. It
+     is min(max-content, max(min-content, 27%)): the max-content side sizes
+     the column to the longest term, so a row of years reads "2024 Testat
+     eingeführt" rather than putting a hand's width of paper between the
+     two; the 27% side is the ceiling, so a term of six words cannot eat the
+     body's half; and the min-content floor is the one the old note found to
+     be a single character, which here can only ever raise the track and
+     never collapse it.
+
+     27% is the width 0.38fr already had, measured rather than derived, and
+     the arithmetic is the trap: two flex tracks whose factors sum to more
+     than 1 divide the space in proportion, so 0.38fr beside 1fr was
+     0.38/1.38 of the measure - 27.5%, not 38%. The first attempt wrote 38,
+     and python-intro's #prerequisites came out WIDER than before (307.6px
+     of term column against 414.7px, at 1600x900), which is the direction
+     this was meant to fix. Pinned at the old width, a block whose longest
+     term reaches the ceiling renders as it always did and only the ones
+     with room to spare move: on that same deck #collections went from
+     307.6px to 156.5px and handed its four bodies 151px each.
+
+     What a fixed share bought and this gives up is a term column that is
+     the same width on every slide of a deck. It was never the same width
+     anyway - 0.38 of a .wide chunk and 0.38 of a .standard one are
+     different numbers - and a column that fits its own words is what a
+     reader is actually looking at. */
+  grid-template-columns: fit-content(27%) minmax(0, 1fr);
   column-gap: calc(1.1em * var(--card-fs, 1));
   row-gap: calc(0.7em * var(--card-fs, 1));
 }
@@ -11406,15 +11466,27 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   text-align: var(--card-align, left);
   font-size: calc(1em * var(--card-fs, 1));
   line-height: 1.25;
-  /* A single long term cannot wrap between words, so it hyphenates - and
-     if it is longer than even that allows, it breaks rather than running
-     across the body beside it. */
-  /* Hyphenation first and breaking only as the floor: Technocracy came
-     out as Technocrac / y when break-word got there first, which is
-     worse than the ragged edge it prevented. */
-  hyphens: auto;
+  /* A term never hyphenates, and this rule used to be the opposite.
+     hyphens: auto was here as the rescue for a long compound in a narrow
+     column, and with the column sized to the term that rescue has almost
+     nothing left to rescue - while what it cost was constant and visible:
+     a term is a name, and "Umge-hen." or "Zustän-digkeit." on a slide reads
+     as a typesetting fault rather than as a word that ran long, because a
+     term stands alone with nothing after it to explain the break. The line
+     of prose beside it still hyphenates; that is a measure, this is a
+     label. style.hyphenate: all was what made it visible on a whole deck,
+     and the key says in STYLE_SPEC that it does not reach here - it does
+     not have to, because the answer is the same in all three settings.
+
+     break-word stays as the floor under it, for the term that is one word
+     longer than the 27% ceiling: without it that word runs across the body
+     beside it. It is a worse break than a hyphenated one - Technocrac / y
+     is the measured example - and that is the price of never guessing at a
+     term's syllables. It fires only at the ceiling, where the column has
+     already stopped growing. */
+  hyphens: manual;
+  -webkit-hyphens: manual;
   overflow-wrap: break-word;
-  hyphenate-limit-chars: 7 3 3;
 }
 .cards.rows.ck-square li > :is(strong, b):first-child { border-radius: 0; }
 /* The body is the anonymous run after the term. It is prose beside a card
