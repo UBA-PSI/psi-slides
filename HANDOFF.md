@@ -1528,6 +1528,46 @@ einen Namensraum; die Sektion heißt jetzt `#cue-panel`, ihre Kinder werden
 über die Sektion statt über `getElementById` gesucht, und die Regel steht in
 CLAUDE.md unter *Conventions*.
 
+## Slice: Keynote lessons (branch `keynote-lessons`)
+
+The content repo's `TODO-lessons-keynote-2036.md` – fourteen findings from
+building a 31-chunk keynote – worked down in seven parallel worktrees and
+merged here. The root defect, measured rather than guessed: auto-fit grew a
+slide's words to 2.2x while its `::: draw` figure stayed width-capped, so a
+footnote stood at 40 px beside 16 px labels. Figures now follow the body
+type (the rule print had all along), auto-fit stops at a capped figure, and
+`.full` finally is wider than `.wide`. The rest is in the changelog under
+*Unreleased*: `--frames`, `statement:`, `note-button:` + `M`,
+`neighbours: hidden`, divider notes and `{.stack}`, `anchor`, `zone`,
+`unheaded`, the `.bare .dashed` refusal, literal underscores, footnotes
+riding their segment, `rows` term columns, the image optimiser seeing
+backdrops.
+
+What it cost and what bit, for whoever picks this up:
+
+- `min(100%, …)` in an svg's `width` contributes nothing to a shrink-to-fit
+  parent's intrinsic width; both terms have to be definite lengths.
+- A `figure:` chunk's `.chunk-body { max-width: 40em }` was a caption
+  measure and capped the picture in the same ems as the type; it steps
+  aside for a `.figure-diagram`.
+- The cover, the closing slide and dividers hardcode `data-width="full"`;
+  the 6% padding is scoped to author-written `.full` chunks or the title
+  stands against the edge.
+- Every agent worktree branched from `main`, not from the integration
+  branch, so `--frames` was not in their trees; they measured with their
+  own playwright scripts. Fine, but the next round should branch from the
+  integration commit.
+
+Verified: gates 925, `test/settings.mjs` 816, full browser suite 1047
+(before the `.full` change) plus the six specs it touches after, the three
+tracked lectures rebuilt, the keynote clean under `--strict`, `--check-fit`
+with every figure at 1.00x of its body type, and its contact sheets read.
+
+Open: the keynote's `#umweg` figure is 66 labels wide and stays under 18 px
+at any zoom – that is the drawing's to fix. Site screenshots of the cockpit
+frames and the editor are stale. A statement chunk's `| sub-heading` still
+renders as the quiet `.hd-sub`.
+
 ## Gaps / Bekannte Limits
 
 - **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.

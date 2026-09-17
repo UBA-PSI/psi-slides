@@ -9,6 +9,62 @@ from building the same way is a major version.
 
 ### Changed
 
+- **A figure's labels are set at the size of the words beside them.** In
+  the live views a `::: draw` figure used to fill its column whatever that
+  did to its type, and auto-fit then grew the slide's words up to 2.2x while
+  the drawing stayed put – measured on a keynote at 1600x900: body 51 px,
+  footnote 40 px, figure labels 16–27 px. The svg is now sized from the type
+  the way print already did (`--dg-type-w` × the body's em, capped by the
+  column and the height budget), a figure that has hit its column is a stop
+  for auto-fit, `style: {figure-type: 0.6–1.6}` scales the relation for a
+  deck, and two warnings say when a drawing is too dense for a room:
+  `figure-type-small` at build time from measured column widths, and a
+  label-to-body report from `--check-fit`. **This moves what an existing
+  deck renders**: figures that were larger than the running text shrink to
+  it, and the words on a slide with a dense figure come down to the figure.
+- **`.full` is wider than `.wide`.** The 14% frame padding clipped both to
+  the same 1152 px at 1600x900; an author-written `.full` chunk now pads 6%
+  and reaches 1408 px. The cover, the closing slide and dividers keep the
+  14% frame.
+- **`.center` on a chunk centres its heading and its footnote** with the
+  paragraphs, and `style: {labels: off}` hides the footnote's eyebrow in the
+  live views (print keeps it).
+- **`::: rows` sizes its term column to the longest term** rather than a
+  share of the width, and a term in `rows` or `cards` never hyphenates.
+- **A `::: footnote` written after a `---` arrives with that segment**
+  instead of standing from beat 0.
+- **A `[diagram]` warning names its source line**, and an edge's two
+  endpoints.
+- **German `+ Anmerkung` is `+ Notiz`.**
+
+### Added
+
+- **`--frames [DIR]`** writes every state of the projection as a PNG at
+  1600x900 with contact sheets of eight – the review `--check-fit`
+  (geometry) and `--squint` (text) cannot do.
+- **`statement:`** – a chunk type for a slide that is a few lines of large
+  type: the heading is the first line, each paragraph another at the same
+  size in ink colour, `---` between them for beats.
+- **`note-button: on | off`** hides the projection's `+ note` button
+  (`N` still opens an annotation), and `M` toggles it live from either
+  window. **`neighbours: dim | hidden`** takes the faint previous and next
+  slide off the frame for a keynote.
+- **Speaker notes under a `#` heading belong to that divider**; they used
+  to move silently to the next chunk. **`# Heading {.stack}`** puts a
+  divider's figure under the heading at full width instead of beside it.
+- **`::: draw`:** `anchor tl|t|tr|l|c|r|bl|b|br` on a placement, `zone name
+  at X,Y w W h H "Label"` for a fixed area children stand in, `unheaded` on
+  a `table`, a row height that follows `.large`, `.bare` with `.dashed`
+  refused (it drew nothing), and `_` / `^` inside a word left literal so
+  `hausarbeit_final.pdf` is drawn as typed. `lint.js` warns
+  `diagram-ragged-labels` for `.left` texts that share an `at` x without an
+  anchor.
+- **`--optimize-images` sees `::: backdrop`, `cover-image:` and
+  `closing-image:`**, downscales a photograph to 2560 px when WebP q92
+  alone leaves it over the cap, and reports per asset.
+- `lint.js`: `note-in-empty-beat` no longer fires on a note beside the
+  heading; `bad-section-stack`, `oversized-asset` on frontmatter images.
+
 - **Inline code in running text is now spaced and sized against the prose
   face, and `style: {code: plain}` is the way back.** A monospaced space is
   about 0.55 em where the prose word space is about 0.25, so a span of more
