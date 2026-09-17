@@ -405,13 +405,62 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
 /* The cover, the closing slide and a divider hardcode data-width="full" and
    compose against the 14% frame - a title flush against the edge is not
    what "full" was meant to buy - so the wider column is the author-written
-   class's alone. */
+   class's alone.
 
+   With one exception, and it is the case the class was widened for. A
+   {.stack} divider's body is content the author wrote standing where a .full
+   chunk's content stands, and the documentation says it gets "the chunk
+   content width a .full chunk gets" - which it did not: measured at
+   1600x900, a build plan under a stacked heading ran 224-1359 px where the
+   same block in a .full chunk runs 135-1466, so moving a chunk onto its
+   divider cost it 15% of its size. The heading comes in with it, which is
+   right: under .stack the heading is the figure's caption and a caption
+   sits on the drawing's own edge. */
+.chunk-section[data-section-layout=stack] { --slide-pad-x: 6%; }
+
+/* One gap for the whole slide, and the unit it is written in is the trap
+   that made it three.
+
+   .chunk-content inherits the chunk's own font size, which is the responsive
+   body size and carries no zoom; .chunk-body sets 1em times --zoom times
+   --body-scale, and its paragraphs put 0.7em of *that* between them. So
+   gap: 0.6em here and margin-bottom: 0.7em there were never the same number,
+   and the difference grew with every press of the zoom key: measured on a
+   keynote's #busfaktor at 1600x900 and zoom 1.75, 14 px between the heading
+   and the first paragraph against 29 px between two paragraphs of one
+   segment - the prose hung closer to the heading than to itself. Two reveal
+   segments had no gap at all, because the last paragraph of a segment zeroes
+   its own bottom margin, so a beat boundary read as *tighter* than a
+   paragraph break inside one beat: the wrong way round of the only hierarchy
+   a slide of prose has.
+
+   --block-gap is that one number: 0.7 of the base type times the same two
+   factors the body size carries, which resolves to exactly the paragraph
+   margin. The gaps a tag sets for its own reasons stay, as a floor rather
+   than a value - a heading may stand further from its prose than two
+   paragraphs stand from each other, never nearer.
+
+   In rem and not in em, which is the second half of the same trap: a custom
+   property holding an em resolves it against whichever element *uses* it, so
+   one written on .chunk and read inside .chunk-body would pick the body's
+   already-zoomed size up and square the zoom. The root font size IS the
+   chunk's - html carries the clamp and nothing between them re-declares it -
+   so a rem is the same number with no element to get wrong.
+
+   This makes existing decks a little taller: one block gap where two
+   segments met, and the difference between 0.6em and 0.7em times the zoom
+   under every heading - tens of px on a text slide, and under auto-fit a
+   slide that was at its ceiling comes back a step. */
+.chunk {
+  --body-fs: calc(1rem * var(--zoom) * var(--body-scale));
+  --block-lead: 0.7;
+  --block-gap: calc(var(--block-lead) * var(--body-fs));
+}
 .chunk-content {
   grid-column: 2;
   display: flex;
   flex-direction: column;
-  gap: 0.6em;
+  gap: max(0.6em, var(--block-gap));
   position: relative;
 }
 
@@ -511,13 +560,27 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   letter-spacing: -0.012em;
   color: var(--ink);
 }
+/* The body size is a variable because the block gap is 0.7 of it and the two
+   have to move together: four tags set a body size of their own, and with the
+   size written here and the gap written on .chunk the gap would have been
+   0.7 of a size three of them do not use. Reading one token is also what
+   lets a tag change its type scale in one line instead of two. */
 .chunk-body {
-  font-size: calc(1em * var(--zoom) * var(--body-scale));
+  font-size: var(--body-fs);
   line-height: 1.5;
   text-align: left;
 }
-.chunk-body p { margin: 0 0 0.7em 0; }
+.chunk-body p { margin: 0 0 var(--block-gap) 0; }
 .chunk-body p:last-child { margin-bottom: 0; }
+/* A beat boundary is at least a paragraph break, and it used to be none at
+   all: the last paragraph of a segment zeroes its own bottom margin, so two
+   segments met flush while two paragraphs inside one segment stood 0.7em
+   apart. One number for both - the same --block-gap the heading stands off
+   by - and the reading hierarchy comes out in the order it is written in.
+   On the hidden segments too, which cost nothing: past the opening beat a
+   segment keeps its box and only its visibility changes, so the gap is
+   standing from beat 0 and no press moves the slide. */
+.chunk-body > .reveal-segment + .reveal-segment { margin-top: var(--block-gap); }
 .chunk-body strong { font-weight: var(--bold-weight); color: var(--emph); }
 .chunk-body em { font-style: italic; }
 /* A link is styled for the whole live surface, not only inside .chunk-body.
@@ -529,7 +592,7 @@ body[data-slide-nums=off] .chunk-num { display: none; }
    specificity. Print already styles the bare element for the same reason. */
 a { color: var(--emph); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
 a:hover { text-decoration-thickness: 2px; }
-.chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
+.chunk-body ul, .chunk-body ol { margin: 0 0 var(--block-gap) 1.4em; }
 /* Adjacent items were 0.15em apart at line-height 1.5, so the gap between
    two items was smaller than the leading inside a two-line item and a list
    read as one block of text with dots in it. The gap is now larger than the
@@ -941,17 +1004,42 @@ figure.figure-img svg {
    shrinks the words too, the figure stayed capped at every step and auto-fit
    walked the slide to its 0.6 floor. A definite length contributes itself. */
 .chunk .psi-diagram {
-  width: min(calc(var(--dg-type-w, 100000) * 1em * var(--figure-type, 1)),
-             calc(var(--slide-h, 100vh) * 0.62 * var(--dg-ar, 1)));
+  --dg-box-w: min(calc(var(--dg-type-w, 100000) * 1em * var(--figure-type, 1)),
+                  calc(var(--slide-h, 100vh) * 0.62 * var(--dg-ar, 1)));
+  width: var(--dg-box-w);
   /* The box hugs the drawing now instead of spanning the measure, so it has
      somewhere to sit. Centre by default, matching figure.figure-img above;
      styleBodyAttrs writes data-blocks only when it is left, so the centre case
-     has to be the bare rule. Same three rules as PRINT_CSS. */
+     has to be the bare rule. Same three rules as PRINT_CSS, including the
+     ink-edge correction: see the comment there for what --dg-ink-x buys. */
   margin-inline: auto;
 }
 body[data-blocks=left] .chunk .psi-diagram,
-.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=left] .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+}
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+/* style.figure-type answered for one chunk. The key is deck-wide and the
+   complaint is not: a drawing 66 labels wide is capped at its column, and
+   fitZoomToChunk then walks that slide's whole type down to meet it - so the
+   room reads that chunk's heading at 25 px and the next one's at 44. Pulling
+   it back with the key takes every other figure in the deck with it, which is
+   why a keynote with one dense figure and one sparse one could fix neither.
+   Eleven steps, the key's own 0.6-1.6 in tenths, generated from the same
+   table the tail parser reads so a step cannot exist in one place and not the
+   other. The attribute carries per cent because a selector matches a string.
+   Live-only, like the key: a document sizes a figure with --dg-fig-size. */
+.chunk[data-figure-type="60"] { --figure-type: 0.6; }
+.chunk[data-figure-type="70"] { --figure-type: 0.7; }
+.chunk[data-figure-type="80"] { --figure-type: 0.8; }
+.chunk[data-figure-type="90"] { --figure-type: 0.9; }
+.chunk[data-figure-type="100"] { --figure-type: 1; }
+.chunk[data-figure-type="110"] { --figure-type: 1.1; }
+.chunk[data-figure-type="120"] { --figure-type: 1.2; }
+.chunk[data-figure-type="130"] { --figure-type: 1.3; }
+.chunk[data-figure-type="140"] { --figure-type: 1.4; }
+.chunk[data-figure-type="150"] { --figure-type: 1.5; }
+.chunk[data-figure-type="160"] { --figure-type: 1.6; }
 
 figure.figure-img figcaption {
   font-family: var(--sans-font);
@@ -1129,7 +1217,8 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   background: var(--ink);
   margin-bottom: 0.4em;
 }
-.chunk[data-tag=principle] .chunk-body { font-size: calc(1.2em * var(--zoom) * var(--body-scale)); line-height: 1.4; }
+.chunk[data-tag=principle] { --body-fs: calc(1.2rem * var(--zoom) * var(--body-scale)); }
+.chunk[data-tag=principle] .chunk-body { line-height: 1.4; }
 .chunk[data-tag=principle] .chunk-heading { font-size: calc(1.8em * var(--zoom) * var(--heading-scale)); }
 
 .chunk[data-tag=definition] .chunk-content::before {
@@ -1154,9 +1243,10 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    line, which is why it carried the default, and still the wrong place for it.
    Write .center on the chunk, or headings: center in the style block for a deck
    that wants the axis throughout. */
-.chunk[data-tag=question] .chunk-content { gap: 0.8em; align-items: flex-start; }
+.chunk[data-tag=question] .chunk-content { gap: max(0.8em, var(--block-gap)); align-items: flex-start; }
 .chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom) * var(--heading-scale)); font-weight: 500; }
-.chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom) * var(--body-scale)); color: var(--ink-soft); }
+.chunk[data-tag=question] { --body-fs: calc(1.15rem * var(--zoom) * var(--body-scale)); }
+.chunk[data-tag=question] .chunk-body { color: var(--ink-soft); }
 
 /* A statement slide: a few lines of large type, arriving one per press.
    The heading is the first line and every top-level paragraph is another
@@ -1181,7 +1271,18 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    title over a list. */
 .chunk[data-tag=statement] {
   --statement-scale: 2.1;
-  --statement-size: calc(var(--statement-scale) * 1em * var(--zoom) * var(--heading-scale));
+  /* In rem rather than em because --body-fs below carries it down to the
+     paragraphs, and --block-gap is 0.55 of --body-fs: an em inside a custom
+     property resolves against whichever element reads it, so a paragraph
+     already set at 2.1 rem would have squared the scale in its own margin. */
+  --statement-size: calc(var(--statement-scale) * 1rem * var(--zoom) * var(--heading-scale));
+  /* This tag solved the gap problem for itself before there was one number
+     for the whole slide; now it says the same thing in that number's terms,
+     so a statement's two lines stand apart by exactly what separates a
+     heading from its prose on any other slide - and a beat boundary between
+     two of them matches, which it did not before. */
+  --body-fs: var(--statement-size);
+  --block-lead: 0.55;
   /* The space between two lines, written so that the one between the
      heading and the first paragraph is the same as the one between two
      paragraphs. It cannot be the same declaration twice: the paragraph's
@@ -1195,17 +1296,18 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 }
 .chunk[data-tag=statement] .chunk-heading { font-size: var(--statement-size); }
 .chunk[data-tag=statement] .chunk-body {
-  font-size: var(--statement-size);
+  font-size: var(--body-fs);
   font-weight: 600;
   line-height: 1.15;
   letter-spacing: -0.012em;
   color: var(--ink);
 }
-/* The gap between two lines is one decision and it is made here rather than
-   by the paragraph margin alone, because a line can arrive as its own
+/* The gap between two lines is one decision, and a line can arrive as its own
    reveal segment (a --- rule) or as a second paragraph inside one, and the room
-   must not be able to tell which. Both routes land on a top-level <p>. */
-.chunk[data-tag=statement] .chunk-body p { margin: 0 0 0.55em; }
+   must not be able to tell which. That rule now holds for every tag - the
+   paragraph margin, the segment margin and the content gap all read
+   --block-gap - so the declaration this tag used to carry is gone rather
+   than restated: --block-lead above is the whole of it. */
 .chunk[data-tag=statement] .chunk-content { gap: var(--statement-gap); }
 /* What a bold inside a statement line looks like is deliberately NOT
    answered here. DERIVED_STRONG already reaches these paragraphs at (0,4,3)
@@ -1221,8 +1323,9 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
 }
-.chunk[data-tag=figure] .chunk-content { align-items: center; gap: 0.9em; }
-.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
+.chunk[data-tag=figure] .chunk-content { align-items: center; gap: max(0.9em, var(--block-gap)); }
+.chunk[data-tag=figure] { --body-fs: calc(0.9rem * var(--zoom)); }
+.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; color: var(--ink-soft); }
 /* That 40em is a caption measure - the words under the picture - and on a
    figure chunk the picture is inside the same box. It did not matter while a
    drawing filled whatever box it was given; now that the drawing is sized
@@ -3014,7 +3117,20 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    wide enough to do that on its own, and the padding goes away with the
    ground it was insetting from. */
 .cards.cg-clear   { --card-py: 0; --card-px: 0; }
-.cards.cg-clear   { gap: calc(2.1em * var(--card-fs, 1)); }
+.cards:not(.rows).cg-clear { gap: calc(2.1em * var(--card-fs, 1)); }
+/* The gutter and nothing else. gap is a shorthand and this rule comes after
+   the one that gives a rows block its row-gap, so written as gap it set both,
+   and a stack of rows with no ground got 2.1em of air between lines about
+   1.4em tall. Measured on a keynote's #drei-jahre: three one-line rows at a
+   155 px pitch in a 900 px frame - a whole empty line between each pair - and
+   the review that found it read the air as a beat marker reserving a row,
+   which it is not. A reveal marker inside a rows block is display: none, and
+   a rows block builds the same three grid tracks with the markers and without
+   them; a fixture deck of the two says so. The wide gutter is still what
+   separates two clear cards side by side, and here it is what separates a
+   term from its body, so it stays on the column axis. Same shorthand trap as
+   the two transition rules on .chunk-backdrop, one stylesheet down. */
+.cards.rows.cg-clear { column-gap: calc(2.1em * var(--card-fs, 1)); }
 .cards.ca-left   { --card-align: left; }
 .cards.ca-center { --card-align: center; }
 .cards.cv-top    { --card-anchor: flex-start; --row-anchor: start; }
@@ -3264,12 +3380,41 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
      looks the same either way; a narrower one lines up with its words. */
   text-align: left;
 }
+/* …and the drawing itself, which text-align cannot move: an svg is a block
+   with a width and auto inline margins, so the rule above reached the
+   figcaption alone and the picture stayed centred whatever the sentence said.
+   Written as the blocks: left rule is written, ink edge and all - a caption
+   twenty pixels off the drawing it captions is the same near-miss, and here
+   it is the composition rather than a key that asks for the edge, so it does
+   not wait for one to be set. */
+.chunk-section[data-section-layout=stack] .section-body .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+}
 .chunk-section[data-section-layout=stack] .section-body svg {
   /* The heading is one line above it now, so the picture may take almost the
      whole frame - the beside layout's own ceiling, which was measured against
      a heading standing beside it rather than over it. */
   max-height: calc(var(--slide-h) * 0.72);
 }
+/* {.bare} on the # heading: the heading comes off the slide and stays
+   everywhere else - the contents page, a section: outline agenda, the
+   speaker's board, the search index - exactly as on a chunk, and by the same
+   mechanism, display: none over an element that is still in the DOM. It is
+   the whole .section-lead and not the heading alone: the mark is the
+   heading's rank rather than a second thing on the slide, and a number or a
+   small-caps word standing over a drawing with no part title under it
+   announces a part whose name is missing. Audience-only, like a chunk's
+   .bare - PRINT_CSS carries neither, so the document and its contents page
+   are unchanged.
+
+   Prefixed #stage, and that is load-bearing: the beside layout above gives
+   .section-lead a display of its own through a :not() and a :has(), and a
+   :has() carries the specificity of its argument. Made of classes alone this
+   rule loses to it, and a {.bare} divider whose body is nothing but a figure
+   would keep its heading. #stage is the element every chunk in both live
+   views is inside, which is the honest way to buy the id the cascade asks
+   for - the same trick the per-chunk wrap and blocks rules use. */
+#stage .chunk-section[data-section-bare] > .chunk-content > .section-lead { display: none; }
 /* A divider with a picture behind it needs the full slide, like every other
    chunk that carries one - the shared rule keys on data-has-backdrop and is
    already there; this is the centring the divider itself needs so the
@@ -3436,10 +3581,28 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   letter-spacing: -0.014em;
 }
 
-/* margin notes: inline below body, dimmed, small */
+/* margin notes: inline below body, dimmed, small.
+
+   Bounded rather than a plain multiple of the zoom, because on a figure
+   slide the zoom is not the type size - it is whatever auto-fit had to solve
+   for to get the drawing into the frame, and a drawing's own labels are
+   pinned to its grid rather than to that number. So the same press that left
+   a figure's box labels at 17 px left the source line under it at 35 px, and
+   the quietest thing on the slide was the loudest. Measured on a keynote:
+   #drei-jahre solved to zoom 1.9 and set its footnote at 34.7 px against
+   figure labels of 20; #handbuch, #kolloquium and #video were the same
+   complaint one step smaller.
+
+   The ceiling is what 0.78em resolves to at the deck's own opening zoom
+   (1.35), so a slide auto-fit did not have to touch is unmoved and only the
+   ones it pushed past the default come back. The floor keeps a footnote
+   readable on a slide auto-fit had to shrink hard. In rem for the reason
+   --block-gap is: the value has to mean the same thing wherever it is read.
+   Between the two it still follows the zoom, so the key that makes the type
+   bigger still makes this bigger. */
 .margin-note {
   font-family: var(--sans-font);
-  font-size: calc(0.78em * var(--zoom));
+  font-size: clamp(0.7rem, calc(0.78rem * var(--zoom)), 1.05rem);
   line-height: 1.45;
   color: var(--ink-soft);
   padding: 0.6em 0 0.2em;
@@ -3658,6 +3821,12 @@ body[data-note-button=off] .annot-add { display: none; }
   transition: color 150ms, border-color 150ms, background 150ms;
   white-space: nowrap;
 }
+/* A ceiling on the author's own words, because the strip is anchored to the
+   right edge of the slide and a label nobody thought about is the one thing
+   that could push a second chip off it. 14em of all-small-caps is about six
+   words; past that the chip ellipsises and the title attribute holds the
+   rest. */
+.exp-chev .exp-name { max-width: 14em; overflow: hidden; text-overflow: ellipsis; }
 .exp-chev:hover { color: var(--ink); border-color: var(--ink); }
 .exp-chev .caret { opacity: 0.55; }
 .exp-chev.on { color: var(--paper); background: var(--ink); border-color: var(--ink); }
@@ -4915,6 +5084,20 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    so source order does not decide it. (No backticks in here: this whole
    stylesheet is a template literal, and one would end it.) */
 .psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
+/* emph acts in the prominence slot and .bare in the stroke-weight slot, so
+   neither may overwrite the other - and until this rule the emphasis stroke
+   two blocks up put the outline back on an element that had just taken it
+   off, at the same specificity and later in source order. On a table of type
+   on the paper (.bare .clear cells are the spelling for that) a lit row came
+   out as a row of red empty rectangles that the room reads as a form. So on
+   a .bare element emph emphasises the *ink* - the accent fill and the weight
+   the .emph text rule above already give a free text - and draws no outline.
+   That is the same correction DG_BAR_FILLS makes one channel along, where
+   emph on a column is a solid accent fill rather than the accent outline it
+   is on every other shape: emphasis has to act on whatever the element
+   actually draws. Three classes in the selector, and written after the
+   .tone-4.emph rule, so it wins where an element carries both. */
+.psi-diagram .bare.emph > :is(rect, circle, .dg-shape) { stroke: none; }
 
 /* A label's ground is never stroked, and this is where that has to be said.
    It was written up with the two rules that create the ground, above the
@@ -5402,7 +5585,7 @@ is refused.</p>
       <div class="section-mark">Part</div>
       <ol class="section-outline"><li data-state="done"><span class="so-num">1</span><span class="so-text">The cover, and the slide that closes it</span></li><li data-state="done"><span class="so-num">2</span><span class="so-text">Dividers carry their own slide</span></li><li data-state="now" aria-current="step"><span class="so-num">3</span><span class="so-text">Cards, rows and panes</span></li><li data-state="next"><span class="so-num">4</span><span class="so-text">Revealing a picture</span></li><li data-state="next"><span class="so-num">5</span><span class="so-text">Panels: the card grown to the frame</span></li><li data-state="next"><span class="so-num">6</span><span class="so-text">A dock at the frame's edge</span></li><li data-state="next"><span class="so-num">7</span><span class="so-text">Beats below the top level</span></li><li data-state="next"><span class="so-num">8</span><span class="so-text">A heading that stays off the slide</span></li></ol>
     </div>
-    <div class="section-body"><figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-89.00 -25.50 338.56 159.00" style="--dg-type-w:22.571;--dg-ar:2.1293" width="2000" height="939" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
+    <div class="section-body"><figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-89.00 -25.50 338.56 159.00" style="--dg-type-w:22.571;--dg-ar:2.1293;--dg-ink-x:0.03544" width="2000" height="939" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
 <g id="dg1-note--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg1-note--lead--p" class="dg-stroke" d="M130.46 54.00L77.00 54.00" fill="none"/><path id="dg1-note--lead--h" class="dg-head" d="M77.00 54.00L77.00 54.00L77.00 54.00Z"/></g>
 <g id="dg1-cards" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg1-cards--r" x="-77.00" y="-13.50" width="154.00" height="27.00" rx="4"/><g id="dg1-cards--lw0" data-lab="cards--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg1-cards--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">cards 3</tspan></text></g></g></g>
 <g id="dg1-rows" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg1-rows--r" x="-77.00" y="40.50" width="154.00" height="27.00" rx="4"/><g id="dg1-rows--lw0" data-lab="rows--l" class="dg-lwrap" transform="translate(0.00,54.00)"><g id="dg1-rows--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">rows</tspan></text></g></g></g>
@@ -5619,7 +5802,7 @@ second one. Any two numbers work.</p>
 </div><div class="side-b">
 
 
-<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" style="--dg-type-w:30.980;--dg-ar:3.3674" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" style="--dg-type-w:30.980;--dg-ar:3.3674;--dg-ink-x:0.02582" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
 <g id="dg2-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg2-a--r" x="-142.50" y="-57.00" width="285.00" height="114.00" rx="4"/><g id="dg2-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">2fr</tspan></text></g></g></g>
 <g id="dg2-b" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg2-b--r" x="155.70" y="-57.00" width="142.50" height="114.00" rx="4"/><g id="dg2-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(226.95,0.00)"><g id="dg2-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">1fr</tspan></text></g></g></g>
 </svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"box a \"2fr\" at 0,0 w 1.9 h 1.9 {.tone-2}\nbox b \"1fr\" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}","attrs":"unit=150x60","opener":"::: draw 150x60","range":[12311,12406],"chunk":"side","width":"wide","alt":"`::: side` takes a ratio"}</script></figure>
@@ -6169,7 +6352,7 @@ dock per slide; a <code class="nb">#id</code> link in the body is the live marke
       <div class="section-mark">Part</div>
       <ol class="section-outline"><li data-state="done"><span class="so-num">1</span><span class="so-text">The cover, and the slide that closes it</span></li><li data-state="done"><span class="so-num">2</span><span class="so-text">Dividers carry their own slide</span></li><li data-state="done"><span class="so-num">3</span><span class="so-text">Cards, rows and panes</span></li><li data-state="done"><span class="so-num">4</span><span class="so-text">Revealing a picture</span></li><li data-state="done"><span class="so-num">5</span><span class="so-text">Panels: the card grown to the frame</span></li><li data-state="done"><span class="so-num">6</span><span class="so-text">A dock at the frame's edge</span></li><li data-state="now" aria-current="step"><span class="so-num">7</span><span class="so-text">Beats below the top level</span></li><li data-state="next"><span class="so-num">8</span><span class="so-text">A heading that stays off the slide</span></li></ol>
     </div>
-    <div class="section-body"><figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-62.74 -22.20 683.88 79.97" style="--dg-type-w:45.592;--dg-ar:8.5512" width="2000" height="234" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
+    <div class="section-body"><figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-62.74 -22.20 683.88 79.97" style="--dg-type-w:45.592;--dg-ar:8.5512;--dg-ink-x:0.01755" width="2000" height="234" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
 <g id="dg3-p1" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p1--p" class="dg-stroke" d="M-50.74 20.40L-50.74 27.40L162.42 27.40L162.42 20.40" fill="none"/><g id="dg3-p1--lw0" data-lab="p1--l" class="dg-lwrap" transform="translate(55.84,36.40)"><g id="dg3-p1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">left pane</tspan></text></g></g></g>
 <g id="dg3-p2" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p2--p" class="dg-stroke" d="M172.62 20.40L172.62 27.40L385.78 27.40L385.78 20.40" fill="none"/><g id="dg3-p2--lw0" data-lab="p2--l" class="dg-lwrap" transform="translate(279.20,36.40)"><g id="dg3-p2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">right pane</tspan></text></g></g></g>
 <g id="dg3-p3" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p3--p" class="dg-stroke" d="M395.98 20.40L395.98 27.40L609.14 27.40L609.14 20.40" fill="none"/><g id="dg3-p3--lw0" data-lab="p3--l" class="dg-lwrap" transform="translate(502.56,36.40)"><g id="dg3-p3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">the card row</tspan></text></g></g></g>
@@ -6324,7 +6507,7 @@ type above it, and each is still a row in the search index.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The measurement loop</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" style="--dg-type-w:21.608;--dg-ar:1.8004" width="2000" height="1111" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" style="--dg-type-w:21.608;--dg-ar:1.8004;--dg-ink-x:0.03702" width="2000" height="1111" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
 <g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="dg4-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="dg4-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
 <g id="dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="dg4-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="dg4-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="dg4-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
 <g id="dg4-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg4-edge-3--p" class="dg-stroke" d="M184.35 18.38L184.35 83.52" fill="none"/><path id="dg4-edge-3--h" class="dg-head" d="M184.35 91.17L180.39 82.17L188.31 82.17Z"/></g>
@@ -6351,7 +6534,7 @@ type above it, and each is still a row in the search index.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">A figure that walks itself</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206;--dg-ink-x:0.01944" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-live-ink-x="0.01944" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
 <g id="dg5-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-1--p" class="dg-stroke" d="M75.00 0.00L145.75 0.00" fill="none"/><path id="dg5-edge-1--h" class="dg-head" d="M153.40 0.00L144.40 3.96L144.40 -3.96Z"/></g>
 <g id="dg5-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-2--p" class="dg-stroke" d="M228.40 18.38L228.40 66.72" fill="none"/><path id="dg5-edge-2--h" class="dg-head" d="M228.40 74.38L224.44 65.38L232.36 65.38Z"/></g>
 <g id="dg5-n--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg5-n--lead--p" class="dg-stroke" d="M353.24 92.75L303.40 92.75" fill="none"/><path id="dg5-n--lead--h" class="dg-head" d="M303.40 92.75L303.40 92.75L303.40 92.75Z"/></g>
@@ -8952,6 +9135,22 @@ function dgSplineD(v) {
   return d;
 }
 
+// A live view shows the box that holds every beat, not the one that is tight
+// around the finished picture. Three things move together when it is swapped
+// in - the viewBox, the intrinsic height that keeps the box's proportion, and
+// --dg-ink-x, which says where the drawing starts inside that box and is a
+// fraction of a width that has just changed. Two callers (first paint, and an
+// editor write-back that replaces the whole svg), one function, because the
+// first version of this left the property behind in the editor's path and a
+// figure jumped sideways the moment it was edited.
+function dgUseLiveViewBox(svg) {
+  svg.setAttribute('viewBox', svg.dataset.liveViewbox);
+  const w = Number(svg.getAttribute('width'));
+  const r = Number(svg.dataset.liveRatio);
+  if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
+  if (svg.dataset.liveInkX) svg.style.setProperty('--dg-ink-x', svg.dataset.liveInkX);
+}
+
 function dgApplyVec(el, kind, v) {
   if (kind === 'rect') {
     el.setAttribute('x', v[0]); el.setAttribute('y', v[1]);
@@ -9108,12 +9307,7 @@ function dgSwapFigure(oldSvg, html) {
   const payload = holder.querySelector('script.psi-diagram-frames');
   if (!next) return null;
   const live = oldSvg.psiDiagram;
-  if (next.dataset.liveViewbox) {
-    next.setAttribute('viewBox', next.dataset.liveViewbox);
-    const w = Number(next.getAttribute('width'));
-    const r = Number(next.dataset.liveRatio);
-    if (w && r) next.setAttribute('height', String(Math.round(w * r)));
-  }
+  if (next.dataset.liveViewbox) dgUseLiveViewBox(next);
   const figure = oldSvg.closest('.figure-diagram');
   oldSvg.replaceWith(next);
   // The frames payload is what the step runtime reads. Replace it alongside
@@ -9184,12 +9378,7 @@ function initDiagrams() {
     // that walks in from outside is clipped for the whole of its journey.
     // Swapped here rather than emitted, so a view with no JavaScript keeps
     // the still it is going to show.
-    if (svg.dataset.liveViewbox) {
-      svg.setAttribute('viewBox', svg.dataset.liveViewbox);
-      const w = Number(svg.getAttribute('width'));
-      const r = Number(svg.dataset.liveRatio);
-      if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
-    }
+    if (svg.dataset.liveViewbox) dgUseLiveViewBox(svg);
     const fig = svg.closest('.figure-diagram');
     const d = {
       svg, data, step: -1, raf: 0, cur: null, cache: {},
@@ -10352,6 +10541,50 @@ function getOffset(el, parent) {
   while (n && n !== parent) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
   return { left: x, top: y, width: el.offsetWidth, height: el.offsetHeight };
 }
+// The vertical extent of what is actually painted inside a box, in the same
+// layout coordinates getOffset answers in. Only a .middle chunk reads it (see
+// focusCamera), and it exists because offsetHeight cannot answer the
+// question: a segment past the opening beat keeps its box and a beat below
+// the top level keeps its row, by design, so the box is the chunk's final
+// shape from beat 0 and says nothing about what the room can see.
+//
+// Client rects and not offsets, because the things that are painted are
+// often not the things that have an offsetParent - a rows block dissolves
+// its list into the grid with display: contents, and a dissolved element has
+// no box at all. So the walk descends through anything with no box of its
+// own, stops at anything holding its own text (whose box covers its
+// children), and converts once at the end: the cockpit's stage is scaled,
+// and one ratio taken from the container is exactly the factor between the
+// two coordinate systems.
+function paintedSpan(el) {
+  const base = el.getBoundingClientRect();
+  const o = getOffset(el, stage);
+  if (!base.height || !o.height) return null;
+  const scale = base.height / o.height;
+  let top = Infinity, bottom = -Infinity;
+  const walk = (node) => {
+    for (const k of node.children) {
+      if (k.hasAttribute('data-hidden') || k.hasAttribute('data-beat-hidden')) continue;
+      const cl = k.classList;
+      // Chrome that lives inside the content box and is not the slide.
+      if (cl.contains('annot-box') || cl.contains('annot-add') || cl.contains('exps')) continue;
+      const r = k.getBoundingClientRect();
+      const boxed = r.width > 0 || r.height > 0;
+      const tag = k.tagName;
+      const atom = tag === 'svg' || tag === 'IMG' || tag === 'HR' || tag === 'PRE' || tag === 'CANVAS';
+      const ownText = [...k.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+      if (boxed && (atom || ownText || !k.children.length)) {
+        if (r.top < top) top = r.top;
+        if (r.bottom > bottom) bottom = r.bottom;
+        continue;
+      }
+      walk(k);
+    }
+  };
+  walk(el);
+  if (bottom < top) return null;
+  return { top: o.top + (top - base.top) / scale, height: (bottom - top) / scale };
+}
 function focusCamera(instant = false) {
   // The transform only frames correctly from a viewport at scroll origin.
   resetViewportScroll();
@@ -10431,7 +10664,27 @@ function focusCamera(instant = false) {
     // by design, and centring it pushed the band off the bottom edge.
     const fitEl = entry.el.hasAttribute('data-dock') || entry.el.hasAttribute('data-has-panel') ? null : entry.el.querySelector('.chunk-content');
     const fit = fitEl ? getOffset(fitEl, stage) : { top, height };
-    if (fit.height <= vp.height) {
+    // The .middle class on the chunk. The box above is the one the reveals will
+    // fill, and it is dead-centred already - measured on a keynote, every
+    // chunk-content box sat with equal paper above and below it. What the
+    // room sees at the opening beat is not that box: a chunk whose reveals
+    // arrive downwards paints its first line at the top of a reserve that is
+    // still empty, and #drei-jahre opened with one row of type 155 px from
+    // the ceiling and 698 px of paper under it.
+    //
+    // There is no arrangement that both centres every beat and leaves every
+    // beat where the last one put it - a stack that grows downwards cannot
+    // hold each prefix centred and each row still. So this is opt-in and it
+    // chooses centring: the camera frames what is painted now. Nothing in
+    // the slide moves relative to anything else in it, the reserved height
+    // is untouched, and auto-fit still measures the whole box, so the type
+    // is the same size on every beat - the frame glides, on the same 250 ms
+    // transition that already follows the foot of a chunk taller than the
+    // screen.
+    const shownFit = (fitEl && entry.el.hasAttribute('data-middle')) ? paintedSpan(fitEl) : null;
+    if (shownFit && shownFit.height <= vp.height) {
+      ty = vp.height / 2 - (shownFit.top + shownFit.height / 2);
+    } else if (fit.height <= vp.height) {
       ty = vp.height / 2 - (fit.top + fit.height / 2);
     } else {
       // A chunk taller than the frame cannot be framed, so it is walked: its
@@ -20724,6 +20977,117 @@ function createDiagramCompiler(env = {}) {
     }
   }
 
+  // A free `text` ranged left or right, placed on another element's own
+  // coordinate, and drawn centred on it anyway.
+  //
+  // `.left` aligns the lines *inside* the element's box and the box stays
+  // centred on its `at`, so `text l "zu Hause" at haus.left+0.2,… {.left}`
+  // puts half the words left of `haus` – on the frame line it was meant to
+  // sit inside. On a one-line label the class moves nothing at all, which is
+  // what makes it invisible: nothing is wrong with the line, and the drawing
+  // is wrong by half a label width. `anchor left` is the answer for the one
+  // element that has to meet a coordinate by its corner, `align x left a, b`
+  // for a set; `diagram-ragged-labels` in lint.js already names both, and
+  // fires only where **two or more** texts share a written `at` x. Measured
+  // on a real keynote: six single texts, every one of them a defect, and not
+  // one of them reachable by that rule.
+  //
+  // It is the compiler's alone for the reason the other three layout warnings
+  // are: deciding it needs the laid-out geometry, and `lint.js` imports tables
+  // from this module and never a function.
+  //
+  // The edge it is held to is the one the label is standing next to, and that
+  // is two cases rather than one. A label placed *beside* an element may not
+  // cross its outline; a label placed *inside* one has to clear the same
+  // padding the element's own label keeps, or the words sit on the stroke.
+  // Both were in the measured keynote and they read differently in the room –
+  // "3 Stunden, ohne Internet" lay entirely outside the box it names, while
+  // four copies of "zu Hause" had their first letter standing on a dashed
+  // frame line. One number would have had to miss one of them.
+  //
+  // Four things keep it narrow, and each one is a figure the corpus contains:
+  //
+  // - **The x component has to name an element.** A bare `at 4,2` states a
+  //   point on the grid and there is nothing the ink can be outside of.
+  // - **A written `anchor` is the author's, whatever it says.** `anchor
+  //   center` is the default spelled out, and an author who spelled it out
+  //   has answered this question.
+  // - **Only the side the class ranges to.** `.left` is compared against the
+  //   element's left edge and `.right` against its right; a `.left` label
+  //   that runs off the *right* of a narrow box is an overflowing caption,
+  //   which is `dgOverlapWarnings`' business and has a different fix.
+  // - **The inner edge only where the label is inside.** The outer edge is
+  //   tried first, so the two thresholds are ordered rather than chosen: a
+  //   label that has already crossed the outline is reported against the
+  //   outline, and the padding case is what is left.
+  //
+  // Reported only where the ink misses at **every** beat the text is drawn
+  // at, the rule the two checks above follow, so a `move` step sliding a
+  // label into place is mid-animation rather than a mistake.
+  const DG_ANCHOR_MISS_TOL = 2;   // px of ink past the edge before it counts
+  function dgLabelAnchorWarnings(model, states, frames, frameBoxes, warn) {
+    const [uw] = model.unit;
+    const nodeById = new Map();
+    for (const n of model.nodes) nodeById.set(n.id, n);
+    for (const n of model.nodes) {
+      if (n.kind !== 'text' || n.synth) continue;
+      const p = n.place;
+      if (!p || p.kind !== 'abs' || p.anchor || !p.at) continue;
+      const c = p.at[0];
+      if (!c || !c.ref) continue;
+      const host = nodeById.get(c.ref);
+      // A generated frame is a holder rather than a shape, the same exemption
+      // `dgOverlapWarnings` makes, and an edge's box is a route rather than
+      // something a label can be inside of.
+      if (!host || (host.synth && host.synth === host.id)) continue;
+      let drawn = 0, missed = 0, worst = null, side = null;
+      for (let k = 0; k < frames.length; k++) {
+        const st = states[k].get(n.id);
+        if (!st || !st.label) continue;
+        if ((frames[k].vis.get(n.id) ?? 1) <= 0) continue;
+        const s = st.classes.has('left') ? 'left' : st.classes.has('right') ? 'right' : null;
+        // A turned label is anchored middle whichever way it reads, so the
+        // across-pair has nothing to say about it – `DG_CLASS_CLASHES` already
+        // warns about the pair and this one would say it a second time.
+        if (!s || dgTurnOf(st.classes) !== 0) { missed = -1; break; }
+        const g = frames[k].geom.get(n.id + '--l');
+        const b = frameBoxes[k].get(c.ref);
+        const t = frameBoxes[k].get(n.id);
+        if (!g || !b || !b.w || !t) continue;
+        drawn++;
+        // `dgLabelAnchor` makes `.left` a `start` anchor and `.right` an
+        // `end` one, so the label's own origin *is* the ink edge on that
+        // side. Nothing has to be measured.
+        const pad = b.padX || 0;
+        const outer = s === 'left' ? b.x - g[0] : g[0] - (b.x + b.w);
+        const inner = outer + pad;
+        const within = t.y + t.h > b.y + DG_ANCHOR_MISS_TOL
+          && t.y < b.y + b.h - DG_ANCHOR_MISS_TOL;
+        let over = null, how = null;
+        if (outer > DG_ANCHOR_MISS_TOL) { over = outer; how = 'out'; }
+        else if (within && inner > DG_ANCHOR_MISS_TOL) { over = inner; how = 'on'; }
+        if (over === null) { missed = -1; break; }
+        missed++;
+        if (!worst || over > worst.over) { worst = { over, how, k }; side = s; }
+      }
+      if (!drawn || missed !== drawn || !worst) continue;
+      const label = String(states[worst.k].get(n.id).label || '').replace(/\n/g, ' ');
+      // The coordinate as written, nudge included: the nudge is usually the
+      // inset the author meant, and naming it without it invites the reply
+      // that there already is one.
+      const at = `${c.ref}.${c.prop}${c.nudge ? (c.nudge > 0 ? '+' : '') + c.nudge : ''}`;
+      warn(`text ${n.id}${dgSite(n)}: "${label}" carries .${side} and is placed at`
+        + ` ${at}, but with no anchor the box is centred on that point – so its`
+        + ` ${side} edge lands ${(worst.over / uw).toFixed(2)} units (${Math.round(worst.over)} px)`
+        + (worst.how === 'out'
+          ? ` outside ${c.ref}.`
+          : ` short of the inside of ${c.ref}, so the words stand on its outline.`)
+        + ` Write 'anchor ${side}' on the placement so the element meets the coordinate by`
+        + ` that corner, or 'align x ${side} …' to hold it to an edge with the labels it`
+        + ` belongs with.`);
+    }
+  }
+
   function dgFrameDrawables(model, state, boxes, labelIndex) {
     const [uw, uh] = model.unit;
     const geom = new Map();
@@ -21358,6 +21722,7 @@ function createDiagramCompiler(env = {}) {
       dgOverlapWarnings(model, states, frameBoxes, dgWarn);
       dgLabelGroundWarnings(model, frames, frameBoxes, dgWarn);
       dgLabelClipWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgLabelAnchorWarnings(model, states, frames, frameBoxes, dgWarn);
     }
     // A DG_CLASS_CLASHES row is a **warning**, and it is the compiler's alone,
     // because deciding it correctly needs the resolved state at every beat.
@@ -21739,14 +22104,29 @@ function createDiagramCompiler(env = {}) {
     // the drawing from the type now; they differ only in the multiplier and in
     // what caps it.
     const typeW = (vbW / DG_FONT).toFixed(3);
+    // Where the drawing starts inside its own box, as a fraction of the box's
+    // width. boxFor pads every side by DG_MARGIN, so the answer is always that
+    // margin over the viewBox width - but only this file knows which viewBox a
+    // view is showing, and the two differ: the print box is tight around the
+    // finished picture, the live one holds every beat. A stylesheet that wants
+    // the figure's *ink* on the text edge rather than its box has to subtract
+    // this, and it cannot work it out from the numbers it already has.
+    //
+    // It is the reserve and not the painted glyphs: the label widths are an
+    // estimate made without a browser and a deliberately generous one. On the
+    // left edge that costs nothing, because the leftmost drawable is a shape
+    // or a start-anchored label and both begin exactly at their origin.
+    const inkX = (DG_MARGIN / vbW).toFixed(5);
+    const liveInkX = (DG_MARGIN / lvW).toFixed(5);
     // The same number the caller may want in Node, where the chunk's width
     // class is known and the label size in the room can therefore be
     // estimated. Optional: the editor compiles in the browser and passes none.
     if (opts.onSized) opts.onSized({ typeW: Number(typeW), vbW, vbH });
     const svg = `<svg id="${svgId}" class="psi-diagram" viewBox="${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}" `
-      + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)}" `
+      + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)};--dg-ink-x:${inkX}" `
       + `width="${DG_NOMINAL_W}" height="${Math.round(DG_NOMINAL_W * vbH / vbW)}" `
-      + (frameCount > 1 ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" ` : '')
+      + (frameCount > 1 ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" `
+        + `data-live-ink-x="${liveInkX}" ` : '')
       + `data-steps="${frameCount}"${aria} preserveAspectRatio="xMidYMid meet">\n${svgBody}</svg>`;
     const script = frameCount > 1
       ? `<script type="application/json" class="psi-diagram-frames" data-for="${svgId}">`
