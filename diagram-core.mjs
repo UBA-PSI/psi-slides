@@ -7051,10 +7051,18 @@ export function createDiagramCompiler(env = {}) {
     // because a height budget has to become a width before it can join the
     // same min().
     //
-    // Inert unless a rule reads them, and only PRINT_CSS does. A projection
-    // wants the opposite of this: there the figure is the slide, and it fills
-    // the frame whatever that does to the type.
+    // Read by PRINT_CSS and, since the room measurements, by AUDIENCE_CSS too:
+    // a projection used to want the opposite of this - the figure was the
+    // slide and filled the frame whatever that did to the type - and what it
+    // actually did was set one lecture's labels between 0.53x and 2.97x of its
+    // own running text, decided by nothing the author wrote. Both media size
+    // the drawing from the type now; they differ only in the multiplier and in
+    // what caps it.
     const typeW = (vbW / DG_FONT).toFixed(3);
+    // The same number the caller may want in Node, where the chunk's width
+    // class is known and the label size in the room can therefore be
+    // estimated. Optional: the editor compiles in the browser and passes none.
+    if (opts.onSized) opts.onSized({ typeW: Number(typeW), vbW, vbH });
     const svg = `<svg id="${svgId}" class="psi-diagram" viewBox="${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}" `
       + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)}" `
       + `width="${DG_NOMINAL_W}" height="${Math.round(DG_NOMINAL_W * vbH / vbW)}" `
