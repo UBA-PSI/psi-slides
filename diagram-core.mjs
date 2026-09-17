@@ -518,12 +518,37 @@ export function dgShapeInsetY(shape, labelH, padY = 0) {
 }
 
 export const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
+// **`at X,Y` names a point, and `anchor` says which point of the element
+// lands on it.** The default is the centre, which is what every figure written
+// before the word existed was written against, so a deck that names no anchor
+// builds byte-identically.
+//
+// It exists because a *row of labels* could not be written. Three `text` lines
+// at `at 0,z.cy` with `{.left}` came out with three different left edges: the
+// class aligns the lines *inside* the element's own box, and the box is still
+// centred on the coordinate, so a long label started further left than a short
+// one. `align x left a, b, c` is the other answer and it is the right one for
+// three elements that must stay together; `anchor l` is the answer for one
+// element that has to meet a coordinate by its corner – a caption in the
+// top-left of a zone, a note against a frame's left edge – where there is no
+// set to join.
+//
+// The nine words are `DG_ANCHORS`, which an edge endpoint already spells, and
+// the offset is the same ninth-of-a-box arithmetic `dgAnchorPt` does from the
+// other side: that one asks where a point on a laid-out box is, this one asks
+// how far a box must move for the named point to land on a coordinate.
+export function dgAnchorOffset(anchor, w, h) {
+  const hx = w / 2, hy = h / 2;
+  const X = { left: hx, tl: hx, bl: hx, right: -hx, tr: -hx, br: -hx };
+  const Y = { top: hy, tl: hy, tr: hy, bottom: -hy, bl: -hy, br: -hy };
+  return [X[anchor] || 0, Y[anchor] || 0];
+}
 // The statements that bring an element into being, as opposed to arranging
 // or restyling ones that already exist. Not used by the compiler – it
 // branches on each keyword by name – but the linter needs the set, and a
 // second hand-written copy of the vocabulary is exactly what this module
 // exists to stop.
-export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
+export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'zone', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
 // Names an element cannot have, and it is a computed table rather than a
 // list: the live runtime keys plain objects by element id (a frame's vis /
 // cls / geom straight from JSON, the target cache, the kinds map), so an id
@@ -586,7 +611,7 @@ export const DG_STEP_NAME = /^[\p{L}_][\p{L}\p{N}_-]*$/u;
 // derivable from anything a reader had already learned – and `.ghost` had no
 // verb at all, so a beat could reach it only through `style`.
 export const DG_STEP_OPS = new Set(['show', 'hide', 'move', ...DG_PROMINENCE, 'style', 'label']);
-export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence', 'align', 'spread', 'default', 'step']);
+export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'zone', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence', 'align', 'spread', 'default', 'step']);
 // The three shapes a line inside a `sequence` may take. They are not
 // statements – they mean nothing anywhere else – so they stay out of
 // DG_KEYWORDS and a stray one is reported as what it is: an entry that lost
@@ -731,6 +756,24 @@ export const DG_SEQ_SELF_H = 0.42;   // and how far down it comes back
 // padding a `pad` would otherwise resolve to is 13 by 9, which on a label
 // standing beside a line reads as a slab; this is the visible margin.
 export const DG_SEQ_GROUND = 0.1;
+
+// ── zone ────────────────────────────────────────────────────────────
+// How far the caption sits inside the corner, in grid units, and square: the
+// x nudge is scaled by uh/uw at the statement, the same correction `gap` and
+// `pad` make, or the same number would be two distances on a cell that is not
+// square.
+export const DG_ZONE_PAD = 0.16;
+// The four words that move the caption out of the top-left. They are the
+// element-label alignment classes one level out: on a box they place the label
+// inside the box, on a zone they place the caption inside the area – the same
+// sentence about the same four words, which is why the zone does not invent a
+// `corner` option to say it again.
+export const DG_ZONE_CORNERS = new Set(['left', 'right', 'top', 'bottom']);
+// A zone's caption and the tag that holds the pair. Generated names, so they
+// are a promised interface for the same reason a `sequence`'s are: an author
+// annotating a figure has to be able to name what the statement drew.
+export const dgZoneCapName = (id) => `${id}-cap`;
+export const dgZoneTag = (id) => `${id}-parts`;
 // `plot` expands into a frame, two runs of grid lines, two runs of tick
 // labels and up to two axis titles. Parts: gx gy xt yt xl yl.
 export const dgPlotName = (id, part, i) => (i === undefined ? `${id}-${part}` : `${id}-${part}-${i}`);
@@ -840,6 +883,10 @@ export const DG_BRACE_SIDES = DG_SIDES;
 // different distances depending on which statement it sat on.
 export const DG_KIND_OPTS = {
   box: ['w', 'h', 'pad', 'point'], text: ['w', 'h', 'pad'], image: ['w', 'h'], dot: ['r'],
+  // A zone is a box whose size is the point, so `w` and `h` are required
+  // rather than optional - the statement says so, this table only says which
+  // words it takes. No `point`: an area is not an arrow.
+  zone: ['w', 'h', 'pad'],
   container: ['pad'],
   // `side <word>` rather than a bare positional word. It was the last bare
   // option in the statement grammar – a lone `left` among keyed options, whose
@@ -914,6 +961,12 @@ export const DG_WORD_OPTS = {
   side: DG_SIDES,
   point: [...DG_POINT_DIRS],
   flush: ['top', 'middle', 'bottom', 'left', 'right'],
+  // Which point of the element lands on the coordinate `at` or `between`
+  // resolved to. Its words are `DG_ANCHORS`, the nine an edge endpoint already
+  // names – `tl`, `top`, `tr`, `left`, `center`, `right`, `bl`, `bottom`, `br`
+  // – because a ninth-of-a-box is one idea and one vocabulary, whichever end
+  // of a line or which corner of a label it is naming. See dgAnchorOffset.
+  anchor: [...DG_ANCHORS],
 };
 export const DG_LIST_OPTS = new Set(['col', ...DG_PROMINENCE]);
 export const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
@@ -1431,7 +1484,7 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     // with "expects exactly two elements". An order-sensitive refusal of
     // valid syntax is the invisible kind of failure this grammar keeps
     // closing; a derived set cannot drift the same way again.
-    const STOP = new Set(['frac', 'offset', 'gap', 'align', 'same', '->', 'point',
+    const STOP = new Set(['frac', 'offset', 'gap', 'align', 'anchor', 'same', '->', 'point',
       ...Object.values(DG_KIND_OPTS).flat()]);
     let mEnd = k + 1;
     while (mEnd < toks.length && !STOP.has(toks[mEnd].v)) mEnd++;
@@ -1523,6 +1576,39 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
       next += 2;
       continue;
     }
+    // Which point of the element lands on the coordinate the placement
+    // resolved to. Only the two forms that *resolve to a point* can take it:
+    // a relative placement already states which face of which element the new
+    // one sits against, and the cross-axis word for that is `flush`. Naming
+    // `flush` in the refusal rather than leaving it to the generated sentence,
+    // for the reason the `align` refusal above does: it is the word the author
+    // is reaching for.
+    if (key === 'anchor') {
+      const a = t(next + 1);
+      if (place.kind === 'rel') {
+        dgErr(errors, lineNo, `anchor says which point of the element lands on a coordinate, and `
+          + `"${place.dir}" names a face of ${place.ref} rather than a coordinate. The cross-axis `
+          + `word for a relative placement is "flush".`, 'semantic');
+      } else if (!DG_ANCHORS.has(a)) {
+        // `middle` is the centre of an *axis*, which is what `align` and
+        // `flush` say; `center` is the centre of one element, which is what an
+        // anchor names. The two words are a real distinction in this grammar
+        // and this is the line where an author meets both, so the near-miss is
+        // named rather than left to the list.
+        dgErr(errors, lineNo, a === 'middle'
+          ? 'the centre of one element is "center" here – "middle" is the centre of an axis, '
+            + 'which is what "align x middle" and "flush middle" say. Write "anchor center", '
+            + 'or leave the word off: the centre is the default.'
+          : `anchor expects ${[...DG_ANCHORS].join(' / ')}, got "${a ?? ''}"`);
+      } else if (a !== 'center') {
+        // `center` is the default, so writing it writes nothing – the same
+        // rule `flush middle` follows, and it keeps `spanOf` able to say
+        // "absent" for the plain case.
+        place.anchor = a;
+      }
+      next += 2;
+      continue;
+    }
     if (key === 'offset') {
       const parts = t(next + 1).split(',');
       if (parts.length !== 2) { dgErr(errors, lineNo, `offset expects dx,dy – got "${t(next + 1)}"`); }
@@ -1533,8 +1619,8 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     break;
   }
   // Where the placement expression sits in the source. The editor needs the
-  // *end* of it: `gap`, `align`, `offset` and `frac` are options of this
-  // expression, and appending one to the end of the line puts it after
+  // *end* of it: `gap`, `flush`, `offset`, `frac` and `anchor` are options of
+  // this expression, and appending one to the end of the line puts it after
   // `w`/`same as`, where the parser no longer reads it as part of the
   // placement. Recorded here because this is the only code that knows how
   // far the expression ran.
@@ -2020,7 +2106,17 @@ export function dgSite(el) {
 // counting to the author has given back half of what it is for. The number and
 // the generated tag carry the same index, so `@wa-msg-3` is the arrow the room
 // sees labelled 4.
-export const DG_BARE_OPTS = { bars: ['stacked', 'horizontal'], sequence: ['unnumbered'] };
+// `unheaded` is the same shape of word one statement along: the first row of a
+// `table` is a heading, drawn bold, and a table of pairs has no heading at all
+// – a two-column key/value block, a legend, a run of definitions. There was no
+// way to write one, and the workaround (a heading of two empty strings) drew an
+// empty bold row that still took its height. It does not change what the
+// statement reads: the first quoted string is still the row that fixes the
+// column count, `dgCellName(id, c, 0)` is still that row's cells and
+// `@t-row-0` still names it. The only thing it takes away is the `bold`.
+export const DG_BARE_OPTS = {
+  bars: ['stacked', 'horizontal'], sequence: ['unnumbered'], table: ['unheaded'],
+};
 // Options whose value is a ratio, `W:H`, rather than a number. `w` and `h` are
 // in *grid units*, and a grid cell is not square - on a 150x52 grid a plot
 // written `w 1.9 h 1.5` lands 285px by 78px, which is nobody's idea of 1.9 by
@@ -2065,7 +2161,7 @@ export const DG_PLACEMENT_LONG = 'at X,Y / above X / below X / right of X / left
 // each form and not the forms themselves – `right` and `left` without their
 // `of` are a different, earlier error, and a check that answered "no
 // placement" there would be a second sentence about one defect.
-export const DG_PLACED_HEADS = new Set(['box', 'dot', 'text', 'image',
+export const DG_PLACED_HEADS = new Set(['box', 'dot', 'text', 'image', 'zone',
   'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
 export const DG_PLACE_INTRO = new Set(['at', 'between', 'below', 'above', 'right', 'left']);
 export const DG_PLACEMENT_SHORT = 'at / above / below / right of / left of / between';
@@ -2073,6 +2169,7 @@ export const DG_PLACEMENT_SHORT = 'at / above / below / right of / left of / bet
 // statement's vocabulary is a word in DG_KIND_OPTS.
 const DG_EXTRA_FORMS = {
   box: ['"same as X"', 'a leader "-- X" or "-> X"'],
+  zone: ['"same as X"'],
   text: ['"same as X"', 'a leader "-- X" or "-> X"'],
   dot: ['"same as X"', 'a leader "-- X" or "-> X"'],
   image: ['"same as X"', 'a leader "-- X" or "-> X"'],
@@ -2095,7 +2192,28 @@ export function dgTakes(head) {
   const last = parts.pop();
   return `this statement takes ${parts.length ? parts.join(', ') + ' and ' : ''}${last}`;
 }
+// The options that belong to the *placement expression* rather than to the
+// statement, and which placement forms each one can follow. They have to be
+// written directly after the placement – `dgParsePlacement` stops at the first
+// token that is not one of them – so written after `w` or a tail they fall
+// through to the statement, which has never heard of them. `dgTakes` cannot
+// list them, because they are not the statement's; naming them here is what
+// keeps the sentence from being a list the author has already read and a
+// mistake it does not describe. `anchor` is the newest and the likeliest to be
+// written in the wrong place, because it reads like a property of the element.
+export const DG_PLACE_OPTS = {
+  gap: 'above / below / right of / left of',
+  flush: 'above / below / right of / left of',
+  frac: 'between',
+  offset: 'any placement',
+  anchor: 'at / between',
+};
 export function dgUnexpected(head, id, tok) {
+  if (DG_PLACE_OPTS[tok] && !DG_NO_PLACEMENT.has(head)) {
+    return `"${tok}" is an option of the placement expression (${DG_PLACE_OPTS[tok]}), not of `
+      + `${head}${id ? ` ${id}` : ''} – so it goes directly after the placement, before w / h / pad `
+      + `and before the {…} tail. Written here the placement has already ended and nothing reads it.`;
+  }
   return `unexpected "${tok}" in ${head}${id ? ` ${id}` : ''} – ${dgTakes(head)}`;
 }
 // The consequence a statement that stopped reading must not also report. A
@@ -2472,7 +2590,19 @@ export function dgStateAt(model, k) {
         else if (op.op === 'label') st.label = op.text;
         else if (op.op === 'move') {
           if (op.by) { st.shift = [st.shift[0] + op.by[0], st.shift[1] + op.by[1]]; }
-          else if (op.to) { st.place = op.to; st.shift = [0, 0]; }
+          // **A `move … to` carries the element's anchor forward.** `anchor`
+          // says how this element meets a coordinate, and a step says which
+          // coordinate – two different questions, and a step that answered
+          // both would silently re-centre an anchored element the moment it
+          // was moved, by half its own size. A `to` that names an anchor of
+          // its own still wins, so the step can also change how it meets the
+          // point; it just cannot do so by omission.
+          else if (op.to) {
+            const carried = (st.place && st.place.anchor && !op.to.anchor)
+              ? { ...op.to, anchor: st.place.anchor } : op.to;
+            st.place = carried;
+            st.shift = [0, 0];
+          }
         }
       }
     }
@@ -2611,7 +2741,7 @@ export function dgSplineD(v) {
 // every keystroke with a sentence about placements. The value being `4:3`
 // rather than a number is exactly what this shape does not care about – it
 // already carries `point`, whose value is a word.
-const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'flush', 'point', 'side', 'x', 'y',
+const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'flush', 'anchor', 'point', 'side', 'x', 'y',
   'aspect', 'col', ...DG_PROMINENCE,
   // the options the expanding statements take on their own line
   'space', 'cell', 'tick', 'row', 'band', 'header'];
@@ -2707,15 +2837,19 @@ export function createSpanTable(model, body) {
     return at;
   };
 
-  // `gap`, `align`, `frac` and `offset` are options of the *placement
-  // expression*, not of the statement, so they have to go where that
-  // expression ends. Appending them to the end of the line puts them after
-  // `w 0.62` or `same as uaf`, and the parser stops reading placement
+  // `gap`, `flush`, `frac`, `offset` and `anchor` are options of the
+  // *placement expression*, not of the statement, so they have to go where
+  // that expression ends. Appending them to the end of the line puts them
+  // after `w 0.62` or `same as uaf`, and the parser stops reading placement
   // options the moment it leaves the expression – the line then fails to
   // build. Anything else (`w`, `h`, `r`, `pad`, `same as`) the statement
   // accepts anywhere, so it goes before the attribute tail where it reads
   // best.
-  const PLACEMENT_OPTS = new Set(['gap', 'flush', 'frac', 'offset']);
+  //
+  // Off `DG_PLACE_OPTS`, which `dgUnexpected` reads to name the same five in
+  // a refusal. Two lists would be the place the insertion point and the error
+  // message came to disagree about which words those are.
+  const PLACEMENT_OPTS = new Set(Object.keys(DG_PLACE_OPTS));
   const optionInsert = (el, toks, attr) => {
     if (!PLACEMENT_OPTS.has(attr)) return tailInsert(el, toks);
     // No span means the placement is the implicit origin the first element
@@ -3640,7 +3774,21 @@ export function createDiagramCompiler(env = {}) {
               + `has ${heads.length} – rows are split on "|", one part per column`);
           }
         }
-        const rowH = opts.row ?? DG_ROW_H;
+        // **The row height follows the type size.** `row` is the author's own
+        // number and still wins; absent, the default is `DG_ROW_H` *scaled by
+        // the cells' font*, so a `.large` table is not a row of boxes 21.8 px
+        // tall holding 22.9 px of type. The base case is untouched by
+        // construction – `dgFontFor` returns `DG_FONT` when no size class is
+        // written, so the factor is exactly 1 and every existing table draws
+        // the same bytes.
+        //
+        // Off the **written tail**, not the resolved classes: the frame's
+        // geometry is fixed while the line is read, before any `default box`
+        // layer exists, which is the same reason a chart's `same as` is
+        // answered at parse time. A size arriving from a default is the
+        // author's business, and `row` says it in one number.
+        const rowH = opts.row
+          ?? DG_ROW_H * dgFontFor(new Set(attrs.classes)) / DG_FONT;
         const all = [heads, ...body.map(r => r.cells)];
         // `space` on a table converted the way `grid` converts it, and for the
         // sentence `grid`'s own comment already gives: one number that meant
@@ -3667,8 +3815,11 @@ export function createDiagramCompiler(env = {}) {
               kind: 'box', id: cid, label: text,
               // The heading is set bold and nothing else: it is the same cell
               // as every other, so a table with a tinted heading says so in
-              // its own step or its own tail rather than here.
-              classes: squared(r === 0 ? ['bold', ...attrs.classes] : attrs.classes.slice()),
+              // its own step or its own tail rather than here. `unheaded`
+              // takes the bold off and changes nothing else – the row is still
+              // row 0, still `@t-row-0`, still what fixes the column count.
+              classes: squared(r === 0 && !opts.unheaded
+                ? ['bold', ...attrs.classes] : attrs.classes.slice()),
               removedClasses: attrs.removedClasses,
               // Two generated tags per cell, which is what makes a row or a
               // column a one-line beat. They are ordinary tags: an author can
@@ -4944,7 +5095,7 @@ export function createDiagramCompiler(env = {}) {
         continue;
       }
 
-      if (head === 'box' || head === 'dot' || head === 'text' || head === 'image') {
+      if (head === 'box' || head === 'dot' || head === 'text' || head === 'image' || head === 'zone') {
         const id = t(1);
         if (!id) { dgErr(errors, lineNo, `${head} needs a name`); continue; }
         claim(id, head, lineNo);
@@ -5085,7 +5236,93 @@ export function createDiagramCompiler(env = {}) {
           if (model.nodes.length === 0) node.place = { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
           else if (!stopped) dgErr(errors, lineNo, dgNoPlacement(head, id));
         }
-        rejectClassOn(head, attrs.classes, lineNo, errors, '', attrs.removedClasses);
+        // ── zone: a named area that stands from beat 0 ─────────────────
+        // **A `zone` is a `box` with three differences, and the expansion is
+        // where all three live.** It is a statement rather than a class
+        // because two of them are not properties of a box at all: where it is
+        // painted, and where its label sits.
+        //
+        //   1. It is drawn *under* everything, whatever its position in the
+        //      source, so an area can be declared after the things standing
+        //      in it - which is the order an author writes in, because the
+        //      area's size comes from them.
+        //   2. Its label is in a corner rather than in the middle, because
+        //      the middle of an area is where its contents go. Top-left by
+        //      default; `.right` and `.bottom` in the tail move it, which is
+        //      the four alignment words meaning here what they mean on a box,
+        //      one level out.
+        //   3. It is **fixed size**, and that is what separates it from
+        //      `container`. A container fits its members and is invisible
+        //      without them; an area is a claim about the paper that holds
+        //      whether anything is standing in it yet or not, and five
+        //      figures in one keynote needed exactly that - two named regions
+        //      from beat 0, filling up as the talk went on.
+        //
+        // Everything else it needs it already had: `at` names a point, `.cx`
+        // and `.top` address it, `show` / `hide` / `emph` reach it by name.
+        // Authors were writing `box z "" {.dashed .clear}` plus a `text` and
+        // getting an overlap warning per child; the frame carries `synth` set
+        // to its own id, which is the discriminator that keeps a `table`'s or
+        // a `lanes`'s frame out of that census, so it is out of it too.
+        if (head === 'zone') {
+          const cap = quoted[0] ?? '';
+          node.kind = 'box';
+          node.zone = true;
+          node.synth = id;
+          node.label = '';
+          if (node.w == null || node.h == null) {
+            dgErr(errors, lineNo, `zone ${id} needs both "w" and "h" – an area is a fixed claim on `
+              + `the paper, which is the whole difference from a container (that one fits its `
+              + `members and is invisible without them).`, 'semantic');
+          }
+          // The look is seeded and displaceable, exactly as a column's `bare`
+          // is: through the slots, so `{.dotted}` replaces the dash, `{.tone-2}`
+          // the see-through fill and `{.accent}` the muted ink, and none of the
+          // three is written back by the editor as the author's.
+          const seeded = ['clear', 'dashed', 'muted'];
+          // Read off the written tail, before the frame's own class list is
+          // rebuilt without them: the four corner words are the caption's, not
+          // the frame's, and a frame carrying `.right` would align a label it
+          // does not have.
+          const corner = node.classes.filter(c => DG_ZONE_CORNERS.has(c));
+          const own = node.classes.filter(c => !DG_ZONE_CORNERS.has(c));
+          const flat = dgFlattenClassLayers([{ classes: seeded },
+            { classes: own, removedClasses: node.removedClasses }]);
+          node.classes = flat.classes;
+          node.removedClasses = flat.removedClasses;
+          node.autoClasses = seeded.filter(c => flat.classes.includes(c));
+          // The caption. A `text` of its own rather than the frame's label,
+          // because the frame's label is centred and a corner is what an area
+          // wants - and because a text is already the thing that knows how to
+          // be small, muted and turned. `anchor` is what puts it in the
+          // corner, which is the option this same revision added: without it
+          // the caption's box would be centred on the corner and half of it
+          // would hang outside the area it names.
+          const right = corner.includes('right');
+          const bottom = corner.includes('bottom');
+          const capId = dgZoneCapName(id);
+          claim(capId, 'text', lineNo, true);
+          const [zuw, zuh] = model.unit;
+          const padX = DG_ZONE_PAD * zuh / (zuw || 1);
+          model.nodes.push({
+            kind: 'text', id: capId, synth: id, label: cap,
+            classes: ['small', 'muted', ...corner],
+            removedClasses: [], tags: [...(attrs.tags || []), dgZoneTag(id)],
+            place: { kind: 'abs', anchor: (bottom ? 'b' : 't') + (right ? 'r' : 'l'), at: [
+              { ref: id, prop: right ? 'right' : 'left', nudge: right ? -padX : padX },
+              { ref: id, prop: bottom ? 'bottom' : 'top', nudge: bottom ? -DG_ZONE_PAD : DG_ZONE_PAD },
+            ] },
+            // The caption is only as visible as the area it names, through
+            // the face of the visibility closure that already says a text is
+            // only as visible as what it hangs off. `show z` brings both, and
+            // a caption left standing over paper nobody can see is never what
+            // the author meant.
+            leaderRef: id,
+            w: null, h: null, r: null, pad: null, line: lineNo, span,
+          });
+          node.tags = [...(attrs.tags || []), dgZoneTag(id)];
+        }
+        rejectClassOn(head === 'zone' ? 'box' : head, attrs.classes, lineNo, errors, '', attrs.removedClasses);
         model.nodes.push(node);
         if (node.leader) {
           const leadId = `${id}--lead`;
@@ -5812,6 +6049,16 @@ export function createDiagramCompiler(env = {}) {
               : place.align === 'right' ? ref.x + ref.w - w / 2
               : ref.x + ref.w / 2;
           }
+        }
+        // `anchor` is part of the placement expression too, and it is the only
+        // one of these that needs the element's own size – which is why it is
+        // here and not in the parser. `cx`/`cy` are still the centre
+        // afterwards; what the anchor moves is which point of the element the
+        // coordinate above was a statement about. Before `align` / `spread`,
+        // like the offset: those two hand the element a coordinate outright.
+        if (place && place.anchor) {
+          const [ox, oy] = dgAnchorOffset(place.anchor, w, h);
+          cx += ox; cy += oy;
         }
         // The offset is part of the placement expression, so it lands before
         // align/spread override the result – otherwise an element written as
@@ -6875,12 +7122,22 @@ export function createDiagramCompiler(env = {}) {
     // {.front}` counts too.
     const lastCls = frames[frames.length - 1].cls;
     const inFront = (e) => ` ${lastCls.get(e.id) || ''} `.includes(' front ');
+    // **A `zone`'s frame is painted first, whatever line it was written on.**
+    // That is the one thing the statement owns that a `box` could not be given
+    // by a class: an area is the paper its contents stand on, and the order an
+    // author writes in is contents-then-area, because the area's size comes
+    // from what is in it. Left in source order a zone declared last covered
+    // everything it was supposed to hold. Its caption is an ordinary text and
+    // stays where it is, at the top of the node run, so the words are over the
+    // ground and under nothing.
+    const isZone = (e) => !!e.zone;
     const elements = [
+      ...model.nodes.filter(isZone).map(e => ({ e, kind: e.kind })),
       ...model.containers.map(e => ({ e, kind: 'container' })),
-      ...model.nodes.filter(e => e.kind === 'image').map(e => ({ e, kind: 'image' })),
+      ...model.nodes.filter(e => e.kind === 'image' && !isZone(e)).map(e => ({ e, kind: 'image' })),
       ...model.braces.map(e => ({ e, kind: 'brace' })),
       ...model.edges.filter(e => !inFront(e)).map(e => ({ e, kind: 'edge' })),
-      ...model.nodes.filter(e => e.kind !== 'image').map(e => ({ e, kind: e.kind })),
+      ...model.nodes.filter(e => e.kind !== 'image' && !isZone(e)).map(e => ({ e, kind: e.kind })),
       ...model.edges.filter(inFront).map(e => ({ e, kind: 'edge' })),
     ];
 

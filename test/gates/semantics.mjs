@@ -673,6 +673,151 @@ export async function run({ report }) {
     ok(n === 2, 'a label still breaks its lines at \\n', `${n} line(s) drawn`);
   }
 
+  // ── anchor: which point of the element meets the coordinate ───────
+  // The defect it repairs is a row of labels that is not a row: `.left`
+  // aligns the lines inside each free text's own box and the box stays
+  // centred on its coordinate, so two labels of different lengths at one x
+  // start at two different left edges. Every assertion below is about the
+  // *drawn* geometry, and the two lengths differ by design – equal-length
+  // labels would pass whether the anchor worked or not.
+  {
+    const ROW = (tail) => 'box z "Z" at 0,0 w 3 h 2\n'
+      + `text a "short" at z.left,z.top ${tail}\n`
+      + `text b "a much longer line" at z.left,z.top ${tail}`;
+    // A free text with no fill draws no ground, so the position is on the
+    // label wrapper's own transform – which is also where the runtime tweens
+    // it, so it is the number a reader sees.
+    const boxOf = (body, id) => {
+      const r = render(body);
+      if (!r.ok) return null;
+      const m = r.out.match(new RegExp(`id="dg1-${id}--lw0"[^>]*transform="translate\\((-?[\\d.]+),(-?[\\d.]+)\\)"`));
+      return m ? { x: +m[1], y: +m[2] } : null;
+    };
+    const plain = { a: boxOf(ROW('{.left}'), 'a'), b: boxOf(ROW('{.left}'), 'b') };
+    ok(plain.a && plain.b && Math.abs(plain.a.x - plain.b.x) > 20,
+      'without an anchor two .left labels of different lengths start at different x',
+      plain.a && plain.b ? `${plain.a.x} vs ${plain.b.x}` : 'did not draw');
+    const anch = { a: boxOf(ROW('anchor left {.left}'), 'a'), b: boxOf(ROW('anchor left {.left}'), 'b') };
+    ok(anch.a && anch.b && Math.abs(anch.a.x - anch.b.x) < 0.01,
+      'anchor left puts both of them on one left edge',
+      anch.a && anch.b ? `${anch.a.x} vs ${anch.b.x}` : 'did not draw');
+    // Down as well as across, and the two corners are not the same corner.
+    const tl = boxOf(ROW('anchor tl {.left}'), 'a');
+    const bl = boxOf(ROW('anchor bl {.left}'), 'a');
+    ok(tl && bl && Math.abs(tl.x - bl.x) < 0.01 && tl.y > bl.y,
+      'anchor tl hangs the element below the point, anchor bl stands it above, '
+      + 'and both share the left edge',
+      tl && bl ? `tl ${tl.x},${tl.y} bl ${bl.x},${bl.y}` : 'did not draw');
+    // `center` is the default written out, so it has to draw what no word draws.
+    const bare = boxOf(ROW(''), 'b');
+    const centred = boxOf(ROW('anchor center'), 'b');
+    ok(bare && centred && Math.abs(bare.x - centred.x) < 0.01 && Math.abs(bare.y - centred.y) < 0.01,
+      'anchor center draws what leaving the word off draws',
+      bare && centred ? `${bare.x},${bare.y} vs ${centred.x},${centred.y}` : 'did not draw');
+    // And the element the compiler places by a corner keeps that corner when a
+    // step moves it: `anchor` says how it meets a coordinate, `move … to` says
+    // which coordinate, and a step answering both re-centres it silently.
+    const MOVED = 'box a "A" at 0,0 anchor tl w 2 h 1\nbox p "P" at 4,4\nstep s\n  move a to 3,3';
+    const f = frames(render(MOVED).out);
+    const g = f && f.frames && f.frames[1] && f.frames[1].geom && f.frames[1].geom['a--r'];
+    ok(!!g && Math.abs(g[0] - 3 * 120) < 0.01 && Math.abs(g[1] - 3 * 72) < 0.01,
+      'a move keeps the element on its own anchor', g ? g.join(',') : '(no frame)');
+  }
+
+  // ── a table's first row, and how tall a row is ────────────────────
+  // Two changes with one control each, and the control is the base case:
+  // neither may move a table that says nothing new.
+  {
+    const T = (tail) => `table t "A|B" at 0,0 col 1,1 ${tail}\n  "1|2"\n  "3|4"`;
+    const rowH = (out) => {
+      const m = out.match(/id="dg1-t-0-0--r"[^>]*height="([\d.]+)"/);
+      return m ? +m[1] : null;
+    };
+    const plain = fig('a plain table', T(''), 'unit=150x52');
+    const bare = fig('an unheaded table', T('unheaded'), 'unit=150x52');
+    const big = fig('a large table', T('{.large}'), 'unit=150x52');
+    const said = fig('a large table with its own row', T('{.large} row 0.8'), 'unit=150x52');
+    const h0 = plain && setOf(plain, 't-0-0'), h1 = plain && setOf(plain, 't-0-1');
+    ok(h0 && h0.has('bold') && h1 && !h1.has('bold'),
+      'the first row of a table is bold and the second is not',
+      h0 ? [...h0].join(' ') : 'not drawn');
+    const b0 = bare && setOf(bare, 't-0-0');
+    ok(b0 && !b0.has('bold') && hasEl(bare, 't-1-0') && hasEl(bare, 't-0-1'),
+      'unheaded takes the bold off and leaves every cell where it was',
+      b0 ? [...b0].join(' ') : 'not drawn');
+    ok(plain && bare && rowH(plain) === rowH(bare),
+      'and it changes no height', `${rowH(plain)} vs ${rowH(bare)}`);
+    ok(plain && big && rowH(big) > rowH(plain),
+      'a .large table gets a taller row without being told one',
+      `${rowH(plain)} vs ${rowH(big)}`);
+    ok(said && Math.abs(rowH(said) - 0.8 * 52) < 0.01,
+      "and the author's own row still wins over the derived one", String(rowH(said)));
+    // The base case, stated as a number rather than as a comparison, because
+    // this is the one assertion that keeps every table in the corpus still.
+    ok(plain && Math.abs(rowH(plain) - 0.42 * 52) < 0.01,
+      'a table with no size class draws exactly the row height it always did',
+      String(rowH(plain)));
+  }
+
+  // ── zone: an area that is painted under what stands in it ─────────
+  // Three things separate it from the `box {.dashed .clear}` plus `text` that
+  // authors were writing, and each is asserted on the drawing rather than on
+  // the parse: it is painted first whatever line it was written on, its
+  // caption is in a corner rather than in the middle, and it is out of the
+  // overlap census so a child standing in it is not a collision.
+  {
+    // Declared *after* the box it holds, which is the order an author writes
+    // in – the area's size comes from its contents.
+    const late = fig('a zone declared after its contents',
+      'box a "A" at 0,0\nzone z at a.cx,a.cy w 3 h 2 "At home"');
+    if (late) {
+      const iz = late.indexOf('id="dg1-z"'), ia = late.indexOf('id="dg1-a"');
+      ok(iz >= 0 && ia >= 0 && iz < ia, 'a zone is painted before what it holds, whatever line it is on',
+        `zone at ${iz}, box at ${ia}`);
+    }
+    // The look is seeded and every part of it is displaceable through its own
+    // slot – which is what makes it a look rather than a decision.
+    const plain = fig('a plain zone', 'zone z at 0,0 w 3 h 2 "Z"\nbox a "A" at 4,0');
+    const tinted = fig('a tinted zone', 'zone z at 0,0 w 3 h 2 "Z" {.tone-2 .dotted .accent}\nbox a "A" at 4,0');
+    const pc = plain && setOf(plain, 'z'), tc = tinted && setOf(tinted, 'z');
+    ok(pc && pc.has('clear') && pc.has('dashed') && pc.has('muted'),
+      'a zone arrives see-through, dashed and muted', pc ? [...pc].join(' ') : 'not drawn');
+    ok(tc && tc.has('tone-2') && tc.has('dotted') && tc.has('accent')
+      && !tc.has('clear') && !tc.has('dashed') && !tc.has('muted'),
+      'and each of the three is displaced by its own slot, not stacked with',
+      tc ? [...tc].join(' ') : 'not drawn');
+    // The caption's corner, read off where its label was drawn. The four words
+    // are the element-label alignment classes one level out.
+    const cap = (tail) => {
+      const out = fig('a zone captioned ' + (tail || 'top left'),
+        `zone z at 0,0 w 3 h 2 "Zone name" ${tail}\nbox a "A" at 4,0`);
+      return out ? labelAt(out, 'z-cap') : null;
+    };
+    const tl = cap(''), br = cap('{.right .bottom}'), tr = cap('{.right}'), bl = cap('{.bottom}');
+    ok(tl && br && tr && bl && tl[0] < 0 && br[0] > 0 && tl[1] < 0 && br[1] > 0,
+      'the caption sits in the top-left by default and .right .bottom moves it across and down',
+      JSON.stringify([tl, br]));
+    ok(tr && bl && Math.abs(tr[0] - br[0]) < 0.01 && Math.abs(tr[1] - tl[1]) < 0.01
+      && Math.abs(bl[0] - tl[0]) < 0.01 && Math.abs(bl[1] - br[1]) < 0.01,
+      'and the two words act on one axis each', JSON.stringify([tr, bl]));
+    // Out of the overlap census, at both ends: the frame carries `synth` set
+    // to its own id, the discriminator a table's and a lanes's frame already
+    // use. A hand-built area drew one warning per child.
+    {
+      const r = render('zone z at 0,0 w 3 h 2 "Z"\n'
+        + 'box a "A" at z.left+0.5,z.cy\nbox b "B" at z.left+1.2,z.cy');
+      const zoneWarn = r.warns.filter(w => /\bz\b/.test(w) && /overlap/.test(w));
+      ok(zoneWarn.length === 0, 'a box standing in a zone is not a collision', zoneWarn.join(' | '));
+    }
+    // And a box that fully contains another is not one either – nesting is
+    // deliberate, and it was a warning per panel before.
+    {
+      const r = render('box outer "" at 0,0 w 4 h 3 {.clear}\nbox inner "I" at 0,0 w 1 h 0.6');
+      const held = r.warns.filter(w => /overlap/.test(w));
+      ok(held.length === 0, 'nor is a box that fully contains another', held.join(' | '));
+    }
+  }
+
   // ── a warning says where the element it names was written ─────────
   // Half the names in this grammar are generated, so the one move a reader
   // has – search the block for the name the message used – finds nothing.

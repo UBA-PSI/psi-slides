@@ -354,6 +354,49 @@ const FIXTURES = [
   // off a `default box` and is exactly the line an author should be able to
   // write. Only the two positives together are refused.
   { item: 'voids', accept: true, name: 'bare removed beside dashed', body: 'default box {.bare}\n' + PAIR + 'box b "B" below a gap 1 {!bare .dashed}' },
+
+  // ── anchor: which point of the element meets the coordinate ────────
+  // A placement option, so only the two forms that resolve to a *point* take
+  // it, and it has to be written where the placement expression ends – after
+  // `w` the parser has already left the expression and nothing reads it.
+  { item: 'anchor', accept: true, name: 'anchor on an at', body: PAIR + 'text t "T" at 1,1 anchor tl' },
+  { item: 'anchor', accept: true, name: 'anchor on a between', body: PAIR + 'text t "T" between a,c anchor bl' },
+  { item: 'anchor', accept: true, name: 'anchor before the numbers', body: PAIR + 'box b "B" at 1,1 anchor tl w 2 h 1' },
+  { item: 'anchor', accept: true, name: 'anchor center is the default written out', body: PAIR + 'text t "T" at 1,1 anchor center' },
+  { item: 'anchor', accept: true, name: 'anchor on a table', body: 'table t "A|B" at 0,0 anchor tl col 1,1 row 0.4\n  "1|2"' },
+  { item: 'anchor', accept: true, name: 'anchor in a move', body: PAIR + 'step s\n  move a to 3,3' },
+  { item: 'anchor', name: 'anchor on a relative placement', body: PAIR + 'box b "B" right of a gap 1 anchor tl' },
+  { item: 'anchor', name: 'anchor middle', body: PAIR + 'text t "T" at 1,1 anchor middle' },
+  { item: 'anchor', name: 'anchor with no word', body: PAIR + 'text t "T" at 1,1 anchor' },
+  { item: 'anchor', name: 'anchor after the numbers', body: PAIR + 'box b "B" at 1,1 w 2 h 1 anchor tl' },
+  { item: 'anchor', name: 'anchor as a class', body: PAIR + 'text t "T" at 1,1 {.anchor}' },
+
+  // ── zone: a named area of fixed size ──────────────────────────────
+  // The size is the statement's whole promise, so both numbers are required –
+  // that is what separates it from a `container`, which fits its members and
+  // is invisible without them.
+  { item: 'zone', accept: true, name: 'a zone', body: 'zone z at 0,0 w 3 h 2 "At home"\n' + 'box a "A" at 4,0' },
+  { item: 'zone', accept: true, name: 'a zone with a corner and a look', body: 'zone z at 0,0 w 3 h 2 "Z" {.right .bottom .tone-2 .dotted}\nbox a "A" at 4,0' },
+  { item: 'zone', accept: true, name: 'a box placed against a zone', body: 'zone z at 0,0 w 3 h 2 "Z"\nbox a "A" at z.left+0.6,z.cy' },
+  { item: 'zone', accept: true, name: 'a zone hidden in a step', body: 'zone z at 0,0 w 3 h 2 "Z"\nbox a "A" at 4,0\nstep s\n  hide z' },
+  { item: 'zone', accept: true, name: 'a zone caption named in a step', body: 'zone z at 0,0 w 3 h 2 "Z"\nbox a "A" at 4,0\nstep s\n  hide z-cap' },
+  { item: 'zone', accept: true, name: 'the generated tag', body: 'zone z at 0,0 w 3 h 2 "Z"\nbox a "A" at 4,0\nstep s\n  emph @z-parts' },
+  { item: 'zone', name: 'a zone with no w', body: 'zone z at 0,0 h 2 "Z"\nbox a "A" at 4,0' },
+  { item: 'zone', name: 'a zone with no h', body: 'zone z at 0,0 w 3 "Z"\nbox a "A" at 4,0' },
+  { item: 'zone', name: 'a zone with no name', body: 'box a "A" at 0,0\nzone at 2,0 w 3 h 2 "Z"' },
+  { item: 'zone', name: 'an edge class on a zone', body: 'zone z at 0,0 w 3 h 2 "Z" {.smooth}\nbox a "A" at 4,0' },
+  { item: 'zone', name: 'point on a zone', body: 'zone z at 0,0 w 3 h 2 "Z" point up\nbox a "A" at 4,0' },
+
+  // ── table: a first row that is not a heading ──────────────────────
+  { item: 'table', accept: true, name: 'unheaded', body: 'table t "A|B" at 0,0 col 1,1\n  "1|2"' },
+  { item: 'table', accept: true, name: 'unheaded beside a row height', body: 'table t "A|B" at 0,0 col 1,1 unheaded row 0.5\n  "1|2"' },
+  { item: 'table', accept: true, name: 'a large table with no row height', body: 'table t "A|B" at 0,0 col 1,1 {.large}\n  "1|2"' },
+  // `unheaded` on a `lanes` and `unnumbered` on a `table` are both refused by
+  // the build and passed by the linter, and deliberately not fixtures here:
+  // they are the one documented asymmetry of this pair, an *unknown option
+  // name* on one of the seven expanding statements, which deciding means
+  // re-implementing `readGridOpts` in a zero-dep linter. The build names the
+  // line. See the `psi-slides-figures` skill.
 ];
 
 // Item 13's scope table, paired: every head state, both signs, in all three
@@ -452,6 +495,44 @@ export async function run({ report }) {
       ok(nBuild === lintOf[i].length,
         'build and lint report the same count for: ' + c.name,
         `build ${nBuild}, lint ${lintOf[i].length}`);
+    });
+  }
+
+  // ── a row of labels that is not a row ─────────────────────────────
+  // `diagram-ragged-labels` is the linter's alone, and it is the counterpart
+  // to the `anchor` option rather than a second way of saying it: `.left`
+  // aligns the lines inside each free text's own box, the box stays centred
+  // on its coordinate, and the left edges the author was lining up come out
+  // staggered by half the difference in label width. Nothing is wrong with
+  // any one line, which is why neither file said anything before.
+  //
+  // It is a warning, so the build accepts all five of these; what is asserted
+  // is which of them the linter speaks about. Both fixes silence it, because
+  // both of them are true statements about the row: `align x left` for a set,
+  // `anchor left` for a placement that has no set to join.
+  {
+    const ROW = (tail, extra = '') => 'box z "Z" at 0,0 w 3 h 2\n'
+      + `text a "short" at z.left,z.cy ${tail}\n`
+      + `text b "a much longer line" at z.left,z.top ${tail}\n${extra}`;
+    const CASES = [
+      { name: 'two .left texts at one x', want: true, body: ROW('{.left}') },
+      { name: 'the same with .right', want: true, body: ROW('{.right}') },
+      { name: 'one of them anchored is still a pair', want: true,
+        body: 'box z "Z" at 0,0 w 3 h 2\ntext a "short" at z.left,z.cy anchor left {.left}\n'
+          + 'text b "a much longer line" at z.left,z.top {.left}\ntext c "third" at z.left,z.bottom {.left}' },
+      { name: 'both anchored', want: false, body: ROW('anchor left {.left}') },
+      { name: 'held by an align x', want: false, body: ROW('{.left}', 'align x left a, b') },
+      { name: 'two centred texts at one x', want: false, body: ROW('') },
+      { name: 'two .left texts at different x', want: false,
+        body: 'box z "Z" at 0,0 w 3 h 2\ntext a "short" at z.left,z.cy {.left}\n'
+          + 'text b "a much longer line" at z.cx,z.top {.left}' },
+    ];
+    const lintOf = lintAll(CASES);
+    CASES.forEach((c, i) => {
+      ok(render(c.body).ok, `ragged labels: ${c.name} still builds`, '(refused)');
+      const said = lintOf[i].some((f) => f.rule === 'diagram-ragged-labels');
+      ok(said === c.want, `${c.want ? 'reported' : 'silent'}: ${c.name}`,
+        said ? 'the linter reported it' : 'the linter said nothing');
     });
   }
 
