@@ -408,7 +408,7 @@ import {
   DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP,
   dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgPlotName, dgPlotTicks,
   DG_THEMES, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarContrast,
-  dgRowTag, dgColTag, dgLaneName, dgLaneCapName,
+  dgRowTag, dgColTag, dgLaneName, dgLaneCapName, dgZoneCapName, dgZoneTag,
   DG_SEQ_ENTRIES, DG_SEQ_ARROWS,
   dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName,
   dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag,
@@ -469,7 +469,7 @@ const dgUnexpectedMsg = (head, id, tok) =>
 // 'expects exactly two elements' on a line the build accepts, which is the
 // one direction a gate must never be wrong in. A derived set cannot drift
 // the same way again.
-const DG_PLACE_STOP = new Set(['frac', 'offset', 'gap', 'flush', 'same', '--', '->', 'point',
+const DG_PLACE_STOP = new Set(['frac', 'offset', 'gap', 'flush', 'anchor', 'same', '--', '->', 'point',
   ...Object.values(DG_KIND_OPTS).flat()]);
 
 function splitFrontmatter(src) {
@@ -840,10 +840,16 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
             + 'one tail cannot both add and remove a class. Keep one.');
       }
     }
-    // The same-slot pair and the clash rows are both the compiler's now, and
-    // for two different reasons. A pair from one slot is an **error** raised by
-    // rejectSlotPair, decidable from the tail alone and mirrored there rather
-    // than here, so this file cannot print a second, different account of it.
+    // The same-slot pair, the void pair and the clash rows are all the
+    // compiler's now, and for two different reasons. A pair from one slot is an
+    // **error** raised by rejectSlotPair, decidable from the tail alone and
+    // mirrored there rather than here, so this file cannot print a second,
+    // different account of it. A DG_CLASS_VOIDS pair - `.bare` with `.dashed`
+    // or `.dotted`, where the first deletes the outline the second patterns and
+    // the element comes out with nothing drawn round it - is the same kind of
+    // error for the same reason, raised by rejectVoidPair; both run inside
+    // rejectClassOn, which this file calls at every statement site, so the
+    // mirror costs nothing and cannot drift.
     // A clash row is a **warning**, and it has to be beat-aware – `{.tone-4
     // .accent}` with a later `style x {.clear}` is a working figure, where the
     // accent ink is inert while the fill is there and becomes the ink the
@@ -1053,6 +1059,29 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         return { next, place, attempted: true };
       }
       if (key === 'frac' && place === 'between') { next += 2; continue; }
+      // `anchor` says which point of the element lands on the coordinate the
+      // placement resolved to, so only the two forms that resolve to a point
+      // take it. The word list and the refusal are the compiler's, mirrored
+      // here: a relative placement states a face already and its cross-axis
+      // word is `flush`.
+      if (key === 'anchor') {
+        if (place === 'rel') {
+          add(ln, 'error', 'bad-diagram-placement', `'anchor' says which point of the element `
+              + `lands on a coordinate, and a relative placement names a face rather than a `
+              + `coordinate. The cross-axis word for it is 'flush'.`);
+          return { next, place, attempted: true };
+        }
+        const a = words[next + 1];
+        if (!DG_ANCHORS.has(a)) {
+          add(ln, 'error', 'bad-diagram-placement', a === 'middle'
+            ? `the centre of one element is 'center' here – 'middle' is the centre of an axis, `
+              + `which is what 'align x middle' and 'flush middle' say`
+            : `anchor expects ${[...DG_ANCHORS].join(' / ')}, got '${a || ''}'`);
+          return { next, place, attempted: true };
+        }
+        next += 2;
+        continue;
+      }
       if (key === 'offset') { next += 2; continue; }
       break;
     }
@@ -1147,6 +1176,20 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // frame is registered as the box it draws, so nothing else needs excluding.
   const DG_CLASS_KINDS_OK = DG_CLASS_KIND_SET;   // imported: one list, not two
   const styled = [];               // { classes, removed, targets, ln } per `style` op
+  // A row of labels that only looks like a row. `.left` and `.right` align the
+  // lines *inside* a free text's own box, and the box is centred on its
+  // coordinate, so three `text` lines written `at 0,z.cy {.left}` come out with
+  // three different left edges – one per label length, and the longer the label
+  // the further left it starts. Measured on a real keynote, five figures over.
+  // Nothing is wrong with any one line, which is why neither file said anything.
+  //
+  // Collected here and ruled on once the block has been read, because the
+  // answer depends on a statement that may sit anywhere in it: `align x left
+  // a, b, c` is the other fix and makes the row true, so a figure that has one
+  // is not to be warned at. `anchor left` is the fix for the element that has
+  // no set to join.
+  const sideTexts = [];            // { id, x, cls, ln } free text, .left/.right, bare `at`
+  const alignedX = new Set();      // every element named by an `align x …`
   // Lines a `table` has already read as its own rows. It is the one statement
   // besides `step` that takes continuation lines, and they are bare quoted
   // strings – read as statements they would each report a keyword that is a
@@ -1180,7 +1223,10 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       } else if (head === 'edge') {
         rejectClassOn('edge', attrs.classes, ln, gate, '', attrs.removedClasses);
         rejectHeadClassIn('tail', attrs.classes, ln, gate, attrs.removedClasses);
-      } else if (head === 'box') {
+      } else if (head === 'box' || head === 'zone') {
+        // A zone's tail lands on the box it draws, minus the four corner words
+        // the caption takes - and those are box classes too, so one call
+        // answers the whole tail.
         rejectClassOn('box', attrs.classes, ln, gate, '', attrs.removedClasses);
       } else if (head === 'container' || head === 'brace') {
         rejectClassOn(head, attrs.classes, ln, gate, '', attrs.removedClasses);
@@ -1236,6 +1282,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         add(ln, 'error', 'bad-diagram-align', `spread ${axis} needs at least three elements`);
       }
       for (const m of members) refer(m, ln, `${head} ${axis}`);
+      if (head === 'align' && axis === 'x') for (const m of members) alignedX.add(m);
       inStep = false;
       continue;
     }
@@ -2056,7 +2103,19 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
 
     if (DG_DEFINES.has(head)) {
       if (!words[1]) { add(ln, 'error', 'bad-diagram-name', `${head} needs a name`); continue; }
-      define(words[1], ln, head);
+      // A zone draws a box and a caption, so it registers as a box: that is
+      // what the class gate on a `style` step has to be able to answer about.
+      define(words[1], ln, head === 'zone' ? 'box' : head);
+      if (head === 'zone') {
+        define(dgZoneCapName(words[1]), ln, 'text', true);
+        tags.add(dgZoneTag(words[1]));
+        // Both numbers, because an area is a fixed claim on the paper - that
+        // is the whole difference from a container, which fits its members.
+        if (!words.includes('w') || !words.includes('h')) {
+          add(ln, 'error', 'bad-diagram-zone', `zone ${words[1]} needs both 'w' and 'h' - an area `
+              + `is a fixed claim on the paper, which is the whole difference from a container.`);
+        }
+      }
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: words[1], tags: attrs.tags, ln });
 
       // A container and a brace hold a member list and place nothing, so they
@@ -2128,6 +2187,15 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         // `at c1.cx,m0.cy` – the same coordinate grammar as a waypoint.
         if (words[k] === 'at' && words[k + 1] && words[k + 1].includes(',')) {
           referPair(words[k + 1], ln, `${head} ${words[1]} at`);
+          // The x half as written, which is what "share an x" has to mean
+          // here: two texts at `z.left` are a row whatever `z` turns out to
+          // be, and comparing resolved numbers would need a layout this file
+          // does not have. An `anchor` on the line is the author having
+          // already answered the question.
+          const side = attrs.classes.find(c => c === 'left' || c === 'right');
+          if (head === 'text' && side && !words.includes('anchor')) {
+            sideTexts.push({ id: words[1], x: words[k + 1].split(',')[0], cls: side, ln });
+          }
         }
         if (words[k] === 'between') {
           // Every trailing option that can follow a placement, or the scan
@@ -2259,6 +2327,34 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   }
   if (inStep === false && block.lines.length === 0) {
     add(block.open, 'warn', 'empty-diagram', '::: draw has no content');
+  }
+  // A row of labels that is not a row. See `sideTexts` above: the class aligns
+  // the lines inside the element's box, the box stays centred on the
+  // coordinate, and the edges the author was aligning come out staggered by
+  // half the difference in label width. Reported once per shared coordinate,
+  // on the first of the group, because it is one figure-level mistake and not
+  // one per line.
+  //
+  // A warning and not an error: the same three lines are correct the moment
+  // the labels happen to be the same length, and a linter that refuses a
+  // drawing somebody can see is right is worse than one that asks.
+  {
+    const byX = new Map();
+    for (const t of sideTexts) {
+      if (alignedX.has(t.id)) continue;
+      if (!byX.has(t.x)) byX.set(t.x, []);
+      byX.get(t.x).push(t);
+    }
+    for (const [x, group] of byX) {
+      if (group.length < 2) continue;
+      const names = group.map(g => g.id);
+      add(group[0].ln, 'warn', 'diagram-ragged-labels',
+          `${names.join(', ')} are all at x ${x} and carry .${group[0].cls}, but that class aligns `
+          + `the lines inside each element's own box – the box is still centred on the coordinate, `
+          + `so their ${group[0].cls} edges come out staggered by half the difference in label `
+          + `width. Write 'anchor ${group[0].cls}' on each placement, or 'align x ${group[0].cls} `
+          + `${names.join(', ')}' to hold them to one edge as a set.`);
+    }
   }
   const tagCount = new Map();
   for (const c of carries) for (const t of c.tags) tagCount.set(t, (tagCount.get(t) || 0) + 1);

@@ -706,6 +706,40 @@ With more than one line **the whole block of lines moves, not the single line**,
 **A box label and an edge label are two different questions, and only one of them has nine answers.** A box label sits somewhere in a rectangle of space, so there are three answers across and three down. An edge label lies on one side of its line or the other, and that is all. The same four words for both meant `{.top .left}` was writable on an edge, which has only one side to pick. On an edge it is therefore `side <word>`, the pattern `point` follows on the outlines: a closed word list as an option instead of a class per word. Which pair can choose at all is settled only once the line is routed, so naming the other one draws a warning.
 
 
+## figure: A corner, not a centre {.full #anchor}
+
+::: side 1:1
+::: draw 128x64
+# `at` names a point and the element meets it by its centre, so three labels
+# of three lengths start at three different left edges however loudly .left
+# aligns the lines inside each of them. `anchor center` is that default
+# written out - which is also what tells the linter this row is deliberate.
+zone bad at 0,0 w 3.4 h 1.7 "the centre"
+text b1 "short"               at bad.left+0.95,bad.cy-0.38 anchor center {.left}
+text b2 "a much longer label" at bad.left+0.95,bad.cy      anchor center {.left}
+text b3 "middling"            at bad.left+0.95,bad.cy+0.38 anchor center {.left}
+
+# The same three lines with one word added: the coordinate is now each
+# label's own left edge instead of its middle.
+zone good at bad.cx,bad.bottom+1.2 w 3.4 h 1.7 "anchor left" {.tone-1}
+text g1 "short"               at good.left+0.95,good.cy-0.38 anchor left {.left}
+text g2 "a much longer label" at good.left+0.95,good.cy      anchor left {.left}
+text g3 "middling"            at good.left+0.95,good.cy+0.38 anchor left {.left}
+
+# The rule is where the coordinate is, drawn through both frames so that the
+# staggered edges above and the one edge below are read against the same line.
+edge rule bad.left+0.95,bad.top-0.3 -- good.left+0.95,good.bottom+0.3 {.dashed .muted}
+:::
+
+::: flip
+**`at X,Y` names a point, and `anchor` says which point of the element lands on it.** Nine words, the same nine an edge endpoint spells – `tl` `top` `tr` / `left` `center` `right` / `bl` `bottom` `br` – with `center` the default. It is an option of the *placement*, so it goes directly after it, and it is refused on `right of` / `below`, which name a face rather than a coordinate and answer the same question with `flush`.
+
+**The four alignment classes and `anchor` are one step apart.** `.left` places a run of words inside the element's own box; `anchor left` places the box against the coordinate. A row of labels needs the second, or the first lines up the insides of three boxes that are themselves staggered. For a set, `align x left a, b, c` is the other right answer; `anchor` is for the element with no set to join.
+
+**A `zone` is the frame the two rows stand in: fixed size, name in a corner, painted under everything.** Fixed size is the whole difference from a `container`, which fits its members and is invisible without them – an area is a claim on the paper that holds from beat 0. Being painted first whatever line it is on lets it be declared *after* its contents, which is the order anyone writes in.
+:::
+
+
 ## figure: Six statements that expand {.full #expand}
 
 ::: draw 150x62
@@ -1003,6 +1037,8 @@ step every-one-has-an-answer
 :::
 
 **Five rows by three columns is fifteen boxes, each with its own name, width and placement, and a `below` chain to re-aim whenever a row is inserted.** `table` writes them: the heading is one string split on `|`, the data rows are the bare strings under it, `col` gives a width per column and `row` the height of one row. The attribute tail `{.clear .bare .left}` **lands on the cells and not on the frame**, which is what makes a table here a text block rather than a grid of little boxes. The rule under the heading is an ordinary edge between two coordinates, each half from the frame and half from the first cell.
+
+**The first row is a heading, and `unheaded` says it is not.** It takes away exactly the bold: the string is still the row that fixes the column count, its cells are still `t-<col>-0` and `@t-row-0` still names it. A table of pairs – a key/value block, a legend, a run of definitions – had no way to be written before, and a heading of empty strings drew an empty bold row that still took its height. **`row` follows the type size when it is not written**, so `{.large}` no longer puts type in a box too short for it and nobody has to work the number out by hand.
 
 **Every cell carries two generated tags, `@t-row-N` and `@t-col-N`.** So a row is one beat and a column is one beat, one line of source each – where otherwise every beat would carry three cell names to keep in step with the table by hand. Row 0 is the heading, so count from 1 when you mean data.
 

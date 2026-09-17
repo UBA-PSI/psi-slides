@@ -1917,6 +1917,15 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
   const want = { x: b.x + b.w / 2 + dx * uw, y: b.y + b.h / 2 + dy * uh };
   const eff = dgeEffState(ctx, el, beat);
   const place = eff.place;
+  // **An anchored placement gets no guides.** Every candidate below is a
+  // proposal about where the element's *centre* lands – on a neighbour's edge
+  // line, halfway between two elements, on a shared axis – and it is written
+  // back as the coordinate in `at`. With `anchor tl` that coordinate is the
+  // element's top-left corner, so the guide would draw a line through the
+  // centre and write a number about a corner. The plain drag underneath still
+  // works and still round-trips exactly, because it rewrites the number that
+  // is on the line rather than the position it resolves to.
+  if (place && place.anchor) return none;
   // A `between` element is already at a relation and its own drag rewrites
   // `frac`; the two proposals below are for an element that has none to lose.
   const bare = !place || place.implicit || place.kind === 'abs';
@@ -2122,12 +2131,21 @@ function dgeStepToText(ctx, id, out, eff, want) {
   if (out.snap.gap != null && place && place.kind === 'rel') {
     return dgeRelText(place, out.snap.gap);
   }
+  // A `move … to` states the coordinate, and `anchor` carries forward from the
+  // element's own line – so the number written here is the coordinate the
+  // *anchor point* lands on, not the centre `want` holds. Left uncorrected a
+  // dragged `anchor tl` element jumped half its own size the moment a step
+  // moved it, which is the same half-size slip the carry-forward rule in
+  // dgStateAt exists to prevent, arriving from the other side.
+  const b = ctx.boxes.get(id);
+  const anch = (place && place.anchor && b)
+    ? window.PSI_DG.dgAnchorOffset(place.anchor, b.w, b.h) : [0, 0];
   const comp = (axis, i) => {
     if (out.snap.ref[axis]) return out.snap.ref[axis];
     const sp = eff.own && place && place.kind === 'abs' && !eff.shift[i]
       ? dgeSpanIn(ctx, id, 'at.' + axis) : null;
     if (sp && sp.present) return sp.text;
-    return dgeNum(dgeRound(want[axis] / (axis === 'x' ? uw : uh), DGE_SNAP_CELL));
+    return dgeNum(dgeRound((want[axis] - anch[i]) / (axis === 'x' ? uw : uh), DGE_SNAP_CELL));
   };
   return comp('x', 0) + ',' + comp('y', 1);
 }
@@ -4859,6 +4877,31 @@ function dgeRenderSide() {
     }
   }
 
+  // The one bare word a table's own statement reads, and the same control for
+  // the same reason: a closed list of one, present as a token or absent as an
+  // insertion point. The row names both readings rather than one and a
+  // checkbox, because "unheaded off" is not a phrase anyone thinks in.
+  if (single && single.frame === 'table') {
+    const sp = dgeSpanOf(single.id, 'unheaded');
+    if (sp) {
+      const row = dgeEl('div', { class: 'dge-swatches' });
+      for (const [word, label] of [['', 'heading row'], ['unheaded', 'no heading']]) {
+        row.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-sw',
+          'aria-pressed': String((sp.present ? 'unheaded' : '') === word),
+          text: label,
+          onclick: () => dgeWriteAttr(single.id, 'unheaded', word),
+        }));
+      }
+      side.appendChild(dgeEl('div', {}, [
+        dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'first row' }), row]),
+        dgeEl('div', { class: 'dge-hint', text:
+          'Whether the first row is set bold. It is still the row that fixes the column count '
+          + 'either way, and still @' + single.id + '-row-0.' }),
+      ]));
+    }
+  }
+
   // Which side of its members a brace stands on. A closed word list, so it is a
   // swatch row for the same reason `point` is one – and it was the only word in
   // the grammar that moves an element bodily with no control at all.
@@ -5082,6 +5125,10 @@ function dgeSlotRows(chosen, kinds) {
       // author the wrong thing about their figure.
       const fixed = opt.inherit ? '' : dgeBeatFixed(slot, opt.cls, carried);
       if (fixed) whys.add(fixed);
+      // The other reason a swatch is offered and cannot be clicked, and it is
+      // about the element rather than about the beat – so it says so on the
+      // swatch and does not join `whys`, which is the beat's sentence.
+      const voided = fixed ? '' : (opt.inherit ? '' : dgeVoidedBy(opt.cls));
       row.appendChild(dgeEl('button', {
         type: 'button', class: 'dge-sw',
         'data-fill': opt.fill === undefined ? null : (opt.fill || 'none'),
@@ -5089,14 +5136,18 @@ function dgeSlotRows(chosen, kinds) {
         // produces is whatever the default says, and that state is already the
         // swatch the default's own class owns – so it never reads as pressed.
         'aria-pressed': String(!opt.inherit && current === opt.cls),
-        disabled: !!fixed,
+        disabled: !!fixed || !!voided,
         title: fixed
           ? (opt.cls ? '.' + opt.cls : 'nothing in this slot') + ' – ' + fixed
             + ' is settled once when the figure is built, so a step has nothing to switch'
-          : (opt.inherit ? 'drop this element’s own say and take the default'
-            : (opt.cls ? (slot.arrow ? opt.cls : '.' + opt.cls) : 'nothing in this slot')),
+          : voided
+            ? `.${opt.cls} – .${voided} is on this line, and the two together draw nothing at `
+              + 'all: one deletes the outline the other patterns. Take that one off first, or '
+              + 'use .clear, which takes off the fill and keeps the outline.'
+            : (opt.inherit ? 'drop this element’s own say and take the default'
+              : (opt.cls ? (slot.arrow ? opt.cls : '.' + opt.cls) : 'nothing in this slot')),
         text: opt.fill !== undefined && !opt.inherit ? '' : (opt.label || opt.cls),
-        onclick: fixed ? null : () => dgeSetSlot(slot, opt.cls, opt),
+        onclick: (fixed || voided) ? null : () => dgeSetSlot(slot, opt.cls, opt),
       }));
     }
     // Its own class beside the shared one, the rule chips already follow: a
@@ -5215,6 +5266,34 @@ function dgeSlotCarried(names) {
 // because they are listed as exceptions; that listing is precisely the
 // narrowing this replaced, which let a fill swatch at beat 2 quietly edit the
 // printed handout.
+// **A swatch whose only outcome is a compiler refusal is not a control**, which
+// is item 15 one pair further along. `DG_CLASS_VOIDS` is the short table of
+// classes from two different slots where the first deletes the surface the
+// second draws on: `.bare` takes the outline off, so `{.bare .dashed}` draws
+// nothing round the element at all and the build refuses it. The element
+// wearing one of them gets the other greyed out with the reason on it, rather
+// than a click that rolls itself back and a sentence in the message area.
+//
+// Read off the **written tail** and only at beat 0, which is exactly the scope
+// the compiler's refusal has: it reads one tail, so a `.dashed` on the
+// element's own line and a `.bare` arriving from a `default box` are not the
+// pair, and neither is a `style` step's own tail at a later beat. A greying
+// stricter than the refusal would be a control taken away for a line the
+// author is entitled to write.
+function dgeVoidedBy(cls) {
+  if (!cls || DGE.beat) return '';
+  const pairs = (window.PSI_DG && window.PSI_DG.DG_CLASS_VOIDS) || [];
+  for (const pair of pairs) {
+    const other = cls === pair[0] ? pair[1] : cls === pair[1] ? pair[0] : null;
+    if (!other) continue;
+    for (const id of DGE.selection) {
+      const el = dgeLineOwner(id);
+      if (el && (el.classes || []).includes(other)) return other;
+    }
+  }
+  return '';
+}
+
 function dgeBeatFixed(slot, cls, carried) {
   if (!DGE.beat) return '';
   if (cls) return dgeStepFixedWhy(cls);
@@ -6189,6 +6268,35 @@ function dgeSetLeaderArrow(tok) {
   }
 }
 
+// Which point of the element lands on the coordinate `at` or `between`
+// resolved to. A swatch row like `flush`, and for the same reason: it is a
+// closed word list, so a field would be a place to make a typo the compiler
+// then has to refuse.
+//
+// Nine words in reading order rather than in `DG_ANCHORS` order, because what
+// the author is choosing is a corner of a box and the row is the box. `center`
+// writes nothing – it is the parser's default, so the swatch takes the token
+// off rather than restating it, which is what every "plain case" swatch here
+// does. Only on `at` and `between`: a relative placement answers the same
+// question with `flush`, against the element it is measured from.
+const DGE_ANCHOR_ROW = ['tl', 'top', 'tr', 'left', 'center', 'right', 'bl', 'bottom', 'br'];
+function dgeAnchorSlot(el, p) {
+  const row = dgeEl('div', { class: 'dge-swatches' });
+  const now = p.anchor || 'center';
+  for (const w of DGE_ANCHOR_ROW) {
+    row.appendChild(dgeEl('button', {
+      type: 'button', class: 'dge-sw', 'aria-pressed': String(now === w),
+      title: w === 'center'
+        ? 'the coordinate is the element’s centre – the plain case, and no word on the line'
+        : `anchor ${w} – the element’s ${w} meets the coordinate, so a row of labels of `
+          + 'different lengths lines up',
+      text: w,
+      onclick: () => dgeWriteAttr(el.id, 'anchor', w === 'center' ? '' : w),
+    }));
+  }
+  return dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'anchor' }), row]);
+}
+
 // The placement, as three answers rather than one opaque phrase.
 function dgePlacementPane(el) {
   const wrap = dgeEl('div', {});
@@ -6291,6 +6399,7 @@ function dgePlacementPane(el) {
         + 'value in a plot’s own units – roc@0.35. Each half is read on its own, '
         + 'so one may borrow and the other be a number.' }));
     }
+    wrap.appendChild(dgeAnchorSlot(el, p));
   } else if (p.kind === 'rel') {
     const dirs = dgeEl('div', { class: 'dge-chips' });
     for (const d of DGE_DIRS) {
@@ -6403,6 +6512,7 @@ function dgePlacementPane(el) {
       }),
     ]));
     wrap.appendChild(row);
+    wrap.appendChild(dgeAnchorSlot(el, p));
   }
 
   // One list for every id in the block, so the reference fields complete

@@ -475,6 +475,10 @@ text lreq "Small request with\nSrc IP of victim" left of req gap 1.05 {.right @s
 text lres "Large response with\nDst IP of victim" left of res gap 0.95 {.right @big}
 
 text open "Attack possible due to liberally\noperated DNS/NTP servers." at -2.3,1.95 {.left .muted @open}
+# Both paragraphs are at x -2.3 and set .left, which aligns the lines inside
+# each box - the boxes stay centred, so their left edges staggered by half the
+# difference in width. One set, one edge.
+align x left intro, open
 
 step request
   show @small
@@ -857,6 +861,9 @@ edge fs.top -- sw.bottom via fs.cx,1.0 sw.cx,1.0
 text pub "publically\nreachable"     at 1.66,-2.15 {.left @zone}
 text dmz "demilitarized\nzone (DMZ)" at 1.66,-1.35 {.left @zone}
 text tru "trusted hosts"             at 4.85,2.75 {@zone}
+# Same reason as the pair above the amplification figure: two labels at one x
+# with .left are a row only if something holds their left edges together.
+align x left pub, dmz
 
 container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,pub,dmz,tru {.muted}
 
