@@ -1293,17 +1293,23 @@ function dgeDrawRelations(g, id) {
     const ref = DGE.boxes.get(p.ref);
     if (ref) {
       // The gap itself, drawn between the two facing edges and labelled with
-      // the number that is written on the line.
+      // the number that is written on the line – or, where the line writes
+      // none, with the number the default resolved to and the word that says
+      // it was not typed. The guide has to agree with the drawing it is drawn
+      // over: labelling an unwritten gap with nothing hid the one relation the
+      // new default is most likely to have set, and labelling it with a bare
+      // number would claim a token the source does not contain.
+      const gapText = 'gap ' + dgeNum(dgeGapOf(null, p)) + (p.gap == null ? ' (default)' : '');
       if (p.dir === 'right' || p.dir === 'left') {
         const y = midY(b);
         const from = p.dir === 'right' ? ref.x + ref.w : ref.x;
         tick(from, y, p.dir === 'right' ? b.x : b.x + b.w, y, true);
-        label((from + (p.dir === 'right' ? b.x : b.x + b.w)) / 2 - 12, y - 5, 'gap ' + dgeNum(p.gap));
+        label((from + (p.dir === 'right' ? b.x : b.x + b.w)) / 2 - 12, y - 5, gapText);
       } else {
         const x = mid(b);
         const from = p.dir === 'below' ? ref.y + ref.h : ref.y;
         tick(x, from, x, p.dir === 'below' ? b.y : b.y + b.h, true);
-        label(x + 5, (from + (p.dir === 'below' ? b.y : b.y + b.h)) / 2, 'gap ' + dgeNum(p.gap));
+        label(x + 5, (from + (p.dir === 'below' ? b.y : b.y + b.h)) / 2, gapText);
       }
       // The edge the placement is flush with, as a hairline through both –
       // captioned, like the `align` statement's own hairline on the same
@@ -1552,6 +1558,19 @@ const DGE_ALIGN_TOL = 0.06;      // how close counts as "on that edge", in cells
 // the compiler reads on the other convention and nothing reports it, which is
 // exactly the silent failure squaring the gap exists to remove.
 const dgeGapUnit = (model) => dgeUnits(model).uh;
+
+// The gap a `rel` placement actually draws, as the number an author would
+// write – rows. A placement whose author wrote none carries `gap: null` and a
+// `gapAuto` in labels, resolved by the compiler once it has read the block's
+// edges, so the two units meet here exactly as they do in dgGapPx: this is
+// that function's answer divided back by the gap's own ruler. Everything in
+// this file that adds a delta to a gap, or shows one, goes through it – a drag
+// that read the raw field got NaN on the very placements the new default is
+// for, and an editor that writes NaN into a source is the failure this whole
+// file is built to avoid.
+function dgeGapOf(model, place) {
+  return window.PSI_DG.dgGapPx(place, dgeGapUnit(model)) / dgeGapUnit(model);
+}
 
 function dgeRound(v, step) {
   return Math.round(v / step) * step;
@@ -1837,7 +1856,7 @@ function dgeGuideHosts(ctx, id, eff) {
 
 // The gaps other statements in this block already carry, on the axis this
 // placement's own direction runs along. **Only gaps the author actually
-// wrote:** every `rel` placement carries one, so counting the default 0.25
+// wrote:** a placement with none carries a resolved default, so counting those
 // would have every figure offering the same number and meaning nothing by it.
 // Cached per gesture, because it is a tokenize per candidate line and the
 // lines do not change while the pointer is down.
@@ -2805,7 +2824,7 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
     // 0.05 grid afterwards would turn 0.62 into 0.60 and quietly break the
     // equality the guide had just promised.
     const sib = guide && guide.gap;
-    const next = sib != null ? sib : Math.max(0, snap(place.gap + sign * gapDelta));
+    const next = sib != null ? sib : Math.max(0, snap(dgeGapOf(ctx.model, place) + sign * gapDelta));
     edits.push({ attr: 'gap', value: dgeNum(next), why: sib != null ? guide.why : undefined });
   }
   if (crossDelta && !crossBlocked) {
@@ -3555,10 +3574,10 @@ function dgeDockAt(ctx, id, pt) {
   // "dock it here". The chip says *which side*; the distance is whatever the
   // element already kept, and dragging adjusts it afterwards.
   // Keep the distance the element already kept – but only if the author
-  // actually wrote one. Every `rel` placement carries a default gap, so
-  // testing the model would re-emit 0.25 as an explicit token on a line that
-  // never had it, in an editor whose whole design is rewriting the smallest
-  // span it can.
+  // actually wrote one. A placement with no written `gap` carries a resolved
+  // default instead, and re-emitting that as an explicit token on a line that
+  // never had it would freeze the number against the very rule that picked it,
+  // in an editor whose whole design is rewriting the smallest span it can.
   const written = ctx.spans.spanOf(id, 'gap');
   const el = dgeFind(id, ctx.model);
   const gap = (written && written.present && el && el.place && el.place.kind === 'rel')
@@ -6524,7 +6543,16 @@ function dgePlacementPane(el) {
       dgeEl('label', { class: 'dge-num' }, [
         dgeEl('span', { text: 'gap' }),
         dgeEl('input', {
-          type: 'text', value: dgeNum(p.gap),
+          // The resolved number either way, because the field has to show the
+          // distance the reader sees. Where the line writes no `gap` that is
+          // the default the compiler settled – one label, or 1.6 of them
+          // between two elements an edge joins – and the title says so, so a
+          // number nobody typed cannot be mistaken for one that was. Typing
+          // into the field is the act that writes it.
+          type: 'text', value: dgeNum(dgeGapOf(null, p)),
+          title: p.gap == null
+            ? 'no gap is written on this line – this is the default, in rows'
+            : 'the gap written on this line, in rows',
           // Refuse what is not a number instead of silently writing 0 –
           // `Number('0.,4') || 0` collapsed a typo into "no gap at all".
           //
@@ -6537,7 +6565,7 @@ function dgePlacementPane(el) {
           onchange: (e) => {
             const n = Number(e.target.value.trim());
             if (!e.target.value.trim() || !Number.isFinite(n)) {
-              dgeStatus('', `"${e.target.value}" is not a number – the gap keeps its ${dgeNum(p.gap)}.`, true);
+              dgeStatus('', `"${e.target.value}" is not a number – the gap keeps its ${dgeNum(dgeGapOf(null, p))}.`, true);
               dgeRenderSide();
               return;
             }

@@ -71,6 +71,31 @@ export const DG_PAD_X = 13;           // box padding, px
 export const DG_PAD_Y = 9;
 export const DG_MIN_W = 54;           // a box never narrows past this
 export const DG_HEAD = 9;             // arrowhead length, px
+// **The default gap is stated in labels, not in rows.** A row is whatever the
+// opener says – 20 px on `20x20`, 40 on `120x40`, 72 on the default grid – so
+// the old default of 0.25 rows drew a clearance of 5 px on one figure and 18
+// on another, with nothing in either source to say so. On the grid a keynote
+// actually used it came out at 10 px against a 9 px arrowhead: a head with no
+// shaft. A label is the one ruler in a drawing that does not move with the
+// opener, and the clearance a reader judges is the clearance against the type
+// beside it, so the default gap is a multiple of the base label's height.
+// DG_GAP_JOINED is 1.6 of them – the 9 px head plus 21 px of shaft – and
+// applies to a pair some `edge` joins, which is decided after the whole block
+// is read. DG_GAP_PLAIN is one label for a pair nothing joins. A *written*
+// `gap` keeps its meaning and its unit: it stays a number of rows, because it
+// is a number the author tuned by eye against the grid in the opener and every
+// other clearance in this grammar – `pad`, `space`, `cell`, DG_DOT_R – is
+// measured against `uh` too. Only the number nobody wrote is free to be stated
+// in the unit that makes it right.
+export const DG_LABEL_H = DG_FONT * DG_LINE_H;   // one base label, px
+export const DG_GAP_PLAIN = 1;        // default gap, in labels, for an unjoined pair
+export const DG_GAP_JOINED = 1.6;     // …and for a pair an edge joins
+// An edge whose exposed run – the part of its route not under either of its
+// own endpoints – is shorter than this many labels is reported as `edge-short`.
+// 1.5 labels is 28 px: the head plus about as much shaft again, which is the
+// least that still reads as an arrow rather than a wedge between two boxes.
+// It sits just under DG_GAP_JOINED on purpose, so the default never trips it.
+export const DG_EDGE_MIN = 1.5;
 export const DG_MARGIN = 12;          // viewBox breathing room, px
 // Nominal intrinsic width. Deliberately wider than any chunk measure so
 // that max-width: 100% always binds – see the comment where it is emitted.
@@ -1285,6 +1310,18 @@ export function dgPadPx(pad, uh) {
   return pad != null ? [pad * uh, pad * uh] : [DG_PAD_X, DG_PAD_Y];
 }
 
+// The clearance a relational placement actually draws, in px. Two units meet
+// here and nowhere else: a written `gap` is a count of rows, the default a
+// count of labels. The one function is what keeps the layout, the editor's
+// guide and the editor's drag from each spelling the conversion themselves –
+// the mistake that made a re-dock and a swatch row disagree by uw/uh once
+// already, with both edits compiling and neither saying anything.
+export function dgGapPx(place, uh) {
+  if (!place) return 0;
+  if (place.gap != null) return place.gap * uh;
+  return (place.gapAuto ?? DG_GAP_PLAIN) * DG_LABEL_H;
+}
+
 // The size an element's label is actually set at.
 //
 // Normally that is the class-derived base size and the box grows to the
@@ -1648,7 +1685,13 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     const ref = t(next);
     if (!ref) { dgErr(errors, lineNo, `${dir} expects an element name`); return [null, next, true]; }
     next++;
-    place = { kind: 'rel', dir, ref, gap: 0.25, align: 'middle' };
+    // `gap: null` is "the author wrote none", not "zero". The number is
+    // resolved once the whole block is read, by dgResolveAutoGaps, because it
+    // depends on something no single line knows: whether an edge joins the two.
+    // `gapAuto` is a count of labels and `gap` a count of rows, which is why
+    // they are two fields rather than one: the unit differs, and collapsing
+    // them would make the resolved number depend on the opener again.
+    place = { kind: 'rel', dir, ref, gap: null, gapAuto: DG_GAP_PLAIN, align: 'middle' };
   }
 
   // Trailing options, shared by every placement form. `offset` in
@@ -5907,7 +5950,56 @@ export function createDiagramCompiler(env = {}) {
       }
     }
 
+    dgResolveAutoGaps(model);
+
     return { model, errors };
+  }
+
+  // The second half of the gap rule, and the half no single line can decide:
+  // a pair an `edge` joins needs room for the arrow, a pair nothing joins
+  // needs only to be told apart. So the default is settled here, once the
+  // whole block has been read, off the edge list the dependency walk is built
+  // from a few lines later. Nothing is written back into the source and a
+  // written `gap` is never touched: this fills `gapAuto`, which layout reads
+  // only where `gap` is null.
+  //
+  // The widening for a *labelled* edge is the same rule one step on. A label
+  // on a straight run between two facing boxes has only the paper between
+  // their near faces – the boxes are painted after the edge under them, so a
+  // word wider than the gap is read with its ends cut off, which is the defect
+  // `dgLabelClipWarnings` measures. Making the default wide enough to hold the
+  // word turns that warning into what it should always have been: a report
+  // about a number the author wrote. Only on a horizontal placement, because a
+  // label on a vertical run stands beside the line and its width costs the gap
+  // nothing; its height is one line, which the joined default already clears.
+  function dgResolveAutoGaps(model) {
+    const auto = [];
+    for (const n of model.nodes) {
+      if (n.place && n.place.kind === 'rel' && n.place.gap == null) auto.push(n);
+    }
+    if (!auto.length) return;
+    const joined = new Map();   // "a|b", a < b -> the edge, for the label
+    for (const e of model.edges) {
+      const a = e.from && !e.from.point ? e.from.ref : null;
+      const b = e.to && !e.to.point ? e.to.ref : null;
+      if (!a || !b || a === b) continue;
+      const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+      if (!joined.has(key)) joined.set(key, e);
+    }
+    for (const n of auto) {
+      const p = n.place;
+      const key = n.id < p.ref ? `${n.id}|${p.ref}` : `${p.ref}|${n.id}`;
+      const e = joined.get(key);
+      if (!e) continue;
+      p.gapAuto = DG_GAP_JOINED;
+      if (!e.label || (p.dir !== 'right' && p.dir !== 'left')) continue;
+      const classes = new Set(e.classes || []);
+      for (const layer of dgDefaultLayers(model, 'edge', e.tags)) {
+        for (const c of layer.classes) classes.add(c);
+      }
+      const m = dgMeasure(e.label, dgFontFor(classes), classes.has('mono'));
+      p.gapAuto = Math.max(p.gapAuto, (m.w + 2 * DG_PAD_X) / DG_LABEL_H);
+    }
   }
 
   function layoutDiagram(model, state, errors) {
@@ -6212,17 +6304,21 @@ export function createDiagramCompiler(env = {}) {
           // next line; and a dedicated unit adds a fence word nobody would set,
           // when the author already writes `::: draw 150x52` and the clearance
           // ruler is its second number, visible in the source.
+          //
+          // A *written* gap is rows; the default is labels. dgGapPx is the one
+          // place that difference is spent, so nothing downstream has to know
+          // which of the two a placement carries.
           else if (place.dir === 'right' || place.dir === 'left') {
             cx = place.dir === 'right'
-              ? ref.x + ref.w + place.gap * uh + w / 2
-              : ref.x - place.gap * uh - w / 2;
+              ? ref.x + ref.w + dgGapPx(place, uh) + w / 2
+              : ref.x - dgGapPx(place, uh) - w / 2;
             cy = place.align === 'top' ? rIn.y + h / 2 - ownIY
               : place.align === 'bottom' ? rIn.y + rIn.h - h / 2 + ownIY
               : rIn.y + rIn.h / 2;
           } else {
             cy = place.dir === 'below'
-              ? ref.y + ref.h + place.gap * uh + h / 2
-              : ref.y - place.gap * uh - h / 2;
+              ? ref.y + ref.h + dgGapPx(place, uh) + h / 2
+              : ref.y - dgGapPx(place, uh) - h / 2;
             cx = place.align === 'left' ? rIn.x + w / 2 - ownIX
               : place.align === 'right' ? rIn.x + rIn.w - w / 2 + ownIX
               : rIn.x + rIn.w / 2;
@@ -6793,6 +6889,109 @@ export function createDiagramCompiler(env = {}) {
         + `between the two faces and nothing moves it, so the fix is on the boxes: give the row a `
         + `gap so the halfway point is paper, or write the route yourself with via.`);
     }
+  }
+
+  // **An arrow the reader cannot see the shaft of.** The default gap now
+  // clears one (2.1), but a *written* `gap` is the author's number and is not
+  // pushed apart: it is a number other elements are chained off, and moving it
+  // silently moves them. So the other half of the rule is that the author
+  // hears about it. Measured on the **exposed** run – the part of the route
+  // that is not under either of the edge's own endpoints, because a box is
+  // painted after the edge beneath it – against DG_EDGE_MIN labels.
+  //
+  // Only the edge's own two ends are subtracted, which is the same bound
+  // dgLabelClipWarnings keeps: a third shape the line disappears under is
+  // dgOverlapWarnings' business and has a different fix. And like every other
+  // warning here it fires only where the run is short at **every** beat the
+  // edge is drawn at, so a `move` step sliding two boxes together mid-figure
+  // is animation rather than a mistake.
+  //
+  // A synthesised edge is exempt. A `sequence` message, a chart's baseline and
+  // a leader stub are all placed by the statement that made them, and the fix
+  // this warning names – a `gap` on one of the two elements – is not a line
+  // the author has. Where such a run is too short the number to change is the
+  // statement's own `space`, which is a different report and not this one.
+  function dgEdgeShortWarnings(model, states, frames, frameBoxes, warn) {
+    const [uw, uh] = model.unit;
+    const min = DG_EDGE_MIN * DG_LABEL_H;
+    for (const e of model.edges) {
+      if (e.synth) continue;
+      if (e.from.point || e.to.point) continue;
+      let worst = null, everyBeat = true, seen = 0;
+      for (let k = 0; k < frames.length && everyBeat; k++) {
+        if ((frames[k].vis.get(e.id) ?? 1) <= 0) continue;
+        const st = states[k] && states[k].get(e.id);
+        // **A headless edge is exempt, and that is the rule rather than an
+        // exception to it.** What this measures is a head crowding out its own
+        // shaft, so an edge that draws no head – a leader stub, which is what
+        // `--` is, or anything carrying `.no-head` – has nothing to crowd. A
+        // short plain connector reads as a tick joining two things, which is
+        // what a leader is for: `text note "…" below px gap 0.5 -- px` in the
+        // tutorial's motion figure leaves exactly 28 px and is correct.
+        if (!st || (st.classes.has('no-head') && !st.classes.has('both-heads'))) {
+          everyBeat = false; break;
+        }
+        // The route and not the stroke: `--p` has already been trimmed back by
+        // most of an arrowhead, and the question here is how much paper the
+        // head and the shaft have to share.
+        const pts = dgEdgeRoute(e, st.classes, frameBoxes[k], uw, uh);
+        if (!pts || pts.length < 2) { everyBeat = false; break; }
+        const ends = [frameBoxes[k].get(e.from.ref), frameBoxes[k].get(e.to.ref)]
+          .filter(b => b && b.w > 0 && b.h > 0);
+        let run = 0;
+        for (let i = 0; i + 1 < pts.length; i++) {
+          run += dgExposedRun(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], ends);
+        }
+        seen++;
+        if (run >= min) { everyBeat = false; break; }
+        if (worst == null || run < worst) worst = run;
+      }
+      if (!everyBeat || worst == null || !seen) continue;
+      // The number the author would have to write to clear it, in the unit a
+      // written gap is in – rows – so it can be typed straight onto the line.
+      const want = Math.ceil(((DG_GAP_JOINED * DG_LABEL_H - worst) / uh) * 100) / 100;
+      warn(`edge ${e.id}${dgSite(e)}: its exposed run is ${Math.round(worst)} px `
+        + `(${(worst / DG_LABEL_H).toFixed(2)} labels) and the arrowhead alone is ${DG_HEAD} px, `
+        + `so the room sees a head with almost no shaft. A written gap is never widened for you, `
+        + `because other elements are chained off it – so the fix is on the line that wrote it: `
+        + `give ${e.from.ref} and ${e.to.ref} about ${want.toFixed(2)} more rows of gap, or take `
+        + `the written gap off that placement and let the default clear the arrow.`);
+    }
+  }
+
+  // How much of one segment is neither inside the first box nor inside the
+  // second. Both are axis-aligned rectangles and the segments this walks are
+  // very nearly axis-aligned themselves, so the cheap answer – clip the
+  // segment's parameter range against each rectangle and subtract the union of
+  // what is covered – is exact for the straight and elbow routes and close
+  // enough for a diagonal, which is the one case where a pixel either way
+  // decides nothing.
+  function dgExposedRun(x1, y1, x2, y2, ends) {
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    if (!len) return 0;
+    const spans = [];
+    for (const b of ends) {
+      const axis = (p1, p2, lo, hi) => {
+        if (Math.abs(p2 - p1) < 1e-9) return (p1 >= lo && p1 <= hi) ? [0, 1] : null;
+        let t0 = (lo - p1) / (p2 - p1), t1 = (hi - p1) / (p2 - p1);
+        if (t0 > t1) { const s = t0; t0 = t1; t1 = s; }
+        return [t0, t1];
+      };
+      const sx = axis(x1, x2, b.x, b.x + b.w);
+      const sy = axis(y1, y2, b.y, b.y + b.h);
+      if (!sx || !sy) continue;
+      const t0 = Math.max(0, sx[0], sy[0]);
+      const t1 = Math.min(1, sx[1], sy[1]);
+      if (t1 > t0) spans.push([t0, t1]);
+    }
+    spans.sort((a, b) => a[0] - b[0]);
+    let covered = 0, at = 0;
+    for (const [t0, t1] of spans) {
+      if (t1 <= at) continue;
+      covered += t1 - Math.max(t0, at);
+      at = t1;
+    }
+    return len * (1 - covered);
   }
 
   function dgFrameDrawables(model, state, boxes, labelIndex) {
@@ -7471,6 +7670,7 @@ export function createDiagramCompiler(env = {}) {
       dgLabelClipWarnings(model, states, frames, frameBoxes, dgWarn);
       dgLabelAnchorWarnings(model, states, frames, frameBoxes, dgWarn);
       dgElbowRailWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgEdgeShortWarnings(model, states, frames, frameBoxes, dgWarn);
     }
     // A DG_CLASS_CLASHES row is a **warning**, and it is the compiler's alone,
     // because deciding it correctly needs the resolved state at every beat.

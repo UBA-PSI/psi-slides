@@ -31,7 +31,8 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { frames, render, spans, ROOT } from './harness.mjs';
-import { DG_THEMES, dgSpans, dgMeasure, dgTokenize } from '../../diagram-core.mjs';
+import { DG_THEMES, dgSpans, dgMeasure, dgTokenize,
+  DG_LABEL_H, DG_GAP_JOINED, DG_HEAD } from '../../diagram-core.mjs';
 
 export const name = 'the emitted drawing means what the source says';
 
@@ -342,6 +343,117 @@ export async function run({ report }) {
       'the default won');
   }
 
+
+  // ── a gap is measured in labels, and its default clears an arrow ──
+  // The default used to be 0.25 rows, and a row is whatever the opener says:
+  // 5 px on a 20-row grid, 18 on a 72-row one. On the grid a real keynote used
+  // it came out at 10 px against a 9 px arrowhead. So the number nobody writes
+  // is now stated in the one ruler a drawing carries whatever its opener says
+  // – the height of a base label – and it is 1.6 of them for a pair an `edge`
+  // joins, which is the head plus as much shaft again.
+  //
+  // Every assertion below is a *difference* between two fixtures one token
+  // apart, except the two that have to be literals: the whole claim is that a
+  // particular number of pixels arrives, and a relative assertion cannot say
+  // that the opener stopped deciding it.
+  {
+    const gapOf = (what, body, head = '') => {
+      const out = fig(what, body, head);
+      if (!out) return null;
+      const ax = +attrOf(out, 'a--r', 'x'), aw = +attrOf(out, 'a--r', 'width');
+      return +attrOf(out, 'b--r', 'x') - (ax + aw);
+    };
+    const PAIR = 'box a "A" at 0,0\nbox b "B" right of a';
+    const small = gapOf('an unjoined pair on a 20-row grid', PAIR, 'unit=120x20');
+    const large = gapOf('the same pair on a 72-row grid', PAIR, 'unit=120x72');
+    ok(small != null && large != null && Math.abs(small - large) < 0.01,
+      'the default gap is the same distance whatever the opener says',
+      `${small} px on 120x20, ${large} px on 120x72`);
+    ok(small != null && Math.abs(small - DG_LABEL_H) < 0.01,
+      'and that distance is one base label',
+      `${small} px against ${DG_LABEL_H}`);
+
+    const joined = gapOf('a pair an edge joins', PAIR + '\nedge a -> b', 'unit=120x72');
+    ok(joined != null && Math.abs(joined - DG_GAP_JOINED * DG_LABEL_H) < 0.01,
+      'a pair an edge joins gets 1.6 labels instead – decided after the block is read',
+      `${joined} px against ${DG_GAP_JOINED * DG_LABEL_H}`);
+    ok(joined != null && joined - DG_HEAD >= DG_HEAD,
+      'which leaves at least as much shaft as the arrowhead is long',
+      `${joined} px of paper, ${DG_HEAD} px of head`);
+    // The direction of the edge is not the point, and neither is which of the
+    // two elements was placed against the other.
+    const back = gapOf('the same pair joined the other way', PAIR + '\nedge b -> a', 'unit=120x72');
+    ok(back != null && joined != null && Math.abs(back - joined) < 0.01,
+      'and the edge counts whichever way round it is written', `${back} vs ${joined}`);
+
+    // A written gap keeps its meaning and its unit. It is a number the author
+    // tuned against the grid in the opener, and other elements are chained off
+    // it – so it stays rows and it is never widened for you.
+    const written = gapOf('a written gap', 'box a "A" at 0,0\nbox b "B" right of a gap 0.5',
+      'unit=120x72');
+    ok(written != null && Math.abs(written - 0.5 * 72) < 0.01,
+      'a written gap is still a number of rows', `${written} px against 36`);
+    const writtenJoined = gapOf('a written gap on a joined pair',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.5\nedge a -> b', 'unit=120x72');
+    ok(writtenJoined != null && Math.abs(writtenJoined - 0.5 * 72) < 0.01,
+      'and an edge does not widen it', `${writtenJoined} px against 36`);
+
+    // The default for a *labelled* edge holds the label as well, which is what
+    // turns the clip warning below into a report about a number the author
+    // wrote. Only across: a label on a vertical run stands beside the line.
+    const labelled = gapOf('a pair joined by a labelled edge',
+      PAIR + '\nedge a -> b "a long phrase"', 'unit=120x72');
+    ok(labelled != null && joined != null && labelled > joined,
+      "a labelled edge's default gap holds its label", `${labelled} vs ${joined}`);
+    const down = (what, body) => {
+      const out = fig(what, body, 'unit=120x72');
+      if (!out) return null;
+      const ay = +attrOf(out, 'a--r', 'y'), ah = +attrOf(out, 'a--r', 'height');
+      return +attrOf(out, 'b--r', 'y') - (ay + ah);
+    };
+    const downPlain = down('a stacked pair an edge joins', 'box a "A" at 0,0\nbox b "B" below a\nedge a -> b');
+    const downLabel = down('the same stack with a long edge label',
+      'box a "A" at 0,0\nbox b "B" below a\nedge a -> b "a long phrase"');
+    ok(downPlain != null && downLabel != null && Math.abs(downPlain - downLabel) < 0.01,
+      'but a label on a vertical run does not, because it stands beside the line',
+      `${downPlain} vs ${downLabel}`);
+
+    // ── edge-short: the other half of the rule ──
+    // A written gap is the author's number and is not pushed apart, so the
+    // author hears about it instead. Measured on the exposed run, and one
+    // token apart in both directions.
+    const shorts = (what, body, head = 'unit=120x40') => {
+      const r = render(body, head);
+      if (!r.ok) { ok(false, `${what} compiles`, r.msg.split('\n')[0]); return null; }
+      return r.warns.filter(w => /its exposed run is/.test(w));
+    };
+    const tightRow = shorts("a keynote's own row", 'box a "A" at 0,0\nbox b "B" right of a gap 0.3\nedge a -> b');
+    ok(tightRow && tightRow.length === 1, 'an arrow with almost no shaft is reported',
+      tightRow ? tightRow.join(' | ') : 'did not compile');
+    ok(tightRow && tightRow.length === 1 && /\b12 px\b/.test(tightRow[0])
+      && /0\.64 labels/.test(tightRow[0]) && /more rows of gap/.test(tightRow[0]),
+      'and it states the run in px and in labels, and the number that would clear it',
+      tightRow && tightRow[0]);
+    const roomy = shorts('the same row at a wider gap',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.8\nedge a -> b');
+    ok(roomy && roomy.length === 0, 'a row with room for the arrow is silent', roomy && roomy[0]);
+    const defaulted = shorts('the same row with no written gap',
+      'box a "A" at 0,0\nbox b "B" right of a\nedge a -> b');
+    ok(defaulted && defaulted.length === 0,
+      'and the default never trips it – 1.6 labels stands clear of 1.5',
+      defaulted && defaulted[0]);
+    // A leader stub is `--`, which draws no head; a short plain connector is a
+    // tick joining two things and is what a leader is for.
+    const leader = shorts('a short leader stub',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.3\nedge a -- b');
+    ok(leader && leader.length === 0, 'a headless edge has no head to crowd, so it is exempt',
+      leader && leader[0]);
+    // A `sequence` message is placed by the statement that made it, and the
+    // fix this warning names is not a line the author has.
+    const synth = shorts('a sequence of two actors',
+      'sequence s at 0,0 space 0.1\n  actor a "A"\n  actor b "B"\n  a -> b "M"', '');
+    ok(synth && synth.length === 0, 'a synthesised edge is exempt', synth && synth[0]);
+  }
 
   // ── a label wider than the room between the things it joins ───────
   // The compiler knows the label's width and knows the gap, and until this

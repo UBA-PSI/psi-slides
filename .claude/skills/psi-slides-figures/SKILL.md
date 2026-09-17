@@ -28,12 +28,12 @@ figure costs an hour. The order that works:
    `DG_STEP_OPS`, `DG_PROMINENCE`, `DG_WORD_OPTS`.
 4. **This file**, when something compiles and draws the wrong thing.
 
-## Six placement traps the compiler now warns about
+## Seven placement traps the compiler now warns about
 
 Every one of these produced a clean build, a clean lint and a broken figure,
 and they are the reason `dgOverlapWarnings`, `dgLabelGroundWarnings`,
-`dgLabelClipWarnings`, `dgLabelAnchorWarnings` and `dgElbowRailWarnings`
-exist.
+`dgLabelClipWarnings`, `dgLabelAnchorWarnings`, `dgElbowRailWarnings` and
+`dgEdgeShortWarnings` exist.
 
 **Place a row of elements relationally, never with absolute `at`.** Two boxes
 written `at swim.left+5.4 w 1.45` and `at swim.left+6.75 w 1.4` have centres
@@ -123,6 +123,31 @@ being runnable without the Markdown/Shiki stack. Like the `DG_CLASS_CLASHES`
 rows, it is a warning rather than an error and it fires only where the label is
 clipped at **every** beat it is drawn at, so a `move` step sliding a box across
 a label is mid-animation rather than a mistake.
+
+**An arrow the room can see the head of and not the shaft.** The default gap
+clears one, but a *written* `gap` is the author's number and is never widened
+for them: other elements are chained off it, so moving it moves them. The other
+half of the rule is that the author hears about it. `dgEdgeShortWarnings`
+measures the **exposed** run – the part of the route not under either of the
+edge's own endpoints, because a box is painted after the edge beneath it –
+against `DG_EDGE_MIN`, 1.5 labels or 28 px, which sits just under the joined
+default so the default itself never trips it. Measured on `dgEdgeRoute` rather
+than on the emitted stroke, because the stroke has already been trimmed back by
+most of an arrowhead and the question is how much paper the head and the shaft
+have to share. It names both ends, the run in px and in labels, and the number
+of rows that would clear it.
+
+Two exemptions, and both are the rule rather than exceptions to it. **A
+headless edge** – `--`, which is what a leader stub is, or anything carrying
+`.no-head` – has no head to crowd, and a short plain connector reads as a tick
+joining two things, which is what a leader is for: the tutorial's own
+`text note "…" below px gap 0.5 -- px` leaves exactly 28 px and is correct. **A
+synthesised edge** – a `sequence` message, a chart's baseline – is placed by the
+statement that made it, and the fix this warning names is not a line the author
+has; there the number to change is that statement's own `space`. Over the
+corpus: five figures, every one of them a written gap of 0.3 to 0.55 rows on a
+grid where that is 20 to 27 px, and all five were repaired by taking the written
+gap off the line.
 
 **An `.elbow`'s rail lying on the side of a box it has nothing to do with.**
 The rail is halfway between the two faces on whichever axis the ends are
@@ -303,6 +328,10 @@ Consequences worth not breaking:
   `gap` was the one clearance that was not. Multiplied by the cell's width across and its height down, the same number on two adjacent lines drew two distances with nothing in the source to say so; measured over the corpus, `gap 1` across was on median **2.9 times** `gap 1` down. That silently breaks the first rule the artifact page teaches – even gaps say nothing, uneven gaps mean something – and it is why `bars … space` and `table … space` were square-ified in the same pass: on a `150x52` grid a `space` meant 30.0px between two columns and 10.4px between two rows, and adding the word `horizontal` to a `bars` line rescaled its column spacing with nothing between the two words to suggest a connection.
 
   `uh` and not `uw`, the mean, or a new unit, for three reasons that were already true: `pad` on a box, text, container, brace and edge, `cell` and `space` on a `grid`, `DG_DOT_R`, `DG_LEAD_GAP` and the four `sequence` rhythm constants are every one of them measured against `uh` today, so `gap` was the outlier rather than the rule; `uw` would contradict `pad`, the word an author reaches for on the next line; and a dedicated unit adds a fence word nobody would set, when the author already writes `::: draw 150x52` and the clearance ruler is its second number, visible in the source. The migration wrote the converted number out at every horizontal placement, including the six in the corpus that had relied on the unwritten default – a placement that silently depends on a default it never chose is the same defect one layer down.
+
+  **The `gap` an author does not write is the one number that is not in rows, and that is the point.** A row is whatever the opener says – 20 px on `20x20`, 40 on `120x40`, 72 on the default grid – so the old default of `0.25` rows drew a 5 px clearance on one figure and an 18 px one on another, and on the grid a measured keynote used it came out at 10 px against a 9 px arrowhead: a head with no shaft. Nobody chose any of those numbers. The default is stated in the one ruler a drawing carries whatever its opener says, the height of a base label (`DG_LABEL_H`, `DG_FONT × DG_LINE_H` = 18.75 px): **`DG_GAP_PLAIN`, one label, for a pair nothing joins, and `DG_GAP_JOINED`, 1.6 of them, for a pair an `edge` joins** – 30 px, the 9 px head plus as much shaft again. Which of the two applies is decided by `dgResolveAutoGaps` once the whole block has been read, off the same edge list the dependency walk is built from, because no single line knows whether an arrow will arrive later. Where that edge carries a **label**, the default widens again to hold the words plus two paddings, but only across – a label on a vertical run stands beside the line and costs the gap nothing.
+
+  **A written `gap` keeps its meaning and its unit: it stays a number of rows.** Two reasons, and the second is the load-bearing one. It is the unit every other clearance in this grammar is in, so `gap 0.4` and `pad 0.4` stay comparable on the line an author writes them on; and it is a number the author tuned by eye against the grid in the opener, which other elements are chained off – re-reading it in labels would move every figure in every deck that has one, silently, in a direction nobody asked for. So `place.gap` is a count of rows and `place.gapAuto` a count of labels, two fields rather than one, and `dgGapPx` is the single place the two units are spent. The editor reads it through `dgeGapOf`, for the same reason: a drag that added its delta to the raw field got `NaN` on exactly the placements the new default is for.
 
   `DG_DOT_R` was the older exception of the same shape – `13` raw pixels behind an author-facing `r` that is in grid units – so it was the one number that did not follow the block's `unit=`, and the smaller an author's unit the fatter a bare dot came out relative to everything around it: a plot marker arrived taller than the cell it marked a point in. It is `0.18` grid units now, and `0.18 * 72 = 12.96`, so the default unit is unchanged to the pixel. If a new constant is a distance, write it in grid units and multiply by `uh` at the point of use.
 - **A name that exists but is not usable yet must not be reported as a name that does not exist.** Two messages said the second when they meant the first, and both came out as nonsense an author could not act on. `claim()` records a kind from the statement's first word, so a `plot` line that then failed on a later option is *registered* as a plot and never *declared* as one - and `dgResolvePlotCoords` duly reported that *"q is a plot, not a plot"*. It now names the third case and points at the line that carries the real error, and it says it once per name rather than once per coordinate, because eight identical complaints bury the one that explains them.

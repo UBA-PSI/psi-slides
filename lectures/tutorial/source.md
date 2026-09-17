@@ -849,8 +849,8 @@ step blame
 
 ::: draw 120x44
 box a "request" at 0,0 {.tone-2}
-box b "cache" below a gap 0.55 {.tone-1}
-box c "origin" below b gap 0.55 {.tone-1}
+box b "cache" below a {.tone-1}
+box c "origin" below b {.tone-1}
 edge a -> b
 edge b -> c {.dashed}
 
