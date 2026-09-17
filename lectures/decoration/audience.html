@@ -962,8 +962,10 @@ figure.figure-img svg {
    on the same deck, decided by nothing the author wrote. Across the corpus the
    spread was 0.53x to 2.97x of the running text.
 
-   So the width comes off the type here too: --dg-type-w is the viewBox width
-   measured in base labels (diagram-core emits it on every svg), and one base
+   So the width comes off the type here too: --dg-fit-w is the box the live
+   views show, measured in base labels - the slide canvas where the chunk has
+   one, the drawing own box where it does not (see the canvas section and
+   the .psi-diagram fallback chain just above) - and one base
    label is one em of the text the figure sits in - .chunk-body's em on a
    slide, the pane's or the card's inside one, each of which already carries
    --zoom and --body-scale. A figure in a narrow card therefore wears the
@@ -1003,9 +1005,27 @@ figure.figure-img svg {
    #lifecycle at 505 px in a 1152 px column, and because shrinking the type
    shrinks the words too, the figure stayed capped at every step and auto-fit
    walked the slide to its 0.6 floor. A definite length contributes itself. */
+/* Which box this medium shows, resolved once for everything that asks.
+
+   A drawing has two: the one that hugs the finished picture, which is what a
+   printed column wants, and the LIVE one - the union of every beat, widened
+   and heightened to the slide's canvas where the chunk has one. The compiler
+   emits both sets of numbers and the live half only when it differs, so this
+   is a fallback chain and not a switch, and a figure with neither steps nor a
+   canvas resolves to exactly what it resolved to before.
+
+   Three readers besides the rules below: figureCapProbe, --check-fit and the
+   editor all read --dg-fit-w off the computed style, which is the substituted
+   value. Reading --dg-type-w there instead would measure the drawing against
+   a box it is not in. */
+.psi-diagram {
+  --dg-fit-w:     var(--dg-live-type-w, var(--dg-type-w, 100000));
+  --dg-fit-ar:    var(--dg-live-ar, var(--dg-ar, 1));
+  --dg-fit-ink-x: var(--dg-live-ink-x, var(--dg-ink-x, 0));
+}
 .chunk .psi-diagram {
-  --dg-box-w: min(calc(var(--dg-type-w, 100000) * 1em * var(--figure-type, 1)),
-                  calc(var(--slide-h, 100vh) * 0.62 * var(--dg-ar, 1)));
+  --dg-box-w: min(calc(var(--dg-fit-w) * 1em * var(--figure-type, 1)),
+                  calc(var(--slide-h, 100vh) * 0.62 * var(--dg-fit-ar)));
   width: var(--dg-box-w);
   /* The box hugs the drawing now instead of spanning the measure, so it has
      somewhere to sit. Centre by default, matching figure.figure-img above;
@@ -1016,7 +1036,7 @@ figure.figure-img svg {
 }
 body[data-blocks=left] .chunk .psi-diagram,
 .chunk[data-blocks=left] .psi-diagram {
-  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+  margin-inline: calc(-1 * var(--dg-fit-ink-x) * var(--dg-box-w)) auto;
 }
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
 /* style.figure-type answered for one chunk. The key is deck-wide and the
@@ -3388,7 +3408,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    it is the composition rather than a key that asks for the edge, so it does
    not wait for one to be set. */
 .chunk-section[data-section-layout=stack] .section-body .psi-diagram {
-  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+  margin-inline: calc(-1 * var(--dg-fit-ink-x) * var(--dg-box-w)) auto;
 }
 .chunk-section[data-section-layout=stack] .section-body svg {
   /* The heading is one line above it now, so the picture may take almost the
@@ -5682,7 +5702,7 @@ is refused.</p>
 <g id="dg1-rows" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg1-rows--r" x="-77.00" y="40.50" width="154.00" height="27.00" rx="4"/><g id="dg1-rows--lw0" data-lab="rows--l" class="dg-lwrap" transform="translate(0.00,54.00)"><g id="dg1-rows--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">rows</tspan></text></g></g></g>
 <g id="dg1-side" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg1-side--r" x="-77.00" y="94.50" width="154.00" height="27.00" rx="4"/><g id="dg1-side--lw0" data-lab="side--l" class="dg-lwrap" transform="translate(0.00,108.00)"><g id="dg1-side--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">side 2:1</tspan></text></g></g></g>
 <g id="dg1-note" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg1-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(136.40,54.00)"><g id="dg1-note--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">three containers,</tspan><tspan x="0" y="11.58">three jobs</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  cards \"cards 3\"  at 0,0 w 1.1 h 0.5 {.tone-2}\nbox  rows  \"rows\"     below cards gap 0.5 same as cards {.tone-3}\nbox  side  \"side 2:1\" below rows  gap 0.5 same as cards {.tone-1}\ntext note  \"three containers,\\nthree jobs\" right of rows gap 1.1 -- rows {.small .muted .left}","attrs":"unit=140x54","opener":"::: draw 140x54","range":[8550,8827],"chunk":null,"width":null,"alt":""}</script></figure></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg1-root">{"body":"box  cards \"cards 3\"  at 0,0 w 1.1 h 0.5 {.tone-2}\nbox  rows  \"rows\"     below cards gap 0.5 same as cards {.tone-3}\nbox  side  \"side 2:1\" below rows  gap 0.5 same as cards {.tone-1}\ntext note  \"three containers,\\nthree jobs\" right of rows gap 1.1 -- rows {.small .muted .left}","attrs":"unit=140x54","opener":"::: draw 140x54","range":[8550,8827],"chunk":null,"width":null,"canvas":null,"alt":""}</script></figure></div>
   </div>
   
   
@@ -5896,7 +5916,7 @@ second one. Any two numbers work.</p>
 <figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" style="--dg-type-w:30.980;--dg-ar:3.3674;--dg-ink-x:0.02582" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
 <g id="dg2-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg2-a--r" x="-142.50" y="-57.00" width="285.00" height="114.00" rx="4"/><g id="dg2-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">2fr</tspan></text></g></g></g>
 <g id="dg2-b" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg2-b--r" x="155.70" y="-57.00" width="142.50" height="114.00" rx="4"/><g id="dg2-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(226.95,0.00)"><g id="dg2-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">1fr</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"box a \"2fr\" at 0,0 w 1.9 h 1.9 {.tone-2}\nbox b \"1fr\" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}","attrs":"unit=150x60","opener":"::: draw 150x60","range":[12311,12406],"chunk":"side","width":"wide","alt":"`::: side` takes a ratio"}</script></figure>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"box a \"2fr\" at 0,0 w 1.9 h 1.9 {.tone-2}\nbox b \"1fr\" right of a gap 0.22 w 0.95 h 1.9 {.tone-3}","attrs":"unit=150x60","opener":"::: draw 150x60","range":[12311,12406],"chunk":"side","width":"wide","canvas":null,"alt":"`::: side` takes a ratio"}</script></figure>
 
 
 </div></div></div></div>
@@ -6453,7 +6473,7 @@ dock per slide; a <code class="nb">#id</code> link in the body is the live marke
 <g id="dg3-b4" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg3-b4--r" x="284.30" y="-10.20" width="101.48" height="20.40" rx="4"/><g id="dg3-b4--lw0" data-lab="b4--l" class="dg-lwrap" transform="translate(335.04,0.00)"><g id="dg3-b4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 4</tspan></text></g></g></g>
 <g id="dg3-b5" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg3-b5--r" x="395.98" y="-10.20" width="101.48" height="20.40" rx="4"/><g id="dg3-b5--lw0" data-lab="b5--l" class="dg-lwrap" transform="translate(446.72,0.00)"><g id="dg3-b5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 5</tspan></text></g></g></g>
 <g id="dg3-b6" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg3-b6--r" x="507.66" y="-10.20" width="101.48" height="20.40" rx="4"/><g id="dg3-b6--lw0" data-lab="b6--l" class="dg-lwrap" transform="translate(558.40,0.00)"><g id="dg3-b6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 6</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"default box {.tone-2} w 0.86 h 0.6 pad 0.12\n\nbox b1 \"beat 1\" at 0,0\nbox b2 \"beat 2\" right of b1 gap 0.3\nbox b3 \"beat 3\" right of b2 gap 0.3 {.tone-3}\nbox b4 \"beat 4\" right of b3 gap 0.3 {.tone-3}\nbox b5 \"beat 5\" right of b4 gap 0.3 {.tone-1}\nbox b6 \"beat 6\" right of b5 gap 0.3 {.tone-1}\nbrace p1 over b1,b2 \"left pane\" side bottom pad 0.3 {.muted}\nbrace p2 over b3,b4 \"right pane\" side bottom pad 0.3 {.muted}\nbrace p3 over b5,b6 \"the card row\" side bottom pad 0.3 {.muted}","attrs":"unit=118x34","opener":"::: draw 118x34","range":[21155,21629],"chunk":null,"width":null,"alt":""}</script></figure></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"default box {.tone-2} w 0.86 h 0.6 pad 0.12\n\nbox b1 \"beat 1\" at 0,0\nbox b2 \"beat 2\" right of b1 gap 0.3\nbox b3 \"beat 3\" right of b2 gap 0.3 {.tone-3}\nbox b4 \"beat 4\" right of b3 gap 0.3 {.tone-3}\nbox b5 \"beat 5\" right of b4 gap 0.3 {.tone-1}\nbox b6 \"beat 6\" right of b5 gap 0.3 {.tone-1}\nbrace p1 over b1,b2 \"left pane\" side bottom pad 0.3 {.muted}\nbrace p2 over b3,b4 \"right pane\" side bottom pad 0.3 {.muted}\nbrace p3 over b5,b6 \"the card row\" side bottom pad 0.3 {.muted}","attrs":"unit=118x34","opener":"::: draw 118x34","range":[21155,21629],"chunk":null,"width":null,"canvas":null,"alt":""}</script></figure></div>
   </div>
   
   
@@ -6598,14 +6618,14 @@ type above it, and each is still a row in the search index.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">The measurement loop</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" style="--dg-type-w:21.608;--dg-ar:1.8004;--dg-ink-x:0.03702" width="2000" height="1111" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" style="--dg-type-w:21.608;--dg-ar:1.8004;--dg-ink-x:0.03702;--dg-live-type-w:49.523;--dg-live-ar:2.7857;--dg-live-ink-x:0.29799" data-canvas="742.85 266.67 324.13 180.03" width="2000" height="1111" data-live-viewbox="-265.71 -83.42 742.85 266.67" data-live-ratio="0.358977" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
 <g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="dg4-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="dg4-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
 <g id="dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="dg4-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="dg4-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="dg4-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
 <g id="dg4-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg4-edge-3--p" class="dg-stroke" d="M184.35 18.38L184.35 83.52" fill="none"/><path id="dg4-edge-3--h" class="dg-head" d="M184.35 91.17L180.39 82.17L188.31 82.17Z"/></g>
 <g id="dg4-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg4-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
 <g id="dg4-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-site--r" x="156.35" y="-18.38" width="56.00" height="36.75" rx="4"/><g id="dg4-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(184.35,0.00)"><g id="dg4-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
 <g id="dg4-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-score--r" x="112.93" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg4-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(184.35,109.55)"><g id="dg4-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","opener":"::: draw 150x56","range":[24117,24402],"chunk":"bare-loop","width":"full","alt":"The measurement loop"}</script></figure></div></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box crawl \"Crawler\"         at 0,0\nbox site  \"Site\"            right of crawl gap 2.0\nbox score \"Scoring service\" below site gap 1.3\nedge crawl.right:0.3 -> site.left:0.3 \"request\" side top\nedge site.left:0.72 -> crawl.right:0.72 \"page, or not\" side bottom\nedge site -> score {.dashed}","attrs":"unit=150x56","opener":"::: draw 150x56","range":[24117,24402],"chunk":"bare-loop","width":"full","canvas":{"w":742.8511132214835,"h":266.6666666666667,"align":"center"},"alt":"The measurement loop"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="bare-loop">
       <div class="annot-box-label">annotation · bare-loop</div>
@@ -6625,7 +6645,7 @@ type above it, and each is still a row in the search index.</p>
   <div class="chunk-content">
     
     <h2 class="chunk-heading">A figure that walks itself</h2>
-    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206;--dg-ink-x:0.01944" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-live-ink-x="0.01944" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
+    <div class="chunk-body"><div class="reveal-segment" data-seg="0"><figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206;--dg-ink-x:0.01944;--dg-live-type-w:49.523;--dg-live-ar:2.7857;--dg-live-ink-x:0.10075" data-canvas="742.85 266.67 617.16 153.50" width="2000" height="497" data-live-viewbox="-149.85 -86.96 742.85 266.67" data-live-ratio="0.358977" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
 <g id="dg5-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-1--p" class="dg-stroke" d="M75.00 0.00L145.75 0.00" fill="none"/><path id="dg5-edge-1--h" class="dg-head" d="M153.40 0.00L144.40 3.96L144.40 -3.96Z"/></g>
 <g id="dg5-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-2--p" class="dg-stroke" d="M228.40 18.38L228.40 66.72" fill="none"/><path id="dg5-edge-2--h" class="dg-head" d="M228.40 74.38L224.44 65.38L232.36 65.38Z"/></g>
 <g id="dg5-n--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg5-n--lead--p" class="dg-stroke" d="M353.24 92.75L303.40 92.75" fill="none"/><path id="dg5-n--lead--h" class="dg-head" d="M303.40 92.75L303.40 92.75L303.40 92.75Z"/></g>
@@ -6633,7 +6653,7 @@ type above it, and each is still a row in the search index.</p>
 <g id="dg5-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg5-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg5-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="dg5-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
 <g id="dg5-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg5-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="dg5-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="dg5-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
 <g id="dg5-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg5-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="dg5-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg5-root">{"p":"dg5-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg5-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","opener":"::: draw 150x56 autoplay 1400 cycle","range":[24807,25185],"chunk":"autoplay","width":"full","alt":"A figure that walks itself"}</script></figure></div></div>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg5-root">{"p":"dg5-","n":4,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","n--lead--p":"path","n--lead--h":"path","raw--r":"rect","raw--l":"text","inst--r":"rect","inst--l":"text","diff--r":"rect","diff--l":"text","n--l":"text"},"names":["compare","verdict","note"],"frames":[{"vis":{"raw":1,"inst":0,"diff":0,"n":0,"edge-1":0,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":0,"n":0,"edge-1":1,"edge-2":0,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":0,"edge-1":1,"edge-2":1,"n--lead":0},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}},{"vis":{"raw":1,"inst":1,"diff":1,"n":1,"edge-1":1,"edge-2":1,"n--lead":1},"cls":{"raw":"tone-2","inst":"tone-3","diff":"tone-1 emph","n":"small muted left","edge-1":"one-head","edge-2":"one-head","n--lead":"no-head muted"},"lab":{"raw":0,"inst":0,"diff":0,"n":0},"geom":{"raw--r":[-75,-18.37,150,36.75],"raw--l":[0,0,0],"inst--r":[153.4,-18.37,150,36.75],"inst--l":[228.4,0,0],"diff--r":[153.4,74.38,150,36.75],"diff--l":[228.4,92.75,0],"n--l":[359.4,92.75,0],"edge-1--p":[75,0,145.75,0],"edge-1--h":[153.4,0,144.4,3.96,144.4,-3.96],"edge-2--p":[228.4,18.38,228.4,66.72],"edge-2--h":[228.4,74.38,224.44,65.38,232.36,65.38],"n--lead--p":[353.24,92.75,303.4,92.75],"n--lead--h":[303.4,92.75,303.4,92.75,303.4,92.75]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg5-root">{"body":"box  raw  \"raw crawl\"    at 0,0 w 1.0 {.tone-2}\nbox  inst \"instrumented\" right of raw gap 1.4 w 1.0 {.tone-3}\nbox  diff \"difference\"   below inst gap 1.0 w 1.0 {.tone-1}\nedge raw -> inst\nedge inst -> diff\ntext  n \"a difference is a detection\" right of diff gap 1.0 -- diff {.small .muted .left}\n\nstep compare\n  show inst\n\nstep verdict\n  show diff\n  emph diff\n\nstep note\n  show n","attrs":"unit=150x56","opener":"::: draw 150x56 autoplay 1400 cycle","range":[24807,25185],"chunk":"autoplay","width":"full","canvas":{"w":742.8511132214835,"h":266.6666666666667,"align":"center"},"alt":"A figure that walks itself"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="autoplay">
       <div class="annot-box-label">annotation · autoplay</div>
@@ -9226,20 +9246,25 @@ function dgSplineD(v) {
   return d;
 }
 
-// A live view shows the box that holds every beat, not the one that is tight
-// around the finished picture. Three things move together when it is swapped
-// in - the viewBox, the intrinsic height that keeps the box's proportion, and
-// --dg-ink-x, which says where the drawing starts inside that box and is a
-// fraction of a width that has just changed. Two callers (first paint, and an
-// editor write-back that replaces the whole svg), one function, because the
-// first version of this left the property behind in the editor's path and a
-// figure jumped sideways the moment it was edited.
+// A live view shows the box that holds every beat, and - on an ordinary
+// figure chunk - the canvas the slide reserves for a drawing, which is wider
+// and taller than the picture inside it. Neither is the box the documents
+// show, which is tight around the finished drawing.
+//
+// Two things move together when that box is swapped in, and only two: the
+// viewBox and the intrinsic height that keeps its proportion. Both are
+// ATTRIBUTES, which is the whole reason a runtime is involved - the three
+// numbers a stylesheet needs (--dg-live-type-w, --dg-live-ar,
+// --dg-live-ink-x) are emitted beside the print ones and picked with a
+// var() fallback, so nothing about a figure's SIZE waits for this function.
+// It used to set --dg-ink-x here and the first version left the property
+// behind in the editor's path, so a figure jumped sideways the moment it was
+// edited; a value the compiler writes into the markup cannot be left behind.
 function dgUseLiveViewBox(svg) {
   svg.setAttribute('viewBox', svg.dataset.liveViewbox);
   const w = Number(svg.getAttribute('width'));
   const r = Number(svg.dataset.liveRatio);
   if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
-  if (svg.dataset.liveInkX) svg.style.setProperty('--dg-ink-x', svg.dataset.liveInkX);
 }
 
 function dgApplyVec(el, kind, v) {
@@ -9459,6 +9484,14 @@ function dgMirrorIntoFocus(d, step) {
 }
 
 function initDiagrams() {
+  // Every figure that has a live box, stepped or not. It used to be done
+  // inside the loop below, which walks the FRAMES payloads - so a figure with
+  // no steps never got one, and the day a still figure acquired a live box
+  // (the slide's canvas) it was laid out at the canvas's proportion and drawn
+  // at its own: the picture sat in the middle of the reserved rectangle at
+  // whatever scale the two aspect ratios happened to differ by.
+  document.querySelectorAll('svg.psi-diagram[data-live-viewbox]')
+    .forEach(svg => dgUseLiveViewBox(svg));
   document.querySelectorAll('script.psi-diagram-frames').forEach(sc => {
     const svg = document.getElementById(sc.dataset.for);
     if (!svg) return;
@@ -9467,9 +9500,8 @@ function initDiagrams() {
     // The static viewBox is the print one – tight around the finished
     // picture. A live view has to hold every frame instead, or an element
     // that walks in from outside is clipped for the whole of its journey.
-    // Swapped here rather than emitted, so a view with no JavaScript keeps
+    // Swapped above rather than emitted, so a view with no JavaScript keeps
     // the still it is going to show.
-    if (svg.dataset.liveViewbox) dgUseLiveViewBox(svg);
     const fig = svg.closest('.figure-diagram');
     const d = {
       svg, data, step: -1, raf: 0, cur: null, cache: {},
@@ -10647,11 +10679,13 @@ function getOffset(el, parent) {
 // children), and converts once at the end: the cockpit's stage is scaled,
 // and one ratio taken from the container is exactly the factor between the
 // two coordinate systems.
-function paintedSpan(el) {
-  const base = el.getBoundingClientRect();
-  const o = getOffset(el, stage);
-  if (!base.height || !o.height) return null;
-  const scale = base.height / o.height;
+// Split in two, and the client half is the one --check-fit needs. The camera
+// wants the span in the stage's layout coordinates; the probe compares
+// everything against #stage-viewport's client rect, and a probe that
+// re-derived "what is painted" from a selector list of its own would be a
+// second implementation of the exact rule the camera follows. One walk, two
+// coordinate systems.
+function paintedClientSpan(el) {
   let top = Infinity, bottom = -Infinity;
   const walk = (node) => {
     for (const k of node.children) {
@@ -10674,7 +10708,16 @@ function paintedSpan(el) {
   };
   walk(el);
   if (bottom < top) return null;
-  return { top: o.top + (top - base.top) / scale, height: (bottom - top) / scale };
+  return { top, bottom, height: bottom - top };
+}
+function paintedSpan(el) {
+  const base = el.getBoundingClientRect();
+  const o = getOffset(el, stage);
+  if (!base.height || !o.height) return null;
+  const span = paintedClientSpan(el);
+  if (!span) return null;
+  const scale = base.height / o.height;
+  return { top: o.top + (span.top - base.top) / scale, height: span.height / scale };
 }
 function focusCamera(instant = false) {
   // The transform only frames correctly from a viewport at scroll origin.
@@ -11758,7 +11801,8 @@ function nowrapProbe(el) {
 
 // The third thing a slide can fail to do, and the newest. A figure is sized
 // from the type it stands in (.chunk .psi-diagram in AUDIENCE_CSS): the width
-// it wants is --dg-type-w base labels, one label to the em. When that is more
+// it wants is --dg-fit-w base labels, one label to the em - the slide canvas
+// where the chunk has one. When that is more
 // than the column has, or more than the height cap allows, the min() caps it
 // and the drawing stops following the type - so growing the slide's words from
 // there makes the labels relatively SMALLER, which is the inconsistency the
@@ -11803,7 +11847,10 @@ function figureCapProbe(el) {
     let worst = 1;
     for (const svg of figs) {
       const cs = getComputedStyle(svg);
-      const typeW = parseFloat(cs.getPropertyValue('--dg-type-w'));
+      // --dg-fit-w and not --dg-type-w: the live views show the canvas, and
+      // measuring a drawing against the box it is not in reads a figure that
+      // exactly fills its canvas as one that overflowed its column.
+      const typeW = parseFloat(cs.getPropertyValue('--dg-fit-w'));
       const mult = parseFloat(cs.getPropertyValue('--figure-type')) || 1;
       // The svg's own em, which is the text it stands in: the chunk body, a
       // pane, a card. Exactly what the width rule multiplies.
@@ -13979,6 +14026,17 @@ if (document.fonts && document.fonts.ready) {
 }
 #dge-guides * { vector-effect: non-scaling-stroke; }
 #dge-guides .dge-cell { stroke: var(--rule); stroke-width: 0.5; opacity: 0.4; fill: none; }
+/* The slide's canvas. Louder than a cell line and quieter than an element:
+   it is the edge of the frame, not part of the drawing, and an author has to
+   be able to see it without reading it as something they drew. Dashed for the
+   same reason a `zone` is - a line nobody drew. */
+#dge-guides .dge-canvas {
+  stroke: var(--ink-soft, var(--rule));
+  stroke-width: 1;
+  stroke-dasharray: 7 6;
+  opacity: 0.45;
+  fill: none;
+}
 #dge-guides .dge-axis { stroke: var(--rule); stroke-width: 1; opacity: 0.75; }
 #dge-guides .dge-tick { stroke: var(--ink-soft); stroke-width: 1; opacity: 0.5; }
 #dge-guides .dge-ruler-label {
@@ -14698,6 +14756,11 @@ window.PSI_DG = (function () {
 // shows the finished diagram rather than its opening step.
 
 const DG_UNIT = [120, 72];     // default grid cell, px
+// A canvas written in grid units, decimals allowed. Mirrors FRAME_RE in
+// tails.mjs, which reads the same value off the `::: draw` opener; this copy
+// is here because diagram-core has no imports, and the gate holds the two
+// against one another.
+const DG_FRAME_RE = /^\d+(?:\.\d+)?x\d+(?:\.\d+)?$/;
 const DG_FONT = 15;            // base label size, px
 const DG_LINE_H = 1.25;        // line height, multiples of font size
 const DG_PAD_X = 13;           // box padding, px
@@ -15415,6 +15478,18 @@ const DG_SEQ_GROUND = 0.1;
 // label empty and the caption is a separate element. It is the same sentence
 // `pad` says on a box, one level out: how far the type sits from the line.
 const DG_ZONE_PAD = 0.33;
+// ...and at the bottom corner, a little more, because the inset a reader sees
+// is the distance from the dashes to the nearest INK and a line of type does
+// not sit centred in its own box. A label's origin carries half a line box
+// either side; above it, the ink stops at the cap, `0.625 - (0.72 - 0.34)` of
+// the font clear of the edge; below it, a descender reaches to
+// `0.34 + 0.21`, leaving `0.625 - 0.55`. So a `.bottom` caption with a `g` or
+// a `y` in it stood 0.17 of its own font closer to the outline than a top one
+// did - reported as a caption sitting on the line, and measured at 26.7 px
+// against 24.7 on a 120x72 grid. This is that difference, in fonts, added to
+// the bottom corner's nudge alone: the two corners then clear the outline by
+// the same distance, which is the thing the eye was comparing.
+const DG_ZONE_INK_DROP = 0.17;
 // The four words that move the caption out of the top-left. They are the
 // element-label alignment classes one level out: on a box they place the label
 // inside the box, on a zone they place the caption inside the area – the same
@@ -17105,13 +17180,34 @@ function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) {
 // Validated even when no diagram uses it: anything but a `default` statement
 // in there is an error naming the line, because a block that quietly does
 // nothing is the failure mode this grammar keeps closing.
+//
+// **One statement in here is not a `default`, and that is deliberate.**
+// `frame WxH` / `frame none` is the deck's answer to how big a figure's
+// canvas is, in the grid units the opener's own `frame` uses, and it belongs
+// beside the defaults rather than in a frontmatter key of its own: it is
+// lecture-wide, it is about drawings, and it is overridden per figure by the
+// same word on the opener. The compiler never sees it - the canvas arrives as
+// pixels in `opts.canvas` - so it is returned beside the layer and not in it.
 function parseDiagramDefaults(text) {
   const errors = [];
   const layer = { defaults: {}, tagDefaults: [] };
+  let frame = null;
   const lines = String(text ?? '').split('\n');
   for (let n = 0; n < lines.length; n++) {
     const trimmed = lines[n].trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
+    const fm = /^frame\s+(\S+)\s*$/.exec(trimmed);
+    if (fm || trimmed === 'frame') {
+      const v = fm ? fm[1] : '';
+      if (v === 'none') frame = 'none';
+      else if (DG_FRAME_RE.test(v) && Number(v.split('x')[0]) > 0 && Number(v.split('x')[1]) > 0) {
+        frame = `${Number(v.split('x')[0])}x${Number(v.split('x')[1])}`;
+      } else {
+        dgErr(errors, n + 1, `frame takes a canvas in grid units, as in "frame 6x4", or "frame none" `
+          + `to let every drawing set its own size${v ? ` - got "${v}"` : ' - none was written'}`);
+      }
+      continue;
+    }
     const toks = dgTokenize(trimmed);
     const attrTok = toks.find(x => x.attr);
     const attrs = attrTok ? dgParseAttrs(attrTok.v, errors, n + 1)
@@ -17119,12 +17215,12 @@ function parseDiagramDefaults(text) {
 
     const body0 = toks.filter(x => !x.attr && !x.q);
     if ((body0[0] ? body0[0].v : '') !== 'default') {
-      dgErr(errors, n + 1, `draw-defaults holds "default …" statements only, got "${trimmed}"`);
+      dgErr(errors, n + 1, `draw-defaults holds "default …" statements and one "frame …", got "${trimmed}"`);
       continue;
     }
     dgReadDefault(body0, attrs, n + 1, errors, layer, 'lecture');
   }
-  return { layer, errors };
+  return { layer, frame, errors };
 }
 
 // ── diagram layout ──────────────────────────────────────────────────
@@ -20047,13 +20143,18 @@ function createDiagramCompiler(env = {}) {
           const [zuw, zuh] = model.unit;
           const zPad = node.pad != null ? node.pad : DG_ZONE_PAD;
           const padX = zPad * zuh / (zuw || 1);
+          // The optical correction at the foot, in grid units: the caption is
+          // set in its own classes, so the font it is measured against is the
+          // one it will be drawn in rather than a constant.
+          const capClasses = new Set(['small', 'muted', ...corner]);
+          const padDrop = (DG_ZONE_INK_DROP * dgFontFor(capClasses)) / (zuh || 1);
           model.nodes.push({
             kind: 'text', id: capId, synth: id, label: cap,
             classes: ['small', 'muted', ...corner],
             removedClasses: [], tags: [...(attrs.tags || []), dgZoneTag(id)],
             place: { kind: 'abs', anchor: (bottom ? 'b' : 't') + (right ? 'r' : 'l'), at: [
               { ref: id, prop: right ? 'right' : 'left', nudge: right ? -padX : padX },
-              { ref: id, prop: bottom ? 'bottom' : 'top', nudge: bottom ? -zPad : zPad },
+              { ref: id, prop: bottom ? 'bottom' : 'top', nudge: bottom ? -(zPad + padDrop) : zPad },
             ] },
             // The caption is only as visible as the area it names, through
             // the face of the visibility closure that already says a text is
@@ -22301,8 +22402,52 @@ function createDiagramCompiler(env = {}) {
       return [bb.x - DG_MARGIN, bb.y - DG_MARGIN,
         Math.max(bb.w + 2 * DG_MARGIN, 1), Math.max(bb.h + 2 * DG_MARGIN, 1)];
     };
-    const [lvX, lvY, lvW, lvH] = boxFor(liveBoxes.concat(printBoxes));
-    const [vbX, vbY, vbW, vbH] = boxFor(printBoxes.length ? printBoxes : liveBoxes);
+    // ── the canvas ────────────────────────────────────────────────────
+    // **The viewBox is the slide's box, not the drawing's.** Hugging the
+    // content is what made every figure slide settle at its own zoom: the
+    // width the live views ask for is the viewBox measured in labels, so a
+    // drawing 21 labels wide got big type and one 55 wide pulled the whole
+    // slide down, and a deck of twenty figures looked like twenty decks. The
+    // host hands down a canvas in these same units - the chunk's column at
+    // body type - and the box becomes that, with the content anchored inside
+    // it. The drawing's own coordinates are untouched, so no source moves.
+    //
+    // Union, not replacement: content wider or taller than the canvas keeps
+    // the box it needs and is warned about by the host, because a figure
+    // silently cropped to a frame is worse than a figure that is too big.
+    //
+    // Where the drawing sits inside the reserve: **centred down the page,
+    // always, and across it according to `blocks`.** The vertical was written
+    // as a top anchor first, on the reasoning that the spare paper belongs at
+    // the foot of the drawing where the words after it are - and a contact
+    // sheet of a keynote settled it the other way. Reserving half a slide and
+    // anchoring the drawing at its ceiling reads as a figure that has come
+    // loose from the slide, on a bare figure chunk especially, where the
+    // reserve is the whole difference between the picture and the frame. The
+    // horizontal is not the same question: there `blocks: left` is an author
+    // putting the drawing's ink on the text edge, which is a decision about
+    // the slide's one axis and not about spare paper.
+    //
+    // **The canvas is the live views' box, and the documents keep the one
+    // that hugs the drawing.** A slide is a fixed frame and a figure standing
+    // in it is one of a series; a figure in a printed column is apparatus
+    // inside running text, where reserved paper under a small drawing is
+    // simply a gap. It rides the channel a stepped figure's union box already
+    // rides - `data-live-viewbox` for the attribute the runtime swaps, and
+    // `--dg-live-*` beside the print numbers for the three the stylesheets
+    // read - so there is one live box rather than two competing ones.
+    const canvas = opts.canvas || null;
+    const withCanvas = ([bx, by, bw, bh]) => {
+      if (!canvas || !(canvas.w > 0) || !(canvas.h > 0)) return [bx, by, bw, bh];
+      const w = Math.max(bw, canvas.w);
+      const h = Math.max(bh, canvas.h);
+      const x = canvas.align === 'center' ? bx + bw / 2 - w / 2 : bx;
+      return [x, by + bh / 2 - h / 2, w, h];
+    };
+    const contentPrint = boxFor(printBoxes.length ? printBoxes : liveBoxes);
+    const contentLive = boxFor(liveBoxes.concat(printBoxes));
+    const [lvX, lvY, lvW, lvH] = withCanvas(contentLive);
+    const [vbX, vbY, vbW, vbH] = contentPrint;
 
     const kinds = {};
     const fitOf = new Map();
@@ -22495,12 +22640,36 @@ function createDiagramCompiler(env = {}) {
     // The same number the caller may want in Node, where the chunk's width
     // class is known and the label size in the room can therefore be
     // estimated. Optional: the editor compiles in the browser and passes none.
-    if (opts.onSized) opts.onSized({ typeW: Number(typeW), vbW, vbH });
+    // The canvas and what the drawing made of it, in viewBox units, and only
+    // when there is a canvas. Two readers: the host, which rules on overflow
+    // and underfill without a browser, and --check-fit, which reports the
+    // fill of the box the room actually saw. Neither can work it out from the
+    // viewBox alone - a canvas the content exactly fills and a canvas with
+    // nothing in its lower half have the same viewBox.
+    // The live box is the one a room sees, so it is what the two complaints
+    // are measured against: a step may put an element outside the finished
+    // picture, and a canvas is a claim about the whole talk rather than about
+    // its last beat.
+    if (opts.onSized) {
+      opts.onSized({ typeW: Number(typeW), vbW, vbH, canvas,
+                     contentW: contentLive[2], contentH: contentLive[3] });
+    }
+    const canvasAttr = canvas
+      ? ` data-canvas="${canvas.w.toFixed(2)} ${canvas.h.toFixed(2)} ${contentLive[2].toFixed(2)} ${contentLive[3].toFixed(2)}"`
+      : '';
+    // Emitted whenever the live box is not the print one - a stepped figure,
+    // a canvas, or both. The three properties sit beside the print numbers
+    // rather than replacing them, so a stylesheet picks the box its own
+    // medium shows with one var() fallback and no runtime at all; only the
+    // viewBox attribute itself, which CSS cannot set, waits for the runtime.
+    const hasLive = !!canvas || frameCount > 1;
     const svg = `<svg id="${svgId}" class="psi-diagram" viewBox="${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}" `
-      + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)};--dg-ink-x:${inkX}" `
+      + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)};--dg-ink-x:${inkX}`
+      + (hasLive ? `;--dg-live-type-w:${(lvW / DG_FONT).toFixed(3)};--dg-live-ar:${(lvW / lvH).toFixed(4)}`
+        + `;--dg-live-ink-x:${liveInkX}` : '')
+      + `"${canvasAttr} `
       + `width="${DG_NOMINAL_W}" height="${Math.round(DG_NOMINAL_W * vbH / vbW)}" `
-      + (frameCount > 1 ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" `
-        + `data-live-ink-x="${liveInkX}" ` : '')
+      + (hasLive ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" ` : '')
       + `data-steps="${frameCount}"${aria} preserveAspectRatio="xMidYMid meet">\n${svgBody}</svg>`;
     const script = frameCount > 1
       ? `<script type="application/json" class="psi-diagram-frames" data-for="${svgId}">`
@@ -22527,6 +22696,12 @@ function createDiagramCompiler(env = {}) {
         range: opts.range || null,
         chunk: opts.chunk || null,
         width: opts.width || null,
+        // The canvas the build laid this figure out on. The editor re-runs
+        // this compiler in the browser and has no chunk to measure, so
+        // without it every edit would re-render the figure hugging its
+        // content - a drawing that jumps to another size on the first drag
+        // and back on the next build.
+        canvas: canvas || null,
         // The figure's accessible name, which the build takes from the
         // chunk heading. Carried here because the browser has no other way
         // to it, and without it a re-render differs from the build's own
@@ -22552,7 +22727,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, dgAnchorOffset, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, DG_ZONE_PAD, DG_ZONE_CORNERS, dgZoneCapName, dgZoneTag, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, DG_LABEL_ESCAPES, DG_LABEL_WORD, dgSpans, dgMeasure, dgLabelAnchor, DG_SOFT, DG_SOFT_GROUND, dgSegmentsCrossBox, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgDrawsGround, dgInkInset, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, DG_CLASS_VOIDS, rejectVoidPair, rejectClassOn, dgArticle, dgWhere, dgEdgeEnds, dgSite, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, DG_PLACE_OPTS, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FRAME_RE, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, dgAnchorOffset, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, DG_ZONE_PAD, DG_ZONE_INK_DROP, DG_ZONE_CORNERS, dgZoneCapName, dgZoneTag, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, DG_LABEL_ESCAPES, DG_LABEL_WORD, dgSpans, dgMeasure, dgLabelAnchor, DG_SOFT, DG_SOFT_GROUND, dgSegmentsCrossBox, dgOpacity, dgFontFor, dgPadPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgDrawsGround, dgInkInset, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, DG_CLASS_VOIDS, rejectVoidPair, rejectClassOn, dgArticle, dgWhere, dgEdgeEnds, dgSite, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, DG_PLACE_OPTS, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
 window.PSI_DG_EDIT_HTML = false;
@@ -22704,6 +22879,12 @@ function dgeCollectFigures() {
       // its siblings.
       nth: 0,
       width: data.width || 'standard',
+      // The canvas the build laid this figure out on, carried so a re-render
+      // here reserves the same slide box the build did. Without it the first
+      // drag would redraw the figure hugging its content - a drawing that
+      // jumps to another size the moment it is touched and back on the next
+      // build. null for a figure the build gave no canvas.
+      canvas: data.canvas || null,
       alt: data.alt || '',
       images,
       compiler: dgeCompilerFor(images),
@@ -22741,7 +22922,7 @@ function dgeCompile(fig, body) {
       out.errors = window.PSI_DG.dgSortProblems(dgeDedupe(res.errors));
       return out;
     }
-    out.html = fig.compiler.renderDiagram(src, fig.attrs, { prefix: fig.prefix, alt: fig.alt, base });
+    out.html = fig.compiler.renderDiagram(src, fig.attrs, { prefix: fig.prefix, alt: fig.alt, base, canvas: fig.canvas });
     out.ok = true;
   } catch (err) {
     out.errors = dgeErrorsFrom(err);
@@ -23585,7 +23766,11 @@ function dgeApplyFrame() {
   // it (fitZoomToChunk), which the author would rather know here than find in
   // the hall. The canvas itself still shows the drawing filling the frame -
   // this is an editor, and a 14 px preview is not editable.
-  const typeW = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-type-w'));
+  // --dg-fit-w and not --dg-type-w: the box a live view shows is the slide's
+  // canvas where the chunk has one, and a label's size is the box over its
+  // width in labels. The print frame resolves the same property to the print
+  // box, which is what that frame shows.
+  const typeW = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-fit-w'));
   if (typeW > 0) {
     const box = Math.min(m.px - 28, m.capPx === Infinity ? Infinity : m.capPx / ratio);
     const lbl = box / typeW;
@@ -23604,6 +23789,17 @@ function dgeApplyFrame() {
     // leave a band of the measure empty beside the drawing; the width rule
     // hugs it now, and what is left to say is which of the two caps bound.
     note += ` · the ${Math.round(m.capPx)} px height cap is what decides its width here`;
+  }
+  // How much of the slide's canvas this drawing takes, which is the number
+  // the dashed rectangle on the canvas shows and the build warns about. Only
+  // where there is one: a figure under `frame none`, or in a card or a pane,
+  // has no such box and the note would be describing nothing.
+  const cv = (svg.dataset.canvas || '').split(/\s+/).map(Number);
+  if (DGE.frame !== 'print' && cv.length === 4 && cv.every((n) => n > 0)) {
+    const over = cv[2] - cv[0] > 0.5 || cv[3] - cv[1] > 0.5;
+    note += over
+      ? ` · over its canvas, so the slide's type comes down to meet it`
+      : ` · fills ${Math.round(100 * (cv[2] * cv[3]) / (cv[0] * cv[1]))}% of its canvas`;
   }
   frame.dataset.measure = note;
   dgeQ('#dge-frames').querySelectorAll('button').forEach((b) => {
@@ -23718,6 +23914,28 @@ function dgeDrawGuides() {
     grid.appendChild(dgeEl('line', { x1: vx, y1: y, x2: vx + vw, y2: y }));
   }
   g.appendChild(grid);
+
+  // The slide's canvas: the box this figure is given on an ordinary slide,
+  // drawn as a dashed rectangle so the author can see the edge they are
+  // dragging towards. It is the one thing about a figure that is decided
+  // outside the block - the chunk's column and the deck's height reserve -
+  // and without it the only way to learn a drawing had outgrown its slide was
+  // to build and read a warning.
+  //
+  // Where it sits inside the viewBox follows the same two lines the compiler
+  // follows: the content is anchored at the canvas's top on both, and to its
+  // left edge under `blocks: left` or centred on it under `center`. When the
+  // drawing fits, the two boxes are the same and the dashes lie on the edge
+  // of the canvas; when it does not, the dashes are inside the picture and
+  // that is exactly the thing worth seeing.
+  const cv = DGE.fig && DGE.fig.canvas;
+  if (cv && cv.w > 0 && cv.h > 0) {
+    g.appendChild(dgeEl('rect', {
+      class: 'dge-canvas',
+      x: cv.align === 'center' ? vx + (vw - cv.w) / 2 : vx,
+      y: vy, width: cv.w, height: cv.h,
+    }));
+  }
   // The origin, which is where the first element sits for free.
   g.appendChild(dgeEl('g', { class: 'dge-axis' }, [
     dgeEl('line', { x1: vx, y1: 0, x2: vx + vw, y2: 0 }),
