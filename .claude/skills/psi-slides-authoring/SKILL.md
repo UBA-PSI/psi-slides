@@ -82,10 +82,12 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   the eleven types is an `unknown-type` error, not a silent heading.
 - `|` splits the heading into a main line and a typographically quieter second
   line. Further `|` segments are joined into that second line.
-- The attribute tail recognises a width class, `#id`, and six other classes.
-  Two are the chunk's own: `.bare` (keep the heading in the document and off
-  the projection) and `.center` (set this chunk's heading, prose and footnotes
-  on a centre axis, on the projection only). Four answer a `style:` key for
+- The attribute tail recognises a width class, `#id`, and seven other classes.
+  Three are the chunk's own: `.bare` (keep the heading in the document and off
+  the projection), `.center` (set this chunk's heading, prose and footnotes
+  on a centre axis, on the projection only) and `.middle` (keep what the slide
+  paints at this beat on the frame's vertical middle rather than at the top of
+  the space the whole chunk will fill). Four answer a `style:` key for
   this one chunk and are spelled key-value: `.blocks-left` / `.blocks-center` (where a code block, a
   figure and a display formula sit across the measure) and `.wrap-none` /
   `.wrap-balance` (whether this chunk's headings are balanced and its prose
@@ -1369,6 +1371,26 @@ Not for a paragraph of any length: centred prose loses the eye at the start of
 each line, which is why this is a class you write rather than something a
 `figure:` chunk gets by default.
 
+`{.middle}` is the same decision one axis over: it keeps what the slide is
+**painting right now** on the frame's vertical middle, rather than at the top
+of the space the whole chunk will eventually fill. Every chunk is already
+centred as a box – a reveal segment past the first keeps its box so the slide
+does not change height under the room – and that is exactly why a chunk whose
+material arrives downwards opens looking top-heavy: the first line is centred
+inside a reserve nobody can see yet. Measured on a keynote, a three-row
+timeline opened with one row 155 px from the ceiling and 698 px of paper under
+it, and only its last beat looked composed.
+
+Write it on a slide whose *first* beat has to stand on its own – a timeline
+that arrives a row at a time, a claim with its qualification two presses later.
+The cost is that the frame glides a little on each press, the way it already
+does on a chunk taller than the screen; the type never changes size, because
+auto-fit still measures the whole chunk. Leave it off where every beat is meant
+to be read against the ones before it in a fixed place, which is why it is not
+the default. Like `.bare` and `.center` it stops at the live views, and like
+them it is refused on a `title` or `closing` chunk, where the cover
+composition and `cover-align` have already answered the question.
+
 `blocks: left` puts the three things on a slide that are not prose - a code
 block, a figure with its caption, a display formula - on the prose's own axis
 instead of centring them. Reach for it when a chunk is an argument with a
@@ -1682,11 +1704,12 @@ warning go away unread.
 
 ## Gotchas
 
-- Only the eleven types and four widths exist. Six non-width classes exist and no
-  others: `.bare`, `.center`, `.blocks-left`, `.blocks-center`, `.wrap-none`,
-  `.wrap-balance`; anything else is an `unknown class` error. `.bare` and
-  `.center` are not legal on a `title` or `closing` chunk, where the cover
-  composition decides all three questions; the four `style:` classes are, and
+- Only the eleven types and four widths exist. Seven non-width classes exist and no
+  others: `.bare`, `.center`, `.middle`, `.blocks-left`, `.blocks-center`,
+  `.wrap-none`, `.wrap-balance`; anything else is an `unknown class` error.
+  `.bare`, `.center` and `.middle` are not legal on a `title` or `closing`
+  chunk, where the cover composition decides all four questions; the four
+  `style:` classes are, and
   `.wrap-none` on a cover breaks its title greedily.
 - IDs unique across the file, and frozen once authored.
 - `::: flip` requires an enclosing `::: side`.

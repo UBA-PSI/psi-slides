@@ -67,7 +67,11 @@ const VALID_TAGS = new Set([
 // that take one. `.bare` exists because a heading is two things at once -
 // the slide's title and the chunk's name in the TOC, in search and in print
 // - and leaving the text out gives up all four where `.bare` gives up one.
-// The `.wrap-*` / `.blocks-*` classes answer a `style:` key for one chunk.
+// `.center` and `.middle` are the two axes of the same question - where the
+// slide's words sit across the measure, and where what this beat paints sits
+// in the frame - and the second is read by focusCamera rather than by a
+// stylesheet rule. The `.wrap-*` / `.blocks-*` classes answer a `style:` key
+// for one chunk.
 
 // ── syntax highlighting ──────────────────────────────────────────────
 // Shiki is loaded once per process and reused across rebuilds. Output
@@ -3732,6 +3736,7 @@ function parseAttributeTail(line, { column = false } = {}) {
   if (t.slots.width.written) out.width = t.slots.width.value;
   if (t.slots.bare.written) out.bare = true;
   if (t.slots.center.written) out.center = true;
+  if (t.slots.middle.written) out.middle = true;
   for (const key of ['wrap', 'blocks']) {
     if (!t.slots[key].written) continue;
     (out.styleOverrides ??= {})[key] = CHUNK_STYLE_CLASSES[t.slots[key].value][1];
@@ -4481,7 +4486,7 @@ function parseLecture(src) {
           columns.push(currentColumn);
         }
         const h2Attr = parseAttributeTail(h2[1]);
-        const { text, width, id, bare, center } = h2Attr;
+        const { text, width, id, bare, center, middle } = h2Attr;
         const { tag, heading, headingSub } = parseTagPrefix(text);
         // A title or closing chunk is placed by its cover composition: both
         // renderers hardcode data-width="full", and the heading is the
@@ -4502,9 +4507,9 @@ function parseLecture(src) {
           err.userFacing = true;
           throw err;
         }
-        if ((tag === 'title' || tag === 'closing') && (width || bare || center)) {
+        if ((tag === 'title' || tag === 'closing') && (width || bare || center || middle)) {
           const err = new Error(
-            `A ${tag} chunk carries .${width || (bare ? 'bare' : 'center')}, which its cover composition decides ("${text}").\n` +
+            `A ${tag} chunk carries .${width || (bare ? 'bare' : center ? 'center' : 'middle')}, which its cover composition decides ("${text}").\n` +
             '  A title or closing slide is always full width, its heading is the\n' +
             '  composition\'s, and where its words sit is cover-align\'s - so none\n' +
             '  of these classes has anything to act on.');
@@ -4522,6 +4527,7 @@ function parseLecture(src) {
           width: width || (tag === 'outline' ? 'wide' : 'standard'),
           bare: !!bare,
           center: !!center,
+          middle: !!middle,
           // The `style:` keys this one chunk answers differently, or null.
           // Null and not an empty object so every renderer's attribute
           // helper can leave in one line, and so a chunk that wrote none of
@@ -8307,13 +8313,21 @@ pre.shiki .line { display: inline; }
 
 // ── audience rendering ───────────────────────────────────────────────
 
-// Expansion labels resolve to a fixed vocabulary of chevron
-// abbreviations. The label string in source is free-form and
-// descriptive (e.g. "format-spec", "None-vs-False"); the chevron
-// only shows one of the canonical categories from PRD §2, which
-// keeps the UI readable and honest about what kind of aside the
-// student is about to open. Unknown labels fall back to "Exp" –
-// "this is an explanation" – never to a truncated slug.
+// The chip on an unopened expansion used to wear one of these
+// abbreviations instead of the author's own label, on the argument that a
+// fixed vocabulary keeps the strip readable and honest about what kind of
+// aside is behind the chip. Measured on a keynote, it is the opposite: a
+// chip reading EXP stood for an expansion labelled "Fehlermeldung", the
+// fallback screen for a live demo, and the one word that said what pressing
+// it would show had been thrown away by the renderer. Every label longer
+// than the table's prefixes lands on that fallback, so the more descriptive
+// the author was, the less the room was told.
+//
+// So the chip carries the label, and this table is what it carries when
+// there is none - a `::: expand` with no word after it, where "Exp" is
+// still better than an empty button. The open pane has always shown the
+// label in full (.tag-label), which is the other half of why the chip
+// saying something else read as a defect rather than as a convention.
 function abbrevForLabel(label) {
   const l = String(label || '').toLowerCase();
   if (!l) return 'Exp';
@@ -8507,6 +8521,11 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   // prose starts at the far edge of a wide slide while the drawing sits in
   // the middle and the two read as unrelated blocks.
   const centerAttr = chunk.center ? ' data-center=""' : '';
+  // `.middle` is the same kind of decision one axis over, and it is read by
+  // the camera rather than by the stylesheet: see focusCamera. Audience-only
+  // for the reason the other two are - a printed page has no frame to be
+  // centred in.
+  const middleAttr = chunk.middle ? ' data-middle=""' : '';
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
 
   // No tag eyebrow on the projection. The word announced a taxonomy that is
@@ -8551,8 +8570,8 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
 
   const chevsHtml = expandList.length
     ? `<div class="exps">${expandList.map((e, i) =>
-      `<button class="exp-chev" type="button" data-exp="${i}">
-         <span>${escapeHtml(abbrevForLabel(e.label))}</span>
+      `<button class="exp-chev" type="button" data-exp="${i}" title="${escapeHtml(e.label || abbrevForLabel(e.label))}">
+         <span class="exp-name">${escapeHtml(e.label || abbrevForLabel(e.label))}</span>
          <span class="caret">›</span>
        </button>`).join('')}</div>`
     : '';
@@ -8585,7 +8604,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdAttr = (bd.html ? ' data-has-backdrop=""' : '') + (overlaysHavePanel(chunk.overlays) ? ' data-has-panel=""' : '');
 
-  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}${dockAttrs(chunk.dock)}>
+  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${middleAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}${dockAttrs(chunk.dock)}>
   ${bd.html}
   <div class="chunk-content">
     ${tagLabel}
@@ -9483,11 +9502,49 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
    what "full" was meant to buy - so the wider column is the author-written
    class's alone. */
 
+/* One gap for the whole slide, and the unit it is written in is the trap
+   that made it three.
+
+   .chunk-content inherits the chunk's own font size, which is the responsive
+   body size and carries no zoom; .chunk-body sets 1em times --zoom times
+   --body-scale, and its paragraphs put 0.7em of *that* between them. So
+   gap: 0.6em here and margin-bottom: 0.7em there were never the same number,
+   and the difference grew with every press of the zoom key: measured on a
+   keynote's #busfaktor at 1600x900 and zoom 1.75, 14 px between the heading
+   and the first paragraph against 29 px between two paragraphs of one
+   segment - the prose hung closer to the heading than to itself. Two reveal
+   segments had no gap at all, because the last paragraph of a segment zeroes
+   its own bottom margin, so a beat boundary read as *tighter* than a
+   paragraph break inside one beat: the wrong way round of the only hierarchy
+   a slide of prose has.
+
+   --block-gap is that one number: 0.7 of the base type times the same two
+   factors the body size carries, which resolves to exactly the paragraph
+   margin. The gaps a tag sets for its own reasons stay, as a floor rather
+   than a value - a heading may stand further from its prose than two
+   paragraphs stand from each other, never nearer.
+
+   In rem and not in em, which is the second half of the same trap: a custom
+   property holding an em resolves it against whichever element *uses* it, so
+   one written on .chunk and read inside .chunk-body would pick the body's
+   already-zoomed size up and square the zoom. The root font size IS the
+   chunk's - html carries the clamp and nothing between them re-declares it -
+   so a rem is the same number with no element to get wrong.
+
+   This makes existing decks a little taller: one block gap where two
+   segments met, and the difference between 0.6em and 0.7em times the zoom
+   under every heading - tens of px on a text slide, and under auto-fit a
+   slide that was at its ceiling comes back a step. */
+.chunk {
+  --body-fs: calc(1rem * var(--zoom) * var(--body-scale));
+  --block-lead: 0.7;
+  --block-gap: calc(var(--block-lead) * var(--body-fs));
+}
 .chunk-content {
   grid-column: 2;
   display: flex;
   flex-direction: column;
-  gap: 0.6em;
+  gap: max(0.6em, var(--block-gap));
   position: relative;
 }
 
@@ -9587,13 +9644,27 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   letter-spacing: -0.012em;
   color: var(--ink);
 }
+/* The body size is a variable because the block gap is 0.7 of it and the two
+   have to move together: four tags set a body size of their own, and with the
+   size written here and the gap written on .chunk the gap would have been
+   0.7 of a size three of them do not use. Reading one token is also what
+   lets a tag change its type scale in one line instead of two. */
 .chunk-body {
-  font-size: calc(1em * var(--zoom) * var(--body-scale));
+  font-size: var(--body-fs);
   line-height: 1.5;
   text-align: left;
 }
-.chunk-body p { margin: 0 0 0.7em 0; }
+.chunk-body p { margin: 0 0 var(--block-gap) 0; }
 .chunk-body p:last-child { margin-bottom: 0; }
+/* A beat boundary is at least a paragraph break, and it used to be none at
+   all: the last paragraph of a segment zeroes its own bottom margin, so two
+   segments met flush while two paragraphs inside one segment stood 0.7em
+   apart. One number for both - the same --block-gap the heading stands off
+   by - and the reading hierarchy comes out in the order it is written in.
+   On the hidden segments too, which cost nothing: past the opening beat a
+   segment keeps its box and only its visibility changes, so the gap is
+   standing from beat 0 and no press moves the slide. */
+.chunk-body > .reveal-segment + .reveal-segment { margin-top: var(--block-gap); }
 .chunk-body strong { font-weight: var(--bold-weight); color: var(--emph); }
 .chunk-body em { font-style: italic; }
 /* A link is styled for the whole live surface, not only inside .chunk-body.
@@ -9605,7 +9676,7 @@ body[data-slide-nums=off] .chunk-num { display: none; }
    specificity. Print already styles the bare element for the same reason. */
 a { color: var(--emph); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
 a:hover { text-decoration-thickness: 2px; }
-.chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
+.chunk-body ul, .chunk-body ol { margin: 0 0 var(--block-gap) 1.4em; }
 /* Adjacent items were 0.15em apart at line-height 1.5, so the gap between
    two items was smaller than the leading inside a two-line item and a list
    read as one block of text with dots in it. The gap is now larger than the
@@ -10203,7 +10274,8 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   background: var(--ink);
   margin-bottom: 0.4em;
 }
-.chunk[data-tag=principle] .chunk-body { font-size: calc(1.2em * var(--zoom) * var(--body-scale)); line-height: 1.4; }
+.chunk[data-tag=principle] { --body-fs: calc(1.2rem * var(--zoom) * var(--body-scale)); }
+.chunk[data-tag=principle] .chunk-body { line-height: 1.4; }
 .chunk[data-tag=principle] .chunk-heading { font-size: calc(1.8em * var(--zoom) * var(--heading-scale)); }
 
 .chunk[data-tag=definition] .chunk-content::before {
@@ -10228,9 +10300,10 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    line, which is why it carried the default, and still the wrong place for it.
    Write .center on the chunk, or headings: center in the style block for a deck
    that wants the axis throughout. */
-.chunk[data-tag=question] .chunk-content { gap: 0.8em; align-items: flex-start; }
+.chunk[data-tag=question] .chunk-content { gap: max(0.8em, var(--block-gap)); align-items: flex-start; }
 .chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom) * var(--heading-scale)); font-weight: 500; }
-.chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom) * var(--body-scale)); color: var(--ink-soft); }
+.chunk[data-tag=question] { --body-fs: calc(1.15rem * var(--zoom) * var(--body-scale)); }
+.chunk[data-tag=question] .chunk-body { color: var(--ink-soft); }
 
 /* A statement slide: a few lines of large type, arriving one per press.
    The heading is the first line and every top-level paragraph is another
@@ -10255,7 +10328,18 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    title over a list. */
 .chunk[data-tag=statement] {
   --statement-scale: 2.1;
-  --statement-size: calc(var(--statement-scale) * 1em * var(--zoom) * var(--heading-scale));
+  /* In rem rather than em because --body-fs below carries it down to the
+     paragraphs, and --block-gap is 0.55 of --body-fs: an em inside a custom
+     property resolves against whichever element reads it, so a paragraph
+     already set at 2.1 rem would have squared the scale in its own margin. */
+  --statement-size: calc(var(--statement-scale) * 1rem * var(--zoom) * var(--heading-scale));
+  /* This tag solved the gap problem for itself before there was one number
+     for the whole slide; now it says the same thing in that number's terms,
+     so a statement's two lines stand apart by exactly what separates a
+     heading from its prose on any other slide - and a beat boundary between
+     two of them matches, which it did not before. */
+  --body-fs: var(--statement-size);
+  --block-lead: 0.55;
   /* The space between two lines, written so that the one between the
      heading and the first paragraph is the same as the one between two
      paragraphs. It cannot be the same declaration twice: the paragraph's
@@ -10269,17 +10353,18 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 }
 .chunk[data-tag=statement] .chunk-heading { font-size: var(--statement-size); }
 .chunk[data-tag=statement] .chunk-body {
-  font-size: var(--statement-size);
+  font-size: var(--body-fs);
   font-weight: 600;
   line-height: 1.15;
   letter-spacing: -0.012em;
   color: var(--ink);
 }
-/* The gap between two lines is one decision and it is made here rather than
-   by the paragraph margin alone, because a line can arrive as its own
+/* The gap between two lines is one decision, and a line can arrive as its own
    reveal segment (a --- rule) or as a second paragraph inside one, and the room
-   must not be able to tell which. Both routes land on a top-level <p>. */
-.chunk[data-tag=statement] .chunk-body p { margin: 0 0 0.55em; }
+   must not be able to tell which. That rule now holds for every tag - the
+   paragraph margin, the segment margin and the content gap all read
+   --block-gap - so the declaration this tag used to carry is gone rather
+   than restated: --block-lead above is the whole of it. */
 .chunk[data-tag=statement] .chunk-content { gap: var(--statement-gap); }
 /* What a bold inside a statement line looks like is deliberately NOT
    answered here. DERIVED_STRONG already reaches these paragraphs at (0,4,3)
@@ -10295,8 +10380,9 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
 }
-.chunk[data-tag=figure] .chunk-content { align-items: center; gap: 0.9em; }
-.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
+.chunk[data-tag=figure] .chunk-content { align-items: center; gap: max(0.9em, var(--block-gap)); }
+.chunk[data-tag=figure] { --body-fs: calc(0.9rem * var(--zoom)); }
+.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; color: var(--ink-soft); }
 /* That 40em is a caption measure - the words under the picture - and on a
    figure chunk the picture is inside the same box. It did not matter while a
    drawing filled whatever box it was given; now that the drawing is sized
@@ -12088,7 +12174,20 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    wide enough to do that on its own, and the padding goes away with the
    ground it was insetting from. */
 .cards.cg-clear   { --card-py: 0; --card-px: 0; }
-.cards.cg-clear   { gap: calc(2.1em * var(--card-fs, 1)); }
+.cards:not(.rows).cg-clear { gap: calc(2.1em * var(--card-fs, 1)); }
+/* The gutter and nothing else. gap is a shorthand and this rule comes after
+   the one that gives a rows block its row-gap, so written as gap it set both,
+   and a stack of rows with no ground got 2.1em of air between lines about
+   1.4em tall. Measured on a keynote's #drei-jahre: three one-line rows at a
+   155 px pitch in a 900 px frame - a whole empty line between each pair - and
+   the review that found it read the air as a beat marker reserving a row,
+   which it is not. A reveal marker inside a rows block is display: none, and
+   a rows block builds the same three grid tracks with the markers and without
+   them; a fixture deck of the two says so. The wide gutter is still what
+   separates two clear cards side by side, and here it is what separates a
+   term from its body, so it stays on the column axis. Same shorthand trap as
+   the two transition rules on .chunk-backdrop, one stylesheet down. */
+.cards.rows.cg-clear { column-gap: calc(2.1em * var(--card-fs, 1)); }
 .cards.ca-left   { --card-align: left; }
 .cards.ca-center { --card-align: center; }
 .cards.cv-top    { --card-anchor: flex-start; --row-anchor: start; }
@@ -12510,10 +12609,28 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   letter-spacing: -0.014em;
 }
 
-/* margin notes: inline below body, dimmed, small */
+/* margin notes: inline below body, dimmed, small.
+
+   Bounded rather than a plain multiple of the zoom, because on a figure
+   slide the zoom is not the type size - it is whatever auto-fit had to solve
+   for to get the drawing into the frame, and a drawing's own labels are
+   pinned to its grid rather than to that number. So the same press that left
+   a figure's box labels at 17 px left the source line under it at 35 px, and
+   the quietest thing on the slide was the loudest. Measured on a keynote:
+   #drei-jahre solved to zoom 1.9 and set its footnote at 34.7 px against
+   figure labels of 20; #handbuch, #kolloquium and #video were the same
+   complaint one step smaller.
+
+   The ceiling is what 0.78em resolves to at the deck's own opening zoom
+   (1.35), so a slide auto-fit did not have to touch is unmoved and only the
+   ones it pushed past the default come back. The floor keeps a footnote
+   readable on a slide auto-fit had to shrink hard. In rem for the reason
+   --block-gap is: the value has to mean the same thing wherever it is read.
+   Between the two it still follows the zoom, so the key that makes the type
+   bigger still makes this bigger. */
 .margin-note {
   font-family: var(--sans-font);
-  font-size: calc(0.78em * var(--zoom));
+  font-size: clamp(0.7rem, calc(0.78rem * var(--zoom)), 1.05rem);
   line-height: 1.45;
   color: var(--ink-soft);
   padding: 0.6em 0 0.2em;
@@ -12732,6 +12849,12 @@ body[data-note-button=off] .annot-add { display: none; }
   transition: color 150ms, border-color 150ms, background 150ms;
   white-space: nowrap;
 }
+/* A ceiling on the author's own words, because the strip is anchored to the
+   right edge of the slide and a label nobody thought about is the one thing
+   that could push a second chip off it. 14em of all-small-caps is about six
+   words; past that the chip ellipsises and the title attribute holds the
+   rest. */
+.exp-chev .exp-name { max-width: 14em; overflow: hidden; text-overflow: ellipsis; }
 .exp-chev:hover { color: var(--ink); border-color: var(--ink); }
 .exp-chev .caret { opacity: 0.55; }
 .exp-chev.on { color: var(--paper); background: var(--ink); border-color: var(--ink); }
@@ -14906,6 +15029,50 @@ function getOffset(el, parent) {
   while (n && n !== parent) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
   return { left: x, top: y, width: el.offsetWidth, height: el.offsetHeight };
 }
+// The vertical extent of what is actually painted inside a box, in the same
+// layout coordinates getOffset answers in. Only a .middle chunk reads it (see
+// focusCamera), and it exists because offsetHeight cannot answer the
+// question: a segment past the opening beat keeps its box and a beat below
+// the top level keeps its row, by design, so the box is the chunk's final
+// shape from beat 0 and says nothing about what the room can see.
+//
+// Client rects and not offsets, because the things that are painted are
+// often not the things that have an offsetParent - a rows block dissolves
+// its list into the grid with display: contents, and a dissolved element has
+// no box at all. So the walk descends through anything with no box of its
+// own, stops at anything holding its own text (whose box covers its
+// children), and converts once at the end: the cockpit's stage is scaled,
+// and one ratio taken from the container is exactly the factor between the
+// two coordinate systems.
+function paintedSpan(el) {
+  const base = el.getBoundingClientRect();
+  const o = getOffset(el, stage);
+  if (!base.height || !o.height) return null;
+  const scale = base.height / o.height;
+  let top = Infinity, bottom = -Infinity;
+  const walk = (node) => {
+    for (const k of node.children) {
+      if (k.hasAttribute('data-hidden') || k.hasAttribute('data-beat-hidden')) continue;
+      const cl = k.classList;
+      // Chrome that lives inside the content box and is not the slide.
+      if (cl.contains('annot-box') || cl.contains('annot-add') || cl.contains('exps')) continue;
+      const r = k.getBoundingClientRect();
+      const boxed = r.width > 0 || r.height > 0;
+      const tag = k.tagName;
+      const atom = tag === 'svg' || tag === 'IMG' || tag === 'HR' || tag === 'PRE' || tag === 'CANVAS';
+      const ownText = [...k.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+      if (boxed && (atom || ownText || !k.children.length)) {
+        if (r.top < top) top = r.top;
+        if (r.bottom > bottom) bottom = r.bottom;
+        continue;
+      }
+      walk(k);
+    }
+  };
+  walk(el);
+  if (bottom < top) return null;
+  return { top: o.top + (top - base.top) / scale, height: (bottom - top) / scale };
+}
 function focusCamera(instant = false) {
   // The transform only frames correctly from a viewport at scroll origin.
   resetViewportScroll();
@@ -14985,7 +15152,27 @@ function focusCamera(instant = false) {
     // by design, and centring it pushed the band off the bottom edge.
     const fitEl = entry.el.hasAttribute('data-dock') || entry.el.hasAttribute('data-has-panel') ? null : entry.el.querySelector('.chunk-content');
     const fit = fitEl ? getOffset(fitEl, stage) : { top, height };
-    if (fit.height <= vp.height) {
+    // The .middle class on the chunk. The box above is the one the reveals will
+    // fill, and it is dead-centred already - measured on a keynote, every
+    // chunk-content box sat with equal paper above and below it. What the
+    // room sees at the opening beat is not that box: a chunk whose reveals
+    // arrive downwards paints its first line at the top of a reserve that is
+    // still empty, and #drei-jahre opened with one row of type 155 px from
+    // the ceiling and 698 px of paper under it.
+    //
+    // There is no arrangement that both centres every beat and leaves every
+    // beat where the last one put it - a stack that grows downwards cannot
+    // hold each prefix centred and each row still. So this is opt-in and it
+    // chooses centring: the camera frames what is painted now. Nothing in
+    // the slide moves relative to anything else in it, the reserved height
+    // is untouched, and auto-fit still measures the whole box, so the type
+    // is the same size on every beat - the frame glides, on the same 250 ms
+    // transition that already follows the foot of a chunk taller than the
+    // screen.
+    const shownFit = (fitEl && entry.el.hasAttribute('data-middle')) ? paintedSpan(fitEl) : null;
+    if (shownFit && shownFit.height <= vp.height) {
+      ty = vp.height / 2 - (shownFit.top + shownFit.height / 2);
+    } else if (fit.height <= vp.height) {
       ty = vp.height / 2 - (fit.top + fit.height / 2);
     } else {
       // A chunk taller than the frame cannot be framed, so it is walked: its
@@ -21739,6 +21926,37 @@ async function openAudienceProbe(absIn, label, viewport, verb = 'read') {
   return { browser, page };
 }
 
+// Hold still before looking. Both probes below press a key and then wait a
+// fixed 360 ms, which is longer than a reveal's 180 ms fade and the 260 ms
+// crossfade - and shorter than two things that matter: the camera's own
+// glide, and a `::: backdrop … reveal` at 620 ms. A picture taken at 360 ms
+// of that reveal is the clip-path part-way open, and a full-frame photograph
+// is then a centred rectangle with paper round it: measured on a keynote,
+// #klausur came out 1352x775 in a 1600x900 frame and #projektmesse 1260x708,
+// and both were read off the contact sheet as a layout defect - the backdrop
+// being scaled with the slide - which they are not. The DOM says
+// inset(0) and background-size: cover at rest; the camera had simply
+// photographed a state the projection passes through.
+//
+// So wait for the transitions rather than for a number. getAnimations() sees
+// CSS transitions and animations, which is every one of the cases above; a
+// figure `step` is tweened in JavaScript and is covered by the fixed wait the
+// callers keep. The cap is there because a deck may hold a looping animation
+// (an autoplaying figure, a caret) that never finishes, and a probe that
+// waits for one of those would never return.
+const PROBE_SETTLE_MS = 1200;
+function settleProbe(page, cap = PROBE_SETTLE_MS) {
+  return page.evaluate((ms) => new Promise((done) => {
+    const t0 = performance.now();
+    const tick = () => {
+      const running = document.getAnimations().some(a => a.playState === 'running');
+      if (!running || performance.now() - t0 > ms) { done(Math.round(performance.now() - t0)); return; }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  }), cap).catch(() => 0);
+}
+
 // WIDTHxHEIGHT off the command line, for both commands that take one. Exits
 // rather than falling back to the default: a mistyped viewport that silently
 // measures 1600x900 answers a question nobody asked.
@@ -21791,6 +22009,7 @@ async function runFrames(absIn, viewport, outDir) {
   for (let i = 0; i < 400; i++) {
     const id = await where();
     if (!id) break;
+    await settleProbe(page);
     const shot = await page.screenshot();
     const hash = crypto.createHash('sha1').update(shot).digest('hex');
     if (hash === lastHash) { if (++same >= 2) break; }
@@ -21937,6 +22156,7 @@ async function runCheckFit(absIn, viewport) {
   const figType = new Map();
   let states = 0, lastHash = null, same = 0;
   for (let i = 0; i < 400; i++) {
+    await settleProbe(page);
     const st = await probe();
     if (!st) break;
     const shot = await page.screenshot();
@@ -21985,16 +22205,30 @@ async function runCheckFit(absIn, viewport) {
   const tall = all.filter(b => b.h > b.vpH);
   const where = `${viewport.width}x${viewport.height}`;
   reportFigureType(figType, where);
+  // Named, all of them, and on their own lines. The summary used to carry a
+  // count and the first four ids, which is the shape of a line nobody can act
+  // on: a deck with nine tall chunks got "9 chunk(s) … (#a, #b, #c, #d, …)"
+  // and the author had no way to find the other five but to walk the deck.
+  // They are still not a failure and still change no exit code - a tall chunk
+  // is shown by scrolling and the author may well have meant it - so this is
+  // a list to read, with the height beside each name so the ones that are
+  // barely over can be told from the ones that are twice the frame.
   const tallNote = tall.length
-    ? ` ${tall.length} chunk(s) are taller than the frame and are read by scrolling`
-      + ` (${tall.slice(0, 4).map(b => '#' + b.id).join(', ')}${tall.length > 4 ? ', …' : ''}).`
+    ? ` ${tall.length} chunk(s) are taller than the frame and are read by scrolling:`
     : '';
+  const tallLines = tall
+    .slice()
+    .sort((a, b) => b.h - a.h)
+    .map(b => `  #${b.id} (${b.tag}${b.width ? ', .' + b.width : ''}) – ${b.h} px`
+      + ` in a ${b.vpH} px frame, walked from beat ${b.beat}.`);
   if (!clipped.length) {
     console.log(`[check-fit] ${states} state(s) at ${where}: every slide that fits the frame is inside it.${tallNote}`);
+    for (const line of tallLines) console.log(line);
     return 0;
   }
   console.error(`[check-fit] ${states} state(s) at ${where}: ${clipped.length} slide(s) fit the frame`
     + ` and are positioned outside it.${tallNote}`);
+  for (const line of tallLines) console.error(line);
   for (const b of clipped) {
     const side = b.top < 0 && b.bottom > b.vpH ? 'clipped at both ends'
       : b.top < 0 ? `${-b.top} px off the top` : `${b.bottom - b.vpH} px off the bottom`;
@@ -22434,6 +22668,7 @@ function squintScan() {
     section: art.dataset.section || '',
     bare: art.hasAttribute('data-bare'),
     center: art.hasAttribute('data-center'),
+    middle: art.hasAttribute('data-middle'),
     col: col ? Number(col.dataset.col) : -1,
     lines,
     sig: [art.dataset.chunkId, steps, clips, lines.length,
@@ -22514,10 +22749,10 @@ function formatSquint(doc) {
   w(...SQUINT_LEGEND);
   w('');
   w('A slide opens with its id, its type and its width, then whatever else is');
-  w('true of it: the cover or divider composition, .bare or .center, how many');
-  w('beats it has, how long its speaker note is. Notes are counted and never');
-  w('quoted - they are the one thing certainly not on the projection, and');
-  w('print-notes.html is the file for reading them.');
+  w('true of it: the cover or divider composition, .bare, .center or .middle,');
+  w('how many beats it has, how long its speaker note is. Notes are counted');
+  w('and never quoted - they are the one thing certainly not on the');
+  w('projection, and print-notes.html is the file for reading them.');
   w('');
   w('It cannot see colour, contrast, overlap, or anything below the fold -');
   w('a slide can be in this file in full and unreadable on the wall. Use');
@@ -22535,7 +22770,7 @@ function formatSquint(doc) {
     }
     const flags = [c.tag || 'free', c.width || '',
       c.cover ? 'cover=' + c.cover : '', c.section ? 'divider=' + c.section : '',
-      c.bare ? '.bare' : '', c.center ? '.center' : '',
+      c.bare ? '.bare' : '', c.center ? '.center' : '', c.middle ? '.middle' : '',
       c.beats > 1 ? c.beats + ' beats' : '',
       c.noteWords ? 'note ' + c.noteWords + ' words' : ''].filter(Boolean);
     w('');
