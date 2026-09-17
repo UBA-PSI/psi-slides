@@ -7235,6 +7235,19 @@ export function createDiagramCompiler(env = {}) {
         // It is decided per beat, off this beat's route and this beat's label,
         // and rides in the frame's own class string, so a `move` step that
         // slides a box away takes the halo with it.
+        // **A free `text` a line runs through is deliberately NOT covered by
+        // this.** The case exists and it is a real defect - a note hung
+        // between two boxes with the arrow between them drawn through the
+        // middle of the words, measured on a keynote - but the compiler
+        // cannot tell it from the opposite intention, and both are in the
+        // corpus: `lectures/diagrams` `#anchors` draws one dashed rule
+        // *through* two rows of labels, because where that rule crosses each
+        // label is the whole argument of the figure. A knockout there punches
+        // a hole in the thing the slide is about. An edge's own label is the
+        // case with no such reading, which is why the rule stops there; a
+        // note on somebody else's line is the author's to ground with
+        // `{.paper}`, or to write as that edge's label and let the offset
+        // carry it clear.
         if (!grounded) {
           const hw = (turned ? m.h : m.w) / 2, hh = (turned ? m.w : m.h) / 2;
           const box = { x: lx - hw, y: ly - hh, w: hw * 2, h: hh * 2 };
