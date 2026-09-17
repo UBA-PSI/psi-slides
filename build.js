@@ -6169,6 +6169,17 @@ const VIEW_DEFAULT_SPEC = [
   // reason the view is one long board rather than a stack of cards. `hidden`
   // is the keynote answer - a frame that shows the slide and nothing else.
   ['neighbours',    'neighbours', ['dim', 'hidden']],
+  // What a slide change looks like. `pan` is the lecture behaviour and the
+  // default: the stage is one continuous column and the camera glides to
+  // the next chunk over --camera-duration, which is what tells the room
+  // that the slides are a board rather than a pile. `cut` lands the camera
+  // in no time at all and `fade` dips the stage through the paper and back,
+  // which are the two things every other slide tool does and the two a
+  // keynote is usually asking for. Only the *slide change* is affected: a
+  // reveal, a figure step, a .middle chunk's per-press glide and the walk
+  // down a chunk taller than the frame all keep their motion in every mode,
+  // because those are things happening on a slide that is already there.
+  ['transition',    'transition', ['pan', 'cut', 'fade']],
 ];
 // ── lecture-wide typographic settings (the `style:` block) ───────────
 // Three knobs an author reaches for on a whole lecture rather than on one
@@ -6769,6 +6780,25 @@ function printSlideNums(frontmatter = {}) {
   const d = viewDefaults(frontmatter);
   return d.printSlideNums || d.slideNums || SLIDE_NUM_DEFAULT;
 }
+// How a slide change is drawn: pan (the default), cut or fade.
+function slideTransition(frontmatterDefaults = {}) {
+  return frontmatterDefaults.transition || 'pan';
+}
+// What the projection does with the slide before and the slide after, once
+// the transition has had its say. The same shape as printSlideNums(), for
+// the same reason: viewDefaults() writes a key only when the frontmatter
+// carried it, so "unset" is a fourth state, and this is the one documented
+// step that turns it into a value.
+//
+// `neighbours` when the author wrote one. Otherwise `dim` under a pan, and
+// `hidden` under a cut or a fade – where the camera does not travel, so a
+// neighbour is never passed on the way and the only thing a dimmed one can
+// do is sit at the edge of a zoomed-out frame or smear through a fade. The
+// author can still write `dim` next to either and get it.
+function neighbourMode(frontmatterDefaults = {}) {
+  if (frontmatterDefaults.neighbours) return frontmatterDefaults.neighbours;
+  return slideTransition(frontmatterDefaults) === 'pan' ? 'dim' : 'hidden';
+}
 // Body attributes for a live view, so the first paint already has the
 // author's font and theme. applyFontTheme() would correct them at boot, but
 // only after a visible flash of the built-in defaults.
@@ -6788,7 +6818,11 @@ function viewBodyAttrs(defaults, extra = '') {
     // writes them in full once the runtime is up, which is what lets M
     // toggle the first of them.
     defaults.noteButton === 'off' ? 'data-note-button="off"' : '',
-    defaults.neighbours === 'hidden' ? 'data-neighbours="hidden"' : '',
+    // Same arrangement, one step further on: the value written is the
+    // resolved one, because `cut` and `fade` imply `hidden`. A deck that
+    // pins neither still carries neither attribute.
+    neighbourMode(defaults) === 'hidden' ? 'data-neighbours="hidden"' : '',
+    slideTransition(defaults) !== 'pan' ? `data-transition="${slideTransition(defaults)}"` : '',
   ].filter(Boolean);
   return parts.join(' ');
 }
@@ -9562,6 +9596,15 @@ const AUDIENCE_CSS = `
   --body-scale: 1;
   --dim: 0.86;
   --camera-duration: 250ms;
+  /* How long anything that belongs to *the slide arriving* takes to come up
+     or go away: a backdrop's crossfade, and a neighbour under
+     neighbours: hidden. One number in three rules, named because
+     transition: cut and transition: fade have to be able to zero it -
+     under those two the mode owns the slide change itself, and an arrival
+     fade underneath it is a second answer to the same question. The camera's
+     own 250ms above is deliberately separate: a fade zeroes the one and not
+     the other. */
+  --arrive-fade: 260ms;
   --slide-pad-x: 14%;
   /* Corner radii, one ladder and in em, so a corner keeps its proportion to
      the type inside it rather than to the pixel grid. As absolute pixels the
@@ -11808,7 +11851,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    clip-path silently dropped the fade that keeps a backdrop off its
    neighbours - on exactly the backdrops that most need the crossfade. */
 .chunk-backdrop[data-bd-frames] {
-  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1), opacity 260ms ease;
+  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--arrive-fade) ease;
 }
 /* The same shorthand clobber, one media query down: transition: none here
    took the opacity crossfade away too, so under reduced motion a revealed
@@ -11816,7 +11859,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    reduced motion is asking to suppress is the picture opening across the
    frame, not a 260ms fade the tool keeps everywhere else. */
 @media (prefers-reduced-motion: reduce) {
-  .chunk-backdrop[data-bd-frames] { transition: opacity 260ms ease; }
+  .chunk-backdrop[data-bd-frames] { transition: opacity var(--arrive-fade) ease; }
 }
 /* Scaled up because a blur samples transparent pixels past the edge and
    would otherwise fade the frame out into paper on all four sides. */
@@ -13468,7 +13511,7 @@ body[data-note-button=off] .annot-add { display: none; }
    with it, a little faster than the chunk's own fade so it has arrived by
    the time the camera lands. */
 .chunk:not(.active) .chunk-backdrop { opacity: 0; }
-.chunk-backdrop { transition: opacity 260ms ease; }
+.chunk-backdrop { transition: opacity var(--arrive-fade) ease; }
 /* neighbours: hidden - the frame shows the active slide and nothing else.
    The dimmed neighbour above is deliberate for a lecture: the camera pans
    through a column and the slide before and after standing there faintly is
@@ -13481,12 +13524,54 @@ body[data-note-button=off] .annot-add { display: none; }
    backdrop's reason: the camera takes --camera-duration (250ms) to land, and
    a neighbour still at a tenth of its opacity when it arrives reads as a
    smear beside the slide rather than as a slide leaving. Going the other way
-   costs nothing - a chunk that becomes .active matches the rule above, which
-   declares no transition, so the arriving slide is simply there. */
+   is not this rule's business at all - a chunk that becomes .active stops
+   matching it, and what it falls back to is .chunk's own opacity transition
+   over --camera-duration, so the arriving slide comes up exactly as the
+   camera lands. (That third fade is the one transition: cut has to zero
+   separately; see the block below.) */
 body[data-neighbours=hidden] .chunk:not(.active) {
   opacity: 0;
-  transition: opacity 260ms ease;
+  transition: opacity var(--arrive-fade) ease;
 }
+
+/* transition: cut / fade - a slide change with no visible pan.
+
+   The stage is one continuous column and the camera glides along it, which
+   is the whole of pan. Under the other two the camera is landed instantly
+   by focusCamera(true) from the one place a chunk changes, and the *mode*
+   owns whatever the change looks like: nothing under cut, and under
+   fade a dip of the whole stage to the paper and back, with the camera's
+   jump taken at the bottom of it (fadeSwap in AUDIENCE_JS).
+
+   So the arrival fades have to go. They were written for a camera in
+   motion - a neighbour still at a tenth of its opacity when the pan lands
+   reads as a smear, a backdrop arriving under a moving frame has to catch
+   up - and under a cut they are the one thing left moving on a slide that
+   is otherwise simply there: the words cut and the photograph behind them
+   fades in over a quarter of a second after them. Under fade they are
+   worse than inconsistent, because the dip has already faded everything
+   and this would fade it a second time, on the way back up.
+
+   Only the arrival half. The camera's own 250ms is untouched, and so is the
+   0.62s a ::: backdrop's reveal takes to open across the frame: that is
+   a move *on* a slide, like a reveal segment or a figure step, and a
+   keynote asking for a cut between slides is not asking for its pictures to
+   snap open. */
+body[data-transition=cut],
+body[data-transition=fade] { --arrive-fade: 0s; }
+/* The third arrival fade, and the one that is easy to miss because it is not
+   written next to the other two: .chunk itself transitions opacity over
+   --camera-duration, which is how the arriving slide comes up *as* the pan
+   lands. Zeroing --arrive-fade left it in place, and the frames said so - a
+   cut whose words faded in over a quarter of a second, and a fade whose two
+   halves were 130ms out and 230ms back because the stage rise and the
+   chunk rise multiplied. It cannot share --arrive-fade: that number is the
+   backdrop's 260ms and this one is the camera's 250ms, and taking either to
+   the other would move what a pan renders today. So it is its own line, and
+   only the active chunk is left to it - a neighbour is answered at higher
+   specificity by the rule above. */
+body[data-transition=cut] .chunk,
+body[data-transition=fade] .chunk { transition: none; }
 
 /* Prose in the live views had no line-breaking treatment at all, and the
    omission was invisible because the mode the room usually sees is the
@@ -14688,6 +14773,17 @@ const state = {
   slideNums: VIEW_DEFAULTS.slideNums || ${JSON.stringify(SLIDE_NUM_DEFAULT)},  // vertical | horizontal | off – L cycles
   noteButton: VIEW_DEFAULTS.noteButton || 'on',  // on | off – M toggles
 };
+// pan | cut | fade. Not a field of state: it is the author's decision about
+// what a slide change looks like, there is no key that cycles it, and the
+// snapshot is a full apply - a mode in it would be one more thing two
+// windows could disagree about for no gain. Both views read the same
+// frontmatter, so both answer the same word.
+const SLIDE_TRANSITION = VIEW_DEFAULTS.transition || 'pan';
+// The whole of a fade, half of it going and half coming back. 260ms is the
+// backdrop's number, kept deliberately: a fade and a backdrop crossfade are
+// the same gesture at different scales, and a deck that has both should not
+// have two speeds in it.
+const FADE_MS = 260;
 const FONT_CYCLE = ['serif', 'sans', 'mono'];
 const SLIDE_NUM_MODES = ${JSON.stringify(SLIDE_NUM_MODES)};
 const THEME_CYCLE = ${JSON.stringify(THEME_NAMES)};
@@ -14998,6 +15094,23 @@ function applyRemoteCamera(dx, dy, ovScale, selIdx, anchorIdx) {
   if (inRange(anchorIdx)) overviewAnchorIdx = anchorIdx;
 }
 function applyRemoteState(payload) {
+  // A remote apply that changes which chunk is live is a slide change and
+  // wears the deck's transition, exactly as a local one does. The whole
+  // apply goes inside the fade rather than only the camera, because it is
+  // a *full* apply: the reveals, the zoom and the collapse all land with
+  // the slide, and letting them land before the dip would show the old
+  // slide re-dressing itself on its way out.
+  //
+  // Each window runs its own dip when it learns of the change, so the two
+  // are half a fade out of step - the cockpit dips on the press, the
+  // projection on the message that follows the cockpit's swap. 130ms, on a
+  // pair of screens nobody sees at once, was judged cheaper than teaching
+  // the snapshot to carry a phase.
+  const changed = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0)) !== state.activeIdx;
+  if (changed) landSlide(() => applyRemoteStateNow(payload, true));
+  else applyRemoteStateNow(payload, false);
+}
+function applyRemoteStateNow(payload, changed) {
   isApplyingRemote = true;
   try {
     unfocusFigure();
@@ -15087,7 +15200,12 @@ function applyRemoteState(payload) {
     if (state.autoFitMode === 'shrink') fitZoomToChunk(collapsedZoom);
     else clampZoomToWidth();
     saveActive();
-    focusCamera(false);
+    // Instant only where the slide itself changed. A remote apply is also
+    // how a reveal, a zoom and a collapse arrive, and those are moves on a
+    // slide that is already on the frame - the walk down a chunk taller
+    // than the screen and a .middle chunk's per-press glide both live here,
+    // and both keep their motion in every mode.
+    focusCamera(changed && SLIDE_TRANSITION !== 'pan');
   } finally {
     isApplyingRemote = false;
   }
@@ -15845,6 +15963,82 @@ function focusCamera(instant = false) {
   if (instant) requestAnimationFrame(() => { stage.style.transition = ''; });
 }
 
+// ── the slide change (transition: pan | cut | fade) ─────────────────
+//
+// One helper and one rule: everything that changes which chunk is live goes
+// through landSlide(), and landSlide() is what decides whether the camera
+// glides, lands, or lands inside a fade. There are exactly two callers -
+// jumpTo, for a press in this window, and applyRemoteState, for a press in
+// the other one - because a third path is how two windows come to show a
+// slide change differently.
+//
+// pan  – the camera glides over --camera-duration. The stage is one
+//        continuous column and the room watches the frame travel along it.
+// cut  – focusCamera(true), which kills the transition for one frame. The
+//        new slide is simply there.
+// fade – the stage dips to the paper and comes back, and the camera's jump
+//        is taken at the bottom, where nothing is on screen to see it move.
+//
+// WHY THE DIP AND NOT A TWO-LAYER CROSSFADE, measured rather than argued.
+// A cross-dissolve needs the two slides in the same place at the same
+// moment, which a continuous column does not give: they are a slide-height
+// and a gap apart. Duplicating the stage to get them there was never going
+// to be cheap - a second copy of every chunk, every figure and every
+// inlined photograph in the deck - but the cheap version of the same idea
+// is one line: jump the camera and hand the outgoing chunk the inverse of
+// that jump, which puts it back where the room last saw it. That was built
+// and its half-way frame shot at 1600x900 beside the dip's. It works, and
+// what it paints is two paragraphs of text standing on each other, letter
+// through letter, for a sixth of a second - on this tool a slide is dark
+// words on pale paper and nothing else, so a dissolve of two of them is a
+// double exposure, unreadable in exactly the moment the room is reading.
+// The dip's half-way frame is the slide being left, at half strength,
+// still legible, on its way out. It also costs one animation on one
+// element, and it cannot disagree with focusCamera about where the camera
+// is, because it is focusCamera that moves it.
+//
+// Traced per animation frame in Chromium, the dip is: 130ms of the stage
+// falling 1 to 0 with the transform held exactly where it was, one frame at
+// 0 in which the transform changes, 130ms back up. No dropped frame and no
+// positional motion at any opacity a room can see.
+let fadeAnim = null;    // the half in flight
+let fadePending = null; // what it still has to do at the bottom
+function fadeSwap(land) {
+  // No WAAPI, no fade. Nothing here is worth a slide change that never
+  // happens.
+  if (!stage.animate) { land(); return; }
+  // A second press before the first fade has landed must not lose the first
+  // one's state change: run it now, and start the new fade from here.
+  if (fadePending) { const p = fadePending; fadePending = null; p(); }
+  if (fadeAnim) { fadeAnim.cancel(); fadeAnim = null; }
+  fadePending = land;
+  fadeAnim = stage.animate([{ opacity: 1 }, { opacity: 0 }],
+    { duration: FADE_MS / 2, easing: 'ease-in', fill: 'forwards' });
+  fadeAnim.onfinish = () => {
+    const p = fadePending;
+    fadePending = null;
+    // The state change and the camera jump, both while the stage is at
+    // nothing. land() measures and writes; neither paints, because a paint
+    // is a frame away and this is one task.
+    if (p) p();
+    const rise = stage.animate([{ opacity: 0 }, { opacity: 1 }],
+      { duration: FADE_MS / 2, easing: 'ease-out' });
+    // After the fall is dropped the element has no opacity of its own left,
+    // which is what keeps the stage free of an inline style between slides.
+    if (fadeAnim) { fadeAnim.cancel(); fadeAnim = null; }
+    fadeAnim = rise;
+    rise.onfinish = () => { if (fadeAnim === rise) fadeAnim = null; };
+  };
+}
+// Make idx the live chunk, in whatever way this deck changes slides. land()
+// carries everything that has to happen at the moment of the change - the
+// index, the fit, the paint, the camera - so that a fade can hold all of it
+// until the stage is invisible rather than only some of it.
+function landSlide(land) {
+  if (SLIDE_TRANSITION === 'fade') fadeSwap(land);
+  else land();
+}
+
 // Overview camera: translate-and-scale to center the anchor chunk at
 // --overview-scale. The anchor is set when overview opens (the active
 // chunk) and whenever the selection is moved *by keyboard or search* –
@@ -16288,13 +16482,21 @@ function jumpTo(idx, direction) {
   // Forward revisit: preserve whatever state it was in.
   applyReveal(target.el, target.id);
 
-  state.activeIdx = idx;
-  if (autoFitOn()) fitZoomToChunk(autoFitCeiling());
-  else clampZoomToWidth();
-  applyState();
-  focusCamera(false);
-  saveActive();
-  restartAutoplay();
+  // Everything from here is the slide change itself, so it goes through
+  // landSlide: under fade the whole of it waits for the bottom of the dip,
+  // and under cut the camera lands rather than glides. applyReveal above
+  // is deliberately outside it - it dresses the chunk being arrived at,
+  // which is off the frame either way, and doing it early means the slide
+  // the fade uncovers is already finished.
+  landSlide(() => {
+    state.activeIdx = idx;
+    if (autoFitOn()) fitZoomToChunk(autoFitCeiling());
+    else clampZoomToWidth();
+    applyState();
+    focusCamera(SLIDE_TRANSITION !== 'pan');
+    saveActive();
+    restartAutoplay();
+  });
 }
 
 // A fragment in the address is an explicit request for one chunk, so it

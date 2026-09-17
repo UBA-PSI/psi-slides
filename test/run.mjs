@@ -40,6 +40,7 @@ const SPECS = [
   './dock.mjs',
   './autoplay.mjs',
   './camera-fit.mjs',
+  './transition.mjs',
   './squint.mjs',
   './editor-edges.mjs',
   './editor-waypoints.mjs',

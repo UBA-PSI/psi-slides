@@ -176,7 +176,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # createSpanTable, or anything that moves a label or an extent. Anything
 # checkable without a browser belongs in lint.js or in test/gates/, never here.
 #
-# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the nine specs that build a
+# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the ten specs that build a
 # deck of their own rather than hunting shapes in a real one: test/README.md.
 npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
@@ -460,11 +460,12 @@ says which views use it (`print` – the default and today's behaviour – / `al
 `none`); the two are separate keys because the language is a property of the
 lecture and the hyphenation is a preference. Seven themes cycle on
 `A`, and `applyFontTheme()` sets `body[data-mode]`, which is what every piece of
-chrome keys off rather than a theme name. Nine frontmatter keys pin how a
-lecture opens – the two newest, `note-button` and `neighbours`, are the ones a
-keynote sets and a lecture does not, and both write their attribute only when
-the author turned them off, so a deck that says nothing about either is
-unmoved; an unknown value **fails the build**, because a typo here is
+chrome keys off rather than a theme name. Ten frontmatter keys pin how a
+lecture opens – the three newest, `note-button`, `neighbours` and
+`transition`, are the ones a keynote sets and a lecture does not, and all three
+write their attribute only when the author asked for something other than the
+default, so a deck that says nothing about any of them is unmoved;
+an unknown value **fails the build**, because a typo here is
 otherwise invisible, and a top-level key no renderer reads at all is a
 `lint.js` warning (`unknown-frontmatter-key`, exit 2 under `--strict`) rather
 than a build failure – `author:` was the case that produced it.
@@ -502,7 +503,7 @@ not mirrored any more: it lives in `tails.mjs` and both files import it.) And **
 calibrated to the bundled sans**: a roster change that does not re-measure it
 overflows figure labels silently.
 
-Three of the viewer defaults carry a decision the table does not:
+Four of the viewer defaults carry a decision the table does not:
 
 - **`slide-numbers` defaults to `horizontal`.** It defaulted to `vertical` up to
   1.0.0, and this is the one viewer default whose own change moves what an
@@ -522,6 +523,16 @@ Three of the viewer defaults carry a decision the table does not:
   (2.2 vs the lecturer's own zoom). The snapshot carries the mode *and* a legacy
   boolean, because `--audience-only` rebuilds one of the two windows and an
   older peer coerces the field with `!!`.
+- **`transition` is `pan` / `cut` / `fade`, and it resolves `neighbours`.** Only
+  the slide *change* is affected – a reveal, a figure step, a `.middle` chunk's
+  per-press glide and the walk down a chunk taller than the frame keep their
+  motion in all three; `landSlide()` in `AUDIENCE_JS` is the one place a chunk
+  becomes live, and under `cut` and `fade` it lands the camera with
+  `focusCamera(true)`. `fade` dips the whole stage to the paper and takes the
+  camera's jump in the frame where it is at zero (`fadeSwap`), because a
+  two-layer cross-dissolve of two text slides is a double exposure. Both imply
+  `neighbours: hidden` unless the author wrote `dim`, which `neighbourMode()`
+  resolves the way `printSlideNums()` resolves its deferral.
 
 ### Video, hosted embeds and link addresses
 
@@ -580,14 +591,14 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the thirteen gates guards, the four browser-spec families, and the nine specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the thirteen gates guards, the four browser-spec families, and the ten specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
 - `.claude/skills/psi-slides-authoring/SKILL.md` – **how to write a lecture `source.md`**: the chunk grammar in practice, the `:::` directive vocabulary, reveal segments, notes, images and math, with worked examples. Invoked as the `psi-slides-authoring` skill.
 - `.claude/skills/psi-slides-figures/SKILL.md` – **the `::: draw` vocabulary and the editor's contract**, lifted out of this file so it loads when figures are the work. Every statement, class, slot table and generated name, plus the four decisions behind the compiler. Invoked as the `psi-slides-figures` skill.
 - `.claude/skills/psi-slides-decoration/SKILL.md` – **the cover, backdrop, overlay, card, row and divider vocabulary**, same reasoning: the slot tables, the refusals, and the CSS traps each construct cost. Invoked as the `psi-slides-decoration` skill.
-- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the nine viewer-default keys, the whole nineteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `code`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
+- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the ten viewer-default keys, the whole nineteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `code`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
 - `.claude/skills/psi-slides-media/SKILL.md` – **video, hosted embeds and link addresses**: the extension tables, the two sync protocols, clip staging, and the build-time QR codes. Invoked as the `psi-slides-media` skill.
 - `figure-design.md` – **how to lay out a `::: draw` so a room reads it**, as instructions rather than principles: fifteen rules, most with a wrong/right pair in real syntax, the tone-to-role table, the four-beat step order, and a checklist to work down before a figure is finished. Written for a person and a language model equally. Read it before authoring figures; the grammar itself is in the `psi-slides-figures` skill.
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.
