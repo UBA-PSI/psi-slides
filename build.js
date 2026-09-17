@@ -3120,11 +3120,12 @@ function dgWarn(msg) {
 // `1fr minmax(0, --content-w) 1fr` grid inside 14% padding either side, so a
 // class wider than the frame allows is clipped to it. Read off a built
 // audience.html at 1600x900 with the default zoom (the base em is
-// clamp(20px, --slide-h * 0.026, 38px) = 23.4px there), and .wide and .full
-// both come out at the frame's 1152 px rather than at their nominal 52em and
-// 72em. Re-measure them if --slide-pad-x or the em changes.
+// clamp(20px, --slide-h * 0.026, 38px) = 23.4px there): .wide comes out at
+// the frame's 1152 px rather than its nominal 52em, and .full, which pads 6%
+// instead of 14%, at 1408 px rather than 72em. Re-measure them if
+// --slide-pad-x or the em changes.
 const FIG_REF_BODY_PX = 23.4;                      // 1em at 1600x900, zoom 1
-const FIG_COLUMN_PX = { narrow: 655, standard: 842, wide: 1152, full: 1152 };
+const FIG_COLUMN_PX = { narrow: 655, standard: 842, wide: 1152, full: 1408 };
 const FIG_REF_HEIGHT_PX = 900 * 0.62;              // the height cap at the same viewport
 const FIG_TYPE_FLOOR_PX = 18;                      // under this, the back row is guessing
 // Not a build failure, and deliberately not: a figure this dense may be a
@@ -9452,6 +9453,17 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
 .chunk[data-width=standard] { --content-w: 36em; }
 .chunk[data-width=wide]     { --content-w: 52em; }
 .chunk[data-width=full]     { --content-w: 72em; }
+/* .full was not full. The frame pads 14% either side, so at 1600x900 the
+   column stops at 1152 px whatever the class says - .wide's 52em is 1217 px
+   at the base em and .full's 72em is 1685, and both were clipped to the same
+   1152. A keynote's build plan in a .full .bare chunk therefore drew no
+   wider than in .wide, with 20 px labels on an otherwise empty frame. A
+   .full chunk keeps 6% - the column reaches 1408 px in the same frame, and
+   everything measured off --slide-pad-x inside the chunk (an overlay's inset,
+   a dock's reserve) follows it in, which is what a frame that yields to its
+   content should do. FIG_COLUMN_PX in the figure-type warning carries the
+   measured result; re-measure it if this number changes. */
+.chunk[data-width=full]     { --slide-pad-x: 6%; }
 
 .chunk-content {
   grid-column: 2;
