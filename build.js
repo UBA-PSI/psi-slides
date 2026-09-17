@@ -9480,11 +9480,49 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
    what "full" was meant to buy - so the wider column is the author-written
    class's alone. */
 
+/* One gap for the whole slide, and the unit it is written in is the trap
+   that made it three.
+
+   .chunk-content inherits the chunk's own font size, which is the responsive
+   body size and carries no zoom; .chunk-body sets 1em times --zoom times
+   --body-scale, and its paragraphs put 0.7em of *that* between them. So
+   gap: 0.6em here and margin-bottom: 0.7em there were never the same number,
+   and the difference grew with every press of the zoom key: measured on a
+   keynote's #busfaktor at 1600x900 and zoom 1.75, 14 px between the heading
+   and the first paragraph against 29 px between two paragraphs of one
+   segment - the prose hung closer to the heading than to itself. Two reveal
+   segments had no gap at all, because the last paragraph of a segment zeroes
+   its own bottom margin, so a beat boundary read as *tighter* than a
+   paragraph break inside one beat: the wrong way round of the only hierarchy
+   a slide of prose has.
+
+   --block-gap is that one number: 0.7 of the base type times the same two
+   factors the body size carries, which resolves to exactly the paragraph
+   margin. The gaps a tag sets for its own reasons stay, as a floor rather
+   than a value - a heading may stand further from its prose than two
+   paragraphs stand from each other, never nearer.
+
+   In rem and not in em, which is the second half of the same trap: a custom
+   property holding an em resolves it against whichever element *uses* it, so
+   one written on .chunk and read inside .chunk-body would pick the body's
+   already-zoomed size up and square the zoom. The root font size IS the
+   chunk's - html carries the clamp and nothing between them re-declares it -
+   so a rem is the same number with no element to get wrong.
+
+   This makes existing decks a little taller: one block gap where two
+   segments met, and the difference between 0.6em and 0.7em times the zoom
+   under every heading - tens of px on a text slide, and under auto-fit a
+   slide that was at its ceiling comes back a step. */
+.chunk {
+  --body-fs: calc(1rem * var(--zoom) * var(--body-scale));
+  --block-lead: 0.7;
+  --block-gap: calc(var(--block-lead) * var(--body-fs));
+}
 .chunk-content {
   grid-column: 2;
   display: flex;
   flex-direction: column;
-  gap: 0.6em;
+  gap: max(0.6em, var(--block-gap));
   position: relative;
 }
 
@@ -9584,13 +9622,27 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   letter-spacing: -0.012em;
   color: var(--ink);
 }
+/* The body size is a variable because the block gap is 0.7 of it and the two
+   have to move together: four tags set a body size of their own, and with the
+   size written here and the gap written on .chunk the gap would have been
+   0.7 of a size three of them do not use. Reading one token is also what
+   lets a tag change its type scale in one line instead of two. */
 .chunk-body {
-  font-size: calc(1em * var(--zoom) * var(--body-scale));
+  font-size: var(--body-fs);
   line-height: 1.5;
   text-align: left;
 }
-.chunk-body p { margin: 0 0 0.7em 0; }
+.chunk-body p { margin: 0 0 var(--block-gap) 0; }
 .chunk-body p:last-child { margin-bottom: 0; }
+/* A beat boundary is at least a paragraph break, and it used to be none at
+   all: the last paragraph of a segment zeroes its own bottom margin, so two
+   segments met flush while two paragraphs inside one segment stood 0.7em
+   apart. One number for both - the same --block-gap the heading stands off
+   by - and the reading hierarchy comes out in the order it is written in.
+   On the hidden segments too, which cost nothing: past the opening beat a
+   segment keeps its box and only its visibility changes, so the gap is
+   standing from beat 0 and no press moves the slide. */
+.chunk-body > .reveal-segment + .reveal-segment { margin-top: var(--block-gap); }
 .chunk-body strong { font-weight: var(--bold-weight); color: var(--emph); }
 .chunk-body em { font-style: italic; }
 /* A link is styled for the whole live surface, not only inside .chunk-body.
@@ -9602,7 +9654,7 @@ body[data-slide-nums=off] .chunk-num { display: none; }
    specificity. Print already styles the bare element for the same reason. */
 a { color: var(--emph); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
 a:hover { text-decoration-thickness: 2px; }
-.chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
+.chunk-body ul, .chunk-body ol { margin: 0 0 var(--block-gap) 1.4em; }
 /* Adjacent items were 0.15em apart at line-height 1.5, so the gap between
    two items was smaller than the leading inside a two-line item and a list
    read as one block of text with dots in it. The gap is now larger than the
@@ -10200,7 +10252,8 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   background: var(--ink);
   margin-bottom: 0.4em;
 }
-.chunk[data-tag=principle] .chunk-body { font-size: calc(1.2em * var(--zoom) * var(--body-scale)); line-height: 1.4; }
+.chunk[data-tag=principle] { --body-fs: calc(1.2rem * var(--zoom) * var(--body-scale)); }
+.chunk[data-tag=principle] .chunk-body { line-height: 1.4; }
 .chunk[data-tag=principle] .chunk-heading { font-size: calc(1.8em * var(--zoom) * var(--heading-scale)); }
 
 .chunk[data-tag=definition] .chunk-content::before {
@@ -10225,9 +10278,10 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    line, which is why it carried the default, and still the wrong place for it.
    Write .center on the chunk, or headings: center in the style block for a deck
    that wants the axis throughout. */
-.chunk[data-tag=question] .chunk-content { gap: 0.8em; align-items: flex-start; }
+.chunk[data-tag=question] .chunk-content { gap: max(0.8em, var(--block-gap)); align-items: flex-start; }
 .chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom) * var(--heading-scale)); font-weight: 500; }
-.chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom) * var(--body-scale)); color: var(--ink-soft); }
+.chunk[data-tag=question] { --body-fs: calc(1.15rem * var(--zoom) * var(--body-scale)); }
+.chunk[data-tag=question] .chunk-body { color: var(--ink-soft); }
 
 /* A statement slide: a few lines of large type, arriving one per press.
    The heading is the first line and every top-level paragraph is another
@@ -10252,7 +10306,18 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    title over a list. */
 .chunk[data-tag=statement] {
   --statement-scale: 2.1;
-  --statement-size: calc(var(--statement-scale) * 1em * var(--zoom) * var(--heading-scale));
+  /* In rem rather than em because --body-fs below carries it down to the
+     paragraphs, and --block-gap is 0.55 of --body-fs: an em inside a custom
+     property resolves against whichever element reads it, so a paragraph
+     already set at 2.1 rem would have squared the scale in its own margin. */
+  --statement-size: calc(var(--statement-scale) * 1rem * var(--zoom) * var(--heading-scale));
+  /* This tag solved the gap problem for itself before there was one number
+     for the whole slide; now it says the same thing in that number's terms,
+     so a statement's two lines stand apart by exactly what separates a
+     heading from its prose on any other slide - and a beat boundary between
+     two of them matches, which it did not before. */
+  --body-fs: var(--statement-size);
+  --block-lead: 0.55;
   /* The space between two lines, written so that the one between the
      heading and the first paragraph is the same as the one between two
      paragraphs. It cannot be the same declaration twice: the paragraph's
@@ -10266,17 +10331,18 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
 }
 .chunk[data-tag=statement] .chunk-heading { font-size: var(--statement-size); }
 .chunk[data-tag=statement] .chunk-body {
-  font-size: var(--statement-size);
+  font-size: var(--body-fs);
   font-weight: 600;
   line-height: 1.15;
   letter-spacing: -0.012em;
   color: var(--ink);
 }
-/* The gap between two lines is one decision and it is made here rather than
-   by the paragraph margin alone, because a line can arrive as its own
+/* The gap between two lines is one decision, and a line can arrive as its own
    reveal segment (a --- rule) or as a second paragraph inside one, and the room
-   must not be able to tell which. Both routes land on a top-level <p>. */
-.chunk[data-tag=statement] .chunk-body p { margin: 0 0 0.55em; }
+   must not be able to tell which. That rule now holds for every tag - the
+   paragraph margin, the segment margin and the content gap all read
+   --block-gap - so the declaration this tag used to carry is gone rather
+   than restated: --block-lead above is the whole of it. */
 .chunk[data-tag=statement] .chunk-content { gap: var(--statement-gap); }
 /* What a bold inside a statement line looks like is deliberately NOT
    answered here. DERIVED_STRONG already reaches these paragraphs at (0,4,3)
@@ -10292,8 +10358,9 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
 }
-.chunk[data-tag=figure] .chunk-content { align-items: center; gap: 0.9em; }
-.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
+.chunk[data-tag=figure] .chunk-content { align-items: center; gap: max(0.9em, var(--block-gap)); }
+.chunk[data-tag=figure] { --body-fs: calc(0.9rem * var(--zoom)); }
+.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; color: var(--ink-soft); }
 /* That 40em is a caption measure - the words under the picture - and on a
    figure chunk the picture is inside the same box. It did not matter while a
    drawing filled whatever box it was given; now that the drawing is sized
