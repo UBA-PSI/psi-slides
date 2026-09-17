@@ -1086,6 +1086,36 @@ export async function run({ report }) {
       ok(base && same && Math.abs(same[1] - base[1]) < 0.01,
         'so writing the default out draws what leaving it off draws',
         base && same ? `${base[1]} vs ${same[1]}` : 'not drawn');
+      // **And the bottom corner clears the outline by as much as the top one.**
+      // Reported as a defect - a `.bottom` caption sitting on the line - and
+      // measured to be one already, by the same commit that took the inset
+      // from a sixth of a row to a third: it moved all four corners. What the
+      // eye compares is the distance from the dashes to the nearest INK, and
+      // the two are not the same distance from the label's box: the top clears
+      // the outline by the inset plus the space over a cap, the bottom by the
+      // inset plus the space under a baseline. Asserted on the ink, therefore,
+      // with the glyph metrics the compiler itself typesets with, and in the
+      // direction that was reported: the bottom may not be the tighter of the
+      // two. Measured today at 26.6 px against 28.8 in a 120x72 grid.
+      const clear = (tail) => {
+        const out = fig('a zone caption clearing its corner ' + (tail || 'at the top'),
+          `zone z at 0,0 w 3 h 2 "Zone name" ${tail}\nbox a "A" at 5,0`, 'unit=120x72');
+        const at = out && labelAt(out, 'z-cap');
+        if (!at) return null;
+        // The label's baseline is font * 0.34 below its origin (dgTextEl), a
+        // cap reaches about 0.72 of the font above that baseline, and a
+        // descender about 0.21 below it. `.small` is 0.8 of DG_FONT.
+        const f = 15 * 0.8;
+        const top = +attrOf(out, 'z--r', 'y');
+        const bottom = top + +attrOf(out, 'z--r', 'height');
+        return tail.includes('bottom')
+          ? bottom - (at[1] + f * 0.34 + f * 0.21)
+          : (at[1] + f * 0.34 - f * 0.72) - top;
+      };
+      const ct = clear(''), cb = clear('{.bottom}');
+      ok(ct != null && cb != null && cb >= ct - 0.01,
+        'a .bottom caption clears the outline by at least as much as a top one',
+        `${ct && ct.toFixed(1)} px at the top, ${cb && cb.toFixed(1)} px at the bottom`);
     }
     // Out of the overlap census, at both ends: the frame carries `synth` set
     // to its own id, the discriminator a table's and a lanes's frame already

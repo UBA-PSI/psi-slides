@@ -782,6 +782,18 @@ export const DG_SEQ_GROUND = 0.1;
 // label empty and the caption is a separate element. It is the same sentence
 // `pad` says on a box, one level out: how far the type sits from the line.
 export const DG_ZONE_PAD = 0.33;
+// ...and at the bottom corner, a little more, because the inset a reader sees
+// is the distance from the dashes to the nearest INK and a line of type does
+// not sit centred in its own box. A label's origin carries half a line box
+// either side; above it, the ink stops at the cap, `0.625 - (0.72 - 0.34)` of
+// the font clear of the edge; below it, a descender reaches to
+// `0.34 + 0.21`, leaving `0.625 - 0.55`. So a `.bottom` caption with a `g` or
+// a `y` in it stood 0.17 of its own font closer to the outline than a top one
+// did - reported as a caption sitting on the line, and measured at 26.7 px
+// against 24.7 on a 120x72 grid. This is that difference, in fonts, added to
+// the bottom corner's nudge alone: the two corners then clear the outline by
+// the same distance, which is the thing the eye was comparing.
+export const DG_ZONE_INK_DROP = 0.17;
 // The four words that move the caption out of the top-left. They are the
 // element-label alignment classes one level out: on a box they place the label
 // inside the box, on a zone they place the caption inside the area – the same
@@ -5435,13 +5447,18 @@ export function createDiagramCompiler(env = {}) {
           const [zuw, zuh] = model.unit;
           const zPad = node.pad != null ? node.pad : DG_ZONE_PAD;
           const padX = zPad * zuh / (zuw || 1);
+          // The optical correction at the foot, in grid units: the caption is
+          // set in its own classes, so the font it is measured against is the
+          // one it will be drawn in rather than a constant.
+          const capClasses = new Set(['small', 'muted', ...corner]);
+          const padDrop = (DG_ZONE_INK_DROP * dgFontFor(capClasses)) / (zuh || 1);
           model.nodes.push({
             kind: 'text', id: capId, synth: id, label: cap,
             classes: ['small', 'muted', ...corner],
             removedClasses: [], tags: [...(attrs.tags || []), dgZoneTag(id)],
             place: { kind: 'abs', anchor: (bottom ? 'b' : 't') + (right ? 'r' : 'l'), at: [
               { ref: id, prop: right ? 'right' : 'left', nudge: right ? -padX : padX },
-              { ref: id, prop: bottom ? 'bottom' : 'top', nudge: bottom ? -zPad : zPad },
+              { ref: id, prop: bottom ? 'bottom' : 'top', nudge: bottom ? -(zPad + padDrop) : zPad },
             ] },
             // The caption is only as visible as the area it names, through
             // the face of the visibility closure that already says a text is
