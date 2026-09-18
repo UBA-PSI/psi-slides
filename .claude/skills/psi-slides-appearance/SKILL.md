@@ -306,6 +306,18 @@ An unknown value **fails the build** (`err.userFacing`, no stack trace) rather t
 
 See the `psi-slides-decoration` skill for `cover`, `subtitle`, `cover-image` and the `style:` block, which are the author's composition rather than the reader's preference and so are validated separately.
 
+## Fullscreen on the projection (`W`)
+
+The reading knobs above all have a frontmatter key. This one has none, deliberately: a window's frame is a property of the machine the talk runs on, not of the lecture, and a deck that opened itself fullscreen would be asking for a permission no page is given at load.
+
+**`W` means the projection, `Shift`-`W` means this window.** In `audience.html` the two are the same window, so plain `W` there fills it and a second `W` leaves. In the cockpit plain `W` is a command sent to the projector – ungated by freeze, its own message type, for the reason `M` and `B` are – and the cockpit stays in its window, because a lecturer reading notes off a laptop wants the notes. `Shift`-`W` fills the cockpit, for the one-screen case.
+
+**The cockpit's `W` can only ask.** `requestFullscreen` is granted only to a user gesture in the window that makes the call, and Chromium refuses one issued from a `message` handler with `TypeError: Permissions check failed` – measured, headless and headed alike. So the projection *arms*: `#fullscreen-hint` appears in the bottom-right corner and the next click anywhere on that window enters, in the capture phase and once, so the click is not also a click on whatever it landed on. The arming lapses after 20 s. **Leaving needs no gesture**, so a second `W` in the cockpit takes the projection back out immediately; `Escape` is the browser's own way out and never reaches the page.
+
+**Nothing of it is in the state snapshot** – the projector is full and the laptop is not, so there is no shared value to carry. The projection reports its own state on every `fullscreenchange` and every `hello`, which is what lets the cockpit's `W` toggle the right way. The coarse-pointer palette behind `⋯` carries the same command as a button, because a tablet at the lectern has no `W`.
+
+**One thing every reading knob shares with it**: the frame changes size, so the zoom has to be solved again. The `resize` listener now calls `autoFitNow()` before `clampZoomToWidth()` – the latter stands aside while a fit is on, which left a deck under `auto-fit` wearing the zoom that fitted the windowed frame. speaker.md §2 and `test/nav-fullscreen.mjs` carry the whole of it.
+
 ## Hiding the generated labels (`style.labels`)
 
 The tag word above a chunk is **two different things wearing one name**, and a switch has to reach both: the document renderer emits `<span class="chunk-label">` for principle, question, definition and exercise, while the projection generates only `EXERCISE`, in CSS – the one eyebrow that survived the removal of the others (PRD §2.1). So most of what an author sees as "the eyebrows" is in `print.html`, and a check in the audience view alone will report that there is nothing to hide.

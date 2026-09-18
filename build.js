@@ -9251,6 +9251,7 @@ const TOUCH_CONTROLS_HTML = `<nav id="touch-controls" aria-label="Slide controls
     <button type="button" data-action="autofit" aria-label="Auto-fit: off, shrink a slide that is too big, or fit every slide">#</button>
     <button type="button" data-action="search" aria-label="Search the lecture">&#x2315;</button>
     <button type="button" data-action="select" aria-label="Select text" aria-pressed="false">&#x2380;</button>
+    <button type="button" data-action="fullscreen" aria-label="Fullscreen">&#x26F6;</button>
   </div>
   <div id="touch-rail">
     <button type="button" data-action="prev" aria-label="Previous">&#x2039;</button>
@@ -9275,6 +9276,22 @@ const OVERVIEW_BADGE_HTML = `<div id="overview-badge">
 // Shown while the projection is blanked. In the speaker window it is the
 // only sign that the room sees black, so it has to say how to undo that.
 const BLANK_BADGE_HTML = `<div id="blank-badge" class="cmd-badge hidden" role="status">BLANK<span> &middot; hit B to toggle</span></div>`;
+
+// W: the projection's own frame, with none of the browser round it. This one
+// line is the whole of what a *remote* request looks like on the wall.
+//
+// Entering fullscreen is one of the calls a browser answers only to a user
+// gesture in the window that makes it, and the lecturer's keyboard is in the
+// cockpit. Measured in Chromium, headless and headed alike: a
+// requestFullscreen inside a message handler is refused with
+// "TypeError: Permissions check failed". So a W pressed in the cockpit cannot
+// put the projection into fullscreen - it can only arm it, and this is the
+// affordance that spends the arming. See the fullscreen section of the
+// runtime for the rest of the reasoning.
+//
+// Its id is a word no slide would claim: the cockpit's chrome shares one id
+// namespace with the lecture's chunk ids (see CLAUDE.md on #cue-panel).
+const FULLSCREEN_HINT_HTML = `<button type="button" id="fullscreen-hint" class="hidden">fullscreen<span> &middot; click anywhere, or hit W on this screen</span></button>`;
 
 // Shift-clicking a link puts its address on both screens, large enough to
 // copy down. See the runtime section for why the room gets the URL to read
@@ -9372,6 +9389,9 @@ function renderHelpOverlay(view, withEditor) {
       ['<kbd>#</kbd>', 'auto-fit: off → shrink a slide that is too big → size every slide to the screen'],
       ['<kbd>L</kbd>', 'slide numbers: stacked → in a row → off'],
       ['<kbd>M</kbd>', 'the <i>+ note</i> button in the slide\'s left gutter: shown ↔ hidden – pressed here it lands on the projection too, and <kbd>N</kbd> still opens an annotation either way'],
+      ['<kbd>W</kbd>', 'fullscreen on the projection – nothing of the browser round the slide' + (view === 'speaker'
+        ? '. The browser only grants this to a press in the window itself, so the projection puts up a line to click once; <kbd>Shift</kbd>-<kbd>W</kbd> fills this window instead, and <kbd>Esc</kbd> leaves'
+        : ', and <kbd>Esc</kbd> leaves it again')],
       ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working, frozen or not'],
       ['<kbd>D</kbd>', 'live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop; the very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk'],
       ['<kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd>', 'cycle that knob backwards'],
@@ -9556,6 +9576,7 @@ ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
 ${GOTO_PROMPT_HTML}
 ${BLANK_BADGE_HTML}
+${FULLSCREEN_HINT_HTML}
 ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
 ${DEMO_OVERLAY_HTML}
@@ -13881,6 +13902,39 @@ body[data-view=speaker] .cmd-badge { bottom: 3.4rem; }
 body.blanked #demo-badge { bottom: 3.1rem; }
 body[data-view=speaker].blanked #demo-badge { bottom: 5.3rem; }
 
+/* The fullscreen hint (W, from the other window). Not a .cmd-badge: a badge
+   reports, and this one is a control the lecturer has to be able to hit. It
+   takes the bottom-right corner, which is the one corner of the frame no
+   other chrome claims - the help circle is bottom-left, the nav mark is
+   bottom-centre, the badges are above it. Quiet, because it stands on a
+   slide the room is reading: small caps at the size of the badges, at half
+   opacity until a pointer is on it. */
+#fullscreen-hint {
+  position: fixed;
+  bottom: 12px; right: 12px;
+  z-index: 44;
+  border: 1px solid var(--rule);
+  background: oklch(0.98 0 0 / 0.82);
+  color: var(--ink-soft);
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  opacity: 0.62;
+  transition: opacity 140ms ease;
+}
+#fullscreen-hint:hover { opacity: 1; }
+#fullscreen-hint span { opacity: 0.75; }
+#fullscreen-hint.hidden { display: none; }
+body[data-mode=dark] #fullscreen-hint {
+  background: oklch(from var(--paper) calc(l + 0.08) c h / 0.88);
+}
+/* Nothing of the chrome survives a blanked projection or the board. */
+body.overview-mode #fullscreen-hint,
+body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
+
 /* overlays */
 
 /* Help overlay – the self-documentation surface for both live views.
@@ -15237,6 +15291,10 @@ window.addEventListener('message', (ev) => {
   if (m.type === 'hello') {
     if (VIEW === 'audience') sendToPeer({ type: 'state', source: 'audience', payload: snapshot() });
     demoAnnounce();
+    // Same reasoning as demoAnnounce: a cockpit that has just booted, or the
+    // one the projection lost to its own reload, has no idea whether the room
+    // is already fullscreen, and its W would then toggle the wrong way.
+    announceFullscreen();
     return;
   }
   if (m.type === 'state') {
@@ -15296,6 +15354,28 @@ window.addEventListener('message', (ev) => {
   // the projection agrees about what the room is looking at.
   if (m.type === 'note-button') {
     setNoteButton(m.mode, false);
+    return;
+  }
+  // The projection's own frame (W), outside the snapshot for the reason blank
+  // is - a command aimed at the projector - and per-window besides: one of
+  // these two windows is on a projector and the other on a laptop, so there
+  // is no shared value to put in a snapshot at all.
+  if (m.type === 'fullscreen') {
+    // What the projection is actually doing, so the cockpit's W knows which
+    // way to toggle after an Escape it never saw.
+    if (m.action === 'state') { peerFullscreen = !!m.on; return; }
+    if (VIEW !== 'audience') return;
+    if (m.action === 'exit') {
+      disarmFullscreen();
+      if (fullscreenOn()) exitFullscreenHere().catch(() => {});
+      return;
+    }
+    // Ask first and arm only on the refusal. Chromium refuses this with
+    // "Permissions check failed" because no gesture in *this* window started
+    // it; asking anyway is what makes the hint stop appearing on a browser
+    // that ever relaxes the rule, rather than leaving a click in the way for
+    // ever because of a measurement taken once.
+    requestFullscreenHere().catch(() => armFullscreen());
     return;
   }
   // Blank travels outside the snapshot so it still lands while frozen.
@@ -18165,6 +18245,114 @@ function flashMode(text) {
   showModeBadge(text);
 }
 
+// ── fullscreen (W) ───────────────────────────────────────────────────
+//
+// A room wants the slide and nothing else, and a browser window carries an
+// address bar, a tab strip and a menu bar above it. W takes them off.
+//
+// **W means the projection, Shift-W means this window.** In the audience the
+// two are the same window, so plain W there is simply this one going
+// fullscreen. In the cockpit plain W is a command sent to the projector and
+// the cockpit stays in its window, which is what a lecturer reading notes off
+// a laptop wants; Shift-W is the cockpit's own frame, for the one-screen case
+// where the cockpit IS the thing to fill.
+//
+// The whole difficulty is that requestFullscreen is one of the calls a
+// browser answers only to a user gesture **in the window that makes it**, and
+// the lecturer's keyboard is in the cockpit. Measured in Chromium, headless
+// and headed alike: a requestFullscreen inside a message handler is refused
+// with "TypeError: Permissions check failed". So the cockpit's W cannot put
+// the room's window into fullscreen - it *arms* it. The projection shows one
+// line in the corner and spends the next click anywhere on it, or W on its
+// own keyboard, on entering. The arming lapses after ARM_MS, because an
+// affordance nobody took must not stay on the wall for the rest of the talk.
+//
+// **Leaving costs nothing.** exitFullscreen needs no gesture, so the cockpit's
+// W takes the projection straight back out with no hint and no click. The
+// asymmetry is the browser's, not this tool's.
+//
+// **Nothing of this is in the state snapshot.** Fullscreen is a property of
+// one window on one screen - the projector is full and the laptop is not -
+// and applyRemoteState is a full apply, so a snapshot sent to carry it would
+// drag the receiver's slide position with it. The projection instead reports
+// where it is on every fullscreenchange, which is what lets the cockpit's W
+// toggle the right way after an Escape nobody told it about.
+//
+// The frame changes size on the way in and on the way out, and everything
+// solved against it is then stale; the resize listener further down re-runs
+// the fit and re-sends slide-ref, which is why there is no re-measure here.
+const FULLSCREEN_ARM_MS = 20000;
+const fsHint = document.getElementById('fullscreen-hint');
+let fsArmTimer = null;
+let fsArmedClick = null;
+let peerFullscreen = false;
+function fullscreenOn() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+// The two prefixed spellings Safari still needs, and a rejected promise
+// wherever the call is refused - Chromium throws this one synchronously.
+function requestFullscreenHere() {
+  const el = document.documentElement;
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!fn) return Promise.reject(new Error('no fullscreen here'));
+  try { return Promise.resolve(fn.call(el)); } catch (err) { return Promise.reject(err); }
+}
+function exitFullscreenHere() {
+  const fn = document.exitFullscreen || document.webkitExitFullscreen;
+  if (!fn) return Promise.reject(new Error('no fullscreen here'));
+  try { return Promise.resolve(fn.call(document)); } catch (err) { return Promise.reject(err); }
+}
+function disarmFullscreen() {
+  if (fsArmTimer) { clearTimeout(fsArmTimer); fsArmTimer = null; }
+  if (fsArmedClick) { window.removeEventListener('click', fsArmedClick, true); fsArmedClick = null; }
+  if (fsHint) fsHint.classList.add('hidden');
+}
+// The capture phase and one shot: the click that answers the hint must not
+// also focus the figure it happened to land on. One press, one thing.
+function armFullscreen() {
+  if (fullscreenOn()) return;
+  disarmFullscreen();
+  if (fsHint) fsHint.classList.remove('hidden');
+  fsArmedClick = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    fsArmedClick = null;
+    disarmFullscreen();
+    requestFullscreenHere().catch(() => {});
+  };
+  window.addEventListener('click', fsArmedClick, true);
+  fsArmTimer = setTimeout(disarmFullscreen, FULLSCREEN_ARM_MS);
+}
+// This window's own frame, off a key press in it - the one path a browser
+// grants without argument.
+function toggleFullscreenHere() {
+  disarmFullscreen();
+  if (fullscreenOn()) exitFullscreenHere().catch(() => {});
+  else requestFullscreenHere().catch(() => flashMode('this browser would not go fullscreen'));
+}
+function toggleProjectionFullscreen() {
+  if (VIEW !== 'speaker') { toggleFullscreenHere(); return; }
+  if (!hasLivePeer()) { flashMode('no projection window open – Shift-W fills this one'); return; }
+  const want = !peerFullscreen;
+  sendToPeer({ type: 'fullscreen', source: VIEW, action: want ? 'enter' : 'exit' });
+  flashMode(want
+    ? 'fullscreen asked for – click the projection once, or hit W on it'
+    : 'projection back in its window');
+}
+// Told, not assumed: an Escape on the projection is the browser's own way out
+// and never passes through this tool at all.
+function announceFullscreen() {
+  if (VIEW === 'audience') {
+    sendToPeer({ type: 'fullscreen', source: VIEW, action: 'state', on: fullscreenOn() });
+  }
+}
+['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) => {
+  document.addEventListener(ev, () => {
+    if (fullscreenOn()) disarmFullscreen();
+    announceFullscreen();
+  });
+});
+
 // Keyboard
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('.annot-textarea')) return;
@@ -18364,6 +18552,15 @@ document.addEventListener('keydown', (e) => {
         sendToPeer({ type: 'blank', source: VIEW, blanked: state.blanked });
       }
       flashMode(state.blanked ? 'projection blanked' : 'projection back');
+      e.preventDefault(); break;
+    case 'w': case 'W':
+      // W is the projection's frame, Shift-W is this window's - see the
+      // fullscreen section for why the cockpit's W can only arm the
+      // projection and not enter it for the lecturer. A free letter and not
+      // a Shift pair on B or F: F is the font cycle, and Shift-B is the one
+      // pair that cannot be taken, for the reason M records.
+      if (e.shiftKey) toggleFullscreenHere();
+      else toggleProjectionFullscreen();
       e.preventDefault(); break;
     case 'p': case 'P':
       window.open('print.html', '_blank', 'noopener');
@@ -18567,6 +18764,13 @@ viewport.addEventListener('pointerdown', (e) => {
 // and a wider one gives the lecturer's zoom back – clampZoomToWidth always
 // re-derives from the chosen value, so it does both.
 window.addEventListener('resize', () => {
+  // Auto-fit solves the zoom against the frame, so a frame that changed size
+  // has to be solved again - and clampZoomToWidth deliberately stands aside
+  // while a fit is on, which left the one case nothing covered. It went
+  // unnoticed while a resize meant a lecturer dragging a window edge; W makes
+  // it the ordinary path, because entering fullscreen is a resize of several
+  // hundred pixels in one step.
+  autoFitNow();
   clampZoomToWidth();
   if (annotEditingId) fitAnnotation(flatChunks.find(c => c.id === annotEditingId));
   focusCamera(true);
@@ -18909,6 +19113,12 @@ function wireTouchControls() {
       case 'autofit':   cycleAutoFit(1); break;
       case 'search':    setPalette(false); startSearch(); break;
       case 'select':    setTouchSelect(!touchSelectOn); break;
+      // A tablet driving the projection has no W to press. It calls the same
+      // function the key calls, so the two cannot drift - and in the
+      // projection's own window the tap is itself the gesture the browser
+      // asks for, which is the whole of what the hint exists to collect. The
+      // palette closes first, or the pill stays over the frame it cleared.
+      case 'fullscreen': setPalette(false); toggleProjectionFullscreen(); break;
     }
     if (selBtn) selBtn.setAttribute('aria-pressed', touchSelectOn ? 'true' : 'false');
   });
@@ -19140,7 +19350,7 @@ ${columnsHtml}
   <button id="speaker-help-btn" type="button" title="Keyboard and mouse reference (?)">? help</button>
   <span id="slug">${escapeHtml(slug)}</span>
   <span class="spacer"></span>
-  <span class="kbd-hint"><kbd>V</kbd> freeze &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>D</kbd> demo &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export</span>
+  <span class="kbd-hint"><kbd>V</kbd> freeze &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>W</kbd> full &nbsp; <kbd>D</kbd> demo &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export</span>
 </footer>
 <div id="note-templates">
 ${noteTemplates.join('\n')}
@@ -19153,6 +19363,7 @@ ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
 ${GOTO_PROMPT_HTML}
 ${BLANK_BADGE_HTML}
+${FULLSCREEN_HINT_HTML}
 ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
 ${renderTocNav(columns, S)}
