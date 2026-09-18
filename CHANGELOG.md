@@ -137,6 +137,12 @@ from building the same way is a major version.
   Escape, Enter; a number the deck does not have shakes the prompt and
   keeps the digits. The jump goes the way a contents click goes, so the
   cockpit and the projection stay in step.
+- **A `[Klick …]` line in a speaker note is a beat.** A bracketed direction
+  whose first word is `Klick`, `Click` or `>` ends the cue card and files
+  what follows one press later, the arithmetic `> note: from N` does by
+  number; the words after its colon title the card. `[Pause …]` stays a
+  direction. `note-advance-beyond` warns when a block's clicks outrun the
+  chunk's beats.
 - **`W` puts the projection into fullscreen** (the browser's own, no
   address bar); `Shift-W` fills the window the key is pressed in. A press in
   the cockpit is forwarded, and because a browser refuses a fullscreen
