@@ -125,12 +125,9 @@ step poisoning
 ## figure: B wants to visit webserver at example.com | knows IP of DNS resolver of ISP and gateway {.full #ns-a08}
 
 ::: draw 120x40
-# Diese Topologie tragen vier Figuren gemeinsam (A-08, A-12, A-13, A-14):
-# the same names in the same places, so the run reads as one drawing that
-# develops. It stands as one band across the slide rather than as two towers:
-# the home network on the left, the internet on the right, the boundary
-# upright between them. The hosts are peers and say so with `col`, so no box
-# carries a size of its own.
+# One topology across four figures (A-08, A-12, A-13, A-14): the same names in
+# the same places, so the run reads as one drawing that develops. The hosts are
+# peers and say so with `col`, so neither box carries a size of its own.
 box a   "A" at 0,-1.35 {.dim}
 box b   "B" at 0,1.35 {.tone-2}
 col a, b
@@ -402,16 +399,12 @@ step unfilterable
 ## figure: DoS attacks are also possible without access to a botnet | Attackers can use connectionless protocols and spoof their Src IP to hide their identity {.full #ns-a29}
 
 ::: draw 60x30
-# Again with no world map, for the same reasons as the figure before. The
-# dashed boxes with the question mark are the "faked sources": what is not
-# genuine about them is the outline. Text verbatim from the original; only the
-# line breaks in the box on the right are re-set - the original breaks
-# "proto-cols" mid-word there, because its frame ran out.
-#
-# The slide is two bands: the attacker, the flattened ring and the reason it
-# works across the top, the three conclusions along the foot. The attacker
-# stands beside the victim rather than under it, so the arrow it sends is
-# horizontal and its caption fits in the gap.
+# The dashed boxes with the question mark are the "faked sources": what is not
+# genuine about them is the outline, not the wording. The attacker stands
+# beside the victim rather than under it, so the arrow it sends is horizontal
+# and its caption fits in the gap.
+# Text verbatim; only the break in the box on the right is re-set, where the
+# original breaks "proto-cols" mid-word because its frame ran out.
 default box {.accent} w 0.9 h 0.7
 
 box vic "Victim" at 0,0 w 1.5 {.tone-4 !accent}
@@ -611,13 +604,10 @@ step encode
 ## figure: TLS 1.3 performs a handshake to start a secure network connection | and to negotiate cryptographic keys between the client and the server {.full #ns-a41}
 
 ::: draw 120x40
-# The server's flight is four boxes and nine lines of text, so stacked in one
-# column beside the client's it was half again as tall as a slide. Here the
-# preamble is one band across the top - who computes what - and the flight is
-# a two-by-two block underneath it, read the way everything else is read:
-# left to right, top to bottom, ServerHello, Certificate, Signature, MAC.
-# The padding is written once, in labels, so the four boxes hold nine lines in
-# the height a slide has.
+# The preamble is one band across the top - who computes what - and the
+# server's flight a two-by-two block under it, read left to right and top to
+# bottom: ServerHello, Certificate, Signature, MAC. The padding is written
+# once, in labels, so the four boxes hold nine lines in the height a slide has.
 default box {.tone-3} w 2.78 pad 0.3lh
 
 text cl "Client" at 0,0 {.large .muted}
@@ -652,11 +642,9 @@ step verify
 ## figure: Certificate chains {.full #ns-a43}
 
 ::: draw 124x40
-# The chain used to descend a staircase, five two-line boxes deep, which is
-# half again as tall as a slide. The trust store stands beside the chain now
-# rather than on top of it, each link is one line wide enough to hold it, the
-# arrow between two links is vertical and carries its own word, and the
-# certificate viewer's chain stands beside the schematic rather than under it.
+# Each link is one line wide enough to hold it, the arrow between two links is
+# vertical and carries its own word beside it, and the certificate viewer's
+# chain stands beside the schematic rather than under it.
 default box {.tone-3} pad 0.3lh
 
 box  os "Browser/OS" at 0,0 anchor tl {.tone-1}
@@ -716,18 +704,11 @@ step signature
 ## figure: Extensions of a server certificate | github.com, as a certificate viewer lists them {.full #ns-a49}
 
 ::: draw 150x30 frame 5.0x9.8
-# The one figure in the deck with a frame of its own. It is a certificate
-# viewer's extension listing transcribed word for word: twenty-five lines of
-# key and value, which no arrangement folds into the fourteen lines of type a
-# figure canvas reserves. Two columns on the full measure bring its labels
-# back to body type; the frame only says the box is a label taller than the
-# deck's, and this listing is the whole of what the slide carries.
-#
-# Twenty-five lines of listing down one column is twice as tall as a slide, so
-# the seven extensions stand in two columns on the full measure: the first
-# three down the left, the rest down the right, read the way a page is read.
-# The two long OIDs and the two key fingerprints take a second line rather
-# than a wider column - the words are the viewer's, only the breaks are ours.
+# A certificate viewer's extension listing, word for word: twenty-five lines
+# of key and value, which no arrangement folds into the fourteen lines a
+# figure canvas reserves - so this is the one figure here that writes its own
+# `frame`. The seven extensions stand in two columns, read the way a page is
+# read; the words are the viewer's, only the line breaks are ours.
 default text {.small}
 
 text l1 "Extension\nCritical\nUsage\n " at 0,0 {.right .muted}
@@ -873,19 +854,12 @@ Go to secure Login Form</a>[...]
 ## figure: Firewalls enforce rules that limit who is allowed to talk to whom. {.full #ns-b04}
 
 ::: draw 120x42
-# Every label verbatim from the original - including "publically reachable",
-# which is spelled exactly that way in the original and stays. The line break
-# in "demilitarized zone (DMZ)" is only a break in the original (hyphenated
-# there), not different wording.
+# "publically reachable" is the original's spelling and stays.
 #
 # Three shapes the language does not have, and their stand-ins, the same on
-# all three slides: the cylinder (web/database/file server) is a .round box in
-# the storage tone, the cloud is a .round box "Internet", and the monitor
-# symbols are labelled boxes under the group caption "desktops".
-#
-# The grid cell is wide and flat and the seven columns of the original stand
-# closer together, so the whole network is one band of a slide rather than a
-# picture half again as tall as one.
+# all three of these slides: the cylinder (web, database and file server) is a
+# .round box in the storage tone, the cloud is a .round box "Internet", and
+# the monitor symbols are labelled boxes under the caption "desktops".
 default text {.muted}
 
 box net "Internet" at 0,0 w 0.7 {.round .dim}
@@ -1283,9 +1257,8 @@ step detect
 
 ::: draw 150x42
 # The grid cell is wide and flat, so the three bands - sensors on the hosts,
-# the wire, the servers - are one band of a slide rather than a tower. The
-# gaps along the wire are counted in the same flat rows, which is why the
-# numbers across are larger than they were and the numbers down smaller.
+# the wire, the servers - stand as one band of a slide. A gap is counted in
+# rows whichever way it points, which is why the numbers across look large.
 default box {.tone-1}
 
 # The backbone: uplink, firewall, switch. The original's pale blue full-bleed
@@ -1454,12 +1427,10 @@ step rest
 ## figure: Observed character freq. | Anomaly? {.full #ns-b55}
 
 ::: draw 190x46
-# A wide flat cell: the counted distribution and the reference curve under it
-# are two bands of one slide rather than a column of two charts.
 # The string under the columns is verbatim from the original, letter-spaced:
-# "t / p r e n . ; l m o b". The second string splits on spaces, so one label
-# per column. The values are chosen so that the bins on #ns-b57 - the same
-# packet, the same columns - come to exactly the counts 43 / 36 / 21 taken
+# "t / p r e n . ; l m o b" - a bars label list splits on spaces, so that is
+# one label per column. The values are chosen so that the bins on #ns-b57 -
+# the same packet, the same columns - come to the counts 43 / 36 / 21 taken
 # verbatim there.
 bars obs "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 3.1 h 0.85
 
@@ -1507,8 +1478,7 @@ step metric
 ## figure: Training stage | Chi-square statistic (goodness of fit) {.full #ns-b56}
 
 ::: draw 150x56
-# The chart carries the width of its own slide: at w 2.5 the drawing used two
-# fifths of the canvas and the slide read empty.
+# The chart carries the width of its own slide, or the canvas reads empty.
 bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 3.6 h 1.25
 text cap "Char. freq. distribution for\nnormal payloads" above f gap 0.16 flush right {.right}
 
@@ -1574,13 +1544,9 @@ and the sensor raises an alarm as soon as $\chi^2 > t$. What value $t$ should ta
 
 ::: draw 100x36
 # The ten labelled packets lie on an axis: the anomaly score the sensor
-# computes across (the chi-squared of the slide before), the true class down.
-# Only that lets the threshold separate anything at all - in the version
-# before, the markers stood side by side as a block and the rule ran past
-# them rather than through them.
-# The cell is wide and flat, so the axis and the matrix it fills in stand
-# side by side as two bands of one slide; a packet box is square because its
-# own two numbers say so, not because the grid does.
+# computes across (the chi-squared of the slide before), the true class down,
+# and the threshold is a rule on that axis. The matrix beside it counts what
+# each position of the rule leaves on either side.
 text ds "Labeled dataset (e.g., by DARPA/Lincoln Labs)" at 0,-1.6 {.left}
 
 text latt "attack traffic" at 0,-0.35 {.left}
@@ -1613,9 +1579,8 @@ text lno "no alert" at b1.cx+0.23,b1.bottom+0.34 {.muted}
 text lal "alert" at a4.cx-0.23,b1.bottom+0.34 {.muted}
 
 # The threshold itself is the label, and the line hangs off it: a step moves
-# "t", the layout is worked out again, and the rule follows. The old version's
-# double-headed arrow, which was there to say the rule can move, is therefore
-# unnecessary - now it moves.
+# "t", the layout is worked out again, and the rule follows. Nothing has to
+# say that the rule can move, because it moves.
 text tlbl "t" at a1.cx+0.27,a1.top-0.30 pad 0.05 {.paper .hand @thr}
 edge thr tlbl.cx,tlbl.bottom -- tlbl.cx,b1.bottom+0.7 {.thick @thr}
 
@@ -1684,12 +1649,9 @@ step tradeoff
 
 ::: draw 104x104
 # "False Postive Rate" is the original slide's typo and stays.
-# The unit is square, so that the ROC frame comes out square - and a square on
-# a canvas two and three quarter times as wide as it is tall leaves the slide
-# two thirds empty. So the three thresholds are named in the room beside the
-# frame, each on a horizontal leader out of its own point. The leader crosses
-# nothing: the curve rises, so at the height of a point it is only ever to
-# that point's left.
+# The grid unit is square, so the ROC frame is square; the room that leaves
+# beside it is where the three thresholds are named, each on a horizontal
+# leader out of its own point, which the rising curve never crosses.
 plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 1.75 h 1.6 x 0,1 y 0,1 tick 0.2
 
 edge curve roc@0.02,roc@0.03 -- roc@0.98,roc@1 via roc@0.06,roc@0.5 roc@0.2,roc@0.8 roc@0.49,roc@0.95 roc@0.75,roc@0.98 {.smooth .thick}
@@ -1756,12 +1718,8 @@ step question
 ::: draw 70x48
 # 96 faces out of four grids rather than 96 lines: the rule is one line per
 # grid, the exception a grid of its own. The asset is embedded once, however
-# often it appears.
-#
-# The board is eleven wide and nine deep rather than eight wide and twelve
-# deep, which is the same ninety-six people in the shape of a slide; the
-# eleven false alarms are the bottom row of the healthy block instead of a
-# column down its right edge, and the legend stands beside the board.
+# often it appears. The board is eleven wide and nine deep - the same
+# ninety-six people, in the shape of a slide.
 grid sickp image face-bad 7x1 at 0,0 cell 0.3 space 0.08 {@tp}
 grid sickn image face-ok 1x1 right of sickp gap 0.1 cell 0.3 space 0.08 {@fn}
 grid well image face-ok 11x7 below sickp gap 0.32 flush left cell 0.3 space 0.08 {@wellneg}
@@ -1780,10 +1738,9 @@ image lego face-ok below legb gap 0.35 same as legb
 text tlego "test negative (you feel safe)" right of lego gap 0.2 {.left}
 text ask "Should you be?" below tlego gap 0.55 flush left {.hand @ask}
 
-# The beats build the argument up rather than dimming it away. The first used
-# to be called "positives" and left the one missed sick case standing bright,
-# and the second was called "alarms" and cleared the sick row entirely - so at
-# the end only the *false* alarms were lit, the exact opposite of the name.
+# The beats build the argument up rather than dimming it away: the detected
+# cases, then the false alarms, then both together, which is the 18 the number
+# under them counts.
 step detected
   emph @tp
   dim @fn, @wellneg, @fpos
