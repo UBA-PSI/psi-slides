@@ -163,12 +163,14 @@ from building the same way is a major version.
   Escape, Enter; a number the deck does not have shakes the prompt and
   keeps the digits. The jump goes the way a contents click goes, so the
   cockpit and the projection stay in step.
-- **A leading `---` means the heading alone is beat 0.** An empty opening
-  segment used to be dropped silently, so a question slide written
-  heading, `---`, body opened with its body and a `> note: from 1` never
-  fired. It is a beat now when the chunk has a heading and later segments
-  have words; `lint.js` counts beats the way the build does and warns
-  `dropped-beat` for a `---` that buys no click.
+- **Every `---` is a beat.** An empty segment used to be dropped silently,
+  so a question slide written heading, `---`, body opened with its body, a
+  `> note: from 1` never fired, and a `---` before a `::: footnote` or a
+  `> note:` bought no click. The source's count is the deck's count now;
+  an empty segment paints nothing new and a footnote, a note, a backdrop
+  place or an overlay `from` rides it. `lint.js` counts beats the way the
+  build does and warns `empty-beat` for a `---` nothing rides;
+  `note-in-empty-beat` is gone with the drop it described.
 - **A `[Klick …]` line in a speaker note is a beat.** A bracketed direction
   whose first word is `Klick`, `Click` or `>` ends the cue card and files
   what follows one press later, the arithmetic `> note: from N` does by
