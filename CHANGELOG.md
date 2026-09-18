@@ -118,6 +118,12 @@ from building the same way is a major version.
   Escape, Enter; a number the deck does not have shakes the prompt and
   keeps the digits. The jump goes the way a contents click goes, so the
   cockpit and the projection stay in step.
+- **`W` puts the projection into fullscreen** (the browser's own, no
+  address bar); `Shift-W` fills the window the key is pressed in. A press in
+  the cockpit is forwarded, and because a browser refuses a fullscreen
+  request that no gesture in the receiving window started, the projection
+  arms and takes the next click anywhere, with a one-line hint that lapses
+  after 20 s. Leaving needs no gesture. Also on the touch palette.
 - **`transition: pan | cut | fade`** – a viewer default for what a slide
   change looks like. `pan` is today's camera glide; `cut` lands with no
   motion; `fade` dips through the paper over 260 ms. Under `cut` and `fade`
