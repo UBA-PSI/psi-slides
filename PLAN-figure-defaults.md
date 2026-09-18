@@ -584,3 +584,21 @@ engine made it harder than it should be, ordered by time cost. It confirms
     the author moves the split by hand (`cy+0.5` / `cy+0.7`). A `stack` of
     texts, or a text with two registers (`"question\n~verb~"` with the
     second line in the small muted register), would centre as one.
+
+## 7. What the rewrite onto the new defaults reported
+
+The keynote rewritten the short way against the chains, the anchor default
+and the quiet line: 7 of 9 `same as`, 3 `h`, 4 `gap` (folded into one
+`row`), 7 `.middle` gone, every figure byte-identical. Two engine gaps it
+measured:
+
+13. **A `default box w N h N` layer counts as a written size on every box**,
+    so no chain sizing reaches a figure that uses one, and a `row` statement
+    does not override a default-layer `h` either. The four build plans carry
+    eight duplicated `h` per divider because of it. A default-layer size
+    should be the chain's *floor* – the number every member has at least –
+    and the chain's or the `row`'s maximum should win over it.
+14. **An empty first segment is dropped by the build and counted by the
+    linter** (`## question:` / `---` / body): a `> note: from 1` that never
+    fires, a closing slide whose last click is dead, and lint says clean.
+    Being fixed: a leading `---` means "the heading alone is beat 0".
