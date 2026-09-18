@@ -590,11 +590,15 @@ body[data-slide-nums=off] .chunk-num { display: none; }
    segment keeps its box and only its visibility changes, so the gap is
    standing from beat 0 and no press moves the slide. */
 .chunk-body > .reveal-segment + .reveal-segment { margin-top: var(--block-gap); }
-/* Except after the empty opening segment a leading reveal marker leaves
-   (parser: segmentsKept). It is a beat, not a block: the heading stands
-   alone on it and nothing is painted, so the words that follow begin where
-   they would have begun without it. */
-.chunk-body > .reveal-segment[data-empty] + .reveal-segment { margin-top: 0; }
+/* Except around an empty segment (parser: segmentsKept). It is a beat and
+   not a block: nothing is painted on it, so the words on either side stand
+   where they would have stood without it. The empty box takes no gap of its
+   own, and the segment after it takes the one gap the two neighbours owe
+   each other - unless the empty one is the chunk's opening segment, where
+   the heading stands alone on beat 0 and the body below it begins at the
+   top. */
+.chunk-body > .reveal-segment[data-empty] { margin-top: 0; }
+.chunk-body > .reveal-segment[data-empty][data-seg="0"] + .reveal-segment { margin-top: 0; }
 .chunk-body strong { font-weight: var(--bold-weight); color: var(--emph); }
 .chunk-body em { font-style: italic; }
 /* A link is styled for the whole live surface, not only inside .chunk-body.
