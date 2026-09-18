@@ -81,6 +81,21 @@ from building the same way is a major version.
   one. It is now one label-height unjoined and about 1.6 between two
   elements an edge joins; a written gap keeps its meaning; an exposed run
   under 1.5 labels warns `edge-short`.
+- **Peers share one size.** Boxes joined by `right of` / `left of` share
+  width and height, boxes joined by `below` / `above` share width, both
+  measured over every label a step will give a member, so a row comes out
+  level and a cell never overflows a later label. `row a, b, c gap 0.8`
+  and `col` say it in one line and level members against everything else
+  they stand in; a written `w`/`h` on one member is the chain's number;
+  `{.own}` ends a chain; `same w as` / `same h as` take one axis, on a
+  `zone` too. A table row's height follows its tallest cell. A written
+  `h` under its label and a written table `row` under the type's line warn.
+- **A picture slide opens centred.** A chunk whose body is one drawing or
+  one image and nothing else, or a `statement:`, frames what it paints;
+  `{.middle}` and `{.top}` are the explicit words. A stacked divider keeps
+  its heading as a heading. A `statement:` paragraph set entirely in
+  italic is the quiet line. `hyphenate: all` leaves centred prose,
+  dividers and address-like tokens alone.
 - **A relabelled text keeps the edge its placement pinned.** A free text's
   width is an estimate, and its words used to be centred on the estimated
   box, so a `label` step that swapped in a longer string moved the words

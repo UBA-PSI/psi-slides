@@ -414,6 +414,22 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 /* Nothing here about a bold inside one of these lines: style.print-bold
    reaches it through DERIVED_STRONG at (0,4,3), and a rule written at this
    selector's specificity would lose to it silently. */
+/* The quiet register, and the document carries it because it is what the
+   line *is* rather than how the projection shows it: a paragraph written
+   entirely in italic is the definition a claim answers or the source under
+   it, not a statement line with a stress mark on it. Half the size, the
+   document's own body weight, --ink-soft - the same three steps back the
+   projection takes, in the document's numbers. Hyphenation is deliberately
+   not touched: the rule above takes every statement paragraph out of the
+   dictionary, and a quiet line is one or two lines of type, so letting it
+   back in would only put a hyphen where nothing needed one. */
+.chunk-statement > p.quiet-line {
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
 
 .chunk-exercise .chunk-heading { font-style: italic; }
 .chunk-exercise .chunk-label { color: var(--emph); }
@@ -2541,13 +2557,13 @@ type above it, and each is still a row in the search index.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
   
   <h2 class="chunk-heading">The measurement loop</h2>
-  <figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" style="--dg-type-w:21.608;--dg-ar:1.8004;--dg-ink-x:0.03702" width="2000" height="1111" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
+  <figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 367.55 180.03" style="--dg-type-w:24.503;--dg-ar:2.0417;--dg-ink-x:0.03265" width="2000" height="980" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
 <g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="dg4-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="dg4-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
 <g id="dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="dg4-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="dg4-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="dg4-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
-<g id="dg4-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg4-edge-3--p" class="dg-stroke" d="M184.35 18.38L184.35 83.52" fill="none"/><path id="dg4-edge-3--h" class="dg-head" d="M184.35 91.17L180.39 82.17L188.31 82.17Z"/></g>
+<g id="dg4-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg4-edge-3--p" class="dg-stroke" d="M227.78 18.38L227.78 83.52" fill="none"/><path id="dg4-edge-3--h" class="dg-head" d="M227.78 91.17L223.82 82.17L231.74 82.17Z"/></g>
 <g id="dg4-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg4-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
-<g id="dg4-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-site--r" x="156.35" y="-18.38" width="56.00" height="36.75" rx="4"/><g id="dg4-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(184.35,0.00)"><g id="dg4-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
-<g id="dg4-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-score--r" x="112.93" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg4-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(184.35,109.55)"><g id="dg4-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
+<g id="dg4-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-site--r" x="156.35" y="-18.38" width="142.85" height="36.75" rx="4"/><g id="dg4-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(227.78,0.00)"><g id="dg4-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
+<g id="dg4-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-score--r" x="156.35" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg4-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(227.78,109.55)"><g id="dg4-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
 </svg></figure>
   
   
