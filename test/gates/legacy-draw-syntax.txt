@@ -28,7 +28,7 @@ tails.mjs	autoplay=N	1
 tails.mjs	unit=WxH	1
 tails.mjs	{unit=WxH #id autoplay=N cycle}	1
 test/gates/semantics.mjs	unit=120x20	1
-test/gates/semantics.mjs	unit=120x40	2
+test/gates/semantics.mjs	unit=120x40	3
 test/gates/semantics.mjs	unit=120x72	15
 test/gates/semantics.mjs	unit=126x38	2
 test/gates/semantics.mjs	unit=150x52	8

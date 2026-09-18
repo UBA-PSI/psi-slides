@@ -752,6 +752,35 @@ edge rule bad.left+0.95,bad.top-0.3 -- good.left+0.95,good.bottom+0.3 {.dashed .
 :::
 
 
+## figure: An area, and what stands in it {.full #in-zone}
+
+::: side 1:1
+::: draw 128x64
+# Left: an area with both numbers written. `in home` puts the run in the band
+# the area reserves under its caption - the pad plus the caption's own line -
+# and `center` centres the whole run in it rather than its first box.
+zone home at 0,0 w 4.2 h 2.2 "at home"
+box draft "draft" {.tone-2}
+box notes "notes" {.tone-2}
+row draft, notes gap 0.5 in home center
+
+# Right: the same statement with no `w`. The area is as wide as what stands in
+# it, like a container, and keeps its ground, its caption and its place under
+# everything, like an area. The height is written, so `bottom` has a band to
+# be at the bottom of.
+zone room right of home gap 0.6 h 2.2 "in the room"
+box defence "defence" in room {.tone-1}
+text under "two questions,\nnot prepared" in room bottom {.small .muted}
+:::
+
+::: flip
+**An area reserves a band, and `in` is how something is placed in it.** The band is the area minus its `pad` on all four sides and minus the caption's own line on the side the caption is on, so `in home` lands on the first paper the caption does not already own – no `+0.45` anywhere. The five words after it name a corner of that band: `left` / `right` across, `top` / `bottom` down, `center` on either. They are words of the placement, not classes, because `.left` on a box already says where its label sits inside its outline.
+
+**`row draft, notes in home center` places the run, not its first box.** The alignment is answered against the extent of everything the row names, which is the one thing no coordinate on a single member's line can state. `home.inner.left` and its five companions are the same six coordinates read off the band, for the placement that wants to be written out.
+
+**`w` and `h` are optional, and an axis nobody writes is the one the contents settle.** `room` is as wide as the widest thing placed in it plus the pad; its height is written, which is what lets `bottom` mean anything. That closes the split with `container`: an area sized by its contents keeps its ground, its caption and its place under everything, and an area with both numbers is the fixed claim on the paper it always was.
+:::
+
 ## figure: Six statements that expand {.full #expand}
 
 ::: draw 150x62
