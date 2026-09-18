@@ -2058,4 +2058,71 @@ export async function run({ report }) {
       'and the same upwards',
       twoUp && `box starts at ${twoUp.vb[1].toFixed(2)}, label at ${twoUp.top.toFixed(2)}`);
   }
+
+  // ── an edge's side is judged on the beats it is on screen ─────────
+  // The offset runs along the routed line's normal, so only the pair lying
+  // across the line can move a label – and the check that says so used to sit
+  // in `dgFrameDrawables`, which runs for every beat whether the edge is drawn
+  // in it or not. An arrow revealed by the very step that levels its two ends
+  // was therefore judged on a base geometry nobody ever sees it in: the
+  // tutorial's `#diagram-steps`, where the step that shows the two arrows to
+  // Bob is the step that moves Eve down onto their line.
+  //
+  // Four fixtures, and the fourth is why this is a rule and not a suppression:
+  // an edge that really does change axis under a step has a side word that
+  // acts on one beat and not on the other, and that is worth a sentence
+  // naming the beat rather than silence.
+  {
+    const said = (body) => render(body, 'unit=120x72').warns.filter(w => /\bside\b/.test(w));
+    const ROW = 'box a "A" at 0,0\nbox b "B" right of a gap 4.3\n';
+    const HIGH = 'box m "M" between a,b offset 0,-2.6 same as a';
+    const ARROW = 'edge e m.right:0.2 -> b.left:0.2 "M"';
+
+    // The control first, because without it the assertion under it passes on
+    // any software at all: in the state the old check judged this edge in –
+    // m still high above the row – the edge really is vertical and `side top`
+    // really cannot act.
+    const base = said(`${ROW}${HIGH}\n${ARROW} side top`);
+    ok(base.length === 1 && /vertical/.test(base[0]),
+      'with m still above the row the edge is vertical, and the word is refused',
+      base.join(' | '));
+
+    const revealed = said(`${ROW}${HIGH} {@in}
+${ARROW} {@in} side top
+
+step cut
+  move m to between a,b
+  show @in
+`);
+    ok(revealed.length === 0,
+      'but revealed by the step that levels it, the same edge keeps its side top',
+      revealed.join(' | '));
+
+    const wrong = said('box a "A" at 0,0\nbox b "B" right of a gap 2\nedge e a -> b "M" side left');
+    ok(wrong.length === 1 && /runs along/.test(wrong[0]) && /horizontal/.test(wrong[0]),
+      'and a word that runs along the line at every beat is still the old warning, word for word',
+      wrong.join(' | '));
+
+    // The control that keeps the fixture above honest: one token different,
+    // and the same figure says nothing.
+    const right = said('box a "A" at 0,0\nbox b "B" right of a gap 2\nedge e a -> b "M" side top');
+    ok(right.length === 0, 'and the word that can act says nothing', right.join(' | '));
+
+    // A side moves a label, so an edge with no label has nothing for it to
+    // move – that was true before this pass and stays true.
+    const unlabelled = said('box a "A" at 0,0\nbox b "B" below a gap 2\nedge e a -> b side top');
+    ok(unlabelled.length === 0, 'an edge with no label is not asked about its side',
+      unlabelled.join(' | '));
+
+    const changes = said(`box a "A" at 0,0
+box b "B" below a gap 2.4
+edge e a -> b "M" side top
+
+step turn
+  move b to a.right+2.4,a.cy
+`);
+    ok(changes.length === 1 && /beat 1 \(turn\)/.test(changes[0]) && /beat 0/.test(changes[0]),
+      'an edge that changes axis while on screen is warned about, and the warning names both beats',
+      changes.join(' | '));
+  }
 }

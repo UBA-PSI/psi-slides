@@ -59,6 +59,16 @@ from building the same way is a major version.
 
 ### Changed (drawings, unreleased)
 
+- **An edge's `side` is judged on the beats the arrow is on screen.** Only
+  the pair of words lying across the routed line can move a label, and the
+  check that said so ran on every beat whether the edge was drawn in it or
+  not – so an arrow revealed by the very step that levels its two ends was
+  refused `side top` for a state nobody ever sees it in. It is a post-pass
+  now, over the beats at which the edge is visible and carries a label. An
+  edge that really does change axis while visible is still warned about, by
+  beat, because the word acts on one press and not on the next. No drawing
+  moves: the geometry was already per beat, only the sentence about it was
+  not.
 - **A brace's label hangs from the edge that faces its bar.** A label block
   is drawn centred on its origin, and a brace puts that origin a fixed 9 px
   clear of the tick end – so a two-line label on `side bottom` hung half its

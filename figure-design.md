@@ -279,7 +279,11 @@ with the `side` option instead – `side top` / `side bottom` beside a horizonta
 edge, `side left` / `side right` beside a vertical one, and `.turn` stands the
 words on end beside it. Which pair applies depends on the direction the edge
 ended up running, so naming the pair that runs *along* it is a build warning
-rather than a parse error. A brace takes `side <word>` too, for the same
+rather than a parse error – and the direction is read off **the beats the edge
+is on screen**, so an arrow revealed by the very step that levels its two ends
+is judged level. An edge that genuinely changes axis while it is visible is
+warned about by beat, because there the word acts on one press and not on the
+next. A brace takes `side <word>` too, for the same
 concept: which side of the thing the spine sits on.
 
 **On an edge, a label is either *on* the line or *beside* it, and the choice

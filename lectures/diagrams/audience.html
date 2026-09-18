@@ -23745,6 +23745,76 @@ function createDiagramCompiler(env = {}) {
     }
   }
 
+  // **Which pair of side words an edge can use is a question about the beats
+  // the edge is on screen, and it used to be answered on every beat.**
+  //
+  // The offset runs along the routed line's normal, so only the pair lying
+  // across the line can move a label: top/bottom on a mostly horizontal edge,
+  // left/right on a mostly vertical one. Naming the other pair moves nothing
+  // and is worth saying. What was wrong is *where* it was said: the check sat
+  // in `dgFrameDrawables`, which runs for every beat whether or not the edge is
+  // drawn in it, so an edge that is horizontal from the step that reveals it
+  // onwards was judged on a base geometry nobody ever sees it in. The
+  // tutorial's `#diagram-steps` is the case: the same step that shows the two
+  // arrows to Bob moves Eve down onto their line, and tightening the row far
+  // enough would have refused `side top` for a state the arrow is not in.
+  //
+  // So it is a post-pass like the four above it, over the beats at which the
+  // edge is visible *and* carries a label – a label is what a side moves, and
+  // an edge with none has nothing to say about sides. Three answers:
+  //
+  //   - the word runs along the line at every such beat: the old warning,
+  //     word for word, because that case has not changed;
+  //   - it runs along at some and across at others: the geometry is honest at
+  //     each beat and the word is doing two different things, so the warning
+  //     names the beat and leaves the author to decide;
+  //   - it never does: silence, which is the case the old check got wrong.
+  //
+  // `eSide` is constant across beats – it is written on the line or comes off
+  // a `default edge side`, and no step speaks about it – so it is resolved
+  // once, the same way `dgFrameDrawables` resolves it.
+  function dgEdgeSideWarnings(model, states, frames, frameBoxes, warn) {
+    const [uw, uh] = model.unit;
+    for (const e of model.edges) {
+      const sideLayers = dgDefaultLayers(model, 'edge', e.tags).reverse();
+      let eSide = e.side;
+      if (eSide == null) for (const d of sideLayers) if (d.side != null) { eSide = d.side; break; }
+      if (!eSide) continue;
+      const along = [];      // beats where the word runs along the line
+      const across = [];     // beats where it can act
+      for (let k = 0; k < frames.length; k++) {
+        if ((frames[k].vis.get(e.id) ?? 1) <= 0) continue;
+        const st = states[k] && states[k].get(e.id);
+        if (!st || !st.label) continue;
+        const pts = dgEdgeRoute(e, st.classes, frameBoxes[k], uw, uh);
+        if (!pts || pts.length < 2) continue;
+        const { dir } = dgPolyPoint(pts, 0.5);
+        const vertical = Math.abs(dir[1]) > Math.abs(dir[0]);
+        ((vertical ? ['top', 'bottom'] : ['left', 'right']).includes(eSide) ? along : across)
+          .push({ k, vertical });
+      }
+      if (!along.length) continue;
+      const vertical = along[0].vertical;
+      const other = (v) => (v ? 'side left or side right' : 'side top or side bottom');
+      if (!across.length) {
+        warn(`edge ${e.id}${dgSite(e)}: side ${eSide} names a direction this edge runs along, so it cannot `
+          + `move the label. The edge is ${vertical ? 'vertical' : 'horizontal'} – `
+          + `use ${other(vertical)}.`);
+        continue;
+      }
+      // A beat is named the way the reveal counter names it: 0 is the opening
+      // state and a step is the number of presses it takes to reach it, with
+      // the step's own name beside it where it has one.
+      const beat = (k) => (k === 0 ? 'beat 0' : `beat ${k}`
+        + (model.steps[k - 1] && model.steps[k - 1].name ? ` (${model.steps[k - 1].name})` : ''));
+      warn(`edge ${e.id}${dgSite(e)}: side ${eSide} moves the label at ${beat(across[0].k)} and `
+        + `nowhere at ${beat(along[0].k)}, where the edge runs ${vertical ? 'vertical' : 'horizontal'} `
+        + `and the word names its own direction. An edge that changes axis under a step needs a word `
+        + `that works on both, so either leave the side off or keep the two ends on one axis for `
+        + `every beat the arrow is on screen.`);
+    }
+  }
+
   // **Both censuses below read placements, and a step that moves something is
   // an act rather than a placement.** `move eve to …` carrying a box into a
   // container's outline is the tutorial's `#diagram-steps` – the intruder
@@ -24391,11 +24461,12 @@ function createDiagramCompiler(env = {}) {
         // decidable after the edge has been routed - which is why naming the
         // other pair is a warning here rather than a refusal at parse time.
         const side = vertical ? (eSide === 'left' ? -1 : 1) : (eSide === 'bottom' ? -1 : 1);
-        if (eSide && (vertical ? ['top', 'bottom'] : ['left', 'right']).includes(eSide)) {
-          dgWarn(`edge ${e.id}${dgSite(e)}: side ${eSide} names a direction this edge runs along, so it cannot `
-            + `move the label. The edge is ${vertical ? 'vertical' : 'horizontal'} – `
-            + `use side ${vertical ? 'left or side right' : 'top or side bottom'}.`);
-        }
+        // Saying so is `dgEdgeSideWarnings`, not this loop. This loop runs for
+        // every beat, drawn or not, so it judged an edge on states nobody sees
+        // it in – an arrow revealed by the same step that levels its two ends
+        // was told its side is illegal because of where the ends stood before
+        // the press. The geometry here is per beat and stays per beat; only
+        // the sentence about it moved.
         // The side is in the coordinate now, so the anchor must stay centred.
         // Left as it was, dgLabelAnchor read the same .left that chose the
         // side and shifted the text back across the line it had just cleared.
@@ -24642,6 +24713,7 @@ function createDiagramCompiler(env = {}) {
       dgLabelClipWarnings(model, states, frames, frameBoxes, dgWarn);
       dgElbowRailWarnings(model, states, frames, frameBoxes, dgWarn);
       dgEdgeShortWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgEdgeSideWarnings(model, states, frames, frameBoxes, dgWarn);
       dgZoneFitWarnings(model, states, frameBoxes, dgWarn);
       dgContainerPadWarnings(model, states, frameBoxes, dgWarn);
     }
