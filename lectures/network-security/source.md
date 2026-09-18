@@ -1232,32 +1232,36 @@ step futile
 
 ## figure: Why should we deploy an intrusion detection system (IDS) at all? {.full #ns-b26}
 
-::: draw 118x78
-default box {.tone-1} w 1.15 h 0.66
+::: draw 105x40
+# The grid cell is wide and flat, so the wall and the row under it are two
+# bands of one slide. No box in the wall carries a size any more: the run of
+# `right of` gives all four one, and the fifth says `.own` because it really
+# is wider than its neighbours.
+default box {.tone-1} w 1.15
 
 # The five proactive measures are the wall itself: a row with no joint except
 # the one the intruder comes through. The original's semicircular arcs are
 # decoration and are left out.
 box fw "Firewall"                         at 0,0
-box cr "Cryptography"                     right of fw gap 0 same as fw
-box su "Security\nUpdates"                right of cr gap 0 same as fw
-box pt "Penetration\nTests"               right of su gap 0 same as fw
-box aa "Authentication &\nAccess Control" right of pt gap 0.3 w 1.55 h 0.66
-text plab "EXAMPLES OF\nPROACTIVE MEASURES" above cr gap 0.5 {.muted}
+box cr "Cryptography"                     right of fw gap 0
+box su "Security\nUpdates"                right of cr gap 0
+box pt "Penetration\nTests"               right of su gap 0
+box aa "Authentication &\nAccess Control" right of pt gap 0.3 w 1.55 {.own}
+text plab "EXAMPLES OF\nPROACTIVE MEASURES" above cr gap 0.45 {.muted}
 
 # What is left once the wall has been passed.
-box al  "Audit\nLogs"    below fw gap 1.5 w 1.0 h 0.66 {.tone-3 @inner}
-box ids "IDS"            below su gap 1.5 w 0.95 h 0.66 {.hex .tone-4 @inner}
-box im  "Incident\nMgmt" below aa gap 1.5 w 1.0 h 0.66 {.tone-3 @inner}
+box al  "Audit\nLogs"    below fw gap 1.5 w 1.0 {.tone-3 @inner}
+box ids "IDS"            below su gap 1.5 w 0.95 {.hex .tone-4 @inner}
+box im  "Incident\nMgmt" below aa gap 1.5 w 1.0 {.tone-3 @inner}
 align y middle al, ids, im
 spread x al, ids, im
-container react "REACTIVE MEASURES" over al,ids,im pad 0.5 {.dashed .muted}
+container react "REACTIVE MEASURES" over al,ids,im pad 0.3 {.dashed .muted}
 
 # The original's red lettering, rotated 30 degrees, cannot be rotated here.
 # Instead a thick edge pushing in from outside through the joint in the wall,
 # with the word horizontal beside it.
-edge intr pt.right+0.1,-0.95 -> pt.right+0.1,1.0 {.thick .accent @in}
-text intrl "INTRUDER" above aa gap 0.62 {.accent .bold @in}
+edge intr pt.right+0.1,-1.15 -> pt.right+0.1,1.2 {.thick .accent @in}
+text intrl "INTRUDER" above aa gap 0.5 {.accent .bold @in}
 
 step breach
   show @in
@@ -1273,42 +1277,46 @@ step detect
 
 ## figure: Two Deployment Approaches | Host- (HIDS) and Network-based (NIDS) {.full #ns-b27}
 
-::: draw 150x62
+::: draw 150x42
+# The grid cell is wide and flat, so the three bands - sensors on the hosts,
+# the wire, the servers - are one band of a slide rather than a tower. The
+# gaps along the wire are counted in the same flat rows, which is why the
+# numbers across are larger than they were and the numbers down smaller.
 default box {.tone-1}
 
 # The backbone: uplink, firewall, switch. The original's pale blue full-bleed
 # background is dropped; what is accented is the sensors.
 dot ext ""         at 0,0 r 0.07 {.muted}
-box fw "FIREWALL"  right of ext gap 3.85 w 0.34 h 1.55 {.turn}
-box sw "SWITCH"    right of fw gap 3.85 w 0.85 h 0.44
+box fw "FIREWALL"  right of ext gap 5.68 w 0.34 h 1.8 {.turn}
+box sw "SWITCH"    right of fw gap 5.68 w 0.85 {.own}
 edge w1 ext -- fw.left
 edge w2 fw.right -- sw.left
 
 # The sensors sit on the wire rather than beside it.
-box n1 "NIDS" between ext,fw w 0.7 h 0.44 {.hex .tone-4 @nids}
+box n1 "NIDS" between ext,fw w 0.7 {.hex .tone-4 @nids}
 box n2 "NIDS" between fw,sw same as n1 {.hex .tone-4 @nids}
 
 # Workstations above the switch, on one shared strand. Labelled as in
 # #ns-b04 rather than left empty: a box with no word reads as a mistake, and
 # the two figures show the same network.
-box d2 "desktop" above sw gap 1.25 w 0.6 h 0.44 {.tone-2 @hosts}
-box d1 "desktop" left of d2 gap 1.45 same as d2 {.tone-2 @hosts}
-text dlab "desktops" left of d1 gap 1.2 -- d1 {.muted @hosts}
+box d2 "desktop" above sw gap 0.22 w 0.6 {.tone-2 @hosts}
+box d1 "desktop" left of d2 gap 2.14 {.tone-2 @hosts}
+text dlab "desktops" left of d1 gap 1.77 -- d1 {.muted @hosts}
 edge k2 d2.bottom -- sw.top {@hosts}
 edge k1 d1.bottom -- sw.cx,d1.bottom+0.42 via d1.cx,d1.bottom+0.42 {@hosts}
 
 # Two servers. The original's cylinder is a .round box in the server tone.
-box web "Web server" below n1 gap 1.3 w 1.0 h 0.5 {.round .tone-3 @hosts}
-box db  "DB server"  below sw gap 1.3 offset -1.9,0 same as web {.round .tone-3 @hosts}
+box web "Web server" below n1 gap 0.65 w 1.0 {.round .tone-3 @hosts}
+box db  "DB server"  below sw gap 0.65 offset -1.9,0 same as web {.round .tone-3 @hosts}
 align y middle web, db
 edge wl web.top -- web.cx,ext.cy {@hosts}
 edge dl db.right -- sw.bottom via sw.cx,db.cy {@hosts}
-box n3 "NIDS" right of db gap 1.2 same as n1 {.hex .tone-4 @nids}
+box n3 "NIDS" right of db gap 1.77 same as n1 {.hex .tone-4 @nids}
 
-box h1 "HIDS" above d1  gap 0.5  same as n1 {.hex .tone-4 @hids}
-box h2 "HIDS" above d2  gap 0.5  same as n1 {.hex .tone-4 @hids}
-box hw "HIDS" below web gap 0.45 same as n1 {.hex .tone-4 @hids}
-box hd "HIDS" below db  gap 0.45 same as n1 {.hex .tone-4 @hids}
+box h1 "HIDS" above d1  gap 0.12 same as n1 {.hex .tone-4 @hids}
+box h2 "HIDS" above d2  gap 0.12 same as n1 {.hex .tone-4 @hids}
+box hw "HIDS" below web gap 0.12 same as n1 {.hex .tone-4 @hids}
+box hd "HIDS" below db  gap 0.12 same as n1 {.hex .tone-4 @hids}
 
 step hosts
   show @hosts
@@ -1349,22 +1357,30 @@ step sensor
 
 ## figure: Given some input data, the detection result of an IDS can be classified into one of four cases. {.full #ns-b39}
 
-::: draw 150x60
+::: draw 150x52
+# The four cells carry no size of their own: the two rows and the two columns
+# are chains, so one `w` on the first cell settles all four.
 default box {.sharp}
 
-box tp  "true positive\nTP"  at 0,0 w 1.45 h 1.05 {.tone-2}
-box fn  "false negative\nFN" right of tp gap 0 same as tp {.tone-4}
-box fp  "false positive\nFP" below tp gap 0 same as tp {.tone-4}
-box tn  "true negative\nTN"  right of fp gap 0 same as tp {.tone-2}
-box rat "ATTACK" left of tp gap 0 w 0.34 h 1.05 {.turn .clear .small}
-box rno "NORMAL" left of fp gap 0 same as rat {.turn .clear .small}
+box tp  "true positive\nTP"  at 0,0 w 1.45 {.tone-2}
+box fn  "false negative\nFN" right of tp gap 0 {.tone-4}
+box fp  "false positive\nFP" below tp gap 0 {.tone-4}
+box tn  "true negative\nTN"  right of fp gap 0 {.tone-2}
+# The second row stands in no chain with the first, so it is levelled by name.
+row tp, fn
+row fp, tn
+# The two row names are turned type beside the matrix rather than cells of
+# their own: a turned word in a cell needs the cell to be as tall as the word
+# is long, which is taller than the four cells want to be.
+text rat "ATTACK" left of tp gap 0.25 {.turn .small .muted}
+text rno "NORMAL" left of fp gap 0.25 {.turn .small .muted}
 
-text cal "alert"    above tp gap 0.3
-text cno "no alert" above fn gap 0.3
-brace hdr over cal,cno side top "REACTION OF IDS" pad 0.3 {.muted}
+text cal "alert"    above tp gap 0.25
+text cno "no alert" above fn gap 0.25
+brace hdr over cal,cno side top "REACTION OF IDS" pad 0.25 {.muted}
 
 text miss "missed\nattack" right of fn gap 1.25 -- fn {.hand}
-text fa   "false alarm"    below fp gap 0.5 -- fp {.hand}
+text fa   "false alarm"    below fp gap 0.4 -- fp {.hand}
 
 step correct
   emph tp, tn
