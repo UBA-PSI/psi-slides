@@ -90,6 +90,10 @@ from building the same way is a major version.
   `{.own}` ends a chain; `same w as` / `same h as` take one axis, on a
   `zone` too. A table row's height follows its tallest cell. A written
   `h` under its label and a written table `row` under the type's line warn.
+- **A size from a `default` layer is a chain's floor, not a pin**: a
+  member is at least the layer's size and takes the chain's maximum where a
+  peer needs more, so a `default box h 2.5` no longer keeps a row from
+  levelling; a number on the element's own line still pins.
 - **A zone reserves a band, and what stands in it is placed there.**
   `z.inner.left` … `z.inner.cy` name the band under the caption;
   `box a "…" in z` (with `gap N` and `left | right | top | bottom |
