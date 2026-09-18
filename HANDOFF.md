@@ -1588,6 +1588,25 @@ they are catalogues of small specimens on prose slides; `lectures/tutorial`
 keeps the default and carries eight true warnings about documentation
 figures – silence with `frame none` or leave, one line either way.
 
+Fourth round, working down `PLAN-figure-defaults.md` (a Fable-written plan
+from three generations of the keynote; committed): a gap measured in labels
+with an arrow-safe default and `edge-short`; `.left` anchors a free text;
+chains of peers share one size, `row`/`col`, `{.own}`, `same w as`, a
+default-layer size as a chain's floor; a picture slide opens centred
+(`anchor` slot `.middle`/`.top` with a shape default), the stacked divider
+heading as a heading, `statement:` with a quiet italic line, `hyphenate:
+all` sparing centred prose and addresses; `[Klick …]` in a note is a beat;
+a zone's inner band and `in <zone>` placement, zones sized by their
+children; every `---` is a beat and `empty-beat` names the one nothing
+rides. Plus `G` goto, `transition: pan|cut|fade`, `W` fullscreen, elbow
+arrival runs, calmer dashes, pinned-edge relabels, table columns aligned by
+tag default. The keynote was rewritten onto each default as it landed and
+proved byte-identical each time; its figure source lost a third of its
+hand-written sizes. Two things bit: the disk filled with frames and
+scratch builds (clean the scratchpad between rounds), and a `git merge`
+aborted silently on another session's uncommitted test changes – check
+`git log -1 -- <file>` after a merge, not the merge's first line.
+
 Open: the keynote's `#umweg` figure is 66 labels wide and stays under 18 px
 at any zoom – that is the drawing's to fix. Site screenshots of the cockpit
 frames and the editor are stale. A statement chunk's `| sub-heading` still
