@@ -594,6 +594,23 @@ export function dgAnchorOffset(anchor, w, h) {
   const Y = { top: hy, tl: hy, tr: hy, bottom: -hy, bl: -hy, br: -hy };
   return [X[anchor] || 0, Y[anchor] || 0];
 }
+// **Which of the element's own sides a placement fixes, across.** The pinned
+// side is the one that does not move when the element's width does, and
+// `dgAnchorOffset` already knows it rather than a second table saying it
+// again: a positive x-offset moves the box right by half its width, which is
+// its *left* edge landing on the coordinate. `null` for `center`, for the two
+// anchors that name no side, and for no anchor at all.
+//
+// It matters because a label's width is **estimated**. A free text is as wide
+// as its glyph run, so a caption anchored `tl` has its box's left edge on the
+// coordinate exactly – and then drawing the words centred on that box's
+// estimated middle puts half the estimate's error on the edge the anchor
+// named. Swap the label for a longer one and that half changes: the words
+// jump sideways although the anchor did not move. See `labelBox`.
+export function dgAnchorPinX(anchor) {
+  const [ox] = dgAnchorOffset(anchor, 2, 0);
+  return ox > 0 ? 'left' : ox < 0 ? 'right' : null;
+}
 // The statements that bring an element into being, as opposed to arranging
 // or restyling ones that already exist. Not used by the compiler – it
 // branches on each keyword by name – but the linter needs the set, and a
@@ -2118,7 +2135,14 @@ const DG_CLASS_WHAT = {
 // a contributor adding a class needs to be able to ask which group it joins.
 export const DG_STEP_FIXED = {
   'the drawable kind': ['round', 'sharp', 'hex', 'diamond', 'chevron', 'wedge', 'cross'],
-  'the label anchor': ['left', 'right', 'top', 'bottom'],
+  // `turn` joined the anchor group the day a free text started being drawn
+  // from the edge its placement pinned (`labelBox`). A label read bottom-to-top
+  // is centred on its origin whichever way it reads – `dgTextEl` answers `turn`
+  // first and returns – so the class now decides, once, between that centring
+  // and the pinned edge. Before the pin the two answers were the same word and
+  // nothing was baked, which is why it was not here; the gate caught the day
+  // that stopped being true.
+  'the label anchor': ['left', 'right', 'top', 'bottom', 'turn'],
   'the type size': ['small', 'large', 'fit', 'shrink'],
   'the path kind': ['smooth'],
   'the drawing order': ['front'],
@@ -6326,6 +6350,16 @@ export function createDiagramCompiler(env = {}) {
         const { w, h, font, padX, padY } = sizeOf(node);
         const place = st.place;
         let cx = 0, cy = 0;
+        // Which of this element's own sides the placement holds still, across.
+        // Every branch below computes a centre, and the question this answers
+        // is which edge of the box that centre was derived *from* – the one
+        // that stays put when the element's width changes. `right of X` fixes
+        // the left edge, `left of X` the right one, `flush left` the left, an
+        // `anchor` whichever side it names, and a coordinate or a `between`
+        // fixes the centre itself, which is no side at all. `labelBox` draws a
+        // free text's words from that edge, because the width it was placed by
+        // is an estimate and the drawn one is not.
+        let pinX = null;
         if (!place) { cx = 0; cy = 0; }
         else if (place.kind === 'abs') { [cx, cy] = dgPairPx(place.at, boxes, uw, uh); }
         else if (place.kind === 'between') {
@@ -6399,6 +6433,7 @@ export function createDiagramCompiler(env = {}) {
             cx = place.dir === 'right'
               ? ref.x + ref.w + dgGapPx(place, uh) + w / 2
               : ref.x - dgGapPx(place, uh) - w / 2;
+            pinX = place.dir === 'right' ? 'left' : 'right';
             cy = place.align === 'top' ? rIn.y + h / 2 - ownIY
               : place.align === 'bottom' ? rIn.y + rIn.h - h / 2 + ownIY
               : rIn.y + rIn.h / 2;
@@ -6409,6 +6444,8 @@ export function createDiagramCompiler(env = {}) {
             cx = place.align === 'left' ? rIn.x + w / 2 - ownIX
               : place.align === 'right' ? rIn.x + rIn.w - w / 2 + ownIX
               : rIn.x + rIn.w / 2;
+            pinX = place.align === 'left' ? 'left'
+              : place.align === 'right' ? 'right' : null;
           }
         }
         // `anchor` is part of the placement expression too, and it is the only
@@ -6421,6 +6458,10 @@ export function createDiagramCompiler(env = {}) {
         if (anch) {
           const [ox, oy] = dgAnchorOffset(anch, w, h);
           cx += ox; cy += oy;
+          // A written `anchor` is refused on a relative placement, so this
+          // never composes with the dir/flush answers above – it replaces the
+          // one an absolute coordinate has, which is the centre.
+          pinX = dgAnchorPinX(anch);
         }
         // The offset is part of the placement expression, so it lands before
         // align/spread override the result – otherwise an element written as
@@ -6431,9 +6472,12 @@ export function createDiagramCompiler(env = {}) {
         const ax = alignX.get(id);
         if (ax) {
           const m = boxes.get(ax.master);
-          if (m) cx = ax.edge === 'left' ? m.x + w / 2
-            : ax.edge === 'right' ? m.x + m.w - w / 2
-            : m.x + m.w / 2;
+          if (m) {
+            cx = ax.edge === 'left' ? m.x + w / 2
+              : ax.edge === 'right' ? m.x + m.w - w / 2
+              : m.x + m.w / 2;
+            pinX = ax.edge === 'left' ? 'left' : ax.edge === 'right' ? 'right' : null;
+          }
         }
         const ay = alignY.get(id);
         if (ay) {
@@ -6449,12 +6493,14 @@ export function createDiagramCompiler(env = {}) {
             const ca = sp.axis === 'x' ? a.x + a.w / 2 : a.y + a.h / 2;
             const cz = sp.axis === 'x' ? z.x + z.w / 2 : z.y + z.h / 2;
             const v = ca + (cz - ca) * sp.t;
-            if (sp.axis === 'x') cx = v; else cy = v;
+            if (sp.axis === 'x') { cx = v; pinX = null; } else cy = v;
           }
         }
+        // `offset` and a step's `move … by` translate the whole box, so they
+        // move the pinned edge with it rather than changing which edge it is.
         cx += st.shift[0] * uw;
         cy += st.shift[1] * uh;
-        boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h, font, padX, padY });
+        boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h, font, padX, padY, pinX });
         continue;
       }
       const holder = contById.get(id) || braceById.get(id);
@@ -7158,7 +7204,40 @@ export function createDiagramCompiler(env = {}) {
       // dropped here and had to come back.
       const padX = freeText ? 0 : (box.padX ?? DG_PAD_X);
       const padY = freeText ? 0 : (box.padY ?? DG_PAD_Y);
-      const anchor = dgLabelAnchor(st.classes);
+      // **A free text is drawn from the edge its placement pinned, and that is
+      // the one thing an estimated width cannot be allowed to decide.** Its
+      // box *is* its glyph run, so `right of x`, `flush left`, `align x left`
+      // and `anchor tl` each put one of its own sides on a coordinate exactly.
+      // Centring the words on the box's middle then splits the estimate's
+      // error between the two sides, and half of it lands on the side the
+      // author pinned: a `label` step swapping in a longer string moves that
+      // edge by half the *change* in the error, and the words visibly jump
+      // although nothing in the source moved them. Measured on a keynote's
+      // zone caption, "im Raum" relabelled to "im Raum · 3 Stunden, ohne
+      // Internet": 11 px right, on a caption whose whole point is that it sits
+      // in the corner of its area.
+      //
+      // Anchoring the ink on that edge instead moves nothing in estimate
+      // space – the label's origin goes from `box.x + box.w / 2` drawn
+      // `middle` to `box.x` drawn `start`, and `extentsOf` reads the same
+      // anchor, so the reserved box, the viewBox and every placement warning
+      // are the bytes they were. What changes is only which end of the real
+      // glyph run absorbs the difference between the estimate and the browser.
+      //
+      // Three bounds. A **free text** only: on a box or a dot the words are
+      // centred inside an outline that has its own position, and the outline
+      // moves with the estimate too, so the pair stays coherent. A box **sized
+      // by its label** only, because an explicit `w` makes the label narrower
+      // than its box and "as far left as the box allows" is then a different
+      // sentence – the one `.left` says. And never over a **written alignment
+      // class**, which is the author's own answer, nor over `.turn`, which is
+      // centred whichever way it reads.
+      let anchor = dgLabelAnchor(st.classes);
+      if (anchor === 'middle' && !turned && freeText && box.pinX
+          && Math.abs(box.w - m.w) < 0.01) {
+        anchor = box.pinX === 'left' ? 'start' : 'end';
+        labelAnchor.set(el.id, anchor);
+      }
       const x = anchor === 'start' ? box.x + padX
         : anchor === 'end' ? box.x + box.w - padX
           : box.x + box.w / 2;
