@@ -445,6 +445,61 @@ export async function run({ report }) {
     ok(writtenJoined != null && Math.abs(writtenJoined - 0.5 * 72) < 0.01,
       'and an edge does not widen it', `${writtenJoined} px against 36`);
 
+    // ── lh: the ruler the rules are stated in, addressable ──────────
+    // The default gap is a count of label heights and an author could not say
+    // one: a number of rows is whatever the opener says, so the spacing that
+    // held on a 150x52 grid had to be worked out again on a 20x20 one. `lh` is
+    // that number written down. Both halves matter – the same token is the
+    // same distance on two grids, and it is not the row distance on either.
+    const lhWide = gapOf('a gap in label heights on a 72-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5lh', 'unit=120x72');
+    const lhNarrow = gapOf('the same token on a 20-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5lh', 'unit=20x20');
+    ok(lhWide != null && Math.abs(lhWide - 1.5 * DG_LABEL_H) < 0.02,
+      'gap 1.5lh is 1.5 base label heights', `${lhWide} px against ${1.5 * DG_LABEL_H}`);
+    ok(lhWide != null && lhNarrow != null && Math.abs(lhWide - lhNarrow) < 0.02,
+      'and the opener does not decide it', `${lhWide} px on 120x72, ${lhNarrow} px on 20x20`);
+    // The control, and the whole reason the suffix exists: the bare number is
+    // still rows, and on these two grids that is two different distances.
+    const rowsWide = gapOf('a bare gap on a 72-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5', 'unit=120x72');
+    const rowsNarrow = gapOf('the same bare gap on a 20-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5', 'unit=20x20');
+    ok(rowsWide != null && Math.abs(rowsWide - 1.5 * 72) < 0.01
+      && rowsNarrow != null && Math.abs(rowsNarrow - 1.5 * 20) < 0.01,
+      'while a bare gap is still rows, and rows still follow the opener',
+      `${rowsWide} px on 120x72, ${rowsNarrow} px on 20x20`);
+    // An `lh` gap is a gap the author wrote, so the joined-pair default must
+    // not reach it either.
+    const lhJoined = gapOf('an lh gap on a joined pair',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.4lh\nedge a -> b', 'unit=120x72');
+    ok(lhJoined != null && Math.abs(lhJoined - 0.4 * DG_LABEL_H) < 0.02,
+      'and an edge does not widen an lh gap either – it is a number the author wrote',
+      `${lhJoined} px against ${0.4 * DG_LABEL_H}`);
+    // The same suffix on a `pad`, on the element's own line and in a `default`
+    // layer. The layer is the case the suffix was written for: `draw-defaults`
+    // is read once for a deck and applied to blocks whose openers differ.
+    const padH = (what, body, head) => {
+      const out = fig(what, body, head);
+      return out && +attrOf(out, 'a--r', 'height');
+    };
+    const padWide = padH('pad in label heights on a 72-row grid',
+      'box a "Authenticator" pad 0.5lh at 0,0', 'unit=120x72');
+    const padNarrow = padH('the same pad on a 20-row grid',
+      'box a "Authenticator" pad 0.5lh at 0,0', 'unit=20x20');
+    ok(padWide != null && Math.abs(padWide - DG_LABEL_H * 2) < 0.01 && padWide === padNarrow,
+      'pad 0.5lh is half a label on each side, on any grid',
+      `${padWide} vs ${padNarrow}, label ${DG_LABEL_H}`);
+    const layered = padH('a default layer stating its pad in label heights',
+      'default box pad 0.5lh\nbox a "Authenticator" at 0,0', 'unit=20x20');
+    ok(layered === padWide, 'and a default layer may state one', `${layered} vs ${padWide}`);
+    // A row's own gap takes the suffix too, because it is the same gap: a
+    // member with no placement of its own is placed with it.
+    const rowGap = gapOf('a row stating its gap in label heights',
+      'box a "A" at 0,0\nbox b "B"\nrow a, b gap 2lh', 'unit=20x20');
+    ok(rowGap != null && Math.abs(rowGap - 2 * DG_LABEL_H) < 0.02,
+      'a row may state its gap in label heights', `${rowGap} px against ${2 * DG_LABEL_H}`);
+
     // The default for a *labelled* edge holds the label as well, which is what
     // turns the clip warning below into a report about a number the author
     // wrote. Only across: a label on a vertical run stands beside the line.
