@@ -79,13 +79,23 @@ export const CHUNK_SLOTS = {
   // axis. Flags: a default with no spelling.
   bare:   { default: false, words: ['bare'] },
   center: { default: false, words: ['center'] },
-  // `.middle` is `.center`'s vertical counterpart and, like it, a fact about
+  // The camera's anchor. `.middle` is `.center`'s vertical counterpart and, like it, a fact about
   // the slide rather than about the text: the camera frames what is *on* the
   // slide at this beat instead of the box the whole chunk will fill. A chunk
   // whose reveals arrive downwards therefore opens in the middle of the frame
-  // rather than at the top of a reserve nobody can see yet. Off by default,
-  // because switching it on would move every slide in every existing deck.
-  middle: { default: false, words: ['middle'] },
+  // rather than at the top of a reserve nobody can see yet.
+  //
+  // Not a flag any more, and the default is `null` rather than a word: which
+  // of the two a chunk gets is read off the chunk's *shape*, which this table
+  // cannot see (`chunkOpensCentred` in build.js, mirrored nowhere because
+  // nothing else needs it). A slide that is a picture - one `::: draw`, or
+  // one image, and no prose - and a `statement:`, whose every line is an
+  // utterance arriving on its own press, frame what the beat paints; a slide
+  // with prose on it keeps its head at the top, because prose grows downwards
+  // and a reader expects the heading to stay where it was. The two words are
+  // the overrides in both directions, and a picture chunk that wants the old
+  // top anchoring writes `.top`.
+  anchor: { default: null, words: ['middle', 'top'] },
 };
 // The tail on a `# Heading`, which is the divider slide's own line. It used
 // to take an `{#id}` and nothing else; `.stack` is the one composition
@@ -111,7 +121,7 @@ export const COLUMN_SLOTS = {
 };
 export const VALID_WIDTHS = new Set(CHUNK_SLOTS.width.words);
 export const VALID_CHUNK_CLASSES = new Set([
-  ...CHUNK_SLOTS.bare.words, ...CHUNK_SLOTS.center.words, ...CHUNK_SLOTS.middle.words,
+  ...CHUNK_SLOTS.bare.words, ...CHUNK_SLOTS.center.words, ...CHUNK_SLOTS.anchor.words,
   ...Object.keys(CHUNK_STYLE_CLASSES)]);
 
 export const BACKDROP_SLOTS = {

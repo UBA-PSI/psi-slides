@@ -168,6 +168,11 @@ const inlineCapFor = (p) => (isVideoExt(p) ? MAX_INLINE_VIDEO_BYTES : MAX_INLINE
 const AUTO_INLINE_BUDGET = 10 * 1024 * 1024;
 let currentSourceDir = null;
 let inlineAssetsEnabled = false;
+// Whether this build wraps address-shaped tokens so the hyphenation
+// dictionary cannot reach them. Only true under `style: {hyphenate: all}`,
+// so a deck that does not ask for hyphens on the projection emits the same
+// bytes it always did. See markAddresses.
+let addressSpansOn = false;
 const imgResolveCache = new Map();
 const dataUriCache = new Map();
 // Per-build counter for unique SVG ID prefixes. Reset in buildOnce so the
@@ -1653,8 +1658,11 @@ const DISPLAY_TRACK = {
     '.chunk[data-cover=quote] .title-main',
     '.chunk[data-cover=hero] .title-main',
     '.chunk[data-cover=quote][data-closing] .title-main',
+    // A stacked divider is no longer a second entry here: it set a tracking
+    // of its own while the heading was a caption, and now the heading is the
+    // plain divider heading one size step down, so the rule below tracks it
+    // and is where the display face gets its reset.
     '.chunk-section .section-heading',
-    '.chunk-section[data-section-layout=stack] .section-heading',
   ],
 };
 
@@ -2275,6 +2283,32 @@ function unwrapLoneFigure(html) {
   return m && !/<\/p>/.test(m[1]) ? m[1] : String(html);
 }
 
+// The quiet line of a `statement:` chunk. Every line of a statement is one
+// size, one weight and one ink - that is what separates the type from every
+// other one, where a heading names the slide and the body says something
+// under it. The register this was missing is the line that is not the
+// utterance: a definition standing over the claim it qualifies, a source
+// under it. A keynote wanted exactly that and could not have it, so its
+// thesis slide was a `::: draw` of two text elements - a drawing, with a
+// drawing's price: no wrap, no hyphenation, no search index, a fixed grid.
+//
+// The spelling is a paragraph set *entirely* in italic, and "entirely" is
+// what makes it a register rather than an accident: a statement with an
+// emphasised word in the middle of it is a loud line with a stress mark,
+// which is what `*em*` means everywhere else in the format. So the test is
+// the rendered paragraph, anchored at both ends, and the `<em>` is left in
+// place - the marker and the look are the same thing, which is what makes it
+// legible in the source and reversible by deleting two asterisks.
+//
+// Applied by both renderers, so the document carries the register the
+// projection does; `<p class="quiet-line">` is the whole of the contract
+// between here and the two stylesheets.
+function markQuietStatementLines(html) {
+  return String(html).replace(/<p>(<em>[\s\S]*?<\/em>)<\/p>/g,
+    (whole, inner) => (/<\/p>|<\/em>[\s\S]*<em>/.test(inner)
+      ? whole : `<p class="quiet-line">${inner}</p>`));
+}
+
 // The backdrop element. Returned with its scrim mode, because the mode is
 // two facts at once: how the image is veiled, and – for `invert` – that the
 // slide's ink has to turn light. The second lands as data-backdrop on the
@@ -2636,6 +2670,30 @@ function dockAttrs(dock) {
   return dock ? ` data-dock="${dock.edge}" data-dock-w="${dock.width}"` : '';
 }
 
+// A token the hyphenation dictionary has no business in. Three shapes, and
+// each one was a defect on a real slide:
+//
+//   a dot between two word characters   bakule.de, 10.1109/SP, §4.5, z.B.
+//   a slash anywhere in the token       Z/PQM, and/or, assets/room.jpg
+//   a no-break space inside it          n = 4 910, 12 kW, Art. 5
+//
+// The third is the one that looks odd and is not: a no-break space is the
+// author joining two halves into one token, and a dictionary that can reach
+// inside the group can break what was joined. `\s` in JavaScript matches
+// U+00A0, so the token class has to name the two spaces explicitly or the
+// match stops at the very character it is there for.
+//
+// `<` and `>` cannot occur - the text arrives escaped - but they are excluded
+// anyway, so that a stray angle bracket can never put a span inside a tag.
+const ADDRESS_TOKEN = /(?:[^\s<>]|[  ])*(?:[A-Za-z0-9À-ɏ]\.[A-Za-z0-9À-ɏ]|\/|[  ])(?:[^\s<>]|[  ])*/g;
+function markAddresses(text) {
+  return String(text).replace(ADDRESS_TOKEN, (tok) =>
+    // A token with no letter or digit in it has no syllables either - the
+    // lone slash in "Handreichung / Z/PQM" is punctuation, and wrapping it
+    // would put a span in the output that protects nothing.
+    (/[A-Za-z0-9À-ɏ]/.test(tok) ? `<span class="nohy">${tok}</span>` : tok));
+}
+
 // ── marked renderer overrides (code highlighting + image shorthand) ──
 
 marked.use({
@@ -2659,6 +2717,22 @@ marked.use({
     // span with no space in it is short by construction, so that is the test.
     codespan(text) {
       return `<code${/\s/.test(text) ? '' : ' class="nb"'}>${text}</code>`;
+    },
+    // The one thing `hyphens: auto` cannot be told in CSS: which tokens are
+    // not words. A hyphenation dictionary breaks at syllables and reads a dot
+    // and a slash as word boundaries, so under `hyphenate: all` a keynote's
+    // address came out as `pro-jekt-bakule.de` and `Handreichung / Z/PQM`
+    // split across the slash. There is no selector for "this run of
+    // characters", so the build marks them instead, and only when the deck
+    // asked for the dictionary at all.
+    //
+    // A renderer override and not a pass over the finished HTML: this is
+    // handed the text of one text token, already escaped, with no tag and no
+    // attribute anywhere in it - a code span, a link href and an image's alt
+    // all arrive through other renderers. A regex over rendered markup would
+    // have had to know that, and would have been wrong once.
+    text(t) {
+      return addressSpansOn ? markAddresses(t) : t;
     },
     image(href, title, text) {
       // Shorthand: bare id (no slash, no extension) → assets/<id>.<ext>
@@ -4063,12 +4137,71 @@ function parseAttributeTail(line, { column = false } = {}) {
   if (t.slots.width.written) out.width = t.slots.width.value;
   if (t.slots.bare.written) out.bare = true;
   if (t.slots.center.written) out.center = true;
-  if (t.slots.middle.written) out.middle = true;
+  // Three states, not two: `.middle`, `.top`, and neither - and the third is
+  // not a synonym for the second. An unwritten slot leaves `middle`
+  // undefined, and flushChunk reads the chunk's shape to answer it.
+  if (t.slots.anchor.written) out.middle = t.slots.anchor.value === 'middle';
   for (const key of ['wrap', 'blocks', 'figure-type']) {
     if (!t.slots[key].written) continue;
     (out.styleOverrides ??= {})[key] = CHUNK_STYLE_CLASSES[t.slots[key].value][1];
   }
   return out;
+}
+
+// ── where a slide's camera sits, when the author did not say ─────────
+//
+// Is this slide a picture? The body handed in here has already had the
+// asides lifted out of it - a `::: footnote`, a `::: marginalia` and a
+// `::: expand` are nodes on the chunk by the time flushChunk asks - and the
+// `> note:` blocks with them, so what is left is the slide. One `::: draw`,
+// or one image paragraph, and nothing else on it, is a drawing standing on
+// the slide; anything else (a sentence, a second directive, a code block) is
+// prose with a figure in it, which is a different slide and keeps its head at
+// the top.
+//
+// Deliberately a shape and not a type. `figure:` is the type an author reaches
+// for when a chunk is *about* a figure, and in `lectures/diagrams` those
+// chunks are two paragraphs explaining a drawing - centring those would move
+// the explanation off the top of the frame. `free:` with nothing but a
+// `::: draw` in it is the keynote's picture slide, and it is written with
+// five different types across the corpus. The shape is what the room sees.
+// Read on the body as flushChunk leaves it, which is half rendered and half
+// markdown: a `::: draw` is already the compiled `<figure class=figure-diagram>`
+// (the DSL is not markdown and is compiled where it is read), a `::: cols` or
+// `::: side` is the wrapper `<div>` it emits, and everything else is still the
+// author's Markdown. So the figure is matched as an element - it contains no
+// second `</figure>`, which is what makes the lazy match safe - and every line
+// left over after it is taken out is content on the slide.
+function isPictureBody(body) {
+  let pictures = 0;
+  const rest = String(body).replace(
+    /<figure\b[^>]*\bclass="figure-diagram"[^>]*>[\s\S]*?<\/figure>/g,
+    () => { pictures++; return ''; });
+  let other = 0;
+  for (const raw of rest.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    // A paragraph that is one image and nothing else - the `![](fig-id)`
+    // shorthand as much as an explicit path. A sentence with an image in it
+    // is prose.
+    if (/^!\[[^\]]*\]\([^)]*\)$/.test(line)) { pictures++; continue; }
+    // A comment says nothing to the room. `<!-- linter: ignore … -->` is the
+    // one an author writes, and it can stand anywhere in a body.
+    if (/^<!--[\s\S]*-->$/.test(line)) continue;
+    other++;
+  }
+  return pictures === 1 && other === 0;
+}
+
+// The answer to `.middle` / `.top` for a chunk that wrote neither. Two shapes
+// open framed on what the beat paints: a slide that is a picture, and a
+// `statement:`, where the heading and every paragraph are one size and arrive
+// one per press - beat 0 of a three-line statement is one line at the top of
+// two lines of reserve nobody can see yet. Everything else keeps the top
+// anchoring every deck was written against.
+function chunkOpensCentred(chunk) {
+  if (chunk.tag === 'title' || chunk.tag === 'closing') return false;
+  return chunk.tag === 'statement' || isPictureBody(chunk.body);
 }
 
 function parseTagPrefix(text) {
@@ -4192,10 +4325,15 @@ function parseLecture(src) {
   // a moment later, and a report that throws first would bury it.
   let deckFigureType = 1;
   let deckBlocks = 'center';
+  // Read here and not in buildOnce, because the parser renders three bodies
+  // itself - a card, an overlay and a dock - and by the time buildOnce has a
+  // resolved style block those are already HTML.
+  addressSpansOn = false;
   try {
     const st = styleSettings(frontmatter);
     deckFigureType = st['figure-type'] || 1;
     deckBlocks = st.blocks || 'center';
+    addressSpansOn = st.hyphenate === 'all';
   } catch (e) { /* the pre-flight says it */ }
   let diagramBase = null;
   // The deck's answer to "how big is a figure's canvas", when it has one:
@@ -4633,6 +4771,11 @@ function parseLecture(src) {
     // Print collapses reveals: `body` is every segment joined, so the
     // print renderer can stay oblivious to the reveal split.
     currentChunk.body = nonEmpty.join('\n\n');
+    // The camera's anchor, answered from the finished body when the author
+    // wrote neither `.middle` nor `.top`. Here and not in the renderer,
+    // because both live views and --check-fit read the same attribute and a
+    // second copy of the rule is how two of them come to disagree.
+    if (currentChunk.middle === null) currentChunk.middle = chunkOpensCentred(currentChunk);
     currentColumn.chunks.push(currentChunk);
     currentChunk = null;
     bodyLines = [];
@@ -4898,9 +5041,9 @@ function parseLecture(src) {
           err.userFacing = true;
           throw err;
         }
-        if ((tag === 'title' || tag === 'closing') && (width || bare || center || middle)) {
+        if ((tag === 'title' || tag === 'closing') && (width || bare || center || middle !== undefined)) {
           const err = new Error(
-            `A ${tag} chunk carries .${width || (bare ? 'bare' : center ? 'center' : 'middle')}, which its cover composition decides ("${text}").\n` +
+            `A ${tag} chunk carries .${width || (bare ? 'bare' : center ? 'center' : middle ? 'middle' : 'top')}, which its cover composition decides ("${text}").\n` +
             '  A title or closing slide is always full width, its heading is the\n' +
             '  composition\'s, and where its words sit is cover-align\'s - so none\n' +
             '  of these classes has anything to act on.');
@@ -4918,7 +5061,11 @@ function parseLecture(src) {
           width: width || (tag === 'outline' ? 'wide' : 'standard'),
           bare: !!bare,
           center: !!center,
-          middle: !!middle,
+          // Left null when the author wrote neither `.middle` nor `.top`, and
+          // answered from the chunk's shape at the flush, where the body is
+          // finally known. A boolean here would have had to guess before the
+          // first body line was read.
+          middle: middle === undefined ? null : middle,
           // The `style:` keys this one chunk answers differently, or null.
           // Null and not an empty object so every renderer's attribute
           // helper can leave in one line, and so a chunk that wrote none of
@@ -7339,7 +7486,8 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   // annotation, its expansions, its backdrop and its overlays - and dropped
   // them without a word, because nothing downstream knew they had been
   // written. Appending the list is one line and inherits all of it.
-  const bodyHtml = (body ? marked.parse(body) : '')
+  const bodyHtml = (body ? (tag === 'statement'
+      ? markQuietStatementLines(marked.parse(body)) : marked.parse(body)) : '')
     + (tag === 'outline' ? renderOutlineList(opts.parts || [], opts.partNo || 0) : '');
 
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
@@ -8022,6 +8170,22 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 /* Nothing here about a bold inside one of these lines: style.print-bold
    reaches it through DERIVED_STRONG at (0,4,3), and a rule written at this
    selector's specificity would lose to it silently. */
+/* The quiet register, and the document carries it because it is what the
+   line *is* rather than how the projection shows it: a paragraph written
+   entirely in italic is the definition a claim answers or the source under
+   it, not a statement line with a stress mark on it. Half the size, the
+   document's own body weight, --ink-soft - the same three steps back the
+   projection takes, in the document's numbers. Hyphenation is deliberately
+   not touched: the rule above takes every statement paragraph out of the
+   dictionary, and a quiet line is one or two lines of type, so letting it
+   back in would only put a hyphen where nothing needed one. */
+.chunk-statement > p.quiet-line {
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.4;
+  color: var(--ink-soft);
+}
 
 .chunk-exercise .chunk-heading { font-style: italic; }
 .chunk-exercise .chunk-label { color: var(--emph); }
@@ -9018,7 +9182,8 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   // nothing renders for the body.
   const segFrom = chunk.segmentFrom || [];
   const segmentsHtml = segments.map((seg, i) => {
-    const inner = marked.parse(seg || '');
+    const inner = chunk.tag === 'statement'
+      ? markQuietStatementLines(marked.parse(seg || '')) : marked.parse(seg || '');
     const hidden = i === 0 ? '' : ' data-hidden';
     // A pinned segment says which beat it arrives on; an unpinned one is
     // still counted by its position, which is what `pos` in chunkBeats does.
@@ -10041,8 +10206,7 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
    1600x900, a build plan under a stacked heading ran 224-1359 px where the
    same block in a .full chunk runs 135-1466, so moving a chunk onto its
    divider cost it 15% of its size. The heading comes in with it, which is
-   right: under .stack the heading is the figure's caption and a caption
-   sits on the drawing's own edge. */
+   right: a heading over a drawing stands on the drawing's own edge. */
 .chunk-section[data-section-layout=stack] { --slide-pad-x: 6%; }
 
 /* One gap for the whole slide, and the unit it is written in is the trap
@@ -10936,6 +11100,27 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   line-height: 1.15;
   letter-spacing: -0.012em;
   color: var(--ink);
+}
+/* The second register, and the only one this type has. A paragraph written
+   entirely in *italic* is the line that is not the utterance - the definition
+   a claim answers, the source under it - and it steps back on all three of
+   the axes the loud line holds: half the size, the body weight, --ink-soft.
+   Half rather than a smaller step because the two have to read as two ranks
+   at the back of a room and not as one line the renderer got wrong; at 0.7
+   they looked like a mistake.
+
+   The tracking goes with it. --statement-size is a display size and carries
+   -0.012em for it; at half that size the same number closes the words up.
+
+   Written against .chunk-body p so it beats the body rule above on
+   specificity without an id or an !important - the class is the third
+   selector in the chain, and the rule it has to win against is (0,2,2). */
+.chunk[data-tag=statement] .chunk-body p.quiet-line {
+  font-size: calc(var(--statement-size) * 0.5);
+  font-weight: 400;
+  color: var(--ink-soft);
+  letter-spacing: normal;
+  line-height: 1.3;
 }
 /* The gap between two lines is one decision, and a line can arrive as its own
    reveal segment (a --- rule) or as a second paragraph inside one, and the room
@@ -12978,22 +13163,38 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    back of a room: the figure came out at about 55% of the slide and the labels
    with it.
 
-   So .stack turns the composition the other way up. The heading stops being
-   the headline and becomes the figure's caption: it sits above, at the scale
-   the mark and the credits are set at rather than the cover's, and the content
-   takes the whole of the .full measure the divider article already carries.
-   Nothing else about the divider changes - all six section: variants draw
-   their own treatment of the heading exactly as before, which is why this is
-   a class on the one heading rather than a seventh variant beside them. */
+   So .stack turns the composition the other way up: the heading sits above
+   and the content takes the whole of the .full measure the divider article
+   already carries. Nothing else about the divider changes - all six section:
+   variants draw their own treatment of the heading exactly as before, which
+   is why this is a class on the one heading rather than a seventh variant
+   beside them.
+
+   The heading stays a heading through it, and that is a correction. It was a
+   caption for one release - set at the scale the mark and the credits are set
+   at, in --ink-soft - and the reasoning was that the drawing should be read
+   first. What it produced was a slide whose part title was the smallest type
+   on it, and the first keynote to use the layout wrote {.stack .bare} on all
+   four dividers and drew the part title into each figure by hand. A divider
+   names a part; the figure says what the part is about. .bare remains for the
+   author who does draw the title into the drawing. */
 .chunk-section[data-section-layout=stack] .chunk-content { gap: 0; }
 .chunk-section[data-section-layout=stack] .section-heading {
-  /* A caption over a picture, not a part title standing alone: between the
-     mark's small caps and the plain divider's 2.6em, and quieter in colour so
-     the drawing under it is what the room reads first. */
-  font-size: calc(1.35em * var(--zoom));
-  font-weight: 600;
-  color: var(--ink-soft);
-  letter-spacing: 0.01em;
+  /* A part title, one step quieter than a divider that has nothing under it.
+     It was a caption before - 1.35em, weight 600, --ink-soft - on the
+     reasoning that the drawing should be what the room reads first. Measured
+     on a keynote, that made the part's name the smallest type on the slide,
+     and the deck's answer was to write {.stack .bare} on all four dividers
+     and draw the title into the figure with a text element, in the figure
+     sans, at a size the author had to pick four times. A divider's heading is
+     the name of the part whatever stands under it; the figure is what the
+     part is about.
+
+     2.1em is the step section: number takes for the same reason - the other
+     thing on the slide carries the weight - and everything else (family,
+     weight, tracking, colour, the display face when the deck names one) is
+     the plain divider's, inherited rather than restated. */
+  font-size: calc(2.1em * var(--zoom));
 }
 .chunk-section[data-section-layout=stack] .section-mark { margin-bottom: 0.2em; }
 .chunk-section[data-section-layout=stack] .section-mark.section-num {
@@ -13809,13 +14010,44 @@ body[data-blocks=left] #stage .math-display .katex-display > .katex,
 body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
   hyphens: auto;
   -webkit-hyphens: auto;
-  hyphenate-limit-chars: 6 3 3;
+  /* 8 4 4 and not print's 6 3 3. A projection is read at ten metres from a
+     line that is already short, and a two-letter tail on the next line is a
+     fleck the room has to reassemble; on paper the same break is a
+     millimetre of movement at arm's length. So the dictionary is allowed in
+     only where the word is long enough for the break to buy something. */
+  hyphenate-limit-chars: 8 4 4;
 }
 body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
   .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]),
 body[data-hyphenate=all] #stage .chunk[data-tag=statement] .chunk-body p,
 body[data-hyphenate=all] #stage .margin-note,
 body[data-hyphenate=all] #stage .margin-note * {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
+/* Three more exclusions, and the deck they come from is the argument for
+   all of them: a keynote with 26 left-set slides, which is exactly what the
+   key is for, turned it back off to hyphenate: print because of what it did
+   to the other six.
+
+   Centred prose is shaped by its line ends. Ragged-centre text is read as a
+   silhouette, and a hyphen is a line end that says nothing - the block comes
+   out as a diamond with a spike on one side. That holds wherever the text is
+   centred: a {.center} chunk and a divider, whose heading and lede sit on the
+   slide's own axis whatever variant it wears.
+
+   And an address the build has marked, which is the half no selector could
+   have reached - see markAddresses.
+
+   Specificity: the auto rule above is (1,1,2) and each of these carries at
+   least one more class, so they win without an id of their own. The
+   descendant star is free and reaches the footnote and the card inside a
+   centred chunk, which are centred with it. */
+body[data-hyphenate=all] #stage .chunk[data-center],
+body[data-hyphenate=all] #stage .chunk[data-center] *,
+body[data-hyphenate=all] #stage .chunk-section,
+body[data-hyphenate=all] #stage .chunk-section *,
+body[data-hyphenate=all] #stage .nohy {
   hyphens: manual;
   -webkit-hyphens: manual;
 }

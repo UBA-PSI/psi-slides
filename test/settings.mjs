@@ -1942,11 +1942,25 @@ console.log('\nlayout generations');
     // does not, and a layout would only say the same thing more slowly.
     ok(/\.chunk-section\[data-section-layout=stack\] \{ --slide-pad-x: 6%; \}/.test(st.html),
        'a stacked divider pads 6% like the .full chunk whose measure it promises');
-    // And the drawing ranges left on the caption's own edge. text-align
+    // And the drawing ranges left on the heading's own edge. text-align
     // cannot move an svg - it is a block with auto inline margins - so the
     // existing "ranged left" rule reached the figcaption alone.
     ok(/\.chunk-section\[data-section-layout=stack\] \.section-body \.psi-diagram \{[^}]*--dg-fit-ink-x/.test(st.html),
-       'and its drawing sits on the caption edge by its ink, not by its box');
+       'and its drawing sits on the heading edge by its ink, not by its box');
+    // The heading over it is a heading. It was a caption for one release -
+    // 1.35em, weight 600, --ink-soft - and the first keynote to use the layout
+    // answered that by writing {.stack .bare} on all four dividers and drawing
+    // the part title into each figure by hand. So: one size step under the
+    // plain divider, and everything else inherited rather than restated, which
+    // is the half a regression would undo first.
+    // Comments out first: this rule carries a long one, and a `{.stack .bare}`
+    // inside it would end a brace-counting scan two lines early.
+    const stackHd = (st.html.replace(/\/\*[\s\S]*?\*\//g, '').match(
+      /\.chunk-section\[data-section-layout=stack\] \.section-heading \{[^}]*\}/) || [''])[0];
+    ok(/font-size: calc\(2\.1em \* var\(--zoom\)\)/.test(stackHd),
+       'a stacked divider sets its heading one size step under the plain divider', stackHd);
+    ok(!/--ink-soft|font-weight|letter-spacing/.test(stackHd),
+       'and restates no colour, weight or tracking of its own', stackHd);
   }
 
   // ── {.figure-type-N}: style.figure-type answered for one chunk ──
@@ -2902,6 +2916,40 @@ console.log('\nlayout generations');
      'style.hyphenate: all reaches the projection');
   ok(/lang="de"/.test(hAll.html),
      'and lang: de is still what supplies the dictionary, which is why it stays a key of its own');
+  // ── what `all` still leaves alone ─────────────────────────────────────
+  // Three exclusions, and a keynote with 26 left-set slides is the argument
+  // for each: it turned `all` back off to `print` because of what it did to
+  // the other six. Two are selectors; the third could not be one.
+  ok(/hyphenate-limit-chars: 8 4 4/.test(dflt.html) && /hyphenate-limit-chars: 6 3 3/.test(dflt.print),
+     'the projection needs a longer word than the page before a break buys anything');
+  ok(/body\[data-hyphenate=all\] #stage \.chunk\[data-center\],\s*\n\s*body\[data-hyphenate=all\] #stage \.chunk\[data-center\] \*/
+       .test(dflt.html),
+     'a centred chunk is out of the dictionary, descendants included - a hyphen on a centre axis is a spike on a diamond');
+  ok(/body\[data-hyphenate=all\] #stage \.chunk-section,\s*\n\s*body\[data-hyphenate=all\] #stage \.chunk-section \*/
+       .test(dflt.html),
+     'and so is a divider, whose heading and lede sit on the slide axis whatever variant it wears');
+  ok(/body\[data-hyphenate=all\] #stage \.nohy \{/.test(dflt.html),
+     'and the span the build writes round an address');
+  // The address half, which is a build-time mark because no selector can name
+  // a run of characters. Three shapes and three defects: a dot between word
+  // characters (`pro-jekt-bakule.de`), a slash (`Handreichung / Z/PQM` split
+  // across it) and a no-break space, which is the author joining two halves
+  // into one token. Emitted only under `all`, or every deck's bytes move.
+  const ADDR = '## free: A {#z}\n\nGeht auf projekt-bakule.de im Handreichung / Z/PQM bei n = 4 910 Vorgängen.\n';
+  const addrAll = raw(DECK('lang: de\nstyle:\n  hyphenate: all\n') + ADDR, ['--audience-only']);
+  const spans = (String(addrAll.html).match(/<span class="nohy">([^<]*)<\/span>/g) || [])
+    .map(s => s.replace(/<[^>]*>/g, ''));
+  ok(spans.includes('projekt-bakule.de'), 'a dotted address is taken out of the dictionary', spans.join(' | '));
+  ok(spans.includes('Z/PQM'), 'and a token with a slash in it', spans.join(' | '));
+  ok(spans.includes('4 910'), 'and a group the author joined with a no-break space', spans.join(' | '));
+  ok(!spans.includes('/'), 'while the lone slash between two words is punctuation and is left alone', spans.join(' | '));
+  ok(!spans.includes('Geht') && !spans.includes('Vorgängen.'),
+     'and an ordinary word is untouched, or the key would do nothing at all', spans.join(' | '));
+  const addrPrint = raw(DECK('lang: de\n') + ADDR, ['--audience-only']);
+  // The markup, not the word: the stylesheet names the class in every build,
+  // and it is the span in the body that would move a deck's bytes.
+  ok(!/<span class="nohy">/.test(String(addrPrint.html)),
+     'a deck at the default hyphenate: print emits no such span, so its bytes do not move');
   const hNone = hyph('lang: de\nstyle:\n  hyphenate: none\n');
   ok(/data-hyphenate="none"/.test(bodyOf(hNone.print)),
      'and none reaches the printed document, which is the only view that hyphenated before');
@@ -3282,8 +3330,76 @@ console.log('\nlayout generations');
   // (`## free: A {} {#a}` would not be that case: splitTail takes the last
   // brace pair, so the `{}` there is heading prose.)
   // The flags have no writable default, and the chunk tail invents none.
-  for (const w of ['.shown', '.left', '.top']) {
+  for (const w of ['.shown', '.left']) {
     ok(/unknown-class/.test(lintOf(FM + `## free: A {${w} #a}\n\nProse.\n`)), `${w} on a chunk heading is unknown-class`);
+  }
+  // `.top` is the exception and the reason the rule above is worth stating:
+  // the camera's anchor is not a flag, because the unwritten state is a third
+  // answer - the chunk's shape decides - so both directions are spellable and
+  // both have to lint clean in the two files at once.
+  for (const w of ['.middle', '.top']) {
+    ok(/0 error\(s\)/.test(lintOf(FM + `## free: A {${w} #a}\n\nProse.\n`)),
+       `${w} on a chunk heading lints clean`, lintOf(FM + `## free: A {${w} #a}\n\nProse.\n`).split('\n')[0]);
+    ok(raw(FM + `## free: A {${w} #a}\n\nProse.\n`).code === 0, `and the build takes ${w}`);
+  }
+  ok(/same-slot/.test(lintOf(FM + '## free: A {.middle .top #a}\n\nProse.\n')),
+     '.middle and .top together are same-slot, one question with two answers');
+  // The refusal on a cover chunk covers both words, in both files.
+  for (const w of ['.middle', '.top']) {
+    ok(/class-on-cover-chunk/.test(lintOf(FM + `## title: T {${w}}\n\n`)),
+       `${w} on a title chunk is class-on-cover-chunk`);
+    ok(raw(FM + `## title: T {${w}}\n\n`).code !== 0, `and the build refuses ${w} there too`);
+  }
+  // The default the shape decides, read off the emitted attribute. A slide
+  // that is one drawing and a `statement:` carry data-middle with nothing
+  // written; prose under the drawing takes it away and `.top` overrides it.
+  const DRAW = '::: draw 40x20\nbox a "one" at 0,0\n:::\n';
+  const midOf = (src) => {
+    const b = raw(FM + src, ['--audience-only']);
+    const m = (b.html || '').match(/<article class="chunk[^>]*data-chunk-id="a"[^>]*>/);
+    return b.code === 0 && !!m && m[0].includes('data-middle');
+  };
+  ok(midOf(`## free: A {#a}\n\n${DRAW}`), 'a chunk that is one drawing opens centred with nothing written');
+  ok(midOf(`## free: A {#a}\n\n${DRAW}\n::: footnote\nsource\n:::\n`),
+     'and a footnote is an aside, not prose on the slide');
+  ok(!midOf(`## free: A {#a}\n\n${DRAW}\nA sentence under it.\n`),
+     'a drawing with a sentence under it keeps its head at the top');
+  ok(!midOf(`## free: A {.top #a}\n\n${DRAW}`), '.top takes the centring back');
+  ok(midOf('## statement: Loud. {#a}\n\n---\n\nAnd louder.\n'), 'a statement: opens centred');
+  ok(!midOf('## free: A {#a}\n\nProse.\n'), 'and a prose chunk does not');
+  ok(midOf('## free: A {.middle #a}\n\nProse.\n'), 'unless it writes .middle');
+
+  // ── a statement's quiet line ──────────────────────────────────────────
+  // The type's second register, and its whole vocabulary: a paragraph set
+  // *entirely* in italic is the line that is not the utterance. "Entirely" is
+  // what makes it a register rather than an accident - an emphasised word
+  // inside a line is a stress mark, which is what `*em*` means everywhere
+  // else - so the accepting and the refusing case are asserted together, and
+  // in both views, because what the line *is* does not change on paper.
+  {
+    const st = raw(FM + '## statement: Loud. {#a}\n\n'
+      + '*A quiet line.*\n\n---\n\nAnother loud one.\n\n'
+      + 'A loud line with *one* word emphasised.\n\n'
+      + '*Half italic* and half not.\n');
+    ok(st.code === 0, 'a statement with a quiet line builds', st.out.split('\n')[0]);
+    const quiet = (s) => (String(s).match(/<p class="quiet-line">/g) || []).length;
+    ok(quiet(st.html) === 1, 'exactly one paragraph is the quiet line on the projection', String(quiet(st.html)));
+    ok(quiet(st.print) === 1, 'and the document carries the same one', String(quiet(st.print)));
+    ok(/<p class="quiet-line"><em>A quiet line\.<\/em><\/p>/.test(st.html),
+       'the em stays inside it - the marker and the look are the same thing');
+    ok(/<p>A loud line with <em>one<\/em> word emphasised\.<\/p>/.test(st.html),
+       'a stress mark inside a line leaves the line loud');
+    ok(/<p><em>Half italic<\/em> and half not\.<\/p>/.test(st.html),
+       'and a paragraph that only starts in italic is not the quiet line');
+    ok(/\.chunk\[data-tag=statement\] \.chunk-body p\.quiet-line \{[^}]*--ink-soft/.test(st.html)
+       && /\.chunk\[data-tag=statement\] \.chunk-body p\.quiet-line \{[^}]*calc\(var\(--statement-size\) \* 0\.5\)/.test(st.html),
+       'the projection sets it at half the statement size in the softer ink');
+    ok(/\.chunk-statement > p\.quiet-line \{[^}]*--ink-soft/.test(st.print),
+       'and the document has a rule of its own rather than inheriting a slide size');
+    // Only this type. A `free:` chunk full of italic paragraphs is prose.
+    const fr = raw(FM + '## free: A {#a}\n\n*An italic paragraph.*\n', ['--audience-only']);
+    ok(fr.code === 0 && !/<p class="quiet-line">/.test(fr.html || ''),
+       'an all-italic paragraph outside a statement is left alone');
   }
   // A word that is the default of two slots marks the first as written.
   const autoLeft = raw(FM + '## free: A {#a}\n\n::: cards 2 {.auto .left}\n- One\n- Two\n:::\n');

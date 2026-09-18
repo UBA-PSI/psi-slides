@@ -82,12 +82,15 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   the eleven types is an `unknown-type` error, not a silent heading.
 - `|` splits the heading into a main line and a typographically quieter second
   line. Further `|` segments are joined into that second line.
-- The attribute tail recognises a width class, `#id`, and seven other classes.
-  Three are the chunk's own: `.bare` (keep the heading in the document and off
+- The attribute tail recognises a width class, `#id`, and eight other classes.
+  Four are the chunk's own: `.bare` (keep the heading in the document and off
   the projection), `.center` (set this chunk's heading, prose and footnotes
-  on a centre axis, on the projection only) and `.middle` (keep what the slide
-  paints at this beat on the frame's vertical middle rather than at the top of
-  the space the whole chunk will fill). Four answer a `style:` key for
+  on a centre axis, on the projection only) and the pair `.middle` / `.top`
+  (keep what the slide paints at this beat on the frame's vertical middle,
+  or at the top of the space the whole chunk will fill). The pair has no
+  default: a slide that is one drawing and a `statement:` open centred, every
+  other chunk opens at the top, and each word overrides that for one slide.
+  Four answer a `style:` key for
   this one chunk and are spelled key-value: `.blocks-left` / `.blocks-center` (where a code block, a
   figure and a display formula sit across the measure) and `.wrap-none` /
   `.wrap-balance` (whether this chunk's headings are balanced and its prose
@@ -156,6 +159,26 @@ Das Knirschen.
 
 In keinem Diagramm steht, wozu das Ganze einmal da war.
 ```
+
+**One paragraph in the run can be quiet, and italic is how you say so.** A
+paragraph written *entirely* in `*italic*` – the asterisks around the whole of
+it, nothing outside them – steps back on all three axes at once: half the size,
+the body weight, the softer ink. It is the line that is not the utterance: the
+definition a claim answers, the source under it, the qualification that arrives
+one press later. Print carries the same two ranks. Everything else about the
+chunk is unchanged, `---` between two paragraphs still being one press.
+
+```markdown
+## statement: Derselbe Umweg, der uns heute trägt, verbraucht das, was wir morgen bräuchten. {.wide #der-satz}
+
+*Resilient: heute weiterarbeiten können, ohne die Fähigkeit zu verbrauchen, morgen anders zu arbeiten.*
+```
+
+**Entirely is the word that matters.** A statement line with one emphasised
+word in it is a loud line with a stress mark, which is what `*em*` means
+everywhere else in the format, and it stays loud. Before this register existed,
+a thesis slide that wanted a quiet definition over a loud claim had to be a
+`::: draw` of two `text` elements – a drawing, and it paid a drawing's price.
 
 The two ways this used to be faked both cost something. `::: cards 1 {.large
 .clear}` puts the words in the accent colour, because a card's term is a bold
@@ -1381,15 +1404,32 @@ inside a reserve nobody can see yet. Measured on a keynote, a three-row
 timeline opened with one row 155 px from the ceiling and 698 px of paper under
 it, and only its last beat looked composed.
 
-Write it on a slide whose *first* beat has to stand on its own – a timeline
-that arrives a row at a time, a claim with its qualification two presses later.
-The cost is that the frame glides a little on each press, the way it already
-does on a chunk taller than the screen; the type never changes size, because
-auto-fit still measures the whole chunk. Leave it off where every beat is meant
-to be read against the ones before it in a fixed place, which is why it is not
-the default. Like `.bare` and `.center` it stops at the live views, and like
-them it is refused on a `title` or `closing` chunk, where the cover
-composition and `cover-align` have already answered the question.
+**Two shapes get it without asking, and on those two you write nothing.** A
+slide that *is* a picture – one `::: draw`, or one image, and no prose on the
+slide beside it – and a `statement:`, whose heading and paragraphs are one size
+and arrive one per press. Both are slides where the first beat has to stand on
+its own, and a keynote wrote `{.middle}` on eleven chunks of which eight were
+one of those two shapes. A `::: footnote`, a `::: marginalia` and a `::: expand`
+do not count against a picture: they are asides lifted off the slide, so a
+drawing with a source line under it is still a drawing standing alone.
+
+A sentence under the drawing *is* prose, and that chunk keeps the old top
+anchoring – prose grows downwards and a reader expects the heading to stay
+where it was. So do the `figure:` chunks in `lectures/diagrams`, which are two
+paragraphs explaining a drawing. **It is the shape of the body that decides and
+not the type**, because the picture slide is written as `free:`, `figure:` and
+`example:` across the corpus.
+
+Write `{.middle}` yourself on a slide that is prose and still wants it – a
+short definition whose second line arrives on a press, a one-line caption over
+a photograph. Write `{.top}` on a picture slide that wants the old anchoring:
+a drawing that grows downwards and should be read against where its first row
+stood. The cost of the centring is that the frame glides a little on each
+press, the way it already does on a chunk taller than the screen; the type
+never changes size, because auto-fit still measures the whole chunk. Like
+`.bare` and `.center` both words stop at the live views, and like them both are
+refused on a `title` or `closing` chunk, where the cover composition and
+`cover-align` have already answered the question.
 
 `blocks: left` puts the three things on a slide that are not prose - a code
 block, a figure with its caption, a display formula - on the prose's own axis
@@ -1705,9 +1745,10 @@ warning go away unread.
 ## Gotchas
 
 - Only the eleven types and four widths exist. Seven non-width classes exist and no
-  others: `.bare`, `.center`, `.middle`, `.blocks-left`, `.blocks-center`,
+  others: `.bare`, `.center`, `.middle` / `.top`, `.blocks-left`,
+  `.blocks-center`,
   `.wrap-none`, `.wrap-balance`; anything else is an `unknown class` error.
-  `.bare`, `.center` and `.middle` are not legal on a `title` or `closing`
+  `.bare`, `.center`, `.middle` and `.top` are not legal on a `title` or `closing`
   chunk, where the cover composition decides all four questions; the four
   `style:` classes are, and
   `.wrap-none` on a cover breaks its title greedily.

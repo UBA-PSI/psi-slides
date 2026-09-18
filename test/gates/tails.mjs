@@ -101,9 +101,25 @@ export async function run({ report }) {
     ok(codes(t) === want, `${who} {${tail}} → ${want || 'no problem'}`, `got ${codes(t) || 'none'}: ${t.problems.map(p => p.msg).join(' | ')}`);
   }
   // No slot may invent a spelling for a flag's default.
-  for (const w of ['.shown', '.left', '.top']) {
+  for (const w of ['.shown', '.left']) {
     ok(codes(heading(`${w} #a`)) === 'unknown-class', `${w} on a chunk heading is unknown-class`);
   }
+  // The camera's `anchor` is the exception, and deliberately not a flag: its
+  // two words are the overrides in both directions and the *unwritten* state is
+  // a third answer - the chunk's shape decides. So `.top` is a word here,
+  // `.middle .top` is same-slot like any other pair, and neither is the slot's
+  // default, which is null. The slot is named for the question and not for
+  // either word, or the same-slot message would read "both answer middle".
+  ok(CHUNK_SLOTS.anchor.default === null,
+     'the anchor slot defers rather than defaulting to a word');
+  ok(codes(heading('.top #a')) === '' && heading('.top #a').slots.anchor.value === 'top',
+     '.top is the word a picture chunk writes to keep the old top anchoring');
+  ok(codes(heading('.middle .top #a')) === 'same-slot'
+     && /both answer "anchor"/.test(heading('.middle .top #a').problems[0].msg),
+     'and .middle .top is same-slot, naming the question rather than one of its answers',
+     heading('.middle .top #a').problems[0].msg);
+  ok(heading('#a').slots.anchor.written === false && heading('#a').slots.anchor.value === null,
+     'an unwritten anchor slot is null, which is what sends the question to the shape');
   // The message names the tail and, for a word from no slot, the vocabulary.
   ok(/^::: side: "\.sideways" is not a word this directive knows - anchor: \.top \| \.middle$/.test(side('.sideways').problems[0].msg),
      'the unknown-class message names the directive and lists its slots');
