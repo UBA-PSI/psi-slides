@@ -32,21 +32,22 @@ involved in this scene, `.muted` the apparatus.
 ## figure: For transport, each network layer relies on addresses {.full #ns-a03}
 
 ::: draw 150x54
-default box {.tone-3 .sharp} w 0.88 h 0.85
+default box {.tone-3 .sharp} w 1.15
 
 box fh "Frame\nHeader"    at 0,0
-box dh "Datagram\nHeader" right of fh gap 0 same as fh
-box sh "Segment\nHeader"  right of dh gap 0 same as fh
-box pl "Payload"          right of sh gap 0 same as fh {.paper}
+box dh "Datagram\nHeader" right of fh gap 0
+box sh "Segment\nHeader"  right of dh gap 0
+box pl "Payload"          right of sh gap 0 {.paper}
 
-# The three labels climb to the right, so their leaders stay vertical and none
-# lies over the next. They point at the top edge rather than at the box: a
-# leader to the centre would end in the middle of the box's own label.
-text lmac "Ethernet source\nand destination\naddresses*"       above fh gap 0.5 -- fh.cx,fh.top {.muted @l1}
-text lip  "IP source\nand destination\naddresses"              above dh gap 1.7 -- dh.cx,dh.top {.muted @l2}
-text lprt "source and\ndestination ports\n(if TCP/UDP is used)" above sh gap 2.9 -- sh.cx,sh.top {.muted @l3}
+# The boxes are wide enough to carry their own explanation above them, so the
+# three labels stand in one row at one gap and every leader is the same short
+# vertical. They point at the top edge rather than at the box: a leader to the
+# centre would end in the middle of the box's own label.
+text lmac "Ethernet source\nand destination\naddresses*"       above fh gap 0.6lh -- fh.cx,fh.top {.muted @l1}
+text lip  "IP source\nand destination\naddresses"              above dh gap 0.6lh -- dh.cx,dh.top {.muted @l2}
+text lprt "source and\ndestination ports\n(if TCP/UDP is used)" above sh gap 0.6lh -- sh.cx,sh.top {.muted @l3}
 
-text foot "*also called MAC addresses (media access control)" below fh gap 0.85 flush left {.left .muted}
+text foot "*also called MAC addresses (media access control)" below fh gap 1.2lh flush left {.left .muted}
 
 step ethernet
   show @l1
@@ -59,7 +60,7 @@ step ports
   emph sh
 :::
 
-**A packet carries its own pair of addresses at every layer.** The four boxes are one frame on the wire: `gap 0` and `same as` hold them together as a stack, and only the label above says which header carries which addresses. Each step emphasises one header and brings its explanation in, outside to inside, in the order a device works through the headers. The payload stays untinted, having nothing to say in this figure.
+**A packet carries its own pair of addresses at every layer.** The four boxes are one frame on the wire: `gap 0` holds them together as a stack and the chain gives all four one size, and only the label above says which header carries which addresses. Each step emphasises one header and brings its explanation in, outside to inside, in the order a device works through the headers. The payload stays untinted, having nothing to say in this figure.
 
 ## figure: Besides spoofing, adversaries may attack address resolution {.full #ns-a07}
 
@@ -123,36 +124,40 @@ step poisoning
 
 ## figure: B wants to visit webserver at example.com | knows IP of DNS resolver of ISP and gateway {.full #ns-a08}
 
-::: draw 190x54
+::: draw 120x40
 # Diese Topologie tragen vier Figuren gemeinsam (A-08, A-12, A-13, A-14):
 # the same names in the same places, so the run reads as one drawing that
-# develops.
-box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
-box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
-box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.dim}
-edge awire a.bottom -- a.cx,sw.top {.muted}
-edge bwire b.bottom -- b.cx,sw.top {.muted}
+# develops. It stands as one band across the slide rather than as two towers:
+# the home network on the left, the internet on the right, the boundary
+# upright between them. The hosts are peers and say so with `col`, so no box
+# carries a size of its own.
+box a   "A" at 0,-1.35 {.dim}
+box b   "B" at 0,1.35 {.tone-2}
+col a, b
+box sw  "Switch &\nRouter" at 1.25,0 w 0.78 {.tone-1}
+box rt  "Router" at 2.6,0 {.tone-1 @net}
+box res "" at 3.75,-1.35 {.tone-1 @net}
+box web "" at 5.0,0 {.tone-2 @net}
 
-box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1 @net}
-box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1 @net}
-box web "" below rt gap 1.75 same as res {.tone-2 @net}
-align y middle b, res
+edge awire a.right -- sw.left {.muted .elbow}
+edge bwire b.right -- sw.left {.muted .elbow}
 edge trunk sw -- rt {.muted}
-edge rwire res.bottom -- rt.top {.muted}
-edge uplink rt.bottom -- web.top {.muted}
-text brk "//" between rt,web pad 0.12 {.paper .muted @net}
+edge rwire rt.right -- res.left {.muted .elbow @net}
+edge uplink rt.right -- web.left {.muted @net}
+text brk "//" at 4.2,0 pad 0.12 {.paper .muted @net}
 
-text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" above b gap 0.3 {.mono .muted}
-text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.3 {.muted}
-text resl "41.1.2.1\nDNS Resolver of ISP" above res gap 0.28 {.muted @net}
-text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted @net}
+text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" below b gap 0.35 {.mono .muted}
+text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.35 {.muted}
+text resl "41.1.2.1\nDNS Resolver of ISP" above res gap 0.3 {.muted @net}
+text webl "Webserver\nexample.com\n80.5.5.3" above web gap 0.3 {.muted @net}
 
 # The zone boundary is a separation rather than a relation: a headless dotted
-# edge between two coordinates, touching no element.
-text zoneh "Home Network\n(10.1.1.1–254)" above bmac gap 0.5 offset 0.55,0 {.muted .serif}
-text zonei "Internet" above resl gap 0.5 offset -0.5,0 {.muted .serif}
-align y middle zoneh, zonei
-edge rt.left-0.52,zoneh.top-0.2 -- rt.left-0.52,webl.bottom+0.2 {.dotted .muted}
+# edge between two coordinates, touching no element. The two zone names stand
+# either side of it in the band the drawing leaves empty above the switch, so
+# they cost the figure no height at all.
+text zoneh "Home Network\n(10.1.1.1–254)" at 1.75,-2.5 {.right .muted .serif}
+text zonei "Internet" at 1.95,-2.5 {.left .muted .serif}
+edge 1.85,-2.75 -- 1.85,2.75 {.dotted .muted}
 
 step internet
   show @net
@@ -167,41 +172,47 @@ step wants
 
 ## figure: DNS Spoofing | Adversary forges IP address in DNS reply to redirect victim to malicious server, e.g., for phishing credentials {.full #ns-a12}
 
-::: draw 190x54
+::: draw 120x40
 # The same topology as #ns-a08, the same names, the same places.
-box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
-box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
-box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.accent}
-edge awire a.bottom -- a.cx,sw.top {.muted}
-edge bwire b.bottom -- b.cx,sw.top {.muted}
+box a   "A" at 0,-1.35 {.accent}
+box b   "B" at 0,1.35 {.tone-2}
+col a, b
+box sw  "Switch &\nRouter" at 1.25,0 w 0.78 {.tone-1}
+box rt  "Router" at 2.6,0 {.tone-1}
+box res "" at 3.75,-1.35 {.tone-1}
+box web "" at 5.0,0 {.tone-2}
 
-box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1}
-box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1}
-box web "" below rt gap 1.75 same as res {.tone-2}
-align y middle b, res
+edge awire a.right -- sw.left {.muted .elbow}
+edge bwire b.right -- sw.left {.muted .elbow}
 edge trunk sw -- rt {.muted}
-edge rwire res.bottom -- rt.top {.muted}
-edge uplink rt.bottom -- web.top {.muted}
-text brk "//" between rt,web pad 0.12 {.paper .muted}
+edge rwire rt.right -- res.left {.muted .elbow}
+edge uplink rt.right -- web.left {.muted}
+text brk "//" at 4.2,0 pad 0.12 {.paper .muted}
 
-box awb "" left of web gap 5.45 same as web {.accent @evil}
-box e   "" left of awb gap 2.35 same as web {.dim}
+# The attacker's machines stand on a wire of their own below the spine, where
+# the drawing leaves a band empty, rather than in a tower under the router.
+box e   "" at 3.3,1.35 {.dim}
+box awb "" at 4.05,1.35 {.accent @evil}
 edge e -- awb {.muted}
-edge awb -- web {.muted}
+edge awb -- web {.muted .elbow}
 
-text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" above b gap 0.3 {.mono .muted}
-text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.3 {.muted}
-text resl "DNS Resolver\nof ISP" above res gap 0.28 {.muted}
-text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted}
-text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28 {.muted @evil}
+text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" below b gap 0.35 {.mono .muted}
+text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.35 {.muted}
+text resl "DNS Resolver\nof ISP" above res gap 0.3 {.muted}
+text webl "Webserver\nexample.com\n80.5.5.3" above web gap 0.3 {.muted}
+# Two lines rather than the original's three: same words, one break moved, so
+# the note under the wire costs the drawing one label-height less.
+text awbl "Attacker's Webserver “example.com”\n66.9.9.6" below awb gap 0.3 -- awb {.muted @evil}
 
 # The forged reply runs on the same wire as B's connection, so it takes that
 # wire's place: bwire goes, forged arrives - never both, instead of two lines
 # on top of each other.
-edge forged b.cx,sw.top -> b.bottom {.accent}
-text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
+edge forged sw.left -> b.right {.accent .elbow}
+text forgedl "“example.com\nis 66.9.9.6”" at 1.25,-1.35 pad 0.14 {.paper .accent .mono @spoof}
 
-edge rt.left-0.52,resl.top-0.3 -- e.cx-0.45,gwl.bottom+0.28 via rt.left-0.52,gwl.bottom+0.28 {.dotted .muted}
+text zoneh "Home Network\n(10.1.1.1–254)" at 1.75,-2.5 {.right .muted .serif}
+text zonei "Internet" at 1.95,-2.5 {.left .muted .serif}
+edge 1.85,-2.75 -- 1.85,2.75 {.dotted .muted}
 
 step query
   emph bwire, trunk, rwire
@@ -218,44 +229,46 @@ step redirect
 
 ## figure: Forgery trivial for on-path attacker (on routers or endpoints) | prevent reply from reaching B and inject own reply {.full #ns-a13}
 
-::: draw 190x54
+::: draw 120x40
 # The same topology as #ns-a08 and #ns-a12, the same names and places.
-box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
-box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
-box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.accent}
-edge awire a.bottom -- a.cx,sw.top {.muted}
-edge bwire b.bottom -- b.cx,sw.top {.muted}
+box a   "A" at 0,-1.35 {.accent}
+box b   "B" at 0,1.35 {.tone-2}
+col a, b
+box sw  "Switch &\nRouter" at 1.25,0 w 0.78 {.tone-1}
+box rt  "Router" at 2.6,0 {.tone-1}
+box res "" at 3.75,-1.35 {.tone-1}
+box web "" at 5.0,0 {.tone-2}
 
-box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1}
-box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1}
-box web "" below rt gap 1.75 same as res {.tone-2}
-align y middle b, res
+edge awire a.right -- sw.left {.muted .elbow}
+edge bwire b.right -- sw.left {.muted .elbow}
 edge trunk sw -- rt {.muted}
-edge rwire res.bottom -- rt.top {.muted}
-edge uplink rt.bottom -- web.top {.muted}
-text brk "//" between rt,web pad 0.12 {.paper .muted}
+edge rwire rt.right -- res.left {.muted .elbow}
+edge uplink rt.right -- web.left {.muted}
+text brk "//" at 4.2,0 pad 0.12 {.paper .muted}
 
-box awb "" left of web gap 5.45 same as web {.accent}
-box e   "" left of awb gap 2.35 same as web {.dim}
+box e   "" at 3.3,1.35 {.dim}
+box awb "" at 4.05,1.35 {.accent}
 edge e -- awb {.muted}
-edge awb -- web {.muted}
+edge awb -- web {.muted .elbow}
 
-text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" above b gap 0.3 {.mono .muted}
-text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.3 {.muted}
-text resl "DNS Resolver\nof ISP" above res gap 0.28 {.muted}
-text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted}
-text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28 {.muted}
+text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" below b gap 0.35 {.mono .muted}
+text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.35 {.muted}
+text resl "DNS Resolver\nof ISP" above res gap 0.3 {.muted}
+text webl "Webserver\nexample.com\n80.5.5.3" above web gap 0.3 {.muted}
+text awbl "Attacker's Webserver “example.com”\n66.9.9.6" below awb gap 0.3 -- awb {.muted}
 
-edge forged b.cx,sw.top -> b.bottom {.accent}
-text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
+edge forged sw.left -> b.right {.accent .elbow}
+text forgedl "“example.com\nis 66.9.9.6”" at 1.25,-1.35 pad 0.14 {.paper .accent .mono @spoof}
 
 # "on-patch" is the original's typo and is kept verbatim. There the question
 # is a bordered box; here it is a note with a leader to A - a box
-# in the topology would look like a device. It stands beside A so the leader
-# stays horizontal.
-text ask "Can A also become\non-patch attacker?" left of a gap 1.75 -- a.left,a.cy {.accent @ask}
+# in the topology would look like a device. It stands over A, in the band the
+# zone names leave free, so the leader stays vertical and short.
+text ask "Can A also become\non-patch attacker?" above a gap 0.35 -- a.cx,a.top {.accent @ask}
 
-edge rt.left-0.52,resl.top-0.3 -- e.cx-0.45,gwl.bottom+0.28 via rt.left-0.52,gwl.bottom+0.28 {.dotted .muted}
+text zoneh "Home Network\n(10.1.1.1–254)" at 1.75,-2.5 {.right .muted .serif}
+text zonei "Internet" at 1.95,-2.5 {.left .muted .serif}
+edge 1.85,-2.75 -- 1.85,2.75 {.dotted .muted}
 
 step path
   emph rwire, trunk, bwire
@@ -273,42 +286,47 @@ step question
 
 ## figure: Off-path attackers (E) must generate a valid reply | that reaches B before the reply sent by the real DNS resolver {.full #ns-a14}
 
-::: draw 190x54
+::: draw 120x40
 # The same topology as #ns-a08, #ns-a12 and #ns-a13, the same names and
-# places. All that is new is who the attacker is: A steps back and the box at
-# the bottom left of the internet gets a name.
-box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
-box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
-box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.dim}
-edge awire a.bottom -- a.cx,sw.top {.muted}
-edge bwire b.bottom -- b.cx,sw.top {.muted}
+# places. All that is new is who the attacker is: A steps back and the box on
+# the attacker's wire in the internet gets a name.
+box a   "A" at 0,-1.35 {.dim}
+box b   "B" at 0,1.35 {.tone-2}
+col a, b
+box sw  "Switch &\nRouter" at 1.25,0 w 0.78 {.tone-1}
+box rt  "Router" at 2.6,0 {.tone-1}
+box res "" at 3.75,-1.35 {.tone-1}
+box web "" at 5.0,0 {.tone-2}
 
-box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1}
-box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1}
-box web "" below rt gap 1.75 same as res {.tone-2}
-align y middle b, res
+edge awire a.right -- sw.left {.muted .elbow}
+edge bwire b.right -- sw.left {.muted .elbow}
 edge trunk sw -- rt {.muted}
-edge rwire res.bottom -- rt.top {.muted}
-edge uplink rt.bottom -- web.top {.muted}
-text brk "//" between rt,web pad 0.12 {.paper .muted}
+edge rwire rt.right -- res.left {.muted .elbow}
+edge uplink rt.right -- web.left {.muted}
+text brk "//" at 4.2,0 pad 0.12 {.paper .muted}
 
-box awb "" left of web gap 5.45 same as web {.accent}
-box e   "" left of awb gap 2.35 same as web {.dim}
+box e   "" at 3.3,1.35 {.dim}
+box awb "" at 4.05,1.35 {.accent}
 edge e -- awb {.muted}
-edge awb -- web {.muted}
+edge awb -- web {.muted .elbow}
 
-text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" above b gap 0.3 {.mono .muted}
-text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.3 {.muted}
-text resl "DNS Resolver\nof ISP" above res gap 0.28 {.muted}
-text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted}
-text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28 {.muted}
+text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" below b gap 0.35 {.mono .muted}
+text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.35 {.muted}
+text resl "DNS Resolver\nof ISP" above res gap 0.3 {.muted}
+text webl "Webserver\nexample.com\n80.5.5.3" above web gap 0.3 {.muted}
+text awbl "Attacker's Webserver “example.com”\n66.9.9.6" below awb gap 0.3 -- awb {.muted}
 
-edge forged b.cx,sw.top -> b.bottom {.accent}
-text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
-edge poison res.cx,rt.top -> res.bottom {.accent}
-text poisonl "“example.com\nis 66.9.9.6”" between rt,res pad 0.14 {.paper .accent .mono @cache}
+edge forged sw.left -> b.right {.accent .elbow}
+text forgedl "“example.com\nis 66.9.9.6”" at 1.25,-1.35 pad 0.14 {.paper .accent .mono @spoof}
+# Aimed at the resolver instead of at B, the same forgery poisons a cache, so
+# the second red arrow takes the resolver's own wire the way the first took
+# B's. Its note stands over the router, where the drawing is empty.
+edge poison rt.right -> res.left {.accent .elbow}
+text poisonl "“example.com\nis 66.9.9.6”" at 2.6,-1.35 pad 0.14 {.paper .accent .mono @cache}
 
-edge rt.left-0.52,resl.top-0.3 -- e.cx-0.45,gwl.bottom+0.28 via rt.left-0.52,gwl.bottom+0.28 {.dotted .muted}
+text zoneh "Home Network\n(10.1.1.1–254)" at 1.75,-2.5 {.right .muted .serif}
+text zonei "Internet" at 1.95,-2.5 {.left .muted .serif}
+edge 1.85,-2.75 -- 1.85,2.75 {.dotted .muted}
 
 step offpath
   label e "E"
@@ -330,14 +348,18 @@ step cache
 
 ## figure: Distributed Denial of Service (DDoS) attack | attacker instructs hosts infected with malware to flood a victim with traffic {.full #ns-a28}
 
-::: draw 100x76
+::: draw 115x38
 # In the original the bots lie on a world map. That stays out here: a raster
 # image follows no theme and costs over 100 kB. Scattered sources all round
 # say the same thing - "distributed" was the argument, the geography never
 # was. Every label is verbatim from the original.
-default box {.accent} w 0.44 h 0.3
+#
+# The ring is an ellipse rather than a circle, and that is the grid: the cell
+# is wide and flat, so the same eight coordinates scatter the bots across the
+# slide instead of stacking them down it.
+default box {.accent} w 0.44 h 0.55
 
-box vic "Victim" at 0,0 w 1.05 h 0.62 {.tone-4 !accent}
+box vic "Victim" at 0,0 w 1.05 {.tone-4 !accent}
 
 box n1 "" at -2.6,-1.5 {@bots}
 box n2 "" at -1.0,-2.2 {@bots}
@@ -362,8 +384,8 @@ edge f8 n8 -> vic.left:0.7 {.accent @flood}
 
 text bn "*Botnet* of\ninfected hosts" above n4 gap 0.45 -- n4 {.small}
 
-text note1 "Victim (and ISPs) cannot filter the DDoS\ntraffic as it resembles legitimate traffic." at -3.3,2.95 {.left .muted @conc}
-text note2 "Bots send requests using their actual\nIP address, i.e., do not use IP Spoofing." at 0.35,2.95 {.left .muted @conc}
+text note1 "Victim (and ISPs) cannot filter the DDoS\ntraffic as it resembles legitimate traffic." at -3.0,2.95 {.left .muted @conc}
+text note2 "Bots send requests using their actual\nIP address, i.e., do not use IP Spoofing." at 0.5,2.95 {.left .muted @conc}
 
 step botnet
   show @bots, bn
@@ -379,24 +401,29 @@ step unfilterable
 
 ## figure: DoS attacks are also possible without access to a botnet | Attackers can use connectionless protocols and spoof their Src IP to hide their identity {.full #ns-a29}
 
-::: draw 96x74
+::: draw 60x30
 # Again with no world map, for the same reasons as the figure before. The
 # dashed boxes with the question mark are the "faked sources": what is not
 # genuine about them is the outline. Text verbatim from the original; only the
 # line breaks in the box on the right are re-set - the original breaks
 # "proto-cols" mid-word there, because its frame ran out.
-default box {.accent} w 0.44 h 0.34
+#
+# The slide is two bands: the attacker, the flattened ring and the reason it
+# works across the top, the three conclusions along the foot. The attacker
+# stands beside the victim rather than under it, so the arrow it sends is
+# horizontal and its caption fits in the gap.
+default box {.accent} w 0.9 h 0.7
 
-box vic "Victim" at 0,0 w 1.05 h 0.62 {.tone-4 !accent}
+box vic "Victim" at 0,0 w 1.5 {.tone-4 !accent}
 
-box q1 "?" at -2.6,-1.5 {.dashed @fake}
-box q2 "?" at -1.0,-2.2 {.dashed @fake}
-box q3 "?" at 1.1,-2.0 {.dashed @fake}
-box q4 "?" at 2.7,-1.1 {.dashed @fake}
-box q5 "?" at 2.9,0.9 {.dashed @fake}
-box q6 "?" at 1.0,2.1 {.dashed @fake}
-box q7 "?" at -1.2,2.0 {.dashed @fake}
-box q8 "?" at -2.9,0.75 {.dashed @fake}
+box q1 "?" at -1.5,-1.3 {.dashed @fake}
+box q2 "?" at -0.58,-2.2 {.dashed @fake}
+box q3 "?" at 0.67,-2.0 {.dashed @fake}
+box q4 "?" at 1.47,-1.1 {.dashed @fake}
+box q5 "?" at 1.6,0.9 {.dashed @fake}
+box q6 "?" at 0.17,2.1 {.dashed @fake}
+box q7 "?" at -1.0,2.0 {.dashed @fake}
+box q8 "?" at -1.75,0.8 {.dashed @fake}
 
 edge q1 -> vic.left:0.25 {.accent @spoofed}
 edge q2 -> vic.top:0.35 {.accent @spoofed}
@@ -407,20 +434,21 @@ edge q6 -> vic.bottom:0.65 {.accent @spoofed}
 edge q7 -> vic.bottom:0.35 {.accent @spoofed}
 edge q8 -> vic.left:0.7 {.accent @spoofed}
 
-text fs "Faked sources" right of q5 gap 0.6 -- q5 {@fake}
+text fs "Faked sources" below q5 gap 0.4 -- q5 {@fake}
 
-box atk "Attacker" at -4.3,2.6 w 0.95 h 0.55 {@real}
-edge real-traffic atk -> vic.bl {.accent .thick @real}
+box atk "Attacker" at -4.7,0 w 1.45 {@real}
+edge real-traffic atk -> vic.left {.accent .thick @real}
 # The label sits on the line rather than beside it, and .paper knocks the line
-# out for it - otherwise line and word read as one pattern.
-text tr "Traffic of the DoS attack" between atk,vic pad 0.14 {.paper .accent @real}
+# out for it - otherwise line and word read as one pattern. Two lines rather
+# than one: the same words, in the gap the flattened ring leaves.
+text tr "Traffic of the\nDoS attack" at -3.0,0 pad 0.14 {.paper .accent @real}
 text loc "Attacker's real location\nis unknown (IP spoofing)." below atk gap 0.4 {.muted @real}
 
-box why "Faking Src IP possible for\nconnectionless protocols,\ne.g., ICMP (“ping”) or\nprotocols using UDP (DNS, NTP)" at 5.05,-1.7 w 2.8 h 1.2 {.clear @fake}
+box why "Faking Src IP possible for\nconnectionless protocols,\ne.g., ICMP (“ping”) or\nprotocols using UDP\n(DNS, NTP)" at 4.0,-0.6 w 3.8 h 3.8 {.clear @fake}
 
-text note1 "Victim (and ISPs) cannot filter the DoS\ntraffic if it resembles legitimate traffic." at -4.6,4.3 {.left .muted @conc}
-text note2 "To mitigate IP Spoofing many (all) ISPs would\nhave to perform *Ingress/Egress Filtering*.\nDifficult due to negative externality." at -0.4,4.2 {.left .muted @conc}
-text bcp "cf. BCP 38: Ingress Filtering" at 5.1,5.3 {.small .muted @conc}
+text note1 "Victim (and ISPs) cannot filter the DoS\ntraffic if it resembles legitimate traffic." at -5.9,3.4 {.left .muted @conc}
+text note2 "To mitigate IP Spoofing many (all) ISPs would\nhave to perform *Ingress/Egress Filtering*.\nDifficult due to negative externality." at -0.25,3.67 {.left .muted @conc}
+text bcp "cf. BCP 38: Ingress Filtering" below note2 gap 0.3 flush left {.small .muted .left @conc}
 
 step attacker
   show @real
@@ -558,12 +586,15 @@ step state
 # sie steht.
 text st "*State:* Src IP/port, Dst IP/port,\nmax segment size (MSS)" at 0,0 {.left}
 
-text obs "Observation:" below st gap 0.7 flush left {.left @obs}
+text obs "Observation:" below st gap 0.55 flush left {.left @obs}
 
-box sa  "SYN+ACK seq=*e*  ack=*c*+1" below obs gap 0.35 flush left w 2.35 h 0.5 point left {.chevron .tone-3 @obs}
-box ack "ACK seq=*c*+1 ack=*e*+1"    below sa gap 0.28 flush left same as sa {.chevron .tone-3 @obs}
+# The two block arrows carry the whole width of the slide, so the question the
+# beat ends on stands beside them rather than under them - the stack was a
+# narrow ribbon three times as tall as it was wide.
+box sa  "SYN+ACK seq=*e*  ack=*c*+1" below obs gap 0.3 flush left w 4.2 point left {.chevron .tone-3 @obs}
+box ack "ACK seq=*c*+1 ack=*e*+1"    below sa gap 0.25 flush left {.chevron .tone-3 @obs}
 
-text q "How to encode state in\nseq/ack (len: 32 bits)." below ack gap 0.7 flush left {.left @ask}
+text q "How to encode state in\nseq/ack (len: 32 bits)." at sa.right+0.4,sa.bottom {.left @ask}
 
 step observation
   show @obs
@@ -579,25 +610,33 @@ step encode
 
 ## figure: TLS 1.3 performs a handshake to start a secure network connection | and to negotiate cryptographic keys between the client and the server {.full #ns-a41}
 
-::: draw 120x46
-default box {.tone-3} w 2.3
+::: draw 120x40
+# The server's flight is four boxes and nine lines of text, so stacked in one
+# column beside the client's it was half again as tall as a slide. Here the
+# preamble is one band across the top - who computes what - and the flight is
+# a two-by-two block underneath it, read the way everything else is read:
+# left to right, top to bottom, ServerHello, Certificate, Signature, MAC.
+# The padding is written once, in labels, so the four boxes hold nine lines in
+# the height a slide has.
+default box {.tone-3} w 2.78 pad 0.3lh
 
 text cl "Client" at 0,0 {.large .muted}
-text c1 "Generate DH key pair (c, C)" right of cl gap 1.3 {.left}
-box  ch "ClientHello\n– Supported ciphersuites\n– Public key C" below c1 gap 0.5 flush left {@hello}
+text c1 "Generate DH key pair (c, C)" right of cl gap 0.9 {.left}
+box  ch "ClientHello\n– Supported ciphersuites  – Public key C" below cl gap 0.2 flush left w 2.85 {@hello}
 
-box  a1 "" right of ch gap 1.05 flush top w 0.8 h 0.42 {.chevron @hello}
-text s1 "Generate DH key pair (s, S)\nCompute secret = DH(s, C)\nDerive keys = KDF(secret)" right of a1 gap 1.05 flush top {.left @hello}
-text sv "Server" above s1 gap 0.5 {.large .muted}
-align y middle cl, sv
+box  a1 "" right of ch gap 0.35 flush top w 0.5 h 0.45 {.chevron @hello}
+text s1 "Generate DH key pair (s, S)\nCompute secret = DH(s, C)\nDerive keys = KDF(secret)" right of a1 gap 0.35 flush top {.left @hello}
+text sv "Server" above s1 gap 0.2 {.large .muted}
 
-box sh   "ServerHello\n– Selected ciphersuite\n– Public key S"      below s1 gap 0.5 flush left {@srv}
-box cert "Certificate(s)"                                           below sh gap 0 flush left {@srv}
-box sig  "Signature over ClientHello,\nServerHello, and Certificate" below cert gap 0 flush left {@srv}
-box mac  "MAC over ClientHello,\nServerHello, Certificate,\nand Signature" below sig gap 0 flush left {@srv}
+box sh   "ServerHello\n– Selected ciphersuite  – Public key S"       below ch gap 0.25 flush left {@srv}
+box cert "Certificate(s)"                                           right of sh gap 0.25 {@srv}
+box sig  "Signature over ClientHello,\nServerHello, and Certificate" below sh gap 0.12 flush left {@srv}
+box mac  "MAC over ClientHello, ServerHello,\nCertificate, and Signature" below cert gap 0.12 flush left {@srv}
 
-box  a2 "" left of cert gap 1.05 flush top w 0.8 h 0.42 point left {.chevron @srv}
-text vf "Verify certificate\nVerify signature\nCompute secret = DH(c, S)\nDerive keys = KDF(secret)\nVerify MAC" left of a2 gap 1.05 flush top {.left @done}
+# The flight travels the other way, so its block arrow stands under the block
+# rather than beside it, with what the client does with it on the same line.
+box  a2 "" below sig gap 0.2 flush left w 0.5 h 0.45 point left {.chevron @srv}
+text vf "Verify certificate  Verify signature\nCompute secret = DH(c, S)  Derive keys = KDF(secret)\nVerify MAC" right of a2 gap 0.4 {.left @done}
 
 step hello
   show @hello
@@ -612,36 +651,32 @@ step verify
 
 ## figure: Certificate chains {.full #ns-a43}
 
-::: draw 124x50
-default box {.tone-3} w 1.55
+::: draw 124x40
+# The chain used to descend a staircase, five two-line boxes deep, which is
+# half again as tall as a slide. The trust store stands beside the chain now
+# rather than on top of it, each link is one line wide enough to hold it, the
+# arrow between two links is vertical and carries its own word, and the
+# certificate viewer's chain stands beside the schematic rather than under it.
+default box {.tone-3} pad 0.3lh
 
-box  os "Browser/OS" at 0,0 {.tone-1}
-text st "Store with trusted\ncertificates" right of os gap 0.85 {.left .muted}
+box  os "Browser/OS" at 0,0 anchor tl {.tone-1}
+text st "Store with trusted\ncertificates" below os gap 0.3 flush left {.left .muted}
 
-box  r0 "Certificate\nof a Root CA"            below os gap 0.5 flush left offset 0.55,0
-box  r1 "Certificate of an\nintermediate CA"   below r0 gap 0.5 flush left offset 0.55,0
-box  r2 "Cert. of another\nintermediate CA"    below r1 gap 0.5 flush left offset 0.55,0
-box  r3 "Certificate\nof server"               below r2 gap 0.5 flush left offset 0.55,0 {.tone-4}
+box  r0 "Certificate of a Root CA"          at 1.25,0 anchor tl
+box  r1 "Certificate of an intermediate CA" below r0 gap 0.72 flush left
+box  r2 "Cert. of another intermediate CA"  below r1 gap 0.72 flush left
+box  r3 "Certificate of server"             below r2 gap 0.72 flush left {.tone-4}
 
-# The staircase: vertically out of the bottom edge, down the channel left of
-# the next box, then horizontally onto its left edge. The start point is a
-# coordinate rather than an anchor, so the descent and the waypoint carry the
-# same x and the vertical is vertical.
-edge os.left+0.35,os.bottom -> r0.left via os.left+0.35,r0.cy
-edge r0.left+0.35,r0.bottom -> r1.left via r0.left+0.35,r1.cy
-edge r1.left+0.35,r1.bottom -> r2.left via r1.left+0.35,r2.cy
-edge r2.left+0.35,r2.bottom -> r3.left via r2.left+0.35,r3.cy
+edge os -> r0 "Has" side top
+edge r0 -> r1 "Signs" side right
+edge r1 -> r2 "Signs" side right
+edge r2 -> r3 "Signs" side right
 
-text n0 "Has"   at os.left+0.2,r0.cy {.right}
-text n1 "Signs" at r0.left+0.2,r1.cy {.right}
-text n2 "Signs" at r1.left+0.2,r2.cy {.right}
-text n3 "Signs" at r2.left+0.2,r3.cy {.right}
-
-box  d0 "DigiCert High Assurance EV Root CA"     at 5.7,2.30 w 2.6 h 0.42 {@real}
-box  d1 "DigiCert SHA2 High Assurance Server CA" below d0 gap 0.5 flush left offset 0.3,0 same as d0 {@real}
-box  d2 "github.com"                             below d1 gap 0.5 flush left offset 0.3,0 same as d0 {.tone-4 @real}
-edge d0.left+0.2,d0.bottom -> d1.left via d0.left+0.2,d1.cy {.muted @real}
-edge d1.left+0.2,d1.bottom -> d2.left via d1.left+0.2,d2.cy {.muted @real}
+box  d0 "DigiCert High Assurance\nEV Root CA"     at 3.9,0.5 anchor tl {@real}
+box  d1 "DigiCert SHA2 High\nAssurance Server CA" below d0 gap 0.72 flush left {@real}
+box  d2 "github.com"                              below d1 gap 0.72 flush left {.tone-4 @real}
+edge d0 -> d1 {.muted @real}
+edge d1 -> d2 {.muted @real}
 
 step anchor
   show r0
@@ -657,7 +692,10 @@ step real
 ## figure: Certificates are stored in a X.509 (v3) data structure. {.standard #ns-a45}
 
 ::: draw 150x40
-default box {.tone-3} w 2.6 pad 0.3
+# Eleven lines of record in four bands: the padding is what decides whether
+# that is a slide or half again as tall as one, so it is written once, in
+# labels, and the bands sit tight round their own type.
+default box {.tone-3} w 2.6 pad 0.2lh
 
 box f1 "X.509 version\nSerial number\nSignature algorithm\nValid from/until\nIssuer Name\n*Subject Name*\n*Public Key*" at 0,0
 box f2 "Issuer ID\nSubject ID"  below f1 gap 0 flush left {@v2}
@@ -675,41 +713,52 @@ step signature
 
 **A certificate is a data structure, not a text.** The upper block carries what every version knows – version, serial number, signature algorithm, validity, issuer – and within it the two fields this is really about: the holder's name and their public key. Under that, v2 added the identifiers and v3 the extensions. At the very bottom lies the issuer's signature over everything above it, which is why nobody can change a line further up.
 
-## figure: Extensions of a server certificate | github.com, as a certificate viewer lists them {.standard #ns-a49}
+## figure: Extensions of a server certificate | github.com, as a certificate viewer lists them {.full #ns-a49}
 
-::: draw 150x30
+::: draw 150x30 frame 5.0x9.8
+# The one figure in the deck with a frame of its own. It is a certificate
+# viewer's extension listing transcribed word for word: twenty-five lines of
+# key and value, which no arrangement folds into the fourteen lines of type a
+# figure canvas reserves. Two columns on the full measure bring its labels
+# back to body type; the frame only says the box is a label taller than the
+# deck's, and this listing is the whole of what the slide carries.
+#
+# Twenty-five lines of listing down one column is twice as tall as a slide, so
+# the seven extensions stand in two columns on the full measure: the first
+# three down the left, the rest down the right, read the way a page is read.
+# The two long OIDs and the two key fingerprints take a second line rather
+# than a wider column - the words are the viewer's, only the breaks are ours.
 default text {.small}
 
-text l1 "Extension\nCritical\nUsage" at 0,0 {.right .muted}
-text v1 "Key Usage ( 2.5.29.15 )\nYES\nDigital Signature, Key Encipherment" right of l1 gap 1.5 flush top {.left}
+text l1 "Extension\nCritical\nUsage\n " at 0,0 {.right .muted}
+text v1 "Key Usage ( 2.5.29.15 )\nYES\nDigital Signature,\nKey Encipherment" right of l1 gap 0.2 flush top {.left}
 
-text l2 "Extension\nCritical" below l1 gap 0.4 flush right {.right .muted}
-text v2 "Basic Constraints ( 2.5.29.19 )\nYES" right of l2 gap 1.5 flush top {.left}
+text l2 "Extension\nCritical" below l1 gap 0.3 flush right {.right .muted}
+text v2 "Basic Constraints ( 2.5.29.19 )\nYES" right of l2 gap 0.2 flush top {.left}
 text l2b "Certificate Authority" below l2 gap 0 flush right {.right .muted}
-text v2b "NO" right of l2b gap 1.5 flush top {.left}
+text v2b "NO" right of l2b gap 0.2 flush top {.left}
 
-text l3 "Extension\nCritical\nPurpose #1\nPurpose #2" below l2b gap 0.4 flush right {.right .muted}
-text v3 "Extended Key Usage ( 2.5.29.37 )\nNO\nServer Authentication ( 1.3.6.1.5.5.7.3.1 )\nClient Authentication ( 1.3.6.1.5.5.7.3.2 )" right of l3 gap 1.5 flush top {.left}
+text l3 "Extension\nCritical\nPurpose #1\n \nPurpose #2\n " below l2b gap 0.3 flush right {.right .muted}
+text v3 "Extended Key Usage ( 2.5.29.37 )\nNO\nServer Authentication\n( 1.3.6.1.5.5.7.3.1 )\nClient Authentication\n( 1.3.6.1.5.5.7.3.2 )" right of l3 gap 0.2 flush top {.left}
 
-# The fourth, empty row is deliberate: the value beside it runs to four lines,
-# and without it the next group measures its gap from a label ending three
-# lines higher - the grouping gap would disappear.
-text l4 "Extension\nCritical\nKey ID\n " below l3 gap 0.4 flush right {.right .muted}
-text v4 "Subject Key Identifier ( 2.5.29.14 )\nNO\n63 02 D2 5D 02 5F F7 8D D5 5A 12 9E 76 11 36 96\n86 2C 8A 48" right of l4 gap 1.5 flush top {.left}
+text l4 "Extension\nCritical\nKey ID\n \n " at 2.37,0 {.right .muted}
+text v4 "Subject Key Identifier ( 2.5.29.14 )\nNO\n63 02 D2 5D 02 5F F7 8D\nD5 5A 12 9E 76 11 36 96\n86 2C 8A 48" right of l4 gap 0.2 flush top {.left}
 
-text l5 "Extension\nCritical\nKey ID\n " below l4 gap 0.4 flush right {.right .muted}
-text v5 "Authority Key Identifier ( 2.5.29.35 )\nNO\n51 68 FF 90 AF 02 07 75 3C CC D9 65 64 62 A2\n12 B8 59 72 3B" right of l5 gap 1.5 flush top {.left}
+text l5 "Extension\nCritical\nKey ID\n \n " below l4 gap 0.3 flush right {.right .muted}
+text v5 "Authority Key Identifier ( 2.5.29.35 )\nNO\n51 68 FF 90 AF 02 07 75\n3C CC D9 65 64 62 A2\n12 B8 59 72 3B" right of l5 gap 0.2 flush top {.left}
 
-text l6 "Extension\nCritical" below l5 gap 0.4 flush right {.right .muted}
-text v6 "Subject Alternative Name ( 2.5.29.17 )\nNO" right of l6 gap 1.5 flush top {.left}
+text l6 "Extension\nCritical" below l5 gap 0.3 flush right {.right .muted}
+text v6 "Subject Alternative Name ( 2.5.29.17 )\nNO" right of l6 gap 0.2 flush top {.left}
 text l6b "DNS Name\nDNS Name" below l6 gap 0 flush right {.right .muted}
-text v6b "github.com\nwww.github.com" right of l6b gap 1.5 flush top {.left}
+text v6b "github.com\nwww.github.com" right of l6b gap 0.2 flush top {.left}
 
-text l7 "Extension\nCritical" below l6b gap 0.4 flush right {.right .muted}
-text v7 "Certificate Policies ( 2.5.29.32 )\nNO" right of l7 gap 1.5 flush top {.left}
+text l7 "Extension\nCritical" below l6b gap 0.3 flush right {.right .muted}
+text v7 "Certificate Policies ( 2.5.29.32 )\nNO" right of l7 gap 0.2 flush top {.left}
 
-box ca  "no signing of other keys!" right of v2b gap 5.5 flush top h 0.85 point left {.chevron .tone-4 @ca}
-box dom "domain(s)"                 right of v6b gap 5.5 flush top h 0.85 point left {.chevron .tone-4 @dom}
+# The two annotations point at the short values they judge, which leaves them
+# standing in the room the listing does not use.
+box ca  "no signing of other keys!" right of v2b gap 0.5 flush top h 0.9 point left {.chevron .tone-4 @ca}
+box dom "domain(s)"                 right of v6b gap 0.5 flush top h 0.9 point left {.chevron .tone-4 @dom}
 
 step no-ca
   show @ca
@@ -724,7 +773,9 @@ step domains
 
 ## figure: Upgrading HTTP to HTTPS {.full #ns-a60}
 
-::: draw 110x110
+::: draw 132x88
+# The grid cell is wider than it is tall, so the two exchanges lie flat across
+# the slide instead of stacking down it.
 box  br "Browser" at 0,0 w 1.1 {.tone-2}
 box  sv "Server"  at 4.0,0 same as br {.tone-2}
 
@@ -821,7 +872,7 @@ Go to secure Login Form</a>[...]
 
 ## figure: Firewalls enforce rules that limit who is allowed to talk to whom. {.full #ns-b04}
 
-::: draw 132x78
+::: draw 120x42
 # Every label verbatim from the original - including "publically reachable",
 # which is spelled exactly that way in the original and stays. The line break
 # in "demilitarized zone (DMZ)" is only a break in the original (hyphenated
@@ -831,20 +882,24 @@ Go to secure Login Form</a>[...]
 # all three slides: the cylinder (web/database/file server) is a .round box in
 # the storage tone, the cloud is a .round box "Internet", and the monitor
 # symbols are labelled boxes under the group caption "desktops".
+#
+# The grid cell is wide and flat and the seven columns of the original stand
+# closer together, so the whole network is one band of a slide rather than a
+# picture half again as tall as one.
 default text {.muted}
 
-box net "Internet" at 0,0 w 0.8 {.round .dim}
-box fw1 "FIREWALL" at 1.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box fw2 "FIREWALL" at 3.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box sw  "SWITCH"   at 4.85,0 w 0.95 {.tone-1}
+box net "Internet" at 0,0 w 0.7 {.round .dim}
+box fw1 "FIREWALL" at 0.95,0 w 0.28 h 2.1 {.turn .tone-1}
+box fw2 "FIREWALL" at 2.5,0 w 0.28 h 2.1 {.turn .tone-1}
+box sw  "SWITCH"   at 3.3,0 w 0.75 {.tone-1}
 
-box web "web\nserver"      at 2.35,1.95 w 0.82 {.round .tone-3}
-box db  "database\nserver" at 4.25,1.95 w 0.92 {.round .tone-3}
-box fs  "file\nserver"     at 5.45,1.95 w 0.82 {.round .tone-3}
+box web "web\nserver"      at 1.75,1.8 w 0.7 {.round .tone-3}
+box db  "database\nserver" at 2.9,1.8 w 1.05 {.round .tone-3}
+box fs  "file\nserver"     at 3.95,1.8 w 0.7 {.round .tone-3}
 
-box  d1 "desktop"  at 4.25,-1.95 w 0.82 {.tone-2}
-box  d2 "desktop"  at 5.45,-1.95 same as d1 {.tone-2}
-text dl "desktops" between d1,d2 offset 0,-0.6
+box  d1 "desktop"  at 2.9,-1.6 w 0.72 {.tone-2}
+box  d2 "desktop"  at 3.95,-1.6 same as d1 {.tone-2}
+text dl "desktops" between d1,d2 offset 0,-0.68
 
 # The bus: every edge runs vertically out of its box, horizontally along the
 # channel and vertically into the switch - no diagonals, and that the last
@@ -858,14 +913,14 @@ edge d2.bottom -- sw.top via d2.cx,-1.0 sw.cx,-1.0
 edge db.top -- sw.bottom via db.cx,1.0 sw.cx,1.0
 edge fs.top -- sw.bottom via fs.cx,1.0 sw.cx,1.0
 
-text pub "publically\nreachable"     at 1.66,-2.15 {.left @zone}
-text dmz "demilitarized\nzone (DMZ)" at 1.66,-1.35 {.left @zone}
-text tru "trusted hosts"             at 4.85,2.75 {@zone}
+text pub "publically reachable"     at 1.15,-2.0 {.left @zone}
+text dmz "demilitarized\nzone (DMZ)" at 1.15,-1.2 {.left @zone}
+text tru "trusted hosts"             at 3.3,2.75 {@zone}
 # Same reason as the pair above the amplification figure: two labels at one x
 # with .left are a row only if something holds their left edges together.
 align x left pub, dmz
 
-container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,pub,dmz,tru {.muted}
+container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,pub,dmz,tru pad 0.15 {.muted}
 
 # The dashed zone separator is a headless edge between two coordinates. It
 # runs through fw2 - boxes are drawn after edges and cover it there, exactly
@@ -886,29 +941,29 @@ step trusted
 
 ## figure: Not only used to secure the perimeter, also for network segmentation. | cf. lateral movement, ransomware {.full #ns-b05}
 
-::: draw 132x78
+::: draw 120x42
 # The same drawing as on the previous slide: the same names, coordinates and
 # stand-in shapes. All that is new are the two inner firewalls and the zone
 # caption "segmented net", so the run reads as one drawing that develops.
 default text {.muted}
 
-box net "Internet" at 0,0 w 0.8 {.round .dim}
-box fw1 "FIREWALL" at 1.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box fw2 "FIREWALL" at 3.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box sw  "SWITCH"   at 4.85,0 w 0.95 {.tone-1}
+box net "Internet" at 0,0 w 0.7 {.round .dim}
+box fw1 "FIREWALL" at 0.95,0 w 0.28 h 2.1 {.turn .tone-1}
+box fw2 "FIREWALL" at 2.5,0 w 0.28 h 2.1 {.turn .tone-1}
+box sw  "SWITCH"   at 3.3,0 w 0.75 {.tone-1}
 
-box web "web\nserver"      at 2.35,1.95 w 0.82 {.round .tone-3}
-box db  "database\nserver" at 4.25,1.95 w 0.92 {.round .tone-3}
-box fs  "file\nserver"     at 5.45,1.95 w 0.82 {.round .tone-3}
+box web "web\nserver"      at 1.75,1.8 w 0.7 {.round .tone-3}
+box db  "database\nserver" at 2.9,1.8 w 1.05 {.round .tone-3}
+box fs  "file\nserver"     at 3.95,1.8 w 0.7 {.round .tone-3}
 
-box  d1 "desktop"  at 4.25,-1.95 w 0.82 {.tone-2}
-box  d2 "desktop"  at 5.45,-1.95 same as d1 {.tone-2}
-text dl "desktops" between d1,d2 offset 0,-0.6
+box  d1 "desktop"  at 2.9,-1.6 w 0.72 {.tone-2}
+box  d2 "desktop"  at 3.95,-1.6 same as d1 {.tone-2}
+text dl "desktops" between d1,d2 offset 0,-0.68
 
 # The two inner firewalls sit on the spurs to the switch rather than at the
 # perimeter: that is the whole difference from the previous slide.
-box fwd "FW" at 4.85,-0.62 w 0.24 h 0.46 {.turn .tone-1 @seg}
-box fws "FW" at 4.85,0.62  w 0.24 h 0.46 {.turn .tone-1 @seg}
+box fwd "FW" at 3.3,-0.72 w 0.22 h 0.55 {.turn .tone-1 @seg}
+box fws "FW" at 3.3,0.72  w 0.22 h 0.55 {.turn .tone-1 @seg}
 
 edge net -- fw1
 edge fw1 -- fw2
@@ -919,9 +974,9 @@ edge d2.bottom -- sw.top via d2.cx,-1.0 sw.cx,-1.0
 edge db.top -- sw.bottom via db.cx,1.0 sw.cx,1.0
 edge fs.top -- sw.bottom via fs.cx,1.0 sw.cx,1.0
 
-text seg "segmented net" at 4.85,2.75 {@net}
+text seg "segmented net" at 3.3,2.75 {@net}
 
-container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,seg {.muted}
+container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,seg pad 0.15 {.muted}
 
 edge zsep fw2.cx,perim.top -- fw2.cx,perim.bottom {.dashed .muted}
 
@@ -941,7 +996,7 @@ step contained
 
 ## figure: Firewalls are also run on hosts to limit chatty applications' network access. {.full #ns-b06}
 
-::: draw 132x78
+::: draw 120x42
 # The same drawing again, the same names and coordinates. What is new is the
 # FIREWALL on the host - in the original it stands horizontally beside the
 # caption "desktops", so it stands in the same place here and "desktops"
@@ -950,22 +1005,25 @@ step contained
 # The Little Snitch dialogue is not a screenshot but rebuilt: a frame with the
 # original's text lines and two buttons. Every line verbatim; the selected
 # option is bold rather than marked with a radio button, and the original's
-# two icon buttons add nothing to the argument and are left out.
+# two icon buttons add nothing to the argument and are left out. It stands
+# beside the network rather than under it - two pictures stacked is twice a
+# slide - and its one long line takes a second line to keep its measure
+# narrow enough for that.
 default text {.muted}
 
-box net "Internet" at 0,0 w 0.8 {.round .dim}
-box fw1 "FIREWALL" at 1.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box fw2 "FIREWALL" at 3.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box sw  "SWITCH"   at 4.85,0 w 0.95 {.tone-1}
+box net "Internet" at -2.25,0 w 0.7 {.round .dim}
+box fw1 "FIREWALL" at -1.5,0 w 0.28 h 1.9 {.turn .tone-1}
+box fw2 "FIREWALL" at -0.05,0 w 0.28 h 1.9 {.turn .tone-1}
+box sw  "SWITCH"   at 0.75,0 w 0.75 {.tone-1}
 
-box web "web\nserver"      at 2.35,1.95 w 0.82 {.round .tone-3}
-box db  "database\nserver" at 4.25,1.95 w 0.92 {.round .tone-3}
-box fs  "file\nserver"     at 5.45,1.95 w 0.82 {.round .tone-3}
+box web "web\nserver"      at -0.8,1.7 w 0.7 {.round .tone-3}
+box db  "database\nserver" at 0.35,1.7 w 1.05 {.round .tone-3}
+box fs  "file\nserver"     at 1.4,1.7 w 0.7 {.round .tone-3}
 
-box  d1 "desktop"  at 4.25,-1.95 w 0.82 {.tone-2}
-box  d2 "desktop"  at 5.45,-1.95 same as d1 {.tone-2}
-box  hfw "FIREWALL" at 4.25,-2.62 w 1.02 {.tone-1 @host}
-text dl  "desktops" at 5.6,-2.62
+box  d1 "desktop"  at 0.35,-1.45 w 0.72 {.tone-2}
+box  d2 "desktop"  at 1.4,-1.45 same as d1 {.tone-2}
+box  hfw "FIREWALL" at 0.5,-2.38 w 0.9 {.tone-1 @host}
+text dl  "desktops" at 1.4,-2.38
 
 edge net -- fw1
 edge fw1 -- fw2
@@ -976,19 +1034,18 @@ edge d2.bottom -- sw.top via d2.cx,-1.0 sw.cx,-1.0
 edge db.top -- sw.bottom via db.cx,1.0 sw.cx,1.0
 edge fs.top -- sw.bottom via fs.cx,1.0 sw.cx,1.0
 
-container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,hfw {.muted}
+container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,hfw pad 0.1 {.muted}
 
 edge zsep fw2.cx,perim.top -- fw2.cx,perim.bottom {.dashed .muted}
 
-text mail "Mail" at 2.17,3.7 {.left .large @ask}
-text want "wants to connect to mail.gmail.com" below mail gap 0.26 flush left {.left @ask}
+text mail "Mail" at 1.95,-2.35 {.left .large @ask}
+text want "wants to connect to\nmail.gmail.com" below mail gap 0.26 flush left {.left @ask}
 box  once "Once" below want gap 0.32 flush left w 0.6 {@ask}
 text anyc "Any connection"        below once gap 0.32 flush left {.left @ask}
 text only "Only domain gmail.com" below anyc gap 0.24 flush left {.left .bold @ask}
-box  allow "Allow" below only gap 0.4 w 0.62 {@ask}
-box  deny  "Deny…" left of allow gap 0.35 same as allow {@ask}
-align x right want, allow
-container dlg "" over mail,want,once,anyc,only,deny,allow {.round .muted @ask}
+box  deny  "Deny…" below only gap 0.4 flush left w 0.62 {@ask}
+box  allow "Allow" right of deny gap 0.35 {@ask}
+container dlg "" over mail,want,once,anyc,only,deny,allow pad 0.15 {.round .muted @ask}
 
 # The dialogue stands there from the start rather than being brought in: the
 # live view reserves room in the viewBox for every element that turns up
@@ -1175,32 +1232,36 @@ step futile
 
 ## figure: Why should we deploy an intrusion detection system (IDS) at all? {.full #ns-b26}
 
-::: draw 118x78
-default box {.tone-1} w 1.15 h 0.66
+::: draw 105x40
+# The grid cell is wide and flat, so the wall and the row under it are two
+# bands of one slide. No box in the wall carries a size any more: the run of
+# `right of` gives all four one, and the fifth says `.own` because it really
+# is wider than its neighbours.
+default box {.tone-1} w 1.15
 
 # The five proactive measures are the wall itself: a row with no joint except
 # the one the intruder comes through. The original's semicircular arcs are
 # decoration and are left out.
 box fw "Firewall"                         at 0,0
-box cr "Cryptography"                     right of fw gap 0 same as fw
-box su "Security\nUpdates"                right of cr gap 0 same as fw
-box pt "Penetration\nTests"               right of su gap 0 same as fw
-box aa "Authentication &\nAccess Control" right of pt gap 0.3 w 1.55 h 0.66
-text plab "EXAMPLES OF\nPROACTIVE MEASURES" above cr gap 0.5 {.muted}
+box cr "Cryptography"                     right of fw gap 0
+box su "Security\nUpdates"                right of cr gap 0
+box pt "Penetration\nTests"               right of su gap 0
+box aa "Authentication &\nAccess Control" right of pt gap 0.3 w 1.55 {.own}
+text plab "EXAMPLES OF\nPROACTIVE MEASURES" above cr gap 0.45 {.muted}
 
 # What is left once the wall has been passed.
-box al  "Audit\nLogs"    below fw gap 1.5 w 1.0 h 0.66 {.tone-3 @inner}
-box ids "IDS"            below su gap 1.5 w 0.95 h 0.66 {.hex .tone-4 @inner}
-box im  "Incident\nMgmt" below aa gap 1.5 w 1.0 h 0.66 {.tone-3 @inner}
+box al  "Audit\nLogs"    below fw gap 1.5 w 1.0 {.tone-3 @inner}
+box ids "IDS"            below su gap 1.5 w 0.95 {.hex .tone-4 @inner}
+box im  "Incident\nMgmt" below aa gap 1.5 w 1.0 {.tone-3 @inner}
 align y middle al, ids, im
 spread x al, ids, im
-container react "REACTIVE MEASURES" over al,ids,im pad 0.5 {.dashed .muted}
+container react "REACTIVE MEASURES" over al,ids,im pad 0.3 {.dashed .muted}
 
 # The original's red lettering, rotated 30 degrees, cannot be rotated here.
 # Instead a thick edge pushing in from outside through the joint in the wall,
 # with the word horizontal beside it.
-edge intr pt.right+0.1,-0.95 -> pt.right+0.1,1.0 {.thick .accent @in}
-text intrl "INTRUDER" above aa gap 0.62 {.accent .bold @in}
+edge intr pt.right+0.1,-1.15 -> pt.right+0.1,1.2 {.thick .accent @in}
+text intrl "INTRUDER" above aa gap 0.5 {.accent .bold @in}
 
 step breach
   show @in
@@ -1216,42 +1277,46 @@ step detect
 
 ## figure: Two Deployment Approaches | Host- (HIDS) and Network-based (NIDS) {.full #ns-b27}
 
-::: draw 150x62
+::: draw 150x42
+# The grid cell is wide and flat, so the three bands - sensors on the hosts,
+# the wire, the servers - are one band of a slide rather than a tower. The
+# gaps along the wire are counted in the same flat rows, which is why the
+# numbers across are larger than they were and the numbers down smaller.
 default box {.tone-1}
 
 # The backbone: uplink, firewall, switch. The original's pale blue full-bleed
 # background is dropped; what is accented is the sensors.
 dot ext ""         at 0,0 r 0.07 {.muted}
-box fw "FIREWALL"  right of ext gap 3.85 w 0.34 h 1.55 {.turn}
-box sw "SWITCH"    right of fw gap 3.85 w 0.85 h 0.44
+box fw "FIREWALL"  right of ext gap 5.68 w 0.34 h 1.8 {.turn}
+box sw "SWITCH"    right of fw gap 5.68 w 0.85 {.own}
 edge w1 ext -- fw.left
 edge w2 fw.right -- sw.left
 
 # The sensors sit on the wire rather than beside it.
-box n1 "NIDS" between ext,fw w 0.7 h 0.44 {.hex .tone-4 @nids}
+box n1 "NIDS" between ext,fw w 0.7 {.hex .tone-4 @nids}
 box n2 "NIDS" between fw,sw same as n1 {.hex .tone-4 @nids}
 
 # Workstations above the switch, on one shared strand. Labelled as in
 # #ns-b04 rather than left empty: a box with no word reads as a mistake, and
 # the two figures show the same network.
-box d2 "desktop" above sw gap 1.25 w 0.6 h 0.44 {.tone-2 @hosts}
-box d1 "desktop" left of d2 gap 1.45 same as d2 {.tone-2 @hosts}
-text dlab "desktops" left of d1 gap 1.2 -- d1 {.muted @hosts}
+box d2 "desktop" above sw gap 0.22 w 0.6 {.tone-2 @hosts}
+box d1 "desktop" left of d2 gap 2.14 {.tone-2 @hosts}
+text dlab "desktops" left of d1 gap 1.77 -- d1 {.muted @hosts}
 edge k2 d2.bottom -- sw.top {@hosts}
 edge k1 d1.bottom -- sw.cx,d1.bottom+0.42 via d1.cx,d1.bottom+0.42 {@hosts}
 
 # Two servers. The original's cylinder is a .round box in the server tone.
-box web "Web server" below n1 gap 1.3 w 1.0 h 0.5 {.round .tone-3 @hosts}
-box db  "DB server"  below sw gap 1.3 offset -1.9,0 same as web {.round .tone-3 @hosts}
+box web "Web server" below n1 gap 0.65 w 1.0 {.round .tone-3 @hosts}
+box db  "DB server"  below sw gap 0.65 offset -1.9,0 same as web {.round .tone-3 @hosts}
 align y middle web, db
 edge wl web.top -- web.cx,ext.cy {@hosts}
 edge dl db.right -- sw.bottom via sw.cx,db.cy {@hosts}
-box n3 "NIDS" right of db gap 1.2 same as n1 {.hex .tone-4 @nids}
+box n3 "NIDS" right of db gap 1.77 same as n1 {.hex .tone-4 @nids}
 
-box h1 "HIDS" above d1  gap 0.5  same as n1 {.hex .tone-4 @hids}
-box h2 "HIDS" above d2  gap 0.5  same as n1 {.hex .tone-4 @hids}
-box hw "HIDS" below web gap 0.45 same as n1 {.hex .tone-4 @hids}
-box hd "HIDS" below db  gap 0.45 same as n1 {.hex .tone-4 @hids}
+box h1 "HIDS" above d1  gap 0.12 same as n1 {.hex .tone-4 @hids}
+box h2 "HIDS" above d2  gap 0.12 same as n1 {.hex .tone-4 @hids}
+box hw "HIDS" below web gap 0.12 same as n1 {.hex .tone-4 @hids}
+box hd "HIDS" below db  gap 0.12 same as n1 {.hex .tone-4 @hids}
 
 step hosts
   show @hosts
@@ -1292,22 +1357,30 @@ step sensor
 
 ## figure: Given some input data, the detection result of an IDS can be classified into one of four cases. {.full #ns-b39}
 
-::: draw 150x60
+::: draw 150x52
+# The four cells carry no size of their own: the two rows and the two columns
+# are chains, so one `w` on the first cell settles all four.
 default box {.sharp}
 
-box tp  "true positive\nTP"  at 0,0 w 1.45 h 1.05 {.tone-2}
-box fn  "false negative\nFN" right of tp gap 0 same as tp {.tone-4}
-box fp  "false positive\nFP" below tp gap 0 same as tp {.tone-4}
-box tn  "true negative\nTN"  right of fp gap 0 same as tp {.tone-2}
-box rat "ATTACK" left of tp gap 0 w 0.34 h 1.05 {.turn .clear .small}
-box rno "NORMAL" left of fp gap 0 same as rat {.turn .clear .small}
+box tp  "true positive\nTP"  at 0,0 w 1.45 {.tone-2}
+box fn  "false negative\nFN" right of tp gap 0 {.tone-4}
+box fp  "false positive\nFP" below tp gap 0 {.tone-4}
+box tn  "true negative\nTN"  right of fp gap 0 {.tone-2}
+# The second row stands in no chain with the first, so it is levelled by name.
+row tp, fn
+row fp, tn
+# The two row names are turned type beside the matrix rather than cells of
+# their own: a turned word in a cell needs the cell to be as tall as the word
+# is long, which is taller than the four cells want to be.
+text rat "ATTACK" left of tp gap 0.25 {.turn .small .muted}
+text rno "NORMAL" left of fp gap 0.25 {.turn .small .muted}
 
-text cal "alert"    above tp gap 0.3
-text cno "no alert" above fn gap 0.3
-brace hdr over cal,cno side top "REACTION OF IDS" pad 0.3 {.muted}
+text cal "alert"    above tp gap 0.25
+text cno "no alert" above fn gap 0.25
+brace hdr over cal,cno side top "REACTION OF IDS" pad 0.25 {.muted}
 
 text miss "missed\nattack" right of fn gap 1.25 -- fn {.hand}
-text fa   "false alarm"    below fp gap 0.5 -- fp {.hand}
+text fa   "false alarm"    below fp gap 0.4 -- fp {.hand}
 
 step correct
   emph tp, tn
@@ -1325,7 +1398,10 @@ step alarm
 
 ## figure: Misuse-based IDS can only detect what is known. | Anomaly-based IDS might detect novel attacks. {.full #ns-b48}
 
-::: draw 150x62
+::: draw 190x40
+# The two columns were tall and narrow, so the pair came out half again as
+# tall as a slide. The grid cell is wide and flat now: both sets are wider
+# than they are tall and the whole comparison is one band.
 default box {.sharp}
 
 text mh "Misuse detection"  at 0.85,0 {.large .bold}
@@ -1338,26 +1414,26 @@ text ah "Anomaly detection" at 2.65,0 {.large .bold}
 # The frame is .clear rather than filled: boxes are drawn after edges, and a
 # fill would swallow the two leaders to the signatures. So the base set is the
 # area inside the frame.
-box mf "" at 0.85,3.55 w 1.7 h 4.1 {.clear}
-box af "" at 2.65,3.55 w 1.7 h 4.1 {.clear}
+box mf "" at 0.85,2.95 w 1.7 h 2.3 {.clear}
+box af "" at 2.65,2.95 w 1.7 h 2.3 {.clear}
 
-text ms "signatures of\nknown intrusions"    at 0.85,0.8
-text as "knowledge about\nbenign activities" at 2.65,0.8
+text ms "signatures of\nknown intrusions"    at 0.85,0.85
+text as "knowledge about\nbenign activities" at 2.65,0.85
 
-dot  s1 ""   at 0.45,2.1 r 0.13 {.tone-4}
-dot  s2 ""   at 1.25,2.1 r 0.13 {.tone-4}
-box  bl ""   at 2.65,2.3 w 1.35 h 1.1 {.round .tone-4}
+dot  s1 ""   at 0.45,2.8 r 0.2 {.tone-4}
+dot  s2 ""   at 1.25,2.8 r 0.2 {.tone-4}
+box  bl ""   at 2.65,2.8 w 1.35 h 1.0 {.round .tone-4}
 edge e1 ms -> s1 {.muted}
 edge e2 ms -> s2 {.muted}
 edge e3 as -> bl {.muted}
 
-text mt "anything else:\nno misuse alert" at 0.85,4.6
-text an "anything else:\nanomaly alert"   at 2.65,4.6
+text mt "anything else:\nno misuse alert" at 0.85,3.45
+text an "anything else:\nanomaly alert"   at 2.65,3.45
 
-box mlab "All intrusions"     at 0.85,5.86 w 1.5 h 0.44 {.paper .accent}
-box alab "All benign actions" at 2.65,5.86 w 1.7 h 0.44 {.paper}
+box mlab "All intrusions"     at 0.85,4.62 w 1.5 {.paper .accent}
+box alab "All benign actions" at 2.65,4.62 w 1.7 {.paper}
 
-text foot "Idealized illustration! What does\na poor situation look like?" at 1.75,6.75 {.muted}
+text foot "Idealized illustration! What does a poor situation look like?" at 1.75,5.52 {.muted}
 
 step misuse
   show ms, s1, s2
@@ -1373,7 +1449,9 @@ step rest
 
 ## figure: Observed character freq. | Anomaly? {.full #ns-b55}
 
-::: draw 150x58
+::: draw 190x46
+# A wide flat cell: the counted distribution and the reference curve under it
+# are two bands of one slide rather than a column of two charts.
 # The string under the columns is verbatim from the original, letter-spaced:
 # "t / p r e n . ; l m o b". The second string splits on spaces, so one label
 # per column. The values are chosen so that the bins on #ns-b57 - the same
@@ -1381,7 +1459,7 @@ step rest
 # verbatim there.
 bars obs "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 3.1 h 0.85
 
-text hcmp "Comparison with normal behavior" below obs gap 0.62 flush left {.left}
+text hcmp "Comparison with normal behavior" below obs gap 0.7 flush left {.left}
 
 # The frame is normalised on both axes: the character's rank across, its
 # relative frequency down. The slide labels only the horizontal, and with the
@@ -1425,7 +1503,9 @@ step metric
 ## figure: Training stage | Chi-square statistic (goodness of fit) {.full #ns-b56}
 
 ::: draw 150x56
-bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 2.5 h 0.9
+# The chart carries the width of its own slide: at w 2.5 the drawing used two
+# fifths of the canvas and the slide read empty.
+bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 3.6 h 1.25
 text cap "Char. freq. distribution for\nnormal payloads" above f gap 0.16 flush right {.right}
 
 brace b1 over f-0,f-1,f-2 side bottom "Bin 1" pad 0.45 {.muted @bins}
@@ -1458,7 +1538,8 @@ step weights
 # 10+9+9+8 = 36, 8+7+6 = 21. These used to be the values of the *training*
 # distribution from #ns-b56, which made the anomalous distribution identical
 # to the one it is meant to deviate from.
-bars g "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 2.5 h 0.9
+# The chart carries the width of its own slide, as on the training slide.
+bars g "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 3.6 h 1.25
 text cap "Anomalous payload\ndistribution" above g gap 0.16 flush right {.right}
 
 brace b1 over g-0,g-1,g-2 side bottom "Bin 1" pad 0.45 {.muted @bins}
@@ -1487,55 +1568,59 @@ and the sensor raises an alarm as soon as $\chi^2 > t$. What value $t$ should ta
 
 ## figure: Reaction of IDS {.full #ns-b59}
 
-::: draw 62x62
+::: draw 100x36
 # The ten labelled packets lie on an axis: the anomaly score the sensor
 # computes across (the chi-squared of the slide before), the true class down.
 # Only that lets the threshold separate anything at all - in the version
 # before, the markers stood side by side as a block and the rule ran past
 # them rather than through them.
-# The unit is square, so that a packet box comes out square.
-text ds "Labeled dataset (e.g., by DARPA/Lincoln Labs)" at 0,0 {.left}
+# The cell is wide and flat, so the axis and the matrix it fills in stand
+# side by side as two bands of one slide; a packet box is square because its
+# own two numbers say so, not because the grid does.
+text ds "Labeled dataset (e.g., by DARPA/Lincoln Labs)" at 0,-1.6 {.left}
 
-text latt "attack traffic" below ds gap 1.0 flush left {.left}
-text lben "benign traffic" below latt gap 0.5 flush left {.left}
+text latt "attack traffic" at 0,-0.35 {.left}
+text lben "benign traffic" at 0,1.0 {.left}
 
-# Grid slot to grid slot is 0.74 and a box measures 0.42, so the space
-# between is three quarters of a box wide and the threshold fits visibly
-# between them without touching one. The order is the sort by anomaly score -
-# attacks lie higher on average but overlap, and that overlap is the subject.
-# Grid slots: benign 0,1,2,3,5,7 - attack 4,6,8,9.
-box b1 "" right of lben gap 0.55 w 0.42 h 0.42 {.tone-2 .sharp}
-box b2 "" right of b1 gap 0.3 same as b1 {.tone-2 .sharp}
-box b3 "" right of b2 gap 0.3 same as b1 {.tone-2 .sharp}
-box b4 "" right of b3 gap 0.3 same as b1 {.tone-2 .sharp}
-box b5 "" right of b4 gap 1.05 same as b1 {.tone-2 .sharp}
-box b6 "" right of b5 gap 1.05 same as b1 {.tone-2 .sharp}
+# Grid slot to grid slot is wider than a box, so the threshold fits visibly
+# between two packets without touching one. The order is the sort by anomaly
+# score - attacks lie higher on average but overlap, and that overlap is the
+# subject. Grid slots: benign 0,1,2,3,5,7 - attack 4,6,8,9.
+box b1 "" right of lben gap 0.5 w 0.36 h 1.0 {.tone-2 .sharp}
+box b2 "" right of b1 gap 0.45 {.tone-2 .sharp}
+box b3 "" right of b2 gap 0.45 {.tone-2 .sharp}
+box b4 "" right of b3 gap 0.45 {.tone-2 .sharp}
+box b5 "" right of b4 gap 1.15 {.tone-2 .sharp}
+box b6 "" right of b5 gap 1.15 {.tone-2 .sharp}
 
-box a1 "" at b1.cx+2.96,latt.cy same as b1 {.accent .sharp}
-box a2 "" right of a1 gap 1.05 same as b1 {.accent .sharp}
-box a3 "" right of a2 gap 1.05 same as b1 {.accent .sharp}
-box a4 "" right of a3 gap 0.3 same as b1 {.accent .sharp}
+box a1 "" at b1.cx+1.42,latt.cy same as b1 {.accent .sharp}
+box a2 "" right of a1 gap 1.15 {.accent .sharp}
+box a3 "" right of a2 gap 1.15 {.accent .sharp}
+box a4 "" right of a3 gap 0.45 {.accent .sharp}
 
 edge axis b1.left-0.5,b1.bottom+0.7 -> a4.right+0.6,b1.bottom+0.7 {.muted}
-text axn "anomaly score" at b1.cx+3.33,b1.bottom+1.12 {.muted}
-text lno "no alert" at b1.cx+0.37,b1.bottom+0.34 {.muted}
-text lal "alert" at a4.cx-0.37,b1.bottom+0.34 {.muted}
+text axn "anomaly score" at b1.cx+1.85,b1.bottom+1.12 {.muted}
+text lno "no alert" at b1.cx+0.23,b1.bottom+0.34 {.muted}
+text lal "alert" at a4.cx-0.23,b1.bottom+0.34 {.muted}
 
 # The threshold itself is the label, and the line hangs off it: a step moves
 # "t", the layout is worked out again, and the rule follows. The old version's
 # double-headed arrow, which was there to say the rule can move, is therefore
 # unnecessary - now it moves.
-text tlbl "t" at a1.cx+0.37,a1.top-0.45 pad 0.12 {.paper .hand @thr}
+text tlbl "t" at a1.cx+0.23,a1.top-0.45 pad 0.12 {.paper .hand @thr}
 edge thr tlbl.cx,tlbl.bottom -- tlbl.cx,b1.bottom+0.7 {.thick @thr}
 
-# The 2x2 matrix. The attack row carries the accent, the normal row the tone
-# for legitimate traffic - the same assignment as everywhere else.
-# The columns stand as the axis above them does: no alarm left of t, alarm
-# right of it. So FN sits left of TP and not the other way round.
-box fn "FN" at ds.left+1.2,b1.bottom+3.05 w 1.3 h 0.9 {.accent}
-box tp "TP" right of fn gap 0 same as fn {.accent}
-box tn "TN" below fn gap 0 same as fn {.tone-2}
-box fp "FP" right of tn gap 0 same as fn {.tone-2}
+# The 2x2 matrix, beside the axis rather than under it. The attack row carries
+# the accent, the normal row the tone for legitimate traffic - the same
+# assignment as everywhere else. The columns stand as the axis beside them
+# does: no alarm left of t, alarm right of it. So FN sits left of TP and not
+# the other way round.
+box fn "FN" at 6.1,0.3 w 0.66 h 1.6 {.accent}
+box tp "TP" right of fn gap 0 {.accent}
+box tn "TN" below fn gap 0 {.tone-2}
+box fp "FP" right of tn gap 0 {.tone-2}
+row fn, tp
+row tn, fp
 
 # The number is in the cell's own label rather than a row of small markers
 # beside it: it changes in every beat, and a "label" step swaps in a variant
@@ -1547,11 +1632,11 @@ text head "REACTION OF IDS" above cno gap 0.3 flush left {.bold .left}
 text rowa "attack" left of fn gap 0.25 {.turn}
 text rown "normal" left of tn gap 0.25 {.turn}
 
-text rates "TP rate: 0.75 / FP rate: 0.33" at tp.right+2.1,fn.bottom-0.25 {.bold @thr}
+text rates "TP rate: 0.75 / FP rate: 0.33" at 0,3.7 {.left .bold @thr}
 
 # The takeaway belongs to the last beat and therefore to the handout too: the
 # relationship the next slide draws as a ROC curve.
-text tnote "moving t moves both rates" at rates.cx,rates.bottom+0.6 {.hand}
+text tnote "moving t moves both rates" below rates gap 0.4 flush left {.left .hand}
 
 step threshold
   show @thr
@@ -1561,21 +1646,21 @@ step threshold
   label tn "TN\n4"
   label fp "FP\n2"
 step stricter
-  move tlbl by 2.22,0
+  move tlbl by 1.22,0
   label fn "FN\n2"
   label tp "TP\n2"
   label tn "TN\n6"
   label fp "FP\n0"
   label rates "TP rate: 0.50 / FP rate: 0.00"
 step lenient
-  move tlbl by -4.44,0
+  move tlbl by -2.44,0
   label fn "FN\n0"
   label tp "TP\n4"
   label tn "TN\n2"
   label fp "FP\n4"
   label rates "TP rate: 1.00 / FP rate: 0.67"
 step tradeoff
-  move tlbl by 2.22,0
+  move tlbl by 1.22,0
   show tnote
   label fn "FN\n1"
   label tp "TP\n3"
@@ -1590,19 +1675,22 @@ step tradeoff
 
 ::: draw 104x104
 # "False Postive Rate" is the original slide's typo and stays.
-# The unit is square, so that the ROC frame comes out square.
-plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
+# The unit is square, so that the ROC frame comes out square - and a square on
+# a canvas two and three quarter times as wide as it is tall leaves the slide
+# two thirds empty. So the three thresholds are named in the room beside the
+# frame, each on a horizontal leader out of its own point. The leader crosses
+# nothing: the curve rises, so at the height of a point it is only ever to
+# that point's left.
+plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 1.75 h 1.6 x 0,1 y 0,1 tick 0.2
 
 edge curve roc@0.02,roc@0.03 -- roc@0.98,roc@1 via roc@0.06,roc@0.5 roc@0.2,roc@0.8 roc@0.49,roc@0.95 roc@0.75,roc@0.98 {.smooth .thick}
 
-# The labels sit under their point rather than to its right: the curve is to
-# the right, and a .paper ground would otherwise knock it out.
 dot pstrict "" at roc@0.06,roc@0.5 r 0.055 {.tone-4 @strict}
-text lstrict "Strict threshold" at roc@0.3,roc@0.43 pad 0.12 {.bold .paper @strict}
+text lstrict "Strict threshold" at roc.right+0.3,pstrict.cy -- pstrict {.left .bold @strict}
 dot pmod "" at roc@0.2,roc@0.8 r 0.055 {.tone-4 @moderate}
-text lmod "Moderate threshold" at roc@0.5,roc@0.71 pad 0.12 {.bold .paper @moderate}
+text lmod "Moderate threshold" at roc.right+0.3,pmod.cy -- pmod {.left .bold @moderate}
 dot plen "" at roc@0.49,roc@0.95 r 0.055 {.tone-4 @lenient}
-text llen "Lenient threshold" at roc@0.76,roc@0.86 pad 0.12 {.bold .paper @lenient}
+text llen "Lenient threshold" at roc.right+0.3,plen.cy -- plen {.left .bold @lenient}
 
 step curve
   show curve
@@ -1619,25 +1707,27 @@ step lenient
 ## figure: Comparing detection techniques | ROC curves for alternative binnings {.full #ns-b61}
 
 ::: draw 104x104
-# The same frame as before, typo "False Postive Rate" included.
-plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
+# The same frame as before, typo "False Postive Rate" included, and the same
+# answer to a square drawing on a canvas nearly three times as wide as it is
+# tall: what the figure has to say stands in the room beside the frame, on a
+# leader out of the curve it names, instead of over the frame's head.
+plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 1.75 h 1.6 x 0,1 y 0,1 tick 0.2
 
 edge chance roc@0.02,roc@0.02 -- roc@1,roc@1 {.muted @chance}
 # Below the diagonal, but far enough clear that its .paper ground does not cut
 # the line: the diagonal is y = x, so the box's left edge has to lie right of
 # its top edge.
-text nchance "Accuracy due\nto chance" at roc@0.65,roc@0.35 pad 0.12 {.bold .paper @chance}
+text nchance "Accuracy due\nto chance" at roc@0.66,roc@0.32 pad 0.12 {.bold .paper @chance}
 
 edge high roc@0.02,roc@0.02 -- roc@1,roc@1 via roc@0.05,roc@0.6 roc@0.15,roc@0.86 roc@0.4,roc@0.95 roc@0.7,roc@0.98 {.smooth .thick @curves}
 edge low roc@0.02,roc@0.02 -- roc@1,roc@1 via roc@0.12,roc@0.35 roc@0.3,roc@0.66 roc@0.6,roc@0.88 {.smooth .thick @curves}
 
-text lhigh "High\naccuracy" at roc@0.3,roc@1.24 -- roc@0.24,roc@0.92 {.bold @curves}
-text llow "Low\naccuracy" at roc@0.62,roc@1.24 -- roc@0.5,roc@0.81 {.bold @curves}
-
 dot pperf "" at roc@0.02,roc@1 r 0.055 {.tone-4 @perfect}
-text lperf "Perfect\naccuracy" at roc@0.02,roc@1.24 -- roc@0.02,roc@1.03 {.bold @perfect}
+text lperf "Perfect accuracy" at roc.right+0.3,pperf.cy -- pperf {.left .bold @perfect}
+text lhigh "High accuracy" at roc.right+0.3,roc@0.86 -- roc@0.15,roc@0.86 {.left .bold @curves}
+text llow "Low accuracy" at roc.right+0.3,roc@0.66 -- roc@0.3,roc@0.66 {.left .bold @curves}
 
-text q "What false positive\nrate is acceptable?" at roc@0.7,roc@0.12 pad 0.12 {.paper .hand @ask}
+text q "What false positive\nrate is acceptable?" at roc.right+0.3,roc@0.25 {.left .hand @ask}
 
 step chance
   show @chance
@@ -1654,14 +1744,19 @@ step question
 
 ## figure: Sketch of a Similar Situation {.full #ns-b63}
 
-::: draw 70x70
+::: draw 70x48
 # 96 faces out of four grids rather than 96 lines: the rule is one line per
 # grid, the exception a grid of its own. The asset is embedded once, however
 # often it appears.
+#
+# The board is eleven wide and nine deep rather than eight wide and twelve
+# deep, which is the same ninety-six people in the shape of a slide; the
+# eleven false alarms are the bottom row of the healthy block instead of a
+# column down its right edge, and the legend stands beside the board.
 grid sickp image face-bad 7x1 at 0,0 cell 0.3 space 0.08 {@tp}
 grid sickn image face-ok 1x1 right of sickp gap 0.1 cell 0.3 space 0.08 {@fn}
-grid well image face-ok 7x11 below sickp gap 0.32 flush left cell 0.3 space 0.08 {@wellneg}
-grid fpos image face-bad 1x11 right of well gap 0.1 flush top cell 0.3 space 0.08 {@fpos}
+grid well image face-ok 11x7 below sickp gap 0.32 flush left cell 0.3 space 0.08 {@wellneg}
+grid fpos image face-bad 11x1 below well gap 0.1 flush left cell 0.3 space 0.08 {@fpos}
 
 container zsick "" over sickp,sickn pad 0.09 {.accent .sharp}
 container zwell "" over well,fpos pad 0.09 {.sharp}
@@ -1670,9 +1765,7 @@ text lwell "healthy" left of well gap 0.3 {.right}
 
 text rates "TP rate: 87.5% FP rate: 12.5%\nactually sick: 8.3%" above sickp gap 0.35 flush left {.left .muted}
 
-# The legend stands halfway down the board rather than at the top: otherwise
-# the bottom right half of the figure would stay empty.
-image legb face-bad right of fpos gap 1.1 offset 0,-0.3 w 0.3
+image legb face-bad at 4.2,1.1 w 0.3
 text tlegb "test positive (you are worried)" right of legb gap 0.2 {.left}
 image lego face-ok below legb gap 0.35 same as legb
 text tlego "test negative (you feel safe)" right of lego gap 0.2 {.left}
