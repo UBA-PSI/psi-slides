@@ -87,6 +87,10 @@ Second.
 
 ---
 
+::: footnote
+the source for the line above
+:::
+
 > note: **alone behind the last separator**
 
 ## free: Pane {#pane}
@@ -104,13 +108,23 @@ Right words.
 
 After.
 
-## free: Warn {#warn}
+## free: Middle {#middle}
 
 Opening.
 
 ---
 
 > note: **alone, and a beat follows**
+
+---
+
+Last.
+
+## free: Nothing on it {#dead}
+
+Opening.
+
+---
 
 ---
 
@@ -246,11 +260,15 @@ export async function run({ page, report }) {
   // ── the parser's position rule, read off the built page ──────────
   ok(JSON.stringify(segsOf(speaker, 'three')) === '[0,1]', 'a note before the first --- is segment 0, one after it segment 1', JSON.stringify(segsOf(speaker, 'three')));
   ok(JSON.stringify(segsOf(speaker, 'legacy')) === '[0,0]', 'notes that all sit in the last segment are chunk notes on segment 0', JSON.stringify(segsOf(speaker, 'legacy')));
-  ok(JSON.stringify(segsOf(speaker, 'empty')) === '[0,1]', 'a note alone behind the last --- slides back to the previous segment', JSON.stringify(segsOf(speaker, 'empty')));
+  ok(JSON.stringify(segsOf(speaker, 'empty')) === '[0,2]', 'a note alone behind the last --- is filed on that beat, not on the one before it', JSON.stringify(segsOf(speaker, 'empty')));
   ok(JSON.stringify(segsOf(speaker, 'pane')) === '[0]', 'a note inside a pane takes the segment the pane stands in', JSON.stringify(segsOf(speaker, 'pane')));
-  ok(JSON.stringify(segsOf(speaker, 'warn')) === '[0]', 'a note alone in a middle segment slides back too', JSON.stringify(segsOf(speaker, 'warn')));
-  ok(/note-in-empty-beat/.test(lint) && (lint.match(/note-in-empty-beat/g) || []).length === 1,
-     'and lint.js names exactly that one as note-in-empty-beat', lint.trim().split('\n').filter(l => /note-in/.test(l)).join(' | '));
+  ok(JSON.stringify(segsOf(speaker, 'middle')) === '[1]', 'a note alone in a middle segment is filed on that segment', JSON.stringify(segsOf(speaker, 'middle')));
+  // The aside written under the same separator carries the same number, so
+  // the two arrive together: the footnote on the projection, the card in
+  // the cockpit, on the press the author wrote the --- for.
+  ok(/<aside class="margin-note[^"]*" data-seg="2"/.test(speaker),
+     'and a ::: footnote written in that segment carries its number too',
+     (/<aside class="margin-note[^>]*>/.exec(speaker) || [''])[0]);
   ok(/window\.PSI_CARDS/.test(speaker), 'the page carries the card grammar');
 
   // ── the from-pin: the escape hatch for a diagram's steps ─────────
@@ -277,13 +295,14 @@ export async function run({ page, report }) {
   ok(JSON.stringify(pinsOf('lead')) === JSON.stringify(['seg0', 'at1']),
      'a note before a leading --- is beat 0 and the one pinned to from 1 is beat 1',
      JSON.stringify(pinsOf('lead')));
-  // The other half of the same rule: an empty segment that is *not* the
-  // opening one is dropped, and the `---` in front of it buys no click. The
-  // fixture has exactly one - the trailing separator of #empty, whose last
-  // segment holds nothing but a note - and #lead's leading one is not it.
-  ok((lint.match(/dropped-beat/g) || []).length === 1,
-     'lint.js names the one --- of the fixture whose segment the build drops',
-     lint.trim().split('\n').filter(l => /dropped-beat/.test(l)).join(' | '));
+  // The other half of the same rule: every `---` is a beat, so what is left
+  // to report is a beat with nothing whatever on it. The fixture has exactly
+  // one - the second separator of #dead - and neither #lead's leading one,
+  // nor #empty's trailing one with its footnote and its note, nor #middle's
+  // with a note on it, is that.
+  ok((lint.match(/empty-beat/g) || []).length === 1,
+     'lint.js names the one --- of the fixture that buys a click with nothing on it',
+     lint.trim().split('\n').filter(l => /empty-beat/.test(l)).join(' | '));
 
   ok(JSON.stringify(pinsOf('part-section')) === JSON.stringify(['seg0', 'at1']),
      'a note under a # heading is the divider\'s, on beat 0 or on the beat it pins itself to',
@@ -465,6 +484,44 @@ export async function run({ page, report }) {
     const segs = [...document.getElementById('lead').querySelectorAll('.reveal-segment')];
     return segs[1].hasAttribute('data-hidden');
   })) === false, 'the answer is on the projection');
+
+  // ── a beat that paints nothing still carries what rides it ───────
+  // The idiom five slides of a real keynote are written in: a `---`, then a
+  // ::: footnote and a `> note:` and nothing else. The slide stands, the
+  // source line comes up under it, and the speaker says the next thing. The
+  // segment used to be dropped and the press with it.
+  // The walk above has already been through this chunk, so put its counter
+  // back to the state the slide opens in before reading what is on it.
+  await aud.evaluate(() => { revealed.empty = 1; applyRevealAll(); });
+  await spk.evaluate(() => { revealed.empty = 1; jumpTo(flatChunks.findIndex(e => e.id === 'empty')); });
+  await spk.waitForTimeout(400);
+  ok((await both()).s.id === 'empty', 'the cockpit reaches the chunk whose last beat paints nothing');
+  const noteState = () => aud.evaluate(() => {
+    const el = document.getElementById('empty');
+    const segs = [...el.querySelectorAll('.reveal-segment')];
+    const fn = el.querySelector('.margin-note[data-seg]');
+    return { n: segs.length, total: countSegments(el),
+             empty: segs[2] && segs[2].hasAttribute('data-empty'),
+             footnote: fn ? !fn.hasAttribute('data-beat-hidden') : null };
+  });
+  const emp0 = await noteState();
+  ok(emp0.n === 3 && emp0.empty && emp0.total === 3,
+     'the slide carries three segments, the last of them empty, and counts three positions', JSON.stringify(emp0));
+  ok(emp0.footnote === false, 'the footnote is held back while the slide opens', JSON.stringify(emp0));
+  // Walked rather than counted, because a card sits in front of each press
+  // and how many of them a beat has is the fixture's business, not this
+  // assertion's: what has to be true is that the card written under the
+  // last `---` comes up on this slide, with the footnote and the third
+  // position, and not one slide on.
+  const walkEmpty = [];
+  for (let i = 0; i < 4; i++) { await press('Space'); walkEmpty.push({ ...(await both()), c: await cursor(), s2: await noteState() }); }
+  const trail = JSON.stringify(walkEmpty.map(w => [w.s.id, w.s.rev, w.c.cur]));
+  ok(walkEmpty.every(w => w.same), 'the two windows agree through the chunk', trail);
+  const said = walkEmpty.find(w => /alone behind the last separator/.test(w.c.cur || ''));
+  ok(said && said.s.id === 'empty' && said.s.rev === 3,
+     'the note written under the last --- is the card of the chunk\'s last beat', trail);
+  ok(said && said.s2.footnote === true,
+     'and the footnote written under the same --- has arrived with it', trail);
 
   // the two buttons that scale the cards, persisted like the notes zoom
   const size = () => spk.evaluate(() => parseFloat(getComputedStyle(document.getElementById('cue-rail')).fontSize));

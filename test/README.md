@@ -53,7 +53,7 @@ this suite runnable with nothing installed.
 | `accepts` | every construct still parses |
 | `semantics` | the emitted SVG *means* what the source says, plus what the source means to the editor that rewrites it – the span table |
 | `corpus` | every `::: draw` block in the repository still compiles, and each file holds exactly the number it is said to |
-| `cue-cards` | the note-to-cards grammar in `cue-cards.mjs`, rule by rule; that the module reaches `speaker.html` as `window.PSI_CARDS`; and which `---` buys a beat – `segmentsKept` spelled in build.js and lint.js alike, with fixture decks run through `lint.js` for `dropped-beat` in both directions |
+| `cue-cards` | the note-to-cards grammar in `cue-cards.mjs`, rule by rule; that the module reaches `speaker.html` as `window.PSI_CARDS`; and which `---` buys a beat – `segmentsKept` spelled in build.js and lint.js alike, with fixture decks run through `lint.js` for `empty-beat` in both directions: the five things that ride a beat without painting on it, and the two shapes that buy nothing |
 | `step-classes` | which classes a beat can carry, derived from `DG_STEP_FIXED` rather than restated |
 | `inlined` | the two characters that mean something else inside build.js's own template literals |
 | `tails` | the one `{…}` tail parser and the `::: draw` opener parser in `tails.mjs`: every code, the written-default rule, the formatter round trip |

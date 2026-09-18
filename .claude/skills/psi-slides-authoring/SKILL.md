@@ -397,14 +397,21 @@ One. Perhaps two.
 ```
 
 Count the clicks off the source: a chunk has as many presses as it has `---`
-lines. An aside does not fill a beat – a `::: footnote`, a `::: marginalia`, a
-`::: overlay`, a `::: dock` and a `::: backdrop` are lifted off the text column,
-so a segment holding nothing else is empty, the build drops it, and the press
-you counted on never happens. The linter names that one as `dropped-beat`; give
-the beat its words or take the `---` out. The rule needs a heading to stand on,
-so a chunk whose heading is empty (`## free: {#x}`) keeps the older behaviour
-and loses the leading segment, and a `title:` or `closing:` chunk has no
-reveal segments at all.
+lines, and that holds whatever stands between two of them. **A segment with
+nothing in it is a beat too**, and writing one is a real move: the slide stands
+while you say the next thing, a `::: footnote` written under the `---` comes up
+with it (the source line for the claim just made), a `::: backdrop`'s reveal
+moves to its next place, an `::: overlay from N` or a `--- from N` arrives. An
+aside is lifted off the text column, so a segment holding only one of them is
+empty – and ships all the same.
+
+The one shape the linter still names is `empty-beat`: a `---` whose segment
+paints nothing *and* has nothing riding it – no aside written in it, no
+`> note:` filed on it, no backdrop place for the beat, nothing held to it by
+`from`. That is a press on which nothing whatever happens; give the beat its
+content or take the `---` out. A `title:` or `closing:` chunk is the exception
+to all of it: it wears a cover composition and has no reveal segments, so a
+`---` there buys nothing.
 
 ### Beats below the top level
 
@@ -558,11 +565,12 @@ the corner of an eye:
 > @4:00 The secretary **mails Ms K.**, who approves with **HR's rights**.
 ```
 
-The linter warns `note-in-empty-beat` when a note stands alone behind a
-`---` that is not the last one: the cards would show it a beat earlier than
-you probably meant. A note in the *opening* segment is not that case – it is
-said while the heading stands on its own, which is what a leading `---` is
-for (see *Reveal segments*).
+A note standing alone behind a `---`, with no slide text after it, is a
+supported shape rather than a warning: the press happens, the slide does not
+change, and the card is what you say over it. The linter used to report it as
+`note-in-empty-beat`, back when the build dropped that segment and the card
+slid a beat forward; it does not any more, because the segment ships (see
+*Reveal segments*).
 
 **`> note: from N` pins a note to an advance by number**, and it is what a
 chunk whose beats are a figure's steps needs: a `::: draw` block's `step`
@@ -1574,8 +1582,8 @@ or directive – the message names which), `missing-id`, `duplicate-id`,
 `multiple-ids`, `title-count`, `density`,
 `duplicate-explicit-block`, `unclosed-directive`, `stray-directive`,
 `stray-directive-close`, `nested-directive`, `unclosed-math`, `reveal-overuse`,
-`dropped-beat` (a `---` whose segment holds nothing the slide paints, so the
-build drops it and the press never happens – an aside does not fill one),
+`empty-beat` (a `---` that buys a press on which nothing at all happens – no
+words, no aside written in it, no note on it, nothing held to it by `from`),
 `orphan-column` (a column with fewer than two chunks),
 `figure-caption-redundant`, `single-word-bold`, `figure-type-without-figure`,
 `oversized-asset`, `unresolved-asset` (an explicit `![](path)` that names no

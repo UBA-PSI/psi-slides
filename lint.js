@@ -707,27 +707,24 @@ function lintChunkShape(chunk, chunkBody, hasDrawing, add) {
 }
 
 // Which of a chunk's reveal segments the build ships. Mirrors `segmentsKept`
-// in build.js, and it has to: a `---` whose segment the build drops is a
-// click the deck does not take, and this file counts `---` lines to say how
-// many beats a chunk has. An empty segment paints nothing and is dropped –
-// except the opening one under a heading, where a leading `---` means the
-// heading alone is beat 0. `hasBody` is one boolean per raw segment: does
+// in build.js, and it has to: this file counts `---` lines to say how many
+// beats a chunk has, and a segment the build does not ship is a click the
+// deck does not take. Every `---` is a beat, so every segment between two of
+// them ships, empty or not. `hasBody` is one boolean per raw segment: does
 // anything the build puts in the body stand in it (an aside it lifts out –
-// ::: footnote, ::: overlay, ::: dock – and a `> note:` block do not).
-function segmentsKept(hasBody, opensOnHeading) {
-  const lead = opensOnHeading
-    && hasBody.length > 1
-    && !hasBody[0]
-    && hasBody.some((t, i) => i > 0 && t);
-  return hasBody.map((t, i) => !!t || (i === 0 && lead));
+// ::: footnote, ::: overlay, ::: dock – and a `> note:` block do not); it
+// decides only the two shapes that are not a `---` at all – a chunk with no
+// separator and an empty body, and a title or closing chunk, which
+// renderTitleChunk draws from `body` with no reveal segments in it.
+function segmentsKept(hasBody, rendersSegments) {
+  if (hasBody.length < 2 || !rendersSegments) return hasBody.map(t => !!t);
+  return hasBody.map(() => true);
 }
 
-// Mirrors chunkOpensOnHeading in build.js: what an empty opening segment
-// stands on. A title or closing chunk renders its cover composition and has
-// no reveal segments to count.
-function chunkOpensOnHeading(chunk) {
-  if (chunk.tag === 'title' || chunk.tag === 'closing') return false;
-  return !!(chunk.heading && chunk.heading.trim());
+// Mirrors chunkRendersSegments in build.js: a title or closing chunk wears a
+// cover composition and has no reveal segments, so no `---` in one is a beat.
+function chunkRendersSegments(chunk) {
+  return chunk.tag !== 'title' && chunk.tag !== 'closing';
 }
 
 // One `default …` line, checked the same way wherever it is written: inside
@@ -3024,7 +3021,11 @@ function lintFile(filePath) {
   let colNotes = [];        // the same, for the blocks written under a `#` heading
   let rawSegHasText = [];   // per raw segment: does any body line stand in it
   let rawSegPinned = [];    // per raw segment: was the --- that opened it pinned
+  let rawSegFrom = [];      // per raw segment: the number that --- pinned it to
   let rawSegLine = [];      // per raw segment: the line of that ---
+  let rawSegAside = [];     // per raw segment: was a ::: footnote / expand written in it
+  let rawSegNested = [];    // per raw segment: beats below the top level standing before its ---
+  let chunkDockFroms = [];  // the `from N` of every ::: dock on the chunk
   let rawSeg = 0;
   // Everything the build puts in the chunk body, so that "this segment is
   // empty" here means what it means there. Prose says so at the foot of the
@@ -3078,6 +3079,7 @@ function lintFile(filePath) {
       advanceBeyond(colNotes, chunkReveals + chunkSteps, 'divider');
       colNotes = [];
       chunkReveals = 0; topReveals = 0; chunkSteps = 0; chunkOverlays = []; chunkRevealPins = [];
+      chunkDockFroms = [];
       return;
     }
     const budget = DENSITY_BUDGET[chunk.tag ?? 'free'];
@@ -3178,16 +3180,15 @@ function lintFile(filePath) {
           `::: ${l.kind} not closed before next chunk or column`);
     }
     // Which segments the build ships, and which `---` lines therefore buy a
-    // beat. An empty one is dropped - the click it looks like never happens
-    // - except the opening segment under a heading, where a leading `---`
-    // means the heading alone is beat 0. Mirrors segmentsKept in build.js.
+    // beat. Every `---` is one, empty segment or not, so this is the plain
+    // count - the two shapes segmentsKept still answers no for are a chunk
+    // with no separator at all and a cover slide. Mirrors segmentsKept in
+    // build.js.
     const hasBody = Array.from({ length: rawSeg + 1 }, (_, i) => !!rawSegHasText[i]);
-    const kept = segmentsKept(hasBody, chunkOpensOnHeading(chunk));
+    const kept = segmentsKept(hasBody, chunkRendersSegments(chunk));
     // The segments that reach the page, in order. The first of them is the
     // state the slide opens in and is no beat; every one after it is, and is
-    // positional unless its `---` wrote a number. So a dropped segment takes
-    // its `---`'s beat with it - which is the whole reason this file has to
-    // know which ones the build drops.
+    // positional unless its `---` wrote a number.
     const keptIdx = [];
     kept.forEach((k, i) => { if (k) keptIdx.push(i); });
     const segBeats = keptIdx.slice(1).filter(i => !rawSegPinned[i]).length;
@@ -3202,10 +3203,6 @@ function lintFile(filePath) {
     // beats in between. `from` one past the last beat is the card arriving
     // after everything else and is fine.
     const beats = Math.max(nestedBeats + segBeats + chunkSteps, (chunk.bdPlaces || 1) - 1);
-    // The `---` lines whose segment the build drops: reported below, once
-    // each, as the click the author counted on and does not get.
-    const droppedSegs = [];
-    kept.forEach((k, i) => { if (!k) droppedSegs.push(i); });
     for (const ov of chunkOverlays) {
       if (ov.from > beats + 1) {
         add(ov.line, 'warn', 'overlay-from-beyond',
@@ -3214,42 +3211,51 @@ function lintFile(filePath) {
             + `write from ${beats + 1} or add a --- / step it can follow`);
       }
     }
-    const noteWarned = new Set();
-    for (const n of noteSegs) {
-      // The opening segment is exempt, and since the leading `---` became a
-      // beat of its own it is exempt for the plain reason rather than for a
-      // technicality: the heading stands on beat 0 and the note is said
-      // there. A question slide or a definition whose body arrives on the
-      // first press is written exactly that way - heading, note, `---`,
-      // body - and the note belongs where it stands.
-      if (n.seg > 0 && !kept[n.seg] && n.seg < rawSeg) {
-        noteWarned.add(n.seg);
-        add(n.ln, 'warn', 'note-in-empty-beat',
-            'this > note: stands alone behind a --- with no slide text after it before the next --- – '
-            + 'the cue cards show it one beat earlier, with the previous segment; '
-            + 'move it behind the next ---, or give this beat its text');
-      }
+    // The beat number each top-level `---` buys, on the counter `from N`
+    // writes and `applyReveal` compares against: the beats standing before
+    // it below the top level, plus its own place among the unpinned
+    // separators. A pinned one rides the number it names instead. This
+    // mirrors `pos` in chunkBeats, which numbers the same walk in the page.
+    const beatOfSeg = [];
+    let posBeat = 0;
+    for (let i = 1; i <= rawSeg; i++) {
+      if (rawSegPinned[i]) { beatOfSeg[i] = rawSegFrom[i]; continue; }
+      posBeat += 1;
+      beatOfSeg[i] = (rawSegNested[i] || 0) + posBeat;
     }
-    // A `---` whose segment holds nothing the build renders. The build drops
-    // that segment, so the press the author counted on never happens - and
-    // the mistake is silent, because the deck still builds and the slide
-    // still looks finished. Reported at the `---` that vanishes: the one
-    // that opened the empty segment, or, where the empty segment is the
-    // opening one and there is no heading to stand on it, the first `---`
-    // of the chunk, which is the one whose beat is lost. Not reported where
-    // note-in-empty-beat has already named the same segment: two warnings
-    // for one line is how a linter gets skimmed.
-    const droppedLines = new Set();
-    for (const i of droppedSegs) {
-      if (noteWarned.has(i)) continue;
-      const at = rawSegLine[Math.max(i, 1)];
-      if (at == null || droppedLines.has(at)) continue;
-      droppedLines.add(at);
-      add(at, 'warn', 'dropped-beat',
-          'this --- opens a segment with nothing on it - no prose, no figure, no block; an aside '
-          + '(::: footnote, ::: overlay, ::: dock) is lifted off the body and does not fill one – '
-          + 'so the build drops the segment and this --- buys no click. Give the beat its text, '
-          + 'or take the --- out');
+    // What can arrive on a beat without putting a word in its segment. Every
+    // one of them is a thing the corpus does on purpose: an aside under the
+    // `---` comes up with it (the source line for the claim just made), a
+    // note is the speaker talking on while the slide stands, a backdrop
+    // reveal has a place per beat, and an overlay, a dock or a later
+    // segment can be held to this one by `from`.
+    const ridesBeat = (i) => {
+      if (rawSegAside[i]) return true;
+      if (noteSegs.some(n => n.seg === i)) return true;
+      const b = beatOfSeg[i];
+      if (b == null) return false;
+      if (b < (chunk.bdPlaces || 0)) return true;
+      if (notePins.some(n => n.from === b)) return true;
+      if (chunkOverlays.some(o => o.from === b)) return true;
+      if (chunkDockFroms.some(f => f === b)) return true;
+      if (chunkRevealPins.some(r => r.from === b)) return true;
+      return false;
+    };
+    // A `---` that buys a click on which nothing whatever happens. Every
+    // `---` is a beat, so this is no longer a segment the build throws away
+    // - it is a press that paints nothing, holds nothing back and gives the
+    // speaker nothing to say. The opening segment is not asked: it is the
+    // state the slide opens in, and a deck that opens blank and paints its
+    // body on the first press is a composition, not a mistake.
+    for (let i = 1; i <= rawSeg; i++) {
+      if (hasBody[i] || ridesBeat(i)) continue;
+      const at = rawSegLine[i];
+      if (at == null) continue;
+      add(at, 'warn', 'empty-beat',
+          'this --- buys a click on which nothing happens - the segment paints nothing, no '
+          + '::: footnote or ::: expand is written in it, no > note: is filed on it, the backdrop '
+          + 'has no reveal place for the beat and nothing is held to it by `from`. Give the beat '
+          + 'its content, or take the --- out');
     }
     // One past the last beat is this segment arriving after everything else
     // and is fine, which is the threshold ::: overlay from N already uses.
@@ -3287,7 +3293,8 @@ function lintFile(filePath) {
     exposedWords = 0;
     chunkHasDrawing = false;
     noteSegs = []; notePins = []; curNote = null;
-    rawSegHasText = []; rawSegPinned = []; rawSegLine = []; rawSeg = 0;
+    rawSegHasText = []; rawSegPinned = []; rawSegFrom = []; rawSegLine = [];
+    rawSegAside = []; rawSegNested = []; chunkDockFroms = []; rawSeg = 0;
   };
 
   // What is open around a line, asked the way build.js asks it. The two
@@ -3572,6 +3579,12 @@ function lintFile(filePath) {
             `::: ${expandOpen ? 'expand' : marginOpen[1]} inside ${innermost()} (line ${layoutStack[layoutStack.length - 1].line}) – `
             + 'an expansion or footnote is folded under the whole chunk, so write it after the block\'s closing :::');
       }
+      // Lifted out of the body, so it does not make the segment non-empty -
+      // but it is written in that segment and arrives with it, which is the
+      // whole of the `---` / ::: footnote idiom: a source line that comes up
+      // on the click it belongs to. So it rides the beat, and `empty-beat`
+      // has to know.
+      if (chunk) rawSegAside[rawSeg] = true;
       activeDirective = { kind: expandOpen ? 'expand' : marginOpen[1], line: ln };
       continue;
     }
@@ -3676,6 +3689,7 @@ function lintFile(filePath) {
       const edge = dt.slots.edge.value, width = dt.slots.width.value,
             height = dt.slots.height.value, scope = dt.slots.scope.value;
       const from = dockOpen[2];
+      if (chunk && from != null && /^[1-9]\d*$/.test(from)) chunkDockFroms.push(Number(from));
       if (from != null && !/^[1-9]\d*$/.test(from)) {
         add(ln, 'error', 'bad-dock-from',
             `::: dock from ${from} – \`from\` takes a whole beat number from 1 up; beat 0 is the beat `
@@ -4088,6 +4102,13 @@ function lintFile(filePath) {
         continue;
       }
       chunkHasReveal = true;
+      // What stands between the chunk's first beat and this one below the
+      // top level: a marker inside a pane or a card row, and a figure's
+      // `step` blocks. Read before the counters move, so it is the count
+      // *before* this separator - which is what turns a separator's place
+      // among its own kind into a beat number, the way `pos` in chunkBeats
+      // numbers the whole document-order walk.
+      const nestedBefore = (chunkReveals - topReveals) + chunkSteps;
       // A pinned beat rides one the chunk already has rather than adding a
       // position of its own - which is what chunkBeats' push() does with it.
       if (revMark.from == null) chunkReveals += 1;
@@ -4102,6 +4123,8 @@ function lintFile(filePath) {
         // it costs no beat - which is what the arithmetic in flushChunk
         // needs to know.
         rawSegPinned[rawSeg] = revMark.from != null;
+        rawSegFrom[rawSeg] = revMark.from;
+        rawSegNested[rawSeg] = nestedBefore;
       }
       continue;
     }

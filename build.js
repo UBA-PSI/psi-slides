@@ -4257,43 +4257,37 @@ const beatMark = (from) => from == null ? BEAT_MARK
 const isBeatMark = (raw) => /^<div class="beat-mark"/.test(raw);
 
 // Which of the raw segments the renderer ships, as a boolean per raw index.
-// A `---` with nothing between it and the next one paints nothing, so an
-// empty segment is dropped - with one exception, and it is the shape a
-// question slide is written in:
+// Every `---` is a beat: the source's count of separators is the deck's
+// count of clicks, and a segment with nothing between two of them is a click
+// all the same. It paints nothing new, which is a thing an author writes on
+// purpose - the slide stands while the speaker says the next thing, a
+// `::: footnote` written in it arrives with it, a backdrop's reveal moves to
+// its next place, an overlay held by `from` comes up.
 //
-//     ## question: Heading
-//     ---
-//     the answer
+// An empty segment used to be dropped, and a real keynote then had five
+// clicks fewer than its source asked for: a `> note: from 1` that could
+// never fire, footnotes that arrived with the words above them, and a last
+// click that was dead. Asides do not change the arithmetic either way - a
+// `::: footnote`, a `::: overlay`, a `::: dock` and a `::: backdrop` are
+// lifted out of the body, so a segment holding nothing else is empty here
+// and is shipped all the same. lint.js reports the one shape that is left,
+// a beat with nothing on it and nothing riding it, as `empty-beat`.
 //
-// A leading `---` under a heading means *the heading alone is beat 0*, so
-// the empty opening segment is kept and the source's count of `---` is the
-// deck's count of clicks. It used to be dropped, and the body then arrived
-// with the heading: one beat fewer than the source says, a `> note: from 1`
-// that could never fire, and a last click that was dead. Asides do not
-// decide it - a `::: footnote`, a `::: overlay`, a `::: dock` and a
-// `::: backdrop` are lifted out of the body, so a segment holding nothing
-// else is empty here and is exactly the shape this keeps.
-//
-// Kept only where something stands on that beat (a heading) and something
-// follows it (a later segment with words), and never on a `title:` or
-// `closing:` chunk, whose cover composition renders `body` and no segments
-// at all. A chunk with no heading has nothing to paint on beat 0, so there
-// the old rule holds. lint.js mirrors this in `segmentsKept`.
-function segmentsKept(segments, opensOnHeading) {
-  const lead = opensOnHeading
-    && segments.length > 1
-    && segments[0].length === 0
-    && segments.some((t, i) => i > 0 && t.length > 0);
-  return segments.map((t, i) => t.length > 0 || (i === 0 && lead));
+// Two shapes keep the old answer, because neither of them is a `---`: a
+// chunk with no separator and an empty body ships no segment at all, and a
+// `title:` or `closing:` chunk is drawn from `body` by renderTitleChunk and
+// renders no reveal segments, so a separator there buys no beat to begin
+// with. lint.js mirrors this in `segmentsKept`.
+function segmentsKept(segments, rendersSegments) {
+  if (segments.length < 2 || !rendersSegments) return segments.map(t => t.length > 0);
+  return segments.map(() => true);
 }
 
-// Whether a chunk paints a heading on the slide, which is what an empty
-// opening segment stands on. `.bare` takes the heading off the projection
-// with an attribute and leaves the element in the DOM, so it is not asked
-// here; a title or closing chunk has no reveal segments at all.
-function chunkOpensOnHeading(chunk) {
-  if (chunk.tag === 'title' || chunk.tag === 'closing') return false;
-  return !!(chunk.heading || chunk.headingSub);
+// Whether a chunk renders reveal segments at all - the one question
+// segmentsKept still asks about the chunk. A title or closing chunk wears a
+// cover composition, which renderTitleChunk draws from `body`.
+function chunkRendersSegments(chunk) {
+  return chunk.tag !== 'title' && chunk.tag !== 'closing';
 }
 
 // Where a position in the chunk body falls among the reveal segments the
@@ -4790,11 +4784,11 @@ function parseLecture(src) {
       cur.push(line);
     }
     if (cur.length) segments.push(cur.join('\n').trim());
-    // A leading `---` under a heading is the heading standing alone on beat
-    // 0, and its empty segment is shipped so that the source's `---` count
-    // is the deck's click count. Every other empty segment is dropped;
-    // lint.js reports one as `dropped-beat`. See segmentsKept.
-    const kept = segmentsKept(segments, chunkOpensOnHeading(currentChunk));
+    // Every `---` is a beat, so every segment between two of them ships,
+    // empty or not: the source's `---` count is the deck's click count.
+    // lint.js reports a beat with nothing on it and nothing riding it as
+    // `empty-beat`. See segmentsKept.
+    const kept = segmentsKept(segments, chunkRendersSegments(currentChunk));
     const keep = segments.map((t, i) => [t, segFrom[i]]).filter((_, i) => kept[i]);
     const nonEmpty = keep.map(([t]) => t);
     currentChunk.segments = nonEmpty;
@@ -4819,9 +4813,8 @@ function parseLecture(src) {
     delete currentChunk.speakerNoteAt;
     // Print collapses reveals: `body` is every segment joined, so the
     // print renderer can stay oblivious to the reveal split.
-    // The kept opening segment is empty, and the document has no beats to
-    // spend it on, so `body` stays what it was: the segments with words in
-    // them, joined.
+    // A document has no clicks to spend an empty segment on, so `body` stays
+    // what it was: the segments with words in them, joined.
     currentChunk.body = nonEmpty.filter(t => t.length).join('\n\n');
     // The camera's anchor, answered from the finished body when the author
     // wrote neither `.middle` nor `.top`. Here and not in the renderer,
@@ -9240,12 +9233,12 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
     // A pinned segment says which beat it arrives on; an unpinned one is
     // still counted by its position, which is what `pos` in chunkBeats does.
     const from = segFrom[i] == null ? '' : ` data-from="${segFrom[i]}"`;
-    // The opening segment a leading `---` leaves empty (segmentsKept): it
-    // paints nothing and is beat 0 all the same, the beat the heading has
-    // to itself. Named rather than left to `:empty`, because the block gap
-    // between two segments has to skip it and a selector that reads the
-    // box says why.
-    const empty = i === 0 && !seg ? ' data-empty=""' : '';
+    // A segment two `---` leave empty (segmentsKept): it paints nothing and
+    // is a beat all the same - the slide stands, and a footnote, a note or a
+    // backdrop place may ride it. Named rather than left to `:empty`,
+    // because the block gap between two segments has to skip it and a
+    // selector that reads the box says why.
+    const empty = seg ? '' : ' data-empty=""';
     return `<div class="reveal-segment" data-seg="${i}"${hidden}${from}${empty}>${inner}</div>`;
   }).join('\n');
 
@@ -10430,11 +10423,15 @@ body[data-slide-nums=off] .chunk-num { display: none; }
    segment keeps its box and only its visibility changes, so the gap is
    standing from beat 0 and no press moves the slide. */
 .chunk-body > .reveal-segment + .reveal-segment { margin-top: var(--block-gap); }
-/* Except after the empty opening segment a leading reveal marker leaves
-   (parser: segmentsKept). It is a beat, not a block: the heading stands
-   alone on it and nothing is painted, so the words that follow begin where
-   they would have begun without it. */
-.chunk-body > .reveal-segment[data-empty] + .reveal-segment { margin-top: 0; }
+/* Except around an empty segment (parser: segmentsKept). It is a beat and
+   not a block: nothing is painted on it, so the words on either side stand
+   where they would have stood without it. The empty box takes no gap of its
+   own, and the segment after it takes the one gap the two neighbours owe
+   each other - unless the empty one is the chunk's opening segment, where
+   the heading stands alone on beat 0 and the body below it begins at the
+   top. */
+.chunk-body > .reveal-segment[data-empty] { margin-top: 0; }
+.chunk-body > .reveal-segment[data-empty][data-seg="0"] + .reveal-segment { margin-top: 0; }
 .chunk-body strong { font-weight: var(--bold-weight); color: var(--emph); }
 .chunk-body em { font-style: italic; }
 /* A link is styled for the whole live surface, not only inside .chunk-body.
