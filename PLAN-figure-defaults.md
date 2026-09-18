@@ -578,3 +578,9 @@ engine made it harder than it should be, ordered by time cost. It confirms
    warning, because a container is outside the overlap census.
 10. A written table `row` below the type's own line height is silent.
 11. Placing a row inside a zone is y-arithmetic by hand (§2.6, `in zone`).
+12. A label made of two texts (a question over a verb) cannot be centred on
+    a cell as one block: each text is anchored to the cell's centre line, so
+    a two-line question over a one-line verb stands a half-line too high and
+    the author moves the split by hand (`cy+0.5` / `cy+0.7`). A `stack` of
+    texts, or a text with two registers (`"question\n~verb~"` with the
+    second line in the small muted register), would centre as one.
