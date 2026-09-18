@@ -1017,16 +1017,21 @@ default box {.tone-2} w 1.35
 # The leaves are the fixed points, because they are what this is about. Every
 # level above sits between its own children: move a leaf and everything above
 # re-centres, with no second line knowing about it.
+# A run of `right of` boxes is one width already, so the four leaves need no
+# line to say they are peers.
 box l1 "www.example.org"  at 0,0 {.tone-3 @leaves}
-box l2 "mail.example.org" right of l1 gap 0.2 same as l1 {.tone-3 @leaves}
+box l2 "mail.example.org" right of l1 gap 0.2 {.tone-3 @leaves}
 # The gap between the two subtrees is four times the gap inside one. That
 # makes them two groups before anybody reads a word.
-box l3 "shop.example.com" right of l2 gap 0.8 same as l1 {.tone-3 @leaves}
-box l4 "vpn.example.com"  right of l3 gap 0.2 same as l1 {.tone-3 @leaves}
+box l3 "shop.example.com" right of l2 gap 0.8 {.tone-3 @leaves}
+box l4 "vpn.example.com"  right of l3 gap 0.2 {.tone-3 @leaves}
 
-box i1 "Issuing CA A" between l1,l2 offset 0,-2.2 w 1.2 {@issuers}
-box i2 "Issuing CA B" between l3,l4 offset 0,-2.2 w 1.2 {@issuers}
-box rt "Root CA"      between i1,i2 offset 0,-2.2 w 1.2 {.tone-1}
+# Three levels 1.8 rows apart rather than 2.2: the slide allows a figure 558
+# px of height, and a tree taller than that is drawn smaller than the words
+# beside it. The rows of a tree carry the argument, not the air between them.
+box i1 "Issuing CA A" between l1,l2 offset 0,-1.8 w 1.2 {@issuers}
+box i2 "Issuing CA B" between l3,l4 offset 0,-1.8 w 1.2 {@issuers}
+box rt "Root CA"      between i1,i2 offset 0,-1.8 w 1.2 {.tone-1}
 
 edge rt -- i1 {.elbow .muted}
 edge rt -- i2 {.elbow .muted}
@@ -1089,7 +1094,16 @@ step every-one-has-an-answer
 
 ## figure: A protocol down the page | a sequence {.full #sequence}
 
-::: draw 150x40
+::: draw 150x14
+# A row of 14 px rather than the 40 the other figures here use, because on a
+# sequence the grid's row is the air between the bands and nothing else:
+# `space`, a label's ground and the tail of a lifeline are all counted in it,
+# while every band is as tall as the words standing in it. At the wider row
+# this figure stood 647 px against the 558 px a slide allows, so the whole
+# drawing was scaled down and its labels landed at 13 px. Two payloads that
+# read as part of their own message moved up onto its line for the same
+# reason: a second line is a band of its own.
+#
 # The participants are lines of their own, because each needs a name to hold
 # on to and an attribute tail of its own. Everything below is either a message
 # (an arrow between two names) or a note.
@@ -1106,9 +1120,9 @@ sequence wa at 0,0
   note br,au "CTAP runs over USB, NFC or BLE"
   au -> u  "prompt: PIN or biometric"
   u  -> au "user verified locally"
-  note au "generate key pair\nbind to SHA-256(rp.id)\nstore privately · emit publicly"
-  au -> br "attestation object" "authData (public key, cred ID) · signature" {.dashed}
-  br -> rp "attestationObject + clientDataJSON" "clientDataJSON carries challenge · origin"
+  note au "generate key pair · bind to SHA-256(rp.id)\nstore privately · emit publicly"
+  au -> br "attestation object · authData (public key, cred ID) · signature" {.dashed}
+  br -> rp "attestationObject + clientDataJSON, carrying challenge · origin"
   rp -> rp "verify signature · check origin"
 
 # Two annotations the statement knows nothing about: ordinary lines hung off
@@ -1169,7 +1183,7 @@ brace tun over tunnel side right "this is the payload" pad 0.35 {.muted .small}
 
 ## free: A self-message, a note, and the air between bands {.wide #seq-entries}
 
-**A self-message is the usual way to put a local action into the sequence**, and it loops out of the lifeline and back in. Its label stands beside the loop, its second line under it. A note between two names sits midway between their lifelines and is as wide as its own text – not as wide as the span, or three words become a banner. It breaks at `\n`, so a three-line note stays a note.
+**A self-message is the usual way to put a local action into the sequence**, and it loops out of the lifeline and back in. Its label stands beside the loop, its second line under it. A note between two names sits midway between their lifelines and is as wide as its own text – not as wide as the span, or three words become a banner. It breaks at `\n`, so a note of several lines stays a note.
 
 **`space` on an entry line is the air above that one band.** The tunnel at the foot of *What else a message can be* carries `space 0.9` and stands visibly apart from the setup over it; two or three such gaps break a long exchange into phases a room can hold. A blank line in the source does not do this: the statement reads through blank lines, so the source may be grouped however it reads best. On an `actor` line `space` is an error, there being no band above the heads.
 
