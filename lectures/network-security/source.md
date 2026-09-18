@@ -1398,7 +1398,10 @@ step alarm
 
 ## figure: Misuse-based IDS can only detect what is known. | Anomaly-based IDS might detect novel attacks. {.full #ns-b48}
 
-::: draw 150x62
+::: draw 190x40
+# The two columns were tall and narrow, so the pair came out half again as
+# tall as a slide. The grid cell is wide and flat now: both sets are wider
+# than they are tall and the whole comparison is one band.
 default box {.sharp}
 
 text mh "Misuse detection"  at 0.85,0 {.large .bold}
@@ -1411,26 +1414,26 @@ text ah "Anomaly detection" at 2.65,0 {.large .bold}
 # The frame is .clear rather than filled: boxes are drawn after edges, and a
 # fill would swallow the two leaders to the signatures. So the base set is the
 # area inside the frame.
-box mf "" at 0.85,3.55 w 1.7 h 4.1 {.clear}
-box af "" at 2.65,3.55 w 1.7 h 4.1 {.clear}
+box mf "" at 0.85,2.95 w 1.7 h 2.3 {.clear}
+box af "" at 2.65,2.95 w 1.7 h 2.3 {.clear}
 
-text ms "signatures of\nknown intrusions"    at 0.85,0.8
-text as "knowledge about\nbenign activities" at 2.65,0.8
+text ms "signatures of\nknown intrusions"    at 0.85,0.85
+text as "knowledge about\nbenign activities" at 2.65,0.85
 
-dot  s1 ""   at 0.45,2.1 r 0.13 {.tone-4}
-dot  s2 ""   at 1.25,2.1 r 0.13 {.tone-4}
-box  bl ""   at 2.65,2.3 w 1.35 h 1.1 {.round .tone-4}
+dot  s1 ""   at 0.45,2.8 r 0.2 {.tone-4}
+dot  s2 ""   at 1.25,2.8 r 0.2 {.tone-4}
+box  bl ""   at 2.65,2.8 w 1.35 h 1.0 {.round .tone-4}
 edge e1 ms -> s1 {.muted}
 edge e2 ms -> s2 {.muted}
 edge e3 as -> bl {.muted}
 
-text mt "anything else:\nno misuse alert" at 0.85,4.6
-text an "anything else:\nanomaly alert"   at 2.65,4.6
+text mt "anything else:\nno misuse alert" at 0.85,3.72
+text an "anything else:\nanomaly alert"   at 2.65,3.72
 
-box mlab "All intrusions"     at 0.85,5.86 w 1.5 h 0.44 {.paper .accent}
-box alab "All benign actions" at 2.65,5.86 w 1.7 h 0.44 {.paper}
+box mlab "All intrusions"     at 0.85,4.62 w 1.5 {.paper .accent}
+box alab "All benign actions" at 2.65,4.62 w 1.7 {.paper}
 
-text foot "Idealized illustration! What does\na poor situation look like?" at 1.75,6.75 {.muted}
+text foot "Idealized illustration! What does a poor situation look like?" at 1.75,5.52 {.muted}
 
 step misuse
   show ms, s1, s2
@@ -1446,7 +1449,9 @@ step rest
 
 ## figure: Observed character freq. | Anomaly? {.full #ns-b55}
 
-::: draw 150x58
+::: draw 190x46
+# A wide flat cell: the counted distribution and the reference curve under it
+# are two bands of one slide rather than a column of two charts.
 # The string under the columns is verbatim from the original, letter-spaced:
 # "t / p r e n . ; l m o b". The second string splits on spaces, so one label
 # per column. The values are chosen so that the bins on #ns-b57 - the same
@@ -1498,7 +1503,9 @@ step metric
 ## figure: Training stage | Chi-square statistic (goodness of fit) {.full #ns-b56}
 
 ::: draw 150x56
-bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 2.5 h 0.9
+# The chart carries the width of its own slide: at w 2.5 the drawing used two
+# fifths of the canvas and the slide read empty.
+bars f "20,19,17,12,11,10,9,9,8,7,6,5" ". i e 0 l o 1 / a 3 5 M" at 0,0 w 3.6 h 1.25
 text cap "Char. freq. distribution for\nnormal payloads" above f gap 0.16 flush right {.right}
 
 brace b1 over f-0,f-1,f-2 side bottom "Bin 1" pad 0.45 {.muted @bins}
@@ -1531,7 +1538,8 @@ step weights
 # 10+9+9+8 = 36, 8+7+6 = 21. These used to be the values of the *training*
 # distribution from #ns-b56, which made the anomalous distribution identical
 # to the one it is meant to deviate from.
-bars g "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 2.5 h 0.9
+# The chart carries the width of its own slide, as on the training slide.
+bars g "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 3.6 h 1.25
 text cap "Anomalous payload\ndistribution" above g gap 0.16 flush right {.right}
 
 brace b1 over g-0,g-1,g-2 side bottom "Bin 1" pad 0.45 {.muted @bins}
@@ -1560,55 +1568,59 @@ and the sensor raises an alarm as soon as $\chi^2 > t$. What value $t$ should ta
 
 ## figure: Reaction of IDS {.full #ns-b59}
 
-::: draw 62x62
+::: draw 100x36
 # The ten labelled packets lie on an axis: the anomaly score the sensor
 # computes across (the chi-squared of the slide before), the true class down.
 # Only that lets the threshold separate anything at all - in the version
 # before, the markers stood side by side as a block and the rule ran past
 # them rather than through them.
-# The unit is square, so that a packet box comes out square.
-text ds "Labeled dataset (e.g., by DARPA/Lincoln Labs)" at 0,0 {.left}
+# The cell is wide and flat, so the axis and the matrix it fills in stand
+# side by side as two bands of one slide; a packet box is square because its
+# own two numbers say so, not because the grid does.
+text ds "Labeled dataset (e.g., by DARPA/Lincoln Labs)" at 0,-1.6 {.left}
 
-text latt "attack traffic" below ds gap 1.0 flush left {.left}
-text lben "benign traffic" below latt gap 0.5 flush left {.left}
+text latt "attack traffic" at 0,-0.35 {.left}
+text lben "benign traffic" at 0,1.0 {.left}
 
-# Grid slot to grid slot is 0.74 and a box measures 0.42, so the space
-# between is three quarters of a box wide and the threshold fits visibly
-# between them without touching one. The order is the sort by anomaly score -
-# attacks lie higher on average but overlap, and that overlap is the subject.
-# Grid slots: benign 0,1,2,3,5,7 - attack 4,6,8,9.
-box b1 "" right of lben gap 0.55 w 0.42 h 0.42 {.tone-2 .sharp}
-box b2 "" right of b1 gap 0.3 same as b1 {.tone-2 .sharp}
-box b3 "" right of b2 gap 0.3 same as b1 {.tone-2 .sharp}
-box b4 "" right of b3 gap 0.3 same as b1 {.tone-2 .sharp}
-box b5 "" right of b4 gap 1.05 same as b1 {.tone-2 .sharp}
-box b6 "" right of b5 gap 1.05 same as b1 {.tone-2 .sharp}
+# Grid slot to grid slot is wider than a box, so the threshold fits visibly
+# between two packets without touching one. The order is the sort by anomaly
+# score - attacks lie higher on average but overlap, and that overlap is the
+# subject. Grid slots: benign 0,1,2,3,5,7 - attack 4,6,8,9.
+box b1 "" right of lben gap 0.5 w 0.36 h 1.0 {.tone-2 .sharp}
+box b2 "" right of b1 gap 0.45 {.tone-2 .sharp}
+box b3 "" right of b2 gap 0.45 {.tone-2 .sharp}
+box b4 "" right of b3 gap 0.45 {.tone-2 .sharp}
+box b5 "" right of b4 gap 1.15 {.tone-2 .sharp}
+box b6 "" right of b5 gap 1.15 {.tone-2 .sharp}
 
-box a1 "" at b1.cx+2.96,latt.cy same as b1 {.accent .sharp}
-box a2 "" right of a1 gap 1.05 same as b1 {.accent .sharp}
-box a3 "" right of a2 gap 1.05 same as b1 {.accent .sharp}
-box a4 "" right of a3 gap 0.3 same as b1 {.accent .sharp}
+box a1 "" at b1.cx+1.42,latt.cy same as b1 {.accent .sharp}
+box a2 "" right of a1 gap 1.15 {.accent .sharp}
+box a3 "" right of a2 gap 1.15 {.accent .sharp}
+box a4 "" right of a3 gap 0.45 {.accent .sharp}
 
 edge axis b1.left-0.5,b1.bottom+0.7 -> a4.right+0.6,b1.bottom+0.7 {.muted}
-text axn "anomaly score" at b1.cx+3.33,b1.bottom+1.12 {.muted}
-text lno "no alert" at b1.cx+0.37,b1.bottom+0.34 {.muted}
-text lal "alert" at a4.cx-0.37,b1.bottom+0.34 {.muted}
+text axn "anomaly score" at b1.cx+1.85,b1.bottom+1.12 {.muted}
+text lno "no alert" at b1.cx+0.23,b1.bottom+0.34 {.muted}
+text lal "alert" at a4.cx-0.23,b1.bottom+0.34 {.muted}
 
 # The threshold itself is the label, and the line hangs off it: a step moves
 # "t", the layout is worked out again, and the rule follows. The old version's
 # double-headed arrow, which was there to say the rule can move, is therefore
 # unnecessary - now it moves.
-text tlbl "t" at a1.cx+0.37,a1.top-0.45 pad 0.12 {.paper .hand @thr}
+text tlbl "t" at a1.cx+0.23,a1.top-0.45 pad 0.12 {.paper .hand @thr}
 edge thr tlbl.cx,tlbl.bottom -- tlbl.cx,b1.bottom+0.7 {.thick @thr}
 
-# The 2x2 matrix. The attack row carries the accent, the normal row the tone
-# for legitimate traffic - the same assignment as everywhere else.
-# The columns stand as the axis above them does: no alarm left of t, alarm
-# right of it. So FN sits left of TP and not the other way round.
-box fn "FN" at ds.left+1.2,b1.bottom+3.05 w 1.3 h 0.9 {.accent}
-box tp "TP" right of fn gap 0 same as fn {.accent}
-box tn "TN" below fn gap 0 same as fn {.tone-2}
-box fp "FP" right of tn gap 0 same as fn {.tone-2}
+# The 2x2 matrix, beside the axis rather than under it. The attack row carries
+# the accent, the normal row the tone for legitimate traffic - the same
+# assignment as everywhere else. The columns stand as the axis beside them
+# does: no alarm left of t, alarm right of it. So FN sits left of TP and not
+# the other way round.
+box fn "FN" at 6.1,0.3 w 0.66 h 1.6 {.accent}
+box tp "TP" right of fn gap 0 {.accent}
+box tn "TN" below fn gap 0 {.tone-2}
+box fp "FP" right of tn gap 0 {.tone-2}
+row fn, tp
+row tn, fp
 
 # The number is in the cell's own label rather than a row of small markers
 # beside it: it changes in every beat, and a "label" step swaps in a variant
@@ -1620,11 +1632,11 @@ text head "REACTION OF IDS" above cno gap 0.3 flush left {.bold .left}
 text rowa "attack" left of fn gap 0.25 {.turn}
 text rown "normal" left of tn gap 0.25 {.turn}
 
-text rates "TP rate: 0.75 / FP rate: 0.33" at tp.right+2.1,fn.bottom-0.25 {.bold @thr}
+text rates "TP rate: 0.75 / FP rate: 0.33" at 0,3.7 {.left .bold @thr}
 
 # The takeaway belongs to the last beat and therefore to the handout too: the
 # relationship the next slide draws as a ROC curve.
-text tnote "moving t moves both rates" at rates.cx,rates.bottom+0.6 {.hand}
+text tnote "moving t moves both rates" below rates gap 0.4 flush left {.left .hand}
 
 step threshold
   show @thr
@@ -1634,21 +1646,21 @@ step threshold
   label tn "TN\n4"
   label fp "FP\n2"
 step stricter
-  move tlbl by 2.22,0
+  move tlbl by 1.22,0
   label fn "FN\n2"
   label tp "TP\n2"
   label tn "TN\n6"
   label fp "FP\n0"
   label rates "TP rate: 0.50 / FP rate: 0.00"
 step lenient
-  move tlbl by -4.44,0
+  move tlbl by -2.44,0
   label fn "FN\n0"
   label tp "TP\n4"
   label tn "TN\n2"
   label fp "FP\n4"
   label rates "TP rate: 1.00 / FP rate: 0.67"
 step tradeoff
-  move tlbl by 2.22,0
+  move tlbl by 1.22,0
   show tnote
   label fn "FN\n1"
   label tp "TP\n3"
@@ -1663,19 +1675,22 @@ step tradeoff
 
 ::: draw 104x104
 # "False Postive Rate" is the original slide's typo and stays.
-# The unit is square, so that the ROC frame comes out square.
-plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
+# The unit is square, so that the ROC frame comes out square - and a square on
+# a canvas two and three quarter times as wide as it is tall leaves the slide
+# two thirds empty. So the three thresholds are named in the room beside the
+# frame, each on a horizontal leader out of its own point. The leader crosses
+# nothing: the curve rises, so at the height of a point it is only ever to
+# that point's left.
+plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 1.75 h 1.6 x 0,1 y 0,1 tick 0.2
 
 edge curve roc@0.02,roc@0.03 -- roc@0.98,roc@1 via roc@0.06,roc@0.5 roc@0.2,roc@0.8 roc@0.49,roc@0.95 roc@0.75,roc@0.98 {.smooth .thick}
 
-# The labels sit under their point rather than to its right: the curve is to
-# the right, and a .paper ground would otherwise knock it out.
 dot pstrict "" at roc@0.06,roc@0.5 r 0.055 {.tone-4 @strict}
-text lstrict "Strict threshold" at roc@0.3,roc@0.43 pad 0.12 {.bold .paper @strict}
+text lstrict "Strict threshold" at roc.right+0.3,pstrict.cy -- pstrict {.left .bold @strict}
 dot pmod "" at roc@0.2,roc@0.8 r 0.055 {.tone-4 @moderate}
-text lmod "Moderate threshold" at roc@0.5,roc@0.71 pad 0.12 {.bold .paper @moderate}
+text lmod "Moderate threshold" at roc.right+0.3,pmod.cy -- pmod {.left .bold @moderate}
 dot plen "" at roc@0.49,roc@0.95 r 0.055 {.tone-4 @lenient}
-text llen "Lenient threshold" at roc@0.76,roc@0.86 pad 0.12 {.bold .paper @lenient}
+text llen "Lenient threshold" at roc.right+0.3,plen.cy -- plen {.left .bold @lenient}
 
 step curve
   show curve
@@ -1692,25 +1707,27 @@ step lenient
 ## figure: Comparing detection techniques | ROC curves for alternative binnings {.full #ns-b61}
 
 ::: draw 104x104
-# The same frame as before, typo "False Postive Rate" included.
-plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 2.6 h 2.45 x 0,1 y 0,1 tick 0.2
+# The same frame as before, typo "False Postive Rate" included, and the same
+# answer to a square drawing on a canvas nearly three times as wide as it is
+# tall: what the figure has to say stands in the room beside the frame, on a
+# leader out of the curve it names, instead of over the frame's head.
+plot roc "False Postive Rate" "True Positive Rate" at 0,0 w 1.75 h 1.6 x 0,1 y 0,1 tick 0.2
 
 edge chance roc@0.02,roc@0.02 -- roc@1,roc@1 {.muted @chance}
 # Below the diagonal, but far enough clear that its .paper ground does not cut
 # the line: the diagonal is y = x, so the box's left edge has to lie right of
 # its top edge.
-text nchance "Accuracy due\nto chance" at roc@0.65,roc@0.35 pad 0.12 {.bold .paper @chance}
+text nchance "Accuracy due\nto chance" at roc@0.66,roc@0.32 pad 0.12 {.bold .paper @chance}
 
 edge high roc@0.02,roc@0.02 -- roc@1,roc@1 via roc@0.05,roc@0.6 roc@0.15,roc@0.86 roc@0.4,roc@0.95 roc@0.7,roc@0.98 {.smooth .thick @curves}
 edge low roc@0.02,roc@0.02 -- roc@1,roc@1 via roc@0.12,roc@0.35 roc@0.3,roc@0.66 roc@0.6,roc@0.88 {.smooth .thick @curves}
 
-text lhigh "High\naccuracy" at roc@0.3,roc@1.24 -- roc@0.24,roc@0.92 {.bold @curves}
-text llow "Low\naccuracy" at roc@0.62,roc@1.24 -- roc@0.5,roc@0.81 {.bold @curves}
-
 dot pperf "" at roc@0.02,roc@1 r 0.055 {.tone-4 @perfect}
-text lperf "Perfect\naccuracy" at roc@0.02,roc@1.24 -- roc@0.02,roc@1.03 {.bold @perfect}
+text lperf "Perfect accuracy" at roc.right+0.3,pperf.cy -- pperf {.left .bold @perfect}
+text lhigh "High accuracy" at roc.right+0.3,roc@0.86 -- roc@0.15,roc@0.86 {.left .bold @curves}
+text llow "Low accuracy" at roc.right+0.3,roc@0.66 -- roc@0.3,roc@0.66 {.left .bold @curves}
 
-text q "What false positive\nrate is acceptable?" at roc@0.7,roc@0.12 pad 0.12 {.paper .hand @ask}
+text q "What false positive\nrate is acceptable?" at roc.right+0.3,roc@0.25 {.left .hand @ask}
 
 step chance
   show @chance
@@ -1727,14 +1744,19 @@ step question
 
 ## figure: Sketch of a Similar Situation {.full #ns-b63}
 
-::: draw 70x70
+::: draw 70x48
 # 96 faces out of four grids rather than 96 lines: the rule is one line per
 # grid, the exception a grid of its own. The asset is embedded once, however
 # often it appears.
+#
+# The board is eleven wide and nine deep rather than eight wide and twelve
+# deep, which is the same ninety-six people in the shape of a slide; the
+# eleven false alarms are the bottom row of the healthy block instead of a
+# column down its right edge, and the legend stands beside the board.
 grid sickp image face-bad 7x1 at 0,0 cell 0.3 space 0.08 {@tp}
 grid sickn image face-ok 1x1 right of sickp gap 0.1 cell 0.3 space 0.08 {@fn}
-grid well image face-ok 7x11 below sickp gap 0.32 flush left cell 0.3 space 0.08 {@wellneg}
-grid fpos image face-bad 1x11 right of well gap 0.1 flush top cell 0.3 space 0.08 {@fpos}
+grid well image face-ok 11x7 below sickp gap 0.32 flush left cell 0.3 space 0.08 {@wellneg}
+grid fpos image face-bad 11x1 below well gap 0.1 flush left cell 0.3 space 0.08 {@fpos}
 
 container zsick "" over sickp,sickn pad 0.09 {.accent .sharp}
 container zwell "" over well,fpos pad 0.09 {.sharp}
@@ -1743,9 +1765,7 @@ text lwell "healthy" left of well gap 0.3 {.right}
 
 text rates "TP rate: 87.5% FP rate: 12.5%\nactually sick: 8.3%" above sickp gap 0.35 flush left {.left .muted}
 
-# The legend stands halfway down the board rather than at the top: otherwise
-# the bottom right half of the figure would stay empty.
-image legb face-bad right of fpos gap 1.1 offset 0,-0.3 w 0.3
+image legb face-bad at 4.2,1.1 w 0.3
 text tlegb "test positive (you are worried)" right of legb gap 0.2 {.left}
 image lego face-ok below legb gap 0.35 same as legb
 text tlego "test negative (you feel safe)" right of lego gap 0.2 {.left}
