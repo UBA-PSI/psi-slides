@@ -1430,10 +1430,24 @@ export function dgFontFor(classes) {
 // How far a box's outline sits from its own label, in px. `pad` states it in
 // grid units and, like the container's, is measured in uh on both axes –
 // otherwise the same word would mean two distances depending on which
-// statement it sat on. Without it the default stays the asymmetric px pair,
+// statement it sat on. Without it the default is the asymmetric px pair,
 // because 13/9 is typographic taste rather than a point on the grid.
-export function dgPadPx(pad, uh) {
-  return pad != null ? [pad * uh, pad * uh] : [DG_PAD_X, DG_PAD_Y];
+//
+// **And the taste is measured in the label's own type, not in pixels.** The
+// pair is `DG_PAD_X` / `DG_PAD_Y` *scaled by the element's font*, which is the
+// construction `DG_ROW_H` already uses for a table row: `dgFontFor` returns
+// `DG_FONT` for a label carrying no size class, so the factor is exactly 1 and
+// every existing drawing is byte-identical. What moves is the two classes that
+// change the type – a `.large` box sat in the same 13 px a base label gets and
+// read tight, a `.small` one floated in more air than its letters are tall –
+// and a `.large` table, whose cells are boxes like any other. `pad N` stays the
+// override and is deliberately *not* scaled: a number in grid units is a
+// statement about the grid, and scaling it would make the same number mean two
+// distances depending on a class.
+export function dgPadPx(pad, uh, font = DG_FONT) {
+  if (pad != null) return [pad * uh, pad * uh];
+  const k = font / DG_FONT;
+  return [DG_PAD_X * k, DG_PAD_Y * k];
 }
 
 // The clearance a relational placement actually draws, in px. Two units meet
@@ -6535,7 +6549,10 @@ export function createDiagramCompiler(env = {}) {
         for (const d of layers) if (d[key] != null) return d[key];
         return null;
       };
-      const [padX, padY] = dgPadPx(pick('pad'), uh);
+      // The class-derived font and not the fitted one: `.fit` solves the type
+      // against a box whose padding is already settled, so reading the fitted
+      // size here would be a loop with no fixed point.
+      const [padX, padY] = dgPadPx(pick('pad'), uh, dgFontFor(classes));
       const nw = pick('w');
       const nh = pick('h');
       // Which axes are already spoken for, and so are not the chain's to set.
@@ -8394,7 +8411,10 @@ export function createDiagramCompiler(env = {}) {
         const padLayers = dgDefaultLayers(model, 'edge', e.tags).reverse();
         let ePad = e.pad;
         if (ePad == null) for (const d of padLayers) if (d.pad != null) { ePad = d.pad; break; }
-        const [gx, gy] = dgPadPx(ePad, uh);
+        // `font` is this label's own, so the ground round a `.small` edge
+        // label is the same ring of paper a base one gets rather than a wider
+        // one – the same rule a box's padding follows.
+        const [gx, gy] = dgPadPx(ePad, uh, font);
         // Beside the line, a grounded label has to clear its own *ground* and
         // not just its glyphs. Clearing the glyphs alone laid the rect back
         // across the line the label had been lifted off, which paints out the

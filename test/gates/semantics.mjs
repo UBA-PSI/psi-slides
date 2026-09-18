@@ -310,6 +310,52 @@ export async function run({ report }) {
       `${turned && turned.join('x')} – the label reads up the long side`);
   }
 
+  // ── padding is measured in the label's own type ───────────────────
+  // `DG_PAD_X` / `DG_PAD_Y` used to be 13 and 9 px whatever the box held, so
+  // a `.large` box sat in the padding a base label gets and read tight while a
+  // `.small` one floated in more air than its letters are tall. The pair is
+  // now scaled by `dgFontFor`, the construction `DG_ROW_H` already uses – and
+  // the point of that construction is the control below: the factor is exactly
+  // 1 for a label with no size class, so the base case is byte-identical.
+  {
+    // The ring of paper round the words, per axis, taken off a box whose
+    // label is fixed: the box is the measured label plus twice the padding,
+    // so the difference between two size classes is the padding's alone once
+    // the label's own growth is divided out.
+    const ring = (tail) => {
+      const out = fig(`a box ${tail || 'with no size class'}`, `box a "Authenticator"${tail ? ' ' + tail : ''} at 0,0`);
+      if (!out) return null;
+      const font = tail === '{.small}' ? DG_FONT * 0.8 : tail === '{.large}' ? DG_FONT * 1.22 : DG_FONT;
+      const m = dgMeasure('Authenticator', font, false);
+      return [(+attrOf(out, 'a--r', 'width') - m.w) / 2, (+attrOf(out, 'a--r', 'height') - m.h) / 2];
+    };
+    const base = ring('');
+    const near = (a, b) => Math.abs(a - b) < 0.01;
+    ok(base && near(base[0], 13) && near(base[1], 9),
+      'a base label still sits in exactly 13 x 9 px of padding',
+      `got ${base && base.map(n => n.toFixed(2)).join(' x ')}`);
+    const small = ring('{.small}');
+    ok(small && near(small[0], 13 * 0.8) && near(small[1], 9 * 0.8),
+      'a .small box gets 0.8 of it, so its words are not lost in the paper',
+      `got ${small && small.map(n => n.toFixed(2)).join(' x ')}`);
+    const large = ring('{.large}');
+    ok(large && near(large[0], 13 * 1.22) && near(large[1], 9 * 1.22),
+      'and a .large box gets 1.22 of it rather than sitting tight',
+      `got ${large && large.map(n => n.toFixed(2)).join(' x ')}`);
+    // `pad N` is a number in grid units, and a number in grid units is a
+    // statement about the grid. Scaling it too would make one number mean two
+    // distances depending on a class one line along.
+    const written = (tail) => {
+      const out = fig(`a box with a written pad ${tail}`, `box a "Authenticator" pad 0.2 ${tail} at 0,0`);
+      if (!out) return null;
+      const font = tail === '{.small}' ? DG_FONT * 0.8 : DG_FONT;
+      return (+attrOf(out, 'a--r', 'height') - dgMeasure('Authenticator', font, false).h) / 2;
+    };
+    ok(near(written('{.small}'), written('{.dashed}')),
+      'a written pad is the author\'s number and no class scales it',
+      `small ${written('{.small}')}, plain ${written('{.dashed}')}`);
+  }
+
   // ── word-valued defaults act, and the element's own word wins ─────
   // `default edge side bottom` used to be refused by the compiler ("side
   // expects a number") and accepted by the linter. Parsing it is half the
