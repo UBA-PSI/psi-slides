@@ -60,6 +60,30 @@ between two facing boxes the knock-out is the right form and the flowchart in
 `lectures/diagrams` uses it deliberately; on an elbow the route is the
 information and erasing it erases which box joins which.
 
+**And that is why the ground on a straight run stays opt-in, although a plan
+asked for it as the default.** `PLAN-figure-defaults.md` §2.5 proposed giving
+every labelled straight edge the knock-out, and it was written when an
+ungrounded label sat *on* its own line with the stroke through the words – at
+which point the ground was the only fix there was. Two rules have landed since
+and between them they answer both halves without breaking a connector. **A
+label with no fill is carried clear of the line** (the `side` offset), so a
+straight run is one unbroken arrow with its word above it. **A label its own
+route crosses somewhere else gets `dg-halo`**, which knocks out the glyph
+shapes and nothing else, so a curve, a doubled-back `via` and an elbow's outer
+run are covered where a rect would erase the arc the label belongs to. What the
+proposed default would have done instead is measured: two boxes a written
+`gap 1.1` apart on a `120x72` grid leave 79.2 px of paper between their faces,
+and the ground behind `sends` is 66.5 px – 84 % of everything a reader can see,
+leaving two stubs of about six pixels and an arrowhead with nothing behind it.
+That is the trap in the paragraph above, and it would have become the rule for
+every labelled straight edge in the corpus: twelve in `lectures/diagrams`,
+fifteen in the tutorial, thirteen in `docs/artifact/figure-rules`. The keynote
+the plan was written against has **no labelled edge at all**, so it could not
+have shown it. `{.paper}` remains the way to ask for the knock-out where the
+run is long enough to carry it, and `.clear` is the `none` the plan asked the
+ground slot to gain – it is already in the fill slot and already displaces a
+`.paper` arriving from a `default edge` layer.
+
 **A label between two boxes has only the paper between their near faces, and a
 box is painted after the edge under it.** On a `126x38` grid two boxes at
 `gap 1.05` leave 40 px of clear paper; `encrypted` measures 71, so 31 px of the
