@@ -989,7 +989,7 @@ step segments
   emph fwd, fws
 step contained
   show @net
-  dim fwd, fws
+  style fwd, fws {!tone-4 !emph}
 :::
 
 **The same drawing, two filters more, and they are no longer at the perimeter.** A firewall at the perimeter helps only against whoever is still outside. Anyone who has reached a desktop otherwise moves on unimpeded to the database and file servers, which is what ransomware lives on. Segmentation pulls the filters into the network, so every hop between segments has to pass a rule again.
@@ -1307,7 +1307,7 @@ box d2 "desktop" above sw gap 0.22 w 0.6 {.tone-2 @hosts}
 box d1 "desktop" left of d2 gap 2.14 {.tone-2 @hosts}
 text dlab "desktops" left of d1 gap 1.77 -- d1 {.muted @hosts}
 edge k2 d2.bottom -- sw.top {@hosts}
-edge k1 d1.bottom -- sw.cx,d1.bottom+0.42 via d1.cx,d1.bottom+0.42 {@hosts}
+edge k1 d1.bottom -- sw.cx,d1.bottom+0.11 via d1.cx,d1.bottom+0.11 {@hosts}
 
 # Two servers. The original's cylinder is a .round box in the server tone.
 box web "Web server" below n1 gap 0.65 w 1.0 {.round .tone-3 @hosts}
