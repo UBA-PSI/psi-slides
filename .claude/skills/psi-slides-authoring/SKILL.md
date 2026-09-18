@@ -551,6 +551,51 @@ step around
 The linter warns `note-from-beyond` when the number is past the chunk's last
 beat: the card would be filed on a press the slide never takes.
 
+**A `[Klick: …]` line inside a note is a press**, and it is the other way to
+say the same thing – the one for a talk written out word for word, where the
+stage directions are in the prose already and counting them out into `from N`
+would mean numbering every block by hand. A paragraph (or a line at a
+paragraph's head) that is a bracketed direction whose first word is `Klick`,
+`Click` or a bare `>` ends the card and files everything behind it one advance
+later. The words behind the direction's first colon title the card it brings
+up, unless a `####` heading stands nearer to that card.
+
+```md
+> note: #### The plan
+> The call for papers describes a resilient university in **three verbs**.
+>
+> [Klick: line 1 lights.]
+>
+> **Three questions, one per verb, and two cases.**
+>
+> [Pause. Wait for the laugh.]
+>
+> [Klick: line 2 lights.]
+>
+> I reported it. **Why did five years of knowing produce no fix?**
+```
+
+Three things follow from that, and each is a decision rather than an accident:
+
+- **Any other bracketed line is a stage direction and stays in the card.**
+  `[Pause.]`, `[Dry, not pointed.]`, `[Wait for the laugh.]` are cards of
+  their own, set as written. Only the three words above count as a press, and
+  the first word has to *be* one of them – `[Klicken Sie auf den Link]` is
+  prose.
+- **The word list is fixed, not localised by `lang:`.** The cards are derived
+  again in the browser when you rewrite a note in the cockpit's textarea
+  during a rehearsal, where the lecture's wording table is not in reach; `>`
+  is the spelling for every language the list has no word for.
+- **`from N` still wins, and the clicks count from it.** A block written
+  `> note: from 2` with one `[Klick]` line in it says its second half on
+  advance 3.
+
+The linter warns `note-advance-beyond` when a block asks for more advances
+than the slide takes – every card past the last beat is shown on it together,
+which is not what the clicks were written for. It counts a divider's blocks
+too, because a divider's beats are its figure's steps and a talk of this shape
+puts most of its clicks there.
+
 ## Images
 
 ```md
