@@ -598,6 +598,18 @@ measured:
     eight duplicated `h` per divider because of it. A default-layer size
     should be the chain's *floor* – the number every member has at least –
     and the chain's or the `row`'s maximum should win over it.
+
+    Landed. The floor is neither a pin nor evidence: a peer that *needs* more
+    – its own label, or a number on its own line – raises the whole chain past
+    the floor, and a chain that needs less leaves the floor standing. A box
+    the layer sized contributes nothing to the maximum, which is what keeps
+    `lectures/diagrams#cbc` drawing: there `default box @dec w 0.48` under
+    `default box w 0.82` is written to make the Dec boxes narrower than the
+    ciphertext boxes above them, and a floor counted as evidence put 0.82 on
+    all three. The whole corpus – diagrams, network-security, tutorial,
+    decoration, figure-rules and the keynote – is byte-identical, log lines
+    included, and the keynote's four build plans then shed the eight
+    duplicated `h` with every figure unmoved. Gates in `test/gates/chains.mjs`.
 14. **An empty first segment is dropped by the build and counted by the
     linter** (`## question:` / `---` / body): a `> note: from 1` that never
     fires, a closing slide whose last click is dead, and lint says clean.

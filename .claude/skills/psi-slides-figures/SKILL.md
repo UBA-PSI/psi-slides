@@ -305,9 +305,10 @@ whose size was settled for its longest label moves nothing.
 **Four ways an axis stops being the chain's**, and they are all the same
 sentence – somebody already said what this size is:
 
-- a `w` / `h` on the element's own line, or from a `default` layer. It is that
-  member's own **and** the chain's maximum, so `box a "…" w 1.5` at the head of
-  a row does what `same as a` on the rest used to do, without the words.
+- a `w` / `h` on the element's **own line**. It is that member's own **and** the
+  chain's maximum, so `box a "…" w 1.5` at the head of a row does what
+  `same as a` on the rest used to do, without the words. A `default` layer's
+  size is not one of these – see below.
 - `same as X`, which still wins outright – and, like `.own`, ends the run:
   nothing reaches through it.
 - `same w as X` / `same h as X`, one axis each. A copied axis is not evidence
@@ -322,6 +323,39 @@ sentence – somebody already said what this size is:
 `.own` is in `DG_STEP_FIXED`: which boxes share a size is read off the
 placements once, before any beat is drawn, and a beat that took a box out of
 its chain would resize the whole row under it.
+
+**A size from a `default` layer is a floor, and a floor is neither a pin nor
+evidence.** `default box w 10.4 h 2.5` says what the boxes in this block are
+*unless something says otherwise*, and a chain is one of the things that say
+otherwise, so the two directions come out like this:
+
+- **a peer needs more, and everyone in the chain gets it.** `box a … h 4.8`
+  beside `box b … right of a` under that layer makes both 4.8 – the number is
+  written once, on the line that has a reason for it. `row a, b` does the same
+  where the two are not placed against each other. Before this, the layer
+  counted as a written size on every box, no chain sizing reached a figure that
+  opened with one, and a keynote's build plan carried the same `h` on both
+  cells of every row for want of any way to level the second against the first.
+- **the chain needs less, and the floor stands.** A run of short labels under
+  `default box w 3` comes out three units wide, not label-wide: the layer
+  already answered, and the chain's maximum is only ever an *increase*.
+
+A box the layer sized asks the chain for nothing, which is the same rule read
+from the other end: what a member contributes to the maximum is what it *needs*
+– its label, or a number on its own line – never the floor it was handed. That
+is why `lectures/diagrams#cbc` still draws: `default box @dec w 0.48` under
+`default box w 0.82` makes the Dec boxes narrower than the ciphertext boxes
+they hang under, and a floor that counted as evidence would put 0.82 on all of
+them. A layer that sizes some of the boxes is a statement that those boxes
+differ, so the row it leaves ragged is the author's own – and `{.own}` in a
+`default` layer still switches chaining off altogether, which is what
+`lectures/diagrams#alignment` is written on.
+
+**An own-line number still beats the layer**, both ways round: `w 0.6` under
+`default box w 3` is 0.6, and it is the chain's evidence at 0.6 rather than at
+3. The overflow warnings read the size the box comes out at, floor and chain
+resolved, so a box that grew with its neighbours is not warned about and one
+that did not is warned about the width it really got.
 
 **`row` / `col` stand beside `align` and `spread`**, not beside `box`: they draw
 nothing and only name elements that already exist. `row a, b, c gap 0.8` is one
