@@ -161,6 +161,24 @@ export async function run({ report }) {
       `${B && B.w} vs ${P && P.w}`);
   }
 
+  {
+    // …and that is the case a `row` statement is worth writing for: it reads
+    // what the implicit families settled, so it levels its members against
+    // everything else they stand in.
+    const body = [
+      'box a "x" at 0,0',
+      'box b "y" right of a gap 1',
+      'box p "a considerably longer label" below b gap 1',
+    ].join('\n');
+    const bare = render(body);
+    const said = render(body + '\nrow a, b');
+    const A0 = rectOf(bare.out, 'a'), B0 = rectOf(bare.out, 'b');
+    const A1 = rectOf(said.out, 'a'), B1 = rectOf(said.out, 'b');
+    ok(A0.w < B0.w - 1, 'without it the row is not level, because the column is not the row',
+      `${A0 && A0.w} / ${B0 && B0.w}`);
+    ok(near(A1.w, B1.w), 'and "row a, b" levels them', `${A1 && A1.w} / ${B1 && B1.w}`);
+  }
+
   // ── a label a step will give it is measured at beat 0 ─────────────
   {
     const grew = render([

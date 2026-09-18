@@ -548,8 +548,11 @@ it is a row on its side, and each band's height is what stands in it. Where a
 column really is a set of peers, `col a, b, c` says so in one line and shares
 both. `row a, b, c gap 0.8` is the same statement across, and it places what it
 names, so a row of peers is one line rather than one `same as` and one `gap` per
-box. Where only one axis is shared – a one-line box that wants its neighbour's
-height and its own width – it is `same h as` / `same w as`.
+box. Both are also the answer when a box stands in a row *and* a column and so
+comes out wider than its own row: a statement levels its members against
+everything else they stand in, where the implicit rule cannot. Where only one
+axis is shared – a one-line box that wants its neighbour's height and its own
+width – it is `same h as` / `same w as`.
 
 ### And the slide has a size claim of its own
 

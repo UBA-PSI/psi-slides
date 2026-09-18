@@ -6561,8 +6561,7 @@ export function createDiagramCompiler(env = {}) {
         (p.dir === 'right' || p.dir === 'left' ? rowSet : colSet).join(n.id, p.ref);
       }
       for (const r of model.rows) {
-        const set = r.axis === 'x' ? rowSet : declared;
-        for (let i = 1; i < r.members.length; i++) set.join(r.members[i - 1], r.members[i]);
+        for (let i = 1; i < r.members.length; i++) declared.join(r.members[i - 1], r.members[i]);
       }
       // Measured once per box, over every label a `label` step will ever give
       // it, so the four-line variant is what beat 0 reserved room for. A box
@@ -6580,9 +6579,13 @@ export function createDiagramCompiler(env = {}) {
         }
         measured.set(n.id, { w, h, pw, ph });
       }
-      // Every maximum is taken over the members' *natural* sizes, so the order
-      // the families are resolved in changes nothing and nothing compounds.
-      const resolve = (set, key) => {
+      // An implicit family's maximum is taken over the members' *natural*
+      // sizes, so the order the two are resolved in changes nothing and
+      // nothing compounds. A `row` / `col` statement is the exception and it is
+      // the reason the statement is worth having: it resolves **last** and over
+      // whatever the implicit families settled, so it levels its members
+      // against everything else they stand in. `resolved` is the switch.
+      const resolve = (set, key, resolved) => {
         const groups = new Map();
         for (const n of nodes) {
           if (own(n.id)) continue;
@@ -6600,7 +6603,8 @@ export function createDiagramCompiler(env = {}) {
             // the head of a row is today's `same as` for the rest, without the
             // words.
             if (key === 'w' ? n.sameWAs : n.sameHAs) continue;
-            max = Math.max(max, measured.get(n.id)[key]);
+            const settled = resolved && chainSize.get(n.id) && chainSize.get(n.id)[key];
+            max = Math.max(max, settled != null ? settled : measured.get(n.id)[key]);
           }
           for (const n of members) {
             if (measured.get(n.id)[key === 'w' ? 'pw' : 'ph']) continue;
@@ -6620,10 +6624,15 @@ export function createDiagramCompiler(env = {}) {
       // into four equal blocks that say nothing. A band's height is what
       // stands in it; its width is the record's.
       resolve(colSet, 'w');
-      // `col a, b, c` shares both, and that is what the statement is *for*: it
-      // says these are peers, where `below` says only where this one goes.
-      resolve(declared, 'w');
-      resolve(declared, 'h');
+      // `row a, b, c` and `col a, b, c` share both, and that is what the
+      // statement is *for*: it says these are peers, where `below` says only
+      // where this one goes – and it says it about everything else they stand
+      // in, because it reads the sizes the two implicit families settled. That
+      // is the case the implicit rule cannot reach on its own: a box in a row
+      // whose neighbour is also in a tall column comes out narrower than it,
+      // and one line makes the row level.
+      resolve(declared, 'w', true);
+      resolve(declared, 'h', true);
     }
 
     // The beat's own size, with whatever the chain settled written over it.

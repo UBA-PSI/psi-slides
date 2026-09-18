@@ -247,12 +247,12 @@ sized by what they draw.
 
 **Three families, never merged into one, and each axis asks a different one.**
 
-| link | shares width | shares height |
-| --- | --- | --- |
-| `right of` / `left of` | yes | yes |
-| `below` / `above` | yes | **no** |
-| `row a, b, c` | yes | yes |
-| `col a, b, c` | yes | yes |
+| link | shares width | shares height | measured over |
+| --- | --- | --- | --- |
+| `right of` / `left of` | yes | yes | natural sizes |
+| `below` / `above` | yes | **no** | natural sizes |
+| `row a, b, c` | yes | yes | what the two above settled |
+| `col a, b, c` | yes | yes | what the two above settled |
 
 The asymmetry on the second row is what the corpus taught, and it is not a
 hedge. `lectures/network-security#ns-a45` is a certificate: seven fields, then
@@ -266,8 +266,18 @@ exists beside `row`.
 what each asks for, but its neighbours in the row are not asked to match the
 column. Merging them made `lectures/diagrams#alignment`, whose two rows are
 joined by a single `below`, one block of eight boxes all as wide as the widest
-label in either row. Every maximum is taken over the members' **natural** sizes,
-so nothing compounds and the order the families resolve in changes nothing.
+label in either row. Every implicit maximum is taken over the members'
+**natural** sizes, so nothing compounds and the order the two resolve in changes
+nothing.
+
+**`row` / `col` are the exception, and that is what they are worth writing
+for.** A statement resolves **last** and over whatever the two implicit
+families settled, so it levels its members against everything else they stand
+in – which is the one case the implicit rule cannot reach on its own. In
+`lectures/decoration#bare-loop` `Site` stands in a row with `Crawler` and in a
+column with `Scoring service`, so it comes out wider than its own row: `row
+crawler, site` is the line that makes the row level, and `same w as` is the
+answer for one box rather than a set.
 
 **A member is measured over every label a `label` step will ever give it**
 (`dgLabelVariants`), so the four-line variant is what beat 0 reserved room for.
