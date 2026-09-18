@@ -1097,6 +1097,47 @@ export async function run({ report }) {
     ok(plain && Math.abs(rowH(plain) - 0.42 * 52) < 0.01,
       'a table with no size class draws exactly the row height it always did',
       String(rowH(plain)));
+    // ── one alignment per column ────────────────────────────────────
+    // A `table`'s tail lands on the **cells**, so an alignment word written
+    // there reaches all of them – which is right for a table of prose and
+    // wrong for the shape a lecture actually keeps asking for: a label column
+    // ranged left beside value columns that are centred. There is no new
+    // option for it and there does not need to be, because every cell already
+    // carries `@t-col-N` and `@t-row-N`, and a **tag default** is the layer
+    // that speaks to a tag: `default box @t-col-0 {.left}`.
+    //
+    // It is a `default` and not a `style` step for the reason `DG_STEP_FIXED`
+    // refuses `.left` in a step at all – an anchor is settled once when the
+    // figure is built – so this is the answer *and* the whole answer: it acts
+    // from beat 0 and there is no beat-local spelling of it to look for.
+    const anchors = (out) => [0, 1, 2].map(c => {
+      const m = out && out.match(new RegExp(`id="${P}t-${c}-1--lw0"[\\s\\S]{0,400}?text-anchor="([a-z]+)"`));
+      return m ? m[1] : '?';
+    }).join(' ');
+    const COLS = (extra) => `table t "A|B|C" at 0,0 col 1.6,0.6,0.7\n  "one|2|3"\n  "two|4|5"\n${extra}`;
+    const bare3 = fig('a three-column table', COLS(''), 'unit=150x52');
+    ok(bare3 && anchors(bare3) === 'middle middle middle',
+      'every cell of a table is centred until something says otherwise', anchors(bare3));
+    const mixed = fig('a table with one column ranged left',
+      COLS('default box @t-col-0 {.left}\ndefault box @t-col-2 {.right}'), 'unit=150x52');
+    ok(mixed && anchors(mixed) === 'start middle end',
+      'default box @t-col-N gives one column its own alignment and leaves the rest centred',
+      anchors(mixed));
+    // The trap that goes with it, and it is the ordinary precedence rule
+    // rather than anything a table invents: the tail is the cell's *own*
+    // class, and an element's own class beats every default layer. So a
+    // table written `{.left}` cannot have a column centred again – the
+    // alignment belongs on the columns that differ, not on the table line.
+    const fought = fig('a table whose tail and tag default disagree',
+      `table t "A|B|C" at 0,0 col 1.6,0.6,0.7 {.left}\n  "one|2|3"\n  "two|4|5"\n`
+      + 'default box @t-col-1 {!left}', 'unit=150x52');
+    ok(fought && anchors(fought) === 'start start start',
+      "and an alignment on the table's own tail is the cells' own class, which no default undoes",
+      anchors(fought));
+    const rowTag = fig('a table with one row ranged right',
+      COLS('default box @t-row-1 {.right}'), 'unit=150x52');
+    ok(rowTag && anchors(rowTag) === 'end end end',
+      'the row tag is the same handle one axis over', anchors(rowTag));
   }
 
   // ── flush meets ink, not an outline nobody draws ──────────────────
