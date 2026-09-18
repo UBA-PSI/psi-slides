@@ -872,7 +872,7 @@ Go to secure Login Form</a>[...]
 
 ## figure: Firewalls enforce rules that limit who is allowed to talk to whom. {.full #ns-b04}
 
-::: draw 132x78
+::: draw 120x42
 # Every label verbatim from the original - including "publically reachable",
 # which is spelled exactly that way in the original and stays. The line break
 # in "demilitarized zone (DMZ)" is only a break in the original (hyphenated
@@ -882,20 +882,24 @@ Go to secure Login Form</a>[...]
 # all three slides: the cylinder (web/database/file server) is a .round box in
 # the storage tone, the cloud is a .round box "Internet", and the monitor
 # symbols are labelled boxes under the group caption "desktops".
+#
+# The grid cell is wide and flat and the seven columns of the original stand
+# closer together, so the whole network is one band of a slide rather than a
+# picture half again as tall as one.
 default text {.muted}
 
-box net "Internet" at 0,0 w 0.8 {.round .dim}
-box fw1 "FIREWALL" at 1.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box fw2 "FIREWALL" at 3.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box sw  "SWITCH"   at 4.85,0 w 0.95 {.tone-1}
+box net "Internet" at 0,0 w 0.7 {.round .dim}
+box fw1 "FIREWALL" at 0.95,0 w 0.28 h 2.1 {.turn .tone-1}
+box fw2 "FIREWALL" at 2.5,0 w 0.28 h 2.1 {.turn .tone-1}
+box sw  "SWITCH"   at 3.3,0 w 0.75 {.tone-1}
 
-box web "web\nserver"      at 2.35,1.95 w 0.82 {.round .tone-3}
-box db  "database\nserver" at 4.25,1.95 w 0.92 {.round .tone-3}
-box fs  "file\nserver"     at 5.45,1.95 w 0.82 {.round .tone-3}
+box web "web\nserver"      at 1.75,1.8 w 0.7 {.round .tone-3}
+box db  "database\nserver" at 2.9,1.8 w 1.05 {.round .tone-3}
+box fs  "file\nserver"     at 3.95,1.8 w 0.7 {.round .tone-3}
 
-box  d1 "desktop"  at 4.25,-1.95 w 0.82 {.tone-2}
-box  d2 "desktop"  at 5.45,-1.95 same as d1 {.tone-2}
-text dl "desktops" between d1,d2 offset 0,-0.6
+box  d1 "desktop"  at 2.9,-1.6 w 0.72 {.tone-2}
+box  d2 "desktop"  at 3.95,-1.6 same as d1 {.tone-2}
+text dl "desktops" between d1,d2 offset 0,-0.68
 
 # The bus: every edge runs vertically out of its box, horizontally along the
 # channel and vertically into the switch - no diagonals, and that the last
@@ -909,14 +913,14 @@ edge d2.bottom -- sw.top via d2.cx,-1.0 sw.cx,-1.0
 edge db.top -- sw.bottom via db.cx,1.0 sw.cx,1.0
 edge fs.top -- sw.bottom via fs.cx,1.0 sw.cx,1.0
 
-text pub "publically\nreachable"     at 1.66,-2.15 {.left @zone}
-text dmz "demilitarized\nzone (DMZ)" at 1.66,-1.35 {.left @zone}
-text tru "trusted hosts"             at 4.85,2.75 {@zone}
+text pub "publically reachable"     at 1.15,-2.0 {.left @zone}
+text dmz "demilitarized\nzone (DMZ)" at 1.15,-1.2 {.left @zone}
+text tru "trusted hosts"             at 3.3,2.75 {@zone}
 # Same reason as the pair above the amplification figure: two labels at one x
 # with .left are a row only if something holds their left edges together.
 align x left pub, dmz
 
-container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,pub,dmz,tru {.muted}
+container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,pub,dmz,tru pad 0.15 {.muted}
 
 # The dashed zone separator is a headless edge between two coordinates. It
 # runs through fw2 - boxes are drawn after edges and cover it there, exactly
@@ -937,29 +941,29 @@ step trusted
 
 ## figure: Not only used to secure the perimeter, also for network segmentation. | cf. lateral movement, ransomware {.full #ns-b05}
 
-::: draw 132x78
+::: draw 120x42
 # The same drawing as on the previous slide: the same names, coordinates and
 # stand-in shapes. All that is new are the two inner firewalls and the zone
 # caption "segmented net", so the run reads as one drawing that develops.
 default text {.muted}
 
-box net "Internet" at 0,0 w 0.8 {.round .dim}
-box fw1 "FIREWALL" at 1.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box fw2 "FIREWALL" at 3.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box sw  "SWITCH"   at 4.85,0 w 0.95 {.tone-1}
+box net "Internet" at 0,0 w 0.7 {.round .dim}
+box fw1 "FIREWALL" at 0.95,0 w 0.28 h 2.1 {.turn .tone-1}
+box fw2 "FIREWALL" at 2.5,0 w 0.28 h 2.1 {.turn .tone-1}
+box sw  "SWITCH"   at 3.3,0 w 0.75 {.tone-1}
 
-box web "web\nserver"      at 2.35,1.95 w 0.82 {.round .tone-3}
-box db  "database\nserver" at 4.25,1.95 w 0.92 {.round .tone-3}
-box fs  "file\nserver"     at 5.45,1.95 w 0.82 {.round .tone-3}
+box web "web\nserver"      at 1.75,1.8 w 0.7 {.round .tone-3}
+box db  "database\nserver" at 2.9,1.8 w 1.05 {.round .tone-3}
+box fs  "file\nserver"     at 3.95,1.8 w 0.7 {.round .tone-3}
 
-box  d1 "desktop"  at 4.25,-1.95 w 0.82 {.tone-2}
-box  d2 "desktop"  at 5.45,-1.95 same as d1 {.tone-2}
-text dl "desktops" between d1,d2 offset 0,-0.6
+box  d1 "desktop"  at 2.9,-1.6 w 0.72 {.tone-2}
+box  d2 "desktop"  at 3.95,-1.6 same as d1 {.tone-2}
+text dl "desktops" between d1,d2 offset 0,-0.68
 
 # The two inner firewalls sit on the spurs to the switch rather than at the
 # perimeter: that is the whole difference from the previous slide.
-box fwd "FW" at 4.85,-0.62 w 0.24 h 0.46 {.turn .tone-1 @seg}
-box fws "FW" at 4.85,0.62  w 0.24 h 0.46 {.turn .tone-1 @seg}
+box fwd "FW" at 3.3,-0.72 w 0.22 h 0.55 {.turn .tone-1 @seg}
+box fws "FW" at 3.3,0.72  w 0.22 h 0.55 {.turn .tone-1 @seg}
 
 edge net -- fw1
 edge fw1 -- fw2
@@ -970,9 +974,9 @@ edge d2.bottom -- sw.top via d2.cx,-1.0 sw.cx,-1.0
 edge db.top -- sw.bottom via db.cx,1.0 sw.cx,1.0
 edge fs.top -- sw.bottom via fs.cx,1.0 sw.cx,1.0
 
-text seg "segmented net" at 4.85,2.75 {@net}
+text seg "segmented net" at 3.3,2.75 {@net}
 
-container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,seg {.muted}
+container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,seg pad 0.15 {.muted}
 
 edge zsep fw2.cx,perim.top -- fw2.cx,perim.bottom {.dashed .muted}
 
@@ -992,7 +996,7 @@ step contained
 
 ## figure: Firewalls are also run on hosts to limit chatty applications' network access. {.full #ns-b06}
 
-::: draw 132x78
+::: draw 120x42
 # The same drawing again, the same names and coordinates. What is new is the
 # FIREWALL on the host - in the original it stands horizontally beside the
 # caption "desktops", so it stands in the same place here and "desktops"
@@ -1001,22 +1005,25 @@ step contained
 # The Little Snitch dialogue is not a screenshot but rebuilt: a frame with the
 # original's text lines and two buttons. Every line verbatim; the selected
 # option is bold rather than marked with a radio button, and the original's
-# two icon buttons add nothing to the argument and are left out.
+# two icon buttons add nothing to the argument and are left out. It stands
+# beside the network rather than under it - two pictures stacked is twice a
+# slide - and its one long line takes a second line to keep its measure
+# narrow enough for that.
 default text {.muted}
 
-box net "Internet" at 0,0 w 0.8 {.round .dim}
-box fw1 "FIREWALL" at 1.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box fw2 "FIREWALL" at 3.35,0 w 0.3 h 1.6 {.turn .tone-1}
-box sw  "SWITCH"   at 4.85,0 w 0.95 {.tone-1}
+box net "Internet" at -2.25,0 w 0.7 {.round .dim}
+box fw1 "FIREWALL" at -1.5,0 w 0.28 h 1.9 {.turn .tone-1}
+box fw2 "FIREWALL" at -0.05,0 w 0.28 h 1.9 {.turn .tone-1}
+box sw  "SWITCH"   at 0.75,0 w 0.75 {.tone-1}
 
-box web "web\nserver"      at 2.35,1.95 w 0.82 {.round .tone-3}
-box db  "database\nserver" at 4.25,1.95 w 0.92 {.round .tone-3}
-box fs  "file\nserver"     at 5.45,1.95 w 0.82 {.round .tone-3}
+box web "web\nserver"      at -0.8,1.7 w 0.7 {.round .tone-3}
+box db  "database\nserver" at 0.35,1.7 w 1.05 {.round .tone-3}
+box fs  "file\nserver"     at 1.4,1.7 w 0.7 {.round .tone-3}
 
-box  d1 "desktop"  at 4.25,-1.95 w 0.82 {.tone-2}
-box  d2 "desktop"  at 5.45,-1.95 same as d1 {.tone-2}
-box  hfw "FIREWALL" at 4.25,-2.62 w 1.02 {.tone-1 @host}
-text dl  "desktops" at 5.6,-2.62
+box  d1 "desktop"  at 0.35,-1.45 w 0.72 {.tone-2}
+box  d2 "desktop"  at 1.4,-1.45 same as d1 {.tone-2}
+box  hfw "FIREWALL" at 0.5,-2.38 w 0.9 {.tone-1 @host}
+text dl  "desktops" at 1.4,-2.38
 
 edge net -- fw1
 edge fw1 -- fw2
@@ -1027,19 +1034,18 @@ edge d2.bottom -- sw.top via d2.cx,-1.0 sw.cx,-1.0
 edge db.top -- sw.bottom via db.cx,1.0 sw.cx,1.0
 edge fs.top -- sw.bottom via fs.cx,1.0 sw.cx,1.0
 
-container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,hfw {.muted}
+container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,hfw pad 0.1 {.muted}
 
 edge zsep fw2.cx,perim.top -- fw2.cx,perim.bottom {.dashed .muted}
 
-text mail "Mail" at 2.17,3.7 {.left .large @ask}
-text want "wants to connect to mail.gmail.com" below mail gap 0.26 flush left {.left @ask}
+text mail "Mail" at 1.95,-2.35 {.left .large @ask}
+text want "wants to connect to\nmail.gmail.com" below mail gap 0.26 flush left {.left @ask}
 box  once "Once" below want gap 0.32 flush left w 0.6 {@ask}
 text anyc "Any connection"        below once gap 0.32 flush left {.left @ask}
 text only "Only domain gmail.com" below anyc gap 0.24 flush left {.left .bold @ask}
-box  allow "Allow" below only gap 0.4 w 0.62 {@ask}
-box  deny  "Deny…" left of allow gap 0.35 same as allow {@ask}
-align x right want, allow
-container dlg "" over mail,want,once,anyc,only,deny,allow {.round .muted @ask}
+box  deny  "Deny…" below only gap 0.4 flush left w 0.62 {@ask}
+box  allow "Allow" right of deny gap 0.35 {@ask}
+container dlg "" over mail,want,once,anyc,only,deny,allow pad 0.15 {.round .muted @ask}
 
 # The dialogue stands there from the start rather than being brought in: the
 # live view reserves room in the viewBox for every element that turns up
