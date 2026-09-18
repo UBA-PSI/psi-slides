@@ -1029,10 +1029,14 @@ edge net -- fw1
 edge fw1 -- fw2
 edge fw2 -- sw
 edge web.top -- web.cx,0
-edge d1.bottom -- sw.top via d1.cx,-1.0 sw.cx,-1.0
-edge d2.bottom -- sw.top via d2.cx,-1.0 sw.cx,-1.0
-edge db.top -- sw.bottom via db.cx,1.0 sw.cx,1.0
-edge fs.top -- sw.bottom via fs.cx,1.0 sw.cx,1.0
+# The two rows stand nearer the switch here than on the previous two slides,
+# so the bus channels stand nearer with them - 0.15 and 0.1, the distance the
+# rows moved. Left at plus and minus one they lay on the box edges and the
+# stub every wire leaves its box by was gone.
+edge d1.bottom -- sw.top via d1.cx,-0.85 sw.cx,-0.85
+edge d2.bottom -- sw.top via d2.cx,-0.85 sw.cx,-0.85
+edge db.top -- sw.bottom via db.cx,0.9 sw.cx,0.9
+edge fs.top -- sw.bottom via fs.cx,0.9 sw.cx,0.9
 
 container perim "" over fw1,fw2,sw,web,db,fs,d1,d2,dl,hfw pad 0.1 {.muted}
 
