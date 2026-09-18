@@ -70,6 +70,14 @@ export const DG_LINE_H = 1.25;        // line height, multiples of font size
 export const DG_PAD_X = 13;           // box padding, px
 export const DG_PAD_Y = 9;
 export const DG_MIN_W = 54;           // a box never narrows past this
+// How much of an em a line of type actually inks: cap height (0.72) plus the
+// descender (0.21). A line *box* is DG_LINE_H of an em, and the difference is
+// leading – which may hang over an outline without a reader seeing anything,
+// because a label is centred in its box. So the question "is this box too
+// short for its words" is asked against the ink and not against the line box,
+// or every tight-but-correct table in the corpus would report an overflow it
+// does not have.
+export const DG_INK_H = 0.93;
 export const DG_HEAD = 9;             // arrowhead length, px
 // **The default gap is stated in labels, not in rows.** A row is whatever the
 // opener says – 20 px on `20x20`, 40 on `120x40`, 72 on the default grid – so
@@ -90,6 +98,28 @@ export const DG_HEAD = 9;             // arrowhead length, px
 export const DG_LABEL_H = DG_FONT * DG_LINE_H;   // one base label, px
 export const DG_GAP_PLAIN = 1;        // default gap, in labels, for an unjoined pair
 export const DG_GAP_JOINED = 1.6;     // …and for a pair an edge joins
+// ── peers share one size ────────────────────────────────────────────
+// **The four placements that make two boxes peers.** A box placed `right of`,
+// `left of`, `below` or `above` another box is standing in a row or a column
+// with it, and a row of boxes of four different widths reads as four things of
+// four different weights – which is a statement about the content, and almost
+// never the one the author meant. The usual reason one is wider is that its
+// label happened to have more letters.
+//
+// So a *chain* – the boxes reachable from each other through those four words
+// – shares one size: the widest member's width and the tallest member's
+// height, measured over every label a `label` step will ever give the members,
+// so the four-line step label cannot overflow the cell it was drawn into at
+// beat 0. A member that states its own `w` or `h` keeps that number and lends
+// it to the chain's maximum, which is `same as` without the words; `{.own}`
+// leaves the chain altogether and ends it, so the box after an `.own` one
+// starts a chain of its own.
+//
+// `between` and `at` are deliberately not here. They are coordinates, not
+// adjacency: three boxes hung off three different points are not a row, and
+// the statement for peers that are not placed against each other is `row` /
+// `col`, which says so in one word.
+export const DG_CHAIN_DIRS = new Set(['right', 'left', 'below', 'above']);
 // An edge whose exposed run – the part of its route not under either of its
 // own endpoints – is shorter than this many labels is reported as `edge-short`.
 // 1.5 labels is 28 px: the head plus about as much shaft again, which is the
@@ -169,6 +199,14 @@ export const DG_CLASSES = new Set([
   'mono', 'serif', 'hand', 'small', 'large', 'bold',
   // type that fits the box it is in, rather than the box fitting the type
   'fit', 'shrink',
+  // `.own` leaves the chain. Boxes joined by a run of `right of` / `below`
+  // share one size by default (DG_CHAIN_DIRS), because relative size reads as
+  // importance and the usual reason one box is wider is that its label
+  // happened to have more letters. The exception – a box that really is
+  // bigger, or a run that is two rows of peers rather than one – is the thing
+  // that costs a word, and this is the word. It also *ends* the chain: a box
+  // reached only through an `.own` one starts a chain of its own.
+  'own',
   // where the label sits in the space it has. `left` / `right` name an edge
   // of a horizontal run of text; `top` / `bottom` an edge of the block of
   // lines. Both mean "as far that way as the padding allows", not "on the
@@ -679,7 +717,12 @@ export const DG_STEP_NAME = /^[\p{L}_][\p{L}\p{N}_-]*$/u;
 // derivable from anything a reader had already learned – and `.ghost` had no
 // verb at all, so a beat could reach it only through `style`.
 export const DG_STEP_OPS = new Set(['show', 'hide', 'move', ...DG_PROMINENCE, 'style', 'label']);
-export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'zone', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence', 'align', 'spread', 'default', 'step']);
+// `row` and `col` stand beside `align` and `spread` rather than beside `box`:
+// like those two they draw nothing and name elements that already exist. What
+// they add is the *size*, which `align` has never had – a row of peers is one
+// size and one gap, and writing that today costs a `same as` per member plus a
+// `gap` per placement. See DG_CHAIN_DIRS.
+export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'zone', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence', 'align', 'spread', 'row', 'col', 'default', 'step']);
 // The three shapes a line inside a `sequence` may take. They are not
 // statements – they mean nothing anywhere else – so they stay out of
 // DG_KEYWORDS and a stray one is reported as what it is: an entry that lost
@@ -2084,6 +2127,8 @@ export const DG_CLASS_KINDS = (() => {
   put(['box', 'dot', 'text', 'image', 'container', 'brace', 'edge'],
     [...DG_PROMINENCE]);
   put(['box', 'text'], ['fit', 'shrink']);
+  // Only a box chains, so only a box can leave one.
+  put(['box'], ['own']);
   put(['box', 'text', 'container', 'edge'], ['round', 'sharp']);
   put(['edge'], [...DG_HEAD_CLASSES, 'smooth', 'elbow', 'front']);
   return t;
@@ -2109,6 +2154,7 @@ const DG_CLASS_WHAT = {
   left: 'a label alignment', right: 'a label alignment',
   top: 'a label alignment', bottom: 'a label alignment',
   fit: 'a way for type to meet its box', shrink: 'a way for type to meet its box',
+  own: 'whether a box shares its neighbours’ size',
   smooth: 'how a line is drawn', elbow: 'how a line is drawn',
   front: 'a drawing order', 'no-head': 'an arrowhead state',
   'one-head': 'an arrowhead state', 'both-heads': 'an arrowhead state',
@@ -2144,6 +2190,10 @@ export const DG_STEP_FIXED = {
   // that stopped being true.
   'the label anchor': ['left', 'right', 'top', 'bottom', 'turn'],
   'the type size': ['small', 'large', 'fit', 'shrink'],
+  // Which boxes share a size is read off the placements once, before any beat
+  // is drawn – a beat that took a box out of its chain would resize the whole
+  // row under it and move everything placed against any of them.
+  'the size a chain shares': ['own'],
   'the path kind': ['smooth'],
   'the drawing order': ['front'],
 };
@@ -2419,11 +2469,11 @@ export const DG_PLACEMENT_SHORT = 'at / above / below / right of / left of / bet
 // The forms that have no keyword to list, per statement. Everything else in a
 // statement's vocabulary is a word in DG_KIND_OPTS.
 const DG_EXTRA_FORMS = {
-  box: ['"same as X"', 'a leader "-- X" or "-> X"'],
-  zone: ['"same as X"'],
-  text: ['"same as X"', 'a leader "-- X" or "-> X"'],
-  dot: ['"same as X"', 'a leader "-- X" or "-> X"'],
-  image: ['"same as X"', 'a leader "-- X" or "-> X"'],
+  box: ['"same as X" / "same w as X" / "same h as X"', 'a leader "-- X" or "-> X"'],
+  zone: ['"same as X" / "same w as X" / "same h as X"'],
+  text: ['"same as X" / "same w as X" / "same h as X"', 'a leader "-- X" or "-> X"'],
+  dot: ['"same as X" / "same w as X" / "same h as X"', 'a leader "-- X" or "-> X"'],
+  image: ['"same as X" / "same w as X" / "same h as X"', 'a leader "-- X" or "-> X"'],
   edge: ['waypoints "via X,Y X,Y"'],
   container: ['"over a,b,c"'],
   brace: ['"over a,b,c"'],
@@ -2432,7 +2482,10 @@ const DG_EXTRA_FORMS = {
 };
 // The three statements that place nothing: an edge is defined by its two ends,
 // and a container and a brace fit whatever they are given to hold.
-const DG_NO_PLACEMENT = new Set(['edge', 'container', 'brace', 'actor', 'note', 'message']);
+const DG_NO_PLACEMENT = new Set(['edge', 'container', 'brace', 'actor', 'note', 'message',
+  // …and the four statements that draw nothing at all: they name elements that
+  // already exist, and `row` / `col` give a placement rather than taking one.
+  'align', 'spread', 'row', 'col']);
 export function dgTakes(head) {
   const parts = [];
   if (!DG_NO_PLACEMENT.has(head)) parts.push(`a placement (${DG_PLACEMENT_SHORT})`);
@@ -3505,6 +3558,8 @@ export function createSpanTable(model, body) {
         : p && p.kind === 'abs' ? dgPairRefs(p.at) : [];
       if (refs.includes(id)) note(n.line, `${n.kind} ${n.id} is placed against it`, n.id);
       if (n.sameAs === id) note(n.line, `${n.kind} ${n.id} takes its size from it (same as)`, n.id);
+      if (n.sameWAs === id) note(n.line, `${n.kind} ${n.id} takes its width from it (same w as)`, n.id);
+      if (n.sameHAs === id) note(n.line, `${n.kind} ${n.id} takes its height from it (same h as)`, n.id);
     }
     for (const e of model.edges) {
       if (e.id === id) continue;
@@ -3520,6 +3575,9 @@ export function createSpanTable(model, body) {
     }
     for (const s of model.spreads) {
       if (s.members.includes(id)) note(s.line, `spread ${s.axis}`, null);
+    }
+    for (const r of model.rows) {
+      if (r.members.includes(id)) note(r.line, r.axis === 'x' ? 'row' : 'col', null);
     }
     for (const st of model.steps) {
       for (const op of st.ops) {
@@ -3601,6 +3659,17 @@ export function createDiagramCompiler(env = {}) {
       statements: [],
       aligns: [],
       spreads: [],
+      // `row` / `col`: a set of boxes declared to be peers. It is the explicit
+      // spelling of what a run of `right of` already implies (DG_CHAIN_DIRS),
+      // and it exists for the two things the run cannot say – three boxes hung
+      // off three different zones are peers with no placement joining them,
+      // and a run that is meant to be two rows has nowhere to break.
+      rows: [],
+      // Elements that read their whole line and named no placement. The
+      // complaint is deferred to the post-parse pass, because a `row` further
+      // down the block may be the placement – the statement can be written
+      // before or after the boxes it names, like every other member list here.
+      unplaced: [],
       defaults: {},
       tagDefaults: [],
       // The lecture-wide layer (`draw-defaults` in the frontmatter), under
@@ -3907,6 +3976,33 @@ export function createDiagramCompiler(env = {}) {
         continue;
       }
 
+      // row / col – the explicit form of a chain. Two things in one line: the
+      // members share one size (the chain rule, DG_CHAIN_DIRS), and every
+      // member that states no placement of its own is placed after the one
+      // before it with the row's single gap. Nothing is drawn, so it stands
+      // with `align` and `spread` rather than with `box`.
+      if (head === 'row' || head === 'col') {
+        const toks = body0.slice(1).map(x => x.v);
+        const gi = toks.indexOf('gap');
+        let gap = null;
+        if (gi >= 0) {
+          gap = dgNum(toks[gi + 1], errors, lineNo, 'gap');
+          if (toks.length > gi + 2) {
+            dgErr(errors, lineNo, `unexpected "${toks[gi + 2]}" in ${head} – a ${head} takes its `
+              + 'members and one optional "gap N", and nothing else');
+            continue;
+          }
+        }
+        const members = dgParseMembers((gi < 0 ? toks : toks.slice(0, gi)).join(','));
+        if (members.length < 2) {
+          dgErr(errors, lineNo, `${head} needs at least two elements – it says they are peers, `
+            + 'which one element cannot be');
+          continue;
+        }
+        model.rows.push({ axis: head === 'row' ? 'x' : 'y', members, gap, line: lineNo, span });
+        continue;
+      }
+
       if (head === 'default') {
         dgReadDefault(body0, attrs, lineNo, errors, layer, scopeWord, span);
         continue;
@@ -4083,9 +4179,42 @@ export function createDiagramCompiler(env = {}) {
         // layer exists, which is the same reason a chart's `same as` is
         // answered at parse time. A size arriving from a default is the
         // author's business, and `row` says it in one number.
-        const rowH = opts.row
-          ?? DG_ROW_H * dgFontFor(new Set(attrs.classes)) / DG_FONT;
         const all = [heads, ...body.map(r => r.cells)];
+        // …and it is never shorter than the tallest thing standing in it. A
+        // table row is the one place in this grammar where the cells are
+        // declared peers by construction – they are one row – so the row is
+        // the chain and its height is the tallest cell's label, exactly as a
+        // run of `right of` boxes now takes the tallest member's height. A
+        // two-line cell in a `DG_ROW_H` row used to run over the rule under
+        // it in silence, and the repair was an `h` written by hand that had to
+        // be re-measured whenever a word changed.
+        // Counted in *lines* rather than in pixels of line box, which is the
+        // one measurement that leaves every single-line table in the corpus
+        // byte-identical: `DG_ROW_H` is already the height of a row holding one
+        // line, whatever grid the block declares, so the floor for a cell of
+        // two lines is exactly twice it.
+        const cellFont = dgFontFor(new Set(attrs.classes));
+        const cellMono = attrs.classes.includes('mono');
+        let tallCell = 1;
+        for (const cells of all) {
+          for (const text of cells) {
+            tallCell = Math.max(tallCell, dgMeasure(text, cellFont, cellMono).count);
+          }
+        }
+        const rowFloor = DG_ROW_H * (cellFont / DG_FONT) * tallCell;
+        // A *written* `row` is the author's and still wins – and now says so
+        // when it cannot hold the type, which is the `w` warning's sentence
+        // one statement along (§6 item 10).
+        // Against the ink the cells make, not against DG_ROW_H: the default is
+        // a rhythm, and a row written tighter than it is a decision. A row
+        // written shorter than its own type is a defect.
+        const rowInk = (tallCell * cellFont * DG_INK_H) / model.unit[1];
+        if (opts.row != null && opts.row < rowInk) {
+          dgWarn(`table ${id} (line ${lineNo} of the block) has rows ${opts.row} units tall but its `
+            + `tallest cell is ${tallCell} line${tallCell === 1 ? '' : 's'} and needs about `
+            + `${rowFloor.toFixed(2)} – the text will overflow.`);
+        }
+        const rowH = opts.row ?? rowFloor;
         // `space` on a table converted the way `grid` converts it, and for the
         // sentence `grid`'s own comment already gives: one number that meant
         // `uw` across and `uh` down produces two distances in the same drawing –
@@ -5465,11 +5594,27 @@ export function createDiagramCompiler(env = {}) {
           // `same as X` copies X's width and height. Geometry only: styling
           // is what the `default` block is for, and one line covering every
           // box beats a chain of `same as` through the diagram.
+          // `same h as X` / `same w as X` copy one axis. A one-line box beside
+          // a two-line one wants the neighbour's height and its own width, and
+          // `same as` – which takes both – could not say it: the author wrote
+          // an `h` by hand and re-measured it whenever the neighbour's label
+          // changed. It is also the only way to give a `zone` a height, which
+          // otherwise requires both numbers and so could take neither.
           if (key === 'same') {
-            if (rest[k + 1]?.v !== 'as' || !rest[k + 2]) {
-              dgErr(errors, lineNo, `${head} ${id}: "same" must be written "same as <element>"`);
-              k += 2;
+            const axis = rest[k + 1]?.v;
+            if ((axis === 'w' || axis === 'h') && rest[k + 2]?.v === 'as' && rest[k + 3]) {
+              node[axis === 'w' ? 'sameWAs' : 'sameHAs'] = rest[k + 3].v;
+              k += 4;
               continue;
+            }
+            if (axis !== 'as' || !rest[k + 2]) {
+              dgErr(errors, lineNo, `${head} ${id}: "same" must be written "same as <element>", `
+                + '"same w as <element>" or "same h as <element>"');
+              // One sentence per statement, the policy every other branch
+              // follows: reading on from a token whose shape is already lost
+              // earns a second complaint about the same defect.
+              stopped = true;
+              break;
             }
             node.sameAs = rest[k + 2].v;
             k += 3;
@@ -5530,7 +5675,11 @@ export function createDiagramCompiler(env = {}) {
           // has to write the placement out first. spanOf says so rather
           // than handing back an insertion point that would not parse.
           if (model.nodes.length === 0) node.place = { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
-          else if (!stopped) dgErr(errors, lineNo, dgNoPlacement(head, id));
+          // Deferred, not dropped: a `row` or a `col` naming this element is
+          // its placement, and a member list may be written before or after
+          // the elements it names. The post-parse pass reports whatever is
+          // still unplaced once the rows have been resolved.
+          else if (!stopped) model.unplaced.push({ kind: head, id, line: lineNo });
         }
         // ── zone: a named area that stands from beat 0 ─────────────────
         // **A `zone` is a `box` with three differences, and the expansion is
@@ -5566,8 +5715,16 @@ export function createDiagramCompiler(env = {}) {
           node.zone = true;
           node.synth = id;
           node.label = '';
-          if (node.w == null || node.h == null) {
-            dgErr(errors, lineNo, `zone ${id} needs both "w" and "h" – an area is a fixed claim on `
+          // Both numbers, unless another element states one of them. A zone is
+          // fixed-size on purpose, but "fixed" and "written here" are two
+          // different claims: `same h as` names the element the height comes
+          // from, which is as fixed as a number and stays right when that
+          // element's label grows.
+          const hasW = node.w != null || node.sameAs || node.sameWAs;
+          const hasH = node.h != null || node.sameAs || node.sameHAs;
+          if (!hasW || !hasH) {
+            dgErr(errors, lineNo, `zone ${id} needs both "w" and "h" (or "same as" / `
+              + `"same ${hasW ? 'h' : 'w'} as <element>") – an area is a fixed claim on `
               + `the paper, which is the whole difference from a container (that one fits its `
               + `members and is invisible without them).`, 'semantic');
           }
@@ -5901,6 +6058,52 @@ export function createDiagramCompiler(env = {}) {
     for (const h of model.braces) h.members = expandList(h.members, h.line, `brace ${h.id}`);
     for (const h of model.aligns) h.members = expandList(h.members, h.line, `align ${h.axis} ${h.edge}`);
     for (const h of model.spreads) h.members = expandList(h.members, h.line, `spread ${h.axis}`);
+    for (const h of model.rows) {
+      h.members = expandList(h.members, h.line, h.axis === 'x' ? 'row' : 'col');
+    }
+    // A `row` places every member that has no placement of its own, against
+    // the member before it, with the row's one gap. A member that *is* placed
+    // keeps its placement – the three-boxes-against-three-zones case, where
+    // the row is there for the size alone – and a row's gap still fills in a
+    // relative placement against the previous member that states none, so
+    // "one gap" holds whichever way the run was written.
+    {
+      const byId = new Map(model.nodes.map(n => [n.id, n]));
+      const placedByRow = new Set();
+      for (const r of model.rows) {
+        const dir = r.axis === 'x' ? 'right' : 'below';
+        const word = r.axis === 'x' ? 'row' : 'col';
+        let prev = null;
+        for (const m of r.members) {
+          const n = byId.get(m);
+          if (!n) continue;             // checkRef below names it
+          if (n.kind !== 'box') {
+            dgErr(errors, r.line, `${word} names "${m}", which is ${dgArticle(n.kind)} ${n.kind} – `
+              + 'a row is a run of boxes that share one size, and a dot, a text or an image is '
+              + 'sized by what it draws rather than by its neighbours', 'semantic');
+            prev = m;
+            continue;
+          }
+          if (prev) {
+            if (!n.place) {
+              // `implicit`, the same word the first element's origin carries:
+              // there is no placement on this element's own line, so there is
+              // nothing for the editor to rewrite in place. A drag has to
+              // write the placement out first – or move the row.
+              n.place = { kind: 'rel', dir, ref: prev, gap: r.gap ?? null, implicit: true, fromRow: r.line };
+              placedByRow.add(m);
+            } else if (r.gap != null && n.place.kind === 'rel' && n.place.ref === prev
+              && n.place.gap == null) {
+              n.place.gap = r.gap;
+            }
+          }
+          prev = m;
+        }
+      }
+      for (const u of model.unplaced) {
+        if (!placedByRow.has(u.id)) dgErr(errors, u.line, dgNoPlacement(u.kind, u.id));
+      }
+    }
     for (const d of model.tagDefaults) {
       if (!model.tags.has(d.tag)) {
         dgErr(errors, d.line, `default ${d.kind} @${d.tag} – no element carries @${d.tag}`, 'reference');
@@ -5987,6 +6190,15 @@ export function createDiagramCompiler(env = {}) {
     for (const n of model.nodes) {
       for (const r of refsOf(n.place)) checkRef(r, n.line, `${n.kind} ${n.id}`);
       if (n.sameAs) checkRef(n.sameAs, n.line, `${n.kind} ${n.id} (same as)`);
+      if (n.sameWAs) checkRef(n.sameWAs, n.line, `${n.kind} ${n.id} (same w as)`);
+      if (n.sameHAs) checkRef(n.sameHAs, n.line, `${n.kind} ${n.id} (same h as)`);
+      // One size, said twice. `same as` is both axes, so either half of it
+      // written beside it is a number the drawing has to drop.
+      if (n.sameAs && (n.sameWAs || n.sameHAs)) {
+        dgErr(errors, n.line, `${n.kind} ${n.id}: "same as" takes both axes, so `
+          + `"same ${n.sameWAs ? 'w' : 'h'} as" has nothing left to say – drop one of them`,
+        'semantic');
+      }
     }
     for (const e of model.edges) {
       if (!e.from.point) checkRef(e.from.ref, e.line, `edge ${e.id}`);
@@ -6001,6 +6213,9 @@ export function createDiagramCompiler(env = {}) {
     for (const a of [...model.aligns, ...model.spreads]) {
       const what = a.edge ? `align ${a.axis} ${a.edge}` : `spread ${a.axis}`;
       for (const m of a.members) checkRef(m, a.line, what);
+    }
+    for (const r of model.rows) {
+      for (const m of r.members) checkRef(m, r.line, r.axis === 'x' ? 'row' : 'col');
     }
     for (const s of model.steps) {
       for (const op of s.ops) {
@@ -6113,14 +6328,21 @@ export function createDiagramCompiler(env = {}) {
     }
   }
 
-  function layoutDiagram(model, state, errors) {
+  function layoutDiagram(model, state, errors, labelIndex) {
     const [uw, uh] = model.unit;
     const boxes = new Map();   // id -> {x,y,w,h}
 
     // Sizes first: they depend only on the element's own label and class,
     // never on placement, so they can be settled before the DAG walk.
-    const sizeOf = (node) => {
+    //
+    // `over` is the label to measure and `quiet` suppresses the two warnings,
+    // because the chain pass below measures a box once per label a `label`
+    // step will ever give it and a box would otherwise report the same
+    // overflow once per variant. The beat's own label is the default, which is
+    // every ordinary call.
+    const rawSize = (node, over, quiet) => {
       const st = state.get(node.id);
+      const label = over === undefined ? st.label : over;
       const classes = st.classes;
       // Geometry follows the same layers, strongest first.
       const layers = dgDefaultLayers(model, node.kind, node.tags).reverse();
@@ -6130,6 +6352,15 @@ export function createDiagramCompiler(env = {}) {
         return null;
       };
       const [padX, padY] = dgPadPx(pick('pad'), uh);
+      const nw = pick('w');
+      const nh = pick('h');
+      // Which axes are already spoken for, and so are not the chain's to set.
+      // A number on the element's own line, a number from a `default` layer, a
+      // `same … as` naming another element, and `.own`, which says the box is
+      // not one of its neighbours at all. Answered here, before anything reads
+      // `boxes`, because the chain pass runs before the walk that fills it.
+      const pinW0 = nw != null || !!node.sameAs || !!node.sameWAs || classes.has('own');
+      const pinH0 = nh != null || !!node.sameAs || !!node.sameHAs || classes.has('own');
       // `.fit` and `same as` are ordered. sizeOf otherwise depends only on the
       // element's own label and class, which is what lets sizes settle before
       // the DAG walk – but a fitted size needs the box, and a copied box is
@@ -6137,16 +6368,26 @@ export function createDiagramCompiler(env = {}) {
       // solved against the result. That works because `same as` is already a
       // dependency edge, so X is laid out by the time we are here.
       const fitted = (w, h) => (classes.has('fit') || classes.has('shrink')
-        ? dgFitFont(st.label, classes, w, h, padX, padY) : dgFontFor(classes));
+        ? dgFitFont(label, classes, w, h, padX, padY) : dgFontFor(classes));
+      // One axis copied from another element. Same dependency edge `same as`
+      // already is, so the reference is laid out by the time we are here; the
+      // copy is applied to whatever the natural rule computed, which is what
+      // makes `same h as` keep this element's own width.
+      const axisCopy = (out) => {
+        const rw = node.sameWAs && boxes.get(node.sameWAs);
+        const rh = node.sameHAs && boxes.get(node.sameHAs);
+        if (!rw && !rh) return out;
+        const w = rw ? rw.w : out.w, h = rh ? rh.h : out.h;
+        return { ...out, w, h, font: fitted(w, h) };
+      };
       if (node.sameAs) {
         const ref = boxes.get(node.sameAs);
-        if (ref) return { w: ref.w, h: ref.h, font: fitted(ref.w, ref.h), padX, padY };
+        if (ref) return { w: ref.w, h: ref.h, font: fitted(ref.w, ref.h), padX, padY, pinW: true, pinH: true };
       }
-      const nw = pick('w');
-      const nh = pick('h');
+      const pinW = pinW0, pinH = pinH0;
       // Something to fit *into* is the whole premise, so an element with
       // neither is a line that would otherwise quietly do nothing.
-      if ((classes.has('fit') || classes.has('shrink')) && nw == null && !node.sameAs) {
+      if (!quiet && (classes.has('fit') || classes.has('shrink')) && nw == null && !node.sameAs) {
         errors.push({ phase: 'semantic', line: node.line, msg: `${node.kind} ${node.id}: `
           + `.${classes.has('fit') ? 'fit' : 'shrink'} sizes the type to the box, so the box has to be `
           + `given – add "w n" or "same as <element>"` });
@@ -6154,20 +6395,20 @@ export function createDiagramCompiler(env = {}) {
       if (node.kind === 'dot') {
         const nr = pick('r');
         const r = (nr != null ? nr : DG_DOT_R) * uh;
-        return { w: 2 * r, h: 2 * r, font: fitted(2 * r, 2 * r), padX, padY };
+        return axisCopy({ w: 2 * r, h: 2 * r, font: fitted(2 * r, 2 * r), padX, padY, pinW: true, pinH: true });
       }
       if (node.kind === 'image') {
         const w = (nw != null ? nw : 1) * uw;
-        if (nh != null) return { w, h: nh * uh };
-        if (node.aspect) return { w, h: w * node.aspect };
+        if (nh != null) return axisCopy({ w, h: nh * uh, pinW: true, pinH: true });
+        if (node.aspect) return axisCopy({ w, h: w * node.aspect, pinW: true, pinH: true });
         // Only when the asset resolved at all: an unresolved (or refused)
         // one already has an error naming the real problem, and a warning
         // about proportions on top of it points the author the wrong way.
-        if (node.asset) dgWarn(`image ${node.id}${dgSite(node)}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
-        return { w, h: w };
+        if (!quiet && node.asset) dgWarn(`image ${node.id}${dgSite(node)}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
+        return axisCopy({ w, h: w, pinW: true, pinH: true });
       }
       const font = fitted(nw != null ? nw * uw : 0, nh != null ? nh * uh : 0);
-      const m0 = dgMeasure(st.label, font, classes.has('mono'));
+      const m0 = dgMeasure(label, font, classes.has('mono'));
       // A label read bottom-to-top needs its measurements the other way round.
       // Everything below asks "how much room does the label want" and gets the
       // right answer for free once the two are swapped here.
@@ -6176,7 +6417,8 @@ export function createDiagramCompiler(env = {}) {
       // otherwise – which is what a `.fit` text needs, and what `w` on a text
       // meant on paper long before it did anything.
       if (node.kind === 'text') {
-        return { w: nw != null ? nw * uw : m.w, h: nh != null ? nh * uh : m.h, font, padX, padY };
+        return axisCopy({ w: nw != null ? nw * uw : m.w, h: nh != null ? nh * uh : m.h,
+          font, padX, padY, pinW: true, pinH: true });
       }
       // An explicit w that cannot hold its own label overflows in silence –
       // right on the machine that drew it, wrong on the projector. Say so.
@@ -6184,9 +6426,22 @@ export function createDiagramCompiler(env = {}) {
       // A label there is not is a label that cannot overflow. Without this a
       // thin column of a `bars` – which carries no text at all – reported that
       // its text was about to run over the edge.
-      if (st.label && nw != null && nw * uw < m.w + 6 && !classes.has('fit') && !classes.has('shrink')) {
+      const fits = classes.has('fit') || classes.has('shrink');
+      if (!quiet && label && nw != null && nw * uw < m.w + 6 && !fits) {
         dgWarn(`box ${node.id}${dgSite(node)} is ${nw} units wide but its label needs about `
           + `${((m.w + 2 * padX) / uw).toFixed(2)} – the text will overflow.`);
+      }
+      // The same sentence down the other axis, which was silent. A written `w`
+      // has warned since the day `w` existed and a written `h` never did, so a
+      // two-line label in a box given one line's height ran over the outline
+      // and nothing said so – measured on a keynote's `#drei-orte`, where the
+      // words sat inside the padding and the figure had zero warnings.
+      // The threshold is the ink the lines make (DG_INK_H) rather than their
+      // line boxes; the number the message reports is the padded one, which is
+      // what to write instead.
+      if (!quiet && label && nh != null && nh * uh < (m.h / DG_LINE_H) * DG_INK_H && !fits) {
+        dgWarn(`box ${node.id}${dgSite(node)} is ${nh} units tall but its label needs about `
+          + `${((m.h + 2 * padY) / uh).toFixed(2)} – the text will overflow.`);
       }
       // A hexagon or a chevron has less usable interior than the rectangle
       // that bounds it: the bevel and the point are inside the box. Grow the
@@ -6213,13 +6468,179 @@ export function createDiagramCompiler(env = {}) {
       // wins, because that one is about this element.
       const squareOutline = String(outline).split(':')[0] === 'cross';
       const ownW = node.w != null ? node.w : null;
-      return {
+      return axisCopy({
         w: squareOutline ? (ownW != null ? ownW * uw : boxH)
           : nw != null ? nw * uw
             : Math.max(m.w + 2 * padX + inset, DG_MIN_W),
         h: boxH,
         font, padX, padY,
+        // A square outline takes its width from its height, so the chain has
+        // nothing to say about it either way.
+        pinW: pinW || squareOutline, pinH,
+      });
+    };
+
+    // ── the chain pass: peers share one size ──────────────────────────
+    //
+    // Which boxes are peers is a fact about the *drawing* and not about the
+    // beat, so it is read off each element's declared placement rather than
+    // off `state`: a `move … to` in a step must not re-cut the chains under a
+    // row and resize everything placed against any of it.
+    //
+    // **A chain is per axis, and the two axes do not carry the same rule.** A
+    // *row* – boxes joined by `right of` / `left of` – shares both: two boxes
+    // side by side with different widths read as two things of different
+    // weight, and with different heights they make a ragged top and bottom and
+    // put every arrow between them off the axis. A *column* shares its width
+    // and not its height; the three families and the reasons are on `rowSet`,
+    // `colSet` and `declared` below.
+    //
+    // A box carrying `.own` is in no chain, which is also how a run is broken
+    // in two: nothing reaches through it. Same for the other three exclusions
+    // `own()` collects.
+    const chainSize = new Map();   // id -> {w?, h?}
+    {
+      const nodes = model.nodes.filter(n => n.kind === 'box');
+      const byId = new Map(nodes.map(n => [n.id, n]));
+      // `same as X` is the older, explicit spelling of the same idea and it
+      // still wins: the box takes X's size outright, so it is in no chain –
+      // and, like `.own`, nothing reaches through it.
+      // `.turn` is the second exemption and it is not an escape hatch either:
+      // a label read bottom-to-top is what an author writes when the element is
+      // a bar rather than a box – a firewall, a matrix row, an axis – so it is
+      // narrow *by declaration*, and sizing it to the box beside it undoes the
+      // reason the class was written. Measured on `figure-rules#sp2`, where the
+      // firewall bar came out as wide as the switch next to it.
+      // The third exclusion is the composites. A `table`, a `lanes`, a `bars`,
+      // a `grid`, a `plot`, a `sequence` and a `zone` all *draw* a box, but
+      // none of them is one: each sizes itself from its own contents or from a
+      // claim on the paper, and a note placed `right of` a five-column table
+      // has no business coming out five columns wide. `synth` is the flag that
+      // already separates them from ordinary boxes for the overlap census.
+      const own = (id) => {
+        const cls = state.get(id)?.classes || new Set();
+        const n = byId.get(id) || {};
+        return cls.has('own') || cls.has('turn') || !!n.sameAs || !!n.synth;
       };
+      const boxIds = new Set(nodes.map(n => n.id));
+      const sets = (() => {
+        const parent = new Map(nodes.map(n => [n.id, n.id]));
+        const find = (x) => {
+          while (parent.get(x) !== x) { parent.set(x, parent.get(parent.get(x))); x = parent.get(x); }
+          return x;
+        };
+        const join = (a, b) => {
+          if (!boxIds.has(a) || !boxIds.has(b) || a === b) return;
+          if (own(a) || own(b)) return;
+          const ra = find(a), rb = find(b);
+          if (ra !== rb) parent.set(ra, rb);
+        };
+        return { find, join };
+      });
+      // Three families, never merged into one. A box may stand in a row and in
+      // a column at once, and it then takes the larger of what each asks for –
+      // but its neighbours in the row are *not* asked to match the column, or
+      // one `below` between two rows would size a whole grid to its widest
+      // element. Measured: it made `lectures/diagrams#alignment`, whose top and
+      // bottom rows are joined by a single `below`, one block of eight boxes
+      // all as wide as the widest label in either row.
+      const rowSet = sets();       // right of / left of – width and height
+      const colSet = sets();       // below / above – width only
+      const declared = sets();     // a `row` or a `col` statement – both, last
+      for (const n of nodes) {
+        const p = n.place;
+        if (!p || p.kind !== 'rel' || !DG_CHAIN_DIRS.has(p.dir)) continue;
+        (p.dir === 'right' || p.dir === 'left' ? rowSet : colSet).join(n.id, p.ref);
+      }
+      for (const r of model.rows) {
+        for (let i = 1; i < r.members.length; i++) declared.join(r.members[i - 1], r.members[i]);
+      }
+      // Measured once per box, over every label a `label` step will ever give
+      // it, so the four-line variant is what beat 0 reserved room for. A box
+      // whose size grows mid-figure moves everything placed against it; a box
+      // whose size was settled for its longest label moves nothing.
+      const measured = new Map();
+      for (const n of nodes) {
+        const variants = (labelIndex && labelIndex.get(n.id)) || [];
+        const labels = variants.length ? variants : [state.get(n.id).label];
+        let w = 0, h = 0, pw = false, ph = false;
+        for (const lab of labels) {
+          const s = rawSize(n, lab, true);
+          w = Math.max(w, s.w); h = Math.max(h, s.h);
+          pw = pw || !!s.pinW; ph = ph || !!s.pinH;
+        }
+        measured.set(n.id, { w, h, pw, ph });
+      }
+      // An implicit family's maximum is taken over the members' *natural*
+      // sizes, so the order the two are resolved in changes nothing and
+      // nothing compounds. A `row` / `col` statement is the exception and it is
+      // the reason the statement is worth having: it resolves **last** and over
+      // whatever the implicit families settled, so it levels its members
+      // against everything else they stand in. `resolved` is the switch.
+      const resolve = (set, key, resolved) => {
+        const groups = new Map();
+        for (const n of nodes) {
+          if (own(n.id)) continue;
+          const root = set.find(n.id);
+          if (!groups.has(root)) groups.set(root, []);
+          groups.get(root).push(n);
+        }
+        for (const members of groups.values()) {
+          if (members.length < 2) continue;
+          let max = 0;
+          for (const n of members) {
+            // A `same w as` width is another element's and is not known yet, so
+            // it is not evidence about how wide this chain has to be.
+            // Everything else contributes, written numbers included: a `w` on
+            // the head of a row is today's `same as` for the rest, without the
+            // words.
+            if (key === 'w' ? n.sameWAs : n.sameHAs) continue;
+            const settled = resolved && chainSize.get(n.id) && chainSize.get(n.id)[key];
+            max = Math.max(max, settled != null ? settled : measured.get(n.id)[key]);
+          }
+          for (const n of members) {
+            if (measured.get(n.id)[key === 'w' ? 'pw' : 'ph']) continue;
+            const cur = chainSize.get(n.id) || { w: null, h: null };
+            cur[key] = Math.max(cur[key] ?? 0, max);
+            chainSize.set(n.id, cur);
+          }
+        }
+      };
+      resolve(rowSet, 'w');
+      resolve(rowSet, 'h');
+      // A column shares its width and not its height. That asymmetry is the
+      // whole of what the corpus taught: a run of `below` boxes is as often a
+      // record as it is a stack of peers – `lectures/network-security#ns-a45`
+      // is seven fields, then two, then one, then one, stacked with `gap 0`,
+      // and giving every band the tallest one's height turns a certificate
+      // into four equal blocks that say nothing. A band's height is what
+      // stands in it; its width is the record's.
+      resolve(colSet, 'w');
+      // `row a, b, c` and `col a, b, c` share both, and that is what the
+      // statement is *for*: it says these are peers, where `below` says only
+      // where this one goes – and it says it about everything else they stand
+      // in, because it reads the sizes the two implicit families settled. That
+      // is the case the implicit rule cannot reach on its own: a box in a row
+      // whose neighbour is also in a tall column comes out narrower than it,
+      // and one line makes the row level.
+      resolve(declared, 'w', true);
+      resolve(declared, 'h', true);
+    }
+
+    // The beat's own size, with whatever the chain settled written over it.
+    // `.fit` re-solves against the final box: a fitted label whose box grew
+    // with its neighbours would otherwise keep the type size of the box it
+    // would have had alone.
+    const sizeOf = (node) => {
+      const base = rawSize(node);
+      const cs = chainSize.get(node.id);
+      if (!cs) return base;
+      const w = cs.w != null ? cs.w : base.w;
+      const h = cs.h != null ? cs.h : base.h;
+      const classes = state.get(node.id).classes;
+      const font = (classes.has('fit') || classes.has('shrink'))
+        ? dgFitFont(state.get(node.id).label, classes, w, h, base.padX, base.padY) : base.font;
+      return { ...base, w, h, font };
     };
 
     // Dependency graph. Nodes depend on whatever they are placed against;
@@ -6285,6 +6706,8 @@ export function createDiagramCompiler(env = {}) {
       kindOf.set(n.id, 'node');
       const d = placeDeps(state.get(n.id).place);
       if (n.sameAs) d.push(n.sameAs);
+      if (n.sameWAs) d.push(n.sameWAs);
+      if (n.sameHAs) d.push(n.sameHAs);
       for (const x of (extraDeps.get(n.id) || [])) d.push(x);
       deps.set(n.id, d);
     }
@@ -6500,7 +6923,14 @@ export function createDiagramCompiler(env = {}) {
         // move the pinned edge with it rather than changing which edge it is.
         cx += st.shift[0] * uw;
         cy += st.shift[1] * uh;
-        boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h, font, padX, padY, pinX });
+        // `chain` records which axes this element did *not* decide for itself,
+        // so an editor can say so: a drag that writes a `w` on one member of a
+        // row is not only a fact about that member, and a drag that makes it
+        // the narrowest re-sizes the rest of the row. Nothing in the drawing
+        // reads it; it is the compiler telling the page what it did.
+        const cs = chainSize.get(id);
+        boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h, font, padX, padY, pinX,
+          chainW: !!(cs && cs.w != null), chainH: !!(cs && cs.h != null) });
         continue;
       }
       const holder = contById.get(id) || braceById.get(id);
@@ -7750,7 +8180,7 @@ export function createDiagramCompiler(env = {}) {
     for (let k = 0; k < frameCount; k++) {
       const state = dgStateAt(model, k);
       states.push(state);
-      const boxes = layoutDiagram(model, state, errors);
+      const boxes = layoutDiagram(model, state, errors, labelIndex);
       frameBoxes.push(boxes);
       frames.push(dgFrameDrawables(model, state, boxes, labelIndex));
     }

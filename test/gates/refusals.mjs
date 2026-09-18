@@ -538,7 +538,10 @@ export async function run({ report }) {
   // silently blind rather than loudly wrong. This is the guard: every
   // statement in `DG_KEYWORDS` is either placed or on the exempt list, so a
   // new one fails here until somebody classifies it.
-  const EXEMPT = new Set(['edge', 'container', 'brace', 'align', 'spread', 'default', 'step']);
+  // `row` and `col` join `align` and `spread` here for the same reason: they
+  // name elements that already exist and draw nothing of their own.
+  const EXEMPT = new Set(['edge', 'container', 'brace', 'align', 'spread', 'row', 'col',
+    'default', 'step']);
   for (const head of DG_KEYWORDS) {
     ok(DG_PLACED_HEADS.has(head) !== EXEMPT.has(head),
       `${head} is classified: it either takes a placement or is exempt`,

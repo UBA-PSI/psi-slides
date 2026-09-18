@@ -393,7 +393,10 @@ edge b -> x {.dashed}
 ## figure: Alignment {.wide #alignment}
 
 ::: draw 140x70
-default box {.tone-2}
+# `.own` on every box, because this figure's whole subject is what uneven
+# widths do to a row. A run of `right of` boxes shares one size by default now,
+# which would make both rows level and leave nothing to compare.
+default box {.tone-2 .own}
 
 box a "one"                     at 0,0
 box b "a much longer label"     right of a gap 1.2

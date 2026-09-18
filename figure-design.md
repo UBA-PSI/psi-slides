@@ -509,35 +509,50 @@ matrix row, an axis title. It is not a way to make a figure look busy.
 
 ## 11. Size is a claim, so make every size deliberate
 
-**Do:** give elements of the same kind the same size, with `same as`. Reach for
-a bigger box only where the thing in it really does contain or control the
-smaller ones.
+**Do:** nothing, for a row – the engine gives a run of `right of` boxes one
+size. Reach for a written size, or for `{.own}`, only where the thing in the
+bigger box really does contain or control the smaller ones.
 
 **Why:** relative size reads as importance (Carter). A box half again as wide as
 its neighbours is taken to be the important one before anyone has worked out
 why, and the usual reason it is wider is that its label happened to have more
 letters in it. That is the drawing making an argument the author never made.
+This rule is the one the engine took over: it is a default now, so the wrong
+picture is the one that costs a word.
 
 ```
 # wrong: three peers, and the middle one is twice the size of the others
-# because "Correlation engine" is twice as long a phrase
-box a "Sensor" at 0,0 {.tone-1}
-box b "Correlation engine" right of a gap 0.4 {.tone-1}
-box c "Log" right of b gap 0.4 {.tone-1}
+# because "Correlation engine" is twice as long a phrase. It takes a `.own`
+# per box to write it at all now – keep the shape in mind for a drawing you
+# did not make.
+box a "Sensor" at 0,0 {.tone-1 .own}
+box b "Correlation engine" right of a gap 0.4 {.tone-1 .own}
+box c "Log" right of b gap 0.4 {.tone-1 .own}
 
-# right: one width for the set, and the long label breaks instead
-box a "Sensor" at 0,0 w 1.5 h 0.85 {.tone-1}
-box b "Correlation\nengine" right of a gap 0.4 same as a {.tone-1}
-box c "Log" right of b gap 0.4 same as a {.tone-1}
+# right: say nothing, and break the long label where the phrase divides
+box a "Sensor" at 0,0 {.tone-1}
+box b "Correlation\nengine" right of a gap 0.4 {.tone-1}
+box c "Log" right of b gap 0.4 {.tone-1}
 ```
 
-The `\n` is the whole fix for the long one. There is no automatic line
-breaking, so the break is a decision, and putting it where the phrase divides
-reads better than any measure the build could take. The height on the first box
-is written out for a related reason: `same as` copies whatever size it finds, so
-a one-line box would hand a one-line height to the box that now has two lines in
-it. `.shrink` is the other answer where the box may not grow – but type size is
-a size claim too, and a room reads small type as less important.
+The `\n` is the whole remaining fix. There is no automatic line breaking, so the
+break is a decision, and putting it where the phrase divides reads better than
+any measure the build could take – and the row's three boxes then take the
+two-line height together, because they are peers. `.shrink` is the other answer
+where the box may not grow – but type size is a size claim too, and a room reads
+small type as less important.
+
+**Down a column the engine shares the width and not the height**, because a
+stack of bands is as often a record – a header, three fields, a signature – as
+it is a row on its side, and each band's height is what stands in it. Where a
+column really is a set of peers, `col a, b, c` says so in one line and shares
+both. `row a, b, c gap 0.8` is the same statement across, and it places what it
+names, so a row of peers is one line rather than one `same as` and one `gap` per
+box. Both are also the answer when a box stands in a row *and* a column and so
+comes out wider than its own row: a statement levels its members against
+everything else they stand in, where the implicit rule cannot. Where only one
+axis is shared – a one-line box that wants its neighbour's height and its own
+width – it is `same h as` / `same w as`.
 
 ### And the slide has a size claim of its own
 

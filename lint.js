@@ -1127,11 +1127,23 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       const key = words[k];
       if (key === '->' || key === '--') { k += 2; continue; }
       if (key === 'same') {
+        // Three forms: both axes, or one of them. `same h as X` is what a
+        // one-line box beside a two-line one wants, and the only way to give a
+        // zone a height without writing the number.
+        if ((words[k + 1] === 'w' || words[k + 1] === 'h')
+          && words[k + 2] === 'as' && words[k + 3] !== undefined) {
+          k += 4;
+          continue;
+        }
         if (words[k + 1] !== 'as' || words[k + 2] === undefined) {
           add(ln, 'error', 'diagram-unexpected-token',
-              `${head} ${id}: 'same' must be written 'same as <element>'`);
+              `${head} ${id}: 'same' must be written 'same as <element>', `
+              + `'same w as <element>' or 'same h as <element>'`);
+          // One sentence per statement, as the build does: everything past a
+          // token whose shape is lost is a guess.
+          return k;
         }
-        k += (words[k + 1] === 'as' && words[k + 2] !== undefined) ? 3 : 2;
+        k += 3;
         continue;
       }
       if (['w', 'h', 'r', 'pad', 'point'].includes(key) && opts.includes(key)) { k += 2; continue; }
@@ -1211,6 +1223,13 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // How many statements have drawn a node so far, which is the compiler's own
   // test for "is this the first element": it asks `model.nodes.length === 0`.
   let nodesSoFar = 0;
+  // Everything a `row` or a `col` names, and every element that read its whole
+  // line and stated no placement. The complaint is deferred to the end of the
+  // block for the reason the build defers it: a member list may be written
+  // before or after the elements it names, so a `row` three lines down is this
+  // element's placement.
+  const rowMembers = new Set();
+  const unplaced = [];
   for (let n = 0; n < block.lines.length; n++) {
     const { text, ln } = block.lines[n];
     if (n < rowsRead) continue;
@@ -1295,6 +1314,35 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         add(ln, 'error', 'bad-diagram-align', `spread ${axis} needs at least three elements`);
       }
       for (const m of members) refer(m, ln, `${head} ${axis}`);
+      inStep = false;
+      continue;
+    }
+
+    // `row a, b, c [gap N]` / `col …` – the explicit spelling of a chain. It
+    // draws nothing and, like `align` and `spread`, only names elements that
+    // exist; what it adds is that its members share one size and that every
+    // member with no placement of its own is placed after the one before it.
+    // That last part is why `rowMembers` is collected: the no-placement
+    // complaint below has to wait for it, because the statement may be written
+    // after the boxes it names.
+    if (head === 'row' || head === 'col') {
+      const toks = words.slice(1);
+      const gi = toks.indexOf('gap');
+      if (gi >= 0 && toks.length > gi + 2) {
+        add(ln, 'error', 'bad-diagram-row', `unexpected '${toks[gi + 2]}' in ${head} – a ${head} `
+            + `takes its members and one optional 'gap N', and nothing else`);
+      }
+      const members = (gi < 0 ? toks : toks.slice(0, gi))
+        .join(',').split(',').map(x => x.trim()).filter(Boolean);
+      if (members.length < 2) {
+        add(ln, 'error', 'bad-diagram-row', `${head} needs at least two elements – it says they `
+            + 'are peers, which one element cannot be');
+      }
+      // Every member after the first, and only those: the statement places
+      // each member against the one before it, so the first still has to say
+      // where the row goes. Exempting it here would be a linter laxer than the
+      // build, which is the one direction that merges green.
+      members.forEach((m, i) => { refer(m, ln, head); if (i) rowMembers.add(m); });
       inStep = false;
       continue;
     }
@@ -1448,7 +1496,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       // build either - it reports the missing name and pushes nothing, so it
       // is not the block's first node and it is not asked where it goes.
       if (words[1] && nodesSoFar > 0 && !series && !placed && !noted.has(ln)) {
-        add(ln, 'error', 'diagram-no-placement', dgNoPlacement(head, words[1]));
+        unplaced.push({ ln, head, id: words[1] });
       }
       if (words[1]) nodesSoFar++;
     }
@@ -2123,8 +2171,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         tags.add(dgZoneTag(words[1]));
         // Both numbers, because an area is a fixed claim on the paper - that
         // is the whole difference from a container, which fits its members.
-        if (!words.includes('w') || !words.includes('h')) {
-          add(ln, 'error', 'bad-diagram-zone', `zone ${words[1]} needs both 'w' and 'h' - an area `
+        // Unless another element states one of them: "fixed" and "written
+        // here" are two different claims, and `same h as` names where the
+        // height comes from.
+        const sameAxis = (a) => words.some((w, i) => w === 'same'
+          && (words[i + 1] === a ? words[i + 2] === 'as' : words[i + 1] === 'as'));
+        if ((!words.includes('w') && !sameAxis('w')) || (!words.includes('h') && !sameAxis('h'))) {
+          add(ln, 'error', 'bad-diagram-zone', `zone ${words[1]} needs both 'w' and 'h' (or `
+              + `'same as' / 'same w as' / 'same h as <element>') - an area `
               + `is a fixed claim on the paper, which is the whole difference from a container.`);
         }
       }
@@ -2219,7 +2273,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
           for (const pn of parts) refer(pn, ln, `${head} ${words[1]}`);
           k = m - 1;
         }
-        // `same as X` copies X's geometry, so X has to exist.
+        // `same as X` copies X's geometry, so X has to exist – and so does the
+        // element a single axis is copied from.
+        if (words[k] === 'same' && (words[k + 1] === 'w' || words[k + 1] === 'h')
+          && words[k + 2] === 'as') {
+          refer(words[k + 3], ln, `${head} ${words[1]} (same ${words[k + 1]} as)`);
+          k += 3;
+          continue;
+        }
         if (words[k] === 'same' && words[k + 1] === 'as') {
           refer(words[k + 2], ln, `${head} ${words[1]} (same as)`);
           k += 2;
@@ -2361,6 +2422,10 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         for (const g of gate) add(st.ln, 'error', 'diagram-class-on-kind', g.msg);
       }
     }
+  }
+  // Whatever no `row` or `col` turned out to place.
+  for (const u of unplaced) {
+    if (!rowMembers.has(u.id)) add(u.ln, 'error', 'diagram-no-placement', dgNoPlacement(u.head, u.id));
   }
   for (const c of carries) {
     const table = tagDefaults.get(c.kind);
