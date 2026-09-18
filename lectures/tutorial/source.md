@@ -340,7 +340,13 @@ Every paragraph under it is another line, at the same size and in the same ink.
 
 A `---` between two of them is one press.
 
+---
+
+*A paragraph all in italic is the quiet line.*
+
 > note: This is the type that says “no”. No eyebrow, no rule above, no first-sentence derivation – whatever is written here is what the room reads, whole. It is the keynote slide the vocabulary had no word for, and authors used to fake it with `::: cards 1 {.large .clear}`, which sets the words in the accent colour and smaller than a heading, or with a `::: draw` of large text, which is a drawing and cannot wrap. `{.center}` moves the whole run onto a centre axis, heading included – the only type where the class reaches the heading, because here the heading is one of the lines. The budget is 80 words, a principle's.
+>
+> The last line is the type's second register, and the whole of it: a definition standing over the claim it qualifies, a source under it. *Entirely* in italic – a statement line with one emphasised word in it is a loud line with a stress mark, which is what `*em*` means everywhere else.
 
 ## exercise: Try the vocabulary | three edits, with `--watch` running {.wide #try-tags}
 

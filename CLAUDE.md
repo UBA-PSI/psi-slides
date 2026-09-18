@@ -334,7 +334,7 @@ A chunk can opt out of that derivation with `::: slide` (this block is the scree
 Chunk grammar: `## type: Heading | Sub-Heading {.width #id}` where `type` is one of `title`, `closing`, `outline`, `principle`, `statement`, `definition`, `example`, `question`, `figure`, `exercise`, `free`, and width is one of `narrow` (28em), `standard` (36em), `wide` (52em), `full` (72em). The `|` sub-heading and the `{...}` attribute tail are both optional; width defaults to `standard`.
 
 An attribute tail may also carry the non-width classes: `.bare`, `.center`
-and `.middle` (audience-only), `.wrap-none` / `.wrap-balance` /
+and the pair `.middle` / `.top` (audience-only), `.wrap-none` / `.wrap-balance` /
 `.blocks-left` /
 `.blocks-center` (`CHUNK_STYLE_CLASSES`, a `style:` key answered for one chunk,
 and these four reach print), and `.figure-type-60` … `.figure-type-160`, the
@@ -342,14 +342,28 @@ same idea for a key whose value is a number – eleven steps spelled as per cent
 generated from `FIGURE_TYPE_STEPS`, live-only because the key is. The whole tail
 vocabulary is `CHUNK_SLOTS` in
 `tails.mjs`, a slot table like the five directives': width is a slot of four,
-each style key a slot of its own words, `.bare`, `.center` and `.middle` flags with no
+each style key a slot of its own words, `.bare` and `.center` flags with no
 writable default. All are refused on a `title` or
-`closing` chunk except the `style:` ones. **`.middle` is read by the camera and
+`closing` chunk except the `style:` ones. **`.middle` / `.top` is read by the camera and
 not by the stylesheet**: `focusCamera` frames `paintedSpan(.chunk-content)`
 rather than the content box, so the beat that is on the slide is centred
 instead of the box the reveals will fill. Every chunk-content box is centred
 already, which is why the class is about what is *painted*; the cost it buys
-the centring with is a camera glide per press, which is why it is opt-in. **The vocabulary, what each one costs,
+the centring with is a camera glide per press.
+
+**That pair is the one slot with no default at all, because the answer is read
+off the chunk's shape.** `CHUNK_SLOTS.anchor` resolves to `null` when neither
+word is written, and `chunkOpensCentred` in the parser then decides: a slide
+that *is* a picture – one `::: draw`, or one image, and no prose on the slide
+beside it – and a `statement:`, whose heading and paragraphs are one size and
+arrive one per press, open centred; everything else keeps its head at the top,
+because prose grows downwards and a reader expects the heading to stay. It is a
+shape and not a type: `lectures/diagrams`' `figure:` chunks are two paragraphs
+explaining a drawing and stay top-anchored, while the picture slide is written
+as `free:`, `figure:` and `example:` across the corpus. An aside does not count
+against it – a `::: footnote`, a `::: marginalia` and a `::: expand` are lifted
+off the slide before `isPictureBody` sees the body. `.middle` and `.top` are the
+overrides in both directions, and `.middle .top` is `same-slot`. **The vocabulary, what each one costs,
 the character budget a code line has and why `.bare` hides rather than drops are
 in the `psi-slides-authoring` and `psi-slides-appearance` skills** – authoring
 for what to write, appearance for what the build does with it.
@@ -458,7 +472,13 @@ character for character, so a deck with no `lang:` or `lang: en` builds
 byte-identical HTML. `style: {hyphenate: …}`
 says which views use it (`print` – the default and today's behaviour – / `all` /
 `none`); the two are separate keys because the language is a property of the
-lecture and the hyphenation is a preference. Seven themes cycle on
+lecture and the hyphenation is a preference. **`all` is narrower on the
+projection than on paper**: centred prose and dividers stay out of the
+dictionary, the limit is `8 4 4` rather than print's `6 3 3`, and a token
+carrying a dot between two word characters, a slash or a no-break space is
+wrapped in `<span class="nohy">` by `markAddresses` – a `marked` text-renderer
+override, because no selector can name a run of characters, and emitted only
+under `all`, so no other deck's bytes move. Seven themes cycle on
 `A`, and `applyFontTheme()` sets `body[data-mode]`, which is what every piece of
 chrome keys off rather than a theme name. Ten frontmatter keys pin how a
 lecture opens – the three newest, `note-button`, `neighbours` and
