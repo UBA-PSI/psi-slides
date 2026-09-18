@@ -348,14 +348,18 @@ step cache
 
 ## figure: Distributed Denial of Service (DDoS) attack | attacker instructs hosts infected with malware to flood a victim with traffic {.full #ns-a28}
 
-::: draw 100x76
+::: draw 115x38
 # In the original the bots lie on a world map. That stays out here: a raster
 # image follows no theme and costs over 100 kB. Scattered sources all round
 # say the same thing - "distributed" was the argument, the geography never
 # was. Every label is verbatim from the original.
-default box {.accent} w 0.44 h 0.3
+#
+# The ring is an ellipse rather than a circle, and that is the grid: the cell
+# is wide and flat, so the same eight coordinates scatter the bots across the
+# slide instead of stacking them down it.
+default box {.accent} w 0.44 h 0.55
 
-box vic "Victim" at 0,0 w 1.05 h 0.62 {.tone-4 !accent}
+box vic "Victim" at 0,0 w 1.05 {.tone-4 !accent}
 
 box n1 "" at -2.6,-1.5 {@bots}
 box n2 "" at -1.0,-2.2 {@bots}
@@ -380,8 +384,8 @@ edge f8 n8 -> vic.left:0.7 {.accent @flood}
 
 text bn "*Botnet* of\ninfected hosts" above n4 gap 0.45 -- n4 {.small}
 
-text note1 "Victim (and ISPs) cannot filter the DDoS\ntraffic as it resembles legitimate traffic." at -3.3,2.95 {.left .muted @conc}
-text note2 "Bots send requests using their actual\nIP address, i.e., do not use IP Spoofing." at 0.35,2.95 {.left .muted @conc}
+text note1 "Victim (and ISPs) cannot filter the DDoS\ntraffic as it resembles legitimate traffic." at -3.0,2.95 {.left .muted @conc}
+text note2 "Bots send requests using their actual\nIP address, i.e., do not use IP Spoofing." at 0.5,2.95 {.left .muted @conc}
 
 step botnet
   show @bots, bn
@@ -397,24 +401,29 @@ step unfilterable
 
 ## figure: DoS attacks are also possible without access to a botnet | Attackers can use connectionless protocols and spoof their Src IP to hide their identity {.full #ns-a29}
 
-::: draw 96x74
+::: draw 60x30
 # Again with no world map, for the same reasons as the figure before. The
 # dashed boxes with the question mark are the "faked sources": what is not
 # genuine about them is the outline. Text verbatim from the original; only the
 # line breaks in the box on the right are re-set - the original breaks
 # "proto-cols" mid-word there, because its frame ran out.
-default box {.accent} w 0.44 h 0.34
+#
+# The slide is two bands: the attacker, the flattened ring and the reason it
+# works across the top, the three conclusions along the foot. The attacker
+# stands beside the victim rather than under it, so the arrow it sends is
+# horizontal and its caption fits in the gap.
+default box {.accent} w 0.9 h 0.7
 
-box vic "Victim" at 0,0 w 1.05 h 0.62 {.tone-4 !accent}
+box vic "Victim" at 0,0 w 1.5 {.tone-4 !accent}
 
-box q1 "?" at -2.6,-1.5 {.dashed @fake}
-box q2 "?" at -1.0,-2.2 {.dashed @fake}
-box q3 "?" at 1.1,-2.0 {.dashed @fake}
-box q4 "?" at 2.7,-1.1 {.dashed @fake}
-box q5 "?" at 2.9,0.9 {.dashed @fake}
-box q6 "?" at 1.0,2.1 {.dashed @fake}
-box q7 "?" at -1.2,2.0 {.dashed @fake}
-box q8 "?" at -2.9,0.75 {.dashed @fake}
+box q1 "?" at -1.5,-1.3 {.dashed @fake}
+box q2 "?" at -0.58,-2.2 {.dashed @fake}
+box q3 "?" at 0.67,-2.0 {.dashed @fake}
+box q4 "?" at 1.47,-1.1 {.dashed @fake}
+box q5 "?" at 1.6,0.9 {.dashed @fake}
+box q6 "?" at 0.17,2.1 {.dashed @fake}
+box q7 "?" at -1.0,2.0 {.dashed @fake}
+box q8 "?" at -1.75,0.8 {.dashed @fake}
 
 edge q1 -> vic.left:0.25 {.accent @spoofed}
 edge q2 -> vic.top:0.35 {.accent @spoofed}
@@ -425,20 +434,21 @@ edge q6 -> vic.bottom:0.65 {.accent @spoofed}
 edge q7 -> vic.bottom:0.35 {.accent @spoofed}
 edge q8 -> vic.left:0.7 {.accent @spoofed}
 
-text fs "Faked sources" right of q5 gap 0.6 -- q5 {@fake}
+text fs "Faked sources" below q5 gap 0.4 -- q5 {@fake}
 
-box atk "Attacker" at -4.3,2.6 w 0.95 h 0.55 {@real}
-edge real-traffic atk -> vic.bl {.accent .thick @real}
+box atk "Attacker" at -4.7,0 w 1.45 {@real}
+edge real-traffic atk -> vic.left {.accent .thick @real}
 # The label sits on the line rather than beside it, and .paper knocks the line
-# out for it - otherwise line and word read as one pattern.
-text tr "Traffic of the DoS attack" between atk,vic pad 0.14 {.paper .accent @real}
+# out for it - otherwise line and word read as one pattern. Two lines rather
+# than one: the same words, in the gap the flattened ring leaves.
+text tr "Traffic of the\nDoS attack" at -3.0,0 pad 0.14 {.paper .accent @real}
 text loc "Attacker's real location\nis unknown (IP spoofing)." below atk gap 0.4 {.muted @real}
 
-box why "Faking Src IP possible for\nconnectionless protocols,\ne.g., ICMP (“ping”) or\nprotocols using UDP (DNS, NTP)" at 5.05,-1.7 w 2.8 h 1.2 {.clear @fake}
+box why "Faking Src IP possible for\nconnectionless protocols,\ne.g., ICMP (“ping”) or\nprotocols using UDP\n(DNS, NTP)" at 4.0,-0.6 w 3.8 h 3.8 {.clear @fake}
 
-text note1 "Victim (and ISPs) cannot filter the DoS\ntraffic if it resembles legitimate traffic." at -4.6,4.3 {.left .muted @conc}
-text note2 "To mitigate IP Spoofing many (all) ISPs would\nhave to perform *Ingress/Egress Filtering*.\nDifficult due to negative externality." at -0.4,4.2 {.left .muted @conc}
-text bcp "cf. BCP 38: Ingress Filtering" at 5.1,5.3 {.small .muted @conc}
+text note1 "Victim (and ISPs) cannot filter the DoS\ntraffic if it resembles legitimate traffic." at -5.6,3.4 {.left .muted @conc}
+text note2 "To mitigate IP Spoofing many (all) ISPs would\nhave to perform *Ingress/Egress Filtering*.\nDifficult due to negative externality." at -1.58,3.67 {.left .muted @conc}
+text bcp "cf. BCP 38: Ingress Filtering" at 2.9,3.17 {.small .muted .left @conc}
 
 step attacker
   show @real
