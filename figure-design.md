@@ -415,7 +415,7 @@ target, the final approach is exactly horizontal by construction rather than by
 arithmetic you would have to redo.
 
 **The commonest bend of all is one word.** `.elbow` leaves on the axis the two
-ends are furthest apart on, runs a rail halfway across the gap, and turns in:
+ends are furthest apart on, runs a rail across the gap, and turns in:
 one turn out, one turn in, no waypoints written. It is what a tree's brackets
 are made of, because the rail is measured between the two elements' facing
 sides and not between their centres – so several children of one parent, sitting
@@ -1228,8 +1228,11 @@ Knowing the walls saves the time spent walking into them.
 - **No automatic routing.** Edges are straight segments through the waypoints
   you write. Nothing steps around a box for you, and nothing fans out parallel
   edges – that is what the `:0.3` / `:0.7` fractions are for. The single
-  coordinate the engine will invent for you is `.elbow`'s rail, and it is fixed
-  at halfway across the gap with no option to move it.
+  coordinate the engine will invent for you is `.elbow`'s rail, and you have no
+  option to move it: it sits halfway across the gap, unless halfway would leave
+  too little run after it for the arrowhead to read, in which case it sits
+  nearer the source. Where the gap is too small for even that, the build says
+  so and the number to change is the gap.
 - **No automatic line breaking.** A label breaks where you write `\n`, and
   nowhere else.
 - **No shadows and no gradients.** Drawing order is fixed too – containers,

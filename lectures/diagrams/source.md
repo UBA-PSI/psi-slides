@@ -953,7 +953,7 @@ lanes swim "User | SOC | IT ops" at 0,0 w 7.25 band 1.0 {.muted}
 box rep  "Phishing mail\nreported" at swim.left+0.8,swim-0.cy w 1.4 {.tone-2}
 box tri  "Triage"                  at swim.left+2.9,swim-1.cy w 1.0 {.tone-1}
 box hunt "Who else\ngot it?"       at swim.left+4.85,swim-1.cy w 1.2 {.tone-1}
-box blk  "Sender blocked"          at swim.left+6.35,swim-2.cy w 1.4 {.tone-4}
+box blk  "Sender blocked"          at swim.left+6.5,swim-2.cy w 1.4 {.tone-4}
 
 # Every hand-off changes band, which is what .elbow is for: a straight line
 # from here to there would run diagonally through a band it never enters.
@@ -971,7 +971,7 @@ step answered
 
 **The bands are equal, their contents are not, and that is why they are no `container`.** A container measures itself against what it holds, so three bands with different numbers of boxes would come out different lengths at both ends – the one thing a swimlane diagram must not say. `lanes` lays the frame, divides it into bands of equal height and writes the names turned on end in front of the left edge; the bands are `.clear` so that everything in them reads over them. It needs no time axis: the reading direction is the axis.
 
-**Every hand-off changes band, and `.elbow` is the routing for it.** The class draws two waypoints itself – a rail halfway across the gap, on the axis the two ends are further apart on – instead of the same double bend written out by hand on every edge. A straight line would do something else: it would run diagonally through a band it never enters, and the room reads that as involvement.
+**Every hand-off changes band, and `.elbow` is the routing for it.** The class draws two waypoints itself – a rail across the gap, on the axis the two ends are further apart on – instead of the same double bend written out by hand on every edge. A straight line would do something else: it would run diagonally through a band it never enters, and the room reads that as involvement.
 
 **The one edge label sits *beside* the line, not on it.** “same sender” describes what travels along the line, and a sentence with a rule through the middle of it is read as two fragments before it is read as a sentence. `side top` lifts it over the line; on a vertical edge it would be `side left` and `side right`, and which pair applies is known only once the edge has been routed – so the wrong pair is a warning at build time rather than an error at parse time. The label is moved clear by what it measures *across* the line: beside a horizontal edge its height, beside a vertical one its width, there with a margin, because a gap across a line of type needs more air than one above it. This label needs no ground: there is nothing but band under it. What a ground does, and how large it may be, is on *A frame to draw in*.
 
@@ -1013,7 +1013,7 @@ step certificates
 
 ## free: One word draws all six brackets {.wide #tree-elbow}
 
-**Every bracket in that tree is the same word, written six times.** `.elbow` leaves one end on the axis the two are further apart on, runs a rail halfway across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements' *facing edges*, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with `via`; both on one line is an error. `.elbow` shares a slot with `.smooth`: how a line is drawn is a question with exactly one answer.
+**Every bracket in that tree is the same word, written six times.** `.elbow` leaves one end on the axis the two are further apart on, runs a rail across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements' *facing edges*, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with `via`; both on one line is an error. `.elbow` shares a slot with `.smooth`: how a line is drawn is a question with exactly one answer.
 
 **Its dashed box stands around the whole set before the set is assembled.** It is written into the same beat as the issuers (`show @issuers, scope`), though its other two members arrive a beat later. Without the written `show` the usual rule applies: an outline is only as visible as its members and fits itself to the ones you can see, so it would first have grown around the issuer alone and then opened downwards. Naming it gets you both the visibility *and* the full extent. That is what the exception is for, and it is expressly not for the ordinary case.
 

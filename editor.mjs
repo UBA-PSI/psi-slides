@@ -453,7 +453,7 @@ const DGE_SLOTS = [
   { key: 'reading', label: 'reading',
     options: [{ cls: '', label: 'across' }, { cls: 'turn', label: 'up' }] },
   // One slot, "how a line is drawn": the waypoints as segments, as a spline
-  // through them, or as a rail halfway across the gap. `.elbow` writes its own
+  // through them, or as a rail across the gap. `.elbow` writes its own
   // two waypoints, so the compiler refuses an edge that also carries `via`
   // rather than silently preferring one – an edge already bent by hand is
   // therefore not offered it.
@@ -4893,9 +4893,10 @@ function dgeRenderSide() {
     wrap.appendChild(dgeEl('h3', { text: 'waypoints' }));
     if (!via.length) {
       wrap.appendChild(dgeEl('div', { class: 'dge-hint', text: dgeCurveOf(single) === 'elbow'
-        ? 'None – .elbow draws its own two waypoints, a rail halfway across the gap on '
-          + 'whichever axis the ends are further apart. An edge cannot carry both, so take '
-          + 'the class off to bend it by hand.'
+        ? 'None – .elbow draws its own two waypoints, a rail across the gap on whichever '
+          + 'axis the ends are further apart. Halfway, unless that leaves too little run '
+          + 'after it for the arrowhead to read, in which case it sits nearer the source. '
+          + 'An edge cannot carry both, so take the class off to bend it by hand.'
         : 'None – the arrow runs straight. Drag one of the hollow dots on the line to bend it.' }));
     } else {
       const list = dgeEl('div', { class: 'dge-chips' });

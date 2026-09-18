@@ -96,6 +96,23 @@ export const DG_GAP_JOINED = 1.6;     // …and for a pair an edge joins
 // least that still reads as an arrow rather than a wedge between two boxes.
 // It sits just under DG_GAP_JOINED on purpose, so the default never trips it.
 export const DG_EDGE_MIN = 1.5;
+// The same rule one shape along, for an `.elbow`. An elbow's head sits at the
+// end of the run *after* the rail, and that run is the only part of the route
+// that says which box the arrow is pointing into – the rail says nothing, it
+// is shared. Measured on a real keynote: two elbows across a 30 px gap put the
+// rail at 15 px, so the head had 15 px of run to stand on, most of which the
+// head itself is, and against a `.dashed` target the arrow read as a head
+// resting on the dashes rather than arriving at them.
+//
+// One label plus the head is the floor, and it is stated in px rather than in
+// rows for the reason DG_EDGE_MIN is: what crowds a head is the head, which is
+// a number of pixels whatever grid the block declares.
+export const DG_ELBOW_ARRIVE = DG_LABEL_H + DG_HEAD;   // px, the run after the rail
+// …and the run *before* it keeps at least a head's length, or moving the rail
+// to buy the arrival run simply spends the same problem at the other end. It
+// is the bound that keeps the rail a rail: `.elbow` still looks at nothing in
+// the figure but its own two ends.
+export const DG_ELBOW_LEAVE = DG_HEAD;                 // px, the run before the rail
 export const DG_MARGIN = 12;          // viewBox breathing room, px
 // Nominal intrinsic width. Deliberately wider than any chunk measure so
 // that max-width: 100% always binds – see the comment where it is emitted.
@@ -169,9 +186,13 @@ export const DG_CLASSES = new Set([
   // Called `.front` and not `.over`, because `over` is already the keyword
   // that gives a container its members.
   // `.elbow` is the one place the engine puts a coordinate on the page the
-  // author did not write, and it is bounded on purpose: the rail is always
-  // halfway across the gap, on whichever axis the two ends are further apart,
-  // and there is no option to move it. It looks at nothing else in the figure,
+  // author did not write, and it is bounded on purpose: the rail is halfway
+  // across the gap, on whichever axis the two ends are further apart, and the
+  // author has no option to move it. The one thing that does move it is the
+  // arrival run – the part of the route after the rail, which is all the
+  // reader has to tell which box the arrow points into: where halfway leaves
+  // it under DG_ELBOW_ARRIVE the rail slides toward the source until it is
+  // that long, stopping at DG_ELBOW_LEAVE out. It looks at nothing else in the figure,
   // so it is not routing – nothing steps around an obstacle for you – it is
   // the two waypoints every tree edge was written with by hand, said once.
   // An edge that needs its rail somewhere else writes `via`, and saying both
@@ -2665,10 +2686,34 @@ export function dgEdgeRoute(e, classes, boxes, uw, uh) {
   // Halfway across the gap between the two faces, never halfway between the two
   // centres: measured from the faces, two edges out of one parent share a rail
   // and the drawing reads as one bracket.
-  const rail = elbow
-    ? (down ? [[start[0], (start[1] + end[1]) / 2], [end[0], (start[1] + end[1]) / 2]]
-      : [[(start[0] + end[0]) / 2, start[1]], [(start[0] + end[0]) / 2, end[1]]])
-    : viaPx;
+  //
+  // …until halfway leaves the arrival run too short to read. The run after the
+  // rail is the only part of an elbow that says which box the arrow points
+  // into, and on a small gap half of it is the arrowhead. So the rail slides
+  // *toward the source*, far enough to give the arrival run DG_ELBOW_ARRIVE and
+  // no further – it is never pushed past halfway, and it never takes the
+  // leaving run below DG_ELBOW_LEAVE, because a rail that has swapped the two
+  // problems has solved neither. Where the gap cannot pay for both the rail
+  // stays where it was, halfway, and `dgEdgeShortWarnings` says so: the fix is
+  // then a number on the boxes, which is not the route's to write.
+  //
+  // Two edges out of one parent keep their shared rail through all of it, which
+  // is the property the bracket is made of: the offset is a function of the
+  // span alone, so ends the same distance apart move together.
+  const railAt = (a, b) => {
+    const span = Math.abs(b - a);
+    const half = span / 2;
+    const off = Math.min(half, Math.max(span - DG_ELBOW_ARRIVE, Math.min(DG_ELBOW_LEAVE, half)));
+    return a + (b >= a ? off : -off);
+  };
+  let rail;
+  if (elbow && down) {
+    const ry = railAt(start[1], end[1]);
+    rail = [[start[0], ry], [end[0], ry]];
+  } else if (elbow) {
+    const rx = railAt(start[0], end[0]);
+    rail = [[rx, start[1]], [rx, end[1]]];
+  } else rail = viaPx;
   return [start, ...rail, end];
 }
 
@@ -6843,13 +6888,23 @@ export function createDiagramCompiler(env = {}) {
   // this warning names – a `gap` on one of the two elements – is not a line
   // the author has. Where such a run is too short the number to change is the
   // statement's own `space`, which is a different report and not this one.
+  //
+  // **An `.elbow` is measured on its arrival run instead of on the whole
+  // route**, and it is the same question rather than a second one. An elbow's
+  // exposed run is mostly rail, and the rail is shared: it says nothing about
+  // which box the arrow points into. What the head stands on is the run after
+  // the rail, and `dgEdgeRoute` already slides the rail toward the source to
+  // buy that run DG_ELBOW_ARRIVE wherever the gap can pay for it and still
+  // leave a head's length behind. So this fires exactly where the gap cannot
+  // pay for both, and the fix it names is the one the route does not have: a
+  // number on the boxes, or `via` to write the route by hand.
   function dgEdgeShortWarnings(model, states, frames, frameBoxes, warn) {
     const [uw, uh] = model.unit;
     const min = DG_EDGE_MIN * DG_LABEL_H;
     for (const e of model.edges) {
       if (e.synth) continue;
       if (e.from.point || e.to.point) continue;
-      let worst = null, everyBeat = true, seen = 0;
+      let worst = null, everyBeat = true, seen = 0, bent = false;
       for (let k = 0; k < frames.length && everyBeat; k++) {
         if ((frames[k].vis.get(e.id) ?? 1) <= 0) continue;
         const st = states[k] && states[k].get(e.id);
@@ -6870,15 +6925,41 @@ export function createDiagramCompiler(env = {}) {
         if (!pts || pts.length < 2) { everyBeat = false; break; }
         const ends = [frameBoxes[k].get(e.from.ref), frameBoxes[k].get(e.to.ref)]
           .filter(b => b && b.w > 0 && b.h > 0);
+        // Four points and no `via` is the elbow route, the same shape
+        // dgElbowRailWarnings reads: start, the two ends of the rail, end.
+        const elbow = st.classes.has('elbow') && !(e.via && e.via.length) && pts.length === 4;
         let run = 0;
-        for (let i = 0; i + 1 < pts.length; i++) {
-          run += dgExposedRun(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], ends);
+        if (elbow) {
+          run = dgExposedRun(pts[2][0], pts[2][1], pts[3][0], pts[3][1], ends);
+        } else {
+          for (let i = 0; i + 1 < pts.length; i++) {
+            run += dgExposedRun(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], ends);
+          }
         }
+        const floor = elbow ? DG_ELBOW_ARRIVE : min;
         seen++;
-        if (run >= min) { everyBeat = false; break; }
-        if (worst == null || run < worst) worst = run;
+        if (run >= floor) { everyBeat = false; break; }
+        // The span the rail is placed inside, which is what an author would
+        // have to widen: both outer runs together.
+        const span = elbow
+          ? run + Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1])
+          : 0;
+        if (worst == null || run < worst.run) { worst = { run, span }; bent = elbow; }
       }
       if (!everyBeat || worst == null || !seen) continue;
+      if (bent) {
+        const want = Math.ceil((((DG_ELBOW_ARRIVE + DG_ELBOW_LEAVE) - worst.span) / uh) * 100) / 100;
+        warn(`edge ${e.id}${dgSite(e)}: its elbow arrives over ${Math.round(worst.run)} px `
+          + `(${(worst.run / DG_LABEL_H).toFixed(2)} labels) of run after the rail, and the `
+          + `arrowhead alone is ${DG_HEAD} px – so the head reads as resting on ${e.to.ref}'s `
+          + `outline rather than arriving at it, and nothing in the route says which box it left. `
+          + `The rail is already as far toward ${e.from.ref} as it can go without losing the run `
+          + `it leaves on, so the fix is the room between the two: about ${want.toFixed(2)} more `
+          + `rows of gap – a gap is measured in rows on both axes – or via to write the route `
+          + `yourself.`);
+        continue;
+      }
+      worst = worst.run;
       // The number the author would have to write to clear it, in the unit a
       // written gap is in – rows – so it can be typed straight onto the line.
       const want = Math.ceil(((DG_GAP_JOINED * DG_LABEL_H - worst) / uh) * 100) / 100;

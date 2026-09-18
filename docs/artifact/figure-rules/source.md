@@ -791,12 +791,12 @@ edge d1.left -> acc.left "yes" via d1.left-0.55,d1.cy d1.left-0.55,acc.cy side l
 # be written in a box. Every hand-off changes lane, which is why they are
 # elbows: a straight line between two bands reads as a diagonal across a band
 # it never enters, and there are four of those here.
-lanes swim "User | SOC | IT ops" at 0,0 w 7.05 band 0.95 {.muted .dashed}
+lanes swim "User | SOC | IT ops" at 0,0 w 7.35 band 0.95 {.muted .dashed}
 box rep "Reports\nsuspect mail"      at swim.left+0.75,swim-0.cy w 1.2 {.tone-2}
-box tri "Triage"                     at swim.left+2.05,swim-1.cy w 0.9 {.tone-1}
-box con "Confirmed\nmalicious"       at swim.left+3.35,swim-1.cy w 1.15 {.tone-4}
-box blk "Block sender,\nrecall copies" at swim.left+4.9,swim-2.cy w 1.3 {.tone-1}
-box ntf "Told what\nto look for"      at swim.left+6.3,swim-0.cy w 1.15 {.tone-2}
+box tri "Triage"                     at swim.left+2.15,swim-1.cy w 0.9 {.tone-1}
+box con "Confirmed\nmalicious"       at swim.left+3.45,swim-1.cy w 1.15 {.tone-4}
+box blk "Block sender,\nrecall copies" at swim.left+5.02,swim-2.cy w 1.3 {.tone-1}
+box ntf "Told what\nto look for"      at swim.left+6.6,swim-0.cy w 1.15 {.tone-2}
 edge rep -> tri {.elbow}
 edge tri -> con
 edge con -> blk {.elbow}

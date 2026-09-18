@@ -32,7 +32,8 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { frames, render, spans, ROOT } from './harness.mjs';
 import { DG_THEMES, dgSpans, dgMeasure, dgTokenize,
-  DG_LABEL_H, DG_GAP_JOINED, DG_HEAD, DG_FONT } from '../../diagram-core.mjs';
+  DG_LABEL_H, DG_GAP_JOINED, DG_HEAD, DG_FONT,
+  DG_ELBOW_ARRIVE, DG_ELBOW_LEAVE } from '../../diagram-core.mjs';
 
 export const name = 'the emitted drawing means what the source says';
 
@@ -453,6 +454,104 @@ export async function run({ report }) {
     const synth = shorts('a sequence of two actors',
       'sequence s at 0,0 space 0.1\n  actor a "A"\n  actor b "B"\n  a -> b "M"', '');
     ok(synth && synth.length === 0, 'a synthesised edge is exempt', synth && synth[0]);
+  }
+
+  // ── where an elbow puts its rail, and what it says when it cannot ──
+  // The run *after* the rail is the only part of an elbow that says which box
+  // the arrow points into: the rail itself is shared, and two edges out of one
+  // parent draw it on the same line on purpose. So the rail is halfway across
+  // the gap until halfway leaves that arrival run too short to read, and then
+  // it slides toward the source – far enough to buy DG_ELBOW_ARRIVE and no
+  // further, never past halfway, never below DG_ELBOW_LEAVE on the way out.
+  //
+  // Measured between the two box faces rather than off the drawn stroke: the
+  // stroke has already been trimmed back by most of an arrowhead, and what is
+  // being asserted is where the rail was put, not what is left of the line.
+  {
+    // A row on a 120x72 grid, with the second box moved across a fixed step.
+    // x is chosen so the two centres are always further apart across than
+    // down, which is what puts the rail on the vertical.
+    const ROW = (x, tok = '->') => `box a "A" at 0,0 w 1\nbox b "B" at ${x},1.4 w 1\n`
+      + `edge a ${tok} b {.elbow}`;
+    const runs = (what, x, tok) => {
+      const out = fig(what, ROW(x, tok), 'unit=120x72');
+      if (!out) return null;
+      const p = points(attrOf(out, 'edge-1--p', 'd'));
+      if (p.length !== 4) { ok(false, `${what} draws a four-point elbow`, `${p.length} points`); return null; }
+      const leftFace = +attrOf(out, 'a--r', 'x') + +attrOf(out, 'a--r', 'width');
+      const rightFace = +attrOf(out, 'b--r', 'x');
+      return { leave: p[1][0] - leftFace, arrive: rightFace - p[1][0] };
+    };
+    // Roomy: twice the floor and more, so nothing moves and the bracket a
+    // tree is made of is drawn exactly where it always was.
+    const roomy = runs('an elbow with room either side', 2);
+    ok(roomy && Math.abs(roomy.leave - roomy.arrive) < 0.01,
+      'an elbow with room either side still puts its rail halfway across the gap',
+      roomy && `${roomy.leave.toFixed(2)} out, ${roomy.arrive.toFixed(2)} in`);
+    // Between the floor and twice it: the rail moves, and it moves exactly as
+    // far as the arrival run needs and no further.
+    const mid = runs('an elbow whose half-gap is under the floor', 1.4);
+    ok(mid && Math.abs(mid.arrive - DG_ELBOW_ARRIVE) < 0.01,
+      'and where halfway would leave less, the rail slides toward the source until the '
+      + 'arrival run is one label plus the head',
+      mid && `${mid.arrive.toFixed(2)} px against ${DG_ELBOW_ARRIVE}`);
+    ok(mid && mid.leave >= DG_ELBOW_LEAVE - 0.01 && mid.leave < mid.arrive,
+      'which leaves the shorter of the two runs behind it, and never less than a head',
+      mid && `${mid.leave.toFixed(2)} out, ${mid.arrive.toFixed(2)} in`);
+    // Too small for both: the leaving run is the bound, and it is what stops
+    // the rail rather than the arrival run being satisfied.
+    const tight = runs('an elbow on a gap too small for both runs', 1.25);
+    ok(tight && Math.abs(tight.leave - DG_ELBOW_LEAVE) < 0.01 && tight.arrive < DG_ELBOW_ARRIVE,
+      'on a gap too small for both, the leaving run is what stops the rail',
+      tight && `${tight.leave.toFixed(2)} out, ${tight.arrive.toFixed(2)} in`);
+    // And smaller still, where a head's length out is already past halfway:
+    // the rail stays where it was. Moving it would spend the same problem at
+    // the other end, which solves nothing and moves an existing drawing.
+    const tiny = runs('an elbow on a gap under two heads', 1.1);
+    ok(tiny && Math.abs(tiny.leave - tiny.arrive) < 0.01,
+      'and on a gap under two heads it is halfway again, because there is nothing to buy',
+      tiny && `${tiny.leave.toFixed(2)} out, ${tiny.arrive.toFixed(2)} in`);
+
+    // The warning is the other half, and it fires exactly where the gap could
+    // not pay for both runs.
+    const said = (what, x, tok) => {
+      const r = render(ROW(x, tok), 'unit=120x72');
+      if (!r.ok) { ok(false, `${what} compiles`, r.msg.split('\n')[0]); return null; }
+      return r.warns.filter(w => /elbow arrives over/.test(w));
+    };
+    const quiet = said('the roomy elbow', 2);
+    ok(quiet && quiet.length === 0, 'an elbow whose arrival run clears the floor is silent',
+      quiet && quiet[0]);
+    const bought = said('the elbow the rail was moved for', 1.4);
+    ok(bought && bought.length === 0,
+      'and so is one the rail could still buy the run for – the move is the fix',
+      bought && bought[0]);
+    const cries = said('the elbow on a gap too small for both', 1.25);
+    ok(cries && cries.length === 1, 'an elbow that cannot get its arrival run is reported',
+      cries ? cries.join(' | ') : 'did not compile');
+    ok(cries && cries.length === 1 && /\b21 px\b/.test(cries[0]) && /1\.12 labels/.test(cries[0])
+      && /more rows of gap/.test(cries[0]) && /\bvia\b/.test(cries[0]),
+      'and it states the arrival run in px and in labels, and names both fixes',
+      cries && cries[0]);
+    // A headless edge has no head to crowd, the same exemption the straight
+    // run keeps: a tree's brackets are written `--` and must stay quiet.
+    const headless = said('a headless elbow on the same gap', 1.25, '--');
+    ok(headless && headless.length === 0, 'a headless elbow is exempt, as a headless run is',
+      headless && headless[0]);
+
+    // The bracket. Two edges out of one parent are placed by the same
+    // arithmetic on the same span, so they still land their rails on one line
+    // – which is the property `.elbow` measures from the faces for.
+    {
+      const out = fig('two elbows out of one parent',
+        'box p "Parent" at 1,0 w 1.2\nbox c1 "One" at 0,1.1 w 1\nbox c2 "Two" at 2,1.1 w 1\n'
+        + 'edge p -> c1 {.elbow}\nedge p -> c2 {.elbow}', 'unit=120x72');
+      const r1 = out && points(attrOf(out, 'edge-1--p', 'd'));
+      const r2 = out && points(attrOf(out, 'edge-2--p', 'd'));
+      ok(r1 && r2 && r1.length === 4 && r2.length === 4 && Math.abs(r1[1][1] - r2[1][1]) < 0.01,
+        'two elbows out of one parent still share one rail', r1 && r2
+          ? `${r1[1][1].toFixed(2)} and ${r2[1][1].toFixed(2)}` : 'not drawn');
+    }
   }
 
   // ── a label wider than the room between the things it joins ───────
