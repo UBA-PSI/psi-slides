@@ -2563,6 +2563,7 @@ const DG_EXTRA_FORMS = {
   brace: ['"over a,b,c"'],
   bars: ['"same as <chart>"', '"series of <chart>"'],
   plot: ['"same as <chart>"'],
+  table: ['"same as <table>", which copies its columns'],
 };
 // The three statements that place nothing: an edge is defined by its two ends,
 // and a container and a brace fit whatever they are given to hold.
@@ -2632,7 +2633,11 @@ export function readGridOpts(head, id, rest0, lineNo, errors) {
   while (k < rest.length) {
     const key = rest[k].v;
     if ((DG_BARE_OPTS[head] || []).includes(key)) { out[key] = true; k++; continue; }
-    if (key === 'same' && head === 'bars' && rest[k + 1] && rest[k + 1].v === 'as') {
+    // `same as X` on a `bars` copies a chart's frame; on a `table` it copies
+    // another table's columns. One word, one sentence – "this is the size that
+    // one is" – which is why it is read here rather than given a keyword of its
+    // own per statement.
+    if (key === 'same' && (head === 'bars' || head === 'table') && rest[k + 1] && rest[k + 1].v === 'as') {
       out.sameAs = rest[k + 2] ? rest[k + 2].v : '';
       k += 3;
       continue;
@@ -3876,6 +3881,19 @@ export function createDiagramCompiler(env = {}) {
       const m = line.trim().match(/^(plot|bars)\s+([A-Za-z_][\w-]*)/);
       if (m) chartNames.add(m[2]);
     }
+    // The column widths every `table` settled on, by name, recorded as its own
+    // line is read - the same shape `frameSize` has and for the same reason: a
+    // table's cells are placed against its frame *at parse time*, so a width
+    // that arrived later would move the frame and leave the cells where the old
+    // numbers put them. `same as vg` therefore copies a table above it, and the
+    // refusal says so rather than reporting a name that plainly exists three
+    // lines down.
+    const tableCols = new Map();
+    const tableNames = new Set();
+    for (const line of lines) {
+      const m = line.trim().match(/^table\s+([A-Za-z_][\w-]*)/);
+      if (m) tableNames.add(m[1]);
+    }
     const sameAsFrame = (head2, id2, name, lineNo2) => {
       const got = frameSize.get(name);
       if (got) return got;
@@ -4244,7 +4262,7 @@ export function createDiagramCompiler(env = {}) {
           rowsRead = m + 1;
         }
         const body = rows.filter(Boolean);
-        const space = opts.space ?? 0;
+        let space = opts.space ?? 0;
         // `col` states one width per column and `w` states the total to be
         // divided equally – the same quantity said two ways. Both present, the
         // compiler read `col` and dropped `w` without a word. `bars` and `plot`
@@ -4256,19 +4274,60 @@ export function createDiagramCompiler(env = {}) {
           'semantic');
           continue;
         }
+        // **`same as X` takes another table's columns, and only its columns.**
+        // Two tables stacked so their columns line up used to mean writing the
+        // same `col 1.7,2.0,0.12` twice, in two places that had to be kept
+        // equal by hand and nothing to say they were meant to be – measured on
+        // a keynote's `#vorgang`. The rows stay the table's own, because rows
+        // are what the two tables differ in; what is copied is the widths
+        // **and the `space` between them**, because a column's *position* is
+        // both numbers and copying one of the pair lines up nothing. A `space`
+        // on this table's own line still wins, the way a written number wins
+        // everywhere else in this grammar.
+        let copied = null;
+        if (opts.sameAs) {
+          if ((opts.col && opts.col.length) || opts.w != null) {
+            dgErr(errors, lineNo, `table ${id}: "same as ${opts.sameAs}" takes the columns from `
+              + `another table, so "${opts.col && opts.col.length ? 'col' : 'w'}" says the same `
+              + 'thing a second way. Drop one.', 'semantic');
+            continue;
+          }
+          copied = tableCols.get(opts.sameAs);
+          if (!copied) {
+            const kind = model.byId.get(opts.sameAs) || (tableNames.has(opts.sameAs) ? 'table' : null);
+            dgErr(errors, lineNo, `table ${id}: "same as ${opts.sameAs}" `
+              + (kind === 'table'
+                ? `names a table declared below it. A table's cells are placed against its own frame as its line is read, so it can only copy one it has already seen - move ${opts.sameAs} above ${id}.`
+                : kind
+                  ? `names ${dgArticle(kind)} ${kind}, and a table can only take its columns from another table. Give it "col" or "w".`
+                  : 'names nothing in this block.'));
+            continue;
+          }
+          if (copied.cols.length !== heads.length) {
+            dgErr(errors, lineNo, `table ${id}: "same as ${opts.sameAs}" copies `
+              + `${copied.cols.length} column(s) and this heading has ${heads.length} – two tables `
+              + 'share their columns only where they have the same number of them.');
+            continue;
+          }
+          if (opts.space == null) space = copied.space;
+        }
         // And `w` is the **frame**, so it means on a table what it means on a
         // box. It used to be the sum of the *column* widths, so `w 4` and
         // `w 4 space 0.5` drew two different frames and the one number an
         // author reads as "how wide is this table" stopped being that number
         // the moment `space` was set.
-        const cols = opts.col && opts.col.length ? opts.col
-          : heads.map(() => (opts.w != null
-            ? (opts.w - space * (heads.length - 1)) / heads.length : DG_COL_W));
+        const cols = copied ? copied.cols.slice()
+          : opts.col && opts.col.length ? opts.col
+            : heads.map(() => (opts.w != null
+              ? (opts.w - space * (heads.length - 1)) / heads.length : DG_COL_W));
         if (opts.col && opts.col.length !== heads.length) {
           dgErr(errors, lineNo, `table ${id}: ${opts.col.length} width(s) in "col" for ${heads.length} `
             + 'column(s) – one number per column, separated by commas');
           continue;
         }
+        // Recorded whichever way the widths were arrived at, so a third table
+        // may copy the second and get what the first said.
+        tableCols.set(id, { cols: cols.slice(), space });
         for (const r of body) {
           if (r.cells.length !== heads.length) {
             dgErr(errors, r.line, `table ${id}: this row has ${r.cells.length} cell(s) and the heading `

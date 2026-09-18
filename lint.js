@@ -1230,6 +1230,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // and never builds them, so a check the build makes and the linter does not
   // is a line that merges green and fails every later build.
   const chartsAbove = new Set();
+  // The same thing for tables, and with the column count in it: `same as vg`
+  // copies another table's columns, it is answered while the line is read for
+  // the reason a chart's `same as` is, and both halves of the refusal – "not
+  // above it" and "that many columns against this many" – are decidable from
+  // the line order and the two heading strings alone. CI lints this repo's
+  // development lectures and never builds them, so a check the build makes and
+  // this file does not merges green and fails every later build.
+  const tablesAbove = new Map();
   // The runs of columns each chart's frame holds, by frame, so a second
   // `emph` at one index can be answered on the line that writes it.
   const runsOf = new Map();
@@ -2174,6 +2182,29 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
             + "so 'w' – which divides one total equally – says the same thing a second way. Drop one.");
       }
       const heads = cellsOf(first);
+      // `same as X` on a table, mirrored from the build's three refusals. It is
+      // the columns it copies, so a `col` or a `w` beside it says the same
+      // thing twice; it is answered as the line is read, so it can only name a
+      // table above; and two tables share their columns only where they have
+      // the same number of them.
+      const sameAt = head === 'table' ? words.findIndex((w, i) => w === 'same' && words[i + 1] === 'as') : -1;
+      const sameRef = sameAt > 0 ? words[sameAt + 2] : null;
+      if (sameRef) {
+        const clash = words.includes('col') ? 'col' : words.includes('w') ? 'w' : null;
+        if (clash) {
+          add(ln, 'error', 'bad-diagram-table', `table ${id}: "same as ${sameRef}" takes the columns `
+              + `from another table, so "${clash}" says the same thing a second way. Drop one.`);
+        } else if (!tablesAbove.has(sameRef)) {
+          add(ln, 'error', 'bad-diagram-table', `table ${id}: "same as ${sameRef}" names no table `
+              + "above it. A table's cells are placed against its own frame as its line is read, so "
+              + 'it can only copy one it has already seen.');
+        } else if (tablesAbove.get(sameRef) !== heads.length) {
+          add(ln, 'error', 'bad-diagram-table', `table ${id}: "same as ${sameRef}" copies `
+              + `${tablesAbove.get(sameRef)} column(s) and this heading has ${heads.length} – two `
+              + 'tables share their columns only where they have the same number of them.');
+        }
+      }
+      if (head === 'table') tablesAbove.set(id, heads.length);
       // Every element either statement expands into carries the statement's
       // own tags, so one entry per generated element is what makes the
       // set-move count agree with the build's. The kind is the kind the

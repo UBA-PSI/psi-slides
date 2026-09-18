@@ -1242,6 +1242,44 @@ export async function run({ report }) {
     ok(plain && Math.abs(rowH(plain) - 0.42 * 52) < 0.01,
       'a table with no size class draws exactly the row height it always did',
       String(rowH(plain)));
+    // ── same as: two tables, one set of columns ─────────────────────
+    // `#vorgang` on a keynote wrote `col 1.7,2.0,0.12` twice so two stacked
+    // tables would line up, in two places nothing said were meant to be equal.
+    // What is copied is the widths *and* the space between them, because a
+    // column's position is both numbers; the rows stay the copying table's own.
+    {
+      const cell = (out, id) => [attrOf(out, id, 'x'), attrOf(out, id, 'width')];
+      const two = fig('two tables sharing columns',
+        'table a "A|B|C" at 0,0 col 1.7,2,0.12 space 0.1\n  "1|2|3"\n'
+        + 'table b "D|E|F" same as a below a gap 0.5\n  "4|5|6"\n  "7|8|9"', 'unit=150x52');
+      const cols = [0, 1, 2];
+      ok(two && cols.every(c => String(cell(two, `a-${c}-0--r`)) === String(cell(two, `b-${c}-0--r`))),
+        'a table written "same as" another stands its columns at the same x and width',
+        two ? cols.map(c => cell(two, `a-${c}-0--r`) + ' vs ' + cell(two, `b-${c}-0--r`)).join(' | ') : 'not drawn');
+      ok(two && hasEl(two, 'b-0-2') && !hasEl(two, 'a-0-2'),
+        'and keeps its own rows – it copied the columns, not the table',
+        'the copying table did not get its third row');
+      // A written `space` wins, the way a written number wins everywhere else.
+      // Measured as the paper between two columns rather than as an x: a table
+      // is centred on its placement, so a different space moves both columns.
+      const own = fig('a copied table with a space of its own',
+        'table a "A|B" at 0,0 col 1,2 space 0.1\n  "1|2"\n'
+        + 'table b "D|E" same as a space 0.6 below a gap 0.5\n  "4|5"', 'unit=150x52');
+      const between = (out, t) => +attrOf(out, `${t}-1-0--r`, 'x')
+        - (+attrOf(out, `${t}-0-0--r`, 'x') + +attrOf(out, `${t}-0-0--r`, 'width'));
+      ok(own && Math.abs(between(own, 'a') - 0.1 * 52) < 0.01
+        && Math.abs(between(own, 'b') - 0.6 * 52) < 0.01,
+        "and the copying table's own space still wins over the copied one",
+        own ? `${between(own, 'a')} vs ${between(own, 'b')}` : 'not drawn');
+      // The other half of that pair: with no space of its own, the copy takes
+      // the copied one – a column's position is the widths *and* the space.
+      const inherited = fig('a copied table with no space of its own',
+        'table a "A|B" at 0,0 col 1,2 space 0.4\n  "1|2"\n'
+        + 'table b "D|E" same as a below a gap 0.5\n  "4|5"', 'unit=150x52');
+      ok(inherited && Math.abs(between(inherited, 'b') - 0.4 * 52) < 0.01,
+        'and with none of its own it takes the copied space too',
+        inherited ? String(between(inherited, 'b')) : 'not drawn');
+    }
     // ── one alignment per column ────────────────────────────────────
     // A `table`'s tail lands on the **cells**, so an alignment word written
     // there reaches all of them – which is right for a table of prose and
