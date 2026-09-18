@@ -245,6 +245,23 @@ they are coordinates, not adjacency, and three boxes hung off three different
 zones are not a row. Only `box` chains; a `dot`, a `text` and an `image` are
 sized by what they draw.
 
+**Two things that are asked about and are deliberately not chains.** A
+**`zone`'s children** are not: there is no membership relation in this grammar –
+a box standing in an area is placed against the area's own corner – so "the
+children of this zone" is not a set the compiler can name, and `row` / `col` is
+the statement that says which of them are peers. A **`table`'s cells** are not
+either, because they do not need to be: a table row is one height by
+construction, and the rule the chain would have given it is the row-height rule
+below – the row is as tall as its tallest cell's label. Neither is a `zone`
+itself, nor a `table`, `lanes`, `bars`, `grid`, `plot` or `sequence` frame: all
+of them draw a box and none of them is one, so `synth` – the flag that already
+keeps them out of the overlap census – keeps them out of chains, and a note
+placed `right of` a five-column table does not come out five columns wide.
+
+**Neither `row` nor `col` carries a `{…}` tail**, so neither adds a slot table
+to `tails.mjs`: like `align` and `spread` they take a member list and, in their
+case, one keyword with a value.
+
 **Three families, never merged into one, and each axis asks a different one.**
 
 | link | shares width | shares height | measured over |
