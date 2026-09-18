@@ -209,6 +209,17 @@ One beat and nothing else.
 > [Klick: still nothing.]
 >
 > **c**
+
+## question: How many hold this up? {#lead}
+
+---
+
+One. Perhaps two.
+
+> note: **said while the heading stands alone**
+
+> note: from 1
+> **said once the answer is up**
 `;
 
 function buildFixture() {
@@ -258,6 +269,22 @@ export async function run({ page, report }) {
   // and nothing anywhere reported it. A divider has no top-level segments -
   // a `---` under a heading is a beat marker inside one body - so an
   // unpinned block is a chunk note on beat 0 and `from N` names a later one.
+  // ── a leading --- is the heading alone on beat 0 ─────────────────
+  // The chunk a question slide is written as: heading, `---`, the answer.
+  // The empty opening segment used to be dropped, so the answer arrived
+  // with the question and a note pinned to from 1 could never fire. Kept,
+  // the source's count of `---` is the deck's count of clicks.
+  ok(JSON.stringify(pinsOf('lead')) === JSON.stringify(['seg0', 'at1']),
+     'a note before a leading --- is beat 0 and the one pinned to from 1 is beat 1',
+     JSON.stringify(pinsOf('lead')));
+  // The other half of the same rule: an empty segment that is *not* the
+  // opening one is dropped, and the `---` in front of it buys no click. The
+  // fixture has exactly one - the trailing separator of #empty, whose last
+  // segment holds nothing but a note - and #lead's leading one is not it.
+  ok((lint.match(/dropped-beat/g) || []).length === 1,
+     'lint.js names the one --- of the fixture whose segment the build drops',
+     lint.trim().split('\n').filter(l => /dropped-beat/.test(l)).join(' | '));
+
   ok(JSON.stringify(pinsOf('part-section')) === JSON.stringify(['seg0', 'at1']),
      'a note under a # heading is the divider\'s, on beat 0 or on the beat it pins itself to',
      JSON.stringify(pinsOf('part-section')));
@@ -399,6 +426,45 @@ export async function run({ page, report }) {
   ok(/note-advance-beyond/.test(lint) && (lint.match(/note-advance-beyond/g) || []).length === 1,
      'and lint.js names the one chunk that asks for more clicks than it has beats',
      lint.trim().split('\n').filter(l => /note-advance/.test(l)).join(' | '));
+
+  // ── the heading alone on beat 0, in both windows ─────────────────
+  // The build ships an empty opening segment for a leading `---`; what has
+  // to be true in the page is that it is a beat and not a block. The slide
+  // opens with the heading and nothing else, one press paints the answer,
+  // and the note pinned to from 1 is filed on that press rather than past
+  // the end of the slide.
+  await spk.evaluate(() => jumpTo(flatChunks.findIndex(e => e.id === 'lead')));
+  await spk.waitForTimeout(400);
+  ok((await both()).s.id === 'lead', 'the cockpit reaches the question slide');
+  const shape = await aud.evaluate(() => {
+    const el = document.getElementById('lead');
+    const segs = [...el.querySelectorAll('.reveal-segment')];
+    return {
+      n: segs.length,
+      empty: segs[0].hasAttribute('data-empty') && segs[0].textContent.trim() === '',
+      total: countSegments(el),
+      painted: segs.filter(s => !s.hasAttribute('data-hidden')).map(s => s.textContent.trim()),
+    };
+  });
+  ok(shape.n === 2 && shape.empty, 'the slide carries an empty opening segment and the answer behind it', JSON.stringify(shape));
+  ok(shape.total === 2, 'the projection counts two positions on it, so the press exists', JSON.stringify(shape));
+  ok(shape.painted.join('') === '', 'and beat 0 paints nothing below the heading', JSON.stringify(shape.painted));
+  const lead0 = await cursor();
+  ok(/stands alone/.test(lead0.cur), 'the cockpit opens on the card said while the heading stands alone', JSON.stringify(lead0));
+  ok(lead0.n === 4, 'and the column is that card, the press, the pinned card, the next slide', JSON.stringify(lead0));
+  // Two presses, because the cards sit in front of the counter: the first
+  // walks the cursor onto the press, the second spends it.
+  await press('Space');
+  ok((await both()).s.rev === 1 && /reveal 1/.test((await cursor()).cur),
+     'the first press leaves the projection alone and puts the press next', JSON.stringify(await cursor()));
+  await press('Space');
+  const lead1 = { ...(await both()), c: await cursor() };
+  ok(lead1.same && lead1.s.rev === 2, 'the second press, and both windows are on the answer', JSON.stringify(lead1));
+  ok(/once the answer is up/.test(lead1.c.cur), 'and the note pinned to from 1 is the card it brings up', JSON.stringify(lead1.c));
+  ok((await aud.evaluate(() => {
+    const segs = [...document.getElementById('lead').querySelectorAll('.reveal-segment')];
+    return segs[1].hasAttribute('data-hidden');
+  })) === false, 'the answer is on the projection');
 
   // the two buttons that scale the cards, persisted like the notes zoom
   const size = () => spk.evaluate(() => parseFloat(getComputedStyle(document.getElementById('cue-rail')).fontSize));

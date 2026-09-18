@@ -384,6 +384,28 @@ Use reveals for pacing, not per chunk. Over half the chunks using reveals
 raises a `reveal-overuse` warning, and a chunk needing many reveals is usually
 several chunks.
 
+**A `---` as the first line of the body means the heading stands alone on the
+opening beat.** It is how a question slide is written: the room reads the
+question, you let it sit, and one press paints the answer.
+
+```md
+## question: How many people have to be away before this stops? {.wide #bus}
+
+---
+
+One. Perhaps two.
+```
+
+Count the clicks off the source: a chunk has as many presses as it has `---`
+lines. An aside does not fill a beat – a `::: footnote`, a `::: marginalia`, a
+`::: overlay`, a `::: dock` and a `::: backdrop` are lifted off the text column,
+so a segment holding nothing else is empty, the build drops it, and the press
+you counted on never happens. The linter names that one as `dropped-beat`; give
+the beat its words or take the `---` out. The rule needs a heading to stand on,
+so a chunk whose heading is empty (`## free: {#x}`) keeps the older behaviour
+and loses the leading segment, and a `title:` or `closing:` chunk has no
+reveal segments at all.
+
 ### Beats below the top level
 
 A `---` inside a `::: side` pane, a `::: cards` / `::: rows` block, a
@@ -538,7 +560,9 @@ the corner of an eye:
 
 The linter warns `note-in-empty-beat` when a note stands alone behind a
 `---` that is not the last one: the cards would show it a beat earlier than
-you probably meant.
+you probably meant. A note in the *opening* segment is not that case – it is
+said while the heading stands on its own, which is what a leading `---` is
+for (see *Reveal segments*).
 
 **`> note: from N` pins a note to an advance by number**, and it is what a
 chunk whose beats are a figure's steps needs: a `::: draw` block's `step`
@@ -1550,6 +1574,8 @@ or directive – the message names which), `missing-id`, `duplicate-id`,
 `multiple-ids`, `title-count`, `density`,
 `duplicate-explicit-block`, `unclosed-directive`, `stray-directive`,
 `stray-directive-close`, `nested-directive`, `unclosed-math`, `reveal-overuse`,
+`dropped-beat` (a `---` whose segment holds nothing the slide paints, so the
+build drops it and the press never happens – an aside does not fill one),
 `orphan-column` (a column with fewer than two chunks),
 `figure-caption-redundant`, `single-word-bold`, `figure-type-without-figure`,
 `oversized-asset`, `unresolved-asset` (an explicit `![](path)` that names no

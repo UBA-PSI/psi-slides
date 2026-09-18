@@ -53,7 +53,7 @@ this suite runnable with nothing installed.
 | `accepts` | every construct still parses |
 | `semantics` | the emitted SVG *means* what the source says, plus what the source means to the editor that rewrites it – the span table |
 | `corpus` | every `::: draw` block in the repository still compiles, and each file holds exactly the number it is said to |
-| `cue-cards` | the note-to-cards grammar in `cue-cards.mjs`, rule by rule, and that the module reaches `speaker.html` as `window.PSI_CARDS` |
+| `cue-cards` | the note-to-cards grammar in `cue-cards.mjs`, rule by rule; that the module reaches `speaker.html` as `window.PSI_CARDS`; and which `---` buys a beat – `segmentsKept` spelled in build.js and lint.js alike, with fixture decks run through `lint.js` for `dropped-beat` in both directions |
 | `step-classes` | which classes a beat can carry, derived from `DG_STEP_FIXED` rather than restated |
 | `inlined` | the two characters that mean something else inside build.js's own template literals |
 | `tails` | the one `{…}` tail parser and the `::: draw` opener parser in `tails.mjs`: every code, the written-default rule, the formatter round trip |
@@ -189,7 +189,9 @@ Backspace, reads `revealed` and `activeIdx` in both: the cursor in front of
 the counter exists so that the room never learns the cards do. The same
 fixture carries the parser's note-position rule, read off the built page,
 and lint.js's mirror of it, because both need `parseLecture` and the gates
-cannot load it.
+cannot load it – and one chunk written the way a question slide is, heading,
+`---`, the answer, because whether the empty opening segment is a beat is a
+question only `countSegments` in a page can answer.
 
 **Because nothing that ships can reach the case** – `math-focus` (no lecture has
 a two-row display formula), `side-anchor` (nothing writes `::: side {.middle}`

@@ -4256,33 +4256,60 @@ const beatMark = (from) => from == null ? BEAT_MARK
   : `<div class="beat-mark" data-from="${from}"></div>`;
 const isBeatMark = (raw) => /^<div class="beat-mark"/.test(raw);
 
-// Which reveal segment each speaker note belongs to - the position rule of
-// the cockpit's cue-card mode: a note before the first `---` is said while
-// beat 1 is on the screen, a note after it while beat 2 is, and so on.
-// `at` is the bodyLines index the note stood before, `segments` the raw
-// split (empty ones included, because a `---` followed by nothing but a
-// note is a real case). Two rules on top of the position:
-//  - a note in an empty segment belongs to the previous non-empty one, and
-//    the index is into the non-empty list, which is what the renderer ships;
-//  - a chunk whose notes all sit in its LAST non-empty segment has
-//    chunk-level notes and gets 0 for every one of them. That is where every
-//    deck written before this rule keeps its notes - after the last
-//    segment's text - and the position rule alone would put the whole
-//    support after the last click. The moment one note stands in an earlier
-//    segment, the author is using positions and the rule is off for the
-//    chunk. The linter mirrors this in `noteSegments` of its own.
+// Which of the raw segments the renderer ships, as a boolean per raw index.
+// A `---` with nothing between it and the next one paints nothing, so an
+// empty segment is dropped - with one exception, and it is the shape a
+// question slide is written in:
+//
+//     ## question: Heading
+//     ---
+//     the answer
+//
+// A leading `---` under a heading means *the heading alone is beat 0*, so
+// the empty opening segment is kept and the source's count of `---` is the
+// deck's count of clicks. It used to be dropped, and the body then arrived
+// with the heading: one beat fewer than the source says, a `> note: from 1`
+// that could never fire, and a last click that was dead. Asides do not
+// decide it - a `::: footnote`, a `::: overlay`, a `::: dock` and a
+// `::: backdrop` are lifted out of the body, so a segment holding nothing
+// else is empty here and is exactly the shape this keeps.
+//
+// Kept only where something stands on that beat (a heading) and something
+// follows it (a later segment with words), and never on a `title:` or
+// `closing:` chunk, whose cover composition renders `body` and no segments
+// at all. A chunk with no heading has nothing to paint on beat 0, so there
+// the old rule holds. lint.js mirrors this in `segmentsKept`.
+function segmentsKept(segments, opensOnHeading) {
+  const lead = opensOnHeading
+    && segments.length > 1
+    && segments[0].length === 0
+    && segments.some((t, i) => i > 0 && t.length > 0);
+  return segments.map((t, i) => t.length > 0 || (i === 0 && lead));
+}
+
+// Whether a chunk paints a heading on the slide, which is what an empty
+// opening segment stands on. `.bare` takes the heading off the projection
+// with an attribute and leaves the element in the DOM, so it is not asked
+// here; a title or closing chunk has no reveal segments at all.
+function chunkOpensOnHeading(chunk) {
+  if (chunk.tag === 'title' || chunk.tag === 'closing') return false;
+  return !!(chunk.heading || chunk.headingSub);
+}
+
 // Where a position in the chunk body falls among the reveal segments the
 // renderer actually ships, as a function of the `at` index into bodyLines.
 // Two readers needing the same answer: the cue-card position rule below, and
 // a `::: footnote`, which the parser lifts out of the body into a chunk-level
 // node and which therefore has to carry its segment as a number rather than
-// as a place in the DOM.
-function segmentIndexer(bodyLines, segments) {
-  // raw segment index -> index among the non-empty ones (or that of the
-  // previous non-empty one, or 0)
+// as a place in the DOM. `kept` is what segmentsKept answered; without it
+// the old rule, every non-empty segment, is assumed.
+function segmentIndexer(bodyLines, segments, kept) {
+  kept = kept || segments.map(s => s.length > 0);
+  // raw segment index -> index among the kept ones (or that of the
+  // previous kept one, or 0)
   const rawToNonEmpty = [];
   let seen = -1;
-  segments.forEach((seg) => { if (seg.length) seen += 1; rawToNonEmpty.push(Math.max(0, seen)); });
+  segments.forEach((seg, i) => { if (kept[i]) seen += 1; rawToNonEmpty.push(Math.max(0, seen)); });
   // separator positions: the bodyLines index of every top-level `---`
   const seps = [];
   let fence = false;
@@ -4293,11 +4320,28 @@ function segmentIndexer(bodyLines, segments) {
   return (at) => rawToNonEmpty[seps.filter(i => i < at).length] ?? 0;
 }
 
-function noteSegments(bodyLines, segments, noteAt) {
+// Which reveal segment each speaker note belongs to - the position rule of
+// the cockpit's cue-card mode: a note before the first `---` is said while
+// beat 1 is on the screen, a note after it while beat 2 is, and so on.
+// `at` is the bodyLines index the note stood before, `segments` the raw
+// split (empty ones included, because a `---` followed by nothing but a
+// note is a real case) and `kept` what segmentsKept answered. Two rules on
+// top of the position:
+//  - a note in a dropped segment belongs to the previous kept one, and the
+//    index is into the kept list, which is what the renderer ships;
+//  - a chunk whose notes all sit in its LAST kept segment has
+//    chunk-level notes and gets 0 for every one of them. That is where every
+//    deck written before this rule keeps its notes - after the last
+//    segment's text - and the position rule alone would put the whole
+//    support after the last click. The moment one note stands in an earlier
+//    segment, the author is using positions and the rule is off for the
+//    chunk. The linter mirrors this in `noteSegments` of its own.
+function noteSegments(bodyLines, segments, noteAt, kept) {
   if (!noteAt || !noteAt.length) return [];
-  const indexAt = segmentIndexer(bodyLines, segments);
+  kept = kept || segments.map(s => s.length > 0);
+  const indexAt = segmentIndexer(bodyLines, segments, kept);
   const segs = noteAt.map(at => indexAt(at));
-  const last = Math.max(0, segments.filter(s => s.length).length - 1);
+  const last = Math.max(0, kept.filter(Boolean).length - 1);
   if (last > 0 && segs.every(k => k === last)) return segs.map(() => 0);
   return segs;
 
@@ -4746,11 +4790,16 @@ function parseLecture(src) {
       cur.push(line);
     }
     if (cur.length) segments.push(cur.join('\n').trim());
-    const keep = segments.map((t, i) => [t, segFrom[i]]).filter(([t]) => t.length);
+    // A leading `---` under a heading is the heading standing alone on beat
+    // 0, and its empty segment is shipped so that the source's `---` count
+    // is the deck's click count. Every other empty segment is dropped;
+    // lint.js reports one as `dropped-beat`. See segmentsKept.
+    const kept = segmentsKept(segments, chunkOpensOnHeading(currentChunk));
+    const keep = segments.map((t, i) => [t, segFrom[i]]).filter((_, i) => kept[i]);
     const nonEmpty = keep.map(([t]) => t);
     currentChunk.segments = nonEmpty;
     currentChunk.segmentFrom = keep.map(([, f]) => f);
-    currentChunk.speakerNoteSegs = noteSegments(bodyLines, segments, currentChunk.speakerNoteAt);
+    currentChunk.speakerNoteSegs = noteSegments(bodyLines, segments, currentChunk.speakerNoteAt, kept);
     // An aside is lifted out of the body, so it cannot carry a beat marker -
     // a marker's beat is the elements that follow it inside one parent, and
     // the aside has left that parent. It carries the number of the segment it
@@ -4758,7 +4807,7 @@ function parseLecture(src) {
     // segment is up. Written before the first `---`, or in a chunk with no
     // `---` at all, this is 0 and nothing about the output changes.
     {
-      const segAt = segmentIndexer(bodyLines, segments);
+      const segAt = segmentIndexer(bodyLines, segments, kept);
       currentChunk.expansions.forEach((e) => {
         e.seg = segAt(e.at || 0);
         delete e.at;
@@ -4770,7 +4819,10 @@ function parseLecture(src) {
     delete currentChunk.speakerNoteAt;
     // Print collapses reveals: `body` is every segment joined, so the
     // print renderer can stay oblivious to the reveal split.
-    currentChunk.body = nonEmpty.join('\n\n');
+    // The kept opening segment is empty, and the document has no beats to
+    // spend it on, so `body` stays what it was: the segments with words in
+    // them, joined.
+    currentChunk.body = nonEmpty.filter(t => t.length).join('\n\n');
     // The camera's anchor, answered from the finished body when the author
     // wrote neither `.middle` nor `.top`. Here and not in the renderer,
     // because both live views and --check-fit read the same attribute and a
@@ -9188,7 +9240,13 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
     // A pinned segment says which beat it arrives on; an unpinned one is
     // still counted by its position, which is what `pos` in chunkBeats does.
     const from = segFrom[i] == null ? '' : ` data-from="${segFrom[i]}"`;
-    return `<div class="reveal-segment" data-seg="${i}"${hidden}${from}>${inner}</div>`;
+    // The opening segment a leading `---` leaves empty (segmentsKept): it
+    // paints nothing and is beat 0 all the same, the beat the heading has
+    // to itself. Named rather than left to `:empty`, because the block gap
+    // between two segments has to skip it and a selector that reads the
+    // box says why.
+    const empty = i === 0 && !seg ? ' data-empty=""' : '';
+    return `<div class="reveal-segment" data-seg="${i}"${hidden}${from}${empty}>${inner}</div>`;
   }).join('\n');
 
   const headingHtml = renderHeadingHtml(chunk);
@@ -10372,6 +10430,11 @@ body[data-slide-nums=off] .chunk-num { display: none; }
    segment keeps its box and only its visibility changes, so the gap is
    standing from beat 0 and no press moves the slide. */
 .chunk-body > .reveal-segment + .reveal-segment { margin-top: var(--block-gap); }
+/* Except after the empty opening segment a leading reveal marker leaves
+   (parser: segmentsKept). It is a beat, not a block: the heading stands
+   alone on it and nothing is painted, so the words that follow begin where
+   they would have begun without it. */
+.chunk-body > .reveal-segment[data-empty] + .reveal-segment { margin-top: 0; }
 .chunk-body strong { font-weight: var(--bold-weight); color: var(--emph); }
 .chunk-body em { font-style: italic; }
 /* A link is styled for the whole live surface, not only inside .chunk-body.

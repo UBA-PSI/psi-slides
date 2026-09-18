@@ -9,11 +9,17 @@
  * module's text reaches build.js's speaker page wrapped as
  * `window.PSI_CARDS` with every export on the returned object, and nothing
  * in it would end the template literal it is emitted next to.
+ *
+ * A card is filed by the reveal segment its block stood in, so the last
+ * section here is about segments rather than cards: which `---` buys a beat,
+ * which one the build drops, and whether `lint.js` says the same. That half
+ * is decided by running `lint.js` over fixture decks - the one honest way to
+ * ask a program with no exports what it thinks.
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { notesToCards, parseTimeMark, formatClock, plainInline, cueAdvance } from '../../cue-cards.mjs';
-import { ROOT } from './harness.mjs';
+import { ROOT, lintSource } from './harness.mjs';
 
 export const name = 'cue-cards: a note read as cards';
 
@@ -163,4 +169,92 @@ export async function run({ report }) {
   const lintSrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
   ok(/import \{ cueAdvance \} from '\.\/cue-cards\.mjs'/.test(lintSrc) && /cueAdvance\(/.test(lintSrc),
      'lint.js reads a click through cueAdvance rather than spelling the test a second time');
+
+  // ── which --- buys a beat ────────────────────────────────────────
+  // A leading `---` under a heading means the heading alone is beat 0, so
+  // the source's count of `---` is the deck's count of clicks. Every other
+  // empty segment is dropped, and that is what `dropped-beat` names. The
+  // build's own arithmetic is mirrored here by hand (`segmentsKept` lives in
+  // both files), and these fixtures are what holds the two together: a
+  // number the linter reports - "the chunk has N beats" - is the build's
+  // number or the mirror has drifted.
+  // Every fixture in one deck and one `lint.js` run, bucketed back by line
+  // span - the arrangement `lintAll` uses for the figure gates, for the same
+  // reason: a gate that spawns a process per case stops being a gate.
+  // Deck-wide findings (title-count on a deck with no title chunk,
+  // reveal-overuse on a deck that is all reveals) land outside every span
+  // and are ignored, which is what makes a fixture deck this small readable.
+  const FIX = [
+    ['lead-heading', ['## question: Wie viele? {#q}', '', '---', '', 'Eine. Vielleicht zwei.', '',
+                      '> note: from 1', '> die Antwort.']],
+    ['lead-beyond',  ['## question: Wie viele denn? {#q2}', '', '---', '', 'Eine.', '',
+                      '> note: from 4', '> zu weit.']],
+    ['lead-bare',    ['## free: {#f}', '', '---', '', 'Eine.']],
+    ['footnote',     ['## free: Schluss {#s}', '', 'Das Knirschen.', '', '---', '',
+                      '::: footnote', 'eine Quelle', ':::']],
+    ['twice',        ['## free: Zweimal {#t}', '', 'Eins.', '', '---', '', '---', '', 'Zwei.']],
+    ['prose',        ['## free: Prosa {#p}', '', 'Eins.', '', '---', '', 'Zwei.']],
+    ['fence',        ['## free: Code {#c}', '', 'Eins.', '', '---', '', '```', 'x = 1', '```']],
+    ['figure',       ['## figure: Bild {#fig}', '', 'Eins.', '', '---', '', '::: draw', 'box b "x"', ':::']],
+    ['cards',        ['## free: Karten {#cd}', '', 'Eins.', '', '---', '',
+                      '::: cards 2', '### one', '### two', ':::']],
+    ['marginalia',   ['## free: Rand {#mg}', '', 'Eins.', '', '---', '', '::: marginalia', 'am Rand', ':::']],
+  ];
+  const deck = ['---', 'title: Beat fixtures', '---', ''];
+  const span = new Map();
+  for (const [key, lines] of FIX) {
+    const start = deck.length + 1;
+    deck.push(...lines, '');
+    span.set(key, [start, deck.length]);
+  }
+  const found = lintSource(deck.join('\n'));
+  const of = (key) => { const [s, e] = span.get(key); return found.filter(f => f.line >= s && f.line <= e); };
+  const codes = (key) => of(key).map(f => f.rule);
+  // `> note: from N` past the last beat is the probe: the linter refuses it
+  // by name and its message says how many beats it counted.
+  const beatsSaid = (key) => {
+    const m = /has (no beats|one beat|(\d+) beats)/.exec(of(key).map(f => f.msg).join(' '));
+    return m ? (m[2] ? +m[2] : m[1] === 'one beat' ? 1 : 0) : null;
+  };
+
+  ok(!codes('lead-heading').length,
+     'a leading --- under a heading is beat 0 and a from 1 note lands on beat 1', j(codes('lead-heading')));
+  ok(beatsSaid('lead-beyond') === 1, 'and the chunk it counts one beat for, not none', j(of('lead-beyond')));
+
+  // The same shape without a heading: nothing stands on beat 0, so the empty
+  // opening segment is dropped and the --- is a click the deck never takes.
+  ok(codes('lead-bare').includes('dropped-beat'),
+     'with no heading to stand on it, that same leading --- is dropped and named', j(codes('lead-bare')));
+
+  // An empty segment anywhere else, including one holding only an aside the
+  // parser lifts out of the body.
+  ok(codes('footnote').includes('dropped-beat'),
+     'a --- whose segment holds only a ::: footnote buys no click either', j(codes('footnote')));
+  ok(codes('twice').filter(c => c === 'dropped-beat').length === 1,
+     'two --- in a row are one dropped segment and one report', j(codes('twice')));
+
+  // And the shapes that must stay quiet, because a segment with anything the
+  // build renders in it is a real beat.
+  for (const [key, what] of [['prose', 'prose'], ['fence', 'a code fence'], ['figure', 'a figure'],
+                             ['cards', 'a card row'], ['marginalia', 'a marginalia']]) {
+    ok(!codes(key).includes('dropped-beat'),
+       'a segment holding ' + what + ' is a beat and is not reported', j(codes(key)));
+  }
+
+  // The mirror itself. The rule is written twice - build.js decides it on
+  // segment text, lint.js on a boolean per segment - so the texts cannot be
+  // compared character for character. What can be held is that both still
+  // spell all four clauses of it, and that neither file has quietly lost
+  // one: the heading test, the "there is a later segment with words" test,
+  // the length test and the index-0 test.
+  const keptOf = (text) => (text.match(/function segmentsKept\([\s\S]*?\n\}/) || [''])[0];
+  for (const [where, body] of [['build.js', keptOf(build)], ['lint.js', keptOf(lintSrc)]]) {
+    ok(body && /opensOnHeading/.test(body) && /\.length > 1/.test(body)
+         && /\.some\(\(t, i\) => i > 0/.test(body) && /i === 0 && lead/.test(body),
+       'segmentsKept in ' + where + ' still carries all four clauses of the rule',
+       body || 'segmentsKept not found');
+  }
+  ok(/segmentsKept\(/.test(build) && /chunkOpensOnHeading\(/.test(build)
+       && /segmentsKept\(/.test(lintSrc) && /chunkOpensOnHeading\(/.test(lintSrc),
+     'and both files ask it, rather than one of them deciding which segments ship on its own');
 }
