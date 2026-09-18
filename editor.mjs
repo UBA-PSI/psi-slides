@@ -471,6 +471,12 @@ const DGE_SLOTS = [
     options: [{ cls: '', label: 'sans' }, { cls: 'mono' }, { cls: 'serif' }, { cls: 'hand' }] },
   { key: 'fitting', label: 'type fits the box',
     options: [{ cls: '', label: 'no' }, { cls: 'fit' }, { cls: 'shrink' }] },
+  // Whether this box takes its size from the boxes it stands with. A run of
+  // `right of` boxes shares one width and one height by default, because a row
+  // of four widths reads as four weights; `.own` is how one box leaves the run
+  // – and, since nothing reaches through it, how a run is broken in two.
+  { key: 'sizing', label: 'size',
+    options: [{ cls: '', label: 'shared' }, { cls: 'own', label: 'its own' }] },
   { key: 'weightfont', label: 'text weight',
     options: [{ cls: '', label: 'regular' }, { cls: 'bold' }] },
   // Both axes, and on a box as well as a free text: a tall element with a
@@ -2995,17 +3001,27 @@ function dgePlanResize(ctx, id, dw, dh, handle, opts) {
   if (el.sameAs) {
     edits.push({ attr: 'same-as', value: '', drop: true, why: `"just this one" – drops "same as ${el.sameAs}"` });
   }
+  // **A chain member's size is not its own**, and the drag has to say so. A
+  // box standing in a row or a column takes the widest member's width and, in
+  // a row, the tallest member's height; the number this drag writes pins
+  // *this* box and leaves the others to re-settle, so making the dragged box
+  // the narrowest of the row visibly moves boxes nobody touched. The compiler
+  // records which axes it decided (`chainW` / `chainH` on the laid-out box) so
+  // the callout can name the reason rather than the author guessing at it.
+  const chained = (axis) => (axis === 'w' ? b.chainW : b.chainH)
+    ? 'this size came from the boxes beside it – writing it here pins this one and lets the rest re-settle'
+    : undefined;
   if (handle !== 's') {
     // A sibling's number exactly, when a guide matched one: the point of the
     // callout is that the two are the *same*, and rounding it onto the 0.05
     // grid afterwards would break the equality the guide had just promised.
     const sib = guide && guide.w;
-    edits.push({ attr: 'w', why: sib != null ? guide.why : undefined,
+    edits.push({ attr: 'w', why: sib != null ? guide.why : chained('w'),
       value: dgeNum(sib != null ? sib : Math.max(0.05, dgeRound(b.w / uw + dw, DGE_SNAP_CELL))) });
   }
   if (handle !== 'e') {
     const sib = guide && guide.h;
-    edits.push({ attr: 'h', why: sib != null ? guide.why : undefined,
+    edits.push({ attr: 'h', why: sib != null ? guide.why : chained('h'),
       value: dgeNum(sib != null ? sib : Math.max(0.05, dgeRound(b.h / uh + dh, DGE_SNAP_CELL))) });
   }
   return { edits, refusals: [] };

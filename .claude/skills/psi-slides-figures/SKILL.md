@@ -229,6 +229,117 @@ sets `ends` where the names exist – a `sequence` message names its two actors,
 a leader stub its text and its subject – and otherwise falls back to the refs,
 because `a point -> a point` names nothing at all.
 
+## Peers share one size, and a box is never too small for its words
+
+**A run of `right of` / `left of` boxes shares one width and one height, and
+nothing in the source says so.** That is the default, and it is the one default
+in this grammar that moves an existing drawing. The reason is `figure-design.md`
+rule 11: relative size reads as importance, and the usual reason one box in a
+row is wider is that its label happened to have more letters. The exception – a
+box that really is bigger – is what should cost a word, and it does.
+
+**A chain, precisely.** Boxes reachable from each other through
+`DG_CHAIN_DIRS` – `right of`, `left of`, `below`, `above` – or named together by
+a `row` / `col` statement. `between` and `at` are deliberately not chain links:
+they are coordinates, not adjacency, and three boxes hung off three different
+zones are not a row. Only `box` chains; a `dot`, a `text` and an `image` are
+sized by what they draw.
+
+**Three families, never merged into one, and each axis asks a different one.**
+
+| link | shares width | shares height |
+| --- | --- | --- |
+| `right of` / `left of` | yes | yes |
+| `below` / `above` | yes | **no** |
+| `row a, b, c` | yes | yes |
+| `col a, b, c` | yes | yes |
+
+The asymmetry on the second row is what the corpus taught, and it is not a
+hedge. `lectures/network-security#ns-a45` is a certificate: seven fields, then
+two, then one, then one, stacked with `gap 0`. Giving every band the tallest
+one's height turns a record into four equal blocks that say nothing. A band's
+height is what stands in it; its width is the record's. `col` is how a column
+of real peers says so in one line, and that is the whole reason the statement
+exists beside `row`.
+
+**Nor do the families merge.** A box in a row *and* a column takes the larger of
+what each asks for, but its neighbours in the row are not asked to match the
+column. Merging them made `lectures/diagrams#alignment`, whose two rows are
+joined by a single `below`, one block of eight boxes all as wide as the widest
+label in either row. Every maximum is taken over the members' **natural** sizes,
+so nothing compounds and the order the families resolve in changes nothing.
+
+**A member is measured over every label a `label` step will ever give it**
+(`dgLabelVariants`), so the four-line variant is what beat 0 reserved room for.
+A box whose size grows mid-figure moves everything placed against it; a box
+whose size was settled for its longest label moves nothing.
+
+**Four ways an axis stops being the chain's**, and they are all the same
+sentence – somebody already said what this size is:
+
+- a `w` / `h` on the element's own line, or from a `default` layer. It is that
+  member's own **and** the chain's maximum, so `box a "…" w 1.5` at the head of
+  a row does what `same as a` on the rest used to do, without the words.
+- `same as X`, which still wins outright – and, like `.own`, ends the run:
+  nothing reaches through it.
+- `same w as X` / `same h as X`, one axis each. A copied axis is not evidence
+  about how wide the chain has to be, so it contributes nothing to the maximum.
+- `{.own}`, the word for a box that is not one of its neighbours. It also
+  **breaks** the chain, which is how a run meant as two rows is written as two.
+  A `.turn` box is exempt without saying so: a label read bottom-to-top is what
+  an author writes when the element is a bar – a firewall, a matrix row, an axis
+  – so it is narrow by declaration, and sizing it to the box beside it undoes
+  the reason the class was written.
+
+`.own` is in `DG_STEP_FIXED`: which boxes share a size is read off the
+placements once, before any beat is drawn, and a beat that took a box out of
+its chain would resize the whole row under it.
+
+**`row` / `col` stand beside `align` and `spread`**, not beside `box`: they draw
+nothing and only name elements that already exist. `row a, b, c gap 0.8` is one
+size and one gap on one line. Every member that states **no placement of its
+own** is placed after the one before it with that gap – so the "has no
+placement" complaint is deferred to the end of the block in both the build and
+`lint.js`, because the statement may be written before or after the boxes it
+names. A member that *is* placed keeps its placement and the row sizes it only,
+which is the three-boxes-against-three-zones case; and a row's `gap` still fills
+in a relative placement against the previous member that states none, so "one
+gap" holds whichever way the run was written. A placement a `row` wrote carries
+`implicit`, the word the first element's origin carries, because there is
+nothing on that element's line for an editor to rewrite.
+
+**`same h as` / `same w as`** are what `same as` could not say: a one-line box
+beside a two-line one wants the neighbour's height and its own width. They are
+also the only way to give a **`zone`** one of its two numbers – a zone is fixed
+size on purpose, but "fixed" and "written here" are two different claims.
+`same as` together with either half is refused: one size said twice.
+
+**Two warnings for a written size that cannot hold its own words.** A written
+`w` under its label has warned since `w` existed; a written `h` did not, so a
+two-line label in a one-line box ran over the outline in silence – measured on a
+keynote's `#drei-orte`, which shipped with the text inside the padding and zero
+warnings. Both are measured against the **ink** the lines make (`DG_INK_H`,
+0.93 em: cap height plus descender) rather than against their line boxes,
+because a label is centred in its box and its leading may hang over the outline
+without a reader seeing anything. A **written table `row`** is held to the same
+number, and an automatic one is `DG_ROW_H` scaled by the type size **and by the
+tallest cell's line count** – so a two-line cell makes its own room and a
+single-line table anywhere in the corpus is byte-identical to before.
+
+**The editor is told what the compiler decided.** Each laid-out box carries
+`chainW` / `chainH`, and `dgeResizeEdits` uses them for the callout: a drag that
+writes a `w` on one member of a row pins *that* box and lets the rest re-settle,
+so making the dragged box the narrowest visibly moves boxes nobody touched. The
+look panel's `size` row is the `.own` control. Nothing in the drawing reads
+either flag.
+
+**Not mirrored in `lint.js`, and cannot be:** which boxes are peers and how wide
+each comes out both need the figure laid out. What lint does mirror is the
+grammar – `row` / `col` and their two refusals, the three `same … as` forms and
+their references, the zone's relaxed requirement, and the deferred
+no-placement complaint. `test/gates/chains.mjs` holds the two files side by
+side.
+
 ## Animated infographics (`::: draw`)
 
 **Development state, not in any tagged release.** The repository and project site may carry `::: draw` as a preview independently of a versioned release; `package.json` still reports 1.0.0, and the latest tag does not include the feature. The changelog entry stays under `## [Unreleased]` – `CONTRIBUTING.md` § Building and releasing bumps the version at release time, not when a preview reaches `main`, so there is nothing to bump here.
@@ -457,7 +568,8 @@ for the same key in the same commit.**
 - The kind gate on a `style` step's classes, in both signs, answered **after the block is read**: a step may name an element declared below it and a tag whose members are. That is why `define()` records what each name draws, generated names included, and why a tag expands to its members with one bad member failing the statement – the compiler's own rule.
 - Everything a `bars … series of` line does not own: `w`, `h`, `space` and a placement all belong to the chart it joined, and `stacked` needs a series to stand on.
 - `diagram-ragged-labels` used to be here: two or more free `text` elements sharing a written `at` x, each carrying `.left` or `.right` and no `anchor`, each centred on the coordinate anyway and so staggered by half the difference in label width. **It is retired**, with the compiler’s `dgLabelAnchorWarnings` beside it, because the geometry both described cannot arise: such a label is anchored on the edge its class names. Both were band-aids over a default, and the default moved. `align x left a, b, c` is unaffected and is still the way to hold a set with three different coordinates to one edge.
-- An element after the first in a `::: draw` block with no placement (`diagram-no-placement`, error), off the compiler's own `DG_PLACED_HEADS` / `DG_PLACE_INTRO`. The words are matched **positionally**: `point` takes `left` and `right`, so a line-wide test reads `box b "B" point left` as placed, and ten lines of the corpus carry that shape. It counts **nodes**, which is the build's own test for "is this the first element", and exempts a `bars … series of` line, which joins another chart's frame and refuses a placement by name. It also stays quiet on a line this gate has already reported on – one authored defect, one causal diagnostic, which is the nearest a linter gets to the build's "the statement stopped reading" rule.
+- An element after the first in a `::: draw` block with no placement (`diagram-no-placement`, error), off the compiler's own `DG_PLACED_HEADS` / `DG_PLACE_INTRO`. The words are matched **positionally**: `point` takes `left` and `right`, so a line-wide test reads `box b "B" point left` as placed, and ten lines of the corpus carry that shape. It counts **nodes**, which is the build's own test for "is this the first element", and exempts a `bars … series of` line, which joins another chart's frame and refuses a placement by name. It also stays quiet on a line this gate has already reported on – one authored defect, one causal diagnostic, which is the nearest a linter gets to the build's "the statement stopped reading" rule. **It is collected and reported at the end of the block**, not on the line, because a `row` or a `col` further down may be this element's placement.
+- A `row` or a `col` of fewer than two elements, or one with a word after its `gap` (`bad-diagram-row`, error). Both mirror the compiler line for line; what the linter cannot answer is anything about the sizes the statement settles, which needs the figure laid out.
 
 `lint.js` imports the vocabulary **tables** from `diagram-core.mjs` - never a
 function, or the whole compiler comes in behind it and the linter stops being

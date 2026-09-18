@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Thirteen gates, and they prove thirteen different things – which is worth stating
+ * Fourteen gates, and they prove fourteen different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -46,6 +46,10 @@
  *   canvas     the three measured numbers behind a figure's canvas - the
  *              per-type body em, the default zoom, and the one spelling of
  *              a frame in two files that cannot import one another
+ *   chains     peers share one size: which placements make two boxes peers,
+ *              which axis each shares, the two ways out, `row` / `col`,
+ *              `same w as` / `same h as`, and the two warnings for a written
+ *              size that cannot hold its own words
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -70,6 +74,7 @@ const GATES = [
   './xheight.mjs',
   './image-refs.mjs',
   './canvas.mjs',
+  './chains.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));
