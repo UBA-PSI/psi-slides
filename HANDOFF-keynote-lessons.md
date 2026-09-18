@@ -9,9 +9,9 @@ per change and is the authoritative list.
 
 | where | what |
 | --- | --- |
-| engine `~/Repositories/psi-slides` (also reachable as `~/r/psi-slides`) | branch `keynote-lessons`, 132 commits ahead of `main`, **not pushed, not merged** |
+| engine `~/Repositories/psi-slides` (also reachable as `~/r/psi-slides`) | branch `keynote-lessons`, 169 commits ahead of `main`, **not pushed, not merged** |
 | content repo `~/r/psi-slides-mylectures` | `main`, keynote committed at `cb7462f`, tree clean |
-| gates / settings / browser suite | 1230 / 895 / 1164, all green on the branch tip |
+| gates / settings / browser suite | 1249 / 903 / 1164, all green on the branch tip |
 | `node lint.js lectures/` | 0 errors, 2 pre-existing warnings in the untracked `frame-lab` |
 | tracked lecture views (tutorial, diagrams, decoration) | rebuilt and committed on the tip |
 | `docs/artifact/refresh-figures.mjs --check` | up to date |
@@ -73,33 +73,88 @@ template, `transition: cut`, `note-button: off`, `neighbours: hidden`,
 
 ## Next steps, in order
 
-1. **Corpus onto the new defaults.** The reference decks still carry true
-   canvas warnings: `network-security` 27, `tutorial` 7, `python-intro` 5,
-   `spoken-talk` 2, `diagrams` 3 (`node build.js <deck> --audience-only 2>&1 | grep '^\[diagram\]'`).
-   Redraw the figures the short way (the keynote is the worked example) or
-   write `frame none` in `draw-defaults` where a deck is a catalogue
-   (`diagrams`, `decoration` and `figure-rules` already do). `network-security`
-   is the big one and the real test of the defaults on 36 foreign figures.
-   Rebuild and commit the tracked views after (`release.yml` checks them).
-2. **Docs consolidation.** The skills, `figure-design.md`, `CLAUDE.md`,
+**Step 1 is done.** The five reference decks stood on 44 canvas warnings
+between them and now stand on one, the box in `diagrams` `#typefit` that is
+there to show the warning. `network-security` was the real test and it held:
+36 foreign figures, about ninety written sizes gone, its smallest base labels
+up from 10 px to the deck's 28 px body type. Four figures in the five decks
+carry a `frame` of their own, each a specimen beside its own source or a
+listing no arrangement folds. What the redraws cost, and what that cost
+taught, is under *What a redraw of a whole corpus turned up* below.
+
+1. **Docs consolidation.** The skills, `figure-design.md`, `CLAUDE.md`,
    PRD §2.1 and `HOUSE-STYLE.md` in the content repo were updated per slice;
    one pass now that the vocabulary stands, with the `[Unreleased]` entries
-   as the checklist. Also the site: `docs/site/shoot.mjs` screenshots of the
-   cockpit frames and the editor are stale.
-3. **Keynote, author's calls:** the three other build plans onto the
+   as the checklist. Also the site: `docs/site/shoot.mjs` screenshots are
+   stale in a way `--check-ids` cannot see – `python-intro`'s `#urllib-parse`
+   lost ~380 px of height, which moves the camera for the ten shots framed on
+   `#why-playwright`, and `overview` shows all five changed figures;
+   `spoken-talk` `#second-time` was redrawn under the four cue-beat frames.
+   `refresh-figures --check` drifts whenever `img/editor.webp` moves, so the
+   re-shoot and that gate go in one slice.
+2. **Keynote, author's calls:** the three other build plans onto the
    two-register label (`"1  Wer macht es grün?\n~abfedern~"`, changes what
    `emph` reaches); `[am Vortragstag eintragen]` on `#stand-heute`; the URL
    on `#schluss` as an accent link or plain grey; `#der-satz` stays a drawing
    because the note wants the definition *above* the claim (a `.lead` for
    `statement:` would change that – plan §2.11).
-4. **Engine leftovers** from `PLAN-figure-defaults.md`: §2.8 dock alignment
-   (measure first), §6 item 7 (canvas height traded against the caption
-   lines under a figure), §6 item 4 (`.dotted .muted` is faint), `lh` spelling
-   lost on an editor drag, `lint.js` counts positional beats on `title:`
-   chunks that render none, `noteSegments` last-kept-segment fallback on an
-   empty trailing segment.
+3. **Engine leftovers.** Done since this file was written: the cover canvas,
+   `lint.js`'s beat count on a `title:` chunk, the brace label, an edge's
+   `side` per beat, px in the canvas reports. Still open, from
+   `PLAN-figure-defaults.md` unless named otherwise: §2.8 dock alignment
+   (measure first), §6 item 7 (canvas height traded against the caption lines
+   under a figure), §6 item 4 (`.dotted .muted` is faint), `lh` spelling lost
+   on an editor drag, `noteSegments`' last-kept-segment fallback on an empty
+   trailing segment (every `---` is a beat now, so an empty trailing segment
+   is kept and `last` counts it – the rule that notes only in the last
+   segment are chunk notes on beat 1 then stops firing), and
+   `PLAN-overlap-census.md`, which is its own file because it was written
+   from a measured case.
+4. **One figure still behind its own slide.** `#ns-b22` sets its labels at
+   13.2 px against 28.4 px of body type (0.46x, smallest on the drawing
+   10.5 px) – five boxes on one line inside a `::: side` pane. `--check-fit`
+   reports it as a note. It wants a redraw, not an engine change: fewer boxes
+   per row, a `::: side` ratio, or shorter labels.
 5. **Merge to `main` and push** once the keynote frames are accepted. Each
    slice is one described commit; the merge commits name the slice.
+
+## What a redraw of a whole corpus turned up
+
+Worth reading before the next one, because none of it was visible from the
+source and most of it was not visible from a contact sheet either.
+
+- **A contact sheet is too small to review a figure.** The agent that redrew
+  `network-security` read twenty contact sheets and reported no overlapping
+  labels. `#ns-a41` was shipping with a line struck through by the outline of
+  the box above it, invisible at thumbnail size and obvious at full size.
+  **Read the last beat of every figure at full size**; the sheet is for
+  finding the slide, not for judging it.
+- **The build was silent about it, and that is a defect of its own.** The
+  mechanism is measured and written up in `PLAN-overlap-census.md`: the text
+  tolerance is 24 px on both axes, the offending axis of a strike-through is
+  small by construction, and the px are the compiler's, which a figure scaled
+  1.9x to its canvas turns into 46 px in the room.
+- **A scanner for the same question, asked of the rendered page**, was
+  written during that pass and is worth keeping:
+  `exposure2.mjs` in the session scratchpad walks every beat in a browser and
+  prints every text/box pair whose painted boxes partially overlap, with no
+  tolerance. On `network-security` it prints four hits, all four legitimate
+  (labels inside a plot frame, a chevron abutting the value it points at).
+  Whether it belongs in `test/` is an open question.
+- **`dim` is an opacity.** `#ns-b05` dimmed two filter boxes and the wire
+  running behind them showed through and struck the word standing in them.
+  Taking the accent off by name (`style fwd, fws {!tone-4 !emph}`) is the
+  fix in a deck; whether `dim` should keep its fill opaque is a design
+  question nobody has asked yet.
+- **A spec that hunts a shape in a real lecture breaks when the lecture is
+  redrawn, and the honest repair is to ask the drawing rather than to
+  re-magick a number.** Eight assertions failed across two editor specs after
+  the redraws. Both now compute what they need – the two box widths read off
+  the source, the point where a lifeline stands alone – instead of holding
+  coordinates that were true of one arrangement.
+- **Two handles can coincide.** A waypoint sitting half a pixel from the
+  edge's own endpoint hands the press to the endpoint, which reads as an
+  editor defect and is not one.
 
 ## How to verify anything here
 
