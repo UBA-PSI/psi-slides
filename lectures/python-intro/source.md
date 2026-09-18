@@ -19,12 +19,7 @@ draw-defaults: |
 
 ## title: {#title}
 
-::: draw 120x62 frame none
-# `frame none` because a cover figure has no text column: `cover: beside`
-# puts it in a 34% panel that runs the whole height of the slide, so the
-# chunk canvas – a standard column, sixteen label-heights tall – is not the
-# box this drawing is in. Four stages joined by arrows stand taller than
-# that, and on a cover they have the room for it.
+::: draw 120x62
 default box {.tone-1} w 1.55
 
 box url   "a URL"             at 0,0 {.tone-2}

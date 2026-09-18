@@ -2037,6 +2037,78 @@ console.log('\nlayout generations');
        'and a step off the ladder is an unknown class rather than a silent no-op');
   }
 
+  // ── a cover's figure is not in a text column, so it has no canvas ──
+  // `cover: beside` hands the title chunk's body to the art panel that
+  // `cover-ratio` divides the frame with, and `## closing:` composes its body
+  // the same way. Neither is the chunk's column, so neither gets the chunk
+  // canvas: measured on lectures/python-intro, whose four stacked boxes stand
+  // comfortably in a 34% panel, the build reserved a column 16 labels tall and
+  // warned `figure-overflows-canvas` about a drawing that was never too big
+  // for the box it is actually in. The deck answered with `frame none` and a
+  // comment, which is the workaround this removes.
+  {
+    // Tall and narrow: the shape a cover panel is and the shape that overflows
+    // a 16-label canvas, so a canvas the build should not have given it is
+    // visible as a complaint rather than as a silence.
+    const col = '::: draw 120x62\n'
+      + [...Array(5).keys()].map(i => 'box b' + i + ' "a stage of the crawl ' + i + '"'
+        + (i ? ' below b' + (i - 1) : '')).join('\n') + '\n:::\n';
+    const cv = raw('---\ntitle: T\ncover: beside\ncover-ratio: 34%\n---\n\n'
+      + '## title: {#cover}\n\n' + col
+      + '\n## figure: A {.wide #a}\n\n' + col
+      + '\n## closing: Questions? {#end}\n\n' + col, ['--audience-only']);
+    ok(cv.code === 0, 'a cover whose body is a figure builds', cv.out.split('\n')[0]);
+    ok(!/canvas in chunk #cover/.test(cv.out) && !/canvas in chunk #end/.test(cv.out),
+       'and neither the cover nor the closing slide is measured against a chunk canvas',
+       cv.out.split('\n').filter(l => /canvas/.test(l)).join(' | '));
+    // The attribute is the fact behind the warning: `data-canvas` is the box
+    // the slide reserved, and a figure with no canvas does not carry one.
+    // --check-fit reads exactly this, so its per-figure room lines leave the
+    // two slides out for the same reason the build's warnings do. Read off
+    // the svg's own opening tag, because the editor's source text names the
+    // attribute too and a slice of the page would find that instead.
+    const svgTag = (id) => {
+      const h = cv.html || '';
+      const i = h.indexOf('<article class="chunk');
+      const a = h.indexOf('data-chunk-id="' + id + '"', i < 0 ? 0 : i);
+      const s = a < 0 ? -1 : h.indexOf('<svg', a);
+      return s < 0 ? '' : h.slice(s, h.indexOf('>', s));
+    };
+    ok(!/data-canvas=/.test(svgTag('cover')) && !/data-canvas=/.test(svgTag('end')),
+       'their drawings carry no data-canvas',
+       svgTag('cover').slice(0, 200));
+    ok(/data-canvas=/.test(svgTag('a')),
+       'while the same drawing in an ordinary chunk is on one', svgTag('a').slice(0, 200));
+  }
+
+  // ── a title chunk is full width on both sides of the build ──
+  // Both renderers hardcode data-width="full" on a cover, and a width class
+  // there is refused, so the parser storing `standard` made the static half
+  // measure a column the slide never has: --check-fit reported `(title,
+  // .full)` for the same chunk the figure warnings measured as `.standard`.
+  // lint.js resolved it to full already (`defaultWidthFor`), which is the
+  // mirror this brings build.js into line with.
+  {
+    // A drawing far too wide for any column, on a cover: `figure-type-small`
+    // is the one warning a figure with no canvas still earns, and it names
+    // the column it measured, which is where the stored width becomes
+    // visible. It read `.standard` before.
+    const wide = '::: draw 200x52\n' + [...Array(10).keys()]
+      .map(i => 'box b' + i + ' "a label of some length ' + i + '"'
+        + (i ? ' right of b' + (i - 1) + ' gap 0.3' : '')).join('\n') + '\n:::\n';
+    const w = raw('---\ntitle: T\ncover: beside\n---\n\n## title: {#t}\n\n' + wide
+      + '\n## free: A {#a}\n\nProse.\n\n'
+      + '## closing: Questions? {#end}\n\n', ['--audience-only']);
+    ok(w.code === 0, 'a deck with a cover and a closing slide builds', w.out.split('\n')[0]);
+    for (const id of ['t', 'end']) {
+      const m = new RegExp('<article[^>]*data-chunk-id="' + id + '"').exec(w.html || '');
+      ok(!!m && /data-width="full"/.test(m[0]), `#${id} is full width in the DOM`, m ? m[0] : '');
+    }
+    ok(/figure-type-small in chunk #t: .* in a \.full column/.test(w.out),
+       'and the static half measured the same column, not a standard one',
+       w.out.split('\n').filter(l => /figure-type-small/.test(l)).join(' | '));
+  }
+
   // ── {.bare} on the `#` heading: the divider's heading off the slide ──
   // Same semantics as a chunk's `.bare`, and the same mechanism: display
   // none over an element that is still in the DOM, so the contents page, the

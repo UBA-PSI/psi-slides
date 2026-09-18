@@ -803,7 +803,15 @@ resolves the fallback chain once on `.psi-diagram`, and `figureCapProbe`,
 the only place the chunk's column is the right box. A figure in a card, a
 pane, a dock, an overlay or an expansion has a fraction of that column; a
 beside-layout divider figure shares the frame with its heading. Those keep
-the hugging box. **A stacked divider (`# Heading {.stack}`) is the one
+the hugging box. **A cover is the same case and it is the one that is not
+obvious**: a `title:` or `closing:` chunk's body is not in a text column at
+all – `cover: beside` and `cover: above` hand it to the art panel that
+`cover-ratio` divides the frame with, `masthead` and `quote` set it as a
+field beside the title pair – so a cover figure keeps the hugging box too.
+(Before that it was given a `.standard` column sixteen labels tall, and
+`lectures/python-intro`, whose four stacked boxes stand comfortably in a 34%
+panel running the height of the slide, was warned `figure-overflows-canvas`
+and had to write `frame none`.) **A stacked divider (`# Heading {.stack}`) is the one
 divider with a column**, the `.full` measure, so its figure is on a canvas
 too – `.full` wide and 20 labels tall, the 0.72 of the slide its own rule
 allows – and a keynote that opens each part on a figure gets the same type
@@ -832,9 +840,9 @@ neither fails a build.
 **Neither is mirrored in `lint.js`, and neither can be**: both need the
 drawing laid out, which needs the compiler, which is the whole thing the
 linter is kept independent of. `figure-type-small` survives beside them for a
-figure with **no** canvas – under `frame: none`, or in a card, a pane or a
-divider – where nothing else can say that a deck's figures are uniformly
-unreadable. `figure-type-uneven` is gone: its whole content was "this slide's
+figure with **no** canvas – under `frame: none`, or in a card, a pane, a
+divider or a cover – where nothing else can say that a deck's figures are
+uniformly unreadable. `figure-type-uneven` is gone: its whole content was "this slide's
 type is out of step with the deck's", which a figure inside its canvas cannot
 be and a figure past it is told in plainer words.
 

@@ -4888,10 +4888,26 @@ function parseLecture(src) {
         // existed. `::: slide` and `::: script` are not layout: they say
         // which half of the chunk is the screen, and the column is the same
         // either way.
+        //
+        // **A cover slide is the same case, and it is the one that is not
+        // obvious.** A `title:` or `closing:` chunk's body is not in a text
+        // column at all: the cover composition places it, and which box that
+        // is depends on the variant - `beside` and `above` hand it to the
+        // art panel that `cover-ratio` divides the frame with, `masthead`
+        // and `quote` set it as a field beside the title pair, and the rest
+        // draw no body. So there is no one column to measure, and the chunk
+        // canvas is several times too wide and far too short: measured on
+        // `lectures/python-intro`, whose `cover: beside` puts four stacked
+        // boxes in a 34% panel that runs the whole height of the slide, the
+        // build reserved a `.standard` column 16 labels tall and warned
+        // `figure-overflows-canvas` about a drawing that is comfortably
+        // inside its actual panel. A cover figure keeps the box that hugs
+        // it, like a figure in a card.
         const dgUnit = diagramBlock.unit
           ? diagramBlock.unit.split('x').map(Number) : DG_UNIT.slice();
         const dgInFlow = !!currentChunk && !cardsBlock && !currentDock && !currentOverlay
           && !currentExpansion
+          && currentChunk.tag !== 'title' && currentChunk.tag !== 'closing'
           && layoutStack.every(l => l.kind === 'slide' || l.kind === 'script');
         // One divider does have a column: `# Heading {.stack}` sets its body
         // at the .full measure, and a keynote that opens each part on a
@@ -5099,11 +5115,20 @@ function parseLecture(src) {
           tag,
           heading,
           headingSub,
-          // The one per-tag default. An agenda is a list of part titles and
-          // wants the wider measure; every other tag is standard. It is set
-          // here rather than in the renderer because the renderer's own
-          // fallback could never fire - this line always supplies a value.
-          width: width || (tag === 'outline' ? 'wide' : 'standard'),
+          // The per-tag defaults, and both are a fact about the slide rather
+          // than a preference. An agenda is a list of part titles and wants
+          // the wider measure. A title or closing chunk is always full width
+          // - both renderers hardcode `data-width="full"` on it, and a width
+          // class there is refused a dozen lines up - so storing `standard`
+          // made the two sides of the build disagree about the same slide:
+          // --check-fit read `(title, .full)` off the DOM while every static
+          // reader here measured a `.standard` column. `defaultWidthFor` in
+          // lint.js already resolved it this way, with the same reasoning.
+          // It is set here rather than in the renderer because the
+          // renderer's own fallback could never fire - this line always
+          // supplies a value.
+          width: width || (tag === 'title' || tag === 'closing' ? 'full'
+            : tag === 'outline' ? 'wide' : 'standard'),
           bare: !!bare,
           center: !!center,
           // Left null when the author wrote neither `.middle` nor `.top`, and
@@ -23687,7 +23712,7 @@ async function runCheckFit(absIn, viewport) {
                              canvas: f.canvas });
       }
     }
-    if (st.bodyPx > 0) {
+    if (st.bodyPx > 0 && !isCoverSlide(st.tag)) {
       const prev = bodySeen.get(st.id);
       if (prev == null || st.bodyPx < prev) bodySeen.set(st.id, st.bodyPx);
     }
@@ -23787,6 +23812,17 @@ async function runCheckFit(absIn, viewport) {
 // `figure-underfills-canvas` - but the two are worth having side by side,
 // because this half sees a figure inside a card or a pane that the static
 // half measures against the chunk's column.
+// A cover slide is not measured against the deck's body type, in either
+// direction: it neither sets the median nor is compared with it. Its words
+// are the composition's - the title pair, the credit block, a quotation in a
+// field - and there is no `.chunk-body` on it at all, so what the probe reads
+// back is the content box's own font size, which is a different quantity
+// wearing the same name. Counting it moved the median, and comparing a cover
+// with it printed "#title settles at 20 px, 38% under the deck - its figure
+// is what took the slide down" about a slide whose figure IS the cover's
+// picture and whose type nothing took down.
+const isCoverSlide = (tag) => tag === 'title' || tag === 'closing';
+
 function reportFigureType(figType, bodySeen, where) {
   if (!figType.size) return;
   const rows = [...figType.entries()].map(([id, f]) => ({ id, ...f, ratio: f.bodyPx ? f.px / f.bodyPx : 0 }));
@@ -23870,7 +23906,7 @@ function reportFigureType(figType, bodySeen, where) {
   if (all.length < 3) return;
   const median = all.length % 2 ? all[(all.length - 1) / 2]
     : (all[all.length / 2 - 1] + all[all.length / 2]) / 2;
-  const under = rows.filter(f => f.bodyPx > 0 && f.bodyPx < median * FIG_TYPE_EVEN_TOL)
+  const under = rows.filter(f => !isCoverSlide(f.tag) && f.bodyPx > 0 && f.bodyPx < median * FIG_TYPE_EVEN_TOL)
     .sort((a, b) => a.bodyPx - b.bodyPx);
   console.log(`  the deck's body type settles between ${all[0]} and ${all[all.length - 1]} px,`
     + ` median ${median} px${under.length ? '.' : ', and no slide with a figure is more than '
