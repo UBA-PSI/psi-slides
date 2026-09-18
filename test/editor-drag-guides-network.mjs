@@ -123,13 +123,13 @@ export async function run({ page, report, walkTo, ed }) {
   // The wire from the first desktop down to the switch is routed through two
   // waypoints, each half reference and half number – the normal case in a
   // routed diagram rather than an edge case. The gesture takes hold of the
-  // **second** one, where the bus turns down into the switch. The first is
-  // unreachable in this drawing and not through any fault of the editor's:
-  // the redraw pushed the desktops down until `d1.bottom` and `d1.cx,-1.0`
-  // are half a pixel apart, and the edge's own endpoint handle is stacked on
-  // top of the waypoint's there, so a press lands on the endpoint. Which
-  // waypoint it is changes nothing about what is being asserted – both halves
-  // of both of them are one reference and one bare number.
+  // **second** one, where the bus turns down into the switch. Either would
+  // serve what is asserted below – both are one reference and one bare
+  // number – and the second is taken because it is the corner with the most
+  // paper round it. The first sits one stub under `d1.bottom`, which is the
+  // edge's own from-endpoint and carries a handle of its own, so which of the
+  // two a press lands on there depends on how tight the channel is drawn; out
+  // at the switch turn nothing else is near.
   const VIA = 1;
   const wire = await page.evaluate(() =>
     (DGE.model.edges.find((e) => (e.via || []).length && /^d1\b/.test(e.from.ref || '')) || {}).id);
