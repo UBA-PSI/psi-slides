@@ -446,9 +446,9 @@ text loc "Attacker's real location\nis unknown (IP spoofing)." below atk gap 0.4
 
 box why "Faking Src IP possible for\nconnectionless protocols,\ne.g., ICMP (“ping”) or\nprotocols using UDP\n(DNS, NTP)" at 4.0,-0.6 w 3.8 h 3.8 {.clear @fake}
 
-text note1 "Victim (and ISPs) cannot filter the DoS\ntraffic if it resembles legitimate traffic." at -5.6,3.4 {.left .muted @conc}
-text note2 "To mitigate IP Spoofing many (all) ISPs would\nhave to perform *Ingress/Egress Filtering*.\nDifficult due to negative externality." at -1.58,3.67 {.left .muted @conc}
-text bcp "cf. BCP 38: Ingress Filtering" at 2.9,3.17 {.small .muted .left @conc}
+text note1 "Victim (and ISPs) cannot filter the DoS\ntraffic if it resembles legitimate traffic." at -5.9,3.4 {.left .muted @conc}
+text note2 "To mitigate IP Spoofing many (all) ISPs would\nhave to perform *Ingress/Egress Filtering*.\nDifficult due to negative externality." at -0.25,3.67 {.left .muted @conc}
+text bcp "cf. BCP 38: Ingress Filtering" below note2 gap 0.3 flush left {.small .muted .left @conc}
 
 step attacker
   show @real
@@ -1427,8 +1427,8 @@ edge e1 ms -> s1 {.muted}
 edge e2 ms -> s2 {.muted}
 edge e3 as -> bl {.muted}
 
-text mt "anything else:\nno misuse alert" at 0.85,3.72
-text an "anything else:\nanomaly alert"   at 2.65,3.72
+text mt "anything else:\nno misuse alert" at 0.85,3.45
+text an "anything else:\nanomaly alert"   at 2.65,3.45
 
 box mlab "All intrusions"     at 0.85,4.62 w 1.5 {.paper .accent}
 box alab "All benign actions" at 2.65,4.62 w 1.7 {.paper}
