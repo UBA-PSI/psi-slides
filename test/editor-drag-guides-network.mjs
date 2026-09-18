@@ -14,6 +14,7 @@
  *
  *   ns-b06  the two resize handles, on a rank of boxes with written widths
  *   ns-b06  a waypoint whose x is a reference and whose y is a bare number
+ *           (the second of the wire's two – see the comment on the drag)
  *   ns-b63  a move at a beat, on the densest figure in the tree
  */
 export const name = 'editor · a guide on every drag · network-security';
@@ -78,16 +79,24 @@ export async function run({ page, report, walkTo, ed }) {
 
   ok(await pick('net') === 'box net', 'the Internet box is selected', await ed.selection());
   const netBefore = await ed.lineWith('box net ');
-  ok(/ w 0\.8 /.test(netBefore || ''), 'and it is 0.8 wide, where the switch is 0.95', netBefore);
+  // Both widths are read off the source rather than written here. The deck is
+  // free to be redrawn – it has been – and the property this row guards is not
+  // a number: the Internet box is narrower than the switch, and the grip is
+  // dragged the difference, so the only width it can land on is the switch's.
+  const widthOf = (line) => Number((/ w ([\d.]+) /.exec(line || '') || [])[1]);
+  const netW = widthOf(netBefore);
+  const swW = widthOf(await ed.lineWith('box sw '));
+  ok(netW > 0 && swW > netW, 'and it is narrower than the switch',
+    'net ' + netW + ' · sw ' + swW);
 
   const east = await handleAt('net', 'e');
   ok(!!east, 'it has an east grip at this zoom');
-  seen = await dragCells(east, 0.15, 0);
+  seen = await dragCells(east, swW - netW, 0);
   note('edge   : ' + JSON.stringify(seen.labels) + '  ·  ' + seen.note);
-  ok(seen.labels.some((t) => t === 'w 0.95'),
+  ok(seen.labels.some((t) => t === 'w ' + swW),
     'the switch’s width lights up on the switch', JSON.stringify(seen.labels));
   ok(/the same width \w+ is given/.test(seen.note), 'and the status bar says whose', seen.note);
-  ok(/ w 0\.95 /.test(await ed.lineWith('box net ') || ''),
+  ok((await ed.lineWith('box net ') || '').includes(' w ' + swW + ' '),
     'and the number the line gets is that one exactly', await ed.lineWith('box net '));
 
   await undo();
@@ -113,7 +122,15 @@ export async function run({ page, report, walkTo, ed }) {
 
   // The wire from the first desktop down to the switch is routed through two
   // waypoints, each half reference and half number – the normal case in a
-  // routed diagram rather than an edge case.
+  // routed diagram rather than an edge case. The gesture takes hold of the
+  // **second** one, where the bus turns down into the switch. The first is
+  // unreachable in this drawing and not through any fault of the editor's:
+  // the redraw pushed the desktops down until `d1.bottom` and `d1.cx,-1.0`
+  // are half a pixel apart, and the edge's own endpoint handle is stacked on
+  // top of the waypoint's there, so a press lands on the endpoint. Which
+  // waypoint it is changes nothing about what is being asserted – both halves
+  // of both of them are one reference and one bare number.
+  const VIA = 1;
   const wire = await page.evaluate(() =>
     (DGE.model.edges.find((e) => (e.via || []).length && /^d1\b/.test(e.from.ref || '')) || {}).id);
   ok(!!wire, 'the desktop’s wire has waypoints', String(wire));
@@ -121,11 +138,14 @@ export async function run({ page, report, walkTo, ed }) {
   await page.waitForTimeout(340);
   const wireBefore = await ed.lineWith('via d1.cx');
   note('before : ' + wireBefore);
-  ok(/via d1\.cx,-?[\d.]+ /.test(wireBefore || ''),
+  ok(/ sw\.cx,-?[\d.]+\s*$/.test(wireBefore || ''),
     'x is a reference and y is a bare number', wireBefore);
   // Aim at the nearest line the grammar can name on the axis that is bare.
-  const dy = await page.evaluate((i) => {
-    const at = dgeEdgePts(i)[1];
+  // Nearest, but not nearer than a fifth of a cell: a line the waypoint is
+  // already sitting on is not something a drag can aim at, and the gesture
+  // that would reach it is a jitter rather than a drag.
+  const dy = await page.evaluate(([i, k]) => {
+    const at = dgeEdgePts(i)[1 + k];
     const uh = DGE.model.unit[1];
     let best = null;
     for (const [id, b] of DGE.boxes) {
@@ -133,22 +153,23 @@ export async function run({ page, report, walkTo, ed }) {
       if (!el || el.kind === 'edge' || (el.synth && el.synth !== el.id)) continue;
       for (const y of [b.y, b.y + b.h / 2, b.y + b.h]) {
         const d = (y - at[1]) / uh;
-        if (Math.abs(d) < 0.05 || Math.abs(d) > 1) continue;
+        if (Math.abs(d) < 0.2 || Math.abs(d) > 1) continue;
         if (!best || Math.abs(d) < Math.abs(best)) best = d;
       }
     }
     return best;
-  }, wire);
-  ok(dy !== null, 'there is a line within reach of the first waypoint', String(dy));
-  const via0 = await handleAt(wire, 'via-0');
-  ok(!!via0, 'and the waypoint has a handle');
-  seen = await dragCells(via0, 0, dy);
+  }, [wire, VIA]);
+  ok(dy !== null, 'there is a line within reach of that waypoint', String(dy));
+  const via = await handleAt(wire, 'via-' + VIA);
+  ok(!!via, 'and the waypoint has a handle');
+  seen = await dragCells(via, 0, dy);
   note('labels : ' + JSON.stringify(seen.labels) + '  ·  ' + seen.note);
   ok(seen.labels.some((t) => /^\w+\.(cy|top|bottom)$/.test(t)),
     'the line it landed on is drawn and named', JSON.stringify(seen.labels));
   const wireAfter = await ed.lineWith('via d1.cx');
   note('after  : ' + wireAfter);
-  ok(/via d1\.cx,[a-z]\w*\.(cy|top|bottom) /.test(wireAfter || ''),
+  ok(/ sw\.cx,[a-z]\w*\.(cy|top|bottom)\s*$/.test(wireAfter || '')
+    && / d1\.cx,-?[\d.]+ /.test(wireAfter || ''),
     'the bare half becomes a reference and the half that was one is untouched', wireAfter);
   ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
   await leave();
