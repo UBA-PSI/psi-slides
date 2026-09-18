@@ -29120,8 +29120,12 @@ const DGE_SLOTS = [
   // `right of` boxes shares one width and one height by default, because a row
   // of four widths reads as four weights; `.own` is how one box leaves the run
   // – and, since nothing reaches through it, how a run is broken in two.
+  // Not on a synthesised box: a table cell, a lane, an actor's head is sized
+  // by its own statement and stands in no chain, so the swatch would only
+  // write a class the compiler ignores there.
   { key: 'sizing', label: 'size',
-    options: [{ cls: '', label: 'shared' }, { cls: 'own', label: 'its own' }] },
+    options: [{ cls: '', label: 'shared' },
+      { cls: 'own', label: 'its own', when: (el) => !(el.synth && el.synth !== el.id) }] },
   { key: 'weightfont', label: 'text weight',
     options: [{ cls: '', label: 'regular' }, { cls: 'bold' }] },
   // Both axes, and on a box as well as a free text: a tall element with a
