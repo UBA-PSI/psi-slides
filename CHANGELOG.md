@@ -81,6 +81,17 @@ from building the same way is a major version.
   one. It is now one label-height unjoined and about 1.6 between two
   elements an edge joins; a written gap keeps its meaning; an exposed run
   under 1.5 labels warns `edge-short`.
+- **A relabelled text keeps the edge its placement pinned.** A free text's
+  width is an estimate, and its words used to be centred on the estimated
+  box, so a `label` step that swapped in a longer string moved the words
+  although nothing in the source moved them. The placement's held side
+  (`anchor tl`, `right of`, `flush left`, `align x left`) is now the edge
+  the words hang from. `.turn` joins the anchors a `style` step may not
+  change.
+- **A table's columns take their alignment from a tag default**:
+  `default box @t-col-0 {.left}` ranges one column and leaves the others
+  centred; the alignment belongs on the columns that differ, never on the
+  table line, because a tail lands on every cell as its own class.
 - **An elbow's arrival run is long enough to read.** The rail sits halfway
   across a roomy gap and slides toward the source in a tight one so the
   run after it is a label-height plus the head; where the gap cannot give
