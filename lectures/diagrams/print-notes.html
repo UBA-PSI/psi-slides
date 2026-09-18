@@ -1234,7 +1234,7 @@ pre.shiki .line { display: inline; }
    white. The tone rules below always used the child combinator; this one and
    the text rule did not, which is why the two of them were the leak. */
 .psi-diagram .dg-el > rect, .psi-diagram .dg-el > circle, .psi-diagram .dg-el > .dg-shape {
-  fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
+  fill: var(--paper); stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); rx: 4px;
 }
 /* A box whose outline is not a rectangle is a <path>, so every rule below
    that paints a box has to name it too. They do it through :is(), which is
@@ -1242,7 +1242,7 @@ pre.shiki .line { display: inline; }
    was a third copy of each one. The join is rounded so a chevron's nose is a
    point rather than a miter spike. */
 .psi-diagram .dg-shape { stroke-linejoin: round; }
-.psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
+.psi-diagram .dg-stroke { stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); fill: none; stroke-linejoin: round; }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
 /* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
    type inside an embedded drawing is the drawing's business. */
@@ -1271,7 +1271,7 @@ pre.shiki .line { display: inline; }
    trust boundary, a segment, a machine - it has to read as a statement.
    Dashed at that weight it was barely visible on a shaded ground, which
    is exactly where these are usually drawn. */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); stroke-width: 1.3; }
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
@@ -1326,8 +1326,8 @@ pre.shiki .line { display: inline; }
    this mix reads worse than --ink-soft did and only the inverted label two
    rules down is legible; and a dark theme's paper, where the mix follows
    --ink and --paper and so inverts with them. */
-.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
-.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
+.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
 .psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
 
@@ -1356,9 +1356,32 @@ pre.shiki .line { display: inline; }
    rule the free text's ground already needs, for exactly the same reason. */
 .psi-diagram .dg-edge:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
 
-.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
-.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
-.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+/* The two stroke patterns, stated as multiples of the line they pattern
+   rather than as pixels. --dg-sw is set beside every stroke-width above, on
+   the same element and by the same selector, so a .thick outline gets a
+   longer dash instead of the same dash on a fatter line - which is what 6 4
+   was: 4.3 line-widths of ink and 2.9 of paper at the normal weight, and a
+   dashed box then drew the eye harder than the solid one beside it. It also
+   stumbled at the corners: on a 13px .round corner a 10px period puts one or
+   two dashes on the whole arc, so a gap landing on the apex reads as a
+   chipped box. 2.2 and 1.5 halve the period, which does not divide a
+   perimeter evenly either - nothing does, in general - but a small dash with
+   a small gap hides the seam instead of announcing it.
+   Butt caps, deliberately: a round cap adds half a line-width of ink at each
+   end and would put the dash back where it started. */
+.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke {
+  stroke-dasharray: calc(var(--dg-sw, 1.4px) * 2.2) calc(var(--dg-sw, 1.4px) * 1.5);
+}
+/* Dots, and they have to be round dots or the word means nothing: a zero-
+   length dash under a round cap draws a disc one line-width across, and the
+   gap is 2.5 of those. It used to be 1.5 3.5 with the round cap on top, which
+   is a 2.9px dash at the normal weight - a fine dashed line under another
+   name - and at .thick a 4.1px dash with 0.9px of paper between, so the
+   dotted box in the class catalogue was very nearly solid. */
+.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke {
+  stroke-dasharray: 0 calc(var(--dg-sw, 1.4px) * 2.5); stroke-linecap: round;
+}
+.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .round > rect { rx: 13px; }
 .psi-diagram .sharp > rect { rx: 0; }
@@ -1401,8 +1424,8 @@ pre.shiki .line { display: inline; }
 .psi-diagram .ghost .dg-stroke,
 .psi-diagram .ghost .dg-head { opacity: 0.6000; }
 /* emph / dim are what a step reaches for; both stay inside the palette */
-.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
-.psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
+.psi-diagram .emph .dg-stroke { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
 /* A chart's column: what it is filled with, and what emph does to it. A
    column draws no outline, so paper would make it vanish and there is nothing
@@ -2703,7 +2726,7 @@ one warning this lecture builds with.</p>
   <figure class="figure-diagram"><svg id="dg25-root" class="psi-diagram" viewBox="-482.65 -120.00 922.40 240.00" style="--dg-type-w:61.493;--dg-ar:3.8433;--dg-ink-x:0.01301;--dg-live-type-w:61.493;--dg-live-ar:3.8433;--dg-live-ink-x:0.01301" width="2000" height="520" data-live-viewbox="-482.65 -120.00 922.40 240.00" data-live-ratio="0.260191" data-steps="4" role="img" aria-label="Three roles, one incident" preserveAspectRatio="xMidYMid meet">
 <g id="dg25-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge elbow one-head"><path id="dg25-edge-1--p" class="dg-stroke" d="M-250.75 -72.00L-197.65 -72.00L-197.65 0.00L-152.20 0.00" fill="none"/><path id="dg25-edge-1--h" class="dg-head" d="M-144.55 0.00L-153.55 3.96L-153.55 -3.96Z"/></g>
 <g id="dg25-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge small one-head"><path id="dg25-edge-2--p" class="dg-stroke" d="M-26.55 0.00L66.10 0.00" fill="none"/><path id="dg25-edge-2--h" class="dg-head" d="M73.75 0.00L64.75 3.96L64.75 -3.96Z"/><g id="dg25-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(23.60,-9.50)"><g id="dg25-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">same sender</tspan></text></g></g></g>
-<g id="dg25-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge elbow one-head"><path id="dg25-edge-3--p" class="dg-stroke" d="M215.35 0.00L227.15 0.00L227.15 72.00L231.30 72.00" fill="none"/><path id="dg25-edge-3--h" class="dg-head" d="M238.95 72.00L229.95 75.96L229.95 68.04Z"/></g>
+<g id="dg25-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge elbow one-head"><path id="dg25-edge-3--p" class="dg-stroke" d="M215.35 0.00L228.90 0.00L228.90 72.00L249.00 72.00" fill="none"/><path id="dg25-edge-3--h" class="dg-head" d="M256.65 72.00L247.65 75.96L247.65 68.04Z"/></g>
 <g id="dg25-swim" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="dg25-swim--r" x="-427.75" y="-108.00" width="855.50" height="216.00" rx="4"/></g>
 <g id="dg25-swim-0" data-base="dg-el dg-box" class="dg-el dg-box sharp clear muted"><rect id="dg25-swim-0--r" x="-427.75" y="-108.00" width="855.50" height="72.00" rx="4"/></g>
 <g id="dg25-swim-cap-0" data-base="dg-el dg-text" class="dg-el dg-text turn small muted"><g id="dg25-swim-cap-0--lw0" data-lab="swim-cap-0--l" class="dg-lwrap" transform="translate(-463.15,-72.00) rotate(-90)"><g id="dg25-swim-cap-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">User</tspan></text></g></g></g>
@@ -2714,12 +2737,12 @@ one warning this lecture builds with.</p>
 <g id="dg25-rep" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg25-rep--r" x="-415.95" y="-99.75" width="165.20" height="55.50" rx="4"/><g id="dg25-rep--lw0" data-lab="rep--l" class="dg-lwrap" transform="translate(-333.35,-72.00)"><g id="dg25-rep--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">Phishing mail</tspan><tspan x="0" y="14.48">reported</tspan></text></g></g></g>
 <g id="dg25-tri" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg25-tri--r" x="-144.55" y="-18.38" width="118.00" height="36.75" rx="4"/><g id="dg25-tri--lw0" data-lab="tri--l" class="dg-lwrap" transform="translate(-85.55,0.00)"><g id="dg25-tri--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Triage</tspan></text></g></g></g>
 <g id="dg25-hunt" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg25-hunt--r" x="73.75" y="-27.75" width="141.60" height="55.50" rx="4"/><g id="dg25-hunt--lw0" data-lab="hunt--l" class="dg-lwrap" transform="translate(144.55,0.00)"><g id="dg25-hunt--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">Who else</tspan><tspan x="0" y="14.48">got it?</tspan></text></g></g></g>
-<g id="dg25-blk" data-base="dg-el dg-box" class="dg-el dg-box tone-4"><rect id="dg25-blk--r" x="238.95" y="53.63" width="165.20" height="36.75" rx="4"/><g id="dg25-blk--lw0" data-lab="blk--l" class="dg-lwrap" transform="translate(321.55,72.00)"><g id="dg25-blk--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sender blocked</tspan></text></g></g></g>
+<g id="dg25-blk" data-base="dg-el dg-box" class="dg-el dg-box tone-4"><rect id="dg25-blk--r" x="256.65" y="53.63" width="165.20" height="36.75" rx="4"/><g id="dg25-blk--lw0" data-lab="blk--l" class="dg-lwrap" transform="translate(339.25,72.00)"><g id="dg25-blk--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sender blocked</tspan></text></g></g></g>
 </svg><figcaption class="dg-hint"></figcaption></figure>
 
 
 <p><strong>The bands are equal, their contents are not, and that is why they are no <code class="nb">container</code>.</strong> A container measures itself against what it holds, so three bands with different numbers of boxes would come out different lengths at both ends – the one thing a swimlane diagram must not say. <code class="nb">lanes</code> lays the frame, divides it into bands of equal height and writes the names turned on end in front of the left edge; the bands are <code class="nb">.clear</code> so that everything in them reads over them. It needs no time axis: the reading direction is the axis.</p>
-<p><strong>Every hand-off changes band, and <code class="nb">.elbow</code> is the routing for it.</strong> The class draws two waypoints itself – a rail halfway across the gap, on the axis the two ends are further apart on – instead of the same double bend written out by hand on every edge. A straight line would do something else: it would run diagonally through a band it never enters, and the room reads that as involvement.</p>
+<p><strong>Every hand-off changes band, and <code class="nb">.elbow</code> is the routing for it.</strong> The class draws two waypoints itself – a rail across the gap, on the axis the two ends are further apart on – instead of the same double bend written out by hand on every edge. A straight line would do something else: it would run diagonally through a band it never enters, and the room reads that as involvement.</p>
 <p><strong>The one edge label sits <em>beside</em> the line, not on it.</strong> “same sender” describes what travels along the line, and a sentence with a rule through the middle of it is read as two fragments before it is read as a sentence. <code>side top</code> lifts it over the line; on a vertical edge it would be <code>side left</code> and <code>side right</code>, and which pair applies is known only once the edge has been routed – so the wrong pair is a warning at build time rather than an error at parse time. The label is moved clear by what it measures <em>across</em> the line: beside a horizontal edge its height, beside a vertical one its width, there with a margin, because a gap across a line of type needs more air than one above it. This label needs no ground: there is nothing but band under it. What a ground does, and how large it may be, is on <em>A frame to draw in</em>.</p>
 
   
@@ -2764,7 +2787,7 @@ one warning this lecture builds with.</p>
   <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
   
   <h2 class="chunk-heading">One word draws all six brackets</h2>
-  <p><strong>Every bracket in that tree is the same word, written six times.</strong> <code class="nb">.elbow</code> leaves one end on the axis the two are further apart on, runs a rail halfway across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements&#39; <em>facing edges</em>, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with <code class="nb">via</code>; both on one line is an error. <code class="nb">.elbow</code> shares a slot with <code class="nb">.smooth</code>: how a line is drawn is a question with exactly one answer.</p>
+  <p><strong>Every bracket in that tree is the same word, written six times.</strong> <code class="nb">.elbow</code> leaves one end on the axis the two are further apart on, runs a rail across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements&#39; <em>facing edges</em>, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with <code class="nb">via</code>; both on one line is an error. <code class="nb">.elbow</code> shares a slot with <code class="nb">.smooth</code>: how a line is drawn is a question with exactly one answer.</p>
 <p><strong>Its dashed box stands around the whole set before the set is assembled.</strong> It is written into the same beat as the issuers (<code>show @issuers, scope</code>), though its other two members arrive a beat later. Without the written <code class="nb">show</code> the usual rule applies: an outline is only as visible as its members and fits itself to the ones you can see, so it would first have grown around the issuer alone and then opened downwards. Naming it gets you both the visibility <em>and</em> the full extent. That is what the exception is for, and it is expressly not for the ordinary case.</p>
 
   

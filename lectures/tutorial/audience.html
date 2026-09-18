@@ -5103,7 +5103,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    white. The tone rules below always used the child combinator; this one and
    the text rule did not, which is why the two of them were the leak. */
 .psi-diagram .dg-el > rect, .psi-diagram .dg-el > circle, .psi-diagram .dg-el > .dg-shape {
-  fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
+  fill: var(--paper); stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); rx: 4px;
 }
 /* A box whose outline is not a rectangle is a <path>, so every rule below
    that paints a box has to name it too. They do it through :is(), which is
@@ -5111,7 +5111,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    was a third copy of each one. The join is rounded so a chevron's nose is a
    point rather than a miter spike. */
 .psi-diagram .dg-shape { stroke-linejoin: round; }
-.psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
+.psi-diagram .dg-stroke { stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); fill: none; stroke-linejoin: round; }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
 /* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
    type inside an embedded drawing is the drawing's business. */
@@ -5140,7 +5140,7 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    trust boundary, a segment, a machine - it has to read as a statement.
    Dashed at that weight it was barely visible on a shaded ground, which
    is exactly where these are usually drawn. */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); stroke-width: 1.3; }
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
@@ -5195,8 +5195,8 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    this mix reads worse than --ink-soft did and only the inverted label two
    rules down is legible; and a dark theme's paper, where the mix follows
    --ink and --paper and so inverts with them. */
-.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
-.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
+.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
 .psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
 
@@ -5225,9 +5225,32 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
    rule the free text's ground already needs, for exactly the same reason. */
 .psi-diagram .dg-edge:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
 
-.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
-.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
-.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+/* The two stroke patterns, stated as multiples of the line they pattern
+   rather than as pixels. --dg-sw is set beside every stroke-width above, on
+   the same element and by the same selector, so a .thick outline gets a
+   longer dash instead of the same dash on a fatter line - which is what 6 4
+   was: 4.3 line-widths of ink and 2.9 of paper at the normal weight, and a
+   dashed box then drew the eye harder than the solid one beside it. It also
+   stumbled at the corners: on a 13px .round corner a 10px period puts one or
+   two dashes on the whole arc, so a gap landing on the apex reads as a
+   chipped box. 2.2 and 1.5 halve the period, which does not divide a
+   perimeter evenly either - nothing does, in general - but a small dash with
+   a small gap hides the seam instead of announcing it.
+   Butt caps, deliberately: a round cap adds half a line-width of ink at each
+   end and would put the dash back where it started. */
+.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke {
+  stroke-dasharray: calc(var(--dg-sw, 1.4px) * 2.2) calc(var(--dg-sw, 1.4px) * 1.5);
+}
+/* Dots, and they have to be round dots or the word means nothing: a zero-
+   length dash under a round cap draws a disc one line-width across, and the
+   gap is 2.5 of those. It used to be 1.5 3.5 with the round cap on top, which
+   is a 2.9px dash at the normal weight - a fine dashed line under another
+   name - and at .thick a 4.1px dash with 0.9px of paper between, so the
+   dotted box in the class catalogue was very nearly solid. */
+.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke {
+  stroke-dasharray: 0 calc(var(--dg-sw, 1.4px) * 2.5); stroke-linecap: round;
+}
+.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .round > rect { rx: 13px; }
 .psi-diagram .sharp > rect { rx: 0; }
@@ -5270,8 +5293,8 @@ nav#toc li.toc-active button { font-weight: 600; color: var(--emph); }
 .psi-diagram .ghost .dg-stroke,
 .psi-diagram .ghost .dg-head { opacity: 0.6000; }
 /* emph / dim are what a step reaches for; both stay inside the palette */
-.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
-.psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
+.psi-diagram .emph .dg-stroke { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
 /* A chart's column: what it is filled with, and what emph does to it. A
    column draws no outline, so paper would make it vanish and there is nothing
@@ -17175,6 +17198,23 @@ const DG_GAP_JOINED = 1.6;     // …and for a pair an edge joins
 // least that still reads as an arrow rather than a wedge between two boxes.
 // It sits just under DG_GAP_JOINED on purpose, so the default never trips it.
 const DG_EDGE_MIN = 1.5;
+// The same rule one shape along, for an `.elbow`. An elbow's head sits at the
+// end of the run *after* the rail, and that run is the only part of the route
+// that says which box the arrow is pointing into – the rail says nothing, it
+// is shared. Measured on a real keynote: two elbows across a 30 px gap put the
+// rail at 15 px, so the head had 15 px of run to stand on, most of which the
+// head itself is, and against a `.dashed` target the arrow read as a head
+// resting on the dashes rather than arriving at them.
+//
+// One label plus the head is the floor, and it is stated in px rather than in
+// rows for the reason DG_EDGE_MIN is: what crowds a head is the head, which is
+// a number of pixels whatever grid the block declares.
+const DG_ELBOW_ARRIVE = DG_LABEL_H + DG_HEAD;   // px, the run after the rail
+// …and the run *before* it keeps at least a head's length, or moving the rail
+// to buy the arrival run simply spends the same problem at the other end. It
+// is the bound that keeps the rail a rail: `.elbow` still looks at nothing in
+// the figure but its own two ends.
+const DG_ELBOW_LEAVE = DG_HEAD;                 // px, the run before the rail
 const DG_MARGIN = 12;          // viewBox breathing room, px
 // Nominal intrinsic width. Deliberately wider than any chunk measure so
 // that max-width: 100% always binds – see the comment where it is emitted.
@@ -17248,9 +17288,13 @@ const DG_CLASSES = new Set([
   // Called `.front` and not `.over`, because `over` is already the keyword
   // that gives a container its members.
   // `.elbow` is the one place the engine puts a coordinate on the page the
-  // author did not write, and it is bounded on purpose: the rail is always
-  // halfway across the gap, on whichever axis the two ends are further apart,
-  // and there is no option to move it. It looks at nothing else in the figure,
+  // author did not write, and it is bounded on purpose: the rail is halfway
+  // across the gap, on whichever axis the two ends are further apart, and the
+  // author has no option to move it. The one thing that does move it is the
+  // arrival run – the part of the route after the rail, which is all the
+  // reader has to tell which box the arrow points into: where halfway leaves
+  // it under DG_ELBOW_ARRIVE the rail slides toward the source until it is
+  // that long, stopping at DG_ELBOW_LEAVE out. It looks at nothing else in the figure,
   // so it is not routing – nothing steps around an obstacle for you – it is
   // the two waypoints every tree edge was written with by hand, said once.
   // An edge that needs its rail somewhere else writes `via`, and saying both
@@ -19744,10 +19788,34 @@ function dgEdgeRoute(e, classes, boxes, uw, uh) {
   // Halfway across the gap between the two faces, never halfway between the two
   // centres: measured from the faces, two edges out of one parent share a rail
   // and the drawing reads as one bracket.
-  const rail = elbow
-    ? (down ? [[start[0], (start[1] + end[1]) / 2], [end[0], (start[1] + end[1]) / 2]]
-      : [[(start[0] + end[0]) / 2, start[1]], [(start[0] + end[0]) / 2, end[1]]])
-    : viaPx;
+  //
+  // …until halfway leaves the arrival run too short to read. The run after the
+  // rail is the only part of an elbow that says which box the arrow points
+  // into, and on a small gap half of it is the arrowhead. So the rail slides
+  // *toward the source*, far enough to give the arrival run DG_ELBOW_ARRIVE and
+  // no further – it is never pushed past halfway, and it never takes the
+  // leaving run below DG_ELBOW_LEAVE, because a rail that has swapped the two
+  // problems has solved neither. Where the gap cannot pay for both the rail
+  // stays where it was, halfway, and `dgEdgeShortWarnings` says so: the fix is
+  // then a number on the boxes, which is not the route's to write.
+  //
+  // Two edges out of one parent keep their shared rail through all of it, which
+  // is the property the bracket is made of: the offset is a function of the
+  // span alone, so ends the same distance apart move together.
+  const railAt = (a, b) => {
+    const span = Math.abs(b - a);
+    const half = span / 2;
+    const off = Math.min(half, Math.max(span - DG_ELBOW_ARRIVE, Math.min(DG_ELBOW_LEAVE, half)));
+    return a + (b >= a ? off : -off);
+  };
+  let rail;
+  if (elbow && down) {
+    const ry = railAt(start[1], end[1]);
+    rail = [[start[0], ry], [end[0], ry]];
+  } else if (elbow) {
+    const rx = railAt(start[0], end[0]);
+    rail = [[rx, start[1]], [rx, end[1]]];
+  } else rail = viaPx;
   return [start, ...rail, end];
 }
 
@@ -23922,13 +23990,23 @@ function createDiagramCompiler(env = {}) {
   // this warning names – a `gap` on one of the two elements – is not a line
   // the author has. Where such a run is too short the number to change is the
   // statement's own `space`, which is a different report and not this one.
+  //
+  // **An `.elbow` is measured on its arrival run instead of on the whole
+  // route**, and it is the same question rather than a second one. An elbow's
+  // exposed run is mostly rail, and the rail is shared: it says nothing about
+  // which box the arrow points into. What the head stands on is the run after
+  // the rail, and `dgEdgeRoute` already slides the rail toward the source to
+  // buy that run DG_ELBOW_ARRIVE wherever the gap can pay for it and still
+  // leave a head's length behind. So this fires exactly where the gap cannot
+  // pay for both, and the fix it names is the one the route does not have: a
+  // number on the boxes, or `via` to write the route by hand.
   function dgEdgeShortWarnings(model, states, frames, frameBoxes, warn) {
     const [uw, uh] = model.unit;
     const min = DG_EDGE_MIN * DG_LABEL_H;
     for (const e of model.edges) {
       if (e.synth) continue;
       if (e.from.point || e.to.point) continue;
-      let worst = null, everyBeat = true, seen = 0;
+      let worst = null, everyBeat = true, seen = 0, bent = false;
       for (let k = 0; k < frames.length && everyBeat; k++) {
         if ((frames[k].vis.get(e.id) ?? 1) <= 0) continue;
         const st = states[k] && states[k].get(e.id);
@@ -23949,15 +24027,41 @@ function createDiagramCompiler(env = {}) {
         if (!pts || pts.length < 2) { everyBeat = false; break; }
         const ends = [frameBoxes[k].get(e.from.ref), frameBoxes[k].get(e.to.ref)]
           .filter(b => b && b.w > 0 && b.h > 0);
+        // Four points and no `via` is the elbow route, the same shape
+        // dgElbowRailWarnings reads: start, the two ends of the rail, end.
+        const elbow = st.classes.has('elbow') && !(e.via && e.via.length) && pts.length === 4;
         let run = 0;
-        for (let i = 0; i + 1 < pts.length; i++) {
-          run += dgExposedRun(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], ends);
+        if (elbow) {
+          run = dgExposedRun(pts[2][0], pts[2][1], pts[3][0], pts[3][1], ends);
+        } else {
+          for (let i = 0; i + 1 < pts.length; i++) {
+            run += dgExposedRun(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], ends);
+          }
         }
+        const floor = elbow ? DG_ELBOW_ARRIVE : min;
         seen++;
-        if (run >= min) { everyBeat = false; break; }
-        if (worst == null || run < worst) worst = run;
+        if (run >= floor) { everyBeat = false; break; }
+        // The span the rail is placed inside, which is what an author would
+        // have to widen: both outer runs together.
+        const span = elbow
+          ? run + Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1])
+          : 0;
+        if (worst == null || run < worst.run) { worst = { run, span }; bent = elbow; }
       }
       if (!everyBeat || worst == null || !seen) continue;
+      if (bent) {
+        const want = Math.ceil((((DG_ELBOW_ARRIVE + DG_ELBOW_LEAVE) - worst.span) / uh) * 100) / 100;
+        warn(`edge ${e.id}${dgSite(e)}: its elbow arrives over ${Math.round(worst.run)} px `
+          + `(${(worst.run / DG_LABEL_H).toFixed(2)} labels) of run after the rail, and the `
+          + `arrowhead alone is ${DG_HEAD} px – so the head reads as resting on ${e.to.ref}'s `
+          + `outline rather than arriving at it, and nothing in the route says which box it left. `
+          + `The rail is already as far toward ${e.from.ref} as it can go without losing the run `
+          + `it leaves on, so the fix is the room between the two: about ${want.toFixed(2)} more `
+          + `rows of gap – a gap is measured in rows on both axes – or via to write the route `
+          + `yourself.`);
+        continue;
+      }
+      worst = worst.run;
       // The number the author would have to write to clear it, in the unit a
       // written gap is in – rows – so it can be typed straight onto the line.
       const want = Math.ceil(((DG_GAP_JOINED * DG_LABEL_H - worst) / uh) * 100) / 100;
@@ -25241,7 +25345,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FRAME_RE, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_LABEL_H, DG_GAP_PLAIN, DG_GAP_JOINED, DG_EDGE_MIN, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, dgAnchorOffset, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, DG_ZONE_PAD, DG_ZONE_INK_DROP, DG_ZONE_CORNERS, dgZoneCapName, dgZoneTag, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, DG_LABEL_ESCAPES, DG_LABEL_WORD, dgSpans, dgMeasure, dgPlaceAnchor, dgLabelAnchor, DG_SOFT, DG_SOFT_GROUND, dgSegmentsCrossBox, dgOpacity, dgFontFor, dgPadPx, dgGapPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgDrawsGround, dgInkInset, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, DG_CLASS_VOIDS, rejectVoidPair, rejectClassOn, dgArticle, dgWhere, dgEdgeEnds, dgSite, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, DG_PLACE_OPTS, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FRAME_RE, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_HEAD, DG_LABEL_H, DG_GAP_PLAIN, DG_GAP_JOINED, DG_EDGE_MIN, DG_ELBOW_ARRIVE, DG_ELBOW_LEAVE, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, dgAnchorOffset, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, DG_ZONE_PAD, DG_ZONE_INK_DROP, DG_ZONE_CORNERS, dgZoneCapName, dgZoneTag, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, DG_LABEL_ESCAPES, DG_LABEL_WORD, dgSpans, dgMeasure, dgPlaceAnchor, dgLabelAnchor, DG_SOFT, DG_SOFT_GROUND, dgSegmentsCrossBox, dgOpacity, dgFontFor, dgPadPx, dgGapPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgDrawsGround, dgInkInset, dgTokenize, dgParseAttrs, dgNum, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, DG_CLASS_VOIDS, rejectVoidPair, rejectClassOn, dgArticle, dgWhere, dgEdgeEnds, dgSite, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, DG_PLACE_OPTS, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
 window.PSI_DG_EDIT_HTML = false;
@@ -25700,7 +25804,7 @@ const DGE_SLOTS = [
   { key: 'reading', label: 'reading',
     options: [{ cls: '', label: 'across' }, { cls: 'turn', label: 'up' }] },
   // One slot, "how a line is drawn": the waypoints as segments, as a spline
-  // through them, or as a rail halfway across the gap. `.elbow` writes its own
+  // through them, or as a rail across the gap. `.elbow` writes its own
   // two waypoints, so the compiler refuses an edge that also carries `via`
   // rather than silently preferring one – an edge already bent by hand is
   // therefore not offered it.
@@ -30140,9 +30244,10 @@ function dgeRenderSide() {
     wrap.appendChild(dgeEl('h3', { text: 'waypoints' }));
     if (!via.length) {
       wrap.appendChild(dgeEl('div', { class: 'dge-hint', text: dgeCurveOf(single) === 'elbow'
-        ? 'None – .elbow draws its own two waypoints, a rail halfway across the gap on '
-          + 'whichever axis the ends are further apart. An edge cannot carry both, so take '
-          + 'the class off to bend it by hand.'
+        ? 'None – .elbow draws its own two waypoints, a rail across the gap on whichever '
+          + 'axis the ends are further apart. Halfway, unless that leaves too little run '
+          + 'after it for the arrowhead to read, in which case it sits nearer the source. '
+          + 'An edge cannot carry both, so take the class off to bend it by hand.'
         : 'None – the arrow runs straight. Drag one of the hollow dots on the line to bend it.' }));
     } else {
       const list = dgeEl('div', { class: 'dge-chips' });

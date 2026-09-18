@@ -81,6 +81,14 @@ from building the same way is a major version.
   one. It is now one label-height unjoined and about 1.6 between two
   elements an edge joins; a written gap keeps its meaning; an exposed run
   under 1.5 labels warns `edge-short`.
+- **An elbow's arrival run is long enough to read.** The rail sits halfway
+  across a roomy gap and slides toward the source in a tight one so the
+  run after it is a label-height plus the head; where the gap cannot give
+  both runs, `edge-short` names it.
+- **The dash patterns are multiples of the line they pattern**: `.dashed`
+  is 2.2 line-widths of ink to 1.5 of paper (half the old period, so a
+  dashed box stops out-shouting a solid one), and `.dotted` is a disc a
+  line-width across every 2.5 – it reads as dots for the first time.
 - **`.left` / `.right` on a free text at a coordinate anchors it on that
   edge.** It used to centre the block on the point and the author wrote
   `anchor left` 37 times in one deck; the two warnings that existed only
