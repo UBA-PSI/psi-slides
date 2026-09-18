@@ -1977,4 +1977,152 @@ export async function run({ report }) {
     ok(dgTokenize('"a\\_b"')[0].v === 'a\\_b', 'a marker escape is handed on whole, for dgSpans to read');
     ok(dgTokenize('"a\\|b"')[0].v === 'a\\|b', 'and so is a pipe, which a table row splits on');
   }
+
+  // ── a brace's label hangs from the edge that faces its bar ────────
+  // A label block is drawn centred on its origin, and a brace's origin is a
+  // fixed 9 px clear of the tick end. On `side bottom` that put a *two*-line
+  // label half its height back up, so its first line printed across the bar,
+  // and `pad` was no escape because `pad` moves the brace and carries the
+  // label with it. Measured on the spoken talk's board figure, whose label
+  // had to stay one line for exactly this reason.
+  //
+  // Read as a difference, never against a coordinate: the assertion is that
+  // the line nearest the bar lands where the whole of a one-line label
+  // landed, which is also the property that keeps every one-line label in
+  // the corpus byte-identical.
+  {
+    const deck = (side, label) =>
+      `box a "A" at 0,0\nbox b "B" right of a gap 1\nbrace h over a,b side ${side} "${label}"`;
+    // The label's own box, reconstructed from its origin and its measured
+    // height – the same arithmetic extentsOf does when it reserves the paper.
+    const span = (side, label, tail = '') => {
+      const out = fig(`a ${side} brace labelled ${JSON.stringify(label)}${tail}`,
+        deck(side, label) + tail);
+      if (!out) return null;
+      const lp = labelAt(out, 'h');
+      const m = dgMeasure(label.replace(/\\n/g, '\n'), DG_FONT, false);
+      const bar = points(attrOf(out, 'h--p', 'd'));
+      const vb = (out.match(/viewBox="([^"]*)"/) || [])[1].split(/\s+/).map(Number);
+      return { top: lp[1] - m.h / 2, bottom: lp[1] + m.h / 2, mid: lp[1], x: lp[0], bar, vb };
+    };
+    const near = (a, b) => Math.abs(a - b) < 0.02;
+
+    const oneDown = span('bottom', 'one');
+    const twoDown = span('bottom', 'one\\ntwo');
+    ok(oneDown && twoDown && near(oneDown.top, twoDown.top),
+      'a bottom brace hangs its label from the top: the first line sits where a one-line label sat',
+      oneDown && twoDown && `one line at ${oneDown.top.toFixed(2)}, two at ${twoDown.top.toFixed(2)}`);
+    ok(twoDown && oneDown && twoDown.bottom > oneDown.bottom,
+      'and the second line grows downwards, away from the bar',
+      twoDown && oneDown && `${twoDown.bottom.toFixed(2)} against ${oneDown.bottom.toFixed(2)}`);
+
+    const oneUp = span('top', 'one');
+    const twoUp = span('top', 'one\\ntwo');
+    ok(oneUp && twoUp && near(oneUp.bottom, twoUp.bottom),
+      'a top brace is the mirror: its last line sits where a one-line label sat',
+      oneUp && twoUp && `one line at ${oneUp.bottom.toFixed(2)}, two at ${twoUp.bottom.toFixed(2)}`);
+    ok(twoUp && oneUp && twoUp.top < oneUp.top,
+      'and the line before it grows upwards, away from the bar',
+      twoUp && oneUp && `${twoUp.top.toFixed(2)} against ${oneUp.top.toFixed(2)}`);
+
+    // The two controls. A side label runs away from the bar along its own
+    // anchor, so every line of it is clear already and straddling the bar's
+    // middle is what the side means.
+    for (const side of ['left', 'right']) {
+      const one = span(side, 'one');
+      const two = span(side, 'one\\ntwo');
+      const barMid = one && (one.bar[1][1] + one.bar[2][1]) / 2;
+      ok(one && two && near(one.mid, two.mid) && near(one.mid, barMid),
+        `a ${side} brace keeps its label centred on the bar's middle, whatever its line count`,
+        one && two && `one ${one.mid.toFixed(2)}, two ${two.mid.toFixed(2)}, bar ${barMid.toFixed(2)}`);
+    }
+
+    // A turned label reads across the bar rather than towards it, and
+    // extentsOf reserves it as centred on both axes – so it keeps the origin
+    // it always had. Without this control the hang would be applied to a
+    // block whose lines run the other way.
+    const turnedOne = span('bottom', 'one', ' {.turn}');
+    const turnedTwo = span('bottom', 'one\\ntwo', ' {.turn}');
+    ok(turnedOne && turnedTwo && near(turnedOne.mid, turnedTwo.mid),
+      'a turned label on a bottom brace stays centred on its origin, which is what is reserved for it',
+      turnedOne && turnedTwo && `${turnedOne.mid.toFixed(2)} against ${turnedTwo.mid.toFixed(2)}`);
+
+    // And the paper follows the words: the frame has to hold the line the
+    // hang pushed out, or the canvas check and the viewBox measure a label
+    // that is not where it is drawn.
+    ok(twoDown && twoDown.vb[1] + twoDown.vb[3] >= twoDown.bottom,
+      'the viewBox holds the whole of a hung two-line label',
+      twoDown && `box ends at ${(twoDown.vb[1] + twoDown.vb[3]).toFixed(2)},`
+        + ` label at ${twoDown.bottom.toFixed(2)}`);
+    ok(twoUp && twoUp.vb[1] <= twoUp.top,
+      'and the same upwards',
+      twoUp && `box starts at ${twoUp.vb[1].toFixed(2)}, label at ${twoUp.top.toFixed(2)}`);
+  }
+
+  // ── an edge's side is judged on the beats it is on screen ─────────
+  // The offset runs along the routed line's normal, so only the pair lying
+  // across the line can move a label – and the check that says so used to sit
+  // in `dgFrameDrawables`, which runs for every beat whether the edge is drawn
+  // in it or not. An arrow revealed by the very step that levels its two ends
+  // was therefore judged on a base geometry nobody ever sees it in: the
+  // tutorial's `#diagram-steps`, where the step that shows the two arrows to
+  // Bob is the step that moves Eve down onto their line.
+  //
+  // Four fixtures, and the fourth is why this is a rule and not a suppression:
+  // an edge that really does change axis under a step has a side word that
+  // acts on one beat and not on the other, and that is worth a sentence
+  // naming the beat rather than silence.
+  {
+    const said = (body) => render(body, 'unit=120x72').warns.filter(w => /\bside\b/.test(w));
+    const ROW = 'box a "A" at 0,0\nbox b "B" right of a gap 4.3\n';
+    const HIGH = 'box m "M" between a,b offset 0,-2.6 same as a';
+    const ARROW = 'edge e m.right:0.2 -> b.left:0.2 "M"';
+
+    // The control first, because without it the assertion under it passes on
+    // any software at all: in the state the old check judged this edge in –
+    // m still high above the row – the edge really is vertical and `side top`
+    // really cannot act.
+    const base = said(`${ROW}${HIGH}\n${ARROW} side top`);
+    ok(base.length === 1 && /vertical/.test(base[0]),
+      'with m still above the row the edge is vertical, and the word is refused',
+      base.join(' | '));
+
+    const revealed = said(`${ROW}${HIGH} {@in}
+${ARROW} {@in} side top
+
+step cut
+  move m to between a,b
+  show @in
+`);
+    ok(revealed.length === 0,
+      'but revealed by the step that levels it, the same edge keeps its side top',
+      revealed.join(' | '));
+
+    const wrong = said('box a "A" at 0,0\nbox b "B" right of a gap 2\nedge e a -> b "M" side left');
+    ok(wrong.length === 1 && /runs along/.test(wrong[0]) && /horizontal/.test(wrong[0]),
+      'and a word that runs along the line at every beat is still the old warning, word for word',
+      wrong.join(' | '));
+
+    // The control that keeps the fixture above honest: one token different,
+    // and the same figure says nothing.
+    const right = said('box a "A" at 0,0\nbox b "B" right of a gap 2\nedge e a -> b "M" side top');
+    ok(right.length === 0, 'and the word that can act says nothing', right.join(' | '));
+
+    // A side moves a label, so an edge with no label has nothing for it to
+    // move – that was true before this pass and stays true.
+    const unlabelled = said('box a "A" at 0,0\nbox b "B" below a gap 2\nedge e a -> b side top');
+    ok(unlabelled.length === 0, 'an edge with no label is not asked about its side',
+      unlabelled.join(' | '));
+
+    const changes = said(`box a "A" at 0,0
+box b "B" below a gap 2.4
+edge e a -> b "M" side top
+
+step turn
+  move b to a.right+2.4,a.cy
+`);
+    ok(changes.length === 1 && /beat 1 \(turn\)/.test(changes[0]) && /beat 0/.test(changes[0]),
+      'an edge that changes axis while on screen is warned about, and the warning names both beats',
+      changes.join(' | '));
+  }
 }

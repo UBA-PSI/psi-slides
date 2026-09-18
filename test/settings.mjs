@@ -1989,8 +1989,8 @@ console.log('\nlayout generations');
        && !/overflows-canvas in chunk #plain/.test(ft.out),
        'the dense one is named as over its canvas',
        ft.out.split('\n').filter(l => /canvas/.test(l)).join(' | '));
-    ok(/over by [\d.]+ across/.test(ft.out) && /frame [\d.]+x[\d.]+  on this figure/.test(ft.out),
-       'with the overshoot per axis and the frame that would reserve what it draws',
+    ok(/over by [\d.]+ across \(\d+ px\)/.test(ft.out) && /frame [\d.]+x[\d.]+  on this figure/.test(ft.out),
+       'with the overshoot per axis in both units and the frame that would reserve what it draws',
        ft.out.split('\n').filter(l => /overflows/.test(l)).join(' | '));
     ok(/figure-underfills-canvas in chunk #plain/.test(ft.out)
        && !/underfills-canvas in chunk #dense/.test(ft.out),

@@ -59,6 +59,34 @@ from building the same way is a major version.
 
 ### Changed (drawings, unreleased)
 
+- **The canvas reports say how far off a figure is in px as well as in
+  labels.** `figure-overflows-canvas` decides at half a pixel and reported
+  the overshoot in base labels to one decimal, so "over by 0.2 across" was
+  anything from 2.3 px to 3.7 px and an author shortening a label against it
+  built three times to find out which. Both the complaint and
+  `--check-fit`'s per-figure room line now spell `<labels> <axis> (<px> px)`.
+- **An edge's `side` is judged on the beats the arrow is on screen.** Only
+  the pair of words lying across the routed line can move a label, and the
+  check that said so ran on every beat whether the edge was drawn in it or
+  not – so an arrow revealed by the very step that levels its two ends was
+  refused `side top` for a state nobody ever sees it in. It is a post-pass
+  now, over the beats at which the edge is visible and carries a label. An
+  edge that really does change axis while visible is still warned about, by
+  beat, because the word acts on one press and not on the next. No drawing
+  moves: the geometry was already per beat, only the sentence about it was
+  not.
+- **A brace's label hangs from the edge that faces its bar.** A label block
+  is drawn centred on its origin, and a brace puts that origin a fixed 9 px
+  clear of the tick end – so a two-line label on `side bottom` hung half its
+  height back up and printed its first line across the bar, with nothing the
+  source could do about it, because `pad` moves the brace and carries the
+  label with it. The first line of a `bottom` label now sits where a one-line
+  label sat and the rest grow downwards; a `top` label is the mirror. `left`
+  and `right` keep the centring, because there the label runs away from the
+  bar along its own anchor, and so does a `.turn`ed label. The shift is the
+  block's height less that one line's, so **every one-line label in the
+  corpus is byte-identical** – `lectures/spoken-talk`'s board figure carried
+  a comment saying its label had to stay one line, and it no longer does.
 - **A figure is drawn on a canvas.** Every `::: draw` in a chunk's own body
   gets a fixed box: the column wide, sixteen label-heights tall, labels at
   body size. A drawing inside it is never scaled and its slide settles at

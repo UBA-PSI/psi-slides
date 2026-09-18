@@ -87,8 +87,8 @@ edge net -> srv
 
 # The number belongs to the whole round trip and not to the first box, so it
 # hangs off a brace under all three rather than standing under "Request". One
-# line: a bottom brace centres its label just under the bar, so a second line
-# would stand on it.
+# line, because the number is the whole point – a bottom brace hangs a second
+# line below the first, so it could take one.
 brace all over req,net,srv side bottom "1.4 s" pad 1.15 {.muted .large}
 :::
 

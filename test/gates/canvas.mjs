@@ -134,4 +134,23 @@ export async function run({ report }) {
   const o = parseDrawOpener(line);
   ok(o && !o.problems.length && formatDrawOpener(o) === line,
      'the opener carrying a frame formats back to itself', JSON.stringify(o));
+
+  // ── the canvas is reported in the same two units in both places ───
+  // `figure-overflows-canvas` is emitted at the end of the parse and
+  // `--check-fit`'s room line is measured in a browser, so the two cannot
+  // share a helper – and they answer the same question about the same box:
+  // how far apart the canvas and the drawing are on one axis. The figure was
+  // base labels to one decimal in both, which at DG_FONT px a label hides up
+  // to seven px, so "over by 0.2 across" and "room 0.2 across" were each
+  // anything from 2.3 px to 3.7 px and an author tuning against either built
+  // three times to find out which. Both spell the px beside the label now,
+  // and this is the mirror: two functions, one sentence shape.
+  const axis = [...src.matchAll(/\$\{lab\((\w+)\)\} \$\{(\w+)\} \(\$\{Math\.round\(\1\)\} px\)/g)];
+  ok(axis.length === 2,
+     'both canvas reports spell an axis as "<labels> <axis> (<px> px)"',
+     `found ${axis.length}: ${axis.map(m => m[0]).join(' | ')}`);
+  ok(/over by \$\{axes\.join\(' and '\)\}/.test(src),
+     'the static complaint joins its axes with that shape');
+  ok(/room \$\{axis\(dw, 'across'\)\} and \$\{axis\(dh, 'down'\)\}/.test(src),
+     'and the room line is built from it too');
 }
