@@ -400,7 +400,9 @@ that sits on top of it; `editor.md` §15 is the build log.
 gets one by default – the chunk's column wide (36 base labels on `.wide` at
 1600x900) and 16 label-heights tall – so the drawing's own extent stops
 deciding how big its slide is, which is what made a deck of twenty figures look
-like twenty decks. It changes no drawing's rendered size: a figure that fits is
+like twenty decks. A `title:` or `closing:` chunk is the exception among
+chunks, because its body is placed by the cover composition and not by a
+column. It changes no drawing's rendered size: a figure that fits is
 drawn exactly as before and only the box round it grows. It is the **live
 views'** box – the documents keep the one that hugs the drawing – and it rides
 the channel a stepped figure's union box already rode, so anything measuring a

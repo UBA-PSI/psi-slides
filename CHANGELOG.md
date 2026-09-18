@@ -75,6 +75,24 @@ from building the same way is a major version.
   gone; `figure-type` now says how many labels the canvas holds.
   A stacked divider (`# Heading {.stack}`) is on a canvas too – `.full`
   wide and 20 labels tall, the 0.72 of the slide its rule allows.
+- **A cover's figure is not in a text column, so it is not on a canvas.**
+  A `title:` or `closing:` chunk's body is placed by the cover composition –
+  `beside` and `above` hand it to the art panel `cover-ratio` divides the
+  frame with, `masthead` and `quote` set it as a field beside the title pair
+  – so the chunk canvas was several times too wide and far too short for it.
+  Measured on `lectures/python-intro`, whose four stacked boxes stand
+  comfortably in a 34% panel: the build reserved a `.standard` column sixteen
+  labels tall and warned `figure-overflows-canvas`, and the deck answered
+  with `frame none` and a comment. A cover figure now keeps the box that hugs
+  it, like a figure in a card, and the workaround is gone. Two smaller
+  disagreements went with it: a title or closing chunk is stored as `.full`
+  wide, which is what both renderers emit and what `lint.js` already
+  resolved, so `--check-fit` and the figure warnings stop naming two
+  different columns for one slide; and a cover is left out of `--check-fit`'s
+  body-type median in both directions, because the type on it is the
+  composition's and measuring it reported "#title settles at 23 px, 26% under
+  the deck – its figure is what took the slide down" about a slide nothing
+  took down.
 - **A gap is measured in labels, and its default clears an arrow.** The
   default `gap` on a relational placement was 0.25 rows – on a keynote's
   grid a head with no shaft, which is why no tracked deck had an unwritten
@@ -178,7 +196,13 @@ from building the same way is a major version.
   an empty segment paints nothing new and a footnote, a note, a backdrop
   place or an overlay `from` rides it. `lint.js` counts beats the way the
   build does and warns `empty-beat` for a `---` nothing rides;
-  `note-in-empty-beat` is gone with the drop it described.
+  `note-in-empty-beat` is gone with the drop it described. A cover slide is
+  the one exception in both files: `renderTitleChunk` draws a `title:` or
+  `closing:` chunk from `body`, which is the segments joined, so a `---`
+  there leaves no rule, no segment and no click. `lint.js` counted its
+  position all the same and told an author a `> note: from 1` on a cover
+  would fire; a cover's beats are now what its composition draws with the
+  body – a `.beat-mark` below the top level, a figure's `step` blocks.
 - **A `[Klick …]` line in a speaker note is a beat.** A bracketed direction
   whose first word is `Klick`, `Click` or `>` ends the cue card and files
   what follows one press later, the arithmetic `> note: from N` does by
