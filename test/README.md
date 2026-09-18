@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Thirteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 42 specs, ~1050
+- **`test/`** – the things that only break in a built page. 43 specs, ~1070
   assertions, about nine minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
@@ -112,7 +112,7 @@ fixture is compiled *and* linted.
 
 ## The browser suite: four families
 
-**Navigation** – `nav`, `nav-cockpit`, `nav-goto`, `transition`. The navigation
+**Navigation** – `nav`, `nav-cockpit`, `nav-goto`, `nav-fullscreen`, `transition`. The navigation
 model, and what a slide change looks like under `transition: pan | cut | fade` –
 the one spec here that samples per animation frame rather than after a settle,
 because its whole subject is what happens between two states.
@@ -122,6 +122,18 @@ advance, `N` would annotate), and that `Enter` goes through `jumpTo` rather
 than assigning an index. `nav-cockpit` carries its own two lines of it, because
 the cockpit is where the prompt's id could collide with a slide's. `demo` sits
 beside them: the two windows handing a live demo across, over both transports.
+`nav-fullscreen` is `W`, and it is here for a reason no other navigation spec
+has: the feature's shape is dictated by a **browser policy**, and only a
+browser can say what the policy is. It asserts that a `requestFullscreen`
+arriving by `postMessage` is refused – which is why the cockpit's `W` can only
+arm the projection – that one click on the projection spends the arming and is
+not also a click on the figure it landed on, and that leaving needs no gesture
+at all. Two things it deliberately does not assert, both said out loud in its
+header: `Escape` (the browser's own way out, above the page, and headless has
+no chrome to implement it) and the re-measure (Playwright pins the viewport, so
+entering fullscreen changes no size here). And **`page.evaluate` cannot be used
+to probe the policy** – Playwright evaluates with the user-activation flag set,
+so a bare `requestFullscreen` there is granted and measures nothing.
 
 **The geometry the live chrome leaves the slide** – `expansion`, `marginalia`,
 `annotation` (the note typed with `N` fills the frame, sized from its text, with
