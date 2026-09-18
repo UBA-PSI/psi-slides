@@ -75,6 +75,17 @@ from building the same way is a major version.
   gone; `figure-type` now says how many labels the canvas holds.
   A stacked divider (`# Heading {.stack}`) is on a canvas too – `.full`
   wide and 20 labels tall, the 0.72 of the slide its rule allows.
+- **A gap is measured in labels, and its default clears an arrow.** The
+  default `gap` on a relational placement was 0.25 rows – on a keynote's
+  grid a head with no shaft, which is why no tracked deck had an unwritten
+  one. It is now one label-height unjoined and about 1.6 between two
+  elements an edge joins; a written gap keeps its meaning; an exposed run
+  under 1.5 labels warns `edge-short`.
+- **`.left` / `.right` on a free text at a coordinate anchors it on that
+  edge.** It used to centre the block on the point and the author wrote
+  `anchor left` 37 times in one deck; the two warnings that existed only
+  for that are gone, and a block that meant the old centring says `anchor
+  center`.
 - **The ink edge is what a reader can see.** `blocks: left` aligns a figure
   by its leftmost painted element, skipping frames that draw neither
   outline nor fill (a `.bare .clear` table), and `flush left` on a relative
