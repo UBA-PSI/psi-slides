@@ -340,6 +340,92 @@ export async function run({ report }) {
       q.warns.join(' | '));
   }
 
+  // ── a default layer's size is a floor, not a pin ──────────────────
+  // The chain can raise it and nothing can lower it. Every pair here is the
+  // same block with and without one token, because a box that comes out at
+  // the layer's number because the layer pinned it and one that comes out
+  // there because nothing asked for more are the same rectangle.
+  {
+    // The keynote's build plan, in five lines: a grid of cells on one floor,
+    // and one row that is taller. The `h 4.8` used to have to be written on
+    // both cells of the row, because the floor counted as a written size and
+    // neither the chain nor a `row` could reach past it.
+    const body = (second) => [
+      'default box w 3 h 1',
+      'box z11 "" at 0,0',
+      'box z12 "" right of z11 gap 0.5',
+      `box z21 "" below z11 gap 0.5 h 2.5`,
+      `box z22 "" right of z21 gap 0.5${second}`,
+    ].join('\n');
+    const r = render(body(''));
+    ok(r.ok, 'a floor with one taller row compiles', r.msg);
+    const a = rectOf(r.out, 'z21'), b = rectOf(r.out, 'z22');
+    const c = rectOf(r.out, 'z11'), d = rectOf(r.out, 'z12');
+    ok(near(a.h, b.h), 'a row levels a height the default layer floored',
+      `${a && a.h} / ${b && b.h}`);
+    ok(near(c.h, d.h) && c.h < a.h - 1, 'and the row that said nothing stays on the floor',
+      `${c && c.h} / ${d && d.h} vs ${a && a.h}`);
+    const twice = render(body(' h 2.5'));
+    ok(near(b.h, rectOf(twice.out, 'z22').h) && near(a.w, rectOf(twice.out, 'z21').w),
+      'so the second copy of the number is worth nothing – dropping it moves nothing',
+      `${b && b.h} vs ${rectOf(twice.out, 'z22').h}`);
+  }
+  {
+    // The other direction: the chain asks for less than the floor, and the
+    // floor stands. Both boxes hold two letters and come out three units wide.
+    const r = render('default box w 3\nbox a "x" at 0,0\nbox b "y" right of a gap 1');
+    const bare = render('box a "x" at 0,0\nbox b "y" right of a gap 1');
+    const A = rectOf(r.out, 'a'), B = rectOf(r.out, 'b'), N = rectOf(bare.out, 'a');
+    ok(near(A.w, B.w) && A.w > N.w + 1, 'a floor over what the labels ask for is what they get',
+      `${A && A.w} / ${B && B.w} vs ${N && N.w} unfloored`);
+  }
+  {
+    // …and the same sentence one layer down, which is why the floor is not
+    // evidence either: a tag layer that sizes some of the boxes says those
+    // boxes differ, so the column it leaves ragged is the author's own. This
+    // is `lectures/diagrams#cbc`, where the Dec boxes hang under the
+    // ciphertext boxes and are meant to be narrower than them.
+    const r = render([
+      'default box w 3',
+      'default box @dec w 1',
+      'box c "x" at 0,0',
+      'box d "y" below c gap 1 {@dec}',
+    ].join('\n'));
+    const C = rectOf(r.out, 'c'), D = rectOf(r.out, 'd');
+    ok(D.w < C.w - 1, 'a tag layer under a block layer keeps its own narrower boxes',
+      `${D && D.w} vs ${C && C.w}`);
+  }
+  {
+    // A number on the element's own line is still a pin: the layer does not
+    // raise it, and its neighbour's floor is not lowered by it either.
+    const r = render('default box w 3\nbox a "x" at 0,0 w 0.6\nbox b "y" right of a gap 1');
+    const A = rectOf(r.out, 'a'), B = rectOf(r.out, 'b');
+    ok(A.w < B.w - 1, 'a written w beside a default layer pins that box alone',
+      `${A && A.w} vs ${B && B.w}`);
+    const wide = render('default box w 1\nbox a "x" at 0,0 w 3\nbox b "y" right of a gap 1');
+    const A2 = rectOf(wide.out, 'a'), B2 = rectOf(wide.out, 'b');
+    ok(near(A2.w, B2.w), 'and a written w above the floor is the chain\'s width',
+      `${A2 && A2.w} / ${B2 && B2.w}`);
+  }
+  {
+    // `.own` in a default layer switches chaining off for the whole block,
+    // which is what `lectures/diagrams#alignment` is written on: a figure
+    // whose subject is what uneven widths do to a row has nothing to show
+    // once the row is level.
+    const r = render([
+      'default box {.own}',
+      'box a "one" at 0,0',
+      'box b "a much longer label" right of a gap 1',
+    ].join('\n'));
+    const A = rectOf(r.out, 'a'), B = rectOf(r.out, 'b');
+    ok(A.w < B.w - 1, '.own in a default layer leaves every box its own size',
+      `${A && A.w} vs ${B && B.w}`);
+    const lvl = render('box a "one" at 0,0\nbox b "a much longer label" right of a gap 1');
+    ok(near(rectOf(lvl.out, 'a').w, rectOf(lvl.out, 'b').w),
+      'and without the layer the same two are level',
+      `${rectOf(lvl.out, 'a').w} / ${rectOf(lvl.out, 'b').w}`);
+  }
+
   // ── the two exemptions are exemptions, not escape hatches ─────────
   {
     const r = render([

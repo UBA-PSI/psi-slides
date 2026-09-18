@@ -6539,12 +6539,33 @@ export function createDiagramCompiler(env = {}) {
       const nw = pick('w');
       const nh = pick('h');
       // Which axes are already spoken for, and so are not the chain's to set.
-      // A number on the element's own line, a number from a `default` layer, a
-      // `same … as` naming another element, and `.own`, which says the box is
-      // not one of its neighbours at all. Answered here, before anything reads
-      // `boxes`, because the chain pass runs before the walk that fills it.
-      const pinW0 = nw != null || !!node.sameAs || !!node.sameWAs || classes.has('own');
-      const pinH0 = nh != null || !!node.sameAs || !!node.sameHAs || classes.has('own');
+      // A number on the element's **own line**, a `same … as` naming another
+      // element, and `.own`, which says the box is not one of its neighbours
+      // at all. Answered here, before anything reads `boxes`, because the
+      // chain pass runs before the walk that fills it.
+      //
+      // **A number from a `default` layer is deliberately not one of them: it
+      // is the chain's floor rather than a pin.** A default layer is a
+      // statement about the boxes in this block – "they are this size unless
+      // something says otherwise" – and a chain is one of the things that say
+      // otherwise. Counting it as written meant no chain sizing reached a
+      // figure that opened with `default box w N h N`, and a `row` statement
+      // could not level what the layer had already pinned: a keynote's build
+      // plan carried `h 4.8` on both cells of a two-cell row because levelling
+      // the second against the first was not available to it.
+      //
+      // A floor is not a pin, and it is not evidence either: a box the layer
+      // sized asks the chain for nothing on that axis, because the layer has
+      // already answered for it. `lectures/diagrams#cbc` is why. There
+      // `default box @dec w 0.48` under `default box w 0.82` makes the Dec
+      // boxes narrower than the ciphertext boxes they hang under, on purpose;
+      // a floor that counted as evidence put the column's 0.82 on all three
+      // and undid the tag layer. A layer that sizes some of the boxes is a
+      // statement that those boxes differ, so the row it leaves ragged is the
+      // author's own – which is also why the floor survives a chain that asks
+      // for less.
+      const pinW0 = node.w != null || !!node.sameAs || !!node.sameWAs || classes.has('own');
+      const pinH0 = node.h != null || !!node.sameAs || !!node.sameHAs || classes.has('own');
       // `.fit` and `same as` are ordered. sizeOf otherwise depends only on the
       // element's own label and class, which is what lets sizes settle before
       // the DAG walk – but a fitted size needs the box, and a copied box is
@@ -6611,8 +6632,28 @@ export function createDiagramCompiler(env = {}) {
       // thin column of a `bars` – which carries no text at all – reported that
       // its text was about to run over the edge.
       const fits = classes.has('fit') || classes.has('shrink');
-      if (!quiet && label && nw != null && nw * uw < m.w + 6 && !fits) {
-        dgWarn(`box ${node.id}${dgSite(node)} is ${nw} units wide but its label needs about `
+      // The number the box actually comes out at, which is the number this
+      // warning is about. A `default` layer's size is a floor the chain may
+      // raise, so a box that grows with its neighbours is not overflowing even
+      // though the floor under it is narrower than its label – and one that
+      // still overflows should be told the width it really got, not the floor.
+      // Read here rather than in `sizeOf` because the measurement of the label
+      // is here; safe because the only calls made before the chain pass has
+      // filled `chainSize` are the `quiet` ones it makes itself.
+      const settledSize = quiet ? null : chainSize.get(node.id);
+      const effUnits = (key, n) => {
+        const s = settledSize && settledSize[key];
+        if (s == null || n == null) return n;
+        // `Math.max`, the same way `sizeOf` composes the two: the chain raises
+        // a floor and never lowers it.
+        return Math.max(s / (key === 'w' ? uw : uh), n);
+      };
+      const ew = effUnits('w', nw), eh = effUnits('h', nh);
+      // The written number as the author wrote it where nothing moved it, and
+      // a rounded one where the chain did – never a float's tail either way.
+      const shown = (eff, n) => (eff === n ? n : Number(eff.toFixed(2)));
+      if (!quiet && label && nw != null && ew * uw < m.w + 6 && !fits) {
+        dgWarn(`box ${node.id}${dgSite(node)} is ${shown(ew, nw)} units wide but its label needs about `
           + `${((m.w + 2 * padX) / uw).toFixed(2)} – the text will overflow.`);
       }
       // The same sentence down the other axis, which was silent. A written `w`
@@ -6623,8 +6664,8 @@ export function createDiagramCompiler(env = {}) {
       // The threshold is the ink the lines make (DG_INK_H) rather than their
       // line boxes; the number the message reports is the padded one, which is
       // what to write instead.
-      if (!quiet && label && nh != null && nh * uh < (m.h / DG_LINE_H) * DG_INK_H && !fits) {
-        dgWarn(`box ${node.id}${dgSite(node)} is ${nh} units tall but its label needs about `
+      if (!quiet && label && nh != null && eh * uh < (m.h / DG_LINE_H) * DG_INK_H && !fits) {
+        dgWarn(`box ${node.id}${dgSite(node)} is ${shown(eh, nh)} units tall but its label needs about `
           + `${((m.h + 2 * padY) / uh).toFixed(2)} – the text will overflow.`);
       }
       // A hexagon or a chevron has less usable interior than the rectangle
@@ -6743,7 +6784,18 @@ export function createDiagramCompiler(env = {}) {
       // it, so the four-line variant is what beat 0 reserved room for. A box
       // whose size grows mid-figure moves everything placed against it; a box
       // whose size was settled for its longest label moves nothing.
+      //
+      // `flW` / `flH` record the axes a `default` layer sized rather than the
+      // element's own line: they are floors, so the box comes out at that
+      // number or larger, and they say nothing to the chain. Read off the
+      // layers here and not out of `rawSize`, which resolves the two into one
+      // number on purpose – everything downstream of it wants the number.
       const measured = new Map();
+      const layered = (n, key) => {
+        if (n[key] != null) return false;
+        for (const d of dgDefaultLayers(model, 'box', n.tags)) if (d[key] != null) return true;
+        return false;
+      };
       for (const n of nodes) {
         const variants = (labelIndex && labelIndex.get(n.id)) || [];
         const labels = variants.length ? variants : [state.get(n.id).label];
@@ -6753,7 +6805,7 @@ export function createDiagramCompiler(env = {}) {
           w = Math.max(w, s.w); h = Math.max(h, s.h);
           pw = pw || !!s.pinW; ph = ph || !!s.pinH;
         }
-        measured.set(n.id, { w, h, pw, ph });
+        measured.set(n.id, { w, h, pw, ph, flW: layered(n, 'w'), flH: layered(n, 'h') });
       }
       // An implicit family's maximum is taken over the members' *natural*
       // sizes, so the order the two are resolved in changes nothing and
@@ -6774,14 +6826,20 @@ export function createDiagramCompiler(env = {}) {
           let max = 0;
           for (const n of members) {
             // A `same w as` width is another element's and is not known yet, so
-            // it is not evidence about how wide this chain has to be.
-            // Everything else contributes, written numbers included: a `w` on
-            // the head of a row is today's `same as` for the rest, without the
-            // words.
+            // it is not evidence about how wide this chain has to be. A size a
+            // `default` layer gave is not evidence either: it is a floor, and
+            // the layer has already said what this box is. Everything else
+            // contributes, written numbers included – a `w` on the head of a
+            // row is today's `same as` for the rest, without the words.
+            const m = measured.get(n.id);
             if (key === 'w' ? n.sameWAs : n.sameHAs) continue;
+            if (key === 'w' ? m.flW : m.flH) continue;
             const settled = resolved && chainSize.get(n.id) && chainSize.get(n.id)[key];
-            max = Math.max(max, settled != null ? settled : measured.get(n.id)[key]);
+            max = Math.max(max, settled != null ? settled : m[key]);
           }
+          // Nothing asked for anything – every member of this run stands on a
+          // floor – so the chain has no number to record and the floors stand.
+          if (!max) continue;
           for (const n of members) {
             if (measured.get(n.id)[key === 'w' ? 'pw' : 'ph']) continue;
             const cur = chainSize.get(n.id) || { w: null, h: null };
@@ -6815,12 +6873,18 @@ export function createDiagramCompiler(env = {}) {
     // `.fit` re-solves against the final box: a fitted label whose box grew
     // with its neighbours would otherwise keep the type size of the box it
     // would have had alone.
+    //
+    // `Math.max` and not an assignment, because a `default` layer's size is a
+    // floor: where a chain of boxes all want less than the layer gave them,
+    // the layer stands and they come out at its number, not at the widest
+    // label's. Everywhere else the chain's number is the larger one anyway –
+    // a box with no floor asked for exactly its own size.
     const sizeOf = (node) => {
       const base = rawSize(node);
       const cs = chainSize.get(node.id);
       if (!cs) return base;
-      const w = cs.w != null ? cs.w : base.w;
-      const h = cs.h != null ? cs.h : base.h;
+      const w = cs.w != null ? Math.max(cs.w, base.w) : base.w;
+      const h = cs.h != null ? Math.max(cs.h, base.h) : base.h;
       const classes = state.get(node.id).classes;
       const font = (classes.has('fit') || classes.has('shrink'))
         ? dgFitFont(state.get(node.id).label, classes, w, h, base.padX, base.padY) : base.font;
@@ -7195,9 +7259,15 @@ export function createDiagramCompiler(env = {}) {
         // row is not only a fact about that member, and a drag that makes it
         // the narrowest re-sizes the rest of the row. Nothing in the drawing
         // reads it; it is the compiler telling the page what it did.
+        //
+        // The comparison and not the presence of the entry: a box standing
+        // over a `default` layer's floor is in the chain, and the chain asked
+        // for less than the floor, so that size is not the row's doing and the
+        // callout would be naming the wrong reason.
         const cs = chainSize.get(id);
         const box = { x: cx - w / 2, y: cy - h / 2, w, h, font, padX, padY, pinX,
-          chainW: !!(cs && cs.w != null), chainH: !!(cs && cs.h != null) };
+          chainW: !!(cs && cs.w != null && cs.w >= w),
+          chainH: !!(cs && cs.h != null && cs.h >= h) };
         // The band, in the same coordinates as the frame, so `z.inner.left` and
         // `in z` read one rectangle rather than two arithmetics of it.
         if (node.band) {
