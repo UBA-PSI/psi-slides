@@ -981,6 +981,89 @@ export async function run({ report }) {
       'a move keeps the element on its own anchor', g ? g.join(',') : '(no frame)');
   }
 
+  // ── a relabelled text keeps the edge its placement pinned ─────────
+  // A free text is as wide as its glyph run, so `anchor tl`, `right of x`,
+  // `flush left` and `align x left` each put one of its own sides on a
+  // coordinate exactly – and that width is an **estimate**. Drawing the words
+  // centred on the box's estimated middle therefore split the error between
+  // the two sides and put half of it on the side the author pinned. A `label`
+  // step swapping in a longer string changed that half, and the words moved
+  // sideways although nothing in the source moved them: measured on a keynote
+  // whose zone caption went from "im Raum" to "im Raum · 3 Stunden, ohne
+  // Internet", 11 px to the right.
+  //
+  // Two questions, and they need two rulers. **Where the origin is** is the
+  // frame payload, which is what the runtime tweens between; **which edge that
+  // origin is** is the `text-anchor` the emitter baked. A fixed origin under
+  // `middle` is a fixed centre, which is the right answer for a text placed by
+  // its centre and the wrong one for a text placed by its corner – so neither
+  // number means anything without the other.
+  {
+    const SHORT = 'im Raum', LONG = 'im Raum, drei Stunden, ohne Internet';
+    // The `--l` origin in each frame, and the anchor the glyphs run from.
+    const swap = (body, id, head = 'unit=120x40') => {
+      const r = render(body, head);
+      if (!r.ok) return { msg: r.msg.split('\n').slice(0, 2).join(' / ') };
+      const f = frames(r.out);
+      const m = r.out.match(new RegExp(`id="dg1-${id}--lw0"[\\s\\S]{0,400}?text-anchor="([a-z]+)"`));
+      if (!f || !m) return { msg: 'no payload or no label' };
+      return { xs: f.frames.map(fr => (fr.geom[id + '--l'] || [])[0]), anchor: m[1] };
+    };
+    const held = (s) => s.xs && s.xs.every(x => Math.abs(x - s.xs[0]) < 0.01);
+    const ZONE = (tail) => `zone z at 0,0 w 3 h 2 "${SHORT}" ${tail}\n`
+      + `box a "A" at z.cx,z.cy w 1 h 0.5\nstep s\n  label z-cap "${LONG}"`;
+    const tl = swap(ZONE(''), 'z-cap');
+    ok(tl.anchor === 'start' && held(tl),
+      "a zone caption's words start on the corner it is anchored to, before and after a label step",
+      tl.msg || `${tl.anchor} at ${(tl.xs || []).join(' / ')}`);
+    const tr = swap(ZONE('{.right}'), 'z-cap');
+    ok(tr.anchor === 'end' && held(tr),
+      'and a .right caption ends on its own corner, which is the same rule the other way round',
+      tr.msg || `${tr.anchor} at ${(tr.xs || []).join(' / ')}`);
+    // The four placements that pin one of the element's own sides, and the two
+    // that pin its centre. Written as a table because the claim is that one
+    // sentence covers all six, and a case tested on its own is a case that can
+    // quietly stop being covered by it.
+    const PINNED = [
+      ['anchor tl', `text l "${SHORT}" at 1,1 anchor tl`, 'start'],
+      ['anchor br', `text l "${SHORT}" at 1,1 anchor br`, 'end'],
+      ['right of', `box r "R" at 0,0\ntext l "${SHORT}" right of r gap 0.5`, 'start'],
+      ['left of', `box r "R" at 4,0\ntext l "${SHORT}" left of r gap 0.5`, 'end'],
+      ['flush left', `box r "R" at 0,0 w 3\ntext l "${SHORT}" below r gap 0.5 flush left`, 'start'],
+      ['align x left', `box r "R" at 0,0 w 3\ntext l "${SHORT}" at 2,2\nalign x left r, l`, 'start'],
+      ['a bare at', `text l "${SHORT}" at 1,1`, 'middle'],
+      ['anchor center', `text l "${SHORT}" at 1,1 anchor center`, 'middle'],
+    ];
+    for (const [what, body, want] of PINNED) {
+      const s = swap(`${body}\nbox z "Z" at 6,3\nstep s\n  label l "${LONG}"`, 'l');
+      ok(s.anchor === want && held(s),
+        `${what} draws its words from the ${want === 'middle' ? 'centre' : want} and holds it across a label step`,
+        s.msg || `${s.anchor} at ${(s.xs || []).join(' / ')}`);
+    }
+    // Two bounds on the rule, and each is a figure the corpus contains. A
+    // **box** is untouched: its words are centred inside an outline that is
+    // drawn and that moves with the estimate, so the pair stays coherent and
+    // ranging them left would be the `.left` the author did not write. And a
+    // text given an explicit `w` is wider than its own label, where "as far
+    // left as the box allows" is a different sentence with the same words.
+    const boxed = swap(`box l "${SHORT}" at 1,1\nbox z "Z" at 6,3\nstep s\n  label l "${LONG}"`, 'l');
+    ok(boxed.anchor === 'middle',
+      "a box's label stays centred in the outline it is drawn inside",
+      boxed.msg || boxed.anchor);
+    const wide = swap(`text l "${SHORT}" at 1,1 anchor tl w 3\nbox z "Z" at 6,3\n`
+      + `step s\n  label l "${LONG}"`, 'l');
+    ok(wide.anchor === 'middle',
+      'and a text given its own w is centred in that w, which is what .left is for',
+      wide.msg || wide.anchor);
+    // The written alignment class is the author's answer and outranks the
+    // derived one, in the direction that can disagree: `.right` on a text
+    // whose placement pins its left edge.
+    const own = swap(`box r "R" at 0,0\ntext l "${SHORT}" right of r gap 0.5 {.right}\n`
+      + `box z "Z" at 6,3\nstep s\n  label l "${LONG}"`, 'l');
+    ok(own.anchor === 'end', 'a written .right still wins over the edge the placement pinned',
+      own.msg || own.anchor);
+  }
+
   // ── a table's first row, and how tall a row is ────────────────────
   // Two changes with one control each, and the control is the base case:
   // neither may move a table that says nothing new.

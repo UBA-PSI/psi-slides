@@ -104,6 +104,39 @@ answers `null` for the centre, so it costs no offset and the editor keeps
 offering guides on such an element.) And a `.turn`ed label is centred whichever
 way it reads, the same answer `dgLabelAnchor` gives it.
 
+**The same sentence now covers the placement and not only the class, and the
+day it did not cost a keynote a jumping caption.** A free text is as wide as
+its glyph run, so *every* way of placing one puts a named side of it on a
+coordinate: `anchor tl` its left edge, `right of x gap n` its left edge, `left
+of x` its right, `flush left` / `flush right` the side they name, `align x
+left` the same, and a bare `at` or a `between` its centre. `layoutDiagram`
+records which of those it was as `pinX` on the box, and `labelBox` draws the
+words from that edge – `text-anchor: start` at `box.x`, `end` at `box.x +
+box.w` – instead of centring them on the box's middle. The reason is that the
+middle is an **estimate**: the error between `dgMeasure` and what the browser
+sets is split in two and half of it lands on the side the author pinned, so a
+`label` step swapping in a longer string changes that half and the words move
+sideways although nothing in the source moved them. Measured on a keynote's
+zone caption, `im Raum` relabelled to `im Raum · 3 Stunden, ohne Internet`:
+11 px to the right, on a caption whose whole point is that it sits in the
+corner of its area.
+
+**In estimate space the change moves nothing at all**, which is what makes it
+safe: the origin goes from `box.x + box.w / 2` drawn `middle` to `box.x` drawn
+`start`, `extentsOf` answers the anchor question through the same
+`labelAnchor` map, and the reserved box, the viewBox and every placement
+warning are the bytes they were. Only which end of the *real* glyph run
+absorbs the difference changes. Three bounds: a **free text** only, because on
+a box or a dot the words are centred inside an outline that has its own
+position and moves with the same estimate; a text **sized by its own label**
+only, because an explicit `w` makes "as far left as the box allows" the
+different sentence `.left` says; and never over a written `.left` / `.right`,
+which is the author's own answer, nor over `.turn`, which is centred whichever
+way it reads. That last bound is why **`turn` is in `DG_STEP_FIXED`**: the
+class now decides, once, between the pinned edge and that centring, so a
+`style` step cannot carry it. Before the pin the two answers were the same
+word, nothing was baked, and it was not in the table.
+
 `align x left a, b, c` is not retired with the warnings: it holds a *set* to
 one edge and is still what three labels at three different coordinates want.
 What it no longer has to do is repair a row that shares one coordinate.
