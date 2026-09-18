@@ -45,7 +45,8 @@
  *              it, and the roster agrees with the JSON it was copied from
  *   canvas     the three measured numbers behind a figure's canvas - the
  *              per-type body em, the default zoom, and the one spelling of
- *              a frame in two files that cannot import one another
+ *              a frame in two files that cannot import one another - plus
+ *              the one sentence shape the two canvas reports say an axis in
  *   chains     peers share one size: which placements make two boxes peers,
  *              which axis each shares, the two ways out, `row` / `col`,
  *              `same w as` / `same h as`, and the two warnings for a written

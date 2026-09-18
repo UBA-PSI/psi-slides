@@ -826,7 +826,8 @@ Both are one line per figure, sited like every other `[diagram]` warning, and
 neither fails a build.
 
 - **`figure-overflows-canvas`** – the drawing is wider or taller than its box.
-  The message gives both sizes in labels, the overshoot per axis, the body
+  The message gives both sizes in labels, the overshoot per axis **in labels
+  and in px**, the body
   type the slide will settle at against the one every figure that fits gets,
   and a `frame WxH` that would reserve what this drawing actually draws. A
   figure whose own labels also land under 18 px says so in the same line
@@ -836,6 +837,16 @@ neither fails a build.
   takes the prose down to make room for paper. The message gives the share,
   both sizes, how many labels a narrower column would hold, and the same
   `frame WxH`.
+
+**A figure on one axis is reported in labels and in px, in both reports.** The
+overshoot is decided at half a pixel, so a label figure to one decimal – a
+base label is `DG_FONT` px – covered a range of seven px, and "over by 0.2
+across" was anything from 2.3 px to 3.7 px: an author shortening a label
+against it built three times to find out which. The static complaint and
+`--check-fit`'s per-figure room line both spell `<labels> <axis> (<px> px)`
+now. They cannot share a helper – one is emitted at the end of the parse, the
+other measured in a browser – so `test/gates/canvas.mjs` holds the two shapes
+against each other as text, beside the three numbers it already mirrors.
 
 **Neither is mirrored in `lint.js`, and neither can be**: both need the
 drawing laid out, which needs the compiler, which is the whole thing the

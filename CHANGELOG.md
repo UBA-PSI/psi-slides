@@ -59,6 +59,12 @@ from building the same way is a major version.
 
 ### Changed (drawings, unreleased)
 
+- **The canvas reports say how far off a figure is in px as well as in
+  labels.** `figure-overflows-canvas` decides at half a pixel and reported
+  the overshoot in base labels to one decimal, so "over by 0.2 across" was
+  anything from 2.3 px to 3.7 px and an author shortening a label against it
+  built three times to find out which. Both the complaint and
+  `--check-fit`'s per-figure room line now spell `<labels> <axis> (<px> px)`.
 - **An edge's `side` is judged on the beats the arrow is on screen.** Only
   the pair of words lying across the routed line can move a label, and the
   check that said so ran on every beat whether the edge was drawn in it or

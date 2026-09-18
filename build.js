@@ -3415,9 +3415,18 @@ function reportFigureTypeStatic() {
     if (f.canvas) {
       const overW = f.contentW - f.canvas.w, overH = f.contentH - f.canvas.h;
       if (overW > 0.5 || overH > 0.5) {
+        // **The overshoot in the unit the check is made in, and in the unit
+        // the drawing is measured in.** It is decided at half a pixel and was
+        // reported in base labels to one decimal, so "over by 0.2 across" is
+        // anything from 2.3 px to 3.7 px and an author shortening a label
+        // against that number builds three times to find out which. A base
+        // label is DG_FONT px, so both figures are the same quantity twice
+        // and the second one is what an edit is actually measured in - the
+        // same unit the two sentences after it already speak.
+        const over = (px, axis) => `${lab(px)} ${axis} (${Math.round(px)} px)`;
         const axes = [];
-        if (overW > 0.5) axes.push(`${lab(overW)} across`);
-        if (overH > 0.5) axes.push(`${lab(overH)} down`);
+        if (overW > 0.5) axes.push(over(overW, 'across'));
+        if (overH > 0.5) axes.push(over(overH, 'down'));
         dgWarn(`figure-overflows-canvas in ${f.where}: the drawing is ${lab(f.contentW)} x`
           + ` ${lab(f.contentH)} labels and its canvas is ${lab(f.canvas.w)} x ${lab(f.canvas.h)}`
           + ` - over by ${axes.join(' and ')}. The canvas is the chunk's column at body type, so a`
@@ -23860,14 +23869,18 @@ function reportFigureType(figType, bodySeen, where) {
     const lab = (n) => (n / DG_FONT).toFixed(1);
     const room = (f) => Math.min(f.canvas.w - f.canvas.cw, f.canvas.h - f.canvas.ch);
     const byRoom = [...onCanvas].sort((a, b) => room(a) - room(b));
-    console.log('  room left on each – the canvas minus the drawing, in base labels, so a figure at'
-      + ' 0.0 across is one column from overflowing:');
+    console.log('  room left on each – the canvas minus the drawing, in base labels and in px, so a'
+      + ' figure at 0.0 across is one column from overflowing:');
     for (const f of byRoom) {
       const dw = f.canvas.w - f.canvas.cw, dh = f.canvas.h - f.canvas.ch;
+      // Both units, the way `figure-overflows-canvas` says the same thing
+      // statically: one decimal of a base label hides up to seven px, and a
+      // figure near zero is exactly where the number is read.
+      const axis = (px, which) => `${lab(px)} ${which} (${Math.round(px)} px)`;
       console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''})`
         + ` – canvas ${lab(f.canvas.w)} x ${lab(f.canvas.h)},`
         + ` drawing ${lab(f.canvas.cw)} x ${lab(f.canvas.ch)},`
-        + ` room ${lab(dw)} across and ${lab(dh)} down`
+        + ` room ${axis(dw, 'across')} and ${axis(dh, 'down')}`
         + (f.canvas.over
           ? `; past its canvas, so this slide settles at ${f.bodyPx} px of body type rather than the deck's own.`
           : empty.includes(f)
