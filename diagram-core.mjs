@@ -2482,7 +2482,10 @@ const DG_EXTRA_FORMS = {
 };
 // The three statements that place nothing: an edge is defined by its two ends,
 // and a container and a brace fit whatever they are given to hold.
-const DG_NO_PLACEMENT = new Set(['edge', 'container', 'brace', 'actor', 'note', 'message']);
+const DG_NO_PLACEMENT = new Set(['edge', 'container', 'brace', 'actor', 'note', 'message',
+  // …and the four statements that draw nothing at all: they name elements that
+  // already exist, and `row` / `col` give a placement rather than taking one.
+  'align', 'spread', 'row', 'col']);
 export function dgTakes(head) {
   const parts = [];
   if (!DG_NO_PLACEMENT.has(head)) parts.push(`a placement (${DG_PLACEMENT_SHORT})`);
@@ -6516,9 +6519,16 @@ export function createDiagramCompiler(env = {}) {
       // narrow *by declaration*, and sizing it to the box beside it undoes the
       // reason the class was written. Measured on `figure-rules#sp2`, where the
       // firewall bar came out as wide as the switch next to it.
+      // The third exclusion is the composites. A `table`, a `lanes`, a `bars`,
+      // a `grid`, a `plot`, a `sequence` and a `zone` all *draw* a box, but
+      // none of them is one: each sizes itself from its own contents or from a
+      // claim on the paper, and a note placed `right of` a five-column table
+      // has no business coming out five columns wide. `synth` is the flag that
+      // already separates them from ordinary boxes for the overlap census.
       const own = (id) => {
         const cls = state.get(id)?.classes || new Set();
-        return cls.has('own') || cls.has('turn') || !!(byId.get(id) || {}).sameAs;
+        const n = byId.get(id) || {};
+        return cls.has('own') || cls.has('turn') || !!n.sameAs || !!n.synth;
       };
       const boxIds = new Set(nodes.map(n => n.id));
       const sets = (() => {

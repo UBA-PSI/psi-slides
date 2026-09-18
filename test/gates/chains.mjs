@@ -55,6 +55,9 @@ export async function run({ report }) {
     { name: 'and an element no row names is still asked',
       body: 'box a "x" at 0,0\nbox b "y"',
       rule: 'diagram-no-placement', want: 1 },
+    { name: 'and a row does not excuse its own first member',
+      body: 'box a "x" at 0,0\nbox b "y"\nbox c "z"\nrow b, c gap 1',
+      rule: 'diagram-no-placement', want: 1 },
     { name: 'a row of one',
       body: 'box a "x" at 0,0\nbox b "y" right of a gap 1\nrow a',
       rule: 'bad-diagram-row', want: 1 },
@@ -191,6 +194,10 @@ export async function run({ report }) {
     const r = render('box a "x" at 0,0\nbox b "y"');
     ok(!r.ok && /has no placement/.test(r.msg || ''),
       'an element no row names is still asked where it goes', r.msg);
+    const first = render('box a "x" at 0,0\nbox b "y"\nbox c "z"\nrow b, c gap 1');
+    ok(!first.ok && /box b has no placement/.test(first.msg || ''),
+      'and a row places every member after the first, so the first still has to say',
+      first.msg);
   }
   {
     const bad = render('box a "x" at 0,0\nbox b "y" right of a gap 1\nrow a');

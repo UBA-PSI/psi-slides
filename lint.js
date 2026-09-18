@@ -1332,7 +1332,11 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         add(ln, 'error', 'bad-diagram-row', `${head} needs at least two elements – it says they `
             + 'are peers, which one element cannot be');
       }
-      for (const m of members) { refer(m, ln, head); rowMembers.add(m); }
+      // Every member after the first, and only those: the statement places
+      // each member against the one before it, so the first still has to say
+      // where the row goes. Exempting it here would be a linter laxer than the
+      // build, which is the one direction that merges green.
+      members.forEach((m, i) => { refer(m, ln, head); if (i) rowMembers.add(m); });
       inStep = false;
       continue;
     }
