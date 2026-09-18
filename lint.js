@@ -428,7 +428,7 @@ import {
   DG_EDGE_ARROWS, DG_STEP_NAME,
   rejectHeadClassIn, rejectSlotPair, rejectStepClass,
   rejectClassOn, DG_WORD_OPTS, dgTakes, dgArticle,
-  DG_PLACED_HEADS, DG_PLACE_INTRO, dgNoPlacement, DG_FRAME_RE,
+  DG_PLACED_HEADS, DG_PLACE_INTRO, DG_IN_ALIGN, dgNoPlacement, DG_FRAME_RE,
 } from './diagram-core.mjs';
 import {
   CHUNK_SLOTS, CHUNK_STYLE_CLASSES, COLUMN_SLOTS, VALID_WIDTHS, VALID_CHUNK_CLASSES,
@@ -944,7 +944,10 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         referenced.push({ name: p[1], ln, what });
         return;
       }
-      const m = raw.match(/^([A-Za-z_][\w-]*)\.([a-z]+)([+-][\d.]+)?$/);
+      // `haus.inner.top` – the band a zone reserves under its caption. The
+      // word sits between the name and the coordinate, so the reference is
+      // still the first token and the nudge still the last.
+      const m = raw.match(/^([A-Za-z_][\w-]*)(\.inner)?\.([a-z]+)([+-][\d.]+)?$/);
       if (!m) {
         // The literal is spelled out rather than left to `Number`, which is
         // the same guard dgParseCoord carries and for the same two reasons:
@@ -961,10 +964,11 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       }
       const axis = i === 0 ? 'x' : 'y';
       const ok = axis === 'x' ? DG_SCALAR_X : DG_SCALAR_Y;
-      if (!ok.has(m[2])) {
+      if (!ok.has(m[3])) {
         add(ln, 'error', 'bad-diagram-coordinate',
-            `${what}: '.${m[2]}' is not ${dgArticle(axis)} ${axis} coordinate – use ${[...ok].map(p => '.' + p).join(' / ')}`);
+            `${what}: '.${m[3]}' is not ${dgArticle(axis)} ${axis} coordinate – use ${[...ok].map(p => '.' + p).join(' / ')}`);
       }
+      if (m[2]) bands.push({ name: m[1], ln, coord: true });
       referenced.push({ name: m[1], ln, what });
     });
   };
@@ -1021,6 +1025,11 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // Returns { next, place, attempted }. `attempted` means a placement was
   // recognised and refused, and the statement stops there rather than adding
   // a second sentence about tokens it has already lost its grip on.
+  // Every `in <zone>` in this block, and every zone declared in it, both
+  // collected rather than decided on the line: a zone may be written after
+  // the things that stand in it, which is the order the statement is for.
+  const bands = [];
+  const zoneNames = new Map();     // id -> { ln, axes: {w, h} }
   const readPlacement = (words, k, ln) => {
     const t = (i) => (words[i] === undefined ? '' : words[i]);
     let place = null, next = k;
@@ -1036,6 +1045,18 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       }
       place = 'between';
       next = mEnd;
+    } else if (t(k) === 'in') {
+      // `in <zone>` – the band an area reserves under its caption. The name is
+      // collected as a reference like every other operand; whether it names a
+      // zone rather than a box is decided at the end of the block, because a
+      // zone may be declared after what stands in it.
+      if (!t(k + 1)) {
+        add(ln, 'error', 'bad-diagram-placement', 'in expects the name of a zone');
+        return { next: k + 1, place: null, attempted: true };
+      }
+      bands.push({ name: t(k + 1), ln });
+      place = 'in';
+      next = k + 2;
     } else {
       let dir = null;
       // Checked *before* the direction is bound, or `above` binds happily and
@@ -1068,6 +1089,20 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     while (next < words.length) {
       const key = words[next];
       if ((key === 'gap' || key === 'flush') && place === 'rel') { next += 2; continue; }
+      if (key === 'gap' && place === 'in') { next += 2; continue; }
+      // The band's own words, bare and positional: `left` / `right` across,
+      // `top` / `bottom` down, `center` for whichever axis no other word
+      // names. They are words of the placement and not classes, because on a
+      // box `.left` already says where the label sits inside the outline.
+      if (place === 'in' && DG_IN_ALIGN.has(key)) { next += 1; continue; }
+      // `flush` names a face of a reference and `anchor` a point; a band is
+      // neither, and its own words are the answer to both.
+      if ((key === 'flush' || key === 'align' || key === 'anchor') && place === 'in') {
+        add(ln, 'error', 'bad-diagram-placement', `'${key}' lines an element up with a face of `
+            + `another one or with a coordinate, and 'in' names a band rather than either. The `
+            + `words for a band are ${[...DG_IN_ALIGN].join(' / ')}, written bare after the zone.`);
+        return { next, place, attempted: true };
+      }
       // Named rather than reported as an unknown token: `align` is still a
       // word in the language, just not this one, and it is what an author who
       // learned the old spelling will type.
@@ -1328,11 +1363,34 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     if (head === 'row' || head === 'col') {
       const toks = words.slice(1);
       const gi = toks.indexOf('gap');
-      if (gi >= 0 && toks.length > gi + 2) {
-        add(ln, 'error', 'bad-diagram-row', `unexpected '${toks[gi + 2]}' in ${head} – a ${head} `
-            + `takes its members and one optional 'gap N', and nothing else`);
+      const ii = toks.indexOf('in');
+      // Where the member list stops: at whichever option word comes first. A
+      // run placed in a zone is placed as one block, so `in` is the row's own
+      // word and not its first member's.
+      const stop = [gi, ii].filter(i => i >= 0).reduce((a, b) => Math.min(a, b), toks.length);
+      {
+        let k = stop, inZone = false;
+        while (k < toks.length) {
+          if (toks[k] === 'gap') { k += 2; continue; }
+          if (toks[k] === 'in') {
+            if (!toks[k + 1]) {
+              add(ln, 'error', 'bad-diagram-row', `${head} … in expects the name of a zone`);
+              break;
+            }
+            bands.push({ name: toks[k + 1], ln });
+            refer(toks[k + 1], ln, `${head} in`);
+            inZone = true;
+            k += 2;
+            continue;
+          }
+          if (inZone && DG_IN_ALIGN.has(toks[k])) { k += 1; continue; }
+          add(ln, 'error', 'bad-diagram-row', `unexpected '${toks[k]}' in ${head} – a ${head} `
+              + `takes its members, one optional 'gap N' and one optional 'in <zone>' with the `
+              + `band's own words (${[...DG_IN_ALIGN].join(' / ')}), and nothing else`);
+          break;
+        }
       }
-      const members = (gi < 0 ? toks : toks.slice(0, gi))
+      const members = toks.slice(0, stop)
         .join(',').split(',').map(x => x.trim()).filter(Boolean);
       if (members.length < 2) {
         add(ln, 'error', 'bad-diagram-row', `${head} needs at least two elements – it says they `
@@ -1341,8 +1399,10 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       // Every member after the first, and only those: the statement places
       // each member against the one before it, so the first still has to say
       // where the row goes. Exempting it here would be a linter laxer than the
-      // build, which is the one direction that merges green.
-      members.forEach((m, i) => { refer(m, ln, head); if (i) rowMembers.add(m); });
+      // build, which is the one direction that merges green. `in <zone>` is
+      // the one form that does place the first member too – it says where the
+      // whole run goes – and then no member of it owes a placement.
+      members.forEach((m, i) => { refer(m, ln, head); if (i || ii >= 0) rowMembers.add(m); });
       inStep = false;
       continue;
     }
@@ -2176,11 +2236,12 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         // height comes from.
         const sameAxis = (a) => words.some((w, i) => w === 'same'
           && (words[i + 1] === a ? words[i + 2] === 'as' : words[i + 1] === 'as'));
-        if ((!words.includes('w') && !sameAxis('w')) || (!words.includes('h') && !sameAxis('h'))) {
-          add(ln, 'error', 'bad-diagram-zone', `zone ${words[1]} needs both 'w' and 'h' (or `
-              + `'same as' / 'same w as' / 'same h as <element>') - an area `
-              + `is a fixed claim on the paper, which is the whole difference from a container.`);
-        }
+        // An axis nobody states is the one what stands in the area settles, so
+        // the complaint is deferred to the end of the block: whether anything
+        // is placed `in` this zone is not decidable on its own line, and the
+        // `in` may be written above it or below it.
+        zoneNames.set(words[1], { ln,
+          auto: { w: !words.includes('w') && !sameAxis('w'), h: !words.includes('h') && !sameAxis('h') } });
       }
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: words[1], tags: attrs.tags, ln });
 
@@ -2422,6 +2483,31 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         for (const g of gate) add(st.ln, 'error', 'diagram-class-on-kind', g.msg);
       }
     }
+  }
+  // ── the band, once every zone and every `in` is known ─────────────
+  // Two refusals the build makes in the same order. A band belongs to a zone
+  // and to nothing else, so `in q` and `q.inner.left` on a box are a mistake
+  // with a plausible reading; and an area with an axis nobody stated and
+  // nothing standing in it has no size to take from anywhere.
+  // One sentence per line, whatever a coordinate pair names twice: `at
+  // q.inner.left,q.inner.top` is one mistake with two halves, and the build
+  // reports it once, off the element rather than off the coordinate.
+  const bandSaid = new Set();
+  for (const b of bands) {
+    if (!defined.has(b.name) || zoneNames.has(b.name)) continue;
+    if (bandSaid.has(`${b.name}|${b.ln}`)) continue;
+    bandSaid.add(`${b.name}|${b.ln}`);
+    add(b.ln, 'error', 'bad-diagram-zone', `'${b.name}${b.coord ? '.inner' : ''}' names `
+        + `'${b.name}', which is not a zone - a band is the room an area reserves under its `
+        + `caption, and only a 'zone' has one.`);
+  }
+  for (const [id, z] of zoneNames) {
+    if (!z.auto.w && !z.auto.h) continue;
+    if (bands.some(b => b.name === id && !b.coord)) continue;
+    const axis = z.auto.w && z.auto.h ? "'w' and 'h'" : z.auto.w ? "'w'" : "'h'";
+    add(z.ln, 'error', 'bad-diagram-zone', `zone ${id} states no ${axis} and nothing is placed `
+        + `in it, so there is nothing to take the size from - write the number, or place `
+        + `something 'in ${id}'.`);
   }
   // Whatever no `row` or `col` turned out to place.
   for (const u of unplaced) {

@@ -1501,6 +1501,203 @@ export async function run({ report }) {
     }
   }
 
+  // ── the band, and what is placed in it ────────────────────────────
+  // An area reserves room under its caption, exposes it as `z.inner.*`, and
+  // `in z` is the placement that meets it. Every number below is read as a
+  // difference between two builds of one figure, never against a literal: a
+  // label's width is estimated here and the estimate is not the meaning.
+  {
+    const G = 'unit=120x40';
+    const box = (out, id) => [+attrOf(out, id + '--r', 'x'), +attrOf(out, id + '--r', 'y'),
+      +attrOf(out, id + '--r', 'width'), +attrOf(out, id + '--r', 'height')];
+    // The band's top clears the caption's line; its left clears the pad
+    // alone, because the caption is in a corner and not along the edge.
+    {
+      const out = fig('a box placed in an area',
+        'zone z at 0,0 w 4 h 3 "Area"\nbox a "A" in z', G);
+      const bare = fig('the same area with no caption',
+        'zone z at 0,0 w 4 h 3 ""\nbox a "A" in z', G);
+      if (out && bare) {
+        const [zx, zy] = box(out, 'z'), [ax, ay] = box(out, 'a');
+        const bzy = box(bare, 'z')[1], bay = box(bare, 'a')[1];
+        ok(Math.abs((ax - zx) - (ay - zy)) > 1,
+          'the band clears the caption on the side the caption is on, and the pad on the others',
+          (ax - zx).toFixed(1) + ' px in from the left, ' + (ay - zy).toFixed(1) + ' px down from the top');
+        ok((ay - zy) - (bay - bzy) > 5,
+          'so an area with no caption starts its band a line higher',
+          ((ay - zy) - (bay - bzy)).toFixed(1) + ' px');
+      }
+    }
+    // A `.bottom` caption puts its line at the other end of the band.
+    {
+      const top = fig('a band under a top caption',
+        'zone z at 0,0 w 4 h 3 "Area"\nbox a "A" in z bottom', G);
+      const low = fig('a band over a bottom caption',
+        'zone z at 0,0 w 4 h 3 "Area" {.bottom}\nbox a "A" in z bottom', G);
+      if (top && low) {
+        const drop = (box(top, 'z')[1] + box(top, 'z')[3]) - (box(top, 'a')[1] + box(top, 'a')[3]);
+        const lowDrop = (box(low, 'z')[1] + box(low, 'z')[3]) - (box(low, 'a')[1] + box(low, 'a')[3]);
+        ok(lowDrop - drop > 5, 'a caption at the foot moves the band off the foot instead',
+          drop.toFixed(1) + ' px clear under the top caption, ' + lowDrop.toFixed(1) + ' under the bottom one');
+      }
+    }
+    // `z.inner.left` is the same rectangle, written out. Asserted against the
+    // placement rather than against a number: the two have to agree, or one of
+    // them is a second implementation of the band.
+    {
+      const word = fig('a box placed in an area',
+        'zone z at 0,0 w 4 h 3 "Area"\nbox a "A" in z', G);
+      const coord = fig('the same box placed on the band coordinates',
+        'zone z at 0,0 w 4 h 3 "Area"\nbox a "A" at z.inner.left,z.inner.top anchor tl', G);
+      if (word && coord) {
+        ok(box(word, 'a').every((v, i) => Math.abs(v - box(coord, 'a')[i]) < 0.01),
+          'so "in z" and "at z.inner.left,z.inner.top anchor tl" are one rectangle',
+          box(word, 'a') + ' vs ' + box(coord, 'a'));
+      }
+    }
+    // The five words, one axis each, and `gap` measured from the band's edge.
+    {
+      const at = (tail) => {
+        const out = fig('a box placed in an area ' + (tail || 'top left'),
+          'zone z at 0,0 w 6 h 4 "Area"\nbox a "A" in z ' + tail, G);
+        return out ? box(out, 'a') : null;
+      };
+      const tl = at(''), br = at('right bottom'), tr = at('right'), bl = at('bottom'), mid = at('center');
+      ok(tl && br && tr && bl && tr[0] === br[0] && bl[1] === br[1]
+        && tr[1] === tl[1] && bl[0] === tl[0],
+        'the band words act on one axis each, like the caption corners they borrow',
+        JSON.stringify([tl, tr, bl, br]));
+      ok(mid && mid[0] > tl[0] && mid[0] < br[0] && mid[1] > tl[1] && mid[1] < br[1],
+        'and "center" answers both axes at once', JSON.stringify(mid));
+      const gap = at('gap 0.5');
+      ok(gap && Math.abs((gap[0] - tl[0]) - 0.5 * 40) < 0.01
+        && Math.abs((gap[1] - tl[1]) - 0.5 * 40) < 0.01,
+        'a gap on an "in" is measured from the band edge, square in px like every clearance',
+        gap ? (gap[0] - tl[0]) + ' across, ' + (gap[1] - tl[1]) + ' down' : 'not drawn');
+      // Order-independent, because the words are resolved once the run of them
+      // has been read rather than as each one arrives.
+      const one = at('center bottom'), other = at('bottom center');
+      ok(one && other && one.every((v, i) => v === other[i]),
+        'and the order the words are written in changes nothing',
+        JSON.stringify([one, other]));
+    }
+    // A `row` placed in a band is placed as one block.
+    {
+      const run = fig('a row placed in an area',
+        'zone z at 0,0 w 8 h 3 "Area"\nbox a "AAAA"\nbox b "B"\nrow a, b gap 0.4 in z center', G);
+      const lone = fig('its first box placed in the same area',
+        'zone z at 0,0 w 8 h 3 "Area"\nbox a "AAAA" in z center\nbox b "B" right of a gap 0.4 same as a', G);
+      if (run && lone) {
+        const ra = box(run, 'a'), rb = box(run, 'b'), zb = box(run, 'z');
+        const mid = (ra[0] + rb[0] + rb[2]) / 2;
+        ok(Math.abs(mid - (zb[0] + zb[2] / 2)) < 0.01,
+          'a row placed in a band is centred as a run, not as its first box',
+          'run centre ' + mid.toFixed(1) + ', band centre ' + (zb[0] + zb[2] / 2).toFixed(1));
+        ok(Math.abs(box(lone, 'a')[0] - ra[0]) > 1,
+          'which is not what centring the first box alone would have drawn',
+          box(lone, 'a')[0].toFixed(1) + ' vs ' + ra[0].toFixed(1));
+      }
+    }
+    // An axis nobody wrote is the one the contents settle, and the two axes are
+    // answered separately.
+    {
+      const wide = fig('an area sized by a wide box',
+        'zone z at 0,0 h 3 "Area"\nbox a "a much longer label" in z', G);
+      const narrow = fig('an area sized by a narrow one',
+        'zone z at 0,0 h 3 "Area"\nbox a "a" in z', G);
+      if (wide && narrow) {
+        ok(box(wide, 'z')[2] > box(narrow, 'z')[2] + 10,
+          'an area with no w is as wide as what stands in it',
+          box(wide, 'z')[2].toFixed(1) + ' against ' + box(narrow, 'z')[2].toFixed(1));
+        ok(box(wide, 'z')[3] === box(narrow, 'z')[3] && box(wide, 'z')[3] === 3 * 40,
+          'and the height it was given is untouched', String(box(wide, 'z')[3]));
+        const pad = box(wide, 'z'), child = box(wide, 'a');
+        ok(Math.abs((child[0] - pad[0]) - ((pad[0] + pad[2]) - (child[0] + child[2]))) < 0.01,
+          'the pad it wraps its contents in is the same on both sides',
+          (child[0] - pad[0]).toFixed(2) + ' and ' + ((pad[0] + pad[2]) - (child[0] + child[2])).toFixed(2));
+      }
+      const both = fig('an area sized on both axes',
+        'zone z at 0,0 "Area"\nbox a "A"\nbox b "B"\nrow a, b gap 0.4 in z', G);
+      if (both) {
+        const zb = box(both, 'z'), ab = box(both, 'a'), bb = box(both, 'b');
+        ok(Math.abs((ab[0] - zb[0]) - ((zb[0] + zb[2]) - (bb[0] + bb[2]))) < 0.01,
+          'and a row is wrapped as a run, with the same pad at either end',
+          (ab[0] - zb[0]).toFixed(2) + ' and ' + ((zb[0] + zb[2]) - (bb[0] + bb[2])).toFixed(2));
+      }
+    }
+    // Overflow: a written number the contents do not fit in.
+    {
+      const r = render('zone z at 0,0 w 1 h 3 "Area"\nbox a "a much longer label" in z', G);
+      const said = r.warns.filter(w => /wider than the band/.test(w));
+      ok(said.length === 1 && /box a/.test(said[0]),
+        'a child wider than the band it is placed in says so, and names itself',
+        r.warns.join(' | '));
+      const fits = render('zone z at 0,0 w 6 h 3 "Area"\nbox a "a much longer label" in z', G);
+      ok(fits.warns.filter(w => /than the band/.test(w)).length === 0,
+        'and a band with room in it says nothing', fits.warns.join(' | '));
+      // The axis the contents settled cannot overflow: it is what they
+      // measured. This is the case that would otherwise warn about itself.
+      const auto = render('zone z at 0,0 h 3 "Area"\nbox a "a much longer label" in z', G);
+      ok(auto.warns.filter(w => /than the band/.test(w)).length === 0,
+        'nor does an axis the contents settled', auto.warns.join(' | '));
+      // A chain that runs on from a child runs on out of the area, and that is
+      // not this warning: `in` is the membership relation this grammar has and
+      // `right of` is not.
+      const past = render('zone z at 0,0 w 3 h 3 "Area"\nbox a "A" in z\nbox b "B" right of a gap 4', G);
+      ok(past.warns.filter(w => /than the band/.test(w)).length === 0,
+        'and a chain that runs on out of the area was never placed in it',
+        past.warns.join(' | '));
+    }
+    // A container's pad, visible at last to what hangs off a member.
+    {
+      const r = render('box m "M" at 0,0\nbox n "N" at 4,0\ncontainer c over m,n pad 0.5\n'
+        + 'text t "note" right of m gap 0.2 {.small}', G);
+      const said = r.warns.filter(w => /inside c/.test(w));
+      ok(said.length === 1 && /text t/.test(said[0]),
+        'a text hung off a container member inside its outline says so', r.warns.join(' | '));
+      const outside = render('box m "M" at 0,0\nbox n "N" at 4,0\ncontainer c over m,n pad 0.5\n'
+        + 'text t "note" below n gap 2 {.small}', G);
+      ok(outside.warns.filter(w => /inside c/.test(w)).length === 0,
+        'and one that clears the outline does not', outside.warns.join(' | '));
+      // A member is exempt by construction: it is what the outline is round.
+      const held = render('box m "M" at 0,0\nbox n "N" right of m gap 0.5\n'
+        + 'container c over m,n pad 0.5', G);
+      ok(held.warns.filter(w => /inside c/.test(w)).length === 0,
+        'and a member of the container is not reported against it', held.warns.join(' | '));
+    }
+    // Seven refusals, each with a plausible wrong reading behind it.
+    {
+      const bad = (what, body, re) => {
+        const r = render(body, G);
+        ok(!r.ok && re.test(r.msg || ''), what, r.ok ? '(accepted)' : r.msg.split('\n')[1]);
+      };
+      bad('a band belongs to a zone and not to a box',
+        'box q "Q" at 0,0\nbox a "A" in q', /not a zone/);
+      bad('and so does the coordinate form',
+        'box q "Q" at 0,0 w 2 h 2\ntext a "A" at q.inner.left,q.inner.top', /not a zone/);
+      bad('an area with no size and nothing in it has nothing to take one from',
+        'zone z at 0,0 "Area"\nbox a "A" at 4,0', /nothing to take the size from/);
+      bad('an axis the contents settle cannot also be aligned against',
+        'zone z at 0,0 h 3 "Area"\nbox a "A" in z right', /nothing to align against/);
+      bad('anchor names a point, and a band is not one',
+        'zone z at 0,0 w 3 h 2 "Area"\nbox a "A" in z anchor tl', /names a band rather than a coordinate/);
+      bad('flush names a face, and a band is not one either',
+        'zone z at 0,0 w 3 h 2 "Area"\nbox a "A" in z flush left', /names a band rather than a face/);
+      bad('a run placed as a block cannot have a member placed on its own',
+        'zone z at 0,0 w 6 h 3 "Area"\nbox a "A" at 1,1\nbox b "B"\nrow a, b in z',
+        /cannot state a placement of its own/);
+    }
+    // The editor rewrites through the span table, so an `in` has to be one
+    // span like every other placement expression.
+    {
+      const t = spans('zone z at 0,0 w 4 h 3 "Area"\nbox a "A" in z gap 0.2 center');
+      const sp = t.spanOf('a', 'place');
+      ok(sp && sp.present && sp.value === 'in z gap 0.2 center',
+        'the whole "in" expression is one span the editor can replace',
+        sp ? JSON.stringify(sp.value) : 'no span');
+    }
+  }
+
   // ── a warning says where the element it names was written ─────────
   // Half the names in this grammar are generated, so the one move a reader
   // has – search the block for the name the message used – finds nothing.

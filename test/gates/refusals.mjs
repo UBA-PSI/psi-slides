@@ -550,10 +550,12 @@ export async function run({ report }) {
   // And every intro word really introduces one, on a real second element.
   const INTRO_BODY = {
     at: 'at 1,1', between: 'between a,c', below: 'below a gap 1', above: 'above a gap 1',
-    right: 'right of a gap 1', left: 'left of a gap 1',
+    right: 'right of a gap 1', left: 'left of a gap 1', in: 'in z',
   };
   for (const w of DG_PLACE_INTRO) {
-    const r = render(QUAD + `box b "B" ${INTRO_BODY[w]}`);
+    // `in` needs an area to be placed in, and only that word does.
+    const r = render(QUAD + (w === 'in' ? 'zone z at 4,0 w 3 h 2 "Z"\n' : '')
+      + `box b "B" ${INTRO_BODY[w]}`);
     ok(r.ok, `"${w}" introduces a placement the compiler accepts`,
       INTRO_BODY[w] ? (r.ok ? '' : r.msg.split('\n')[1]) : 'no fixture for this word – add one');
   }

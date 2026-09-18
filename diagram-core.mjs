@@ -906,6 +906,16 @@ export const DG_ZONE_INK_DROP = 0.17;
 // sentence about the same four words, which is why the zone does not invent a
 // `corner` option to say it again.
 export const DG_ZONE_CORNERS = new Set(['left', 'right', 'top', 'bottom']);
+// **The band a zone reserves for what stands in it, and the words that place
+// something in it.** The band is the area minus the pad on all four sides and
+// minus the caption's own line on the side the caption is on, so `z.inner.top`
+// is the first row of paper the caption does not already own. `in z` puts an
+// element there, and these five words move it inside the band – the same four
+// the caption uses, plus `center`, which a corner does not need and a band
+// does. They are words of the *placement* rather than classes, because on a
+// box `.left` already means where the label sits inside the outline, and one
+// word cannot answer two questions on one line.
+export const DG_IN_ALIGN = new Set(['left', 'right', 'top', 'bottom', 'center']);
 // A zone's caption and the tag that holds the pair. Generated names, so they
 // are a promised interface for the same reason a `sequence`'s are: an author
 // annotating a figure has to be able to name what the statement drew.
@@ -1771,6 +1781,16 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     }
     place = { kind: 'between', refs, frac: 0.5 };
     next = mEnd;
+  } else if (t(k) === 'in') {
+    // `in <zone>` – the band, not the frame. It is a placement of its own and
+    // not sugar for `at z.inner.left,z.inner.top anchor tl`, because a `row`
+    // written `in` a zone is placed as one block: the alignment words are
+    // answered against the whole run's extent, which no coordinate on one
+    // member's line can state. `ax` / `ay` are filled in by the option loop.
+    const ref = t(k + 1);
+    if (!ref) { dgErr(errors, lineNo, 'in expects the name of a zone'); return [null, k + 1, true]; }
+    place = { kind: 'in', ref, gap: null, ax: 'left', ay: 'top' };
+    next = k + 2;
   } else {
     let dir = null;
     // Checked *before* the direction is bound, because `above` binds happily
@@ -1815,8 +1835,18 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
   // without inventing a spacer element to hang it off.
   while (next < toks.length) {
     const key = t(next);
-    if (key === 'gap' && place.kind === 'rel') {
+    if (key === 'gap' && (place.kind === 'rel' || place.kind === 'in')) {
       place.gap = dgNum(t(next + 1), errors, lineNo, 'gap'); next += 2; continue;
+    }
+    // The band's own alignment words, bare and positional, because each says
+    // one thing about one axis and a key would only repeat the word. `center`
+    // answers both axes unless a word naming one of them stands beside it, so
+    // `in z center` is centred in the band and `in z center bottom` sits on
+    // the band's floor, centred across.
+    if (place.kind === 'in' && DG_IN_ALIGN.has(key)) {
+      (place.words || (place.words = [])).push(key);
+      next += 1;
+      continue;
     }
     // `flush`, not `align`. The token `align` introduced two unrelated
     // constructs: on a line of its own a statement giving a set of elements one
@@ -1863,8 +1893,24 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     // `flush` in the refusal rather than leaving it to the generated sentence,
     // for the reason the `align` refusal above does: it is the word the author
     // is reaching for.
+    // `flush` names a face of a reference, which is what a relative placement
+    // has and a band does not: inside a band the words are the band's own.
+    if ((key === 'flush' || key === 'align') && place.kind === 'in') {
+      dgErr(errors, lineNo, `"${key}" lines an element up with a face of another one, and `
+        + `"in ${place.ref}" names a band rather than a face. The words for a band are `
+        + `${[...DG_IN_ALIGN].join(' / ')}, written bare after the zone.`, 'semantic');
+      next += 2;
+      continue;
+    }
     if (key === 'anchor') {
       const a = t(next + 1);
+      if (place.kind === 'in') {
+        dgErr(errors, lineNo, `anchor says which point of the element lands on a coordinate, and `
+          + `"in ${place.ref}" names a band rather than a coordinate: which corner of it the `
+          + `element meets is ${[...DG_IN_ALIGN].join(' / ')}, written bare after the zone.`, 'semantic');
+        next += 2;
+        continue;
+      }
       if (place.kind === 'rel') {
         dgErr(errors, lineNo, `anchor says which point of the element lands on a coordinate, and `
           + `"${place.dir}" names a face of ${place.ref} rather than a coordinate. The cross-axis `
@@ -1914,6 +1960,19 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
   if (place && toks[k] && toks[next - 1]) {
     place.span = [toks[k].s, toks[next - 1].e];
   }
+  // The band's words, resolved once the run of them has been read rather than
+  // as each arrives, so `in z left center` and `in z center left` say the same
+  // thing: an axis a word names outright beats the one `center` answers for
+  // both. The default is the band's top-left corner, which is where an author
+  // who wrote nothing is pointing.
+  if (place && place.kind === 'in') {
+    const w = place.words || [];
+    place.ax = w.includes('left') ? 'left' : w.includes('right') ? 'right'
+      : w.includes('center') ? 'center' : 'left';
+    place.ay = w.includes('top') ? 'top' : w.includes('bottom') ? 'bottom'
+      : w.includes('center') ? 'center' : 'top';
+    delete place.words;
+  }
   return [place, next];
 }
 
@@ -1937,7 +1996,12 @@ export function dgParseCoord(tok, axis, errors, lineNo, what) {
   // down and costs the layout nothing.
   const p = raw.match(/^([A-Za-z_][\w-]*)@(-?[\d.]+)$/);
   if (p && Number.isFinite(Number(p[2]))) return { ref: p[1], data: Number(p[2]), axis };
-  const m = raw.match(/^([A-Za-z_][\w-]*)\.([a-z]+)([+-][\d.]+)?$/);
+  // `haus.inner.top` – the band a zone reserves under its caption. One extra
+  // word between the name and the coordinate rather than a sixth and seventh
+  // scalar (`.inleft`), because it is the same six coordinates read off a
+  // different rectangle, and because the token an editor rewrites is still
+  // exactly one signed nudge at the end.
+  const m = raw.match(/^([A-Za-z_][\w-]*)(\.inner)?\.([a-z]+)([+-][\d.]+)?$/);
   if (!m) {
     // A plain decimal, spelled out. Number() alone let two things through
     // that no author means: Number('') is 0, so the empty half of "at 3,"
@@ -1952,7 +2016,8 @@ export function dgParseCoord(tok, axis, errors, lineNo, what) {
     }
     return { unit: n };
   }
-  const [, ref, prop, nudge] = m;
+  const [, ref, innerWord, prop, nudge] = m;
+  const inner = !!innerWord;
   const ok = axis === 'x' ? DG_SCALAR_X : DG_SCALAR_Y;
   if (!ok.has(prop)) {
     const other = axis === 'x' ? DG_SCALAR_Y : DG_SCALAR_X;
@@ -1961,7 +2026,7 @@ export function dgParseCoord(tok, axis, errors, lineNo, what) {
       : `${what}: unknown coordinate ".${prop}" – use ${[...ok].map(p => '.' + p).join(' / ')}`);
     return { unit: 0 };
   }
-  return { ref, prop, nudge: nudge ? Number(nudge) : 0 };
+  return { ref, prop, inner, nudge: nudge ? Number(nudge) : 0 };
 }
 
 // `X,Y` where either side may be a reference.
@@ -1982,8 +2047,13 @@ export function dgParsePair(tok, errors, lineNo, what) {
 export function dgCoordPx(c, axis, boxes, uw, uh) {
   const u = axis === 'x' ? uw : uh;
   if (c.unit !== undefined) return c.unit * u;
-  const b = boxes.get(c.ref);
-  if (!b) return 0;
+  const box = boxes.get(c.ref);
+  if (!box) return 0;
+  // `.inner` reads the same six coordinates off the band the element reserves
+  // rather than off its outline. Only a zone has one; a reference that names
+  // anything else is refused when the block is read, and falling back to the
+  // outline here keeps the layout finishing so that message gets out.
+  const b = (c.inner && box.inner) ? box.inner : box;
   const v = c.prop === 'cx' ? b.x + b.w / 2
     : c.prop === 'left' ? b.x
     : c.prop === 'right' ? b.x + b.w
@@ -2464,8 +2534,8 @@ export const DG_PLACEMENT_LONG = 'at X,Y / above X / below X / right of X / left
 // placement" there would be a second sentence about one defect.
 export const DG_PLACED_HEADS = new Set(['box', 'dot', 'text', 'image', 'zone',
   'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
-export const DG_PLACE_INTRO = new Set(['at', 'between', 'below', 'above', 'right', 'left']);
-export const DG_PLACEMENT_SHORT = 'at / above / below / right of / left of / between';
+export const DG_PLACE_INTRO = new Set(['at', 'between', 'below', 'above', 'right', 'left', 'in']);
+export const DG_PLACEMENT_SHORT = 'at / above / below / right of / left of / between / in <zone>';
 // The forms that have no keyword to list, per statement. Everything else in a
 // statement's vocabulary is a word in DG_KIND_OPTS.
 const DG_EXTRA_FORMS = {
@@ -3984,22 +4054,47 @@ export function createDiagramCompiler(env = {}) {
       if (head === 'row' || head === 'col') {
         const toks = body0.slice(1).map(x => x.v);
         const gi = toks.indexOf('gap');
-        let gap = null;
-        if (gi >= 0) {
-          gap = dgNum(toks[gi + 1], errors, lineNo, 'gap');
-          if (toks.length > gi + 2) {
-            dgErr(errors, lineNo, `unexpected "${toks[gi + 2]}" in ${head} – a ${head} takes its `
-              + 'members and one optional "gap N", and nothing else');
-            continue;
+        const ii = toks.indexOf('in');
+        // Where the member list stops: at whichever of the two option words
+        // comes first. A run placed in a zone is placed as one block, so `in`
+        // belongs to the `row` line and not to its first member.
+        const stop = [gi, ii].filter(i => i >= 0).reduce((a, b) => Math.min(a, b), toks.length);
+        let gap = null, inPlace = null;
+        {
+          let k = stop, bad = false;
+          const words = [];
+          while (k < toks.length && !bad) {
+            if (toks[k] === 'gap') { gap = dgNum(toks[k + 1], errors, lineNo, 'gap'); k += 2; continue; }
+            if (toks[k] === 'in') {
+              if (!toks[k + 1]) {
+                dgErr(errors, lineNo, `${head} … in expects the name of a zone`);
+                bad = true; break;
+              }
+              inPlace = { kind: 'in', ref: toks[k + 1], gap: null, ax: 'left', ay: 'top' };
+              k += 2;
+              continue;
+            }
+            if (inPlace && DG_IN_ALIGN.has(toks[k])) { words.push(toks[k]); k += 1; continue; }
+            dgErr(errors, lineNo, `unexpected "${toks[k]}" in ${head} – a ${head} takes its `
+              + `members, one optional "gap N" and one optional "in <zone>" with the band's own `
+              + `words (${[...DG_IN_ALIGN].join(' / ')}), and nothing else`);
+            bad = true;
+          }
+          if (bad) continue;
+          if (inPlace) {
+            inPlace.ax = words.includes('left') ? 'left' : words.includes('right') ? 'right'
+              : words.includes('center') ? 'center' : 'left';
+            inPlace.ay = words.includes('top') ? 'top' : words.includes('bottom') ? 'bottom'
+              : words.includes('center') ? 'center' : 'top';
           }
         }
-        const members = dgParseMembers((gi < 0 ? toks : toks.slice(0, gi)).join(','));
+        const members = dgParseMembers(toks.slice(0, stop).join(','));
         if (members.length < 2) {
           dgErr(errors, lineNo, `${head} needs at least two elements – it says they are peers, `
             + 'which one element cannot be');
           continue;
         }
-        model.rows.push({ axis: head === 'row' ? 'x' : 'y', members, gap, line: lineNo, span });
+        model.rows.push({ axis: head === 'row' ? 'x' : 'y', members, gap, inPlace, line: lineNo, span });
         continue;
       }
 
@@ -5720,14 +5815,17 @@ export function createDiagramCompiler(env = {}) {
           // different claims: `same h as` names the element the height comes
           // from, which is as fixed as a number and stays right when that
           // element's label grows.
+          // An axis nobody states is the one the children settle: the zone
+          // wraps everything placed `in` it, plus the band and the pad. That
+          // is the unification the two statements were waiting for – an area
+          // sized by its contents is a container that keeps its ground, its
+          // caption and its place under everything, and one written with `w`
+          // and `h` is the fixed claim on the paper it always was. The two
+          // axes are answered separately, because the height of a row of
+          // areas is usually the figure's and their widths are their own.
           const hasW = node.w != null || node.sameAs || node.sameWAs;
           const hasH = node.h != null || node.sameAs || node.sameHAs;
-          if (!hasW || !hasH) {
-            dgErr(errors, lineNo, `zone ${id} needs both "w" and "h" (or "same as" / `
-              + `"same ${hasW ? 'h' : 'w'} as <element>") – an area is a fixed claim on `
-              + `the paper, which is the whole difference from a container (that one fits its `
-              + `members and is invisible without them).`, 'semantic');
-          }
+          node.zoneAuto = { w: !hasW, h: !hasH };
           // The look is seeded and displaceable, exactly as a column's `bare`
           // is: through the slots, so `{.dotted}` replaces the dash, `{.tone-2}`
           // the see-through fill and `{.accent}` the muted ink, and none of the
@@ -5763,6 +5861,18 @@ export function createDiagramCompiler(env = {}) {
           // one it will be drawn in rather than a constant.
           const capClasses = new Set(['small', 'muted', ...corner]);
           const padDrop = (DG_ZONE_INK_DROP * dgFontFor(capClasses)) / (zuh || 1);
+          // **The band, recorded on the frame.** What a zone reserves for what
+          // stands in it is the pad on all four sides and, on the side the
+          // caption is on, the caption's own line as well – so `z.inner.top`
+          // is the first row of paper the caption does not already own and a
+          // child placed there cannot land on the words. Read off the caption
+          // as it was written: a `label` step that swaps a longer one in moves
+          // the words and not the band, which is the same promise a box's size
+          // makes when its label changes.
+          const capRows = cap
+            ? dgMeasure(cap, dgFontFor(capClasses), false).h / (zuh || 1)
+            : 0;
+          node.band = { pad: zPad, padX, cap: capRows, bottom, capRight: right };
           model.nodes.push({
             kind: 'text', id: capId, synth: id, label: cap,
             classes: ['small', 'muted', ...corner],
@@ -6073,6 +6183,24 @@ export function createDiagramCompiler(env = {}) {
       for (const r of model.rows) {
         const dir = r.axis === 'x' ? 'right' : 'below';
         const word = r.axis === 'x' ? 'row' : 'col';
+        // **A run placed in a zone is placed as one block**, which is a claim
+        // about every member: the first meets the band, the rest follow it,
+        // and the alignment words are answered against the extent of all of
+        // them. A member that states a placement of its own contradicts that,
+        // and the contradiction is silent – the run would be aligned as though
+        // it held a box that is somewhere else entirely.
+        if (r.inPlace) {
+          const own = r.members.filter(m => byId.get(m) && byId.get(m).place);
+          if (own.length) {
+            dgErr(errors, r.line, `${word} … in ${r.inPlace.ref} places the whole run in the `
+              + `area's band, so "${own[0]}" cannot state a placement of its own as well `
+              + `(line ${byId.get(own[0]).line}) – take one of the two off.`, 'semantic');
+          } else if (byId.get(r.members[0])) {
+            byId.get(r.members[0]).place = { ...r.inPlace, group: { axis: r.axis, members: r.members },
+              implicit: true, fromRow: r.line };
+            placedByRow.add(r.members[0]);
+          }
+        }
         let prev = null;
         for (const m of r.members) {
           const n = byId.get(m);
@@ -6150,9 +6278,65 @@ export function createDiagramCompiler(env = {}) {
         ? ` – ".${bare}" is a class; a set you can address is written "@${bare}"` : '';
       dgErr(errors, lineNo, `${what} refers to "${id}", which is not defined${hint}`, 'reference');
     };
-    const refsOf = (place) => place?.kind === 'rel' ? [place.ref]
+    const refsOf = (place) => place?.kind === 'rel' || place?.kind === 'in' ? [place.ref]
       : place?.kind === 'between' ? place.refs.map(r => r.ref)
       : place?.kind === 'abs' ? dgPairRefs(place.at) : [];
+    // ── the band is a zone's, and only a zone's ─────────────────────
+    // Two references that name a rectangle no other statement draws: `in x`
+    // and `x.inner.left`. A box has no band – nothing about it says where its
+    // own contents begin – so naming one is a mistake with a plausible reading,
+    // which is the kind this grammar refuses rather than resolves quietly.
+    {
+      const zones = new Set(model.nodes.filter(n => n.zone).map(n => n.id));
+      const bandRef = (ref, lineNo, what) => {
+        if (!ref || !known(ref) || zones.has(ref)) return;
+        dgErr(errors, lineNo, `${what} names "${ref}", which is not a zone – a band is the room `
+          + `an area reserves under its caption, and only a "zone" has one.`, 'semantic');
+      };
+      for (const n of model.nodes) {
+        if (n.place && n.place.kind === 'in') {
+          bandRef(n.place.ref, n.line, `${n.kind} ${n.id}: "in ${n.place.ref}"`);
+        }
+        if (n.place && n.place.kind === 'abs') {
+          for (const c of (n.place.at || [])) {
+            if (c && c.inner) bandRef(c.ref, n.line, `${n.kind} ${n.id}: "${c.ref}.inner"`);
+          }
+        }
+      }
+      for (const e of model.edges) {
+        for (const p of [...(e.via || []), e.from?.point, e.to?.point]) {
+          for (const c of (p || [])) if (c && c.inner) bandRef(c.ref, e.line, `edge ${e.id}`);
+        }
+      }
+      // An area with an axis nobody stated and nothing standing in it has no
+      // size at all. It is the one thing a container could never be asked –
+      // a container with no members is simply not drawn – and here it would be
+      // a caption over a sliver of ground.
+      for (const z of model.nodes) {
+        if (!z.zone || !z.zoneAuto || !(z.zoneAuto.w || z.zoneAuto.h)) continue;
+        const held = model.nodes.some(n => n.place && n.place.kind === 'in' && n.place.ref === z.id);
+        if (held) continue;
+        const axis = z.zoneAuto.w && z.zoneAuto.h ? 'w" and "h' : z.zoneAuto.w ? 'w' : 'h';
+        dgErr(errors, z.line, `zone ${z.id} states no "${axis}" and nothing is placed in it, so `
+          + `there is nothing to take the size from – write the number, or place something `
+          + `"in ${z.id}".`, 'semantic');
+      }
+      // A band that is sized by what stands in it cannot also say where in
+      // itself that thing sits: the two answers are the same number twice.
+      for (const n of model.nodes) {
+        const p = n.place;
+        if (!p || p.kind !== 'in') continue;
+        const z = model.nodes.find(x => x.id === p.ref && x.zone);
+        if (!z || !z.zoneAuto) continue;
+        const clash = (z.zoneAuto.w && p.ax !== 'left') || (z.zoneAuto.h && p.ay !== 'top');
+        if (clash) {
+          dgErr(errors, n.line, `${n.kind} ${n.id} is placed in ${z.id} with a word that aligns `
+            + `it in the band, and ${z.id} takes that axis from what is placed in it – so the `
+            + `band is exactly this run and there is nothing to align against. Give ${z.id} `
+            + `its own "w"/"h", or leave the word off.`, 'semantic');
+        }
+      }
+    }
     // `point` aims an outline, so it needs the outline – and the outline can
     // come from a `default` block declared further down the file. Checked
     // here rather than on the statement's own line for exactly that reason:
@@ -6656,6 +6840,11 @@ export function createDiagramCompiler(env = {}) {
       // placed during the walk – so those references are real dependencies,
       // and a circular one is caught by the same cycle detector.
       if (place.kind === 'abs') return dgPairRefs(place.at);
+      // A child placed `in` a zone waits for the zone, exactly as `right of`
+      // waits for its reference. The zone does *not* wait for its children in
+      // return, even when they are what settles its size: that answer comes
+      // from the pass before this one, which is what keeps this a DAG.
+      if (place.kind === 'in') return [place.ref];
       return [];
     };
     // The first element listed is the master; everybody else takes that one
@@ -6749,10 +6938,56 @@ export function createDiagramCompiler(env = {}) {
     for (const id of deps.keys()) visit(id, []);
 
     const nodeById = new Map(model.nodes.map(n => [n.id, n]));
+    // The extent a placement has to fit inside a band: one element, or the
+    // whole run when a `row` or a `col` wrote the placement. Sizes are settled
+    // before any position is, so the run's extent is answerable here without
+    // having placed a single member of it.
+    const groupExtent = (place, w, h) => {
+      const g = place.group;
+      if (!g) return [w, h];
+      let along = 0, across = 0, first = true;
+      for (const m of g.members) {
+        const n = nodeById.get(m);
+        if (!n) continue;
+        const s = sizeOf(n);
+        const mp = (state.get(m) && state.get(m).place) || n.place;
+        if (!first) along += dgGapPx(mp, uh);
+        along += g.axis === 'x' ? s.w : s.h;
+        across = Math.max(across, g.axis === 'x' ? s.h : s.w);
+        first = false;
+      }
+      return g.axis === 'x' ? [along, across] : [across, along];
+    };
+    // **A zone with an axis nobody stated is sized by what is placed in it, and
+    // that answer comes from a whole layout pass rather than from arithmetic.**
+    // A child's offset from the band's origin can be any chain of placements,
+    // so the only honest way to ask how much room the children want is to place
+    // them and measure. Two passes settle it exactly and no more are needed:
+    // the union of the children is invariant under moving the zone, so the
+    // second pass – which knows the size, and therefore where an `anchor` or a
+    // centre puts the frame – moves everything together and changes no extent.
+    // The zone does not shrink to the children that are *visible* at this beat,
+    // the way a container does: an area is a claim on the paper that holds from
+    // beat 0, and a frame that grew as the talk filled it would move every
+    // caption under it.
+    const autoSize = new Map();
+    const autoZones = model.nodes.filter(n => n.zone && n.zoneAuto
+      && (n.zoneAuto.w || n.zoneAuto.h));
+    const inChildren = new Map();
+    for (const n of model.nodes) {
+      const p = n.place;
+      if (!p || p.kind !== 'in') continue;
+      if (!inChildren.has(p.ref)) inChildren.set(p.ref, []);
+      // A `row` written `in` a zone hangs its placement on the first member
+      // alone; what the area has to hold is the whole run.
+      const held = p.group ? p.group.members : [n.id];
+      for (const m of held) inChildren.get(p.ref).push(m);
+    }
     const edgeById = new Map(model.edges.map(e => [e.id, e]));
     const contById = new Map(model.containers.map(c => [c.id, c]));
     const braceById = new Map(model.braces.map(b => [b.id, b]));
 
+    const walk = () => {
     for (const id of order) {
       const st = state.get(id);
       if (edgeById.has(id)) {
@@ -6770,7 +7005,16 @@ export function createDiagramCompiler(env = {}) {
       }
       if (nodeById.has(id)) {
         const node = nodeById.get(id);
-        const { w, h, font, padX, padY } = sizeOf(node);
+        const base = sizeOf(node);
+        // An axis the children settled, from the pass before this one. Zero on
+        // the first pass, which is the honest answer while nothing has been
+        // placed yet: the area is a point on its own coordinate and the band
+        // starts there, so what the children need is measured from the same
+        // origin either way.
+        const az = autoSize.get(id);
+        const { font, padX, padY } = base;
+        const w = az && az.w != null ? az.w : (node.zoneAuto && node.zoneAuto.w ? 0 : base.w);
+        const h = az && az.h != null ? az.h : (node.zoneAuto && node.zoneAuto.h ? 0 : base.h);
         const place = st.place;
         let cx = 0, cy = 0;
         // Which of this element's own sides the placement holds still, across.
@@ -6784,6 +7028,29 @@ export function createDiagramCompiler(env = {}) {
         // is an estimate and the drawn one is not.
         let pinX = null;
         if (!place) { cx = 0; cy = 0; }
+        // **`in <zone>`: the band, and the whole run when a `row` wrote it.**
+        // The alignment words are answered against the extent of what is being
+        // placed, which for a `row … in z` is the run and not its first
+        // member – otherwise `center` would centre the first box and hang the
+        // rest off the right-hand side of the area.
+        else if (place.kind === 'in') {
+          const zb = boxes.get(place.ref);
+          const band = (zb && zb.inner) || zb;
+          if (!band) { cx = 0; cy = 0; }
+          else {
+            const g = place.gap != null ? place.gap * uh : 0;
+            const [gw, gh] = groupExtent(place, w, h);
+            const x = place.ax === 'right' ? band.x + band.w - g - gw
+              : place.ax === 'center' ? band.x + (band.w - gw) / 2
+                : band.x + g;
+            const y = place.ay === 'bottom' ? band.y + band.h - g - gh
+              : place.ay === 'center' ? band.y + (band.h - gh) / 2
+                : band.y + g;
+            cx = x + w / 2;
+            cy = y + h / 2;
+            pinX = place.ax === 'right' && gw === w ? 'right' : 'left';
+          }
+        }
         else if (place.kind === 'abs') { [cx, cy] = dgPairPx(place.at, boxes, uw, uh); }
         else if (place.kind === 'between') {
           const pts = place.refs.map(r => {
@@ -6929,8 +7196,21 @@ export function createDiagramCompiler(env = {}) {
         // the narrowest re-sizes the rest of the row. Nothing in the drawing
         // reads it; it is the compiler telling the page what it did.
         const cs = chainSize.get(id);
-        boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h, font, padX, padY, pinX,
-          chainW: !!(cs && cs.w != null), chainH: !!(cs && cs.h != null) });
+        const box = { x: cx - w / 2, y: cy - h / 2, w, h, font, padX, padY, pinX,
+          chainW: !!(cs && cs.w != null), chainH: !!(cs && cs.h != null) };
+        // The band, in the same coordinates as the frame, so `z.inner.left` and
+        // `in z` read one rectangle rather than two arithmetics of it.
+        if (node.band) {
+          const b = node.band;
+          const pad = b.pad * uh, padX2 = b.padX * uw, cap = b.cap * uh;
+          box.inner = {
+            x: box.x + padX2,
+            y: box.y + pad + (b.bottom ? 0 : cap),
+            w: Math.max(box.w - 2 * padX2, 0),
+            h: Math.max(box.h - 2 * pad - cap, 0),
+          };
+        }
+        boxes.set(id, box);
         continue;
       }
       const holder = contById.get(id) || braceById.get(id);
@@ -6969,6 +7249,24 @@ export function createDiagramCompiler(env = {}) {
       // offset to the side is applied at draw time.
       const bshift = state.get(id).shift;
       boxes.set(id, { x: bb.x + bshift[0] * uw, y: bb.y + bshift[1] * uh, w: bb.w, h: bb.h });
+    }
+    };
+    walk();
+    if (autoZones.length) {
+      for (const z of autoZones) {
+        const held = (inChildren.get(z.id) || []).map(m => boxes.get(m)).filter(Boolean);
+        const zb = boxes.get(z.id);
+        if (!held.length || !zb) continue;
+        const bb = dgUnion(held);
+        const band = z.band || { pad: DG_ZONE_PAD, padX: DG_ZONE_PAD, cap: 0, bottom: false };
+        const pad = band.pad * uh, padX = band.padX * uw, cap = band.cap * uh;
+        if (z.zoneAuto.w) autoSize.set(z.id, { ...(autoSize.get(z.id) || {}), w: bb.w + 2 * padX });
+        if (z.zoneAuto.h) {
+          autoSize.set(z.id, { ...(autoSize.get(z.id) || {}), h: bb.h + 2 * pad + cap });
+        }
+      }
+      boxes.clear();
+      walk();
     }
 
     return boxes;
@@ -7445,6 +7743,109 @@ export function createDiagramCompiler(env = {}) {
         + `because other elements are chained off it – so the fix is on the line that wrote it: `
         + `give ${e.from.ref} and ${e.to.ref} about ${want.toFixed(2)} more rows of gap, or take `
         + `the written gap off that placement and let the default clear the arrow.`);
+    }
+  }
+
+  // **Both censuses below read placements, and a step that moves something is
+  // an act rather than a placement.** `move eve to …` carrying a box into a
+  // container's outline is the tutorial's `#diagram-steps` – the intruder
+  // stepping into the channel is the whole figure – so a beat where the
+  // element has been shifted is not evidence about where it was put.
+  // `by` shifts and `to` re-places, so both halves of `move` are asked about.
+  const dgUnmoved = (state, node) => {
+    const st = node && state && state.get(node.id);
+    if (!st) return true;
+    if (st.place !== node.place) return false;
+    return !st.shift || (!st.shift[0] && !st.shift[1]);
+  };
+
+  // **Something placed in a band that the band cannot hold.** A zone written
+  // with `w` and `h` is a claim on the paper, and a claim can be wrong: the
+  // author writes a number once and then puts three boxes and a gap in it. The
+  // overflow is silent today, because the frame carries `synth` and is out of
+  // the overlap census by construction – which is right for a child *standing*
+  // in an area and wrong for one hanging out of it.
+  //
+  // Only what is placed `in` the zone is measured. A chain that runs on from a
+  // child runs on out of the area, deliberately: `in` is the membership
+  // relation this grammar has, and a `right of` off a member states nothing
+  // about the area at all.
+  function dgZoneFitWarnings(model, states, frameBoxes, warn) {
+    const [uw, uh] = model.unit;
+    const zones = new Map(model.nodes.filter(n => n.zone).map(n => [n.id, n]));
+    const byId = new Map(model.nodes.map(n => [n.id, n]));
+    for (const n of model.nodes) {
+      const p = n.place;
+      if (!p || p.kind !== 'in' || !zones.has(p.ref)) continue;
+      const z = zones.get(p.ref);
+      // An axis the children settled cannot overflow: it is what they measured.
+      const auto = z.zoneAuto || { w: false, h: false };
+      const held = p.group ? p.group.members : [n.id];
+      let worst = null;
+      for (let k = 0; k < frameBoxes.length; k++) {
+        if (!held.every(m => dgUnmoved(states[k], byId.get(m)))) continue;
+        const band = (frameBoxes[k].get(z.id) || {}).inner;
+        const bs = held.map(m => frameBoxes[k].get(m)).filter(Boolean);
+        if (!band || !bs.length) continue;
+        const bb = dgUnion(bs);
+        const over = { w: bb.w - band.w, h: bb.h - band.h };
+        if (!worst || over.w + over.h > worst.w + worst.h) worst = over;
+      }
+      if (!worst) continue;
+      for (const axis of ['w', 'h']) {
+        if (auto[axis] || worst[axis] <= 0.5) continue;
+        const u = axis === 'w' ? uw : uh;
+        const want = Math.ceil(((axis === 'w' ? z.w : z.h) + worst[axis] / u) * 100) / 100;
+        warn(`${n.kind} ${n.id}${dgSite(n)}: it is placed in ${z.id}, and it is `
+          + `${Math.round(worst[axis])} px ${axis === 'w' ? 'wider' : 'taller'} than the band `
+          + `${z.id} reserves${p.group ? ' (the run it stands in is)' : ''} – so it hangs out of `
+          + `the area it is meant to stand in. Give ${z.id} ${axis === 'w' ? 'w' : 'h'} `
+          + `${want.toFixed(2)}, or leave the number off and let ${z.id} take that axis from what `
+          + `is placed in it.`);
+      }
+    }
+  }
+
+  // **A container's pad is room the container owns, and until now nothing
+  // placed against a member could see it.** `text t "…" right of m gap 0.2`
+  // lands between the member and the outline, reading as a label that has
+  // fallen inside the box that holds it, and no census reports it: a container
+  // is not a node, so `dgOverlapWarnings` never meets it. It is the same defect
+  // `dgLabelGroundWarnings` reports one level down – words standing on a line
+  // that is there to mean something.
+  function dgContainerPadWarnings(model, states, frameBoxes, warn) {
+    const seen = new Set();
+    for (const c of model.containers) {
+      const members = new Set(c.members);
+      for (const n of model.nodes) {
+        if (members.has(n.id) || n.synth) continue;
+        const p = n.place;
+        const refs = p?.kind === 'rel' || p?.kind === 'in' ? [p.ref]
+          : p?.kind === 'between' ? p.refs.map(r => r.ref)
+            : p?.kind === 'abs' ? dgPairRefs(p.at) : [];
+        if (!refs.some(r => members.has(r))) continue;
+        for (let k = 0; k < frameBoxes.length; k++) {
+          if (!dgUnmoved(states[k], n)) continue;
+          const cb = frameBoxes[k].get(c.id), nb = frameBoxes[k].get(n.id);
+          if (!cb || !nb || !(cb.w > 0)) continue;
+          const hit = nb.x < cb.x + cb.w && nb.x + nb.w > cb.x
+            && nb.y < cb.y + cb.h && nb.y + nb.h > cb.y;
+          // Inside the outline is the case: a member is inside it too, and a
+          // member is exempt above. Crossing the line from outside is an
+          // overlap of a different shape and has a different fix.
+          if (!hit) continue;
+          const key = `${c.id}|${n.id}`;
+          if (seen.has(key)) break;
+          seen.add(key);
+          warn(`${n.kind} ${n.id}${dgSite(n)}: it is placed against ${refs.find(r => members.has(r))}, `
+            + `which ${c.id} holds, and it lands inside ${c.id}'s outline – on the paper the `
+            + `container claims for its members, where the room reads it as one of them. A `
+            + `container's pad is invisible to a placement against a member, so the distance to `
+            + `clear is the pad and not the gap: place it against ${c.id} itself, widen the gap `
+            + `past ${c.id}'s pad, or give ${c.id} the words as its label.`);
+          break;
+        }
+      }
     }
   }
 
@@ -8192,6 +8593,8 @@ export function createDiagramCompiler(env = {}) {
       dgLabelClipWarnings(model, states, frames, frameBoxes, dgWarn);
       dgElbowRailWarnings(model, states, frames, frameBoxes, dgWarn);
       dgEdgeShortWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgZoneFitWarnings(model, states, frameBoxes, dgWarn);
+      dgContainerPadWarnings(model, states, frameBoxes, dgWarn);
     }
     // A DG_CLASS_CLASHES row is a **warning**, and it is the compiler's alone,
     // because deciding it correctly needs the resolved state at every beat.

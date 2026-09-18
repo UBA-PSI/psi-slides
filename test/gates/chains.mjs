@@ -67,15 +67,52 @@ export async function run({ report }) {
     { name: 'a third axis on "same"',
       body: 'box a "x" at 0,0\nbox b "y" at 0,3 same q as a',
       rule: 'diagram-unexpected-token', want: 1 },
-    { name: 'a zone with one number',
+    { name: 'a zone with one number and nothing in it',
       body: 'zone z "area" at 0,0 w 3',
       rule: 'bad-diagram-zone', want: 1 },
+    { name: 'a zone with one number and something in it',
+      body: 'zone z "area" at 0,0 w 3\nbox a "x" in z',
+      rule: 'bad-diagram-zone', want: 0 },
     { name: 'a zone that takes its height from an element',
       body: 'box a "x" at 0,0 h 2\nzone z "area" at 0,3 w 3 same h as a',
       rule: 'bad-diagram-zone', want: 0 },
     { name: 'same w as names an element that has to exist',
       body: 'box a "x" at 0,0\nbox b "y" at 0,3 same w as nope',
       rule: 'unknown-diagram-ref', want: 1 },
+    // ── the band ────────────────────────────────────────────────────
+    // A band belongs to a zone, `in` places one element or a whole run in it,
+    // and both refusals are deferred to the end of the block in both files:
+    // a zone may be written after the things that stand in it.
+    { name: 'in names a zone and not a box',
+      body: 'box q "Q" at 0,0\nbox a "A" in q',
+      rule: 'bad-diagram-zone', want: 1 },
+    { name: 'and neither does the coordinate form',
+      body: 'box q "Q" at 0,0 w 2 h 2\ntext a "A" at q.inner.left,q.inner.top',
+      rule: 'bad-diagram-zone', want: 1 },
+    { name: 'in a zone declared after it is not a mistake',
+      body: 'box a "A" in z\nzone z "area" at 0,0 w 3 h 2',
+      rule: 'bad-diagram-zone', want: 0 },
+    { name: 'a band takes no anchor',
+      body: 'zone z "area" at 0,0 w 3 h 2\nbox a "A" in z anchor tl',
+      rule: 'bad-diagram-placement', want: 1 },
+    { name: 'nor a flush',
+      body: 'zone z "area" at 0,0 w 3 h 2\nbox a "A" in z flush left',
+      rule: 'bad-diagram-placement', want: 1 },
+    { name: 'in expects a name',
+      body: 'zone z "area" at 0,0 w 3 h 2\nbox a "A" in',
+      rule: 'bad-diagram-placement', want: 1 },
+    { name: 'the band words are a placement, so they are not unexpected tokens',
+      body: 'zone z "area" at 0,0 w 3 h 2\nbox a "A" in z gap 0.2 center bottom',
+      rule: 'diagram-unexpected-token', want: 0 },
+    { name: 'a row placed in a zone places its first member too',
+      body: 'zone z "area" at 0,0 w 6 h 2\nbox a "A"\nbox b "B"\nrow a, b in z center',
+      rule: 'diagram-no-placement', want: 0 },
+    { name: 'and a row in a zone with no name is refused',
+      body: 'zone z "area" at 0,0 w 6 h 2\nbox a "A" at 0,0\nbox b "B" right of a gap 1\nrow a, b in',
+      rule: 'bad-diagram-row', want: 1 },
+    { name: 'and a word that is neither a member nor a band word is still refused',
+      body: 'zone z "area" at 0,0 w 6 h 2\nbox a "A" at 0,0\nbox b "B" right of a gap 1\nrow a, b in z sideways',
+      rule: 'bad-diagram-row', want: 1 },
   ];
   const near = (a, b) => a != null && b != null && Math.abs(a - b) < 0.5;
 
@@ -264,7 +301,10 @@ export async function run({ report }) {
   {
     // A zone needs both numbers, or an element to take one from.
     const bad = render('zone z "area" at 0,0 w 3');
-    ok(!bad.ok && /needs both/.test(bad.msg || ''), 'a zone with one number is refused', bad.msg);
+    ok(!bad.ok && /nothing to take the size from/.test(bad.msg || ''),
+      'a zone with one number and nothing in it is refused', bad.msg);
+    const held = render('zone z "area" at 0,0 w 3\nbox a "x" in z');
+    ok(held.ok, 'and the same zone with something in it takes the other number from it', held.msg);
     const good = render('box a "x" at 0,0 h 2\nzone z "area" at 0,3 w 3 same h as a');
     ok(good.ok, 'a zone takes its height from an element', good.msg);
   }

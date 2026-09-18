@@ -2798,6 +2798,22 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
     return { edits, refusals, strain };
   }
 
+  // **A drag on something standing in a band writes an `offset`, and the band
+  // stays.** The placement says which corner of the area the element meets,
+  // which is the fact worth keeping – a drag is a distance from it, and
+  // `offset` is the option that is orthogonal to every placement precisely so
+  // that this does not have to become an `at`.
+  if (place.kind === 'in') {
+    const off = place.offset || [0, 0];
+    const mx = xBlocked ? 0 : dx, my = yBlocked ? 0 : dy;
+    if (mx || my) {
+      edits.push({ attr: 'offset',
+        value: `${dgeNum(snap(off[0] + mx))},${dgeNum(snap(off[1] + my))}`,
+        why: `keeps it in ${place.ref}` });
+    }
+    return { edits, refusals, strain };
+  }
+
   if (place.kind === 'between') {
     // Along the line joining the two, `frac`; off it, `offset`.
     const a = ctx.boxes.get(place.refs[0].ref), z = ctx.boxes.get(place.refs[1].ref);
@@ -6490,8 +6506,15 @@ function dgePlacementPane(el) {
   // places and 0.4 in the third, and once a gap became square all three drew a
   // hair instead of a gutter. One number, one reason.
   const kinds = dgeEl('div', { class: 'dge-chips' });
-  const kindOf = p.kind === 'rel' ? 'beside' : p.kind === 'between' ? 'between' : 'at';
-  for (const [key, label] of [['at', 'at x,y'], ['beside', 'beside'], ['between', 'between two']]) {
+  const kindOf = p.kind === 'rel' ? 'beside' : p.kind === 'between' ? 'between'
+    : p.kind === 'in' ? 'in' : 'at';
+  // The zones this block draws, because the fourth kind needs one to name and
+  // most figures have none. Offered only where there is one, for the reason
+  // `between` says it needs two other elements rather than writing something
+  // that will not compile.
+  const zones = ((DGE.model && DGE.model.nodes) || []).filter((n) => n.zone).map((n) => n.id);
+  for (const [key, label] of [['at', 'at x,y'], ['beside', 'beside'], ['between', 'between two'],
+    ...(zones.length || kindOf === 'in' ? [['in', 'in a zone']] : [])]) {
     kinds.appendChild(dgeEl('button', {
       type: 'button', class: 'dge-sw', 'aria-pressed': String(key === kindOf),
       text: label,
@@ -6504,6 +6527,11 @@ function dgePlacementPane(el) {
         if (key === 'beside') {
           const ref = (p.kind === 'between' && p.refs[0] && p.refs[0].ref) || others[0];
           if (ref) write(dgePlaceText('right', ref, DGE_DOCK_GAP));
+          return;
+        }
+        if (key === 'in') {
+          if (zones.length) write('in ' + zones[0]);
+          else dgeStatus('', 'in needs an area to stand in – this figure draws no zone.', true);
           return;
         }
         const a = p.kind === 'rel' ? p.ref : others[0];
@@ -6677,6 +6705,68 @@ function dgePlacementPane(el) {
     ]));
     wrap.appendChild(row);
     wrap.appendChild(dgeAnchorSlot(el, p));
+  } else if (p.kind === 'in') {
+    // The band's own two axes, as two swatch rows. They are the words the
+    // grammar has rather than an `anchor`: a band is a rectangle and what the
+    // element meets is a corner of it, so `left`/`right` across and
+    // `top`/`bottom` down, with `center` on each.
+    // `center` alone answers both axes, so an axis that is centred while the
+    // other is not has to spell the other one out even where it is the
+    // default: `in z center` is the middle of the band and `in z left center`
+    // is its left edge, halfway down. Writing the bare word for the second
+    // case is how the pane sent a centred row to the wrong corner once.
+    const text = (ax, ay, gap) => {
+      const mid = ax === 'center' || ay === 'center';
+      const xw = ax === 'left' && !(mid && ax !== 'center') ? '' : ' ' + ax;
+      const yw = ay === 'top' && !(mid && ay !== 'center') ? '' : ' ' + ay;
+      return 'in ' + p.ref + (gap != null ? ' gap ' + dgeNum(gap) : '')
+        + (ax === 'center' && ay === 'center' ? ' center' : xw + yw);
+    };
+    for (const [slot, words, cur, of] of [
+      ['across', ['left', 'center', 'right'], p.ax, 'x'],
+      ['down', ['top', 'center', 'bottom'], p.ay, 'y'],
+    ]) {
+      const swrow = dgeEl('div', { class: 'dge-swatches' });
+      for (const w of words) {
+        swrow.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-sw', 'aria-pressed': String(cur === w), text: w,
+          title: `against the ${w} of the band ${p.ref} reserves`,
+          onclick: () => write(of === 'x' ? text(w, p.ay, p.gap) : text(p.ax, w, p.gap)),
+        }));
+      }
+      wrap.appendChild(dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: slot }), swrow]));
+    }
+    wrap.appendChild(dgeEl('div', { class: 'dge-nums' }, [
+      dgeEl('label', { class: 'dge-num' }, [
+        dgeEl('span', { text: 'in' }),
+        dgeEl('input', {
+          type: 'text', value: p.ref, list: 'dge-elids',
+          onchange: (e) => {
+            const v = e.target.value.trim();
+            if (v && v !== p.ref) write(text(p.ax, p.ay, p.gap).replace('in ' + p.ref, 'in ' + v));
+            else dgeRenderSide();
+          },
+        }),
+      ]),
+      dgeEl('label', { class: 'dge-num' }, [
+        dgeEl('span', { text: 'gap' }),
+        dgeEl('input', {
+          type: 'text', value: dgeNum(p.gap || 0),
+          title: p.gap == null ? 'no gap is written on this line – the element meets the band'
+            : 'how far inside the band it sits, in rows',
+          onchange: (e) => {
+            const v = e.target.value.trim();
+            const n = Number(v);
+            if (!v || !Number.isFinite(n)) {
+              dgeStatus('', `"${e.target.value}" is not a number – the gap keeps its ${dgeNum(p.gap || 0)}.`, true);
+              dgeRenderSide();
+              return;
+            }
+            write(text(p.ax, p.ay, n || null));
+          },
+        }),
+      ]),
+    ]));
   }
 
   // One list for every id in the block, so the reference fields complete

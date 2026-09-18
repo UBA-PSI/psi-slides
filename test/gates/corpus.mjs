@@ -37,7 +37,7 @@ export const name = 'every corpus figure compiles';
 // and the extractor matches nothing. When a lecture gains or loses a figure,
 // the number changes in the same commit.
 const FILES = [
-  ['lectures/diagrams/source.md', 30],
+  ['lectures/diagrams/source.md', 31],
   ['lectures/network-security/source.md', 36],
   ['docs/artifact/figure-rules/source.md', 55],
   // Ten compiled blocks (an eleventh opener sits in a code fence as a syntax
