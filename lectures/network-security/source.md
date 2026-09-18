@@ -586,12 +586,15 @@ step state
 # sie steht.
 text st "*State:* Src IP/port, Dst IP/port,\nmax segment size (MSS)" at 0,0 {.left}
 
-text obs "Observation:" below st gap 0.7 flush left {.left @obs}
+text obs "Observation:" below st gap 0.55 flush left {.left @obs}
 
-box sa  "SYN+ACK seq=*e*  ack=*c*+1" below obs gap 0.35 flush left w 2.35 h 0.5 point left {.chevron .tone-3 @obs}
-box ack "ACK seq=*c*+1 ack=*e*+1"    below sa gap 0.28 flush left same as sa {.chevron .tone-3 @obs}
+# The two block arrows carry the whole width of the slide, so the question the
+# beat ends on stands beside them rather than under them - the stack was a
+# narrow ribbon three times as tall as it was wide.
+box sa  "SYN+ACK seq=*e*  ack=*c*+1" below obs gap 0.3 flush left w 4.2 point left {.chevron .tone-3 @obs}
+box ack "ACK seq=*c*+1 ack=*e*+1"    below sa gap 0.25 flush left {.chevron .tone-3 @obs}
 
-text q "How to encode state in\nseq/ack (len: 32 bits)." below ack gap 0.7 flush left {.left @ask}
+text q "How to encode state in\nseq/ack (len: 32 bits)." at sa.right+0.4,sa.bottom {.left @ask}
 
 step observation
   show @obs
@@ -607,25 +610,33 @@ step encode
 
 ## figure: TLS 1.3 performs a handshake to start a secure network connection | and to negotiate cryptographic keys between the client and the server {.full #ns-a41}
 
-::: draw 120x46
-default box {.tone-3} w 2.3
+::: draw 120x40
+# The server's flight is four boxes and nine lines of text, so stacked in one
+# column beside the client's it was half again as tall as a slide. Here the
+# preamble is one band across the top - who computes what - and the flight is
+# a two-by-two block underneath it, read the way everything else is read:
+# left to right, top to bottom, ServerHello, Certificate, Signature, MAC.
+# The padding is written once, in labels, so the four boxes hold nine lines in
+# the height a slide has.
+default box {.tone-3} w 2.78 pad 0.3lh
 
 text cl "Client" at 0,0 {.large .muted}
-text c1 "Generate DH key pair (c, C)" right of cl gap 1.3 {.left}
-box  ch "ClientHello\n– Supported ciphersuites\n– Public key C" below c1 gap 0.5 flush left {@hello}
+text c1 "Generate DH key pair (c, C)" right of cl gap 0.9 {.left}
+box  ch "ClientHello\n– Supported ciphersuites  – Public key C" below cl gap 0.2 flush left w 2.85 {@hello}
 
-box  a1 "" right of ch gap 1.05 flush top w 0.8 h 0.42 {.chevron @hello}
-text s1 "Generate DH key pair (s, S)\nCompute secret = DH(s, C)\nDerive keys = KDF(secret)" right of a1 gap 1.05 flush top {.left @hello}
-text sv "Server" above s1 gap 0.5 {.large .muted}
-align y middle cl, sv
+box  a1 "" right of ch gap 0.35 flush top w 0.5 h 0.45 {.chevron @hello}
+text s1 "Generate DH key pair (s, S)\nCompute secret = DH(s, C)\nDerive keys = KDF(secret)" right of a1 gap 0.35 flush top {.left @hello}
+text sv "Server" above s1 gap 0.2 {.large .muted}
 
-box sh   "ServerHello\n– Selected ciphersuite\n– Public key S"      below s1 gap 0.5 flush left {@srv}
-box cert "Certificate(s)"                                           below sh gap 0 flush left {@srv}
-box sig  "Signature over ClientHello,\nServerHello, and Certificate" below cert gap 0 flush left {@srv}
-box mac  "MAC over ClientHello,\nServerHello, Certificate,\nand Signature" below sig gap 0 flush left {@srv}
+box sh   "ServerHello\n– Selected ciphersuite  – Public key S"       below ch gap 0.25 flush left {@srv}
+box cert "Certificate(s)"                                           right of sh gap 0.25 {@srv}
+box sig  "Signature over ClientHello,\nServerHello, and Certificate" below sh gap 0.12 flush left {@srv}
+box mac  "MAC over ClientHello, ServerHello,\nCertificate, and Signature" below cert gap 0.12 flush left {@srv}
 
-box  a2 "" left of cert gap 1.05 flush top w 0.8 h 0.42 point left {.chevron @srv}
-text vf "Verify certificate\nVerify signature\nCompute secret = DH(c, S)\nDerive keys = KDF(secret)\nVerify MAC" left of a2 gap 1.05 flush top {.left @done}
+# The flight travels the other way, so its block arrow stands under the block
+# rather than beside it, with what the client does with it on the same line.
+box  a2 "" below sig gap 0.2 flush left w 0.5 h 0.45 point left {.chevron @srv}
+text vf "Verify certificate  Verify signature\nCompute secret = DH(c, S)  Derive keys = KDF(secret)\nVerify MAC" right of a2 gap 0.4 {.left @done}
 
 step hello
   show @hello
@@ -640,36 +651,32 @@ step verify
 
 ## figure: Certificate chains {.full #ns-a43}
 
-::: draw 124x50
-default box {.tone-3} w 1.55
+::: draw 124x40
+# The chain used to descend a staircase, five two-line boxes deep, which is
+# half again as tall as a slide. The trust store stands beside the chain now
+# rather than on top of it, each link is one line wide enough to hold it, the
+# arrow between two links is vertical and carries its own word, and the
+# certificate viewer's chain stands beside the schematic rather than under it.
+default box {.tone-3} pad 0.3lh
 
-box  os "Browser/OS" at 0,0 {.tone-1}
-text st "Store with trusted\ncertificates" right of os gap 0.85 {.left .muted}
+box  os "Browser/OS" at 0,0 anchor tl {.tone-1}
+text st "Store with trusted\ncertificates" below os gap 0.3 flush left {.left .muted}
 
-box  r0 "Certificate\nof a Root CA"            below os gap 0.5 flush left offset 0.55,0
-box  r1 "Certificate of an\nintermediate CA"   below r0 gap 0.5 flush left offset 0.55,0
-box  r2 "Cert. of another\nintermediate CA"    below r1 gap 0.5 flush left offset 0.55,0
-box  r3 "Certificate\nof server"               below r2 gap 0.5 flush left offset 0.55,0 {.tone-4}
+box  r0 "Certificate of a Root CA"          at 1.25,0 anchor tl
+box  r1 "Certificate of an intermediate CA" below r0 gap 0.72 flush left
+box  r2 "Cert. of another intermediate CA"  below r1 gap 0.72 flush left
+box  r3 "Certificate of server"             below r2 gap 0.72 flush left {.tone-4}
 
-# The staircase: vertically out of the bottom edge, down the channel left of
-# the next box, then horizontally onto its left edge. The start point is a
-# coordinate rather than an anchor, so the descent and the waypoint carry the
-# same x and the vertical is vertical.
-edge os.left+0.35,os.bottom -> r0.left via os.left+0.35,r0.cy
-edge r0.left+0.35,r0.bottom -> r1.left via r0.left+0.35,r1.cy
-edge r1.left+0.35,r1.bottom -> r2.left via r1.left+0.35,r2.cy
-edge r2.left+0.35,r2.bottom -> r3.left via r2.left+0.35,r3.cy
+edge os -> r0 "Has" side top
+edge r0 -> r1 "Signs" side right
+edge r1 -> r2 "Signs" side right
+edge r2 -> r3 "Signs" side right
 
-text n0 "Has"   at os.left+0.2,r0.cy {.right}
-text n1 "Signs" at r0.left+0.2,r1.cy {.right}
-text n2 "Signs" at r1.left+0.2,r2.cy {.right}
-text n3 "Signs" at r2.left+0.2,r3.cy {.right}
-
-box  d0 "DigiCert High Assurance EV Root CA"     at 5.7,2.30 w 2.6 h 0.42 {@real}
-box  d1 "DigiCert SHA2 High Assurance Server CA" below d0 gap 0.5 flush left offset 0.3,0 same as d0 {@real}
-box  d2 "github.com"                             below d1 gap 0.5 flush left offset 0.3,0 same as d0 {.tone-4 @real}
-edge d0.left+0.2,d0.bottom -> d1.left via d0.left+0.2,d1.cy {.muted @real}
-edge d1.left+0.2,d1.bottom -> d2.left via d1.left+0.2,d2.cy {.muted @real}
+box  d0 "DigiCert High Assurance\nEV Root CA"     at 3.9,0.5 anchor tl {@real}
+box  d1 "DigiCert SHA2 High\nAssurance Server CA" below d0 gap 0.72 flush left {@real}
+box  d2 "github.com"                              below d1 gap 0.72 flush left {.tone-4 @real}
+edge d0 -> d1 {.muted @real}
+edge d1 -> d2 {.muted @real}
 
 step anchor
   show r0
@@ -685,7 +692,10 @@ step real
 ## figure: Certificates are stored in a X.509 (v3) data structure. {.standard #ns-a45}
 
 ::: draw 150x40
-default box {.tone-3} w 2.6 pad 0.3
+# Eleven lines of record in four bands: the padding is what decides whether
+# that is a slide or half again as tall as one, so it is written once, in
+# labels, and the bands sit tight round their own type.
+default box {.tone-3} w 2.6 pad 0.2lh
 
 box f1 "X.509 version\nSerial number\nSignature algorithm\nValid from/until\nIssuer Name\n*Subject Name*\n*Public Key*" at 0,0
 box f2 "Issuer ID\nSubject ID"  below f1 gap 0 flush left {@v2}
@@ -703,41 +713,52 @@ step signature
 
 **A certificate is a data structure, not a text.** The upper block carries what every version knows – version, serial number, signature algorithm, validity, issuer – and within it the two fields this is really about: the holder's name and their public key. Under that, v2 added the identifiers and v3 the extensions. At the very bottom lies the issuer's signature over everything above it, which is why nobody can change a line further up.
 
-## figure: Extensions of a server certificate | github.com, as a certificate viewer lists them {.standard #ns-a49}
+## figure: Extensions of a server certificate | github.com, as a certificate viewer lists them {.full #ns-a49}
 
-::: draw 150x30
+::: draw 150x30 frame 5.0x9.8
+# The one figure in the deck with a frame of its own. It is a certificate
+# viewer's extension listing transcribed word for word: twenty-five lines of
+# key and value, which no arrangement folds into the fourteen lines of type a
+# figure canvas reserves. Two columns on the full measure bring its labels
+# back to body type; the frame only says the box is a label taller than the
+# deck's, and this listing is the whole of what the slide carries.
+#
+# Twenty-five lines of listing down one column is twice as tall as a slide, so
+# the seven extensions stand in two columns on the full measure: the first
+# three down the left, the rest down the right, read the way a page is read.
+# The two long OIDs and the two key fingerprints take a second line rather
+# than a wider column - the words are the viewer's, only the breaks are ours.
 default text {.small}
 
-text l1 "Extension\nCritical\nUsage" at 0,0 {.right .muted}
-text v1 "Key Usage ( 2.5.29.15 )\nYES\nDigital Signature, Key Encipherment" right of l1 gap 1.5 flush top {.left}
+text l1 "Extension\nCritical\nUsage\n " at 0,0 {.right .muted}
+text v1 "Key Usage ( 2.5.29.15 )\nYES\nDigital Signature,\nKey Encipherment" right of l1 gap 0.2 flush top {.left}
 
-text l2 "Extension\nCritical" below l1 gap 0.4 flush right {.right .muted}
-text v2 "Basic Constraints ( 2.5.29.19 )\nYES" right of l2 gap 1.5 flush top {.left}
+text l2 "Extension\nCritical" below l1 gap 0.3 flush right {.right .muted}
+text v2 "Basic Constraints ( 2.5.29.19 )\nYES" right of l2 gap 0.2 flush top {.left}
 text l2b "Certificate Authority" below l2 gap 0 flush right {.right .muted}
-text v2b "NO" right of l2b gap 1.5 flush top {.left}
+text v2b "NO" right of l2b gap 0.2 flush top {.left}
 
-text l3 "Extension\nCritical\nPurpose #1\nPurpose #2" below l2b gap 0.4 flush right {.right .muted}
-text v3 "Extended Key Usage ( 2.5.29.37 )\nNO\nServer Authentication ( 1.3.6.1.5.5.7.3.1 )\nClient Authentication ( 1.3.6.1.5.5.7.3.2 )" right of l3 gap 1.5 flush top {.left}
+text l3 "Extension\nCritical\nPurpose #1\n \nPurpose #2\n " below l2b gap 0.3 flush right {.right .muted}
+text v3 "Extended Key Usage ( 2.5.29.37 )\nNO\nServer Authentication\n( 1.3.6.1.5.5.7.3.1 )\nClient Authentication\n( 1.3.6.1.5.5.7.3.2 )" right of l3 gap 0.2 flush top {.left}
 
-# The fourth, empty row is deliberate: the value beside it runs to four lines,
-# and without it the next group measures its gap from a label ending three
-# lines higher - the grouping gap would disappear.
-text l4 "Extension\nCritical\nKey ID\n " below l3 gap 0.4 flush right {.right .muted}
-text v4 "Subject Key Identifier ( 2.5.29.14 )\nNO\n63 02 D2 5D 02 5F F7 8D D5 5A 12 9E 76 11 36 96\n86 2C 8A 48" right of l4 gap 1.5 flush top {.left}
+text l4 "Extension\nCritical\nKey ID\n \n " at 2.37,0 {.right .muted}
+text v4 "Subject Key Identifier ( 2.5.29.14 )\nNO\n63 02 D2 5D 02 5F F7 8D\nD5 5A 12 9E 76 11 36 96\n86 2C 8A 48" right of l4 gap 0.2 flush top {.left}
 
-text l5 "Extension\nCritical\nKey ID\n " below l4 gap 0.4 flush right {.right .muted}
-text v5 "Authority Key Identifier ( 2.5.29.35 )\nNO\n51 68 FF 90 AF 02 07 75 3C CC D9 65 64 62 A2\n12 B8 59 72 3B" right of l5 gap 1.5 flush top {.left}
+text l5 "Extension\nCritical\nKey ID\n \n " below l4 gap 0.3 flush right {.right .muted}
+text v5 "Authority Key Identifier ( 2.5.29.35 )\nNO\n51 68 FF 90 AF 02 07 75\n3C CC D9 65 64 62 A2\n12 B8 59 72 3B" right of l5 gap 0.2 flush top {.left}
 
-text l6 "Extension\nCritical" below l5 gap 0.4 flush right {.right .muted}
-text v6 "Subject Alternative Name ( 2.5.29.17 )\nNO" right of l6 gap 1.5 flush top {.left}
+text l6 "Extension\nCritical" below l5 gap 0.3 flush right {.right .muted}
+text v6 "Subject Alternative Name ( 2.5.29.17 )\nNO" right of l6 gap 0.2 flush top {.left}
 text l6b "DNS Name\nDNS Name" below l6 gap 0 flush right {.right .muted}
-text v6b "github.com\nwww.github.com" right of l6b gap 1.5 flush top {.left}
+text v6b "github.com\nwww.github.com" right of l6b gap 0.2 flush top {.left}
 
-text l7 "Extension\nCritical" below l6b gap 0.4 flush right {.right .muted}
-text v7 "Certificate Policies ( 2.5.29.32 )\nNO" right of l7 gap 1.5 flush top {.left}
+text l7 "Extension\nCritical" below l6b gap 0.3 flush right {.right .muted}
+text v7 "Certificate Policies ( 2.5.29.32 )\nNO" right of l7 gap 0.2 flush top {.left}
 
-box ca  "no signing of other keys!" right of v2b gap 5.5 flush top h 0.85 point left {.chevron .tone-4 @ca}
-box dom "domain(s)"                 right of v6b gap 5.5 flush top h 0.85 point left {.chevron .tone-4 @dom}
+# The two annotations point at the short values they judge, which leaves them
+# standing in the room the listing does not use.
+box ca  "no signing of other keys!" right of v2b gap 0.5 flush top h 0.9 point left {.chevron .tone-4 @ca}
+box dom "domain(s)"                 right of v6b gap 0.5 flush top h 0.9 point left {.chevron .tone-4 @dom}
 
 step no-ca
   show @ca
@@ -752,7 +773,9 @@ step domains
 
 ## figure: Upgrading HTTP to HTTPS {.full #ns-a60}
 
-::: draw 110x110
+::: draw 132x88
+# The grid cell is wider than it is tall, so the two exchanges lie flat across
+# the slide instead of stacking down it.
 box  br "Browser" at 0,0 w 1.1 {.tone-2}
 box  sv "Server"  at 4.0,0 same as br {.tone-2}
 
@@ -1409,7 +1432,7 @@ step rest
 # verbatim there.
 bars obs "20,12,11,10,9,9,8,8,7,6,5,4" "t / p r e n . ; l m o b" at 0,0 w 3.1 h 0.85
 
-text hcmp "Comparison with normal behavior" below obs gap 0.62 flush left {.left}
+text hcmp "Comparison with normal behavior" below obs gap 0.7 flush left {.left}
 
 # The frame is normalised on both axes: the character's rank across, its
 # relative frequency down. The slide labels only the horizontal, and with the
