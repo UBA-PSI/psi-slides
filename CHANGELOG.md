@@ -59,6 +59,19 @@ from building the same way is a major version.
 
 ### Changed (drawings, unreleased)
 
+- **The reference decks stand on the figure defaults.** `network-security`,
+  `tutorial`, `python-intro`, `spoken-talk` and `diagrams` built with 44
+  canvas warnings between them and now build with one, the box in
+  `diagrams` `#typefit` that is there to show the warning. The figures were
+  redrawn rather than silenced: about ninety written sizes left
+  `network-security` alone (`h` 76 → 41, `same as` 69 → 29) because a chain
+  of peers now settles them, its smallest base labels went from 10 px to the
+  deck's 28 px body type, and its slides taller than the frame from 23 to 12.
+  Four figures in the five decks carry a `frame` of their own, each a
+  specimen beside its own source or a listing no arrangement folds, each
+  with a comment saying so. Wording is unchanged in `network-security`;
+  line breaks inside labels moved.
+
 - **The canvas reports say how far off a figure is in px as well as in
   labels.** `figure-overflows-canvas` decides at half a pixel and reported
   the overshoot in base labels to one decimal, so "over by 0.2 across" was
