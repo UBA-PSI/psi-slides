@@ -635,8 +635,8 @@ box mac  "MAC over ClientHello, ServerHello,\nCertificate, and Signature" below 
 
 # The flight travels the other way, so its block arrow stands under the block
 # rather than beside it, with what the client does with it on the same line.
-box  a2 "" below sig gap 0.2 flush left w 0.5 h 0.45 point left {.chevron @srv}
-text vf "Verify certificate  Verify signature\nCompute secret = DH(c, S)  Derive keys = KDF(secret)\nVerify MAC" right of a2 gap 0.4 {.left @done}
+box  a2 "" below sig gap 0.45 flush left w 0.5 h 0.45 point left {.chevron @srv}
+text vf "Verify certificate  Verify signature\nCompute secret = DH(c, S)  Derive keys = KDF(secret)  Verify MAC" right of a2 gap 0.4 {.left @done}
 
 step hello
   show @hello
@@ -757,8 +757,8 @@ text v7 "Certificate Policies ( 2.5.29.32 )\nNO" right of l7 gap 0.2 flush top {
 
 # The two annotations point at the short values they judge, which leaves them
 # standing in the room the listing does not use.
-box ca  "no signing of other keys!" right of v2b gap 0.5 flush top h 0.9 point left {.chevron .tone-4 @ca}
-box dom "domain(s)"                 right of v6b gap 0.5 flush top h 0.9 point left {.chevron .tone-4 @dom}
+box ca  "no signing of other keys!" right of v2b gap 0.5 h 0.9 point left {.chevron .tone-4 @ca}
+box dom "domain(s)"                 right of v6b gap 0.5 h 0.9 point left {.chevron .tone-4 @dom}
 
 step no-ca
   show @ca
@@ -1421,12 +1421,12 @@ text ah "Anomaly detection" at 2.65,0 {.large .bold}
 box mf "" at 0.85,2.95 w 1.7 h 2.3 {.clear}
 box af "" at 2.65,2.95 w 1.7 h 2.3 {.clear}
 
-text ms "signatures of\nknown intrusions"    at 0.85,0.85
-text as "knowledge about\nbenign activities" at 2.65,0.85
+text ms "signatures of\nknown intrusions"    at 0.85,0.72
+text as "knowledge about\nbenign activities" at 2.65,0.72
 
 dot  s1 ""   at 0.45,2.8 r 0.2 {.tone-4}
 dot  s2 ""   at 1.25,2.8 r 0.2 {.tone-4}
-box  bl ""   at 2.65,2.8 w 1.35 h 1.0 {.round .tone-4}
+box  bl ""   at 2.65,2.5 w 1.35 h 1.0 {.round .tone-4}
 edge e1 ms -> s1 {.muted}
 edge e2 ms -> s2 {.muted}
 edge e3 as -> bl {.muted}
