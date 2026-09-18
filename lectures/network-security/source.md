@@ -1586,23 +1586,28 @@ text ds "Labeled dataset (e.g., by DARPA/Lincoln Labs)" at 0,-1.6 {.left}
 text latt "attack traffic" at 0,-0.35 {.left}
 text lben "benign traffic" at 0,1.0 {.left}
 
-# Grid slot to grid slot is wider than a box, so the threshold fits visibly
-# between two packets without touching one. The order is the sort by anomaly
-# score - attacks lie higher on average but overlap, and that overlap is the
-# subject. Grid slots: benign 0,1,2,3,5,7 - attack 4,6,8,9.
-box b1 "" right of lben gap 0.5 w 0.36 h 1.0 {.tone-2 .sharp}
-box b2 "" right of b1 gap 0.45 {.tone-2 .sharp}
-box b3 "" right of b2 gap 0.45 {.tone-2 .sharp}
-box b4 "" right of b3 gap 0.45 {.tone-2 .sharp}
-box b5 "" right of b4 gap 1.15 {.tone-2 .sharp}
-box b6 "" right of b5 gap 1.15 {.tone-2 .sharp}
+# Ten packets on ten slots, sorted by anomaly score - attacks lie higher on
+# average but overlap, and that overlap is the subject. The slots stand in
+# four groups of 2, 3, 3 and 2, and the three wide gaps between the groups
+# are the three places the threshold stops, so the rule always falls between
+# two packets and never through one. Which packets each stop leaves behind it
+# is what the counts in the matrix say, so the two cannot be changed apart.
+# Slots: benign 0,1,2,3,5,6 - attack 4,7,8,9.
+# Every box says `same as b1`: an explicit `w` is not shared down a chain, so
+# without it b1 came out 36 units wide and the other nine 54.
+box b1 "" right of lben gap 0.5 w 0.32 h 0.89 {.tone-2 .sharp}
+box b2 "" right of b1 gap 0.25 same as b1 {.tone-2 .sharp}
+box b3 "" right of b2 gap 0.61 same as b1 {.tone-2 .sharp}
+box b4 "" right of b3 gap 0.25 same as b1 {.tone-2 .sharp}
+box b5 "" right of b4 gap 1.75 same as b1 {.tone-2 .sharp}
+box b6 "" right of b5 gap 0.25 same as b1 {.tone-2 .sharp}
 
-box a1 "" at b1.cx+1.42,latt.cy same as b1 {.accent .sharp}
-box a2 "" right of a1 gap 1.15 {.accent .sharp}
-box a3 "" right of a2 gap 1.15 {.accent .sharp}
-box a4 "" right of a3 gap 0.45 {.accent .sharp}
+box a1 "" at b1.cx+1.77,latt.cy same as b1 {.accent .sharp}
+box a2 "" right of a1 gap 2.89 same as b1 {.accent .sharp}
+box a3 "" right of a2 gap 0.61 same as b1 {.accent .sharp}
+box a4 "" right of a3 gap 0.25 same as b1 {.accent .sharp}
 
-edge axis b1.left-0.5,b1.bottom+0.7 -> a4.right+0.6,b1.bottom+0.7 {.muted}
+edge axis b1.left-0.5,b1.bottom+0.7 -> a4.right+0.12,b1.bottom+0.7 {.muted}
 text axn "anomaly score" at b1.cx+1.85,b1.bottom+1.12 {.muted}
 text lno "no alert" at b1.cx+0.23,b1.bottom+0.34 {.muted}
 text lal "alert" at a4.cx-0.23,b1.bottom+0.34 {.muted}
@@ -1611,7 +1616,7 @@ text lal "alert" at a4.cx-0.23,b1.bottom+0.34 {.muted}
 # "t", the layout is worked out again, and the rule follows. The old version's
 # double-headed arrow, which was there to say the rule can move, is therefore
 # unnecessary - now it moves.
-text tlbl "t" at a1.cx+0.23,a1.top-0.45 pad 0.12 {.paper .hand @thr}
+text tlbl "t" at a1.cx+0.27,a1.top-0.30 pad 0.05 {.paper .hand @thr}
 edge thr tlbl.cx,tlbl.bottom -- tlbl.cx,b1.bottom+0.7 {.thick @thr}
 
 # The 2x2 matrix, beside the axis rather than under it. The attack row carries
@@ -1650,21 +1655,21 @@ step threshold
   label tn "TN\n4"
   label fp "FP\n2"
 step stricter
-  move tlbl by 1.22,0
+  move tlbl by 1.36,0
   label fn "FN\n2"
   label tp "TP\n2"
   label tn "TN\n6"
   label fp "FP\n0"
   label rates "TP rate: 0.50 / FP rate: 0.00"
 step lenient
-  move tlbl by -2.44,0
+  move tlbl by -2.72,0
   label fn "FN\n0"
   label tp "TP\n4"
   label tn "TN\n2"
   label fp "FP\n4"
   label rates "TP rate: 1.00 / FP rate: 0.67"
 step tradeoff
-  move tlbl by 1.22,0
+  move tlbl by 1.36,0
   show tnote
   label fn "FN\n1"
   label tp "TP\n3"
