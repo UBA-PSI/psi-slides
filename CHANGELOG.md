@@ -90,6 +90,13 @@ from building the same way is a major version.
   `{.own}` ends a chain; `same w as` / `same h as` take one axis, on a
   `zone` too. A table row's height follows its tallest cell. A written
   `h` under its label and a written table `row` under the type's line warn.
+- **A zone reserves a band, and what stands in it is placed there.**
+  `z.inner.left` … `z.inner.cy` name the band under the caption;
+  `box a "…" in z` (with `gap N` and `left | right | top | bottom |
+  center`) places an element in it, `row a, b, c in z center` a whole
+  run; a zone written without `w` or `h` wraps what is placed in it, from
+  beat 0; a child too large for a written band warns, and a text hung off
+  a container member that lands inside the container's outline warns.
 - **A picture slide opens centred.** A chunk whose body is one drawing or
   one image and nothing else, or a `statement:`, frames what it paints;
   `{.middle}` and `{.top}` are the explicit words. A stacked divider keeps
