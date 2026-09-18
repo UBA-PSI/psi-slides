@@ -59,6 +59,18 @@ from building the same way is a major version.
 
 ### Changed (drawings, unreleased)
 
+- **A brace's label hangs from the edge that faces its bar.** A label block
+  is drawn centred on its origin, and a brace puts that origin a fixed 9 px
+  clear of the tick end – so a two-line label on `side bottom` hung half its
+  height back up and printed its first line across the bar, with nothing the
+  source could do about it, because `pad` moves the brace and carries the
+  label with it. The first line of a `bottom` label now sits where a one-line
+  label sat and the rest grow downwards; a `top` label is the mirror. `left`
+  and `right` keep the centring, because there the label runs away from the
+  bar along its own anchor, and so does a `.turn`ed label. The shift is the
+  block's height less that one line's, so **every one-line label in the
+  corpus is byte-identical** – `lectures/spoken-talk`'s board figure carried
+  a comment saying its label had to stay one line, and it no longer does.
 - **A figure is drawn on a canvas.** Every `::: draw` in a chunk's own body
   gets a fixed box: the column wide, sixteen label-heights tall, labels at
   body size. A drawing inside it is never scaled and its slide settles at

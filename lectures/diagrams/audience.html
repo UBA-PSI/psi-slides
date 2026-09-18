@@ -24169,12 +24169,44 @@ function createDiagramCompiler(env = {}) {
       }
       put(br, br.id + '--p', pts.flat());
       if (st.label) {
-        const bm = dgMeasure(st.label, dgFontFor(st.classes), st.classes.has('mono'));
+        const bfont = dgFontFor(st.classes);
+        const bm = dgMeasure(st.label, bfont, st.classes.has('mono'));
+        const turn = dgTurnOf(st.classes);
+        // **A label block is drawn centred on its origin**, because dgTextEl
+        // walks its baselines down from -h/2 – and for a brace above or below
+        // the bar that is the wrong anchor the moment the label has a second
+        // line. The origin is a fixed 9 px clear of the tick end, so a
+        // two-line label on `side bottom` hung half its height back up and
+        // printed its *first* line across the bar; `pad` could not rescue it,
+        // because `pad` moves the brace and the label with it. Measured on
+        // the spoken talk's board figure, whose label had to stay one line.
+        //
+        // So the two ends hang from the edge that faces the bar rather than
+        // from their middle: the first line of a `bottom` label sits where a
+        // one-line label sat and the rest grow downwards, the *last* line of a
+        // `top` label does the same and the rest grow upwards. A one-line
+        // label is unmoved by construction – the shift is the block's height
+        // less that one line's, which is zero.
+        //
+        // `left` and `right` keep the centring: there the label runs away
+        // from the bar along its own anchor (start / end), so every line is
+        // already clear of it, and a two-line label straddling the bar's
+        // middle is what the side means. A turned label is centred on its
+        // origin on both axes whichever side it sits on – the lines run
+        // across the bar rather than towards it – so it keeps the old origin
+        // too, which is also what extentsOf reserves for it.
+        const hang = (side) => {
+          if (turn || bm.lines.length < 2) return 0;
+          const edge = side === 'bottom' ? bm.lines[0] : bm.lines[bm.lines.length - 1];
+          const over = (bm.h - bfont * edge.scale * DG_LINE_H) / 2;
+          return side === 'bottom' ? over : -over;
+        };
+        if (br.side === 'top' || br.side === 'bottom') lp[1] += hang(br.side);
         ext.set(br.id + '--l', [bm.w, bm.h]);
-        put(br, br.id + '--l', [lp[0], lp[1], dgTurnOf(st.classes)]);
+        put(br, br.id + '--l', [lp[0], lp[1], turn]);
         // A turned label is centred on its origin whichever side it sits on,
         // so the side's own anchor no longer describes it.
-        labelAnchor.set(br.id, dgTurnOf(st.classes) ? 'middle' : lanchor);
+        labelAnchor.set(br.id, turn ? 'middle' : lanchor);
       }
     }
 
