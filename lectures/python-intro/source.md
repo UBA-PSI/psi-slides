@@ -19,13 +19,18 @@ draw-defaults: |
 
 ## title: {#title}
 
-::: draw 120x62
+::: draw 120x62 frame none
+# `frame none` because a cover figure has no text column: `cover: beside`
+# puts it in a 34% panel that runs the whole height of the slide, so the
+# chunk canvas – a standard column, sixteen label-heights tall – is not the
+# box this drawing is in. Four stages joined by arrows stand taller than
+# that, and on a cover they have the room for it.
 default box {.tone-1} w 1.55
 
 box url   "a URL"             at 0,0 {.tone-2}
-box br    "a real browser"    below url gap 0.7
-box links "every link on it"  below br gap 0.7 {.tone-3}
-box rep   "one line per page" below links gap 0.7 {.tone-2}
+box br    "a real browser"    below url
+box links "every link on it"  below br {.tone-3}
+box rep   "one line per page" below links {.tone-2}
 edge url -> br
 edge br -> links
 edge links -> rep
@@ -151,15 +156,15 @@ single-file scripts and teaching material it adds ceremony without payoff.
 default box {.tone-1 .mono}
 
 text b "PATH before activate" at 0,0 {.left .muted}
-box p1 "/usr/local/bin" below b gap 0.3 flush left
-box p2 "/usr/bin" right of p1 gap 0.22 same as p1
+box p1 "/usr/local/bin" below b flush left
+box p2 "/usr/bin" right of p1 gap 0.7lh
 
-text a "PATH after activate" below p1 gap 1.15 flush left {.left .muted}
-box v  ".venv/bin" below a gap 0.3 flush left same as p1 {.tone-4}
-box q1 "/usr/local/bin" right of v gap 0.22 same as p1
-box q2 "/usr/bin" right of q1 gap 0.22 same as p1
+text a "PATH after activate" below p1 gap 2.2lh flush left {.left .muted}
+box v  ".venv/bin" below a flush left {.tone-4}
+box q1 "/usr/local/bin" right of v gap 0.7lh
+box q2 "/usr/bin" right of q1 gap 0.7lh
 
-text n "python and pip are found here first" below v gap 0.55 -- v {.muted}
+text n "python and pip are found here first" below v gap 1.5lh -- v {.muted}
 
 step activated
   show a, v, q1, q2, n
@@ -493,22 +498,22 @@ and drive letters, so the same lines run on Linux, macOS and Windows with no
 **Do not parse a URL with a regex.** `urllib.parse` already knows about
 schemes, userinfo, punycode hosts, default ports and path normalisation.
 
-::: draw 150x16
-# The svg fills the measure whatever its own extent is, so a narrow figure
-# arrives magnified. Six parts rather than four keep the type near its
-# authored size, and they are what urlparse actually returns.
+::: draw 150x16 frame 2.4x3.9
+# A specimen rather than a slide: one URL cut into the six parts urlparse
+# hands back, four labels tall against a canvas of sixteen. `frame` reserves
+# what it draws, so the code beside it keeps the rest of the slide.
 text s  "https"           at 0,0 {.mono}
-text c  "://"             right of s gap 0.06 {.mono .muted}
-text n  "example.com:443" right of c gap 0.06 {.mono}
-text p  "/docs/a"         right of n gap 0.3 {.mono}
-text q  "?x=1"            right of p gap 0.42 {.mono}
-text f  "#top"            right of q gap 1.15 {.mono}
+text c  "://"             right of s gap 0.05lh {.mono .muted}
+text n  "example.com:443" right of c gap 0.05lh {.mono}
+text p  "/docs/a"         right of n gap 0.25lh {.mono}
+text q  "?x=1"            right of p gap 0.35lh {.mono}
+text f  "#top"            right of q gap 1lh {.mono}
 
-text ls "scheme"   below s gap 0.5 {.small .muted}
-text ln "netloc"   below n gap 0.5 {.small .muted}
-text lp "path"     below p gap 0.5 {.small .muted}
-text lq "query"    below q gap 0.5 {.small .muted}
-text lf "fragment" below f gap 0.5 {.small .muted}
+text ls "scheme"   below s gap 0.45lh {.small .muted}
+text ln "netloc"   below n gap 0.45lh {.small .muted}
+text lp "path"     below p gap 0.45lh {.small .muted}
+text lq "query"    below q gap 0.45lh {.small .muted}
+text lf "fragment" below f gap 0.45lh {.small .muted}
 :::
 
 ::: side
@@ -713,18 +718,21 @@ exception handling matters.
 ## figure: One thread, many overlapping waits {.full #async-timeline}
 
 ::: draw 150x62
-default box {.tone-3} w 1.15 h 0.6
+# The two blocks share one time axis, so they stay stacked and the captions
+# stand beside them: a caption over each block cost two rows of the canvas
+# and the slide had 12 labels of width to spare.
+default box {.tone-3} w 1.15
 
-text s "blocking: the thread waits" at 0,0 {.left .muted}
-box s1 "wait a" below s gap 0.35 flush left
-box s2 "wait b" right of s1 gap 0.07 same as s1
-box s3 "wait c" right of s2 gap 0.07 same as s1
+box s1 "wait a" at 0,0
+box s2 "wait b" right of s1 gap 0.4lh
+box s3 "wait c" right of s2 gap 0.4lh
+text s "blocking:\nthe thread waits" left of s1 gap 1lh {.right .muted}
 brace bs over s1,s2,s3 "about three seconds" side bottom pad 0.28 {.muted}
 
-text c "awaiting: the thread is handed back" below s1 gap 1.9 flush left {.left .muted}
-box a1 "wait a" below c gap 0.35 flush left same as s1 {.tone-4}
-box a2 "wait b" below a1 gap 0.09 same as s1 {.tone-4}
-box a3 "wait c" below a2 gap 0.09 same as s1 {.tone-4}
+box a1 "wait a" below bs gap 2.4lh flush left {.tone-4}
+box a2 "wait b" below a1 gap 0.2lh {.tone-4}
+box a3 "wait c" below a2 gap 0.2lh {.tone-4}
+text c "awaiting:\nthe thread is handed back" left of a1 gap 1lh {.right .muted}
 brace ba over a3 "about one second" side bottom pad 0.28 {.muted}
 
 step overlapping
@@ -889,18 +897,18 @@ default box {.tone-1} w 2.05
 
 # A label reads `_` as subscript syntax, so no identifier with an underscore
 # goes in a box here. The prose beside the figure names the functions.
-box arg  "the arguments\na URL and --max" at 0,0
-box open "a browser\nand the starting page" below arg gap 0.55
-box coll "every link on that page\nabsolute, same host, deduped" below open gap 0.55 {.tone-3}
-box scan "one visit per link\nstatus, title, description" below coll gap 0.95 {.tone-3}
-box row  "one PageReport each" below scan gap 0.5 {.tone-2}
-box out  "one printed line each" below row gap 0.95 {.tone-2}
+box arg  "the arguments: a URL and --max" at 0,0
+box open "a browser on the starting page" below arg
+box coll "every link on that page\nabsolute, same host, deduped" below open {.tone-3}
+box scan "one visit per link\nstatus, title, description" below coll gap 3.2lh {.tone-3}
+box row  "one PageReport each" below scan {.tone-2}
+box out  "one printed line each" below row {.tone-2}
 edge arg -> open
 edge open -> coll
 edge coll -> scan
 edge scan -> row
 edge row -> out
-container loop "for each link" over scan,row pad 0.38 {.dashed .muted}
+container loop "for each link" over scan,row pad 0.22 {.dashed .muted}
 
 step first-pass
   emph arg, open, coll
