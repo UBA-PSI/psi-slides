@@ -3454,7 +3454,7 @@ const DIAGRAM_CSS = `
    white. The tone rules below always used the child combinator; this one and
    the text rule did not, which is why the two of them were the leak. */
 .psi-diagram .dg-el > rect, .psi-diagram .dg-el > circle, .psi-diagram .dg-el > .dg-shape {
-  fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
+  fill: var(--paper); stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); rx: 4px;
 }
 /* A box whose outline is not a rectangle is a <path>, so every rule below
    that paints a box has to name it too. They do it through :is(), which is
@@ -3462,7 +3462,7 @@ const DIAGRAM_CSS = `
    was a third copy of each one. The join is rounded so a chevron's nose is a
    point rather than a miter spike. */
 .psi-diagram .dg-shape { stroke-linejoin: round; }
-.psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
+.psi-diagram .dg-stroke { stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); fill: none; stroke-linejoin: round; }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
 /* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
    type inside an embedded drawing is the drawing's business. */
@@ -3491,7 +3491,7 @@ const DIAGRAM_CSS = `
    trust boundary, a segment, a machine - it has to read as a statement.
    Dashed at that weight it was barely visible on a shaded ground, which
    is exactly where these are usually drawn. */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); stroke-width: 1.3; }
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
@@ -3546,8 +3546,8 @@ const DIAGRAM_CSS = `
    this mix reads worse than --ink-soft did and only the inverted label two
    rules down is legible; and a dark theme's paper, where the mix follows
    --ink and --paper and so inverts with them. */
-.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
-.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
+.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
 .psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
 
@@ -3576,9 +3576,32 @@ const DIAGRAM_CSS = `
    rule the free text's ground already needs, for exactly the same reason. */
 .psi-diagram .dg-edge:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
 
-.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
-.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
-.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+/* The two stroke patterns, stated as multiples of the line they pattern
+   rather than as pixels. --dg-sw is set beside every stroke-width above, on
+   the same element and by the same selector, so a .thick outline gets a
+   longer dash instead of the same dash on a fatter line - which is what 6 4
+   was: 4.3 line-widths of ink and 2.9 of paper at the normal weight, and a
+   dashed box then drew the eye harder than the solid one beside it. It also
+   stumbled at the corners: on a 13px .round corner a 10px period puts one or
+   two dashes on the whole arc, so a gap landing on the apex reads as a
+   chipped box. 2.2 and 1.5 halve the period, which does not divide a
+   perimeter evenly either - nothing does, in general - but a small dash with
+   a small gap hides the seam instead of announcing it.
+   Butt caps, deliberately: a round cap adds half a line-width of ink at each
+   end and would put the dash back where it started. */
+.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke {
+  stroke-dasharray: calc(var(--dg-sw, 1.4px) * 2.2) calc(var(--dg-sw, 1.4px) * 1.5);
+}
+/* Dots, and they have to be round dots or the word means nothing: a zero-
+   length dash under a round cap draws a disc one line-width across, and the
+   gap is 2.5 of those. It used to be 1.5 3.5 with the round cap on top, which
+   is a 2.9px dash at the normal weight - a fine dashed line under another
+   name - and at .thick a 4.1px dash with 0.9px of paper between, so the
+   dotted box in the class catalogue was very nearly solid. */
+.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke {
+  stroke-dasharray: 0 calc(var(--dg-sw, 1.4px) * 2.5); stroke-linecap: round;
+}
+.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .round > rect { rx: 13px; }
 .psi-diagram .sharp > rect { rx: 0; }
@@ -3621,8 +3644,8 @@ const DIAGRAM_CSS = `
 .psi-diagram .ghost .dg-stroke,
 .psi-diagram .ghost .dg-head { opacity: ${DG_SOFT_GROUND.ghost.toFixed(4)}; }
 /* emph / dim are what a step reaches for; both stay inside the palette */
-.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
-.psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
+.psi-diagram .emph .dg-stroke { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
 /* A chart's column: what it is filled with, and what emph does to it. A
    column draws no outline, so paper would make it vanish and there is nothing

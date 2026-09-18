@@ -755,7 +755,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
    white. The tone rules below always used the child combinator; this one and
    the text rule did not, which is why the two of them were the leak. */
 .psi-diagram .dg-el > rect, .psi-diagram .dg-el > circle, .psi-diagram .dg-el > .dg-shape {
-  fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
+  fill: var(--paper); stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); rx: 4px;
 }
 /* A box whose outline is not a rectangle is a <path>, so every rule below
    that paints a box has to name it too. They do it through :is(), which is
@@ -763,7 +763,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
    was a third copy of each one. The join is rounded so a chevron's nose is a
    point rather than a miter spike. */
 .psi-diagram .dg-shape { stroke-linejoin: round; }
-.psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
+.psi-diagram .dg-stroke { stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); fill: none; stroke-linejoin: round; }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
 /* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
    type inside an embedded drawing is the drawing's business. */
@@ -792,7 +792,7 @@ footer .paths b { color: var(--ink); font-weight: 500; }
    trust boundary, a segment, a machine - it has to read as a statement.
    Dashed at that weight it was barely visible on a shaded ground, which
    is exactly where these are usually drawn. */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); stroke-width: 1.3; }
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
@@ -847,8 +847,8 @@ footer .paths b { color: var(--ink); font-weight: 500; }
    this mix reads worse than --ink-soft did and only the inverted label two
    rules down is legible; and a dark theme's paper, where the mix follows
    --ink and --paper and so inverts with them. */
-.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
-.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
+.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
 .psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
 
@@ -877,9 +877,32 @@ footer .paths b { color: var(--ink); font-weight: 500; }
    rule the free text's ground already needs, for exactly the same reason. */
 .psi-diagram .dg-edge:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
 
-.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
-.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
-.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+/* The two stroke patterns, stated as multiples of the line they pattern
+   rather than as pixels. --dg-sw is set beside every stroke-width above, on
+   the same element and by the same selector, so a .thick outline gets a
+   longer dash instead of the same dash on a fatter line - which is what 6 4
+   was: 4.3 line-widths of ink and 2.9 of paper at the normal weight, and a
+   dashed box then drew the eye harder than the solid one beside it. It also
+   stumbled at the corners: on a 13px .round corner a 10px period puts one or
+   two dashes on the whole arc, so a gap landing on the apex reads as a
+   chipped box. 2.2 and 1.5 halve the period, which does not divide a
+   perimeter evenly either - nothing does, in general - but a small dash with
+   a small gap hides the seam instead of announcing it.
+   Butt caps, deliberately: a round cap adds half a line-width of ink at each
+   end and would put the dash back where it started. */
+.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke {
+  stroke-dasharray: calc(var(--dg-sw, 1.4px) * 2.2) calc(var(--dg-sw, 1.4px) * 1.5);
+}
+/* Dots, and they have to be round dots or the word means nothing: a zero-
+   length dash under a round cap draws a disc one line-width across, and the
+   gap is 2.5 of those. It used to be 1.5 3.5 with the round cap on top, which
+   is a 2.9px dash at the normal weight - a fine dashed line under another
+   name - and at .thick a 4.1px dash with 0.9px of paper between, so the
+   dotted box in the class catalogue was very nearly solid. */
+.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke {
+  stroke-dasharray: 0 calc(var(--dg-sw, 1.4px) * 2.5); stroke-linecap: round;
+}
+.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .round > rect { rx: 13px; }
 .psi-diagram .sharp > rect { rx: 0; }
@@ -922,8 +945,8 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 .psi-diagram .ghost .dg-stroke,
 .psi-diagram .ghost .dg-head { opacity: 0.6000; }
 /* emph / dim are what a step reaches for; both stay inside the palette */
-.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
-.psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
+.psi-diagram .emph .dg-stroke { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
 /* A chart's column: what it is filled with, and what emph does to it. A
    column draws no outline, so paper would make it vanish and there is nothing
@@ -2459,25 +2482,25 @@ footer .paths b { color: var(--ink); font-weight: 500; }
         <p>Before writing one, ask which of two questions the figure answers. <em>Steps parcelled out to the people responsible for them</em> is a swimlane. <em>Messages passing between them</em> is a <code>sequence</code>, the next row down, where the names run across the top and the time runs down the page.</p>
       </div>
       <div class="shown">
-      <div class="drawn"><svg id="rlswim-root" class="psi-diagram" viewBox="-440.25 -103.20 840.00 206.40" style="--dg-type-w:56.000;--dg-ar:4.0698;--dg-ink-x:0.01429" width="2000" height="491" data-steps="1" role="img" aria-label="a swimlane" preserveAspectRatio="xMidYMid meet">
-<g id="rlswim-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge elbow one-head"><path id="rlswim-edge-1--p" class="dg-stroke" d="M-239.25 -60.80L-225.50 -60.80L-225.50 0.00L-219.40 0.00" fill="none"/><path id="rlswim-edge-1--h" class="dg-head" d="M-211.75 0.00L-220.75 3.96L-220.75 -3.96Z"/></g>
-<g id="rlswim-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="rlswim-edge-2--p" class="dg-stroke" d="M-112.75 0.00L-90.15 0.00" fill="none"/><path id="rlswim-edge-2--h" class="dg-head" d="M-82.50 0.00L-91.50 3.96L-91.50 -3.96Z"/></g>
-<g id="rlswim-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge elbow one-head"><path id="rlswim-edge-3--p" class="dg-stroke" d="M44.00 0.00L61.87 0.00L61.87 60.80L72.10 60.80" fill="none"/><path id="rlswim-edge-3--h" class="dg-head" d="M79.75 60.80L70.75 64.76L70.75 56.84Z"/></g>
-<g id="rlswim-edge-4" data-base="dg-el dg-edge" class="dg-el dg-edge elbow one-head"><path id="rlswim-edge-4--p" class="dg-stroke" d="M222.75 60.80L232.38 60.80L232.38 -60.80L234.35 -60.80" fill="none"/><path id="rlswim-edge-4--h" class="dg-head" d="M242.00 -60.80L233.00 -56.84L233.00 -64.76Z"/></g>
-<g id="rlswim-swim" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="rlswim-swim--r" x="-387.75" y="-91.20" width="775.50" height="182.40" rx="4"/></g>
-<g id="rlswim-swim-0" data-base="dg-el dg-box" class="dg-el dg-box sharp clear muted dashed"><rect id="rlswim-swim-0--r" x="-387.75" y="-91.20" width="775.50" height="60.80" rx="4"/></g>
-<g id="rlswim-swim-cap-0" data-base="dg-el dg-text" class="dg-el dg-text turn small muted"><g id="rlswim-swim-cap-0--lw0" data-lab="swim-cap-0--l" class="dg-lwrap" transform="translate(-420.75,-60.80) rotate(-90)"><g id="rlswim-swim-cap-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">User</tspan></text></g></g></g>
-<g id="rlswim-swim-1" data-base="dg-el dg-box" class="dg-el dg-box sharp clear muted dashed"><rect id="rlswim-swim-1--r" x="-387.75" y="-30.40" width="775.50" height="60.80" rx="4"/></g>
-<g id="rlswim-swim-cap-1" data-base="dg-el dg-text" class="dg-el dg-text turn small muted"><g id="rlswim-swim-cap-1--lw0" data-lab="swim-cap-1--l" class="dg-lwrap" transform="translate(-420.75,0.00) rotate(-90)"><g id="rlswim-swim-cap-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">SOC</tspan></text></g></g></g>
-<g id="rlswim-swim-2" data-base="dg-el dg-box" class="dg-el dg-box sharp clear muted dashed"><rect id="rlswim-swim-2--r" x="-387.75" y="30.40" width="775.50" height="60.80" rx="4"/></g>
-<g id="rlswim-swim-cap-2" data-base="dg-el dg-text" class="dg-el dg-text turn small muted"><g id="rlswim-swim-cap-2--lw0" data-lab="swim-cap-2--l" class="dg-lwrap" transform="translate(-420.75,60.80) rotate(-90)"><g id="rlswim-swim-cap-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">IT ops</tspan></text></g></g></g>
-<g id="rlswim-rep" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlswim-rep--r" x="-371.25" y="-88.55" width="132.00" height="55.50" rx="4"/><g id="rlswim-rep--lw0" data-lab="rep--l" class="dg-lwrap" transform="translate(-305.25,-60.80)"><g id="rlswim-rep--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">Reports</tspan><tspan x="0" y="14.48">suspect mail</tspan></text></g></g></g>
-<g id="rlswim-tri" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlswim-tri--r" x="-211.75" y="-18.38" width="99.00" height="36.75" rx="4"/><g id="rlswim-tri--lw0" data-lab="tri--l" class="dg-lwrap" transform="translate(-162.25,0.00)"><g id="rlswim-tri--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Triage</tspan></text></g></g></g>
-<g id="rlswim-con" data-base="dg-el dg-box" class="dg-el dg-box tone-4"><rect id="rlswim-con--r" x="-82.50" y="-27.75" width="126.50" height="55.50" rx="4"/><g id="rlswim-con--lw0" data-lab="con--l" class="dg-lwrap" transform="translate(-19.25,0.00)"><g id="rlswim-con--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">Confirmed</tspan><tspan x="0" y="14.48">malicious</tspan></text></g></g></g>
-<g id="rlswim-blk" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlswim-blk--r" x="79.75" y="33.05" width="143.00" height="55.50" rx="4"/><g id="rlswim-blk--lw0" data-lab="blk--l" class="dg-lwrap" transform="translate(151.25,60.80)"><g id="rlswim-blk--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">Block sender,</tspan><tspan x="0" y="14.48">recall copies</tspan></text></g></g></g>
-<g id="rlswim-ntf" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlswim-ntf--r" x="242.00" y="-88.55" width="126.50" height="55.50" rx="4"/><g id="rlswim-ntf--lw0" data-lab="ntf--l" class="dg-lwrap" transform="translate(305.25,-60.80)"><g id="rlswim-ntf--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">Told what</tspan><tspan x="0" y="14.48">to look for</tspan></text></g></g></g>
+      <div class="drawn"><svg id="rlswim-root" class="psi-diagram" viewBox="-456.75 -103.20 873.00 206.40" style="--dg-type-w:58.200;--dg-ar:4.2297;--dg-ink-x:0.01375" width="2000" height="473" data-steps="1" role="img" aria-label="a swimlane" preserveAspectRatio="xMidYMid meet">
+<g id="rlswim-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge elbow one-head"><path id="rlswim-edge-1--p" class="dg-stroke" d="M-255.75 -60.80L-245.00 -60.80L-245.00 0.00L-224.90 0.00" fill="none"/><path id="rlswim-edge-1--h" class="dg-head" d="M-217.25 0.00L-226.25 3.96L-226.25 -3.96Z"/></g>
+<g id="rlswim-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="rlswim-edge-2--p" class="dg-stroke" d="M-118.25 0.00L-95.65 0.00" fill="none"/><path id="rlswim-edge-2--h" class="dg-head" d="M-88.00 0.00L-97.00 3.96L-97.00 -3.96Z"/></g>
+<g id="rlswim-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge elbow one-head"><path id="rlswim-edge-3--p" class="dg-stroke" d="M38.50 0.00L48.70 0.00L48.70 60.80L68.80 60.80" fill="none"/><path id="rlswim-edge-3--h" class="dg-head" d="M76.45 60.80L67.45 64.76L67.45 56.84Z"/></g>
+<g id="rlswim-edge-4" data-base="dg-el dg-edge" class="dg-el dg-edge elbow one-head"><path id="rlswim-edge-4--p" class="dg-stroke" d="M219.45 60.80L230.75 60.80L230.75 -60.80L250.85 -60.80" fill="none"/><path id="rlswim-edge-4--h" class="dg-head" d="M258.50 -60.80L249.50 -56.84L249.50 -64.76Z"/></g>
+<g id="rlswim-swim" data-base="dg-el dg-box" class="dg-el dg-box bare clear"><rect id="rlswim-swim--r" x="-404.25" y="-91.20" width="808.50" height="182.40" rx="4"/></g>
+<g id="rlswim-swim-0" data-base="dg-el dg-box" class="dg-el dg-box sharp clear muted dashed"><rect id="rlswim-swim-0--r" x="-404.25" y="-91.20" width="808.50" height="60.80" rx="4"/></g>
+<g id="rlswim-swim-cap-0" data-base="dg-el dg-text" class="dg-el dg-text turn small muted"><g id="rlswim-swim-cap-0--lw0" data-lab="swim-cap-0--l" class="dg-lwrap" transform="translate(-437.25,-60.80) rotate(-90)"><g id="rlswim-swim-cap-0--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">User</tspan></text></g></g></g>
+<g id="rlswim-swim-1" data-base="dg-el dg-box" class="dg-el dg-box sharp clear muted dashed"><rect id="rlswim-swim-1--r" x="-404.25" y="-30.40" width="808.50" height="60.80" rx="4"/></g>
+<g id="rlswim-swim-cap-1" data-base="dg-el dg-text" class="dg-el dg-text turn small muted"><g id="rlswim-swim-cap-1--lw0" data-lab="swim-cap-1--l" class="dg-lwrap" transform="translate(-437.25,0.00) rotate(-90)"><g id="rlswim-swim-cap-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">SOC</tspan></text></g></g></g>
+<g id="rlswim-swim-2" data-base="dg-el dg-box" class="dg-el dg-box sharp clear muted dashed"><rect id="rlswim-swim-2--r" x="-404.25" y="30.40" width="808.50" height="60.80" rx="4"/></g>
+<g id="rlswim-swim-cap-2" data-base="dg-el dg-text" class="dg-el dg-text turn small muted"><g id="rlswim-swim-cap-2--lw0" data-lab="swim-cap-2--l" class="dg-lwrap" transform="translate(-437.25,60.80) rotate(-90)"><g id="rlswim-swim-cap-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">IT ops</tspan></text></g></g></g>
+<g id="rlswim-rep" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlswim-rep--r" x="-387.75" y="-88.55" width="132.00" height="55.50" rx="4"/><g id="rlswim-rep--lw0" data-lab="rep--l" class="dg-lwrap" transform="translate(-321.75,-60.80)"><g id="rlswim-rep--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">Reports</tspan><tspan x="0" y="14.48">suspect mail</tspan></text></g></g></g>
+<g id="rlswim-tri" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlswim-tri--r" x="-217.25" y="-18.38" width="99.00" height="36.75" rx="4"/><g id="rlswim-tri--lw0" data-lab="tri--l" class="dg-lwrap" transform="translate(-167.75,0.00)"><g id="rlswim-tri--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Triage</tspan></text></g></g></g>
+<g id="rlswim-con" data-base="dg-el dg-box" class="dg-el dg-box tone-4"><rect id="rlswim-con--r" x="-88.00" y="-27.75" width="126.50" height="55.50" rx="4"/><g id="rlswim-con--lw0" data-lab="con--l" class="dg-lwrap" transform="translate(-24.75,0.00)"><g id="rlswim-con--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">Confirmed</tspan><tspan x="0" y="14.48">malicious</tspan></text></g></g></g>
+<g id="rlswim-blk" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="rlswim-blk--r" x="76.45" y="33.05" width="143.00" height="55.50" rx="4"/><g id="rlswim-blk--lw0" data-lab="blk--l" class="dg-lwrap" transform="translate(147.95,60.80)"><g id="rlswim-blk--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">Block sender,</tspan><tspan x="0" y="14.48">recall copies</tspan></text></g></g></g>
+<g id="rlswim-ntf" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="rlswim-ntf--r" x="258.50" y="-88.55" width="126.50" height="55.50" rx="4"/><g id="rlswim-ntf--lw0" data-lab="ntf--l" class="dg-lwrap" transform="translate(321.75,-60.80)"><g id="rlswim-ntf--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="-4.27">Told what</tspan><tspan x="0" y="14.48">to look for</tspan></text></g></g></g>
 </svg></div>
-      <pre data-specsrc="swim"><span class="srcln">::: draw 110x64</span><span class="srcln cm"># The lanes say who and the left-to-right order says when, so neither has to</span><span class="srcln cm"># be written in a box. Every hand-off changes lane, which is why they are</span><span class="srcln cm"># elbows: a straight line between two bands reads as a diagonal across a band</span><span class="srcln cm"># it never enters, and there are four of those here.</span><span class="srcln"><span class="kw">lanes</span> swim <span class="cl">"User | SOC | IT ops"</span> <span class="kw">at</span> 0,0 w 7.05 <span class="kw">band</span> 0.95 <span class="cl">{.muted .dashed}</span></span><span class="srcln"><span class="kw">box</span> rep <span class="cl">"Reports\nsuspect mail"</span>      <span class="kw">at</span> swim.left+0.75,swim-0.cy w 1.2 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> tri <span class="cl">"Triage"</span>                     <span class="kw">at</span> swim.left+2.05,swim-1.cy w 0.9 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> con <span class="cl">"Confirmed\nmalicious"</span>       <span class="kw">at</span> swim.left+3.35,swim-1.cy w 1.15 <span class="cl">{.tone-4}</span></span><span class="srcln"><span class="kw">box</span> blk <span class="cl">"Block sender,\nrecall copies"</span> <span class="kw">at</span> swim.left+4.9,swim-2.cy w 1.3 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> ntf <span class="cl">"Told what\nto look for"</span>      <span class="kw">at</span> swim.left+6.3,swim-0.cy w 1.15 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">edge</span> rep -&gt; tri <span class="cl">{.elbow}</span></span><span class="srcln"><span class="kw">edge</span> tri -&gt; con</span><span class="srcln"><span class="kw">edge</span> con -&gt; blk <span class="cl">{.elbow}</span></span><span class="srcln"><span class="kw">edge</span> blk -&gt; ntf <span class="cl">{.elbow}</span></span><span class="srcln">:::</span></pre><!--/specsrc-->
+      <pre data-specsrc="swim"><span class="srcln">::: draw 110x64</span><span class="srcln cm"># The lanes say who and the left-to-right order says when, so neither has to</span><span class="srcln cm"># be written in a box. Every hand-off changes lane, which is why they are</span><span class="srcln cm"># elbows: a straight line between two bands reads as a diagonal across a band</span><span class="srcln cm"># it never enters, and there are four of those here.</span><span class="srcln"><span class="kw">lanes</span> swim <span class="cl">"User | SOC | IT ops"</span> <span class="kw">at</span> 0,0 w 7.35 <span class="kw">band</span> 0.95 <span class="cl">{.muted .dashed}</span></span><span class="srcln"><span class="kw">box</span> rep <span class="cl">"Reports\nsuspect mail"</span>      <span class="kw">at</span> swim.left+0.75,swim-0.cy w 1.2 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">box</span> tri <span class="cl">"Triage"</span>                     <span class="kw">at</span> swim.left+2.15,swim-1.cy w 0.9 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> con <span class="cl">"Confirmed\nmalicious"</span>       <span class="kw">at</span> swim.left+3.45,swim-1.cy w 1.15 <span class="cl">{.tone-4}</span></span><span class="srcln"><span class="kw">box</span> blk <span class="cl">"Block sender,\nrecall copies"</span> <span class="kw">at</span> swim.left+5.02,swim-2.cy w 1.3 <span class="cl">{.tone-1}</span></span><span class="srcln"><span class="kw">box</span> ntf <span class="cl">"Told what\nto look for"</span>      <span class="kw">at</span> swim.left+6.6,swim-0.cy w 1.15 <span class="cl">{.tone-2}</span></span><span class="srcln"><span class="kw">edge</span> rep -&gt; tri <span class="cl">{.elbow}</span></span><span class="srcln"><span class="kw">edge</span> tri -&gt; con</span><span class="srcln"><span class="kw">edge</span> con -&gt; blk <span class="cl">{.elbow}</span></span><span class="srcln"><span class="kw">edge</span> blk -&gt; ntf <span class="cl">{.elbow}</span></span><span class="srcln">:::</span></pre><!--/specsrc-->
       </div>
     </div>
 
