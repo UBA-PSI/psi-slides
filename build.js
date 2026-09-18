@@ -23627,8 +23627,13 @@ async function runCheckFit(absIn, viewport) {
         if (px > 0 && px < min) min = px;
       }
       const cv = (svg.dataset.canvas || '').split(/\s+/).map(Number);
+      // The four numbers and not only the ratio: the ratio says whether the
+      // slide reads full, and what an author about to add a row needs is how
+      // much room is left, per axis. Kept in viewBox units and divided by the
+      // base label on the way out, the way the static warnings say it.
       const canvas = cv.length === 4 && cv.every(n => n > 0)
-        ? { fill: Math.round(100 * (cv[2] * cv[3]) / (cv[0] * cv[1])),
+        ? { w: cv[0], h: cv[1], cw: cv[2], ch: cv[3],
+            fill: Math.round(100 * (cv[2] * cv[3]) / (cv[0] * cv[1])),
             over: Math.max(0, cv[2] - cv[0]) > 0.5 || Math.max(0, cv[3] - cv[1]) > 0.5 }
         : null;
       figs.push({
@@ -23800,13 +23805,38 @@ function reportFigureType(figType, bodySeen, where) {
     console.log(`  ${onCanvas.length} of them are on a canvas and take`
       + ` ${onCanvas[0].canvas.fill}% to ${onCanvas[onCanvas.length - 1].canvas.fill}% of it`
       + `${scaled.length ? `; ${scaled.length} had to be scaled past it.` : ', and none had to be scaled past it.'}`);
-    for (const f of scaled) {
-      console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''}) is over its canvas – the slide`
-        + ` settles at ${f.bodyPx} px of body type rather than the deck's own.`);
-    }
-    for (const f of empty) {
-      console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''}) fills ${f.canvas.fill}% of its`
-        + ` canvas, so the slide reads empty.`);
+    // **How much room each figure has left, per axis.** The two complaints
+    // above speak about a figure that has already gone wrong – past its
+    // canvas, or so far inside it that the slide reads empty – and the
+    // question an author has *before* either happens is "can I put another row
+    // in this one". Both boxes were in hand and the report never said.
+    //
+    // One line per figure, and the two complaints ride that one line rather
+    // than getting a second: two lines about one slide is how a report stops
+    // being read. In base labels, because that is the unit the canvas is
+    // defined in and the unit `frame WxH` is written in, so a number here is a
+    // number the author can act on. Room is the canvas minus the drawing and
+    // is signed: negative is the overflow, and the clause at the end of the
+    // line says so rather than leaving a minus sign to carry it.
+    //
+    // Sorted by the tighter of a figure's two axes, so the list reads as a
+    // queue – whatever stands at the top is what the next edit breaks first.
+    const lab = (n) => (n / DG_FONT).toFixed(1);
+    const room = (f) => Math.min(f.canvas.w - f.canvas.cw, f.canvas.h - f.canvas.ch);
+    const byRoom = [...onCanvas].sort((a, b) => room(a) - room(b));
+    console.log('  room left on each – the canvas minus the drawing, in base labels, so a figure at'
+      + ' 0.0 across is one column from overflowing:');
+    for (const f of byRoom) {
+      const dw = f.canvas.w - f.canvas.cw, dh = f.canvas.h - f.canvas.ch;
+      console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''})`
+        + ` – canvas ${lab(f.canvas.w)} x ${lab(f.canvas.h)},`
+        + ` drawing ${lab(f.canvas.cw)} x ${lab(f.canvas.ch)},`
+        + ` room ${lab(dw)} across and ${lab(dh)} down`
+        + (f.canvas.over
+          ? `; past its canvas, so this slide settles at ${f.bodyPx} px of body type rather than the deck's own.`
+          : empty.includes(f)
+            ? `; ${f.canvas.fill}% of the canvas, so the slide reads empty.`
+            : '.'));
     }
   }
   for (const f of behind) {
@@ -24549,7 +24579,9 @@ async function main() {
     console.error('                        frame. Exit 2 if one does. The density budgets are word');
     console.error('                        counts, so cards and rows can overflow with a clean lint.');
     console.error('                        It also reports the deck\'s median settled body type and');
-    console.error('                        names every slide with a figure more than 15% under it.');
+    console.error('                        names every slide with a figure more than 15% under it,');
+    console.error('                        and gives each figure its canvas, its drawing and the room');
+    console.error('                        left per axis in base labels, tightest first.');
     console.error('  --viewport WxH        measure at another size (default 1600x900, a 16:9 room).');
     console.error('');
     console.error('Reading the projection back (needs playwright-core and a Chrome or Chromium):');
