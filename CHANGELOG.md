@@ -90,6 +90,14 @@ from building the same way is a major version.
   `{.own}` ends a chain; `same w as` / `same h as` take one axis, on a
   `zone` too. A table row's height follows its tallest cell. A written
   `h` under its label and a written table `row` under the type's line warn.
+- **A box's padding is measured in its own type**, so a `.large` box does
+  not sit tight and a `.small` one does not float; a written `pad` stays a
+  grid number. **`gap 1.5lh` / `pad 0.6lh`** write a spacing in label
+  heights, the unit the rules are stated in. **`table b … same as a`**
+  copies another table's columns and spacing. **A whole line of a label in
+  `~…~` is a second register** – smaller and muted, so a question over a
+  verb is one text centred as one block. **`--check-fit` prints one line
+  per figure** with canvas, drawing and room per axis.
 - **A size from a `default` layer is a chain's floor, not a pin**: a
   member is at least the layer's size and takes the chain's maximum where a
   peer needs more, so a `default box h 2.5` no longer keeps a row from
