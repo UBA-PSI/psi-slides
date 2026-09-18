@@ -32,21 +32,22 @@ involved in this scene, `.muted` the apparatus.
 ## figure: For transport, each network layer relies on addresses {.full #ns-a03}
 
 ::: draw 150x54
-default box {.tone-3 .sharp} w 0.88 h 0.85
+default box {.tone-3 .sharp} w 1.15
 
 box fh "Frame\nHeader"    at 0,0
-box dh "Datagram\nHeader" right of fh gap 0 same as fh
-box sh "Segment\nHeader"  right of dh gap 0 same as fh
-box pl "Payload"          right of sh gap 0 same as fh {.paper}
+box dh "Datagram\nHeader" right of fh gap 0
+box sh "Segment\nHeader"  right of dh gap 0
+box pl "Payload"          right of sh gap 0 {.paper}
 
-# The three labels climb to the right, so their leaders stay vertical and none
-# lies over the next. They point at the top edge rather than at the box: a
-# leader to the centre would end in the middle of the box's own label.
-text lmac "Ethernet source\nand destination\naddresses*"       above fh gap 0.5 -- fh.cx,fh.top {.muted @l1}
-text lip  "IP source\nand destination\naddresses"              above dh gap 1.7 -- dh.cx,dh.top {.muted @l2}
-text lprt "source and\ndestination ports\n(if TCP/UDP is used)" above sh gap 2.9 -- sh.cx,sh.top {.muted @l3}
+# The boxes are wide enough to carry their own explanation above them, so the
+# three labels stand in one row at one gap and every leader is the same short
+# vertical. They point at the top edge rather than at the box: a leader to the
+# centre would end in the middle of the box's own label.
+text lmac "Ethernet source\nand destination\naddresses*"       above fh gap 0.6lh -- fh.cx,fh.top {.muted @l1}
+text lip  "IP source\nand destination\naddresses"              above dh gap 0.6lh -- dh.cx,dh.top {.muted @l2}
+text lprt "source and\ndestination ports\n(if TCP/UDP is used)" above sh gap 0.6lh -- sh.cx,sh.top {.muted @l3}
 
-text foot "*also called MAC addresses (media access control)" below fh gap 0.85 flush left {.left .muted}
+text foot "*also called MAC addresses (media access control)" below fh gap 1.2lh flush left {.left .muted}
 
 step ethernet
   show @l1
@@ -59,7 +60,7 @@ step ports
   emph sh
 :::
 
-**A packet carries its own pair of addresses at every layer.** The four boxes are one frame on the wire: `gap 0` and `same as` hold them together as a stack, and only the label above says which header carries which addresses. Each step emphasises one header and brings its explanation in, outside to inside, in the order a device works through the headers. The payload stays untinted, having nothing to say in this figure.
+**A packet carries its own pair of addresses at every layer.** The four boxes are one frame on the wire: `gap 0` holds them together as a stack and the chain gives all four one size, and only the label above says which header carries which addresses. Each step emphasises one header and brings its explanation in, outside to inside, in the order a device works through the headers. The payload stays untinted, having nothing to say in this figure.
 
 ## figure: Besides spoofing, adversaries may attack address resolution {.full #ns-a07}
 
@@ -123,36 +124,40 @@ step poisoning
 
 ## figure: B wants to visit webserver at example.com | knows IP of DNS resolver of ISP and gateway {.full #ns-a08}
 
-::: draw 190x54
+::: draw 120x40
 # Diese Topologie tragen vier Figuren gemeinsam (A-08, A-12, A-13, A-14):
 # the same names in the same places, so the run reads as one drawing that
-# develops.
-box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
-box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
-box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.dim}
-edge awire a.bottom -- a.cx,sw.top {.muted}
-edge bwire b.bottom -- b.cx,sw.top {.muted}
+# develops. It stands as one band across the slide rather than as two towers:
+# the home network on the left, the internet on the right, the boundary
+# upright between them. The hosts are peers and say so with `col`, so no box
+# carries a size of its own.
+box a   "A" at 0,-1.35 {.dim}
+box b   "B" at 0,1.35 {.tone-2}
+col a, b
+box sw  "Switch &\nRouter" at 1.25,0 w 0.78 {.tone-1}
+box rt  "Router" at 2.6,0 {.tone-1 @net}
+box res "" at 3.75,-1.35 {.tone-1 @net}
+box web "" at 5.0,0 {.tone-2 @net}
 
-box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1 @net}
-box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1 @net}
-box web "" below rt gap 1.75 same as res {.tone-2 @net}
-align y middle b, res
+edge awire a.right -- sw.left {.muted .elbow}
+edge bwire b.right -- sw.left {.muted .elbow}
 edge trunk sw -- rt {.muted}
-edge rwire res.bottom -- rt.top {.muted}
-edge uplink rt.bottom -- web.top {.muted}
-text brk "//" between rt,web pad 0.12 {.paper .muted @net}
+edge rwire rt.right -- res.left {.muted .elbow @net}
+edge uplink rt.right -- web.left {.muted @net}
+text brk "//" at 4.2,0 pad 0.12 {.paper .muted @net}
 
-text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" above b gap 0.3 {.mono .muted}
-text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.3 {.muted}
-text resl "41.1.2.1\nDNS Resolver of ISP" above res gap 0.28 {.muted @net}
-text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted @net}
+text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" below b gap 0.35 {.mono .muted}
+text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.35 {.muted}
+text resl "41.1.2.1\nDNS Resolver of ISP" above res gap 0.3 {.muted @net}
+text webl "Webserver\nexample.com\n80.5.5.3" above web gap 0.3 {.muted @net}
 
 # The zone boundary is a separation rather than a relation: a headless dotted
-# edge between two coordinates, touching no element.
-text zoneh "Home Network\n(10.1.1.1–254)" above bmac gap 0.5 offset 0.55,0 {.muted .serif}
-text zonei "Internet" above resl gap 0.5 offset -0.5,0 {.muted .serif}
-align y middle zoneh, zonei
-edge rt.left-0.52,zoneh.top-0.2 -- rt.left-0.52,webl.bottom+0.2 {.dotted .muted}
+# edge between two coordinates, touching no element. The two zone names stand
+# either side of it in the band the drawing leaves empty above the switch, so
+# they cost the figure no height at all.
+text zoneh "Home Network\n(10.1.1.1–254)" at 1.75,-2.5 {.right .muted .serif}
+text zonei "Internet" at 1.95,-2.5 {.left .muted .serif}
+edge 1.85,-2.75 -- 1.85,2.75 {.dotted .muted}
 
 step internet
   show @net
@@ -167,41 +172,47 @@ step wants
 
 ## figure: DNS Spoofing | Adversary forges IP address in DNS reply to redirect victim to malicious server, e.g., for phishing credentials {.full #ns-a12}
 
-::: draw 190x54
+::: draw 120x40
 # The same topology as #ns-a08, the same names, the same places.
-box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
-box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
-box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.accent}
-edge awire a.bottom -- a.cx,sw.top {.muted}
-edge bwire b.bottom -- b.cx,sw.top {.muted}
+box a   "A" at 0,-1.35 {.accent}
+box b   "B" at 0,1.35 {.tone-2}
+col a, b
+box sw  "Switch &\nRouter" at 1.25,0 w 0.78 {.tone-1}
+box rt  "Router" at 2.6,0 {.tone-1}
+box res "" at 3.75,-1.35 {.tone-1}
+box web "" at 5.0,0 {.tone-2}
 
-box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1}
-box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1}
-box web "" below rt gap 1.75 same as res {.tone-2}
-align y middle b, res
+edge awire a.right -- sw.left {.muted .elbow}
+edge bwire b.right -- sw.left {.muted .elbow}
 edge trunk sw -- rt {.muted}
-edge rwire res.bottom -- rt.top {.muted}
-edge uplink rt.bottom -- web.top {.muted}
-text brk "//" between rt,web pad 0.12 {.paper .muted}
+edge rwire rt.right -- res.left {.muted .elbow}
+edge uplink rt.right -- web.left {.muted}
+text brk "//" at 4.2,0 pad 0.12 {.paper .muted}
 
-box awb "" left of web gap 5.45 same as web {.accent @evil}
-box e   "" left of awb gap 2.35 same as web {.dim}
+# The attacker's machines stand on a wire of their own below the spine, where
+# the drawing leaves a band empty, rather than in a tower under the router.
+box e   "" at 3.3,1.35 {.dim}
+box awb "" at 4.05,1.35 {.accent @evil}
 edge e -- awb {.muted}
-edge awb -- web {.muted}
+edge awb -- web {.muted .elbow}
 
-text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" above b gap 0.3 {.mono .muted}
-text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.3 {.muted}
-text resl "DNS Resolver\nof ISP" above res gap 0.28 {.muted}
-text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted}
-text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28 {.muted @evil}
+text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" below b gap 0.35 {.mono .muted}
+text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.35 {.muted}
+text resl "DNS Resolver\nof ISP" above res gap 0.3 {.muted}
+text webl "Webserver\nexample.com\n80.5.5.3" above web gap 0.3 {.muted}
+# Two lines rather than the original's three: same words, one break moved, so
+# the note under the wire costs the drawing one label-height less.
+text awbl "Attacker's Webserver “example.com”\n66.9.9.6" below awb gap 0.3 -- awb {.muted @evil}
 
 # The forged reply runs on the same wire as B's connection, so it takes that
 # wire's place: bwire goes, forged arrives - never both, instead of two lines
 # on top of each other.
-edge forged b.cx,sw.top -> b.bottom {.accent}
-text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
+edge forged sw.left -> b.right {.accent .elbow}
+text forgedl "“example.com\nis 66.9.9.6”" at 1.25,-1.35 pad 0.14 {.paper .accent .mono @spoof}
 
-edge rt.left-0.52,resl.top-0.3 -- e.cx-0.45,gwl.bottom+0.28 via rt.left-0.52,gwl.bottom+0.28 {.dotted .muted}
+text zoneh "Home Network\n(10.1.1.1–254)" at 1.75,-2.5 {.right .muted .serif}
+text zonei "Internet" at 1.95,-2.5 {.left .muted .serif}
+edge 1.85,-2.75 -- 1.85,2.75 {.dotted .muted}
 
 step query
   emph bwire, trunk, rwire
@@ -218,44 +229,46 @@ step redirect
 
 ## figure: Forgery trivial for on-path attacker (on routers or endpoints) | prevent reply from reaching B and inject own reply {.full #ns-a13}
 
-::: draw 190x54
+::: draw 120x40
 # The same topology as #ns-a08 and #ns-a12, the same names and places.
-box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
-box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
-box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.accent}
-edge awire a.bottom -- a.cx,sw.top {.muted}
-edge bwire b.bottom -- b.cx,sw.top {.muted}
+box a   "A" at 0,-1.35 {.accent}
+box b   "B" at 0,1.35 {.tone-2}
+col a, b
+box sw  "Switch &\nRouter" at 1.25,0 w 0.78 {.tone-1}
+box rt  "Router" at 2.6,0 {.tone-1}
+box res "" at 3.75,-1.35 {.tone-1}
+box web "" at 5.0,0 {.tone-2}
 
-box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1}
-box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1}
-box web "" below rt gap 1.75 same as res {.tone-2}
-align y middle b, res
+edge awire a.right -- sw.left {.muted .elbow}
+edge bwire b.right -- sw.left {.muted .elbow}
 edge trunk sw -- rt {.muted}
-edge rwire res.bottom -- rt.top {.muted}
-edge uplink rt.bottom -- web.top {.muted}
-text brk "//" between rt,web pad 0.12 {.paper .muted}
+edge rwire rt.right -- res.left {.muted .elbow}
+edge uplink rt.right -- web.left {.muted}
+text brk "//" at 4.2,0 pad 0.12 {.paper .muted}
 
-box awb "" left of web gap 5.45 same as web {.accent}
-box e   "" left of awb gap 2.35 same as web {.dim}
+box e   "" at 3.3,1.35 {.dim}
+box awb "" at 4.05,1.35 {.accent}
 edge e -- awb {.muted}
-edge awb -- web {.muted}
+edge awb -- web {.muted .elbow}
 
-text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" above b gap 0.3 {.mono .muted}
-text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.3 {.muted}
-text resl "DNS Resolver\nof ISP" above res gap 0.28 {.muted}
-text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted}
-text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28 {.muted}
+text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" below b gap 0.35 {.mono .muted}
+text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.35 {.muted}
+text resl "DNS Resolver\nof ISP" above res gap 0.3 {.muted}
+text webl "Webserver\nexample.com\n80.5.5.3" above web gap 0.3 {.muted}
+text awbl "Attacker's Webserver “example.com”\n66.9.9.6" below awb gap 0.3 -- awb {.muted}
 
-edge forged b.cx,sw.top -> b.bottom {.accent}
-text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
+edge forged sw.left -> b.right {.accent .elbow}
+text forgedl "“example.com\nis 66.9.9.6”" at 1.25,-1.35 pad 0.14 {.paper .accent .mono @spoof}
 
 # "on-patch" is the original's typo and is kept verbatim. There the question
 # is a bordered box; here it is a note with a leader to A - a box
-# in the topology would look like a device. It stands beside A so the leader
-# stays horizontal.
-text ask "Can A also become\non-patch attacker?" left of a gap 1.75 -- a.left,a.cy {.accent @ask}
+# in the topology would look like a device. It stands over A, in the band the
+# zone names leave free, so the leader stays vertical and short.
+text ask "Can A also become\non-patch attacker?" above a gap 0.35 -- a.cx,a.top {.accent @ask}
 
-edge rt.left-0.52,resl.top-0.3 -- e.cx-0.45,gwl.bottom+0.28 via rt.left-0.52,gwl.bottom+0.28 {.dotted .muted}
+text zoneh "Home Network\n(10.1.1.1–254)" at 1.75,-2.5 {.right .muted .serif}
+text zonei "Internet" at 1.95,-2.5 {.left .muted .serif}
+edge 1.85,-2.75 -- 1.85,2.75 {.dotted .muted}
 
 step path
   emph rwire, trunk, bwire
@@ -273,42 +286,47 @@ step question
 
 ## figure: Off-path attackers (E) must generate a valid reply | that reaches B before the reply sent by the real DNS resolver {.full #ns-a14}
 
-::: draw 190x54
+::: draw 120x40
 # The same topology as #ns-a08, #ns-a12 and #ns-a13, the same names and
-# places. All that is new is who the attacker is: A steps back and the box at
-# the bottom left of the internet gets a name.
-box sw  "Switch &\nRouter" at 0,0 w 0.9 h 0.9 {.tone-1}
-box b   "B" above sw gap 1.6  offset  0.24,0 w 0.2 h 0.7 {.tone-2}
-box a   "A" above sw gap 0.55 offset -0.32,0 same as b {.dim}
-edge awire a.bottom -- a.cx,sw.top {.muted}
-edge bwire b.bottom -- b.cx,sw.top {.muted}
+# places. All that is new is who the attacker is: A steps back and the box on
+# the attacker's wire in the internet gets a name.
+box a   "A" at 0,-1.35 {.dim}
+box b   "B" at 0,1.35 {.tone-2}
+col a, b
+box sw  "Switch &\nRouter" at 1.25,0 w 0.78 {.tone-1}
+box rt  "Router" at 2.6,0 {.tone-1}
+box res "" at 3.75,-1.35 {.tone-1}
+box web "" at 5.0,0 {.tone-2}
 
-box rt  "Router" at 2.30,0 w 0.72 h 0.9 {.tone-1}
-box res "" above rt gap 1.6 w 0.2 h 0.7 {.tone-1}
-box web "" below rt gap 1.75 same as res {.tone-2}
-align y middle b, res
+edge awire a.right -- sw.left {.muted .elbow}
+edge bwire b.right -- sw.left {.muted .elbow}
 edge trunk sw -- rt {.muted}
-edge rwire res.bottom -- rt.top {.muted}
-edge uplink rt.bottom -- web.top {.muted}
-text brk "//" between rt,web pad 0.12 {.paper .muted}
+edge rwire rt.right -- res.left {.muted .elbow}
+edge uplink rt.right -- web.left {.muted}
+text brk "//" at 4.2,0 pad 0.12 {.paper .muted}
 
-box awb "" left of web gap 5.45 same as web {.accent}
-box e   "" left of awb gap 2.35 same as web {.dim}
+box e   "" at 3.3,1.35 {.dim}
+box awb "" at 4.05,1.35 {.accent}
 edge e -- awb {.muted}
-edge awb -- web {.muted}
+edge awb -- web {.muted .elbow}
 
-text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" above b gap 0.3 {.mono .muted}
-text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.3 {.muted}
-text resl "DNS Resolver\nof ISP" above res gap 0.28 {.muted}
-text webl "Webserver\nexample.com\n80.5.5.3" below web gap 0.28 {.muted}
-text awbl "Attacker's Webserver\n“example.com”\n66.9.9.6" below awb gap 0.28 {.muted}
+text bmac "eb:99:f1:f3:1f:f2\n10.1.1.5" below b gap 0.35 {.mono .muted}
+text gwl  "default gateway\n10.1.1.1\n00:ac:c1:11:15:11" below sw gap 0.35 {.muted}
+text resl "DNS Resolver\nof ISP" above res gap 0.3 {.muted}
+text webl "Webserver\nexample.com\n80.5.5.3" above web gap 0.3 {.muted}
+text awbl "Attacker's Webserver “example.com”\n66.9.9.6" below awb gap 0.3 -- awb {.muted}
 
-edge forged b.cx,sw.top -> b.bottom {.accent}
-text forgedl "“example.com\nis 66.9.9.6”" above sw gap 0.45 offset 0.24,0 pad 0.14 {.paper .accent .mono @spoof}
-edge poison res.cx,rt.top -> res.bottom {.accent}
-text poisonl "“example.com\nis 66.9.9.6”" between rt,res pad 0.14 {.paper .accent .mono @cache}
+edge forged sw.left -> b.right {.accent .elbow}
+text forgedl "“example.com\nis 66.9.9.6”" at 1.25,-1.35 pad 0.14 {.paper .accent .mono @spoof}
+# Aimed at the resolver instead of at B, the same forgery poisons a cache, so
+# the second red arrow takes the resolver's own wire the way the first took
+# B's. Its note stands over the router, where the drawing is empty.
+edge poison rt.right -> res.left {.accent .elbow}
+text poisonl "“example.com\nis 66.9.9.6”" at 2.6,-1.35 pad 0.14 {.paper .accent .mono @cache}
 
-edge rt.left-0.52,resl.top-0.3 -- e.cx-0.45,gwl.bottom+0.28 via rt.left-0.52,gwl.bottom+0.28 {.dotted .muted}
+text zoneh "Home Network\n(10.1.1.1–254)" at 1.75,-2.5 {.right .muted .serif}
+text zonei "Internet" at 1.95,-2.5 {.left .muted .serif}
+edge 1.85,-2.75 -- 1.85,2.75 {.dotted .muted}
 
 step offpath
   label e "E"
