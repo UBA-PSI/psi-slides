@@ -1299,20 +1299,44 @@ export function dgSpans(text) {
   return out;
 }
 
+// **A line of a label written entirely in the quiet mark is a second
+// register**, set at this factor of the label's own type. It is the same 0.8
+// `.small` is, deliberately: a figure has one small size and inventing a
+// second would put two nearly equal sizes on one drawing.
+//
+// The construction it exists for is a question over a verb – a row label whose
+// first line asks and whose second names what answers it. Written as two `text`
+// elements it cannot be centred on the cell it belongs to: each one is anchored
+// to the cell's centre line on its own, so a two-line question over a one-line
+// verb stands half a line too high and the author moves the split by hand
+// (`cy-0.1` / `cy+0.1` on one row, `cy+0.5` / `cy+0.7` on the next). As one
+// label it is one block and the centring is the ordinary one.
+//
+// **Only in a label of more than one line**, which is the whole rule and not a
+// guard: a register exists in contrast to another register, and a single line
+// has nothing to contrast with – there `~…~` stays what it has always been, the
+// muted colour, and `{.small}` is how a whole label is made small. The colour
+// comes along either way, because the span already carries `dg-mu`.
+export const DG_QUIET_SCALE = 0.8;
+function dgQuietLine(spans) {
+  return spans.length > 0 && spans.every(s => s.cls === 'mu');
+}
 export function dgMeasure(label, fontPx, mono) {
   const lines = String(label ?? '').split('\n');
-  let maxW = 0;
+  let maxW = 0, h = 0;
   const laid = lines.map(ln => {
     const spans = dgSpans(ln);
+    const scale = lines.length > 1 && dgQuietLine(spans) ? DG_QUIET_SCALE : 1;
     let w = 0;
     for (const s of spans) {
-      const size = s.shift ? fontPx * 0.72 : fontPx;
+      const size = (s.shift ? fontPx * 0.72 : fontPx) * scale;
       for (const ch of s.t) w += (mono ? 0.6 : dgCharW(ch)) * size;
     }
     if (w > maxW) maxW = w;
-    return spans;
+    h += fontPx * scale * DG_LINE_H;
+    return { spans, scale };
   });
-  return { w: maxW, h: lines.length * fontPx * DG_LINE_H, lines: laid, count: lines.length };
+  return { w: maxW, h, lines: laid, count: lines.length };
 }
 
 // Height-to-width of an asset, so an author can give `w` and let the other
@@ -8663,13 +8687,19 @@ export function createDiagramCompiler(env = {}) {
   // in the browser. Keeps the runtime free of any typesetting code.
   // ── diagram emission ────────────────────────────────────────────────
 
-  function dgTspans(spans, font, baseline) {
+  // `elFont` is the size on the `<text>` itself, so a span at exactly that size
+  // needs no attribute and every existing label emits the bytes it always did.
+  // A quiet line is drawn at `font` below it and has to say so, the same way a
+  // shifted span does – without that the smaller line inherited the full size
+  // and only its line box was small, which is a label sitting in a gap.
+  function dgTspans(spans, font, baseline, elFont = font) {
     const shiftPx = (s) => (s === -1 ? font * 0.26 : s === 1 ? font * -0.42 : 0);
     let prev = 0, first = true, out = '';
     for (const sp of spans) {
       const dy = shiftPx(sp.shift) - prev;
       prev = shiftPx(sp.shift);
-      const size = sp.shift ? ` font-size="${(font * 0.72).toFixed(2)}"` : '';
+      const px = sp.shift ? font * 0.72 : font;
+      const size = px === elFont ? '' : ` font-size="${px.toFixed(2)}"`;
       const pos = first ? ` x="0" y="${baseline.toFixed(2)}"` : '';
       const cls = sp.cls ? ` class="dg-${sp.cls}"` : '';
       out += `<tspan${pos}${dy ? ` dy="${dy.toFixed(2)}"` : ''}${size}${cls}>${escapeHtml(sp.t)}</tspan>`;
@@ -8694,11 +8724,18 @@ export function createDiagramCompiler(env = {}) {
     const anchor = classes.has('turn') ? 'middle'
       : anchorOverride
       || dgLabelAnchor(classes);
-    const lineH = font * DG_LINE_H;
-    const top = -((m.count - 1) * lineH) / 2;
+    // Laid out line by line rather than on one pitch, because a quiet line is
+    // set smaller and takes a smaller line box with it. The block is centred on
+    // its origin whatever its lines are: the baselines walk down from the top
+    // of the measured block, and with every line at scale 1 the arithmetic is
+    // exactly the old `top + i * lineH`, so a label with no second register
+    // draws the bytes it always did.
+    let y = -m.h / 2;
     let inner = '';
-    m.lines.forEach((spans, i) => {
-      inner += dgTspans(spans, font, top + i * lineH + font * 0.34);
+    m.lines.forEach(({ spans, scale }) => {
+      const lh = font * scale * DG_LINE_H;
+      inner += dgTspans(spans, font * scale, y + lh / 2 + font * scale * 0.34, font);
+      y += lh;
     });
     return `<g id="${id}" class="dg-lbl${extraClass ? ' ' + extraClass : ''}">`
       + `<text text-anchor="${anchor}" font-size="${font.toFixed(2)}"${mono ? ' class="dg-mono"' : ''}>${inner}</text></g>`;

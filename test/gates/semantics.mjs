@@ -31,7 +31,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { frames, render, spans, ROOT } from './harness.mjs';
-import { DG_THEMES, dgSpans, dgMeasure, dgTokenize,
+import { DG_THEMES, dgSpans, dgMeasure, dgTokenize, DG_QUIET_SCALE,
   DG_LABEL_H, DG_GAP_JOINED, DG_HEAD, DG_FONT,
   DG_ELBOW_ARRIVE, DG_ELBOW_LEAVE } from '../../diagram-core.mjs';
 
@@ -1119,6 +1119,66 @@ export async function run({ report }) {
     const out = fig('a label broken with a backslash-n', 'box b "two\\nlines" at 0,0');
     const n = out ? (out.match(/<tspan x="0"/g) || []).length : 0;
     ok(n === 2, 'a label still breaks its lines at \\n', `${n} line(s) drawn`);
+  }
+
+  // ── a whole line in the quiet mark is a second register ───────────
+  // A question over the verb that answers it, written as two `text` elements,
+  // cannot be centred on the cell it labels: each is anchored to the cell's
+  // centre line on its own, so a two-line question over a one-line verb stands
+  // half a line too high and the author moves the split by hand. As one label
+  // it is one block. The rule is the whole line, in a label of more than one:
+  // a register exists in contrast to another register.
+  {
+    const lines = (out) => [...String(out).matchAll(/<tspan x="0"([^>]*)>([^<]*)</g)].map(m => ({
+      size: (m[1].match(/font-size="([\d.]+)"/) || [])[1] ? +m[1].match(/font-size="([\d.]+)"/)[1] : null,
+      cls: (m[1].match(/class="dg-(\w+)"/) || [])[1] || '',
+      text: m[2],
+    }));
+    const two = fig('a question over a verb',
+      'text t "Wer macht es grün?\\n~abfedern~" at 0,0');
+    const L = two ? lines(two) : [];
+    ok(L.length === 2 && L[0].size === null && L[1].size === DG_FONT * DG_QUIET_SCALE
+      && L[1].cls === 'mu',
+      'a whole line in the quiet mark is drawn smaller and muted',
+      JSON.stringify(L));
+    // The block is still centred on its origin, so the split moves itself: the
+    // same spelling on a two-line question needs no different numbers.
+    const box = (out) => {
+      const m = String(out).match(/id="dg1-t--l0"[\s\S]*?<\/g>/);
+      const ys = [...String(m && m[0]).matchAll(/<tspan x="0" y="(-?[\d.]+)"/g)].map(x => +x[1]);
+      return ys;
+    };
+    const short = box(two);
+    const long = box(fig('the same spelling on a two-line question',
+      'text t "Was lernt die\\nOrganisation daraus?\\n~lernend hervorgehen~" at 0,0'));
+    // The block's own top and bottom, reconstructed from the first and last
+    // baselines and the two line heights the label has. It is centred when
+    // they sum to zero, which is what makes the split move itself: the same
+    // spelling on a one-line and on a two-line question needs no new numbers.
+    const lh = DG_FONT * 1.25, qlh = DG_FONT * DG_QUIET_SCALE * 1.25;
+    const off = (ys) => (ys[0] - (lh / 2 + DG_FONT * 0.34))
+      + (ys[ys.length - 1] + qlh / 2 - DG_FONT * DG_QUIET_SCALE * 0.34);
+    ok(short && long && short.length === 2 && long.length === 3
+      && Math.abs(off(short)) < 0.01 && Math.abs(off(long)) < 0.01,
+      'and the block stays centred on its origin whichever line count it has',
+      `${JSON.stringify(short)} off by ${short && off(short).toFixed(3)},`
+      + ` ${JSON.stringify(long)} off by ${long && off(long).toFixed(3)}`);
+    // Three controls, because a register that fired where it should not would
+    // shrink text nobody asked to shrink.
+    const oneLine = fig('a single line entirely in the mark', 'text t "~just muted~" at 0,0');
+    ok(oneLine && lines(oneLine).length === 1 && lines(oneLine)[0].size === null,
+      'a single-line label in the mark is still only muted – one line has nothing to contrast with',
+      JSON.stringify(oneLine && lines(oneLine)));
+    const partial = fig('a marked run inside a line',
+      'text t "a ~muted~ word\\nsecond line" at 0,0');
+    ok(partial && lines(partial).every(l => l.size === null),
+      'and a marked run that is not the whole line changes no size',
+      JSON.stringify(partial && lines(partial)));
+    const plain = fig('a plain two-liner', 'box b "one\\ntwo" at 0,0');
+    const plainYs = plain ? [...plain.matchAll(/<tspan x="0" y="(-?[\d.]+)"/g)].map(x => +x[1]) : [];
+    ok(plainYs.length === 2 && Math.abs(plainYs[1] - plainYs[0] - DG_FONT * 1.25) < 0.01,
+      'and a label with no second register sits on exactly the baselines it always did',
+      JSON.stringify(plainYs));
   }
 
   // ── anchor: which point of the element meets the coordinate ───────

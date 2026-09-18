@@ -927,7 +927,7 @@ A tag goes wherever a name goes, so `show @crypto` in a step selects every eleme
 
 **Two statements save repetition.** `default box {.tone-4} w 1.15` sets the starting point for every box in the figure, and adding a tag narrows that to one set; the same lines go in a `draw-defaults:` frontmatter key when every figure in a lecture should look alike. `same as create` copies another element's width and height.
 
-**Inside a label**, `_sub` and `^sup` shift a character or a `{group}` down or up, `*accent*` colours a run and `~muted~` greys it.
+**Inside a label**, `_sub` and `^sup` shift a character or a `{group}` down or up, `*accent*` colours a run and `~muted~` greys it. **A whole line of a multi-line label written in that mark is the quiet register**, smaller as well as grey, so one `text` can carry a question over the verb that answers it and be centred on its cell as one block.
 
 **Click the figure, and the button in the corner of the card opens the graphical editor, which is experimental.** It is built for a desktop-sized screen and has been tested a great deal by machine and very little by people. Drag a box and it rewrites one number – the `gap`, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits inside. It also draws those relations while you work, which the finished drawing cannot: a box written `gap 0.55` from its neighbour looks exactly like one that happens to sit 0.55 away. `editor: none` in the frontmatter leaves it out.
 
