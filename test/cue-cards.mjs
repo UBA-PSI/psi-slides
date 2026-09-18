@@ -171,6 +171,44 @@ Opens with the slide.
 > note: Said on the second press, not the first.
 
 Arrives on the second press.
+
+## free: Clicks {#clicks}
+
+Opens with the slide.
+
+> note: Said while the slide opens: **zero**.
+>
+> [Klick: the second line lights.]
+>
+> **one after the first click**
+>
+> [Pause.]
+>
+> [Klick: the third line lights.]
+>
+> **two after the second click**
+
+---
+
+The second line.
+
+---
+
+The third line.
+
+## free: Too many clicks {#tooclicks}
+
+One beat and nothing else.
+
+> note: **a**
+>
+> [Klick: nothing left to light.]
+>
+> **b**
+>
+> [Klick: still nothing.]
+>
+> **c**
 `;
 
 function buildFixture() {
@@ -331,6 +369,36 @@ export async function run({ page, report }) {
      'then the card pinned to from 2', JSON.stringify(fig[4]));
   ok(await spk.evaluate(() => !!document.querySelector('.cue-step .cue-what')),
      'a figure beat shows the step name the author gave it');
+
+  // ── a [Klick ...] line in a note is a beat ───────────────────────
+  // The other half of the same problem, and the one a whole keynote is
+  // written in: the stage directions are already in the prose, so the
+  // author writes no `from N` at all and the cockpit used to show the
+  // whole block on the opening beat. Each click files the cards behind it
+  // one advance on, which is the arithmetic `from N` does by hand.
+  await spk.evaluate(() => jumpTo(flatChunks.findIndex(e => e.id === 'clicks')));
+  await spk.waitForTimeout(400);
+  ok((await both()).s.id === 'clicks', 'the cockpit reaches the chunk whose note carries clicks');
+  const clicks = [];
+  for (let i = 0; i < 6; i++) { clicks.push({ ...(await both()), c: await cursor() }); await press('Space'); }
+  ok(clicks.every(w => w.same), 'the two windows agree through it', JSON.stringify(clicks.map(w => [w.a.rev, w.s.rev])));
+  ok(clicks[0].c.n === 7,
+     'the column lists a card, a reveal, two cards, a reveal, a card, the next slide',
+     JSON.stringify(clicks[0].c));
+  ok(clicks[0].s.rev === 1 && /zero/.test(clicks[0].c.cur), 'the card before the first click opens the slide', JSON.stringify(clicks[0].c));
+  ok(clicks[1].s.rev === 1 && /reveal 1/.test(clicks[1].c.cur), 'and the press behind it belongs to the projection, not to another card', JSON.stringify(clicks[1].c));
+  ok(clicks[2].s.rev === 2 && /after the first click/.test(clicks[2].c.cur) && clicks[2].c.beat === 1,
+     'the card written behind the click arrives with the reveal it names', JSON.stringify(clicks[2]));
+  ok(/Pause/.test(clicks[3].c.cur) && clicks[3].s.rev === 2,
+     'a bracketed line that is not a click is a card of its own on the same beat', JSON.stringify(clicks[3]));
+  ok(clicks[4].s.rev === 2 && /reveal 2/.test(clicks[4].c.cur), 'the second reveal is what is left of that beat', JSON.stringify(clicks[4].c));
+  ok(clicks[5].s.rev === 3 && /after the second/.test(clicks[5].c.cur) && clicks[5].c.beat === 2,
+     'and the card behind the second click arrives with it', JSON.stringify(clicks[5]));
+  ok(await spk.evaluate(() => [...document.querySelectorAll('.cue-title')].some(t => /the third line lights/.test(t.textContent))),
+     'the words of the click title the card it brings up');
+  ok(/note-advance-beyond/.test(lint) && (lint.match(/note-advance-beyond/g) || []).length === 1,
+     'and lint.js names the one chunk that asks for more clicks than it has beats',
+     lint.trim().split('\n').filter(l => /note-advance/.test(l)).join(' | '));
 
   // the two buttons that scale the cards, persisted like the notes zoom
   const size = () => spk.evaluate(() => parseFloat(getComputedStyle(document.getElementById('cue-rail')).fontSize));

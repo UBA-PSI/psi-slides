@@ -435,6 +435,12 @@ import {
   CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
   splitTail, parseTail, strayTailProblem, parseDrawOpener, parseRevealMark,
 } from './tails.mjs';
+// The third zero-dep module, imported for the same reason as tails.mjs and
+// with nothing behind it: `cueAdvance` decides whether a bracketed line in a
+// `> note:` block is a press, and the cockpit and this file have to agree
+// about that or the warning below would count something else than the cards
+// do. One function, no tables, no compiler behind it.
+import { cueAdvance } from './cue-cards.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
 const ORPHAN_MIN = 2;
@@ -2829,10 +2835,38 @@ function lintFile(filePath) {
   // segment is not the chunk's last: the author probably meant the note
   // for the beat the `---` opens, and the build will show it one earlier.
   // The opening segment is exempt - the heading is what stands on it.
-  let noteSegs = [];        // { ln, seg } per note block, seg = raw segment index
-  let notePins = [];        // { ln, from } per `> note: from N` block
+  // A `[Klick: ...]` line inside a block is a press of its own: the cards
+  // behind it are said one advance later (cue-cards.mjs `cueAdvance`). So a
+  // block asks the slide for `from` plus its clicks, and a slide that has
+  // fewer beats than that shows the surplus cards together on its last one.
+  let noteSegs = [];        // { ln, seg, klicks } per note block, seg = raw segment index
+  let notePins = [];        // { ln, from, klicks } per `> note: from N` block
+  let curNote = null;       // the block whose lines are being read, for its click count
+  let colNotes = [];        // the same, for the blocks written under a `#` heading
   let rawSegHasText = [];   // per raw segment: does any body line stand in it
   let rawSeg = 0;
+
+  // A `[Klick ...]` line in a note asks for a press of its own, and the
+  // cards behind it are filed one advance later (cue-cards.mjs `cueAdvance`,
+  // build.js `cueCardsFor`). A block that asks for more advances than the
+  // slide takes still shows every card - the surplus stand together on the
+  // last beat - so this is a warning rather than a refusal. The base is the
+  // block's own `from` where it has one and the opening beat where it has
+  // not, which is a floor rather than the exact number: a positional block
+  // knows its segment, not its advance. Under-reporting on purpose - a
+  // linter that guesses high cries wolf on the deck that is already right.
+  const advanceBeyond = (blocks, beats, what) => {
+    for (const n of blocks.slice().sort((a, b) => a.ln - b.ln)) {
+      const asks = (n.from ?? 0) + n.klicks;
+      if (!n.klicks || asks <= beats) continue;
+      add(n.ln, 'warn', 'note-advance-beyond',
+          `this > note: carries ${n.klicks} [Klick] line${n.klicks === 1 ? '' : 's'}`
+          + `${n.from != null ? ` after from ${n.from}` : ''}, so its last card asks for advance ${asks} – `
+          + `but the ${what} has ${beats === 0 ? 'no beats' : beats === 1 ? 'one beat' : beats + ' beats'} of its own, `
+          + `and every card past the last one is shown on it together; `
+          + `give the slide a --- or a step per click, or take ${asks - beats} [Klick] line${asks - beats === 1 ? '' : 's'} out`);
+    }
+  };
 
   const flushChunk = () => {
     // A divider's own card row, left open: the build captures every line
@@ -2846,7 +2880,14 @@ function lintFile(filePath) {
             `::: ${l.kind} not closed before next chunk or column`);
       }
       // A divider's overlays and its figure's steps are its own; left
-      // standing they were judged against the next chunk's beats.
+      // standing they were judged against the next chunk's beats. They are
+      // also what a divider's own cards ride: a `---` under a `#` heading is
+      // a beat marker rather than a segment, and the keynote this grammar
+      // was written for puts every one of its clicks on a divider, so a
+      // check that stopped at chunks would never have seen the case it was
+      // written for.
+      advanceBeyond(colNotes, chunkReveals + chunkSteps, 'divider');
+      colNotes = [];
       chunkReveals = 0; chunkSteps = 0; chunkOverlays = []; chunkRevealPins = [];
       return;
     }
@@ -2986,6 +3027,7 @@ function lintFile(filePath) {
             + `write from ${beats + 1} or lower, or give the slide the beats`);
       }
     }
+    advanceBeyond([...noteSegs, ...notePins], beats, 'chunk');
     for (const n of notePins) {
       if (n.from > beats) {
         add(n.ln, 'warn', 'note-from-beyond',
@@ -3008,7 +3050,7 @@ function lintFile(filePath) {
     chunkOverlays = []; chunkRevealPins = [];
     exposedWords = 0;
     chunkHasDrawing = false;
-    noteSegs = []; notePins = []; rawSegHasText = []; rawSeg = 0;
+    noteSegs = []; notePins = []; curNote = null; rawSegHasText = []; rawSeg = 0;
   };
 
   // What is open around a line, asked the way build.js asks it. The two
@@ -3806,6 +3848,7 @@ function lintFile(filePath) {
       if (revMark.from == null) chunkReveals += 1;
       else chunkRevealPins.push({ ln, from: revMark.from });
       inMetaBlock = false;
+      curNote = null;
       if (!activeDirective && !layoutStack.length) rawSeg += 1;
       continue;
     }
@@ -3820,12 +3863,24 @@ function lintFile(filePath) {
       // diagram's steps, which no separator line can sit between. A pinned
       // note is not judged by its position, so it stays out of noteSegs.
       const notePin = /^>\s*note:\s*from\s+(\d+)\s*$/i.exec(line);
-      if (notePin) notePins.push({ ln, from: Number(notePin[1]) });
-      else if (/^>\s*note:/i.test(line)) noteSegs.push({ ln, seg: rawSeg });
-      if (/^>\s*(note|annot):/i.test(line)) { inMetaBlock = true; continue; }
+      if (notePin) notePins.push(curNote = { ln, from: Number(notePin[1]), klicks: 0 });
+      else if (/^>\s*note:/i.test(line)) noteSegs.push(curNote = { ln, seg: rawSeg, klicks: 0 });
+      if (/^>\s*(note|annot):/i.test(line)) {
+        inMetaBlock = true;
+        // An annotation is not a cue card, so nothing in it counts.
+        if (!/^>\s*note:/i.test(line)) curNote = null;
+        // A block may carry its first line beside the marker, and that line
+        // may be the click - `> note: [Klick: die Zeile wird hell.]`.
+        else if (curNote && cueAdvance(line.replace(/^>\s*note:/i, ''))) curNote.klicks += 1;
+        continue;
+      }
       if (inMetaBlock) {
-        if (/^>/.test(line)) continue;
+        if (/^>/.test(line)) {
+          if (curNote && cueAdvance(line.replace(/^>\s?/, ''))) curNote.klicks += 1;
+          continue;
+        }
         inMetaBlock = false;
+        curNote = null;
       }
       if (line.trim() && !/^:::\s*$/.test(line)) rawSegHasText[rawSeg] = true;
       // Density is a budget on what the *projector* shows, so explicit
@@ -3854,10 +3909,21 @@ function lintFile(filePath) {
       // overlay or a dock belongs to that block, not to the divider's body.
       // Only `col.stack` reads this, and only to refuse a `{.stack}` with
       // nothing under the heading to stack.
-      if (/^>\s*(note|annot):/i.test(line)) inMetaBlock = true;
-      else if (inMetaBlock && /^>/.test(line)) { /* the same block continues */ }
+      if (/^>\s*(note|annot):/i.test(line)) {
+        inMetaBlock = true;
+        const pin = /^>\s*note:\s*from\s+(\d+)\s*$/i.exec(line);
+        if (!/^>\s*note:/i.test(line)) curNote = null;
+        else {
+          colNotes.push(curNote = { ln, from: pin ? Number(pin[1]) : null, klicks: 0 });
+          if (!pin && cueAdvance(line.replace(/^>\s*note:/i, ''))) curNote.klicks += 1;
+        }
+      }
+      else if (inMetaBlock && /^>/.test(line)) {
+        if (curNote && cueAdvance(line.replace(/^>\s?/, ''))) curNote.klicks += 1;
+      }
       else {
         inMetaBlock = false;
+        curNote = null;
         const capture = activeDirective && (activeDirective.kind === 'dock' || activeDirective.kind === 'overlay');
         if (!capture) col.hasBody = true;
       }

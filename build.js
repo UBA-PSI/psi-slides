@@ -21197,9 +21197,12 @@ cueBtn.addEventListener('click', toggleCueMode);
 // Otherwise the parser gave it a top-level segment, and the segment's own
 // beat says which advance brings it up - which is what lets a chunk whose
 // beats are a diagram's steps carry cards at all: no separator line can sit
-// between two steps, but a number can name one. A rehearsal override in the
-// textarea replaces the whole chunk's text and knows neither, so everything
-// it says lands on the opening beat.
+// between two steps, but a number can name one. Inside a block, a
+// [Klick ...] line is a press of its own and the cards behind it are filed
+// one advance later - the two spellings compose, so a pinned block counts
+// its clicks from its own number. A rehearsal override in the textarea
+// replaces the whole chunk's text and knows of no pin, so it starts at the
+// opening beat - its clicks still count from there.
 function cueCardsFor(id, beats, maxC) {
   const by = new Map();
   const segAt = [0];
@@ -21212,16 +21215,22 @@ function cueCardsFor(id, beats, maxC) {
     if (!by.has(k)) by.set(k, []);
     by.get(k).push(...cards);
   };
+  // Where the block sits is where its FIRST card sits; a [Klick ...] line
+  // inside it moves every card behind that line one advance further on, and
+  // notesToCards counted them. The clamp in put() is what an author gets who
+  // wrote more clicks than the slide has beats: the surplus cards stand
+  // together on the last one, and lint says so by name.
+  const file = (base, cards) => cards.forEach(card => put(base + (card.advance || 0), [card]));
   let override = null;
   try { override = localStorage.getItem(noteOverrideKey(id)); } catch (e) {}
   if (override !== null) {
-    put(0, PSI_CARDS.notesToCards(override));
+    file(0, PSI_CARDS.notesToCards(override));
     return by;
   }
   document.querySelectorAll('template[data-cards-for="' + CSS.escape(id) + '"]').forEach(t => {
     const c = t.dataset.at != null ? Number(t.dataset.at)
       : (segAt[Number(t.dataset.seg) || 0] ?? 0);
-    put(c, PSI_CARDS.notesToCards(t.content.textContent));
+    file(c, PSI_CARDS.notesToCards(t.content.textContent));
   });
   return by;
 }
