@@ -428,7 +428,10 @@ A boxes-and-arrows compiler. The source is a line-oriented DSL inside the lectur
   `.cy` are that rectangle, addressable like any element's six scalars, and `in z` is the placement
   that meets it – top-left by default, with `left` / `right` / `top` / `bottom` / `center` bare after
   the zone moving it (`DG_IN_ALIGN`, the caption's own four plus the one a corner does not need), and
-  `gap n` inset from the band's edge. They are words of the *placement* and not classes, because on a
+  `gap n` inset from the band's edge. **`center` alone answers both axes**, so an axis
+  centred while the other is not has to spell the other one out – `in z center` is the
+  middle of the band and `in z left center` is its left edge, halfway down – and the words
+  are resolved once the run of them has been read, so their order changes nothing. They are words of the *placement* and not classes, because on a
   box `.left` already says where the label sits inside the outline, and one word cannot answer two
   questions on one line; `anchor` and `flush` are refused on it and say so, because a band is neither a
   coordinate nor a face. **`row a, b, c in z center` places the whole run**, centred as a block:
