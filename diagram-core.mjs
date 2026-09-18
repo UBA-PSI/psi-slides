@@ -6487,25 +6487,17 @@ export function createDiagramCompiler(env = {}) {
     // off `state`: a `move … to` in a step must not re-cut the chains under a
     // row and resize everything placed against any of it.
     //
-    // Two sources, one union-find: a chain link is a box placed `right of` /
-    // `left of` / `below` / `above` another box (DG_CHAIN_DIRS), and every
-    // `row` / `col` statement is a chain of its own by declaration. A box
-    // carrying `.own` is in no chain, which is also how a run is broken in
-    // two: nothing reaches through it.
-    // **A chain is per axis, and the two axes do not carry the same rule.**
-    // A *row* shares both: two boxes side by side with different widths read as
-    // two things of different weight, and with different heights they make a
-    // ragged top and bottom and put every arrow between them off the axis.
-    // A *column* shares its **width** and not its height, and that asymmetry is
-    // the whole of what the corpus taught: a run of `below` boxes is as often a
-    // record as it is a stack of peers – `lectures/network-security#ns-a45` is
-    // seven fields, two fields, one and one, stacked with `gap 0`, and giving
-    // every band the tallest one's height turns a certificate into four equal
-    // blocks that say nothing. A band's height is what stands in it; its width
-    // is the record's.
+    // **A chain is per axis, and the two axes do not carry the same rule.** A
+    // *row* – boxes joined by `right of` / `left of` – shares both: two boxes
+    // side by side with different widths read as two things of different
+    // weight, and with different heights they make a ragged top and bottom and
+    // put every arrow between them off the axis. A *column* shares its width
+    // and not its height; the three families and the reasons are on `rowSet`,
+    // `colSet` and `declared` below.
     //
-    // `col a, b, c` shares both, and that is what the statement is *for*: it
-    // says these are peers, where `below` says only where this one goes.
+    // A box carrying `.own` is in no chain, which is also how a run is broken
+    // in two: nothing reaches through it. Same for the other three exclusions
+    // `own()` collects.
     const chainSize = new Map();   // id -> {w?, h?}
     {
       const nodes = model.nodes.filter(n => n.kind === 'box');
@@ -6552,9 +6544,9 @@ export function createDiagramCompiler(env = {}) {
       // element. Measured: it made `lectures/diagrams#alignment`, whose top and
       // bottom rows are joined by a single `below`, one block of eight boxes
       // all as wide as the widest label in either row.
-      const rowSet = sets();       // right of / left of, and a `row` statement
-      const colSet = sets();       // below / above
-      const declared = sets();     // a `col` statement
+      const rowSet = sets();       // right of / left of – width and height
+      const colSet = sets();       // below / above – width only
+      const declared = sets();     // a `row` or a `col` statement – both, last
       for (const n of nodes) {
         const p = n.place;
         if (!p || p.kind !== 'rel' || !DG_CHAIN_DIRS.has(p.dir)) continue;
