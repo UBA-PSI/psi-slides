@@ -215,6 +215,11 @@ export async function run({ report }) {
     ['cards',        ['## free: Karten {#cd}', '', 'Eins.', '', '---', '',
                       '::: cards 2', '### one', '### two', ':::']],
     ['marginalia',   ['## free: Rand {#mg}', '', 'Eins.', '', '---', '', '::: marginalia', 'am Rand', ':::']],
+    // The one chunk whose separators buy nothing: renderTitleChunk draws a
+    // cover from `body`, which is the segments joined, so a `---` there
+    // leaves no <hr>, no .reveal-segment and no click.
+    ['cover',        ['## title: {#tt}', '', 'Eins.', '', '---', '', 'Zwei.', '',
+                      '> note: from 1', '> zu weit.']],
   ];
   const deck = ['---', 'title: Beat fixtures', '---', ''];
   const span = new Map();
@@ -244,6 +249,14 @@ export async function run({ report }) {
   // footnote, and the linter says two beats rather than one.
   ok(beatsSaid('count') === 2,
      'a --- whose segment holds only an aside is still counted as a beat', j(of('count')));
+  // And the chunk where the count is zero however many separators are
+  // written: a cover renders none of them, so a `from 1` note there is filed
+  // on an advance the slide never reaches. The linter counted the positions
+  // and said "one beat", which is the build's number for every chunk but
+  // this one.
+  ok(beatsSaid('cover') === 0,
+     'a --- in a title: chunk buys no beat, because the cover renders no segments',
+     j(of('cover')));
 
   // The four things that ride a beat without painting a word on it. Each of
   // these is a shape the corpus writes on purpose.

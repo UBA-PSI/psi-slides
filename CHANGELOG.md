@@ -196,7 +196,13 @@ from building the same way is a major version.
   an empty segment paints nothing new and a footnote, a note, a backdrop
   place or an overlay `from` rides it. `lint.js` counts beats the way the
   build does and warns `empty-beat` for a `---` nothing rides;
-  `note-in-empty-beat` is gone with the drop it described.
+  `note-in-empty-beat` is gone with the drop it described. A cover slide is
+  the one exception in both files: `renderTitleChunk` draws a `title:` or
+  `closing:` chunk from `body`, which is the segments joined, so a `---`
+  there leaves no rule, no segment and no click. `lint.js` counted its
+  position all the same and told an author a `> note: from 1` on a cover
+  would fire; a cover's beats are now what its composition draws with the
+  body – a `.beat-mark` below the top level, a figure's `step` blocks.
 - **A `[Klick …]` line in a speaker note is a beat.** A bracketed direction
   whose first word is `Klick`, `Click` or `>` ends the cue card and files
   what follows one press later, the arithmetic `> note: from N` does by

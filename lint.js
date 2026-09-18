@@ -3222,7 +3222,16 @@ function lintFile(filePath) {
     // positional unless its `---` wrote a number.
     const keptIdx = [];
     kept.forEach((k, i) => { if (k) keptIdx.push(i); });
-    const segBeats = keptIdx.slice(1).filter(i => !rawSegPinned[i]).length;
+    // …and on a cover slide none of them does. `renderTitleChunk` draws from
+    // `body`, which the parser assembles as the segments joined - so a `---`
+    // in a `title:` or `closing:` chunk leaves no <hr>, no .reveal-segment
+    // and no click, and counting its position as a beat told an author that
+    // a `> note: from 1` there would fire. What a cover CAN carry is a beat
+    // the composition draws with the body: a `---` below the top level is a
+    // `.beat-mark` inside it, and a figure's `step` blocks are beats on the
+    // same counter, so `nestedBeats` and `chunkSteps` below are left alone.
+    const segBeats = chunkRendersSegments(chunk)
+      ? keptIdx.slice(1).filter(i => !rawSegPinned[i]).length : 0;
     // A `---` below the top level - in a pane, a card row, an overlay - is a
     // beat marker rather than a split, so it is a beat of the chunk that no
     // segment arithmetic touches. `chunkReveals` counts both; the difference
