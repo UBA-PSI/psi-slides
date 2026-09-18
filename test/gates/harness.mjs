@@ -143,6 +143,38 @@ export function lintAll(cases) {
   return spans.map(([s, e]) => findings.filter(f => f.line >= s && f.line <= e));
 }
 
+/**
+ * Run one whole lecture source through `lint.js` and hand back every finding.
+ * `lintAll` above wraps each case in a `::: draw` block, which is right for
+ * the figure gates and wrong for anything about chunks, segments or notes -
+ * so this is the same bridge without the wrapper: the caller writes the
+ * frontmatter and the chunks and gets the lines back.
+ *
+ * @param {string} md  the whole file, frontmatter included
+ * @returns {{line: number, sev: string, rule: string, msg: string}[]}
+ */
+export function lintSource(md) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-gate-'));
+  let raw = '';
+  try {
+    const file = path.join(dir, 'source.md');
+    fs.writeFileSync(file, md);
+    try {
+      raw = execFileSync(process.execPath, [path.join(ROOT, 'lint.js'), file],
+        { encoding: 'utf8', maxBuffer: 1 << 26 });
+    } catch (e) {
+      raw = e.stdout || '';
+      if (!raw) throw e;
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  return raw.split('\n').map((l) => {
+    const m = l.match(/^.*?:(\d+)\s+(error|warn)\s+(\S+)\s+(.*)$/);
+    return m ? { line: +m[1], sev: m[2], rule: m[3], msg: m[4] } : null;
+  }).filter(Boolean);
+}
+
 // ── reporting ───────────────────────────────────────────────────────
 // Same shape as test/harness.mjs, plus one counter. A `pending` entry is a
 // known defect with a written reason: it does not fail the run, but the day
