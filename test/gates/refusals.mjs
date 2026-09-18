@@ -391,6 +391,25 @@ const FIXTURES = [
   { item: 'table', accept: true, name: 'unheaded', body: 'table t "A|B" at 0,0 col 1,1\n  "1|2"' },
   { item: 'table', accept: true, name: 'unheaded beside a row height', body: 'table t "A|B" at 0,0 col 1,1 unheaded row 0.5\n  "1|2"' },
   { item: 'table', accept: true, name: 'a large table with no row height', body: 'table t "A|B" at 0,0 col 1,1 {.large}\n  "1|2"' },
+  // ── table: `same as` copies another table's columns ───────────────
+  // The four refusals, and the two acceptances that keep them honest. The
+  // count check is the one a linter could plausibly have skipped: both heading
+  // strings are on their own lines and the answer is the number of parts in
+  // each, so it is decidable here and it is a fixture for that reason.
+  { item: 'table', accept: true, name: 'two tables sharing columns',
+    body: 'table a "A|B" at 0,0 col 1,2\n  "1|2"\ntable b "C|D" same as a below a gap 0.5\n  "3|4"' },
+  { item: 'table', accept: true, name: 'a copied table with a space of its own',
+    body: 'table a "A|B" at 0,0 col 1,2 space 0.1\n  "1|2"\ntable b "C|D" same as a space 0.3 below a gap 0.5\n  "3|4"' },
+  { item: 'table', name: 'same as beside col',
+    body: 'table a "A|B" at 0,0 col 1,2\n  "1|2"\ntable b "C|D" same as a col 3,4 below a gap 0.5\n  "3|4"' },
+  { item: 'table', name: 'same as beside w',
+    body: 'table a "A|B" at 0,0 col 1,2\n  "1|2"\ntable b "C|D" same as a w 4 below a gap 0.5\n  "3|4"' },
+  { item: 'table', name: 'same as a table with another number of columns',
+    body: 'table a "A|B" at 0,0 col 1,2\n  "1|2"\ntable b "C|D|E" same as a below a gap 0.5\n  "3|4|5"' },
+  { item: 'table', name: 'same as a table declared below it',
+    body: 'table b "C|D" same as a at 0,0\n  "3|4"\ntable a "A|B" col 1,2 below b gap 0.5\n  "1|2"' },
+  { item: 'table', name: 'same as something that is not a table',
+    body: 'box x "X" at 0,0\ntable b "C|D" same as x below x gap 0.5\n  "3|4"' },
   // `unheaded` on a `lanes` and `unnumbered` on a `table` are both refused by
   // the build and passed by the linter, and deliberately not fixtures here:
   // they are the one documented asymmetry of this pair, an *unknown option

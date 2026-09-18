@@ -123,7 +123,9 @@ node build.js <source.md> --watch --serve         # live reload over http
 # behind its own slide (under 0.8x, or under 18 px) – and, since the keynote
 # work, the deck's median settled body type with every slide whose figure took
 # it more than 15% under that, and – since the canvas – each figure's canvas
-# fill with every figure that had to be scaled past it. Those are notes and
+# fill plus one line per figure giving its canvas, its drawing and the room
+# left per axis in base labels, tightest axis first, with "past its canvas" or
+# "reads empty" riding that same line rather than a second one. Those are notes and
 # change no exit code; the static halves are the build's
 # `figure-overflows-canvas`, `figure-underfills-canvas` and
 # `figure-type-small`, all emitted once at the end of the parse.

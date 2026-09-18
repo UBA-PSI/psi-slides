@@ -31,7 +31,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { frames, render, spans, ROOT } from './harness.mjs';
-import { DG_THEMES, dgSpans, dgMeasure, dgTokenize,
+import { DG_THEMES, dgSpans, dgMeasure, dgTokenize, DG_QUIET_SCALE,
   DG_LABEL_H, DG_GAP_JOINED, DG_HEAD, DG_FONT,
   DG_ELBOW_ARRIVE, DG_ELBOW_LEAVE } from '../../diagram-core.mjs';
 
@@ -310,6 +310,52 @@ export async function run({ report }) {
       `${turned && turned.join('x')} – the label reads up the long side`);
   }
 
+  // ── padding is measured in the label's own type ───────────────────
+  // `DG_PAD_X` / `DG_PAD_Y` used to be 13 and 9 px whatever the box held, so
+  // a `.large` box sat in the padding a base label gets and read tight while a
+  // `.small` one floated in more air than its letters are tall. The pair is
+  // now scaled by `dgFontFor`, the construction `DG_ROW_H` already uses – and
+  // the point of that construction is the control below: the factor is exactly
+  // 1 for a label with no size class, so the base case is byte-identical.
+  {
+    // The ring of paper round the words, per axis, taken off a box whose
+    // label is fixed: the box is the measured label plus twice the padding,
+    // so the difference between two size classes is the padding's alone once
+    // the label's own growth is divided out.
+    const ring = (tail) => {
+      const out = fig(`a box ${tail || 'with no size class'}`, `box a "Authenticator"${tail ? ' ' + tail : ''} at 0,0`);
+      if (!out) return null;
+      const font = tail === '{.small}' ? DG_FONT * 0.8 : tail === '{.large}' ? DG_FONT * 1.22 : DG_FONT;
+      const m = dgMeasure('Authenticator', font, false);
+      return [(+attrOf(out, 'a--r', 'width') - m.w) / 2, (+attrOf(out, 'a--r', 'height') - m.h) / 2];
+    };
+    const base = ring('');
+    const near = (a, b) => Math.abs(a - b) < 0.01;
+    ok(base && near(base[0], 13) && near(base[1], 9),
+      'a base label still sits in exactly 13 x 9 px of padding',
+      `got ${base && base.map(n => n.toFixed(2)).join(' x ')}`);
+    const small = ring('{.small}');
+    ok(small && near(small[0], 13 * 0.8) && near(small[1], 9 * 0.8),
+      'a .small box gets 0.8 of it, so its words are not lost in the paper',
+      `got ${small && small.map(n => n.toFixed(2)).join(' x ')}`);
+    const large = ring('{.large}');
+    ok(large && near(large[0], 13 * 1.22) && near(large[1], 9 * 1.22),
+      'and a .large box gets 1.22 of it rather than sitting tight',
+      `got ${large && large.map(n => n.toFixed(2)).join(' x ')}`);
+    // `pad N` is a number in grid units, and a number in grid units is a
+    // statement about the grid. Scaling it too would make one number mean two
+    // distances depending on a class one line along.
+    const written = (tail) => {
+      const out = fig(`a box with a written pad ${tail}`, `box a "Authenticator" pad 0.2 ${tail} at 0,0`);
+      if (!out) return null;
+      const font = tail === '{.small}' ? DG_FONT * 0.8 : DG_FONT;
+      return (+attrOf(out, 'a--r', 'height') - dgMeasure('Authenticator', font, false).h) / 2;
+    };
+    ok(near(written('{.small}'), written('{.dashed}')),
+      'a written pad is the author\'s number and no class scales it',
+      `small ${written('{.small}')}, plain ${written('{.dashed}')}`);
+  }
+
   // ── word-valued defaults act, and the element's own word wins ─────
   // `default edge side bottom` used to be refused by the compiler ("side
   // expects a number") and accepted by the linter. Parsing it is half the
@@ -398,6 +444,61 @@ export async function run({ report }) {
       'box a "A" at 0,0\nbox b "B" right of a gap 0.5\nedge a -> b', 'unit=120x72');
     ok(writtenJoined != null && Math.abs(writtenJoined - 0.5 * 72) < 0.01,
       'and an edge does not widen it', `${writtenJoined} px against 36`);
+
+    // ── lh: the ruler the rules are stated in, addressable ──────────
+    // The default gap is a count of label heights and an author could not say
+    // one: a number of rows is whatever the opener says, so the spacing that
+    // held on a 150x52 grid had to be worked out again on a 20x20 one. `lh` is
+    // that number written down. Both halves matter – the same token is the
+    // same distance on two grids, and it is not the row distance on either.
+    const lhWide = gapOf('a gap in label heights on a 72-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5lh', 'unit=120x72');
+    const lhNarrow = gapOf('the same token on a 20-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5lh', 'unit=20x20');
+    ok(lhWide != null && Math.abs(lhWide - 1.5 * DG_LABEL_H) < 0.02,
+      'gap 1.5lh is 1.5 base label heights', `${lhWide} px against ${1.5 * DG_LABEL_H}`);
+    ok(lhWide != null && lhNarrow != null && Math.abs(lhWide - lhNarrow) < 0.02,
+      'and the opener does not decide it', `${lhWide} px on 120x72, ${lhNarrow} px on 20x20`);
+    // The control, and the whole reason the suffix exists: the bare number is
+    // still rows, and on these two grids that is two different distances.
+    const rowsWide = gapOf('a bare gap on a 72-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5', 'unit=120x72');
+    const rowsNarrow = gapOf('the same bare gap on a 20-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5', 'unit=20x20');
+    ok(rowsWide != null && Math.abs(rowsWide - 1.5 * 72) < 0.01
+      && rowsNarrow != null && Math.abs(rowsNarrow - 1.5 * 20) < 0.01,
+      'while a bare gap is still rows, and rows still follow the opener',
+      `${rowsWide} px on 120x72, ${rowsNarrow} px on 20x20`);
+    // An `lh` gap is a gap the author wrote, so the joined-pair default must
+    // not reach it either.
+    const lhJoined = gapOf('an lh gap on a joined pair',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.4lh\nedge a -> b', 'unit=120x72');
+    ok(lhJoined != null && Math.abs(lhJoined - 0.4 * DG_LABEL_H) < 0.02,
+      'and an edge does not widen an lh gap either – it is a number the author wrote',
+      `${lhJoined} px against ${0.4 * DG_LABEL_H}`);
+    // The same suffix on a `pad`, on the element's own line and in a `default`
+    // layer. The layer is the case the suffix was written for: `draw-defaults`
+    // is read once for a deck and applied to blocks whose openers differ.
+    const padH = (what, body, head) => {
+      const out = fig(what, body, head);
+      return out && +attrOf(out, 'a--r', 'height');
+    };
+    const padWide = padH('pad in label heights on a 72-row grid',
+      'box a "Authenticator" pad 0.5lh at 0,0', 'unit=120x72');
+    const padNarrow = padH('the same pad on a 20-row grid',
+      'box a "Authenticator" pad 0.5lh at 0,0', 'unit=20x20');
+    ok(padWide != null && Math.abs(padWide - DG_LABEL_H * 2) < 0.01 && padWide === padNarrow,
+      'pad 0.5lh is half a label on each side, on any grid',
+      `${padWide} vs ${padNarrow}, label ${DG_LABEL_H}`);
+    const layered = padH('a default layer stating its pad in label heights',
+      'default box pad 0.5lh\nbox a "Authenticator" at 0,0', 'unit=20x20');
+    ok(layered === padWide, 'and a default layer may state one', `${layered} vs ${padWide}`);
+    // A row's own gap takes the suffix too, because it is the same gap: a
+    // member with no placement of its own is placed with it.
+    const rowGap = gapOf('a row stating its gap in label heights',
+      'box a "A" at 0,0\nbox b "B"\nrow a, b gap 2lh', 'unit=20x20');
+    ok(rowGap != null && Math.abs(rowGap - 2 * DG_LABEL_H) < 0.02,
+      'a row may state its gap in label heights', `${rowGap} px against ${2 * DG_LABEL_H}`);
 
     // The default for a *labelled* edge holds the label as well, which is what
     // turns the clip warning below into a report about a number the author
@@ -1020,6 +1121,66 @@ export async function run({ report }) {
     ok(n === 2, 'a label still breaks its lines at \\n', `${n} line(s) drawn`);
   }
 
+  // ── a whole line in the quiet mark is a second register ───────────
+  // A question over the verb that answers it, written as two `text` elements,
+  // cannot be centred on the cell it labels: each is anchored to the cell's
+  // centre line on its own, so a two-line question over a one-line verb stands
+  // half a line too high and the author moves the split by hand. As one label
+  // it is one block. The rule is the whole line, in a label of more than one:
+  // a register exists in contrast to another register.
+  {
+    const lines = (out) => [...String(out).matchAll(/<tspan x="0"([^>]*)>([^<]*)</g)].map(m => ({
+      size: (m[1].match(/font-size="([\d.]+)"/) || [])[1] ? +m[1].match(/font-size="([\d.]+)"/)[1] : null,
+      cls: (m[1].match(/class="dg-(\w+)"/) || [])[1] || '',
+      text: m[2],
+    }));
+    const two = fig('a question over a verb',
+      'text t "Wer macht es grün?\\n~abfedern~" at 0,0');
+    const L = two ? lines(two) : [];
+    ok(L.length === 2 && L[0].size === null && L[1].size === DG_FONT * DG_QUIET_SCALE
+      && L[1].cls === 'mu',
+      'a whole line in the quiet mark is drawn smaller and muted',
+      JSON.stringify(L));
+    // The block is still centred on its origin, so the split moves itself: the
+    // same spelling on a two-line question needs no different numbers.
+    const box = (out) => {
+      const m = String(out).match(/id="dg1-t--l0"[\s\S]*?<\/g>/);
+      const ys = [...String(m && m[0]).matchAll(/<tspan x="0" y="(-?[\d.]+)"/g)].map(x => +x[1]);
+      return ys;
+    };
+    const short = box(two);
+    const long = box(fig('the same spelling on a two-line question',
+      'text t "Was lernt die\\nOrganisation daraus?\\n~lernend hervorgehen~" at 0,0'));
+    // The block's own top and bottom, reconstructed from the first and last
+    // baselines and the two line heights the label has. It is centred when
+    // they sum to zero, which is what makes the split move itself: the same
+    // spelling on a one-line and on a two-line question needs no new numbers.
+    const lh = DG_FONT * 1.25, qlh = DG_FONT * DG_QUIET_SCALE * 1.25;
+    const off = (ys) => (ys[0] - (lh / 2 + DG_FONT * 0.34))
+      + (ys[ys.length - 1] + qlh / 2 - DG_FONT * DG_QUIET_SCALE * 0.34);
+    ok(short && long && short.length === 2 && long.length === 3
+      && Math.abs(off(short)) < 0.01 && Math.abs(off(long)) < 0.01,
+      'and the block stays centred on its origin whichever line count it has',
+      `${JSON.stringify(short)} off by ${short && off(short).toFixed(3)},`
+      + ` ${JSON.stringify(long)} off by ${long && off(long).toFixed(3)}`);
+    // Three controls, because a register that fired where it should not would
+    // shrink text nobody asked to shrink.
+    const oneLine = fig('a single line entirely in the mark', 'text t "~just muted~" at 0,0');
+    ok(oneLine && lines(oneLine).length === 1 && lines(oneLine)[0].size === null,
+      'a single-line label in the mark is still only muted – one line has nothing to contrast with',
+      JSON.stringify(oneLine && lines(oneLine)));
+    const partial = fig('a marked run inside a line',
+      'text t "a ~muted~ word\\nsecond line" at 0,0');
+    ok(partial && lines(partial).every(l => l.size === null),
+      'and a marked run that is not the whole line changes no size',
+      JSON.stringify(partial && lines(partial)));
+    const plain = fig('a plain two-liner', 'box b "one\\ntwo" at 0,0');
+    const plainYs = plain ? [...plain.matchAll(/<tspan x="0" y="(-?[\d.]+)"/g)].map(x => +x[1]) : [];
+    ok(plainYs.length === 2 && Math.abs(plainYs[1] - plainYs[0] - DG_FONT * 1.25) < 0.01,
+      'and a label with no second register sits on exactly the baselines it always did',
+      JSON.stringify(plainYs));
+  }
+
   // ── anchor: which point of the element meets the coordinate ───────
   // The defect it repaired was a row of labels that is not a row: `.left`
   // aligned the lines inside each free text's own box while the box stayed
@@ -1196,6 +1357,44 @@ export async function run({ report }) {
     ok(plain && Math.abs(rowH(plain) - 0.42 * 52) < 0.01,
       'a table with no size class draws exactly the row height it always did',
       String(rowH(plain)));
+    // ── same as: two tables, one set of columns ─────────────────────
+    // `#vorgang` on a keynote wrote `col 1.7,2.0,0.12` twice so two stacked
+    // tables would line up, in two places nothing said were meant to be equal.
+    // What is copied is the widths *and* the space between them, because a
+    // column's position is both numbers; the rows stay the copying table's own.
+    {
+      const cell = (out, id) => [attrOf(out, id, 'x'), attrOf(out, id, 'width')];
+      const two = fig('two tables sharing columns',
+        'table a "A|B|C" at 0,0 col 1.7,2,0.12 space 0.1\n  "1|2|3"\n'
+        + 'table b "D|E|F" same as a below a gap 0.5\n  "4|5|6"\n  "7|8|9"', 'unit=150x52');
+      const cols = [0, 1, 2];
+      ok(two && cols.every(c => String(cell(two, `a-${c}-0--r`)) === String(cell(two, `b-${c}-0--r`))),
+        'a table written "same as" another stands its columns at the same x and width',
+        two ? cols.map(c => cell(two, `a-${c}-0--r`) + ' vs ' + cell(two, `b-${c}-0--r`)).join(' | ') : 'not drawn');
+      ok(two && hasEl(two, 'b-0-2') && !hasEl(two, 'a-0-2'),
+        'and keeps its own rows – it copied the columns, not the table',
+        'the copying table did not get its third row');
+      // A written `space` wins, the way a written number wins everywhere else.
+      // Measured as the paper between two columns rather than as an x: a table
+      // is centred on its placement, so a different space moves both columns.
+      const own = fig('a copied table with a space of its own',
+        'table a "A|B" at 0,0 col 1,2 space 0.1\n  "1|2"\n'
+        + 'table b "D|E" same as a space 0.6 below a gap 0.5\n  "4|5"', 'unit=150x52');
+      const between = (out, t) => +attrOf(out, `${t}-1-0--r`, 'x')
+        - (+attrOf(out, `${t}-0-0--r`, 'x') + +attrOf(out, `${t}-0-0--r`, 'width'));
+      ok(own && Math.abs(between(own, 'a') - 0.1 * 52) < 0.01
+        && Math.abs(between(own, 'b') - 0.6 * 52) < 0.01,
+        "and the copying table's own space still wins over the copied one",
+        own ? `${between(own, 'a')} vs ${between(own, 'b')}` : 'not drawn');
+      // The other half of that pair: with no space of its own, the copy takes
+      // the copied one – a column's position is the widths *and* the space.
+      const inherited = fig('a copied table with no space of its own',
+        'table a "A|B" at 0,0 col 1,2 space 0.4\n  "1|2"\n'
+        + 'table b "D|E" same as a below a gap 0.5\n  "4|5"', 'unit=150x52');
+      ok(inherited && Math.abs(between(inherited, 'b') - 0.4 * 52) < 0.01,
+        'and with none of its own it takes the copied space too',
+        inherited ? String(between(inherited, 'b')) : 'not drawn');
+    }
     // ── one alignment per column ────────────────────────────────────
     // A `table`'s tail lands on the **cells**, so an alignment word written
     // there reaches all of them – which is right for a table of prose and

@@ -1299,20 +1299,44 @@ export function dgSpans(text) {
   return out;
 }
 
+// **A line of a label written entirely in the quiet mark is a second
+// register**, set at this factor of the label's own type. It is the same 0.8
+// `.small` is, deliberately: a figure has one small size and inventing a
+// second would put two nearly equal sizes on one drawing.
+//
+// The construction it exists for is a question over a verb – a row label whose
+// first line asks and whose second names what answers it. Written as two `text`
+// elements it cannot be centred on the cell it belongs to: each one is anchored
+// to the cell's centre line on its own, so a two-line question over a one-line
+// verb stands half a line too high and the author moves the split by hand
+// (`cy-0.1` / `cy+0.1` on one row, `cy+0.5` / `cy+0.7` on the next). As one
+// label it is one block and the centring is the ordinary one.
+//
+// **Only in a label of more than one line**, which is the whole rule and not a
+// guard: a register exists in contrast to another register, and a single line
+// has nothing to contrast with – there `~…~` stays what it has always been, the
+// muted colour, and `{.small}` is how a whole label is made small. The colour
+// comes along either way, because the span already carries `dg-mu`.
+export const DG_QUIET_SCALE = 0.8;
+function dgQuietLine(spans) {
+  return spans.length > 0 && spans.every(s => s.cls === 'mu');
+}
 export function dgMeasure(label, fontPx, mono) {
   const lines = String(label ?? '').split('\n');
-  let maxW = 0;
+  let maxW = 0, h = 0;
   const laid = lines.map(ln => {
     const spans = dgSpans(ln);
+    const scale = lines.length > 1 && dgQuietLine(spans) ? DG_QUIET_SCALE : 1;
     let w = 0;
     for (const s of spans) {
-      const size = s.shift ? fontPx * 0.72 : fontPx;
+      const size = (s.shift ? fontPx * 0.72 : fontPx) * scale;
       for (const ch of s.t) w += (mono ? 0.6 : dgCharW(ch)) * size;
     }
     if (w > maxW) maxW = w;
-    return spans;
+    h += fontPx * scale * DG_LINE_H;
+    return { spans, scale };
   });
-  return { w: maxW, h: lines.length * fontPx * DG_LINE_H, lines: laid, count: lines.length };
+  return { w: maxW, h, lines: laid, count: lines.length };
 }
 
 // Height-to-width of an asset, so an author can give `w` and let the other
@@ -1430,10 +1454,24 @@ export function dgFontFor(classes) {
 // How far a box's outline sits from its own label, in px. `pad` states it in
 // grid units and, like the container's, is measured in uh on both axes –
 // otherwise the same word would mean two distances depending on which
-// statement it sat on. Without it the default stays the asymmetric px pair,
+// statement it sat on. Without it the default is the asymmetric px pair,
 // because 13/9 is typographic taste rather than a point on the grid.
-export function dgPadPx(pad, uh) {
-  return pad != null ? [pad * uh, pad * uh] : [DG_PAD_X, DG_PAD_Y];
+//
+// **And the taste is measured in the label's own type, not in pixels.** The
+// pair is `DG_PAD_X` / `DG_PAD_Y` *scaled by the element's font*, which is the
+// construction `DG_ROW_H` already uses for a table row: `dgFontFor` returns
+// `DG_FONT` for a label carrying no size class, so the factor is exactly 1 and
+// every existing drawing is byte-identical. What moves is the two classes that
+// change the type – a `.large` box sat in the same 13 px a base label gets and
+// read tight, a `.small` one floated in more air than its letters are tall –
+// and a `.large` table, whose cells are boxes like any other. `pad N` stays the
+// override and is deliberately *not* scaled: a number in grid units is a
+// statement about the grid, and scaling it would make the same number mean two
+// distances depending on a class.
+export function dgPadPx(pad, uh, font = DG_FONT, unit = null) {
+  if (pad != null) { const p = dgUnitPx(pad, unit, uh); return [p, p]; }
+  const k = font / DG_FONT;
+  return [DG_PAD_X * k, DG_PAD_Y * k];
 }
 
 // The clearance a relational placement actually draws, in px. Two units meet
@@ -1444,7 +1482,7 @@ export function dgPadPx(pad, uh) {
 // already, with both edits compiling and neither saying anything.
 export function dgGapPx(place, uh) {
   if (!place) return 0;
-  if (place.gap != null) return place.gap * uh;
+  if (place.gap != null) return dgUnitPx(place.gap, place.gapUnit, uh);
   return (place.gapAuto ?? DG_GAP_PLAIN) * DG_LABEL_H;
 }
 
@@ -1695,6 +1733,42 @@ export function dgNum(tok, errors, lineNo, what) {
   return n;
 }
 
+// **A clearance may be written in label heights, and `lh` is the suffix.**
+// `gap 1.5lh`, `pad 0.6lh`. A bare number is a count of grid rows, which is
+// whatever the opener says – 20 px on `20x20`, 40 on `120x40`, 72 on the
+// default grid – so the same `0.4` is four different distances across four
+// figures of one deck. The label height (`DG_LABEL_H`) is the one ruler a
+// drawing carries whatever its opener says, it is the unit the default gap is
+// already stated in (`DG_GAP_PLAIN`, `DG_GAP_JOINED`) and the unit every
+// spacing rule in `figure-design.md` is written in, and until now an author
+// could not address it: the numbers that made a rule hold on a `150x52` grid
+// had to be worked out again on a `20x20` one. `gap 1.5lh` is the same
+// clearance on both.
+//
+// Returned as the number and its unit rather than reduced to rows here,
+// because the reduction needs the grid and the lecture-wide `draw-defaults`
+// layer has none: it is read once for a deck and applied to blocks whose
+// openers differ. The two units are spent in one function each – `dgGapPx` for
+// a gap, `dgUnitPx` for everything else – which is the property the grammar
+// already had and the reason a third unit costs two lines rather than twenty.
+export const DG_LH = 'lh';
+export function dgLen(tok, errors, lineNo, what) {
+  const s = String(tok ?? '');
+  if (s.length > 2 && s.endsWith(DG_LH)) {
+    const head = s.slice(0, -2);
+    if (Number.isFinite(Number(head))) return { n: Number(head), unit: DG_LH };
+  }
+  return { n: dgNum(s, errors, lineNo, what), unit: null };
+}
+
+// One length, two rulers. A bare number is a count of grid rows, measured in
+// `uh` on both axes the way `pad` has always been; the same number with `lh`
+// on it is a count of base label heights. Every consumer of a written `pad`
+// goes through here, so the two units are spent once.
+export function dgUnitPx(n, unit, uh) {
+  return n * (unit === DG_LH ? DG_LABEL_H : uh);
+}
+
 // `mix`, `mix.right`. An unknown anchor is an error rather than a silent
 // fallback to centre, because a diagram whose arrows all quietly meet in
 // the middle of a box is exactly the failure that looks like a layout bug.
@@ -1836,7 +1910,13 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
   while (next < toks.length) {
     const key = t(next);
     if (key === 'gap' && (place.kind === 'rel' || place.kind === 'in')) {
-      place.gap = dgNum(t(next + 1), errors, lineNo, 'gap'); next += 2; continue;
+      // `gap 0.4` is rows and `gap 0.4lh` is label heights; both are a gap the
+      // author wrote, so `place.gap != null` still means what every other
+      // reader of it takes it to mean, and `dgGapPx` spends the unit.
+      const g = dgLen(t(next + 1), errors, lineNo, 'gap');
+      place.gap = g.n;
+      place.gapUnit = g.unit;
+      next += 2; continue;
     }
     // The band's own alignment words, bare and positional, because each says
     // one thing about one axis and a key would only repeat the word. `center`
@@ -2549,6 +2629,7 @@ const DG_EXTRA_FORMS = {
   brace: ['"over a,b,c"'],
   bars: ['"same as <chart>"', '"series of <chart>"'],
   plot: ['"same as <chart>"'],
+  table: ['"same as <table>", which copies its columns'],
 };
 // The three statements that place nothing: an edge is defined by its two ends,
 // and a container and a brace fit whatever they are given to hold.
@@ -2618,7 +2699,11 @@ export function readGridOpts(head, id, rest0, lineNo, errors) {
   while (k < rest.length) {
     const key = rest[k].v;
     if ((DG_BARE_OPTS[head] || []).includes(key)) { out[key] = true; k++; continue; }
-    if (key === 'same' && head === 'bars' && rest[k + 1] && rest[k + 1].v === 'as') {
+    // `same as X` on a `bars` copies a chart's frame; on a `table` it copies
+    // another table's columns. One word, one sentence – "this is the size that
+    // one is" – which is why it is read here rather than given a keyword of its
+    // own per statement.
+    if (key === 'same' && (head === 'bars' || head === 'table') && rest[k + 1] && rest[k + 1].v === 'as') {
       out.sameAs = rest[k + 2] ? rest[k + 2].v : '';
       k += 3;
       continue;
@@ -2691,7 +2776,7 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
     dgErr(errors, lineNo, `a second "default ${kind}${tagTok ? ' @' + tagTok : ''}" – there can only be one per ${scope} (the first is on line ${slot.line})`);
     return null;
   }
-  const def = { kind, tag: tagTok, classes: attrs.classes, removedClasses: attrs.removedClasses || [], w: null, h: null, r: null, pad: null, side: null, line: lineNo, span };
+  const def = { kind, tag: tagTok, classes: attrs.classes, removedClasses: attrs.removedClasses || [], w: null, h: null, r: null, pad: null, padUnit: null, side: null, line: lineNo, span };
   const opts = DG_KIND_OPTS[kind];
   const rest = body0.slice(tagTok ? 3 : 2);
   for (let k = 0; k < rest.length; k++) {
@@ -2703,6 +2788,15 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
         if (!words.includes(w)) {
           dgErr(errors, lineNo, `default ${kind}: ${key} expects ${words.join(' / ')}, got "${w ?? ''}"`);
         } else def[key] = w;
+      } else if (key === 'pad') {
+        // A layer's `pad` takes `lh` like a written one, and this is the one
+        // place the suffix earns its keep twice over: the lecture-wide
+        // `draw-defaults` layer is read once for a deck and applied to blocks
+        // whose openers differ, so a number of rows there is a different
+        // distance in every figure and a number of label heights is one.
+        const p = dgLen(rest[k + 1]?.v, errors, lineNo, key);
+        def.pad = p.n;
+        def.padUnit = p.unit;
       } else {
         def[key] = dgNum(rest[k + 1]?.v, errors, lineNo, key);
       }
@@ -3862,6 +3956,19 @@ export function createDiagramCompiler(env = {}) {
       const m = line.trim().match(/^(plot|bars)\s+([A-Za-z_][\w-]*)/);
       if (m) chartNames.add(m[2]);
     }
+    // The column widths every `table` settled on, by name, recorded as its own
+    // line is read - the same shape `frameSize` has and for the same reason: a
+    // table's cells are placed against its frame *at parse time*, so a width
+    // that arrived later would move the frame and leave the cells where the old
+    // numbers put them. `same as vg` therefore copies a table above it, and the
+    // refusal says so rather than reporting a name that plainly exists three
+    // lines down.
+    const tableCols = new Map();
+    const tableNames = new Set();
+    for (const line of lines) {
+      const m = line.trim().match(/^table\s+([A-Za-z_][\w-]*)/);
+      if (m) tableNames.add(m[1]);
+    }
     const sameAsFrame = (head2, id2, name, lineNo2) => {
       const got = frameSize.get(name);
       if (got) return got;
@@ -4059,12 +4166,16 @@ export function createDiagramCompiler(env = {}) {
         // comes first. A run placed in a zone is placed as one block, so `in`
         // belongs to the `row` line and not to its first member.
         const stop = [gi, ii].filter(i => i >= 0).reduce((a, b) => Math.min(a, b), toks.length);
-        let gap = null, inPlace = null;
+        let gap = null, gapUnit = null, inPlace = null;
         {
           let k = stop, bad = false;
           const words = [];
           while (k < toks.length && !bad) {
-            if (toks[k] === 'gap') { gap = dgNum(toks[k + 1], errors, lineNo, 'gap'); k += 2; continue; }
+            // Rows or label heights, the same pair a placement's own gap takes.
+            if (toks[k] === 'gap') {
+              const g = dgLen(toks[k + 1], errors, lineNo, 'gap');
+              gap = g.n; gapUnit = g.unit; k += 2; continue;
+            }
             if (toks[k] === 'in') {
               if (!toks[k + 1]) {
                 dgErr(errors, lineNo, `${head} … in expects the name of a zone`);
@@ -4094,7 +4205,7 @@ export function createDiagramCompiler(env = {}) {
             + 'which one element cannot be');
           continue;
         }
-        model.rows.push({ axis: head === 'row' ? 'x' : 'y', members, gap, inPlace, line: lineNo, span });
+        model.rows.push({ axis: head === 'row' ? 'x' : 'y', members, gap, gapUnit, inPlace, line: lineNo, span });
         continue;
       }
 
@@ -4230,7 +4341,7 @@ export function createDiagramCompiler(env = {}) {
           rowsRead = m + 1;
         }
         const body = rows.filter(Boolean);
-        const space = opts.space ?? 0;
+        let space = opts.space ?? 0;
         // `col` states one width per column and `w` states the total to be
         // divided equally – the same quantity said two ways. Both present, the
         // compiler read `col` and dropped `w` without a word. `bars` and `plot`
@@ -4242,19 +4353,60 @@ export function createDiagramCompiler(env = {}) {
           'semantic');
           continue;
         }
+        // **`same as X` takes another table's columns, and only its columns.**
+        // Two tables stacked so their columns line up used to mean writing the
+        // same `col 1.7,2.0,0.12` twice, in two places that had to be kept
+        // equal by hand and nothing to say they were meant to be – measured on
+        // a keynote's `#vorgang`. The rows stay the table's own, because rows
+        // are what the two tables differ in; what is copied is the widths
+        // **and the `space` between them**, because a column's *position* is
+        // both numbers and copying one of the pair lines up nothing. A `space`
+        // on this table's own line still wins, the way a written number wins
+        // everywhere else in this grammar.
+        let copied = null;
+        if (opts.sameAs) {
+          if ((opts.col && opts.col.length) || opts.w != null) {
+            dgErr(errors, lineNo, `table ${id}: "same as ${opts.sameAs}" takes the columns from `
+              + `another table, so "${opts.col && opts.col.length ? 'col' : 'w'}" says the same `
+              + 'thing a second way. Drop one.', 'semantic');
+            continue;
+          }
+          copied = tableCols.get(opts.sameAs);
+          if (!copied) {
+            const kind = model.byId.get(opts.sameAs) || (tableNames.has(opts.sameAs) ? 'table' : null);
+            dgErr(errors, lineNo, `table ${id}: "same as ${opts.sameAs}" `
+              + (kind === 'table'
+                ? `names a table declared below it. A table's cells are placed against its own frame as its line is read, so it can only copy one it has already seen - move ${opts.sameAs} above ${id}.`
+                : kind
+                  ? `names ${dgArticle(kind)} ${kind}, and a table can only take its columns from another table. Give it "col" or "w".`
+                  : 'names nothing in this block.'));
+            continue;
+          }
+          if (copied.cols.length !== heads.length) {
+            dgErr(errors, lineNo, `table ${id}: "same as ${opts.sameAs}" copies `
+              + `${copied.cols.length} column(s) and this heading has ${heads.length} – two tables `
+              + 'share their columns only where they have the same number of them.');
+            continue;
+          }
+          if (opts.space == null) space = copied.space;
+        }
         // And `w` is the **frame**, so it means on a table what it means on a
         // box. It used to be the sum of the *column* widths, so `w 4` and
         // `w 4 space 0.5` drew two different frames and the one number an
         // author reads as "how wide is this table" stopped being that number
         // the moment `space` was set.
-        const cols = opts.col && opts.col.length ? opts.col
-          : heads.map(() => (opts.w != null
-            ? (opts.w - space * (heads.length - 1)) / heads.length : DG_COL_W));
+        const cols = copied ? copied.cols.slice()
+          : opts.col && opts.col.length ? opts.col
+            : heads.map(() => (opts.w != null
+              ? (opts.w - space * (heads.length - 1)) / heads.length : DG_COL_W));
         if (opts.col && opts.col.length !== heads.length) {
           dgErr(errors, lineNo, `table ${id}: ${opts.col.length} width(s) in "col" for ${heads.length} `
             + 'column(s) – one number per column, separated by commas');
           continue;
         }
+        // Recorded whichever way the widths were arrived at, so a third table
+        // may copy the second and get what the first said.
+        tableCols.set(id, { cols: cols.slice(), space });
         for (const r of body) {
           if (r.cells.length !== heads.length) {
             dgErr(errors, r.line, `table ${id}: this row has ${r.cells.length} cell(s) and the heading `
@@ -5742,7 +5894,11 @@ export function createDiagramCompiler(env = {}) {
             node[key] = dgNum(rest[k + 1]?.v, errors, lineNo, key); k += 2; continue;
           }
           if (key === 'pad' && DG_KIND_OPTS[head].includes('pad')) {
-            node.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'pad'); k += 2; continue;
+            // Rows, or label heights under `lh`. `w`, `h` and `r` above take no
+            // suffix: those are the element's size, and a size is stated
+            // against the grid, while a padding is a clearance round type.
+            const p = dgLen(rest[k + 1]?.v, errors, lineNo, 'pad');
+            node.pad = p.n; node.padUnit = p.unit; k += 2; continue;
           }
           const [place, next, attempted] = dgParsePlacement(rest, k, errors, lineNo);
           if (place) { node.place = place; k = next; continue; }
@@ -5854,7 +6010,11 @@ export function createDiagramCompiler(env = {}) {
           const capId = dgZoneCapName(id);
           claim(capId, 'text', lineNo, true);
           const [zuw, zuh] = model.unit;
-          const zPad = node.pad != null ? node.pad : DG_ZONE_PAD;
+          // In rows, because everything below it is: an `lh` pad is divided
+          // back out by the row height here rather than at each of the six
+          // places the number is spent.
+          const zPad = node.pad != null
+            ? dgUnitPx(node.pad, node.padUnit, zuh) / (zuh || 1) : DG_ZONE_PAD;
           const padX = zPad * zuh / (zuw || 1);
           // The optical correction at the foot, in grid units: the caption is
           // set in its own classes, so the font it is measured against is the
@@ -6051,7 +6211,9 @@ export function createDiagramCompiler(env = {}) {
           // container and a brace: how far the outline sits from what it
           // encloses. On an edge what it encloses is the label's ground.
           if (body0[k].v === 'pad') {
-            edge.pad = dgNum(body0[k + 1]?.v, errors, lineNo, `edge ${id} pad`);
+            const p = dgLen(body0[k + 1]?.v, errors, lineNo, `edge ${id} pad`);
+            edge.pad = p.n;
+            edge.padUnit = p.unit;
             k++;
             continue;
           }
@@ -6130,7 +6292,10 @@ export function createDiagramCompiler(env = {}) {
               + `"side ${key}" – a bare "${key}" is one of the four words that also place a label.`);
             break;
           }
-          if (key === 'pad') { item.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'pad'); k++; continue; }
+          if (key === 'pad') {
+            const p = dgLen(rest[k + 1]?.v, errors, lineNo, 'pad');
+            item.pad = p.n; item.padUnit = p.unit; k++; continue;
+          }
           dgErr(errors, lineNo, dgUnexpected(head, id, key));
           break;
         }
@@ -6218,11 +6383,13 @@ export function createDiagramCompiler(env = {}) {
               // there is no placement on this element's own line, so there is
               // nothing for the editor to rewrite in place. A drag has to
               // write the placement out first – or move the row.
-              n.place = { kind: 'rel', dir, ref: prev, gap: r.gap ?? null, implicit: true, fromRow: r.line };
+              n.place = { kind: 'rel', dir, ref: prev, gap: r.gap ?? null, gapUnit: r.gapUnit ?? null,
+                implicit: true, fromRow: r.line };
               placedByRow.add(m);
             } else if (r.gap != null && n.place.kind === 'rel' && n.place.ref === prev
               && n.place.gap == null) {
               n.place.gap = r.gap;
+              n.place.gapUnit = r.gapUnit ?? null;
             }
           }
           prev = m;
@@ -6261,7 +6428,14 @@ export function createDiagramCompiler(env = {}) {
         for (const d of layers) if (d[key] != null) return d[key];
         return null;
       };
-      el.pad = layer('pad') ?? DG_PAD_DEFAULT;
+      // Resolved into rows here, whichever ruler said it, because a container
+      // and a brace each spend the number once and in one place. The layer
+      // that *stated* the pad is the layer whose unit applies, which is why
+      // the two are picked as one object rather than through two `layer`
+      // calls that could come back from different layers.
+      const src = el.pad != null ? el : layers.find(d => d.pad != null);
+      const [, elUh] = model.unit;
+      el.pad = src ? dgUnitPx(src.pad, src.padUnit, elUh) / (elUh || 1) : DG_PAD_DEFAULT;
       if (el.kind === 'brace') el.side = layer('side') ?? 'right';
     }
     const known = (id) => (id.startsWith('@') ? model.tags.has(id.slice(1)) : model.byId.has(id));
@@ -6535,7 +6709,14 @@ export function createDiagramCompiler(env = {}) {
         for (const d of layers) if (d[key] != null) return d[key];
         return null;
       };
-      const [padX, padY] = dgPadPx(pick('pad'), uh);
+      // The class-derived font and not the fitted one: `.fit` solves the type
+      // against a box whose padding is already settled, so reading the fitted
+      // size here would be a loop with no fixed point. The **unit** comes off
+      // whichever layer stated the pad, picked as one object rather than
+      // through a second `pick` that could answer from a different layer.
+      const padSrc = node.pad != null ? node : layers.find(d => d.pad != null);
+      const [padX, padY] = dgPadPx(padSrc ? padSrc.pad : null, uh, dgFontFor(classes),
+        padSrc && padSrc.padUnit);
       const nw = pick('w');
       const nh = pick('h');
       // Which axes are already spoken for, and so are not the chain's to set.
@@ -7102,7 +7283,7 @@ export function createDiagramCompiler(env = {}) {
           const band = (zb && zb.inner) || zb;
           if (!band) { cx = 0; cy = 0; }
           else {
-            const g = place.gap != null ? place.gap * uh : 0;
+            const g = place.gap != null ? dgUnitPx(place.gap, place.gapUnit, uh) : 0;
             const [gw, gh] = groupExtent(place, w, h);
             const x = place.ax === 'right' ? band.x + band.w - g - gw
               : place.ax === 'center' ? band.x + (band.w - gw) / 2
@@ -8392,9 +8573,14 @@ export function createDiagramCompiler(env = {}) {
         // where `pick` lives, so `default edge pad 0.2` would otherwise
         // parse, sit in the model and move nothing.
         const padLayers = dgDefaultLayers(model, 'edge', e.tags).reverse();
-        let ePad = e.pad;
-        if (ePad == null) for (const d of padLayers) if (d.pad != null) { ePad = d.pad; break; }
-        const [gx, gy] = dgPadPx(ePad, uh);
+        let ePad = e.pad, ePadUnit = e.padUnit;
+        if (ePad == null) {
+          for (const d of padLayers) if (d.pad != null) { ePad = d.pad; ePadUnit = d.padUnit; break; }
+        }
+        // `font` is this label's own, so the ground round a `.small` edge
+        // label is the same ring of paper a base one gets rather than a wider
+        // one – the same rule a box's padding follows.
+        const [gx, gy] = dgPadPx(ePad, uh, font, ePadUnit);
         // Beside the line, a grounded label has to clear its own *ground* and
         // not just its glyphs. Clearing the glyphs alone laid the rect back
         // across the line the label had been lifted off, which paints out the
@@ -8501,13 +8687,19 @@ export function createDiagramCompiler(env = {}) {
   // in the browser. Keeps the runtime free of any typesetting code.
   // ── diagram emission ────────────────────────────────────────────────
 
-  function dgTspans(spans, font, baseline) {
+  // `elFont` is the size on the `<text>` itself, so a span at exactly that size
+  // needs no attribute and every existing label emits the bytes it always did.
+  // A quiet line is drawn at `font` below it and has to say so, the same way a
+  // shifted span does – without that the smaller line inherited the full size
+  // and only its line box was small, which is a label sitting in a gap.
+  function dgTspans(spans, font, baseline, elFont = font) {
     const shiftPx = (s) => (s === -1 ? font * 0.26 : s === 1 ? font * -0.42 : 0);
     let prev = 0, first = true, out = '';
     for (const sp of spans) {
       const dy = shiftPx(sp.shift) - prev;
       prev = shiftPx(sp.shift);
-      const size = sp.shift ? ` font-size="${(font * 0.72).toFixed(2)}"` : '';
+      const px = sp.shift ? font * 0.72 : font;
+      const size = px === elFont ? '' : ` font-size="${px.toFixed(2)}"`;
       const pos = first ? ` x="0" y="${baseline.toFixed(2)}"` : '';
       const cls = sp.cls ? ` class="dg-${sp.cls}"` : '';
       out += `<tspan${pos}${dy ? ` dy="${dy.toFixed(2)}"` : ''}${size}${cls}>${escapeHtml(sp.t)}</tspan>`;
@@ -8532,11 +8724,18 @@ export function createDiagramCompiler(env = {}) {
     const anchor = classes.has('turn') ? 'middle'
       : anchorOverride
       || dgLabelAnchor(classes);
-    const lineH = font * DG_LINE_H;
-    const top = -((m.count - 1) * lineH) / 2;
+    // Laid out line by line rather than on one pitch, because a quiet line is
+    // set smaller and takes a smaller line box with it. The block is centred on
+    // its origin whatever its lines are: the baselines walk down from the top
+    // of the measured block, and with every line at scale 1 the arithmetic is
+    // exactly the old `top + i * lineH`, so a label with no second register
+    // draws the bytes it always did.
+    let y = -m.h / 2;
     let inner = '';
-    m.lines.forEach((spans, i) => {
-      inner += dgTspans(spans, font, top + i * lineH + font * 0.34);
+    m.lines.forEach(({ spans, scale }) => {
+      const lh = font * scale * DG_LINE_H;
+      inner += dgTspans(spans, font * scale, y + lh / 2 + font * scale * 0.34, font);
+      y += lh;
     });
     return `<g id="${id}" class="dg-lbl${extraClass ? ' ' + extraClass : ''}">`
       + `<text text-anchor="${anchor}" font-size="${font.toFixed(2)}"${mono ? ' class="dg-mono"' : ''}>${inner}</text></g>`;
