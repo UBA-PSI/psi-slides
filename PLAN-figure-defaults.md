@@ -566,6 +566,30 @@ engine made it harder than it should be, ordered by time cost. It confirms
    head length either way).
 5. The label-height is the deck's real unit of spacing and is not addressable
    – a `lh` suffix on `gap` and `pad`.
+
+   **Landed, and the editor lost the unit on a drag** – reproduced in a
+   browser on `lectures/network-security#ns-b22`: dragging `lfw` half a cell
+   down turned `below ufw gap 5lh` into `below ufw gap 4.4`, a number in
+   rows. The drawing was right, the spelling was gone: the next author to
+   change the grid moves that box and not its neighbours. Reading the editor
+   for every place that writes a `gap` found the same loss in six more, two
+   of which are worse because they *move the drawing*: they pass the parsed
+   `place.gap` – the number of label heights – back through `dgePlaceText`
+   with no unit, so it is read as rows.
+
+   - the drag along a relation's main axis (`dgePlanDrag`) – writes rows;
+   - re-docking past the reference's edge (`dgeRedock`) – writes rows;
+   - the `side` swatches and the `of` field in the panel – write `5` for
+     `5lh`, a different distance;
+   - `dgeRelText`, which a step's `move … to` goes through – the same;
+   - the dock chip, which keeps "the distance the element already kept" – the
+     same;
+   - the `gap` field shows the gap in rows and refuses `0.6lh` as not a
+     number, and the `in` band's gap field writes rows too;
+   - the sibling-gap guide reads `Number("0.6lh")`, gets NaN, and so never
+     offers an `lh` gap as the one to match.
+
+   `pad` is not reachable from the editor, so it has nothing to lose.
 6. No per-figure slack report: `--check-fit` speaks only past the canvas; a
    line per figure with canvas, drawing and slack per axis is information the
    build already has.
