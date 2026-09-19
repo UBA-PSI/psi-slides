@@ -13,13 +13,15 @@ from building the same way is a major version.
   the live views a `::: draw` figure used to fill its column whatever that
   did to its type, and auto-fit then grew the slide's words up to 2.2x while
   the drawing stayed put – measured on a keynote at 1600x900: body 51 px,
-  footnote 40 px, figure labels 16–27 px. The svg is now sized from the type
-  the way print already did (`--dg-type-w` × the body's em, capped by the
-  column and the height budget), a figure that has hit its column is a stop
-  for auto-fit, `style: {figure-type: 0.6–1.6}` scales the relation for a
-  deck, and two warnings say when a drawing is too dense for a room:
-  `figure-type-small` at build time from measured column widths, and a
-  label-to-body report from `--check-fit`. **This moves what an existing
+  footnote 40 px, figure labels 16–27 px. A figure's base label now lands at
+  body size, on the fixed canvas described under *A figure is drawn on a
+  canvas* below; a drawing too large for its canvas is a stop for auto-fit
+  and takes its own slide's type down with it, `style: {figure-type:
+  0.6–1.6}` scales the relation for a deck and `{.figure-type-N}` for one
+  chunk, and the build and `--check-fit` say when a drawing is too dense for
+  a room: `figure-overflows-canvas`, `figure-type-small` where the labels
+  land under what a back row reads, and a label-to-body report and a
+  body-type median in `--check-fit`. **This moves what an existing
   deck renders**: figures that were larger than the running text shrink to
   it, and the words on a slide with a dense figure come down to the figure.
 - **`.full` is wider than `.wide`.** The 14% frame padding clipped both to
@@ -56,22 +58,6 @@ from building the same way is a major version.
   abbreviation.
 - **`--frames` and `--check-fit` wait for the slide to stop animating**
   before a screenshot; a backdrop's 620 ms reveal used to be caught halfway.
-
-### Fixed
-
-- **A chunk that ends with a `---` keeps its chunk notes on beat 1.** The
-  cue cards file a `> note:` block by the segment it stands in, unless every
-  note of the chunk sits in its last segment – the shape every deck written
-  before the positional rule has, which is why those notes are the chunk's
-  and are said on beat 1. Since "every `---` is a beat" landed, a trailing
-  separator with nothing after it – the slide standing while the speaker says
-  the next thing – ships an empty segment last, and the rule measured itself
-  against that one: the notes were filed on the chunk's last click instead,
-  and nothing warned. The rule now reads the last segment with **words** in
-  it. One shape answers differently on purpose: a note standing alone behind
-  a `---` is no longer in the last segment, so it keeps its position and is
-  said on the beat that separator opens – which is what the separator was
-  written for. No lecture in `lectures/` moves.
 
 ### Changed (drawings, unreleased)
 
@@ -156,16 +142,17 @@ from building the same way is a major version.
   gets a fixed box: the column wide, sixteen label-heights tall, labels at
   body size. A drawing inside it is never scaled and its slide settles at
   the zoom every other figure slide gets – one heading size, one figure box
-  across a deck. This replaces sizing the box from the drawing's label
-  count, which made every figure slide settle at its own zoom. A drawing
+  across a deck, where a box sized from the drawing's own extent made
+  every figure slide settle at a zoom of its own. A drawing
   wider or taller than the canvas is scaled to fit and warned
   (`figure-overflows-canvas`, with the overshoot per axis); one using less
   than half the area is warned (`figure-underfills-canvas`).
   `::: draw frame WxH` and a `frame WxH` / `frame none` line in
   `draw-defaults` are the deliberate exceptions; `lectures/diagrams` and
   the figure manual decline the canvas because they are catalogues. The
-  editor draws the canvas as a dashed rectangle. `figure-type-uneven` is
-  gone; `figure-type` now says how many labels the canvas holds.
+  editor draws the canvas as a dashed rectangle. `figure-type` says how
+  many labels the canvas holds, since the canvas is the column at the
+  label size it sets.
   A stacked divider (`# Heading {.stack}`) is on a canvas too – `.full`
   wide and 20 labels tall, the 0.72 of the slide its rule allows.
 - **A cover's figure is not in a text column, so it is not on a canvas.**
@@ -221,8 +208,13 @@ from building the same way is a major version.
   beat 0; a child too large for a written band warns, and a text hung off
   a container member that lands inside the container's outline warns.
 - **A picture slide opens centred.** A chunk whose body is one drawing or
-  one image and nothing else, or a `statement:`, frames what it paints;
-  `{.middle}` and `{.top}` are the explicit words. A stacked divider keeps
+  one image and nothing else, or a `statement:`, frames what it paints:
+  the camera centres what the beat on screen paints rather than the box the
+  reveals will fill, so a short first beat sits in the middle of the frame,
+  at the cost of a camera glide per press. Every other chunk keeps its head
+  at the top. `{.middle}` and `{.top}` on a chunk override that in either
+  direction; a `::: footnote`, `::: marginalia` or `::: expand` does not
+  count against the shape. A stacked divider keeps
   its heading as a heading. A `statement:` paragraph set entirely in
   italic is the quiet line. `hyphenate: all` leaves centred prose,
   dividers and address-like tokens alone.
@@ -258,9 +250,8 @@ from building the same way is a major version.
   that carry the pair are the only computed styles that change.
 - **`.left` / `.right` on a free text at a coordinate anchors it on that
   edge.** It used to centre the block on the point and the author wrote
-  `anchor left` 37 times in one deck; the two warnings that existed only
-  for that are gone, and a block that meant the old centring says `anchor
-  center`.
+  `anchor left` 37 times in one deck. A block that means the centring says
+  `anchor center`.
 - **The ink edge is what a reader can see.** `blocks: left` aligns a figure
   by its leftmost painted element, skipping frames that draw neither
   outline nor fill (a `.bare .clear` table), and `flush left` on a relative
@@ -274,9 +265,8 @@ from building the same way is a major version.
 - **An edge label its own line runs through gets a paper halo.**
 - **A `::: footnote` never hyphenates on the projection** and wraps
   `pretty`, or `balance` on a `.center` chunk; print keeps its hyphens.
-- **A `.left` / `.right` text placed against an element it misses** and an
-  elbow rail running along a box's seam are compiler warnings naming the
-  fix. `edge 0,1.5 -> box`, an edge from a free coordinate, is documented –
+- **An elbow rail running along the side of a box** is a compiler warning
+  naming the fix. `edge 0,1.5 -> box`, an edge from a free coordinate, is documented –
   it always worked and no document said so.
 - `--check-fit` measures what the camera framed (a `.middle` chunk no
   longer reports a phantom overflow) and reports each figure's canvas fill.
@@ -299,8 +289,12 @@ from building the same way is a major version.
   `> note:` bought no click. The source's count is the deck's count now;
   an empty segment paints nothing new and a footnote, a note, a backdrop
   place or an overlay `from` rides it. `lint.js` counts beats the way the
-  build does and warns `empty-beat` for a `---` nothing rides;
-  `note-in-empty-beat` is gone with the drop it described. A cover slide is
+  build does and warns `empty-beat` for a `---` nothing rides. A chunk
+  that ends with a `---` and nothing after it keeps its chunk notes on beat
+  1: the cue cards treat the notes of a chunk as the chunk's when they all
+  stand in its last segment **with words in it**, so the trailing empty
+  segment does not move them to the last click, while a note standing alone
+  behind a `---` is said on the beat that separator opens. A cover slide is
   the one exception in both files: `renderTitleChunk` draws a `title:` or
   `closing:` chunk from `body`, which is the segments joined, so a `---`
   there leaves no rule, no segment and no click. `lint.js` counted its
@@ -330,30 +324,25 @@ from building the same way is a major version.
 - **Speaker notes under a `#` heading belong to that divider**; they used
   to move silently to the next chunk. **`# Heading {.stack}`** puts a
   divider's figure under the heading at full width instead of beside it.
-- **`::: draw`:** `anchor tl|t|tr|l|c|r|bl|b|br` on a placement, `zone name
-  at X,Y w W h H "Label"` for a fixed area children stand in, `unheaded` on
-  a `table`, a row height that follows `.large`, `.bare` with `.dashed`
-  refused (it drew nothing), and `_` / `^` inside a word left literal so
-  `hausarbeit_final.pdf` is drawn as typed. `lint.js` warns
-  `diagram-ragged-labels` for `.left` texts that share an `at` x without an
-  anchor.
+- **`::: draw`:** `anchor tl|top|tr|left|center|right|bl|bottom|br` on a
+  placement, `zone name at X,Y w W h H "Label"` for a fixed area children
+  stand in, `unheaded` on a `table`, a row height that follows `.large`,
+  `.bare` with `.dashed` refused (it drew nothing), and `_` / `^` inside a
+  word left literal so `hausarbeit_final.pdf` is drawn as typed.
 - **`--optimize-images` sees `::: backdrop`, `cover-image:` and
   `closing-image:`**, downscales a photograph to 2560 px when WebP q92
   alone leaves it over the cap, and reports per asset.
-- `lint.js`: `note-in-empty-beat` no longer fires on a note beside the
-  heading; `bad-section-stack`, `oversized-asset` on frontmatter images.
-- **`{.middle}`** on a chunk: the camera frames what the beat paints rather
-  than the box the reveals will fill, so a short first beat sits centred.
-  Opt-in, because it costs a camera glide per press.
+- `lint.js`: `bad-section-stack`, and `oversized-asset` on frontmatter
+  images.
 - **`{.figure-type-60}` … `{.figure-type-160}`** answer `style: {figure-type}`
-  for one chunk; the build warns `figure-type-uneven` when a slide's settled
-  body type falls more than 15% under the deck's median, and `--check-fit`
-  names those slides with the multiplier that answers it.
+  for one chunk. `--check-fit` prints the deck's median settled body type
+  and names every figure slide more than 15% under that, with what answers its
+  case: less in the drawing or `frame WxH` for a figure over its canvas,
+  `{.figure-type-N}` for one that has no canvas, and the rest of the slide
+  where the figure fits.
 - **`# Heading {.stack .bare}`**: a stacked divider gets the `.full` measure
   and `.bare` takes its heading off the slide while TOC, outline, cockpit
   and search keep it.
-- **A `.left` / `.right` text aimed at an element it misses** is a compiler
-  layout warning naming the overshoot and `anchor left`.
 - `--check-fit` lists every chunk taller than the frame by name.
 
 - **Inline code in running text is now spaced and sized against the prose
@@ -552,15 +541,15 @@ from building the same way is a major version.
   a chunk's `{#id}` is still optional in the build (`--allow-missing-ids`
   silences the linter's `missing-id` while a talk is being sketched).
 
-- **A reveal reserves its space, everywhere, and `style: {reveal: …}` is
-  gone.** A top-level `---` used to close up so the chunk grew a block per
-  press, while a `---` inside a pane, a card row or an overlay kept its box –
-  so one mark meant two things depending on how deep it sat, and the key
-  existed to buy the nested behaviour for the top level. Reserving is now
-  what a reveal is: the chunk stands at its final height from beat 0 and the
-  words fade in where they were going to be. A deck that still writes the key
-  is refused by the build and by `lint.js`, with a message saying what
-  replaced it. Measured over seven lectures before the change, the set of
+- **A reveal reserves its space, everywhere.** A top-level `---` used to
+  close up so the chunk grew a block per press, while a `---` inside a pane,
+  a card row or an overlay kept its box – so one mark meant two things
+  depending on how deep it sat. Reserving is now what a reveal is: the chunk
+  stands at its final height from beat 0 and the words fade in where they
+  were going to be. `style: {reveal: hold}`, which bought this for one deck
+  while the question was open, never reached a release; a deck that writes
+  it is refused by the build and by `lint.js`, with a message saying to
+  delete the key. Measured over seven lectures before the change, the set of
   chunks taller than the frame is identical either way, because the last beat
   shows every segment under both rules – so no slide that fitted stopped
   fitting. What does change is that a slide whose later beats are long now
@@ -834,8 +823,7 @@ from building the same way is a major version.
   one segment, so no `---` can be written between two of them. Built for a
   45-minute keynote with a written-out script and minimal slides.
   `cue-cards.mjs` is the grammar, spliced into the cockpit as text;
-  `note-in-empty-beat` and `note-from-beyond` are the linter's two new
-  warnings.
+  `note-from-beyond` is the linter's new warning.
 - **The clock is a button over the stage,** large and tabular, and a click
   restarts it at 0:00 – the word RESET appears in it on hover, because a
   clock that jumps to zero under a stray click reads as a fault unless the
@@ -1083,17 +1071,11 @@ from building the same way is a major version.
   through two panes and a card row; rows one at a time) – and the dock part
   grew a `.wide` chunk with two columns beside the dock, a band at the head
   and the slot card; the overlay slot card names `shape` and `height`.
-  `lectures/frame-lab/` stays as the untracked edge-case deck, now built
-  with `style: {reveal: hold}`.
-- **`style: {reveal: hold}`.** A top-level `---` segment keeps its box
-  before its beat, so the chunk stands at its final height from beat 0 and
-  the words fade in where they were going to be – deck-wide what a beat
-  below the top level does anyway. `grow`, the default, is what 1.0.0 did:
-  the segment takes no room and the chunk grows by a block per press. A
-  default it is not, because it moves every existing deck's slides. lint.js
-  now reads the flow form of the block too, `style: {bold: accent, reveal:
-  hold}`, which the documentation writes everywhere and the linter never
-  looked at - a typo in it passed the gate and failed the build.
+  `lectures/frame-lab/` stays as the untracked edge-case deck.
+- **`lint.js` reads the flow form of the `style:` block**, `style: {bold:
+  accent, wrap: none}`, which the documentation writes everywhere and the
+  linter never looked at - a typo in it passed the gate and failed the
+  build.
 - **`text-on-picture` (lint, warning).** A `::: backdrop {.clear}` under
   words that stand on the bare picture: the heading unless the chunk is
   `.bare`, prose outside an overlay or a dock, and a divider's heading or
@@ -1120,7 +1102,8 @@ from building the same way is a major version.
   height from beat 0 and the words fade in where they were always going to
   be, so a row that grew a line per beat, or three cards that changed
   height when the tallest arrived, no longer make the slide jump (a
-  top-level `---` still closes up, as since 1.0.0). Print shows every
+  top-level `---` reserves its box too – see *A reveal reserves its space,
+  everywhere*). Print shows every
   beat at once; an `::: expand` and a `::: script` keep the rule, since
   neither is on the projection. **One meaning changes:** a `---` under a
   `# Heading`, before the first chunk, used to render a rule in the divider
@@ -1918,9 +1901,10 @@ from building the same way is a major version.
   it is the chunk's own heading, so leaving it out of the source leaves it off
   the slide, at the cost of the TOC entry and the search text.
 
-- **Four more covers, and two of them draw.** `stack` centres the title block
-  on both axes, `rule` holds it between two hairlines - both for the talk that
-  wants a quiet opening rather than an asymmetric one. `beside` and `above`
+- **Three more covers, and two of them draw.** `stack` centres the title
+  block on both axes, for the talk that wants a quiet opening rather than an
+  asymmetric one (a `rule` variant beside it was withdrawn – see *Removed*).
+  `beside` and `above`
   take their art from the **title chunk's own body**, which is what lets a
   `::: draw` be the cover: a diagram is not a file, so `cover-image` could
   never name one. `beside` insets the art beside the title and `above` puts it
@@ -2503,8 +2487,10 @@ from building the same way is a major version.
   Inside a label, `_sub` / `^sup` shift a run and `*accent*` / `~muted~`
   colour one. Free `text` honours `.left` / `.right`, and its anchor
   moves with them. A diagram is click-to-zoom like any other figure, and
-  keeps stepping while focused. How large it lands is the chunk's width
-  class; `unit` sets only the proportions inside the picture.
+  keeps stepping while focused. How large it lands is decided by its type –
+  labels at the size of the words beside them, on a canvas the chunk's
+  column wide (see *A figure is drawn on a canvas*); `unit` sets only
+  the proportions inside the picture.
 
   Fixed before it ever shipped, from a review of the branch: a `label`
   step never switched variants live (the runtime looked labels up by the
@@ -2618,9 +2604,10 @@ from building the same way is a major version.
   The canvas is a **frame**, not a canvas size: the chunk's own width class
   on a slide, one pane of a `::: side` at that class, or the print measure
   where the height cap does not apply. Switching between them changes nothing
-  in the source. It says out loud two things that are otherwise invisible
-  until you look at the built page – the measure the figure lands in, and how
-  much of it stays empty when the 62vh cap binds first.
+  in the source. It says out loud what is otherwise invisible until you look
+  at the built page – the measure the figure lands in, how large its labels
+  land there against the body type, which cap decides its width, and how much
+  of the slide's canvas it fills, which it also draws as a dashed rectangle.
 
   Because a figure here is held together by *relations* rather than
   coordinates, and that structure is completely invisible in the picture, the
@@ -2699,9 +2686,8 @@ from building the same way is a major version.
   when there is none left, move to the next chunk – across column boundaries,
   so a whole lecture is one key. `↑`, `PageUp` and `Backspace` are the exact
   mirror: **they take a reveal back**, and only leave the chunk once it is at
-  its opening state. `→` / `←` are that same pair *except on the first chunk
-  of a column*, where they change column – the only chunk where a second
-  dimension exists to move in.
+  its opening state. `→` / `←` are that same pair, and with `Shift` they
+  change column (see *The sideways arrows now mean one thing*).
 
   Reveal used to be forward-only, on the reasoning that a revisited slide
   should simply show everything. That is still what happens when you arrive
@@ -2713,8 +2699,7 @@ from building the same way is a major version.
   Presenter remotes work now – `PageUp`/`PageDown` were unbound, so a
   clicker's back button did nothing at all.
 
-  Two marks at the edge of the viewport say which situation the current slide
-  is in: `‹ ›` where sideways changes column, `⌄` where forward will leave the
+  A mark at the foot of the viewport, `⌄`, says where forward will leave the
   column next. Quiet enough for a projection, absent on the overview board and
   behind a blanked screen.
 
@@ -2857,7 +2842,9 @@ from building the same way is a major version.
   Multiplying the first by `--dg-fig-size` gives the width at which a base
   label lands at exactly that size; the second turns the height budget into a
   width so a tall figure shrinks proportionally instead of sitting letterboxed.
-  Both are inert unless a rule reads them, and only `PRINT_CSS` does. The box
+  Both are inert unless a rule reads them; `PRINT_CSS` was the first reader,
+  and the live views read them too since figure labels there are set at
+  body type. The box
   now hugs the drawing rather than spanning the measure, which is also what
   finally lets `style: {blocks}` reach a diagram – it was the one figure kind
   that could not honour the key, because its box was always full width.
@@ -3193,7 +3180,7 @@ from building the same way is a major version.
   chunk, with nothing on either screen saying so.
 
   In **both** modes the camera held still while the chunk grew downwards. A
-  hidden segment takes no space, so a chunk already taller than the frame put
+  hidden segment took no space then, so a chunk already taller than the frame put
   each new segment further below the bottom edge – on the tutorial's own
   reveal chunk the third beat landed 430px below a 900px viewport. The
   lecturer pressed forward and the room saw nothing change. A chunk taller
