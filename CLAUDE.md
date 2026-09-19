@@ -628,7 +628,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.
 - `README.md` – short public-facing intro.
 - `lectures/tutorial/source.md` – the canonical authoring reference (self-referential lecture). Build and open its `audience.html` to see every directive live.
-- `lectures/diagrams/source.md` – every `::: draw` construct, including two of the stepped figures the feature was built for (CBC decryption, a stack frame being overrun) and, in `#sequence` and `#seqmore`, the whole of the `sequence` sub-grammar with two annotations hung off its generated names. Its `#look` chunk is the reference for the class vocabulary: every fill, every family, and the three answers to how type meets its box.
+- `lectures/diagrams/source.md` – every `::: draw` construct, including two of the stepped figures the feature was built for (CBC decryption, a stack frame being overrun) and, in `#sequence` and `#seqmore`, the whole of the `sequence` sub-grammar with two annotations hung off its generated names. The class vocabulary is spread over four chunks, each on the slide that explains it: `#look` (every fill and every family), `#outlines`, `#prominence`, and `#typefit` (the three answers to how type meets its box).
 
   **Most of the browser suite drives this lecture, and it addresses the figures
   by chunk id, so a drawing here has tests on it.** (Twenty-four specs at the
