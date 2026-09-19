@@ -424,20 +424,20 @@ export async function run({ page, report }) {
   await spk.waitForTimeout(400);
   ok((await both()).s.id === 'clicks', 'the cockpit reaches the chunk whose note carries clicks');
   const clicks = [];
-  // Three presses, four states: a fourth press on the last card would be
-  // the one that leaves the slide.
-  for (let i = 0; i < 4; i++) { clicks.push({ ...(await both()), c: await cursor() }); if (i < 3) await press('Space'); }
+  // Two presses, three states: a third press on the last card would be the
+  // one that leaves the slide.
+  for (let i = 0; i < 3; i++) { clicks.push({ ...(await both()), c: await cursor() }); if (i < 2) await press('Space'); }
   ok(clicks.every(w => w.same), 'the two windows agree through it', JSON.stringify(clicks.map(w => [w.a.rev, w.s.rev])));
-  ok(clicks[0].c.n === 7,
-     'the column lists a card, a reveal, two cards, a reveal, a card, the next slide',
+  ok(clicks[0].c.n === 6,
+     'the column lists a card, a reveal, a card, a reveal, a card, the next slide - the [Pause.] is no card',
      JSON.stringify(clicks[0].c));
   ok(clicks[0].s.rev === 1 && /zero/.test(clicks[0].c.cur), 'the card before the first click opens the slide', JSON.stringify(clicks[0].c));
   ok(clicks[1].s.rev === 2 && /after the first click/.test(clicks[1].c.cur) && clicks[1].c.beat === 1,
      'the press on it is the click, and the card written behind the click arrives with the reveal it names', JSON.stringify(clicks[1]));
-  ok(/Pause/.test(clicks[2].c.cur) && clicks[2].s.rev === 2,
-     'a bracketed line that is not a click is a card of its own on the same beat', JSON.stringify(clicks[2]));
-  ok(clicks[3].s.rev === 3 && /after the second/.test(clicks[3].c.cur) && clicks[3].c.beat === 2,
-     'and the card behind the second click arrives with it', JSON.stringify(clicks[3]));
+  ok(/Pause/.test(clicks[1].c.cur) && await spk.evaluate(() => [...document.querySelectorAll('.cue-entry.done .cue-stage, .cue-entry.cur .cue-stage')].some(p => p.textContent === '[Pause.]')),
+     'a bracketed line that is not a click rides the card before it, set as a direction', JSON.stringify(clicks[1].c));
+  ok(clicks[2].s.rev === 3 && /after the second/.test(clicks[2].c.cur) && clicks[2].c.beat === 2,
+     'so the press on that card is the second click, and the card behind it arrives with it', JSON.stringify(clicks[2]));
   ok(await spk.evaluate(() => [...document.querySelectorAll('.cue-title')].some(t => /the third line lights/.test(t.textContent))),
      'the words of the click title the card it brings up');
   ok(/note-advance-beyond/.test(lint) && (lint.match(/note-advance-beyond/g) || []).length === 1,

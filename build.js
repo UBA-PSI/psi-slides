@@ -20721,6 +20721,12 @@ body[data-view=speaker].cue-cards #clock {
   font-variant-numeric: tabular-nums;
 }
 .cue-card .cue-title + .cue-at { margin-top: -0.4em; }
+/* a stage direction: read, not said - so it takes no press and none of the
+   words' weight, in the soft ink and italic the rail gives what is not text */
+.cue-card .cue-stage {
+  margin: 0.15em 0; line-height: 1.3; font-size: 0.72em; font-style: italic;
+  color: var(--ink-soft);
+}
 /* a click on the projector: a diamond on the rail, a label, the words
    that will arrive */
 .cue-tick.step i { border-radius: 1px; transform: rotate(45deg) scale(0.9); border-color: var(--emph); }
@@ -21812,9 +21818,14 @@ function cueRender() {
       const c = e.card;
       let body = c.title ? '<p class="cue-title">' + escText(c.title) + '</p>' : '';
       if (c.at != null) body += '<span class="cue-at">@ ' + PSI_CARDS.formatClock(c.at) + '</span>';
+      // A stage direction rides the card it belongs with, before its words
+      // or after them, and is set as a direction rather than as words to say.
+      const stage = (list) => (list || []).map(d => '<p class="cue-stage">' + escText(d) + '</p>').join('');
+      body += stage(c.lead);
       body += c.bullets.length
         ? '<ul>' + c.bullets.map(b => '<li>' + escText(b) + '</li>').join('') + '</ul>'
-        : '<p class="cue-prose">' + escText(c.prose) + '</p>';
+        : '<p class="' + (c.stage ? 'cue-stage' : 'cue-prose') + '">' + escText(c.prose) + '</p>';
+      body += stage(c.tail);
       html.push(tick + '<div class="cue-entry ' + cls + '"><div class="cue-card">' + body + '</div></div>');
     } else {
       html.push(tick + '<div class="cue-entry ' + cls + '"><div class="cue-step"><span class="cue-k">' + escText(e.k) + '</span>'
