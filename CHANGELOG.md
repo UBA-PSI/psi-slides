@@ -57,6 +57,22 @@ from building the same way is a major version.
 - **`--frames` and `--check-fit` wait for the slide to stop animating**
   before a screenshot; a backdrop's 620 ms reveal used to be caught halfway.
 
+### Fixed
+
+- **A chunk that ends with a `---` keeps its chunk notes on beat 1.** The
+  cue cards file a `> note:` block by the segment it stands in, unless every
+  note of the chunk sits in its last segment – the shape every deck written
+  before the positional rule has, which is why those notes are the chunk's
+  and are said on beat 1. Since "every `---` is a beat" landed, a trailing
+  separator with nothing after it – the slide standing while the speaker says
+  the next thing – ships an empty segment last, and the rule measured itself
+  against that one: the notes were filed on the chunk's last click instead,
+  and nothing warned. The rule now reads the last segment with **words** in
+  it. One shape answers differently on purpose: a note standing alone behind
+  a `---` is no longer in the last segment, so it keeps its position and is
+  said on the beat that separator opens – which is what the separator was
+  written for. No lecture in `lectures/` moves.
+
 ### Changed (drawings, unreleased)
 
 - **The overlap census compares ink, and a label is compared line by line.**
@@ -73,6 +89,16 @@ from building the same way is a major version.
   silent, and so does the shape that made them – a two-line value whose long
   line is nowhere near the chevron standing beside its short one. No figure
   in the repository gains a warning and no drawing moves.
+
+- **And it says the overlap in rows, with the drawing's own px beside it.**
+  "overlap by 76×15 px" described a thing the room sees as 145×28: a figure
+  is scaled to fill its canvas, by about 1.9 in the case the check was
+  written from, and the compiler cannot know that scale because the fit
+  happens in the page. So the number is named rather than guessed –
+  `overlap by 5.38×0.06 rows (215×3 px of the drawing's own grid, which the
+  slide scales to fill its canvas)` – and the unit is the row, because a
+  `gap` is measured in rows on both axes and a `gap` is what the sentence
+  after the number tells the author to write.
 
 - **The reference decks stand on the figure defaults.** `network-security`,
   `tutorial`, `python-intro`, `spoken-talk` and `diagrams` built with 44

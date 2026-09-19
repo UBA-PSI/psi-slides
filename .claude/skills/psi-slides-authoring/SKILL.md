@@ -545,8 +545,12 @@ the corner of an eye:
   `---` belongs to the beat the slide opens on, a note after it to the beat
   that `---` opens. Only a top-level `---` counts; a `---` inside a pane or a
   card row is a beat marker, not a segment. A chunk whose notes all sit
-  after its last segment (the way every deck was written before this) shows
-  them all on the first beat, so nothing you have written moves.
+  after the last segment that has words in it (the way every deck was
+  written before this) shows them all on the first beat, so nothing you have
+  written moves – a trailing `---` behind them, holding the slide while you
+  say the next thing, does not move them either. A note written *alone*
+  under a `---`, with no words in that segment, is the one you said on that
+  beat, and it is shown there.
 
 ```md
 ## free: The process as it runs {#process}

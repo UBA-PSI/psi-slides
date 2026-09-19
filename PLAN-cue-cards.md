@@ -145,6 +145,19 @@ Gate (§7). Wer eine Note wirklich auf dem letzten Beat allein haben will,
 setzt davor eine Note auf einen früheren Beat – ein Chunk, dessen Stütze
 erst nach dem letzten Klick beginnt, ist ohnehin keine, die man bauen will.
 
+**Wie gelandet:** „nicht-leer“ heißt *Wörter*, und das musste nachgezogen
+werden. Seit „jedes `---` ist ein Beat“ liefert `segmentsKept` für jeden
+Chunk mit zwei oder mehr Segmenten lauter `true`, also zählt auch ein leeres
+Schlusssegment – ein Chunk, der mit `---` endet und nichts dahinter hat, die
+Folie steht während weitergesprochen wird – als „letztes“. `noteSegments`
+maß sich daran und legte die Notes eines Bestandsdecks auf den letzten Klick
+statt auf Beat 1; gewarnt hat nichts. Die Regel liest jetzt das letzte
+Segment **mit Wörtern darin**. Eine Note, die allein hinter einem `---`
+steht, ist damit nicht mehr im letzten Segment: sie behält ihre Position und
+wird auf dem Beat gesagt, den das `---` öffnet – wofür der Trenner
+geschrieben wurde. Fixtures in `test/gates/cue-cards.mjs`, kein Deck in
+`lectures/` bewegt sich.
+
 **lint.js-Spiegel** (lint.js:2381 `inMetaBlock`, :3160 der `---`-Zähler
 `chunkReveals`): dieselbe Zuordnung, plus Warnung `note-in-empty-beat`,
 wenn ein Note-Block in einem Segment steht, das sonst leer ist und nicht

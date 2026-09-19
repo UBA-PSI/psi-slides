@@ -136,6 +136,29 @@ export async function run({ report }) {
     'a label struck through by an outline is reported',
     struck.length ? struck.join('\n      ') : 'nothing reported');
   if (struck.length) note(struck[0].replace(/ – nothing can be drawn[\s\S]*$/, ''));
+
+  // ── and what the number is said in ───────────────────────────────
+  // The message used to carry px alone, and a px here is not a px in the
+  // room: the figure is scaled to fill its canvas – about 1.9x in the case
+  // this check was written from – so "overlap by 76x15 px" described a thing
+  // the room sees as 145x28. The compiler cannot know that scale, so the
+  // number is said in rows, which is the unit a `gap` is written in on both
+  // axes, and the px beside it are named as the drawing's own.
+  ok(/ overlap by [\d.]+×[\d.]+ rows \(\d+×\d+ px of the drawing's own grid/.test(struck[0] || ''),
+     'the overlap is given in rows first, with the drawing\'s own px beside it', struck[0]);
+  ok(!/overlap by \d+×\d+ px/.test(struck[0] || ''),
+     'and never as a bare px figure, which an author reads as the px they can see');
+  // The two figures are one quantity twice: rows are the px over the grid's
+  // row height, which is 40 on this fixture's `120x40`. A row and not a
+  // column on both axes, because that is what a `gap` is measured in.
+  {
+    const m = /by ([\d.]+)×([\d.]+) rows \((\d+)×(\d+) px/.exec(struck[0] || '') || [];
+    // 0.8 px of slack: the px are rounded to whole ones and the rows to two
+    // decimals, which is 0.2 px of the row on top of the half a px.
+    ok(m.length === 5 && Math.abs(+m[1] * 40 - +m[3]) < 0.8 && Math.abs(+m[2] * 40 - +m[4]) < 0.8,
+       'the rows and the px are one quantity twice, over the grid\'s row height on both axes',
+       m.slice(1).join(' '));
+  }
   ok(overlaps(CLEAR, '120x40').length === 0,
     'and the redrawn figure beside it is silent', overlaps(CLEAR, '120x40').join('\n      '));
 
