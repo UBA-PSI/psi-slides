@@ -785,6 +785,16 @@ can be, and it fits; eighteen label-heights did not. The ceiling is 17.7, and
 it is arithmetic rather than taste – past 62 % of the slide the height cap
 takes over and the figure comes out narrower than its own column.
 
+**The height does not come down by the prose under the drawing**, and that was
+measured rather than assumed (`PLAN-figure-defaults.md` §6 item 7). A shorter
+canvas cannot shrink a drawing – the box is the union – so on a slide whose
+drawing fills its canvas the trade reaches only a warning; making it bite would
+mean scaling each figure by how many words its paragraph runs to, which is the
+uneven type the canvas exists to remove, and the build does not know how many
+lines a paragraph wraps into. A figure chunk taller than the frame is a
+paragraph written for a reader: collapse it, `::: script` it, or give that one
+figure a `frame`.
+
 Three details that are not guessable:
 
 - **The em is 31.6 px, not 23.4.** 1rem at 1600x900 is 23.4 px, but a chunk
