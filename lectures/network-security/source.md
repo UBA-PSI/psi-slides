@@ -1047,7 +1047,7 @@ step decide
 
 ## figure: Tunneling TCP Connections via SSH {.full #ns-b18}
 
-::: side
+::: side 5:9
 ```text
 ssh –L8888:127.0.0.1:80 92.1.1.5
  ▶ http://localhost:8888/
@@ -1061,30 +1061,38 @@ ssh –L2222:44.11.1.4:22 92.1.1.5
 # block, not in the diagram. And they stand there verbatim: the second line
 # names 91.1.1.5, the others 92.1.1.5. That is how the original has it, and the
 # difference is kept.
+#
+# The three machines stand on one line, the tunnel and its continuation on the
+# row between them. The third machine used to hang under the second, reached
+# by an edge down a channel, and the tunnel ran across most of the pane: the
+# drawing was 40 labels wide and 25 tall in half a slide and set its labels at
+# 17 px against 28 px of body type. The listing beside it is four short lines,
+# so the pane takes the width they leave (`5:9`) and the drawing the height.
 default box {.tone-2}
 
-box  wb  "web\nbrowser" at 0,0 w 0.8
-box  sc  "ssh\nclient"  below wb gap 0.7 w 0.8 {@tunnel}
-text lpf "local port fwd" below sc gap 0.3 {.muted}
-container lh "" over wb,sc,lpf {.dashed .muted}
+box  wb  "web\nbrowser" at 0,0
+box  sc  "ssh\nclient"  below wb gap 1.8lh {@tunnel}
+text lpf "local port fwd" below sc gap 0.5lh {.muted}
+container lh "" over wb,sc,lpf pad 0.8lh {.dashed .muted}
 
-box  ss  "ssh\nserver"  right of sc gap 3.55 same as sc {.tone-3 @tunnel}
-box  ws  "web\nserver"  above ss gap 0.7 same as wb {.tone-3}
-text ip  "92.1.1.5"     below ss gap 0.3 {.muted}
-container rh "" over ws,ss,ip {.dashed .muted}
+box  ss  "ssh\nserver"  right of sc gap 5.5lh {.tone-3 @tunnel}
+box  ws  "web\nserver"  above ss gap 1.8lh {.tone-3}
+text ip  "92.1.1.5"     below ss gap 0.5lh {.muted}
+container rh "" over ws,ss,ip pad 0.8lh {.dashed .muted}
 
-box  ss2 "ssh\nserver" below ip gap 0.85 same as sc {.tone-3 @second}
-text ip2 "44.11.1.4"   left of ss2 gap 0.35 {.muted @second}
+box  ss2 "ssh\nserver" right of ss gap 3lh {.tone-3 @second}
+text ip2 "44.11.1.4"   below ss2 gap 0.5lh {.muted @second}
+# Six processes, one size: the two rows level what the columns left ragged.
+row wb, ws
+row sc, ss, ss2
 
 # The browser addresses the locally opened port, the tunnel carries the
-# connection through, and at the far end it goes on to the web server or to a
-# third machine.
+# connection through, and at the far end it goes on to the web server or,
+# straight on out of the machine, to a third one.
 edge wb -> sc
 edge tun sc -- ss {.thick}
 edge ss -> ws
-# Sideways into the channel right of the machine and then down - straight
-# down, the edge would run through the middle of the label "92.1.1.5".
-edge ss.right -> ss2.right via rh.right+0.28,ss.cy rh.right+0.28,ss2.cy
+edge ss -> ss2
 
 step tunnel
   style @tunnel {.tone-4}
