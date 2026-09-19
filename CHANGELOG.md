@@ -75,6 +75,17 @@ from building the same way is a major version.
 
 ### Changed (drawings, unreleased)
 
+- **The editor writes a gap back in the unit its line wrote it in.** A drag
+  on `below ufw gap 5lh` used to come back `gap 4.4` – rows, the same
+  distance in a different ruler, which the next change of grid then moved.
+  Three paths were worse and moved the box at once: the `side` swatches, the
+  `of` field and the dock chip wrote the label-height count back with no
+  suffix, where it was read as rows. Every writer of a `gap` token now goes
+  through one helper that spells it the way the line does; the panel's `gap`
+  field shows `5lh` and takes `0.6lh`; and the sibling-gap guide offers a gap
+  written in label heights, which it used to skip as not a number, and writes
+  the sibling's own spelling. A gap nobody wrote is still written in rows.
+
 - **The overlap census compares ink, and a label is compared line by line.**
   A `text`'s box is its block of line boxes – as tall as `DG_LINE_H` per line
   where only `DG_INK_H` of it is glyphs, and as wide as its *widest* line –

@@ -100,11 +100,12 @@ taught, is under *What a redraw of a whole corpus turned up* below.
    `statement:` would change that – plan §2.11).
 3. **Engine leftovers.** Done since this file was written: the cover canvas,
    `lint.js`'s beat count on a `title:` chunk, the brace label, an edge's
-   `side` per beat, px in the canvas reports. Still open, from
+   `side` per beat, px in the canvas reports, the `lh` spelling an editor
+   drag lost (§6 item 5). Still open, from
    `PLAN-figure-defaults.md` unless named otherwise: §2.8 dock alignment
    (measure first), §6 item 7 (canvas height traded against the caption lines
-   under a figure), §6 item 4 (`.dotted .muted` is faint), `lh` spelling lost
-   on an editor drag, `noteSegments`' last-kept-segment fallback on an empty
+   under a figure – measured and decided: the flat sixteen stays), §6 item 4
+   (`.dotted .muted` is faint), `noteSegments`' last-kept-segment fallback on an empty
    trailing segment (every `---` is a beat now, so an empty trailing segment
    is kept and `last` counts it – the rule that notes only in the last
    segment are chunk notes on beat 1 then stops firing), and

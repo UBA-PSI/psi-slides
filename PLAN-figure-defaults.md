@@ -572,8 +572,8 @@ engine made it harder than it should be, ordered by time cost. It confirms
    down turned `below ufw gap 5lh` into `below ufw gap 4.4`, a number in
    rows. The drawing was right, the spelling was gone: the next author to
    change the grid moves that box and not its neighbours. Reading the editor
-   for every place that writes a `gap` found the same loss in six more, two
-   of which are worse because they *move the drawing*: they pass the parsed
+   for every place that writes a `gap` found the same loss in six more, some
+   of which are worse because they *move the drawing*: three paths pass the parsed
    `place.gap` – the number of label heights – back through `dgePlaceText`
    with no unit, so it is read as rows.
 
@@ -590,6 +590,17 @@ engine made it harder than it should be, ordered by time cost. It confirms
      offers an `lh` gap as the one to match.
 
    `pad` is not reachable from the editor, so it has nothing to lose.
+
+   **Fixed.** A drag keeps the unit – the arithmetic stays in rows, where
+   every guide and delta already works, and `dgeGapSpelled` /
+   `dgeGapWritten` spell the result the way the line does, so `gap 5lh`
+   dragged half a cell comes back `gap 5.65lh`. Every writer goes through
+   those two; the panel's field shows `5lh` and takes `0.6lh`; the
+   sibling-gap guide offers an `lh` gap and writes the sibling's own
+   spelling. A gap nobody wrote is still written in rows – it has no unit to
+   keep, and giving one to it would change what every drag in the corpus
+   writes. Asserted at the end of `test/editor-drag-guides-network.mjs` on
+   `#ns-b22`; three of its assertions fail on the editor before the fix.
 6. No per-figure slack report: `--check-fit` speaks only past the canvas; a
    line per figure with canvas, drawing and slack per axis is information the
    build already has.
