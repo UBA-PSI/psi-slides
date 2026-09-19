@@ -64,6 +64,11 @@ beside a chevron is 186 px on one line and 22 on the other, and only the short
 one is anywhere near. And **a text fully inside a box is exempt while a text
 crossing its edge is not**, so shrinking a figure can make captions that were
 inside start reporting: that is the check working, and the fix is the drawing.
+**The number is said in rows** – `overlap by 5.38×0.06 rows (215×3 px of the
+drawing's own grid …)` – because a `gap` is measured in rows on both axes, so
+the figure is the one that goes on the line the message tells you to write.
+The px beside it are the compiler's, not the room's: the slide scales a
+drawing to fill its canvas and the compiler cannot know by how much.
 
 **`right of X gap N` is checked against X and against nothing else.** An
 annotation placed `right of vu gap 2.6` landed inside the box to vu's right and

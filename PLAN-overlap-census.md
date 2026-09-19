@@ -55,11 +55,24 @@ alone was not enough – it leaves a two-line label as wide as its longest line,
 which is how the chevron in `#ns-a49` came to intersect a block it does not
 touch. A text is compared as the rectangles it inks, one per line.
 
-## Secondary, decide separately
+## The unit, as landed
 
-The message says "overlap by 76x15 px" about a thing the room sees as
-145x28. Either scale the reported figure or say what the number counts. The
-canvas reports already solved the same problem by naming both units.
+Naming the unit, not scaling the number: the compiler cannot know the fit
+scale, because the fit happens in the page. The message now reads
+"overlap by 5.38x0.06 rows (215x3 px of the drawing's own grid, which the
+slide scales to fill its canvas)". Rows on both axes, because a `gap` is
+measured in `uh` on both axes and `gap` is what the sentence after the number
+tells the author to write – so the figure is the one that goes on that line.
+Gate: `test/gates/overlap.mjs`, which holds the spelling, refuses a bare px
+figure, and checks the two numbers are one quantity twice.
+
+The same reading of the other px in `diagram-core.mjs` found three more
+messages, and none of them was changed. The elbow rail, the elbow's arrival
+run and the exposed run already lead with units or labels and carry the px in
+brackets. The edge-label clip and the band overflow carry bare px, but
+neither number is the one an author edits against – the band overflow hands
+over `w <n>` in the band's own unit, and the clip's advice is qualitative
+(a wider gap, a shorter label, a `\n`).
 
 ## What else that pass turned up, not in this slice
 

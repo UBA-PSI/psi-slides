@@ -90,6 +90,16 @@ from building the same way is a major version.
   line is nowhere near the chevron standing beside its short one. No figure
   in the repository gains a warning and no drawing moves.
 
+- **And it says the overlap in rows, with the drawing's own px beside it.**
+  "overlap by 76×15 px" described a thing the room sees as 145×28: a figure
+  is scaled to fill its canvas, by about 1.9 in the case the check was
+  written from, and the compiler cannot know that scale because the fit
+  happens in the page. So the number is named rather than guessed –
+  `overlap by 5.38×0.06 rows (215×3 px of the drawing's own grid, which the
+  slide scales to fill its canvas)` – and the unit is the row, because a
+  `gap` is measured in rows on both axes and a `gap` is what the sentence
+  after the number tells the author to write.
+
 - **The reference decks stand on the figure defaults.** `network-security`,
   `tutorial`, `python-intro`, `spoken-talk` and `diagrams` built with 44
   canvas warnings between them and now build with one, the box in

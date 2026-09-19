@@ -26017,6 +26017,18 @@ function createDiagramCompiler(env = {}) {
   function dgOverlapWarnings(model, states, frames, frameBoxes, warn) {
     const authored = model.nodes.filter(n => !n.synth);
     if (authored.length < 2) return;
+    // **The overlap is said in rows, and the px beside it are named as the
+    // drawing's own.** The message used to carry px alone, and a px here is
+    // not a px in the room: a figure is scaled to fill its canvas, by about
+    // 1.9 in the case this check was written from, so "overlap by 76x15 px"
+    // described a thing the room sees as 145x28. The compiler cannot know
+    // that scale - the fit happens in the page - so the fix is the one the
+    // canvas reports already make, naming the unit rather than guessing the
+    // number. The unit is the row, because a `gap` is measured in `uh` on
+    // both axes and `gap` is what the sentence below tells the author to
+    // write: the figure here is the one that goes on that line.
+    const uh = model.unit[1];       // the row - both axes, because a gap is
+    const rows = (px) => (px / uh).toFixed(2);
     // What one element paints at one beat, as rectangles. A `text` with a
     // ground is a text with a drawn rect under it, so it answers with that
     // rect and not with its glyph lines – `{.paper}` knocks a hole in
@@ -26079,10 +26091,13 @@ function createDiagramCompiler(env = {}) {
         }
         if (both === 0 || hit !== both || !worst) continue;
         warn(`${a}${dgSite(authored[i])} and ${b}${dgSite(authored[j])}`
-          + ` overlap by ${Math.round(worst.iw)}×${Math.round(worst.ih)} px`
+          + ` overlap by ${rows(worst.iw)}×${rows(worst.ih)} rows`
+          + ` (${Math.round(worst.iw)}×${Math.round(worst.ih)} px of the drawing's own grid,`
+          + ` which the slide scales to fill its canvas)`
           + ` – nothing can be drawn between them and whichever is painted second wins.`
-          + ` Place one of them relative to the other (\`right of ${a} gap …\`) rather than`
-          + ` giving both an absolute \`at\`, so the spacing cannot drift when a label changes.`);
+          + ` Place one of them relative to the other (\`right of ${a} gap …\`, and a gap is`
+          + ` rows on both axes) rather than giving both an absolute \`at\`, so the spacing`
+          + ` cannot drift when a label changes.`);
       }
     }
   }
