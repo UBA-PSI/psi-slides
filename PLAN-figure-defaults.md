@@ -618,6 +618,49 @@ engine made it harder than it should be, ordered by time cost. It confirms
    **Fill.** Nine of the twelve drawings take 95 % or more of their canvas's
    height (17.0 to 17.6 of 17.8 labels); `#ns-a62`, `#ns-b56` and `#ns-b57`
    take 76 %. The deck was redrawn onto the canvas, and its drawings fill it.
+
+   **Decided: the flat sixteen stays, and the tall chunks are the deck's own
+   doing.** Three reasons, each measured.
+
+   - **The candidate rule reaches only the paper, never the drawing.** A
+     canvas shorter than its drawing does not shrink it – the emitted box is
+     the union, which is the property the canvas was built on. Tried with the
+     height at twelve labels instead of sixteen: `#ns-a08` went from 935 to
+     913 px with its drawing still 484 px tall, `#ns-b56` from 940 to 819,
+     and the build raised 29 `figure-overflows-canvas` warnings across the
+     deck. So on nine of the twelve the rule would turn a chunk that scrolls
+     into a chunk that scrolls *and* a warning whose remedy (`frame WxH`)
+     changes nothing either; on `#ns-b56` and `#ns-b57` it would do what a
+     `frame` on those two figures already does.
+   - **Making it bite means the canvas scales drawings, and the numbers say
+     at what price.** The last column of the table: `#ns-a62` and `#ns-a60`
+     would draw at 0.36 and 0.40 of their size, base labels of 10 and 11 px
+     against 28.4 px of prose – under the 18 px floor. `#ns-a14` at 0.80 is
+     past the 0.85 at which `--check-fit` calls a slide out of step with its
+     deck. Only `#ns-b59`, `#ns-a49`, `#ns-a45`, `#ns-a08`, `#ns-a12` and
+     `#ns-a13` (0.90 to 0.97) would come in at a shrink a room would not
+     notice – and each of those at a different factor, set by how many words
+     its paragraph runs to, which is the one thing about a figure slide the
+     canvas exists to take out of its type. Two slides with the same prose
+     would agree; two with different prose would not, and the deck would be
+     back to a figure per zoom, in the vertical this time.
+   - **The build does not know the lines.** The canvas is decided in the
+     parse, which is why its two warnings can be emitted without a browser.
+     How many lines a paragraph wraps into, how tall a listing or a display
+     formula stands, is layout; the rule would run on an estimate, and the
+     slide it guessed wrong about would be the one that disagrees.
+
+   **What the talk deck says.** The keynote the canvas was cut for – twenty
+   figures, every one on a canvas, 59 to 98 % filled – has no chunk taller
+   than the frame (`--check-fit`, 95 states). A figure slide in a talk
+   carries a heading and a line; `network-security` carries a paragraph
+   written for a reader under every figure, under `collapse: none` and with
+   auto-fit off, and two listings on its tallest two. The remedies are the
+   deck's: the default collapse (the first sentence and the bolds), `auto-fit:
+   shrink`, `::: script` round the paragraph, or on `#ns-b56` and `#ns-b57`
+   a `frame` that says a bar chart wants 14 labels rather than 17.8. None was
+   applied here – the deck is a compiler check and is not published, and a
+   scrolling chunk is `--check-fit`'s note, not a failure.
 8. Two zones cannot be declared as one row (see 2).
 9. A container's `pad` is invisible to anything placed against its members –
    a text hung off a member lands inside the container's edge with no
