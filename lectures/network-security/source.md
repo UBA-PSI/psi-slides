@@ -457,7 +457,7 @@ step mitigation
 
 ## figure: Amplification attack | some connectionless protocols allow attackers to use IP Spoofing to reflect and multiply their attack traffic {.full #ns-a30}
 
-::: side
+::: side 6:5
 
 ```
 $ dig any ripe.net      # ask for all resource records
@@ -483,22 +483,32 @@ Example: Spamhouse  (75 Gbps)
 # stays; the evidence for it is the capture beside it, not this picture. The
 # two triangles are the size comparison: the area is the volume, the point
 # shows where it arrives. 37 bytes out, 1194 back.
-text intro "For some protocols (e.g., DNS or\nNTP) the response can become\nmuch larger than the request." at -3.25,-1.35 {.left}
-text amp "*Amplification factor:* ratio of\nresponse and request size." below intro gap 0.45 flush left {.left}
+#
+# One column, read top to bottom: the definition, then the path the traffic
+# takes, then the reason it works. The pane beside it is taller than it is
+# wide - the capture and the link under it - so the figure stands in the
+# height rather than across it: laid out as three columns side by side it was
+# 36 labels wide in half a slide and set its labels at 19 px against 28 px of
+# body type. The pane is `6:5` because the capture's longest line needs the
+# width, and at `1:1` it lost its last characters to the pane edge.
+text intro "For some protocols (e.g., DNS or\nNTP) the response can become\nmuch larger than the request." at 0,0 {.left}
+text amp "*Amplification factor:* ratio of\nresponse and request size." below intro gap 0.5lh flush left {.left}
 
-text atk "Attacker" at 0.4,-1.5 {.accent}
-box  req "" below atk gap 0.3 w 0.34 h 0.3 {.wedge .tone-3 @small}
-text srv "Server" below req gap 0.3 {@small}
-box  res "" below srv gap 0.3 w 0.66 h 0.58 {.wedge .tone-3 @big}
-text victim "Victim" below res gap 0.3 {@big}
+# The column's centre is half the big point's width in from the text's left
+# edge, so the point, the words and the note below share one left edge.
+text atk "Attacker" at intro.left+0.33,amp.bottom+0.38 {.accent}
+box  req "" below atk gap 0.35lh w 0.34 h 0.3 {.wedge .tone-3 @small}
+text srv "Server" below req gap 0.35lh {@small}
+box  res "" below srv gap 0.35lh w 0.66 h 0.58 {.wedge .tone-3 @big}
+text victim "Victim" below res gap 0.35lh {@big}
 
-text lreq "Small request with\nSrc IP of victim" left of req gap 1.05 {.right @small}
-text lres "Large response with\nDst IP of victim" left of res gap 0.95 {.right @big}
+# The two descriptions stand right of the points they describe, the words
+# running away from the shape, on one left edge.
+text lres "Large response with\nDst IP of victim" right of res gap 0.8lh {.left @big}
+text lreq "Small request with\nSrc IP of victim" right of req {.left @small}
+align x left lres, lreq
 
-text open "Attack possible due to liberally\noperated DNS/NTP servers." at -3.25,1.95 {.left .muted @open}
-# .left on a free text at a coordinate anchors it on that edge, so both blocks
-# start at x -3.25 rather than straddling it; the align statement below is what
-# keeps them on one edge if either label is ever reworded.
+text open "Attack possible due to liberally\noperated DNS/NTP servers." below victim gap 0.9lh {.left .muted @open}
 align x left intro, open
 
 step request
@@ -1047,7 +1057,7 @@ step decide
 
 ## figure: Tunneling TCP Connections via SSH {.full #ns-b18}
 
-::: side
+::: side 5:9
 ```text
 ssh –L8888:127.0.0.1:80 92.1.1.5
  ▶ http://localhost:8888/
@@ -1061,30 +1071,38 @@ ssh –L2222:44.11.1.4:22 92.1.1.5
 # block, not in the diagram. And they stand there verbatim: the second line
 # names 91.1.1.5, the others 92.1.1.5. That is how the original has it, and the
 # difference is kept.
+#
+# The three machines stand on one line, the tunnel and its continuation on the
+# row between them. The third machine used to hang under the second, reached
+# by an edge down a channel, and the tunnel ran across most of the pane: the
+# drawing was 40 labels wide and 25 tall in half a slide and set its labels at
+# 17 px against 28 px of body type. The listing beside it is four short lines,
+# so the pane takes the width they leave (`5:9`) and the drawing the height.
 default box {.tone-2}
 
-box  wb  "web\nbrowser" at 0,0 w 0.8
-box  sc  "ssh\nclient"  below wb gap 0.7 w 0.8 {@tunnel}
-text lpf "local port fwd" below sc gap 0.3 {.muted}
-container lh "" over wb,sc,lpf {.dashed .muted}
+box  wb  "web\nbrowser" at 0,0
+box  sc  "ssh\nclient"  below wb gap 1.8lh {@tunnel}
+text lpf "local port fwd" below sc gap 0.5lh {.muted}
+container lh "" over wb,sc,lpf pad 0.8lh {.dashed .muted}
 
-box  ss  "ssh\nserver"  right of sc gap 3.55 same as sc {.tone-3 @tunnel}
-box  ws  "web\nserver"  above ss gap 0.7 same as wb {.tone-3}
-text ip  "92.1.1.5"     below ss gap 0.3 {.muted}
-container rh "" over ws,ss,ip {.dashed .muted}
+box  ss  "ssh\nserver"  right of sc gap 5.5lh {.tone-3 @tunnel}
+box  ws  "web\nserver"  above ss gap 1.8lh {.tone-3}
+text ip  "92.1.1.5"     below ss gap 0.5lh {.muted}
+container rh "" over ws,ss,ip pad 0.8lh {.dashed .muted}
 
-box  ss2 "ssh\nserver" below ip gap 0.85 same as sc {.tone-3 @second}
-text ip2 "44.11.1.4"   left of ss2 gap 0.35 {.muted @second}
+box  ss2 "ssh\nserver" right of ss gap 3lh {.tone-3 @second}
+text ip2 "44.11.1.4"   below ss2 gap 0.5lh {.muted @second}
+# Six processes, one size: the two rows level what the columns left ragged.
+row wb, ws
+row sc, ss, ss2
 
 # The browser addresses the locally opened port, the tunnel carries the
-# connection through, and at the far end it goes on to the web server or to a
-# third machine.
+# connection through, and at the far end it goes on to the web server or,
+# straight on out of the machine, to a third one.
 edge wb -> sc
 edge tun sc -- ss {.thick}
 edge ss -> ws
-# Sideways into the channel right of the machine and then down - straight
-# down, the edge would run through the middle of the label "92.1.1.5".
-edge ss.right -> ss2.right via rh.right+0.28,ss.cy rh.right+0.28,ss2.cy
+edge ss -> ss2
 
 step tunnel
   style @tunnel {.tone-4}
@@ -1119,17 +1137,24 @@ Proxy-Connection: close
 .`...\ÇÈÀœÁ.Û3Xjè*...=diffie- […]
 ```
 ::: flip
-::: draw 118x150
-# A chain on one horizontal line - the same shape as on the slide after it.
-# The HTTP capture stands beside it as a code block, not in the picture. The
-# labels "ssh client" and "ssh server" run to two lines as in the original;
-# that is a break, not different wording.
-box sc  "ssh\nclient"      at 0,0 w 0.66 {.tone-2}
-box htc "htc"              right of sc gap 0.25 w 0.5 {.tone-1 @relay}
-box fwp "firewall\nproxy"  right of htc gap 0.25 w 0.8 {.tone-1}
-box hts "hts"              right of fwp gap 0.25 same as htc {.tone-1 @relay}
-box ss  "ssh\nserver"      right of hts gap 0.25 same as sc {.tone-3}
-text vm "vm1.cloud.com:80" below hts gap 0.28 {.muted @relay}
+::: draw 40x24
+# The same shape as on the slide after it: three columns, the relays and the
+# proxy between them along the bottom, and the two ssh ends a band above the
+# relay that carries each, so the connection dips into HTTP and comes back
+# out. The HTTP capture stands beside it as a code block, not in the picture.
+# The labels "ssh client" and "ssh server" run to two lines as in the
+# original; that is a break, not different wording. Five boxes on one line is
+# what this figure used to be, and on half a slide it set its labels at 19 px
+# against 28 px of body type.
+box fwp "firewall\nproxy"  at 0,0 {.tone-1}
+box htc "htc"              left of fwp {.tone-1 @relay}
+box hts "hts"              right of fwp {.tone-1 @relay}
+box sc  "ssh\nclient"      above htc gap 0.6lh same w as htc {.tone-2}
+box ss  "ssh\nserver"      above hts gap 0.6lh same w as hts {.tone-3}
+# The address is wider than the box it names, so it stands flush with the
+# box's right edge: centred, the drawing's right edge would be a text-width
+# estimate instead of the outline of hts.
+text vm "vm1.cloud.com:80" below hts gap 0.5lh flush right {.muted @relay}
 
 edge sc  -- htc
 edge in htc -- fwp
