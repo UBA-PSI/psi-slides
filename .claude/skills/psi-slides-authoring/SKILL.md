@@ -219,7 +219,9 @@ Next week: certificates, and who you are actually trusting.
 ```
 
 Widths (four, exhaustive): `.narrow` (28em), `.standard` (36em, the default),
-`.wide` (52em), `.full` (72em).
+`.wide` (52em), `.full` (72em). The slide's frame pads 14% either side, so on
+the projection `.wide` stops at 1152 px at 1600×900; a `.full` chunk pads 6%
+and reaches 1408 px, which is the one reason to pick it over `.wide`.
 
 **The type never sets the width.** They are independent axes: the type decides
 treatment and budget, the width decides how much stage the chunk takes. In
@@ -229,8 +231,9 @@ anything longer than one sentence turns into a tall thin ribbon in `.narrow`.
 **A chunk with a top-level code block wants `.wide` or `.full`.** A `<pre>` that
 is not inside a `::: side` or `::: cols` breaks out of the text column to 72vw
 and centres on the slide. Measured at 1600×900 and the default zoom, that is
-1152 px – exactly the prose column of `.wide` and `.full`, and 310 px wider than
-`.standard`'s 842 px. So in a `.standard` chunk the listing sticks out past both
+1152 px – exactly the prose column of `.wide`, 310 px wider than `.standard`'s
+842 px, and 256 px narrower than `.full`'s 1408, where a long listing stands
+centred inside the prose. So in a `.standard` chunk the listing sticks out past both
 edges of the paragraph above it and reads as a rendering fault. The line-length
 budget is unaffected (it is 72vw at every width); this is about the block and
 its own prose lining up.
