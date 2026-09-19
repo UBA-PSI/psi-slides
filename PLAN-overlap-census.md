@@ -47,28 +47,13 @@ of the browser (`viewBox` width against the painted width gives the scale):
    of figure label. The author reading the word "px" in the message reads it
    as the px they can see.
 
-## The fix to make
+## The fix, as landed
 
-**Measure ink on both sides, then one small tolerance serves.** A text's
-leading is known at layout time: inset its box by the half-leading top and
-bottom (line box height minus the glyph height, split) before intersecting,
-and compare at `DG_OVERLAP_TOL`. That deletes `DG_OVERLAP_TOL_TEXT` rather
-than tuning it, and it is the same move the canvas reports made when they
-stopped rounding away what they measured.
-
-Required of the change, in this order:
-
-- The two false positives the comment names must stay silent. They are the
-  reason the 24 exists and they are the acceptance test, not a footnote.
-  Find them (`bob`/`goals`, `intro`/`lreq`) and keep them out.
-- `#ns-a41` reverted to its struck-through geometry must warn. The geometry
-  is in `git show 45a0ee5^:lectures/network-security/source.md`.
-- No figure in `lectures/{tutorial,diagrams,decoration,network-security,
-  python-intro,spoken-talk}` nor in the keynote may gain a warning. All six
-  build clean today; a new warning is either a real find, to be reported and
-  redrawn, or a regression.
-- A gate under `test/gates/`. Geometry is decidable without a browser, so
-  this belongs there and not in the browser suite.
+Done; the rule and what it costs an author are in the `psi-slides-figures`
+skill, the gate is `test/gates/overlap.mjs`. Insetting by the half-leading
+alone was not enough – it leaves a two-line label as wide as its longest line,
+which is how the chevron in `#ns-a49` came to intersect a block it does not
+touch. A text is compared as the rectangles it inks, one per line.
 
 ## Secondary, decide separately
 

@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Fourteen gates, and they prove fourteen different things – which is worth stating
+ * Fifteen gates, and they prove fifteen different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -51,6 +51,8 @@
  *              which axis each shares, the two ways out, `row` / `col`,
  *              `same w as` / `same h as`, and the two warnings for a written
  *              size that cannot hold its own words
+ *   overlap    the overlap census measures ink and not the line box: a text
+ *              is compared as the rectangles it inks, one per line
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -76,6 +78,7 @@ const GATES = [
   './image-refs.mjs',
   './canvas.mjs',
   './chains.mjs',
+  './overlap.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

@@ -40,7 +40,11 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 // to be truthy for `imageAspect` to be consulted at all, or every image line
 // in the corpus answers with "cannot read the asset's proportions" and the
 // warning census measures the stub rather than the source.
-export function makeCore() {
+// `extra` replaces individual leaves, for the one gate that compiles figures
+// out of the corpus rather than out of its own fixtures: a stubbed proportion
+// is the right answer for a made-up `image` line and the wrong one for a real
+// avatar, whose box then stands where the lecture does not draw it.
+export function makeCore(extra = {}) {
   const warns = [];
   const core = createDiagramCompiler({
     resolveImage: (ref) => ({ kind: 'raster', href: ref, path: ref, markup: '', abs: ref }),
@@ -49,6 +53,7 @@ export function makeCore() {
     escapeHtml: (s = '') => String(s),
     assetMarkup: () => '',
     resetAssets: () => {},
+    ...extra,
   });
   return { core, warns };
 }

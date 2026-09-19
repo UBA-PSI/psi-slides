@@ -78,6 +78,17 @@ export const DG_MIN_W = 54;           // a box never narrows past this
 // or every tight-but-correct table in the corpus would report an overflow it
 // does not have.
 export const DG_INK_H = 0.93;
+// The same measurement taken apart, because a check about a *collision* needs
+// to know where the ink sits and not only how tall it is – and the air is not
+// split evenly. `dgTextEl` puts every baseline DG_BASE_DROP of an em below its
+// line box's centre, so at DG_LINE_H a line carries 0.245 em of leading above
+// its caps and 0.075 em below its descenders: three times as much air on top
+// as underneath. That arithmetic was already spelled out once, in the comment
+// above DG_ZONE_INK_DROP, out of three numbers that lived nowhere – two in
+// prose and one as a literal in `dgTextEl`. These are those three, named.
+export const DG_CAP_H = 0.72;         // cap height, multiples of font size
+export const DG_DESC_H = 0.21;        // descender, likewise; the two are DG_INK_H
+export const DG_BASE_DROP = 0.34;     // baseline, below the line box's centre
 export const DG_HEAD = 9;             // arrowhead length, px
 // **The default gap is stated in labels, not in rows.** A row is whatever the
 // opener says – 20 px on `20x20`, 40 on `120x40`, 72 on the default grid – so
@@ -1334,9 +1345,59 @@ export function dgMeasure(label, fontPx, mono) {
     }
     if (w > maxW) maxW = w;
     h += fontPx * scale * DG_LINE_H;
-    return { spans, scale };
+    // The line's own width as well as the block's. A block is as wide as its
+    // widest line, which is the number every extent wants; the *ragged* shape
+    // is what the overlap census wants, because a two-line label whose long
+    // line is nowhere near the shape below it is not touching anything.
+    return { spans, scale, w };
   });
   return { w: maxW, h, lines: laid, count: lines.length };
+}
+
+// **Where a label's glyphs are, rather than how much room they were given.**
+// One rectangle per line: as wide as that line's own words and as tall as the
+// band between its caps and its descenders. The block a `dgMeasure` describes
+// is neither – it is as wide as the *widest* line and as tall as the line
+// boxes, which carry DG_LINE_H of leading that nothing in the room can see.
+//
+// Both differences cost the overlap census a real defect. A three-line
+// verification block printed across the outline of the box above it crossed
+// that outline by 5.5 px of line box, which the census read as within the
+// leading and said nothing about; the ink crossed it by 2.6, and 2.6 px of
+// struck-through type is what the room saw. In the other direction, a
+// certificate listing's `Basic Constraints ( 2.5.29.19 ) / YES` is 186 px wide
+// on its first line and 22 on its second, and the chevron standing beside the
+// second one intersected the *block* by 155 px without coming within 10 of a
+// letter.
+//
+// `origin` is the label's own `--l` geometry, `[x, y, turn]`, so this is the
+// same point the emitter lays the lines out around, and `anchor` the same
+// `text-anchor` it draws them with. A turned label reads bottom-to-top:
+// `DG_TURN_DEG` rotates the glyph frame about that origin, which sends a point
+// `(u, v)` of the upright layout to `(v, -u)`.
+export function dgTextInkRects(label, classes, font, origin, anchor) {
+  const m = dgMeasure(label, font, classes.has ? classes.has('mono') : false);
+  const [ox, oy, turn] = origin;
+  const out = [];
+  let v = -m.h / 2;
+  for (const ln of m.lines) {
+    const f = font * ln.scale;
+    const lh = f * DG_LINE_H;
+    const top = v + lh / 2 + (DG_BASE_DROP - DG_CAP_H) * f;
+    const bot = v + lh / 2 + (DG_BASE_DROP + DG_DESC_H) * f;
+    v += lh;
+    // A blank line in a multi-line label is spacing the author wrote – it
+    // reserves its line box and inks nothing, so it collides with nothing.
+    // Spelled as a space rather than as nothing across the corpus
+    // (`"Extension\nCritical\nKey ID\n \n "`), and a space has an advance
+    // width, so the test is on the characters and not on the measurement.
+    if (!(ln.w > 0) || ln.spans.every(s => !s.t.trim())) continue;
+    const u0 = anchor === 'start' ? 0 : anchor === 'end' ? -ln.w : -ln.w / 2;
+    out.push(turn
+      ? { x: ox + top, y: oy - u0 - ln.w, w: bot - top, h: ln.w }
+      : { x: ox + u0, y: oy + top, w: ln.w, h: bot - top });
+  }
+  return out;
 }
 
 // Height-to-width of an asset, so an author can give `w` and let the other
@@ -7560,42 +7621,76 @@ export function createDiagramCompiler(env = {}) {
   // another on its way somewhere is mid-animation, not a mistake – and it is
   // what lets a label appear where a hidden box still sits without being
   // called a collision. A pair never visible together is never compared.
-  // Two tolerances, because two kinds of element measure differently. A box
-  // has a drawn border, so its extent is exactly what the room sees and any
-  // intersection at all is visible ink. A `text` element's box is the line
-  // box: it carries the font's leading above and below the glyphs and draws
-  // no outline, so boxes can overlap by most of a line's leading with clear
-  // air between the words. Held to one tolerance, the check called two
-  // correctly-spaced captions in the engine's own lectures a collision -
-  // `bob`/`goals` at 63x16 and `intro`/`lreq` at 5x19, both of which render
-  // with visible space - while the real defects it exists for are 8x56
-  // between two boxes and 122x37 between a box and a text that genuinely sits
-  // on top of it.
+  // **Ink against ink, at one small tolerance.** A box, a dot and an image are
+  // their own boxes: each has a drawn border or a bitmap filling it, so the
+  // extent the layout gave it is exactly what the room sees. A `text` is not.
+  // Its box is the block of line boxes – as tall as DG_LINE_H per line, which
+  // carries leading nothing can see, and as wide as its *widest* line, which
+  // its other lines do not reach. So a text is compared as the rectangles it
+  // actually inks, one per line (`dgTextInkRects`), and everything is then
+  // held to DG_OVERLAP_TOL.
+  //
+  // It used to carry a second tolerance instead, 24 px wherever either side
+  // was a text, and both halves of that were wrong in the same direction. A
+  // label struck through by an outline crosses it by a *fraction of one line*
+  // by construction – `#ns-a41` shipped a three-line verification block
+  // printed across the box above it at 5.5 px of line box, under a floor of
+  // 24 – and the number was the compiler's px, which a figure scaled to its
+  // canvas multiplies by about 1.9 before the room sees it. The two false
+  // positives that floor was raised for, `bob`/`goals` and `intro`/`lreq`,
+  // are silent under this rule for the reason they always should have been:
+  // the air between those captions is leading, and leading is not ink.
   const DG_OVERLAP_TOL = 2;        // px, between two drawn shapes
-  const DG_OVERLAP_TOL_TEXT = 24;  // px, where either side is a text's line box
-  function dgOverlapWarnings(model, states, frameBoxes, warn) {
+  function dgOverlapWarnings(model, states, frames, frameBoxes, warn) {
     const authored = model.nodes.filter(n => !n.synth);
     if (authored.length < 2) return;
+    // What one element paints at one beat, as rectangles. A `text` with a
+    // ground is a text with a drawn rect under it, so it answers with that
+    // rect and not with its glyph lines – `{.paper}` knocks a hole in
+    // whatever is behind it, which is the opposite of transparent.
+    const inkOf = (node, st, box, frame) => {
+      if (node.kind !== 'text') return [box];
+      const g = frame.geom.get(node.id + '--r');
+      if (g) return [{ x: g[0], y: g[1], w: g[2], h: g[3] }];
+      const o = frame.geom.get(node.id + '--l');
+      if (!o || !st.label) return [box];
+      const anchor = frame.labelAnchor.get(node.id) || dgLabelAnchor(st.classes);
+      const rects = dgTextInkRects(st.label, st.classes,
+        box.font ?? dgFontFor(st.classes), o, anchor);
+      return rects.length ? rects : [box];
+    };
+    const union = (rs) => {
+      const x = Math.min(...rs.map(r => r.x)), y = Math.min(...rs.map(r => r.y));
+      return { x, y, w: Math.max(...rs.map(r => r.x + r.w)) - x,
+        h: Math.max(...rs.map(r => r.y + r.h)) - y };
+    };
     // Containment is nesting and nesting is deliberate: a `box` used as a
     // panel with a stack of boxes inside it, a `dot` marking the centre of
     // the box it sits in. Both are patterns the engine's own figure-rules
     // document demonstrates on purpose, and the first version of this check
     // called all of them collisions. Only a *partial* overlap is reported -
     // the case where neither element is inside the other and the picture
-    // therefore has two things fighting for one piece of paper.
+    // therefore has two things fighting for one piece of paper. Asked of the
+    // two ink extents, because that is what the rest of this compares: a
+    // caption whose leading hangs a hair outside the box it is written in is
+    // inside it as far as a reader is concerned.
     const holds = (a, b) => b.x >= a.x - DG_OVERLAP_TOL && b.y >= a.y - DG_OVERLAP_TOL
       && b.x + b.w <= a.x + a.w + DG_OVERLAP_TOL && b.y + b.h <= a.y + a.h + DG_OVERLAP_TOL;
-    const inter = (a, b, tol) => {
-      if (holds(a, b) || holds(b, a)) return null;
-      const iw = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-      const ih = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
-      return (iw > tol && ih > tol) ? { iw, ih } : null;
+    const inter = (as, bs) => {
+      const ua = union(as), ub = union(bs);
+      if (holds(ua, ub) || holds(ub, ua)) return null;
+      let best = null;
+      for (const a of as) for (const b of bs) {
+        const iw = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+        const ih = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+        if (iw <= DG_OVERLAP_TOL || ih <= DG_OVERLAP_TOL) continue;
+        if (!best || iw * ih > best.iw * best.ih) best = { iw, ih };
+      }
+      return best;
     };
     for (let i = 0; i < authored.length; i++) {
       for (let j = i + 1; j < authored.length; j++) {
         const a = authored[i].id, b = authored[j].id;
-        const tol = (authored[i].kind === 'text' || authored[j].kind === 'text')
-          ? DG_OVERLAP_TOL_TEXT : DG_OVERLAP_TOL;
         let both = 0, hit = 0, worst = null;
         for (let k = 0; k < states.length; k++) {
           const sa = states[k].get(a), sb = states[k].get(b);
@@ -7603,7 +7698,8 @@ export function createDiagramCompiler(env = {}) {
           const ba = frameBoxes[k].get(a), bb = frameBoxes[k].get(b);
           if (!ba || !bb || !ba.w || !bb.w) continue;
           both++;
-          const ov = inter(ba, bb, tol);
+          const ov = inter(inkOf(authored[i], sa, ba, frames[k]),
+            inkOf(authored[j], sb, bb, frames[k]));
           if (!ov) { hit = -1; break; }
           hit++;
           if (!worst || ov.iw * ov.ih > worst.iw * worst.ih) worst = ov;
@@ -8837,7 +8933,7 @@ export function createDiagramCompiler(env = {}) {
     let inner = '';
     m.lines.forEach(({ spans, scale }) => {
       const lh = font * scale * DG_LINE_H;
-      inner += dgTspans(spans, font * scale, y + lh / 2 + font * scale * 0.34, font);
+      inner += dgTspans(spans, font * scale, y + lh / 2 + font * scale * DG_BASE_DROP, font);
       y += lh;
     });
     return `<g id="${id}" class="dg-lbl${extraClass ? ' ' + extraClass : ''}">`
@@ -8960,7 +9056,7 @@ export function createDiagramCompiler(env = {}) {
     // After layout and before the error gate: an overlap is a warning, and a
     // figure that also has errors has bigger problems to report first.
     if (!errors.length) {
-      dgOverlapWarnings(model, states, frameBoxes, dgWarn);
+      dgOverlapWarnings(model, states, frames, frameBoxes, dgWarn);
       dgLabelGroundWarnings(model, frames, frameBoxes, dgWarn);
       dgLabelClipWarnings(model, states, frames, frameBoxes, dgWarn);
       dgElbowRailWarnings(model, states, frames, frameBoxes, dgWarn);

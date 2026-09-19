@@ -59,6 +59,21 @@ from building the same way is a major version.
 
 ### Changed (drawings, unreleased)
 
+- **The overlap census compares ink, and a label is compared line by line.**
+  A `text`'s box is its block of line boxes – as tall as `DG_LINE_H` per line
+  where only `DG_INK_H` of it is glyphs, and as wide as its *widest* line –
+  so the check carried a 24 px floor wherever either side was a text, and
+  24 px is more than a whole line of figure type. The geometry it exists for
+  crosses an outline by a fraction of one line by construction:
+  `lectures/network-security` `#ns-a41` shipped a three-line verification
+  block printed across the box above it, at 5.5 px, with a silent build, a
+  clean `--check-fit` and a clean lint. A text is now the rectangles it
+  actually inks, one per line, and everything meets at the same 2 px
+  `DG_OVERLAP_TOL`. Both false positives the floor was raised for stay
+  silent, and so does the shape that made them – a two-line value whose long
+  line is nowhere near the chevron standing beside its short one. No figure
+  in the repository gains a warning and no drawing moves.
+
 - **The reference decks stand on the figure defaults.** `network-security`,
   `tutorial`, `python-intro`, `spoken-talk` and `diagrams` built with 44
   canvas warnings between them and now build with one, the box in
