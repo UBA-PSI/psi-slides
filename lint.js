@@ -3036,12 +3036,13 @@ function lintFile(filePath) {
   // The cue-card mode of the cockpit reads each `> note:` block as said
   // while the reveal segment it stands in is on the screen (build.js
   // `noteSegments`). Only a top-level `---` opens a segment - one inside a
-  // pane or a card row is a beat marker, not a split - and a note in a
-  // segment that holds nothing else slides back to the previous one. That
-  // slide is silent in the build, so it is named here when the empty
-  // segment is not the chunk's last: the author probably meant the note
-  // for the beat the `---` opens, and the build will show it one earlier.
-  // The opening segment is exempt - the heading is what stands on it.
+  // pane or a card row is a beat marker, not a split - and every one of them
+  // ships, so a note stands on the beat its `---` opened even when nothing
+  // else does. The one rule on top of the position is the build's fallback
+  // for a deck that never thought about beats: notes sitting only in the
+  // last segment WITH WORDS IN IT are chunk notes and are said on beat 1.
+  // Nothing here has to know that number - a positional block is counted
+  // from the opening beat below, which is a floor either way.
   // A `[Klick: ...]` line inside a block is a press of its own: the cards
   // behind it are said one advance later (cue-cards.mjs `cueAdvance`). So a
   // block asks the slide for `from` plus its clicks, and a slide that has

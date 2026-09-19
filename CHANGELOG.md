@@ -57,6 +57,22 @@ from building the same way is a major version.
 - **`--frames` and `--check-fit` wait for the slide to stop animating**
   before a screenshot; a backdrop's 620 ms reveal used to be caught halfway.
 
+### Fixed
+
+- **A chunk that ends with a `---` keeps its chunk notes on beat 1.** The
+  cue cards file a `> note:` block by the segment it stands in, unless every
+  note of the chunk sits in its last segment – the shape every deck written
+  before the positional rule has, which is why those notes are the chunk's
+  and are said on beat 1. Since "every `---` is a beat" landed, a trailing
+  separator with nothing after it – the slide standing while the speaker says
+  the next thing – ships an empty segment last, and the rule measured itself
+  against that one: the notes were filed on the chunk's last click instead,
+  and nothing warned. The rule now reads the last segment with **words** in
+  it. One shape answers differently on purpose: a note standing alone behind
+  a `---` is no longer in the last segment, so it keeps its position and is
+  said on the beat that separator opens – which is what the separator was
+  written for. No lecture in `lectures/` moves.
+
 ### Changed (drawings, unreleased)
 
 - **The overlap census compares ink, and a label is compared line by line.**

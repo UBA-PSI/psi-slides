@@ -4332,19 +4332,30 @@ function segmentIndexer(bodyLines, segments, kept) {
 // top of the position:
 //  - a note in a dropped segment belongs to the previous kept one, and the
 //    index is into the kept list, which is what the renderer ships;
-//  - a chunk whose notes all sit in its LAST kept segment has
+//  - a chunk whose notes all sit in its LAST SEGMENT WITH WORDS IN IT has
 //    chunk-level notes and gets 0 for every one of them. That is where every
 //    deck written before this rule keeps its notes - after the last
 //    segment's text - and the position rule alone would put the whole
 //    support after the last click. The moment one note stands in an earlier
 //    segment, the author is using positions and the rule is off for the
-//    chunk. The linter mirrors this in `noteSegments` of its own.
+//    chunk.
+//    **Words, not the last segment that ships.** Since every `---` buys a
+//    beat, a chunk that ends with a separator and nothing after it - the
+//    slide standing while the speaker says the next thing - ships an empty
+//    segment last, and measuring the rule against that one filed the legacy
+//    shape's notes one beat past the text they belong to. Nothing warned.
+//    What follows from reading it off the words is that a note standing
+//    alone behind a trailing `---` is no longer in the last segment and
+//    keeps its position: the author wrote the separator above it, so the
+//    note is said on the beat it opens, which is the shape the empty
+//    segment exists for.
 function noteSegments(bodyLines, segments, noteAt, kept) {
   if (!noteAt || !noteAt.length) return [];
   kept = kept || segments.map(s => s.length > 0);
   const indexAt = segmentIndexer(bodyLines, segments, kept);
   const segs = noteAt.map(at => indexAt(at));
-  const last = Math.max(0, kept.filter(Boolean).length - 1);
+  let last = 0;
+  segments.filter((_, i) => kept[i]).forEach((t, i) => { if (t.length) last = i; });
   if (last > 0 && segs.every(k => k === last)) return segs.map(() => 0);
   return segs;
 
