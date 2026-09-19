@@ -108,10 +108,11 @@ export async function run({ report }) {
 
   // the arithmetic: each click moves every card behind it one advance on
   c = notesToCards('**null**\n\n[Klick: Zeile 1 wird hell.]\n\n**eins**\n\n[Pause.]\n\n**auch eins**\n\n[Klick: Zeile 2.]\n\n**zwei**');
-  ok(j(c.map(x => x.advance)) === j([0, 1, 1, 1, 2]),
+  ok(j(c.map(x => x.advance)) === j([0, 1, 1, 2]),
      'every card behind a click is one advance further on, and a stage direction moves nothing',
      j(c.map(x => [x.bullets[0] || x.prose, x.advance])));
-  ok(c[2].prose === '[Pause.]', 'the stage direction is a card of its own, as the author wrote it', j(c[2]));
+  ok(j(c[1].tail) === j(['[Pause.]']) && c.every(x => !x.stage),
+     'the stage direction rides the card before it, as the author wrote it, and costs no card', j(c[1]));
   ok(c[1].title === 'Zeile 1 wird hell' && c[2].title === null,
      'the click titles the card after it, and only that one', j(c.map(x => x.title)));
 
@@ -134,6 +135,48 @@ export async function run({ report }) {
   c = notesToCards('[Klick: eins.]\n[Klick: zwei.]\n\n**drei**');
   ok(c.length === 1 && c[0].advance === 2 && c[0].title === 'zwei',
      'two clicks in one paragraph are two advances', j(c));
+
+  // ── a stage direction is not a card ──────────────────────────────
+  // A keynote written out word for word carries nineteen [Pause ...] lines,
+  // and each was a card: a press on which the speaker says nothing and the
+  // room sees nothing. A direction is read, not said, so it rides a card.
+  const words = (x) => x.bullets.length ? x.bullets.join('|') : x.prose;
+  c = notesToCards('**Fifteen times faster.**\n\n**[Pause. Let the number sit.]**\n\nThe talk is about **where it went**.');
+  ok(c.length === 2 && j(c[0].tail) === j(['[Pause. Let the number sit.]']) && j(c[1].lead) === j([]),
+     'a paragraph that is only a direction rides the card before it - a pause after words - bold or not', j(c));
+  c = notesToCards('[Lachen abwarten.]\n\n**eins**\n\n**zwei**');
+  ok(c.length === 2 && j(c[0].lead) === j(['[Lachen abwarten.]']) && c[0].advance === 0,
+     'a note that opens with one: it leads the first card', j(c));
+  c = notesToCards('**eins**\n\n[Klick: Zeile 2.]\n\n[Pause.]\n\n**zwei**');
+  ok(c.length === 2 && j(c[0].tail) === j([]) && j(c[1].lead) === j(['[Pause.]']) && c[1].advance === 1,
+     'one written after a click leads the card after it, on the click\'s advance, not the card before it', j(c));
+  c = notesToCards('**eins**\n\n[Pause.]\n[Klick: Zeile 2.]\n**zwei**');
+  ok(c.length === 2 && j(c[0].tail) === j(['[Pause.]']) && c[1].advance === 1 && c[1].title === 'Zeile 2',
+     'a direction above a click in one paragraph is settled on the advance it stood on, and the click still counts', j(c));
+  c = notesToCards('[Pause.]\nDer Satz, **fett**.\n[Den Satz stehen lassen.]');
+  ok(c.length === 1 && j(c[0].bullets) === j(['fett']) && j(c[0].lead) === j(['[Pause.]'])
+     && j(c[0].tail) === j(['[Den Satz stehen lassen.]']),
+     'a direction at the head or foot of a paragraph is that card\'s, and a bold beside it no longer drops it', j(c));
+  c = notesToCards('**a**\n\n[Pause.]\n\n[Lachen abwarten.]');
+  ok(c.length === 1 && j(c[0].tail) === j(['[Pause.]', '[Lachen abwarten.]']), 'two in a row ride one card, in order', j(c));
+  c = notesToCards('[Pause.]');
+  ok(c.length === 1 && c[0].stage === true && c[0].prose === '[Pause.]',
+     'a note that is a direction and nothing else is still a card, marked as a direction - nothing disappears', j(c));
+  c = notesToCards('**eins**\n\n[Klick: weiter.]\n\n[Pause.]');
+  ok(c.length === 2 && c[1].stage && c[1].advance === 1 && j(c[0].tail) === j([]),
+     'and so is one behind a click with nothing after it: it stays on its own advance', j(c));
+  c = notesToCards('Ein [Wort] in Klammern **mitten** im Satz');
+  ok(c.length === 1 && j(c[0].bullets) === j(['mitten']) && j(c[0].lead) === j([]),
+     'a bracket inside a sentence is words, not a direction', j(c));
+  ok(notesToCards('[Klick: eins.]\n\n**x**')[0].lead.length === 0, 'and a click is never taken for one');
+  // Nothing an author wrote leaves the card: every word of the note, less
+  // the syntax and the clicks, is on some card, in order.
+  {
+    const note = '[Vorweg.]\n\nSatz **eins**.\n\n[Pause.]\n\n[Klick: zwei.]\n\n[Luft holen.]\n\nSatz **zwei**.\n[Lachen abwarten.]';
+    const flat = notesToCards(note).flatMap(x => [...x.lead, words(x), ...x.tail]);
+    ok(j(flat) === j(['[Vorweg.]', 'eins', '[Pause.]', '[Luft holen.]', 'zwei', '[Lachen abwarten.]']),
+       'every direction is on a card, in the order it was written', j(flat));
+  }
 
   // ── inline reduction ─────────────────────────────────────────────
   ok(plainInline('siehe [Quelle](http://x) und `code` und *em* und __b__ und a_b_c') === 'siehe Quelle und code und em und b und a_b_c',

@@ -75,7 +75,7 @@ Chunks mit mehr als einem Block).
 | `#### Titel` | Kartentitel für die folgende Karte |
 | `@12:30` allein in einer Zeile oder am Absatzanfang | Sollzeit ab Start; das Cockpit zeigt an dieser Karte die Drift („+1:40“ / „−0:50“) |
 | `[Klick: Zeile 1 wird hell.]` allein in einem Absatz oder an dessen Kopf | eine Vorrückung: die Karte endet hier, alles dahinter wird eine Vorrückung später einsortiert, und die Worte hinter dem Doppelpunkt betiteln die Karte danach |
-| jede andere Klammerzeile (`[Pause.]`) | Regieanweisung, bleibt als eigene Karte im Wortlaut stehen |
+| jede andere Klammerzeile (`[Pause.]`) | Regieanweisung, bleibt im Wortlaut stehen, aber an einer Karte statt als eigene (§18) |
 
 Ein Block mit mehreren Absätzen ergibt mehrere Karten; wer eine Karte pro
 Block will, schreibt einen Block pro Absatz – beides ist dasselbe.
@@ -427,7 +427,8 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
   Ziel-Beats; gebaut ist die Symmetrie: jeder Backspace macht genau einen
   Space rückgängig, also steht der Cursor nach dem zurückgenommenen Reveal
   erst auf dem „reveal“-Eintrag und dann auf der letzten Karte. Vorhersagbar
-  schlägt einen Tastendruck weniger.
+  schlägt einen Tastendruck weniger. **Überholt, siehe §17:** die Symmetrie
+  bleibt, der Tastendruck fällt in beiden Richtungen weg.
 - **Der Spiegel im Kartenmodus ist derselbe DOM und dieselbe Kamera.** Er
   zeigt deshalb, wie der klassische Spiegel ohne verbundene Audience, die
   Nachbar-Chunks gedimmt oben und unten – kein Fehler des Modus.
@@ -629,3 +630,76 @@ Klammerzeile ist Regie und bleibt als eigene Karte im Wortlaut stehen.
 Arithmetik ohne Browser fest (Split, Titelvorrang, Lokalisierung, Regie vs.
 Klick); `test/cue-cards.mjs` läuft `#clicks` mit zwei Klicks und zwei
 Reveals in zwei Fenstern durch und `#tooclicks` durch den Linter.
+
+## 17. Nachtrag: kein toter Druck am Ende eines Beats
+
+Aus der Probe der Keynote im Kartenmodus. Jeder Druck machte die aktuelle
+Karte zur gesagten und die nächste zur aktuellen – auch auf der **letzten**
+Karte eines Beats. Dann stand der Cursor auf dem Eintrag für den Klick,
+auf dem Projektor passierte nichts, und erst der Druck danach klickte. Ein
+Druck pro Beat, an dem der Raum nichts sieht; auf `lectures/spoken-talk`
+waren es 9 von 34.
+
+**Die Regel.** `consumeForward` verbraucht einen Druck nur, wenn hinter
+dem Cursor eine weitere Karte **desselben Beats** (gleiches `consumed`)
+steht. Auf der letzten Karte geht der Druck durch zu `advanceReveal`: der
+Reveal, der Diagrammschritt oder die nächste Folie passiert, und deren
+erste Karte ist die aktuelle. Ein Beat ohne Karten hat den Klick als
+Cursor, wie bisher. `consumeBack` ist das Spiegelbild: eine Karte zurück,
+solange es auf diesem Beat eine davor gibt; auf der ersten Karte geht der
+Druck durch, der Zähler geht zurück, und `cueBind` landet auf der
+**letzten** Karte des vorigen Beats (`card: n - 1` statt `n`). Jeder
+Backspace macht damit weiter genau einen Space rückgängig – gemessen als
+Gang durch das ganze Deck und zurück, Zustand für Zustand
+(`test/cue-cards.mjs`, letzter Block).
+
+**Was sich nicht ändert.** Enter geht weiter zur nächsten Folie. Die Drift
+liest `k <= cue.card`; der Zustand „Cursor hinter der letzten Karte“ gibt
+es nicht mehr, und die letzte Karte zählt dieselben Marken als erreicht wie
+er, also misst die Uhr an jeder Stelle gegen dieselbe Marke wie vorher. Der
+Projektor erfährt nichts.
+
+**Nebenbei:** `.cue-entry.next` war gestaltet, aber nie gesetzt – die
+Bedingung traf nur Einträge *vor* dem Cursor, und die gibt es nicht. Jetzt
+trägt der Eintrag direkt hinter dem Cursor die Klasse, auf der letzten Karte
+also der Klick, den der nächste Druck auslöst. Die vier `cue-beat`-Aufnahmen
+für `in-the-room.html` sind jetzt 0, 1, 2, 3 Drücke statt 0, 2, 4, 6.
+
+## 18. Nachtrag: eine Regieanweisung kostet keinen Druck
+
+Aus derselben Probe. `[Pause.]` und `[Lachen abwarten.]` blieben seit §16
+im Wortlaut stehen – richtig –, aber ein Absatz, der *nur* aus einer
+solchen Zeile besteht, war eine eigene Karte, und jede Karte kostet einen
+Druck. Die Keynote hat 19 `[Pause …]`-Zeilen; `lectures/spoken-talk` hat
+zwei, und der Gang durchs Deck fiel mit ihnen von 25 auf 23 Drücke.
+
+**Die Regel** (`notesToCards`, also Node und Browser aus einem Text):
+
+- Ein Absatz, der nur aus Regiezeilen besteht, hängt an der **Karte davor**
+  (`tail`) – eine Pause folgt dem Gesagten, und das Lachen, auf das man
+  wartet, auch.
+- Steht auf derselben Vorrückung keine Karte davor – die Note beginnt mit
+  einer Regiezeile, oder ein `[Klick …]` kam dazwischen –, führt sie die
+  **Karte danach** an (`lead`). Eine Pause hinter einem Klick gehört zu dem
+  Beat, den der Klick öffnet, nicht zur Karte vor ihm.
+- Eine Regiezeile am Kopf oder Fuß eines Absatzes mit Worten gehört dessen
+  Karte. Das rettet nebenbei eine, die bisher verschwand: in einem Absatz
+  mit Bolds fiel alles außer den Bolds weg, die Regiezeile mit.
+- Eine Regiezeile vor einem Klick im selben Absatz wird auf ihrer
+  Vorrückung abgelegt; der Kopf-Loop liest Regiezeilen jetzt mit, sodass ein
+  `[Klick]` hinter `[Pause.]` weiter zählt – vorher brach der Loop an der
+  Pause ab und der Klick war Text.
+- Hat eine Regiezeile nichts, woran sie hängen kann – eine Note, die nur
+  eine Pause ist, oder eine Pause hinter dem letzten Klick einer Note –,
+  bleibt sie eine Karte, `stage: true`, als Regie gesetzt. Nichts
+  verschwindet.
+
+**Gesetzt** in der Kartentypografie der Spur: 0.72em, kursiv, `--ink-soft`,
+die Klammern wie geschrieben – so klein wie eine gesagte Karte, aber als
+etwas, das man liest und nicht spricht.
+
+**lint.js** zählt Drücke mit `cueAdvance` pro Zeile, keine Karten; eine
+Regiezeile ist keine Vorrückung, `note-advance-beyond` bleibt unberührt.
+`**[Pause.]**` (fett) zählt als Regie: `plainInline` nimmt das Bold ab,
+bevor gefragt wird. Eine Klammer mitten im Satz bleibt Text.
+

@@ -640,11 +640,15 @@ up, unless a `####` heading stands nearer to that card.
 
 Three things follow from that, and each is a decision rather than an accident:
 
-- **Any other bracketed line is a stage direction and stays in the card.**
-  `[Pause.]`, `[Dry, not pointed.]`, `[Wait for the laugh.]` are cards of
-  their own, set as written. Only the three words above count as a press, and
-  the first word has to *be* one of them – `[Klicken Sie auf den Link]` is
-  prose.
+- **Any other bracketed line is a stage direction and costs no press.**
+  `[Pause.]`, `[Dry, not pointed.]`, `[Wait for the laugh.]` stay as written,
+  in small italics, but on a card rather than as one: a paragraph that is
+  only a direction rides the card before it – a pause after words – and
+  leads the card after it where there is none on the same advance (a note
+  that opens with one, or one written just behind a `[Klick …]`). One at the
+  head or foot of a paragraph belongs to that paragraph's card. Only the
+  three words above count as a press, and the first word has to *be* one of
+  them – `[Klicken Sie auf den Link]` is prose.
 - **The word list is fixed, not localised by `lang:`.** The cards are derived
   again in the browser when you rewrite a note in the cockpit's textarea
   during a rehearsal, where the lecture's wording table is not in reach; `>`

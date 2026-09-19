@@ -30,7 +30,14 @@
  *                         unless a heading stands nearer to it.
  *
  * Any other bracketed line - `[Pause.]`, `[Lachen abwarten.]` - is a stage
- * direction, not a press, and stays in the card as the author wrote it.
+ * direction, not a press, and stays in the card as the author wrote it. It
+ * is not something to say, so it is never a card of its own: a paragraph
+ * that is only directions rides the card before it (a pause after words),
+ * or, where no card of the same advance stands before it - the note opens
+ * with one, or a click came between - the card after it. One standing at
+ * the head or the foot of a paragraph rides that paragraph's card. Only a
+ * direction with no card to ride at all, in a note that says nothing else
+ * on its advance, is still a card, marked `stage`.
  *
  * Inline code, links and emphasis are reduced to their text. Everything
  * returned is plain text; whoever renders it escapes it.
@@ -43,6 +50,9 @@ const TIME_AT_START = /^@(\d{1,2}:\d{2}(?::\d{2})?)\s+/;
 const BOLD = /\*\*(.+?)\*\*|__(.+?)__/g;
 const BRACKET_LINE = /^\[(.+)\]$/;
 const BRACKET_HEAD = /^(>|[^\s,.;:!?]+)/;
+// One bracketed group or several on a line, and nothing else, once the
+// inline syntax is off it: `**[Pause.]**` is a direction too.
+const DIRECTION = /^\[[^[\]]+\](?:\s*\[[^[\]]+\])*$/;
 // The stage directions that are a press. A fixed set, deliberately not a
 // `STRINGS` entry: `notesToCards` runs in the browser too, over a rehearsal
 // override typed into the textarea, where no lecture's wording table is in
@@ -115,16 +125,45 @@ export function cueAdvance(line) {
   return { title: said.replace(/^[,;:.–-]+\s*/, '').replace(/\.$/, '').trim() };
 }
 
-// The cards of one note. Each is { title, at, bullets, prose, advance } –
-// title and at may be null, exactly one of bullets (non-empty) or prose (a
-// string) carries the card's words, and advance is how many presses into
-// the note's own beat the card is said: 0 for the first, one more after
-// every `[Klick …]` line.
+// Is this line a stage direction - bracketed, and not a press? Returns the
+// direction as the author wrote it, inline syntax reduced, or null.
+function stageDirection(line) {
+  if (cueAdvance(line)) return null;
+  const t = plainInline(line);
+  return DIRECTION.test(t) ? t : null;
+}
+
+// The cards of one note. Each is { title, at, bullets, prose, advance, lead,
+// tail, stage } – title and at may be null, exactly one of bullets
+// (non-empty) or prose (a string) carries the card's words, and advance is
+// how many presses into the note's own beat the card is said: 0 for the
+// first, one more after every `[Klick …]` line. lead and tail are the stage
+// directions that ride the card, before its words and after them; stage is
+// true only on the one card that is a direction and nothing else, whose
+// prose is that direction.
 export function notesToCards(text) {
   const cards = [];
   let title = null;
   let at = null;
   let advance = 0;
+  // Directions waiting for the card after them, and the card that stands
+  // before them: the last one made, if it is on the current advance.
+  let waiting = [];
+  const direct = (d) => {
+    const prev = cards[cards.length - 1];
+    if (prev && prev.advance === advance && !waiting.length) prev.tail.push(d);
+    else waiting.push({ d, advance });
+  };
+  // Directions still waiting when a click moves the advance on belong to
+  // the advance they were written on, so they are settled first.
+  const settle = () => {
+    if (!waiting.length) return;
+    const prev = cards[cards.length - 1];
+    if (prev && prev.advance === waiting[0].advance) prev.tail.push(...waiting.map(w => w.d));
+    else cards.push({ title: null, at: null, bullets: [], prose: waiting.map(w => w.d).join(' '),
+                      advance: waiting[0].advance, lead: [], tail: [], stage: true });
+    waiting = [];
+  };
   const paragraphs = String(text || '').replace(/\r\n?/g, '\n').split(/\n[ \t]*\n+/);
   for (const para of paragraphs) {
     const lines = para.split('\n').map(l => l.replace(/\s+$/, '')).filter(l => l.trim());
@@ -135,13 +174,21 @@ export function notesToCards(text) {
     // one titles it, which is the one the eye reaches last: a block headed
     // `#### Bauplan` whose second card follows a click is about what the
     // click did, and the figure's name is on the card before it already.
+    // Directions at the head of a paragraph: the card's own lead if words
+    // follow in it, otherwise they ride a card as a paragraph of their own
+    // would. One written before a click is settled on the advance it stood on.
+    const leadDirs = [];
     while (lines.length) {
+      const d = stageDirection(lines[0]);
+      if (d) { leadDirs.push(d); lines.shift(); continue; }
       const h = HEADING.exec(lines[0]);
       if (h) { title = plainInline(h[1]); lines.shift(); continue; }
       const t = lines[0].trim().startsWith('@') ? parseTimeMark(lines[0]) : null;
       if (t != null) { at = t; lines.shift(); continue; }
       const adv = cueAdvance(lines[0]);
       if (adv) {
+        leadDirs.splice(0).forEach(direct);
+        settle();
         advance += 1;
         if (adv.title) title = adv.title;
         lines.shift();
@@ -149,11 +196,18 @@ export function notesToCards(text) {
       }
       break;
     }
-    if (!lines.length) continue;
+    // A paragraph that is directions and nothing else rides a card rather
+    // than being one.
+    if (!lines.length) { leadDirs.forEach(direct); continue; }
+    // Directions at the foot of a paragraph with words in it are that
+    // card's too: pulled out, so a bold further up does not drop them.
+    const tailDirs = [];
+    while (stageDirection(lines[lines.length - 1])) tailDirs.unshift(stageDirection(lines.pop()));
     const lead = TIME_AT_START.exec(lines[0]);
     if (lead) { at = parseTimeMark(lead[1]); lines[0] = lines[0].slice(lead[0].length); }
 
-    const card = { title, at, bullets: [], prose: null, advance };
+    const card = { title, at, bullets: [], prose: null, advance,
+                   lead: [...waiting.map(w => w.d), ...leadDirs], tail: tailDirs, stage: false };
     title = null; at = null;
     const items = lines.map(l => LIST_ITEM.exec(l));
     if (items.every(Boolean)) {
@@ -164,7 +218,9 @@ export function notesToCards(text) {
       if (bolds.length) card.bullets = bolds;
       else card.prose = plainInline(joined);
     }
-    if (card.bullets.length || card.prose) cards.push(card);
+    if (card.bullets.length || card.prose) { cards.push(card); waiting = []; }
+    else [...leadDirs, ...tailDirs].forEach(direct);
   }
+  settle();
   return cards;
 }

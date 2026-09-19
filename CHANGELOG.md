@@ -58,6 +58,23 @@ from building the same way is a major version.
   abbreviation.
 - **`--frames` and `--check-fit` wait for the slide to stop animating**
   before a screenshot; a backdrop's 620 ms reveal used to be caught halfway.
+- **In the cue cards, the press on a beat's last card is the click.** It used
+  to move the cursor onto the rail's entry for the click, and only the press
+  after that reached the projection – one press per beat on which the room
+  saw nothing. Walked on `lectures/spoken-talk`, the talk from its first
+  card to its last took 34 presses and takes 25. Backspace is the mirror
+  image: on a beat's first card it takes the click back and lands on the
+  last card of the beat before, so each press back still undoes exactly one
+  press forward. The entry the next press brings up is now drawn as the
+  next one, which on a last card is the click itself.
+- **A stage direction in a speaker note costs no press.** A paragraph that
+  is only `[Pause.]` or `[Lachen abwarten.]` used to be a cue card of its
+  own, and every card is a press. It now rides the card before it – a pause
+  after words – or, where the note opens with one or a `[Klick …]` came
+  between, leads the card after it; one at the head or foot of a paragraph
+  rides that paragraph's card instead of being dropped beside its bolds. It
+  is set as a direction, small and italic in the soft ink, with every word
+  as written. `lectures/spoken-talk` walks in 23 presses instead of 25.
 
 ### Changed (drawings, unreleased)
 

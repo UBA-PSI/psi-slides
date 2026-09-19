@@ -20721,6 +20721,12 @@ body[data-view=speaker].cue-cards #clock {
   font-variant-numeric: tabular-nums;
 }
 .cue-card .cue-title + .cue-at { margin-top: -0.4em; }
+/* a stage direction: read, not said - so it takes no press and none of the
+   words' weight, in the soft ink and italic the rail gives what is not text */
+.cue-card .cue-stage {
+  margin: 0.15em 0; line-height: 1.3; font-size: 0.72em; font-style: italic;
+  color: var(--ink-soft);
+}
 /* a click on the projector: a diamond on the rail, a label, the words
    that will arrive */
 .cue-tick.step i { border-radius: 1px; transform: rotate(45deg) scale(0.9); border-color: var(--emph); }
@@ -21453,8 +21459,8 @@ viewHooks.onStateChange = () => { cueSync(); };
 // in the corner (speaker.md §4.1, PLAN-cue-cards.md). Everything here is
 // local to this window. The one piece of state is the cursor - which card
 // of the current beat is being said - and it sits in FRONT of the reveal
-// counter: goForward asks consumeForward first, and only when the cards of
-// this beat are used up does the press reach advanceReveal and the room.
+// counter: goForward asks consumeForward first, and the press reaches
+// advanceReveal and the room from the last card of the beat.
 // revealed[chunkId] stays the only thing the two windows share.
 const CUE_MODE_KEY = 'psi-slides:cue-cards';
 const CUE_SCALE_KEY = 'psi-slides:cue-scale';
@@ -21668,16 +21674,18 @@ function cueEntries(entry) {
   });
   return { out, cur, pos, total, consumed, cards };
 }
-// Keep the cursor on the chunk and segment the counter is in. Arriving at
-// a new segment going forward starts its cards from the first; arriving
-// going back lands past its last, so the next Backspace takes the last
-// card - each press back undoes one press forward.
+// Keep the cursor on the chunk and beat the counter is in. Arriving at a
+// new beat going forward makes its first card the one being said; arriving
+// going back makes its last card that one - the card the press that left
+// it was spent on, so each press back undoes exactly one press forward.
+// A beat with no cards has card 0 either way, and the cursor is then the
+// press that leaves it.
 function cueBind(entry) {
   const { consumed, pos, maxC, beats } = cuePosition(entry);
   if (cue.id !== entry.id || cue.beat !== consumed) {
     const back = state.activeIdx < cueLast.idx || (state.activeIdx === cueLast.idx && pos < cueLast.pos);
     const n = (cueCardsFor(entry.id, beats, maxC).get(consumed) || []).length;
-    cue = { id: entry.id, beat: consumed, card: back ? n : 0 };
+    cue = { id: entry.id, beat: consumed, card: back ? Math.max(0, n - 1) : 0 };
   }
   cueLast = { idx: state.activeIdx, pos };
 }
@@ -21696,8 +21704,15 @@ viewHooks.consumeForward = () => {
   const entry = flatChunks[state.activeIdx];
   if (!entry) return false;
   cueBind(entry);
+  // A press is spent on the cursor only while another card of the same
+  // beat stands behind it. On the last card of a beat the press goes
+  // straight through to the counter: the reveal, the figure step or the
+  // next slide happens, and its first card becomes the one being said. A
+  // press that moved the cursor onto the entry for the click, and a second
+  // one that clicked, was a press on which the room saw nothing.
   const { out, cur } = cueEntries(entry);
-  if (cur < 0 || out[cur].type !== 'card') return false;
+  const here = out[cur], after = out[cur + 1];
+  if (!here || here.type !== 'card' || !after || after.type !== 'card' || after.c !== here.c) return false;
   cue.card += 1;
   cueRender();
   return true;
@@ -21707,10 +21722,13 @@ viewHooks.consumeBack = () => {
   const entry = flatChunks[state.activeIdx];
   if (!entry) return false;
   cueBind(entry);
-  const { out, cur, consumed } = cueEntries(entry);
-  const prev = cur < 0 ? out[out.length - 1] : out[cur - 1];
-  if (!prev || prev.type !== 'card' || prev.c !== consumed || cue.card <= 0) return false;
-  cue.card -= 1;
+  // The mirror image: back to the card before, while there is one on this
+  // beat; on the first card the press goes through, the counter steps back,
+  // and cueBind lands on that beat's last card.
+  const { consumed, cards } = cueEntries(entry);
+  const k = Math.min(cue.card, (cards.get(consumed) || []).length - 1);
+  if (k <= 0) return false;
+  cue.card = k - 1;
   cueRender();
   return true;
 };
@@ -21790,19 +21808,24 @@ function cueRender() {
   cueDriftAt = cueDriftRef(consumed);
   renderDrift();
   const html = [];
-  let seenCur = false;
   out.forEach((e, i) => {
-    const cls = e.done ? 'done' : i === cur ? 'cur' : !seenCur ? 'next' : 'later';
-    if (i === cur) seenCur = true;
+    // next is the entry the coming press brings up, which on the last card
+    // of a beat is the click itself
+    const cls = e.done ? 'done' : i === cur ? 'cur' : i === cur + 1 ? 'next' : 'later';
     const titled = e.type === 'card' && e.card.title ? ' titled' : '';
     const tick = '<div class="cue-tick ' + (e.type === 'card' ? '' : 'step ') + cls + titled + '"><i></i></div>';
     if (e.type === 'card') {
       const c = e.card;
       let body = c.title ? '<p class="cue-title">' + escText(c.title) + '</p>' : '';
       if (c.at != null) body += '<span class="cue-at">@ ' + PSI_CARDS.formatClock(c.at) + '</span>';
+      // A stage direction rides the card it belongs with, before its words
+      // or after them, and is set as a direction rather than as words to say.
+      const stage = (list) => (list || []).map(d => '<p class="cue-stage">' + escText(d) + '</p>').join('');
+      body += stage(c.lead);
       body += c.bullets.length
         ? '<ul>' + c.bullets.map(b => '<li>' + escText(b) + '</li>').join('') + '</ul>'
-        : '<p class="cue-prose">' + escText(c.prose) + '</p>';
+        : '<p class="' + (c.stage ? 'cue-stage' : 'cue-prose') + '">' + escText(c.prose) + '</p>';
+      body += stage(c.tail);
       html.push(tick + '<div class="cue-entry ' + cls + '"><div class="cue-card">' + body + '</div></div>');
     } else {
       html.push(tick + '<div class="cue-entry ' + cls + '"><div class="cue-step"><span class="cue-k">' + escText(e.k) + '</span>'

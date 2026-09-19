@@ -363,27 +363,26 @@ export async function run({ page, report }) {
   ok(c.card === 0 && c.beat === 0 && /one.*two/.test(c.cur), 'the cursor opens on the first card of beat 1', JSON.stringify(c));
   ok(c.n === 6, 'the column lists two cards, a reveal, a card, a reveal, the next slide', JSON.stringify(c));
 
-  // Space × 6 through the chunk: card, card, reveal, card, reveal, slide
+  // Space × 4 through the chunk: the second card, then the press on the
+  // last card of a beat goes straight to the projector - reveal, reveal,
+  // slide. No press moves the cursor onto a click and stops there.
   const walk = [];
-  for (let i = 0; i < 6; i++) { await press('Space'); walk.push({ ...(await both()), c: await cursor() }); }
+  for (let i = 0; i < 4; i++) { await press('Space'); walk.push({ ...(await both()), c: await cursor() }); }
   ok(walk.every(w => w.same), 'after every Space the projection and the cockpit agree on slide and reveal', JSON.stringify(walk.map(w => [w.a.rev, w.s.rev])));
   ok(walk[0].s.rev === 1 && /three/.test(walk[0].c.cur), 'first Space: the second card, the room saw nothing', JSON.stringify(walk[0]));
-  ok(walk[1].s.rev === 1 && /reveal 1/.test(walk[1].c.cur), 'second: the cards are said, the reveal is next', JSON.stringify(walk[1]));
-  ok(walk[2].s.rev === 2 && /four/.test(walk[2].c.cur) && walk[2].c.beat === 1 && walk[2].c.card === 0, 'third: the room got its reveal, the cursor is on beat 2 card 1', JSON.stringify(walk[2]));
-  ok(walk[3].s.rev === 2 && /reveal 2/.test(walk[3].c.cur), 'fourth: beat 2 said, the second reveal is next', JSON.stringify(walk[3]));
-  ok(walk[4].s.rev === 3 && /slide/.test(walk[4].c.cur), 'fifth: the last reveal, and the next slide is what is left', JSON.stringify(walk[4]));
-  ok(walk[5].s.id === 'legacy' && walk[5].c.card === 0, 'sixth: the next slide, cursor on its first card', JSON.stringify(walk[5]));
-  ok(walk[5].c.n === 4 && /legacy one/.test(walk[5].c.cur), 'the legacy chunk shows both end-notes on beat 1, then its reveal', JSON.stringify(walk[5].c));
+  ok(walk[1].s.rev === 2 && /four/.test(walk[1].c.cur) && walk[1].c.beat === 1 && walk[1].c.card === 0, 'second: on the last card of beat 1 the press is the reveal, and the cursor is on beat 2 card 1', JSON.stringify(walk[1]));
+  ok(walk[2].s.rev === 3 && /slide/.test(walk[2].c.cur), 'third: the last reveal, and a beat with no card leaves the next slide as the cursor', JSON.stringify(walk[2]));
+  ok(walk[3].s.id === 'legacy' && walk[3].c.card === 0, 'fourth: the next slide, cursor on its first card', JSON.stringify(walk[3]));
+  ok(walk[3].c.n === 4 && /legacy one/.test(walk[3].c.cur), 'the legacy chunk shows both end-notes on beat 1, then its reveal', JSON.stringify(walk[3].c));
 
-  // Backspace × 6 undoes them one by one
+  // Backspace × 4 undoes them one by one
   const back = [];
-  for (let i = 0; i < 6; i++) { await press('Backspace'); back.push({ ...(await both()), c: await cursor() }); }
+  for (let i = 0; i < 4; i++) { await press('Backspace'); back.push({ ...(await both()), c: await cursor() }); }
   ok(back.every(w => w.same), 'and after every Backspace', JSON.stringify(back.map(w => [w.a.rev, w.s.rev])));
-  ok(back[0].s.id === 'three' && back[0].s.rev === 3 && /slide/.test(back[0].c.cur), 'back: the previous slide, fully revealed, cursor past its cards', JSON.stringify(back[0]));
-  ok(back[1].s.rev === 2 && /reveal 2/.test(back[1].c.cur), 'back again: the last reveal is taken back and is next again', JSON.stringify(back[1]));
-  ok(back[2].s.rev === 2 && /four/.test(back[2].c.cur) && back[2].c.card === 0, 'then the card of beat 2', JSON.stringify(back[2]));
-  ok(back[3].s.rev === 1 && /reveal 1/.test(back[3].c.cur), 'then the first reveal', JSON.stringify(back[3]));
-  ok(back[5].s.rev === 1 && back[5].c.card === 0 && /one.*two/.test(back[5].c.cur), 'six back: on the first card of beat 1 again', JSON.stringify(back[5]));
+  ok(back[0].s.id === 'three' && back[0].s.rev === 3 && /slide/.test(back[0].c.cur), 'back: the previous slide, fully revealed, its cardless last beat', JSON.stringify(back[0]));
+  ok(back[1].s.rev === 2 && /four/.test(back[1].c.cur) && back[1].c.card === 0, 'back again: the last reveal is taken back, the cursor on the card said over it', JSON.stringify(back[1]));
+  ok(back[2].s.rev === 1 && /three/.test(back[2].c.cur) && back[2].c.card === 1, 'then the first reveal, landing on the LAST card of beat 1', JSON.stringify(back[2]));
+  ok(back[3].s.rev === 1 && back[3].c.card === 0 && /one.*two/.test(back[3].c.cur), 'four back: on the first card of beat 1 again', JSON.stringify(back[3]));
 
   // Enter skips the cards
   await press('Enter');
@@ -404,15 +403,14 @@ export async function run({ page, report }) {
   }
   ok((await both()).s.id === 'steps', 'the cockpit reaches the stepped figure');
   const fig = [];
-  for (let i = 0; i < 6; i++) { fig.push({ ...(await both()), c: await cursor() }); await press('Space'); }
+  for (let i = 0; i < 3; i++) { fig.push({ ...(await both()), c: await cursor() }); await press('Space'); }
   ok(fig.every(w => w.same), 'the two windows agree through a stepped figure', JSON.stringify(fig.map(w => [w.a.rev, w.s.rev])));
   ok(/on the opening beat/.test(fig[0].c.cur), 'the unpinned note opens it', JSON.stringify(fig[0].c));
-  ok(/step 1/.test(fig[1].c.cur), 'then the first step, as its own entry', JSON.stringify(fig[1].c));
-  ok(fig[2].s.rev === 2 && /after the first step/.test(fig[2].c.cur),
-     'then the card pinned to from 1, with the figure already advanced', JSON.stringify(fig[2]));
-  ok(/step 2/.test(fig[3].c.cur), 'then the second step', JSON.stringify(fig[3].c));
-  ok(fig[4].s.rev === 3 && /after the second step/.test(fig[4].c.cur),
-     'then the card pinned to from 2', JSON.stringify(fig[4]));
+  ok(fig[0].c.n === 6, 'the column lists each step as its own entry between the cards', JSON.stringify(fig[0].c));
+  ok(fig[1].s.rev === 2 && /after the first step/.test(fig[1].c.cur),
+     'one press: the first step, and the card pinned to from 1 with it', JSON.stringify(fig[1]));
+  ok(fig[2].s.rev === 3 && /after the second step/.test(fig[2].c.cur),
+     'one more: the second step and the card pinned to from 2', JSON.stringify(fig[2]));
   ok(await spk.evaluate(() => !!document.querySelector('.cue-step .cue-what')),
      'a figure beat shows the step name the author gave it');
 
@@ -426,20 +424,20 @@ export async function run({ page, report }) {
   await spk.waitForTimeout(400);
   ok((await both()).s.id === 'clicks', 'the cockpit reaches the chunk whose note carries clicks');
   const clicks = [];
-  for (let i = 0; i < 6; i++) { clicks.push({ ...(await both()), c: await cursor() }); await press('Space'); }
+  // Two presses, three states: a third press on the last card would be the
+  // one that leaves the slide.
+  for (let i = 0; i < 3; i++) { clicks.push({ ...(await both()), c: await cursor() }); if (i < 2) await press('Space'); }
   ok(clicks.every(w => w.same), 'the two windows agree through it', JSON.stringify(clicks.map(w => [w.a.rev, w.s.rev])));
-  ok(clicks[0].c.n === 7,
-     'the column lists a card, a reveal, two cards, a reveal, a card, the next slide',
+  ok(clicks[0].c.n === 6,
+     'the column lists a card, a reveal, a card, a reveal, a card, the next slide - the [Pause.] is no card',
      JSON.stringify(clicks[0].c));
   ok(clicks[0].s.rev === 1 && /zero/.test(clicks[0].c.cur), 'the card before the first click opens the slide', JSON.stringify(clicks[0].c));
-  ok(clicks[1].s.rev === 1 && /reveal 1/.test(clicks[1].c.cur), 'and the press behind it belongs to the projection, not to another card', JSON.stringify(clicks[1].c));
-  ok(clicks[2].s.rev === 2 && /after the first click/.test(clicks[2].c.cur) && clicks[2].c.beat === 1,
-     'the card written behind the click arrives with the reveal it names', JSON.stringify(clicks[2]));
-  ok(/Pause/.test(clicks[3].c.cur) && clicks[3].s.rev === 2,
-     'a bracketed line that is not a click is a card of its own on the same beat', JSON.stringify(clicks[3]));
-  ok(clicks[4].s.rev === 2 && /reveal 2/.test(clicks[4].c.cur), 'the second reveal is what is left of that beat', JSON.stringify(clicks[4].c));
-  ok(clicks[5].s.rev === 3 && /after the second/.test(clicks[5].c.cur) && clicks[5].c.beat === 2,
-     'and the card behind the second click arrives with it', JSON.stringify(clicks[5]));
+  ok(clicks[1].s.rev === 2 && /after the first click/.test(clicks[1].c.cur) && clicks[1].c.beat === 1,
+     'the press on it is the click, and the card written behind the click arrives with the reveal it names', JSON.stringify(clicks[1]));
+  ok(/Pause/.test(clicks[1].c.cur) && await spk.evaluate(() => [...document.querySelectorAll('.cue-entry.done .cue-stage, .cue-entry.cur .cue-stage')].some(p => p.textContent === '[Pause.]')),
+     'a bracketed line that is not a click rides the card before it, set as a direction', JSON.stringify(clicks[1].c));
+  ok(clicks[2].s.rev === 3 && /after the second/.test(clicks[2].c.cur) && clicks[2].c.beat === 2,
+     'so the press on that card is the second click, and the card behind it arrives with it', JSON.stringify(clicks[2]));
   ok(await spk.evaluate(() => [...document.querySelectorAll('.cue-title')].some(t => /the third line lights/.test(t.textContent))),
      'the words of the click title the card it brings up');
   ok(/note-advance-beyond/.test(lint) && (lint.match(/note-advance-beyond/g) || []).length === 1,
@@ -471,14 +469,11 @@ export async function run({ page, report }) {
   const lead0 = await cursor();
   ok(/stands alone/.test(lead0.cur), 'the cockpit opens on the card said while the heading stands alone', JSON.stringify(lead0));
   ok(lead0.n === 4, 'and the column is that card, the press, the pinned card, the next slide', JSON.stringify(lead0));
-  // Two presses, because the cards sit in front of the counter: the first
-  // walks the cursor onto the press, the second spends it.
-  await press('Space');
-  ok((await both()).s.rev === 1 && /reveal 1/.test((await cursor()).cur),
-     'the first press leaves the projection alone and puts the press next', JSON.stringify(await cursor()));
+  // One press: the card is the last of its beat, so the press it is said
+  // over is the one that clicks.
   await press('Space');
   const lead1 = { ...(await both()), c: await cursor() };
-  ok(lead1.same && lead1.s.rev === 2, 'the second press, and both windows are on the answer', JSON.stringify(lead1));
+  ok(lead1.same && lead1.s.rev === 2, 'one press, and both windows are on the answer', JSON.stringify(lead1));
   ok(/once the answer is up/.test(lead1.c.cur), 'and the note pinned to from 1 is the card it brings up', JSON.stringify(lead1.c));
   ok((await aud.evaluate(() => {
     const segs = [...document.getElementById('lead').querySelectorAll('.reveal-segment')];
@@ -677,6 +672,50 @@ export async function run({ page, report }) {
     ok(Array.isArray(pinned) && pinned.length === 2 && pinned[0] === 0 && pinned[1] === 2,
        'a note inside a `--- from 2` segment is filed on beat 2, and the one above it on 0',
        JSON.stringify(pinned));
+  }
+
+  // ── no press is a dead one, and each press back undoes one ───────
+  // The whole fixture, forward to the end and back to the start. A press
+  // that changes nothing the room sees has to have moved the cursor onto
+  // the next card of the same beat - it used to be able to move it onto
+  // the entry for the click instead, and the click came one press later,
+  // which on a rehearsed keynote was one press per beat for nothing. And
+  // the walk back has to pass through every state of the walk forward, in
+  // reverse, or a press back is not the undo of a press forward.
+  {
+    for (const p of [aud, spk]) {
+      await p.evaluate(() => { Object.keys(revealed).forEach(k => delete revealed[k]); applyRevealAll(); });
+    }
+    await spk.evaluate(() => { jumpTo(0); cue = { id: null, beat: -1, card: 0 }; cueLast = { idx: -1, pos: 0 }; cueSync(); });
+    await spk.waitForTimeout(400);
+    const at = async () => {
+      const w = await both();
+      const c = await spk.evaluate(() => ({ card: cue.card,
+        onCard: !!document.querySelector('#cue-rail .cue-entry.cur .cue-card') }));
+      return { key: w.s.idx + '/' + w.s.rev + '/' + c.card, idx: w.s.idx, rev: w.s.rev, card: c.card, onCard: c.onCard, same: w.same };
+    };
+    const fwd = [await at()];
+    for (let i = 0; i < 120; i++) {
+      await press('Space', 160);
+      const now = await at();
+      if (now.key === fwd[fwd.length - 1].key) break;
+      fwd.push(now);
+    }
+    const dead = [];
+    for (let i = 1; i < fwd.length; i++) {
+      const a = fwd[i - 1], b = fwd[i];
+      if (a.idx === b.idx && a.rev === b.rev && !(b.card === a.card + 1 && a.onCard && b.onCard)) dead.push(a.key + ' -> ' + b.key);
+    }
+    const lastIdx = await spk.evaluate(() => flatChunks.length - 1);
+    ok(fwd[fwd.length - 1].idx === lastIdx, 'Space alone walks the whole fixture to its last slide', fwd.map(f => f.key).join(' '));
+    ok(fwd.every(f => f.same), 'and the two windows agree after every press of it');
+    ok(dead.length === 0, 'no press on the way leaves the room unchanged without saying the next card of the same beat', dead.join(' | '));
+    const bwd = [];
+    for (let i = 0; i < fwd.length - 1; i++) { await press('Backspace', 160); bwd.push(await at()); }
+    const want = fwd.slice(0, -1).reverse().map(f => f.key);
+    ok(JSON.stringify(bwd.map(b => b.key)) === JSON.stringify(want),
+       'Backspace retraces the walk state for state, so each press back undoes exactly one press forward',
+       bwd.map(b => b.key).join(' ') + ' vs ' + want.join(' '));
   }
 
   ok(errors.length === 0, 'no page errors in either window', errors.join(' | '));
