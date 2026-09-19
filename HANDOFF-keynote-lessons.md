@@ -110,11 +110,17 @@ taught, is under *What a redraw of a whole corpus turned up* below.
    segment are chunk notes on beat 1 then stops firing), and
    `PLAN-overlap-census.md`, which is its own file because it was written
    from a measured case.
-4. **One figure still behind its own slide.** `#ns-b22` sets its labels at
-   13.2 px against 28.4 px of body type (0.46x, smallest on the drawing
-   10.5 px) – five boxes on one line inside a `::: side` pane. `--check-fit`
-   reports it as a note. It wants a redraw, not an engine change: fewer boxes
-   per row, a `::: side` ratio, or shorter labels.
+4. **Three figures are still behind their own slides**, all in
+   `network-security`, all reported by `--check-fit` as notes rather than
+   errors: `#ns-b18` at 16.8 px against 28.4 px of body type (0.59x),
+   `#ns-a30` and `#ns-b20` at 18.7 px (0.66x). `#ns-b22` was the fourth and
+   the worst at 0.46x and is done – its five-boxes-on-one-line chain became
+   three columns with the two ssh ends lifted a band above them, and the
+   `::: side` ratio went to `5:6`, which is as much as the figure can take
+   before the listing beside it loses a character. That is the worked
+   example for the other three. **Read the whole list, not the smallest
+   entry**: this item said "one figure" for a while because the minimum was
+   grepped for instead of the list.
 5. **Merge to `main` and push** once the keynote frames are accepted. Each
    slice is one described commit; the merge commits name the slice.
 
