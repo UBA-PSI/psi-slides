@@ -427,7 +427,8 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
   Ziel-Beats; gebaut ist die Symmetrie: jeder Backspace macht genau einen
   Space rückgängig, also steht der Cursor nach dem zurückgenommenen Reveal
   erst auf dem „reveal“-Eintrag und dann auf der letzten Karte. Vorhersagbar
-  schlägt einen Tastendruck weniger.
+  schlägt einen Tastendruck weniger. **Überholt, siehe §17:** die Symmetrie
+  bleibt, der Tastendruck fällt in beiden Richtungen weg.
 - **Der Spiegel im Kartenmodus ist derselbe DOM und dieselbe Kamera.** Er
   zeigt deshalb, wie der klassische Spiegel ohne verbundene Audience, die
   Nachbar-Chunks gedimmt oben und unten – kein Fehler des Modus.
@@ -629,3 +630,37 @@ Klammerzeile ist Regie und bleibt als eigene Karte im Wortlaut stehen.
 Arithmetik ohne Browser fest (Split, Titelvorrang, Lokalisierung, Regie vs.
 Klick); `test/cue-cards.mjs` läuft `#clicks` mit zwei Klicks und zwei
 Reveals in zwei Fenstern durch und `#tooclicks` durch den Linter.
+
+## 17. Nachtrag: kein toter Druck am Ende eines Beats
+
+Aus der Probe der Keynote im Kartenmodus. Jeder Druck machte die aktuelle
+Karte zur gesagten und die nächste zur aktuellen – auch auf der **letzten**
+Karte eines Beats. Dann stand der Cursor auf dem Eintrag für den Klick,
+auf dem Projektor passierte nichts, und erst der Druck danach klickte. Ein
+Druck pro Beat, an dem der Raum nichts sieht; auf `lectures/spoken-talk`
+waren es 9 von 34.
+
+**Die Regel.** `consumeForward` verbraucht einen Druck nur, wenn hinter
+dem Cursor eine weitere Karte **desselben Beats** (gleiches `consumed`)
+steht. Auf der letzten Karte geht der Druck durch zu `advanceReveal`: der
+Reveal, der Diagrammschritt oder die nächste Folie passiert, und deren
+erste Karte ist die aktuelle. Ein Beat ohne Karten hat den Klick als
+Cursor, wie bisher. `consumeBack` ist das Spiegelbild: eine Karte zurück,
+solange es auf diesem Beat eine davor gibt; auf der ersten Karte geht der
+Druck durch, der Zähler geht zurück, und `cueBind` landet auf der
+**letzten** Karte des vorigen Beats (`card: n - 1` statt `n`). Jeder
+Backspace macht damit weiter genau einen Space rückgängig – gemessen als
+Gang durch das ganze Deck und zurück, Zustand für Zustand
+(`test/cue-cards.mjs`, letzter Block).
+
+**Was sich nicht ändert.** Enter geht weiter zur nächsten Folie. Die Drift
+liest `k <= cue.card`; der Zustand „Cursor hinter der letzten Karte“ gibt
+es nicht mehr, und die letzte Karte zählt dieselben Marken als erreicht wie
+er, also misst die Uhr an jeder Stelle gegen dieselbe Marke wie vorher. Der
+Projektor erfährt nichts.
+
+**Nebenbei:** `.cue-entry.next` war gestaltet, aber nie gesetzt – die
+Bedingung traf nur Einträge *vor* dem Cursor, und die gibt es nicht. Jetzt
+trägt der Eintrag direkt hinter dem Cursor die Klasse, auf der letzten Karte
+also der Klick, den der nächste Druck auslöst. Die vier `cue-beat`-Aufnahmen
+für `in-the-room.html` sind jetzt 0, 1, 2, 3 Drücke statt 0, 2, 4, 6.

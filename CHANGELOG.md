@@ -58,6 +58,15 @@ from building the same way is a major version.
   abbreviation.
 - **`--frames` and `--check-fit` wait for the slide to stop animating**
   before a screenshot; a backdrop's 620 ms reveal used to be caught halfway.
+- **In the cue cards, the press on a beat's last card is the click.** It used
+  to move the cursor onto the rail's entry for the click, and only the press
+  after that reached the projection – one press per beat on which the room
+  saw nothing. Walked on `lectures/spoken-talk`, the talk from its first
+  card to its last took 34 presses and takes 25. Backspace is the mirror
+  image: on a beat's first card it takes the click back and lands on the
+  last card of the beat before, so each press back still undoes exactly one
+  press forward. The entry the next press brings up is now drawn as the
+  next one, which on a last card is the click itself.
 
 ### Changed (drawings, unreleased)
 

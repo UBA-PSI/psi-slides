@@ -217,12 +217,12 @@ const SHOTS = [
   // the four frames are the cursor standing on each of the four cards, with
   // the figure at the beat that card is spoken over.
   //
-  // Even presses only. The rail carries an entry for the projector click
-  // itself, so the cursor lands on a card, then on a click, then on the next
-  // card: 0, 2, 4, 6 are the four frames where a card is current and the
-  // figure has just moved. Deriving them rather than counting them would
+  // One press a frame. Each beat of this chunk up to the last carries one
+  // card, and the press on the last card of a beat is the projector click
+  // itself, so 0, 1, 2, 3 are the four frames where a card is current and
+  // the figure has just moved. Deriving them rather than counting them would
   // need the rail's own model, and the count is asserted below instead.
-  ...[0, 2, 4, 6].map((presses, i) => ({
+  ...[0, 1, 2, 3].map((presses, i) => ({
     name: `cue-beat-${i}`, src: 'speaker.html', w: 1440, h: 900, dsf: 1.5,
     lecture: 'spoken-talk', target: 'second-time', frag: true,
     act: (p) => cueFrame(p, presses),
@@ -330,8 +330,9 @@ async function cueFrame(p, presses) {
   }
 
   // The frame is only the frame if a card is current. An entry for the
-  // projector click sits between two cards, and a sequence photographed one
-  // press out would show the rail moving and the figure standing still.
+  // projector click sits between two cards, and the cursor stands on it
+  // when a beat carries no card - a sequence photographed there would show
+  // the rail moving and the figure standing still.
   const cur = await p.evaluate(() => {
     const e = document.querySelector('#cue-rail .cue-entry.cur');
     return e ? (e.querySelector('.cue-card') ? 'card' : 'click') : 'none';
