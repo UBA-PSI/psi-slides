@@ -457,7 +457,7 @@ step mitigation
 
 ## figure: Amplification attack | some connectionless protocols allow attackers to use IP Spoofing to reflect and multiply their attack traffic {.full #ns-a30}
 
-::: side
+::: side 6:5
 
 ```
 $ dig any ripe.net      # ask for all resource records
@@ -483,22 +483,32 @@ Example: Spamhouse  (75 Gbps)
 # stays; the evidence for it is the capture beside it, not this picture. The
 # two triangles are the size comparison: the area is the volume, the point
 # shows where it arrives. 37 bytes out, 1194 back.
-text intro "For some protocols (e.g., DNS or\nNTP) the response can become\nmuch larger than the request." at -3.25,-1.35 {.left}
-text amp "*Amplification factor:* ratio of\nresponse and request size." below intro gap 0.45 flush left {.left}
+#
+# One column, read top to bottom: the definition, then the path the traffic
+# takes, then the reason it works. The pane beside it is taller than it is
+# wide - the capture and the link under it - so the figure stands in the
+# height rather than across it: laid out as three columns side by side it was
+# 36 labels wide in half a slide and set its labels at 19 px against 28 px of
+# body type. The pane is `6:5` because the capture's longest line needs the
+# width, and at `1:1` it lost its last characters to the pane edge.
+text intro "For some protocols (e.g., DNS or\nNTP) the response can become\nmuch larger than the request." at 0,0 {.left}
+text amp "*Amplification factor:* ratio of\nresponse and request size." below intro gap 0.5lh flush left {.left}
 
-text atk "Attacker" at 0.4,-1.5 {.accent}
-box  req "" below atk gap 0.3 w 0.34 h 0.3 {.wedge .tone-3 @small}
-text srv "Server" below req gap 0.3 {@small}
-box  res "" below srv gap 0.3 w 0.66 h 0.58 {.wedge .tone-3 @big}
-text victim "Victim" below res gap 0.3 {@big}
+# The column's centre is half the big point's width in from the text's left
+# edge, so the point, the words and the note below share one left edge.
+text atk "Attacker" at intro.left+0.33,amp.bottom+0.38 {.accent}
+box  req "" below atk gap 0.35lh w 0.34 h 0.3 {.wedge .tone-3 @small}
+text srv "Server" below req gap 0.35lh {@small}
+box  res "" below srv gap 0.35lh w 0.66 h 0.58 {.wedge .tone-3 @big}
+text victim "Victim" below res gap 0.35lh {@big}
 
-text lreq "Small request with\nSrc IP of victim" left of req gap 1.05 {.right @small}
-text lres "Large response with\nDst IP of victim" left of res gap 0.95 {.right @big}
+# The two descriptions stand right of the points they describe, the words
+# running away from the shape, on one left edge.
+text lres "Large response with\nDst IP of victim" right of res gap 0.8lh {.left @big}
+text lreq "Small request with\nSrc IP of victim" right of req {.left @small}
+align x left lres, lreq
 
-text open "Attack possible due to liberally\noperated DNS/NTP servers." at -3.25,1.95 {.left .muted @open}
-# .left on a free text at a coordinate anchors it on that edge, so both blocks
-# start at x -3.25 rather than straddling it; the align statement below is what
-# keeps them on one edge if either label is ever reworded.
+text open "Attack possible due to liberally\noperated DNS/NTP servers." below victim gap 0.9lh {.left .muted @open}
 align x left intro, open
 
 step request
