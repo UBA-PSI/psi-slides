@@ -1127,17 +1127,24 @@ Proxy-Connection: close
 .`...\ÇÈÀœÁ.Û3Xjè*...=diffie- […]
 ```
 ::: flip
-::: draw 118x150
-# A chain on one horizontal line - the same shape as on the slide after it.
-# The HTTP capture stands beside it as a code block, not in the picture. The
-# labels "ssh client" and "ssh server" run to two lines as in the original;
-# that is a break, not different wording.
-box sc  "ssh\nclient"      at 0,0 w 0.66 {.tone-2}
-box htc "htc"              right of sc gap 0.25 w 0.5 {.tone-1 @relay}
-box fwp "firewall\nproxy"  right of htc gap 0.25 w 0.8 {.tone-1}
-box hts "hts"              right of fwp gap 0.25 same as htc {.tone-1 @relay}
-box ss  "ssh\nserver"      right of hts gap 0.25 same as sc {.tone-3}
-text vm "vm1.cloud.com:80" below hts gap 0.28 {.muted @relay}
+::: draw 40x24
+# The same shape as on the slide after it: three columns, the relays and the
+# proxy between them along the bottom, and the two ssh ends a band above the
+# relay that carries each, so the connection dips into HTTP and comes back
+# out. The HTTP capture stands beside it as a code block, not in the picture.
+# The labels "ssh client" and "ssh server" run to two lines as in the
+# original; that is a break, not different wording. Five boxes on one line is
+# what this figure used to be, and on half a slide it set its labels at 19 px
+# against 28 px of body type.
+box fwp "firewall\nproxy"  at 0,0 {.tone-1}
+box htc "htc"              left of fwp {.tone-1 @relay}
+box hts "hts"              right of fwp {.tone-1 @relay}
+box sc  "ssh\nclient"      above htc gap 0.6lh same w as htc {.tone-2}
+box ss  "ssh\nserver"      above hts gap 0.6lh same w as hts {.tone-3}
+# The address is wider than the box it names, so it stands flush with the
+# box's right edge: centred, the drawing's right edge would be a text-width
+# estimate instead of the outline of hts.
+text vm "vm1.cloud.com:80" below hts gap 0.5lh flush right {.muted @relay}
 
 edge sc  -- htc
 edge in htc -- fwp
