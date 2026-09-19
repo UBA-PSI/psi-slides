@@ -572,6 +572,52 @@ engine made it harder than it should be, ordered by time cost. It confirms
 7. The canvas height cannot be traded against the chunk's own caption lines
    (§2 has no item for this: a figure chunk with four lines of prose under
    the drawing has the same 16 labels as one with none).
+
+   **Measured** on `lectures/network-security` (`collapse: none`, auto-fit
+   off, so every word of the prose is on the projection), the deck
+   `--check-fit` names with twelve chunks taller than the 900 px frame. Each
+   one walked to its last beat at 1600x900 and taken apart: the heading, the
+   figure's box, the part of that box the drawing inks (it is anchored at the
+   canvas's top, so the rest is paper *under* the drawing), and everything
+   below it – prose, code listings, display maths and the gaps between them.
+   "Without the canvas" is the chunk with that paper taken out, which is the
+   box a hugging figure had: a figure inside its canvas is drawn at exactly
+   the size it was drawn at before. "Fits at" is the share of its own size
+   the drawing would have to come down to for the chunk to fit with its
+   prose unchanged.
+
+   | chunk | total | head | box | drawing | paper under it | prose etc. | without the canvas | fits at |
+   | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+   | `#ns-a62` | 1265 | 38 | 505 | 387 | 119 | 722 | 1146 | 0.36 |
+   | `#ns-a60` | 1221 | 38 | 505 | 459 | 46 | 678 | 1175 | 0.40 |
+   | `#ns-a14` | 1020 | 70 | 505 | 484 | 21 | 445 | 999 | 0.80 |
+   | `#ns-b57` | 1018 | 38 | 505 | 385 | 120 | 475 | 898 | 1.00 |
+   | `#ns-b59` | 956 | 38 | 505 | 498 | 7 | 413 | 949 | 0.90 |
+   | `#ns-a49` | 943 | 70 | 552 | 546 | 6 | 321 | 937 | 0.93 |
+   | `#ns-a45` | 941 | 76 | 506 | 493 | 12 | 359 | 929 | 0.94 |
+   | `#ns-b56` | 940 | 70 | 505 | 385 | 120 | 365 | 820 | 1.00 |
+   | `#ns-a08` | 935 | 70 | 505 | 484 | 21 | 360 | 914 | 0.97 |
+   | `#ns-a12` | 935 | 70 | 505 | 484 | 21 | 360 | 914 | 0.97 |
+   | `#ns-a13` | 935 | 70 | 505 | 487 | 19 | 360 | 916 | 0.97 |
+   | `#ns-a31` | 921 | 70 | 558 | – | – | 293 | 921 | – |
+
+   All in px. `#ns-a49`'s box is 552 rather than 505 because its drawing is
+   a hair past its canvas (the union is emitted); `#ns-a31`'s figure stands
+   in a `::: side` pane beside a code listing and has no canvas at all.
+
+   So **the canvas put two of the twelve over the frame**: `#ns-b56` (820
+   without it, 940 with) and `#ns-b57` (898 without, 1018 with – two px
+   inside, which is the canvas as the whole difference but no margin either
+   way). Both draw a bar chart 13.5 labels tall on a 17.8-label canvas, and
+   the 120 px band under each is the only paper of that size in the twelve.
+   **The other ten are over the frame with the canvas taken out entirely**:
+   the canvas adds 6 to 46 px to eight of them and nothing to `#ns-a31`, and
+   `#ns-a62` and `#ns-a60` carry two HTML listings each plus a paragraph –
+   678 and 722 px of text, three quarters of the frame before any drawing.
+
+   **Fill.** Nine of the twelve drawings take 95 % or more of their canvas's
+   height (17.0 to 17.6 of 17.8 labels); `#ns-a62`, `#ns-b56` and `#ns-b57`
+   take 76 %. The deck was redrawn onto the canvas, and its drawings fill it.
 8. Two zones cannot be declared as one row (see 2).
 9. A container's `pad` is invisible to anything placed against its members –
    a text hung off a member lands inside the container's edge with no
