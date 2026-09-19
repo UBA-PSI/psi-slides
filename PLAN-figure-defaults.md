@@ -652,3 +652,55 @@ measured:
     linter** (`## question:` / `---` / body): a `> note: from 1` that never
     fires, a closing slide whose last click is dead, and lint says clean.
     Being fixed: a leading `---` means "the heading alone is beat 0".
+15. **`.dotted .muted` is the faintest mark in the vocabulary, on every
+    theme, by a margin nothing else in it has.** Written up only in a
+    handoff note until measured: a specimen figure (six edges and six box
+    outlines – solid, `.muted`, `.dashed`, `.dashed .muted`, `.dotted`,
+    `.dotted .muted` – and a `plot`'s grid), built once per theme, shot in
+    Chromium at 1600x900 with the camera settled. The figure drew at scale
+    1.79 (a plain stroke 2.51 px, a muted one 1.88 px), the plot at 1.40 –
+    inside the corpus's own range, 0.98 (`lectures/diagrams#plot`) to 2.11
+    (`lectures/tutorial#diagram-plot`), 1.9 on `network-security`. Per line,
+    a 6 px band across the stroke over the middle 70 % of its run: its mean
+    colour against the paper (*blurred* – what a viewer too far away to
+    resolve a dot integrates; comparable across lines, not an absolute
+    legibility figure) and its most contrasting pixel (*peak*):
+
+    | line | four light themes | `dark` | `terminal-amber` / `-green` |
+    | --- | --- | --- | --- |
+    | solid | 2.61 / 13.21 | 3.57 / 13.46 | 2.65 / 9.41 |
+    | `.muted` | 1.33 / 2.76 | 1.55 / 5.18 | 1.36 / 3.98 |
+    | `.dashed` | 1.72 / 17.07 | 2.05 / 16.52 | 1.65 / 11.46 |
+    | `.dashed .muted` | 1.23 / 2.94 | 1.33 / 5.54 | 1.21 / 4.25 |
+    | `.dotted` | 1.25 / 17.07 | 1.28 / 16.52 | 1.17 / 11.46 |
+    | **`.dotted .muted`** | **1.09 / 2.56** | **1.10 / 4.58** | **1.07 / 3.57** |
+    | plot grid, horizontal / vertical | 1.05 / 2.30, 1.05 / 1.73 | 1.06 / 3.99, 1.06 / 2.50 | 1.04 / 3.10, 1.04 / 2.04 |
+
+    The four light themes are one row because they share `--ink`, `--paper`
+    and `--ink-soft` and differ only in `--emph`; box outlines read within
+    0.04 of the matching edge. Read as ink above the paper (blurred − 1):
+    `.dotted .muted` carries 0.09 on light, **27 % of a `.muted` line and
+    39 % of a `.dashed .muted` one**; 18 % and 30 % on `dark`, 19 % and 33 %
+    on the terminals. Every other pair in the table is one step apart; this
+    one is two steps multiplied. **The peak says why**: 2.56 is below the
+    2.76 a solid `.muted` line reaches in the same colour, because
+    `.muted` sets `--dg-sw` to 1.05 and `.dotted` draws a disc one `--dg-sw`
+    across – 1.9 px on screen here, 1.1 px at `lectures/diagrams#plot`'s
+    0.98 – and a disc that small is anti-aliased below its own colour. The
+    dots never reach `--ink-soft`. A vertical gridline is fainter again than
+    a horizontal one (peak 1.73 against 2.30), because it stands on a
+    fractional x and each dot is smeared across two pixel columns.
+
+    Looked at full size: on the light themes the line is visible up close
+    and gone at arm's length; on `terminal-green` it is barely there at all.
+    **Too faint on all seven**, not a dark-theme problem – the dark themes'
+    better peak buys nothing blurred, 1.06–1.10 everywhere. Corpus reach: 11
+    of 96 figures use the pair, 79 elements – `lectures/diagrams` 3 figures
+    (`#mac`'s one edge, the grids of `#plot` and `#sameframe`),
+    `lectures/tutorial` 1 (`#diagram-plot`'s grid), `lectures/network-security`
+    7 (the dotted boundary of `#ns-a08`, `#ns-a12`, `#ns-a13`, `#ns-a14` and
+    the grids of `#ns-b55`, `#ns-b60`, `#ns-b61`); decoration, python-intro
+    and spoken-talk none. **Six of the eleven are a `plot`'s grid, which the
+    compiler writes as `muted dotted no-head` itself**, so this is the
+    engine's own default and not an author's pile-up; and one `.dotted` in
+    the whole corpus is not also `.muted` (tutorial).
