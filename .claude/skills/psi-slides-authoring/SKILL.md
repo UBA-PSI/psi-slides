@@ -1716,7 +1716,7 @@ frame at a laptop's 1440x810 are 835 and 836 px tall in a 900 px 16:9 one.
 **It reports two things and only one is a failure.** A chunk *taller* than the
 frame is read by scrolling – the stage is a continuous column and walks down it
 as reveals advance – and is reported as a note; `lectures/tutorial` has
-eighteen. A chunk that *fits* the frame and is still outside it cannot be
+several, each listed by id with its height. A chunk that *fits* the frame and is still outside it cannot be
 excused that way, and is the failure, with exit 2.
 
 **For a clipped chunk it also reports what the height is made of, because the
