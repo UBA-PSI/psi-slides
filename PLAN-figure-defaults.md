@@ -604,12 +604,136 @@ engine made it harder than it should be, ordered by time cost. It confirms
    head length either way).
 5. The label-height is the deck's real unit of spacing and is not addressable
    – a `lh` suffix on `gap` and `pad`.
+
+   **Landed, and the editor lost the unit on a drag** – reproduced in a
+   browser on `lectures/network-security#ns-b22`: dragging `lfw` half a cell
+   down turned `below ufw gap 5lh` into `below ufw gap 4.4`, a number in
+   rows. The drawing was right, the spelling was gone: the next author to
+   change the grid moves that box and not its neighbours. Reading the editor
+   for every place that writes a `gap` found the same loss in six more, some
+   of which are worse because they *move the drawing*: three paths pass the parsed
+   `place.gap` – the number of label heights – back through `dgePlaceText`
+   with no unit, so it is read as rows.
+
+   - the drag along a relation's main axis (`dgePlanDrag`) – writes rows;
+   - re-docking past the reference's edge (`dgeRedock`) – writes rows;
+   - the `side` swatches and the `of` field in the panel – write `5` for
+     `5lh`, a different distance;
+   - `dgeRelText`, which a step's `move … to` goes through – the same;
+   - the dock chip, which keeps "the distance the element already kept" – the
+     same;
+   - the `gap` field shows the gap in rows and refuses `0.6lh` as not a
+     number, and the `in` band's gap field writes rows too;
+   - the sibling-gap guide reads `Number("0.6lh")`, gets NaN, and so never
+     offers an `lh` gap as the one to match.
+
+   `pad` is not reachable from the editor, so it has nothing to lose.
+
+   **Fixed.** A drag keeps the unit – the arithmetic stays in rows, where
+   every guide and delta already works, and `dgeGapSpelled` /
+   `dgeGapWritten` spell the result the way the line does, so `gap 5lh`
+   dragged half a cell comes back `gap 5.65lh`. Every writer goes through
+   those two; the panel's field shows `5lh` and takes `0.6lh`; the
+   sibling-gap guide offers an `lh` gap and writes the sibling's own
+   spelling. A gap nobody wrote is still written in rows – it has no unit to
+   keep, and giving one to it would change what every drag in the corpus
+   writes. Asserted at the end of `test/editor-drag-guides-network.mjs` on
+   `#ns-b22`; three of its assertions fail on the editor before the fix.
 6. No per-figure slack report: `--check-fit` speaks only past the canvas; a
    line per figure with canvas, drawing and slack per axis is information the
    build already has.
 7. The canvas height cannot be traded against the chunk's own caption lines
    (§2 has no item for this: a figure chunk with four lines of prose under
    the drawing has the same 16 labels as one with none).
+
+   **Measured** on `lectures/network-security` (`collapse: none`, auto-fit
+   off, so every word of the prose is on the projection), the deck
+   `--check-fit` names with twelve chunks taller than the 900 px frame. Each
+   one walked to its last beat at 1600x900 and taken apart: the heading, the
+   figure's box, the part of that box the drawing inks (it is anchored at the
+   canvas's top, so the rest is paper *under* the drawing), and everything
+   below it – prose, code listings, display maths and the gaps between them.
+   "Without the canvas" is the chunk with that paper taken out, which is the
+   box a hugging figure had: a figure inside its canvas is drawn at exactly
+   the size it was drawn at before. "Fits at" is the share of its own size
+   the drawing would have to come down to for the chunk to fit with its
+   prose unchanged.
+
+   | chunk | total | head | box | drawing | paper under it | prose etc. | without the canvas | fits at |
+   | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+   | `#ns-a62` | 1265 | 38 | 505 | 387 | 119 | 722 | 1146 | 0.36 |
+   | `#ns-a60` | 1221 | 38 | 505 | 459 | 46 | 678 | 1175 | 0.40 |
+   | `#ns-a14` | 1020 | 70 | 505 | 484 | 21 | 445 | 999 | 0.80 |
+   | `#ns-b57` | 1018 | 38 | 505 | 385 | 120 | 475 | 898 | 1.00 |
+   | `#ns-b59` | 956 | 38 | 505 | 498 | 7 | 413 | 949 | 0.90 |
+   | `#ns-a49` | 943 | 70 | 552 | 546 | 6 | 321 | 937 | 0.93 |
+   | `#ns-a45` | 941 | 76 | 506 | 493 | 12 | 359 | 929 | 0.94 |
+   | `#ns-b56` | 940 | 70 | 505 | 385 | 120 | 365 | 820 | 1.00 |
+   | `#ns-a08` | 935 | 70 | 505 | 484 | 21 | 360 | 914 | 0.97 |
+   | `#ns-a12` | 935 | 70 | 505 | 484 | 21 | 360 | 914 | 0.97 |
+   | `#ns-a13` | 935 | 70 | 505 | 487 | 19 | 360 | 916 | 0.97 |
+   | `#ns-a31` | 921 | 70 | 558 | – | – | 293 | 921 | – |
+
+   All in px. `#ns-a49`'s box is 552 rather than 505 because its drawing is
+   a hair past its canvas (the union is emitted); `#ns-a31`'s figure stands
+   in a `::: side` pane beside a code listing and has no canvas at all.
+
+   So **the canvas put two of the twelve over the frame**: `#ns-b56` (820
+   without it, 940 with) and `#ns-b57` (898 without, 1018 with – two px
+   inside, which is the canvas as the whole difference but no margin either
+   way). Both draw a bar chart 13.5 labels tall on a 17.8-label canvas, and
+   the 120 px band under each is the only paper of that size in the twelve.
+   **The other ten are over the frame with the canvas taken out entirely**:
+   the canvas adds 6 to 46 px to eight of them and nothing to `#ns-a31`, and
+   `#ns-a62` and `#ns-a60` carry two HTML listings each plus a paragraph –
+   678 and 722 px of text, three quarters of the frame before any drawing.
+
+   **Fill.** Nine of the twelve drawings take 95 % or more of their canvas's
+   height (17.0 to 17.6 of 17.8 labels); `#ns-a62`, `#ns-b56` and `#ns-b57`
+   take 76 %. The deck was redrawn onto the canvas, and its drawings fill it.
+
+   **Decided: the flat sixteen stays, and the tall chunks are the deck's own
+   doing.** Three reasons, each measured.
+
+   - **The candidate rule reaches only the paper, never the drawing.** A
+     canvas shorter than its drawing does not shrink it – the emitted box is
+     the union, which is the property the canvas was built on. Tried with the
+     height at twelve labels instead of sixteen: `#ns-a08` went from 935 to
+     913 px with its drawing still 484 px tall, `#ns-b56` from 940 to 819,
+     and the build raised 29 `figure-overflows-canvas` warnings across the
+     deck. So on nine of the twelve the rule would turn a chunk that scrolls
+     into a chunk that scrolls *and* a warning whose remedy (`frame WxH`)
+     changes nothing either; on `#ns-b56` and `#ns-b57` it would do what a
+     `frame` on those two figures already does.
+   - **Making it bite means the canvas scales drawings, and the numbers say
+     at what price.** The last column of the table: `#ns-a62` and `#ns-a60`
+     would draw at 0.36 and 0.40 of their size, base labels of 10 and 11 px
+     against 28.4 px of prose – under the 18 px floor. `#ns-a14` at 0.80 is
+     past the 0.85 at which `--check-fit` calls a slide out of step with its
+     deck. Only `#ns-b59`, `#ns-a49`, `#ns-a45`, `#ns-a08`, `#ns-a12` and
+     `#ns-a13` (0.90 to 0.97) would come in at a shrink a room would not
+     notice – and each of those at a different factor, set by how many words
+     its paragraph runs to, which is the one thing about a figure slide the
+     canvas exists to take out of its type. Two slides with the same prose
+     would agree; two with different prose would not, and the deck would be
+     back to a figure per zoom, in the vertical this time.
+   - **The build does not know the lines.** The canvas is decided in the
+     parse, which is why its two warnings can be emitted without a browser.
+     How many lines a paragraph wraps into, how tall a listing or a display
+     formula stands, is layout; the rule would run on an estimate, and the
+     slide it guessed wrong about would be the one that disagrees.
+
+   **What the talk deck says.** The keynote the canvas was cut for – twenty
+   figures, every one on a canvas, 59 to 98 % filled – has no chunk taller
+   than the frame (`--check-fit`, 95 states). A figure slide in a talk
+   carries a heading and a line; `network-security` carries a paragraph
+   written for a reader under every figure, under `collapse: none` and with
+   auto-fit off, and two listings on its tallest two. The remedies are the
+   deck's: the default collapse (the first sentence and the bolds), `auto-fit:
+   shrink`, `::: script` round the paragraph, or on `#ns-b56` and `#ns-b57`
+   a `frame` that says a bar chart wants 14 labels rather than 17.8. None was
+   applied here – the deck is a compiler check and is not published, and a
+   scrolling chunk is `--check-fit`'s note, not a failure.
 8. Two zones cannot be declared as one row (see 2).
 9. A container's `pad` is invisible to anything placed against its members –
    a text hung off a member lands inside the container's edge with no

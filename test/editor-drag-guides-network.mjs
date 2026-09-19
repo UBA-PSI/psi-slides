@@ -198,4 +198,47 @@ export async function run({ page, report, walkTo, ed }) {
   ok(/gap 0\.55/.test(await ed.lineWith('text ask ') || ''),
     'and the element’s own line is untouched', await ed.lineWith('text ask '));
   ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
+
+  // ── ns-b22: a gap written in label heights keeps its unit ──
+  // `gap 5lh` dragged used to come back `gap 4.4` – rows, the right distance
+  // in the wrong ruler – and the side swatches wrote the label-height count
+  // back as rows, which moved the box. The unit is part of the span.
+  // ns-b22 stands before ns-b63, and walkTo only goes forward.
+  await leave();
+  await page.evaluate(() => { try { localStorage.clear(); } catch (e) { /* private window */ } });
+  await page.reload({ waitUntil: 'load' });
+  await page.waitForTimeout(700);
+  await walkTo('ns-b22');
+  ok(await ed.open('ns-b22'), 'the editor is open on #ns-b22');
+  await ed.beat(0);
+  const lfwBefore = await ed.lineWith('box lfw ');
+  ok(/below ufw gap 5lh /.test(lfwBefore || ''), 'the firewall hangs 5lh below its twin', lfwBefore);
+  ok(await pick('lfw') === 'box lfw', 'the lower firewall is selected', await ed.selection());
+  const gapField = () => page.evaluate(() => {
+    const l = [...document.querySelectorAll('#dge-side .dge-num')]
+      .find((x) => x.textContent.trim().startsWith('gap'));
+    return l ? l.querySelector('input').value : null;
+  });
+  ok(await gapField() === '5lh', 'the panel shows the gap as the line writes it', await gapField());
+  seen = await dragCells(await ed.centreOf('#dge-art-svg [id$="-lfw"]'), 0, 0.5);
+  const lfwAfter = await ed.lineWith('box lfw ');
+  const lfwGap = /below ufw gap ([\d.]+)lh /.exec(lfwAfter || '');
+  ok(!!lfwGap && Number(lfwGap[1]) > 5, 'a drag writes the new gap in label heights', lfwAfter);
+  ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
+  await undo();
+  ok(await pick('lfw') === 'box lfw', 'the lower firewall is selected again', await ed.selection());
+  await page.evaluate(() => {
+    const b = [...document.querySelectorAll('#dge-side button.dge-sw')].find((x) => x.textContent === 'above');
+    if (b) b.click();
+  });
+  await page.waitForTimeout(450);
+  ok(/above ufw gap 5lh /.test(await ed.lineWith('box lfw ') || ''),
+    'changing its side keeps 5lh, not 5 rows', await ed.lineWith('box lfw '));
+  await undo();
+  // A gap nobody wrote has no unit to keep, and is written in rows as before.
+  ok(await pick('us') === 'box us', 'the upper ssh server is selected', await ed.selection());
+  await dragCells(await ed.centreOf('#dge-art-svg [id$="-us"]'), 0.5, 0);
+  ok(/right of ufw gap [\d.]+ /.test(await ed.lineWith('box us ') || ''),
+    'an unwritten gap is written in rows', await ed.lineWith('box us '));
+  ok(!(await ed.problems()).includes('line '), 'the block parses', await ed.problems());
 }
