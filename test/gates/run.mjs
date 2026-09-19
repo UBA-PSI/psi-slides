@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Eleven gates, and they prove eleven different things – which is worth stating
+ * Fifteen gates, and they prove fifteen different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -37,9 +37,22 @@
  *   cue-cards  the note-to-cards grammar in cue-cards.mjs, rule by rule,
  *              and that the module reaches the speaker page as
  *              window.PSI_CARDS with every export on it
+ *   image-refs every way a source.md names a picture, and the one collector
+ *              both readers go through - the set that decides what the inline
+ *              cap refuses and what --optimize-images can fix
  *   xheight    every text face in BUNDLED_FONTS carries the measured
  *              x-height that sizes inline code against the prose around
  *              it, and the roster agrees with the JSON it was copied from
+ *   canvas     the three measured numbers behind a figure's canvas - the
+ *              per-type body em, the default zoom, and the one spelling of
+ *              a frame in two files that cannot import one another - plus
+ *              the one sentence shape the two canvas reports say an axis in
+ *   chains     peers share one size: which placements make two boxes peers,
+ *              which axis each shares, the two ways out, `row` / `col`,
+ *              `same w as` / `same h as`, and the two warnings for a written
+ *              size that cannot hold its own words
+ *   overlap    the overlap census measures ink and not the line box: a text
+ *              is compared as the rectangles it inks, one per line
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -62,6 +75,10 @@ const GATES = [
   './legacy-draw-syntax.mjs',
   './cue-cards.mjs',
   './xheight.mjs',
+  './image-refs.mjs',
+  './canvas.mjs',
+  './chains.mjs',
+  './overlap.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

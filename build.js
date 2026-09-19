@@ -30,12 +30,12 @@ import katex from 'katex';
 // and in the browser when the editor re-lays-out a figure after a drag.
 // Imported for the build; its *text* is also read and inlined into the live
 // views, the same way bundledFaces() reads woff2 out of node_modules.
-import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD, DG_SHAPE_CLASSES, dgBarFillCss } from './diagram-core.mjs';
+import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD, DG_SHAPE_CLASSES, dgBarFillCss, DG_SOFT_GROUND, DG_FONT, DG_UNIT } from './diagram-core.mjs';
 // The {…} tail grammar and the ::: draw opener, shared with lint.js so the
 // two files cannot disagree about a tail. Tables plus small pure helpers,
 // zero dependencies - see the header of tails.mjs and CLAUDE.md.
 import {
-  CHUNK_SLOTS, CHUNK_STYLE_CLASSES,
+  CHUNK_SLOTS, CHUNK_STYLE_CLASSES, COLUMN_SLOTS, FIGURE_TYPE_STEPS,
   CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
   splitTail, parseTail, slotTable, strayTailProblem,
   parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseRevealMark,
@@ -58,8 +58,8 @@ const nodeRequire = createRequire(import.meta.url);
 // each other. And a frontmatter key could only ever repeat the cover's
 // own fields, which is the one thing the closing slide must not be.
 const VALID_TAGS = new Set([
-  'title', 'closing', 'outline', 'principle', 'definition', 'example',
-  'question', 'figure', 'exercise', 'free',
+  'title', 'closing', 'outline', 'principle', 'statement', 'definition',
+  'example', 'question', 'figure', 'exercise', 'free',
 ]);
 
 // The width and class vocabulary of a chunk heading's {…} tail is
@@ -67,7 +67,11 @@ const VALID_TAGS = new Set([
 // that take one. `.bare` exists because a heading is two things at once -
 // the slide's title and the chunk's name in the TOC, in search and in print
 // - and leaving the text out gives up all four where `.bare` gives up one.
-// The `.wrap-*` / `.blocks-*` classes answer a `style:` key for one chunk.
+// `.center` and `.middle` are the two axes of the same question - where the
+// slide's words sit across the measure, and where what this beat paints sits
+// in the frame - and the second is read by focusCamera rather than by a
+// stylesheet rule. The `.wrap-*` / `.blocks-*` classes answer a `style:` key
+// for one chunk.
 
 // ── syntax highlighting ──────────────────────────────────────────────
 // Shiki is loaded once per process and reused across rebuilds. Output
@@ -164,6 +168,11 @@ const inlineCapFor = (p) => (isVideoExt(p) ? MAX_INLINE_VIDEO_BYTES : MAX_INLINE
 const AUTO_INLINE_BUDGET = 10 * 1024 * 1024;
 let currentSourceDir = null;
 let inlineAssetsEnabled = false;
+// Whether this build wraps address-shaped tokens so the hyphenation
+// dictionary cannot reach them. Only true under `style: {hyphenate: all}`,
+// so a deck that does not ask for hyphens on the projection emits the same
+// bytes it always did. See markAddresses.
+let addressSpansOn = false;
 const imgResolveCache = new Map();
 const dataUriCache = new Map();
 // Per-build counter for unique SVG ID prefixes. Reset in buildOnce so the
@@ -199,6 +208,9 @@ function resolveFigId(figId) {
 const oversizedWarned = new Set();
 function warnOversizedAsset(absPath, size) {
   const rel = path.relative(process.cwd(), absPath);
+  noteImageOutcome(absPath, { orig: size, note: isVideoExt(absPath)
+    ? 'not inlined, over the cap – staged into videos/'
+    : 'NOT inlined, over the cap – external path' });
   if (oversizedWarned.has(rel)) return;
   oversizedWarned.add(rel);
   const mb = (size / 1024 / 1024).toFixed(2);
@@ -238,6 +250,17 @@ let webpNoticeShown = false;
 const webpInlineCache = new Map();
 let webpInlineCount = 0, webpInlineSaved = 0;
 
+// What became of each raster on its way into the HTML, so the summary can say
+// it per asset. The old summary was one line – “6 PNG/JPEG re-encoded to WebP”
+// – and it printed unchanged on a build where a seventh image was over the cap
+// and stayed an external path: a success line standing over the one outcome
+// the report exists to make visible. Keyed by absolute path, so an asset drawn
+// on four slides is one row.
+const imageOutcomes = new Map();   // absPath -> { orig, out, note }
+function noteImageOutcome(absPath, entry) {
+  imageOutcomes.set(absPath, { ...(imageOutcomes.get(absPath) || {}), ...entry });
+}
+
 function webpInlineBytes(absPath, origBytes) {
   if (noOptimizeImages) return null;
   const ext = path.extname(absPath).slice(1).toLowerCase();
@@ -250,6 +273,7 @@ function webpInlineBytes(absPath, origBytes) {
       console.log('[images] no cwebp or magick on PATH, so PNG and JPEG go in as they are.'
         + ' Install one (brew install webp) and they shrink to roughly a sixth.');
     }
+    noteImageOutcome(absPath, { orig: origBytes, note: 'original bytes (no encoder)' });
     webpInlineCache.set(absPath, null);
     return null;
   }
@@ -262,23 +286,41 @@ function webpInlineBytes(absPath, origBytes) {
     // raster, a screenshot of a terminal - can come out larger as WebP, and
     // shipping a bigger file to honour a default is not an optimisation.
     if (buf.length < origBytes) out = buf;
+    else noteImageOutcome(absPath, { orig: origBytes, out: buf.length, note: 'original bytes (WebP larger)' });
   } catch (e) {
     out = null;
+    noteImageOutcome(absPath, { orig: origBytes, note: 'original bytes (encode failed)' });
   } finally {
     try { fs.unlinkSync(tmp); } catch (e) { /* never existed */ }
   }
-  if (out) { webpInlineCount++; webpInlineSaved += origBytes - out.length; }
+  if (out) {
+    webpInlineCount++; webpInlineSaved += origBytes - out.length;
+    noteImageOutcome(absPath, { orig: origBytes, out: out.length });
+  }
   webpInlineCache.set(absPath, out);
   return out;
 }
 
-// Said once per build, after the inlining decision, because a reader wants
-// the two numbers together: how much went in, and how much of it was saved.
+// Said once per build, after the inlining decision, because a reader wants the
+// two numbers together: how much went in, and how much of it was saved – and
+// then a line per asset, because the headline alone cannot say that one of
+// them did not go in at all.
 function reportWebpInline() {
-  if (!webpInlineCount) return;
-  const mb = (webpInlineSaved / 1024 / 1024).toFixed(2);
-  console.log(`[images] ${webpInlineCount} PNG/JPEG re-encoded to WebP for the output, ${mb} MB saved.`
-    + ' The files on disk are untouched; --no-optimize-images turns this off.');
+  if (!imageOutcomes.size) return;
+  // KB under a megabyte: two decimals of a megabyte is 0.03 for every small
+  // asset, which is a column of the same number.
+  const sz = (n) => (n < 1024 * 1024
+    ? (n / 1024).toFixed(n < 10 * 1024 ? 1 : 0) + ' KB'
+    : (n / 1024 / 1024).toFixed(2) + ' MB').padStart(8);
+  if (webpInlineCount) {
+    console.log(`[images] ${webpInlineCount} PNG/JPEG re-encoded to WebP for the output, ${sz(webpInlineSaved).trim()} saved.`
+      + ' The files on disk are untouched; --no-optimize-images turns this off.');
+  }
+  for (const [abs, o] of imageOutcomes) {
+    const name = path.relative(process.cwd(), abs);
+    const to = o.out == null ? ' '.repeat(11) : ` → ${sz(o.out)}`;
+    console.log(`         ${name.padEnd(48)} ${sz(o.orig)}${to}  ${o.note || ''}`.trimEnd());
+  }
 }
 
 function toDataUri(absPath) {
@@ -478,29 +520,53 @@ function collectDiagramImageRefs(src) {
   return refs;
 }
 
+// The third way a source names a picture, after markdown and the diagram
+// DSL: a `::: backdrop` (in a chunk or under a `#` divider heading) and the
+// two frontmatter keys that name one. All three go into the output through
+// the same data: URI as a figure does, so they meet the same per-image cap –
+// and left out of a scan an oversized one fell through toDataUri to an
+// external path with no complaint, which is the exact failure
+// assertInlinable exists to stop.
+//
+// **One collector, two readers**, and that is the whole reason it is a
+// function: scanReferencedImages below weighs these refs against the cap, and
+// collectImageRefs hands them to --optimize-images. They used to be two regex
+// sets in one file and only one of them had these forms, so a keynote whose
+// only oversized assets were a backdrop and a cover-image was refused by the
+// build and then told “nothing to do” by the verb that refusal recommends.
+//
+// Line-anchored and fence-aware, the rule collectDiagramImageRefs follows and
+// for the harder half of the same reason: a ::: backdrop inside a code fence
+// is a documented example (the tutorial is full of them), and while counting
+// one against the inline budget costs nothing, handing it to --optimize-images
+// converts a file the lecture never references and then deletes the original.
+// The rewrite that follows a conversion skips fences, so a collector that did
+// not would delete a file and leave the only line naming it unedited.
+//
+// `closing-image: cover` names no file of its own – the cover-image line has
+// already contributed it – and resolves to nothing in both readers, which is
+// what each does with any token that is not an asset.
+function collectDecorationImageRefs(src) {
+  const refs = [];
+  let inFence = false;
+  for (const line of String(src).split('\n')) {
+    if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
+    if (inFence) continue;
+    const bd = line.match(/^:::[ \t]+backdrop[ \t]+([^\s{]+)/);
+    if (bd) { refs.push(bd[1]); continue; }
+    const fm = line.match(/^(?:cover-image|closing-image):[ \t]*["']?([^"'\s#]+)/);
+    if (fm) refs.push(fm[1]);
+  }
+  return refs;
+}
+
 function scanReferencedImages(src, sourceDir) {
   const refs = new Set();
   for (const match of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)(?:\s+"[^"]*")?\)/g)) {
     refs.add(match[1]);
   }
   for (const ref of collectDiagramImageRefs(src)) refs.add(ref);
-  // A backdrop and a cover-image go through the same data: URI as a figure
-  // does, so they are subject to the same per-image cap – and left out of
-  // this scan an oversized one fell through toDataUri to an external path
-  // with no complaint, which is the exact failure assertInlinable exists
-  // to stop. The backdrop match is line-anchored and not fence-aware for
-  // the same reason the frontmatter one is not: a ::: backdrop inside a
-  // code fence is a documented example, and counting its asset costs a
-  // warning about a file the lecture does not reference. Cheap either way,
-  // and the tutorial is the file that would trip it.
-  for (const m of src.matchAll(/^:::[ \t]+backdrop[ \t]+([^\s{]+)/gm)) refs.add(m[1]);
-  for (const m of src.matchAll(/^cover-image:[ \t]*["']?([^"'\s#]+)/gm)) refs.add(m[1]);
-  // closing-image is the same picture through the same data: URI, so it
-  // meets the same cap. `closing-image: cover` names no file of its own -
-  // the cover-image line above has already contributed it - and resolves to
-  // nothing here, which is what the isShorthand/statSync path below does
-  // with any token that is not an asset.
-  for (const m of src.matchAll(/^closing-image:[ \t]*["']?([^"'\s#]+)/gm)) refs.add(m[1]);
+  for (const ref of collectDecorationImageRefs(src)) refs.add(ref);
 
   let total = 0;
   let count = 0;
@@ -557,10 +623,17 @@ function assertInlinable(oversized, sourceDir) {
     lines.push(`  ${path.relative(sourceDir, o.abs)}  ${(o.size / 1024 / 1024).toFixed(2)} MB`);
   }
   lines.push('');
-  const rasters = oversized.filter(o => OPTIMIZABLE_EXTS.has(path.extname(o.abs).slice(1).toLowerCase()));
+  // A photograph is a photograph whatever its extension, and --optimize-images
+  // reaches all three: it converts a PNG or a JPEG, and it re-encodes a WebP
+  // already over the cap at a smaller width. “Simplify by hand” was written for
+  // a diagram and is wrong advice for a picture of a room – it now reaches only
+  // the formats the verb really cannot help with, which in practice is SVG.
+  const rasters = oversized.filter(o => RESCUABLE_EXTS.has(path.extname(o.abs).slice(1).toLowerCase()));
   if (rasters.length) {
     if (detectWebpEncoder()) {
       lines.push('Fix:  node build.js <source.md> --optimize-images');
+      lines.push(`      (WebP q92, and a photograph still over the cap is downscaled to`);
+      lines.push(`      ${CAP_RESCUE_WIDTH} px wide. Add --max-width N for a smaller one.)`);
     } else {
       lines.push('No WebP encoder is installed, so the build cannot tell you to convert and');
       lines.push('expect it to work. Install one, then convert:');
@@ -575,7 +648,7 @@ function assertInlinable(oversized, sourceDir) {
   const others = oversized.filter(o => !rasters.includes(o));
   if (others.length) {
     if (rasters.length) lines.push('');
-    lines.push(`--optimize-images only handles PNG and JPEG, so it cannot help with`);
+    lines.push(`--optimize-images handles PNG, JPEG and an oversized WebP, so it cannot help with`);
     lines.push(`${others.map(o => path.basename(o.abs)).join(', ')} – simplify or split ${others.length === 1 ? 'that asset' : 'those assets'} by hand.`);
   }
   lines.push('');
@@ -1585,6 +1658,10 @@ const DISPLAY_TRACK = {
     '.chunk[data-cover=quote] .title-main',
     '.chunk[data-cover=hero] .title-main',
     '.chunk[data-cover=quote][data-closing] .title-main',
+    // A stacked divider is no longer a second entry here: it set a tracking
+    // of its own while the heading was a caption, and now the heading is the
+    // plain divider heading one size step down, so the rule below tracks it
+    // and is where the display face gets its reset.
     '.chunk-section .section-heading',
   ],
 };
@@ -2206,6 +2283,32 @@ function unwrapLoneFigure(html) {
   return m && !/<\/p>/.test(m[1]) ? m[1] : String(html);
 }
 
+// The quiet line of a `statement:` chunk. Every line of a statement is one
+// size, one weight and one ink - that is what separates the type from every
+// other one, where a heading names the slide and the body says something
+// under it. The register this was missing is the line that is not the
+// utterance: a definition standing over the claim it qualifies, a source
+// under it. A keynote wanted exactly that and could not have it, so its
+// thesis slide was a `::: draw` of two text elements - a drawing, with a
+// drawing's price: no wrap, no hyphenation, no search index, a fixed grid.
+//
+// The spelling is a paragraph set *entirely* in italic, and "entirely" is
+// what makes it a register rather than an accident: a statement with an
+// emphasised word in the middle of it is a loud line with a stress mark,
+// which is what `*em*` means everywhere else in the format. So the test is
+// the rendered paragraph, anchored at both ends, and the `<em>` is left in
+// place - the marker and the look are the same thing, which is what makes it
+// legible in the source and reversible by deleting two asterisks.
+//
+// Applied by both renderers, so the document carries the register the
+// projection does; `<p class="quiet-line">` is the whole of the contract
+// between here and the two stylesheets.
+function markQuietStatementLines(html) {
+  return String(html).replace(/<p>(<em>[\s\S]*?<\/em>)<\/p>/g,
+    (whole, inner) => (/<\/p>|<\/em>[\s\S]*<em>/.test(inner)
+      ? whole : `<p class="quiet-line">${inner}</p>`));
+}
+
 // The backdrop element. Returned with its scrim mode, because the mode is
 // two facts at once: how the image is veiled, and – for `invert` – that the
 // slide's ink has to turn light. The second lands as data-backdrop on the
@@ -2567,6 +2670,30 @@ function dockAttrs(dock) {
   return dock ? ` data-dock="${dock.edge}" data-dock-w="${dock.width}"` : '';
 }
 
+// A token the hyphenation dictionary has no business in. Three shapes, and
+// each one was a defect on a real slide:
+//
+//   a dot between two word characters   bakule.de, 10.1109/SP, §4.5, z.B.
+//   a slash anywhere in the token       Z/PQM, and/or, assets/room.jpg
+//   a no-break space inside it          n = 4 910, 12 kW, Art. 5
+//
+// The third is the one that looks odd and is not: a no-break space is the
+// author joining two halves into one token, and a dictionary that can reach
+// inside the group can break what was joined. `\s` in JavaScript matches
+// U+00A0, so the token class has to name the two spaces explicitly or the
+// match stops at the very character it is there for.
+//
+// `<` and `>` cannot occur - the text arrives escaped - but they are excluded
+// anyway, so that a stray angle bracket can never put a span inside a tag.
+const ADDRESS_TOKEN = /(?:[^\s<>]|[  ])*(?:[A-Za-z0-9À-ɏ]\.[A-Za-z0-9À-ɏ]|\/|[  ])(?:[^\s<>]|[  ])*/g;
+function markAddresses(text) {
+  return String(text).replace(ADDRESS_TOKEN, (tok) =>
+    // A token with no letter or digit in it has no syllables either - the
+    // lone slash in "Handreichung / Z/PQM" is punctuation, and wrapping it
+    // would put a span in the output that protects nothing.
+    (/[A-Za-z0-9À-ɏ]/.test(tok) ? `<span class="nohy">${tok}</span>` : tok));
+}
+
 // ── marked renderer overrides (code highlighting + image shorthand) ──
 
 marked.use({
@@ -2590,6 +2717,22 @@ marked.use({
     // span with no space in it is short by construction, so that is the test.
     codespan(text) {
       return `<code${/\s/.test(text) ? '' : ' class="nb"'}>${text}</code>`;
+    },
+    // The one thing `hyphens: auto` cannot be told in CSS: which tokens are
+    // not words. A hyphenation dictionary breaks at syllables and reads a dot
+    // and a slash as word boundaries, so under `hyphenate: all` a keynote's
+    // address came out as `pro-jekt-bakule.de` and `Handreichung / Z/PQM`
+    // split across the slash. There is no selector for "this run of
+    // characters", so the build marks them instead, and only when the deck
+    // asked for the dictionary at all.
+    //
+    // A renderer override and not a pass over the finished HTML: this is
+    // handed the text of one text token, already escaped, with no tag and no
+    // attribute anywhere in it - a code span, a link href and an image's alt
+    // all arrive through other renderers. A regex over rendered markup would
+    // have had to know that, and would have been wrong once.
+    text(t) {
+      return addressSpansOn ? markAddresses(t) : t;
     },
     image(href, title, text) {
       // Shorthand: bare id (no slash, no extension) → assets/<id>.<ext>
@@ -3040,6 +3183,298 @@ function dgWarn(msg) {
   console.warn(`[diagram] ${msg}`);
 }
 
+// ── the canvas a figure is laid out on ───────────────────────────────
+// **A slide has a fixed canvas, and a figure is drawn on it.** That is the
+// whole of this section, and it replaces the arrangement where a `::: draw`
+// viewBox hugged its own content: the live views size a drawing from the
+// viewBox measured in labels, so a figure 21 labels wide got big type, one 55
+// wide pulled the whole slide down to small type, and a deck of twenty figure
+// slides looked like twenty different decks. PowerPoint's canvas is fixed per
+// slide and the mess there starts when someone drags one figure bigger; here
+// the engine was dragging every figure, by deriving the box from the drawing.
+//
+// So every `::: draw` in a chunk's own body gets a canvas, and it is the same
+// box on every ordinary slide of a deck: the chunk's column wide and
+// FIG_CANVAS_H_LABELS label-heights tall, which is one fixed rectangle of
+// slide whatever the drawing inside it turns out to be.
+//
+// **It changes no drawing's rendered size.** The canvas is exactly the width
+// at which a base label lands at the size of the words beside it, so a figure
+// that fits inside it is drawn at precisely the scale it was drawn at before
+// and only the box round it grows; a figure past it is drawn exactly as it
+// was too, because the box is the union of the two. What the canvas adds is a
+// measurable claim - this much slide is a figure's - and therefore two things
+// the build can say about a drawing that it could not say before.
+//
+// The column widths are measured, not derived: .chunk is a
+// `1fr minmax(0, --content-w) 1fr` grid inside 14% padding either side, so a
+// class wider than the frame allows is clipped to it. Read off a built
+// audience.html at 1600x900: .wide comes out at the frame's 1152 px rather
+// than its nominal 52em, and .full, which pads 6% instead of 14%, at 1408 px
+// rather than 72em. Re-measure them if --slide-pad-x or the em changes.
+const FIG_COLUMN_PX = { narrow: 655, standard: 842, wide: 1152, full: 1408 };
+// **And the em a figure stands in is not 1rem.** 1rem is
+// clamp(20px, --slide-h * 0.026, 38px) = 23.4 px at 1600x900, but a chunk
+// body is `1rem * --zoom * --body-scale` and --zoom's own default is 1.35, so
+// the em the width rule multiplies is 31.6 px on an ordinary slide. Reading
+// the rem here instead is off by that factor in the direction that hurts: it
+// would make every canvas a quarter too wide, the labels inside it a quarter
+// smaller than the words beside them, and undo the one rule this file's
+// sizing exists to keep - a label is a word.
+//
+// Verified against the browser on a keynote's twenty figures: with 31.6 as
+// the ceiling, figureSettle's predicted body type lands within 0.8 px of what
+// --check-fit measured on every one of them.
+const FIG_REF_REM_PX = 23.4;                       // 1rem at 1600x900
+const FIG_REF_ZOOM = 1.35;                         // the live views' own default --zoom
+// ...and the coefficient the chunk's own type puts in front of it. These are
+// the `--body-fs:` rules of AUDIENCE_CSS, mirrored by hand because a
+// stylesheet cannot be read from here - held against those rules by
+// `node test/gates/run.mjs canvas`, which greps them out of build.js as text.
+// A `statement` chunk sizes its body from --statement-size, which is a
+// composition's own number rather than a coefficient, so it is not in the
+// table and takes the default; its figure is sized against the ordinary body
+// em and comes out a little narrow or a little capped, which is the one case
+// this table cannot answer without inventing a number.
+const FIG_BODY_REM = { principle: 1.2, question: 1.15, figure: 0.9 };
+// The em a figure in a chunk of this type stands in, at 1600x900 and the
+// default zoom. Everything about the canvas is measured in it.
+function figureRefEm(tag) {
+  return FIG_REF_REM_PX * FIG_REF_ZOOM * (FIG_BODY_REM[tag] || 1);
+}
+const FIG_REF_BODY_PX = FIG_REF_REM_PX * FIG_REF_ZOOM;   // 31.59, the ordinary chunk's em
+const FIG_REF_HEIGHT_PX = 900 * 0.62;              // the height cap at the same viewport
+const FIG_TYPE_FLOOR_PX = 18;                      // under this, the back row is guessing
+// ...and under this share of the deck's own median settled body type, the
+// slide is out of step with its neighbours whatever its absolute size. 0.85
+// because what a room sees is a heading that changes size from slide to
+// slide, and a tenth of a heading is not a change anyone notices while a
+// seventh is. Read by --check-fit, which measures the zoom the camera
+// actually settled on; with a canvas the build can no longer be out of step
+// without overflowing it, and says the latter instead.
+const FIG_TYPE_EVEN_TOL = 0.85;
+
+// **Sixteen label-heights, and the measurement is a slide with everything on
+// it.** Built a `.wide` chunk with a one-line heading and a sub-heading, two
+// lines of prose under the drawing and a one-line `::: footnote`, and
+// measured the content box at 1600x900: the furniture costs 383 px (the
+// heading pair, two lines at the body's own leading, and the footnote, minus
+// the margins they share). Sixteen label-heights is 505 px, so that slide -
+// the fullest a figure chunk can be without saying more - stands at 888 px in
+// a 900 px frame. It fits, which is the whole of the criterion; eighteen did
+// not, and fourteen would have called most of a real keynote's figures too
+// big for a slide they are plainly not too big for.
+//
+// The same number arrived at from the other side: the keynote's twenty
+// figures render between 143 and 558 px tall with a median of 505.
+//
+// The ceiling is 17.7 and it is not a matter of taste: `--dg-box-w` caps a
+// figure's width at `--slide-h * 0.62 * --dg-ar`, so a canvas past 62 % of
+// the slide is height-capped and comes out narrower than its own column -
+// which is the uniformity this exists to produce, lost. `frame WxH` may ask
+// for more and will be told by the same cap.
+const FIG_CANVAS_H_LABELS = 16;
+// Under this share of the canvas's area the slide reads empty. Half, because
+// a drawing filling half a box is the point at which the eye stops reading
+// the box as full and starts reading it as a box - and because a flatter
+// threshold would fire on every legitimately wide, flat figure.
+const FIG_UNDERFILL = 0.5;
+
+// The canvas for one figure, in viewBox units, or null for a figure that
+// keeps the box that hugs its content.
+//
+// `frame` is the author's answer and it wins: `WxH` in grid units, the same
+// unit the opener's grid is counted in, and `none` for a deck that is a
+// catalogue of drawings rather than a talk. Otherwise the default, and the
+// default is a pixel box expressed in labels - which is why `figure-type`
+// divides both sides. The key says how large a label is against body type, so
+// a bigger label is fewer labels in the same column and fewer label-heights
+// in the same reserve; the box on the slide is the same box either way, and
+// that is the property the whole arrangement rests on.
+// A stacked divider's figure may take 0.72 of the slide (its own max-height
+// rule), and its canvas says so: 20 labels at the ordinary em against the
+// chunk's 16, measured as floor(900 * 0.72 / 31.59). Sized to the box it is
+// drawn in, so the overflow and underfill numbers describe that box.
+const FIG_CANVAS_H_LABELS_STACK = 20;
+function figureCanvas({ width, ft, tag, frame, unit, align, hLabels = FIG_CANVAS_H_LABELS }) {
+  if (frame === 'none') return null;
+  const mult = ft > 0 ? ft : 1;
+  const [uw, uh] = unit && unit.length === 2 ? unit : DG_UNIT;
+  if (frame) {
+    const m = /^([\d.]+)x([\d.]+)$/.exec(frame);
+    if (!m) return null;
+    return { w: Number(m[1]) * uw, h: Number(m[2]) * uh, align };
+  }
+  const col = FIG_COLUMN_PX[width || 'standard'];
+  if (!col) return null;
+  const em = figureRefEm(tag);
+  return {
+    w: (col / (em * mult)) * DG_FONT,
+    h: (hLabels * FIG_REF_BODY_PX / (em * mult)) * DG_FONT,
+    align,
+  };
+}
+
+// Where a figure's slide comes to rest, worked out the way fitZoomToChunk
+// arrives at it. The drawing asks for typeW x body x figure-type pixels; the
+// box - the column, or the height budget turned into a width - caps that, and
+// a capped figure counts as "does not fit", so the zoom walks down until the
+// two meet. The resting point is therefore box / (typeW x figure-type) for the
+// body type and box / typeW for a base label, and a drawing that never reaches
+// its box leaves the slide where the words put it.
+//
+// That equation is the whole reason a static check can say anything about a
+// dynamic camera: there is no browser in it. With a canvas, typeW is the
+// canvas's own width in labels, so `body` comes out at exactly the chunk's
+// own em for every figure that fits its canvas - which is the uniformity,
+// arrived at rather than asserted.
+function figureSettle(typeW, ar, width, ft, tag) {
+  const col = FIG_COLUMN_PX[width || 'standard'];
+  if (!col || !(typeW > 0)) return null;
+  const byHeight = ar > 0 ? FIG_REF_HEIGHT_PX * ar : Infinity;
+  const box = Math.min(col, byHeight);
+  const mult = ft > 0 ? ft : 1;
+  const em = figureRefEm(tag);
+  return {
+    box, byHeight, col, em,
+    body: Math.min(em, box / (typeW * mult)),
+    label: Math.min(em * mult, box / typeW),
+  };
+}
+
+// Every figure the current lecture compiled, with the numbers the report
+// needs. Filled by the onSized callback and ruled on once at the end of
+// parseLecture. Reset per build alongside dgWarned.
+const figureTypeSeen = [];
+
+// The figure-type multiplier in force on one chunk: the deck's, unless the
+// chunk's tail answered the key for itself. The class carries per cent, the
+// same string the data attribute and the stylesheet trade in, so the one
+// division lives here.
+function chunkFigureType(chunk, deckFt) {
+  const w = chunk && chunk.styleOverrides && chunk.styleOverrides['figure-type'];
+  return w ? Number(w) / 100 : (deckFt || 1);
+}
+// The same question for `blocks`, which decides where the drawing sits inside
+// its canvas: on the ink edge under `left`, centred under `center`. It is the
+// same word answering the same question one level out, so there is no second
+// key for it.
+function chunkBlocks(chunk, deckBlocks) {
+  const w = chunk && chunk.styleOverrides && chunk.styleOverrides.blocks;
+  return w || deckBlocks || 'center';
+}
+
+function recordFigureType(sized, width, where, ft, unit, tag) {
+  const { typeW, vbW, vbH, canvas, contentW, contentH } = sized;
+  // The box the room is shown, which is the canvas where there is one. typeW
+  // comes off the print viewBox, so a figure smaller than its canvas would
+  // otherwise be settled against a width the live views never use.
+  const liveW = canvas ? Math.max(canvas.w, contentW) : vbW;
+  const liveH = canvas ? Math.max(canvas.h, contentH) : vbH;
+  const ar = liveH ? liveW / liveH : 0;
+  const st = figureSettle(liveW / DG_FONT, ar, width, ft, tag);
+  if (!st) return;
+  figureTypeSeen.push({ typeW: liveW / DG_FONT, ar, width, where, ft: ft > 0 ? ft : 1,
+                        canvas, contentW, contentH, unit, ...st });
+}
+
+// The three complaints, and the canvas is what makes the first two sayable.
+//
+// **Over the canvas** is the one a room sees. The canvas is the chunk's
+// column at body type, so a drawing past it is capped and pulls its own
+// slide's type down and nothing else's: a deck with one dense figure and one
+// sparse one read its headings at 25 px and 44 px in consecutive slides,
+// measured on a keynote, a factor of 1.76 between two slides of the same
+// width class. Every figure that stays inside its canvas settles at the same
+// body type by construction, so this is now the only way a figure slide can
+// be out of step, and the message says which axis did it.
+//
+// **Under the canvas** is the opposite and was never said at all: a drawing
+// using a third of its box leaves the slide standing two thirds empty, and
+// the old hugging viewBox hid it by shrinking the box to fit.
+//
+// **Under the floor** is the older complaint and still worth saying for a
+// figure with no canvas - one under `frame: none`, or in a card, a pane or a
+// divider - where nothing else can: a deck whose figures are uniformly small
+// is perfectly even, and still unreadable from the back.
+//
+// One line per chunk. A figure that is both over its canvas and under the
+// floor is reported as the former, with the absolute number in the same
+// line - two lines about one slide is how a report stops being read.
+function reportFigureTypeStatic() {
+  if (!figureTypeSeen.length) return;
+  const lab = (px) => (px / DG_FONT).toFixed(1);
+  for (const f of figureTypeSeen) {
+    // What the author would have to write to reserve exactly what this
+    // drawing needs, in the vocabulary that can answer it for one figure.
+    // Rounded up in grid units to a tenth, because `frame` is counted in the
+    // same cells the drawing is.
+    const [uw, uh] = f.unit && f.unit.length === 2 ? f.unit : DG_UNIT;
+    const fits = (n, u) => (Math.ceil((n / u) * 10) / 10);
+    const wants = `frame ${fits(f.contentW, uw)}x${fits(f.contentH, uh)}`;
+    if (f.canvas) {
+      const overW = f.contentW - f.canvas.w, overH = f.contentH - f.canvas.h;
+      if (overW > 0.5 || overH > 0.5) {
+        // **The overshoot in the unit the check is made in, and in the unit
+        // the drawing is measured in.** It is decided at half a pixel and was
+        // reported in base labels to one decimal, so "over by 0.2 across" is
+        // anything from 2.3 px to 3.7 px and an author shortening a label
+        // against that number builds three times to find out which. A base
+        // label is DG_FONT px, so both figures are the same quantity twice
+        // and the second one is what an edit is actually measured in - the
+        // same unit the two sentences after it already speak.
+        const over = (px, axis) => `${lab(px)} ${axis} (${Math.round(px)} px)`;
+        const axes = [];
+        if (overW > 0.5) axes.push(over(overW, 'across'));
+        if (overH > 0.5) axes.push(over(overH, 'down'));
+        dgWarn(`figure-overflows-canvas in ${f.where}: the drawing is ${lab(f.contentW)} x`
+          + ` ${lab(f.contentH)} labels and its canvas is ${lab(f.canvas.w)} x ${lab(f.canvas.h)}`
+          + ` - over by ${axes.join(' and ')}. The canvas is the chunk's column at body type, so a`
+          + ` drawing past it takes its own slide's type down with it: about ${f.body.toFixed(0)} px`
+          + ` against the ${f.em.toFixed(0)} px every figure slide that fits its canvas settles at,`
+          + ` which a room reads as a heading that changes size from slide to slide.`
+          + ` Shorter labels, a row moved onto a second line`
+          + (f.width === 'wide' || f.width === 'full' ? '' : ', a wider column')
+          + `, or  ${wants}  on this figure to say the box is meant to be that big.`
+          + (f.label < FIG_TYPE_FLOOR_PX
+            ? ` Its own labels land at about ${f.label.toFixed(0)} px either way - that is the`
+              + ` drawing's width against its box, which no multiplier changes - under the`
+              + ` ${FIG_TYPE_FLOOR_PX} px a back row can read.`
+            : ''));
+        continue;
+      }
+      const fill = (f.contentW * f.contentH) / (f.canvas.w * f.canvas.h);
+      if (fill < FIG_UNDERFILL) {
+        dgWarn(`figure-underfills-canvas in ${f.where}: the drawing fills ${Math.round(fill * 100)}%`
+          + ` of its canvas (${lab(f.contentW)} x ${lab(f.contentH)} labels in ${lab(f.canvas.w)} x`
+          + ` ${lab(f.canvas.h)}), so the slide reads empty. More in the drawing, a narrower column`
+          + ` (.standard holds ${(FIG_COLUMN_PX.standard / (f.em * f.ft)).toFixed(0)}`
+          + ` labels against .wide's ${(FIG_COLUMN_PX.wide / (f.em * f.ft)).toFixed(0)}),`
+          + ` a larger {.figure-type-N}, or  ${wants}  to reserve only what it needs.`);
+        continue;
+      }
+    }
+    if (f.label >= FIG_TYPE_FLOOR_PX) continue;
+    // Two different drawings reach this, and the fix is not the same one.
+    if (f.byHeight < f.col) {
+      dgWarn(`figure-type-small in ${f.where}: the figure is ${f.typeW.toFixed(0)} labels wide, and at`
+        + ` body-size labels it would stand ${Math.round(f.typeW * f.em / f.ar)} px tall against`
+        + ` the ${Math.round(FIG_REF_HEIGHT_PX)} px a slide allows - so it is scaled to that and its`
+        + ` labels land at about ${f.label.toFixed(0)} px at 1600x900, under the ${FIG_TYPE_FLOOR_PX} px a`
+        + ` back row can read. Here it is the height cap and not the column that decides the width:`
+        + ` less in the drawing, or a flatter arrangement of the same thing.`);
+      continue;
+    }
+    const roomier = f.width === 'wide' || f.width === 'full'
+      ? 'it is already as wide as the frame allows, so the drawing itself has to give'
+      : `.wide would give it ${(FIG_COLUMN_PX.wide / f.typeW).toFixed(0)} px`;
+    dgWarn(`figure-type-small in ${f.where}: the figure is ${f.typeW.toFixed(0)} labels wide, so in a`
+      + ` .${f.width || 'standard'} column its labels land at about ${f.label.toFixed(0)} px at`
+      + ` 1600x900 - under the ${FIG_TYPE_FLOOR_PX} px a back row can read. Fewer grid`
+      + ` units or shorter labels, or ${roomier}.`);
+  }
+}
+
 // ── diagram CSS (shared by all four views) ──────────────────────────
 // Everything colours through the page's custom properties, so a diagram
 // re-inks with the A theme cycle exactly like an inlined SVG asset does.
@@ -3071,8 +3506,14 @@ const DIAGRAM_CSS = `
      with a caption and often arrives in portrait; a diagram is landscape and
      is usually the whole point of the chunk, and at 50vh a wide one was
      height-capped hard enough to leave a third of the measure empty beside
-     it. */
-  max-height: 62vh;
+     it.
+     Off --slide-h rather than off vh, for the reason every other slide-
+     internal size is: the cockpit lays the mirror out at the AUDIENCE window's
+     dimensions and then transforms it into its cell, so a raw vh there is the
+     cockpit window's and the same figure was capped at a different height in
+     the two windows. Print defines no --slide-h and falls back to the number
+     this rule has always had; it overrides the cap anyway (PRINT_CSS). */
+  max-height: calc(var(--slide-h, 100vh) * 0.62);
   height: auto;
 }
 @media print {
@@ -3082,7 +3523,7 @@ const DIAGRAM_CSS = `
      document with no cap at all, so a portrait diagram resolved to the
      measure times its ratio and came out taller than the page. The answer
      now lives beside every other figure kind in PRINT_CSS, under a selector
-     specific enough to beat the 62vh above in both media. Do not re-add a
+     specific enough to beat the cap above in both media. Do not re-add a
      .psi-diagram max-height here without reading that rule. */
   /* A diagram is one picture; splitting it across a page break makes it
      two useless halves. */
@@ -3096,7 +3537,7 @@ const DIAGRAM_CSS = `
    white. The tone rules below always used the child combinator; this one and
    the text rule did not, which is why the two of them were the leak. */
 .psi-diagram .dg-el > rect, .psi-diagram .dg-el > circle, .psi-diagram .dg-el > .dg-shape {
-  fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
+  fill: var(--paper); stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); rx: 4px;
 }
 /* A box whose outline is not a rectangle is a <path>, so every rule below
    that paints a box has to name it too. They do it through :is(), which is
@@ -3104,7 +3545,7 @@ const DIAGRAM_CSS = `
    was a third copy of each one. The join is rounded so a chevron's nose is a
    point rather than a miter spike. */
 .psi-diagram .dg-shape { stroke-linejoin: round; }
-.psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
+.psi-diagram .dg-stroke { stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); fill: none; stroke-linejoin: round; }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
 /* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
    type inside an embedded drawing is the drawing's business. */
@@ -3133,7 +3574,7 @@ const DIAGRAM_CSS = `
    trust boundary, a segment, a machine - it has to read as a statement.
    Dashed at that weight it was barely visible on a shaded ground, which
    is exactly where these are usually drawn. */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); stroke-width: 1.3; }
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
@@ -3171,11 +3612,27 @@ const DIAGRAM_CSS = `
    different kind of thing. .muted is scaffolding - an axis, a leader, a zone
    outline - and scaffolding is drawn thinner as well as lighter. .dim is the
    other axis entirely: full colour at a third of the strength, which is what
-   the dim step operation reaches for when a beat moves on. */
-.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
-.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
+   the dim step operation reaches for when a beat moves on.
+
+   A muted *line* is --ink-soft and a muted *word* is not, and that split is
+   the correction. --ink-soft is picked against the paper, and a caption is
+   very often standing on something else: measured at 1600x900 on the default
+   theme, --ink-soft type reads 3.44:1 on the paper, 2.76:1 on a .tone-1 area
+   and 2.11:1 on a .tone-3 one, against the 3:1 anything on a projector has
+   to clear. A line has no such floor - an axis is followed, not read - so it
+   keeps the token and the 1.05 weight that say scaffolding. The words are
+   mixed straight out of the two inks instead, dark enough to hold on the
+   three light tints and still visibly quieter than --ink.
+
+   Two grounds it cannot answer for, and both are the ground being wrong
+   rather than the type: a .tone-4 area is the accent at full strength, where
+   this mix reads worse than --ink-soft did and only the inverted label two
+   rules down is legible; and a dark theme's paper, where the mix follows
+   --ink and --paper and so inverts with them. */
+.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
-.psi-diagram .muted text { fill: var(--ink-soft); }
+.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
 
 /* .tone-4 inverts its own label, and that has to win over .accent text:
    accent ink on an accent fill is invisible, legal, and would otherwise be
@@ -3202,9 +3659,47 @@ const DIAGRAM_CSS = `
    rule the free text's ground already needs, for exactly the same reason. */
 .psi-diagram .dg-edge:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
 
-.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
-.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
-.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+/* The two stroke patterns, stated as multiples of the line they pattern
+   rather than as pixels. --dg-sw is set beside every stroke-width above, on
+   the same element and by the same selector, so a .thick outline gets a
+   longer dash instead of the same dash on a fatter line - which is what 6 4
+   was: 4.3 line-widths of ink and 2.9 of paper at the normal weight, and a
+   dashed box then drew the eye harder than the solid one beside it. It also
+   stumbled at the corners: on a 13px .round corner a 10px period puts one or
+   two dashes on the whole arc, so a gap landing on the apex reads as a
+   chipped box. 2.2 and 1.5 halve the period, which does not divide a
+   perimeter evenly either - nothing does, in general - but a small dash with
+   a small gap hides the seam instead of announcing it.
+   Butt caps, deliberately: a round cap adds half a line-width of ink at each
+   end and would put the dash back where it started. */
+.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke {
+  stroke-dasharray: calc(var(--dg-sw, 1.4px) * 2.2) calc(var(--dg-sw, 1.4px) * 1.5);
+}
+/* Dots, and they have to be round dots or the word means nothing: a zero-
+   length dash under a round cap draws a disc one line-width across, and the
+   gap is 2.5 of those. It used to be 1.5 3.5 with the round cap on top, which
+   is a 2.9px dash at the normal weight - a fine dashed line under another
+   name - and at .thick a 4.1px dash with 0.9px of paper between, so the
+   dotted box in the class catalogue was very nearly solid. */
+.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke {
+  stroke-dasharray: 0 calc(var(--dg-sw, 1.4px) * 2.5); stroke-linecap: round;
+}
+/* A muted dot is a plain dot in the muted ink, never a smaller one. .muted
+   thins a line to 1.05 so that scaffolding reads as scaffolding, and a dot
+   is one line-width across - so .dotted .muted drew discs of 1.9px at a
+   typical figure scale, anti-aliased below their own colour: the peak pixel
+   reached 2.56:1 on the light themes where a solid muted line reaches 2.76,
+   and a band across the line carried a quarter of a muted line's ink or
+   less on all seven themes. The floor is the plain weight, so the pattern
+   is exactly .dotted's and only the ink is quieter, and the gap is stated
+   against the floored width so the dots keep their 2.5 line-widths of
+   paper. max() rather than a fixed 1.4: a .thick or .emph line keeps the
+   2.6 it set. A plot's grid is this pair, written by the compiler. */
+.psi-diagram .muted.dotted > :is(rect, circle, .dg-shape), .psi-diagram .muted.dotted .dg-stroke {
+  stroke-width: max(var(--dg-sw), 1.4px);
+  stroke-dasharray: 0 calc(max(var(--dg-sw), 1.4px) * 2.5);
+}
+.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .round > rect { rx: 13px; }
 .psi-diagram .sharp > rect { rx: 0; }
@@ -3219,14 +3714,36 @@ const DIAGRAM_CSS = `
    costs no extra font payload. */
 .psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
 
-/* .ghost and .dim deliberately do NOT set opacity here. Visibility and the
-   two softening classes share one channel, and author CSS beats a
-   presentation attribute – so an element pinned at 0.45 by this stylesheet
-   could never be hidden, and its show step did nothing at all. Both the
-   emitter and the runtime resolve the channel once, in dgOpacity(). */
+/* .ghost and .dim deliberately do NOT set opacity on the group here.
+   Visibility and the two softening classes share one channel, and author CSS
+   beats a presentation attribute – so an element pinned at 0.45 by this
+   stylesheet could never be hidden, and its show step did nothing at all.
+   Both the emitter and the runtime resolve that channel once, in
+   dgOpacity().
+
+   What the two rules below touch is a *child* of the group, which is a
+   different thing and safe for the same reason: the alphas multiply, so a
+   hide still takes the whole element to zero. They exist because one alpha
+   over a whole group fades the words as hard as the box, and a word at 0.3
+   is not quiet but unreadable – 1.95:1 against its own fill on the paper,
+   1.88:1 standing on a .tone-3 area. dgOpacity() now returns the *ink*
+   number and these put the ground back where it was: 0.6 x 0.5 is the 0.3
+   that was there before, 0.75 x 0.6 the 0.45, so every existing figure's
+   outline, fill, stroke, arrowhead and picture are unmoved to the pixel and
+   only the type gains. The factors come from DG_SOFT_GROUND rather than
+   being typed here twice.
+
+   Type is what is deliberately NOT in the selector lists. Everything else a
+   softened element can draw is. */
+.psi-diagram .dim > :is(rect, circle, .dg-shape, image),
+.psi-diagram .dim .dg-stroke,
+.psi-diagram .dim .dg-head { opacity: ${DG_SOFT_GROUND.dim.toFixed(4)}; }
+.psi-diagram .ghost > :is(rect, circle, .dg-shape, image),
+.psi-diagram .ghost .dg-stroke,
+.psi-diagram .ghost .dg-head { opacity: ${DG_SOFT_GROUND.ghost.toFixed(4)}; }
 /* emph / dim are what a step reaches for; both stay inside the palette */
-.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
-.psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
+.psi-diagram .emph .dg-stroke { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
 /* A chart's column: what it is filled with, and what emph does to it. A
    column draws no outline, so paper would make it vanish and there is nothing
@@ -3259,6 +3776,20 @@ ${dgBarFillCss()}
    so source order does not decide it. (No backticks in here: this whole
    stylesheet is a template literal, and one would end it.) */
 .psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
+/* emph acts in the prominence slot and .bare in the stroke-weight slot, so
+   neither may overwrite the other - and until this rule the emphasis stroke
+   two blocks up put the outline back on an element that had just taken it
+   off, at the same specificity and later in source order. On a table of type
+   on the paper (.bare .clear cells are the spelling for that) a lit row came
+   out as a row of red empty rectangles that the room reads as a form. So on
+   a .bare element emph emphasises the *ink* - the accent fill and the weight
+   the .emph text rule above already give a free text - and draws no outline.
+   That is the same correction DG_BAR_FILLS makes one channel along, where
+   emph on a column is a solid accent fill rather than the accent outline it
+   is on every other shape: emphasis has to act on whatever the element
+   actually draws. Three classes in the selector, and written after the
+   .tone-4.emph rule, so it wins where an element carries both. */
+.psi-diagram .bare.emph > :is(rect, circle, .dg-shape) { stroke: none; }
 
 /* A label's ground is never stroked, and this is where that has to be said.
    It was written up with the two rules that create the ground, above the
@@ -3270,6 +3801,31 @@ ${dgBarFillCss()}
    A bordered label is a box, and there is a statement for that. */
 .psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-edge > :is(rect, circle, .dg-shape) { stroke: none; }
+
+/* An edge label its own line runs through. The compiler decides it from the
+   routed geometry and writes dg-halo into the beat's class string; this is
+   what the word means. The offset that lifts a label off its line clears it
+   at the *midpoint*, and an elbow's two outer runs, a doubled-back via route
+   and a curve that comes back on itself are all somewhere else on the same
+   path - so a label can be correctly beside the line it labels and still have
+   another stretch of that same line drawn through the middle of it, which the
+   room reads as struck through.
+
+   paint-order and not a rect, because a rect is as wide as the whole run
+   where the crossing is one word long, and on a curve that erases the arc the
+   label belongs to. The stroke is the paper, so it knocks out the glyph
+   shapes and nothing else. Written after every rule that sets a text fill, so
+   a muted or accented label keeps its own colour and only gains the knockout.
+
+   3.2px against a 1.4 line: the stroke is centred on the glyph outline, so
+   half of it is inside the letters and the gap the line sees is about 1.6px
+   each side. Less and a 1.4 stroke still touches the serifs. */
+.psi-diagram .dg-halo text {
+  paint-order: stroke fill;
+  stroke: var(--paper);
+  stroke-width: 3.2px;
+  stroke-linejoin: round;
+}
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -3299,6 +3855,27 @@ const DG_SHAPES = ${JSON.stringify(Object.fromEntries([...DG_SHAPE_CLASSES].map(
 ${dgShapeD.toString()}
 ${dgPathD.toString()}
 ${dgSplineD.toString()}
+
+// A live view shows the box that holds every beat, and - on an ordinary
+// figure chunk - the canvas the slide reserves for a drawing, which is wider
+// and taller than the picture inside it. Neither is the box the documents
+// show, which is tight around the finished drawing.
+//
+// Two things move together when that box is swapped in, and only two: the
+// viewBox and the intrinsic height that keeps its proportion. Both are
+// ATTRIBUTES, which is the whole reason a runtime is involved - the three
+// numbers a stylesheet needs (--dg-live-type-w, --dg-live-ar,
+// --dg-live-ink-x) are emitted beside the print ones and picked with a
+// var() fallback, so nothing about a figure's SIZE waits for this function.
+// It used to set --dg-ink-x here and the first version left the property
+// behind in the editor's path, so a figure jumped sideways the moment it was
+// edited; a value the compiler writes into the markup cannot be left behind.
+function dgUseLiveViewBox(svg) {
+  svg.setAttribute('viewBox', svg.dataset.liveViewbox);
+  const w = Number(svg.getAttribute('width'));
+  const r = Number(svg.dataset.liveRatio);
+  if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
+}
 
 function dgApplyVec(el, kind, v) {
   if (kind === 'rect') {
@@ -3456,12 +4033,7 @@ function dgSwapFigure(oldSvg, html) {
   const payload = holder.querySelector('script.psi-diagram-frames');
   if (!next) return null;
   const live = oldSvg.psiDiagram;
-  if (next.dataset.liveViewbox) {
-    next.setAttribute('viewBox', next.dataset.liveViewbox);
-    const w = Number(next.getAttribute('width'));
-    const r = Number(next.dataset.liveRatio);
-    if (w && r) next.setAttribute('height', String(Math.round(w * r)));
-  }
+  if (next.dataset.liveViewbox) dgUseLiveViewBox(next);
   const figure = oldSvg.closest('.figure-diagram');
   oldSvg.replaceWith(next);
   // The frames payload is what the step runtime reads. Replace it alongside
@@ -3522,6 +4094,14 @@ function dgMirrorIntoFocus(d, step) {
 }
 
 function initDiagrams() {
+  // Every figure that has a live box, stepped or not. It used to be done
+  // inside the loop below, which walks the FRAMES payloads - so a figure with
+  // no steps never got one, and the day a still figure acquired a live box
+  // (the slide's canvas) it was laid out at the canvas's proportion and drawn
+  // at its own: the picture sat in the middle of the reserved rectangle at
+  // whatever scale the two aspect ratios happened to differ by.
+  document.querySelectorAll('svg.psi-diagram[data-live-viewbox]')
+    .forEach(svg => dgUseLiveViewBox(svg));
   document.querySelectorAll('script.psi-diagram-frames').forEach(sc => {
     const svg = document.getElementById(sc.dataset.for);
     if (!svg) return;
@@ -3530,14 +4110,8 @@ function initDiagrams() {
     // The static viewBox is the print one – tight around the finished
     // picture. A live view has to hold every frame instead, or an element
     // that walks in from outside is clipped for the whole of its journey.
-    // Swapped here rather than emitted, so a view with no JavaScript keeps
+    // Swapped above rather than emitted, so a view with no JavaScript keeps
     // the still it is going to show.
-    if (svg.dataset.liveViewbox) {
-      svg.setAttribute('viewBox', svg.dataset.liveViewbox);
-      const w = Number(svg.getAttribute('width'));
-      const r = Number(svg.dataset.liveRatio);
-      if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
-    }
     const fig = svg.closest('.figure-diagram');
     const d = {
       svg, data, step: -1, raf: 0, cur: null, cache: {},
@@ -3568,7 +4142,8 @@ function initDiagrams() {
 function parseAttributeTail(line, { column = false } = {}) {
   const { text, tail, stray } = splitTail(line);
   const what = `{${String(tail ?? '').trim()}} on "${text}"`;
-  const t = parseTail(tail, CHUNK_SLOTS, what, { id: 'one', classes: column ? 'none' : 'slots' });
+  const t = parseTail(tail, column ? COLUMN_SLOTS : CHUNK_SLOTS, what,
+    { id: 'one', classes: column ? 'column' : 'slots' });
   if (stray) t.problems.unshift(strayTailProblem(what, stray));
   if (t.problems.length) {
     const err = new Error(t.problems[0].msg);
@@ -3576,14 +4151,81 @@ function parseAttributeTail(line, { column = false } = {}) {
     throw err;
   }
   const out = { text, classes: t.classes, id: t.id };
+  // A `#` heading's tail is a different table with a different question in
+  // it, so it leaves here rather than falling through the chunk's slots.
+  if (column) {
+    if (t.slots.stack.written) out.stack = true;
+    if (t.slots.bare.written) out.bare = true;
+    return out;
+  }
   if (t.slots.width.written) out.width = t.slots.width.value;
   if (t.slots.bare.written) out.bare = true;
   if (t.slots.center.written) out.center = true;
-  for (const key of ['wrap', 'blocks']) {
+  // Three states, not two: `.middle`, `.top`, and neither - and the third is
+  // not a synonym for the second. An unwritten slot leaves `middle`
+  // undefined, and flushChunk reads the chunk's shape to answer it.
+  if (t.slots.anchor.written) out.middle = t.slots.anchor.value === 'middle';
+  for (const key of ['wrap', 'blocks', 'figure-type']) {
     if (!t.slots[key].written) continue;
     (out.styleOverrides ??= {})[key] = CHUNK_STYLE_CLASSES[t.slots[key].value][1];
   }
   return out;
+}
+
+// ── where a slide's camera sits, when the author did not say ─────────
+//
+// Is this slide a picture? The body handed in here has already had the
+// asides lifted out of it - a `::: footnote`, a `::: marginalia` and a
+// `::: expand` are nodes on the chunk by the time flushChunk asks - and the
+// `> note:` blocks with them, so what is left is the slide. One `::: draw`,
+// or one image paragraph, and nothing else on it, is a drawing standing on
+// the slide; anything else (a sentence, a second directive, a code block) is
+// prose with a figure in it, which is a different slide and keeps its head at
+// the top.
+//
+// Deliberately a shape and not a type. `figure:` is the type an author reaches
+// for when a chunk is *about* a figure, and in `lectures/diagrams` those
+// chunks are two paragraphs explaining a drawing - centring those would move
+// the explanation off the top of the frame. `free:` with nothing but a
+// `::: draw` in it is the keynote's picture slide, and it is written with
+// five different types across the corpus. The shape is what the room sees.
+// Read on the body as flushChunk leaves it, which is half rendered and half
+// markdown: a `::: draw` is already the compiled `<figure class=figure-diagram>`
+// (the DSL is not markdown and is compiled where it is read), a `::: cols` or
+// `::: side` is the wrapper `<div>` it emits, and everything else is still the
+// author's Markdown. So the figure is matched as an element - it contains no
+// second `</figure>`, which is what makes the lazy match safe - and every line
+// left over after it is taken out is content on the slide.
+function isPictureBody(body) {
+  let pictures = 0;
+  const rest = String(body).replace(
+    /<figure\b[^>]*\bclass="figure-diagram"[^>]*>[\s\S]*?<\/figure>/g,
+    () => { pictures++; return ''; });
+  let other = 0;
+  for (const raw of rest.split('\n')) {
+    const line = raw.trim();
+    if (!line) continue;
+    // A paragraph that is one image and nothing else - the `![](fig-id)`
+    // shorthand as much as an explicit path. A sentence with an image in it
+    // is prose.
+    if (/^!\[[^\]]*\]\([^)]*\)$/.test(line)) { pictures++; continue; }
+    // A comment says nothing to the room. `<!-- linter: ignore … -->` is the
+    // one an author writes, and it can stand anywhere in a body.
+    if (/^<!--[\s\S]*-->$/.test(line)) continue;
+    other++;
+  }
+  return pictures === 1 && other === 0;
+}
+
+// The answer to `.middle` / `.top` for a chunk that wrote neither. Two shapes
+// open framed on what the beat paints: a slide that is a picture, and a
+// `statement:`, where the heading and every paragraph are one size and arrive
+// one per press - beat 0 of a three-line statement is one line at the top of
+// two lines of reserve nobody can see yet. Everything else keeps the top
+// anchoring every deck was written against.
+function chunkOpensCentred(chunk) {
+  if (chunk.tag === 'title' || chunk.tag === 'closing') return false;
+  return chunk.tag === 'statement' || isPictureBody(chunk.body);
 }
 
 function parseTagPrefix(text) {
@@ -3591,7 +4233,7 @@ function parseTagPrefix(text) {
   if (m && VALID_TAGS.has(m[1])) {
     return { tag: m[1], ...splitHeading(m[2].trim()) };
   }
-  // A lowercase `word:` prefix that is not one of the ten types is a typo,
+  // A lowercase `word:` prefix that is not one of the eleven types is a typo,
   // not a heading that happens to hold a colon: `## principl: X` fell through
   // here and rendered as the literal heading with no data-tag, so the search
   // index and the speaker lists saw an untyped chunk. lint.js has reported
@@ -3638,28 +4280,54 @@ const beatMark = (from) => from == null ? BEAT_MARK
   : `<div class="beat-mark" data-from="${from}"></div>`;
 const isBeatMark = (raw) => /^<div class="beat-mark"/.test(raw);
 
-// Which reveal segment each speaker note belongs to - the position rule of
-// the cockpit's cue-card mode: a note before the first `---` is said while
-// beat 1 is on the screen, a note after it while beat 2 is, and so on.
-// `at` is the bodyLines index the note stood before, `segments` the raw
-// split (empty ones included, because a `---` followed by nothing but a
-// note is a real case). Two rules on top of the position:
-//  - a note in an empty segment belongs to the previous non-empty one, and
-//    the index is into the non-empty list, which is what the renderer ships;
-//  - a chunk whose notes all sit in its LAST non-empty segment has
-//    chunk-level notes and gets 0 for every one of them. That is where every
-//    deck written before this rule keeps its notes - after the last
-//    segment's text - and the position rule alone would put the whole
-//    support after the last click. The moment one note stands in an earlier
-//    segment, the author is using positions and the rule is off for the
-//    chunk. The linter mirrors this in `noteSegments` of its own.
-function noteSegments(bodyLines, segments, noteAt) {
-  if (!noteAt || !noteAt.length) return [];
-  // raw segment index -> index among the non-empty ones (or that of the
-  // previous non-empty one, or 0)
+// Which of the raw segments the renderer ships, as a boolean per raw index.
+// Every `---` is a beat: the source's count of separators is the deck's
+// count of clicks, and a segment with nothing between two of them is a click
+// all the same. It paints nothing new, which is a thing an author writes on
+// purpose - the slide stands while the speaker says the next thing, a
+// `::: footnote` written in it arrives with it, a backdrop's reveal moves to
+// its next place, an overlay held by `from` comes up.
+//
+// An empty segment used to be dropped, and a real keynote then had five
+// clicks fewer than its source asked for: a `> note: from 1` that could
+// never fire, footnotes that arrived with the words above them, and a last
+// click that was dead. Asides do not change the arithmetic either way - a
+// `::: footnote`, a `::: overlay`, a `::: dock` and a `::: backdrop` are
+// lifted out of the body, so a segment holding nothing else is empty here
+// and is shipped all the same. lint.js reports the one shape that is left,
+// a beat with nothing on it and nothing riding it, as `empty-beat`.
+//
+// Two shapes keep the old answer, because neither of them is a `---`: a
+// chunk with no separator and an empty body ships no segment at all, and a
+// `title:` or `closing:` chunk is drawn from `body` by renderTitleChunk and
+// renders no reveal segments, so a separator there buys no beat to begin
+// with. lint.js mirrors this in `segmentsKept`.
+function segmentsKept(segments, rendersSegments) {
+  if (segments.length < 2 || !rendersSegments) return segments.map(t => t.length > 0);
+  return segments.map(() => true);
+}
+
+// Whether a chunk renders reveal segments at all - the one question
+// segmentsKept still asks about the chunk. A title or closing chunk wears a
+// cover composition, which renderTitleChunk draws from `body`.
+function chunkRendersSegments(chunk) {
+  return chunk.tag !== 'title' && chunk.tag !== 'closing';
+}
+
+// Where a position in the chunk body falls among the reveal segments the
+// renderer actually ships, as a function of the `at` index into bodyLines.
+// Two readers needing the same answer: the cue-card position rule below, and
+// a `::: footnote`, which the parser lifts out of the body into a chunk-level
+// node and which therefore has to carry its segment as a number rather than
+// as a place in the DOM. `kept` is what segmentsKept answered; without it
+// the old rule, every non-empty segment, is assumed.
+function segmentIndexer(bodyLines, segments, kept) {
+  kept = kept || segments.map(s => s.length > 0);
+  // raw segment index -> index among the kept ones (or that of the
+  // previous kept one, or 0)
   const rawToNonEmpty = [];
   let seen = -1;
-  segments.forEach((seg) => { if (seg.length) seen += 1; rawToNonEmpty.push(Math.max(0, seen)); });
+  segments.forEach((seg, i) => { if (kept[i]) seen += 1; rawToNonEmpty.push(Math.max(0, seen)); });
   // separator positions: the bodyLines index of every top-level `---`
   const seps = [];
   let fence = false;
@@ -3667,8 +4335,42 @@ function noteSegments(bodyLines, segments, noteAt) {
     if (/^```/.test(line)) { fence = !fence; return; }
     if (!fence && parseRevealMark(line)) seps.push(i);
   });
-  const segs = noteAt.map(at => rawToNonEmpty[seps.filter(i => i < at).length] ?? 0);
-  const last = Math.max(0, segments.filter(s => s.length).length - 1);
+  return (at) => rawToNonEmpty[seps.filter(i => i < at).length] ?? 0;
+}
+
+// Which reveal segment each speaker note belongs to - the position rule of
+// the cockpit's cue-card mode: a note before the first `---` is said while
+// beat 1 is on the screen, a note after it while beat 2 is, and so on.
+// `at` is the bodyLines index the note stood before, `segments` the raw
+// split (empty ones included, because a `---` followed by nothing but a
+// note is a real case) and `kept` what segmentsKept answered. Two rules on
+// top of the position:
+//  - a note in a dropped segment belongs to the previous kept one, and the
+//    index is into the kept list, which is what the renderer ships;
+//  - a chunk whose notes all sit in its LAST SEGMENT WITH WORDS IN IT has
+//    chunk-level notes and gets 0 for every one of them. That is where every
+//    deck written before this rule keeps its notes - after the last
+//    segment's text - and the position rule alone would put the whole
+//    support after the last click. The moment one note stands in an earlier
+//    segment, the author is using positions and the rule is off for the
+//    chunk.
+//    **Words, not the last segment that ships.** Since every `---` buys a
+//    beat, a chunk that ends with a separator and nothing after it - the
+//    slide standing while the speaker says the next thing - ships an empty
+//    segment last, and measuring the rule against that one filed the legacy
+//    shape's notes one beat past the text they belong to. Nothing warned.
+//    What follows from reading it off the words is that a note standing
+//    alone behind a trailing `---` is no longer in the last segment and
+//    keeps its position: the author wrote the separator above it, so the
+//    note is said on the beat it opens, which is the shape the empty
+//    segment exists for.
+function noteSegments(bodyLines, segments, noteAt, kept) {
+  if (!noteAt || !noteAt.length) return [];
+  kept = kept || segments.map(s => s.length > 0);
+  const indexAt = segmentIndexer(bodyLines, segments, kept);
+  const segs = noteAt.map(at => indexAt(at));
+  let last = 0;
+  segments.filter((_, i) => kept[i]).forEach((t, i) => { if (t.length) last = i; });
   if (last > 0 && segs.every(k => k === last)) return segs.map(() => 0);
   return segs;
 
@@ -3688,9 +4390,32 @@ function parseLecture(src) {
   // frontmatter is wrong should say so even when it has no diagram yet.
   dgLectureTags.clear();
   dgEmittedBlocks.length = 0;
+  figureTypeSeen.length = 0;
+  // The deck-wide half of the figure's type size, read once so every figure
+  // can be settled against the same number. In a try, because the pre-flight
+  // in buildOnce is where a bad `style:` value is refused and this must not
+  // take that refusal's place - a typo here is reported with its own message
+  // a moment later, and a report that throws first would bury it.
+  let deckFigureType = 1;
+  let deckBlocks = 'center';
+  // Read here and not in buildOnce, because the parser renders three bodies
+  // itself - a card, an overlay and a dock - and by the time buildOnce has a
+  // resolved style block those are already HTML.
+  addressSpansOn = false;
+  try {
+    const st = styleSettings(frontmatter);
+    deckFigureType = st['figure-type'] || 1;
+    deckBlocks = st.blocks || 'center';
+    addressSpansOn = st.hyphenate === 'all';
+  } catch (e) { /* the pre-flight says it */ }
   let diagramBase = null;
+  // The deck's answer to "how big is a figure's canvas", when it has one:
+  // `frame WxH` or `frame none` as a line of the draw-defaults block, which
+  // is where everything else lecture-wide about drawings already lives. A
+  // figure's own `frame` in its opener wins over it.
+  let deckDrawFrame = null;
   if (frontmatter['draw-defaults'] != null) {
-    const { layer, errors } = parseDiagramDefaults(frontmatter['draw-defaults']);
+    const { layer, frame, errors } = parseDiagramDefaults(frontmatter['draw-defaults']);
     if (errors.length) {
       const err = new Error(
         `Frontmatter: draw-defaults has ${errors.length} problem(s):\n`
@@ -3699,6 +4424,7 @@ function parseLecture(src) {
       throw err;
     }
     diagramBase = layer;
+    deckDrawFrame = frame || null;
   }
   const columns = [];
   let currentColumn = null;
@@ -3942,6 +4668,9 @@ function parseLecture(src) {
     currentChunk.expansions.push({
       label: currentExpansion.label,
       kind: currentExpansion.kind,
+      // Where the opener stood in the body, resolved to a segment index at
+      // the end of the chunk - the aside itself is out of the body by then.
+      at: currentExpansion.at,
       body: currentExpansion.lines.join('\n').trim(),
     });
     currentExpansion = null;
@@ -3986,7 +4715,19 @@ function parseLecture(src) {
         // does not count for it.
         currentChunk.speakerNoteAt.push(bodyLines.length);
         currentChunk.speakerNoteFrom.push(noteBlock.from ?? null);
-      } else pendingNotes.push(text);  // orphan – attach to the next chunk
+      } else if (currentColumn && currentColumn.heading) {
+        // A divider is a slide, and a slide the speaker talks on: it is the
+        // camera stop where the room is told what the next part is for. So a
+        // note written between a `#` heading and the first `##` is the
+        // divider's own. It used to be an orphan and arrived, silently, as
+        // the first cue card of the following chunk - the note said "this
+        // part is about X" while the projection was already on slide one.
+        // A divider has no top-level reveal segments (a `---` under a
+        // heading is a beat marker inside one body), so its notes are chunk
+        // notes on beat 0 and `from N` is the only way to name a later beat.
+        currentColumn.speakerNotes.push(text);
+        currentColumn.speakerNoteFrom.push(noteBlock.from ?? null);
+      } else pendingNotes.push(text);  // before any heading – attach to the next chunk
     }
     noteBlock = null;
   };
@@ -4078,18 +4819,43 @@ function parseLecture(src) {
       cur.push(line);
     }
     if (cur.length) segments.push(cur.join('\n').trim());
-    const keep = segments.map((t, i) => [t, segFrom[i]]).filter(([t]) => t.length);
+    // Every `---` is a beat, so every segment between two of them ships,
+    // empty or not: the source's `---` count is the deck's click count.
+    // lint.js reports a beat with nothing on it and nothing riding it as
+    // `empty-beat`. See segmentsKept.
+    const kept = segmentsKept(segments, chunkRendersSegments(currentChunk));
+    const keep = segments.map((t, i) => [t, segFrom[i]]).filter((_, i) => kept[i]);
     const nonEmpty = keep.map(([t]) => t);
     currentChunk.segments = nonEmpty;
     currentChunk.segmentFrom = keep.map(([, f]) => f);
-    currentChunk.speakerNoteSegs = noteSegments(bodyLines, segments, currentChunk.speakerNoteAt);
+    currentChunk.speakerNoteSegs = noteSegments(bodyLines, segments, currentChunk.speakerNoteAt, kept);
+    // An aside is lifted out of the body, so it cannot carry a beat marker -
+    // a marker's beat is the elements that follow it inside one parent, and
+    // the aside has left that parent. It carries the number of the segment it
+    // was written in instead, and the live runtime holds it back until that
+    // segment is up. Written before the first `---`, or in a chunk with no
+    // `---` at all, this is 0 and nothing about the output changes.
+    {
+      const segAt = segmentIndexer(bodyLines, segments, kept);
+      currentChunk.expansions.forEach((e) => {
+        e.seg = segAt(e.at || 0);
+        delete e.at;
+      });
+    }
     // A pinned note keeps its own number and takes no part in the
     // chunk-level fallback the position rule applies.
     (currentChunk.speakerNoteFrom || []).forEach((f, i) => { if (f != null) currentChunk.speakerNoteSegs[i] = null; });
     delete currentChunk.speakerNoteAt;
     // Print collapses reveals: `body` is every segment joined, so the
     // print renderer can stay oblivious to the reveal split.
-    currentChunk.body = nonEmpty.join('\n\n');
+    // A document has no clicks to spend an empty segment on, so `body` stays
+    // what it was: the segments with words in them, joined.
+    currentChunk.body = nonEmpty.filter(t => t.length).join('\n\n');
+    // The camera's anchor, answered from the finished body when the author
+    // wrote neither `.middle` nor `.top`. Here and not in the renderer,
+    // because both live views and --check-fit read the same attribute and a
+    // second copy of the rule is how two of them come to disagree.
+    if (currentChunk.middle === null) currentChunk.middle = chunkOpensCentred(currentChunk);
     currentColumn.chunks.push(currentChunk);
     currentChunk = null;
     bodyLines = [];
@@ -4133,6 +4899,76 @@ function parseLecture(src) {
           body: dgBody,
           chunk: currentChunk ? currentChunk.id : null,
         });
+        // Names the slide a broken figure is on. A divider figure has no
+        // chunk, and used to be reported as "a chunk with no id" even
+        // when its column had one. A local rather than an inline expression
+        // because two of the options below want it.
+        const dgWhere = currentChunk
+          ? (currentChunk.id ? `chunk #${currentChunk.id}`
+                             : currentChunk.heading ? `chunk "${currentChunk.heading}"`
+                                                    : 'an unnamed chunk')
+          : currentColumn
+            ? (currentColumn.id ? `the divider of column #${currentColumn.id}`
+                                : currentColumn.heading ? `the divider of column "${currentColumn.heading}"`
+                                                        : 'an unnamed column divider')
+            : 'an unattached diagram';
+        // **Which figures get a canvas.** The default canvas is the CHUNK's
+        // column at body type, so it is the right box for exactly the figures
+        // that have that column: the ones standing in the chunk's own flow.
+        // A figure in a card, a pane, a dock, an overlay or an expansion has
+        // a fraction of it and would be laid out on a canvas several times
+        // its own box; a divider figure has no width class at all and its
+        // frame is the slide rather than a text column. Those keep the box
+        // that hugs their content, which is what they had before this
+        // existed. `::: slide` and `::: script` are not layout: they say
+        // which half of the chunk is the screen, and the column is the same
+        // either way.
+        //
+        // **A cover slide is the same case, and it is the one that is not
+        // obvious.** A `title:` or `closing:` chunk's body is not in a text
+        // column at all: the cover composition places it, and which box that
+        // is depends on the variant - `beside` and `above` hand it to the
+        // art panel that `cover-ratio` divides the frame with, `masthead`
+        // and `quote` set it as a field beside the title pair, and the rest
+        // draw no body. So there is no one column to measure, and the chunk
+        // canvas is several times too wide and far too short: measured on
+        // `lectures/python-intro`, whose `cover: beside` puts four stacked
+        // boxes in a 34% panel that runs the whole height of the slide, the
+        // build reserved a `.standard` column 16 labels tall and warned
+        // `figure-overflows-canvas` about a drawing that is comfortably
+        // inside its actual panel. A cover figure keeps the box that hugs
+        // it, like a figure in a card.
+        const dgUnit = diagramBlock.unit
+          ? diagramBlock.unit.split('x').map(Number) : DG_UNIT.slice();
+        const dgInFlow = !!currentChunk && !cardsBlock && !currentDock && !currentOverlay
+          && !currentExpansion
+          && currentChunk.tag !== 'title' && currentChunk.tag !== 'closing'
+          && layoutStack.every(l => l.kind === 'slide' || l.kind === 'script');
+        // One divider does have a column: `# Heading {.stack}` sets its body
+        // at the .full measure, and a keynote that opens each part on a
+        // figure there wants that figure at the same type as every other
+        // figure slide - measured, the four stacked dividers of one talk
+        // settled 26% under the deck while every chunk figure sat on its
+        // canvas. So a stacked divider's figure is on the .full canvas; a
+        // beside-layout divider still hugs, because its figure shares the
+        // frame with the heading.
+        const dgStacked = !currentChunk && !!currentColumn && !!currentColumn.stack
+          && !cardsBlock && !currentDock && !currentOverlay && !currentExpansion
+          && layoutStack.length === 0;
+        const dgFt = currentChunk ? chunkFigureType(currentChunk, deckFigureType)
+          : (deckFigureType > 0 ? deckFigureType : 1);
+        const dgCanvas = dgInFlow || dgStacked
+          ? figureCanvas({
+              width: currentChunk ? currentChunk.width : 'full',
+              ft: dgFt,
+              tag: currentChunk ? currentChunk.tag : 'free',
+              // The figure's own `frame`, else the deck's, else the default.
+              frame: diagramBlock.frame != null ? diagramBlock.frame : deckDrawFrame,
+              unit: dgUnit,
+              align: currentChunk ? chunkBlocks(currentChunk, deckBlocks) : deckBlocks,
+              hLabels: currentChunk ? FIG_CANVAS_H_LABELS : FIG_CANVAS_H_LABELS_STACK,
+            })
+          : null;
         // The compiler learns one thing from the opener, the grid, and takes
         // it as the `unit=WxH` string it always has. The whole opener rides
         // in the payload as one canonical line so the editor can write the
@@ -4144,18 +4980,18 @@ function parseLecture(src) {
           chunk: currentChunk ? currentChunk.id : null,
           width: currentChunk ? currentChunk.width : null,
           opener: formatDrawOpener(diagramBlock),
-          // Names the slide a broken figure is on. A divider figure has no
-          // chunk, and used to be reported as "a chunk with no id" even
-          // when its column had one.
-          where: currentChunk
-            ? (currentChunk.id ? `chunk #${currentChunk.id}`
-                               : currentChunk.heading ? `chunk "${currentChunk.heading}"`
-                                                      : 'an unnamed chunk')
-            : currentColumn
-              ? (currentColumn.id ? `the divider of column #${currentColumn.id}`
-                                  : currentColumn.heading ? `the divider of column "${currentColumn.heading}"`
-                                                          : 'an unnamed column divider')
-              : 'an unattached diagram',
+          where: dgWhere,
+          canvas: dgCanvas,
+          // How the drawing sits in its box and how small its labels land in
+          // a room, which only this side knows: the compiler has the viewBox
+          // and the caller has the chunk's width class. A divider figure is
+          // not held to it - it has no width class and its frame is the
+          // slide, not a text column.
+          onSized: currentChunk
+            ? (sized) => recordFigureType(sized, currentChunk.width, dgWhere, dgFt, dgUnit, currentChunk.tag)
+            : dgStacked
+              ? (sized) => recordFigureType(sized, 'full', dgWhere, dgFt, dgUnit, 'free')
+              : null,
           alt: currentChunk ? currentChunk.heading : '',
           base: diagramBase,
           onCompile: (model) => {
@@ -4204,7 +5040,7 @@ function parseLecture(src) {
         // an html block to marked and passes through renderCardsBlock like
         // a paragraph would.
         refuseDrawOpener(cardDraw);
-        diagramBlock = { unit: cardDraw.unit, autoplay: cardDraw.autoplay, cycle: cardDraw.cycle,
+        diagramBlock = { unit: cardDraw.unit, frame: cardDraw.frame, autoplay: cardDraw.autoplay, cycle: cardDraw.cycle,
                          lines: [], bodyAt: fmOffset + lineAt };
       } else if (!inFence && /^:::\s+\S/.test(line)) {
         // lint.js: directive-in-cards. The body is captured, not parsed, so a
@@ -4239,6 +5075,11 @@ function parseLecture(src) {
       const h2 = inCaptured ? null : line.match(/^##\s+(.*)$/);
 
       if (h1) {
+        // A note block still open while no chunk is stands under the *previous*
+        // `#` heading, so it is that divider's. flushChunk cannot do it - it
+        // leaves at once when there is no chunk - and left to the line after
+        // the heading it would be flushed against the new column.
+        if (!currentChunk) flushNoteBlock();
         flushChunk();
         flushColBody();
         // A column heading takes an id and nothing else. Width and `.bare`
@@ -4249,22 +5090,33 @@ function parseLecture(src) {
         // vocabulary this line never had.
         const h1Attr = parseAttributeTail(h1[1], { column: true });
         const { text, id } = h1Attr;
-        currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null, overlays: [], dock: null };
+        currentColumn = { heading: text, id, chunks: [], body: '', backdrop: null, overlays: [], dock: null,
+          stack: !!h1Attr.stack, bare: !!h1Attr.bare, speakerNotes: [], speakerNoteFrom: [] };
         colBody = [];
         columns.push(currentColumn);
         continue;
       }
 
       if (h2) {
+        // Same reason as at `#`, one level down: a `> note:` written under a
+        // column heading with no blank line before the first `##` is the
+        // divider's, and without this flush it stayed open across the
+        // boundary and landed in the chunk instead - so the same note meant
+        // two different things depending on a blank line.
+        if (!currentChunk) flushNoteBlock();
         flushChunk();
         flushColBody();
         if (!currentColumn) {
           // A chunk before any `# Column` (e.g. the title chunk).
-          currentColumn = { heading: null, id: null, chunks: [], overlays: [], dock: null };
+          // The two note arrays are here as well as on a headed column so
+          // that every reader can say `col.speakerNotes.length` without a
+          // guard; an anonymous column draws no divider and never fills them.
+          currentColumn = { heading: null, id: null, chunks: [], overlays: [], dock: null,
+            stack: false, bare: false, speakerNotes: [], speakerNoteFrom: [] };
           columns.push(currentColumn);
         }
         const h2Attr = parseAttributeTail(h2[1]);
-        const { text, width, id, bare, center } = h2Attr;
+        const { text, width, id, bare, center, middle } = h2Attr;
         const { tag, heading, headingSub } = parseTagPrefix(text);
         // A title or closing chunk is placed by its cover composition: both
         // renderers hardcode data-width="full", and the heading is the
@@ -4285,9 +5137,9 @@ function parseLecture(src) {
           err.userFacing = true;
           throw err;
         }
-        if ((tag === 'title' || tag === 'closing') && (width || bare || center)) {
+        if ((tag === 'title' || tag === 'closing') && (width || bare || center || middle !== undefined)) {
           const err = new Error(
-            `A ${tag} chunk carries .${width || (bare ? 'bare' : 'center')}, which its cover composition decides ("${text}").\n` +
+            `A ${tag} chunk carries .${width || (bare ? 'bare' : center ? 'center' : middle ? 'middle' : 'top')}, which its cover composition decides ("${text}").\n` +
             '  A title or closing slide is always full width, its heading is the\n' +
             '  composition\'s, and where its words sit is cover-align\'s - so none\n' +
             '  of these classes has anything to act on.');
@@ -4298,13 +5150,27 @@ function parseLecture(src) {
           tag,
           heading,
           headingSub,
-          // The one per-tag default. An agenda is a list of part titles and
-          // wants the wider measure; every other tag is standard. It is set
-          // here rather than in the renderer because the renderer's own
-          // fallback could never fire - this line always supplies a value.
-          width: width || (tag === 'outline' ? 'wide' : 'standard'),
+          // The per-tag defaults, and both are a fact about the slide rather
+          // than a preference. An agenda is a list of part titles and wants
+          // the wider measure. A title or closing chunk is always full width
+          // - both renderers hardcode `data-width="full"` on it, and a width
+          // class there is refused a dozen lines up - so storing `standard`
+          // made the two sides of the build disagree about the same slide:
+          // --check-fit read `(title, .full)` off the DOM while every static
+          // reader here measured a `.standard` column. `defaultWidthFor` in
+          // lint.js already resolved it this way, with the same reasoning.
+          // It is set here rather than in the renderer because the
+          // renderer's own fallback could never fire - this line always
+          // supplies a value.
+          width: width || (tag === 'title' || tag === 'closing' ? 'full'
+            : tag === 'outline' ? 'wide' : 'standard'),
           bare: !!bare,
           center: !!center,
+          // Left null when the author wrote neither `.middle` nor `.top`, and
+          // answered from the chunk's shape at the flush, where the body is
+          // finally known. A boolean here would have had to guess before the
+          // first body line was read.
+          middle: middle === undefined ? null : middle,
           // The `style:` keys this one chunk answers differently, or null.
           // Null and not an empty object so every renderer's attribute
           // helper can leave in one line, and so a chunk that wrote none of
@@ -4446,7 +5312,7 @@ function parseLecture(src) {
         const colDraw = parseDrawOpener(line);
         if (colDraw) {
           refuseDrawOpener(colDraw);
-          diagramBlock = { unit: colDraw.unit, autoplay: colDraw.autoplay, cycle: colDraw.cycle,
+          diagramBlock = { unit: colDraw.unit, frame: colDraw.frame, autoplay: colDraw.autoplay, cycle: colDraw.cycle,
                            lines: [], bodyAt: fmOffset + lineAt };
           continue;
         }
@@ -4639,6 +5505,9 @@ function parseLecture(src) {
             label: expandOpen ? expandOpen[1].trim() : 'note',
             kind: marginOpen ? 'margin' : 'expand',
             word,
+            // The body position the opener stood at, which is what says
+            // which reveal segment the aside was written in.
+            at: bodyLines.length,
             lines: [],
           };
           continue;
@@ -4899,7 +5768,7 @@ function parseLecture(src) {
           // wall-clock number would put a runtime concern in the one file
           // that also runs in the editor, where there is no deck to play.
           refuseDrawOpener(diagramOpen);
-          diagramBlock = { unit: diagramOpen.unit, autoplay: diagramOpen.autoplay, cycle: diagramOpen.cycle,
+          diagramBlock = { unit: diagramOpen.unit, frame: diagramOpen.frame, autoplay: diagramOpen.autoplay, cycle: diagramOpen.cycle,
                            lines: [], bodyAt: fmOffset + lineAt };
           continue;
         }
@@ -5057,6 +5926,37 @@ function parseLecture(src) {
     }
   }
 
+  // Every figure in the lecture has compiled, which is the earliest the whole
+  // set can be ruled on at once - see reportFigureTypeStatic.
+  reportFigureTypeStatic();
+
+  // `.stack` says where the divider's own content stands, so a divider with
+  // no content has nothing for it to say - the silent no-op this format
+  // refuses everywhere. Checked here, at the end of the parse, because a
+  // divider's body is only complete when the next heading has arrived; and
+  // in the parser rather than in a renderer, so `--print-only` reaches it
+  // too. lint.js mirrors it as `bad-section-stack`.
+  //
+  // `.bare` is refused on the same condition and for a plainer reason: it
+  // takes the heading off the slide, so with nothing under the heading the
+  // slide is empty.
+  for (const col of columns) {
+    if ((!col.stack && !col.bare) || (col.body || '').trim()) continue;
+    const what = col.stack ? '{.stack}' : '{.bare}';
+    const why = col.stack
+      ? '  .stack puts the part\'s own figure, quotation or card row *under* the\n'
+        + '  heading at full width instead of beside it. Write something under the\n'
+        + '  `#` line, or drop the class.'
+      : '  .bare takes the divider\'s heading off the slide and leaves it in the\n'
+        + '  contents, in `section: outline`, in the speaker view and in search - so\n'
+        + '  with nothing under the `#` line the slide has nothing on it. Write the\n'
+        + '  divider\'s own figure, quotation or card row there, or drop the class.';
+    const err = new Error(
+      `${what} on the divider of column ${col.id ? '#' + col.id : `"${col.heading}"`}, ` +
+      'which has no content under its heading.\n' + why);
+    err.userFacing = true;
+    throw err;
+  }
   return { frontmatter, columns };
 }
 
@@ -5354,7 +6254,11 @@ const STRINGS = {
     'title-speaker': 'Sprecher',
     'untitled-lecture': 'Vorlesung ohne Titel',
     'annotation-label': 'Anmerkung',
-    'add-note': '+ Anmerkung',
+    // Not "+ Anmerkung", which is the word the box below the slide already
+    // wears: at 45% opacity in the gutter of every slide the longer word is
+    // the loudest piece of chrome the projection carries, and the button is
+    // a hint for a key rather than a label for the thing it opens.
+    'add-note': '+ Notiz',
   },
 };
 
@@ -5527,6 +6431,30 @@ const VIEW_DEFAULT_SPEC = [
   // its editor. `both` is the default; `speaker` keeps it out of the
   // projection; `none` ships neither the compiler nor the UI.
   ['editor',        'editor',    ['both', 'speaker', 'none']],
+  // The `+ note` affordance in the slide's left gutter. A lecture wants it
+  // (the key it stands for is otherwise undiscoverable); a keynote that is
+  // rehearsed and has nothing to annotate wants the frame clean, and at 45%
+  // opacity on every active slide it is the one piece of chrome a
+  // photographed projection always carries. `off` hides the button and
+  // nothing else - N still opens an annotation, so this costs no ability.
+  ['note-button',   'noteButton', ['on', 'off']],
+  // What the projection does with the slide before and the slide after.
+  // `dim` is the lecture behaviour and the default: the camera pans through
+  // a column and the neighbours stand there faintly, which is the whole
+  // reason the view is one long board rather than a stack of cards. `hidden`
+  // is the keynote answer - a frame that shows the slide and nothing else.
+  ['neighbours',    'neighbours', ['dim', 'hidden']],
+  // What a slide change looks like. `pan` is the lecture behaviour and the
+  // default: the stage is one continuous column and the camera glides to
+  // the next chunk over --camera-duration, which is what tells the room
+  // that the slides are a board rather than a pile. `cut` lands the camera
+  // in no time at all and `fade` dips the stage through the paper and back,
+  // which are the two things every other slide tool does and the two a
+  // keynote is usually asking for. Only the *slide change* is affected: a
+  // reveal, a figure step, a .middle chunk's per-press glide and the walk
+  // down a chunk taller than the frame all keep their motion in every mode,
+  // because those are things happening on a slide that is already there.
+  ['transition',    'transition', ['pan', 'cut', 'fade']],
 ];
 // ── lecture-wide typographic settings (the `style:` block) ───────────
 // Three knobs an author reaches for on a whole lecture rather than on one
@@ -5714,6 +6642,21 @@ const STYLE_SPEC = {
   // not a look but a bug report.
   'heading-scale': { kind: 'num', min: 0.6, max: 1.8, dflt: 1 },
   'body-scale':    { kind: 'num', min: 0.6, max: 1.8, dflt: 1 },
+  // A figure's base label against the body type it stands in. 1 means a label
+  // is set at the size of the words around it, which is what the live views do
+  // now and what the room needs: a label is a word, and there is no running
+  // text beside a projected figure to excuse a smaller one. The documents ask
+  // the same question and answer it 0.9 (--dg-fig-size in PRINT_CSS), because
+  // on paper a figure IS apparatus inside a column of prose.
+  //
+  // Bounded more tightly than the two above, and in the direction that costs
+  // something: the figure's width is this number times --dg-type-w, so 1.6
+  // already caps most drawings at the column and pulls the slide's own type
+  // down to meet them (fitZoomToChunk), and under 0.6 the labels are the
+  // defect. What it cannot do is make a figure legible that has more grid
+  // units than the column has room for - that is a drawing to redraw, and
+  // the build names it.
+  'figure-type':   { kind: 'num', min: 0.6, max: 1.6, dflt: 1 },
   // The display face's own size, and the one place taste gets a say over a
   // measurement. The roster's size-adjust numbers normalise ADVANCE WIDTH,
   // because line count is the failure that breaks a slide - a headline that
@@ -5757,9 +6700,12 @@ const STYLE_SPEC = {
   // full measure and it is the artwork, the caption and the equation inside
   // it that move.
   //
-  // A `::: draw` is deliberately not in the list. Its <svg> is emitted 2000px
-  // wide under max-width: 100%, so it fills the measure at every chunk width
-  // and there is no space beside it to align in.
+  // A `::: draw` used to be outside this key, because its <svg> was emitted
+  // 2000px wide under max-width: 100% and filled the measure at every chunk
+  // width - there was no space beside it to align in. Both media size a
+  // drawing from its type now, so the box hugs the picture and the key reaches
+  // it in both: see main .psi-diagram in PRINT_CSS and .chunk .psi-diagram in
+  // AUDIENCE_CSS.
   blocks: { kind: 'enum', values: ['center', 'left'], dflt: 'center' },
   // The generated tag word above a chunk. Two different things wear that
   // name and one switch has to reach both: the document renderer emits a
@@ -5980,6 +6926,10 @@ function styleBlockCss(st, S) {
   const rootVars = [];
   if (st['heading-scale'] !== 1) rootVars.push(`--heading-scale: ${st['heading-scale']};`);
   if (st['body-scale'] !== 1) rootVars.push(`--body-scale: ${st['body-scale']};`);
+  // Read by the live width rule (.chunk .psi-diagram) through a var() fallback
+  // of 1, so a deck that says nothing emits nothing and builds byte-identical
+  // HTML. Print has its own --dg-fig-size and does not read this.
+  if (st['figure-type'] !== 1) rootVars.push(`--figure-type: ${st['figure-type']};`);
   const rules = [];
   if (rootVars.length) rules.push(`:root { ${rootVars.join(' ')} }`);
   // The projection's one generated eyebrow, EXERCISE, is a CSS `content:`
@@ -6058,6 +7008,12 @@ function chunkStyleAttrs(chunk) {
   let out = '';
   if (ov.wrap) out += ` data-wrap="${ov.wrap}"`;
   if (ov.blocks) out += ` data-blocks="${ov.blocks}"`;
+  // The third one is a number, and it carries the per cent the class spelled
+  // rather than the multiplier: an attribute selector matches a string, and a
+  // rule per step is how a bounded set of words becomes a custom property
+  // without a style attribute on the article - which the cover already uses
+  // for its ratio, and two style attributes on one element is one too many.
+  if (ov['figure-type']) out += ` data-figure-type="${ov['figure-type']}"`;
   return out;
 }
 
@@ -6099,6 +7055,25 @@ function printSlideNums(frontmatter = {}) {
   const d = viewDefaults(frontmatter);
   return d.printSlideNums || d.slideNums || SLIDE_NUM_DEFAULT;
 }
+// How a slide change is drawn: pan (the default), cut or fade.
+function slideTransition(frontmatterDefaults = {}) {
+  return frontmatterDefaults.transition || 'pan';
+}
+// What the projection does with the slide before and the slide after, once
+// the transition has had its say. The same shape as printSlideNums(), for
+// the same reason: viewDefaults() writes a key only when the frontmatter
+// carried it, so "unset" is a fourth state, and this is the one documented
+// step that turns it into a value.
+//
+// `neighbours` when the author wrote one. Otherwise `dim` under a pan, and
+// `hidden` under a cut or a fade – where the camera does not travel, so a
+// neighbour is never passed on the way and the only thing a dimmed one can
+// do is sit at the edge of a zoomed-out frame or smear through a fade. The
+// author can still write `dim` next to either and get it.
+function neighbourMode(frontmatterDefaults = {}) {
+  if (frontmatterDefaults.neighbours) return frontmatterDefaults.neighbours;
+  return slideTransition(frontmatterDefaults) === 'pan' ? 'dim' : 'hidden';
+}
 // Body attributes for a live view, so the first paint already has the
 // author's font and theme. applyFontTheme() would correct them at boot, but
 // only after a visible flash of the built-in defaults.
@@ -6111,6 +7086,18 @@ function viewBodyAttrs(defaults, extra = '') {
     `data-theme="${theme}"`,
     `data-mode="${DARK_THEME_NAMES.includes(theme) ? 'dark' : 'light'}"`,
     `data-slide-nums="${defaults.slideNums || SLIDE_NUM_DEFAULT}"`,
+    // These two are written only when the author turned them off, because
+    // both stylesheets ask for the off-value by name and the on-value is the
+    // absence of the attribute. A deck that says nothing about either builds
+    // exactly the bytes it did before the keys existed. applyFontTheme()
+    // writes them in full once the runtime is up, which is what lets M
+    // toggle the first of them.
+    defaults.noteButton === 'off' ? 'data-note-button="off"' : '',
+    // Same arrangement, one step further on: the value written is the
+    // resolved one, because `cut` and `fade` imply `hidden`. A deck that
+    // pins neither still carries neither attribute.
+    neighbourMode(defaults) === 'hidden' ? 'data-neighbours="hidden"' : '',
+    slideTransition(defaults) !== 'pan' ? `data-transition="${slideTransition(defaults)}"` : '',
   ].filter(Boolean);
   return parts.join(' ');
 }
@@ -6604,7 +7591,8 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   // annotation, its expansions, its backdrop and its overlays - and dropped
   // them without a word, because nothing downstream knew they had been
   // written. Appending the list is one line and inherits all of it.
-  const bodyHtml = (body ? marked.parse(body) : '')
+  const bodyHtml = (body ? (tag === 'statement'
+      ? markQuietStatementLines(marked.parse(body)) : marked.parse(body)) : '')
     + (tag === 'outline' ? renderOutlineList(opts.parts || [], opts.partNo || 0) : '');
 
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
@@ -6639,8 +7627,11 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
   }
 
   // `figure:` is self-evident from the artwork; eyebrow would just stack a
-  // third label above the heading + sub-heading.
-  const labelTag = tag && tag !== 'free' && tag !== 'figure' ? tag : null;
+  // third label above the heading + sub-heading. `statement:` prints no
+  // label either, and for the reason the type exists: its heading and its
+  // paragraphs are one utterance set at one size, and a small-caps word over
+  // them turns three lines of speech into a labelled specimen.
+  const labelTag = tag && tag !== 'free' && tag !== 'figure' && tag !== 'statement' ? tag : null;
   const label = labelTag
     ? `<span class="chunk-label">${escapeHtml((S.type[labelTag] || labelTag).toLowerCase())}</span>`
     : '';
@@ -6723,12 +7714,24 @@ function renderColumn(col, frontmatter, nums, chunkOpts = {}) {
   // and silently skipped every divider.
   const bdScrim = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdHas = bd.html ? ' data-has-backdrop=""' : '';
+  // A divider's own speaker notes, in the hand-out that carries notes. The
+  // aside is the chunk's, spelled the same way, because a reader of
+  // print-notes.html is reading one document and a divider's prompt is not a
+  // different kind of thing from a slide's.
+  const S = chunkOpts.strings || lectureStrings(frontmatter);
+  const notesHtml = (chunkOpts.withNotes && (col.speakerNotes || []).length)
+    ? `<aside class="speaker-note">
+<span class="speaker-note-label">${escapeHtml(S['speaker-note'])}</span>
+<div class="speaker-note-body">${col.speakerNotes.map(n => marked.parse(n)).join('\n')}</div>
+</aside>`
+    : '';
   return `<section class="column"${idAttr}${bdHas}${bdScrim}>
   <h1 class="column-heading">${escapeHtml(col.heading)}</h1>
   ${bd.html}
   ${lede}
   ${renderDock(col.dock, `the divider for "${col.heading}"`, null, nums)}
   ${renderOverlayLayer(col.overlays, `the divider for "${col.heading}"`)}
+  ${notesHtml}
 ${chunksHtml}
 </section>`;
 }
@@ -6987,6 +7990,15 @@ h1, h2, h3, h4, code, pre, pre *, .chunk-num, a[href^="http"] {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
+/* A statement chunk's paragraphs join that list, because they are heading
+   lines that happen to be marked up as paragraphs: same face, same size,
+   same weight, and a break across two lines reads as a fault in exactly the
+   way it does in a heading. The selector has to name the paragraph, since
+   the rule above reaches elements and this one is a p. */
+.chunk-statement > p {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 strong { color: var(--emph); font-weight: 600; }
 em { font-style: italic; }
 /* style.print-bold - the look of a bold the derivation reads, default bold
@@ -7231,6 +8243,53 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 .chunk-question .chunk-heading {
   font-size: 1.5rem;
   font-style: italic;
+}
+
+/* A statement chunk on paper. The projection sets its heading and its
+   paragraphs at one size because they are one utterance; the document
+   keeps that and pays what a document can afford for it, which is the
+   question chunk's 1.5rem rather than the slide's 2.1em. Nearest of the
+   two neighbours the type was measured against: principle was the other
+   candidate and brings a 2.5pt rule with it, and this type has no rule -
+   a bar over three lines of speech makes them a specimen.
+   No eyebrow either: renderChunk leaves statement out of labelTag.
+   The face is the heading's, which here means the document's own, so
+   nothing is declared for it - print sets no separate heading family, and
+   writing one would give this type a face the deck never chose. */
+.chunk-statement {
+  margin: 2.2rem 0;
+}
+.chunk-statement .chunk-heading { font-size: 1.5rem; margin-bottom: 0.35rem; }
+/* 500 and -0.01em are the h1, h2, h3 rule at the head of this stylesheet,
+   written out rather than inherited because a paragraph is not a heading
+   and no selector would hand it the heading's declarations. If that rule's
+   weight moves, this one moves with it, or the first line of a statement
+   stops matching the three under it. */
+.chunk-statement > p {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0 0 0.35rem;
+}
+/* Nothing here about a bold inside one of these lines: style.print-bold
+   reaches it through DERIVED_STRONG at (0,4,3), and a rule written at this
+   selector's specificity would lose to it silently. */
+/* The quiet register, and the document carries it because it is what the
+   line *is* rather than how the projection shows it: a paragraph written
+   entirely in italic is the definition a claim answers or the source under
+   it, not a statement line with a stress mark on it. Half the size, the
+   document's own body weight, --ink-soft - the same three steps back the
+   projection takes, in the document's numbers. Hyphenation is deliberately
+   not touched: the rule above takes every statement paragraph out of the
+   dictionary, and a quiet line is one or two lines of type, so letting it
+   back in would only put a hyphen where nothing needed one. */
+.chunk-statement > p.quiet-line {
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.4;
+  color: var(--ink-soft);
 }
 
 .chunk-exercise .chunk-heading { font-style: italic; }
@@ -7654,6 +8713,23 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 }
 .cards.rows li > :is(strong, b):first-child { grid-column: 1; }
 .cards.rows li > .row-body { grid-column: 2; text-align: left; min-width: 0; }
+/* A term is a name and not a measure, so it does not hyphenate here either.
+   The rule above this one turns hyphens on for every li, and it inherits -
+   so without this a document set with lang: de broke "Zuständigkeit" across
+   two lines of a 5.5em column, where the live views now refuse to. The body
+   beside it is prose and keeps the hyphenation it was given.
+   What print does NOT copy from the live views is the term column itself:
+   there the grid is one grid for the whole block, so a max-content track is
+   the longest term in it; here the grid is per row, because the li has to
+   keep its box for break-inside: avoid, and fit-content would then give
+   every row a term column of its own width - a ragged left edge down the
+   page, which is worse than the share it replaced. */
+.cards.rows li > :is(strong, b):first-child,
+.cards li .card-lead,
+.cards li > :is(strong, b):first-child {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 /* A markdown line break between the term and its body would otherwise be a
    third item in the two-column grid and push the body onto its own row. */
 .cards.rows li > br { display: none; }
@@ -7801,16 +8877,47 @@ figure.figure-video video { max-height: 34rem; }
    that could not honour them because its box was always full width. */
 main .psi-diagram {
   --dg-fig-size: 0.9rem;
-  width: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
-             calc(34rem * var(--dg-ar, 1)));
+  --dg-box-w: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
+                  calc(34rem * var(--dg-ar, 1)));
+  width: var(--dg-box-w);
   /* The default is centre, matching figure.figure-img's text-align above.
      styleBodyAttrs writes data-blocks only when it is left, so the centre
      case has to be the bare rule - a body[data-blocks=center] selector would
      never match anything and every deck would quietly go flush left. */
   margin-inline: auto;
 }
+/* Flush left means the *drawing* is flush left, not the box around it. The
+   box is the viewBox, and the viewBox is the drawing plus DG_MARGIN on every
+   side - so a figure set flush left used to stop a fixed reserve short of the
+   heading above it, the same few pixels on every figure in the deck. Measured
+   on a real keynote: heading at x 223, first box at 243. A gap of twenty
+   pixels is not an alignment anyone chose; it is a near-miss, and a near-miss
+   reads worse than an honest indent. --dg-ink-x is that reserve as a fraction
+   of the box (diagram-core emits it, and the live runtime rewrites it when it
+   swaps in the viewBox that holds every beat), so the negative start margin
+   pulls the reserve back out into the gutter and the ink lands on the text's
+   own edge.
+
+   Centre is untouched: the reserve is symmetric, so a centred box is a centred
+   drawing already, and nothing moves in a deck that did not ask.
+
+   And centre stays the DEFAULT, which is the question this rule was asked
+   twice. The case for flush left by default is that a figure under a heading
+   should share that heading's edge - but where the heading sits is already a
+   key, and the two lectures answer it differently. Measured at 1600x900:
+   lectures/diagrams sets no headings key, so a figure chunk's heading is
+   centred (heads at 465-739 px in a 96-1504 column) and the drawing under it
+   is centred with it; flush left by default would pull thirty figures away
+   from their own headings. lectures/tutorial sets headings: left, every
+   heading stands at the column edge, and the centred figures sit 56-860 px
+   inside it - which is the complaint, and blocks: left is the answer to it,
+   now that it lands on the edge rather than a reserve short of it. So the
+   default follows the blocks key, as documented, and a deck that ranges its
+   headings left says so once in the same block. */
 body[data-blocks=left] main .psi-diagram,
-.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=left] .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+}
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
 
 @media print {
@@ -7951,13 +9058,21 @@ pre.shiki .line { display: inline; }
 
 // ── audience rendering ───────────────────────────────────────────────
 
-// Expansion labels resolve to a fixed vocabulary of chevron
-// abbreviations. The label string in source is free-form and
-// descriptive (e.g. "format-spec", "None-vs-False"); the chevron
-// only shows one of the canonical categories from PRD §2, which
-// keeps the UI readable and honest about what kind of aside the
-// student is about to open. Unknown labels fall back to "Exp" –
-// "this is an explanation" – never to a truncated slug.
+// The chip on an unopened expansion used to wear one of these
+// abbreviations instead of the author's own label, on the argument that a
+// fixed vocabulary keeps the strip readable and honest about what kind of
+// aside is behind the chip. Measured on a keynote, it is the opposite: a
+// chip reading EXP stood for an expansion labelled "Fehlermeldung", the
+// fallback screen for a live demo, and the one word that said what pressing
+// it would show had been thrown away by the renderer. Every label longer
+// than the table's prefixes lands on that fallback, so the more descriptive
+// the author was, the less the room was told.
+//
+// So the chip carries the label, and this table is what it carries when
+// there is none - a `::: expand` with no word after it, where "Exp" is
+// still better than an empty button. The open pane has always shown the
+// label in full (.tag-label), which is the other half of why the chip
+// saying something else read as a defect rather than as a convention.
 function abbrevForLabel(label) {
   const l = String(label || '').toLowerCase();
   if (!l) return 'Exp';
@@ -8151,6 +9266,11 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   // prose starts at the far edge of a wide slide while the drawing sits in
   // the middle and the two read as unrelated blocks.
   const centerAttr = chunk.center ? ' data-center=""' : '';
+  // `.middle` is the same kind of decision one axis over, and it is read by
+  // the camera rather than by the stylesheet: see focusCamera. Audience-only
+  // for the reason the other two are - a printed page has no frame to be
+  // centred in.
+  const middleAttr = chunk.middle ? ' data-middle=""' : '';
   const idAttr = id ? ` id="${escapeHtml(id)}"` : '';
 
   // No tag eyebrow on the projection. The word announced a taxonomy that is
@@ -8167,12 +9287,19 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   // nothing renders for the body.
   const segFrom = chunk.segmentFrom || [];
   const segmentsHtml = segments.map((seg, i) => {
-    const inner = marked.parse(seg || '');
+    const inner = chunk.tag === 'statement'
+      ? markQuietStatementLines(marked.parse(seg || '')) : marked.parse(seg || '');
     const hidden = i === 0 ? '' : ' data-hidden';
     // A pinned segment says which beat it arrives on; an unpinned one is
     // still counted by its position, which is what `pos` in chunkBeats does.
     const from = segFrom[i] == null ? '' : ` data-from="${segFrom[i]}"`;
-    return `<div class="reveal-segment" data-seg="${i}"${hidden}${from}>${inner}</div>`;
+    // A segment two `---` leave empty (segmentsKept): it paints nothing and
+    // is a beat all the same - the slide stands, and a footnote, a note or a
+    // backdrop place may ride it. Named rather than left to `:empty`,
+    // because the block gap between two segments has to skip it and a
+    // selector that reads the box says why.
+    const empty = seg ? '' : ' data-empty=""';
+    return `<div class="reveal-segment" data-seg="${i}"${hidden}${from}${empty}>${inner}</div>`;
   }).join('\n');
 
   const headingHtml = renderHeadingHtml(chunk);
@@ -8182,15 +9309,21 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   const expandList = expansions.filter(e => (e.kind || 'expand') === 'expand');
   const marginList = expansions.filter(e => e.kind === 'margin');
 
+  // A footnote arrives with the reveal segment it was written in: `data-seg`
+  // names that segment and applyReveal mirrors its visibility. Emitted only
+  // past the opening segment, so a deck whose footnotes all stand before the
+  // first `---` - which is every deck written before this - builds the same
+  // bytes it did.
   const marginsHtml = marginList.map(e => {
     const inner = marked.parse(e.body || '');
-    return `<aside class="margin-note" data-label="${escapeHtml(e.label === 'note' ? S['aside-note'] : e.label)}">${inner}</aside>`;
+    const segAttr = e.seg > 0 ? ` data-seg="${e.seg}"` : '';
+    return `<aside class="margin-note"${segAttr} data-label="${escapeHtml(e.label === 'note' ? S['aside-note'] : e.label)}">${inner}</aside>`;
   }).join('\n');
 
   const chevsHtml = expandList.length
     ? `<div class="exps">${expandList.map((e, i) =>
-      `<button class="exp-chev" type="button" data-exp="${i}">
-         <span>${escapeHtml(abbrevForLabel(e.label))}</span>
+      `<button class="exp-chev" type="button" data-exp="${i}" title="${escapeHtml(e.label || abbrevForLabel(e.label))}">
+         <span class="exp-name">${escapeHtml(e.label || abbrevForLabel(e.label))}</span>
          <span class="caret">›</span>
        </button>`).join('')}</div>`
     : '';
@@ -8223,7 +9356,7 @@ function renderAudienceChunk(chunk, frontmatter, colIdx, chunkIdx, nums, parts =
   const scrimAttr = bd.scrim && bd.scrim !== 'veil' ? ` data-backdrop="${bd.scrim}"` : '';
   const bdAttr = (bd.html ? ' data-has-backdrop=""' : '') + (overlaysHavePanel(chunk.overlays) ? ' data-has-panel=""' : '');
 
-  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}${dockAttrs(chunk.dock)}>
+  return `<article class="${classes}"${idAttr} data-chunk-id="${escapeHtml(chunkId)}"${tagAttr}${widthAttr}${bareAttr}${centerAttr}${middleAttr}${chunkStyleAttrs(chunk)}${numAttr}${bdAttr}${scrimAttr}${dockAttrs(chunk.dock)}>
   ${bd.html}
   <div class="chunk-content">
     ${tagLabel}
@@ -8303,8 +9436,15 @@ function renderOutlineList(parts, now) {
   }).join('');
   return `<ol class="section-outline">${items}</ol>`;
 }
+// The divider's element id, in one place. `renderColumnsHtml` draws the slide
+// with it and `renderSpeaker` files the divider's own notes under it; two
+// spellings would be a cockpit whose notes pane is empty on every divider,
+// and nothing would say so.
+function sectionChunkId(col, ci) {
+  return col.id ? `${col.id}-section` : `__section-c${ci}`;
+}
 function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = [], nums = chunkNumbers([])) {
-  const chunkId = col.id ? `${col.id}-section` : `__section-c${ci}`;
+  const chunkId = sectionChunkId(col, ci);
   const sec = sectionSettings(frontmatter);
   const mark = sec.mark
     ? `<div class="section-mark">${escapeHtml(sec.mark)}</div>`
@@ -8337,7 +9477,18 @@ function renderColumnSectionChunk(col, ci, frontmatter = {}, num = 0, parts = []
   // all of them, and the extra height it forced was shared out among them -
   // measured, the list's centre sat 132px below the figure's. Everywhere
   // else the wrapper is `display: contents`, so it changes nothing.
-  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${bdAttr}${scrimAttr}${dockAttrs(col.dock)} data-chunk-id="${escapeHtml(chunkId)}">
+  // `.stack` on the `#` heading: the content stands under the heading at the
+  // full measure and the heading becomes its caption. An attribute rather
+  // than a class for the reason `data-closing-art` is one - the attribute is
+  // the fact the author wrote, the layout only what follows from it.
+  const stackAttr = col.stack ? ' data-section-layout="stack"' : '';
+  // `.bare` on the same line: the heading is still written into the markup -
+  // the contents page, the agenda, the speaker's board and the search index
+  // all read it out of the DOM - and a stylesheet takes it off the slide.
+  // Same mechanism as a chunk's `.bare`, and audience-only for the same
+  // reason: it is a decision about a projection.
+  const sBareAttr = col.bare ? ' data-section-bare=""' : '';
+  return `<article class="chunk chunk-section" data-tag="section" data-width="full" data-section="${sec.variant}"${stackAttr}${sBareAttr}${bdAttr}${scrimAttr}${dockAttrs(col.dock)} data-chunk-id="${escapeHtml(chunkId)}">
   ${art.html}
   <div class="chunk-content">
     <div class="section-lead">
@@ -8399,6 +9550,7 @@ const TOUCH_CONTROLS_HTML = `<nav id="touch-controls" aria-label="Slide controls
     <button type="button" data-action="autofit" aria-label="Auto-fit: off, shrink a slide that is too big, or fit every slide">#</button>
     <button type="button" data-action="search" aria-label="Search the lecture">&#x2315;</button>
     <button type="button" data-action="select" aria-label="Select text" aria-pressed="false">&#x2380;</button>
+    <button type="button" data-action="fullscreen" aria-label="Fullscreen">&#x26F6;</button>
   </div>
   <div id="touch-rail">
     <button type="button" data-action="prev" aria-label="Previous">&#x2039;</button>
@@ -8423,6 +9575,22 @@ const OVERVIEW_BADGE_HTML = `<div id="overview-badge">
 // Shown while the projection is blanked. In the speaker window it is the
 // only sign that the room sees black, so it has to say how to undo that.
 const BLANK_BADGE_HTML = `<div id="blank-badge" class="cmd-badge hidden" role="status">BLANK<span> &middot; hit B to toggle</span></div>`;
+
+// W: the projection's own frame, with none of the browser round it. This one
+// line is the whole of what a *remote* request looks like on the wall.
+//
+// Entering fullscreen is one of the calls a browser answers only to a user
+// gesture in the window that makes it, and the lecturer's keyboard is in the
+// cockpit. Measured in Chromium, headless and headed alike: a
+// requestFullscreen inside a message handler is refused with
+// "TypeError: Permissions check failed". So a W pressed in the cockpit cannot
+// put the projection into fullscreen - it can only arm it, and this is the
+// affordance that spends the arming. See the fullscreen section of the
+// runtime for the rest of the reasoning.
+//
+// Its id is a word no slide would claim: the cockpit's chrome shares one id
+// namespace with the lecture's chunk ids (see CLAUDE.md on #cue-panel).
+const FULLSCREEN_HINT_HTML = `<button type="button" id="fullscreen-hint" class="hidden">fullscreen<span> &middot; click anywhere, or hit W on this screen</span></button>`;
 
 // Shift-clicking a link puts its address on both screens, large enough to
 // copy down. See the runtime section for why the room gets the URL to read
@@ -8450,6 +9618,23 @@ const SEARCH_PANEL_HTML = `<div id="search-panel" class="hidden" role="dialog" a
   <div id="search-foot"><kbd>↑</kbd><kbd>↓</kbd> pick · <kbd>Enter</kbd> go · <kbd>Esc</kbd> close</div>
 </div>`;
 
+// G: the slide number in the corner, typed back. A lecturer who knows the
+// deck knows the number, and reaching that slide otherwise means either the
+// board (which puts the whole lecture on the projection) or the search panel
+// (which needs a word). The prompt reads back "N of M" while the digits are
+// typed, so a mistyped number is visible before Enter rather than after it.
+//
+// Its id is a word no slide would claim, because the cockpit's chrome shares
+// one id namespace with the lecture's chunks - see the note on #cue-panel in
+// CLAUDE.md. Everything inside it is reached through this element, never
+// through getElementById.
+const GOTO_PROMPT_HTML = `<div id="goto-prompt" class="hidden" role="dialog" aria-label="Go to slide">
+  <span class="goto-label">go to</span>
+  <span class="goto-digits" aria-live="polite"></span>
+  <span class="goto-of"></span>
+  <span class="goto-foot"><kbd>Enter</kbd> go · <kbd>Esc</kbd> cancel</span>
+</div>`;
+
 // Keyboard + mouse reference, opened with ? (or the corner button) in both
 // live views. Grouped by task rather than by key, because the thing a
 // lecturer forgets mid-talk is "how do I make the notes bigger", not "what
@@ -8473,6 +9658,7 @@ function renderHelpOverlay(view, withEditor) {
       ['click a slide', 'go there and leave the board'],
       ['<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>', 'move the selection (the board follows)'],
       ['<kbd>O</kbd> · <kbd>Enter</kbd>', 'land on the selected slide'],
+      ['<kbd>G</kbd>', 'go to a slide by the number in its corner – type the digits, <kbd>Enter</kbd> lands, <kbd>Esc</kbd> cancels'],
       ['<kbd>/</kbd>', 'search – opens from anywhere, see below'],
       ['<kbd>T</kbd>', 'column list'],
     ]],
@@ -8501,6 +9687,10 @@ function renderHelpOverlay(view, withEditor) {
       ['<kbd>+</kbd> <kbd>-</kbd> <kbd>0</kbd>', 'text size, and zero resets it (kept separately for each collapse mode)'],
       ['<kbd>#</kbd>', 'auto-fit: off → shrink a slide that is too big → size every slide to the screen'],
       ['<kbd>L</kbd>', 'slide numbers: stacked → in a row → off'],
+      ['<kbd>M</kbd>', 'the <i>+ note</i> button in the slide\'s left gutter: shown ↔ hidden – pressed here it lands on the projection too, and <kbd>N</kbd> still opens an annotation either way'],
+      ['<kbd>W</kbd>', 'fullscreen on the projection – nothing of the browser round the slide' + (view === 'speaker'
+        ? '. The browser only grants this to a press in the window itself, so the projection puts up a line to click once; <kbd>Shift</kbd>-<kbd>W</kbd> fills this window instead, and <kbd>Esc</kbd> leaves'
+        : ', and <kbd>Esc</kbd> leaves it again')],
       ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working, frozen or not'],
       ['<kbd>D</kbd>', 'live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop; the very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk'],
       ['<kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd>', 'cycle that knob backwards'],
@@ -8683,7 +9873,9 @@ ${renderHelpOverlay('audience', !!editorPayload(frontmatter, columnsHtml, 'audie
 <div id="mode-badge"></div>
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
+${GOTO_PROMPT_HTML}
 ${BLANK_BADGE_HTML}
+${FULLSCREEN_HINT_HTML}
 ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
 ${DEMO_OVERLAY_HTML}
@@ -8724,6 +9916,15 @@ const AUDIENCE_CSS = `
   --body-scale: 1;
   --dim: 0.86;
   --camera-duration: 250ms;
+  /* How long anything that belongs to *the slide arriving* takes to come up
+     or go away: a backdrop's crossfade, and a neighbour under
+     neighbours: hidden. One number in three rules, named because
+     transition: cut and transition: fade have to be able to zero it -
+     under those two the mode owns the slide change itself, and an arrival
+     fade underneath it is a second answer to the same question. The camera's
+     own 250ms above is deliberately separate: a fade zeroes the one and not
+     the other. */
+  --arrive-fade: 260ms;
   --slide-pad-x: 14%;
   /* Corner radii, one ladder and in em, so a corner keeps its proportion to
      the type inside it rather than to the pixel grid. As absolute pixels the
@@ -9001,6 +10202,7 @@ body[data-mode=dark] #help-button {
   color: var(--ink-soft);
 }
 body[data-mode=dark] nav#toc,
+body[data-mode=dark] #goto-prompt,
 body[data-mode=dark] #search-panel {
   background: oklch(from var(--paper) calc(l + 0.04) c h / 0.97);
 }
@@ -9092,12 +10294,75 @@ body.text-selecting #figure-overlay > .figure-focus-target { cursor: text; }
 .chunk[data-width=standard] { --content-w: 36em; }
 .chunk[data-width=wide]     { --content-w: 52em; }
 .chunk[data-width=full]     { --content-w: 72em; }
+/* .full was not full. The frame pads 14% either side, so at 1600x900 the
+   column stops at 1152 px whatever the class says - .wide's 52em is 1217 px
+   at the base em and .full's 72em is 1685, and both were clipped to the same
+   1152. A keynote's build plan in a .full .bare chunk therefore drew no
+   wider than in .wide, with 20 px labels on an otherwise empty frame. A
+   .full chunk keeps 6% - the column reaches 1408 px in the same frame, and
+   everything measured off --slide-pad-x inside the chunk (an overlay's inset,
+   a dock's reserve) follows it in, which is what a frame that yields to its
+   content should do. FIG_COLUMN_PX in the figure-type warning carries the
+   measured result; re-measure it if this number changes. */
+.chunk[data-width=full]:not(.chunk-title):not(.chunk-section) { --slide-pad-x: 6%; }
+/* The cover, the closing slide and a divider hardcode data-width="full" and
+   compose against the 14% frame - a title flush against the edge is not
+   what "full" was meant to buy - so the wider column is the author-written
+   class's alone.
 
+   With one exception, and it is the case the class was widened for. A
+   {.stack} divider's body is content the author wrote standing where a .full
+   chunk's content stands, and the documentation says it gets "the chunk
+   content width a .full chunk gets" - which it did not: measured at
+   1600x900, a build plan under a stacked heading ran 224-1359 px where the
+   same block in a .full chunk runs 135-1466, so moving a chunk onto its
+   divider cost it 15% of its size. The heading comes in with it, which is
+   right: a heading over a drawing stands on the drawing's own edge. */
+.chunk-section[data-section-layout=stack] { --slide-pad-x: 6%; }
+
+/* One gap for the whole slide, and the unit it is written in is the trap
+   that made it three.
+
+   .chunk-content inherits the chunk's own font size, which is the responsive
+   body size and carries no zoom; .chunk-body sets 1em times --zoom times
+   --body-scale, and its paragraphs put 0.7em of *that* between them. So
+   gap: 0.6em here and margin-bottom: 0.7em there were never the same number,
+   and the difference grew with every press of the zoom key: measured on a
+   keynote's #busfaktor at 1600x900 and zoom 1.75, 14 px between the heading
+   and the first paragraph against 29 px between two paragraphs of one
+   segment - the prose hung closer to the heading than to itself. Two reveal
+   segments had no gap at all, because the last paragraph of a segment zeroes
+   its own bottom margin, so a beat boundary read as *tighter* than a
+   paragraph break inside one beat: the wrong way round of the only hierarchy
+   a slide of prose has.
+
+   --block-gap is that one number: 0.7 of the base type times the same two
+   factors the body size carries, which resolves to exactly the paragraph
+   margin. The gaps a tag sets for its own reasons stay, as a floor rather
+   than a value - a heading may stand further from its prose than two
+   paragraphs stand from each other, never nearer.
+
+   In rem and not in em, which is the second half of the same trap: a custom
+   property holding an em resolves it against whichever element *uses* it, so
+   one written on .chunk and read inside .chunk-body would pick the body's
+   already-zoomed size up and square the zoom. The root font size IS the
+   chunk's - html carries the clamp and nothing between them re-declares it -
+   so a rem is the same number with no element to get wrong.
+
+   This makes existing decks a little taller: one block gap where two
+   segments met, and the difference between 0.6em and 0.7em times the zoom
+   under every heading - tens of px on a text slide, and under auto-fit a
+   slide that was at its ceiling comes back a step. */
+.chunk {
+  --body-fs: calc(1rem * var(--zoom) * var(--body-scale));
+  --block-lead: 0.7;
+  --block-gap: calc(var(--block-lead) * var(--body-fs));
+}
 .chunk-content {
   grid-column: 2;
   display: flex;
   flex-direction: column;
-  gap: 0.6em;
+  gap: max(0.6em, var(--block-gap));
   position: relative;
 }
 
@@ -9197,13 +10462,36 @@ body[data-slide-nums=off] .chunk-num { display: none; }
   letter-spacing: -0.012em;
   color: var(--ink);
 }
+/* The body size is a variable because the block gap is 0.7 of it and the two
+   have to move together: four tags set a body size of their own, and with the
+   size written here and the gap written on .chunk the gap would have been
+   0.7 of a size three of them do not use. Reading one token is also what
+   lets a tag change its type scale in one line instead of two. */
 .chunk-body {
-  font-size: calc(1em * var(--zoom) * var(--body-scale));
+  font-size: var(--body-fs);
   line-height: 1.5;
   text-align: left;
 }
-.chunk-body p { margin: 0 0 0.7em 0; }
+.chunk-body p { margin: 0 0 var(--block-gap) 0; }
 .chunk-body p:last-child { margin-bottom: 0; }
+/* A beat boundary is at least a paragraph break, and it used to be none at
+   all: the last paragraph of a segment zeroes its own bottom margin, so two
+   segments met flush while two paragraphs inside one segment stood 0.7em
+   apart. One number for both - the same --block-gap the heading stands off
+   by - and the reading hierarchy comes out in the order it is written in.
+   On the hidden segments too, which cost nothing: past the opening beat a
+   segment keeps its box and only its visibility changes, so the gap is
+   standing from beat 0 and no press moves the slide. */
+.chunk-body > .reveal-segment + .reveal-segment { margin-top: var(--block-gap); }
+/* Except around an empty segment (parser: segmentsKept). It is a beat and
+   not a block: nothing is painted on it, so the words on either side stand
+   where they would have stood without it. The empty box takes no gap of its
+   own, and the segment after it takes the one gap the two neighbours owe
+   each other - unless the empty one is the chunk's opening segment, where
+   the heading stands alone on beat 0 and the body below it begins at the
+   top. */
+.chunk-body > .reveal-segment[data-empty] { margin-top: 0; }
+.chunk-body > .reveal-segment[data-empty][data-seg="0"] + .reveal-segment { margin-top: 0; }
 .chunk-body strong { font-weight: var(--bold-weight); color: var(--emph); }
 .chunk-body em { font-style: italic; }
 /* A link is styled for the whole live surface, not only inside .chunk-body.
@@ -9215,7 +10503,7 @@ body[data-slide-nums=off] .chunk-num { display: none; }
    specificity. Print already styles the bare element for the same reason. */
 a { color: var(--emph); text-decoration: underline; text-underline-offset: 2px; text-decoration-thickness: 1px; }
 a:hover { text-decoration-thickness: 2px; }
-.chunk-body ul, .chunk-body ol { margin: 0 0 0.7em 1.4em; }
+.chunk-body ul, .chunk-body ol { margin: 0 0 var(--block-gap) 1.4em; }
 /* Adjacent items were 0.15em apart at line-height 1.5, so the gap between
    two items was smaller than the leading inside a two-line item and a list
    read as one block of text with dots in it. The gap is now larger than the
@@ -9571,6 +10859,107 @@ figure.figure-img svg {
   display: block;
   background: var(--paper);
 }
+/* ── how large a drawing is in the room ───────────────────────────────
+   The document answered this first and the reasoning is written out over
+   main .psi-diagram in PRINT_CSS: a label's rendered size is DG_FONT times
+   (rendered width / viewBox width), so filling the measure sets the type
+   inside a figure by however many grid units the author happened to draw in.
+   The projection had exactly the same defect and it was worse here, because
+   auto-fit grows the slide's own words to fill the frame while an svg already
+   at 100% cannot grow with them. Measured on a real keynote at 1600x900: body
+   51.5 px, footnote 40 px, heading 80 px - and figure labels from 16 to 27 px,
+   on the same deck, decided by nothing the author wrote. Across the corpus the
+   spread was 0.53x to 2.97x of the running text.
+
+   So the width comes off the type here too: --dg-fit-w is the box the live
+   views show, measured in base labels - the slide canvas where the chunk has
+   one, the drawing own box where it does not (see the canvas section and
+   the .psi-diagram fallback chain just above) - and one base
+   label is one em of the text the figure sits in - .chunk-body's em on a
+   slide, the pane's or the card's inside one, each of which already carries
+   --zoom and --body-scale. A figure in a narrow card therefore wears the
+   card's type, which is the right answer and not a special case.
+
+   The multiplier is 1 and not print's 0.9. On paper a figure is apparatus
+   inside a column of running text and a slightly smaller label says so; in a
+   room there is no running text beside the figure to mark it against, and
+   anything under the body size is the failure this rule exists to remove -
+   the back row reads the slide's words or it does not, and a label is a word.
+   style: {figure-type: 0.9} is there for a deck that wants the document's
+   proportion; the key is bounded rather than free for the reason its two
+   neighbours are.
+
+   The second term is print's third one, and it is not optional: an inline
+   <svg> does NOT answer a binding max-height by shrinking its width the way
+   the replaced-element rules suggest. Measured - a 90x604 drawing in a .wide
+   column came out 191 px wide and 558 px tall, the whole picture centred in a
+   box three times its height with empty band above and below. (That is what
+   the height cap has always done; the editor's frame preview says so in a
+   note.) Converting the height budget into a width makes the box hug the
+   drawing, which is also what lets the figure follow the type at all: a
+   height-capped figure keeps a width its labels did not ask for.
+
+   A figure that wants more than the column has is capped at 100% and lands
+   under the target size - the one case CSS cannot fix. fitZoomToChunk sees
+   that as "does not fit" and takes the slide's type down to meet it, and the
+   build says so at compile time (figureTypeWarning).
+
+   Both terms are definite LENGTHS and the column is left to DIAGRAM_CSS's
+   max-width: 100% - print's own 100% inside the min() is correct there and
+   wrong here. Several containers on a slide are shrink-to-fit (a figure chunk
+   centres its column, a card, a pane), and a percentage
+   inside min() contributes nothing to a container's intrinsic width: the svg
+   asked its parent for zero, the parent sized itself to the words beside the
+   drawing, and the figure then got 100% of that. Measured: lectures/diagrams
+   #lifecycle at 505 px in a 1152 px column, and because shrinking the type
+   shrinks the words too, the figure stayed capped at every step and auto-fit
+   walked the slide to its 0.6 floor. A definite length contributes itself. */
+/* Which box this medium shows, resolved once for everything that asks.
+
+   A drawing has two: the one that hugs the finished picture, which is what a
+   printed column wants, and the LIVE one - the union of every beat, widened
+   and heightened to the slide's canvas where the chunk has one. The compiler
+   emits both sets of numbers and the live half only when it differs, so this
+   is a fallback chain and not a switch, and a figure with neither steps nor a
+   canvas resolves to exactly what it resolved to before.
+
+   Three readers besides the rules below: figureCapProbe, --check-fit and the
+   editor all read --dg-fit-w off the computed style, which is the substituted
+   value. Reading --dg-type-w there instead would measure the drawing against
+   a box it is not in. */
+.psi-diagram {
+  --dg-fit-w:     var(--dg-live-type-w, var(--dg-type-w, 100000));
+  --dg-fit-ar:    var(--dg-live-ar, var(--dg-ar, 1));
+  --dg-fit-ink-x: var(--dg-live-ink-x, var(--dg-ink-x, 0));
+}
+.chunk .psi-diagram {
+  --dg-box-w: min(calc(var(--dg-fit-w) * 1em * var(--figure-type, 1)),
+                  calc(var(--slide-h, 100vh) * 0.62 * var(--dg-fit-ar)));
+  width: var(--dg-box-w);
+  /* The box hugs the drawing now instead of spanning the measure, so it has
+     somewhere to sit. Centre by default, matching figure.figure-img above;
+     styleBodyAttrs writes data-blocks only when it is left, so the centre case
+     has to be the bare rule. Same three rules as PRINT_CSS, including the
+     ink-edge correction: see the comment there for what --dg-ink-x buys. */
+  margin-inline: auto;
+}
+body[data-blocks=left] .chunk .psi-diagram,
+.chunk[data-blocks=left] .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-fit-ink-x) * var(--dg-box-w)) auto;
+}
+.chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
+/* style.figure-type answered for one chunk. The key is deck-wide and the
+   complaint is not: a drawing 66 labels wide is capped at its column, and
+   fitZoomToChunk then walks that slide's whole type down to meet it - so the
+   room reads that chunk's heading at 25 px and the next one's at 44. Pulling
+   it back with the key takes every other figure in the deck with it, which is
+   why a keynote with one dense figure and one sparse one could fix neither.
+   Eleven steps, the key's own 0.6-1.6 in tenths, generated from the same
+   table the tail parser reads so a step cannot exist in one place and not the
+   other. The attribute carries per cent because a selector matches a string.
+   Live-only, like the key: a document sizes a figure with --dg-fig-size. */
+${FIGURE_TYPE_STEPS.map(n => '.chunk[data-figure-type="' + n + '"] { --figure-type: ' + (n / 100) + '; }').join('\n')}
+
 figure.figure-img figcaption {
   font-family: var(--sans-font);
   /* Every context this caption appears in is zoomed already - .chunk-body in
@@ -9747,7 +11136,8 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   background: var(--ink);
   margin-bottom: 0.4em;
 }
-.chunk[data-tag=principle] .chunk-body { font-size: calc(1.2em * var(--zoom) * var(--body-scale)); line-height: 1.4; }
+.chunk[data-tag=principle] { --body-fs: calc(1.2rem * var(--zoom) * var(--body-scale)); }
+.chunk[data-tag=principle] .chunk-body { line-height: 1.4; }
 .chunk[data-tag=principle] .chunk-heading { font-size: calc(1.8em * var(--zoom) * var(--heading-scale)); }
 
 .chunk[data-tag=definition] .chunk-content::before {
@@ -9772,9 +11162,99 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
    line, which is why it carried the default, and still the wrong place for it.
    Write .center on the chunk, or headings: center in the style block for a deck
    that wants the axis throughout. */
-.chunk[data-tag=question] .chunk-content { gap: 0.8em; align-items: flex-start; }
+.chunk[data-tag=question] .chunk-content { gap: max(0.8em, var(--block-gap)); align-items: flex-start; }
 .chunk[data-tag=question] .chunk-heading { font-size: calc(2.4em * var(--zoom) * var(--heading-scale)); font-weight: 500; }
-.chunk[data-tag=question] .chunk-body { font-size: calc(1.15em * var(--zoom) * var(--body-scale)); color: var(--ink-soft); }
+.chunk[data-tag=question] { --body-fs: calc(1.15rem * var(--zoom) * var(--body-scale)); }
+.chunk[data-tag=question] .chunk-body { color: var(--ink-soft); }
+
+/* A statement slide: a few lines of large type, arriving one per press.
+   The heading is the first line and every top-level paragraph is another
+   one, all at the same size, the same weight and the same ink - which is
+   what separates this from every other type, where the heading names the
+   slide and the body says something under it. Here there is nothing under
+   anything; the slide is an utterance.
+
+   Why a type and not a construction. It was faked two ways before this
+   existed: ::: cards 1 with .large and .clear, which puts the words in the
+   accent colour (a card's term is a bold run, and style.bold decides what a
+   bold looks like) and smaller than a heading, and a ::: draw of .large
+   text, which is a drawing and pays a drawing's price - no wrap,
+   no hyphenation dictionary, no search index, a fixed grid. Neither could
+   say "these are three lines of speech".
+
+   One size, named once, and it is the *heading* scale rather than the body
+   scale that carries it: the paragraphs are heading lines, so a deck that
+   turns its headings up turns these up with them. --statement-size is a
+   variable and not a number written twice because the heading and the
+   paragraphs have to be the same size to the pixel, or the run reads as a
+   title over a list. */
+.chunk[data-tag=statement] {
+  --statement-scale: 2.1;
+  /* In rem rather than em because --body-fs below carries it down to the
+     paragraphs, and --block-gap is 0.55 of --body-fs: an em inside a custom
+     property resolves against whichever element reads it, so a paragraph
+     already set at 2.1 rem would have squared the scale in its own margin. */
+  --statement-size: calc(var(--statement-scale) * 1rem * var(--zoom) * var(--heading-scale));
+  /* This tag solved the gap problem for itself before there was one number
+     for the whole slide; now it says the same thing in that number's terms,
+     so a statement's two lines stand apart by exactly what separates a
+     heading from its prose on any other slide - and a beat boundary between
+     two of them matches, which it did not before. */
+  --body-fs: var(--statement-size);
+  --block-lead: 0.55;
+  /* The space between two lines, written so that the one between the
+     heading and the first paragraph is the same as the one between two
+     paragraphs. It cannot be the same declaration twice: the paragraph's
+     gap is its own margin, in its own (already enlarged) em, and the
+     heading's is a flex gap on .chunk-content, whose em is the chunk's. So
+     the size is a bare number and both are derived from it - written the
+     obvious way, the heading sat about half as far from the first line as
+     the lines sat from each other, and a run of four lines read as a title
+     over three. */
+  --statement-gap: calc(var(--statement-scale) * 0.55em * var(--zoom) * var(--heading-scale));
+}
+.chunk[data-tag=statement] .chunk-heading { font-size: var(--statement-size); }
+.chunk[data-tag=statement] .chunk-body {
+  font-size: var(--body-fs);
+  font-weight: 600;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+  color: var(--ink);
+}
+/* The second register, and the only one this type has. A paragraph written
+   entirely in *italic* is the line that is not the utterance - the definition
+   a claim answers, the source under it - and it steps back on all three of
+   the axes the loud line holds: half the size, the body weight, --ink-soft.
+   Half rather than a smaller step because the two have to read as two ranks
+   at the back of a room and not as one line the renderer got wrong; at 0.7
+   they looked like a mistake.
+
+   The tracking goes with it. --statement-size is a display size and carries
+   -0.012em for it; at half that size the same number closes the words up.
+
+   Written against .chunk-body p so it beats the body rule above on
+   specificity without an id or an !important - the class is the third
+   selector in the chain, and the rule it has to win against is (0,2,2). */
+.chunk[data-tag=statement] .chunk-body p.quiet-line {
+  font-size: calc(var(--statement-size) * 0.5);
+  font-weight: 400;
+  color: var(--ink-soft);
+  letter-spacing: normal;
+  line-height: 1.3;
+}
+/* The gap between two lines is one decision, and a line can arrive as its own
+   reveal segment (a --- rule) or as a second paragraph inside one, and the room
+   must not be able to tell which. That rule now holds for every tag - the
+   paragraph margin, the segment margin and the content gap all read
+   --block-gap - so the declaration this tag used to carry is gone rather
+   than restated: --block-lead above is the whole of it. */
+.chunk[data-tag=statement] .chunk-content { gap: var(--statement-gap); }
+/* What a bold inside a statement line looks like is deliberately NOT
+   answered here. DERIVED_STRONG already reaches these paragraphs at (0,4,3)
+   and hands them style.bold, which is the deck's own answer to that
+   question; a rule written here would be a second, weaker way to say the
+   same thing - it lost to DERIVED_STRONG on specificity when it was tried,
+   which is to say it did nothing at all. */
 
 .chunk[data-tag=figure] .chunk-heading {
   font-size: calc(1.05em * var(--zoom) * var(--heading-scale));
@@ -9783,10 +11263,31 @@ body.aside-panned .chunk.active .marginalia { cursor: zoom-out; }
   font-variant-caps: all-small-caps;
   letter-spacing: 0.1em;
 }
-.chunk[data-tag=figure] .chunk-content { align-items: center; gap: 0.9em; }
-.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; font-size: calc(0.9em * var(--zoom)); color: var(--ink-soft); }
+.chunk[data-tag=figure] .chunk-content { align-items: center; gap: max(0.9em, var(--block-gap)); }
+.chunk[data-tag=figure] { --body-fs: calc(0.9rem * var(--zoom)); }
+.chunk[data-tag=figure] .chunk-body { order: 3; max-width: 40em; text-align: left; color: var(--ink-soft); }
+/* That 40em is a caption measure - the words under the picture - and on a
+   figure chunk the picture is inside the same box. It did not matter while a
+   drawing filled whatever box it was given; now that the drawing is sized
+   from the type, a cap written in the same em as the type is a cap on the
+   LABEL: available = 40 ems, wanted = --dg-type-w ems, and both sides move
+   together, so a figure of more than 40 label-widths could never reach body
+   size at any zoom and auto-fit chased it to the 0.6 floor. lectures/diagrams
+   has thirteen of those, measured. The column is the picture's measure; the
+   caption keeps its own below. Only when there is a drawing in the box, so a photograph's
+   caption chunk renders exactly as before. */
+.chunk[data-tag=figure] .chunk-body:has(.figure-diagram) { max-width: none; }
+.chunk[data-tag=figure] .chunk-body:has(.figure-diagram) > :not(.figure-diagram) > p,
+.chunk[data-tag=figure] .chunk-body:has(.figure-diagram) > p { max-width: 40em; }
 .chunk[data-tag=figure] .chunk-heading { order: 2; }
 .chunk[data-tag=figure] .chunk-body pre { order: 1; font-size: 0.82em; }
+/* A figure chunk orders its .chunk-content children by hand, and an aside
+   that names no order takes 0 - so a ::: footnote, the one child written last
+   and meant to read last, came out above the caption and above the artwork.
+   A source line standing over the picture it cites reads as the slide's own
+   first words. Print needs no counterpart: the document renderer emits the
+   expansions after the body and .chunk is not a flex container there. */
+.chunk[data-tag=figure] .margin-note { order: 4; }
 
 .chunk[data-tag=exercise] .chunk-heading { font-style: italic; }
 .chunk[data-tag=exercise] .chunk-content::before {
@@ -9963,12 +11464,29 @@ body[data-headings=off] .chunk-heading { display: none; }
    ragged on both edges and hard to read. The case is one or two lines, and
    only the author knows which chunk is that case.
 
-   It is the prose and not the heading. Where a heading sits is already one
-   question with one answer - the tag's treatment, overridden for a whole
-   deck by style.headings - and a chunk class that also moved it would be a
-   second, stronger way to say the same thing that style.headings: left could
-   then no longer override. */
+   It is the whole slide and not the prose alone. It used to be the prose
+   alone, on the argument that where a heading sits is style.headings'
+   question and a chunk class answering it too would be a second, stronger
+   way to say the same thing. What that produced on a real deck was three
+   alignments on one slide: a heading on the left under style.headings: left,
+   a centred paragraph under it, and a footnote back on the left again. The
+   concern was about the reverse override - a deck-wide style.headings no
+   longer able to move a centred heading - and nobody wants that override:
+   .center is the more specific decision by construction, one chunk against a
+   whole deck, and a class written on one slide should win there. So the
+   heading and the chunk's footnotes follow the prose, and the specificity
+   (0,4,x) is above body[data-headings=left] .chunk-heading (0,2,0) on
+   purpose rather than by accident. */
+.chunk[data-center] > .chunk-content > .chunk-heading,
+.chunk[data-center] > .chunk-content > .margin-note,
 .chunk[data-center] > .chunk-content > .chunk-body > .reveal-segment > p { text-align: center; }
+/* …with one type excepted, and the paragraph above says why it has to be.
+   On a statement chunk the heading is not a title over the prose, it is
+   the first of the lines, so leaving it on the left while the lines that
+   follow move to the middle gives one utterance two axes - the exact defect
+   the question tag was fixed for. The author wrote .center on this chunk,
+   so it outranks style.headings for it and nothing else. */
+.chunk[data-tag=statement][data-center] > .chunk-content > .chunk-heading { text-align: center; }
 /* The hairline and the thick rule above a definition / principle chunk. */
 body[data-rules=off] .chunk[data-tag=principle] .chunk-content::before,
 body[data-rules=off] .chunk[data-tag=definition] .chunk-content::before { display: none; }
@@ -9977,6 +11495,16 @@ body[data-rules=off] .chunk[data-tag=definition] .chunk-content::before { displa
    tag choice was; this one stayed because a task the room is meant to do
    benefits from being named. Some authors do not want it either. */
 body[data-labels=off] .chunk[data-tag=exercise] .chunk-content::before { content: none; }
+/* The other generated word on the projection, and the one the key used to
+   miss: the small-caps NOTE over a ::: footnote. It is invented the same way
+   the tag eyebrow is - the author wrote no label, the build supplied one -
+   so the switch that turns the tag word off has to reach it too, or
+   labels: off leaves the loudest of the two standing on every footnote.
+
+   Live views only. PRINT_CSS keeps its label, because there the aside is one
+   more block in a column of blocks with nothing to mark it as a footnote;
+   on the slide the hairline and the position already say that. */
+body[data-labels=off] .margin-note::before { content: none; }
 
 /* ── cover variants ──────────────────────────────────────────────────
    Four compositions of the same five fields. classic is what the tool
@@ -10672,7 +12200,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    clip-path silently dropped the fade that keeps a backdrop off its
    neighbours - on exactly the backdrops that most need the crossfade. */
 .chunk-backdrop[data-bd-frames] {
-  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1), opacity 260ms ease;
+  transition: clip-path 0.62s cubic-bezier(0.4, 0, 0.2, 1), opacity var(--arrive-fade) ease;
 }
 /* The same shorthand clobber, one media query down: transition: none here
    took the opacity crossfade away too, so under reduced motion a revealed
@@ -10680,7 +12208,7 @@ body[data-mode=dark] .chunk[data-cover=panel] {
    reduced motion is asking to suppress is the picture opening across the
    frame, not a 260ms fade the tool keeps everywhere else. */
 @media (prefers-reduced-motion: reduce) {
-  .chunk-backdrop[data-bd-frames] { transition: opacity 260ms ease; }
+  .chunk-backdrop[data-bd-frames] { transition: opacity var(--arrive-fade) ease; }
 }
 /* Scaled up because a blur samples transparent pixels past the edge and
    would otherwise fade the frame out into paper on all four sides. */
@@ -11210,6 +12738,20 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    reached none of it - that case cost this block two extra selectors and
    now costs it none. */
 .cards li .card-lead { display: block; margin-bottom: 0.45em; }
+/* A card's term does not hyphenate either, for the reason a row's does not:
+   it is a name and not a measure, and a name broken across two lines reads
+   as a fault. Both openings are covered and have to be - the heading form
+   carries .card-lead, the run-in form is a plain leading bold, and a card
+   whose whole content is one bold ("- **Umgehen.**", the shape a keynote
+   writes) is the second of those. The sentence that follows a run-in lead
+   is prose again and keeps the li's hyphens: auto, as does every other line
+   in the card; break-word stays under all of it, where the card rule put
+   it, because a card is the narrowest measure on the slide. */
+.cards li .card-lead,
+.cards li > :is(strong, b):first-child {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 /* An author who wrote the hard break meant one separation, not two: the
    block display already broke the line, so the <br> after it adds an
    empty one. */
@@ -11255,14 +12797,43 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
      a word an author could write that moved nothing, which is the silent
      no-op this format refuses everywhere else. */
   align-items: var(--row-anchor, center);
-  /* A definite share rather than an intrinsic track. Both intrinsic
-     keywords were measured and both failed: auto resolves toward
-     min-content under pressure, and the term inherits overflow-wrap from
-     the card rule, so its min-content is one character - the column came
-     out one letter wide. max-content then resolved to 0px with an item
-     78px wide in it. A fraction is predictable, needs no puzzle, and a
-     term column of about a third is what the shape wants anyway. */
-  grid-template-columns: minmax(6em, 0.38fr) minmax(0, 1fr);
+  /* The term column is as wide as the longest term and no wider, with the
+     share it used to have as the ceiling.
+
+     It was a fixed 0.38fr share, and the note here recorded why: both
+     intrinsic keywords had been tried and both failed - auto resolved
+     toward min-content under pressure and the term, inheriting
+     overflow-wrap: break-word from the card rule, had a min-content of one
+     character, so the column came out one letter wide; max-content then
+     measured 0px with an item 78px wide in it. Those findings still stand
+     for the two bare keywords, which is why neither is what this is.
+
+     fit-content() is a third thing and is not subject to either failure. It
+     is min(max-content, max(min-content, 27%)): the max-content side sizes
+     the column to the longest term, so a row of years reads "2024 Testat
+     eingeführt" rather than putting a hand's width of paper between the
+     two; the 27% side is the ceiling, so a term of six words cannot eat the
+     body's half; and the min-content floor is the one the old note found to
+     be a single character, which here can only ever raise the track and
+     never collapse it.
+
+     27% is the width 0.38fr already had, measured rather than derived, and
+     the arithmetic is the trap: two flex tracks whose factors sum to more
+     than 1 divide the space in proportion, so 0.38fr beside 1fr was
+     0.38/1.38 of the measure - 27.5%, not 38%. The first attempt wrote 38,
+     and python-intro's #prerequisites came out WIDER than before (307.6px
+     of term column against 414.7px, at 1600x900), which is the direction
+     this was meant to fix. Pinned at the old width, a block whose longest
+     term reaches the ceiling renders as it always did and only the ones
+     with room to spare move: on that same deck #collections went from
+     307.6px to 156.5px and handed its four bodies 151px each.
+
+     What a fixed share bought and this gives up is a term column that is
+     the same width on every slide of a deck. It was never the same width
+     anyway - 0.38 of a .wide chunk and 0.38 of a .standard one are
+     different numbers - and a column that fits its own words is what a
+     reader is actually looking at. */
+  grid-template-columns: fit-content(27%) minmax(0, 1fr);
   column-gap: calc(1.1em * var(--card-fs, 1));
   row-gap: calc(0.7em * var(--card-fs, 1));
 }
@@ -11300,15 +12871,27 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
   text-align: var(--card-align, left);
   font-size: calc(1em * var(--card-fs, 1));
   line-height: 1.25;
-  /* A single long term cannot wrap between words, so it hyphenates - and
-     if it is longer than even that allows, it breaks rather than running
-     across the body beside it. */
-  /* Hyphenation first and breaking only as the floor: Technocracy came
-     out as Technocrac / y when break-word got there first, which is
-     worse than the ragged edge it prevented. */
-  hyphens: auto;
+  /* A term never hyphenates, and this rule used to be the opposite.
+     hyphens: auto was here as the rescue for a long compound in a narrow
+     column, and with the column sized to the term that rescue has almost
+     nothing left to rescue - while what it cost was constant and visible:
+     a term is a name, and "Umge-hen." or "Zustän-digkeit." on a slide reads
+     as a typesetting fault rather than as a word that ran long, because a
+     term stands alone with nothing after it to explain the break. The line
+     of prose beside it still hyphenates; that is a measure, this is a
+     label. style.hyphenate: all was what made it visible on a whole deck,
+     and the key says in STYLE_SPEC that it does not reach here - it does
+     not have to, because the answer is the same in all three settings.
+
+     break-word stays as the floor under it, for the term that is one word
+     longer than the 27% ceiling: without it that word runs across the body
+     beside it. It is a worse break than a hyphenated one - Technocrac / y
+     is the measured example - and that is the price of never guessing at a
+     term's syllables. It fires only at the ceiling, where the column has
+     already stopped growing. */
+  hyphens: manual;
+  -webkit-hyphens: manual;
   overflow-wrap: break-word;
-  hyphenate-limit-chars: 7 3 3;
 }
 .cards.rows.ck-square li > :is(strong, b):first-child { border-radius: 0; }
 /* The body is the anonymous run after the term. It is prose beside a card
@@ -11474,7 +13057,20 @@ body:not([data-headings]) .chunk-content:has(.chunk-body > .reveal-segment > .ca
    wide enough to do that on its own, and the padding goes away with the
    ground it was insetting from. */
 .cards.cg-clear   { --card-py: 0; --card-px: 0; }
-.cards.cg-clear   { gap: calc(2.1em * var(--card-fs, 1)); }
+.cards:not(.rows).cg-clear { gap: calc(2.1em * var(--card-fs, 1)); }
+/* The gutter and nothing else. gap is a shorthand and this rule comes after
+   the one that gives a rows block its row-gap, so written as gap it set both,
+   and a stack of rows with no ground got 2.1em of air between lines about
+   1.4em tall. Measured on a keynote's #drei-jahre: three one-line rows at a
+   155 px pitch in a 900 px frame - a whole empty line between each pair - and
+   the review that found it read the air as a beat marker reserving a row,
+   which it is not. A reveal marker inside a rows block is display: none, and
+   a rows block builds the same three grid tracks with the markers and without
+   them; a fixture deck of the two says so. The wide gutter is still what
+   separates two clear cards side by side, and here it is what separates a
+   term from its body, so it stays on the column axis. Same shorthand trap as
+   the two transition rules on .chunk-backdrop, one stylesheet down. */
+.cards.rows.cg-clear { column-gap: calc(2.1em * var(--card-fs, 1)); }
 .cards.ca-left   { --card-align: left; }
 .cards.ca-center { --card-align: center; }
 .cards.cv-top    { --card-anchor: flex-start; --row-anchor: start; }
@@ -11647,7 +13243,7 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    :has(> figure:only-child) is that test, written where the compiler already
    put the answer rather than being decided again in the parser. */
 .section-lead { display: contents; }
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) {
   display: grid;
   grid-template-columns: minmax(0, 0.85fr) minmax(0, 1.15fr);
   align-items: center;
@@ -11657,21 +13253,21 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
    cell, which is the whole of the fix: as separate grid rows the mark and the
    heading were pushed apart by the height the spanning figure forced into
    every row they sat in. */
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-lead {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) > .section-lead {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   grid-column: 1;
   grid-row: 1;
 }
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) > .section-body {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) > .section-body {
   grid-column: 2;
   grid-row: 1;
   margin-top: 0;
   max-width: none;
   align-self: center;
 }
-.chunk-section .chunk-content:has(> .section-body > figure:only-child) .section-body svg {
+.chunk-section:not([data-section-layout=stack]) .chunk-content:has(> .section-body > figure:only-child) .section-body svg {
   max-height: calc(var(--slide-h) * 0.68);
 }
 .chunk-section .section-body svg {
@@ -11679,6 +13275,102 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   max-width: 100%;
   max-height: calc(var(--slide-h) * 0.52);
 }
+/* ── {.stack} on the # heading: the content under the heading, full measure ──
+   The beside layout above answers the divider that opens on *a* drawing, where
+   the heading and the picture balance each other across the frame. It cannot
+   answer the divider whose drawing IS the part - a build plan with six cells
+   and labels in them - because half a frame is not enough to read one from the
+   back of a room: the figure came out at about 55% of the slide and the labels
+   with it.
+
+   So .stack turns the composition the other way up: the heading sits above
+   and the content takes the whole of the .full measure the divider article
+   already carries. Nothing else about the divider changes - all six section:
+   variants draw their own treatment of the heading exactly as before, which
+   is why this is a class on the one heading rather than a seventh variant
+   beside them.
+
+   The heading stays a heading through it, and that is a correction. It was a
+   caption for one release - set at the scale the mark and the credits are set
+   at, in --ink-soft - and the reasoning was that the drawing should be read
+   first. What it produced was a slide whose part title was the smallest type
+   on it, and the first keynote to use the layout wrote {.stack .bare} on all
+   four dividers and drew the part title into each figure by hand. A divider
+   names a part; the figure says what the part is about. .bare remains for the
+   author who does draw the title into the drawing. */
+.chunk-section[data-section-layout=stack] .chunk-content { gap: 0; }
+.chunk-section[data-section-layout=stack] .section-heading {
+  /* A part title, one step quieter than a divider that has nothing under it.
+     It was a caption before - 1.35em, weight 600, --ink-soft - on the
+     reasoning that the drawing should be what the room reads first. Measured
+     on a keynote, that made the part's name the smallest type on the slide,
+     and the deck's answer was to write {.stack .bare} on all four dividers
+     and draw the title into the figure with a text element, in the figure
+     sans, at a size the author had to pick four times. A divider's heading is
+     the name of the part whatever stands under it; the figure is what the
+     part is about.
+
+     2.1em is the step section: number takes for the same reason - the other
+     thing on the slide carries the weight - and everything else (family,
+     weight, tracking, colour, the display face when the deck names one) is
+     the plain divider's, inherited rather than restated. */
+  font-size: calc(2.1em * var(--zoom));
+}
+.chunk-section[data-section-layout=stack] .section-mark { margin-bottom: 0.2em; }
+.chunk-section[data-section-layout=stack] .section-mark.section-num {
+  font-size: calc(1.5em * var(--zoom));
+}
+.chunk-section[data-section-layout=stack] .section-body {
+  /* The 30em cap is the measure a quotation wants; a figure wants the frame.
+     align-self: stretch because .chunk-content is a flex column whose items
+     otherwise shrink-wrap, which leaves a centred figure in a full-width slot
+     looking like a figure that did not fit. */
+  max-width: none;
+  align-self: stretch;
+  margin-top: 0.55em;
+}
+.chunk-section[data-section-layout=stack] .section-body figure {
+  /* Ranged left, not centred: the heading above is the figure's caption now,
+     and a caption hanging off the left edge of a centred drawing reads as two
+     blocks that happen to be on one slide. A figure that fills the measure
+     looks the same either way; a narrower one lines up with its words. */
+  text-align: left;
+}
+/* …and the drawing itself, which text-align cannot move: an svg is a block
+   with a width and auto inline margins, so the rule above reached the
+   figcaption alone and the picture stayed centred whatever the sentence said.
+   Written as the blocks: left rule is written, ink edge and all - a caption
+   twenty pixels off the drawing it captions is the same near-miss, and here
+   it is the composition rather than a key that asks for the edge, so it does
+   not wait for one to be set. */
+.chunk-section[data-section-layout=stack] .section-body .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-fit-ink-x) * var(--dg-box-w)) auto;
+}
+.chunk-section[data-section-layout=stack] .section-body svg {
+  /* The heading is one line above it now, so the picture may take almost the
+     whole frame - the beside layout's own ceiling, which was measured against
+     a heading standing beside it rather than over it. */
+  max-height: calc(var(--slide-h) * 0.72);
+}
+/* {.bare} on the # heading: the heading comes off the slide and stays
+   everywhere else - the contents page, a section: outline agenda, the
+   speaker's board, the search index - exactly as on a chunk, and by the same
+   mechanism, display: none over an element that is still in the DOM. It is
+   the whole .section-lead and not the heading alone: the mark is the
+   heading's rank rather than a second thing on the slide, and a number or a
+   small-caps word standing over a drawing with no part title under it
+   announces a part whose name is missing. Audience-only, like a chunk's
+   .bare - PRINT_CSS carries neither, so the document and its contents page
+   are unchanged.
+
+   Prefixed #stage, and that is load-bearing: the beside layout above gives
+   .section-lead a display of its own through a :not() and a :has(), and a
+   :has() carries the specificity of its argument. Made of classes alone this
+   rule loses to it, and a {.bare} divider whose body is nothing but a figure
+   would keep its heading. #stage is the element every chunk in both live
+   views is inside, which is the honest way to buy the id the cascade asks
+   for - the same trick the per-chunk wrap and blocks rules use. */
+#stage .chunk-section[data-section-bare] > .chunk-content > .section-lead { display: none; }
 /* A divider with a picture behind it needs the full slide, like every other
    chunk that carries one - the shared rule keys on data-has-backdrop and is
    already there; this is the centring the divider itself needs so the
@@ -11845,10 +13537,28 @@ body[data-collapse=topic-bold] .cards:not(.rows) { grid-template-columns: repeat
   letter-spacing: -0.014em;
 }
 
-/* margin notes: inline below body, dimmed, small */
+/* margin notes: inline below body, dimmed, small.
+
+   Bounded rather than a plain multiple of the zoom, because on a figure
+   slide the zoom is not the type size - it is whatever auto-fit had to solve
+   for to get the drawing into the frame, and a drawing's own labels are
+   pinned to its grid rather than to that number. So the same press that left
+   a figure's box labels at 17 px left the source line under it at 35 px, and
+   the quietest thing on the slide was the loudest. Measured on a keynote:
+   #drei-jahre solved to zoom 1.9 and set its footnote at 34.7 px against
+   figure labels of 20; #handbuch, #kolloquium and #video were the same
+   complaint one step smaller.
+
+   The ceiling is what 0.78em resolves to at the deck's own opening zoom
+   (1.35), so a slide auto-fit did not have to touch is unmoved and only the
+   ones it pushed past the default come back. The floor keeps a footnote
+   readable on a slide auto-fit had to shrink hard. In rem for the reason
+   --block-gap is: the value has to mean the same thing wherever it is read.
+   Between the two it still follows the zoom, so the key that makes the type
+   bigger still makes this bigger. */
 .margin-note {
   font-family: var(--sans-font);
-  font-size: calc(0.78em * var(--zoom));
+  font-size: clamp(0.7rem, calc(0.78rem * var(--zoom)), 1.05rem);
   line-height: 1.45;
   color: var(--ink-soft);
   padding: 0.6em 0 0.2em;
@@ -12033,6 +13743,11 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
 .chunk.active:not(.has-annot):not(.annot-visible) .annot-add { opacity: 0.45; }
 .annot-add:hover { opacity: 0.9; }
 @media (max-width: 780px) { .annot-add { display: none; } }
+/* note-button: off, and the M key, which writes the same attribute at
+   runtime. display: none rather than opacity: 0, because the button is a
+   click target as well as a hint and a hidden hint that still swallows a
+   click in the gutter is worse than the hint was. */
+body[data-note-button=off] .annot-add { display: none; }
 
 /* expansion chevrons – bottom-right of the slide */
 .exps {
@@ -12062,6 +13777,12 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
   transition: color 150ms, border-color 150ms, background 150ms;
   white-space: nowrap;
 }
+/* A ceiling on the author's own words, because the strip is anchored to the
+   right edge of the slide and a label nobody thought about is the one thing
+   that could push a second chip off it. 14em of all-small-caps is about six
+   words; past that the chip ellipsises and the title attribute holds the
+   rest. */
+.exp-chev .exp-name { max-width: 14em; overflow: hidden; text-overflow: ellipsis; }
 .exp-chev:hover { color: var(--ink); border-color: var(--ink); }
 .exp-chev .caret { opacity: 0.55; }
 .exp-chev.on { color: var(--paper); background: var(--ink); border-color: var(--ink); }
@@ -12155,7 +13876,67 @@ body[data-view=audience] .chunk.has-annot .annot-box { opacity: 1; }
    with it, a little faster than the chunk's own fade so it has arrived by
    the time the camera lands. */
 .chunk:not(.active) .chunk-backdrop { opacity: 0; }
-.chunk-backdrop { transition: opacity 260ms ease; }
+.chunk-backdrop { transition: opacity var(--arrive-fade) ease; }
+/* neighbours: hidden - the frame shows the active slide and nothing else.
+   The dimmed neighbour above is deliberate for a lecture: the camera pans
+   through a column and the slide before and after standing there faintly is
+   what makes the view one board rather than a stack of cards. A keynote
+   wants the opposite, and at the default --dim a neighbour sits at about
+   17%, which for a heading set in display type is perfectly legible from
+   the room - the frame then carries two slides and says so.
+
+   The fade is the backdrop's 260ms and not the chunk's own 500ms, for the
+   backdrop's reason: the camera takes --camera-duration (250ms) to land, and
+   a neighbour still at a tenth of its opacity when it arrives reads as a
+   smear beside the slide rather than as a slide leaving. Going the other way
+   is not this rule's business at all - a chunk that becomes .active stops
+   matching it, and what it falls back to is .chunk's own opacity transition
+   over --camera-duration, so the arriving slide comes up exactly as the
+   camera lands. (That third fade is the one transition: cut has to zero
+   separately; see the block below.) */
+body[data-neighbours=hidden] .chunk:not(.active) {
+  opacity: 0;
+  transition: opacity var(--arrive-fade) ease;
+}
+
+/* transition: cut / fade - a slide change with no visible pan.
+
+   The stage is one continuous column and the camera glides along it, which
+   is the whole of pan. Under the other two the camera is landed instantly
+   by focusCamera(true) from the one place a chunk changes, and the *mode*
+   owns whatever the change looks like: nothing under cut, and under
+   fade a dip of the whole stage to the paper and back, with the camera's
+   jump taken at the bottom of it (fadeSwap in AUDIENCE_JS).
+
+   So the arrival fades have to go. They were written for a camera in
+   motion - a neighbour still at a tenth of its opacity when the pan lands
+   reads as a smear, a backdrop arriving under a moving frame has to catch
+   up - and under a cut they are the one thing left moving on a slide that
+   is otherwise simply there: the words cut and the photograph behind them
+   fades in over a quarter of a second after them. Under fade they are
+   worse than inconsistent, because the dip has already faded everything
+   and this would fade it a second time, on the way back up.
+
+   Only the arrival half. The camera's own 250ms is untouched, and so is the
+   0.62s a ::: backdrop's reveal takes to open across the frame: that is
+   a move *on* a slide, like a reveal segment or a figure step, and a
+   keynote asking for a cut between slides is not asking for its pictures to
+   snap open. */
+body[data-transition=cut],
+body[data-transition=fade] { --arrive-fade: 0s; }
+/* The third arrival fade, and the one that is easy to miss because it is not
+   written next to the other two: .chunk itself transitions opacity over
+   --camera-duration, which is how the arriving slide comes up *as* the pan
+   lands. Zeroing --arrive-fade left it in place, and the frames said so - a
+   cut whose words faded in over a quarter of a second, and a fade whose two
+   halves were 130ms out and 230ms back because the stage rise and the
+   chunk rise multiplied. It cannot share --arrive-fade: that number is the
+   backdrop's 260ms and this one is the camera's 250ms, and taking either to
+   the other would move what a pan renders today. So it is its own line, and
+   only the active chunk is left to it - a neighbour is answered at higher
+   specificity by the rule above. */
+body[data-transition=cut] .chunk,
+body[data-transition=fade] .chunk { transition: none; }
 
 /* Prose in the live views had no line-breaking treatment at all, and the
    omission was invisible because the mode the room usually sees is the
@@ -12201,6 +13982,22 @@ body:not([data-wrap=none]) :is(
    only protects the last line, which is what a box of prose wants. */
 body:not([data-wrap=none]) .cards li,
 body:not([data-wrap=none]) .cards > :not(ul):not(ol) { text-wrap: pretty; }
+
+/* A footnote is a phrase under the slide rather than a paragraph in it, and
+   the p rule above is half right for it. pretty fills the measure and
+   protects the last line, which is what the ranged-left case wants; it does
+   not even two lines out, and on a centred chunk a full line with two words
+   under it reads as a mistake rather than as a ragged edge. Measured on a
+   keynote: "…n = 4 910, Teilnahme freiwillig" broke with those two words
+   alone on line two, centred under a full line. So the centred case
+   balances and every other case keeps pretty, which is the same split the
+   headings below make for the same reason.
+
+   Same guard as every rule in this section, and the chunk-scoped overrides
+   further down still win on specificity: a deck that said wrap: none has
+   refused a re-wrap and this is not the rule that takes it back. */
+body:not([data-wrap=none]) .margin-note p { text-wrap: pretty; }
+body:not([data-wrap=none]) .chunk[data-center] .margin-note p { text-wrap: balance; }
 
 /* Headings are phrases in every mode, so they balance whatever the collapse
    setting is - and unlike the slide lines they are the same in the live views
@@ -12319,14 +14116,58 @@ body[data-blocks=left] #stage .math-display .katex-display > .katex,
    TOC entry, a search hit and the help sheet are lists a reader scans, and
    a broken word in one of those is only harder to scan. And the same
    manual reset PRINT_CSS carries, for the same reason - hyphens inherits,
-   and a hyphenated identifier or URL is wrong in any view. */
+   and a hyphenated identifier or URL is wrong in any view.
+
+   A footnote is in that reset too, and it is the one entry that is prose.
+   A ::: footnote is one or two lines of small type under the slide - a
+   source, a date, an aside - so it has no measure for a hyphen to rescue
+   and every break it takes is a word cut in half for nothing. Measured on a
+   keynote at hyphenate: all - "Pro-blemlösen" and "Teil-nahme freiwillig"
+   in two consecutive footnotes, and a "Handreichung / Z/PQM" split across
+   the slash. Print keeps its hyphens - see PRINT_CSS - because there the
+   note sits in a document at the document's measure and reads as the rest
+   of the page does. */
 body[data-hyphenate=all] #stage :is(p, li, blockquote, figcaption) {
   hyphens: auto;
   -webkit-hyphens: auto;
-  hyphenate-limit-chars: 6 3 3;
+  /* 8 4 4 and not print's 6 3 3. A projection is read at ten metres from a
+     line that is already short, and a two-letter tail on the next line is a
+     fleck the room has to reassemble; on paper the same break is a
+     millimetre of movement at arm's length. So the dictionary is allowed in
+     only where the word is long enough for the break to buy something. */
+  hyphenate-limit-chars: 8 4 4;
 }
 body[data-hyphenate=all] #stage :is(h1, h2, h3, h4, .chunk-heading, .hd-sub,
-  .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]) {
+  .section-heading, code, pre, pre *, .chunk-num, a[href^="http"]),
+body[data-hyphenate=all] #stage .chunk[data-tag=statement] .chunk-body p,
+body[data-hyphenate=all] #stage .margin-note,
+body[data-hyphenate=all] #stage .margin-note * {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
+/* Three more exclusions, and the deck they come from is the argument for
+   all of them: a keynote with 26 left-set slides, which is exactly what the
+   key is for, turned it back off to hyphenate: print because of what it did
+   to the other six.
+
+   Centred prose is shaped by its line ends. Ragged-centre text is read as a
+   silhouette, and a hyphen is a line end that says nothing - the block comes
+   out as a diamond with a spike on one side. That holds wherever the text is
+   centred: a {.center} chunk and a divider, whose heading and lede sit on the
+   slide's own axis whatever variant it wears.
+
+   And an address the build has marked, which is the half no selector could
+   have reached - see markAddresses.
+
+   Specificity: the auto rule above is (1,1,2) and each of these carries at
+   least one more class, so they win without an id of their own. The
+   descendant star is free and reaches the footnote and the card inside a
+   centred chunk, which are centred with it. */
+body[data-hyphenate=all] #stage .chunk[data-center],
+body[data-hyphenate=all] #stage .chunk[data-center] *,
+body[data-hyphenate=all] #stage .chunk-section,
+body[data-hyphenate=all] #stage .chunk-section *,
+body[data-hyphenate=all] #stage .nohy {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
@@ -12435,6 +14276,39 @@ body[data-view=speaker] .cmd-badge { bottom: 3.4rem; }
 /* Both up at once: the demo is still running behind a blanked projection. */
 body.blanked #demo-badge { bottom: 3.1rem; }
 body[data-view=speaker].blanked #demo-badge { bottom: 5.3rem; }
+
+/* The fullscreen hint (W, from the other window). Not a .cmd-badge: a badge
+   reports, and this one is a control the lecturer has to be able to hit. It
+   takes the bottom-right corner, which is the one corner of the frame no
+   other chrome claims - the help circle is bottom-left, the nav mark is
+   bottom-centre, the badges are above it. Quiet, because it stands on a
+   slide the room is reading: small caps at the size of the badges, at half
+   opacity until a pointer is on it. */
+#fullscreen-hint {
+  position: fixed;
+  bottom: 12px; right: 12px;
+  z-index: 44;
+  border: 1px solid var(--rule);
+  background: oklch(0.98 0 0 / 0.82);
+  color: var(--ink-soft);
+  font-family: var(--sans-font);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+  font-size: 0.7rem;
+  padding: 0.3rem 0.7rem;
+  cursor: pointer;
+  opacity: 0.62;
+  transition: opacity 140ms ease;
+}
+#fullscreen-hint:hover { opacity: 1; }
+#fullscreen-hint span { opacity: 0.75; }
+#fullscreen-hint.hidden { display: none; }
+body[data-mode=dark] #fullscreen-hint {
+  background: oklch(from var(--paper) calc(l + 0.08) c h / 0.88);
+}
+/* Nothing of the chrome survives a blanked projection or the board. */
+body.overview-mode #fullscreen-hint,
+body:not([data-view=speaker]).blanked #fullscreen-hint { display: none; }
 
 /* overlays */
 
@@ -13026,6 +14900,60 @@ body.overview-mode #overview-badge { display: flex; align-items: center; gap: 0.
 }
 #search-foot kbd { margin-inline-end: 0.15em; }
 
+/* The go-to-slide prompt (G) --------------------------------------- */
+/* One line, low on the frame rather than in the middle of it: the number
+   being typed is a small thing and the slide it will leave is still the
+   thing to look at. It sits above the search panel in the stack for the
+   same reason the badges do - nothing else may cover a prompt that is
+   waiting for Enter. */
+#goto-prompt {
+  position: fixed;
+  left: 50%;
+  bottom: 12vh;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: baseline;
+  gap: 0.6em;
+  padding: 0.7rem 1.2rem;
+  background: var(--paper);
+  border: 1px solid var(--rule);
+  box-shadow: 0 8px 40px oklch(0 0 0 / 0.18);
+  z-index: 41;
+  font-family: var(--sans-font);
+  color: var(--ink);
+}
+#goto-prompt.hidden { display: none; }
+#goto-prompt .goto-label,
+#goto-prompt .goto-foot {
+  font-size: 0.72rem;
+  color: var(--ink-soft);
+  font-variant-caps: all-small-caps;
+  letter-spacing: 0.1em;
+}
+#goto-prompt .goto-digits {
+  font-size: 1.5rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  min-width: 2ch;
+  color: var(--emph);
+}
+#goto-prompt .goto-of {
+  font-size: 0.9rem;
+  color: var(--ink-soft);
+  font-variant-numeric: tabular-nums;
+}
+/* A number the deck does not have is refused in place: the prompt stays
+   open with the digits still in it, so the fix is a Backspace rather than
+   a re-open. The shake is the whole of the refusal, which is why it has to
+   be able to run twice in a row - the class is taken off on animationend. */
+#goto-prompt.goto-refused { animation: goto-shake 0.32s; }
+@keyframes goto-shake {
+  0%, 100% { transform: translateX(-50%); }
+  20% { transform: translateX(calc(-50% - 7px)); }
+  45% { transform: translateX(calc(-50% + 7px)); }
+  70% { transform: translateX(calc(-50% - 4px)); }
+}
+
 /* TOC overlay (PRD §5) --------------------------------------------- */
 /* Scoped to the <nav> tag so author chunks that legitimately use
    id="toc" (see lectures/tutorial – a chunk explaining the TOC
@@ -13272,7 +15200,19 @@ const state = {
   font: VIEW_DEFAULTS.font || 'serif',           // serif | sans | mono (readable)
   theme: VIEW_DEFAULTS.theme || 'light-red',     // light-{red,teal,blue,orange} | terminal-{amber,green}
   slideNums: VIEW_DEFAULTS.slideNums || ${JSON.stringify(SLIDE_NUM_DEFAULT)},  // vertical | horizontal | off – L cycles
+  noteButton: VIEW_DEFAULTS.noteButton || 'on',  // on | off – M toggles
 };
+// pan | cut | fade. Not a field of state: it is the author's decision about
+// what a slide change looks like, there is no key that cycles it, and the
+// snapshot is a full apply - a mode in it would be one more thing two
+// windows could disagree about for no gain. Both views read the same
+// frontmatter, so both answer the same word.
+const SLIDE_TRANSITION = VIEW_DEFAULTS.transition || 'pan';
+// The whole of a fade, half of it going and half coming back. 260ms is the
+// backdrop's number, kept deliberately: a fade and a backdrop crossfade are
+// the same gesture at different scales, and a deck that has both should not
+// have two speeds in it.
+const FADE_MS = 260;
 const FONT_CYCLE = ['serif', 'sans', 'mono'];
 const SLIDE_NUM_MODES = ${JSON.stringify(SLIDE_NUM_MODES)};
 const THEME_CYCLE = ${JSON.stringify(THEME_NAMES)};
@@ -13374,6 +15314,14 @@ function loadPersisted() {
     const n = localStorage.getItem('psi-slides:slide-nums');
     if (!VIEW_DEFAULTS.slideNums && n && SLIDE_NUM_MODES.includes(n)) state.slideNums = n;
   } catch (e) {}
+  // The note button is a reading preference like the three above and is
+  // stored the same way: globally, not per lecture, and only where the
+  // frontmatter left the question open. A lecturer who hides it once has
+  // hidden it for the next deck too, which is the point of turning it off.
+  try {
+    const nb = localStorage.getItem('psi-slides:note-button');
+    if (!VIEW_DEFAULTS.noteButton && (nb === 'on' || nb === 'off')) state.noteButton = nb;
+  } catch (e) {}
 }
 function saveAnnotations() {
   try { localStorage.setItem(storageKey('annotations'), JSON.stringify(annotations)); } catch (e) {}
@@ -13388,6 +15336,25 @@ function applyFontTheme() {
   // so a new dark theme needs no new selectors.
   document.body.dataset.mode = DARK_THEMES.includes(state.theme) ? 'dark' : 'light';
   document.body.dataset.slideNums = state.slideNums;
+  document.body.dataset.noteButton = state.noteButton;
+}
+// The add-note button on the projection. Its own function rather than a
+// field of the snapshot, and its own message type, for the reason blank has
+// one: applyRemoteState is a full apply, so a snapshot sent to say "the
+// button is hidden" would drag the receiver's slide position with it. And it
+// has to travel at all because the button only exists in the audience window
+// while the lecturer's keyboard is in the cockpit - pressing M in the
+// cockpit and watching nothing happen anywhere would be the whole feature
+// missing. Past the freeze gate for the same reason blank is: it is a
+// command aimed at the projector, not shared navigation state.
+function setNoteButton(mode, announce) {
+  state.noteButton = mode === 'off' ? 'off' : 'on';
+  applyFontTheme();
+  try { localStorage.setItem('psi-slides:note-button', state.noteButton); } catch (e) {}
+  if (announce) {
+    sendToPeer({ type: 'note-button', source: VIEW, mode: state.noteButton });
+    flashMode(state.noteButton === 'off' ? 'note button hidden' : 'note button shown');
+  }
 }
 function cycleSlideNums(dir) {
   const i = SLIDE_NUM_MODES.indexOf(state.slideNums);
@@ -13556,6 +15523,23 @@ function applyRemoteCamera(dx, dy, ovScale, selIdx, anchorIdx) {
   if (inRange(anchorIdx)) overviewAnchorIdx = anchorIdx;
 }
 function applyRemoteState(payload) {
+  // A remote apply that changes which chunk is live is a slide change and
+  // wears the deck's transition, exactly as a local one does. The whole
+  // apply goes inside the fade rather than only the camera, because it is
+  // a *full* apply: the reveals, the zoom and the collapse all land with
+  // the slide, and letting them land before the dip would show the old
+  // slide re-dressing itself on its way out.
+  //
+  // Each window runs its own dip when it learns of the change, so the two
+  // are half a fade out of step - the cockpit dips on the press, the
+  // projection on the message that follows the cockpit's swap. 130ms, on a
+  // pair of screens nobody sees at once, was judged cheaper than teaching
+  // the snapshot to carry a phase.
+  const changed = Math.max(0, Math.min(flatChunks.length - 1, payload.activeIdx || 0)) !== state.activeIdx;
+  if (changed) landSlide(() => applyRemoteStateNow(payload, true));
+  else applyRemoteStateNow(payload, false);
+}
+function applyRemoteStateNow(payload, changed) {
   isApplyingRemote = true;
   try {
     unfocusFigure();
@@ -13645,7 +15629,12 @@ function applyRemoteState(payload) {
     if (state.autoFitMode === 'shrink') fitZoomToChunk(collapsedZoom);
     else clampZoomToWidth();
     saveActive();
-    focusCamera(false);
+    // Instant only where the slide itself changed. A remote apply is also
+    // how a reveal, a zoom and a collapse arrive, and those are moves on a
+    // slide that is already on the frame - the walk down a chunk taller
+    // than the screen and a .middle chunk's per-press glide both live here,
+    // and both keep their motion in every mode.
+    focusCamera(changed && SLIDE_TRANSITION !== 'pan');
   } finally {
     isApplyingRemote = false;
   }
@@ -13677,6 +15666,10 @@ window.addEventListener('message', (ev) => {
   if (m.type === 'hello') {
     if (VIEW === 'audience') sendToPeer({ type: 'state', source: 'audience', payload: snapshot() });
     demoAnnounce();
+    // Same reasoning as demoAnnounce: a cockpit that has just booted, or the
+    // one the projection lost to its own reload, has no idea whether the room
+    // is already fullscreen, and its W would then toggle the wrong way.
+    announceFullscreen();
     return;
   }
   if (m.type === 'state') {
@@ -13730,6 +15723,36 @@ window.addEventListener('message', (ev) => {
   if (m.type === 'demo-offer') { demoReceiveOffer(m); return; }
   if (m.type === 'demo-answer') { demoReceiveAnswer(m); return; }
   if (m.type === 'demo-ice') { demoReceiveIce(m); return; }
+  // The note button, outside the snapshot for the same reason as blank: a
+  // command to the projection, not shared state. Applied in both windows
+  // rather than in the audience alone, so a cockpit that was toggled from
+  // the projection agrees about what the room is looking at.
+  if (m.type === 'note-button') {
+    setNoteButton(m.mode, false);
+    return;
+  }
+  // The projection's own frame (W), outside the snapshot for the reason blank
+  // is - a command aimed at the projector - and per-window besides: one of
+  // these two windows is on a projector and the other on a laptop, so there
+  // is no shared value to put in a snapshot at all.
+  if (m.type === 'fullscreen') {
+    // What the projection is actually doing, so the cockpit's W knows which
+    // way to toggle after an Escape it never saw.
+    if (m.action === 'state') { peerFullscreen = !!m.on; return; }
+    if (VIEW !== 'audience') return;
+    if (m.action === 'exit') {
+      disarmFullscreen();
+      if (fullscreenOn()) exitFullscreenHere().catch(() => {});
+      return;
+    }
+    // Ask first and arm only on the refusal. Chromium refuses this with
+    // "Permissions check failed" because no gesture in *this* window started
+    // it; asking anyway is what makes the hint stop appearing on a browser
+    // that ever relaxes the rule, rather than leaving a click in the way for
+    // ever because of a measurement taken once.
+    requestFullscreenHere().catch(() => armFullscreen());
+    return;
+  }
   // Blank travels outside the snapshot so it still lands while frozen.
   if (m.type === 'blank' && VIEW === 'audience') {
     state.blanked = !!m.blanked;
@@ -13925,7 +15948,10 @@ function splitSentencesIn(root) {
     // Explicit-slide blocks opt out of sentence extraction: the author has
     // already said what belongs on screen, so splitting their paragraphs
     // into head/rest would only give the collapse CSS something to hide.
-    if (p.closest('.slide-explicit, .script-only')) return;
+    // A statement chunk opts out for the same reason without a block to
+    // write: its paragraphs ARE the lines of the slide, one per press, so
+    // abridging them would leave the room with the first word of each.
+    if (p.closest('.slide-explicit, .script-only, [data-tag=statement]')) return;
     const head = document.createElement('span'); head.className = 'sentence-head';
     const rest = document.createElement('span'); rest.className = 'sentence-rest';
     let mode = 'head';
@@ -14148,6 +16174,16 @@ function applyReveal(el, id, instant) {
   el.querySelectorAll(FROM_SEL).forEach(c => {
     c.toggleAttribute('data-hidden', consumed < Number(c.dataset.from));
   });
+  // A ::: footnote follows the segment it was written in. It rides the
+  // segment rather than a beat number because the two are not the same
+  // count: a diagram step between two segments is a beat, so the second
+  // segment's number is not its index. Mirroring the segment's own state is
+  // exact whatever sits between them, and adds no beat of its own - which is
+  // why countSegments knows nothing about this.
+  el.querySelectorAll('.margin-note[data-seg]').forEach(a => {
+    const seg = segs[Number(a.dataset.seg)];
+    a.toggleAttribute('data-beat-hidden', !!seg && seg.hasAttribute('data-hidden'));
+  });
   const bd = bdFrames(el);
   if (bd) {
     // The same rule the tween follows: a chunk off screen snaps, or booting
@@ -14167,6 +16203,61 @@ function getOffset(el, parent) {
   let x = 0, y = 0, n = el;
   while (n && n !== parent) { x += n.offsetLeft; y += n.offsetTop; n = n.offsetParent; }
   return { left: x, top: y, width: el.offsetWidth, height: el.offsetHeight };
+}
+// The vertical extent of what is actually painted inside a box, in the same
+// layout coordinates getOffset answers in. Only a .middle chunk reads it (see
+// focusCamera), and it exists because offsetHeight cannot answer the
+// question: a segment past the opening beat keeps its box and a beat below
+// the top level keeps its row, by design, so the box is the chunk's final
+// shape from beat 0 and says nothing about what the room can see.
+//
+// Client rects and not offsets, because the things that are painted are
+// often not the things that have an offsetParent - a rows block dissolves
+// its list into the grid with display: contents, and a dissolved element has
+// no box at all. So the walk descends through anything with no box of its
+// own, stops at anything holding its own text (whose box covers its
+// children), and converts once at the end: the cockpit's stage is scaled,
+// and one ratio taken from the container is exactly the factor between the
+// two coordinate systems.
+// Split in two, and the client half is the one --check-fit needs. The camera
+// wants the span in the stage's layout coordinates; the probe compares
+// everything against #stage-viewport's client rect, and a probe that
+// re-derived "what is painted" from a selector list of its own would be a
+// second implementation of the exact rule the camera follows. One walk, two
+// coordinate systems.
+function paintedClientSpan(el) {
+  let top = Infinity, bottom = -Infinity;
+  const walk = (node) => {
+    for (const k of node.children) {
+      if (k.hasAttribute('data-hidden') || k.hasAttribute('data-beat-hidden')) continue;
+      const cl = k.classList;
+      // Chrome that lives inside the content box and is not the slide.
+      if (cl.contains('annot-box') || cl.contains('annot-add') || cl.contains('exps')) continue;
+      const r = k.getBoundingClientRect();
+      const boxed = r.width > 0 || r.height > 0;
+      const tag = k.tagName;
+      const atom = tag === 'svg' || tag === 'IMG' || tag === 'HR' || tag === 'PRE' || tag === 'CANVAS';
+      const ownText = [...k.childNodes].some(n => n.nodeType === 3 && n.textContent.trim());
+      if (boxed && (atom || ownText || !k.children.length)) {
+        if (r.top < top) top = r.top;
+        if (r.bottom > bottom) bottom = r.bottom;
+        continue;
+      }
+      walk(k);
+    }
+  };
+  walk(el);
+  if (bottom < top) return null;
+  return { top, bottom, height: bottom - top };
+}
+function paintedSpan(el) {
+  const base = el.getBoundingClientRect();
+  const o = getOffset(el, stage);
+  if (!base.height || !o.height) return null;
+  const span = paintedClientSpan(el);
+  if (!span) return null;
+  const scale = base.height / o.height;
+  return { top: o.top + (span.top - base.top) / scale, height: span.height / scale };
 }
 function focusCamera(instant = false) {
   // The transform only frames correctly from a viewport at scroll origin.
@@ -14247,7 +16338,27 @@ function focusCamera(instant = false) {
     // by design, and centring it pushed the band off the bottom edge.
     const fitEl = entry.el.hasAttribute('data-dock') || entry.el.hasAttribute('data-has-panel') ? null : entry.el.querySelector('.chunk-content');
     const fit = fitEl ? getOffset(fitEl, stage) : { top, height };
-    if (fit.height <= vp.height) {
+    // The .middle class on the chunk. The box above is the one the reveals will
+    // fill, and it is dead-centred already - measured on a keynote, every
+    // chunk-content box sat with equal paper above and below it. What the
+    // room sees at the opening beat is not that box: a chunk whose reveals
+    // arrive downwards paints its first line at the top of a reserve that is
+    // still empty, and #drei-jahre opened with one row of type 155 px from
+    // the ceiling and 698 px of paper under it.
+    //
+    // There is no arrangement that both centres every beat and leaves every
+    // beat where the last one put it - a stack that grows downwards cannot
+    // hold each prefix centred and each row still. So this is opt-in and it
+    // chooses centring: the camera frames what is painted now. Nothing in
+    // the slide moves relative to anything else in it, the reserved height
+    // is untouched, and auto-fit still measures the whole box, so the type
+    // is the same size on every beat - the frame glides, on the same 250 ms
+    // transition that already follows the foot of a chunk taller than the
+    // screen.
+    const shownFit = (fitEl && entry.el.hasAttribute('data-middle')) ? paintedSpan(fitEl) : null;
+    if (shownFit && shownFit.height <= vp.height) {
+      ty = vp.height / 2 - (shownFit.top + shownFit.height / 2);
+    } else if (fit.height <= vp.height) {
       ty = vp.height / 2 - (fit.top + fit.height / 2);
     } else {
       // A chunk taller than the frame cannot be framed, so it is walked: its
@@ -14305,6 +16416,82 @@ function focusCamera(instant = false) {
   if (instant) stage.style.transition = 'none';
   stage.style.transform = \`translate(\${tx}px, \${ty}px)\`;
   if (instant) requestAnimationFrame(() => { stage.style.transition = ''; });
+}
+
+// ── the slide change (transition: pan | cut | fade) ─────────────────
+//
+// One helper and one rule: everything that changes which chunk is live goes
+// through landSlide(), and landSlide() is what decides whether the camera
+// glides, lands, or lands inside a fade. There are exactly two callers -
+// jumpTo, for a press in this window, and applyRemoteState, for a press in
+// the other one - because a third path is how two windows come to show a
+// slide change differently.
+//
+// pan  – the camera glides over --camera-duration. The stage is one
+//        continuous column and the room watches the frame travel along it.
+// cut  – focusCamera(true), which kills the transition for one frame. The
+//        new slide is simply there.
+// fade – the stage dips to the paper and comes back, and the camera's jump
+//        is taken at the bottom, where nothing is on screen to see it move.
+//
+// WHY THE DIP AND NOT A TWO-LAYER CROSSFADE, measured rather than argued.
+// A cross-dissolve needs the two slides in the same place at the same
+// moment, which a continuous column does not give: they are a slide-height
+// and a gap apart. Duplicating the stage to get them there was never going
+// to be cheap - a second copy of every chunk, every figure and every
+// inlined photograph in the deck - but the cheap version of the same idea
+// is one line: jump the camera and hand the outgoing chunk the inverse of
+// that jump, which puts it back where the room last saw it. That was built
+// and its half-way frame shot at 1600x900 beside the dip's. It works, and
+// what it paints is two paragraphs of text standing on each other, letter
+// through letter, for a sixth of a second - on this tool a slide is dark
+// words on pale paper and nothing else, so a dissolve of two of them is a
+// double exposure, unreadable in exactly the moment the room is reading.
+// The dip's half-way frame is the slide being left, at half strength,
+// still legible, on its way out. It also costs one animation on one
+// element, and it cannot disagree with focusCamera about where the camera
+// is, because it is focusCamera that moves it.
+//
+// Traced per animation frame in Chromium, the dip is: 130ms of the stage
+// falling 1 to 0 with the transform held exactly where it was, one frame at
+// 0 in which the transform changes, 130ms back up. No dropped frame and no
+// positional motion at any opacity a room can see.
+let fadeAnim = null;    // the half in flight
+let fadePending = null; // what it still has to do at the bottom
+function fadeSwap(land) {
+  // No WAAPI, no fade. Nothing here is worth a slide change that never
+  // happens.
+  if (!stage.animate) { land(); return; }
+  // A second press before the first fade has landed must not lose the first
+  // one's state change: run it now, and start the new fade from here.
+  if (fadePending) { const p = fadePending; fadePending = null; p(); }
+  if (fadeAnim) { fadeAnim.cancel(); fadeAnim = null; }
+  fadePending = land;
+  fadeAnim = stage.animate([{ opacity: 1 }, { opacity: 0 }],
+    { duration: FADE_MS / 2, easing: 'ease-in', fill: 'forwards' });
+  fadeAnim.onfinish = () => {
+    const p = fadePending;
+    fadePending = null;
+    // The state change and the camera jump, both while the stage is at
+    // nothing. land() measures and writes; neither paints, because a paint
+    // is a frame away and this is one task.
+    if (p) p();
+    const rise = stage.animate([{ opacity: 0 }, { opacity: 1 }],
+      { duration: FADE_MS / 2, easing: 'ease-out' });
+    // After the fall is dropped the element has no opacity of its own left,
+    // which is what keeps the stage free of an inline style between slides.
+    if (fadeAnim) { fadeAnim.cancel(); fadeAnim = null; }
+    fadeAnim = rise;
+    rise.onfinish = () => { if (fadeAnim === rise) fadeAnim = null; };
+  };
+}
+// Make idx the live chunk, in whatever way this deck changes slides. land()
+// carries everything that has to happen at the moment of the change - the
+// index, the fit, the paint, the camera - so that a fade can hold all of it
+// until the stage is invisible rather than only some of it.
+function landSlide(land) {
+  if (SLIDE_TRANSITION === 'fade') fadeSwap(land);
+  else land();
 }
 
 // Overview camera: translate-and-scale to center the anchor chunk at
@@ -14545,6 +16732,111 @@ function endSearch() {
   flatChunks.forEach(c => c.el.classList.remove('search-match', 'search-miss'));
 }
 
+// ── go to a slide by its number (G) ──────────────────────────────────
+//
+// The number is the one the corner badge shows, which is data-chunk-num:
+// authored chunks counted straight through the deck, dividers left out
+// because they are inserted by the build rather than written. The printed
+// document and the cockpit's list count the same way, so what a lecturer
+// reads anywhere is what they type here - and reading it off the DOM rather
+// than recomputing it is what keeps that true if the counting ever changes.
+//
+// Everything inside the prompt is reached through gotoRoot, never through
+// getElementById: in the cockpit the lecture's own chunks share the id
+// namespace with the chrome (see the note on the cue panel in CLAUDE.md).
+const gotoRoot = document.getElementById('goto-prompt');
+const gotoDigitsEl = gotoRoot.querySelector('.goto-digits');
+const gotoOfEl = gotoRoot.querySelector('.goto-of');
+let gotoActive = false;
+let gotoTyped = '';
+let gotoNums = null;
+
+// number -> index into flatChunks. Built once; the badge numbers are
+// rendered at build time and nothing moves them.
+function gotoMap() {
+  if (gotoNums) return gotoNums;
+  gotoNums = new Map();
+  flatChunks.forEach((c, idx) => {
+    const n = parseInt(c.el.dataset.chunkNum || '', 10);
+    if (n > 0 && !gotoNums.has(n)) gotoNums.set(n, idx);
+  });
+  return gotoNums;
+}
+function gotoLast() {
+  let max = 0;
+  gotoMap().forEach((idx, n) => { if (n > max) max = n; });
+  return max;
+}
+
+function gotoPaint() {
+  const last = gotoLast();
+  gotoDigitsEl.textContent = gotoTyped || '–';
+  gotoOfEl.textContent = 'of ' + last;
+}
+
+function startGoto() {
+  if (gotoActive) return;
+  gotoActive = true;
+  gotoTyped = '';
+  gotoPaint();
+  gotoRoot.classList.remove('hidden');
+}
+
+function endGoto() {
+  if (!gotoActive) return;
+  gotoActive = false;
+  gotoTyped = '';
+  gotoRoot.classList.add('hidden');
+  gotoRoot.classList.remove('goto-refused');
+}
+
+// A number the deck does not have is refused where it was typed. The class
+// has to come off before it can go on again, or a second wrong number in a
+// row would be silent.
+function gotoRefuse() {
+  gotoRoot.classList.remove('goto-refused');
+  void gotoRoot.offsetWidth;
+  gotoRoot.classList.add('goto-refused');
+}
+
+function gotoCommit() {
+  const idx = gotoTyped ? gotoMap().get(parseInt(gotoTyped, 10)) : undefined;
+  if (idx === undefined) { gotoRefuse(); return; }
+  endGoto();
+  // The same landing a click in the contents or a committed search hit uses,
+  // so the broadcast, the cue-card cursor, auto-fit and the stored position
+  // all see an ordinary jump and nothing here has to know about any of them.
+  if (overview) {
+    setSelectedIdx(idx, { recenter: true });
+    exitOverview(true);
+  } else if (idx !== state.activeIdx) {
+    jumpTo(idx, idx > state.activeIdx ? 'forward' : 'back');
+  }
+}
+
+// While the prompt is open it owns the keyboard: Space would advance the
+// deck and N would open an annotation, so every key is spent here whether
+// the prompt has a use for it or not.
+function gotoKey(e) {
+  const k = e.key;
+  if (k === 'Escape') { endGoto(); e.preventDefault(); return; }
+  if (k === 'Enter') { gotoCommit(); e.preventDefault(); return; }
+  if (k === 'Backspace') {
+    gotoTyped = gotoTyped.slice(0, -1);
+    gotoPaint();
+    e.preventDefault(); return;
+  }
+  if (k.length === 1 && k >= '0' && k <= '9') {
+    // Four digits is more slides than any deck here has, and the cap stops
+    // a held key from growing a number nothing can match.
+    if (gotoTyped.length < 4) gotoTyped += k;
+    gotoPaint();
+    e.preventDefault(); return;
+  }
+  if (k === 'Shift' || k === 'Alt' || k === 'Control' || k === 'Meta') return;
+  e.preventDefault();
+}
+
 function renderSearchResults(q) {
   if (!q) {
     searchResults.innerHTML = '<li class="sr-empty">type to search headings and body text</li>';
@@ -14645,13 +16937,21 @@ function jumpTo(idx, direction) {
   // Forward revisit: preserve whatever state it was in.
   applyReveal(target.el, target.id);
 
-  state.activeIdx = idx;
-  if (autoFitOn()) fitZoomToChunk(autoFitCeiling());
-  else clampZoomToWidth();
-  applyState();
-  focusCamera(false);
-  saveActive();
-  restartAutoplay();
+  // Everything from here is the slide change itself, so it goes through
+  // landSlide: under fade the whole of it waits for the bottom of the dip,
+  // and under cut the camera lands rather than glides. applyReveal above
+  // is deliberately outside it - it dresses the chunk being arrived at,
+  // which is off the frame either way, and doing it early means the slide
+  // the fade uncovers is already finished.
+  landSlide(() => {
+    state.activeIdx = idx;
+    if (autoFitOn()) fitZoomToChunk(autoFitCeiling());
+    else clampZoomToWidth();
+    applyState();
+    focusCamera(SLIDE_TRANSITION !== 'pan');
+    saveActive();
+    restartAutoplay();
+  });
 }
 
 // A fragment in the address is an explicit request for one chunk, so it
@@ -15228,6 +17528,88 @@ function nowrapProbe(el) {
   });
 }
 
+// The third thing a slide can fail to do, and the newest. A figure is sized
+// from the type it stands in (.chunk .psi-diagram in AUDIENCE_CSS): the width
+// it wants is --dg-fit-w base labels, one label to the em - the slide canvas
+// where the chunk has one. When that is more
+// than the column has, or more than the height cap allows, the min() caps it
+// and the drawing stops following the type - so growing the slide's words from
+// there makes the labels relatively SMALLER, which is the inconsistency the
+// width rule was written to remove, arriving again through the camera.
+//
+// So a capped figure counts as "does not fit", in both directions. The
+// consequence is deliberate and it is the honest one: a drawing too wide for
+// its column pulls the slide's text down to meet it rather than growing away
+// from it. It converges, because the width it wants shrinks with the type -
+// the resting point is the zoom at which the figure exactly fills its column,
+// which is also the largest type at which the labels still match the words.
+//
+// A display: none figure (a collapsed ::: expand) measures zero and is
+// skipped; data-beat-hidden is visibility: hidden and keeps its box, so a
+// figure that has not arrived yet is still measured, which is what stops the
+// slide resizing under the room on the press that brings it in.
+//
+// It has one way of being wrong, and it is the expensive one, so it is
+// written into the probe rather than into a list of containers to remember.
+// Shrinking the type shrinks the width the figure ASKS for, so a cap measured
+// in pixels - the chunk's column, the height cap - is escaped by it and the
+// deficit closes. A cap measured in the same em as the type is not: both
+// sides move together, the deficit stands at every zoom, and the loop below
+// runs to its 0.6 floor with nothing on screen saying why. That is not
+// hypothetical - a figure chunk's 40em caption measure did exactly this to
+// thirteen measured slides of lectures/diagrams before the rule above moved it
+// off the picture, and a card or a pane can hold the same shape.
+//
+// So the probe watches whether shrinking is actually helping, and gives up on
+// the figure the first time a step does not close the gap. The reading is
+// memoised per zoom, because the loops below ask more than once at a zoom and
+// "no improvement since the last call" would otherwise be true immediately.
+//
+// Same shape as the two probes above: the list is collected once per fit and
+// only the widths are re-read on each zoom step.
+function figureCapProbe(el) {
+  const figs = Array.from(el.querySelectorAll('svg.psi-diagram'));
+  if (!figs.length) return () => false;
+  // The worst shortfall on the slide, as a fraction of the width the type
+  // asks for. 1 is "every figure has the width its labels want".
+  const shortfall = () => {
+    let worst = 1;
+    for (const svg of figs) {
+      const cs = getComputedStyle(svg);
+      // --dg-fit-w and not --dg-type-w: the live views show the canvas, and
+      // measuring a drawing against the box it is not in reads a figure that
+      // exactly fills its canvas as one that overflowed its column.
+      const typeW = parseFloat(cs.getPropertyValue('--dg-fit-w'));
+      const mult = parseFloat(cs.getPropertyValue('--figure-type')) || 1;
+      // The svg's own em, which is the text it stands in: the chunk body, a
+      // pane, a card. Exactly what the width rule multiplies.
+      const want = typeW * parseFloat(cs.fontSize) * mult;
+      // clientWidth and not a client rect: the cockpit scales its whole stage
+      // with a transform, and a rect there is in that scaled space while the
+      // font size is in layout pixels. Same reason flowHeightProbe reads
+      // offsets. A figure with no box at all (a collapsed expansion) is not on
+      // the slide and is skipped.
+      const got = svg.clientWidth;
+      if (want > 0 && got > 0 && got / want < worst) worst = got / want;
+    }
+    return worst;
+  };
+  let seenZoom = null, seenShort = 1, answer = false, giveUp = false;
+  return () => {
+    if (giveUp) return false;
+    if (state.zoom === seenZoom) return answer;
+    const now = shortfall();
+    if (seenZoom !== null && state.zoom < seenZoom && now <= seenShort + 0.002) {
+      giveUp = true;                  // the cap moves with the type; shrinking cannot reach it
+      answer = false;
+    } else {
+      answer = now < 0.995;
+    }
+    seenZoom = state.zoom; seenShort = now;
+    return answer;
+  };
+}
+
 // And a chunk's own box is not a measure of how much is on it. Three
 // families are pinned to the full slide height so their ground fills the
 // frame – the cover (.chunk-title), the section divider (.chunk-section)
@@ -15418,7 +17800,11 @@ function fitZoomToChunk(ceiling) {
   if (!(avail > 0)) return;
   const overflowsX = nowrapProbe(el);
   const heightOf = flowHeightProbe(el);
-  if (heightOf() <= avail && !overflowsX() && state.zoom >= cap) return;  // nothing to gain
+  const figCapped = figureCapProbe(el);
+  // "Nothing to gain" has to know about the figure too, or a slide already at
+  // the ceiling with a capped drawing on it is returned from before the shrink
+  // loop ever runs.
+  if (heightOf() <= avail && !overflowsX() && !figCapped() && state.zoom >= cap) return;
 
   // A single proportional estimate is not enough, because zoom changes line
   // wrapping and therefore height, and it is not safe either: solving for
@@ -15433,8 +17819,8 @@ function fitZoomToChunk(ceiling) {
   if (z > cap) z = cap;
   applyZoom(z);
 
-  // Shrink until it fits, in both directions.
-  while ((heightOf() > avail || overflowsX()) && z > 0.6) {
+  // Shrink until it fits, in all three senses.
+  while ((heightOf() > avail || overflowsX() || figCapped()) && z > 0.6) {
     z = clampZoom(z - STEP);
     applyZoom(z);
   }
@@ -15442,7 +17828,7 @@ function fitZoomToChunk(ceiling) {
   while (z + STEP <= cap) {
     const probe = clampZoom(z + STEP);
     applyZoom(probe);
-    if (heightOf() > avail || overflowsX()) { applyZoom(z); break; }
+    if (heightOf() > avail || overflowsX() || figCapped()) { applyZoom(z); break; }
     z = probe;
   }
 }
@@ -16234,6 +18620,114 @@ function flashMode(text) {
   showModeBadge(text);
 }
 
+// ── fullscreen (W) ───────────────────────────────────────────────────
+//
+// A room wants the slide and nothing else, and a browser window carries an
+// address bar, a tab strip and a menu bar above it. W takes them off.
+//
+// **W means the projection, Shift-W means this window.** In the audience the
+// two are the same window, so plain W there is simply this one going
+// fullscreen. In the cockpit plain W is a command sent to the projector and
+// the cockpit stays in its window, which is what a lecturer reading notes off
+// a laptop wants; Shift-W is the cockpit's own frame, for the one-screen case
+// where the cockpit IS the thing to fill.
+//
+// The whole difficulty is that requestFullscreen is one of the calls a
+// browser answers only to a user gesture **in the window that makes it**, and
+// the lecturer's keyboard is in the cockpit. Measured in Chromium, headless
+// and headed alike: a requestFullscreen inside a message handler is refused
+// with "TypeError: Permissions check failed". So the cockpit's W cannot put
+// the room's window into fullscreen - it *arms* it. The projection shows one
+// line in the corner and spends the next click anywhere on it, or W on its
+// own keyboard, on entering. The arming lapses after ARM_MS, because an
+// affordance nobody took must not stay on the wall for the rest of the talk.
+//
+// **Leaving costs nothing.** exitFullscreen needs no gesture, so the cockpit's
+// W takes the projection straight back out with no hint and no click. The
+// asymmetry is the browser's, not this tool's.
+//
+// **Nothing of this is in the state snapshot.** Fullscreen is a property of
+// one window on one screen - the projector is full and the laptop is not -
+// and applyRemoteState is a full apply, so a snapshot sent to carry it would
+// drag the receiver's slide position with it. The projection instead reports
+// where it is on every fullscreenchange, which is what lets the cockpit's W
+// toggle the right way after an Escape nobody told it about.
+//
+// The frame changes size on the way in and on the way out, and everything
+// solved against it is then stale; the resize listener further down re-runs
+// the fit and re-sends slide-ref, which is why there is no re-measure here.
+const FULLSCREEN_ARM_MS = 20000;
+const fsHint = document.getElementById('fullscreen-hint');
+let fsArmTimer = null;
+let fsArmedClick = null;
+let peerFullscreen = false;
+function fullscreenOn() {
+  return !!(document.fullscreenElement || document.webkitFullscreenElement);
+}
+// The two prefixed spellings Safari still needs, and a rejected promise
+// wherever the call is refused - Chromium throws this one synchronously.
+function requestFullscreenHere() {
+  const el = document.documentElement;
+  const fn = el.requestFullscreen || el.webkitRequestFullscreen;
+  if (!fn) return Promise.reject(new Error('no fullscreen here'));
+  try { return Promise.resolve(fn.call(el)); } catch (err) { return Promise.reject(err); }
+}
+function exitFullscreenHere() {
+  const fn = document.exitFullscreen || document.webkitExitFullscreen;
+  if (!fn) return Promise.reject(new Error('no fullscreen here'));
+  try { return Promise.resolve(fn.call(document)); } catch (err) { return Promise.reject(err); }
+}
+function disarmFullscreen() {
+  if (fsArmTimer) { clearTimeout(fsArmTimer); fsArmTimer = null; }
+  if (fsArmedClick) { window.removeEventListener('click', fsArmedClick, true); fsArmedClick = null; }
+  if (fsHint) fsHint.classList.add('hidden');
+}
+// The capture phase and one shot: the click that answers the hint must not
+// also focus the figure it happened to land on. One press, one thing.
+function armFullscreen() {
+  if (fullscreenOn()) return;
+  disarmFullscreen();
+  if (fsHint) fsHint.classList.remove('hidden');
+  fsArmedClick = (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
+    fsArmedClick = null;
+    disarmFullscreen();
+    requestFullscreenHere().catch(() => {});
+  };
+  window.addEventListener('click', fsArmedClick, true);
+  fsArmTimer = setTimeout(disarmFullscreen, FULLSCREEN_ARM_MS);
+}
+// This window's own frame, off a key press in it - the one path a browser
+// grants without argument.
+function toggleFullscreenHere() {
+  disarmFullscreen();
+  if (fullscreenOn()) exitFullscreenHere().catch(() => {});
+  else requestFullscreenHere().catch(() => flashMode('this browser would not go fullscreen'));
+}
+function toggleProjectionFullscreen() {
+  if (VIEW !== 'speaker') { toggleFullscreenHere(); return; }
+  if (!hasLivePeer()) { flashMode('no projection window open – Shift-W fills this one'); return; }
+  const want = !peerFullscreen;
+  sendToPeer({ type: 'fullscreen', source: VIEW, action: want ? 'enter' : 'exit' });
+  flashMode(want
+    ? 'fullscreen asked for – click the projection once, or hit W on it'
+    : 'projection back in its window');
+}
+// Told, not assumed: an Escape on the projection is the browser's own way out
+// and never passes through this tool at all.
+function announceFullscreen() {
+  if (VIEW === 'audience') {
+    sendToPeer({ type: 'fullscreen', source: VIEW, action: 'state', on: fullscreenOn() });
+  }
+}
+['fullscreenchange', 'webkitfullscreenchange'].forEach((ev) => {
+  document.addEventListener(ev, () => {
+    if (fullscreenOn()) disarmFullscreen();
+    announceFullscreen();
+  });
+});
+
 // Keyboard
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('.annot-textarea')) return;
@@ -16270,6 +18764,12 @@ document.addEventListener('keydown', (e) => {
   // key name, and Alt with a letter is a character on macOS, not a command.
   // (No backticks in this comment: one would end the template literal.)
   if (e.metaKey || e.ctrlKey || e.altKey) return;
+  // The go-to prompt is modal over the key map, and it stands after the
+  // guards above rather than before them: an annotation textarea and the
+  // search box answer their own keys first, so a digit typed into either
+  // one goes where the caret is. Cmd and Ctrl have already left, so a
+  // browser shortcut still works with the prompt open.
+  if (gotoActive) { gotoKey(e); return; }
   // In overview the arrows move the *selection*, never the live slide.
   // They used to fall through to nextChunk/nextCol, which silently
   // re-pointed the active chunk while the visible outline stayed put –
@@ -16381,9 +18881,23 @@ document.addEventListener('keydown', (e) => {
     case 'f': case 'F': cycleFont(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'a': case 'A': cycleTheme(e.shiftKey ? -1 : 1); e.preventDefault(); break;
     case 'l': case 'L': cycleSlideNums(e.shiftKey ? -1 : 1); e.preventDefault(); break;
+    case 'm': case 'M':
+      // The add-note affordance on the projection, shown or hidden. A bare
+      // free letter and not a Shift pair: Shift-B was the obvious mnemonic
+      // (both take something off the screen) and is exactly the one that
+      // cannot be taken, because B is what a hand reaches for when something
+      // has to be off the projection now and a mistyped Shift must not turn
+      // that into a chrome toggle.
+      setNoteButton(state.noteButton === 'off' ? 'on' : 'off', true);
+      e.preventDefault(); break;
     case 'o': case 'O': toggleOverview(); e.preventDefault(); break;
     case 'k': case 'K': if (overview) break; viewHooks.onK(); e.preventDefault(); break;
     case 't': case 'T': toggleToc(); e.preventDefault(); break;
+    // The third way to reach a slide, beside the board and the search. It
+    // works in overview too, where it lands the same way a committed search
+    // hit does - there is no reason for the board to be the one place a
+    // lecturer who knows the number has to hunt for it.
+    case 'g': case 'G': startGoto(); e.preventDefault(); break;
     case '/': startSearch(); e.preventDefault(); break;
     case '#': cycleAutoFit(1); e.preventDefault(); break;
     case '+': case '=':
@@ -16413,6 +18927,15 @@ document.addEventListener('keydown', (e) => {
         sendToPeer({ type: 'blank', source: VIEW, blanked: state.blanked });
       }
       flashMode(state.blanked ? 'projection blanked' : 'projection back');
+      e.preventDefault(); break;
+    case 'w': case 'W':
+      // W is the projection's frame, Shift-W is this window's - see the
+      // fullscreen section for why the cockpit's W can only arm the
+      // projection and not enter it for the lecturer. A free letter and not
+      // a Shift pair on B or F: F is the font cycle, and Shift-B is the one
+      // pair that cannot be taken, for the reason M records.
+      if (e.shiftKey) toggleFullscreenHere();
+      else toggleProjectionFullscreen();
       e.preventDefault(); break;
     case 'p': case 'P':
       window.open('print.html', '_blank', 'noopener');
@@ -16616,6 +19139,13 @@ viewport.addEventListener('pointerdown', (e) => {
 // and a wider one gives the lecturer's zoom back – clampZoomToWidth always
 // re-derives from the chosen value, so it does both.
 window.addEventListener('resize', () => {
+  // Auto-fit solves the zoom against the frame, so a frame that changed size
+  // has to be solved again - and clampZoomToWidth deliberately stands aside
+  // while a fit is on, which left the one case nothing covered. It went
+  // unnoticed while a resize meant a lecturer dragging a window edge; W makes
+  // it the ordinary path, because entering fullscreen is a resize of several
+  // hundred pixels in one step.
+  autoFitNow();
   clampZoomToWidth();
   if (annotEditingId) fitAnnotation(flatChunks.find(c => c.id === annotEditingId));
   focusCamera(true);
@@ -16958,6 +19488,12 @@ function wireTouchControls() {
       case 'autofit':   cycleAutoFit(1); break;
       case 'search':    setPalette(false); startSearch(); break;
       case 'select':    setTouchSelect(!touchSelectOn); break;
+      // A tablet driving the projection has no W to press. It calls the same
+      // function the key calls, so the two cannot drift - and in the
+      // projection's own window the tap is itself the gesture the browser
+      // asks for, which is the whole of what the hint exists to collect. The
+      // palette closes first, or the pill stays over the frame it cleared.
+      case 'fullscreen': setPalette(false); toggleProjectionFullscreen(); break;
     }
     if (selBtn) selBtn.setAttribute('aria-pressed', touchSelectOn ? 'true' : 'false');
   });
@@ -17082,27 +19618,34 @@ function renderSpeaker(lecture, opts = {}) {
   // the default; per-chunk overrides live in localStorage so the
   // speaker can rewrite notes during rehearsal without touching source.
   const noteTemplates = [];
-  for (const col of columns) for (const c of col.chunks) {
-    if (c.id && c.speakerNotes && c.speakerNotes.length) {
-      const raw = c.speakerNotes.join('\n\n');
+  // One emitter for a chunk and for a divider, because the cockpit reads the
+  // two through the same id namespace and a second copy of these six lines
+  // is how a divider comes to show its notes in the pane and not on a card.
+  // `segOf` is the only difference: a chunk files a block by the reveal
+  // segment it stood in, a divider has no top-level segments and files every
+  // unpinned block on beat 0.
+  const pushNotes = (id, notes, froms, segOf) => {
+    if (!id || !notes || !notes.length) return;
+    noteTemplates.push(
+      `<template data-notes-for="${escapeHtml(id)}">${escapeHtml(notes.join('\n\n'))}</template>`
+    );
+    // The same blocks once more, one template each, with the reveal
+    // segment the block stood in (parser: noteSegments). The cue-card
+    // mode reads these; the textarea, --squint and the overrides keep
+    // reading the joined one above, so neither knows about the other.
+    notes.forEach((n, k) => {
+      const from = (froms || [])[k];
+      const where = from != null ? `data-at="${from}"` : `data-seg="${segOf(k)}"`;
       noteTemplates.push(
-        `<template data-notes-for="${escapeHtml(c.id)}">${escapeHtml(raw)}</template>`
+        `<template data-cards-for="${escapeHtml(id)}" ${where}>${escapeHtml(n)}</template>`
       );
-      // The same blocks once more, one template each, with the reveal
-      // segment the block stood in (parser: noteSegments). The cue-card
-      // mode reads these; the textarea, --squint and the overrides keep
-      // reading the joined one above, so neither knows about the other.
-      c.speakerNotes.forEach((n, k) => {
-        const from = (c.speakerNoteFrom || [])[k];
-        const where = from != null
-          ? `data-at="${from}"`
-          : `data-seg="${(c.speakerNoteSegs || [])[k] ?? 0}"`;
-        noteTemplates.push(
-          `<template data-cards-for="${escapeHtml(c.id)}" ${where}>${escapeHtml(n)}</template>`
-        );
-      });
-    }
-  }
+    });
+  };
+  columns.forEach((col, ci) => {
+    // The divider first, because that is where the camera lands first.
+    if (col.heading) pushNotes(sectionChunkId(col, ci), col.speakerNotes, col.speakerNoteFrom, () => 0);
+    for (const c of col.chunks) pushNotes(c.id, c.speakerNotes, c.speakerNoteFrom, k => (c.speakerNoteSegs || [])[k] ?? 0);
+  });
 
   // Scrubber: column buttons + chunk dots below.
   const scrubberHtml = columns.map((col, ci) => {
@@ -17182,7 +19725,7 @@ ${columnsHtml}
   <button id="speaker-help-btn" type="button" title="Keyboard and mouse reference (?)">? help</button>
   <span id="slug">${escapeHtml(slug)}</span>
   <span class="spacer"></span>
-  <span class="kbd-hint"><kbd>V</kbd> freeze &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>D</kbd> demo &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export</span>
+  <span class="kbd-hint"><kbd>V</kbd> freeze &nbsp; <kbd>B</kbd> blank &nbsp; <kbd>W</kbd> full &nbsp; <kbd>D</kbd> demo &nbsp; <kbd>N</kbd> annot &nbsp; <kbd>Shift</kbd>-<kbd>N</kbd> notes &nbsp; <kbd>Shift</kbd>-<kbd>E</kbd> export</span>
 </footer>
 <div id="note-templates">
 ${noteTemplates.join('\n')}
@@ -17193,7 +19736,9 @@ ${renderHelpOverlay('speaker', !!editorPayload(frontmatter, columnsHtml, 'speake
 <div id="center-toast" role="status" aria-live="polite"></div>
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
+${GOTO_PROMPT_HTML}
 ${BLANK_BADGE_HTML}
+${FULLSCREEN_HINT_HTML}
 ${DEMO_BADGE_HTML}
 ${LINK_OVERLAY_HTML}
 ${renderTocNav(columns, S)}
@@ -19004,9 +21549,12 @@ cueBtn.addEventListener('click', toggleCueMode);
 // Otherwise the parser gave it a top-level segment, and the segment's own
 // beat says which advance brings it up - which is what lets a chunk whose
 // beats are a diagram's steps carry cards at all: no separator line can sit
-// between two steps, but a number can name one. A rehearsal override in the
-// textarea replaces the whole chunk's text and knows neither, so everything
-// it says lands on the opening beat.
+// between two steps, but a number can name one. Inside a block, a
+// [Klick ...] line is a press of its own and the cards behind it are filed
+// one advance later - the two spellings compose, so a pinned block counts
+// its clicks from its own number. A rehearsal override in the textarea
+// replaces the whole chunk's text and knows of no pin, so it starts at the
+// opening beat - its clicks still count from there.
 function cueCardsFor(id, beats, maxC) {
   const by = new Map();
   const segAt = [0];
@@ -19019,16 +21567,22 @@ function cueCardsFor(id, beats, maxC) {
     if (!by.has(k)) by.set(k, []);
     by.get(k).push(...cards);
   };
+  // Where the block sits is where its FIRST card sits; a [Klick ...] line
+  // inside it moves every card behind that line one advance further on, and
+  // notesToCards counted them. The clamp in put() is what an author gets who
+  // wrote more clicks than the slide has beats: the surplus cards stand
+  // together on the last one, and lint says so by name.
+  const file = (base, cards) => cards.forEach(card => put(base + (card.advance || 0), [card]));
   let override = null;
   try { override = localStorage.getItem(noteOverrideKey(id)); } catch (e) {}
   if (override !== null) {
-    put(0, PSI_CARDS.notesToCards(override));
+    file(0, PSI_CARDS.notesToCards(override));
     return by;
   }
   document.querySelectorAll('template[data-cards-for="' + CSS.escape(id) + '"]').forEach(t => {
     const c = t.dataset.at != null ? Number(t.dataset.at)
       : (segAt[Number(t.dataset.seg) || 0] ?? 0);
-    put(c, PSI_CARDS.notesToCards(t.content.textContent));
+    file(c, PSI_CARDS.notesToCards(t.content.textContent));
   });
   return by;
 }
@@ -19721,6 +22275,27 @@ function runIntegrate(absIn) {
 const OPTIMIZE_MIN_BYTES = 512 * 1024;   // leave small assets alone
 const WEBP_QUALITY = 92;
 const OPTIMIZABLE_EXTS = new Set(['png', 'jpg', 'jpeg']);
+// What --optimize-images can do something about when an asset is over the
+// per-image inline cap, which is a wider set than what it converts: a WebP is
+// not a conversion candidate – it is already WebP – but one over the cap is
+// exactly the asset assertInlinable refuses, and re-encoding it narrower is
+// the only thing that helps. Held here so assertInlinable's advice and this
+// verb's candidate list cannot drift.
+const RESCUABLE_EXTS = new Set([...OPTIMIZABLE_EXTS, 'webp']);
+// The width a photograph is downscaled to when q92 alone does not clear the
+// cap. Measured case: a 4032px exam-room photograph came out of cwebp at
+// 2.23 MB and only -resize 2400 0 brought it under – and before this the
+// build refused the deck after the verb it recommends had reported success.
+//
+// Downscaling still happens only here, never by default: figure focus zooms to
+// FIG_MAX_SCALE (8x), so a wide diagram is wide on purpose. This is the last
+// step before giving up on an asset the build will otherwise refuse, and
+// 2560 px is more resolution than a photographic backdrop on a 1600x900 frame
+// can show at any zoom the reader has.
+const CAP_RESCUE_WIDTH = 2560;
+// What to suggest when even that is over the cap. Two steps down a ladder
+// rather than arithmetic, because the author is going to type it.
+const nextRescueWidth = (w) => (w > 1920 ? 1920 : w > 1280 ? 1280 : 960);
 
 // Pixel dimensions straight from the file header, so --max-width can refuse
 // to enlarge and the report can show what it is working with. Zero-dep on
@@ -19825,30 +22400,57 @@ function collectImageRefs(src, sourceDir) {
     if (!refs.has(absPath)) refs.set(absPath, { absPath, ext, explicitRefs: new Set() });
     if (explicitRef) refs.get(absPath).explicitRefs.add(explicitRef);
   };
-  for (const m of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) {
-    const href = m[1];
-    if (/^[a-z]+:/i.test(href)) continue;                    // remote URL
-    if (!href.includes('/') && !path.extname(href)) {
-      const rel = resolveFigId(href);                        // shorthand
-      if (rel) add(path.join(sourceDir, rel), null);
-      continue;
-    }
-    const abs = path.resolve(sourceDir, href);
-    if (fs.existsSync(abs)) add(abs, href);
-  }
-  // Diagram images too, or the verb the oversized-asset failure tells the
-  // author to run answers "nothing to do" about the very file it refused.
-  for (const ref of collectDiagramImageRefs(src)) {
-    if (/^[a-z]+:/i.test(ref)) continue;
+  // One resolver for all three ways a source names a picture. It used to be
+  // written out twice and the third way was missing from both.
+  const addRef = (ref) => {
+    if (!ref) return;
+    if (/^[a-z]+:/i.test(ref) || ref.startsWith('//')) return;   // remote URL
     if (!ref.includes('/') && !path.extname(ref)) {
-      const rel = resolveFigId(ref);
+      const rel = resolveFigId(ref);                             // shorthand
       if (rel) add(path.join(sourceDir, rel), null);
-      continue;
+      return;
     }
     const abs = path.resolve(sourceDir, ref);
     if (fs.existsSync(abs)) add(abs, ref);
-  }
+  };
+  for (const m of src.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) addRef(m[1]);
+  // Diagram images too, or the verb the oversized-asset failure tells the
+  // author to run answers "nothing to do" about the very file it refused.
+  for (const ref of collectDiagramImageRefs(src)) addRef(ref);
+  // And a ::: backdrop, a cover-image: and a closing-image:, for exactly that
+  // reason: those are the references most likely to be a photograph, which is
+  // the kind of asset that blows the cap. `closing-image: cover` names no file
+  // and resolves to nothing here.
+  for (const ref of collectDecorationImageRefs(src)) addRef(ref);
   return [...refs.values()];
+}
+
+// Rewrite one converted asset's explicit references in a source.md, in every
+// spelling a source carries them:
+//
+//   ![alt](assets/room.jpg)          the markdown form
+//   image photo assets/room.jpg      the bare token a ::: draw statement takes
+//   ::: backdrop assets/room.jpg     the bare token a directive takes
+//   cover-image: assets/room.jpg     a frontmatter value, quoted or not
+//
+// Fence-aware, because a path inside a code fence is documentation, not a
+// reference – the same rule the collectors follow. Rewriting only the markdown
+// form once deleted an original a diagram still pointed at and then reported
+// the rewrite as done, so the next build failed on a file this very command
+// had removed; the bare-token form covers the other three, and the quotes are
+// in the boundary classes so a quoted frontmatter value is not missed.
+// Shorthand refs (`![](room)`, `::: backdrop room`) need no edit at all – the
+// resolver finds the .webp.
+function rewriteAssetRef(src, from, to) {
+  const esc = from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  const bare = new RegExp(`(^|[\\s("'])${esc}(?=[\\s)"']|$)`, 'g');
+  let fence = false;
+  return String(src).split('\n').map((line) => {
+    if (/^\s*(```|~~~)/.test(line)) { fence = !fence; return line; }
+    if (fence) return line;
+    return line.split(`](${from})`).join(`](${to})`)
+      .replace(bare, (m0, pre) => pre + to);
+  }).join('\n');
 }
 
 function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null } = {}) {
@@ -19859,9 +22461,15 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
 
   const threshold = all ? 0 : OPTIMIZE_MIN_BYTES;
   const candidates = collectImageRefs(src, sourceDir)
-    .filter(r => OPTIMIZABLE_EXTS.has(r.ext))
+    .filter(r => RESCUABLE_EXTS.has(r.ext))
     .map(r => ({ ...r, size: fs.statSync(r.absPath).size }))
-    .filter(r => r.size >= threshold)
+    // A PNG or a JPEG over the size threshold is a conversion candidate. A
+    // WebP is not – it is already WebP, and re-encoding one on a whim is
+    // generation loss for nothing – but a WebP over the per-image inline cap
+    // is the asset the build refuses, and a narrower re-encode is the only
+    // move left. So it comes in when, and only when, it is over the cap.
+    .filter(r => (OPTIMIZABLE_EXTS.has(r.ext) && r.size >= threshold)
+      || (r.ext === 'webp' && r.size > MAX_INLINE_BYTES))
     .sort((a, b) => b.size - a.size);
 
   if (!candidates.length) {
@@ -19887,66 +22495,96 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
   let before = 0, after = 0, converted = 0;
   const sourceEdits = [];
 
+  const capMb = MAX_INLINE_BYTES / 1024 / 1024;
+
   for (const ref of candidates) {
-    const dst = ref.absPath.replace(/\.[^.]+$/, '.webp');
+    // A WebP is re-encoded onto itself: there is no second file to write and
+    // no reference to rewrite, only a narrower picture at the same path.
+    const inPlace = ref.ext === 'webp';
+    const dst = inPlace ? ref.absPath : ref.absPath.replace(/\.[^.]+$/, '.webp');
     // A .webp already sitting next to the original would be shadowed by it
     // anyway (IMG_EXTS puts png before webp), so overwriting is the right
     // move – but say so rather than clobbering silently.
-    const dstExisted = fs.existsSync(dst);
+    const dstExisted = !inPlace && fs.existsSync(dst);
     const tmp = dst + '.tmp';
     // Only ever shrink. cwebp -resize enlarges a narrower image without
     // complaint, which would waste bytes and invent detail.
     const dims = imageSize(ref.absPath);
-    const resizeTo = (maxWidth && dims && dims.width > maxWidth) ? maxWidth : null;
-    const dimLabel = dims
-      ? `${dims.width}x${dims.height}${resizeTo ? ` → ${resizeTo}w` : ''}`
-      : '?';
+    let resizeTo = (maxWidth && dims && dims.width > maxWidth) ? maxWidth : null;
     let outSize;
     try {
       encoder.encode(ref.absPath, tmp, resizeTo);
       outSize = fs.statSync(tmp).size;
     } catch (e) {
       fs.rmSync(tmp, { force: true });
-      rows.push({ name: path.basename(ref.absPath), from: ref.size, to: null, dims: dimLabel, note: 'encode failed' });
+      rows.push({ name: path.basename(ref.absPath), from: ref.size, to: null, dims: dims ? `${dims.width}x${dims.height}` : '?', note: 'encode failed' });
       continue;
     }
+    // q92 clears the cap on nearly everything, and then there is the
+    // photograph of a room: 4032 px wide, 2.23 MB as WebP, still refused. Do
+    // not stop at "converted" there – the author is running this command
+    // because the build refused the deck, and coming back to say the asset is
+    // smaller but still refused is the same dead end in fewer megabytes. One
+    // more pass at CAP_RESCUE_WIDTH, and the report says it happened.
+    let rescued = false;
+    if (outSize > MAX_INLINE_BYTES && dims && CAP_RESCUE_WIDTH < (resizeTo || dims.width)) {
+      const tmp2 = dst + '.rescue.tmp';
+      try {
+        encoder.encode(ref.absPath, tmp2, CAP_RESCUE_WIDTH);
+        const rescueSize = fs.statSync(tmp2).size;
+        fs.rmSync(tmp, { force: true });
+        fs.renameSync(tmp2, tmp);
+        outSize = rescueSize;
+        resizeTo = CAP_RESCUE_WIDTH;
+        rescued = true;
+      } catch (e) {
+        fs.rmSync(tmp2, { force: true });   // keep the first encode
+      }
+    }
+    const dimLabel = dims
+      ? `${dims.width}x${dims.height}${resizeTo ? ` → ${resizeTo}w` : ''}`
+      : '?';
     // WebP is not always smaller – an already-optimised PNG of flat colour
     // can lose. Keep whichever is smaller and never report a regression as
     // a win.
     if (outSize >= ref.size) {
       fs.rmSync(tmp, { force: true });
-      rows.push({ name: path.basename(ref.absPath), from: ref.size, to: outSize, dims: dimLabel, note: 'kept original (webp larger)' });
+      const kept = ['kept original (webp larger)'];
+      if (ref.size > MAX_INLINE_BYTES) {
+        kept.push(`still over the ${capMb} MB cap – rerun with --max-width ${nextRescueWidth(dims ? dims.width : CAP_RESCUE_WIDTH)}`);
+      }
+      rows.push({
+        name: path.basename(ref.absPath), from: ref.size, to: outSize, dims: dimLabel,
+        note: kept.join('; '), over: ref.size > MAX_INLINE_BYTES, final: ref.size,
+        width: dims ? dims.width : null,
+      });
       before += ref.size; after += ref.size;
       continue;
     }
     before += ref.size; after += outSize; converted++;
+    const notes = [];
+    if (dstExisted) notes.push('overwrote existing .webp');
+    if (rescued) notes.push(`downscaled to ${CAP_RESCUE_WIDTH}w to clear the ${capMb} MB cap`);
+    else if (inPlace) notes.push('re-encoded in place');
+    const stillOver = outSize > MAX_INLINE_BYTES;
+    if (stillOver) {
+      notes.push(`still ${(outSize / 1024 / 1024).toFixed(2)} MB, over the ${capMb} MB cap – rerun with --max-width ${nextRescueWidth(resizeTo || (dims ? dims.width : CAP_RESCUE_WIDTH))}`);
+    }
     rows.push({
       name: path.basename(ref.absPath), from: ref.size, to: outSize, dims: dimLabel,
-      note: dstExisted ? 'overwrote existing .webp' : '',
+      note: notes.join('; '), over: stillOver, final: outSize,
+      width: resizeTo || (dims ? dims.width : null),
     });
     if (dryRun) { fs.rmSync(tmp, { force: true }); continue; }
     fs.renameSync(tmp, dst);
-    fs.rmSync(ref.absPath, { force: true });
+    // Never after an in-place re-encode: dst IS absPath there, and removing it
+    // would delete the file just written.
+    if (!inPlace) fs.rmSync(ref.absPath, { force: true });
     for (const explicit of ref.explicitRefs) {
       const replacement = explicit.replace(/\.[^.]+$/, '.webp');
-      const beforeSrc = src;
-      // Both spellings of a reference – the markdown `](path)` form and the
-      // bare token a ::: draw `image` statement carries. Rewriting only
-      // the markdown form deleted an original a diagram still pointed at
-      // and then reported the rewrite as done: the next build failed on a
-      // file this very command had removed. Fence-aware, line by line,
-      // because a path inside a code fence is documentation, not a
-      // reference – the same rule the collector follows.
-      const esc = explicit.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-      let fence = false;
-      src = src.split('\n').map((line) => {
-        if (/^\s*(```|~~~)/.test(line)) { fence = !fence; return line; }
-        if (fence) return line;
-        return line.split(`](${explicit})`).join(`](${replacement})`)
-          .replace(new RegExp(`(^|[\\s(])${esc}(?=[\\s)]|$)`, 'g'),
-            (m0, pre) => pre + replacement);
-      }).join('\n');
-      if (src !== beforeSrc) sourceEdits.push({ from: explicit, to: replacement });
+      if (replacement === explicit) continue;      // a .webp kept its own name
+      const rewritten = rewriteAssetRef(src, explicit, replacement);
+      if (rewritten !== src) { src = rewritten; sourceEdits.push({ from: explicit, to: replacement }); }
       else console.log(`  [warn] ${explicit} was converted but no reference in ${path.basename(absIn)} matched – check the file by hand.`);
     }
   }
@@ -19958,6 +22596,18 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
   }
   console.log('');
   console.log(`  ${'total'.padEnd(44)} ${''.padEnd(16)} ${kb(before)} → ${kb(after)}  ${String(Math.round((after / before) * 100)).padStart(3)}%  (${converted} converted)`);
+
+  // Said again, apart from the table, because this is the one outcome that
+  // leaves the build still refusing the deck – and it is a row among twenty.
+  const stuck = rows.filter(r => r.over);
+  if (stuck.length) {
+    console.log('');
+    console.log(`${stuck.length} asset(s) are still over the ${capMb} MB per-image inline cap, so the build will refuse this deck:`);
+    for (const r of stuck) {
+      console.log(`  ${r.name}  ${(r.final / 1024 / 1024).toFixed(2)} MB  – rerun with --max-width ${nextRescueWidth(r.width || CAP_RESCUE_WIDTH)}`);
+    }
+    console.log('  (or --no-inline-images at build time, which ships external asset paths on purpose.)');
+  }
 
   if (dryRun) {
     console.log('');
@@ -20759,7 +23409,7 @@ async function runServe(rootDir, wantedPort) {
 
 // Flags that consume the following argv token as their value, so it is not
 // mistaken for the source path.
-const VALUE_FLAGS = new Set(['--max-width', '--port', '--viewport', '--squint-out', '--into']);
+const VALUE_FLAGS = new Set(['--frames', '--max-width', '--port', '--viewport', '--squint-out', '--into']);
 
 // ── driving the built projection (shared by --check-fit and --squint) ─
 // Two commands answer questions that only a rendered page can answer - does
@@ -20807,6 +23457,37 @@ async function openAudienceProbe(absIn, label, viewport, verb = 'read') {
   return { browser, page };
 }
 
+// Hold still before looking. Both probes below press a key and then wait a
+// fixed 360 ms, which is longer than a reveal's 180 ms fade and the 260 ms
+// crossfade - and shorter than two things that matter: the camera's own
+// glide, and a `::: backdrop … reveal` at 620 ms. A picture taken at 360 ms
+// of that reveal is the clip-path part-way open, and a full-frame photograph
+// is then a centred rectangle with paper round it: measured on a keynote,
+// #klausur came out 1352x775 in a 1600x900 frame and #projektmesse 1260x708,
+// and both were read off the contact sheet as a layout defect - the backdrop
+// being scaled with the slide - which they are not. The DOM says
+// inset(0) and background-size: cover at rest; the camera had simply
+// photographed a state the projection passes through.
+//
+// So wait for the transitions rather than for a number. getAnimations() sees
+// CSS transitions and animations, which is every one of the cases above; a
+// figure `step` is tweened in JavaScript and is covered by the fixed wait the
+// callers keep. The cap is there because a deck may hold a looping animation
+// (an autoplaying figure, a caret) that never finishes, and a probe that
+// waits for one of those would never return.
+const PROBE_SETTLE_MS = 1200;
+function settleProbe(page, cap = PROBE_SETTLE_MS) {
+  return page.evaluate((ms) => new Promise((done) => {
+    const t0 = performance.now();
+    const tick = () => {
+      const running = document.getAnimations().some(a => a.playState === 'running');
+      if (!running || performance.now() - t0 > ms) { done(Math.round(performance.now() - t0)); return; }
+      requestAnimationFrame(tick);
+    };
+    tick();
+  }), cap).catch(() => 0);
+}
+
 // WIDTHxHEIGHT off the command line, for both commands that take one. Exits
 // rather than falling back to the default: a mistyped viewport that silently
 // measures 1600x900 answers a question nobody asked.
@@ -20819,6 +23500,89 @@ function readViewportFlag(argv, fallback = { width: 1600, height: 900 }) {
     process.exit(1);
   }
   return { width: Number(m[1]), height: Number(m[2]) };
+}
+
+// ── --frames ─────────────────────────────────────────────────────────
+// Every state of the projection as a picture, because the two probes above
+// answer two narrow questions and a deck goes wrong in ways neither asks
+// about: a figure whose type is 12 px on a 1600 px slide, a `.bare` cell
+// that swallowed its `.dashed`, a caption over a figure instead of under
+// it. --check-fit is geometry against the frame and --squint is text; both
+// were clean on a keynote whose author found seven of its defects only
+// after writing this walk by hand in Playwright and running it six times.
+//
+// One PNG per state at 1600x900, named by position, chunk id and beat, and
+// a contact sheet of eight per page next to them - the sheet is what one
+// actually reads, because the defects above are visible at a quarter of
+// the size and forty frames on five pages is a review, forty files is not.
+// The sheet is drawn by the same browser from an HTML page of the frames,
+// so it costs no image library. Never fails a build.
+async function runFrames(absIn, viewport, outDir) {
+  const opened = await openAudienceProbe(absIn, '--frames', viewport, 'written');
+  if (!opened.page) return opened.code;
+  const { browser, page } = opened;
+  const dir = path.resolve(path.dirname(absIn), outDir || 'frames');
+  fs.mkdirSync(dir, { recursive: true });
+  for (const f of fs.readdirSync(dir)) {
+    if (/^(\d{3}-.*\.png|sheet-\d+\.png|sheet\.html)$/.test(f)) fs.unlinkSync(path.join(dir, f));
+  }
+
+  const where = () => page.evaluate(() => {
+    const act = document.querySelector('.chunk.active');
+    return act ? (act.dataset.chunkId || act.id || 'chunk') : null;
+  });
+
+  // Same stop rule as --check-fit: the screenshot hash decides, because a
+  // figure step moves nothing the DOM can count. Duplicates are not written
+  // - a press that painted the same pixels is the same state.
+  const frames = [];
+  let lastHash = null, same = 0, lastId = null, beat = 0;
+  for (let i = 0; i < 400; i++) {
+    const id = await where();
+    if (!id) break;
+    await settleProbe(page);
+    const shot = await page.screenshot();
+    const hash = crypto.createHash('sha1').update(shot).digest('hex');
+    if (hash === lastHash) { if (++same >= 2) break; }
+    else {
+      same = 0;
+      beat = id === lastId ? beat + 1 : 0;
+      lastId = id;
+      const name = `${String(frames.length + 1).padStart(3, '0')}-${id}-b${beat}.png`;
+      fs.writeFileSync(path.join(dir, name), shot);
+      frames.push({ name, id, beat });
+    }
+    lastHash = hash;
+    await page.keyboard.press('ArrowRight');
+    await page.waitForTimeout(360);
+  }
+
+  // The contact sheet: eight frames a page, four by two, each captioned with
+  // its file name so a defect seen on the sheet can be opened at full size.
+  const per = 8, sheets = Math.ceil(frames.length / per);
+  const cell = Math.floor((viewport.width - 5 * 16) / 4);
+  const cellH = Math.round(cell * viewport.height / viewport.width);
+  for (let s = 0; s < sheets; s++) {
+    const slice = frames.slice(s * per, s * per + per);
+    const html = `<!doctype html><meta charset="utf-8"><style>
+      body{margin:0;background:#444;font:12px/1.3 system-ui,sans-serif;color:#eee}
+      .grid{display:grid;grid-template-columns:repeat(4,${cell}px);gap:16px;padding:16px}
+      figure{margin:0}img{width:${cell}px;height:${cellH}px;display:block;background:#fff;outline:1px solid #222}
+      figcaption{padding:3px 0 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    </style><div class="grid">${slice.map(f =>
+      `<figure><img src="${pathToFileURL(path.join(dir, f.name)).href}"><figcaption>${f.name}</figcaption></figure>`).join('')}</div>`;
+    const sheetHtml = path.join(dir, 'sheet.html');
+    fs.writeFileSync(sheetHtml, html);
+    const sp = await browser.newPage({ viewport: { width: viewport.width, height: 2 * (cellH + 40) + 16 }, deviceScaleFactor: 1 });
+    await sp.goto(pathToFileURL(sheetHtml).href, { waitUntil: 'networkidle' });
+    await sp.screenshot({ path: path.join(dir, `sheet-${s + 1}.png`), fullPage: true });
+    await sp.close();
+    fs.unlinkSync(sheetHtml);
+  }
+  await browser.close();
+  console.log(`[frames] ${frames.length} state(s) at ${viewport.width}x${viewport.height}`
+    + ` written to ${path.relative(process.cwd(), dir) || '.'}/, ${sheets} contact sheet(s).`);
+  return 0;
 }
 
 // ── --check-fit ──────────────────────────────────────────────────────
@@ -20856,8 +23620,25 @@ async function runCheckFit(absIn, viewport) {
     const act = document.querySelector('.chunk.active');
     if (!act) return null;
     const content = act.querySelector('.chunk-content') || act;
-    const r = content.getBoundingClientRect();
     const vp = document.getElementById('stage-viewport').getBoundingClientRect();
+    // The box the CAMERA framed, not a box of this probe's own choosing.
+    // focusCamera measures `.chunk-content` for an ordinary chunk, the chunk
+    // itself where a dock or a panel takes a grid row, and – on a `.middle`
+    // chunk – the span that is actually painted at this beat. A probe that
+    // kept measuring the content box on a `.middle` chunk reported the empty
+    // reserve under a growing stack as overflow: measured on a keynote,
+    // #drei-jahre "184 px off the bottom" and #busfaktor "40 px" with nothing
+    // cut off either frame. The three branches have to be one rule, so they
+    // are read off the same attributes and the same walk the camera uses.
+    const framed = act.hasAttribute('data-dock') || act.hasAttribute('data-has-panel') ? act : content;
+    let r = framed.getBoundingClientRect();
+    if (framed !== act && act.hasAttribute('data-middle') && typeof paintedClientSpan === 'function') {
+      const sp = paintedClientSpan(framed);
+      // The camera's own guard: a painted span taller than the frame is
+      // walked from its head like any other tall chunk, and framing it would
+      // be framing the middle of something with no top on screen.
+      if (sp && sp.height <= vp.height) r = sp;
+    }
     // What the height is *made of*, which is not the same question as how
     // many words the chunk holds. Under topic-bold the collapse renders the
     // first sentence of each paragraph plus every promoted bold, and hides
@@ -20875,12 +23656,59 @@ async function runCheckFit(absIn, viewport) {
         boldPx += br.height + parseFloat(getComputedStyle(b).marginTop || 0);
       }
     }
+    // How large the figure's type actually came out, which is the other
+    // question a rendered page is the only place to ask. A label's size is
+    // its font-size through the viewBox transform - the attribute times the
+    // screen CTM - and the figure's BASE label is that for an unclassed one,
+    // which is the rendered width over --dg-fit-w by construction. The base
+    // is what the width rule aims at and what is compared here; the smallest
+    // label on the drawing is reported beside it but never tested, because
+    // `.small` IS 0.8 of the base and testing it would report the vocabulary.
+    //
+    // Against the body type beside it, because "small" on a slide is a
+    // relation and not only a number: the two are meant to match
+    // (.chunk .psi-diagram).
+    //
+    // And how much of its canvas the drawing filled, which is the question
+    // the canvas made askable: `data-canvas` is the box the slide reserved
+    // and the box the drawing took, both in viewBox units, and it is on the
+    // svg only where a canvas applies.
+    const body = act.querySelector('.chunk-body') || act.querySelector('.section-body') || content;
+    const bodyPx = parseFloat(getComputedStyle(body).fontSize) || 0;
+    const figs = [];
+    for (const svg of act.querySelectorAll('svg.psi-diagram')) {
+      if (!svg.clientWidth || svg.closest('.exps')) continue;
+      const typeW = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-fit-w'));
+      if (!(typeW > 0)) continue;
+      let min = Infinity;
+      for (const t of svg.querySelectorAll('.dg-lbl text')) {
+        const m = t.getScreenCTM();
+        const px = parseFloat(getComputedStyle(t).fontSize) * (m ? m.a : 1);
+        if (px > 0 && px < min) min = px;
+      }
+      const cv = (svg.dataset.canvas || '').split(/\s+/).map(Number);
+      // The four numbers and not only the ratio: the ratio says whether the
+      // slide reads full, and what an author about to add a row needs is how
+      // much room is left, per axis. Kept in viewBox units and divided by the
+      // base label on the way out, the way the static warnings say it.
+      const canvas = cv.length === 4 && cv.every(n => n > 0)
+        ? { w: cv[0], h: cv[1], cw: cv[2], ch: cv[3],
+            fill: Math.round(100 * (cv[2] * cv[3]) / (cv[0] * cv[1])),
+            over: Math.max(0, cv[2] - cv[0]) > 0.5 || Math.max(0, cv[3] - cv[1]) > 0.5 }
+        : null;
+      figs.push({
+        canvas,
+        base: Math.round((svg.clientWidth / typeW) * 10) / 10,
+        min: min === Infinity ? null : Math.round(min * 10) / 10,
+      });
+    }
     return {
       id: act.dataset.chunkId || act.id || '?',
       tag: act.dataset.tag || '', width: act.dataset.width || '',
       top: Math.round(r.top - vp.top), bottom: Math.round(r.bottom - vp.top),
       h: Math.round(r.height), vpH: Math.round(vp.height),
       collapse, bolds, boldPx: Math.round(boldPx),
+      figs, bodyPx: Math.round(bodyPx * 10) / 10,
     };
   });
 
@@ -20889,8 +23717,16 @@ async function runCheckFit(absIn, viewport) {
   // from the document reports "nothing moved" and stops the walk on the
   // first stepped figure in the deck.
   const worst = new Map();
+  const figType = new Map();
+  // What every slide's body type settled at, figure or not - the reference
+  // "what the deck's other slides get" has to be measured over the whole deck
+  // and not over the figures alone, or a deck whose figures are all dense
+  // reports itself as even. Smallest per chunk, for the same reason figType
+  // keeps the smallest: a chunk is as small as its worst beat made it.
+  const bodySeen = new Map();
   let states = 0, lastHash = null, same = 0;
   for (let i = 0; i < 400; i++) {
+    await settleProbe(page);
     const st = await probe();
     if (!st) break;
     const shot = await page.screenshot();
@@ -20901,6 +23737,20 @@ async function runCheckFit(absIn, viewport) {
     // puzzle a reviewer should not have to solve.
     if (hash === lastHash) { if (++same >= 2) break; } else { same = 0; states++; }
     lastHash = hash;
+    // The smallest label the slide showed at any of its beats, kept per chunk:
+    // a figure can arrive on a later beat, and a `step` can swap a label for a
+    // longer one that is typeset smaller.
+    for (const f of st.figs) {
+      const prev = figType.get(st.id);
+      if (!prev || f.base < prev.px) {
+        figType.set(st.id, { px: f.base, min: f.min, bodyPx: st.bodyPx, width: st.width, tag: st.tag,
+                             canvas: f.canvas });
+      }
+    }
+    if (st.bodyPx > 0 && !isCoverSlide(st.tag)) {
+      const prev = bodySeen.get(st.id);
+      if (prev == null || st.bodyPx < prev) bodySeen.set(st.id, st.bodyPx);
+    }
     const over = Math.max(0, -st.top) + Math.max(0, st.bottom - st.vpH);
     if (over > 0) {
       const prev = worst.get(st.id);
@@ -20929,16 +23779,31 @@ async function runCheckFit(absIn, viewport) {
   const clipped = all.filter(b => b.h <= b.vpH);
   const tall = all.filter(b => b.h > b.vpH);
   const where = `${viewport.width}x${viewport.height}`;
+  reportFigureType(figType, bodySeen, where);
+  // Named, all of them, and on their own lines. The summary used to carry a
+  // count and the first four ids, which is the shape of a line nobody can act
+  // on: a deck with nine tall chunks got "9 chunk(s) … (#a, #b, #c, #d, …)"
+  // and the author had no way to find the other five but to walk the deck.
+  // They are still not a failure and still change no exit code - a tall chunk
+  // is shown by scrolling and the author may well have meant it - so this is
+  // a list to read, with the height beside each name so the ones that are
+  // barely over can be told from the ones that are twice the frame.
   const tallNote = tall.length
-    ? ` ${tall.length} chunk(s) are taller than the frame and are read by scrolling`
-      + ` (${tall.slice(0, 4).map(b => '#' + b.id).join(', ')}${tall.length > 4 ? ', …' : ''}).`
+    ? ` ${tall.length} chunk(s) are taller than the frame and are read by scrolling:`
     : '';
+  const tallLines = tall
+    .slice()
+    .sort((a, b) => b.h - a.h)
+    .map(b => `  #${b.id} (${b.tag}${b.width ? ', .' + b.width : ''}) – ${b.h} px`
+      + ` in a ${b.vpH} px frame, walked from beat ${b.beat}.`);
   if (!clipped.length) {
     console.log(`[check-fit] ${states} state(s) at ${where}: every slide that fits the frame is inside it.${tallNote}`);
+    for (const line of tallLines) console.log(line);
     return 0;
   }
   console.error(`[check-fit] ${states} state(s) at ${where}: ${clipped.length} slide(s) fit the frame`
     + ` and are positioned outside it.${tallNote}`);
+  for (const line of tallLines) console.error(line);
   for (const b of clipped) {
     const side = b.top < 0 && b.bottom > b.vpH ? 'clipped at both ends'
       : b.top < 0 ? `${-b.top} px off the top` : `${b.bottom - b.vpH} px off the bottom`;
@@ -20961,6 +23826,141 @@ async function runCheckFit(absIn, viewport) {
   console.error(`  Measured at ${where} only. A room with a different aspect ratio wraps differently;`
     + ' --viewport WxH checks another one.');
   return 2;
+}
+
+// What the figures' type came out at, said once for the deck. It is a note
+// and never an exit code: a drawing the room cannot read is a defect, but it
+// is not the defect this command promises to police, and turning it into a
+// failure would make --check-fit refuse decks it used to pass over a rule
+// they were never written against.
+//
+// Two numbers, because "small" is two different complaints. Under
+// FIG_TYPE_FLOOR_PX is absolute - the back row is guessing whatever else is
+// on the slide. Under 0.8 of the body is relative: the slide's own words are
+// legible and its figure is not, which is the inconsistency the width rule
+// removed and the one thing that can bring it back (a container measured in
+// the same ems as the type - see figureCapProbe).
+//
+// And, since the canvas, a third: how much of the box the slide reserved the
+// drawing actually took. That one is measured rather than computed - the
+// build says the same thing statically as `figure-overflows-canvas` and
+// `figure-underfills-canvas` - but the two are worth having side by side,
+// because this half sees a figure inside a card or a pane that the static
+// half measures against the chunk's column.
+// A cover slide is not measured against the deck's body type, in either
+// direction: it neither sets the median nor is compared with it. Its words
+// are the composition's - the title pair, the credit block, a quotation in a
+// field - and there is no `.chunk-body` on it at all, so what the probe reads
+// back is the content box's own font size, which is a different quantity
+// wearing the same name. Counting it moved the median, and comparing a cover
+// with it printed "#title settles at 20 px, 38% under the deck - its figure
+// is what took the slide down" about a slide whose figure IS the cover's
+// picture and whose type nothing took down.
+const isCoverSlide = (tag) => tag === 'title' || tag === 'closing';
+
+function reportFigureType(figType, bodySeen, where) {
+  if (!figType.size) return;
+  const rows = [...figType.entries()].map(([id, f]) => ({ id, ...f, ratio: f.bodyPx ? f.px / f.bodyPx : 0 }));
+  const ratios = rows.map(f => f.ratio).filter(r => r > 0).sort((a, b) => a - b);
+  const behind = rows.filter(f => f.ratio && f.ratio < 0.8).sort((a, b) => a.ratio - b.ratio);
+  const tiny = rows.filter(f => f.px < FIG_TYPE_FLOOR_PX && !(f.ratio < 0.8)).sort((a, b) => a.px - b.px);
+  console.log(`[check-fit] ${rows.length} chunk(s) with a figure at ${where}: base labels run`
+    + ` ${ratios[0].toFixed(2)}x to ${ratios[ratios.length - 1].toFixed(2)}x of the body type beside them`
+    + `${behind.length || tiny.length ? '.' : ', and none is under ' + FIG_TYPE_FLOOR_PX + ' px.'}`);
+  // The canvas, per figure, sorted by how badly it is used - a line a reader
+  // can run down to see whether a deck's figure slides are one deck.
+  const onCanvas = rows.filter(f => f.canvas).sort((a, b) => a.canvas.fill - b.canvas.fill);
+  if (onCanvas.length) {
+    const scaled = onCanvas.filter(f => f.canvas.over);
+    const empty = onCanvas.filter(f => !f.canvas.over && f.canvas.fill < Math.round(FIG_UNDERFILL * 100));
+    console.log(`  ${onCanvas.length} of them are on a canvas and take`
+      + ` ${onCanvas[0].canvas.fill}% to ${onCanvas[onCanvas.length - 1].canvas.fill}% of it`
+      + `${scaled.length ? `; ${scaled.length} had to be scaled past it.` : ', and none had to be scaled past it.'}`);
+    // **How much room each figure has left, per axis.** The two complaints
+    // above speak about a figure that has already gone wrong – past its
+    // canvas, or so far inside it that the slide reads empty – and the
+    // question an author has *before* either happens is "can I put another row
+    // in this one". Both boxes were in hand and the report never said.
+    //
+    // One line per figure, and the two complaints ride that one line rather
+    // than getting a second: two lines about one slide is how a report stops
+    // being read. In base labels, because that is the unit the canvas is
+    // defined in and the unit `frame WxH` is written in, so a number here is a
+    // number the author can act on. Room is the canvas minus the drawing and
+    // is signed: negative is the overflow, and the clause at the end of the
+    // line says so rather than leaving a minus sign to carry it.
+    //
+    // Sorted by the tighter of a figure's two axes, so the list reads as a
+    // queue – whatever stands at the top is what the next edit breaks first.
+    const lab = (n) => (n / DG_FONT).toFixed(1);
+    const room = (f) => Math.min(f.canvas.w - f.canvas.cw, f.canvas.h - f.canvas.ch);
+    const byRoom = [...onCanvas].sort((a, b) => room(a) - room(b));
+    console.log('  room left on each – the canvas minus the drawing, in base labels and in px, so a'
+      + ' figure at 0.0 across is one column from overflowing:');
+    for (const f of byRoom) {
+      const dw = f.canvas.w - f.canvas.cw, dh = f.canvas.h - f.canvas.ch;
+      // Both units, the way `figure-overflows-canvas` says the same thing
+      // statically: one decimal of a base label hides up to seven px, and a
+      // figure near zero is exactly where the number is read.
+      const axis = (px, which) => `${lab(px)} ${which} (${Math.round(px)} px)`;
+      console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''})`
+        + ` – canvas ${lab(f.canvas.w)} x ${lab(f.canvas.h)},`
+        + ` drawing ${lab(f.canvas.cw)} x ${lab(f.canvas.ch)},`
+        + ` room ${axis(dw, 'across')} and ${axis(dh, 'down')}`
+        + (f.canvas.over
+          ? `; past its canvas, so this slide settles at ${f.bodyPx} px of body type rather than the deck's own.`
+          : empty.includes(f)
+            ? `; ${f.canvas.fill}% of the canvas, so the slide reads empty.`
+            : '.'));
+    }
+  }
+  for (const f of behind) {
+    console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''}) – base label ${f.px} px against`
+      + ` ${f.bodyPx} px of body type (${f.ratio.toFixed(2)}x)${f.min && f.min < f.px ? `, smallest on the drawing ${f.min} px` : ''}.`
+      + ` A figure is sized from the type it stands in and capped by its box, so this one is at its box:`
+      + ` fewer grid units, shorter labels, or more room for it.`);
+  }
+  // One line for the whole class, not one per chunk: every member of it says
+  // the same thing, and it is not a sentence about the figure. The labels
+  // match the words beside them and both are small, so what is small is the
+  // slide - auto-fit answering the rest of what is on it.
+  if (tiny.length) {
+    const names = tiny.slice(0, 6).map(f => '#' + f.id).join(', ');
+    console.log(`  ${tiny.length} figure(s) are under ${FIG_TYPE_FLOOR_PX} px and match the body type`
+      + ` beside them (${tiny[0].px} px at the smallest): the slide is small, not the drawing –`
+      + ` ${names}${tiny.length > 6 ? ', …' : ''}.`);
+  }
+
+  // The third number, and it is about the deck rather than about a figure.
+  // A drawing capped at its column pulls its own slide's type down and
+  // nothing else's, so what the room sees is a heading that changes size
+  // between consecutive slides - measured on a keynote, 25 px against 44 px
+  // in the same width class. Neither reading above can see that: both compare
+  // a figure with the words beside it, and on a shrunken slide those agree
+  // perfectly. So compare each slide with the deck's own median instead.
+  // With a canvas this is the proof rather than the complaint: a figure that
+  // fits its canvas settles at the same body type as every other figure
+  // slide, so a spread here is a list of the figures that did not fit.
+  const all = [...bodySeen.values()].filter(v => v > 0).sort((a, b) => a - b);
+  if (all.length < 3) return;
+  const median = all.length % 2 ? all[(all.length - 1) / 2]
+    : (all[all.length / 2 - 1] + all[all.length / 2]) / 2;
+  const under = rows.filter(f => !isCoverSlide(f.tag) && f.bodyPx > 0 && f.bodyPx < median * FIG_TYPE_EVEN_TOL)
+    .sort((a, b) => a.bodyPx - b.bodyPx);
+  console.log(`  the deck's body type settles between ${all[0]} and ${all[all.length - 1]} px,`
+    + ` median ${median} px${under.length ? '.' : ', and no slide with a figure is more than '
+      + Math.round((1 - FIG_TYPE_EVEN_TOL) * 100) + '% under it.'}`);
+  for (const f of under) {
+    console.log(`  #${f.id} (${f.tag}${f.width ? ', .' + f.width : ''}) settles at ${f.bodyPx} px,`
+      + ` ${Math.round(100 * (1 - f.bodyPx / median))}% under the deck - its figure is what took the`
+      + ` slide down.`
+      + (f.canvas
+        ? (f.canvas.over
+          ? ' It is over its canvas: less in the drawing, or  frame WxH  on this figure.'
+          : ' It is inside its canvas, so what took the slide down is the rest of what is on it.')
+        : ' It is not on a canvas (frame: none, or a figure in a card, a pane or a divider), so'
+          + ' {.figure-type-N} on this chunk is how one slide answers that without moving the rest.'));
+  }
 }
 
 // ── --squint ─────────────────────────────────────────────────────────
@@ -21339,6 +24339,7 @@ function squintScan() {
     section: art.dataset.section || '',
     bare: art.hasAttribute('data-bare'),
     center: art.hasAttribute('data-center'),
+    middle: art.hasAttribute('data-middle'),
     col: col ? Number(col.dataset.col) : -1,
     lines,
     sig: [art.dataset.chunkId, steps, clips, lines.length,
@@ -21419,10 +24420,10 @@ function formatSquint(doc) {
   w(...SQUINT_LEGEND);
   w('');
   w('A slide opens with its id, its type and its width, then whatever else is');
-  w('true of it: the cover or divider composition, .bare or .center, how many');
-  w('beats it has, how long its speaker note is. Notes are counted and never');
-  w('quoted - they are the one thing certainly not on the projection, and');
-  w('print-notes.html is the file for reading them.');
+  w('true of it: the cover or divider composition, .bare, .center or .middle,');
+  w('how many beats it has, how long its speaker note is. Notes are counted');
+  w('and never quoted - they are the one thing certainly not on the');
+  w('projection, and print-notes.html is the file for reading them.');
   w('');
   w('It cannot see colour, contrast, overlap, or anything below the fold -');
   w('a slide can be in this file in full and unreadable on the wall. Use');
@@ -21440,7 +24441,7 @@ function formatSquint(doc) {
     }
     const flags = [c.tag || 'free', c.width || '',
       c.cover ? 'cover=' + c.cover : '', c.section ? 'divider=' + c.section : '',
-      c.bare ? '.bare' : '', c.center ? '.center' : '',
+      c.bare ? '.bare' : '', c.center ? '.center' : '', c.middle ? '.middle' : '',
       c.beats > 1 ? c.beats + ' beats' : '',
       c.noteWords ? 'note ' + c.noteWords + ' words' : ''].filter(Boolean);
     w('');
@@ -21627,6 +24628,7 @@ async function main() {
     console.error('                            [--no-optimize-images] [--events]');
     console.error('  node build.js <source.md> --check-fit [--viewport 1600x900]');
     console.error('  node build.js <source.md> --squint [--squint-out PATH] [--viewport 1600x900]');
+    console.error('  node build.js <source.md> --frames [DIR] [--viewport 1600x900]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
     console.error('  node build.js --new <slug> [--into <dir>]');
@@ -21651,6 +24653,10 @@ async function main() {
     console.error('                        1600x900 and report any slide whose content leaves the');
     console.error('                        frame. Exit 2 if one does. The density budgets are word');
     console.error('                        counts, so cards and rows can overflow with a clean lint.');
+    console.error('                        It also reports the deck\'s median settled body type and');
+    console.error('                        names every slide with a figure more than 15% under it,');
+    console.error('                        and gives each figure its canvas, its drawing and the room');
+    console.error('                        left per axis in base labels, tightest first.');
     console.error('  --viewport WxH        measure at another size (default 1600x900, a 16:9 room).');
     console.error('');
     console.error('Reading the projection back (needs playwright-core and a Chrome or Chromium):');
@@ -21658,6 +24664,9 @@ async function main() {
     console.error('                        what a room would see – heading, topic sentences, promoted');
     console.error('                        bolds, what stays whole, what the collapse withholds – to');
     console.error('                        squint.txt beside the source. Never fails a build.');
+    console.error('  --frames [DIR]        after building, write every state of audience.html as a PNG');
+    console.error('                        plus contact sheets of eight to DIR (default: frames/ beside');
+    console.error('                        the source). The review --check-fit and --squint cannot do.');
     console.error('  --squint-out PATH     write it somewhere else; "-" writes to stdout.');
     console.error('');
     console.error('Driving the build from another program:');
@@ -21753,6 +24762,13 @@ async function main() {
     }
     const code = await runSquint(absIn, readViewportFlag(argv),
       outIdx >= 0 ? argv[outIdx + 1] : null);
+    if (code) process.exitCode = code;
+  }
+  // Pictures of every state, for the eyes the two probes above do not have.
+  if (flags.has('--frames')) {
+    const fIdx = argv.indexOf('--frames');
+    const dirArg = argv[fIdx + 1] && !argv[fIdx + 1].startsWith('--') ? argv[fIdx + 1] : null;
+    const code = await runFrames(absIn, readViewportFlag(argv), dirArg);
     if (code) process.exitCode = code;
   }
   if (flags.has('--serve')) await runServe(path.dirname(absIn), servePort);

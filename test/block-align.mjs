@@ -39,6 +39,22 @@ export const name = 'blocks · a code block, a figure and a formula on the prose
 export const lecture = 'tutorial';   // built for other specs already; unused here
 export const view = 'audience';
 
+// A drawing, for the one member of the key whose box does not span the
+// measure. `::: draw` is the case where "flush left" and "the box flush left"
+// are different edges: the box is the viewBox, which is the drawing plus
+// DG_MARGIN on every side, so aligning the box leaves the ink a fixed reserve
+// short of the sentence above it.
+const DRAW = (id, cls) => `## example: A drawing on the axis {#${id}${cls}}
+
+A paragraph whose left edge is the axis the drawing is measured against.
+
+::: draw 120x40
+box one "one" at 0,0 w 1.2 h 0.6
+box two "two" right of one gap 0.4 same as one
+box three "three" right of two gap 0.4 same as one
+:::
+`;
+
 // One long line, so the pre is always wider than the column it sits in and
 // the breakout always has something to do.
 const LONG = 'def score(page, links, weights, seen, depth, budget, verbose, tracer, cache):';
@@ -70,6 +86,8 @@ ${CHUNK('plain', '')}
 ${CHUNK('left', ' .blocks-left')}
 ${CHUNK('narrow', ' .narrow .blocks-left')}
 ${CHUNK('full', ' .full .blocks-left')}
+${DRAW('drawplain', ' .wide')}
+${DRAW('drawleft', ' .wide .blocks-left')}
 `;
 
 const DECK_LEFT = `---
@@ -123,7 +141,22 @@ const edges = (page, id) => page.evaluate((cid) => {
     ? [...(() => { const r = document.createRange(); r.selectNodeContents(head); return r.getClientRects(); })()]
       .map(b => Math.round(b.width)).filter(w => w > 4)
     : [];
+  // The drawing's painted extent, mapped out of user units into the page.
+  // getBBox is the ink; the viewBox is the reserve around it, and telling the
+  // two apart is the whole point of the assertion below.
+  const svg = q('svg.psi-diagram');
+  let dgInk = null, dgBox = null;
+  if (svg) {
+    const r = svg.getBoundingClientRect();
+    try {
+      const bb = svg.getBBox();
+      const vb = (svg.getAttribute('viewBox') || '').split(/\s+/).map(Number);
+      dgInk = r.left + (bb.x - vb[0]) * (r.width / vb[2]);
+      dgBox = r.left;
+    } catch (e) { /* no layout for it */ }
+  }
   return {
+    dgInk, dgBox,
     prose: L(q('.chunk-body p')),
     pre: L(q('pre')), preR: R(q('pre')),
     formula: glyphs ? glyphs.getBoundingClientRect().left : null,
@@ -155,7 +188,9 @@ export async function run({ page, report, walkTo }) {
         await page.waitForTimeout(600);
 
         const at = `${deck}, ${w}x${h}`;
-        const ids = deck === 'default' ? ['plain', 'left', 'narrow', 'full'] : ['deckleft', 'back'];
+        const ids = deck === 'default'
+          ? ['plain', 'left', 'narrow', 'full', 'drawplain', 'drawleft']
+          : ['deckleft', 'back'];
         const m = {};
         for (const id of ids) {
           await walkTo(id);
@@ -209,6 +244,31 @@ export async function run({ page, report, walkTo }) {
           ok(wide >= (m.plain.preR - m.plain.pre) - 1,
              `and a left listing is no narrower than the centred one (${at})`,
              `${Math.round(wide)} vs ${Math.round(m.plain.preR - m.plain.pre)}`);
+        }
+
+        // A `::: draw` is in this key too, and it is the member whose box is
+        // not the measure. Flush left has to put the DRAWING on the prose's
+        // axis, not the viewBox around it - the reserve is DG_MARGIN scaled
+        // by however wide the figure came out, which is a different number on
+        // every slide and lands as a near-miss on all of them. Measured on a
+        // real keynote before the rule: heading at 223, first box at 243.
+        if (deck === 'default') {
+          const dl = m.drawleft, dp = m.drawplain;
+          ok(near(dl.dgInk, dl.prose, 3),
+             `a flush-left drawing puts its ink on the sentence's edge (${at})`,
+             `ink ${Math.round(dl.dgInk)} vs prose ${Math.round(dl.prose)}, `
+             + `box ${Math.round(dl.dgBox)}`);
+          // …and it got there by moving the box out, which is the half that
+          // says --dg-ink-x is doing the work rather than the box happening
+          // to be flush.
+          ok(dl.dgBox < dl.prose - 2,
+             `and the box it moved hangs its reserve into the gutter (${at})`,
+             `${Math.round(dl.dgBox)} vs ${Math.round(dl.prose)}`);
+          // Centre is untouched: the reserve is symmetric, so a centred box is
+          // a centred drawing, and nothing moves in a deck that did not ask.
+          ok(dp.dgInk > dp.prose + 8 && dp.dgBox >= dp.prose - 1,
+             `while a centred drawing stays centred and keeps its box inside the column (${at})`,
+             `ink ${Math.round(dp.dgInk)}, box ${Math.round(dp.dgBox)}, prose ${Math.round(dp.prose)}`);
         }
 
         // The wrap half, on the deck that turns balancing off. A balanced

@@ -1,6 +1,6 @@
 ---
 name: psi-slides-figures
-description: The `::: draw` figure language and the graphical diagram editor in psi-slides – the full statement and class vocabulary (box, dot, text, image, edge, container, brace, bars, grid, plot, table, lanes, sequence, step, style, default), the slot tables, the generated names, the four design decisions behind the compiler, and the editor's span-rewriting contract. Use when authoring or debugging a `::: draw` block, when changing `diagram-core.mjs`, the diagram half of `lint.js`, `editor.mjs` or `editor.css`, or when a figure compiles but draws the wrong thing. `figure-design.md` is the craft; this is the machinery.
+description: The `::: draw` figure language and the graphical diagram editor in psi-slides – the full statement and class vocabulary (box, dot, text, image, edge, container, brace, bars, grid, plot, table, lanes, sequence, step, style, default), the slot tables, the generated names, the three design decisions behind the compiler, and the editor's span-rewriting contract. Use when authoring or debugging a `::: draw` block, when changing `diagram-core.mjs`, the diagram half of `lint.js`, `editor.mjs` or `editor.css`, or when a figure compiles but draws the wrong thing. `figure-design.md` is the craft; this is the machinery.
 ---
 
 # The psi-slides figure language and its editor
@@ -28,11 +28,251 @@ figure costs an hour. The order that works:
    `DG_STEP_OPS`, `DG_PROMINENCE`, `DG_WORD_OPTS`.
 4. **This file**, when something compiles and draws the wrong thing.
 
-## Four placement traps the compiler now warns about
+## What the compiler is (`::: draw`)
+
+A boxes-and-arrows compiler. The source is a line-oriented DSL inside the lecture markdown, the output is one inline `<svg>` plus, when the author wrote steps, a payload of precomputed per-step geometries the live runtime tweens between. `renderDiagram()` is the entry point; its section of `build.js` is navigable by its own sub-banners between `// ── diagrams (::: draw) ──` and `// ── parsing ──`.
+
+**Development state, not in any tagged release.** The repository and project site may carry `::: draw` as a preview independently of a versioned release; `package.json` still reports 1.0.0, and the latest tag does not include the feature. The changelog entry stays under `## [Unreleased]` – `CONTRIBUTING.md` § Building and releasing bumps the version at release time, not when a preview reaches `main`, so there is nothing to bump here.
+
+**Publishing `main` and cutting a release are separate events.** `pages.yml` fires on every push to `main` and redeploys the project site. It rebuilds and publishes the tutorial – which carries a `#diagram` chunk – and `lectures/diagrams/`, a fourth live demo beside the tutorial, python-intro and the short example. The latter puts every construct of the unreleased format in front of a reader as an explicitly labelled preview. Its four views are also tracked, so they travel in a future release archive and the release workflow rebuilds them to check they match their source.
+
+Before it can ship, in rough order of how much each would hurt to discover late: text width is estimated rather than measured, so a dense layout can be a few percent off; and `::: draw` becomes frozen source-format the moment it is in a tagged release, so **keep the editor marked experimental in the release notes for one minor cycle** if the language ships while the editor is still experimental.
+
+The vocabulary pass that used to head that list has happened: thirty-six rebuilt slides in `lectures/network-security`, then four of the arrangements a lecture keeps asking for – a flowchart, a swimlane, a tree, a table. Three of the four the grammar could already draw; the table it could not draw without naming every cell by hand, and the swimlane only by guessing a band width and re-guessing it whenever the contents changed. `table`, `lanes`, `series of`, `.diamond` and `.elbow` are what came back from it, and each one is a statement or a class that replaced a dozen hand-placed elements rather than a new capability. Treat a further arrangement the same way: build it out of what exists first, and only add a word when the hand-built version is the thing that cannot be maintained.
+
+Three decisions carry the design, and none of them should be traded away casually:
+
+- **No constraint solver.** Positions are expressions over a tiny algebra – a grid cell, an anchor on another element, an offset – so the dependency structure is a DAG resolved by one topological walk. Andrew Myers' [Constrain](https://github.com/andrewcmyers/constrain) is the reference for the other approach (Numeric.js least-squares over `align`/`equal`/`collinear`, rendered to canvas) and it is the right tool for *computed* layouts – tree rotations, sorting animations. It is the wrong tool here on three counts: canvas forfeits theme inheritance, text selection, search and print; a runtime solver is a dependency inside a file that is supposed to be self-contained; and solver failure is non-local – an over-constrained system renders plausibly wrong and reports a residual instead of a line number. `lint.js` can name the line.
+- **Layout runs once per step, at build time.** A step is not a transform applied to a finished picture, it is another evaluation of the same layout with different inputs. That is why an arrow stays attached to a box that walks away: the arrow never stored a coordinate, it stored "the right edge of `mix`". `dgStateAt(model, k)` builds the effective state after steps `0..k`; `layoutDiagram` resolves it; `dgFrameDrawables` reduces it to numbers.
+- **The runtime interpolates numbers and nothing else.** Every element reduces to one or two drawables, and a drawable is only ever a `rect`, a `circle`, a `path` or a block of `text` carrying a numeric vector. A transition is a lerp between two vectors, applied by setting attributes from `requestAnimationFrame`. This is also why **arrowheads are computed filled paths, not SVG `<marker>`s** – a marker will not rotate with a moving endpoint, and its fill would have to resolve through `context-stroke` to follow the theme.
+
+## The canvas a figure is drawn on
+
+**A slide has a fixed canvas, and a figure is drawn on it.** Every `::: draw`
+standing in a chunk's own body gets one, by default, and it is the same
+rectangle on every ordinary slide of a deck. That is the whole answer to the
+question this section used to spend a page on – how large a figure lands in a
+room – and it replaced the arrangement where the viewBox hugged the drawing
+and every figure slide therefore settled at its own zoom.
+
+### What the default is
+
+| the chunk | the canvas, in base labels | on a 1600x900 slide |
+| --- | --- | --- |
+| `.narrow` | 20.7 × 16 | 655 × 505 px |
+| `.standard` | 26.7 × 16 | 842 × 505 px |
+| `.wide` | 36.5 × 16 | 1152 × 505 px |
+| `.full` | 44.6 × 16 | 1408 × 505 px |
+
+The width is **the chunk's column measured in base labels**, which is exactly
+the width at which a base label lands at the size of the words beside it. So
+the canvas is not an extra rule on top of the label-size rule – it *is* that
+rule, written down as a box. The height is a fixed sixteen label-heights: a
+`.wide` chunk with a heading and a sub-heading, two lines of prose under the
+drawing and a one-line `::: footnote` costs 383 px of furniture, so such a
+slide stands at 888 px in a 900 px frame. That is the fullest a figure chunk
+can be, and it fits; eighteen label-heights did not. The ceiling is 17.7, and
+it is arithmetic rather than taste – past 62 % of the slide the height cap
+takes over and the figure comes out narrower than its own column.
+
+**The height does not come down by the prose under the drawing**, and that was
+measured rather than assumed (`PLAN-figure-defaults.md` §6 item 7). A shorter
+canvas cannot shrink a drawing – the box is the union – so on a slide whose
+drawing fills its canvas the trade reaches only a warning; making it bite would
+mean scaling each figure by how many words its paragraph runs to, which is the
+uneven type the canvas exists to remove, and the build does not know how many
+lines a paragraph wraps into. A figure chunk taller than the frame is a
+paragraph written for a reader: collapse it, `::: script` it, or give that one
+figure a `frame`.
+
+Three details that are not guessable:
+
+- **The em is 31.6 px, not 23.4.** 1rem at 1600x900 is 23.4 px, but a chunk
+  body is `1rem × --zoom × --body-scale` and `--zoom` defaults to 1.35. The
+  canvas is the column measured in *that*. Reading the rem instead makes every
+  canvas a quarter too wide and every label a quarter smaller than the prose
+  beside it.
+- **The chunk type moves it.** `--body-fs` is 1.2rem on a `principle`, 1.15rem
+  on a `question` and 0.9rem on a `figure`, so those chunks' canvases hold
+  proportionally fewer or more labels – and the box on the slide comes out the
+  same size either way. `FIG_BODY_REM` in build.js is the mirror of those
+  rules and `node test/gates/run.mjs canvas` holds the two together.
+- **`figure-type` divides both sides.** The key says how large a base label is
+  against body type, which is now also how many labels fit in the column:
+  `{.figure-type-160}` gives a canvas of 22.8 × 10 labels on a `.wide` chunk,
+  the same 1152 × 505 px box with bigger type in it.
+
+### What it does not do
+
+**It changes no drawing's rendered size.** A figure that fits inside its canvas
+is drawn at precisely the scale it was drawn at before; only the box round it
+grows to the column and the reserve. A figure past it is drawn exactly as it
+was too, because the emitted box is the union of the two. What the canvas adds
+is a measurable claim – this much slide is a figure's – and therefore two
+things the build can say that it could not say before.
+
+**It is the live views' box, not the documents'.** A slide is a fixed frame
+and a figure in it is one of a series; a figure in a printed column is
+apparatus inside running text, where reserved paper under a small drawing is a
+gap. So `print.html` and `print-notes.html` keep the box that hugs the
+drawing, and the canvas rides the channel a stepped figure's union box already
+rode: `data-live-viewbox` for the attribute the runtime swaps, and
+`--dg-live-type-w` / `--dg-live-ar` / `--dg-live-ink-x` beside the print
+numbers for the three a stylesheet reads. **Read `--dg-fit-w`, never
+`--dg-type-w`, from anything that measures a live view** – `AUDIENCE_CSS`
+resolves the fallback chain once on `.psi-diagram`, and `figureCapProbe`,
+`--check-fit` and `test/figure-type.mjs` all read the resolved value.
+
+**Which figures get one.** Only a `::: draw` in the chunk's own flow, which is
+the only place the chunk's column is the right box. A figure in a card, a
+pane, a dock, an overlay or an expansion has a fraction of that column; a
+beside-layout divider figure shares the frame with its heading. Those keep
+the hugging box. **A cover is the same case and it is the one that is not
+obvious**: a `title:` or `closing:` chunk's body is not in a text column at
+all – `cover: beside` and `cover: above` hand it to the art panel that
+`cover-ratio` divides the frame with, `masthead` and `quote` set it as a
+field beside the title pair – so a cover figure keeps the hugging box too.
+(Before that it was given a `.standard` column sixteen labels tall, and
+`lectures/python-intro`, whose four stacked boxes stand comfortably in a 34%
+panel running the height of the slide, was warned `figure-overflows-canvas`
+and had to write `frame none`.) **A stacked divider (`# Heading {.stack}`) is the one
+divider with a column**, the `.full` measure, so its figure is on a canvas
+too – `.full` wide and 20 labels tall, the 0.72 of the slide its own rule
+allows – and a keynote that opens each part on a figure gets the same type
+there as on every chunk. Measured before that: four stacked dividers of one
+talk settled 26% under the deck. `::: slide` and `::: script` are not layout – they say
+which half of the chunk is the screen – so a figure inside one still gets a
+canvas.
+
+### The two warnings
+
+Both are one line per figure, sited like every other `[diagram]` warning, and
+neither fails a build.
+
+- **`figure-overflows-canvas`** – the drawing is wider or taller than its box.
+  The message gives both sizes in labels, the overshoot per axis **in labels
+  and in px**, the body
+  type the slide will settle at against the one every figure that fits gets,
+  and a `frame WxH` that would reserve what this drawing actually draws. A
+  figure whose own labels also land under 18 px says so in the same line
+  rather than earning a second one.
+- **`figure-underfills-canvas`** – the drawing uses less than half the
+  canvas's area, so the slide reads empty and, on a text-heavy chunk, auto-fit
+  takes the prose down to make room for paper. The message gives the share,
+  both sizes, how many labels a narrower column would hold, and the same
+  `frame WxH`.
+
+**A figure on one axis is reported in labels and in px, in both reports.** The
+overshoot is decided at half a pixel, so a label figure to one decimal – a
+base label is `DG_FONT` px – covered a range of seven px, and "over by 0.2
+across" was anything from 2.3 px to 3.7 px: an author shortening a label
+against it built three times to find out which. The static complaint and
+`--check-fit`'s per-figure room line both spell `<labels> <axis> (<px> px)`
+now. They cannot share a helper – one is emitted at the end of the parse, the
+other measured in a browser – so `test/gates/canvas.mjs` holds the two shapes
+against each other as text, beside the three numbers it already mirrors.
+
+**Neither is mirrored in `lint.js`, and neither can be**: both need the
+drawing laid out, which needs the compiler, which is the whole thing the
+linter is kept independent of. `figure-type-small` survives beside them for a
+figure with **no** canvas – under `frame: none`, or in a card, a pane, a
+divider or a cover – where nothing else can say that a deck's figures are
+uniformly unreadable. `figure-type-uneven` is gone: its whole content was "this slide's
+type is out of step with the deck's", which a figure inside its canvas cannot
+be and a figure past it is told in plainer words.
+
+`--check-fit` reports the same thing from the other end, measured rather than
+computed: the canvas fill per figure, every figure that had to be scaled past
+its canvas, and the deck's settled body type with the slides its figures took
+down.
+
+### `frame`
+
+```
+::: draw 150x56 frame 6x4          this figure's canvas, in grid units
+::: draw frame none                this figure keeps the box that hugs it
+```
+
+```yaml
+draw-defaults: |
+  frame 6x4                        every figure in the deck
+  frame none                       no figure in the deck gets a canvas
+  default text {.small}
+```
+
+`WxH` is counted in the figure's own grid units – the cells `::: draw 150x56`
+sets – so `frame 6x4` is six cells across and four down. Decimals are allowed
+where the grid's are not: a grid is the size of one cell in whole pixels, a
+frame is a count of cells, and half a row is a thing an author can want. Both
+sides positive, at most 200.
+
+The opener's order is strict and the frame comes between the grid and
+playback: `::: draw [WxH] [frame WxH|none] [autoplay N [cycle]]`. It is read
+by `parseDrawOpener` in `tails.mjs` like the rest of the line, refused under
+`bad-frame` (not a `WxH`, a zero or oversized side, the word missing) and
+`stray-attribute` (written twice, or after `autoplay`), and it rides in the
+figure's payload as part of the formatted opener – so the editor writes it
+back verbatim, exactly as it does `autoplay`.
+
+**`frame: none` is for a deck that is a catalogue rather than a talk**, and
+the two in this repository are the test of that: `lectures/diagrams` and
+`docs/artifact/figure-rules` are both sets of specimens standing on slides of
+prose that explain them, and reserving a talk's figure box for each of them
+put half a slide of paper under a two-box drawing – and, on eleven of the
+diagrams lecture's slides, took the prose down to make room for it. A deck
+whose figures are slides wants the default.
+
+### The editor draws it
+
+A dashed rectangle in the guide layer, behind the drawing, wherever the figure
+has a canvas. It is the one thing about a figure that is decided outside the
+block, and without it the only way to learn a drawing had outgrown its slide
+was to build and read a warning. Where it sits inside the viewBox follows the
+compiler's own two lines: the content is anchored at the canvas's top, and to
+its left edge under `blocks: left` or centred on it under `center`. When the
+drawing fits, the dashes lie on the edge of the box; when it does not, they
+run through the picture, which is exactly the thing worth seeing.
+
+## The opener: `::: draw [WxH] [frame WxH|none] [autoplay N [cycle]]`
+
+```
+::: draw                                  default grid
+::: draw 150x56                           the grid, in units
+::: draw 150x56 frame 6x4                 …and the canvas it is drawn on
+::: draw 150x56 frame none                …or no canvas at all
+::: draw 150x56 autoplay 1200             walks its own steps, one delay per beat
+::: draw 150x56 autoplay 1200 cycle       and starts again at the end
+```
+
+**No braces.** Everywhere else in the format a `{…}` tail holds sigil tokens – `.word`, `#word`, and inside a draw body `@word` and `!word` – and a line that has no sigil tokens to carry has no braces. The draw opener carries values, so it is written the way `::: side 2:1` is: the one primary argument positional, everything optional that carries a value a keyword after it. The old braced form (`unit=` and `autoplay=` keys inside `{…}`) is refused with the new spelling of that very line in the message (`stray-attribute`); `tools/migrate-draw-opener.mjs` rewrites a whole repository. There is no `#id` on the opener any more – it was stored and used for nothing but the compiler's error prefix, and that prefix now names the chunk (`in chunk #cbc`) or, for a divider figure, the column (`in the divider of column #part-2`).
+
+**One parser, four callers.** `parseDrawOpener(line)` in `tails.mjs` answers `null` for a line that is not a draw opener, a `{unit, frame, autoplay, cycle, problems: []}` for a good one, and the same shape with `problems` for one that begins `::: draw` and must be refused – `stray-attribute` (the braced form, `autoplay=`, an unknown or out-of-order word), `bad-unit` (`150X56`, a zero side), `bad-frame` (not a `WxH` in grid units, a zero or oversized side, the word with nothing after it), `bad-autoplay` (not a number, outside 200–60000 ms, or `cycle` with nothing to repeat). build.js (both the chunk and the column-heading site), lint.js and `test/gates/corpus.mjs` all call it, so none keeps a pre-regex of its own. A refused opener is still an opener: lint captures the body through the closing `:::` and reports the one problem rather than a cascade of Markdown errors.
+
+**The compiler sees the grid and nothing else.** `drawCompilerAttrs()` turns the parsed opener into the `unit=` head-attribute string `parseDiagramSource` always took, and the compiler now *refuses* `autoplay=` or a `#id` there as an unknown option – there is no `DG_HOST_OPTS` skip list any more, because no caller hands it a host word. Playback is not part of the drawing: the compiler's job ends at a set of per-beat geometries, and `diagram-core.mjs` also runs inside the browser editor, where there is no deck to play. `withAutoplay()` in build.js puts the delay on the emitted `<figure>` as `data-autoplay`.
+
+**The payload carries the whole opener, formatted.** `renderDiagram` serialises `opener: opts.opener` – the line `formatDrawOpener()` produced – next to the compiler-only `attrs`, and the editor's `dgeBlockText()` writes `DGE.fig.opener + body + ':::'`. That is what fixed the clipboard tier, which used to rebuild the opener from `attrs` and so dropped `autoplay` and `cycle` on every copy. The editor copies the line; it cannot import the formatter, because `editor.mjs` is inlined as a classic script.
+
+## `autoplay N cycle`
+
+A figure written `autoplay 1200` walks its own steps on a timer once the slide is on screen, one delay for every step. A cover figure that animates while the audience files in is the case it was asked for; it works on any chunk because nothing about it is cover-specific.
+
+Two decisions carry the runtime, and both are about not inventing state:
+
+- **It calls `advanceReveal()`, so it is the Space key on a timer.** A private step index would have let the drawing and the reveal counter disagree, and the next Space would jump. Because it *is* the counter, the speaker view follows through the ordinary state broadcast, the freeze gate applies, and localStorage recovery is unchanged.
+- **It runs in the audience only** – the state root – **and the first key, pointer or wheel event on that slide retires its clock.** Two windows both advancing would take two beats per tick; and a lecturer who has touched the deck has taken over, so a timer resuming underneath them is worse than no timer. Verified in a browser: interrupted one beat in, the figure froze there and stayed frozen for three seconds, and a manual Space then advanced it by exactly one.
+
+It also refuses to start from a half-revealed slide: arriving at one means the lecturer left it that way, and finishing it for them is the surprise this must not spring. Bounded 200 ms – 60 s, **refused rather than clamped**, because a clamped number is a number the author did not write.
+
+**`cycle` repeats the walk**, which is what a cover figure usually wants while the audience is arriving. It rewinds by writing `revealed[id] = 1` through the same counter everything else reads, so the speaker view follows the rewind exactly as it followed the walk. The last beat is held for one delay like any other – **a second number for "how long to admire the finished picture" is a knob nobody asked for and one more thing to get wrong.** A bare `cycle`, read off the opener by the same `parseDrawOpener` and never handed to the compiler; `cycle` with no `autoplay` is `bad-autoplay` in both the build and `lint.js`, because there is nothing for it to repeat.
+
+## Seven placement traps, six of them the compiler warns about
 
 Every one of these produced a clean build, a clean lint and a broken figure,
-and they are the reason `dgOverlapWarnings`, `dgLabelGroundWarnings` and
-`dgLabelClipWarnings` exist.
+and they are the reason `dgOverlapWarnings`, `dgLabelGroundWarnings`,
+`dgLabelClipWarnings`, `dgEdgeShortWarnings` and `dgElbowRailWarnings` exist.
+The fifth, a free `.left` text, is here because it was one of them: it had a
+warning in each file and now has neither, because the default changed under
+it.
 
 **Place a row of elements relationally, never with absolute `at`.** Two boxes
 written `at swim.left+5.4 w 1.45` and `at swim.left+6.75 w 1.4` have centres
@@ -43,6 +283,30 @@ vertical: **a stacked column's row pitch has to exceed the box height, and the
 box height comes from the label** – on a `112x40` grid a two-line box is 55 px
 tall, so a pitch of 0.85 units (34 px) overlaps every pair, plausibly enough to
 read as a design choice.
+
+**The census compares ink, and a `text` is compared line by line.** A label's
+box is the block of line boxes: `DG_LINE_H` tall per line where only
+`DG_INK_H` of that is glyphs, and as wide as its *widest* line. Neither of
+those is what a reader sees, and both cost the check a real defect. It
+answered the first with a 24 px floor wherever either side was a text – more
+than a whole line of figure type, on a drawing that is then scaled up to its
+canvas – and the geometry it exists for, an outline drawn through the words,
+crosses that outline by a fraction of one line by construction:
+`lectures/network-security` `#ns-a41` shipped a three-line verification block
+printed across the box above it, at 5.5 px, with a silent build. So a text is
+now the rectangles it actually inks, one per line (`dgTextInkRects`), and
+everything meets at one 2 px tolerance. Two consequences to know before
+arguing with a warning. **A label whose long line is nowhere near a shape is
+not touching it** – the two-line value `Basic Constraints ( 2.5.29.19 ) / YES`
+beside a chevron is 186 px on one line and 22 on the other, and only the short
+one is anywhere near. And **a text fully inside a box is exempt while a text
+crossing its edge is not**, so shrinking a figure can make captions that were
+inside start reporting: that is the check working, and the fix is the drawing.
+**The number is said in rows** – `overlap by 5.38×0.06 rows (215×3 px of the
+drawing's own grid …)` – because a `gap` is measured in rows on both axes, so
+the figure is the one that goes on the line the message tells you to write.
+The px beside it are the compiler's, not the room's: the slide scales a
+drawing to fill its canvas and the compiler cannot know by how much.
 
 **`right of X gap N` is checked against X and against nothing else.** An
 annotation placed `right of vu gap 2.6` landed inside the box to vu's right and
@@ -57,6 +321,30 @@ of the path can cover 100 % of what a reader can see. On a straight link
 between two facing boxes the knock-out is the right form and the flowchart in
 `lectures/diagrams` uses it deliberately; on an elbow the route is the
 information and erasing it erases which box joins which.
+
+**And that is why the ground on a straight run stays opt-in, although a plan
+asked for it as the default.** `PLAN-figure-defaults.md` §2.5 proposed giving
+every labelled straight edge the knock-out, and it was written when an
+ungrounded label sat *on* its own line with the stroke through the words – at
+which point the ground was the only fix there was. Two rules have landed since
+and between them they answer both halves without breaking a connector. **A
+label with no fill is carried clear of the line** (the `side` offset), so a
+straight run is one unbroken arrow with its word above it. **A label its own
+route crosses somewhere else gets `dg-halo`**, which knocks out the glyph
+shapes and nothing else, so a curve, a doubled-back `via` and an elbow's outer
+run are covered where a rect would erase the arc the label belongs to. What the
+proposed default would have done instead is measured: two boxes a written
+`gap 1.1` apart on a `120x72` grid leave 79.2 px of paper between their faces,
+and the ground behind `sends` is 66.5 px – 84 % of everything a reader can see,
+leaving two stubs of about six pixels and an arrowhead with nothing behind it.
+That is the trap in the paragraph above, and it would have become the rule for
+every labelled straight edge in the corpus: twelve in `lectures/diagrams`,
+fifteen in the tutorial, thirteen in `docs/artifact/figure-rules`. The keynote
+the plan was written against has **no labelled edge at all**, so it could not
+have shown it. `{.paper}` remains the way to ask for the knock-out where the
+run is long enough to carry it, and `.clear` is the `none` the plan asked the
+ground slot to gain – it is already in the fill slot and already displaces a
+`.paper` arriving from a `default edge` layer.
 
 **A label between two boxes has only the paper between their near faces, and a
 box is painted after the edge under it.** On a `126x38` grid two boxes at
@@ -75,40 +363,344 @@ the edge's **own two ends** – a third shape the label crosses belongs to
 `dgOverlapWarnings` and has a different fix, and this is also what keeps every
 `sequence` out of it, since a message's endpoints are coordinates on two
 lifelines rather than element references. An `.elbow` needs no special case:
-its label sits on the rail, halfway across the gap and clear of both ends,
+its label sits on the rail, out in the gap and clear of both ends,
 which is the same distinction between the drawn run and the exposed one that
 the ground check above is built on. A `.front` edge is exempt outright.
 
-**It is the compiler's alone, and cannot be mirrored in `lint.js`.** Deciding
-it needs `dgMeasure`'s glyph advances and the laid-out geometry at every beat,
-and `lint.js` imports tables from `diagram-core.mjs` and never a function – a
-function would pull the whole compiler in behind it and the linter would stop
-being runnable without the Markdown/Shiki stack. Like the `DG_CLASS_CLASHES`
-rows, it is a warning rather than an error and it fires only where the label is
-clipped at **every** beat it is drawn at, so a `move` step sliding a box across
-a label is mid-animation rather than a mistake.
+**A free `text` written `.left` used to be centred on its point like every
+other one, so the edge the class names was half a label width from the
+coordinate the author aimed at.** That is the one trap on this list that is
+gone rather than reported: `.left` on a free `text` at an **absolute**
+placement now anchors it on that edge, and `.right` on its right
+(`dgPlaceAnchor`). `text l "zu Hause" at haus.left+0.2,haus.top+0.35 {.left}`
+means what it reads as – 0.2 in from the frame, first letter on the line –
+where before it put half the words outside the box it names, and on a one-line
+label the class moved nothing at all, which is what made it invisible.
 
-## Animated infographics (`::: draw`)
+Four bounds, and each is a figure the corpus contains. It is a **free text**
+only: on a `box` or a `dot` the class ranges the label inside an outline that
+has its own position, which is a different question with the same word. It is
+an **absolute** placement only – a relative one states a face of another
+element and answers this with `flush`, which already puts the ink on the edge.
+A written `anchor` wins whatever it says, and **`anchor center` is how the old
+centring is spelled out** – which is why `anchor center` is now *recorded*
+where it used to be dropped as the default: it is the word that says "not
+that", and a word that says something cannot be dropped. (`dgPlaceAnchor` still
+answers `null` for the centre, so it costs no offset and the editor keeps
+offering guides on such an element.) And a `.turn`ed label is centred whichever
+way it reads, the same answer `dgLabelAnchor` gives it.
 
-**Development state, not in any tagged release.** The repository and project site may carry `::: draw` as a preview independently of a versioned release; `package.json` still reports 1.0.0, and the latest tag does not include the feature. The changelog entry stays under `## [Unreleased]` – `CONTRIBUTING.md` § Building and releasing bumps the version at release time, not when a preview reaches `main`, so there is nothing to bump here.
+**The same sentence now covers the placement and not only the class, and the
+day it did not cost a keynote a jumping caption.** A free text is as wide as
+its glyph run, so *every* way of placing one puts a named side of it on a
+coordinate: `anchor tl` its left edge, `right of x gap n` its left edge, `left
+of x` its right, `flush left` / `flush right` the side they name, `align x
+left` the same, and a bare `at` or a `between` its centre. `layoutDiagram`
+records which of those it was as `pinX` on the box, and `labelBox` draws the
+words from that edge – `text-anchor: start` at `box.x`, `end` at `box.x +
+box.w` – instead of centring them on the box's middle. The reason is that the
+middle is an **estimate**: the error between `dgMeasure` and what the browser
+sets is split in two and half of it lands on the side the author pinned, so a
+`label` step swapping in a longer string changes that half and the words move
+sideways although nothing in the source moved them. Measured on a keynote's
+zone caption, `im Raum` relabelled to `im Raum · 3 Stunden, ohne Internet`:
+11 px to the right, on a caption whose whole point is that it sits in the
+corner of its area.
 
-**Publishing `main` and cutting a release are separate events.** `pages.yml` fires on every push to `main` and redeploys the project site. It rebuilds and publishes the tutorial – which carries a `#diagram` chunk – and `lectures/diagrams/`, a fourth live demo beside the tutorial, python-intro and the short example. The latter puts every construct of the unreleased format in front of a reader as an explicitly labelled preview. Its four views are also tracked, so they travel in a future release archive and the release workflow rebuilds them to check they match their source.
+**In estimate space the change moves nothing at all**, which is what makes it
+safe: the origin goes from `box.x + box.w / 2` drawn `middle` to `box.x` drawn
+`start`, `extentsOf` answers the anchor question through the same
+`labelAnchor` map, and the reserved box, the viewBox and every placement
+warning are the bytes they were. Only which end of the *real* glyph run
+absorbs the difference changes. Three bounds: a **free text** only, because on
+a box or a dot the words are centred inside an outline that has its own
+position and moves with the same estimate; a text **sized by its own label**
+only, because an explicit `w` makes "as far left as the box allows" the
+different sentence `.left` says; and never over a written `.left` / `.right`,
+which is the author's own answer, nor over `.turn`, which is centred whichever
+way it reads. That last bound is why **`turn` is in `DG_STEP_FIXED`**: the
+class now decides, once, between the pinned edge and that centring, so a
+`style` step cannot carry it. Before the pin the two answers were the same
+word, nothing was baked, and it was not in the table.
 
-Before it can ship, in rough order of how much each would hurt to discover late: text width is estimated rather than measured, so a dense layout can be a few percent off; and `::: draw` becomes frozen source-format the moment it is in a tagged release, so **keep the editor marked experimental in the release notes for one minor cycle** if the language ships while the editor is still experimental.
+`align x left a, b, c` is not retired with the warnings: it holds a *set* to
+one edge and is still what three labels at three different coordinates want.
+What it no longer has to do is repair a row that shares one coordinate.
 
-The vocabulary pass that item used to head has happened: thirty-six rebuilt slides in `lectures/network-security`, then four of the arrangements a lecture keeps asking for – a flowchart, a swimlane, a tree, a table. Three of the four the grammar could already draw; the table it could not draw without naming every cell by hand, and the swimlane only by guessing a band width and re-guessing it whenever the contents changed. `table`, `lanes`, `series of`, `.diamond` and `.elbow` are what came back from it, and each one is a statement or a class that replaced a dozen hand-placed elements rather than a new capability. Treat a further arrangement the same way: build it out of what exists first, and only add a word when the hand-built version is the thing that cannot be maintained.
+**Two warnings existed for nothing but this trap and both are gone**, which is
+the test of the change: `dgLabelAnchorWarnings` here, which measured a label's
+ink against the element its `at` x named, and `diagram-ragged-labels` in
+`lint.js`, which found the same thing from the source and needed two or more
+labels at one x to see it. Neither geometry can arise now. The corpus cost of
+flipping it, read frame by frame: 18 free texts in `lectures/network-security`,
+2 in `lectures/diagrams`, 2 in `lectures/python-intro`, none in the tutorial,
+the decoration deck or `docs/artifact/figure-rules`. Of the 18, six are the
+first element of their block and everything else hangs off them, so the drawing
+is unmoved and only the viewBox shifts; four are repairs the author had written
+by hand and not got (`"Client"` and `"Server"` now sit on the two edges of the
+arrow column they name; four `.right` labels at `X.left+0.2` now end short of
+the staircase at `X.left+0.35` instead of crossing it); six move and read as
+well or better; and two – the paragraph pair in `#ns-a30` – relied on the old
+centring and were moved half their own width left, which is the repair the rule
+asks for rather than an escape from it.
 
-A boxes-and-arrows compiler. The source is a line-oriented DSL inside the lecture markdown, the output is one inline `<svg>` plus, when the author wrote steps, a payload of precomputed per-step geometries the live runtime tweens between. `renderDiagram()` is the entry point; the section is navigable by its own sub-banners between `// ── diagrams (::: draw) ──` and `// ── parsing ──`.
+**An arrow the room can see the head of and not the shaft.** The default gap
+clears one, but a *written* `gap` is the author's number and is never widened
+for them: other elements are chained off it, so moving it moves them. The other
+half of the rule is that the author hears about it. `dgEdgeShortWarnings`
+measures the **exposed** run – the part of the route not under either of the
+edge's own endpoints, because a box is painted after the edge beneath it –
+against `DG_EDGE_MIN`, 1.5 labels or 28 px, which sits just under the joined
+default so the default itself never trips it. Measured on `dgEdgeRoute` rather
+than on the emitted stroke, because the stroke has already been trimmed back by
+most of an arrowhead and the question is how much paper the head and the shaft
+have to share. It names both ends, the run in px and in labels, and the number
+of rows that would clear it.
 
-**How to lay a figure out is a separate document: `figure-design.md`.** What follows is the machinery; that file is the craft, and it is what to read before authoring rather than changing the compiler.
+**On an `.elbow` the run it measures is the arrival run** – the segment after
+the rail – rather than the whole exposed route, because an elbow's exposed
+route is mostly rail and the rail is shared between every edge that turns on
+it. `dgEdgeRoute` already slides the rail toward the source to buy that run
+`DG_ELBOW_ARRIVE`, so the warning fires only where the gap cannot pay for it
+and a head's length out as well – a span under `DG_ELBOW_ARRIVE +
+DG_ELBOW_LEAVE`, 36.75 px – and it names the two fixes there: more gap, or
+`via`. The `.elbow` entry in the slot vocabulary below says how the rail
+slides.
 
-**The additions to the drawing vocabulary are all one idea: draw the same numeric vector a different way, or expand at parse time into elements that already exist.** That is what keeps the invariant below intact – extents, the viewBox, the dependency walk and the tween never learned that any of it exists. The list has outgrown counting; what has not changed is that nothing on it introduced an element kind, a drawable or a runtime concept.
+Two exemptions, and both are the rule rather than exceptions to it. **A
+headless edge** – `--`, which is what a leader stub is, or anything carrying
+`.no-head` – has no head to crowd, and a short plain connector reads as a tick
+joining two things, which is what a leader is for: the tutorial's own
+`text note "…" below px gap 0.5 -- px` leaves exactly 28 px and is correct, and
+a tree written `--` is the same case on an elbow – `docs/artifact/figure-rules`
+`#tree` is six of them at spans the floor would otherwise report. **A
+synthesised edge** – a `sequence` message, a chart's baseline – is placed by the
+statement that made it, and the fix this warning names is not a line the author
+has; there the number to change is that statement's own `space`. Over the
+corpus: five figures, every one of them a written gap of 0.3 to 0.55 rows on a
+grid where that is 20 to 27 px, and all five were repaired by taking the written
+gap off the line.
+
+**An `.elbow`'s rail lying on the side of a box it has nothing to do with.**
+The rail is halfway between the two faces on whichever axis the ends are
+further apart, and the class looks at nothing else in the figure – that bound
+is what keeps it a class rather than a router, and it does not change here.
+What changes is that the author hears about it. In a row written `gap 0` the
+halfway point is the *seam* between two boxes, so every elbow passing that row
+drew its rail exactly on an outline: the lines read as if they ran inside the
+boxes, and the arrows arrived at the target in one bundle with nothing to say
+which came from where. `dgElbowRailWarnings` reports a vertical rail within a
+quarter of a row of a box's side, names the edge, the box and both fixes – a
+`gap` in the row, or `via` to write the route by hand.
+
+**The edge's own two ends are exempt, and that exemption is the rule rather
+than an exception to it.** The rail is halfway between their facing sides, so
+on any pair closer than half a row it is within a quarter of one by
+arithmetic – which is exactly the bracket `.elbow` was built to draw, and the
+reason it measures from the faces at all: two connectors leaving one parent
+land their rails on one line and the drawing reads as one bracket. Run over
+the corpus without the exemption it reported five figures, every one of them a
+tree bracket or a swimlane hand-off doing its job. What is left is the case
+that is never intentional.
+
+**Every `[diagram]` warning that names an element says where that element was
+written, and an edge says what it joins** – `dgSite(el)`, which composes
+`dgWhere` (`line N of the block`, the same number the error gate prints) and,
+for an edge, `dgEdgeEnds` (`a -> b`). The reason is that half the names in this
+grammar are generated: `edge-4`, `t-1-2`, `wa-3`, `f-0`, `swim-cap-1` are
+positional, none of them is in the source, and the one move a reader has –
+search the block for the name the message used – finds nothing. Measured on a
+real keynote: `edge edge-4 runs 0.5° off the axis` against fourteen figures and
+about thirty edges, not one of them named. Two things carry it: every statement
+records its own `line`, and the `edge` statement records the two endpoint
+**tokens** as written (`ends`) plus the arrow, normalised so a leftward token
+is not printed beside the ends the model has already swapped. A generated edge
+sets `ends` where the names exist – a `sequence` message names its two actors,
+a leader stub its text and its subject – and otherwise falls back to the refs,
+because `a point -> a point` names nothing at all.
+
+## Peers share one size, and a box is never too small for its words
+
+**A run of `right of` / `left of` boxes shares one width and one height, and
+nothing in the source says so.** That is the default, and it is the one default
+in this grammar that moves an existing drawing. The reason is `figure-design.md`
+rule 11: relative size reads as importance, and the usual reason one box in a
+row is wider is that its label happened to have more letters. The exception – a
+box that really is bigger – is what should cost a word, and it does.
+
+**A chain, precisely.** Boxes reachable from each other through
+`DG_CHAIN_DIRS` – `right of`, `left of`, `below`, `above` – or named together by
+a `row` / `col` statement. `between` and `at` are deliberately not chain links:
+they are coordinates, not adjacency, and three boxes hung off three different
+zones are not a row. Only `box` chains; a `dot`, a `text` and an `image` are
+sized by what they draw.
+
+**Two things that are asked about and are deliberately not chains.** A
+**`zone`'s children** are not, and that survived `in z` becoming a real
+membership relation: what an area holds is a *set*, not a run, and three boxes
+standing in one area are no more peers than three hung off one coordinate.
+`row` / `col` is still the statement that says which of them are peers – and
+`row a, b, c in z` is how the two are said in one line. A **`table`'s cells** are not
+either, because they do not need to be: a table row is one height by
+construction, and the rule the chain would have given it is the row-height rule
+below – the row is as tall as its tallest cell's label. Neither is a `zone`
+itself, nor a `table`, `lanes`, `bars`, `grid`, `plot` or `sequence` frame: all
+of them draw a box and none of them is one, so `synth` – the flag that already
+keeps them out of the overlap census – keeps them out of chains, and a note
+placed `right of` a five-column table does not come out five columns wide.
+
+**Neither `row` nor `col` carries a `{…}` tail**, so neither adds a slot table
+to `tails.mjs`: like `align` and `spread` they take a member list and, in their
+case, one keyword with a value.
+
+**Three families, never merged into one, and each axis asks a different one.**
+
+| link | shares width | shares height | measured over |
+| --- | --- | --- | --- |
+| `right of` / `left of` | yes | yes | natural sizes |
+| `below` / `above` | yes | **no** | natural sizes |
+| `row a, b, c` | yes | yes | what the two above settled |
+| `col a, b, c` | yes | yes | what the two above settled |
+
+The asymmetry on the second row is what the corpus taught, and it is not a
+hedge. `lectures/network-security#ns-a45` is a certificate: seven fields, then
+two, then one, then one, stacked with `gap 0`. Giving every band the tallest
+one's height turns a record into four equal blocks that say nothing. A band's
+height is what stands in it; its width is the record's. `col` is how a column
+of real peers says so in one line, and that is the whole reason the statement
+exists beside `row`.
+
+**Nor do the families merge.** A box in a row *and* a column takes the larger of
+what each asks for, but its neighbours in the row are not asked to match the
+column. Merging them made `lectures/diagrams#alignment`, whose two rows are
+joined by a single `below`, one block of eight boxes all as wide as the widest
+label in either row. Every implicit maximum is taken over the members'
+**natural** sizes, so nothing compounds and the order the two resolve in changes
+nothing.
+
+**`row` / `col` are the exception, and that is what they are worth writing
+for.** A statement resolves **last** and over whatever the two implicit
+families settled, so it levels its members against everything else they stand
+in – which is the one case the implicit rule cannot reach on its own. In
+`lectures/decoration#bare-loop` `Site` stands in a row with `Crawler` and in a
+column with `Scoring service`, so it comes out wider than its own row: `row
+crawler, site` is the line that makes the row level, and `same w as` is the
+answer for one box rather than a set.
+
+**A member is measured over every label a `label` step will ever give it**
+(`dgLabelVariants`), so the four-line variant is what beat 0 reserved room for.
+A box whose size grows mid-figure moves everything placed against it; a box
+whose size was settled for its longest label moves nothing.
+
+**Four ways an axis stops being the chain's**, and they are all the same
+sentence – somebody already said what this size is:
+
+- a `w` / `h` on the element's **own line**. It is that member's own **and** the
+  chain's maximum, so `box a "…" w 1.5` at the head of a row does what
+  `same as a` on the rest used to do, without the words. A `default` layer's
+  size is not one of these – see below.
+- `same as X`, which still wins outright – and, like `.own`, ends the run:
+  nothing reaches through it.
+- `same w as X` / `same h as X`, one axis each. A copied axis is not evidence
+  about how wide the chain has to be, so it contributes nothing to the maximum.
+- `{.own}`, the word for a box that is not one of its neighbours. It also
+  **breaks** the chain, which is how a run meant as two rows is written as two.
+  A `.turn` box is exempt without saying so: a label read bottom-to-top is what
+  an author writes when the element is a bar – a firewall, a matrix row, an axis
+  – so it is narrow by declaration, and sizing it to the box beside it undoes
+  the reason the class was written.
+
+`.own` is in `DG_STEP_FIXED`: which boxes share a size is read off the
+placements once, before any beat is drawn, and a beat that took a box out of
+its chain would resize the whole row under it.
+
+**A size from a `default` layer is a floor, and a floor is neither a pin nor
+evidence.** `default box w 10.4 h 2.5` says what the boxes in this block are
+*unless something says otherwise*, and a chain is one of the things that say
+otherwise, so the two directions come out like this:
+
+- **a peer needs more, and everyone in the chain gets it.** `box a … h 4.8`
+  beside `box b … right of a` under that layer makes both 4.8 – the number is
+  written once, on the line that has a reason for it. `row a, b` does the same
+  where the two are not placed against each other. Before this, the layer
+  counted as a written size on every box, no chain sizing reached a figure that
+  opened with one, and a keynote's build plan carried the same `h` on both
+  cells of every row for want of any way to level the second against the first.
+- **the chain needs less, and the floor stands.** A run of short labels under
+  `default box w 3` comes out three units wide, not label-wide: the layer
+  already answered, and the chain's maximum is only ever an *increase*.
+
+A box the layer sized asks the chain for nothing, which is the same rule read
+from the other end: what a member contributes to the maximum is what it *needs*
+– its label, or a number on its own line – never the floor it was handed. That
+is why `lectures/diagrams#cbc` still draws: `default box @dec w 0.48` under
+`default box w 0.82` makes the Dec boxes narrower than the ciphertext boxes
+they hang under, and a floor that counted as evidence would put 0.82 on all of
+them. A layer that sizes some of the boxes is a statement that those boxes
+differ, so the row it leaves ragged is the author's own – and `{.own}` in a
+`default` layer still switches chaining off altogether, which is what
+`lectures/diagrams#alignment` is written on.
+
+**An own-line number still beats the layer**, both ways round: `w 0.6` under
+`default box w 3` is 0.6, and it is the chain's evidence at 0.6 rather than at
+3. The overflow warnings read the size the box comes out at, floor and chain
+resolved, so a box that grew with its neighbours is not warned about and one
+that did not is warned about the width it really got.
+
+**`row` / `col` stand beside `align` and `spread`**, not beside `box`: they draw
+nothing and only name elements that already exist. `row a, b, c gap 0.8` is one
+size and one gap on one line. Every member that states **no placement of its
+own** is placed after the one before it with that gap – so the "has no
+placement" complaint is deferred to the end of the block in both the build and
+`lint.js`, because the statement may be written before or after the boxes it
+names. A member that *is* placed keeps its placement and the row sizes it only,
+which is the three-boxes-against-three-zones case; and a row's `gap` still fills
+in a relative placement against the previous member that states none, so "one
+gap" holds whichever way the run was written. A placement a `row` wrote carries
+`implicit`, the word the first element's origin carries, because there is
+nothing on that element's line for an editor to rewrite.
+
+**`same h as` / `same w as`** are what `same as` could not say: a one-line box
+beside a two-line one wants the neighbour's height and its own width. They are
+also the only way to give a **`zone`** one of its two numbers – a zone is fixed
+size on purpose, but "fixed" and "written here" are two different claims.
+`same as` together with either half is refused: one size said twice.
+
+**Two warnings for a written size that cannot hold its own words.** A written
+`w` under its label has warned since `w` existed; a written `h` did not, so a
+two-line label in a one-line box ran over the outline in silence – measured on a
+keynote's `#drei-orte`, which shipped with the text inside the padding and zero
+warnings. Both are measured against the **ink** the lines make (`DG_INK_H`,
+0.93 em: cap height plus descender) rather than against their line boxes,
+because a label is centred in its box and its leading may hang over the outline
+without a reader seeing anything. A **written table `row`** is held to the same
+number, and an automatic one is `DG_ROW_H` scaled by the type size **and by the
+tallest cell's line count** – so a two-line cell makes its own room and a
+single-line table anywhere in the corpus is byte-identical to before.
+
+**The editor is told what the compiler decided.** Each laid-out box carries
+`chainW` / `chainH`, and `dgeResizeEdits` uses them for the callout: a drag that
+writes a `w` on one member of a row pins *that* box and lets the rest re-settle,
+so making the dragged box the narrowest visibly moves boxes nobody touched. The
+look panel's `size` row is the `.own` control. Nothing in the drawing reads
+either flag.
+
+**Not mirrored in `lint.js`, and cannot be:** which boxes are peers and how wide
+each comes out both need the figure laid out. What lint does mirror is the
+grammar – `row` / `col` and their two refusals, the three `same … as` forms and
+their references, the zone's relaxed requirement, and the deferred
+no-placement complaint. `test/gates/chains.mjs` holds the two files side by
+side.
+
+## The vocabulary, and the rule behind each word
+
+**The additions to the drawing vocabulary are all one idea: draw the same numeric vector a different way, or expand at parse time into elements that already exist.** That is what keeps the three decisions under *What the compiler is* intact – extents, the viewBox, the dependency walk and the tween never learned that any of it exists. The list has outgrown counting; what has not changed is that nothing on it introduced an element kind, a drawable or a runtime concept.
 
 - **A bare `.cross` box is square**, squared in `sizeOf` rather than in `dgShapeD`: the footprint the layout reserves has to be the footprint that is drawn, so making the path square while the box stayed 66 by 37 would put the extents somewhere the drawing is not. A plus with arms of two different lengths is not a plus; left to the general rule it came out at the minimum width against one line of type. An explicit `w` is still the author's.
 - **Outline classes on `box`** – `.hex`, `.diamond`, `.chevron`, `.wedge`, `.cross`, sharing the slot `.round` and `.sharp` already occupied, because a hexagon has no corner radius to argue about. **`.diamond` is the one outline that eats both axes**, and in proportion to the label rather than to the other axis: the widest room a diamond offers is a strip w/2 by h/2 through its centre, so a label that fits a rect `lw` by `lh` needs a diamond `2lw` by `2lh`. That is why `dgShapeInsetX` takes the label width and the horizontal padding as two optional extra arguments – every other shape answers from the cross-axis alone and ignores them, so every existing caller is unchanged. It has no point, so `point` on it is the same error `point` on a hexagon is. **Which way a pointed outline aims is the `point` option** (`up` / `down` / `left` / `right`), not a class: a chevron aimed up is the same shape aimed differently, and a class per shape per direction would quadruple a list that is meant to stay closed. The direction rides on the drawable kind as `chevron:up`, so the geometry vector is still the rect's four numbers – rotating the finished points would have turned a w-by-h box into an h-by-w one and moved the footprint the layout computed. `point` on an outline with no point, or on none, is an error, and **`point` lives in `DG_KIND_OPTS.box`** rather than in a kind test at the call site: put in the table it narrows the statement, the `default` block, the linter and the editor's option row from one edit, and `dgTakes` names it in a refusal without being told about it. Emitted as a `<path>` whose `d` comes from the same `[x,y,w,h]` a `<rect>` carries; `dgShapeD` is stringified into the runtime by build.js so one text draws the opening beat and every later one. An outline written on any kind but `box` – in an element's own tail or in a `default` for another kind – is refused by the general class gate below, which is the same rule for every class rather than a special case for these five. An outline inside a `style` step is refused separately, because the drawable kind is decided once, at emit, so a step would have nothing to switch.
 - **`.turn`** – a label read bottom-to-top, for a tall narrow element that has room for a word only along its long side. The angle rides as a third number on the label's geometry vector, so it is carried and interpolated by the machinery that already moves an upright one. **Four sites position a label** – the node label, the container caption, the brace label, the edge label – and all four have to write the angle; for a while only the first did, and on the other three the class resolved, emitted its CSS and rotated nothing. `dgTurnOf()` is the one place that answers the question now. A turned label is also anchored `middle` whatever its kind would otherwise use, because `extentsOf` reserves it that way and a drawn anchor disagreeing with the reserved one puts the words half outside the frame. **`extentsOf` and `sizeOf` both swap the label's measurements**; reserving the upright box would frame the figure around something nowhere near what the browser paints, which is exactly what `test/figure-framing.mjs` exists to catch.
-- **`bars`, `grid`, `plot`, `table`, `lanes`, `sequence`** – six statements that **expand at parse time** into ordinary boxes, texts and edges. Nothing downstream learns a new element kind, which is why `brace over f-0,f-1,f-2` spans three columns of a chart with no special handling anywhere. What makes it possible is that an `at` may name another element's coordinate: every column, cell and gridline is placed against a frame the same statement creates, through the ordinary topological walk. `plot` additionally registers a mapping so `roc@0.35` names a value in its own units; `dgResolvePlotCoords` turns that into a plain `roc.left+n` once the block has been read, so a point may name a plot written further down. **`cell` and `space` on a `grid` are measured in `uh` on both axes**, the same call `pad` made, because a cell has to be square. The spacing inside one of these statements is `space`, never `gap`: a placement on the same line already uses `gap` for the distance to another element, and one word for both meant a `gap` written before the placement and one written after it produced drawings five times apart, with no error either way. All six go through `readGridOpts`, which now knows three more shapes of option: `DG_LIST_OPTS` (`col` plus the three prominence words – a comma list, so a single-number parser must not read one and report the whole string as "not a number"), `DG_BARE_OPTS` (bare closed words a statement accepts, `{bars: ['stacked', 'horizontal'], sequence: ['unnumbered']}`) and `DG_RATIO_OPTS` (`aspect`, a `W:H` token read by `dgParseRatio`).
-- **`table` and `lanes`** came out of the arrangement pass, and both exist because the hand-built version is the one that cannot be maintained. A `table` is a grid of *labelled* cells – six rows of three cost twenty-one declarations and a chain of `below` references that has to be re-aimed whenever a row is inserted. Its heading is one quoted string split on `|`, its body is the run of bare quoted strings on the lines beneath it, `col` is one width per column, `w` is the **frame** – the total, divided equally, and refused alongside `col` because the two say one number twice – and `row` is the height of **one row**. It is `row` and not `h` for the reason `lanes` says `band` and `sequence` says `header`: on a box, a text, a `bars` or a `plot`, `h` is the element's height, and on these three it was the height of one unit of a repeating thing, so an author reading it as "how tall is this" was wrong by a factor of the row count – silently, and in the direction that still draws a plausible picture. `space` on a table is square in `uh`, like a `grid`'s: a table's whole promise is regularity, and one number that meant `uw` across and `uh` down put 30.0px between two columns and 10.4px between two rows on a `150x52` grid. Cells are `dgCellName(id, c, r)` (`t-1-2`, column then row, row 0 being the heading) and each carries two **generated tags**, `dgRowTag` / `dgColTag` (`@t-row-2`, `@t-col-0`) – and a row lit per beat is then one line of source. The attribute tail lands on the **cells**, not on the frame: the frame is always `.bare .clear`, and the heading row additionally gets `.bold` and nothing else, so a tinted heading is the author's own step or tail. `lanes l …` makes a frame, flush `.clear` bands `dgLaneName(id, i)` → `l-0`, `l-1`… (the prefix is the statement's own name, so `lanes swim …` gives `swim-0`; the name is not a keyword) and `.turn`ed captions outside the left edge, `dgLaneCapName(id, i)` → `l-cap-0`. **Place a box in a band by naming that band's coordinate**, `at l.left+0.9,l-1.cy`. **A band's height is the `band` value, and a `.turn`ed caption longer than that height overflows into the neighbouring caption** – the compiler does not warn (a lane caption is a generated element, outside `dgLabelClipWarnings`), so a long name like `Drittanbieter` wants a taller `band`. **It is deliberately not a container**: a container fits its members, so lanes holding different numbers of things come out ragged at both ends, which is the opposite of what a swimlane means. `lanes` and `sequence` are the two statements authors pick the wrong one of, and they are one pair with the axes swapped – `lanes` puts who down the side and lets the reading direction carry the time, `sequence` puts who across the top and makes the vertical axis the time itself. Steps parcelled out to the people responsible for them is the first; messages passing between them is the second.
+- **`bars`, `grid`, `plot`, `table`, `lanes`, `sequence`, `zone`** – seven statements that **expand at parse time** into ordinary boxes, texts and edges (`zone` is the newest and the smallest: one box and one text; the six below it are the ones that go through `readGridOpts`). Nothing downstream learns a new element kind, which is why `brace over f-0,f-1,f-2` spans three columns of a chart with no special handling anywhere. What makes it possible is that an `at` may name another element's coordinate: every column, cell and gridline is placed against a frame the same statement creates, through the ordinary topological walk. `plot` additionally registers a mapping so `roc@0.35` names a value in its own units; `dgResolvePlotCoords` turns that into a plain `roc.left+n` once the block has been read, so a point may name a plot written further down. **`cell` and `space` on a `grid` are measured in `uh` on both axes**, the same call `pad` made, because a cell has to be square. The spacing inside one of these statements is `space`, never `gap`: a placement on the same line already uses `gap` for the distance to another element, and one word for both meant a `gap` written before the placement and one written after it produced drawings five times apart, with no error either way. All six of those go through `readGridOpts`, which now knows three more shapes of option: `DG_LIST_OPTS` (`col` plus the three prominence words – a comma list, so a single-number parser must not read one and report the whole string as "not a number"), `DG_BARE_OPTS` (bare closed words a statement accepts, `{bars: ['stacked', 'horizontal'], sequence: ['unnumbered'], table: ['unheaded']}`) and `DG_RATIO_OPTS` (`aspect`, a `W:H` token read by `dgParseRatio`).
+- **`table` and `lanes`** came out of the arrangement pass, and both exist because the hand-built version is the one that cannot be maintained. A `table` is a grid of *labelled* cells – six rows of three cost twenty-one declarations and a chain of `below` references that has to be re-aimed whenever a row is inserted. Its heading is one quoted string split on `|`, its body is the run of bare quoted strings on the lines beneath it, `col` is one width per column, `w` is the **frame** – the total, divided equally, and refused alongside `col` because the two say one number twice – and `row` is the height of **one row**. It is `row` and not `h` for the reason `lanes` says `band` and `sequence` says `header`: on a box, a text, a `bars` or a `plot`, `h` is the element's height, and on these three it was the height of one unit of a repeating thing, so an author reading it as "how tall is this" was wrong by a factor of the row count – silently, and in the direction that still draws a plausible picture. `space` on a table is square in `uh`, like a `grid`'s: a table's whole promise is regularity, and one number that meant `uw` across and `uh` down put 30.0px between two columns and 10.4px between two rows on a `150x52` grid. Cells are `dgCellName(id, c, r)` (`t-1-2`, column then row, row 0 being the heading) and each carries two **generated tags**, `dgRowTag` / `dgColTag` (`@t-row-2`, `@t-col-0`) – and a row lit per beat is then one line of source. The attribute tail lands on the **cells**, not on the frame: the frame is always `.bare .clear`, and the heading row additionally gets `.bold` and nothing else, so a tinted heading is the author's own step or tail. **A cell is an ordinary box, so the tail is the box vocabulary**, and `table t "Attack | Layer | Countermeasure" at 0,0 col 1.0,0.45,1.35 row 0.42 {.clear .bare .left .large}` is the spelling a table of prose wants: `.clear` no fill, `.bare` no outline – together, cells that are type on the paper rather than a grid of boxes – `.left` the text ranged left instead of centred, which is what a column of words reads as, and `.large` a step up in size for a table that is the slide. Each is a slot of the box table, so the four are independent and any of them can be left out; a fill or a tone written here tints **every** cell, which is why a heading row or a lit row is a `style @t-row-N` step and not a word in this tail. **And one column with an alignment of its own is a `default box @t-col-N`, not a word in the tail either.** A table of values wants the label column ranged left beside value columns that are centred, and `{.left}` on the `table` line reaches all of them. Centred is what a cell arrives as, so only the column that differs says anything: `default box @sp-col-0 {.left}` above `table sp " | technisch | organisatorisch" at 0,0 col 2.09,0.73,1.11 row 0.48 {.clear .bare .large}` gives the keynote's self-check table a left-hand column of subjects and two centred columns of answers. `@t-row-N` is the same handle one axis over, and the two compose. It is a `default` and not a `style` step, and that is the whole answer rather than half of one: `.left` and `.right` are in `DG_STEP_FIXED` because an anchor is baked once when the figure is built, so a step cannot carry either, and a tag default is the layer that acts from beat 0. **The trap beside it is ordinary precedence rather than anything a table invents**: the tail lands on the cells as their *own* classes, and an element's own class beats every default layer – so a table written `{.left}` cannot have a column centred again, by `{!left}` or by anything else. Put the alignment on the columns that differ, never on the table line. `lanes l …` makes a frame, flush `.clear` bands `dgLaneName(id, i)` → `l-0`, `l-1`… (the prefix is the statement's own name, so `lanes swim …` gives `swim-0`; the name is not a keyword) and `.turn`ed captions outside the left edge, `dgLaneCapName(id, i)` → `l-cap-0`. **Place a box in a band by naming that band's coordinate**, `at l.left+0.9,l-1.cy`. **A band's height is the `band` value, and a `.turn`ed caption longer than that height overflows into the neighbouring caption** – the compiler does not warn (a lane caption is a generated element, outside `dgLabelClipWarnings`), so a long name like `Drittanbieter` wants a taller `band`. **It is deliberately not a container**: a container fits its members, so lanes holding different numbers of things come out ragged at both ends, which is the opposite of what a swimlane means. `lanes` and `sequence` are the two statements authors pick the wrong one of, and they are one pair with the axes swapped – `lanes` puts who down the side and lets the reading direction carry the time, `sequence` puts who across the top and makes the vertical axis the time itself. Steps parcelled out to the people responsible for them is the first; messages passing between them is the second.
 - **`sequence` draws a protocol down the page, and it owns exactly one thing: the vertical rhythm.** A row of actor heads, a lifeline under each, numbered messages between them, notes on a lifeline. Written out by hand every message carries a y coordinate of its own, so inserting one in the middle means moving every message under it, renumbering all of them and re-guessing how far the lifelines run – **measured on the WebAuthn figure in `lectures/diagrams`: 13 lines written to insert one message, against 1 line with the statement** – and a note box taller than the guessed step cuts silently into the label beneath it. Here every entry states the height it needs (a message its label's, a note its text's, a self-message its loop's) and the statement stacks the bands, so a note pushes what follows it down. It sizes itself across as well: all heads are one width, the widest label plus its padding, because a row of peers drawn ragged reads as an accident. `w`, `header` and `space` are overrides nobody normally writes – `w` is the whole frame, which the actors divide into equal columns, `header` the height of one actor head, and `header` rather than `head` because a sequence is full of arrowheads.
 
   **`space n` on a `note` or a message line is that one band's own gap**, and it is what breaks a dense protocol into phases. It is a keyword *on the entry's own line* – `br -> trk "GET /t.js" space 0.5`, never a `space` line of its own (that drops out of the entry run and is reported as an unknown statement on every line beneath it) – and the gap it opens sits *above* that entry rather than below it, which is also how the statement now stacks: one gap before each band instead of one after, the same rhythm read the other way round, so the entry's own number is a substitution and not an exception. Refused on an `actor` (the heads are one row and there is no band above them) and refused negative (a band pulled into the one above it draws one label through another), because both are otherwise a silent no-op, which this grammar refuses rather than ignores. **A blank line cannot do this job**: the entry run reads *through* blank lines, and every real sequence measured already used them to separate the actors from the messages – giving them a height would have moved those figures with nobody writing anything.
@@ -138,8 +730,63 @@ A boxes-and-arrows compiler. The source is a line-oriented DSL inside the lectur
 - **`w` and `h` are grid units, and a grid cell is not square** – which makes them a poor way to say what shape a chart is. On a `150x52` grid a plot written `w 1.9 h 1.5` lands 285px by 78px, very wide and very flat, and nothing on the line says so. **`aspect W:H`** on a `bars` or a `plot` states the proportion the reader sees and lets `applyAspect` work the other number out; `aspect 4:3`, `aspect 1:1`, or one bare number meaning that many wide to one tall. Giving `w`, `h` *and* `aspect` is an error, because two ways of saying one number is two ways of saying different ones. **`same as <chart>` is the third way to size one**, and it is answered at *parse time* rather than at layout time like a box's: a chart's gridlines, ticks and columns are placed from its own `w` and `h` while the line is read, so a size that only arrived during layout would size the frame and leave everything inside it where the old numbers put it. The price is that the chart being copied has to be declared first, and `sameAsFrame` says so rather than drawing something. It tells three failures apart, and the middle one needs a pre-scan of the block to be nameable at all: `model.byId` fills as lines are read, so a chart *below* the line has not been claimed yet and is indistinguishable from a typo. This is the one place in the grammar where a dimension is stated in page terms rather than grid terms, and it is stated that way precisely because the grid is the thing obscuring it.
 - **`horizontal` on a `bars` line turns the chart on its side**, and it is not a variant so much as the reading a comparison usually wants: lengths from a shared left edge are easier to rank than heights from a shared floor, and a category called "DNS cache poisoning" cannot be written under an upright column at all. One expansion serves both, because every number in it is worked out in px along two named axes – `along` (the value) and `across` (the categories) – and written back as grid units at the end. Two things swap with the orientation and nothing else does: the tick strip becomes a right-aligned column down the left margin, **each label placed by its own measured width** (a free `text` is centred on its placement point whatever `.right` says about the anchor, so centring cannot line up right edges), and the baseline stands on the left instead of lying underneath. **A tick string containing `|` is split on that instead of on spaces** – the same mark that separates a `table` row and a `lanes` name, and the only way a flat chart's row labels can be phrases.
 - **`bars g "…" series of f [stacked]`** joins the first chart's frame instead of drawing its own, and refuses `w`, `h`, `space`, a placement and a tick strip by name – all five belong to the chart it joined, and a number the drawing ignores is a silent no-op, so it is refused rather than read and dropped. Plain, a series stands beside the runs before it and the cell is shared out, so a grouped chart takes exactly the paper a single one did; `stacked`, it sits on the run before it and the scale becomes the tallest stack. It is spelled as its own statement rather than folded into the values string for two reasons that are worth keeping: **each series then has its own attribute tail**, which is how a series gets a colour and a tag of its own, and the generated names stay the flat `f-0`, `g-0` instead of becoming conditionally two-level. `emph 1,3` / `dim 4` / `ghost 0` on any `bars` line take **column indices** – the same act of emphasis a `step` and a class carry, but addressed by position because a bar has no name of its own at that point. **In a `step` the same verbs take element *names*, not indices**: the columns are `f-0`, `f-1`… once the chart is expanded, so it is `step s / emph f-2, f-3`, and `emph 2, 3` in a step is refused as an undefined reference (the build and `lint.js` both name it). The line form exists because without it a column could be singled out from beat 1 onwards and never in the picture the figure opens with, which is where a chart usually wants one. An index out of range is an error naming the range. **A column is emitted with `bare` prepended** – displaced by the author's own `.thick` through the stroke-weight slot, the way `sharp` is displaced by an outline class – and carries `role: 'bar'`, which the emitter writes into the group's base class string as `dg-bar` (in `data-base`, so the runtime's per-frame rebuild keeps it). Everything the stylesheet does with that class is generated from one table, `DG_BAR_FILLS`: the fill of a column with no tone, the four tones at a column's strength (a box tone is mixed pale for the label's sake; a column has none and the same mix is a watermark on a projector), and `emph` as a solid accent fill rather than the accent outline it is on every other shape. `dgBarFillCss()` writes the rules into build.js's stylesheet and `dgBarContrast()` reads the same table for the linter, which measures every run against the paper of all seven themes (`DG_THEMES`, held to build.js by a gate) and warns under `DG_BAR_CONTRAST_MIN`, naming the themes (`diagram-bar-contrast`). An outline on a column is ink that encodes nothing, and at 1.4 it never matched the 1.05 baseline it stood on. **`key "2023"` names a run** – the one keyed option whose value is a quoted string, so `readGridOpts` only notes the word and the bars statement takes the string off the raw token list, keeping it out of the positional quoted tokens the tick strip is read from – and the chart draws the legend: `<id>-key`, a swatch that is a column of the run (same classes, `role: 'bar'`, so the same fill by construction), and `<id>-key-label` beside it, in a row above the frame's top-left corner; a series appends to the row of the chart it joined off a running x on the frame's geometry record. In a grouped chart `emph` on two runs at one index paints both in the accent, and on a `.tone-4` run it changes nothing – the linter warns on both (`diagram-bars-emph`) and points at `dim` on the other columns.
+- **`zone <name> at X,Y w W h H "Label" {classes}` is a named area, and it is a statement because two of its three differences from a `box` are not properties of a box at all.** It is painted **under everything, whatever line it is written on**, so an area can be declared after the things standing in it – which is the order an author writes in, because the area's size comes from its contents; its label sits in a **corner** rather than in the middle, because the middle of an area is where the contents go (top-left, with `.right` and `.bottom` moving it – the element-label alignment words one level out, which is why it invents no `corner` option to say the same thing again); and it holds **from beat 0**, which is the whole difference from a `container`: a container fits its members and is invisible without them, while an area is a claim on the paper that holds whether anything is standing in it yet or not. Its size may be written or taken from its contents – an axis with no `w` / `h` is settled by what is placed `in` it, which is the half of the split that has closed. Five figures in one real keynote needed exactly that – two named regions from the first beat, filling up as the talk went on – and the workaround was a `box {.dashed .clear}` plus a `text`, which drew an overlap warning per child.
+
+  **The caption sits a third of a row inside the corner, and `pad n` is what moves it.** `DG_ZONE_PAD` is 0.33, square in px on both axes (the x nudge is scaled by `uh/uw` at the statement, the correction `gap` and `pad` already make). It was 0.16 – just under a sixth – and an area's outline is a dashed line while its caption is 12 px type, so the words sat *on* the dashes: measured on a keynote's "zu Hause", the glyphs crossed the frame at two corners of one figure, which reads as a box that failed to fit its own label. **At the bottom corner it is a little more**, by `DG_ZONE_INK_DROP` (0.17) of the caption's own font: what a reader compares is the distance from the dashes to the nearest ink, and a line of type does not sit centred in its own box - a cap stops well short of the box's top edge while a descender nearly reaches its bottom one, so a `.bottom` caption with a `g` in it stood 2 px closer to the outline than a top one did on a 120x72 grid. `zone … pad 0.6` overrides the inset in grid units like every other `pad`; the word was in `DG_KIND_OPTS.zone` from the start and read nothing at all, which is the silent no-op this grammar refuses everywhere else. The same `pad` sets the **band** below, so a caption inset and the room its contents get are one number and not two that have to be kept equal by hand.
+
+  **The band, `in`, and the size the contents settle – three things, and they are one idea.** An area
+  reserves a band for what stands in it: itself minus `pad` on all four sides, minus the caption's own
+  line on the side the caption is on. `z.inner.left` / `.right` / `.cx` and `z.inner.top` / `.bottom` /
+  `.cy` are that rectangle, addressable like any element's six scalars, and `in z` is the placement
+  that meets it – top-left by default, with `left` / `right` / `top` / `bottom` / `center` bare after
+  the zone moving it (`DG_IN_ALIGN`, the caption's own four plus the one a corner does not need), and
+  `gap n` inset from the band's edge. **`center` alone answers both axes**, so an axis
+  centred while the other is not has to spell the other one out – `in z center` is the
+  middle of the band and `in z left center` is its left edge, halfway down – and the words
+  are resolved once the run of them has been read, so their order changes nothing. They are words of the *placement* and not classes, because on a
+  box `.left` already says where the label sits inside the outline, and one word cannot answer two
+  questions on one line; `anchor` and `flush` are refused on it and say so, because a band is neither a
+  coordinate nor a face. **`row a, b, c in z center` places the whole run**, centred as a block:
+  sizes are settled before positions are, so the run's extent is answerable before a member of it has
+  been placed, and this is the one thing no coordinate on one member's line can state. A member of
+  such a row may not state a placement of its own – the row is placing all of them.
+
+  **`w` / `h` are optional, per axis, and an axis nobody writes is the one the contents settle.** The
+  zone then wraps everything placed `in` it plus the band and the pad, like a container, while keeping
+  its ground, its caption and its place under everything, like an area. It is **not** re-fitted per
+  beat the way a container is: an area holds from beat 0, and a frame that grew as the talk filled it
+  would move every caption under it. Three consequences worth knowing. Only `in` is membership – a
+  chain that runs on from a child (`right of a gap 4`) runs on *out* of the area, which is what the
+  keynote figures hanging a note off a box in a zone depend on. An axis the contents settled cannot
+  also be aligned against (`in z right` under an auto width is "the band is exactly this run"), and
+  that is an error rather than a guess. And an area with an auto axis and nothing in it is refused: it
+  has no size to take from anywhere. The layout runs **twice** to answer this – the children's union is
+  invariant under moving the zone, so the second pass, which knows the size and therefore where an
+  anchor or a centre puts the frame, moves everything together and changes no extent.
+
+  **A zone with written numbers that its contents do not fit in warns** (`box a … is 59 px wider than
+  the band z reserves`), naming the child, the axis and the number to write instead. Only what is
+  placed `in` the zone is measured, and only at beats where nothing has moved it: what this reads is a
+  placement, and a `move` step is an act.
+
+  **It expands at parse time into a box and a text**, so nothing downstream learns an element kind: `at` names it, `.cx` and `.top` address it, a `step` shows, hides and emphasises it, and a `brace` can span it. Three details are load-bearing. The frame carries `synth` set to its **own id**, the discriminator that already keeps a `table`'s and a `lanes`'s frame out of `dgOverlapWarnings`, so a box standing in an area is not reported as a collision. The caption carries `leaderRef` set to the zone, so it is only as visible as the area it names through the face of the visibility closure that already says a text is only as visible as what it hangs off – `hide z` takes both. And its look, `.clear .dashed .muted`, is **seeded and displaced through the slots** the way a column's `bare` is: `{.tone-2}` replaces the see-through fill, `{.dotted}` the dash, `{.accent}` the muted ink, and none of the three is written back by the editor as the author's. Generated names: `dgZoneCapName(id)` (`z-cap`) and the tag `dgZoneTag(id)` (`@z-parts`), which holds the pair. Drawing order is the one thing that could not be an expansion detail, so `renderDiagram` puts every `zone` at the head of its `elements` list.
+- **A `table`'s first row is a heading, and `unheaded` says it is not.** The bare word `unnumbered` already has this shape one statement along (`DG_BARE_OPTS`), and this one takes away exactly the `bold`: the first quoted string is still the row that fixes the column count, `dgCellName(id, c, 0)` is still its cells and `@t-row-0` still names it. A table of pairs – a key/value block, a legend, a run of definitions – had no way to be written, and the workaround, a heading of empty strings, drew an empty bold row that still took its height.
+- **A `table`'s row height follows its type size.** `row` is the author's own number and still wins; absent, the default is `DG_ROW_H` **scaled by `dgFontFor` of the written tail**, so `{.large}` no longer puts 22.9 px of type in a box 21.8 px tall and nobody has to work `row 0.8` out by hand. The base case is untouched by construction, because the factor is exactly 1 when no size class is written. Off the **written tail** and not the resolved classes, for the reason a chart's `same as` is answered at parse time: the frame's geometry is fixed while the line is read, before any `default box` layer exists.
+- **A whole line of a multi-line label written in the quiet mark is a second register.** `text f "1  Wer macht es grün?\n~abfedern~"` draws the question in the reading size and the verb under it at `DG_QUIET_SCALE` (0.8, the same factor `.small` is – a figure has one small size and a second nearly equal one is a drawing that looks mis-set) in the muted ink the mark already gives it. The construction it exists for is a question over the verb that answers it, which written as **two** `text` elements cannot be centred on the cell it labels: each is anchored to the cell's centre line on its own, so a two-line question over a one-line verb stands half a line too high and the author moves the split by hand – `cy-0.1` / `cy+0.1` on one row and `cy+0.5` / `cy+0.7` on the next, measured on a keynote's build plan. As one label it is one block and the ordinary centring does it, so both rows are written the same way whatever their line counts. **The rule is the whole line, in a label of more than one**, and the second half is the rule rather than a guard on it: a register exists in contrast to another register, so on a one-line label `~…~` stays what it always was, the muted colour, and `{.small}` is how a whole label is made small. `dgMeasure` carries a per-line scale and `dgTextEl` walks the baselines down the measured block instead of stepping one pitch, which is the same arithmetic when every line is at scale 1 – a label with no second register draws the bytes it always did, and `dgTspans` emits a `font-size` only where the span differs from the `<text>`'s own. Corpus cost: `lectures/diagrams#goals`, whose last line was a whole line in the mark; its wording moved one word so the register break falls at a clause boundary, and the figure is now the specimen.
+- **`same as X` on a `table` copies the columns, and only the columns.** Two tables stacked so their columns line up meant writing `col 1.7,2.0,0.12` twice, in two places nothing said were meant to stay equal – measured on a keynote's `#vorgang`. What is copied is the widths **and the `space` between them**, because a column's *position* is both numbers and copying one of the pair lines up nothing; a `space` written on the copying table's own line still wins, and its rows stay its own. It is answered while the line is read, off a `tableCols` map filled as each table settles, for the reason a chart's `same as` is: a table's cells are placed against its own frame at parse time, so a width arriving later would move the frame and leave the cells where the old numbers put them. Four refusals, all four mirrored in `lint.js` because all four are decidable from the line order and the two heading strings: `same as` beside `col` or `w` (one size said twice), a table declared **below** it, a name that is not a table, and a copy of a table with a different number of columns.
 - **`.smooth`** – the same waypoint vector drawn as a Catmull-Rom spline instead of straight segments. Interpolating, so the curve passes *through* every waypoint and the class never moves a line off what it was attached to. The skew warning exempts it: on a curve a nearly-flat stretch is the shape, not two ends that missed each other.
-- **`.elbow`** shares a slot with it – `['smooth', 'elbow']`, "how a line is drawn" – and is the one place the engine puts a coordinate on the page the author did not write. It draws its own two waypoints: a rail halfway across the gap, on whichever axis the two ends are further apart, with the leaving and arriving anchors forced onto that axis whatever `dgAutoAnchor` would have picked from the straight line between them (an anchor the author wrote still wins). It is bounded so that it does not become routing: it looks at nothing else in the figure, nothing steps around an obstacle, and there is no option to move the rail. **`.elbow` with `via` is an error, not a preference the build guesses at** – both halves are on the one line, so `lint.js` decides it too, though only for a class written on the line itself; one arriving through a `default edge` layer is the build's to resolve, the same restraint the `.fit` check shows.
+- **`.elbow`** shares a slot with it – `['smooth', 'elbow']`, "how a line is drawn" – and is the one place the engine puts a coordinate on the page the author did not write. It draws its own two waypoints: a rail across the gap, on whichever axis the two ends are further apart, with the leaving and arriving anchors forced onto that axis whatever `dgAutoAnchor` would have picked from the straight line between them (an anchor the author wrote still wins). It is bounded so that it does not become routing: it looks at nothing else in the figure, nothing steps around an obstacle, and the author has no option to move the rail. **`.elbow` with `via` is an error, not a preference the build guesses at** – both halves are on the one line, so `lint.js` decides it too, though only for a class written on the line itself; one arriving through a `default edge` layer is the build's to resolve, the same restraint the `.fit` check shows.
+- **The rail is halfway across that gap, and the *arrival run* is the one thing that moves it.** The run after the rail is all a reader has to tell which box the arrow points into – the rail itself is shared, which is exactly what makes a tree bracket read as one shape – and on a small gap half of that run is the arrowhead. So where halfway would leave it under `DG_ELBOW_ARRIVE` (`DG_LABEL_H + DG_HEAD`, 27.75 px), `railAt` in `dgEdgeRoute` slides the rail **toward the source** until the arrival run is exactly that, never past halfway and never leaving less than `DG_ELBOW_LEAVE` (`DG_HEAD`, 9 px) behind it. Three consequences worth knowing. The offset is a function of the span alone, so **two edges out of one parent still land their rails on one line** – the bracket survives. A gap of twice the floor or more is untouched, which is why almost the whole corpus drew identically after the change. And where the gap cannot pay for both runs the rail stays halfway and `dgEdgeShortWarnings` says so, because the fix is then a number on the boxes and the route has no business inventing one. Measured on a real keynote: two boxes 30 px apart put the rail at 15 px, and against a `.dashed` target the head read as resting on the dashes rather than arriving at them.
+- **The three outline looks, and all three are stated as multiples of the line they pattern.** The stroke pattern slot is `['dashed', 'dotted']` and the absence of both is solid; the weight slot beside it is `['thick', 'bare']`. What ties them together is **`--dg-sw`**, a custom property set in `build.js` beside every `stroke-width` in the diagram stylesheet, on the same element and by the same selector – 1.4 px plain, 1.3 on a `container`, 1.05 under `.muted`, 2.6 under `.thick` and `.emph` – so the dash arithmetic can never disagree with the line it is drawn on.
+  - **solid** – nothing written.
+  - **`.dashed`** – `stroke-dasharray: calc(--dg-sw * 2.2) calc(--dg-sw * 1.5)`, butt caps. At the plain weight that is 3.08 px of ink and 2.1 px of paper. It was a flat `6 4`, which at 1.4 px is 4.3 line-widths of ink against 2.9 of paper: a dashed box then drew the eye harder than the solid one beside it, and on a `.round` corner (13 px radius) a 10 px period put one or two dashes on the whole arc, so a gap landing on the apex read as a chipped box. Nothing divides a rounded rectangle's perimeter evenly, so the seam cannot be removed; a small dash with a small gap hides it. Butt caps deliberately – a round cap adds half a line-width of ink at each end and would put the dash back where it started.
+  - **`.dotted`** – `stroke-dasharray: 0 calc(--dg-sw * 2.5)` with `stroke-linecap: round`, which is what makes it *dots*: a zero-length dash under a round cap draws a disc one line-width across, and the gap is 2.5 of those. It was `1.5 3.5` with the round cap on top, a 2.9 px dash at the plain weight – a fine dashed line under another name – and at `.thick` a 4.1 px dash with 0.9 px of paper between it, so the dotted specimen in the class catalogue was very nearly solid.
+  - **`.dotted .muted` is floored at the plain weight** – `stroke-width: max(var(--dg-sw), 1.4px)` and the gap stated against the same `max()`, on `.muted.dotted` only. A dot is one line-width across and `.muted` makes that 1.05, so the pair drew 1.9 px discs at a typical figure scale, anti-aliased below their own colour (peak 2.56:1 on the light themes, where a solid muted line reaches 2.76) and carrying a quarter of a muted line's ink or less on all seven themes; it was the one pair in the vocabulary two steps below everything else. With the floor it is `.dotted`'s pattern in `.muted`'s ink. Two alternatives were measured and turned down: the muted *word*'s colour mix on the stroke gains on the light themes and loses on the three dark ones, and a gentler `.muted` on every broken stroke would move every `zone` (`.clear .dashed .muted`) in the corpus, where `.dashed .muted` already reads one step below `.muted`. `max()` rather than 1.4, so a `.thick` or `.emph` line keeps its 2.6. **A `plot`'s grid is this pair**, written by the compiler (`gridCls`), and is most of what the floor reaches. `test/figure-dotted.mjs`.
+  - **`.thick`** is the only thing that moves either number, and it moves both, because the pattern is a ratio. Under the old flat pixels a thick line got the same dash on twice the weight, which is the one case `6 4` was actually tuned for – so `.thick` is where the two patterns changed least (5.72 / 3.9 against 6 / 4) and the plain weight is where they changed most.
+- **An edge endpoint may be a bare coordinate, and that is how an arrow comes in from outside the picture.** `edge 0,1.5 -> mail` starts at a point on the grid with no box behind it; `edge mail -> 0,1.5` is the same thing pointing out; `edge -0.45,0 -- 6.1,0 {.muted}` is a rule under a row with nothing at either end. A component may name an element like any other coordinate (`edge q1 -> 2.20,q1.cy`), because `dgParsePair` is the one coordinate grammar behind `at`, `move … to`, waypoints and endpoints alike. It is a **literal and deliberately not an invisible `dot`**: there is nothing to delete by accident, and a graphical editor answering a drag rewrites two numbers on that line instead of moving an object nobody can see – which is what `dgeStartEndpoint` does, and what `test/editor-edges.mjs` pins (*"the edge tool starting on an arrow uses a coordinate, never the arrow name"*). Three things to know. **No space after the comma**: an endpoint is exactly one token, and `0, 1.5` puts `0,` in the optional name slot and is refused as a bad name. A free end contributes **no dependency**, so it cannot make a placement cycle. And the visibility closure does not run downhill through one – `edge 0,1.5 -> mail` goes dark when `mail` does, and the free end never darkens anything. Five edges in the corpus are written this way (`lectures/diagrams` `#look`-era rule, four in `lectures/network-security`).
+
+- **A label its own line runs through gets a halo.** The offset that lifts an ungrounded label off its line clears it at the *midpoint* and knows nothing else about the route, so an elbow's two outer runs, a doubled-back `via` and a curve that comes back on itself can all be drawn through the middle of the words – which a room reads as struck through. `dgSegmentsCrossBox` tests the label's ink box against the drawn route at each beat, and where it crosses, the beat's class string gains `dg-halo` and the stylesheet knocks the glyph shapes out of the line with `paint-order: stroke fill` in the paper. A **halo and not the ground rect**, for two reasons: a rect is decided by the fill slot, so producing one would mean writing a fill class the author did not write, which feeds back into `grounded` and moves the words *onto* the line; and a rect is as wide as the whole run where the crossing is one word long, which on a curve erases the arc the label belongs to – the mistake `dgLabelGroundWarnings` reports one layer along. A label that already carries a fill is left alone. **A free `text` some *other* line runs through is deliberately not covered**, and the reason is the reason `dgOverlapWarnings` and this are two rules: the compiler cannot tell an arrow crossing a note from a rule drawn through a row of labels on purpose, and `lectures/diagrams` `#anchors` is the second - one dashed rule through two rows, where the crossing *is* the argument of the figure. An edge's own label is the case with no such reading. A note on somebody else's line is the author's to ground with `{.paper}`, or to write as that edge's label and let the offset carry it clear.
+
 - **An edge's label can carry a ground, and `side` is what lifts it off the line.** A fill class on an `edge` draws a rect behind the label; `pad` and `side` are the two `edge` options (`DG_KIND_OPTS.edge = ['pad', 'side']`). With no `side` the label sits **on** the line and knocks it out behind the words; with one it clears the line and sits beside it, ground and all. Before the ground existed, `.paper` on an edge resolved, emitted its class and drew nothing.
 
   **The side is an option and not the four alignment classes, and that is the correction.** On a `box`, a `dot` or a free `text` those four are two independent channels – `.left`/`.right` place a horizontal run of text, `.top`/`.bottom` the block of lines – so the same four words meant two different geometries chosen by kind, and `{.top .left}` on an edge was writable although an edge has exactly one side to pick. `side` follows the precedent `point` set: a chevron aimed up is the same shape aimed differently, and one keyed option beats four classes that only some kinds can reach. The four are refused on an edge now, by the same class gate that refuses an outline there.
@@ -151,17 +798,9 @@ A boxes-and-arrows compiler. The source is a line-oriented DSL inside the lectur
 
 - **A `bars … series of` line is the one statement that produces no element carrying its own name**, because it draws columns into a frame it does not own. The span table keys off `id === el.id`, so it had no entry at all and nothing on the line was editable – which looked like a decision and was an accident. `model.statements` holds one record per such statement and `createSpanTable` walks it; `spanOf` also gained generic support for **bare words** off `DG_BARE_OPTS`, so `stacked` is present-as-a-token or absent-as-an-insertion-point, which is a checkbox at the call site rather than two branches.
 
-`lint.js` mirrors the parsing contract for all of this – including a `table`'s rows and its two tag families, a `lanes`'s bands and captions, a `sequence`'s three entry shapes with every name and tag they generate, a series that declares columns but no baseline and no ticks, and an `.elbow` that also carries `via` – and the generated names live in `dgBarName` / `dgTickName` / `dgBaseName` / `dgCellName` / `dgPlotName` / `dgRowTag` / `dgColTag` / `dgLaneName` / `dgLaneCapName` / `dgLifeName` / `dgMsgName` / `dgMsgNumName` / `dgMsgSubName` / `dgNoteName` / `dgMsgTag` / `dgMsgsTag` / `dgNotesTag` / `dgActorsTag` / `dgLivesTag`, imported by both files. One asymmetry is older than any of this and stays: neither file checks an *unknown option name* on one of the six expanding statements, because deciding it means re-implementing `readGridOpts` in the linter. The build names the line. That bends "tables only, never a function" – a naming scheme is a table, one indexed rather than listed, and the compiler and the linter have to agree on it exactly or every chart reports a dozen undefined references. **`rejectClassOn`, `rejectSlotPair`, `rejectHeadClassIn` and `dgTakes` ride the same bend for the same reason**: each one *is* a rule about the vocabulary – which class a kind can draw, which two classes answer one question, where a head class may be written, what a statement accepts – and a second spelling of any of them in lint.js is how the gate came to pass lines the build refuses. That matters because CI lints `lectures/network-security` and `lectures/diagrams` but never builds them, so such a line merged green and failed every later build.
+`lint.js` mirrors the parsing contract for all of this – including a `table`'s rows and its two tag families, a `lanes`'s bands and captions, a `sequence`'s three entry shapes with every name and tag they generate, a series that declares columns but no baseline and no ticks, and an `.elbow` that also carries `via` – and the generated names live in `dgBarName` / `dgTickName` / `dgBaseName` / `dgCellName` / `dgPlotName` / `dgRowTag` / `dgColTag` / `dgLaneName` / `dgLaneCapName` / `dgLifeName` / `dgMsgName` / `dgMsgNumName` / `dgMsgSubName` / `dgNoteName` / `dgMsgTag` / `dgMsgsTag` / `dgNotesTag` / `dgActorsTag` / `dgLivesTag`, imported by both files. One asymmetry is older than any of this and stays: neither file checks an *unknown option name* on one of the six statements that go through `readGridOpts`, because deciding it means re-implementing `readGridOpts` in the linter. The build names the line. That bends "tables only, never a function" – a naming scheme is a table, one indexed rather than listed, and the compiler and the linter have to agree on it exactly or every chart reports a dozen undefined references. **`rejectClassOn`, `rejectSlotPair`, `rejectHeadClassIn` and `dgTakes` ride the same bend for the same reason**: each one *is* a rule about the vocabulary – which class a kind can draw, which two classes answer one question, where a head class may be written, what a statement accepts – and a second spelling of any of them in lint.js is how the gate came to pass lines the build refuses. That matters because CI lints `lectures/network-security` and `lectures/diagrams` but never builds them, so such a line merged green and failed every later build.
 
-`lint.js` does **not** attempt the `DG_CLASS_CLASHES` rows, and that is the other half of the same decision. A same-slot pair can never become useful at any beat and is decidable from the written tail alone, so it is an error and the linter raises the compiler's own. A clash row is authorable on purpose – `{.tone-4 .accent}` under a `style x {.clear}` at beat 1 gives an accent that is inert while the fill is there and becomes the ink the moment the fill is taken away – so it needs the resolved state at *every* beat, it is a warning, and it is the compiler's alone. A linter stricter than the build is worse than none.
-
-Three decisions carry the design, and none of them should be traded away casually:
-
-- **No constraint solver.** Positions are expressions over a tiny algebra – a grid cell, an anchor on another element, an offset – so the dependency structure is a DAG resolved by one topological walk. Andrew Myers' [Constrain](https://github.com/andrewcmyers/constrain) is the reference for the other approach (Numeric.js least-squares over `align`/`equal`/`collinear`, rendered to canvas) and it is the right tool for *computed* layouts – tree rotations, sorting animations. It is the wrong tool here on three counts: canvas forfeits theme inheritance, text selection, search and print; a runtime solver is a dependency inside a file that is supposed to be self-contained; and solver failure is non-local – an over-constrained system renders plausibly wrong and reports a residual instead of a line number. `lint.js` can name the line.
-- **Layout runs once per step, at build time.** A step is not a transform applied to a finished picture, it is another evaluation of the same layout with different inputs. That is why an arrow stays attached to a box that walks away: the arrow never stored a coordinate, it stored "the right edge of `mix`". `dgStateAt(model, k)` builds the effective state after steps `0..k`; `layoutDiagram` resolves it; `dgFrameDrawables` reduces it to numbers.
-- **The runtime interpolates numbers and nothing else.** Every element reduces to one or two drawables, and a drawable is only ever a `rect`, a `circle`, a `path` or a block of `text` carrying a numeric vector. A transition is a lerp between two vectors, applied by setting attributes from `requestAnimationFrame`. This is also why **arrowheads are computed filled paths, not SVG `<marker>`s** – a marker will not rotate with a moving endpoint, and its fill would have to resolve through `context-stroke` to follow the theme.
-
-Consequences worth not breaking:
+Consequences of those three decisions (under *What the compiler is*), and the rules that grew beside them – worth not breaking:
 
 - **Steps ride the existing reveal counter.** `chunkBeats(el)` walks the chunk in document order and returns the reveal segments after the first, plus one beat per diagram step. `revealed[chunkId]` stays the only state involved, so sync, the freeze gate, the backward-navigation rule ("a chunk *arrived at* from elsewhere shows fully revealed"), and localStorage recovery all keep working unchanged. `countSegments` now returns *positions* (beats + 1), which is the convention `jumpTo` and `advanceReveal` were already written against. **Stepping backwards costs nothing beyond the counter**: `applyReveal` recomputes every beat's state from `revealed[id]` on each call and `dgStep` renders any step in either direction, so `retreatReveal` is `advanceReveal` with the sign flipped. Reveal was forward-only in the *key map*, never in the mechanism – see PRD §4.6 and §5 for the two key families and the one column exception. Document order also gets the interleaving right: a diagram inside segment 1 only advances once segment 1 is up.
 - **Visibility runs downhill: one rule, three faces – and it is the *default*, which an explicit `show` or `hide` overrides.** An edge is only as visible as its endpoints; a `container` / `brace` only as visible as its members, *and it fits the visible ones*; a `text` that grew a leader only as visible as what it points at. An arrow pointing at a box that has not appeared, an outline around nothing, or a note whose stub leads nowhere is never what the author meant, so most of a diagram needs no `show` of its own. All three resolve **together, as a fixed point, at the top of `dgFrameDrawables`**, and `record()` then reads that answer instead of `state.visible`; the container's fit is in `layoutDiagram` and falls back to all members when none is visible, because a zero-extent box would poison the viewBox.
@@ -196,17 +835,23 @@ Consequences worth not breaking:
 
   Narrowing the verb instead was tried first and is the wrong repair, for a reason worth keeping: **the sets this would have refused are sets the compiler built, not sets an author chose.** `@wa-msg-N` is generated by `sequence` and documented as the way to address one message, and it holds the arrow *and* its number *and* its second line; a `{@tp}` written once on a `grid` line is spread by the expansion over the frame and every image cell it draws. Under "one bad member fails the statement" both become unusable, and the confusion-matrix figure in `lectures/network-security` – whose whole argument is `emph @tp` against `dim @fn, @wellneg, @fpos` – cannot be written at all. The rule is right for a hand-written tag and wrong the moment the compiler is the one doing the mixing.
 
+  **Emphasis acts on whatever the element actually draws, and a `.bare` element draws no outline.** `emph` is an accent stroke on a shape and accent ink on a text, and on a cell that has just taken its outline off with `.bare` the stroke came *back* – the two classes are in two slots, the stylesheet wrote them at one specificity, and source order handed it to `.emph`. What the room then saw was not emphasis but a form: `#vorgang` lit three cells of a `{.bare .clear}` table and got three red rectangles, one of them empty and 566 px wide; `#zweimal` got two red boxes round one word each; the `#bauplan` figures got red dashed empty cells. So on a `.bare` element `emph` emphasises the **ink** – the accent fill and the weight `.emph text` already gives a free text – and draws no outline. That is the same correction `DG_BAR_FILLS` makes one channel along, where `emph` on a column is a solid accent fill rather than the accent outline it is on every other shape, and it is why neither of those is a special case: emphasis has to act on the thing the element has. It is one stylesheet rule (`.psi-diagram .bare.emph`, three classes, written after `.tone-4.emph` so it wins the tie), so the static class and the step verb are one act, and `test/gates/semantics.mjs` holds both halves – the compiler keeps both classes on the element, and the rule that decides what the pair means is where it has to be in source order. Existing decks change only where `emph` meets `.bare`, which in the measured corpus is tables, where it was a defect.
+
   The gate itself stays, and it runs on the verb through the same deferred walk as `style` (`model.byId` after the block, because a step may name an element declared below it). What it needed was **`DG_CLASS_KIND_SET`, the kinds `DG_CLASS_KINDS` describes at all, derived from it rather than listed.** A `bars`, `grid` or `plot` *frame* is none of them – the table has nothing to say about a frame – so a gate walking resolved kinds refused on one every class the same figure may write one line up: `style f {.dim}` was refused while `bars f "3,4" {.dim}` compiled. `lint.js` had been carrying a hand-written copy of that list to avoid the same thing; it imports the derived one now, so the two cannot drift.
+- **Two gates hold the prominence contract, and which one holds what is the rule to copy.** The kind list is one list for all three words, so `.emph` on a free text is legal and `emph @wa-msg-N` reaches a set the compiler mixed – both are *emitted state*, and `test/gates/semantics.mjs` reads them out of the frames in milliseconds. What a class then *means* on a text is one stylesheet rule and nothing else: the compiler emits the same class whether or not `.psi-diagram .emph text { fill: var(--emph) }` exists. Measured, not assumed – deleting that rule left all 389 fast gates green, which is the same failure the grammar keeps closing (a word that resolves, emits its CSS and moves nothing) arriving one layer down, in the tests. `test/figure-prominence.mjs` is the browser half, and it asserts a *difference* rather than a hue, because the token moves with all seven themes. **Pick the gate by the failure mode: frames for what the compiler decided, computed style for what the stylesheet means.**
 - **`move @tag to …` is an error, `move @tag by …` is not.** Every other step op expands a tag to its members and does the same thing to each; `to` would give them all one placement and stack the set on a point. The build says so and names `by`.
 - **`align` / `spread` only work on nodes**, because they override a coordinate the node branch of the walk computes. Naming a container, brace or edge is an error rather than a line that quietly does nothing.
-- **A label is marked up by four characters, and `\` writes any of them literally.** `_sub` and `^sup` shift the next character or a `{group}`; `*accent*` colours a run and `~muted~` greys it. `\_`, `\^`, `\*`, `\~` and `\\` each draw the bare character – which is how a label says `scan\_page`, `MAX\_RETRIES` or `\_\_init\_\_`. **`*` and `~` fall back to a literal when nothing later in the label closes them; `_` and `^` cannot**, because they take the character that follows and there is nothing to be unmatched against, so before the escape existed every snake_case identifier drew as a word with a subscript in the middle of it – silently, with a clean lint, and with `dgMeasure` sizing the box to fit exactly the wrong reading. The escape covers all four and itself rather than only the two that need it: an escape with an exception in it is the next thing to remember. **It is resolved in `dgSpans`, which is the one function both `dgMeasure` and the emitter read a label through**, so the backslash reaches neither the estimate nor the drawing – handled at the emitter instead it would widen every box carrying one by a whole character. `test/gates/semantics.mjs` asserts both signs of all four markers, that the escape costs no width, and that `dgTokenize` still breaks a line at `\n`.
+- **A label is marked up by four characters, and `\` writes any of them literally.** `_sub` and `^sup` shift the next character or a `{group}`; `*accent*` colours a run and `~muted~` greys it. `\_`, `\^`, `\*`, `\~` and `\\` each draw the bare character – which is how a label forces the bare character where the rule below would shift it – `MAX\_N`, where the `N` ends the word, or `a\_b`. `scan_page` and `MAX_RETRIES` need no escape: a marker in the middle of a word is already drawn as typed. **A marker that cannot do its job is a literal character, and all four markers now have that fallback.** `*` and `~` cannot do it when nothing later in the label closes them. `_` and `^` cannot do it when the single character they take would leave the rest of the word behind at full size, so **a shift marker in the middle of a word is drawn as typed** (`DG_LABEL_WORD`, where `_` itself counts as a word character so that `snake_case_name` stays literal all the way along). `hausarbeit_final.pdf` on a real keynote came out as `hausarbeit`, a subscript `f` and `inal.pdf`, which the room read as `hausarbeit,inal.pdf` – silently, with a clean lint, and with `dgMeasure` sizing the box to fit exactly the wrong reading. The line the rule draws is the one the corpus already sits on: `m_1`, `c_0`, `MAC_k(M)` and `M_F,` all shift, because the character taken ends the word, while every filename and identifier does not. A shift of more than one character was always `_{ab}`, and a group shifts wherever it is written, so the rule costs no reachable spelling; `a\_b` remains the way to force a literal in the one-character case. The escape covers all four and itself rather than only the two that need it: an escape with an exception in it is the next thing to remember. **It is resolved in `dgSpans`, which is the one function both `dgMeasure` and the emitter read a label through**, so the backslash reaches neither the estimate nor the drawing – handled at the emitter instead it would widen every box carrying one by a whole character. `test/gates/semantics.mjs` asserts both signs of all four markers, that the escape costs no width, and that `dgTokenize` still breaks a line at `\n`.
 - **Two layers touch a backslash, and only one of them decodes.** `dgTokenize` reads the quoted string and owns exactly two sequences, because they are about the token rather than about the words in it: `\n` is a line break and `\"` is a quote that does not end the string. Every other backslash is passed on whole for `dgSpans` to resolve, `\\` included. It used to drop every backslash it did not recognise, which is what made `\_` unreachable – the marker escape was written against `dgSpans` alone and the tokenizer ate it one layer earlier – and which also drew `C:\tmp` as `C:tmp`. `dgeQuote` in `editor.mjs` is the inverse and has to stay the inverse: it re-encodes a quote and a line break and leaves a backslash alone, because the value the panel edits is the text `dgSpans` reads.
 - **Label changes are pre-rendered variants, not text surgery.** A `label` step toggles between `<g>`s that were typeset at build time, which keeps every trace of typesetting out of the runtime.
 - **A label's extent has to describe what the emitter will draw, and every place that positions one has to measure it.** These are two halves of the same rule and both were broken, which is why figures sat off-centre inside oversized frames. `extentsOf` reserved a box of `lw * 2` centred on the label's origin – a full label width on *each* side – so a figure whose outermost element was a caption reserved half that caption's width of paper beyond it; and only `labelBox` recorded a measured width at all, so container captions, brace labels and edge labels fell through to a hardcoded `[120, 28]` regardless of their text. Measured on `lectures/diagrams` before the fix: up to 122px of empty margin on one side of a 480px figure. `anchorFor` now answers the anchor question exactly the way `dgTextEl` does, and **the print pass has to be handed `printCls`** – a pass with no classes silently treats every label as centred, which under-reserves a `.right` one by half its width and clips it off the paper. `test/figure-framing.mjs` measures the slack on all four sides of every figure and is the guard: this is invisible in every other check, because the picture is still correct, it just is not centred.
 - **`dgLabelAnchor()` is the one answer to which side of its origin a label sits on.** The emitter asks it to write `text-anchor`, and `extentsOf` asks it to reserve the paper – and a label reserved on the side it is not drawn on is how figures came to sit off-centre in oversized frames. It was two copies of the same question until the alignment classes made it three. A `.turn`ed label is centred whichever way it reads, so the across-words have nothing to say about it, and that exception lives in the one function too.
 - **Label alignment is measured against the element's own padding, and it moves the *block*, not the line.** `.left` / `.right` place a horizontal run of text, `.top` / `.bottom` the block of lines, and both mean "as far that way as this box allows" – its inner edge, not its border. Because the origin stays the centre of the block and only that centre moves, a bottom-aligned label of three lines puts its **last** line on the inner edge rather than its first, and the recorded extent stays symmetric about the origin so nothing downstream has to know. `.left` / `.right` used to be free-`text`-only, and on a box they were a latent bug: the label was anchored at the box centre and ran out of it. `lectures/diagrams` `#justify` is the reference for all nine combinations.
 
-  **Where one of those four words cannot act it is an error, not a no-op**, and it is the general class gate that says so rather than a check of their own. Three kinds place their label by their own statement rather than through `labelBox`: a container's caption sits on its own top border, a brace's beside the spine on the side the brace was given, an edge's at the middle of the line. So the four apply to a `box`, a `dot` and a free `text`, and `DG_CLASS_KINDS` says exactly that. **On an edge they used to name which side of the line the label sits on, and that reading is the `side` option now** – one keyed word instead of four classes that mean two different geometries depending on the kind they sit on. Two things the placement still has to get right: the offset must clear whatever the label measures **along the normal** (its height beside a horizontal line, its width beside a vertical one, and the other way round again when turned), and the anchor is forced to `middle`, because `dgLabelAnchor` would otherwise read a `.left` and shift the text back across the line it had just cleared. The normal is oriented in page terms rather than travel terms, or a right-to-left arrow puts its label below while every left-to-right one puts it above. **`dgTurnOf()` answers in degrees, so the boolean that measurement needs has to be derived rather than assumed**: the comparison was written `vertical !== dgTurnOf(...)`, which is `false !== 0` – true whatever the line does – so every edge label cleared its own *width*, and on a horizontal edge that pushed the words off by half the label's length. That is why two arrows between one pair carried their labels at two different heights, each proportional to how long its own word was. `turnDeg` (the number, which rides as the third component of the label's geometry vector) and `turned` (the boolean, for the comparison) are separate now. Measured on the emitted SVG before any of this existed, `.left` moved a node label and an edge label and nothing else, and `.top` moved a node label alone; the other five combinations resolved, emitted their CSS and moved nothing. `test/figure-labels.mjs` asserts both halves – the ones refused and the ones that act – and the editor's swatch rows carry exactly the kinds the compiler allows, so the panel never offers a click that can only be refused.
+  **Where one of those four words cannot act it is an error, not a no-op**, and it is the general class gate that says so rather than a check of their own. Three kinds place their label by their own statement rather than through `labelBox`: a container's caption sits on its own top border, a brace's beside the spine on the side the brace was given, an edge's at the middle of the line. So the four apply to a `box`, a `dot` and a free `text`, and `DG_CLASS_KINDS` says exactly that. **On an edge they used to name which side of the line the label sits on, and that reading is the `side` option now** – one keyed word instead of four classes that mean two different geometries depending on the kind they sit on. **Which pair of words can act is a question about the beats the edge is on screen**, and `dgEdgeSideWarnings` is where it is asked: only the pair lying across the routed line can move the label, so naming the other pair is a warning – but the check used to sit in `dgFrameDrawables`, which runs for every beat whether the edge is drawn in it or not, and an arrow revealed by the very step that levels its two ends was therefore judged on a base geometry nobody sees it in (the tutorial's `#diagram-steps`: the step that shows the two arrows to Bob is the step that moves Eve onto their line). It is a post-pass now, over the beats at which the edge is visible and carries a label; an edge that genuinely changes axis while visible is warned about **by beat**, because there the word acts on one press and not on the next. The per-beat geometry did not move – a side that cannot act at a beat still moves nothing at that beat – only the sentence about it. `lint.js` mirrors none of this and cannot: it does not lay a figure out. Two things the placement still has to get right: the offset must clear whatever the label measures **along the normal** (its height beside a horizontal line, its width beside a vertical one, and the other way round again when turned), and the anchor is forced to `middle`, because `dgLabelAnchor` would otherwise read a `.left` and shift the text back across the line it had just cleared. The normal is oriented in page terms rather than travel terms, or a right-to-left arrow puts its label below while every left-to-right one puts it above. **`dgTurnOf()` answers in degrees, so the boolean that measurement needs has to be derived rather than assumed**: the comparison was written `vertical !== dgTurnOf(...)`, which is `false !== 0` – true whatever the line does – so every edge label cleared its own *width*, and on a horizontal edge that pushed the words off by half the label's length. That is why two arrows between one pair carried their labels at two different heights, each proportional to how long its own word was. `turnDeg` (the number, which rides as the third component of the label's geometry vector) and `turned` (the boolean, for the comparison) are separate now. Measured on the emitted SVG before any of this existed, `.left` moved a node label and an edge label and nothing else, and `.top` moved a node label alone; the other five combinations resolved, emitted their CSS and moved nothing. `test/figure-labels.mjs` asserts both halves – the ones refused and the ones that act – and the editor's swatch rows carry exactly the kinds the compiler allows, so the panel never offers a click that can only be refused.
+- **`at X,Y` names a point, and `anchor` says which point of the element lands on it.** Nine words, and they are `DG_ANCHORS` – `tl` / `top` / `tr` / `left` / `center` / `right` / `bl` / `bottom` / `br`, the same set an edge endpoint spells, because a ninth-of-a-box is one idea whichever end of a line or which corner of a label it names. The default is `center`, so a deck that writes no anchor builds byte-identically; `anchor center` is the default written out and draws what leaving the word off draws. **It is an option of the *placement expression*, not of the statement** (`DG_PLACE_OPTS`, with `gap`, `flush`, `frac` and `offset`), which has two consequences worth knowing: it goes directly after the placement, before `w` / `h` / `pad` and before the `{…}` tail – written after them the expression has already ended and nothing reads it, which `dgUnexpected` now names rather than listing the statement's own vocabulary at an author who did not ask for it – and it is refused on a relative placement, which states a face of another element rather than a coordinate and answers the same question with `flush`. Every statement that takes a placement takes it, `table` and `lanes` included, because it lives on the placement rather than in `DG_KIND_OPTS`. **`move … to` carries it forward**: `anchor` says how an element meets a coordinate and a step says which coordinate, so a step that answered both would silently re-centre an anchored element by half its own size the first time it moved. The arithmetic is `dgAnchorOffset`, applied in `layoutDiagram` beside the offset because it is the one placement option that needs the element's own size.
+
+  **What it is for is the element that has to meet a coordinate by a corner no class names**: `anchor tl` for a caption hung inside a frame's corner, `anchor bottom` for a note standing on a point. A free `text`'s `.left` and `.right` at an absolute placement are anchors of their own (`dgPlaceAnchor`, the fifth placement trap), so a row of `.left` labels sharing one x lines up without the word, and `anchor center` is how such a label asks for the centring back – which is why `anchor center` is recorded rather than dropped as the default.
 - **Text width is estimated, not measured.** There is no browser at build time, so `dgMeasure` uses a per-character advance table, tuned slightly generous (a box wider than its text reads as designed; narrower reads as broken). An explicit `w` that cannot hold its own label emits a `[diagram]` warning rather than overflowing in silence.
 - **Every length in the layout is in grid units, and there are two families of them.** A number that **addresses** the grid is axis-keyed, because a cell has a width and a height: `at`, `w`, `h`, `offset`, a waypoint and every nudge are addresses, and they take `uw` across and `uh` down. A number that states a **clearance** is square, and its ruler is one row – `uh` on both axes.
 
@@ -214,13 +859,23 @@ Consequences worth not breaking:
 
   `uh` and not `uw`, the mean, or a new unit, for three reasons that were already true: `pad` on a box, text, container, brace and edge, `cell` and `space` on a `grid`, `DG_DOT_R`, `DG_LEAD_GAP` and the four `sequence` rhythm constants are every one of them measured against `uh` today, so `gap` was the outlier rather than the rule; `uw` would contradict `pad`, the word an author reaches for on the next line; and a dedicated unit adds a fence word nobody would set, when the author already writes `::: draw 150x52` and the clearance ruler is its second number, visible in the source. The migration wrote the converted number out at every horizontal placement, including the six in the corpus that had relied on the unwritten default – a placement that silently depends on a default it never chose is the same defect one layer down.
 
+  **The `gap` an author does not write is the one number that is not in rows, and that is the point.** A row is whatever the opener says – 20 px on `20x20`, 40 on `120x40`, 72 on the default grid – so the old default of `0.25` rows drew a 5 px clearance on one figure and an 18 px one on another, and on the grid a measured keynote used it came out at 10 px against a 9 px arrowhead: a head with no shaft. Nobody chose any of those numbers. The default is stated in the one ruler a drawing carries whatever its opener says, the height of a base label (`DG_LABEL_H`, `DG_FONT × DG_LINE_H` = 18.75 px): **`DG_GAP_PLAIN`, one label, for a pair nothing joins, and `DG_GAP_JOINED`, 1.6 of them, for a pair an `edge` joins** – 30 px, the 9 px head plus as much shaft again. Which of the two applies is decided by `dgResolveAutoGaps` once the whole block has been read, off the same edge list the dependency walk is built from, because no single line knows whether an arrow will arrive later. Where that edge carries a **label**, the default widens again to hold the words plus two paddings, but only across – a label on a vertical run stands beside the line and costs the gap nothing.
+
+  **A written `gap` keeps its meaning and its unit: it stays a number of rows.** Two reasons, and the second is the load-bearing one. It is the unit every other clearance in this grammar is in, so `gap 0.4` and `pad 0.4` stay comparable on the line an author writes them on; and it is a number the author tuned by eye against the grid in the opener, which other elements are chained off – re-reading it in labels would move every figure in every deck that has one, silently, in a direction nobody asked for. So `place.gap` is a count of rows and `place.gapAuto` a count of labels, two fields rather than one, and `dgGapPx` is the single place the two units are spent. The editor reads it through `dgeGapOf`, for the same reason: a drag that added its delta to the raw field got `NaN` on exactly the placements the new default is for.
+
+  **`lh` is how an author says "label heights", and it is the ruler the rules are written in.** `gap 1.5lh`, `pad 0.6lh`, `row a, b gap 2lh`, `default box pad 0.5lh`. A bare number stays a count of grid rows, so nothing an existing deck says moves; the suffix is for the other case, which had no spelling at all. The default gap has been a count of label heights since it stopped being 0.25 rows, and `figure-design.md` states every spacing rule in labels – but the numbers an author could write were rows, so a figure that spaced correctly on a `150x52` grid had to be re-derived on a `20x20` one, and the same `0.4` meant four distances across four figures of one deck. `dgLen` reads the suffix, `dgGapPx` spends it for a gap and `dgUnitPx` for everything else, so there are still exactly two functions where a unit becomes pixels. **An `lh` gap is a gap the author wrote**, so `dgResolveAutoGaps` leaves it alone and no edge widens it, the same contract a bare number has. Where it earns most is a `default` layer: `draw-defaults` is read once for a deck and applied to blocks whose openers differ, so a `pad` in rows there is a different distance in every figure and a `pad` in labels is one distance. `w`, `h` and `r` deliberately take no suffix – those are an element's *size*, and a size is stated against the grid, while a gap and a pad are clearances round type. Not mirrored in `lint.js` and not needing to be: neither file's tail walk reads a `gap` or a `pad` value, both skip the token. **The editor keeps the unit, because it is part of the span.** A drag, a re-dock, a `side` swatch, the `of` field, the dock chip and a step's `move … to` all spell a gap through `dgeGapSpelled` / `dgeGapWritten` in `editor.mjs`: the arithmetic stays in rows, where every guide and delta already works, and a line that wrote `5lh` gets `5.65lh` back, snapped on that ruler. Before, a drag wrote rows – right distance, wrong ruler – and the swatches wrote the label-height count back as rows, which moved the box. A gap nobody wrote has no unit to keep and is written in rows; the sibling-gap guide writes the sibling's own spelling, because the promise is the *same* gap. `pad` is not editable from the editor.
+
+  **The arrowhead is `DG_HEAD`, 9 px, and it is what a gap has to pay for first.** It is drawn 9 px long with its tip on the target's face, and the shaft is trimmed back by `DG_HEAD * 0.85` (7.65 px) so the stroke stops just inside the head rather than showing through its point – which is why a clearance under about 9 px is an arrow a room sees the head of and not the shaft, and why the joined-pair default is `DG_GAP_JOINED` (1.6 labels, 30 px: the head plus as much shaft again). In the unit above the head is 0.48lh, so `gap 1lh` leaves about half a label of visible shaft and `gap 0.5lh` leaves none. What a written gap too short for its arrow costs is the sixth placement trap at the head of this file.
+
+  **The `pad` an author does not write is in the label's own type, and that is the same sentence read the other way round.** A gap is a clearance between two elements and is in rows; a padding is the ring of paper between a label and its own outline, and what makes that ring look right is the size of the letters standing in it. `DG_PAD_X` / `DG_PAD_Y` (13 and 9 px) are scaled by `dgFontFor(classes) / DG_FONT` in `dgPadPx`, which is the construction `DG_ROW_H` already uses for a table row: a label carrying no size class gives a factor of exactly 1, so every existing drawing is byte-identical, and a `.large` box stops sitting tight in a base label's padding while a `.small` one stops floating in more air than its letters are tall. It reaches a `.large` table, whose cells are boxes like any other, and the ground round a `.small` `edge` label, which is the same ring one statement along. **A written `pad N` is not scaled**: it is a number in grid units, and a number in grid units is a statement about the grid – scaling it would make one number mean two distances depending on a class on the same line. The class-derived font is what `dgPadPx` is handed and not the fitted one, because `.fit` solves the type against a box whose padding is already settled. Corpus cost, measured: two `.small .paper` free texts in `lectures/diagrams#anchors`, whose grounds came in by a fifth; every other tracked view is the same bytes.
+
   `DG_DOT_R` was the older exception of the same shape – `13` raw pixels behind an author-facing `r` that is in grid units – so it was the one number that did not follow the block's `unit=`, and the smaller an author's unit the fatter a bare dot came out relative to everything around it: a plot marker arrived taller than the cell it marked a point in. It is `0.18` grid units now, and `0.18 * 72 = 12.96`, so the default unit is unchanged to the pixel. If a new constant is a distance, write it in grid units and multiply by `uh` at the point of use.
 - **A name that exists but is not usable yet must not be reported as a name that does not exist.** Two messages said the second when they meant the first, and both came out as nonsense an author could not act on. `claim()` records a kind from the statement's first word, so a `plot` line that then failed on a later option is *registered* as a plot and never *declared* as one - and `dgResolvePlotCoords` duly reported that *"q is a plot, not a plot"*. It now names the third case and points at the line that carries the real error, and it says it once per name rather than once per coordinate, because eight identical complaints bury the one that explains them.
 - **An element id may not shadow `Object.prototype`** (`DG_RESERVED_IDS`, a computed table, mirrored by lint.js): the live runtime keys plain objects by element id – a frame's `vis`/`cls`/`geom` straight from JSON, the target cache – so `constructor` or `__proto__` would read a prototype member where the runtime expects its own entry, and the failure surfaced at step time in the browser with nothing at build time to say why. Refused at parse instead.
 - **`.hand` is the serif in italic**, because no handwriting face is bundled and adding one would cost payload in every output.
 - **A vector image is spliced as a nested `<svg>`, not referenced through `<image href="data:…">`**, for the same reason `inlineSvg()` exists at all: an `<image>` lives in an isolated document context and inherits none of the page's custom properties. One trap there: the root id `inlineSvg` assigns is also the anchor of the `@scope (svg#…)` wrapper it puts around every `<style>` block, so overwriting the attribute alone silently kills the whole stylesheet – a line drawing arrives with no lines. Rename the token everywhere instead. Rasters are `data:` URIs and deliberately do not follow the theme.
 - **A placement's `offset` lands before `align` / `spread` override the result, and a step's `move … by` after.** The offset is part of the placement expression, so an element written as `between a,b offset 0,1.35` and then aligned would otherwise get the offset twice – once through its own placement and once on top of the master's coordinate.
-- **A label placed beside something has to be drawn away from it.** Container captions sit at the left border and brace labels beside the spine; both were anchored `middle` at first and lay half across what they belong to. `labelAnchor` carries the exception from the layout to the emitter. A leader stub is the third case and was the last one fixed: every other edge leaves a box with a border, so a stroke ending on that border reads as attached, but a free `text` is a run of glyphs and the line arrived touching the letters. `DG_LEAD_GAP` (grid units, like every other distance) inflates the box the stub *leaves* rather than shortening the finished line, so the standoff is right whichever side `dgAutoAnchor` picks – and it is applied at the text end only, because the pointing end has to keep meeting its target exactly.
+- **A label placed beside something has to be drawn away from it.** Container captions sit at the left border and brace labels beside the spine; both were anchored `middle` at first and lay half across what they belong to. `labelAnchor` carries the exception from the layout to the emitter. **The vertical is the same question and it was answered only for one line.** A label block is drawn centred on its origin (`dgTextEl` walks its baselines down from `-h/2`), and a brace's origin is a fixed 9 px clear of the tick end – so a *two*-line label on `side bottom` hung half its own height back up and printed its first line across the bar, with no escape in the source, because `pad` moves the brace and carries the label with it. **The two ends hang from the edge that faces the bar**: the first line of a `bottom` label sits where a one-line label sat and the rest grow downwards, the last line of a `top` label does the same and the rest grow upwards. The shift is the block's height less that one line's, so a one-line label is unmoved by construction and every one in the corpus is byte-identical. `left` and `right` keep the centring – there the label runs away from the bar along its own anchor, so every line is clear already – and so does a `.turn`ed label, which reads across the bar rather than towards it and is reserved as centred on both axes. Guarded in `test/gates/semantics.mjs`. A leader stub is the third case and was the last one fixed: every other edge leaves a box with a border, so a stroke ending on that border reads as attached, but a free `text` is a run of glyphs and the line arrived touching the letters. `DG_LEAD_GAP` (grid units, like every other distance) inflates the box the stub *leaves* rather than shortening the finished line, so the standoff is right whichever side `dgAutoAnchor` picks – and it is applied at the text end only, because the pointing end has to keep meeting its target exactly.
 - **A coordinate may be another element's coordinate, and an edge is now one of them.** `via iv.cx,x0.cy` costs no dependency edge on the edge's own side, because edges are drawn after every box is placed. What changed is the other direction: **an edge has a box in `layoutDiagram` now**, so `text n "…" above w1 gap 0.2` and `at w1.cx,w1.cy` resolve. Until then a coordinate could name a box, a dot, a text or an image and never an edge – not by design but because edges were routed after the walk that places everything else, and the omission was load-bearing in the wrong direction: a label describing a wire had to be pinned to one of the *boxes* instead, and it then kept its distance from the box and lost it from the line the moment a fraction or a height changed. Measured on the page's own three-message exchange: raising the two boxes from `h 3.0` to `h 4.2` left a wire-anchored label at 13.5px from its line and dragged a box-anchored one out to 22.3px.
 
   Two things make it cheap and both must stay. **`dgEdgeRoute()` is the one text that works out a route** – anchor selection, the fraction along a side, the elbow rail – and both `layoutDiagram` and `dgFrameDrawables` call it; a second copy is the kind that drifts silently, one half still agreeing with the drawing while the other places notes a few pixels off. And an edge's dependencies are exactly its two ends plus every reference in its waypoints, all of which are already in the walk, so edges join the existing topological sort rather than getting a pass of their own – which is also why a genuine circle (`box b above w1` where `w1` ends at `b`) comes out as `placement cycle: b → w1 → b` naming the line.
@@ -250,13 +905,17 @@ Consequences worth not breaking:
   **The kind gate runs first, and the slot check only on what survived it.** Both orders "work"; only this one is true. `edge p -> q {.hex .diamond}` answered the other way round says "an element has one outline", which is false of an edge – an edge has none, which is what the gate just said. Written as two calls at each site that is a convention someone has to remember; written as one function it is structural, which is why `rejectClassOn` collects the survivors and hands them to `rejectSlotPair` itself.
 - **`DG_CLASS_CLASHES` is for pairs that act on different channels and still leave one of the two doing nothing.** Not a slot – a shared slot would be a lie about what they do – but the author should hear about it rather than wonder where the words went. Each row carries **its own reason string**, because the reasons have nothing in common but the shape of the failure. `.tone-4` fills with the accent and inverts its own label, so accent ink on it is invisible (the inversion rule is written *after* the accent one, so it wins). And **`.turn` with `.left` / `.right`**: `dgLabelAnchor()` answers `turn` first and returns, so the across-pair never reaches its own branch and moves nothing. Only that pair – measured on the emitted SVG, `.top` and `.bottom` *do* still move a turned label, along the axis its words read up, so the "centred whichever way it reads" rule is about the across-axis alone. It is a rule about node labels now, because the edge reading of those four words has moved to the `side` option.
 
-  **A clash row is a warning, it is beat-aware, and it is the compiler's alone.** A same-slot pair can never become useful at any beat; a clash row is authorable on purpose – `{.tone-4 .accent}` with a `style x {.clear}` at beat 1 gives an accent that is inert while the fill is there and becomes the ink the moment the fill is taken away. So the warning fires only where the pair is live in **every** beat, which is the only reading under which one of the two is definitely doing nothing. That needs the resolved state at each beat, which is why `lint.js` no longer tries: its loop read the tail as written and never resolved a `default` layer down onto an element, and moving the check to where the resolved state exists found two elements in `lectures/network-security` the old one had reported as clean.
+  **A clash row is a warning, it is beat-aware, and it is the compiler's alone.** A same-slot pair can never become useful at any beat; a clash row is authorable on purpose – `{.tone-4 .accent}` with a `style x {.clear}` at beat 1 gives an accent that is inert while the fill is there and becomes the ink the moment the fill is taken away. So the warning fires only where the pair is live in **every** beat, which is the only reading under which one of the two is definitely doing nothing. That needs the resolved state at each beat, which is why `lint.js` no longer tries: its loop read the tail as written and never resolved a `default` layer down onto an element, and moving the check to where the resolved state exists found two elements in `lectures/network-security` the old one had reported as clean. That is the other half of the bend above: a same-slot pair and a void pair are decidable from the written tail, so the linter raises the compiler's own error; a clash row is not, and a linter stricter than the build is worse than none.
+- **`.bare .clear` leaves a box the layout uses and a reader cannot see, and two things have to know that.** `dgDrawsGround(kind, classes)` answers whether an element paints an outline or a fill – and the default differs by kind, which is the whole subtlety: a `box` or a `dot` is filled with the paper unless it says `.clear`, while a free `text` and an `edge` label have no ground at all unless a fill class asks for one. **`--dg-ink-x`**, which tells a stylesheet where the drawing starts inside its own box so `style: {blocks: left}` can put the *ink* on the text edge, takes the leftmost **painted** box: a rect or a circle whose owner draws neither is skipped, labels, images and paths are ink by construction. It used to be the viewBox margin over the viewBox width, which is true for a figure whose leftmost drawable is a shape or a start-anchored label and false for one whose leftmost drawable is a `table`'s frame – always `.bare .clear` – so the correction aimed the whole drawing at an outline nobody paints and the column of cell text stood a padding to the right of the heading above it. **`flush` on a relative placement** answers the same question from the placement side, through `dgInkInset`: zero for anything that draws a ground, the element's own padding for a frame that draws neither, ink to ink on both sides, so two bare tables stacked line their text up rather than their invisible frames. **`gap` deliberately keeps the box** – a gap is a number the author tunes by eye and any ruler makes it as tunable; an alignment is either right or wrong. The one case the classes cannot decide is a frame a statement synthesised, and it goes both ways: a `table` puts its cells' words a padding inside the frame, while a `bars`, a `grid`, a `plot`, a `lanes` and a `sequence` draw their parts flush with it, so `dgInkInset` reads `node.frame` – without that line the tutorial's chart caption walked 13 px out of its own figure and took the viewBox with it.
+
+- **A muted *line* is `--ink-soft` and a muted *word* is not.** `--ink-soft` is picked against the paper, and a caption is very often standing on something else: measured at 1600x900 on the default theme, `--ink-soft` type reads 3.44:1 on the paper, 2.76:1 on a `.tone-1` area and 2.11:1 on a `.tone-3` one, against the 3:1 anything on a projector has to clear. A line has no such floor – an axis is followed, not read – so it keeps the token and the 1.05 weight that say scaffolding, while `.muted text` is mixed straight out of the two inks (`color-mix(in oklab, var(--ink) 60%, var(--paper))`): 5.34 / 4.29 / 3.28 on the same three grounds. Two grounds it cannot answer for, and both are the ground being wrong rather than the type – a `.tone-4` area is the accent at full strength, where only the inverted label rule is legible, and a dark theme's paper, where the mix follows `--ink` and `--paper` and inverts with them.
+
+- **`dgOpacity` returns an element's *ink* opacity, and the stylesheet takes its ground down the rest of the way.** Group opacity is one alpha over everything inside it, so a box faded to 0.3 faded its words to 0.3 as well – 1.95:1 against its own fill on the paper and 1.88:1 standing on a `.tone-3` area, which is not quiet but unreadable. `DG_SOFT` is `{dim: 0.6, ghost: 0.75}` and `DG_SOFT_GROUND` is what `DIAGRAM_CSS` multiplies the shape, the stroke, the arrowhead and an image back down by, so the product is the 0.3 and the 0.45 that were there before, to the pixel: no existing figure's outline or fill moves and only the type inside a softened element gains. It stays inside the rule the old comment records, because the stylesheet touches a **child** of the group and never the group itself – the alphas multiply, so a `hide` still takes the whole element to zero, and the numbers land at once rather than tweening, which is what `dgApplyDiscrete` already does with visibility. Measured after: 4.65 / 4.41 / 4.13 for a dimmed box's label on paper, `.tone-1` and `.tone-3`.
+
+- **`DG_CLASS_VOIDS` is the third table of that family, and the one that is an error.** A pair from two slots where the first *deletes the surface the second draws on*: `.bare` takes the outline off, so `{.bare .dashed}` and `{.bare .dotted}` draw nothing round the element at all. **`.bare` deletes the outline; `.clear` deletes the fill and keeps it** – that one line is the whole vocabulary of the pair, and `{.clear .dashed}` is what the author who wrote `{.bare .dashed}` meant, measured five times in one real keynote where the dashed zone simply never appeared. It is an error rather than a clash warning for the reason a same-slot pair is: it is decidable from the **written tail alone**, with no beat, no layout and no measurement, which is what lets `lint.js` mirror it – both files call `rejectClassOn`, which runs `rejectSlotPair` and then `rejectVoidPair` on what survived the kind gate. `.bare` with `.thick` needs no row: those two *are* one slot. Only two positives are refused; `{!bare .dashed}` under a `default box {.bare}` is exactly the line that takes the pair apart.
 - **A free `text` draws a ground only when it carries a fill, and it is the same drawable a box uses.** One mechanism, two defaults: a box's ground is the paper and opts out with `.clear`; a text's is nothing and opts in with a fill. `.paper` is in `DG_FILL_CLASSES` for exactly this reason – leaving it out was a hole where the class resolved, the CSS was emitted, and no rect was drawn for it to colour. Two traps, both of which cost a debugging session: the rect changes the element's **extents**, so it has to go through `put()` like any other drawable or the viewBox is computed from the bare glyph run and clips a padded label at the edge of a figure; and a `style` step can *change* the fill, so the rect is emitted in every frame of any text whose fill **slot** a step touches – a geometry key present in only some frames leaves the rect stranded in the others. Both halves of that condition are wider than they look and both were once narrow: it reads the step's removals as well as its additions, and it tests the whole slot rather than `DG_FILL_CLASSES`, because `.clear` is the slot's way of saying *no* fill. Either omission left a text that starts grounded and loses its ground at a beat with the rect in frame 0 and absent from frame 1, and the runtime visits only the keys a frame mentions – so the ground stayed painted for the rest of the figure. **This is one pattern with three instances now** (print arrowheads, runtime arrowheads, this): a drawable whose presence a beat can change has to be present in every frame, with the numbers saying whether it is there. `vis` cannot carry any of them – `vis` is keyed by element, and these are drawables inside an element's group.
 - **An edge's ground goes in after the stroke and the head and before the label**, which is the one order that puts it over the line and under the words. It goes through `put()` for the same reason a text's does, or the frame is measured from the bare glyph run and clips the ground at the edge of a figure. It needs two CSS rules in build.js, both written **after** the tone rules, because those set fill and stroke at the same specificity and source order is what decides. `.dg-edge > rect { stroke: none }`, because a bordered label sitting on a line is a box and there is a statement for that. And a `fill: none` for an edge carrying no tone, the same guard `.dg-text` already needs: an SVG rect with no fill property is black, and this one is emitted in every frame of any edge that is *ever* given a tone – so without it an edge whose label gains a ground at beat 3 draws a black slab across its own line in beats 1 and 2.
-- **`.fit` / `.shrink` are solved after the `same as` copy, not before it.** `sizeOf` is otherwise a function of the element's own label and class, which is what lets sizes settle before the DAG walk; a fitted size needs the box, and a copied box is whatever X turned out to be. That works because `same as` is already a dependency edge. `dgFitFont` is a ratio rather than a search, because `dgMeasure` is linear in the size, and the result is clamped to 0.6–1.5×. An element with `.fit` and neither `w` nor `same as` is an **error** – there is nothing to fit into, and a silent no-op is the failure this grammar refuses. The emitter solves each *label variant* separately, because a `label` step swaps pre-rendered `<g>`s and each has to have been typeset at the size that makes its own string fill the box.
-- **Two gates hold the prominence contract, and which one holds what is the rule to copy.** The kind list is one list for all three words, so `.emph` on a free text is legal and `emph @wa-msg-N` reaches a set the compiler mixed – both are *emitted state*, and `test/gates/semantics.mjs` reads them out of the frames in milliseconds. What a class then *means* on a text is one stylesheet rule and nothing else: the compiler emits the same class whether or not `.psi-diagram .emph text { fill: var(--emph) }` exists. Measured, not assumed – deleting that rule left all 389 fast gates green, which is the same failure the grammar keeps closing (a word that resolves, emits its CSS and moves nothing) arriving one layer down, in the tests. `test/figure-prominence.mjs` is the browser half, and it asserts a *difference* rather than a hue, because the token moves with all seven themes. **Pick the gate by the failure mode: frames for what the compiler decided, computed style for what the stylesheet means.**
-
-**`lint.js` deliberately does not mirror the `.fit`-needs-a-width check.** Deciding it means resolving `w` through four default layers and `same as`, which is the compiler's job; the build hard-fails with the line, and a linter that guessed would be the one thing worse than no linter – stricter than the build.
+- **`.fit` / `.shrink` are solved after the `same as` copy, not before it.** `sizeOf` is otherwise a function of the element's own label and class, which is what lets sizes settle before the DAG walk; a fitted size needs the box, and a copied box is whatever X turned out to be. That works because `same as` is already a dependency edge. `dgFitFont` is a ratio rather than a search, because `dgMeasure` is linear in the size, and the result is clamped to 0.6–1.5×. An element with `.fit` and neither `w` nor `same as` is an **error** – there is nothing to fit into, and a silent no-op is the failure this grammar refuses. The emitter solves each *label variant* separately, because a `label` step swaps pre-rendered `<g>`s and each has to have been typeset at the size that makes its own string fill the box. **`lint.js` deliberately does not mirror the `.fit`-needs-a-width check**: deciding it means resolving `w` through four default layers and `same as`, which is the compiler's job; the build hard-fails with the line, and a linter that guessed would be the one thing worse than no linter – stricter than the build.
 - **`default` is position-independent, one per kind.** DOT's position-dependent model is more expressive and was rejected: it makes the source order-sensitive invisibly, which is exactly the class of silent failure this grammar refuses.
 - **The block parser looks ahead in exactly three places, and all three are the same problem: a frame whose geometry is a function of lines below it.** A `table`'s height is its row count, and the frame is placed before any cell is – so the statement reads its own rows (the run of bare quoted strings under it, ending at the first blank line, comments passed over) and the loop skips what it consumed off a `rowsRead` counter. A chart's columns have to narrow the moment a second series joins, and the series is written later – so the `series of` lines are tallied in one pass over the body before anything is expanded, then each still expands on its own line, in order, through the ordinary branch. A `sequence`'s height is the sum of its bands, and the frame is placed before any of them – so it reads its own entries, off the same `rowsRead` counter, with one difference `lint.js` has to match exactly: a blank line does not end that run. `step` is the only other statement that takes continuation lines, and it needs no lookahead because nothing about it is sized by them; keep the count of readers-of-other-lines where it is, and note the cost when one of them slips: read as a statement, a bare quoted row reports a keyword that is a quotation mark, which is why `lint.js` names the row instead ("a bare quoted string is a table row") and skips the run off the same count the build uses.
 - **Parallel edges are separated by the author, not by the engine.** `mix.right:0.3` slides the attachment point along an edge; two arrows between the same pair at `0.3` and `0.7` are parallel instead of a lens. Automatic fan-out was rejected because it would silently redraw diagrams that already exist.
@@ -269,11 +928,11 @@ Consequences worth not breaking:
 - **`align` / `spread` name a set with a master.** Dragging the master should move the group; dragging a follower means either leaving the set (drop the name from the statement) or moving everyone. That is a UI decision, not a format one, but the statement form is what makes either answer a one-line edit.
 - **A tag default is shared.** Resizing one element that draws its width from `default box @dec w 0.48` should write an explicit `w` on that element rather than change the default – "just this one" is the safe reading of a drag. Changing the default has to be a deliberate act on the default's own line.
 
-`lint.js` **imports** the diagram vocabulary from `diagram-core.mjs` rather than mirroring it – every table that used to have to change in two files in one commit. Tables only, never a function: a function would pull the whole compiler in behind it and the linter would stop being runnable without the Markdown/Shiki stack. It also **captures the diagram body verbatim, ahead of the heading matchers but behind the fence tracker**: a diagram comment starts with `#`, and read as markdown that is a column heading – while a `::: draw` inside a code fence is a syntax example and must not be compiled. Getting that order wrong made the linter fail any lecture that documented the directive, which is the tutorial the release job publishes. Its `oversized-asset` gate and `collectImageRefs` (for `--optimize-images`) both scan diagram `image` lines too, or the pre-commit gate would let through exactly what `assertInlinable` refuses.
+`lint.js` **imports** the diagram vocabulary from `diagram-core.mjs` rather than mirroring it – every table that used to have to change in two files in one commit. Tables only, never a function: a function would pull the whole compiler in behind it and the linter would stop being runnable without the Markdown/Shiki stack. It also **captures the diagram body verbatim, ahead of the heading matchers but behind the fence tracker**: a diagram comment starts with `#`, and read as markdown that is a column heading – while a `::: draw` inside a code fence is a syntax example and must not be compiled. Getting that order wrong made the linter fail any lecture that documented the directive, which is the tutorial the release job publishes. Its `oversized-asset` gate and `collectImageRefs` (for `--optimize-images`) both scan diagram `image` lines too, or the pre-commit gate would let through exactly what `assertInlinable` refuses – and both scan a `::: backdrop`, a `cover-image:` and a `closing-image:` for the same reason. In `build.js` that is one function, `collectDecorationImageRefs`, read by the inline-cap scan and by the optimiser alike; the `image-refs` gate holds them to it.
 
 ## What `lint.js` refuses in a `::: draw` block
 
-These four run in the zero-dep linter, so they fire on every commit without the
+These seven run in the zero-dep linter, so they fire on every commit without the
 Markdown/Shiki stack. They are the diagram half of the build-and-linter
 duplication CLAUDE.md describes: **add a refusal to one file and grep the other
 for the same key in the same commit.**
@@ -281,11 +940,14 @@ for the same key in the same commit.**
 - A statement with no name (`bad-diagram-name`, error) – the build reads the token after the head as the name and refuses the line when there is none.
 - The kind gate on a `style` step's classes, in both signs, answered **after the block is read**: a step may name an element declared below it and a tag whose members are. That is why `define()` records what each name draws, generated names included, and why a tag expands to its members with one bad member failing the statement – the compiler's own rule.
 - Everything a `bars … series of` line does not own: `w`, `h`, `space` and a placement all belong to the chart it joined, and `stacked` needs a series to stand on.
-- An element after the first in a `::: draw` block with no placement (`diagram-no-placement`, error), off the compiler's own `DG_PLACED_HEADS` / `DG_PLACE_INTRO`. The words are matched **positionally**: `point` takes `left` and `right`, so a line-wide test reads `box b "B" point left` as placed, and ten lines of the corpus carry that shape. It counts **nodes**, which is the build's own test for "is this the first element", and exempts a `bars … series of` line, which joins another chart's frame and refuses a placement by name. It also stays quiet on a line this gate has already reported on – one authored defect, one causal diagnostic, which is the nearest a linter gets to the build's "the statement stopped reading" rule.
+- An element after the first in a `::: draw` block with no placement (`diagram-no-placement`, error), off the compiler's own `DG_PLACED_HEADS` / `DG_PLACE_INTRO`. The words are matched **positionally**: `point` takes `left` and `right`, so a line-wide test reads `box b "B" point left` as placed, and ten lines of the corpus carry that shape. It counts **nodes**, which is the build's own test for "is this the first element", and exempts a `bars … series of` line, which joins another chart's frame and refuses a placement by name. It also stays quiet on a line this gate has already reported on – one authored defect, one causal diagnostic, which is the nearest a linter gets to the build's "the statement stopped reading" rule. **It is collected and reported at the end of the block**, not on the line, because a `row` or a `col` further down may be this element's placement.
+- A `row` or a `col` of fewer than two elements, or one with a word after its `gap` (`bad-diagram-row`, error). Both mirror the compiler line for line; what the linter cannot answer is anything about the sizes the statement settles, which needs the figure laid out.
+- The two band refusals (`bad-diagram-zone`, error), both **collected and decided at the end of the block** for the reason `diagram-no-placement` is: an area may be written after the things that stand in it. `in q` and `q.inner.left` where `q` is not a `zone`; and an area with an axis nobody wrote and nothing placed in it, which has no size to take from anywhere. A coordinate pair naming one band twice is one sentence, not two – the build reports it off the element.
+- `anchor` or `flush` on an `in` (`bad-diagram-placement`, error), and the band's own five words (`DG_IN_ALIGN`) accepted after it; `row … in <zone>` with its words, which also makes the row's *first* member placed, where every other form leaves it owing a placement. What the linter cannot answer is whether what stands in a band fits in it: that is `dgZoneFitWarnings`, and it needs the figure laid out.
 
-`lint.js` imports the vocabulary **tables** from `diagram-core.mjs` - never a
-function, or the whole compiler comes in behind it and the linter stops being
-runnable on its own.
+`diagram-ragged-labels` is gone from this list, with the compiler's
+`dgLabelAnchorWarnings`: both described a free `.left` text centred on its
+coordinate, which the fifth placement trap no longer lets happen.
 
 ## The diagram editor (`editor.mjs`, `editor.css`)
 
@@ -312,33 +974,3 @@ Ships into the live views whenever the lecture contains a diagram, gated by the 
 - **The watch socket binds to `127.0.0.1`.** It omitted `host` before, which for a one-way reload socket was untidy and for one that can write to the author's disk is not.
 - **An edit syncs as its own message**, `diagram-edit`, following the `video` precedent rather than the state snapshot – see `speaker.md` §2 for why, and for the rest of that table. Three things keep that sync honest: an edit committed while frozen is queued and flushed on thaw (`psiEditorThaw`, called by `toggleFreeze`); a received edit is persisted the way a local one is, or reopening the editor loaded pre-edit source and the next gesture reverted the peer's work; and under `editor: speaker` the message carries the compiled figure too, because the projection ships no compiler. The DOM half of applying an edit – swapping the drawing, its frames payload, the runtime and the focus-card clone – is `dgSwapFigure` in the shared diagram runtime, one text for the editor's path and the no-editor path.
 - **`frozen` and `state` are top-level `let`/`const` in a classic script**, so they are *not* properties of `window`. The editor reads the freeze state off `#freeze-btn`, which is the same fact made visible. Function declarations (`sendToPeer`, `dgRenderInto`) are global and can be called directly.
-
-## The opener: `::: draw [WxH] [autoplay N [cycle]]`
-
-```
-::: draw                                  default grid
-::: draw 150x56                           the grid, in units
-::: draw 150x56 autoplay 1200             walks its own steps, one delay per beat
-::: draw 150x56 autoplay 1200 cycle       and starts again at the end
-```
-
-**No braces.** Everywhere else in the format a `{…}` tail holds sigil tokens – `.word`, `#word`, and inside a draw body `@word` and `!word` – and a line that has no sigil tokens to carry has no braces. The draw opener carries values, so it is written the way `::: side 2:1` is: the one primary argument positional, everything optional that carries a value a keyword after it. The old braced form (`unit=` and `autoplay=` keys inside `{…}`) is refused with the new spelling of that very line in the message (`stray-attribute`); `tools/migrate-draw-opener.mjs` rewrites a whole repository. There is no `#id` on the opener any more – it was stored and used for nothing but the compiler's error prefix, and that prefix now names the chunk (`in chunk #cbc`) or, for a divider figure, the column (`in the divider of column #part-2`).
-
-**One parser, four callers.** `parseDrawOpener(line)` in `tails.mjs` answers `null` for a line that is not a draw opener, a `{unit, autoplay, cycle, problems: []}` for a good one, and the same shape with `problems` for one that begins `::: draw` and must be refused – `stray-attribute` (the braced form, `autoplay=`, an unknown or out-of-order word), `bad-unit` (`150X56`, a zero side), `bad-autoplay` (not a number, outside 200–60000 ms, or `cycle` with nothing to repeat). build.js (both the chunk and the column-heading site), lint.js and `test/gates/corpus.mjs` all call it, so none keeps a pre-regex of its own. A refused opener is still an opener: lint captures the body through the closing `:::` and reports the one problem rather than a cascade of Markdown errors.
-
-**The compiler sees the grid and nothing else.** `drawCompilerAttrs()` turns the parsed opener into the `unit=` head-attribute string `parseDiagramSource` always took, and the compiler now *refuses* `autoplay=` or a `#id` there as an unknown option – there is no `DG_HOST_OPTS` skip list any more, because no caller hands it a host word. Playback is not part of the drawing: the compiler's job ends at a set of per-beat geometries, and `diagram-core.mjs` also runs inside the browser editor, where there is no deck to play. `withAutoplay()` in build.js puts the delay on the emitted `<figure>` as `data-autoplay`.
-
-**The payload carries the whole opener, formatted.** `renderDiagram` serialises `opener: opts.opener` – the line `formatDrawOpener()` produced – next to the compiler-only `attrs`, and the editor's `dgeBlockText()` writes `DGE.fig.opener + body + ':::'`. That is what fixed the clipboard tier, which used to rebuild the opener from `attrs` and so dropped `autoplay` and `cycle` on every copy. The editor copies the line; it cannot import the formatter, because `editor.mjs` is inlined as a classic script.
-
-## `autoplay N cycle`
-
-A figure written `autoplay 1200` walks its own steps on a timer once the slide is on screen, one delay for every step. A cover figure that animates while the audience files in is the case it was asked for; it works on any chunk because nothing about it is cover-specific.
-
-Two decisions carry the runtime, and both are about not inventing state:
-
-- **It calls `advanceReveal()`, so it is the Space key on a timer.** A private step index would have let the drawing and the reveal counter disagree, and the next Space would jump. Because it *is* the counter, the speaker view follows through the ordinary state broadcast, the freeze gate applies, and localStorage recovery is unchanged.
-- **It runs in the audience only** – the state root – **and the first key, pointer or wheel event on that slide retires its clock.** Two windows both advancing would take two beats per tick; and a lecturer who has touched the deck has taken over, so a timer resuming underneath them is worse than no timer. Verified in a browser: interrupted one beat in, the figure froze there and stayed frozen for three seconds, and a manual Space then advanced it by exactly one.
-
-It also refuses to start from a half-revealed slide: arriving at one means the lecturer left it that way, and finishing it for them is the surprise this must not spring. Bounded 200 ms – 60 s, **refused rather than clamped**, because a clamped number is a number the author did not write.
-
-**`cycle` repeats the walk**, which is what a cover figure usually wants while the audience is arriving. It rewinds by writing `revealed[id] = 1` through the same counter everything else reads, so the speaker view follows the rewind exactly as it followed the walk. The last beat is held for one delay like any other – **a second number for "how long to admire the finished picture" is a knob nobody asked for and one more thing to get wrong.** A bare `cycle`, read off the opener by the same `parseDrawOpener` and never handed to the compiler; `cycle` with no `autoplay` is `bad-autoplay` in both the build and `lint.js`, because there is nothing for it to repeat.

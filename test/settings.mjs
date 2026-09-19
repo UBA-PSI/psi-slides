@@ -351,6 +351,40 @@ console.log('\nlayout generations');
      'and the document rule exists to act on it');
   ok(/body\[data-labels=off\][^{]*\.chunk\[data-tag=exercise\]/.test(off.html),
      'and the projection rule covers the one eyebrow it still generates');
+  // The second generated word on the projection, and the one the key used to
+  // miss: the small-caps NOTE over a ::: footnote. It is invented the same
+  // way the tag eyebrow is, so the same switch has to reach it - otherwise
+  // labels: off leaves the louder of the two standing on every footnote.
+  ok(/body\[data-labels=off\] \.margin-note::before \{ content: none/.test(off.html),
+     'and the footnote eyebrow, which is invented the same way and was left behind');
+  // Print keeps its label on purpose: there the aside is one more block in a
+  // column of blocks and the word is what marks it as a footnote, where on
+  // the slide the hairline and the position already do.
+  ok(!/data-labels=off\] \.chunk-expansion::before/.test(off.print),
+     'while the printed footnote keeps its label, which is what tells it from the body text');
+}
+
+// ── .center is the whole slide, not the paragraphs alone ──────────────
+// It used to be the paragraphs alone, which on a deck under
+// style: {headings: left} produced three alignments on one slide - a left
+// heading, a centred paragraph, a left footnote. The chunk class is the more
+// specific decision by construction, one slide against a whole deck.
+{
+  const c = build('style:\n  headings: left');
+  const rule = (c.html.match(/\.chunk\[data-center\][^{]*\{[^}]*\}/g) || []).join('\n');
+  ok(/\.chunk\[data-center\] > \.chunk-content > \.chunk-heading/.test(rule),
+     'the heading follows the class', rule);
+  ok(/\.chunk\[data-center\] > \.chunk-content > \.margin-note/.test(rule),
+     'and so does the chunk footnote');
+  ok(/> \.chunk-body > \.reveal-segment > p/.test(rule),
+     'while the child combinator still keeps it off a pane, a card row or a list');
+  // The specificity that makes the override go one way and not the other:
+  // (0,4,0) here against (0,2,0) on body[data-headings=left] .chunk-heading.
+  ok(c.html.indexOf('body[data-headings=left] .chunk-heading') < c.html.indexOf('.chunk[data-center] > .chunk-content > .chunk-heading')
+     || /body\[data-headings=left\] \.chunk-heading/.test(c.html),
+     'and the deck-wide key it outranks is still in the sheet, unchanged');
+  ok(!/\.chunk\[data-center\]/.test(c.print),
+     'PRINT_CSS carries none of it: the printed document keeps its left edge');
 }
 
 // ── style.neutrals: what hue the greys carry, and the radius ladder ──
@@ -750,8 +784,32 @@ console.log('\nlayout generations');
     ['a figure as a card', '::: cards 2\n' + DRAW + '\nB.\n:::\n', 'accept'],
     // A divider takes a card row beside its backdrop and its figure.
     ['a card row under a column heading', '# Part {#p}\n\n::: cards 2\n- A\n- B\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
+    // {.stack} says where the divider's content stands, so a divider with no
+    // content has nothing for it to say - the silent no-op this format
+    // refuses. Both directions, because the accepting one is half the value.
+    ['{.stack} on a divider with nothing under it',
+     '# Part {#p .stack}\n\n## free: G {#g}\n\nB.\n', /\{\.stack\} on the divider/, 'bad-section-stack'],
+    ['{.stack} over a divider figure', '# Part {#p .stack}\n\n' + DRAW + '\n## free: G {#g}\n\nB.\n', 'accept'],
+    ['{.stack} over divider prose', '# Part {#p .stack}\n\nA line under the heading.\n\n## free: G {#g}\n\nB.\n', 'accept'],
+    ['{.stack} over a divider card row',
+     '# Part {#p .stack}\n\n::: cards 2\n- A\n- B\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
+    // A backdrop is a ground behind the heading rather than content under it,
+    // so it leaves the divider with nothing to stack - and both files have to
+    // agree about that, or one of them accepts a class the other refuses.
+    ['{.stack} over a divider that only carries a backdrop',
+     '# Part {#p .stack}\n\n::: backdrop https://example.invalid/x.jpg\n\n## free: G {#g}\n\nB.\n',
+     /\{\.stack\} on the divider/, 'bad-section-stack'],
+    // `.bare` is the second word the `#` heading takes, and it is refused on
+    // the same condition: it puts the heading off the slide, so a divider
+    // with nothing under it has an empty slide rather than a quieter one.
+    ['{.bare} on a divider with nothing under it',
+     '# Part {#p .bare}\n\n## free: G {#g}\n\nB.\n', /\{\.bare\} on the divider/, 'bad-section-bare'],
+    ['{.stack .bare} over a divider figure',
+     '# Part {#p .stack .bare}\n\n' + DRAW + '\n## free: G {#g}\n\nB.\n', 'accept'],
+    ['{.bare} alone over divider prose',
+     '# Part {#p .bare}\n\nA line under the heading.\n\n## free: G {#g}\n\nB.\n', 'accept'],
     ['a figure card under a column heading', '# Part {#p}\n\n::: cards 2\n' + DRAW + '\nB.\n:::\n\n## free: G {#g}\n\nB.\n', 'accept'],
-    // A `word:` prefix that is not one of the ten types used to fall through
+    // A `word:` prefix that is not one of the eleven types used to fall through
     // to a literal heading with no data-tag - the search index and the
     // speaker lists then saw an untyped chunk, while lint.js called it
     // unknown-type. The build rendering what the linter refuses is the
@@ -1806,8 +1864,8 @@ console.log('\nlayout generations');
      && !/\.section-outline \{[^}]*max-width/.test(cls.html),
      'the outline caps each row in its own type size');
   // A divider whose body is nothing but a figure lays it beside the heading.
-  ok(/\.chunk-section \.chunk-content:has\(> \.section-body > figure:only-child\)/.test(cls.html),
-     'a divider with a lone figure lays it beside the heading, not under it');
+  ok(/\.chunk-section:not\(\[data-section-layout=stack\]\) \.chunk-content:has\(> \.section-body > figure:only-child\)/.test(cls.html),
+     'a divider with a lone figure lays it beside the heading, not under it - unless it wrote {.stack}');
 
   // ── the ten a review found, each phrased as the failure that was there ──
   // A helper that writes a whole source and reports what was left on disk,
@@ -1838,6 +1896,252 @@ console.log('\nlayout generations');
     return (r.stdout || '') + (r.stderr || '');
   };
   const FM = '---\ntitle: T\n---\n\n## title: {#title}\n\n';
+
+  // ── {.stack}: the divider's content under the heading, full measure ──
+  // Beside the heading a figure gets about 55% of the frame, which is right
+  // for a drawing that balances a part title and unusable for one with six
+  // cells and a label in each. The class is on the one `#` heading rather
+  // than a seventh `section:` value, because `section:` is how the deck
+  // treats every divider and this is a fact about one divider's content -
+  // so all six variants have to keep drawing under it.
+  {
+    const DR = '::: draw 140x52\nbox a "A"\n:::\n';
+    const st = raw('---\ntitle: T\n---\n\n## title: {#t}\n\n'
+      + '# Under {#u .stack}\n\n' + DR + '\n## free: A {#a}\n\nX.\n\n'
+      + '# Beside {#b}\n\n' + DR + '\n## free: B {#bb}\n\nX.\n');
+    ok(st.code === 0, '{.stack} builds', st.out.split('\n')[0]);
+    const art = (id) => {
+      const m = new RegExp('<article[^>]*data-chunk-id="' + id + '"').exec(st.html || '');
+      return m ? m[0] : '';
+    };
+    ok(/data-section-layout="stack"/.test(art('u-section')),
+       'the written class reaches the divider as an attribute', art('u-section'));
+    ok(!/data-section-layout/.test(art('b-section')),
+       'and a divider that did not write it carries nothing new', art('b-section'));
+    // The guard is the load-bearing half: without it the beside grid still
+    // wins on a stacked divider whose body is a lone figure, which is
+    // exactly the case the class exists for.
+    ok(/\.chunk-section:not\(\[data-section-layout=stack\]\) \.chunk-content:has\(> \.section-body > figure:only-child\)/.test(st.html),
+       'the beside grid stands down for a stacked divider');
+    ok(/\.chunk-section\[data-section-layout=stack\] \.section-body \{[^}]*max-width: none/.test(st.html),
+       'and the stacked body gives up the 30em quotation measure');
+    // All six variants still draw. A divider variant is the deck's treatment
+    // of the heading; the layout is one divider's answer about its content,
+    // and the two do not interact.
+    for (const v of ['plain', 'tinted', 'rule', 'card', 'number', 'outline']) {
+      const r = raw('---\ntitle: T\nsection: ' + v + '\n---\n\n## title: {#t}\n\n'
+        + '# Under {#u .stack}\n\n' + DR + '\n## free: A {#a}\n\nX.\n');
+      ok(r.code === 0 && new RegExp('data-section="' + v + '"[^>]*data-section-layout="stack"').test(r.html || ''),
+         'section: ' + v + ' still draws under {.stack}', r.out.split('\n')[0]);
+    }
+    // The width the class promises. Every other chunk that says `.full` pads
+    // 6% instead of 14%, and the divider was excluded with the cover and the
+    // closing slide - so a stacked body ran 224-1359 px at 1600x900 where the
+    // same block in a .full chunk runs 135-1466. It is a stylesheet fact and
+    // belongs here rather than in a browser: the rule either exists or it
+    // does not, and a layout would only say the same thing more slowly.
+    ok(/\.chunk-section\[data-section-layout=stack\] \{ --slide-pad-x: 6%; \}/.test(st.html),
+       'a stacked divider pads 6% like the .full chunk whose measure it promises');
+    // And the drawing ranges left on the heading's own edge. text-align
+    // cannot move an svg - it is a block with auto inline margins - so the
+    // existing "ranged left" rule reached the figcaption alone.
+    ok(/\.chunk-section\[data-section-layout=stack\] \.section-body \.psi-diagram \{[^}]*--dg-fit-ink-x/.test(st.html),
+       'and its drawing sits on the heading edge by its ink, not by its box');
+    // The heading over it is a heading. It was a caption for one release -
+    // 1.35em, weight 600, --ink-soft - and the first keynote to use the layout
+    // answered that by writing {.stack .bare} on all four dividers and drawing
+    // the part title into each figure by hand. So: one size step under the
+    // plain divider, and everything else inherited rather than restated, which
+    // is the half a regression would undo first.
+    // Comments out first: this rule carries a long one, and a `{.stack .bare}`
+    // inside it would end a brace-counting scan two lines early.
+    const stackHd = (st.html.replace(/\/\*[\s\S]*?\*\//g, '').match(
+      /\.chunk-section\[data-section-layout=stack\] \.section-heading \{[^}]*\}/) || [''])[0];
+    ok(/font-size: calc\(2\.1em \* var\(--zoom\)\)/.test(stackHd),
+       'a stacked divider sets its heading one size step under the plain divider', stackHd);
+    ok(!/--ink-soft|font-weight|letter-spacing/.test(stackHd),
+       'and restates no colour, weight or tracking of its own', stackHd);
+  }
+
+  // ── {.figure-type-N}: style.figure-type answered for one chunk ──
+  // The key is deck-wide and the complaint is not: a drawing capped at its
+  // column pulls its own slide's type down and nothing else's, so a deck with
+  // one dense figure and two sparse ones cannot fix any of them with the key.
+  {
+    // A row of n boxes with long labels: n decides how many label-widths wide
+    // the drawing is, which is the whole input to the arithmetic under test.
+    const row = (n) => '::: draw 200x52\n' + [...Array(n).keys()]
+      .map(i => 'box b' + i + ' "a label of some length ' + i + '"'
+        + (i ? ' right of b' + (i - 1) + ' gap 0.3' : '')).join('\n') + '\n:::\n';
+    const deck = (tail) => '---\ntitle: T\n---\n\n## title: {#t}\n\n'
+      + '## figure: Dense {.wide' + tail + ' #dense}\n\n' + row(5)
+      + '\n## figure: Plain {.wide #plain}\n\n' + row(2)
+      + '\n## figure: Plainer {.wide #plainer}\n\n' + row(2);
+    const ft = raw(deck(''), ['--audience-only']);
+    ok(ft.code === 0, 'a deck with one dense figure and two sparse ones builds', ft.out.split('\n')[0]);
+    // The report, and it is the canvas that makes both halves sayable: the
+    // dense drawing is wider than the box its slide reserves, and the sparse
+    // ones use a sixth of theirs. Before the canvas neither was a fact about
+    // one figure - the only comparison available was the deck's own median,
+    // which says nothing at all about a deck whose figures are uniformly
+    // wrong.
+    ok(/figure-overflows-canvas in chunk #dense/.test(ft.out)
+       && !/overflows-canvas in chunk #plain/.test(ft.out),
+       'the dense one is named as over its canvas',
+       ft.out.split('\n').filter(l => /canvas/.test(l)).join(' | '));
+    ok(/over by [\d.]+ across \(\d+ px\)/.test(ft.out) && /frame [\d.]+x[\d.]+  on this figure/.test(ft.out),
+       'with the overshoot per axis in both units and the frame that would reserve what it draws',
+       ft.out.split('\n').filter(l => /overflows/.test(l)).join(' | '));
+    ok(/figure-underfills-canvas in chunk #plain/.test(ft.out)
+       && !/underfills-canvas in chunk #dense/.test(ft.out),
+       'and the sparse ones are named as under theirs, with the share they fill',
+       ft.out.split('\n').filter(l => /canvas/.test(l)).join(' | '));
+    // …and writing the `frame` the message spells silences both, which is the
+    // half that says the report and the override are talking about one box.
+    const spelled = /frame ([\d.]+x[\d.]+)  on this figure/.exec(ft.out);
+    ok(!!spelled, 'the overflow message spells a frame');
+    if (spelled) {
+      const framed = raw(deck('').replace('::: draw 200x52\nbox b0 "a label of some length 0"\nbox b1',
+        '::: draw 200x52 frame ' + spelled[1] + '\nbox b0 "a label of some length 0"\nbox b1'),
+        ['--audience-only']);
+      ok(framed.code === 0 && !/overflows-canvas in chunk #dense/.test(framed.out),
+         'and the frame it spells takes that figure off the complaint',
+         framed.out.split('\n').filter(l => /canvas/.test(l)).join(' | '));
+    }
+    const fixed = raw(deck(' .figure-type-70'), ['--audience-only']);
+    ok(fixed.code === 0, 'a per-chunk figure-type builds', fixed.out.split('\n')[0]);
+    // figure-type is still the one knob that says how large a label is
+    // against body type - which is now also how many labels the canvas
+    // holds, so a smaller label is a wider canvas and a smaller overshoot.
+    const overOf = (out) => {
+      const m = /over by ([\d.]+) across/.exec(out);
+      return m ? Number(m[1]) : null;
+    };
+    ok(overOf(fixed.out) !== null && overOf(ft.out) !== null && overOf(fixed.out) < overOf(ft.out),
+       'and {.figure-type-70} widens the canvas in labels, so the overshoot shrinks',
+       `${overOf(ft.out)} -> ${overOf(fixed.out)}`);
+    ok(/<article[^>]*data-figure-type="70"[^>]*data-chunk-id="dense"/.test(fixed.html || '')
+       || /<article[^>]*data-chunk-id="dense"[^>]*data-figure-type="70"/.test(fixed.html || ''),
+       'the class reaches the chunk as data-figure-type, in per cent');
+    ok(!/data-chunk-id="plain"[^>]*data-figure-type/.test(fixed.html || ''),
+       'and a chunk that wrote nothing carries nothing new');
+    // Eleven rules, generated from the same table the tail parser reads - a
+    // step that exists as a word and not as a rule is a class that parses and
+    // draws nothing, which is the silent no-op this format refuses.
+    for (const n of [60, 100, 160]) {
+      ok(ft.html.includes('.chunk[data-figure-type="' + n + '"] { --figure-type: ' + (n / 100) + '; }'),
+         'step ' + n + ' has a rule behind it');
+    }
+    ok(/unknown-class/.test(lintOf('---\ntitle: T\n---\n\n## title: {#t}\n\n'
+       + '## figure: X {.wide .figure-type-75 #x}\n\nProse.\n')),
+       'and a step off the ladder is an unknown class rather than a silent no-op');
+  }
+
+  // ── a cover's figure is not in a text column, so it has no canvas ──
+  // `cover: beside` hands the title chunk's body to the art panel that
+  // `cover-ratio` divides the frame with, and `## closing:` composes its body
+  // the same way. Neither is the chunk's column, so neither gets the chunk
+  // canvas: measured on lectures/python-intro, whose four stacked boxes stand
+  // comfortably in a 34% panel, the build reserved a column 16 labels tall and
+  // warned `figure-overflows-canvas` about a drawing that was never too big
+  // for the box it is actually in. The deck answered with `frame none` and a
+  // comment, which is the workaround this removes.
+  {
+    // Tall and narrow: the shape a cover panel is and the shape that overflows
+    // a 16-label canvas, so a canvas the build should not have given it is
+    // visible as a complaint rather than as a silence.
+    const col = '::: draw 120x62\n'
+      + [...Array(5).keys()].map(i => 'box b' + i + ' "a stage of the crawl ' + i + '"'
+        + (i ? ' below b' + (i - 1) : '')).join('\n') + '\n:::\n';
+    const cv = raw('---\ntitle: T\ncover: beside\ncover-ratio: 34%\n---\n\n'
+      + '## title: {#cover}\n\n' + col
+      + '\n## figure: A {.wide #a}\n\n' + col
+      + '\n## closing: Questions? {#end}\n\n' + col, ['--audience-only']);
+    ok(cv.code === 0, 'a cover whose body is a figure builds', cv.out.split('\n')[0]);
+    ok(!/canvas in chunk #cover/.test(cv.out) && !/canvas in chunk #end/.test(cv.out),
+       'and neither the cover nor the closing slide is measured against a chunk canvas',
+       cv.out.split('\n').filter(l => /canvas/.test(l)).join(' | '));
+    // The attribute is the fact behind the warning: `data-canvas` is the box
+    // the slide reserved, and a figure with no canvas does not carry one.
+    // --check-fit reads exactly this, so its per-figure room lines leave the
+    // two slides out for the same reason the build's warnings do. Read off
+    // the svg's own opening tag, because the editor's source text names the
+    // attribute too and a slice of the page would find that instead.
+    const svgTag = (id) => {
+      const h = cv.html || '';
+      const i = h.indexOf('<article class="chunk');
+      const a = h.indexOf('data-chunk-id="' + id + '"', i < 0 ? 0 : i);
+      const s = a < 0 ? -1 : h.indexOf('<svg', a);
+      return s < 0 ? '' : h.slice(s, h.indexOf('>', s));
+    };
+    ok(!/data-canvas=/.test(svgTag('cover')) && !/data-canvas=/.test(svgTag('end')),
+       'their drawings carry no data-canvas',
+       svgTag('cover').slice(0, 200));
+    ok(/data-canvas=/.test(svgTag('a')),
+       'while the same drawing in an ordinary chunk is on one', svgTag('a').slice(0, 200));
+  }
+
+  // ── a title chunk is full width on both sides of the build ──
+  // Both renderers hardcode data-width="full" on a cover, and a width class
+  // there is refused, so the parser storing `standard` made the static half
+  // measure a column the slide never has: --check-fit reported `(title,
+  // .full)` for the same chunk the figure warnings measured as `.standard`.
+  // lint.js resolved it to full already (`defaultWidthFor`), which is the
+  // mirror this brings build.js into line with.
+  {
+    // A drawing far too wide for any column, on a cover: `figure-type-small`
+    // is the one warning a figure with no canvas still earns, and it names
+    // the column it measured, which is where the stored width becomes
+    // visible. It read `.standard` before.
+    const wide = '::: draw 200x52\n' + [...Array(10).keys()]
+      .map(i => 'box b' + i + ' "a label of some length ' + i + '"'
+        + (i ? ' right of b' + (i - 1) + ' gap 0.3' : '')).join('\n') + '\n:::\n';
+    const w = raw('---\ntitle: T\ncover: beside\n---\n\n## title: {#t}\n\n' + wide
+      + '\n## free: A {#a}\n\nProse.\n\n'
+      + '## closing: Questions? {#end}\n\n', ['--audience-only']);
+    ok(w.code === 0, 'a deck with a cover and a closing slide builds', w.out.split('\n')[0]);
+    for (const id of ['t', 'end']) {
+      const m = new RegExp('<article[^>]*data-chunk-id="' + id + '"').exec(w.html || '');
+      ok(!!m && /data-width="full"/.test(m[0]), `#${id} is full width in the DOM`, m ? m[0] : '');
+    }
+    ok(/figure-type-small in chunk #t: .* in a \.full column/.test(w.out),
+       'and the static half measured the same column, not a standard one',
+       w.out.split('\n').filter(l => /figure-type-small/.test(l)).join(' | '));
+  }
+
+  // ── {.bare} on the `#` heading: the divider's heading off the slide ──
+  // Same semantics as a chunk's `.bare`, and the same mechanism: display
+  // none over an element that is still in the DOM, so the contents page, the
+  // agenda, the speaker's board and the search index all still read it.
+  {
+    const DR = '::: draw 140x52\nbox a "A"\n:::\n';
+    const st = raw('---\ntitle: T\n---\n\n## title: {#t}\n\n'
+      + '# Hidden {#h .stack .bare}\n\n' + DR + '\n## free: A {#a}\n\nX.\n\n'
+      + '# Shown {#s .stack}\n\n' + DR + '\n## free: B {#b}\n\nX.\n');
+    ok(st.code === 0, '{.stack .bare} builds', st.out.split('\n')[0]);
+    const art = (id) => {
+      const m = new RegExp('<article[^>]*data-chunk-id="' + id + '"').exec(st.html || '');
+      return m ? m[0] : '';
+    };
+    ok(/data-section-bare/.test(art('h-section')) && /data-section-layout="stack"/.test(art('h-section')),
+       'the two words are separate slots and both reach the divider', art('h-section'));
+    ok(!/data-section-bare/.test(art('s-section')),
+       'and a divider that wrote only {.stack} carries nothing new', art('s-section'));
+    // The heading text is still in the markup - that is the whole difference
+    // between .bare and deleting the line.
+    ok(/<h1 class="section-heading">Hidden<\/h1>/.test(st.html || ''),
+       'the heading is still written, so the contents page and search still have it');
+    ok(/#stage \.chunk-section\[data-section-bare\] > \.chunk-content > \.section-lead \{ display: none; \}/
+       .test(st.html || ''),
+       'and a stylesheet takes the whole lead off the slide, id-prefixed so the beside grid cannot outrank it');
+    // Audience-only, exactly like a chunk's .bare: the printed document keeps
+    // its part title and its contents page.
+    const pr = raw('---\ntitle: T\n---\n\n## title: {#t}\n\n'
+      + '# Hidden {#h .stack .bare}\n\n' + DR + '\n## free: A {#a}\n\nX.\n', ['--print-only']);
+    ok(pr.code === 0 && !/data-section-bare/.test(pr.print || '') && /Hidden/.test(pr.print || ''),
+       'and the printed document is untouched by it', pr.out.split('\n')[0]);
+  }
+
 
   // 1 · colsDepth outlived the chunk that opened it, so one unclosed
   // `::: cols` made every later ::: draw in the lecture a hard failure
@@ -1892,7 +2196,7 @@ console.log('\nlayout generations');
 
   // 8 · the [data-bd-frames] shorthand replaced the plain rule's opacity
   // transition, so a revealed backdrop snapped instead of fading.
-  ok(/\.chunk-backdrop\[data-bd-frames\] \{[^}]*clip-path[^}]*opacity 260ms/.test(rvRev.html),
+  ok(/\.chunk-backdrop\[data-bd-frames\] \{[^}]*clip-path[^}]*opacity var\(--arrive-fade\)/.test(rvRev.html),
      'and it still fades with its slide, which the shorthand had dropped');
 
   // 6 · marked wraps a lone image in a <p> and passes a raw <figure> through,
@@ -1902,11 +2206,13 @@ console.log('\nlayout generations');
      'a lone image divider is a figure child, like a ::: draw one', rvImg.out.split('\n')[0]);
 
   // 9 · a class on a column heading parsed, was dropped, and neither file
-  // said anything.
-  const clsCol = raw(FM + '# A part {#p .bare}\n\n## free: A {#a}\n\nX.\n', ['--audience-only']);
-  ok(clsCol.code !== 0 && /"\.bare" - a # heading takes an \{#id\} and nothing else/.test(clsCol.out),
-     'a class on a column heading is refused rather than dropped');
-  ok(/class-on-column/.test(lintOf(FM + '# A part {#p .bare}\n\n## free: A {#a}\n\nX.\n')),
+  // said anything. Written with `.center` since `.bare` joined COLUMN_SLOTS:
+  // the check is about a word from no slot of the column's table, and the
+  // word it used was the one that later got a slot.
+  const clsCol = raw(FM + '# A part {#p .center}\n\n## free: A {#a}\n\nX.\n', ['--audience-only']);
+  ok(clsCol.code !== 0 && /"\.center" - a # heading takes an \{#id\} and \.stack \| \.bare, and nothing else/.test(clsCol.out),
+     'a class from no column slot is refused rather than dropped', clsCol.out.split('\n')[0]);
+  ok(/class-on-column/.test(lintOf(FM + '# A part {#p .center}\n\n## free: A {#a}\n\nX.\n')),
      'and the linter says the same');
 
   // 10 · `from 0` is what writing no `from` already says.
@@ -1992,7 +2298,7 @@ console.log('\nlayout generations');
   // The same shorthand clobber, one media query down: reduced motion took the
   // opacity crossfade away too, so a revealed backdrop snapped between slides
   // while every other one faded.
-  ok(/prefers-reduced-motion: reduce\) \{\s*\.chunk-backdrop\[data-bd-frames\] \{ transition: opacity 260ms ease; \}/
+  ok(/prefers-reduced-motion: reduce\) \{\s*\.chunk-backdrop\[data-bd-frames\] \{ transition: opacity var\(--arrive-fade\) ease; \}/
        .test(rvRev.html),
      'and reduced motion suppresses the picture opening, not the fade');
 
@@ -2493,6 +2799,104 @@ console.log('\nlayout generations');
   ok(/unknown-view-default/.test(lintOf(DECK('print-slide-numbers: sideways\n'))),
      'and the linter refuses the same word, which is what keeps CI honest');
 
+  // ── the two keys a keynote sets and a lecture does not ───────────────────
+  // note-button and neighbours are the same shape as each other and unlike
+  // every key above them: the on-value is the *absence* of the attribute, so
+  // a deck that says nothing emits exactly the bytes it did before they
+  // existed. That is asserted from both ends, because an attribute written
+  // unconditionally would pass every other check here and still move the
+  // rendering of every deck in the corpus.
+  {
+    const quiet = raw(DECK(''), ['--audience-only']);
+    ok(!/data-note-button/.test(bodyOf(quiet.html)) && !/data-neighbours/.test(bodyOf(quiet.html)),
+       'a deck that sets neither key carries neither attribute, so its output is unmoved',
+       bodyOf(quiet.html));
+    const keynote = raw(DECK('note-button: off\nneighbours: hidden\n'), ['--audience-only']);
+    ok(/data-note-button="off"/.test(bodyOf(keynote.html)),
+       'note-button: off is on the body from the first paint, before the runtime boots',
+       bodyOf(keynote.html));
+    ok(/data-neighbours="hidden"/.test(bodyOf(keynote.html)),
+       'and so is neighbours: hidden');
+    ok(/body\[data-note-button=off\] \.annot-add \{ display: none/.test(keynote.html),
+       'the button is hidden rather than faded, because it is a click target in the gutter');
+    ok(/body\[data-neighbours=hidden\] \.chunk:not\(\.active\) \{\s*opacity: 0;/.test(keynote.html),
+       'and the neighbours go to nothing');
+    // The fade is the backdrop's and not the chunk's own 500ms: the camera
+    // lands in --camera-duration, and a neighbour still visible then reads as
+    // a smear beside the slide rather than as a slide leaving.
+    ok(/--arrive-fade: 260ms/.test(keynote.html)
+       && /body\[data-neighbours=hidden\] \.chunk:not\(\.active\) \{[^}]*transition: opacity var\(--arrive-fade\) ease/.test(keynote.html),
+       'over the 260ms the backdrop already fades in, not the 500ms of the dim - one number, three rules, and transition: cut zeroes it');
+    // The button is the only thing the key touches. N is what actually opens
+    // an annotation, and hiding a hint must not cost the ability it hints at.
+    ok(/data-annot-add>/.test(keynote.html) && /startAnnotate/.test(keynote.html),
+       'the button is still in the markup and N still opens the box - only the hint is off');
+    // The runtime half: a free letter, its own message type, and nothing in
+    // the snapshot. A field in snapshot() would drag the receiver's slide
+    // position along with the toggle - the reason blank has its own type.
+    ok(/case 'm': case 'M':/.test(keynote.html) && /setNoteButton\(/.test(keynote.html),
+       'M toggles it at runtime');
+    ok(/type: 'note-button', source: VIEW/.test(keynote.html),
+       'and it travels to the projection as its own message, past the freeze gate');
+    ok(!/noteButton: state\.noteButton/.test(keynote.html),
+       'and never as a field of the state snapshot, which is a full apply');
+    ok(/unknown-view-default/.test(lintOf(DECK('neighbours: faint\n')))
+       && /unknown-view-default/.test(lintOf(DECK('note-button: maybe\n'))),
+       'the linter mirrors both vocabularies');
+    ok(/neighbours/.test(raw(DECK('neighbours: faint\n'), ['--print-only']).out),
+       'and a bad value is refused by a build that renders no live view at all');
+  }
+
+  // ── the third key of that kind, and the one that resolves another ───────
+  // transition says what a slide CHANGE looks like. Same absence-is-the-
+  // default shape as the two above, with one step more: cut and fade imply
+  // neighbours: hidden, so the attribute viewBodyAttrs writes is the
+  // RESOLVED answer and not the frontmatter's word. The geometry is in
+  // test/transition.mjs, which walks three slides under each mode in a
+  // browser; this is the vocabulary and the bytes.
+  {
+    const quiet = raw(DECK(''), ['--audience-only']);
+    ok(!/data-transition/.test(bodyOf(quiet.html)),
+       'a deck that sets no transition carries no attribute, so its output is unmoved',
+       bodyOf(quiet.html));
+    const cut = raw(DECK('transition: cut\n'), ['--audience-only']);
+    ok(/data-transition="cut"/.test(bodyOf(cut.html)),
+       'transition: cut is on the body from the first paint', bodyOf(cut.html));
+    ok(/data-neighbours="hidden"/.test(bodyOf(cut.html)),
+       'and it brings neighbours: hidden with it, because a camera that does not travel never passes one');
+    const cutDim = raw(DECK('transition: cut\nneighbours: dim\n'), ['--audience-only']);
+    ok(!/data-neighbours/.test(bodyOf(cutDim.html)),
+       'an author who writes dim beside it keeps dim - the implication is a default, not a rule');
+    const fade = raw(DECK('transition: fade\n'), ['--audience-only']);
+    ok(/data-transition="fade"/.test(bodyOf(fade.html)) && /data-neighbours="hidden"/.test(bodyOf(fade.html)),
+       'and fade answers both the same way');
+    ok(/body\[data-transition=cut\],\s*body\[data-transition=fade\] \{ --arrive-fade: 0s; \}/.test(cut.html),
+       'both zero the arrival fade the pan was written for');
+    ok(/body\[data-transition=cut\] \.chunk,\s*body\[data-transition=fade\] \.chunk \{ transition: none; \}/.test(cut.html),
+       'and the third arrival fade too - .chunk carries one of its own over --camera-duration');
+    // The one place a chunk becomes live. Two callers, because a third path
+    // is how two windows come to draw a slide change differently.
+    ok(/function landSlide\(/.test(cut.html) && /function fadeSwap\(/.test(cut.html),
+       'the runtime carries landSlide and the fade');
+    // Counted on code lines only: the banner above the function names it
+    // twice in prose, and a count that includes those breaks the moment
+    // somebody improves the comment.
+    const landLines = cut.html.split('\n')
+      .filter(l => /landSlide\(/.test(l) && !/^\s*(\/\/|\*)/.test(l));
+    ok(landLines.length === 3,
+       'and landSlide has exactly two callers beside its definition - jumpTo and applyRemoteState',
+       landLines.join(' | '));
+    // No key cycles it: it is the author's design, not the reader's
+    // preference, and a mode in the snapshot is one more thing two windows
+    // could disagree about.
+    ok(!/state\.transition/.test(cut.html) && !/transition: state\./.test(cut.html),
+       'and it is never a field of state or of the snapshot');
+    ok(/unknown-view-default/.test(lintOf(DECK('transition: dissolve\n'))),
+       'the linter mirrors the vocabulary');
+    ok(/transition/.test(raw(DECK('transition: dissolve\n'), ['--print-only']).out),
+       'and a bad value is refused by a build that renders no live view at all');
+  }
+
   // ── auto-fit grew a third mode ───────────────────────────────────────────
   // true and false are what the key has always taken and still mean what
   // they meant. shrink is the fit ceilinged at the lecturer's own zoom, so
@@ -2561,13 +2965,63 @@ console.log('\nlayout generations');
      'the print rule is guarded, or none would be a key that does nothing');
   ok(/body\[data-hyphenate=all\] #stage :is\(p, li, blockquote, figcaption\)/.test(dflt.html),
      'and the live rule is both gated on all and scoped to the stage, so the chrome never breaks a word');
-  ok(/body\[data-hyphenate=all\] #stage :is\(h1[\s\S]{0,200}hyphens: manual/.test(dflt.html),
+  ok(/body\[data-hyphenate=all\] #stage :is\(h1[\s\S]{0,400}hyphens: manual/.test(dflt.html),
      'with the same manual reset print carries, since hyphens inherits into code and URLs');
+  // A footnote is in that reset, and it is the one entry that is prose. One
+  // or two lines of small type have no measure for a hyphen to rescue, and a
+  // keynote at hyphenate: all broke two consecutive ones mid-word.
+  ok(/body\[data-hyphenate=all\] #stage \.margin-note,\s*\n\s*body\[data-hyphenate=all\] #stage \.margin-note \*/
+       .test(dflt.html),
+     'and a ::: footnote never hyphenates in the live views, descendants included');
+  // Print is deliberately the other way: there the note sits in a document at
+  // the document's own measure and reads as the rest of the page does.
+  ok(!/\.margin-note[^{]*\{[^}]*hyphens: manual/.test(dflt.print),
+     'while print keeps its hyphens, where the note is a paragraph of a page');
+  // pretty fills the measure; balance evens two lines. A centred footnote
+  // came out as a full line with two words under it, which reads as a
+  // mistake rather than as a ragged edge.
+  ok(/body:not\(\[data-wrap=none\]\) \.margin-note p \{ text-wrap: pretty; \}/.test(dflt.html)
+     && /body:not\(\[data-wrap=none\]\) \.chunk\[data-center\] \.margin-note p \{ text-wrap: balance; \}/.test(dflt.html),
+     'a footnote wraps pretty, and balances on a centred chunk, both under the wrap guard');
   const hAll = hyph('lang: de\nstyle:\n  hyphenate: all\n');
   ok(/data-hyphenate="all"/.test(bodyOf(hAll.html)),
      'style.hyphenate: all reaches the projection');
   ok(/lang="de"/.test(hAll.html),
      'and lang: de is still what supplies the dictionary, which is why it stays a key of its own');
+  // ── what `all` still leaves alone ─────────────────────────────────────
+  // Three exclusions, and a keynote with 26 left-set slides is the argument
+  // for each: it turned `all` back off to `print` because of what it did to
+  // the other six. Two are selectors; the third could not be one.
+  ok(/hyphenate-limit-chars: 8 4 4/.test(dflt.html) && /hyphenate-limit-chars: 6 3 3/.test(dflt.print),
+     'the projection needs a longer word than the page before a break buys anything');
+  ok(/body\[data-hyphenate=all\] #stage \.chunk\[data-center\],\s*\n\s*body\[data-hyphenate=all\] #stage \.chunk\[data-center\] \*/
+       .test(dflt.html),
+     'a centred chunk is out of the dictionary, descendants included - a hyphen on a centre axis is a spike on a diamond');
+  ok(/body\[data-hyphenate=all\] #stage \.chunk-section,\s*\n\s*body\[data-hyphenate=all\] #stage \.chunk-section \*/
+       .test(dflt.html),
+     'and so is a divider, whose heading and lede sit on the slide axis whatever variant it wears');
+  ok(/body\[data-hyphenate=all\] #stage \.nohy \{/.test(dflt.html),
+     'and the span the build writes round an address');
+  // The address half, which is a build-time mark because no selector can name
+  // a run of characters. Three shapes and three defects: a dot between word
+  // characters (`pro-jekt-bakule.de`), a slash (`Handreichung / Z/PQM` split
+  // across it) and a no-break space, which is the author joining two halves
+  // into one token. Emitted only under `all`, or every deck's bytes move.
+  const ADDR = '## free: A {#z}\n\nGeht auf projekt-bakule.de im Handreichung / Z/PQM bei n = 4 910 Vorgängen.\n';
+  const addrAll = raw(DECK('lang: de\nstyle:\n  hyphenate: all\n') + ADDR, ['--audience-only']);
+  const spans = (String(addrAll.html).match(/<span class="nohy">([^<]*)<\/span>/g) || [])
+    .map(s => s.replace(/<[^>]*>/g, ''));
+  ok(spans.includes('projekt-bakule.de'), 'a dotted address is taken out of the dictionary', spans.join(' | '));
+  ok(spans.includes('Z/PQM'), 'and a token with a slash in it', spans.join(' | '));
+  ok(spans.includes('4 910'), 'and a group the author joined with a no-break space', spans.join(' | '));
+  ok(!spans.includes('/'), 'while the lone slash between two words is punctuation and is left alone', spans.join(' | '));
+  ok(!spans.includes('Geht') && !spans.includes('Vorgängen.'),
+     'and an ordinary word is untouched, or the key would do nothing at all', spans.join(' | '));
+  const addrPrint = raw(DECK('lang: de\n') + ADDR, ['--audience-only']);
+  // The markup, not the word: the stylesheet names the class in every build,
+  // and it is the span in the body that would move a deck's bytes.
+  ok(!/<span class="nohy">/.test(String(addrPrint.html)),
+     'a deck at the default hyphenate: print emits no such span, so its bytes do not move');
   const hNone = hyph('lang: de\nstyle:\n  hyphenate: none\n');
   ok(/data-hyphenate="none"/.test(bodyOf(hNone.print)),
      'and none reaches the printed document, which is the only view that hyphenated before');
@@ -2755,7 +3209,10 @@ console.log('\nlayout generations');
        'the projection eyebrow rides in as a same-specificity override, uppercased');
     ok(de.html.includes("content: 'EXERCISE'"),
        'and the base rule in AUDIENCE_CSS is untouched, so the override wins on source order');
-    ok(/annot-box-label">Anmerkung · /.test(de.html) && /data-annot-add>\+ Anmerkung</.test(de.html),
+    // Two German words for one English one, on purpose: the box below the
+    // slide is the Anmerkung, the button that opens it says Notiz. The button
+    // is chrome on every active slide and the shorter word is the quieter one.
+    ok(/annot-box-label">Anmerkung · /.test(de.html) && /data-annot-add>\+ Notiz</.test(de.html),
        'the annotation box label and the + note button are localised');
     ok(/margin-note" data-label="Anmerkung"/.test(de.html),
        'and the projection aside default is Anmerkung too');
@@ -2945,8 +3402,76 @@ console.log('\nlayout generations');
   // (`## free: A {} {#a}` would not be that case: splitTail takes the last
   // brace pair, so the `{}` there is heading prose.)
   // The flags have no writable default, and the chunk tail invents none.
-  for (const w of ['.shown', '.left', '.top']) {
+  for (const w of ['.shown', '.left']) {
     ok(/unknown-class/.test(lintOf(FM + `## free: A {${w} #a}\n\nProse.\n`)), `${w} on a chunk heading is unknown-class`);
+  }
+  // `.top` is the exception and the reason the rule above is worth stating:
+  // the camera's anchor is not a flag, because the unwritten state is a third
+  // answer - the chunk's shape decides - so both directions are spellable and
+  // both have to lint clean in the two files at once.
+  for (const w of ['.middle', '.top']) {
+    ok(/0 error\(s\)/.test(lintOf(FM + `## free: A {${w} #a}\n\nProse.\n`)),
+       `${w} on a chunk heading lints clean`, lintOf(FM + `## free: A {${w} #a}\n\nProse.\n`).split('\n')[0]);
+    ok(raw(FM + `## free: A {${w} #a}\n\nProse.\n`).code === 0, `and the build takes ${w}`);
+  }
+  ok(/same-slot/.test(lintOf(FM + '## free: A {.middle .top #a}\n\nProse.\n')),
+     '.middle and .top together are same-slot, one question with two answers');
+  // The refusal on a cover chunk covers both words, in both files.
+  for (const w of ['.middle', '.top']) {
+    ok(/class-on-cover-chunk/.test(lintOf(FM + `## title: T {${w}}\n\n`)),
+       `${w} on a title chunk is class-on-cover-chunk`);
+    ok(raw(FM + `## title: T {${w}}\n\n`).code !== 0, `and the build refuses ${w} there too`);
+  }
+  // The default the shape decides, read off the emitted attribute. A slide
+  // that is one drawing and a `statement:` carry data-middle with nothing
+  // written; prose under the drawing takes it away and `.top` overrides it.
+  const DRAW = '::: draw 40x20\nbox a "one" at 0,0\n:::\n';
+  const midOf = (src) => {
+    const b = raw(FM + src, ['--audience-only']);
+    const m = (b.html || '').match(/<article class="chunk[^>]*data-chunk-id="a"[^>]*>/);
+    return b.code === 0 && !!m && m[0].includes('data-middle');
+  };
+  ok(midOf(`## free: A {#a}\n\n${DRAW}`), 'a chunk that is one drawing opens centred with nothing written');
+  ok(midOf(`## free: A {#a}\n\n${DRAW}\n::: footnote\nsource\n:::\n`),
+     'and a footnote is an aside, not prose on the slide');
+  ok(!midOf(`## free: A {#a}\n\n${DRAW}\nA sentence under it.\n`),
+     'a drawing with a sentence under it keeps its head at the top');
+  ok(!midOf(`## free: A {.top #a}\n\n${DRAW}`), '.top takes the centring back');
+  ok(midOf('## statement: Loud. {#a}\n\n---\n\nAnd louder.\n'), 'a statement: opens centred');
+  ok(!midOf('## free: A {#a}\n\nProse.\n'), 'and a prose chunk does not');
+  ok(midOf('## free: A {.middle #a}\n\nProse.\n'), 'unless it writes .middle');
+
+  // ── a statement's quiet line ──────────────────────────────────────────
+  // The type's second register, and its whole vocabulary: a paragraph set
+  // *entirely* in italic is the line that is not the utterance. "Entirely" is
+  // what makes it a register rather than an accident - an emphasised word
+  // inside a line is a stress mark, which is what `*em*` means everywhere
+  // else - so the accepting and the refusing case are asserted together, and
+  // in both views, because what the line *is* does not change on paper.
+  {
+    const st = raw(FM + '## statement: Loud. {#a}\n\n'
+      + '*A quiet line.*\n\n---\n\nAnother loud one.\n\n'
+      + 'A loud line with *one* word emphasised.\n\n'
+      + '*Half italic* and half not.\n');
+    ok(st.code === 0, 'a statement with a quiet line builds', st.out.split('\n')[0]);
+    const quiet = (s) => (String(s).match(/<p class="quiet-line">/g) || []).length;
+    ok(quiet(st.html) === 1, 'exactly one paragraph is the quiet line on the projection', String(quiet(st.html)));
+    ok(quiet(st.print) === 1, 'and the document carries the same one', String(quiet(st.print)));
+    ok(/<p class="quiet-line"><em>A quiet line\.<\/em><\/p>/.test(st.html),
+       'the em stays inside it - the marker and the look are the same thing');
+    ok(/<p>A loud line with <em>one<\/em> word emphasised\.<\/p>/.test(st.html),
+       'a stress mark inside a line leaves the line loud');
+    ok(/<p><em>Half italic<\/em> and half not\.<\/p>/.test(st.html),
+       'and a paragraph that only starts in italic is not the quiet line');
+    ok(/\.chunk\[data-tag=statement\] \.chunk-body p\.quiet-line \{[^}]*--ink-soft/.test(st.html)
+       && /\.chunk\[data-tag=statement\] \.chunk-body p\.quiet-line \{[^}]*calc\(var\(--statement-size\) \* 0\.5\)/.test(st.html),
+       'the projection sets it at half the statement size in the softer ink');
+    ok(/\.chunk-statement > p\.quiet-line \{[^}]*--ink-soft/.test(st.print),
+       'and the document has a rule of its own rather than inheriting a slide size');
+    // Only this type. A `free:` chunk full of italic paragraphs is prose.
+    const fr = raw(FM + '## free: A {#a}\n\n*An italic paragraph.*\n', ['--audience-only']);
+    ok(fr.code === 0 && !/<p class="quiet-line">/.test(fr.html || ''),
+       'an all-italic paragraph outside a statement is left alone');
   }
   // A word that is the default of two slots marks the first as written.
   const autoLeft = raw(FM + '## free: A {#a}\n\n::: cards 2 {.auto .left}\n- One\n- Two\n:::\n');
@@ -3033,8 +3558,8 @@ console.log('\nlayout generations');
   const colUnknown = lintOf(colSrc);
   ok(/class-on-column/.test(colUnknown) && !/unknown-class/.test(colUnknown), 'a class on a column heading is class-on-column in lint, said once', colUnknown);
   const colBuild = raw(colSrc);
-  ok(colBuild.code !== 0 && /takes an \{#id\} and nothing else/.test(colBuild.out) && !/valid: width/.test(colBuild.out),
-     'and the build says the same, never listing a chunk vocabulary for a line that takes none', colBuild.out.split('\n')[0]);
+  ok(colBuild.code !== 0 && /takes an \{#id\} and \.stack \| \.bare, and nothing else/.test(colBuild.out) && !/valid: width/.test(colBuild.out),
+     'and the build says the same, naming the column\'s own short vocabulary rather than a chunk\'s', colBuild.out.split('\n')[0]);
   const coverUnknown = lintOf(FM + '## free: A {#a}\n\nProse.\n'.replace('## free: A {#a}', '## closing: Bye {.foo #c}'));
   ok(/unknown-class/.test(coverUnknown) && !/class-on-cover-chunk/.test(coverUnknown), 'an unknown class on a cover chunk is reported once, as unknown-class');
   // A tail that does not end the line is neither prose nor a tail.

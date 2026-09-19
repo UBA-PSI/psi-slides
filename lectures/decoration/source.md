@@ -13,6 +13,12 @@ section-mark: Part
 theme: light-blue
 collapse: none
 auto-fit: true
+draw-defaults: |
+  # Shown rather than described: a divider of six small boxes and two
+  # specimen drawings on prose slides. The talk's figure canvas would reserve
+  # a figure box for each and call them empty; this deck declines it like
+  # lectures/diagrams does. A keynote wants the default.
+  frame none
 ---
 
 ## title: {#cover}
@@ -116,6 +122,11 @@ talking and where an hour ago. The last slide of this lecture is one.
 
 # Dividers carry their own slide {#dividers}
 
+> note: A `> note:` written under a `#` heading belongs to **the divider**, not
+> to the first slide of the part. This one is the prompt for the photograph you
+> are standing in front of right now: say what the part is for before the first
+> slide of it arrives.
+
 ::: backdrop dusk {.cover .invert}
 
 ## free: Six treatments, every one quieter than the cover {.wide #section-list}
@@ -178,12 +189,18 @@ Whatever you write between a `# Heading` and the first `##` heading under it
 - **A backdrop**\
   opens it on a photograph. This part does
 - **A figure**\
-  opens it on a drawing set beside the heading. Part 3 does
+  opens it on a drawing, beside the heading or, with `{.stack}`, under it.
+  Parts 3 and 7 do
 :::
 
 Those three are what a divider takes; the other directives belong inside a
 `##` slide. The words do print, as a short paragraph under the part title. The
 divider slide itself never prints.
+
+**A `> note:` written there is the divider's own.** It reaches the cockpit as
+the card for that camera stop and `print-notes.html` under the part title, so
+the sentence that says what the part is for arrives while the part title is on
+the wall rather than one slide late.
 
 ## free: A figure divider lays out beside the heading {.standard #divider-beside}
 
@@ -193,6 +210,19 @@ down one axis with nothing across it.
 
 Prose under a heading is an opening paragraph and stays stacked, which is how
 the quotation divider in Part 1 comes out.
+
+## free: …unless the figure is the point of the part {.standard #divider-stack}
+
+**`# Heading {.stack}` puts the content under the heading at the full measure**
+and sets the heading small above it, as its caption. Beside the heading a
+figure gets about half the frame, which is right for a drawing that balances a
+part title and unreadable for one with six cells and a label in each. Part 7's
+divider wears it; Part 3's is the other layout.
+
+The class is on the one heading rather than a seventh `section:` value, because
+`section:` is how the deck treats every divider and this is a fact about one
+divider's content. A `{.stack}` over a divider with nothing under its heading
+is refused.
 
 # Cards, rows and panes {#grounds}
 
@@ -590,7 +620,21 @@ dock per slide; a `#id` link in the body is the live marker.
   `every` (under a `#` heading only)
 :::
 
-# Beats below the top level {#beats}
+# Beats below the top level {.stack #beats}
+
+::: draw 118x34
+default box {.tone-2} w 0.8 h 0.6 pad 0.12
+
+box b1 "beat 1" at 0,0
+box b2 "beat 2" right of b1 gap 0.26
+box b3 "beat 3" right of b2 gap 0.26 {.tone-3}
+box b4 "beat 4" right of b3 gap 0.26 {.tone-3}
+box b5 "beat 5" right of b4 gap 0.26 {.tone-1}
+box b6 "beat 6" right of b5 gap 0.26 {.tone-1}
+brace p1 over b1,b2 "left pane" side bottom pad 0.3 {.muted}
+brace p2 over b3,b4 "right pane" side bottom pad 0.3 {.muted}
+brace p3 over b5,b6 "the card row" side bottom pad 0.3 {.muted}
+:::
 
 ## free: Six beats in source order, and nothing moves {.wide #beats-panes}
 

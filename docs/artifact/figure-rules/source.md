@@ -3,6 +3,10 @@ title: Figure rules
 subtitle: "The wrong/right pairs from figure-design.md, as compilable figures"
 collapse: none
 draw-defaults: |
+  # This deck is never projected: every figure in it is lifted out of the
+  # build and set into a manual page, where the slide's canvas is not the box
+  # it will stand in. A specimen wants the box that hugs it.
+  frame none
   default text {.small}
 ---
 
@@ -283,13 +287,15 @@ edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent} side bottom
 ## figure: 11 wrong | the middle box is bigger because its label is longer {.full #r11w}
 
 ::: draw 150x52
-# Three peers of one kind, and nothing said about size at all - which is
-# exactly how the accident happens. Each box is as wide as its own label, so
-# the one with the longest phrase in it comes out half again as wide as its
-# neighbours and reads as the important one.
-box a "Sensor" at 0,0 {.tone-1}
-box b "Correlation engine" right of a gap 1.15 {.tone-1}
-box c "Log" right of b gap 1.15 {.tone-1}
+# Three peers of one kind, each as wide as its own label, so the one with the
+# longest phrase in it comes out half again as wide as its neighbours and reads
+# as the important one. It takes a word to write now: a run of `right of` boxes
+# shares one size by default, and `.own` is how a box leaves that run. Keep the
+# shape in mind as one to recognise in a drawing you did not make, rather than
+# as one you can still arrive at by saying nothing.
+box a "Sensor" at 0,0 {.tone-1 .own}
+box b "Correlation engine" right of a gap 1.15 {.tone-1 .own}
+box c "Log" right of b gap 1.15 {.tone-1 .own}
 :::
 
 ## figure: 11 right | one width for the set, and the long label breaks {.full #r11r}
@@ -787,12 +793,12 @@ edge d1.left -> acc.left "yes" via d1.left-0.55,d1.cy d1.left-0.55,acc.cy side l
 # be written in a box. Every hand-off changes lane, which is why they are
 # elbows: a straight line between two bands reads as a diagonal across a band
 # it never enters, and there are four of those here.
-lanes swim "User | SOC | IT ops" at 0,0 w 7.05 band 0.95 {.muted .dashed}
+lanes swim "User | SOC | IT ops" at 0,0 w 7.35 band 0.95 {.muted .dashed}
 box rep "Reports\nsuspect mail"      at swim.left+0.75,swim-0.cy w 1.2 {.tone-2}
-box tri "Triage"                     at swim.left+2.05,swim-1.cy w 0.9 {.tone-1}
-box con "Confirmed\nmalicious"       at swim.left+3.35,swim-1.cy w 1.15 {.tone-4}
-box blk "Block sender,\nrecall copies" at swim.left+4.9,swim-2.cy w 1.3 {.tone-1}
-box ntf "Told what\nto look for"      at swim.left+6.3,swim-0.cy w 1.15 {.tone-2}
+box tri "Triage"                     at swim.left+2.15,swim-1.cy w 0.9 {.tone-1}
+box con "Confirmed\nmalicious"       at swim.left+3.45,swim-1.cy w 1.15 {.tone-4}
+box blk "Block sender,\nrecall copies" at swim.left+5.02,swim-2.cy w 1.3 {.tone-1}
+box ntf "Told what\nto look for"      at swim.left+6.6,swim-0.cy w 1.15 {.tone-2}
 edge rep -> tri {.elbow}
 edge tri -> con
 edge con -> blk {.elbow}

@@ -1528,6 +1528,90 @@ einen Namensraum; die Sektion heißt jetzt `#cue-panel`, ihre Kinder werden
 über die Sektion statt über `getElementById` gesucht, und die Regel steht in
 CLAUDE.md unter *Conventions*.
 
+## Slice: Keynote lessons (branch `keynote-lessons`)
+
+The content repo's `TODO-lessons-keynote-2036.md` – fourteen findings from
+building a 31-chunk keynote – worked down in seven parallel worktrees and
+merged here. The root defect, measured rather than guessed: auto-fit grew a
+slide's words to 2.2x while its `::: draw` figure stayed width-capped, so a
+footnote stood at 40 px beside 16 px labels. Figures now follow the body
+type (the rule print had all along), auto-fit stops at a capped figure, and
+`.full` finally is wider than `.wide`. The rest is in the changelog under
+*Unreleased*: `--frames`, `statement:`, `note-button:` + `M`,
+`neighbours: hidden`, divider notes and `{.stack}`, `anchor`, `zone`,
+`unheaded`, the `.bare .dashed` refusal, literal underscores, footnotes
+riding their segment, `rows` term columns, the image optimiser seeing
+backdrops.
+
+What it cost and what bit, for whoever picks this up:
+
+- `min(100%, …)` in an svg's `width` contributes nothing to a shrink-to-fit
+  parent's intrinsic width; both terms have to be definite lengths.
+- A `figure:` chunk's `.chunk-body { max-width: 40em }` was a caption
+  measure and capped the picture in the same ems as the type; it steps
+  aside for a `.figure-diagram`.
+- The cover, the closing slide and dividers hardcode `data-width="full"`;
+  the 6% padding is scoped to author-written `.full` chunks or the title
+  stands against the edge.
+- Every agent worktree branched from `main`, not from the integration
+  branch, so `--frames` was not in their trees; they measured with their
+  own playwright scripts. Fine, but the next round should branch from the
+  integration commit.
+
+Verified: gates 925, `test/settings.mjs` 816, full browser suite 1047
+(before the `.full` change) plus the six specs it touches after, the three
+tracked lectures rebuilt, the keynote clean under `--strict`, `--check-fit`
+with every figure at 1.00x of its body type, and its contact sheets read.
+
+Second round, from a critic's pass over the 90 frames
+(`~/r/psi-slides-mylectures/TODO-keynote-frames-review.md`): figures on the
+ink edge under `blocks: left`, one block gap, `{.middle}`, per-chunk
+`figure-type` with an unevenness warning, `{.stack .bare}` dividers, `emph`
+on `.bare`, a stray-label warning, the footnote clamp, the chip label. Two of
+the critic's findings were misdiagnoses worth remembering: the "shrunk"
+backdrop was a screenshot taken 360 ms into a 620 ms reveal (the probes now
+wait for animations to settle), and the blank row in `::: rows` was a `gap`
+shorthand clobbering `row-gap`, not the beat marker.
+
+Third round, after the author went through the frames himself: the figure
+canvas. Diagnosis (his): PowerPoint has a fixed canvas per slide and the
+mess starts when someone drags one figure; here the engine dragged every
+figure by deriving its box from its content. Now every `::: draw` in a
+chunk body gets the column × 16 labels at body size, overflow and underfill
+are warned with numbers, `frame` is the exception. Two numbers that were
+load-bearing and wrong before: the em a figure stands in is 31.59 px (the
+opening zoom is 1.35, not 1), and `--body-fs` differs per tag. Plus the ink
+edge skipping invisible frames, contrast of `.muted`/`.dim` on tones, zone
+caption inset, footnotes without hyphens, edge-label halo. `lectures/diagrams`
+and `docs/artifact/figure-rules` declined the canvas (`frame none`) because
+they are catalogues of small specimens on prose slides; `lectures/tutorial`
+keeps the default and carries eight true warnings about documentation
+figures – silence with `frame none` or leave, one line either way.
+
+Fourth round, working down `PLAN-figure-defaults.md` (a Fable-written plan
+from three generations of the keynote; committed): a gap measured in labels
+with an arrow-safe default and `edge-short`; `.left` anchors a free text;
+chains of peers share one size, `row`/`col`, `{.own}`, `same w as`, a
+default-layer size as a chain's floor; a picture slide opens centred
+(`anchor` slot `.middle`/`.top` with a shape default), the stacked divider
+heading as a heading, `statement:` with a quiet italic line, `hyphenate:
+all` sparing centred prose and addresses; `[Klick …]` in a note is a beat;
+a zone's inner band and `in <zone>` placement, zones sized by their
+children; every `---` is a beat and `empty-beat` names the one nothing
+rides. Plus `G` goto, `transition: pan|cut|fade`, `W` fullscreen, elbow
+arrival runs, calmer dashes, pinned-edge relabels, table columns aligned by
+tag default. The keynote was rewritten onto each default as it landed and
+proved byte-identical each time; its figure source lost a third of its
+hand-written sizes. Two things bit: the disk filled with frames and
+scratch builds (clean the scratchpad between rounds), and a `git merge`
+aborted silently on another session's uncommitted test changes – check
+`git log -1 -- <file>` after a merge, not the merge's first line.
+
+Open: the keynote's `#umweg` figure is 66 labels wide and stays under 18 px
+at any zoom – that is the drawing's to fix. Site screenshots of the cockpit
+frames and the editor are stale. A statement chunk's `| sub-heading` still
+renders as the quiet `.hd-sub`.
+
 ## Gaps / Bekannte Limits
 
 - **Code-Blöcke in `::: side` können überlaufen.** Mit `white-space: pre` und langer URL (z.B. `curl -LsSf https://astral.sh/uv/install.sh | sh`) clippt der Pre am Pane-Rand rechts. Horizontal-Scroll-Bar greift, aber unschön auf dem Projektor. Workaround: kurze Commands in `::: side`, lange Commands in `::: cols` oder single-column. Möglicher Fix: `white-space: pre-wrap` innerhalb von `.side pre` – aber das bricht Code-Einrückung. Akzeptiert.

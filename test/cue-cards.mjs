@@ -29,7 +29,18 @@ const SOURCE = `---
 title: Cue cards
 ---
 
-# The part
+# The part {#part}
+
+> note: The divider's own card: **said while the part title is still up**.
+
+> note: from 1
+> **after the divider's own beat**
+
+A divider is a slide the speaker talks on, so what is written here is its own.
+
+---
+
+A second beat of the divider.
 
 ## title: Cue cards {#t}
 
@@ -76,6 +87,10 @@ Second.
 
 ---
 
+::: footnote
+the source for the line above
+:::
+
 > note: **alone behind the last separator**
 
 ## free: Pane {#pane}
@@ -93,13 +108,23 @@ Right words.
 
 After.
 
-## free: Warn {#warn}
+## free: Middle {#middle}
 
 Opening.
 
 ---
 
 > note: **alone, and a beat follows**
+
+---
+
+Last.
+
+## free: Nothing on it {#dead}
+
+Opening.
+
+---
 
 ---
 
@@ -160,6 +185,55 @@ Opens with the slide.
 > note: Said on the second press, not the first.
 
 Arrives on the second press.
+
+## free: Clicks {#clicks}
+
+Opens with the slide.
+
+> note: Said while the slide opens: **zero**.
+>
+> [Klick: the second line lights.]
+>
+> **one after the first click**
+>
+> [Pause.]
+>
+> [Klick: the third line lights.]
+>
+> **two after the second click**
+
+---
+
+The second line.
+
+---
+
+The third line.
+
+## free: Too many clicks {#tooclicks}
+
+One beat and nothing else.
+
+> note: **a**
+>
+> [Klick: nothing left to light.]
+>
+> **b**
+>
+> [Klick: still nothing.]
+>
+> **c**
+
+## question: How many hold this up? {#lead}
+
+---
+
+One. Perhaps two.
+
+> note: **said while the heading stands alone**
+
+> note: from 1
+> **said once the answer is up**
 `;
 
 function buildFixture() {
@@ -170,7 +244,10 @@ function buildFixture() {
   if (r.status !== 0) throw new Error('fixture build failed:\n' + r.stdout + r.stderr);
   const lint = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')],
     { cwd: ROOT, encoding: 'utf8' });
-  return { dir, speaker: fs.readFileSync(path.join(dir, 'speaker.html'), 'utf8'), lint: lint.stdout + lint.stderr };
+  return { dir,
+           speaker: fs.readFileSync(path.join(dir, 'speaker.html'), 'utf8'),
+           printNotes: fs.readFileSync(path.join(dir, 'print-notes.html'), 'utf8'),
+           lint: lint.stdout + lint.stderr };
 }
 
 const segsOf = (html, id) =>
@@ -178,16 +255,20 @@ const segsOf = (html, id) =>
 
 export async function run({ page, report }) {
   const { ok } = report;
-  const { dir, speaker, lint } = buildFixture();
+  const { dir, speaker, printNotes, lint } = buildFixture();
 
   // ── the parser's position rule, read off the built page ──────────
   ok(JSON.stringify(segsOf(speaker, 'three')) === '[0,1]', 'a note before the first --- is segment 0, one after it segment 1', JSON.stringify(segsOf(speaker, 'three')));
   ok(JSON.stringify(segsOf(speaker, 'legacy')) === '[0,0]', 'notes that all sit in the last segment are chunk notes on segment 0', JSON.stringify(segsOf(speaker, 'legacy')));
-  ok(JSON.stringify(segsOf(speaker, 'empty')) === '[0,1]', 'a note alone behind the last --- slides back to the previous segment', JSON.stringify(segsOf(speaker, 'empty')));
+  ok(JSON.stringify(segsOf(speaker, 'empty')) === '[0,2]', 'a note alone behind the last --- is filed on that beat, not on the one before it', JSON.stringify(segsOf(speaker, 'empty')));
   ok(JSON.stringify(segsOf(speaker, 'pane')) === '[0]', 'a note inside a pane takes the segment the pane stands in', JSON.stringify(segsOf(speaker, 'pane')));
-  ok(JSON.stringify(segsOf(speaker, 'warn')) === '[0]', 'a note alone in a middle segment slides back too', JSON.stringify(segsOf(speaker, 'warn')));
-  ok(/note-in-empty-beat/.test(lint) && (lint.match(/note-in-empty-beat/g) || []).length === 1,
-     'and lint.js names exactly that one as note-in-empty-beat', lint.trim().split('\n').filter(l => /note-in/.test(l)).join(' | '));
+  ok(JSON.stringify(segsOf(speaker, 'middle')) === '[1]', 'a note alone in a middle segment is filed on that segment', JSON.stringify(segsOf(speaker, 'middle')));
+  // The aside written under the same separator carries the same number, so
+  // the two arrive together: the footnote on the projection, the card in
+  // the cockpit, on the press the author wrote the --- for.
+  ok(/<aside class="margin-note[^"]*" data-seg="2"/.test(speaker),
+     'and a ::: footnote written in that segment carries its number too',
+     (/<aside class="margin-note[^>]*>/.exec(speaker) || [''])[0]);
   ok(/window\.PSI_CARDS/.test(speaker), 'the page carries the card grammar');
 
   // ── the from-pin: the escape hatch for a diagram's steps ─────────
@@ -199,6 +280,40 @@ export async function run({ page, report }) {
   ok(/note-from-beyond/.test(lint) && (lint.match(/note-from-beyond/g) || []).length === 1,
      'and lint.js warns once when the number is past the chunk\'s last beat',
      lint.trim().split('\n').filter(l => /note-from/.test(l)).join(' | '));
+
+  // ── a note under a # heading belongs to the divider ──────────────
+  // It used to be an orphan and arrived as the first card of the chunk after
+  // it: the sentence that says what the part is for was said one slide late,
+  // and nothing anywhere reported it. A divider has no top-level segments -
+  // a `---` under a heading is a beat marker inside one body - so an
+  // unpinned block is a chunk note on beat 0 and `from N` names a later one.
+  // ── a leading --- is the heading alone on beat 0 ─────────────────
+  // The chunk a question slide is written as: heading, `---`, the answer.
+  // The empty opening segment used to be dropped, so the answer arrived
+  // with the question and a note pinned to from 1 could never fire. Kept,
+  // the source's count of `---` is the deck's count of clicks.
+  ok(JSON.stringify(pinsOf('lead')) === JSON.stringify(['seg0', 'at1']),
+     'a note before a leading --- is beat 0 and the one pinned to from 1 is beat 1',
+     JSON.stringify(pinsOf('lead')));
+  // The other half of the same rule: every `---` is a beat, so what is left
+  // to report is a beat with nothing whatever on it. The fixture has exactly
+  // one - the second separator of #dead - and neither #lead's leading one,
+  // nor #empty's trailing one with its footnote and its note, nor #middle's
+  // with a note on it, is that.
+  ok((lint.match(/empty-beat/g) || []).length === 1,
+     'lint.js names the one --- of the fixture that buys a click with nothing on it',
+     lint.trim().split('\n').filter(l => /empty-beat/.test(l)).join(' | '));
+
+  ok(JSON.stringify(pinsOf('part-section')) === JSON.stringify(['seg0', 'at1']),
+     'a note under a # heading is the divider\'s, on beat 0 or on the beat it pins itself to',
+     JSON.stringify(pinsOf('part-section')));
+  ok(/<template data-notes-for="part-section">/.test(speaker),
+     'and the cockpit\'s notes pane finds it under the divider\'s own id');
+  ok(!/data-notes-for="t"/.test(speaker),
+     'the chunk that follows the divider gets none of it');
+  ok(/class="column-heading">The part<\/h1>[\s\S]{0,4000}?speaker-note[\s\S]{0,400}?still up/.test(printNotes),
+     'print-notes.html carries it under the part title');
+  ok(!/\s+error\s+\S/.test(lint), 'and the linter says nothing about it', lint.split('\n')[0]);
 
   // ── two windows on the fixture ───────────────────────────────────
   const { server, port } = await serve(dir);
@@ -300,6 +415,113 @@ export async function run({ page, report }) {
      'then the card pinned to from 2', JSON.stringify(fig[4]));
   ok(await spk.evaluate(() => !!document.querySelector('.cue-step .cue-what')),
      'a figure beat shows the step name the author gave it');
+
+  // ── a [Klick ...] line in a note is a beat ───────────────────────
+  // The other half of the same problem, and the one a whole keynote is
+  // written in: the stage directions are already in the prose, so the
+  // author writes no `from N` at all and the cockpit used to show the
+  // whole block on the opening beat. Each click files the cards behind it
+  // one advance on, which is the arithmetic `from N` does by hand.
+  await spk.evaluate(() => jumpTo(flatChunks.findIndex(e => e.id === 'clicks')));
+  await spk.waitForTimeout(400);
+  ok((await both()).s.id === 'clicks', 'the cockpit reaches the chunk whose note carries clicks');
+  const clicks = [];
+  for (let i = 0; i < 6; i++) { clicks.push({ ...(await both()), c: await cursor() }); await press('Space'); }
+  ok(clicks.every(w => w.same), 'the two windows agree through it', JSON.stringify(clicks.map(w => [w.a.rev, w.s.rev])));
+  ok(clicks[0].c.n === 7,
+     'the column lists a card, a reveal, two cards, a reveal, a card, the next slide',
+     JSON.stringify(clicks[0].c));
+  ok(clicks[0].s.rev === 1 && /zero/.test(clicks[0].c.cur), 'the card before the first click opens the slide', JSON.stringify(clicks[0].c));
+  ok(clicks[1].s.rev === 1 && /reveal 1/.test(clicks[1].c.cur), 'and the press behind it belongs to the projection, not to another card', JSON.stringify(clicks[1].c));
+  ok(clicks[2].s.rev === 2 && /after the first click/.test(clicks[2].c.cur) && clicks[2].c.beat === 1,
+     'the card written behind the click arrives with the reveal it names', JSON.stringify(clicks[2]));
+  ok(/Pause/.test(clicks[3].c.cur) && clicks[3].s.rev === 2,
+     'a bracketed line that is not a click is a card of its own on the same beat', JSON.stringify(clicks[3]));
+  ok(clicks[4].s.rev === 2 && /reveal 2/.test(clicks[4].c.cur), 'the second reveal is what is left of that beat', JSON.stringify(clicks[4].c));
+  ok(clicks[5].s.rev === 3 && /after the second/.test(clicks[5].c.cur) && clicks[5].c.beat === 2,
+     'and the card behind the second click arrives with it', JSON.stringify(clicks[5]));
+  ok(await spk.evaluate(() => [...document.querySelectorAll('.cue-title')].some(t => /the third line lights/.test(t.textContent))),
+     'the words of the click title the card it brings up');
+  ok(/note-advance-beyond/.test(lint) && (lint.match(/note-advance-beyond/g) || []).length === 1,
+     'and lint.js names the one chunk that asks for more clicks than it has beats',
+     lint.trim().split('\n').filter(l => /note-advance/.test(l)).join(' | '));
+
+  // ── the heading alone on beat 0, in both windows ─────────────────
+  // The build ships an empty opening segment for a leading `---`; what has
+  // to be true in the page is that it is a beat and not a block. The slide
+  // opens with the heading and nothing else, one press paints the answer,
+  // and the note pinned to from 1 is filed on that press rather than past
+  // the end of the slide.
+  await spk.evaluate(() => jumpTo(flatChunks.findIndex(e => e.id === 'lead')));
+  await spk.waitForTimeout(400);
+  ok((await both()).s.id === 'lead', 'the cockpit reaches the question slide');
+  const shape = await aud.evaluate(() => {
+    const el = document.getElementById('lead');
+    const segs = [...el.querySelectorAll('.reveal-segment')];
+    return {
+      n: segs.length,
+      empty: segs[0].hasAttribute('data-empty') && segs[0].textContent.trim() === '',
+      total: countSegments(el),
+      painted: segs.filter(s => !s.hasAttribute('data-hidden')).map(s => s.textContent.trim()),
+    };
+  });
+  ok(shape.n === 2 && shape.empty, 'the slide carries an empty opening segment and the answer behind it', JSON.stringify(shape));
+  ok(shape.total === 2, 'the projection counts two positions on it, so the press exists', JSON.stringify(shape));
+  ok(shape.painted.join('') === '', 'and beat 0 paints nothing below the heading', JSON.stringify(shape.painted));
+  const lead0 = await cursor();
+  ok(/stands alone/.test(lead0.cur), 'the cockpit opens on the card said while the heading stands alone', JSON.stringify(lead0));
+  ok(lead0.n === 4, 'and the column is that card, the press, the pinned card, the next slide', JSON.stringify(lead0));
+  // Two presses, because the cards sit in front of the counter: the first
+  // walks the cursor onto the press, the second spends it.
+  await press('Space');
+  ok((await both()).s.rev === 1 && /reveal 1/.test((await cursor()).cur),
+     'the first press leaves the projection alone and puts the press next', JSON.stringify(await cursor()));
+  await press('Space');
+  const lead1 = { ...(await both()), c: await cursor() };
+  ok(lead1.same && lead1.s.rev === 2, 'the second press, and both windows are on the answer', JSON.stringify(lead1));
+  ok(/once the answer is up/.test(lead1.c.cur), 'and the note pinned to from 1 is the card it brings up', JSON.stringify(lead1.c));
+  ok((await aud.evaluate(() => {
+    const segs = [...document.getElementById('lead').querySelectorAll('.reveal-segment')];
+    return segs[1].hasAttribute('data-hidden');
+  })) === false, 'the answer is on the projection');
+
+  // ── a beat that paints nothing still carries what rides it ───────
+  // The idiom five slides of a real keynote are written in: a `---`, then a
+  // ::: footnote and a `> note:` and nothing else. The slide stands, the
+  // source line comes up under it, and the speaker says the next thing. The
+  // segment used to be dropped and the press with it.
+  // The walk above has already been through this chunk, so put its counter
+  // back to the state the slide opens in before reading what is on it.
+  await aud.evaluate(() => { revealed.empty = 1; applyRevealAll(); });
+  await spk.evaluate(() => { revealed.empty = 1; jumpTo(flatChunks.findIndex(e => e.id === 'empty')); });
+  await spk.waitForTimeout(400);
+  ok((await both()).s.id === 'empty', 'the cockpit reaches the chunk whose last beat paints nothing');
+  const noteState = () => aud.evaluate(() => {
+    const el = document.getElementById('empty');
+    const segs = [...el.querySelectorAll('.reveal-segment')];
+    const fn = el.querySelector('.margin-note[data-seg]');
+    return { n: segs.length, total: countSegments(el),
+             empty: segs[2] && segs[2].hasAttribute('data-empty'),
+             footnote: fn ? !fn.hasAttribute('data-beat-hidden') : null };
+  });
+  const emp0 = await noteState();
+  ok(emp0.n === 3 && emp0.empty && emp0.total === 3,
+     'the slide carries three segments, the last of them empty, and counts three positions', JSON.stringify(emp0));
+  ok(emp0.footnote === false, 'the footnote is held back while the slide opens', JSON.stringify(emp0));
+  // Walked rather than counted, because a card sits in front of each press
+  // and how many of them a beat has is the fixture's business, not this
+  // assertion's: what has to be true is that the card written under the
+  // last `---` comes up on this slide, with the footnote and the third
+  // position, and not one slide on.
+  const walkEmpty = [];
+  for (let i = 0; i < 4; i++) { await press('Space'); walkEmpty.push({ ...(await both()), c: await cursor(), s2: await noteState() }); }
+  const trail = JSON.stringify(walkEmpty.map(w => [w.s.id, w.s.rev, w.c.cur]));
+  ok(walkEmpty.every(w => w.same), 'the two windows agree through the chunk', trail);
+  const said = walkEmpty.find(w => /alone behind the last separator/.test(w.c.cur || ''));
+  ok(said && said.s.id === 'empty' && said.s.rev === 3,
+     'the note written under the last --- is the card of the chunk\'s last beat', trail);
+  ok(said && said.s2.footnote === true,
+     'and the footnote written under the same --- has arrived with it', trail);
 
   // the two buttons that scale the cards, persisted like the notes zoom
   const size = () => spk.evaluate(() => parseFloat(getComputedStyle(document.getElementById('cue-rail')).fontSize));

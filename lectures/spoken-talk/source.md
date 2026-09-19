@@ -76,16 +76,20 @@ The browser asks. The server answers. The page appears.
 
 ## figure: As I draw it on the board | six steps, left to right {.wide #board}
 
-::: draw 132x40
-default box {.tone-2} w 1.5 pad 0.16
+::: draw 100x40
+default box {.tone-2} w 1.72 pad 0.16
 
 box req "Request" at 0,0
-box net "Network"                right of req gap 0.5
-box srv "Server: builds the page" right of net gap 0.5 w 2.1
+box net "Network"                  right of req gap 0.8
+box srv "Server:\nbuilds the page" right of net gap 0.8
 edge req -> net
 edge net -> srv
 
-text ok "1.4 s" below req gap 0.6 flush left {.left .muted}
+# The number belongs to the whole round trip and not to the first box, so it
+# hangs off a brace under all three rather than standing under "Request". One
+# line, because the number is the whole point – a bottom brace hangs a second
+# line below the first, so it could take one.
+brace all over req,net,srv side bottom "1.4 s" pad 1.15 {.muted .large}
 :::
 
 > note: @4:10 **This is the board version**, and it is the one I drew for years. **Three boxes, two arrows, and a number underneath.** The request leaves the machine, crosses the network, reaches a server, and the server builds the page.
@@ -96,24 +100,24 @@ text ok "1.4 s" below req gap 0.6 flush left {.left .muted}
 
 ## figure: As it runs the second time | the request that stops early {.wide #second-time}
 
-::: draw 132x54
-default box {.tone-2} w 1.5 pad 0.16
+::: draw 100x40
+default box {.tone-2} w 1.72 pad 0.16
 
 box req "Request" at 0,0
-box net "Network"                right of req gap 0.5
-box srv "Server: builds the page" right of net gap 0.5 w 2.1
+box net "Network"                  right of req gap 0.8
+box srv "Server:\nbuilds the page" right of net gap 0.8
 edge req -> net
 edge net -> srv
 
-box store "Browser cache" below net gap 1 flush left
-box hit   "The answer,\nalready here" right of store gap 0.5 w 2.1
+box store "Browser cache" below net gap 0.8 flush left
+box hit   "The answer,\nalready here" right of store gap 0.8
 edge store -> hit
 edge srv.bottom -> store.top {.dashed}
 
-box stamp "a freshness date nobody reads" below store gap 0.7 flush left w 2.6
+box stamp "a freshness date\nnobody reads" below store gap 0.6 flush left
 edge hit.bottom -> stamp.right {.dashed .elbow}
 
-text src "“stale-while-revalidate” · RFC 5861" below stamp gap 0.5 flush left {.left .muted .small}
+text src "“stale-while-revalidate” · RFC 5861" below stamp gap 0.4 flush left {.left .muted .small}
 
 step quiet
   style srv {.dashed}

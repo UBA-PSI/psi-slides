@@ -45,20 +45,20 @@ goes in it.
 ## figure: One file in, four files out {.wide #four-views .bare .center}
 
 ::: draw 152x52
-default box {.mono}
+default box {.mono} pad 0.14
 
 # The four outputs stand in one column and source.md sits opposite their
 # middle. The four edges are .elbow, and an elbow's rail is measured between
 # the two faces – so the fan-out reads as one bracket only if the four left
-# faces are in one place. Left to size themselves the boxes are four widths
-# and the rails come out four abreast, so all of them are `same as` the
-# widest label, print-notes.html, which is the one that has to fit anyway.
+# faces are in one place. A run of `above` / `below` boxes shares one width
+# by default, so all four come out as wide as print-notes.html, the widest
+# label, and nothing here has to say so.
 box  notes "print-notes.html\ndocument + notes"  at 1.55,0.75
-box  doc   "print.html\nthe document"            above notes gap 0.3 same as notes
-box  aud   "audience.html\nthe projector"        below notes gap 0.3 same as notes
-box  spk   "speaker.html\nthe cockpit"           below aud gap 0.3 same as notes
+box  doc   "print.html\nthe document"            above notes gap 0.22
+box  aud   "audience.html\nthe projector"        below notes gap 0.22
+box  spk   "speaker.html\nthe cockpit"           below aud gap 0.22
 
-box  src   "source.md\none file"                 between doc,spk offset -2.0,0 {.tone-3}
+box  src   "source.md\none file"                 between doc,spk offset -1.95,0 {.tone-3}
 text bjs   "build.js"                            right of src gap 0.14 offset 0,-0.34 {.muted .small .mono}
 
 # source.md is not the whole input. The pictures a lecture references are read
@@ -67,7 +67,7 @@ text bjs   "build.js"                            right of src gap 0.14 offset 0,
 # empty frames say "some images" without pretending to be any particular one.
 # The label sits over the left frame and the wire leaves the middle one, so the
 # two never meet.
-image ph2 photo                                  below src gap 0.8 w 0.34
+image ph2 photo                                  below src gap 0.8 w 0.30
 image ph1 photo                                  left of ph2 gap 0.12 same as ph2
 image ph3 photo                                  right of ph2 gap 0.12 same as ph2
 text  phl  "images"                              above ph1 gap 0.16 {.muted .small .mono}
@@ -80,7 +80,7 @@ edge src -> spk   {.elbow}
 
 # The live sync runs out to the right rather than straight down the gap, so
 # it does not read as one more output of the build.
-edge sync aud.right <-> spk.right via aud.right+0.42,aud.cy aud.right+0.42,spk.cy "postMessage\nlive sync" side right {.dashed .muted .small .mono}
+edge sync aud.right <-> spk.right via aud.right+0.30,aud.cy aud.right+0.30,spk.cy "postMessage\nlive sync" side right {.dashed .muted .small .mono}
 :::
 
 Each of the four files carries everything it needs inside itself – the pictures, the typefaces, the styling, the code. Each one opens by double-clicking, with no web server and nothing fetched from the network, so you can send any of them to a colleague as a single attachment.
@@ -298,12 +298,12 @@ This is the paragraph that comes and goes. It is what you would say out loud abo
 **Only the `{#id}` is required, and a chunk written with no type counts as `free`.** The type, the sub-heading and the width are all optional.
 
 - **The line is** `## type: Heading | Sub-heading {.width #id}`.
-- **The ten types:** `title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`.
+- **The eleven types:** `title`, `closing`, `outline`, `principle`, `statement`, `definition`, `example`, `question`, `figure`, `exercise`, `free`.
 - **`{.width}`** is `narrow`, `standard`, `wide` or `full`, and defaults to `standard`.
 - **`{#id}`** anchors links, the contents list and your reading position – rename one and those need fixing too.
 
 ::: expand the classes that are not widths
-**`{.bare}` and `{.center}` act on the projection alone.** `.bare` keeps the heading off the slide while leaving it in the printed views and in the search index; `.center` centres the chunk's own paragraphs, which is what the slide with the four-outputs drawing does under its figure.
+**`{.bare}` and `{.center}` act on the projection alone.** `.bare` keeps the heading off the slide while leaving it in the printed views and in the search index; `.center` sets the chunk on a centre axis – its heading, its own paragraphs and its footnotes, but nothing nested inside a pane, a card or a list – which is what the slide with the four-outputs drawing does under its figure.
 
 **Four more answer a `style:` key for one slide**: `{.blocks-left}` and `{.blocks-center}`, `{.wrap-none}` and `{.wrap-balance}`. Each is the key's own name and one of its values, so knowing the frontmatter is enough to guess the class. These four do apply to the printed document, unlike the two above – where a formula sits relative to the sentence that introduces it is the same question on paper.
 :::
@@ -318,15 +318,35 @@ This is the paragraph that comes and goes. It is what you would say out loud abo
 - **It labels the chunk in the printed views**, in small capitals over the heading. The projection prints only `EXERCISE`.
 - **It adds a small mark.** This chunk is typed `definition`, hence the hairline above its heading; a `principle` gets a short rule there.
 
-`title`, `closing` and `outline` each draw a whole slide instead.
+`title`, `closing` and `outline` each draw a whole slide instead, and `statement:` is the fourth exception – it wears no label and no mark, and the next slide is one.
 
 Picking the wrong type is not an error; it shows on the overview board, where a principle typed as an example stops standing out.
 
 ::: expand the-word-budgets
-**The budget per type:** `principle` and `question` 80 words, `definition` 200, `example` and `free` 250, `exercise` 350, `closing` 60, `outline` 40. `title` and `figure` have no limit.
+**The budget per type:** `principle`, `question` and `statement` 80 words, `definition` 200, `example` and `free` 250, `exercise` 350, `closing` 60, `outline` 40. `title` and `figure` have no limit.
 
-Counted against the on-screen half only, so narration inside a `::: script` block is unbudgeted. `free` and `figure` are also the two types that print no label. `node lint.js` is the checker that comes with the tool, and the last part of this tour is about running it.
+Counted against the on-screen half only, so narration inside a `::: script` block is unbudgeted. `free`, `figure` and `statement` are the three types that print no label. `node lint.js` is the checker that comes with the tool, and the last part of this tour is about running it.
 :::
+
+## statement: A slide can be three lines and nothing else. {.wide #statement-type}
+
+Type it `statement:`, and the heading is the first of those lines.
+
+---
+
+Every paragraph under it is another line, at the same size and in the same ink.
+
+---
+
+A `---` between two of them is one press.
+
+---
+
+*A paragraph all in italic is the quiet line.*
+
+> note: This is the type that says “no”. No eyebrow, no rule above, no first-sentence derivation – whatever is written here is what the room reads, whole. It is the keynote slide the vocabulary had no word for, and authors used to fake it with `::: cards 1 {.large .clear}`, which sets the words in the accent colour and smaller than a heading, or with a `::: draw` of large text, which is a drawing and cannot wrap. `{.center}` moves the whole run onto a centre axis, heading included – the only type where the class reaches the heading, because here the heading is one of the lines. The budget is 80 words, a principle's.
+>
+> The last line is the type's second register, and the whole of it: a definition standing over the claim it qualifies, a source under it. *Entirely* in italic – a statement line with one emphasised word in it is a loud line with a stress mark, which is what `*em*` means everywhere else.
 
 ## exercise: Try the vocabulary | three edits, with `--watch` running {.wide #try-tags}
 
@@ -438,8 +458,9 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 - `B` **blanks the projection**.
 - `D` **puts a live demo on the projection**: a window or a screen of this machine, chosen in a picker, until `D` again. The very first capture on a Mac fails while macOS asks for screen-recording rights – allow it and press `D` again, so do that once before the talk.
 - `L` cycles the **slide numbers**: stacked, in a row, or off.
+- `M` shows or hides the **`+ note` button** in the slide's left gutter – the hint for `N`, which opens an annotation whether the hint is drawn or not.
 
-`Shift` with `C`, `F`, `A` or `L` goes backwards. `#` has three modes and no `Shift`, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme and slide numbers are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting are not remembered beyond the talk you are giving.
+`Shift` with `C`, `F`, `A` or `L` goes backwards. `#` has three modes and no `Shift`, because it is a shifted key on some keyboards and an unshifted one on others. Font, theme, slide numbers and the note button are remembered for every lecture you open, so the preference follows you; zoom and the `C` setting are not remembered beyond the talk you are giving.
 
 ## example: The same controls without a keyboard | the toolbar on a phone or tablet {.wide #knobs-touch}
 
@@ -717,6 +738,10 @@ print-slide-numbers: vertical
                         # the same three. Left out, it follows
                         # whatever slide-numbers says
 editor: speaker         # both | speaker | none – the diagram editor
+note-button: off        # on | off – the + note button in the
+                        # slide's left gutter. The M key
+neighbours: hidden      # dim | hidden – whether the slide
+                        # before and after show through
 ---
 ```
 
@@ -733,6 +758,8 @@ lang: de                # the language the lecture is written in:
 **A key you write beats whatever the reader last chose, and a key you leave out leaves that choice alone.** So a lecture that sets nothing behaves as before – font, theme and slide numbers follow the reader from lecture to lecture.
 
 `slide-numbers` applies to `print.html` and `print-notes.html` too, and `print-slide-numbers:` overrides it there when the printed document wants different numbering from the projection. A value the tool does not know stops the build and lists the ones it does.
+
+**The last two are the ones a keynote sets and a lecture does not.** `neighbours: hidden` takes the faint slide above and below off the projection, which is deliberate here – the live view is one long board a camera pans across, and the neighbours are what make a column read as a column. `note-button: off` hides the `+ note` hint in the slide's left gutter; `N` still opens an annotation, and `M` shows or hides the hint at any time, in either window.
 
 > note: When you finish this tour with a first-timer, ask them what they found on their own and what they did not. That is the most useful feedback the tool gets.
 
@@ -752,7 +779,12 @@ lang: de                # the language the lecture is written in:
 
 **A `::: draw` block is a figure written as text.** The build draws it into the page: you name the boxes and say where each one goes, and the arrows between them are routed for you.
 
-::: draw 126x38
+::: draw 126x38 frame 3.7x1.7
+# frame, because this is a specimen and not a slide: one row of three boxes
+# standing beside its own source, on a slide that also carries two
+# paragraphs and a code listing. A figure box the height of a talk's would
+# put half a slide of paper under it. The default is what a figure that is
+# the slide wants – see the four-view drawing at the top of the tour.
 box src "Sender"
 box mix "Mix"       right of src gap 2.1
 box dst "Receiver"  right of mix gap 2.1
@@ -761,7 +793,7 @@ edge src -> mix "encrypted"
 edge mix -> dst "recoded"
 :::
 
-That drawing is these five lines and nothing else:
+That drawing is these five lines:
 
 ```text
 box src "Sender"
@@ -828,8 +860,8 @@ step blame
 
 ::: draw 120x44
 box a "request" at 0,0 {.tone-2}
-box b "cache" below a gap 0.55 {.tone-1}
-box c "origin" below b gap 0.55 {.tone-1}
+box b "cache" below a {.tone-1}
+box c "origin" below b {.tone-1}
 edge a -> b
 edge b -> c {.dashed}
 
@@ -900,32 +932,37 @@ A tag goes wherever a name goes, so `show @crypto` in a step selects every eleme
 
 **Two statements save repetition.** `default box {.tone-4} w 1.15` sets the starting point for every box in the figure, and adding a tag narrows that to one set; the same lines go in a `draw-defaults:` frontmatter key when every figure in a lecture should look alike. `same as create` copies another element's width and height.
 
-**Inside a label**, `_sub` and `^sup` shift a character or a `{group}` down or up, `*accent*` colours a run and `~muted~` greys it.
+**Inside a label**, `_sub` and `^sup` shift a character or a `{group}` down or up, `*accent*` colours a run and `~muted~` greys it. **A whole line of a multi-line label written in that mark is the quiet register**, smaller as well as grey, so one `text` can carry a question over the verb that answers it and be centred on its cell as one block.
 
 **Click the figure, and the button in the corner of the card opens the graphical editor, which is experimental.** It is built for a desktop-sized screen and has been tested a great deal by machine and very little by people. Drag a box and it rewrites one number – the `gap`, the fraction along a line, the nudge on a borrowed coordinate – and never the relation that number sits inside. It also draws those relations while you work, which the finished drawing cannot: a box written `gap 0.55` from its neighbour looks exactly like one that happens to sit 0.55 away. `editor: none` in the frontmatter leaves it out.
 
 **Everything above is drawn rather than described in [the diagrams lecture](../diagrams/audience.html)**, one construct per slide, with one chunk there as the reference for the whole class vocabulary and another for where an edge's label sits. `figure-design.md` in the repository is how to lay a figure out so an audience can read it.
 :::
 
-## example: Classes | thirteen groups, and one question each {.full #diagram-classes}
+## example: Classes | thirteen groups, and one question each {.full .figure-type-70 #diagram-classes}
 
 **Only one member of a group is in force.** The names come from a fixed list, and `{.tone-1}` on a box therefore *replaces* a `default box {.tone-4}` rather than piling on top of it, which is what makes the groups worth knowing.
 
 ::: draw 112x82
+# A reference sheet is denser than a talk's figure, so the chunk says so
+# once – {.figure-type-70} on the heading – rather than letting the drawing
+# scale itself down and take the slide's prose with it. Six rows of
+# specimens, each row a run of peers that now shares one size without any
+# line saying so.
 default box {.sharp} w 0.62 h 0.42 pad 0.12
 
 # The fills sit across a rule, so that .clear and .paper can be told apart:
 # one lets the line through, the other knocks a hole in it.
 edge -0.55,0 -- 4.85,0 {.muted}
 box f1 "paper"  at 0,0 {.paper}
-box f2 "tone-1" right of f1 gap 0.35 same as f1 {.tone-1}
-box f3 "tone-2" right of f2 gap 0.35 same as f1 {.tone-2}
-box f4 "tone-3" right of f3 gap 0.35 same as f1 {.tone-3}
-box f5 "tone-4" right of f4 gap 0.35 same as f1 {.tone-4}
-box f6 "clear"  right of f5 gap 0.35 same as f1 {.clear}
+box f2 "tone-1" right of f1 gap 0.35 {.tone-1}
+box f3 "tone-2" right of f2 gap 0.35 {.tone-2}
+box f4 "tone-3" right of f3 gap 0.35 {.tone-3}
+box f5 "tone-4" right of f4 gap 0.35 {.tone-4}
+box f6 "clear"  right of f5 gap 0.35 {.clear}
 text fl "fill" left of f1 gap 0.7 {.muted .right}
 
-box o1 "round"   at 0,1.1 {.round .tone-2}
+box o1 "round"   at 0,0.78 {.round .tone-2}
 box o2 "sharp"   right of o1 gap 0.35 same as o1 {.tone-2}
 box o3 "hex"     right of o2 gap 0.35 same as o1 {.hex .tone-2}
 box o4 "chevron" right of o3 gap 0.35 w 0.78 h 0.42 point right {.chevron .tone-2}
@@ -943,18 +980,18 @@ text o6n "cross" below o6 gap 0.16 {.small .muted}
 text o7n "diamond" below o7 gap 0.16 {.small .muted}
 text ol "outline" left of o1 gap 0.7 {.muted .right}
 
-box s1 "dashed" at 0,2.25 {.dashed .clear}
-box s2 "dotted" right of s1 gap 0.35 same as s1 {.dotted .clear}
-box s3 "thick"  right of s2 gap 0.35 same as s1 {.thick .clear}
-box s4 "bare"   right of s3 gap 0.35 same as s1 {.bare .clear}
-box s5 "ghost"  right of s4 gap 0.35 same as s1 {.ghost .tone-2}
-box s6 "dim"    right of s5 gap 0.35 same as s1 {.dim .tone-2}
+box s1 "dashed" at 0,1.62 {.dashed .clear}
+box s2 "dotted" right of s1 gap 0.35 {.dotted .clear}
+box s3 "thick"  right of s2 gap 0.35 {.thick .clear}
+box s4 "bare"   right of s3 gap 0.35 {.bare .clear}
+box s5 "ghost"  right of s4 gap 0.35 {.ghost .tone-2}
+box s6 "dim"    right of s5 gap 0.35 {.dim .tone-2}
 text sl "stroke,\nand presence" left of s1 gap 0.7 {.muted .right}
 
 # Only the two ends of this row are placed. The five between them are named
 # in the order they should stand in and get equal centre distances, which is
 # what a row of seven specimens of seven different widths wants.
-text t1 "sans"  at 0.3,3.2
+text t1 "sans"  at 0.3,2.3
 text t7 "bold"  right of t1 gap 5.45 {.bold}
 text t2 "mono"  right of t1 gap 0.55 {.mono}
 text t3 "serif" right of t1 gap 0.55 {.serif}
@@ -964,7 +1001,7 @@ text t6 "large" right of t1 gap 0.55 {.large}
 text tw "family,\nand size" left of t1 gap 0.85 {.muted .right}
 spread x t1, t2, t3, t4, t5, t6, t7
 
-box g1 "a label that is too long" at 0,4.2 w 1.2 h 0.5 {.shrink .clear}
+box g1 "a label that is too long" at 0,2.95 w 1.2 h 0.5 {.shrink .clear}
 box g2 "short" right of g1 gap 0.4 same as g1 {.fit .clear}
 text n1 "shrink" below g1 gap 0.14 {.small .muted}
 text n2 "fit"    below g2 gap 0.14 {.small .muted}
@@ -974,7 +1011,7 @@ box w1 "top\nleft"     right of g2 gap 0.75 w 0.56 h 0.74 {.clear .top .left}
 box w2 "centred"       right of w1 gap 0.25 same as w1 {.clear}
 box w3 "bottom\nright" right of w2 gap 0.25 same as w1 {.clear .bottom .right}
 box w4 "turn"          right of w3 gap 0.25 w 0.34 h 0.74 {.tone-2 .turn}
-text wl "where the words sit" below w2 gap 0.28 {.small .muted}
+text wl "where the words sit" below w2 gap 0.18 {.small .muted}
 
 # Five labels hanging off rows of five different lengths: the statement gives
 # them all the right edge of the first one.
@@ -1058,7 +1095,7 @@ step figures
 :::
 
 ::: draw 150x50
-bars hour "31,24,18,9" "writing the prose | drawing the figures | fixing one wording | fighting the tooling" at 0,0 horizontal w 1.7 h 1.25 emph 1
+bars hour "31,24,18,9" "writing the prose | drawing the figures | fixing one wording | fighting the tooling" at 0,0 horizontal w 3.0 h 2.6 emph 1
 text hourn "minutes, in the hour before a lecture" below hour gap 0.5 {.small .muted}
 :::
 
@@ -1067,7 +1104,7 @@ text hourn "minutes, in the hour before a lecture" below hour gap 0.5 {.small .m
 **A `plot` draws the frame and the scale; you write the curves over it.**
 
 ::: draw 150x54
-plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.7 aspect 2:1 x 0,60 y 0,40 tick 10
+plot pace "minutes into the talk" "chunks covered" at 0,0 w 2.8 aspect 5:2 x 0,60 y 0,40 tick 10
 edge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}
 edge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}
 dot  mark "" at pace@26,pace@12 r 0.08 {.accent}
@@ -1104,15 +1141,18 @@ step lesson
 **A figure with steps is an argument in stages – the setting, the intruder, the cut wire, and what it costs.** Press forward three times.
 
 ::: draw 138x70
-default box {.tone-2} w 1.25 h 0.5
+default box {.tone-2} w 1.0
 
 box alice "Alice" at 0,0
-box bob   "Bob"   right of alice gap 6.3 same as alice
+box bob   "Bob"   right of alice gap 4.3
 edge wire alice <-> bob "M"
-container net "the intended channel" over alice,bob pad 0.5 {.dashed .muted}
+container net "the intended channel" over alice,bob pad 0.16 {.dashed .muted}
 
-box eve "Eve" between alice,bob offset 0,-1.7 same as alice {.tone-4 @attack}
-text note "no cipher is broken here –\nshe just stands in the middle" below alice gap 1.05 flush left -- eve.cx,eve.bottom {.hand .small @attack}
+# `between` is a coordinate and not an adjacency, so Eve is in no chain with
+# the other two: `same as alice` is what makes her one of the three. Alice
+# and Bob need nothing – a run of `right of` boxes is one size already.
+box eve "Eve" between alice,bob offset 0,-1.1 same as alice {.tone-4 @attack}
+text note "no cipher is broken here –\nshe just stands in the middle" below alice gap 0.8 flush left -- eve.cx,eve.bottom {.hand .small @attack}
 
 # Eve is level with the other two by the time this arrow is shown - the same
 # step moves her onto the line - so it is a plain side-to-side connection and
@@ -1128,8 +1168,8 @@ step cut
 # `to` names a position, `by` shifts by an amount, and the layout is worked
 # out again at every step, so the container re-fits.
   move eve to between alice,bob
-  move alice by -0.5,0
-  move bob by 0.5,0
+  move alice by -0.3,0
+  move bob by 0.3,0
   show @cut
   emph eve
 step damage
@@ -1138,7 +1178,7 @@ step damage
   dim net
 :::
 
-**Every element after the first is placed against another one, so nothing comes apart when the middle box moves in.** `move eve to between alice,bob` states a position, `move alice by -0.5,0` shifts an element by an amount, and the whole figure is laid out again at every step – so Alice and Bob step aside, the `container` re-fits around them, and the arrows are drawn wherever their ends have gone. `hide` takes the direct wire away, `dim` is the opposite of `emph`, and `label` swaps in wording that was typeset when the lecture was built.
+**Every element after the first is placed against another one, so nothing comes apart when the middle box moves in.** `move eve to between alice,bob` states a position, `move alice by -0.3,0` shifts an element by an amount, and the whole figure is laid out again at every step – so Alice and Bob step aside, the `container` re-fits around them, and the arrows are drawn wherever their ends have gone. `hide` takes the direct wire away, `dim` is the opposite of `emph`, and `label` swaps in wording that was typeset when the lecture was built.
 
 **Two tags do all the revealing: `@attack` and `@cut`.** `show @attack` brings Eve in and the handwritten caption with her, because both lines carry that tag; `show @cut` brings the three arrows through her a step later. The pair running to Bob leaves Eve's right edge at `:0.2` and `:0.8`, a fraction along a side being how two arrows between the same two boxes run parallel instead of on top of each other, and `side top` and `side bottom` put one label above its line and the other below.
 
@@ -1165,9 +1205,12 @@ The delay has to be between 200 ms and 60 s; outside that the build refuses the 
 
 **`cycle` repeats the run of steps** – `autoplay 1200 cycle` – which is usually what a cover figure wants while the audience is arriving. It rewinds the same way it advanced, so the speaker view follows the rewind too. The last step is held for one delay like every other, and there is no second number for how long to hold the finished picture.
 
-**The figure below is running now**, written exactly as the block on the slide before with `cycle` added. Press any key and it stops where it stands – that is the take-over, and it is why you can read the rest of this slide without it moving underneath you.
+**The figure below is running now**, the same four lines as the block on the slide before with `cycle` added. Press any key and it stops where it stands – that is the take-over, and it is why you can read the rest of this slide without it moving underneath you.
 
-::: draw 150x56 autoplay 1200 cycle
+::: draw 150x56 frame 2x1.2 autoplay 1200 cycle
+# frame, for the reason the mix figure earlier carries one: two boxes and an
+# arrow are a specimen of the syntax, not a slide, and the slide round them
+# is four paragraphs of prose.
 box crawler "Crawler" {.tone-1}
 box det "Detector" right of crawler gap 1.6
 edge crawler -> det "request"

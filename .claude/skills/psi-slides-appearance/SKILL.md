@@ -1,6 +1,6 @@
 ---
 name: psi-slides-appearance
-description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), the `display` role that gives a cover and a section divider a face of their own and its measured `size-adjust`, `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the six viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` / `print-neutrals`, `display-scale`, the look of a bold phrase (`bold`, `print-bold`) and of an inline code span (`code`), the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `BUNDLED_FONTS`, `FONT_ROLES`, `DISPLAY_LH`, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
+description: How a psi-slides lecture's look is configured and where those settings live in `build.js` – the bundled webfont roster and the `fonts:` block (including author-supplied files in `fonts/`), the `display` role that gives a cover and a section divider a face of their own and its measured `size-adjust`, `ligatures:`, `lang:` and print hyphenation, the seven themes and `body[data-mode]`, the ten viewer-default frontmatter keys, the `style:` block including `labels`, `blocks`, `neutrals` / `print-neutrals`, `display-scale`, the look of a bold phrase (`bold`, `print-bold`) and of an inline code span (`code`), the chunk classes that answer `wrap`, `blocks` and `figure-type` for one slide, and the recipe that reproduces the 1.0.0 look. Use when changing the font roster, `BUNDLED_FONTS`, `FONT_ROLES`, `DISPLAY_LH`, `FONT_STACK_TAILS`, `THEME_NAMES`, `VIEW_DEFAULT_SPEC`, `STYLE_SPEC`, `CHUNK_STYLE_CLASSES`, the `style:` block, or their `lint.js` mirrors, or when a lecture renders in the wrong face, theme, default or block alignment.
 ---
 
 # Type, themes and viewer defaults in psi-slides
@@ -225,7 +225,7 @@ labels:
 
 It is a top-level block rather than `style: {labels: {…}}` because `style.labels` is already the on/off switch and every `style:` key is a closed vocabulary the linter whitelists, whereas these values are free text. An unknown key fails the build in the `buildOnce` pre-flight (`unknown-label-key`, the message shape `styleSettings` uses) and `lint.js` mirrors the refusal from its `LABEL_KEYS` / `LABEL_TYPE_KEYS` sets. `labels:` needs no `lang:` – an English deck may want `Contents` to read `In this lecture` – and it is legal beside `style: {labels: off}`: the switch hides the eyebrows, the block still names the TOC and the notes. Cockpit strings and the interaction-tier `?`/search/overview furniture are not localised yet (a later pass); key names on `<kbd>` never are.
 
-Hyphenation is **prose-only, and by default document-only**. A hyphenated word on a projection reads badly and the live views reflow constantly; and because the `hyphens` property inherits, headings, code, and URLs are explicitly set back to `manual`, or the build would hyphenate an identifier.
+Hyphenation is **prose-only, and by default document-only**. A hyphenated word on a projection reads badly and the live views reflow constantly; and because the `hyphens` property inherits, headings, code, and URLs are explicitly set back to `manual`, or the build would hyphenate an identifier. **A `statement:` chunk's paragraphs are in that reset too**, in both stylesheets: they are heading lines that happen to be marked up as paragraphs – the same face, size and weight as the heading above them – so a break across two lines reads as a fault there exactly as it does in a heading.
 
 `style: {hyphenate: …}` is the author's say over which views do it, and its default is exactly the behaviour above:
 
@@ -237,9 +237,15 @@ Hyphenation is **prose-only, and by default document-only**. A hyphenated word o
 
 **It is a `style:` key and `lang:` is not, and that split is the point.** The language is a property of the lecture – it decides the dictionary, and it is wrong rather than unfashionable if it disagrees with the words – while whether the projection breaks a word is a preference a German deck may answer either way. `all` exists for the case that forced it: a German compound at `.narrow`, where one word opens a hole in the measure that no rewriting closes.
 
+**`all` on the projection is narrower than `all` on paper, and three exclusions are why it is usable at all.** A keynote with 26 left-set slides – the deck the key is for – turned it back off to `print` because of what it did to the other six.
+
+- **Centred prose is left alone**: a `{.center}` chunk and every divider, whose heading and lede sit on the slide's own axis whatever `section:` variant it wears. Ragged-centre text is read as a silhouette, and a hyphen is a line end that says nothing – the block comes out as a diamond with a spike on one side. Measured: `Stu-dium` and `Hoch-schullehre` in six lines of one centred chunk.
+- **An address is left alone**, and this is the half no selector could reach. A hyphenation dictionary reads a dot and a slash as word boundaries, so `projekt-bakule.de` came out as `pro-jekt-bakule.de` and `Handreichung / Z/PQM` split across the slash. There is no CSS for "this run of characters", so the build marks them: under `all` and only under `all`, `markAddresses` wraps any token carrying **a dot between two word characters, a slash, or a no-break space** in `<span class="nohy">`, and the stylesheet takes that span out of the dictionary. The no-break space is in the list because it is the author joining two halves into one token – `n = 4 910` – and a dictionary that can reach inside the group can break what was joined. It runs as a **`marked` `text`-renderer override**, which is handed one text token, already escaped, with no tag and no attribute in it; a regex over finished markup would have had to know where the tags were. Nothing changes for a deck that does not write `all`: no span is emitted, and the CSS that would read one is scoped to `#stage`, which print does not have.
+- **The limit is `8 4 4` and not print's `6 3 3`**: a projection is read at ten metres from a line that is already short, and a two-letter tail on the next line is a fleck the room has to reassemble.
+
 Two things about the live rule are load-bearing. It is **scoped to `#stage`**, so it is the slide's prose and never the chrome – a TOC entry, a search hit and the help sheet are lists a reader scans, and a broken word in one of those is only harder to scan. And it repeats PRINT_CSS's **`manual` reset** for headings, code and URLs, for the same inheritance reason. The print rule is wrapped `body:not([data-hyphenate=none])`, and that wrapper is the guard `test/settings.mjs` holds: drop it and `none` silently does nothing while every outcome-shaped check still passes.
 
-What the key deliberately does **not** reach: the `hyphens: auto` inside a `::: cards` card and a `::: rows` term. Those are not a typographic preference but the rescue for a 320px measure a long word overflows outright, with `overflow-wrap: break-word` as the floor under them, so they answer a different question and keep answering it in all three settings.
+What the key deliberately does **not** reach: the `hyphens: auto` inside a `::: cards` card. That is not a typographic preference but the rescue for a 320px measure a long word overflows outright, with `overflow-wrap: break-word` as the floor under it, so it answers a different question and keeps answering it in all three settings. **A card's term and a row's term are out of reach for the opposite reason**: they carry `hyphens: manual` unconditionally, because a term is a name rather than a measure and `Umge-hen.` on a slide reads as a fault. See the `psi-slides-decoration` skill.
 
 The cover treatment for `title` chunks also lives in `@media print` now. The base rule used to be a full-height block with the title pinned to the bottom edge, which is right on paper and wrong for `print.html` in a browser, where you opened a document and saw a screen of nothing.
 
@@ -255,7 +261,7 @@ Seven themes cycle on `A`: four light accents, a neutral `dark` (grey paper, whi
 
 ## Viewer defaults in the frontmatter
 
-Seven optional frontmatter keys pin how a lecture opens:
+Ten optional frontmatter keys pin how a lecture opens:
 
 | key | values | default |
 |---|---|---|
@@ -266,12 +272,15 @@ Seven optional frontmatter keys pin how a lecture opens:
 | `slide-numbers` | vertical / **horizontal** / off | **horizontal** |
 | `print-slide-numbers` | vertical / horizontal / off | *follows `slide-numbers`* |
 | `editor` | both / speaker / none | both |
+| `note-button` | on / off | on |
+| `neighbours` | dim / hidden | dim *(hidden under `cut` / `fade`)* |
+| `transition` | pan / cut / fade | pan |
 
 `editor` is not a look but a payload – whether the live views carry the diagram editor – and it goes through this machinery rather than growing its own because the failure mode is identical: a typo would otherwise cost the lecture its editor silently. The precedence rule is one sentence: **a key that is present wins over the reader's stored preference; a key that is absent leaves that preference alone.** So lectures that say nothing behave exactly as before – font, theme and slide numbers keep following the reader across lectures – and an author who has designed a particular look gets it without asking anyone to press keys.
 
-**Three of those entries are newer than 1.0.0, and each carries a decision the table cannot show.**
+**Six of those entries carry a decision the table cannot show.**
 
-**`slide-numbers` defaults to `horizontal`, and it used to default to `vertical`.** This is the one viewer default whose change moves what an existing deck renders: the stacked form sets each digit on its own line, so slide 10 reaches the audience as a 1 above a 0. The content repo's house-style file had carried "set `slide-numbers: horizontal`" as standing advice, which is what a wrong default looks like from the outside. The old rendering is `slide-numbers: vertical`, and deliberately no compatibility flag was added beside it – one more key would make the old behaviour reachable two ways.
+**`slide-numbers` defaults to `horizontal`, and it used to default to `vertical`.** This is the one viewer default whose change moves what an existing deck renders: the stacked form sets each digit on its own line, so slide 10 reaches the audience as a 1 above a 0. The content repo's house-style file had carried "set `slide-numbers: horizontal`" as standing advice, which is what a wrong default looks like from the outside. The old rendering is `slide-numbers: vertical`, and deliberately no compatibility flag was added beside it – one more key would make the old behaviour reachable two ways. The number in the corner is also an address: `G`, the digits and Enter jump to that slide in either window, the way a click in the contents does, so the cockpit and the projection stay in step; a number the deck does not have shakes the prompt and keeps the digits, and Backspace and Escape do what they say.
 
 **`print-slide-numbers` has no default of its own; it *defers*.** An absent key resolves at read time to the live value, and only if that is absent too does `SLIDE_NUM_DEFAULT` apply. `viewDefaults()` writes a key only when the frontmatter carried it, so "unset" is a fourth state distinguishable from all three values, and **`printSlideNums(frontmatter)` is the documented step** that turns it into one – `d.printSlideNums || d.slideNums || SLIDE_NUM_DEFAULT`, in that order, in one place. Reading the key anywhere else with a fallback of `SLIDE_NUM_DEFAULT` would silently drop the deferral and make an unset key mean `horizontal` rather than "follow". `test/settings.mjs` asserts all sixteen combinations of the two keys.
 
@@ -279,9 +288,41 @@ Seven optional frontmatter keys pin how a lecture opens:
 
 The mode also travels as **two fields in the state snapshot**, `autoFitMode` (the word) and `autoFit` (a boolean), because `audience.html` and `speaker.html` are separate files and `--audience-only` rebuilds one of them: a peer built before the third mode coerces `payload.autoFit` with `!!`, so sending it `'off'` would switch it on. `normAutoFit()` reads either back, and `applyRemoteState` prefers the word when there is one. What travels in `zoom` is the *setting* (`zoomBase()`), never the shrunk value, so each window re-solves the shrink against its own size – `applyRemoteState` calls `fitZoomToChunk(collapsedZoom)` in that mode where it calls `clampZoomToWidth()` otherwise. Full auto-fit deliberately keeps adopting the sender's fitted zoom, which is what it has always done.
 
+**`note-button` and `neighbours` are the two a keynote sets and a lecture does not, and they share one mechanism the seven above them do not have: the on-value is the *absence* of the attribute.** `viewBodyAttrs` writes `data-note-button="off"` and `data-neighbours="hidden"` only when the author asked for them, so a deck that says nothing about either emits exactly the bytes it did before the keys existed.
+
+`note-button: off` hides the `+ note` affordance in the slide's left gutter (`+ Notiz` under `lang: de`). At 45% opacity on every active slide it is the one piece of chrome a photographed projection always carries, and a rehearsed talk with nothing to annotate wants the frame clean. It costs no ability: `N` still opens an annotation, and the button is still in the markup for the search index and the cockpit's lists. **`M` toggles it at runtime in either window**, and, like `B`, it travels to the projection as its **own message type** (`{type: 'note-button', mode}`) past the freeze gate rather than as a field of the state snapshot – `applyRemoteState` is a full apply, so a snapshot sent to say "the button is hidden" would drag the receiver's slide position with it. The choice is remembered in `localStorage` under `psi-slides:note-button`, globally rather than per lecture, the way `font`, `theme` and `slide-numbers` are, and only where the frontmatter left the question open.
+
+`neighbours: hidden` takes the slide before and the slide after to opacity 0. The default `dim` (`--dim: 0.86`, so a neighbour sits at about 17%) is deliberate for a lecture: the camera pans through a column and the faint neighbours are what make the view one long board rather than a stack of cards. A keynote wants the opposite: 17% of a heading set in display type is perfectly legible from the room, and the frame then carries two slides and says so. The fade in `hidden` is the backdrop's 260ms and not the chunk's own 500ms, for the backdrop's reason: the camera lands in `--camera-duration` (250ms) and a neighbour still visible then reads as a smear beside the slide. Going the other way is not this rule's business – a chunk that becomes `.active` stops matching it and falls back to `.chunk`'s own opacity transition over `--camera-duration`, so the arriving slide comes up exactly as the camera lands; that third fade is the one `transition: cut` has to zero separately. The overview board is unaffected, because `body.overview-mode .chunk` sets `opacity: 1 !important`.
+
+`transition: pan | cut | fade` says what a slide *change* looks like, and the three words are the three answers a slide tool can give. `pan` is the default and is what this tool has always done: the stage is one continuous column and the camera glides along it over `--camera-duration` (250 ms), which is what tells a room that the slides are a board and not a pile. `cut` lands the camera with no motion at all. `fade` dips the whole stage to the paper over 130 ms, takes the camera's jump in the one frame where the stage is at zero, and comes back over 130 ms – `FADE_MS` is 260, deliberately the backdrop's number, so a deck that has both does not have two speeds in it.
+
+**Only the slide change.** A reveal segment, a figure step, a `.middle` chunk's per-press glide, the walk down a chunk taller than the frame, auto-fit re-solving the zoom and a `::: backdrop`'s `reveal` opening across the frame all keep their motion in every mode: those are moves *on* a slide that is already there, and a keynote asking for a cut between slides is not asking for its pictures to snap open. The line is drawn in one place – **`landSlide()` in `AUDIENCE_JS`, which has exactly two callers**, `jumpTo` for a press in this window and `applyRemoteState` for a press in the other. A third path is how two windows come to draw a slide change differently, and the cockpit's stage is a mirror of the projection, so both run the same mode off the same frontmatter.
+
+**Why a dip and not a cross-dissolve, measured rather than argued.** A dissolve needs the two slides in the same place at the same moment, which a continuous column does not give – they are a slide-height and a gap apart. The cheap way to get them there is one line (jump the camera, hand the outgoing chunk the inverse of that jump), and it was built and its half-way frame shot at 1600×900 beside the dip's. What it paints is two paragraphs standing on each other letter through letter for a sixth of a second: on a tool whose slides are dark words on pale paper, a dissolve of two of them is a double exposure, unreadable in exactly the moment the room is reading. The dip's half-way frame is the slide being left, at half strength, still legible, on its way out. Traced per animation frame in Chromium, it is 130 ms of falling opacity with the transform held exactly where it was, one frame at zero in which the transform changes, and 130 ms back – no dropped frame and no positional motion at any opacity a room can see.
+
+**Three arrival fades have to go with it, and the third is the one that is easy to miss.** `--arrive-fade` (260 ms) is the one number behind a backdrop's crossfade and a hidden neighbour's, and `cut` and `fade` take it to `0s`. But `.chunk` itself transitions opacity over `--camera-duration`, which is how the arriving slide comes up *as* the pan lands, and it is written nowhere near the other two – left in place it gave a cut whose words faded in over a quarter of a second, and a fade whose two halves were 130 ms out and 230 ms back, because the stage's rise and the chunk's rise multiplied. It cannot share `--arrive-fade` (260 is the backdrop's number, 250 is the camera's, and moving either would move what a pan renders today), so `body[data-transition=cut] .chunk, body[data-transition=fade] .chunk { transition: none }` is its own line.
+
+**And it resolves `neighbours`.** Under `cut` and `fade` the camera does not travel, so a neighbour is never passed on the way; the only thing a dimmed one can still do is sit at the edge of a zoomed-out frame or smear through a fade. So `neighbourMode()` answers `hidden` for both unless the author wrote `dim` next to one – the same deferral shape as `printSlideNums()`, and for the same reason: `viewDefaults()` writes a key only when the frontmatter carried it, so "unset" is a fourth state and one documented function turns it into a value. `viewBodyAttrs` writes the *resolved* answer, so `transition: cut` alone puts `data-neighbours="hidden"` on the body.
+
+**No runtime key, and that is a decision.** Every free letter left is worth more to something a lecturer needs mid-talk, the mode is the author's design rather than the reader's preference (unlike `font`, `theme` and `slide-numbers`, which follow the reader across lectures), and a mode in the state snapshot would be one more thing two windows could disagree about for no gain. `SLIDE_TRANSITION` is therefore a `const` read once from `VIEW_DEFAULTS`, not a field of `state`. One consequence is worth knowing: under `fade` each window runs its own dip when it *learns* of the change, so the cockpit dips on the press and the projection on the message that follows the cockpit's swap – half a fade, 130 ms, on a pair of screens nobody sees at once. Teaching the snapshot to carry a phase was judged the more expensive answer.
+
+Two things `transition` deliberately does not touch. Leaving the **overview board** (`O`) still glides, because that is the board zooming back to a slide rather than the deck changing slides. And **`prefers-reduced-motion`** does not suppress `fade`: what that preference asks to be spared is motion, and a cross-fade is the standard thing to give it instead.
+
 An unknown value **fails the build** (`err.userFacing`, no stack trace) rather than being ignored, because a typo here is otherwise invisible: the lecture still builds and still looks fine, it just looks like the author never set anything. `lint.js` mirrors the table as `VIEW_DEFAULTS` and reports `unknown-view-default` as an error – keep the two in sync, same rule as `VALID_TAGS`.
 
 See the `psi-slides-decoration` skill for `cover`, `subtitle`, `cover-image` and the `style:` block, which are the author's composition rather than the reader's preference and so are validated separately.
+
+## Fullscreen on the projection (`W`)
+
+The reading knobs above all have a frontmatter key. This one has none, deliberately: a window's frame is a property of the machine the talk runs on, not of the lecture, and a deck that opened itself fullscreen would be asking for a permission no page is given at load.
+
+**`W` means the projection, `Shift`-`W` means this window.** In `audience.html` the two are the same window, so plain `W` there fills it and a second `W` leaves. In the cockpit plain `W` is a command sent to the projector – ungated by freeze, its own message type, for the reason `M` and `B` are – and the cockpit stays in its window, because a lecturer reading notes off a laptop wants the notes. `Shift`-`W` fills the cockpit, for the one-screen case.
+
+**The cockpit's `W` can only ask.** `requestFullscreen` is granted only to a user gesture in the window that makes the call, and Chromium refuses one issued from a `message` handler with `TypeError: Permissions check failed` – measured, headless and headed alike. So the projection *arms*: `#fullscreen-hint` appears in the bottom-right corner and the next click anywhere on that window enters, in the capture phase and once, so the click is not also a click on whatever it landed on. The arming lapses after 20 s. **Leaving needs no gesture**, so a second `W` in the cockpit takes the projection back out immediately; `Escape` is the browser's own way out and never reaches the page.
+
+**Nothing of it is in the state snapshot** – the projector is full and the laptop is not, so there is no shared value to carry. The projection reports its own state on every `fullscreenchange` and every `hello`, which is what lets the cockpit's `W` toggle the right way. The coarse-pointer palette behind `⋯` carries the same command as a button, because a tablet at the lectern has no `W`.
+
+**One thing every reading knob shares with it**: the frame changes size, so the zoom has to be solved again. The `resize` listener now calls `autoFitNow()` before `clampZoomToWidth()` – the latter stands aside while a fit is on, which left a deck under `auto-fit` wearing the zoom that fitted the windowed frame. speaker.md §2 and `test/nav-fullscreen.mjs` carry the whole of it.
 
 ## Hiding the generated labels (`style.labels`)
 
@@ -289,11 +330,110 @@ The tag word above a chunk is **two different things wearing one name**, and a s
 
 `style: {labels: off}` hides both. **It is its own key rather than part of `rules`**, which hides the bar over a principle and the hairline over a definition: a word and a line are not one decision, and an author may well want the line and not the word.
 
+**It reaches a third generated word, and that one is easy to miss: the small-caps eyebrow over a `::: footnote`.** `.margin-note::before` draws `content: attr(data-label)`, and where the author wrote no label the build supplies one (`NOTE`, `ANMERKUNG` under `lang: de`) – invented the same way the tag eyebrow is, so the same switch has to reach it. It used to survive `labels: off` and was then the *louder* of the two words left on the slide. **The projection alone.** `PRINT_CSS` keeps its footnote label, because on paper the aside is one more block in a column of blocks and the word is what marks it as a footnote, where on the slide the hairline and the position already do.
+
 ## Where the blocks sit (`style.blocks`), and the two keys a chunk can answer
 
-`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` (the enums only – the two scales are bounded numbers, and reading a number out of YAML with no parser is where a linter starts disagreeing with the build). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `neutrals` and `print-neutrals` (neutral/tinted/warm/cool), `headline` (stacked/eyebrow), `caps` (off/on), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `code` (plain/tint/spaced), `heading-scale` and `body-scale` (0.6–1.8).
+`STYLE_SPEC` in build.js is the whole `style:` block, mirrored in `lint.js` as `STYLE_ENUMS` for the words and `STYLE_NUM_SPEC` for the bounded numbers (a value lint.js cannot read as a finite number is not reported at all – the leniency runs in the safe direction, since what it passes and the build refuses fails at the build with the same message). The keys: `headings` (auto/left/center/off), `rules` (on/off), `labels` (on/off), `link-codes` (on/off), `wrap` (balance/none), `blocks` (center/left), `hyphenate` (print/all/none), `print-body` (serif/sans), `neutrals` and `print-neutrals` (neutral/tinted/warm/cool), `headline` (stacked/eyebrow), `caps` (off/on), `bold` and `print-bold` (plain/bold/italic/accent/accent-bold/accent-italic), `code` (plain/tint/spaced), `heading-scale` and `body-scale` (0.6–1.8), `figure-type` (0.6–1.6).
+
+**`blocks` reaches a `::: draw` now, and that is new.** It used to be listed as the one block it could not touch, because the `<svg>` was emitted 2000px wide under `max-width: 100%` and filled the measure at every chunk width – there was no space beside it to align in. Both media size a drawing from its type now, so the box hugs the picture and `left` puts it on the prose's own axis like a code block or a formula.
+
+**And `left` means the drawing's own edge, not its box's.** A figure's box is its viewBox, which is the drawing plus `DG_MARGIN` on every side, so flush left used to stop a fixed reserve short of the heading above it – measured on a real keynote, heading at x 223 and the first box at 243, the same near-miss on every figure in the deck. `diagram-core.mjs` emits that reserve as `--dg-ink-x`, a fraction of the box's width (and the live runtime rewrites it when it swaps in the viewBox that holds every beat, which is a different width), and the two `blocks: left` rules pull the box back out into the gutter by it. The drawing's own edge is its leftmost *painted* element: a frame that draws neither outline nor fill – a `.bare .clear` table – is skipped, so a table's column of words lines up with the heading rather than its invisible frame. Centre is untouched: the reserve is symmetric, so a centred box was a centred drawing already.
+
+**Centre stays the default, and the measurement is why.** The case for ranging a figure left whenever its chunk has a heading is that the two should share an edge – but where the heading sits is `style.headings`, and the corpus answers it both ways. `lectures/diagrams` sets no `headings` key, so a `figure:` chunk's heading is centred (measured at 1600×900: heads at 465–739 px in a 96–1504 column) and the drawing under it is centred with it. `lectures/tutorial` sets `headings: left`, every heading stands at the column edge, and the centred figures sit 56–860 px inside it – which is the complaint, and `blocks: left` is now the exact answer to it. A deck that ranges its headings left says so once, in the same block.
 
 **`reveal` was a key here and is gone.** It chose what a top-level `---` did before its beat – `grow`, the 1.0.0 behaviour, closed the segment up so the chunk grew per press, and `hold` laid it out at its final height from beat 0. Every reveal reserves its space now, at every depth, so there is nothing left for the key to pick and a deck that still writes it is refused by the build and by `lint.js` alike. `STYLE_KEYS_REMOVED` in build.js and its mirror in lint.js carry the sentence an author gets, which names what replaced the key rather than reporting a typo they did not make.
+
+## How large a figure's labels are (`style.figure-type`)
+
+**The key says one thing: how large a base label is against the body type it
+stands in.** One em of the surrounding text is the default, which on a slide is
+the honest answer – a figure's label is a word the back row has to read, and
+there is no running text beside it to excuse a smaller one. Print's own number
+is the opposite case and is not this key: `--dg-fig-size: 0.9rem` in
+`PRINT_CSS`, a figure being apparatus inside a column of prose.
+
+**Which is now also how many labels a slide's canvas holds.** A `::: draw` in a
+chunk body is laid out on a fixed canvas – the chunk's column wide, sixteen
+label-heights tall (the `psi-slides-figures` skill has the whole of it) – and
+the canvas is measured in base labels, so a bigger label is fewer of them in
+the same column and fewer rows in the same reserve. `{.figure-type-160}` on a
+`.wide` chunk gives a canvas of 22.8 × 10 labels instead of 36.5 × 16: the same
+1152 × 505 px box on the slide, with bigger type in it and less room for
+drawing. That is the whole trade the key offers, and it is the same trade it
+always offered, said in a unit an author can count.
+
+Bounded 0.6–1.6 because outside that the figure either is the defect or caps
+every drawing at the column. A deck that sets nothing emits no `--figure-type`
+at all and builds byte-identical HTML.
+
+**And one chunk can answer it for itself: `{.figure-type-70}`.** The key is
+deck-wide and a drawing is not – one keynote has a figure 55 labels wide and
+another 21, and pulling the first down with the key takes the second with it.
+Eleven steps, the key's own 0.6–1.6 in tenths, spelled as **per cent** so the
+class reads as a proportion and carries no dot: `.figure-type-60` …
+`.figure-type-160`, generated into `CHUNK_STYLE_CLASSES` from
+`FIGURE_TYPE_STEPS` in `tails.mjs`. The chunk carries `data-figure-type="70"`
+and a rule per step sets `--figure-type`; the steps are generated into
+`AUDIENCE_CSS` from the same table, so a step cannot exist in one place and not
+the other. Ten per cent is the smallest step worth a slide.
+
+Unlike the four classes above it, **this one does not reach print**, and
+neither does the key: a document sizes a figure with `--dg-fig-size`, which is
+a decision about apparatus inside a column of prose rather than about a room.
+It is also legal on a `title` or `closing` chunk, like the other `style:`
+classes, where it has nothing to act on – the same latitude `.blocks-left` has
+there.
+
+**One thing the multiplier does not do**, and confusing them wastes an
+afternoon. A base label's size is the figure's box divided by its width in
+labels *once the drawing is capped*, and that has no `figure-type` in it: the
+multiplier moves the width the figure asks for, so on an overflowing figure it
+moves the slide's body type and leaves the labels exactly where they were.
+Turning it down therefore widens a canvas and shrinks an overshoot, and does
+nothing at all for a drawing whose own labels are under 18 px. The build says
+both, separately.
+
+## The three figure reports
+
+`figure-overflows-canvas` and `figure-underfills-canvas` are the pair the
+canvas made sayable: a drawing wider or taller than the box its slide reserves,
+and one using less than half of it. Both give the numbers in labels and in px,
+and the `frame WxH` that would reserve what the drawing actually draws. Read the
+`psi-slides-figures` skill for the canvas itself.
+
+`figure-type-small` is the older one and survives beside them for a figure that
+has **no** canvas – one under `frame none`, or in a card, a pane or a divider –
+where nothing else can say that a deck's figures are uniformly unreadable: a
+base label under `FIG_TYPE_FLOOR_PX` (18 px at 1600×900), computed from the
+chunk's measured column width and the drawing's own width in labels. A figure
+that is both over its canvas and under the floor is reported as the former,
+with the absolute number in the same line.
+
+`figure-type-uneven` is gone. Its whole content was "this slide's type is out
+of step with the deck's", which a figure inside its canvas cannot be – the
+canvas is the column at body type, so a figure that fits it settles at the same
+body type every other figure slide settles at – and which a figure past it is
+now told in plainer words, with the axis it overflowed on.
+
+All three are emitted once, at the end of `parseLecture`, and none is a build
+failure. `figureSettle()` is the shared arithmetic and it is the whole reason a
+static check can say anything about a dynamic camera: the drawing asks for
+`typeW × body × figure-type` pixels, the box caps that, a capped figure counts
+as "does not fit", and the zoom walks down until the two meet – so the resting
+point is `box / (typeW × figure-type)` and there is no browser in it. **Two
+numbers in that arithmetic were wrong until the canvas landed**: the em is
+`1rem × --zoom` and `--zoom` defaults to 1.35, so it is 31.6 px at 1600×900 and
+not the 23.4 px of the rem; and `--body-fs` is 1.2rem on a `principle`, 1.15 on
+a `question` and 0.9 on a `figure`, which `FIG_BODY_REM` mirrors and
+`node test/gates/run.mjs canvas` holds against the stylesheet. With both, the
+estimate lands within 0.8 px of the browser on all twenty figures of a keynote.
+
+**`--check-fit` carries the same readings from the other end**, where the zoom
+is real: the canvas fill per figure, every figure that had to be scaled past
+its canvas, and the deck's median settled body type with every slide whose
+figure took it more than 15 % under that. Those are notes and change no exit
+code.
 
 ## What hue the greys carry (`style.neutrals`)
 
@@ -354,13 +494,13 @@ It lives in `style:` rather than beside the viewer defaults because it is the au
 
 The one number worth checking after any edit: the left-aligned breakout's cap is `calc(var(--slide-w) * 0.36 + 50%)`, which is exact rather than cautious. A column centred on the slide has `(slide − column) / 2` to its left, so the room between its left edge and the content area's right edge is `0.36 × slide + half the column`. That keeps the 78-character code budget identical to the centred case at every chunk width and never crosses the slide's 14% padding. `test/block-align.mjs` measures it at two chunk widths and two window sizes, because arithmetic that happens to agree at one size is not arithmetic.
 
-**A `::: draw` is deliberately not in the key.** Its `<svg>` is emitted 2000px wide under `max-width: 100%`, so it fills the measure at every chunk width and has no space beside it to align in. (A tall diagram capped by `max-height: 62vh` does sit left today with space to its right; making that follow `blocks` would mean changing what an existing deck draws, which is a separate decision.)
+**A `::: draw` is in the key, and it is the one member whose box moves *past* the measure.** The svg's box hugs the drawing rather than spanning the column, so `left` moves the box the way it moves a code block's – and then a negative start margin of `--dg-ink-x` times that box pulls the viewBox's own reserve out into the gutter, so what lands on the prose's axis is the ink. See *Where the blocks sit* above for the measurements.
 
-**`wrap` and `blocks` are the only two keys with a per-chunk form**, and the rule is one line: a chunk class spelled `<key>-<value>` overrides that key for that chunk. `.wrap-none`, `.wrap-balance`, `.blocks-left`, `.blocks-center` – `CHUNK_STYLE_CLASSES` in `tails.mjs`, imported by build.js and `lint.js` alike rather than mirrored. Both directions of both keys, because under a deck-wide `wrap: none` the only way left to ask for balancing is to ask for it on the chunk. Only these two, because they are the two whose right answer changes from slide to slide; `headings`, `rules` and `labels` are decisions a deck makes once, and a class for each would be four more guards in two stylesheets for nothing.
+**`wrap`, `blocks` and `figure-type` are the keys with a per-chunk form**, and the rule is one line: a chunk class spelled `<key>-<value>` overrides that key for that chunk. `.wrap-none`, `.wrap-balance`, `.blocks-left`, `.blocks-center`, and `.figure-type-60` … `.figure-type-160` – `CHUNK_STYLE_CLASSES` in `tails.mjs`, imported by build.js and `lint.js` alike rather than mirrored. Both directions of the first two keys, because under a deck-wide `wrap: none` the only way left to ask for balancing is to ask for it on the chunk; the third is a number, so it is a bounded set of steps instead. Only these three, because they are the ones whose right answer changes from slide to slide; `headings`, `rules` and `labels` are decisions a deck makes once, and a class for each would be four more guards in two stylesheets for nothing.
 
 The attribute names are the body's, so one stylesheet serves both levels and the chunk wins on specificity alone – `.chunk[data-wrap=none]` is two classes where `body:not([data-wrap=none])` is one class and one element. **In `AUDIENCE_CSS` the chunk rules are prefixed `#stage` and that is load-bearing**: the deck-wide heading rule carries an id (`#toc-panel li` rides in its `:is()` list), so a chunk-scoped rule made of classes alone loses to it however many classes it stacks. `#stage` is the element every chunk in both live views is inside, so it is the honest way to buy the id the cascade is asking for, and it also keeps every `blocks` rule off the focus overlay, whose clone of a figure is centred because a modal card is centred rather than because the slide is.
 
-**Unlike `.bare` and `.center`, both classes reach the printed document.** Those two answer where words sit on a *slide*, which a page does not ask; where a formula sits relative to the paragraph that introduced it is the same question on paper, and `style.wrap` has been in `PRINT_CSS` since it landed. In print, `blocks` reaches the figure and the formula and has no code block to move – a listing there sits inside the 42rem measure with nothing to break out of. And both are legal on a `title` or `closing` chunk, where a width, `.bare` and `.center` are refused: a cover's title is a heading and balances like one, so `.wrap-none` has something to act on. `lint.js` exempts them from its cover-chunk refusal for that reason – it refused every class there, and the build refuses only `width || bare || center`, which is the direction this project does not allow.
+**Unlike `.bare` and `.center`, the `wrap` and `blocks` classes reach the printed document** (`.figure-type-N` does not, because its key does not). Those two answer where words sit on a *slide*, which a page does not ask; where a formula sits relative to the paragraph that introduced it is the same question on paper, and `style.wrap` has been in `PRINT_CSS` since it landed. In print, `blocks` reaches the figure and the formula and has no code block to move – a listing there sits inside the 42rem measure with nothing to break out of. And both are legal on a `title` or `closing` chunk, where a width, `.bare` and `.center` are refused: a cover's title is a heading and balances like one, so `.wrap-none` has something to act on. `lint.js` exempts them from its cover-chunk refusal for that reason – it refused every class there, and the build refuses only `width || bare || center`, which is the direction this project does not allow.
 
 **`.bare` and `headings: off` hide a heading; they never drop it.** The rule is `display: none`, and the element stays in the DOM because the search index and the speaker's own lists read the heading text out of it - dropping the element would cost search and the cockpit to save nothing. Both are emitted by the **audience renderer only**, so `PRINT_CSS` carries no rule for either and the printed document is byte-identical with and without them. And `off` lives in the existing `style.headings` key beside `left` and `center` rather than in a key of its own: the two readings are one question - what the projection does with a heading - and a second key's only legal combination with this one would have been "off, and also aligned left", which means nothing.
 

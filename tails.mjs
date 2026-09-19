@@ -47,6 +47,23 @@ export const CHUNK_STYLE_CLASSES = {
   'blocks-left':   ['blocks', 'left'],
 };
 
+// The third key, and the one whose value is a number rather than a word.
+// `style: {figure-type: N}` is deck-wide, and the complaint it answers is not:
+// a drawing 66 labels wide pulls its own slide's type down to meet it, and
+// pulling it back up with the key takes every other figure in the deck with
+// it - so a keynote with one dense figure and one sparse one cannot fix
+// either. Per chunk it is a bounded set of steps rather than a free number,
+// because a class is a word: eleven of them, the key's own 0.6-1.6 range in
+// steps of 0.1, spelled as PER CENT so the class reads as a proportion and
+// carries no dot (`.figure-type-70` is `figure-type: 0.7`). Ten per cent is
+// the smallest step worth a slide - under it nothing in the room moves.
+//
+// Unlike the four above it, this one does not reach print: neither does the
+// key. A document sizes a figure with --dg-fig-size, which is a decision
+// about apparatus inside a column of prose and not about a room.
+export const FIGURE_TYPE_STEPS = [60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160];
+for (const n of FIGURE_TYPE_STEPS) CHUNK_STYLE_CLASSES['figure-type-' + n] = ['figure-type', String(n)];
+
 export const CHUNK_SLOTS = {
   // The default is the caller's, not the table's: a chunk's width is
   // `standard` for every type but `outline`, which is `wide`, and the
@@ -56,15 +73,56 @@ export const CHUNK_SLOTS = {
   width:  { default: null, words: ['narrow', 'standard', 'wide', 'full'] },
   wrap:   { default: null, words: ['wrap-balance', 'wrap-none'] },
   blocks: { default: null, words: ['blocks-left', 'blocks-center'] },
+  'figure-type': { default: null, words: FIGURE_TYPE_STEPS.map(n => 'figure-type-' + n) },
   // `.bare` takes the heading off the slide and leaves it in the TOC, in
   // search and in the printed document; `.center` sets the prose on a centre
   // axis. Flags: a default with no spelling.
   bare:   { default: false, words: ['bare'] },
   center: { default: false, words: ['center'] },
+  // The camera's anchor. `.middle` is `.center`'s vertical counterpart and, like it, a fact about
+  // the slide rather than about the text: the camera frames what is *on* the
+  // slide at this beat instead of the box the whole chunk will fill. A chunk
+  // whose reveals arrive downwards therefore opens in the middle of the frame
+  // rather than at the top of a reserve nobody can see yet.
+  //
+  // Not a flag any more, and the default is `null` rather than a word: which
+  // of the two a chunk gets is read off the chunk's *shape*, which this table
+  // cannot see (`chunkOpensCentred` in build.js, mirrored nowhere because
+  // nothing else needs it). A slide that is a picture - one `::: draw`, or
+  // one image, and no prose - and a `statement:`, whose every line is an
+  // utterance arriving on its own press, frame what the beat paints; a slide
+  // with prose on it keeps its head at the top, because prose grows downwards
+  // and a reader expects the heading to stay where it was. The two words are
+  // the overrides in both directions, and a picture chunk that wants the old
+  // top anchoring writes `.top`.
+  anchor: { default: null, words: ['middle', 'top'] },
+};
+// The tail on a `# Heading`, which is the divider slide's own line. It used
+// to take an `{#id}` and nothing else; `.stack` is the one composition
+// question a divider asks that neither `section:` nor the content can
+// answer, so it is a slot here rather than a seventh `section:` value:
+// `section:` is the deck's treatment of every divider (and all six of them
+// still render either way), while whether a part's own drawing stands
+// *under* the heading at full width or beside it is a fact about that one
+// divider's content. A flag, like `.bare` on a chunk: its default is the
+// layout the format has always drawn, and a default with no spelling is
+// what a flag is.
+// `.bare` is the second word, and it is the chunk's own `.bare` verbatim:
+// the heading comes off the slide and stays everywhere else - the contents
+// page, `section: outline`, the speaker's board, the search index. It exists
+// because a divider whose body says the part's name (a build plan whose first
+// row is the question the heading asks) says it twice, and the quiet grey
+// caption `.stack` makes of the heading is the copy nobody needs. Refused
+// with nothing under the heading, exactly as `.stack` is, and for the same
+// reason: the slide would be empty.
+export const COLUMN_SLOTS = {
+  stack: { default: false, words: ['stack'] },
+  bare:  { default: false, words: ['bare'] },
 };
 export const VALID_WIDTHS = new Set(CHUNK_SLOTS.width.words);
 export const VALID_CHUNK_CLASSES = new Set([
-  ...CHUNK_SLOTS.bare.words, ...CHUNK_SLOTS.center.words, ...Object.keys(CHUNK_STYLE_CLASSES)]);
+  ...CHUNK_SLOTS.bare.words, ...CHUNK_SLOTS.center.words, ...CHUNK_SLOTS.anchor.words,
+  ...Object.keys(CHUNK_STYLE_CLASSES)]);
 
 export const BACKDROP_SLOTS = {
   fill:  { default: 'cover',  words: ['cover', 'contain'] },
@@ -191,7 +249,7 @@ export const DOCK_SLOTS = {
 // the align default. A word that means something in one slot and is merely
 // the default of another is not exempt - that is the case where the first
 // slot listed wins and the second becomes unreachable.
-export const SLOT_TABLES = { CHUNK_SLOTS, CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS };
+export const SLOT_TABLES = { CHUNK_SLOTS, COLUMN_SLOTS, CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS };
 for (const [name, table] of Object.entries(SLOT_TABLES)) {
   const where = new Map();   // word -> [{slot, isDefault}]
   for (const [slot, spec] of Object.entries(table)) {
@@ -221,6 +279,12 @@ export function slotTable(slots) {
 function slotLine(slots) {
   return Object.entries(slots)
     .map(([s, spec]) => `${s}: ${spec.words.map(w => '.' + w).join(' | ')}`).join(', ');
+}
+// Every word a table takes, with no slot names around them. A one-slot table
+// reads worse as `stack: .stack` than as `.stack`, and the column heading's
+// refusal is a sentence rather than a listing.
+function wordList(slots) {
+  return Object.values(slots).flatMap(s => s.words).map(w => '.' + w).join(' | ');
 }
 
 // ── the tail parser ───────────────────────────────────────────────────
@@ -265,9 +329,10 @@ export function strayTailProblem(what, stray) {
 // `opts.id` is the id policy: 'one' for a heading, 'none' for a directive -
 // a generic parser that took `#id` everywhere would let a directive carry an
 // id nothing reads, the silent no-op this format refuses. `opts.classes:
-// 'none'` is the column heading's policy: it takes an id and no class at
-// all, and a `.word` there is `class-on-column` - said once, by the parser,
-// rather than as an unknown-class listing a vocabulary the line never had.
+// 'column'` is the column heading's policy: it resolves against COLUMN_SLOTS
+// like any other tail, and a word from no slot of it is `class-on-column` -
+// said once, by the parser, naming the short vocabulary a `#` heading has
+// rather than the chunk's, which is the line it never was.
 export function parseTail(tail, slots, what, { id: idPolicy = 'none', classes: classPolicy = 'slots' } = {}) {
   const out = { classes: [], id: undefined, ids: [], slots: {}, problems: [] };
   for (const [slot, spec] of Object.entries(slots)) out.slots[slot] = { value: spec.default, written: false };
@@ -284,12 +349,13 @@ export function parseTail(tail, slots, what, { id: idPolicy = 'none', classes: c
     if (tok.startsWith('.') && tok.length > 1) {
       const w = tok.slice(1);
       out.classes.push(w);
-      if (classPolicy === 'none') {
-        problem('class-on-column', `".${w}" - a # heading takes an {#id} and nothing else; ` +
-          'a width and .bare belong on the ## chunks under it.');
+      const slot = Object.keys(slots).find(s => slots[s].words.includes(w));
+      if (!slot && classPolicy === 'column') {
+        problem('class-on-column', `".${w}" - a # heading takes an {#id}` +
+          (Object.keys(slots).length ? ` and ${wordList(slots)}` : '') + ', and nothing else; ' +
+          'a width belongs on the ## chunks under it.');
         continue;
       }
-      const slot = Object.keys(slots).find(s => slots[s].words.includes(w));
       if (!slot) {
         problem('unknown-class', idsTaken
           ? `".${w}" is not a class this tail takes - valid: ${slotLine(slots)}`
@@ -369,6 +435,28 @@ export const AUTOPLAY_MAX = 60000;
 export const DRAW_OPENER_EXAMPLE = '::: draw 150x56 autoplay 1200 cycle';
 
 const UNIT_RE = /^(\d+)x(\d+)$/;
+// The canvas, in grid units, and the word that takes it away again. Decimals
+// are allowed where the grid's are not: a grid is the size of one cell in
+// whole pixels, while a frame is a count of those cells and half a row is a
+// thing an author can want. Both sides positive and bounded, because a canvas
+// of 400 units is not a canvas, it is a typo that would take the slide's type
+// to nothing.
+const FRAME_RE = /^(\d+(?:\.\d+)?)x(\d+(?:\.\d+)?)$/;
+export const FRAME_MAX_UNITS = 200;
+export function validFrame(frame) {
+  if (frame === 'none') return true;
+  const m = FRAME_RE.exec(String(frame));
+  if (!m) return false;
+  const [w, h] = [Number(m[1]), Number(m[2])];
+  return w > 0 && h > 0 && w <= FRAME_MAX_UNITS && h <= FRAME_MAX_UNITS;
+}
+// One spelling for a parsed frame, so parser, formatter and payload trade in
+// the same string: 'none', or 'WxH' with any trailing zeros gone.
+export function normaliseFrame(frame) {
+  if (frame === 'none') return 'none';
+  const m = FRAME_RE.exec(String(frame));
+  return m ? `${Number(m[1])}x${Number(m[2])}` : null;
+}
 
 // Read the old braced spelling, `{unit=WxH #id autoplay=N cycle}`, into its
 // fields. Used by the migration and by parseDrawOpener's refusal message, so
@@ -414,13 +502,15 @@ export function validUnit(unit) {
 
 // The canonical line for a valid field set. Throws on an impossible one -
 // that is a defect in the caller, not something an author wrote.
-export function formatDrawOpener({ unit = null, autoplay = null, cycle = false } = {}) {
+export function formatDrawOpener({ unit = null, frame = null, autoplay = null, cycle = false } = {}) {
   if (unit != null && !validUnit(unit)) throw new Error(`formatDrawOpener: unit "${unit}" is not WxH with two positive sides`);
+  if (frame != null && !validFrame(frame)) throw new Error(`formatDrawOpener: frame "${frame}" is not WxH in grid units, nor "none"`);
   if (autoplay != null && !(Number.isInteger(autoplay) && autoplay >= AUTOPLAY_MIN && autoplay <= AUTOPLAY_MAX)) {
     throw new Error(`formatDrawOpener: autoplay ${autoplay} is not an integer between ${AUTOPLAY_MIN} and ${AUTOPLAY_MAX}`);
   }
   if (cycle && autoplay == null) throw new Error('formatDrawOpener: cycle without autoplay');
   return '::: draw' + (unit != null ? ` ${unit}` : '') +
+    (frame != null ? ` frame ${normaliseFrame(frame)}` : '') +
     (autoplay != null ? ` autoplay ${autoplay}` : '') + (cycle ? ' cycle' : '');
 }
 
@@ -449,7 +539,7 @@ export function parseDrawOpener(line) {
   // fall through to the Markdown walker. `::: drawing` is still not ours.
   const m = String(line).match(/^:::\s+draw(?=\s|$|\{)(.*)$/);
   if (!m) return null;
-  const out = { unit: null, autoplay: null, cycle: false, problems: [] };
+  const out = { unit: null, frame: null, autoplay: null, cycle: false, problems: [] };
   const problem = (code, msg) => out.problems.push({ code, msg: `::: draw: ${msg}` });
   const rest = m[1].trim();
   const braced = rest.match(/^\{([^}]*)\}\s*$/);
@@ -469,18 +559,49 @@ export function parseDrawOpener(line) {
     return out;
   }
   const tokens = rest.split(/\s+/).filter(Boolean);
-  let stage = 0;   // 0 unit, 1 autoplay, 2 cycle, 3 done
+  let stage = 0;   // 0 unit, 1 frame, 2 autoplay, 3 cycle, 4 done
   // Which keywords have been read, so a second `autoplay` is reported as a
   // repeat and one after `cycle` as out of order - and either way its number
   // is consumed with it rather than read again as a grid.
-  let sawAutoplay = false, sawCycle = false;
+  let sawAutoplay = false, sawCycle = false, sawFrame = false;
   for (let i = 0; i < tokens.length; i++) {
     const tok = tokens[i];
     const u = tok.match(UNIT_RE);
     if (u) {
-      if (stage > 0) problem('stray-attribute', `"${tok}" - the grid comes first. Write  ${DRAW_OPENER_EXAMPLE}`);
+      if (stage > 0) problem('stray-attribute', `"${tok}" - the grid comes first, and a second WxH is not a second grid.`
+        + ` A canvas is written  frame ${tok} ; otherwise  ${DRAW_OPENER_EXAMPLE}`);
       else if (!validUnit(tok)) { problem('bad-unit', `"${tok}" has a zero side. A grid is WxH in units, as in 150x56`); stage = 1; }
       else { out.unit = `${Number(u[1])}x${Number(u[2])}`; stage = 1; }
+      continue;
+    }
+    // ── frame: the canvas this drawing is laid out on ───────────────
+    // It comes straight after the grid, because it is a fact about the
+    // picture and everything after it is about playback. `none` is a value
+    // and not a second keyword: what the word answers is "how big is the
+    // canvas", and "there is none" is one of the answers.
+    if (tok === 'frame') {
+      const v = tokens[i + 1];
+      if (sawFrame || sawAutoplay || sawCycle) {
+        problem('stray-attribute', sawFrame
+          ? '"frame" is written twice.'
+          : `"frame" after "${sawCycle ? 'cycle' : 'autoplay'}" - the canvas comes before playback. Write  ${DRAW_OPENER_EXAMPLE}`);
+        if (v !== undefined && (v === 'none' || FRAME_RE.test(v))) i++;   // its size goes with it
+        sawFrame = true;
+        continue;
+      }
+      sawFrame = true;
+      if (v === undefined || v === 'autoplay' || v === 'cycle') {
+        problem('bad-frame', 'frame takes a canvas in grid units, as in  frame 6x4 , or  frame none'
+          + ` to let the drawing set its own size${v === undefined ? ' - none was written.' : '.'}`);
+        stage = 2;
+        continue;
+      }
+      i++;
+      if (!validFrame(v)) {
+        problem('bad-frame', `"${v}" is not a canvas. Write WxH in grid units with a lowercase x, as in`
+          + `  frame 6x4  - both sides positive and at most ${FRAME_MAX_UNITS} - or  frame none .`);
+      } else out.frame = normaliseFrame(v);
+      stage = 2;
       continue;
     }
     if (/^\d+$/.test(tok)) {

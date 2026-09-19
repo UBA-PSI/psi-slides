@@ -13,7 +13,7 @@
  * refuses and lint.js names the same code - is `test/settings.mjs`.
  */
 import {
-  CHUNK_SLOTS, CARDS_SLOTS, SIDE_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SLOT_TABLES,
+  CHUNK_SLOTS, COLUMN_SLOTS, CARDS_SLOTS, SIDE_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SLOT_TABLES,
   splitTail, strayTailProblem, parseTail, parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseLegacyDrawTail,
   parseRevealMark,
   AUTOPLAY_MIN, AUTOPLAY_MAX, DRAW_OPENER_EXAMPLE,
@@ -50,11 +50,25 @@ export async function run({ report }) {
   }
   ok(/does not end the line/.test(strayTailProblem('chunk heading', '{.narrow}').msg) && strayTailProblem('x', '{#a}').code === 'stray-attribute',
      'and the problem for it is stray-attribute, naming the group');
-  // The column-heading policy: no class at all, said by the parser.
-  const col = parseTail('.wide #p', {}, 'column heading', { id: 'one', classes: 'none' });
-  ok(codes(col) === 'class-on-column' && col.id === 'p' && /takes an \{#id\} and nothing else/.test(col.problems[0].msg),
-     'a .word on a column heading is class-on-column, and the id is still read');
-  ok(codes(parseTail('#p', {}, 'column heading', { id: 'one', classes: 'none' })) === '', 'and an id alone is fine');
+  // The column-heading policy: its own short table, and a word from no slot
+  // of it is class-on-column rather than an unknown-class listing a
+  // vocabulary the line never had.
+  const column = (tail) => parseTail(tail, COLUMN_SLOTS, 'column heading', { id: 'one', classes: 'column' });
+  const col = column('.wide #p');
+  ok(codes(col) === 'class-on-column' && col.id === 'p'
+     && /takes an \{#id\} and \.stack \| \.bare, and nothing else/.test(col.problems[0].msg),
+     'a .word from no column slot is class-on-column, and the id is still read', col.problems[0].msg);
+  ok(codes(column('#p')) === '', 'and an id alone is fine');
+  const stacked = column('.stack #p');
+  ok(codes(stacked) === '' && stacked.slots.stack.written === true && stacked.id === 'p',
+     '.stack is a word the # heading takes, and it reads as written');
+  // The second word, and the one that has a namesake in the chunk table: the
+  // message above used to send .bare down to the ## chunks, so the pair is
+  // worth asserting together rather than only through the slot.
+  const bared = column('.stack .bare #p');
+  ok(codes(bared) === '' && bared.slots.bare.written === true && bared.slots.stack.written === true,
+     '.bare is the second, and the two are separate slots that combine');
+  ok(codes(column('.stack .stack #p')) === 'same-slot', 'and twice is same-slot, like any other slot');
 
   // ── parseTail: the four codes ────────────────────────────────────
   const heading = (tail) => parseTail(tail, CHUNK_SLOTS, 'chunk heading', { id: 'one' });
@@ -87,9 +101,25 @@ export async function run({ report }) {
     ok(codes(t) === want, `${who} {${tail}} → ${want || 'no problem'}`, `got ${codes(t) || 'none'}: ${t.problems.map(p => p.msg).join(' | ')}`);
   }
   // No slot may invent a spelling for a flag's default.
-  for (const w of ['.shown', '.left', '.top']) {
+  for (const w of ['.shown', '.left']) {
     ok(codes(heading(`${w} #a`)) === 'unknown-class', `${w} on a chunk heading is unknown-class`);
   }
+  // The camera's `anchor` is the exception, and deliberately not a flag: its
+  // two words are the overrides in both directions and the *unwritten* state is
+  // a third answer - the chunk's shape decides. So `.top` is a word here,
+  // `.middle .top` is same-slot like any other pair, and neither is the slot's
+  // default, which is null. The slot is named for the question and not for
+  // either word, or the same-slot message would read "both answer middle".
+  ok(CHUNK_SLOTS.anchor.default === null,
+     'the anchor slot defers rather than defaulting to a word');
+  ok(codes(heading('.top #a')) === '' && heading('.top #a').slots.anchor.value === 'top',
+     '.top is the word a picture chunk writes to keep the old top anchoring');
+  ok(codes(heading('.middle .top #a')) === 'same-slot'
+     && /both answer "anchor"/.test(heading('.middle .top #a').problems[0].msg),
+     'and .middle .top is same-slot, naming the question rather than one of its answers',
+     heading('.middle .top #a').problems[0].msg);
+  ok(heading('#a').slots.anchor.written === false && heading('#a').slots.anchor.value === null,
+     'an unwritten anchor slot is null, which is what sends the question to the shape');
   // The message names the tail and, for a word from no slot, the vocabulary.
   ok(/^::: side: "\.sideways" is not a word this directive knows - anchor: \.top \| \.middle$/.test(side('.sideways').problems[0].msg),
      'the unknown-class message names the directive and lists its slots');
@@ -139,19 +169,31 @@ export async function run({ report }) {
      'null for a line that is not a draw opener');
   ok(parseDrawOpener('::: draw{unit=150x56}') !== null, 'but the old opener written without a space is an opener, refused rather than dropped');
   const valid = [
-    ['::: draw',                               { unit: null, autoplay: null, cycle: false }],
-    ['::: draw 150x56',                        { unit: '150x56', autoplay: null, cycle: false }],
-    ['::: draw autoplay 900',                  { unit: null, autoplay: 900, cycle: false }],
-    ['::: draw 150x56 autoplay 1200 cycle',    { unit: '150x56', autoplay: 1200, cycle: true }],
-    ['::: draw autoplay 200 cycle',            { unit: null, autoplay: 200, cycle: true }],
-    ['::: draw   150x56   autoplay  60000  ',  { unit: '150x56', autoplay: 60000, cycle: false }],
+    ['::: draw',                               { unit: null, frame: null, autoplay: null, cycle: false }],
+    ['::: draw 150x56',                        { unit: '150x56', frame: null, autoplay: null, cycle: false }],
+    ['::: draw autoplay 900',                  { unit: null, frame: null, autoplay: 900, cycle: false }],
+    ['::: draw 150x56 autoplay 1200 cycle',    { unit: '150x56', frame: null, autoplay: 1200, cycle: true }],
+    ['::: draw autoplay 200 cycle',            { unit: null, frame: null, autoplay: 200, cycle: true }],
+    ['::: draw   150x56   autoplay  60000  ',  { unit: '150x56', frame: null, autoplay: 60000, cycle: false }],
+    // The canvas, which comes between the two: a fact about the picture, and
+    // everything after it is about playback.
+    ['::: draw frame 6x4',                     { unit: null, frame: '6x4', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame 6x4',              { unit: '150x56', frame: '6x4', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame 6.5x3.5',          { unit: '150x56', frame: '6.5x3.5', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame none',             { unit: '150x56', frame: 'none', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame 6x4 autoplay 1200 cycle',
+                                               { unit: '150x56', frame: '6x4', autoplay: 1200, cycle: true }],
   ];
   for (const [line, want] of valid) {
     const o = parseDrawOpener(line);
-    const got = o && { unit: o.unit, autoplay: o.autoplay, cycle: o.cycle };
+    const got = o && { unit: o.unit, frame: o.frame, autoplay: o.autoplay, cycle: o.cycle };
     ok(o && !o.problems.length && JSON.stringify(got) === JSON.stringify(want), `${line.trim()} parses`, JSON.stringify(o));
     ok(formatDrawOpener(want) === line.trim().replace(/\s+/g, ' '), `and formats back to itself`);
   }
+  // A frame written with trailing zeros still formats back to one spelling,
+  // because the payload the editor writes back is the formatted line.
+  ok(formatDrawOpener({ frame: '6.0x4.50' }) === '::: draw frame 6x4.5', 'a frame has one spelling',
+     formatDrawOpener({ frame: '6.0x4.50' }));
   const refused = [
     ['::: draw {unit=150x56}',              'stray-attribute', /Write  ::: draw 150x56$/],
     ['::: draw {unit=150x56 autoplay=1400 cycle}', 'stray-attribute', /::: draw 150x56 autoplay 1400 cycle/],
@@ -179,6 +221,14 @@ export async function run({ report }) {
     ['::: draw {#fig autoplay=50}',          'stray-attribute', /out of range/],
     ['::: draw {#fig cycle}',                'stray-attribute', /no autoplay to repeat/],
     ['::: draw {#fig unit=150x56}',          'stray-attribute', /Write  ::: draw 150x56  \(a draw #id/],
+    ['::: draw 150x56 frame',                'bad-frame', /frame 6x4/],
+    ['::: draw 150x56 frame 6X4',            'bad-frame', /lowercase x/],
+    ['::: draw 150x56 frame 0x4',            'bad-frame', null],
+    ['::: draw 150x56 frame 400x4',          'bad-frame', /at most 200/],
+    ['::: draw 150x56 frame none frame 6x4', 'stray-attribute', /"frame" is written twice/],
+    ['::: draw autoplay 900 frame 6x4',      'stray-attribute', /the canvas comes before playback/],
+    ['::: draw 150x56 frame autoplay 900',   'bad-frame', /frame none/],
+    ['::: draw 150x56 6x4',                  'stray-attribute', /A canvas is written  frame 6x4/],
   ];
   for (const [line, code, re] of refused) {
     const o = parseDrawOpener(line);
@@ -205,6 +255,9 @@ export async function run({ report }) {
   ok(throws(() => formatDrawOpener({ unit: '0x56' })) && throws(() => formatDrawOpener({ unit: '150x0' })), 'and so is a zero side');
   ok(throws(() => formatDrawOpener({ autoplay: 100 })), 'an out-of-range autoplay is thrown');
   ok(throws(() => formatDrawOpener({ unit: [150, 56] })), 'an array unit is thrown - one representation crosses parser, formatter and payload');
+  ok(throws(() => formatDrawOpener({ frame: '6X4' })) && throws(() => formatDrawOpener({ frame: '0x4' })),
+     'a frame that is not WxH in grid units is thrown');
+  ok(!throws(() => formatDrawOpener({ frame: 'none' })), 'and "none" is a value, not a refusal');
 
   // ── the compiler adapter and the legacy reader ───────────────────
   ok(drawCompilerAttrs({ unit: '150x56', autoplay: 900, cycle: true }) === 'unit=150x56', 'the compiler sees the grid and nothing else');

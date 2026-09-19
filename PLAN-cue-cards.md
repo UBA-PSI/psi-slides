@@ -74,6 +74,8 @@ Chunks mit mehr als einem Block).
 | Markdown-Liste (`- ` / `1. `) | Bullets wie geschrieben |
 | `#### Titel` | Kartentitel für die folgende Karte |
 | `@12:30` allein in einer Zeile oder am Absatzanfang | Sollzeit ab Start; das Cockpit zeigt an dieser Karte die Drift („+1:40“ / „−0:50“) |
+| `[Klick: Zeile 1 wird hell.]` allein in einem Absatz oder an dessen Kopf | eine Vorrückung: die Karte endet hier, alles dahinter wird eine Vorrückung später einsortiert, und die Worte hinter dem Doppelpunkt betiteln die Karte danach |
+| jede andere Klammerzeile (`[Pause.]`) | Regieanweisung, bleibt als eigene Karte im Wortlaut stehen |
 
 Ein Block mit mehreren Absätzen ergibt mehrere Karten; wer eine Karte pro
 Block will, schreibt einen Block pro Absatz – beides ist dasselbe.
@@ -142,6 +144,19 @@ einen Block hinter ein früheres `---` schiebt. Beide Fälle als Fixture im
 Gate (§7). Wer eine Note wirklich auf dem letzten Beat allein haben will,
 setzt davor eine Note auf einen früheren Beat – ein Chunk, dessen Stütze
 erst nach dem letzten Klick beginnt, ist ohnehin keine, die man bauen will.
+
+**Wie gelandet:** „nicht-leer“ heißt *Wörter*, und das musste nachgezogen
+werden. Seit „jedes `---` ist ein Beat“ liefert `segmentsKept` für jeden
+Chunk mit zwei oder mehr Segmenten lauter `true`, also zählt auch ein leeres
+Schlusssegment – ein Chunk, der mit `---` endet und nichts dahinter hat, die
+Folie steht während weitergesprochen wird – als „letztes“. `noteSegments`
+maß sich daran und legte die Notes eines Bestandsdecks auf den letzten Klick
+statt auf Beat 1; gewarnt hat nichts. Die Regel liest jetzt das letzte
+Segment **mit Wörtern darin**. Eine Note, die allein hinter einem `---`
+steht, ist damit nicht mehr im letzten Segment: sie behält ihre Position und
+wird auf dem Beat gesagt, den das `---` öffnet – wofür der Trenner
+geschrieben wurde. Fixtures in `test/gates/cue-cards.mjs`, kein Deck in
+`lectures/` bewegt sich.
 
 **lint.js-Spiegel** (lint.js:2381 `inMetaBlock`, :3160 der `---`-Zähler
 `chunkReveals`): dieselbe Zuordnung, plus Warnung `note-in-empty-beat`,
@@ -563,3 +578,54 @@ aus dem Ausmessen der neuen Anordnung:
   **Die allgemeine Falle bleibt** – ein Chunk namens `clock` oder `timer`
   träfe dieselbe Kollision. Wer Cockpit-Chrome benennt, wählt ein Wort, das
   keine Folie tragen will.
+
+## 16. Nachtrag: `[Klick …]` ist ein Beat
+
+Aus der zweiten echten Keynote (`lectures/keynote-2036`, 45 Minuten,
+ausformuliert). Deren `> note:`-Blöcke tragen die Regie schon im Text – neun
+Zeilen der Form `[Klick auf dem Bauplan: Zeile 1 wird hell.]`, dazu
+`[Pause.]` und `[Pause. Lachen abwarten.]` – und **kein einziges
+`> note: from N`**. Im Cockpit war damit jeder Block eine Kartengruppe auf
+Beat 0, und die Rednerin zählte die Drücke im Kopf mit. `from N` hätte
+geholfen, verlangt aber, jeden Block von Hand durchzunummerieren; die Zahlen
+stehen dann zweimal da, einmal als `from` und einmal als Regieanweisung im
+Text.
+
+**Die Grammatik.** Ein Absatz (oder eine Zeile am Absatzkopf), der nur aus
+einer Klammerzeile besteht, deren erstes Wort `Klick`, `Click` oder ein
+blankes `>` ist, beendet die Karte und zählt eine Vorrückung. Alles dahinter
+wird `advance` Vorrückungen später einsortiert – dieselbe Arithmetik, die
+`from N` per Zahl sagt, und beide zusammen: ein Block mit `from 2` und einem
+Klick sagt seine zweite Hälfte auf Vorrückung 3. Die Worte hinter dem ersten
+Doppelpunkt betiteln die Karte danach, außer ein `####` steht näher an ihr
+(die nähere der beiden gewinnt, also die, die man zuletzt liest). Jede andere
+Klammerzeile ist Regie und bleibt als eigene Karte im Wortlaut stehen.
+
+**Drei Entscheidungen, die der Tabelle nicht anzusehen sind:**
+
+- **Die Wortliste ist fest, kein `STRINGS`-Eintrag.** `notesToCards` läuft
+  auch im Browser, über einen Probelauf-Text im Textarea, wo keine
+  Wörtertabelle der Vorlesung in Reichweite ist – und `lint.js` hat gar
+  keine. `lang:` durchzureichen hieße, die Liste ein drittes Mal von Hand zu
+  führen. Was die Autorin tippt, ist Quelle und nicht das Mobiliar, das der
+  Build erfindet; `labels:` darf es nicht umdefinieren. `>` ist die
+  Schreibweise für jede Sprache, für die die Liste kein Wort hat.
+- **`cueAdvance` ist exportiert, und `lint.js` importiert es.** Dieselbe
+  Biegung wie bei `tails.mjs` und aus demselben Grund: zwei Schreibweisen
+  desselben Regexes sind genau die Stelle, an der der Linter etwas anderes
+  zählt als die Karten zeigen. Eine Funktion, keine Tabelle, nichts dahinter.
+- **Überlauf ist eine Warnung, keine Ablehnung.** Die Runtime klemmt
+  (`put()` in `cueCardsFor`), die überzähligen Karten stehen zusammen auf dem
+  letzten Beat – sichtbar, aber nicht das Gemeinte. `note-advance-beyond`
+  nennt Zeile, Anzahl und Beats. Es zählt **auch die Blöcke unter einer
+  `#`-Überschrift**: die Beats eines Teilers sind die `step`-Blöcke seiner
+  Figur, und in dieser Keynote sitzen alle neun Klicks auf Teilern – eine
+  Prüfung, die bei Chunks aufhört, hätte den Fall, für den sie geschrieben
+  ist, nie gesehen. Der Basiswert ist `from` oder 0, also eine Untergrenze:
+  ein positionierter Block kennt sein Segment, nicht seine Vorrückung. Lieber
+  zu selten warnen als auf dem Deck, das schon stimmt.
+
+**Gates und Spec.** `test/gates/cue-cards.mjs` hält `cueAdvance` und die
+Arithmetik ohne Browser fest (Split, Titelvorrang, Lokalisierung, Regie vs.
+Klick); `test/cue-cards.mjs` läuft `#clicks` mit zwei Klicks und zwei
+Reveals in zwei Fenstern durch und `#tooclicks` durch den Linter.

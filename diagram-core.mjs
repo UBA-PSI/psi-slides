@@ -60,12 +60,100 @@
 // shows the finished diagram rather than its opening step.
 
 export const DG_UNIT = [120, 72];     // default grid cell, px
+// A canvas written in grid units, decimals allowed. Mirrors FRAME_RE in
+// tails.mjs, which reads the same value off the `::: draw` opener; this copy
+// is here because diagram-core has no imports, and the gate holds the two
+// against one another.
+export const DG_FRAME_RE = /^\d+(?:\.\d+)?x\d+(?:\.\d+)?$/;
 export const DG_FONT = 15;            // base label size, px
 export const DG_LINE_H = 1.25;        // line height, multiples of font size
 export const DG_PAD_X = 13;           // box padding, px
 export const DG_PAD_Y = 9;
 export const DG_MIN_W = 54;           // a box never narrows past this
+// How much of an em a line of type actually inks: cap height (0.72) plus the
+// descender (0.21). A line *box* is DG_LINE_H of an em, and the difference is
+// leading – which may hang over an outline without a reader seeing anything,
+// because a label is centred in its box. So the question "is this box too
+// short for its words" is asked against the ink and not against the line box,
+// or every tight-but-correct table in the corpus would report an overflow it
+// does not have.
+export const DG_INK_H = 0.93;
+// The same measurement taken apart, because a check about a *collision* needs
+// to know where the ink sits and not only how tall it is – and the air is not
+// split evenly. `dgTextEl` puts every baseline DG_BASE_DROP of an em below its
+// line box's centre, so at DG_LINE_H a line carries 0.245 em of leading above
+// its caps and 0.075 em below its descenders: three times as much air on top
+// as underneath. That arithmetic was already spelled out once, in the comment
+// above DG_ZONE_INK_DROP, out of three numbers that lived nowhere – two in
+// prose and one as a literal in `dgTextEl`. These are those three, named.
+export const DG_CAP_H = 0.72;         // cap height, multiples of font size
+export const DG_DESC_H = 0.21;        // descender, likewise; the two are DG_INK_H
+export const DG_BASE_DROP = 0.34;     // baseline, below the line box's centre
 export const DG_HEAD = 9;             // arrowhead length, px
+// **The default gap is stated in labels, not in rows.** A row is whatever the
+// opener says – 20 px on `20x20`, 40 on `120x40`, 72 on the default grid – so
+// the old default of 0.25 rows drew a clearance of 5 px on one figure and 18
+// on another, with nothing in either source to say so. On the grid a keynote
+// actually used it came out at 10 px against a 9 px arrowhead: a head with no
+// shaft. A label is the one ruler in a drawing that does not move with the
+// opener, and the clearance a reader judges is the clearance against the type
+// beside it, so the default gap is a multiple of the base label's height.
+// DG_GAP_JOINED is 1.6 of them – the 9 px head plus 21 px of shaft – and
+// applies to a pair some `edge` joins, which is decided after the whole block
+// is read. DG_GAP_PLAIN is one label for a pair nothing joins. A *written*
+// `gap` keeps its meaning and its unit: it stays a number of rows, because it
+// is a number the author tuned by eye against the grid in the opener and every
+// other clearance in this grammar – `pad`, `space`, `cell`, DG_DOT_R – is
+// measured against `uh` too. Only the number nobody wrote is free to be stated
+// in the unit that makes it right.
+export const DG_LABEL_H = DG_FONT * DG_LINE_H;   // one base label, px
+export const DG_GAP_PLAIN = 1;        // default gap, in labels, for an unjoined pair
+export const DG_GAP_JOINED = 1.6;     // …and for a pair an edge joins
+// ── peers share one size ────────────────────────────────────────────
+// **The four placements that make two boxes peers.** A box placed `right of`,
+// `left of`, `below` or `above` another box is standing in a row or a column
+// with it, and a row of boxes of four different widths reads as four things of
+// four different weights – which is a statement about the content, and almost
+// never the one the author meant. The usual reason one is wider is that its
+// label happened to have more letters.
+//
+// So a *chain* – the boxes reachable from each other through those four words
+// – shares one size: the widest member's width and the tallest member's
+// height, measured over every label a `label` step will ever give the members,
+// so the four-line step label cannot overflow the cell it was drawn into at
+// beat 0. A member that states its own `w` or `h` keeps that number and lends
+// it to the chain's maximum, which is `same as` without the words; `{.own}`
+// leaves the chain altogether and ends it, so the box after an `.own` one
+// starts a chain of its own.
+//
+// `between` and `at` are deliberately not here. They are coordinates, not
+// adjacency: three boxes hung off three different points are not a row, and
+// the statement for peers that are not placed against each other is `row` /
+// `col`, which says so in one word.
+export const DG_CHAIN_DIRS = new Set(['right', 'left', 'below', 'above']);
+// An edge whose exposed run – the part of its route not under either of its
+// own endpoints – is shorter than this many labels is reported as `edge-short`.
+// 1.5 labels is 28 px: the head plus about as much shaft again, which is the
+// least that still reads as an arrow rather than a wedge between two boxes.
+// It sits just under DG_GAP_JOINED on purpose, so the default never trips it.
+export const DG_EDGE_MIN = 1.5;
+// The same rule one shape along, for an `.elbow`. An elbow's head sits at the
+// end of the run *after* the rail, and that run is the only part of the route
+// that says which box the arrow is pointing into – the rail says nothing, it
+// is shared. Measured on a real keynote: two elbows across a 30 px gap put the
+// rail at 15 px, so the head had 15 px of run to stand on, most of which the
+// head itself is, and against a `.dashed` target the arrow read as a head
+// resting on the dashes rather than arriving at them.
+//
+// One label plus the head is the floor, and it is stated in px rather than in
+// rows for the reason DG_EDGE_MIN is: what crowds a head is the head, which is
+// a number of pixels whatever grid the block declares.
+export const DG_ELBOW_ARRIVE = DG_LABEL_H + DG_HEAD;   // px, the run after the rail
+// …and the run *before* it keeps at least a head's length, or moving the rail
+// to buy the arrival run simply spends the same problem at the other end. It
+// is the bound that keeps the rail a rail: `.elbow` still looks at nothing in
+// the figure but its own two ends.
+export const DG_ELBOW_LEAVE = DG_HEAD;                 // px, the run before the rail
 export const DG_MARGIN = 12;          // viewBox breathing room, px
 // Nominal intrinsic width. Deliberately wider than any chunk measure so
 // that max-width: 100% always binds – see the comment where it is emitted.
@@ -122,6 +210,14 @@ export const DG_CLASSES = new Set([
   'mono', 'serif', 'hand', 'small', 'large', 'bold',
   // type that fits the box it is in, rather than the box fitting the type
   'fit', 'shrink',
+  // `.own` leaves the chain. Boxes joined by a run of `right of` / `below`
+  // share one size by default (DG_CHAIN_DIRS), because relative size reads as
+  // importance and the usual reason one box is wider is that its label
+  // happened to have more letters. The exception – a box that really is
+  // bigger, or a run that is two rows of peers rather than one – is the thing
+  // that costs a word, and this is the word. It also *ends* the chain: a box
+  // reached only through an `.own` one starts a chain of its own.
+  'own',
   // where the label sits in the space it has. `left` / `right` name an edge
   // of a horizontal run of text; `top` / `bottom` an edge of the block of
   // lines. Both mean "as far that way as the padding allows", not "on the
@@ -139,9 +235,13 @@ export const DG_CLASSES = new Set([
   // Called `.front` and not `.over`, because `over` is already the keyword
   // that gives a container its members.
   // `.elbow` is the one place the engine puts a coordinate on the page the
-  // author did not write, and it is bounded on purpose: the rail is always
-  // halfway across the gap, on whichever axis the two ends are further apart,
-  // and there is no option to move it. It looks at nothing else in the figure,
+  // author did not write, and it is bounded on purpose: the rail is halfway
+  // across the gap, on whichever axis the two ends are further apart, and the
+  // author has no option to move it. The one thing that does move it is the
+  // arrival run – the part of the route after the rail, which is all the
+  // reader has to tell which box the arrow points into: where halfway leaves
+  // it under DG_ELBOW_ARRIVE the rail slides toward the source until it is
+  // that long, stopping at DG_ELBOW_LEAVE out. It looks at nothing else in the figure,
   // so it is not routing – nothing steps around an obstacle for you – it is
   // the two waypoints every tree edge was written with by hand, said once.
   // An edge that needs its rail somewhere else writes `via`, and saying both
@@ -518,12 +618,54 @@ export function dgShapeInsetY(shape, labelH, padY = 0) {
 }
 
 export const DG_ANCHORS = new Set(['left', 'right', 'top', 'bottom', 'center', 'tl', 'tr', 'bl', 'br']);
+// **`at X,Y` names a point, and `anchor` says which point of the element
+// lands on it.** The default is the centre, which is what every figure written
+// before the word existed was written against, so a deck that names no anchor
+// builds byte-identically.
+//
+// It exists because a *row of labels* could not be written. Three `text` lines
+// at `at 0,z.cy` with `{.left}` came out with three different left edges: the
+// class aligns the lines *inside* the element's own box, and the box is still
+// centred on the coordinate, so a long label started further left than a short
+// one. `align x left a, b, c` is the other answer and it is the right one for
+// three elements that must stay together; `anchor left` is the answer for one
+// element that has to meet a coordinate by its corner – a caption in the
+// top-left of a zone, a note against a frame's left edge – where there is no
+// set to join.
+//
+// The nine words are `DG_ANCHORS`, which an edge endpoint already spells, and
+// the offset is the same ninth-of-a-box arithmetic `dgAnchorPt` does from the
+// other side: that one asks where a point on a laid-out box is, this one asks
+// how far a box must move for the named point to land on a coordinate.
+export function dgAnchorOffset(anchor, w, h) {
+  const hx = w / 2, hy = h / 2;
+  const X = { left: hx, tl: hx, bl: hx, right: -hx, tr: -hx, br: -hx };
+  const Y = { top: hy, tl: hy, tr: hy, bottom: -hy, bl: -hy, br: -hy };
+  return [X[anchor] || 0, Y[anchor] || 0];
+}
+// **Which of the element's own sides a placement fixes, across.** The pinned
+// side is the one that does not move when the element's width does, and
+// `dgAnchorOffset` already knows it rather than a second table saying it
+// again: a positive x-offset moves the box right by half its width, which is
+// its *left* edge landing on the coordinate. `null` for `center`, for the two
+// anchors that name no side, and for no anchor at all.
+//
+// It matters because a label's width is **estimated**. A free text is as wide
+// as its glyph run, so a caption anchored `tl` has its box's left edge on the
+// coordinate exactly – and then drawing the words centred on that box's
+// estimated middle puts half the estimate's error on the edge the anchor
+// named. Swap the label for a longer one and that half changes: the words
+// jump sideways although the anchor did not move. See `labelBox`.
+export function dgAnchorPinX(anchor) {
+  const [ox] = dgAnchorOffset(anchor, 2, 0);
+  return ox > 0 ? 'left' : ox < 0 ? 'right' : null;
+}
 // The statements that bring an element into being, as opposed to arranging
 // or restyling ones that already exist. Not used by the compiler – it
 // branches on each keyword by name – but the linter needs the set, and a
 // second hand-written copy of the vocabulary is exactly what this module
 // exists to stop.
-export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
+export const DG_DEFINES = new Set(['box', 'dot', 'text', 'image', 'zone', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
 // Names an element cannot have, and it is a computed table rather than a
 // list: the live runtime keys plain objects by element id (a frame's vis /
 // cls / geom straight from JSON, the target cache, the kinds map), so an id
@@ -586,7 +728,12 @@ export const DG_STEP_NAME = /^[\p{L}_][\p{L}\p{N}_-]*$/u;
 // derivable from anything a reader had already learned – and `.ghost` had no
 // verb at all, so a beat could reach it only through `style`.
 export const DG_STEP_OPS = new Set(['show', 'hide', 'move', ...DG_PROMINENCE, 'style', 'label']);
-export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence', 'align', 'spread', 'default', 'step']);
+// `row` and `col` stand beside `align` and `spread` rather than beside `box`:
+// like those two they draw nothing and name elements that already exist. What
+// they add is the *size*, which `align` has never had – a row of peers is one
+// size and one gap, and writing that today costs a `same as` per member plus a
+// `gap` per placement. See DG_CHAIN_DIRS.
+export const DG_KEYWORDS = new Set(['box', 'dot', 'text', 'image', 'zone', 'edge', 'brace', 'container', 'bars', 'grid', 'plot', 'table', 'lanes', 'sequence', 'align', 'spread', 'row', 'col', 'default', 'step']);
 // The three shapes a line inside a `sequence` may take. They are not
 // statements – they mean nothing anywhere else – so they stay out of
 // DG_KEYWORDS and a stray one is reported as what it is: an entry that lost
@@ -731,6 +878,60 @@ export const DG_SEQ_SELF_H = 0.42;   // and how far down it comes back
 // padding a `pad` would otherwise resolve to is 13 by 9, which on a label
 // standing beside a line reads as a slab; this is the visible margin.
 export const DG_SEQ_GROUND = 0.1;
+
+// ── zone ────────────────────────────────────────────────────────────
+// How far the caption sits inside the corner, in grid units, and square: the
+// x nudge is scaled by uh/uw at the statement, the same correction `gap` and
+// `pad` make, or the same number would be two distances on a cell that is not
+// square.
+//
+// A third of a row, and it was 0.16 - just under a sixth. An area's outline
+// is a dashed line and its caption is 12 px type, so at a sixth of a row the
+// words sat *on* the dashes: measured on a keynote's "zu Hause", the glyphs
+// crossed the frame at two corners of the same figure, which reads as a box
+// that failed to fit its own label. A third of a row is the same clearance a
+// box's own `pad` keeps against its outline, one step wider because a dashed
+// line has ink on both sides of where a solid one would be.
+//
+// `zone … pad n` overrides it, in grid units like every other `pad`. It was
+// in DG_KIND_OPTS.zone from the start and read nothing at all - the silent
+// no-op this grammar refuses everywhere else - because a zone forces its own
+// label empty and the caption is a separate element. It is the same sentence
+// `pad` says on a box, one level out: how far the type sits from the line.
+export const DG_ZONE_PAD = 0.33;
+// ...and at the bottom corner, a little more, because the inset a reader sees
+// is the distance from the dashes to the nearest INK and a line of type does
+// not sit centred in its own box. A label's origin carries half a line box
+// either side; above it, the ink stops at the cap, `0.625 - (0.72 - 0.34)` of
+// the font clear of the edge; below it, a descender reaches to
+// `0.34 + 0.21`, leaving `0.625 - 0.55`. So a `.bottom` caption with a `g` or
+// a `y` in it stood 0.17 of its own font closer to the outline than a top one
+// did - reported as a caption sitting on the line, and measured at 26.7 px
+// against 24.7 on a 120x72 grid. This is that difference, in fonts, added to
+// the bottom corner's nudge alone: the two corners then clear the outline by
+// the same distance, which is the thing the eye was comparing.
+export const DG_ZONE_INK_DROP = 0.17;
+// The four words that move the caption out of the top-left. They are the
+// element-label alignment classes one level out: on a box they place the label
+// inside the box, on a zone they place the caption inside the area – the same
+// sentence about the same four words, which is why the zone does not invent a
+// `corner` option to say it again.
+export const DG_ZONE_CORNERS = new Set(['left', 'right', 'top', 'bottom']);
+// **The band a zone reserves for what stands in it, and the words that place
+// something in it.** The band is the area minus the pad on all four sides and
+// minus the caption's own line on the side the caption is on, so `z.inner.top`
+// is the first row of paper the caption does not already own. `in z` puts an
+// element there, and these five words move it inside the band – the same four
+// the caption uses, plus `center`, which a corner does not need and a band
+// does. They are words of the *placement* rather than classes, because on a
+// box `.left` already means where the label sits inside the outline, and one
+// word cannot answer two questions on one line.
+export const DG_IN_ALIGN = new Set(['left', 'right', 'top', 'bottom', 'center']);
+// A zone's caption and the tag that holds the pair. Generated names, so they
+// are a promised interface for the same reason a `sequence`'s are: an author
+// annotating a figure has to be able to name what the statement drew.
+export const dgZoneCapName = (id) => `${id}-cap`;
+export const dgZoneTag = (id) => `${id}-parts`;
 // `plot` expands into a frame, two runs of grid lines, two runs of tick
 // labels and up to two axis titles. Parts: gx gy xt yt xl yl.
 export const dgPlotName = (id, part, i) => (i === undefined ? `${id}-${part}` : `${id}-${part}-${i}`);
@@ -840,6 +1041,10 @@ export const DG_BRACE_SIDES = DG_SIDES;
 // different distances depending on which statement it sat on.
 export const DG_KIND_OPTS = {
   box: ['w', 'h', 'pad', 'point'], text: ['w', 'h', 'pad'], image: ['w', 'h'], dot: ['r'],
+  // A zone is a box whose size is the point, so `w` and `h` are required
+  // rather than optional - the statement says so, this table only says which
+  // words it takes. No `point`: an area is not an arrow.
+  zone: ['w', 'h', 'pad'],
   container: ['pad'],
   // `side <word>` rather than a bare positional word. It was the last bare
   // option in the statement grammar – a lone `left` among keyed options, whose
@@ -914,6 +1119,12 @@ export const DG_WORD_OPTS = {
   side: DG_SIDES,
   point: [...DG_POINT_DIRS],
   flush: ['top', 'middle', 'bottom', 'left', 'right'],
+  // Which point of the element lands on the coordinate `at` or `between`
+  // resolved to. Its words are `DG_ANCHORS`, the nine an edge endpoint already
+  // names – `tl`, `top`, `tr`, `left`, `center`, `right`, `bl`, `bottom`, `br`
+  // – because a ninth-of-a-box is one idea and one vocabulary, whichever end
+  // of a line or which corner of a label it is naming. See dgAnchorOffset.
+  anchor: [...DG_ANCHORS],
 };
 export const DG_LIST_OPTS = new Set(['col', ...DG_PROMINENCE]);
 export const DG_PAD_DEFAULT = 0.18;   // container / brace clearance, in grid units
@@ -1006,16 +1217,35 @@ export function dgCharW(ch) {
 // changes. An unmatched marker is left as a literal character, so a lone
 // asterisk in a label is still just an asterisk.
 //
-// `_` and `^` have no such fallback available to them - they take the next
-// character, and there is nothing to be unmatched against - so a backslash
-// escapes them: `scan\_page` is one word with an underscore in it. It escapes
-// all four markers and itself (`\_`, `\^`, `\*`, `\~`, `\\`), not only the two
-// that need it, because an escape with an exception in it is the next thing an
+// `_` and `^` take the next character, so a backslash escapes them:
+// `scan\_page` is one word with an underscore in it. It escapes all four
+// markers and itself (`\_`, `\^`, `\*`, `\~`, `\\`), not only the ones that
+// need it, because an escape with an exception in it is the next thing an
 // author has to remember. A backslash before anything else is an ordinary
 // backslash, and so is a trailing one. The escape is consumed here, in the one
 // function both `dgMeasure` and the emitter read the label through, so the
 // character never reaches a measured string and no box is widened by it.
 export const DG_LABEL_ESCAPES = new Set(['_', '^', '*', '~', '\\']);
+// **A shift marker in the middle of a word is a literal character**, which is
+// the same fallback `*` and `~` already have one rule further up: a marker that
+// cannot do its job is not a marker. `*` and `~` cannot do it when nothing
+// closes them; `_` and `^` cannot do it when the single character they take
+// would leave the rest of the word behind at full size.
+//
+// `hausarbeit_final.pdf` on a real keynote came out as `hausarbeit` then a
+// subscript `f` then `inal.pdf`, which the room read as `hausarbeit,inal.pdf`.
+// Nobody writes that on purpose, and nobody writes `m_1`, `c_0`, `MAC_k(M)` or
+// `M_F,` meaning the underscore – which is the whole test: the shift applies
+// exactly where the character it takes ends the word. Every subscript in this
+// repository's figures passes it, and every filename, identifier and
+// snake_case word in one fails it and is drawn as typed.
+//
+// A shift of more than one character was always `_{ab}`, and a group still
+// shifts wherever it is written, so the rule costs no reachable spelling – and
+// `\_` remains the way to force a literal in the one-character case (`a\_b`).
+// `_` counts as a word character here, which is what keeps `snake_case_name`
+// literal all the way along rather than shifting at the last underscore.
+export const DG_LABEL_WORD = /[\p{L}\p{N}_]/u;
 function dgUnescapeLabel(s) {
   let out = '';
   for (let i = 0; i < s.length; i++) {
@@ -1050,7 +1280,12 @@ export function dgSpans(text) {
       if (cls === want) { flush(0); cls = ''; continue; }
       if (!cls && closes(ch, i + 1)) { flush(0); cls = want; continue; }
       // no closing marker – a literal character
-    } else if ((ch === '_' || ch === '^') && i + 1 < text.length) {
+    } else if ((ch === '_' || ch === '^') && i + 1 < text.length
+      // A group shifts wherever it is written, and so does an escaped
+      // character; a bare one only where it ends the word. See DG_LABEL_WORD.
+      && (text[i + 1] === '{'
+        || (text[i + 1] === '\\' && i + 2 < text.length && DG_LABEL_ESCAPES.has(text[i + 2]))
+        || !(i + 2 < text.length && DG_LABEL_WORD.test(text[i + 2])))) {
       flush(0);
       const shift = ch === '_' ? -1 : 1;
       i++;
@@ -1075,20 +1310,94 @@ export function dgSpans(text) {
   return out;
 }
 
+// **A line of a label written entirely in the quiet mark is a second
+// register**, set at this factor of the label's own type. It is the same 0.8
+// `.small` is, deliberately: a figure has one small size and inventing a
+// second would put two nearly equal sizes on one drawing.
+//
+// The construction it exists for is a question over a verb – a row label whose
+// first line asks and whose second names what answers it. Written as two `text`
+// elements it cannot be centred on the cell it belongs to: each one is anchored
+// to the cell's centre line on its own, so a two-line question over a one-line
+// verb stands half a line too high and the author moves the split by hand
+// (`cy-0.1` / `cy+0.1` on one row, `cy+0.5` / `cy+0.7` on the next). As one
+// label it is one block and the centring is the ordinary one.
+//
+// **Only in a label of more than one line**, which is the whole rule and not a
+// guard: a register exists in contrast to another register, and a single line
+// has nothing to contrast with – there `~…~` stays what it has always been, the
+// muted colour, and `{.small}` is how a whole label is made small. The colour
+// comes along either way, because the span already carries `dg-mu`.
+export const DG_QUIET_SCALE = 0.8;
+function dgQuietLine(spans) {
+  return spans.length > 0 && spans.every(s => s.cls === 'mu');
+}
 export function dgMeasure(label, fontPx, mono) {
   const lines = String(label ?? '').split('\n');
-  let maxW = 0;
+  let maxW = 0, h = 0;
   const laid = lines.map(ln => {
     const spans = dgSpans(ln);
+    const scale = lines.length > 1 && dgQuietLine(spans) ? DG_QUIET_SCALE : 1;
     let w = 0;
     for (const s of spans) {
-      const size = s.shift ? fontPx * 0.72 : fontPx;
+      const size = (s.shift ? fontPx * 0.72 : fontPx) * scale;
       for (const ch of s.t) w += (mono ? 0.6 : dgCharW(ch)) * size;
     }
     if (w > maxW) maxW = w;
-    return spans;
+    h += fontPx * scale * DG_LINE_H;
+    // The line's own width as well as the block's. A block is as wide as its
+    // widest line, which is the number every extent wants; the *ragged* shape
+    // is what the overlap census wants, because a two-line label whose long
+    // line is nowhere near the shape below it is not touching anything.
+    return { spans, scale, w };
   });
-  return { w: maxW, h: lines.length * fontPx * DG_LINE_H, lines: laid, count: lines.length };
+  return { w: maxW, h, lines: laid, count: lines.length };
+}
+
+// **Where a label's glyphs are, rather than how much room they were given.**
+// One rectangle per line: as wide as that line's own words and as tall as the
+// band between its caps and its descenders. The block a `dgMeasure` describes
+// is neither – it is as wide as the *widest* line and as tall as the line
+// boxes, which carry DG_LINE_H of leading that nothing in the room can see.
+//
+// Both differences cost the overlap census a real defect. A three-line
+// verification block printed across the outline of the box above it crossed
+// that outline by 5.5 px of line box, which the census read as within the
+// leading and said nothing about; the ink crossed it by 2.6, and 2.6 px of
+// struck-through type is what the room saw. In the other direction, a
+// certificate listing's `Basic Constraints ( 2.5.29.19 ) / YES` is 186 px wide
+// on its first line and 22 on its second, and the chevron standing beside the
+// second one intersected the *block* by 155 px without coming within 10 of a
+// letter.
+//
+// `origin` is the label's own `--l` geometry, `[x, y, turn]`, so this is the
+// same point the emitter lays the lines out around, and `anchor` the same
+// `text-anchor` it draws them with. A turned label reads bottom-to-top:
+// `DG_TURN_DEG` rotates the glyph frame about that origin, which sends a point
+// `(u, v)` of the upright layout to `(v, -u)`.
+export function dgTextInkRects(label, classes, font, origin, anchor) {
+  const m = dgMeasure(label, font, classes.has ? classes.has('mono') : false);
+  const [ox, oy, turn] = origin;
+  const out = [];
+  let v = -m.h / 2;
+  for (const ln of m.lines) {
+    const f = font * ln.scale;
+    const lh = f * DG_LINE_H;
+    const top = v + lh / 2 + (DG_BASE_DROP - DG_CAP_H) * f;
+    const bot = v + lh / 2 + (DG_BASE_DROP + DG_DESC_H) * f;
+    v += lh;
+    // A blank line in a multi-line label is spacing the author wrote – it
+    // reserves its line box and inks nothing, so it collides with nothing.
+    // Spelled as a space rather than as nothing across the corpus
+    // (`"Extension\nCritical\nKey ID\n \n "`), and a space has an advance
+    // width, so the test is on the characters and not on the measurement.
+    if (!(ln.w > 0) || ln.spans.every(s => !s.t.trim())) continue;
+    const u0 = anchor === 'start' ? 0 : anchor === 'end' ? -ln.w : -ln.w / 2;
+    out.push(turn
+      ? { x: ox + top, y: oy - u0 - ln.w, w: bot - top, h: ln.w }
+      : { x: ox + u0, y: oy + top, w: ln.w, h: bot - top });
+  }
+  return out;
 }
 
 // Height-to-width of an asset, so an author can give `w` and let the other
@@ -1106,6 +1415,41 @@ export function dgMeasure(label, fontPx, mono) {
 // The two copies this replaced disagreed once already – a label reserved on
 // the side it is not drawn on is how figures came to sit off-centre inside
 // oversized frames.
+// **`.left` on a free text at a coordinate anchors it there.** The class used
+// to align the lines *inside* the text's own box while the box stayed centred
+// on its `at`, so on a one-line label it moved nothing at all – which is what
+// made it invisible – and on a longer one it put the edge the class names half
+// a label width away from the point the author aimed at. `text l "zu Hause" at
+// haus.left+0.2,…` was meant to start its first letter on the frame line and
+// started outside the box instead. Two warnings existed for nothing but that
+// trap, one in each file, and both are gone: the geometry they detected cannot
+// arise once the class means what its name says.
+//
+// Four bounds, and each one is a figure the corpus contains. It is a **free
+// text** only: on a `box` or a `dot` the class aligns the label inside an
+// outline that has its own position, which is a different question with the
+// same word. It is an **absolute** placement only – a relative one states a
+// face of another element and answers this with `flush`, which already puts
+// the ink on the edge. A **written** `anchor` is the author's answer whatever
+// it says, and `anchor center` is how the old centring is spelled out. And a
+// `.turn`ed label is centred whichever way it reads, which is the same answer
+// `dgLabelAnchor` gives it one line down.
+// Returns `null` for the centre – written or defaulted – because the centre is
+// the identity: `dgAnchorOffset('center', …)` is [0, 0], and a caller that has
+// to special-case the one answer that changes nothing is a caller that will
+// forget to. It is also what lets the editor keep offering guides on an
+// `anchor center` element, whose centre really is on the coordinate.
+export function dgPlaceAnchor(kind, place, classes) {
+  if (!place) return null;
+  if (place.anchor) return place.anchor === 'center' ? null : place.anchor;
+  if (kind !== 'text' || place.kind !== 'abs' || place.implicit) return null;
+  const has = (c) => (classes && (classes.has ? classes.has(c) : classes.includes(c)));
+  if (has('turn')) return null;
+  if (has('left')) return 'left';
+  if (has('right')) return 'right';
+  return null;
+}
+
 export function dgLabelAnchor(classes) {
   const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
   if (has('turn')) return 'middle';
@@ -1114,11 +1458,50 @@ export function dgLabelAnchor(classes) {
   return 'middle';
 }
 
+// **The number here is the element's *ink*, and the stylesheet takes its
+// ground down the rest of the way.** Group opacity is one alpha over
+// everything inside it, so a box faded to 0.3 faded its words to 0.3 as
+// well - and a word at 0.3 is not quiet, it is unreadable. Measured on a
+// probe deck at 1600x900, a dimmed box's label against its own fill: 1.95:1
+// on paper and 1.88:1 standing on a .tone-3 area, where 4.5 is the line for
+// 12 px type and 3 is the floor anything on a projector has to clear.
+//
+// So the two are split at the one place where they can be: this number goes
+// on the group, and DIAGRAM_CSS multiplies it back down for the shape, the
+// stroke, the head and an image - every drawable that is not type. The
+// product is the number that was here before, to the pixel, so no existing
+// figure's outline or fill moves; only the type inside a softened element
+// gains the ink it needed. It also stays inside the rule the comment above
+// the CSS records: the stylesheet touches a *child* of the group and never
+// the group itself, so a hide still takes the whole element to zero.
+export const DG_SOFT = { dim: 0.6, ghost: 0.75 };
+// What the stylesheet multiplies by, so that ink x ground is the old number.
+export const DG_SOFT_GROUND = { dim: 0.3 / DG_SOFT.dim, ghost: 0.45 / DG_SOFT.ghost };
+// Does any segment of a drawn route pass through this box? Sampled rather
+// than solved: the same walk `dgLabelGroundWarnings` makes, and a segment
+// wholly inside the box counts, which an edge-intersection test would miss.
+// `pts` is the polyline as `[[x, y], …]`; a spline through the same points
+// stays inside their hull, so the straight reading is the conservative one
+// and a curve that crosses is never missed.
+export function dgSegmentsCrossBox(pts, box) {
+  const inside = (x, y) => x >= box.x && x <= box.x + box.w && y >= box.y && y <= box.y + box.h;
+  for (let i = 0; i + 1 < pts.length; i++) {
+    const [ax, ay] = pts[i], [bx, by] = pts[i + 1];
+    const len = Math.hypot(bx - ax, by - ay);
+    const steps = Math.max(2, Math.ceil(len / 2));
+    for (let k = 0; k <= steps; k++) {
+      const t = k / steps;
+      if (inside(ax + (bx - ax) * t, ay + (by - ay) * t)) return true;
+    }
+  }
+  return false;
+}
+
 export function dgOpacity(visible, classes) {
   if (!visible) return 0;
   const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
-  if (has('dim')) return 0.3;
-  if (has('ghost')) return 0.45;
+  if (has('dim')) return DG_SOFT.dim;
+  if (has('ghost')) return DG_SOFT.ghost;
   return 1;
 }
 
@@ -1132,10 +1515,36 @@ export function dgFontFor(classes) {
 // How far a box's outline sits from its own label, in px. `pad` states it in
 // grid units and, like the container's, is measured in uh on both axes –
 // otherwise the same word would mean two distances depending on which
-// statement it sat on. Without it the default stays the asymmetric px pair,
+// statement it sat on. Without it the default is the asymmetric px pair,
 // because 13/9 is typographic taste rather than a point on the grid.
-export function dgPadPx(pad, uh) {
-  return pad != null ? [pad * uh, pad * uh] : [DG_PAD_X, DG_PAD_Y];
+//
+// **And the taste is measured in the label's own type, not in pixels.** The
+// pair is `DG_PAD_X` / `DG_PAD_Y` *scaled by the element's font*, which is the
+// construction `DG_ROW_H` already uses for a table row: `dgFontFor` returns
+// `DG_FONT` for a label carrying no size class, so the factor is exactly 1 and
+// every existing drawing is byte-identical. What moves is the two classes that
+// change the type – a `.large` box sat in the same 13 px a base label gets and
+// read tight, a `.small` one floated in more air than its letters are tall –
+// and a `.large` table, whose cells are boxes like any other. `pad N` stays the
+// override and is deliberately *not* scaled: a number in grid units is a
+// statement about the grid, and scaling it would make the same number mean two
+// distances depending on a class.
+export function dgPadPx(pad, uh, font = DG_FONT, unit = null) {
+  if (pad != null) { const p = dgUnitPx(pad, unit, uh); return [p, p]; }
+  const k = font / DG_FONT;
+  return [DG_PAD_X * k, DG_PAD_Y * k];
+}
+
+// The clearance a relational placement actually draws, in px. Two units meet
+// here and nowhere else: a written `gap` is a count of rows, the default a
+// count of labels. The one function is what keeps the layout, the editor's
+// guide and the editor's drag from each spelling the conversion themselves –
+// the mistake that made a re-dock and a swatch row disagree by uw/uh once
+// already, with both edits compiling and neither saying anything.
+export function dgGapPx(place, uh) {
+  if (!place) return 0;
+  if (place.gap != null) return dgUnitPx(place.gap, place.gapUnit, uh);
+  return (place.gapAuto ?? DG_GAP_PLAIN) * DG_LABEL_H;
 }
 
 // The size an element's label is actually set at.
@@ -1181,6 +1590,57 @@ export function dgFitFont(label, classes, boxW, boxH, padX, padY) {
 export const DG_FILL_CLASSES = ['tone-1', 'tone-2', 'tone-3', 'tone-4', 'paper'];
 export function dgHasFill(classes) {
   return DG_FILL_CLASSES.some(c => classes.has(c));
+}
+
+// **Does this element put anything on the paper where its box says it does?**
+//
+// `.bare` takes the outline off and `.clear` takes the fill off, so together
+// they leave a frame nobody can see – which is what a `table`'s and a
+// `lanes`'s own frame always is, and what a cell of a table of prose usually
+// is. The box is still there for the layout, and that is right: it is what
+// the cells are placed against. What is wrong is treating its edge as an edge
+// a reader can line something up with, because there is nothing there.
+//
+// The default differs by kind and that is the whole subtlety. A box or a dot
+// is filled with the paper unless it says `.clear`, so it knocks out whatever
+// is behind it and one of the two words is not enough. A free `text` and an
+// `edge` label have no ground at all unless a fill class asks for one, which
+// is the same asymmetry `DG_FILL_CLASSES`' own comment records. A `container`
+// draws its outline and nothing else.
+export function dgDrawsGround(kind, classes) {
+  const has = (c) => (classes.has ? classes.has(c) : classes.includes(c));
+  if (kind === 'box' || kind === 'dot') return !has('bare') || !has('clear');
+  if (kind === 'container' || kind === 'brace') return !has('bare');
+  return dgHasFill(classes);
+}
+
+// **Where an element's ink starts, as an inset from its box on each axis.**
+//
+// Zero for anything that draws a ground: the outline or the fill *is* the
+// edge. For a frame that draws neither, the nearest its ink can come to the
+// box is its own padding – which for a `.left` label is exactly where the
+// words begin, and for a centred one is the honest floor. A free `text` and
+// an `image` are their own ink already: `sizeOf` gives a text the bare glyph
+// run with no padding at all, which is the same `freeText` exception
+// `labelBox` carries.
+//
+// One reader: `flush` on a relative placement. `--dg-ink-x` answers the same
+// question from the other side - it has the drawables in hand and can take
+// the leftmost painted one - so it needs no inset at all.
+//
+// A frame a statement synthesised is the one case where the padding is the
+// wrong answer, and which way it goes is not guessable from the classes. A
+// `table` puts its cells' words a padding inside the frame, so the padding is
+// exactly where its ink starts. A `bars`, a `grid`, a `plot`, a `lanes` and a
+// `sequence` all draw their parts flush with the frame - a baseline starts at
+// the corner - so insetting one moves an axis label off the axis it names.
+// Measured before this line existed: the tutorial's chart caption walked
+// 13 px out of its own figure and took the viewBox with it.
+export function dgInkInset(kind, classes, padX, padY, node) {
+  if (kind === 'text' || kind === 'image') return [0, 0];
+  if (dgDrawsGround(kind, classes)) return [0, 0];
+  if (node && node.frame) return node.frame === 'table' ? [padX ?? DG_PAD_X, padY ?? DG_PAD_Y] : [0, 0];
+  return [padX ?? DG_PAD_X, padY ?? DG_PAD_Y];
 }
 
 // ── diagram source parsing ──────────────────────────────────────────
@@ -1334,6 +1794,42 @@ export function dgNum(tok, errors, lineNo, what) {
   return n;
 }
 
+// **A clearance may be written in label heights, and `lh` is the suffix.**
+// `gap 1.5lh`, `pad 0.6lh`. A bare number is a count of grid rows, which is
+// whatever the opener says – 20 px on `20x20`, 40 on `120x40`, 72 on the
+// default grid – so the same `0.4` is four different distances across four
+// figures of one deck. The label height (`DG_LABEL_H`) is the one ruler a
+// drawing carries whatever its opener says, it is the unit the default gap is
+// already stated in (`DG_GAP_PLAIN`, `DG_GAP_JOINED`) and the unit every
+// spacing rule in `figure-design.md` is written in, and until now an author
+// could not address it: the numbers that made a rule hold on a `150x52` grid
+// had to be worked out again on a `20x20` one. `gap 1.5lh` is the same
+// clearance on both.
+//
+// Returned as the number and its unit rather than reduced to rows here,
+// because the reduction needs the grid and the lecture-wide `draw-defaults`
+// layer has none: it is read once for a deck and applied to blocks whose
+// openers differ. The two units are spent in one function each – `dgGapPx` for
+// a gap, `dgUnitPx` for everything else – which is the property the grammar
+// already had and the reason a third unit costs two lines rather than twenty.
+export const DG_LH = 'lh';
+export function dgLen(tok, errors, lineNo, what) {
+  const s = String(tok ?? '');
+  if (s.length > 2 && s.endsWith(DG_LH)) {
+    const head = s.slice(0, -2);
+    if (Number.isFinite(Number(head))) return { n: Number(head), unit: DG_LH };
+  }
+  return { n: dgNum(s, errors, lineNo, what), unit: null };
+}
+
+// One length, two rulers. A bare number is a count of grid rows, measured in
+// `uh` on both axes the way `pad` has always been; the same number with `lh`
+// on it is a count of base label heights. Every consumer of a written `pad`
+// goes through here, so the two units are spent once.
+export function dgUnitPx(n, unit, uh) {
+  return n * (unit === DG_LH ? DG_LABEL_H : uh);
+}
+
 // `mix`, `mix.right`. An unknown anchor is an error rather than a silent
 // fallback to centre, because a diagram whose arrows all quietly meet in
 // the middle of a box is exactly the failure that looks like a layout bug.
@@ -1407,7 +1903,7 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     // with "expects exactly two elements". An order-sensitive refusal of
     // valid syntax is the invisible kind of failure this grammar keeps
     // closing; a derived set cannot drift the same way again.
-    const STOP = new Set(['frac', 'offset', 'gap', 'align', 'same', '->', 'point',
+    const STOP = new Set(['frac', 'offset', 'gap', 'align', 'anchor', 'same', '->', 'point',
       ...Object.values(DG_KIND_OPTS).flat()]);
     let mEnd = k + 1;
     while (mEnd < toks.length && !STOP.has(toks[mEnd].v)) mEnd++;
@@ -1420,6 +1916,16 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     }
     place = { kind: 'between', refs, frac: 0.5 };
     next = mEnd;
+  } else if (t(k) === 'in') {
+    // `in <zone>` – the band, not the frame. It is a placement of its own and
+    // not sugar for `at z.inner.left,z.inner.top anchor tl`, because a `row`
+    // written `in` a zone is placed as one block: the alignment words are
+    // answered against the whole run's extent, which no coordinate on one
+    // member's line can state. `ax` / `ay` are filled in by the option loop.
+    const ref = t(k + 1);
+    if (!ref) { dgErr(errors, lineNo, 'in expects the name of a zone'); return [null, k + 1, true]; }
+    place = { kind: 'in', ref, gap: null, ax: 'left', ay: 'top' };
+    next = k + 2;
   } else {
     let dir = null;
     // Checked *before* the direction is bound, because `above` binds happily
@@ -1450,7 +1956,13 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     const ref = t(next);
     if (!ref) { dgErr(errors, lineNo, `${dir} expects an element name`); return [null, next, true]; }
     next++;
-    place = { kind: 'rel', dir, ref, gap: 0.25, align: 'middle' };
+    // `gap: null` is "the author wrote none", not "zero". The number is
+    // resolved once the whole block is read, by dgResolveAutoGaps, because it
+    // depends on something no single line knows: whether an edge joins the two.
+    // `gapAuto` is a count of labels and `gap` a count of rows, which is why
+    // they are two fields rather than one: the unit differs, and collapsing
+    // them would make the resolved number depend on the opener again.
+    place = { kind: 'rel', dir, ref, gap: null, gapAuto: DG_GAP_PLAIN, align: 'middle' };
   }
 
   // Trailing options, shared by every placement form. `offset` in
@@ -1458,8 +1970,24 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
   // without inventing a spacer element to hang it off.
   while (next < toks.length) {
     const key = t(next);
-    if (key === 'gap' && place.kind === 'rel') {
-      place.gap = dgNum(t(next + 1), errors, lineNo, 'gap'); next += 2; continue;
+    if (key === 'gap' && (place.kind === 'rel' || place.kind === 'in')) {
+      // `gap 0.4` is rows and `gap 0.4lh` is label heights; both are a gap the
+      // author wrote, so `place.gap != null` still means what every other
+      // reader of it takes it to mean, and `dgGapPx` spends the unit.
+      const g = dgLen(t(next + 1), errors, lineNo, 'gap');
+      place.gap = g.n;
+      place.gapUnit = g.unit;
+      next += 2; continue;
+    }
+    // The band's own alignment words, bare and positional, because each says
+    // one thing about one axis and a key would only repeat the word. `center`
+    // answers both axes unless a word naming one of them stands beside it, so
+    // `in z center` is centred in the band and `in z center bottom` sits on
+    // the band's floor, centred across.
+    if (place.kind === 'in' && DG_IN_ALIGN.has(key)) {
+      (place.words || (place.words = [])).push(key);
+      next += 1;
+      continue;
     }
     // `flush`, not `align`. The token `align` introduced two unrelated
     // constructs: on a line of its own a statement giving a set of elements one
@@ -1499,6 +2027,62 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
       next += 2;
       continue;
     }
+    // Which point of the element lands on the coordinate the placement
+    // resolved to. Only the two forms that *resolve to a point* can take it:
+    // a relative placement already states which face of which element the new
+    // one sits against, and the cross-axis word for that is `flush`. Naming
+    // `flush` in the refusal rather than leaving it to the generated sentence,
+    // for the reason the `align` refusal above does: it is the word the author
+    // is reaching for.
+    // `flush` names a face of a reference, which is what a relative placement
+    // has and a band does not: inside a band the words are the band's own.
+    if ((key === 'flush' || key === 'align') && place.kind === 'in') {
+      dgErr(errors, lineNo, `"${key}" lines an element up with a face of another one, and `
+        + `"in ${place.ref}" names a band rather than a face. The words for a band are `
+        + `${[...DG_IN_ALIGN].join(' / ')}, written bare after the zone.`, 'semantic');
+      next += 2;
+      continue;
+    }
+    if (key === 'anchor') {
+      const a = t(next + 1);
+      if (place.kind === 'in') {
+        dgErr(errors, lineNo, `anchor says which point of the element lands on a coordinate, and `
+          + `"in ${place.ref}" names a band rather than a coordinate: which corner of it the `
+          + `element meets is ${[...DG_IN_ALIGN].join(' / ')}, written bare after the zone.`, 'semantic');
+        next += 2;
+        continue;
+      }
+      if (place.kind === 'rel') {
+        dgErr(errors, lineNo, `anchor says which point of the element lands on a coordinate, and `
+          + `"${place.dir}" names a face of ${place.ref} rather than a coordinate. The cross-axis `
+          + `word for a relative placement is "flush".`, 'semantic');
+      } else if (!DG_ANCHORS.has(a)) {
+        // `middle` is the centre of an *axis*, which is what `align` and
+        // `flush` say; `center` is the centre of one element, which is what an
+        // anchor names. The two words are a real distinction in this grammar
+        // and this is the line where an author meets both, so the near-miss is
+        // named rather than left to the list.
+        dgErr(errors, lineNo, a === 'middle'
+          ? 'the centre of one element is "center" here – "middle" is the centre of an axis, '
+            + 'which is what "align x middle" and "flush middle" say. Write "anchor center", '
+            + 'or leave the word off: the centre is the default.'
+          : `anchor expects ${[...DG_ANCHORS].join(' / ')}, got "${a ?? ''}"`);
+      } else {
+        // **`anchor center` is recorded, and that is newer than it looks.**
+        // It used to write nothing, on the reasoning that the centre is the
+        // default and a token nobody needs is a token best not stored. Then
+        // `.left` on a free text at a coordinate became an anchor of its own,
+        // and `center` stopped being the default for those labels: it is the
+        // word that says "not that", and a word that says something cannot be
+        // dropped. `dgPlaceAnchor` still answers `null` for it, so the centre
+        // costs no offset and nothing downstream has to know it was written;
+        // and `spanOf` reads the source rather than this field, so the plain
+        // case is still "absent" where it matters.
+        place.anchor = a;
+      }
+      next += 2;
+      continue;
+    }
     if (key === 'offset') {
       const parts = t(next + 1).split(',');
       if (parts.length !== 2) { dgErr(errors, lineNo, `offset expects dx,dy – got "${t(next + 1)}"`); }
@@ -1509,13 +2093,26 @@ export function dgParsePlacement(toks, k, errors, lineNo) {
     break;
   }
   // Where the placement expression sits in the source. The editor needs the
-  // *end* of it: `gap`, `align`, `offset` and `frac` are options of this
-  // expression, and appending one to the end of the line puts it after
+  // *end* of it: `gap`, `flush`, `offset`, `frac` and `anchor` are options of
+  // this expression, and appending one to the end of the line puts it after
   // `w`/`same as`, where the parser no longer reads it as part of the
   // placement. Recorded here because this is the only code that knows how
   // far the expression ran.
   if (place && toks[k] && toks[next - 1]) {
     place.span = [toks[k].s, toks[next - 1].e];
+  }
+  // The band's words, resolved once the run of them has been read rather than
+  // as each arrives, so `in z left center` and `in z center left` say the same
+  // thing: an axis a word names outright beats the one `center` answers for
+  // both. The default is the band's top-left corner, which is where an author
+  // who wrote nothing is pointing.
+  if (place && place.kind === 'in') {
+    const w = place.words || [];
+    place.ax = w.includes('left') ? 'left' : w.includes('right') ? 'right'
+      : w.includes('center') ? 'center' : 'left';
+    place.ay = w.includes('top') ? 'top' : w.includes('bottom') ? 'bottom'
+      : w.includes('center') ? 'center' : 'top';
+    delete place.words;
   }
   return [place, next];
 }
@@ -1540,7 +2137,12 @@ export function dgParseCoord(tok, axis, errors, lineNo, what) {
   // down and costs the layout nothing.
   const p = raw.match(/^([A-Za-z_][\w-]*)@(-?[\d.]+)$/);
   if (p && Number.isFinite(Number(p[2]))) return { ref: p[1], data: Number(p[2]), axis };
-  const m = raw.match(/^([A-Za-z_][\w-]*)\.([a-z]+)([+-][\d.]+)?$/);
+  // `haus.inner.top` – the band a zone reserves under its caption. One extra
+  // word between the name and the coordinate rather than a sixth and seventh
+  // scalar (`.inleft`), because it is the same six coordinates read off a
+  // different rectangle, and because the token an editor rewrites is still
+  // exactly one signed nudge at the end.
+  const m = raw.match(/^([A-Za-z_][\w-]*)(\.inner)?\.([a-z]+)([+-][\d.]+)?$/);
   if (!m) {
     // A plain decimal, spelled out. Number() alone let two things through
     // that no author means: Number('') is 0, so the empty half of "at 3,"
@@ -1555,7 +2157,8 @@ export function dgParseCoord(tok, axis, errors, lineNo, what) {
     }
     return { unit: n };
   }
-  const [, ref, prop, nudge] = m;
+  const [, ref, innerWord, prop, nudge] = m;
+  const inner = !!innerWord;
   const ok = axis === 'x' ? DG_SCALAR_X : DG_SCALAR_Y;
   if (!ok.has(prop)) {
     const other = axis === 'x' ? DG_SCALAR_Y : DG_SCALAR_X;
@@ -1564,7 +2167,7 @@ export function dgParseCoord(tok, axis, errors, lineNo, what) {
       : `${what}: unknown coordinate ".${prop}" – use ${[...ok].map(p => '.' + p).join(' / ')}`);
     return { unit: 0 };
   }
-  return { ref, prop, nudge: nudge ? Number(nudge) : 0 };
+  return { ref, prop, inner, nudge: nudge ? Number(nudge) : 0 };
 }
 
 // `X,Y` where either side may be a reference.
@@ -1585,8 +2188,13 @@ export function dgParsePair(tok, errors, lineNo, what) {
 export function dgCoordPx(c, axis, boxes, uw, uh) {
   const u = axis === 'x' ? uw : uh;
   if (c.unit !== undefined) return c.unit * u;
-  const b = boxes.get(c.ref);
-  if (!b) return 0;
+  const box = boxes.get(c.ref);
+  if (!box) return 0;
+  // `.inner` reads the same six coordinates off the band the element reserves
+  // rather than off its outline. Only a zone has one; a reference that names
+  // anything else is refused when the block is read, and falling back to the
+  // outline here keeps the layout finishing so that message gets out.
+  const b = (c.inner && box.inner) ? box.inner : box;
   const v = c.prop === 'cx' ? b.x + b.w / 2
     : c.prop === 'left' ? b.x
     : c.prop === 'right' ? b.x + b.w
@@ -1730,6 +2338,8 @@ export const DG_CLASS_KINDS = (() => {
   put(['box', 'dot', 'text', 'image', 'container', 'brace', 'edge'],
     [...DG_PROMINENCE]);
   put(['box', 'text'], ['fit', 'shrink']);
+  // Only a box chains, so only a box can leave one.
+  put(['box'], ['own']);
   put(['box', 'text', 'container', 'edge'], ['round', 'sharp']);
   put(['edge'], [...DG_HEAD_CLASSES, 'smooth', 'elbow', 'front']);
   return t;
@@ -1755,6 +2365,7 @@ const DG_CLASS_WHAT = {
   left: 'a label alignment', right: 'a label alignment',
   top: 'a label alignment', bottom: 'a label alignment',
   fit: 'a way for type to meet its box', shrink: 'a way for type to meet its box',
+  own: 'whether a box shares its neighbours’ size',
   smooth: 'how a line is drawn', elbow: 'how a line is drawn',
   front: 'a drawing order', 'no-head': 'an arrowhead state',
   'one-head': 'an arrowhead state', 'both-heads': 'an arrowhead state',
@@ -1781,8 +2392,19 @@ const DG_CLASS_WHAT = {
 // a contributor adding a class needs to be able to ask which group it joins.
 export const DG_STEP_FIXED = {
   'the drawable kind': ['round', 'sharp', 'hex', 'diamond', 'chevron', 'wedge', 'cross'],
-  'the label anchor': ['left', 'right', 'top', 'bottom'],
+  // `turn` joined the anchor group the day a free text started being drawn
+  // from the edge its placement pinned (`labelBox`). A label read bottom-to-top
+  // is centred on its origin whichever way it reads – `dgTextEl` answers `turn`
+  // first and returns – so the class now decides, once, between that centring
+  // and the pinned edge. Before the pin the two answers were the same word and
+  // nothing was baked, which is why it was not here; the gate caught the day
+  // that stopped being true.
+  'the label anchor': ['left', 'right', 'top', 'bottom', 'turn'],
   'the type size': ['small', 'large', 'fit', 'shrink'],
+  // Which boxes share a size is read off the placements once, before any beat
+  // is drawn – a beat that took a box out of its chain would resize the whole
+  // row under it and move everything placed against any of them.
+  'the size a chain shares': ['own'],
   'the path kind': ['smooth'],
   'the drawing order': ['front'],
 };
@@ -1852,6 +2474,42 @@ export function rejectSlotPair(classes, lineNo, errors) {
       + 'the line gives two answers to one question. Keep one.', 'semantic');
   }
 }
+// **Two classes from two slots where one of them deletes the thing the other
+// draws on.** Not a slot pair – a stroke weight and a stroke pattern are
+// genuinely different channels – but the second word has nothing left to act
+// on, and the element it produces is not a fainter version of what the author
+// meant: it is invisible.
+//
+// Measured on a real keynote. `box zone "…" {.bare .dashed}` was written for
+// a dashed outline round an area, five times in one deck, and drew nothing at
+// all: `.bare` had already taken the outline off. The author wanted `.clear`,
+// which takes off the *fill* and keeps the outline – and nothing on the page
+// or in the log said so, because both classes resolved and both were emitted.
+//
+// It is an **error** and not a `DG_CLASS_CLASHES` warning, and the reason is
+// the one that table already states for the other direction. A clash row needs
+// the resolved state at every beat and is the compiler's alone; this pair is
+// decidable from the **written tail alone**, with no beat, no layout and no
+// measurement, which is what lets `lint.js` mirror it by calling this same
+// function. A figure whose outline is meant to arrive later writes `{.dashed}`
+// on the line and `bare` in a `style` step, which is one word shorter than the
+// pair and says what it means.
+//
+// `.bare` with `.thick` needs no row: those two *are* one slot.
+export const DG_CLASS_VOIDS = [
+  ['bare', 'dashed'],
+  ['bare', 'dotted'],
+];
+export function rejectVoidPair(classes, lineNo, errors) {
+  const has = new Set(classes || []);
+  for (const [eater, eaten] of DG_CLASS_VOIDS) {
+    if (!has.has(eater) || !has.has(eaten)) continue;
+    dgErr(errors, lineNo, `.${eater} deletes the outline, so .${eaten} has no line to pattern – `
+      + `the element comes out with nothing drawn round it at all. `
+      + `.clear is the one that takes off the fill and keeps the outline: `
+      + `write {.clear .${eaten}} for a ${eaten} frame you can see through.`, 'semantic');
+  }
+}
 // `removed` is the tail's `!class` list, checked against exactly the same table
 // as the positive one. Without it the mark was an **escape hatch past the kind
 // gate**: `edge a -> b {.hex}` was refused and `edge a -> b {!hex}` compiled
@@ -1888,6 +2546,7 @@ export function rejectClassOn(kindWord, classes, lineNo, errors, what = '', remo
   // said. Answering a question the line never asked is the failure this whole
   // cluster exists to remove, so it must not be reintroduced by an ordering.
   rejectSlotPair(survivors, lineNo, errors);
+  rejectVoidPair(survivors, lineNo, errors);
 }
 // "a edge", "a image", "a x coordinate" – the same bug in three functions
 // across two files, all of them user-facing. One helper answers it and every
@@ -1895,6 +2554,53 @@ export function rejectClassOn(kindWord, classes, lineNo, errors, what = '', remo
 // because `box` and `dot` happen to win a table search.
 export function dgArticle(word) {
   return /^[aeiou]/i.test(String(word)) ? 'an' : 'a';
+}
+
+// ── where a warning is about ────────────────────────────────────────
+// **A `[diagram]` warning names an element, and half the names in this grammar
+// are generated.** `edge-4`, `t-1-2`, `wa-3`, `f-0`, `swim-cap-1` are
+// positional: none of them is in the source, so the one move a reader has –
+// search the block for the name the message used – finds nothing. Measured on
+// a real keynote: `edge edge-4 runs 0.5° off the axis` against fourteen
+// figures and about thirty edges, not one of them named.
+//
+// Two facts close that, and each is already on the record the warning holds.
+// Every statement carries the line it was written on (`el.line`, the same
+// number the error gate prints as "line N of the block"), and an edge carries
+// the two tokens it was written between. So every warning that names an
+// element says where it was written, and an edge says what it joins.
+export function dgWhere(el) {
+  return (el && el.line) ? `line ${el.line} of the block` : '';
+}
+// An edge as the author wrote it: the two endpoint tokens and the arrow
+// between them, in **model order**. A leftward token is normalised to the
+// rightward one because the model has already swapped the two ends, and
+// printing the written token beside swapped ends would say the opposite of the
+// source; the symmetric tokens survive as written.
+//
+// `ends` is set by the `edge` statement. A generated edge – a `sequence`
+// message, a `text … -- x` leader stub, a chart's baseline – falls back to the
+// refs it was built from, which is the same two names one level down.
+export function dgEdgeEnds(e) {
+  if (!e) return '';
+  const side = (r, raw) => {
+    if (raw) return raw;
+    if (!r) return '?';
+    if (r.ref) return r.anchor ? `${r.ref}.${r.anchor}` : r.ref;
+    return 'a point';
+  };
+  const ends = e.ends || [null, null];
+  return `${side(e.from, ends[0])} ${e.arrow || '->'} ${side(e.to, ends[1])}`;
+}
+// The parenthesis a warning ends with: what it joins, and where it was
+// written. Either half may be missing – a generated element has no line of its
+// own beyond its statement's – and an empty parenthesis is worse than none.
+export function dgSite(el) {
+  const parts = [];
+  if (el && el.kind === 'edge') parts.push(dgEdgeEnds(el));
+  const where = dgWhere(el);
+  if (where) parts.push(where);
+  return parts.length ? ` (${parts.join(', ')})` : '';
 }
 
 // What a `bars` or a `grid` may say after its shape: a placement, like every
@@ -1912,7 +2618,17 @@ export function dgArticle(word) {
 // counting to the author has given back half of what it is for. The number and
 // the generated tag carry the same index, so `@wa-msg-3` is the arrow the room
 // sees labelled 4.
-export const DG_BARE_OPTS = { bars: ['stacked', 'horizontal'], sequence: ['unnumbered'] };
+// `unheaded` is the same shape of word one statement along: the first row of a
+// `table` is a heading, drawn bold, and a table of pairs has no heading at all
+// – a two-column key/value block, a legend, a run of definitions. There was no
+// way to write one, and the workaround (a heading of two empty strings) drew an
+// empty bold row that still took its height. It does not change what the
+// statement reads: the first quoted string is still the row that fixes the
+// column count, `dgCellName(id, c, 0)` is still that row's cells and
+// `@t-row-0` still names it. The only thing it takes away is the `bold`.
+export const DG_BARE_OPTS = {
+  bars: ['stacked', 'horizontal'], sequence: ['unnumbered'], table: ['unheaded'],
+};
 // Options whose value is a ratio, `W:H`, rather than a number. `w` and `h` are
 // in *grid units*, and a grid cell is not square - on a 150x52 grid a plot
 // written `w 1.9 h 1.5` lands 285px by 78px, which is nobody's idea of 1.9 by
@@ -1957,26 +2673,31 @@ export const DG_PLACEMENT_LONG = 'at X,Y / above X / below X / right of X / left
 // each form and not the forms themselves – `right` and `left` without their
 // `of` are a different, earlier error, and a check that answered "no
 // placement" there would be a second sentence about one defect.
-export const DG_PLACED_HEADS = new Set(['box', 'dot', 'text', 'image',
+export const DG_PLACED_HEADS = new Set(['box', 'dot', 'text', 'image', 'zone',
   'bars', 'grid', 'plot', 'table', 'lanes', 'sequence']);
-export const DG_PLACE_INTRO = new Set(['at', 'between', 'below', 'above', 'right', 'left']);
-export const DG_PLACEMENT_SHORT = 'at / above / below / right of / left of / between';
+export const DG_PLACE_INTRO = new Set(['at', 'between', 'below', 'above', 'right', 'left', 'in']);
+export const DG_PLACEMENT_SHORT = 'at / above / below / right of / left of / between / in <zone>';
 // The forms that have no keyword to list, per statement. Everything else in a
 // statement's vocabulary is a word in DG_KIND_OPTS.
 const DG_EXTRA_FORMS = {
-  box: ['"same as X"', 'a leader "-- X" or "-> X"'],
-  text: ['"same as X"', 'a leader "-- X" or "-> X"'],
-  dot: ['"same as X"', 'a leader "-- X" or "-> X"'],
-  image: ['"same as X"', 'a leader "-- X" or "-> X"'],
+  box: ['"same as X" / "same w as X" / "same h as X"', 'a leader "-- X" or "-> X"'],
+  zone: ['"same as X" / "same w as X" / "same h as X"'],
+  text: ['"same as X" / "same w as X" / "same h as X"', 'a leader "-- X" or "-> X"'],
+  dot: ['"same as X" / "same w as X" / "same h as X"', 'a leader "-- X" or "-> X"'],
+  image: ['"same as X" / "same w as X" / "same h as X"', 'a leader "-- X" or "-> X"'],
   edge: ['waypoints "via X,Y X,Y"'],
   container: ['"over a,b,c"'],
   brace: ['"over a,b,c"'],
   bars: ['"same as <chart>"', '"series of <chart>"'],
   plot: ['"same as <chart>"'],
+  table: ['"same as <table>", which copies its columns'],
 };
 // The three statements that place nothing: an edge is defined by its two ends,
 // and a container and a brace fit whatever they are given to hold.
-const DG_NO_PLACEMENT = new Set(['edge', 'container', 'brace', 'actor', 'note', 'message']);
+const DG_NO_PLACEMENT = new Set(['edge', 'container', 'brace', 'actor', 'note', 'message',
+  // …and the four statements that draw nothing at all: they name elements that
+  // already exist, and `row` / `col` give a placement rather than taking one.
+  'align', 'spread', 'row', 'col']);
 export function dgTakes(head) {
   const parts = [];
   if (!DG_NO_PLACEMENT.has(head)) parts.push(`a placement (${DG_PLACEMENT_SHORT})`);
@@ -1987,7 +2708,28 @@ export function dgTakes(head) {
   const last = parts.pop();
   return `this statement takes ${parts.length ? parts.join(', ') + ' and ' : ''}${last}`;
 }
+// The options that belong to the *placement expression* rather than to the
+// statement, and which placement forms each one can follow. They have to be
+// written directly after the placement – `dgParsePlacement` stops at the first
+// token that is not one of them – so written after `w` or a tail they fall
+// through to the statement, which has never heard of them. `dgTakes` cannot
+// list them, because they are not the statement's; naming them here is what
+// keeps the sentence from being a list the author has already read and a
+// mistake it does not describe. `anchor` is the newest and the likeliest to be
+// written in the wrong place, because it reads like a property of the element.
+export const DG_PLACE_OPTS = {
+  gap: 'above / below / right of / left of',
+  flush: 'above / below / right of / left of',
+  frac: 'between',
+  offset: 'any placement',
+  anchor: 'at / between',
+};
 export function dgUnexpected(head, id, tok) {
+  if (DG_PLACE_OPTS[tok] && !DG_NO_PLACEMENT.has(head)) {
+    return `"${tok}" is an option of the placement expression (${DG_PLACE_OPTS[tok]}), not of `
+      + `${head}${id ? ` ${id}` : ''} – so it goes directly after the placement, before w / h / pad `
+      + `and before the {…} tail. Written here the placement has already ended and nothing reads it.`;
+  }
   return `unexpected "${tok}" in ${head}${id ? ` ${id}` : ''} – ${dgTakes(head)}`;
 }
 // The consequence a statement that stopped reading must not also report. A
@@ -2018,7 +2760,11 @@ export function readGridOpts(head, id, rest0, lineNo, errors) {
   while (k < rest.length) {
     const key = rest[k].v;
     if ((DG_BARE_OPTS[head] || []).includes(key)) { out[key] = true; k++; continue; }
-    if (key === 'same' && head === 'bars' && rest[k + 1] && rest[k + 1].v === 'as') {
+    // `same as X` on a `bars` copies a chart's frame; on a `table` it copies
+    // another table's columns. One word, one sentence – "this is the size that
+    // one is" – which is why it is read here rather than given a keyword of its
+    // own per statement.
+    if (key === 'same' && (head === 'bars' || head === 'table') && rest[k + 1] && rest[k + 1].v === 'as') {
       out.sameAs = rest[k + 2] ? rest[k + 2].v : '';
       k += 3;
       continue;
@@ -2091,7 +2837,7 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
     dgErr(errors, lineNo, `a second "default ${kind}${tagTok ? ' @' + tagTok : ''}" – there can only be one per ${scope} (the first is on line ${slot.line})`);
     return null;
   }
-  const def = { kind, tag: tagTok, classes: attrs.classes, removedClasses: attrs.removedClasses || [], w: null, h: null, r: null, pad: null, side: null, line: lineNo, span };
+  const def = { kind, tag: tagTok, classes: attrs.classes, removedClasses: attrs.removedClasses || [], w: null, h: null, r: null, pad: null, padUnit: null, side: null, line: lineNo, span };
   const opts = DG_KIND_OPTS[kind];
   const rest = body0.slice(tagTok ? 3 : 2);
   for (let k = 0; k < rest.length; k++) {
@@ -2103,6 +2849,15 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
         if (!words.includes(w)) {
           dgErr(errors, lineNo, `default ${kind}: ${key} expects ${words.join(' / ')}, got "${w ?? ''}"`);
         } else def[key] = w;
+      } else if (key === 'pad') {
+        // A layer's `pad` takes `lh` like a written one, and this is the one
+        // place the suffix earns its keep twice over: the lecture-wide
+        // `draw-defaults` layer is read once for a deck and applied to blocks
+        // whose openers differ, so a number of rows there is a different
+        // distance in every figure and a number of label heights is one.
+        const p = dgLen(rest[k + 1]?.v, errors, lineNo, key);
+        def.pad = p.n;
+        def.padUnit = p.unit;
       } else {
         def[key] = dgNum(rest[k + 1]?.v, errors, lineNo, key);
       }
@@ -2137,13 +2892,34 @@ export function dgReadDefault(body0, attrs, lineNo, errors, layer, scope, span) 
 // Validated even when no diagram uses it: anything but a `default` statement
 // in there is an error naming the line, because a block that quietly does
 // nothing is the failure mode this grammar keeps closing.
+//
+// **One statement in here is not a `default`, and that is deliberate.**
+// `frame WxH` / `frame none` is the deck's answer to how big a figure's
+// canvas is, in the grid units the opener's own `frame` uses, and it belongs
+// beside the defaults rather than in a frontmatter key of its own: it is
+// lecture-wide, it is about drawings, and it is overridden per figure by the
+// same word on the opener. The compiler never sees it - the canvas arrives as
+// pixels in `opts.canvas` - so it is returned beside the layer and not in it.
 export function parseDiagramDefaults(text) {
   const errors = [];
   const layer = { defaults: {}, tagDefaults: [] };
+  let frame = null;
   const lines = String(text ?? '').split('\n');
   for (let n = 0; n < lines.length; n++) {
     const trimmed = lines[n].trim();
     if (!trimmed || trimmed.startsWith('#')) continue;
+    const fm = /^frame\s+(\S+)\s*$/.exec(trimmed);
+    if (fm || trimmed === 'frame') {
+      const v = fm ? fm[1] : '';
+      if (v === 'none') frame = 'none';
+      else if (DG_FRAME_RE.test(v) && Number(v.split('x')[0]) > 0 && Number(v.split('x')[1]) > 0) {
+        frame = `${Number(v.split('x')[0])}x${Number(v.split('x')[1])}`;
+      } else {
+        dgErr(errors, n + 1, `frame takes a canvas in grid units, as in "frame 6x4", or "frame none" `
+          + `to let every drawing set its own size${v ? ` - got "${v}"` : ' - none was written'}`);
+      }
+      continue;
+    }
     const toks = dgTokenize(trimmed);
     const attrTok = toks.find(x => x.attr);
     const attrs = attrTok ? dgParseAttrs(attrTok.v, errors, n + 1)
@@ -2151,12 +2927,12 @@ export function parseDiagramDefaults(text) {
 
     const body0 = toks.filter(x => !x.attr && !x.q);
     if ((body0[0] ? body0[0].v : '') !== 'default') {
-      dgErr(errors, n + 1, `draw-defaults holds "default …" statements only, got "${trimmed}"`);
+      dgErr(errors, n + 1, `draw-defaults holds "default …" statements and one "frame …", got "${trimmed}"`);
       continue;
     }
     dgReadDefault(body0, attrs, n + 1, errors, layer, 'lecture');
   }
-  return { layer, errors };
+  return { layer, frame, errors };
 }
 
 // ── diagram layout ──────────────────────────────────────────────────
@@ -2212,10 +2988,34 @@ export function dgEdgeRoute(e, classes, boxes, uw, uh) {
   // Halfway across the gap between the two faces, never halfway between the two
   // centres: measured from the faces, two edges out of one parent share a rail
   // and the drawing reads as one bracket.
-  const rail = elbow
-    ? (down ? [[start[0], (start[1] + end[1]) / 2], [end[0], (start[1] + end[1]) / 2]]
-      : [[(start[0] + end[0]) / 2, start[1]], [(start[0] + end[0]) / 2, end[1]]])
-    : viaPx;
+  //
+  // …until halfway leaves the arrival run too short to read. The run after the
+  // rail is the only part of an elbow that says which box the arrow points
+  // into, and on a small gap half of it is the arrowhead. So the rail slides
+  // *toward the source*, far enough to give the arrival run DG_ELBOW_ARRIVE and
+  // no further – it is never pushed past halfway, and it never takes the
+  // leaving run below DG_ELBOW_LEAVE, because a rail that has swapped the two
+  // problems has solved neither. Where the gap cannot pay for both the rail
+  // stays where it was, halfway, and `dgEdgeShortWarnings` says so: the fix is
+  // then a number on the boxes, which is not the route's to write.
+  //
+  // Two edges out of one parent keep their shared rail through all of it, which
+  // is the property the bracket is made of: the offset is a function of the
+  // span alone, so ends the same distance apart move together.
+  const railAt = (a, b) => {
+    const span = Math.abs(b - a);
+    const half = span / 2;
+    const off = Math.min(half, Math.max(span - DG_ELBOW_ARRIVE, Math.min(DG_ELBOW_LEAVE, half)));
+    return a + (b >= a ? off : -off);
+  };
+  let rail;
+  if (elbow && down) {
+    const ry = railAt(start[1], end[1]);
+    rail = [[start[0], ry], [end[0], ry]];
+  } else if (elbow) {
+    const rx = railAt(start[0], end[0]);
+    rail = [[rx, start[1]], [rx, end[1]]];
+  } else rail = viaPx;
   return [start, ...rail, end];
 }
 
@@ -2364,7 +3164,19 @@ export function dgStateAt(model, k) {
         else if (op.op === 'label') st.label = op.text;
         else if (op.op === 'move') {
           if (op.by) { st.shift = [st.shift[0] + op.by[0], st.shift[1] + op.by[1]]; }
-          else if (op.to) { st.place = op.to; st.shift = [0, 0]; }
+          // **A `move … to` carries the element's anchor forward.** `anchor`
+          // says how this element meets a coordinate, and a step says which
+          // coordinate – two different questions, and a step that answered
+          // both would silently re-centre an anchored element the moment it
+          // was moved, by half its own size. A `to` that names an anchor of
+          // its own still wins, so the step can also change how it meets the
+          // point; it just cannot do so by omission.
+          else if (op.to) {
+            const carried = (st.place && st.place.anchor && !op.to.anchor)
+              ? { ...op.to, anchor: st.place.anchor } : op.to;
+            st.place = carried;
+            st.shift = [0, 0];
+          }
         }
       }
     }
@@ -2503,7 +3315,7 @@ export function dgSplineD(v) {
 // every keystroke with a sentence about placements. The value being `4:3`
 // rather than a number is exactly what this shape does not care about – it
 // already carries `point`, whose value is a word.
-const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'flush', 'point', 'side', 'x', 'y',
+const DG_KEYED_ATTRS = ['gap', 'frac', 'w', 'h', 'r', 'pad', 'flush', 'anchor', 'point', 'side', 'x', 'y',
   'aspect', 'col', ...DG_PROMINENCE,
   // the options the expanding statements take on their own line
   'space', 'cell', 'tick', 'row', 'band', 'header'];
@@ -2599,15 +3411,19 @@ export function createSpanTable(model, body) {
     return at;
   };
 
-  // `gap`, `align`, `frac` and `offset` are options of the *placement
-  // expression*, not of the statement, so they have to go where that
-  // expression ends. Appending them to the end of the line puts them after
-  // `w 0.62` or `same as uaf`, and the parser stops reading placement
+  // `gap`, `flush`, `frac`, `offset` and `anchor` are options of the
+  // *placement expression*, not of the statement, so they have to go where
+  // that expression ends. Appending them to the end of the line puts them
+  // after `w 0.62` or `same as uaf`, and the parser stops reading placement
   // options the moment it leaves the expression – the line then fails to
   // build. Anything else (`w`, `h`, `r`, `pad`, `same as`) the statement
   // accepts anywhere, so it goes before the attribute tail where it reads
   // best.
-  const PLACEMENT_OPTS = new Set(['gap', 'flush', 'frac', 'offset']);
+  //
+  // Off `DG_PLACE_OPTS`, which `dgUnexpected` reads to name the same five in
+  // a refusal. Two lists would be the place the insertion point and the error
+  // message came to disagree about which words those are.
+  const PLACEMENT_OPTS = new Set(Object.keys(DG_PLACE_OPTS));
   const optionInsert = (el, toks, attr) => {
     if (!PLACEMENT_OPTS.has(attr)) return tailInsert(el, toks);
     // No span means the placement is the implicit origin the first element
@@ -2967,6 +3783,8 @@ export function createSpanTable(model, body) {
         : p && p.kind === 'abs' ? dgPairRefs(p.at) : [];
       if (refs.includes(id)) note(n.line, `${n.kind} ${n.id} is placed against it`, n.id);
       if (n.sameAs === id) note(n.line, `${n.kind} ${n.id} takes its size from it (same as)`, n.id);
+      if (n.sameWAs === id) note(n.line, `${n.kind} ${n.id} takes its width from it (same w as)`, n.id);
+      if (n.sameHAs === id) note(n.line, `${n.kind} ${n.id} takes its height from it (same h as)`, n.id);
     }
     for (const e of model.edges) {
       if (e.id === id) continue;
@@ -2982,6 +3800,9 @@ export function createSpanTable(model, body) {
     }
     for (const s of model.spreads) {
       if (s.members.includes(id)) note(s.line, `spread ${s.axis}`, null);
+    }
+    for (const r of model.rows) {
+      if (r.members.includes(id)) note(r.line, r.axis === 'x' ? 'row' : 'col', null);
     }
     for (const st of model.steps) {
       for (const op of st.ops) {
@@ -3063,6 +3884,17 @@ export function createDiagramCompiler(env = {}) {
       statements: [],
       aligns: [],
       spreads: [],
+      // `row` / `col`: a set of boxes declared to be peers. It is the explicit
+      // spelling of what a run of `right of` already implies (DG_CHAIN_DIRS),
+      // and it exists for the two things the run cannot say – three boxes hung
+      // off three different zones are peers with no placement joining them,
+      // and a run that is meant to be two rows has nowhere to break.
+      rows: [],
+      // Elements that read their whole line and named no placement. The
+      // complaint is deferred to the post-parse pass, because a `row` further
+      // down the block may be the placement – the statement can be written
+      // before or after the boxes it names, like every other member list here.
+      unplaced: [],
       defaults: {},
       tagDefaults: [],
       // The lecture-wide layer (`draw-defaults` in the frontmatter), under
@@ -3184,6 +4016,19 @@ export function createDiagramCompiler(env = {}) {
     for (const line of lines) {
       const m = line.trim().match(/^(plot|bars)\s+([A-Za-z_][\w-]*)/);
       if (m) chartNames.add(m[2]);
+    }
+    // The column widths every `table` settled on, by name, recorded as its own
+    // line is read - the same shape `frameSize` has and for the same reason: a
+    // table's cells are placed against its frame *at parse time*, so a width
+    // that arrived later would move the frame and leave the cells where the old
+    // numbers put them. `same as vg` therefore copies a table above it, and the
+    // refusal says so rather than reporting a name that plainly exists three
+    // lines down.
+    const tableCols = new Map();
+    const tableNames = new Set();
+    for (const line of lines) {
+      const m = line.trim().match(/^table\s+([A-Za-z_][\w-]*)/);
+      if (m) tableNames.add(m[1]);
     }
     const sameAsFrame = (head2, id2, name, lineNo2) => {
       const got = frameSize.get(name);
@@ -3369,6 +4214,62 @@ export function createDiagramCompiler(env = {}) {
         continue;
       }
 
+      // row / col – the explicit form of a chain. Two things in one line: the
+      // members share one size (the chain rule, DG_CHAIN_DIRS), and every
+      // member that states no placement of its own is placed after the one
+      // before it with the row's single gap. Nothing is drawn, so it stands
+      // with `align` and `spread` rather than with `box`.
+      if (head === 'row' || head === 'col') {
+        const toks = body0.slice(1).map(x => x.v);
+        const gi = toks.indexOf('gap');
+        const ii = toks.indexOf('in');
+        // Where the member list stops: at whichever of the two option words
+        // comes first. A run placed in a zone is placed as one block, so `in`
+        // belongs to the `row` line and not to its first member.
+        const stop = [gi, ii].filter(i => i >= 0).reduce((a, b) => Math.min(a, b), toks.length);
+        let gap = null, gapUnit = null, inPlace = null;
+        {
+          let k = stop, bad = false;
+          const words = [];
+          while (k < toks.length && !bad) {
+            // Rows or label heights, the same pair a placement's own gap takes.
+            if (toks[k] === 'gap') {
+              const g = dgLen(toks[k + 1], errors, lineNo, 'gap');
+              gap = g.n; gapUnit = g.unit; k += 2; continue;
+            }
+            if (toks[k] === 'in') {
+              if (!toks[k + 1]) {
+                dgErr(errors, lineNo, `${head} … in expects the name of a zone`);
+                bad = true; break;
+              }
+              inPlace = { kind: 'in', ref: toks[k + 1], gap: null, ax: 'left', ay: 'top' };
+              k += 2;
+              continue;
+            }
+            if (inPlace && DG_IN_ALIGN.has(toks[k])) { words.push(toks[k]); k += 1; continue; }
+            dgErr(errors, lineNo, `unexpected "${toks[k]}" in ${head} – a ${head} takes its `
+              + `members, one optional "gap N" and one optional "in <zone>" with the band's own `
+              + `words (${[...DG_IN_ALIGN].join(' / ')}), and nothing else`);
+            bad = true;
+          }
+          if (bad) continue;
+          if (inPlace) {
+            inPlace.ax = words.includes('left') ? 'left' : words.includes('right') ? 'right'
+              : words.includes('center') ? 'center' : 'left';
+            inPlace.ay = words.includes('top') ? 'top' : words.includes('bottom') ? 'bottom'
+              : words.includes('center') ? 'center' : 'top';
+          }
+        }
+        const members = dgParseMembers(toks.slice(0, stop).join(','));
+        if (members.length < 2) {
+          dgErr(errors, lineNo, `${head} needs at least two elements – it says they are peers, `
+            + 'which one element cannot be');
+          continue;
+        }
+        model.rows.push({ axis: head === 'row' ? 'x' : 'y', members, gap, gapUnit, inPlace, line: lineNo, span });
+        continue;
+      }
+
       if (head === 'default') {
         dgReadDefault(body0, attrs, lineNo, errors, layer, scopeWord, span);
         continue;
@@ -3501,7 +4402,7 @@ export function createDiagramCompiler(env = {}) {
           rowsRead = m + 1;
         }
         const body = rows.filter(Boolean);
-        const space = opts.space ?? 0;
+        let space = opts.space ?? 0;
         // `col` states one width per column and `w` states the total to be
         // divided equally – the same quantity said two ways. Both present, the
         // compiler read `col` and dropped `w` without a word. `bars` and `plot`
@@ -3513,27 +4414,115 @@ export function createDiagramCompiler(env = {}) {
           'semantic');
           continue;
         }
+        // **`same as X` takes another table's columns, and only its columns.**
+        // Two tables stacked so their columns line up used to mean writing the
+        // same `col 1.7,2.0,0.12` twice, in two places that had to be kept
+        // equal by hand and nothing to say they were meant to be – measured on
+        // a keynote's `#vorgang`. The rows stay the table's own, because rows
+        // are what the two tables differ in; what is copied is the widths
+        // **and the `space` between them**, because a column's *position* is
+        // both numbers and copying one of the pair lines up nothing. A `space`
+        // on this table's own line still wins, the way a written number wins
+        // everywhere else in this grammar.
+        let copied = null;
+        if (opts.sameAs) {
+          if ((opts.col && opts.col.length) || opts.w != null) {
+            dgErr(errors, lineNo, `table ${id}: "same as ${opts.sameAs}" takes the columns from `
+              + `another table, so "${opts.col && opts.col.length ? 'col' : 'w'}" says the same `
+              + 'thing a second way. Drop one.', 'semantic');
+            continue;
+          }
+          copied = tableCols.get(opts.sameAs);
+          if (!copied) {
+            const kind = model.byId.get(opts.sameAs) || (tableNames.has(opts.sameAs) ? 'table' : null);
+            dgErr(errors, lineNo, `table ${id}: "same as ${opts.sameAs}" `
+              + (kind === 'table'
+                ? `names a table declared below it. A table's cells are placed against its own frame as its line is read, so it can only copy one it has already seen - move ${opts.sameAs} above ${id}.`
+                : kind
+                  ? `names ${dgArticle(kind)} ${kind}, and a table can only take its columns from another table. Give it "col" or "w".`
+                  : 'names nothing in this block.'));
+            continue;
+          }
+          if (copied.cols.length !== heads.length) {
+            dgErr(errors, lineNo, `table ${id}: "same as ${opts.sameAs}" copies `
+              + `${copied.cols.length} column(s) and this heading has ${heads.length} – two tables `
+              + 'share their columns only where they have the same number of them.');
+            continue;
+          }
+          if (opts.space == null) space = copied.space;
+        }
         // And `w` is the **frame**, so it means on a table what it means on a
         // box. It used to be the sum of the *column* widths, so `w 4` and
         // `w 4 space 0.5` drew two different frames and the one number an
         // author reads as "how wide is this table" stopped being that number
         // the moment `space` was set.
-        const cols = opts.col && opts.col.length ? opts.col
-          : heads.map(() => (opts.w != null
-            ? (opts.w - space * (heads.length - 1)) / heads.length : DG_COL_W));
+        const cols = copied ? copied.cols.slice()
+          : opts.col && opts.col.length ? opts.col
+            : heads.map(() => (opts.w != null
+              ? (opts.w - space * (heads.length - 1)) / heads.length : DG_COL_W));
         if (opts.col && opts.col.length !== heads.length) {
           dgErr(errors, lineNo, `table ${id}: ${opts.col.length} width(s) in "col" for ${heads.length} `
             + 'column(s) – one number per column, separated by commas');
           continue;
         }
+        // Recorded whichever way the widths were arrived at, so a third table
+        // may copy the second and get what the first said.
+        tableCols.set(id, { cols: cols.slice(), space });
         for (const r of body) {
           if (r.cells.length !== heads.length) {
             dgErr(errors, r.line, `table ${id}: this row has ${r.cells.length} cell(s) and the heading `
               + `has ${heads.length} – rows are split on "|", one part per column`);
           }
         }
-        const rowH = opts.row ?? DG_ROW_H;
+        // **The row height follows the type size.** `row` is the author's own
+        // number and still wins; absent, the default is `DG_ROW_H` *scaled by
+        // the cells' font*, so a `.large` table is not a row of boxes 21.8 px
+        // tall holding 22.9 px of type. The base case is untouched by
+        // construction – `dgFontFor` returns `DG_FONT` when no size class is
+        // written, so the factor is exactly 1 and every existing table draws
+        // the same bytes.
+        //
+        // Off the **written tail**, not the resolved classes: the frame's
+        // geometry is fixed while the line is read, before any `default box`
+        // layer exists, which is the same reason a chart's `same as` is
+        // answered at parse time. A size arriving from a default is the
+        // author's business, and `row` says it in one number.
         const all = [heads, ...body.map(r => r.cells)];
+        // …and it is never shorter than the tallest thing standing in it. A
+        // table row is the one place in this grammar where the cells are
+        // declared peers by construction – they are one row – so the row is
+        // the chain and its height is the tallest cell's label, exactly as a
+        // run of `right of` boxes now takes the tallest member's height. A
+        // two-line cell in a `DG_ROW_H` row used to run over the rule under
+        // it in silence, and the repair was an `h` written by hand that had to
+        // be re-measured whenever a word changed.
+        // Counted in *lines* rather than in pixels of line box, which is the
+        // one measurement that leaves every single-line table in the corpus
+        // byte-identical: `DG_ROW_H` is already the height of a row holding one
+        // line, whatever grid the block declares, so the floor for a cell of
+        // two lines is exactly twice it.
+        const cellFont = dgFontFor(new Set(attrs.classes));
+        const cellMono = attrs.classes.includes('mono');
+        let tallCell = 1;
+        for (const cells of all) {
+          for (const text of cells) {
+            tallCell = Math.max(tallCell, dgMeasure(text, cellFont, cellMono).count);
+          }
+        }
+        const rowFloor = DG_ROW_H * (cellFont / DG_FONT) * tallCell;
+        // A *written* `row` is the author's and still wins – and now says so
+        // when it cannot hold the type, which is the `w` warning's sentence
+        // one statement along (§6 item 10).
+        // Against the ink the cells make, not against DG_ROW_H: the default is
+        // a rhythm, and a row written tighter than it is a decision. A row
+        // written shorter than its own type is a defect.
+        const rowInk = (tallCell * cellFont * DG_INK_H) / model.unit[1];
+        if (opts.row != null && opts.row < rowInk) {
+          dgWarn(`table ${id} (line ${lineNo} of the block) has rows ${opts.row} units tall but its `
+            + `tallest cell is ${tallCell} line${tallCell === 1 ? '' : 's'} and needs about `
+            + `${rowFloor.toFixed(2)} – the text will overflow.`);
+        }
+        const rowH = opts.row ?? rowFloor;
         // `space` on a table converted the way `grid` converts it, and for the
         // sentence `grid`'s own comment already gives: one number that meant
         // `uw` across and `uh` down produces two distances in the same drawing –
@@ -3559,8 +4548,11 @@ export function createDiagramCompiler(env = {}) {
               kind: 'box', id: cid, label: text,
               // The heading is set bold and nothing else: it is the same cell
               // as every other, so a table with a tinted heading says so in
-              // its own step or its own tail rather than here.
-              classes: squared(r === 0 ? ['bold', ...attrs.classes] : attrs.classes.slice()),
+              // its own step or its own tail rather than here. `unheaded`
+              // takes the bold off and changes nothing else – the row is still
+              // row 0, still `@t-row-0`, still what fixes the column count.
+              classes: squared(r === 0 && !opts.unheaded
+                ? ['bold', ...attrs.classes] : attrs.classes.slice()),
               removedClasses: attrs.removedClasses,
               // Two generated tags per cell, which is what makes a row or a
               // column a one-line beat. They are ordinary tags: an author can
@@ -4187,6 +5179,10 @@ export function createDiagramCompiler(env = {}) {
             // words is a knockout and not a slab.
             via, pad: DG_SEQ_GROUND, side: it.side, named: !!it.own,
             autoClasses: mAuto,
+            // A message's two ends are coordinates on two lifelines, so the
+            // refs say "a point" and nothing else. The two actors are what the
+            // author wrote, and `it.from` / `it.to` are already in model order.
+            ends: [it.from, it.to], arrow: it.arrow === '<-' ? '->' : it.arrow,
           }, it.ln, 'message', it.span));
           if (!opts.unnumbered) {
             const numId = dgMsgNumName(id, p.i);
@@ -4832,7 +5828,7 @@ export function createDiagramCompiler(env = {}) {
         continue;
       }
 
-      if (head === 'box' || head === 'dot' || head === 'text' || head === 'image') {
+      if (head === 'box' || head === 'dot' || head === 'text' || head === 'image' || head === 'zone') {
         const id = t(1);
         if (!id) { dgErr(errors, lineNo, `${head} needs a name`); continue; }
         claim(id, head, lineNo);
@@ -4906,11 +5902,27 @@ export function createDiagramCompiler(env = {}) {
           // `same as X` copies X's width and height. Geometry only: styling
           // is what the `default` block is for, and one line covering every
           // box beats a chain of `same as` through the diagram.
+          // `same h as X` / `same w as X` copy one axis. A one-line box beside
+          // a two-line one wants the neighbour's height and its own width, and
+          // `same as` – which takes both – could not say it: the author wrote
+          // an `h` by hand and re-measured it whenever the neighbour's label
+          // changed. It is also the only way to give a `zone` a height, which
+          // otherwise requires both numbers and so could take neither.
           if (key === 'same') {
-            if (rest[k + 1]?.v !== 'as' || !rest[k + 2]) {
-              dgErr(errors, lineNo, `${head} ${id}: "same" must be written "same as <element>"`);
-              k += 2;
+            const axis = rest[k + 1]?.v;
+            if ((axis === 'w' || axis === 'h') && rest[k + 2]?.v === 'as' && rest[k + 3]) {
+              node[axis === 'w' ? 'sameWAs' : 'sameHAs'] = rest[k + 3].v;
+              k += 4;
               continue;
+            }
+            if (axis !== 'as' || !rest[k + 2]) {
+              dgErr(errors, lineNo, `${head} ${id}: "same" must be written "same as <element>", `
+                + '"same w as <element>" or "same h as <element>"');
+              // One sentence per statement, the policy every other branch
+              // follows: reading on from a token whose shape is already lost
+              // earns a second complaint about the same defect.
+              stopped = true;
+              break;
             }
             node.sameAs = rest[k + 2].v;
             k += 3;
@@ -4943,7 +5955,11 @@ export function createDiagramCompiler(env = {}) {
             node[key] = dgNum(rest[k + 1]?.v, errors, lineNo, key); k += 2; continue;
           }
           if (key === 'pad' && DG_KIND_OPTS[head].includes('pad')) {
-            node.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'pad'); k += 2; continue;
+            // Rows, or label heights under `lh`. `w`, `h` and `r` above take no
+            // suffix: those are the element's size, and a size is stated
+            // against the grid, while a padding is a clearance round type.
+            const p = dgLen(rest[k + 1]?.v, errors, lineNo, 'pad');
+            node.pad = p.n; node.padUnit = p.unit; k += 2; continue;
           }
           const [place, next, attempted] = dgParsePlacement(rest, k, errors, lineNo);
           if (place) { node.place = place; k = next; continue; }
@@ -4971,9 +5987,132 @@ export function createDiagramCompiler(env = {}) {
           // has to write the placement out first. spanOf says so rather
           // than handing back an insertion point that would not parse.
           if (model.nodes.length === 0) node.place = { kind: 'abs', implicit: true, at: [{ unit: 0 }, { unit: 0 }] };
-          else if (!stopped) dgErr(errors, lineNo, dgNoPlacement(head, id));
+          // Deferred, not dropped: a `row` or a `col` naming this element is
+          // its placement, and a member list may be written before or after
+          // the elements it names. The post-parse pass reports whatever is
+          // still unplaced once the rows have been resolved.
+          else if (!stopped) model.unplaced.push({ kind: head, id, line: lineNo });
         }
-        rejectClassOn(head, attrs.classes, lineNo, errors, '', attrs.removedClasses);
+        // ── zone: a named area that stands from beat 0 ─────────────────
+        // **A `zone` is a `box` with three differences, and the expansion is
+        // where all three live.** It is a statement rather than a class
+        // because two of them are not properties of a box at all: where it is
+        // painted, and where its label sits.
+        //
+        //   1. It is drawn *under* everything, whatever its position in the
+        //      source, so an area can be declared after the things standing
+        //      in it - which is the order an author writes in, because the
+        //      area's size comes from them.
+        //   2. Its label is in a corner rather than in the middle, because
+        //      the middle of an area is where its contents go. Top-left by
+        //      default; `.right` and `.bottom` in the tail move it, which is
+        //      the four alignment words meaning here what they mean on a box,
+        //      one level out.
+        //   3. It is **fixed size**, and that is what separates it from
+        //      `container`. A container fits its members and is invisible
+        //      without them; an area is a claim about the paper that holds
+        //      whether anything is standing in it yet or not, and five
+        //      figures in one keynote needed exactly that - two named regions
+        //      from beat 0, filling up as the talk went on.
+        //
+        // Everything else it needs it already had: `at` names a point, `.cx`
+        // and `.top` address it, `show` / `hide` / `emph` reach it by name.
+        // Authors were writing `box z "" {.dashed .clear}` plus a `text` and
+        // getting an overlap warning per child; the frame carries `synth` set
+        // to its own id, which is the discriminator that keeps a `table`'s or
+        // a `lanes`'s frame out of that census, so it is out of it too.
+        if (head === 'zone') {
+          const cap = quoted[0] ?? '';
+          node.kind = 'box';
+          node.zone = true;
+          node.synth = id;
+          node.label = '';
+          // Both numbers, unless another element states one of them. A zone is
+          // fixed-size on purpose, but "fixed" and "written here" are two
+          // different claims: `same h as` names the element the height comes
+          // from, which is as fixed as a number and stays right when that
+          // element's label grows.
+          // An axis nobody states is the one the children settle: the zone
+          // wraps everything placed `in` it, plus the band and the pad. That
+          // is the unification the two statements were waiting for – an area
+          // sized by its contents is a container that keeps its ground, its
+          // caption and its place under everything, and one written with `w`
+          // and `h` is the fixed claim on the paper it always was. The two
+          // axes are answered separately, because the height of a row of
+          // areas is usually the figure's and their widths are their own.
+          const hasW = node.w != null || node.sameAs || node.sameWAs;
+          const hasH = node.h != null || node.sameAs || node.sameHAs;
+          node.zoneAuto = { w: !hasW, h: !hasH };
+          // The look is seeded and displaceable, exactly as a column's `bare`
+          // is: through the slots, so `{.dotted}` replaces the dash, `{.tone-2}`
+          // the see-through fill and `{.accent}` the muted ink, and none of the
+          // three is written back by the editor as the author's.
+          const seeded = ['clear', 'dashed', 'muted'];
+          // Read off the written tail, before the frame's own class list is
+          // rebuilt without them: the four corner words are the caption's, not
+          // the frame's, and a frame carrying `.right` would align a label it
+          // does not have.
+          const corner = node.classes.filter(c => DG_ZONE_CORNERS.has(c));
+          const own = node.classes.filter(c => !DG_ZONE_CORNERS.has(c));
+          const flat = dgFlattenClassLayers([{ classes: seeded },
+            { classes: own, removedClasses: node.removedClasses }]);
+          node.classes = flat.classes;
+          node.removedClasses = flat.removedClasses;
+          node.autoClasses = seeded.filter(c => flat.classes.includes(c));
+          // The caption. A `text` of its own rather than the frame's label,
+          // because the frame's label is centred and a corner is what an area
+          // wants - and because a text is already the thing that knows how to
+          // be small, muted and turned. `anchor` is what puts it in the
+          // corner, which is the option this same revision added: without it
+          // the caption's box would be centred on the corner and half of it
+          // would hang outside the area it names.
+          const right = corner.includes('right');
+          const bottom = corner.includes('bottom');
+          const capId = dgZoneCapName(id);
+          claim(capId, 'text', lineNo, true);
+          const [zuw, zuh] = model.unit;
+          // In rows, because everything below it is: an `lh` pad is divided
+          // back out by the row height here rather than at each of the six
+          // places the number is spent.
+          const zPad = node.pad != null
+            ? dgUnitPx(node.pad, node.padUnit, zuh) / (zuh || 1) : DG_ZONE_PAD;
+          const padX = zPad * zuh / (zuw || 1);
+          // The optical correction at the foot, in grid units: the caption is
+          // set in its own classes, so the font it is measured against is the
+          // one it will be drawn in rather than a constant.
+          const capClasses = new Set(['small', 'muted', ...corner]);
+          const padDrop = (DG_ZONE_INK_DROP * dgFontFor(capClasses)) / (zuh || 1);
+          // **The band, recorded on the frame.** What a zone reserves for what
+          // stands in it is the pad on all four sides and, on the side the
+          // caption is on, the caption's own line as well – so `z.inner.top`
+          // is the first row of paper the caption does not already own and a
+          // child placed there cannot land on the words. Read off the caption
+          // as it was written: a `label` step that swaps a longer one in moves
+          // the words and not the band, which is the same promise a box's size
+          // makes when its label changes.
+          const capRows = cap
+            ? dgMeasure(cap, dgFontFor(capClasses), false).h / (zuh || 1)
+            : 0;
+          node.band = { pad: zPad, padX, cap: capRows, bottom, capRight: right };
+          model.nodes.push({
+            kind: 'text', id: capId, synth: id, label: cap,
+            classes: ['small', 'muted', ...corner],
+            removedClasses: [], tags: [...(attrs.tags || []), dgZoneTag(id)],
+            place: { kind: 'abs', anchor: (bottom ? 'b' : 't') + (right ? 'r' : 'l'), at: [
+              { ref: id, prop: right ? 'right' : 'left', nudge: right ? -padX : padX },
+              { ref: id, prop: bottom ? 'bottom' : 'top', nudge: bottom ? -(zPad + padDrop) : zPad },
+            ] },
+            // The caption is only as visible as the area it names, through
+            // the face of the visibility closure that already says a text is
+            // only as visible as what it hangs off. `show z` brings both, and
+            // a caption left standing over paper nobody can see is never what
+            // the author meant.
+            leaderRef: id,
+            w: null, h: null, r: null, pad: null, line: lineNo, span,
+          });
+          node.tags = [...(attrs.tags || []), dgZoneTag(id)];
+        }
+        rejectClassOn(head === 'zone' ? 'box' : head, attrs.classes, lineNo, errors, '', attrs.removedClasses);
         model.nodes.push(node);
         if (node.leader) {
           const leadId = `${id}--lead`;
@@ -4999,6 +6138,8 @@ export function createDiagramCompiler(env = {}) {
             // written on.
             classes: [DG_ARROW_CLASS[node.leaderArrow] || 'no-head', 'muted'],
             via: [], line: lineNo, span,
+            ends: [id, node.leader],
+            arrow: node.leaderArrow === '<-' ? '->' : (node.leaderArrow || '--'),
           });
         }
         continue;
@@ -5089,6 +6230,13 @@ export function createDiagramCompiler(env = {}) {
           removedClasses: (attrs.removedClasses || []).slice(),
           tags: attrs.tags,
           via: [], pad: null, side: null, named, line: lineNo, span,
+          // The two endpoint tokens as written, in model order, and the arrow
+          // normalised to match them. Carried for the warnings alone: an
+          // anonymous edge's `edge-4` is positional and says nothing, and
+          // `from` / `to` have already been parsed into refs by the time a
+          // warning sees them. See dgEdgeEnds.
+          ends: [flip ? toTok : fromTok, flip ? fromTok : toTok],
+          arrow: body0[arrowAt].v === '<-' ? '->' : body0[arrowAt].v,
         };
         // **Every token seeds a class**, expressed through the same three the
         // emitter reads – but the injection is *derived from the arrow token*,
@@ -5124,7 +6272,9 @@ export function createDiagramCompiler(env = {}) {
           // container and a brace: how far the outline sits from what it
           // encloses. On an edge what it encloses is the label's ground.
           if (body0[k].v === 'pad') {
-            edge.pad = dgNum(body0[k + 1]?.v, errors, lineNo, `edge ${id} pad`);
+            const p = dgLen(body0[k + 1]?.v, errors, lineNo, `edge ${id} pad`);
+            edge.pad = p.n;
+            edge.padUnit = p.unit;
             k++;
             continue;
           }
@@ -5203,7 +6353,10 @@ export function createDiagramCompiler(env = {}) {
               + `"side ${key}" – a bare "${key}" is one of the four words that also place a label.`);
             break;
           }
-          if (key === 'pad') { item.pad = dgNum(rest[k + 1]?.v, errors, lineNo, 'pad'); k++; continue; }
+          if (key === 'pad') {
+            const p = dgLen(rest[k + 1]?.v, errors, lineNo, 'pad');
+            item.pad = p.n; item.padUnit = p.unit; k++; continue;
+          }
           dgErr(errors, lineNo, dgUnexpected(head, id, key));
           break;
         }
@@ -5241,6 +6394,72 @@ export function createDiagramCompiler(env = {}) {
     for (const h of model.braces) h.members = expandList(h.members, h.line, `brace ${h.id}`);
     for (const h of model.aligns) h.members = expandList(h.members, h.line, `align ${h.axis} ${h.edge}`);
     for (const h of model.spreads) h.members = expandList(h.members, h.line, `spread ${h.axis}`);
+    for (const h of model.rows) {
+      h.members = expandList(h.members, h.line, h.axis === 'x' ? 'row' : 'col');
+    }
+    // A `row` places every member that has no placement of its own, against
+    // the member before it, with the row's one gap. A member that *is* placed
+    // keeps its placement – the three-boxes-against-three-zones case, where
+    // the row is there for the size alone – and a row's gap still fills in a
+    // relative placement against the previous member that states none, so
+    // "one gap" holds whichever way the run was written.
+    {
+      const byId = new Map(model.nodes.map(n => [n.id, n]));
+      const placedByRow = new Set();
+      for (const r of model.rows) {
+        const dir = r.axis === 'x' ? 'right' : 'below';
+        const word = r.axis === 'x' ? 'row' : 'col';
+        // **A run placed in a zone is placed as one block**, which is a claim
+        // about every member: the first meets the band, the rest follow it,
+        // and the alignment words are answered against the extent of all of
+        // them. A member that states a placement of its own contradicts that,
+        // and the contradiction is silent – the run would be aligned as though
+        // it held a box that is somewhere else entirely.
+        if (r.inPlace) {
+          const own = r.members.filter(m => byId.get(m) && byId.get(m).place);
+          if (own.length) {
+            dgErr(errors, r.line, `${word} … in ${r.inPlace.ref} places the whole run in the `
+              + `area's band, so "${own[0]}" cannot state a placement of its own as well `
+              + `(line ${byId.get(own[0]).line}) – take one of the two off.`, 'semantic');
+          } else if (byId.get(r.members[0])) {
+            byId.get(r.members[0]).place = { ...r.inPlace, group: { axis: r.axis, members: r.members },
+              implicit: true, fromRow: r.line };
+            placedByRow.add(r.members[0]);
+          }
+        }
+        let prev = null;
+        for (const m of r.members) {
+          const n = byId.get(m);
+          if (!n) continue;             // checkRef below names it
+          if (n.kind !== 'box') {
+            dgErr(errors, r.line, `${word} names "${m}", which is ${dgArticle(n.kind)} ${n.kind} – `
+              + 'a row is a run of boxes that share one size, and a dot, a text or an image is '
+              + 'sized by what it draws rather than by its neighbours', 'semantic');
+            prev = m;
+            continue;
+          }
+          if (prev) {
+            if (!n.place) {
+              // `implicit`, the same word the first element's origin carries:
+              // there is no placement on this element's own line, so there is
+              // nothing for the editor to rewrite in place. A drag has to
+              // write the placement out first – or move the row.
+              n.place = { kind: 'rel', dir, ref: prev, gap: r.gap ?? null, gapUnit: r.gapUnit ?? null,
+                implicit: true, fromRow: r.line };
+              placedByRow.add(m);
+            } else if (r.gap != null && n.place.kind === 'rel' && n.place.ref === prev
+              && n.place.gap == null) {
+              n.place.gap = r.gap;
+              n.place.gapUnit = r.gapUnit ?? null;
+            }
+          }
+          prev = m;
+        }
+      }
+      for (const u of model.unplaced) {
+        if (!placedByRow.has(u.id)) dgErr(errors, u.line, dgNoPlacement(u.kind, u.id));
+      }
+    }
     for (const d of model.tagDefaults) {
       if (!model.tags.has(d.tag)) {
         dgErr(errors, d.line, `default ${d.kind} @${d.tag} – no element carries @${d.tag}`, 'reference');
@@ -5270,7 +6489,14 @@ export function createDiagramCompiler(env = {}) {
         for (const d of layers) if (d[key] != null) return d[key];
         return null;
       };
-      el.pad = layer('pad') ?? DG_PAD_DEFAULT;
+      // Resolved into rows here, whichever ruler said it, because a container
+      // and a brace each spend the number once and in one place. The layer
+      // that *stated* the pad is the layer whose unit applies, which is why
+      // the two are picked as one object rather than through two `layer`
+      // calls that could come back from different layers.
+      const src = el.pad != null ? el : layers.find(d => d.pad != null);
+      const [, elUh] = model.unit;
+      el.pad = src ? dgUnitPx(src.pad, src.padUnit, elUh) / (elUh || 1) : DG_PAD_DEFAULT;
       if (el.kind === 'brace') el.side = layer('side') ?? 'right';
     }
     const known = (id) => (id.startsWith('@') ? model.tags.has(id.slice(1)) : model.byId.has(id));
@@ -5287,9 +6513,65 @@ export function createDiagramCompiler(env = {}) {
         ? ` – ".${bare}" is a class; a set you can address is written "@${bare}"` : '';
       dgErr(errors, lineNo, `${what} refers to "${id}", which is not defined${hint}`, 'reference');
     };
-    const refsOf = (place) => place?.kind === 'rel' ? [place.ref]
+    const refsOf = (place) => place?.kind === 'rel' || place?.kind === 'in' ? [place.ref]
       : place?.kind === 'between' ? place.refs.map(r => r.ref)
       : place?.kind === 'abs' ? dgPairRefs(place.at) : [];
+    // ── the band is a zone's, and only a zone's ─────────────────────
+    // Two references that name a rectangle no other statement draws: `in x`
+    // and `x.inner.left`. A box has no band – nothing about it says where its
+    // own contents begin – so naming one is a mistake with a plausible reading,
+    // which is the kind this grammar refuses rather than resolves quietly.
+    {
+      const zones = new Set(model.nodes.filter(n => n.zone).map(n => n.id));
+      const bandRef = (ref, lineNo, what) => {
+        if (!ref || !known(ref) || zones.has(ref)) return;
+        dgErr(errors, lineNo, `${what} names "${ref}", which is not a zone – a band is the room `
+          + `an area reserves under its caption, and only a "zone" has one.`, 'semantic');
+      };
+      for (const n of model.nodes) {
+        if (n.place && n.place.kind === 'in') {
+          bandRef(n.place.ref, n.line, `${n.kind} ${n.id}: "in ${n.place.ref}"`);
+        }
+        if (n.place && n.place.kind === 'abs') {
+          for (const c of (n.place.at || [])) {
+            if (c && c.inner) bandRef(c.ref, n.line, `${n.kind} ${n.id}: "${c.ref}.inner"`);
+          }
+        }
+      }
+      for (const e of model.edges) {
+        for (const p of [...(e.via || []), e.from?.point, e.to?.point]) {
+          for (const c of (p || [])) if (c && c.inner) bandRef(c.ref, e.line, `edge ${e.id}`);
+        }
+      }
+      // An area with an axis nobody stated and nothing standing in it has no
+      // size at all. It is the one thing a container could never be asked –
+      // a container with no members is simply not drawn – and here it would be
+      // a caption over a sliver of ground.
+      for (const z of model.nodes) {
+        if (!z.zone || !z.zoneAuto || !(z.zoneAuto.w || z.zoneAuto.h)) continue;
+        const held = model.nodes.some(n => n.place && n.place.kind === 'in' && n.place.ref === z.id);
+        if (held) continue;
+        const axis = z.zoneAuto.w && z.zoneAuto.h ? 'w" and "h' : z.zoneAuto.w ? 'w' : 'h';
+        dgErr(errors, z.line, `zone ${z.id} states no "${axis}" and nothing is placed in it, so `
+          + `there is nothing to take the size from – write the number, or place something `
+          + `"in ${z.id}".`, 'semantic');
+      }
+      // A band that is sized by what stands in it cannot also say where in
+      // itself that thing sits: the two answers are the same number twice.
+      for (const n of model.nodes) {
+        const p = n.place;
+        if (!p || p.kind !== 'in') continue;
+        const z = model.nodes.find(x => x.id === p.ref && x.zone);
+        if (!z || !z.zoneAuto) continue;
+        const clash = (z.zoneAuto.w && p.ax !== 'left') || (z.zoneAuto.h && p.ay !== 'top');
+        if (clash) {
+          dgErr(errors, n.line, `${n.kind} ${n.id} is placed in ${z.id} with a word that aligns `
+            + `it in the band, and ${z.id} takes that axis from what is placed in it – so the `
+            + `band is exactly this run and there is nothing to align against. Give ${z.id} `
+            + `its own "w"/"h", or leave the word off.`, 'semantic');
+        }
+      }
+    }
     // `point` aims an outline, so it needs the outline – and the outline can
     // come from a `default` block declared further down the file. Checked
     // here rather than on the statement's own line for exactly that reason:
@@ -5327,6 +6609,15 @@ export function createDiagramCompiler(env = {}) {
     for (const n of model.nodes) {
       for (const r of refsOf(n.place)) checkRef(r, n.line, `${n.kind} ${n.id}`);
       if (n.sameAs) checkRef(n.sameAs, n.line, `${n.kind} ${n.id} (same as)`);
+      if (n.sameWAs) checkRef(n.sameWAs, n.line, `${n.kind} ${n.id} (same w as)`);
+      if (n.sameHAs) checkRef(n.sameHAs, n.line, `${n.kind} ${n.id} (same h as)`);
+      // One size, said twice. `same as` is both axes, so either half of it
+      // written beside it is a number the drawing has to drop.
+      if (n.sameAs && (n.sameWAs || n.sameHAs)) {
+        dgErr(errors, n.line, `${n.kind} ${n.id}: "same as" takes both axes, so `
+          + `"same ${n.sameWAs ? 'w' : 'h'} as" has nothing left to say – drop one of them`,
+        'semantic');
+      }
     }
     for (const e of model.edges) {
       if (!e.from.point) checkRef(e.from.ref, e.line, `edge ${e.id}`);
@@ -5341,6 +6632,9 @@ export function createDiagramCompiler(env = {}) {
     for (const a of [...model.aligns, ...model.spreads]) {
       const what = a.edge ? `align ${a.axis} ${a.edge}` : `spread ${a.axis}`;
       for (const m of a.members) checkRef(m, a.line, what);
+    }
+    for (const r of model.rows) {
+      for (const m of r.members) checkRef(m, r.line, r.axis === 'x' ? 'row' : 'col');
     }
     for (const s of model.steps) {
       for (const op of s.ops) {
@@ -5401,17 +6695,73 @@ export function createDiagramCompiler(env = {}) {
       }
     }
 
+    dgResolveAutoGaps(model);
+
     return { model, errors };
   }
 
-  function layoutDiagram(model, state, errors) {
+  // The second half of the gap rule, and the half no single line can decide:
+  // a pair an `edge` joins needs room for the arrow, a pair nothing joins
+  // needs only to be told apart. So the default is settled here, once the
+  // whole block has been read, off the edge list the dependency walk is built
+  // from a few lines later. Nothing is written back into the source and a
+  // written `gap` is never touched: this fills `gapAuto`, which layout reads
+  // only where `gap` is null.
+  //
+  // The widening for a *labelled* edge is the same rule one step on. A label
+  // on a straight run between two facing boxes has only the paper between
+  // their near faces – the boxes are painted after the edge under them, so a
+  // word wider than the gap is read with its ends cut off, which is the defect
+  // `dgLabelClipWarnings` measures. Making the default wide enough to hold the
+  // word turns that warning into what it should always have been: a report
+  // about a number the author wrote. Only on a horizontal placement, because a
+  // label on a vertical run stands beside the line and its width costs the gap
+  // nothing; its height is one line, which the joined default already clears.
+  function dgResolveAutoGaps(model) {
+    const auto = [];
+    for (const n of model.nodes) {
+      if (n.place && n.place.kind === 'rel' && n.place.gap == null) auto.push(n);
+    }
+    if (!auto.length) return;
+    const joined = new Map();   // "a|b", a < b -> the edge, for the label
+    for (const e of model.edges) {
+      const a = e.from && !e.from.point ? e.from.ref : null;
+      const b = e.to && !e.to.point ? e.to.ref : null;
+      if (!a || !b || a === b) continue;
+      const key = a < b ? `${a}|${b}` : `${b}|${a}`;
+      if (!joined.has(key)) joined.set(key, e);
+    }
+    for (const n of auto) {
+      const p = n.place;
+      const key = n.id < p.ref ? `${n.id}|${p.ref}` : `${p.ref}|${n.id}`;
+      const e = joined.get(key);
+      if (!e) continue;
+      p.gapAuto = DG_GAP_JOINED;
+      if (!e.label || (p.dir !== 'right' && p.dir !== 'left')) continue;
+      const classes = new Set(e.classes || []);
+      for (const layer of dgDefaultLayers(model, 'edge', e.tags)) {
+        for (const c of layer.classes) classes.add(c);
+      }
+      const m = dgMeasure(e.label, dgFontFor(classes), classes.has('mono'));
+      p.gapAuto = Math.max(p.gapAuto, (m.w + 2 * DG_PAD_X) / DG_LABEL_H);
+    }
+  }
+
+  function layoutDiagram(model, state, errors, labelIndex) {
     const [uw, uh] = model.unit;
     const boxes = new Map();   // id -> {x,y,w,h}
 
     // Sizes first: they depend only on the element's own label and class,
     // never on placement, so they can be settled before the DAG walk.
-    const sizeOf = (node) => {
+    //
+    // `over` is the label to measure and `quiet` suppresses the two warnings,
+    // because the chain pass below measures a box once per label a `label`
+    // step will ever give it and a box would otherwise report the same
+    // overflow once per variant. The beat's own label is the default, which is
+    // every ordinary call.
+    const rawSize = (node, over, quiet) => {
       const st = state.get(node.id);
+      const label = over === undefined ? st.label : over;
       const classes = st.classes;
       // Geometry follows the same layers, strongest first.
       const layers = dgDefaultLayers(model, node.kind, node.tags).reverse();
@@ -5420,7 +6770,44 @@ export function createDiagramCompiler(env = {}) {
         for (const d of layers) if (d[key] != null) return d[key];
         return null;
       };
-      const [padX, padY] = dgPadPx(pick('pad'), uh);
+      // The class-derived font and not the fitted one: `.fit` solves the type
+      // against a box whose padding is already settled, so reading the fitted
+      // size here would be a loop with no fixed point. The **unit** comes off
+      // whichever layer stated the pad, picked as one object rather than
+      // through a second `pick` that could answer from a different layer.
+      const padSrc = node.pad != null ? node : layers.find(d => d.pad != null);
+      const [padX, padY] = dgPadPx(padSrc ? padSrc.pad : null, uh, dgFontFor(classes),
+        padSrc && padSrc.padUnit);
+      const nw = pick('w');
+      const nh = pick('h');
+      // Which axes are already spoken for, and so are not the chain's to set.
+      // A number on the element's **own line**, a `same … as` naming another
+      // element, and `.own`, which says the box is not one of its neighbours
+      // at all. Answered here, before anything reads `boxes`, because the
+      // chain pass runs before the walk that fills it.
+      //
+      // **A number from a `default` layer is deliberately not one of them: it
+      // is the chain's floor rather than a pin.** A default layer is a
+      // statement about the boxes in this block – "they are this size unless
+      // something says otherwise" – and a chain is one of the things that say
+      // otherwise. Counting it as written meant no chain sizing reached a
+      // figure that opened with `default box w N h N`, and a `row` statement
+      // could not level what the layer had already pinned: a keynote's build
+      // plan carried `h 4.8` on both cells of a two-cell row because levelling
+      // the second against the first was not available to it.
+      //
+      // A floor is not a pin, and it is not evidence either: a box the layer
+      // sized asks the chain for nothing on that axis, because the layer has
+      // already answered for it. `lectures/diagrams#cbc` is why. There
+      // `default box @dec w 0.48` under `default box w 0.82` makes the Dec
+      // boxes narrower than the ciphertext boxes they hang under, on purpose;
+      // a floor that counted as evidence put the column's 0.82 on all three
+      // and undid the tag layer. A layer that sizes some of the boxes is a
+      // statement that those boxes differ, so the row it leaves ragged is the
+      // author's own – which is also why the floor survives a chain that asks
+      // for less.
+      const pinW0 = node.w != null || !!node.sameAs || !!node.sameWAs || classes.has('own');
+      const pinH0 = node.h != null || !!node.sameAs || !!node.sameHAs || classes.has('own');
       // `.fit` and `same as` are ordered. sizeOf otherwise depends only on the
       // element's own label and class, which is what lets sizes settle before
       // the DAG walk – but a fitted size needs the box, and a copied box is
@@ -5428,16 +6815,26 @@ export function createDiagramCompiler(env = {}) {
       // solved against the result. That works because `same as` is already a
       // dependency edge, so X is laid out by the time we are here.
       const fitted = (w, h) => (classes.has('fit') || classes.has('shrink')
-        ? dgFitFont(st.label, classes, w, h, padX, padY) : dgFontFor(classes));
+        ? dgFitFont(label, classes, w, h, padX, padY) : dgFontFor(classes));
+      // One axis copied from another element. Same dependency edge `same as`
+      // already is, so the reference is laid out by the time we are here; the
+      // copy is applied to whatever the natural rule computed, which is what
+      // makes `same h as` keep this element's own width.
+      const axisCopy = (out) => {
+        const rw = node.sameWAs && boxes.get(node.sameWAs);
+        const rh = node.sameHAs && boxes.get(node.sameHAs);
+        if (!rw && !rh) return out;
+        const w = rw ? rw.w : out.w, h = rh ? rh.h : out.h;
+        return { ...out, w, h, font: fitted(w, h) };
+      };
       if (node.sameAs) {
         const ref = boxes.get(node.sameAs);
-        if (ref) return { w: ref.w, h: ref.h, font: fitted(ref.w, ref.h), padX, padY };
+        if (ref) return { w: ref.w, h: ref.h, font: fitted(ref.w, ref.h), padX, padY, pinW: true, pinH: true };
       }
-      const nw = pick('w');
-      const nh = pick('h');
+      const pinW = pinW0, pinH = pinH0;
       // Something to fit *into* is the whole premise, so an element with
       // neither is a line that would otherwise quietly do nothing.
-      if ((classes.has('fit') || classes.has('shrink')) && nw == null && !node.sameAs) {
+      if (!quiet && (classes.has('fit') || classes.has('shrink')) && nw == null && !node.sameAs) {
         errors.push({ phase: 'semantic', line: node.line, msg: `${node.kind} ${node.id}: `
           + `.${classes.has('fit') ? 'fit' : 'shrink'} sizes the type to the box, so the box has to be `
           + `given – add "w n" or "same as <element>"` });
@@ -5445,20 +6842,20 @@ export function createDiagramCompiler(env = {}) {
       if (node.kind === 'dot') {
         const nr = pick('r');
         const r = (nr != null ? nr : DG_DOT_R) * uh;
-        return { w: 2 * r, h: 2 * r, font: fitted(2 * r, 2 * r), padX, padY };
+        return axisCopy({ w: 2 * r, h: 2 * r, font: fitted(2 * r, 2 * r), padX, padY, pinW: true, pinH: true });
       }
       if (node.kind === 'image') {
         const w = (nw != null ? nw : 1) * uw;
-        if (nh != null) return { w, h: nh * uh };
-        if (node.aspect) return { w, h: w * node.aspect };
+        if (nh != null) return axisCopy({ w, h: nh * uh, pinW: true, pinH: true });
+        if (node.aspect) return axisCopy({ w, h: w * node.aspect, pinW: true, pinH: true });
         // Only when the asset resolved at all: an unresolved (or refused)
         // one already has an error naming the real problem, and a warning
         // about proportions on top of it points the author the wrong way.
-        if (node.asset) dgWarn(`image ${node.id}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
-        return { w, h: w };
+        if (!quiet && node.asset) dgWarn(`image ${node.id}${dgSite(node)}: cannot read the asset's proportions, assuming square – give it an explicit h.`);
+        return axisCopy({ w, h: w, pinW: true, pinH: true });
       }
       const font = fitted(nw != null ? nw * uw : 0, nh != null ? nh * uh : 0);
-      const m0 = dgMeasure(st.label, font, classes.has('mono'));
+      const m0 = dgMeasure(label, font, classes.has('mono'));
       // A label read bottom-to-top needs its measurements the other way round.
       // Everything below asks "how much room does the label want" and gets the
       // right answer for free once the two are swapped here.
@@ -5467,7 +6864,8 @@ export function createDiagramCompiler(env = {}) {
       // otherwise – which is what a `.fit` text needs, and what `w` on a text
       // meant on paper long before it did anything.
       if (node.kind === 'text') {
-        return { w: nw != null ? nw * uw : m.w, h: nh != null ? nh * uh : m.h, font, padX, padY };
+        return axisCopy({ w: nw != null ? nw * uw : m.w, h: nh != null ? nh * uh : m.h,
+          font, padX, padY, pinW: true, pinH: true });
       }
       // An explicit w that cannot hold its own label overflows in silence –
       // right on the machine that drew it, wrong on the projector. Say so.
@@ -5475,9 +6873,42 @@ export function createDiagramCompiler(env = {}) {
       // A label there is not is a label that cannot overflow. Without this a
       // thin column of a `bars` – which carries no text at all – reported that
       // its text was about to run over the edge.
-      if (st.label && nw != null && nw * uw < m.w + 6 && !classes.has('fit') && !classes.has('shrink')) {
-        dgWarn(`box ${node.id} is ${nw} units wide but its label needs about `
+      const fits = classes.has('fit') || classes.has('shrink');
+      // The number the box actually comes out at, which is the number this
+      // warning is about. A `default` layer's size is a floor the chain may
+      // raise, so a box that grows with its neighbours is not overflowing even
+      // though the floor under it is narrower than its label – and one that
+      // still overflows should be told the width it really got, not the floor.
+      // Read here rather than in `sizeOf` because the measurement of the label
+      // is here; safe because the only calls made before the chain pass has
+      // filled `chainSize` are the `quiet` ones it makes itself.
+      const settledSize = quiet ? null : chainSize.get(node.id);
+      const effUnits = (key, n) => {
+        const s = settledSize && settledSize[key];
+        if (s == null || n == null) return n;
+        // `Math.max`, the same way `sizeOf` composes the two: the chain raises
+        // a floor and never lowers it.
+        return Math.max(s / (key === 'w' ? uw : uh), n);
+      };
+      const ew = effUnits('w', nw), eh = effUnits('h', nh);
+      // The written number as the author wrote it where nothing moved it, and
+      // a rounded one where the chain did – never a float's tail either way.
+      const shown = (eff, n) => (eff === n ? n : Number(eff.toFixed(2)));
+      if (!quiet && label && nw != null && ew * uw < m.w + 6 && !fits) {
+        dgWarn(`box ${node.id}${dgSite(node)} is ${shown(ew, nw)} units wide but its label needs about `
           + `${((m.w + 2 * padX) / uw).toFixed(2)} – the text will overflow.`);
+      }
+      // The same sentence down the other axis, which was silent. A written `w`
+      // has warned since the day `w` existed and a written `h` never did, so a
+      // two-line label in a box given one line's height ran over the outline
+      // and nothing said so – measured on a keynote's `#drei-orte`, where the
+      // words sat inside the padding and the figure had zero warnings.
+      // The threshold is the ink the lines make (DG_INK_H) rather than their
+      // line boxes; the number the message reports is the padded one, which is
+      // what to write instead.
+      if (!quiet && label && nh != null && eh * uh < (m.h / DG_LINE_H) * DG_INK_H && !fits) {
+        dgWarn(`box ${node.id}${dgSite(node)} is ${shown(eh, nh)} units tall but its label needs about `
+          + `${((m.h + 2 * padY) / uh).toFixed(2)} – the text will overflow.`);
       }
       // A hexagon or a chevron has less usable interior than the rectangle
       // that bounds it: the bevel and the point are inside the box. Grow the
@@ -5504,13 +6935,202 @@ export function createDiagramCompiler(env = {}) {
       // wins, because that one is about this element.
       const squareOutline = String(outline).split(':')[0] === 'cross';
       const ownW = node.w != null ? node.w : null;
-      return {
+      return axisCopy({
         w: squareOutline ? (ownW != null ? ownW * uw : boxH)
           : nw != null ? nw * uw
             : Math.max(m.w + 2 * padX + inset, DG_MIN_W),
         h: boxH,
         font, padX, padY,
+        // A square outline takes its width from its height, so the chain has
+        // nothing to say about it either way.
+        pinW: pinW || squareOutline, pinH,
+      });
+    };
+
+    // ── the chain pass: peers share one size ──────────────────────────
+    //
+    // Which boxes are peers is a fact about the *drawing* and not about the
+    // beat, so it is read off each element's declared placement rather than
+    // off `state`: a `move … to` in a step must not re-cut the chains under a
+    // row and resize everything placed against any of it.
+    //
+    // **A chain is per axis, and the two axes do not carry the same rule.** A
+    // *row* – boxes joined by `right of` / `left of` – shares both: two boxes
+    // side by side with different widths read as two things of different
+    // weight, and with different heights they make a ragged top and bottom and
+    // put every arrow between them off the axis. A *column* shares its width
+    // and not its height; the three families and the reasons are on `rowSet`,
+    // `colSet` and `declared` below.
+    //
+    // A box carrying `.own` is in no chain, which is also how a run is broken
+    // in two: nothing reaches through it. Same for the other three exclusions
+    // `own()` collects.
+    const chainSize = new Map();   // id -> {w?, h?}
+    {
+      const nodes = model.nodes.filter(n => n.kind === 'box');
+      const byId = new Map(nodes.map(n => [n.id, n]));
+      // `same as X` is the older, explicit spelling of the same idea and it
+      // still wins: the box takes X's size outright, so it is in no chain –
+      // and, like `.own`, nothing reaches through it.
+      // `.turn` is the second exemption and it is not an escape hatch either:
+      // a label read bottom-to-top is what an author writes when the element is
+      // a bar rather than a box – a firewall, a matrix row, an axis – so it is
+      // narrow *by declaration*, and sizing it to the box beside it undoes the
+      // reason the class was written. Measured on `figure-rules#sp2`, where the
+      // firewall bar came out as wide as the switch next to it.
+      // The third exclusion is the composites. A `table`, a `lanes`, a `bars`,
+      // a `grid`, a `plot`, a `sequence` and a `zone` all *draw* a box, but
+      // none of them is one: each sizes itself from its own contents or from a
+      // claim on the paper, and a note placed `right of` a five-column table
+      // has no business coming out five columns wide. `synth` is the flag that
+      // already separates them from ordinary boxes for the overlap census.
+      const own = (id) => {
+        const cls = state.get(id)?.classes || new Set();
+        const n = byId.get(id) || {};
+        return cls.has('own') || cls.has('turn') || !!n.sameAs || !!n.synth;
       };
+      const boxIds = new Set(nodes.map(n => n.id));
+      const sets = (() => {
+        const parent = new Map(nodes.map(n => [n.id, n.id]));
+        const find = (x) => {
+          while (parent.get(x) !== x) { parent.set(x, parent.get(parent.get(x))); x = parent.get(x); }
+          return x;
+        };
+        const join = (a, b) => {
+          if (!boxIds.has(a) || !boxIds.has(b) || a === b) return;
+          if (own(a) || own(b)) return;
+          const ra = find(a), rb = find(b);
+          if (ra !== rb) parent.set(ra, rb);
+        };
+        return { find, join };
+      });
+      // Three families, never merged into one. A box may stand in a row and in
+      // a column at once, and it then takes the larger of what each asks for –
+      // but its neighbours in the row are *not* asked to match the column, or
+      // one `below` between two rows would size a whole grid to its widest
+      // element. Measured: it made `lectures/diagrams#alignment`, whose top and
+      // bottom rows are joined by a single `below`, one block of eight boxes
+      // all as wide as the widest label in either row.
+      const rowSet = sets();       // right of / left of – width and height
+      const colSet = sets();       // below / above – width only
+      const declared = sets();     // a `row` or a `col` statement – both, last
+      for (const n of nodes) {
+        const p = n.place;
+        if (!p || p.kind !== 'rel' || !DG_CHAIN_DIRS.has(p.dir)) continue;
+        (p.dir === 'right' || p.dir === 'left' ? rowSet : colSet).join(n.id, p.ref);
+      }
+      for (const r of model.rows) {
+        for (let i = 1; i < r.members.length; i++) declared.join(r.members[i - 1], r.members[i]);
+      }
+      // Measured once per box, over every label a `label` step will ever give
+      // it, so the four-line variant is what beat 0 reserved room for. A box
+      // whose size grows mid-figure moves everything placed against it; a box
+      // whose size was settled for its longest label moves nothing.
+      //
+      // `flW` / `flH` record the axes a `default` layer sized rather than the
+      // element's own line: they are floors, so the box comes out at that
+      // number or larger, and they say nothing to the chain. Read off the
+      // layers here and not out of `rawSize`, which resolves the two into one
+      // number on purpose – everything downstream of it wants the number.
+      const measured = new Map();
+      const layered = (n, key) => {
+        if (n[key] != null) return false;
+        for (const d of dgDefaultLayers(model, 'box', n.tags)) if (d[key] != null) return true;
+        return false;
+      };
+      for (const n of nodes) {
+        const variants = (labelIndex && labelIndex.get(n.id)) || [];
+        const labels = variants.length ? variants : [state.get(n.id).label];
+        let w = 0, h = 0, pw = false, ph = false;
+        for (const lab of labels) {
+          const s = rawSize(n, lab, true);
+          w = Math.max(w, s.w); h = Math.max(h, s.h);
+          pw = pw || !!s.pinW; ph = ph || !!s.pinH;
+        }
+        measured.set(n.id, { w, h, pw, ph, flW: layered(n, 'w'), flH: layered(n, 'h') });
+      }
+      // An implicit family's maximum is taken over the members' *natural*
+      // sizes, so the order the two are resolved in changes nothing and
+      // nothing compounds. A `row` / `col` statement is the exception and it is
+      // the reason the statement is worth having: it resolves **last** and over
+      // whatever the implicit families settled, so it levels its members
+      // against everything else they stand in. `resolved` is the switch.
+      const resolve = (set, key, resolved) => {
+        const groups = new Map();
+        for (const n of nodes) {
+          if (own(n.id)) continue;
+          const root = set.find(n.id);
+          if (!groups.has(root)) groups.set(root, []);
+          groups.get(root).push(n);
+        }
+        for (const members of groups.values()) {
+          if (members.length < 2) continue;
+          let max = 0;
+          for (const n of members) {
+            // A `same w as` width is another element's and is not known yet, so
+            // it is not evidence about how wide this chain has to be. A size a
+            // `default` layer gave is not evidence either: it is a floor, and
+            // the layer has already said what this box is. Everything else
+            // contributes, written numbers included – a `w` on the head of a
+            // row is today's `same as` for the rest, without the words.
+            const m = measured.get(n.id);
+            if (key === 'w' ? n.sameWAs : n.sameHAs) continue;
+            if (key === 'w' ? m.flW : m.flH) continue;
+            const settled = resolved && chainSize.get(n.id) && chainSize.get(n.id)[key];
+            max = Math.max(max, settled != null ? settled : m[key]);
+          }
+          // Nothing asked for anything – every member of this run stands on a
+          // floor – so the chain has no number to record and the floors stand.
+          if (!max) continue;
+          for (const n of members) {
+            if (measured.get(n.id)[key === 'w' ? 'pw' : 'ph']) continue;
+            const cur = chainSize.get(n.id) || { w: null, h: null };
+            cur[key] = Math.max(cur[key] ?? 0, max);
+            chainSize.set(n.id, cur);
+          }
+        }
+      };
+      resolve(rowSet, 'w');
+      resolve(rowSet, 'h');
+      // A column shares its width and not its height. That asymmetry is the
+      // whole of what the corpus taught: a run of `below` boxes is as often a
+      // record as it is a stack of peers – `lectures/network-security#ns-a45`
+      // is seven fields, then two, then one, then one, stacked with `gap 0`,
+      // and giving every band the tallest one's height turns a certificate
+      // into four equal blocks that say nothing. A band's height is what
+      // stands in it; its width is the record's.
+      resolve(colSet, 'w');
+      // `row a, b, c` and `col a, b, c` share both, and that is what the
+      // statement is *for*: it says these are peers, where `below` says only
+      // where this one goes – and it says it about everything else they stand
+      // in, because it reads the sizes the two implicit families settled. That
+      // is the case the implicit rule cannot reach on its own: a box in a row
+      // whose neighbour is also in a tall column comes out narrower than it,
+      // and one line makes the row level.
+      resolve(declared, 'w', true);
+      resolve(declared, 'h', true);
+    }
+
+    // The beat's own size, with whatever the chain settled written over it.
+    // `.fit` re-solves against the final box: a fitted label whose box grew
+    // with its neighbours would otherwise keep the type size of the box it
+    // would have had alone.
+    //
+    // `Math.max` and not an assignment, because a `default` layer's size is a
+    // floor: where a chain of boxes all want less than the layer gave them,
+    // the layer stands and they come out at its number, not at the widest
+    // label's. Everywhere else the chain's number is the larger one anyway –
+    // a box with no floor asked for exactly its own size.
+    const sizeOf = (node) => {
+      const base = rawSize(node);
+      const cs = chainSize.get(node.id);
+      if (!cs) return base;
+      const w = cs.w != null ? Math.max(cs.w, base.w) : base.w;
+      const h = cs.h != null ? Math.max(cs.h, base.h) : base.h;
+      const classes = state.get(node.id).classes;
+      const font = (classes.has('fit') || classes.has('shrink'))
+        ? dgFitFont(state.get(node.id).label, classes, w, h, base.padX, base.padY) : base.font;
+      return { ...base, w, h, font };
     };
 
     // Dependency graph. Nodes depend on whatever they are placed against;
@@ -5526,6 +7146,11 @@ export function createDiagramCompiler(env = {}) {
       // placed during the walk – so those references are real dependencies,
       // and a circular one is caught by the same cycle detector.
       if (place.kind === 'abs') return dgPairRefs(place.at);
+      // A child placed `in` a zone waits for the zone, exactly as `right of`
+      // waits for its reference. The zone does *not* wait for its children in
+      // return, even when they are what settles its size: that answer comes
+      // from the pass before this one, which is what keeps this a DAG.
+      if (place.kind === 'in') return [place.ref];
       return [];
     };
     // The first element listed is the master; everybody else takes that one
@@ -5576,6 +7201,8 @@ export function createDiagramCompiler(env = {}) {
       kindOf.set(n.id, 'node');
       const d = placeDeps(state.get(n.id).place);
       if (n.sameAs) d.push(n.sameAs);
+      if (n.sameWAs) d.push(n.sameWAs);
+      if (n.sameHAs) d.push(n.sameHAs);
       for (const x of (extraDeps.get(n.id) || [])) d.push(x);
       deps.set(n.id, d);
     }
@@ -5617,10 +7244,56 @@ export function createDiagramCompiler(env = {}) {
     for (const id of deps.keys()) visit(id, []);
 
     const nodeById = new Map(model.nodes.map(n => [n.id, n]));
+    // The extent a placement has to fit inside a band: one element, or the
+    // whole run when a `row` or a `col` wrote the placement. Sizes are settled
+    // before any position is, so the run's extent is answerable here without
+    // having placed a single member of it.
+    const groupExtent = (place, w, h) => {
+      const g = place.group;
+      if (!g) return [w, h];
+      let along = 0, across = 0, first = true;
+      for (const m of g.members) {
+        const n = nodeById.get(m);
+        if (!n) continue;
+        const s = sizeOf(n);
+        const mp = (state.get(m) && state.get(m).place) || n.place;
+        if (!first) along += dgGapPx(mp, uh);
+        along += g.axis === 'x' ? s.w : s.h;
+        across = Math.max(across, g.axis === 'x' ? s.h : s.w);
+        first = false;
+      }
+      return g.axis === 'x' ? [along, across] : [across, along];
+    };
+    // **A zone with an axis nobody stated is sized by what is placed in it, and
+    // that answer comes from a whole layout pass rather than from arithmetic.**
+    // A child's offset from the band's origin can be any chain of placements,
+    // so the only honest way to ask how much room the children want is to place
+    // them and measure. Two passes settle it exactly and no more are needed:
+    // the union of the children is invariant under moving the zone, so the
+    // second pass – which knows the size, and therefore where an `anchor` or a
+    // centre puts the frame – moves everything together and changes no extent.
+    // The zone does not shrink to the children that are *visible* at this beat,
+    // the way a container does: an area is a claim on the paper that holds from
+    // beat 0, and a frame that grew as the talk filled it would move every
+    // caption under it.
+    const autoSize = new Map();
+    const autoZones = model.nodes.filter(n => n.zone && n.zoneAuto
+      && (n.zoneAuto.w || n.zoneAuto.h));
+    const inChildren = new Map();
+    for (const n of model.nodes) {
+      const p = n.place;
+      if (!p || p.kind !== 'in') continue;
+      if (!inChildren.has(p.ref)) inChildren.set(p.ref, []);
+      // A `row` written `in` a zone hangs its placement on the first member
+      // alone; what the area has to hold is the whole run.
+      const held = p.group ? p.group.members : [n.id];
+      for (const m of held) inChildren.get(p.ref).push(m);
+    }
     const edgeById = new Map(model.edges.map(e => [e.id, e]));
     const contById = new Map(model.containers.map(c => [c.id, c]));
     const braceById = new Map(model.braces.map(b => [b.id, b]));
 
+    const walk = () => {
     for (const id of order) {
       const st = state.get(id);
       if (edgeById.has(id)) {
@@ -5638,10 +7311,52 @@ export function createDiagramCompiler(env = {}) {
       }
       if (nodeById.has(id)) {
         const node = nodeById.get(id);
-        const { w, h, font, padX, padY } = sizeOf(node);
+        const base = sizeOf(node);
+        // An axis the children settled, from the pass before this one. Zero on
+        // the first pass, which is the honest answer while nothing has been
+        // placed yet: the area is a point on its own coordinate and the band
+        // starts there, so what the children need is measured from the same
+        // origin either way.
+        const az = autoSize.get(id);
+        const { font, padX, padY } = base;
+        const w = az && az.w != null ? az.w : (node.zoneAuto && node.zoneAuto.w ? 0 : base.w);
+        const h = az && az.h != null ? az.h : (node.zoneAuto && node.zoneAuto.h ? 0 : base.h);
         const place = st.place;
         let cx = 0, cy = 0;
+        // Which of this element's own sides the placement holds still, across.
+        // Every branch below computes a centre, and the question this answers
+        // is which edge of the box that centre was derived *from* – the one
+        // that stays put when the element's width changes. `right of X` fixes
+        // the left edge, `left of X` the right one, `flush left` the left, an
+        // `anchor` whichever side it names, and a coordinate or a `between`
+        // fixes the centre itself, which is no side at all. `labelBox` draws a
+        // free text's words from that edge, because the width it was placed by
+        // is an estimate and the drawn one is not.
+        let pinX = null;
         if (!place) { cx = 0; cy = 0; }
+        // **`in <zone>`: the band, and the whole run when a `row` wrote it.**
+        // The alignment words are answered against the extent of what is being
+        // placed, which for a `row … in z` is the run and not its first
+        // member – otherwise `center` would centre the first box and hang the
+        // rest off the right-hand side of the area.
+        else if (place.kind === 'in') {
+          const zb = boxes.get(place.ref);
+          const band = (zb && zb.inner) || zb;
+          if (!band) { cx = 0; cy = 0; }
+          else {
+            const g = place.gap != null ? dgUnitPx(place.gap, place.gapUnit, uh) : 0;
+            const [gw, gh] = groupExtent(place, w, h);
+            const x = place.ax === 'right' ? band.x + band.w - g - gw
+              : place.ax === 'center' ? band.x + (band.w - gw) / 2
+                : band.x + g;
+            const y = place.ay === 'bottom' ? band.y + band.h - g - gh
+              : place.ay === 'center' ? band.y + (band.h - gh) / 2
+                : band.y + g;
+            cx = x + w / 2;
+            cy = y + h / 2;
+            pinX = place.ax === 'right' && gw === w ? 'right' : 'left';
+          }
+        }
         else if (place.kind === 'abs') { [cx, cy] = dgPairPx(place.at, boxes, uw, uh); }
         else if (place.kind === 'between') {
           const pts = place.refs.map(r => {
@@ -5654,6 +7369,36 @@ export function createDiagramCompiler(env = {}) {
           cy = pts[0][1] + (pts[1][1] - pts[0][1]) * f;
         } else {
           const ref = boxes.get(place.ref);
+          // **`flush` names an edge a reader can see, so it is answered
+          // against the reference's ink and not against its box.** A
+          // `table {.bare .clear}` – and every `table`'s own frame, which is
+          // always both – has an outline nobody draws, so lining a caption up
+          // with it put the caption 13 px to the left of the column of cell
+          // text it was captioning, on a slide where nothing was drawn at
+          // either coordinate to say which one was the edge. Measured on a
+          // keynote's #vorgang: the words under the table and the words in it
+          // stood 13 px apart with no line between them to explain it.
+          //
+          // The element's own inset is subtracted for the same reason, so the
+          // rule reads ink to ink: two bare tables stacked line their text up,
+          // not their invisible frames.
+          //
+          // `gap` deliberately keeps the box. A gap is a number the author
+          // tunes by eye and any ruler makes it as tunable; an alignment is
+          // either right or wrong, and only one of the two coordinates is
+          // visible. Moving both would also have re-spaced every stacked bare
+          // box in the corpus for no defect anyone had reported.
+          const rIn = (() => {
+            if (!ref) return ref;
+            const rn = nodeById.get(place.ref);
+            const rst = state.get(place.ref);
+            if (!rn || !rst) return ref;
+            const [ix, iy] = dgInkInset(rn.kind, rst.classes, ref.padX, ref.padY, rn);
+            if (!ix && !iy) return ref;
+            return { x: ref.x + ix, y: ref.y + iy,
+              w: Math.max(ref.w - 2 * ix, 0), h: Math.max(ref.h - 2 * iy, 0) };
+          })();
+          const [ownIX, ownIY] = dgInkInset(node.kind, st.classes, padX, padY, node);
           if (!ref) { cx = 0; cy = 0; }
           // **`gap` is square, and its ruler is one row.** A number that
           // *addresses* the grid is axis-keyed – a cell has a width and a
@@ -5676,21 +7421,43 @@ export function createDiagramCompiler(env = {}) {
           // next line; and a dedicated unit adds a fence word nobody would set,
           // when the author already writes `::: draw 150x52` and the clearance
           // ruler is its second number, visible in the source.
+          //
+          // A *written* gap is rows; the default is labels. dgGapPx is the one
+          // place that difference is spent, so nothing downstream has to know
+          // which of the two a placement carries.
           else if (place.dir === 'right' || place.dir === 'left') {
             cx = place.dir === 'right'
-              ? ref.x + ref.w + place.gap * uh + w / 2
-              : ref.x - place.gap * uh - w / 2;
-            cy = place.align === 'top' ? ref.y + h / 2
-              : place.align === 'bottom' ? ref.y + ref.h - h / 2
-              : ref.y + ref.h / 2;
+              ? ref.x + ref.w + dgGapPx(place, uh) + w / 2
+              : ref.x - dgGapPx(place, uh) - w / 2;
+            pinX = place.dir === 'right' ? 'left' : 'right';
+            cy = place.align === 'top' ? rIn.y + h / 2 - ownIY
+              : place.align === 'bottom' ? rIn.y + rIn.h - h / 2 + ownIY
+              : rIn.y + rIn.h / 2;
           } else {
             cy = place.dir === 'below'
-              ? ref.y + ref.h + place.gap * uh + h / 2
-              : ref.y - place.gap * uh - h / 2;
-            cx = place.align === 'left' ? ref.x + w / 2
-              : place.align === 'right' ? ref.x + ref.w - w / 2
-              : ref.x + ref.w / 2;
+              ? ref.y + ref.h + dgGapPx(place, uh) + h / 2
+              : ref.y - dgGapPx(place, uh) - h / 2;
+            cx = place.align === 'left' ? rIn.x + w / 2 - ownIX
+              : place.align === 'right' ? rIn.x + rIn.w - w / 2 + ownIX
+              : rIn.x + rIn.w / 2;
+            pinX = place.align === 'left' ? 'left'
+              : place.align === 'right' ? 'right' : null;
           }
+        }
+        // `anchor` is part of the placement expression too, and it is the only
+        // one of these that needs the element's own size – which is why it is
+        // here and not in the parser. `cx`/`cy` are still the centre
+        // afterwards; what the anchor moves is which point of the element the
+        // coordinate above was a statement about. Before `align` / `spread`,
+        // like the offset: those two hand the element a coordinate outright.
+        const anch = dgPlaceAnchor(node.kind, place, st.classes);
+        if (anch) {
+          const [ox, oy] = dgAnchorOffset(anch, w, h);
+          cx += ox; cy += oy;
+          // A written `anchor` is refused on a relative placement, so this
+          // never composes with the dir/flush answers above – it replaces the
+          // one an absolute coordinate has, which is the centre.
+          pinX = dgAnchorPinX(anch);
         }
         // The offset is part of the placement expression, so it lands before
         // align/spread override the result – otherwise an element written as
@@ -5701,9 +7468,12 @@ export function createDiagramCompiler(env = {}) {
         const ax = alignX.get(id);
         if (ax) {
           const m = boxes.get(ax.master);
-          if (m) cx = ax.edge === 'left' ? m.x + w / 2
-            : ax.edge === 'right' ? m.x + m.w - w / 2
-            : m.x + m.w / 2;
+          if (m) {
+            cx = ax.edge === 'left' ? m.x + w / 2
+              : ax.edge === 'right' ? m.x + m.w - w / 2
+              : m.x + m.w / 2;
+            pinX = ax.edge === 'left' ? 'left' : ax.edge === 'right' ? 'right' : null;
+          }
         }
         const ay = alignY.get(id);
         if (ay) {
@@ -5719,12 +7489,40 @@ export function createDiagramCompiler(env = {}) {
             const ca = sp.axis === 'x' ? a.x + a.w / 2 : a.y + a.h / 2;
             const cz = sp.axis === 'x' ? z.x + z.w / 2 : z.y + z.h / 2;
             const v = ca + (cz - ca) * sp.t;
-            if (sp.axis === 'x') cx = v; else cy = v;
+            if (sp.axis === 'x') { cx = v; pinX = null; } else cy = v;
           }
         }
+        // `offset` and a step's `move … by` translate the whole box, so they
+        // move the pinned edge with it rather than changing which edge it is.
         cx += st.shift[0] * uw;
         cy += st.shift[1] * uh;
-        boxes.set(id, { x: cx - w / 2, y: cy - h / 2, w, h, font, padX, padY });
+        // `chain` records which axes this element did *not* decide for itself,
+        // so an editor can say so: a drag that writes a `w` on one member of a
+        // row is not only a fact about that member, and a drag that makes it
+        // the narrowest re-sizes the rest of the row. Nothing in the drawing
+        // reads it; it is the compiler telling the page what it did.
+        //
+        // The comparison and not the presence of the entry: a box standing
+        // over a `default` layer's floor is in the chain, and the chain asked
+        // for less than the floor, so that size is not the row's doing and the
+        // callout would be naming the wrong reason.
+        const cs = chainSize.get(id);
+        const box = { x: cx - w / 2, y: cy - h / 2, w, h, font, padX, padY, pinX,
+          chainW: !!(cs && cs.w != null && cs.w >= w),
+          chainH: !!(cs && cs.h != null && cs.h >= h) };
+        // The band, in the same coordinates as the frame, so `z.inner.left` and
+        // `in z` read one rectangle rather than two arithmetics of it.
+        if (node.band) {
+          const b = node.band;
+          const pad = b.pad * uh, padX2 = b.padX * uw, cap = b.cap * uh;
+          box.inner = {
+            x: box.x + padX2,
+            y: box.y + pad + (b.bottom ? 0 : cap),
+            w: Math.max(box.w - 2 * padX2, 0),
+            h: Math.max(box.h - 2 * pad - cap, 0),
+          };
+        }
+        boxes.set(id, box);
         continue;
       }
       const holder = contById.get(id) || braceById.get(id);
@@ -5763,6 +7561,24 @@ export function createDiagramCompiler(env = {}) {
       // offset to the side is applied at draw time.
       const bshift = state.get(id).shift;
       boxes.set(id, { x: bb.x + bshift[0] * uw, y: bb.y + bshift[1] * uh, w: bb.w, h: bb.h });
+    }
+    };
+    walk();
+    if (autoZones.length) {
+      for (const z of autoZones) {
+        const held = (inChildren.get(z.id) || []).map(m => boxes.get(m)).filter(Boolean);
+        const zb = boxes.get(z.id);
+        if (!held.length || !zb) continue;
+        const bb = dgUnion(held);
+        const band = z.band || { pad: DG_ZONE_PAD, padX: DG_ZONE_PAD, cap: 0, bottom: false };
+        const pad = band.pad * uh, padX = band.padX * uw, cap = band.cap * uh;
+        if (z.zoneAuto.w) autoSize.set(z.id, { ...(autoSize.get(z.id) || {}), w: bb.w + 2 * padX });
+        if (z.zoneAuto.h) {
+          autoSize.set(z.id, { ...(autoSize.get(z.id) || {}), h: bb.h + 2 * pad + cap });
+        }
+      }
+      boxes.clear();
+      walk();
     }
 
     return boxes;
@@ -5805,42 +7621,88 @@ export function createDiagramCompiler(env = {}) {
   // another on its way somewhere is mid-animation, not a mistake – and it is
   // what lets a label appear where a hidden box still sits without being
   // called a collision. A pair never visible together is never compared.
-  // Two tolerances, because two kinds of element measure differently. A box
-  // has a drawn border, so its extent is exactly what the room sees and any
-  // intersection at all is visible ink. A `text` element's box is the line
-  // box: it carries the font's leading above and below the glyphs and draws
-  // no outline, so boxes can overlap by most of a line's leading with clear
-  // air between the words. Held to one tolerance, the check called two
-  // correctly-spaced captions in the engine's own lectures a collision -
-  // `bob`/`goals` at 63x16 and `intro`/`lreq` at 5x19, both of which render
-  // with visible space - while the real defects it exists for are 8x56
-  // between two boxes and 122x37 between a box and a text that genuinely sits
-  // on top of it.
+  // **Ink against ink, at one small tolerance.** A box, a dot and an image are
+  // their own boxes: each has a drawn border or a bitmap filling it, so the
+  // extent the layout gave it is exactly what the room sees. A `text` is not.
+  // Its box is the block of line boxes – as tall as DG_LINE_H per line, which
+  // carries leading nothing can see, and as wide as its *widest* line, which
+  // its other lines do not reach. So a text is compared as the rectangles it
+  // actually inks, one per line (`dgTextInkRects`), and everything is then
+  // held to DG_OVERLAP_TOL.
+  //
+  // It used to carry a second tolerance instead, 24 px wherever either side
+  // was a text, and both halves of that were wrong in the same direction. A
+  // label struck through by an outline crosses it by a *fraction of one line*
+  // by construction – `#ns-a41` shipped a three-line verification block
+  // printed across the box above it at 5.5 px of line box, under a floor of
+  // 24 – and the number was the compiler's px, which a figure scaled to its
+  // canvas multiplies by about 1.9 before the room sees it. The two false
+  // positives that floor was raised for, `bob`/`goals` and `intro`/`lreq`,
+  // are silent under this rule for the reason they always should have been:
+  // the air between those captions is leading, and leading is not ink.
   const DG_OVERLAP_TOL = 2;        // px, between two drawn shapes
-  const DG_OVERLAP_TOL_TEXT = 24;  // px, where either side is a text's line box
-  function dgOverlapWarnings(model, states, frameBoxes, warn) {
+  function dgOverlapWarnings(model, states, frames, frameBoxes, warn) {
     const authored = model.nodes.filter(n => !n.synth);
     if (authored.length < 2) return;
+    // **The overlap is said in rows, and the px beside it are named as the
+    // drawing's own.** The message used to carry px alone, and a px here is
+    // not a px in the room: a figure is scaled to fill its canvas, by about
+    // 1.9 in the case this check was written from, so "overlap by 76x15 px"
+    // described a thing the room sees as 145x28. The compiler cannot know
+    // that scale - the fit happens in the page - so the fix is the one the
+    // canvas reports already make, naming the unit rather than guessing the
+    // number. The unit is the row, because a `gap` is measured in `uh` on
+    // both axes and `gap` is what the sentence below tells the author to
+    // write: the figure here is the one that goes on that line.
+    const uh = model.unit[1];       // the row - both axes, because a gap is
+    const rows = (px) => (px / uh).toFixed(2);
+    // What one element paints at one beat, as rectangles. A `text` with a
+    // ground is a text with a drawn rect under it, so it answers with that
+    // rect and not with its glyph lines – `{.paper}` knocks a hole in
+    // whatever is behind it, which is the opposite of transparent.
+    const inkOf = (node, st, box, frame) => {
+      if (node.kind !== 'text') return [box];
+      const g = frame.geom.get(node.id + '--r');
+      if (g) return [{ x: g[0], y: g[1], w: g[2], h: g[3] }];
+      const o = frame.geom.get(node.id + '--l');
+      if (!o || !st.label) return [box];
+      const anchor = frame.labelAnchor.get(node.id) || dgLabelAnchor(st.classes);
+      const rects = dgTextInkRects(st.label, st.classes,
+        box.font ?? dgFontFor(st.classes), o, anchor);
+      return rects.length ? rects : [box];
+    };
+    const union = (rs) => {
+      const x = Math.min(...rs.map(r => r.x)), y = Math.min(...rs.map(r => r.y));
+      return { x, y, w: Math.max(...rs.map(r => r.x + r.w)) - x,
+        h: Math.max(...rs.map(r => r.y + r.h)) - y };
+    };
     // Containment is nesting and nesting is deliberate: a `box` used as a
     // panel with a stack of boxes inside it, a `dot` marking the centre of
     // the box it sits in. Both are patterns the engine's own figure-rules
     // document demonstrates on purpose, and the first version of this check
     // called all of them collisions. Only a *partial* overlap is reported -
     // the case where neither element is inside the other and the picture
-    // therefore has two things fighting for one piece of paper.
+    // therefore has two things fighting for one piece of paper. Asked of the
+    // two ink extents, because that is what the rest of this compares: a
+    // caption whose leading hangs a hair outside the box it is written in is
+    // inside it as far as a reader is concerned.
     const holds = (a, b) => b.x >= a.x - DG_OVERLAP_TOL && b.y >= a.y - DG_OVERLAP_TOL
       && b.x + b.w <= a.x + a.w + DG_OVERLAP_TOL && b.y + b.h <= a.y + a.h + DG_OVERLAP_TOL;
-    const inter = (a, b, tol) => {
-      if (holds(a, b) || holds(b, a)) return null;
-      const iw = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
-      const ih = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
-      return (iw > tol && ih > tol) ? { iw, ih } : null;
+    const inter = (as, bs) => {
+      const ua = union(as), ub = union(bs);
+      if (holds(ua, ub) || holds(ub, ua)) return null;
+      let best = null;
+      for (const a of as) for (const b of bs) {
+        const iw = Math.min(a.x + a.w, b.x + b.w) - Math.max(a.x, b.x);
+        const ih = Math.min(a.y + a.h, b.y + b.h) - Math.max(a.y, b.y);
+        if (iw <= DG_OVERLAP_TOL || ih <= DG_OVERLAP_TOL) continue;
+        if (!best || iw * ih > best.iw * best.ih) best = { iw, ih };
+      }
+      return best;
     };
     for (let i = 0; i < authored.length; i++) {
       for (let j = i + 1; j < authored.length; j++) {
         const a = authored[i].id, b = authored[j].id;
-        const tol = (authored[i].kind === 'text' || authored[j].kind === 'text')
-          ? DG_OVERLAP_TOL_TEXT : DG_OVERLAP_TOL;
         let both = 0, hit = 0, worst = null;
         for (let k = 0; k < states.length; k++) {
           const sa = states[k].get(a), sb = states[k].get(b);
@@ -5848,16 +7710,21 @@ export function createDiagramCompiler(env = {}) {
           const ba = frameBoxes[k].get(a), bb = frameBoxes[k].get(b);
           if (!ba || !bb || !ba.w || !bb.w) continue;
           both++;
-          const ov = inter(ba, bb, tol);
+          const ov = inter(inkOf(authored[i], sa, ba, frames[k]),
+            inkOf(authored[j], sb, bb, frames[k]));
           if (!ov) { hit = -1; break; }
           hit++;
           if (!worst || ov.iw * ov.ih > worst.iw * worst.ih) worst = ov;
         }
         if (both === 0 || hit !== both || !worst) continue;
-        warn(`${a} and ${b} overlap by ${Math.round(worst.iw)}×${Math.round(worst.ih)} px`
+        warn(`${a}${dgSite(authored[i])} and ${b}${dgSite(authored[j])}`
+          + ` overlap by ${rows(worst.iw)}×${rows(worst.ih)} rows`
+          + ` (${Math.round(worst.iw)}×${Math.round(worst.ih)} px of the drawing's own grid,`
+          + ` which the slide scales to fill its canvas)`
           + ` – nothing can be drawn between them and whichever is painted second wins.`
-          + ` Place one of them relative to the other (\`right of ${a} gap …\`) rather than`
-          + ` giving both an absolute \`at\`, so the spacing cannot drift when a label changes.`);
+          + ` Place one of them relative to the other (\`right of ${a} gap …\`, and a gap is`
+          + ` rows on both axes) rather than giving both an absolute \`at\`, so the spacing`
+          + ` cannot drift when a label changes.`);
       }
     }
   }
@@ -5931,7 +7798,7 @@ export function createDiagramCompiler(env = {}) {
         const frac = inside / total;
         if (frac < DG_LABEL_SWALLOW_FRAC) continue;
         seen.add(e.id);
-        warn(`edge ${e.id}: the label "${e.label}" sits on an elbow and its ground covers `
+        warn(`edge ${e.id}${dgSite(e)}: the label "${e.label}" sits on an elbow and its ground covers `
           + `${Math.round(frac * 100)}% of the part of that elbow you can actually see, so the`
           + ` connector disappears and the words are left floating in the gap. On an elbow the`
           + ` route is the information. Drop the fill class, or move the label off the line with`
@@ -6049,7 +7916,7 @@ export function createDiagramCompiler(env = {}) {
       // The label as it reads at the beat that was worst, which is not always
       // the one on the element's own line: a `label` step may have swapped it.
       const label = String(states[worst.k].get(e.id).label || '').replace(/\n/g, ' ');
-      warn(`edge ${e.id}: the label "${label}" measures ${Math.round(along)} px across`
+      warn(`edge ${e.id}${dgSite(e)}: the label "${label}" measures ${Math.round(along)} px across`
         + (room != null ? ` and has ${Math.round(Math.max(0, room))} px of clear space`
           + ` between ${ends[0]} and ${ends[1]}` : '')
         + `, so ${Math.round(worst.lost)} px of the words are painted over by`
@@ -6059,6 +7926,394 @@ export function createDiagramCompiler(env = {}) {
         + ` where the two elements are short enough for it to clear them, lift it off the line`
         + ` with side top / side bottom.`);
     }
+  }
+
+  // **An elbow's vertical rail running along the side of a box.**
+  //
+  // `.elbow` draws its own rail halfway between the two faces, and it looks at
+  // nothing else in the figure - that bound is what keeps it a class rather
+  // than a router, and it is not going to change here. What can change is that
+  // the author hears about it. In a row of boxes written `gap 0` the halfway
+  // point is the seam between two of them, so every elbow leaving that row
+  // drew its rail exactly on a box's outline: the lines read as if they ran
+  // *inside* the boxes, and the arrows arrived at the target in one bundle
+  // with nothing to say which came from where.
+  //
+  // A quarter of a row is the threshold, for the reason DG_DOT_R is in grid
+  // units: it is a clearance, and a clearance's ruler is one row. Nearer than
+  // that and a 1.4 px rail and a 1.4 px outline are one line to a room.
+  //
+  // Only the *rail*, and only where it is vertical. A leaving or arriving run
+  // ends on the face it leaves, so it is against a box's side by construction
+  // and reporting it would be reporting the drawing. And only where it is true
+  // at every beat both are drawn, the same rule the clip and anchor warnings
+  // follow: a `move` step sliding a box past a rail is mid-animation.
+  //
+  // **The edge's own two ends are exempt, and that exemption is the rule.**
+  // The rail is halfway between their facing sides, so on any pair closer than
+  // half a row it is within a quarter of one by arithmetic - which is exactly
+  // the bracket the class was built to draw, and `.elbow`'s own note says why
+  // it measures from the faces: two connectors leaving one parent land their
+  // rails on one line and the drawing reads as one bracket. Run against the
+  // corpus without the exemption: five hits, every one of them a tree bracket
+  // or a swimlane hand-off doing its job, and nothing else. What is left is
+  // the case that is never intentional - a rail lying on the side of a box the
+  // edge has nothing to do with, which is what a row written `gap 0` puts
+  // under every line that passes it.
+  function dgElbowRailWarnings(model, states, frames, frameBoxes, warn) {
+    const [uw, uh] = model.unit;
+    const near = uh / 4;
+    const nodeById = new Map();
+    for (const n of model.nodes) nodeById.set(n.id, n);
+    for (const e of model.edges) {
+      let worst = null, everyBeat = true, seen = 0;
+      for (let k = 0; k < frames.length && everyBeat; k++) {
+        const st = states[k] && states[k].get(e.id);
+        if (!st || !st.classes.has('elbow')) { everyBeat = false; break; }
+        if ((frames[k].vis.get(e.id) ?? 1) <= 0) continue;
+        const pts = frames[k].geom.get(e.id + '--p');
+        // Four points, and the rail is the middle two. A `via` route suppresses
+        // the elbow entirely, so anything else is not one.
+        if (!pts || pts.length !== 8) { everyBeat = false; break; }
+        const [rx1, ry1, rx2, ry2] = [pts[2], pts[3], pts[4], pts[5]];
+        if (Math.abs(rx1 - rx2) > 0.01) { everyBeat = false; break; }
+        const lo = Math.min(ry1, ry2), hi = Math.max(ry1, ry2);
+        seen++;
+        let hit = null;
+        const ends = new Set([e.from && e.from.ref, e.to && e.to.ref]);
+        for (const n of model.nodes) {
+          if (n.synth && n.synth === n.id) continue;
+          if (ends.has(n.id)) continue;
+          if ((frames[k].vis.get(n.id) ?? 1) <= 0) continue;
+          const b = frameBoxes[k] && frameBoxes[k].get(n.id);
+          if (!b || !b.w || !b.h) continue;
+          if (b.y + b.h < lo - 0.01 || b.y > hi + 0.01) continue;
+          const d = Math.min(Math.abs(rx1 - b.x), Math.abs(rx1 - (b.x + b.w)));
+          if (d >= near) continue;
+          if (!hit || d < hit.d) hit = { d, id: n.id, node: n };
+        }
+        if (!hit) { everyBeat = false; break; }
+        if (!worst || hit.d < worst.d) worst = hit;
+      }
+      if (!everyBeat || !worst || !seen) continue;
+      warn(`edge ${e.id}${dgSite(e)}: its elbow rail runs ${(worst.d / uw).toFixed(2)} units `
+        + `(${Math.round(worst.d)} px) from the side of ${worst.id}${dgSite(worst.node)}, which is `
+        + `inside a quarter of a row – the line and that outline read as one. The rail sits halfway `
+        + `between the two faces and nothing moves it, so the fix is on the boxes: give the row a `
+        + `gap so the halfway point is paper, or write the route yourself with via.`);
+    }
+  }
+
+  // **An arrow the reader cannot see the shaft of.** The default gap now
+  // clears one (2.1), but a *written* `gap` is the author's number and is not
+  // pushed apart: it is a number other elements are chained off, and moving it
+  // silently moves them. So the other half of the rule is that the author
+  // hears about it. Measured on the **exposed** run – the part of the route
+  // that is not under either of the edge's own endpoints, because a box is
+  // painted after the edge beneath it – against DG_EDGE_MIN labels.
+  //
+  // Only the edge's own two ends are subtracted, which is the same bound
+  // dgLabelClipWarnings keeps: a third shape the line disappears under is
+  // dgOverlapWarnings' business and has a different fix. And like every other
+  // warning here it fires only where the run is short at **every** beat the
+  // edge is drawn at, so a `move` step sliding two boxes together mid-figure
+  // is animation rather than a mistake.
+  //
+  // A synthesised edge is exempt. A `sequence` message, a chart's baseline and
+  // a leader stub are all placed by the statement that made them, and the fix
+  // this warning names – a `gap` on one of the two elements – is not a line
+  // the author has. Where such a run is too short the number to change is the
+  // statement's own `space`, which is a different report and not this one.
+  //
+  // **An `.elbow` is measured on its arrival run instead of on the whole
+  // route**, and it is the same question rather than a second one. An elbow's
+  // exposed run is mostly rail, and the rail is shared: it says nothing about
+  // which box the arrow points into. What the head stands on is the run after
+  // the rail, and `dgEdgeRoute` already slides the rail toward the source to
+  // buy that run DG_ELBOW_ARRIVE wherever the gap can pay for it and still
+  // leave a head's length behind. So this fires exactly where the gap cannot
+  // pay for both, and the fix it names is the one the route does not have: a
+  // number on the boxes, or `via` to write the route by hand.
+  function dgEdgeShortWarnings(model, states, frames, frameBoxes, warn) {
+    const [uw, uh] = model.unit;
+    const min = DG_EDGE_MIN * DG_LABEL_H;
+    for (const e of model.edges) {
+      if (e.synth) continue;
+      if (e.from.point || e.to.point) continue;
+      let worst = null, everyBeat = true, seen = 0, bent = false;
+      for (let k = 0; k < frames.length && everyBeat; k++) {
+        if ((frames[k].vis.get(e.id) ?? 1) <= 0) continue;
+        const st = states[k] && states[k].get(e.id);
+        // **A headless edge is exempt, and that is the rule rather than an
+        // exception to it.** What this measures is a head crowding out its own
+        // shaft, so an edge that draws no head – a leader stub, which is what
+        // `--` is, or anything carrying `.no-head` – has nothing to crowd. A
+        // short plain connector reads as a tick joining two things, which is
+        // what a leader is for: `text note "…" below px gap 0.5 -- px` in the
+        // tutorial's motion figure leaves exactly 28 px and is correct.
+        if (!st || (st.classes.has('no-head') && !st.classes.has('both-heads'))) {
+          everyBeat = false; break;
+        }
+        // The route and not the stroke: `--p` has already been trimmed back by
+        // most of an arrowhead, and the question here is how much paper the
+        // head and the shaft have to share.
+        const pts = dgEdgeRoute(e, st.classes, frameBoxes[k], uw, uh);
+        if (!pts || pts.length < 2) { everyBeat = false; break; }
+        const ends = [frameBoxes[k].get(e.from.ref), frameBoxes[k].get(e.to.ref)]
+          .filter(b => b && b.w > 0 && b.h > 0);
+        // Four points and no `via` is the elbow route, the same shape
+        // dgElbowRailWarnings reads: start, the two ends of the rail, end.
+        const elbow = st.classes.has('elbow') && !(e.via && e.via.length) && pts.length === 4;
+        let run = 0;
+        if (elbow) {
+          run = dgExposedRun(pts[2][0], pts[2][1], pts[3][0], pts[3][1], ends);
+        } else {
+          for (let i = 0; i + 1 < pts.length; i++) {
+            run += dgExposedRun(pts[i][0], pts[i][1], pts[i + 1][0], pts[i + 1][1], ends);
+          }
+        }
+        const floor = elbow ? DG_ELBOW_ARRIVE : min;
+        seen++;
+        if (run >= floor) { everyBeat = false; break; }
+        // The span the rail is placed inside, which is what an author would
+        // have to widen: both outer runs together.
+        const span = elbow
+          ? run + Math.hypot(pts[1][0] - pts[0][0], pts[1][1] - pts[0][1])
+          : 0;
+        if (worst == null || run < worst.run) { worst = { run, span }; bent = elbow; }
+      }
+      if (!everyBeat || worst == null || !seen) continue;
+      if (bent) {
+        const want = Math.ceil((((DG_ELBOW_ARRIVE + DG_ELBOW_LEAVE) - worst.span) / uh) * 100) / 100;
+        warn(`edge ${e.id}${dgSite(e)}: its elbow arrives over ${Math.round(worst.run)} px `
+          + `(${(worst.run / DG_LABEL_H).toFixed(2)} labels) of run after the rail, and the `
+          + `arrowhead alone is ${DG_HEAD} px – so the head reads as resting on ${e.to.ref}'s `
+          + `outline rather than arriving at it, and nothing in the route says which box it left. `
+          + `The rail is already as far toward ${e.from.ref} as it can go without losing the run `
+          + `it leaves on, so the fix is the room between the two: about ${want.toFixed(2)} more `
+          + `rows of gap – a gap is measured in rows on both axes – or via to write the route `
+          + `yourself.`);
+        continue;
+      }
+      worst = worst.run;
+      // The number the author would have to write to clear it, in the unit a
+      // written gap is in – rows – so it can be typed straight onto the line.
+      const want = Math.ceil(((DG_GAP_JOINED * DG_LABEL_H - worst) / uh) * 100) / 100;
+      warn(`edge ${e.id}${dgSite(e)}: its exposed run is ${Math.round(worst)} px `
+        + `(${(worst / DG_LABEL_H).toFixed(2)} labels) and the arrowhead alone is ${DG_HEAD} px, `
+        + `so the room sees a head with almost no shaft. A written gap is never widened for you, `
+        + `because other elements are chained off it – so the fix is on the line that wrote it: `
+        + `give ${e.from.ref} and ${e.to.ref} about ${want.toFixed(2)} more rows of gap, or take `
+        + `the written gap off that placement and let the default clear the arrow.`);
+    }
+  }
+
+  // **Which pair of side words an edge can use is a question about the beats
+  // the edge is on screen, and it used to be answered on every beat.**
+  //
+  // The offset runs along the routed line's normal, so only the pair lying
+  // across the line can move a label: top/bottom on a mostly horizontal edge,
+  // left/right on a mostly vertical one. Naming the other pair moves nothing
+  // and is worth saying. What was wrong is *where* it was said: the check sat
+  // in `dgFrameDrawables`, which runs for every beat whether or not the edge is
+  // drawn in it, so an edge that is horizontal from the step that reveals it
+  // onwards was judged on a base geometry nobody ever sees it in. The
+  // tutorial's `#diagram-steps` is the case: the same step that shows the two
+  // arrows to Bob moves Eve down onto their line, and tightening the row far
+  // enough would have refused `side top` for a state the arrow is not in.
+  //
+  // So it is a post-pass like the four above it, over the beats at which the
+  // edge is visible *and* carries a label – a label is what a side moves, and
+  // an edge with none has nothing to say about sides. Three answers:
+  //
+  //   - the word runs along the line at every such beat: the old warning,
+  //     word for word, because that case has not changed;
+  //   - it runs along at some and across at others: the geometry is honest at
+  //     each beat and the word is doing two different things, so the warning
+  //     names the beat and leaves the author to decide;
+  //   - it never does: silence, which is the case the old check got wrong.
+  //
+  // `eSide` is constant across beats – it is written on the line or comes off
+  // a `default edge side`, and no step speaks about it – so it is resolved
+  // once, the same way `dgFrameDrawables` resolves it.
+  function dgEdgeSideWarnings(model, states, frames, frameBoxes, warn) {
+    const [uw, uh] = model.unit;
+    for (const e of model.edges) {
+      const sideLayers = dgDefaultLayers(model, 'edge', e.tags).reverse();
+      let eSide = e.side;
+      if (eSide == null) for (const d of sideLayers) if (d.side != null) { eSide = d.side; break; }
+      if (!eSide) continue;
+      const along = [];      // beats where the word runs along the line
+      const across = [];     // beats where it can act
+      for (let k = 0; k < frames.length; k++) {
+        if ((frames[k].vis.get(e.id) ?? 1) <= 0) continue;
+        const st = states[k] && states[k].get(e.id);
+        if (!st || !st.label) continue;
+        const pts = dgEdgeRoute(e, st.classes, frameBoxes[k], uw, uh);
+        if (!pts || pts.length < 2) continue;
+        const { dir } = dgPolyPoint(pts, 0.5);
+        const vertical = Math.abs(dir[1]) > Math.abs(dir[0]);
+        ((vertical ? ['top', 'bottom'] : ['left', 'right']).includes(eSide) ? along : across)
+          .push({ k, vertical });
+      }
+      if (!along.length) continue;
+      const vertical = along[0].vertical;
+      const other = (v) => (v ? 'side left or side right' : 'side top or side bottom');
+      if (!across.length) {
+        warn(`edge ${e.id}${dgSite(e)}: side ${eSide} names a direction this edge runs along, so it cannot `
+          + `move the label. The edge is ${vertical ? 'vertical' : 'horizontal'} – `
+          + `use ${other(vertical)}.`);
+        continue;
+      }
+      // A beat is named the way the reveal counter names it: 0 is the opening
+      // state and a step is the number of presses it takes to reach it, with
+      // the step's own name beside it where it has one.
+      const beat = (k) => (k === 0 ? 'beat 0' : `beat ${k}`
+        + (model.steps[k - 1] && model.steps[k - 1].name ? ` (${model.steps[k - 1].name})` : ''));
+      warn(`edge ${e.id}${dgSite(e)}: side ${eSide} moves the label at ${beat(across[0].k)} and `
+        + `nowhere at ${beat(along[0].k)}, where the edge runs ${vertical ? 'vertical' : 'horizontal'} `
+        + `and the word names its own direction. An edge that changes axis under a step needs a word `
+        + `that works on both, so either leave the side off or keep the two ends on one axis for `
+        + `every beat the arrow is on screen.`);
+    }
+  }
+
+  // **Both censuses below read placements, and a step that moves something is
+  // an act rather than a placement.** `move eve to …` carrying a box into a
+  // container's outline is the tutorial's `#diagram-steps` – the intruder
+  // stepping into the channel is the whole figure – so a beat where the
+  // element has been shifted is not evidence about where it was put.
+  // `by` shifts and `to` re-places, so both halves of `move` are asked about.
+  const dgUnmoved = (state, node) => {
+    const st = node && state && state.get(node.id);
+    if (!st) return true;
+    if (st.place !== node.place) return false;
+    return !st.shift || (!st.shift[0] && !st.shift[1]);
+  };
+
+  // **Something placed in a band that the band cannot hold.** A zone written
+  // with `w` and `h` is a claim on the paper, and a claim can be wrong: the
+  // author writes a number once and then puts three boxes and a gap in it. The
+  // overflow is silent today, because the frame carries `synth` and is out of
+  // the overlap census by construction – which is right for a child *standing*
+  // in an area and wrong for one hanging out of it.
+  //
+  // Only what is placed `in` the zone is measured. A chain that runs on from a
+  // child runs on out of the area, deliberately: `in` is the membership
+  // relation this grammar has, and a `right of` off a member states nothing
+  // about the area at all.
+  function dgZoneFitWarnings(model, states, frameBoxes, warn) {
+    const [uw, uh] = model.unit;
+    const zones = new Map(model.nodes.filter(n => n.zone).map(n => [n.id, n]));
+    const byId = new Map(model.nodes.map(n => [n.id, n]));
+    for (const n of model.nodes) {
+      const p = n.place;
+      if (!p || p.kind !== 'in' || !zones.has(p.ref)) continue;
+      const z = zones.get(p.ref);
+      // An axis the children settled cannot overflow: it is what they measured.
+      const auto = z.zoneAuto || { w: false, h: false };
+      const held = p.group ? p.group.members : [n.id];
+      let worst = null;
+      for (let k = 0; k < frameBoxes.length; k++) {
+        if (!held.every(m => dgUnmoved(states[k], byId.get(m)))) continue;
+        const band = (frameBoxes[k].get(z.id) || {}).inner;
+        const bs = held.map(m => frameBoxes[k].get(m)).filter(Boolean);
+        if (!band || !bs.length) continue;
+        const bb = dgUnion(bs);
+        const over = { w: bb.w - band.w, h: bb.h - band.h };
+        if (!worst || over.w + over.h > worst.w + worst.h) worst = over;
+      }
+      if (!worst) continue;
+      for (const axis of ['w', 'h']) {
+        if (auto[axis] || worst[axis] <= 0.5) continue;
+        const u = axis === 'w' ? uw : uh;
+        const want = Math.ceil(((axis === 'w' ? z.w : z.h) + worst[axis] / u) * 100) / 100;
+        warn(`${n.kind} ${n.id}${dgSite(n)}: it is placed in ${z.id}, and it is `
+          + `${Math.round(worst[axis])} px ${axis === 'w' ? 'wider' : 'taller'} than the band `
+          + `${z.id} reserves${p.group ? ' (the run it stands in is)' : ''} – so it hangs out of `
+          + `the area it is meant to stand in. Give ${z.id} ${axis === 'w' ? 'w' : 'h'} `
+          + `${want.toFixed(2)}, or leave the number off and let ${z.id} take that axis from what `
+          + `is placed in it.`);
+      }
+    }
+  }
+
+  // **A container's pad is room the container owns, and until now nothing
+  // placed against a member could see it.** `text t "…" right of m gap 0.2`
+  // lands between the member and the outline, reading as a label that has
+  // fallen inside the box that holds it, and no census reports it: a container
+  // is not a node, so `dgOverlapWarnings` never meets it. It is the same defect
+  // `dgLabelGroundWarnings` reports one level down – words standing on a line
+  // that is there to mean something.
+  function dgContainerPadWarnings(model, states, frameBoxes, warn) {
+    const seen = new Set();
+    for (const c of model.containers) {
+      const members = new Set(c.members);
+      for (const n of model.nodes) {
+        if (members.has(n.id) || n.synth) continue;
+        const p = n.place;
+        const refs = p?.kind === 'rel' || p?.kind === 'in' ? [p.ref]
+          : p?.kind === 'between' ? p.refs.map(r => r.ref)
+            : p?.kind === 'abs' ? dgPairRefs(p.at) : [];
+        if (!refs.some(r => members.has(r))) continue;
+        for (let k = 0; k < frameBoxes.length; k++) {
+          if (!dgUnmoved(states[k], n)) continue;
+          const cb = frameBoxes[k].get(c.id), nb = frameBoxes[k].get(n.id);
+          if (!cb || !nb || !(cb.w > 0)) continue;
+          const hit = nb.x < cb.x + cb.w && nb.x + nb.w > cb.x
+            && nb.y < cb.y + cb.h && nb.y + nb.h > cb.y;
+          // Inside the outline is the case: a member is inside it too, and a
+          // member is exempt above. Crossing the line from outside is an
+          // overlap of a different shape and has a different fix.
+          if (!hit) continue;
+          const key = `${c.id}|${n.id}`;
+          if (seen.has(key)) break;
+          seen.add(key);
+          warn(`${n.kind} ${n.id}${dgSite(n)}: it is placed against ${refs.find(r => members.has(r))}, `
+            + `which ${c.id} holds, and it lands inside ${c.id}'s outline – on the paper the `
+            + `container claims for its members, where the room reads it as one of them. A `
+            + `container's pad is invisible to a placement against a member, so the distance to `
+            + `clear is the pad and not the gap: place it against ${c.id} itself, widen the gap `
+            + `past ${c.id}'s pad, or give ${c.id} the words as its label.`);
+          break;
+        }
+      }
+    }
+  }
+
+  // How much of one segment is neither inside the first box nor inside the
+  // second. Both are axis-aligned rectangles and the segments this walks are
+  // very nearly axis-aligned themselves, so the cheap answer – clip the
+  // segment's parameter range against each rectangle and subtract the union of
+  // what is covered – is exact for the straight and elbow routes and close
+  // enough for a diagonal, which is the one case where a pixel either way
+  // decides nothing.
+  function dgExposedRun(x1, y1, x2, y2, ends) {
+    const len = Math.hypot(x2 - x1, y2 - y1);
+    if (!len) return 0;
+    const spans = [];
+    for (const b of ends) {
+      const axis = (p1, p2, lo, hi) => {
+        if (Math.abs(p2 - p1) < 1e-9) return (p1 >= lo && p1 <= hi) ? [0, 1] : null;
+        let t0 = (lo - p1) / (p2 - p1), t1 = (hi - p1) / (p2 - p1);
+        if (t0 > t1) { const s = t0; t0 = t1; t1 = s; }
+        return [t0, t1];
+      };
+      const sx = axis(x1, x2, b.x, b.x + b.w);
+      const sy = axis(y1, y2, b.y, b.y + b.h);
+      if (!sx || !sy) continue;
+      const t0 = Math.max(0, sx[0], sy[0]);
+      const t1 = Math.min(1, sx[1], sy[1]);
+      if (t1 > t0) spans.push([t0, t1]);
+    }
+    spans.sort((a, b) => a[0] - b[0]);
+    let covered = 0, at = 0;
+    for (const [t0, t1] of spans) {
+      if (t1 <= at) continue;
+      covered += t1 - Math.max(t0, at);
+      at = t1;
+    }
+    return len * (1 - covered);
   }
 
   function dgFrameDrawables(model, state, boxes, labelIndex) {
@@ -6212,7 +8467,40 @@ export function createDiagramCompiler(env = {}) {
       // dropped here and had to come back.
       const padX = freeText ? 0 : (box.padX ?? DG_PAD_X);
       const padY = freeText ? 0 : (box.padY ?? DG_PAD_Y);
-      const anchor = dgLabelAnchor(st.classes);
+      // **A free text is drawn from the edge its placement pinned, and that is
+      // the one thing an estimated width cannot be allowed to decide.** Its
+      // box *is* its glyph run, so `right of x`, `flush left`, `align x left`
+      // and `anchor tl` each put one of its own sides on a coordinate exactly.
+      // Centring the words on the box's middle then splits the estimate's
+      // error between the two sides, and half of it lands on the side the
+      // author pinned: a `label` step swapping in a longer string moves that
+      // edge by half the *change* in the error, and the words visibly jump
+      // although nothing in the source moved them. Measured on a keynote's
+      // zone caption, "im Raum" relabelled to "im Raum · 3 Stunden, ohne
+      // Internet": 11 px right, on a caption whose whole point is that it sits
+      // in the corner of its area.
+      //
+      // Anchoring the ink on that edge instead moves nothing in estimate
+      // space – the label's origin goes from `box.x + box.w / 2` drawn
+      // `middle` to `box.x` drawn `start`, and `extentsOf` reads the same
+      // anchor, so the reserved box, the viewBox and every placement warning
+      // are the bytes they were. What changes is only which end of the real
+      // glyph run absorbs the difference between the estimate and the browser.
+      //
+      // Three bounds. A **free text** only: on a box or a dot the words are
+      // centred inside an outline that has its own position, and the outline
+      // moves with the estimate too, so the pair stays coherent. A box **sized
+      // by its label** only, because an explicit `w` makes the label narrower
+      // than its box and "as far left as the box allows" is then a different
+      // sentence – the one `.left` says. And never over a **written alignment
+      // class**, which is the author's own answer, nor over `.turn`, which is
+      // centred whichever way it reads.
+      let anchor = dgLabelAnchor(st.classes);
+      if (anchor === 'middle' && !turned && freeText && box.pinX
+          && Math.abs(box.w - m.w) < 0.01) {
+        anchor = box.pinX === 'left' ? 'start' : 'end';
+        labelAnchor.set(el.id, anchor);
+      }
       const x = anchor === 'start' ? box.x + padX
         : anchor === 'end' ? box.x + box.w - padX
           : box.x + box.w / 2;
@@ -6314,12 +8602,44 @@ export function createDiagramCompiler(env = {}) {
       }
       put(br, br.id + '--p', pts.flat());
       if (st.label) {
-        const bm = dgMeasure(st.label, dgFontFor(st.classes), st.classes.has('mono'));
+        const bfont = dgFontFor(st.classes);
+        const bm = dgMeasure(st.label, bfont, st.classes.has('mono'));
+        const turn = dgTurnOf(st.classes);
+        // **A label block is drawn centred on its origin**, because dgTextEl
+        // walks its baselines down from -h/2 – and for a brace above or below
+        // the bar that is the wrong anchor the moment the label has a second
+        // line. The origin is a fixed 9 px clear of the tick end, so a
+        // two-line label on `side bottom` hung half its height back up and
+        // printed its *first* line across the bar; `pad` could not rescue it,
+        // because `pad` moves the brace and the label with it. Measured on
+        // the spoken talk's board figure, whose label had to stay one line.
+        //
+        // So the two ends hang from the edge that faces the bar rather than
+        // from their middle: the first line of a `bottom` label sits where a
+        // one-line label sat and the rest grow downwards, the *last* line of a
+        // `top` label does the same and the rest grow upwards. A one-line
+        // label is unmoved by construction – the shift is the block's height
+        // less that one line's, which is zero.
+        //
+        // `left` and `right` keep the centring: there the label runs away
+        // from the bar along its own anchor (start / end), so every line is
+        // already clear of it, and a two-line label straddling the bar's
+        // middle is what the side means. A turned label is centred on its
+        // origin on both axes whichever side it sits on – the lines run
+        // across the bar rather than towards it – so it keeps the old origin
+        // too, which is also what extentsOf reserves for it.
+        const hang = (side) => {
+          if (turn || bm.lines.length < 2) return 0;
+          const edge = side === 'bottom' ? bm.lines[0] : bm.lines[bm.lines.length - 1];
+          const over = (bm.h - bfont * edge.scale * DG_LINE_H) / 2;
+          return side === 'bottom' ? over : -over;
+        };
+        if (br.side === 'top' || br.side === 'bottom') lp[1] += hang(br.side);
         ext.set(br.id + '--l', [bm.w, bm.h]);
-        put(br, br.id + '--l', [lp[0], lp[1], dgTurnOf(st.classes)]);
+        put(br, br.id + '--l', [lp[0], lp[1], turn]);
         // A turned label is centred on its origin whichever side it sits on,
         // so the side's own anchor no longer describes it.
-        labelAnchor.set(br.id, dgTurnOf(st.classes) ? 'middle' : lanchor);
+        labelAnchor.set(br.id, turn ? 'middle' : lanchor);
       }
     }
 
@@ -6370,7 +8690,7 @@ export function createDiagramCompiler(env = {}) {
         const deg = Math.abs(Math.atan2(dy, dx) * 180 / Math.PI);
         const off = Math.min(deg % 90, 90 - (deg % 90));
         if (off > 0.05 && off < DG_SKEW_DEG) {
-          dgWarn(`edge ${e.id} runs ${off.toFixed(1)}° off the axis – its endpoints are probably `
+          dgWarn(`edge ${e.id}${dgSite(e)} runs ${off.toFixed(1)}° off the axis – its endpoints are probably `
             + `meant to line up. Either "align" the two elements, or, if the edge uses a `
             + `fractional anchor, give them the same height ("same as") – a fraction of two `
             + `different heights lands at two different places.`);
@@ -6466,9 +8786,14 @@ export function createDiagramCompiler(env = {}) {
         // where `pick` lives, so `default edge pad 0.2` would otherwise
         // parse, sit in the model and move nothing.
         const padLayers = dgDefaultLayers(model, 'edge', e.tags).reverse();
-        let ePad = e.pad;
-        if (ePad == null) for (const d of padLayers) if (d.pad != null) { ePad = d.pad; break; }
-        const [gx, gy] = dgPadPx(ePad, uh);
+        let ePad = e.pad, ePadUnit = e.padUnit;
+        if (ePad == null) {
+          for (const d of padLayers) if (d.pad != null) { ePad = d.pad; ePadUnit = d.padUnit; break; }
+        }
+        // `font` is this label's own, so the ground round a `.small` edge
+        // label is the same ring of paper a base one gets rather than a wider
+        // one – the same rule a box's padding follows.
+        const [gx, gy] = dgPadPx(ePad, uh, font, ePadUnit);
         // Beside the line, a grounded label has to clear its own *ground* and
         // not just its glyphs. Clearing the glyphs alone laid the rect back
         // across the line the label had been lifted off, which paints out the
@@ -6499,11 +8824,12 @@ export function createDiagramCompiler(env = {}) {
         // decidable after the edge has been routed - which is why naming the
         // other pair is a warning here rather than a refusal at parse time.
         const side = vertical ? (eSide === 'left' ? -1 : 1) : (eSide === 'bottom' ? -1 : 1);
-        if (eSide && (vertical ? ['top', 'bottom'] : ['left', 'right']).includes(eSide)) {
-          dgWarn(`edge ${e.id}: side ${eSide} names a direction this edge runs along, so it cannot `
-            + `move the label. The edge is ${vertical ? 'vertical' : 'horizontal'} – `
-            + `use side ${vertical ? 'left or side right' : 'top or side bottom'}.`);
-        }
+        // Saying so is `dgEdgeSideWarnings`, not this loop. This loop runs for
+        // every beat, drawn or not, so it judged an edge on states nobody sees
+        // it in – an arrow revealed by the same step that levels its two ends
+        // was told its side is illegal because of where the ends stood before
+        // the press. The geometry here is per beat and stays per beat; only
+        // the sentence about it moved.
         // The side is in the coordinate now, so the anchor must stay centred.
         // Left as it was, dgLabelAnchor read the same .left that chose the
         // side and shifted the text back across the line it had just cleared.
@@ -6524,6 +8850,46 @@ export function createDiagramCompiler(env = {}) {
           put(e, e.id + '--r', [lx - gw / 2 - gx, ly - gh / 2 - gy, gw + 2 * gx, gh + 2 * gy]);
         }
         put(e, e.id + '--l', [lx, ly, turnDeg]);
+        // **A label its own line runs through gets a halo, whatever else it
+        // carries.** The offset above clears the line at the *midpoint*, and
+        // that is all it knows about: an elbow's two outer runs, a doubled-back
+        // `via` route and a curve that comes back on itself are all somewhere
+        // else on the same path, and where one of them crosses the words the
+        // room reads the label as struck through. Measured on a keynote,
+        // "alle Werkzeuge, auch KI" with a line through the middle of it.
+        //
+        // A halo and not the ground rect, for two reasons. The rect is decided
+        // by the fill slot, so producing one here would mean writing a fill
+        // class the author did not write, which then feeds back into
+        // `grounded` and moves the words onto the line. And a rect is as wide
+        // as the whole run where the crossing is one word long - on a curve
+        // that erases the arc the label belongs to, which is the same mistake
+        // `dgLabelGroundWarnings` reports one layer along. `paint-order` knocks
+        // out the glyph shapes and nothing else.
+        //
+        // It is decided per beat, off this beat's route and this beat's label,
+        // and rides in the frame's own class string, so a `move` step that
+        // slides a box away takes the halo with it.
+        // **A free `text` a line runs through is deliberately NOT covered by
+        // this.** The case exists and it is a real defect - a note hung
+        // between two boxes with the arrow between them drawn through the
+        // middle of the words, measured on a keynote - but the compiler
+        // cannot tell it from the opposite intention, and both are in the
+        // corpus: `lectures/diagrams` `#anchors` draws one dashed rule
+        // *through* two rows of labels, because where that rule crosses each
+        // label is the whole argument of the figure. A knockout there punches
+        // a hole in the thing the slide is about. An edge's own label is the
+        // case with no such reading, which is why the rule stops there; a
+        // note on somebody else's line is the author's to ground with
+        // `{.paper}`, or to write as that edge's label and let the offset
+        // carry it clear.
+        if (!grounded) {
+          const hw = (turned ? m.h : m.w) / 2, hh = (turned ? m.w : m.h) / 2;
+          const box = { x: lx - hw, y: ly - hh, w: hw * 2, h: hh * 2 };
+          if (dgSegmentsCrossBox(drawPts, box)) {
+            cls.set(e.id, ((cls.get(e.id) || '') + ' dg-halo').trim());
+          }
+        }
       }
     }
 
@@ -6535,13 +8901,19 @@ export function createDiagramCompiler(env = {}) {
   // in the browser. Keeps the runtime free of any typesetting code.
   // ── diagram emission ────────────────────────────────────────────────
 
-  function dgTspans(spans, font, baseline) {
+  // `elFont` is the size on the `<text>` itself, so a span at exactly that size
+  // needs no attribute and every existing label emits the bytes it always did.
+  // A quiet line is drawn at `font` below it and has to say so, the same way a
+  // shifted span does – without that the smaller line inherited the full size
+  // and only its line box was small, which is a label sitting in a gap.
+  function dgTspans(spans, font, baseline, elFont = font) {
     const shiftPx = (s) => (s === -1 ? font * 0.26 : s === 1 ? font * -0.42 : 0);
     let prev = 0, first = true, out = '';
     for (const sp of spans) {
       const dy = shiftPx(sp.shift) - prev;
       prev = shiftPx(sp.shift);
-      const size = sp.shift ? ` font-size="${(font * 0.72).toFixed(2)}"` : '';
+      const px = sp.shift ? font * 0.72 : font;
+      const size = px === elFont ? '' : ` font-size="${px.toFixed(2)}"`;
       const pos = first ? ` x="0" y="${baseline.toFixed(2)}"` : '';
       const cls = sp.cls ? ` class="dg-${sp.cls}"` : '';
       out += `<tspan${pos}${dy ? ` dy="${dy.toFixed(2)}"` : ''}${size}${cls}>${escapeHtml(sp.t)}</tspan>`;
@@ -6566,11 +8938,18 @@ export function createDiagramCompiler(env = {}) {
     const anchor = classes.has('turn') ? 'middle'
       : anchorOverride
       || dgLabelAnchor(classes);
-    const lineH = font * DG_LINE_H;
-    const top = -((m.count - 1) * lineH) / 2;
+    // Laid out line by line rather than on one pitch, because a quiet line is
+    // set smaller and takes a smaller line box with it. The block is centred on
+    // its origin whatever its lines are: the baselines walk down from the top
+    // of the measured block, and with every line at scale 1 the arithmetic is
+    // exactly the old `top + i * lineH`, so a label with no second register
+    // draws the bytes it always did.
+    let y = -m.h / 2;
     let inner = '';
-    m.lines.forEach((spans, i) => {
-      inner += dgTspans(spans, font, top + i * lineH + font * 0.34);
+    m.lines.forEach(({ spans, scale }) => {
+      const lh = font * scale * DG_LINE_H;
+      inner += dgTspans(spans, font * scale, y + lh / 2 + font * scale * DG_BASE_DROP, font);
+      y += lh;
     });
     return `<g id="${id}" class="dg-lbl${extraClass ? ' ' + extraClass : ''}">`
       + `<text text-anchor="${anchor}" font-size="${font.toFixed(2)}"${mono ? ' class="dg-mono"' : ''}>${inner}</text></g>`;
@@ -6685,16 +9064,21 @@ export function createDiagramCompiler(env = {}) {
     for (let k = 0; k < frameCount; k++) {
       const state = dgStateAt(model, k);
       states.push(state);
-      const boxes = layoutDiagram(model, state, errors);
+      const boxes = layoutDiagram(model, state, errors, labelIndex);
       frameBoxes.push(boxes);
       frames.push(dgFrameDrawables(model, state, boxes, labelIndex));
     }
     // After layout and before the error gate: an overlap is a warning, and a
     // figure that also has errors has bigger problems to report first.
     if (!errors.length) {
-      dgOverlapWarnings(model, states, frameBoxes, dgWarn);
+      dgOverlapWarnings(model, states, frames, frameBoxes, dgWarn);
       dgLabelGroundWarnings(model, frames, frameBoxes, dgWarn);
       dgLabelClipWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgElbowRailWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgEdgeShortWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgEdgeSideWarnings(model, states, frames, frameBoxes, dgWarn);
+      dgZoneFitWarnings(model, states, frameBoxes, dgWarn);
+      dgContainerPadWarnings(model, states, frameBoxes, dgWarn);
     }
     // A DG_CLASS_CLASHES row is a **warning**, and it is the compiler's alone,
     // because deciding it correctly needs the resolved state at every beat.
@@ -6705,12 +9089,19 @@ export function createDiagramCompiler(env = {}) {
     // moment the fill is taken away. So the warning fires only where the pair
     // is live in **every** beat, which is the only reading under which one of
     // the two is definitely doing nothing.
+    // `model.byId` holds the kind and not the record, and a warning has to say
+    // where the line is – so the records are indexed once here. Everything a
+    // clash can land on is in one of these four lists.
+    const recordOf = new Map();
+    for (const el of [...model.nodes, ...model.edges, ...model.containers, ...model.braces]) {
+      if (!recordOf.has(el.id)) recordOf.set(el.id, el);
+    }
     for (const [a, b, why] of DG_CLASS_CLASHES) {
       const ids = new Set();
       for (const st of states[0].keys()) ids.add(st);
       for (const id of ids) {
         if (states.every(st => st.get(id) && st.get(id).classes.has(a) && st.get(id).classes.has(b))) {
-          dgWarn(`${id}: ${why}`);
+          dgWarn(`${id}${dgSite(recordOf.get(id))}: ${why}`);
         }
       }
     }
@@ -6746,12 +9137,22 @@ export function createDiagramCompiler(env = {}) {
     // {.front}` counts too.
     const lastCls = frames[frames.length - 1].cls;
     const inFront = (e) => ` ${lastCls.get(e.id) || ''} `.includes(' front ');
+    // **A `zone`'s frame is painted first, whatever line it was written on.**
+    // That is the one thing the statement owns that a `box` could not be given
+    // by a class: an area is the paper its contents stand on, and the order an
+    // author writes in is contents-then-area, because the area's size comes
+    // from what is in it. Left in source order a zone declared last covered
+    // everything it was supposed to hold. Its caption is an ordinary text and
+    // stays where it is, at the top of the node run, so the words are over the
+    // ground and under nothing.
+    const isZone = (e) => !!e.zone;
     const elements = [
+      ...model.nodes.filter(isZone).map(e => ({ e, kind: e.kind })),
       ...model.containers.map(e => ({ e, kind: 'container' })),
-      ...model.nodes.filter(e => e.kind === 'image').map(e => ({ e, kind: 'image' })),
+      ...model.nodes.filter(e => e.kind === 'image' && !isZone(e)).map(e => ({ e, kind: 'image' })),
       ...model.braces.map(e => ({ e, kind: 'brace' })),
       ...model.edges.filter(e => !inFront(e)).map(e => ({ e, kind: 'edge' })),
-      ...model.nodes.filter(e => e.kind !== 'image').map(e => ({ e, kind: e.kind })),
+      ...model.nodes.filter(e => e.kind !== 'image' && !isZone(e)).map(e => ({ e, kind: e.kind })),
       ...model.edges.filter(inFront).map(e => ({ e, kind: 'edge' })),
     ];
 
@@ -6846,11 +9247,29 @@ export function createDiagramCompiler(env = {}) {
       if (explicit) return explicit;
       return dgLabelAnchor(((f.cls && f.cls.get(owner)) || '').split(/\s+/));
     };
-    const extentsOf = (f, into, visible) => {
+    // Does the drawable this gid names put anything on the paper? A rect or a
+    // circle belonging to an element that draws neither an outline nor a fill
+    // does not - see dgDrawsGround - and it is exactly the drawable that makes
+    // a figure look indented, because a `table`'s frame is always both and its
+    // cells' text starts a padding further in. Labels, images, paths and
+    // waypoints are ink by construction.
+    const paints = (f, gid) => {
+      const owner = ownerOf(gid);
+      const cls = new Set(((f.cls && f.cls.get(owner)) || '').split(/\s+/).filter(Boolean));
+      return dgDrawsGround(kindOf.get(owner), cls);
+    };
+    // `ink`, when a caller passes one, collects the same boxes minus the
+    // frames nobody can see. Two lists rather than one because the *frame* has
+    // to hold everything - a bare table still reserves its own width - while
+    // the ink edge is what a stylesheet lines the drawing up by.
+    const extentsOf = (f, into, visible, ink) => {
+      const both = (b, isInk) => { into.push(b); if (ink && isInk) ink.push(b); };
       for (const [gid, vec] of f.geom) {
         if (visible && !visible(gid)) continue;
-        if (gid.endsWith('--r') || gid.endsWith('--i')) into.push({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] });
-        else if (gid.endsWith('--c')) into.push({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 });
+        if (gid.endsWith('--r') || gid.endsWith('--i')) {
+          both({ x: vec[0], y: vec[1], w: vec[2], h: vec[3] }, gid.endsWith('--i') || paints(f, gid));
+        }
+        else if (gid.endsWith('--c')) both({ x: vec[0] - vec[2], y: vec[1] - vec[2], w: vec[2] * 2, h: vec[2] * 2 }, paints(f, gid));
         else if (gid.endsWith('--l')) {
           // A label with no measured width is a defect in this file, not
           // something an author can cause: the four places that position one
@@ -6876,27 +9295,71 @@ export function createDiagramCompiler(env = {}) {
           const [lw, lh] = turned ? [ext2[1], ext2[0]] : ext2;
           const a = turned ? 'middle' : anchorFor(owner, f);
           const x = a === 'start' ? vec[0] : a === 'end' ? vec[0] - lw : vec[0] - lw / 2;
-          into.push({ x, y: vec[1] - lh / 2, w: lw, h: lh });
+          both({ x, y: vec[1] - lh / 2, w: lw, h: lh }, true);
         }
-        else for (let i = 0; i < vec.length; i += 2) into.push({ x: vec[i], y: vec[i + 1], w: 0, h: 0 });
+        else for (let i = 0; i < vec.length; i += 2) both({ x: vec[i], y: vec[i + 1], w: 0, h: 0 }, true);
       }
     };
-    const liveBoxes = [];
-    for (const f of frames) extentsOf(f, liveBoxes);
-    const printBoxes = [];
+    const liveBoxes = [], liveInk = [];
+    for (const f of frames) extentsOf(f, liveBoxes, null, liveInk);
+    const printBoxes = [], printInk = [];
     // printCls, not last.cls: anchorFor reads the classes to decide which side
     // of its origin a label occupies, and a pass handed no classes at all
     // silently treats every label as centred – which under-reserves a `.right`
     // one by half its width and clips it off the edge of the paper.
     extentsOf({ geom: printGeom, ext: last.ext, cls: printCls, labelAnchor: last.labelAnchor },
-      printBoxes, (gid) => (printVis.get(ownerOf(gid)) ?? 1) > 0);
+      printBoxes, (gid) => (printVis.get(ownerOf(gid)) ?? 1) > 0, printInk);
     const boxFor = (list) => {
       const bb = list.length ? dgUnion(list) : { x: 0, y: 0, w: 100, h: 100 };
       return [bb.x - DG_MARGIN, bb.y - DG_MARGIN,
         Math.max(bb.w + 2 * DG_MARGIN, 1), Math.max(bb.h + 2 * DG_MARGIN, 1)];
     };
-    const [lvX, lvY, lvW, lvH] = boxFor(liveBoxes.concat(printBoxes));
-    const [vbX, vbY, vbW, vbH] = boxFor(printBoxes.length ? printBoxes : liveBoxes);
+    // ── the canvas ────────────────────────────────────────────────────
+    // **The viewBox is the slide's box, not the drawing's.** Hugging the
+    // content is what made every figure slide settle at its own zoom: the
+    // width the live views ask for is the viewBox measured in labels, so a
+    // drawing 21 labels wide got big type and one 55 wide pulled the whole
+    // slide down, and a deck of twenty figures looked like twenty decks. The
+    // host hands down a canvas in these same units - the chunk's column at
+    // body type - and the box becomes that, with the content anchored inside
+    // it. The drawing's own coordinates are untouched, so no source moves.
+    //
+    // Union, not replacement: content wider or taller than the canvas keeps
+    // the box it needs and is warned about by the host, because a figure
+    // silently cropped to a frame is worse than a figure that is too big.
+    //
+    // Where the drawing sits inside the reserve: **centred down the page,
+    // always, and across it according to `blocks`.** The vertical was written
+    // as a top anchor first, on the reasoning that the spare paper belongs at
+    // the foot of the drawing where the words after it are - and a contact
+    // sheet of a keynote settled it the other way. Reserving half a slide and
+    // anchoring the drawing at its ceiling reads as a figure that has come
+    // loose from the slide, on a bare figure chunk especially, where the
+    // reserve is the whole difference between the picture and the frame. The
+    // horizontal is not the same question: there `blocks: left` is an author
+    // putting the drawing's ink on the text edge, which is a decision about
+    // the slide's one axis and not about spare paper.
+    //
+    // **The canvas is the live views' box, and the documents keep the one
+    // that hugs the drawing.** A slide is a fixed frame and a figure standing
+    // in it is one of a series; a figure in a printed column is apparatus
+    // inside running text, where reserved paper under a small drawing is
+    // simply a gap. It rides the channel a stepped figure's union box already
+    // rides - `data-live-viewbox` for the attribute the runtime swaps, and
+    // `--dg-live-*` beside the print numbers for the three the stylesheets
+    // read - so there is one live box rather than two competing ones.
+    const canvas = opts.canvas || null;
+    const withCanvas = ([bx, by, bw, bh]) => {
+      if (!canvas || !(canvas.w > 0) || !(canvas.h > 0)) return [bx, by, bw, bh];
+      const w = Math.max(bw, canvas.w);
+      const h = Math.max(bh, canvas.h);
+      const x = canvas.align === 'center' ? bx + bw / 2 - w / 2 : bx;
+      return [x, by + bh / 2 - h / 2, w, h];
+    };
+    const contentPrint = boxFor(printBoxes.length ? printBoxes : liveBoxes);
+    const contentLive = boxFor(liveBoxes.concat(printBoxes));
+    const [lvX, lvY, lvW, lvH] = withCanvas(contentLive);
+    const [vbX, vbY, vbW, vbH] = contentPrint;
 
     const kinds = {};
     const fitOf = new Map();
@@ -7051,14 +9514,74 @@ export function createDiagramCompiler(env = {}) {
     // because a height budget has to become a width before it can join the
     // same min().
     //
-    // Inert unless a rule reads them, and only PRINT_CSS does. A projection
-    // wants the opposite of this: there the figure is the slide, and it fills
-    // the frame whatever that does to the type.
+    // Read by PRINT_CSS and, since the room measurements, by AUDIENCE_CSS too:
+    // a projection used to want the opposite of this - the figure was the
+    // slide and filled the frame whatever that did to the type - and what it
+    // actually did was set one lecture's labels between 0.53x and 2.97x of its
+    // own running text, decided by nothing the author wrote. Both media size
+    // the drawing from the type now; they differ only in the multiplier and in
+    // what caps it.
     const typeW = (vbW / DG_FONT).toFixed(3);
+    // Where the drawing starts inside its own box, as a fraction of the box's
+    // width. boxFor pads every side by DG_MARGIN, so the answer is always that
+    // margin over the viewBox width - but only this file knows which viewBox a
+    // view is showing, and the two differ: the print box is tight around the
+    // finished picture, the live one holds every beat. A stylesheet that wants
+    // the figure's *ink* on the text edge rather than its box has to subtract
+    // this, and it cannot work it out from the numbers it already has.
+    //
+    // It is the reserve and not the painted glyphs: the label widths are an
+    // estimate made without a browser and a deliberately generous one. On the
+    // left edge that costs nothing, because the leftmost drawable is a shape
+    // or a start-anchored label and both begin exactly at their origin.
+    //
+    // It used to be exactly that margin, on the reasoning that the leftmost
+    // drawable is a shape or a start-anchored label and both begin at their
+    // origin. True, and not enough: the leftmost drawable can also be a frame
+    // that draws nothing. A `table`'s own frame is always `.bare .clear`, and
+    // a table of prose usually makes its cells both as well, so the left edge
+    // the correction found was an outline nobody paints and the column of
+    // cell text stood a padding to the right of the heading above it -
+    // measured on a keynote's #vorgang, 13 px in a 618-wide viewBox. So the
+    // number is the leftmost *painted* box now, and it falls back to the
+    // frame's own edge for a figure that paints nothing at all.
+    const inkLeft = (list, fallback) => (list.length ? dgUnion(list).x : fallback);
+    const printSrc = printBoxes.length ? printInk : liveInk;
+    const inkX = ((inkLeft(printSrc, vbX + DG_MARGIN) - vbX) / vbW).toFixed(5);
+    const liveInkX = ((inkLeft(liveInk.concat(printInk), lvX + DG_MARGIN) - lvX) / lvW).toFixed(5);
+    // The same number the caller may want in Node, where the chunk's width
+    // class is known and the label size in the room can therefore be
+    // estimated. Optional: the editor compiles in the browser and passes none.
+    // The canvas and what the drawing made of it, in viewBox units, and only
+    // when there is a canvas. Two readers: the host, which rules on overflow
+    // and underfill without a browser, and --check-fit, which reports the
+    // fill of the box the room actually saw. Neither can work it out from the
+    // viewBox alone - a canvas the content exactly fills and a canvas with
+    // nothing in its lower half have the same viewBox.
+    // The live box is the one a room sees, so it is what the two complaints
+    // are measured against: a step may put an element outside the finished
+    // picture, and a canvas is a claim about the whole talk rather than about
+    // its last beat.
+    if (opts.onSized) {
+      opts.onSized({ typeW: Number(typeW), vbW, vbH, canvas,
+                     contentW: contentLive[2], contentH: contentLive[3] });
+    }
+    const canvasAttr = canvas
+      ? ` data-canvas="${canvas.w.toFixed(2)} ${canvas.h.toFixed(2)} ${contentLive[2].toFixed(2)} ${contentLive[3].toFixed(2)}"`
+      : '';
+    // Emitted whenever the live box is not the print one - a stepped figure,
+    // a canvas, or both. The three properties sit beside the print numbers
+    // rather than replacing them, so a stylesheet picks the box its own
+    // medium shows with one var() fallback and no runtime at all; only the
+    // viewBox attribute itself, which CSS cannot set, waits for the runtime.
+    const hasLive = !!canvas || frameCount > 1;
     const svg = `<svg id="${svgId}" class="psi-diagram" viewBox="${vbX.toFixed(2)} ${vbY.toFixed(2)} ${vbW.toFixed(2)} ${vbH.toFixed(2)}" `
-      + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)}" `
+      + `style="--dg-type-w:${typeW};--dg-ar:${(vbW / vbH).toFixed(4)};--dg-ink-x:${inkX}`
+      + (hasLive ? `;--dg-live-type-w:${(lvW / DG_FONT).toFixed(3)};--dg-live-ar:${(lvW / lvH).toFixed(4)}`
+        + `;--dg-live-ink-x:${liveInkX}` : '')
+      + `"${canvasAttr} `
       + `width="${DG_NOMINAL_W}" height="${Math.round(DG_NOMINAL_W * vbH / vbW)}" `
-      + (frameCount > 1 ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" ` : '')
+      + (hasLive ? `data-live-viewbox="${liveVb}" data-live-ratio="${(lvH / lvW).toFixed(6)}" ` : '')
       + `data-steps="${frameCount}"${aria} preserveAspectRatio="xMidYMid meet">\n${svgBody}</svg>`;
     const script = frameCount > 1
       ? `<script type="application/json" class="psi-diagram-frames" data-for="${svgId}">`
@@ -7085,6 +9608,12 @@ export function createDiagramCompiler(env = {}) {
         range: opts.range || null,
         chunk: opts.chunk || null,
         width: opts.width || null,
+        // The canvas the build laid this figure out on. The editor re-runs
+        // this compiler in the browser and has no chunk to measure, so
+        // without it every edit would re-render the figure hugging its
+        // content - a drawing that jumps to another size on the first drag
+        // and back on the next build.
+        canvas: canvas || null,
         // The figure's accessible name, which the build takes from the
         // chunk heading. Carried here because the browser has no other way
         // to it, and without it a re-render differs from the build's own
