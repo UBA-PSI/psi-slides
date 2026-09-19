@@ -320,14 +320,52 @@ word in `COLUMN_SLOTS` for the caption treatment.
 
 ### 2.8 `::: dock` alignment
 
-No keynote evidence – the deck has no dock. The changelog's dock work made
-the column a share of the slide (28/37/46 %) and its air 3.5 % of the width;
-what it does not say is whether a `left` dock's text edge and the chunk's
-heading edge under `headings: left` are one line. **Proposed** as a
-measurement first: build `lectures/decoration` (which has the inherited
-`.every` dock) with `--frames` and read the left edges; if they differ, the
-dock's inner padding is set to the slide's text gutter rather than
-`--dock-gap`. One hour to answer, and not a default change until answered.
+**Measured, nothing to fix.** The question was whether a `left` dock's text
+edge and the chunk's heading edge are one line. On one slide they cannot be:
+the dock is a column the chunk reserves as its own left padding, so the dock's
+words stand inside that column and the heading beside it, by construction.
+What can be asked is where each edge stands, and whether `headings: left`
+moves any of them. Chromium at 1600x900, camera settled, x measured from the
+frame's left edge as the left of the first glyph (a `Range`, so a centred line
+would report its words, not its box):
+
+| slide | `headings: left` | `headings: auto` |
+| --- | --- | --- |
+| no dock, `.wide` – heading and body | 224 | 224 |
+| no dock, `.standard` – heading and body | 378.8 | 378.8 |
+| narrow left dock, a list – bullet ink / item text | ~63 / 108.1 | ~63 / 108.1 |
+| wide left dock, a paragraph – text | 56 | 56 |
+| beside either dock – heading and body | 504 (narrow), 792 (wide) | the same |
+| `lectures/decoration#dock-why`, `#dock-cols`, `#dock-slots` – item text / heading | 89.1, 83.2, 80.9 / 504 | (the lecture is `auto`) |
+
+Scratch decks: the same source under `headings: left` and `headings: auto`,
+chunks `.wide` and `.standard`, a narrow `.every` dock, a wide one with a
+paragraph, a `.clear` one. **`headings: left` changes none of the numbers**:
+a `free:` heading on a `.wide` or `.standard` chunk is left-set under `auto`
+already, so the key reaches only what `auto` centres – a `figure:` chunk and
+the title (`body[data-headings=left]` in the live stylesheet).
+
+**What the numbers say.** The dock's inset is `--dock-gap`, 56 px, on both
+sides of the column's edge – the paragraph's first glyph and the list's
+bullets stand at 56, and the heading beside the dock at 448 + 56 = 504. That
+is one rule read twice: the tinted slab's edge stands in the middle of a
+clear band of 56 on each side, and the frame at 1600 px shows exactly that.
+The only edge that does not line up with anything is a list item's *text*,
+1.1 em further in, which is how every list in the deck hangs its bullets.
+
+**Why the proposal is wrong.** It set the dock's inner padding to the slide's
+text gutter, 14 % = 224 px, so that the dock's words would stand where an
+undocked slide's words stand. A narrow dock is 448 px; with 224 on the left
+and 56 on the right its measure falls from 336 px to 168 px – 3.5 em at the
+47 px the scratch deck's zoom gave the dock, 5.6 em at the 30 px
+`lectures/decoration#dock-why` settles at, where "Beside two columns" already
+fills 280 px on one line. The alternative, widening the track by 168 px so
+the measure survives, takes those 168 px out of the text column instead,
+which is the column the dock was measured to leave (28 / 37 / 46 %). And the
+line it would buy is not one a reader follows: the dock is a panel, its words
+belong to the panel, and the edge a reader tracks on a docked slide is the
+heading-and-body edge at 504, which holds from slide to slide of the part.
+A dock that did want its words on the deck's gutter would be a `::: side`.
 
 ### 2.9 `hyphenate: all` leaves centred prose and addresses alone
 
@@ -491,7 +529,7 @@ say so in the skill (the canvas warnings set the pattern).
 | 2.5 label ground | edge default, `none` in ground slot | – | `diagram-class` | `semantics`, `refusals` for `.paper .none` clash | `figure-labels` | rule 6, skill |
 | 2.6 zone inner band | `in` placement, optional `w/h`, wrap | – | `diagram-zone` (w/h optional), `diagram-placement` (`in`) | `refusals` (zone without w/h and without children), `semantics` | `editor-guides` (zone box in the guide layer) | skill zone section |
 | 2.7 stack heading | – | `COLUMN_SLOTS` `.quiet` | column tail via `parseTail` – automatic | `tails`, `frontmatter` unaffected | `camera-fit` (divider), rebuild `decoration` + commit two views | decoration skill |
-| 2.8 dock edge | – | – | – | – | `dock.mjs` measures left edges | decoration skill |
+| 2.8 dock edge | – | – | – | – | measured: nothing to change | – |
 | 2.9 hyphenate | – | – | – | `inlined` (new regex, backslashes doubled) | `squint` or new `hyphenate.mjs`: centred chunk has no soft hyphen | appearance skill |
 | 2.10 `[Klick]` beats | – | – | `noteSegments` mirror, `note-in-empty-beat` | `cue-cards` gate: marker counts an advance | `cue-cards.mjs` spec: cockpit card N appears at beat N | authoring skill, `PLAN-cue-cards.md` §2, `STRINGS` |
 | 2.11 statement registers | – | `CHUNK_SLOTS` `.lead` | `statement-sub` refusal mirrored | `frontmatter`/`tails` for the slot | `settings.mjs` fixture pair (refusal in both files); `block-align` for `.lead` stacking | authoring skill |
@@ -538,8 +576,8 @@ run beside them.
    the tutorial and `diagrams`, both in rule 6's direction.
 10. **2.12a, 2.12d, 2.12e – message order, `empty-beat`, table `same as`.**
     Hour together.
-11. **2.8 – dock edge.** Hour to measure; a change only if the measurement
-    says so.
+11. **2.8 – dock edge.** Measured; the edges are consistent and the
+    proposed change would halve a narrow dock's measure. Nothing changed.
 
 After 1–5 the keynote's source should lose roughly a third of its figure
 lines (the `same as`, `anchor`, `h`, `.middle`, `.bare` rows counted in §1)
