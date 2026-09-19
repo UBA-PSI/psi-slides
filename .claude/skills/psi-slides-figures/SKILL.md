@@ -46,6 +46,25 @@ box height comes from the label** – on a `112x40` grid a two-line box is 55 px
 tall, so a pitch of 0.85 units (34 px) overlaps every pair, plausibly enough to
 read as a design choice.
 
+**The census compares ink, and a `text` is compared line by line.** A label's
+box is the block of line boxes: `DG_LINE_H` tall per line where only
+`DG_INK_H` of that is glyphs, and as wide as its *widest* line. Neither of
+those is what a reader sees, and both cost the check a real defect. It
+answered the first with a 24 px floor wherever either side was a text – more
+than a whole line of figure type, on a drawing that is then scaled up to its
+canvas – and the geometry it exists for, an outline drawn through the words,
+crosses that outline by a fraction of one line by construction:
+`lectures/network-security` `#ns-a41` shipped a three-line verification block
+printed across the box above it, at 5.5 px, with a silent build. So a text is
+now the rectangles it actually inks, one per line (`dgTextInkRects`), and
+everything meets at one 2 px tolerance. Two consequences to know before
+arguing with a warning. **A label whose long line is nowhere near a shape is
+not touching it** – the two-line value `Basic Constraints ( 2.5.29.19 ) / YES`
+beside a chevron is 186 px on one line and 22 on the other, and only the short
+one is anywhere near. And **a text fully inside a box is exempt while a text
+crossing its edge is not**, so shrinking a figure can make captions that were
+inside start reporting: that is the check working, and the fix is the drawing.
+
 **`right of X gap N` is checked against X and against nothing else.** An
 annotation placed `right of vu gap 2.6` landed inside the box to vu's right and
 printed across its label. Relational placement has to clear every neighbour,
