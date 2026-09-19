@@ -704,3 +704,45 @@ measured:
     compiler writes as `muted dotted no-head` itself**, so this is the
     engine's own default and not an author's pile-up; and one `.dotted` in
     the whole corpus is not also `.muted` (tutorial).
+
+    **Landed: a floor on the dotted stroke.** `.muted.dotted` draws at
+    `max(var(--dg-sw), 1.4px)` with the gap stated against the same `max()` –
+    `.dotted`'s own pattern in `.muted`'s ink. Three candidates were measured
+    on the same rig, injected as a stylesheet before any was written:
+
+    | candidate | light: blurred / peak | `dark` | terminals |
+    | --- | --- | --- | --- |
+    | before | 1.09 / 2.56 | 1.10 / 4.58 | 1.07 / 3.57 |
+    | floor 1.4, gap 3.5 | **1.11 / 2.94** | **1.14 / 5.54** | **1.09 / 4.25** |
+    | muted-word colour mix (`--ink` 60 %) | 1.11 / 3.49 | 1.09 / 3.99 | 1.05 / 2.87 |
+    | both | 1.15 / 4.29 | 1.13 / 4.73 | 1.07 / 3.38 |
+
+    The colour mix gains on paper and **loses on all three dark themes**,
+    where it resolves dimmer than `--ink-soft` – the inversion the skill
+    already records for the muted word. The floor gains on all seven, and its
+    peak is exactly `.dashed .muted`'s (2.94 / 5.54 / 4.25): a dot now
+    reaches its own colour. On the plot grid it doubles the ink (1.05 → 1.09
+    blurred, peak 2.30 → 2.63 horizontal and 1.73 → 2.98 vertical, the
+    smeared column gone). The pair stays the quietest mark in the vocabulary
+    – a dotted line is the lighter pattern by design and muted ink the
+    lighter colour – but it is no longer below its own colour, and on
+    `lectures/tutorial#diagram-plot` the grid reads under the dashed
+    "even pace" line rather than vanishing beside it.
+
+    **Why not a gentler `.muted` on broken strokes.** It would move every
+    `.dashed .muted` stroke, and every `zone` is one (`.clear .dashed
+    .muted`); the table shows `.dashed .muted` already one step below
+    `.muted` (1.23 against 1.33), which is the relation the vocabulary wants.
+    The defect is the dot's size, not the muted ink, so the fix is on the dot.
+
+    **Reach.** No SVG byte moves in any of the six lectures – the four views
+    of each differ from before by the 15 lines of the new rule and nothing
+    else, and the build logs are unchanged. A computed-style census of every
+    drawn element in `tutorial`, `diagrams`, `decoration`, `network-security`,
+    `python-intro` and `spoken-talk` (audience, and print for the three with
+    figures that carry the pair): 3036 styled shapes, 158 changed (the 79
+    strokes in both views), every one of them on an element carrying both
+    classes, every one 1.05 → 1.4 with the gap 2.625 → 3.5.
+    `test/figure-dotted.mjs` holds it: the real grid in `diagrams#plot`, and a
+    fixture with the controls (`.muted`, `.dashed .muted`, `.dotted`, plain)
+    unmoved and `.thick .muted .dotted` keeping 2.6.
