@@ -90,13 +90,12 @@ taught, is under *What a redraw of a whole corpus turned up* below.
    supplies), the authoring, decoration and appearance skills, `CLAUDE.md`,
    PRD §2.1 and `test/README.md`. What `HOUSE-STYLE.md` in the content repo
    needs is a list in the report of that pass; it was not edited from here.
-   **Still open from the old step 1: the site's screenshots.**
-   `docs/site/shoot.mjs` shots are stale in a way `--check-ids` cannot see –
-   `python-intro`'s `#urllib-parse` lost ~380 px of height, which moves the
-   camera for the ten shots framed on `#why-playwright`, and `overview`
-   shows all five changed figures; `spoken-talk` `#second-time` was redrawn
-   under the four cue-beat frames. `refresh-figures --check` drifts whenever
-   `img/editor.webp` moves, so the re-shoot and that gate go in one slice.
+   **The site's screenshots were re-shot** (`aaedcc9`) after the five decks
+   were redrawn: nineteen of twenty-two moved, taken in one run so the
+   landing set keeps one framing, and the manual regenerated because it
+   inlines `img/editor.webp`. They predate the dotted-muted floor and the
+   editor's `lh` spelling; neither is visible in any shot, so no re-shoot is
+   owed for them.
 2. **Keynote, author's calls:** the three other build plans onto the
    two-register label (`"1  Wer macht es grün?\n~abfedern~"`, changes what
    `emph` reaches); `[am Vortragstag eintragen]` on `#stand-heute`; the URL
@@ -203,5 +202,5 @@ views stale: rebuild `lectures/{tutorial,diagrams,decoration}` and commit.
    `[Unreleased]`.
 2. Read this file, then `PLAN-figure-defaults.md` §5 and §7.
 3. Build the keynote with `--frames --check-fit` and look at two contact sheets.
-4. Pick the site re-shoot in step 1, or step 2 or 4 above; delegate slices to Opus agents in worktrees, one
+4. Pick step 2 or 4 above; delegate slices to Opus agents in worktrees, one
    per slice, sequential when they share `diagram-core.mjs`.
