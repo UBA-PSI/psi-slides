@@ -9,9 +9,9 @@ per change and is the authoritative list.
 
 | where | what |
 | --- | --- |
-| engine `~/Repositories/psi-slides` (also reachable as `~/r/psi-slides`) | branch `keynote-lessons`, 169 commits ahead of `main`, **not pushed, not merged** |
-| content repo `~/r/psi-slides-mylectures` | `main`, keynote committed at `cb7462f`, tree clean |
-| gates / settings / browser suite | 1249 / 903 / 1164, all green on the branch tip |
+| engine `~/Repositories/psi-slides` (also reachable as `~/r/psi-slides`) | branch `keynote-lessons`, 203 commits ahead of `main` with the docs pass (192 before it), **not pushed, not merged** |
+| content repo `~/r/psi-slides-mylectures` | `main`, keynote committed at `cb7462f`; two untracked folders, `lectures/introsp/10-welcome/` and `20-foundations/`, are not the keynote's |
+| gates / settings / browser suite | 1280 / 903 / 1186, all green on the branch tip |
 | `node lint.js lectures/` | 0 errors, 2 pre-existing warnings in the untracked `frame-lab` |
 | tracked lecture views (tutorial, diagrams, decoration) | rebuilt and committed on the tip |
 | `docs/artifact/refresh-figures.mjs --check` | up to date |
@@ -46,9 +46,11 @@ are unreleased, so syntax and defaults were free to move.
   `.left` anchors a free text, relabelled texts keep their pinned edge,
   `.bare` + `.dashed` refused, `emph` on `.bare` lights ink only, literal
   `_` in words, `table … unheaded` / `same as`, column alignment by
-  `default box @t-col-N {.left}`, `lh` unit, typed padding, calmer dashes
-  and real `.dotted`, elbow arrival runs, a quiet second register (`~line~`),
-  contrast of `.muted`/`.dim` on tones, edge from a free coordinate documented.
+  `default box @t-col-N {.left}`, `lh` unit (and an editor drag that keeps
+  it), typed padding, calmer dashes and real `.dotted`, a floor under
+  `.dotted .muted`, elbow arrival runs, a quiet second register (`~line~`),
+  contrast of `.muted`/`.dim` on tones, an overlap census that measures ink
+  line by line, edge from a free coordinate documented.
 - *Chunks and slides:* `statement:` type with a quiet italic line, `.full`
   wider than `.wide`, ink-edge alignment under `blocks: left`, one block gap,
   `.middle`/`.top` with a shape default (picture and statement slides open
@@ -82,38 +84,38 @@ carry a `frame` of their own, each a specimen beside its own source or a
 listing no arrangement folds. What the redraws cost, and what that cost
 taught, is under *What a redraw of a whole corpus turned up* below.
 
-1. **Docs consolidation.** The skills, `figure-design.md`, `CLAUDE.md`,
-   PRD §2.1 and `HOUSE-STYLE.md` in the content repo were updated per slice;
-   one pass now that the vocabulary stands, with the `[Unreleased]` entries
-   as the checklist. Also the site: `docs/site/shoot.mjs` screenshots are
-   stale in a way `--check-ids` cannot see – `python-intro`'s `#urllib-parse`
-   lost ~380 px of height, which moves the camera for the ten shots framed on
-   `#why-playwright`, and `overview` shows all five changed figures;
-   `spoken-talk` `#second-time` was redrawn under the four cue-beat frames.
-   `refresh-figures --check` drifts whenever `img/editor.webp` moves, so the
-   re-shoot and that gate go in one slice.
+1. **Docs consolidation is done.** One pass with the `[Unreleased]` entries
+   as the checklist over the figures skill (now in reader order, each rule
+   stated once), `figure-design.md` (no example writes what a default now
+   supplies), the authoring, decoration and appearance skills, `CLAUDE.md`,
+   PRD §2.1 and `test/README.md`. What `HOUSE-STYLE.md` in the content repo
+   needs is a list in the report of that pass; it was not edited from here.
+   **Still open from the old step 1: the site's screenshots.**
+   `docs/site/shoot.mjs` shots are stale in a way `--check-ids` cannot see –
+   `python-intro`'s `#urllib-parse` lost ~380 px of height, which moves the
+   camera for the ten shots framed on `#why-playwright`, and `overview`
+   shows all five changed figures; `spoken-talk` `#second-time` was redrawn
+   under the four cue-beat frames. `refresh-figures --check` drifts whenever
+   `img/editor.webp` moves, so the re-shoot and that gate go in one slice.
 2. **Keynote, author's calls:** the three other build plans onto the
    two-register label (`"1  Wer macht es grün?\n~abfedern~"`, changes what
    `emph` reaches); `[am Vortragstag eintragen]` on `#stand-heute`; the URL
    on `#schluss` as an accent link or plain grey; `#der-satz` stays a drawing
    because the note wants the definition *above* the claim (a `.lead` for
    `statement:` would change that – plan §2.11).
-3. **Engine leftovers.** Done since this file was written: the cover canvas,
-   `lint.js`'s beat count on a `title:` chunk, the brace label, an edge's
-   `side` per beat, px in the canvas reports, the `lh` spelling an editor
-   drag lost (§6 item 5). Still open, from
-   `PLAN-figure-defaults.md` unless named otherwise: §2.8 dock alignment
-   (measure first), §6 item 7 (canvas height traded against the caption lines
-   under a figure – measured and decided: the flat sixteen stays), §6 item 4
-   (`.dotted .muted` is faint), `noteSegments`' last-kept-segment fallback on an empty
-   trailing segment (every `---` is a beat now, so an empty trailing segment
-   is kept and `last` counts it – the rule that notes only in the last
-   segment are chunk notes on beat 1 then stops firing), and
-   `PLAN-overlap-census.md`, which is its own file because it was written
-   from a measured case.
+3. **Engine leftovers: none open.** Done: the cover canvas, `lint.js`'s beat
+   count on a `title:` chunk, the brace label, an edge's `side` per beat, px
+   in the canvas reports, the `lh` spelling an editor drag lost
+   (`PLAN-figure-defaults.md` §6 item 5), the `.dotted .muted` floor (§6
+   item 4, §7 entry 15), `noteSegments`' chunk-note fallback, which now reads
+   the last segment with words in it so a trailing `---` keeps the notes on
+   beat 1, and `PLAN-overlap-census.md`, landed as the ink census. Decided,
+   with the measurement in the plan: §2.8 dock alignment (nothing to fix; the
+   gutter-inset proposal is withdrawn) and §6 item 7 (the flat sixteen-label
+   canvas stays).
 4. **Three figures are still behind their own slides**, all in
    `network-security`, all reported by `--check-fit` as notes rather than
-   errors: `#ns-b18` at 16.8 px against 28.4 px of body type (0.59x),
+   errors (re-measured on the tip of the docs pass): `#ns-b18` at 16.8 px against 28.4 px of body type (0.59x),
    `#ns-a30` and `#ns-b20` at 18.7 px (0.66x). `#ns-b22` was the fourth and
    the worst at 0.46x and is done – its five-boxes-on-one-line chain became
    three columns with the two ssh ends lifted a band above them, and the
@@ -166,9 +168,9 @@ source and most of it was not visible from a contact sheet either.
 ## How to verify anything here
 
 ```bash
-npm run gate                      # 1230, under a second
-node test/settings.mjs            # 895, a few minutes, no browser
-node test/run.mjs                 # 1164, ~10 min, one Chromium
+npm run gate                      # 1280, under a second
+node test/settings.mjs            # 903, a few minutes, no browser
+node test/run.mjs                 # 1186 across 45 specs, ~10 min, one Chromium
 node lint.js lectures/ --strict
 node docs/artifact/refresh-figures.mjs --check
 ```
@@ -201,5 +203,5 @@ views stale: rebuild `lectures/{tutorial,diagrams,decoration}` and commit.
    `[Unreleased]`.
 2. Read this file, then `PLAN-figure-defaults.md` §5 and §7.
 3. Build the keynote with `--frames --check-fit` and look at two contact sheets.
-4. Pick step 1 or 2 above; delegate slices to Opus agents in worktrees, one
+4. Pick the site re-shoot in step 1, or step 2 or 4 above; delegate slices to Opus agents in worktrees, one
    per slice, sequential when they share `diagram-core.mjs`.

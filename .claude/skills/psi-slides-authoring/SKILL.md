@@ -94,9 +94,10 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   this one chunk and are spelled key-value: `.blocks-left` / `.blocks-center` (where a code block, a
   figure and a display formula sit across the measure) and `.wrap-none` /
   `.wrap-balance` (whether this chunk's headings are balanced and its prose
-  gets a protected last line). Any other class is an `unknown class` error in
-  both the build and `lint.js` – it is not silently ignored. Do not invent
-  classes.
+  gets a protected last line). Eleven more answer `style: {figure-type}` for
+  this one chunk, `.figure-type-60` … `.figure-type-160` in steps of ten, on
+  the projection only. Any other class is an `unknown class` error in both the
+  build and `lint.js` – it is not silently ignored. Do not invent classes.
 - **One sigil rule for every `{…}` tail in the format**, on a heading, on a
   `:::` directive and inside a `::: draw` block: `.word` is a setting, `#word`
   an id, and inside a draw body also `@word` a group and `!word` a removal.
@@ -218,7 +219,9 @@ Next week: certificates, and who you are actually trusting.
 ```
 
 Widths (four, exhaustive): `.narrow` (28em), `.standard` (36em, the default),
-`.wide` (52em), `.full` (72em).
+`.wide` (52em), `.full` (72em). The slide's frame pads 14% either side, so on
+the projection `.wide` stops at 1152 px at 1600×900; a `.full` chunk pads 6%
+and reaches 1408 px, which is the one reason to pick it over `.wide`.
 
 **The type never sets the width.** They are independent axes: the type decides
 treatment and budget, the width decides how much stage the chunk takes. In
@@ -228,8 +231,9 @@ anything longer than one sentence turns into a tall thin ribbon in `.narrow`.
 **A chunk with a top-level code block wants `.wide` or `.full`.** A `<pre>` that
 is not inside a `::: side` or `::: cols` breaks out of the text column to 72vw
 and centres on the slide. Measured at 1600×900 and the default zoom, that is
-1152 px – exactly the prose column of `.wide` and `.full`, and 310 px wider than
-`.standard`'s 842 px. So in a `.standard` chunk the listing sticks out past both
+1152 px – exactly the prose column of `.wide`, 310 px wider than `.standard`'s
+842 px, and 256 px narrower than `.full`'s 1408, where a long listing stands
+centred inside the prose. So in a `.standard` chunk the listing sticks out past both
 edges of the paragraph above it and reads as a rendering fault. The line-length
 budget is unaffected (it is 72vw at every width); this is about the block and
 its own prose lining up.
@@ -773,7 +777,10 @@ it sits under the artwork.
 can come in with the sentence it supports rather than standing on the slide
 from the first beat. It rides the segment and adds no press of its own; before
 the first `---`, or in a chunk with no `---`, it is on the slide from the
-start, as it always was. Print shows every footnote at once either way.
+start, as it always was. Print shows every footnote at once either way. On
+a `.center` chunk it is centred with the prose; on the projection it never
+hyphenates, and `style: {labels: off}` takes its NOTE eyebrow off there (print
+keeps it).
 
 ```md
 ## definition: Loose coupling {.standard #loose}
@@ -1161,7 +1168,7 @@ wrapper or an aside: each compiles to something of its own.
 - **`::: draw`** is a figure written as text - named boxes, arrows,
   containers, charts, tables, swimlanes and sequence diagrams, laid out at build
   time and steppable on the same key that advances a reveal segment. It has its
-  own grammar, seventeen statements and forty classes, and two documents:
+  own grammar, twenty statements and forty-two classes, and two documents:
   `figure-design.md` for how to lay one out so a room can read it, and the
   `#diagram` chunks of `lectures/tutorial/source.md` for the vocabulary. Read one
   of those before writing a block; do not guess at the syntax from a nearby
@@ -1186,14 +1193,14 @@ repository and not against a released psi-slides.
 
 ## Viewer defaults in frontmatter
 
-Nine optional keys pin how the lecture opens. A key that is present wins over
+Ten optional keys pin how the lecture opens. A key that is present wins over
 the reader's stored preference; a key that is absent leaves that preference
 alone. A value outside the allowed set fails the build (and lints as
 `unknown-view-default`), because a typo here is otherwise silent.
 
 ```yaml
 font: serif            # serif | sans | mono
-theme: light-red       # light-red | light-teal | light-blue | light-orange | terminal-amber | terminal-green
+theme: light-red       # light-red | light-teal | light-blue | light-orange | dark | terminal-amber | terminal-green
 collapse: topic-bold   # topic-bold | none
 auto-fit: shrink       # true | false | shrink
 slide-numbers: horizontal    # vertical | horizontal | off   (default: horizontal)
@@ -1202,13 +1209,18 @@ print-slide-numbers: vertical  # the same three, for print.html and print-notes.
 editor: speaker        # both | speaker | none  - where the diagram editor ships
 note-button: off       # on | off  - the + note button in the slide's left gutter
 neighbours: hidden     # dim | hidden  - the slide before and after, faintly or not at all
+transition: cut        # pan | cut | fade  - what a slide change looks like
 ```
 
-The last two are what a keynote sets and a lecture does not. `note-button: off`
+The last three are what a keynote sets and a lecture does not. `note-button: off`
 takes the `+ note` hint out of the gutter without taking anything away - `N`
 still opens an annotation, and `M` shows or hides the hint at any time, in
 either window. `neighbours: hidden` takes the faint slide above and below off
 the projection; the default is on purpose (see *What lands on the slide*).
+`transition: cut` lands on the next slide with no camera glide and `fade` dips
+through the paper; both hide the neighbours unless you also write
+`neighbours: dim`. A reveal, a figure step and the walk down a tall chunk keep
+their motion under all three – only the change of slide is affected.
 
 `auto-fit: shrink` is the mode to reach for first: it leaves the zoom where the
 lecturer set it and only ever makes a slide smaller, where `true` also grows a
@@ -1216,6 +1228,13 @@ short one to fill the screen. `#` cycles off → shrink → on.
 
 Pin only what you have actually designed for. A lecture that pins nothing keeps
 following whatever the reader last chose with `F`, `A`, `C`, `#` and `L`.
+
+Two keys the presenter needs have no frontmatter key, because they are about
+the room rather than the lecture. `W` puts the projection into fullscreen; from
+the cockpit it arms the projection, and the next click on that window enters,
+because a browser grants fullscreen only to a gesture in the window that asks.
+`G`, a slide number and Enter jumps to the slide with that number in its
+corner, which is the number a question from the room names.
 
 ## The cover, and lecture-wide type
 
@@ -1315,7 +1334,7 @@ is drawn, and every option is quieter than the cover on purpose - a divider
 that can be mistaken for the title slide has failed at its one job.
 
 ```yaml
-section: tinted         # plain | tinted | rule | card | number
+section: tinted         # plain | tinted | rule | card | number | outline
 section-mark: Teil      # any short word, or none (the default)
 ```
 
@@ -1326,20 +1345,26 @@ section-mark: Teil      # any short word, or none (the default)
 | `rule` | the heading between two rules. The quietest, and it survives a monochrome print |
 | `card` | the heading on a panel |
 | `number` | a large counter above the heading, counting the columns that have one |
+| `outline` | the running agenda: every part listed, this one live |
 
 There is no paragraph sign over the heading any more - it read as a statute
 number to anyone outside a German law faculty. Put a word there with
 `section-mark:` if you want one.
 
-**`# Heading {.stack}` is the one class a `#` line takes**, and it answers
+**A `#` line takes two classes, `.stack` and `.bare`.** `{.stack}` answers
 where the divider's own content stands. Written, the content goes **under**
-the heading at the full measure and the heading is set small above it as its
-caption; left out, prose stays under the heading at the reading measure and a
-body that is nothing but a figure goes *beside* it. Reach for it when the
-drawing is the point of the divider – a plan with six cells and a label in
-each is unreadable at the half-frame the beside layout gives it. The class
-is per divider and works under all six `section:` variants; on a divider with
-nothing under its heading it is refused, because there is nothing to place.
+the heading at the `.full` measure, with the heading one step smaller than a
+plain divider's above it; left out, prose stays under the heading at the
+reading measure and a body that is nothing but a figure goes *beside* it.
+Reach for it when the drawing is the point of the divider – a plan with six
+cells and a label in each is unreadable at the half-frame the beside layout
+gives it. A figure under a stacked heading is on a canvas like a chunk's,
+`.full` wide and twenty labels tall, so its labels come out at the size of
+every other figure in the deck. `{.bare}` takes the heading off the slide and
+leaves it in the contents, a `section: outline` agenda, the cockpit and search
+– for the divider whose figure already says the part's name. Both are per
+divider and work under all six `section:` variants; on a divider with nothing
+under its heading each is refused, because there is nothing to place.
 
 ```md
 # Who keeps it green? {.stack #part-2}
@@ -1618,7 +1643,12 @@ outside an overlay or a dock, a divider's heading always; drop `.clear`, write
 `.invert`, or put the words in a `::: overlay {.panel}` or a `::: dock`;
 warning), `bad-cover-ratio`, `bad-unit`, `bad-autoplay` (a delay
 outside 200–60000 ms, `cycle` with no autoplay, or autoplay on a figure
-with no `step` block).
+with no `step` block), `bad-frame` (a `frame` on the `::: draw` opener that is
+not a `WxH` in grid units), `bad-section-stack` / `bad-section-bare` (a
+`{.stack}` or `{.bare}` divider with nothing under its heading),
+`reveal-from-beyond`, `note-from-beyond` and `note-advance-beyond` (a
+`--- from N`, a `> note: from N` or a note's `[Klick …]` lines asking for a
+beat the slide never takes).
 
 `unknown-frontmatter-key` names a top-level key that no renderer reads, and it
 is the layer above `unknown-view-default` and `unknown-style-setting`: those
@@ -1699,6 +1729,14 @@ continuation to one word moved it 0 px; un-bolding a single fragment cleared it.
 A rewrite that shortens the words while folding two bolds into one long first
 sentence makes it worse, which is how this was found.
 
+**It reads every figure as well, and those readings are notes.** One line per
+figure gives its canvas, its drawing and the room left on each axis, in labels
+and in px, tightest axis first, with "past its canvas" or "reads empty" on the
+same line; one line gives the deck's median settled body type and names every
+slide a figure took more than 15% under it. A `.middle` chunk is measured as the
+camera frames it, so its centring is not reported as overflow, and every chunk
+taller than the frame is listed by id.
+
 Degrades rather than fails: with no `playwright-core` or no Chrome it says so
 and leaves the build's exit code alone. It reports the viewport it used, since a
 room with a different aspect ratio wraps differently.
@@ -1778,6 +1816,12 @@ were clean on the keynote that produced this command.
 Needs a Chromium and `playwright-core`; without either it says so and leaves
 the exit code alone. It never fails a build.
 
+**The sheet finds the slide; it does not judge a figure.** Read the last beat
+of every figure at full size, in its own PNG: a line struck through by the
+outline of the box above it is invisible at a quarter size and obvious at full
+size, and a pass over a whole deck's contact sheets once reported no such line
+in a deck that shipped one.
+
 **The four checks in order, and what each one cannot see:**
 
 | | sees | blind to |
@@ -1827,9 +1871,9 @@ warning go away unread.
 
 ## Gotchas
 
-- Only the eleven types and four widths exist. Seven non-width classes exist and no
-  others: `.bare`, `.center`, `.middle` / `.top`, `.blocks-left`,
-  `.blocks-center`,
+- Only the eleven types and four widths exist. Eight non-width classes exist,
+  plus the eleven `.figure-type-60` … `.figure-type-160` steps, and no others:
+  `.bare`, `.center`, `.middle`, `.top`, `.blocks-left`, `.blocks-center`,
   `.wrap-none`, `.wrap-balance`; anything else is an `unknown class` error.
   `.bare`, `.center`, `.middle` and `.top` are not legal on a `title` or `closing`
   chunk, where the cover composition decides all four questions; the four

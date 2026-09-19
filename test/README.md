@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Fifteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 43 specs, ~1070
+- **`test/`** – the things that only break in a built page. 45 specs, 1186
   assertions, about nine minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
@@ -114,7 +114,8 @@ fixture is compiled *and* linted.
 
 ## The browser suite: four families
 
-**Navigation** – `nav`, `nav-cockpit`, `nav-goto`, `nav-fullscreen`, `transition`. The navigation
+**Navigation** – `nav`, `nav-cockpit`, `nav-goto`, `nav-fullscreen`, `transition`,
+`cue-cards`, `autoplay`. The navigation
 model, and what a slide change looks like under `transition: pan | cut | fade` –
 the one spec here that samples per animation frame rather than after a settle,
 because its whole subject is what happens between two states.
@@ -140,8 +141,9 @@ so a bare `requestFullscreen` there is granted and measures nothing.
 **The geometry the live chrome leaves the slide** – `expansion`, `marginalia`,
 `annotation` (the note typed with `N` fills the frame, sized from its text, with
 a QR code for an address, and in the cockpit fills the stage rather than the
-window), `touch-rail`, `math-focus`, `block-align`, `auto-fit`, `text-select`
-(what a pointer gesture means while Alt is held).
+window), `touch-rail`, `math-focus`, `block-align`, `auto-fit`, `camera-fit`,
+`side-anchor`, `cards`, `dock`, `beats-nested`, `beats-footnote`, `squint`,
+`text-select` (what a pointer gesture means while Alt is held).
 
 **The editor** – the `editor-*` specs: its gestures, its panel, and the
 neighbour-alignment guides, which are what a gesture snaps to.
@@ -157,7 +159,9 @@ breaks when a container measured in ems caps a figure: shrinking the type
 shrinks the cap with it, `fitZoomToChunk` chases a gap that cannot close, and
 the slide lands at the auto-fit floor with its figure still behind the words.
 The zoom each slide settled at rides along as a note, because sitting at the
-floor is not itself the defect.
+floor is not itself the defect. `figure-dotted` reads the *computed* stroke of
+a `.dotted .muted` line and its controls, because the floor that makes its dots
+reach their colour is a stylesheet rule and the SVG bytes do not move.
 
 ### Why the geometry family exists
 
@@ -180,9 +184,9 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The ten specs that build a deck of their own
+### The fifteen specs that build a deck of their own
 
-Three different reasons, and the third is the one to remember.
+Four different reasons, and the last is the one to remember.
 
 **Because the property is about two windows** – `cue-cards` opens the cockpit
 from the projection with `S` on a fixture and, after every Space and
@@ -204,22 +208,28 @@ no pixel, the dock reaches the frame, `from N` moves nothing, auto-fit holds
 beside a slide-high column) and `beats-footnote` (no lecture writes a
 `::: footnote` after a `---`, and the case that decides the rule is a chunk
 whose first segment holds a stepped figure: the footnote rides the *segment*,
-which a rule written against beat numbers gets wrong only there).
+which a rule written against beat numbers gets wrong only there) and
+`auto-fit` (a slide deliberately taller than any frame beside one deliberately
+shorter, which is not a lecture).
 
 **Because the thing is only legible as a pair** – `block-align` shows the same
-content centred and left, `cards` two cards differing in one character, and
+content centred and left, `cards` two cards differing in one character,
 `transition` builds the same five slides three times, differing in one
 frontmatter line, because the claim about each mode is a claim about what the
-other two do not do.
+other two do not do, and `figure-dotted` draws a muted dotted line beside the
+five strokes it must leave alone.
 
 **Because a spec that hunted its shapes in a real deck would break the next time
 that deck was edited** – `squint`, whose four shapes (a promoted bold, a reveal
 segment, a `::: slide` block, a chunk that is only a backdrop and an overlay)
-exist in the corpus but never six chunks apart. `squint` also drives no page
-itself: the command drives its own browser and the spec asserts on the file that
-comes out.
+exist in the corpus but never six chunks apart; `camera-fit`, whose chunks are
+graded in length so some fit the frame and some do not, which no lecture keeps
+at a stable size; `autoplay`, which needs an autoplaying figure standing
+*after* another slide, reached by a key press; and `editor-guides`, below.
+`squint` also drives no page itself: the command drives its own browser and the
+spec asserts on the file that comes out.
 
-**That third reason is the pattern to reach for when a spec needs a shape the
+**That last reason is the pattern to reach for when a spec needs a shape the
 lectures do not have**, and `editor-guides` is the worked example.
 
 `#look` in `lectures/diagrams` was one catalogue figure six rows tall, and four
