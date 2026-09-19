@@ -320,14 +320,52 @@ word in `COLUMN_SLOTS` for the caption treatment.
 
 ### 2.8 `::: dock` alignment
 
-No keynote evidence – the deck has no dock. The changelog's dock work made
-the column a share of the slide (28/37/46 %) and its air 3.5 % of the width;
-what it does not say is whether a `left` dock's text edge and the chunk's
-heading edge under `headings: left` are one line. **Proposed** as a
-measurement first: build `lectures/decoration` (which has the inherited
-`.every` dock) with `--frames` and read the left edges; if they differ, the
-dock's inner padding is set to the slide's text gutter rather than
-`--dock-gap`. One hour to answer, and not a default change until answered.
+**Measured, nothing to fix.** The question was whether a `left` dock's text
+edge and the chunk's heading edge are one line. On one slide they cannot be:
+the dock is a column the chunk reserves as its own left padding, so the dock's
+words stand inside that column and the heading beside it, by construction.
+What can be asked is where each edge stands, and whether `headings: left`
+moves any of them. Chromium at 1600x900, camera settled, x measured from the
+frame's left edge as the left of the first glyph (a `Range`, so a centred line
+would report its words, not its box):
+
+| slide | `headings: left` | `headings: auto` |
+| --- | --- | --- |
+| no dock, `.wide` – heading and body | 224 | 224 |
+| no dock, `.standard` – heading and body | 378.8 | 378.8 |
+| narrow left dock, a list – bullet ink / item text | ~63 / 108.1 | ~63 / 108.1 |
+| wide left dock, a paragraph – text | 56 | 56 |
+| beside either dock – heading and body | 504 (narrow), 792 (wide) | the same |
+| `lectures/decoration#dock-why`, `#dock-cols`, `#dock-slots` – item text / heading | 89.1, 83.2, 80.9 / 504 | (the lecture is `auto`) |
+
+Scratch decks: the same source under `headings: left` and `headings: auto`,
+chunks `.wide` and `.standard`, a narrow `.every` dock, a wide one with a
+paragraph, a `.clear` one. **`headings: left` changes none of the numbers**:
+a `free:` heading on a `.wide` or `.standard` chunk is left-set under `auto`
+already, so the key reaches only what `auto` centres – a `figure:` chunk and
+the title (`body[data-headings=left]` in the live stylesheet).
+
+**What the numbers say.** The dock's inset is `--dock-gap`, 56 px, on both
+sides of the column's edge – the paragraph's first glyph and the list's
+bullets stand at 56, and the heading beside the dock at 448 + 56 = 504. That
+is one rule read twice: the tinted slab's edge stands in the middle of a
+clear band of 56 on each side, and the frame at 1600 px shows exactly that.
+The only edge that does not line up with anything is a list item's *text*,
+1.1 em further in, which is how every list in the deck hangs its bullets.
+
+**Why the proposal is wrong.** It set the dock's inner padding to the slide's
+text gutter, 14 % = 224 px, so that the dock's words would stand where an
+undocked slide's words stand. A narrow dock is 448 px; with 224 on the left
+and 56 on the right its measure falls from 336 px to 168 px – 3.5 em at the
+47 px the scratch deck's zoom gave the dock, 5.6 em at the 30 px
+`lectures/decoration#dock-why` settles at, where "Beside two columns" already
+fills 280 px on one line. The alternative, widening the track by 168 px so
+the measure survives, takes those 168 px out of the text column instead,
+which is the column the dock was measured to leave (28 / 37 / 46 %). And the
+line it would buy is not one a reader follows: the dock is a panel, its words
+belong to the panel, and the edge a reader tracks on a docked slide is the
+heading-and-body edge at 504, which holds from slide to slide of the part.
+A dock that did want its words on the deck's gutter would be a `::: side`.
 
 ### 2.9 `hyphenate: all` leaves centred prose and addresses alone
 
@@ -491,7 +529,7 @@ say so in the skill (the canvas warnings set the pattern).
 | 2.5 label ground | edge default, `none` in ground slot | – | `diagram-class` | `semantics`, `refusals` for `.paper .none` clash | `figure-labels` | rule 6, skill |
 | 2.6 zone inner band | `in` placement, optional `w/h`, wrap | – | `diagram-zone` (w/h optional), `diagram-placement` (`in`) | `refusals` (zone without w/h and without children), `semantics` | `editor-guides` (zone box in the guide layer) | skill zone section |
 | 2.7 stack heading | – | `COLUMN_SLOTS` `.quiet` | column tail via `parseTail` – automatic | `tails`, `frontmatter` unaffected | `camera-fit` (divider), rebuild `decoration` + commit two views | decoration skill |
-| 2.8 dock edge | – | – | – | – | `dock.mjs` measures left edges | decoration skill |
+| 2.8 dock edge | – | – | – | – | measured: nothing to change | – |
 | 2.9 hyphenate | – | – | – | `inlined` (new regex, backslashes doubled) | `squint` or new `hyphenate.mjs`: centred chunk has no soft hyphen | appearance skill |
 | 2.10 `[Klick]` beats | – | – | `noteSegments` mirror, `note-in-empty-beat` | `cue-cards` gate: marker counts an advance | `cue-cards.mjs` spec: cockpit card N appears at beat N | authoring skill, `PLAN-cue-cards.md` §2, `STRINGS` |
 | 2.11 statement registers | – | `CHUNK_SLOTS` `.lead` | `statement-sub` refusal mirrored | `frontmatter`/`tails` for the slot | `settings.mjs` fixture pair (refusal in both files); `block-align` for `.lead` stacking | authoring skill |
@@ -538,8 +576,8 @@ run beside them.
    the tutorial and `diagrams`, both in rule 6's direction.
 10. **2.12a, 2.12d, 2.12e – message order, `empty-beat`, table `same as`.**
     Hour together.
-11. **2.8 – dock edge.** Hour to measure; a change only if the measurement
-    says so.
+11. **2.8 – dock edge.** Measured; the edges are consistent and the
+    proposed change would halve a narrow dock's measure. Nothing changed.
 
 After 1–5 the keynote's source should lose roughly a third of its figure
 lines (the `same as`, `anchor`, `h`, `.middle`, `.bare` rows counted in §1)
@@ -614,3 +652,97 @@ measured:
     linter** (`## question:` / `---` / body): a `> note: from 1` that never
     fires, a closing slide whose last click is dead, and lint says clean.
     Being fixed: a leading `---` means "the heading alone is beat 0".
+15. **`.dotted .muted` is the faintest mark in the vocabulary, on every
+    theme, by a margin nothing else in it has.** Written up only in a
+    handoff note until measured: a specimen figure (six edges and six box
+    outlines – solid, `.muted`, `.dashed`, `.dashed .muted`, `.dotted`,
+    `.dotted .muted` – and a `plot`'s grid), built once per theme, shot in
+    Chromium at 1600x900 with the camera settled. The figure drew at scale
+    1.79 (a plain stroke 2.51 px, a muted one 1.88 px), the plot at 1.40 –
+    inside the corpus's own range, 0.98 (`lectures/diagrams#plot`) to 2.11
+    (`lectures/tutorial#diagram-plot`), 1.9 on `network-security`. Per line,
+    a 6 px band across the stroke over the middle 70 % of its run: its mean
+    colour against the paper (*blurred* – what a viewer too far away to
+    resolve a dot integrates; comparable across lines, not an absolute
+    legibility figure) and its most contrasting pixel (*peak*):
+
+    | line | four light themes | `dark` | `terminal-amber` / `-green` |
+    | --- | --- | --- | --- |
+    | solid | 2.61 / 13.21 | 3.57 / 13.46 | 2.65 / 9.41 |
+    | `.muted` | 1.33 / 2.76 | 1.55 / 5.18 | 1.36 / 3.98 |
+    | `.dashed` | 1.72 / 17.07 | 2.05 / 16.52 | 1.65 / 11.46 |
+    | `.dashed .muted` | 1.23 / 2.94 | 1.33 / 5.54 | 1.21 / 4.25 |
+    | `.dotted` | 1.25 / 17.07 | 1.28 / 16.52 | 1.17 / 11.46 |
+    | **`.dotted .muted`** | **1.09 / 2.56** | **1.10 / 4.58** | **1.07 / 3.57** |
+    | plot grid, horizontal / vertical | 1.05 / 2.30, 1.05 / 1.73 | 1.06 / 3.99, 1.06 / 2.50 | 1.04 / 3.10, 1.04 / 2.04 |
+
+    The four light themes are one row because they share `--ink`, `--paper`
+    and `--ink-soft` and differ only in `--emph`; box outlines read within
+    0.04 of the matching edge. Read as ink above the paper (blurred − 1):
+    `.dotted .muted` carries 0.09 on light, **27 % of a `.muted` line and
+    39 % of a `.dashed .muted` one**; 18 % and 30 % on `dark`, 19 % and 33 %
+    on the terminals. Every other pair in the table is one step apart; this
+    one is two steps multiplied. **The peak says why**: 2.56 is below the
+    2.76 a solid `.muted` line reaches in the same colour, because
+    `.muted` sets `--dg-sw` to 1.05 and `.dotted` draws a disc one `--dg-sw`
+    across – 1.9 px on screen here, 1.1 px at `lectures/diagrams#plot`'s
+    0.98 – and a disc that small is anti-aliased below its own colour. The
+    dots never reach `--ink-soft`. A vertical gridline is fainter again than
+    a horizontal one (peak 1.73 against 2.30), because it stands on a
+    fractional x and each dot is smeared across two pixel columns.
+
+    Looked at full size: on the light themes the line is visible up close
+    and gone at arm's length; on `terminal-green` it is barely there at all.
+    **Too faint on all seven**, not a dark-theme problem – the dark themes'
+    better peak buys nothing blurred, 1.06–1.10 everywhere. Corpus reach: 11
+    of 96 figures use the pair, 79 elements – `lectures/diagrams` 3 figures
+    (`#mac`'s one edge, the grids of `#plot` and `#sameframe`),
+    `lectures/tutorial` 1 (`#diagram-plot`'s grid), `lectures/network-security`
+    7 (the dotted boundary of `#ns-a08`, `#ns-a12`, `#ns-a13`, `#ns-a14` and
+    the grids of `#ns-b55`, `#ns-b60`, `#ns-b61`); decoration, python-intro
+    and spoken-talk none. **Six of the eleven are a `plot`'s grid, which the
+    compiler writes as `muted dotted no-head` itself**, so this is the
+    engine's own default and not an author's pile-up; and one `.dotted` in
+    the whole corpus is not also `.muted` (tutorial).
+
+    **Landed: a floor on the dotted stroke.** `.muted.dotted` draws at
+    `max(var(--dg-sw), 1.4px)` with the gap stated against the same `max()` –
+    `.dotted`'s own pattern in `.muted`'s ink. Three candidates were measured
+    on the same rig, injected as a stylesheet before any was written:
+
+    | candidate | light: blurred / peak | `dark` | terminals |
+    | --- | --- | --- | --- |
+    | before | 1.09 / 2.56 | 1.10 / 4.58 | 1.07 / 3.57 |
+    | floor 1.4, gap 3.5 | **1.11 / 2.94** | **1.14 / 5.54** | **1.09 / 4.25** |
+    | muted-word colour mix (`--ink` 60 %) | 1.11 / 3.49 | 1.09 / 3.99 | 1.05 / 2.87 |
+    | both | 1.15 / 4.29 | 1.13 / 4.73 | 1.07 / 3.38 |
+
+    The colour mix gains on paper and **loses on all three dark themes**,
+    where it resolves dimmer than `--ink-soft` – the inversion the skill
+    already records for the muted word. The floor gains on all seven, and its
+    peak is exactly `.dashed .muted`'s (2.94 / 5.54 / 4.25): a dot now
+    reaches its own colour. On the plot grid it doubles the ink (1.05 → 1.09
+    blurred, peak 2.30 → 2.63 horizontal and 1.73 → 2.98 vertical, the
+    smeared column gone). The pair stays the quietest mark in the vocabulary
+    – a dotted line is the lighter pattern by design and muted ink the
+    lighter colour – but it is no longer below its own colour, and on
+    `lectures/tutorial#diagram-plot` the grid reads under the dashed
+    "even pace" line rather than vanishing beside it.
+
+    **Why not a gentler `.muted` on broken strokes.** It would move every
+    `.dashed .muted` stroke, and every `zone` is one (`.clear .dashed
+    .muted`); the table shows `.dashed .muted` already one step below
+    `.muted` (1.23 against 1.33), which is the relation the vocabulary wants.
+    The defect is the dot's size, not the muted ink, so the fix is on the dot.
+
+    **Reach.** No SVG byte moves in any of the six lectures – the four views
+    of each differ from before by the 15 lines of the new rule and nothing
+    else, and the build logs are unchanged. A computed-style census of every
+    drawn element in `tutorial`, `diagrams`, `decoration`, `network-security`,
+    `python-intro` and `spoken-talk` (audience, and print for the three with
+    figures that carry the pair): 3036 styled shapes, 158 changed (the 79
+    strokes in both views), every one of them on an element carrying both
+    classes, every one 1.05 → 1.4 with the gap 2.625 → 3.5.
+    `test/figure-dotted.mjs` holds it: the real grid in `diagrams#plot`, and a
+    fixture with the controls (`.muted`, `.dashed .muted`, `.dotted`, plain)
+    unmoved and `.thick .muted .dotted` keeping 2.6.

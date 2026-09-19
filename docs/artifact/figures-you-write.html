@@ -902,6 +902,21 @@ footer .paths b { color: var(--ink); font-weight: 500; }
 .psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke {
   stroke-dasharray: 0 calc(var(--dg-sw, 1.4px) * 2.5); stroke-linecap: round;
 }
+/* A muted dot is a plain dot in the muted ink, never a smaller one. .muted
+   thins a line to 1.05 so that scaffolding reads as scaffolding, and a dot
+   is one line-width across - so .dotted .muted drew discs of 1.9px at a
+   typical figure scale, anti-aliased below their own colour: the peak pixel
+   reached 2.56:1 on the light themes where a solid muted line reaches 2.76,
+   and a band across the line carried a quarter of a muted line's ink or
+   less on all seven themes. The floor is the plain weight, so the pattern
+   is exactly .dotted's and only the ink is quieter, and the gap is stated
+   against the floored width so the dots keep their 2.5 line-widths of
+   paper. max() rather than a fixed 1.4: a .thick or .emph line keeps the
+   2.6 it set. A plot's grid is this pair, written by the compiler. */
+.psi-diagram .muted.dotted > :is(rect, circle, .dg-shape), .psi-diagram .muted.dotted .dg-stroke {
+  stroke-width: max(var(--dg-sw), 1.4px);
+  stroke-dasharray: 0 calc(max(var(--dg-sw), 1.4px) * 2.5);
+}
 .psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .round > rect { rx: 13px; }

@@ -234,6 +234,17 @@ from building the same way is a major version.
   is 2.2 line-widths of ink to 1.5 of paper (half the old period, so a
   dashed box stops out-shouting a solid one), and `.dotted` is a disc a
   line-width across every 2.5 – it reads as dots for the first time.
+- **A muted dot is a plain dot in the muted ink.** `.muted` thins a line
+  to 1.05 and `.dotted` draws a disc one line-width across, so the pair drew
+  dots of about 1.9 px on a slide – anti-aliased below their own colour
+  (2.56:1 at the darkest pixel on the light themes, where a solid muted line
+  reaches 2.76) and carrying a quarter of a muted line's ink or less on all
+  seven themes. The pair is now floored at the plain weight, 1.4, with the
+  gap stated against the floor, so it is `.dotted`'s pattern in `.muted`'s
+  ink; a `.thick` or `.emph` line keeps its 2.6. A `plot`'s grid is this
+  pair, written by the compiler, so every grid reads again. No SVG byte
+  moves; the 79 strokes in `diagrams`, `tutorial` and `network-security`
+  that carry the pair are the only computed styles that change.
 - **`.left` / `.right` on a free text at a coordinate anchors it on that
   edge.** It used to centre the block on the point and the author wrote
   `anchor left` 37 times in one deck; the two warnings that existed only
