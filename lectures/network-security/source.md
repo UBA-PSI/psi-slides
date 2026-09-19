@@ -1151,7 +1151,7 @@ step through
 
 ## figure: Tunneling SSH over HTTPS: why DPI is futile | … unless specific DstIPs are whitelisted {.full #ns-b22}
 
-::: side
+::: side 5:6
 ```text
 ssh –p 443 92.1.1.5
  ▶ ..'SSH-2.0-OpenSSH_3.8p1 Debian…
@@ -1163,31 +1163,38 @@ ssh […] 92.1.1.5
  ▶ <more TLS records> (SSH)
 ```
 ::: flip
-::: draw 118x104
-# Two chains on one horizontal line each, formally like the slide before it:
-# the naive attempt above, the one that gets through below. The original's
-# prohibition sign and two stickers are trimming and are left out - the gap
-# behind the firewall says that the upper one does not get through.
-box uc  "ssh client\nconnect to 443" at 0,0 w 1.1 {.tone-2}
-box ufw "firewall\nwith DPI"         right of uc gap 0.5 w 0.82 {.tone-1}
-box us  "ssh server\non port 443"    right of ufw gap 0.5 same as uc {.tone-3}
+::: draw 40x24
+# Two attempts, three columns each: the naive one along the top, the one that
+# gets through below it. The original's prohibition sign and two stickers are
+# trimming and are left out - the gap behind the firewall says that the upper
+# one does not get through. The pane is `5:6` because the listing beside it
+# sets the floor: a column narrower than that cuts `HTTP/1.1` off its longest
+# line, and every width the figure gains past it costs a character there.
+box uc  "ssh client\nconnect to 443" at 0,0 {.tone-2}
+box ufw "firewall\nwith DPI"        right of uc {.tone-1}
+box us  "ssh server\non port 443"   right of ufw {.tone-3}
 edge uc  -- ufw
 edge reach ufw -- us
 
-# The lower chain is built out from the firewall in both directions, so the
-# two "firewall with DPI" boxes stand exactly above each other: it is the same
-# firewall, drawn twice.
-box lfw "firewall\nwith DPI"         below ufw gap 1.1 same as ufw {.tone-1 @proxy}
-box pt  "proxy-\ntunnel"             left of lfw gap 0.5 w 0.68 {.tone-2 @proxy}
-box lc  "ssh client"                 left of pt gap 0.5 same as uc {.tone-2 @proxy}
-box ws  "webserver"                  right of lfw gap 0.5 w 0.86 {.tone-3 @proxy}
-box ls  "ssh server\non localhost"   right of ws gap 0.5 same as uc {.tone-3 @proxy}
-text ip "92.1.1.5:443"               below ws gap 0.28 {.muted @proxy}
+# The lower attempt uses the same three columns, and the second "firewall
+# with DPI" sits directly under the first - it is the same firewall, drawn
+# twice, with the corridor between them left clear. The two ssh ends stand a
+# band above the three boxes that carry them, so the connection dips into the
+# tunnel and comes back out; every edge here is headless, so the shape says
+# what runs where and no arrow claims a direction. Five boxes on one line is
+# what this figure used to be, and on half a slide it set its labels at 13 px
+# against 28 px of body type.
+box lfw "firewall\nwith DPI"        below ufw gap 5lh {.tone-1 @proxy}
+box pt  "proxy-\ntunnel"            left of lfw {.tone-2 @proxy}
+box ws  "webserver"                 right of lfw {.tone-3 @proxy}
+box lc  "ssh client"                above pt gap 0.6lh same w as pt {.tone-2 @proxy}
+box ls  "ssh server\non localhost" above ws gap 0.6lh {.tone-3 @proxy}
+text ip "92.1.1.5:443"              below ws gap 0.5lh {.muted @proxy}
 
 edge lc  -- pt {@proxy}
 edge lin pt -- lfw {@proxy}
 edge lout lfw -- ws {@proxy}
-edge ws  -- ls {@proxy}
+edge ws -- ls {@proxy}
 
 step dpi
   emph ufw
