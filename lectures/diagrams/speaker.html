@@ -15525,12 +15525,12 @@ document.addEventListener('keydown', (e) => {
       toggleDemo();
       e.preventDefault(); break;
     case 'e': case 'E':
-      // Shift-E on the speaker copies live annotation drafts to the
+      // Shift-E copies live annotation drafts to the
       // clipboard for paste-back into source.md. Plain E is unbound.
-      if (VIEW === 'speaker' && e.shiftKey && typeof exportAnnotations === 'function') {
-        exportAnnotations();
-        e.preventDefault();
-      }
+      if (!e.shiftKey) break;
+      if (VIEW === 'speaker' && typeof exportAnnotations === 'function') exportAnnotations();
+      else exportAnnotationsPlain();
+      e.preventDefault();
       break;
     case 'v': case 'V':
       // V freezes the projection – phonetically close enough to "freeze" to
@@ -15880,6 +15880,79 @@ function fitFocusedMath(card) {
     kx.style.fontSize = (size * (have / want) * 0.99) + 'px';
   }
 }
+
+// ── annotation export (Shift-E) ──────────────────────────────────────
+//
+// Shared by both live views. The cockpit wraps these in a modal that walks
+// through the paste-back; the projection running alone copies and says so.
+function collectAnnotationDrafts() {
+  const out = [];
+  flatChunks.forEach(({ id, el }) => {
+    if (!id) return;
+    if (!(id in annotations)) return;
+    const text = (annotations[id] || '').trim();
+    const ta = el.querySelector('.annot-textarea');
+    const sourceDefault = ta ? (ta.defaultValue || '').trim() : '';
+    if (!text && !sourceDefault) return;
+    if (text === sourceDefault) return;
+    out.push({ id, text });
+  });
+  return out;
+}
+
+function buildAnnotationSnippet(drafts) {
+  const lines = ['<!-- annotations:start -->', ''];
+  drafts.forEach(({ id, text }, i) => {
+    if (i > 0) lines.push('');
+    lines.push('### ' + id);
+    if (text) {
+      text.split('\n').forEach(l => lines.push('> annot: ' + l));
+    } else {
+      lines.push('> annot:');
+    }
+  });
+  lines.push('', '<!-- annotations:end -->', '');
+  return lines.join('\n');
+}
+
+async function copyToClipboardSafe(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function exportAnnotationsPlain() {
+  const drafts = collectAnnotationDrafts();
+  if (!drafts.length) { showModeBadge('no live annotations to export – type some with N first'); return; }
+  const snippet = buildAnnotationSnippet(drafts);
+  const ok = await copyToClipboardSafe(snippet);
+  if (!ok) console.log(snippet);
+  showModeBadge(ok
+    ? drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied – paste at the end of source.md, then --integrate-annotations'
+    : 'clipboard blocked – the Markdown is in the console');
+}
+
+// A focused raster is an <img>, and a browser answers a drag on one by
+// lifting the picture out of the page: the pointer stream is cancelled and
+// the pan only lands when the button comes up. The drag here is the pan.
+figureOverlay.addEventListener('dragstart', (e) => e.preventDefault());
 
 // Overlay pointerdown: drag pans the focused figure; a click without
 // drag closes (matches the previous click-to-unfocus affordance). 3px
@@ -16252,59 +16325,6 @@ freezeBtn.addEventListener('click', toggleFreeze);
 // then asks for explicit confirmation before clearing the draft buffer —
 // a failed copy or a cancelled confirm leaves localStorage untouched, so
 // nothing is lost if the lecturer aborts mid-workflow.
-function collectAnnotationDrafts() {
-  const out = [];
-  flatChunks.forEach(({ id, el }) => {
-    if (!id) return;
-    if (!(id in annotations)) return;
-    const text = (annotations[id] || '').trim();
-    const ta = el.querySelector('.annot-textarea');
-    const sourceDefault = ta ? (ta.defaultValue || '').trim() : '';
-    if (!text && !sourceDefault) return;
-    if (text === sourceDefault) return;
-    out.push({ id, text });
-  });
-  return out;
-}
-
-function buildAnnotationSnippet(drafts) {
-  const lines = ['<!-- annotations:start -->', ''];
-  drafts.forEach(({ id, text }, i) => {
-    if (i > 0) lines.push('');
-    lines.push('### ' + id);
-    if (text) {
-      text.split('\n').forEach(l => lines.push('> annot: ' + l));
-    } else {
-      lines.push('> annot:');
-    }
-  });
-  lines.push('', '<!-- annotations:end -->', '');
-  return lines.join('\n');
-}
-
-async function copyToClipboardSafe(text) {
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch (e) {}
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.position = 'fixed';
-    ta.style.top = '-9999px';
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
-    return ok;
-  } catch (e) {
-    return false;
-  }
-}
-
 const centerToast = document.getElementById('center-toast');
 let centerToastTimer = null;
 function flashCenter(text, opts = {}) {
