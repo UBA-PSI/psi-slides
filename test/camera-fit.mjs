@@ -21,7 +21,7 @@
  * and which no lecture owes it at a stable size.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { serve, ROOT } from './harness.mjs';
@@ -110,7 +110,7 @@ And the second arrives on a press.
 `;
 
 function buildDeck() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-camfit-'));
+  const dir = tmpDir('psi-camfit-');
   fs.writeFileSync(path.join(dir, 'source.md'), DECK);
   const r = spawnSync(process.execPath,
     [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],

@@ -39,7 +39,7 @@
  * browser the suite did.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ROOT, findChrome } from './harness.mjs';
@@ -159,7 +159,7 @@ const marked = (block, mark) => block.split('\n')
 export async function run({ report }) {
   const { ok, note } = report;
 
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-squint-'));
+  const dir = tmpDir('psi-squint-');
   fs.mkdirSync(path.join(dir, 'assets'));
   fs.writeFileSync(path.join(dir, 'assets', 'dusk.svg'), SVG);
   fs.writeFileSync(path.join(dir, 'source.md'), SOURCE);

@@ -76,7 +76,7 @@
  * would still pass.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -112,7 +112,7 @@ async def main() -> None:
 `;
 
 function build(extraFrontmatter) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-compat-'));
+  const dir = tmpDir('psi-compat-');
   fs.writeFileSync(path.join(dir, 'source.md'),
     SOURCE.replace('FRONTMATTER', extraFrontmatter ? extraFrontmatter + '\n' : ''));
   // Both live and print, because the two stylesheets do not carry the same
@@ -246,7 +246,7 @@ console.log('\nlayout generations');
   if (!hasEncoder) {
     console.log('  · no cwebp or magick on PATH, so the WebP inlining case is skipped');
   } else {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-webp-'));
+    const dir = tmpDir('psi-webp-');
     fs.mkdirSync(path.join(dir, 'assets'));
     // Photographic rather than flat: a small flat PNG can come out larger as
     // WebP, and the build then keeps the original on purpose. Noise is what
@@ -291,7 +291,7 @@ console.log('\nlayout generations');
 // Playback is not part of the drawing, and diagram-core.mjs also runs in
 // the browser editor, where there is no deck to play.
 {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-auto-'));
+  const dir = tmpDir('psi-auto-');
   fs.writeFileSync(path.join(dir, 'source.md'),
     '---\ntitle: T\n---\n\n## figure: F {#f}\n\n::: draw 150x56 autoplay 900\nbox a "A"\nbox b "B" right of a gap 1\n\nstep one\n  dim a\n:::\n');
   const r = spawnSync(process.execPath,
@@ -311,7 +311,7 @@ console.log('\nlayout generations');
 
 // ── cycle, and the two switches that were only checked by hand ────────
 {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-cycle-'));
+  const dir = tmpDir('psi-cycle-');
   fs.writeFileSync(path.join(dir, 'source.md'),
     '---\ntitle: T\n---\n\n## figure: F {#f}\n\n::: draw 150x56 autoplay 900 cycle\nbox a "A"\nbox b "B" right of a gap 1\n\nstep one\n  dim a\n:::\n');
   const r = spawnSync(process.execPath,
@@ -416,7 +416,7 @@ console.log('\nlayout generations');
   // vocabulary that lives in two places. Its own temp dir, because build()
   // above throws on a non-zero exit and a refusal is the point here.
   const BAD = '---\ntitle: T\nstyle: {neutrals: tintd}\n---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n';
-  const nDir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-neutrals-'));
+  const nDir = tmpDir('psi-neutrals-');
   fs.writeFileSync(path.join(nDir, 'source.md'), BAD);
   const nBuild = spawnSync(process.execPath,
     [path.join(ROOT, 'build.js'), path.join(nDir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
@@ -472,7 +472,7 @@ console.log('\nlayout generations');
 // colour rule that has already shipped an element nobody could see twice -
 // once on an accent card, once on a row's body.
 {
-  const cDir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-title-'));
+  const cDir = tmpDir('psi-title-');
   const title = (fm, tail) => {
     fs.writeFileSync(path.join(cDir, 'source.md'),
       '---\ntitle: T\nsubtitle: S\npresenter: P\n' + fm + '---\n\n' +
@@ -607,7 +607,7 @@ console.log('\nlayout generations');
 // ── cards decide their own size, and say so in the markup ─────────────
 {
   const mk = (body) => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-cards-'));
+    const dir = tmpDir('psi-cards-');
     fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
     const r = spawnSync(process.execPath,
       [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
@@ -638,7 +638,7 @@ console.log('\nlayout generations');
 //    simply defeated, so the author wrote `cols 2` and got one column.
 {
   const refuses = (body) => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-nest-'));
+    const dir = tmpDir('psi-nest-');
     fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
     const r = spawnSync(process.execPath,
       [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
@@ -704,7 +704,7 @@ console.log('\nlayout generations');
 {
   const FMX = '---\ntitle: T\n---\n\n## title: {#title}\n\n## free: F {#f}\n\n';
   const run = (body) => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-nest2-'));
+    const dir = tmpDir('psi-nest2-');
     fs.writeFileSync(path.join(dir, 'source.md'), FMX + body);
     const b = spawnSync(process.execPath,
       [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
@@ -846,7 +846,7 @@ console.log('\nlayout generations');
   // drafting is common and the placeholder is visible. The most common way in
   // is writing the extension on a name meant for the assets/ shorthand.
   {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-asset-'));
+    const dir = tmpDir('psi-asset-');
     fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
     fs.writeFileSync(path.join(dir, 'assets', 'pic.png'), Buffer.from(
       'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAAC0lEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==',
@@ -892,7 +892,7 @@ console.log('\nlayout generations');
   // in both files, and the layer's grid content box did not move (inset: 0
   // plus padding replaces the inset, so the padding must carry the values).
   {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-panel-'));
+    const dir = tmpDir('psi-panel-');
     fs.writeFileSync(path.join(dir, 'source.md'), FMX + '::: overlay {.left .glass .panel .narrow}\nA.\n:::\n');
     const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
       { cwd: ROOT, encoding: 'utf8' });
@@ -919,7 +919,7 @@ console.log('\nlayout generations');
 
   // What the review of the first cut found, each as the failure it named.
   {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-review-'));
+    const dir = tmpDir('psi-review-');
     const build = (body) => {
       fs.writeFileSync(path.join(dir, 'source.md'), FMX + body);
       const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
@@ -962,7 +962,7 @@ console.log('\nlayout generations');
   {
     const hold = run('A.\n\n---\n\nB.\n');
     ok(!hold.failed, 'a deck with no reveal key builds', hold.out.split('\n')[0]);
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-hold-'));
+    const dir = tmpDir('psi-hold-');
     const buildWith = (fm) => {
       fs.writeFileSync(path.join(dir, 'source.md'), `---\ntitle: T\n${fm}---\n\n## title: {#title}\n\n## free: F {#f}\n\nA.\n\n---\n\nB.\n`);
       const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
@@ -987,7 +987,7 @@ console.log('\nlayout generations');
   // The marker itself, and that the segment split did not happen: one
   // reveal-segment, one beat-mark inside the pane, nothing straddled.
   {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-beat-'));
+    const dir = tmpDir('psi-beat-');
     fs.writeFileSync(path.join(dir, 'source.md'), FMX + '::: side\nL\n\n---\n\nM\n::: flip\nR\n:::\n');
     const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
       { cwd: ROOT, encoding: 'utf8' });
@@ -1037,7 +1037,7 @@ console.log('\nlayout generations');
   const FM0 = '---\ntitle: T\n---\n\n## title: {#title}\n\n';
   const FMX = FM0 + '## free: F {#f}\n\n';
   const build = (src, args = ['--audience-only']) => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-dock-'));
+    const dir = tmpDir('psi-dock-');
     fs.writeFileSync(path.join(dir, 'source.md'), src);
     const b = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), ...args],
       { cwd: ROOT, encoding: 'utf8' });
@@ -1188,7 +1188,7 @@ console.log('\nlayout generations');
     // and the plate is a real ground - the theme's paper, not the 5% tint the
     // card gets on a plain background.
     {
-      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-c3-'));
+      const dir = tmpDir('psi-c3-');
       fs.writeFileSync(path.join(dir, 'source.md'), PART_CARD(BD, '## free: G {#g}\n\nB.\n'));
       const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'], { cwd: ROOT, encoding: 'utf8' });
       const html = r.status === 0 ? fs.readFileSync(path.join(dir, 'audience.html'), 'utf8') : '';
@@ -1205,7 +1205,7 @@ console.log('\nlayout generations');
 // ── the card row's own vocabulary ─────────────────────────────────────
 {
   const mk = (body) => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-cardv-'));
+    const dir = tmpDir('psi-cardv-');
     fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
     const r = spawnSync(process.execPath,
       [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
@@ -1294,7 +1294,7 @@ console.log('\nlayout generations');
 // source and marks the run, so the markup carries the answer.
 {
   const mk = (body, extra) => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-lead-'));
+    const dir = tmpDir('psi-lead-');
     if (extra) for (const [name, buf] of Object.entries(extra)) fs.writeFileSync(path.join(dir, name), buf);
     fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
     const r = spawnSync(process.execPath,
@@ -1349,7 +1349,7 @@ console.log('\nlayout generations');
 // ── the auto size counts an item, not its first line ──────────────────
 {
   const mk = (body) => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-size-'));
+    const dir = tmpDir('psi-size-');
     fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
     const r = spawnSync(process.execPath,
       [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
@@ -1373,7 +1373,7 @@ console.log('\nlayout generations');
 // ── ::: rows is the card row turned ninety degrees ────────────────────
 {
   const mk = (body) => {
-    const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-rows-'));
+    const dir = tmpDir('psi-rows-');
     fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
     const r = spawnSync(process.execPath,
       [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
@@ -1450,7 +1450,7 @@ console.log('\nlayout generations');
 
 // ── ::: side takes a ratio, and nothing else ──────────────────────────
 {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-side-'));
+  const dir = tmpDir('psi-side-');
   const build2 = (body) => {
     fs.writeFileSync(path.join(dir, 'source.md'), '---\ntitle: T\n---\n\n## free: F {#f}\n\n' + body);
     const r = spawnSync(process.execPath,
@@ -1483,7 +1483,7 @@ console.log('\nlayout generations');
 // reached the markup, and the two colour rules that have each already
 // shipped an element nobody could see.
 {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-cover-'));
+  const dir = tmpDir('psi-cover-');
   const cover = (fm, body) => {
     fs.writeFileSync(path.join(dir, 'source.md'),
       '---\ntitle: T\nsubtitle: S\npresenter: P\ninfo: |\n  L\n' + fm + '---\n\n' +
@@ -1871,7 +1871,7 @@ console.log('\nlayout generations');
   // A helper that writes a whole source and reports what was left on disk,
   // because two of these are about artefacts a failed build must not leave.
   const raw = (src, args = []) => {
-    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-rv-'));
+    const d = tmpDir('psi-rv-');
     fs.mkdirSync(path.join(d, 'assets'));
     // A one-pixel PNG: these checks are about where a picture lands, not
     // what it is, so the asset is written rather than copied from a lecture
@@ -1889,7 +1889,7 @@ console.log('\nlayout generations');
              html: read('audience.html'), print: read('print.html'), notes: read('print-notes.html') };
   };
   const lintOf = (src) => {
-    const d = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-rl-'));
+    const d = tmpDir('psi-rl-');
     fs.writeFileSync(path.join(d, 'source.md'), src);
     const r = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(d, 'source.md')],
       { cwd: ROOT, encoding: 'utf8' });

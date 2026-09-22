@@ -24,7 +24,7 @@
  * browser.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { serve, ROOT } from './harness.mjs';
@@ -78,7 +78,7 @@ const focused = (page) => page.evaluate(() => {
 export async function run({ page, report, walkTo }) {
   const { ok, note } = report;
 
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-mathfocus-'));
+  const dir = tmpDir('psi-mathfocus-');
   fs.writeFileSync(path.join(dir, 'source.md'), SOURCE);
   const built = spawnSync(process.execPath,
     [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],

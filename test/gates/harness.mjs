@@ -24,7 +24,7 @@
  * would undo the thing being bought. Fifteen lines, same output shape.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from '../tmp.mjs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { execFileSync } from 'node:child_process';
@@ -123,7 +123,7 @@ export function lintAll(cases) {
     out.push(':::', '');
   });
 
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-gate-'));
+  const dir = tmpDir('psi-gate-');
   let raw = '';
   try {
     const file = path.join(dir, 'source.md');
@@ -159,7 +159,7 @@ export function lintAll(cases) {
  * @returns {{line: number, sev: string, rule: string, msg: string}[]}
  */
 export function lintSource(md) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-gate-'));
+  const dir = tmpDir('psi-gate-');
   let raw = '';
   try {
     const file = path.join(dir, 'source.md');

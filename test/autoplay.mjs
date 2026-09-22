@@ -18,7 +18,7 @@
  * no lecture owes it that arrangement at a stable id.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { serve, ROOT } from './harness.mjs';
@@ -56,7 +56,7 @@ step three
 `;
 
 function buildDeck() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-autoplay-'));
+  const dir = tmpDir('psi-autoplay-');
   fs.writeFileSync(path.join(dir, 'source.md'), DECK);
   const r = spawnSync(process.execPath,
     [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],
