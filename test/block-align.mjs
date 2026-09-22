@@ -30,7 +30,7 @@
  * pair only means anything when the same content is shown both ways.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { serve, ROOT } from './harness.mjs';
@@ -110,7 +110,7 @@ const BADGE = `<svg xmlns="http://www.w3.org/2000/svg" width="420" height="180" 
 `;
 
 function buildDeck(source, tag) {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-blocks-' + tag + '-'));
+  const dir = tmpDir('psi-blocks-' + tag + '-');
   fs.mkdirSync(path.join(dir, 'assets'));
   fs.writeFileSync(path.join(dir, 'assets/badge.svg'), BADGE);
   fs.writeFileSync(path.join(dir, 'source.md'), source);

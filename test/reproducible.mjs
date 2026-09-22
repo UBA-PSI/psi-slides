@@ -21,7 +21,7 @@
  * builds a fixture deck into a temp dir, twice, and compares two files.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
@@ -67,7 +67,7 @@ const ok = (cond, what, detail = '') => {
 const note = (line) => console.log('    ' + line);
 
 {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-repro-'));
+  const dir = tmpDir('psi-repro-');
   fs.writeFileSync(path.join(dir, 'source.md'), SOURCE);
   // assets/, not beside source.md: the ![](id) shorthand resolves to
   // assets/<id>.<ext> and nowhere else. Written here because the first draft

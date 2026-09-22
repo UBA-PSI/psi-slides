@@ -911,6 +911,18 @@ export const DG_ZONE_PAD = 0.33;
 // the bottom corner's nudge alone: the two corners then clear the outline by
 // the same distance, which is the thing the eye was comparing.
 export const DG_ZONE_INK_DROP = 0.17;
+// The air under the caption, in the caption's own fonts. The band used to be
+// the pad plus the caption's line box and nothing else, so the first box `in z`
+// began on the row where the caption's line ended: measured on a keynote's
+// "zu Hause" over "Ein Semester bauen", five pixels from the caption's ink to
+// the box's outline against the thirty-odd the pad keeps on the other three
+// sides, which reads as a label glued to the wrong thing – the caption names
+// the area, and that close it names the box. Half a caption line, in fonts and
+// not in rows for the reason DG_ZONE_INK_DROP is: the distance the eye compares
+// is to the type, and a coarse grid must not turn it into half a row. It is
+// part of the band's `cap`, so `z.inner`, `in z` and an auto-sized area all
+// read it from the one place, and an area with no caption reserves none.
+export const DG_ZONE_CAP_GAP = 0.5;
 // The four words that move the caption out of the top-left. They are the
 // element-label alignment classes one level out: on a box they place the label
 // inside the box, on a zone they place the caption inside the area – the same
@@ -6091,7 +6103,8 @@ export function createDiagramCompiler(env = {}) {
           // the words and not the band, which is the same promise a box's size
           // makes when its label changes.
           const capRows = cap
-            ? dgMeasure(cap, dgFontFor(capClasses), false).h / (zuh || 1)
+            ? (dgMeasure(cap, dgFontFor(capClasses), false).h
+               + DG_ZONE_CAP_GAP * dgFontFor(capClasses)) / (zuh || 1)
             : 0;
           node.band = { pad: zPad, padX, cap: capRows, bottom, capRight: right };
           model.nodes.push({

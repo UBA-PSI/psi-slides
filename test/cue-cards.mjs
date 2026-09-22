@@ -17,7 +17,7 @@
  * `parseLecture`, which the zero-dep gates cannot load.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { ROOT, serve } from './harness.mjs';
@@ -237,7 +237,7 @@ One. Perhaps two.
 `;
 
 function buildFixture() {
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-cue-'));
+  const dir = tmpDir('psi-cue-');
   fs.writeFileSync(path.join(dir, 'source.md'), SOURCE);
   const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
     { cwd: ROOT, encoding: 'utf8' });

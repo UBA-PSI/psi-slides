@@ -14,7 +14,7 @@
  * every edge, an inherited dock with a live marker, and a beat.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { serve, ROOT } from './harness.mjs';
@@ -108,7 +108,7 @@ const overlap = (a, b) => a && b && a.left < b.right && b.left < a.right && a.to
 export async function run({ page, report }) {
   const { ok, note } = report;
 
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-dock-'));
+  const dir = tmpDir('psi-dock-');
   fs.writeFileSync(path.join(dir, 'source.md'), SOURCE);
   const built = spawnSync(process.execPath,
     [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--audience-only'],

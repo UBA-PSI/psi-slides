@@ -27,7 +27,7 @@
  * than the screen still has to walk down as it grows.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { serve, ROOT } from './harness.mjs';
@@ -105,7 +105,7 @@ const ty = (tf) => { const m = /matrix\(([^)]*)\)/.exec(tf); return m == null ? 
 
 export async function run({ page, report }) {
   const { ok, note } = report;
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-transition-'));
+  const dir = tmpDir('psi-transition-');
 
   // Three decks, one per mode, built in folders of their own and then laid
   // side by side under distinct names: the harness's server answers on the

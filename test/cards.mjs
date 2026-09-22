@@ -30,7 +30,7 @@
  * prose an author is free to rewrite.
  */
 import fs from 'node:fs';
-import os from 'node:os';
+import { tmpDir } from './tmp.mjs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { serve, ROOT } from './harness.mjs';
@@ -164,7 +164,7 @@ const contrast = (page, sel) => page.evaluate((sel) => {
 export async function run({ page, report }) {
   const { ok, note } = report;
 
-  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-cards-'));
+  const dir = tmpDir('psi-cards-');
   fs.writeFileSync(path.join(dir, 'source.md'), SOURCE);
   fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
   fs.writeFileSync(path.join(dir, 'assets', 'pic.png'), TINY_PNG);

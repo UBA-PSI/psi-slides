@@ -17063,12 +17063,12 @@ document.addEventListener('keydown', (e) => {
       toggleDemo();
       e.preventDefault(); break;
     case 'e': case 'E':
-      // Shift-E on the speaker copies live annotation drafts to the
+      // Shift-E copies live annotation drafts to the
       // clipboard for paste-back into source.md. Plain E is unbound.
-      if (VIEW === 'speaker' && e.shiftKey && typeof exportAnnotations === 'function') {
-        exportAnnotations();
-        e.preventDefault();
-      }
+      if (!e.shiftKey) break;
+      if (VIEW === 'speaker' && typeof exportAnnotations === 'function') exportAnnotations();
+      else exportAnnotationsPlain();
+      e.preventDefault();
       break;
     case 'v': case 'V':
       // V freezes the projection – phonetically close enough to "freeze" to
@@ -17425,6 +17425,79 @@ function fitFocusedMath(card) {
     kx.style.fontSize = (size * (have / want) * 0.99) + 'px';
   }
 }
+
+// ── annotation export (Shift-E) ──────────────────────────────────────
+//
+// Shared by both live views. The cockpit wraps these in a modal that walks
+// through the paste-back; the projection running alone copies and says so.
+function collectAnnotationDrafts() {
+  const out = [];
+  flatChunks.forEach(({ id, el }) => {
+    if (!id) return;
+    if (!(id in annotations)) return;
+    const text = (annotations[id] || '').trim();
+    const ta = el.querySelector('.annot-textarea');
+    const sourceDefault = ta ? (ta.defaultValue || '').trim() : '';
+    if (!text && !sourceDefault) return;
+    if (text === sourceDefault) return;
+    out.push({ id, text });
+  });
+  return out;
+}
+
+function buildAnnotationSnippet(drafts) {
+  const lines = ['<!-- annotations:start -->', ''];
+  drafts.forEach(({ id, text }, i) => {
+    if (i > 0) lines.push('');
+    lines.push('### ' + id);
+    if (text) {
+      text.split('\n').forEach(l => lines.push('> annot: ' + l));
+    } else {
+      lines.push('> annot:');
+    }
+  });
+  lines.push('', '<!-- annotations:end -->', '');
+  return lines.join('\n');
+}
+
+async function copyToClipboardSafe(text) {
+  try {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      await navigator.clipboard.writeText(text);
+      return true;
+    }
+  } catch (e) {}
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.top = '-9999px';
+    document.body.appendChild(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    document.body.removeChild(ta);
+    return ok;
+  } catch (e) {
+    return false;
+  }
+}
+
+async function exportAnnotationsPlain() {
+  const drafts = collectAnnotationDrafts();
+  if (!drafts.length) { showModeBadge('no live annotations to export – type some with N first'); return; }
+  const snippet = buildAnnotationSnippet(drafts);
+  const ok = await copyToClipboardSafe(snippet);
+  if (!ok) console.log(snippet);
+  showModeBadge(ok
+    ? drafts.length + ' annotation' + (drafts.length === 1 ? '' : 's') + ' copied – paste at the end of source.md, then --integrate-annotations'
+    : 'clipboard blocked – the Markdown is in the console');
+}
+
+// A focused raster is an <img>, and a browser answers a drag on one by
+// lifting the picture out of the page: the pointer stream is cancelled and
+// the pan only lands when the button comes up. The drag here is the pan.
+figureOverlay.addEventListener('dragstart', (e) => e.preventDefault());
 
 // Overlay pointerdown: drag pans the focused figure; a click without
 // drag closes (matches the previous click-to-unfocus affordance). 3px
@@ -17797,59 +17870,6 @@ freezeBtn.addEventListener('click', toggleFreeze);
 // then asks for explicit confirmation before clearing the draft buffer —
 // a failed copy or a cancelled confirm leaves localStorage untouched, so
 // nothing is lost if the lecturer aborts mid-workflow.
-function collectAnnotationDrafts() {
-  const out = [];
-  flatChunks.forEach(({ id, el }) => {
-    if (!id) return;
-    if (!(id in annotations)) return;
-    const text = (annotations[id] || '').trim();
-    const ta = el.querySelector('.annot-textarea');
-    const sourceDefault = ta ? (ta.defaultValue || '').trim() : '';
-    if (!text && !sourceDefault) return;
-    if (text === sourceDefault) return;
-    out.push({ id, text });
-  });
-  return out;
-}
-
-function buildAnnotationSnippet(drafts) {
-  const lines = ['<!-- annotations:start -->', ''];
-  drafts.forEach(({ id, text }, i) => {
-    if (i > 0) lines.push('');
-    lines.push('### ' + id);
-    if (text) {
-      text.split('\n').forEach(l => lines.push('> annot: ' + l));
-    } else {
-      lines.push('> annot:');
-    }
-  });
-  lines.push('', '<!-- annotations:end -->', '');
-  return lines.join('\n');
-}
-
-async function copyToClipboardSafe(text) {
-  try {
-    if (navigator.clipboard && navigator.clipboard.writeText) {
-      await navigator.clipboard.writeText(text);
-      return true;
-    }
-  } catch (e) {}
-  try {
-    const ta = document.createElement('textarea');
-    ta.value = text;
-    ta.setAttribute('readonly', '');
-    ta.style.position = 'fixed';
-    ta.style.top = '-9999px';
-    document.body.appendChild(ta);
-    ta.select();
-    const ok = document.execCommand('copy');
-    document.body.removeChild(ta);
-    return ok;
-  } catch (e) {
-    return false;
-  }
-}
-
 const centerToast = document.getElementById('center-toast');
 let centerToastTimer = null;
 function flashCenter(text, opts = {}) {
@@ -20945,6 +20965,18 @@ const DG_ZONE_PAD = 0.33;
 // the bottom corner's nudge alone: the two corners then clear the outline by
 // the same distance, which is the thing the eye was comparing.
 const DG_ZONE_INK_DROP = 0.17;
+// The air under the caption, in the caption's own fonts. The band used to be
+// the pad plus the caption's line box and nothing else, so the first box `in z`
+// began on the row where the caption's line ended: measured on a keynote's
+// "zu Hause" over "Ein Semester bauen", five pixels from the caption's ink to
+// the box's outline against the thirty-odd the pad keeps on the other three
+// sides, which reads as a label glued to the wrong thing – the caption names
+// the area, and that close it names the box. Half a caption line, in fonts and
+// not in rows for the reason DG_ZONE_INK_DROP is: the distance the eye compares
+// is to the type, and a coarse grid must not turn it into half a row. It is
+// part of the band's `cap`, so `z.inner`, `in z` and an auto-sized area all
+// read it from the one place, and an area with no caption reserves none.
+const DG_ZONE_CAP_GAP = 0.5;
 // The four words that move the caption out of the top-left. They are the
 // element-label alignment classes one level out: on a box they place the label
 // inside the box, on a zone they place the caption inside the area – the same
@@ -26125,7 +26157,8 @@ function createDiagramCompiler(env = {}) {
           // the words and not the band, which is the same promise a box's size
           // makes when its label changes.
           const capRows = cap
-            ? dgMeasure(cap, dgFontFor(capClasses), false).h / (zuh || 1)
+            ? (dgMeasure(cap, dgFontFor(capClasses), false).h
+               + DG_ZONE_CAP_GAP * dgFontFor(capClasses)) / (zuh || 1)
             : 0;
           node.band = { pad: zPad, padX, cap: capRows, bottom, capRight: right };
           model.nodes.push({
@@ -29673,7 +29706,7 @@ function createDiagramCompiler(env = {}) {
   };
 }
 
-return { DG_UNIT, DG_FRAME_RE, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_INK_H, DG_CAP_H, DG_DESC_H, DG_BASE_DROP, DG_HEAD, DG_LABEL_H, DG_GAP_PLAIN, DG_GAP_JOINED, DG_CHAIN_DIRS, DG_EDGE_MIN, DG_ELBOW_ARRIVE, DG_ELBOW_LEAVE, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, dgAnchorOffset, dgAnchorPinX, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, DG_ZONE_PAD, DG_ZONE_INK_DROP, DG_ZONE_CORNERS, DG_IN_ALIGN, dgZoneCapName, dgZoneTag, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, DG_LABEL_ESCAPES, DG_LABEL_WORD, dgSpans, DG_QUIET_SCALE, dgMeasure, dgTextInkRects, dgPlaceAnchor, dgLabelAnchor, DG_SOFT, DG_SOFT_GROUND, dgSegmentsCrossBox, dgOpacity, dgFontFor, dgPadPx, dgGapPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgDrawsGround, dgInkInset, dgTokenize, dgParseAttrs, dgNum, DG_LH, dgLen, dgUnitPx, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, DG_CLASS_VOIDS, rejectVoidPair, rejectClassOn, dgArticle, dgWhere, dgEdgeEnds, dgSite, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, DG_PLACE_OPTS, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
+return { DG_UNIT, DG_FRAME_RE, DG_FONT, DG_LINE_H, DG_PAD_X, DG_PAD_Y, DG_MIN_W, DG_INK_H, DG_CAP_H, DG_DESC_H, DG_BASE_DROP, DG_HEAD, DG_LABEL_H, DG_GAP_PLAIN, DG_GAP_JOINED, DG_CHAIN_DIRS, DG_EDGE_MIN, DG_ELBOW_ARRIVE, DG_ELBOW_LEAVE, DG_MARGIN, DG_NOMINAL_W, DG_SKEW_DEG, DG_BRACE_TICK, DG_DOT_R, DG_LEAD_GAP, DG_CLASSES, DG_FILL_SLOT, DG_THEMES, DG_BAR_FILLS, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarFillCss, dgBarContrast, DG_PROMINENCE, DG_CLASS_GROUPS, dgComposeClassLayers, dgFlattenClassLayers, DG_CLASS_CLASHES, DG_SHAPE_CLASSES, DG_POINTED, DG_POINT_DIRS, DG_TURN_DEG, dgTurnOf, dgShapeD, dgShapeName, dgShapeOf, dgShapeInsetX, dgShapeInsetY, DG_ANCHORS, dgAnchorOffset, dgAnchorPinX, DG_DEFINES, DG_RESERVED_IDS, DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP, DG_SCALAR_X, DG_SCALAR_Y, DG_STEP_NAME, DG_STEP_OPS, DG_KEYWORDS, DG_SEQ_ENTRIES, DG_EDGE_ARROWS, DG_ARROW_CLASS, DG_HEAD_CLASSES, rejectHeadClassIn, DG_SEQ_ARROWS, DG_GRID_KINDS, DG_GRID_MAX, dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgRowTag, dgColTag, dgLaneName, dgLaneCapName, DG_COL_W, DG_ROW_H, DG_LANE_H, DG_LANE_W, DG_LANE_CAP, dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName, dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag, DG_SEQ_SPACE, DG_SEQ_GAP, DG_SEQ_NUM, DG_SEQ_TAIL, DG_SEQ_SELF_W, DG_SEQ_SELF_H, DG_SEQ_GROUND, DG_ZONE_PAD, DG_ZONE_INK_DROP, DG_ZONE_CAP_GAP, DG_ZONE_CORNERS, DG_IN_ALIGN, dgZoneCapName, dgZoneTag, dgPlotName, dgPlotTicks, DG_PLOT_MAX_TICKS, dgResolvePlotCoords, DG_ALIGN_X, DG_ALIGN_Y, DG_DEFAULT_KINDS, DG_SIDES, DG_BRACE_SIDES, DG_KIND_OPTS, DG_WORD_OPTS, DG_LIST_OPTS, DG_PAD_DEFAULT, DG_PHASES, dgErr, dgSortProblems, DG_NARROW, DG_WIDE, dgCharW, DG_LABEL_ESCAPES, DG_LABEL_WORD, dgSpans, DG_QUIET_SCALE, dgMeasure, dgTextInkRects, dgPlaceAnchor, dgLabelAnchor, DG_SOFT, DG_SOFT_GROUND, dgSegmentsCrossBox, dgOpacity, dgFontFor, dgPadPx, dgGapPx, dgFitFont, DG_FILL_CLASSES, dgHasFill, dgDrawsGround, dgInkInset, dgTokenize, dgParseAttrs, dgNum, DG_LH, dgLen, dgUnitPx, dgParseRef, dgParsePlacement, dgParseCoord, dgParsePair, dgCoordPx, dgPairPx, dgPairRefs, dgParseMembers, dgDefaultLayers, dgPointOf, DG_CLASS_KINDS, DG_CLASS_KIND_SET, DG_STEP_FIXED, DG_STEP_FIXED_CLASSES, rejectStepClass, DG_SLOT_NAMES, rejectSlotPair, DG_CLASS_VOIDS, rejectVoidPair, rejectClassOn, dgArticle, dgWhere, dgEdgeEnds, dgSite, DG_BARE_OPTS, DG_RATIO_OPTS, dgParseRatio, DG_PLACEMENT_LONG, DG_PLACED_HEADS, DG_PLACE_INTRO, DG_PLACEMENT_SHORT, dgTakes, DG_PLACE_OPTS, dgUnexpected, dgNoPlacement, readGridOpts, dgReadDefault, parseDiagramDefaults, dgEdgeRoute, dgAnchorPt, dgAutoAnchor, dgUnion, dgStateAt, dgPolyPoint, dgLabelVariants, dgPathD, dgSplineD, DG_POSITIONAL, createSpanTable, createDiagramCompiler };
 })();
 window.PSI_DG_DEFAULTS = "";
 window.PSI_DG_EDIT_HTML = false;
