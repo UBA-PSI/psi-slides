@@ -21779,9 +21779,12 @@ const stageHome = stageCell.nextElementSibling;
 // and how many of that beat's cards have been said.
 let cue = { id: null, beat: -1, card: 0 };
 let cueLast = { idx: -1, pos: 0 };
-// The time mark the clock measures against: that of the current card, or
-// of the last card before it that carried one. null when none has yet.
-let cueDriftAt = null;
+// The two time marks the clock is measured against: 'cur' is the mark of the
+// current card or of the last card before it that carried one, 'next' the
+// first one still to come. Both are kept, because behind is measured against
+// the mark the talk is heading for and ahead against the one it has passed.
+// null when the deck carries no mark at all.
+let cueDriftMarks = null;
 
 function cueOn() { return document.body.classList.contains('cue-cards'); }
 // The mirror goes where the current thumbnail would have been, and CSS hides
@@ -22063,37 +22066,76 @@ function cueMarkList() {
   cueMarks.sort((a, b) => a.idx - b.idx || a.c - b.c || a.k - b.k);
   return cueMarks;
 }
-// The mark the clock is measured against: the last one at or before the
-// cursor, and before the first one has been reached, that first one - a
-// talk that has not got to its 5:00 card yet is ahead by whatever is left
-// of the five minutes, which is exactly what the lecturer wants to know.
+// The marks the clock is measured against: the last one at or before the
+// cursor, and the first one still ahead of it. The marks are in talk order,
+// so everything reached is a prefix of the list and the first mark that is
+// not reached is the one the talk is heading for. 'cur' is null until the
+// first mark has been passed, 'next' once the last one has been.
 // Null only when the deck carries no mark at all.
-function cueDriftRef(consumed) {
+function cueDriftRefs(consumed) {
   const marks = cueMarkList();
   if (!marks.length) return null;
-  let ref = null;
+  let cur = null;
+  let next = null;
   for (const m of marks) {
     const reached = m.idx < state.activeIdx
       || (m.idx === state.activeIdx && (m.c < consumed || (m.c === consumed && m.k <= cue.card)));
-    if (reached) ref = m;
+    if (reached) cur = m;
+    else { next = m; break; }
   }
-  return (ref || marks[0]).at;
+  return { cur: cur ? cur.at : null, next: next ? next.at : null };
 }
-// Beside the clock: how far the talk is from the card's mark. Behind is
+// How far the talk is from its plan, in seconds, positive being behind.
+// Behind is measured against the *next* mark and ahead against the current
+// one, and between the two the talk is on budget and the drift is zero:
+// drift = max(elapsed - next, min(elapsed - cur, 0)). A cover card marked
+// @0:00 whose successor is marked @2:30 used to read "+2:16 behind" after
+// 2:16 of speaking, because the reference was the mark already passed - the
+// number climbed with the dwell time on every slide and only snapped to the
+// truth on reaching the next marked one, which in a real talk read as a
+// clock that had not been reset. The @mm:ss marks say when a passage should
+// be *done*, so a speaker still short of the coming one is not late.
+// Past the last mark there is nothing left to head for and the current mark
+// is the reference again; before the first, that first mark is what the talk
+// is heading for, so a talk that has not got to its 5:00 card yet is ahead
+// by whatever is left of the five minutes.
+function cueDriftValue() {
+  if (!cueDriftMarks) return null;
+  const e = elapsedSeconds();
+  const cur = cueDriftMarks.cur;
+  const next = cueDriftMarks.next;
+  if (cur == null) return next == null ? null : e - next;
+  if (next == null) return e - cur;
+  return Math.max(e - next, Math.min(e - cur, 0));
+}
+// Beside the clock: how far the talk is from its plan. Behind is
 // the number that matters and is red; ahead is grey; on the mark it is
 // a signed zero rather than nothing, because a blank where a number
 // belongs is read as a broken clock, not as good timekeeping. A minute
 // is not worth a number, so the display is coarse to the ten seconds.
 const driftEl = document.getElementById('drift');
 function renderDrift() {
-  if (cueDriftAt == null || !cueOn()) { driftEl.hidden = true; return; }
-  const d = elapsedSeconds() - cueDriftAt;
+  const d = cueDriftValue();
+  if (d == null || !cueOn()) { driftEl.hidden = true; return; }
   const shown = Math.round(d / 10) * 10;
   driftEl.hidden = false;
   driftEl.textContent = (shown > 0 ? '+' : shown < 0 ? '\u2212' : '\u00b1') + PSI_CARDS.formatClock(Math.abs(shown));
   driftEl.classList.toggle('ahead', shown <= 0);
-  driftEl.title = 'against the @' + PSI_CARDS.formatClock(cueDriftAt) + ' mark'
-    + (elapsedSeconds() < cueDriftAt ? ' still ahead' : ' last passed');
+  // The tooltip names the mark the number is actually about, which under this
+  // model is not always the same one: behind is against the mark ahead, ahead
+  // against the mark behind, and on budget is against the pair.
+  const cur = cueDriftMarks.cur;
+  const next = cueDriftMarks.next;
+  const clockOf = (v) => '@' + PSI_CARDS.formatClock(v);
+  driftEl.title = cur == null
+    ? 'against the ' + clockOf(next) + ' mark, not reached yet'
+    : next == null
+      ? 'against the ' + clockOf(cur) + ' mark, the last one'
+      : shown > 0
+        ? 'against the ' + clockOf(next) + ' mark, already past it'
+        : shown < 0
+          ? 'against the ' + clockOf(cur) + ' mark, still ahead of it'
+          : 'on budget between the ' + clockOf(cur) + ' and ' + clockOf(next) + ' marks';
 }
 // Its own tick rather than a call from renderTimer: the clock starts
 // earlier in this script than the cards exist.
@@ -22109,7 +22151,7 @@ function cueRender() {
     + (total > 1 ? ' · beat <b>' + pos + '</b>/' + total : '')
     + (here.length ? ' · card <b>' + Math.min(cue.card + 1, here.length) + '</b>/' + here.length : '');
   const hasCards = [...cards.values()].some(a => a.length);
-  cueDriftAt = cueDriftRef(consumed);
+  cueDriftMarks = cueDriftRefs(consumed);
   renderDrift();
   const html = [];
   out.forEach((e, i) => {

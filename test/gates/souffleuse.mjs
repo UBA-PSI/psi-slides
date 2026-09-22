@@ -417,9 +417,26 @@ export async function run({ report }) {
   ok(j(driftSeconds({ elapsed: 600, marks, idx: 0, beat: 0 }))
      === j({ drift: -150, rough: false, beforeFirst: true }),
      'before the first mark the talk is measured against reaching it', j(driftSeconds({ elapsed: 600, marks, idx: 0, beat: 0 })));
+  // Behind is measured against the mark the talk is heading for, not against
+  // the one it has passed: the marks at 12:30 and 15:00 make everything said
+  // on the 12:30 slide before 15:00 on budget, and only the excess over 15:00
+  // late. Measuring against 12:30 made the number climb with the dwell time
+  // and read as behind to a speaker who was exactly on plan.
   ok(j(driftSeconds({ elapsed: 900, marks, idx: 2, beat: 1 }))
-     === j({ drift: 150, rough: false, beforeFirst: false }),
-     'after a mark the reference is that mark, and behind is positive');
+     === j({ drift: 0, rough: false, beforeFirst: false }),
+     'on a marked slide the talk is on budget until the next mark falls due',
+     j(driftSeconds({ elapsed: 900, marks, idx: 2, beat: 1 })));
+  ok(driftSeconds({ elapsed: 800, marks, idx: 2, beat: 0 }).drift === 0,
+     'so a slide whose own mark went by 50 seconds ago is still on plan');
+  ok(driftSeconds({ elapsed: 1000, marks, idx: 2, beat: 0 }).drift === 100,
+     'and behind is the excess over the next mark, not the age of the last',
+     j(driftSeconds({ elapsed: 1000, marks, idx: 2, beat: 0 })));
+  ok(driftSeconds({ elapsed: 700, marks, idx: 2, beat: 0 }).drift === -50,
+     'ahead is against the mark just passed: arriving at 12:30 at 11:40 is early',
+     j(driftSeconds({ elapsed: 700, marks, idx: 2, beat: 0 })));
+  ok(driftSeconds({ elapsed: 1000, marks, idx: 3, beat: 0 }).drift === 100
+     && driftSeconds({ elapsed: 1000, marks, idx: 3, beat: 0 }).beforeFirst === false,
+     'past the last mark there is nothing to head for, so that mark is the reference');
   // The number is kept and the flag is added, because the number is right in
   // one direction and about nothing in the other: with the first mark at 12:30
   // on slide 3 - the natural way to write them - a speaker on slide 1 in the
@@ -430,14 +447,25 @@ export async function run({ report }) {
   const unreached = driftSeconds({ elapsed: 65, marks, idx: 0, beat: 0 });
   ok(unreached.drift === -685 && unreached.beforeFirst === true,
      'and it says that its reference is a mark the talk has not reached', j(unreached));
+  // The talk that found this: a cover marked @0:00 with the next mark at
+  // @2:30 on the slide after it. At 2:16 of speaking the cockpit said
+  // "+2:16 behind" and the lecturer read it as a clock that had not been
+  // reset, when in fact nothing was due for another fourteen seconds.
+  const cover = [{ idx: 0, beat: 0, at: 0 }, { idx: 1, beat: 0, at: 150 }];
+  ok(driftSeconds({ elapsed: 136, marks: cover, idx: 0, beat: 0 }).drift === 0,
+     'a cover marked @0:00 is on budget until its successor falls due',
+     j(driftSeconds({ elapsed: 136, marks: cover, idx: 0, beat: 0 })));
+  ok(driftSeconds({ elapsed: 170, marks: cover, idx: 0, beat: 0 }).drift === 20,
+     'and behind only by what it overran that successor by');
   ok(driftSeconds({ elapsed: 600, marks: [], idx: 2, beat: 0, durationS: 2400, chunkCount: 8 })
      .beforeFirst === false,
      'the straight line has no first mark to be short of');
-  ok(driftSeconds({ elapsed: 900, marks, idx: 3, beat: 0 }).drift === 0,
-     'a mark on the active slide counts once its beat is reached');
-  ok(driftSeconds({ elapsed: 900, marks, idx: 3, beat: 0 }).drift === 0
-     && driftSeconds({ elapsed: 900, marks: marks.slice(), idx: 2, beat: 0 }).drift === 150,
-     'and not before it');
+  ok(driftSeconds({ elapsed: 800, marks, idx: 3, beat: 0 }).drift === -100,
+     'a mark on the active slide counts once its beat is reached - 15:00 is then '
+     + 'the mark behind, and 13:20 is ahead of it');
+  ok(driftSeconds({ elapsed: 800, marks, idx: 3, beat: 0 }).drift === -100
+     && driftSeconds({ elapsed: 800, marks: marks.slice(), idx: 2, beat: 0 }).drift === 0,
+     'and not before it - on the slide before, 15:00 is still the mark ahead');
   const lin = driftSeconds({ elapsed: 600, marks: [], idx: 2, beat: 0, durationS: 2400, chunkCount: 8 });
   ok(lin.drift === 0 && lin.rough === true,
      'with no marks but a duration the plan is a straight line, and says it is rough', j(lin));

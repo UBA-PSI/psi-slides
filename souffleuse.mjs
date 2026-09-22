@@ -921,9 +921,17 @@ export function parseAnswer(response, session = {}) {
 /**
  * How far the talk is from its plan, in seconds: positive is behind.
  *
- * The reference is the same one the cue list uses – the last `@mm:ss` mark
- * the talk has passed, and before the first mark the first one, because a
- * talk that has not reached its first mark is measured against reaching it.
+ * The reference is the same one the cue list uses, and the same arithmetic:
+ * behind is measured against the *next* `@mm:ss` mark, ahead against the last
+ * one passed, and between the two the talk is on budget and the drift is
+ * zero – `max(elapsed - next, min(elapsed - cur, 0))`. A mark says when a
+ * passage should be *done*, so a speaker still short of the coming mark is
+ * not late, however long ago the last one went by; measuring against the mark
+ * already passed made the number climb with the dwell time on every slide and
+ * snap back only on reaching the next marked one. Past the last mark there is
+ * nothing left to head for and that mark is the reference again; before the
+ * first mark the first one is what the talk is heading for, because a talk
+ * that has not reached it is measured against reaching it.
  * With no marks but a `duration:` the plan is a straight line through the
  * slides, which is rough and says so: it assumes every slide takes the same
  * time, which no talk does. With neither there is no plan, and a prompter
@@ -949,13 +957,20 @@ export function driftSeconds({ elapsed, marks, idx, beat, durationS, chunkCount 
     .sort((a, b) => a.idx - b.idx || a.beat - b.beat || a.at - b.at);
 
   if (list.length) {
-    let ref = list[0];
-    let reached = false;
+    let cur = null;
+    let next = null;
     for (const m of list) {
-      if (m.idx < at || (m.idx === at && m.beat <= on)) { ref = m; reached = true; }
-      else break;
+      if (m.idx < at || (m.idx === at && m.beat <= on)) cur = m;
+      else { next = m; break; }
     }
-    return { drift: now - ref.at, rough: false, beforeFirst: !reached };
+    // Before the first mark there is no `cur` to be ahead of, so the coming
+    // mark carries both halves of the answer and the flag says the reference
+    // is one the talk has not arrived at.
+    if (!cur) return { drift: now - next.at, rough: false, beforeFirst: true };
+    const drift = next
+      ? Math.max(now - next.at, Math.min(now - cur.at, 0))
+      : now - cur.at;
+    return { drift, rough: false, beforeFirst: false };
   }
   const total = num(durationS, null);
   const count = Math.round(num(chunkCount, 0));
@@ -982,6 +997,14 @@ export function driftSeconds({ elapsed, marks, idx, beat, durationS, chunkCount 
  * seconds "ahead", and the prompter was then invited to mention a clock
  * nobody had reached. Behind still counts: past the first mark's time
  * and still on the first slide is genuinely late.
+ *
+ * The thresholds survive `driftSeconds` measuring behind against the next
+ * mark: on any one slide the drift still only grows with the clock, so the
+ * `grew` test still compares like with like, and it is now zero while the
+ * talk is on budget – which is the state in which there was never anything
+ * to whisper. What "ahead" means is narrower than it was: not merely that a
+ * mark went by a while ago, but that the talk reached a marked point four
+ * minutes before the mark said it would.
  */
 export function timeHintAllowed({ drift, rough, beforeFirst, lastTimeHint, elapsed } = {}) {
   if (drift == null || !isFinite(Number(drift))) return false;
