@@ -123,6 +123,15 @@ h1, h2, h3, h4, code, pre, pre *, .chunk-num, a[href^="http"] {
   hyphens: manual;
   -webkit-hyphens: manual;
 }
+/* A statement chunk's paragraphs join that list, because they are heading
+   lines that happen to be marked up as paragraphs: same face, same size,
+   same weight, and a break across two lines reads as a fault in exactly the
+   way it does in a heading. The selector has to name the paragraph, since
+   the rule above reaches elements and this one is a p. */
+.chunk-statement > p {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 strong { color: var(--emph); font-weight: 600; }
 em { font-style: italic; }
 /* style.print-bold - the look of a bold the derivation reads, default bold
@@ -147,6 +156,23 @@ code { font-family: var(--mono); font-size: 0.92em; }
    across a line break. No backtick in this comment: PRINT_CSS is a template
    literal and one would end it. */
 code.nb { white-space: nowrap; }
+/* style: {code} on paper. Same three looks and the same reasoning as in
+   AUDIENCE_CSS – read the note there – with two differences that belong to
+   the medium. The selector is the bare element minus a listing and a
+   heading, because print wraps prose in no .chunk-body. And the tint is
+   mixed out of print's own --ink, which style: {print-neutrals} moves, so a
+   deck that warms the page warms the ground behind its code with it. */
+code:not(pre code):not(.chunk-heading code):not(.nb) {
+  margin: 0 0.15em;
+  word-spacing: -0.2em;
+}
+body[data-code=tint] code:not(pre code):not(.chunk-heading code) {
+  margin: 0;
+  word-spacing: normal;
+  padding: 0 0.28em;
+  border-radius: 0.2em;
+  background: color-mix(in oklch, var(--ink) 7%, transparent);
+}
 pre {
   font-family: var(--mono);
   font-size: 0.85em;
@@ -356,6 +382,53 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 .chunk-question .chunk-heading {
   font-size: 1.5rem;
   font-style: italic;
+}
+
+/* A statement chunk on paper. The projection sets its heading and its
+   paragraphs at one size because they are one utterance; the document
+   keeps that and pays what a document can afford for it, which is the
+   question chunk's 1.5rem rather than the slide's 2.1em. Nearest of the
+   two neighbours the type was measured against: principle was the other
+   candidate and brings a 2.5pt rule with it, and this type has no rule -
+   a bar over three lines of speech makes them a specimen.
+   No eyebrow either: renderChunk leaves statement out of labelTag.
+   The face is the heading's, which here means the document's own, so
+   nothing is declared for it - print sets no separate heading family, and
+   writing one would give this type a face the deck never chose. */
+.chunk-statement {
+  margin: 2.2rem 0;
+}
+.chunk-statement .chunk-heading { font-size: 1.5rem; margin-bottom: 0.35rem; }
+/* 500 and -0.01em are the h1, h2, h3 rule at the head of this stylesheet,
+   written out rather than inherited because a paragraph is not a heading
+   and no selector would hand it the heading's declarations. If that rule's
+   weight moves, this one moves with it, or the first line of a statement
+   stops matching the three under it. */
+.chunk-statement > p {
+  font-size: 1.5rem;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  margin: 0 0 0.35rem;
+}
+/* Nothing here about a bold inside one of these lines: style.print-bold
+   reaches it through DERIVED_STRONG at (0,4,3), and a rule written at this
+   selector's specificity would lose to it silently. */
+/* The quiet register, and the document carries it because it is what the
+   line *is* rather than how the projection shows it: a paragraph written
+   entirely in italic is the definition a claim answers or the source under
+   it, not a statement line with a stress mark on it. Half the size, the
+   document's own body weight, --ink-soft - the same three steps back the
+   projection takes, in the document's numbers. Hyphenation is deliberately
+   not touched: the rule above takes every statement paragraph out of the
+   dictionary, and a quiet line is one or two lines of type, so letting it
+   back in would only put a hyphen where nothing needed one. */
+.chunk-statement > p.quiet-line {
+  font-size: 0.85rem;
+  font-weight: 400;
+  letter-spacing: normal;
+  line-height: 1.4;
+  color: var(--ink-soft);
 }
 
 .chunk-exercise .chunk-heading { font-style: italic; }
@@ -779,6 +852,23 @@ body[data-blocks=left] .math-display .katex-display > .katex,
 }
 .cards.rows li > :is(strong, b):first-child { grid-column: 1; }
 .cards.rows li > .row-body { grid-column: 2; text-align: left; min-width: 0; }
+/* A term is a name and not a measure, so it does not hyphenate here either.
+   The rule above this one turns hyphens on for every li, and it inherits -
+   so without this a document set with lang: de broke "Zuständigkeit" across
+   two lines of a 5.5em column, where the live views now refuse to. The body
+   beside it is prose and keeps the hyphenation it was given.
+   What print does NOT copy from the live views is the term column itself:
+   there the grid is one grid for the whole block, so a max-content track is
+   the longest term in it; here the grid is per row, because the li has to
+   keep its box for break-inside: avoid, and fit-content would then give
+   every row a term column of its own width - a ragged left edge down the
+   page, which is worse than the share it replaced. */
+.cards.rows li > :is(strong, b):first-child,
+.cards li .card-lead,
+.cards li > :is(strong, b):first-child {
+  hyphens: manual;
+  -webkit-hyphens: manual;
+}
 /* A markdown line break between the term and its body would otherwise be a
    third item in the two-column grid and push the body onto its own row. */
 .cards.rows li > br { display: none; }
@@ -926,16 +1016,47 @@ figure.figure-video video { max-height: 34rem; }
    that could not honour them because its box was always full width. */
 main .psi-diagram {
   --dg-fig-size: 0.9rem;
-  width: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
-             calc(34rem * var(--dg-ar, 1)));
+  --dg-box-w: min(100%, calc(var(--dg-type-w, 100000) * var(--dg-fig-size)),
+                  calc(34rem * var(--dg-ar, 1)));
+  width: var(--dg-box-w);
   /* The default is centre, matching figure.figure-img's text-align above.
      styleBodyAttrs writes data-blocks only when it is left, so the centre
      case has to be the bare rule - a body[data-blocks=center] selector would
      never match anything and every deck would quietly go flush left. */
   margin-inline: auto;
 }
+/* Flush left means the *drawing* is flush left, not the box around it. The
+   box is the viewBox, and the viewBox is the drawing plus DG_MARGIN on every
+   side - so a figure set flush left used to stop a fixed reserve short of the
+   heading above it, the same few pixels on every figure in the deck. Measured
+   on a real keynote: heading at x 223, first box at 243. A gap of twenty
+   pixels is not an alignment anyone chose; it is a near-miss, and a near-miss
+   reads worse than an honest indent. --dg-ink-x is that reserve as a fraction
+   of the box (diagram-core emits it, and the live runtime rewrites it when it
+   swaps in the viewBox that holds every beat), so the negative start margin
+   pulls the reserve back out into the gutter and the ink lands on the text's
+   own edge.
+
+   Centre is untouched: the reserve is symmetric, so a centred box is a centred
+   drawing already, and nothing moves in a deck that did not ask.
+
+   And centre stays the DEFAULT, which is the question this rule was asked
+   twice. The case for flush left by default is that a figure under a heading
+   should share that heading's edge - but where the heading sits is already a
+   key, and the two lectures answer it differently. Measured at 1600x900:
+   lectures/diagrams sets no headings key, so a figure chunk's heading is
+   centred (heads at 465-739 px in a 96-1504 column) and the drawing under it
+   is centred with it; flush left by default would pull thirty figures away
+   from their own headings. lectures/tutorial sets headings: left, every
+   heading stands at the column edge, and the centred figures sit 56-860 px
+   inside it - which is the complaint, and blocks: left is the answer to it,
+   now that it lands on the edge rather than a reserve short of it. So the
+   default follows the blocks key, as documented, and a deck that ranges its
+   headings left says so once in the same block. */
 body[data-blocks=left] main .psi-diagram,
-.chunk[data-blocks=left] .psi-diagram { margin-inline: 0; }
+.chunk[data-blocks=left] .psi-diagram {
+  margin-inline: calc(-1 * var(--dg-ink-x, 0) * var(--dg-box-w)) auto;
+}
 .chunk[data-blocks=center] .psi-diagram { margin-inline: auto; }
 
 @media print {
@@ -1098,8 +1219,14 @@ pre.shiki .line { display: inline; }
      with a caption and often arrives in portrait; a diagram is landscape and
      is usually the whole point of the chunk, and at 50vh a wide one was
      height-capped hard enough to leave a third of the measure empty beside
-     it. */
-  max-height: 62vh;
+     it.
+     Off --slide-h rather than off vh, for the reason every other slide-
+     internal size is: the cockpit lays the mirror out at the AUDIENCE window's
+     dimensions and then transforms it into its cell, so a raw vh there is the
+     cockpit window's and the same figure was capped at a different height in
+     the two windows. Print defines no --slide-h and falls back to the number
+     this rule has always had; it overrides the cap anyway (PRINT_CSS). */
+  max-height: calc(var(--slide-h, 100vh) * 0.62);
   height: auto;
 }
 @media print {
@@ -1109,7 +1236,7 @@ pre.shiki .line { display: inline; }
      document with no cap at all, so a portrait diagram resolved to the
      measure times its ratio and came out taller than the page. The answer
      now lives beside every other figure kind in PRINT_CSS, under a selector
-     specific enough to beat the 62vh above in both media. Do not re-add a
+     specific enough to beat the cap above in both media. Do not re-add a
      .psi-diagram max-height here without reading that rule. */
   /* A diagram is one picture; splitting it across a page break makes it
      two useless halves. */
@@ -1123,7 +1250,7 @@ pre.shiki .line { display: inline; }
    white. The tone rules below always used the child combinator; this one and
    the text rule did not, which is why the two of them were the leak. */
 .psi-diagram .dg-el > rect, .psi-diagram .dg-el > circle, .psi-diagram .dg-el > .dg-shape {
-  fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
+  fill: var(--paper); stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); rx: 4px;
 }
 /* A box whose outline is not a rectangle is a <path>, so every rule below
    that paints a box has to name it too. They do it through :is(), which is
@@ -1131,7 +1258,7 @@ pre.shiki .line { display: inline; }
    was a third copy of each one. The join is rounded so a chevron's nose is a
    point rather than a miter spike. */
 .psi-diagram .dg-shape { stroke-linejoin: round; }
-.psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
+.psi-diagram .dg-stroke { stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); fill: none; stroke-linejoin: round; }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
 /* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
    type inside an embedded drawing is the drawing's business. */
@@ -1160,7 +1287,7 @@ pre.shiki .line { display: inline; }
    trust boundary, a segment, a machine - it has to read as a statement.
    Dashed at that weight it was barely visible on a shaded ground, which
    is exactly where these are usually drawn. */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); stroke-width: 1.3; }
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
@@ -1198,11 +1325,27 @@ pre.shiki .line { display: inline; }
    different kind of thing. .muted is scaffolding - an axis, a leader, a zone
    outline - and scaffolding is drawn thinner as well as lighter. .dim is the
    other axis entirely: full colour at a third of the strength, which is what
-   the dim step operation reaches for when a beat moves on. */
-.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
-.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
+   the dim step operation reaches for when a beat moves on.
+
+   A muted *line* is --ink-soft and a muted *word* is not, and that split is
+   the correction. --ink-soft is picked against the paper, and a caption is
+   very often standing on something else: measured at 1600x900 on the default
+   theme, --ink-soft type reads 3.44:1 on the paper, 2.76:1 on a .tone-1 area
+   and 2.11:1 on a .tone-3 one, against the 3:1 anything on a projector has
+   to clear. A line has no such floor - an axis is followed, not read - so it
+   keeps the token and the 1.05 weight that say scaffolding. The words are
+   mixed straight out of the two inks instead, dark enough to hold on the
+   three light tints and still visibly quieter than --ink.
+
+   Two grounds it cannot answer for, and both are the ground being wrong
+   rather than the type: a .tone-4 area is the accent at full strength, where
+   this mix reads worse than --ink-soft did and only the inverted label two
+   rules down is legible; and a dark theme's paper, where the mix follows
+   --ink and --paper and so inverts with them. */
+.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
-.psi-diagram .muted text { fill: var(--ink-soft); }
+.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
 
 /* .tone-4 inverts its own label, and that has to win over .accent text:
    accent ink on an accent fill is invisible, legal, and would otherwise be
@@ -1229,9 +1372,47 @@ pre.shiki .line { display: inline; }
    rule the free text's ground already needs, for exactly the same reason. */
 .psi-diagram .dg-edge:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
 
-.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
-.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
-.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+/* The two stroke patterns, stated as multiples of the line they pattern
+   rather than as pixels. --dg-sw is set beside every stroke-width above, on
+   the same element and by the same selector, so a .thick outline gets a
+   longer dash instead of the same dash on a fatter line - which is what 6 4
+   was: 4.3 line-widths of ink and 2.9 of paper at the normal weight, and a
+   dashed box then drew the eye harder than the solid one beside it. It also
+   stumbled at the corners: on a 13px .round corner a 10px period puts one or
+   two dashes on the whole arc, so a gap landing on the apex reads as a
+   chipped box. 2.2 and 1.5 halve the period, which does not divide a
+   perimeter evenly either - nothing does, in general - but a small dash with
+   a small gap hides the seam instead of announcing it.
+   Butt caps, deliberately: a round cap adds half a line-width of ink at each
+   end and would put the dash back where it started. */
+.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke {
+  stroke-dasharray: calc(var(--dg-sw, 1.4px) * 2.2) calc(var(--dg-sw, 1.4px) * 1.5);
+}
+/* Dots, and they have to be round dots or the word means nothing: a zero-
+   length dash under a round cap draws a disc one line-width across, and the
+   gap is 2.5 of those. It used to be 1.5 3.5 with the round cap on top, which
+   is a 2.9px dash at the normal weight - a fine dashed line under another
+   name - and at .thick a 4.1px dash with 0.9px of paper between, so the
+   dotted box in the class catalogue was very nearly solid. */
+.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke {
+  stroke-dasharray: 0 calc(var(--dg-sw, 1.4px) * 2.5); stroke-linecap: round;
+}
+/* A muted dot is a plain dot in the muted ink, never a smaller one. .muted
+   thins a line to 1.05 so that scaffolding reads as scaffolding, and a dot
+   is one line-width across - so .dotted .muted drew discs of 1.9px at a
+   typical figure scale, anti-aliased below their own colour: the peak pixel
+   reached 2.56:1 on the light themes where a solid muted line reaches 2.76,
+   and a band across the line carried a quarter of a muted line's ink or
+   less on all seven themes. The floor is the plain weight, so the pattern
+   is exactly .dotted's and only the ink is quieter, and the gap is stated
+   against the floored width so the dots keep their 2.5 line-widths of
+   paper. max() rather than a fixed 1.4: a .thick or .emph line keeps the
+   2.6 it set. A plot's grid is this pair, written by the compiler. */
+.psi-diagram .muted.dotted > :is(rect, circle, .dg-shape), .psi-diagram .muted.dotted .dg-stroke {
+  stroke-width: max(var(--dg-sw), 1.4px);
+  stroke-dasharray: 0 calc(max(var(--dg-sw), 1.4px) * 2.5);
+}
+.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .round > rect { rx: 13px; }
 .psi-diagram .sharp > rect { rx: 0; }
@@ -1246,14 +1427,36 @@ pre.shiki .line { display: inline; }
    costs no extra font payload. */
 .psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
 
-/* .ghost and .dim deliberately do NOT set opacity here. Visibility and the
-   two softening classes share one channel, and author CSS beats a
-   presentation attribute – so an element pinned at 0.45 by this stylesheet
-   could never be hidden, and its show step did nothing at all. Both the
-   emitter and the runtime resolve the channel once, in dgOpacity(). */
+/* .ghost and .dim deliberately do NOT set opacity on the group here.
+   Visibility and the two softening classes share one channel, and author CSS
+   beats a presentation attribute – so an element pinned at 0.45 by this
+   stylesheet could never be hidden, and its show step did nothing at all.
+   Both the emitter and the runtime resolve that channel once, in
+   dgOpacity().
+
+   What the two rules below touch is a *child* of the group, which is a
+   different thing and safe for the same reason: the alphas multiply, so a
+   hide still takes the whole element to zero. They exist because one alpha
+   over a whole group fades the words as hard as the box, and a word at 0.3
+   is not quiet but unreadable – 1.95:1 against its own fill on the paper,
+   1.88:1 standing on a .tone-3 area. dgOpacity() now returns the *ink*
+   number and these put the ground back where it was: 0.6 x 0.5 is the 0.3
+   that was there before, 0.75 x 0.6 the 0.45, so every existing figure's
+   outline, fill, stroke, arrowhead and picture are unmoved to the pixel and
+   only the type gains. The factors come from DG_SOFT_GROUND rather than
+   being typed here twice.
+
+   Type is what is deliberately NOT in the selector lists. Everything else a
+   softened element can draw is. */
+.psi-diagram .dim > :is(rect, circle, .dg-shape, image),
+.psi-diagram .dim .dg-stroke,
+.psi-diagram .dim .dg-head { opacity: 0.5000; }
+.psi-diagram .ghost > :is(rect, circle, .dg-shape, image),
+.psi-diagram .ghost .dg-stroke,
+.psi-diagram .ghost .dg-head { opacity: 0.6000; }
 /* emph / dim are what a step reaches for; both stay inside the palette */
-.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
-.psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
+.psi-diagram .emph .dg-stroke { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
 /* A chart's column: what it is filled with, and what emph does to it. A
    column draws no outline, so paper would make it vanish and there is nothing
@@ -1291,6 +1494,20 @@ pre.shiki .line { display: inline; }
    so source order does not decide it. (No backticks in here: this whole
    stylesheet is a template literal, and one would end it.) */
 .psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
+/* emph acts in the prominence slot and .bare in the stroke-weight slot, so
+   neither may overwrite the other - and until this rule the emphasis stroke
+   two blocks up put the outline back on an element that had just taken it
+   off, at the same specificity and later in source order. On a table of type
+   on the paper (.bare .clear cells are the spelling for that) a lit row came
+   out as a row of red empty rectangles that the room reads as a form. So on
+   a .bare element emph emphasises the *ink* - the accent fill and the weight
+   the .emph text rule above already give a free text - and draws no outline.
+   That is the same correction DG_BAR_FILLS makes one channel along, where
+   emph on a column is a solid accent fill rather than the accent outline it
+   is on every other shape: emphasis has to act on whatever the element
+   actually draws. Three classes in the selector, and written after the
+   .tone-4.emph rule, so it wins where an element carries both. */
+.psi-diagram .bare.emph > :is(rect, circle, .dg-shape) { stroke: none; }
 
 /* A label's ground is never stroked, and this is where that has to be said.
    It was written up with the two rules that create the ground, above the
@@ -1302,6 +1519,31 @@ pre.shiki .line { display: inline; }
    A bordered label is a box, and there is a statement for that. */
 .psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-edge > :is(rect, circle, .dg-shape) { stroke: none; }
+
+/* An edge label its own line runs through. The compiler decides it from the
+   routed geometry and writes dg-halo into the beat's class string; this is
+   what the word means. The offset that lifts a label off its line clears it
+   at the *midpoint*, and an elbow's two outer runs, a doubled-back via route
+   and a curve that comes back on itself are all somewhere else on the same
+   path - so a label can be correctly beside the line it labels and still have
+   another stretch of that same line drawn through the middle of it, which the
+   room reads as struck through.
+
+   paint-order and not a rect, because a rect is as wide as the whole run
+   where the crossing is one word long, and on a curve that erases the arc the
+   label belongs to. The stroke is the paper, so it knocks out the glyph
+   shapes and nothing else. Written after every rule that sets a text fill, so
+   a muted or accented label keeps its own colour and only gains the knockout.
+
+   3.2px against a 1.4 line: the stroke is centred on the glyph outline, so
+   half of it is inside the letters and the gap the line sees is about 1.6px
+   each side. Less and a 1.4 stroke still touches the serifs. */
+.psi-diagram .dg-halo text {
+  paint-order: stroke fill;
+  stroke: var(--paper);
+  stroke-width: 3.2px;
+  stroke-linejoin: round;
+}
 
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -1322,6 +1564,9 @@ pre.shiki .line { display: inline; }
 @font-face{font-family:'JetBrains Mono';font-style:italic;font-weight:100 900;font-display:block;src:url(data:font/woff2;base64,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) format('woff2');}
 </style>
 
+<style>
+code:not(pre code):not(.chunk-heading code) { font-size: 0.885em; }
+</style>
 
 
 </head>
@@ -1384,6 +1629,7 @@ project page, and the <code class="nb">build.js</code> inside it. The source for
 shot from a real build. This deck wears <code class="nb">quote</code>.</p>
 </blockquote>
 </div>
+  
   
   
 <article class="chunk chunk-free width-wide" id="cover-list" data-chunk-num="4">
@@ -1501,6 +1747,7 @@ talking and where an hour ago. The last slide of this lecture is one.</p>
   
   
   
+  
 <article class="chunk chunk-free width-wide" id="section-list" data-chunk-num="8">
   
   <span class="chunk-num" aria-hidden="true"><i>8</i></span>
@@ -1588,7 +1835,8 @@ Write nothing and nothing is drawn there.</p>
 <ul>
 <li><strong class="card-lead">A blockquote</strong><br>opens the part on a quotation. Part 1 of this lecture does</li>
 <li><strong class="card-lead">A backdrop</strong><br>opens it on a photograph. This part does</li>
-<li><strong class="card-lead">A figure</strong><br>opens it on a drawing set beside the heading. Part 3 does</li>
+<li><strong class="card-lead">A figure</strong><br>opens it on a drawing, beside the heading or, with <code class="nb">{.stack}</code>, under it.
+Parts 3 and 7 do</li>
 </ul>
 
 </div>
@@ -1597,6 +1845,10 @@ Write nothing and nothing is drawn there.</p>
 <p>Those three are what a divider takes; the other directives belong inside a
 <code class="nb">##</code> slide. The words do print, as a short paragraph under the part title. The
 divider slide itself never prints.</p>
+<p><strong>A <code>&gt; note:</code> written there is the divider&#39;s own.</strong> It reaches the cockpit as
+the card for that camera stop and <code class="nb">print-notes.html</code> under the part title, so
+the sentence that says what the part is for arrives while the part title is on
+the wall rather than one slide late.</p>
 
   
   
@@ -1621,11 +1873,32 @@ the quotation divider in Part 1 comes out.</p>
   
   
 </article>
+<article class="chunk chunk-free width-standard" id="divider-stack" data-chunk-num="13">
+  
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></span>
+  
+  <h2 class="chunk-heading">…unless the figure is the point of the part</h2>
+  <p><strong><code># Heading {.stack}</code> puts the content under the heading at the full measure</strong>
+and sets the heading small above it, as its caption. Beside the heading a
+figure gets about half the frame, which is right for a drawing that balances a
+part title and unreadable for one with six cells and a label in each. Part 7&#39;s
+divider wears it; Part 3&#39;s is the other layout.</p>
+<p>The class is on the one heading rather than a seventh <code class="nb">section:</code> value, because
+<code class="nb">section:</code> is how the deck treats every divider and this is a fact about one
+divider&#39;s content. A <code class="nb">{.stack}</code> over a divider with nothing under its heading
+is refused.</p>
+
+  
+  
+  
+  
+  
+</article>
 </section>
 <section class="column" id="grounds">
   <h1 class="column-heading">Cards, rows and panes</h1>
   
-  <div class="column-lede"><figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-89.00 -25.50 338.56 159.00" style="--dg-type-w:22.571;--dg-ar:2.1293" width="2000" height="939" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
+  <div class="column-lede"><figure class="figure-diagram"><svg id="dg1-root" class="psi-diagram" viewBox="-89.00 -25.50 338.56 159.00" style="--dg-type-w:22.571;--dg-ar:2.1293;--dg-ink-x:0.03544" width="2000" height="939" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
 <g id="dg1-note--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg1-note--lead--p" class="dg-stroke" d="M130.46 54.00L77.00 54.00" fill="none"/><path id="dg1-note--lead--h" class="dg-head" d="M77.00 54.00L77.00 54.00L77.00 54.00Z"/></g>
 <g id="dg1-cards" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg1-cards--r" x="-77.00" y="-13.50" width="154.00" height="27.00" rx="4"/><g id="dg1-cards--lw0" data-lab="cards--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg1-cards--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">cards 3</tspan></text></g></g></g>
 <g id="dg1-rows" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg1-rows--r" x="-77.00" y="40.50" width="154.00" height="27.00" rx="4"/><g id="dg1-rows--lw0" data-lab="rows--l" class="dg-lwrap" transform="translate(0.00,54.00)"><g id="dg1-rows--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">rows</tspan></text></g></g></g>
@@ -1634,9 +1907,10 @@ the quotation divider in Part 1 comes out.</p>
 </svg></figure></div>
   
   
-<article class="chunk chunk-free width-wide" id="cards-why" data-chunk-num="13">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></span>
+<article class="chunk chunk-free width-wide" id="cards-why" data-chunk-num="14">
+  
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></span>
   
   <h2 class="chunk-heading"><code>::: cards</code> makes boxes, not columns</h2>
   <p><strong><code>::: cards 3</code> puts three boxes side by side</strong>, and an item is whole or it is
@@ -1660,9 +1934,9 @@ than as a card</li>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="cards-grounds" data-chunk-num="14">
+<article class="chunk chunk-free width-wide" id="cards-grounds" data-chunk-num="15">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></span>
   
   <h2 class="chunk-heading">What a card sits on</h2>
   <p>The <code class="nb">ground</code> word says what is behind the text, and a row wears one at a time:
@@ -1695,9 +1969,9 @@ its top</li>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="cards-size" data-chunk-num="15">
+<article class="chunk chunk-free width-wide" id="cards-size" data-chunk-num="16">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></span>
   
   <h2 class="chunk-heading">The row size reads the longest item</h2>
   <p><strong><code>size: auto</code> counts the words in the longest card</strong>: three or fewer sets the
@@ -1724,9 +1998,9 @@ so the heads do not jump when the reader presses <code class="nb">C</code>.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="cards-fold" data-chunk-num="16">
+<article class="chunk chunk-free width-wide" id="cards-fold" data-chunk-num="17">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></span>
   
   <h2 class="chunk-heading">One row serves two views</h2>
   <p><strong><code>detail: fold</code> is the default</strong>, so the levels under the first are in the
@@ -1758,9 +2032,9 @@ deck opens with everything showing, because its frontmatter says
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="rows" data-chunk-num="17">
+<article class="chunk chunk-free width-wide" id="rows" data-chunk-num="18">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></span>
   
   <h2 class="chunk-heading"><code>::: rows</code> turns a card row on its side</h2>
   <p><strong>A term in a small card on the left, its explanation beside it, several
@@ -1786,9 +2060,9 @@ slide however long the terms are.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="side" data-chunk-num="18">
+<article class="chunk chunk-free width-wide" id="side" data-chunk-num="19">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></span>
   
   <h2 class="chunk-heading"><code>::: side</code> takes a ratio</h2>
   <div class="side" style="--side-a:2fr;--side-b:1fr"><div class="side-a">
@@ -1800,7 +2074,7 @@ second one. Any two numbers work.</p>
 </div><div class="side-b">
 
 
-<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" style="--dg-type-w:30.980;--dg-ar:3.3674" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
+<figure class="figure-diagram"><svg id="dg2-root" class="psi-diagram" viewBox="-154.50 -69.00 464.70 138.00" style="--dg-type-w:30.980;--dg-ar:3.3674;--dg-ink-x:0.02582" width="2000" height="594" data-steps="1" role="img" aria-label="`::: side` takes a ratio" preserveAspectRatio="xMidYMid meet">
 <g id="dg2-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg2-a--r" x="-142.50" y="-57.00" width="285.00" height="114.00" rx="4"/><g id="dg2-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">2fr</tspan></text></g></g></g>
 <g id="dg2-b" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg2-b--r" x="155.70" y="-57.00" width="142.50" height="114.00" rx="4"/><g id="dg2-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(226.95,0.00)"><g id="dg2-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">1fr</tspan></text></g></g></g>
 </svg></figure>
@@ -1820,9 +2094,10 @@ second one. Any two numbers work.</p>
   
   
   
-<article class="chunk chunk-free width-wide" id="reveal-why" data-chunk-num="19">
   
-  <span class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></span>
+<article class="chunk chunk-free width-wide" id="reveal-why" data-chunk-num="20">
+  
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></span>
   
   <h2 class="chunk-heading">The window walks the beats, and the picture stands still</h2>
   <p><strong><code>::: backdrop dusk {.cover} reveal full, right 52%</code></strong> gives the picture one
@@ -1839,9 +2114,9 @@ or slides about while it is being revealed.</p>
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="reveal-open" data-chunk-num="20" data-has-backdrop="" data-backdrop="clear">
+<article class="chunk chunk-figure width-full" id="reveal-open" data-chunk-num="21" data-has-backdrop="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></span>
   
   <h2 class="chunk-heading">A picture that retreats</h2>
   
@@ -1855,9 +2130,9 @@ or slides about while it is being revealed.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="reveal-from" data-chunk-num="21">
+<article class="chunk chunk-free width-wide" id="reveal-from" data-chunk-num="22">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></span>
   
   <h2 class="chunk-heading"><code class="nb">from</code> holds an overlay back until a beat</h2>
   <p><strong><code>::: overlay {…} from 1</code> keeps the block off the slide</strong> until the first press
@@ -1875,9 +2150,9 @@ which beat it waits for and nothing else can reach it first.</p>
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="reveal-close" data-chunk-num="22" data-has-backdrop="" data-backdrop="clear">
+<article class="chunk chunk-figure width-full" id="reveal-close" data-chunk-num="23" data-has-backdrop="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-over" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></span>
   
   <h2 class="chunk-heading">A picture that covers the words</h2>
   
@@ -1890,9 +2165,9 @@ which beat it waits for and nothing else can reach it first.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="backdrop-slots" data-chunk-num="23">
+<article class="chunk chunk-free width-wide" id="backdrop-slots" data-chunk-num="24">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></span>
   
   <h2 class="chunk-heading">Where the picture sits, and what it is veiled with</h2>
   <p>Five groups of words go in the braces after <code>::: backdrop</code>, at most one from
@@ -1920,9 +2195,9 @@ at the start of Part 2 does.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="overlay-slots" data-chunk-num="24">
+<article class="chunk chunk-free width-wide" id="overlay-slots" data-chunk-num="25">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></span>
   
   <h2 class="chunk-heading">An overlay is a block of text over the slide</h2>
   <p><strong>Nine places, five backgrounds, four widths, two shapes.</strong> Aim two overlays
@@ -1960,9 +2235,10 @@ compositions - and <code class="nb">third</code> / <code class="nb">half</code> 
   
   
   
-<article class="chunk chunk-figure width-full" id="panel-column" data-chunk-num="25" data-has-backdrop="" data-backdrop="clear">
+  
+<article class="chunk chunk-figure width-full" id="panel-column" data-chunk-num="26" data-has-backdrop="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></span>
   
   <h2 class="chunk-heading">A column the full height of the slide</h2>
   
@@ -1981,9 +2257,9 @@ the linter&#39;s <code class="nb">text-on-picture</code>.</p>
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="panel-band" data-chunk-num="26" data-has-backdrop="" data-backdrop="clear">
+<article class="chunk chunk-figure width-full" id="panel-band" data-chunk-num="27" data-has-backdrop="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></span>
   
   <h2 class="chunk-heading">A band across the foot, a third high, with a beat inside</h2>
   
@@ -2002,9 +2278,9 @@ the band was this tall from the start.</p>
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="panel-frame" data-chunk-num="27" data-has-backdrop="" data-backdrop="clear">
+<article class="chunk chunk-figure width-full" id="panel-frame" data-chunk-num="28" data-has-backdrop="" data-backdrop="clear">
   <div class="chunk-backdrop bd-cover bd-middle bd-clear bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></span>
   
   <h2 class="chunk-heading">The whole frame veiled, and a card on top of it</h2>
   
@@ -2036,9 +2312,10 @@ refused: a panel runs along one edge, or takes them all.</p>
 </ul>
 </aside>
   
-<article class="chunk chunk-free width-wide" id="dock-why" data-chunk-num="28">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></span>
+<article class="chunk chunk-free width-wide" id="dock-why" data-chunk-num="29">
+  
+  <span class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></span>
   
   <h2 class="chunk-heading">A dock is part of the frame, and the text yields to it</h2>
   <p><strong>An overlay lies over the slide; a dock takes its room from it.</strong> The list on
@@ -2057,9 +2334,9 @@ that slide.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="dock-cols" data-chunk-num="29">
+<article class="chunk chunk-free width-wide" id="dock-cols" data-chunk-num="30">
   
-  <span class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></span>
   
   <h2 class="chunk-heading">The text column narrows, and two columns still fit beside a dock</h2>
   <p><strong>A <code class="nb">.wide</code> chunk keeps <code>::: cols 2</code> beside the inherited dock.</strong> The chunk
@@ -2082,9 +2359,9 @@ frame, and a running list that shifts sideways per slide is not a frame.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="dock-band" data-chunk-num="30">
+<article class="chunk chunk-free width-wide" id="dock-band" data-chunk-num="31">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
   
   <h2 class="chunk-heading">A band replaces the inherited column</h2>
   <p><strong>This chunk writes <code>::: dock {.bottom .accent .third}</code> of its own,</strong> so the
@@ -2099,9 +2376,9 @@ inherits again.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="dock-top" data-chunk-num="31">
+<article class="chunk chunk-free width-wide" id="dock-top" data-chunk-num="32">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
   
   <h2 class="chunk-heading">A band at the head, and the chrome moves to the foot</h2>
   <p><strong><code>::: dock {.top .accent}</code> is a line above the words,</strong> as wide as the slide
@@ -2116,9 +2393,9 @@ where it is a box before the text.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="dock-from" data-chunk-num="32">
+<article class="chunk chunk-free width-wide" id="dock-from" data-chunk-num="33">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>2</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
   
   <h2 class="chunk-heading">A dock held to a beat arrives into a track kept free</h2>
   <p><strong><code>from 2</code> holds this remark back until the second beat.</strong> The text column
@@ -2135,9 +2412,9 @@ room&#39;s eyes reads as a fault.</p>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="dock-slots" data-chunk-num="33">
+<article class="chunk chunk-free width-wide" id="dock-slots" data-chunk-num="34">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></span>
   
   <h2 class="chunk-heading">The dock&#39;s words</h2>
   <p><strong>Four edges, six grounds, three widths, three heights, two scopes.</strong> One
@@ -2170,12 +2447,23 @@ dock per slide; a <code class="nb">#id</code> link in the body is the live marke
 <section class="column" id="beats">
   <h1 class="column-heading">Beats below the top level</h1>
   
+  <div class="column-lede"><figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-59.20 -22.20 634.60 79.97" style="--dg-type-w:42.307;--dg-ar:7.9350;--dg-ink-x:0.01891" width="2000" height="252" data-steps="1" role="img" preserveAspectRatio="xMidYMid meet">
+<g id="dg3-p1" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p1--p" class="dg-stroke" d="M-47.20 20.40L-47.20 27.40L150.44 27.40L150.44 20.40" fill="none"/><g id="dg3-p1--lw0" data-lab="p1--l" class="dg-lwrap" transform="translate(51.62,36.40)"><g id="dg3-p1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">left pane</tspan></text></g></g></g>
+<g id="dg3-p2" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p2--p" class="dg-stroke" d="M159.28 20.40L159.28 27.40L356.92 27.40L356.92 20.40" fill="none"/><g id="dg3-p2--lw0" data-lab="p2--l" class="dg-lwrap" transform="translate(258.10,36.40)"><g id="dg3-p2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">right pane</tspan></text></g></g></g>
+<g id="dg3-p3" data-base="dg-el dg-brace" class="dg-el dg-brace muted"><path id="dg3-p3--p" class="dg-stroke" d="M365.76 20.40L365.76 27.40L563.40 27.40L563.40 20.40" fill="none"/><g id="dg3-p3--lw0" data-lab="p3--l" class="dg-lwrap" transform="translate(464.58,36.40)"><g id="dg3-p3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">the card row</tspan></text></g></g></g>
+<g id="dg3-b1" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg3-b1--r" x="-47.20" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b1--lw0" data-lab="b1--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg3-b1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 1</tspan></text></g></g></g>
+<g id="dg3-b2" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg3-b2--r" x="56.04" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b2--lw0" data-lab="b2--l" class="dg-lwrap" transform="translate(103.24,0.00)"><g id="dg3-b2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 2</tspan></text></g></g></g>
+<g id="dg3-b3" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg3-b3--r" x="159.28" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b3--lw0" data-lab="b3--l" class="dg-lwrap" transform="translate(206.48,0.00)"><g id="dg3-b3--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 3</tspan></text></g></g></g>
+<g id="dg3-b4" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg3-b4--r" x="262.52" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b4--lw0" data-lab="b4--l" class="dg-lwrap" transform="translate(309.72,0.00)"><g id="dg3-b4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 4</tspan></text></g></g></g>
+<g id="dg3-b5" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg3-b5--r" x="365.76" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b5--lw0" data-lab="b5--l" class="dg-lwrap" transform="translate(412.96,0.00)"><g id="dg3-b5--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 5</tspan></text></g></g></g>
+<g id="dg3-b6" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg3-b6--r" x="469.00" y="-10.20" width="94.40" height="20.40" rx="4"/><g id="dg3-b6--lw0" data-lab="b6--l" class="dg-lwrap" transform="translate(516.20,0.00)"><g id="dg3-b6--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">beat 6</tspan></text></g></g></g>
+</svg></figure></div>
   
   
   
-<article class="chunk chunk-free width-wide" id="beats-panes" data-chunk-num="34">
+<article class="chunk chunk-free width-wide" id="beats-panes" data-chunk-num="35">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
   
   <h2 class="chunk-heading">Six beats in source order, and nothing moves</h2>
   <p><strong>A <code class="nb">---</code> inside a pane, a card row or a dock is a beat on the slide&#39;s own
@@ -2224,9 +2512,9 @@ is as tall on its first beat as on its last.</li>
   
   
 </article>
-<article class="chunk chunk-free width-wide" id="beats-rows" data-chunk-num="35">
+<article class="chunk chunk-free width-wide" id="beats-rows" data-chunk-num="36">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></span>
   
   <h2 class="chunk-heading">Rows that arrive one at a time</h2>
   <p><strong>A <code class="nb">---</code> between two rows shows the second on the next press,</strong> and the
@@ -2255,9 +2543,10 @@ first does not move: the block is laid out with both rows from beat 0.</p>
   
   
   
-<article class="chunk chunk-free width-wide" id="bare-why" data-chunk-num="36">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></span>
+<article class="chunk chunk-free width-wide" id="bare-why" data-chunk-num="37">
+  
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
   
   <h2 class="chunk-heading"><code class="nb">{.bare}</code> gives up the projection and nothing else</h2>
   <p><strong><code class="nb">{.bare}</code> keeps a heading out of the projection</strong> and leaves it everywhere
@@ -2278,18 +2567,18 @@ type above it, and each is still a row in the search index.</p>
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="bare-loop" data-chunk-num="37">
+<article class="chunk chunk-figure width-full" id="bare-loop" data-chunk-num="38">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
   
   <h2 class="chunk-heading">The measurement loop</h2>
-  <figure class="figure-diagram"><svg id="dg3-root" class="psi-diagram" viewBox="-56.35 -40.10 324.13 180.03" style="--dg-type-w:21.608;--dg-ar:1.8004" width="2000" height="1111" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
-<g id="dg3-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg3-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="dg3-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="dg3-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="dg3-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
-<g id="dg3-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg3-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="dg3-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="dg3-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="dg3-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
-<g id="dg3-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg3-edge-3--p" class="dg-stroke" d="M184.35 18.38L184.35 83.52" fill="none"/><path id="dg3-edge-3--h" class="dg-head" d="M184.35 91.17L180.39 82.17L188.31 82.17Z"/></g>
-<g id="dg3-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg3-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg3-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
-<g id="dg3-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-site--r" x="156.35" y="-18.38" width="56.00" height="36.75" rx="4"/><g id="dg3-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(184.35,0.00)"><g id="dg3-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
-<g id="dg3-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-score--r" x="112.93" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg3-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(184.35,109.55)"><g id="dg3-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
+  <figure class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-56.35 -40.10 367.55 180.03" style="--dg-type-w:24.503;--dg-ar:2.0417;--dg-ink-x:0.03265" width="2000" height="980" data-steps="1" role="img" aria-label="The measurement loop" preserveAspectRatio="xMidYMid meet">
+<g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M44.35 -7.35L148.70 -7.35" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M156.35 -7.35L147.35 -3.39L147.35 -11.31Z"/><g id="dg4-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(100.35,-18.73)"><g id="dg4-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
+<g id="dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-2--p" class="dg-stroke" d="M156.35 8.08L52.00 8.08" fill="none"/><path id="dg4-edge-2--h" class="dg-head" d="M44.35 8.08L53.35 4.12L53.35 12.04Z"/><g id="dg4-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(100.35,19.46)"><g id="dg4-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">page, or not</tspan></text></g></g></g>
+<g id="dg4-edge-3" data-base="dg-el dg-edge" class="dg-el dg-edge dashed one-head"><path id="dg4-edge-3--p" class="dg-stroke" d="M227.78 18.38L227.78 83.52" fill="none"/><path id="dg4-edge-3--h" class="dg-head" d="M227.78 91.17L223.82 82.17L231.74 82.17Z"/></g>
+<g id="dg4-crawl" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-crawl--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg4-crawl--lw0" data-lab="crawl--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-crawl--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
+<g id="dg4-site" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-site--r" x="156.35" y="-18.38" width="142.85" height="36.75" rx="4"/><g id="dg4-site--lw0" data-lab="site--l" class="dg-lwrap" transform="translate(227.78,0.00)"><g id="dg4-site--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Site</tspan></text></g></g></g>
+<g id="dg4-score" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg4-score--r" x="156.35" y="91.17" width="142.85" height="36.75" rx="4"/><g id="dg4-score--lw0" data-lab="score--l" class="dg-lwrap" transform="translate(227.78,109.55)"><g id="dg4-score--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Scoring service</tspan></text></g></g></g>
 </svg></figure>
   
   
@@ -2297,19 +2586,19 @@ type above it, and each is still a row in the search index.</p>
   
   
 </article>
-<article class="chunk chunk-figure width-full" id="autoplay" data-chunk-num="38">
+<article class="chunk chunk-figure width-full" id="autoplay" data-chunk-num="39">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></span>
   
   <h2 class="chunk-heading">A figure that walks itself</h2>
-  <figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg4-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
-<g id="dg4-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-1--p" class="dg-stroke" d="M75.00 0.00L145.75 0.00" fill="none"/><path id="dg4-edge-1--h" class="dg-head" d="M153.40 0.00L144.40 3.96L144.40 -3.96Z"/></g>
-<g id="dg4-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg4-edge-2--p" class="dg-stroke" d="M228.40 18.38L228.40 66.72" fill="none"/><path id="dg4-edge-2--h" class="dg-head" d="M228.40 74.38L224.44 65.38L232.36 65.38Z"/></g>
-<g id="dg4-n--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg4-n--lead--p" class="dg-stroke" d="M353.24 92.75L303.40 92.75" fill="none"/><path id="dg4-n--lead--h" class="dg-head" d="M303.40 92.75L303.40 92.75L303.40 92.75Z"/></g>
-<g id="dg4-raw" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg4-raw--r" x="-75.00" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg4-raw--lw0" data-lab="raw--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-raw--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">raw crawl</tspan></text></g></g></g>
-<g id="dg4-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg4-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg4-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="dg4-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
-<g id="dg4-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg4-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="dg4-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="dg4-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
-<g id="dg4-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg4-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="dg4-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
+  <figure data-autoplay="1400" data-autoplay-cycle="" class="figure-diagram"><svg id="dg5-root" class="psi-diagram" viewBox="-87.00 -30.38 617.16 153.50" style="--dg-type-w:41.144;--dg-ar:4.0206;--dg-ink-x:0.01944;--dg-live-type-w:41.144;--dg-live-ar:4.0206;--dg-live-ink-x:0.01944" width="2000" height="497" data-live-viewbox="-87.00 -30.38 617.16 153.50" data-live-ratio="0.248720" data-steps="4" role="img" aria-label="A figure that walks itself" preserveAspectRatio="xMidYMid meet">
+<g id="dg5-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-1--p" class="dg-stroke" d="M75.00 0.00L145.75 0.00" fill="none"/><path id="dg5-edge-1--h" class="dg-head" d="M153.40 0.00L144.40 3.96L144.40 -3.96Z"/></g>
+<g id="dg5-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg5-edge-2--p" class="dg-stroke" d="M228.40 18.38L228.40 66.72" fill="none"/><path id="dg5-edge-2--h" class="dg-head" d="M228.40 74.38L224.44 65.38L232.36 65.38Z"/></g>
+<g id="dg5-n--lead" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted"><path id="dg5-n--lead--p" class="dg-stroke" d="M353.24 92.75L303.40 92.75" fill="none"/><path id="dg5-n--lead--h" class="dg-head" d="M303.40 92.75L303.40 92.75L303.40 92.75Z"/></g>
+<g id="dg5-raw" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg5-raw--r" x="-75.00" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg5-raw--lw0" data-lab="raw--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg5-raw--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">raw crawl</tspan></text></g></g></g>
+<g id="dg5-inst" data-base="dg-el dg-box" class="dg-el dg-box tone-3"><rect id="dg5-inst--r" x="153.40" y="-18.38" width="150.00" height="36.75" rx="4"/><g id="dg5-inst--lw0" data-lab="inst--l" class="dg-lwrap" transform="translate(228.40,0.00)"><g id="dg5-inst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">instrumented</tspan></text></g></g></g>
+<g id="dg5-diff" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg5-diff--r" x="153.40" y="74.38" width="150.00" height="36.75" rx="4"/><g id="dg5-diff--lw0" data-lab="diff--l" class="dg-lwrap" transform="translate(228.40,92.75)"><g id="dg5-diff--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">difference</tspan></text></g></g></g>
+<g id="dg5-n" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg5-n--lw0" data-lab="n--l" class="dg-lwrap" transform="translate(359.40,92.75)"><g id="dg5-n--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">a difference is a detection</tspan></text></g></g></g>
 </svg><figcaption class="dg-hint"></figcaption></figure>
   
   
@@ -2317,9 +2606,9 @@ type above it, and each is still a row in the search index.</p>
   
   
 </article>
-<article class="chunk chunk-title" data-cover="quote" data-closing="" data-chunk-num="39" id="end">
+<article class="chunk chunk-title" data-cover="quote" data-closing="" data-chunk-num="40" id="end">
   
-  <span class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></span>
+  <span class="chunk-num" aria-hidden="true"><i>4</i><i>0</i></span>
   <h1 class="title-main">A slide is a frame</h1>
     <p class="title-subtitle">and the frame can carry more than a column of text</p>
     <div class="closing-body"><p>A <code class="nb">source.md</code> written before any of these constructions builds exactly as it

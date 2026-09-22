@@ -74,6 +74,8 @@ Chunks mit mehr als einem Block).
 | Markdown-Liste (`- ` / `1. `) | Bullets wie geschrieben |
 | `#### Titel` | Kartentitel für die folgende Karte |
 | `@12:30` allein in einer Zeile oder am Absatzanfang | Sollzeit ab Start; das Cockpit zeigt an dieser Karte die Drift („+1:40“ / „−0:50“) |
+| `[Klick: Zeile 1 wird hell.]` allein in einem Absatz oder an dessen Kopf | eine Vorrückung: die Karte endet hier, alles dahinter wird eine Vorrückung später einsortiert, und die Worte hinter dem Doppelpunkt betiteln die Karte danach |
+| jede andere Klammerzeile (`[Pause.]`) | Regieanweisung, bleibt im Wortlaut stehen, aber an einer Karte statt als eigene (§18) |
 
 Ein Block mit mehreren Absätzen ergibt mehrere Karten; wer eine Karte pro
 Block will, schreibt einen Block pro Absatz – beides ist dasselbe.
@@ -142,6 +144,19 @@ einen Block hinter ein früheres `---` schiebt. Beide Fälle als Fixture im
 Gate (§7). Wer eine Note wirklich auf dem letzten Beat allein haben will,
 setzt davor eine Note auf einen früheren Beat – ein Chunk, dessen Stütze
 erst nach dem letzten Klick beginnt, ist ohnehin keine, die man bauen will.
+
+**Wie gelandet:** „nicht-leer“ heißt *Wörter*, und das musste nachgezogen
+werden. Seit „jedes `---` ist ein Beat“ liefert `segmentsKept` für jeden
+Chunk mit zwei oder mehr Segmenten lauter `true`, also zählt auch ein leeres
+Schlusssegment – ein Chunk, der mit `---` endet und nichts dahinter hat, die
+Folie steht während weitergesprochen wird – als „letztes“. `noteSegments`
+maß sich daran und legte die Notes eines Bestandsdecks auf den letzten Klick
+statt auf Beat 1; gewarnt hat nichts. Die Regel liest jetzt das letzte
+Segment **mit Wörtern darin**. Eine Note, die allein hinter einem `---`
+steht, ist damit nicht mehr im letzten Segment: sie behält ihre Position und
+wird auf dem Beat gesagt, den das `---` öffnet – wofür der Trenner
+geschrieben wurde. Fixtures in `test/gates/cue-cards.mjs`, kein Deck in
+`lectures/` bewegt sich.
 
 **lint.js-Spiegel** (lint.js:2381 `inMetaBlock`, :3160 der `---`-Zähler
 `chunkReveals`): dieselbe Zuordnung, plus Warnung `note-in-empty-beat`,
@@ -412,7 +427,8 @@ bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
   Ziel-Beats; gebaut ist die Symmetrie: jeder Backspace macht genau einen
   Space rückgängig, also steht der Cursor nach dem zurückgenommenen Reveal
   erst auf dem „reveal“-Eintrag und dann auf der letzten Karte. Vorhersagbar
-  schlägt einen Tastendruck weniger.
+  schlägt einen Tastendruck weniger. **Überholt, siehe §17:** die Symmetrie
+  bleibt, der Tastendruck fällt in beiden Richtungen weg.
 - **Der Spiegel im Kartenmodus ist derselbe DOM und dieselbe Kamera.** Er
   zeigt deshalb, wie der klassische Spiegel ohne verbundene Audience, die
   Nachbar-Chunks gedimmt oben und unten – kein Fehler des Modus.
@@ -563,3 +579,127 @@ aus dem Ausmessen der neuen Anordnung:
   **Die allgemeine Falle bleibt** – ein Chunk namens `clock` oder `timer`
   träfe dieselbe Kollision. Wer Cockpit-Chrome benennt, wählt ein Wort, das
   keine Folie tragen will.
+
+## 16. Nachtrag: `[Klick …]` ist ein Beat
+
+Aus der zweiten echten Keynote (`lectures/keynote-2036`, 45 Minuten,
+ausformuliert). Deren `> note:`-Blöcke tragen die Regie schon im Text – neun
+Zeilen der Form `[Klick auf dem Bauplan: Zeile 1 wird hell.]`, dazu
+`[Pause.]` und `[Pause. Lachen abwarten.]` – und **kein einziges
+`> note: from N`**. Im Cockpit war damit jeder Block eine Kartengruppe auf
+Beat 0, und die Rednerin zählte die Drücke im Kopf mit. `from N` hätte
+geholfen, verlangt aber, jeden Block von Hand durchzunummerieren; die Zahlen
+stehen dann zweimal da, einmal als `from` und einmal als Regieanweisung im
+Text.
+
+**Die Grammatik.** Ein Absatz (oder eine Zeile am Absatzkopf), der nur aus
+einer Klammerzeile besteht, deren erstes Wort `Klick`, `Click` oder ein
+blankes `>` ist, beendet die Karte und zählt eine Vorrückung. Alles dahinter
+wird `advance` Vorrückungen später einsortiert – dieselbe Arithmetik, die
+`from N` per Zahl sagt, und beide zusammen: ein Block mit `from 2` und einem
+Klick sagt seine zweite Hälfte auf Vorrückung 3. Die Worte hinter dem ersten
+Doppelpunkt betiteln die Karte danach, außer ein `####` steht näher an ihr
+(die nähere der beiden gewinnt, also die, die man zuletzt liest). Jede andere
+Klammerzeile ist Regie und bleibt als eigene Karte im Wortlaut stehen.
+
+**Drei Entscheidungen, die der Tabelle nicht anzusehen sind:**
+
+- **Die Wortliste ist fest, kein `STRINGS`-Eintrag.** `notesToCards` läuft
+  auch im Browser, über einen Probelauf-Text im Textarea, wo keine
+  Wörtertabelle der Vorlesung in Reichweite ist – und `lint.js` hat gar
+  keine. `lang:` durchzureichen hieße, die Liste ein drittes Mal von Hand zu
+  führen. Was die Autorin tippt, ist Quelle und nicht das Mobiliar, das der
+  Build erfindet; `labels:` darf es nicht umdefinieren. `>` ist die
+  Schreibweise für jede Sprache, für die die Liste kein Wort hat.
+- **`cueAdvance` ist exportiert, und `lint.js` importiert es.** Dieselbe
+  Biegung wie bei `tails.mjs` und aus demselben Grund: zwei Schreibweisen
+  desselben Regexes sind genau die Stelle, an der der Linter etwas anderes
+  zählt als die Karten zeigen. Eine Funktion, keine Tabelle, nichts dahinter.
+- **Überlauf ist eine Warnung, keine Ablehnung.** Die Runtime klemmt
+  (`put()` in `cueCardsFor`), die überzähligen Karten stehen zusammen auf dem
+  letzten Beat – sichtbar, aber nicht das Gemeinte. `note-advance-beyond`
+  nennt Zeile, Anzahl und Beats. Es zählt **auch die Blöcke unter einer
+  `#`-Überschrift**: die Beats eines Teilers sind die `step`-Blöcke seiner
+  Figur, und in dieser Keynote sitzen alle neun Klicks auf Teilern – eine
+  Prüfung, die bei Chunks aufhört, hätte den Fall, für den sie geschrieben
+  ist, nie gesehen. Der Basiswert ist `from` oder 0, also eine Untergrenze:
+  ein positionierter Block kennt sein Segment, nicht seine Vorrückung. Lieber
+  zu selten warnen als auf dem Deck, das schon stimmt.
+
+**Gates und Spec.** `test/gates/cue-cards.mjs` hält `cueAdvance` und die
+Arithmetik ohne Browser fest (Split, Titelvorrang, Lokalisierung, Regie vs.
+Klick); `test/cue-cards.mjs` läuft `#clicks` mit zwei Klicks und zwei
+Reveals in zwei Fenstern durch und `#tooclicks` durch den Linter.
+
+## 17. Nachtrag: kein toter Druck am Ende eines Beats
+
+Aus der Probe der Keynote im Kartenmodus. Jeder Druck machte die aktuelle
+Karte zur gesagten und die nächste zur aktuellen – auch auf der **letzten**
+Karte eines Beats. Dann stand der Cursor auf dem Eintrag für den Klick,
+auf dem Projektor passierte nichts, und erst der Druck danach klickte. Ein
+Druck pro Beat, an dem der Raum nichts sieht; auf `lectures/spoken-talk`
+waren es 9 von 34.
+
+**Die Regel.** `consumeForward` verbraucht einen Druck nur, wenn hinter
+dem Cursor eine weitere Karte **desselben Beats** (gleiches `consumed`)
+steht. Auf der letzten Karte geht der Druck durch zu `advanceReveal`: der
+Reveal, der Diagrammschritt oder die nächste Folie passiert, und deren
+erste Karte ist die aktuelle. Ein Beat ohne Karten hat den Klick als
+Cursor, wie bisher. `consumeBack` ist das Spiegelbild: eine Karte zurück,
+solange es auf diesem Beat eine davor gibt; auf der ersten Karte geht der
+Druck durch, der Zähler geht zurück, und `cueBind` landet auf der
+**letzten** Karte des vorigen Beats (`card: n - 1` statt `n`). Jeder
+Backspace macht damit weiter genau einen Space rückgängig – gemessen als
+Gang durch das ganze Deck und zurück, Zustand für Zustand
+(`test/cue-cards.mjs`, letzter Block).
+
+**Was sich nicht ändert.** Enter geht weiter zur nächsten Folie. Die Drift
+liest `k <= cue.card`; der Zustand „Cursor hinter der letzten Karte“ gibt
+es nicht mehr, und die letzte Karte zählt dieselben Marken als erreicht wie
+er, also misst die Uhr an jeder Stelle gegen dieselbe Marke wie vorher. Der
+Projektor erfährt nichts.
+
+**Nebenbei:** `.cue-entry.next` war gestaltet, aber nie gesetzt – die
+Bedingung traf nur Einträge *vor* dem Cursor, und die gibt es nicht. Jetzt
+trägt der Eintrag direkt hinter dem Cursor die Klasse, auf der letzten Karte
+also der Klick, den der nächste Druck auslöst. Die vier `cue-beat`-Aufnahmen
+für `in-the-room.html` sind jetzt 0, 1, 2, 3 Drücke statt 0, 2, 4, 6.
+
+## 18. Nachtrag: eine Regieanweisung kostet keinen Druck
+
+Aus derselben Probe. `[Pause.]` und `[Lachen abwarten.]` blieben seit §16
+im Wortlaut stehen – richtig –, aber ein Absatz, der *nur* aus einer
+solchen Zeile besteht, war eine eigene Karte, und jede Karte kostet einen
+Druck. Die Keynote hat 19 `[Pause …]`-Zeilen; `lectures/spoken-talk` hat
+zwei, und der Gang durchs Deck fiel mit ihnen von 25 auf 23 Drücke.
+
+**Die Regel** (`notesToCards`, also Node und Browser aus einem Text):
+
+- Ein Absatz, der nur aus Regiezeilen besteht, hängt an der **Karte davor**
+  (`tail`) – eine Pause folgt dem Gesagten, und das Lachen, auf das man
+  wartet, auch.
+- Steht auf derselben Vorrückung keine Karte davor – die Note beginnt mit
+  einer Regiezeile, oder ein `[Klick …]` kam dazwischen –, führt sie die
+  **Karte danach** an (`lead`). Eine Pause hinter einem Klick gehört zu dem
+  Beat, den der Klick öffnet, nicht zur Karte vor ihm.
+- Eine Regiezeile am Kopf oder Fuß eines Absatzes mit Worten gehört dessen
+  Karte. Das rettet nebenbei eine, die bisher verschwand: in einem Absatz
+  mit Bolds fiel alles außer den Bolds weg, die Regiezeile mit.
+- Eine Regiezeile vor einem Klick im selben Absatz wird auf ihrer
+  Vorrückung abgelegt; der Kopf-Loop liest Regiezeilen jetzt mit, sodass ein
+  `[Klick]` hinter `[Pause.]` weiter zählt – vorher brach der Loop an der
+  Pause ab und der Klick war Text.
+- Hat eine Regiezeile nichts, woran sie hängen kann – eine Note, die nur
+  eine Pause ist, oder eine Pause hinter dem letzten Klick einer Note –,
+  bleibt sie eine Karte, `stage: true`, als Regie gesetzt. Nichts
+  verschwindet.
+
+**Gesetzt** in der Kartentypografie der Spur: 0.72em, kursiv, `--ink-soft`,
+die Klammern wie geschrieben – so klein wie eine gesagte Karte, aber als
+etwas, das man liest und nicht spricht.
+
+**lint.js** zählt Drücke mit `cueAdvance` pro Zeile, keine Karten; eine
+Regiezeile ist keine Vorrückung, `note-advance-beyond` bleibt unberührt.
+`**[Pause.]**` (fett) zählt als Regie: `plainInline` nimmt das Bold ab,
+bevor gefragt wird. Eine Klammer mitten im Satz bleibt Text.
+

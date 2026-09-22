@@ -313,8 +313,17 @@ export function editorHelpers(page) {
     await page.waitForTimeout(350);
   };
 
+  // **The error rows only.** Every caller tests this with `.includes('line ')`,
+  // because a compile error is rendered `line N: msg` and nothing else in the
+  // panel was. That stopped being true the day a `[diagram]` warning started
+  // naming the line its element was written on: the whole textContent then
+  // reported a correctly-drawn figure's overlap warning as a broken block, and
+  // three assertions in `editor-placement` failed on a lecture nobody had
+  // touched. A warning row carries `dge-warn`; the rolled-back-edit box carries
+  // `dge-refused` and is a different question, asked through the status note.
   const problems = () => page.evaluate(() =>
-    (document.querySelector('.dge-problems') || {}).textContent || '');
+    [...document.querySelectorAll('.dge-problems:not(.dge-refused) > div:not(.dge-warn)')]
+      .map(d => d.textContent).join('\n'));
 
   return { open, beat, source, lineWith, selection, pointOnPath, clickPath, centreOf, drag, problems };
 }

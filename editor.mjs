@@ -146,6 +146,12 @@ function dgeCollectFigures() {
       // its siblings.
       nth: 0,
       width: data.width || 'standard',
+      // The canvas the build laid this figure out on, carried so a re-render
+      // here reserves the same slide box the build did. Without it the first
+      // drag would redraw the figure hugging its content - a drawing that
+      // jumps to another size the moment it is touched and back on the next
+      // build. null for a figure the build gave no canvas.
+      canvas: data.canvas || null,
       alt: data.alt || '',
       images,
       compiler: dgeCompilerFor(images),
@@ -183,7 +189,7 @@ function dgeCompile(fig, body) {
       out.errors = window.PSI_DG.dgSortProblems(dgeDedupe(res.errors));
       return out;
     }
-    out.html = fig.compiler.renderDiagram(src, fig.attrs, { prefix: fig.prefix, alt: fig.alt, base });
+    out.html = fig.compiler.renderDiagram(src, fig.attrs, { prefix: fig.prefix, alt: fig.alt, base, canvas: fig.canvas });
     out.ok = true;
   } catch (err) {
     out.errors = dgeErrorsFrom(err);
@@ -447,7 +453,7 @@ const DGE_SLOTS = [
   { key: 'reading', label: 'reading',
     options: [{ cls: '', label: 'across' }, { cls: 'turn', label: 'up' }] },
   // One slot, "how a line is drawn": the waypoints as segments, as a spline
-  // through them, or as a rail halfway across the gap. `.elbow` writes its own
+  // through them, or as a rail across the gap. `.elbow` writes its own
   // two waypoints, so the compiler refuses an edge that also carries `via`
   // rather than silently preferring one – an edge already bent by hand is
   // therefore not offered it.
@@ -465,6 +471,16 @@ const DGE_SLOTS = [
     options: [{ cls: '', label: 'sans' }, { cls: 'mono' }, { cls: 'serif' }, { cls: 'hand' }] },
   { key: 'fitting', label: 'type fits the box',
     options: [{ cls: '', label: 'no' }, { cls: 'fit' }, { cls: 'shrink' }] },
+  // Whether this box takes its size from the boxes it stands with. A run of
+  // `right of` boxes shares one width and one height by default, because a row
+  // of four widths reads as four weights; `.own` is how one box leaves the run
+  // – and, since nothing reaches through it, how a run is broken in two.
+  // Not on a synthesised box: a table cell, a lane, an actor's head is sized
+  // by its own statement and stands in no chain, so the swatch would only
+  // write a class the compiler ignores there.
+  { key: 'sizing', label: 'size',
+    options: [{ cls: '', label: 'shared' },
+      { cls: 'own', label: 'its own', when: (el) => !(el.synth && el.synth !== el.id) }] },
   { key: 'weightfont', label: 'text weight',
     options: [{ cls: '', label: 'regular' }, { cls: 'bold' }] },
   // Both axes, and on a box as well as a free text: a tall element with a
@@ -697,9 +713,10 @@ function dgeFrameMetrics() {
   const width = DGE.fig ? DGE.fig.width : 'standard';
   const em = DGE_FRAME_EM[DGE.frame][width] || 36;
   const px = em * dgeEmPx();
-  // .psi-diagram is capped at 62vh in the live views and at nothing in
-  // print. A figure that hits the cap leaves a band of the measure empty
-  // beside it, and that is invisible until you look at the built page.
+  // .psi-diagram is capped at 62% of the slide height in the live views and
+  // at nothing in print. A figure that hits the cap is the case where its
+  // width is decided by the frame rather than by its type, and that is
+  // invisible until you look at the built page.
   const capPx = DGE.frame === 'print' ? Infinity : window.innerHeight * 0.62;
   return { em, px, capPx, width };
 }
@@ -1002,8 +1019,13 @@ function dgeApplyFrame() {
   frame.style.width = (m.px * DGE.zoom) + 'px';
   frame.style.padding = (14 * DGE.zoom) + 'px';
   art.style.width = '100%';
-  // Reproduce what .psi-diagram actually does at the destination: fill the
-  // measure, and be capped in height in the live views but not in print.
+  // The canvas shows the drawing filling the frame, capped in height in the
+  // live views and not in print. That is no longer literally what
+  // .psi-diagram does at the destination - both media size the box from the
+  // drawing's own type now - and it is still what an editor wants: the
+  // question here is where a shape sits, and the destination's answer to how
+  // large the type comes out is in the measure note below rather than in a
+  // canvas too small to drag anything on.
   svg.style.maxWidth = '100%';
   svg.style.width = '100%';
   svg.style.height = 'auto';
@@ -1013,11 +1035,48 @@ function dgeApplyFrame() {
   const natural = (m.px - 28) * ratio;
   const capped = m.capPx !== Infinity && natural > m.capPx;
   let note = `${m.width} · ${m.em}em`;
+  // How large the labels land where this figure is going, which since the
+  // live views started sizing a drawing from its type is the number that
+  // decides whether a room can read it. --dg-type-w is the viewBox measured in
+  // base labels, so the box divided by it IS the label size; under the type
+  // beside it the figure is at its box and the slide will come down to meet
+  // it (fitZoomToChunk), which the author would rather know here than find in
+  // the hall. The canvas itself still shows the drawing filling the frame -
+  // this is an editor, and a 14 px preview is not editable.
+  // --dg-fit-w and not --dg-type-w: the box a live view shows is the slide's
+  // canvas where the chunk has one, and a label's size is the box over its
+  // width in labels. The print frame resolves the same property to the print
+  // box, which is what that frame shows.
+  const typeW = parseFloat(getComputedStyle(svg).getPropertyValue('--dg-fit-w'));
+  if (typeW > 0) {
+    const box = Math.min(m.px - 28, m.capPx === Infinity ? Infinity : m.capPx / ratio);
+    const lbl = box / typeW;
+    // dgeEmPx is the CHUNK's em, which does not carry the zoom, so this is
+    // the comparison at zoom 1 - the same reference figureTypeWarning
+    // estimates against, and the conservative one: the slide's words only get
+    // bigger from here while a figure at its box does not.
+    const body = DGE.frame === 'print' ? dgeEmPx() * 0.9 : dgeEmPx();
+    note += ` · ${typeW.toFixed(0)} labels wide`;
+    note += lbl < body * 0.995
+      ? ` · at its box, so its labels are ${Math.round(lbl)} px against ${Math.round(body)} px of body type`
+      : ` · labels at body size`;
+  }
   if (capped) {
-    // Say it while the author can still fix it. This is invisible until you
-    // look at the built page: a third of the measure stays empty beside the
-    // drawing, because the height cap bound before the width did.
-    note += ` · height-capped at 62vh, so ${Math.round(100 - 100 * (m.capPx / natural))}% of the measure stays empty beside it`;
+    // The height cap deciding the width rather than the measure. It used to
+    // leave a band of the measure empty beside the drawing; the width rule
+    // hugs it now, and what is left to say is which of the two caps bound.
+    note += ` · the ${Math.round(m.capPx)} px height cap is what decides its width here`;
+  }
+  // How much of the slide's canvas this drawing takes, which is the number
+  // the dashed rectangle on the canvas shows and the build warns about. Only
+  // where there is one: a figure under `frame none`, or in a card or a pane,
+  // has no such box and the note would be describing nothing.
+  const cv = (svg.dataset.canvas || '').split(/\s+/).map(Number);
+  if (DGE.frame !== 'print' && cv.length === 4 && cv.every((n) => n > 0)) {
+    const over = cv[2] - cv[0] > 0.5 || cv[3] - cv[1] > 0.5;
+    note += over
+      ? ` · over its canvas, so the slide's type comes down to meet it`
+      : ` · fills ${Math.round(100 * (cv[2] * cv[3]) / (cv[0] * cv[1]))}% of its canvas`;
   }
   frame.dataset.measure = note;
   dgeQ('#dge-frames').querySelectorAll('button').forEach((b) => {
@@ -1132,6 +1191,28 @@ function dgeDrawGuides() {
     grid.appendChild(dgeEl('line', { x1: vx, y1: y, x2: vx + vw, y2: y }));
   }
   g.appendChild(grid);
+
+  // The slide's canvas: the box this figure is given on an ordinary slide,
+  // drawn as a dashed rectangle so the author can see the edge they are
+  // dragging towards. It is the one thing about a figure that is decided
+  // outside the block - the chunk's column and the deck's height reserve -
+  // and without it the only way to learn a drawing had outgrown its slide was
+  // to build and read a warning.
+  //
+  // Where it sits inside the viewBox follows the same two lines the compiler
+  // follows: the content is anchored at the canvas's top on both, and to its
+  // left edge under `blocks: left` or centred on it under `center`. When the
+  // drawing fits, the two boxes are the same and the dashes lie on the edge
+  // of the canvas; when it does not, the dashes are inside the picture and
+  // that is exactly the thing worth seeing.
+  const cv = DGE.fig && DGE.fig.canvas;
+  if (cv && cv.w > 0 && cv.h > 0) {
+    g.appendChild(dgeEl('rect', {
+      class: 'dge-canvas',
+      x: cv.align === 'center' ? vx + (vw - cv.w) / 2 : vx,
+      y: vy, width: cv.w, height: cv.h,
+    }));
+  }
   // The origin, which is where the first element sits for free.
   g.appendChild(dgeEl('g', { class: 'dge-axis' }, [
     dgeEl('line', { x1: vx, y1: 0, x2: vx + vw, y2: 0 }),
@@ -1222,17 +1303,23 @@ function dgeDrawRelations(g, id) {
     const ref = DGE.boxes.get(p.ref);
     if (ref) {
       // The gap itself, drawn between the two facing edges and labelled with
-      // the number that is written on the line.
+      // the number that is written on the line – or, where the line writes
+      // none, with the number the default resolved to and the word that says
+      // it was not typed. The guide has to agree with the drawing it is drawn
+      // over: labelling an unwritten gap with nothing hid the one relation the
+      // new default is most likely to have set, and labelling it with a bare
+      // number would claim a token the source does not contain.
+      const gapText = 'gap ' + (p.gap == null ? dgeNum(dgeGapOf(null, p)) + ' (default)' : dgeGapWritten(p));
       if (p.dir === 'right' || p.dir === 'left') {
         const y = midY(b);
         const from = p.dir === 'right' ? ref.x + ref.w : ref.x;
         tick(from, y, p.dir === 'right' ? b.x : b.x + b.w, y, true);
-        label((from + (p.dir === 'right' ? b.x : b.x + b.w)) / 2 - 12, y - 5, 'gap ' + dgeNum(p.gap));
+        label((from + (p.dir === 'right' ? b.x : b.x + b.w)) / 2 - 12, y - 5, gapText);
       } else {
         const x = mid(b);
         const from = p.dir === 'below' ? ref.y + ref.h : ref.y;
         tick(x, from, x, p.dir === 'below' ? b.y : b.y + b.h, true);
-        label(x + 5, (from + (p.dir === 'below' ? b.y : b.y + b.h)) / 2, 'gap ' + dgeNum(p.gap));
+        label(x + 5, (from + (p.dir === 'below' ? b.y : b.y + b.h)) / 2, gapText);
       }
       // The edge the placement is flush with, as a hairline through both –
       // captioned, like the `align` statement's own hairline on the same
@@ -1482,6 +1569,61 @@ const DGE_ALIGN_TOL = 0.06;      // how close counts as "on that edge", in cells
 // exactly the silent failure squaring the gap exists to remove.
 const dgeGapUnit = (model) => dgeUnits(model).uh;
 
+// The gap a `rel` placement actually draws, as the number an author would
+// write – rows. A placement whose author wrote none carries `gap: null` and a
+// `gapAuto` in labels, resolved by the compiler once it has read the block's
+// edges, so the two units meet here exactly as they do in dgGapPx: this is
+// that function's answer divided back by the gap's own ruler. Everything in
+// this file that adds a delta to a gap, or shows one, goes through it – a drag
+// that read the raw field got NaN on the very placements the new default is
+// for, and an editor that writes NaN into a source is the failure this whole
+// file is built to avoid.
+function dgeGapOf(model, place) {
+  return window.PSI_DG.dgGapPx(place, dgeGapUnit(model)) / dgeGapUnit(model);
+}
+
+// **A gap keeps the unit its line wrote it in.** `gap 0.6` is rows and
+// `gap 0.6lh` is label heights, and the suffix is part of the span: the editor
+// rewrites the token, so a gesture that writes the number without it has
+// changed the author's ruler even where the drawing lands in the same place.
+// That is what a drag did – `below ufw gap 5lh` came back `gap 4.4`, correct
+// until the next change of grid moved that box and nothing else – and three
+// other paths were worse: the `side` swatches, the `of` field and a step's
+// `move … to` passed the parsed `place.gap`, a count of label heights, back
+// out with no suffix, where it was read as rows and the box jumped.
+//
+// So the arithmetic stays in rows, where every guide and every delta in this
+// file already works, and the unit is applied once on the way out.
+// `dgeGapSpelled` is the one door: every writer of a `gap` token goes through
+// it or through `dgeGapWritten`, which is the same spelling for a number
+// already on the line. A gap nobody wrote has no unit to keep and is written
+// in rows, as before.
+function dgeGapInLh(place) {
+  return !!place && place.gap != null && place.gapUnit === window.PSI_DG.DG_LH;
+}
+// A gap in rows, spelled the way `place`'s own line spells its gap.
+function dgeGapSpelled(model, place, rows, snap) {
+  const round = snap || ((v) => v);
+  if (!dgeGapInLh(place)) return dgeNum(Math.max(0, round(rows)));
+  const lh = rows * dgeGapUnit(model) / window.PSI_DG.DG_LABEL_H;
+  return dgeNum(Math.max(0, round(lh))) + window.PSI_DG.DG_LH;
+}
+// The gap the line already carries, as the line carries it – or null.
+function dgeGapWritten(place) {
+  if (!place || place.gap == null) return null;
+  return dgeNum(place.gap) + (dgeGapInLh(place) ? window.PSI_DG.DG_LH : '');
+}
+// What a typed gap field means: a number, or a number with `lh` on it. The
+// compiler's own reader, so the field and the source agree on what is a gap.
+function dgeGapTyped(v) {
+  const s = String(v || '').trim();
+  if (!s) return null;
+  const errs = [];
+  const g = window.PSI_DG.dgLen(s, errs, 0, 'gap');
+  if (errs.length || !Number.isFinite(g.n) || g.n < 0) return null;
+  return dgeNum(g.n) + (g.unit === window.PSI_DG.DG_LH ? window.PSI_DG.DG_LH : '');
+}
+
 function dgeRound(v, step) {
   return Math.round(v / step) * step;
 }
@@ -1499,9 +1641,12 @@ function dgeMainAxis(place) {
 // them is what lets the status bar show the line before the pointer is up.
 // A relation as the grammar spells it. `right of a`, `left of a`, but
 // `below a` and `above a` - the two vertical words take no "of".
+// `gap` is a number in rows, or a token already spelled in its own unit
+// (`0.6lh`, from dgeGapSpelled or dgeGapWritten) that goes on the line as is.
 function dgePlaceText(dir, ref, gap) {
   const word = (dir === 'right' || dir === 'left') ? dir + ' of' : dir;
-  return word + ' ' + ref + (gap == null ? '' : ' gap ' + dgeNum(gap));
+  return word + ' ' + ref + (gap == null ? ''
+    : ' gap ' + (typeof gap === 'string' ? gap : dgeNum(gap)));
 }
 
 const DGE_DIRS = ['left', 'right', 'above', 'below'];
@@ -1533,7 +1678,7 @@ function dgeRedock(ctx, id, place, dx, dy, snap) {
   // written to be: keep the number, change the word. While the gap was
   // axis-keyed this function and the `side` swatch row disagreed with each
   // other by uw/uh, and neither said anything, because both edits compiled.
-  const gap = Math.max(0, snap(gapPx / dgeGapUnit(ctx.model)));
+  const gap = dgeGapSpelled(ctx.model, place, gapPx / dgeGapUnit(ctx.model), snap);
   return {
     text: dgePlaceText(dir, place.ref, gap),
     why: 'docks it ' + (dir === 'right' || dir === 'left' ? dir + ' of ' : dir + ' ') + place.ref
@@ -1766,7 +1911,7 @@ function dgeGuideHosts(ctx, id, eff) {
 
 // The gaps other statements in this block already carry, on the axis this
 // placement's own direction runs along. **Only gaps the author actually
-// wrote:** every `rel` placement carries one, so counting the default 0.25
+// wrote:** a placement with none carries a resolved default, so counting those
 // would have every figure offering the same number and meaning nothing by it.
 // Cached per gesture, because it is a tokenize per candidate line and the
 // lines do not change while the pointer is down.
@@ -1783,13 +1928,21 @@ function dgeSiblingGaps(ctx, id, axis) {
     if (((p.dir === 'right' || p.dir === 'left') ? 'x' : 'y') !== axis) continue;
     const sp = ctx.spans.spanOf(n.id, 'gap');
     if (!sp || !sp.present) continue;
-    const g = Number(sp.value);
-    if (!Number.isFinite(g) || g < 0) continue;
+    // In rows for the comparison, whatever the sibling's line is written in:
+    // `0.6lh` read with Number() was NaN, so a gap in label heights was never
+    // offered at all. The sibling's own token rides along as `text`, and that
+    // is what a match writes – the promise is the *same* gap, and the same
+    // gap spelled in another unit is a rounding away from being a different
+    // one.
+    if (p.gap == null || !(p.gap >= 0)) continue;
+    const g = dgeGapOf(ctx.model, p);
+    if (!Number.isFinite(g)) continue;
+    const text = dgeGapWritten(p);
     // A sibling proper – measured from the same element, or from this one, or
     // this one from it – is the chain §9.2 means by "so a column stays
     // regular", and comes first. Anything else on the same axis is still a
     // number the author chose, and still worth offering behind it.
-    out.push({ gap: g, from: n.id, near: p.ref === myRef || p.ref === id || n.id === myRef });
+    out.push({ gap: g, text, from: n.id, near: p.ref === myRef || p.ref === id || n.id === myRef });
   }
   ctx.gaps.set(axis, out);
   return out;
@@ -1885,6 +2038,30 @@ function dgeEffState(ctx, el, beat) {
   };
 }
 
+// **Which point of the element meets its coordinate, written or derived.**
+// `.left` on a free `text` at an absolute placement anchors it on that edge
+// now, so the two places in this file that ask the question cannot read
+// `place.anchor`: a derived anchor is not a token on the line, and an editor
+// that missed it would draw a guide about a centre and write a number about a
+// corner. `dgPlaceAnchor` is the compiler's own answer and the only one.
+// Cached per gesture beside the effective state, because the resolved classes
+// cannot change while the pointer is down.
+function dgeAnchorOf(ctx, el, place, beat) {
+  if (!el || !place) return null;
+  // Through `dgPlaceAnchor` even when the word is on the line, because the one
+  // answer that is not a corner is `center`, and it has to come back as `null`
+  // here too: an element centred on its coordinate is exactly the one the
+  // guides are for. Short-circuiting on the field suppressed every guide on
+  // `#mac`'s note the moment `anchor center` started being recorded.
+  if (place.anchor) return window.PSI_DG.dgPlaceAnchor(el.kind, place, null);
+  if (ctx.clsFor !== beat) {
+    ctx.clsFor = beat;
+    ctx.cls = window.PSI_DG.dgStateAt(ctx.model, Math.max(0, Math.min(ctx.model.steps.length, beat)));
+  }
+  const st = ctx.cls && ctx.cls.get(el.id);
+  return window.PSI_DG.dgPlaceAnchor(el.kind, place, st ? st.classes : new Set(el.classes || []));
+}
+
 // Everything a drag lights up, resolved to the one or two candidates that
 // actually get applied. Returns the adjusted delta – so the drawing and the
 // plan agree about where the element ends up – the snap dgePlanDrag has to
@@ -1917,6 +2094,17 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
   const want = { x: b.x + b.w / 2 + dx * uw, y: b.y + b.h / 2 + dy * uh };
   const eff = dgeEffState(ctx, el, beat);
   const place = eff.place;
+  // **An anchored placement gets no guides.** Every candidate below is a
+  // proposal about where the element's *centre* lands – on a neighbour's edge
+  // line, halfway between two elements, on a shared axis – and it is written
+  // back as the coordinate in `at`. With `anchor tl` that coordinate is the
+  // element's top-left corner, so the guide would draw a line through the
+  // centre and write a number about a corner. The plain drag underneath still
+  // works and still round-trips exactly, because it rewrites the number that
+  // is on the line rather than the position it resolves to. A `.left` text at
+  // a coordinate is anchored without writing the word, so the question goes
+  // through dgeAnchorOf rather than through the field.
+  if (dgeAnchorOf(ctx, el, place, beat)) return none;
   // A `between` element is already at a relation and its own drag rewrites
   // `frac`; the two proposals below are for an element that has none to lose.
   const bare = !place || place.implicit || place.kind === 'abs';
@@ -2039,7 +2227,7 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
         // the cell of whichever way the placement runs.
         if (d > DGE_GUIDE_CELL) continue;
         cands.push({ kind: 'gap', rank: DGE_RANK.gap, tier: s.near ? 0 : 1, dist: d,
-          axes: [axis], axis, gap: s.gap, from: s.from, sign, was });
+          axes: [axis], axis, gap: s.gap, text: s.text, from: s.from, sign, was });
       }
     }
   }
@@ -2099,7 +2287,7 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
   }
   if (!won.length) return none;
   const out = dgeGuideApply(ctx, id, dx, dy, want, won);
-  if (beat) out.snap.to = dgeStepToText(ctx, id, out, eff, want);
+  if (beat) out.snap.to = dgeStepToText(ctx, id, out, eff, want, beat);
   return out;
 }
 
@@ -2115,19 +2303,33 @@ function dgeGuideSnap(ctx, id, dx, dy, opts) {
 // source, so a reference on the axis nobody dragged survives. Where a step
 // has already moved it, the opening line's expression is no longer a true
 // statement about where it is, and the resolved number is.
-function dgeStepToText(ctx, id, out, eff, want) {
+function dgeStepToText(ctx, id, out, eff, want, beat) {
   const { uw, uh } = dgeUnits(ctx.model);
   const place = eff.place;
   if (out.snap.place) return out.snap.place;                 // between a,b frac t
   if (out.snap.gap != null && place && place.kind === 'rel') {
-    return dgeRelText(place, out.snap.gap);
+    return dgeRelText(place, out.snap.gapText || out.snap.gap);
   }
+  // A `move … to` states the coordinate, and `anchor` carries forward from the
+  // element's own line – so the number written here is the coordinate the
+  // *anchor point* lands on, not the centre `want` holds. Left uncorrected a
+  // dragged `anchor tl` element jumped half its own size the moment a step
+  // moved it, which is the same half-size slip the carry-forward rule in
+  // dgStateAt exists to prevent, arriving from the other side.
+  //
+  // The anchor may be one the author never wrote: a free `text` with `.left`
+  // at a coordinate is anchored on that edge. So this asks dgeAnchorOf and not
+  // `place.anchor`, or a step written for such a label would move it half its
+  // own width the first time a beat touched it.
+  const b = ctx.boxes.get(id);
+  const own = dgeAnchorOf(ctx, dgeFind(id, ctx.model), place, beat || 0);
+  const anch = (own && b) ? window.PSI_DG.dgAnchorOffset(own, b.w, b.h) : [0, 0];
   const comp = (axis, i) => {
     if (out.snap.ref[axis]) return out.snap.ref[axis];
     const sp = eff.own && place && place.kind === 'abs' && !eff.shift[i]
       ? dgeSpanIn(ctx, id, 'at.' + axis) : null;
     if (sp && sp.present) return sp.text;
-    return dgeNum(dgeRound(want[axis] / (axis === 'x' ? uw : uh), DGE_SNAP_CELL));
+    return dgeNum(dgeRound((want[axis] - anch[i]) / (axis === 'x' ? uw : uh), DGE_SNAP_CELL));
   };
   return comp('x', 0) + ',' + comp('y', 1);
 }
@@ -2143,7 +2345,7 @@ function dgeStepToText(ctx, id, out, eff, want) {
 // align middle` was written back out in full, on a line where the option said
 // nothing.
 function dgeRelText(place, gap) {
-  let out = dgePlaceText(place.dir, place.ref, gap == null ? place.gap : gap);
+  let out = dgePlaceText(place.dir, place.ref, gap == null ? dgeGapWritten(place) : gap);
   if (place.align && place.align !== 'middle') out += ' flush ' + place.align;
   const off = place.offset;
   if (off && (off[0] || off[1])) out += ` offset ${dgeNum(off[0])},${dgeNum(off[1])}`;
@@ -2156,7 +2358,7 @@ function dgeGuideApply(ctx, id, dx, dy, want, won) {
   const b = ctx.boxes.get(id);
   const { uw, uh } = dgeUnits(ctx.model);
   const out = { dx, dy, nodes: [],
-    snap: { at: {}, ref: {}, to: null, gap: null, place: null, append: null,
+    snap: { at: {}, ref: {}, to: null, gap: null, gapText: null, place: null, append: null,
       appendAt: null, appendAxis: null, why: '' } };
   const why = [];
   // Move the drag itself onto the candidate, so the preview, the guide and
@@ -2202,7 +2404,8 @@ function dgeGuideApply(ctx, id, dx, dy, want, won) {
       shift(c.axis, (c.axis === 'x' ? b.x + b.w / 2 : b.y + b.h / 2)
         + (c.gap - c.was) * c.sign * dgeGapUnit(ctx.model));
       out.snap.gap = c.gap;
-      why.push(`gap ${dgeNum(c.gap)} – the same gap ${c.from} has, so the row stays regular`);
+      out.snap.gapText = c.text;
+      why.push(`gap ${c.text} – the same gap ${c.from} has, so the row stays regular`);
       out.nodes.push(...dgeGuideGap(ctx, c));
     } else if (c.kind === 'spread') {
       shift(c.axis, c.target);
@@ -2274,13 +2477,13 @@ function dgeGuideGap(ctx, c) {
     const from = dir === 'right' ? ref.x + ref.w : ref.x;
     const to = dir === 'right' ? b.x : b.x + b.w;
     return [dgeGuideMark('line', { x1: from, y1: y, x2: to, y2: y }),
-      dgeGuideLabel((from + to) / 2 - 12, y - 5, 'gap ' + dgeNum(c.gap))];
+      dgeGuideLabel((from + to) / 2 - 12, y - 5, 'gap ' + c.text)];
   }
   const x = b.x + b.w / 2;
   const from = dir === 'below' ? ref.y + ref.h : ref.y;
   const to = dir === 'below' ? b.y : b.y + b.h;
   return [dgeGuideMark('line', { x1: x, y1: from, x2: x, y2: to }),
-    dgeGuideLabel(x + 5, (from + to) / 2, 'gap ' + dgeNum(c.gap))];
+    dgeGuideLabel(x + 5, (from + to) / 2, 'gap ' + c.text)];
 }
 
 // Matched marks between consecutive centres, which is what `spread` means –
@@ -2649,6 +2852,22 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
     return { edits, refusals, strain };
   }
 
+  // **A drag on something standing in a band writes an `offset`, and the band
+  // stays.** The placement says which corner of the area the element meets,
+  // which is the fact worth keeping – a drag is a distance from it, and
+  // `offset` is the option that is orthogonal to every placement precisely so
+  // that this does not have to become an `at`.
+  if (place.kind === 'in') {
+    const off = place.offset || [0, 0];
+    const mx = xBlocked ? 0 : dx, my = yBlocked ? 0 : dy;
+    if (mx || my) {
+      edits.push({ attr: 'offset',
+        value: `${dgeNum(snap(off[0] + mx))},${dgeNum(snap(off[1] + my))}`,
+        why: `keeps it in ${place.ref}` });
+    }
+    return { edits, refusals, strain };
+  }
+
   if (place.kind === 'between') {
     // Along the line joining the two, `frac`; off it, `offset`.
     const a = ctx.boxes.get(place.refs[0].ref), z = ctx.boxes.get(place.refs[1].ref);
@@ -2715,9 +2934,15 @@ function dgePlanDrag(ctx, id, dx, dy, opts) {
     // callout is that the two gaps are the *same*, and rounding it onto the
     // 0.05 grid afterwards would turn 0.62 into 0.60 and quietly break the
     // equality the guide had just promised.
-    const sib = guide && guide.gap;
-    const next = sib != null ? sib : Math.max(0, snap(place.gap + sign * gapDelta));
-    edits.push({ attr: 'gap', value: dgeNum(next), why: sib != null ? guide.why : undefined });
+    //
+    // In the unit the line already writes: the sum is taken in rows, which is
+    // what the delta is in, and spelled back as label heights where the
+    // author wrote `lh` – snapped on that ruler, so `5lh` dragged comes back
+    // `5.3lh` rather than whatever 5.3 rows is in label heights.
+    const sib = guide && guide.gap != null ? (guide.gapText || dgeNum(guide.gap)) : null;
+    const next = sib != null ? sib
+      : dgeGapSpelled(ctx.model, place, dgeGapOf(ctx.model, place) + sign * gapDelta, snap);
+    edits.push({ attr: 'gap', value: next, why: sib != null ? guide.why : undefined });
   }
   if (crossDelta && !crossBlocked) {
     const ref = ctx.boxes.get(place.ref);
@@ -2856,17 +3081,27 @@ function dgePlanResize(ctx, id, dw, dh, handle, opts) {
   if (el.sameAs) {
     edits.push({ attr: 'same-as', value: '', drop: true, why: `"just this one" – drops "same as ${el.sameAs}"` });
   }
+  // **A chain member's size is not its own**, and the drag has to say so. A
+  // box standing in a row or a column takes the widest member's width and, in
+  // a row, the tallest member's height; the number this drag writes pins
+  // *this* box and leaves the others to re-settle, so making the dragged box
+  // the narrowest of the row visibly moves boxes nobody touched. The compiler
+  // records which axes it decided (`chainW` / `chainH` on the laid-out box) so
+  // the callout can name the reason rather than the author guessing at it.
+  const chained = (axis) => (axis === 'w' ? b.chainW : b.chainH)
+    ? 'this size came from the boxes beside it – writing it here pins this one and lets the rest re-settle'
+    : undefined;
   if (handle !== 's') {
     // A sibling's number exactly, when a guide matched one: the point of the
     // callout is that the two are the *same*, and rounding it onto the 0.05
     // grid afterwards would break the equality the guide had just promised.
     const sib = guide && guide.w;
-    edits.push({ attr: 'w', why: sib != null ? guide.why : undefined,
+    edits.push({ attr: 'w', why: sib != null ? guide.why : chained('w'),
       value: dgeNum(sib != null ? sib : Math.max(0.05, dgeRound(b.w / uw + dw, DGE_SNAP_CELL))) });
   }
   if (handle !== 'e') {
     const sib = guide && guide.h;
-    edits.push({ attr: 'h', why: sib != null ? guide.why : undefined,
+    edits.push({ attr: 'h', why: sib != null ? guide.why : chained('h'),
       value: dgeNum(sib != null ? sib : Math.max(0.05, dgeRound(b.h / uh + dh, DGE_SNAP_CELL))) });
   }
   return { edits, refusals: [] };
@@ -3466,14 +3701,14 @@ function dgeDockAt(ctx, id, pt) {
   // "dock it here". The chip says *which side*; the distance is whatever the
   // element already kept, and dragging adjusts it afterwards.
   // Keep the distance the element already kept – but only if the author
-  // actually wrote one. Every `rel` placement carries a default gap, so
-  // testing the model would re-emit 0.25 as an explicit token on a line that
-  // never had it, in an editor whose whole design is rewriting the smallest
-  // span it can.
+  // actually wrote one. A placement with no written `gap` carries a resolved
+  // default instead, and re-emitting that as an explicit token on a line that
+  // never had it would freeze the number against the very rule that picked it,
+  // in an editor whose whole design is rewriting the smallest span it can.
   const written = ctx.spans.spanOf(id, 'gap');
   const el = dgeFind(id, ctx.model);
   const gap = (written && written.present && el && el.place && el.place.kind === 'rel')
-    ? el.place.gap : DGE_DOCK_GAP;
+    ? dgeGapWritten(el.place) : DGE_DOCK_GAP;
   out.chip = chip.dir;
   out.text = dgePlaceText(chip.dir, host.id, gap);
   // A relation cannot win an axis a set already owns: the align would keep
@@ -4754,9 +4989,10 @@ function dgeRenderSide() {
     wrap.appendChild(dgeEl('h3', { text: 'waypoints' }));
     if (!via.length) {
       wrap.appendChild(dgeEl('div', { class: 'dge-hint', text: dgeCurveOf(single) === 'elbow'
-        ? 'None – .elbow draws its own two waypoints, a rail halfway across the gap on '
-          + 'whichever axis the ends are further apart. An edge cannot carry both, so take '
-          + 'the class off to bend it by hand.'
+        ? 'None – .elbow draws its own two waypoints, a rail across the gap on whichever '
+          + 'axis the ends are further apart. Halfway, unless that leaves too little run '
+          + 'after it for the arrowhead to read, in which case it sits nearer the source. '
+          + 'An edge cannot carry both, so take the class off to bend it by hand.'
         : 'None – the arrow runs straight. Drag one of the hollow dots on the line to bend it.' }));
     } else {
       const list = dgeEl('div', { class: 'dge-chips' });
@@ -4855,6 +5091,31 @@ function dgeRenderSide() {
         dgeEl('div', { class: 'dge-hint', text:
           'The column of numbers left of the frame. The number in the drawing and the index in '
           + 'the tag are the same number, so message 4 is the one @' + single.id + '-msg-3 names.' }),
+      ]));
+    }
+  }
+
+  // The one bare word a table's own statement reads, and the same control for
+  // the same reason: a closed list of one, present as a token or absent as an
+  // insertion point. The row names both readings rather than one and a
+  // checkbox, because "unheaded off" is not a phrase anyone thinks in.
+  if (single && single.frame === 'table') {
+    const sp = dgeSpanOf(single.id, 'unheaded');
+    if (sp) {
+      const row = dgeEl('div', { class: 'dge-swatches' });
+      for (const [word, label] of [['', 'heading row'], ['unheaded', 'no heading']]) {
+        row.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-sw',
+          'aria-pressed': String((sp.present ? 'unheaded' : '') === word),
+          text: label,
+          onclick: () => dgeWriteAttr(single.id, 'unheaded', word),
+        }));
+      }
+      side.appendChild(dgeEl('div', {}, [
+        dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'first row' }), row]),
+        dgeEl('div', { class: 'dge-hint', text:
+          'Whether the first row is set bold. It is still the row that fixes the column count '
+          + 'either way, and still @' + single.id + '-row-0.' }),
       ]));
     }
   }
@@ -5082,6 +5343,10 @@ function dgeSlotRows(chosen, kinds) {
       // author the wrong thing about their figure.
       const fixed = opt.inherit ? '' : dgeBeatFixed(slot, opt.cls, carried);
       if (fixed) whys.add(fixed);
+      // The other reason a swatch is offered and cannot be clicked, and it is
+      // about the element rather than about the beat – so it says so on the
+      // swatch and does not join `whys`, which is the beat's sentence.
+      const voided = fixed ? '' : (opt.inherit ? '' : dgeVoidedBy(opt.cls));
       row.appendChild(dgeEl('button', {
         type: 'button', class: 'dge-sw',
         'data-fill': opt.fill === undefined ? null : (opt.fill || 'none'),
@@ -5089,14 +5354,18 @@ function dgeSlotRows(chosen, kinds) {
         // produces is whatever the default says, and that state is already the
         // swatch the default's own class owns – so it never reads as pressed.
         'aria-pressed': String(!opt.inherit && current === opt.cls),
-        disabled: !!fixed,
+        disabled: !!fixed || !!voided,
         title: fixed
           ? (opt.cls ? '.' + opt.cls : 'nothing in this slot') + ' – ' + fixed
             + ' is settled once when the figure is built, so a step has nothing to switch'
-          : (opt.inherit ? 'drop this element’s own say and take the default'
-            : (opt.cls ? (slot.arrow ? opt.cls : '.' + opt.cls) : 'nothing in this slot')),
+          : voided
+            ? `.${opt.cls} – .${voided} is on this line, and the two together draw nothing at `
+              + 'all: one deletes the outline the other patterns. Take that one off first, or '
+              + 'use .clear, which takes off the fill and keeps the outline.'
+            : (opt.inherit ? 'drop this element’s own say and take the default'
+              : (opt.cls ? (slot.arrow ? opt.cls : '.' + opt.cls) : 'nothing in this slot')),
         text: opt.fill !== undefined && !opt.inherit ? '' : (opt.label || opt.cls),
-        onclick: fixed ? null : () => dgeSetSlot(slot, opt.cls, opt),
+        onclick: (fixed || voided) ? null : () => dgeSetSlot(slot, opt.cls, opt),
       }));
     }
     // Its own class beside the shared one, the rule chips already follow: a
@@ -5215,6 +5484,34 @@ function dgeSlotCarried(names) {
 // because they are listed as exceptions; that listing is precisely the
 // narrowing this replaced, which let a fill swatch at beat 2 quietly edit the
 // printed handout.
+// **A swatch whose only outcome is a compiler refusal is not a control**, which
+// is item 15 one pair further along. `DG_CLASS_VOIDS` is the short table of
+// classes from two different slots where the first deletes the surface the
+// second draws on: `.bare` takes the outline off, so `{.bare .dashed}` draws
+// nothing round the element at all and the build refuses it. The element
+// wearing one of them gets the other greyed out with the reason on it, rather
+// than a click that rolls itself back and a sentence in the message area.
+//
+// Read off the **written tail** and only at beat 0, which is exactly the scope
+// the compiler's refusal has: it reads one tail, so a `.dashed` on the
+// element's own line and a `.bare` arriving from a `default box` are not the
+// pair, and neither is a `style` step's own tail at a later beat. A greying
+// stricter than the refusal would be a control taken away for a line the
+// author is entitled to write.
+function dgeVoidedBy(cls) {
+  if (!cls || DGE.beat) return '';
+  const pairs = (window.PSI_DG && window.PSI_DG.DG_CLASS_VOIDS) || [];
+  for (const pair of pairs) {
+    const other = cls === pair[0] ? pair[1] : cls === pair[1] ? pair[0] : null;
+    if (!other) continue;
+    for (const id of DGE.selection) {
+      const el = dgeLineOwner(id);
+      if (el && (el.classes || []).includes(other)) return other;
+    }
+  }
+  return '';
+}
+
 function dgeBeatFixed(slot, cls, carried) {
   if (!DGE.beat) return '';
   if (cls) return dgeStepFixedWhy(cls);
@@ -6189,6 +6486,48 @@ function dgeSetLeaderArrow(tok) {
   }
 }
 
+// Which point of the element lands on the coordinate `at` or `between`
+// resolved to. A swatch row like `flush`, and for the same reason: it is a
+// closed word list, so a field would be a place to make a typo the compiler
+// then has to refuse.
+//
+// Nine words in reading order rather than in `DG_ANCHORS` order, because what
+// the author is choosing is a corner of a box and the row is the box. `center`
+// writes nothing – it is the parser's default, so the swatch takes the token
+// off rather than restating it, which is what every "plain case" swatch here
+// does. Only on `at` and `between`: a relative placement answers the same
+// question with `flush`, against the element it is measured from.
+//
+// **`center` is the plain case and writes nothing – except where the default
+// is not `center`.** A free `text` carrying `.left` at a coordinate is
+// anchored on that edge with no word on the line, so the row has to press
+// `left` for it, and `center` there has to write `anchor center` out: taking
+// a token off a line that never had one would leave the swatch inert, which
+// is the one thing a swatch may not be.
+const DGE_ANCHOR_ROW = ['tl', 'top', 'tr', 'left', 'center', 'right', 'bl', 'bottom', 'br'];
+function dgeAnchorSlot(el, p) {
+  const row = dgeEl('div', { class: 'dge-swatches' });
+  const state = DGE.model ? window.PSI_DG.dgStateAt(DGE.model, DGE.beat) : null;
+  const st = state && state.get(el.id);
+  const derived = window.PSI_DG.dgPlaceAnchor(
+    el.kind, { ...p, anchor: null }, st ? st.classes : new Set(el.classes || []));
+  const now = p.anchor || derived || 'center';
+  for (const w of DGE_ANCHOR_ROW) {
+    row.appendChild(dgeEl('button', {
+      type: 'button', class: 'dge-sw', 'aria-pressed': String(now === w),
+      title: w === 'center'
+        ? (derived
+          ? `anchor center – this label is anchored ${derived} by its class, and this says otherwise`
+          : 'the coordinate is the element’s centre – the plain case, and no word on the line')
+        : `anchor ${w} – the element’s ${w} meets the coordinate, so a row of labels of `
+          + 'different lengths lines up',
+      text: w,
+      onclick: () => dgeWriteAttr(el.id, 'anchor', w === 'center' && !derived ? '' : w),
+    }));
+  }
+  return dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'anchor' }), row]);
+}
+
 // The placement, as three answers rather than one opaque phrase.
 function dgePlacementPane(el) {
   const wrap = dgeEl('div', {});
@@ -6227,8 +6566,15 @@ function dgePlacementPane(el) {
   // places and 0.4 in the third, and once a gap became square all three drew a
   // hair instead of a gutter. One number, one reason.
   const kinds = dgeEl('div', { class: 'dge-chips' });
-  const kindOf = p.kind === 'rel' ? 'beside' : p.kind === 'between' ? 'between' : 'at';
-  for (const [key, label] of [['at', 'at x,y'], ['beside', 'beside'], ['between', 'between two']]) {
+  const kindOf = p.kind === 'rel' ? 'beside' : p.kind === 'between' ? 'between'
+    : p.kind === 'in' ? 'in' : 'at';
+  // The zones this block draws, because the fourth kind needs one to name and
+  // most figures have none. Offered only where there is one, for the reason
+  // `between` says it needs two other elements rather than writing something
+  // that will not compile.
+  const zones = ((DGE.model && DGE.model.nodes) || []).filter((n) => n.zone).map((n) => n.id);
+  for (const [key, label] of [['at', 'at x,y'], ['beside', 'beside'], ['between', 'between two'],
+    ...(zones.length || kindOf === 'in' ? [['in', 'in a zone']] : [])]) {
     kinds.appendChild(dgeEl('button', {
       type: 'button', class: 'dge-sw', 'aria-pressed': String(key === kindOf),
       text: label,
@@ -6241,6 +6587,11 @@ function dgePlacementPane(el) {
         if (key === 'beside') {
           const ref = (p.kind === 'between' && p.refs[0] && p.refs[0].ref) || others[0];
           if (ref) write(dgePlaceText('right', ref, DGE_DOCK_GAP));
+          return;
+        }
+        if (key === 'in') {
+          if (zones.length) write('in ' + zones[0]);
+          else dgeStatus('', 'in needs an area to stand in – this figure draws no zone.', true);
           return;
         }
         const a = p.kind === 'rel' ? p.ref : others[0];
@@ -6291,6 +6642,7 @@ function dgePlacementPane(el) {
         + 'value in a plot’s own units – roc@0.35. Each half is read on its own, '
         + 'so one may borrow and the other be a number.' }));
     }
+    wrap.appendChild(dgeAnchorSlot(el, p));
   } else if (p.kind === 'rel') {
     const dirs = dgeEl('div', { class: 'dge-chips' });
     for (const d of DGE_DIRS) {
@@ -6298,7 +6650,7 @@ function dgePlacementPane(el) {
         type: 'button', class: 'dge-sw', 'aria-pressed': String(d === p.dir),
         text: d === 'right' || d === 'left' ? d + ' of' : d,
         title: 'dock it ' + d + ' of ' + p.ref + ' – dragging it past that edge does the same',
-        onclick: () => { if (d !== p.dir) write(dgePlaceText(d, p.ref, p.gap)); },
+        onclick: () => { if (d !== p.dir) write(dgePlaceText(d, p.ref, dgeGapWritten(p))); },
       }));
     }
     wrap.appendChild(dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: 'side' }), dirs]));
@@ -6337,14 +6689,24 @@ function dgePlacementPane(el) {
           type: 'text', value: p.ref, list: 'dge-elids',
           onchange: (e) => {
             const v = e.target.value.trim();
-            if (v && v !== p.ref) write(dgePlaceText(p.dir, v, p.gap)); else dgeRenderSide();
+            if (v && v !== p.ref) write(dgePlaceText(p.dir, v, dgeGapWritten(p))); else dgeRenderSide();
           },
         }),
       ]),
       dgeEl('label', { class: 'dge-num' }, [
         dgeEl('span', { text: 'gap' }),
         dgeEl('input', {
-          type: 'text', value: dgeNum(p.gap),
+          // The resolved number either way, because the field has to show the
+          // distance the reader sees. Where the line writes no `gap` that is
+          // the default the compiler settled – one label, or 1.6 of them
+          // between two elements an edge joins – and the title says so, so a
+          // number nobody typed cannot be mistaken for one that was. Typing
+          // into the field is the act that writes it.
+          type: 'text', value: p.gap == null ? dgeNum(dgeGapOf(null, p)) : dgeGapWritten(p),
+          title: p.gap == null
+            ? 'no gap is written on this line – this is the default, in rows'
+            : dgeGapInLh(p) ? 'the gap written on this line, in label heights'
+              : 'the gap written on this line, in rows – 0.6lh is label heights',
           // Refuse what is not a number instead of silently writing 0 –
           // `Number('0.,4') || 0` collapsed a typo into "no gap at all".
           //
@@ -6354,14 +6716,18 @@ function dgePlacementPane(el) {
           // bad token: dgePlaceText renders NaN through dgeNum as "0" and the
           // line comes out `right of a gap 0`, which is legal and silent.
           // Measured: `box b "B" right of a gap 0` compiles clean.
+          //
+          // A number, or a number in label heights: `0.6lh` is a gap the
+          // grammar takes, so refusing it here made the panel the one place
+          // an author could not write one.
           onchange: (e) => {
-            const n = Number(e.target.value.trim());
-            if (!e.target.value.trim() || !Number.isFinite(n)) {
-              dgeStatus('', `"${e.target.value}" is not a number – the gap keeps its ${dgeNum(p.gap)}.`, true);
+            const g = dgeGapTyped(e.target.value);
+            if (g == null) {
+              dgeStatus('', `"${e.target.value}" is not a gap – the gap keeps its ${p.gap == null ? dgeNum(dgeGapOf(null, p)) : dgeGapWritten(p)}.`, true);
               dgeRenderSide();
               return;
             }
-            write(dgePlaceText(p.dir, p.ref, n));
+            write(dgePlaceText(p.dir, p.ref, g));
           },
         }),
       ]),
@@ -6403,6 +6769,69 @@ function dgePlacementPane(el) {
       }),
     ]));
     wrap.appendChild(row);
+    wrap.appendChild(dgeAnchorSlot(el, p));
+  } else if (p.kind === 'in') {
+    // The band's own two axes, as two swatch rows. They are the words the
+    // grammar has rather than an `anchor`: a band is a rectangle and what the
+    // element meets is a corner of it, so `left`/`right` across and
+    // `top`/`bottom` down, with `center` on each.
+    // `center` alone answers both axes, so an axis that is centred while the
+    // other is not has to spell the other one out even where it is the
+    // default: `in z center` is the middle of the band and `in z left center`
+    // is its left edge, halfway down. Writing the bare word for the second
+    // case is how the pane sent a centred row to the wrong corner once.
+    const text = (ax, ay, gap) => {
+      const mid = ax === 'center' || ay === 'center';
+      const xw = ax === 'left' && !(mid && ax !== 'center') ? '' : ' ' + ax;
+      const yw = ay === 'top' && !(mid && ay !== 'center') ? '' : ' ' + ay;
+      return 'in ' + p.ref + (gap != null ? ' gap ' + (typeof gap === 'string' ? gap : dgeNum(gap)) : '')
+        + (ax === 'center' && ay === 'center' ? ' center' : xw + yw);
+    };
+    for (const [slot, words, cur, of] of [
+      ['across', ['left', 'center', 'right'], p.ax, 'x'],
+      ['down', ['top', 'center', 'bottom'], p.ay, 'y'],
+    ]) {
+      const swrow = dgeEl('div', { class: 'dge-swatches' });
+      for (const w of words) {
+        swrow.appendChild(dgeEl('button', {
+          type: 'button', class: 'dge-sw', 'aria-pressed': String(cur === w), text: w,
+          title: `against the ${w} of the band ${p.ref} reserves`,
+          onclick: () => write(of === 'x' ? text(w, p.ay, dgeGapWritten(p)) : text(p.ax, w, dgeGapWritten(p))),
+        }));
+      }
+      wrap.appendChild(dgeEl('div', { class: 'dge-slot' }, [dgeEl('b', { text: slot }), swrow]));
+    }
+    wrap.appendChild(dgeEl('div', { class: 'dge-nums' }, [
+      dgeEl('label', { class: 'dge-num' }, [
+        dgeEl('span', { text: 'in' }),
+        dgeEl('input', {
+          type: 'text', value: p.ref, list: 'dge-elids',
+          onchange: (e) => {
+            const v = e.target.value.trim();
+            if (v && v !== p.ref) write(text(p.ax, p.ay, dgeGapWritten(p)).replace('in ' + p.ref, 'in ' + v));
+            else dgeRenderSide();
+          },
+        }),
+      ]),
+      dgeEl('label', { class: 'dge-num' }, [
+        dgeEl('span', { text: 'gap' }),
+        dgeEl('input', {
+          type: 'text', value: dgeGapWritten(p) || '0',
+          title: p.gap == null ? 'no gap is written on this line – the element meets the band'
+            : dgeGapInLh(p) ? 'how far inside the band it sits, in label heights'
+              : 'how far inside the band it sits, in rows',
+          onchange: (e) => {
+            const g = dgeGapTyped(e.target.value);
+            if (g == null) {
+              dgeStatus('', `"${e.target.value}" is not a gap – the gap keeps its ${dgeGapWritten(p) || '0'}.`, true);
+              dgeRenderSide();
+              return;
+            }
+            write(text(p.ax, p.ay, Number(g.replace(/lh$/, '')) ? g : null));
+          },
+        }),
+      ]),
+    ]));
   }
 
   // One list for every id in the block, so the reference fields complete

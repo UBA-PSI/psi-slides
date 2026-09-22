@@ -40,7 +40,11 @@ export const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '
 // to be truthy for `imageAspect` to be consulted at all, or every image line
 // in the corpus answers with "cannot read the asset's proportions" and the
 // warning census measures the stub rather than the source.
-export function makeCore() {
+// `extra` replaces individual leaves, for the one gate that compiles figures
+// out of the corpus rather than out of its own fixtures: a stubbed proportion
+// is the right answer for a made-up `image` line and the wrong one for a real
+// avatar, whose box then stands where the lecture does not draw it.
+export function makeCore(extra = {}) {
   const warns = [];
   const core = createDiagramCompiler({
     resolveImage: (ref) => ({ kind: 'raster', href: ref, path: ref, markup: '', abs: ref }),
@@ -49,6 +53,7 @@ export function makeCore() {
     escapeHtml: (s = '') => String(s),
     assetMarkup: () => '',
     resetAssets: () => {},
+    ...extra,
   });
   return { core, warns };
 }
@@ -141,6 +146,38 @@ export function lintAll(cases) {
     return m ? { line: +m[1], sev: m[2], rule: m[3], msg: m[4] } : null;
   }).filter(Boolean);
   return spans.map(([s, e]) => findings.filter(f => f.line >= s && f.line <= e));
+}
+
+/**
+ * Run one whole lecture source through `lint.js` and hand back every finding.
+ * `lintAll` above wraps each case in a `::: draw` block, which is right for
+ * the figure gates and wrong for anything about chunks, segments or notes -
+ * so this is the same bridge without the wrapper: the caller writes the
+ * frontmatter and the chunks and gets the lines back.
+ *
+ * @param {string} md  the whole file, frontmatter included
+ * @returns {{line: number, sev: string, rule: string, msg: string}[]}
+ */
+export function lintSource(md) {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-gate-'));
+  let raw = '';
+  try {
+    const file = path.join(dir, 'source.md');
+    fs.writeFileSync(file, md);
+    try {
+      raw = execFileSync(process.execPath, [path.join(ROOT, 'lint.js'), file],
+        { encoding: 'utf8', maxBuffer: 1 << 26 });
+    } catch (e) {
+      raw = e.stdout || '';
+      if (!raw) throw e;
+    }
+  } finally {
+    fs.rmSync(dir, { recursive: true, force: true });
+  }
+  return raw.split('\n').map((l) => {
+    const m = l.match(/^.*?:(\d+)\s+(error|warn)\s+(\S+)\s+(.*)$/);
+    return m ? { line: +m[1], sev: m[2], rule: m[3], msg: m[4] } : null;
+  }).filter(Boolean);
 }
 
 // ── reporting ───────────────────────────────────────────────────────

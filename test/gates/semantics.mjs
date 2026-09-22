@@ -31,7 +31,9 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { frames, render, spans, ROOT } from './harness.mjs';
-import { DG_THEMES, dgSpans, dgMeasure, dgTokenize } from '../../diagram-core.mjs';
+import { DG_THEMES, dgSpans, dgMeasure, dgTokenize, DG_QUIET_SCALE,
+  DG_LABEL_H, DG_GAP_JOINED, DG_HEAD, DG_FONT,
+  DG_ELBOW_ARRIVE, DG_ELBOW_LEAVE } from '../../diagram-core.mjs';
 
 export const name = 'the emitted drawing means what the source says';
 
@@ -308,6 +310,52 @@ export async function run({ report }) {
       `${turned && turned.join('x')} – the label reads up the long side`);
   }
 
+  // ── padding is measured in the label's own type ───────────────────
+  // `DG_PAD_X` / `DG_PAD_Y` used to be 13 and 9 px whatever the box held, so
+  // a `.large` box sat in the padding a base label gets and read tight while a
+  // `.small` one floated in more air than its letters are tall. The pair is
+  // now scaled by `dgFontFor`, the construction `DG_ROW_H` already uses – and
+  // the point of that construction is the control below: the factor is exactly
+  // 1 for a label with no size class, so the base case is byte-identical.
+  {
+    // The ring of paper round the words, per axis, taken off a box whose
+    // label is fixed: the box is the measured label plus twice the padding,
+    // so the difference between two size classes is the padding's alone once
+    // the label's own growth is divided out.
+    const ring = (tail) => {
+      const out = fig(`a box ${tail || 'with no size class'}`, `box a "Authenticator"${tail ? ' ' + tail : ''} at 0,0`);
+      if (!out) return null;
+      const font = tail === '{.small}' ? DG_FONT * 0.8 : tail === '{.large}' ? DG_FONT * 1.22 : DG_FONT;
+      const m = dgMeasure('Authenticator', font, false);
+      return [(+attrOf(out, 'a--r', 'width') - m.w) / 2, (+attrOf(out, 'a--r', 'height') - m.h) / 2];
+    };
+    const base = ring('');
+    const near = (a, b) => Math.abs(a - b) < 0.01;
+    ok(base && near(base[0], 13) && near(base[1], 9),
+      'a base label still sits in exactly 13 x 9 px of padding',
+      `got ${base && base.map(n => n.toFixed(2)).join(' x ')}`);
+    const small = ring('{.small}');
+    ok(small && near(small[0], 13 * 0.8) && near(small[1], 9 * 0.8),
+      'a .small box gets 0.8 of it, so its words are not lost in the paper',
+      `got ${small && small.map(n => n.toFixed(2)).join(' x ')}`);
+    const large = ring('{.large}');
+    ok(large && near(large[0], 13 * 1.22) && near(large[1], 9 * 1.22),
+      'and a .large box gets 1.22 of it rather than sitting tight',
+      `got ${large && large.map(n => n.toFixed(2)).join(' x ')}`);
+    // `pad N` is a number in grid units, and a number in grid units is a
+    // statement about the grid. Scaling it too would make one number mean two
+    // distances depending on a class one line along.
+    const written = (tail) => {
+      const out = fig(`a box with a written pad ${tail}`, `box a "Authenticator" pad 0.2 ${tail} at 0,0`);
+      if (!out) return null;
+      const font = tail === '{.small}' ? DG_FONT * 0.8 : DG_FONT;
+      return (+attrOf(out, 'a--r', 'height') - dgMeasure('Authenticator', font, false).h) / 2;
+    };
+    ok(near(written('{.small}'), written('{.dashed}')),
+      'a written pad is the author\'s number and no class scales it',
+      `small ${written('{.small}')}, plain ${written('{.dashed}')}`);
+  }
+
   // ── word-valued defaults act, and the element's own word wins ─────
   // `default edge side bottom` used to be refused by the compiler ("side
   // expects a number") and accepted by the linter. Parsing it is half the
@@ -342,6 +390,270 @@ export async function run({ report }) {
       'the default won');
   }
 
+
+  // ── a gap is measured in labels, and its default clears an arrow ──
+  // The default used to be 0.25 rows, and a row is whatever the opener says:
+  // 5 px on a 20-row grid, 18 on a 72-row one. On the grid a real keynote used
+  // it came out at 10 px against a 9 px arrowhead. So the number nobody writes
+  // is now stated in the one ruler a drawing carries whatever its opener says
+  // – the height of a base label – and it is 1.6 of them for a pair an `edge`
+  // joins, which is the head plus as much shaft again.
+  //
+  // Every assertion below is a *difference* between two fixtures one token
+  // apart, except the two that have to be literals: the whole claim is that a
+  // particular number of pixels arrives, and a relative assertion cannot say
+  // that the opener stopped deciding it.
+  {
+    const gapOf = (what, body, head = '') => {
+      const out = fig(what, body, head);
+      if (!out) return null;
+      const ax = +attrOf(out, 'a--r', 'x'), aw = +attrOf(out, 'a--r', 'width');
+      return +attrOf(out, 'b--r', 'x') - (ax + aw);
+    };
+    const PAIR = 'box a "A" at 0,0\nbox b "B" right of a';
+    const small = gapOf('an unjoined pair on a 20-row grid', PAIR, 'unit=120x20');
+    const large = gapOf('the same pair on a 72-row grid', PAIR, 'unit=120x72');
+    ok(small != null && large != null && Math.abs(small - large) < 0.01,
+      'the default gap is the same distance whatever the opener says',
+      `${small} px on 120x20, ${large} px on 120x72`);
+    ok(small != null && Math.abs(small - DG_LABEL_H) < 0.01,
+      'and that distance is one base label',
+      `${small} px against ${DG_LABEL_H}`);
+
+    const joined = gapOf('a pair an edge joins', PAIR + '\nedge a -> b', 'unit=120x72');
+    ok(joined != null && Math.abs(joined - DG_GAP_JOINED * DG_LABEL_H) < 0.01,
+      'a pair an edge joins gets 1.6 labels instead – decided after the block is read',
+      `${joined} px against ${DG_GAP_JOINED * DG_LABEL_H}`);
+    ok(joined != null && joined - DG_HEAD >= DG_HEAD,
+      'which leaves at least as much shaft as the arrowhead is long',
+      `${joined} px of paper, ${DG_HEAD} px of head`);
+    // The direction of the edge is not the point, and neither is which of the
+    // two elements was placed against the other.
+    const back = gapOf('the same pair joined the other way', PAIR + '\nedge b -> a', 'unit=120x72');
+    ok(back != null && joined != null && Math.abs(back - joined) < 0.01,
+      'and the edge counts whichever way round it is written', `${back} vs ${joined}`);
+
+    // A written gap keeps its meaning and its unit. It is a number the author
+    // tuned against the grid in the opener, and other elements are chained off
+    // it – so it stays rows and it is never widened for you.
+    const written = gapOf('a written gap', 'box a "A" at 0,0\nbox b "B" right of a gap 0.5',
+      'unit=120x72');
+    ok(written != null && Math.abs(written - 0.5 * 72) < 0.01,
+      'a written gap is still a number of rows', `${written} px against 36`);
+    const writtenJoined = gapOf('a written gap on a joined pair',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.5\nedge a -> b', 'unit=120x72');
+    ok(writtenJoined != null && Math.abs(writtenJoined - 0.5 * 72) < 0.01,
+      'and an edge does not widen it', `${writtenJoined} px against 36`);
+
+    // ── lh: the ruler the rules are stated in, addressable ──────────
+    // The default gap is a count of label heights and an author could not say
+    // one: a number of rows is whatever the opener says, so the spacing that
+    // held on a 150x52 grid had to be worked out again on a 20x20 one. `lh` is
+    // that number written down. Both halves matter – the same token is the
+    // same distance on two grids, and it is not the row distance on either.
+    const lhWide = gapOf('a gap in label heights on a 72-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5lh', 'unit=120x72');
+    const lhNarrow = gapOf('the same token on a 20-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5lh', 'unit=20x20');
+    ok(lhWide != null && Math.abs(lhWide - 1.5 * DG_LABEL_H) < 0.02,
+      'gap 1.5lh is 1.5 base label heights', `${lhWide} px against ${1.5 * DG_LABEL_H}`);
+    ok(lhWide != null && lhNarrow != null && Math.abs(lhWide - lhNarrow) < 0.02,
+      'and the opener does not decide it', `${lhWide} px on 120x72, ${lhNarrow} px on 20x20`);
+    // The control, and the whole reason the suffix exists: the bare number is
+    // still rows, and on these two grids that is two different distances.
+    const rowsWide = gapOf('a bare gap on a 72-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5', 'unit=120x72');
+    const rowsNarrow = gapOf('the same bare gap on a 20-row grid',
+      'box a "A" at 0,0\nbox b "B" right of a gap 1.5', 'unit=20x20');
+    ok(rowsWide != null && Math.abs(rowsWide - 1.5 * 72) < 0.01
+      && rowsNarrow != null && Math.abs(rowsNarrow - 1.5 * 20) < 0.01,
+      'while a bare gap is still rows, and rows still follow the opener',
+      `${rowsWide} px on 120x72, ${rowsNarrow} px on 20x20`);
+    // An `lh` gap is a gap the author wrote, so the joined-pair default must
+    // not reach it either.
+    const lhJoined = gapOf('an lh gap on a joined pair',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.4lh\nedge a -> b', 'unit=120x72');
+    ok(lhJoined != null && Math.abs(lhJoined - 0.4 * DG_LABEL_H) < 0.02,
+      'and an edge does not widen an lh gap either – it is a number the author wrote',
+      `${lhJoined} px against ${0.4 * DG_LABEL_H}`);
+    // The same suffix on a `pad`, on the element's own line and in a `default`
+    // layer. The layer is the case the suffix was written for: `draw-defaults`
+    // is read once for a deck and applied to blocks whose openers differ.
+    const padH = (what, body, head) => {
+      const out = fig(what, body, head);
+      return out && +attrOf(out, 'a--r', 'height');
+    };
+    const padWide = padH('pad in label heights on a 72-row grid',
+      'box a "Authenticator" pad 0.5lh at 0,0', 'unit=120x72');
+    const padNarrow = padH('the same pad on a 20-row grid',
+      'box a "Authenticator" pad 0.5lh at 0,0', 'unit=20x20');
+    ok(padWide != null && Math.abs(padWide - DG_LABEL_H * 2) < 0.01 && padWide === padNarrow,
+      'pad 0.5lh is half a label on each side, on any grid',
+      `${padWide} vs ${padNarrow}, label ${DG_LABEL_H}`);
+    const layered = padH('a default layer stating its pad in label heights',
+      'default box pad 0.5lh\nbox a "Authenticator" at 0,0', 'unit=20x20');
+    ok(layered === padWide, 'and a default layer may state one', `${layered} vs ${padWide}`);
+    // A row's own gap takes the suffix too, because it is the same gap: a
+    // member with no placement of its own is placed with it.
+    const rowGap = gapOf('a row stating its gap in label heights',
+      'box a "A" at 0,0\nbox b "B"\nrow a, b gap 2lh', 'unit=20x20');
+    ok(rowGap != null && Math.abs(rowGap - 2 * DG_LABEL_H) < 0.02,
+      'a row may state its gap in label heights', `${rowGap} px against ${2 * DG_LABEL_H}`);
+
+    // The default for a *labelled* edge holds the label as well, which is what
+    // turns the clip warning below into a report about a number the author
+    // wrote. Only across: a label on a vertical run stands beside the line.
+    const labelled = gapOf('a pair joined by a labelled edge',
+      PAIR + '\nedge a -> b "a long phrase"', 'unit=120x72');
+    ok(labelled != null && joined != null && labelled > joined,
+      "a labelled edge's default gap holds its label", `${labelled} vs ${joined}`);
+    const down = (what, body) => {
+      const out = fig(what, body, 'unit=120x72');
+      if (!out) return null;
+      const ay = +attrOf(out, 'a--r', 'y'), ah = +attrOf(out, 'a--r', 'height');
+      return +attrOf(out, 'b--r', 'y') - (ay + ah);
+    };
+    const downPlain = down('a stacked pair an edge joins', 'box a "A" at 0,0\nbox b "B" below a\nedge a -> b');
+    const downLabel = down('the same stack with a long edge label',
+      'box a "A" at 0,0\nbox b "B" below a\nedge a -> b "a long phrase"');
+    ok(downPlain != null && downLabel != null && Math.abs(downPlain - downLabel) < 0.01,
+      'but a label on a vertical run does not, because it stands beside the line',
+      `${downPlain} vs ${downLabel}`);
+
+    // ── edge-short: the other half of the rule ──
+    // A written gap is the author's number and is not pushed apart, so the
+    // author hears about it instead. Measured on the exposed run, and one
+    // token apart in both directions.
+    const shorts = (what, body, head = 'unit=120x40') => {
+      const r = render(body, head);
+      if (!r.ok) { ok(false, `${what} compiles`, r.msg.split('\n')[0]); return null; }
+      return r.warns.filter(w => /its exposed run is/.test(w));
+    };
+    const tightRow = shorts("a keynote's own row", 'box a "A" at 0,0\nbox b "B" right of a gap 0.3\nedge a -> b');
+    ok(tightRow && tightRow.length === 1, 'an arrow with almost no shaft is reported',
+      tightRow ? tightRow.join(' | ') : 'did not compile');
+    ok(tightRow && tightRow.length === 1 && /\b12 px\b/.test(tightRow[0])
+      && /0\.64 labels/.test(tightRow[0]) && /more rows of gap/.test(tightRow[0]),
+      'and it states the run in px and in labels, and the number that would clear it',
+      tightRow && tightRow[0]);
+    const roomy = shorts('the same row at a wider gap',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.8\nedge a -> b');
+    ok(roomy && roomy.length === 0, 'a row with room for the arrow is silent', roomy && roomy[0]);
+    const defaulted = shorts('the same row with no written gap',
+      'box a "A" at 0,0\nbox b "B" right of a\nedge a -> b');
+    ok(defaulted && defaulted.length === 0,
+      'and the default never trips it – 1.6 labels stands clear of 1.5',
+      defaulted && defaulted[0]);
+    // A leader stub is `--`, which draws no head; a short plain connector is a
+    // tick joining two things and is what a leader is for.
+    const leader = shorts('a short leader stub',
+      'box a "A" at 0,0\nbox b "B" right of a gap 0.3\nedge a -- b');
+    ok(leader && leader.length === 0, 'a headless edge has no head to crowd, so it is exempt',
+      leader && leader[0]);
+    // A `sequence` message is placed by the statement that made it, and the
+    // fix this warning names is not a line the author has.
+    const synth = shorts('a sequence of two actors',
+      'sequence s at 0,0 space 0.1\n  actor a "A"\n  actor b "B"\n  a -> b "M"', '');
+    ok(synth && synth.length === 0, 'a synthesised edge is exempt', synth && synth[0]);
+  }
+
+  // ── where an elbow puts its rail, and what it says when it cannot ──
+  // The run *after* the rail is the only part of an elbow that says which box
+  // the arrow points into: the rail itself is shared, and two edges out of one
+  // parent draw it on the same line on purpose. So the rail is halfway across
+  // the gap until halfway leaves that arrival run too short to read, and then
+  // it slides toward the source – far enough to buy DG_ELBOW_ARRIVE and no
+  // further, never past halfway, never below DG_ELBOW_LEAVE on the way out.
+  //
+  // Measured between the two box faces rather than off the drawn stroke: the
+  // stroke has already been trimmed back by most of an arrowhead, and what is
+  // being asserted is where the rail was put, not what is left of the line.
+  {
+    // A row on a 120x72 grid, with the second box moved across a fixed step.
+    // x is chosen so the two centres are always further apart across than
+    // down, which is what puts the rail on the vertical.
+    const ROW = (x, tok = '->') => `box a "A" at 0,0 w 1\nbox b "B" at ${x},1.4 w 1\n`
+      + `edge a ${tok} b {.elbow}`;
+    const runs = (what, x, tok) => {
+      const out = fig(what, ROW(x, tok), 'unit=120x72');
+      if (!out) return null;
+      const p = points(attrOf(out, 'edge-1--p', 'd'));
+      if (p.length !== 4) { ok(false, `${what} draws a four-point elbow`, `${p.length} points`); return null; }
+      const leftFace = +attrOf(out, 'a--r', 'x') + +attrOf(out, 'a--r', 'width');
+      const rightFace = +attrOf(out, 'b--r', 'x');
+      return { leave: p[1][0] - leftFace, arrive: rightFace - p[1][0] };
+    };
+    // Roomy: twice the floor and more, so nothing moves and the bracket a
+    // tree is made of is drawn exactly where it always was.
+    const roomy = runs('an elbow with room either side', 2);
+    ok(roomy && Math.abs(roomy.leave - roomy.arrive) < 0.01,
+      'an elbow with room either side still puts its rail halfway across the gap',
+      roomy && `${roomy.leave.toFixed(2)} out, ${roomy.arrive.toFixed(2)} in`);
+    // Between the floor and twice it: the rail moves, and it moves exactly as
+    // far as the arrival run needs and no further.
+    const mid = runs('an elbow whose half-gap is under the floor', 1.4);
+    ok(mid && Math.abs(mid.arrive - DG_ELBOW_ARRIVE) < 0.01,
+      'and where halfway would leave less, the rail slides toward the source until the '
+      + 'arrival run is one label plus the head',
+      mid && `${mid.arrive.toFixed(2)} px against ${DG_ELBOW_ARRIVE}`);
+    ok(mid && mid.leave >= DG_ELBOW_LEAVE - 0.01 && mid.leave < mid.arrive,
+      'which leaves the shorter of the two runs behind it, and never less than a head',
+      mid && `${mid.leave.toFixed(2)} out, ${mid.arrive.toFixed(2)} in`);
+    // Too small for both: the leaving run is the bound, and it is what stops
+    // the rail rather than the arrival run being satisfied.
+    const tight = runs('an elbow on a gap too small for both runs', 1.25);
+    ok(tight && Math.abs(tight.leave - DG_ELBOW_LEAVE) < 0.01 && tight.arrive < DG_ELBOW_ARRIVE,
+      'on a gap too small for both, the leaving run is what stops the rail',
+      tight && `${tight.leave.toFixed(2)} out, ${tight.arrive.toFixed(2)} in`);
+    // And smaller still, where a head's length out is already past halfway:
+    // the rail stays where it was. Moving it would spend the same problem at
+    // the other end, which solves nothing and moves an existing drawing.
+    const tiny = runs('an elbow on a gap under two heads', 1.1);
+    ok(tiny && Math.abs(tiny.leave - tiny.arrive) < 0.01,
+      'and on a gap under two heads it is halfway again, because there is nothing to buy',
+      tiny && `${tiny.leave.toFixed(2)} out, ${tiny.arrive.toFixed(2)} in`);
+
+    // The warning is the other half, and it fires exactly where the gap could
+    // not pay for both runs.
+    const said = (what, x, tok) => {
+      const r = render(ROW(x, tok), 'unit=120x72');
+      if (!r.ok) { ok(false, `${what} compiles`, r.msg.split('\n')[0]); return null; }
+      return r.warns.filter(w => /elbow arrives over/.test(w));
+    };
+    const quiet = said('the roomy elbow', 2);
+    ok(quiet && quiet.length === 0, 'an elbow whose arrival run clears the floor is silent',
+      quiet && quiet[0]);
+    const bought = said('the elbow the rail was moved for', 1.4);
+    ok(bought && bought.length === 0,
+      'and so is one the rail could still buy the run for – the move is the fix',
+      bought && bought[0]);
+    const cries = said('the elbow on a gap too small for both', 1.25);
+    ok(cries && cries.length === 1, 'an elbow that cannot get its arrival run is reported',
+      cries ? cries.join(' | ') : 'did not compile');
+    ok(cries && cries.length === 1 && /\b21 px\b/.test(cries[0]) && /1\.12 labels/.test(cries[0])
+      && /more rows of gap/.test(cries[0]) && /\bvia\b/.test(cries[0]),
+      'and it states the arrival run in px and in labels, and names both fixes',
+      cries && cries[0]);
+    // A headless edge has no head to crowd, the same exemption the straight
+    // run keeps: a tree's brackets are written `--` and must stay quiet.
+    const headless = said('a headless elbow on the same gap', 1.25, '--');
+    ok(headless && headless.length === 0, 'a headless elbow is exempt, as a headless run is',
+      headless && headless[0]);
+
+    // The bracket. Two edges out of one parent are placed by the same
+    // arithmetic on the same span, so they still land their rails on one line
+    // – which is the property `.elbow` measures from the faces for.
+    {
+      const out = fig('two elbows out of one parent',
+        'box p "Parent" at 1,0 w 1.2\nbox c1 "One" at 0,1.1 w 1\nbox c2 "Two" at 2,1.1 w 1\n'
+        + 'edge p -> c1 {.elbow}\nedge p -> c2 {.elbow}', 'unit=120x72');
+      const r1 = out && points(attrOf(out, 'edge-1--p', 'd'));
+      const r2 = out && points(attrOf(out, 'edge-2--p', 'd'));
+      ok(r1 && r2 && r1.length === 4 && r2.length === 4 && Math.abs(r1[1][1] - r2[1][1]) < 0.01,
+        'two elbows out of one parent still share one rail', r1 && r2
+          ? `${r1[1][1].toFixed(2)} and ${r2[1][1].toFixed(2)}` : 'not drawn');
+    }
+  }
 
   // ── a label wider than the room between the things it joins ───────
   // The compiler knows the label's width and knows the gap, and until this
@@ -432,6 +744,142 @@ export async function run({ report }) {
     ok(vert && vert.length === 1 && /px of clear space between a and b/.test(vert[0]),
       'a turned label on a vertical edge is measured on the vertical axis',
       vert && (vert[0] || 'nothing was reported'));
+  }
+
+  // ── .left on a free text at a coordinate anchors it ───────────────
+  // The class used to align the lines *inside* the text's own box while the
+  // box stayed centred on its `at`, so on a one-line label it moved nothing at
+  // all and on a longer one it put the edge the class names half a label width
+  // from the point the author aimed at. Two warnings existed for nothing but
+  // that trap, `dgLabelAnchorWarnings` here and `diagram-ragged-labels` in
+  // lint.js, and both are retired: the geometry they detected cannot arise.
+  //
+  // Every assertion but two is a *difference* between two fixtures one token
+  // apart. Those two are absolute for a reason: the claim is that the box's
+  // own edge lands on the coordinate, which is a statement about a position
+  // rather than about a shift.
+  {
+    // **Measured on the ink**, which is the only number that answers the
+    // promise. A free `text` draws no rect, and the label wrapper alone cannot
+    // tell the two cases apart: a centred label and an anchored one both
+    // translate their wrapper to the coordinate, and what differs is the
+    // `text-anchor` the glyphs then run from. So the reader's left edge is the
+    // wrapper plus what that anchor does with the measured width, and the two
+    // halves compose exactly as a browser composes them.
+    const PHRASE = 'a long phrase indeed';
+    const inkOf = (what, body, head = '') => {
+      const out = fig(what, body, head);
+      if (!out) return null;
+      const at = labelAt(out, 'l');
+      const m = out.match(new RegExp(`id="${P}l--l0"[^>]*>\\s*<text text-anchor="([a-z]+)"`));
+      if (!at || !m) return null;
+      const w = dgMeasure(PHRASE, DG_FONT, false).w;
+      const l = at[0] + (m[1] === 'start' ? 0 : m[1] === 'end' ? -w : -w / 2);
+      const z = +attrOf(out, 'z--r', 'x');
+      return { left: l - z, right: l + w - z, w };
+    };
+    const edges = inkOf;
+    const BOX = 'box z "" at 0,0 w 3 h 2 {.dashed .clear}\n';
+    const AT = (tail) => BOX + `text l "${PHRASE}" at z.left,z.cy ${tail}`;
+
+    const plain = edges('a centred label on a box edge', AT('{}'));
+    const left = edges('the same label written .left', AT('{.left}'));
+    ok(left && Math.abs(left.left) < 0.01,
+      '.left puts the text box’s own left edge on the coordinate',
+      left ? `left edge at ${left.left.toFixed(2)} px from z.left` : 'not drawn');
+    ok(plain && Math.abs(plain.left + plain.w / 2) < 0.01,
+      'where a label with no such class is still centred on it',
+      plain ? `left edge at ${plain.left.toFixed(2)}, half width ${(plain.w / 2).toFixed(2)}` : 'not drawn');
+    const right = edges('the same label written .right', AT('{.right}'));
+    ok(right && Math.abs(right.right) < 0.01,
+      'and .right puts its right edge there',
+      right ? `right edge at ${right.right.toFixed(2)} px from z.left` : 'not drawn');
+
+    // A written anchor is the author's answer whatever it says, and
+    // `anchor center` is how the old centring is spelled out.
+    const centred = edges('the same line with anchor center', AT('anchor center {.left}'));
+    ok(centred && plain && Math.abs(centred.left - plain.left) < 0.01,
+      'anchor center draws what a label with no alignment class draws',
+      centred && plain ? `${centred.left.toFixed(2)} vs ${plain.left.toFixed(2)}` : 'not drawn');
+    const tr = edges('the same line with anchor tr', AT('anchor tr {.left}'));
+    ok(tr && Math.abs(tr.right) < 0.01,
+      'and any other written anchor still wins over the class',
+      tr ? `right edge at ${tr.right.toFixed(2)}` : 'not drawn');
+
+    // Three bounds, each a figure the corpus contains. A turned label is
+    // centred whichever way it reads; a relative placement answers the same
+    // question with `flush`; and on a box the class ranges the label inside an
+    // outline that has its own position.
+    const turned = edges('a turned .left label', AT('{.left .turn}'));
+    const turnedPlain = edges('the same turned label with no class', AT('{.turn}'));
+    ok(turned && turnedPlain && Math.abs(turned.left - turnedPlain.left) < 0.01,
+      'a .turn ed label is centred whichever way it reads', 'the turn was moved');
+    const relRef = (tail) => {
+      const r = inkOf('a .left label placed relationally', BOX
+        + `text l "${PHRASE}" below z gap 0.5 ${tail}`);
+      return r ? r.left : null;
+    };
+    ok(Math.abs(relRef('{.left}') - relRef('{}')) < 0.01,
+      'a relative placement is untouched – flush is its answer to this question',
+      `${relRef('{.left}')} vs ${relRef('{}')}`);
+    const boxRef = (tail) => {
+      const out = fig('a .left box at a coordinate',
+        `box b "${PHRASE}" at 0,0 ${tail}`);
+      return out ? +attrOf(out, 'b--r', 'x') : null;
+    };
+    ok(Math.abs(boxRef('{.left}') - boxRef('{}')) < 0.01,
+      'and a box is untouched – there the class ranges the label inside the outline',
+      `${boxRef('{.left}')} vs ${boxRef('{}')}`);
+
+    // The compiler warning the rule replaced. It may not survive: a warning
+    // about geometry that cannot arise is a warning nobody can act on.
+    const gone = render(AT('{.left}')).warns
+      .filter((w) => /with no anchor the box is centred/.test(w));
+    ok(gone.length === 0, 'dgLabelAnchorWarnings is retired with the trap it named',
+      gone.join(' | '));
+  }
+
+
+  // ── emph acts on what the element actually draws ──────────────────
+  // `emph` lives in the prominence slot and `.bare` in the stroke-weight
+  // slot, so neither may overwrite the other – and the stylesheet used to let
+  // it: `.emph` sets an accent stroke at the same specificity as `.bare`'s
+  // `stroke: none` and later in source order, so a lit cell in a table of
+  // type on the paper came back as a red empty rectangle. Two halves, and
+  // they need two different gates: the compiler decides that both classes are
+  // on the element, and the stylesheet decides what the pair then means.
+  {
+    const TABLE = 'table t "a | b" at 0,0 col 1,1 row 0.5 {.bare .clear}\n"x | y"\n';
+    const out = fig('a bare cell emphasised by a step', TABLE + '\nstep lit\n  emph t-0-1');
+    if (out) {
+      const fr = frames(out);
+      const at1 = fr && fr.frames && fr.frames[1] && fr.frames[1].cls;
+      const cls = at1 && at1['t-0-1'];
+      const set = new Set(String(cls || '').split(/\s+/).filter(Boolean));
+      ok(set.has('emph') && set.has('bare'),
+        'a step\'s emph leaves .bare on the element rather than displacing it',
+        `beat 1 class was ${JSON.stringify(cls)}`);
+    }
+    const stat = fig('a bare cell emphasised on its own line',
+      'box b "B" at 0,0 {.bare .emph}');
+    const sc = stat && setOf(stat, 'b');
+    ok(sc && sc.has('emph') && sc.has('bare'),
+      'and the two classes coexist when both are written on the line',
+      sc ? [...sc].join(' ') : 'b was not drawn');
+
+    // The stylesheet half. Both rules exist, the one that keeps the outline
+    // off is the more specific of the two, and it is written after the
+    // .tone-4.emph rule it ties with – so a cell carrying all three is still
+    // un-stroked. Read as text, because what it asserts is source order.
+    const css = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const emphAt = css.indexOf('.psi-diagram .emph > :is(rect, circle, .dg-shape)');
+    const bareAt = css.indexOf('.psi-diagram .bare.emph > :is(rect, circle, .dg-shape) { stroke: none; }');
+    const toneAt = css.indexOf('.psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape)');
+    ok(bareAt > 0, 'the stylesheet says emph draws no outline on a .bare element',
+      'no .bare.emph rule in build.js');
+    ok(bareAt > emphAt && emphAt > 0 && bareAt > toneAt && toneAt > 0,
+      'and it is written after both rules it has to beat, which is what settles the tie',
+      `emph ${emphAt}, tone-4.emph ${toneAt}, bare.emph ${bareAt}`);
   }
 
   // ── prominence is one slot, and it reaches every member of a set the
@@ -596,17 +1044,30 @@ export async function run({ report }) {
   // `_` and `^` take the next character, which made every snake_case
   // identifier unwritable: `scan_page` drew as `scan`, a subscript `p` and
   // `age`, silently, with a clean lint and a box measured to fit exactly the
-  // wrong reading. The escape is the repair, and it covers all four markers
-  // and the backslash so that it has no exception of its own.
+  // wrong reading. The escape covers all four markers and the backslash so
+  // that it has no exception of its own, and **a shift marker in the middle
+  // of a word is now a literal character** – the same fallback `*` and `~`
+  // already had, so an author who writes a filename gets a filename without
+  // having to know the grammar. Both halves are asserted here, and so is the
+  // line between them: every subscript the corpus actually contains still
+  // shifts.
   {
     const one = (s) => dgSpans(s).map(sp => `${sp.t}|${sp.shift}|${sp.cls}`).join(' + ');
     const cases = [
       // written, spans as text|shift|class - both signs of every marker.
       ['scan\\_page', 'scan_page|0|', 'an escaped underscore is one literal span'],
-      ['scan_page', 'scan|0| + p|-1| + age|0|', 'an unescaped underscore still subscripts'],
-      ['c_0', 'c|0| + 0|-1|', 'c_0 still subscripts, which is why braces were not the fix'],
+      ['scan_page', 'scan_page|0|', 'and an unescaped one mid-word is literal too'],
+      ['hausarbeit_final.pdf', 'hausarbeit_final.pdf|0|', 'the filename the defect was found on'],
+      ['snake_case_name', 'snake_case_name|0|', 'an underscore is a word character, so a chain of them stays literal'],
+      ['c_0', 'c|0| + 0|-1|', 'c_0 still subscripts: the character it takes ends the word'],
+      ['MAC_k(M)', 'MAC|0| + k|-1| + (M)|0|', 'and so does a subscript before a bracket'],
+      ['M_F, T_F', 'M|0| + F|-1| + , T|0| + F|-1|', 'and before a comma, and at the end'],
+      ['k_{12}', 'k|0| + 12|-1|', 'a group shifts wherever it is written, mid-word or not'],
+      ['a\\_b', 'a_b|0|', 'the escape is still how a one-character case is forced literal'],
       ['x\\^2', 'x^2|0|', 'an escaped caret is one literal span'],
       ['x^2', 'x|0| + 2|1|', 'an unescaped caret still superscripts'],
+      ['x^2y', 'x^2y|0|', 'but not in the middle of a word'],
+      ['x_1^2', 'x|0| + 1|-1| + 2|1|', 'a marker is not a word character, so a subscript may meet a superscript'],
       ['a\\*b*', 'a*b*|0|', 'an escaped asterisk is literal and is no partner for a later one'],
       ['*a*', 'a|0|em', 'an unescaped pair still accents'],
       ['a\\~b~', 'a~b~|0|', 'an escaped tilde is literal and is no partner for a later one'],
@@ -660,6 +1121,829 @@ export async function run({ report }) {
     ok(n === 2, 'a label still breaks its lines at \\n', `${n} line(s) drawn`);
   }
 
+  // ── a whole line in the quiet mark is a second register ───────────
+  // A question over the verb that answers it, written as two `text` elements,
+  // cannot be centred on the cell it labels: each is anchored to the cell's
+  // centre line on its own, so a two-line question over a one-line verb stands
+  // half a line too high and the author moves the split by hand. As one label
+  // it is one block. The rule is the whole line, in a label of more than one:
+  // a register exists in contrast to another register.
+  {
+    const lines = (out) => [...String(out).matchAll(/<tspan x="0"([^>]*)>([^<]*)</g)].map(m => ({
+      size: (m[1].match(/font-size="([\d.]+)"/) || [])[1] ? +m[1].match(/font-size="([\d.]+)"/)[1] : null,
+      cls: (m[1].match(/class="dg-(\w+)"/) || [])[1] || '',
+      text: m[2],
+    }));
+    const two = fig('a question over a verb',
+      'text t "Wer macht es grün?\\n~abfedern~" at 0,0');
+    const L = two ? lines(two) : [];
+    ok(L.length === 2 && L[0].size === null && L[1].size === DG_FONT * DG_QUIET_SCALE
+      && L[1].cls === 'mu',
+      'a whole line in the quiet mark is drawn smaller and muted',
+      JSON.stringify(L));
+    // The block is still centred on its origin, so the split moves itself: the
+    // same spelling on a two-line question needs no different numbers.
+    const box = (out) => {
+      const m = String(out).match(/id="dg1-t--l0"[\s\S]*?<\/g>/);
+      const ys = [...String(m && m[0]).matchAll(/<tspan x="0" y="(-?[\d.]+)"/g)].map(x => +x[1]);
+      return ys;
+    };
+    const short = box(two);
+    const long = box(fig('the same spelling on a two-line question',
+      'text t "Was lernt die\\nOrganisation daraus?\\n~lernend hervorgehen~" at 0,0'));
+    // The block's own top and bottom, reconstructed from the first and last
+    // baselines and the two line heights the label has. It is centred when
+    // they sum to zero, which is what makes the split move itself: the same
+    // spelling on a one-line and on a two-line question needs no new numbers.
+    const lh = DG_FONT * 1.25, qlh = DG_FONT * DG_QUIET_SCALE * 1.25;
+    const off = (ys) => (ys[0] - (lh / 2 + DG_FONT * 0.34))
+      + (ys[ys.length - 1] + qlh / 2 - DG_FONT * DG_QUIET_SCALE * 0.34);
+    ok(short && long && short.length === 2 && long.length === 3
+      && Math.abs(off(short)) < 0.01 && Math.abs(off(long)) < 0.01,
+      'and the block stays centred on its origin whichever line count it has',
+      `${JSON.stringify(short)} off by ${short && off(short).toFixed(3)},`
+      + ` ${JSON.stringify(long)} off by ${long && off(long).toFixed(3)}`);
+    // Three controls, because a register that fired where it should not would
+    // shrink text nobody asked to shrink.
+    const oneLine = fig('a single line entirely in the mark', 'text t "~just muted~" at 0,0');
+    ok(oneLine && lines(oneLine).length === 1 && lines(oneLine)[0].size === null,
+      'a single-line label in the mark is still only muted – one line has nothing to contrast with',
+      JSON.stringify(oneLine && lines(oneLine)));
+    const partial = fig('a marked run inside a line',
+      'text t "a ~muted~ word\\nsecond line" at 0,0');
+    ok(partial && lines(partial).every(l => l.size === null),
+      'and a marked run that is not the whole line changes no size',
+      JSON.stringify(partial && lines(partial)));
+    const plain = fig('a plain two-liner', 'box b "one\\ntwo" at 0,0');
+    const plainYs = plain ? [...plain.matchAll(/<tspan x="0" y="(-?[\d.]+)"/g)].map(x => +x[1]) : [];
+    ok(plainYs.length === 2 && Math.abs(plainYs[1] - plainYs[0] - DG_FONT * 1.25) < 0.01,
+      'and a label with no second register sits on exactly the baselines it always did',
+      JSON.stringify(plainYs));
+  }
+
+  // ── anchor: which point of the element meets the coordinate ───────
+  // The defect it repaired was a row of labels that is not a row: `.left`
+  // aligned the lines inside each free text's own box while the box stayed
+  // centred on its coordinate, so two labels of different lengths at one x
+  // started at two different left edges. That case is now the *default* – see
+  // the `.left` block above – and `anchor left` is the same statement written
+  // out. What this block holds is the option itself: every one of the nine
+  // words, on a placement whose class does not already decide it, and the
+  // carry-forward through a step. Every assertion is about the *drawn*
+  // geometry, and the two lengths differ by design.
+  {
+    const ROW = (tail) => 'box z "Z" at 0,0 w 3 h 2\n'
+      + `text a "short" at z.left,z.top ${tail}\n`
+      + `text b "a much longer line" at z.left,z.top ${tail}`;
+    // A free text with no fill draws no ground, so the position is on the
+    // label wrapper's own transform – which is also where the runtime tweens
+    // it, so it is the number a reader sees.
+    const boxOf = (body, id) => {
+      const r = render(body);
+      if (!r.ok) return null;
+      const m = r.out.match(new RegExp(`id="dg1-${id}--lw0"[^>]*transform="translate\\((-?[\\d.]+),(-?[\\d.]+)\\)"`));
+      return m ? { x: +m[1], y: +m[2] } : null;
+    };
+    const plain = { a: boxOf(ROW('{.left}'), 'a'), b: boxOf(ROW('{.left}'), 'b') };
+    ok(plain.a && plain.b && Math.abs(plain.a.x - plain.b.x) < 0.01,
+      'two .left labels of different lengths now share a left edge with no anchor written',
+      plain.a && plain.b ? `${plain.a.x} vs ${plain.b.x}` : 'did not draw');
+    // What `boxOf` reads is the label wrapper, which is the *anchor point* of
+    // the glyph run and so already carries `text-anchor`. That is the right
+    // ruler for a row written the same way twice – the question is whether two
+    // such labels start at one x – and the wrong one for comparing a ranged
+    // label with a centred one, which is the ink measurement the `.left` block
+    // above makes instead.
+    const anch = { a: boxOf(ROW('anchor left {.left}'), 'a'), b: boxOf(ROW('anchor left {.left}'), 'b') };
+    ok(anch.a && anch.b && Math.abs(anch.a.x - anch.b.x) < 0.01,
+      'anchor left puts both of them on one left edge',
+      anch.a && anch.b ? `${anch.a.x} vs ${anch.b.x}` : 'did not draw');
+    // Down as well as across, and the two corners are not the same corner.
+    const tl = boxOf(ROW('anchor tl {.left}'), 'a');
+    const bl = boxOf(ROW('anchor bl {.left}'), 'a');
+    ok(tl && bl && Math.abs(tl.x - bl.x) < 0.01 && tl.y > bl.y,
+      'anchor tl hangs the element below the point, anchor bl stands it above, '
+      + 'and both share the left edge',
+      tl && bl ? `tl ${tl.x},${tl.y} bl ${bl.x},${bl.y}` : 'did not draw');
+    // `center` is the default written out, so it has to draw what no word draws.
+    const bare = boxOf(ROW(''), 'b');
+    const centred = boxOf(ROW('anchor center'), 'b');
+    ok(bare && centred && Math.abs(bare.x - centred.x) < 0.01 && Math.abs(bare.y - centred.y) < 0.01,
+      'anchor center draws what leaving the word off draws',
+      bare && centred ? `${bare.x},${bare.y} vs ${centred.x},${centred.y}` : 'did not draw');
+    // And the element the compiler places by a corner keeps that corner when a
+    // step moves it: `anchor` says how it meets a coordinate, `move … to` says
+    // which coordinate, and a step answering both re-centres it silently.
+    const MOVED = 'box a "A" at 0,0 anchor tl w 2 h 1\nbox p "P" at 4,4\nstep s\n  move a to 3,3';
+    const f = frames(render(MOVED).out);
+    const g = f && f.frames && f.frames[1] && f.frames[1].geom && f.frames[1].geom['a--r'];
+    ok(!!g && Math.abs(g[0] - 3 * 120) < 0.01 && Math.abs(g[1] - 3 * 72) < 0.01,
+      'a move keeps the element on its own anchor', g ? g.join(',') : '(no frame)');
+  }
+
+  // ── a relabelled text keeps the edge its placement pinned ─────────
+  // A free text is as wide as its glyph run, so `anchor tl`, `right of x`,
+  // `flush left` and `align x left` each put one of its own sides on a
+  // coordinate exactly – and that width is an **estimate**. Drawing the words
+  // centred on the box's estimated middle therefore split the error between
+  // the two sides and put half of it on the side the author pinned. A `label`
+  // step swapping in a longer string changed that half, and the words moved
+  // sideways although nothing in the source moved them: measured on a keynote
+  // whose zone caption went from "im Raum" to "im Raum · 3 Stunden, ohne
+  // Internet", 11 px to the right.
+  //
+  // Two questions, and they need two rulers. **Where the origin is** is the
+  // frame payload, which is what the runtime tweens between; **which edge that
+  // origin is** is the `text-anchor` the emitter baked. A fixed origin under
+  // `middle` is a fixed centre, which is the right answer for a text placed by
+  // its centre and the wrong one for a text placed by its corner – so neither
+  // number means anything without the other.
+  {
+    const SHORT = 'im Raum', LONG = 'im Raum, drei Stunden, ohne Internet';
+    // The `--l` origin in each frame, and the anchor the glyphs run from.
+    const swap = (body, id, head = 'unit=120x40') => {
+      const r = render(body, head);
+      if (!r.ok) return { msg: r.msg.split('\n').slice(0, 2).join(' / ') };
+      const f = frames(r.out);
+      const m = r.out.match(new RegExp(`id="dg1-${id}--lw0"[\\s\\S]{0,400}?text-anchor="([a-z]+)"`));
+      if (!f || !m) return { msg: 'no payload or no label' };
+      return { xs: f.frames.map(fr => (fr.geom[id + '--l'] || [])[0]), anchor: m[1] };
+    };
+    const held = (s) => s.xs && s.xs.every(x => Math.abs(x - s.xs[0]) < 0.01);
+    const ZONE = (tail) => `zone z at 0,0 w 3 h 2 "${SHORT}" ${tail}\n`
+      + `box a "A" at z.cx,z.cy w 1 h 0.5\nstep s\n  label z-cap "${LONG}"`;
+    const tl = swap(ZONE(''), 'z-cap');
+    ok(tl.anchor === 'start' && held(tl),
+      "a zone caption's words start on the corner it is anchored to, before and after a label step",
+      tl.msg || `${tl.anchor} at ${(tl.xs || []).join(' / ')}`);
+    const tr = swap(ZONE('{.right}'), 'z-cap');
+    ok(tr.anchor === 'end' && held(tr),
+      'and a .right caption ends on its own corner, which is the same rule the other way round',
+      tr.msg || `${tr.anchor} at ${(tr.xs || []).join(' / ')}`);
+    // The four placements that pin one of the element's own sides, and the two
+    // that pin its centre. Written as a table because the claim is that one
+    // sentence covers all six, and a case tested on its own is a case that can
+    // quietly stop being covered by it.
+    const PINNED = [
+      ['anchor tl', `text l "${SHORT}" at 1,1 anchor tl`, 'start'],
+      ['anchor br', `text l "${SHORT}" at 1,1 anchor br`, 'end'],
+      ['right of', `box r "R" at 0,0\ntext l "${SHORT}" right of r gap 0.5`, 'start'],
+      ['left of', `box r "R" at 4,0\ntext l "${SHORT}" left of r gap 0.5`, 'end'],
+      ['flush left', `box r "R" at 0,0 w 3\ntext l "${SHORT}" below r gap 0.5 flush left`, 'start'],
+      ['align x left', `box r "R" at 0,0 w 3\ntext l "${SHORT}" at 2,2\nalign x left r, l`, 'start'],
+      ['a bare at', `text l "${SHORT}" at 1,1`, 'middle'],
+      ['anchor center', `text l "${SHORT}" at 1,1 anchor center`, 'middle'],
+    ];
+    for (const [what, body, want] of PINNED) {
+      const s = swap(`${body}\nbox z "Z" at 6,3\nstep s\n  label l "${LONG}"`, 'l');
+      ok(s.anchor === want && held(s),
+        `${what} draws its words from the ${want === 'middle' ? 'centre' : want} and holds it across a label step`,
+        s.msg || `${s.anchor} at ${(s.xs || []).join(' / ')}`);
+    }
+    // Two bounds on the rule, and each is a figure the corpus contains. A
+    // **box** is untouched: its words are centred inside an outline that is
+    // drawn and that moves with the estimate, so the pair stays coherent and
+    // ranging them left would be the `.left` the author did not write. And a
+    // text given an explicit `w` is wider than its own label, where "as far
+    // left as the box allows" is a different sentence with the same words.
+    const boxed = swap(`box l "${SHORT}" at 1,1\nbox z "Z" at 6,3\nstep s\n  label l "${LONG}"`, 'l');
+    ok(boxed.anchor === 'middle',
+      "a box's label stays centred in the outline it is drawn inside",
+      boxed.msg || boxed.anchor);
+    const wide = swap(`text l "${SHORT}" at 1,1 anchor tl w 3\nbox z "Z" at 6,3\n`
+      + `step s\n  label l "${LONG}"`, 'l');
+    ok(wide.anchor === 'middle',
+      'and a text given its own w is centred in that w, which is what .left is for',
+      wide.msg || wide.anchor);
+    // The written alignment class is the author's answer and outranks the
+    // derived one, in the direction that can disagree: `.right` on a text
+    // whose placement pins its left edge.
+    const own = swap(`box r "R" at 0,0\ntext l "${SHORT}" right of r gap 0.5 {.right}\n`
+      + `box z "Z" at 6,3\nstep s\n  label l "${LONG}"`, 'l');
+    ok(own.anchor === 'end', 'a written .right still wins over the edge the placement pinned',
+      own.msg || own.anchor);
+  }
+
+  // ── a table's first row, and how tall a row is ────────────────────
+  // Two changes with one control each, and the control is the base case:
+  // neither may move a table that says nothing new.
+  {
+    const T = (tail) => `table t "A|B" at 0,0 col 1,1 ${tail}\n  "1|2"\n  "3|4"`;
+    const rowH = (out) => {
+      const m = out.match(/id="dg1-t-0-0--r"[^>]*height="([\d.]+)"/);
+      return m ? +m[1] : null;
+    };
+    const plain = fig('a plain table', T(''), 'unit=150x52');
+    const bare = fig('an unheaded table', T('unheaded'), 'unit=150x52');
+    const big = fig('a large table', T('{.large}'), 'unit=150x52');
+    const said = fig('a large table with its own row', T('{.large} row 0.8'), 'unit=150x52');
+    const h0 = plain && setOf(plain, 't-0-0'), h1 = plain && setOf(plain, 't-0-1');
+    ok(h0 && h0.has('bold') && h1 && !h1.has('bold'),
+      'the first row of a table is bold and the second is not',
+      h0 ? [...h0].join(' ') : 'not drawn');
+    const b0 = bare && setOf(bare, 't-0-0');
+    ok(b0 && !b0.has('bold') && hasEl(bare, 't-1-0') && hasEl(bare, 't-0-1'),
+      'unheaded takes the bold off and leaves every cell where it was',
+      b0 ? [...b0].join(' ') : 'not drawn');
+    ok(plain && bare && rowH(plain) === rowH(bare),
+      'and it changes no height', `${rowH(plain)} vs ${rowH(bare)}`);
+    ok(plain && big && rowH(big) > rowH(plain),
+      'a .large table gets a taller row without being told one',
+      `${rowH(plain)} vs ${rowH(big)}`);
+    ok(said && Math.abs(rowH(said) - 0.8 * 52) < 0.01,
+      "and the author's own row still wins over the derived one", String(rowH(said)));
+    // The base case, stated as a number rather than as a comparison, because
+    // this is the one assertion that keeps every table in the corpus still.
+    ok(plain && Math.abs(rowH(plain) - 0.42 * 52) < 0.01,
+      'a table with no size class draws exactly the row height it always did',
+      String(rowH(plain)));
+    // ── same as: two tables, one set of columns ─────────────────────
+    // `#vorgang` on a keynote wrote `col 1.7,2.0,0.12` twice so two stacked
+    // tables would line up, in two places nothing said were meant to be equal.
+    // What is copied is the widths *and* the space between them, because a
+    // column's position is both numbers; the rows stay the copying table's own.
+    {
+      const cell = (out, id) => [attrOf(out, id, 'x'), attrOf(out, id, 'width')];
+      const two = fig('two tables sharing columns',
+        'table a "A|B|C" at 0,0 col 1.7,2,0.12 space 0.1\n  "1|2|3"\n'
+        + 'table b "D|E|F" same as a below a gap 0.5\n  "4|5|6"\n  "7|8|9"', 'unit=150x52');
+      const cols = [0, 1, 2];
+      ok(two && cols.every(c => String(cell(two, `a-${c}-0--r`)) === String(cell(two, `b-${c}-0--r`))),
+        'a table written "same as" another stands its columns at the same x and width',
+        two ? cols.map(c => cell(two, `a-${c}-0--r`) + ' vs ' + cell(two, `b-${c}-0--r`)).join(' | ') : 'not drawn');
+      ok(two && hasEl(two, 'b-0-2') && !hasEl(two, 'a-0-2'),
+        'and keeps its own rows – it copied the columns, not the table',
+        'the copying table did not get its third row');
+      // A written `space` wins, the way a written number wins everywhere else.
+      // Measured as the paper between two columns rather than as an x: a table
+      // is centred on its placement, so a different space moves both columns.
+      const own = fig('a copied table with a space of its own',
+        'table a "A|B" at 0,0 col 1,2 space 0.1\n  "1|2"\n'
+        + 'table b "D|E" same as a space 0.6 below a gap 0.5\n  "4|5"', 'unit=150x52');
+      const between = (out, t) => +attrOf(out, `${t}-1-0--r`, 'x')
+        - (+attrOf(out, `${t}-0-0--r`, 'x') + +attrOf(out, `${t}-0-0--r`, 'width'));
+      ok(own && Math.abs(between(own, 'a') - 0.1 * 52) < 0.01
+        && Math.abs(between(own, 'b') - 0.6 * 52) < 0.01,
+        "and the copying table's own space still wins over the copied one",
+        own ? `${between(own, 'a')} vs ${between(own, 'b')}` : 'not drawn');
+      // The other half of that pair: with no space of its own, the copy takes
+      // the copied one – a column's position is the widths *and* the space.
+      const inherited = fig('a copied table with no space of its own',
+        'table a "A|B" at 0,0 col 1,2 space 0.4\n  "1|2"\n'
+        + 'table b "D|E" same as a below a gap 0.5\n  "4|5"', 'unit=150x52');
+      ok(inherited && Math.abs(between(inherited, 'b') - 0.4 * 52) < 0.01,
+        'and with none of its own it takes the copied space too',
+        inherited ? String(between(inherited, 'b')) : 'not drawn');
+    }
+    // ── one alignment per column ────────────────────────────────────
+    // A `table`'s tail lands on the **cells**, so an alignment word written
+    // there reaches all of them – which is right for a table of prose and
+    // wrong for the shape a lecture actually keeps asking for: a label column
+    // ranged left beside value columns that are centred. There is no new
+    // option for it and there does not need to be, because every cell already
+    // carries `@t-col-N` and `@t-row-N`, and a **tag default** is the layer
+    // that speaks to a tag: `default box @t-col-0 {.left}`.
+    //
+    // It is a `default` and not a `style` step for the reason `DG_STEP_FIXED`
+    // refuses `.left` in a step at all – an anchor is settled once when the
+    // figure is built – so this is the answer *and* the whole answer: it acts
+    // from beat 0 and there is no beat-local spelling of it to look for.
+    const anchors = (out) => [0, 1, 2].map(c => {
+      const m = out && out.match(new RegExp(`id="${P}t-${c}-1--lw0"[\\s\\S]{0,400}?text-anchor="([a-z]+)"`));
+      return m ? m[1] : '?';
+    }).join(' ');
+    const COLS = (extra) => `table t "A|B|C" at 0,0 col 1.6,0.6,0.7\n  "one|2|3"\n  "two|4|5"\n${extra}`;
+    const bare3 = fig('a three-column table', COLS(''), 'unit=150x52');
+    ok(bare3 && anchors(bare3) === 'middle middle middle',
+      'every cell of a table is centred until something says otherwise', anchors(bare3));
+    const mixed = fig('a table with one column ranged left',
+      COLS('default box @t-col-0 {.left}\ndefault box @t-col-2 {.right}'), 'unit=150x52');
+    ok(mixed && anchors(mixed) === 'start middle end',
+      'default box @t-col-N gives one column its own alignment and leaves the rest centred',
+      anchors(mixed));
+    // The trap that goes with it, and it is the ordinary precedence rule
+    // rather than anything a table invents: the tail is the cell's *own*
+    // class, and an element's own class beats every default layer. So a
+    // table written `{.left}` cannot have a column centred again – the
+    // alignment belongs on the columns that differ, not on the table line.
+    const fought = fig('a table whose tail and tag default disagree',
+      `table t "A|B|C" at 0,0 col 1.6,0.6,0.7 {.left}\n  "one|2|3"\n  "two|4|5"\n`
+      + 'default box @t-col-1 {!left}', 'unit=150x52');
+    ok(fought && anchors(fought) === 'start start start',
+      "and an alignment on the table's own tail is the cells' own class, which no default undoes",
+      anchors(fought));
+    const rowTag = fig('a table with one row ranged right',
+      COLS('default box @t-row-1 {.right}'), 'unit=150x52');
+    ok(rowTag && anchors(rowTag) === 'end end end',
+      'the row tag is the same handle one axis over', anchors(rowTag));
+  }
+
+  // ── flush meets ink, not an outline nobody draws ──────────────────
+  // `.bare .clear` leaves a frame the layout still uses and a reader cannot
+  // see. Lining a caption up with that edge put it a padding to the left of
+  // the words it captioned, with nothing drawn at either coordinate to say
+  // which one was the edge, and the ink correction the stylesheet reads
+  // pointed at the same invisible line. Both halves are asserted here, and
+  // each one against the control that has to stay still: an ordinary box,
+  // whose outline *is* its edge, and a chart frame, whose parts sit flush
+  // with it so insetting one would walk an axis label off its own axis.
+  {
+    const inkX = (out) => {
+      const m = out.match(/--dg-ink-x:([\d.]+)/);
+      return m ? +m[1] : null;
+    };
+    const vbW = (out) => {
+      const m = out.match(/viewBox="[-\d.]+ [-\d.]+ ([\d.]+) /);
+      return m ? +m[1] : null;
+    };
+    const bare = fig('a caption under a bare table',
+      'table t "A|B" at 0,0 col 1,1 row 0.5 {.bare .clear .left}\n  "one|two"\n\n'
+      + 'text c "caption" below t gap 0.4 flush left {.left}');
+    const solid = fig('a caption under an ordinary box',
+      'box b "B" at 0,0 w 2\ntext c "caption" below b gap 0.4 flush left {.left}');
+    const cellX = bare && labelAt(bare, 't-0-0')[0];
+    const capX = bare && labelAt(bare, 'c')[0];
+    ok(bare && Math.abs(cellX - capX) < 0.01,
+      'flush left under a bare table lands on the cell text, not on the invisible frame',
+      `cell at ${cellX}, caption at ${capX}`);
+    const bx = solid && +attrOf(solid, 'b--r', 'x');
+    ok(solid && Math.abs(bx - labelAt(solid, 'c')[0]) < 0.01,
+      'and against a box that draws its outline it still lands on the outline',
+      `box at ${bx}, caption at ${solid && labelAt(solid, 'c')[0]}`);
+    // The ink correction: the drawing starts where the paint starts.
+    const tOnly = fig('a table alone',
+      'table t "A|B" at 0,0 col 1,1 row 0.5 {.bare .clear .left}\n  "one|two"');
+    const bOnly = fig('a box alone', 'box b "B" at 0,0 w 2');
+    ok(tOnly && bOnly && inkX(tOnly) * vbW(tOnly) > inkX(bOnly) * vbW(bOnly) + 6,
+      '--dg-ink-x skips a frame that draws neither outline nor fill',
+      `table ${(inkX(tOnly) * vbW(tOnly)).toFixed(1)}px vs box ${(inkX(bOnly) * vbW(bOnly)).toFixed(1)}px`);
+    // A bars frame is `.bare .clear` too and must NOT be inset: its baseline
+    // and its columns are drawn flush with the frame, so a tick label held to
+    // it by `flush left` belongs on the frame's own edge.
+    const chart = fig('a caption under a chart',
+      'bars f "3,4,5" at 0,0 w 2 h 1\ntext c "caption" below f gap 0.4 flush left {.left}');
+    const fx = chart && +attrOf(chart, 'f--r', 'x');
+    ok(chart && Math.abs(fx - labelAt(chart, 'c')[0]) < 0.01,
+      "and a chart frame keeps its own edge, because a chart's parts start there",
+      `frame at ${fx}, caption at ${chart && labelAt(chart, 'c')[0]}`);
+  }
+
+  // -- an endpoint in empty space -----------------------------------
+  // `edge 0,1.5 -> mail` - an arrow that comes in from outside the picture
+  // with no box behind it. A literal rather than an invisible anchor element,
+  // so there is nothing to delete by accident and a drag rewrites two numbers.
+  // It has been in `dgParseRef` from the start and in two lectures, and it was
+  // in no document any author reads; these are the assertions that keep it.
+  {
+    const P1 = 'box mail "Posteingang" at 2,1.5\n';
+    const into = fig('an edge from a free point', P1 + 'edge 0,1.5 -> mail');
+    const d = into && attrOf(into, 'edge-1--p', 'd');
+    const p = points(d);
+    ok(p.length === 2 && p[0][0] === 0 && p[0][1] === p[1][1],
+      'edge 0,1.5 -> mail starts at the coordinate and runs level into the box', d);
+    ok(into && headDrawn(into, 'edge-1--h'),
+      'and it still draws its arrowhead, on the box end');
+    const out = fig('an edge to a free point', P1 + 'edge mail -> 0,1.5');
+    const q = points(attrOf(out, 'edge-1--p', 'd'));
+    ok(q.length === 2 && Math.abs(q[1][0]) < 12,
+      'and the same pair written the other way round ends at that coordinate',
+      attrOf(out, 'edge-1--p', 'd'));
+    // A coordinate is the whole coordinate grammar, so a component may name
+    // another element - which is how five edges in the corpus are written.
+    const ref = fig('an endpoint naming another element',
+      P1 + 'box b "B" at 0,0\nedge b -> mail.left-0.3,mail.cy');
+    ok(ref && points(attrOf(ref, 'edge-1--p', 'd')).length === 2,
+      'and a component of that coordinate may name an element');
+    // Both ends free: nothing in the figure to hang the line on at all.
+    const both = fig('a rule with two free ends', P1 + 'edge -0.4,0 -- 3,0 {.muted}');
+    ok(both && points(attrOf(both, 'edge-1--p', 'd')).length === 2,
+      'and both ends may be coordinates, which is how a rule under a row is drawn');
+  }
+
+  // -- a label its own line runs through -----------------------------
+  // The offset that lifts a label off its line clears it at the midpoint and
+  // knows nothing else about the route, so an elbow's outer runs and a
+  // doubled-back curve can be drawn through the middle of the words. The
+  // compiler decides it from the routed geometry and marks the beat; the
+  // stylesheet turns dg-halo into a paint-order knockout.
+  {
+    const halo = (out) => (setOf(out, 'edge-1') || new Set()).has('dg-halo');
+    const wide = fig('a straight edge with a long label',
+      'box a "Bauen" at 0,0\nbox b "Code" at 0,2\nedge a -> b "alle Werkzeuge, auch KI"');
+    ok(wide && !halo(wide),
+      'a label correctly beside its own straight line needs no halo and does not get one',
+      wide ? clsOf(wide, 'edge-1') : 'not drawn');
+    const narrow = fig('an elbow whose own rail crosses its label',
+      'box a "Bauen" at 0,0\nbox b "Code" at 0.5,1.6\nedge a -> b "alle Werkzeuge, auch KI" {.elbow}');
+    ok(narrow && halo(narrow),
+      'an elbow drawn through its own label gets the halo',
+      narrow ? clsOf(narrow, 'edge-1') : 'not drawn');
+    const curve = fig('a curve that comes back under its own label',
+      'box a "Bauen" at 0,0\nbox b "Code" at 2.4,1.4\nedge a -> b "alle Werkzeuge" via 1.2,-0.8 {.smooth}');
+    ok(curve && halo(curve), 'and so does a smooth route that crosses itself',
+      curve ? clsOf(curve, 'edge-1') : 'not drawn');
+    // A label the author already grounded is left alone: the ground is the
+    // answer, and a halo under it would be a second one nobody asked for.
+    const ground = fig('a grounded label on the same elbow',
+      'box a "Bauen" at 0,0\nbox b "Code" at 0.5,1.6\n'
+      + 'edge a -> b "alle Werkzeuge, auch KI" {.elbow .paper}');
+    ok(ground && !halo(ground), 'a label that already carries a ground gets no halo',
+      ground ? clsOf(ground, 'edge-1') : 'not drawn');
+  }
+
+  // -- an elbow rail lying on a box's side ---------------------------
+  // The rail is halfway between the two faces and nothing moves it, so the
+  // only thing the compiler can do is say so. The control is the same figure
+  // with a gap in the row: the fix the message names has to silence it.
+  {
+    const row = (gap) => 'box b1 "One" at 0,0 w 1\n'
+      + `box b2 "Two" right of b1 gap ${gap} w 1\n`
+      + `box b3 "Three" right of b2 gap ${gap} w 1\n`
+      + 'box src "Source" at b1.cx,-1.4 w 1\n'
+      + 'box dst "Target" at 3,1.4 w 1\n'
+      + 'edge src -> dst {.elbow}';
+    const tight = render(row('0'), 'unit=120x72');
+    const loose = render(row('0.6'), 'unit=120x72');
+    const said = (r) => (r.warns || []).filter(w => /elbow rail/.test(w));
+    ok(tight.ok && said(tight).length === 1 && /side of b2/.test(said(tight)[0]),
+      'a rail lying on the seam of a row written gap 0 is named, with the box it lies on',
+      said(tight)[0] || 'nothing said');
+    ok(loose.ok && said(loose).length === 0,
+      'and the gap the message asks for silences it',
+      said(loose)[0] || '');
+    // The bracket a tree is made of must stay quiet: the rail is halfway
+    // between the two faces, so on any close pair it is near its own ends'
+    // sides by arithmetic. Five corpus figures sat on exactly that.
+    const bracket = render('box p "Parent" at 1,0 w 1.4\nbox c "Child" at 0,1 w 1.2\n'
+      + 'edge p -> c {.elbow}', 'unit=120x72');
+    ok(bracket.ok && said(bracket).length === 0,
+      "and an edge's own two ends are exempt, or every tree bracket reports itself",
+      said(bracket)[0] || '');
+  }
+
+  // ── zone: an area that is painted under what stands in it ─────────
+  // Three things separate it from the `box {.dashed .clear}` plus `text` that
+  // authors were writing, and each is asserted on the drawing rather than on
+  // the parse: it is painted first whatever line it was written on, its
+  // caption is in a corner rather than in the middle, and it is out of the
+  // overlap census so a child standing in it is not a collision.
+  {
+    // Declared *after* the box it holds, which is the order an author writes
+    // in – the area's size comes from its contents.
+    const late = fig('a zone declared after its contents',
+      'box a "A" at 0,0\nzone z at a.cx,a.cy w 3 h 2 "At home"');
+    if (late) {
+      const iz = late.indexOf('id="dg1-z"'), ia = late.indexOf('id="dg1-a"');
+      ok(iz >= 0 && ia >= 0 && iz < ia, 'a zone is painted before what it holds, whatever line it is on',
+        `zone at ${iz}, box at ${ia}`);
+    }
+    // The look is seeded and every part of it is displaceable through its own
+    // slot – which is what makes it a look rather than a decision.
+    const plain = fig('a plain zone', 'zone z at 0,0 w 3 h 2 "Z"\nbox a "A" at 4,0');
+    const tinted = fig('a tinted zone', 'zone z at 0,0 w 3 h 2 "Z" {.tone-2 .dotted .accent}\nbox a "A" at 4,0');
+    const pc = plain && setOf(plain, 'z'), tc = tinted && setOf(tinted, 'z');
+    ok(pc && pc.has('clear') && pc.has('dashed') && pc.has('muted'),
+      'a zone arrives see-through, dashed and muted', pc ? [...pc].join(' ') : 'not drawn');
+    ok(tc && tc.has('tone-2') && tc.has('dotted') && tc.has('accent')
+      && !tc.has('clear') && !tc.has('dashed') && !tc.has('muted'),
+      'and each of the three is displaced by its own slot, not stacked with',
+      tc ? [...tc].join(' ') : 'not drawn');
+    // The caption's corner, read off where its label was drawn. The four words
+    // are the element-label alignment classes one level out.
+    const cap = (tail) => {
+      const out = fig('a zone captioned ' + (tail || 'top left'),
+        `zone z at 0,0 w 3 h 2 "Zone name" ${tail}\nbox a "A" at 4,0`);
+      return out ? labelAt(out, 'z-cap') : null;
+    };
+    const tl = cap(''), br = cap('{.right .bottom}'), tr = cap('{.right}'), bl = cap('{.bottom}');
+    ok(tl && br && tr && bl && tl[0] < 0 && br[0] > 0 && tl[1] < 0 && br[1] > 0,
+      'the caption sits in the top-left by default and .right .bottom moves it across and down',
+      JSON.stringify([tl, br]));
+    ok(tr && bl && Math.abs(tr[0] - br[0]) < 0.01 && Math.abs(tr[1] - tl[1]) < 0.01
+      && Math.abs(bl[0] - tl[0]) < 0.01 && Math.abs(bl[1] - br[1]) < 0.01,
+      'and the two words act on one axis each', JSON.stringify([tr, bl]));
+    // How far inside the corner. A third of a row, square in px on both axes,
+    // and it was just under a sixth: an area's outline is a dashed line and
+    // its caption is 12 px type, so at a sixth the words sat on the dashes.
+    // Asserted as the distance from the corner rather than as a coordinate,
+    // because the coordinate is the caption's anchored corner and the number
+    // that matters is the clearance.
+    {
+      // Measured as a difference between two builds of one figure, because the
+      // label's own origin carries half its measured box and that half is an
+      // estimate. What the inset is, is the distance the caption moves.
+      const inset = (tail) => {
+        const out = fig('a zone captioned with ' + (tail || 'the default inset'),
+          `zone z at 0,0 w 3 h 2 "Zone name" ${tail}\nbox a "A" at 5,0`, 'unit=120x72');
+        const at = out && labelAt(out, 'z-cap');
+        return at ? [at[0] - +attrOf(out, 'z--r', 'x'), at[1] - +attrOf(out, 'z--r', 'y')] : null;
+      };
+      const base = inset(''), wide = inset('pad 0.6');
+      ok(base && wide && Math.abs((wide[0] - base[0]) - (wide[1] - base[1])) < 0.01,
+        "a zone caption's inset is square in px, not in grid units",
+        base && wide ? `${(wide[0] - base[0]).toFixed(2)} across, ${(wide[1] - base[1]).toFixed(2)} down` : 'not drawn');
+      // `pad` was in DG_KIND_OPTS.zone from the start and read nothing at all,
+      // which is the silent no-op this grammar refuses everywhere else.
+      ok(base && wide && Math.abs((wide[1] - base[1]) - (0.6 - 0.33) * 72) < 0.01,
+        'pad n on a zone is the caption inset, and the default it displaces is a third of a row',
+        base && wide ? String(wide[1] - base[1]) : 'not drawn');
+      const same = inset('pad 0.33');
+      ok(base && same && Math.abs(same[1] - base[1]) < 0.01,
+        'so writing the default out draws what leaving it off draws',
+        base && same ? `${base[1]} vs ${same[1]}` : 'not drawn');
+      // **And the bottom corner clears the outline by as much as the top one.**
+      // Reported as a defect - a `.bottom` caption sitting on the line - and
+      // measured to be one already, by the same commit that took the inset
+      // from a sixth of a row to a third: it moved all four corners. What the
+      // eye compares is the distance from the dashes to the nearest INK, and
+      // the two are not the same distance from the label's box: the top clears
+      // the outline by the inset plus the space over a cap, the bottom by the
+      // inset plus the space under a baseline. Asserted on the ink, therefore,
+      // with the glyph metrics the compiler itself typesets with, and in the
+      // direction that was reported: the bottom may not be the tighter of the
+      // two. Measured today at 26.6 px against 28.8 in a 120x72 grid.
+      const clear = (tail) => {
+        const out = fig('a zone caption clearing its corner ' + (tail || 'at the top'),
+          `zone z at 0,0 w 3 h 2 "Zone name" ${tail}\nbox a "A" at 5,0`, 'unit=120x72');
+        const at = out && labelAt(out, 'z-cap');
+        if (!at) return null;
+        // The label's baseline is font * 0.34 below its origin (dgTextEl), a
+        // cap reaches about 0.72 of the font above that baseline, and a
+        // descender about 0.21 below it. `.small` is 0.8 of DG_FONT.
+        const f = 15 * 0.8;
+        const top = +attrOf(out, 'z--r', 'y');
+        const bottom = top + +attrOf(out, 'z--r', 'height');
+        return tail.includes('bottom')
+          ? bottom - (at[1] + f * 0.34 + f * 0.21)
+          : (at[1] + f * 0.34 - f * 0.72) - top;
+      };
+      const ct = clear(''), cb = clear('{.bottom}');
+      ok(ct != null && cb != null && cb >= ct - 0.01,
+        'a .bottom caption clears the outline by at least as much as a top one',
+        `${ct && ct.toFixed(1)} px at the top, ${cb && cb.toFixed(1)} px at the bottom`);
+    }
+    // Out of the overlap census, at both ends: the frame carries `synth` set
+    // to its own id, the discriminator a table's and a lanes's frame already
+    // use. A hand-built area drew one warning per child.
+    {
+      const r = render('zone z at 0,0 w 3 h 2 "Z"\n'
+        + 'box a "A" at z.left+0.5,z.cy\nbox b "B" at z.left+1.2,z.cy');
+      const zoneWarn = r.warns.filter(w => /\bz\b/.test(w) && /overlap/.test(w));
+      ok(zoneWarn.length === 0, 'a box standing in a zone is not a collision', zoneWarn.join(' | '));
+    }
+    // And a box that fully contains another is not one either – nesting is
+    // deliberate, and it was a warning per panel before.
+    {
+      const r = render('box outer "" at 0,0 w 4 h 3 {.clear}\nbox inner "I" at 0,0 w 1 h 0.6');
+      const held = r.warns.filter(w => /overlap/.test(w));
+      ok(held.length === 0, 'nor is a box that fully contains another', held.join(' | '));
+    }
+  }
+
+  // ── the band, and what is placed in it ────────────────────────────
+  // An area reserves room under its caption, exposes it as `z.inner.*`, and
+  // `in z` is the placement that meets it. Every number below is read as a
+  // difference between two builds of one figure, never against a literal: a
+  // label's width is estimated here and the estimate is not the meaning.
+  {
+    const G = 'unit=120x40';
+    const box = (out, id) => [+attrOf(out, id + '--r', 'x'), +attrOf(out, id + '--r', 'y'),
+      +attrOf(out, id + '--r', 'width'), +attrOf(out, id + '--r', 'height')];
+    // The band's top clears the caption's line; its left clears the pad
+    // alone, because the caption is in a corner and not along the edge.
+    {
+      const out = fig('a box placed in an area',
+        'zone z at 0,0 w 4 h 3 "Area"\nbox a "A" in z', G);
+      const bare = fig('the same area with no caption',
+        'zone z at 0,0 w 4 h 3 ""\nbox a "A" in z', G);
+      if (out && bare) {
+        const [zx, zy] = box(out, 'z'), [ax, ay] = box(out, 'a');
+        const bzy = box(bare, 'z')[1], bay = box(bare, 'a')[1];
+        ok(Math.abs((ax - zx) - (ay - zy)) > 1,
+          'the band clears the caption on the side the caption is on, and the pad on the others',
+          (ax - zx).toFixed(1) + ' px in from the left, ' + (ay - zy).toFixed(1) + ' px down from the top');
+        ok((ay - zy) - (bay - bzy) > 5,
+          'so an area with no caption starts its band a line higher',
+          ((ay - zy) - (bay - bzy)).toFixed(1) + ' px');
+      }
+    }
+    // A `.bottom` caption puts its line at the other end of the band.
+    {
+      const top = fig('a band under a top caption',
+        'zone z at 0,0 w 4 h 3 "Area"\nbox a "A" in z bottom', G);
+      const low = fig('a band over a bottom caption',
+        'zone z at 0,0 w 4 h 3 "Area" {.bottom}\nbox a "A" in z bottom', G);
+      if (top && low) {
+        const drop = (box(top, 'z')[1] + box(top, 'z')[3]) - (box(top, 'a')[1] + box(top, 'a')[3]);
+        const lowDrop = (box(low, 'z')[1] + box(low, 'z')[3]) - (box(low, 'a')[1] + box(low, 'a')[3]);
+        ok(lowDrop - drop > 5, 'a caption at the foot moves the band off the foot instead',
+          drop.toFixed(1) + ' px clear under the top caption, ' + lowDrop.toFixed(1) + ' under the bottom one');
+      }
+    }
+    // `z.inner.left` is the same rectangle, written out. Asserted against the
+    // placement rather than against a number: the two have to agree, or one of
+    // them is a second implementation of the band.
+    {
+      const word = fig('a box placed in an area',
+        'zone z at 0,0 w 4 h 3 "Area"\nbox a "A" in z', G);
+      const coord = fig('the same box placed on the band coordinates',
+        'zone z at 0,0 w 4 h 3 "Area"\nbox a "A" at z.inner.left,z.inner.top anchor tl', G);
+      if (word && coord) {
+        ok(box(word, 'a').every((v, i) => Math.abs(v - box(coord, 'a')[i]) < 0.01),
+          'so "in z" and "at z.inner.left,z.inner.top anchor tl" are one rectangle',
+          box(word, 'a') + ' vs ' + box(coord, 'a'));
+      }
+    }
+    // The five words, one axis each, and `gap` measured from the band's edge.
+    {
+      const at = (tail) => {
+        const out = fig('a box placed in an area ' + (tail || 'top left'),
+          'zone z at 0,0 w 6 h 4 "Area"\nbox a "A" in z ' + tail, G);
+        return out ? box(out, 'a') : null;
+      };
+      const tl = at(''), br = at('right bottom'), tr = at('right'), bl = at('bottom'), mid = at('center');
+      ok(tl && br && tr && bl && tr[0] === br[0] && bl[1] === br[1]
+        && tr[1] === tl[1] && bl[0] === tl[0],
+        'the band words act on one axis each, like the caption corners they borrow',
+        JSON.stringify([tl, tr, bl, br]));
+      ok(mid && mid[0] > tl[0] && mid[0] < br[0] && mid[1] > tl[1] && mid[1] < br[1],
+        'and "center" answers both axes at once', JSON.stringify(mid));
+      const gap = at('gap 0.5');
+      ok(gap && Math.abs((gap[0] - tl[0]) - 0.5 * 40) < 0.01
+        && Math.abs((gap[1] - tl[1]) - 0.5 * 40) < 0.01,
+        'a gap on an "in" is measured from the band edge, square in px like every clearance',
+        gap ? (gap[0] - tl[0]) + ' across, ' + (gap[1] - tl[1]) + ' down' : 'not drawn');
+      // Order-independent, because the words are resolved once the run of them
+      // has been read rather than as each one arrives.
+      const one = at('center bottom'), other = at('bottom center');
+      ok(one && other && one.every((v, i) => v === other[i]),
+        'and the order the words are written in changes nothing',
+        JSON.stringify([one, other]));
+    }
+    // A `row` placed in a band is placed as one block.
+    {
+      const run = fig('a row placed in an area',
+        'zone z at 0,0 w 8 h 3 "Area"\nbox a "AAAA"\nbox b "B"\nrow a, b gap 0.4 in z center', G);
+      const lone = fig('its first box placed in the same area',
+        'zone z at 0,0 w 8 h 3 "Area"\nbox a "AAAA" in z center\nbox b "B" right of a gap 0.4 same as a', G);
+      if (run && lone) {
+        const ra = box(run, 'a'), rb = box(run, 'b'), zb = box(run, 'z');
+        const mid = (ra[0] + rb[0] + rb[2]) / 2;
+        ok(Math.abs(mid - (zb[0] + zb[2] / 2)) < 0.01,
+          'a row placed in a band is centred as a run, not as its first box',
+          'run centre ' + mid.toFixed(1) + ', band centre ' + (zb[0] + zb[2] / 2).toFixed(1));
+        ok(Math.abs(box(lone, 'a')[0] - ra[0]) > 1,
+          'which is not what centring the first box alone would have drawn',
+          box(lone, 'a')[0].toFixed(1) + ' vs ' + ra[0].toFixed(1));
+      }
+    }
+    // An axis nobody wrote is the one the contents settle, and the two axes are
+    // answered separately.
+    {
+      const wide = fig('an area sized by a wide box',
+        'zone z at 0,0 h 3 "Area"\nbox a "a much longer label" in z', G);
+      const narrow = fig('an area sized by a narrow one',
+        'zone z at 0,0 h 3 "Area"\nbox a "a" in z', G);
+      if (wide && narrow) {
+        ok(box(wide, 'z')[2] > box(narrow, 'z')[2] + 10,
+          'an area with no w is as wide as what stands in it',
+          box(wide, 'z')[2].toFixed(1) + ' against ' + box(narrow, 'z')[2].toFixed(1));
+        ok(box(wide, 'z')[3] === box(narrow, 'z')[3] && box(wide, 'z')[3] === 3 * 40,
+          'and the height it was given is untouched', String(box(wide, 'z')[3]));
+        const pad = box(wide, 'z'), child = box(wide, 'a');
+        ok(Math.abs((child[0] - pad[0]) - ((pad[0] + pad[2]) - (child[0] + child[2]))) < 0.01,
+          'the pad it wraps its contents in is the same on both sides',
+          (child[0] - pad[0]).toFixed(2) + ' and ' + ((pad[0] + pad[2]) - (child[0] + child[2])).toFixed(2));
+      }
+      const both = fig('an area sized on both axes',
+        'zone z at 0,0 "Area"\nbox a "A"\nbox b "B"\nrow a, b gap 0.4 in z', G);
+      if (both) {
+        const zb = box(both, 'z'), ab = box(both, 'a'), bb = box(both, 'b');
+        ok(Math.abs((ab[0] - zb[0]) - ((zb[0] + zb[2]) - (bb[0] + bb[2]))) < 0.01,
+          'and a row is wrapped as a run, with the same pad at either end',
+          (ab[0] - zb[0]).toFixed(2) + ' and ' + ((zb[0] + zb[2]) - (bb[0] + bb[2])).toFixed(2));
+      }
+    }
+    // Overflow: a written number the contents do not fit in.
+    {
+      const r = render('zone z at 0,0 w 1 h 3 "Area"\nbox a "a much longer label" in z', G);
+      const said = r.warns.filter(w => /wider than the band/.test(w));
+      ok(said.length === 1 && /box a/.test(said[0]),
+        'a child wider than the band it is placed in says so, and names itself',
+        r.warns.join(' | '));
+      const fits = render('zone z at 0,0 w 6 h 3 "Area"\nbox a "a much longer label" in z', G);
+      ok(fits.warns.filter(w => /than the band/.test(w)).length === 0,
+        'and a band with room in it says nothing', fits.warns.join(' | '));
+      // The axis the contents settled cannot overflow: it is what they
+      // measured. This is the case that would otherwise warn about itself.
+      const auto = render('zone z at 0,0 h 3 "Area"\nbox a "a much longer label" in z', G);
+      ok(auto.warns.filter(w => /than the band/.test(w)).length === 0,
+        'nor does an axis the contents settled', auto.warns.join(' | '));
+      // A chain that runs on from a child runs on out of the area, and that is
+      // not this warning: `in` is the membership relation this grammar has and
+      // `right of` is not.
+      const past = render('zone z at 0,0 w 3 h 3 "Area"\nbox a "A" in z\nbox b "B" right of a gap 4', G);
+      ok(past.warns.filter(w => /than the band/.test(w)).length === 0,
+        'and a chain that runs on out of the area was never placed in it',
+        past.warns.join(' | '));
+    }
+    // A container's pad, visible at last to what hangs off a member.
+    {
+      const r = render('box m "M" at 0,0\nbox n "N" at 4,0\ncontainer c over m,n pad 0.5\n'
+        + 'text t "note" right of m gap 0.2 {.small}', G);
+      const said = r.warns.filter(w => /inside c/.test(w));
+      ok(said.length === 1 && /text t/.test(said[0]),
+        'a text hung off a container member inside its outline says so', r.warns.join(' | '));
+      const outside = render('box m "M" at 0,0\nbox n "N" at 4,0\ncontainer c over m,n pad 0.5\n'
+        + 'text t "note" below n gap 2 {.small}', G);
+      ok(outside.warns.filter(w => /inside c/.test(w)).length === 0,
+        'and one that clears the outline does not', outside.warns.join(' | '));
+      // A member is exempt by construction: it is what the outline is round.
+      const held = render('box m "M" at 0,0\nbox n "N" right of m gap 0.5\n'
+        + 'container c over m,n pad 0.5', G);
+      ok(held.warns.filter(w => /inside c/.test(w)).length === 0,
+        'and a member of the container is not reported against it', held.warns.join(' | '));
+    }
+    // Seven refusals, each with a plausible wrong reading behind it.
+    {
+      const bad = (what, body, re) => {
+        const r = render(body, G);
+        ok(!r.ok && re.test(r.msg || ''), what, r.ok ? '(accepted)' : r.msg.split('\n')[1]);
+      };
+      bad('a band belongs to a zone and not to a box',
+        'box q "Q" at 0,0\nbox a "A" in q', /not a zone/);
+      bad('and so does the coordinate form',
+        'box q "Q" at 0,0 w 2 h 2\ntext a "A" at q.inner.left,q.inner.top', /not a zone/);
+      bad('an area with no size and nothing in it has nothing to take one from',
+        'zone z at 0,0 "Area"\nbox a "A" at 4,0', /nothing to take the size from/);
+      bad('an axis the contents settle cannot also be aligned against',
+        'zone z at 0,0 h 3 "Area"\nbox a "A" in z right', /nothing to align against/);
+      bad('anchor names a point, and a band is not one',
+        'zone z at 0,0 w 3 h 2 "Area"\nbox a "A" in z anchor tl', /names a band rather than a coordinate/);
+      bad('flush names a face, and a band is not one either',
+        'zone z at 0,0 w 3 h 2 "Area"\nbox a "A" in z flush left', /names a band rather than a face/);
+      bad('a run placed as a block cannot have a member placed on its own',
+        'zone z at 0,0 w 6 h 3 "Area"\nbox a "A" at 1,1\nbox b "B"\nrow a, b in z',
+        /cannot state a placement of its own/);
+    }
+    // The editor rewrites through the span table, so an `in` has to be one
+    // span like every other placement expression.
+    {
+      const t = spans('zone z at 0,0 w 4 h 3 "Area"\nbox a "A" in z gap 0.2 center');
+      const sp = t.spanOf('a', 'place');
+      ok(sp && sp.present && sp.value === 'in z gap 0.2 center',
+        'the whole "in" expression is one span the editor can replace',
+        sp ? JSON.stringify(sp.value) : 'no span');
+    }
+  }
+
+  // ── a warning says where the element it names was written ─────────
+  // Half the names in this grammar are generated, so the one move a reader
+  // has – search the block for the name the message used – finds nothing.
+  // Measured on a real keynote: `edge edge-4 runs 0.5° off the axis` against
+  // fourteen figures and about thirty edges, not one of them named. Every
+  // warning that names an element carries `dgSite(el)` now.
+  //
+  // The assertion is about the *site* and never about the rest of the
+  // wording: the messages themselves are the business of the checks above.
+  {
+    const sited = (what, body, head = '') => {
+      const r = render(body, head);
+      if (!r.ok) { ok(false, `${what} compiles`, r.msg.split('\n')[0]); return []; }
+      return r.warns;
+    };
+    const cases = [
+      ['a skewed edge', 'box a "A" at 0,0 w 1 h 0.5\nbox b "B" at 2,0.02 w 1 h 0.5\nedge a -> b', true, ''],
+      ['a label a side cannot move', 'box a "A" at 0,0\nbox b "B" right of a gap 2\n'
+        + 'edge a -> b "x" side left', true, ''],
+      ['a clipped label', 'box src "Sender"\nbox mix "Mix" right of src gap 1.05\n'
+        + 'edge src -> mix "encrypted"', true, 'unit=126x38'],
+      ['two boxes on one piece of paper', 'box a "A" at 0,0 w 2 h 1\nbox b "B" at 0.9,0.3 w 2 h 1', false, ''],
+      ['a box narrower than its label', 'box a "A very long label indeed" at 0,0 w 0.4', false, ''],
+      ['a class clash', 'box a "A" at 0,0 {.tone-4 .accent}', false, ''],
+    ];
+    for (const [what, body, isEdge, head] of cases) {
+      const ws = sited(what, body, head);
+      ok(ws.length === 1, `${what} draws exactly one warning`, `${ws.length} warning(s)`);
+      const w = ws[0] || '';
+      ok(/line \d+ of the block/.test(w), `${what}: the warning says which line wrote it`, w);
+      if (isEdge) {
+        ok(/\(\S+ (->|--|<->) \S+, line \d+ of the block\)/.test(w),
+          `${what}: and names the two ends it joins`, w);
+      }
+    }
+    // A generated edge has no endpoint tokens of its own, so the fallback has
+    // to name the two actors rather than the two lifeline coordinates the
+    // expansion built it from – `a point -> a point` names nothing at all.
+    {
+      const r = render('sequence s at 0,0\n  actor u "U"\n  actor r "R"\n'
+        + '  u -> r "m" side left');
+      const w = r.ok ? r.warns.find(x => /edge s-0/.test(x)) : null;
+      ok(!!w && /\(u -> r, line 4 of the block\)/.test(w),
+        'a sequence message names its two actors, not two points', w || '(no warning)');
+    }
+  }
+
   note('four contracts, and this gate holds the third: what the compiler emitted, '
     + 'not whether it parsed');
 
@@ -692,5 +1976,153 @@ export async function run({ report }) {
     // The three the tokenizer owns, and nothing else decoded.
     ok(dgTokenize('"a\\_b"')[0].v === 'a\\_b', 'a marker escape is handed on whole, for dgSpans to read');
     ok(dgTokenize('"a\\|b"')[0].v === 'a\\|b', 'and so is a pipe, which a table row splits on');
+  }
+
+  // ── a brace's label hangs from the edge that faces its bar ────────
+  // A label block is drawn centred on its origin, and a brace's origin is a
+  // fixed 9 px clear of the tick end. On `side bottom` that put a *two*-line
+  // label half its height back up, so its first line printed across the bar,
+  // and `pad` was no escape because `pad` moves the brace and carries the
+  // label with it. Measured on the spoken talk's board figure, whose label
+  // had to stay one line for exactly this reason.
+  //
+  // Read as a difference, never against a coordinate: the assertion is that
+  // the line nearest the bar lands where the whole of a one-line label
+  // landed, which is also the property that keeps every one-line label in
+  // the corpus byte-identical.
+  {
+    const deck = (side, label) =>
+      `box a "A" at 0,0\nbox b "B" right of a gap 1\nbrace h over a,b side ${side} "${label}"`;
+    // The label's own box, reconstructed from its origin and its measured
+    // height – the same arithmetic extentsOf does when it reserves the paper.
+    const span = (side, label, tail = '') => {
+      const out = fig(`a ${side} brace labelled ${JSON.stringify(label)}${tail}`,
+        deck(side, label) + tail);
+      if (!out) return null;
+      const lp = labelAt(out, 'h');
+      const m = dgMeasure(label.replace(/\\n/g, '\n'), DG_FONT, false);
+      const bar = points(attrOf(out, 'h--p', 'd'));
+      const vb = (out.match(/viewBox="([^"]*)"/) || [])[1].split(/\s+/).map(Number);
+      return { top: lp[1] - m.h / 2, bottom: lp[1] + m.h / 2, mid: lp[1], x: lp[0], bar, vb };
+    };
+    const near = (a, b) => Math.abs(a - b) < 0.02;
+
+    const oneDown = span('bottom', 'one');
+    const twoDown = span('bottom', 'one\\ntwo');
+    ok(oneDown && twoDown && near(oneDown.top, twoDown.top),
+      'a bottom brace hangs its label from the top: the first line sits where a one-line label sat',
+      oneDown && twoDown && `one line at ${oneDown.top.toFixed(2)}, two at ${twoDown.top.toFixed(2)}`);
+    ok(twoDown && oneDown && twoDown.bottom > oneDown.bottom,
+      'and the second line grows downwards, away from the bar',
+      twoDown && oneDown && `${twoDown.bottom.toFixed(2)} against ${oneDown.bottom.toFixed(2)}`);
+
+    const oneUp = span('top', 'one');
+    const twoUp = span('top', 'one\\ntwo');
+    ok(oneUp && twoUp && near(oneUp.bottom, twoUp.bottom),
+      'a top brace is the mirror: its last line sits where a one-line label sat',
+      oneUp && twoUp && `one line at ${oneUp.bottom.toFixed(2)}, two at ${twoUp.bottom.toFixed(2)}`);
+    ok(twoUp && oneUp && twoUp.top < oneUp.top,
+      'and the line before it grows upwards, away from the bar',
+      twoUp && oneUp && `${twoUp.top.toFixed(2)} against ${oneUp.top.toFixed(2)}`);
+
+    // The two controls. A side label runs away from the bar along its own
+    // anchor, so every line of it is clear already and straddling the bar's
+    // middle is what the side means.
+    for (const side of ['left', 'right']) {
+      const one = span(side, 'one');
+      const two = span(side, 'one\\ntwo');
+      const barMid = one && (one.bar[1][1] + one.bar[2][1]) / 2;
+      ok(one && two && near(one.mid, two.mid) && near(one.mid, barMid),
+        `a ${side} brace keeps its label centred on the bar's middle, whatever its line count`,
+        one && two && `one ${one.mid.toFixed(2)}, two ${two.mid.toFixed(2)}, bar ${barMid.toFixed(2)}`);
+    }
+
+    // A turned label reads across the bar rather than towards it, and
+    // extentsOf reserves it as centred on both axes – so it keeps the origin
+    // it always had. Without this control the hang would be applied to a
+    // block whose lines run the other way.
+    const turnedOne = span('bottom', 'one', ' {.turn}');
+    const turnedTwo = span('bottom', 'one\\ntwo', ' {.turn}');
+    ok(turnedOne && turnedTwo && near(turnedOne.mid, turnedTwo.mid),
+      'a turned label on a bottom brace stays centred on its origin, which is what is reserved for it',
+      turnedOne && turnedTwo && `${turnedOne.mid.toFixed(2)} against ${turnedTwo.mid.toFixed(2)}`);
+
+    // And the paper follows the words: the frame has to hold the line the
+    // hang pushed out, or the canvas check and the viewBox measure a label
+    // that is not where it is drawn.
+    ok(twoDown && twoDown.vb[1] + twoDown.vb[3] >= twoDown.bottom,
+      'the viewBox holds the whole of a hung two-line label',
+      twoDown && `box ends at ${(twoDown.vb[1] + twoDown.vb[3]).toFixed(2)},`
+        + ` label at ${twoDown.bottom.toFixed(2)}`);
+    ok(twoUp && twoUp.vb[1] <= twoUp.top,
+      'and the same upwards',
+      twoUp && `box starts at ${twoUp.vb[1].toFixed(2)}, label at ${twoUp.top.toFixed(2)}`);
+  }
+
+  // ── an edge's side is judged on the beats it is on screen ─────────
+  // The offset runs along the routed line's normal, so only the pair lying
+  // across the line can move a label – and the check that says so used to sit
+  // in `dgFrameDrawables`, which runs for every beat whether the edge is drawn
+  // in it or not. An arrow revealed by the very step that levels its two ends
+  // was therefore judged on a base geometry nobody ever sees it in: the
+  // tutorial's `#diagram-steps`, where the step that shows the two arrows to
+  // Bob is the step that moves Eve down onto their line.
+  //
+  // Four fixtures, and the fourth is why this is a rule and not a suppression:
+  // an edge that really does change axis under a step has a side word that
+  // acts on one beat and not on the other, and that is worth a sentence
+  // naming the beat rather than silence.
+  {
+    const said = (body) => render(body, 'unit=120x72').warns.filter(w => /\bside\b/.test(w));
+    const ROW = 'box a "A" at 0,0\nbox b "B" right of a gap 4.3\n';
+    const HIGH = 'box m "M" between a,b offset 0,-2.6 same as a';
+    const ARROW = 'edge e m.right:0.2 -> b.left:0.2 "M"';
+
+    // The control first, because without it the assertion under it passes on
+    // any software at all: in the state the old check judged this edge in –
+    // m still high above the row – the edge really is vertical and `side top`
+    // really cannot act.
+    const base = said(`${ROW}${HIGH}\n${ARROW} side top`);
+    ok(base.length === 1 && /vertical/.test(base[0]),
+      'with m still above the row the edge is vertical, and the word is refused',
+      base.join(' | '));
+
+    const revealed = said(`${ROW}${HIGH} {@in}
+${ARROW} {@in} side top
+
+step cut
+  move m to between a,b
+  show @in
+`);
+    ok(revealed.length === 0,
+      'but revealed by the step that levels it, the same edge keeps its side top',
+      revealed.join(' | '));
+
+    const wrong = said('box a "A" at 0,0\nbox b "B" right of a gap 2\nedge e a -> b "M" side left');
+    ok(wrong.length === 1 && /runs along/.test(wrong[0]) && /horizontal/.test(wrong[0]),
+      'and a word that runs along the line at every beat is still the old warning, word for word',
+      wrong.join(' | '));
+
+    // The control that keeps the fixture above honest: one token different,
+    // and the same figure says nothing.
+    const right = said('box a "A" at 0,0\nbox b "B" right of a gap 2\nedge e a -> b "M" side top');
+    ok(right.length === 0, 'and the word that can act says nothing', right.join(' | '));
+
+    // A side moves a label, so an edge with no label has nothing for it to
+    // move – that was true before this pass and stays true.
+    const unlabelled = said('box a "A" at 0,0\nbox b "B" below a gap 2\nedge e a -> b side top');
+    ok(unlabelled.length === 0, 'an edge with no label is not asked about its side',
+      unlabelled.join(' | '));
+
+    const changes = said(`box a "A" at 0,0
+box b "B" below a gap 2.4
+edge e a -> b "M" side top
+
+step turn
+  move b to a.right+2.4,a.cy
+`);
+    ok(changes.length === 1 && /beat 1 \(turn\)/.test(changes[0]) && /beat 0/.test(changes[0]),
+      'an edge that changes axis while on screen is warned about, and the warning names both beats',
+      changes.join(' | '));
   }
 }

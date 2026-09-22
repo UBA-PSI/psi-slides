@@ -69,9 +69,7 @@ A blurred ground behind sharp type.
 
 ## figure: Layer over {.full .bare #bd-over}
 
-The title below should be covered by the picture on beat 2.
-
----
+The title below should be covered by the picture.
 
 ::: backdrop photo {.cover .over}
 

@@ -3017,3 +3017,78 @@ range only and were never affected. The editor copies the line rather than
 formatting it because `editor.mjs` is inlined as a classic script and cannot
 import the formatter. Pinned by the round-trip section of
 `test/editor-guides.mjs`.
+
+### Three words from a real keynote · **done**
+
+`anchor`, `zone` and `unheaded` reached the panel, and only the first cost the
+editor anything structural.
+
+**`anchor` is an option of the placement, so it round-trips through the span
+table for free** – `DG_PLACE_OPTS` is now the one list behind both the span
+table's `PLACEMENT_OPTS` (where an absent one is inserted: at the end of the
+placement expression, never at the end of the line) and `dgUnexpected`'s
+refusal, so the insertion point and the error message cannot disagree about
+which words those are. A drag needed no change at all in the ordinary case:
+`dgePlanDrag`'s `abs` branch rewrites the *number on the line* plus the delta,
+not the resolved centre, so an anchored element writes its anchor coordinate
+back by construction.
+
+Two places did need it, and both are places where the editor works from the
+resolved position rather than from the token. **`dgeGuideSnap` returns nothing
+for an anchored placement**: every candidate it proposes is a statement about
+where the element's *centre* lands, written back as the coordinate in `at`, and
+with `anchor tl` that coordinate is a corner – the guide would draw a line
+through the middle and write a number about the corner. The plain drag
+underneath still snaps to the grid and still round-trips exactly. And
+**`dgeStepToText` subtracts the anchor offset** before it writes a `move … to`,
+which is the same half-size slip the carry-forward rule in `dgStateAt` closes
+from the compiler's side.
+
+`zone` and `unheaded` are panel rows and nothing more: the zone's frame carries
+`synth` set to its own id, so the editor already treats it as a statement frame
+and a drag moves the area; `unheaded` is the checkbox `stacked` and
+`unnumbered` already are, present as a token or absent as an insertion point.
+The `anchor` swatch row sits under the `at` field and under `between`, nine
+words in reading order rather than in `DG_ANCHORS` order, because what is being
+chosen is a corner of a box and the row is the box.
+
+One thing outside the editor broke and is worth recording, because the same
+proxy is in forty assertions: `ed.problems()` in `test/harness.mjs` used to
+return the whole message area, and every caller tests it with
+`.includes('line ')` because a compile error is rendered `line N: msg`. A
+`[diagram]` warning now names the line its element was written on, so three
+assertions in `editor-placement` started reporting a correctly-drawn figure's
+overlap warning as a broken block. The helper reads the error rows only now
+(`.dge-problems:not(.dge-refused) > div:not(.dge-warn)`), which is what every
+caller meant.
+
+### The slide's canvas, on the canvas · **done**
+
+A `::: draw` in a chunk body is laid out on a fixed canvas now – the chunk's
+column wide, sixteen label-heights tall – so the editor has to reserve the same
+box or a drag would redraw the figure at a size the next build undoes. Three
+small changes and no new mechanism:
+
+- **The payload carries `canvas`**, beside `width` and `opener`, and
+  `dgeCompile` hands it to `renderDiagram`. The editor has no chunk to measure
+  and no stylesheet to read, so the box has to arrive as the two numbers the
+  build worked out.
+- **`dgeDrawGuides` draws it** as a dashed rectangle behind the drawing, placed
+  the way the compiler places it: content anchored at the canvas's vertical
+  middle, and to its left edge under `blocks: left` or centred under `center`.
+  When the drawing fits, the dashes lie on the edge of the box; when it does
+  not, they run through the picture, which is the thing worth seeing while
+  dragging. `.dge-canvas` in `editor.css` is louder than a cell line and
+  quieter than an element – it is the edge of the frame, not part of the
+  drawing.
+- **The measure note reads `--dg-fit-w`** rather than `--dg-type-w`, because
+  the box a live view shows is the canvas, and a label's size is that box over
+  its width in labels. It also says what share of the canvas the drawing takes,
+  or that it is over it – the same two readings the build warns about, at the
+  moment the author can act on them.
+
+What it does not do: the frame preview's own width is still the nominal
+`DGE_FRAME_EM` measure rather than the column the build measured, so the
+"height cap is what decides its width here" clause can fire on a figure the
+column would have bound first. That was true before this slice and is left
+alone.

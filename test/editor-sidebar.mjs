@@ -38,7 +38,7 @@ export async function run({ page, report, walkTo, ed }) {
       // rows, which share the outer class and write a relation rather than a
       // look. Only the first kind can be asked whether a swatch is dead.
       look: s.classList.contains('dge-slot-look'),
-      opts: [...s.querySelectorAll('.dge-sw')].map(b => b.title),
+      opts: [...s.querySelectorAll('.dge-sw')].filter(b => !b.disabled).map(b => b.title),
     })));
   note(slots.length + ' slots, ' + slots.reduce((n, s) => n + s.opts.length, 0) + ' swatches');
   ok(slots.length >= 8, 'the panel offers the slots a box has', String(slots.length));
@@ -77,6 +77,14 @@ export async function run({ page, report, walkTo, ed }) {
   // swatch already pressed is the state the element is in, and `inherit` is an
   // act rather than a state, so where no default supplies the slot it means
   // the same as what is already written.
+  // A swatch that is *disabled* is not a swatch the panel offers: it is greyed,
+  // it carries its own reason in the title, and a click on it is a no-op by
+  // design. Both reasons are about the figure rather than about the control -
+  // a class the beat cannot switch, and a class the element's own line already
+  // makes a refusal (DG_CLASS_VOIDS: .bare deletes the outline .dashed
+  // patterns). Counting one as dead would be asking the panel to offer a
+  // control whose only outcome is a compiler refusal, which is the opposite of
+  // what this assertion is for.
   const exempt = (slot, title, was) =>
     was !== false || /^drop this element/.test(title);
 

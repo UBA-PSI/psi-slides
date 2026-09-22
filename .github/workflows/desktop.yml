@@ -6,6 +6,16 @@
 # of runner time for a change that cannot reach it. The engine files are in
 # the filter as well, because the app runs them: a change to build.js can
 # break the smoke test without touching a single file under desktop/.
+#
+# That makes this list the third hand-written copy of what the app stages,
+# after FILES in desktop/scripts/stage-engine.mjs and what build.js reads
+# about itself - and it went wrong the same way: cue-cards.mjs was on none of
+# the three, so a commit touching only that file ran no desktop job at all,
+# which is part of why a packaged app that could not build shipped twice.
+# desktop/test/stage-engine.test.mjs now holds this filter against FILES,
+# exactly - LICENSE included, which is staged into the app and so is on the
+# list. A matrix run on a licence edit is the price of a rule with no
+# exceptions, and it is cheap: that file changes about never.
 name: Desktop
 
 on:
@@ -15,10 +25,12 @@ on:
       - 'build.js'
       - 'diagram-core.mjs'
       - 'tails.mjs'
+      - 'cue-cards.mjs'
       - 'editor.mjs'
       - 'editor.css'
       - 'package.json'
       - 'package-lock.json'
+      - 'LICENSE'
       - '.github/workflows/desktop.yml'
   pull_request:
     paths:
@@ -26,10 +38,12 @@ on:
       - 'build.js'
       - 'diagram-core.mjs'
       - 'tails.mjs'
+      - 'cue-cards.mjs'
       - 'editor.mjs'
       - 'editor.css'
       - 'package.json'
       - 'package-lock.json'
+      - 'LICENSE'
       - '.github/workflows/desktop.yml'
   workflow_dispatch:
   # desktop-release.yml runs this same matrix for a `builder-*` tag and

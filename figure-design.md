@@ -5,8 +5,10 @@ rather than principles. Every rule has three parts: what to do, what the eye is
 doing that makes it work, and a wrong/right pair in real DSL syntax you can copy.
 
 It is addressed to two readers at once, a person and a language model, and both
-should be able to work straight down it. The grammar itself is in `CLAUDE.md`
-under *Animated infographics*; this file is about what to build with it.
+should be able to work straight down it. The grammar itself is in the
+`psi-slides-figures` skill (`.claude/skills/psi-slides-figures/SKILL.md`) and
+in working syntax in `lectures/diagrams/source.md`; this file is about what to
+build with it.
 
 The name for all of this is the Gestalt principles: a short list of things human
 vision does before you have decided to look at anything. You do not get to opt
@@ -82,9 +84,20 @@ in that figure's own grid units, and there are two families of them. A number
 that **addresses** the grid is axis-keyed, because a grid cell is not square:
 `at`, `w`, `h`, `offset` and every nudge count cells across and cells down. A
 number that states a **clearance** is square, and its ruler is one row – `gap`,
-`pad`, `space`, and a `dot`'s `r`. So `gap 0.25` between two boxes side by side
-and `gap 0.25` between two stacked on top of each other draw the same distance,
-and the rule above is arithmetic rather than judgement.
+`pad`, `space`, and a `dot`'s `r`. So `gap 0.5` between two boxes side by side
+and `gap 0.5` between two stacked on top of each other draw the same distance,
+and the rule above is arithmetic rather than judgement. A clearance can also be
+written in label heights – `gap 1.5lh`, `pad 0.6lh` – which is the ruler every
+rule in this file is stated in, and the one to use in a `draw-defaults` layer
+that reaches figures with different grids. A bare number stays a count of rows.
+
+**Write the gap that means something and leave the other one off.** A placement
+with no `gap` is not a placement with no clearance: it gets one base label of
+paper, and 1.6 of them where an `edge` joins the two, which is an arrowhead plus
+as much shaft again. That default is in labels rather than in rows precisely so
+it does not change when you change the opener. So the number worth writing is
+the *wide* one – the gap that says "these two are not a pair" – and a row that
+wants no more than to be legible wants no number at all.
 
 ```
 # wrong: four boxes, one rhythm, and only the words say which two belong together
@@ -93,11 +106,11 @@ box b "Router"  right of a gap 0.5
 box c "Resolver" right of b gap 0.5
 box d "Webserver" right of c gap 0.5
 
-# right: the pair is a pair before you read it
+# right: the pair is a pair before you read it, and only the wide gap is written
 box a "Switch"  at 0,0
-box b "Router"  right of a gap 0.25
+box b "Router"  right of a
 box c "Resolver" right of b gap 0.9
-box d "Webserver" right of c gap 0.25
+box d "Webserver" right of c
 ```
 
 ## 2. Enclose what a distance cannot say
@@ -123,6 +136,24 @@ container home "Home network" over a,b pad 0.4 {.dashed}
 
 A `container` is only as visible as its members and re-fits when they move, so
 it needs no `show` of its own and no maintenance when the figure changes.
+
+**An area that has to stand before anything is in it is a `zone`.** A
+container appears with its members; a zone holds from the first beat, is
+painted under everything whatever line it is written on, and carries its
+caption in a corner, which is what a region that fills up as the talk goes on
+wants. Place what stands in it `in` it – one element with `in home`, a run of
+peers with `row a, b in home` – and a zone written without `w` or `h` wraps
+what is placed in it. Only `in` is membership: `right of a` on a third box runs
+on out of the area.
+
+```
+# right: the region stands from beat 0, and what is in it is placed in it
+zone home at 0,0 "Home network"
+row a, b in home
+box a "A"
+box b "B"
+box r "Router" right of home gap 0.8
+```
 
 ## 3. Keep edges for relations
 
@@ -166,10 +197,19 @@ security lecture:
 | `.dim` | present in the picture, not part of this scene |
 | `.muted` | scaffolding: grid lines, zone outlines, annotations |
 
+A muted line has two quieter steps, and the build already uses both: a
+`zone`'s outline is `.dashed .muted`, a `plot`'s grid `.dotted .muted`. The
+dotted one is drawn at the plain line's weight rather than the muted one, so
+its dots are large enough to reach their colour on a projector.
+
 Two classes from the same slot on one element is an **error**: the build refuses
 the line. A **slot** is a group of classes that answer one question - which
 fill, which outline, which typeface - and an element takes one class from each,
-so writing two is the line giving two answers to one question.
+so writing two is the line giving two answers to one question. One pair from
+two slots is refused as well, because the first deletes what the second draws
+on: `.bare` takes the outline off, so `{.bare .dashed}` draws no outline at
+all. A dashed outline with no fill is `{.clear .dashed}` – `.clear` takes the
+fill off and keeps the line.
 `.tone-4` with `.accent` is not a slot conflict but is still usually a mistake:
 the fill is the accent, so accent ink on it is invisible. `.turn` with `.left`
 or `.right` on a node label is the other one: a turned label is centred on its
@@ -263,7 +303,11 @@ They combine with `.turn`, which is how a firewall bar gets a label at all: the
 word reads up the bar, and `.top` decides which end it starts from.
 
 With more than one line they move the *block*, so `.bottom` puts the last line
-on the inner edge. They apply to a box, a dot and a free text, and to nothing
+on the inner edge. On a free `text` placed at a coordinate, `.left` and `.right`
+also say which edge stands on it: `text l "zu Hause" at haus.left+0.2,haus.top+0.35
+{.left}` puts the first letter 0.2 in from the frame, and a column of `.left`
+labels sharing one x lines up with no further word (`anchor center` asks for
+the centring back). They apply to a box, a dot and a free text, and to nothing
 else: writing one of them on an edge, a container or a brace is an error rather
 than a class that quietly does nothing, because all three place their label by
 their own statement. An **edge** says which side of the line its label sits on
@@ -271,7 +315,11 @@ with the `side` option instead – `side top` / `side bottom` beside a horizonta
 edge, `side left` / `side right` beside a vertical one, and `.turn` stands the
 words on end beside it. Which pair applies depends on the direction the edge
 ended up running, so naming the pair that runs *along* it is a build warning
-rather than a parse error. A brace takes `side <word>` too, for the same
+rather than a parse error – and the direction is read off **the beats the edge
+is on screen**, so an arrow revealed by the very step that levels its two ends
+is judged level. An edge that genuinely changes axis while it is visible is
+warned about by beat, because there the word acts on one press and not on the
+next. A brace takes `side <word>` too, for the same
 concept: which side of the thing the spine sits on.
 
 **On an edge, a label is either *on* the line or *beside* it, and the choice
@@ -286,6 +334,11 @@ and carries the ground with them.
 - **Beside the line** for a phrase that *describes what travels along it*:
   "only after the handshake", "dropped silently", "plaintext". A phrase with a
   line through it is read as two fragments before it is read as a sentence.
+
+A label beside the line is lifted clear of it at its midpoint. Where the same
+route comes back across the words further along – an elbow's outer run, a
+curve, a `via` that doubles back – the build knocks the line out behind the
+glyphs, and only there, so you write nothing for it.
 
 A `sequence` message is the one place you do not make this choice: its label is
 a phrase, it always sits beside the line, and it always carries a ground,
@@ -307,8 +360,11 @@ edge b -> c "carries the session key" side top {.small .muted}
 **Either way, the words need a line long enough to hold them.** A label is
 centred on its edge and the boxes at both ends are painted *after* it, so a
 label wider than the paper between their near faces is not tight – it is
-clipped, and what reaches the back of the room is the middle of the word. The
-build says so and gives you both numbers, because the fix is a number.
+clipped, and what reaches the back of the room is the middle of the word. A
+gap nobody wrote already makes that room: between two boxes side by side that
+a labelled edge joins, the default widens to the words plus their padding. So
+this is a trap you walk into by writing a number, and the build says so and
+gives you both numbers, because the fix is a number.
 
 ```
 # wrong: on a 126x38 grid, gap 1.05 leaves 40px of paper and "encrypted" needs 71
@@ -316,14 +372,14 @@ box src "Sender"
 box mix "Mix"      right of src gap 1.05
 edge src -> mix "encrypted"
 
-# right: the gap is sized to the longest label the row carries
+# right: no gap written, and the default is as wide as the label it carries
 box src "Sender"
-box mix "Mix"      right of src gap 2.6
+box mix "Mix"      right of src
 edge src -> mix "encrypted"
 ```
 
-Widening the `gap` is the usual answer and shortening the label is the other
-one. `side top` is an answer only where the two elements are short enough for
+Taking the written `gap` off is the usual answer, widening it the next, and
+shortening the label the third. `side top` is an answer only where the two elements are short enough for
 the words to pass over them – a phrase lifted 14px off the line is still inside
 a box 38px tall, and the build will say so again.
 
@@ -357,24 +413,36 @@ they can read one, which is more work than either convention saves.
 **And four characters inside a label are markup, so a label about code has to
 say so.** `_` subscripts the character after it, `^` raises it, `*a*` colours a
 run with the accent and `~a~` greys it. That is what a figure full of `c_0` and
-`m_1` wants, and it is the wrong thing to happen to a function name. Write a
-backslash in front of any of the four – `\_`, `\^`, `\*`, `\~`, and `\\` for a
-backslash – and the bare character is drawn instead.
+`m_1` wants. A marker that cannot do its job is drawn as typed: a `*` or a `~`
+nothing closes, and a `_` or `^` in the middle of a word, where shifting one
+character would leave the rest of the word behind – so `scan_page(link)` and
+`hausarbeit_final.pdf` come out as written. What still shifts is a marker whose
+one character ends the word, which is the case to watch in an identifier. Write
+a backslash in front of any of the four – `\_`, `\^`, `\*`, `\~`, and `\\` for
+a backslash – and the bare character is drawn instead.
 
 ```
-# wrong: drawn as "scan", a subscript p, then "age(link)"
-box scan "scan_page(link)" below coll gap 0.6
+# wrong: drawn as "MAX" with a subscript N
+box lim "MAX_N" below coll
 
 # right: one word, with the underscore in it
-box scan "scan\_page(link)" below coll gap 0.6
+box lim "MAX\_N" below coll
 ```
 
 It costs nothing: the escape is resolved before the label is measured, so the
 box is the width of the word it draws. A backslash before anything else stays a
 backslash, and `\n` is still where a label breaks its lines.
 
+**A whole line in `~…~` is a second register.** In a label of more than one
+line, a line written entirely in the quiet mark is set smaller and muted, so a
+question over the verb that answers it is one label, centred as one block:
+`text f "1  Who pays for it?\n~absorb~"`. Written as two `text` elements the
+pair cannot be centred on the cell it labels, because each is centred on its
+own. On a one-line label `~…~` stays the muted colour; `{.small}` is how a whole
+label is made small.
+
 The escape is the way out, not the plan. A figure whose boxes carry
-`collect\_links()` and `scan\_page(link)` is usually a figure that should carry
+`collect_links()` and `scan_page(link)` is usually a figure that should carry
 `every link on that page` and `one visit per link` instead, and name the
 functions in the prose beside it – rule 9. Reach for the backslash when the
 identifier *is* the point: the one line of a listing the figure is about, a
@@ -407,7 +475,7 @@ target, the final approach is exactly horizontal by construction rather than by
 arithmetic you would have to redo.
 
 **The commonest bend of all is one word.** `.elbow` leaves on the axis the two
-ends are furthest apart on, runs a rail halfway across the gap, and turns in:
+ends are furthest apart on, runs a rail across the gap, and turns in:
 one turn out, one turn in, no waypoints written. It is what a tree's brackets
 are made of, because the rail is measured between the two elements' facing
 sides and not between their centres – so several children of one parent, sitting
@@ -448,23 +516,26 @@ edge eve -> bob "forgery"
 
 # right: the fraction slides the attachment along the side, so they run parallel
 box  eve "Eve" at 0,0
-box  bob "Bob" right of eve gap 2.0 same as eve
+box  bob "Bob" right of eve
 edge eve.right:0.3 -> bob.left:0.3 "replay"  {.accent}
 edge eve.right:0.7 -> bob.left:0.7 "forgery" {.accent}
 ```
 
-Leaving out the `same as` is how this rule is usually got wrong: a fraction is
-measured along each box's own side, so the same fraction of two *different*
-heights lands at two different heights and the pair comes out very slightly
-skewed. The build says so by name – it is one of the two things the 4°-off-axis
-warning is written for.
+A fraction is measured along each box's own side, so the same fraction of two
+*different* heights lands at two different heights and the pair comes out very
+slightly skewed. Boxes placed `right of` one another share one height, which is
+what keeps the pair above level; the two ends of such a pair are not always
+peers – one placed against a third box, one written `{.own}` – and there the
+build says so by name, because it is one of the two things the 4°-off-axis
+warning is written for. `same h as eve` is the fix.
 
 **Being on the grid is not the same as being aligned**, which is worth saying
 because it looks as though it ought to be. Two boxes both placed at whole grid
 coordinates still have different centre lines the moment their heights differ,
 and a line leaving the middle of a shape an odd number of units high cannot
-land on a gridline at all. Alignment here comes from `same as`, from `align`,
-and from naming an anchor – never from the coordinates being round numbers.
+land on a gridline at all. Alignment here comes from a row of peers, from
+`same as`, from `align`, and from naming an anchor – never from the
+coordinates being round numbers.
 
 If an edge must pass *over* something on its way, put a `.paper` label at the
 crossing, or reroute. Do not leave two lines fused at a junction.
@@ -501,35 +572,80 @@ matrix row, an axis title. It is not a way to make a figure look busy.
 
 ## 11. Size is a claim, so make every size deliberate
 
-**Do:** give elements of the same kind the same size, with `same as`. Reach for
-a bigger box only where the thing in it really does contain or control the
-smaller ones.
+**Do:** nothing, for a row – the engine gives a run of `right of` boxes one
+size. Reach for a written size, or for `{.own}`, only where the thing in the
+bigger box really does contain or control the smaller ones.
 
 **Why:** relative size reads as importance (Carter). A box half again as wide as
 its neighbours is taken to be the important one before anyone has worked out
 why, and the usual reason it is wider is that its label happened to have more
 letters in it. That is the drawing making an argument the author never made.
+This rule is the one the engine took over: it is a default now, so the wrong
+picture is the one that costs a word.
 
 ```
 # wrong: three peers, and the middle one is twice the size of the others
-# because "Correlation engine" is twice as long a phrase
-box a "Sensor" at 0,0 {.tone-1}
-box b "Correlation engine" right of a gap 0.4 {.tone-1}
-box c "Log" right of b gap 0.4 {.tone-1}
+# because "Correlation engine" is twice as long a phrase. It takes a `.own`
+# per box to write it at all now – keep the shape in mind for a drawing you
+# did not make.
+box a "Sensor" at 0,0 {.tone-1 .own}
+box b "Correlation engine" right of a gap 0.4 {.tone-1 .own}
+box c "Log" right of b gap 0.4 {.tone-1 .own}
 
-# right: one width for the set, and the long label breaks instead
-box a "Sensor" at 0,0 w 1.5 h 0.85 {.tone-1}
-box b "Correlation\nengine" right of a gap 0.4 same as a {.tone-1}
-box c "Log" right of b gap 0.4 same as a {.tone-1}
+# right: say nothing, and break the long label where the phrase divides
+box a "Sensor" at 0,0 {.tone-1}
+box b "Correlation\nengine" right of a gap 0.4 {.tone-1}
+box c "Log" right of b gap 0.4 {.tone-1}
 ```
 
-The `\n` is the whole fix for the long one. There is no automatic line
-breaking, so the break is a decision, and putting it where the phrase divides
-reads better than any measure the build could take. The height on the first box
-is written out for a related reason: `same as` copies whatever size it finds, so
-a one-line box would hand a one-line height to the box that now has two lines in
-it. `.shrink` is the other answer where the box may not grow – but type size is
-a size claim too, and a room reads small type as less important.
+The `\n` is the whole remaining fix. There is no automatic line breaking, so the
+break is a decision, and putting it where the phrase divides reads better than
+any measure the build could take – and the row's three boxes then take the
+two-line height together, because they are peers. `.shrink` is the other answer
+where the box may not grow – but type size is a size claim too, and a room reads
+small type as less important.
+
+**Down a column the engine shares the width and not the height**, because a
+stack of bands is as often a record – a header, three fields, a signature – as
+it is a row on its side, and each band's height is what stands in it. Where a
+column really is a set of peers, `col a, b, c` says so in one line and shares
+both. `row a, b, c gap 0.8` is the same statement across, and it places what it
+names, so a row of peers is one line rather than one `same as` and one `gap` per
+box. Both are also the answer when a box stands in a row *and* a column and so
+comes out wider than its own row: a statement levels its members against
+everything else they stand in, where the implicit rule cannot. Where only one
+axis is shared – a one-line box that wants its neighbour's height and its own
+width – it is `same h as` / `same w as`.
+
+### And the slide has a size claim of its own
+
+**A figure is drawn on a fixed canvas, and the canvas is the same on every
+slide of the deck.** On a `.wide` chunk it is **36 base labels across and 16
+down**; `.full` gives 44 across, `.standard` 26, `.narrow` 20. That is what
+fits at the size of the words beside it, and it is not many: a base label is
+one em, so 36 across is four or five boxes in a row with their gaps. The build
+prints both numbers, and the miss in labels and in px, when a drawing misses
+the box in either direction.
+
+Two failures, and each has its own fix:
+
+- **Wider or taller than the canvas.** The drawing is scaled down to fit the
+  slide, so the labels come out smaller than the prose and the slide's whole
+  type follows them down – which the room reads as a heading that changes size
+  between consecutive slides. The fix is nearly always **one row too long**:
+  fewer columns of content, shorter labels, a `\n` in the long one, a second
+  figure on a second slide. Going wider does not help – `.wide` is already at
+  the frame – and stacking what was in a row buys width only until the height
+  reserve takes it back.
+- **Less than half the canvas used.** The slide stands mostly empty, and on a
+  chunk with prose under the drawing the reserve pushes the words down and
+  auto-fit shrinks them to make room for paper. Either the figure has more to
+  say than it is saying, or it is a specimen rather than a slide – and a
+  specimen writes `frame WxH` to reserve what it draws.
+
+A deck that is a catalogue of drawings rather than a talk turns the whole thing
+off with `frame none` in its `draw-defaults`. A deck whose figures are slides
+should not.
 
 ## 12. Lay the figure out the way the room reads it
 
@@ -580,14 +696,14 @@ slot, which the build refuses outright, nothing complains about the result.
 ```
 # wrong: bold as a category marker – every box shouts, so none does
 box cl "Client" at 0,0 {.tone-2 .bold}
-box sv "Server" right of cl gap 1.6 same as cl {.tone-2 .bold}
-box ca "CA"     above sv gap 0.7 same as cl {.tone-2 .bold}
+box sv "Server" right of cl gap 1.6 {.tone-2 .bold}
+box ca "CA"     above sv gap 0.7 {.tone-2 .bold}
 edge cl -> sv "ClientHello" {.paper .small}
 
 # right: the tone carries the category, the bold carries the emphasis
 box cl "Client" at 0,0 {.tone-2}
-box sv "Server" right of cl gap 1.6 same as cl {.tone-1 .bold}
-box ca "CA"     above sv gap 0.7 same as cl {.tone-1}
+box sv "Server" right of cl gap 1.6 {.tone-1 .bold}
+box ca "CA"     above sv gap 0.7 {.tone-1}
 edge cl -> sv "ClientHello" {.paper .small}
 ```
 
@@ -663,16 +779,16 @@ against.
 # wrong: one fill too pale to be a shape at all, three too loud to be
 # anything but the point, and a reversed label at .small
 box a "Collector"   at 0,0 w 1.3 {.bare .tone-1}
-box b "Store"       right of a gap 0.4 same as a {.bare .tone-4}
-box c "Correlator"  right of b gap 0.4 same as a {.bare .tone-4}
-box d "alerts only" right of c gap 0.4 same as a {.bare .tone-4 .small}
+box b "Store"       right of a gap 0.4 {.bare .tone-4}
+box c "Correlator"  right of b gap 0.4 {.bare .tone-4}
+box d "alerts only" right of c gap 0.4 {.bare .tone-4 .small}
 
 # right: one tone for the set, the solid fill spent on the one element
 # worth spending it on, and its label at full size
 box a "Collector"   at 0,0 w 1.3 {.bare .tone-3}
-box b "Store"       right of a gap 0.4 same as a {.bare .tone-3}
-box c "Correlator"  right of b gap 0.4 same as a {.bare .tone-3}
-box d "alerts only" right of c gap 0.4 same as a {.tone-4}
+box b "Store"       right of a gap 0.4 {.bare .tone-3}
+box c "Correlator"  right of b gap 0.4 {.bare .tone-3}
+box d "alerts only" right of c gap 0.4 {.tone-4}
 ```
 
 **The exception is a region rather than an object.** A `container` written
@@ -749,7 +865,7 @@ align x middle rt, i1, i2
 
 # right: leaves first, and every parent is the midpoint of what it signs
 box  l1 "www.example.org"  at 0,0 w 1.5
-box  l2 "mail.example.org" right of l1 gap 0.2 same as l1
+box  l2 "mail.example.org" right of l1 gap 0.2
 box  i1 "Issuing CA A" between l1,l2 offset 0,-1.5 w 1.5
 edge i1 -- l1 {.elbow .muted}
 edge i1 -- l2 {.elbow .muted}
@@ -766,6 +882,15 @@ wrong by a factor of the row count. `lanes` spells the same idea `band` and
 for its row and a tag for its column – `@t-row-2`, `@t-col-1` – so lighting a
 row per beat is one line of source rather than one cell name per column, kept in
 step with the table by hand.
+
+Four more things a table says in a word. A table of pairs – a key and its
+value, a term and its gloss – has no heading row, and `unheaded` on the line
+says so. A second table stacked under the first so their columns line up takes
+them with `same as <table>` rather than a second `col` list nobody knows to keep
+equal. A column ranged differently from the rest is `default box @t-col-0
+{.left}` above the table: `{.left}` on the table line lands on every cell, and
+no word takes it off one column again. And `{.large}` on the table grows the
+row height with the type, so no `row` has to be worked out for it.
 
 **Rows are entities and columns are properties, and the order of the rows is an
 argument.** Readers expect that shape and scan a column downwards looking for
@@ -1116,6 +1241,15 @@ Work down this list. It is written so it can be checked mechanically.
 1. `node lint.js <source.md>` is clean. No warnings talked past.
 2. `node build.js <source.md>` prints no `[diagram]` warning, or the source
    carries a comment saying why the remaining one is deliberate.
+2a. In particular, no `figure-overflows-canvas` and no
+   `figure-underfills-canvas`: the first is a drawing too big for the slide it
+   is on and the second is a slide standing empty, and both are told in labels
+   and in px with the `frame WxH` that would reserve what this drawing actually
+   draws. Rule 11 is where they are explained.
+2b. No overlap warning talked past either. The check measures ink – a label
+   line by line – so one that fires is a stroke really crossing words, and the
+   fix is the drawing. No `edge-short` either: every arrow has a shaft as well
+   as a head, which a gap nobody wrote always leaves.
 3. No edge runs at a slight angle. (The build says so; do not silence it by
    nudging – align the elements.)
 4. Every label that overlaps a line or a fill has a fill class of its own.
@@ -1156,22 +1290,26 @@ Work down this list. It is written so it can be checked mechanically.
 16. The figure is a figure at all: structure – what holds what, what connects
     to what, what is the same as what – rather than a procedure that would read
     better as prose, as a listing, or as a `::: script` block.
-17. Nothing is a different size by accident. Elements of one kind carry
-    `same as`, and every size difference left standing is a claim about
-    importance the figure means to make.
+17. Nothing is a different size by accident. A row or a column of peers is
+    one size because the build makes it so; every `{.own}`, every written
+    size and every size difference left standing is a claim about importance
+    the figure means to make.
 18. The flow runs left to right and top to bottom, unless the figure's subject
     is a return leg.
 19. `.bold` is on at most one element. No leader crosses another, and no `.bare`
     *box* carries a fill paler than `.tone-3` (a `.bare` container is a ground
     and is exempt).
-20. Every `_`, `^`, `*` and `~` in a label is meant. The first two subscript
-    and raise the character after them, so an identifier written `scan_page`
-    draws with a subscript in the middle of it and nothing reports it. Write
+20. Every `_`, `^`, `*` and `~` in a label is meant. Inside a word the first
+    two are drawn as typed, but one whose single character ends the word still
+    shifts it, so `MAX_N` draws a subscript N and nothing reports it. Write
     `\_` for the literal, and read every label carrying code once with that in
     mind.
 21. No plot holds more than three overlapping lines; a fourth is a second frame
     carrying the same `.muted` baseline. Every histogram is `space 0`, and no
     bar chart is.
+22. The last beat of every figure has been read at full size, in the frames
+    `node build.js <source.md> --frames` writes. A contact sheet finds the
+    slide; it is too small to show a line struck through by an outline.
 
 ---
 
@@ -1186,12 +1324,16 @@ Knowing the walls saves the time spent walking into them.
 - **No automatic routing.** Edges are straight segments through the waypoints
   you write. Nothing steps around a box for you, and nothing fans out parallel
   edges – that is what the `:0.3` / `:0.7` fractions are for. The single
-  coordinate the engine will invent for you is `.elbow`'s rail, and it is fixed
-  at halfway across the gap with no option to move it.
+  coordinate the engine will invent for you is `.elbow`'s rail, and you have no
+  option to move it: it sits halfway across the gap, unless halfway would leave
+  too little run after it for the arrowhead to read, in which case it sits
+  nearer the source. Where the gap is too small for even that, the build says
+  so and the number to change is the gap.
 - **No automatic line breaking.** A label breaks where you write `\n`, and
   nowhere else.
-- **No shadows and no gradients.** Drawing order is fixed too – containers,
-  images, braces, edges, then boxes, dots and texts – with one way out:
+- **No shadows and no gradients.** Drawing order is fixed too – zones,
+  containers, images, braces, edges, then boxes, dots and texts – with one way
+  out:
   `.front` on an edge moves it in front of the boxes. That is right for an
   axis and wrong for an arrow, which should be covered by the box it arrives
   at, so it is opt-in.

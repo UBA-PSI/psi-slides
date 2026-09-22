@@ -336,6 +336,86 @@ const FIXTURES = [
   { item: 12, accept: true, name: 'a box class on a sequence tail', body: SEQ + ' {.dim}' + SEQ_BODY },
   { item: 12, accept: true, name: 'a box class on a lanes tail', body: 'lanes l "one | two" at 0,0 w 4 band 0.8 {.sharp}' },
   { item: 12, accept: true, name: 'a box class on a table tail', body: 'table t "A|B" at 0,0 col 1,1 row 0.4 {.tone-2}\n  "1|2"' },
+
+  // ── DG_CLASS_VOIDS: a class that deletes what the next one draws on ──
+  // `.bare` takes the outline off and `.dashed` patterns an outline, so the
+  // pair draws nothing at all. Found five times in one real keynote, where
+  // `.clear` – no fill, outline kept – was what was meant every time. Both
+  // signs of the fix are here, and so is `.bare` alone, because the refusal
+  // has to be about the pair rather than about either word.
+  { item: 'voids', name: 'bare and dashed', body: PAIR + 'box b "B" below a gap 1 {.bare .dashed}' },
+  { item: 'voids', name: 'bare and dotted', body: PAIR + 'box b "B" below a gap 1 {.bare .dotted}' },
+  { item: 'voids', name: 'bare and dashed in a style step', body: PAIR + 'step s\n  style a {.bare .dashed}' },
+  { item: 'voids', name: 'bare and dashed on a table tail', body: 'table t "A|B" at 0,0 col 1,1 row 0.4 {.bare .dashed}\n  "1|2"' },
+  { item: 'voids', accept: true, name: 'clear and dashed', body: PAIR + 'box b "B" below a gap 1 {.clear .dashed}' },
+  { item: 'voids', accept: true, name: 'bare alone', body: PAIR + 'box b "B" below a gap 1 {.bare}' },
+  { item: 'voids', accept: true, name: 'dashed alone', body: PAIR + 'box b "B" below a gap 1 {.dashed}' },
+  // A removal is not the pair: `{!bare .dashed}` takes the swallowing class
+  // off a `default box` and is exactly the line an author should be able to
+  // write. Only the two positives together are refused.
+  { item: 'voids', accept: true, name: 'bare removed beside dashed', body: 'default box {.bare}\n' + PAIR + 'box b "B" below a gap 1 {!bare .dashed}' },
+
+  // ── anchor: which point of the element meets the coordinate ────────
+  // A placement option, so only the two forms that resolve to a *point* take
+  // it, and it has to be written where the placement expression ends – after
+  // `w` the parser has already left the expression and nothing reads it.
+  { item: 'anchor', accept: true, name: 'anchor on an at', body: PAIR + 'text t "T" at 1,1 anchor tl' },
+  { item: 'anchor', accept: true, name: 'anchor on a between', body: PAIR + 'text t "T" between a,c anchor bl' },
+  { item: 'anchor', accept: true, name: 'anchor before the numbers', body: PAIR + 'box b "B" at 1,1 anchor tl w 2 h 1' },
+  { item: 'anchor', accept: true, name: 'anchor center is the default written out', body: PAIR + 'text t "T" at 1,1 anchor center' },
+  { item: 'anchor', accept: true, name: 'anchor on a table', body: 'table t "A|B" at 0,0 anchor tl col 1,1 row 0.4\n  "1|2"' },
+  { item: 'anchor', accept: true, name: 'anchor in a move', body: PAIR + 'step s\n  move a to 3,3' },
+  { item: 'anchor', name: 'anchor on a relative placement', body: PAIR + 'box b "B" right of a gap 1 anchor tl' },
+  { item: 'anchor', name: 'anchor middle', body: PAIR + 'text t "T" at 1,1 anchor middle' },
+  { item: 'anchor', name: 'anchor with no word', body: PAIR + 'text t "T" at 1,1 anchor' },
+  { item: 'anchor', name: 'anchor after the numbers', body: PAIR + 'box b "B" at 1,1 w 2 h 1 anchor tl' },
+  { item: 'anchor', name: 'anchor as a class', body: PAIR + 'text t "T" at 1,1 {.anchor}' },
+
+  // ── zone: a named area of fixed size ──────────────────────────────
+  // The size is the statement's whole promise, so both numbers are required –
+  // that is what separates it from a `container`, which fits its members and
+  // is invisible without them.
+  { item: 'zone', accept: true, name: 'a zone', body: 'zone z at 0,0 w 3 h 2 "At home"\n' + 'box a "A" at 4,0' },
+  { item: 'zone', accept: true, name: 'a zone with a corner and a look', body: 'zone z at 0,0 w 3 h 2 "Z" {.right .bottom .tone-2 .dotted}\nbox a "A" at 4,0' },
+  { item: 'zone', accept: true, name: 'a box placed against a zone', body: 'zone z at 0,0 w 3 h 2 "Z"\nbox a "A" at z.left+0.6,z.cy' },
+  { item: 'zone', accept: true, name: 'a zone hidden in a step', body: 'zone z at 0,0 w 3 h 2 "Z"\nbox a "A" at 4,0\nstep s\n  hide z' },
+  { item: 'zone', accept: true, name: 'a zone caption named in a step', body: 'zone z at 0,0 w 3 h 2 "Z"\nbox a "A" at 4,0\nstep s\n  hide z-cap' },
+  { item: 'zone', accept: true, name: 'the generated tag', body: 'zone z at 0,0 w 3 h 2 "Z"\nbox a "A" at 4,0\nstep s\n  emph @z-parts' },
+  { item: 'zone', name: 'a zone with no w', body: 'zone z at 0,0 h 2 "Z"\nbox a "A" at 4,0' },
+  { item: 'zone', name: 'a zone with no h', body: 'zone z at 0,0 w 3 "Z"\nbox a "A" at 4,0' },
+  { item: 'zone', name: 'a zone with no name', body: 'box a "A" at 0,0\nzone at 2,0 w 3 h 2 "Z"' },
+  { item: 'zone', name: 'an edge class on a zone', body: 'zone z at 0,0 w 3 h 2 "Z" {.smooth}\nbox a "A" at 4,0' },
+  { item: 'zone', name: 'point on a zone', body: 'zone z at 0,0 w 3 h 2 "Z" point up\nbox a "A" at 4,0' },
+
+  // ── table: a first row that is not a heading ──────────────────────
+  { item: 'table', accept: true, name: 'unheaded', body: 'table t "A|B" at 0,0 col 1,1\n  "1|2"' },
+  { item: 'table', accept: true, name: 'unheaded beside a row height', body: 'table t "A|B" at 0,0 col 1,1 unheaded row 0.5\n  "1|2"' },
+  { item: 'table', accept: true, name: 'a large table with no row height', body: 'table t "A|B" at 0,0 col 1,1 {.large}\n  "1|2"' },
+  // ── table: `same as` copies another table's columns ───────────────
+  // The four refusals, and the two acceptances that keep them honest. The
+  // count check is the one a linter could plausibly have skipped: both heading
+  // strings are on their own lines and the answer is the number of parts in
+  // each, so it is decidable here and it is a fixture for that reason.
+  { item: 'table', accept: true, name: 'two tables sharing columns',
+    body: 'table a "A|B" at 0,0 col 1,2\n  "1|2"\ntable b "C|D" same as a below a gap 0.5\n  "3|4"' },
+  { item: 'table', accept: true, name: 'a copied table with a space of its own',
+    body: 'table a "A|B" at 0,0 col 1,2 space 0.1\n  "1|2"\ntable b "C|D" same as a space 0.3 below a gap 0.5\n  "3|4"' },
+  { item: 'table', name: 'same as beside col',
+    body: 'table a "A|B" at 0,0 col 1,2\n  "1|2"\ntable b "C|D" same as a col 3,4 below a gap 0.5\n  "3|4"' },
+  { item: 'table', name: 'same as beside w',
+    body: 'table a "A|B" at 0,0 col 1,2\n  "1|2"\ntable b "C|D" same as a w 4 below a gap 0.5\n  "3|4"' },
+  { item: 'table', name: 'same as a table with another number of columns',
+    body: 'table a "A|B" at 0,0 col 1,2\n  "1|2"\ntable b "C|D|E" same as a below a gap 0.5\n  "3|4|5"' },
+  { item: 'table', name: 'same as a table declared below it',
+    body: 'table b "C|D" same as a at 0,0\n  "3|4"\ntable a "A|B" col 1,2 below b gap 0.5\n  "1|2"' },
+  { item: 'table', name: 'same as something that is not a table',
+    body: 'box x "X" at 0,0\ntable b "C|D" same as x below x gap 0.5\n  "3|4"' },
+  // `unheaded` on a `lanes` and `unnumbered` on a `table` are both refused by
+  // the build and passed by the linter, and deliberately not fixtures here:
+  // they are the one documented asymmetry of this pair, an *unknown option
+  // name* on one of the seven expanding statements, which deciding means
+  // re-implementing `readGridOpts` in a zero-dep linter. The build names the
+  // line. See the `psi-slides-figures` skill.
 ];
 
 // Item 13's scope table, paired: every head state, both signs, in all three
@@ -437,6 +517,39 @@ export async function run({ report }) {
     });
   }
 
+  // ── a row of labels that is not a row ─────────────────────────────
+  // `diagram-ragged-labels` used to live here: two or more free texts sharing
+  // a written `at` x, each carrying `.left` or `.right`, each centred on the
+  // coordinate anyway and so staggered by half the difference in label width.
+  // The rule is gone because the geometry is – a `.left` free text at an
+  // absolute coordinate is anchored on that edge now – so what is asserted is
+  // that the linter has nothing to say about a row it can no longer describe,
+  // and that every one of these still builds.
+  //
+  // `align x left` is not retired with it: it is still how a set with three
+  // different coordinates is held to one edge, and it still silences nothing
+  // because there is nothing left to silence.
+  {
+    const ROW = (tail, extra = '') => 'box z "Z" at 0,0 w 3 h 2\n'
+      + `text a "short" at z.left,z.cy ${tail}\n`
+      + `text b "a much longer line" at z.left,z.top ${tail}\n${extra}`;
+    const CASES = [
+      { name: 'two .left texts at one x', body: ROW('{.left}') },
+      { name: 'the same with .right', body: ROW('{.right}') },
+      { name: 'both anchored', body: ROW('anchor left {.left}') },
+      { name: 'one written anchor center', body: ROW('anchor center {.left}') },
+      { name: 'held by an align x', body: ROW('{.left}', 'align x left a, b') },
+      { name: 'two centred texts at one x', body: ROW('') },
+    ];
+    const lintOf = lintAll(CASES);
+    CASES.forEach((c, i) => {
+      ok(render(c.body).ok, `left-anchored labels: ${c.name} still builds`, '(refused)');
+      const said = lintOf[i].filter((f) => f.rule === 'diagram-ragged-labels');
+      ok(said.length === 0, `no ragged-labels rule survives: ${c.name}`,
+        said.map((f) => f.msg).join(' | '));
+    });
+  }
+
   // ── the two placement tables, against the compiler ────────────────
   // `DG_PLACED_HEADS` and `DG_PLACE_INTRO` are read by `lint.js` and by
   // nothing else, so nothing forces them to stay true as the grammar grows –
@@ -444,7 +557,10 @@ export async function run({ report }) {
   // silently blind rather than loudly wrong. This is the guard: every
   // statement in `DG_KEYWORDS` is either placed or on the exempt list, so a
   // new one fails here until somebody classifies it.
-  const EXEMPT = new Set(['edge', 'container', 'brace', 'align', 'spread', 'default', 'step']);
+  // `row` and `col` join `align` and `spread` here for the same reason: they
+  // name elements that already exist and draw nothing of their own.
+  const EXEMPT = new Set(['edge', 'container', 'brace', 'align', 'spread', 'row', 'col',
+    'default', 'step']);
   for (const head of DG_KEYWORDS) {
     ok(DG_PLACED_HEADS.has(head) !== EXEMPT.has(head),
       `${head} is classified: it either takes a placement or is exempt`,
@@ -453,10 +569,12 @@ export async function run({ report }) {
   // And every intro word really introduces one, on a real second element.
   const INTRO_BODY = {
     at: 'at 1,1', between: 'between a,c', below: 'below a gap 1', above: 'above a gap 1',
-    right: 'right of a gap 1', left: 'left of a gap 1',
+    right: 'right of a gap 1', left: 'left of a gap 1', in: 'in z',
   };
   for (const w of DG_PLACE_INTRO) {
-    const r = render(QUAD + `box b "B" ${INTRO_BODY[w]}`);
+    // `in` needs an area to be placed in, and only that word does.
+    const r = render(QUAD + (w === 'in' ? 'zone z at 4,0 w 3 h 2 "Z"\n' : '')
+      + `box b "B" ${INTRO_BODY[w]}`);
     ok(r.ok, `"${w}" introduces a placement the compiler accepts`,
       INTRO_BODY[w] ? (r.ok ? '' : r.msg.split('\n')[1]) : 'no fixture for this word – add one');
   }

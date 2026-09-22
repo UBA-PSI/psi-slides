@@ -5,6 +5,12 @@ theme: dark
 collapse: none
 auto-fit: true
 draw-defaults: |
+  # A catalogue, not a talk: most of these drawings are two boxes showing one
+  # statement, standing on a slide of prose that explains it. The default
+  # canvas reserves a talk's figure box for each of them, which here means
+  # half a slide of paper under a specimen and, on eleven slides, auto-fit
+  # taking the prose down to make room for it.
+  frame none
   default text {.small}
   default container pad 0.34
 ---
@@ -347,7 +353,12 @@ edge howto ver1 -- ver2 {.muted .dotted @proto}
 text eg   "e.g." between ver1,ver2 pad 0.12 {.paper .muted @proto}
 align y middle macA, ver1
 
-text goals "Security goals: *integrity*\nand *authenticity* but\n~not non-repudiation~" at 3.55,-1.05 {.left .serif}
+# `.left` on a free text at a coordinate anchors it on that edge. This block
+# is a paragraph centred over Bob rather than a caption starting at a point,
+# so it says so: anchor center is how a ranged label keeps its old centring.
+# Its last line is a whole line in the quiet mark, so it is the second
+# register: the claim in the reading size, the qualification under it.
+text goals "Security goals: *integrity*\nand *authenticity*\n~but not non-repudiation~" at 3.55,-1.05 anchor center {.left .serif}
 
 step protocol
   show @proto
@@ -384,7 +395,10 @@ edge b -> x {.dashed}
 ## figure: Alignment {.wide #alignment}
 
 ::: draw 140x70
-default box {.tone-2}
+# `.own` on every box, because this figure's whole subject is what uneven
+# widths do to a row. A run of `right of` boxes shares one size by default now,
+# which would make both rows level and leave nothing to compare.
+default box {.tone-2 .own}
 
 box a "one"                     at 0,0
 box b "a much longer label"     right of a gap 1.2
@@ -706,6 +720,69 @@ With more than one line **the whole block of lines moves, not the single line**,
 **A box label and an edge label are two different questions, and only one of them has nine answers.** A box label sits somewhere in a rectangle of space, so there are three answers across and three down. An edge label lies on one side of its line or the other, and that is all. The same four words for both meant `{.top .left}` was writable on an edge, which has only one side to pick. On an edge it is therefore `side <word>`, the pattern `point` follows on the outlines: a closed word list as an option instead of a class per word. Which pair can choose at all is settled only once the line is routed, so naming the other one draws a warning.
 
 
+## figure: A corner, not a centre {.full #anchor}
+
+::: side 1:1
+::: draw 128x64
+# `at` names a point and the element meets it by its centre, so three labels
+# of three lengths start at three different left edges however loudly .left
+# aligns the lines inside each of them. `anchor center` is that default
+# written out - which is also what tells the linter this row is deliberate.
+zone bad at 0,0 w 3.4 h 1.7 "the centre"
+text b1 "short"               at bad.left+0.95,bad.cy-0.38 anchor center {.left}
+text b2 "a much longer label" at bad.left+0.95,bad.cy      anchor center {.left}
+text b3 "middling"            at bad.left+0.95,bad.cy+0.38 anchor center {.left}
+
+# The same three lines with one word added: the coordinate is now each
+# label's own left edge instead of its middle.
+zone good at bad.cx,bad.bottom+1.2 w 3.4 h 1.7 "anchor left" {.tone-1}
+text g1 "short"               at good.left+0.95,good.cy-0.38 anchor left {.left}
+text g2 "a much longer label" at good.left+0.95,good.cy      anchor left {.left}
+text g3 "middling"            at good.left+0.95,good.cy+0.38 anchor left {.left}
+
+# The rule is where the coordinate is, drawn through both frames so that the
+# staggered edges above and the one edge below are read against the same line.
+edge rule bad.left+0.95,bad.top-0.3 -- good.left+0.95,good.bottom+0.3 {.dashed .muted}
+:::
+
+::: flip
+**`at X,Y` names a point, and `anchor` says which point of the element lands on it.** Nine words, the same nine an edge endpoint spells – `tl` `top` `tr` / `left` `center` `right` / `bl` `bottom` `br` – with `center` the default. It is an option of the *placement*, so it goes directly after it, and it is refused on `right of` / `below`, which name a face rather than a coordinate and answer the same question with `flush`.
+
+**The four alignment classes and `anchor` are one step apart.** `.left` places a run of words inside the element's own box; `anchor left` places the box against the coordinate. A row of labels needs the second, or the first lines up the insides of three boxes that are themselves staggered. For a set, `align x left a, b, c` is the other right answer; `anchor` is for the element with no set to join.
+
+**A `zone` is the frame the two rows stand in: fixed size, name in a corner, painted under everything.** Fixed size is the whole difference from a `container`, which fits its members and is invisible without them – an area is a claim on the paper that holds from beat 0. Being painted first whatever line it is on lets it be declared *after* its contents, which is the order anyone writes in.
+:::
+
+
+## figure: An area, and what stands in it {.full #in-zone}
+
+::: side 1:1
+::: draw 128x64
+# Left: an area with both numbers written. `in home` puts the run in the band
+# the area reserves under its caption - the pad plus the caption's own line -
+# and `center` centres the whole run in it rather than its first box.
+zone home at 0,0 w 4.2 h 2.2 "at home"
+box draft "draft" {.tone-2}
+box notes "notes" {.tone-2}
+row draft, notes gap 0.5 in home center
+
+# Right: the same statement with no `w`. The area is as wide as what stands in
+# it, like a container, and keeps its ground, its caption and its place under
+# everything, like an area. The height is written, so `bottom` has a band to
+# be at the bottom of.
+zone room right of home gap 0.6 h 2.2 "in the room"
+box defence "defence" in room {.tone-1}
+text under "two questions,\nnot prepared" in room bottom {.small .muted}
+:::
+
+::: flip
+**An area reserves a band, and `in` is how something is placed in it.** The band is the area minus its `pad` on all four sides and minus the caption's own line on the side the caption is on, so `in home` lands on the first paper the caption does not already own – no `+0.45` anywhere. The five words after it name a corner of that band: `left` / `right` across, `top` / `bottom` down, `center` on either. They are words of the placement, not classes, because `.left` on a box already says where its label sits inside its outline.
+
+**`row draft, notes in home center` places the run, not its first box.** The alignment is answered against the extent of everything the row names, which is the one thing no coordinate on a single member's line can state. `home.inner.left` and its five companions are the same six coordinates read off the band, for the placement that wants to be written out.
+
+**`w` and `h` are optional, and an axis nobody writes is the one the contents settle.** `room` is as wide as the widest thing placed in it plus the pad; its height is written, which is what lets `bottom` mean anything. That closes the split with `container`: an area sized by its contents keeps its ground, its caption and its place under everything, and an area with both numbers is the fixed claim on the paper it always was.
+:::
+
 ## figure: Six statements that expand {.full #expand}
 
 ::: draw 150x62
@@ -910,7 +987,7 @@ lanes swim "User | SOC | IT ops" at 0,0 w 7.25 band 1.0 {.muted}
 box rep  "Phishing mail\nreported" at swim.left+0.8,swim-0.cy w 1.4 {.tone-2}
 box tri  "Triage"                  at swim.left+2.9,swim-1.cy w 1.0 {.tone-1}
 box hunt "Who else\ngot it?"       at swim.left+4.85,swim-1.cy w 1.2 {.tone-1}
-box blk  "Sender blocked"          at swim.left+6.35,swim-2.cy w 1.4 {.tone-4}
+box blk  "Sender blocked"          at swim.left+6.5,swim-2.cy w 1.4 {.tone-4}
 
 # Every hand-off changes band, which is what .elbow is for: a straight line
 # from here to there would run diagonally through a band it never enters.
@@ -928,7 +1005,7 @@ step answered
 
 **The bands are equal, their contents are not, and that is why they are no `container`.** A container measures itself against what it holds, so three bands with different numbers of boxes would come out different lengths at both ends – the one thing a swimlane diagram must not say. `lanes` lays the frame, divides it into bands of equal height and writes the names turned on end in front of the left edge; the bands are `.clear` so that everything in them reads over them. It needs no time axis: the reading direction is the axis.
 
-**Every hand-off changes band, and `.elbow` is the routing for it.** The class draws two waypoints itself – a rail halfway across the gap, on the axis the two ends are further apart on – instead of the same double bend written out by hand on every edge. A straight line would do something else: it would run diagonally through a band it never enters, and the room reads that as involvement.
+**Every hand-off changes band, and `.elbow` is the routing for it.** The class draws two waypoints itself – a rail across the gap, on the axis the two ends are further apart on – instead of the same double bend written out by hand on every edge. A straight line would do something else: it would run diagonally through a band it never enters, and the room reads that as involvement.
 
 **The one edge label sits *beside* the line, not on it.** “same sender” describes what travels along the line, and a sentence with a rule through the middle of it is read as two fragments before it is read as a sentence. `side top` lifts it over the line; on a vertical edge it would be `side left` and `side right`, and which pair applies is known only once the edge has been routed – so the wrong pair is a warning at build time rather than an error at parse time. The label is moved clear by what it measures *across* the line: beside a horizontal edge its height, beside a vertical one its width, there with a margin, because a gap across a line of type needs more air than one above it. This label needs no ground: there is nothing but band under it. What a ground does, and how large it may be, is on *A frame to draw in*.
 
@@ -940,16 +1017,21 @@ default box {.tone-2} w 1.35
 # The leaves are the fixed points, because they are what this is about. Every
 # level above sits between its own children: move a leaf and everything above
 # re-centres, with no second line knowing about it.
+# A run of `right of` boxes is one width already, so the four leaves need no
+# line to say they are peers.
 box l1 "www.example.org"  at 0,0 {.tone-3 @leaves}
-box l2 "mail.example.org" right of l1 gap 0.2 same as l1 {.tone-3 @leaves}
+box l2 "mail.example.org" right of l1 gap 0.2 {.tone-3 @leaves}
 # The gap between the two subtrees is four times the gap inside one. That
 # makes them two groups before anybody reads a word.
-box l3 "shop.example.com" right of l2 gap 0.8 same as l1 {.tone-3 @leaves}
-box l4 "vpn.example.com"  right of l3 gap 0.2 same as l1 {.tone-3 @leaves}
+box l3 "shop.example.com" right of l2 gap 0.8 {.tone-3 @leaves}
+box l4 "vpn.example.com"  right of l3 gap 0.2 {.tone-3 @leaves}
 
-box i1 "Issuing CA A" between l1,l2 offset 0,-2.2 w 1.2 {@issuers}
-box i2 "Issuing CA B" between l3,l4 offset 0,-2.2 w 1.2 {@issuers}
-box rt "Root CA"      between i1,i2 offset 0,-2.2 w 1.2 {.tone-1}
+# Three levels 1.8 rows apart rather than 2.2: the slide allows a figure 558
+# px of height, and a tree taller than that is drawn smaller than the words
+# beside it. The rows of a tree carry the argument, not the air between them.
+box i1 "Issuing CA A" between l1,l2 offset 0,-1.8 w 1.2 {@issuers}
+box i2 "Issuing CA B" between l3,l4 offset 0,-1.8 w 1.2 {@issuers}
+box rt "Root CA"      between i1,i2 offset 0,-1.8 w 1.2 {.tone-1}
 
 edge rt -- i1 {.elbow .muted}
 edge rt -- i2 {.elbow .muted}
@@ -970,7 +1052,7 @@ step certificates
 
 ## free: One word draws all six brackets {.wide #tree-elbow}
 
-**Every bracket in that tree is the same word, written six times.** `.elbow` leaves one end on the axis the two are further apart on, runs a rail halfway across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements' *facing edges*, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with `via`; both on one line is an error. `.elbow` shares a slot with `.smooth`: how a line is drawn is a question with exactly one answer.
+**Every bracket in that tree is the same word, written six times.** `.elbow` leaves one end on the axis the two are further apart on, runs a rail across the gap and arrives on the same axis; both attachment points are forced onto that axis, whatever the automatic choice would otherwise have taken. The rail is measured between the two elements' *facing edges*, not between their centres, so it lies on one line for both children of an issuer and the pair reads as one bracket rather than as two connectors. By hand that would be twelve waypoints, recomputed every time a level changes its spacing. Put the rail somewhere else with `via`; both on one line is an error. `.elbow` shares a slot with `.smooth`: how a line is drawn is a question with exactly one answer.
 
 **Its dashed box stands around the whole set before the set is assembled.** It is written into the same beat as the issuers (`show @issuers, scope`), though its other two members arrive a beat later. Without the written `show` the usual rule applies: an outline is only as visible as its members and fits itself to the ones you can see, so it would first have grown around the issuer alone and then opened downwards. Naming it gets you both the visibility *and* the full extent. That is what the exception is for, and it is expressly not for the ordinary case.
 
@@ -1004,13 +1086,24 @@ step every-one-has-an-answer
 
 **Five rows by three columns is fifteen boxes, each with its own name, width and placement, and a `below` chain to re-aim whenever a row is inserted.** `table` writes them: the heading is one string split on `|`, the data rows are the bare strings under it, `col` gives a width per column and `row` the height of one row. The attribute tail `{.clear .bare .left}` **lands on the cells and not on the frame**, which is what makes a table here a text block rather than a grid of little boxes. The rule under the heading is an ordinary edge between two coordinates, each half from the frame and half from the first cell.
 
+**The first row is a heading, and `unheaded` says it is not.** It takes away exactly the bold: the string is still the row that fixes the column count, its cells are still `t-<col>-0` and `@t-row-0` still names it. A table of pairs – a key/value block, a legend, a run of definitions – had no way to be written before, and a heading of empty strings drew an empty bold row that still took its height. **`row` follows the type size when it is not written**, so `{.large}` no longer puts type in a box too short for it and nobody has to work the number out by hand.
+
 **Every cell carries two generated tags, `@t-row-N` and `@t-col-N`.** So a row is one beat and a column is one beat, one line of source each – where otherwise every beat would carry three cell names to keep in step with the table by hand. Row 0 is the heading, so count from 1 when you mean data.
 
 **The last beat is the one that reaches the handout.** A figure that lights one row after another and then stops comes out of the printer with its last row glowing, reporting a moment in the talk rather than the table. A fourth beat here takes the emphasis off again and tints the countermeasures column instead – the picture that says something without a talk around it. That it costs a beat is why the prominence verbs need no such thing: prominence a `step` sets is an act in the talk, and print takes its prominence from the opening beat. Prominence on an element's own line describes the drawing, and reaches the handout.
 
 ## figure: A protocol down the page | a sequence {.full #sequence}
 
-::: draw 150x40
+::: draw 150x14
+# A row of 14 px rather than the 40 the other figures here use, because on a
+# sequence the grid's row is the air between the bands and nothing else:
+# `space`, a label's ground and the tail of a lifeline are all counted in it,
+# while every band is as tall as the words standing in it. At the wider row
+# this figure stood 647 px against the 558 px a slide allows, so the whole
+# drawing was scaled down and its labels landed at 13 px. Two payloads that
+# read as part of their own message moved up onto its line for the same
+# reason: a second line is a band of its own.
+#
 # The participants are lines of their own, because each needs a name to hold
 # on to and an attribute tail of its own. Everything below is either a message
 # (an arrow between two names) or a note.
@@ -1027,9 +1120,9 @@ sequence wa at 0,0
   note br,au "CTAP runs over USB, NFC or BLE"
   au -> u  "prompt: PIN or biometric"
   u  -> au "user verified locally"
-  note au "generate key pair\nbind to SHA-256(rp.id)\nstore privately · emit publicly"
-  au -> br "attestation object" "authData (public key, cred ID) · signature" {.dashed}
-  br -> rp "attestationObject + clientDataJSON" "clientDataJSON carries challenge · origin"
+  note au "generate key pair · bind to SHA-256(rp.id)\nstore privately · emit publicly"
+  au -> br "attestation object · authData (public key, cred ID) · signature" {.dashed}
+  br -> rp "attestationObject + clientDataJSON, carrying challenge · origin"
   rp -> rp "verify signature · check origin"
 
 # Two annotations the statement knows nothing about: ordinary lines hung off
@@ -1090,7 +1183,7 @@ brace tun over tunnel side right "this is the payload" pad 0.35 {.muted .small}
 
 ## free: A self-message, a note, and the air between bands {.wide #seq-entries}
 
-**A self-message is the usual way to put a local action into the sequence**, and it loops out of the lifeline and back in. Its label stands beside the loop, its second line under it. A note between two names sits midway between their lifelines and is as wide as its own text – not as wide as the span, or three words become a banner. It breaks at `\n`, so a three-line note stays a note.
+**A self-message is the usual way to put a local action into the sequence**, and it loops out of the lifeline and back in. Its label stands beside the loop, its second line under it. A note between two names sits midway between their lifelines and is as wide as its own text – not as wide as the span, or three words become a banner. It breaks at `\n`, so a note of several lines stays a note.
 
 **`space` on an entry line is the air above that one band.** The tunnel at the foot of *What else a message can be* carries `space 0.9` and stands visibly apart from the setup over it; two or three such gaps break a long exchange into phases a room can hold. A blank line in the source does not do this: the statement reads through blank lines, so the source may be grouped however it reads best. On an `actor` line `space` is an error, there being no band above the heads.
 
