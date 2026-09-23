@@ -640,8 +640,10 @@ code.nb { white-space: nowrap; }
    spaced reaches only a span that HAS whitespace in it – the codespan
    renderer marks the others .nb – because the hole it closes is the mono
    word space and one token has none. The margin lifts the gaps around the
-   span to about 0.4em of the prose; the negative word-spacing pulls the gaps
-   inside it from about 0.49em down to about 0.31em. Outer wider than inner
+   span to about 0.42em of the prose; the negative word-spacing pulls the gaps
+   inside it from about 0.53em down to about 0.28em (Literata, measured - its
+   word space is only 0.2em, and both values are in em of the code, which is
+   sized to about 0.885 of the prose). Outer wider than inner
    is the whole point, and a margin big enough to carry that alone would
    indent the line a span opens.
 
@@ -652,8 +654,8 @@ code.nb { white-space: nowrap; }
    it from its neighbours, and the two together read as a gap. */
 .chunk-body code:not(pre code):not(.embed-blocked code):not(.nb),
 .exp-body code:not(pre code):not(.nb) {
-  margin: 0 0.15em;
-  word-spacing: -0.2em;
+  margin: 0 0.25em;
+  word-spacing: -0.28em;
 }
 body[data-code=tint] .chunk-body code:not(pre code):not(.embed-blocked code),
 body[data-code=tint] .exp-body code:not(pre code) {
@@ -6845,7 +6847,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="arrows" data-chunk-id="arrows" data-tag="example" data-width="standard" data-chunk-num="7">
+<article class="chunk chunk-free" id="arrows" data-chunk-id="arrows" data-tag="free" data-width="standard" data-chunk-num="7">
   
   <div class="chunk-content">
     
@@ -6877,7 +6879,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="expand" data-chunk-id="expand" data-tag="example" data-width="wide" data-chunk-num="8">
+<article class="chunk chunk-free" id="expand" data-chunk-id="expand" data-tag="free" data-width="wide" data-chunk-num="8">
   
   <div class="chunk-content">
     
@@ -6916,7 +6918,7 @@ goes in it.</p>
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="figure-focus" data-chunk-id="figure-focus" data-tag="example" data-width="wide" data-blocks="left" data-chunk-num="9">
+<article class="chunk chunk-free" id="figure-focus" data-chunk-id="figure-focus" data-tag="free" data-width="wide" data-blocks="left" data-chunk-num="9">
   
   <div class="chunk-content">
     
@@ -6942,7 +6944,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>9</i></div>
 </article>
-<article class="chunk chunk-example" id="select-text" data-chunk-id="select-text" data-tag="example" data-width="standard" data-chunk-num="10">
+<article class="chunk chunk-free" id="select-text" data-chunk-id="select-text" data-tag="free" data-width="standard" data-chunk-num="10">
   
   <div class="chunk-content">
     
@@ -6963,7 +6965,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>0</i></div>
 </article>
-<article class="chunk chunk-example" id="links" data-chunk-id="links" data-tag="example" data-width="standard" data-chunk-num="11">
+<article class="chunk chunk-free" id="links" data-chunk-id="links" data-tag="free" data-width="standard" data-chunk-num="11">
   
   <div class="chunk-content">
     
@@ -7028,7 +7030,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>2</i></div>
 </article>
-<article class="chunk chunk-example" id="overview" data-chunk-id="overview" data-tag="example" data-width="standard" data-chunk-num="13">
+<article class="chunk chunk-free" id="overview" data-chunk-id="overview" data-tag="free" data-width="standard" data-chunk-num="13">
   
   <div class="chunk-content">
     
@@ -7056,7 +7058,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>3</i></div>
 </article>
-<article class="chunk chunk-example" id="toc" data-chunk-id="toc" data-tag="example" data-width="standard" data-chunk-num="14">
+<article class="chunk chunk-free" id="toc" data-chunk-id="toc" data-tag="free" data-width="standard" data-chunk-num="14">
   
   <div class="chunk-content">
     
@@ -7078,7 +7080,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>4</i></div>
 </article>
-<article class="chunk chunk-example" id="search" data-chunk-id="search" data-tag="example" data-width="standard" data-chunk-num="15">
+<article class="chunk chunk-free" id="search" data-chunk-id="search" data-tag="free" data-width="standard" data-chunk-num="15">
   
   <div class="chunk-content">
     
@@ -7161,7 +7163,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="derived-mode" data-chunk-id="derived-mode" data-tag="example" data-width="wide" data-chunk-num="18">
+<article class="chunk chunk-free" id="derived-mode" data-chunk-id="derived-mode" data-tag="free" data-width="wide" data-chunk-num="18">
   
   <div class="chunk-content">
     
@@ -7186,7 +7188,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="explicit-mode" data-chunk-id="explicit-mode" data-tag="example" data-width="wide" data-chunk-num="19">
+<article class="chunk chunk-free" id="explicit-mode" data-chunk-id="explicit-mode" data-tag="free" data-width="wide" data-chunk-num="19">
   
   <div class="chunk-content">
     
@@ -7219,7 +7221,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>1</i><i>9</i></div>
 </article>
-<article class="chunk chunk-example" id="script-mode" data-chunk-id="script-mode" data-tag="example" data-width="wide" data-chunk-num="20">
+<article class="chunk chunk-free" id="script-mode" data-chunk-id="script-mode" data-tag="free" data-width="wide" data-chunk-num="20">
   
   <div class="chunk-content">
     
@@ -7462,7 +7464,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="cockpit-layout" data-chunk-id="cockpit-layout" data-tag="example" data-width="wide" data-chunk-num="27">
+<article class="chunk chunk-free" id="cockpit-layout" data-chunk-id="cockpit-layout" data-tag="free" data-width="wide" data-chunk-num="27">
   
   <div class="chunk-content">
     
@@ -7498,7 +7500,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="notes-vs-annot" data-chunk-id="notes-vs-annot" data-tag="example" data-width="wide" data-chunk-num="28">
+<article class="chunk chunk-free" id="notes-vs-annot" data-chunk-id="notes-vs-annot" data-tag="free" data-width="wide" data-chunk-num="28">
   
   <div class="chunk-content">
     
@@ -7530,7 +7532,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="cue-cards" data-chunk-id="cue-cards" data-tag="example" data-width="wide" data-chunk-num="29">
+<article class="chunk chunk-free" id="cue-cards" data-chunk-id="cue-cards" data-tag="free" data-width="wide" data-chunk-num="29">
   
   <div class="chunk-content">
     
@@ -7555,7 +7557,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>2</i><i>9</i></div>
 </article>
-<article class="chunk chunk-example" id="knobs" data-chunk-id="knobs" data-tag="example" data-width="wide" data-chunk-num="30">
+<article class="chunk chunk-free" id="knobs" data-chunk-id="knobs" data-tag="free" data-width="wide" data-chunk-num="30">
   
   <div class="chunk-content">
     
@@ -7587,7 +7589,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>0</i></div>
 </article>
-<article class="chunk chunk-example" id="knobs-touch" data-chunk-id="knobs-touch" data-tag="example" data-width="wide" data-chunk-num="31">
+<article class="chunk chunk-free" id="knobs-touch" data-chunk-id="knobs-touch" data-tag="free" data-width="wide" data-chunk-num="31">
   
   <div class="chunk-content">
     
@@ -7608,7 +7610,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>1</i></div>
 </article>
-<article class="chunk chunk-example" id="knobs-modes" data-chunk-id="knobs-modes" data-tag="example" data-width="wide" data-chunk-num="32">
+<article class="chunk chunk-free" id="knobs-modes" data-chunk-id="knobs-modes" data-tag="free" data-width="wide" data-chunk-num="32">
   
   <div class="chunk-content">
     
@@ -7668,7 +7670,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>3</i></div>
 </article>
-<article class="chunk chunk-example" id="cols-demo" data-chunk-id="cols-demo" data-tag="example" data-width="wide" data-chunk-num="34">
+<article class="chunk chunk-free" id="cols-demo" data-chunk-id="cols-demo" data-tag="free" data-width="wide" data-chunk-num="34">
   
   <div class="chunk-content">
     
@@ -7699,7 +7701,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>4</i></div>
 </article>
-<article class="chunk chunk-example" id="side-demo" data-chunk-id="side-demo" data-tag="example" data-width="wide" data-chunk-num="35">
+<article class="chunk chunk-free" id="side-demo" data-chunk-id="side-demo" data-tag="free" data-width="wide" data-chunk-num="35">
   
   <div class="chunk-content">
     
@@ -7732,7 +7734,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>5</i></div>
 </article>
-<article class="chunk chunk-example" id="marginalia-demo" data-chunk-id="marginalia-demo" data-tag="example" data-width="standard" data-chunk-num="36">
+<article class="chunk chunk-free" id="marginalia-demo" data-chunk-id="marginalia-demo" data-tag="free" data-width="standard" data-chunk-num="36">
   
   <div class="chunk-content">
     
@@ -7763,7 +7765,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="margin-demo" data-chunk-id="margin-demo" data-tag="example" data-width="standard" data-chunk-num="37">
+<article class="chunk chunk-free" id="margin-demo" data-chunk-id="margin-demo" data-tag="free" data-width="standard" data-chunk-num="37">
   
   <div class="chunk-content">
     
@@ -7786,7 +7788,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="images" data-chunk-id="images" data-tag="example" data-width="wide" data-chunk-num="38">
+<article class="chunk chunk-free" id="images" data-chunk-id="images" data-tag="free" data-width="wide" data-chunk-num="38">
   
   <div class="chunk-content">
     
@@ -7864,7 +7866,7 @@ goes in it.</p>
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="video" data-chunk-id="video" data-tag="example" data-width="wide" data-chunk-num="39">
+<article class="chunk chunk-free" id="video" data-chunk-id="video" data-tag="free" data-width="wide" data-chunk-num="39">
   
   <div class="chunk-content">
     
@@ -7887,7 +7889,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>3</i><i>9</i></div>
 </article>
-<article class="chunk chunk-example" id="video-more" data-chunk-id="video-more" data-tag="example" data-width="wide" data-chunk-num="40">
+<article class="chunk chunk-free" id="video-more" data-chunk-id="video-more" data-tag="free" data-width="wide" data-chunk-num="40">
   
   <div class="chunk-content">
     
@@ -7912,7 +7914,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>0</i></div>
 </article>
-<article class="chunk chunk-example" id="embed" data-chunk-id="embed" data-tag="example" data-width="wide" data-chunk-num="41">
+<article class="chunk chunk-free" id="embed" data-chunk-id="embed" data-tag="free" data-width="wide" data-chunk-num="41">
   
   <div class="chunk-content">
     
@@ -7939,7 +7941,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>1</i></div>
 </article>
-<article class="chunk chunk-example" id="embed-more" data-chunk-id="embed-more" data-tag="example" data-width="wide" data-chunk-num="42">
+<article class="chunk chunk-free" id="embed-more" data-chunk-id="embed-more" data-tag="free" data-width="wide" data-chunk-num="42">
   
   <div class="chunk-content">
     
@@ -7968,7 +7970,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>2</i></div>
 </article>
-<article class="chunk chunk-example" id="math" data-chunk-id="math" data-tag="example" data-width="wide" data-blocks="left" data-chunk-num="43">
+<article class="chunk chunk-free" id="math" data-chunk-id="math" data-tag="free" data-width="wide" data-blocks="left" data-chunk-num="43">
   
   <div class="chunk-content">
     
@@ -8191,7 +8193,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>4</i><i>9</i></div>
 </article>
-<article class="chunk chunk-example" id="view-defaults" data-chunk-id="view-defaults" data-tag="example" data-width="wide" data-chunk-num="50">
+<article class="chunk chunk-free" id="view-defaults" data-chunk-id="view-defaults" data-tag="free" data-width="wide" data-chunk-num="50">
   
   <div class="chunk-content">
     
@@ -8229,7 +8231,7 @@ goes in it.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>5</i><i>0</i></div>
 </article>
-<article class="chunk chunk-example" id="view-lang" data-chunk-id="view-lang" data-tag="example" data-width="wide" data-chunk-num="51">
+<article class="chunk chunk-free" id="view-lang" data-chunk-id="view-lang" data-tag="free" data-width="wide" data-chunk-num="51">
   
   <div class="chunk-content">
     
@@ -8309,7 +8311,7 @@ are tagged into a release.</p>
 <g id="dg2-src" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg2-src--r" x="-45.33" y="-18.38" width="90.65" height="36.75" rx="4"/><g id="dg2-src--lw0" data-lab="src--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg2-src--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Sender</tspan></text></g></g></g>
 <g id="dg2-mix" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg2-mix--r" x="125.12" y="-18.38" width="90.65" height="36.75" rx="4"/><g id="dg2-mix--lw0" data-lab="mix--l" class="dg-lwrap" transform="translate(170.45,0.00)"><g id="dg2-mix--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Mix</tspan></text></g></g></g>
 <g id="dg2-dst" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg2-dst--r" x="295.57" y="-18.38" width="90.65" height="36.75" rx="4"/><g id="dg2-dst--lw0" data-lab="dst--l" class="dg-lwrap" transform="translate(340.90,0.00)"><g id="dg2-dst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Receiver</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"# frame, because this is a specimen and not a slide: one row of three boxes\n# standing beside its own source, on a slide that also carries two\n# paragraphs and a code listing. A figure box the height of a talk's would\n# put half a slide of paper under it. The default is what a figure that is\n# the slide wants – see the four-view drawing at the top of the tour.\nbox src \"Sender\"\nbox mix \"Mix\"       right of src gap 2.1\nbox dst \"Receiver\"  right of mix gap 2.1\n\nedge src -> mix \"encrypted\"\nedge mix -> dst \"recoded\"","attrs":"unit=126x38","opener":"::: draw 126x38 frame 3.7x1.7","range":[62495,63011],"chunk":"diagram","width":"full","canvas":{"w":466.20000000000005,"h":64.6,"align":"center"},"alt":"Diagrams"}</script></figure>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg2-root">{"body":"# frame, because this is a specimen and not a slide: one row of three boxes\n# standing beside its own source, on a slide that also carries two\n# paragraphs and a code listing. A figure box the height of a talk's would\n# put half a slide of paper under it. The default is what a figure that is\n# the slide wants – see the four-view drawing at the top of the tour.\nbox src \"Sender\"\nbox mix \"Mix\"       right of src gap 2.1\nbox dst \"Receiver\"  right of mix gap 2.1\n\nedge src -> mix \"encrypted\"\nedge mix -> dst \"recoded\"","attrs":"unit=126x38","opener":"::: draw 126x38 frame 3.7x1.7","range":[62408,62924],"chunk":"diagram","width":"full","canvas":{"w":466.20000000000005,"h":64.6,"align":"center"},"alt":"Diagrams"}</script></figure>
 
 
 <p>That drawing is these five lines:</p>
@@ -8334,7 +8336,7 @@ are tagged into a release.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>5</i><i>3</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-beats" data-chunk-id="diagram-beats" data-tag="example" data-width="full" data-chunk-num="54">
+<article class="chunk chunk-free" id="diagram-beats" data-chunk-id="diagram-beats" data-tag="free" data-width="full" data-chunk-num="54">
   
   <div class="chunk-content">
     
@@ -8350,7 +8352,7 @@ are tagged into a release.</p>
 <g id="dg3-dst" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg3-dst--r" x="287.18" y="-18.38" width="90.65" height="36.75" rx="4"/><g id="dg3-dst--lw0" data-lab="dst--l" class="dg-lwrap" transform="translate(332.50,0.00)"><g id="dg3-dst--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Receiver</tspan></text></g></g></g>
 <g id="dg3-log" data-base="dg-el dg-box" class="dg-el dg-box dashed"><rect id="dg3-log--r" x="126.10" y="83.17" width="80.30" height="36.75" rx="4"/><g id="dg3-log--lw0" data-lab="log--l" class="dg-lwrap" transform="translate(166.25,101.55)"><g id="dg3-log--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Logfile</tspan></text></g></g></g>
 <g id="dg3-why" data-base="dg-el dg-text" class="dg-el dg-text hand"><g id="dg3-why--lw0" data-lab="why--l" class="dg-lwrap" transform="translate(307.20,101.55)"><g id="dg3-why--l0" class="dg-lbl"><text text-anchor="start" font-size="15.00"><tspan x="0" y="-4.27">this is where</tspan><tspan x="0" y="14.48">the anonymity ends</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg3-root">{"p":"dg3-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","edge-2--p":"path","edge-2--h":"path","edge-2--l":"text","leak--p":"path","leak--h":"path","why--lead--p":"path","why--lead--h":"path","src--r":"rect","src--l":"text","mix--r":"rect","mix--l":"text","dst--r":"rect","dst--l":"text","log--r":"rect","log--l":"text","why--l":"text"},"names":["leak","blame"],"frames":[{"vis":{"src":1,"mix":1,"dst":1,"log":0,"why":0,"edge-1":1,"edge-2":1,"leak":0,"why--lead":0},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-45.32,-18.37,90.65,36.75],"src--l":[0,0,0],"mix--r":[120.93,-18.37,90.65,36.75],"mix--l":[166.25,0,0],"dst--r":[287.18,-18.37,90.65,36.75],"dst--l":[332.5,0,0],"log--r":[126.1,83.18,80.3,36.75],"log--l":[166.25,101.55,0],"why--l":[307.2,101.55,0],"edge-1--p":[45.33,0,113.28,0],"edge-1--h":[120.93,0,111.93,3.96,111.93,-3.96],"edge-1--l":[83.13,-11.37,0],"edge-2--p":[211.58,0,279.53,0],"edge-2--h":[287.18,0,278.18,3.96,278.18,-3.96],"edge-2--l":[249.38,-11.37,0],"leak--p":[166.25,18.38,166.25,75.52],"leak--h":[166.25,83.18,162.29,74.18,170.21,74.18],"why--lead--p":[299.28,101.55,166.25,50.78],"why--lead--h":[166.25,50.78,166.25,50.78,166.25,50.78]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-45.32,-18.37,90.65,36.75],"src--l":[0,0,0],"mix--r":[120.93,-18.37,90.65,36.75],"mix--l":[166.25,0,0],"dst--r":[287.18,-18.37,90.65,36.75],"dst--l":[332.5,0,0],"log--r":[126.1,83.18,80.3,36.75],"log--l":[166.25,101.55,0],"why--l":[307.2,101.55,0],"edge-1--p":[45.33,0,113.28,0],"edge-1--h":[120.93,0,111.93,3.96,111.93,-3.96],"edge-1--l":[83.13,-11.37,0],"edge-2--p":[211.58,0,279.53,0],"edge-2--h":[287.18,0,278.18,3.96,278.18,-3.96],"edge-2--l":[249.38,-11.37,0],"leak--p":[166.25,18.38,166.25,75.52],"leak--h":[166.25,83.18,162.29,74.18,170.21,74.18],"why--lead--p":[299.28,101.55,166.25,50.78],"why--lead--h":[166.25,50.78,166.25,50.78,166.25,50.78]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed emph","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head emph","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-45.32,-18.37,90.65,36.75],"src--l":[0,0,0],"mix--r":[120.93,-18.37,90.65,36.75],"mix--l":[166.25,0,0],"dst--r":[287.18,-18.37,90.65,36.75],"dst--l":[332.5,0,0],"log--r":[126.1,83.18,80.3,36.75],"log--l":[166.25,101.55,0],"why--l":[307.2,101.55,0],"edge-1--p":[45.33,0,113.28,0],"edge-1--h":[120.93,0,111.93,3.96,111.93,-3.96],"edge-1--l":[83.13,-11.37,0],"edge-2--p":[211.58,0,279.53,0],"edge-2--h":[287.18,0,278.18,3.96,278.18,-3.96],"edge-2--l":[249.38,-11.37,0],"leak--p":[166.25,18.38,166.25,75.52],"leak--h":[166.25,83.18,162.29,74.18,170.21,74.18],"why--lead--p":[299.28,101.55,166.25,50.78],"why--lead--h":[166.25,50.78,166.25,50.78,166.25,50.78]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"box  src  \"Sender\"\nbox  mix  \"Mix\"        right of src gap 1.05\nbox  dst  \"Receiver\"   right of mix gap 1.05\nbox  log  \"Logfile\"    below mix gap 0.9  {.dashed}\n\nedge src -> mix \"encrypted\"\nedge mix -> dst \"recoded\"\nedge leak mix -> log {.dashed}\n\ntext why \"this is where\\nthe anonymity ends\"  right of log gap 1.4 -- leak {.hand}\n\nstep leak\n  show log\nstep blame\n  emph leak, log","attrs":"unit=126x72","opener":"::: draw 126x72","range":[63927,64307],"chunk":"diagram-beats","width":"full","canvas":{"w":668.5660018993352,"h":240,"align":"center"},"alt":"A figure that arrives in pieces"}</script></figure></div></div>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg3-root">{"p":"dg3-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","edge-2--p":"path","edge-2--h":"path","edge-2--l":"text","leak--p":"path","leak--h":"path","why--lead--p":"path","why--lead--h":"path","src--r":"rect","src--l":"text","mix--r":"rect","mix--l":"text","dst--r":"rect","dst--l":"text","log--r":"rect","log--l":"text","why--l":"text"},"names":["leak","blame"],"frames":[{"vis":{"src":1,"mix":1,"dst":1,"log":0,"why":0,"edge-1":1,"edge-2":1,"leak":0,"why--lead":0},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-45.32,-18.37,90.65,36.75],"src--l":[0,0,0],"mix--r":[120.93,-18.37,90.65,36.75],"mix--l":[166.25,0,0],"dst--r":[287.18,-18.37,90.65,36.75],"dst--l":[332.5,0,0],"log--r":[126.1,83.18,80.3,36.75],"log--l":[166.25,101.55,0],"why--l":[307.2,101.55,0],"edge-1--p":[45.33,0,113.28,0],"edge-1--h":[120.93,0,111.93,3.96,111.93,-3.96],"edge-1--l":[83.13,-11.37,0],"edge-2--p":[211.58,0,279.53,0],"edge-2--h":[287.18,0,278.18,3.96,278.18,-3.96],"edge-2--l":[249.38,-11.37,0],"leak--p":[166.25,18.38,166.25,75.52],"leak--h":[166.25,83.18,162.29,74.18,170.21,74.18],"why--lead--p":[299.28,101.55,166.25,50.78],"why--lead--h":[166.25,50.78,166.25,50.78,166.25,50.78]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-45.32,-18.37,90.65,36.75],"src--l":[0,0,0],"mix--r":[120.93,-18.37,90.65,36.75],"mix--l":[166.25,0,0],"dst--r":[287.18,-18.37,90.65,36.75],"dst--l":[332.5,0,0],"log--r":[126.1,83.18,80.3,36.75],"log--l":[166.25,101.55,0],"why--l":[307.2,101.55,0],"edge-1--p":[45.33,0,113.28,0],"edge-1--h":[120.93,0,111.93,3.96,111.93,-3.96],"edge-1--l":[83.13,-11.37,0],"edge-2--p":[211.58,0,279.53,0],"edge-2--h":[287.18,0,278.18,3.96,278.18,-3.96],"edge-2--l":[249.38,-11.37,0],"leak--p":[166.25,18.38,166.25,75.52],"leak--h":[166.25,83.18,162.29,74.18,170.21,74.18],"why--lead--p":[299.28,101.55,166.25,50.78],"why--lead--h":[166.25,50.78,166.25,50.78,166.25,50.78]}},{"vis":{"src":1,"mix":1,"dst":1,"log":1,"why":1,"edge-1":1,"edge-2":1,"leak":1,"why--lead":1},"cls":{"src":"","mix":"","dst":"","log":"dashed emph","why":"hand","edge-1":"one-head","edge-2":"one-head","leak":"dashed one-head emph","why--lead":"no-head muted"},"lab":{"src":0,"mix":0,"dst":0,"log":0,"why":0,"edge-1":0,"edge-2":0},"geom":{"src--r":[-45.32,-18.37,90.65,36.75],"src--l":[0,0,0],"mix--r":[120.93,-18.37,90.65,36.75],"mix--l":[166.25,0,0],"dst--r":[287.18,-18.37,90.65,36.75],"dst--l":[332.5,0,0],"log--r":[126.1,83.18,80.3,36.75],"log--l":[166.25,101.55,0],"why--l":[307.2,101.55,0],"edge-1--p":[45.33,0,113.28,0],"edge-1--h":[120.93,0,111.93,3.96,111.93,-3.96],"edge-1--l":[83.13,-11.37,0],"edge-2--p":[211.58,0,279.53,0],"edge-2--h":[287.18,0,278.18,3.96,278.18,-3.96],"edge-2--l":[249.38,-11.37,0],"leak--p":[166.25,18.38,166.25,75.52],"leak--h":[166.25,83.18,162.29,74.18,170.21,74.18],"why--lead--p":[299.28,101.55,166.25,50.78],"why--lead--h":[166.25,50.78,166.25,50.78,166.25,50.78]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg3-root">{"body":"box  src  \"Sender\"\nbox  mix  \"Mix\"        right of src gap 1.05\nbox  dst  \"Receiver\"   right of mix gap 1.05\nbox  log  \"Logfile\"    below mix gap 0.9  {.dashed}\n\nedge src -> mix \"encrypted\"\nedge mix -> dst \"recoded\"\nedge leak mix -> log {.dashed}\n\ntext why \"this is where\\nthe anonymity ends\"  right of log gap 1.4 -- leak {.hand}\n\nstep leak\n  show log\nstep blame\n  emph leak, log","attrs":"unit=126x72","opener":"::: draw 126x72","range":[63837,64217],"chunk":"diagram-beats","width":"full","canvas":{"w":668.5660018993352,"h":240,"align":"center"},"alt":"A figure that arrives in pieces"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="diagram-beats">
       <div class="annot-box-label">annotation · diagram-beats</div>
@@ -8400,7 +8402,7 @@ are tagged into a release.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>5</i><i>5</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-beats-pinned" data-chunk-id="diagram-beats-pinned" data-tag="example" data-width="full" data-chunk-num="56">
+<article class="chunk chunk-free" id="diagram-beats-pinned" data-chunk-id="diagram-beats-pinned" data-tag="free" data-width="full" data-chunk-num="56">
   
   <div class="chunk-content">
     
@@ -8416,7 +8418,7 @@ are tagged into a release.</p>
 <g id="dg4-a" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg4-a--r" x="-40.23" y="-18.38" width="80.45" height="36.75" rx="4"/><g id="dg4-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg4-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
 <g id="dg4-b" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg4-b--r" x="-40.23" y="48.38" width="80.45" height="36.75" rx="4"/><g id="dg4-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(0.00,66.75)"><g id="dg4-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">cache</tspan></text></g></g></g>
 <g id="dg4-c" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg4-c--r" x="-40.23" y="115.13" width="80.45" height="36.75" rx="4"/><g id="dg4-c--lw0" data-lab="c--l" class="dg-lwrap" transform="translate(0.00,133.50)"><g id="dg4-c--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">origin</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","a--r":"rect","a--l":"text","b--r":"rect","b--l":"text","c--r":"rect","c--l":"text"},"names":["hit","miss"],"frames":[{"vis":{"a":1,"b":1,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1","c":"tone-1","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-40.23,48.38,80.45,36.75],"b--l":[0,66.75,0],"c--r":[-40.23,115.13,80.45,36.75],"c--l":[0,133.5,0],"edge-1--p":[0,18.38,0,40.73],"edge-1--h":[0,48.38,-3.96,39.38,3.96,39.38],"edge-2--p":[0,85.13,0,107.48],"edge-2--h":[0,115.13,-3.96,106.13,3.96,106.13]}},{"vis":{"a":1,"b":1,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1 emph","c":"tone-1","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-40.23,48.38,80.45,36.75],"b--l":[0,66.75,0],"c--r":[-40.23,115.13,80.45,36.75],"c--l":[0,133.5,0],"edge-1--p":[0,18.38,0,40.73],"edge-1--h":[0,48.38,-3.96,39.38,3.96,39.38],"edge-2--p":[0,85.13,0,107.48],"edge-2--h":[0,115.13,-3.96,106.13,3.96,106.13]}},{"vis":{"a":1,"b":0.6,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1 dim","c":"tone-1 emph","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-40.23,48.38,80.45,36.75],"b--l":[0,66.75,0],"c--r":[-40.23,115.13,80.45,36.75],"c--l":[0,133.5,0],"edge-1--p":[0,18.38,0,40.73],"edge-1--h":[0,48.38,-3.96,39.38,3.96,39.38],"edge-2--p":[0,85.13,0,107.48],"edge-2--h":[0,115.13,-3.96,106.13,3.96,106.13]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box a \"request\" at 0,0 {.tone-2}\nbox b \"cache\" below a {.tone-1}\nbox c \"origin\" below b {.tone-1}\nedge a -> b\nedge b -> c {.dashed}\n\nstep hit\n  emph b\nstep miss\n  dim b\n  emph c","attrs":"unit=120x44","opener":"::: draw 120x44","range":[66555,66732],"chunk":"diagram-beats-pinned","width":"full","canvas":null,"alt":"Words that arrive with a step"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg4-root">{"p":"dg4-","n":3,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","a--r":"rect","a--l":"text","b--r":"rect","b--l":"text","c--r":"rect","c--l":"text"},"names":["hit","miss"],"frames":[{"vis":{"a":1,"b":1,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1","c":"tone-1","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-40.23,48.38,80.45,36.75],"b--l":[0,66.75,0],"c--r":[-40.23,115.13,80.45,36.75],"c--l":[0,133.5,0],"edge-1--p":[0,18.38,0,40.73],"edge-1--h":[0,48.38,-3.96,39.38,3.96,39.38],"edge-2--p":[0,85.13,0,107.48],"edge-2--h":[0,115.13,-3.96,106.13,3.96,106.13]}},{"vis":{"a":1,"b":1,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1 emph","c":"tone-1","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-40.23,48.38,80.45,36.75],"b--l":[0,66.75,0],"c--r":[-40.23,115.13,80.45,36.75],"c--l":[0,133.5,0],"edge-1--p":[0,18.38,0,40.73],"edge-1--h":[0,48.38,-3.96,39.38,3.96,39.38],"edge-2--p":[0,85.13,0,107.48],"edge-2--h":[0,115.13,-3.96,106.13,3.96,106.13]}},{"vis":{"a":1,"b":0.6,"c":1,"edge-1":1,"edge-2":1},"cls":{"a":"tone-2","b":"tone-1 dim","c":"tone-1 emph","edge-1":"one-head","edge-2":"dashed one-head"},"lab":{"a":0,"b":0,"c":0},"geom":{"a--r":[-40.23,-18.37,80.45,36.75],"a--l":[0,0,0],"b--r":[-40.23,48.38,80.45,36.75],"b--l":[0,66.75,0],"c--r":[-40.23,115.13,80.45,36.75],"c--l":[0,133.5,0],"edge-1--p":[0,18.38,0,40.73],"edge-1--h":[0,48.38,-3.96,39.38,3.96,39.38],"edge-2--p":[0,85.13,0,107.48],"edge-2--h":[0,115.13,-3.96,106.13,3.96,106.13]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg4-root">{"body":"box a \"request\" at 0,0 {.tone-2}\nbox b \"cache\" below a {.tone-1}\nbox c \"origin\" below b {.tone-1}\nedge a -> b\nedge b -> c {.dashed}\n\nstep hit\n  emph b\nstep miss\n  dim b\n  emph c","attrs":"unit=120x44","opener":"::: draw 120x44","range":[66462,66639],"chunk":"diagram-beats-pinned","width":"full","canvas":null,"alt":"Words that arrive with a step"}</script></figure>
 
 
 
@@ -8451,7 +8453,7 @@ are tagged into a release.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>5</i><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-slots" data-chunk-id="diagram-slots" data-tag="example" data-width="full" data-blocks="left" data-chunk-num="57">
+<article class="chunk chunk-free" id="diagram-slots" data-chunk-id="diagram-slots" data-tag="free" data-width="full" data-blocks="left" data-chunk-num="57">
   
   <div class="chunk-content">
     
@@ -8481,7 +8483,7 @@ are tagged into a release.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>5</i><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-placement" data-chunk-id="diagram-placement" data-tag="example" data-width="full" data-chunk-num="58">
+<article class="chunk chunk-free" id="diagram-placement" data-chunk-id="diagram-placement" data-tag="free" data-width="full" data-chunk-num="58">
   
   <div class="chunk-content">
     
@@ -8508,7 +8510,7 @@ are tagged into a release.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>5</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-coords" data-chunk-id="diagram-coords" data-tag="example" data-width="full" data-chunk-num="59">
+<article class="chunk chunk-free" id="diagram-coords" data-chunk-id="diagram-coords" data-tag="free" data-width="full" data-chunk-num="59">
   
   <div class="chunk-content">
     
@@ -8543,7 +8545,7 @@ are tagged into a release.</p>
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>5</i><i>9</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-classes" data-chunk-id="diagram-classes" data-tag="example" data-width="full" data-figure-type="70" data-chunk-num="60">
+<article class="chunk chunk-free" id="diagram-classes" data-chunk-id="diagram-classes" data-tag="free" data-width="full" data-figure-type="70" data-chunk-num="60">
   
   <div class="chunk-content">
     
@@ -8594,7 +8596,7 @@ are tagged into a release.</p>
 <g id="dg5-w3" data-base="dg-el dg-box" class="dg-el dg-box clear bottom right sharp"><rect id="dg5-w3--r" x="462.34" y="211.56" width="62.72" height="60.68" rx="4"/><g id="dg5-w3--lw0" data-lab="w3--l" class="dg-lwrap" transform="translate(515.22,243.65)"><g id="dg5-w3--l0" class="dg-lbl"><text text-anchor="end" font-size="15.00"><tspan x="0" y="-4.27">bottom</tspan><tspan x="0" y="14.48">right</tspan></text></g></g></g>
 <g id="dg5-w4" data-base="dg-el dg-box" class="dg-el dg-box tone-2 turn sharp"><rect id="dg5-w4--r" x="545.56" y="211.56" width="38.08" height="60.68" rx="4"/><g id="dg5-w4--lw0" data-lab="w4--l" class="dg-lwrap" transform="translate(564.60,241.90) rotate(-90)"><g id="dg5-w4--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">turn</tspan></text></g></g></g>
 <g id="dg5-wl" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg5-wl--lw0" data-lab="wl--l" class="dg-lwrap" transform="translate(410.48,294.50)"><g id="dg5-wl--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">where the words sit</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg5-root">{"body":"# A reference sheet is denser than a talk's figure, so the chunk says so\n# once – {.figure-type-70} on the heading – rather than letting the drawing\n# scale itself down and take the slide's prose with it. Six rows of\n# specimens, each row a run of peers that now shares one size without any\n# line saying so.\ndefault box {.sharp} w 0.62 h 0.42 pad 0.12\n\n# The fills sit across a rule, so that .clear and .paper can be told apart:\n# one lets the line through, the other knocks a hole in it.\nedge -0.55,0 -- 4.85,0 {.muted}\nbox f1 \"paper\"  at 0,0 {.paper}\nbox f2 \"tone-1\" right of f1 gap 0.35 {.tone-1}\nbox f3 \"tone-2\" right of f2 gap 0.35 {.tone-2}\nbox f4 \"tone-3\" right of f3 gap 0.35 {.tone-3}\nbox f5 \"tone-4\" right of f4 gap 0.35 {.tone-4}\nbox f6 \"clear\"  right of f5 gap 0.35 {.clear}\ntext fl \"fill\" left of f1 gap 0.7 {.muted .right}\n\nbox o1 \"round\"   at 0,0.78 {.round .tone-2}\nbox o2 \"sharp\"   right of o1 gap 0.35 same as o1 {.tone-2}\nbox o3 \"hex\"     right of o2 gap 0.35 same as o1 {.hex .tone-2}\nbox o4 \"chevron\" right of o3 gap 0.35 w 0.78 h 0.42 point right {.chevron .tone-2}\nbox o5 \"\"        right of o4 gap 0.4 w 0.42 h 0.42 point up {.wedge .tone-4}\n# A cross squares itself past this row's `default box … w`, the same way a\n# bars column ignores an inherited outline: the default is about the\n# rectangles in the block, and a plus sign is not one of them.\nbox o6 \"\"        right of o5 gap 0.4 {.cross .accent}\n# A diamond is sized at twice what its label would need in a rectangle, so it\n# is shown empty here like the wedge and the cross rather than made to hold\n# the word \"diamond\" and doubling the width of the whole row.\nbox o7 \"\"        right of o6 gap 0.4 w 0.5 h 0.42 {.diamond .tone-2}\ntext o5n \"wedge\" below o5 gap 0.16 {.small .muted}\ntext o6n \"cross\" below o6 gap 0.16 {.small .muted}\ntext o7n \"diamond\" below o7 gap 0.16 {.small .muted}\ntext ol \"outline\" left of o1 gap 0.7 {.muted .right}\n\nbox s1 \"dashed\" at 0,1.62 {.dashed .clear}\nbox s2 \"dotted\" right of s1 gap 0.35 {.dotted .clear}\nbox s3 \"thick\"  right of s2 gap 0.35 {.thick .clear}\nbox s4 \"bare\"   right of s3 gap 0.35 {.bare .clear}\nbox s5 \"ghost\"  right of s4 gap 0.35 {.ghost .tone-2}\nbox s6 \"dim\"    right of s5 gap 0.35 {.dim .tone-2}\ntext sl \"stroke,\\nand presence\" left of s1 gap 0.7 {.muted .right}\n\n# Only the two ends of this row are placed. The five between them are named\n# in the order they should stand in and get equal centre distances, which is\n# what a row of seven specimens of seven different widths wants.\ntext t1 \"sans\"  at 0.3,2.3\ntext t7 \"bold\"  right of t1 gap 5.45 {.bold}\ntext t2 \"mono\"  right of t1 gap 0.55 {.mono}\ntext t3 \"serif\" right of t1 gap 0.55 {.serif}\ntext t4 \"hand\"  right of t1 gap 0.55 {.hand}\ntext t5 \"small\" right of t1 gap 0.55 {.small}\ntext t6 \"large\" right of t1 gap 0.55 {.large}\ntext tw \"family,\\nand size\" left of t1 gap 0.85 {.muted .right}\nspread x t1, t2, t3, t4, t5, t6, t7\n\nbox g1 \"a label that is too long\" at 0,2.95 w 1.2 h 0.5 {.shrink .clear}\nbox g2 \"short\" right of g1 gap 0.4 same as g1 {.fit .clear}\ntext n1 \"shrink\" below g1 gap 0.14 {.small .muted}\ntext n2 \"fit\"    below g2 gap 0.14 {.small .muted}\ntext gl \"type meets\\nits box\" left of g1 gap 0.7 {.muted .right}\n\nbox w1 \"top\\nleft\"     right of g2 gap 0.75 w 0.56 h 0.74 {.clear .top .left}\nbox w2 \"centred\"       right of w1 gap 0.25 same as w1 {.clear}\nbox w3 \"bottom\\nright\" right of w2 gap 0.25 same as w1 {.clear .bottom .right}\nbox w4 \"turn\"          right of w3 gap 0.25 w 0.34 h 0.74 {.tone-2 .turn}\ntext wl \"where the words sit\" below w2 gap 0.18 {.small .muted}\n\n# Five labels hanging off rows of five different lengths: the statement gives\n# them all the right edge of the first one.\nalign x right fl, ol, sl, tw, gl","attrs":"unit=112x82","opener":"::: draw 112x82","range":[72874,76605],"chunk":"diagram-classes","width":"full","canvas":{"w":955.0942884276218,"h":342.8571428571429,"align":"center"},"alt":"Classes"}</script></figure></div></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg5-root">{"body":"# A reference sheet is denser than a talk's figure, so the chunk says so\n# once – {.figure-type-70} on the heading – rather than letting the drawing\n# scale itself down and take the slide's prose with it. Six rows of\n# specimens, each row a run of peers that now shares one size without any\n# line saying so.\ndefault box {.sharp} w 0.62 h 0.42 pad 0.12\n\n# The fills sit across a rule, so that .clear and .paper can be told apart:\n# one lets the line through, the other knocks a hole in it.\nedge -0.55,0 -- 4.85,0 {.muted}\nbox f1 \"paper\"  at 0,0 {.paper}\nbox f2 \"tone-1\" right of f1 gap 0.35 {.tone-1}\nbox f3 \"tone-2\" right of f2 gap 0.35 {.tone-2}\nbox f4 \"tone-3\" right of f3 gap 0.35 {.tone-3}\nbox f5 \"tone-4\" right of f4 gap 0.35 {.tone-4}\nbox f6 \"clear\"  right of f5 gap 0.35 {.clear}\ntext fl \"fill\" left of f1 gap 0.7 {.muted .right}\n\nbox o1 \"round\"   at 0,0.78 {.round .tone-2}\nbox o2 \"sharp\"   right of o1 gap 0.35 same as o1 {.tone-2}\nbox o3 \"hex\"     right of o2 gap 0.35 same as o1 {.hex .tone-2}\nbox o4 \"chevron\" right of o3 gap 0.35 w 0.78 h 0.42 point right {.chevron .tone-2}\nbox o5 \"\"        right of o4 gap 0.4 w 0.42 h 0.42 point up {.wedge .tone-4}\n# A cross squares itself past this row's `default box … w`, the same way a\n# bars column ignores an inherited outline: the default is about the\n# rectangles in the block, and a plus sign is not one of them.\nbox o6 \"\"        right of o5 gap 0.4 {.cross .accent}\n# A diamond is sized at twice what its label would need in a rectangle, so it\n# is shown empty here like the wedge and the cross rather than made to hold\n# the word \"diamond\" and doubling the width of the whole row.\nbox o7 \"\"        right of o6 gap 0.4 w 0.5 h 0.42 {.diamond .tone-2}\ntext o5n \"wedge\" below o5 gap 0.16 {.small .muted}\ntext o6n \"cross\" below o6 gap 0.16 {.small .muted}\ntext o7n \"diamond\" below o7 gap 0.16 {.small .muted}\ntext ol \"outline\" left of o1 gap 0.7 {.muted .right}\n\nbox s1 \"dashed\" at 0,1.62 {.dashed .clear}\nbox s2 \"dotted\" right of s1 gap 0.35 {.dotted .clear}\nbox s3 \"thick\"  right of s2 gap 0.35 {.thick .clear}\nbox s4 \"bare\"   right of s3 gap 0.35 {.bare .clear}\nbox s5 \"ghost\"  right of s4 gap 0.35 {.ghost .tone-2}\nbox s6 \"dim\"    right of s5 gap 0.35 {.dim .tone-2}\ntext sl \"stroke,\\nand presence\" left of s1 gap 0.7 {.muted .right}\n\n# Only the two ends of this row are placed. The five between them are named\n# in the order they should stand in and get equal centre distances, which is\n# what a row of seven specimens of seven different widths wants.\ntext t1 \"sans\"  at 0.3,2.3\ntext t7 \"bold\"  right of t1 gap 5.45 {.bold}\ntext t2 \"mono\"  right of t1 gap 0.55 {.mono}\ntext t3 \"serif\" right of t1 gap 0.55 {.serif}\ntext t4 \"hand\"  right of t1 gap 0.55 {.hand}\ntext t5 \"small\" right of t1 gap 0.55 {.small}\ntext t6 \"large\" right of t1 gap 0.55 {.large}\ntext tw \"family,\\nand size\" left of t1 gap 0.85 {.muted .right}\nspread x t1, t2, t3, t4, t5, t6, t7\n\nbox g1 \"a label that is too long\" at 0,2.95 w 1.2 h 0.5 {.shrink .clear}\nbox g2 \"short\" right of g1 gap 0.4 same as g1 {.fit .clear}\ntext n1 \"shrink\" below g1 gap 0.14 {.small .muted}\ntext n2 \"fit\"    below g2 gap 0.14 {.small .muted}\ntext gl \"type meets\\nits box\" left of g1 gap 0.7 {.muted .right}\n\nbox w1 \"top\\nleft\"     right of g2 gap 0.75 w 0.56 h 0.74 {.clear .top .left}\nbox w2 \"centred\"       right of w1 gap 0.25 same as w1 {.clear}\nbox w3 \"bottom\\nright\" right of w2 gap 0.25 same as w1 {.clear .bottom .right}\nbox w4 \"turn\"          right of w3 gap 0.25 w 0.34 h 0.74 {.tone-2 .turn}\ntext wl \"where the words sit\" below w2 gap 0.18 {.small .muted}\n\n# Five labels hanging off rows of five different lengths: the statement gives\n# them all the right edge of the first one.\nalign x right fl, ol, sl, tw, gl","attrs":"unit=112x82","opener":"::: draw 112x82","range":[72769,76500],"chunk":"diagram-classes","width":"full","canvas":{"w":955.0942884276218,"h":342.8571428571429,"align":"center"},"alt":"Classes"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="diagram-classes">
       <div class="annot-box-label">annotation · diagram-classes</div>
@@ -8620,7 +8622,7 @@ are tagged into a release.</p>
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>0</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-align" data-chunk-id="diagram-align" data-tag="example" data-width="full" data-chunk-num="61">
+<article class="chunk chunk-free" id="diagram-align" data-chunk-id="diagram-align" data-tag="free" data-width="full" data-chunk-num="61">
   
   <div class="chunk-content">
     
@@ -8654,7 +8656,7 @@ are tagged into a release.</p>
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>1</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-charts" data-chunk-id="diagram-charts" data-tag="example" data-width="full" data-chunk-num="62">
+<article class="chunk chunk-free" id="diagram-charts" data-chunk-id="diagram-charts" data-tag="free" data-width="full" data-chunk-num="62">
   
   <div class="chunk-content">
     
@@ -8721,7 +8723,7 @@ are tagged into a release.</p>
 <g id="dg6-chn" data-base="dg-el dg-text" class="dg-el dg-text small muted left"><g id="dg6-chn--lw0" data-lab="chn--l" class="dg-lwrap" transform="translate(282.20,67.16)"><g id="dg6-chn--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">one dot per chunk,</tspan><tspan x="0" y="11.58">tinted where a figure lives</tspan></text></g></g></g>
 <g id="dg6-wc-base" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted front"><path id="dg6-wc-base--p" class="dg-stroke" d="M-170.20 33.60L170.20 33.60" fill="none"/><path id="dg6-wc-base--h" class="dg-head" d="M170.20 33.60L170.20 33.60L170.20 33.60Z"/></g>
 <g id="dg6-lim" data-base="dg-el dg-edge" class="dg-el dg-edge dashed front no-head"><path id="dg6-lim--p" class="dg-stroke" d="M-170.20 -14.40L170.20 -14.40" fill="none"/><path id="dg6-lim--h" class="dg-head" d="M170.20 -14.40L170.20 -14.40L170.20 -14.40Z"/></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg6-root">{"p":"dg6-","n":3,"kinds":{"long--p":"path","long--l":"text","wc--r":"rect","wc-0--r":"rect","wc-1--r":"rect","wc-2--r":"rect","wc-3--r":"rect","wc-4--r":"rect","wc-5--r":"rect","wc-6--r":"rect","wc-7--r":"rect","wc-8--r":"rect","wc-9--r":"rect","wc-10--r":"rect","wc-11--r":"rect","limn--l":"text","wcn--l":"text","ch--r":"rect","ch-0-0--c":"circle","ch-1-0--c":"circle","ch-2-0--c":"circle","ch-3-0--c":"circle","ch-4-0--c":"circle","ch-5-0--c":"circle","ch-6-0--c":"circle","ch-7-0--c":"circle","ch-0-1--c":"circle","ch-1-1--c":"circle","ch-2-1--c":"circle","ch-3-1--c":"circle","ch-4-1--c":"circle","ch-5-1--c":"circle","ch-6-1--c":"circle","ch-7-1--c":"circle","ch-0-2--c":"circle","ch-1-2--c":"circle","ch-2-2--c":"circle","ch-3-2--c":"circle","ch-4-2--c":"circle","ch-5-2--c":"circle","ch-6-2--c":"circle","ch-7-2--c":"circle","ch-0-3--c":"circle","ch-1-3--c":"circle","ch-2-3--c":"circle","ch-3-3--c":"circle","ch-4-3--c":"circle","ch-5-3--c":"circle","ch-6-3--c":"circle","ch-7-3--c":"circle","ch-0-4--c":"circle","ch-1-4--c":"circle","ch-2-4--c":"circle","ch-3-4--c":"circle","ch-4-4--c":"circle","ch-5-4--c":"circle","ch-6-4--c":"circle","ch-7-4--c":"circle","chn--l":"text","wc-base--p":"path","wc-base--h":"path","lim--p":"path","lim--h":"path"},"names":["over","figures"],"frames":[{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp bare","wc-1":"sharp bare","wc-2":"sharp bare","wc-3":"sharp bare","wc-4":"sharp bare","wc-5":"sharp bare","wc-6":"sharp bare","wc-7":"sharp bare","wc-8":"sharp bare","wc-9":"sharp bare","wc-10":"sharp bare","wc-11":"sharp bare","limn":"small","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp bare emph","wc-1":"sharp bare emph","wc-2":"sharp bare emph","wc-3":"sharp bare","wc-4":"sharp bare","wc-5":"sharp bare","wc-6":"sharp bare","wc-7":"sharp bare","wc-8":"sharp bare","wc-9":"sharp bare","wc-10":"sharp bare","wc-11":"sharp bare","limn":"small","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp bare emph","wc-1":"sharp bare emph","wc-2":"sharp bare emph","wc-3":"sharp bare","wc-4":"sharp bare","wc-5":"sharp bare","wc-6":"sharp bare","wc-7":"sharp bare","wc-8":"sharp bare","wc-9":"sharp bare","wc-10":"sharp bare","wc-11":"sharp bare","limn":"small","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-4","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-4","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-4","ch-7-3":"tone-2","ch-0-4":"tone-4","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg6-root">{"body":"bars wc \"18,16,15,12,11,9,8,7,6,5,4,3\" at 0,0 w 2.3 h 1.05 space 0.06\nbrace long over wc-0,wc-1,wc-2 side bottom \"the three to rewrite\" pad 0.45 {.small .muted}\n# In front, or the columns cover the line and it shows only in the gaps.\nedge lim wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {.dashed .front}\ntext limn \"budget\" at wc.right-0.28,wc.top+0.1 {.small}\ntext wcn \"words per chunk\" above wc gap 0.3 flush left {.small .muted .left}\n\ngrid ch dot 8x5 right of wc gap 1.75 cell 0.15 space 0.07 {.tone-2}\ntext chn \"one dot per chunk,\\ntinted where a figure lives\" below ch gap 0.3 flush left {.small .muted .left}\n\nstep over\n  emph wc-0, wc-1, wc-2\nstep figures\n  style ch-1-0, ch-4-2, ch-6-3, ch-0-4 {.tone-4}","attrs":"unit=148x64","opener":"::: draw 148x64","range":[81019,81728],"chunk":"diagram-charts","width":"full","canvas":{"w":668.5660018993352,"h":240,"align":"center"},"alt":"Charts"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg6-root">{"p":"dg6-","n":3,"kinds":{"long--p":"path","long--l":"text","wc--r":"rect","wc-0--r":"rect","wc-1--r":"rect","wc-2--r":"rect","wc-3--r":"rect","wc-4--r":"rect","wc-5--r":"rect","wc-6--r":"rect","wc-7--r":"rect","wc-8--r":"rect","wc-9--r":"rect","wc-10--r":"rect","wc-11--r":"rect","limn--l":"text","wcn--l":"text","ch--r":"rect","ch-0-0--c":"circle","ch-1-0--c":"circle","ch-2-0--c":"circle","ch-3-0--c":"circle","ch-4-0--c":"circle","ch-5-0--c":"circle","ch-6-0--c":"circle","ch-7-0--c":"circle","ch-0-1--c":"circle","ch-1-1--c":"circle","ch-2-1--c":"circle","ch-3-1--c":"circle","ch-4-1--c":"circle","ch-5-1--c":"circle","ch-6-1--c":"circle","ch-7-1--c":"circle","ch-0-2--c":"circle","ch-1-2--c":"circle","ch-2-2--c":"circle","ch-3-2--c":"circle","ch-4-2--c":"circle","ch-5-2--c":"circle","ch-6-2--c":"circle","ch-7-2--c":"circle","ch-0-3--c":"circle","ch-1-3--c":"circle","ch-2-3--c":"circle","ch-3-3--c":"circle","ch-4-3--c":"circle","ch-5-3--c":"circle","ch-6-3--c":"circle","ch-7-3--c":"circle","ch-0-4--c":"circle","ch-1-4--c":"circle","ch-2-4--c":"circle","ch-3-4--c":"circle","ch-4-4--c":"circle","ch-5-4--c":"circle","ch-6-4--c":"circle","ch-7-4--c":"circle","chn--l":"text","wc-base--p":"path","wc-base--h":"path","lim--p":"path","lim--h":"path"},"names":["over","figures"],"frames":[{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp bare","wc-1":"sharp bare","wc-2":"sharp bare","wc-3":"sharp bare","wc-4":"sharp bare","wc-5":"sharp bare","wc-6":"sharp bare","wc-7":"sharp bare","wc-8":"sharp bare","wc-9":"sharp bare","wc-10":"sharp bare","wc-11":"sharp bare","limn":"small","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp bare emph","wc-1":"sharp bare emph","wc-2":"sharp bare emph","wc-3":"sharp bare","wc-4":"sharp bare","wc-5":"sharp bare","wc-6":"sharp bare","wc-7":"sharp bare","wc-8":"sharp bare","wc-9":"sharp bare","wc-10":"sharp bare","wc-11":"sharp bare","limn":"small","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-2","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-2","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-2","ch-7-3":"tone-2","ch-0-4":"tone-2","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}},{"vis":{"wc":1,"wc-0":1,"wc-1":1,"wc-2":1,"wc-3":1,"wc-4":1,"wc-5":1,"wc-6":1,"wc-7":1,"wc-8":1,"wc-9":1,"wc-10":1,"wc-11":1,"limn":1,"wcn":1,"ch":1,"ch-0-0":1,"ch-1-0":1,"ch-2-0":1,"ch-3-0":1,"ch-4-0":1,"ch-5-0":1,"ch-6-0":1,"ch-7-0":1,"ch-0-1":1,"ch-1-1":1,"ch-2-1":1,"ch-3-1":1,"ch-4-1":1,"ch-5-1":1,"ch-6-1":1,"ch-7-1":1,"ch-0-2":1,"ch-1-2":1,"ch-2-2":1,"ch-3-2":1,"ch-4-2":1,"ch-5-2":1,"ch-6-2":1,"ch-7-2":1,"ch-0-3":1,"ch-1-3":1,"ch-2-3":1,"ch-3-3":1,"ch-4-3":1,"ch-5-3":1,"ch-6-3":1,"ch-7-3":1,"ch-0-4":1,"ch-1-4":1,"ch-2-4":1,"ch-3-4":1,"ch-4-4":1,"ch-5-4":1,"ch-6-4":1,"ch-7-4":1,"chn":1,"long":1,"wc-base":1,"lim":1},"cls":{"wc":"bare clear","wc-0":"sharp bare emph","wc-1":"sharp bare emph","wc-2":"sharp bare emph","wc-3":"sharp bare","wc-4":"sharp bare","wc-5":"sharp bare","wc-6":"sharp bare","wc-7":"sharp bare","wc-8":"sharp bare","wc-9":"sharp bare","wc-10":"sharp bare","wc-11":"sharp bare","limn":"small","wcn":"small muted left","ch":"bare clear","ch-0-0":"tone-2","ch-1-0":"tone-4","ch-2-0":"tone-2","ch-3-0":"tone-2","ch-4-0":"tone-2","ch-5-0":"tone-2","ch-6-0":"tone-2","ch-7-0":"tone-2","ch-0-1":"tone-2","ch-1-1":"tone-2","ch-2-1":"tone-2","ch-3-1":"tone-2","ch-4-1":"tone-2","ch-5-1":"tone-2","ch-6-1":"tone-2","ch-7-1":"tone-2","ch-0-2":"tone-2","ch-1-2":"tone-2","ch-2-2":"tone-2","ch-3-2":"tone-2","ch-4-2":"tone-4","ch-5-2":"tone-2","ch-6-2":"tone-2","ch-7-2":"tone-2","ch-0-3":"tone-2","ch-1-3":"tone-2","ch-2-3":"tone-2","ch-3-3":"tone-2","ch-4-3":"tone-2","ch-5-3":"tone-2","ch-6-3":"tone-4","ch-7-3":"tone-2","ch-0-4":"tone-4","ch-1-4":"tone-2","ch-2-4":"tone-2","ch-3-4":"tone-2","ch-4-4":"tone-2","ch-5-4":"tone-2","ch-6-4":"tone-2","ch-7-4":"tone-2","chn":"small muted left","long":"small muted","wc-base":"no-head muted front","lim":"dashed front no-head"},"lab":{"limn":0,"wcn":0,"chn":0,"long":0},"geom":{"wc--r":[-170.2,-33.6,340.4,67.2],"wc-0--r":[-168.28,-33.6,24.53,67.2],"wc-1--r":[-139.91,-26.13,24.53,59.73],"wc-2--r":[-111.55,-22.4,24.53,56],"wc-3--r":[-83.18,-11.2,24.53,44.8],"wc-4--r":[-54.81,-7.47,24.53,41.07],"wc-5--r":[-26.45,0,24.53,33.6],"wc-6--r":[1.92,3.73,24.53,29.87],"wc-7--r":[30.29,7.47,24.53,26.13],"wc-8--r":[58.65,11.2,24.53,22.4],"wc-9--r":[87.02,14.93,24.53,18.67],"wc-10--r":[115.39,18.67,24.53,14.93],"wc-11--r":[143.75,22.4,24.53,11.2],"limn--l":[128.76,-27.2,0],"wcn--l":[-170.2,-60.3,0],"ch--r":[282.2,-32.96,108.16,65.92],"ch-0-0--c":[287,-28.16,4.8],"ch-1-0--c":[301.08,-28.16,4.8],"ch-2-0--c":[315.16,-28.16,4.8],"ch-3-0--c":[329.24,-28.16,4.8],"ch-4-0--c":[343.32,-28.16,4.8],"ch-5-0--c":[357.4,-28.16,4.8],"ch-6-0--c":[371.48,-28.16,4.8],"ch-7-0--c":[385.56,-28.16,4.8],"ch-0-1--c":[287,-14.08,4.8],"ch-1-1--c":[301.08,-14.08,4.8],"ch-2-1--c":[315.16,-14.08,4.8],"ch-3-1--c":[329.24,-14.08,4.8],"ch-4-1--c":[343.32,-14.08,4.8],"ch-5-1--c":[357.4,-14.08,4.8],"ch-6-1--c":[371.48,-14.08,4.8],"ch-7-1--c":[385.56,-14.08,4.8],"ch-0-2--c":[287,0,4.8],"ch-1-2--c":[301.08,0,4.8],"ch-2-2--c":[315.16,0,4.8],"ch-3-2--c":[329.24,0,4.8],"ch-4-2--c":[343.32,0,4.8],"ch-5-2--c":[357.4,0,4.8],"ch-6-2--c":[371.48,0,4.8],"ch-7-2--c":[385.56,0,4.8],"ch-0-3--c":[287,14.08,4.8],"ch-1-3--c":[301.08,14.08,4.8],"ch-2-3--c":[315.16,14.08,4.8],"ch-3-3--c":[329.24,14.08,4.8],"ch-4-3--c":[343.32,14.08,4.8],"ch-5-3--c":[357.4,14.08,4.8],"ch-6-3--c":[371.48,14.08,4.8],"ch-7-3--c":[385.56,14.08,4.8],"ch-0-4--c":[287,28.16,4.8],"ch-1-4--c":[301.08,28.16,4.8],"ch-2-4--c":[315.16,28.16,4.8],"ch-3-4--c":[329.24,28.16,4.8],"ch-4-4--c":[343.32,28.16,4.8],"ch-5-4--c":[357.4,28.16,4.8],"ch-6-4--c":[371.48,28.16,4.8],"ch-7-4--c":[385.56,28.16,4.8],"chn--l":[282.2,67.16,0],"long--p":[-168.28,62.4,-168.28,69.4,-87.02,69.4,-87.02,62.4],"long--l":[-127.65,78.4,0],"wc-base--p":[-170.2,33.6,170.2,33.6],"wc-base--h":[170.2,33.6,170.2,33.6,170.2,33.6],"lim--p":[-170.2,-14.4,170.2,-14.4],"lim--h":[170.2,-14.4,170.2,-14.4,170.2,-14.4]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg6-root">{"body":"bars wc \"18,16,15,12,11,9,8,7,6,5,4,3\" at 0,0 w 2.3 h 1.05 space 0.06\nbrace long over wc-0,wc-1,wc-2 side bottom \"the three to rewrite\" pad 0.45 {.small .muted}\n# In front, or the columns cover the line and it shows only in the gaps.\nedge lim wc.left,wc.top+0.3 -- wc.right,wc.top+0.3 {.dashed .front}\ntext limn \"budget\" at wc.right-0.28,wc.top+0.1 {.small}\ntext wcn \"words per chunk\" above wc gap 0.3 flush left {.small .muted .left}\n\ngrid ch dot 8x5 right of wc gap 1.75 cell 0.15 space 0.07 {.tone-2}\ntext chn \"one dot per chunk,\\ntinted where a figure lives\" below ch gap 0.3 flush left {.small .muted .left}\n\nstep over\n  emph wc-0, wc-1, wc-2\nstep figures\n  style ch-1-0, ch-4-2, ch-6-3, ch-0-4 {.tone-4}","attrs":"unit=148x64","opener":"::: draw 148x64","range":[80908,81617],"chunk":"diagram-charts","width":"full","canvas":{"w":668.5660018993352,"h":240,"align":"center"},"alt":"Charts"}</script></figure>
 
 
 <p><strong>Everything a chart draws is an ordinary element with a generated name</strong> – <code class="nb">wc-0</code>, <code class="nb">wc-1</code>, … for the columns and <code class="nb">ch-1-0</code>, <code class="nb">ch-4-2</code>, … for the cells – which is why the brace and the tinted cells above needed no vocabulary of their own.</p>
@@ -8752,7 +8754,7 @@ are tagged into a release.</p>
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>2</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-bars" data-chunk-id="diagram-bars" data-tag="example" data-width="full" data-chunk-num="63">
+<article class="chunk chunk-free" id="diagram-bars" data-chunk-id="diagram-bars" data-tag="free" data-width="full" data-chunk-num="63">
   
   <div class="chunk-content">
     
@@ -8773,7 +8775,7 @@ are tagged into a release.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>3</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-flat" data-chunk-id="diagram-flat" data-tag="example" data-width="full" data-chunk-num="64">
+<article class="chunk chunk-free" id="diagram-flat" data-chunk-id="diagram-flat" data-tag="free" data-width="full" data-chunk-num="64">
   
   <div class="chunk-content">
     
@@ -8791,7 +8793,7 @@ are tagged into a release.</p>
 <g id="dg7-hour-tick-3" data-base="dg-el dg-text" class="dg-el dg-text small muted right"><g id="dg7-hour-tick-3--lw0" data-lab="hour-tick-3--l" class="dg-lwrap" transform="translate(-290.70,48.75)"><g id="dg7-hour-tick-3--l0" class="dg-lbl"><text text-anchor="end" font-size="12.00"><tspan x="0" y="4.08">fighting the tooling</tspan></text></g></g></g>
 <g id="dg7-hourn" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="dg7-hourn--lw0" data-lab="hourn--l" class="dg-lwrap" transform="translate(0.00,97.50)"><g id="dg7-hourn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">minutes, in the hour before a lecture</tspan></text></g></g></g>
 <g id="dg7-hour-base" data-base="dg-el dg-edge" class="dg-el dg-edge no-head muted front"><path id="dg7-hour-base--p" class="dg-stroke" d="M-225.00 -65.00L-225.00 65.00" fill="none"/><path id="dg7-hour-base--h" class="dg-head" d="M-225.00 65.00L-225.00 65.00L-225.00 65.00Z"/></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg7-root">{"body":"bars hour \"31,24,18,9\" \"writing the prose | drawing the figures | fixing one wording | fighting the tooling\" at 0,0 horizontal w 3.0 h 2.6 emph 1\ntext hourn \"minutes, in the hour before a lecture\" below hour gap 0.5 {.small .muted}","attrs":"unit=150x50","opener":"::: draw 150x50","range":[84154,84385],"chunk":"diagram-flat","width":"full","canvas":{"w":668.5660018993352,"h":240,"align":"center"},"alt":"Columns laid flat"}</script></figure></div></div>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg7-root">{"body":"bars hour \"31,24,18,9\" \"writing the prose | drawing the figures | fixing one wording | fighting the tooling\" at 0,0 horizontal w 3.0 h 2.6 emph 1\ntext hourn \"minutes, in the hour before a lecture\" below hour gap 0.5 {.small .muted}","attrs":"unit=150x50","opener":"::: draw 150x50","range":[84037,84268],"chunk":"diagram-flat","width":"full","canvas":{"w":668.5660018993352,"h":240,"align":"center"},"alt":"Columns laid flat"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="diagram-flat">
       <div class="annot-box-label">annotation · diagram-flat</div>
@@ -8814,7 +8816,7 @@ are tagged into a release.</p>
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>4</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-plot" data-chunk-id="diagram-plot" data-tag="example" data-width="full" data-chunk-num="65">
+<article class="chunk chunk-free" id="diagram-plot" data-chunk-id="diagram-plot" data-tag="free" data-width="full" data-chunk-num="65">
   
   <div class="chunk-content">
     
@@ -8854,7 +8856,7 @@ are tagged into a release.</p>
 <g id="dg8-mark" data-base="dg-el dg-dot" class="dg-el dg-dot accent"><circle id="dg8-mark--c" cx="-28.00" cy="33.60" r="4.32"/></g>
 <g id="dg8-evenn" data-base="dg-el dg-text" class="dg-el dg-text small paper"><rect id="dg8-evenn--r" x="105.26" y="-68.58" width="69.48" height="27.96" rx="4"/><g id="dg8-evenn--lw0" data-lab="evenn--l" class="dg-lwrap" transform="translate(140.00,-54.60)"><g id="dg8-evenn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">even pace</tspan></text></g></g></g>
 <g id="dg8-realn" data-base="dg-el dg-text" class="dg-el dg-text small hand paper"><rect id="dg8-realn--r" x="-113.18" y="-67.68" width="114.36" height="42.96" rx="4"/><g id="dg8-realn--lw0" data-lab="realn--l" class="dg-lwrap" transform="translate(-56.00,-46.20)"><g id="dg8-realn--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="-3.42">the first third</tspan><tspan x="0" y="11.58">always runs long</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg8-root">{"p":"dg8-","n":3,"kinds":{"pace-gx-0--p":"path","pace-gx-0--h":"path","pace-gx-1--p":"path","pace-gx-1--h":"path","pace-gx-2--p":"path","pace-gx-2--h":"path","pace-gx-3--p":"path","pace-gx-3--h":"path","pace-gx-4--p":"path","pace-gx-4--h":"path","pace-gx-5--p":"path","pace-gx-5--h":"path","pace-gx-6--p":"path","pace-gx-6--h":"path","pace-gy-0--p":"path","pace-gy-0--h":"path","pace-gy-1--p":"path","pace-gy-1--h":"path","pace-gy-2--p":"path","pace-gy-2--h":"path","pace-gy-3--p":"path","pace-gy-3--h":"path","pace-gy-4--p":"path","pace-gy-4--h":"path","even--p":"path","even--h":"path","real--p":"spline","real--h":"path","realn--lead--p":"path","realn--lead--h":"path","pace--r":"rect","pace-xt-0--l":"text","pace-xt-1--l":"text","pace-xt-2--l":"text","pace-xt-3--l":"text","pace-xt-4--l":"text","pace-xt-5--l":"text","pace-xt-6--l":"text","pace-yt-0--l":"text","pace-yt-1--l":"text","pace-yt-2--l":"text","pace-yt-3--l":"text","pace-yt-4--l":"text","pace-xl--l":"text","pace-yl--l":"text","mark--c":"circle","evenn--r":"rect","evenn--l":"text","realn--r":"rect","realn--l":"text"},"names":["real","lesson"],"frames":[{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":0,"evenn":1,"realn":0,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":0,"realn--lead":0},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-210,-84,420,168],"pace-xt-0--l":[-210,94.8,0],"pace-xt-1--l":[-140,94.8,0],"pace-xt-2--l":[-70,94.8,0],"pace-xt-3--l":[0,94.8,0],"pace-xt-4--l":[70,94.8,0],"pace-xt-5--l":[140,94.8,0],"pace-xt-6--l":[210,94.8,0],"pace-yt-0--l":[-228,84,0],"pace-yt-1--l":[-228,42,0],"pace-yt-2--l":[-228,0,0],"pace-yt-3--l":[-228,-42,0],"pace-yt-4--l":[-228,-84,0],"pace-xl--l":[0,113.7,0],"pace-yl--l":[-303,0,-90],"mark--c":[-28,33.6,4.32],"evenn--r":[105.26,-68.58,69.48,27.96],"evenn--l":[140,-54.6,0],"realn--r":[-113.18,-67.68,114.36,42.96],"realn--l":[-56,-46.2,0],"pace-gx-0--p":[-210,-84,-210,84],"pace-gx-0--h":[-210,84,-210,84,-210,84],"pace-gx-1--p":[-140,-84,-140,84],"pace-gx-1--h":[-140,84,-140,84,-140,84],"pace-gx-2--p":[-70,-84,-70,84],"pace-gx-2--h":[-70,84,-70,84,-70,84],"pace-gx-3--p":[0,-84,0,84],"pace-gx-3--h":[0,84,0,84,0,84],"pace-gx-4--p":[70,-84,70,84],"pace-gx-4--h":[70,84,70,84,70,84],"pace-gx-5--p":[140,-84,140,84],"pace-gx-5--h":[140,84,140,84,140,84],"pace-gx-6--p":[210,-84,210,84],"pace-gx-6--h":[210,84,210,84,210,84],"pace-gy-0--p":[-210,84,210,84],"pace-gy-0--h":[210,84,210,84,210,84],"pace-gy-1--p":[-210,42,210,42],"pace-gy-1--h":[210,42,210,42,210,42],"pace-gy-2--p":[-210,0,210,0],"pace-gy-2--h":[210,0,210,0,210,0],"pace-gy-3--p":[-210,-42,210,-42],"pace-gy-3--h":[210,-42,210,-42,210,-42],"pace-gy-4--p":[-210,-84,210,-84],"pace-gy-4--h":[210,-84,210,-84,210,-84],"even--p":[-210,84,210,-84],"even--h":[210,-84,210,-84,210,-84],"real--p":[-210,84,-126,67.2,-28,33.6,98,-25.2,168,-58.8,210,-84],"real--h":[210,-84,210,-84,210,-84],"realn--lead--p":[-56,-25.26,-28,29.28],"realn--lead--h":[-28,29.28,-28,29.28,-28,29.28]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-210,-84,420,168],"pace-xt-0--l":[-210,94.8,0],"pace-xt-1--l":[-140,94.8,0],"pace-xt-2--l":[-70,94.8,0],"pace-xt-3--l":[0,94.8,0],"pace-xt-4--l":[70,94.8,0],"pace-xt-5--l":[140,94.8,0],"pace-xt-6--l":[210,94.8,0],"pace-yt-0--l":[-228,84,0],"pace-yt-1--l":[-228,42,0],"pace-yt-2--l":[-228,0,0],"pace-yt-3--l":[-228,-42,0],"pace-yt-4--l":[-228,-84,0],"pace-xl--l":[0,113.7,0],"pace-yl--l":[-303,0,-90],"mark--c":[-28,33.6,4.32],"evenn--r":[105.26,-68.58,69.48,27.96],"evenn--l":[140,-54.6,0],"realn--r":[-113.18,-67.68,114.36,42.96],"realn--l":[-56,-46.2,0],"pace-gx-0--p":[-210,-84,-210,84],"pace-gx-0--h":[-210,84,-210,84,-210,84],"pace-gx-1--p":[-140,-84,-140,84],"pace-gx-1--h":[-140,84,-140,84,-140,84],"pace-gx-2--p":[-70,-84,-70,84],"pace-gx-2--h":[-70,84,-70,84,-70,84],"pace-gx-3--p":[0,-84,0,84],"pace-gx-3--h":[0,84,0,84,0,84],"pace-gx-4--p":[70,-84,70,84],"pace-gx-4--h":[70,84,70,84,70,84],"pace-gx-5--p":[140,-84,140,84],"pace-gx-5--h":[140,84,140,84,140,84],"pace-gx-6--p":[210,-84,210,84],"pace-gx-6--h":[210,84,210,84,210,84],"pace-gy-0--p":[-210,84,210,84],"pace-gy-0--h":[210,84,210,84,210,84],"pace-gy-1--p":[-210,42,210,42],"pace-gy-1--h":[210,42,210,42,210,42],"pace-gy-2--p":[-210,0,210,0],"pace-gy-2--h":[210,0,210,0,210,0],"pace-gy-3--p":[-210,-42,210,-42],"pace-gy-3--h":[210,-42,210,-42,210,-42],"pace-gy-4--p":[-210,-84,210,-84],"pace-gy-4--h":[210,-84,210,-84,210,-84],"even--p":[-210,84,210,-84],"even--h":[210,-84,210,-84,210,-84],"real--p":[-210,84,-126,67.2,-28,33.6,98,-25.2,168,-58.8,210,-84],"real--h":[210,-84,210,-84,210,-84],"realn--lead--p":[-56,-25.26,-28,29.28],"realn--lead--h":[-28,29.28,-28,29.28,-28,29.28]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":0.6,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head dim","real":"smooth accent thick no-head emph","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-210,-84,420,168],"pace-xt-0--l":[-210,94.8,0],"pace-xt-1--l":[-140,94.8,0],"pace-xt-2--l":[-70,94.8,0],"pace-xt-3--l":[0,94.8,0],"pace-xt-4--l":[70,94.8,0],"pace-xt-5--l":[140,94.8,0],"pace-xt-6--l":[210,94.8,0],"pace-yt-0--l":[-228,84,0],"pace-yt-1--l":[-228,42,0],"pace-yt-2--l":[-228,0,0],"pace-yt-3--l":[-228,-42,0],"pace-yt-4--l":[-228,-84,0],"pace-xl--l":[0,113.7,0],"pace-yl--l":[-303,0,-90],"mark--c":[-28,33.6,4.32],"evenn--r":[105.26,-68.58,69.48,27.96],"evenn--l":[140,-54.6,0],"realn--r":[-113.18,-67.68,114.36,42.96],"realn--l":[-56,-46.2,0],"pace-gx-0--p":[-210,-84,-210,84],"pace-gx-0--h":[-210,84,-210,84,-210,84],"pace-gx-1--p":[-140,-84,-140,84],"pace-gx-1--h":[-140,84,-140,84,-140,84],"pace-gx-2--p":[-70,-84,-70,84],"pace-gx-2--h":[-70,84,-70,84,-70,84],"pace-gx-3--p":[0,-84,0,84],"pace-gx-3--h":[0,84,0,84,0,84],"pace-gx-4--p":[70,-84,70,84],"pace-gx-4--h":[70,84,70,84,70,84],"pace-gx-5--p":[140,-84,140,84],"pace-gx-5--h":[140,84,140,84,140,84],"pace-gx-6--p":[210,-84,210,84],"pace-gx-6--h":[210,84,210,84,210,84],"pace-gy-0--p":[-210,84,210,84],"pace-gy-0--h":[210,84,210,84,210,84],"pace-gy-1--p":[-210,42,210,42],"pace-gy-1--h":[210,42,210,42,210,42],"pace-gy-2--p":[-210,0,210,0],"pace-gy-2--h":[210,0,210,0,210,0],"pace-gy-3--p":[-210,-42,210,-42],"pace-gy-3--h":[210,-42,210,-42,210,-42],"pace-gy-4--p":[-210,-84,210,-84],"pace-gy-4--h":[210,-84,210,-84,210,-84],"even--p":[-210,84,210,-84],"even--h":[210,-84,210,-84,210,-84],"real--p":[-210,84,-126,67.2,-28,33.6,98,-25.2,168,-58.8,210,-84],"real--h":[210,-84,210,-84,210,-84],"realn--lead--p":[-56,-25.26,-28,29.28],"realn--lead--h":[-28,29.28,-28,29.28,-28,29.28]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg8-root">{"body":"plot pace \"minutes into the talk\" \"chunks covered\" at 0,0 w 2.8 aspect 5:2 x 0,60 y 0,40 tick 10\nedge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}\nedge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}\ndot  mark \"\" at pace@26,pace@12 r 0.08 {.accent}\ntext evenn \"even pace\" at pace@50,pace@33 pad 0.12 {.small .paper}\n# The leader meets the curve at one point instead of running across the field\n# and crossing both curves on the way.\ntext realn \"the first third\\nalways runs long\" at pace@22,pace@31 pad 0.12 -- mark {.small .hand .paper}\n\nstep real\n  show real, mark\nstep lesson\n  emph real\n  dim even","attrs":"unit=150x54","opener":"::: draw 150x54","range":[84576,85269],"chunk":"diagram-plot","width":"full","canvas":{"w":668.5660018993352,"h":240,"align":"center"},"alt":"Plots"}</script></figure></div></div>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg8-root">{"p":"dg8-","n":3,"kinds":{"pace-gx-0--p":"path","pace-gx-0--h":"path","pace-gx-1--p":"path","pace-gx-1--h":"path","pace-gx-2--p":"path","pace-gx-2--h":"path","pace-gx-3--p":"path","pace-gx-3--h":"path","pace-gx-4--p":"path","pace-gx-4--h":"path","pace-gx-5--p":"path","pace-gx-5--h":"path","pace-gx-6--p":"path","pace-gx-6--h":"path","pace-gy-0--p":"path","pace-gy-0--h":"path","pace-gy-1--p":"path","pace-gy-1--h":"path","pace-gy-2--p":"path","pace-gy-2--h":"path","pace-gy-3--p":"path","pace-gy-3--h":"path","pace-gy-4--p":"path","pace-gy-4--h":"path","even--p":"path","even--h":"path","real--p":"spline","real--h":"path","realn--lead--p":"path","realn--lead--h":"path","pace--r":"rect","pace-xt-0--l":"text","pace-xt-1--l":"text","pace-xt-2--l":"text","pace-xt-3--l":"text","pace-xt-4--l":"text","pace-xt-5--l":"text","pace-xt-6--l":"text","pace-yt-0--l":"text","pace-yt-1--l":"text","pace-yt-2--l":"text","pace-yt-3--l":"text","pace-yt-4--l":"text","pace-xl--l":"text","pace-yl--l":"text","mark--c":"circle","evenn--r":"rect","evenn--l":"text","realn--r":"rect","realn--l":"text"},"names":["real","lesson"],"frames":[{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":0,"evenn":1,"realn":0,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":0,"realn--lead":0},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-210,-84,420,168],"pace-xt-0--l":[-210,94.8,0],"pace-xt-1--l":[-140,94.8,0],"pace-xt-2--l":[-70,94.8,0],"pace-xt-3--l":[0,94.8,0],"pace-xt-4--l":[70,94.8,0],"pace-xt-5--l":[140,94.8,0],"pace-xt-6--l":[210,94.8,0],"pace-yt-0--l":[-228,84,0],"pace-yt-1--l":[-228,42,0],"pace-yt-2--l":[-228,0,0],"pace-yt-3--l":[-228,-42,0],"pace-yt-4--l":[-228,-84,0],"pace-xl--l":[0,113.7,0],"pace-yl--l":[-303,0,-90],"mark--c":[-28,33.6,4.32],"evenn--r":[105.26,-68.58,69.48,27.96],"evenn--l":[140,-54.6,0],"realn--r":[-113.18,-67.68,114.36,42.96],"realn--l":[-56,-46.2,0],"pace-gx-0--p":[-210,-84,-210,84],"pace-gx-0--h":[-210,84,-210,84,-210,84],"pace-gx-1--p":[-140,-84,-140,84],"pace-gx-1--h":[-140,84,-140,84,-140,84],"pace-gx-2--p":[-70,-84,-70,84],"pace-gx-2--h":[-70,84,-70,84,-70,84],"pace-gx-3--p":[0,-84,0,84],"pace-gx-3--h":[0,84,0,84,0,84],"pace-gx-4--p":[70,-84,70,84],"pace-gx-4--h":[70,84,70,84,70,84],"pace-gx-5--p":[140,-84,140,84],"pace-gx-5--h":[140,84,140,84,140,84],"pace-gx-6--p":[210,-84,210,84],"pace-gx-6--h":[210,84,210,84,210,84],"pace-gy-0--p":[-210,84,210,84],"pace-gy-0--h":[210,84,210,84,210,84],"pace-gy-1--p":[-210,42,210,42],"pace-gy-1--h":[210,42,210,42,210,42],"pace-gy-2--p":[-210,0,210,0],"pace-gy-2--h":[210,0,210,0,210,0],"pace-gy-3--p":[-210,-42,210,-42],"pace-gy-3--h":[210,-42,210,-42,210,-42],"pace-gy-4--p":[-210,-84,210,-84],"pace-gy-4--h":[210,-84,210,-84,210,-84],"even--p":[-210,84,210,-84],"even--h":[210,-84,210,-84,210,-84],"real--p":[-210,84,-126,67.2,-28,33.6,98,-25.2,168,-58.8,210,-84],"real--h":[210,-84,210,-84,210,-84],"realn--lead--p":[-56,-25.26,-28,29.28],"realn--lead--h":[-28,29.28,-28,29.28,-28,29.28]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":1,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head","real":"smooth accent thick no-head","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-210,-84,420,168],"pace-xt-0--l":[-210,94.8,0],"pace-xt-1--l":[-140,94.8,0],"pace-xt-2--l":[-70,94.8,0],"pace-xt-3--l":[0,94.8,0],"pace-xt-4--l":[70,94.8,0],"pace-xt-5--l":[140,94.8,0],"pace-xt-6--l":[210,94.8,0],"pace-yt-0--l":[-228,84,0],"pace-yt-1--l":[-228,42,0],"pace-yt-2--l":[-228,0,0],"pace-yt-3--l":[-228,-42,0],"pace-yt-4--l":[-228,-84,0],"pace-xl--l":[0,113.7,0],"pace-yl--l":[-303,0,-90],"mark--c":[-28,33.6,4.32],"evenn--r":[105.26,-68.58,69.48,27.96],"evenn--l":[140,-54.6,0],"realn--r":[-113.18,-67.68,114.36,42.96],"realn--l":[-56,-46.2,0],"pace-gx-0--p":[-210,-84,-210,84],"pace-gx-0--h":[-210,84,-210,84,-210,84],"pace-gx-1--p":[-140,-84,-140,84],"pace-gx-1--h":[-140,84,-140,84,-140,84],"pace-gx-2--p":[-70,-84,-70,84],"pace-gx-2--h":[-70,84,-70,84,-70,84],"pace-gx-3--p":[0,-84,0,84],"pace-gx-3--h":[0,84,0,84,0,84],"pace-gx-4--p":[70,-84,70,84],"pace-gx-4--h":[70,84,70,84,70,84],"pace-gx-5--p":[140,-84,140,84],"pace-gx-5--h":[140,84,140,84,140,84],"pace-gx-6--p":[210,-84,210,84],"pace-gx-6--h":[210,84,210,84,210,84],"pace-gy-0--p":[-210,84,210,84],"pace-gy-0--h":[210,84,210,84,210,84],"pace-gy-1--p":[-210,42,210,42],"pace-gy-1--h":[210,42,210,42,210,42],"pace-gy-2--p":[-210,0,210,0],"pace-gy-2--h":[210,0,210,0,210,0],"pace-gy-3--p":[-210,-42,210,-42],"pace-gy-3--h":[210,-42,210,-42,210,-42],"pace-gy-4--p":[-210,-84,210,-84],"pace-gy-4--h":[210,-84,210,-84,210,-84],"even--p":[-210,84,210,-84],"even--h":[210,-84,210,-84,210,-84],"real--p":[-210,84,-126,67.2,-28,33.6,98,-25.2,168,-58.8,210,-84],"real--h":[210,-84,210,-84,210,-84],"realn--lead--p":[-56,-25.26,-28,29.28],"realn--lead--h":[-28,29.28,-28,29.28,-28,29.28]}},{"vis":{"pace":1,"pace-xt-0":1,"pace-xt-1":1,"pace-xt-2":1,"pace-xt-3":1,"pace-xt-4":1,"pace-xt-5":1,"pace-xt-6":1,"pace-yt-0":1,"pace-yt-1":1,"pace-yt-2":1,"pace-yt-3":1,"pace-yt-4":1,"pace-xl":1,"pace-yl":1,"mark":1,"evenn":1,"realn":1,"pace-gx-0":1,"pace-gx-1":1,"pace-gx-2":1,"pace-gx-3":1,"pace-gx-4":1,"pace-gx-5":1,"pace-gx-6":1,"pace-gy-0":1,"pace-gy-1":1,"pace-gy-2":1,"pace-gy-3":1,"pace-gy-4":1,"even":0.6,"real":1,"realn--lead":1},"cls":{"pace":"bare clear","pace-xt-0":"small muted","pace-xt-1":"small muted","pace-xt-2":"small muted","pace-xt-3":"small muted","pace-xt-4":"small muted","pace-xt-5":"small muted","pace-xt-6":"small muted","pace-yt-0":"small muted right","pace-yt-1":"small muted right","pace-yt-2":"small muted right","pace-yt-3":"small muted right","pace-yt-4":"small muted right","pace-xl":"small bold","pace-yl":"small bold turn","mark":"accent","evenn":"small paper","realn":"small hand paper","pace-gx-0":"muted dotted no-head","pace-gx-1":"muted dotted no-head","pace-gx-2":"muted dotted no-head","pace-gx-3":"muted dotted no-head","pace-gx-4":"muted dotted no-head","pace-gx-5":"muted dotted no-head","pace-gx-6":"muted dotted no-head","pace-gy-0":"muted dotted no-head","pace-gy-1":"muted dotted no-head","pace-gy-2":"muted dotted no-head","pace-gy-3":"muted dotted no-head","pace-gy-4":"muted dotted no-head","even":"muted dashed no-head dim","real":"smooth accent thick no-head emph","realn--lead":"no-head muted"},"lab":{"pace-xt-0":0,"pace-xt-1":0,"pace-xt-2":0,"pace-xt-3":0,"pace-xt-4":0,"pace-xt-5":0,"pace-xt-6":0,"pace-yt-0":0,"pace-yt-1":0,"pace-yt-2":0,"pace-yt-3":0,"pace-yt-4":0,"pace-xl":0,"pace-yl":0,"evenn":0,"realn":0},"geom":{"pace--r":[-210,-84,420,168],"pace-xt-0--l":[-210,94.8,0],"pace-xt-1--l":[-140,94.8,0],"pace-xt-2--l":[-70,94.8,0],"pace-xt-3--l":[0,94.8,0],"pace-xt-4--l":[70,94.8,0],"pace-xt-5--l":[140,94.8,0],"pace-xt-6--l":[210,94.8,0],"pace-yt-0--l":[-228,84,0],"pace-yt-1--l":[-228,42,0],"pace-yt-2--l":[-228,0,0],"pace-yt-3--l":[-228,-42,0],"pace-yt-4--l":[-228,-84,0],"pace-xl--l":[0,113.7,0],"pace-yl--l":[-303,0,-90],"mark--c":[-28,33.6,4.32],"evenn--r":[105.26,-68.58,69.48,27.96],"evenn--l":[140,-54.6,0],"realn--r":[-113.18,-67.68,114.36,42.96],"realn--l":[-56,-46.2,0],"pace-gx-0--p":[-210,-84,-210,84],"pace-gx-0--h":[-210,84,-210,84,-210,84],"pace-gx-1--p":[-140,-84,-140,84],"pace-gx-1--h":[-140,84,-140,84,-140,84],"pace-gx-2--p":[-70,-84,-70,84],"pace-gx-2--h":[-70,84,-70,84,-70,84],"pace-gx-3--p":[0,-84,0,84],"pace-gx-3--h":[0,84,0,84,0,84],"pace-gx-4--p":[70,-84,70,84],"pace-gx-4--h":[70,84,70,84,70,84],"pace-gx-5--p":[140,-84,140,84],"pace-gx-5--h":[140,84,140,84,140,84],"pace-gx-6--p":[210,-84,210,84],"pace-gx-6--h":[210,84,210,84,210,84],"pace-gy-0--p":[-210,84,210,84],"pace-gy-0--h":[210,84,210,84,210,84],"pace-gy-1--p":[-210,42,210,42],"pace-gy-1--h":[210,42,210,42,210,42],"pace-gy-2--p":[-210,0,210,0],"pace-gy-2--h":[210,0,210,0,210,0],"pace-gy-3--p":[-210,-42,210,-42],"pace-gy-3--h":[210,-42,210,-42,210,-42],"pace-gy-4--p":[-210,-84,210,-84],"pace-gy-4--h":[210,-84,210,-84,210,-84],"even--p":[-210,84,210,-84],"even--h":[210,-84,210,-84,210,-84],"real--p":[-210,84,-126,67.2,-28,33.6,98,-25.2,168,-58.8,210,-84],"real--h":[210,-84,210,-84,210,-84],"realn--lead--p":[-56,-25.26,-28,29.28],"realn--lead--h":[-28,29.28,-28,29.28,-28,29.28]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg8-root">{"body":"plot pace \"minutes into the talk\" \"chunks covered\" at 0,0 w 2.8 aspect 5:2 x 0,60 y 0,40 tick 10\nedge even pace@0,pace@0 -- pace@60,pace@40 {.muted .dashed}\nedge real pace@0,pace@0 -- pace@60,pace@40 via pace@12,pace@4 pace@26,pace@12 pace@44,pace@26 pace@54,pace@34 {.smooth .accent .thick}\ndot  mark \"\" at pace@26,pace@12 r 0.08 {.accent}\ntext evenn \"even pace\" at pace@50,pace@33 pad 0.12 {.small .paper}\n# The leader meets the curve at one point instead of running across the field\n# and crossing both curves on the way.\ntext realn \"the first third\\nalways runs long\" at pace@22,pace@31 pad 0.12 -- mark {.small .hand .paper}\n\nstep real\n  show real, mark\nstep lesson\n  emph real\n  dim even","attrs":"unit=150x54","opener":"::: draw 150x54","range":[84456,85149],"chunk":"diagram-plot","width":"full","canvas":{"w":668.5660018993352,"h":240,"align":"center"},"alt":"Plots"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="diagram-plot">
       <div class="annot-box-label">annotation · diagram-plot</div>
@@ -8869,7 +8871,7 @@ are tagged into a release.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>5</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-plot-scale" data-chunk-id="diagram-plot-scale" data-tag="example" data-width="wide" data-chunk-num="66">
+<article class="chunk chunk-free" id="diagram-plot-scale" data-chunk-id="diagram-plot-scale" data-tag="free" data-width="wide" data-chunk-num="66">
   
   <div class="chunk-content">
     
@@ -8900,7 +8902,7 @@ are tagged into a release.</p>
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="diagram-steps" data-chunk-id="diagram-steps" data-tag="example" data-width="full" data-chunk-num="67">
+<article class="chunk chunk-free" id="diagram-steps" data-chunk-id="diagram-steps" data-tag="free" data-width="full" data-chunk-num="67">
   
   <div class="chunk-content">
     
@@ -8917,7 +8919,7 @@ are tagged into a release.</p>
 <g id="dg9-bob" data-base="dg-el dg-box" class="dg-el dg-box tone-2"><rect id="dg9-bob--r" x="370.00" y="-18.38" width="138.00" height="36.75" rx="4"/><g id="dg9-bob--lw0" data-lab="bob--l" class="dg-lwrap" transform="translate(439.00,0.00)"><g id="dg9-bob--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
 <g id="dg9-eve" data-base="dg-el dg-box" class="dg-el dg-box tone-4"><rect id="dg9-eve--r" x="129.80" y="-18.38" width="138.00" height="36.75" rx="4"/><g id="dg9-eve--lw0" data-lab="eve--l" class="dg-lwrap dg-variant dg-off" transform="translate(198.80,0.00)"><g id="dg9-eve--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g><g id="dg9-eve--lw1" data-lab="eve--l" class="dg-lwrap dg-variant" transform="translate(198.80,0.00)"><g id="dg9-eve--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve rewrites M</tspan></text></g></g></g>
 <g id="dg9-note" data-base="dg-el dg-text" class="dg-el dg-text hand small"><g id="dg9-note--lw0" data-lab="note--l" class="dg-lwrap" transform="translate(-110.40,89.38)"><g id="dg9-note--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="-3.42">no cipher is broken here –</tspan><tspan x="0" y="11.58">she just stands in the middle</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg9-root">{"p":"dg9-","n":4,"kinds":{"net--r":"rect","net--l":"text","wire--p":"path","wire--h":"path","wire--h2":"path","wire--l":"text","note--lead--p":"path","note--lead--h":"path","in--p":"path","in--h":"path","fwd--p":"path","fwd--h":"path","fwd--l":"text","edit--p":"path","edit--h":"path","edit--l":"text","alice--r":"rect","alice--l":"text","bob--r":"rect","bob--l":"text","eve--r":"rect","eve--l":"text","note--l":"text"},"names":["spot","cut","damage"],"frames":[{"vis":{"alice":1,"bob":1,"eve":0,"note":0,"net":1,"wire":1,"note--lead":0,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head dg-halo","edit":"accent one-head dg-halo"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-69,-18.37,138,36.75],"alice--l":[0,0,0],"bob--r":[370,-18.37,138,36.75],"bob--l":[439,0,0],"eve--r":[150.5,-95.37,138,36.75],"eve--l":[219.5,-77,0],"note--l":[-69,89.38,0],"net--r":[-80.2,-52.32,599.4,81.9],"net--l":[-70.2,-39.95,0],"wire--p":[76.65,0,362.35,0],"wire--h":[370,0,361,3.96,361,-3.96],"wire--h2":[69,0,78,-3.96,78,3.96],"wire--l":[219.5,-11.37,0],"note--lead--p":[109.94,89.38,219.5,-58.62],"note--lead--h":[219.5,-58.62,219.5,-58.62,219.5,-58.62],"in--p":[69,0,144.94,-71.75],"in--h":[150.5,-77,146.68,-67.94,141.24,-73.7],"fwd--p":[288.5,-88.02,364.44,-16.28],"fwd--h":[370,-11.02,360.74,-14.33,366.18,-20.08],"fwd--l":[337.06,-57.79,0],"edit--p":[288.5,-65.97,364.44,5.77],"edit--h":[370,11.03,360.74,7.72,366.18,1.97],"edit--l":[321.44,-19.21,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":1,"note--lead":1,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head dg-halo","edit":"accent one-head dg-halo"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-69,-18.37,138,36.75],"alice--l":[0,0,0],"bob--r":[370,-18.37,138,36.75],"bob--l":[439,0,0],"eve--r":[150.5,-95.37,138,36.75],"eve--l":[219.5,-77,0],"note--l":[-69,89.38,0],"net--r":[-80.2,-52.32,599.4,81.9],"net--l":[-70.2,-39.95,0],"wire--p":[76.65,0,362.35,0],"wire--h":[370,0,361,3.96,361,-3.96],"wire--h2":[69,0,78,-3.96,78,3.96],"wire--l":[219.5,-11.37,0],"note--lead--p":[109.94,89.38,219.5,-58.62],"note--lead--h":[219.5,-58.62,219.5,-58.62,219.5,-58.62],"in--p":[69,0,144.94,-71.75],"in--h":[150.5,-77,146.68,-67.94,141.24,-73.7],"fwd--p":[288.5,-88.02,364.44,-16.28],"fwd--h":[370,-11.02,360.74,-14.33,366.18,-20.08],"fwd--l":[337.06,-57.79,0],"edit--p":[288.5,-65.97,364.44,5.77],"edit--h":[370,11.03,360.74,7.72,366.18,1.97],"edit--l":[321.44,-19.21,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-110.4,-18.37,138,36.75],"alice--l":[-41.4,0,0],"bob--r":[370,-18.37,138,36.75],"bob--l":[439,0,0],"eve--r":[129.8,-18.37,138,36.75],"eve--l":[198.8,0,0],"note--l":[-110.4,89.38,0],"net--r":[-121.6,-52.32,640.8,81.9],"net--l":[-111.6,-39.95,0],"wire--p":[35.25,0,362.35,0],"wire--h":[370,0,361,3.96,361,-3.96],"wire--h2":[27.6,0,36.6,-3.96,36.6,3.96],"wire--l":[198.8,-11.37,0],"note--lead--p":[68.54,89.38,198.8,18.38],"note--lead--h":[198.8,18.38,198.8,18.38,198.8,18.38],"in--p":[27.6,0,122.15,0],"in--h":[129.8,0,120.8,3.96,120.8,-3.96],"fwd--p":[267.8,-11.02,362.35,-11.02],"fwd--h":[370,-11.02,361,-7.06,361,-14.98],"fwd--l":[318.9,-22.4,0],"edit--p":[267.8,11.03,362.35,11.03],"edit--h":[370,11.03,361,14.99,361,7.07],"edit--l":[318.9,22.4,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":0.6,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted dim","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head dashed"},"lab":{"alice":0,"bob":0,"eve":1,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-110.4,-18.37,138,36.75],"alice--l":[-41.4,0,0],"bob--r":[370,-18.37,138,36.75],"bob--l":[439,0,0],"eve--r":[129.8,-18.37,138,36.75],"eve--l":[198.8,0,0],"note--l":[-110.4,89.38,0],"net--r":[-121.6,-52.32,640.8,81.9],"net--l":[-111.6,-39.95,0],"wire--p":[35.25,0,362.35,0],"wire--h":[370,0,361,3.96,361,-3.96],"wire--h2":[27.6,0,36.6,-3.96,36.6,3.96],"wire--l":[198.8,-11.37,0],"note--lead--p":[68.54,89.38,198.8,18.38],"note--lead--h":[198.8,18.38,198.8,18.38,198.8,18.38],"in--p":[27.6,0,122.15,0],"in--h":[129.8,0,120.8,3.96,120.8,-3.96],"fwd--p":[267.8,-11.02,362.35,-11.02],"fwd--h":[370,-11.02,361,-7.06,361,-14.98],"fwd--l":[318.9,-22.4,0],"edit--p":[267.8,11.03,362.35,11.03],"edit--h":[370,11.03,361,14.99,361,7.07],"edit--l":[318.9,22.4,0]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg9-root">{"body":"default box {.tone-2} w 1.0\n\nbox alice \"Alice\" at 0,0\nbox bob   \"Bob\"   right of alice gap 4.3\nedge wire alice \u003c-> bob \"M\"\ncontainer net \"the intended channel\" over alice,bob pad 0.16 {.dashed .muted}\n\n# `between` is a coordinate and not an adjacency, so Eve is in no chain with\n# the other two: `same as alice` is what makes her one of the three. Alice\n# and Bob need nothing – a run of `right of` boxes is one size already.\nbox eve \"Eve\" between alice,bob offset 0,-1.1 same as alice {.tone-4 @attack}\ntext note \"no cipher is broken here –\\nshe just stands in the middle\" below alice gap 0.8 flush left -- eve.cx,eve.bottom {.hand .small @attack}\n\n# Eve is level with the other two by the time this arrow is shown - the same\n# step moves her onto the line - so it is a plain side-to-side connection and\n# the compiler picks the two facing edges.\nedge in alice -> eve {.accent @cut}\nedge fwd eve.right:0.2 -> bob.left:0.2 \"M\" {.accent @cut} side top\nedge edit eve.right:0.8 -> bob.left:0.8 \"M′\" {.accent @cut} side bottom\n\nstep spot\n  show @attack\nstep cut\n  hide wire\n# `to` names a position, `by` shifts by an amount, and the layout is worked\n# out again at every step, so the container re-fits.\n  move eve to between alice,bob\n  move alice by -0.3,0\n  move bob by 0.3,0\n  show @cut\n  emph eve\nstep damage\n  label eve \"Eve rewrites M\"\n  style edit {.dashed}\n  dim net","attrs":"unit=138x70","opener":"::: draw 138x70","range":[87459,88829],"chunk":"diagram-steps","width":"full","canvas":{"w":668.5660018993352,"h":240,"align":"center"},"alt":"A figure that moves"}</script></figure>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg9-root">{"p":"dg9-","n":4,"kinds":{"net--r":"rect","net--l":"text","wire--p":"path","wire--h":"path","wire--h2":"path","wire--l":"text","note--lead--p":"path","note--lead--h":"path","in--p":"path","in--h":"path","fwd--p":"path","fwd--h":"path","fwd--l":"text","edit--p":"path","edit--h":"path","edit--l":"text","alice--r":"rect","alice--l":"text","bob--r":"rect","bob--l":"text","eve--r":"rect","eve--l":"text","note--l":"text"},"names":["spot","cut","damage"],"frames":[{"vis":{"alice":1,"bob":1,"eve":0,"note":0,"net":1,"wire":1,"note--lead":0,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head dg-halo","edit":"accent one-head dg-halo"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-69,-18.37,138,36.75],"alice--l":[0,0,0],"bob--r":[370,-18.37,138,36.75],"bob--l":[439,0,0],"eve--r":[150.5,-95.37,138,36.75],"eve--l":[219.5,-77,0],"note--l":[-69,89.38,0],"net--r":[-80.2,-52.32,599.4,81.9],"net--l":[-70.2,-39.95,0],"wire--p":[76.65,0,362.35,0],"wire--h":[370,0,361,3.96,361,-3.96],"wire--h2":[69,0,78,-3.96,78,3.96],"wire--l":[219.5,-11.37,0],"note--lead--p":[109.94,89.38,219.5,-58.62],"note--lead--h":[219.5,-58.62,219.5,-58.62,219.5,-58.62],"in--p":[69,0,144.94,-71.75],"in--h":[150.5,-77,146.68,-67.94,141.24,-73.7],"fwd--p":[288.5,-88.02,364.44,-16.28],"fwd--h":[370,-11.02,360.74,-14.33,366.18,-20.08],"fwd--l":[337.06,-57.79,0],"edit--p":[288.5,-65.97,364.44,5.77],"edit--h":[370,11.03,360.74,7.72,366.18,1.97],"edit--l":[321.44,-19.21,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":1,"note--lead":1,"in":0,"fwd":0,"edit":0},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head dg-halo","edit":"accent one-head dg-halo"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-69,-18.37,138,36.75],"alice--l":[0,0,0],"bob--r":[370,-18.37,138,36.75],"bob--l":[439,0,0],"eve--r":[150.5,-95.37,138,36.75],"eve--l":[219.5,-77,0],"note--l":[-69,89.38,0],"net--r":[-80.2,-52.32,599.4,81.9],"net--l":[-70.2,-39.95,0],"wire--p":[76.65,0,362.35,0],"wire--h":[370,0,361,3.96,361,-3.96],"wire--h2":[69,0,78,-3.96,78,3.96],"wire--l":[219.5,-11.37,0],"note--lead--p":[109.94,89.38,219.5,-58.62],"note--lead--h":[219.5,-58.62,219.5,-58.62,219.5,-58.62],"in--p":[69,0,144.94,-71.75],"in--h":[150.5,-77,146.68,-67.94,141.24,-73.7],"fwd--p":[288.5,-88.02,364.44,-16.28],"fwd--h":[370,-11.02,360.74,-14.33,366.18,-20.08],"fwd--l":[337.06,-57.79,0],"edit--p":[288.5,-65.97,364.44,5.77],"edit--h":[370,11.03,360.74,7.72,366.18,1.97],"edit--l":[321.44,-19.21,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":1,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-110.4,-18.37,138,36.75],"alice--l":[-41.4,0,0],"bob--r":[370,-18.37,138,36.75],"bob--l":[439,0,0],"eve--r":[129.8,-18.37,138,36.75],"eve--l":[198.8,0,0],"note--l":[-110.4,89.38,0],"net--r":[-121.6,-52.32,640.8,81.9],"net--l":[-111.6,-39.95,0],"wire--p":[35.25,0,362.35,0],"wire--h":[370,0,361,3.96,361,-3.96],"wire--h2":[27.6,0,36.6,-3.96,36.6,3.96],"wire--l":[198.8,-11.37,0],"note--lead--p":[68.54,89.38,198.8,18.38],"note--lead--h":[198.8,18.38,198.8,18.38,198.8,18.38],"in--p":[27.6,0,122.15,0],"in--h":[129.8,0,120.8,3.96,120.8,-3.96],"fwd--p":[267.8,-11.02,362.35,-11.02],"fwd--h":[370,-11.02,361,-7.06,361,-14.98],"fwd--l":[318.9,-22.4,0],"edit--p":[267.8,11.03,362.35,11.03],"edit--h":[370,11.03,361,14.99,361,7.07],"edit--l":[318.9,22.4,0]}},{"vis":{"alice":1,"bob":1,"eve":1,"note":1,"net":0.6,"wire":0,"note--lead":1,"in":1,"fwd":1,"edit":1},"cls":{"alice":"tone-2","bob":"tone-2","eve":"tone-4 emph","note":"hand small","net":"dashed muted dim","wire":"both-heads","note--lead":"no-head muted","in":"accent one-head","fwd":"accent one-head","edit":"accent one-head dashed"},"lab":{"alice":0,"bob":0,"eve":1,"note":0,"net":0,"wire":0,"fwd":0,"edit":0},"geom":{"alice--r":[-110.4,-18.37,138,36.75],"alice--l":[-41.4,0,0],"bob--r":[370,-18.37,138,36.75],"bob--l":[439,0,0],"eve--r":[129.8,-18.37,138,36.75],"eve--l":[198.8,0,0],"note--l":[-110.4,89.38,0],"net--r":[-121.6,-52.32,640.8,81.9],"net--l":[-111.6,-39.95,0],"wire--p":[35.25,0,362.35,0],"wire--h":[370,0,361,3.96,361,-3.96],"wire--h2":[27.6,0,36.6,-3.96,36.6,3.96],"wire--l":[198.8,-11.37,0],"note--lead--p":[68.54,89.38,198.8,18.38],"note--lead--h":[198.8,18.38,198.8,18.38,198.8,18.38],"in--p":[27.6,0,122.15,0],"in--h":[129.8,0,120.8,3.96,120.8,-3.96],"fwd--p":[267.8,-11.02,362.35,-11.02],"fwd--h":[370,-11.02,361,-7.06,361,-14.98],"fwd--l":[318.9,-22.4,0],"edit--p":[267.8,11.03,362.35,11.03],"edit--h":[370,11.03,361,14.99,361,7.07],"edit--l":[318.9,22.4,0]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg9-root">{"body":"default box {.tone-2} w 1.0\n\nbox alice \"Alice\" at 0,0\nbox bob   \"Bob\"   right of alice gap 4.3\nedge wire alice \u003c-> bob \"M\"\ncontainer net \"the intended channel\" over alice,bob pad 0.16 {.dashed .muted}\n\n# `between` is a coordinate and not an adjacency, so Eve is in no chain with\n# the other two: `same as alice` is what makes her one of the three. Alice\n# and Bob need nothing – a run of `right of` boxes is one size already.\nbox eve \"Eve\" between alice,bob offset 0,-1.1 same as alice {.tone-4 @attack}\ntext note \"no cipher is broken here –\\nshe just stands in the middle\" below alice gap 0.8 flush left -- eve.cx,eve.bottom {.hand .small @attack}\n\n# Eve is level with the other two by the time this arrow is shown - the same\n# step moves her onto the line - so it is a plain side-to-side connection and\n# the compiler picks the two facing edges.\nedge in alice -> eve {.accent @cut}\nedge fwd eve.right:0.2 -> bob.left:0.2 \"M\" {.accent @cut} side top\nedge edit eve.right:0.8 -> bob.left:0.8 \"M′\" {.accent @cut} side bottom\n\nstep spot\n  show @attack\nstep cut\n  hide wire\n# `to` names a position, `by` shifts by an amount, and the layout is worked\n# out again at every step, so the container re-fits.\n  move eve to between alice,bob\n  move alice by -0.3,0\n  move bob by 0.3,0\n  show @cut\n  emph eve\nstep damage\n  label eve \"Eve rewrites M\"\n  style edit {.dashed}\n  dim net","attrs":"unit=138x70","opener":"::: draw 138x70","range":[87333,88703],"chunk":"diagram-steps","width":"full","canvas":{"w":668.5660018993352,"h":240,"align":"center"},"alt":"A figure that moves"}</script></figure>
 
 
 <p><strong>Every element after the first is placed against another one, so nothing comes apart when the middle box moves in.</strong> <code>move eve to between alice,bob</code> states a position, <code>move alice by -0.3,0</code> shifts an element by an amount, and the whole figure is laid out again at every step – so Alice and Bob step aside, the <code class="nb">container</code> re-fits around them, and the arrows are drawn wherever their ends have gone. <code class="nb">hide</code> takes the direct wire away, <code class="nb">dim</code> is the opposite of <code class="nb">emph</code>, and <code class="nb">label</code> swaps in wording that was typeset when the lecture was built.</p>
@@ -8937,7 +8939,7 @@ are tagged into a release.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="autoplay" data-chunk-id="autoplay" data-tag="example" data-width="wide" data-chunk-num="68">
+<article class="chunk chunk-free" id="autoplay" data-chunk-id="autoplay" data-tag="free" data-width="wide" data-chunk-num="68">
   
   <div class="chunk-content">
     
@@ -8967,7 +8969,7 @@ are tagged into a release.</p>
   
   <div class="chunk-num" aria-hidden="true"><i>6</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="autoplay-bounds" data-chunk-id="autoplay-bounds" data-tag="example" data-width="wide" data-chunk-num="69">
+<article class="chunk chunk-free" id="autoplay-bounds" data-chunk-id="autoplay-bounds" data-tag="free" data-width="wide" data-chunk-num="69">
   
   <div class="chunk-content">
     
@@ -8979,7 +8981,7 @@ are tagged into a release.</p>
 <g id="dg10-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg10-edge-1--p" class="dg-stroke" d="M44.35 0.00L126.30 0.00" fill="none"/><path id="dg10-edge-1--h" class="dg-head" d="M133.95 0.00L124.95 3.96L124.95 -3.96Z"/><g id="dg10-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(89.15,-11.38)"><g id="dg10-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
 <g id="dg10-crawler" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg10-crawler--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg10-crawler--lw0" data-lab="crawler--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg10-crawler--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
 <g id="dg10-det" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="dg10-det--r" x="133.95" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg10-det--lw0" data-lab="det--l" class="dg-lwrap" transform="translate(178.30,0.00)"><g id="dg10-det--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Detector</tspan></text></g></g></g>
-</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg10-root">{"p":"dg10-","n":2,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","crawler--r":"rect","crawler--l":"text","det--r":"rect","det--l":"text"},"names":["probe"],"frames":[{"vis":{"crawler":1,"det":1,"edge-1":1},"cls":{"crawler":"tone-1","det":"","edge-1":"one-head"},"lab":{"crawler":0,"det":0,"edge-1":0},"geom":{"crawler--r":[-44.35,-18.37,88.7,36.75],"crawler--l":[0,0,0],"det--r":[133.95,-18.37,88.7,36.75],"det--l":[178.3,0,0],"edge-1--p":[44.35,0,126.3,0],"edge-1--h":[133.95,0,124.95,3.96,124.95,-3.96],"edge-1--l":[89.15,-11.37,0]}},{"vis":{"crawler":1,"det":1,"edge-1":1},"cls":{"crawler":"tone-1","det":"emph","edge-1":"one-head"},"lab":{"crawler":0,"det":0,"edge-1":0},"geom":{"crawler--r":[-44.35,-18.37,88.7,36.75],"crawler--l":[0,0,0],"det--r":[133.95,-18.37,88.7,36.75],"det--l":[178.3,0,0],"edge-1--p":[44.35,0,126.3,0],"edge-1--h":[133.95,0,124.95,3.96,124.95,-3.96],"edge-1--l":[89.15,-11.37,0]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg10-root">{"body":"# frame, for the reason the mix figure earlier carries one: two boxes and an\n# arrow are a specimen of the syntax, not a slide, and the slide round them\n# is four paragraphs of prose.\nbox crawler \"Crawler\" {.tone-1}\nbox det \"Detector\" right of crawler gap 1.6\nedge crawler -> det \"request\"\n\nstep probe\n  emph det","attrs":"unit=150x56","opener":"::: draw 150x56 frame 2x1.2 autoplay 1200 cycle","range":[91603,91915],"chunk":"autoplay-bounds","width":"wide","canvas":{"w":300,"h":67.2,"align":"center"},"alt":"What the timer promises"}</script></figure></div></div>
+</svg><figcaption class="dg-hint"></figcaption><script type="application/json" class="psi-diagram-frames" data-for="dg10-root">{"p":"dg10-","n":2,"kinds":{"edge-1--p":"path","edge-1--h":"path","edge-1--l":"text","crawler--r":"rect","crawler--l":"text","det--r":"rect","det--l":"text"},"names":["probe"],"frames":[{"vis":{"crawler":1,"det":1,"edge-1":1},"cls":{"crawler":"tone-1","det":"","edge-1":"one-head"},"lab":{"crawler":0,"det":0,"edge-1":0},"geom":{"crawler--r":[-44.35,-18.37,88.7,36.75],"crawler--l":[0,0,0],"det--r":[133.95,-18.37,88.7,36.75],"det--l":[178.3,0,0],"edge-1--p":[44.35,0,126.3,0],"edge-1--h":[133.95,0,124.95,3.96,124.95,-3.96],"edge-1--l":[89.15,-11.37,0]}},{"vis":{"crawler":1,"det":1,"edge-1":1},"cls":{"crawler":"tone-1","det":"emph","edge-1":"one-head"},"lab":{"crawler":0,"det":0,"edge-1":0},"geom":{"crawler--r":[-44.35,-18.37,88.7,36.75],"crawler--l":[0,0,0],"det--r":[133.95,-18.37,88.7,36.75],"det--l":[178.3,0,0],"edge-1--p":[44.35,0,126.3,0],"edge-1--h":[133.95,0,124.95,3.96,124.95,-3.96],"edge-1--l":[89.15,-11.37,0]}}]}</script><script type="application/json" class="psi-diagram-source" data-for="dg10-root">{"body":"# frame, for the reason the mix figure earlier carries one: two boxes and an\n# arrow are a specimen of the syntax, not a slide, and the slide round them\n# is four paragraphs of prose.\nbox crawler \"Crawler\" {.tone-1}\nbox det \"Detector\" right of crawler gap 1.6\nedge crawler -> det \"request\"\n\nstep probe\n  emph det","attrs":"unit=150x56","opener":"::: draw 150x56 frame 2x1.2 autoplay 1200 cycle","range":[91471,91783],"chunk":"autoplay-bounds","width":"wide","canvas":{"w":300,"h":67.2,"align":"center"},"alt":"What the timer promises"}</script></figure></div></div>
     
     <aside class="annot-box" data-annot-for="autoplay-bounds">
       <div class="annot-box-label">annotation · autoplay-bounds</div>
@@ -9035,7 +9037,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>0</i></div>
 </article>
-<article class="chunk chunk-example" id="backdrop" data-chunk-id="backdrop" data-tag="example" data-width="wide" data-chunk-num="71">
+<article class="chunk chunk-free" id="backdrop" data-chunk-id="backdrop" data-tag="free" data-width="wide" data-chunk-num="71">
   
   <div class="chunk-content">
     
@@ -9064,7 +9066,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>1</i></div>
 </article>
-<article class="chunk chunk-example" id="backdrop-words" data-chunk-id="backdrop-words" data-tag="example" data-width="wide" data-chunk-num="72">
+<article class="chunk chunk-free" id="backdrop-words" data-chunk-id="backdrop-words" data-tag="free" data-width="wide" data-chunk-num="72">
   
   <div class="chunk-content">
     
@@ -9088,7 +9090,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>2</i></div>
 </article>
-<article class="chunk chunk-example" id="deco-picture" data-chunk-id="deco-picture" data-tag="example" data-width="full" data-chunk-num="73" data-has-backdrop="" data-backdrop="invert">
+<article class="chunk chunk-free" id="deco-picture" data-chunk-id="deco-picture" data-tag="free" data-width="full" data-chunk-num="73" data-has-backdrop="" data-backdrop="invert">
   <div class="chunk-backdrop bd-cover bd-middle bd-invert bd-sharp bd-under" style="background-image:url(&quot;data:image/svg+xml;utf8,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%201600%20900%22%20width%3D%221600%22%20height%3D%22900%22%20role%3D%22img%22%20aria-label%3D%22An%20abstract%20dusk%20skyline%22%3E%0A%20%20%3Cdefs%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22sky%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%23101425%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.55%22%20stop-color%3D%22%233a3350%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220.82%22%20stop-color%3D%22%238f6f7a%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23c99a7d%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%20%20%3ClinearGradient%20id%3D%22haze%22%20x1%3D%220%22%20y1%3D%220%22%20x2%3D%220%22%20y2%3D%221%22%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%220%22%20stop-color%3D%22%231a1526%22%20stop-opacity%3D%220%22%2F%3E%0A%20%20%20%20%20%20%3Cstop%20offset%3D%221%22%20stop-color%3D%22%23140f1c%22%20stop-opacity%3D%220.92%22%2F%3E%0A%20%20%20%20%3C%2FlinearGradient%3E%0A%20%20%3C%2Fdefs%3E%0A%20%20%3Crect%20width%3D%221600%22%20height%3D%22900%22%20fill%3D%22url(%23sky)%22%2F%3E%0A%20%20%3Ccircle%20cx%3D%221210%22%20cy%3D%22232%22%20r%3D%2246%22%20fill%3D%22%23f0d8b8%22%20opacity%3D%220.5%22%2F%3E%0A%20%20%3Cg%20fill%3D%22%23191428%22%20opacity%3D%220.72%22%3E%0A%20%20%20%20%3Crect%20x%3D%220%22%20y%3D%22612%22%20width%3D%22118%22%20height%3D%22288%22%2F%3E%3Crect%20x%3D%22132%22%20y%3D%22548%22%20width%3D%2294%22%20height%3D%22352%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22240%22%20y%3D%22660%22%20width%3D%2270%22%20height%3D%22240%22%2F%3E%3Crect%20x%3D%22326%22%20y%3D%22500%22%20width%3D%22120%22%20height%3D%22400%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22462%22%20y%3D%22636%22%20width%3D%2286%22%20height%3D%22264%22%2F%3E%3Crect%20x%3D%22566%22%20y%3D%22574%22%20width%3D%22104%22%20height%3D%22326%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22688%22%20y%3D%22690%22%20width%3D%2276%22%20height%3D%22210%22%2F%3E%3Crect%20x%3D%22782%22%20y%3D%22524%22%20width%3D%22132%22%20height%3D%22376%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22930%22%20y%3D%22648%22%20width%3D%2290%22%20height%3D%22252%22%2F%3E%3Crect%20x%3D%221038%22%20y%3D%22596%22%20width%3D%22112%22%20height%3D%22304%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221168%22%20y%3D%22672%22%20width%3D%2280%22%20height%3D%22228%22%2F%3E%3Crect%20x%3D%221264%22%20y%3D%22540%22%20width%3D%22126%22%20height%3D%22360%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221408%22%20y%3D%22628%22%20width%3D%2296%22%20height%3D%22272%22%2F%3E%3Crect%20x%3D%221520%22%20y%3D%22686%22%20width%3D%2280%22%20height%3D%22214%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Cg%20fill%3D%22%23f6c975%22%20opacity%3D%220.5%22%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22384%22%20y%3D%22536%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22352%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22410%22%20y%3D%22586%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22852%22%20y%3D%22560%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22808%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22880%22%20y%3D%22614%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221334%22%20y%3D%22576%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221290%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221356%22%20y%3D%22630%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%22150%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%22192%22%20y%3D%22588%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%20%20%3Crect%20x%3D%221058%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%3Crect%20x%3D%221108%22%20y%3D%22638%22%20width%3D%2212%22%20height%3D%2218%22%2F%3E%0A%20%20%3C%2Fg%3E%0A%20%20%3Crect%20y%3D%22560%22%20width%3D%221600%22%20height%3D%22340%22%20fill%3D%22url(%23haze)%22%2F%3E%0A%3C%2Fsvg%3E%0A&quot;)" aria-hidden="true"></div>
   <div class="chunk-content">
     
@@ -9111,7 +9113,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>3</i></div>
 </article>
-<article class="chunk chunk-example" id="cards" data-chunk-id="cards" data-tag="example" data-width="wide" data-chunk-num="74">
+<article class="chunk chunk-free" id="cards" data-chunk-id="cards" data-tag="free" data-width="wide" data-chunk-num="74">
   
   <div class="chunk-content">
     
@@ -9156,7 +9158,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>4</i></div>
 </article>
-<article class="chunk chunk-example" id="cards-open" data-chunk-id="cards-open" data-tag="example" data-width="wide" data-chunk-num="75">
+<article class="chunk chunk-free" id="cards-open" data-chunk-id="cards-open" data-tag="free" data-width="wide" data-chunk-num="75">
   
   <div class="chunk-content">
     
@@ -9187,7 +9189,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>5</i></div>
 </article>
-<article class="chunk chunk-example" id="cards-look" data-chunk-id="cards-look" data-tag="example" data-width="wide" data-chunk-num="76">
+<article class="chunk chunk-free" id="cards-look" data-chunk-id="cards-look" data-tag="free" data-width="wide" data-chunk-num="76">
   
   <div class="chunk-content">
     
@@ -9214,7 +9216,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="cards-ground" data-chunk-id="cards-ground" data-tag="example" data-width="wide" data-chunk-num="77">
+<article class="chunk chunk-free" id="cards-ground" data-chunk-id="cards-ground" data-tag="free" data-width="wide" data-chunk-num="77">
   
   <div class="chunk-content">
     
@@ -9258,7 +9260,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="cards-anchor" data-chunk-id="cards-anchor" data-tag="example" data-width="wide" data-chunk-num="78">
+<article class="chunk chunk-free" id="cards-anchor" data-chunk-id="cards-anchor" data-tag="free" data-width="wide" data-chunk-num="78">
   
   <div class="chunk-content">
     
@@ -9289,7 +9291,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="rows" data-chunk-id="rows" data-tag="example" data-width="wide" data-chunk-num="79">
+<article class="chunk chunk-free" id="rows" data-chunk-id="rows" data-tag="free" data-width="wide" data-chunk-num="79">
   
   <div class="chunk-content">
     
@@ -9317,7 +9319,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>7</i><i>9</i></div>
 </article>
-<article class="chunk chunk-example" id="rows-rules" data-chunk-id="rows-rules" data-tag="example" data-width="wide" data-chunk-num="80">
+<article class="chunk chunk-free" id="rows-rules" data-chunk-id="rows-rules" data-tag="free" data-width="wide" data-chunk-num="80">
   
   <div class="chunk-content">
     
@@ -9341,7 +9343,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>0</i></div>
 </article>
-<article class="chunk chunk-example" id="side-ratio" data-chunk-id="side-ratio" data-tag="example" data-width="wide" data-chunk-num="81">
+<article class="chunk chunk-free" id="side-ratio" data-chunk-id="side-ratio" data-tag="free" data-width="wide" data-chunk-num="81">
   
   <div class="chunk-content">
     
@@ -9361,7 +9363,7 @@ of them are shown one per slide in
 <g id="dg11-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="dg11-edge-1--p" class="dg-stroke" d="M0.00 18.38L0.00 76.72" fill="none"/><path id="dg11-edge-1--h" class="dg-head" d="M0.00 84.38L-3.96 75.38L3.96 75.38Z"/><g id="dg11-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(33.10,51.38)"><g id="dg11-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">request</tspan></text></g></g></g>
 <g id="dg11-a" data-base="dg-el dg-box" class="dg-el dg-box tone-1"><rect id="dg11-a--r" x="-44.35" y="-18.38" width="88.70" height="36.75" rx="4"/><g id="dg11-a--lw0" data-lab="a--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="dg11-a--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Crawler</tspan></text></g></g></g>
 <g id="dg11-b" data-base="dg-el dg-box" class="dg-el dg-box tone-4"><rect id="dg11-b--r" x="-44.35" y="84.38" width="88.70" height="36.75" rx="4"/><g id="dg11-b--lw0" data-lab="b--l" class="dg-lwrap" transform="translate(0.00,102.75)"><g id="dg11-b--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Detector</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-source" data-for="dg11-root">{"body":"box a \"Crawler\" {.tone-1}\nbox b \"Detector\" below a gap 1.1 {.tone-4}\nedge a -> b \"request\"","attrs":"unit=140x60","opener":"::: draw 140x60","range":[102161,102251],"chunk":"side-ratio","width":"wide","canvas":null,"alt":"A figure beside the prose"}</script></figure>
+</svg><script type="application/json" class="psi-diagram-source" data-for="dg11-root">{"body":"box a \"Crawler\" {.tone-1}\nbox b \"Detector\" below a gap 1.1 {.tone-4}\nedge a -> b \"request\"","attrs":"unit=140x60","opener":"::: draw 140x60","range":[101996,102086],"chunk":"side-ratio","width":"wide","canvas":null,"alt":"A figure beside the prose"}</script></figure>
 
 
 
@@ -9380,7 +9382,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>1</i></div>
 </article>
-<article class="chunk chunk-example" id="style-block" data-chunk-id="style-block" data-tag="example" data-width="wide" data-chunk-num="82">
+<article class="chunk chunk-free" id="style-block" data-chunk-id="style-block" data-tag="free" data-width="wide" data-chunk-num="82">
   
   <div class="chunk-content">
     
@@ -9418,7 +9420,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>2</i></div>
 </article>
-<article class="chunk chunk-example" id="style-keys" data-chunk-id="style-keys" data-tag="example" data-width="wide" data-chunk-num="83">
+<article class="chunk chunk-free" id="style-keys" data-chunk-id="style-keys" data-tag="free" data-width="wide" data-chunk-num="83">
   
   <div class="chunk-content">
     
@@ -9442,7 +9444,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>3</i></div>
 </article>
-<article class="chunk chunk-example" id="inline-code" data-chunk-id="inline-code" data-tag="example" data-width="wide" data-chunk-num="84">
+<article class="chunk chunk-free" id="inline-code" data-chunk-id="inline-code" data-tag="free" data-width="wide" data-chunk-num="84">
   
   <div class="chunk-content">
     
@@ -9474,7 +9476,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>4</i></div>
 </article>
-<article class="chunk chunk-example" id="neutrals" data-chunk-id="neutrals" data-tag="example" data-width="wide" data-chunk-num="85">
+<article class="chunk chunk-free" id="neutrals" data-chunk-id="neutrals" data-tag="free" data-width="wide" data-chunk-num="85">
   
   <div class="chunk-content">
     
@@ -9506,7 +9508,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>5</i></div>
 </article>
-<article class="chunk chunk-example" id="headline" data-chunk-id="headline" data-tag="example" data-width="wide" data-chunk-num="86">
+<article class="chunk chunk-free" id="headline" data-chunk-id="headline" data-tag="free" data-width="wide" data-chunk-num="86">
   
   <div class="chunk-content">
     
@@ -9533,7 +9535,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="labels" data-chunk-id="labels" data-tag="example" data-width="wide" data-chunk-num="87">
+<article class="chunk chunk-free" id="labels" data-chunk-id="labels" data-tag="free" data-width="wide" data-chunk-num="87">
   
   <div class="chunk-content">
     
@@ -9567,7 +9569,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>7</i></div>
 </article>
-<article class="chunk chunk-example" id="bundled-fonts" data-chunk-id="bundled-fonts" data-tag="example" data-width="wide" data-chunk-num="88">
+<article class="chunk chunk-free" id="bundled-fonts" data-chunk-id="bundled-fonts" data-tag="free" data-width="wide" data-chunk-num="88">
   
   <div class="chunk-content">
     
@@ -9597,7 +9599,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>8</i></div>
 </article>
-<article class="chunk chunk-example" id="fonts" data-chunk-id="fonts" data-tag="example" data-width="wide" data-chunk-num="89">
+<article class="chunk chunk-free" id="fonts" data-chunk-id="fonts" data-tag="free" data-width="wide" data-chunk-num="89">
   
   <div class="chunk-content">
     
@@ -9625,7 +9627,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>8</i><i>9</i></div>
 </article>
-<article class="chunk chunk-example" id="covers" data-chunk-id="covers" data-tag="example" data-width="wide" data-blocks="left" data-chunk-num="90">
+<article class="chunk chunk-free" id="covers" data-chunk-id="covers" data-tag="free" data-width="wide" data-blocks="left" data-chunk-num="90">
   
   <div class="chunk-content">
     
@@ -9658,7 +9660,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>9</i><i>0</i></div>
 </article>
-<article class="chunk chunk-example" id="credits" data-chunk-id="credits" data-tag="example" data-width="wide" data-chunk-num="91">
+<article class="chunk chunk-free" id="credits" data-chunk-id="credits" data-tag="free" data-width="wide" data-chunk-num="91">
   
   <div class="chunk-content">
     
@@ -9691,7 +9693,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>9</i><i>1</i></div>
 </article>
-<article class="chunk chunk-example" id="cover-list" data-chunk-id="cover-list" data-tag="example" data-width="wide" data-chunk-num="92">
+<article class="chunk chunk-free" id="cover-list" data-chunk-id="cover-list" data-tag="free" data-width="wide" data-chunk-num="92">
   
   <div class="chunk-content">
     
@@ -9722,7 +9724,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>9</i><i>2</i></div>
 </article>
-<article class="chunk chunk-example" id="cover-pictures" data-chunk-id="cover-pictures" data-tag="example" data-width="wide" data-chunk-num="93">
+<article class="chunk chunk-free" id="cover-pictures" data-chunk-id="cover-pictures" data-tag="free" data-width="wide" data-chunk-num="93">
   
   <div class="chunk-content">
     
@@ -9751,7 +9753,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>9</i><i>3</i></div>
 </article>
-<article class="chunk chunk-example" id="cover-keys" data-chunk-id="cover-keys" data-tag="example" data-width="wide" data-chunk-num="94">
+<article class="chunk chunk-free" id="cover-keys" data-chunk-id="cover-keys" data-tag="free" data-width="wide" data-chunk-num="94">
   
   <div class="chunk-content">
     
@@ -9783,7 +9785,7 @@ of them are shown one per slide in
     </aside>
   <div class="chunk-num" aria-hidden="true"><i>9</i><i>4</i></div>
 </article>
-<article class="chunk chunk-example" id="section-dividers" data-chunk-id="section-dividers" data-tag="example" data-width="wide" data-chunk-num="95">
+<article class="chunk chunk-free" id="section-dividers" data-chunk-id="section-dividers" data-tag="free" data-width="wide" data-chunk-num="95">
   
   <div class="chunk-content">
     
@@ -9814,7 +9816,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>9</i><i>5</i></div>
 </article>
-<article class="chunk chunk-example" id="section-quiet" data-chunk-id="section-quiet" data-tag="example" data-width="wide" data-chunk-num="96">
+<article class="chunk chunk-free" id="section-quiet" data-chunk-id="section-quiet" data-tag="free" data-width="wide" data-chunk-num="96">
   
   <div class="chunk-content">
     
@@ -9839,7 +9841,7 @@ of them are shown one per slide in
   
   <div class="chunk-num" aria-hidden="true"><i>9</i><i>6</i></div>
 </article>
-<article class="chunk chunk-example" id="closing" data-chunk-id="closing" data-tag="example" data-width="wide" data-chunk-num="97">
+<article class="chunk chunk-free" id="closing" data-chunk-id="closing" data-tag="free" data-width="wide" data-chunk-num="97">
   
   <div class="chunk-content">
     
