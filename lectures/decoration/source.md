@@ -30,7 +30,7 @@ A slide is a frame, and the frame can carry more than a column of text.
 Every way psi-slides has of decorating a slide, each one used on the slide that
 describes it.
 
-## principle: None of this is in the 1.0.0 release {.standard #preview}
+## free: None of this is in the 1.0.0 release {.standard #preview}
 
 **What this lecture shows was added after the 1.0.0 release**, so the
 archive on the releases page does not have it and a lecture that uses it will
