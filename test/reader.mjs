@@ -175,6 +175,28 @@ const stored = (p) => p.evaluate(() => {
   return k ? { key: k, items: JSON.parse(localStorage.getItem(k)) } : { key: null, items: [] };
 });
 const squash = (t) => t.replace(/\s+/g, ' ').trim();
+// Where the way through the highlights stands: the pill, the open highlight,
+// what has the focus, and each contents entry's count.
+const navState = (p) => p.evaluate(() => {
+  const pill = document.querySelector('.rd-nav');
+  const f = document.querySelector('mark.rd-hl.is-focus');
+  const fr = f && f.getBoundingClientRect();
+  const counts = {};
+  for (const c of document.querySelectorAll('#reader-contents .rd-count')) {
+    const a = c.closest('a');
+    counts[a.dataset.rd || a.getAttribute('href').slice(1)] = c.textContent;
+  }
+  return {
+    shown: !!pill && !pill.hidden && getComputedStyle(pill).display !== 'none',
+    pos: pill ? pill.querySelector('.rd-pos').textContent : null,
+    prev: pill ? pill.querySelector('.rd-prev').disabled : null,
+    next: pill ? pill.querySelector('.rd-next').disabled : null,
+    focus: f ? [...document.querySelectorAll('mark.rd-hl[data-hl="' + f.dataset.hl + '"]')].map(m => m.textContent).join('') : null,
+    inView: !!fr && fr.top >= 0 && fr.bottom <= innerHeight,
+    cardFocused: !!document.activeElement && document.activeElement.classList.contains('rd-card'),
+    counts,
+  };
+});
 
 async function highlights({ browser, ok, note }) {
   const dir = tmpDir('psi-reader-hl-');
@@ -301,6 +323,80 @@ async function highlights({ browser, ok, note }) {
     const plain = await p.evaluate(() => document.querySelectorAll('.rd-notes > .rd-card').length);
     ok(plain === 2, 'a highlight with no note has no card until it is opened', String(plain));
 
+    // ── the way through them: the pill, n and p, the counts ──
+    // Four highlights now, in page order: the lede, two in #term's paragraph
+    // (both with a note), one in its list.
+    let nv = await navState(p);
+    ok(nv.shown && nv.pos === '– / 4', 'with highlights on the page the pill is shown, none of them open', JSON.stringify(nv));
+    ok(nv.counts.term === '3' && nv.counts['part-one'] === '1' && Object.keys(nv.counts).length === 2,
+       'the contents count them per slide, and a lede\'s on its part', JSON.stringify(nv.counts));
+    await p.evaluate(() => window.scrollTo(0, 0));
+    await p.keyboard.press('n');
+    await p.waitForTimeout(100);
+    nv = await navState(p);
+    ok(nv.focus === 'Divider lede' && nv.pos === '1 / 4' && nv.cardFocused && nv.inView && nv.prev,
+       'n from the top of the page opens the first highlight, in view, with its card focused', JSON.stringify(nv));
+    const order = [nv.focus];
+    for (let i = 0; i < 3; i++) { await p.keyboard.press('n'); await p.waitForTimeout(60); order.push((await navState(p)).focus); }
+    ok(JSON.stringify(order.map(t => t.slice(0, 12))) === JSON.stringify(['Divider lede', 'initialisati', 'explains why', 'second item ']),
+       'n walks them in the page\'s order', JSON.stringify(order));
+    nv = await navState(p);
+    ok(nv.pos === '4 / 4' && nv.next && !nv.prev, 'on the last one the next arrow is off', JSON.stringify(nv));
+    await p.keyboard.press('n');
+    await p.waitForTimeout(60);
+    ok((await navState(p)).pos === '4 / 4', 'and n there stays put: the way stops at the ends rather than wrapping');
+    await p.keyboard.press('p');
+    await p.waitForTimeout(60);
+    nv = await navState(p);
+    ok(nv.pos === '3 / 4' && nv.focus.startsWith('explains why'), 'p goes back one', JSON.stringify(nv));
+    await p.click('.rd-nav .rd-f-notes');
+    await p.waitForTimeout(60);
+    nv = await navState(p);
+    ok(nv.pos === '2 / 2', 'with note: the count is of the highlights that have one', JSON.stringify(nv));
+    await p.click('.rd-nav .rd-prev');
+    await p.waitForTimeout(60);
+    nv = await navState(p);
+    ok(nv.pos === '1 / 2' && nv.focus.startsWith('initialisation') && nv.prev,
+       'and the arrow goes to the previous one with a note', JSON.stringify(nv));
+    await p.keyboard.press('n');
+    await p.waitForTimeout(60);
+    await p.keyboard.press('n');
+    await p.waitForTimeout(60);
+    nv = await navState(p);
+    ok(nv.pos === '2 / 2' && nv.focus.startsWith('explains why'), 'n under the filter skips the one without a note', JSON.stringify(nv));
+    await p.click('.rd-nav .rd-f-all');
+    await p.waitForTimeout(60);
+    ok((await navState(p)).pos === '3 / 4', 'all: back to every highlight, from where the reader is');
+    // Keys are the text field's while one has the focus.
+    await p.click('.rd-card.is-focus .rd-note');
+    await p.evaluate(() => { const t = document.activeElement; t.selectionStart = t.selectionEnd = t.value.length; });
+    await p.keyboard.press('n');
+    await p.waitForTimeout(60);
+    nv = await navState(p);
+    const typed = await p.evaluate(() => document.querySelector('.rd-card.is-focus .rd-note').value);
+    ok(nv.pos === '3 / 4' && typed.endsWith('card.n'), 'n typed in a note is a letter in the note', JSON.stringify({ nv, typed }));
+    await p.keyboard.press('Backspace');
+    await p.evaluate(() => document.activeElement.blur());
+    for (const combo of ['Alt+n', 'Control+p', 'Shift+N']) {
+      await p.keyboard.press(combo);
+      await p.waitForTimeout(40);
+    }
+    ok((await navState(p)).pos === '3 / 4', 'n and p with a modifier are not the way through');
+    // A click on a figure puts the open highlight away, as any click beside
+    // it does, and opens the lightbox.
+    await p.click('#fig .psi-diagram');
+    await p.waitForTimeout(150);
+    const lbOpen = await p.evaluate(() => document.body.classList.contains('lb-open'));
+    await p.keyboard.press('n');
+    await p.waitForTimeout(60);
+    nv = await navState(p);
+    ok(lbOpen && nv.pos === '– / 4' && !nv.focus && !nv.shown,
+       'with the lightbox open, n does nothing and the pill is under it', JSON.stringify({ lbOpen, nv }));
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(100);
+    await p.mouse.click(700, 20);
+    await p.waitForTimeout(100);
+
     // ── persisted, and the same in the other document ──
     await p.reload({ waitUntil: 'load' });
     await p.waitForTimeout(250);
@@ -341,6 +437,8 @@ async function highlights({ browser, ok, note }) {
     st = await stored(p);
     ok(!gone.marks && gone.toast && st.items.length === 3 && gone.text.startsWith('The initialisation vector'),
        'remove unwraps the words at once, drops the entry, and offers an undo', JSON.stringify({ gone, n: st.items.length }));
+    nv = await navState(p);
+    ok(nv.counts.term === '2' && nv.pos === '– / 3', 'the slide\'s count and the pill follow the remove', JSON.stringify(nv));
     await p.click('.rd-toast .rd-undo');
     await p.waitForTimeout(100);
     st = await stored(p);
@@ -348,6 +446,7 @@ async function highlights({ browser, ok, note }) {
     ok(st.items.length === 4 && back.includes('initialisation vector is XORed into the first block')
        && st.items.some(h => h.note === 'Why the IV?'),
        'undo puts it back, note and all', JSON.stringify(back));
+    ok((await navState(p)).counts.term === '3', 'and the count with it');
 
     // ── delete the note, and undo that ──
     await p.click('mark.rd-hl >> text=initialisation');
@@ -453,6 +552,8 @@ async function highlights({ browser, ok, note }) {
           get() { throw new DOMException('The operation is insecure.', 'SecurityError'); } });
       });
       const q = await page('print.html', c4);
+      const none = await navState(q);
+      ok(!none.shown && !Object.keys(none.counts).length, 'no highlight, no pill and no counts', JSON.stringify(none));
       ok(await make(q, 'initialisation vector'), 'storage refused: the button still marks a selection');
       const g = await q.evaluate(() => ({
         marks: document.querySelectorAll('mark.rd-hl').length,
@@ -460,6 +561,12 @@ async function highlights({ browser, ok, note }) {
       }));
       ok(g.marks === 1 && /not let the page save/.test(g.notice),
          'and the highlight holds for the session, with a notice in the sidebar foot', JSON.stringify(g));
+      const one = await navState(q);
+      ok(one.shown && one.pos === '1 / 1' && one.counts.term === '1', 'the first highlight brings up the pill and a count', JSON.stringify(one));
+      await q.click('.rd-card.is-focus .rd-remove');
+      await q.waitForTimeout(100);
+      const zero = await navState(q);
+      ok(!zero.shown && !Object.keys(zero.counts).length, 'and removing the last one takes both away again', JSON.stringify(zero));
       await c4.close();
     }
     ok(errors.length === 0, 'highlights: no page errors', errors.join(' | '));

@@ -67,6 +67,31 @@ previous in document order, respecting the toggle. The contents sidebar
 shows a count per section. Nothing is shown to a reader who has not
 highlighted anything.
 
+Decided in slice 3:
+
+- **Stops at the ends, no wrap-around.** On the last highlight the next
+  arrow is greyed out and `n` does nothing. Wrapping round from the last
+  highlight to the first loses a reader's place in a long document.
+- **With none open, the way starts where the reader is.** `n` takes the
+  first highlight whose top is below the top of the window, and `p` the last
+  one above it. If the open highlight is one the filter leaves out, the way
+  starts from that highlight. The counter then reads `– / 12`.
+- **The route is ordered by element, not by chunk and offset.** Every
+  painted entry is sorted by where its first painted element stands in the
+  page (`compareDocumentPosition`), so a figure highlight (§11) joins it as
+  soon as its painter hands back elements.
+- **The counts are per slide, and a lede's go on its part heading.** They
+  count every placed highlight whatever the filter says. Orphans are not
+  counted, because they are listed in the foot.
+- **Keys:** never in an input, textarea, select or contenteditable, never
+  with Ctrl, Alt, Meta or Shift, and not while the lightbox or the contents
+  overlay is open. The lightbox covers the pill.
+- The pill takes the bottom right corner at every width. The contents
+  button is top left from 920 px and bottom left below that. Below 920 px
+  the undo toast already sits 3.5rem up, so it stays clear of both. If the
+  selection button would land on the pill, it flips above the selection.
+  The filter lasts as long as the page and is not stored.
+
 **Menu.** In the sidebar foot: *Markierungen exportieren (.md)*,
 *importieren*, *alle löschen* (with the undo toast), and the list of
 highlights that could not be re-anchored (§4), if any.

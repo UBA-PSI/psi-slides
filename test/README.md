@@ -7,8 +7,8 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Fifteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 46 specs, 1275
-  assertions, about nine minutes, one Chromium for the whole run.
+- **`test/`** – the things that only break in a built page. 46 specs, 1294
+  assertions, about twelve minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
 rather than in four minutes.
@@ -162,7 +162,11 @@ refused, that a reload and the other document paint the same highlights at
 the same offsets, that remove and delete-note undo, that a rebuild moves a
 highlight with its words and lists one whose words are gone, where the card
 stands at 1440, 1100 and 390, and that a browser refusing storage still
-highlights for the session.
+highlights for the session. Then the way through them: that the pill and the
+per-slide counts come with the first highlight and go with the last, that
+`n` and `p` walk them in page order and stop at the ends, that the *with
+note* filter narrows both the count and the walk, and that the keys are
+ignored in a note field, with a modifier held, and under the lightbox.
 
 **The figures** – the `figure-*` specs, which measure the SVG.
 `figure-framing` catches a drawing sitting off-centre in an oversized frame;

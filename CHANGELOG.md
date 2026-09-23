@@ -47,6 +47,17 @@ from building the same way is a major version.
   dropped. Where the browser refuses storage, the highlights last as long as
   the tab and the sidebar says so. Nothing of it prints yet. Ten new label
   keys, `reader-mark` to `reader-session`, carry the words.
+- **A reader can go through their highlights one by one.** Once a document
+  has a highlight, a small bar at the foot of the window, on the right,
+  shows `‹ 3 / 12 ›` with a switch between *all* highlights and those *with
+  note*; the arrows, or `n` and `p` on the keyboard, go to the next and
+  previous one in the order of the page, scroll it into view and open its
+  card. The way stops at the first and the last rather than wrapping round.
+  With none open, `n` starts at the first highlight below the top of the
+  window. The keys do nothing while the reader is typing a note, with a
+  modifier held, or while the lightbox or the contents lie over the page.
+  The contents sidebar shows each slide's number of highlights beside its
+  entry. Five new label keys, `reader-nav` to `reader-filter-notes`.
 
 - **A figure's labels are set at the size of the words beside them.** In
   the live views a `::: draw` figure used to fill its column whatever that

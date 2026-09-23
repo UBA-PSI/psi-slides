@@ -6258,6 +6258,14 @@ const STRINGS = {
     'reader-orphans': 'No longer found in this version',
     'reader-orphan-remove': 'remove',
     'reader-session': 'This browser does not let the page save highlights – they are lost when the tab is closed.',
+    // The way through them: the name of the pill at the foot of the window
+    // (also what the count beside a contents entry is read out as), its two
+    // arrows, and the two halves of its filter.
+    'reader-nav': 'Highlights',
+    'reader-prev': 'Previous highlight',
+    'reader-next': 'Next highlight',
+    'reader-filter-all': 'all',
+    'reader-filter-notes': 'with note',
   },
   de: {
     contents: 'Inhalt',
@@ -6289,6 +6297,11 @@ const STRINGS = {
     'reader-orphans': 'In dieser Fassung nicht mehr gefunden',
     'reader-orphan-remove': 'entfernen',
     'reader-session': 'Dieser Browser lässt die Seite keine Markierungen speichern – sie gehen verloren, wenn der Tab geschlossen wird.',
+    'reader-nav': 'Markierungen',
+    'reader-prev': 'Vorige Markierung',
+    'reader-next': 'Nächste Markierung',
+    'reader-filter-all': 'alle',
+    'reader-filter-notes': 'mit Notiz',
   },
 };
 
@@ -9489,14 +9502,69 @@ body[data-reader=on] {
   .rd-orphans li { margin: 0 0 0.55rem; }
   .rd-orphans q { display: block; background: var(--rd-hl); color: var(--ink); padding: 0 0.15em; }
   .rd-orphan-note { display: block; margin: 0.15rem 0; white-space: pre-wrap; }
+  /* The way through the highlights, in the corner the contents button leaves
+     free at every width: it is top left from 920px and bottom left below. It
+     exists only once there is a highlight, and the undo notice stands above
+     it wherever the two could meet. The lightbox covers it rather than
+     sharing the window with it, because n and p do nothing there. */
+  .rd-nav {
+    position: fixed;
+    right: 0.75rem;
+    bottom: 0.75rem;
+    z-index: 40;
+    display: flex;
+    align-items: center;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    line-height: 1;
+    color: var(--ink-soft);
+    background: var(--paper);
+    border: 0.5pt solid var(--rule);
+    border-radius: var(--radius-tight);
+    box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 0.12);
+  }
+  .rd-nav[hidden], body.lb-open .rd-nav { display: none; }
+  .rd-nav button {
+    font: inherit;
+    color: inherit;
+    background: none;
+    border: 0;
+    border-radius: var(--radius-tight);
+    padding: 0.45rem 0.55rem;
+    cursor: pointer;
+  }
+  .rd-nav :is(.rd-prev, .rd-next) { font-size: 1.15em; padding: 0.35rem 0.6rem; }
+  .rd-nav button:hover:not(:disabled), .rd-nav button:focus-visible { color: var(--ink); }
+  .rd-nav button:disabled { opacity: 0.35; cursor: default; }
+  .rd-pos { color: var(--ink); font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .rd-filter { display: flex; margin-left: 0.2rem; padding: 0.15rem 0.2rem 0.15rem 0.35rem; border-left: 0.5pt solid var(--rule); }
+  .rd-filter button { padding: 0.3rem 0.45rem; white-space: nowrap; }
+  .rd-filter button[aria-pressed=true] { color: var(--ink); background: var(--rd-hl); }
+  /* A slide's count of highlights at the right of its contents entry, in the
+     highlights' own yellow: it says what is there, as the marks do. */
+  body[data-reader=on].rd-ready .rd-contents li > a[data-rd] { grid-template-columns: 1.9em minmax(0, 1fr) auto; }
+  body[data-reader=on][data-slide-nums=off].rd-ready .rd-contents li > a[data-rd] { grid-template-columns: minmax(0, 1fr) auto; }
+  .rd-contents a.rd-part:has(.rd-count) { display: flex; align-items: baseline; gap: 0.35em; }
+  .rd-count {
+    margin-left: auto;
+    padding: 0.1em 0.4em;
+    font-size: 0.85em;
+    font-weight: 400;
+    font-variant-numeric: tabular-nums;
+    line-height: 1.1;
+    color: var(--ink);
+    background: var(--rd-hl);
+    border-radius: var(--radius-tight);
+  }
 }
 @media screen and (max-width: ${READER_NOTES_PX - 0.02}px) {
-  /* Above the contents button, which sits at the foot of a narrow window. */
+  /* Above the contents button and the highlights, which sit at the foot of a
+     narrow window. */
   .rd-toast { bottom: 3.5rem; }
 }
 @media print {
   mark.rd-hl { background: none; color: inherit; }
-  .rd-notes, .rd-card, .rd-mark-btn, .rd-toast { display: none !important; }
+  .rd-notes, .rd-card, .rd-mark-btn, .rd-toast, .rd-nav { display: none !important; }
 }
 
 /* ── the lightbox (screen only) ──────────────────────────────────────
@@ -9880,6 +9948,10 @@ const PRINT_READER_JS = `
 // are. An entry of a kind this build does not know is listed as not found
 // and kept, so a store written by a later build survives an older one.
 //
+// Once there is a highlight, a pill at the foot of the window goes through
+// them in the page's order, all of them or those with a note, and so do n
+// and p; the contents sidebar counts them per slide.
+//
 // Storage is localStorage under psi-reader:v1:<source folder>, and every
 // access is in a try: a browser that refuses it gets highlights that last as
 // long as the tab, and one line in the sidebar's foot that says so. Where two
@@ -10201,6 +10273,7 @@ const PRINT_HIGHLIGHTS_JS = `
       }
     }
     if (!narrow) pack();
+    updateNav();
   };
   let queued = false;
   const schedule = () => {
@@ -10249,6 +10322,119 @@ const PRINT_HIGHLIGHTS_JS = `
     clearTimeout(toastTimer);
     toastTimer = setTimeout(hideToast, 5000);
   };
+
+  // ── the way through them: the pill, n and p, the counts in the contents ──
+  // The route is every entry a painter placed, in the order its first painted
+  // element stands in the page. Ordering by element rather than by chunk and
+  // offset is what lets a figure's highlight (plan §11) join the same route
+  // with nothing here changed: its painter hands back elements as well. An
+  // entry that could not be placed is in the sidebar's foot, not on the route.
+  const hasNote = (h) => !!(h.note && h.note.trim());
+  const FOLLOWS = Node.DOCUMENT_POSITION_FOLLOWING;
+  const ordered = () => store.filter(h => marksOf.has(h.id))
+    .map(h => ({ h, el: marksOf.get(h.id)[0] }))
+    .sort((a, b) => a.el === b.el ? 0 : (a.el.compareDocumentPosition(b.el) & FOLLOWS ? -1 : 1));
+  let onlyNotes = false;
+  const route = () => ordered().filter(x => !onlyNotes || hasNote(x.h));
+
+  const pill = document.createElement('div');
+  pill.className = 'rd-nav';
+  pill.setAttribute('data-rd-ui', '');
+  pill.setAttribute('role', 'group');
+  pill.setAttribute('aria-label', S['reader-nav'] || '');
+  pill.hidden = true;
+  const arrow = (cls, glyph, label, key) => {
+    const b = button(cls, glyph);
+    b.setAttribute('aria-label', label || '');
+    b.title = (label || '') + ' (' + key + ')';
+    return b;
+  };
+  const prevBtn = arrow('rd-prev', '‹', S['reader-prev'], 'p');
+  const nextBtn = arrow('rd-next', '›', S['reader-next'], 'n');
+  const posEl = document.createElement('span');
+  posEl.className = 'rd-pos';
+  const filter = document.createElement('span');
+  filter.className = 'rd-filter';
+  const allBtn = button('rd-f-all', S['reader-filter-all'] || '');
+  const notesBtn = button('rd-f-notes', S['reader-filter-notes'] || '');
+  filter.append(allBtn, notesBtn);
+  pill.append(prevBtn, posEl, nextBtn, filter);
+  body.appendChild(pill);
+
+  // The count beside a contents entry: the slide's own highlights, and on a
+  // part's heading those of its lede. Every highlight, whatever the filter
+  // says - the filter is a way through the page, the count is what is in it.
+  const countLinks = [...document.querySelectorAll('#reader-contents a[data-rd], #reader-contents a.rd-part')];
+  const counts = () => {
+    const n = new Map();
+    for (const h of store) if (marksOf.has(h.id)) n.set(h.chunk, (n.get(h.chunk) || 0) + 1);
+    for (const a of countLinks) {
+      const id = a.dataset.rd || (a.getAttribute('href') || '').slice(1);
+      const k = n.get(id) || 0;
+      let c = a.querySelector('.rd-count');
+      if (!k) { if (c) c.remove(); continue; }
+      if (!c) { c = document.createElement('span'); c.className = 'rd-count'; a.appendChild(c); }
+      c.textContent = String(k);
+      c.setAttribute('aria-label', (S['reader-nav'] || '') + ': ' + k);
+    }
+  };
+
+  // Stops at both ends rather than wrapping: a reader who presses n on the
+  // last highlight and lands on the first has lost their place in a document
+  // of forty pages, and a greyed arrow says where the end is. With none of
+  // them open, the way starts where the reader is - n takes the first below
+  // the top of the window, p the last above it - and with one open that the
+  // filter leaves out, from that one.
+  const updateNav = () => {
+    const all = ordered();
+    pill.hidden = !all.length;
+    counts();
+    const list = onlyNotes ? all.filter(x => hasNote(x.h)) : all;
+    const at = list.findIndex(x => x.h.id === focused);
+    posEl.textContent = (at >= 0 ? at + 1 : '–') + ' / ' + list.length;
+    prevBtn.disabled = !list.length || at === 0;
+    nextBtn.disabled = !list.length || (at >= 0 && at === list.length - 1);
+    allBtn.setAttribute('aria-pressed', onlyNotes ? 'false' : 'true');
+    notesBtn.setAttribute('aria-pressed', onlyNotes ? 'true' : 'false');
+  };
+  const go = (id) => {
+    const el = (marksOf.get(id) || [])[0];
+    if (!el) return;
+    setFocus(id, { card: true });
+    el.scrollIntoView({ block: 'center' });
+    const card = cards.get(id);
+    if (card && card.isConnected) card.scrollIntoView({ block: 'nearest' });
+  };
+  const step = (dir) => {
+    const list = route();
+    if (!list.length) return;
+    let i = list.findIndex(x => x.h.id === focused);
+    if (i >= 0) i += dir;
+    else {
+      const from = focused && (marksOf.get(focused) || [])[0];
+      const ahead = from
+        ? list.map(x => !!(from.compareDocumentPosition(x.el) & FOLLOWS))
+        : list.map(x => x.el.getBoundingClientRect().top >= 0);
+      i = dir > 0 ? ahead.indexOf(true) : ahead.lastIndexOf(false);
+    }
+    if (i >= 0 && i < list.length) go(list[i].h.id);
+  };
+  prevBtn.addEventListener('click', () => step(-1));
+  nextBtn.addEventListener('click', () => step(1));
+  const setFilter = (on) => { onlyNotes = on; updateNav(); };
+  allBtn.addEventListener('click', () => setFilter(false));
+  notesBtn.addEventListener('click', () => setFilter(true));
+  // n and p: never while typing, never with a modifier (the browser's own
+  // shortcuts), and not while the lightbox or the contents lie over the page.
+  document.addEventListener('keydown', (e) => {
+    if ((e.key !== 'n' && e.key !== 'p') || e.defaultPrevented || e.isComposing) return;
+    if (e.metaKey || e.ctrlKey || e.altKey || e.shiftKey || pill.hidden) return;
+    if (body.classList.contains('lb-open') || body.classList.contains('rd-open')) return;
+    const t = e.target;
+    if (t && t.closest && t.closest('input, textarea, select, [contenteditable]:not([contenteditable=false])')) return;
+    e.preventDefault();
+    step(e.key === 'n' ? 1 : -1);
+  });
 
   // ── the sidebar's foot: what could not be placed, and the session notice ──
   const renderFoot = () => {
@@ -10403,6 +10589,14 @@ const PRINT_HIGHLIGHTS_JS = `
     let y = last.bottom + 6;
     if (y + h > window.innerHeight - pad) y = rects.length ? rects[0].top - h - 6 : last.top - h - 6;
     y = Math.max(pad, Math.min(window.innerHeight - h - pad, y));
+    // Not on top of the pill, which holds the corner a selection near the
+    // foot of the window would put it in: above the selection instead.
+    if (!pill.hidden) {
+      const pr = pill.getBoundingClientRect();
+      if (x < pr.right && x + w > pr.left && y < pr.bottom && y + h > pr.top) {
+        y = Math.max(pad, (rects[0] || last).top - h - 6);
+      }
+    }
     markBtn.style.left = Math.round(x + window.scrollX) + 'px';
     markBtn.style.top = Math.round(y + window.scrollY) + 'px';
   };

@@ -310,7 +310,8 @@ const LABEL_KEYS = new Set([
   'untitled-lecture', 'annotation-label', 'add-note', 'reader-close',
   'reader-mark', 'reader-note', 'reader-note-clear', 'reader-remove',
   'reader-removed', 'reader-note-cleared', 'reader-undo', 'reader-orphans',
-  'reader-orphan-remove', 'reader-session',
+  'reader-orphan-remove', 'reader-session', 'reader-nav', 'reader-prev',
+  'reader-next', 'reader-filter-all', 'reader-filter-notes',
 ]);
 const LABEL_TYPE_KEYS = new Set([
   'principle', 'definition', 'example', 'question', 'exercise', 'outline', 'figure',
