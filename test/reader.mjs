@@ -953,10 +953,22 @@ async function figures({ browser, ok, note }) {
     await p.waitForTimeout(150);
     let st = await entries();
     const whole = st[0] || {};
+    // The frame is an element drawn in the figure, not an outline on the
+    // svg: WebKit repainted such an outline only where something else did
+    // (the corner under the button) and left it behind when it went. So its
+    // box is measured against the drawing's, on all four sides.
+    const frameFit = (sel) => p.evaluate((sel) => {
+      const f = document.querySelector(sel + ' .rd-frame');
+      if (!f) return null;
+      const r = f.getBoundingClientRect(), d = document.querySelector(sel + ' :is(svg.psi-diagram, img)').getBoundingClientRect();
+      return { l: +(d.left - r.left).toFixed(1), t: +(d.top - r.top).toFixed(1), r: +(r.right - d.right).toFixed(1), b: +(r.bottom - d.bottom).toFixed(1),
+               stroke: getComputedStyle(f)[f.tagName === 'rect' ? 'stroke' : 'borderTopColor'],
+               outline: getComputedStyle(document.querySelector(sel + ' :is(svg.psi-diagram, img)')).outlineStyle };
+    }, sel);
     const a1 = await p.evaluate(() => ({
       lb: document.body.classList.contains('lb-open'),
-      frame: document.querySelector('#ctr figure').classList.contains('rd-fig-whole'),
-      outline: getComputedStyle(document.querySelector('#ctr svg.psi-diagram')).outlineStyle,
+      frame: document.querySelector('#ctr figure').classList.contains('rd-fig-whole')
+        && document.querySelectorAll('#ctr .rd-frame').length === 1,
       card: !!document.querySelector('.rd-notes > .rd-card.is-focus'),
       what: (document.querySelector('.rd-card.is-focus .rd-card-what') || {}).textContent,
       active: document.activeElement && document.activeElement.className,
@@ -964,8 +976,32 @@ async function figures({ browser, ok, note }) {
     ok(!a1.lb && st.length === 1 && whole.type === 'figure' && whole.chunk === 'ctr' && whole.at === null
        && whole.fig.index === 0 && whole.fig.kind === 'diagram' && whole.fig.key === 'Counter mode',
        'its click marks the whole figure and does not open the lightbox', JSON.stringify({ a1, whole }));
-    ok(a1.frame && a1.outline === 'solid' && a1.card && a1.active === 'rd-note' && a1.what === 'Figure “Counter mode”',
+    ok(a1.frame && a1.card && a1.active === 'rd-note' && a1.what === 'Figure “Counter mode”',
        'a yellow frame round the drawing, and its card in the margin, named, with the cursor in the note', JSON.stringify(a1));
+    const fit = await frameFit('#ctr');
+    ok(fit && [fit.l, fit.t, fit.r, fit.b].every(v => v <= 0 && v >= -1.5) && fit.outline === 'none' && fit.stroke !== 'none',
+       'on a vector the frame lies on the drawing\'s box, on all four sides, and the svg carries no outline', JSON.stringify(fit));
+    // ── the last mark on a figure taken off: every trace goes, and comes back on undo ──
+    const traces = (sel) => p.evaluate((sel) => {
+      const f = document.querySelector(sel + ' figure');
+      const d = f.querySelector(':scope > svg, :scope > img, :scope > .rd-fig-box > img');
+      return { fig: f.className, d: d.getAttribute('class') || '',
+               left: f.querySelectorAll('.rd-frame, .rd-pins, .rd-pin, .rd-el, .rd-fig-box, .rd-fig-no').length };
+    }, sel);
+    const clean = (t) => !/rd-/.test(t.fig) && !/rd-|is-focus/.test(t.d) && t.left === 0;
+    const wholeId = (await entries())[0].id;
+    await p.click(`.rd-card[data-hl="${wholeId}"] .rd-remove`);
+    await p.waitForTimeout(100);
+    const gone = await traces('#ctr');
+    ok((await entries()).length === 0 && clean(gone), 'removed from its card, a whole figure\'s last mark leaves no frame, class or layer behind', JSON.stringify(gone));
+    await p.click('.rd-undo');
+    await p.waitForTimeout(100);
+    const back = await frameFit('#ctr');
+    ok((await entries()).length === 1 && back && Math.abs(back.l - fit.l) < 0.5 && Math.abs(back.b - fit.b) < 0.5
+       && await p.evaluate(() => document.querySelector('#ctr figure').classList.contains('rd-fig-whole')),
+       'and undo draws the frame again where it was', JSON.stringify(back));
+    await p.click('#ctr .rd-fig-btn');
+    await p.waitForTimeout(100);
     await p.keyboard.type('The whole picture?');
     await p.click('#ctr .rd-fig-btn');
     await p.waitForTimeout(100);
@@ -1030,6 +1066,39 @@ async function figures({ browser, ok, note }) {
     }, spot.id);
     ok(!after.lb && Math.abs(after.fx - 0.25) < 0.02 && Math.abs(after.fy - 0.75) < 0.02 && after.card === 'Here?',
        'closed, the pin stands on the same spot in the document, with its card in the margin', JSON.stringify(after));
+    // A picture marked whole: its frame stands 3 px clear of the picture on
+    // every side, and taken off again it leaves the pin and nothing else.
+    await p.hover('#pic figure');
+    await p.click('#pic .rd-fig-btn');
+    await p.waitForTimeout(100);
+    const picFit = await frameFit('#pic');
+    const picWhole = (await entries()).find(h => h.chunk === 'pic' && !h.at) || {};
+    ok(picFit && [picFit.l, picFit.t, picFit.r, picFit.b].every(v => Math.abs(v - 5) < 0.6) && picFit.outline === 'none',
+       'round a picture the frame is 3 px clear of it on all four sides, and the img carries no outline', JSON.stringify(picFit));
+    await p.click(`.rd-card[data-hl="${picWhole.id}"] .rd-remove`);
+    await p.waitForTimeout(100);
+    const picLeft = await p.evaluate(() => ({ whole: document.querySelector('#pic figure').classList.contains('rd-fig-whole'),
+      frames: document.querySelectorAll('#pic .rd-frame, #pic .rd-fig-no').length, pins: document.querySelectorAll('#pic .rd-pin').length }));
+    ok(!picLeft.whole && picLeft.frames === 0 && picLeft.pins === 1, 'removed, the whole mark takes its frame and leaves the pin', JSON.stringify(picLeft));
+    // The last pin, removed from its card inside the lightbox: gone from the
+    // lightbox's copy at once and from the document, and back with undo.
+    await p.click('#pic figure img');
+    await p.waitForTimeout(200);
+    const lbPin = await centre('#lightbox .rd-pin .rd-pin-dot');
+    await p.mouse.click(lbPin.x, lbPin.y);
+    await p.waitForTimeout(150);
+    await p.click('#lightbox > .rd-card .rd-remove');
+    await p.waitForTimeout(150);
+    const lbGone = await p.evaluate(() => ({ lb: document.body.classList.contains('lb-open'),
+      inLb: document.querySelectorAll('#lightbox .rd-pin, #lightbox .rd-frame, #lightbox .rd-fig-box').length }));
+    ok(lbGone.lb && lbGone.inLb === 0 && clean(await traces('#pic')),
+       'the last pin removed in the lightbox leaves nothing on its copy or on the figure in the document', JSON.stringify(lbGone));
+    await p.evaluate(() => document.querySelector('.rd-undo').click());
+    await p.waitForTimeout(150);
+    ok(await p.evaluate(() => document.querySelectorAll('#lightbox .rd-pin').length === 1 && document.querySelectorAll('#pic .rd-pin').length === 1),
+       'and undo draws it again on both');
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(150);
 
     // ── (c) a spot on a diagram snaps to the part under the pointer ──
     await p.click('#ctr .psi-diagram');
@@ -1170,8 +1239,14 @@ async function figures({ browser, ok, note }) {
     const before = await entries();
     await p.click('.rd-menu .rd-delete-all');
     await p.waitForTimeout(100);
-    ok(await p.evaluate(() => !document.querySelector('main .rd-pin, main .rd-el, main .rd-fig-whole, main .rd-fig-box, main .rd-fig-no, main .rd-block-whole, main mark')),
+    ok(await p.evaluate(() => !document.querySelector('main .rd-pin, main .rd-pins, main .rd-frame, main .rd-el, main .rd-fig-whole, main .rd-fig-box, main .rd-fig-no, main .rd-block-whole, main mark')),
        'delete all takes every dot, tint, frame, number and wrapper off the figures and blocks');
+    await p.click('.rd-undo');
+    await p.waitForTimeout(100);
+    ok(await p.evaluate(() => document.querySelectorAll('#ctr .rd-frame').length === 1 && document.querySelectorAll('main .rd-pin').length === 3),
+       'its undo draws the frame and the dots again, once each');
+    await p.click('.rd-menu .rd-delete-all');
+    await p.waitForTimeout(100);
     const [chooser] = await Promise.all([p.waitForEvent('filechooser'), p.click('.rd-menu .rd-import')]);
     await chooser.setFiles(file);
     await p.waitForTimeout(200);
@@ -1188,8 +1263,7 @@ async function figures({ browser, ok, note }) {
       const vis = (n) => getComputedStyle(n).display !== 'none';
       return {
         btns: [...document.querySelectorAll('.rd-fig-btn')].filter(vis).length,
-        outline: getComputedStyle(document.querySelector('#ctr svg.psi-diagram')).outlineStyle,
-        adjust: getComputedStyle(document.querySelector('#ctr svg.psi-diagram')).printColorAdjust,
+        adjust: getComputedStyle(document.querySelector('#ctr .rd-frame')).printColorAdjust,
         screenNums: [...document.querySelectorAll('.rd-pin-s')].filter(vis).length,
         discs: [...document.querySelectorAll('main .rd-pin')].filter(vis).map(d => d.querySelector('.rd-pin-p').textContent),
         wholeNo: [...document.querySelectorAll('main .rd-fig-no')].filter(vis).map(n => n.textContent),
@@ -1202,8 +1276,10 @@ async function figures({ browser, ok, note }) {
         noteLeft: Math.min(...[...document.querySelectorAll('.rd-pnote')].map(n => n.getBoundingClientRect().left)),
       };
     });
-    ok(paper.btns === 0 && paper.outline === 'solid' && paper.adjust === 'exact' && paper.screenNums === 0,
-       'printed: the frame stays and asks to be printed, the buttons and the screen numbers go', JSON.stringify(paper));
+    const paperFit = await frameFit('#ctr');
+    ok(paper.btns === 0 && paper.adjust === 'exact' && paper.screenNums === 0
+       && paperFit && [paperFit.l, paperFit.t, paperFit.r, paperFit.b].every(v => v <= 0 && v >= -1.5),
+       'printed: the frame stays on the drawing\'s box and asks to be printed, the buttons and the screen numbers go', JSON.stringify({ paper, paperFit }));
     ok(JSON.stringify(paper.discs) === '["2","","3"]' && JSON.stringify(paper.wholeNo) === '["1"]' && paper.wholeR
        && JSON.stringify(paper.notes) === JSON.stringify(['1The whole picture?', '2Why Beta?', '3Here?', '4Why add secret?'])
        && paper.noteLeft >= paper.mainRight,

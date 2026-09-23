@@ -1597,21 +1597,28 @@ body[data-reader=on] {
    document, in the lightbox and on paper alike.
    What they look like follows the text highlight's rule: yellow on screen,
    numbers only on paper, where they tie a mark to its note in the margin. A
-   whole figure is a thin frame with a gap round the drawing; a spot is a
+   whole figure is a thin frame - a rect just inside a vector's viewBox, a
+   box 3 px clear of a picture, never an outline on the svg or the img, which
+   WebKit repainted only in part; a spot is a
    small yellow dot with a thin dark edge, which reads on any drawing, and
    the part of a diagram a pin is on is tinted through a class on its group,
    like every other diagram rule. Printed, a spot with a note grows to hold
    its number, and a whole figure's number stands beside the frame's top
    right corner, on the side of the margin its note is in. */
-body[data-reader=on] figure.rd-fig-whole > svg,
-body[data-reader=on] figure.rd-fig-whole > img,
-body[data-reader=on] figure.rd-fig-whole > .rd-fig-box > img,
 body[data-reader=on] main .rd-block-whole {
   outline: 2px solid var(--rd-hl-strong);
   outline-offset: 3px;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
+body[data-reader=on] svg rect.rd-frame { fill: none; stroke: var(--rd-hl-strong); stroke-width: 2px; pointer-events: none; }
+span.rd-frame {
+  position: absolute;
+  inset: -5px;
+  border: 2px solid var(--rd-hl-strong);
+  pointer-events: none;
+}
+.rd-frame { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
 .rd-fig-box { position: relative; display: inline-block; max-width: 100%; vertical-align: top; line-height: 0; }
 .rd-fig-box > img { display: block; }
 body[data-reader=on] svg .rd-pin .rd-hit { fill: transparent; stroke: none; }
@@ -1688,8 +1695,10 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
     transform-origin: center;
   }
   @keyframes rd-pulse { to { transform: scale(1.8); } }
-  body[data-reader=on] main .rd-pulse:is(svg, img, .rd-block-whole) { animation: rd-frame 0.3s ease-in-out 4 alternate; }
+  body[data-reader=on] main .rd-block-whole.rd-pulse { animation: rd-frame 0.3s ease-in-out 4 alternate; }
   @keyframes rd-frame { to { outline-offset: 8px; } }
+  body[data-reader=on] main .rd-frame.rd-pulse { animation: rd-breathe 0.3s ease-in-out 4 alternate; }
+  @keyframes rd-breathe { to { opacity: 0.25; } }
   /* The lightbox's bar, top right on the dark ground, and the crosshair
      while a spot is being marked. The part of a diagram under it is drawn
      in the strong yellow. */
@@ -1728,9 +1737,7 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
   .rd-fig-btn, .rd-lb-bar, svg .rd-pin .rd-hit { display: none !important; }
   body[data-reader=on] main .math-display.rd-block-whole { overflow: visible; }
   body[data-reader=on] main .rd-block-whole { outline-offset: 0; padding: 0.25rem 0.35rem; }
-  body[data-reader=on] figure.rd-fig-whole > svg,
-  body[data-reader=on] figure.rd-fig-whole > img,
-  body[data-reader=on] figure.rd-fig-whole > .rd-fig-box > img { outline-offset: -2px; }
+  span.rd-frame { inset: 0; }
   body[data-reader=on] figure.rd-fig-whole > svg { overflow: visible; }
   svg .rd-pin.rd-has-note .rd-dot { r: var(--rd-rp); }
   .rd-pin.rd-has-note .rd-pin-dot { left: -0.6rem; top: -0.6rem; width: 1.2rem; height: 1.2rem; }
@@ -4295,20 +4302,36 @@ renames the thing it is about.</p>
       if (!layer) { layer = svgEl('g', { class: 'rd-pins', 'data-rd-ui': '' }); d.appendChild(layer); }
     }
     if (!a) {
+      // The frame is an element of its own, drawn where the pins are, and
+      // not an outline on the svg or the picture. WebKit drew an outline on
+      // an inline svg only where something else happened to repaint - the
+      // corner under the button - and left it standing there once removed;
+      // an element that is put in and taken out is repainted by every
+      // engine. On a vector it lies just inside the viewBox, whose margin
+      // keeps it clear of the ink, so nothing depends on how an engine
+      // paints past an svg's own box; round a picture it stands 3 px clear.
       fig.classList.add('rd-fig-whole');
-      let badge;
+      let badge, frame;
       if (isSvg) {
+        frame = svgEl('rect', { class: 'rd-frame', 'vector-effect': 'non-scaling-stroke',
+          x: (vb.x + u).toFixed(2), y: (vb.y + u).toFixed(2),
+          width: Math.max(0, vb.w - 2 * u).toFixed(2), height: Math.max(0, vb.h - 2 * u).toFixed(2) });
+        layer.prepend(frame);
         badge = svgEl('text', { class: 'rd-pin-p rd-fig-no', 'dominant-baseline': 'hanging',
           x: (vb.x + vb.w + 6 * u).toFixed(2), y: (vb.y - 3 * u).toFixed(2), 'font-size': (9 * u).toFixed(2) });
         layer.appendChild(badge);
       } else {
+        frame = document.createElement('span');
+        frame.className = 'rd-frame';
+        frame.setAttribute('data-rd-ui', '');
+        boxed().insertBefore(frame, d.nextSibling);
         badge = document.createElement('span');
         badge.className = 'rd-pin-p rd-fig-no';
         badge.setAttribute('data-rd-ui', '');
         boxed().appendChild(badge);
       }
-      badge.dataset.hl = h.id;
-      return { disc: d, part: null, badge };
+      frame.dataset.hl = badge.dataset.hl = h.id;
+      return { disc: frame, part: null, badge };
     }
     let part = null, disc;
     if (isSvg) {
@@ -4367,12 +4390,11 @@ renames the thing it is about.</p>
     if (h.at && h.at.el && !got.part) approx.add(h.id);
     return [got.disc];
   };
-  // What is left on a figure once one of its entries has gone.
+  // What is left on a figure once one of its entries has gone - with none
+  // left, nothing: no frame, tint, layer, wrapper or class.
   const refreshFig = (fig) => {
     const on = [...figs.values()].filter(v => v.fig === fig);
     fig.classList.toggle('rd-fig-whole', on.some(v => v.whole));
-    const d = drawingOf(fig);
-    if (d && !on.some(v => v.whole)) d.classList.remove('is-focus', 'rd-has-note');
     for (const g of fig.querySelectorAll('.rd-el')) if (!on.some(v => v.part === g)) g.classList.remove('rd-el');
     for (const l of fig.querySelectorAll('g.rd-pins')) if (!l.firstChild) l.remove();
     for (const b of fig.querySelectorAll('.rd-fig-box')) {
@@ -4381,10 +4403,12 @@ renames the thing it is about.</p>
       b.remove();
     }
   };
+  // A whole figure's frame is one of its marks, as a spot's dot is, so the
+  // two go the same way.
   const unpaintFig = (id) => {
     const v = figs.get(id);
     if (v && v.badge) v.badge.remove();
-    if (v && !v.whole) for (const m of marksOf.get(id) || []) m.remove();
+    for (const m of marksOf.get(id) || []) m.remove();
     figs.delete(id);
     approx.delete(id);
     if (v) refreshFig(v.fig);
@@ -4515,6 +4539,8 @@ renames the thing it is about.</p>
   // Places one entry; true when its anchor moved and the store should be
   // written back.
   const place = (h) => {
+    // Placed twice, an entry would be drawn twice and taken off once.
+    if (marksOf.has(h.id)) unpaint(h.id);
     orphans.delete(h.id);
     const kind = KINDS[h.type || 'text'];
     const at = kind && kind.locate(h);
