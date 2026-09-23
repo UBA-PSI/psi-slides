@@ -9,6 +9,18 @@ from building the same way is a major version.
 
 ### Changed
 
+- **The two documents read at a screen size in a browser.** `print.html`
+  and `print-notes.html` set their text at 10pt on screen, so the measure
+  came out at 560 px and a figure at 450 px. On screen the root size now
+  follows the window, from 15 px on a phone to 18 px on a large monitor
+  (16.3 px at 1440 wide, a 685 px measure). Paper keeps its 9pt.
+- **The documents have a lightbox.** Click a figure, a diagram, a code
+  block or a display formula in `print.html` or `print-notes.html` and it
+  opens over the page, sized to the window: the wheel or a pinch zooms under
+  the pointer, a drag pans, `+` / `-` / `0` zoom from the keyboard, Esc or a
+  click closes. It is the documents' first script, a few KB; without
+  JavaScript the page is what it was, and none of it reaches paper.
+
 - **A figure's labels are set at the size of the words beside them.** In
   the live views a `::: draw` figure used to fill its column whatever that
   did to its type, and auto-fit then grew the slide's words up to 2.2x while

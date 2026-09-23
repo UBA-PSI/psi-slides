@@ -1193,6 +1193,97 @@ pre.shiki .line { display: inline; }
 @media screen {
   body { padding: 0; }
   main { padding-top: 4rem; }
+  /* The reading copy in a browser. 10pt is 13.3px, and the whole document is
+     in rem - the 42rem measure came out at 560px, a narrow strip down the
+     middle of a laptop screen with text a size smaller than the browser's
+     own default, and a figure held to 34rem at 450px. Paper keeps its 9pt
+     (the @media print rule above); the screen gets a size that follows the
+     window between a phone and a large monitor: 15px at 390px wide, about
+     16.3px at 1440 and 18px from 1920 up, which puts the measure at 630 to
+     760px, roughly 70 characters. Everything moves with it, figures included,
+     because the proportions were tuned in rem. */
+  html { font-size: clamp(15px, calc(12px + 0.3vw), 18px); }
+}
+
+/* ── the lightbox (screen only) ──────────────────────────────────────
+   The live views' figure focus, for a reader: click a figure, a diagram, a
+   code block or a display formula and it opens on a paper card over the
+   dimmed page, sized to the window; the wheel or a pinch zooms under the
+   pointer, a drag pans, + / - / 0 zoom from the keyboard, and Esc or a click
+   that did not drag closes it. PRINT_JS builds the overlay, so a document
+   opened without scripts is exactly the document it was. Nothing here reaches
+   paper. */
+@media screen {
+  body.lb-ready :is(figure.figure-img, figure.figure-diagram, main pre, main .math-display) { cursor: zoom-in; }
+  #lightbox {
+    position: fixed;
+    inset: 0;
+    display: none;
+    align-items: center;
+    justify-content: center;
+    background: rgb(15 15 18 / 0.88);
+    z-index: 50;
+    overflow: hidden;
+    cursor: grab;
+    touch-action: none;
+  }
+  body.lb-open #lightbox { display: flex; }
+  /* Focused so Esc reaches it at once; the ring would frame the window. */
+  #lightbox:focus { outline: none; }
+  body.lb-open { overflow: hidden; }
+  body.lb-dragging #lightbox, body.lb-dragging #lightbox * { cursor: grabbing !important; }
+  #lightbox > .lb-card {
+    max-width: 96vw;
+    max-height: 96vh;
+    overflow: hidden;
+    margin: 0;
+    padding: 1.5vh 1.5vw;
+    background: var(--paper);
+    box-shadow: 0 0 0 1px var(--rule);
+    transform-origin: center center;
+    transition: transform 80ms ease-out;
+    will-change: transform;
+    cursor: grab;
+  }
+  /* A continuous gesture must not ease: a trackpad sends a wheel event every
+     8 ms, and each one would re-aim the curve (see the live views' rule). */
+  body.lb-dragging #lightbox > .lb-card,
+  body.lb-zooming #lightbox > .lb-card { transition: none; }
+  #lightbox > figure.lb-card { display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
+  #lightbox figure.figure-img img,
+  #lightbox figure.figure-img svg {
+    width: 92vw;
+    max-width: none;
+    max-height: 88vh;
+    height: auto;
+    object-fit: contain;
+  }
+  /* A diagram's box is derived from its type size in the document (main
+     .psi-diagram); here the window decides, and --dg-ar turns the height
+     budget into a width so a tall drawing is not letterboxed. */
+  #lightbox .psi-diagram {
+    width: min(92vw, calc(88vh * var(--dg-ar, 1)));
+    max-width: none;
+    max-height: 88vh;
+    margin: 0;
+  }
+  #lightbox figcaption {
+    font-family: var(--sans);
+    font-size: 0.9rem;
+    color: var(--ink-soft);
+    text-align: center;
+  }
+  #lightbox > pre.lb-card {
+    font-size: clamp(14px, 1.9vw, 30px);
+    line-height: 1.5;
+    white-space: pre;
+    background: var(--paper) !important;
+  }
+  #lightbox > .math-display.lb-card { font-size: clamp(22px, 3.2vw, 56px); }
+  body.lb-open main { filter: blur(2px); }
+}
+@media print {
+  #lightbox { display: none !important; }
 }
 
 
@@ -3064,5 +3155,144 @@ renames the thing it is about.</p>
 </article>
 </section>
 </main>
+<script>
+(() => {
+  const SEL = 'figure.figure-img, figure.figure-diagram, main pre, main .math-display';
+  const MIN = 0.5, MAX = 8, K = 0.01, STEP = 12, QUIET = 160;
+  const box = document.createElement('div');
+  box.id = 'lightbox';
+  box.setAttribute('role', 'dialog');
+  box.setAttribute('aria-modal', 'true');
+  document.body.appendChild(box);
+  document.body.classList.add('lb-ready');
+  let card = null, scale = 1, pan = { x: 0, y: 0 }, quiet = 0, opener = null;
+  const apply = () => {
+    if (card) card.style.transform = 'translate(' + pan.x + 'px, ' + pan.y + 'px) scale(' + scale + ')';
+  };
+  const zoomAt = (factor, at) => {
+    if (!card) return;
+    const next = Math.max(MIN, Math.min(MAX, scale * factor));
+    const r = next / scale;
+    if (r !== 1 && at) {
+      const b = card.getBoundingClientRect();
+      pan = { x: pan.x + (1 - r) * (at.x - (b.left + b.width / 2)),
+              y: pan.y + (1 - r) * (at.y - (b.top + b.height / 2)) };
+    }
+    scale = next;
+    apply();
+  };
+  const open = (el) => {
+    opener = el;
+    card = el.cloneNode(true);
+    card.removeAttribute('id');
+    card.classList.add('lb-card');
+    card.style.transform = '';
+    box.replaceChildren(card);
+    scale = 1; pan = { x: 0, y: 0 };
+    apply();
+    document.body.classList.add('lb-open');
+    box.setAttribute('tabindex', '-1');
+    box.focus({ preventScroll: true });
+  };
+  const close = () => {
+    if (!card) return;
+    card = null;
+    box.replaceChildren();
+    document.body.classList.remove('lb-open', 'lb-dragging', 'lb-zooming');
+    if (opener && opener.focus) opener.focus({ preventScroll: true });
+    opener = null;
+  };
+  document.addEventListener('click', (e) => {
+    if (card) return;
+    if (e.defaultPrevented || e.button !== 0) return;
+    // A link inside a figure or a selection being made stays what it was.
+    if (e.target.closest('a, video, iframe, button')) return;
+    const sel = window.getSelection && window.getSelection();
+    if (sel && !sel.isCollapsed && String(sel).trim()) return;
+    const el = e.target.closest(SEL);
+    if (!el || el.closest('#lightbox')) return;
+    e.preventDefault();
+    open(el);
+  });
+  box.addEventListener('wheel', (e) => {
+    if (!card) return;
+    e.preventDefault();
+    let dy = e.deltaY;
+    if (e.deltaMode === 1) dy *= 16;
+    else if (e.deltaMode === 2) dy *= window.innerHeight;
+    dy = Math.max(-STEP, Math.min(STEP, dy));
+    document.body.classList.add('lb-zooming');
+    clearTimeout(quiet);
+    quiet = setTimeout(() => document.body.classList.remove('lb-zooming'), QUIET);
+    zoomAt(Math.exp(-dy * K), { x: e.clientX, y: e.clientY });
+  }, { passive: false });
+  // Pointer events cover mouse, pen and touch; two fingers on a touchscreen
+  // pinch, one drags. A press that never moves more than 3 px is a click,
+  // and a click closes.
+  const pts = new Map();
+  let drag = null, pinch = null;
+  box.addEventListener('pointerdown', (e) => {
+    if (!card) return;
+    box.setPointerCapture(e.pointerId);
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      pinch = { d: Math.hypot(a.x - b.x, a.y - b.y), s: scale };
+      drag = null;
+      document.body.classList.add('lb-zooming');
+    } else if (pts.size === 1) {
+      drag = { x: e.clientX, y: e.clientY, px: pan.x, py: pan.y, moved: false };
+    }
+  });
+  box.addEventListener('pointermove', (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.set(e.pointerId, { x: e.clientX, y: e.clientY });
+    if (pinch && pts.size === 2) {
+      const [a, b] = [...pts.values()];
+      const d = Math.hypot(a.x - b.x, a.y - b.y);
+      if (pinch.d > 0) zoomAt((pinch.s * d / pinch.d) / scale, { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 });
+      return;
+    }
+    if (!drag) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    if (!drag.moved && (Math.abs(dx) > 3 || Math.abs(dy) > 3)) {
+      drag.moved = true;
+      document.body.classList.add('lb-dragging');
+    }
+    if (!drag.moved) return;
+    pan = { x: drag.px + dx, y: drag.py + dy };
+    apply();
+  });
+  const up = (e) => {
+    if (!pts.has(e.pointerId)) return;
+    pts.delete(e.pointerId);
+    if (pinch) {
+      if (pts.size < 2) { pinch = null; document.body.classList.remove('lb-zooming'); }
+      // The finger left behind drags on from where it is, and must not count
+      // as a click on its way up.
+      if (pts.size === 1) {
+        const [p] = [...pts.values()];
+        drag = { x: p.x, y: p.y, px: pan.x, py: pan.y, moved: true };
+      }
+      return;
+    }
+    const d = drag;
+    drag = null;
+    document.body.classList.remove('lb-dragging');
+    if (d && !d.moved && e.type === 'pointerup') close();
+  };
+  box.addEventListener('pointerup', up);
+  box.addEventListener('pointercancel', up);
+  document.addEventListener('keydown', (e) => {
+    if (!card || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === 'Escape') close();
+    else if (e.key === '+' || e.key === '=') zoomAt(1.25, null);
+    else if (e.key === '-' || e.key === '_') zoomAt(0.8, null);
+    else if (e.key === '0') { scale = 1; pan = { x: 0, y: 0 }; apply(); }
+    else return;
+    e.preventDefault();
+  });
+})();
+</script>
 </body>
 </html>
