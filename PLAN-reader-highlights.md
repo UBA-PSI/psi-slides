@@ -56,10 +56,12 @@ overlaps an existing highlight extends/merges into it rather than being
 refused.
 
 **Opening one.** Click a highlight → its card is focused (scrolled into view
-in the margin, outlined). The card has the note, *Notiz löschen*
-(clears the text) and *Markierung entfernen* (unwraps it, drops the note).
-Delete is immediate; one *Rückgängig* toast for five seconds replaces a
-confirm dialog.
+in the margin, outlined). The card has the note and one action,
+*Entfernen*, which unwraps the highlight and drops its note with it. A note
+alone is deleted by emptying the field. Remove is immediate; one
+*Rückgängig* toast for five seconds replaces a confirm dialog. A separate
+*Notiz löschen* stood beside it at first and was dropped: two actions on a
+small card, one of which did what backspace already does.
 
 **Navigation.** A small pill, fixed bottom right, appears once there is at
 least one highlight: `‹  3 / 12  ›` plus a toggle *alle / mit Notiz*.
@@ -215,12 +217,27 @@ Decided in slice 4:
   A comment that does not parse to an entry is counted and named in the same
   line; a file with none is *Diese Datei enthält keine Markierungen.*
 - **The menu:** *export* and *alle löschen* stand only while there is
-  something in the store; *importieren* and one line on what the export is
-  for stand always, because a reader in a new browser has nothing yet. The
-  line says what holds everywhere – highlights stay in this browser, an
-  export carries them to another one or to the other document – rather than
-  guessing whether this browser keeps the two documents apart, which a page
-  cannot ask.
+  something in the store; *importieren* and a small *?* stand always,
+  because a reader in a new browser has nothing yet. The *?* opens a few
+  short lines (click or Enter; Esc, a click elsewhere or the *?* again
+  closes them, and Esc hands the focus back): what can be highlighted and
+  how; the keys, only under `(hover: hover) and (pointer: fine)`; highlights
+  are kept only in this browser on this device; that storage is lost with
+  the site data, in a private window, and to the browser's own clean-up –
+  WebKit deletes script-written storage after seven days of Safari use
+  without interaction with the site; so export regularly, and the export is
+  readable and imports here or in another browser. The two documents'
+  separate stores in Firefox are left out: nobody but the maintainers could
+  follow the sentence. The lines stood open under the buttons at first and
+  were in the way of every later visit.
+- **Keys as quiet hints, and 44 px for a finger.** With a fine pointer that
+  can hover, the lightbox's *Mark a spot* shows `m`, drawn from `data-key`
+  so the button's words stay its words, and the *?* names `n` / `p` in a
+  line of its own. Letters beside the pill's arrows were tried and dropped
+  as noise. `title` and `aria-keyshortcuts` carry all three everywhere. Under `(pointer:
+  coarse)` every control's box grows to 44 by 44 CSS px – grown boxes rather
+  than a pseudo-element's reach, because the sidebar's list and foot scroll
+  and would clip one.
 - The import button clears the file field before it opens the chooser, so
   the same file chosen twice is read twice.
 
@@ -301,6 +318,19 @@ and rendered page by page:
   window gets `aria-current="location"`; rAF-batched scroll listener plus a
   `ResizeObserver` on `main` and `document.fonts.ready`.
 - Per entry, the number of highlights in that chunk, when non-zero.
+- **The parts fold to their headings.** The part holding the marked entry
+  opens by itself and closes when the reader scrolls into another; a
+  divider is an entry of its own for this, so the part opens on its
+  divider. A chevron beside the heading (`aria-expanded`) opens or closes
+  any part by hand: opened by hand it stays open until closed by hand or a
+  reload; the part being read, closed by hand, stays closed until the reader
+  leaves it, and opening the sidebar over the page opens it again. Slides
+  before the first part have no heading and stay a flat list. A folded part
+  shows the sum of its lede's and its slides' counts (`.rd-sum`); open, the
+  counts stand on the entries. The fold is instant and changes only the
+  sidebar, in the frame that marks the entry, which is then kept in view;
+  the only motion is the chevron turning and a short fade of the opened
+  list, both off under `prefers-reduced-motion`.
 - The in-flow `nav.toc` stays: it is the printed contents page, and a reader
   without JavaScript still has it.
 - No progress bar, no decoration (see the no-decorative-chrome rule).

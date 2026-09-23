@@ -336,6 +336,21 @@ async function highlights({ browser, ok, note }) {
     ok(nv.shown && nv.pos === '– / 4', 'with highlights on the page the pill is shown, none of them open', JSON.stringify(nv));
     ok(nv.counts.term === '3' && nv.counts['part-one'] === '1' && Object.keys(nv.counts).length === 2,
        'the contents count them per slide, and a lede\'s on its part', JSON.stringify(nv.counts));
+    // A folded part carries the sum of its lede and its slides instead.
+    const sumOf = () => p.evaluate(() => {
+      const g = document.querySelector('#reader-contents a.rd-part[href="#part-one"]').closest('.rd-group');
+      const shown = (sel) => { const e = g.querySelector(sel); return !!e && e.getBoundingClientRect().width > 0; };
+      return { open: g.classList.contains('is-open'), sum: (g.querySelector('.rd-sum') || {}).textContent || null,
+               sumShown: shown('.rd-part .rd-sum'), ownShown: shown('.rd-part .rd-count'), slideShown: shown('a[data-rd=term] .rd-count') };
+    });
+    let sm = await sumOf();
+    if (sm.open) { await p.click('#reader-contents a.rd-part[href="#part-one"] + .rd-fold'); sm = await sumOf(); }
+    ok(!sm.open && sm.sum === '4' && sm.sumShown && !sm.ownShown && !sm.slideShown,
+       'a closed part shows the sum of its highlights, lede and slides together', JSON.stringify(sm));
+    await p.click('#reader-contents a.rd-part[href="#part-one"] + .rd-fold');
+    sm = await sumOf();
+    ok(sm.open && !sm.sumShown && sm.ownShown && sm.slideShown,
+       'open, the counts stand on the lede and the slides again', JSON.stringify(sm));
     await p.evaluate(() => window.scrollTo(0, 0));
     await p.keyboard.press('n');
     await p.waitForTimeout(100);
@@ -454,19 +469,23 @@ async function highlights({ browser, ok, note }) {
        'undo puts it back, note and all', JSON.stringify(back));
     ok((await navState(p)).counts.term === '3', 'and the count with it');
 
-    // ── delete the note, and undo that ──
+    // ── a note goes by emptying its field; remove is the card's one action ──
     await p.click('mark.rd-hl >> text=initialisation');
     await p.waitForTimeout(100);
-    await p.click('.rd-card.is-focus .rd-clear');
+    const acts = await p.evaluate(() => [...document.querySelectorAll('.rd-card.is-focus .rd-actions button')].map(b => b.className));
+    ok(JSON.stringify(acts) === '["rd-remove"]', 'a card has one action, remove', JSON.stringify(acts));
+    await p.click('.rd-card.is-focus .rd-note');
+    await p.keyboard.press(process.platform === 'darwin' ? 'Meta+A' : 'Control+A');
+    await p.keyboard.press('Backspace');
     await p.waitForTimeout(100);
     st = await stored(p);
     const cleared = st.items.find(h => h.quote.startsWith('initialisation'));
     ok(cleared && cleared.note === '' && (await marks(p)).includes('initialisation vector is XORed into the first block'),
-       'delete note empties the note and keeps the highlight', JSON.stringify(cleared));
-    await p.click('.rd-toast .rd-undo');
+       'emptying the field deletes the note and keeps the highlight', JSON.stringify(cleared));
+    await p.keyboard.type('Why the IV?');
     await p.waitForTimeout(100);
     st = await stored(p);
-    ok(st.items.find(h => h.quote.startsWith('initialisation')).note === 'Why the IV?', 'and undo brings the note back');
+    ok(st.items.find(h => h.quote.startsWith('initialisation')).note === 'Why the IV?', 'and typing it again brings it back');
 
     // ── a rebuild moves the words ──
     ok(await make(p, 'quoted sentence that will move'), 'a highlight in the chunk that is about to change');
@@ -677,15 +696,36 @@ async function transfer({ browser, ok, note }) {
   const menu = (p) => p.evaluate(() => {
     const vis = (sel) => { const b = document.querySelector(sel); return !!b && !b.hidden && b.getBoundingClientRect().width > 0; };
     return { export: vis('.rd-menu .rd-export'), import: vis('.rd-menu .rd-import'), all: vis('.rd-menu .rd-delete-all'),
+             ask: vis('.rd-menu .rd-help-btn'), helpShown: vis('.rd-menu .rd-help'),
+             expanded: document.querySelector('.rd-menu .rd-help-btn')?.getAttribute('aria-expanded'),
+             focusIn: !!document.activeElement?.closest?.('.rd-help'),
              help: (document.querySelector('.rd-menu .rd-help') || {}).textContent || '' };
   });
   const dataOf = (md) => [...md.matchAll(/<!-- psi-reader (.*?) -->/g)].map(m => JSON.parse(m[1]));
   try {
     const p = await open();
     let m = await menu(p);
-    ok(m.import && !m.export && !m.all && /another browser/.test(m.help),
-       'export: with no highlights the foot offers import and says what an export is for, not export or delete all',
+    ok(m.import && m.ask && !m.export && !m.all && !m.helpShown,
+       'export: with no highlights the foot offers import and a closed ?, not export or delete all',
        JSON.stringify(m));
+    // The ? opens the lines on where highlights live, and three ways close them.
+    await p.click('.rd-menu .rd-help-btn');
+    m = await menu(p);
+    ok(m.helpShown && m.expanded === 'true' && m.focusIn && /Select words/.test(m.help) && /only in this browser/.test(m.help)
+       && /Safari/.test(m.help) && /backup/.test(m.help) && /another browser/.test(m.help),
+       'the ? opens four lines on what the tools are, where they keep things and the export, says so, and takes the focus', JSON.stringify(m));
+    await p.keyboard.press('Escape');
+    m = await menu(p);
+    const back = await p.evaluate(() => document.activeElement === document.querySelector('.rd-menu .rd-help-btn'));
+    ok(!m.helpShown && m.expanded === 'false' && back, 'Esc closes them and hands the focus back to the ?', JSON.stringify(m));
+    await p.click('.rd-menu .rd-help-btn');
+    await p.mouse.click(700, 20);
+    m = await menu(p);
+    ok(!m.helpShown && m.expanded === 'false', 'a click elsewhere closes them', JSON.stringify(m));
+    await p.click('.rd-menu .rd-help-btn');
+    await p.click('.rd-menu .rd-help-btn');
+    m = await menu(p);
+    ok(!m.helpShown && m.expanded === 'false', 'and so does the ? itself', JSON.stringify(m));
 
     await make(p, 'initialisation vector is XORed', 'Why the IV?\nAnd not the key?');
     await make(p, 'Divider lede');
@@ -835,7 +875,7 @@ async function transfer({ browser, ok, note }) {
         const r = document.querySelector('.rd-menu').getBoundingClientRect();
         const b = [...document.querySelectorAll('.rd-menu button')].map(x => x.getBoundingClientRect());
         return { inside: r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && r.width > 0,
-                 buttons: b.length === 3 && b.every(x => x.width > 0 && x.right <= innerWidth),
+                 buttons: b.length === 4 && b.every(x => x.width > 0 && x.right <= innerWidth),
                  sw: document.documentElement.scrollWidth, w: innerWidth };
       });
       ok(g2.inside && g2.buttons && g2.sw <= g2.w, '390px: the menu stands in the opened sidebar, inside the window', JSON.stringify(g2));
@@ -917,6 +957,122 @@ $$a^2 + b^2 = c^2$$
 
 Words after the code.
 `;
+
+// ── a finger: every control is 44 by 44 CSS px to the touch ──
+// Measured at 390 px under a touch viewport, where the page matches
+// (pointer: coarse), by asking the page what stands under the four corners
+// of a 44 px square centred on each control. A hit area grown by padding or
+// min-height and one a scroll box cuts off both answer honestly that way;
+// the element's own box alone would not.
+async function touch({ browser, ok, note }) {
+  const dir = tmpDir('psi-reader-touch-');
+  fs.mkdirSync(path.join(dir, 'assets'));
+  fs.writeFileSync(path.join(dir, 'assets', 'pic.png'), png(240, 120));
+  const built = build(dir, figDeck());
+  ok(built.status === 0, 'touch: the fixture deck builds', (built.stdout || '') + (built.stderr || ''));
+  if (built.status !== 0) return;
+  const { server, port } = await serve(dir);
+  const ctx = await browser.newContext({ viewport: { width: 390, height: 844 }, hasTouch: true, isMobile: true, deviceScaleFactor: 2 });
+  const p = await ctx.newPage();
+  const errors = [];
+  p.on('pageerror', e => errors.push(String(e)));
+  const hit = (sel) => p.evaluate((sel) => {
+    const el = document.querySelector(sel);
+    if (!el) return { sel, missing: true };
+    if (getComputedStyle(el).position !== 'fixed' && !el.closest('#reader-contents, #lightbox, .rd-nav')) el.scrollIntoView({ block: 'center' });
+    const r = el.getBoundingClientRect();
+    const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+    const miss = [];
+    for (const [dx, dy] of [[-21, -21], [21, -21], [-21, 21], [21, 21], [0, 0]]) {
+      const t = document.elementFromPoint(cx + dx, cy + dy);
+      if (!t || !(t === el || el.contains(t))) miss.push([dx, dy, t ? (t.className && t.className.baseVal === undefined ? t.className : t.tagName) : null]);
+    }
+    return { sel, w: Math.round(r.width), h: Math.round(r.height), miss };
+  }, sel);
+  // The keys' hints: a ::after drawn from data-key on the pill's arrows and
+  // the lightbox's spot button, and one line in the ? popover.
+  const hints = (q) => q.evaluate(() => {
+    const after = (sel) => { const e = document.querySelector(sel); if (!e) return null; const c = getComputedStyle(e, '::after').content; return c !== 'none' && c !== 'normal' ? c : ''; };
+    const line = document.querySelector('.rd-help .rd-keys-line');
+    return { prev: after('.rd-nav .rd-prev'), next: after('.rd-nav .rd-next'), spot: after('#lightbox .rd-lb-spot'),
+             line: line ? getComputedStyle(line).display !== 'none' : null,
+             keys: [...document.querySelectorAll('[aria-keyshortcuts]')].map(e => e.getAttribute('aria-keyshortcuts')).sort().join('') };
+  });
+  const check = async (sels, what) => {
+    const res = [];
+    for (const sel of sels) res.push(await hit(sel));
+    const bad = res.filter(r => r.missing || r.miss.length);
+    ok(!bad.length, `touch: ${what} take a 44 px square`, JSON.stringify(bad.length ? bad : res.map(r => r.sel + ' ' + r.w + 'x' + r.h)));
+  };
+  try {
+    await p.goto(`http://127.0.0.1:${port}/print.html`, { waitUntil: 'load' });
+    await p.waitForTimeout(300);
+    ok(await p.evaluate(() => matchMedia('(pointer: coarse)').matches), 'touch: the page sees a coarse pointer');
+
+    await check(['.rd-toggle', '#ctr .rd-fig-btn', '#pic .rd-fig-btn', '#code pre > .rd-fig-btn', '#code .math-display > .rd-fig-btn'],
+      'the contents button and the corner buttons on a diagram, a picture, code and a formula');
+
+    // A whole picture marked: the card, and the pill that comes with it.
+    await p.tap('#pic .rd-fig-btn');
+    await p.waitForTimeout(250);
+    await check(['.rd-card.is-focus .rd-note', '.rd-card.is-focus .rd-remove'], 'the note field and the remove action of a card');
+    await check(['.rd-nav .rd-prev', '.rd-nav .rd-next', '.rd-nav .rd-f-all', '.rd-nav .rd-f-notes'], 'the pill\'s arrows and its filter');
+
+    // The button at the end of a selection.
+    await selectText(p, 'Words before the code');
+    await p.waitForTimeout(200);
+    ok(await buttonShown(p), 'touch: a selection brings up the highlight button');
+    await check(['.rd-mark-btn'], 'the highlight button');
+    await p.evaluate(() => getSelection().removeAllRanges());
+    await p.waitForTimeout(150);
+
+    // The sidebar, opened over the page: close, a part, its chevron, a slide, the menu.
+    await p.tap('.rd-toggle');
+    await p.waitForTimeout(300);
+    await check(['#reader-contents .rd-close', '#reader-contents a.rd-part', '#reader-contents .rd-fold'],
+      'the sidebar\'s close button, a part heading and its chevron');
+    if (await p.evaluate(() => document.querySelector('#reader-contents .rd-fold').getAttribute('aria-expanded') !== 'true')) {
+      await p.tap('#reader-contents .rd-fold');
+      await p.waitForTimeout(150);
+    }
+    await check(['#reader-contents a[data-rd="ctr"]'], 'a slide\'s entry');
+    await check(['.rd-menu .rd-export', '.rd-menu .rd-import', '.rd-menu .rd-delete-all', '.rd-menu .rd-help-btn'],
+      'export, import, delete all and the ?');
+    await p.tap('.rd-close');
+    await p.waitForTimeout(300);
+
+    // The lightbox's bar.
+    await p.evaluate(() => document.querySelector('#pic figure img').scrollIntoView({ block: 'center' }));
+    await p.tap('#pic figure img');
+    await p.waitForTimeout(300);
+    ok(await p.evaluate(() => document.body.classList.contains('lb-open')), 'touch: a tap on the picture opens the lightbox');
+    await check(['#lightbox .rd-lb-spot', '#lightbox .rd-lb-close'], 'the lightbox\'s two buttons');
+    const coarse = await hints(p);
+    ok(coarse.prev === '' && coarse.next === '' && coarse.spot === '' && coarse.line === false && coarse.keys === 'mnp',
+       'touch: no key hints under a coarse pointer, and aria-keyshortcuts on the three buttons all the same', JSON.stringify(coarse));
+
+    // A mouse, and the same page: the hints are there.
+    const fine = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+    const q = await fine.newPage();
+    await q.goto(`http://127.0.0.1:${port}/print.html`, { waitUntil: 'load' });
+    await q.waitForTimeout(300);
+    await q.evaluate(() => { const b = document.querySelector('#pic .rd-fig-btn'); b.scrollIntoView({ block: 'center' }); b.click(); });
+    await q.waitForTimeout(200);
+    await q.mouse.click(700, 20);
+    await q.click('#pic figure img');
+    await q.waitForTimeout(300);
+    const shown = await hints(q);
+    // Chromium reports the content with its alt text, '"p" / ""'.
+    ok(shown.prev === '' && shown.next === '' && /^"m"/.test(shown.spot) && shown.line === true,
+       'with a mouse, the spot button shows m and the ? a line on the keys; the pill\'s arrows show none', JSON.stringify(shown));
+    await fine.close();
+    ok(errors.length === 0, 'touch: no page errors', errors.join(' | '));
+    note('touch: 390 px, hasTouch, (pointer: coarse)');
+  } finally {
+    await ctx.close();
+    server.close();
+  }
+}
 
 async function figures({ browser, ok, note }) {
   const dir = tmpDir('psi-reader-fig-');
@@ -1435,6 +1591,51 @@ export async function run({ page, report }) {
       ok(await current(p) === 'why', 'and is once it crosses it', await current(p));
       const count = await p.evaluate(() => document.querySelectorAll('#reader-contents [aria-current]').length);
       ok(count === 1, 'exactly one entry is marked', String(count));
+
+      // ── the parts fold to their headings ──
+      const folds = () => p.evaluate(() => {
+        const vis = (id) => { const a = document.querySelector('#reader-contents a[data-rd="' + id + '"]'); return !!a && a.getBoundingClientRect().height > 0; };
+        const part = (id) => {
+          const g = document.querySelector('#reader-contents a.rd-part[href="#' + id + '"]').closest('.rd-group');
+          return g.classList.contains('is-open') && g.querySelector('.rd-fold').getAttribute('aria-expanded') === 'true';
+        };
+        return { one: part('part-one'), two: part('part-two'), intro: vis('intro'), term: vis('term'), why: vis('why') };
+      });
+      const chevron = (id) => p.click('#reader-contents a.rd-part[href="#' + id + '"] + .rd-fold');
+      let f = await folds();
+      ok(!f.one && f.two && !f.term && f.why, 'the part being read is open and the other folded to its heading', JSON.stringify(f));
+      await p.evaluate(() => window.scrollTo(0, 0));
+      await settle(p);
+      f = await folds();
+      ok(!f.one && !f.two && f.intro && !f.term && !f.why,
+         'at the cover every part is folded, and the slides before the first part stay listed', JSON.stringify(f));
+      await scrollToChunk('instance', 0.1);
+      await settle(p);
+      f = await folds();
+      ok(f.one && !f.two && f.term, 'scrolled into a part, it opens', JSON.stringify(f));
+      await scrollToChunk('why', 0.2);
+      await settle(p);
+      f = await folds();
+      ok(!f.one && f.two, 'and scrolled on into the next, the one left behind folds again', JSON.stringify(f));
+      await chevron('part-one');
+      await scrollToChunk('last', 0.2);
+      await settle(p);
+      f = await folds();
+      ok(f.one && f.two, 'a part opened by hand stays open while the reader is elsewhere', JSON.stringify(f));
+      await chevron('part-one');
+      f = await folds();
+      ok(!f.one && f.term === false, 'and closes by hand', JSON.stringify(f));
+      await chevron('part-two');
+      await scrollToChunk('why', 0.2);
+      await settle(p);
+      f = await folds();
+      ok(!f.two, 'the part being read, closed by hand, stays closed while the reader is in it', JSON.stringify(f));
+      await scrollToChunk('instance', 0.1);
+      await settle(p);
+      await scrollToChunk('why', 0.2);
+      await settle(p);
+      f = await folds();
+      ok(!f.one && f.two, 'and opens again once the reader has left it and come back', JSON.stringify(f));
       await p.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
       await settle(p);
       ok(await current(p) === 'last', 'at the foot of the page the last slide is marked, though its top never reaches the line',
@@ -1496,6 +1697,9 @@ export async function run({ page, report }) {
       // window moves the button to the foot.
       await p.click('.rd-toggle');
       await p.waitForTimeout(250);
+      const whyHidden = await p.evaluate(() => document.querySelector('#reader-contents a[data-rd="why"]').getBoundingClientRect().height === 0);
+      ok(whyHidden, `${tag}: at the cover, a part's slides are folded under its heading`);
+      await p.click('#reader-contents a.rd-part[href="#part-two"] + .rd-fold');
       await p.click('#reader-contents a[data-rd="why"]');
       await p.waitForTimeout(300);
       await settle(p);
@@ -1509,6 +1713,24 @@ export async function run({ page, report }) {
       ok(!s3.open && clear && landed.top >= 0 && landed.top < 120,
          `${tag}: a link closes it and lands its slide near the top, clear of the button`, JSON.stringify({ s3, landed }));
       ok(await current(p) === 'why', `${tag}: and the scroll-spy follows`, await current(p));
+
+      // Opened while a part is being read, the part is open and its entry in
+      // view - even after the reader folded it by hand the last time.
+      await p.click('.rd-toggle');
+      await p.waitForTimeout(250);
+      await p.click('#reader-contents a.rd-part[href="#part-two"] + .rd-fold');
+      await p.keyboard.press('Escape');
+      await p.waitForTimeout(250);
+      await p.click('.rd-toggle');
+      await p.waitForTimeout(250);
+      const cur = await p.evaluate(() => {
+        const a = document.querySelector('#reader-contents a[data-rd="why"]');
+        const r = a.getBoundingClientRect(), l = document.querySelector('#reader-contents .rd-list').getBoundingClientRect();
+        return { open: a.closest('.rd-group').classList.contains('is-open'), inView: r.height > 0 && r.top >= l.top && r.bottom <= l.bottom };
+      });
+      ok(cur.open && cur.inView, `${tag}: opened, the sidebar shows the part being read, with its entry in view`, JSON.stringify(cur));
+      await p.keyboard.press('Escape');
+      await p.waitForTimeout(250);
 
       // A click beside it closes it and is spent there - it opens nothing.
       await p.click('.rd-toggle');
@@ -1563,4 +1785,5 @@ export async function run({ page, report }) {
   await highlights({ browser, ok, note });
   await transfer({ browser, ok, note });
   await figures({ browser, ok, note });
+  await touch({ browser, ok, note });
 }

@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Fifteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 46 specs, 1374
+- **`test/`** – the things that only break in a built page. 46 specs, 1416
   assertions, about twelve minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
@@ -152,13 +152,14 @@ neighbour-alignment guides, which are what a gesture snaps to.
 them: `reader`, the contents sidebar `print.html` and `print-notes.html` carry
 under `reader: on` – that its entries are the slides with the numbers the page
 prints, that the scroll-spy marks the slide whose top crossed 30% of the
-window, that it folds to a button below the wide layout and opens over the
-page, that the notes column it keeps free fits at each width, and that none of
+window, that its parts fold to their headings with the part being read open
+and a chevron for the rest, that it folds to a button below the wide layout and
+opens over the page, that the notes column it keeps free fits at each width, and that none of
 it reaches paper, a page without scripts, or a deck that says `reader: off`.
 Its second half is the reader's highlights, on a second fixture deck: that a
 selection is marked with the button and its note stored, that an overlapping
 one merges and one in a figure, formula or speaker note is refused, that a reload and the other document paint the same highlights at
-the same offsets, that remove and delete-note undo, that a rebuild moves a
+the same offsets, that remove undoes and an emptied field deletes the note, that a rebuild moves a
 highlight with its words and lists one whose words are gone, where the card
 stands at 1440, 1100 and 390, and that a browser refusing storage still
 highlights for the session. Then the way through them: that the pill and the
@@ -181,7 +182,13 @@ export, delete all and import give back the same store, the merge rules (an
 older copy ignored, a newer one winning, an unknown `type` kept and listed),
 an import into a rebuilt document where one quote moved and one vanished,
 input that is not an export, the undo of delete all, the German file name,
-and the menu inside the opened sidebar at 390. And the figures, on a third
+the ? that opens the lines on the tools and on storage and the three ways it
+closes, and the menu inside the opened sidebar at 390. Then a finger, on the
+figure deck at 390 px with a touch viewport: every control – contents button,
+sidebar entries and chevrons, menu, pill, highlight button, corner buttons,
+lightbox bar, a card's field and action – is hit at all four corners of a
+44 px square round its centre, and the key hints are absent there and present
+with a mouse. And the figures, on a third
 deck with a diagram, a picture, a code block and a formula: that the corner
 button shows on hover,
 frames the figure and opens its card without opening the lightbox, and does

@@ -1274,12 +1274,41 @@ pre.shiki .line { display: inline; }
   .rd-contents ol { list-style: none; margin: 0; padding: 0; }
   .rd-group { margin: 1rem 0 0; }
   .rd-list > li:first-child.rd-group { margin-top: 0; }
+  /* A part's heading and, where it has slides, the button that folds them:
+     a chevron pointing at the heading's words when closed and down when
+     open, drawn faint so the headings carry the list and not the controls. Only the part being read and the ones opened by hand show their
+     slides; a closed one carries the sum of its highlights instead. */
+  .rd-part-row { display: flex; align-items: baseline; gap: 0.25rem; margin: 0 0 0.3rem; }
   .rd-part {
     display: block;
+    flex: 1 1 auto;
+    min-width: 0;
     color: var(--ink);
     font-weight: 600;
     text-decoration: none;
-    margin: 0 0 0.3rem;
+  }
+  .rd-fold {
+    flex: none;
+    align-self: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: -0.2rem -0.3rem -0.2rem 0;
+    padding: 0.42rem;
+    color: var(--ink-soft);
+    opacity: 0.45;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .rd-fold svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.15s ease; }
+  .rd-fold[aria-expanded=true] svg { transform: rotate(90deg); }
+  .rd-fold:hover, .rd-fold:focus-visible { color: var(--ink); opacity: 1; }
+  body[data-reader=on].rd-ready .rd-group:not(.is-open) > ol { display: none; }
+  body[data-reader=on].rd-ready .rd-group.is-open > ol { animation: rd-unfold 0.15s ease; }
+  @keyframes rd-unfold { from { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .rd-fold svg { transition: none; }
+    body[data-reader=on].rd-ready .rd-group.is-open > ol { animation: none; }
   }
   .rd-contents a { text-decoration: none; }
   .rd-contents li > a[data-rd] {
@@ -1472,7 +1501,6 @@ body[data-reader=on] {
     text-underline-offset: 0.15em;
     cursor: pointer;
   }
-  .rd-actions button[hidden] { display: none; }
   .rd-actions button:hover, .rd-orphans button:hover { color: var(--ink); }
   /* Narrow: the card is part of the text, under the block it belongs to. */
   main .rd-card { margin: 0.5rem 0 1rem; font-size: 0.85rem; }
@@ -1508,9 +1536,10 @@ body[data-reader=on] {
   .rd-orphans li { margin: 0 0 0.55rem; }
   .rd-orphans q { display: block; background: var(--rd-hl); color: var(--ink); padding: 0 0.15em; }
   .rd-orphan-note { display: block; margin: 0.15rem 0; white-space: pre-wrap; }
-  /* The menu above them: three actions in the look of a card's, one line on
-     what an export is for, and the line an import leaves. */
-  .rd-menu-acts { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; }
+  /* The menu above them: three actions in the look of a card's, the ? that
+     opens the lines on where highlights are kept, and the line an import
+     leaves. The ? is a small ring rather than a word, and stands last. */
+  .rd-menu-acts { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 1rem; }
   .rd-menu button {
     font: inherit;
     font-size: 0.75rem;
@@ -1524,7 +1553,37 @@ body[data-reader=on] {
   }
   .rd-menu button:hover, .rd-menu button:focus-visible { color: var(--ink); }
   .rd-menu button[hidden], .rd-report[hidden] { display: none; }
-  .rd-help { margin: 0.45rem 0 0; font-size: 0.72rem; }
+  .rd-menu .rd-help-btn { margin-left: auto; text-decoration: none; }
+  .rd-q {
+    display: block;
+    width: 1.35em;
+    height: 1.35em;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    text-align: center;
+    border: 0.5pt solid currentColor;
+    border-radius: 50%;
+    opacity: 0.8;
+  }
+  .rd-menu .rd-help-btn[aria-expanded=true] { color: var(--ink); }
+  .rd-help-btn:is(:hover, :focus-visible, [aria-expanded=true]) .rd-q { opacity: 1; }
+  /* In the flow of the foot rather than floating over it: the foot scrolls on
+     its own, and a box laid over it would be cut off at its edge. */
+  .rd-help {
+    margin: 0.5rem 0 0;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    border: 0.5pt solid var(--rule);
+    border-radius: var(--radius-tight);
+    outline: none;
+  }
+  .rd-help[hidden] { display: none; }
+  /* Open, the lines take the room of the contents rather than scroll the ?
+     that closes them out of the foot. */
+  .rd-foot:has(.rd-help:not([hidden])) { max-height: 75vh; }
+  .rd-help p { margin: 0; }
+  .rd-help p + p { margin-top: 0.35rem; }
   .rd-report { margin: 0.45rem 0 0; color: var(--ink); }
   body[data-reader=on] .rd-foot :is(p, li) { hyphens: manual; -webkit-hyphens: manual; }
   .rd-menu + .rd-hl-foot { margin-top: 0.75rem; }
@@ -1570,8 +1629,9 @@ body[data-reader=on] {
      highlights' own yellow: it says what is there, as the marks do. */
   body[data-reader=on].rd-ready .rd-contents li > a[data-rd] { grid-template-columns: 1.9em minmax(0, 1fr) auto; }
   body[data-reader=on][data-slide-nums=off].rd-ready .rd-contents li > a[data-rd] { grid-template-columns: minmax(0, 1fr) auto; }
-  .rd-contents a.rd-part:has(.rd-count) { display: flex; align-items: baseline; gap: 0.35em; }
-  .rd-count {
+  .rd-contents .rd-part:has(.rd-count, .rd-sum) { display: flex; align-items: baseline; gap: 0.35em; }
+  .rd-group.is-open .rd-sum, .rd-group:not(.is-open) .rd-part .rd-count { display: none; }
+  .rd-count, .rd-sum {
     margin-left: auto;
     padding: 0.1em 0.4em;
     font-size: 0.85em;
@@ -1728,6 +1788,49 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
 }
 @media screen and (hover: none) {
   .rd-fig-btn { opacity: 0.55; }
+}
+/* The keys, as quiet hints where a keyboard is likely - a fine pointer that
+   can hover - and nowhere else: a phone would show a letter it has no key
+   for. The ? names n and p in a line of its own, and Mark a spot shows its m;
+   the pill's arrows carry theirs in title and aria-keyshortcuts only, since
+   a letter beside each was noise at that size. Drawn from data-key, so the
+   button's words stay its words. */
+.rd-keys-line { display: none; }
+@media screen and (hover: hover) and (pointer: fine) {
+  .rd-help .rd-keys-line { display: block; }
+  .rd-lb-bar button[data-key]::after {
+    content: attr(data-key);
+    content: attr(data-key) / "";
+    margin-left: 0.3em;
+    font-size: 0.72em;
+    font-family: var(--mono, monospace);
+    opacity: 0.6;
+  }
+}
+/* A finger rather than a pointer: every control of the reader's takes at
+   least 44 by 44 CSS px to the touch, which test/reader.mjs measures by
+   asking the page what is under each corner of that square. The boxes grow
+   rather than a pseudo-element reaching past them, because the list and the
+   foot of the sidebar scroll and would cut a reach off at their edges; the
+   small glyphs - the chevron, the ? - stay small inside. No display is set
+   here, so an attribute or a width that hides a control still does. */
+@media screen and (pointer: coarse) {
+  body[data-reader=on].rd-ready :is(.rd-toggle, .rd-close, .rd-menu button, .rd-nav button, .rd-mark-btn,
+      .rd-fig-btn, .rd-lb-bar button, .rd-actions button, .rd-orphans button, .rd-undo) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  body[data-reader=on].rd-ready .rd-help-btn { width: 44px; }
+  /* A formula is a scroll box as short as its line, and would cut its
+     corner button down to that. */
+  body[data-reader=on].rd-ready main .math-display:has(> .rd-fig-btn) { min-height: 46px; }
+  body[data-reader=on].rd-ready .rd-fold { width: 44px; height: 44px; padding: 16px; margin: 0; }
+  body[data-reader=on].rd-ready .rd-group { margin-top: 0.3rem; }
+  body[data-reader=on].rd-ready .rd-part-row { align-items: center; min-height: 44px; margin: 0; }
+  body[data-reader=on].rd-ready .rd-part { display: flex; align-items: center; min-height: 44px; }
+  body[data-reader=on].rd-ready .rd-contents li > a[data-rd] { min-height: 44px; align-content: center; padding: 0; }
+  body[data-reader=on].rd-ready .rd-note { min-height: 44px; }
+  body[data-reader=on].rd-ready .rd-menu-acts { gap: 0 0.6rem; }
 }
 /* Paper clips at the page area, and a code block or a picture standing on
    the column's left edge has its frame there: printed, the frame is drawn
@@ -2282,11 +2385,11 @@ code:not(pre code):not(.chunk-heading code) { font-size: 0.885em; }
   <div class="rd-head"><span class="rd-label">Contents</span><button type="button" class="rd-close" aria-label="Close contents">×</button></div>
   <ol class="rd-list">
 <li><a href="#preview" data-rd="preview"><span class="rd-num">3</span><span class="rd-text">None of this is in the 1.0.0 release</span></a></li>
-<li class="rd-group"><span class="rd-part">Memory safety</span><ol><li><a href="#unsafety" data-rd="unsafety"><span class="rd-num">4</span><span class="rd-text">Types of memory unsafety</span></a></li><li><a href="#overflow" data-rd="overflow"><span class="rd-num">5</span><span class="rd-text">Your first buffer overflow</span></a></li></ol></li>
-<li class="rd-group"><span class="rd-part">Block ciphers</span><ol><li><a href="#cbc" data-rd="cbc"><span class="rd-num">6</span><span class="rd-text">Cipher Block Chaining, decryption</span></a></li><li><a href="#ctr" data-rd="ctr"><span class="rd-num">7</span><span class="rd-text">Counter mode, encryption</span></a></li></ol></li>
-<li class="rd-group"><span class="rd-part">Identity and authentication</span><ol><li><a href="#lifecycle" data-rd="lifecycle"><span class="rd-num">8</span><span class="rd-text">Identity lifecycle</span></a></li><li><a href="#mac" data-rd="mac"><span class="rd-num">9</span><span class="rd-text">Message authentication</span></a></li></ol></li>
-<li class="rd-group"><span class="rd-part">The vocabulary</span><ol><li><a href="#primitives" data-rd="primitives"><span class="rd-num">10</span><span class="rd-text">The pieces</span></a></li><li><a href="#alignment" data-rd="alignment"><span class="rd-num">11</span><span class="rd-text">Alignment</span></a></li><li><a href="#grouping" data-rd="grouping"><span class="rd-num">12</span><span class="rd-text">Containers and braces</span></a></li><li><a href="#look" data-rd="look"><span class="rd-num">13</span><span class="rd-text">The look of a thing</span></a></li><li><a href="#outlines" data-rd="outlines"><span class="rd-num">14</span><span class="rd-text">One slot, seven members</span></a></li><li><a href="#outline-size" data-rd="outline-size"><span class="rd-num">15</span><span class="rd-text">Two outlines argue with their own size</span></a></li><li><a href="#prominence" data-rd="prominence"><span class="rd-num">16</span><span class="rd-text">One channel, spelled the same in three places</span></a></li><li><a href="#typefit" data-rd="typefit"><span class="rd-num">17</span><span class="rd-text">When the type does not fit the box</span></a></li><li><a href="#motion" data-rd="motion"><span class="rd-num">18</span><span class="rd-text">Steps that move</span></a></li><li><a href="#motion-implicit" data-rd="motion-implicit"><span class="rd-num">19</span><span class="rd-text">What a step does not have to say</span></a></li><li><a href="#justify" data-rd="justify"><span class="rd-num">20</span><span class="rd-text">Where the words sit</span></a></li><li><a href="#justify-edges" data-rd="justify-edges"><span class="rd-num">21</span><span class="rd-text">One question across, one question along</span></a></li><li><a href="#anchor" data-rd="anchor"><span class="rd-num">22</span><span class="rd-text">A corner, not a centre</span></a></li><li><a href="#in-zone" data-rd="in-zone"><span class="rd-num">23</span><span class="rd-text">An area, and what stands in it</span></a></li><li><a href="#expand" data-rd="expand"><span class="rd-num">24</span><span class="rd-text">Six statements that expand</span></a></li><li><a href="#series" data-rd="series"><span class="rd-num">25</span><span class="rd-text">A second run of columns</span></a></li><li><a href="#flat" data-rd="flat"><span class="rd-num">26</span><span class="rd-text">Columns laid flat</span></a></li><li><a href="#plot" data-rd="plot"><span class="rd-num">27</span><span class="rd-text">A frame to draw in</span></a></li><li><a href="#plot-curves" data-rd="plot-curves"><span class="rd-num">28</span><span class="rd-text">A curve, and the label beside it</span></a></li><li><a href="#sameframe" data-rd="sameframe"><span class="rd-num">29</span><span class="rd-text">One size, two frames</span></a></li><li><a href="#raster" data-rd="raster"><span class="rd-num">30</span><span class="rd-text">A raster does not follow the theme</span></a></li></ol></li>
-<li class="rd-group"><span class="rd-part">Four arrangements</span><ol><li><a href="#flowchart" data-rd="flowchart"><span class="rd-num">31</span><span class="rd-text">The road straight down</span></a></li><li><a href="#swimlane" data-rd="swimlane"><span class="rd-num">32</span><span class="rd-text">Three roles, one incident</span></a></li><li><a href="#tree" data-rd="tree"><span class="rd-num">33</span><span class="rd-text">Leaves first, and the brackets follow</span></a></li><li><a href="#tree-elbow" data-rd="tree-elbow"><span class="rd-num">34</span><span class="rd-text">One word draws all six brackets</span></a></li><li><a href="#table" data-rd="table"><span class="rd-num">35</span><span class="rd-text">One line per row</span></a></li><li><a href="#sequence" data-rd="sequence"><span class="rd-num">36</span><span class="rd-text">A protocol down the page</span></a></li><li><a href="#seq-names" data-rd="seq-names"><span class="rd-num">37</span><span class="rd-text">Every part of a sequence keeps a name</span></a></li><li><a href="#seqmore" data-rd="seqmore"><span class="rd-num">38</span><span class="rd-text">What else a message can be</span></a></li><li><a href="#seq-entries" data-rd="seq-entries"><span class="rd-num">39</span><span class="rd-text">A self-message, a note, and the air between bands</span></a></li><li><a href="#seq-labels" data-rd="seq-labels"><span class="rd-num">40</span><span class="rd-text">What a label sits on, and the column of numbers</span></a></li><li><a href="#autoplay" data-rd="autoplay"><span class="rd-num">41</span><span class="rd-text">A figure that plays itself</span></a></li><li><a href="#end" data-rd="end"><span class="rd-num">42</span><span class="rd-text">The drawing lives in the source</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><span class="rd-part">Memory safety</span><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-1" aria-label="Slides in this part: Memory safety"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-1"><li><a href="#unsafety" data-rd="unsafety"><span class="rd-num">4</span><span class="rd-text">Types of memory unsafety</span></a></li><li><a href="#overflow" data-rd="overflow"><span class="rd-num">5</span><span class="rd-text">Your first buffer overflow</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><span class="rd-part">Block ciphers</span><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-2" aria-label="Slides in this part: Block ciphers"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-2"><li><a href="#cbc" data-rd="cbc"><span class="rd-num">6</span><span class="rd-text">Cipher Block Chaining, decryption</span></a></li><li><a href="#ctr" data-rd="ctr"><span class="rd-num">7</span><span class="rd-text">Counter mode, encryption</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><span class="rd-part">Identity and authentication</span><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-3" aria-label="Slides in this part: Identity and authentication"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-3"><li><a href="#lifecycle" data-rd="lifecycle"><span class="rd-num">8</span><span class="rd-text">Identity lifecycle</span></a></li><li><a href="#mac" data-rd="mac"><span class="rd-num">9</span><span class="rd-text">Message authentication</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><span class="rd-part">The vocabulary</span><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-4" aria-label="Slides in this part: The vocabulary"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-4"><li><a href="#primitives" data-rd="primitives"><span class="rd-num">10</span><span class="rd-text">The pieces</span></a></li><li><a href="#alignment" data-rd="alignment"><span class="rd-num">11</span><span class="rd-text">Alignment</span></a></li><li><a href="#grouping" data-rd="grouping"><span class="rd-num">12</span><span class="rd-text">Containers and braces</span></a></li><li><a href="#look" data-rd="look"><span class="rd-num">13</span><span class="rd-text">The look of a thing</span></a></li><li><a href="#outlines" data-rd="outlines"><span class="rd-num">14</span><span class="rd-text">One slot, seven members</span></a></li><li><a href="#outline-size" data-rd="outline-size"><span class="rd-num">15</span><span class="rd-text">Two outlines argue with their own size</span></a></li><li><a href="#prominence" data-rd="prominence"><span class="rd-num">16</span><span class="rd-text">One channel, spelled the same in three places</span></a></li><li><a href="#typefit" data-rd="typefit"><span class="rd-num">17</span><span class="rd-text">When the type does not fit the box</span></a></li><li><a href="#motion" data-rd="motion"><span class="rd-num">18</span><span class="rd-text">Steps that move</span></a></li><li><a href="#motion-implicit" data-rd="motion-implicit"><span class="rd-num">19</span><span class="rd-text">What a step does not have to say</span></a></li><li><a href="#justify" data-rd="justify"><span class="rd-num">20</span><span class="rd-text">Where the words sit</span></a></li><li><a href="#justify-edges" data-rd="justify-edges"><span class="rd-num">21</span><span class="rd-text">One question across, one question along</span></a></li><li><a href="#anchor" data-rd="anchor"><span class="rd-num">22</span><span class="rd-text">A corner, not a centre</span></a></li><li><a href="#in-zone" data-rd="in-zone"><span class="rd-num">23</span><span class="rd-text">An area, and what stands in it</span></a></li><li><a href="#expand" data-rd="expand"><span class="rd-num">24</span><span class="rd-text">Six statements that expand</span></a></li><li><a href="#series" data-rd="series"><span class="rd-num">25</span><span class="rd-text">A second run of columns</span></a></li><li><a href="#flat" data-rd="flat"><span class="rd-num">26</span><span class="rd-text">Columns laid flat</span></a></li><li><a href="#plot" data-rd="plot"><span class="rd-num">27</span><span class="rd-text">A frame to draw in</span></a></li><li><a href="#plot-curves" data-rd="plot-curves"><span class="rd-num">28</span><span class="rd-text">A curve, and the label beside it</span></a></li><li><a href="#sameframe" data-rd="sameframe"><span class="rd-num">29</span><span class="rd-text">One size, two frames</span></a></li><li><a href="#raster" data-rd="raster"><span class="rd-num">30</span><span class="rd-text">A raster does not follow the theme</span></a></li></ol></li>
+<li class="rd-group"><div class="rd-part-row"><span class="rd-part">Four arrangements</span><button type="button" class="rd-fold" aria-expanded="false" aria-controls="rd-part-5" aria-label="Slides in this part: Four arrangements"><svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button></div><ol id="rd-part-5"><li><a href="#flowchart" data-rd="flowchart"><span class="rd-num">31</span><span class="rd-text">The road straight down</span></a></li><li><a href="#swimlane" data-rd="swimlane"><span class="rd-num">32</span><span class="rd-text">Three roles, one incident</span></a></li><li><a href="#tree" data-rd="tree"><span class="rd-num">33</span><span class="rd-text">Leaves first, and the brackets follow</span></a></li><li><a href="#tree-elbow" data-rd="tree-elbow"><span class="rd-num">34</span><span class="rd-text">One word draws all six brackets</span></a></li><li><a href="#table" data-rd="table"><span class="rd-num">35</span><span class="rd-text">One line per row</span></a></li><li><a href="#sequence" data-rd="sequence"><span class="rd-num">36</span><span class="rd-text">A protocol down the page</span></a></li><li><a href="#seq-names" data-rd="seq-names"><span class="rd-num">37</span><span class="rd-text">Every part of a sequence keeps a name</span></a></li><li><a href="#seqmore" data-rd="seqmore"><span class="rd-num">38</span><span class="rd-text">What else a message can be</span></a></li><li><a href="#seq-entries" data-rd="seq-entries"><span class="rd-num">39</span><span class="rd-text">A self-message, a note, and the air between bands</span></a></li><li><a href="#seq-labels" data-rd="seq-labels"><span class="rd-num">40</span><span class="rd-text">What a label sits on, and the column of numbers</span></a></li><li><a href="#autoplay" data-rd="autoplay"><span class="rd-num">41</span><span class="rd-text">A figure that plays itself</span></a></li><li><a href="#end" data-rd="end"><span class="rd-num">42</span><span class="rd-text">The drawing lives in the source</span></a></li></ol></li>
   </ol>
   <div class="rd-foot" data-reader-slot="tools"></div>
 </nav><script>document.body.classList.add('rd-ready');for (const e of document.querySelectorAll('.rd-contents, .rd-toggle')) e.hidden = false;</script>
@@ -3931,7 +4034,7 @@ renames the thing it is about.</p>
   });
 })();
 </script>
-<script type="application/json" id="reader-data">{"key":"diagrams","title":"Animated Infographics","s":{"reader-close":"Close contents","reader-mark":"Highlight","reader-note":"Note (optional)","reader-note-clear":"Delete note","reader-remove":"Remove highlight","reader-removed":"Highlight removed.","reader-note-cleared":"Note deleted.","reader-undo":"Undo","reader-orphans":"No longer found in this version","reader-orphan-remove":"remove","reader-session":"This browser does not let the page save highlights – they are lost when the tab is closed.","reader-nav":"Highlights","reader-prev":"Previous highlight","reader-next":"Next highlight","reader-filter-all":"all","reader-filter-notes":"with note","reader-export":"Export highlights (.md)","reader-import":"Import","reader-delete-all":"Delete all","reader-export-help":"Highlights stay in this browser. An export is a copy you can import elsewhere – in another browser, or in the other version of this document.","reader-export-file":"highlights","reader-export-line":"Exported on {date}. Highlights: {n}, with a note: {notes}.","reader-imported":"Imported: {added} new, {updated} updated, {orphaned} not found in this version.","reader-import-none":"This file holds no highlights.","reader-import-skipped":"Entries that could not be read: {n}.","reader-deleted-all":"All highlights deleted.","reader-fig-mark":"Highlight this figure","reader-lb-spot":"Mark a spot","reader-lb-close":"Close","reader-fig":"Figure “{key}”","reader-fig-at":"Figure “{key}”, at “{label}”","reader-fig-spot":"Figure “{key}”, a spot in it","reader-fig-approx":"Approximate: that part is no longer in this version of the figure.","reader-code-mark":"Highlight this code","reader-formula-mark":"Highlight this formula","reader-code":"Code, line {line}","reader-code-block":"Code “{key}”","reader-formula":"Formula “{key}”"}}</script>
+<script type="application/json" id="reader-data">{"key":"diagrams","title":"Animated Infographics","s":{"reader-close":"Close contents","reader-mark":"Highlight","reader-note":"Note (optional)","reader-remove":"Remove","reader-removed":"Highlight removed.","reader-undo":"Undo","reader-orphans":"No longer found in this version","reader-orphan-remove":"remove","reader-session":"This browser does not let the page save highlights – they are lost when the tab is closed.","reader-nav":"Highlights","reader-prev":"Previous highlight","reader-next":"Next highlight","reader-filter-all":"all","reader-filter-notes":"with note","reader-export":"Export highlights (.md)","reader-import":"Import","reader-delete-all":"Delete all","reader-help":"About highlights","reader-help-what":"Select words to highlight them and add a note. Figures, diagrams, images, code and formulas have a button in their corner that marks them whole; open a figure to mark a spot in it.","reader-help-keys":"On a keyboard: n and p step through the highlights, m marks a spot in an open figure.","reader-help-where":"Highlights and notes are stored only in this browser, on this device.","reader-help-risk":"That storage can be lost: clearing site data or closing a private window deletes it, and browsers may delete it on their own – Safari, notably on iPhone and iPad, after seven days of Safari use in which this page was not used.","reader-help-backup":"So export regularly, as a backup: the export is a readable .md file, and importing it brings the highlights back – here, in another browser or on another device.","reader-fold":"Slides in this part","reader-export-file":"highlights","reader-export-line":"Exported on {date}. Highlights: {n}, with a note: {notes}.","reader-imported":"Imported: {added} new, {updated} updated, {orphaned} not found in this version.","reader-import-none":"This file holds no highlights.","reader-import-skipped":"Entries that could not be read: {n}.","reader-deleted-all":"All highlights deleted.","reader-fig-mark":"Highlight this figure","reader-lb-spot":"Mark a spot","reader-lb-close":"Close","reader-fig":"Figure “{key}”","reader-fig-at":"Figure “{key}”, at “{label}”","reader-fig-spot":"Figure “{key}”, a spot in it","reader-fig-approx":"Approximate: that part is no longer in this version of the figure.","reader-code-mark":"Highlight this code","reader-formula-mark":"Highlight this formula","reader-code":"Code, line {line}","reader-code-block":"Code “{key}”","reader-formula":"Formula “{key}”"}}</script>
 <script>
 (() => {
   const body = document.body;
@@ -3939,8 +4042,19 @@ renames the thing it is about.</p>
   const main = document.querySelector('main');
   if (!nav || !main) return;
   const toggle = document.querySelector('.rd-toggle');
-  const links = [...nav.querySelectorAll('a[data-rd]')];
-  const targets = links.map(a => document.getElementById(a.dataset.rd));
+  const links = [...nav.querySelectorAll('a[data-rd], a.rd-part')];
+  const targets = links.map(a => document.getElementById(a.dataset.rd || (a.getAttribute('href') || '').slice(1)));
+  const groups = [...nav.querySelectorAll('.rd-group')];
+  const handOpen = new Set();
+  let reading = null, handClosed = null;
+  const fold = () => {
+    for (const g of groups) {
+      const b = g.querySelector('.rd-fold');
+      const on = !!b && (handOpen.has(g) || (g === reading && handClosed !== g));
+      g.classList.toggle('is-open', on);
+      if (b) b.setAttribute('aria-expanded', on ? 'true' : 'false');
+    }
+  };
   const overlay = window.matchMedia('(max-width: 1215.98px)');
   let tops = [], current = null, stale = true, queued = false, placed = false;
 
@@ -3971,6 +4085,8 @@ renames the thing it is about.</p>
     if (next === current) return;
     if (current) current.removeAttribute('aria-current');
     if (next) next.setAttribute('aria-current', 'location');
+    const g = next && next.closest('.rd-group');
+    if (g !== reading) { reading = g || null; handClosed = null; fold(); }
     // The first entry marked is centred - a page opened at a #hash or
     // restored half-way down - and every later one only kept in view.
     current = next;
@@ -3987,6 +4103,19 @@ renames the thing it is about.</p>
       mark();
     });
   };
+  nav.addEventListener('click', (e) => {
+    const b = e.target.closest('.rd-fold');
+    if (!b) return;
+    const g = b.closest('.rd-group');
+    if (g.classList.contains('is-open')) {
+      handOpen.delete(g);
+      if (g === reading) handClosed = g;
+    } else {
+      handOpen.add(g);
+      if (handClosed === g) handClosed = null;
+    }
+    fold();
+  });
   window.addEventListener('scroll', () => schedule(false), { passive: true });
   window.addEventListener('resize', () => schedule(true));
   window.addEventListener('load', () => schedule(true));
@@ -4000,6 +4129,9 @@ renames the thing it is about.</p>
     body.classList.toggle('rd-open', on);
     if (toggle) toggle.setAttribute('aria-expanded', on ? 'true' : 'false');
     if (on) {
+      // Opened over the page, the part being read is open whatever the
+      // reader did to it the last time.
+      if (handClosed) { handClosed = null; fold(); }
       reveal(current, true);
       const first = current || nav.querySelector('a');
       if (first) first.focus({ preventScroll: true });
@@ -4595,9 +4727,9 @@ renames the thing it is about.</p>
     ta.value = h.note || '';
     const acts = document.createElement('div');
     acts.className = 'rd-actions';
-    const clear = button('rd-clear', S['reader-note-clear'] || '');
-    clear.hidden = !ta.value;
-    acts.append(clear, button('rd-remove', S['reader-remove'] || ''));
+    // One action: remove takes the note with it, and emptying the field is
+    // how a note alone goes.
+    acts.append(button('rd-remove', S['reader-remove'] || ''));
     // A figure's card says which figure, and where in it: the page beside
     // it has no yellow words to say so.
     if (h.type === 'figure' || h.type === 'block' || h.type === 'code') {
@@ -4859,6 +4991,7 @@ renames the thing it is about.</p>
     const b = button(cls, glyph);
     b.setAttribute('aria-label', label || '');
     b.title = (label || '') + ' (' + key + ')';
+    b.setAttribute('aria-keyshortcuts', key);
     return b;
   };
   const prevBtn = arrow('rd-prev', '‹', S['reader-prev'], 'p');
@@ -4876,10 +5009,11 @@ renames the thing it is about.</p>
   // The menu in the sidebar's foot. Built once rather than with the list of
   // lost highlights under it, so a button keeps the focus through a redraw.
   // Export and delete all stand only while there is something to export or
-  // delete; import and the line on what an export is for stand always,
-  // because a reader in a new browser has nothing yet and every reason to
-  // import. Whether this browser keeps the two documents apart cannot be
-  // asked of it, so the line says what is true everywhere.
+  // delete; import and the ? beside it stand always, because a reader in a
+  // new browser has nothing yet and every reason to import. The ? opens four
+  // lines: what the tools are, where highlights are kept, why that storage
+  // is fragile and why the export is the backup. They stood open under the
+  // buttons at first and were in the way of a reader who had read them once.
   const menu = document.createElement('div');
   menu.className = 'rd-menu';
   menu.setAttribute('data-rd-ui', '');
@@ -4888,10 +5022,29 @@ renames the thing it is about.</p>
   const exportBtn = button('rd-export', S['reader-export'] || '');
   const importBtn = button('rd-import', S['reader-import'] || '');
   const deleteAllBtn = button('rd-delete-all', S['reader-delete-all'] || '');
-  menuActs.append(exportBtn, importBtn, deleteAllBtn);
-  const helpEl = document.createElement('p');
+  const helpBtn = button('rd-help-btn', '');
+  const ring = document.createElement('span');
+  ring.className = 'rd-q';
+  ring.textContent = '?';
+  helpBtn.appendChild(ring);
+  helpBtn.setAttribute('aria-label', S['reader-help'] || '');
+  helpBtn.title = S['reader-help'] || '';
+  helpBtn.setAttribute('aria-expanded', 'false');
+  helpBtn.setAttribute('aria-controls', 'rd-help');
+  menuActs.append(exportBtn, importBtn, deleteAllBtn, helpBtn);
+  const helpEl = document.createElement('div');
   helpEl.className = 'rd-help';
-  helpEl.textContent = S['reader-export-help'] || '';
+  helpEl.id = 'rd-help';
+  helpEl.hidden = true;
+  helpEl.tabIndex = -1;
+  helpEl.setAttribute('role', 'group');
+  helpEl.setAttribute('aria-label', S['reader-help'] || '');
+  for (const k of ['reader-help-what', 'reader-help-keys', 'reader-help-where', 'reader-help-risk', 'reader-help-backup']) {
+    const para = document.createElement('p');
+    para.textContent = S[k] || '';
+    if (k === 'reader-help-keys') para.className = 'rd-keys-line';
+    helpEl.appendChild(para);
+  }
   const reportEl = document.createElement('p');
   reportEl.className = 'rd-report';
   reportEl.setAttribute('role', 'status');
@@ -4904,6 +5057,29 @@ renames the thing it is about.</p>
   menu.append(menuActs, helpEl, reportEl, fileIn);
   if (foot) foot.appendChild(menu);
   const setReport = (msg) => { reportEl.textContent = msg || ''; reportEl.hidden = !msg; };
+  // Opened by the ? and closed by it again, by Esc, or by a click anywhere
+  // else. It opens with the focus on it, so a screen reader reads the four
+  // lines, and Esc hands the focus back to the button; a click elsewhere
+  // leaves the focus where that click put it.
+  const setHelp = (on, refocus) => {
+    helpEl.hidden = !on;
+    helpBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on) {
+      helpEl.focus({ preventScroll: true });
+    } else if (refocus) helpBtn.focus({ preventScroll: true });
+  };
+  helpBtn.addEventListener('click', () => setHelp(helpEl.hidden, false));
+  document.addEventListener('click', (e) => {
+    if (helpEl.hidden || !e.target.closest || e.target.closest('.rd-help, .rd-help-btn')) return;
+    setHelp(false, false);
+  }, true);
+  // Ahead of the sidebar's own Esc, which would close the overlay with it.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || helpEl.hidden) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setHelp(false, true);
+  }, true);
 
   // The count beside a contents entry: the slide's own highlights, and on a
   // part's heading those of its lede. Every highlight, whatever the filter
@@ -4918,6 +5094,22 @@ renames the thing it is about.</p>
       let c = a.querySelector('.rd-count');
       if (!k) { if (c) c.remove(); continue; }
       if (!c) { c = document.createElement('span'); c.className = 'rd-count'; a.appendChild(c); }
+      c.textContent = String(k);
+      c.setAttribute('aria-label', (S['reader-nav'] || '') + ': ' + k);
+    }
+    // A folded part says how many are in it, lede and slides together; the
+    // stylesheet shows this sum while the part is closed and the slides'
+    // own counts while it is open, so folding asks nothing of this script.
+    for (const g of document.querySelectorAll('#reader-contents .rd-group')) {
+      const head = g.querySelector('.rd-part');
+      if (!head) continue;
+      let k = 0;
+      for (const a of g.querySelectorAll('a.rd-part, a[data-rd]')) {
+        k += n.get(a.dataset.rd || (a.getAttribute('href') || '').slice(1)) || 0;
+      }
+      let c = head.querySelector('.rd-sum');
+      if (!k) { if (c) c.remove(); continue; }
+      if (!c) { c = document.createElement('span'); c.className = 'rd-sum'; head.appendChild(c); }
       c.textContent = String(k);
       c.setAttribute('aria-label', (S['reader-nav'] || '') + ': ' + k);
     }
@@ -5030,7 +5222,7 @@ renames the thing it is about.</p>
   const plain = (el) => {
     if (!el) return '';
     const c = el.cloneNode(true);
-    for (const x of c.querySelectorAll('.katex-mathml, .rd-count, .chunk-num, .chunk-label, [data-rd-ui]')) x.remove();
+    for (const x of c.querySelectorAll('.katex-mathml, .rd-count, .rd-sum, .chunk-num, .chunk-label, [data-rd-ui]')) x.remove();
     return oneLine(c.textContent);
   };
   // The heading a slide's highlights stand under: the number the page prints
@@ -5226,7 +5418,7 @@ renames the thing it is about.</p>
     if (!over.length) store.push(entry);
     place(entry);
     const card = cards.get(entry.id);
-    if (card) { const ta = card.querySelector('.rd-note'); ta.value = entry.note; card.querySelector('.rd-clear').hidden = !entry.note; }
+    if (card) card.querySelector('.rd-note').value = entry.note;
     save();
     const sel = window.getSelection();
     if (sel) sel.removeAllRanges();
@@ -5252,26 +5444,6 @@ renames the thing it is about.</p>
       layout();
     });
   };
-  const clearNote = (id) => {
-    const h = byId(id);
-    if (!h || !h.note) return;
-    const old = h.note, oldEdited = h.edited;
-    const setNote = (v, t) => {
-      h.note = v;
-      h.edited = t;
-      const card = cards.get(id);
-      if (card) {
-        card.querySelector('.rd-note').value = v;
-        card.querySelector('.rd-clear').hidden = !v;
-      }
-      noteMarks(h);
-      save();
-      layout();
-    };
-    setNote('', Date.now());
-    toast(S['reader-note-cleared'] || '', () => setNote(old, oldEdited));
-  };
-
   // ── the button at the end of a selection ──
   let markBtn = null, pending = null, pointerDown = false;
   const hideButton = () => { pending = null; if (markBtn) markBtn.hidden = true; };
@@ -5534,6 +5706,8 @@ renames the thing it is about.</p>
       bar.setAttribute('data-rd-ui', '');
       spotBtn = button('rd-lb-spot', S['reader-lb-spot'] || '');
       spotBtn.title = (S['reader-lb-spot'] || '') + ' (m)';
+      spotBtn.setAttribute('aria-keyshortcuts', 'm');
+      spotBtn.dataset.key = 'm';
       const closeBtn = button('rd-lb-close', '×');
       closeBtn.setAttribute('aria-label', S['reader-lb-close'] || '');
       closeBtn.title = S['reader-lb-close'] || '';
@@ -5597,7 +5771,6 @@ renames the thing it is about.</p>
     if (!h) return;
     h.note = ta.value;
     h.edited = Date.now();
-    card.querySelector('.rd-clear').hidden = !ta.value;
     noteMarks(h);
     grow(ta);
     save();
@@ -5615,7 +5788,6 @@ renames the thing it is about.</p>
     const card = t.closest('.rd-card');
     if (card) {
       if (t.closest('.rd-remove')) remove(card.dataset.hl);
-      else if (t.closest('.rd-clear')) clearNote(card.dataset.hl);
       // A figure's card shows where on the figure it is.
       else if (!t.closest('textarea, button') && !card.closest('#lightbox')
                && (figs.has(card.dataset.hl) || blocks.has(card.dataset.hl))) pulse(card.dataset.hl);
@@ -5651,7 +5823,6 @@ renames the thing it is about.</p>
       if (card) {
         const ta = card.querySelector('.rd-note');
         if (document.activeElement !== ta) ta.value = h.note || '';
-        card.querySelector('.rd-clear').hidden = !ta.value;
       }
     }
     renderFoot();

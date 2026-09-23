@@ -6244,16 +6244,14 @@ const STRINGS = {
     // button that opens it say `contents`, above.
     'reader-close': 'Close contents',
     // The reader's highlights (reader: on): the button that appears at the
-    // end of a selection, the note field on a highlight's card and its two
-    // actions, the notice a delete leaves with its undo, the heading over the
+    // end of a selection, the note field on a highlight's card and its one
+    // action, the notice a delete leaves with its undo, the heading over the
     // highlights a rebuilt document no longer has the words for, and the one
     // line said when the browser will not let the page store anything.
     'reader-mark': 'Highlight',
     'reader-note': 'Note (optional)',
-    'reader-note-clear': 'Delete note',
-    'reader-remove': 'Remove highlight',
+    'reader-remove': 'Remove',
     'reader-removed': 'Highlight removed.',
-    'reader-note-cleared': 'Note deleted.',
     'reader-undo': 'Undo',
     'reader-orphans': 'No longer found in this version',
     'reader-orphan-remove': 'remove',
@@ -6267,14 +6265,26 @@ const STRINGS = {
     'reader-filter-all': 'all',
     'reader-filter-notes': 'with note',
     // The menu in the contents sidebar's foot: export, import, delete all,
-    // the one line under it, and what the three leave behind. A {name} is
-    // filled in by the page; each count stands after a colon, so no word has
-    // to agree with a number. The file word names the download,
-    // <folder>-<word>.md, and is best left without spaces.
+    // the ? beside them and the four lines it opens (what the tools are,
+    // where they keep things, why that is fragile, the export), and what the three
+    // actions leave behind. A {name} is filled in by the page; each count
+    // stands after a colon, so no word has to agree with a number. The file
+    // word names the download, <folder>-<word>.md, and is best left without
+    // spaces.
     'reader-export': 'Export highlights (.md)',
     'reader-import': 'Import',
     'reader-delete-all': 'Delete all',
-    'reader-export-help': 'Highlights stay in this browser. An export is a copy you can import elsewhere – in another browser, or in the other version of this document.',
+    'reader-help': 'About highlights',
+    'reader-help-what': 'Select words to highlight them and add a note. Figures, diagrams, images, code and formulas have a button in their corner that marks them whole; open a figure to mark a spot in it.',
+    'reader-help-keys': 'On a keyboard: n and p step through the highlights, m marks a spot in an open figure.',
+    'reader-help-where': 'Highlights and notes are stored only in this browser, on this device.',
+    'reader-help-risk': 'That storage can be lost: clearing site data or closing a private window deletes it, and browsers may delete it on their own – Safari, notably on iPhone and iPad, after seven days of Safari use in which this page was not used.',
+    'reader-help-backup': 'So export regularly, as a backup: the export is a readable .md file, and importing it brings the highlights back – here, in another browser or on another device.',
+
+    // (The keys line is shown only where a keyboard is likely.)
+    // The contents sidebar folds each part to its heading: the name of the
+    // button beside a heading that opens or closes its list of slides.
+    'reader-fold': 'Slides in this part',
     'reader-export-file': 'highlights',
     'reader-export-line': 'Exported on {date}. Highlights: {n}, with a note: {notes}.',
     'reader-imported': 'Imported: {added} new, {updated} updated, {orphaned} not found in this version.',
@@ -6325,10 +6335,8 @@ const STRINGS = {
     'reader-close': 'Inhalt schließen',
     'reader-mark': 'Markieren',
     'reader-note': 'Notiz (optional)',
-    'reader-note-clear': 'Notiz löschen',
-    'reader-remove': 'Markierung entfernen',
+    'reader-remove': 'Entfernen',
     'reader-removed': 'Markierung entfernt.',
-    'reader-note-cleared': 'Notiz gelöscht.',
     'reader-undo': 'Rückgängig',
     'reader-orphans': 'In dieser Fassung nicht mehr gefunden',
     'reader-orphan-remove': 'entfernen',
@@ -6341,7 +6349,13 @@ const STRINGS = {
     'reader-export': 'Markierungen exportieren (.md)',
     'reader-import': 'Importieren',
     'reader-delete-all': 'Alle löschen',
-    'reader-export-help': 'Markierungen bleiben in diesem Browser. Ein Export ist eine Kopie, die sich anderswo importieren lässt – in einem anderen Browser oder in der anderen Fassung dieses Dokuments.',
+    'reader-help': 'Über Markierungen',
+    'reader-help-what': 'Wähle Text aus, um ihn zu markieren und eine Notiz dazuzuschreiben. Abbildungen, Diagramme, Bilder, Code und Formeln haben in der Ecke einen Knopf, der sie ganz markiert; in einer geöffneten Abbildung markierst du eine Stelle.',
+    'reader-help-keys': 'Mit Tastatur: n und p gehen durch die Markierungen, m markiert eine Stelle in einer geöffneten Abbildung.',
+    'reader-help-where': 'Markierungen und Notizen liegen nur in diesem Browser, auf diesem Gerät.',
+    'reader-help-risk': 'Dieser Speicher ist nicht sicher: Er ist weg, wenn Websitedaten gelöscht werden oder ein privates Fenster geschlossen wird, und Browser dürfen ihn selbst löschen – Safari, vor allem auf iPhone und iPad, nach sieben Tagen Safari-Nutzung, an denen du diese Seite nicht genutzt hast.',
+    'reader-help-backup': 'Exportiere deshalb regelmäßig, als Sicherung: Der Export ist eine lesbare .md-Datei, und importiert bringt er die Markierungen zurück – hier, in einem anderen Browser oder auf einem anderen Gerät.',
+    'reader-fold': 'Folien dieses Teils',
     'reader-export-file': 'markierungen',
     'reader-export-line': 'Exportiert am {date}. Markierungen: {n}, mit Notiz: {notes}.',
     'reader-imported': 'Importiert: {added} neu, {updated} aktualisiert, {orphaned} in dieser Fassung nicht gefunden.',
@@ -7891,14 +7905,25 @@ function renderReaderContents(columns, nums, S) {
     return `<li><a href="#${escapeHtml(c.id)}" data-rd="${escapeHtml(c.id)}">` +
       `<span class="rd-num">${num || ''}</span><span class="rd-text">${text}</span></a></li>`;
   };
+  // A part folds to its heading: the script opens the one being read and any
+  // the reader opens by hand, and the button beside the heading is how. The
+  // slides before the first part have no heading to fold under and stay a
+  // flat list. The list's id is the part's position, not its own id, which
+  // a part without one does not have.
   const ordered = [...columns.filter(c => !c.heading), ...columns.filter(c => c.heading)];
+  let part = 0;
   const groups = ordered.map(col => {
     const items = col.chunks.map(entry).filter(Boolean).join('');
     if (!col.heading) return items;
     const head = col.id
       ? `<a class="rd-part" href="#${escapeHtml(col.id)}">${escapeHtml(col.heading)}</a>`
       : `<span class="rd-part">${escapeHtml(col.heading)}</span>`;
-    return `<li class="rd-group">${head}${items ? `<ol>${items}</ol>` : ''}</li>`;
+    if (!items) return `<li class="rd-group"><div class="rd-part-row">${head}</div></li>`;
+    const listId = `rd-part-${++part}`;
+    const fold = `<button type="button" class="rd-fold" aria-expanded="false" aria-controls="${listId}" ` +
+      `aria-label="${escapeHtml(S['reader-fold'])}: ${escapeHtml(col.heading)}">` +
+      `<svg viewBox="0 0 10 10" aria-hidden="true" focusable="false"><path d="M3.5 2 L6.5 5 L3.5 8"/></svg></button>`;
+    return `<li class="rd-group"><div class="rd-part-row">${head}${fold}</div><ol id="${listId}">${items}</ol></li>`;
   }).filter(Boolean).join('\n');
   if (!groups) return '';
   // The foot is empty on purpose: it is where the reader's own tools go -
@@ -9328,12 +9353,41 @@ pre.shiki .line { display: inline; }
   .rd-contents ol { list-style: none; margin: 0; padding: 0; }
   .rd-group { margin: 1rem 0 0; }
   .rd-list > li:first-child.rd-group { margin-top: 0; }
+  /* A part's heading and, where it has slides, the button that folds them:
+     a chevron pointing at the heading's words when closed and down when
+     open, drawn faint so the headings carry the list and not the controls. Only the part being read and the ones opened by hand show their
+     slides; a closed one carries the sum of its highlights instead. */
+  .rd-part-row { display: flex; align-items: baseline; gap: 0.25rem; margin: 0 0 0.3rem; }
   .rd-part {
     display: block;
+    flex: 1 1 auto;
+    min-width: 0;
     color: var(--ink);
     font-weight: 600;
     text-decoration: none;
-    margin: 0 0 0.3rem;
+  }
+  .rd-fold {
+    flex: none;
+    align-self: center;
+    width: 1.5rem;
+    height: 1.5rem;
+    margin: -0.2rem -0.3rem -0.2rem 0;
+    padding: 0.42rem;
+    color: var(--ink-soft);
+    opacity: 0.45;
+    background: none;
+    border: 0;
+    cursor: pointer;
+  }
+  .rd-fold svg { display: block; width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 1; stroke-linecap: round; stroke-linejoin: round; transition: transform 0.15s ease; }
+  .rd-fold[aria-expanded=true] svg { transform: rotate(90deg); }
+  .rd-fold:hover, .rd-fold:focus-visible { color: var(--ink); opacity: 1; }
+  body[data-reader=on].rd-ready .rd-group:not(.is-open) > ol { display: none; }
+  body[data-reader=on].rd-ready .rd-group.is-open > ol { animation: rd-unfold 0.15s ease; }
+  @keyframes rd-unfold { from { opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) {
+    .rd-fold svg { transition: none; }
+    body[data-reader=on].rd-ready .rd-group.is-open > ol { animation: none; }
   }
   .rd-contents a { text-decoration: none; }
   .rd-contents li > a[data-rd] {
@@ -9526,7 +9580,6 @@ body[data-reader=on] {
     text-underline-offset: 0.15em;
     cursor: pointer;
   }
-  .rd-actions button[hidden] { display: none; }
   .rd-actions button:hover, .rd-orphans button:hover { color: var(--ink); }
   /* Narrow: the card is part of the text, under the block it belongs to. */
   main .rd-card { margin: 0.5rem 0 1rem; font-size: 0.85rem; }
@@ -9562,9 +9615,10 @@ body[data-reader=on] {
   .rd-orphans li { margin: 0 0 0.55rem; }
   .rd-orphans q { display: block; background: var(--rd-hl); color: var(--ink); padding: 0 0.15em; }
   .rd-orphan-note { display: block; margin: 0.15rem 0; white-space: pre-wrap; }
-  /* The menu above them: three actions in the look of a card's, one line on
-     what an export is for, and the line an import leaves. */
-  .rd-menu-acts { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; }
+  /* The menu above them: three actions in the look of a card's, the ? that
+     opens the lines on where highlights are kept, and the line an import
+     leaves. The ? is a small ring rather than a word, and stands last. */
+  .rd-menu-acts { display: flex; flex-wrap: wrap; align-items: baseline; gap: 0.3rem 1rem; }
   .rd-menu button {
     font: inherit;
     font-size: 0.75rem;
@@ -9578,7 +9632,37 @@ body[data-reader=on] {
   }
   .rd-menu button:hover, .rd-menu button:focus-visible { color: var(--ink); }
   .rd-menu button[hidden], .rd-report[hidden] { display: none; }
-  .rd-help { margin: 0.45rem 0 0; font-size: 0.72rem; }
+  .rd-menu .rd-help-btn { margin-left: auto; text-decoration: none; }
+  .rd-q {
+    display: block;
+    width: 1.35em;
+    height: 1.35em;
+    font-size: 0.72rem;
+    line-height: 1.25;
+    text-align: center;
+    border: 0.5pt solid currentColor;
+    border-radius: 50%;
+    opacity: 0.8;
+  }
+  .rd-menu .rd-help-btn[aria-expanded=true] { color: var(--ink); }
+  .rd-help-btn:is(:hover, :focus-visible, [aria-expanded=true]) .rd-q { opacity: 1; }
+  /* In the flow of the foot rather than floating over it: the foot scrolls on
+     its own, and a box laid over it would be cut off at its edge. */
+  .rd-help {
+    margin: 0.5rem 0 0;
+    padding: 0.5rem 0.6rem;
+    font-size: 0.72rem;
+    line-height: 1.4;
+    border: 0.5pt solid var(--rule);
+    border-radius: var(--radius-tight);
+    outline: none;
+  }
+  .rd-help[hidden] { display: none; }
+  /* Open, the lines take the room of the contents rather than scroll the ?
+     that closes them out of the foot. */
+  .rd-foot:has(.rd-help:not([hidden])) { max-height: 75vh; }
+  .rd-help p { margin: 0; }
+  .rd-help p + p { margin-top: 0.35rem; }
   .rd-report { margin: 0.45rem 0 0; color: var(--ink); }
   body[data-reader=on] .rd-foot :is(p, li) { hyphens: manual; -webkit-hyphens: manual; }
   .rd-menu + .rd-hl-foot { margin-top: 0.75rem; }
@@ -9624,8 +9708,9 @@ body[data-reader=on] {
      highlights' own yellow: it says what is there, as the marks do. */
   body[data-reader=on].rd-ready .rd-contents li > a[data-rd] { grid-template-columns: 1.9em minmax(0, 1fr) auto; }
   body[data-reader=on][data-slide-nums=off].rd-ready .rd-contents li > a[data-rd] { grid-template-columns: minmax(0, 1fr) auto; }
-  .rd-contents a.rd-part:has(.rd-count) { display: flex; align-items: baseline; gap: 0.35em; }
-  .rd-count {
+  .rd-contents .rd-part:has(.rd-count, .rd-sum) { display: flex; align-items: baseline; gap: 0.35em; }
+  .rd-group.is-open .rd-sum, .rd-group:not(.is-open) .rd-part .rd-count { display: none; }
+  .rd-count, .rd-sum {
     margin-left: auto;
     padding: 0.1em 0.4em;
     font-size: 0.85em;
@@ -9782,6 +9867,49 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
 }
 @media screen and (hover: none) {
   .rd-fig-btn { opacity: 0.55; }
+}
+/* The keys, as quiet hints where a keyboard is likely - a fine pointer that
+   can hover - and nowhere else: a phone would show a letter it has no key
+   for. The ? names n and p in a line of its own, and Mark a spot shows its m;
+   the pill's arrows carry theirs in title and aria-keyshortcuts only, since
+   a letter beside each was noise at that size. Drawn from data-key, so the
+   button's words stay its words. */
+.rd-keys-line { display: none; }
+@media screen and (hover: hover) and (pointer: fine) {
+  .rd-help .rd-keys-line { display: block; }
+  .rd-lb-bar button[data-key]::after {
+    content: attr(data-key);
+    content: attr(data-key) / "";
+    margin-left: 0.3em;
+    font-size: 0.72em;
+    font-family: var(--mono, monospace);
+    opacity: 0.6;
+  }
+}
+/* A finger rather than a pointer: every control of the reader's takes at
+   least 44 by 44 CSS px to the touch, which test/reader.mjs measures by
+   asking the page what is under each corner of that square. The boxes grow
+   rather than a pseudo-element reaching past them, because the list and the
+   foot of the sidebar scroll and would cut a reach off at their edges; the
+   small glyphs - the chevron, the ? - stay small inside. No display is set
+   here, so an attribute or a width that hides a control still does. */
+@media screen and (pointer: coarse) {
+  body[data-reader=on].rd-ready :is(.rd-toggle, .rd-close, .rd-menu button, .rd-nav button, .rd-mark-btn,
+      .rd-fig-btn, .rd-lb-bar button, .rd-actions button, .rd-orphans button, .rd-undo) {
+    min-width: 44px;
+    min-height: 44px;
+  }
+  body[data-reader=on].rd-ready .rd-help-btn { width: 44px; }
+  /* A formula is a scroll box as short as its line, and would cut its
+     corner button down to that. */
+  body[data-reader=on].rd-ready main .math-display:has(> .rd-fig-btn) { min-height: 46px; }
+  body[data-reader=on].rd-ready .rd-fold { width: 44px; height: 44px; padding: 16px; margin: 0; }
+  body[data-reader=on].rd-ready .rd-group { margin-top: 0.3rem; }
+  body[data-reader=on].rd-ready .rd-part-row { align-items: center; min-height: 44px; margin: 0; }
+  body[data-reader=on].rd-ready .rd-part { display: flex; align-items: center; min-height: 44px; }
+  body[data-reader=on].rd-ready .rd-contents li > a[data-rd] { min-height: 44px; align-content: center; padding: 0; }
+  body[data-reader=on].rd-ready .rd-note { min-height: 44px; }
+  body[data-reader=on].rd-ready .rd-menu-acts { gap: 0 0.6rem; }
 }
 /* Paper clips at the page area, and a code block or a picture standing on
    the column's left edge has its frame there: printed, the frame is drawn
@@ -10140,7 +10268,16 @@ const READER_EARLY_JS = `<script>document.body.classList.add('rd-ready');for (co
 // figure decoding, a video's poster arriving), the fonts landing - and a
 // scroll only compares, batched into one animation frame. At the foot of the
 // page the last slides cannot reach that line, so there the last one on
-// screen is marked instead.
+// screen is marked instead. A part's heading is an entry of the same kind,
+// marked while its divider is the last thing to have crossed the line.
+//
+// The parts fold to their headings. The part holding the marked entry opens
+// and the one the reader has left closes again; a part opened by hand stays
+// open until it is closed by hand or the page is loaded again, and the part
+// being read, closed by hand, stays closed until the reader leaves it. The
+// fold changes only the sidebar, in the frame that marks the entry, and the
+// entry is kept in view after it - so the list does not jump under a reader
+// who is only scrolling the page.
 //
 // Below READER_WIDE_PX the sidebar lies over the page: the button opens it,
 // a link, the close button, Esc or a click beside it closes it, and a click
@@ -10156,8 +10293,19 @@ const PRINT_READER_JS = `
   const main = document.querySelector('main');
   if (!nav || !main) return;
   const toggle = document.querySelector('.rd-toggle');
-  const links = [...nav.querySelectorAll('a[data-rd]')];
-  const targets = links.map(a => document.getElementById(a.dataset.rd));
+  const links = [...nav.querySelectorAll('a[data-rd], a.rd-part')];
+  const targets = links.map(a => document.getElementById(a.dataset.rd || (a.getAttribute('href') || '').slice(1)));
+  const groups = [...nav.querySelectorAll('.rd-group')];
+  const handOpen = new Set();
+  let reading = null, handClosed = null;
+  const fold = () => {
+    for (const g of groups) {
+      const b = g.querySelector('.rd-fold');
+      const on = !!b && (handOpen.has(g) || (g === reading && handClosed !== g));
+      g.classList.toggle('is-open', on);
+      if (b) b.setAttribute('aria-expanded', on ? 'true' : 'false');
+    }
+  };
   const overlay = window.matchMedia('(max-width: ${READER_WIDE_PX - 0.02}px)');
   let tops = [], current = null, stale = true, queued = false, placed = false;
 
@@ -10188,6 +10336,8 @@ const PRINT_READER_JS = `
     if (next === current) return;
     if (current) current.removeAttribute('aria-current');
     if (next) next.setAttribute('aria-current', 'location');
+    const g = next && next.closest('.rd-group');
+    if (g !== reading) { reading = g || null; handClosed = null; fold(); }
     // The first entry marked is centred - a page opened at a #hash or
     // restored half-way down - and every later one only kept in view.
     current = next;
@@ -10204,6 +10354,19 @@ const PRINT_READER_JS = `
       mark();
     });
   };
+  nav.addEventListener('click', (e) => {
+    const b = e.target.closest('.rd-fold');
+    if (!b) return;
+    const g = b.closest('.rd-group');
+    if (g.classList.contains('is-open')) {
+      handOpen.delete(g);
+      if (g === reading) handClosed = g;
+    } else {
+      handOpen.add(g);
+      if (handClosed === g) handClosed = null;
+    }
+    fold();
+  });
   window.addEventListener('scroll', () => schedule(false), { passive: true });
   window.addEventListener('resize', () => schedule(true));
   window.addEventListener('load', () => schedule(true));
@@ -10217,6 +10380,9 @@ const PRINT_READER_JS = `
     body.classList.toggle('rd-open', on);
     if (toggle) toggle.setAttribute('aria-expanded', on ? 'true' : 'false');
     if (on) {
+      // Opened over the page, the part being read is open whatever the
+      // reader did to it the last time.
+      if (handClosed) { handClosed = null; fold(); }
       reveal(current, true);
       const first = current || nav.querySelector('a');
       if (first) first.focus({ preventScroll: true });
@@ -10869,9 +11035,9 @@ const PRINT_HIGHLIGHTS_JS = `
     ta.value = h.note || '';
     const acts = document.createElement('div');
     acts.className = 'rd-actions';
-    const clear = button('rd-clear', S['reader-note-clear'] || '');
-    clear.hidden = !ta.value;
-    acts.append(clear, button('rd-remove', S['reader-remove'] || ''));
+    // One action: remove takes the note with it, and emptying the field is
+    // how a note alone goes.
+    acts.append(button('rd-remove', S['reader-remove'] || ''));
     // A figure's card says which figure, and where in it: the page beside
     // it has no yellow words to say so.
     if (h.type === 'figure' || h.type === 'block' || h.type === 'code') {
@@ -11133,6 +11299,7 @@ const PRINT_HIGHLIGHTS_JS = `
     const b = button(cls, glyph);
     b.setAttribute('aria-label', label || '');
     b.title = (label || '') + ' (' + key + ')';
+    b.setAttribute('aria-keyshortcuts', key);
     return b;
   };
   const prevBtn = arrow('rd-prev', '‹', S['reader-prev'], 'p');
@@ -11150,10 +11317,11 @@ const PRINT_HIGHLIGHTS_JS = `
   // The menu in the sidebar's foot. Built once rather than with the list of
   // lost highlights under it, so a button keeps the focus through a redraw.
   // Export and delete all stand only while there is something to export or
-  // delete; import and the line on what an export is for stand always,
-  // because a reader in a new browser has nothing yet and every reason to
-  // import. Whether this browser keeps the two documents apart cannot be
-  // asked of it, so the line says what is true everywhere.
+  // delete; import and the ? beside it stand always, because a reader in a
+  // new browser has nothing yet and every reason to import. The ? opens four
+  // lines: what the tools are, where highlights are kept, why that storage
+  // is fragile and why the export is the backup. They stood open under the
+  // buttons at first and were in the way of a reader who had read them once.
   const menu = document.createElement('div');
   menu.className = 'rd-menu';
   menu.setAttribute('data-rd-ui', '');
@@ -11162,10 +11330,29 @@ const PRINT_HIGHLIGHTS_JS = `
   const exportBtn = button('rd-export', S['reader-export'] || '');
   const importBtn = button('rd-import', S['reader-import'] || '');
   const deleteAllBtn = button('rd-delete-all', S['reader-delete-all'] || '');
-  menuActs.append(exportBtn, importBtn, deleteAllBtn);
-  const helpEl = document.createElement('p');
+  const helpBtn = button('rd-help-btn', '');
+  const ring = document.createElement('span');
+  ring.className = 'rd-q';
+  ring.textContent = '?';
+  helpBtn.appendChild(ring);
+  helpBtn.setAttribute('aria-label', S['reader-help'] || '');
+  helpBtn.title = S['reader-help'] || '';
+  helpBtn.setAttribute('aria-expanded', 'false');
+  helpBtn.setAttribute('aria-controls', 'rd-help');
+  menuActs.append(exportBtn, importBtn, deleteAllBtn, helpBtn);
+  const helpEl = document.createElement('div');
   helpEl.className = 'rd-help';
-  helpEl.textContent = S['reader-export-help'] || '';
+  helpEl.id = 'rd-help';
+  helpEl.hidden = true;
+  helpEl.tabIndex = -1;
+  helpEl.setAttribute('role', 'group');
+  helpEl.setAttribute('aria-label', S['reader-help'] || '');
+  for (const k of ['reader-help-what', 'reader-help-keys', 'reader-help-where', 'reader-help-risk', 'reader-help-backup']) {
+    const para = document.createElement('p');
+    para.textContent = S[k] || '';
+    if (k === 'reader-help-keys') para.className = 'rd-keys-line';
+    helpEl.appendChild(para);
+  }
   const reportEl = document.createElement('p');
   reportEl.className = 'rd-report';
   reportEl.setAttribute('role', 'status');
@@ -11178,6 +11365,29 @@ const PRINT_HIGHLIGHTS_JS = `
   menu.append(menuActs, helpEl, reportEl, fileIn);
   if (foot) foot.appendChild(menu);
   const setReport = (msg) => { reportEl.textContent = msg || ''; reportEl.hidden = !msg; };
+  // Opened by the ? and closed by it again, by Esc, or by a click anywhere
+  // else. It opens with the focus on it, so a screen reader reads the four
+  // lines, and Esc hands the focus back to the button; a click elsewhere
+  // leaves the focus where that click put it.
+  const setHelp = (on, refocus) => {
+    helpEl.hidden = !on;
+    helpBtn.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on) {
+      helpEl.focus({ preventScroll: true });
+    } else if (refocus) helpBtn.focus({ preventScroll: true });
+  };
+  helpBtn.addEventListener('click', () => setHelp(helpEl.hidden, false));
+  document.addEventListener('click', (e) => {
+    if (helpEl.hidden || !e.target.closest || e.target.closest('.rd-help, .rd-help-btn')) return;
+    setHelp(false, false);
+  }, true);
+  // Ahead of the sidebar's own Esc, which would close the overlay with it.
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || helpEl.hidden) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setHelp(false, true);
+  }, true);
 
   // The count beside a contents entry: the slide's own highlights, and on a
   // part's heading those of its lede. Every highlight, whatever the filter
@@ -11192,6 +11402,22 @@ const PRINT_HIGHLIGHTS_JS = `
       let c = a.querySelector('.rd-count');
       if (!k) { if (c) c.remove(); continue; }
       if (!c) { c = document.createElement('span'); c.className = 'rd-count'; a.appendChild(c); }
+      c.textContent = String(k);
+      c.setAttribute('aria-label', (S['reader-nav'] || '') + ': ' + k);
+    }
+    // A folded part says how many are in it, lede and slides together; the
+    // stylesheet shows this sum while the part is closed and the slides'
+    // own counts while it is open, so folding asks nothing of this script.
+    for (const g of document.querySelectorAll('#reader-contents .rd-group')) {
+      const head = g.querySelector('.rd-part');
+      if (!head) continue;
+      let k = 0;
+      for (const a of g.querySelectorAll('a.rd-part, a[data-rd]')) {
+        k += n.get(a.dataset.rd || (a.getAttribute('href') || '').slice(1)) || 0;
+      }
+      let c = head.querySelector('.rd-sum');
+      if (!k) { if (c) c.remove(); continue; }
+      if (!c) { c = document.createElement('span'); c.className = 'rd-sum'; head.appendChild(c); }
       c.textContent = String(k);
       c.setAttribute('aria-label', (S['reader-nav'] || '') + ': ' + k);
     }
@@ -11304,7 +11530,7 @@ const PRINT_HIGHLIGHTS_JS = `
   const plain = (el) => {
     if (!el) return '';
     const c = el.cloneNode(true);
-    for (const x of c.querySelectorAll('.katex-mathml, .rd-count, .chunk-num, .chunk-label, [data-rd-ui]')) x.remove();
+    for (const x of c.querySelectorAll('.katex-mathml, .rd-count, .rd-sum, .chunk-num, .chunk-label, [data-rd-ui]')) x.remove();
     return oneLine(c.textContent);
   };
   // The heading a slide's highlights stand under: the number the page prints
@@ -11500,7 +11726,7 @@ const PRINT_HIGHLIGHTS_JS = `
     if (!over.length) store.push(entry);
     place(entry);
     const card = cards.get(entry.id);
-    if (card) { const ta = card.querySelector('.rd-note'); ta.value = entry.note; card.querySelector('.rd-clear').hidden = !entry.note; }
+    if (card) card.querySelector('.rd-note').value = entry.note;
     save();
     const sel = window.getSelection();
     if (sel) sel.removeAllRanges();
@@ -11526,26 +11752,6 @@ const PRINT_HIGHLIGHTS_JS = `
       layout();
     });
   };
-  const clearNote = (id) => {
-    const h = byId(id);
-    if (!h || !h.note) return;
-    const old = h.note, oldEdited = h.edited;
-    const setNote = (v, t) => {
-      h.note = v;
-      h.edited = t;
-      const card = cards.get(id);
-      if (card) {
-        card.querySelector('.rd-note').value = v;
-        card.querySelector('.rd-clear').hidden = !v;
-      }
-      noteMarks(h);
-      save();
-      layout();
-    };
-    setNote('', Date.now());
-    toast(S['reader-note-cleared'] || '', () => setNote(old, oldEdited));
-  };
-
   // ── the button at the end of a selection ──
   let markBtn = null, pending = null, pointerDown = false;
   const hideButton = () => { pending = null; if (markBtn) markBtn.hidden = true; };
@@ -11808,6 +12014,8 @@ const PRINT_HIGHLIGHTS_JS = `
       bar.setAttribute('data-rd-ui', '');
       spotBtn = button('rd-lb-spot', S['reader-lb-spot'] || '');
       spotBtn.title = (S['reader-lb-spot'] || '') + ' (m)';
+      spotBtn.setAttribute('aria-keyshortcuts', 'm');
+      spotBtn.dataset.key = 'm';
       const closeBtn = button('rd-lb-close', '×');
       closeBtn.setAttribute('aria-label', S['reader-lb-close'] || '');
       closeBtn.title = S['reader-lb-close'] || '';
@@ -11871,7 +12079,6 @@ const PRINT_HIGHLIGHTS_JS = `
     if (!h) return;
     h.note = ta.value;
     h.edited = Date.now();
-    card.querySelector('.rd-clear').hidden = !ta.value;
     noteMarks(h);
     grow(ta);
     save();
@@ -11889,7 +12096,6 @@ const PRINT_HIGHLIGHTS_JS = `
     const card = t.closest('.rd-card');
     if (card) {
       if (t.closest('.rd-remove')) remove(card.dataset.hl);
-      else if (t.closest('.rd-clear')) clearNote(card.dataset.hl);
       // A figure's card shows where on the figure it is.
       else if (!t.closest('textarea, button') && !card.closest('#lightbox')
                && (figs.has(card.dataset.hl) || blocks.has(card.dataset.hl))) pulse(card.dataset.hl);
@@ -11925,7 +12131,6 @@ const PRINT_HIGHLIGHTS_JS = `
       if (card) {
         const ta = card.querySelector('.rd-note');
         if (document.activeElement !== ta) ta.value = h.note || '';
-        card.querySelector('.rd-clear').hidden = !ta.value;
       }
     }
     renderFoot();
