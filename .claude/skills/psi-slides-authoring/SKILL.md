@@ -1197,7 +1197,7 @@ repository and not against a released psi-slides.
 
 ## Viewer defaults in frontmatter
 
-Ten optional keys pin how the lecture opens. A key that is present wins over
+Eleven optional keys pin how the lecture opens. A key that is present wins over
 the reader's stored preference; a key that is absent leaves that preference
 alone. A value outside the allowed set fails the build (and lints as
 `unknown-view-default`), because a typo here is otherwise silent.
@@ -1214,6 +1214,7 @@ editor: speaker        # both | speaker | none  - where the diagram editor ships
 note-button: off       # on | off  - the + note button in the slide's left gutter
 neighbours: hidden     # dim | hidden  - the slide before and after, faintly or not at all
 transition: cut        # pan | cut | fade  - what a slide change looks like
+reader: off            # on | off  - the contents sidebar in print.html / print-notes.html
 ```
 
 The last three are what a keynote sets and a lecture does not. `note-button: off`
@@ -1225,6 +1226,11 @@ the projection; the default is on purpose (see *What lands on the slide*).
 through the paper; both hide the neighbours unless you also write
 `neighbours: dim`. A reveal, a figure step and the walk down a tall chunk keep
 their motion under all three – only the change of slide is affected.
+
+`reader:` is about the two documents rather than the projection. Left at `on`,
+a reader who opens `print.html` on a screen gets a contents sidebar that marks
+the slide they are in, and a free margin on the right for notes; `off` ships
+the plain document. Nothing of it prints.
 
 `auto-fit: shrink` is the mode to reach for first: it leaves the zoom where the
 lecturer set it and only ever makes a slide smaller, where `true` also grows a

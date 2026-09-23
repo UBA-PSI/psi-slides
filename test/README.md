@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Fifteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 45 specs, 1186
+- **`test/`** – the things that only break in a built page. 46 specs, 1233
   assertions, about nine minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
@@ -148,6 +148,14 @@ window), `touch-rail`, `math-focus`, `block-align`, `auto-fit`, `camera-fit`,
 **The editor** – the `editor-*` specs: its gestures, its panel, and the
 neighbour-alignment guides, which are what a gesture snaps to.
 
+**The documents** are the one view outside those four, and one spec reads
+them: `reader`, the contents sidebar `print.html` and `print-notes.html` carry
+under `reader: on` – that its entries are the slides with the numbers the page
+prints, that the scroll-spy marks the slide whose top crossed 30% of the
+window, that it folds to a button below the wide layout and opens over the
+page, that the notes column it keeps free fits at each width, and that none of
+it reaches paper, a page without scripts, or a deck that says `reader: off`.
+
 **The figures** – the `figure-*` specs, which measure the SVG.
 `figure-framing` catches a drawing sitting off-centre in an oversized frame;
 `figure-labels` measures where an aligned label lands inside the thing that
@@ -184,7 +192,7 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The fifteen specs that build a deck of their own
+### The sixteen specs that build a deck of their own
 
 Four different reasons, and the last is the one to remember.
 
@@ -216,7 +224,9 @@ shorter, which is not a lecture).
 content centred and left, `cards` two cards differing in one character,
 `transition` builds the same five slides three times, differing in one
 frontmatter line, because the claim about each mode is a claim about what the
-other two do not do, and `figure-dotted` draws a muted dotted line beside the
+other two do not do, `reader` builds one deck twice, with and without
+`reader: off`, because what the key takes away is only visible beside what it
+leaves, and `figure-dotted` draws a muted dotted line beside the
 five strokes it must leave alone.
 
 **Because a spec that hunted its shapes in a real deck would break the next time

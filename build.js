@@ -6239,6 +6239,10 @@ const STRINGS = {
     'untitled-lecture': 'Untitled lecture',
     'annotation-label': 'annotation',
     'add-note': '+ note',
+    // The contents sidebar of the documents (reader: on): the label of the
+    // button that closes it where it lies over the page. Its heading and the
+    // button that opens it say `contents`, above.
+    'reader-close': 'Close contents',
   },
   de: {
     contents: 'Inhalt',
@@ -6259,6 +6263,7 @@ const STRINGS = {
     // the loudest piece of chrome the projection carries, and the button is
     // a hint for a key rather than a label for the thing it opens.
     'add-note': '+ Notiz',
+    'reader-close': 'Inhalt schließen',
   },
 };
 
@@ -6455,6 +6460,14 @@ const VIEW_DEFAULT_SPEC = [
   // down a chunk taller than the frame all keep their motion in every mode,
   // because those are things happening on a slide that is already there.
   ['transition',    'transition', ['pan', 'cut', 'fade']],
+  // The reader's tools in the two documents - print.html and
+  // print-notes.html, read on a screen after the lecture. `on` is the
+  // default and gives the reader a contents sidebar that knows where they
+  // are; `off` ships none of it, neither the sidebar nor its script nor a
+  // body attribute for its CSS to match, and leaves the lightbox, which is
+  // how a figure is read rather than a tool of the reader's. The live views
+  // do not read the key: a projection is driven by keys and clicks already.
+  ['reader',        'reader',     ['on', 'off']],
 ];
 // ── lecture-wide typographic settings (the `style:` block) ───────────
 // Three knobs an author reaches for on a whole lecture rather than on one
@@ -7750,6 +7763,61 @@ function renderToc(columns, S) {
 </nav>`;
 }
 
+// The reader's contents sidebar (reader: on). The in-flow nav.toc above is
+// the printed contents page and lists parts; this one lists slides, grouped
+// by part, with the number the document prints beside each chunk, and it is
+// what the scroll-spy in PRINT_READER_JS marks. Emitted at build time rather
+// than assembled by the script: the list is then a function of the source,
+// so a rebuild is the same bytes, and the words it carries come out of
+// STRINGS like every other word the build invents.
+//
+// It ships with the hidden attribute, and READER_EARLY_JS removes it. A
+// page read without scripts is therefore the document it was before the
+// sidebar existed - no button that opens nothing, no list the width of the
+// window above the cover.
+//
+// The order is the document's, not the source's: print sets the anonymous
+// columns first and the named ones after, and a contents list that disagreed
+// with the page it sits beside would send the scroll-spy backwards. The
+// title chunk and an outline: chunk are not entries - the first is the cover
+// and the second is a contents list already. A chunk with no heading is
+// named by its type word where it has one and by its id where it does not,
+// because an entry with nothing in it cannot be clicked.
+function renderReaderContents(columns, nums, S) {
+  const entry = (c) => {
+    if (!c.id || c.tag === 'title' || c.tag === 'outline') return '';
+    // A heading may hold a link, and a link cannot sit inside the entry's
+    // own; its text stays and the anchor goes.
+    const text = c.heading || c.headingSub
+      ? renderInlineMd(c.heading || c.headingSub).replace(/<\/?a\b[^>]*>/g, '')
+      : escapeHtml((S.type[c.tag]) || c.id);
+    const num = nums.of.get(c);
+    return `<li><a href="#${escapeHtml(c.id)}" data-rd="${escapeHtml(c.id)}">` +
+      `<span class="rd-num">${num || ''}</span><span class="rd-text">${text}</span></a></li>`;
+  };
+  const ordered = [...columns.filter(c => !c.heading), ...columns.filter(c => c.heading)];
+  const groups = ordered.map(col => {
+    const items = col.chunks.map(entry).filter(Boolean).join('');
+    if (!col.heading) return items;
+    const head = col.id
+      ? `<a class="rd-part" href="#${escapeHtml(col.id)}">${escapeHtml(col.heading)}</a>`
+      : `<span class="rd-part">${escapeHtml(col.heading)}</span>`;
+    return `<li class="rd-group">${head}${items ? `<ol>${items}</ol>` : ''}</li>`;
+  }).filter(Boolean).join('\n');
+  if (!groups) return '';
+  // The foot is empty on purpose: it is where the reader's own tools go -
+  // the menu and the list of highlights that could not be placed - and a
+  // slot the build writes is one the script fills without guessing where.
+  return `<button type="button" class="rd-toggle" aria-controls="reader-contents" aria-expanded="false" hidden>${escapeHtml(S.contents)}</button>
+<nav id="reader-contents" class="rd-contents" aria-label="${escapeHtml(S.contents)}" hidden>
+  <div class="rd-head"><span class="rd-label">${escapeHtml(S.contents)}</span><button type="button" class="rd-close" aria-label="${escapeHtml(S['reader-close'])}">×</button></div>
+  <ol class="rd-list">
+${groups}
+  </ol>
+  <div class="rd-foot" data-reader-slot="tools"></div>
+</nav>`;
+}
+
 // The per-figure asset table is the only heavy part of the diagram payload
 // and the only part that is no use without the editor: it is the markup for
 // every image the figure holds, which for an inlined raster is the whole
@@ -7844,6 +7912,11 @@ function renderDocument(lecture, opts = {}) {
   // says nothing by following the live key.
   const printNums = printSlideNums(frontmatter);
   const styleOpts = styleSettings(frontmatter);
+  // reader: off ships none of it - no attribute, no sidebar, no script - so
+  // the CSS keyed off body[data-reader=on] has nothing to match and the
+  // lightbox is the only script left, which is what the key promises.
+  const readerOn = (viewDefaults(frontmatter).reader || 'on') === 'on';
+  const readerHtml = readerOn ? renderReaderContents(columns, nums, S) : '';
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(lectureLang(frontmatter))}">
 <head>
@@ -7860,19 +7933,27 @@ ${codeTag(styleOpts, opts.codeSizing, 'print')}
 ${katexStyleTag(anonHtml + namedHtml)}
 ${reloadScript(opts.watchPort, opts.watchNonce)}
 </head>
-<body data-slide-nums="${printNums}" ${styleBodyAttrs(styleOpts, frontmatter)}>
-<main>
+<body data-slide-nums="${printNums}" ${styleBodyAttrs(styleOpts, frontmatter)}${readerOn ? ' data-reader="on"' : ''}>
+${readerOn ? readerHtml + READER_EARLY_JS : ''}<main>
 ${anonHtml}
 ${toc}
 ${namedHtml}
 </main>
 <script>${PRINT_JS}</script>
-</body>
+${readerOn ? `<script>${PRINT_READER_JS}</script>\n` : ''}</body>
 </html>
 `;
 }
 
 // ── print CSS ────────────────────────────────────────────────────────
+
+// The two widths the reader's layout changes at (reader: on), in px because a
+// media query cannot read the root size - see the note in PRINT_CSS for how
+// they were solved. Interpolated into the stylesheet and into
+// PRINT_READER_JS, which asks the same question when it decides whether the
+// contents lie over the page.
+const READER_WIDE_PX = 1216;
+const READER_NOTES_PX = 920;
 
 const PRINT_CSS = `
 /* A reveal marker below the top level (BEAT_MARK): print shows every beat at once. */
@@ -9067,6 +9148,183 @@ pre.shiki .line { display: inline; }
   html { font-size: clamp(15px, calc(12px + 0.3vw), 18px); }
 }
 
+/* ── the reader's layout and contents sidebar (reader: on, screen only) ──
+   A document read on a screen after the lecture gets two margins: the
+   contents on the left, and on the right a column for the reader's own
+   notes, which the highlights put there. Every rule is keyed off
+   body[data-reader=on].rd-ready, and the build writes the attribute only
+   under reader: on while the class is set by a one-line script right after
+   the sidebar - so reader: off matches nothing, and a page read without
+   scripts is laid out exactly as it was before any of this.
+
+   Three widths, measured rather than guessed. The root size follows the
+   window (12px + 0.3vw, clamped), so a width in rem is a different number of
+   pixels at every window size, and a breakpoint has to be solved for: the
+   text column is main's 42rem, the contents 15rem with 1.5rem of air beside
+   it, the notes 17rem with 1.5rem beside it.
+     wide, 1216px and up: contents + text + notes = 77rem, which is 1201px
+       at 1216 - the contents sit fixed on the left.
+     medium, 920 to 1215px: text + notes + a gutter for the button = 62rem,
+       904px at 920 - the contents fold to a button top left that opens them
+       over the page.
+     narrow, below 920px: the notes have no column (they will open under
+       their paragraph), and the text is centred as it always was.
+   The notes column is reserved while it is still empty, so the text does
+   not move sideways the moment a reader makes their first highlight. */
+@media screen {
+  .rd-contents[hidden], .rd-toggle[hidden] { display: none !important; }
+  body[data-reader=on].rd-ready .rd-contents {
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    line-height: 1.3;
+    color: var(--ink-soft);
+    background: var(--paper);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+  /* The list scrolls and the head and foot stay: the close button has to be
+     reachable from anywhere in a hundred-entry list, and the foot is where
+     the reader's own tools will sit. */
+  body[data-reader=on].rd-ready .rd-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Headings, not prose: a hyphen in a 13rem entry splits a word the eye
+     is scanning for. On the link, because the prose rule reaches the li
+     with more specificity than this one can without an !important. */
+  .rd-contents :is(li, a) { hyphens: manual; -webkit-hyphens: manual; }
+  .rd-head { display: flex; align-items: center; justify-content: space-between; flex: none; margin: 0 0 0.9rem; min-height: 1.6rem; }
+  .rd-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 500;
+  }
+  .rd-close {
+    font: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--ink-soft);
+    background: none;
+    border: 0;
+    padding: 0.1rem 0.35rem;
+    cursor: pointer;
+  }
+  .rd-close:hover, .rd-close:focus-visible { color: var(--ink); }
+  .rd-contents ol { list-style: none; margin: 0; padding: 0; }
+  .rd-group { margin: 1rem 0 0; }
+  .rd-list > li:first-child.rd-group { margin-top: 0; }
+  .rd-part {
+    display: block;
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+    margin: 0 0 0.3rem;
+  }
+  .rd-contents a { text-decoration: none; }
+  .rd-contents li > a[data-rd] {
+    display: grid;
+    grid-template-columns: 1.9em minmax(0, 1fr);
+    column-gap: 0.35em;
+    align-items: baseline;
+    padding: 0.18rem 0;
+    color: inherit;
+  }
+  .rd-num { text-align: right; font-variant-numeric: tabular-nums; opacity: 0.7; }
+  /* The document prints no numbers under slide-numbers: off, and a number
+     only the sidebar carries would name a slide the page does not. */
+  body[data-slide-nums=off] .rd-contents li > a[data-rd] { grid-template-columns: minmax(0, 1fr); }
+  body[data-slide-nums=off] .rd-num { display: none; }
+  .rd-contents a:hover { color: var(--ink); }
+  .rd-contents a[aria-current=location] { color: var(--ink); font-weight: 600; }
+  .rd-contents a[aria-current=location] .rd-num { opacity: 1; }
+  .rd-contents .katex { font-size: 1em; }
+  .rd-foot:empty { display: none; }
+  .rd-toggle {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 40;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    line-height: 1;
+    padding: 0.45rem 0.7rem;
+    color: var(--ink-soft);
+    background: var(--paper);
+    border: 0.5pt solid var(--rule);
+    border-radius: var(--radius-tight);
+    cursor: pointer;
+  }
+  .rd-toggle:hover, .rd-toggle:focus-visible { color: var(--ink); }
+}
+@media screen and (min-width: ${READER_WIDE_PX}px) {
+  body[data-reader=on].rd-ready { padding: 0 18.5rem 0 16.5rem; }
+  body[data-reader=on].rd-ready .rd-contents {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 15rem;
+    padding: 4rem 0.75rem 2rem 1.25rem;
+  }
+  body[data-reader=on].rd-ready .rd-toggle,
+  body[data-reader=on].rd-ready .rd-close { display: none; }
+}
+@media screen and (min-width: ${READER_NOTES_PX}px) and (max-width: ${READER_WIDE_PX - 0.02}px) {
+  body[data-reader=on].rd-ready { padding: 0 18.5rem 0 1.5rem; }
+}
+@media screen and (max-width: ${READER_WIDE_PX - 0.02}px) {
+  body[data-reader=on].rd-ready .rd-contents {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 45;
+    width: min(20rem, 88vw);
+    padding: 1rem 1rem 2rem 1.25rem;
+    box-shadow: 0 0 0 0.5pt var(--rule), 0 0.5rem 2rem rgb(0 0 0 / 0.18);
+    transform: translateX(-102%);
+    visibility: hidden;
+    transition: transform 160ms ease-out, visibility 0s linear 160ms;
+  }
+  body[data-reader=on].rd-ready.rd-open .rd-contents {
+    transform: none;
+    visibility: visible;
+    transition: transform 160ms ease-out;
+  }
+  body[data-reader=on].rd-ready.rd-open::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 44;
+    background: rgb(15 15 18 / 0.3);
+  }
+  /* A link to a slide lands its heading below the button, not under it. */
+  body[data-reader=on].rd-ready :is(.chunk, .column) { scroll-margin-top: 3rem; }
+}
+/* Without a side margin there is no empty corner at the top: the button stood
+   over the first line of whatever chunk had scrolled under it - measured at
+   390 px, on top of a chunk heading. The foot of the window is where a
+   thumb is anyway, and the highlight navigation will take the other
+   corner. */
+@media screen and (max-width: ${READER_NOTES_PX - 0.02}px) {
+  body[data-reader=on].rd-ready .rd-toggle {
+    top: auto;
+    bottom: 0.75rem;
+    box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 0.12);
+  }
+  body[data-reader=on].rd-ready :is(.chunk, .column) { scroll-margin-top: 1rem; }
+}
+@media screen and (prefers-reduced-motion: reduce) {
+  body[data-reader=on].rd-ready .rd-contents { transition: none !important; }
+}
+@media print {
+  .rd-contents, .rd-toggle { display: none !important; }
+}
+
 /* ── the lightbox (screen only) ──────────────────────────────────────
    The live views' figure focus, for a reader: click a figure, a diagram, a
    code block or a display formula and it opens on a paper card over the
@@ -9296,6 +9554,127 @@ const PRINT_JS = `
     else return;
     e.preventDefault();
   });
+})();
+`;
+
+// ── the reader's tools in the documents (reader: on, screen only) ────
+// The first script runs right after the contents sidebar, before main is
+// parsed, so the class the layout keys off is on the body before the first
+// paint - a document is megabytes of inlined figures, and a browser paints
+// what it has long before it reaches the end of one. It also takes the
+// hidden attribute off the sidebar and its button, which is all that stands
+// between a page read without scripts and a sidebar that could not open.
+const READER_EARLY_JS = `<script>document.body.classList.add('rd-ready');for (const e of document.querySelectorAll('.rd-contents, .rd-toggle')) e.hidden = false;</script>
+`;
+
+// The second is the contents sidebar's behaviour. Scroll-spy: the entry of
+// the chunk whose top last crossed 30% of the window is marked with
+// aria-current="location"; the tops are measured once and again whenever
+// the page can have moved under them - a resize, main changing size (a
+// figure decoding, a video's poster arriving), the fonts landing - and a
+// scroll only compares, batched into one animation frame. At the foot of the
+// page the last slides cannot reach that line, so there the last one on
+// screen is marked instead.
+//
+// Below READER_WIDE_PX the sidebar lies over the page: the button opens it,
+// a link, the close button, Esc or a click beside it closes it, and a click
+// beside it is spent on closing rather than on whatever it landed on - the
+// lightbox, a link.
+//
+// Emitted only under reader: on. The same template-literal rules as every
+// inlined block: no backticks, and a regex backslash doubled - it has none.
+const PRINT_READER_JS = `
+(() => {
+  const body = document.body;
+  const nav = document.getElementById('reader-contents');
+  const main = document.querySelector('main');
+  if (!nav || !main) return;
+  const toggle = document.querySelector('.rd-toggle');
+  const links = [...nav.querySelectorAll('a[data-rd]')];
+  const targets = links.map(a => document.getElementById(a.dataset.rd));
+  const overlay = window.matchMedia('(max-width: ${READER_WIDE_PX - 0.02}px)');
+  let tops = [], current = null, stale = true, queued = false, placed = false;
+
+  const measure = () => {
+    const y = window.scrollY;
+    tops = targets.map(t => t ? t.getBoundingClientRect().top + y : Infinity);
+  };
+  // Keep the marked entry inside the list's own scroll box - near an edge as
+  // the reader scrolls, in the middle when the sidebar is opened over the
+  // page. Adjusts the box and never the page, which scrollIntoView would
+  // also move.
+  const list = nav.querySelector('.rd-list') || nav;
+  const reveal = (a, centre) => {
+    if (!a) return;
+    const n = list.getBoundingClientRect(), r = a.getBoundingClientRect();
+    if (centre) { list.scrollTop += (r.top + r.bottom) / 2 - (n.top + n.bottom) / 2; return; }
+    const pad = 48;
+    if (r.top < n.top + pad) list.scrollTop += r.top - n.top - pad;
+    else if (r.bottom > n.bottom - pad) list.scrollTop += r.bottom - n.bottom + pad;
+  };
+  const mark = () => {
+    const y = window.scrollY, h = window.innerHeight;
+    const atFoot = y + h >= document.documentElement.scrollHeight - 2;
+    const line = atFoot ? y + h - 1 : y + h * 0.3;
+    let idx = -1;
+    for (let i = 0; i < tops.length; i++) if (tops[i] <= line) idx = i;
+    const next = idx >= 0 ? links[idx] : null;
+    if (next === current) return;
+    if (current) current.removeAttribute('aria-current');
+    if (next) next.setAttribute('aria-current', 'location');
+    // The first entry marked is centred - a page opened at a #hash or
+    // restored half-way down - and every later one only kept in view.
+    current = next;
+    reveal(current, !placed);
+    if (current) placed = true;
+  };
+  const schedule = (remeasure) => {
+    if (remeasure) stale = true;
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      if (stale) { measure(); stale = false; }
+      mark();
+    });
+  };
+  window.addEventListener('scroll', () => schedule(false), { passive: true });
+  window.addEventListener('resize', () => schedule(true));
+  window.addEventListener('load', () => schedule(true));
+  if (window.ResizeObserver) new ResizeObserver(() => schedule(true)).observe(main);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => schedule(true));
+  schedule(true);
+
+  // ── the sidebar over the page, below the wide layout ──
+  const isOpen = () => body.classList.contains('rd-open');
+  const setOpen = (on, refocus) => {
+    body.classList.toggle('rd-open', on);
+    if (toggle) toggle.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on) {
+      reveal(current, true);
+      const first = current || nav.querySelector('a');
+      if (first) first.focus({ preventScroll: true });
+    } else if (refocus && toggle) {
+      toggle.focus({ preventScroll: true });
+    }
+  };
+  if (toggle) toggle.addEventListener('click', () => setOpen(!isOpen(), false));
+  const closer = nav.querySelector('.rd-close');
+  if (closer) closer.addEventListener('click', () => setOpen(false, true));
+  nav.addEventListener('click', (e) => {
+    if (isOpen() && e.target.closest('a')) setOpen(false, false);
+  });
+  document.addEventListener('click', (e) => {
+    if (!isOpen() || e.target.closest('#reader-contents, .rd-toggle')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(false, true);
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen()) { e.preventDefault(); setOpen(false, true); }
+  });
+  const onWidth = () => { if (!overlay.matches && isOpen()) setOpen(false, false); };
+  if (overlay.addEventListener) overlay.addEventListener('change', onWidth);
 })();
 `;
 

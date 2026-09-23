@@ -1205,6 +1205,183 @@ pre.shiki .line { display: inline; }
   html { font-size: clamp(15px, calc(12px + 0.3vw), 18px); }
 }
 
+/* ── the reader's layout and contents sidebar (reader: on, screen only) ──
+   A document read on a screen after the lecture gets two margins: the
+   contents on the left, and on the right a column for the reader's own
+   notes, which the highlights put there. Every rule is keyed off
+   body[data-reader=on].rd-ready, and the build writes the attribute only
+   under reader: on while the class is set by a one-line script right after
+   the sidebar - so reader: off matches nothing, and a page read without
+   scripts is laid out exactly as it was before any of this.
+
+   Three widths, measured rather than guessed. The root size follows the
+   window (12px + 0.3vw, clamped), so a width in rem is a different number of
+   pixels at every window size, and a breakpoint has to be solved for: the
+   text column is main's 42rem, the contents 15rem with 1.5rem of air beside
+   it, the notes 17rem with 1.5rem beside it.
+     wide, 1216px and up: contents + text + notes = 77rem, which is 1201px
+       at 1216 - the contents sit fixed on the left.
+     medium, 920 to 1215px: text + notes + a gutter for the button = 62rem,
+       904px at 920 - the contents fold to a button top left that opens them
+       over the page.
+     narrow, below 920px: the notes have no column (they will open under
+       their paragraph), and the text is centred as it always was.
+   The notes column is reserved while it is still empty, so the text does
+   not move sideways the moment a reader makes their first highlight. */
+@media screen {
+  .rd-contents[hidden], .rd-toggle[hidden] { display: none !important; }
+  body[data-reader=on].rd-ready .rd-contents {
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    line-height: 1.3;
+    color: var(--ink-soft);
+    background: var(--paper);
+    box-sizing: border-box;
+    display: flex;
+    flex-direction: column;
+  }
+  /* The list scrolls and the head and foot stay: the close button has to be
+     reachable from anywhere in a hundred-entry list, and the foot is where
+     the reader's own tools will sit. */
+  body[data-reader=on].rd-ready .rd-list {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+  }
+  /* Headings, not prose: a hyphen in a 13rem entry splits a word the eye
+     is scanning for. On the link, because the prose rule reaches the li
+     with more specificity than this one can without an !important. */
+  .rd-contents :is(li, a) { hyphens: manual; -webkit-hyphens: manual; }
+  .rd-head { display: flex; align-items: center; justify-content: space-between; flex: none; margin: 0 0 0.9rem; min-height: 1.6rem; }
+  .rd-label {
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.14em;
+    font-weight: 500;
+  }
+  .rd-close {
+    font: inherit;
+    font-size: 1.25rem;
+    line-height: 1;
+    color: var(--ink-soft);
+    background: none;
+    border: 0;
+    padding: 0.1rem 0.35rem;
+    cursor: pointer;
+  }
+  .rd-close:hover, .rd-close:focus-visible { color: var(--ink); }
+  .rd-contents ol { list-style: none; margin: 0; padding: 0; }
+  .rd-group { margin: 1rem 0 0; }
+  .rd-list > li:first-child.rd-group { margin-top: 0; }
+  .rd-part {
+    display: block;
+    color: var(--ink);
+    font-weight: 600;
+    text-decoration: none;
+    margin: 0 0 0.3rem;
+  }
+  .rd-contents a { text-decoration: none; }
+  .rd-contents li > a[data-rd] {
+    display: grid;
+    grid-template-columns: 1.9em minmax(0, 1fr);
+    column-gap: 0.35em;
+    align-items: baseline;
+    padding: 0.18rem 0;
+    color: inherit;
+  }
+  .rd-num { text-align: right; font-variant-numeric: tabular-nums; opacity: 0.7; }
+  /* The document prints no numbers under slide-numbers: off, and a number
+     only the sidebar carries would name a slide the page does not. */
+  body[data-slide-nums=off] .rd-contents li > a[data-rd] { grid-template-columns: minmax(0, 1fr); }
+  body[data-slide-nums=off] .rd-num { display: none; }
+  .rd-contents a:hover { color: var(--ink); }
+  .rd-contents a[aria-current=location] { color: var(--ink); font-weight: 600; }
+  .rd-contents a[aria-current=location] .rd-num { opacity: 1; }
+  .rd-contents .katex { font-size: 1em; }
+  .rd-foot:empty { display: none; }
+  .rd-toggle {
+    position: fixed;
+    top: 0.75rem;
+    left: 0.75rem;
+    z-index: 40;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    line-height: 1;
+    padding: 0.45rem 0.7rem;
+    color: var(--ink-soft);
+    background: var(--paper);
+    border: 0.5pt solid var(--rule);
+    border-radius: var(--radius-tight);
+    cursor: pointer;
+  }
+  .rd-toggle:hover, .rd-toggle:focus-visible { color: var(--ink); }
+}
+@media screen and (min-width: 1216px) {
+  body[data-reader=on].rd-ready { padding: 0 18.5rem 0 16.5rem; }
+  body[data-reader=on].rd-ready .rd-contents {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 15rem;
+    padding: 4rem 0.75rem 2rem 1.25rem;
+  }
+  body[data-reader=on].rd-ready .rd-toggle,
+  body[data-reader=on].rd-ready .rd-close { display: none; }
+}
+@media screen and (min-width: 920px) and (max-width: 1215.98px) {
+  body[data-reader=on].rd-ready { padding: 0 18.5rem 0 1.5rem; }
+}
+@media screen and (max-width: 1215.98px) {
+  body[data-reader=on].rd-ready .rd-contents {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    z-index: 45;
+    width: min(20rem, 88vw);
+    padding: 1rem 1rem 2rem 1.25rem;
+    box-shadow: 0 0 0 0.5pt var(--rule), 0 0.5rem 2rem rgb(0 0 0 / 0.18);
+    transform: translateX(-102%);
+    visibility: hidden;
+    transition: transform 160ms ease-out, visibility 0s linear 160ms;
+  }
+  body[data-reader=on].rd-ready.rd-open .rd-contents {
+    transform: none;
+    visibility: visible;
+    transition: transform 160ms ease-out;
+  }
+  body[data-reader=on].rd-ready.rd-open::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    z-index: 44;
+    background: rgb(15 15 18 / 0.3);
+  }
+  /* A link to a slide lands its heading below the button, not under it. */
+  body[data-reader=on].rd-ready :is(.chunk, .column) { scroll-margin-top: 3rem; }
+}
+/* Without a side margin there is no empty corner at the top: the button stood
+   over the first line of whatever chunk had scrolled under it - measured at
+   390 px, on top of a chunk heading. The foot of the window is where a
+   thumb is anyway, and the highlight navigation will take the other
+   corner. */
+@media screen and (max-width: 919.98px) {
+  body[data-reader=on].rd-ready .rd-toggle {
+    top: auto;
+    bottom: 0.75rem;
+    box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 0.12);
+  }
+  body[data-reader=on].rd-ready :is(.chunk, .column) { scroll-margin-top: 1rem; }
+}
+@media screen and (prefers-reduced-motion: reduce) {
+  body[data-reader=on].rd-ready .rd-contents { transition: none !important; }
+}
+@media print {
+  .rd-contents, .rd-toggle { display: none !important; }
+}
+
 /* ── the lightbox (screen only) ──────────────────────────────────────
    The live views' figure focus, for a reader: click a figure, a diagram, a
    code block or a display formula and it opens on a paper card over the
@@ -1661,7 +1838,23 @@ code:not(pre code):not(.chunk-heading code) { font-size: 0.885em; }
 
 
 </head>
-<body data-slide-nums="horizontal" >
+<body data-slide-nums="horizontal"  data-reader="on">
+<button type="button" class="rd-toggle" aria-controls="reader-contents" aria-expanded="false" hidden>Contents</button>
+<nav id="reader-contents" class="rd-contents" aria-label="Contents" hidden>
+  <div class="rd-head"><span class="rd-label">Contents</span><button type="button" class="rd-close" aria-label="Close contents">×</button></div>
+  <ol class="rd-list">
+<li><a href="#preview" data-rd="preview"><span class="rd-num">3</span><span class="rd-text">None of this is in the 1.0.0 release</span></a></li>
+<li class="rd-group"><a class="rd-part" href="#covers">The cover, and the slide that closes it</a><ol><li><a href="#cover-list" data-rd="cover-list"><span class="rd-num">4</span><span class="rd-text">Ten ways to open a lecture</span></a></li><li><a href="#cover-keys" data-rd="cover-keys"><span class="rd-num">5</span><span class="rd-text">Three keys the cover reads</span></a></li><li><a href="#cover-quote" data-rd="cover-quote"><span class="rd-num">6</span><span class="rd-text"><code class="nb">quote</code> draws no quotation mark</span></a></li><li><a href="#closing-tag" data-rd="closing-tag"><span class="rd-num">7</span><span class="rd-text">The last slide closes the arc</span></a></li></ol></li>
+<li class="rd-group"><a class="rd-part" href="#dividers">Dividers carry their own slide</a><ol><li><a href="#section-list" data-rd="section-list"><span class="rd-num">8</span><span class="rd-text">Six treatments, every one quieter than the cover</span></a></li><li><a href="#outline-why" data-rd="outline-why"><span class="rd-num">9</span><span class="rd-text">What a running agenda says that a coloured field cannot</span></a></li><li><a href="#outline-states" data-rd="outline-states"><span class="rd-num">10</span><span class="rd-text">Three states, two greys</span></a></li><li><a href="#divider-body" data-rd="divider-body"><span class="rd-num">11</span><span class="rd-text">The lines under a <code class="nb">#</code> heading are the divider&#39;s slide</span></a></li><li><a href="#divider-beside" data-rd="divider-beside"><span class="rd-num">12</span><span class="rd-text">A figure divider lays out beside the heading</span></a></li><li><a href="#divider-stack" data-rd="divider-stack"><span class="rd-num">13</span><span class="rd-text">…unless the figure is the point of the part</span></a></li></ol></li>
+<li class="rd-group"><a class="rd-part" href="#grounds">Cards, rows and panes</a><ol><li><a href="#cards-why" data-rd="cards-why"><span class="rd-num">14</span><span class="rd-text"><code>::: cards</code> makes boxes, not columns</span></a></li><li><a href="#cards-grounds" data-rd="cards-grounds"><span class="rd-num">15</span><span class="rd-text">What a card sits on</span></a></li><li><a href="#cards-size" data-rd="cards-size"><span class="rd-num">16</span><span class="rd-text">The row size reads the longest item</span></a></li><li><a href="#cards-fold" data-rd="cards-fold"><span class="rd-num">17</span><span class="rd-text">One row serves two views</span></a></li><li><a href="#rows" data-rd="rows"><span class="rd-num">18</span><span class="rd-text"><code>::: rows</code> turns a card row on its side</span></a></li><li><a href="#side" data-rd="side"><span class="rd-num">19</span><span class="rd-text"><code>::: side</code> takes a ratio</span></a></li></ol></li>
+<li class="rd-group"><a class="rd-part" href="#reveal">Revealing a picture</a><ol><li><a href="#reveal-why" data-rd="reveal-why"><span class="rd-num">20</span><span class="rd-text">The window walks the beats, and the picture stands still</span></a></li><li><a href="#reveal-open" data-rd="reveal-open"><span class="rd-num">21</span><span class="rd-text">A picture that retreats</span></a></li><li><a href="#reveal-from" data-rd="reveal-from"><span class="rd-num">22</span><span class="rd-text"><code class="nb">from</code> holds an overlay back until a beat</span></a></li><li><a href="#reveal-close" data-rd="reveal-close"><span class="rd-num">23</span><span class="rd-text">A picture that covers the words</span></a></li><li><a href="#backdrop-slots" data-rd="backdrop-slots"><span class="rd-num">24</span><span class="rd-text">Where the picture sits, and what it is veiled with</span></a></li><li><a href="#overlay-slots" data-rd="overlay-slots"><span class="rd-num">25</span><span class="rd-text">An overlay is a block of text over the slide</span></a></li></ol></li>
+<li class="rd-group"><a class="rd-part" href="#panels">Panels: the card grown to the frame</a><ol><li><a href="#panel-column" data-rd="panel-column"><span class="rd-num">26</span><span class="rd-text">A column the full height of the slide</span></a></li><li><a href="#panel-band" data-rd="panel-band"><span class="rd-num">27</span><span class="rd-text">A band across the foot, a third high, with a beat inside</span></a></li><li><a href="#panel-frame" data-rd="panel-frame"><span class="rd-num">28</span><span class="rd-text">The whole frame veiled, and a card on top of it</span></a></li></ol></li>
+<li class="rd-group"><a class="rd-part" href="#docks">A dock at the frame's edge</a><ol><li><a href="#dock-why" data-rd="dock-why"><span class="rd-num">29</span><span class="rd-text">A dock is part of the frame, and the text yields to it</span></a></li><li><a href="#dock-cols" data-rd="dock-cols"><span class="rd-num">30</span><span class="rd-text">The text column narrows, and two columns still fit beside a dock</span></a></li><li><a href="#dock-band" data-rd="dock-band"><span class="rd-num">31</span><span class="rd-text">A band replaces the inherited column</span></a></li><li><a href="#dock-top" data-rd="dock-top"><span class="rd-num">32</span><span class="rd-text">A band at the head, and the chrome moves to the foot</span></a></li><li><a href="#dock-from" data-rd="dock-from"><span class="rd-num">33</span><span class="rd-text">A dock held to a beat arrives into a track kept free</span></a></li><li><a href="#dock-slots" data-rd="dock-slots"><span class="rd-num">34</span><span class="rd-text">The dock&#39;s words</span></a></li></ol></li>
+<li class="rd-group"><a class="rd-part" href="#beats">Beats below the top level</a><ol><li><a href="#beats-panes" data-rd="beats-panes"><span class="rd-num">35</span><span class="rd-text">Six beats in source order, and nothing moves</span></a></li><li><a href="#beats-rows" data-rd="beats-rows"><span class="rd-num">36</span><span class="rd-text">Rows that arrive one at a time</span></a></li></ol></li>
+<li class="rd-group"><a class="rd-part" href="#bare">A heading that stays off the slide</a><ol><li><a href="#bare-why" data-rd="bare-why"><span class="rd-num">37</span><span class="rd-text"><code class="nb">{.bare}</code> gives up the projection and nothing else</span></a></li><li><a href="#bare-loop" data-rd="bare-loop"><span class="rd-num">38</span><span class="rd-text">The measurement loop</span></a></li><li><a href="#autoplay" data-rd="autoplay"><span class="rd-num">39</span><span class="rd-text">A figure that walks itself</span></a></li><li><a href="#end" data-rd="end"><span class="rd-num">40</span><span class="rd-text">A slide is a frame</span></a></li></ol></li>
+  </ol>
+  <div class="rd-foot" data-reader-slot="tools"></div>
+</nav><script>document.body.classList.add('rd-ready');for (const e of document.querySelectorAll('.rd-contents, .rd-toggle')) e.hidden = false;</script>
 <main>
 <section class="column column-anon">
 <article class="chunk chunk-title" data-cover="quote" data-chunk-num="1" id="cover">
@@ -2847,6 +3040,100 @@ did before.</p>
     else return;
     e.preventDefault();
   });
+})();
+</script>
+<script>
+(() => {
+  const body = document.body;
+  const nav = document.getElementById('reader-contents');
+  const main = document.querySelector('main');
+  if (!nav || !main) return;
+  const toggle = document.querySelector('.rd-toggle');
+  const links = [...nav.querySelectorAll('a[data-rd]')];
+  const targets = links.map(a => document.getElementById(a.dataset.rd));
+  const overlay = window.matchMedia('(max-width: 1215.98px)');
+  let tops = [], current = null, stale = true, queued = false, placed = false;
+
+  const measure = () => {
+    const y = window.scrollY;
+    tops = targets.map(t => t ? t.getBoundingClientRect().top + y : Infinity);
+  };
+  // Keep the marked entry inside the list's own scroll box - near an edge as
+  // the reader scrolls, in the middle when the sidebar is opened over the
+  // page. Adjusts the box and never the page, which scrollIntoView would
+  // also move.
+  const list = nav.querySelector('.rd-list') || nav;
+  const reveal = (a, centre) => {
+    if (!a) return;
+    const n = list.getBoundingClientRect(), r = a.getBoundingClientRect();
+    if (centre) { list.scrollTop += (r.top + r.bottom) / 2 - (n.top + n.bottom) / 2; return; }
+    const pad = 48;
+    if (r.top < n.top + pad) list.scrollTop += r.top - n.top - pad;
+    else if (r.bottom > n.bottom - pad) list.scrollTop += r.bottom - n.bottom + pad;
+  };
+  const mark = () => {
+    const y = window.scrollY, h = window.innerHeight;
+    const atFoot = y + h >= document.documentElement.scrollHeight - 2;
+    const line = atFoot ? y + h - 1 : y + h * 0.3;
+    let idx = -1;
+    for (let i = 0; i < tops.length; i++) if (tops[i] <= line) idx = i;
+    const next = idx >= 0 ? links[idx] : null;
+    if (next === current) return;
+    if (current) current.removeAttribute('aria-current');
+    if (next) next.setAttribute('aria-current', 'location');
+    // The first entry marked is centred - a page opened at a #hash or
+    // restored half-way down - and every later one only kept in view.
+    current = next;
+    reveal(current, !placed);
+    if (current) placed = true;
+  };
+  const schedule = (remeasure) => {
+    if (remeasure) stale = true;
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => {
+      queued = false;
+      if (stale) { measure(); stale = false; }
+      mark();
+    });
+  };
+  window.addEventListener('scroll', () => schedule(false), { passive: true });
+  window.addEventListener('resize', () => schedule(true));
+  window.addEventListener('load', () => schedule(true));
+  if (window.ResizeObserver) new ResizeObserver(() => schedule(true)).observe(main);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(() => schedule(true));
+  schedule(true);
+
+  // ── the sidebar over the page, below the wide layout ──
+  const isOpen = () => body.classList.contains('rd-open');
+  const setOpen = (on, refocus) => {
+    body.classList.toggle('rd-open', on);
+    if (toggle) toggle.setAttribute('aria-expanded', on ? 'true' : 'false');
+    if (on) {
+      reveal(current, true);
+      const first = current || nav.querySelector('a');
+      if (first) first.focus({ preventScroll: true });
+    } else if (refocus && toggle) {
+      toggle.focus({ preventScroll: true });
+    }
+  };
+  if (toggle) toggle.addEventListener('click', () => setOpen(!isOpen(), false));
+  const closer = nav.querySelector('.rd-close');
+  if (closer) closer.addEventListener('click', () => setOpen(false, true));
+  nav.addEventListener('click', (e) => {
+    if (isOpen() && e.target.closest('a')) setOpen(false, false);
+  });
+  document.addEventListener('click', (e) => {
+    if (!isOpen() || e.target.closest('#reader-contents, .rd-toggle')) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setOpen(false, true);
+  }, true);
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && isOpen()) { e.preventDefault(); setOpen(false, true); }
+  });
+  const onWidth = () => { if (!overlay.matches && isOpen()) setOpen(false, false); };
+  if (overlay.addEventListener) overlay.addEventListener('change', onWidth);
 })();
 </script>
 </body>

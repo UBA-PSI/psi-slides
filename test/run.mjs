@@ -65,6 +65,7 @@ const SPECS = [
   './figure-framing.mjs',
   './figure-framing-network.mjs',
   './figure-dotted.mjs',
+  './reader.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

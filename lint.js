@@ -86,7 +86,7 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
   'fonts', 'font', 'ligatures', 'draw-defaults',
   // viewer defaults
   'theme', 'collapse', 'auto-fit', 'slide-numbers', 'print-slide-numbers',
-  'editor', 'note-button', 'neighbours', 'transition',
+  'editor', 'note-button', 'neighbours', 'transition', 'reader',
 ]);
 
 // Mirrors VIEW_DEFAULT_SPEC in build.js: frontmatter keys that pin how a
@@ -125,6 +125,10 @@ const VIEW_DEFAULTS = {
   // `hidden` - which is the build's to do, exactly as it is for
   // print-slide-numbers: a linter's business is which words the key takes.
   'transition': ['pan', 'cut', 'fade'],
+  // The reader's tools in the two documents: the contents sidebar now, the
+  // reader's own highlights after it. `on` is the default; `off` ships none
+  // of it and leaves the lightbox, which is not a reader tool.
+  'reader': ['on', 'off'],
   // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
   'cover': ['classic', 'masthead', 'stack', 'display', 'panel', 'quote',
             'split', 'hero', 'beside', 'above'],
@@ -303,7 +307,7 @@ const STYLE_ENUMS = {
 const LABEL_KEYS = new Set([
   'contents', 'speaker-note', 'presentation-note', 'aside-note',
   'title-print', 'title-print-notes', 'title-lecture', 'title-speaker',
-  'untitled-lecture', 'annotation-label', 'add-note',
+  'untitled-lecture', 'annotation-label', 'add-note', 'reader-close',
 ]);
 const LABEL_TYPE_KEYS = new Set([
   'principle', 'definition', 'example', 'question', 'exercise', 'outline', 'figure',

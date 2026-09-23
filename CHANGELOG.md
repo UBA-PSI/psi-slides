@@ -20,6 +20,17 @@ from building the same way is a major version.
   the pointer, a drag pans, `+` / `-` / `0` zoom from the keyboard, Esc or a
   click closes. It is the documents' first script, a few KB; without
   JavaScript the page is what it was, and none of it reaches paper.
+- **The documents have a contents sidebar.** On a screen, `print.html` and
+  `print-notes.html` list their slides down the left, grouped by part and
+  numbered with the numbers the page prints, and mark the one the reader is
+  in as they scroll. From 1216 px wide it stands beside the text; narrower,
+  it folds to a button top left that opens it over the page, and a link, Esc
+  or a click beside it closes it. The layout also keeps a margin free on the
+  right from 920 px up, for the reader's own notes in a later release. The
+  printed contents page stays as it was, and nothing of the sidebar prints.
+  `reader: off` in the frontmatter ships the plain document; an unknown value
+  fails the build and lints as `unknown-view-default`. A new label key,
+  `reader-close`, names the button that closes the sidebar.
 
 - **A figure's labels are set at the size of the words beside them.** In
   the live views a `::: draw` figure used to fill its column whatever that
