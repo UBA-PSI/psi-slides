@@ -10094,13 +10094,17 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
     box-shadow: 0 0 0 1px var(--rule);
     transform-origin: center center;
     transition: transform 80ms ease-out;
-    will-change: transform;
     cursor: grab;
   }
   /* A continuous gesture must not ease: a trackpad sends a wheel event every
-     8 ms, and each one would re-aim the curve (see the live views' rule). */
+     8 ms, and each one would re-aim the curve (see the live views' rule).
+     will-change only for the gesture, never at rest: Chrome rasterises a
+     will-change layer once at its resting size and then scales that bitmap,
+     so a zoomed screenshot stayed at the pixels of the unzoomed card and read
+     soft – while the same data URL opened in a tab was sharp. When the class
+     drops after the quiet period, the card is re-rasterised at its scale. */
   body.lb-dragging #lightbox > .lb-card,
-  body.lb-zooming #lightbox > .lb-card { transition: none; }
+  body.lb-zooming #lightbox > .lb-card { transition: none; will-change: transform; }
   #lightbox > figure.lb-card { display: flex; flex-direction: column; align-items: center; gap: 0.6em; }
   #lightbox figure.figure-img img,
   #lightbox figure.figure-img svg {
@@ -14145,7 +14149,6 @@ body.figure-dragging #figure-overlay * { cursor: grabbing !important; }
 #figure-overlay > .figure-focus-target {
   transform-origin: center center;
   transition: transform 80ms ease-out;
-  will-change: transform;
 }
 /* The transition belongs to the input, not to the element: a keypress wants
    the ease, a continuous gesture must not have it. A macOS trackpad delivers
@@ -14156,7 +14159,11 @@ body.figure-dragging #figure-overlay * { cursor: grabbing !important; }
    from the start; the wheel path was simply never given it. Wheel has no end
    event, so figureZoomWheel ends the gesture on a quiet period. */
 body.figure-dragging #figure-overlay > .figure-focus-target,
-body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; }
+body.figure-zooming #figure-overlay > .figure-focus-target { transition: none; will-change: transform; }
+/* will-change only during the gesture, as in the print lightbox: a layer
+   kept at rest is rasterised at its resting size and scaled as a bitmap, so
+   a zoomed figure stayed soft. Without it the card is re-rasterised sharp at
+   the scale where the gesture ended. */
 /* The target is always shown on a solid paper card – otherwise the
    dimmed backdrop bleeds through (shiki-highlighted code in particular
    loses legibility when translucent). !important wins over shiki's
