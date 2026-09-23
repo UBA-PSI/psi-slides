@@ -19,6 +19,15 @@
  * notes column inside the window - never as coordinates, because the root
  * size follows the window and every rem is a different pixel count at each
  * of the three widths.
+ *
+ * The second half is the reader's highlights, on a second deck of its own:
+ * a chunk that holds every kind of thing a selection must not reach (a
+ * formula, a code block, a speaker note, a figure), a divider lede, and two
+ * chunks the deck is rebuilt with different words in - one where the quote
+ * moves and breaks across a line, which must re-anchor, and one where it is
+ * gone, which must be listed and kept. Selections are made with a DOM range,
+ * and the button that marks one is pressed with the pointer, which is the
+ * half that has to survive a real click.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -26,7 +35,7 @@ import { spawnSync } from 'node:child_process';
 import { tmpDir } from './tmp.mjs';
 import { serve, ROOT } from './harness.mjs';
 
-export const name = 'reader · the documents carry a contents sidebar and keep a notes margin';
+export const name = 'reader · the documents carry a contents sidebar and the reader\'s highlights';
 export const lecture = 'tutorial';   // built for other specs already; unused here
 export const view = 'audience';
 
@@ -78,6 +87,388 @@ const build = (dir, src) => {
   return spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
     { cwd: ROOT, encoding: 'utf8' });
 };
+
+const hlDeck = (v2 = false) => `---
+title: Highlight fixture
+---
+
+## title: {#title}
+
+# First part {#part-one}
+
+Divider lede a reader can mark as well.
+
+## definition: A term {#term}
+
+The initialisation vector is XORed into the first block before encryption. The rest of **this paragraph** explains why it matters at all.
+
+- one item in a list
+- second item in a list
+
+$$a^2 + b^2 = c^2$$
+
+\`\`\`js
+const secret = 1;
+\`\`\`
+
+> note: Speaker words that are not the reader's.
+
+## figure: A figure {#fig}
+
+Words before the figure.
+
+::: draw 8x3
+box a "Alpha" at 1,1
+box b "Beta" at 5,1
+edge a -> b
+:::
+
+# Second part {#part-two}
+
+## free: Moving words {#moving}
+
+${v2
+  ? 'A new first sentence was added above. Some opening words, edited. The quoted sentence that\nwill move lives here. Closing words.'
+  : 'Some opening words. The quoted sentence that will move lives here. Closing words.'}
+
+## free: Doomed words {#doomed}
+
+${v2 ? 'Rewritten from the first word to the last.' : 'This sentence carries the unlucky quote that will vanish.'}
+`;
+
+// Selects the first occurrence of `needle` in the text under `scope`, across
+// node boundaries - a highlight splits the text it covers into several nodes.
+const selectText = (p, needle, scope = 'main') => p.evaluate(([needle, scope]) => {
+  const root = document.querySelector(scope);
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const nodes = [];
+  for (let n = w.nextNode(); n; n = w.nextNode()) nodes.push(n);
+  const text = nodes.map(n => n.data).join('');
+  const i = text.indexOf(needle);
+  if (i < 0) return false;
+  const at = (pos, end) => {
+    let acc = 0;
+    for (const n of nodes) {
+      if (end ? pos <= acc + n.data.length : pos < acc + n.data.length) return [n, pos - acc];
+      acc += n.data.length;
+    }
+  };
+  const r = document.createRange();
+  r.setStart(...at(i, false));
+  r.setEnd(...at(i + needle.length, true));
+  const sel = getSelection();
+  sel.removeAllRanges();
+  sel.addRange(r);
+  return true;
+}, [needle, scope]);
+const buttonShown = (p) => p.evaluate(() => {
+  const b = document.querySelector('.rd-mark-btn');
+  return !!b && !b.hidden && b.getBoundingClientRect().width > 0;
+});
+const marks = (p) => p.evaluate(() => {
+  const by = {};
+  for (const m of document.querySelectorAll('mark.rd-hl')) (by[m.dataset.hl] ||= []).push(m.textContent);
+  return Object.values(by).map(a => a.join(''));
+});
+const stored = (p) => p.evaluate(() => {
+  const k = Object.keys(localStorage).find(k => k.startsWith('psi-reader:v1:'));
+  return k ? { key: k, items: JSON.parse(localStorage.getItem(k)) } : { key: null, items: [] };
+});
+const squash = (t) => t.replace(/\s+/g, ' ').trim();
+
+async function highlights({ browser, ok, note }) {
+  const dir = tmpDir('psi-reader-hl-');
+  const built = build(dir, hlDeck());
+  ok(built.status === 0, 'highlights: the fixture deck builds', (built.stdout || '') + (built.stderr || ''));
+  if (built.status !== 0) return;
+  const { server, port } = await serve(dir);
+  const errors = [];
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+  const page = async (file = 'print.html', c = ctx) => {
+    const p = await c.newPage();
+    p.on('pageerror', e => errors.push(file + ': ' + String(e)));
+    await p.goto(`http://127.0.0.1:${port}/${file}`, { waitUntil: 'load' });
+    await p.waitForTimeout(250);
+    return p;
+  };
+  const make = async (p, needle, scope) => {
+    await selectText(p, needle, scope);
+    await p.waitForTimeout(150);
+    if (!(await buttonShown(p))) return false;
+    await p.click('.rd-mark-btn');
+    await p.waitForTimeout(100);
+    return true;
+  };
+  try {
+    const p = await page();
+
+    // ── making one ──
+    ok(await selectText(p, 'initialisation vector is XORed'), 'highlights: the fixture sentence is there to select');
+    await p.waitForTimeout(150);
+    ok(await buttonShown(p), 'a selection in running text brings up the button that marks it');
+    await p.click('.rd-mark-btn');
+    await p.waitForTimeout(100);
+    const made = await p.evaluate(() => ({
+      marks: [...document.querySelectorAll('mark.rd-hl')].map(m => m.textContent).join(''),
+      active: document.activeElement && document.activeElement.className,
+      card: !!document.querySelector('.rd-notes > .rd-card.is-focus'),
+      sel: String(getSelection()),
+      button: !!document.querySelector('.rd-mark-btn:not([hidden])'),
+    }));
+    ok(made.marks === 'initialisation vector is XORed' && made.card && made.active === 'rd-note'
+       && !made.sel && !made.button,
+       'pressing it marks the words, clears the selection and opens a card with the cursor in its note',
+       JSON.stringify(made));
+    await p.keyboard.type('Why the IV?');
+    let st = await stored(p);
+    const first = st.items[0] || {};
+    ok(st.items.length === 1 && first.chunk === 'term' && first.quote === 'initialisation vector is XORed'
+       && first.note === 'Why the IV?' && first.kind === 'mark' && first.v === 1
+       && typeof first.start === 'number' && first.prefix.endsWith('The ') && first.suffix.startsWith(' into'),
+       'the store holds one entry: chunk, offsets, quote, context, note', JSON.stringify(st));
+    ok(/^psi-reader:v1:psi-reader-hl-/.test(st.key || ''), 'filed under the source folder\'s name', st.key);
+
+    // ── the card stands in the notes column, level with its highlight ──
+    const geo = await p.evaluate(() => {
+      const m = document.querySelector('mark.rd-hl').getBoundingClientRect();
+      const c = document.querySelector('.rd-notes > .rd-card').getBoundingClientRect();
+      const t = document.querySelector('#term p').getBoundingClientRect();
+      return { mTop: m.top, cTop: c.top, cLeft: c.left, cRight: c.right, tRight: t.right, w: innerWidth,
+               sw: document.documentElement.scrollWidth };
+    });
+    ok(geo.cLeft >= geo.tRight && geo.cRight <= geo.w && Math.abs(geo.cTop - geo.mTop) < 24 && geo.sw <= geo.w,
+       '1440px: the card is right of the text, inside the window, level with its highlight', JSON.stringify(geo));
+
+    // ── a selection that overlaps it grows it ──
+    ok(await make(p, 'XORed into the first block'), 'an overlapping selection is offered the button too');
+    st = await stored(p);
+    const m1 = await marks(p);
+    ok(st.items.length === 1 && m1.length === 1 && m1[0] === 'initialisation vector is XORed into the first block'
+       && st.items[0].note === 'Why the IV?',
+       'and marking it merges the two into one highlight that keeps the note', JSON.stringify({ m1, st }));
+
+    // ── what cannot be marked ──
+    for (const [needle, what] of [['const secret', 'a code block'], ['Alpha', 'a figure']]) {
+      await selectText(p, needle);
+      await p.waitForTimeout(150);
+      ok(!(await buttonShown(p)), `a selection inside ${what} is refused`);
+    }
+    {
+      // KaTeX text is split into one node per glyph; select the whole formula.
+      await p.evaluate(() => {
+        const k = document.querySelector('#term .math-display .katex-html');
+        const r = document.createRange();
+        r.selectNodeContents(k);
+        getSelection().removeAllRanges();
+        getSelection().addRange(r);
+      });
+      await p.waitForTimeout(150);
+      ok(!(await buttonShown(p)), 'a selection inside a formula is refused');
+    }
+    // A selection that runs from one chunk into the next is clipped to the
+    // one it started in.
+    await p.evaluate(() => {
+      const a = document.querySelector('#term li:last-child').firstChild;
+      const b = document.querySelector('#fig p').firstChild;
+      const r = document.createRange();
+      r.setStart(a, 0);
+      r.setEnd(b, 5);
+      getSelection().removeAllRanges();
+      getSelection().addRange(r);
+    });
+    await p.waitForTimeout(150);
+    await p.click('.rd-mark-btn');
+    await p.waitForTimeout(100);
+    st = await stored(p);
+    const clipped = st.items.find(h => h.quote.startsWith('second item'));
+    ok(clipped && clipped.chunk === 'term' && !clipped.quote.includes('Words'),
+       'a selection across a chunk boundary is clipped to the chunk it started in', JSON.stringify(clipped));
+    // A divider's lede is anchored to its column.
+    ok(await make(p, 'Divider lede'), 'a divider lede can be marked');
+    st = await stored(p);
+    ok(st.items.some(h => h.chunk === 'part-one' && h.quote === 'Divider lede'),
+       'and its highlight is filed under the column', JSON.stringify(st.items.map(h => h.chunk)));
+
+    // ── two notes on one line do not stand on each other ──
+    ok(await make(p, 'explains why'), 'a second highlight on the same paragraph');
+    await p.keyboard.type('A second note, long enough to wrap onto a second line in the margin card.');
+    await p.mouse.click(700, 20);
+    await p.waitForTimeout(150);
+    const packed = await p.evaluate(() => [...document.querySelectorAll('.rd-notes > .rd-card')]
+      .map(c => c.getBoundingClientRect()).map(r => [r.top, r.bottom]).sort((a, b) => a[0] - b[0]));
+    ok(packed.length === 2 && packed[1][0] >= packed[0][1],
+       'the cards of two highlights on nearby lines are packed, not overlapped', JSON.stringify(packed));
+    const plain = await p.evaluate(() => document.querySelectorAll('.rd-notes > .rd-card').length);
+    ok(plain === 2, 'a highlight with no note has no card until it is opened', String(plain));
+
+    // ── persisted, and the same in the other document ──
+    await p.reload({ waitUntil: 'load' });
+    await p.waitForTimeout(250);
+    const after = await marks(p);
+    ok(after.includes('initialisation vector is XORed into the first block') && after.length === 4,
+       'after a reload every highlight is painted again', JSON.stringify(after));
+    const noteBack = await p.evaluate(() => [...document.querySelectorAll('.rd-note')].map(t => t.value));
+    ok(noteBack.includes('Why the IV?'), 'and its note is on its card', JSON.stringify(noteBack));
+    const before = (await stored(p)).items;
+    const pn = await page('print-notes.html');
+    const inNotes = await marks(pn);
+    const afterNotes = (await stored(pn)).items;
+    ok(JSON.stringify(inNotes.sort()) === JSON.stringify(after.sort())
+       && JSON.stringify(before) === JSON.stringify(afterNotes),
+       'print-notes.html paints the same highlights at the same offsets, speaker notes and all',
+       JSON.stringify({ inNotes, after }));
+    await selectText(pn, 'Speaker words', '.speaker-note');
+    await pn.waitForTimeout(150);
+    ok(!(await buttonShown(pn)), 'a selection inside a speaker note is refused');
+    await pn.close();
+
+    // ── remove, and undo it ──
+    await p.click('mark.rd-hl >> text=initialisation');
+    await p.waitForTimeout(100);
+    const opened = await p.evaluate(() => {
+      const c = document.querySelector('.rd-card.is-focus');
+      return c && { note: c.querySelector('.rd-note').value, actions: getComputedStyle(c.querySelector('.rd-actions')).display };
+    });
+    ok(opened && opened.note === 'Why the IV?' && opened.actions !== 'none',
+       'a click on a highlight opens its card, with its actions', JSON.stringify(opened));
+    await p.click('.rd-card.is-focus .rd-remove');
+    await p.waitForTimeout(100);
+    const gone = await p.evaluate(() => ({
+      marks: [...document.querySelectorAll('mark.rd-hl')].some(m => m.textContent.includes('initialisation')),
+      toast: !!document.querySelector('.rd-toast:not([hidden])'),
+      text: document.querySelector('#term p').textContent,
+    }));
+    st = await stored(p);
+    ok(!gone.marks && gone.toast && st.items.length === 3 && gone.text.startsWith('The initialisation vector'),
+       'remove unwraps the words at once, drops the entry, and offers an undo', JSON.stringify({ gone, n: st.items.length }));
+    await p.click('.rd-toast .rd-undo');
+    await p.waitForTimeout(100);
+    st = await stored(p);
+    const back = await marks(p);
+    ok(st.items.length === 4 && back.includes('initialisation vector is XORed into the first block')
+       && st.items.some(h => h.note === 'Why the IV?'),
+       'undo puts it back, note and all', JSON.stringify(back));
+
+    // ── delete the note, and undo that ──
+    await p.click('mark.rd-hl >> text=initialisation');
+    await p.waitForTimeout(100);
+    await p.click('.rd-card.is-focus .rd-clear');
+    await p.waitForTimeout(100);
+    st = await stored(p);
+    const cleared = st.items.find(h => h.quote.startsWith('initialisation'));
+    ok(cleared && cleared.note === '' && (await marks(p)).includes('initialisation vector is XORed into the first block'),
+       'delete note empties the note and keeps the highlight', JSON.stringify(cleared));
+    await p.click('.rd-toast .rd-undo');
+    await p.waitForTimeout(100);
+    st = await stored(p);
+    ok(st.items.find(h => h.quote.startsWith('initialisation')).note === 'Why the IV?', 'and undo brings the note back');
+
+    // ── a rebuild moves the words ──
+    ok(await make(p, 'quoted sentence that will move'), 'a highlight in the chunk that is about to change');
+    ok(await make(p, 'unlucky quote'), 'and one whose words are about to disappear');
+    await p.keyboard.type('Lost note');
+    const rebuilt = build(dir, hlDeck(true));
+    ok(rebuilt.status === 0, 'the fixture rebuilds with other words', rebuilt.stderr);
+    await p.reload({ waitUntil: 'load' });
+    await p.waitForTimeout(250);
+    const moved = await marks(p);
+    st = await stored(p);
+    const mv = st.items.find(h => h.chunk === 'moving');
+    ok(moved.some(t => squash(t) === 'quoted sentence that will move') && mv && mv.start > 60,
+       'an edit in the same chunk moves the highlight with its words, across a line break', JSON.stringify({ moved, mv }));
+    const lost = await p.evaluate(() => [...document.querySelectorAll('[data-reader-slot=tools] .rd-orphans li')]
+      .map(li => li.textContent));
+    ok(lost.length === 1 && lost[0].includes('unlucky quote') && lost[0].includes('Lost note')
+       && st.items.some(h => h.chunk === 'doomed'),
+       'a quote that is gone is listed in the sidebar foot with its note, and kept in the store', JSON.stringify(lost));
+    ok(!(await p.evaluate(() => [...document.querySelectorAll('mark.rd-hl')].some(m => m.closest('#doomed')))),
+       'and nothing is painted in its chunk');
+    await p.click('[data-reader-slot=tools] .rd-orphan-remove');
+    await p.waitForTimeout(100);
+    st = await stored(p);
+    ok(!st.items.some(h => h.chunk === 'doomed')
+       && !(await p.evaluate(() => !!document.querySelector('[data-reader-slot=tools] .rd-orphans'))),
+       'its remove button drops it from the store and the list');
+
+    // ── paper: none of it prints ──
+    await p.emulateMedia({ media: 'print' });
+    const paper = await p.evaluate(() => ({
+      card: [...document.querySelectorAll('.rd-card')].every(c => getComputedStyle(c).display === 'none'),
+      mark: getComputedStyle(document.querySelector('mark.rd-hl')).backgroundColor,
+    }));
+    ok(paper.card && /rgba\(0, 0, 0, 0\)|transparent/.test(paper.mark),
+       'printed, no card and no yellow yet', JSON.stringify(paper));
+    await p.emulateMedia({ media: 'screen' });
+    await p.close();
+
+    // ── medium: the notes column still holds the card ──
+    {
+      const c2 = await browser.newContext({ viewport: { width: 1100, height: 800 } });
+      await c2.addInitScript(([k, v]) => { if (!localStorage.getItem(k)) localStorage.setItem(k, v); },
+        [st.key, JSON.stringify(st.items)]);
+      const q = await page('print.html', c2);
+      const g = await q.evaluate(() => {
+        const cs = [...document.querySelectorAll('.rd-notes > .rd-card')].map(c => c.getBoundingClientRect());
+        const t = document.querySelector('#term p').getBoundingClientRect();
+        return { n: cs.length, ok: cs.every(r => r.left >= t.right && r.right <= innerWidth),
+                 sw: document.documentElement.scrollWidth, w: innerWidth };
+      });
+      ok(g.n >= 1 && g.ok && g.sw <= g.w, '1100px: the cards stand right of the text, inside the window', JSON.stringify(g));
+      await c2.close();
+    }
+
+    // ── narrow: the card opens under its paragraph, only while opened ──
+    {
+      const c3 = await browser.newContext({ viewport: { width: 390, height: 800 } });
+      await c3.addInitScript(([k, v]) => { if (!localStorage.getItem(k)) localStorage.setItem(k, v); },
+        [st.key, JSON.stringify(st.items)]);
+      const q = await page('print.html', c3);
+      const shut = await q.evaluate(() => document.querySelectorAll('.rd-card').length
+        && [...document.querySelectorAll('.rd-card')].filter(c => c.isConnected).length);
+      ok(!shut, '390px: no card is shown until a highlight is opened', String(shut));
+      await q.click('mark.rd-hl >> text=initialisation');
+      await q.waitForTimeout(150);
+      const g = await q.evaluate(() => {
+        const c = document.querySelector('.rd-card.is-focus');
+        const para = document.querySelector('#term p');
+        return { inline: !!c && c.previousElementSibling === para && !c.closest('.rd-notes'),
+                 within: !!c && c.getBoundingClientRect().right <= innerWidth,
+                 sw: document.documentElement.scrollWidth, w: innerWidth };
+      });
+      ok(g.inline && g.within && g.sw <= g.w, '390px: opened, the card stands under the paragraph that holds it',
+         JSON.stringify(g));
+      await q.mouse.click(200, 30);
+      await q.waitForTimeout(150);
+      const closed = await q.evaluate(() => !!document.querySelector('.rd-card.is-focus')
+        || [...document.querySelectorAll('main .rd-card')].length);
+      ok(!closed, '390px: a click elsewhere puts it away', String(closed));
+      await c3.close();
+    }
+
+    // ── a browser that refuses storage ──
+    {
+      const c4 = await browser.newContext({ viewport: { width: 1440, height: 900 } });
+      await c4.addInitScript(() => {
+        Object.defineProperty(window, 'localStorage', { configurable: true,
+          get() { throw new DOMException('The operation is insecure.', 'SecurityError'); } });
+      });
+      const q = await page('print.html', c4);
+      ok(await make(q, 'initialisation vector'), 'storage refused: the button still marks a selection');
+      const g = await q.evaluate(() => ({
+        marks: document.querySelectorAll('mark.rd-hl').length,
+        notice: (document.querySelector('[data-reader-slot=tools] .rd-notice') || {}).textContent || '',
+      }));
+      ok(g.marks === 1 && /not let the page save/.test(g.notice),
+         'and the highlight holds for the session, with a notice in the sidebar foot', JSON.stringify(g));
+      await c4.close();
+    }
+    ok(errors.length === 0, 'highlights: no page errors', errors.join(' | '));
+    note('highlights: made, merged, refused, persisted, shared by both documents, re-anchored and orphaned');
+  } finally {
+    await ctx.close();
+    server.close();
+  }
+}
 
 export async function run({ page, report }) {
   const { ok, note } = report;
@@ -295,7 +686,8 @@ export async function run({ page, report }) {
       // The stylesheet is shared and ships either way; every rule in it is keyed
       // off the attribute and the class, which are what must be missing.
       ok(!html.includes('id="reader-contents"') && !html.includes("classList.add('rd-ready')")
-         && !html.includes("getElementById('reader-contents')") && !html.includes('data-reader="on"'),
+         && !html.includes("getElementById('reader-contents')") && !html.includes('data-reader="on"')
+         && !html.includes('id="reader-data"') && !html.includes("'psi-reader:v1:'"),
          'reader: off ships no sidebar, no reader script and no attribute for its CSS');
       ok(html.includes("box.id = 'lightbox'"), 'and still ships the lightbox, which is not a reader tool');
       const { p, ctx, errors } = await open({ width: 1440, height: 900 }, 'print.html', { port: off.port });
@@ -312,4 +704,5 @@ export async function run({ page, report }) {
     server.close();
     off.server.close();
   }
+  await highlights({ browser, ok, note });
 }

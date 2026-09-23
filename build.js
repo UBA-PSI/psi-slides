@@ -6243,6 +6243,21 @@ const STRINGS = {
     // button that closes it where it lies over the page. Its heading and the
     // button that opens it say `contents`, above.
     'reader-close': 'Close contents',
+    // The reader's highlights (reader: on): the button that appears at the
+    // end of a selection, the note field on a highlight's card and its two
+    // actions, the notice a delete leaves with its undo, the heading over the
+    // highlights a rebuilt document no longer has the words for, and the one
+    // line said when the browser will not let the page store anything.
+    'reader-mark': 'Highlight',
+    'reader-note': 'Note (optional)',
+    'reader-note-clear': 'Delete note',
+    'reader-remove': 'Remove highlight',
+    'reader-removed': 'Highlight removed.',
+    'reader-note-cleared': 'Note deleted.',
+    'reader-undo': 'Undo',
+    'reader-orphans': 'No longer found in this version',
+    'reader-orphan-remove': 'remove',
+    'reader-session': 'This browser does not let the page save highlights – they are lost when the tab is closed.',
   },
   de: {
     contents: 'Inhalt',
@@ -6264,6 +6279,16 @@ const STRINGS = {
     // a hint for a key rather than a label for the thing it opens.
     'add-note': '+ Notiz',
     'reader-close': 'Inhalt schließen',
+    'reader-mark': 'Markieren',
+    'reader-note': 'Notiz (optional)',
+    'reader-note-clear': 'Notiz löschen',
+    'reader-remove': 'Markierung entfernen',
+    'reader-removed': 'Markierung entfernt.',
+    'reader-note-cleared': 'Notiz gelöscht.',
+    'reader-undo': 'Rückgängig',
+    'reader-orphans': 'In dieser Fassung nicht mehr gefunden',
+    'reader-orphan-remove': 'entfernen',
+    'reader-session': 'Dieser Browser lässt die Seite keine Markierungen speichern – sie gehen verloren, wenn der Tab geschlossen wird.',
   },
 };
 
@@ -7917,6 +7942,19 @@ function renderDocument(lecture, opts = {}) {
   // lightbox is the only script left, which is what the key promises.
   const readerOn = (viewDefaults(frontmatter).reader || 'on') === 'on';
   const readerHtml = readerOn ? renderReaderContents(columns, nums, S) : '';
+  // What the highlights script needs from the build: the key its store is
+  // filed under, and the words it puts on the page. The key is the source
+  // folder's name, the slug --new makes, so print.html and print-notes.html
+  // file under one key and a copied folder does not inherit a store it was
+  // not given. JSON in a data block rather than in the script, so the script
+  // stays one constant for every lecture; a less-than sign is escaped, which
+  // is all it takes to keep a closing script tag out of a label.
+  const readerData = readerOn
+    ? `<script type="application/json" id="reader-data">${JSON.stringify({
+        key: opts.lectureKey || 'lecture',
+        s: Object.fromEntries(Object.entries(S).filter(([k]) => k.startsWith('reader-'))),
+      }).replace(/</g, '\\u003c')}</script>\n`
+    : '';
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(lectureLang(frontmatter))}">
 <head>
@@ -7940,7 +7978,7 @@ ${toc}
 ${namedHtml}
 </main>
 <script>${PRINT_JS}</script>
-${readerOn ? `<script>${PRINT_READER_JS}</script>\n` : ''}</body>
+${readerOn ? `${readerData}<script>${PRINT_READER_JS}${PRINT_HIGHLIGHTS_JS}</script>\n` : ''}</body>
 </html>
 `;
 }
@@ -9325,6 +9363,142 @@ pre.shiki .line { display: inline; }
   .rd-contents, .rd-toggle { display: none !important; }
 }
 
+/* ── the reader's highlights and note cards (reader: on) ──
+   PRINT_HIGHLIGHTS_JS paints a highlight as mark.rd-hl round the words and
+   puts its note on a card: in the notes column the layout keeps free from
+   920px, at the height of the highlight (the script sets top and left); below
+   that, inline under the block that holds it, and only while it is the one
+   being read. A highlight with a note carries a line under it, because a
+   narrow window shows no card until the highlight is opened. One yellow, and
+   a stronger one for the highlight whose card is open.
+
+   Paper is a later slice. Until then a printed page shows the words without
+   the yellow and none of the controls, rather than the browser's own mark
+   colour. */
+body[data-reader=on] {
+  --rd-hl: oklch(0.94 0.11 98);
+  --rd-hl-strong: oklch(0.87 0.16 94);
+}
+@media screen {
+  mark.rd-hl {
+    background: var(--rd-hl);
+    color: inherit;
+    padding: 0;
+    cursor: pointer;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
+  mark.rd-hl.rd-has-note { box-shadow: inset 0 -0.14em 0 var(--rd-hl-strong); }
+  mark.rd-hl.is-focus { background: var(--rd-hl-strong); }
+  .rd-mark-btn {
+    position: absolute;
+    z-index: 30;
+    font-family: var(--sans);
+    font-size: 0.78rem;
+    line-height: 1;
+    padding: 0.5rem 0.75rem;
+    color: var(--paper);
+    background: var(--ink);
+    border: 0;
+    border-radius: var(--radius-tight);
+    box-shadow: 0 0.25rem 1rem rgb(0 0 0 / 0.18);
+    cursor: pointer;
+  }
+  .rd-mark-btn[hidden], .rd-toast[hidden] { display: none; }
+  .rd-notes { position: absolute; top: 0; left: 0; width: 0; height: 0; z-index: 20; }
+  .rd-card {
+    box-sizing: border-box;
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    line-height: 1.4;
+    color: var(--ink);
+    background: var(--paper);
+    border: 0.5pt solid var(--rule);
+    border-radius: var(--radius-tight);
+    padding: 0.4rem 0.6rem;
+    hyphens: manual;
+    -webkit-hyphens: manual;
+  }
+  .rd-notes > .rd-card { position: absolute; }
+  .rd-card:focus { outline: none; }
+  .rd-card.is-focus {
+    border-color: transparent;
+    box-shadow: 0 0 0 2px var(--rd-hl-strong), 0 0.35rem 1.2rem rgb(0 0 0 / 0.12);
+  }
+  .rd-note {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    min-height: 1.4em;
+    margin: 0;
+    padding: 0;
+    border: 0;
+    resize: none;
+    overflow: hidden;
+    font: inherit;
+    color: inherit;
+    background: transparent;
+    outline: none;
+  }
+  .rd-note::placeholder { color: var(--ink-soft); opacity: 0.8; }
+  .rd-actions { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; margin-top: 0.45rem; }
+  .rd-card:not(.is-focus) .rd-actions { display: none; }
+  .rd-actions button, .rd-orphans button, .rd-undo {
+    font: inherit;
+    font-size: 0.72rem;
+    padding: 0;
+    color: var(--ink-soft);
+    background: none;
+    border: 0;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+    cursor: pointer;
+  }
+  .rd-actions button[hidden] { display: none; }
+  .rd-actions button:hover, .rd-orphans button:hover { color: var(--ink); }
+  /* Narrow: the card is part of the text, under the block it belongs to. */
+  main .rd-card { margin: 0.5rem 0 1rem; font-size: 0.85rem; }
+  li > .rd-card { margin-bottom: 0.5rem; }
+  .rd-toast {
+    position: fixed;
+    left: 50%;
+    bottom: 1rem;
+    transform: translateX(-50%);
+    z-index: 46;
+    display: flex;
+    align-items: baseline;
+    gap: 1rem;
+    max-width: calc(100vw - 2rem);
+    box-sizing: border-box;
+    padding: 0.6rem 0.9rem;
+    font-family: var(--sans);
+    font-size: 0.8rem;
+    color: var(--paper);
+    background: var(--ink);
+    border-radius: var(--radius-tight);
+    box-shadow: 0 0.35rem 1.2rem rgb(0 0 0 / 0.2);
+  }
+  .rd-toast .rd-undo { font-size: inherit; color: inherit; font-weight: 600; }
+  /* The sidebar's foot: a notice when nothing can be stored, and what a
+     rebuilt document no longer has the words for. It scrolls on its own
+     when the list is long, so the contents above keep their room. */
+  .rd-foot { flex: none; max-height: 40vh; overflow-y: auto; border-top: 0.5pt solid var(--rule); margin-top: 0.75rem; padding-top: 0.6rem; }
+  .rd-notice, .rd-foot-head { margin: 0 0 0.4rem; }
+  .rd-foot-head { color: var(--ink); font-weight: 600; }
+  .rd-orphans { list-style: none; margin: 0; padding: 0; }
+  .rd-orphans li { margin: 0 0 0.55rem; }
+  .rd-orphans q { display: block; background: var(--rd-hl); color: var(--ink); padding: 0 0.15em; }
+  .rd-orphan-note { display: block; margin: 0.15rem 0; white-space: pre-wrap; }
+}
+@media screen and (max-width: ${READER_NOTES_PX - 0.02}px) {
+  /* Above the contents button, which sits at the foot of a narrow window. */
+  .rd-toast { bottom: 3.5rem; }
+}
+@media print {
+  mark.rd-hl { background: none; color: inherit; }
+  .rd-notes, .rd-card, .rd-mark-btn, .rd-toast { display: none !important; }
+}
+
 /* ── the lightbox (screen only) ──────────────────────────────────────
    The live views' figure focus, for a reader: click a figure, a diagram, a
    code block or a display formula and it opens on a paper card over the
@@ -9675,6 +9849,653 @@ const PRINT_READER_JS = `
   });
   const onWidth = () => { if (!overlay.matches && isOpen()) setOpen(false, false); };
   if (overlay.addEventListener) overlay.addEventListener('change', onWidth);
+})();
+`;
+
+// ── the reader's highlights and notes (reader: on, screen only) ──────
+// Select words in a slide and a button at the end of the selection marks
+// them yellow and opens a card for a note. A highlight is the reader's, kept
+// in their browser and seen by nobody else - nothing here shares a path or a
+// word with the lecturer's annotations. PLAN-reader-highlights.md §2 to §4.
+//
+// A highlight is anchored to a chunk, by its frozen id, and to offsets into
+// that chunk's reader text: its text nodes in document order, less what is
+// not the author's running text - the build's own labels and numbers, a
+// speaker note, a figure, a formula, a code block, and everything this script
+// adds. Leaving the speaker notes out is what makes the offsets the same in
+// print.html and print-notes.html, so one store serves both files. The text
+// of a divider's lede is anchored to its column, with the chunks under it
+// left out.
+//
+// A rebuild can move the words. The quote is looked for where the offsets
+// say, then anywhere in the chunk (the surrounding 32 characters decide
+// between several hits), then with whitespace and soft hyphens folded; a
+// highlight none of that places is listed in the sidebar's foot and kept,
+// never dropped on load.
+//
+// Every entry is painted through KINDS, keyed by its type, and a card only
+// asks the painter for the elements it drew. A text highlight is the one kind
+// so far; a figure's (plan §11) joins as a second entry there, with its own
+// locate and paint, and the store, the cards and the undo take it as they
+// are. An entry of a kind this build does not know is listed as not found
+// and kept, so a store written by a later build survives an older one.
+//
+// Storage is localStorage under psi-reader:v1:<source folder>, and every
+// access is in a try: a browser that refuses it gets highlights that last as
+// long as the tab, and one line in the sidebar's foot that says so. Where two
+// tabs share the store, a write in one is picked up by the other.
+//
+// The same template-literal rules as every inlined block: no backticks, and
+// every regex backslash doubled.
+const PRINT_HIGHLIGHTS_JS = `
+(() => {
+  const body = document.body;
+  const main = document.querySelector('main');
+  const dataEl = document.getElementById('reader-data');
+  if (!main || !dataEl) return;
+  let data = {};
+  try { data = JSON.parse(dataEl.textContent) || {}; } catch (e) { return; }
+  const S = data.s || {};
+  const KEY = 'psi-reader:v1:' + (data.key || 'lecture');
+  const foot = document.querySelector('[data-reader-slot=tools]');
+  const narrowMq = window.matchMedia('(max-width: ${READER_NOTES_PX - 0.02}px)');
+  const WS = /\\s/;
+  const SHY = '\\u00ad';
+  const UI = '[data-rd-ui]';
+  // Not the author's running text: the build's own marks, the notes, and
+  // the things a click opens in the lightbox. A figure goes whole - its
+  // caption with it - until figures have highlights of their own.
+  const SKIP = UI + ', .speaker-note, .chunk-num, .chunk-label, .psi-diagram, figure, '
+    + '.katex, .math-display, pre, button, script, style, svg, video, iframe, textarea';
+  // A whitespace node that is a child of one of these sits between two
+  // blocks, and a mark round it would be an inline box in a block's place.
+  const BLOCKISH = /^(UL|OL|DL|TABLE|THEAD|TBODY|TFOOT|TR|SECTION|ARTICLE|DIV|BLOCKQUOTE|MAIN|ASIDE|NAV|HEADER|FOOTER)$/;
+
+  // ── storage ──
+  let persistent = true;
+  const valid = (h) => h && typeof h === 'object' && typeof h.id === 'string' && typeof h.chunk === 'string';
+  const parse = (raw) => {
+    if (!raw) return [];
+    try { const a = JSON.parse(raw); return Array.isArray(a) ? a.filter(valid) : []; } catch (e) { return []; }
+  };
+  const load = () => {
+    try { return parse(window.localStorage.getItem(KEY)); } catch (e) { persistent = false; return []; }
+  };
+  const save = () => {
+    if (!persistent) return;
+    try { window.localStorage.setItem(KEY, JSON.stringify(store)); }
+    catch (e) { persistent = false; renderFoot(); }
+  };
+  let store = load();
+  const byId = (id) => store.find(h => h.id === id) || null;
+
+  // ── reader text ──
+  const rootOf = (node) => {
+    const el = node && (node.nodeType === 1 ? node : node.parentElement);
+    if (!el || !main.contains(el) || el.closest(UI)) return null;
+    return el.closest('article.chunk[id]') || el.closest('section.column[id]');
+  };
+  const texts = (root) => {
+    const out = [];
+    const column = root.tagName === 'SECTION';
+    const w = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT | NodeFilter.SHOW_TEXT, {
+      acceptNode: (n) => {
+        if (n.nodeType === 3) return NodeFilter.FILTER_ACCEPT;
+        if (n.matches(SKIP) || (column && n.matches('article.chunk'))) return NodeFilter.FILTER_REJECT;
+        return NodeFilter.FILTER_SKIP;
+      },
+    });
+    for (let n = w.nextNode(); n; n = w.nextNode()) out.push(n);
+    return out;
+  };
+  const joined = (nodes) => nodes.map(t => t.data).join('');
+  // The reader-text offset of a DOM boundary point. A point inside a skipped
+  // element counts the text before it, so a selection that starts in a code
+  // block starts after it and one that ends in a figure ends before it.
+  const offsetOf = (nodes, node, off) => {
+    const r = document.createRange();
+    r.setStart(node, off);
+    let acc = 0;
+    for (const t of nodes) {
+      const len = t.data.length;
+      if (r.comparePoint(t, len) <= 0) { acc += len; continue; }
+      if (r.comparePoint(t, 0) >= 0) break;
+      acc += off;
+      break;
+    }
+    return acc;
+  };
+  const quoteParts = (text, s, e) => ({
+    quote: text.slice(s, e),
+    prefix: text.slice(Math.max(0, s - 32), s),
+    suffix: text.slice(e, e + 32),
+  });
+
+  // ── anchoring (plan §4) ──
+  const norm = (str) => {
+    let out = '', sp = true;
+    const map = [];
+    for (let i = 0; i < str.length; i++) {
+      const c = str[i];
+      if (c === SHY) continue;
+      if (WS.test(c)) {
+        if (!sp) { out += ' '; map.push(i); sp = true; }
+        continue;
+      }
+      out += c; map.push(i); sp = false;
+    }
+    return { out, map };
+  };
+  const tailMatch = (a, b) => { let n = 0; while (n < a.length && n < b.length && a[a.length - 1 - n] === b[b.length - 1 - n]) n++; return n; };
+  const headMatch = (a, b) => { let n = 0; while (n < a.length && n < b.length && a[n] === b[n]) n++; return n; };
+  const locateText = (h) => {
+    const root = document.getElementById(h.chunk);
+    if (!root || !main.contains(root) || !root.matches('article.chunk, section.column')) return null;
+    const nodes = texts(root), text = joined(nodes);
+    const quote = String(h.quote || '');
+    if (!quote.trim()) return null;
+    if (text.slice(h.start, h.end) === quote) return { root, s: h.start, e: h.end, text };
+    let hits = [];
+    for (let i = text.indexOf(quote); i >= 0; i = text.indexOf(quote, i + 1)) hits.push([i, i + quote.length]);
+    if (!hits.length) {
+      const T = norm(text), q = norm(quote).out.trim();
+      if (q) for (let i = T.out.indexOf(q); i >= 0; i = T.out.indexOf(q, i + 1)) {
+        hits.push([T.map[i], T.map[i + q.length - 1] + 1]);
+      }
+    }
+    if (!hits.length) return null;
+    const pre = String(h.prefix || ''), suf = String(h.suffix || '');
+    const score = ([s, e]) => tailMatch(text.slice(Math.max(0, s - pre.length), s), pre)
+      + headMatch(text.slice(e, e + suf.length), suf);
+    let best = hits[0], bestScore = -1;
+    for (const hit of hits) {
+      const sc = score(hit);
+      if (sc > bestScore || (sc === bestScore && Math.abs(hit[0] - h.start) < Math.abs(best[0] - h.start))) {
+        best = hit; bestScore = sc;
+      }
+    }
+    return { root, s: best[0], e: best[1], text };
+  };
+  const paintText = (h, at) => {
+    const marks = [];
+    let acc = 0;
+    for (const t of texts(at.root)) {
+      const len = t.data.length, a = acc, b = acc + len;
+      acc = b;
+      if (b <= at.s || a >= at.e) continue;
+      const from = Math.max(at.s, a) - a, to = Math.min(at.e, b) - a;
+      let node = t;
+      if (to < len) node.splitText(to);
+      if (from > 0) node = node.splitText(from);
+      if (!node.data.trim() && BLOCKISH.test(node.parentNode.nodeName)) continue;
+      const m = document.createElement('mark');
+      m.className = 'rd-hl';
+      m.dataset.hl = h.id;
+      node.parentNode.insertBefore(m, node);
+      m.appendChild(node);
+      marks.push(m);
+    }
+    return marks;
+  };
+  const KINDS = {
+    text: { locate: locateText, paint: paintText },
+  };
+
+  // ── painting ──
+  const marksOf = new Map();   // id -> the elements its painter drew
+  const orphans = new Set();
+  const unpaint = (id) => {
+    for (const m of marksOf.get(id) || []) {
+      const p = m.parentNode;
+      if (!p) continue;
+      while (m.firstChild) p.insertBefore(m.firstChild, m);
+      p.removeChild(m);
+      p.normalize();
+    }
+    marksOf.delete(id);
+  };
+  const noteMarks = (h) => {
+    const has = !!(h.note && h.note.trim());
+    for (const m of marksOf.get(h.id) || []) m.classList.toggle('rd-has-note', has);
+  };
+  // Places one entry; true when its anchor moved and the store should be
+  // written back.
+  const place = (h) => {
+    orphans.delete(h.id);
+    const kind = KINDS[h.type || 'text'];
+    const at = kind && kind.locate(h);
+    if (!at) { orphans.add(h.id); return false; }
+    let moved = false;
+    if (at.text !== undefined && (at.s !== h.start || at.e !== h.end)) {
+      Object.assign(h, { start: at.s, end: at.e }, quoteParts(at.text, at.s, at.e));
+      moved = true;
+    }
+    const marks = kind.paint(h, at);
+    if (!marks.length) { orphans.add(h.id); return moved; }
+    marksOf.set(h.id, marks);
+    noteMarks(h);
+    if (h.id === focused) for (const m of marks) m.classList.add('is-focus');
+    return moved;
+  };
+  const placeAll = () => {
+    let moved = false;
+    for (const h of store) if (place(h)) moved = true;
+    if (moved) save();
+  };
+
+  // ── the cards ──
+  const layer = document.createElement('div');
+  layer.className = 'rd-notes';
+  layer.setAttribute('data-rd-ui', '');
+  body.appendChild(layer);
+  const cards = new Map();
+  let focused = null;
+  const button = (cls, label) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = cls;
+    b.textContent = label;
+    return b;
+  };
+  const grow = (ta) => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; };
+  const cardFor = (h) => {
+    let card = cards.get(h.id);
+    if (card) return card;
+    card = document.createElement('div');
+    card.className = 'rd-card';
+    card.setAttribute('data-rd-ui', '');
+    card.dataset.hl = h.id;
+    card.tabIndex = -1;
+    const ta = document.createElement('textarea');
+    ta.className = 'rd-note';
+    ta.rows = 1;
+    ta.placeholder = S['reader-note'] || '';
+    ta.setAttribute('aria-label', S['reader-note'] || '');
+    ta.value = h.note || '';
+    const acts = document.createElement('div');
+    acts.className = 'rd-actions';
+    const clear = button('rd-clear', S['reader-note-clear'] || '');
+    clear.hidden = !ta.value;
+    acts.append(clear, button('rd-remove', S['reader-remove'] || ''));
+    card.append(ta, acts);
+    cards.set(h.id, card);
+    return card;
+  };
+  const dropCard = (id) => {
+    const c = cards.get(id);
+    if (c) c.remove();
+    cards.delete(id);
+  };
+  const shown = (h) => marksOf.has(h.id) && (h.id === focused || !!(h.note && h.note.trim()));
+  // Narrow, the card stands under the block that holds the highlight - in a
+  // list item, inside it; in a table, after the table - and only while the
+  // highlight is the one being read.
+  const placeInline = (card, h) => {
+    const m = (marksOf.get(h.id) || [])[0];
+    if (!m) return;
+    let block = m.closest('li, p, h1, h2, h3, h4, h5, h6, dd, dt, td, th, blockquote') || m.parentElement;
+    if (block.matches('td, th')) block = block.closest('table') || block;
+    if (block.matches('li')) {
+      if (block.lastElementChild !== card) block.appendChild(card);
+    } else if (block.nextElementSibling !== card) {
+      block.after(card);
+    }
+  };
+  const pack = () => {
+    const rem = parseFloat(getComputedStyle(document.documentElement).fontSize) || 16;
+    const mr = main.getBoundingClientRect();
+    const left = mr.right + window.scrollX;
+    const width = Math.max(8 * rem, Math.min(17 * rem, window.innerWidth - mr.right - 0.75 * rem));
+    const items = [];
+    for (const [id, card] of cards) {
+      if (card.parentNode !== layer) continue;
+      const m = (marksOf.get(id) || [])[0];
+      if (!m) continue;
+      card.style.left = left + 'px';
+      card.style.width = width + 'px';
+      grow(card.querySelector('.rd-note'));
+      items.push({ id, card, want: m.getBoundingClientRect().top + window.scrollY - 0.4 * rem });
+    }
+    for (const it of items) it.h = it.card.offsetHeight;
+    items.sort((a, b) => a.want - b.want);
+    const gap = 0.5 * rem;
+    const forward = () => {
+      let floor = -Infinity;
+      for (const it of items) { it.top = Math.max(it.want, floor); floor = it.top + it.h + gap; }
+    };
+    // The card being read stands level with its highlight; the others make
+    // way for it, upwards and downwards, and only where there is no room
+    // above does it give up its place.
+    const fi = items.findIndex(it => it.id === focused);
+    if (fi < 0) forward();
+    else {
+      items[fi].top = items[fi].want;
+      for (let i = fi + 1; i < items.length; i++) {
+        const p = items[i - 1];
+        items[i].top = Math.max(items[i].want, p.top + p.h + gap);
+      }
+      for (let i = fi - 1; i >= 0; i--) {
+        const n = items[i + 1];
+        items[i].top = Math.min(items[i].want, n.top - items[i].h - gap);
+      }
+      if (items.length && items[0].top < 0) forward();
+    }
+    for (const it of items) it.card.style.top = Math.round(it.top) + 'px';
+  };
+  const layout = () => {
+    const narrow = narrowMq.matches;
+    for (const h of store) {
+      if (!shown(h) || (narrow && h.id !== focused)) {
+        const c = cards.get(h.id);
+        if (c && c.parentNode) c.remove();
+        continue;
+      }
+      const card = cardFor(h);
+      card.classList.toggle('is-focus', h.id === focused);
+      if (narrow) {
+        card.style.left = card.style.top = card.style.width = '';
+        placeInline(card, h);
+        grow(card.querySelector('.rd-note'));
+      } else if (card.parentNode !== layer) {
+        layer.appendChild(card);
+      }
+    }
+    if (!narrow) pack();
+  };
+  let queued = false;
+  const schedule = () => {
+    if (queued) return;
+    queued = true;
+    requestAnimationFrame(() => { queued = false; layout(); });
+  };
+  window.addEventListener('resize', schedule);
+  window.addEventListener('load', schedule);
+  if (narrowMq.addEventListener) narrowMq.addEventListener('change', schedule);
+  if (window.ResizeObserver) new ResizeObserver(schedule).observe(main);
+  if (document.fonts && document.fonts.ready) document.fonts.ready.then(schedule);
+
+  const setFocus = (id, opts = {}) => {
+    if (focused !== id) {
+      for (const m of marksOf.get(focused) || []) m.classList.remove('is-focus');
+      focused = id;
+      for (const m of marksOf.get(focused) || []) m.classList.add('is-focus');
+    }
+    layout();
+    const card = id && cards.get(id);
+    if (!card || !card.isConnected) return;
+    if (opts.edit) card.querySelector('.rd-note').focus({ preventScroll: true });
+    else if (opts.card) card.focus({ preventScroll: true });
+    if (opts.reveal) card.scrollIntoView({ block: 'nearest' });
+  };
+
+  // ── the undo notice ──
+  let toastEl = null, toastTimer = 0, undoFn = null;
+  const hideToast = () => { if (toastEl) toastEl.hidden = true; undoFn = null; clearTimeout(toastTimer); };
+  const toast = (msg, undo) => {
+    if (!toastEl) {
+      toastEl = document.createElement('div');
+      toastEl.className = 'rd-toast';
+      toastEl.setAttribute('data-rd-ui', '');
+      toastEl.setAttribute('role', 'status');
+      const span = document.createElement('span');
+      const b = button('rd-undo', S['reader-undo'] || '');
+      b.addEventListener('click', () => { const f = undoFn; hideToast(); if (f) f(); });
+      toastEl.append(span, b);
+      body.appendChild(toastEl);
+    }
+    toastEl.firstChild.textContent = msg;
+    toastEl.hidden = false;
+    undoFn = undo;
+    clearTimeout(toastTimer);
+    toastTimer = setTimeout(hideToast, 5000);
+  };
+
+  // ── the sidebar's foot: what could not be placed, and the session notice ──
+  const renderFoot = () => {
+    if (!foot) return;
+    for (const n of foot.querySelectorAll('.rd-hl-foot')) n.remove();
+    const box = document.createElement('div');
+    box.className = 'rd-hl-foot';
+    if (!persistent) {
+      const p = document.createElement('p');
+      p.className = 'rd-notice';
+      p.textContent = S['reader-session'] || '';
+      box.appendChild(p);
+    }
+    const lost = store.filter(h => orphans.has(h.id));
+    if (lost.length) {
+      const head = document.createElement('p');
+      head.className = 'rd-foot-head';
+      head.textContent = S['reader-orphans'] || '';
+      const ul = document.createElement('ul');
+      ul.className = 'rd-orphans';
+      for (const h of lost) {
+        const li = document.createElement('li');
+        const q = document.createElement('q');
+        const text = String(h.quote || h.id);
+        q.textContent = text.length > 120 ? text.slice(0, 117) + '…' : text;
+        li.appendChild(q);
+        if (h.note && h.note.trim()) {
+          const n = document.createElement('span');
+          n.className = 'rd-orphan-note';
+          n.textContent = h.note;
+          li.appendChild(n);
+        }
+        const b = button('rd-orphan-remove', S['reader-orphan-remove'] || '');
+        b.dataset.hl = h.id;
+        li.appendChild(b);
+        ul.appendChild(li);
+      }
+      box.append(head, ul);
+    }
+    if (box.firstChild) foot.appendChild(box);
+  };
+
+  // ── making, removing ──
+  const newId = () => 'h-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+  const fromSelection = () => {
+    const sel = window.getSelection && window.getSelection();
+    if (!sel || sel.isCollapsed || !sel.rangeCount) return null;
+    const r = sel.getRangeAt(0);
+    // A selection belongs to the chunk it starts in and is clipped to it.
+    const root = rootOf(r.startContainer);
+    if (!root) return null;
+    const nodes = texts(root), text = joined(nodes);
+    let s = offsetOf(nodes, r.startContainer, r.startOffset);
+    let e = offsetOf(nodes, r.endContainer, r.endOffset);
+    while (s < e && WS.test(text[s])) s++;
+    while (e > s && WS.test(text[e - 1])) e--;
+    if (e <= s) return null;
+    return { root, s, e, text, range: r };
+  };
+  const make = (p) => {
+    const now = Date.now();
+    const chunk = p.root.id;
+    let s = p.s, e = p.e;
+    // A selection that touches or overlaps a highlight grows it rather than
+    // standing on top of it: one entry, the oldest id, the notes kept.
+    const over = store.filter(h => !h.type && h.chunk === chunk && marksOf.has(h.id)
+      && h.start <= e && h.end >= s);
+    for (const h of over) { s = Math.min(s, h.start); e = Math.max(e, h.end); }
+    over.sort((a, b) => (a.created || 0) - (b.created || 0));
+    const entry = over[0] || { v: 1, id: newId(), chunk, note: '', kind: 'mark', created: now };
+    const notes = over.map(h => h.note || '').filter(n => n.trim());
+    for (const h of over) {
+      unpaint(h.id);
+      if (h !== entry) { store.splice(store.indexOf(h), 1); dropCard(h.id); }
+    }
+    Object.assign(entry, { start: s, end: e }, quoteParts(p.text, s, e),
+      { note: notes.join('\\n\\n'), edited: now });
+    if (!over.length) store.push(entry);
+    place(entry);
+    const card = cards.get(entry.id);
+    if (card) { const ta = card.querySelector('.rd-note'); ta.value = entry.note; card.querySelector('.rd-clear').hidden = !entry.note; }
+    save();
+    const sel = window.getSelection();
+    if (sel) sel.removeAllRanges();
+    hideButton();
+    setFocus(entry.id, { edit: true, reveal: true });
+  };
+  const remove = (id) => {
+    const i = store.findIndex(h => h.id === id);
+    if (i < 0) return;
+    const [h] = store.splice(i, 1);
+    unpaint(id);
+    dropCard(id);
+    orphans.delete(id);
+    if (focused === id) focused = null;
+    save();
+    renderFoot();
+    layout();
+    toast(S['reader-removed'] || '', () => {
+      store.splice(Math.min(i, store.length), 0, h);
+      place(h);
+      save();
+      renderFoot();
+      layout();
+    });
+  };
+  const clearNote = (id) => {
+    const h = byId(id);
+    if (!h || !h.note) return;
+    const old = h.note, oldEdited = h.edited;
+    const setNote = (v, t) => {
+      h.note = v;
+      h.edited = t;
+      const card = cards.get(id);
+      if (card) {
+        card.querySelector('.rd-note').value = v;
+        card.querySelector('.rd-clear').hidden = !v;
+      }
+      noteMarks(h);
+      save();
+      layout();
+    };
+    setNote('', Date.now());
+    toast(S['reader-note-cleared'] || '', () => setNote(old, oldEdited));
+  };
+
+  // ── the button at the end of a selection ──
+  let markBtn = null, pending = null, pointerDown = false;
+  const hideButton = () => { pending = null; if (markBtn) markBtn.hidden = true; };
+  const showButton = (p) => {
+    if (!markBtn) {
+      markBtn = button('rd-mark-btn', S['reader-mark'] || '');
+      markBtn.setAttribute('data-rd-ui', '');
+      // Pressing it must not take the selection it is about to mark.
+      markBtn.addEventListener('pointerdown', (e) => e.preventDefault());
+      markBtn.addEventListener('mousedown', (e) => e.preventDefault());
+      markBtn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const p = pending || fromSelection();
+        if (p) make(p);
+      });
+      body.appendChild(markBtn);
+    }
+    pending = p;
+    markBtn.hidden = false;
+    const rects = [...p.range.getClientRects()].filter(r => r.width > 0 || r.height > 0);
+    const last = rects[rects.length - 1] || p.range.getBoundingClientRect();
+    const w = markBtn.offsetWidth, h = markBtn.offsetHeight, pad = 8;
+    let x = last.right - w / 2;
+    x = Math.max(pad, Math.min(window.innerWidth - w - pad, x));
+    let y = last.bottom + 6;
+    if (y + h > window.innerHeight - pad) y = rects.length ? rects[0].top - h - 6 : last.top - h - 6;
+    y = Math.max(pad, Math.min(window.innerHeight - h - pad, y));
+    markBtn.style.left = Math.round(x + window.scrollX) + 'px';
+    markBtn.style.top = Math.round(y + window.scrollY) + 'px';
+  };
+  const check = () => {
+    // A selection inside a note field is the field's, and rootOf refuses it:
+    // the cards are marked as the script's own.
+    if (body.classList.contains('lb-open')) { hideButton(); return; }
+    const p = fromSelection();
+    if (p) showButton(p); else hideButton();
+  };
+  let checkQueued = false;
+  const scheduleCheck = () => {
+    if (checkQueued) return;
+    checkQueued = true;
+    setTimeout(() => { checkQueued = false; if (!pointerDown) check(); }, 60);
+  };
+  document.addEventListener('pointerdown', (e) => {
+    if (!e.target.closest || !e.target.closest('.rd-mark-btn')) pointerDown = true;
+  }, true);
+  document.addEventListener('pointerup', () => { pointerDown = false; scheduleCheck(); }, true);
+  document.addEventListener('pointercancel', () => { pointerDown = false; }, true);
+  document.addEventListener('selectionchange', scheduleCheck);
+
+  // ── events on highlights and cards ──
+  document.addEventListener('input', (e) => {
+    const ta = e.target.closest && e.target.closest('.rd-note');
+    if (!ta) return;
+    const card = ta.closest('.rd-card');
+    const h = card && byId(card.dataset.hl);
+    if (!h) return;
+    h.note = ta.value;
+    h.edited = Date.now();
+    card.querySelector('.rd-clear').hidden = !ta.value;
+    noteMarks(h);
+    grow(ta);
+    save();
+    schedule();
+  });
+  document.addEventListener('focusin', (e) => {
+    const card = e.target.closest && e.target.closest('.rd-card');
+    if (card && card.dataset.hl !== focused) setFocus(card.dataset.hl);
+  });
+  document.addEventListener('click', (e) => {
+    const t = e.target;
+    if (!t.closest) return;
+    const orphanBtn = t.closest('.rd-orphan-remove');
+    if (orphanBtn) { remove(orphanBtn.dataset.hl); return; }
+    const card = t.closest('.rd-card');
+    if (card) {
+      if (t.closest('.rd-remove')) remove(card.dataset.hl);
+      else if (t.closest('.rd-clear')) clearNote(card.dataset.hl);
+      return;
+    }
+    if (t.closest(UI + ', #reader-contents, .rd-toggle')) return;
+    const mark = t.closest('mark.rd-hl');
+    const sel = window.getSelection && window.getSelection();
+    const selecting = sel && !sel.isCollapsed && String(sel).trim();
+    // A link inside a highlight is still a link.
+    if (mark && !selecting && !t.closest('a')) { setFocus(mark.dataset.hl, { card: true, reveal: true }); return; }
+    if (focused && !selecting) setFocus(null);
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key !== 'Escape' || !focused) return;
+    if (body.classList.contains('lb-open') || body.classList.contains('rd-open')) return;
+    const a = document.activeElement;
+    if (a && a.closest && a.closest('.rd-card')) a.blur();
+    setFocus(null);
+  });
+  // Another tab with the same store - the other document, where the browser
+  // shares one - wrote to it: take its version and paint again.
+  window.addEventListener('storage', (e) => {
+    if (e.key !== KEY) return;
+    for (const h of store) unpaint(h.id);
+    store = parse(e.newValue);
+    const live = new Set(store.map(h => h.id));
+    for (const id of [...cards.keys()]) if (!live.has(id)) dropCard(id);
+    if (focused && !live.has(focused)) focused = null;
+    for (const h of store) {
+      place(h);
+      const card = cards.get(h.id);
+      if (card) {
+        const ta = card.querySelector('.rd-note');
+        if (document.activeElement !== ta) ta.value = h.note || '';
+        card.querySelector('.rd-clear').hidden = !ta.value;
+      }
+    }
+    renderFoot();
+    layout();
+  });
+
+  placeAll();
+  renderFoot();
+  schedule();
 })();
 `;
 
@@ -23545,7 +24366,9 @@ function buildOnce(absIn, only, opts = {}) {
   }
   lastQrStats = { count: 0, bytes: 0 };
   stagedVideos.clear();
-  const renderOpts = { ...opts, fontEmbed, strings, codeSizing };
+  // The documents file a reader's highlights under the source folder's name
+  // (see renderDocument); the live views do not read it.
+  const renderOpts = { ...opts, fontEmbed, strings, codeSizing, lectureKey: path.basename(outDir) };
 
   const targets = [
     ['print',       renderDocument],

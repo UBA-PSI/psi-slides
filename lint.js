@@ -308,6 +308,9 @@ const LABEL_KEYS = new Set([
   'contents', 'speaker-note', 'presentation-note', 'aside-note',
   'title-print', 'title-print-notes', 'title-lecture', 'title-speaker',
   'untitled-lecture', 'annotation-label', 'add-note', 'reader-close',
+  'reader-mark', 'reader-note', 'reader-note-clear', 'reader-remove',
+  'reader-removed', 'reader-note-cleared', 'reader-undo', 'reader-orphans',
+  'reader-orphan-remove', 'reader-session',
 ]);
 const LABEL_TYPE_KEYS = new Set([
   'principle', 'definition', 'example', 'question', 'exercise', 'outline', 'figure',

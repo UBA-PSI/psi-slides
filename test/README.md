@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Fifteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 46 specs, 1233
+- **`test/`** – the things that only break in a built page. 46 specs, 1275
   assertions, about nine minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
@@ -155,6 +155,14 @@ prints, that the scroll-spy marks the slide whose top crossed 30% of the
 window, that it folds to a button below the wide layout and opens over the
 page, that the notes column it keeps free fits at each width, and that none of
 it reaches paper, a page without scripts, or a deck that says `reader: off`.
+Its second half is the reader's highlights, on a second fixture deck: that a
+selection is marked with the button and its note stored, that an overlapping
+one merges and one in a figure, formula, code block or speaker note is
+refused, that a reload and the other document paint the same highlights at
+the same offsets, that remove and delete-note undo, that a rebuild moves a
+highlight with its words and lists one whose words are gone, where the card
+stands at 1440, 1100 and 390, and that a browser refusing storage still
+highlights for the session.
 
 **The figures** – the `figure-*` specs, which measure the SVG.
 `figure-framing` catches a drawing sitting off-centre in an oversized frame;
@@ -226,7 +234,8 @@ content centred and left, `cards` two cards differing in one character,
 frontmatter line, because the claim about each mode is a claim about what the
 other two do not do, `reader` builds one deck twice, with and without
 `reader: off`, because what the key takes away is only visible beside what it
-leaves, and `figure-dotted` draws a muted dotted line beside the
+leaves, and a second one twice with different words, because re-anchoring is
+only visible across a rebuild, and `figure-dotted` draws a muted dotted line beside the
 five strokes it must leave alone.
 
 **Because a spec that hunted its shapes in a real deck would break the next time

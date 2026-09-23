@@ -99,13 +99,29 @@ by the build (the source folder's name, the same slug `--new` makes). Not
 `location.pathname`: the two documents must share, and a copied folder
 should carry its highlights by export, not by accident.
 
-Open and to be measured before anything else: **what a `file://` origin is
-for localStorage in each browser.** Chrome shares one store for all
-`file://` pages, which is what the key above assumes. Firefox and Safari
-may isolate per file or per directory; if either isolates per file, the
-two documents do not share and the export is the only bridge. The result
-goes into this plan and into the reader-facing help text, not into a
-workaround.
+**What a `file://` origin is for localStorage, measured (slice 2):**
+
+- **Chrome** shares one store between all `file://` pages, so `print.html`
+  and `print-notes.html` share their highlights with no further ado – and
+  so, keyed by folder name, do two lectures whose folders have the same
+  name. That collision is accepted: the export is how a highlight moves
+  between copies on purpose.
+- **Firefox** isolates `file://` storage **per file**: `print.html` and
+  `print-notes.html` each have their own store, and a highlight made in one
+  is not in the other.
+- **Safari**: not measured by the build agent – `safaridriver` needs
+  *Allow remote automation* switched on in Safari's developer settings,
+  which is the user's to switch. To be tried by hand (see the slice report).
+- **Under `--serve`** both files share one `http://127.0.0.1` origin in
+  every browser, so they share one store.
+
+No workaround: the key stays per lecture, which is right wherever the
+browser lets the two files share and costs nothing where it does not. The
+reader-facing help text (a later slice) says that in Firefox the two
+documents keep separate highlights, and that the export carries them from
+one to the other. Where storage throws altogether (a private window in some
+browsers, storage switched off), the highlights last as long as the tab and
+the sidebar's foot says so in one line.
 
 ## 4. Anchoring across rebuilds
 
@@ -159,6 +175,12 @@ UI invents go into `STRINGS` (`de` and `en`), like every other built word.
 ```
 | contents 15rem | · | text column 42rem | · | notes 17rem |
 ```
+
+A card is shown in the margin for a highlight that has a note, and for the
+one that is open; a highlight without a note has no card until it is
+clicked, so a page with thirty plain highlights does not carry thirty empty
+boxes. A highlight with a note is underlined in the stronger yellow, which is
+how a narrow window, which shows no cards, still says there is a note.
 
 The contents sidebar is sticky on the left; the note cards sit on the right,
 each at the height of its highlight, pushed down past the previous card when

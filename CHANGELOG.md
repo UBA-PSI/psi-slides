@@ -31,6 +31,22 @@ from building the same way is a major version.
   `reader: off` in the frontmatter ships the plain document; an unknown value
   fails the build and lints as `unknown-view-default`. A new label key,
   `reader-close`, names the button that closes the sidebar.
+- **A reader can highlight words in the documents and write a note on
+  them.** Select text in a slide of `print.html` or `print-notes.html`, press
+  the button that appears at the end of the selection, and the words turn
+  yellow with a card for a note: in the right margin at the height of the
+  highlight, or under its paragraph in a narrow window. A click on a
+  highlight opens its card again; *Remove highlight* and *Delete note* act at
+  once and leave five seconds to undo. A selection that overlaps a highlight
+  grows it. Figures, formulas, code and speaker notes cannot be selected
+  into a highlight. The highlights stay in the reader's browser, filed under
+  the lecture's folder name: the two documents share them in Chrome and
+  under `--serve`, while Firefox keeps one store per file. A rebuild that
+  moves the words carries the highlight with them; one that removes them
+  lists it at the foot of the contents sidebar with its note, and nothing is
+  dropped. Where the browser refuses storage, the highlights last as long as
+  the tab and the sidebar says so. Nothing of it prints yet. Ten new label
+  keys, `reader-mark` to `reader-session`, carry the words.
 
 - **A figure's labels are set at the size of the words beside them.** In
   the live views a `::: draw` figure used to fill its column whatever that
