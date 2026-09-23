@@ -1214,10 +1214,10 @@ editor: speaker        # both | speaker | none  - where the diagram editor ships
 note-button: off       # on | off  - the + note button in the slide's left gutter
 neighbours: hidden     # dim | hidden  - the slide before and after, faintly or not at all
 transition: cut        # pan | cut | fade  - what a slide change looks like
-reader: off            # on | off  - the contents sidebar in print.html / print-notes.html
+reader: off            # on | off  - contents sidebar and highlights in print.html / print-notes.html
 ```
 
-The last three are what a keynote sets and a lecture does not. `note-button: off`
+`note-button`, `neighbours` and `transition` are what a keynote sets and a lecture does not. `note-button: off`
 takes the `+ note` hint out of the gutter without taking anything away - `N`
 still opens an annotation, and `M` shows or hides the hint at any time, in
 either window. `neighbours: hidden` takes the faint slide above and below off
@@ -1229,8 +1229,14 @@ their motion under all three – only the change of slide is affected.
 
 `reader:` is about the two documents rather than the projection. Left at `on`,
 a reader who opens `print.html` on a screen gets a contents sidebar that marks
-the slide they are in, and a free margin on the right for notes; `off` ships
-the plain document. Nothing of it prints.
+the slide they are in, and can highlight words, code, a formula or a figure,
+keep a note on each, step through them with `n` / `p`, and export them to a
+Markdown file. The highlights stay in the reader's browser, filed under the
+lecture's folder name, and print yellow with their notes in the margin. `off`
+ships the plain document; the lightbox stays either way. Nothing here asks
+anything of the source – but a renamed `{#id}` leaves every highlight on that
+slide unplaced (listed at the sidebar's foot, not lost), one more reason ids
+are frozen.
 
 `auto-fit: shrink` is the mode to reach for first: it leaves the zoom where the
 lecturer set it and only ever makes a slide smaller, where `true` also grows a

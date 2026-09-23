@@ -20,99 +20,63 @@ from building the same way is a major version.
   the pointer, a drag pans, `+` / `-` / `0` zoom from the keyboard, Esc or a
   click closes. It is the documents' first script, a few KB; without
   JavaScript the page is what it was, and none of it reaches paper.
-- **The documents have a contents sidebar.** On a screen, `print.html` and
-  `print-notes.html` list their slides down the left, grouped by part and
-  numbered with the numbers the page prints, and mark the one the reader is
-  in as they scroll. From 1216 px wide it stands beside the text; narrower,
-  it folds to a button top left that opens it over the page, and a link, Esc
-  or a click beside it closes it. The layout also keeps a margin free on the
-  right from 920 px up, for the reader's own notes in a later release. The
-  printed contents page stays as it was, and nothing of the sidebar prints.
-  `reader: off` in the frontmatter ships the plain document; an unknown value
-  fails the build and lints as `unknown-view-default`. A new label key,
-  `reader-close`, names the button that closes the sidebar.
-- **A reader can highlight words in the documents and write a note on
-  them.** Select text in a slide of `print.html` or `print-notes.html`, press
-  the button that appears at the end of the selection, and the words turn
-  yellow with a card for a note: in the right margin at the height of the
-  highlight, or under its paragraph in a narrow window. A click on a
-  highlight opens its card again; *Remove highlight* and *Delete note* act at
-  once and leave five seconds to undo. A selection that overlaps a highlight
-  grows it. Speaker notes, figures and formulas cannot be selected into a
-  highlight; the last two have a way of their own (below). The highlights stay in the reader's browser, filed under
-  the lecture's folder name: the two documents share them in Chrome, in
-  Safari and under `--serve`, while Firefox keeps one store per file. A rebuild that
-  moves the words carries the highlight with them; one that removes them
-  lists it at the foot of the contents sidebar with its note, and nothing is
-  dropped. Where the browser refuses storage, the highlights last as long as
-  the tab and the sidebar says so. Nothing of it prints yet. Ten new label
-  keys, `reader-mark` to `reader-session`, carry the words.
-- **A reader can go through their highlights one by one.** Once a document
-  has a highlight, a small bar at the foot of the window, on the right,
-  shows `‹ 3 / 12 ›` with a switch between *all* highlights and those *with
-  note*; the arrows, or `n` and `p` on the keyboard, go to the next and
-  previous one in the order of the page, scroll it into view and open its
-  card. The way stops at the first and the last rather than wrapping round.
-  With none open, `n` starts at the first highlight below the top of the
-  window. The keys do nothing while the reader is typing a note, with a
-  modifier held, or while the lightbox or the contents lie over the page.
-  The contents sidebar shows each slide's number of highlights beside its
-  entry. Five new label keys, `reader-nav` to `reader-filter-notes`.
-- **A reader can export their highlights to a Markdown file and import them
-  again.** The foot of the contents sidebar holds *Export highlights (.md)*,
-  *Import* and *Delete all*. The export downloads as
-  `<lecture folder>-highlights.md` (`-markierungen.md` under `lang: de`) and
-  reads as it stands: a heading per slide with the number the page prints,
-  its name and its `{#id}`, each quote as a blockquote with its note under
-  it, and the highlights a rebuild could not place under a heading of their
-  own. Each entry also rides in an HTML comment, and *Import* reads only
-  those: it merges by entry, the later edit winning, places each one the way
-  a page load does, and says in one line how many were new, updated and not
-  found. A file with nothing to read, or with a broken entry, is reported and
-  changes nothing else. *Delete all* leaves five seconds to undo. The export
-  is how highlights move to another browser, and between the two documents
-  where the browser keeps them apart, which one line under the menu says.
-  Ten new label keys, `reader-export` to `reader-deleted-all`.
-- **A reader's highlights print.** On paper a highlight stays yellow, also
-  with the print dialog's background graphics switched off. One with a note
-  ends in a small number, and the note stands under the same number in the
-  outer margin the printed page keeps free, at the height of the line the
-  highlight starts on, in small sans type. Notes are numbered in page order
-  and stack rather than overlap; a note in a table, a card or a part's lede
-  stands at the top of that block. A highlight without a note prints yellow
-  and nothing else, and one a rebuild could not place does not print. The
-  sidebar, the bar at the foot and the cards stay off paper.
-- **A reader can highlight a figure, or a spot in one.** In `print.html` and
-  `print-notes.html` a figure – a picture, an inlined vector or a `::: draw`
-  diagram – shows a *Highlight* button in its corner while the pointer is on
-  it; it frames the figure in yellow and opens a note card, and does not
-  open the lightbox. In the lightbox a bar holds *Mark a spot* (also `m`)
-  and a close button: the cursor becomes a crosshair, a click that did not
-  drag sets a small yellow dot and opens its card beside it, and a drag
-  still pans. On a diagram the disc snaps to the part under the pointer, which is
-  outlined while marking and tinted yellow once marked, and it follows that
-  part through a rebuild – also one that adds a figure above it. A part that
-  is gone leaves the dot where it was and the card says so. The dots are
-  drawn in the figure's own coordinates, so they stand in the same place in
-  the document, the lightbox and on paper. As with text, nothing is
-  numbered on screen; on paper a dot with a note carries its note's number,
-  and a whole figure has it beside its frame. Figure highlights join the
-  margin cards, `n` / `p`, the counts in the contents, the export – which
-  names the figure and the part – the import and print. A drag on a picture in the
-  lightbox now pans; the browser's own drag of the image used to end it
-  after the first move. Seven new label keys, `reader-fig-mark` to
-  `reader-fig-approx`.
-- **A reader can highlight code, and mark a code block or a formula
-  whole.** Words in a code block are selected and highlighted as prose is –
-  only their ground turns yellow, the code keeps its face and colours – and
-  a click on one opens its card rather than the lightbox. A code block and
-  a display formula carry the corner button as a figure does, which frames
-  the block and opens a card. Code highlights are anchored in the block's
-  own text, so highlights in a slide's prose keep their places, and they
-  follow their words when lines are added above. The export names them
-  (*Code, line 3*; *Formula “a^2 + b^2 = c^2”*), and they join `n` / `p`,
-  the counts, the import and print. Five new label keys,
-  `reader-code-mark` to `reader-formula`.
+- **The documents carry tools for the person reading them.**
+  `print.html` and `print-notes.html` are read on a screen after the
+  lecture as much as on paper, and both now give that reader a contents sidebar, highlights with notes, a way
+  through them, an export, and highlights that print. All of it is theirs:
+  it stays in their browser and nobody else sees it. It is separate from the
+  lecturer's `> annot:` annotations, and the live views carry none of it.
+  `reader: off` in the frontmatter ships the plain document (the lightbox
+  stays); an unknown value fails the build and lints as
+  `unknown-view-default`. The words it adds are 38 new label keys, all
+  beginning `reader-`, so `labels:` reaches each one.
+- **Contents sidebar.** The slides are listed down the left, grouped by part
+  and numbered with the numbers the page prints, and the one the reader is
+  in is marked as they scroll. From 1216 px wide it stands beside the text;
+  narrower, it folds to a button top left that opens it over the page. From
+  920 px the layout keeps a margin free on the right for notes. The printed
+  contents page stays as it was.
+- **Highlights and notes.** Select words in a slide, press the button at the
+  end of the selection, and they turn yellow with a card for an optional
+  note – in the right margin at the height of the highlight, or under its
+  paragraph in a narrow window. A click on a highlight opens its card again;
+  removing a highlight or its note acts at once and leaves five seconds to
+  undo. A selection that overlaps a highlight grows it. The words of a code
+  block take a highlight as prose does, and only their ground turns yellow.
+  A figure – a picture, an inlined vector or a `::: draw` diagram –, a code
+  block and a display formula carry a *Highlight* button in the corner that
+  marks them whole, without opening the lightbox. In the lightbox, *Mark a
+  spot* (also `m`) sets a small yellow dot on a figure; on a diagram it
+  snaps to the part under the pointer and follows that part through a
+  rebuild. Speaker notes cannot be highlighted.
+- **Going through them.** Once there is a highlight, a small bar at the foot
+  of the window shows `‹ 3 / 12 ›` with a switch between *all* and *with
+  note*; the arrows, or `n` and `p`, go to the next and previous one in page
+  order and open its card, stopping at the first and the last. The contents
+  sidebar shows each slide's count.
+- **Export and import.** The foot of the sidebar holds *Export highlights
+  (.md)*, *Import* and *Delete all*. The export, `<lecture folder>-highlights.md`
+  (`-markierungen.md` under `lang: de`), reads as it stands – a heading per
+  slide with its number, each quote with its note under it, a figure or a
+  formula named in words – so a student can send it to the lecturer. Each
+  entry also rides in an HTML comment, which is all *Import* reads: it
+  merges by entry, the later edit winning, and says how many were new,
+  updated and not found.
+- **Highlights print.** On paper a highlight stays yellow, also with the
+  print dialog's background graphics switched off. One with a note ends in a
+  small number, and the note stands under that number in the outer margin
+  the printed page keeps free, at the height of its line. A figure's frame
+  or dot prints with it. The sidebar, the bar and the buttons do not print.
+- **Where highlights are kept, and what a rebuild does to them.** They are
+  filed in the browser under the lecture's folder name. Opened from disk,
+  Chrome and Safari share them between the two documents; Firefox keeps one
+  store per file, and the export carries them across. Under `--serve` all
+  three share. A rebuild that moves the words carries a highlight with
+  them; one that removes them lists it with its note at the foot of the
+  sidebar, and nothing is dropped. Where the browser refuses storage, the
+  highlights last as long as the tab and the sidebar says so.
+- **A drag on a picture in the lightbox pans.** The browser's own drag of
+  the image used to end it after the first move.
 
 - **A figure's labels are set at the size of the words beside them.** In
   the live views a `::: draw` figure used to fill its column whatever that
