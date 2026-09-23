@@ -134,9 +134,10 @@ should carry its highlights by export, not by accident.
 - **Firefox** isolates `file://` storage **per file**: `print.html` and
   `print-notes.html` each have their own store, and a highlight made in one
   is not in the other.
-- **Safari**: not measured by the build agent – `safaridriver` needs
-  *Allow remote automation* switched on in Safari's developer settings,
-  which is the user's to switch. To be tried by hand (see the slice report).
+- **Safari**, tried by hand: shares one store between the two files, as
+  Chrome does. Highlights made from `file://` survive a reload, and one made
+  in `print.html` is there in `print-notes.html`. The narrow-window card
+  under its paragraph works as well.
 - **Under `--serve`** both files share one `http://127.0.0.1` origin in
   every browser, so they share one store.
 
@@ -287,8 +288,9 @@ and rendered page by page:
 - **Sizes are in cm and pt, not rem**, because the free margin is a
   fraction of the sheet, not a number of lines, and a note set inside a
   heading must not take the heading's size. 7pt sans.
-- Safari's print engine could not be driven from here; the slice report
-  carries a manual check.
+- **Safari prints it as Chrome does**, tried by hand with a PDF from the
+  print dialog: yellow highlights, the numbers, the margin notes beside
+  their highlights, nothing clipped or overlapping, no reader chrome.
 
 ## 7. Contents sidebar
 
@@ -450,6 +452,56 @@ whole-figure mark first, then the lightbox toolbar and pins, then element
 snapping. The spec in §9 gains a figure chunk with a diagram and a raster
 image, and a rebuild in which the diagram gains a figure above it (the `dg<N>`
 shift) and one element is renamed (the fallback).
+
+Decided in slice 6:
+
+- **The corner button says *Markieren* / *Highlight*** and is hidden until
+  the pointer is on the figure or the button has the keyboard's focus; with
+  no hover it stands at 55 % opacity. Pressed on a figure that is marked
+  whole already, it opens that highlight's card rather than drawing a second
+  frame.
+- **The whole figure's disc sits on the frame's top left corner**, clear of
+  the corner button and of a pin on a part in the top right, where a
+  diagram's first part usually is. A pin on a part stands on the part's top
+  right corner, a pin on an arrow at its middle, and a spot where it was
+  put.
+- **On screen a disc carries the highlight's place on the way through them
+  all** – the number the pill counts – and on paper the number of its note.
+  The script writes both and each medium hides the other. A figure gets no
+  superscript; its note in the margin stands at the top of the figure. A
+  whole figure without a note prints its frame and no disc.
+- **A disc is sized after the document's figure**, about a label's size
+  there, and scales with the zoom in the lightbox.
+- **The card in the lightbox is the margin card itself**, lent to the
+  overlay while it is open and given back when it closes, so there is one
+  textarea and one entry. It stands right of its pin, or left where the
+  window has no room. A figure's card has one line more than a text
+  highlight's: which figure, and the words on the part a pin is on.
+- **In the lightbox, Esc puts away the card first, then the crosshair, and
+  only then the overlay.** Setting a pin ends marking, so the next click is
+  not a second pin. A click beside an open card puts the card away and
+  leaves the overlay open.
+- **PRINT_JS knows nothing of highlights.** It sends `lb:open`, `lb:close`
+  and a cancelable `lb:click` for a press that did not drag, and closes on
+  `lb:dismiss`; the reader half answers those. It ignores a key already
+  spent or typed into a field.
+- **A picture is wrapped in a box as large as itself while it carries a
+  pin**, which is what the per-cent discs are placed in, and the lightbox
+  sizes a picture to its own proportions rather than letterboxing it inside
+  a 92vw box, so the box a spot is measured against is the picture.
+- **A bug found on the way: a drag on a picture in the lightbox never
+  panned.** The browser started its own drag of the image, which cancels the
+  pointer after the first move. The clone's images are not draggable now.
+- **The key** is a diagram's `aria-label` (its chunk's heading), an image's
+  alt text, an inlined vector's label, else its file name. Among several
+  figures with one key the stored index decides; falling back to the index
+  alone needs the same kind of figure. A figure found under a new index or
+  key has its anchor rewritten, as a text highlight's offsets are.
+- **The export names a figure in an italic line** – *Figure “Counter mode,
+  encryption”, at “s₁”* – where a text highlight has its quote. An arrow
+  with no words is named by the part's name.
+- The undo notice stands above the lightbox, because a pin can be removed
+  there.
 
 ## 12. Not in this plan
 

@@ -31,6 +31,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import zlib from 'node:zlib';
 import { spawnSync } from 'node:child_process';
 import { tmpDir } from './tmp.mjs';
 import { serve, ROOT } from './harness.mjs';
@@ -754,6 +755,9 @@ async function transfer({ browser, ok, note }) {
       '<!-- psi-reader ' + JSON.stringify({ v: 1, id: 'h-fig', type: 'figure', chunk: 'fig',
         fig: { index: 0, kind: 'diagram', key: 'A figure' }, at: null, note: 'The arrow?', kind: 'mark',
         created: 1, edited: 1 }) + ' -->',
+      '<!-- psi-reader ' + JSON.stringify({ v: 1, id: 'h-later', type: 'sketch', chunk: 'fig',
+        fig: { index: 0, kind: 'diagram', key: 'A sketch' }, note: 'From a later build', kind: 'mark',
+        created: 1, edited: 1 }) + ' -->',
       '<!-- psi-reader {not json} -->',
       '<!-- psi-reader {"v":1,"id":7} -->',
     ].join('\n\n');
@@ -761,23 +765,26 @@ async function transfer({ browser, ok, note }) {
     fs.writeFileSync(mergeFile, merge);
     rep = await importFile(p, mergeFile);
     st = await stored(p);
-    ok(rep === 'Imported: 1 new, 1 updated, 1 not found in this version. Entries that could not be read: 2.',
-       'merge: an older copy is ignored, a newer one wins, a new id is added, and two unreadable comments are counted', rep);
+    ok(rep === 'Imported: 2 new, 1 updated, 1 not found in this version. Entries that could not be read: 2.',
+       'merge: an older copy is ignored, a newer one wins, new ids are added, and two unreadable comments are counted', rep);
     ok(st.items.find(h => h.id === iv.id).note === iv.note && st.items.find(h => h.id === lede.id).note === 'Newer note'
-       && st.items.some(h => h.id === 'h-fig' && h.type === 'figure'),
+       && st.items.some(h => h.id === 'h-fig' && h.type === 'figure') && st.items.some(h => h.id === 'h-later'),
        'the store says the same', JSON.stringify(st.items.map(h => [h.id, h.note])));
     const lostList = await p.evaluate(() => [...document.querySelectorAll('[data-reader-slot=tools] .rd-orphans li')].map(li => li.textContent));
-    ok(lostList.some(t => t.includes('The arrow?')), 'an entry of a type this build cannot paint is kept and listed, not refused',
+    ok(lostList.length === 1 && lostList[0].includes('From a later build'),
+       'an entry of a type this build cannot paint is kept and listed, not refused; a figure\'s is placed',
        JSON.stringify(lostList));
     const ex2 = await exportNow(p);
-    ok(/\n## No longer found in this version\n\n### \d+ · A figure \{#fig\}\n\n> A figure\n\nThe arrow\?\n\n<!-- psi-reader \{"v":1,"id":"h-fig","type":"figure"/.test(ex2.md),
+    ok(/\n## No longer found in this version\n\n### \d+ · A figure \{#fig\}\n\n> A sketch\n\nFrom a later build\n\n<!-- psi-reader \{"v":1,"id":"h-later","type":"sketch"/.test(ex2.md),
        'and exported under the not-found heading, with its slide and its data', ex2.md.split('## No longer')[1]);
+    ok(/\n## \d+ · A figure \{#fig\}\n\n\*Figure “A figure”\*\n\nThe arrow\?\n\n<!-- psi-reader \{"v":1,"id":"h-fig"/.test(ex2.md),
+       'the imported figure highlight is exported under its slide, naming the figure', ex2.md);
 
     // ── not an export ──
     const junk = path.join(dir, 'junk.md');
     fs.writeFileSync(junk, '# Just notes\n\nNothing of the reader in here. <!-- a comment -->\n');
     rep = await importFile(p, junk);
-    ok(rep === 'This file holds no highlights.' && (await stored(p)).items.length === 5,
+    ok(rep === 'This file holds no highlights.' && (await stored(p)).items.length === 6,
        'a file with no data in it is reported and changes nothing', rep);
     fs.writeFileSync(junk, '<!-- psi-reader {"v":1,"id":"x", -->');
     rep = await importFile(p, junk);
@@ -840,6 +847,317 @@ async function transfer({ browser, ok, note }) {
     await ctx.close();
     server.close();
     de.server.close();
+  }
+}
+
+// Highlights on figures (plan §11), on a deck of their own: a ::: draw
+// figure and a raster picture. The whole figure is marked from the button in
+// its corner, a spot in the lightbox, and on the diagram the spot snaps to
+// the part under the pointer. The deck is then rebuilt with a figure added
+// above the diagram - every dg<N> in it moves - and one of its parts renamed,
+// so one pin must follow its part and the other fall back to where it was.
+//
+// A picture of its own, 240x120, written here: a 1x1 one would be drawn at
+// one pixel and could not be pointed at.
+const png = (w, h) => {
+  const row = Buffer.alloc(1 + w * 3);
+  for (let x = 0; x < w; x++) row.set([40 + (x % 200), 90, 200], 1 + x * 3);
+  const raw = Buffer.concat(Array.from({ length: h }, () => row));
+  const chunk = (type, data) => {
+    const len = Buffer.alloc(4); len.writeUInt32BE(data.length);
+    const td = Buffer.concat([Buffer.from(type), data]);
+    const crc = Buffer.alloc(4); crc.writeUInt32BE(zlib.crc32(td) >>> 0);
+    return Buffer.concat([len, td, crc]);
+  };
+  const ihdr = Buffer.alloc(13);
+  ihdr.writeUInt32BE(w, 0); ihdr.writeUInt32BE(h, 4); ihdr.set([8, 2, 0, 0, 0], 8);
+  return Buffer.concat([Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]), chunk('IHDR', ihdr),
+    chunk('IDAT', zlib.deflateSync(raw)), chunk('IEND', Buffer.alloc(0))]);
+};
+const figDeck = (v2 = false) => `---
+title: Figure fixture
+---
+
+## title: {#title}
+
+# Part {#part}
+
+${v2 ? `## figure: Added above {#above}
+
+::: draw 6x2
+box z "Zed" at 1,0
+:::
+
+` : ''}## figure: Counter mode {#ctr}
+
+Words before the figure.
+
+::: draw 12x4
+box a "Alpha" at 1,1
+box ${v2 ? 'c' : 'b'} "Beta" at 7,1
+edge a -> ${v2 ? 'c' : 'b'}
+:::
+
+## figure: A picture {#pic}
+
+![A gradient](pic)
+`;
+
+async function figures({ browser, ok, note }) {
+  const dir = tmpDir('psi-reader-fig-');
+  fs.mkdirSync(path.join(dir, 'assets'));
+  fs.writeFileSync(path.join(dir, 'assets', 'pic.png'), png(240, 120));
+  const built = build(dir, figDeck());
+  ok(built.status === 0, 'figures: the fixture deck builds', (built.stdout || '') + (built.stderr || ''));
+  if (built.status !== 0) return;
+  const { server, port } = await serve(dir);
+  const errors = [];
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+  const p = await ctx.newPage();
+  p.on('pageerror', e => errors.push(String(e)));
+  const load = async () => { await p.goto(`http://127.0.0.1:${port}/print.html`, { waitUntil: 'load' }); await p.waitForTimeout(250); };
+  const lbOpen = () => p.evaluate(() => document.body.classList.contains('lb-open'));
+  const entries = async () => (await stored(p)).items;
+  // The centre of an element inside the lightbox, found by a CSS selector.
+  const centre = (sel) => p.evaluate((sel) => {
+    const r = document.querySelector(sel).getBoundingClientRect();
+    return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+  }, sel);
+  const focusedCard = () => p.evaluate(() => { const c = document.querySelector('.rd-card.is-focus'); return c ? c.dataset.hl : null; });
+  try {
+    await load();
+
+    // ── (a) the whole figure, from the button in its corner ──
+    const btn = async () => p.evaluate(() => getComputedStyle(document.querySelector('#ctr .rd-fig-btn')).opacity);
+    const idle = await btn();
+    await p.hover('#ctr figure.figure-diagram');
+    await p.waitForTimeout(200);
+    const hovered = await btn();
+    ok(idle === '0' && hovered === '1', 'a figure\'s corner button is hidden until the pointer is on the figure', idle + ' → ' + hovered);
+    await p.click('#ctr .rd-fig-btn');
+    await p.waitForTimeout(150);
+    let st = await entries();
+    const whole = st[0] || {};
+    const a1 = await p.evaluate(() => ({
+      lb: document.body.classList.contains('lb-open'),
+      frame: document.querySelector('#ctr figure').classList.contains('rd-fig-whole'),
+      outline: getComputedStyle(document.querySelector('#ctr svg.psi-diagram')).outlineStyle,
+      card: !!document.querySelector('.rd-notes > .rd-card.is-focus'),
+      what: (document.querySelector('.rd-card.is-focus .rd-card-what') || {}).textContent,
+      active: document.activeElement && document.activeElement.className,
+    }));
+    ok(!a1.lb && st.length === 1 && whole.type === 'figure' && whole.chunk === 'ctr' && whole.at === null
+       && whole.fig.index === 0 && whole.fig.kind === 'diagram' && whole.fig.key === 'Counter mode',
+       'its click marks the whole figure and does not open the lightbox', JSON.stringify({ a1, whole }));
+    ok(a1.frame && a1.outline === 'solid' && a1.card && a1.active === 'rd-note' && a1.what === 'Figure “Counter mode”',
+       'a yellow frame round the drawing, and its card in the margin, named, with the cursor in the note', JSON.stringify(a1));
+    await p.keyboard.type('The whole picture?');
+    await p.click('#ctr .rd-fig-btn');
+    await p.waitForTimeout(100);
+    ok((await entries()).length === 1 && await focusedCard() === whole.id,
+       'pressed again, the button opens that highlight rather than making a second');
+    await p.mouse.click(700, 20);
+
+    // ── (b) a spot in the picture, in the lightbox ──
+    await p.click('#pic figure img');
+    await p.waitForTimeout(200);
+    const bar = await p.evaluate(() => [...document.querySelectorAll('#lightbox .rd-lb-bar button')].map(b => b.textContent));
+    ok(await lbOpen() && bar.length === 2 && bar[0] === 'Mark a spot', 'a figure\'s lightbox has a bar: mark a spot, close', JSON.stringify(bar));
+    await p.click('.rd-lb-spot');
+    const marking = await p.evaluate(() => document.body.classList.contains('rd-marking')
+      && document.querySelector('.rd-lb-spot').getAttribute('aria-pressed') === 'true'
+      && getComputedStyle(document.querySelector('#lightbox > .lb-card')).cursor === 'crosshair');
+    ok(marking, 'marking: the button is pressed and the cursor is a crosshair');
+    // A drag pans, marking or not, and sets nothing.
+    const img0 = await p.evaluate(() => document.querySelector('#lightbox img').getBoundingClientRect().toJSON());
+    await p.mouse.move(img0.x + 50, img0.y + 50);
+    await p.mouse.down();
+    await p.mouse.move(img0.x + 110, img0.y + 90, { steps: 6 });
+    await p.mouse.up();
+    await p.waitForTimeout(150);
+    const img1 = await p.evaluate(() => document.querySelector('#lightbox img').getBoundingClientRect().toJSON());
+    ok((await entries()).length === 1 && await lbOpen() && Math.abs(img1.x - img0.x - 60) < 4,
+       'a drag while marking pans the picture and sets no pin', JSON.stringify({ img0, img1 }));
+    await p.keyboard.press('0');
+    await p.waitForTimeout(150);
+    const ir = await p.evaluate(() => document.querySelector('#lightbox img').getBoundingClientRect().toJSON());
+    await p.mouse.click(ir.x + ir.width * 0.25, ir.y + ir.height * 0.75);
+    await p.waitForTimeout(150);
+    st = await entries();
+    const spot = st.find(h => h.chunk === 'pic') || {};
+    const inLb = await p.evaluate((id) => {
+      const c = document.querySelector('#lightbox > .rd-card');
+      return { card: !!c && c.dataset.hl === id, active: document.activeElement && document.activeElement.className,
+               pins: document.querySelectorAll('#lightbox .rd-pin').length, marking: document.body.classList.contains('rd-marking') };
+    }, spot.id);
+    ok(spot.type === 'figure' && spot.fig.kind === 'image' && spot.fig.key === 'A gradient'
+       && Math.abs(spot.at.x - 0.25) < 0.02 && Math.abs(spot.at.y - 0.75) < 0.02 && !('el' in spot.at),
+       'a click that did not drag sets a pin at fractions of the picture', JSON.stringify(spot));
+    ok(await lbOpen() && inLb.card && inLb.active === 'rd-note' && inLb.pins === 1 && !inLb.marking,
+       'and opens its card over the lightbox, cursor in the note, with the pin drawn there', JSON.stringify(inLb));
+    await p.keyboard.type('Here?');
+    ok((await entries()).find(h => h.id === spot.id).note === 'Here?'
+       && await p.evaluate(() => document.querySelectorAll('.rd-card').length === new Set([...document.querySelectorAll('.rd-card')].map(c => c.dataset.hl)).size),
+       'typing there is typing in the one card the entry has');
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(100);
+    ok(await lbOpen() && !(await p.evaluate(() => !!document.querySelector('#lightbox > .rd-card'))),
+       'Esc puts the card away first and leaves the lightbox open');
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(150);
+    const after = await p.evaluate((id) => {
+      const pin = document.querySelector('#pic .rd-pin');
+      const i = document.querySelector('#pic img').getBoundingClientRect();
+      const r = pin && pin.getBoundingClientRect();
+      const card = [...document.querySelectorAll('.rd-notes > .rd-card')].find(c => c.dataset.hl === id);
+      return { lb: document.body.classList.contains('lb-open'), fx: r && (r.left - i.left) / i.width, fy: r && (r.top - i.top) / i.height,
+               card: card ? card.querySelector('.rd-note').value : null };
+    }, spot.id);
+    ok(!after.lb && Math.abs(after.fx - 0.25) < 0.02 && Math.abs(after.fy - 0.75) < 0.02 && after.card === 'Here?',
+       'closed, the pin stands on the same spot in the document, with its card in the margin', JSON.stringify(after));
+
+    // ── (c) a spot on a diagram snaps to the part under the pointer ──
+    await p.click('#ctr .psi-diagram');
+    await p.waitForTimeout(200);
+    await p.keyboard.press('m');
+    const beta = await centre('#lightbox .dg-el[id$="-b"] rect');
+    await p.mouse.move(beta.x, beta.y);
+    await p.waitForTimeout(80);
+    const hov = await p.evaluate(() => [...document.querySelectorAll('#lightbox .rd-hover')].map(g => g.id));
+    ok(hov.length === 1 && /-b$/.test(hov[0]), 'marking, the part under the pointer is outlined', JSON.stringify(hov));
+    await p.mouse.click(beta.x, beta.y);
+    await p.waitForTimeout(150);
+    await p.keyboard.type('Why Beta?');
+    await p.keyboard.press('Escape');
+    await p.keyboard.press('m');
+    const alpha = await centre('#lightbox .dg-el[id$="-a"] rect');
+    await p.mouse.click(alpha.x, alpha.y);
+    await p.waitForTimeout(150);
+    await p.keyboard.press('Escape');
+    st = await entries();
+    const onB = st.find(h => h.at && h.at.el === 'b') || {};
+    const onA = st.find(h => h.at && h.at.el === 'a') || {};
+    ok(onB.note === 'Why Beta?' && typeof onB.at.x === 'number' && onA.chunk === 'ctr',
+       'the pin keeps the part\'s own name, without the dg<N> prefix, and the spot as a fallback', JSON.stringify([onB, onA]));
+    // A click on a pin in the lightbox opens its card and keeps the overlay.
+    const pinB = await p.evaluate((id) => {
+      const d = [...document.querySelectorAll('#lightbox .rd-pin')].find(x => x.dataset.hl === id);
+      const r = d.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    }, onB.id);
+    await p.mouse.click(pinB.x, pinB.y);
+    await p.waitForTimeout(150);
+    const reopened = await p.evaluate(() => {
+      const c = document.querySelector('#lightbox > .rd-card');
+      return c && { note: c.querySelector('.rd-note').value, what: c.querySelector('.rd-card-what').textContent };
+    });
+    ok(await lbOpen() && reopened && reopened.note === 'Why Beta?' && reopened.what === 'Figure “Counter mode”, at “Beta”',
+       'a click on a pin in the lightbox opens its card there, naming the part', JSON.stringify(reopened));
+    await p.click('.rd-lb-close');
+    await p.waitForTimeout(150);
+    const docFig = await p.evaluate(() => ({
+      lb: document.body.classList.contains('lb-open'),
+      tinted: [...document.querySelectorAll('#ctr .rd-el')].map(g => g.id.replace(/^dg\d+-/, '')).sort(),
+      fill: getComputedStyle(document.querySelector('#ctr .dg-el[id$="-b"] rect')).fill,
+      pins: document.querySelectorAll('#ctr .rd-pin').length,
+    }));
+    ok(!docFig.lb && JSON.stringify(docFig.tinted) === '["a","b"]' && docFig.pins === 3 && docFig.fill !== 'rgb(250, 250, 247)',
+       'the close button closes it, and in the document both parts are tinted and three discs drawn', JSON.stringify(docFig));
+
+    // ── a pin in the document opens its card, not the lightbox ──
+    await p.click(`#ctr .rd-pin[data-hl="${onB.id}"]`);
+    await p.waitForTimeout(150);
+    ok(!(await lbOpen()) && await focusedCard() === onB.id, 'a click on a disc in the document opens its card and not the lightbox');
+    await p.click(`.rd-card[data-hl="${onB.id}"] .rd-card-what`);
+    await p.waitForTimeout(50);
+    ok(await p.evaluate((id) => document.querySelector(`#ctr .rd-pin[data-hl="${id}"]`).classList.contains('rd-pulse'), onB.id),
+       'a click on a figure\'s card pulses its disc');
+    await p.mouse.click(700, 20);
+
+    // ── the way through: figures are entries like any other ──
+    await p.evaluate(() => window.scrollTo(0, 0));
+    const walk = [];
+    for (let i = 0; i < 4; i++) { await p.keyboard.press('n'); await p.waitForTimeout(60); walk.push(await focusedCard()); }
+    const pos = await p.evaluate(() => document.querySelector('.rd-pos').textContent);
+    const nums = await p.evaluate(() => [...document.querySelectorAll('main .rd-pin')].map(d => d.querySelector('.rd-pin-s').textContent));
+    ok(JSON.stringify(walk) === JSON.stringify([whole.id, onB.id, onA.id, spot.id]) && pos === '4 / 4',
+       'n walks the figure highlights in the page\'s order', JSON.stringify({ walk, pos }));
+    ok(JSON.stringify(nums) === '["1","2","3","4"]', 'each disc carries its place on that way', JSON.stringify(nums));
+    const counts = (await navState(p)).counts;
+    ok(counts.ctr === '3' && counts.pic === '1', 'and the contents count them per slide', JSON.stringify(counts));
+
+    // ── export and import ──
+    const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.rd-menu .rd-export')]);
+    const file = path.join(dir, 'figs.md');
+    await dl.saveAs(file);
+    const md = fs.readFileSync(file, 'utf8');
+    ok(md.includes('*Figure “Counter mode”*\n\nThe whole picture?\n\n<!-- psi-reader {"v":1,')
+       && md.includes('*Figure “Counter mode”, at “Beta”*\n\nWhy Beta?\n') && md.includes('*Figure “A gradient”, a spot in it*\n\nHere?\n')
+       && md.includes('"at":{"el":"b",'),
+       'the export names the figure and the part a pin is on, and carries the anchor', md);
+    const before = await entries();
+    await p.click('.rd-menu .rd-delete-all');
+    await p.waitForTimeout(100);
+    ok(await p.evaluate(() => !document.querySelector('main .rd-pin, main .rd-el, main .rd-fig-whole, main .rd-fig-box')),
+       'delete all takes every disc, tint, frame and wrapper off the figures');
+    const [chooser] = await Promise.all([p.waitForEvent('filechooser'), p.click('.rd-menu .rd-import')]);
+    await chooser.setFiles(file);
+    await p.waitForTimeout(200);
+    const rep = await p.evaluate(() => document.querySelector('.rd-report').textContent);
+    ok(rep === 'Imported: 4 new, 0 updated, 0 not found in this version.'
+       && JSON.stringify((await entries()).map(h => h.id).sort()) === JSON.stringify(before.map(h => h.id).sort())
+       && await p.evaluate(() => document.querySelectorAll('main .rd-pin').length) === 4,
+       'import puts them back on their figures', rep);
+
+    // ── paper ──
+    await p.emulateMedia({ media: 'print' });
+    const paper = await p.evaluate(() => {
+      const vis = (n) => getComputedStyle(n).display !== 'none';
+      return {
+        btns: [...document.querySelectorAll('.rd-fig-btn')].filter(vis).length,
+        outline: getComputedStyle(document.querySelector('#ctr svg.psi-diagram')).outlineStyle,
+        adjust: getComputedStyle(document.querySelector('#ctr svg.psi-diagram')).printColorAdjust,
+        screenNums: [...document.querySelectorAll('.rd-pin-s')].filter(vis).length,
+        discs: [...document.querySelectorAll('main .rd-pin')].filter(vis).map(d => d.querySelector('.rd-pin-p').textContent),
+        notes: [...document.querySelectorAll('.rd-pnote')].map(n => n.textContent),
+        mainRight: document.querySelector('main').getBoundingClientRect().right,
+        noteLeft: Math.min(...[...document.querySelectorAll('.rd-pnote')].map(n => n.getBoundingClientRect().left)),
+      };
+    });
+    ok(paper.btns === 0 && paper.outline === 'solid' && paper.adjust === 'exact' && paper.screenNums === 0,
+       'printed: the frame stays and asks to be printed, the buttons and the screen numbers go', JSON.stringify(paper));
+    ok(JSON.stringify(paper.discs) === '["1","2","","3"]'
+       && JSON.stringify(paper.notes) === JSON.stringify(['1The whole picture?', '2Why Beta?', '3Here?'])
+       && paper.noteLeft >= paper.mainRight,
+       'each disc with a note carries its note\'s number, and the notes stand in the margin', JSON.stringify(paper));
+    const pdf = await p.pdf({ format: 'A4', preferCSSPageSize: true });
+    ok(pdf.subarray(0, 4).toString() === '%PDF', 'and it prints to a PDF');
+    await p.emulateMedia({ media: 'screen' });
+
+    // ── a rebuild: a figure above, a part renamed ──
+    const rebuilt = build(dir, figDeck(true));
+    ok(rebuilt.status === 0, 'figures: the fixture rebuilds with a figure above and a part renamed', rebuilt.stderr);
+    await load();
+    const moved = await p.evaluate(([a, b]) => {
+      const pin = (id) => document.querySelector(`.rd-pin[data-hl="${id}"]`);
+      const card = [...document.querySelectorAll('.rd-notes > .rd-card')].find(c => c.dataset.hl === b);
+      return {
+        root: document.querySelector('#ctr svg.psi-diagram').id,
+        tinted: [...document.querySelectorAll('#ctr .rd-el')].map(g => g.id),
+        aIn: !!pin(a) && !!pin(a).closest('#ctr'), bIn: !!pin(b) && !!pin(b).closest('#ctr'),
+        approx: card ? card.querySelector('.rd-card-what').textContent : null,
+        lost: document.querySelectorAll('[data-reader-slot=tools] .rd-orphans li').length,
+      };
+    }, [onA.id, onB.id]);
+    ok(moved.root === 'dg2-root' && JSON.stringify(moved.tinted) === '["dg2-a"]' && moved.aIn,
+       'the pin on a part follows it when every dg<N> in the figure has moved', JSON.stringify(moved));
+    ok(moved.bIn && /Approximate/.test(moved.approx || '') && moved.lost === 0,
+       'a pin whose part was renamed stays on the figure at its spot, and its card says it is approximate', JSON.stringify(moved));
+    ok(errors.length === 0, 'figures: no page errors', errors.join(' | '));
+    note('figures: whole, spot in a picture, part of a diagram, n/p, export and import, paper, rebuilt');
+  } finally {
+    await ctx.close();
+    server.close();
   }
 }
 
@@ -1079,4 +1397,5 @@ export async function run({ page, report }) {
   }
   await highlights({ browser, ok, note });
   await transfer({ browser, ok, note });
+  await figures({ browser, ok, note });
 }

@@ -182,7 +182,19 @@ export, delete all and import give back the same store, the merge rules (an
 older copy ignored, a newer one winning, an unknown `type` kept and listed),
 an import into a rebuilt document where one quote moved and one vanished,
 input that is not an export, the undo of delete all, the German file name,
-and the menu inside the opened sidebar at 390.
+and the menu inside the opened sidebar at 390. And the figures, on a third
+deck with a diagram and a picture: that the corner button shows on hover,
+frames the figure and opens its card without opening the lightbox, and does
+not make a second frame; that marking in the lightbox sets a disc at
+fractions of the picture while a drag still pans, with the card over the
+overlay being the one card the entry has; that on the diagram the part under
+the pointer is outlined and the pin keeps the part's name without its
+`dg<N>` prefix; that a disc opens its card in the document and in the
+lightbox; that `n` walks figure highlights in page order and the discs carry
+those numbers; the export's figure lines, delete all and import; the frame,
+the discs' note numbers and the notes on paper; and a rebuild with a figure
+added above, where a pin follows its part and one whose part was renamed
+stays at its spot and is called approximate.
 
 **The figures** – the `figure-*` specs, which measure the SVG.
 `figure-framing` catches a drawing sitting off-centre in an oversized frame;
@@ -254,8 +266,8 @@ content centred and left, `cards` two cards differing in one character,
 frontmatter line, because the claim about each mode is a claim about what the
 other two do not do, `reader` builds one deck twice, with and without
 `reader: off`, because what the key takes away is only visible beside what it
-leaves, and a second one twice with different words, because re-anchoring is
-only visible across a rebuild, and `figure-dotted` draws a muted dotted line beside the
+leaves, and a second and a third one twice with different words, because
+re-anchoring is only visible across a rebuild, and `figure-dotted` draws a muted dotted line beside the
 five strokes it must leave alone.
 
 **Because a spec that hunted its shapes in a real deck would break the next time

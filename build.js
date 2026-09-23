@@ -6281,6 +6281,18 @@ const STRINGS = {
     'reader-import-none': 'This file holds no highlights.',
     'reader-import-skipped': 'Entries that could not be read: {n}.',
     'reader-deleted-all': 'All highlights deleted.',
+    // Highlights on figures (plan §11): the button in a figure's corner that
+    // marks it whole, the lightbox's two controls, the line a figure's card
+    // and its export entry name it by ({key} is its alt text, its label or
+    // its file name; {label} the words on the part a pin is on), and what a
+    // card says when that part is gone from a rebuilt figure.
+    'reader-fig-mark': 'Highlight this figure',
+    'reader-lb-spot': 'Mark a spot',
+    'reader-lb-close': 'Close',
+    'reader-fig': 'Figure “{key}”',
+    'reader-fig-at': 'Figure “{key}”, at “{label}”',
+    'reader-fig-spot': 'Figure “{key}”, a spot in it',
+    'reader-fig-approx': 'Approximate: that part is no longer in this version of the figure.',
   },
   de: {
     contents: 'Inhalt',
@@ -6327,6 +6339,13 @@ const STRINGS = {
     'reader-import-none': 'Diese Datei enthält keine Markierungen.',
     'reader-import-skipped': 'Nicht lesbare Einträge: {n}.',
     'reader-deleted-all': 'Alle Markierungen gelöscht.',
+    'reader-fig-mark': 'Abbildung markieren',
+    'reader-lb-spot': 'Stelle markieren',
+    'reader-lb-close': 'Schließen',
+    'reader-fig': 'Abbildung „{key}“',
+    'reader-fig-at': 'Abbildung „{key}“, bei »{label}«',
+    'reader-fig-spot': 'Abbildung „{key}“, eine Stelle darin',
+    'reader-fig-approx': 'Ungefähr: Diesen Teil gibt es in dieser Fassung der Abbildung nicht mehr.',
   },
 };
 
@@ -9503,7 +9522,8 @@ body[data-reader=on] {
     left: 50%;
     bottom: 1rem;
     transform: translateX(-50%);
-    z-index: 46;
+    /* Above the lightbox too: a pin is removed there. */
+    z-index: 55;
     display: flex;
     align-items: baseline;
     gap: 1rem;
@@ -9607,6 +9627,125 @@ body[data-reader=on] {
   /* Above the contents button and the highlights, which sit at the foot of a
      narrow window. */
   .rd-toast { bottom: 3.5rem; }
+}
+/* Highlights on figures (plan §11). PRINT_HIGHLIGHTS_JS puts a button in a
+   figure's corner - shown on hover and on keyboard focus, and always, faint,
+   where there is no hover, because a touch reader has no other way to find
+   it - and draws what a reader marked in the figure's own coordinates: a
+   group in the SVG, or over a picture a box as large as the picture with the
+   discs placed in it in per cent. So a disc is where it was put in the
+   document, in the lightbox and on paper alike. A whole figure is a frame
+   round the drawing; the part of a diagram a pin is on is tinted through a
+   class on its group, like every other diagram rule. On screen a disc shows
+   the highlight's place on the way through them, on paper its note's number:
+   the script writes both and each medium hides the other. */
+body[data-reader=on] figure.rd-fig-whole > svg,
+body[data-reader=on] figure.rd-fig-whole > img,
+body[data-reader=on] figure.rd-fig-whole > .rd-fig-box > img {
+  outline: 0.2rem solid var(--rd-hl-strong);
+  outline-offset: 0.3rem;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+.rd-fig-box { position: relative; display: inline-block; max-width: 100%; vertical-align: top; line-height: 0; }
+.rd-fig-box > img { display: block; }
+body[data-reader=on] svg .rd-pin circle { fill: var(--rd-hl-strong); stroke: var(--ink); }
+body[data-reader=on] svg .rd-pin text { fill: var(--ink); stroke: none; font-family: var(--sans); font-weight: 600; }
+span.rd-pin { position: absolute; width: 0; height: 0; z-index: 2; line-height: 1; }
+.rd-pin-dot {
+  position: absolute;
+  left: -0.7rem;
+  top: -0.7rem;
+  width: 1.4rem;
+  height: 1.4rem;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  border: 0.1rem solid var(--ink);
+  background: var(--rd-hl-strong);
+  color: var(--ink);
+  font: 600 0.72rem/1 var(--sans);
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+body[data-reader=on] .psi-diagram .dg-el.rd-el > :is(rect, circle, .dg-shape) { fill: var(--rd-hl); }
+body[data-reader=on] .psi-diagram .dg-el.rd-el .dg-stroke { stroke: var(--rd-hl-strong); stroke-width: 4px; }
+body[data-reader=on] .psi-diagram .dg-el.rd-el .dg-head { fill: var(--rd-hl-strong); }
+body[data-reader=on] .psi-diagram .dg-el.rd-el .dg-lbl text {
+  paint-order: stroke;
+  stroke: var(--rd-hl);
+  stroke-width: 0.45em;
+  stroke-linejoin: round;
+}
+.psi-diagram .dg-el.rd-el { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+@media screen {
+  .rd-pin-p { display: none; }
+  body[data-reader=on] main :is(figure.figure-img, figure.figure-diagram) { position: relative; }
+  .rd-pin { cursor: pointer; }
+  .rd-fig-btn {
+    position: absolute;
+    top: 0.25rem;
+    right: 0.25rem;
+    z-index: 5;
+    font-family: var(--sans);
+    font-size: 0.72rem;
+    line-height: 1;
+    padding: 0.4rem 0.6rem;
+    color: var(--ink);
+    background: var(--paper);
+    border: 0.5pt solid var(--rule);
+    border-radius: var(--radius-tight);
+    box-shadow: 0 0.2rem 0.8rem rgb(0 0 0 / 0.12);
+    cursor: pointer;
+    opacity: 0;
+    transition: opacity 120ms ease;
+  }
+  figure:hover > .rd-fig-btn, figure:focus-within > .rd-fig-btn { opacity: 1; }
+  .rd-fig-btn:hover, .rd-fig-btn:focus-visible { background: var(--rd-hl); }
+  .rd-pin.rd-pulse circle, .rd-pin.rd-pulse .rd-pin-dot {
+    animation: rd-pulse 0.3s ease-in-out 4 alternate;
+    transform-box: fill-box;
+    transform-origin: center;
+  }
+  @keyframes rd-pulse { to { transform: scale(1.6); } }
+  /* The lightbox's bar, top right on the dark ground, and the crosshair
+     while a spot is being marked. The part of a diagram under it is drawn
+     in the strong yellow. */
+  .rd-lb-bar { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 3; display: flex; gap: 0.5rem; cursor: auto; }
+  .rd-lb-bar button {
+    font-family: var(--sans);
+    font-size: 0.85rem;
+    line-height: 1;
+    padding: 0.5rem 0.8rem;
+    color: #fff;
+    background: rgb(255 255 255 / 0.12);
+    border: 0.5pt solid rgb(255 255 255 / 0.4);
+    border-radius: var(--radius-tight);
+    cursor: pointer;
+  }
+  .rd-lb-bar button:hover, .rd-lb-bar button:focus-visible { background: rgb(255 255 255 / 0.24); }
+  .rd-lb-bar .rd-lb-spot[aria-pressed=true] { color: #1a1a1a; background: var(--rd-hl-strong); border-color: transparent; }
+  .rd-lb-bar .rd-lb-close { font-size: 1.15rem; padding: 0.3rem 0.65rem; }
+  body.rd-marking #lightbox, body.rd-marking #lightbox > .lb-card, body.rd-marking #lightbox > .lb-card * { cursor: crosshair; }
+  body.rd-marking #lightbox .rd-pin { cursor: pointer; }
+  body[data-reader=on] .psi-diagram .dg-el.rd-hover > :is(rect, circle, .dg-shape),
+  body[data-reader=on] .psi-diagram .dg-el.rd-hover .dg-stroke { stroke: var(--rd-hl-strong); stroke-width: 4px; }
+  #lightbox > .rd-card { position: absolute; z-index: 4; width: 17rem; cursor: auto; }
+  #lightbox > .rd-card .rd-actions { display: flex; }
+  .rd-card-what { margin: 0 0 0.3rem; font-size: 0.72rem; color: var(--ink-soft); }
+  .rd-approx { font-style: italic; }
+}
+@media screen and (hover: none) {
+  .rd-fig-btn { opacity: 0.55; }
+}
+@media print {
+  .rd-pin-s { display: none; }
+  .rd-fig-btn, .rd-lb-bar { display: none !important; }
+  /* A whole figure's frame says it is marked; its disc is there for the
+     number of a note. */
+  .rd-pin-whole:not(.rd-has-note) { display: none; }
 }
 /* On paper (plan §6). The yellow prints: print-color-adjust says so for the
    marks alone, so a reader who left the dialog's background graphics off
@@ -9769,6 +9908,14 @@ body[data-reader=on] {
 // notch is a step and not a leap, and a quiet period ends the gesture.
 // A template literal: no backticks, and a regex backslash would have to be
 // doubled - there are no regexes in it.
+//
+// Three events on the overlay are what the reader's figure highlights hang
+// off (PRINT_HIGHLIGHTS_JS, plan §11), so this script knows nothing of them:
+// lb:open and lb:close carry the clone and the element it was made from, and
+// lb:click is sent for a press that did not drag, before it closes the
+// overlay - cancelled, it does not. lb:dismiss asks for the overlay to close.
+// A key already spent, or one typed into a field on the overlay, is not a
+// zoom.
 const PRINT_JS = `
 (() => {
   const SEL = 'figure.figure-img, figure.figure-diagram, main pre, main .math-display';
@@ -9801,12 +9948,16 @@ const PRINT_JS = `
     card.removeAttribute('id');
     card.classList.add('lb-card');
     card.style.transform = '';
+    // A picture would start the browser's own drag of the image, which ends
+    // the pan after its first move.
+    for (const i of card.querySelectorAll('img')) i.draggable = false;
     box.replaceChildren(card);
     scale = 1; pan = { x: 0, y: 0 };
     apply();
     document.body.classList.add('lb-open');
     box.setAttribute('tabindex', '-1');
     box.focus({ preventScroll: true });
+    box.dispatchEvent(new CustomEvent('lb:open', { detail: { card, opener } }));
   };
   const close = () => {
     if (!card) return;
@@ -9814,8 +9965,11 @@ const PRINT_JS = `
     box.replaceChildren();
     document.body.classList.remove('lb-open', 'lb-dragging', 'lb-zooming');
     if (opener && opener.focus) opener.focus({ preventScroll: true });
+    const was = opener;
     opener = null;
+    box.dispatchEvent(new CustomEvent('lb:close', { detail: { opener: was } }));
   };
+  box.addEventListener('lb:dismiss', close);
   document.addEventListener('click', (e) => {
     if (card) return;
     if (e.defaultPrevented || e.button !== 0) return;
@@ -9893,12 +10047,14 @@ const PRINT_JS = `
     const d = drag;
     drag = null;
     document.body.classList.remove('lb-dragging');
-    if (d && !d.moved && e.type === 'pointerup') close();
+    if (d && !d.moved && e.type === 'pointerup'
+        && box.dispatchEvent(new CustomEvent('lb:click', { cancelable: true, detail: { x: e.clientX, y: e.clientY } }))) close();
   };
   box.addEventListener('pointerup', up);
   box.addEventListener('pointercancel', up);
   document.addEventListener('keydown', (e) => {
-    if (!card || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (!card || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.target.closest && e.target.closest('input, textarea')) return;
     if (e.key === 'Escape') close();
     else if (e.key === '+' || e.key === '=') zoomAt(1.25, null);
     else if (e.key === '-' || e.key === '_') zoomAt(0.8, null);
@@ -10235,14 +10391,216 @@ const PRINT_HIGHLIGHTS_JS = `
     }
     return marks;
   };
+  // ── figures (plan §11) ──
+  // A figure is a raster or an inlined vector in figure.figure-img, or a
+  // ::: draw in figure.figure-diagram; a clip, an embed, code and formulas are
+  // not. It is found again by its key - a diagram's label, an image's alt
+  // text, else its file name - within its slide, and by its place among the
+  // slide's figures when the key has changed; several with one key (two
+  // diagrams under one heading) are told apart by that place.
+  //
+  // An entry marks the whole figure (at is null) or a spot in it: fractions
+  // of the drawing's box - the viewBox of a vector, the picture of a raster -
+  // and on a diagram the author's name for the part under the pointer as
+  // well, since that survives a rebuild that moves the part and the fractions
+  // do not. The name is kept without the dg<N>- the build prefixes it with,
+  // which counts figures from the top of the document and moves when one is
+  // added above. A part that is gone leaves the pin at the fractions, and
+  // the card says it is approximate.
+  //
+  // What is drawn is drawn in the figure's own coordinates - a group in the
+  // SVG, or a layer over the picture positioned in per cent - so the same
+  // pin stands in the right place in the document, in the lightbox's copy
+  // and on paper, with no layout of its own to keep up. A whole figure is a
+  // yellow frame and a disc in its corner; a spot is a disc, and the part a
+  // diagram pin is on is tinted with a class on its group. On screen a disc
+  // carries the highlight's place on the way through them all, the number
+  // the pill counts; on paper, the number of its note in the margin.
+  const FIG = 'figure.figure-img:not(.figure-missing), figure.figure-diagram';
+  const SVGNS = 'http://www.w3.org/2000/svg';
+  const figsIn = (root) => [...root.querySelectorAll(FIG)].filter(f => !f.closest('#lightbox, .speaker-note, ' + UI)
+    && (root.tagName !== 'SECTION' || !f.closest('article.chunk')));
+  const figRoot = (fig) => fig.closest('article.chunk[id]') || fig.closest('section.column[id]');
+  const drawingOf = (fig) => fig.querySelector(':scope > svg, :scope > img, :scope > .rd-fig-box > img');
+  const figKind = (fig) => fig.classList.contains('figure-diagram') ? 'diagram'
+    : ((drawingOf(fig) || {}).tagName === 'IMG' ? 'image' : 'svg');
+  const figKey = (fig) => {
+    const d = drawingOf(fig);
+    return (d && (d.getAttribute('aria-label') || d.getAttribute('alt'))) || fig.dataset.figId || '';
+  };
+  const vbOf = (svg) => {
+    const v = svg.viewBox && svg.viewBox.baseVal;
+    if (v && v.width > 0 && v.height > 0) return { x: v.x, y: v.y, w: v.width, h: v.height };
+    const r = svg.getBoundingClientRect();
+    return { x: 0, y: 0, w: svg.width.baseVal.value || r.width || 1, h: svg.height.baseVal.value || r.height || 1 };
+  };
+  // A point on screen in the SVG's own units, through whatever the lightbox
+  // has scaled and moved it by.
+  const toUser = (svg, x, y) => {
+    const m = svg.getScreenCTM();
+    if (!m) return { x: 0, y: 0 };
+    const p = new DOMPoint(x, y).matrixTransform(m.inverse());
+    return { x: p.x, y: p.y };
+  };
+  const prefixOf = (svg) => (svg.id && svg.id.endsWith('root')) ? svg.id.slice(0, -4) : '';
+  const partNamed = (svg, name) => {
+    const id = prefixOf(svg) + name;
+    for (const g of svg.querySelectorAll('.dg-el')) if (g.id === id) return g;
+    return null;
+  };
+  const nameOfPart = (svg, g) => {
+    const pre = prefixOf(svg);
+    return g.id && g.id.startsWith(pre) ? g.id.slice(pre.length) : g.id || '';
+  };
+  const partLabel = (g) => oneLine([...g.querySelectorAll('.dg-lbl')].map(t => t.textContent).join(' '));
+  const figs = new Map();     // id -> { fig, part, whole }: what a painted figure entry is on
+  const approx = new Set();   // ids whose part is gone
+  const locateFig = (h) => {
+    const root = document.getElementById(h.chunk);
+    if (!root || !main.contains(root) || !root.matches('article.chunk, section.column')) return null;
+    const f = h.fig || {};
+    const all = figsIn(root);
+    const keyed = f.key ? all.filter(x => figKey(x) === f.key) : [];
+    let fig = keyed.includes(all[f.index]) ? all[f.index] : keyed[0];
+    if (!fig && all[f.index] && figKind(all[f.index]) === f.kind) fig = all[f.index];
+    if (!fig) return null;
+    const now = { index: all.indexOf(fig), kind: figKind(fig), key: figKey(fig) };
+    const same = now.index === f.index && now.kind === f.kind && now.key === f.key;
+    return { fig, update: same ? null : { fig: now } };
+  };
+  const svgEl = (tag, attrs) => {
+    const e = document.createElementNS(SVGNS, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    return e;
+  };
+  // Draws one entry on a figure - the document's, or the lightbox's copy of
+  // it, sized after the document's (ref) so a disc is the size of a label
+  // there and scales with the zoom here. Returns the disc and the part.
+  const drawFig = (h, fig, ref) => {
+    const d = drawingOf(fig);
+    if (!d) return null;
+    const a = h.at || null;
+    let part = null, disc;
+    if (d.tagName.toLowerCase() === 'svg') {
+      const vb = vbOf(d);
+      const rd = drawingOf(ref || fig) || d;
+      const w = rd.getBoundingClientRect().width;
+      const vr = rd === d ? vb : vbOf(rd);
+      const r = w > 0 ? Math.min(11 * vr.w / w, Math.max(vb.w, vb.h) * 0.08) : Math.max(vb.w, vb.h) * 0.03;
+      let x, y;
+      // A whole figure's disc sits on the frame's top left corner - a
+      // diagram lets it stand half outside, an author's SVG may clip - clear
+      // of the corner button and of a pin on a part in the top right.
+      // The lightbox's card clips at its padding, so there it stands a
+      // little further in.
+      const inset = fig.classList.contains('figure-diagram') ? (ref ? 0.6 * r : 0) : 1.2 * r;
+      if (!a) { x = vb.x + inset; y = vb.y + inset; }
+      else {
+        part = a.el && fig.classList.contains('figure-diagram') ? partNamed(d, a.el) : null;
+        const pr = part && part.getBoundingClientRect();
+        if (pr && (pr.width || pr.height)) {
+          const edge = part.classList.contains('dg-edge');
+          const p = toUser(d, edge ? (pr.left + pr.right) / 2 : pr.right, edge ? (pr.top + pr.bottom) / 2 : pr.top);
+          x = p.x; y = p.y;
+        } else {
+          x = vb.x + (+a.x || 0) * vb.w; y = vb.y + (+a.y || 0) * vb.h;
+        }
+        if (part) part.classList.add('rd-el');
+      }
+      let layer = d.querySelector(':scope > g.rd-pins');
+      if (!layer) { layer = svgEl('g', { class: 'rd-pins', 'data-rd-ui': '' }); d.appendChild(layer); }
+      disc = svgEl('g', { class: 'rd-pin', 'data-rd-ui': '', transform: 'translate(' + x.toFixed(2) + ' ' + y.toFixed(2) + ')' });
+      disc.appendChild(svgEl('circle', { r: r.toFixed(2), 'stroke-width': (r * 0.12).toFixed(2) }));
+      for (const c of ['rd-pin-s', 'rd-pin-p']) {
+        disc.appendChild(svgEl('text', { class: c, 'text-anchor': 'middle', 'dominant-baseline': 'central',
+          'font-size': (r * 1.1).toFixed(2) }));
+      }
+      layer.appendChild(disc);
+    } else {
+      let box = d.parentElement;
+      if (!box.classList.contains('rd-fig-box')) {
+        box = document.createElement('span');
+        box.className = 'rd-fig-box';
+        d.before(box);
+        box.appendChild(d);
+      }
+      disc = document.createElement('span');
+      disc.className = 'rd-pin';
+      disc.setAttribute('data-rd-ui', '');
+      disc.style.left = (a ? (+a.x || 0) * 100 : 0) + '%';
+      disc.style.top = (a ? (+a.y || 0) * 100 : 0) + '%';
+      const dot = document.createElement('span');
+      dot.className = 'rd-pin-dot';
+      for (const c of ['rd-pin-s', 'rd-pin-p']) {
+        const t = document.createElement('span');
+        t.className = c;
+        dot.appendChild(t);
+      }
+      disc.appendChild(dot);
+      box.appendChild(disc);
+    }
+    disc.dataset.hl = h.id;
+    if (!a) { disc.classList.add('rd-pin-whole'); fig.classList.add('rd-fig-whole'); }
+    return { disc, part };
+  };
+  // Takes everything the reader drew off a figure: the lightbox's copy before
+  // it is drawn again, and a document figure whose last entry has gone.
+  const stripFig = (fig) => {
+    for (const n of fig.querySelectorAll(UI)) n.remove();
+    for (const b of fig.querySelectorAll('.rd-fig-box')) { while (b.firstChild) b.before(b.firstChild); b.remove(); }
+    for (const g of fig.querySelectorAll('.rd-el, .rd-hover')) g.classList.remove('rd-el', 'rd-hover');
+    fig.classList.remove('rd-fig-whole');
+  };
+  const paintFig = (h, at) => {
+    const got = drawFig(h, at.fig);
+    if (!got) return [];
+    figs.set(h.id, { fig: at.fig, part: got.part, whole: !h.at });
+    approx.delete(h.id);
+    if (h.at && h.at.el && !got.part) approx.add(h.id);
+    return [got.disc];
+  };
+  // What is left on a figure once one of its entries has gone.
+  const refreshFig = (fig) => {
+    const on = [...figs.values()].filter(v => v.fig === fig);
+    fig.classList.toggle('rd-fig-whole', on.some(v => v.whole));
+    for (const g of fig.querySelectorAll('.rd-el')) if (!on.some(v => v.part === g)) g.classList.remove('rd-el');
+    for (const l of fig.querySelectorAll('g.rd-pins')) if (!l.firstChild) l.remove();
+    for (const b of fig.querySelectorAll('.rd-fig-box')) {
+      if (b.querySelector('.rd-pin')) continue;
+      while (b.firstChild) b.before(b.firstChild);
+      b.remove();
+    }
+  };
+  const unpaintFig = (id) => {
+    const v = figs.get(id);
+    for (const m of marksOf.get(id) || []) m.remove();
+    figs.delete(id);
+    approx.delete(id);
+    if (v) refreshFig(v.fig);
+  };
+  // The words a card and the export name a figure entry by.
+  const figPhrase = (h) => {
+    const f = h.fig || {};
+    const key = oneLine(f.key) || String((+f.index || 0) + 1);
+    if (!h.at) return fill(S['reader-fig'], { key });
+    if (h.at.el) {
+      const v = figs.get(h.id);
+      return fill(S['reader-fig-at'], { key, label: (v && v.part && partLabel(v.part)) || h.at.el });
+    }
+    return fill(S['reader-fig-spot'], { key });
+  };
   const KINDS = {
     text: { locate: locateText, paint: paintText },
+    figure: { locate: locateFig, paint: paintFig },
   };
 
   // ── painting ──
   const marksOf = new Map();   // id -> the elements its painter drew
   const orphans = new Set();
+  // A figure's drawing is taken off by its own painter; a text highlight is
+  // unwrapped. Asked by id, because a removed entry has left the store.
   const unpaint = (id) => {
+    if (figs.has(id)) { unpaintFig(id); marksOf.delete(id); return; }
     for (const m of marksOf.get(id) || []) {
       const p = m.parentNode;
       if (!p) continue;
@@ -10268,6 +10626,7 @@ const PRINT_HIGHLIGHTS_JS = `
       Object.assign(h, { start: at.s, end: at.e }, quoteParts(at.text, at.s, at.e));
       moved = true;
     }
+    if (at.update) { Object.assign(h, at.update); moved = true; }
     const marks = kind.paint(h, at);
     if (!marks.length) { orphans.add(h.id); return moved; }
     marksOf.set(h.id, marks);
@@ -10315,11 +10674,33 @@ const PRINT_HIGHLIGHTS_JS = `
     const clear = button('rd-clear', S['reader-note-clear'] || '');
     clear.hidden = !ta.value;
     acts.append(clear, button('rd-remove', S['reader-remove'] || ''));
+    // A figure's card says which figure, and where in it: the page beside
+    // it has no yellow words to say so.
+    if (h.type === 'figure') {
+      const what = document.createElement('p');
+      what.className = 'rd-card-what';
+      card.appendChild(what);
+    }
     card.append(ta, acts);
+    // Over the lightbox, a press on the card is the card's and not the start
+    // of a drag, nor a click that closes the overlay.
+    card.addEventListener('pointerdown', (e) => e.stopPropagation());
     cards.set(h.id, card);
     return card;
   };
+  const describe = (card, h) => {
+    const w = card.querySelector('.rd-card-what');
+    if (!w) return;
+    w.textContent = figPhrase(h);
+    if (approx.has(h.id)) {
+      const a = document.createElement('span');
+      a.className = 'rd-approx';
+      a.textContent = S['reader-fig-approx'] || '';
+      w.append(' ', a);
+    }
+  };
   const dropCard = (id) => {
+    if (lbCard === id) lbCard = null;
     const c = cards.get(id);
     if (c) c.remove();
     cards.delete(id);
@@ -10331,7 +10712,7 @@ const PRINT_HIGHLIGHTS_JS = `
   const placeInline = (card, h) => {
     const m = (marksOf.get(h.id) || [])[0];
     if (!m) return;
-    let block = m.closest('li, p, h1, h2, h3, h4, h5, h6, dd, dt, td, th, blockquote') || m.parentElement;
+    let block = m.closest('figure') || m.closest('li, p, h1, h2, h3, h4, h5, h6, dd, dt, td, th, blockquote') || m.parentElement;
     if (block.matches('td, th')) block = block.closest('table') || block;
     if (block.matches('li')) {
       if (block.lastElementChild !== card) block.appendChild(card);
@@ -10413,9 +10794,12 @@ const PRINT_HIGHLIGHTS_JS = `
     while (i > 0 && inFlow(blocks[i - 1]) && Math.abs(blocks[i - 1].getBoundingClientRect().right - right) < 1.5) i--;
     return { before: i ? blocks[i - 1] : m };
   };
+  // A figure's number is its disc's, so it gets no superscript, and its
+  // note stands at the top of the figure.
   const paper = () => {
     for (const n of paperNodes) n.remove();
     paperNodes.length = 0;
+    for (const t of main.querySelectorAll('.rd-pin-p')) t.textContent = '';
     let k = 0;
     for (const { h } of ordered()) {
       if (!hasNote(h)) continue;
@@ -10423,6 +10807,20 @@ const PRINT_HIGHLIGHTS_JS = `
       const root = ms[0].closest('article.chunk[id], section.column[id]');
       if (!root) continue;
       k++;
+      const fv = figs.get(h.id);
+      if (fv) {
+        const t = ms[0].querySelector('.rd-pin-p');
+        if (t) t.textContent = String(k);
+        const note = document.createElement('span');
+        note.className = 'rd-pnote';
+        note.setAttribute('data-rd-ui', '');
+        const num = document.createElement('b');
+        num.textContent = String(k);
+        note.append(num, h.note.trim());
+        paperSpot(fv.fig, root).before.before(note);
+        paperNodes.push(note);
+        continue;
+      }
       const sup = document.createElement('sup');
       sup.className = 'rd-pn';
       sup.setAttribute('data-rd-ui', '');
@@ -10441,12 +10839,14 @@ const PRINT_HIGHLIGHTS_JS = `
   const layout = () => {
     const narrow = narrowMq.matches;
     for (const h of store) {
+      if (h.id === lbCard) continue;
       if (!shown(h) || (narrow && h.id !== focused)) {
         const c = cards.get(h.id);
         if (c && c.parentNode) c.remove();
         continue;
       }
       const card = cardFor(h);
+      describe(card, h);
       card.classList.toggle('is-focus', h.id === focused);
       if (narrow) {
         card.style.left = card.style.top = card.style.width = '';
@@ -10459,6 +10859,7 @@ const PRINT_HIGHLIGHTS_JS = `
     if (!narrow) pack();
     paper();
     updateNav();
+    syncLb();
   };
   let queued = false;
   const schedule = () => {
@@ -10614,6 +11015,13 @@ const PRINT_HIGHLIGHTS_JS = `
     nextBtn.disabled = !list.length || (at >= 0 && at === list.length - 1);
     allBtn.setAttribute('aria-pressed', onlyNotes ? 'false' : 'true');
     notesBtn.setAttribute('aria-pressed', onlyNotes ? 'true' : 'false');
+    // A figure's disc carries its place among them all, the lightbox's copy
+    // as well as the document's.
+    const pos = new Map(all.map((x, i) => [x.h.id, String(i + 1)]));
+    for (const t of document.querySelectorAll('.rd-pin .rd-pin-s')) {
+      const d = t.closest('.rd-pin');
+      t.textContent = pos.get(d.dataset.hl) || '';
+    }
   };
   const go = (id) => {
     const el = (marksOf.get(id) || [])[0];
@@ -10676,7 +11084,7 @@ const PRINT_HIGHLIGHTS_JS = `
       for (const h of lost) {
         const li = document.createElement('li');
         const q = document.createElement('q');
-        const text = String(h.quote || h.id);
+        const text = String(h.quote || (h.type === 'figure' ? figPhrase(h) : '') || h.id);
         q.textContent = text.length > 120 ? text.slice(0, 117) + '…' : text;
         li.appendChild(q);
         if (h.note && h.note.trim()) {
@@ -10723,9 +11131,13 @@ const PRINT_HIGHLIGHTS_JS = `
   // hyphens in a row would end the comment early, and in this JSON they can
   // only stand inside a string, where an escape reads back the same.
   const dataLine = (h) => '<' + '!-- psi-reader ' + JSON.stringify(h).replace(/--/g, '-\\\\u002d') + ' --' + '>';
+  // A figure entry is named rather than quoted - which figure, and the words
+  // on the part a pin is on - so that a lecturer reading the file sees what
+  // the reader pointed at and not a pair of fractions.
   const entryLines = (h) => {
     const out = [];
-    const q = oneLine(h.quote) || oneLine(h.fig && h.fig.key);
+    if (h.type === 'figure') out.push('*' + figPhrase(h) + '*', '');
+    const q = h.type === 'figure' ? '' : oneLine(h.quote) || oneLine(h.fig && h.fig.key);
     if (q) out.push('> ' + q, '');
     if (hasNote(h)) out.push(h.note.trim(), '');
     out.push(dataLine(h), '');
@@ -10982,6 +11394,221 @@ const PRINT_HIGHLIGHTS_JS = `
   document.addEventListener('pointercancel', () => { pointerDown = false; }, true);
   document.addEventListener('selectionchange', scheduleCheck);
 
+  // ── figures: the corner button, the discs, the lightbox (plan §11) ──
+  // A click on a figure opens the lightbox, as it did before. The two ways in
+  // stand beside that click rather than changing it: a button in the
+  // figure's corner that marks it whole, and in the lightbox, where the
+  // figure is large enough to point at, a spot. A click on a disc opens its
+  // card and nothing else.
+  const newFig = (fig, at) => {
+    const root = figRoot(fig);
+    if (!root) return null;
+    const now = Date.now();
+    const entry = { v: 1, id: newId(), type: 'figure', chunk: root.id,
+      fig: { index: figsIn(root).indexOf(fig), kind: figKind(fig), key: figKey(fig) },
+      at, note: '', kind: 'mark', created: now, edited: now };
+    store.push(entry);
+    place(entry);
+    save();
+    renderFoot();
+    return entry;
+  };
+  for (const fig of figsIn(main)) {
+    if (!figRoot(fig) || !drawingOf(fig)) continue;
+    const b = button('rd-fig-btn', S['reader-mark'] || '');
+    b.setAttribute('data-rd-ui', '');
+    b.setAttribute('aria-label', S['reader-fig-mark'] || '');
+    b.title = S['reader-fig-mark'] || '';
+    b.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      // Marked whole already: that entry's card, not a second frame.
+      let h = store.find(x => { const v = figs.get(x.id); return v && v.whole && v.fig === fig; });
+      if (!h) h = newFig(fig, null);
+      if (h) setFocus(h.id, { edit: true, reveal: true });
+    });
+    fig.appendChild(b);
+  }
+  document.addEventListener('click', (e) => {
+    const pin = e.target.closest && e.target.closest('.rd-pin');
+    if (!pin || !main.contains(pin)) return;
+    e.preventDefault();
+    e.stopPropagation();
+    setFocus(pin.dataset.hl, { card: true, reveal: true });
+  }, true);
+  const pulse = (id) => {
+    const d = (marksOf.get(id) || [])[0];
+    if (!d) return;
+    const r = d.getBoundingClientRect();
+    if (r.top < 0 || r.bottom > window.innerHeight) d.scrollIntoView({ block: 'center' });
+    d.classList.remove('rd-pulse');
+    void d.getBoundingClientRect();
+    d.classList.add('rd-pulse');
+    setTimeout(() => d.classList.remove('rd-pulse'), 1300);
+  };
+
+  // The lightbox is PRINT_JS's; this half hears it open and close, and is
+  // asked about a click before the click closes it. On a figure it gains a
+  // bar with a close button and Mark a spot (also m). Marking, the cursor is
+  // a crosshair, the part of a diagram under it is outlined, and a click that
+  // did not drag sets a pin and opens its card beside it - the margin card
+  // itself, lent to the overlay while it is open, so typing there is typing
+  // in the card the page shows when it closes. A drag still pans and the
+  // wheel still zooms, marking or not.
+  const lb = document.getElementById('lightbox');
+  let lbFig = null, lbCopy = null, marking = false, lbCard = null, bar = null, spotBtn = null, hover = null;
+  const syncLb = () => {
+    if (!lbCopy) return;
+    stripFig(lbCopy);
+    hover = null;
+    for (const h of store) {
+      const v = figs.get(h.id);
+      if (v && v.fig === lbFig) drawFig(h, lbCopy, lbFig);
+    }
+    const all = ordered();
+    for (const t of lbCopy.querySelectorAll('.rd-pin-s')) {
+      const i = all.findIndex(x => x.h.id === t.closest('.rd-pin').dataset.hl);
+      t.textContent = i >= 0 ? String(i + 1) : '';
+    }
+  };
+  const setHover = (g) => {
+    if (hover === g) return;
+    if (hover) hover.classList.remove('rd-hover');
+    hover = g;
+    if (hover) hover.classList.add('rd-hover');
+  };
+  const setMarking = (on) => {
+    marking = !!on && !!lbCopy;
+    body.classList.toggle('rd-marking', marking);
+    if (spotBtn) spotBtn.setAttribute('aria-pressed', marking ? 'true' : 'false');
+    if (!marking) setHover(null);
+  };
+  const closeLbCard = () => {
+    const id = lbCard;
+    if (!id) return;
+    lbCard = null;
+    const c = cards.get(id);
+    if (c) { c.classList.remove('rd-lb-card'); c.remove(); }
+    if (lb) lb.focus({ preventScroll: true });
+    schedule();
+  };
+  const openLbCard = (id, edit) => {
+    const h = byId(id);
+    if (!h || !lbCopy) return;
+    if (lbCard && lbCard !== id) closeLbCard();
+    lbCard = id;
+    const card = cardFor(h);
+    describe(card, h);
+    card.classList.add('rd-lb-card', 'is-focus');
+    card.style.left = card.style.top = card.style.width = '';
+    lb.appendChild(card);
+    grow(card.querySelector('.rd-note'));
+    const pin = [...lbCopy.querySelectorAll('.rd-pin')].find(p => p.dataset.hl === id);
+    const pr = (pin || lbCopy).getBoundingClientRect();
+    const w = card.offsetWidth, ch = card.offsetHeight, pad = 12;
+    let x = pr.right + pad;
+    if (x + w > window.innerWidth - pad) x = pr.left - pad - w;
+    x = Math.max(pad, Math.min(window.innerWidth - w - pad, x));
+    const y = Math.max(pad, Math.min(window.innerHeight - ch - pad, pr.top - 8));
+    card.style.left = Math.round(x) + 'px';
+    card.style.top = Math.round(y) + 'px';
+    if (edit) card.querySelector('.rd-note').focus({ preventScroll: true });
+    else card.focus({ preventScroll: true });
+  };
+  const markAt = (x, y) => {
+    const d = drawingOf(lbCopy);
+    if (!d) return;
+    const r = d.getBoundingClientRect();
+    if (x < r.left || x > r.right || y < r.top || y > r.bottom) return;
+    const round = (v) => Math.round(Math.max(0, Math.min(1, v)) * 10000) / 10000;
+    let at;
+    if (d.tagName.toLowerCase() === 'svg') {
+      const vb = vbOf(d), p = toUser(d, x, y);
+      at = { x: round((p.x - vb.x) / vb.w), y: round((p.y - vb.y) / vb.h) };
+      const t = document.elementFromPoint(x, y);
+      const g = lbFig.classList.contains('figure-diagram') && t && d.contains(t) && t.closest('.dg-el');
+      if (g) at = { el: nameOfPart(d, g), x: at.x, y: at.y };
+    } else {
+      at = { x: round((x - r.left) / r.width), y: round((y - r.top) / r.height) };
+    }
+    const h = newFig(lbFig, at);
+    setMarking(false);
+    if (!h) return;
+    setFocus(h.id);
+    openLbCard(h.id, true);
+  };
+  if (lb) {
+    lb.addEventListener('lb:open', (e) => {
+      const { card, opener } = e.detail || {};
+      if (!opener || !opener.matches(FIG) || !main.contains(opener) || !figRoot(opener)) return;
+      lbFig = opener;
+      lbCopy = card;
+      // A picture is as wide as it can be at its own proportions, so the
+      // box a pin is placed against is the picture and not a letterbox.
+      const img = drawingOf(opener);
+      if (img && img.tagName === 'IMG' && img.naturalWidth && img.naturalHeight) {
+        const ci = drawingOf(card);
+        if (ci) ci.style.width = 'min(92vw, calc(88vh * ' + (img.naturalWidth / img.naturalHeight).toFixed(4) + '))';
+      }
+      bar = document.createElement('div');
+      bar.className = 'rd-lb-bar';
+      bar.setAttribute('data-rd-ui', '');
+      spotBtn = button('rd-lb-spot', S['reader-lb-spot'] || '');
+      spotBtn.title = (S['reader-lb-spot'] || '') + ' (m)';
+      const closeBtn = button('rd-lb-close', '×');
+      closeBtn.setAttribute('aria-label', S['reader-lb-close'] || '');
+      closeBtn.title = S['reader-lb-close'] || '';
+      bar.append(spotBtn, closeBtn);
+      bar.addEventListener('pointerdown', (ev) => ev.stopPropagation());
+      spotBtn.addEventListener('click', () => setMarking(!marking));
+      closeBtn.addEventListener('click', () => lb.dispatchEvent(new CustomEvent('lb:dismiss')));
+      lb.appendChild(bar);
+      setMarking(false);
+      syncLb();
+    });
+    lb.addEventListener('lb:close', () => {
+      const id = lbCard;
+      setMarking(false);
+      lbCard = null;
+      lbFig = lbCopy = bar = spotBtn = null;
+      if (id) {
+        const c = cards.get(id);
+        if (c) { c.classList.remove('rd-lb-card'); c.remove(); }
+        setFocus(id, { card: true });
+      } else {
+        schedule();
+      }
+    });
+    lb.addEventListener('lb:click', (e) => {
+      if (!lbCopy) return;
+      const { x, y } = e.detail;
+      const t = document.elementFromPoint(x, y);
+      const pin = t && t.closest && t.closest('.rd-pin');
+      if (pin && lbCopy.contains(pin)) { e.preventDefault(); openLbCard(pin.dataset.hl, false); return; }
+      if (marking) { e.preventDefault(); markAt(x, y); return; }
+      if (lbCard) { e.preventDefault(); closeLbCard(); }
+    });
+    lb.addEventListener('pointermove', (e) => {
+      if (!marking || e.buttons || !lbCopy) return;
+      const t = document.elementFromPoint(e.clientX, e.clientY);
+      const d = drawingOf(lbCopy);
+      setHover(lbFig.classList.contains('figure-diagram') && t && d && d.contains(t) && !t.closest(UI)
+        ? t.closest('.dg-el') : null);
+    });
+    // Ahead of the lightbox's own keys: m, and an Esc that first puts away
+    // the card, then the crosshair, and only then the overlay.
+    document.addEventListener('keydown', (e) => {
+      if (!lbCopy || e.defaultPrevented || e.metaKey || e.ctrlKey || e.altKey || e.isComposing) return;
+      if (e.key === 'Escape') {
+        if (lbCard) { e.preventDefault(); e.stopPropagation(); closeLbCard(); }
+        else if (marking) { e.preventDefault(); e.stopPropagation(); setMarking(false); }
+        return;
+      }
+      if (e.target.closest && e.target.closest('input, textarea')) return;
+      if (e.key === 'm' && !e.shiftKey) { e.preventDefault(); setMarking(!marking); }
+    }, true);
+  }
+
   // ── events on highlights and cards ──
   document.addEventListener('input', (e) => {
     const ta = e.target.closest && e.target.closest('.rd-note');
@@ -11010,9 +11637,11 @@ const PRINT_HIGHLIGHTS_JS = `
     if (card) {
       if (t.closest('.rd-remove')) remove(card.dataset.hl);
       else if (t.closest('.rd-clear')) clearNote(card.dataset.hl);
+      // A figure's card shows where on the figure it is.
+      else if (!t.closest('textarea, button') && !card.closest('#lightbox') && figs.has(card.dataset.hl)) pulse(card.dataset.hl);
       return;
     }
-    if (t.closest(UI + ', #reader-contents, .rd-toggle')) return;
+    if (t.closest(UI + ', #reader-contents, .rd-toggle, #lightbox')) return;
     const mark = t.closest('mark.rd-hl');
     const sel = window.getSelection && window.getSelection();
     const selecting = sel && !sel.isCollapsed && String(sel).trim();

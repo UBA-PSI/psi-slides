@@ -40,8 +40,8 @@ from building the same way is a major version.
   once and leave five seconds to undo. A selection that overlaps a highlight
   grows it. Figures, formulas, code and speaker notes cannot be selected
   into a highlight. The highlights stay in the reader's browser, filed under
-  the lecture's folder name: the two documents share them in Chrome and
-  under `--serve`, while Firefox keeps one store per file. A rebuild that
+  the lecture's folder name: the two documents share them in Chrome, in
+  Safari and under `--serve`, while Firefox keeps one store per file. A rebuild that
   moves the words carries the highlight with them; one that removes them
   lists it at the foot of the contents sidebar with its note, and nothing is
   dropped. Where the browser refuses storage, the highlights last as long as
@@ -82,6 +82,25 @@ from building the same way is a major version.
   stands at the top of that block. A highlight without a note prints yellow
   and nothing else, and one a rebuild could not place does not print. The
   sidebar, the bar at the foot and the cards stay off paper.
+- **A reader can highlight a figure, or a spot in one.** In `print.html` and
+  `print-notes.html` a figure – a picture, an inlined vector or a `::: draw`
+  diagram – shows a *Highlight* button in its corner while the pointer is on
+  it; it frames the figure in yellow and opens a note card, and does not
+  open the lightbox. In the lightbox a bar holds *Mark a spot* (also `m`)
+  and a close button: the cursor becomes a crosshair, a click that did not
+  drag sets a numbered disc and opens its card beside it, and a drag still
+  pans. On a diagram the disc snaps to the part under the pointer, which is
+  outlined while marking and tinted yellow once marked, and it follows that
+  part through a rebuild – also one that adds a figure above it. A part that
+  is gone leaves the disc where it was and the card says so. The discs are
+  drawn in the figure's own coordinates, so they stand in the same place in
+  the document, the lightbox and on paper. Figure highlights join the
+  margin cards, `n` / `p`, the counts in the contents, the export – which
+  names the figure and the part – the import and print, where a disc
+  carries the number of its note in the margin. A drag on a picture in the
+  lightbox now pans; the browser's own drag of the image used to end it
+  after the first move. Seven new label keys, `reader-fig-mark` to
+  `reader-fig-approx`.
 
 - **A figure's labels are set at the size of the words beside them.** In
   the live views a `::: draw` figure used to fill its column whatever that
