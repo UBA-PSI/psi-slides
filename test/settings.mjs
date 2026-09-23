@@ -3111,8 +3111,8 @@ console.log('\nlayout generations');
     ok(/\n\.chunk-body code \{ font-family: var\(--mono-font\); font-size: 0\.92em; \}/.test(dflt.html)
        && /\ncode \{ font-family: var\(--mono\); font-size: 0\.92em; \}/.test(dflt.print),
        'the base rule is unguarded and still says 0.92em, which is what plain resets to');
-    ok(/\n\.chunk-body code:not\(pre code\):not\(\.embed-blocked code\):not\(\.nb\)[\s\S]{0,120}?word-spacing: -0\.2em/.test(dflt.html)
-       && /\ncode:not\(pre code\):not\(\.chunk-heading code\):not\(\.nb\)[\s\S]{0,120}?word-spacing: -0\.2em/.test(dflt.print),
+    ok(/\n\.chunk-body code:not\(pre code\):not\(\.embed-blocked code\):not\(\.nb\)[\s\S]{0,120}?word-spacing: -0\.28em/.test(dflt.html)
+       && /\ncode:not\(pre code\):not\(\.chunk-heading code\):not\(\.nb\)[\s\S]{0,120}?word-spacing: -0\.28em/.test(dflt.print),
        'the spaced rule is the unattributed one, in both stylesheets, reaching only a span with whitespace in it');
     ok(/body\[data-code=tint\] \.chunk-body code:not\(pre code\):not\(\.embed-blocked code\)[\s\S]{0,220}?padding: 0 0\.28em/.test(dflt.html)
        && /body\[data-code=tint\][\s\S]{0,600}?background: color-mix\(in oklch, var\(--ink\) 7%, transparent\)/.test(dflt.html),
@@ -3189,8 +3189,12 @@ console.log('\nlayout generations');
     const en = raw(LSRC('lang: en\n'), []);
     ok(none.code === 0 && en.code === 0, 'both the no-lang and the lang: en deck build', none.out + en.out);
     ok(none.html === en.html, 'lang: en and no lang: emit byte-identical audience HTML');
-    ok(none.print === en.print, 'byte-identical print HTML');
-    ok(none.notes === en.notes, 'byte-identical print-notes HTML');
+    // The documents' reader tools key their storage by the source folder's
+    // name, and raw() builds each deck in a temporary folder of its own, so
+    // that one field differs by construction and is taken out first.
+    const unkey = (h) => h && h.replace(/\{"key":"[^"]*"/, '{"key":""');
+    ok(unkey(none.print) === unkey(en.print), 'byte-identical print HTML');
+    ok(unkey(none.notes) === unkey(en.notes), 'byte-identical print-notes HTML');
   }
 
   // lang: de reaches every reader-tier site the first pass covers.
