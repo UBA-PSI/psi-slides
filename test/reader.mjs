@@ -138,9 +138,14 @@ ${v2 ? 'Rewritten from the first word to the last.' : 'This sentence carries the
 
 // Selects the first occurrence of `needle` in the text under `scope`, across
 // node boundaries - a highlight splits the text it covers into several nodes.
+// The reader's own nodes are passed over: the number and the note a highlight
+// carries for paper stand in the text, hidden on screen, where no reader can
+// select them.
 const selectText = (p, needle, scope = 'main') => p.evaluate(([needle, scope]) => {
   const root = document.querySelector(scope);
-  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+  const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => (n.parentElement.closest('[data-rd-ui]') ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+  });
   const nodes = [];
   for (let n = w.nextNode(); n; n = w.nextNode()) nodes.push(n);
   const text = nodes.map(n => n.data).join('');
@@ -489,14 +494,57 @@ async function highlights({ browser, ok, note }) {
        && !(await p.evaluate(() => !!document.querySelector('[data-reader-slot=tools] .rd-orphans'))),
        'its remove button drops it from the store and the list');
 
-    // ── paper: none of it prints ──
+    // ── paper: the yellow and the notes print, none of the controls do ──
+    // A highlight with a note carries a number after its words and its note in
+    // the outer margin; both stand in the text, hidden on screen. The page area
+    // is 16cm wide and main is set against its left, so a note must end inside
+    // main.left + 16cm and start right of main.
+    await p.click('mark.rd-hl >> text=initialisation');
+    await p.waitForTimeout(100);
+    const onScreen = await p.evaluate(() => [...document.querySelectorAll('.rd-pn, .rd-pnote')]
+      .map(n => getComputedStyle(n).display));
+    ok(onScreen.length >= 4 && onScreen.every(d => d === 'none'),
+       'on screen the printed numbers and notes are in the page and not shown', JSON.stringify(onScreen));
     await p.emulateMedia({ media: 'print' });
-    const paper = await p.evaluate(() => ({
-      card: [...document.querySelectorAll('.rd-card')].every(c => getComputedStyle(c).display === 'none'),
-      mark: getComputedStyle(document.querySelector('mark.rd-hl')).backgroundColor,
-    }));
-    ok(paper.card && /rgba\(0, 0, 0, 0\)|transparent/.test(paper.mark),
-       'printed, no card and no yellow yet', JSON.stringify(paper));
+    const paper = await p.evaluate(() => {
+      const shown = (sel) => [...document.querySelectorAll(sel)].filter(n => getComputedStyle(n).display !== 'none').length;
+      const cm = 96 / 2.54;
+      const mr = document.querySelector('main').getBoundingClientRect();
+      const marks = [...document.querySelectorAll('mark.rd-hl')].map(m => getComputedStyle(m));
+      const notes = [...document.querySelectorAll('.rd-pnote')].map(n => {
+        const r = n.getBoundingClientRect();
+        const id = n.nextElementSibling && n.nextElementSibling.matches('mark.rd-hl') ? n.nextElementSibling.dataset.hl : null;
+        const m = id && document.querySelector('mark.rd-hl[data-hl="' + id + '"]').getBoundingClientRect();
+        return { num: n.querySelector('b').textContent, text: n.textContent, float: getComputedStyle(n).float,
+                 left: r.left, right: r.right, top: r.top, bottom: r.bottom, dTop: m ? Math.abs(m.top - r.top) : null };
+      });
+      return {
+        chrome: shown('.rd-card, .rd-nav, .rd-mark-btn, .rd-toast, #reader-contents, .rd-toggle, #lightbox'),
+        yellow: marks.every(c => !/rgba\(0, 0, 0, 0\)|transparent/.test(c.backgroundColor)),
+        exact: marks.every(c => c.printColorAdjust === 'exact'),
+        sups: [...document.querySelectorAll('.rd-pn')].map(n => n.textContent),
+        notes, mainLeft: mr.left, mainRight: mr.right, page: mr.left + 16 * cm,
+      };
+    });
+    st = await stored(p);
+    const noted = st.items.filter(h => h.note && h.note.trim()).length;
+    const nums = paper.notes.map(n => n.num);
+    ok(paper.chrome === 0, 'printed, no card, no pill, no button, no toast, no sidebar', JSON.stringify(paper.chrome));
+    ok(paper.yellow && paper.exact, 'printed, the highlights are yellow and ask the printer to keep it', JSON.stringify(paper));
+    ok(noted >= 2 && nums.length === noted && JSON.stringify(nums) === JSON.stringify(nums.map((_, i) => String(i + 1)))
+       && JSON.stringify(paper.sups) === JSON.stringify(nums),
+       'every highlight with a note is numbered, 1 to n in the page\'s order, after its words and on its note',
+       JSON.stringify({ noted, nums, sups: paper.sups }));
+    ok(paper.notes.some(n => n.text.includes('Why the IV?')), 'the note\'s own words are printed', JSON.stringify(paper.notes));
+    ok(paper.notes.every(n => n.float === 'right' && n.left >= paper.mainRight && n.right <= paper.page),
+       'each note stands in the outer margin: right of the column, inside the page area', JSON.stringify(paper));
+    ok(paper.notes.every(n => n.dTop === null || n.dTop < 20),
+       'a note set in its highlight\'s line stands level with it', JSON.stringify(paper.notes));
+    const byTop = paper.notes.slice().sort((a, b) => a.top - b.top);
+    ok(byTop.every((n, i) => i === 0 || n.top >= byTop[i - 1].bottom),
+       'two notes never stand on each other', JSON.stringify(byTop));
+    const pdf = await p.pdf({ format: 'A4', preferCSSPageSize: true });
+    ok(pdf.length > 10000 && pdf.subarray(0, 4).toString() === '%PDF', 'and the page prints to a PDF', String(pdf.length));
     await p.emulateMedia({ media: 'screen' });
     await p.close();
 

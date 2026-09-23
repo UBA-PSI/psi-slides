@@ -9412,9 +9412,8 @@ pre.shiki .line { display: inline; }
    narrow window shows no card until the highlight is opened. One yellow, and
    a stronger one for the highlight whose card is open.
 
-   Paper is a later slice. Until then a printed page shows the words without
-   the yellow and none of the controls, rather than the browser's own mark
-   colour. */
+   On paper the cards give way to the page's own margin: see the print block
+   at the end of this section. */
 body[data-reader=on] {
   --rd-hl: oklch(0.94 0.11 98);
   --rd-hl-strong: oklch(0.87 0.16 94);
@@ -9609,9 +9608,73 @@ body[data-reader=on] {
      narrow window. */
   .rd-toast { bottom: 3.5rem; }
 }
+/* On paper (plan §6). The yellow prints: print-color-adjust says so for the
+   marks alone, so a reader who left the dialog's background graphics off
+   still gets them and the rest of the page stays as the author set it. A
+   highlight with a note ends in a small number, and the note stands in the
+   outer margin the print layout keeps free because a handout is written on
+   (main's rule in the @media print block above: a 38rem column in a 16cm
+   page area leaves 3.9cm inside it). PRINT_HIGHLIGHTS_JS writes the number
+   and the note into the text, where only print shows them, and keeps them
+   there - so what a print engine lays out is ordinary markup, and a printer
+   driven without a beforeprint event (a PDF made by a script) gets them too.
+   The note is a right float with a negative right margin as wide as itself
+   and a gap, so its margin box stands wholly outside the column: no line of
+   the text is shortened for it, and clear keeps a second note under the
+   first rather than beside it. It sits at the line its highlight starts on;
+   where that line is in something narrower than the column - a table, a
+   part's lede, a card - the script hangs it before that block instead, at
+   its top, since a float inside it would land inside it.
+   In cm because the page area is: rem is the type, and the free margin is
+   not a number of lines. The note's type is fixed for the same reason a
+   heading must not size it - it is set inside the heading's own line. */
+@media screen {
+  .rd-pn, .rd-pnote { display: none !important; }
+}
 @media print {
-  mark.rd-hl { background: none; color: inherit; }
+  mark.rd-hl {
+    background: var(--rd-hl);
+    color: inherit;
+    padding: 0;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+    -webkit-box-decoration-break: clone;
+    box-decoration-break: clone;
+  }
   .rd-notes, .rd-card, .rd-mark-btn, .rd-toast, .rd-nav { display: none !important; }
+  .rd-pn {
+    margin-left: 0.08em;
+    font-family: var(--sans);
+    font-size: 0.62em;
+    font-weight: 600;
+    font-style: normal;
+    line-height: 0;
+    vertical-align: super;
+    color: var(--ink);
+  }
+  .rd-pnote {
+    float: right;
+    clear: right;
+    width: 3.3cm;
+    margin: 0 -3.75cm 0.35rem 0;
+    font-family: var(--sans);
+    font-size: 7pt;
+    font-weight: 400;
+    font-style: normal;
+    font-variant: normal;
+    line-height: 1.3;
+    letter-spacing: normal;
+    text-transform: none;
+    text-align: left;
+    text-indent: 0;
+    text-decoration: none;
+    white-space: pre-line;
+    overflow-wrap: anywhere;
+    hyphens: manual;
+    -webkit-hyphens: manual;
+    color: var(--ink);
+  }
+  .rd-pnote b { font-weight: 600; margin-right: 0.3em; }
 }
 
 /* ── the lightbox (screen only) ──────────────────────────────────────
@@ -9967,7 +10030,7 @@ const PRINT_READER_JS = `
 })();
 `;
 
-// ── the reader's highlights and notes (reader: on, screen only) ──────
+// ── the reader's highlights and notes (reader: on) ───────────────────
 // Select words in a slide and a button at the end of the selection marks
 // them yellow and opens a card for a note. A highlight is the reader's, kept
 // in their browser and seen by nobody else - nothing here shares a path or a
@@ -10010,6 +10073,10 @@ const PRINT_READER_JS = `
 // the other where the browser keeps a store per file. An entry of a type this
 // build does not paint is exported and imported all the same, and listed as
 // not found.
+//
+// On paper the yellow stays, and a highlight with a note is numbered, with
+// the note beside it in the outer margin: the number and the note are
+// written into the text for print alone (see paper below).
 //
 // Storage is localStorage under psi-reader:v1:<source folder>, and every
 // access is in a try: a browser that refuses it gets highlights that last as
@@ -10313,6 +10380,64 @@ const PRINT_HIGHLIGHTS_JS = `
     }
     for (const it of items) it.card.style.top = Math.round(it.top) + 'px';
   };
+  // ── paper (plan §6) ──
+  // What a printed page carries for a highlight with a note: a number after
+  // its last word and the note in the outer margin, numbered in the page's
+  // order. Both are written into the text and hidden on screen, rebuilt on
+  // every layout, so a printout is always the page as it stands and no
+  // print event has to be caught. Where the note goes is decided here, on
+  // the screen's layout, which is the document's own: the column is one
+  // measure in both media, and only its width differs.
+  // A note is set at the line its highlight starts on when every block
+  // between that line and the slide runs to the column's right edge in
+  // plain block flow; otherwise before the outermost block that does not -
+  // a table, a lede narrower than the column, a card in a grid - because a
+  // float inside such a block would stand inside it.
+  const paperNodes = [];
+  const inFlow = (el) => {
+    const cs = getComputedStyle(el);
+    if (!/^(block|list-item)$/.test(cs.display) || cs.float !== 'none') return false;
+    if (cs.position === 'absolute' || cs.position === 'fixed' || cs.overflowX !== 'visible') return false;
+    if (cs.columnCount !== 'auto') return false;
+    const pd = el.parentElement ? getComputedStyle(el.parentElement).display : '';
+    return !/flex|grid|table/.test(pd);
+  };
+  const paperSpot = (m, root) => {
+    if (!inFlow(root)) return { before: root };
+    const right = root.getBoundingClientRect().right;
+    const blocks = [];
+    for (let el = m.parentElement; el && el !== root; el = el.parentElement) {
+      if (!/^inline/.test(getComputedStyle(el).display)) blocks.push(el);
+    }
+    let i = blocks.length;
+    while (i > 0 && inFlow(blocks[i - 1]) && Math.abs(blocks[i - 1].getBoundingClientRect().right - right) < 1.5) i--;
+    return { before: i ? blocks[i - 1] : m };
+  };
+  const paper = () => {
+    for (const n of paperNodes) n.remove();
+    paperNodes.length = 0;
+    let k = 0;
+    for (const { h } of ordered()) {
+      if (!hasNote(h)) continue;
+      const ms = marksOf.get(h.id);
+      const root = ms[0].closest('article.chunk[id], section.column[id]');
+      if (!root) continue;
+      k++;
+      const sup = document.createElement('sup');
+      sup.className = 'rd-pn';
+      sup.setAttribute('data-rd-ui', '');
+      sup.textContent = String(k);
+      ms[ms.length - 1].after(sup);
+      const note = document.createElement('span');
+      note.className = 'rd-pnote';
+      note.setAttribute('data-rd-ui', '');
+      const num = document.createElement('b');
+      num.textContent = String(k);
+      note.append(num, h.note.trim());
+      paperSpot(ms[0], root).before.before(note);
+      paperNodes.push(sup, note);
+    }
+  };
   const layout = () => {
     const narrow = narrowMq.matches;
     for (const h of store) {
@@ -10332,6 +10457,7 @@ const PRINT_HIGHLIGHTS_JS = `
       }
     }
     if (!narrow) pack();
+    paper();
     updateNav();
   };
   let queued = false;
@@ -10577,7 +10703,7 @@ const PRINT_HIGHLIGHTS_JS = `
   const plain = (el) => {
     if (!el) return '';
     const c = el.cloneNode(true);
-    for (const x of c.querySelectorAll('.katex-mathml, .rd-count, .chunk-num, .chunk-label')) x.remove();
+    for (const x of c.querySelectorAll('.katex-mathml, .rd-count, .chunk-num, .chunk-label, [data-rd-ui]')) x.remove();
     return oneLine(c.textContent);
   };
   // The heading a slide's highlights stand under: the number the page prints

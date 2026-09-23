@@ -258,6 +258,38 @@ Safari's print engines (to be tried on a real print, not assumed), the
 fallback is the notes per chunk as a numbered list under the chunk. The
 sidebar, the pill and the buttons do not print.
 
+Decided in slice 5, measured on PDFs printed from Chromium (`page.pdf()`)
+and rendered page by page:
+
+- **The float holds; the fallback list was not needed.** A right float with
+  a negative right margin of its own width plus a gap (3.3 cm wide, pulled
+  3.75 cm out) has a margin box wholly outside the 38rem column, so no line
+  is shortened, and `clear: right` stacks two notes instead of setting them
+  side by side. A note taller than what is left of a page continues at the
+  top of the next one.
+- **The number and the note are written into the text, hidden on screen,**
+  and rebuilt on every layout, rather than inserted on `beforeprint`: a PDF
+  made by a script fires no print event, and a page that is always ready to
+  print cannot miss one. They carry `data-rd-ui`, so the reader text, a
+  selection and the export pass over them.
+- **A note is set at the line its highlight starts on**, as a float in that
+  line, when every block between the line and the slide runs to the
+  column's right edge in plain block flow. Otherwise – a table, a card in a
+  grid, a blockquote with the browser's side margins, a part's lede, which
+  is narrower than the column – it is hung before the outermost block that
+  does not, and stands at that block's top, a line or so off where a
+  negative or large top margin moves it. A float inside such a block would
+  land inside it. The decision is measured on the screen's layout, which
+  has the same block structure as the printed one.
+- **The cover is the one place a note cannot stand beside its words**: the
+  title chunk is a flex box, so its note is hung before the chunk and
+  prints at the top of the cover page.
+- **Sizes are in cm and pt, not rem**, because the free margin is a
+  fraction of the sheet, not a number of lines, and a note set inside a
+  heading must not take the heading's size. 7pt sans.
+- Safari's print engine could not be driven from here; the slice report
+  carries a manual check.
+
 ## 7. Contents sidebar
 
 - Chunk-level, grouped by column heading, numbered with the slide numbers the

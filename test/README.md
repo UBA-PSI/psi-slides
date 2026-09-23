@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Fifteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 46 specs, 1322
+- **`test/`** – the things that only break in a built page. 46 specs, 1330
   assertions, about twelve minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
@@ -167,7 +167,15 @@ per-slide counts come with the first highlight and go with the last, that
 `n` and `p` walk them in page order and stop at the ends, that the *with
 note* filter narrows both the count and the walk, and that the keys are
 ignored in a note field, with a modifier held, and under the lightbox.
-Last, export and import, on a store of their own: the download's name and
+Then paper, under print emulation: that the highlights stay yellow with
+`print-color-adjust: exact`, that each one with a note carries a number, 1 to
+n in page order, after its words and on its note, that the notes stand right
+of the column and inside the 16cm page area, level with a highlight whose
+line they share and never on each other, that no card, pill, button, toast or
+sidebar prints, and that the page goes through `page.pdf()`. Where a note
+lands in a list item, a table, a blockquote, a heading and a lede, and what a
+page break does to a long one, was checked on rendered PDF pages rather than
+asserted. Last, export and import, on a store of their own: the download's name and
 its Markdown (title, counts, slide headings with the printed number, quote
 and note, one data comment per entry that is the stored entry exactly), that
 export, delete all and import give back the same store, the merge rules (an

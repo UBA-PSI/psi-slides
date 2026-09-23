@@ -73,6 +73,15 @@ from building the same way is a major version.
   is how highlights move to another browser, and between the two documents
   where the browser keeps them apart, which one line under the menu says.
   Ten new label keys, `reader-export` to `reader-deleted-all`.
+- **A reader's highlights print.** On paper a highlight stays yellow, also
+  with the print dialog's background graphics switched off. One with a note
+  ends in a small number, and the note stands under the same number in the
+  outer margin the printed page keeps free, at the height of the line the
+  highlight starts on, in small sans type. Notes are numbered in page order
+  and stack rather than overlap; a note in a table, a card or a part's lede
+  stands at the top of that block. A highlight without a note prints yellow
+  and nothing else, and one a rebuild could not place does not print. The
+  sidebar, the bar at the foot and the cards stay off paper.
 
 - **A figure's labels are set at the size of the words beside them.** In
   the live views a `::: draw` figure used to fill its column whatever that
