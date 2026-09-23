@@ -277,7 +277,7 @@ a:hover { text-decoration-color: var(--ink); }
    an audience-only camera stop; these are the author's own words and they
    belong in the document, set as a lede under the part title. */
 .column-lede {
-  margin: -0.9rem 0 1.8rem;
+  margin: 0 0 2.2rem;
   max-width: 34rem;
   color: var(--ink-soft);
 }
@@ -294,13 +294,28 @@ a:hover { text-decoration-color: var(--ink); }
 
 .column-heading {
   font-size: 1.9rem;
-  margin: 3.5rem 0 1.8rem;
-  padding-top: 1.2rem;
-  padding-bottom: 0.4rem;
-  border-top: 1.5pt solid var(--ink);
-  border-bottom: 0.5pt solid var(--rule);
+  /* The white above the heading is what ends one part and starts the
+     next, so no rule has to say it again. The one rule stands under the
+     heading as its foot - near enough to belong to it, and further from the
+     slide below than from the heading, since the heading belongs to what
+     follows. The body's line-height of 1.6 would add half a line of
+     invisible leading round a 1.9rem heading and undo that order by eye. */
+  line-height: 1.15;
+  margin: 5rem 0 1.5rem;
+  padding-bottom: 0.45rem;
+  border-bottom: 0.75pt solid var(--ink);
   break-after: avoid;
   page-break-after: avoid;
+}
+/* A part heading draws the one rule a part change needs. It used to draw
+   two, and a principle or definition opening the part added its own a line
+   later - three rules of three weights in five lines. The first slide of a
+   part leaves its rule to the heading. */
+.column:not(.column-anon) > .chunk:first-of-type {
+  border-top: 0;
+  padding-top: 0;
+  margin-top: 0;
+  --num-top: 0rem;
 }
 
 .chunk {
@@ -340,10 +355,28 @@ main p, main li, main dd, main blockquote { orphans: 3; widows: 3; }
 /* Unobtrusive slide number in the outer margin, aligned with the chunk
    heading. Sits to the left of the text column so it never disturbs
    line wrap; vertical writing mode keeps the marker thin against tall
-   chunks and matches the audience badge orientation. */
+   chunks and matches the audience badge orientation.
+   It is centred on the chunk's first line - the type label where there is
+   one, the heading otherwise - by eye rather than by box: --num-font is that
+   line's type size, the number is as tall as its line box, starts below
+   whatever padding the type puts over its content, and drops a further
+   0.16 of the size, because a line's optical middle is the middle of its
+   x-height and that sits below the middle of the box. Measured on the ink
+   at three sizes (label, heading, statement): 0.15-0.17 each time. At
+   top: 0 and its own 0.72rem it hung above the line it numbers. */
+.chunk {
+  --num-top: 0rem;
+  --num-font: calc(1.12rem * var(--heading-scale));
+}
+.chunk:has(> .chunk-label) { --num-font: 0.82rem; }
+.chunk-statement { --num-font: 1.5rem; }
+/* A figure's heading is a caption under the picture; its first line is the
+   picture's top edge, so the number takes a small line there. */
+.chunk-figure { --num-font: 0.82rem; }
 .chunk-num {
   position: absolute;
-  top: 0;
+  top: calc(var(--num-top) + var(--num-font) * 0.16);
+  height: calc(var(--num-font) * 1.6);
   left: -2.2rem;
   display: flex;
   flex-direction: column;
@@ -361,10 +394,30 @@ main p, main li, main dd, main blockquote { orphans: 3; widows: 3; }
    lecture that turns the markers off does not get them back in the handout. */
 body[data-slide-nums=horizontal] .chunk-num { flex-direction: row; gap: 0.08em; }
 body[data-slide-nums=off] .chunk-num { display: none; }
+/* Beside the type label the number shares its baseline instead of its
+   middle. Both are the sans, so the eye compares the two baselines, and
+   lining figures centred on small capitals stand out above and below them
+   and read as dropped. An absolute box has no baseline to share, so the
+   number carries a strut set exactly as the label is - its size, its
+   line-height, its family - at the label's top, and the digits sit on the
+   strut's baseline. The negative margin takes back the gap the strut adds
+   as one more flex item. */
+body[data-slide-nums=horizontal] .chunk:has(> .chunk-label) > .chunk-num {
+  top: var(--num-top);
+  height: auto;
+  align-items: baseline;
+}
+body[data-slide-nums=horizontal] .chunk:has(> .chunk-label) > .chunk-num::before {
+  content: '\200b';
+  font-size: 0.82rem;
+  line-height: 1.6;
+  margin-right: calc(-0.08 * 0.72rem);
+}
 
 .chunk-principle {
   border-top: 2.5pt solid var(--ink);
   padding-top: 1rem;
+  --num-top: 1rem;
   margin-top: 2.8rem;
 }
 .chunk-principle .chunk-heading { font-size: 1.25rem; }
@@ -373,11 +426,13 @@ body[data-slide-nums=off] .chunk-num { display: none; }
 .chunk-definition {
   border-top: 0.5pt solid var(--rule);
   padding-top: 0.7rem;
+  --num-top: 0.7rem;
 }
 
 .chunk-question {
   margin: 2.5rem 0;
   padding: 0.8rem 0;
+  --num-top: 0.8rem;
 }
 .chunk-question .chunk-heading {
   font-size: 1.5rem;
