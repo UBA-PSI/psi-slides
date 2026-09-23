@@ -276,7 +276,7 @@ async function highlights({ browser, ok, note }) {
        'and marking it merges the two into one highlight that keeps the note', JSON.stringify({ m1, st }));
 
     // ── what cannot be marked ──
-    for (const [needle, what] of [['const secret', 'a code block'], ['Alpha', 'a figure']]) {
+    for (const [needle, what] of [['Alpha', 'a figure']]) {
       await selectText(p, needle);
       await p.waitForTimeout(150);
       ok(!(await buttonShown(p)), `a selection inside ${what} is refused`);
@@ -901,6 +901,21 @@ edge a -> ${v2 ? 'c' : 'b'}
 ## figure: A picture {#pic}
 
 ![A gradient](pic)
+
+## example: Some code {#code}
+
+Words before the code.
+
+\`\`\`js
+${v2 ? '// a line added above\n' : ''}const secret = 1;
+function add(a, b) {
+  return a + b + secret;
+}
+\`\`\`
+
+$$a^2 + b^2 = c^2$$
+
+Words after the code.
 `;
 
 async function figures({ browser, ok, note }) {
@@ -1061,8 +1076,8 @@ async function figures({ browser, ok, note }) {
       fill: getComputedStyle(document.querySelector('#ctr .dg-el[id$="-b"] rect')).fill,
       pins: document.querySelectorAll('#ctr .rd-pin').length,
     }));
-    ok(!docFig.lb && JSON.stringify(docFig.tinted) === '["a","b"]' && docFig.pins === 3 && docFig.fill !== 'rgb(250, 250, 247)',
-       'the close button closes it, and in the document both parts are tinted and three discs drawn', JSON.stringify(docFig));
+    ok(!docFig.lb && JSON.stringify(docFig.tinted) === '["a","b"]' && docFig.pins === 2 && docFig.fill !== 'rgb(250, 250, 247)',
+       'the close button closes it, and in the document both parts are tinted and their two dots drawn', JSON.stringify(docFig));
 
     // ── a pin in the document opens its card, not the lightbox ──
     await p.click(`#ctr .rd-pin[data-hl="${onB.id}"]`);
@@ -1079,12 +1094,66 @@ async function figures({ browser, ok, note }) {
     const walk = [];
     for (let i = 0; i < 4; i++) { await p.keyboard.press('n'); await p.waitForTimeout(60); walk.push(await focusedCard()); }
     const pos = await p.evaluate(() => document.querySelector('.rd-pos').textContent);
-    const nums = await p.evaluate(() => [...document.querySelectorAll('main .rd-pin')].map(d => d.querySelector('.rd-pin-s').textContent));
+    const nums = await p.evaluate(() => [...document.querySelectorAll('main .rd-pin-p')]
+      .filter(t => getComputedStyle(t).display !== 'none' && t.getBoundingClientRect().width > 0).length);
     ok(JSON.stringify(walk) === JSON.stringify([whole.id, onB.id, onA.id, spot.id]) && pos === '4 / 4',
        'n walks the figure highlights in the page\'s order', JSON.stringify({ walk, pos }));
-    ok(JSON.stringify(nums) === '["1","2","3","4"]', 'each disc carries its place on that way', JSON.stringify(nums));
+    ok(nums === 0, 'on screen no figure highlight shows a number, as no text highlight does', String(nums));
     const counts = (await navState(p)).counts;
     ok(counts.ctr === '3' && counts.pic === '1', 'and the contents count them per slide', JSON.stringify(counts));
+
+    // ── code blocks and formulas ──
+    // A prose highlight after the code first: marking the code must not move
+    // its offsets, which leave code out.
+    await selectText(p, 'Words after the code');
+    await p.waitForTimeout(150);
+    await p.click('.rd-mark-btn');
+    await p.mouse.click(700, 20);
+    const prose = (await entries()).find(h => h.chunk === 'code' && !h.type);
+    await selectText(p, 'return a + b', '#code pre');
+    await p.waitForTimeout(150);
+    ok(await buttonShown(p), 'a selection in a code block brings up the button, and no lightbox',
+       String(await lbOpen()));
+    await p.click('.rd-mark-btn');
+    await p.waitForTimeout(100);
+    await p.keyboard.type('Why add secret?');
+    await p.mouse.click(700, 20);
+    st = await entries();
+    const code = st.find(h => h.type === 'code') || {};
+    const cm = await p.evaluate(() => {
+      const ms = [...document.querySelectorAll('#code pre mark.rd-hl')];
+      return { text: ms.map(m => m.textContent).join(''), n: ms.length, mono: /mono/i.test(getComputedStyle(ms[0]).fontFamily),
+               bg: getComputedStyle(ms[0]).backgroundColor, tokenColour: getComputedStyle(ms[0]).color !== getComputedStyle(document.querySelector('#code pre')).color };
+    });
+    ok(code.chunk === 'code' && code.block.kind === 'code' && code.block.index === 0 && code.block.key === 'const secret = 1;'
+       && code.quote === 'return a + b' && code.prefix.endsWith('{\n  '),
+       'it is anchored in the block\'s own text: the block by place and first line, then the quote and its context', JSON.stringify(code));
+    ok(cm.text === 'return a + b' && cm.n > 1 && cm.mono && cm.bg !== 'rgba(0, 0, 0, 0)',
+       'the marks are laid round each token, in the code\'s monospace, on the yellow ground', JSON.stringify(cm));
+    ok((await entries()).find(h => h.id === prose.id).start === prose.start, 'and the prose highlight beside it keeps its offsets');
+    await p.click('#code pre mark.rd-hl');
+    await p.waitForTimeout(100);
+    ok(!(await lbOpen()) && await focusedCard() === code.id, 'a click on a code highlight opens its card, not the lightbox');
+    await p.click('#code pre', { position: { x: 5, y: 5 } });
+    await p.waitForTimeout(150);
+    const clone = await p.evaluate(() => ({ marks: document.querySelectorAll('#lightbox pre mark.rd-hl').length,
+      btn: document.querySelectorAll('#lightbox .rd-fig-btn').length, bar: !!document.querySelector('#lightbox .rd-lb-bar') }));
+    ok(await lbOpen() && clone.marks === cm.n && !clone.btn && !clone.bar,
+       'a click beside it opens the lightbox, which shows the marks and no button or bar', JSON.stringify(clone));
+    await p.keyboard.press('Escape');
+    await p.waitForTimeout(100);
+    for (const [sel, kind, key] of [['#code pre', 'code', 'const secret = 1;'], ['#code .math-display', 'formula', 'a^2 + b^2 = c^2']]) {
+      await p.hover(sel);
+      await p.click(sel + ' > .rd-fig-btn');
+      await p.waitForTimeout(100);
+      const h = (await entries()).find(x => x.type === 'block' && x.block.kind === kind) || {};
+      const g = await p.evaluate((sel) => ({ lb: document.body.classList.contains('lb-open'),
+        frame: getComputedStyle(document.querySelector(sel)).outlineStyle }), sel);
+      ok(!g.lb && g.frame === 'solid' && h.chunk === 'code' && h.block.key === key && h.block.index === 0,
+         `the ${kind}'s corner button marks it whole, framed, and does not open the lightbox`, JSON.stringify({ g, h }));
+      await p.keyboard.press('Escape');
+    }
+    ok((await navState(p)).counts.code === '4', 'the contents count them with the slide\'s prose highlight');
 
     // ── export and import ──
     const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.rd-menu .rd-export')]);
@@ -1095,18 +1164,22 @@ async function figures({ browser, ok, note }) {
        && md.includes('*Figure “Counter mode”, at “Beta”*\n\nWhy Beta?\n') && md.includes('*Figure “A gradient”, a spot in it*\n\nHere?\n')
        && md.includes('"at":{"el":"b",'),
        'the export names the figure and the part a pin is on, and carries the anchor', md);
+    ok(md.includes('*Code, line 3*\n\n> return a + b\n\nWhy add secret?\n') && md.includes('*Code “const secret = 1;”*\n')
+       && md.includes('*Formula “a^2 + b^2 = c^2”*\n'),
+       'and names code by its line and a whole block or formula by its first line', md);
     const before = await entries();
     await p.click('.rd-menu .rd-delete-all');
     await p.waitForTimeout(100);
-    ok(await p.evaluate(() => !document.querySelector('main .rd-pin, main .rd-el, main .rd-fig-whole, main .rd-fig-box')),
-       'delete all takes every disc, tint, frame and wrapper off the figures');
+    ok(await p.evaluate(() => !document.querySelector('main .rd-pin, main .rd-el, main .rd-fig-whole, main .rd-fig-box, main .rd-fig-no, main .rd-block-whole, main mark')),
+       'delete all takes every dot, tint, frame, number and wrapper off the figures and blocks');
     const [chooser] = await Promise.all([p.waitForEvent('filechooser'), p.click('.rd-menu .rd-import')]);
     await chooser.setFiles(file);
     await p.waitForTimeout(200);
     const rep = await p.evaluate(() => document.querySelector('.rd-report').textContent);
-    ok(rep === 'Imported: 4 new, 0 updated, 0 not found in this version.'
+    ok(rep === 'Imported: 8 new, 0 updated, 0 not found in this version.'
        && JSON.stringify((await entries()).map(h => h.id).sort()) === JSON.stringify(before.map(h => h.id).sort())
-       && await p.evaluate(() => document.querySelectorAll('main .rd-pin').length) === 4,
+       && await p.evaluate(() => document.querySelectorAll('main .rd-pin').length) === 3
+       && await p.evaluate(() => document.querySelectorAll('main .rd-block-whole').length) === 2,
        'import puts them back on their figures', rep);
 
     // ── paper ──
@@ -1119,6 +1192,11 @@ async function figures({ browser, ok, note }) {
         adjust: getComputedStyle(document.querySelector('#ctr svg.psi-diagram')).printColorAdjust,
         screenNums: [...document.querySelectorAll('.rd-pin-s')].filter(vis).length,
         discs: [...document.querySelectorAll('main .rd-pin')].filter(vis).map(d => d.querySelector('.rd-pin-p').textContent),
+        wholeNo: [...document.querySelectorAll('main .rd-fig-no')].filter(vis).map(n => n.textContent),
+        wholeR: (() => { const n = document.querySelector('#ctr .rd-fig-no').getBoundingClientRect(); const d = document.querySelector('#ctr svg.psi-diagram').getBoundingClientRect(); return n.left >= d.right && n.top <= d.top + 20; })(),
+        dotR: [...document.querySelectorAll('main svg .rd-pin .rd-dot')].map(c => Math.round(c.getBoundingClientRect().width)),
+        pre: getComputedStyle(document.querySelector('#code pre')).outlineStyle,
+        codeMark: getComputedStyle(document.querySelector('#code pre mark.rd-hl')).printColorAdjust,
         notes: [...document.querySelectorAll('.rd-pnote')].map(n => n.textContent),
         mainRight: document.querySelector('main').getBoundingClientRect().right,
         noteLeft: Math.min(...[...document.querySelectorAll('.rd-pnote')].map(n => n.getBoundingClientRect().left)),
@@ -1126,10 +1204,13 @@ async function figures({ browser, ok, note }) {
     });
     ok(paper.btns === 0 && paper.outline === 'solid' && paper.adjust === 'exact' && paper.screenNums === 0,
        'printed: the frame stays and asks to be printed, the buttons and the screen numbers go', JSON.stringify(paper));
-    ok(JSON.stringify(paper.discs) === '["1","2","","3"]'
-       && JSON.stringify(paper.notes) === JSON.stringify(['1The whole picture?', '2Why Beta?', '3Here?'])
+    ok(JSON.stringify(paper.discs) === '["2","","3"]' && JSON.stringify(paper.wholeNo) === '["1"]' && paper.wholeR
+       && JSON.stringify(paper.notes) === JSON.stringify(['1The whole picture?', '2Why Beta?', '3Here?', '4Why add secret?'])
        && paper.noteLeft >= paper.mainRight,
-       'each disc with a note carries its note\'s number, and the notes stand in the margin', JSON.stringify(paper));
+       'printed, a dot with a note carries its number, a whole figure has it beside its frame\'s top right, the notes in the margin',
+       JSON.stringify(paper));
+    ok(paper.dotR[0] > paper.dotR[1] && paper.pre === 'solid' && paper.codeMark === 'exact',
+       'a dot with a number is larger than one without, and code prints its frame and its yellow', JSON.stringify(paper));
     const pdf = await p.pdf({ format: 'A4', preferCSSPageSize: true });
     ok(pdf.subarray(0, 4).toString() === '%PDF', 'and it prints to a PDF');
     await p.emulateMedia({ media: 'screen' });
@@ -1153,6 +1234,14 @@ async function figures({ browser, ok, note }) {
        'the pin on a part follows it when every dg<N> in the figure has moved', JSON.stringify(moved));
     ok(moved.bIn && /Approximate/.test(moved.approx || '') && moved.lost === 0,
        'a pin whose part was renamed stays on the figure at its spot, and its card says it is approximate', JSON.stringify(moved));
+    st = await entries();
+    const code2 = st.find(h => h.type === 'code') || {};
+    const codeBlock = st.find(h => h.type === 'block' && h.block.kind === 'code') || {};
+    ok(code2.start > code.start && code2.block.key === '// a line added above' && codeBlock.block.key === '// a line added above'
+       && squash((await marks(p)).find(t => t.includes('return')) || '') === 'return a + b'
+       && await p.evaluate(() => document.querySelector('#code pre').classList.contains('rd-block-whole')),
+       'a line added above the code: the block is found by its place, the quote by its words, and the key rewritten',
+       JSON.stringify({ code2, codeBlock }));
     ok(errors.length === 0, 'figures: no page errors', errors.join(' | '));
     note('figures: whole, spot in a picture, part of a diagram, n/p, export and import, paper, rebuilt');
   } finally {

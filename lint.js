@@ -316,7 +316,8 @@ const LABEL_KEYS = new Set([
   'reader-export-line', 'reader-imported', 'reader-import-none',
   'reader-import-skipped', 'reader-deleted-all',
   'reader-fig-mark', 'reader-lb-spot', 'reader-lb-close', 'reader-fig',
-  'reader-fig-at', 'reader-fig-spot', 'reader-fig-approx',
+  'reader-fig-at', 'reader-fig-spot', 'reader-fig-approx', 'reader-code-mark',
+  'reader-formula-mark', 'reader-code', 'reader-code-block', 'reader-formula',
 ]);
 const LABEL_TYPE_KEYS = new Set([
   'principle', 'definition', 'example', 'question', 'exercise', 'outline', 'figure',

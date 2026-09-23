@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Fifteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 46 specs, 1330
+- **`test/`** – the things that only break in a built page. 46 specs, 1374
   assertions, about twelve minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
@@ -157,8 +157,7 @@ page, that the notes column it keeps free fits at each width, and that none of
 it reaches paper, a page without scripts, or a deck that says `reader: off`.
 Its second half is the reader's highlights, on a second fixture deck: that a
 selection is marked with the button and its note stored, that an overlapping
-one merges and one in a figure, formula, code block or speaker note is
-refused, that a reload and the other document paint the same highlights at
+one merges and one in a figure, formula or speaker note is refused, that a reload and the other document paint the same highlights at
 the same offsets, that remove and delete-note undo, that a rebuild moves a
 highlight with its words and lists one whose words are gone, where the card
 stands at 1440, 1100 and 390, and that a browser refusing storage still
@@ -183,18 +182,24 @@ older copy ignored, a newer one winning, an unknown `type` kept and listed),
 an import into a rebuilt document where one quote moved and one vanished,
 input that is not an export, the undo of delete all, the German file name,
 and the menu inside the opened sidebar at 390. And the figures, on a third
-deck with a diagram and a picture: that the corner button shows on hover,
+deck with a diagram, a picture, a code block and a formula: that the corner
+button shows on hover,
 frames the figure and opens its card without opening the lightbox, and does
-not make a second frame; that marking in the lightbox sets a disc at
+not make a second frame; that marking in the lightbox sets a dot at
 fractions of the picture while a drag still pans, with the card over the
 overlay being the one card the entry has; that on the diagram the part under
 the pointer is outlined and the pin keeps the part's name without its
-`dg<N>` prefix; that a disc opens its card in the document and in the
-lightbox; that `n` walks figure highlights in page order and the discs carry
-those numbers; the export's figure lines, delete all and import; the frame,
-the discs' note numbers and the notes on paper; and a rebuild with a figure
-added above, where a pin follows its part and one whose part was renamed
-stays at its spot and is called approximate.
+`dg<N>` prefix; that a dot opens its card in the document and in the
+lightbox; that `n` walks figure highlights in page order and nothing is
+numbered on screen; that a selection in a code block is highlighted in the
+block's own text, token by token in monospace, without moving a prose
+highlight's offsets, and opens its card rather than the lightbox, whose clone
+shows the marks; that the corner buttons of a code block and a formula frame
+them whole; the export's figure and code lines, delete all and import; the
+frames, the dots' and the whole figure's note numbers and the notes on paper;
+and a rebuild with a figure added above and a line added to the code, where a
+pin follows its part, one whose part was renamed stays at its spot and is
+called approximate, and the code highlight follows its words.
 
 **The figures** – the `figure-*` specs, which measure the SVG.
 `figure-framing` catches a drawing sitting off-centre in an oversized frame;

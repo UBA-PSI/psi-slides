@@ -47,9 +47,10 @@ right margin with the cursor in an empty textarea. Leaving the textarea
 empty is fine: a highlight without a note is the common case.
 
 **What can be highlighted.** Running text, lists, tables, headings of a chunk,
-blockquotes. Not: a `::: draw` figure, a KaTeX formula, a code block (those
-open the lightbox on click), the speaker-note asides in `print-notes.html`,
-anything the build invents (slide numbers, labels). A selection that crosses
+blockquotes – and, since slice 6, the words of a code block, anchored in the
+block's own text (§11). Not by selection: a `::: draw` figure and a KaTeX
+formula, which have their own way in (§11), the speaker-note asides in
+`print-notes.html`, anything the build invents (slide numbers, labels). A selection that crosses
 a chunk boundary is clipped to the chunk it started in. A selection that
 overlaps an existing highlight extends/merges into it rather than being
 refused.
@@ -460,18 +461,25 @@ Decided in slice 6:
   no hover it stands at 55 % opacity. Pressed on a figure that is marked
   whole already, it opens that highlight's card rather than drawing a second
   frame.
-- **The whole figure's disc sits on the frame's top left corner**, clear of
-  the corner button and of a pin on a part in the top right, where a
-  diagram's first part usually is. A pin on a part stands on the part's top
-  right corner, a pin on an arrow at its middle, and a spot where it was
-  put.
-- **On screen a disc carries the highlight's place on the way through them
-  all** – the number the pill counts – and on paper the number of its note.
-  The script writes both and each medium hides the other. A figure gets no
-  superscript; its note in the margin stands at the top of the figure. A
-  whole figure without a note prints its frame and no disc.
-- **A disc is sized after the document's figure**, about a label's size
-  there, and scales with the zoom in the lightbox.
+- **The text highlight's rule holds for figures: yellow on screen, numbers
+  only on paper**, where they tie a mark to its note in the margin. On
+  screen a whole figure is a thin frame (2 px, 3 px clear of the drawing)
+  and nothing else; a spot is a small unnumbered yellow dot with a thin dark
+  edge, which reads on any drawing, with a larger ring round it that takes
+  the click. On paper a spot with a note grows to hold the note's number, a
+  whole figure has its number beside the frame's top right corner – the
+  side of the margin its note stands in, in the superscripts' size and
+  weight – and its note stands level with the figure's top. A first design
+  numbered the discs on screen with their place on the way through the
+  highlights and put a heavy numbered disc on the frame's corner; it read
+  as a glitch, and a number on screen is something no text highlight has.
+- A pin on a part stands on the part's top right corner, a pin on an arrow
+  at its middle, and a spot where it was put. A dot is the same few pixels
+  wide in the document and in the lightbox at the size each draws the
+  figure, and grows with the lightbox's zoom.
+- **Printed, a frame is drawn on the drawing's edge rather than outside
+  it**: paper clips at the page area, and a picture or a code block
+  standing on the column's left edge lost its frame's left side there.
 - **The card in the lightbox is the margin card itself**, lent to the
   overlay while it is open and given back when it closes, so there is one
   textarea and one entry. It stands right of its pin, or left where the
@@ -502,6 +510,42 @@ Decided in slice 6:
   with no words is named by the part's name.
 - The undo notice stands above the lightbox, because a pin can be removed
   there.
+
+**Code blocks and display formulas** (added in slice 6, at the user's
+request). They open in the lightbox like a figure, and a reader's question is
+as often about a line of code as about a sentence.
+
+- **Both get the corner button**, which marks the block whole: the same thin
+  frame, a card, and on paper the note's number beside the frame's top
+  right. Its click never opens the lightbox.
+- **The words of a code block can be selected and highlighted like prose.**
+  A selection that starts in a block is clipped to it. A drag-selection
+  already opened no lightbox (the lightbox ignores a click that ends a
+  selection), and a click on a code highlight opens its card rather than
+  the lightbox. The marks are laid round each text node a Shiki token holds,
+  so the code keeps its face and its colours and only the ground turns
+  yellow.
+- **Code is anchored in its own space, never in the slide's reader text**:
+  adding `pre` to that text would have moved the offsets of every highlight
+  in a slide with code. An entry is `type: 'code'` with `block: { kind:
+  'code', index, key }` – the block's place among the slide's code blocks
+  and its first non-empty line – and offsets, quote, prefix and suffix
+  within the block's text, re-anchored with the steps of §4. The block is
+  found by key at its index, else by key, else by index alone, and a
+  changed key is written back.
+- **A whole block is `type: 'block'`** with the same `block` field, `kind`
+  `code` or `formula`; a formula's key is its TeX. A formula takes no
+  selection – KaTeX sets glyphs one to a box.
+- **No pins in the lightbox for code or formulas**, and no bar: the
+  lightbox shows the clone as it is, marks and frame with it, without the
+  corner button.
+- **The export names them** – *Code, line 3* over the quote, *Code “const
+  secret = 1;”*, *Formula “a^2 + b^2 = c^2”* – in `STRINGS` (*Code, Zeile
+  3*, *Formel „…“*).
+- A formula's button stays inside a one-line formula's box: the box
+  scrolls, and a button taller than it made the box scrollable and a focus
+  cut off its superscripts. A mouse press does not focus it; a keyboard
+  focus scrolls the box back.
 
 ## 12. Not in this plan
 

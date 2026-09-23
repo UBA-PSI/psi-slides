@@ -38,8 +38,8 @@ from building the same way is a major version.
   highlight, or under its paragraph in a narrow window. A click on a
   highlight opens its card again; *Remove highlight* and *Delete note* act at
   once and leave five seconds to undo. A selection that overlaps a highlight
-  grows it. Figures, formulas, code and speaker notes cannot be selected
-  into a highlight. The highlights stay in the reader's browser, filed under
+  grows it. Speaker notes, figures and formulas cannot be selected into a
+  highlight; the last two have a way of their own (below). The highlights stay in the reader's browser, filed under
   the lecture's folder name: the two documents share them in Chrome, in
   Safari and under `--serve`, while Firefox keeps one store per file. A rebuild that
   moves the words carries the highlight with them; one that removes them
@@ -88,19 +88,31 @@ from building the same way is a major version.
   it; it frames the figure in yellow and opens a note card, and does not
   open the lightbox. In the lightbox a bar holds *Mark a spot* (also `m`)
   and a close button: the cursor becomes a crosshair, a click that did not
-  drag sets a numbered disc and opens its card beside it, and a drag still
-  pans. On a diagram the disc snaps to the part under the pointer, which is
+  drag sets a small yellow dot and opens its card beside it, and a drag
+  still pans. On a diagram the disc snaps to the part under the pointer, which is
   outlined while marking and tinted yellow once marked, and it follows that
   part through a rebuild – also one that adds a figure above it. A part that
-  is gone leaves the disc where it was and the card says so. The discs are
+  is gone leaves the dot where it was and the card says so. The dots are
   drawn in the figure's own coordinates, so they stand in the same place in
-  the document, the lightbox and on paper. Figure highlights join the
+  the document, the lightbox and on paper. As with text, nothing is
+  numbered on screen; on paper a dot with a note carries its note's number,
+  and a whole figure has it beside its frame. Figure highlights join the
   margin cards, `n` / `p`, the counts in the contents, the export – which
-  names the figure and the part – the import and print, where a disc
-  carries the number of its note in the margin. A drag on a picture in the
+  names the figure and the part – the import and print. A drag on a picture in the
   lightbox now pans; the browser's own drag of the image used to end it
   after the first move. Seven new label keys, `reader-fig-mark` to
   `reader-fig-approx`.
+- **A reader can highlight code, and mark a code block or a formula
+  whole.** Words in a code block are selected and highlighted as prose is –
+  only their ground turns yellow, the code keeps its face and colours – and
+  a click on one opens its card rather than the lightbox. A code block and
+  a display formula carry the corner button as a figure does, which frames
+  the block and opens a card. Code highlights are anchored in the block's
+  own text, so highlights in a slide's prose keep their places, and they
+  follow their words when lines are added above. The export names them
+  (*Code, line 3*; *Formula “a^2 + b^2 = c^2”*), and they join `n` / `p`,
+  the counts, the import and print. Five new label keys,
+  `reader-code-mark` to `reader-formula`.
 
 - **A figure's labels are set at the size of the words beside them.** In
   the live views a `::: draw` figure used to fill its column whatever that
