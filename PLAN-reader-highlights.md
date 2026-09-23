@@ -193,6 +193,35 @@ people. Download via a `Blob` link, `<lecture-key>-markierungen.md`.
 Headings in the export use the lecture's `lang:`: the few words the reader
 UI invents go into `STRINGS` (`de` and `en`), like every other built word.
 
+Decided in slice 4:
+
+- **The counts stand after a colon** – *Markierungen: 12, mit Notiz: 5*
+  rather than *12 Markierungen, 5 mit Notiz* – so one string serves 1 and 12
+  and no word has to agree with a number. The same for the import report.
+- **The comments are escaped, not trusted:** two hyphens in a row inside the
+  entry's JSON are written `-\u002d`, which reads back the same and cannot
+  end the comment early (a note saying `-->` is the case).
+- **Headings name the slide as the contents sidebar does**, number first
+  (none under `slide-numbers: off`), then `{#id}`. A divider lede's entries
+  stand under the part heading. Entries a rebuild could not place stand under
+  `## <reader-orphans>`, each with a `###` slide heading; an entry of a type
+  the build does not paint (a figure's, §11, before slice 6) is written there
+  with `fig.key` as its quote line, and import keeps it rather than refusing
+  it.
+- **Import counts** new, updated (a newer `edited`) and, among those two,
+  the ones it could not place. An older or equal copy is skipped silently.
+  A comment that does not parse to an entry is counted and named in the same
+  line; a file with none is *Diese Datei enthält keine Markierungen.*
+- **The menu:** *export* and *alle löschen* stand only while there is
+  something in the store; *importieren* and one line on what the export is
+  for stand always, because a reader in a new browser has nothing yet. The
+  line says what holds everywhere – highlights stay in this browser, an
+  export carries them to another one or to the other document – rather than
+  guessing whether this browser keeps the two documents apart, which a page
+  cannot ask.
+- The import button clears the file field before it opens the chooser, so
+  the same file chosen twice is read twice.
+
 ## 6. Layout
 
 **Screen, wide** (≥ ~1280 px; to be measured, not guessed):

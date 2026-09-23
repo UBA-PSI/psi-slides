@@ -58,6 +58,21 @@ from building the same way is a major version.
   modifier held, or while the lightbox or the contents lie over the page.
   The contents sidebar shows each slide's number of highlights beside its
   entry. Five new label keys, `reader-nav` to `reader-filter-notes`.
+- **A reader can export their highlights to a Markdown file and import them
+  again.** The foot of the contents sidebar holds *Export highlights (.md)*,
+  *Import* and *Delete all*. The export downloads as
+  `<lecture folder>-highlights.md` (`-markierungen.md` under `lang: de`) and
+  reads as it stands: a heading per slide with the number the page prints,
+  its name and its `{#id}`, each quote as a blockquote with its note under
+  it, and the highlights a rebuild could not place under a heading of their
+  own. Each entry also rides in an HTML comment, and *Import* reads only
+  those: it merges by entry, the later edit winning, places each one the way
+  a page load does, and says in one line how many were new, updated and not
+  found. A file with nothing to read, or with a broken entry, is reported and
+  changes nothing else. *Delete all* leaves five seconds to undo. The export
+  is how highlights move to another browser, and between the two documents
+  where the browser keeps them apart, which one line under the menu says.
+  Ten new label keys, `reader-export` to `reader-deleted-all`.
 
 - **A figure's labels are set at the size of the words beside them.** In
   the live views a `::: draw` figure used to fill its column whatever that

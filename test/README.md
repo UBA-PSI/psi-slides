@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Fifteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 46 specs, 1294
+- **`test/`** – the things that only break in a built page. 46 specs, 1322
   assertions, about twelve minutes, one Chromium for the whole run.
 
 `npm test` runs the gates first, so a compiler regression fails in a second
@@ -167,6 +167,14 @@ per-slide counts come with the first highlight and go with the last, that
 `n` and `p` walk them in page order and stop at the ends, that the *with
 note* filter narrows both the count and the walk, and that the keys are
 ignored in a note field, with a modifier held, and under the lightbox.
+Last, export and import, on a store of their own: the download's name and
+its Markdown (title, counts, slide headings with the printed number, quote
+and note, one data comment per entry that is the stored entry exactly), that
+export, delete all and import give back the same store, the merge rules (an
+older copy ignored, a newer one winning, an unknown `type` kept and listed),
+an import into a rebuilt document where one quote moved and one vanished,
+input that is not an export, the undo of delete all, the German file name,
+and the menu inside the opened sidebar at 390.
 
 **The figures** – the `figure-*` specs, which measure the SVG.
 `figure-framing` catches a drawing sitting off-centre in an oversized frame;

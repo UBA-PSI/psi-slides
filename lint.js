@@ -311,7 +311,10 @@ const LABEL_KEYS = new Set([
   'reader-mark', 'reader-note', 'reader-note-clear', 'reader-remove',
   'reader-removed', 'reader-note-cleared', 'reader-undo', 'reader-orphans',
   'reader-orphan-remove', 'reader-session', 'reader-nav', 'reader-prev',
-  'reader-next', 'reader-filter-all', 'reader-filter-notes',
+  'reader-next', 'reader-filter-all', 'reader-filter-notes', 'reader-export',
+  'reader-import', 'reader-delete-all', 'reader-export-help', 'reader-export-file',
+  'reader-export-line', 'reader-imported', 'reader-import-none',
+  'reader-import-skipped', 'reader-deleted-all',
 ]);
 const LABEL_TYPE_KEYS = new Set([
   'principle', 'definition', 'example', 'question', 'exercise', 'outline', 'figure',

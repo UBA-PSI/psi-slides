@@ -577,6 +577,224 @@ async function highlights({ browser, ok, note }) {
   }
 }
 
+// Export, import and delete all (plan §5), on a store of their own: a round
+// trip through the file, the merge rules one entry at a time, an import into
+// a rebuilt document where one quote moved and one is gone, input that is
+// not an export, and the undo of delete all.
+async function transfer({ browser, ok, note }) {
+  const dir = tmpDir('psi-reader-io-');
+  const built = build(dir, hlDeck());
+  ok(built.status === 0, 'export: the fixture deck builds', (built.stdout || '') + (built.stderr || ''));
+  if (built.status !== 0) return;
+  const deDir = tmpDir('psi-reader-io-de-');
+  build(deDir, hlDeck().replace('title: Highlight fixture\n', 'title: Highlight fixture\nlang: de\n'));
+  const { server, port } = await serve(dir);
+  const de = await serve(deDir);
+  const errors = [];
+  const ctx = await browser.newContext({ viewport: { width: 1440, height: 900 }, acceptDownloads: true });
+  const open = async (c = ctx, at = port) => {
+    const p = await c.newPage();
+    p.on('pageerror', e => errors.push(String(e)));
+    await p.goto(`http://127.0.0.1:${at}/print.html`, { waitUntil: 'load' });
+    await p.waitForTimeout(250);
+    return p;
+  };
+  const make = async (p, needle, text) => {
+    await selectText(p, needle);
+    await p.waitForTimeout(150);
+    await p.click('.rd-mark-btn');
+    await p.waitForTimeout(100);
+    if (text) await p.keyboard.type(text);
+    await p.mouse.click(700, 20);
+    await p.waitForTimeout(60);
+  };
+  const exportNow = async (p) => {
+    const [dl] = await Promise.all([p.waitForEvent('download'), p.click('.rd-menu .rd-export')]);
+    const file = path.join(dir, 'export-' + Date.now() + '.md');
+    await dl.saveAs(file);
+    return { name: dl.suggestedFilename(), file, md: fs.readFileSync(file, 'utf8') };
+  };
+  const importFile = async (p, file) => {
+    // Through the button, as a reader does: it clears the file field first,
+    // so the same file chosen twice is read twice.
+    const [chooser] = await Promise.all([p.waitForEvent('filechooser'), p.click('.rd-menu .rd-import')]);
+    await chooser.setFiles(file);
+    await p.waitForTimeout(200);
+    return p.evaluate(() => {
+      const r = document.querySelector('.rd-report');
+      return r && !r.hidden ? r.textContent : '';
+    });
+  };
+  const menu = (p) => p.evaluate(() => {
+    const vis = (sel) => { const b = document.querySelector(sel); return !!b && !b.hidden && b.getBoundingClientRect().width > 0; };
+    return { export: vis('.rd-menu .rd-export'), import: vis('.rd-menu .rd-import'), all: vis('.rd-menu .rd-delete-all'),
+             help: (document.querySelector('.rd-menu .rd-help') || {}).textContent || '' };
+  });
+  const dataOf = (md) => [...md.matchAll(/<!-- psi-reader (.*?) -->/g)].map(m => JSON.parse(m[1]));
+  try {
+    const p = await open();
+    let m = await menu(p);
+    ok(m.import && !m.export && !m.all && /another browser/.test(m.help),
+       'export: with no highlights the foot offers import and says what an export is for, not export or delete all',
+       JSON.stringify(m));
+
+    await make(p, 'initialisation vector is XORed', 'Why the IV?\nAnd not the key?');
+    await make(p, 'Divider lede');
+    await make(p, 'quoted sentence that will move');
+    await make(p, 'unlucky quote', 'Lost -- note -->');
+    m = await menu(p);
+    ok(m.export && m.all, 'with highlights, export and delete all are offered', JSON.stringify(m));
+    const before = (await stored(p)).items;
+
+    // ── the file ──
+    const ex = await exportNow(p);
+    ok(ex.name === path.basename(dir) + '-highlights.md', 'the download is named <lecture folder>-highlights.md', ex.name);
+    const md = ex.md;
+    const termNum = await p.evaluate(() => document.getElementById('term').dataset.chunkNum);
+    ok(md.startsWith('# Highlights – Highlight fixture\n') && /\nExported on .+\. Highlights: 4, with a note: 2\.\n/.test(md),
+       'it opens with the lecture\'s title and one line of counts', md.split('\n').slice(0, 3).join(' | '));
+    ok(md.includes(`\n## ${termNum} · A term {#term}\n\n> initialisation vector is XORed\n\nWhy the IV?\nAnd not the key?\n\n<!-- psi-reader `),
+       'a slide heading carries the number the page prints, its name and its id; the quote is a blockquote with the note under it',
+       md);
+    ok(/\n## First part \{#part-one\}\n\n> Divider lede\n/.test(md), 'a divider lede stands under its part');
+    const order = [...md.matchAll(/^## (.*)$/gm)].map(x => x[1].replace(/^\d+ · /, ''));
+    ok(JSON.stringify(order) === JSON.stringify(['First part {#part-one}', 'A term {#term}', 'Moving words {#moving}', 'Doomed words {#doomed}']),
+       'the slides in the page\'s order', JSON.stringify(order));
+    const data = dataOf(md);
+    ok(data.length === 4 && JSON.stringify(data.map(h => h.id).sort()) === JSON.stringify(before.map(h => h.id).sort())
+       && data.every(h => before.some(b => JSON.stringify(b) === JSON.stringify(h))),
+       'one data comment per entry, each the stored entry exactly', JSON.stringify(data));
+    ok(!/-->[^\n]/.test(md.split('\n').filter(l => l.startsWith('<!--')).join('\n')) && md.includes('Lost -- note -->'),
+       'a note with two hyphens and an arrow in it cannot end its comment early',
+       md.split('\n').filter(l => l.includes('Lost')).join(' | '));
+
+    // ── delete all, and undo ──
+    await p.click('.rd-menu .rd-delete-all');
+    await p.waitForTimeout(100);
+    let g = await p.evaluate(() => ({ marks: document.querySelectorAll('mark.rd-hl').length,
+      toast: !!document.querySelector('.rd-toast:not([hidden])'),
+      pill: !document.querySelector('.rd-nav').hidden }));
+    ok(g.marks === 0 && g.toast && !g.pill && (await stored(p)).items.length === 0,
+       'delete all unwraps every highlight at once, empties the store and offers an undo', JSON.stringify(g));
+    await p.click('.rd-toast .rd-undo');
+    await p.waitForTimeout(100);
+    let st = await stored(p);
+    ok(st.items.length === 4 && (await marks(p)).length === 4 && st.items.some(h => h.note.startsWith('Why the IV?')),
+       'and undo puts every one back, notes and all', JSON.stringify(await marks(p)));
+
+    // ── round trip ──
+    await p.click('.rd-menu .rd-delete-all');
+    await p.waitForTimeout(100);
+    let rep = await importFile(p, ex.file);
+    st = await stored(p);
+    ok(rep === 'Imported: 4 new, 0 updated, 0 not found in this version.', 'import reports what it did in one line', rep);
+    ok(st.items.length === 4 && JSON.stringify([...st.items].sort((a, b) => a.id < b.id ? -1 : 1))
+         === JSON.stringify([...before].sort((a, b) => a.id < b.id ? -1 : 1))
+       && (await marks(p)).length === 4,
+       'export, delete all, import: the same highlights and notes, painted again', JSON.stringify(await marks(p)));
+    rep = await importFile(p, ex.file);
+    ok(rep === 'Imported: 0 new, 0 updated, 0 not found in this version.' && (await stored(p)).items.length === 4,
+       'the same file twice changes nothing', rep);
+
+    // ── merge rules ──
+    const iv = before.find(h => h.quote.startsWith('initialisation'));
+    const lede = before.find(h => h.quote === 'Divider lede');
+    const merge = [
+      '# Hand-edited',
+      '<!-- psi-reader ' + JSON.stringify({ ...iv, note: 'Older', edited: iv.edited - 1000 }) + ' -->',
+      '<!-- psi-reader ' + JSON.stringify({ ...lede, note: 'Newer note', edited: Date.now() + 1000 }) + ' -->',
+      '<!-- psi-reader ' + JSON.stringify({ v: 1, id: 'h-fig', type: 'figure', chunk: 'fig',
+        fig: { index: 0, kind: 'diagram', key: 'A figure' }, at: null, note: 'The arrow?', kind: 'mark',
+        created: 1, edited: 1 }) + ' -->',
+      '<!-- psi-reader {not json} -->',
+      '<!-- psi-reader {"v":1,"id":7} -->',
+    ].join('\n\n');
+    const mergeFile = path.join(dir, 'merge.md');
+    fs.writeFileSync(mergeFile, merge);
+    rep = await importFile(p, mergeFile);
+    st = await stored(p);
+    ok(rep === 'Imported: 1 new, 1 updated, 1 not found in this version. Entries that could not be read: 2.',
+       'merge: an older copy is ignored, a newer one wins, a new id is added, and two unreadable comments are counted', rep);
+    ok(st.items.find(h => h.id === iv.id).note === iv.note && st.items.find(h => h.id === lede.id).note === 'Newer note'
+       && st.items.some(h => h.id === 'h-fig' && h.type === 'figure'),
+       'the store says the same', JSON.stringify(st.items.map(h => [h.id, h.note])));
+    const lostList = await p.evaluate(() => [...document.querySelectorAll('[data-reader-slot=tools] .rd-orphans li')].map(li => li.textContent));
+    ok(lostList.some(t => t.includes('The arrow?')), 'an entry of a type this build cannot paint is kept and listed, not refused',
+       JSON.stringify(lostList));
+    const ex2 = await exportNow(p);
+    ok(/\n## No longer found in this version\n\n### \d+ · A figure \{#fig\}\n\n> A figure\n\nThe arrow\?\n\n<!-- psi-reader \{"v":1,"id":"h-fig","type":"figure"/.test(ex2.md),
+       'and exported under the not-found heading, with its slide and its data', ex2.md.split('## No longer')[1]);
+
+    // ── not an export ──
+    const junk = path.join(dir, 'junk.md');
+    fs.writeFileSync(junk, '# Just notes\n\nNothing of the reader in here. <!-- a comment -->\n');
+    rep = await importFile(p, junk);
+    ok(rep === 'This file holds no highlights.' && (await stored(p)).items.length === 5,
+       'a file with no data in it is reported and changes nothing', rep);
+    fs.writeFileSync(junk, '<!-- psi-reader {"v":1,"id":"x", -->');
+    rep = await importFile(p, junk);
+    ok(rep === 'This file holds no highlights. Entries that could not be read: 1.', 'nor does one whose only entry is broken', rep);
+
+    // ── into a rebuilt document ──
+    await p.click('.rd-menu .rd-delete-all');
+    await p.waitForTimeout(100);
+    const rebuilt = build(dir, hlDeck(true));
+    ok(rebuilt.status === 0, 'export: the fixture rebuilds with other words', rebuilt.stderr);
+    await p.reload({ waitUntil: 'load' });
+    await p.waitForTimeout(250);
+    rep = await importFile(p, ex.file);
+    st = await stored(p);
+    const mv = st.items.find(h => h.chunk === 'moving');
+    const painted = await marks(p);
+    ok(rep === 'Imported: 4 new, 0 updated, 1 not found in this version.', 'an import after a rebuild counts the one it could not place', rep);
+    ok(painted.some(t => squash(t) === 'quoted sentence that will move') && mv.start > 60
+       && st.items.some(h => h.chunk === 'doomed'),
+       'the quote that moved is found and re-anchored, the one that vanished is kept', JSON.stringify({ painted, mv }));
+    const lost2 = await p.evaluate(() => [...document.querySelectorAll('[data-reader-slot=tools] .rd-orphans li')].map(li => li.textContent));
+    ok(lost2.length === 1 && lost2[0].includes('unlucky quote'), 'and listed in the foot', JSON.stringify(lost2));
+    await p.close();
+
+    // ── the words follow lang: ──
+    {
+      const q = await open(ctx, de.port);
+      await make(q, 'initialisation vector');
+      const [dl] = await Promise.all([q.waitForEvent('download'), q.click('.rd-menu .rd-export')]);
+      const f = path.join(dir, 'de.md');
+      await dl.saveAs(f);
+      const txt = fs.readFileSync(f, 'utf8');
+      ok(dl.suggestedFilename() === path.basename(deDir) + '-markierungen.md'
+         && txt.startsWith('# Markierungen – Highlight fixture\n') && /\nExportiert am .+\. Markierungen: 1, mit Notiz: 0\.\n/.test(txt),
+         'lang: de names the file and heads it in German', dl.suggestedFilename() + ' | ' + txt.split('\n').slice(0, 3).join(' | '));
+      await q.close();
+    }
+
+    // ── narrow: the menu is in the sidebar the button opens ──
+    {
+      const c2 = await browser.newContext({ viewport: { width: 390, height: 800 } });
+      await c2.addInitScript(([k, v]) => { if (!localStorage.getItem(k)) localStorage.setItem(k, v); },
+        [st.key, JSON.stringify(st.items)]);
+      const q = await open(c2);
+      await q.click('.rd-toggle');
+      await q.waitForTimeout(250);
+      const g2 = await q.evaluate(() => {
+        const r = document.querySelector('.rd-menu').getBoundingClientRect();
+        const b = [...document.querySelectorAll('.rd-menu button')].map(x => x.getBoundingClientRect());
+        return { inside: r.left >= 0 && r.right <= innerWidth && r.bottom <= innerHeight && r.width > 0,
+                 buttons: b.length === 3 && b.every(x => x.width > 0 && x.right <= innerWidth),
+                 sw: document.documentElement.scrollWidth, w: innerWidth };
+      });
+      ok(g2.inside && g2.buttons && g2.sw <= g2.w, '390px: the menu stands in the opened sidebar, inside the window', JSON.stringify(g2));
+      await c2.close();
+    }
+    ok(errors.length === 0, 'export: no page errors', errors.join(' | '));
+    note('export: file named and shaped, round trip, merge, rebuild, junk, delete all and its undo');
+  } finally {
+    await ctx.close();
+    server.close();
+    de.server.close();
+  }
+}
+
 export async function run({ page, report }) {
   const { ok, note } = report;
   const browser = page.context().browser();
@@ -812,4 +1030,5 @@ export async function run({ page, report }) {
     off.server.close();
   }
   await highlights({ browser, ok, note });
+  await transfer({ browser, ok, note });
 }

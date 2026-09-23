@@ -6266,6 +6266,21 @@ const STRINGS = {
     'reader-next': 'Next highlight',
     'reader-filter-all': 'all',
     'reader-filter-notes': 'with note',
+    // The menu in the contents sidebar's foot: export, import, delete all,
+    // the one line under it, and what the three leave behind. A {name} is
+    // filled in by the page; each count stands after a colon, so no word has
+    // to agree with a number. The file word names the download,
+    // <folder>-<word>.md, and is best left without spaces.
+    'reader-export': 'Export highlights (.md)',
+    'reader-import': 'Import',
+    'reader-delete-all': 'Delete all',
+    'reader-export-help': 'Highlights stay in this browser. An export is a copy you can import elsewhere – in another browser, or in the other version of this document.',
+    'reader-export-file': 'highlights',
+    'reader-export-line': 'Exported on {date}. Highlights: {n}, with a note: {notes}.',
+    'reader-imported': 'Imported: {added} new, {updated} updated, {orphaned} not found in this version.',
+    'reader-import-none': 'This file holds no highlights.',
+    'reader-import-skipped': 'Entries that could not be read: {n}.',
+    'reader-deleted-all': 'All highlights deleted.',
   },
   de: {
     contents: 'Inhalt',
@@ -6302,6 +6317,16 @@ const STRINGS = {
     'reader-next': 'Nächste Markierung',
     'reader-filter-all': 'alle',
     'reader-filter-notes': 'mit Notiz',
+    'reader-export': 'Markierungen exportieren (.md)',
+    'reader-import': 'Importieren',
+    'reader-delete-all': 'Alle löschen',
+    'reader-export-help': 'Markierungen bleiben in diesem Browser. Ein Export ist eine Kopie, die sich anderswo importieren lässt – in einem anderen Browser oder in der anderen Fassung dieses Dokuments.',
+    'reader-export-file': 'markierungen',
+    'reader-export-line': 'Exportiert am {date}. Markierungen: {n}, mit Notiz: {notes}.',
+    'reader-imported': 'Importiert: {added} neu, {updated} aktualisiert, {orphaned} in dieser Fassung nicht gefunden.',
+    'reader-import-none': 'Diese Datei enthält keine Markierungen.',
+    'reader-import-skipped': 'Nicht lesbare Einträge: {n}.',
+    'reader-deleted-all': 'Alle Markierungen gelöscht.',
   },
 };
 
@@ -7956,7 +7981,8 @@ function renderDocument(lecture, opts = {}) {
   const readerOn = (viewDefaults(frontmatter).reader || 'on') === 'on';
   const readerHtml = readerOn ? renderReaderContents(columns, nums, S) : '';
   // What the highlights script needs from the build: the key its store is
-  // filed under, and the words it puts on the page. The key is the source
+  // filed under, the title its export is headed with, and the words it puts
+  // on the page. The key is the source
   // folder's name, the slug --new makes, so print.html and print-notes.html
   // file under one key and a copied folder does not inherit a store it was
   // not given. JSON in a data block rather than in the script, so the script
@@ -7965,6 +7991,7 @@ function renderDocument(lecture, opts = {}) {
   const readerData = readerOn
     ? `<script type="application/json" id="reader-data">${JSON.stringify({
         key: opts.lectureKey || 'lecture',
+        title,
         s: Object.fromEntries(Object.entries(S).filter(([k]) => k.startsWith('reader-'))),
       }).replace(/</g, '\\u003c')}</script>\n`
     : '';
@@ -9502,6 +9529,26 @@ body[data-reader=on] {
   .rd-orphans li { margin: 0 0 0.55rem; }
   .rd-orphans q { display: block; background: var(--rd-hl); color: var(--ink); padding: 0 0.15em; }
   .rd-orphan-note { display: block; margin: 0.15rem 0; white-space: pre-wrap; }
+  /* The menu above them: three actions in the look of a card's, one line on
+     what an export is for, and the line an import leaves. */
+  .rd-menu-acts { display: flex; flex-wrap: wrap; gap: 0.3rem 1rem; }
+  .rd-menu button {
+    font: inherit;
+    font-size: 0.75rem;
+    padding: 0;
+    color: var(--ink-soft);
+    background: none;
+    border: 0;
+    text-decoration: underline;
+    text-underline-offset: 0.15em;
+    cursor: pointer;
+  }
+  .rd-menu button:hover, .rd-menu button:focus-visible { color: var(--ink); }
+  .rd-menu button[hidden], .rd-report[hidden] { display: none; }
+  .rd-help { margin: 0.45rem 0 0; font-size: 0.72rem; }
+  .rd-report { margin: 0.45rem 0 0; color: var(--ink); }
+  body[data-reader=on] .rd-foot :is(p, li) { hyphens: manual; -webkit-hyphens: manual; }
+  .rd-menu + .rd-hl-foot { margin-top: 0.75rem; }
   /* The way through the highlights, in the corner the contents button leaves
      free at every width: it is top left from 920px and bottom left below. It
      exists only once there is a highlight, and the undo notice stands above
@@ -9952,6 +9999,18 @@ const PRINT_READER_JS = `
 // them in the page's order, all of them or those with a note, and so do n
 // and p; the contents sidebar counts them per slide.
 //
+// The sidebar's foot holds the menu: export, import, delete all. The export
+// is Markdown a person can read as it stands - the highlights grouped under
+// their slides, with the number the page prints, each quote a blockquote with
+// its note under it - and one HTML comment per entry that carries the entry
+// itself. Import reads those comments and nothing else, so a file the reader
+// or the lecturer has written in stays importable; it merges by id, the later
+// edit winning, and places what it took the way a load does. It is the one
+// way highlights cross from one browser to another, and from one document to
+// the other where the browser keeps a store per file. An entry of a type this
+// build does not paint is exported and imported all the same, and listed as
+// not found.
+//
 // Storage is localStorage under psi-reader:v1:<source folder>, and every
 // access is in a try: a browser that refuses it gets highlights that last as
 // long as the tab, and one line in the sidebar's foot that says so. Where two
@@ -10361,6 +10420,38 @@ const PRINT_HIGHLIGHTS_JS = `
   pill.append(prevBtn, posEl, nextBtn, filter);
   body.appendChild(pill);
 
+  // The menu in the sidebar's foot. Built once rather than with the list of
+  // lost highlights under it, so a button keeps the focus through a redraw.
+  // Export and delete all stand only while there is something to export or
+  // delete; import and the line on what an export is for stand always,
+  // because a reader in a new browser has nothing yet and every reason to
+  // import. Whether this browser keeps the two documents apart cannot be
+  // asked of it, so the line says what is true everywhere.
+  const menu = document.createElement('div');
+  menu.className = 'rd-menu';
+  menu.setAttribute('data-rd-ui', '');
+  const menuActs = document.createElement('div');
+  menuActs.className = 'rd-menu-acts';
+  const exportBtn = button('rd-export', S['reader-export'] || '');
+  const importBtn = button('rd-import', S['reader-import'] || '');
+  const deleteAllBtn = button('rd-delete-all', S['reader-delete-all'] || '');
+  menuActs.append(exportBtn, importBtn, deleteAllBtn);
+  const helpEl = document.createElement('p');
+  helpEl.className = 'rd-help';
+  helpEl.textContent = S['reader-export-help'] || '';
+  const reportEl = document.createElement('p');
+  reportEl.className = 'rd-report';
+  reportEl.setAttribute('role', 'status');
+  reportEl.hidden = true;
+  const fileIn = document.createElement('input');
+  fileIn.type = 'file';
+  fileIn.accept = '.md,.markdown,.txt,text/markdown,text/plain';
+  fileIn.hidden = true;
+  fileIn.className = 'rd-file';
+  menu.append(menuActs, helpEl, reportEl, fileIn);
+  if (foot) foot.appendChild(menu);
+  const setReport = (msg) => { reportEl.textContent = msg || ''; reportEl.hidden = !msg; };
+
   // The count beside a contents entry: the slide's own highlights, and on a
   // part's heading those of its lede. Every highlight, whatever the filter
   // says - the filter is a way through the page, the count is what is in it.
@@ -10389,6 +10480,7 @@ const PRINT_HIGHLIGHTS_JS = `
     const all = ordered();
     pill.hidden = !all.length;
     counts();
+    exportBtn.hidden = deleteAllBtn.hidden = !store.length;
     const list = onlyNotes ? all.filter(x => hasNote(x.h)) : all;
     const at = list.findIndex(x => x.h.id === focused);
     posEl.textContent = (at >= 0 ? at + 1 : '–') + ' / ' + list.length;
@@ -10476,6 +10568,150 @@ const PRINT_HIGHLIGHTS_JS = `
     }
     if (box.firstChild) foot.appendChild(box);
   };
+
+  // ── export, import, delete all (plan §5) ──
+  const fill = (str, vals) => String(str || '').replace(/\\{(\\w+)\\}/g, (m, k) => (k in vals ? String(vals[k]) : m));
+  const oneLine = (t) => String(t || '').split(SHY).join('').replace(/\\s+/g, ' ').trim();
+  // A heading's words without what the page adds to them: a formula's second,
+  // MathML copy, and the count this script puts beside a contents entry.
+  const plain = (el) => {
+    if (!el) return '';
+    const c = el.cloneNode(true);
+    for (const x of c.querySelectorAll('.katex-mathml, .rd-count, .chunk-num, .chunk-label')) x.remove();
+    return oneLine(c.textContent);
+  };
+  // The heading a slide's highlights stand under: the number the page prints
+  // (none under slide-numbers: off), the slide's name as the contents list
+  // gives it, and the id - the one of the three a rebuild does not move.
+  const slideLine = (chunk) => {
+    const id = '{#' + chunk + '}';
+    const root = document.getElementById(chunk);
+    if (!root || !main.contains(root) || !root.matches('article.chunk, section.column')) return id;
+    const esc = window.CSS && CSS.escape ? CSS.escape(chunk) : chunk;
+    let name = plain(document.querySelector('#reader-contents a[data-rd="' + esc + '"] .rd-text, #reader-contents a.rd-part[href="#' + esc + '"]'));
+    if (!name) name = plain(root.querySelector(root.tagName === 'SECTION' ? '.column-heading' : 'h1, h2, h3'));
+    const num = body.dataset.slideNums !== 'off' && root.dataset.chunkNum ? root.dataset.chunkNum : '';
+    return [num, name].filter(Boolean).join(' · ') + (num || name ? ' ' : '') + id;
+  };
+  // The entry, whole, in a comment a Markdown reader does not show. Two
+  // hyphens in a row would end the comment early, and in this JSON they can
+  // only stand inside a string, where an escape reads back the same.
+  const dataLine = (h) => '<' + '!-- psi-reader ' + JSON.stringify(h).replace(/--/g, '-\\\\u002d') + ' --' + '>';
+  const entryLines = (h) => {
+    const out = [];
+    const q = oneLine(h.quote) || oneLine(h.fig && h.fig.key);
+    if (q) out.push('> ' + q, '');
+    if (hasNote(h)) out.push(h.note.trim(), '');
+    out.push(dataLine(h), '');
+    return out;
+  };
+  const toMarkdown = () => {
+    const lang = document.documentElement.lang || undefined;
+    let date;
+    try { date = new Date().toLocaleDateString(lang, { day: 'numeric', month: 'long', year: 'numeric' }); }
+    catch (e) { date = new Date().toISOString().slice(0, 10); }
+    const lines = [
+      '# ' + (S['reader-nav'] || '') + ' – ' + oneLine(data.title), '',
+      fill(S['reader-export-line'], { date, n: store.length, notes: store.filter(hasNote).length }), '',
+    ];
+    let last = null;
+    for (const { h } of ordered()) {
+      if (h.chunk !== last) { lines.push('## ' + slideLine(h.chunk), ''); last = h.chunk; }
+      lines.push(...entryLines(h));
+    }
+    const lost = store.filter(h => !marksOf.has(h.id));
+    if (lost.length) {
+      lines.push('## ' + (S['reader-orphans'] || ''), '');
+      for (const h of lost) lines.push('### ' + slideLine(h.chunk), '', ...entryLines(h));
+    }
+    return lines.join('\\n');
+  };
+  const exportFile = () => {
+    const name = (data.key || 'lecture') + '-' + (S['reader-export-file'] || 'highlights') + '.md';
+    const url = URL.createObjectURL(new Blob([toMarkdown()], { type: 'text/markdown;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = name;
+    a.hidden = true;
+    a.setAttribute('data-rd-ui', '');
+    body.appendChild(a);
+    a.click();
+    a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 10000);
+    setReport('');
+  };
+  // Only the data comments are read. One that does not parse, or parses to
+  // something that is not an entry, is counted and skipped, never thrown.
+  const readEntries = (text) => {
+    const found = [];
+    let bad = 0;
+    const re = /<[!]--\\s*psi-reader\\s*([\\s\\S]*?)--[>]/g;
+    for (let m = re.exec(text); m; m = re.exec(text)) {
+      let h = null;
+      try { h = JSON.parse(m[1]); } catch (e) { h = null; }
+      if (valid(h) && !Array.isArray(h)) found.push(Object.assign({}, h, { note: typeof h.note === 'string' ? h.note : '' }));
+      else bad++;
+    }
+    return { found, bad };
+  };
+  const stamp = (h) => Number(h.edited || h.created || 0) || 0;
+  const importText = (text) => {
+    const { found, bad } = readEntries(String(text || ''));
+    const skipped = bad ? ' ' + fill(S['reader-import-skipped'], { n: bad }) : '';
+    if (!found.length) { setReport((S['reader-import-none'] || '') + skipped); return; }
+    const added = new Set(), updated = new Set();
+    for (const h of found) {
+      const i = store.findIndex(x => x.id === h.id);
+      if (i < 0) { store.push(h); added.add(h.id); continue; }
+      if (stamp(h) <= stamp(store[i])) continue;
+      unpaint(h.id);
+      dropCard(h.id);
+      orphans.delete(h.id);
+      store[i] = h;
+      if (!added.has(h.id)) updated.add(h.id);
+    }
+    let orphaned = 0;
+    for (const id of new Set([...added, ...updated])) {
+      place(byId(id));
+      if (orphans.has(id)) orphaned++;
+    }
+    save();
+    renderFoot();
+    layout();
+    setReport(fill(S['reader-imported'], { added: added.size, updated: updated.size, orphaned }) + skipped);
+  };
+  const deleteAll = () => {
+    if (!store.length) return;
+    const before = store.slice();
+    for (const h of before) { unpaint(h.id); dropCard(h.id); }
+    store = [];
+    orphans.clear();
+    focused = null;
+    save();
+    setReport('');
+    renderFoot();
+    layout();
+    toast(S['reader-deleted-all'] || '', () => {
+      const now = new Set(store.map(h => h.id));
+      const back = before.filter(h => !now.has(h.id));
+      store = back.concat(store);
+      for (const h of back) place(h);
+      save();
+      renderFoot();
+      layout();
+    });
+  };
+  exportBtn.addEventListener('click', exportFile);
+  deleteAllBtn.addEventListener('click', deleteAll);
+  importBtn.addEventListener('click', () => { fileIn.value = ''; fileIn.click(); });
+  fileIn.addEventListener('change', () => {
+    const f = fileIn.files && fileIn.files[0];
+    if (!f) return;
+    const r = new FileReader();
+    r.onload = () => { try { importText(r.result); } catch (e) { setReport(S['reader-import-none'] || ''); } };
+    r.onerror = () => setReport(S['reader-import-none'] || '');
+    r.readAsText(f);
+  });
 
   // ── making, removing ──
   const newId = () => 'h-' + Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
