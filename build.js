@@ -8204,8 +8204,8 @@ code.nb { white-space: nowrap; }
    mixed out of print's own --ink, which style: {print-neutrals} moves, so a
    deck that warms the page warms the ground behind its code with it. */
 ${inlineCodeSel('print', '', ':not(.nb)')} {
-  margin: 0 0.15em;
-  word-spacing: -0.2em;
+  margin: 0 0.25em;
+  word-spacing: -0.28em;
 }
 ${inlineCodeSel('print', 'body[data-code=tint]')} {
   margin: 0;
@@ -13162,8 +13162,10 @@ code.nb { white-space: nowrap; }
    spaced reaches only a span that HAS whitespace in it – the codespan
    renderer marks the others .nb – because the hole it closes is the mono
    word space and one token has none. The margin lifts the gaps around the
-   span to about 0.4em of the prose; the negative word-spacing pulls the gaps
-   inside it from about 0.49em down to about 0.31em. Outer wider than inner
+   span to about 0.42em of the prose; the negative word-spacing pulls the gaps
+   inside it from about 0.53em down to about 0.28em (Literata, measured - its
+   word space is only 0.2em, and both values are in em of the code, which is
+   sized to about 0.885 of the prose). Outer wider than inner
    is the whole point, and a margin big enough to carry that alone would
    indent the line a span opens.
 
@@ -13173,8 +13175,8 @@ code.nb { white-space: nowrap; }
    cancels the spaced pair first: a ground behind the span already separates
    it from its neighbours, and the two together read as a gap. */
 ${inlineCodeSel('live', '', ':not(.nb)')} {
-  margin: 0 0.15em;
-  word-spacing: -0.2em;
+  margin: 0 0.25em;
+  word-spacing: -0.28em;
 }
 ${inlineCodeSel('live', 'body[data-code=tint]')} {
   margin: 0;
