@@ -1027,7 +1027,8 @@ figure.figure-img svg { max-width: 100%; height: auto; }
    taller than the sheet, and then moved onto a page of its own by the
    break-inside: avoid that keeps a picture whole. A raster figure reaches
    the same place from a portrait screenshot.
-   In rem rather than vh, and the same number on screen and on paper: what a
+   In rem rather than vh, and for a drawing the same number on screen and on
+   paper (a picture is capped on paper only, see below): what a
    viewport unit means inside a page box is not something the engines agree
    on, and print.html is printed by whichever browser the reader has. 34rem
    at the 10pt root is about half the A4 text height - a figure may be the
@@ -1036,9 +1037,19 @@ figure.figure-img svg { max-width: 100%; height: auto; }
    this stylesheet, so a bare .psi-diagram here would lose to its 62vh on
    screen and to its max-height: none on paper. */
 main .psi-diagram,
-figure.figure-img img,
-figure.figure-img svg,
 figure.figure-video video { max-height: 34rem; }
+/* A picture is capped on paper only. On a screen the reader scrolls, and a
+   tall screenshot held to 34rem came out as a narrow strip in the middle of
+   the measure (a full page of an application is two to six times as tall as
+   it is wide; only up to about 0.87 did it get the full width), with its
+   type far below the running text's. So the screen gives it the measure and
+   the page keeps the half-sheet rule. The drawing keeps the cap everywhere:
+   its width is derived from it (--dg-box-w below), and a video keeps it
+   because a portrait clip with its controls must not outgrow the window. */
+@media print {
+  figure.figure-img img,
+  figure.figure-img svg { max-height: 34rem; }
+}
 
 /* ── how large a drawing is in a document ────────────────────────────
    A slide answers this by filling the frame: the figure IS the slide, and
