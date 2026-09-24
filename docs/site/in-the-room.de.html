@@ -42,8 +42,9 @@
     beiden Fenster finden sich im Browser; die Uhr, die Notizen, der Stand der
     Vorlesung und alles Getippte bleiben auf dem Rechner, an dem man steht. Eine
     Vorlesung vom USB-Stick, in einem Raum ohne WLAN, verhält sich wie diese
-    hier &ndash; bis auf das eine, was hinausgreift: ein eingebettetes Video von
-    einem Hoster.</p>
+    hier &ndash; bis auf zwei Dinge auf dieser Seite, die hinausgreifen, und
+    beide wählt man selbst: ein eingebettetes Video von einem Hoster und den
+    Prompter.</p>
    </div>
   </div>
  </div>
@@ -282,6 +283,100 @@ where the rest of the hour is going to be spent.
 
 <section class="band">
  <div class="wrap">
+  <!-- Kein Bild, und mit Absicht: Dieser Abschnitt beschreibt einen Streifen,
+       der den größten Teil der Stunde leer ist, und eine Aufnahme, auf der er
+       etwas sagt, müsste gestellt werden. Der Beleg ist das Listing &ndash; was
+       man schreibt und was man startet &ndash;, also hat der Abschnitt die Form
+       von „Ein Druck nach dem anderen“: Überschrift, Lede, Worte neben einem
+       Listing, dann eine Zeile mit drei. Er steht hinter den Karten, weil er
+       selbst Karten legt. -->
+  <h2 id="prompter">Ein Prompter, wenn man ihn einschaltet</h2>
+  <p class="lede">Das ist neu, und es bleibt aus, solange man es nicht einschaltet. In
+  einer Vorlesung, die mit <code>--watch --prompter</code> gebaut wird, kann das
+  Cockpit zuhören, während man spricht, und wenn etwas gesagt werden muss,
+  höchstens zwölf Wörter auf einen Streifen über dem Fuß der gespiegelten Folie
+  flüstern. Meistens sagt es nichts. Es hört erst zu, wenn man im Cockpit
+  <kbd>Shift</kbd>-<kbd>S</kbd> drückt oder den Knopf <b>&#9676; prompter</b>
+  in der Fußzeile, der derselbe Schalter ist.</p>
+
+  <!-- Halbleere Zeile, Antwort 1: Das Listing nimmt die breite Hälfte, was es
+       braucht, die schmale. Die Befehle vergleicht das Zwillingstor, also
+       unterscheiden sich die beiden Seiten nur in den Kommentaren. -->
+  <div class="aside-code words-first">
+   <div class="said">
+    <h3>Was er braucht</h3>
+    <p class="cue">Chrome, weil das Ohr die Spracherkennung des Browsers ist.
+    Einen Prozess mit <code>--watch</code>, weil das Cockpit mit ihm
+    spricht. Und einen Schlüssel für openrouter.ai in
+    <code>OPENROUTER_API_KEY</code>; ohne ihn startet der Prompter
+    ausgeschaltet und schreibt nur mit, was er gehört hat.</p>
+    <p class="cue"><code>--prompter-dry-run</code> lässt Ohr, Uhr und Regeln
+    laufen, ruft aber nie das Modell auf; eine Probe braucht also keinen
+    Schlüssel. Der Block <code>prompter:</code> legt das Modell fest, wie oft
+    er fragen darf, wie lange er nach einem Flüstern still ist und ob er
+    Karten legen darf.</p>
+   </div>
+<pre><code><span class="t-cmt"># im Frontmatter von source.md</span>
+<span class="t-cmt"># duration in Minuten ist der Plan, an dem die Uhr misst;</span>
+<span class="t-cmt"># cooldown sind die Sekunden Ruhe nach jedem Flüstern</span>
+<span class="t-dir">duration:</span> 45
+<span class="t-dir">prompter:</span>
+  <span class="t-dir">cooldown:</span> 60
+
+<span class="t-cmt"># der Vortrag, mit OPENROUTER_API_KEY in der Umgebung</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch --prompter</span>
+
+<span class="t-cmt"># eine Probe: nichts geht an das Modell, kein Schlüssel nötig</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch --prompter --prompter-dry-run</span></code></pre>
+  </div>
+
+  <!-- Halbleere Zeile, Antwort 1: was er sagt, was er schickt, was er
+       aufhebt. Drei Antworten auf „was lasse ich da in die Stunde“, eine
+       Zeile. -->
+  <div class="pair-up trio">
+   <div>
+    <p><strong>Er flüstert, wenn man hinter der Zeit ist</strong>, wenn das
+    Beispiel fehlt, wenn das eben Gesagte der eigenen Folie widerspricht, wenn
+    man zu schnell spricht oder wenn die eigenen Notizen für diese Folie etwas
+    vorgesehen haben, an dem man vorbeigegangen ist. Das Tempo wird gezählt,
+    nicht geschätzt: Wörter pro Minute, Füllwörter, die längste Pause. Die
+    zwölf Wörter sind eine Regel im Build, und eine längere Antwort wird
+    verworfen, nicht gekürzt. <kbd>Esc</kbd> nimmt ein Flüstern vom Streifen.</p>
+    <p>Er kann auch eine Karte in eine Folie legen, die noch kommt, den Schluss
+    eingeschlossen, für einen Satz, den man im Vorbeigehen gesagt hat und der
+    es wert ist, behalten zu werden.</p>
+   </div>
+   <div>
+    <p><strong>Was den Rechner verlässt, ist Text.</strong> Das Transkript und
+    die Vorlesung samt Sprechernotizen gehen an openrouter.ai und werden dort
+    beantwortet. Kein Ton wird verschickt, nichts davon erreicht die
+    Projektion, nichts wird in <code>source.md</code> geschrieben, und der
+    Schlüssel wird vom Build gelesen und nie ins HTML geschrieben. Die
+    Spracherkennung selbst läuft auf dem eigenen Rechner, wo Chrome das kann,
+    und über Google, wo nicht; eine Anzeige im Cockpit sagt, welches von
+    beiden.</p>
+    <p>Das Mikrofon hört den Saal, nicht nur einen selbst. Vor der Fragerunde
+    ausschalten oder dem Saal sagen, dass es an ist.</p>
+   </div>
+   <div>
+    <p><strong>Das Protokoll ist die Nachbesprechung.</strong> Jeder Lauf
+    schreibt <code>prompter-&lt;date&gt;.jsonl</code> neben
+    <code>source.md</code>: was er gehört hat, was er geflüstert hat und was er
+    sagen wollte und nicht durfte, mit dem Grund. Daneben steht
+    <code>prompter-&lt;hash&gt;.prompt.txt</code>, die Vorlesung genau so, wie
+    das Modell sie bekommen hat.</p>
+    <p>Während des Vortrags zeigt ein <kbd>Shift</kbd>-Klick auf den Knopf die
+    letzten zehn Hinweise. In der ersten Minute zeigt der Streifen die Wörter,
+    die er hört, danach sagt eine blasse Zeile, wann er zuletzt das Modell
+    gefragt hat: Ein Prompter, der nichts zu sagen hat, sieht aus wie einer,
+    der stehen geblieben ist.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
   <!-- Das eine gespiegelte Band dieser Seite, und der Grund ist der Inhalt:
        zwei Bilder, zwei Wege zurück zur selben Folie, auf einer Bühne. Ein
        Vergleich stellt die verglichenen Dinge voran und das Urteil darüber
@@ -402,7 +497,7 @@ where the rest of the hour is going to be spent.
    <div>
     <p><strong>Ein Video läuft im Rahmen</strong>, aus der Datei selbst, und
     beide Fenster bleiben bei Abspielen, Pause und Position im Gleichschritt.
-    Nur ein YouTube- oder Vimeo-Embed muss einen Dritten erreichen, und dafür
+    Nur ein YouTube- oder Vimeo-Embed an der Wand muss einen Dritten erreichen, und dafür
     muss die Vorlesung über einen Server laufen statt als Datei geöffnet zu
     werden.</p>
    </div>

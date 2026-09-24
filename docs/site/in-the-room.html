@@ -41,8 +41,8 @@
     windows find each other in the browser; the timer, your notes, the state of
     the deck and anything you type stay on the machine you are standing at. A
     lecture on a memory stick, in a room with no wifi, behaves like this one
-    &ndash; up to the single thing on this page that does reach out, a hosted
-    video embed.</p>
+    &ndash; except for two things on this page that do reach out, and both are
+    yours to choose: a hosted video embed, and the prompter.</p>
    </div>
   </div>
  </div>
@@ -277,6 +277,94 @@ where the rest of the hour is going to be spent.
 
 <section class="band">
  <div class="wrap">
+  <!-- No picture, and on purpose: what this section describes is a strip that
+       is empty most of the hour, and a screenshot of it saying something would
+       have to be staged. The evidence is the listing - what you write and what
+       you run - so the section takes the shape of "One press at a time":
+       heading, lede, words beside a listing, then one row of three. It stands
+       after the cue cards because it lays cards of its own. -->
+  <h2 id="prompter">A prompter, if you switch one on</h2>
+  <p class="lede">This is new, and it is off unless you ask for it. In a lecture
+  built with <code>--watch --prompter</code>, the cockpit can listen while you
+  talk and, when something needs saying, whisper at most twelve words onto a
+  strip over the foot of the mirrored slide. Most of the time it says nothing.
+  Nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd> in the cockpit,
+  or the <b>&#9676; prompter</b> button in its footer, which is the same
+  switch.</p>
+
+  <!-- Half-empty row, answer 1: the listing takes the wide half and what it
+       needs the narrow one. Commands are compared by the twin gate, so only
+       the comments differ between the two pages. -->
+  <div class="aside-code words-first">
+   <div class="said">
+    <h3>What it needs</h3>
+    <p class="cue">Chrome, because the ear is the browser&rsquo;s own speech
+    recognition. A <code>--watch</code> process, because that is what the
+    cockpit talks to. And a key for openrouter.ai in
+    <code>OPENROUTER_API_KEY</code>; without one the prompter starts switched
+    off and only writes down what it heard.</p>
+    <p class="cue"><code>--prompter-dry-run</code> runs the ear, the clock and
+    the rules but never calls the model, so a rehearsal needs no key. The
+    <code>prompter:</code> block sets the model, how often it may ask, how long
+    it keeps quiet after a whisper, and whether it may lay cards.</p>
+   </div>
+<pre><code><span class="t-cmt"># in the frontmatter of source.md</span>
+<span class="t-cmt"># duration in minutes is the plan the clock measures against;</span>
+<span class="t-cmt"># cooldown is the seconds of quiet after each whisper</span>
+<span class="t-dir">duration:</span> 45
+<span class="t-dir">prompter:</span>
+  <span class="t-dir">cooldown:</span> 60
+
+<span class="t-cmt"># the talk, with OPENROUTER_API_KEY set in the environment</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch --prompter</span>
+
+<span class="t-cmt"># a rehearsal: nothing goes to the model, no key needed</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch --prompter --prompter-dry-run</span></code></pre>
+  </div>
+
+  <!-- Half-empty row, answer 1: what it says, what it sends, what it keeps.
+       Three answers to "what am I letting into the hour", one row. -->
+  <div class="pair-up trio">
+   <div>
+    <p><strong>It whispers when you are behind time</strong>, when the example
+    is missing, when what you just said contradicts your own slide, when you are
+    speaking too fast, or when your notes planned something for this slide and
+    you have walked past it. The tempo is counted rather than guessed: words a
+    minute, filler sounds, the longest pause. The twelve words are a rule in
+    the build, and a longer answer is thrown away, not shortened.
+    <kbd>Esc</kbd> takes a whisper off the strip.</p>
+    <p>It can also lay a cue card into a slide still to come, the conclusion
+    included, for a sentence worth keeping that you said in passing.</p>
+   </div>
+   <div>
+    <p><strong>What leaves the machine is text.</strong> The transcript and the
+    deck, speaker notes included, go to openrouter.ai to be answered. No audio
+    is sent, nothing of it reaches the projection, nothing is written into
+    <code>source.md</code>, and the key is read by the build and never written
+    into the HTML. The speech recognition itself runs on your machine where
+    Chrome can do that and through Google where it cannot; a badge in the
+    cockpit says which.</p>
+    <p>The microphone hears the room as well as you. Switch it off before
+    questions, or tell the room it is on.</p>
+   </div>
+   <div>
+    <p><strong>The log is the debrief.</strong> Each run writes
+    <code>prompter-&lt;date&gt;.jsonl</code> beside <code>source.md</code>: what
+    it heard, what it whispered, and what it wanted to say and was held back
+    from, with the reason. Beside it,
+    <code>prompter-&lt;hash&gt;.prompt.txt</code> is the deck exactly as the
+    model received it.</p>
+    <p>During the talk, <kbd>Shift</kbd>-click on the button shows the last ten
+    whispers. For the first minute the strip shows the words it hears, and after
+    that a faint line says when it last asked the model: a prompter with nothing
+    to say looks the same as one that has stopped.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
   <!-- The one mirrored band on this page, and the reason is the content: two
        pictures, two ways back to the same slide, on one stage. A comparison
        puts the things being compared first and the verdict on them after, so
@@ -396,7 +484,7 @@ where the rest of the hour is going to be spent.
    <div>
     <p><strong>A video plays in the frame</strong>, from the file itself, with
     the two windows kept in step on play, pause and position. A YouTube or Vimeo
-    embed is the one thing that has to reach a third party, and it needs the
+    embed is the one thing on the wall that has to reach a third party, and it needs the
     lecture served rather than opened as a file.</p>
    </div>
   </div>
