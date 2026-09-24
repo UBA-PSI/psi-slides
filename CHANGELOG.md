@@ -9,6 +9,91 @@ from building the same way is a major version.
 
 ### Changed
 
+- **The two documents read at a screen size in a browser.** `print.html`
+  and `print-notes.html` set their text at 10pt on screen, so the measure
+  came out at 560 px and a figure at 450 px. On screen the root size now
+  follows the window, from 15 px on a phone to 18 px on a large monitor
+  (16.3 px at 1440 wide, a 685 px measure). Paper keeps its 9pt.
+- **The documents have a lightbox.** Click a figure, a diagram, a code
+  block or a display formula in `print.html` or `print-notes.html` and it
+  opens over the page, sized to the window: the wheel or a pinch zooms under
+  the pointer, a drag pans, `+` / `-` / `0` zoom from the keyboard, Esc or a
+  click closes. It is the documents' first script, a few KB; without
+  JavaScript the page is what it was, and none of it reaches paper.
+- **The documents carry tools for the person reading them.**
+  `print.html` and `print-notes.html` are read on a screen after the
+  lecture as much as on paper, and both now give that reader a contents sidebar, highlights with notes, a way
+  through them, an export, and highlights that print. All of it is theirs:
+  it stays in their browser and nobody else sees it. It is separate from the
+  lecturer's `> annot:` annotations, and the live views carry none of it.
+  `reader: off` in the frontmatter ships the plain document (the lightbox
+  stays); an unknown value fails the build and lints as
+  `unknown-view-default`. The words it adds are 42 new label keys, all
+  beginning `reader-`, so `labels:` reaches each one.
+- **Contents sidebar.** The slides are listed down the left, grouped by part
+  and numbered with the numbers the page prints, and the one the reader is
+  in is marked as they scroll. Each part folds to its heading: the one
+  being read opens by itself and closes again when the reader moves on, a
+  chevron beside a heading opens any other by hand, and a folded part shows
+  the sum of its highlights. From 1216 px wide it stands beside the text;
+  narrower, it folds to a button top left that opens it over the page. From
+  920 px the layout keeps a margin free on the right for notes. The printed
+  contents page stays as it was.
+- **Highlights and notes.** Select words in a slide, press the button at the
+  end of the selection, and they turn yellow with a card for an optional
+  note – in the right margin at the height of the highlight, or under its
+  paragraph in a narrow window. A click on a highlight opens its card again,
+  whose one action, *Remove*, takes the highlight and its note, acts at once
+  and leaves five seconds to undo; emptying the field deletes the note
+  alone. A selection that overlaps a highlight grows it. The words of a code
+  block take a highlight as prose does, and only their ground turns yellow.
+  A figure – a picture, an inlined vector or a `::: draw` diagram –, a code
+  block and a display formula carry a *Highlight* button in the corner that
+  marks them whole, without opening the lightbox. In the lightbox, *Mark a
+  spot* (also `m`) sets a small yellow dot on a figure; on a diagram it
+  snaps to the part under the pointer and follows that part through a
+  rebuild. Speaker notes cannot be highlighted.
+- **Going through them.** Once there is a highlight, a small bar at the foot
+  of the window shows `‹ 3 / 12 ›` with a switch between *all* and *with
+  note*; the arrows, or `n` and `p`, go to the next and previous one in page
+  order and open its card, stopping at the first and the last. The contents
+  sidebar shows each slide's count. With a mouse, the lightbox's *Mark a
+  spot* shows `m` faintly and the *?* names the keys; a touch screen shows
+  neither.
+- **A finger reaches every control.** Under a coarse pointer each of the
+  reader's controls takes at least 44 by 44 CSS px to the touch – the
+  sidebar's entries and chevrons, the menu, the bar, the buttons on figures
+  and in the lightbox, a card's field and action – while the small glyphs
+  stay small.
+- **Export and import.** The foot of the sidebar holds *Export highlights
+  (.md)*, *Import* and *Delete all*, and a small *?* that opens a few short
+  lines: what can be highlighted and how, the keys (only where a keyboard is
+  likely), and why the export is the backup – the browser's storage is lost
+  with its site data, in a private window, and to the browser's own
+  clean-up, which in Safari follows seven days of use without this page.
+  The export, `<lecture folder>-highlights.md`
+  (`-markierungen.md` under `lang: de`), reads as it stands – a heading per
+  slide with its number, each quote with its note under it, a figure or a
+  formula named in words – so a student can send it to the lecturer. Each
+  entry also rides in an HTML comment, which is all *Import* reads: it
+  merges by entry, the later edit winning, and says how many were new,
+  updated and not found.
+- **Highlights print.** On paper a highlight stays yellow, also with the
+  print dialog's background graphics switched off. One with a note ends in a
+  small number, and the note stands under that number in the outer margin
+  the printed page keeps free, at the height of its line. A figure's frame
+  or dot prints with it. The sidebar, the bar and the buttons do not print.
+- **Where highlights are kept, and what a rebuild does to them.** They are
+  filed in the browser under the lecture's folder name. Opened from disk,
+  Chrome and Safari share them between the two documents; Firefox keeps one
+  store per file, and the export carries them across. Under `--serve` all
+  three share. A rebuild that moves the words carries a highlight with
+  them; one that removes them lists it with its note at the foot of the
+  sidebar, and nothing is dropped. Where the browser refuses storage, the
+  highlights last as long as the tab and the sidebar says so.
+- **A drag on a picture in the lightbox pans.** The browser's own drag of
+  the image used to end it after the first move.
+
 - **A figure's labels are set at the size of the words beside them.** In
   the live views a `::: draw` figure used to fill its column whatever that
   did to its type, and auto-fit then grew the slide's words up to 2.2x while

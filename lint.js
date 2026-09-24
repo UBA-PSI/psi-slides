@@ -86,7 +86,7 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
   'fonts', 'font', 'ligatures', 'draw-defaults',
   // viewer defaults
   'theme', 'collapse', 'auto-fit', 'slide-numbers', 'print-slide-numbers',
-  'editor', 'note-button', 'neighbours', 'transition',
+  'editor', 'note-button', 'neighbours', 'transition', 'reader',
   // the live prompter. `duration:` sits at the top level rather than inside
   // the block because it is a property of the talk like `lang:` – the
   // cockpit's clock measures against it whether or not a prompter listens.
@@ -129,6 +129,10 @@ const VIEW_DEFAULTS = {
   // `hidden` - which is the build's to do, exactly as it is for
   // print-slide-numbers: a linter's business is which words the key takes.
   'transition': ['pan', 'cut', 'fade'],
+  // The reader's tools in the two documents: the contents sidebar now, the
+  // reader's own highlights after it. `on` is the default; `off` ships none
+  // of it and leaves the lightbox, which is not a reader tool.
+  'reader': ['on', 'off'],
   // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
   'cover': ['classic', 'masthead', 'stack', 'display', 'panel', 'quote',
             'split', 'hero', 'beside', 'above'],
@@ -348,7 +352,19 @@ function nestedBlockKeys(lines, name, rule) {
 const LABEL_KEYS = new Set([
   'contents', 'speaker-note', 'presentation-note', 'aside-note',
   'title-print', 'title-print-notes', 'title-lecture', 'title-speaker',
-  'untitled-lecture', 'annotation-label', 'add-note',
+  'untitled-lecture', 'annotation-label', 'add-note', 'reader-close',
+  'reader-mark', 'reader-note', 'reader-remove',
+  'reader-removed', 'reader-undo', 'reader-orphans',
+  'reader-orphan-remove', 'reader-session', 'reader-nav', 'reader-prev',
+  'reader-next', 'reader-filter-all', 'reader-filter-notes', 'reader-export',
+  'reader-import', 'reader-delete-all', 'reader-help', 'reader-help-what', 'reader-help-keys',
+  'reader-help-where', 'reader-help-risk', 'reader-help-backup', 'reader-fold',
+  'reader-export-file',
+  'reader-export-line', 'reader-imported', 'reader-import-none',
+  'reader-import-skipped', 'reader-deleted-all',
+  'reader-fig-mark', 'reader-lb-spot', 'reader-lb-close', 'reader-fig',
+  'reader-fig-at', 'reader-fig-spot', 'reader-fig-approx', 'reader-code-mark',
+  'reader-formula-mark', 'reader-code', 'reader-code-block', 'reader-formula',
 ]);
 const LABEL_TYPE_KEYS = new Set([
   'principle', 'definition', 'example', 'question', 'exercise', 'outline', 'figure',

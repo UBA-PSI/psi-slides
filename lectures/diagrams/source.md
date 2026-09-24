@@ -31,7 +31,7 @@ build time, and stepped with the same key that advances a reveal.
 each says what holds the drawing together, in words Part 4 defines – so watch
 the pictures now and read the notes again after.
 
-## principle: None of this is in the 1.0.0 release {.standard #preview}
+## free: None of this is in the 1.0.0 release {.standard #preview}
 
 **`::: draw` was added after the 1.0.0 release**, so the archive on the
 releases page does not have it and a lecture that uses it will not build

@@ -7,8 +7,8 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Sixteen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 46 specs, about 1,200
-  assertions, about nine minutes, one Chromium for the whole run. One of
+- **`test/`** – the things that only break in a built page. 47 specs, about 1,500
+  assertions, about twelve minutes, one Chromium for the whole run. One of
   them, `souffleuse`, starts an engine of its own beside that browser – see
   below.
 
@@ -161,6 +161,66 @@ window), `touch-rail`, `math-focus`, `block-align`, `auto-fit`, `camera-fit`,
 **The editor** – the `editor-*` specs: its gestures, its panel, and the
 neighbour-alignment guides, which are what a gesture snaps to.
 
+**The documents** are the one view outside those four, and one spec reads
+them: `reader`, the contents sidebar `print.html` and `print-notes.html` carry
+under `reader: on` – that its entries are the slides with the numbers the page
+prints, that the scroll-spy marks the slide whose top crossed 30% of the
+window, that its parts fold to their headings with the part being read open
+and a chevron for the rest, that it folds to a button below the wide layout and
+opens over the page, that the notes column it keeps free fits at each width, and that none of
+it reaches paper, a page without scripts, or a deck that says `reader: off`.
+Its second half is the reader's highlights, on a second fixture deck: that a
+selection is marked with the button and its note stored, that an overlapping
+one merges and one in a figure, formula or speaker note is refused, that a reload and the other document paint the same highlights at
+the same offsets, that remove undoes and an emptied field deletes the note, that a rebuild moves a
+highlight with its words and lists one whose words are gone, where the card
+stands at 1440, 1100 and 390, and that a browser refusing storage still
+highlights for the session. Then the way through them: that the pill and the
+per-slide counts come with the first highlight and go with the last, that
+`n` and `p` walk them in page order and stop at the ends, that the *with
+note* filter narrows both the count and the walk, and that the keys are
+ignored in a note field, with a modifier held, and under the lightbox.
+Then paper, under print emulation: that the highlights stay yellow with
+`print-color-adjust: exact`, that each one with a note carries a number, 1 to
+n in page order, after its words and on its note, that the notes stand right
+of the column and inside the 16cm page area, level with a highlight whose
+line they share and never on each other, that no card, pill, button, toast or
+sidebar prints, and that the page goes through `page.pdf()`. Where a note
+lands in a list item, a table, a blockquote, a heading and a lede, and what a
+page break does to a long one, was checked on rendered PDF pages rather than
+asserted. Last, export and import, on a store of their own: the download's name and
+its Markdown (title, counts, slide headings with the printed number, quote
+and note, one data comment per entry that is the stored entry exactly), that
+export, delete all and import give back the same store, the merge rules (an
+older copy ignored, a newer one winning, an unknown `type` kept and listed),
+an import into a rebuilt document where one quote moved and one vanished,
+input that is not an export, the undo of delete all, the German file name,
+the ? that opens the lines on the tools and on storage and the three ways it
+closes, and the menu inside the opened sidebar at 390. Then a finger, on the
+figure deck at 390 px with a touch viewport: every control – contents button,
+sidebar entries and chevrons, menu, pill, highlight button, corner buttons,
+lightbox bar, a card's field and action – is hit at all four corners of a
+44 px square round its centre, and the key hints are absent there and present
+with a mouse. And the figures, on a third
+deck with a diagram, a picture, a code block and a formula: that the corner
+button shows on hover,
+frames the figure and opens its card without opening the lightbox, and does
+not make a second frame; that marking in the lightbox sets a dot at
+fractions of the picture while a drag still pans, with the card over the
+overlay being the one card the entry has; that on the diagram the part under
+the pointer is outlined and the pin keeps the part's name without its
+`dg<N>` prefix; that a dot opens its card in the document and in the
+lightbox; that `n` walks figure highlights in page order and nothing is
+numbered on screen; that a selection in a code block is highlighted in the
+block's own text, token by token in monospace, without moving a prose
+highlight's offsets, and opens its card rather than the lightbox, whose clone
+shows the marks; that the corner buttons of a code block and a formula frame
+them whole; the export's figure and code lines, delete all and import; the
+frames, the dots' and the whole figure's note numbers and the notes on paper;
+and a rebuild with a figure added above and a line added to the code, where a
+pin follows its part, one whose part was renamed stays at its spot and is
+called approximate, and the code highlight follows its words.
+
 **The figures** – the `figure-*` specs, which measure the SVG.
 `figure-framing` catches a drawing sitting off-centre in an oversized frame;
 `figure-labels` measures where an aligned label lands inside the thing that
@@ -197,7 +257,7 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The fifteen specs that build a deck of their own
+### The sixteen specs that build a deck of their own
 
 Four different reasons, and the last is the one to remember.
 
@@ -229,7 +289,10 @@ shorter, which is not a lecture).
 content centred and left, `cards` two cards differing in one character,
 `transition` builds the same five slides three times, differing in one
 frontmatter line, because the claim about each mode is a claim about what the
-other two do not do, and `figure-dotted` draws a muted dotted line beside the
+other two do not do, `reader` builds one deck twice, with and without
+`reader: off`, because what the key takes away is only visible beside what it
+leaves, and a second and a third one twice with different words, because
+re-anchoring is only visible across a rebuild, and `figure-dotted` draws a muted dotted line beside the
 five strokes it must leave alone.
 
 **Because the property spans three processes** – `souffleuse` is the only spec

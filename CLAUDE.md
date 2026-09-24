@@ -204,7 +204,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
 # against what build.js reads, and `image-refs` holds the two readers of the
 # image-reference set against the one collector both go through.
-# test/ is the things that only break in a built page - 46 specs, ~9 min,
+# test/ is the things that only break in a built page - 47 specs, ~12 min,
 # one Chromium; one of them, souffleuse, starts an engine of its own beside
 # that browser. `npm test` also runs test/reproducible.mjs, which needs
 # neither: it builds a lecture under a partial flag and under a full one and
@@ -218,7 +218,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # createSpanTable, or anything that moves a label or an extent. Anything
 # checkable without a browser belongs in lint.js or in test/gates/, never here.
 #
-# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the fifteen specs that build a
+# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the sixteen specs that build a
 # deck of their own rather than hunting shapes in a real one: test/README.md.
 npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
@@ -269,7 +269,7 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 
 ### Single-file build pipeline
 
-`build.js` holds the entire rendering stack: parser, three renderers, inlined audience/speaker runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file, and a large one – roughly two thirds of it is the embedded CSS and runtime JS, so the Node-side build logic is much smaller than the file size suggests.
+`build.js` holds the entire rendering stack: parser, three renderers, inlined audience/speaker/print runtime JS, inlined audience/speaker/print CSS, Shiki highlighter, image-shorthand resolver, WebSocket watch server, and the CLI. It is deliberately one file, and a large one – roughly two thirds of it is the embedded CSS and runtime JS, so the Node-side build logic is much smaller than the file size suggests.
 
 **`diagram-core.mjs` is the one documented exception** (with `tails.mjs`, the tail grammar shared with `lint.js`, as a much smaller second – see *lint.js is independent* below), and the reason is narrow: the graphical editor answers a drag by rewriting the source and re-running the compiler *in the browser*, so exactly one text has to compile a diagram in Node and in the page. Two copies of a 6,500-line compiler is not a duplication anyone can maintain. The file is pure JS with **zero imports and zero Node APIs**; the four leaves that were Node-only (asset resolution, aspect reading, the warning sink, `escapeHtml`) plus a fifth (`assetMarkup`, which splices a vector file inline) are injected by `createDiagramCompiler({…})`. build.js keeps those leaves, the diagram CSS and the step runtime. The move also *removes* a duplication: `lint.js` imports the vocabulary tables instead of mirroring them by hand – tables only, never a function, or the whole compiler comes in behind it and the linter stops being runnable without the Markdown/Shiki stack. See `editor.md` §8.1.
 
@@ -360,6 +360,48 @@ The four HTML files are **self-contained outputs**. They ship with their runtime
 `print-notes.html` is a second pass through the print renderer with `withNotes: true`; it embeds each chunk's `> note:` text as a `.speaker-note` aside under the chunk so a printed hand-out can show “what was on the slide + what the lecturer said”. Layout, CSS, and asset inlining are otherwise identical to `print.html`.
 
 The audience↔speaker sync is cross-`file://`-origin safe because it uses `window.postMessage` over the opener relationship. Chrome's per-file opaque-origin policy isolates `BroadcastChannel` between tabs loaded from disk, which is why postMessage is the load-bearing channel. See `speaker.md` §2 for the full state-ownership matrix (audience is state root; speaker holds a local shadow plus a `frozen` flag). Six message families deliberately bypass the freeze gate because they are commands to the projector rather than shared state: `blank` (so `B` still works while frozen), `slide-ref` (the audience's window dimensions after a resize), `link-show` / `link-hide` (the address overlay), `note-button` (the `M` key, which shows or hides the `+ note` affordance on the projection from either window), `fullscreen` (the `W` key – and the one command the projection cannot simply obey, because a browser grants `requestFullscreen` only to a gesture in the window that makes the call, so the cockpit's press *arms* the projection and one click there spends it; leaving needs no gesture at all, and speaker.md §2 has the measurement) and `demo` with its three `demo-*` handshake messages (the live demo, `D`: the cockpit captures a window or screen with `getDisplayMedia` and the projection shows it – directly as the cockpit's `MediaStream` when both windows are one origin under `--serve`, through an `RTCPeerConnection` on loopback from `file://`; the `psi-slides-media` skill has the whole of it). Resist the urge to fold either back into the state snapshot – `applyRemoteState` is a *full* apply, so a snapshot sent for one field drags the receiver's slide position with it.
+
+### The documents' reader tools
+
+`print.html` and `print-notes.html` are read on screen after the lecture, and
+**under `reader: on` (the default, the eleventh viewer-default key) they carry
+tools for that reader**: a contents sidebar that marks where they are,
+highlights with an optional note each (words of prose or of a code block; a
+whole figure, code block or formula; a pin on a spot in a figure, set in the
+lightbox), `n` / `p` through them, a Markdown export and import, and print –
+yellow, the notes numbered in the outer margin. **Documents only, and nothing
+to do with `> annot:`**: an annotation is the lecturer's, integrated into
+`source.md` and shown to everyone; a highlight is the reader's, kept in their
+browser and seen by nobody else. No shared code path, no shared word. The
+lightbox (`PRINT_JS`) is not a reader tool and ships either way; it knows
+nothing of highlights and talks to the reader half through `lb:*` events. The
+reader half is `PRINT_READER_JS`, `PRINT_HIGHLIGHTS_JS`, `READER_EARLY_JS` and
+the `body[data-reader=on]` blocks of `PRINT_CSS`; `reader: off` emits none of
+it. Its words are `reader-*` keys in `STRINGS`, so `labels:` reaches them.
+
+Three anchoring decisions are not guessable from the code:
+
+- **A text highlight is chunk id + offsets + quote, with 32 characters of
+  context either side**, measured in the chunk's *reader text*, which skips
+  speaker notes, the build's labels and numbers, figures, formulas and `pre`.
+  Skipping the speaker notes is what makes one entry valid in both documents.
+  A rebuild re-anchors by the quote, then whitespace-normalised; what it
+  cannot place is listed at the sidebar's foot and never dropped. Frozen ids
+  are why the chunk, not the document, is the anchor.
+- **Code is anchored in its own block's text** (`type: 'code'`), never in the
+  slide's: adding `pre` to the reader text would have moved every highlight
+  on a slide with code.
+- **A diagram pin stores the part's author-given name with the `dg<N>-`
+  prefix stripped**, because `<N>` is a per-document counter that moves when
+  a figure is added above. A name that is gone falls back to the stored x/y
+  and the card says the spot is approximate.
+
+Storage is `localStorage` under `psi-reader:v1:<source folder name>` – per
+lecture, not per file. Measured from `file://`: Chrome and Safari share one
+store between the two documents, Firefox keeps one per file (the export
+carries highlights across); under `--serve` all three share. `test/reader.mjs`
+guards it on fixture decks of its own. The decisions and the browser
+measurements, slice by slice, are in `PLAN-reader-highlights.md`.
 
 ### Asset inlining
 
@@ -528,8 +570,8 @@ wrapped in `<span class="nohy">` by `markAddresses` – a `marked` text-renderer
 override, because no selector can name a run of characters, and emitted only
 under `all`, so no other deck's bytes move. Seven themes cycle on
 `A`, and `applyFontTheme()` sets `body[data-mode]`, which is what every piece of
-chrome keys off rather than a theme name. Ten frontmatter keys pin how a
-lecture opens – the three newest, `note-button`, `neighbours` and
+chrome keys off rather than a theme name. Eleven frontmatter keys pin how a
+lecture opens – three of them, `note-button`, `neighbours` and
 `transition`, are the ones a keynote sets and a lecture does not, and all three
 write their attribute only when the author asked for something other than the
 default, so a deck that says nothing about any of them is unmoved;
@@ -659,14 +701,14 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the sixteen gates guards, the four browser-spec families, and the fifteen specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the sixteen gates guards, the four browser-spec families, and the sixteen specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
 - `.claude/skills/psi-slides-authoring/SKILL.md` – **how to write a lecture `source.md`**: the chunk grammar in practice, the `:::` directive vocabulary, reveal segments, notes, images and math, with worked examples. Invoked as the `psi-slides-authoring` skill.
 - `.claude/skills/psi-slides-figures/SKILL.md` – **the `::: draw` vocabulary and the editor's contract**, lifted out of this file so it loads when figures are the work. Every statement, class, slot table and generated name, plus the three decisions behind the compiler. Invoked as the `psi-slides-figures` skill.
 - `.claude/skills/psi-slides-decoration/SKILL.md` – **the cover, backdrop, overlay, card, row and divider vocabulary**, same reasoning: the slot tables, the refusals, and the CSS traps each construct cost. Invoked as the `psi-slides-decoration` skill.
-- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the ten viewer-default keys, the whole nineteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `code`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
+- `.claude/skills/psi-slides-appearance/SKILL.md` – **type, themes and viewer defaults**: the bundled and author-supplied font rosters, `ligatures:`, `lang:`, the seven themes, the eleven viewer-default keys, the whole nineteen-key `style:` block including `labels`, `blocks`, `bold` / `print-bold`, `code`, `neutrals` / `print-neutrals` and `headline` / `caps`, the four chunk classes that answer `wrap` and `blocks` for one slide, and the recipe for the 1.0.0 look. Invoked as the `psi-slides-appearance` skill.
 - `.claude/skills/psi-slides-media/SKILL.md` – **video, hosted embeds and link addresses**: the extension tables, the two sync protocols, clip staging, and the build-time QR codes. Invoked as the `psi-slides-media` skill.
 - `.claude/skills/psi-slides-souffleuse/SKILL.md` – **the live prompter (`--souffleuse`)**: the config surface, the socket protocol, the tick scheduler, the request shape, the policy table as coded, the failure modes with their badge texts, the log records, the cockpit ids and the STT adapter. Invoked as the `psi-slides-souffleuse` skill.
 - `PLAN-souffleuse.md` – the live prompter's plan, its seven slices and **§ Decisions along the way**, which is where the code and the plan parted company and why. Read that section before changing `souffleuse.mjs`, the sidecar or the cockpit's prompter runtime; where the two disagree, the code wins.

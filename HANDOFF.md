@@ -4,6 +4,73 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Slice: the documents got a reader (highlights, notes, contents)
+
+`print.html` and `print-notes.html` are read on screen after the lecture, and
+the ZfW course had already proved the want: it spliced a highlighter into
+psi-slides' `print.html` with a Python post-processor. This moves the idea
+into the build, in eight commits from `99aae7b` (screen type size and the
+lightbox) to `ffc4aeb` (code and formulas). `PLAN-reader-highlights.md` is the
+record – every slice appends a *Decided in slice N* list with what it
+measured, so read that before changing any of it.
+
+**What exists, under `reader: on` (the default).** A contents sidebar with
+scroll-spy; highlights on prose, on the words of a code block, on a whole
+figure / code block / formula, and pins on a spot in a figure set in the
+lightbox; an optional note on each, in the right margin; `n` / `p` and a pill
+to walk them; a Markdown export that a lecturer can read as it stands and that
+imports back; and print, yellow with numbered notes in the outer margin.
+Documents only, and deliberately nothing shared with `> annot:` – different
+owner, different store, different lifecycle.
+
+**What was not obvious going in.**
+
+The one thing the ZfW version got wrong was that a highlight whose words
+changed vanished silently. Here the anchor is the chunk's frozen id plus
+offsets, quote and context, re-anchored by search on load, and what cannot
+be placed is listed in the sidebar's foot and kept in the store and the
+export. Never deleted on load.
+
+Offsets are counted in a *reader text* that skips speaker notes, which is the
+whole reason one store serves both documents. It also skips `pre` – and when
+code became highlightable in slice 6 it got its own anchor space rather than
+joining that text, because joining would have moved every existing highlight
+on a slide with code.
+
+Diagram ids are `dg<N>-<name>` and `<N>` counts figures in the document, so a
+figure added above shifts every id below it. A pin stores the bare name.
+
+`localStorage` from `file://` was measured, not assumed: Chrome and Safari
+share one store between the two files, Firefox isolates per file. The key
+stays per lecture; the export is the way across in Firefox, and the menu says
+what holds everywhere rather than guessing which browser this is.
+
+Print notes are floats with a negative right margin, and they are written
+into the page on every layout rather than on `beforeprint`, because a PDF made
+by a script fires no print event. A float inside a table, a grid card or a
+lede lands inside it, so the note is hung before the outermost block that
+does not run to the column's edge. Measured on Chromium PDFs and by hand in
+Safari.
+
+The lightbox stays ignorant of highlights: `PRINT_JS` sends `lb:open`,
+`lb:close` and a cancelable `lb:click`, and the reader half answers. On the
+way a real bug turned up – a drag on a picture in the lightbox never panned,
+because the browser started its own image drag.
+
+A first figure design numbered the pins on screen and put a heavy numbered
+disc on a frame's corner. It read as a glitch; numbers are now paper-only, as
+they always were for text.
+
+**Tests and mirrors.** `test/reader.mjs` builds its own fixture decks (make,
+note, undo, `n`/`p`, orphan and re-anchor after a source edit, both documents
+sharing, export → clear → import, figures with the `dg<N>` shift and a renamed
+part, `reader: off` shipping no reader script). `reader` joined
+`VIEW_DEFAULT_SPEC`, mirrored in `lint.js` and held by the `frontmatter`
+gate; the 38 `reader-*` words are in `STRINGS` and in `lint.js`'s `LABEL_KEYS`.
+
+**Open.** A second colour (`kind` is in the data model already, so it costs
+no migration), and what §12 of the plan leaves out on purpose.
+
 ## Slice: inline code stopped opening a hole in the sentence (`style.code`)
 
 The complaint was `async def` in prose: the mono space is about 0.55 em where
