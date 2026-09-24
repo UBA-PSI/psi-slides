@@ -1,14 +1,26 @@
 ---
-name: psi-slides-souffleuse
-description: The live prompter in the psi-slides cockpit (`--souffleuse`) – the pure half in `souffleuse.mjs` (`deckPayload`, `systemPrefix`, `tickMessage`, `parseAnswer`, `driftSeconds`, `shouldTick`, `createPolicy`, `TOOL_SCHEMA`), the Node sidecar `createSouffleuse` in build.js with its OpenRouter request, backoff and JSONL log, the `souffleuse-*` messages on the watch socket, the cockpit's ear and `#souffleuse-strip` under `Shift`-`S`, and the config surface (`--souffleuse-model`, `--souffleuse-dry-run`, `--souffleuse-replay`, `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, the `souffleuse:` frontmatter block, `SOUFFLEUSE_SPEC`, top-level `duration:`). Use when changing any of those, their `lint.js` mirrors, `test/gates/souffleuse.mjs` or `test/souffleuse.mjs`, or when the prompter says nothing, says too much, or shows a badge.
+name: psi-slides-prompter
+description: The live prompter in the psi-slides cockpit (`--prompter`, internal codename Souffleuse) – the pure half in `souffleuse.mjs` (`deckPayload`, `systemPrefix`, `tickMessage`, `parseAnswer`, `driftSeconds`, `shouldTick`, `createPolicy`, `TOOL_SCHEMA`), the Node sidecar `createSouffleuse` in build.js with its OpenRouter request, backoff and JSONL log, the `souffleuse-*` messages on the watch socket, the cockpit's ear and `#souffleuse-strip` under `Shift`-`S`, and the config surface (`--prompter`, `--prompter-model`, `--prompter-dry-run`, `--prompter-replay`, `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, the `prompter:` frontmatter block, `SOUFFLEUSE_SPEC`, top-level `duration:`). Use when changing any of those, their `lint.js` mirrors, `test/gates/souffleuse.mjs` or `test/souffleuse.mjs`, or when the prompter says nothing, says too much, or shows a badge.
 ---
 
-# The live prompter (`--souffleuse`)
+# The live prompter (`--prompter`)
 
 Lifted out of `CLAUDE.md` so it loads when the prompter is the work rather than
 in every session. `PLAN-souffleuse.md` is the design and, in its *Decisions along
 the way*, the record of where the code and the plan parted company; where the two
 disagree the code is right.
+
+**“Souffleuse” is the internal codename, and it survives only where nobody
+types it.** Every author-facing name says *prompter*: the four `--prompter*`
+flags, the `prompter:` frontmatter block, the `prompter-*.jsonl` log and
+`prompter-*.prompt.txt`, the `prompter` `--events` type and stdin command, and
+the `unknown-prompter-setting` lint code. File and identifier names keep the
+codename – `souffleuse.mjs`, `SOUFFLEUSE_*`, `createSouffleuse`,
+`souffleuseCues`, the `souffleuse-*` socket messages, the `psi-slides:souffleuse*`
+storage keys, the `#souffleuse-*` cockpit ids, `test/souffleuse.mjs` and
+`test/gates/souffleuse.mjs`. Logs written before the rename are called
+`souffleuse-*.jsonl`, and `--prompter-replay` reads them the same way: it
+takes whatever file it is given and never checks the prefix.
 
 It is a prompter in the theatre sense: whispers from the box, briefly, only when
 needed, and the room notices nothing. What it may be about is six kinds – the
@@ -34,13 +46,13 @@ into the prompt, that is the thing you are giving up.
 | where | what |
 |---|---|
 | `souffleuse.mjs` | everything pure: `KINDS`, `SEVERITIES`, `MAX_WORDS`, `START_QUIET_S`, `CLOCK_JUMP_S`, `PACE_WPM`, `DELIVERY_MIN_SAMPLE_S`, `TOOL_SCHEMA`, `wordCount`, `prefixHash`, `deckPayload`, `flattenMarks`, `cueTargets`, `systemPrefix`, `speechStats`, `paceVerdict`, `tickMessage`, `parseAnswer`, `driftSeconds`, `timeHintAllowed`, `rebaseClock`, `shouldTick`, `createPolicy`, `replayAnswers`. Zero imports, zero Node APIs, and the gate asserts both plus the exact export list |
-| `build.js` § `// ── souffleuse (--souffleuse) ──` | `createSouffleuse({absIn, opts, sendToCockpit, emitEvent, log})` → `{onBuild, onMessage, say, setEnabled, close, logPath}`, plus `souffleuseLogPath` and the constants. Both modules are imported **dynamically here**, so no other build reads either file |
-| `build.js` § `// ── the live prompter's CSS and runtime (--souffleuse only) ──` | `SOUFFLEUSE_CSS` and `SOUFFLEUSE_JS`: the cockpit's Web Speech adapter, switch, strip, badge, history, interim line and cue merge, and the rules that dress them. **Two literals of their own because they are spliced only under the flag**, the way `editorPayload` is – `${SPEAKER_CSS}${souffleuseCss}` inside the same `<style>`, `${SPEAKER_JS}${souffleuseRuntime}` inside the same `<script>`. The runtime must be in that script element: it reads `flatChunks`, `state`, `viewHooks`, `cueSync`, `cueOn`, `cuePosition`, `souffleuseCues`, `applyCueMode`, `flashMode`, `escText`, `elapsedSeconds`, `tStart` and `PSI_CARDS` out of `SPEAKER_JS`'s scope. Before the split, 36 KB of prompter rode in every `speaker.html` anybody ever built |
+| `build.js` § `// ── souffleuse (--prompter) ──` | `createSouffleuse({absIn, opts, sendToCockpit, emitEvent, log})` → `{onBuild, onMessage, say, setEnabled, close, logPath}`, plus `souffleuseLogPath` and the constants. Both modules are imported **dynamically here**, so no other build reads either file |
+| `build.js` § `// ── the live prompter's CSS and runtime (--prompter only) ──` | `SOUFFLEUSE_CSS` and `SOUFFLEUSE_JS`: the cockpit's Web Speech adapter, switch, strip, badge, history, interim line and cue merge, and the rules that dress them. **Two literals of their own because they are spliced only under the flag**, the way `editorPayload` is – `${SPEAKER_CSS}${souffleuseCss}` inside the same `<style>`, `${SPEAKER_JS}${souffleuseRuntime}` inside the same `<script>`. The runtime must be in that script element: it reads `flatChunks`, `state`, `viewHooks`, `cueSync`, `cueOn`, `cuePosition`, `souffleuseCues`, `applyCueMode`, `flashMode`, `escText`, `elapsedSeconds`, `tStart` and `PSI_CARDS` out of `SPEAKER_JS`'s scope. Before the split, 36 KB of prompter rode in every `speaker.html` anybody ever built |
 | `build.js`, `SPEAKER_JS` § cue cards | the two pieces a cockpit carries either way: `const souffleuseCues = new Map()` and the merge at the end of `cueCardsFor`. The rail is drawn from them, and drawing it cannot depend on a literal that may not have been spliced; over an empty Map both are free. Everything else the prompter touches in this window is *chained* from `SOUFFLEUSE_JS` – `viewHooks.onActiveChange`, `onStateChange`, and `applyCueMode` (which is how `cuePlaceStrip` gets called without a line inside it) |
 | `build.js`, `SOUFFLEUSE_SPEC` / `souffleuseSettings` / `talkDuration` | the frontmatter, validated in the `buildOnce` pre-flight so `--print-only` refuses a typo too |
 | `build.js`, `renderSpeaker` | emits the chrome, `const SOUFFLEUSE = {lang, cadence, cues, label}` – `null` without the flag – and the two conditional splices. Without the flag the only trace in `speaker.html` is that null, the cue merge above, and the `onShiftS` / `escapePrompter` hooks in `AUDIENCE_JS`, which the projection carries too because they are the hook contract |
 | `build.js`, `runWatch` | tracks the socket of the last `souffleuse-hello` as `cockpit`, routes the `souffleuse-*` family after the nonce check, and abandons anything in flight on `exit` |
-| `lint.js` | `SOUFFLEUSE_ENUMS`, `SOUFFLEUSE_NUM_KEYS`, `SOUFFLEUSE_FREE_KEYS` and `nestedBlockKeys`; the codes `unknown-souffleuse-setting` and `bad-duration` |
+| `lint.js` | `SOUFFLEUSE_ENUMS`, `SOUFFLEUSE_NUM_KEYS`, `SOUFFLEUSE_FREE_KEYS` and `nestedBlockKeys`; the codes `unknown-prompter-setting` and `bad-duration` |
 | `test/gates/souffleuse.mjs`, `test/souffleuse.mjs` | the restraint without a network, and the three processes wired to each other |
 
 `notesToCards` is **injected, not imported**: `deckPayload(lecture,
@@ -53,10 +65,10 @@ knows the cue-card grammar, and this keeps it that way.
 
 | surface | what |
 |---|---|
-| `--souffleuse` | run the sidecar. **Only together with `--watch`** – a usage error otherwise, because the watch socket is the only channel the cockpit has |
-| `--souffleuse-model ID` | an OpenRouter model id; beats the frontmatter and the default. **Refused without `--souffleuse`**, because it is read nowhere else: on its own it built an ordinary deck with no prompter and said nothing |
-| `--souffleuse-dry-run` | everything but the one call. The ear, the socket, the moves, the tick scheduler, the policy and the log all run; `ask` is skipped and logged as `answer {dryRun: true}`, **between a `thinking` and a `listening`**, so the cockpit's heartbeat counts the calls that would have gone out – a dry run that only ever said `listening` showed that one word for a whole talk, in the mode whose job is answering "is this wired up". **It needs no key** – which is the point of it: it is the rehearsal tool, and the way to read a `tick` message, with its state line and its window, on a machine with no account. Refused without `--souffleuse`, like the model id |
-| `--souffleuse-replay FILE` | no watcher, no browser, no renderer, no network: read a finished run's `souffleuse-*.jsonl` back through **today's** parser and **today's** policy and print, per answer, what the model proposed and what the policy would do with it now. `node build.js <source.md> --souffleuse-replay souffleuse-20260911-1015.jsonl`. It is how a threshold gets changed with evidence rather than by feel; the pure half is `replayAnswers` in `souffleuse.mjs` |
+| `--prompter` | run the sidecar. **Only together with `--watch`** – a usage error otherwise, because the watch socket is the only channel the cockpit has |
+| `--prompter-model ID` | an OpenRouter model id; beats the frontmatter and the default. **Refused without `--prompter`**, because it is read nowhere else: on its own it built an ordinary deck with no prompter and said nothing |
+| `--prompter-dry-run` | everything but the one call. The ear, the socket, the moves, the tick scheduler, the policy and the log all run; `ask` is skipped and logged as `answer {dryRun: true}`, **between a `thinking` and a `listening`**, so the cockpit's heartbeat counts the calls that would have gone out – a dry run that only ever said `listening` showed that one word for a whole talk, in the mode whose job is answering "is this wired up". **It needs no key** – which is the point of it: it is the rehearsal tool, and the way to read a `tick` message, with its state line and its window, on a machine with no account. Refused without `--prompter`, like the model id |
+| `--prompter-replay FILE` | no watcher, no browser, no renderer, no network: read a finished run's `prompter-*.jsonl` back through **today's** parser and **today's** policy and print, per answer, what the model proposed and what the policy would do with it now. `node build.js <source.md> --prompter-replay prompter-20260911-1015.jsonl`. It is how a threshold gets changed with evidence rather than by feel; the pure half is `replayAnswers` in `souffleuse.mjs` |
 | `OPENROUTER_API_KEY` | required. Without it the sidecar starts `disabled`: nothing is sent, the console says so once, a `hello` says so, the badge says so – and the transcript is still logged, because a missing key is not a reason to lose the debrief |
 | `OPENROUTER_BASE_URL` | another OpenAI-compatible endpoint, default `https://openrouter.ai/api/v1`. This is how the spec's fake OpenRouter is reached |
 
@@ -143,7 +155,7 @@ Six things about it that are not guessable:
 - **`souffleuse-prefs {cues}` is the cue checkbox**, sent after a successful
   hello and on every change. Its own message rather than a field of
   `souffleuse-toggle`, because the box is changed mid-talk with the switch
-  untouched. The deck's `souffleuse: {cues: off}` is the ceiling, this is the
+  untouched. The deck's `prompter: {cues: off}` is the ceiling, this is the
   speaker's answer under it, and `cuesAllowed` is the conjunction: with the
   cards off `cueTargets` is empty, so no cue is judged, no slide is locked and
   nothing enters the duplicate rule.
@@ -178,7 +190,7 @@ Six things about it that are not guessable:
   button's state and nothing else, so a driver switching the prompter off on
   stdin left the microphone open, took two presses to undo, and a reload in
   between said hello and switched the sidecar back on behind the speaker. Without a sidecar the socket answers `start the build with
-  --souffleuse`.
+  --prompter`.
 - **A second cockpit takes the hints over by saying hello, and the first one
   is told.** `runWatch` sends the displaced socket `souffleuse-status {state:
   'idle', why: 'another cockpit took the prompter'}` before replacing it – so
@@ -445,7 +457,7 @@ sidecar another (`souffSideWhy`), and `souffPaintBadge` paints from the pair.
 
 ## The log
 
-`souffleuse-<YYYYMMDD-HHMM>.jsonl` beside `source.md`, one per run of the
+`prompter-<YYYYMMDD-HHMM>.jsonl` beside `source.md`, one per run of the
 watcher. Every line carries `t` and `type`:
 
 | type | body |
@@ -454,7 +466,7 @@ watcher. Every line carries `t` and `type`:
 | `say` | `text`, `t0`, `t1`, `chunkId`, `idx`, `beat` |
 | `move` | `idx`, `chunkId`, `sentId`, `beat`, `elapsed` |
 | `tick` | `reason`, `idx`, `chunkId`, `beat`, `elapsed`, `drift`, `rough`, `timeHintAllowed`, `cueTargets`, and the **user message** – never the prefix, which is the same 20 to 60 KB on every line and is already in the build |
-| `answer` | the raw body, `usage`, `durationMs`; under `--souffleuse-dry-run`, `{dryRun: true}` and nothing else |
+| `answer` | the raw body, `usage`, `durationMs`; under `--prompter-dry-run`, `{dryRun: true}` and nothing else |
 | `hint` / `cue` | what went out, including the model's `why`, which is for the log alone |
 | `suppressed` | `reason` plus the answer the policy refused – this is the half of the debrief that says what the model wanted to say. Two reasons are not the policy's: `no-cockpit`, the whisper that was ready with no socket to put it on, and `stale-deck`, a card for a slide the build that landed while the call was out no longer has (`cueTargets` was computed against the deck of the tick; the alternative was a card replayed into every reloaded cockpit under a dead id until the next build's `cue-dropped` sweep) |
 | `dismiss` | `hintId`, `how` |
@@ -465,7 +477,7 @@ watcher. Every line carries `t` and `type`:
 | `cue-dropped` | a card whose slide this build no longer has |
 
 **Beside it, one file per build whose deck changed:**
-`souffleuse-<prefixHash>.prompt.txt`, the system prefix exactly as it is sent.
+`prompter-<prefixHash>.prompt.txt`, the system prefix exactly as it is sent.
 It is 20 to 60 KB and would otherwise be on every `tick` line or nowhere at
 all; one file per hash is the same text once, named by the hash the `session`
 line and `session_id` carry. Gitignored beside the JSONL, and the start banner
@@ -474,8 +486,9 @@ names it.
 **Where it lies is a caution, not only a fact.** The log holds the spoken words
 verbatim, and it is written beside `source.md` wherever that is – which is
 where it is worth having, because the debrief belongs with the deck it is
-about. This repository's `.gitignore` covers `souffleuse-*.jsonl` and
-`lectures/*/souffleuse-*.jsonl` **and nothing else**: a lecture written in a
+about. This repository's `.gitignore` covers `prompter-*.jsonl` and
+`lectures/*/prompter-*.jsonl` (plus the pre-rename `souffleuse-*` spellings)
+**and nothing else**: a lecture written in a
 content repo of its own is one `git add -A` away from committing a transcript
 of a rehearsal, so that repo needs the same pattern. `--new` scaffolds no
 `.gitignore` to put it in, so the sidecar prints the log's full path and says
@@ -494,10 +507,10 @@ already. Without it, a prompter that has wanted to say six things and been
 refused six times looks from the outside exactly like a prompter with nothing
 to say.
 
-`--events` carries the same transitions as `{type: 'souffleuse', state, …}`:
+`--events` carries the same transitions as `{type: 'prompter', state, …}`:
 `ready` / `off` after a build (with `model`, `session`, `chunks`), `listening`,
 `thinking`, `idle`, `error` with a `why`, `hint` with `kind` and `severity`,
-`cue` with `chunkId`. The stdin command `{"type":"souffleuse","enabled":false}`
+`cue` with `chunkId`. The stdin command `{"type":"prompter","enabled":false}`
 is the same switch the cockpit's button throws. The terminal hears only the
 states a person would want to be told about: `listening` and `thinking`
 alternate once per tick, which on a 45-minute talk is a hundred lines through
@@ -573,7 +586,7 @@ below the fold.
   · on-device · text goes to openrouter.ai`, one line, and the short form after
   that (`psi-slides:souffleuse-told`). The ear is only half of the consent – the
   recogniser may well run on this machine while the transcript does not stay on
-  it – and under `--souffleuse-dry-run` the same line says `dry run, nothing
+  it – and under `--prompter-dry-run` the same line says `dry run, nothing
   leaves this machine`, which is why the `hello` reply carries `dryRun`.
 - **Storage**: `sessionStorage psi-slides:souffleuse` (on, so a `--watch` reload
   does not need the switch pressed again – and *not* `localStorage`, because the
@@ -753,7 +766,7 @@ once because the standing hint is one of them, and a delta of nothing moving
 nothing.
 
 **`test/souffleuse.mjs`** (113 assertions; the browser suite, the ninth spec that
-builds a deck of its own): a real `node build.js … --watch --serve --souffleuse --events`
+builds a deck of its own): a real `node build.js … --watch --serve --prompter --events`
 child, a fake OpenRouter on loopback reached through `OPENROUTER_BASE_URL`, and a
 fake `webkitSpeechRecognition` installed with `addInitScript`. It asserts the
 switch and its `sessionStorage`, the request body (`cache_control`, the forced
@@ -766,12 +779,12 @@ dialog, **that `speaker.html` never contains the string `OPENROUTER`**, and that
 the projection has none of the chrome and no field of `snapshot()` is the
 prompter's. Since the code review it also asserts the seven things that review
 found: two presses in one task start one recogniser, a bare `hello` switches
-nothing on, a `{"type":"souffleuse","enabled":false}` written to the child's
+nothing on, a `{"type":"prompter","enabled":false}` written to the child's
 stdin stops the ear and clears the consent without sending a dismissal for the
 hint it took away, one press brings it back, a reload mid-hint does not lock the
 policy and replays the cards already laid, unticking the cue box empties
 `cue_targets`, a build of the same deck **without** the flag carries none of the
-prompter (36 KB lighter), and `--souffleuse-model` on its own is a usage error
+prompter (36 KB lighter), and `--prompter-model` on its own is a usage error
 rather than a silent ordinary build. **It moves the clock rather than waiting it out**: `__stt.final(text,
 70)` pushes the cockpit's `tStart` back seventy seconds, so the opening quiet and
 the cadence happen at once and the whole spec is about eleven seconds. Since the

@@ -10,7 +10,7 @@
  *
  * Zero imports and zero Node APIs, like cue-cards.mjs, tails.mjs and
  * diagram-core.mjs. Unlike those three it is not spliced into any page –
- * build.js imports it dynamically under --souffleuse only, so nothing here
+ * build.js imports it dynamically under --prompter only, so nothing here
  * has to survive a template literal and nothing here reaches the HTML. It is
  * kept zero-dep anyway, because a gate that needs no `npm install` is the
  * whole reason the fast suite is fast.
@@ -1403,7 +1403,7 @@ export function createPolicy(opts = {}) {
  * The debrief holds the model's raw answer on every `answer` line, so a
  * finished talk can be asked the question the talk itself could not: what
  * would the prompter do with these answers now? That is how a threshold is
- * changed with evidence rather than by feel – `--souffleuse-replay`.
+ * changed with evidence rather than by feel – `--prompter-replay`.
  *
  * The switch being thrown is a `status` line carrying the clock it was thrown
  * on, and that is where the opening quiet is measured from; an `idle` or an

@@ -659,7 +659,11 @@ from building the same way is a major version.
 
 ### Added
 
-- **A live prompter in the cockpit (`--souffleuse`).** While the talk runs, the
+- **A live prompter in the cockpit (`--prompter`), landing with 2.0.0.** It was
+  built under the codename Souffleuse, which survives in file and identifier
+  names (`souffleuse.mjs`, `#souffleuse-*`); every name an author types – the
+  four `--prompter*` flags, the `prompter:` frontmatter block, the
+  `prompter-*.jsonl` log – says prompter. While the talk runs, the
   cockpit listens to the room, and a sidecar in the watch process asks one model
   whether anything needs saying – behind time, an example missing, a probable
   factual slip, a word about delivery, the tempo of the talk, or something the
@@ -698,9 +702,9 @@ from building the same way is a major version.
   is not evidence that none were said.
 
   `duration: 45` in the frontmatter gives the
-  clock a plan to measure the drift against, and a `souffleuse:` block sets the
+  clock a plan to measure the drift against, and a `prompter:` block sets the
   model, the cadence, the cool-down and whether cards are allowed. One log per
-  run beside `source.md` (`souffleuse-<date>.jsonl`, gitignored) is the debrief:
+  run beside `source.md` (`prompter-<date>.jsonl`, gitignored) is the debrief:
   every call, what came back, and every hint the policy swallowed with its
   reason. Chrome only, because the ear is the Web Speech API, and only together
   with `--watch`, because the cockpit reaches the sidecar over the watch socket.

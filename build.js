@@ -6272,7 +6272,7 @@ function lectureLang(frontmatter = {}) {
 // not say. `duration: 45` is minutes, because that is how a slot is
 // announced; `duration: 45:00` and `1:30:00` are read as written. It is a
 // property of the talk like `lang:`, not a setting of any one view, which
-// is why it sits at the top level and not inside `souffleuse:` - the
+// is why it sits at the top level and not inside `prompter:` - the
 // cockpit's clock can measure against it whether or not a prompter is
 // listening. Refused rather than ignored: a number nothing reads is the
 // silent no-op this format refuses everywhere.
@@ -7129,7 +7129,7 @@ function styleSettings(frontmatter = {}) {
   }
   return out;
 }
-// The `souffleuse:` block - how the live prompter (--souffleuse) behaves
+// The `prompter:` block - how the live prompter (--prompter) behaves
 // for this deck. Read in the buildOnce pre-flight beside styleSettings so a
 // typo fails every build, not only the one that starts the sidecar. Mirrored
 // in lint.js as SOUFFLEUSE_ENUMS / SOUFFLEUSE_NUM_KEYS / SOUFFLEUSE_FREE_KEYS,
@@ -7146,14 +7146,14 @@ const SOUFFLEUSE_SPEC = {
   'cues':     { kind: 'enum', values: ['on', 'off'], dflt: 'on' },
 };
 function souffleuseSettings(frontmatter = {}) {
-  const raw = frontmatter.souffleuse;
+  const raw = frontmatter.prompter;
   const out = {};
   for (const [k, spec] of Object.entries(SOUFFLEUSE_SPEC)) out[k] = spec.dflt;
   if (raw == null) return out;
   if (typeof raw !== 'object' || Array.isArray(raw)) {
     const err = new Error(
-      'Frontmatter: "souffleuse:" is a block of keys, not a single value.\n' +
-      '  souffleuse:\n    model: anthropic/claude-sonnet-5\n    cadence: 25');
+      'Frontmatter: "prompter:" is a block of keys, not a single value.\n' +
+      '  prompter:\n    model: anthropic/claude-sonnet-5\n    cadence: 25');
     err.userFacing = true;
     throw err;
   }
@@ -7161,7 +7161,7 @@ function souffleuseSettings(frontmatter = {}) {
     const spec = SOUFFLEUSE_SPEC[k];
     if (!spec) {
       const err = new Error(
-        `Frontmatter: souffleuse has no key "${k}".\n` +
+        `Frontmatter: prompter has no key "${k}".\n` +
         `  Keys: ${Object.keys(SOUFFLEUSE_SPEC).join(', ')}`);
       err.userFacing = true;
       throw err;
@@ -7170,7 +7170,7 @@ function souffleuseSettings(frontmatter = {}) {
     if (spec.kind === 'enum') {
       if (!spec.values.includes(val)) {
         const err = new Error(
-          `Frontmatter: "souffleuse.${k}: ${val}" is not a value this key accepts.\n` +
+          `Frontmatter: "prompter.${k}: ${val}" is not a value this key accepts.\n` +
           `  Valid values for ${k}: ${spec.values.join(', ')}`);
         err.userFacing = true;
         throw err;
@@ -7180,7 +7180,7 @@ function souffleuseSettings(frontmatter = {}) {
       const n = Number(val);
       if (!val || !Number.isFinite(n) || n < spec.min || n > spec.max) {
         const err = new Error(
-          `Frontmatter: "souffleuse.${k}: ${val}" is not a number of seconds between ${spec.min} and ${spec.max}.`);
+          `Frontmatter: "prompter.${k}: ${val}" is not a number of seconds between ${spec.min} and ${spec.max}.`);
         err.userFacing = true;
         throw err;
       }
@@ -7188,7 +7188,7 @@ function souffleuseSettings(frontmatter = {}) {
     } else if (spec.kind === 'lang') {
       if (!/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(val)) {
         const err = new Error(
-          `Frontmatter: "souffleuse.language: ${val}" is not a language tag.\n` +
+          `Frontmatter: "prompter.language: ${val}" is not a language tag.\n` +
           '  Expected something like: en, de, de-DE, en-GB, fr.');
         err.userFacing = true;
         throw err;
@@ -7196,7 +7196,7 @@ function souffleuseSettings(frontmatter = {}) {
       out[k] = val;
     } else {
       if (!val) {
-        const err = new Error(`Frontmatter: "souffleuse.${k}" is set to nothing.`);
+        const err = new Error(`Frontmatter: "prompter.${k}" is set to nothing.`);
         err.userFacing = true;
         throw err;
       }
@@ -23105,7 +23105,7 @@ function renderSpeaker(lecture, opts = {}) {
   const defaults = viewDefaults(frontmatter);
   const styleOpts = styleSettings(frontmatter);
 
-  // The live prompter is chrome that exists only under --souffleuse, which
+  // The live prompter is chrome that exists only under --prompter, which
   // itself only runs with --watch. Without the flag SOUFFLEUSE is null, none
   // of the elements below are emitted, and neither SOUFFLEUSE_CSS nor
   // SOUFFLEUSE_JS is spliced - so a cockpit built any other way is the file
@@ -25651,9 +25651,9 @@ setPeer(window.opener);
 sendToPeer({ type: 'hello', source: 'speaker' });
 `;
 
-// ── the live prompter's CSS and runtime (--souffleuse only) ─────────
+// ── the live prompter's CSS and runtime (--prompter only) ─────────
 //
-// Two literals that reach a page only when the build carries --souffleuse:
+// Two literals that reach a page only when the build carries --prompter:
 // the stylesheet after SPEAKER_CSS inside the same style element, the script
 // after SPEAKER_JS inside the same script element. Being separate literals
 // is the whole point of them. The rules used to live in SPEAKER_CSS and the
@@ -25932,10 +25932,10 @@ body[data-mode=dark] #souffleuse-strip[data-severity=high] { background: oklch(0
 `;
 
 const SOUFFLEUSE_JS = `
-// ── the live prompter (--souffleuse) ────────────────────────────────
+// ── the live prompter (--prompter) ────────────────────────────────
 // The cockpit's half of PLAN-souffleuse.md: an ear, a switch, and one way
 // back to the sidecar over the watch socket that is already here. This whole
-// text is spliced into speaker.html only under --souffleuse, at the end of
+// text is spliced into speaker.html only under --prompter, at the end of
 // the same script element SPEAKER_JS is in, so everything below reads the
 // cockpit's own bindings - flatChunks, state, viewHooks, cueSync,
 // souffleuseCues, applyCueMode, cuePosition, flashMode - as if it still
@@ -25988,7 +25988,7 @@ if (SOUFFLEUSE && window.psiWatch) {
   const SOUFF_TOLD_KEY = 'psi-slides:souffleuse-told';
   const souffClockBtn = document.getElementById('clock');
   let souffShowHeard = false;
-  // The frontmatter is a ceiling, not a default: a deck whose souffleuse
+  // The frontmatter is a ceiling, not a default: a deck whose prompter
   // block switched cues off does not get cards because a preference in this
   // browser says otherwise.
   let souffCuesOn = !!SOUFFLEUSE.cues;
@@ -27523,7 +27523,7 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
   console.log('Shorthand refs like ![](fig-id) need no edit – the resolver finds the .webp.');
 }
 
-// ── souffleuse (--souffleuse) ────────────────────────────────────────
+// ── souffleuse (--prompter) ────────────────────────────────────────
 //
 // The live prompter's Node half. The cockpit listens to the room and sends
 // what it heard over the watch socket; this section holds the deck, the
@@ -27577,7 +27577,7 @@ function souffleuseLogPath(absIn, when = new Date()) {
   const p = (n) => String(n).padStart(2, '0');
   const stamp = `${when.getFullYear()}${p(when.getMonth() + 1)}${p(when.getDate())}`
     + `-${p(when.getHours())}${p(when.getMinutes())}`;
-  return path.join(path.dirname(absIn), `souffleuse-${stamp}.jsonl`);
+  return path.join(path.dirname(absIn), `prompter-${stamp}.jsonl`);
 }
 
 /**
@@ -27623,12 +27623,12 @@ async function createSouffleuse({
   let deck = null;            // what deckPayload made of the last build
   let prefix = null;          // {text, hash} – the cached system prompt
   let marks = [];             // flattenMarks(deck), for the drift
-  let model = String(opts.model || '').trim() || null;   // --souffleuse-model
+  let model = String(opts.model || '').trim() || null;   // --prompter-model
   const cliModel = model;
   let lang = 'en';
   let cadence = SOUFFLEUSE_SPEC.cadence.dflt;
   let cooldown = SOUFFLEUSE_SPEC.cooldown.dflt;
-  // Two halves of one permission. The deck's `souffleuse: {cues: off}` is the
+  // Two halves of one permission. The deck's `prompter: {cues: off}` is the
   // ceiling and the cockpit's checkbox is the speaker's own answer under it;
   // `cuesAllowed` is the conjunction, and it is what `cueTargets` reads. With
   // the box off the model is offered no target at all, so no cue is judged,
@@ -27688,14 +27688,14 @@ async function createSouffleuse({
     const changed = !lastStatus || lastStatus.state !== state || lastStatus.why !== why;
     lastStatus = { state, why };
     sendToCockpit({ type: 'souffleuse-status', state, why });
-    // The clock rides along because the log is read back: `--souffleuse-replay`
+    // The clock rides along because the log is read back: `--prompter-replay`
     // measures the opening quiet from the `listening` that the switch wrote,
     // and nothing else in the log says when the switch was thrown.
     logLine('status', { state, why, elapsed: nowElapsed() });
-    emit({ type: 'souffleuse', state, why });
+    emit({ type: 'prompter', state, why });
     // The terminal hears the states a person would want to be told about. A
     // line per tick would bury the build log the author is actually reading.
-    if (changed && !quiet) log(`[souffleuse] ${state}${why ? ' – ' + why : ''}`);
+    if (changed && !quiet) log(`[prompter] ${state}${why ? ' – ' + why : ''}`);
   }
 
   function disable(why) {
@@ -27764,14 +27764,14 @@ async function createSouffleuse({
         // read by a person. It is 20 to 60 KB and would be on every `tick`
         // line; one file per hash is the same text once, and a new build with
         // a changed deck writes a new one under its own name.
-        const promptPath = path.join(path.dirname(absIn), `souffleuse-${hash}.prompt.txt`);
+        const promptPath = path.join(path.dirname(absIn), `prompter-${hash}.prompt.txt`);
         try { fs.writeFileSync(promptPath, prefix.text); } catch (e) { /* not fatal */ }
         const kb = Math.round(prefix.text.length / 1024);
-        log(`[souffleuse] deck ${deck.chunks.length} slides, prompt ${kb} KB (${hash}), `
+        log(`[prompter] deck ${deck.chunks.length} slides, prompt ${kb} KB (${hash}), `
           + `model ${model}, cadence ${cadence}s, cues ${cuesAllowed ? 'on' : 'off'}`);
         log(`             the prompt as sent: ${promptPath}`);
         emit({
-          type: 'souffleuse', state: disabled ? 'off' : 'ready',
+          type: 'prompter', state: disabled ? 'off' : 'ready',
           why: disabled ? disabled.why : null,
           model, session: hash, chunks: deck.chunks.length,
         });
@@ -27804,7 +27804,7 @@ async function createSouffleuse({
         logLine('warn', { why: 'slide index past the end of the deck', sent: idx, clamped: last });
         if (!warnedIdx) {
           warnedIdx = true;
-          log(`[souffleuse] the cockpit is on slide ${idx + 1} and this deck has `
+          log(`[prompter] the cockpit is on slide ${idx + 1} and this deck has `
             + `${last + 1} – reading it as the last one. Reload the cockpit.`);
         }
         idx = last;
@@ -28158,7 +28158,7 @@ async function createSouffleuse({
     const cache = (cached != null && u && u.prompt_tokens != null)
       ? `${cached} of ${u.prompt_tokens} prompt tokens cached`
       : 'no cache figures in the reply';
-    log(`[souffleuse] first answer in ${(durationMs / 1000).toFixed(1)} s · ${cache}`);
+    log(`[prompter] first answer in ${(durationMs / 1000).toFixed(1)} s · ${cache}`);
   }
 
   async function ask(message, session) {
@@ -28335,7 +28335,7 @@ async function createSouffleuse({
     const action = (answer && answer.action) || '';
     const what = String((answer && answer.text) || '').trim();
     if (action !== 'hint' && action !== 'cue' && !what) return;
-    log(`[souffleuse] held back (${reason}): "${what}"`);
+    log(`[prompter] held back (${reason}): "${what}"`);
   }
 
   function judge(answer, session) {
@@ -28418,8 +28418,8 @@ async function createSouffleuse({
         cueId, chunkId: answer.chunk_id, text: answer.text,
         why: answer.why == null ? null : answer.why, at,
       });
-      log(`[souffleuse] cue → #${answer.chunk_id}: ${answer.text}`);
-      emit({ type: 'souffleuse', state: 'cue', chunkId: answer.chunk_id });
+      log(`[prompter] cue → #${answer.chunk_id}: ${answer.text}`);
+      emit({ type: 'prompter', state: 'cue', chunkId: answer.chunk_id });
     } else {
       const hintId = 'hint' + (++hintSeq);
       if (!sendToCockpit({
@@ -28441,9 +28441,9 @@ async function createSouffleuse({
         hintId, kind: answer.kind, text: answer.text, severity: answer.severity,
         chunkId: session.chunkId, why: answer.why == null ? null : answer.why, at,
       });
-      log(`[souffleuse] ${answer.kind}: ${answer.text}`);
+      log(`[prompter] ${answer.kind}: ${answer.text}`);
       emit({
-        type: 'souffleuse', state: 'hint',
+        type: 'prompter', state: 'hint',
         kind: answer.kind, severity: answer.severity,
       });
     }
@@ -28467,12 +28467,12 @@ async function createSouffleuse({
   // Said once, at the start, because it is the one thing about this flag a
   // person has to know before they use it. PLAN-souffleuse.md § Privacy.
   if (dryRun) {
-    log('[souffleuse] dry run: everything runs except the call to the model. The ear, the');
+    log('[prompter] dry run: everything runs except the call to the model. The ear, the');
     log('             socket, the ticks, the policy and the log are all real; nothing leaves');
     log('             this machine and no OPENROUTER_API_KEY is needed. Read the `tick` lines');
     log('             of the log to see the state line and the window a model would get.');
   } else {
-    log('[souffleuse] the live prompter is on. What leaves this machine, as text: the deck');
+    log('[prompter] the live prompter is on. What leaves this machine, as text: the deck');
     log('             including speaker notes, and what the cockpit hears, to ' + base + '.');
     log('             Never audio, never to the projection, never into source.md, never a key');
     log('             into the HTML. The microphone hears the room too – switch it off before');
@@ -28484,14 +28484,14 @@ async function createSouffleuse({
   // it is about – but this engine's .gitignore only covers this repository,
   // and a lecture being written in a content repo of its own is one `git add
   // -A` away from committing a transcript of a rehearsal.
-  log('[souffleuse] the debrief of this run: ' + logPath);
+  log('[prompter] the debrief of this run: ' + logPath);
   log('             It holds the spoken words verbatim. In a content repository of your own,');
-  log('             put souffleuse-*.jsonl in its .gitignore before the first rehearsal.');
-  log('             Beside it, souffleuse-<hash>.prompt.txt is the system prompt of each');
+  log('             put prompter-*.jsonl in its .gitignore before the first rehearsal.');
+  log('             Beside it, prompter-<hash>.prompt.txt is the system prompt of each');
   log('             build, as sent – gitignore that too.');
   if (disabled) {
-    log(`[souffleuse] disabled: ${disabled.why}. Nothing is sent; the transcript is still logged.`);
-    emit({ type: 'souffleuse', state: 'off', why: disabled.why });
+    log(`[prompter] disabled: ${disabled.why}. Nothing is sent; the transcript is still logged.`);
+    emit({ type: 'prompter', state: 'off', why: disabled.why });
   }
 
   return { onBuild, onMessage, say, setEnabled, close, logPath };
@@ -28517,7 +28517,7 @@ async function createSouffleuse({
 // was dropped: build.js is plain Node started as plain Node, and a driver
 // should not have to start it any particular way to read its state.
 //
-// `souffleuse` is the newest type – emitted only under --souffleuse, one per
+// `prompter` is the newest type – emitted only under --prompter, one per
 // transition of the live prompter, carrying `state` and whatever that state
 // needs (`kind` on a hint, `why` on an error). The desktop app never passes
 // that flag, and its reducer returns the state unchanged for a type it does
@@ -28652,7 +28652,7 @@ function buildOnce(absIn, only, opts = {}) {
   const strings = lectureStrings(lecture.frontmatter);
   // Same reasoning for the two the live prompter reads: nothing in a
   // --print-only build looks at them, so this is the only place a typo
-  // in `duration:` or `souffleuse:` is caught for that build.
+  // in `duration:` or `prompter:` is caught for that build.
   talkDuration(lecture.frontmatter);
   souffleuseSettings(lecture.frontmatter);
   const chunkCount = lecture.columns.reduce((n, c) => n + c.chunks.length, 0);
@@ -29021,7 +29021,7 @@ async function runWatch(absIn, only, baseOpts = {}) {
           }
           cockpit = sock;
         }
-        if (!sidecar) return reply(false, 'start the build with --souffleuse');
+        if (!sidecar) return reply(false, 'start the build with --prompter');
         return sidecar.onMessage(msg, reply, sock);
       }
 
@@ -29182,7 +29182,7 @@ async function runWatch(absIn, only, baseOpts = {}) {
       else if (msg.type === 'auto') {
         autoBuild = !!msg.enabled;
         emitEvent({ type: 'auto', enabled: autoBuild });
-      } else if (msg.type === 'souffleuse' && sidecar) {
+      } else if (msg.type === 'prompter' && sidecar) {
         // The same switch the cockpit's button throws, for a driver that has
         // a switch of its own. Silently ignored without a sidecar, like every
         // unknown line: this channel has nobody to complain to.
@@ -29359,7 +29359,7 @@ async function runServe(rootDir, wantedPort) {
 // Flags that consume the following argv token as their value, so it is not
 // mistaken for the source path.
 const VALUE_FLAGS = new Set(['--frames', '--max-width', '--port', '--viewport', '--squint-out', '--into',
-  '--souffleuse-model', '--souffleuse-replay']);
+  '--prompter-model', '--prompter-replay']);
 
 // ── driving the built projection (shared by --check-fit and --squint) ─
 // Two commands answer questions that only a rendered page can answer - does
@@ -30565,23 +30565,36 @@ async function main() {
     return;
   }
 
+  // The prompter was built as the Souffleuse, and its flags carried that
+  // name until 2.0.0 gave it its public one. Nothing refuses an unknown flag
+  // in general, so an old --souffleuse would build an ordinary deck with no
+  // prompter and say nothing - the silent no-op the checks below refuse.
+  const oldFlag = argv.find(a => /^--souffleuse(-|$)/.test(a));
+  if (oldFlag) {
+    const err = new Error(`${oldFlag} is not a flag any more: the live prompter's flags are\n`
+      + '  --prompter, --prompter-model, --prompter-dry-run and --prompter-replay.\n'
+      + `  ${oldFlag} is now ${oldFlag.replace('--souffleuse', '--prompter')}.`);
+    err.userFacing = true;
+    throw err;
+  }
+
   // Reading a finished run's debrief back through today's policy. No watcher,
   // no browser, no renderer and no network: one log, one frontmatter, and one
   // line per answer saying what the model proposed and what the policy would
   // do with it now. It is how a threshold gets changed with evidence.
-  const replayIdx = argv.indexOf('--souffleuse-replay');
+  const replayIdx = argv.indexOf('--prompter-replay');
   if (replayIdx >= 0) {
     const logFile = argv[replayIdx + 1];
     const absIn = path.resolve(positional[0] || '');
     if (!logFile || !fs.existsSync(logFile)) {
-      const err = new Error('--souffleuse-replay takes a souffleuse-*.jsonl written by an'
-        + ' earlier run.\n  node build.js <source.md> --souffleuse-replay souffleuse-20260911-1015.jsonl');
+      const err = new Error('--prompter-replay takes a prompter-*.jsonl written by an'
+        + ' earlier run.\n  node build.js <source.md> --prompter-replay prompter-20260911-1015.jsonl');
       err.userFacing = true;
       throw err;
     }
     if (!positional[0] || !fs.existsSync(absIn)) {
-      const err = new Error('--souffleuse-replay needs the source.md the log was written beside:'
-        + ' its\n  `souffleuse:` block is what the policy is rebuilt from.');
+      const err = new Error('--prompter-replay needs the source.md the log was written beside:'
+        + ' its\n  `prompter:` block is what the policy is rebuilt from.');
       err.userFacing = true;
       throw err;
     }
@@ -30613,7 +30626,7 @@ async function main() {
 
   if (!inputPath || flags.has('--help') || flags.has('-h')) {
     console.error('Usage:');
-    console.error('  node build.js <source.md> --watch [--souffleuse [--souffleuse-model ID]]');
+    console.error('  node build.js <source.md> --watch [--prompter [--prompter-model ID]]');
     console.error('  node build.js <source.md> [--watch] [--serve [--port N]] [--audience-only|--print-only|--print-notes-only|--speaker-only]');
     console.error('                            [--inline-images|--no-inline-images]');
     console.error('                            [--no-optimize-images] [--events]');
@@ -30663,16 +30676,16 @@ async function main() {
     console.error('Live prompter (only together with --watch; the cockpit reaches it over the');
     console.error('watch socket). What leaves the machine is text: the deck including speaker');
     console.error('notes, and what the cockpit hears. Never audio.');
-    console.error('  --souffleuse              run the prompter sidecar beside the watch build.');
-    console.error('  --souffleuse-model ID     an OpenRouter model id, overriding the deck\'s');
-    console.error('                            `souffleuse: model:` and the default.');
-    console.error('  --souffleuse-dry-run      everything but the call: the ear, the ticks, the');
+    console.error('  --prompter                run the prompter sidecar beside the watch build.');
+    console.error('  --prompter-model ID       an OpenRouter model id, overriding the deck\'s');
+    console.error('                            `prompter: model:` and the default.');
+    console.error('  --prompter-dry-run        everything but the call: the ear, the ticks, the');
     console.error('                            policy and the log all run, nothing leaves the');
     console.error('                            machine, and no key is needed.');
-    console.error('  --souffleuse-replay FILE  no watcher and no browser: read a run\'s');
-    console.error('                            souffleuse-*.jsonl back and print, per answer,');
-    console.error('                            what the model proposed and what the policy');
-    console.error('                            would do with it now.');
+    console.error('  --prompter-replay FILE    no watcher and no browser: read a run\'s');
+    console.error('                            prompter-*.jsonl (or an older souffleuse-*.jsonl)');
+    console.error('                            back and print, per answer, what the model');
+    console.error('                            proposed and what the policy would do now.');
     console.error('  OPENROUTER_API_KEY        required; without it the prompter starts disabled');
     console.error('                            and only logs what it heard.');
     console.error('  OPENROUTER_BASE_URL       another OpenAI-compatible endpoint');
@@ -30722,49 +30735,49 @@ async function main() {
   // The live prompter. Only with --watch, and that is not a convenience: the
   // cockpit reaches the sidecar over the watch socket and there is no other
   // channel, so a one-shot build would start something nothing could talk to.
-  const souffModelIdx = argv.indexOf('--souffleuse-model');
+  const souffModelIdx = argv.indexOf('--prompter-model');
   if (souffModelIdx >= 0 && !argv[souffModelIdx + 1]) {
-    const err = new Error('--souffleuse-model takes an OpenRouter model id, e.g. anthropic/claude-sonnet-5.');
+    const err = new Error('--prompter-model takes an OpenRouter model id, e.g. anthropic/claude-sonnet-5.');
     err.userFacing = true;
     throw err;
   }
   // The model id is a setting of a prompter, and it is read nowhere else: on
   // its own it built an ordinary deck with no prompter in it and said nothing,
   // which is the silent no-op this CLI refuses everywhere else.
-  if (souffModelIdx >= 0 && !flags.has('--souffleuse')) {
+  if (souffModelIdx >= 0 && !flags.has('--prompter')) {
     const err = new Error(
-      '--souffleuse-model without --souffleuse.\n'
+      '--prompter-model without --prompter.\n'
       + '  The model id is only ever read by the prompter, so on its own it changes\n'
       + '  nothing about the build – no prompter would run.\n'
-      + '  node build.js <source.md> --watch --souffleuse --souffleuse-model '
+      + '  node build.js <source.md> --watch --prompter --prompter-model '
       + argv[souffModelIdx + 1]);
     err.userFacing = true;
     throw err;
   }
   // The rehearsal switch. It is read nowhere but the sidecar, so on its own it
-  // is the same silent no-op --souffleuse-model was.
-  if (flags.has('--souffleuse-dry-run') && !flags.has('--souffleuse')) {
+  // is the same silent no-op --prompter-model was.
+  if (flags.has('--prompter-dry-run') && !flags.has('--prompter')) {
     const err = new Error(
-      '--souffleuse-dry-run without --souffleuse.\n'
+      '--prompter-dry-run without --prompter.\n'
       + '  It says what the prompter should skip, and without a prompter there is\n'
       + '  nothing to skip – the build would be an ordinary one.\n'
-      + '  node build.js <source.md> --watch --souffleuse --souffleuse-dry-run');
+      + '  node build.js <source.md> --watch --prompter --prompter-dry-run');
     err.userFacing = true;
     throw err;
   }
-  if (flags.has('--souffleuse')) {
+  if (flags.has('--prompter')) {
     if (!flags.has('--watch')) {
       const err = new Error(
-        '--souffleuse needs --watch.\n'
+        '--prompter needs --watch.\n'
         + '  The cockpit talks to the prompter over the watch socket, and a build without\n'
         + '  --watch has none – the sidecar would start with nothing able to reach it.\n'
-        + '  node build.js <source.md> --watch --souffleuse');
+        + '  node build.js <source.md> --watch --prompter');
       err.userFacing = true;
       throw err;
     }
     opts.souffleuse = {
       model: souffModelIdx >= 0 ? argv[souffModelIdx + 1] : null,
-      dryRun: flags.has('--souffleuse-dry-run'),
+      dryRun: flags.has('--prompter-dry-run'),
     };
   }
 

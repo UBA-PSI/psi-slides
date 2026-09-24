@@ -90,7 +90,7 @@ const KNOWN_FRONTMATTER_KEYS = new Set([
   // the live prompter. `duration:` sits at the top level rather than inside
   // the block because it is a property of the talk like `lang:` – the
   // cockpit's clock measures against it whether or not a prompter listens.
-  'duration', 'souffleuse',
+  'duration', 'prompter',
 ]);
 
 // Mirrors VIEW_DEFAULT_SPEC in build.js: frontmatter keys that pin how a
@@ -303,8 +303,8 @@ const STYLE_ENUMS = {
   // the chunk stands at its final height from beat 0.
 };
 
-// Mirrors SOUFFLEUSE_SPEC in build.js – the nested `souffleuse:` block that
-// configures the live prompter (--souffleuse). Three tables because the
+// Mirrors SOUFFLEUSE_SPEC in build.js – the nested `prompter:` block that
+// configures the live prompter (--prompter). Three tables because the
 // block has three kinds of key: one enum, two bounded numbers (bounds are
 // the build's, as with the style scales), and two free strings whose
 // *presence* is all a zero-dep reader can vouch for. An unknown key is an
@@ -2852,7 +2852,7 @@ function lintFile(filePath) {
     nestedBlockKeys(lines, 'style', rule);
   }
 
-  // The nested `souffleuse:` block, read by the same walk. Numbers are only
+  // The nested `prompter:` block, read by the same walk. Numbers are only
   // checked for being numbers - the bounds are the build's - and the two
   // free keys only for being present, which is all that can be said about
   // a model id without asking OpenRouter.
@@ -2863,39 +2863,39 @@ function lintFile(filePath) {
       const allowed = SOUFFLEUSE_ENUMS[key];
       if (allowed) {
         if (v && !allowed.includes(v)) {
-          addFm(i + 2, 'error', 'unknown-souffleuse-setting',
-            `'souffleuse.${key}: ${v}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
+          addFm(i + 2, 'error', 'unknown-prompter-setting',
+            `'prompter.${key}: ${v}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
         }
         return;
       }
       if (SOUFFLEUSE_NUM_KEYS.has(key)) {
         if (!v || !Number.isFinite(Number(v))) {
-          addFm(i + 2, 'error', 'unknown-souffleuse-setting',
-            `'souffleuse.${key}: ${v}' is not a number of seconds`);
+          addFm(i + 2, 'error', 'unknown-prompter-setting',
+            `'prompter.${key}: ${v}' is not a number of seconds`);
         }
         return;
       }
       if (SOUFFLEUSE_FREE_KEYS.has(key)) {
         if (!v) {
-          addFm(i + 2, 'error', 'unknown-souffleuse-setting',
-            `'souffleuse.${key}' is set to nothing`);
+          addFm(i + 2, 'error', 'unknown-prompter-setting',
+            `'prompter.${key}' is set to nothing`);
         } else if (key === 'language' && !/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(v)) {
           // The same loose BCP-47 shape lectureLang holds `lang:` to.
-          addFm(i + 2, 'error', 'unknown-souffleuse-setting',
-            `'souffleuse.language: ${v}' is not a language tag – expected something like en, de, de-DE`);
+          addFm(i + 2, 'error', 'unknown-prompter-setting',
+            `'prompter.language: ${v}' is not a language tag – expected something like en, de, de-DE`);
         }
         return;
       }
-      addFm(i + 2, 'error', 'unknown-souffleuse-setting',
-        `'souffleuse.${key}' is not a key this block has`);
+      addFm(i + 2, 'error', 'unknown-prompter-setting',
+        `'prompter.${key}' is not a key this block has`);
     };
-    nestedBlockKeys(lines, 'souffleuse', rule);
-    // A scalar where the block should be: `souffleuse: on` is a deck that
+    nestedBlockKeys(lines, 'prompter', rule);
+    // A scalar where the block should be: `prompter: on` is a deck that
     // meant to switch something on and wrote no key. The build refuses it.
     lines.forEach((raw, i) => {
-      if (/^souffleuse:[ \t]*[^ \t{#][^#]*$/.test(raw)) {
-        addFm(i + 2, 'error', 'unknown-souffleuse-setting',
-          "'souffleuse:' is a block of keys, not a single value – souffleuse: {cues: off}");
+      if (/^prompter:[ \t]*[^ \t{#][^#]*$/.test(raw)) {
+        addFm(i + 2, 'error', 'unknown-prompter-setting',
+          "'prompter:' is a block of keys, not a single value – prompter: {cues: off}");
       }
     });
   }

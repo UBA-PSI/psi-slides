@@ -32,17 +32,22 @@ lectures/*/speaker.html
 # it is as generated as the views are, and it moves whenever the deck does.
 lectures/*/squint.txt
 docs/artifact/figure-rules/squint.txt
-# --souffleuse writes one of these per run, beside the source: the transcript
+# --prompter writes one of these per run, beside the source: the transcript
 # of what the room heard, every call to the model and every hint the policy
 # let through. It is the debrief of a rehearsal and it is nobody else's.
-# These two lines cover this repository and nothing else – a lecture being
+# These lines cover this repository and nothing else – a lecture being
 # written in a content repo of its own (../psi-slides-mylectures and the like)
 # needs the same pattern in that repo's .gitignore, which is why the sidecar
-# prints the log's full path and says so on every start.
+# prints the log's full path and says so on every start. The souffleuse-*
+# spellings are the same files from before the prompter had its public name.
+prompter-*.jsonl
+lectures/*/prompter-*.jsonl
 souffleuse-*.jsonl
 lectures/*/souffleuse-*.jsonl
 # And beside it, one per build whose deck changed: the system prompt exactly
 # as it is sent, so the deck the model reads can be read by a person.
+prompter-*.prompt.txt
+lectures/*/prompter-*.prompt.txt
 souffleuse-*.prompt.txt
 lectures/*/souffleuse-*.prompt.txt
 # Three lectures ship their built outputs so they can be read straight from

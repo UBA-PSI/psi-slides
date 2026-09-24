@@ -297,7 +297,7 @@ five strokes it must leave alone.
 
 **Because the property spans three processes** – `souffleuse` is the only spec
 that starts an engine of its own: `node build.js … --watch --serve
---souffleuse --events`, with a fake OpenRouter on loopback that the sidecar
+--prompter --events`, with a fake OpenRouter on loopback that the sidecar
 reaches through `OPENROUTER_BASE_URL` and a fake `webkitSpeechRecognition`
 installed into the page. The gate decides the prompter's restraint without a
 network; what only a running system can say is whether the three halves are

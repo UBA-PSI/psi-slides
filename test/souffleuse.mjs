@@ -6,7 +6,7 @@
  * three halves of the feature are wired to each other, because two of them
  * are not in the same process: an ear in the cockpit, a sidecar in Node
  * holding the key, and one socket between them. So this spec starts a real
- * `--watch --serve --souffleuse` build against a fake OpenRouter, opens the
+ * `--watch --serve --prompter` build against a fake OpenRouter, opens the
  * served cockpit with a fake recogniser in it, and follows one whisper the
  * whole way – said in the room, sent over the socket, asked of the model,
  * judged by the policy, and painted on the strip.
@@ -56,7 +56,7 @@ export const view = 'audience';
 const SOURCE = `---
 title: A talk with a prompter in the box
 duration: 10
-souffleuse:
+prompter:
   model: fake/prompter-under-test
   cadence: 10
   cooldown: 20
@@ -276,7 +276,7 @@ const until = async (fn, ms = 5000, step = 100) => {
 // is written from a socket handler, and the spec has no other way to see a
 // dismissal, which is deliberately not sent back to the page.
 function logLines(dir) {
-  const name = fs.readdirSync(dir).filter((f) => /^souffleuse-.*\.jsonl$/.test(f)).sort().pop();
+  const name = fs.readdirSync(dir).filter((f) => /^prompter-.*\.jsonl$/.test(f)).sort().pop();
   if (!name) return [];
   const out = [];
   for (const line of fs.readFileSync(path.join(dir, name), 'utf8').split('\n')) {
@@ -354,7 +354,7 @@ export async function run({ page, report }) {
     // ── the engine, as a person would start it ──────────────────────
     child = spawn(process.execPath,
       [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'),
-        '--watch', '--serve', '--souffleuse', '--events'],
+        '--watch', '--serve', '--prompter', '--events'],
       {
         cwd: ROOT,
         env: {
@@ -378,7 +378,7 @@ export async function run({ page, report }) {
     const serving = await until(() => events.find((e) => e.type === 'serving'), 40000);
     ok(!!serving, 'the watcher serves the fixture', out.slice(-500));
     if (!serving) return;
-    const ready = await until(() => events.find((e) => e.type === 'souffleuse'), 20000);
+    const ready = await until(() => events.find((e) => e.type === 'prompter'), 20000);
     ok(ready && ready.state === 'ready',
        'and the prompter reports itself ready, with a session and a slide count',
        JSON.stringify(ready));
@@ -417,16 +417,16 @@ export async function run({ page, report }) {
        'so the flag, not the build, is what costs the 36 KB', saved + ' bytes');
     fs.rmSync(plainDir, { recursive: true, force: true });
 
-    // ── --souffleuse-model on its own is a usage error ──────────────
-    // It is only ever read by the prompter, so without --souffleuse it built
+    // ── --prompter-model on its own is a usage error ──────────────
+    // It is only ever read by the prompter, so without --prompter it built
     // an ordinary deck and said nothing - the silent no-op this CLI refuses
     // everywhere else. Checked without --watch, which would not return.
     const lonely = spawnSync(process.execPath,
       [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'),
-        '--souffleuse-model', 'anthropic/claude-sonnet-5'],
+        '--prompter-model', 'anthropic/claude-sonnet-5'],
       { cwd: ROOT, encoding: 'utf8' });
-    ok(lonely.status !== 0 && /--souffleuse-model without --souffleuse/.test(String(lonely.stderr)),
-       '--souffleuse-model without --souffleuse is refused, with instructions',
+    ok(lonely.status !== 0 && /--prompter-model without --prompter/.test(String(lonely.stderr)),
+       '--prompter-model without --prompter is refused, with instructions',
        String(lonely.stderr || lonely.stdout).slice(0, 200));
     ok(!/at .*build\.js/.test(String(lonely.stderr)),
        'and refused as advice, not as a stack trace');
@@ -583,7 +583,7 @@ export async function run({ page, report }) {
        'a session_id keeps the warm cache on one provider', String(b.session_id));
     ok(!!(b.usage && b.usage.include === true), 'and usage comes back', JSON.stringify(b.usage));
     ok(b.model === 'fake/prompter-under-test',
-       'the model is the one the deck named in its souffleuse: block', String(b.model));
+       'the model is the one the deck named in its prompter: block', String(b.model));
     ok(!!(Array.isArray(b.tools) && b.tools.length === 1
           && b.tools[0].function && b.tools[0].function.name === 'advise'),
        'one tool goes out, and it is the answer vocabulary', JSON.stringify(b.tools && b.tools.length));
@@ -744,7 +744,7 @@ export async function run({ page, report }) {
     // true, the microphone stayed open, undoing it in the cockpit took two
     // presses, and a reload in between said hello and switched the sidecar
     // back on behind the speaker.
-    child.stdin.write('{"type":"souffleuse","enabled":false}\n');
+    child.stdin.write('{"type":"prompter","enabled":false}\n');
     const idled = await until(() => page.evaluate(() => {
       const b = document.getElementById('souffleuse-btn');
       return b.getAttribute('aria-pressed') === 'false' ? {

@@ -1693,7 +1693,7 @@ document and the code disagree, the code is right and that section says why.
 
 Seven commits, one per slice:
 
-1. `duration:` and the `souffleuse:` block, refused in build.js and lint.js
+1. `duration:` and the `prompter:` block, refused in build.js and lint.js
    alike – `talkDuration`, `SOUFFLEUSE_SPEC` / `souffleuseSettings` in the
    `buildOnce` pre-flight, the three mirror tables in lint.js with the shared
    `nestedBlockKeys` walk, the key-set check in the tails gate.
@@ -1702,8 +1702,8 @@ Seven commits, one per slice:
    zero imports, zero Node APIs, 107 assertions.
 3. The sidecar in build.js: `createSouffleuse`, the two flags and the usage
    block, `psiWatch.on` / `ask` / `onConnect`, the `souffleuse-*` arm of the
-   watch socket, the `souffleuse` `--events` type and stdin command, the JSONL
-   log, `souffleuse-*.jsonl` in `.gitignore`.
+   watch socket, the `prompter` `--events` type and stdin command, the JSONL
+   log, `prompter-*.jsonl` in `.gitignore`.
 4. The cockpit's ear and the switch: the Web Speech adapter behind the planned
    interface, `SOUFFLEUSE` beside `VIEW_DEFAULTS`, the footer button and
    `Shift`-`S`, the badge with its two reasons, the help group “The prompter”.
@@ -1711,10 +1711,10 @@ Seven commits, one per slice:
    panel behind a `Shift`-click, the interim line, and the prompter's cards
    merged into `cueCardsFor`.
 6. `test/souffleuse.mjs`: a fixture deck, a fake OpenRouter on loopback, a fake
-   recogniser, one real `--watch --serve --souffleuse --events` child, and one
+   recogniser, one real `--watch --serve --prompter --events` child, and one
    whisper followed the whole way. 51 assertions in about eight seconds.
 7. The documentation that moves with it: CLAUDE.md, `speaker.md` (§2, the new
-   §3.1, §4.1, §4.2, §5), CHANGELOG, README, the `psi-slides-souffleuse` skill,
+   §3.1, §4.1, §4.2, §5), CHANGELOG, README, the `psi-slides-prompter` skill,
    `test/README.md` and this section.
 
 What it is: a prompter in the theatre sense. At most twelve words, one at a

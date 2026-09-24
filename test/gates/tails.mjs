@@ -358,7 +358,7 @@ export async function run({ report }) {
     ok(!missing.length, 'every style key build.js accepts is one lint.js knows', missing.join(','));
     ok(!extra.length, 'and lint.js knows no key build.js has dropped', extra.join(','));
 
-    // The same pair for the `souffleuse:` block, whose lint mirror is three
+    // The same pair for the `prompter:` block, whose lint mirror is three
     // tables (an enum, the number keys, the free keys) rather than one.
     const sBody = bsrc.slice(bsrc.indexOf('const SOUFFLEUSE_SPEC = {'));
     const sKeys = new Set([...sBody.slice(0, sBody.indexOf('\n};'))

@@ -3726,7 +3726,7 @@ console.log('\nlayout generations');
   ok(/bad-closing-image/.test(lintOf(SPLIT + 'closing-image: cover\n---\n\n## title: {#title}\n\n'
      + '## free: F {#f}\n\nB.\n')),
      'which the linter can see too, from the other end');
-  // ── duration: and the souffleuse: block ──────────────────────────────
+  // ── duration: and the prompter: block ──────────────────────────────
   // Read by nothing a --print-only build renders, so the pre-flight is the
   // only place a typo in either is caught for that build - every refusal is
   // a pair through both files, and one of each is checked under --print-only.
@@ -3737,11 +3737,11 @@ console.log('\nlayout generations');
       ['duration: soon', 'duration: soon\n', /duration: soon/, 'bad-duration'],
       ['duration: 0', 'duration: 0\n', /duration: 0/, 'bad-duration'],
       ['duration: 13:00:00', 'duration: 13:00:00\n', /up to twelve hours/, 'bad-duration'],
-      ['souffleuse: one value', 'souffleuse: on\n', /block of keys, not a single value/, 'unknown-souffleuse-setting'],
-      ['an unknown souffleuse key', 'souffleuse:\n  modell: x\n', /souffleuse has no key "modell"/, 'unknown-souffleuse-setting'],
-      ['cues: maybe', 'souffleuse:\n  cues: maybe\n', /souffleuse\.cues: maybe/, 'unknown-souffleuse-setting'],
-      ['cadence: fast', 'souffleuse: {cadence: fast}\n', /souffleuse\.cadence: fast/, 'unknown-souffleuse-setting'],
-      ['language: german', 'souffleuse:\n  language: german\n', /souffleuse\.language: german/, 'unknown-souffleuse-setting'],
+      ['prompter: one value', 'prompter: on\n', /block of keys, not a single value/, 'unknown-prompter-setting'],
+      ['an unknown prompter key', 'prompter:\n  modell: x\n', /prompter has no key "modell"/, 'unknown-prompter-setting'],
+      ['cues: maybe', 'prompter:\n  cues: maybe\n', /prompter\.cues: maybe/, 'unknown-prompter-setting'],
+      ['cadence: fast', 'prompter: {cadence: fast}\n', /prompter\.cadence: fast/, 'unknown-prompter-setting'],
+      ['language: german', 'prompter:\n  language: german\n', /prompter\.language: german/, 'unknown-prompter-setting'],
     ];
     for (const [name, fm, msg, code] of refusals) {
       const r = raw(FM(fm), ['--audience-only']);
@@ -3749,7 +3749,7 @@ console.log('\nlayout generations');
       ok(codes(lintOf(FM(fm))).includes(code), `and the linter says ${code}`, lintOf(FM(fm)).split('\n')[0]);
     }
     // A bound is the build's alone: the linter passes it, the build refuses it.
-    const wide = raw(FM('souffleuse:\n  cadence: 500\n'), ['--audience-only']);
+    const wide = raw(FM('prompter:\n  cadence: 500\n'), ['--audience-only']);
     ok(wide.code !== 0 && /between 10 and 120/.test(wide.out), 'a cadence out of bounds is refused by the build', wide.out.split('\n')[0]);
     const p = raw(FM('duration: 45m\n'), ['--print-only']);
     ok(p.code !== 0 && /duration: 45m/.test(p.out) && p.files.length === 0,
@@ -3766,8 +3766,8 @@ console.log('\nlayout generations');
       // as a talk of 7200 minutes.
       ['a bare clock', 'duration: 45:00\n'],
       ['a bare clock past the hour', 'duration: 120:00\n'],
-      ['the whole block', 'duration: 45\nsouffleuse:\n  model: google/gemini-2.5-flash\n  language: de-DE\n  cadence: 30\n  cooldown: 90\n  cues: off\n'],
-      ['the flow form', 'souffleuse: {cues: off, cadence: 20}\n'],
+      ['the whole block', 'duration: 45\nprompter:\n  model: google/gemini-2.5-flash\n  language: de-DE\n  cadence: 30\n  cooldown: 90\n  cues: off\n'],
+      ['the flow form', 'prompter: {cues: off, cadence: 20}\n'],
     ];
     for (const [name, fm] of accepts) {
       const r = raw(FM(fm), ['--audience-only']);

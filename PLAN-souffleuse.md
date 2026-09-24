@@ -1,5 +1,7 @@
 # Souffleuse – a live prompter in the cockpit
 
+> The codename was renamed to “prompter” in the interface: the flags are `--prompter`, `--prompter-model`, `--prompter-dry-run` and `--prompter-replay`, the frontmatter block is `prompter:`, and the files are `prompter-*.jsonl` and `prompter-*.prompt.txt`. This document is history and keeps the old names; the `psi-slides-prompter` skill is current.
+
 While a talk is running, the cockpit (`speaker.html`) listens, a sidecar in
 `build.js` sends transcript excerpts plus the deck's content to a model
 through OpenRouter, and the cockpit shows short, dismissable hints: behind
@@ -1177,23 +1179,23 @@ rehearsal should be different from a talk.
 # a dry run first, which needs no key and sends nothing: it says whether the
 # ear, the switch, the clock and the ticks are all wired, and writes the same
 # log minus the answers.
-node build.js lectures/spoken-talk/source.md --watch --serve --souffleuse --souffleuse-dry-run
+node build.js lectures/spoken-talk/source.md --watch --serve --prompter --prompter-dry-run
 
 export OPENROUTER_API_KEY=sk-or-...
-node build.js lectures/spoken-talk/source.md --watch --serve --souffleuse
+node build.js lectures/spoken-talk/source.md --watch --serve --prompter
 # open the served audience.html in Chrome, press S for the cockpit,
 # then Shift-S in the cockpit, and talk for ten minutes.
 ```
 
-Read `souffleuse-<hash>.prompt.txt` beside the log before the first run: it is
+Read `prompter-<hash>.prompt.txt` beside the log before the first run: it is
 the deck exactly as the model gets it, and a slide that reads badly there reads
 badly to the prompter.
 
-Then read the log, `lectures/spoken-talk/souffleuse-<YYYYMMDD-HHMM>.jsonl`:
+Then read the log, `lectures/spoken-talk/prompter-<YYYYMMDD-HHMM>.jsonl`:
 
 ```bash
-jq -c 'select(.type=="answer") | {durationMs, cached: .usage.prompt_tokens_details.cached_tokens}' souffleuse-*.jsonl
-jq -c 'select(.type=="suppressed") | {reason, kind, text}' souffleuse-*.jsonl
+jq -c 'select(.type=="answer") | {durationMs, cached: .usage.prompt_tokens_details.cached_tokens}' prompter-*.jsonl
+jq -c 'select(.type=="suppressed") | {reason, kind, text}' prompter-*.jsonl
 ```
 
 - **`usage.prompt_tokens_details.cached_tokens` > 0 from the second `answer`
@@ -1220,7 +1222,7 @@ jq -c 'select(.type=="suppressed") | {reason, kind, text}' souffleuse-*.jsonl
   changed with evidence rather than by feel – and again after changing one:
 
   ```bash
-  node build.js lectures/spoken-talk/source.md --souffleuse-replay lectures/spoken-talk/souffleuse-*.jsonl
+  node build.js lectures/spoken-talk/source.md --prompter-replay lectures/spoken-talk/prompter-*.jsonl
   ```
 
 Four things to eyeball while it runs:
