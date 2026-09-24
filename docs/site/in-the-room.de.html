@@ -42,9 +42,9 @@
     beiden Fenster finden sich im Browser; die Uhr, die Notizen, der Stand der
     Vorlesung und alles Getippte bleiben auf dem Rechner, an dem man steht. Eine
     Vorlesung vom USB-Stick, in einem Raum ohne WLAN, verhält sich wie diese
-    hier &ndash; bis auf zwei Dinge auf dieser Seite, die hinausgreifen, und
-    beide wählt man selbst: ein eingebettetes Video von einem Hoster und den
-    Prompter.</p>
+    hier &ndash; bis auf zwei Dinge, die diese Seite beschreibt und die nur
+    online gehen, wenn man sie wählt: ein eingebettetes Video von einem Hoster
+    und den Prompter.</p>
    </div>
   </div>
  </div>
@@ -291,11 +291,12 @@ where the rest of the hour is going to be spent.
        Listing, dann eine Zeile mit drei. Er steht hinter den Karten, weil er
        selbst Karten legt. -->
   <h2 id="prompter">Ein Prompter, wenn man ihn einschaltet</h2>
-  <p class="lede">Das ist neu, und es bleibt aus, solange man es nicht einschaltet. In
-  einer Vorlesung, die mit <code>--watch --prompter</code> gebaut wird, kann das
-  Cockpit zuhören, während man spricht, und wenn etwas gesagt werden muss,
-  höchstens zwölf Wörter auf einen Streifen über dem Fuß der gespiegelten Folie
-  flüstern. Meistens sagt es nichts. Es hört erst zu, wenn man im Cockpit
+  <p class="lede">Der Prompter ist neu, und er bleibt aus, solange man ihn
+  nicht einschaltet. In einer Vorlesung, die mit <code>--watch --prompter</code>
+  gebaut wird, kann das Cockpit zuhören, während man spricht, und wenn etwas
+  gesagt werden muss, einen Hinweis von höchstens zwölf Wörtern auf einen
+  Streifen am unteren Rand seines Spiegelbilds der Folie legen. Meistens sagt
+  der Prompter nichts. Er hört erst zu, wenn man im Cockpit
   <kbd>Shift</kbd>-<kbd>S</kbd> drückt oder den Knopf <b>&#9676; prompter</b>
   in der Fußzeile, der derselbe Schalter ist.</p>
 
@@ -305,20 +306,23 @@ where the rest of the hour is going to be spent.
   <div class="aside-code words-first">
    <div class="said">
     <h3>Was er braucht</h3>
-    <p class="cue">Chrome, weil das Ohr die Spracherkennung des Browsers ist.
-    Einen Prozess mit <code>--watch</code>, weil das Cockpit mit ihm
-    spricht. Und einen Schlüssel für openrouter.ai in
-    <code>OPENROUTER_API_KEY</code>; ohne ihn startet der Prompter
-    ausgeschaltet und schreibt nur mit, was er gehört hat.</p>
-    <p class="cue"><code>--prompter-dry-run</code> lässt Ohr, Uhr und Regeln
-    laufen, ruft aber nie das Modell auf; eine Probe braucht also keinen
-    Schlüssel. Der Block <code>prompter:</code> legt das Modell fest, wie oft
-    er fragen darf, wie lange er nach einem Flüstern still ist und ob er
-    Karten legen darf.</p>
+    <p class="cue">Chrome, weil das Zuhören die eigene Spracherkennung von
+    Chrome übernimmt. Einen Prozess mit <code>--watch</code>, weil das Cockpit
+    diesem Prozess weitergibt, was es hört, und der Prozess ein Sprachmodell
+    fragt. Und einen Schlüssel für openrouter.ai, den Dienst, der die Anfrage
+    an das Modell weiterreicht, in <code>OPENROUTER_API_KEY</code>; ohne ihn
+    startet der Prompter ausgeschaltet und schreibt nur mit, was er gehört
+    hat.</p>
+    <p class="cue"><code>--prompter-dry-run</code> erledigt alles außer dem
+    Aufruf des Modells &ndash; das Zuhören, die Uhr, die Regeln, wann ein
+    Hinweis erscheinen darf &ndash;, eine Probe braucht also keinen Schlüssel.
+    Der Block <code>prompter:</code> legt das Modell fest, wie viel neue Rede
+    er abwartet, bevor er wieder fragt, wie lange er nach einem Hinweis still
+    ist und ob er Karten ergänzen darf.</p>
    </div>
 <pre><code><span class="t-cmt"># im Frontmatter von source.md</span>
-<span class="t-cmt"># duration in Minuten ist der Plan, an dem die Uhr misst;</span>
-<span class="t-cmt"># cooldown sind die Sekunden Ruhe nach jedem Flüstern</span>
+<span class="t-cmt"># duration: die geplanten Minuten, an denen die Uhr misst;</span>
+<span class="t-cmt"># cooldown: die Sekunden Ruhe nach jedem Hinweis</span>
 <span class="t-dir">duration:</span> 45
 <span class="t-dir">prompter:</span>
   <span class="t-dir">cooldown:</span> 60
@@ -335,41 +339,43 @@ where the rest of the hour is going to be spent.
        Zeile. -->
   <div class="pair-up trio">
    <div>
-    <p><strong>Er flüstert, wenn man hinter der Zeit ist</strong>, wenn das
-    Beispiel fehlt, wenn das eben Gesagte der eigenen Folie widerspricht, wenn
+    <p><strong>Er meldet sich, wenn man hinter der Zeit ist</strong>, wenn ein
+    Punkt abstrakt bleibt, obwohl die Folien ein Beispiel dafür haben, wenn das eben Gesagte der eigenen Folie widerspricht, wenn
     man zu schnell spricht oder wenn die eigenen Notizen für diese Folie etwas
-    vorgesehen haben, an dem man vorbeigegangen ist. Das Tempo wird gezählt,
-    nicht geschätzt: Wörter pro Minute, Füllwörter, die längste Pause. Die
-    zwölf Wörter sind eine Regel im Build, und eine längere Antwort wird
-    verworfen, nicht gekürzt. <kbd>Esc</kbd> nimmt ein Flüstern vom Streifen.</p>
-    <p>Er kann auch eine Karte in eine Folie legen, die noch kommt, den Schluss
-    eingeschlossen, für einen Satz, den man im Vorbeigehen gesagt hat und der
-    es wert ist, behalten zu werden.</p>
+    vorgesehen haben, an dem man vorbeigegangen ist. Das Tempo zählt der Build,
+    statt es das Modell schätzen zu lassen: Wörter pro Minute, Füllwörter, die
+    längste Pause. Auch die zwölf Wörter setzt der Build durch: Eine längere
+    Antwort wird verworfen, nicht gekürzt. <kbd>Esc</kbd> nimmt einen Hinweis
+    vom Streifen.</p>
+    <p>Er kann auch einer Folie, die noch kommt, eine Karte hinzufügen, der
+    letzten Folie eingeschlossen, wenn man im Vorbeigehen etwas gesagt hat, das
+    es wert ist, dort noch einmal gesagt zu werden.</p>
    </div>
    <div>
     <p><strong>Was den Rechner verlässt, ist Text.</strong> Das Transkript und
-    die Vorlesung samt Sprechernotizen gehen an openrouter.ai und werden dort
-    beantwortet. Kein Ton wird verschickt, nichts davon erreicht die
+    der Text der Vorlesung samt Sprechernotizen gehen an openrouter.ai und von
+    dort an das Unternehmen, das das Modell betreibt. Kein Ton wird verschickt, nichts davon erreicht die
     Projektion, nichts wird in <code>source.md</code> geschrieben, und der
     Schlüssel wird vom Build gelesen und nie ins HTML geschrieben. Die
     Spracherkennung selbst läuft auf dem eigenen Rechner, wo Chrome das kann,
-    und über Google, wo nicht; eine Anzeige im Cockpit sagt, welches von
-    beiden.</p>
+    und über Google, wo nicht; das Cockpit sagt, welches von beiden.</p>
     <p>Das Mikrofon hört den Saal, nicht nur einen selbst. Vor der Fragerunde
     ausschalten oder dem Saal sagen, dass es an ist.</p>
    </div>
    <div>
-    <p><strong>Das Protokoll ist die Nachbesprechung.</strong> Jeder Lauf
+    <p><strong>Ein Protokoll sagt hinterher, was geschah.</strong> Jeder Lauf
     schreibt <code>prompter-&lt;date&gt;.jsonl</code> neben
-    <code>source.md</code>: was er gehört hat, was er geflüstert hat und was er
-    sagen wollte und nicht durfte, mit dem Grund. Daneben steht
-    <code>prompter-&lt;hash&gt;.prompt.txt</code>, die Vorlesung genau so, wie
-    das Modell sie bekommen hat.</p>
-    <p>Während des Vortrags zeigt ein <kbd>Shift</kbd>-Klick auf den Knopf die
-    letzten zehn Hinweise. In der ersten Minute zeigt der Streifen die Wörter,
-    die er hört, danach sagt eine blasse Zeile, wann er zuletzt das Modell
-    gefragt hat: Ein Prompter, der nichts zu sagen hat, sieht aus wie einer,
-    der stehen geblieben ist.</p>
+    <code>source.md</code>: was er gehört hat, welche Hinweise er gezeigt hat
+    und was er sagen wollte, aber nach seinen Regeln nicht durfte, mit der
+    Regel, die es verhindert hat. Daneben steht
+    <code>prompter-&lt;hash&gt;.prompt.txt</code> mit dem Text der Vorlesung,
+    genau so, wie das Modell ihn bekommen hat.</p>
+    <p>Während des Vortrags zeigt ein <kbd>Shift</kbd>-Klick auf den
+    Prompter-Knopf die letzten zehn Hinweise und Karten. In der ersten Minute
+    zeigt eine blasse Zeile unter dem Streifen die Wörter, die die
+    Spracherkennung aufnimmt, danach sagt dieselbe Zeile, wann der Prompter
+    zuletzt das Modell gefragt hat: Ein Prompter, der nichts zu sagen hat,
+    sieht aus wie einer, der stehen geblieben ist.</p>
    </div>
   </div>
  </div>

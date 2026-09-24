@@ -659,58 +659,64 @@ from building the same way is a major version.
 
 ### Added
 
-- **A live prompter in the cockpit (`--prompter`), landing with 2.0.0.** It was
-  built under the codename Souffleuse, which survives in file and identifier
-  names (`souffleuse.mjs`, `#souffleuse-*`); every name an author types – the
-  four `--prompter*` flags, the `prompter:` frontmatter block, the
-  `prompter-*.jsonl` log – says prompter. While the talk runs, the
-  cockpit listens to the room, and a sidecar in the watch process asks one model
-  whether anything needs saying – behind time, an example missing, a probable
-  factual slip, a word about delivery, the tempo of the talk, or something the
-  speaker's own notes planned and the talk has walked past – and whispers it
-  back onto a strip over the foot of the slide: at most twelve words, one at a
-  time, and usually nothing at all. `Shift`-`S` is the switch, and the microphone is the consent:
-  nothing listens until it is pressed. What leaves the machine is text. Speech
-  recognition runs on the device where Chrome can do it and through Google where
-  it cannot – the badge says which – and the transcript plus the deck including
-  the speaker notes go to openrouter.ai; `OPENROUTER_API_KEY` is read in Node
-  and never written into the HTML, no audio goes out at all, nothing reaches the
-  projection, and nothing is written back into `source.md`. The twelve words are
-  not a request to the model but a rule in code: a longer hint is discarded
-  unread rather than shortened, one hint stands at a time, cool-downs run
-  overall and per kind, the first minute after the switch stays quiet, and a
-  hint the speaker sent away does not come back in other words. That policy is
-  `souffleuse.mjs`, and `test/gates/souffleuse.mjs` decides every row of it
-  without a key, a socket or a microphone – restraint is the requirement, and it
-  is the half of this feature no rehearsal can show you. The prompter can also
-  lay a **cue card into a slide that is still to come**, which turns up in the
-  rail under `K` as a dashed card – and in the cockpit's ordinary arrangement,
-  which has no rail, on the strip the moment you walk onto that slide, so the
-  cards are not a reason to run in card mode. The deck's **conclusion is always
-  one of the slides it may be laid into**, however far away it is, because a
-  sentence worth keeping is usually said long before the place it belongs.
+- **A live prompter in the cockpit (`--prompter`), landing with 2.0.0.** While
+  the talk runs, the cockpit listens to the room, and the `--watch` process
+  asks a language model whether anything needs saying – behind time, an
+  example missing, a probable factual slip, a word about delivery, the tempo
+  of the talk, or something the speaker's own notes planned and the talk has
+  walked past. When something does, a hint of at most twelve words appears on
+  a strip across the bottom of the cockpit's copy of the slide, and most calls
+  produce none. `Shift`-`S` is the switch, and switching on the microphone is
+  the speaker's consent: nothing listens until the switch is pressed. What
+  leaves the machine is text. Speech recognition runs on the device where
+  Chrome can do it and through Google where it cannot – the cockpit says which
+  – and the transcript plus the lecture's text including the speaker notes go
+  to openrouter.ai and from there to the company that runs the model;
+  `OPENROUTER_API_KEY` is read by the build and never written into the HTML,
+  no audio goes out at all, nothing reaches the projection, and nothing is
+  written back into `source.md`.
 
-  **The tempo is measured in code, not judged by the model.** A transcript
-  carries no speaking rate, no hesitation and no silence, so the sidecar counts
-  them over the window it was already sending – words a minute over the seconds
-  actually spoken, filler sounds, the longest gap – and puts one line in the
-  state line. The ear stamps a segment from where the speaking started, so a
-  pause is the silence figure and never part of the rate: a speaker who thinks
-  for a minute and then says a sentence has said a sentence, not spoken for a
-  minute. The model is asked only whether the numbers are worth a whisper,
-  and is told that a recogniser often strips filler sounds, so a count of zero
-  is not evidence that none were said.
+  **The limits are rules in code, not requests to the model.** A hint longer
+  than twelve words is discarded unread rather than shortened, one hint stands
+  at a time, each hint is followed by a quiet interval overall and a separate
+  one for its own kind, the first minute after the switch stays quiet, and a
+  hint the speaker sent away does not come back in other words. A test checks
+  each of these rules without a key, a network connection or a microphone.
 
-  `duration: 45` in the frontmatter gives the
-  clock a plan to measure the drift against, and a `prompter:` block sets the
-  model, the cadence, the cool-down and whether cards are allowed. One log per
-  run beside `source.md` (`prompter-<date>.jsonl`, gitignored) is the debrief:
-  every call, what came back, and every hint the policy swallowed with its
-  reason. Chrome only, because the ear is the Web Speech API, and only together
-  with `--watch`, because the cockpit reaches the sidecar over the watch socket.
-  A deck that does not use it is untouched: without the flag none of the chrome
-  is emitted, no field of the sync snapshot is the prompter's, and the four
-  views are what they were before the flag existed.
+  The prompter can also add a **cue card to a slide that is still to come**.
+  The cockpit's `K` mode shows the speaker notes as cue cards, and an added
+  card turns up there dashed; in the cockpit's ordinary layout, which shows no
+  cards, it appears on the strip when you walk onto that slide, so there is no
+  need to present in card mode for it. The lecture's last slide is always
+  among the slides it may add a card to, however far away it is.
+
+  **The build measures the tempo; the model does not judge it.** A transcript
+  carries no speaking rate, no hesitation and no silence, so the build counts
+  them over the stretch of transcript it sends anyway – words a minute over
+  the seconds actually spoken, filler sounds, the longest pause – and sends
+  the figures as one line beside it. Each stretch of speech is timed from
+  where the speaking started, so a pause counts as silence and never lowers
+  the rate: a speaker who thinks for a minute and then says a sentence has
+  said a sentence, not spoken for a minute. The model is asked only whether
+  the figures are worth a hint, and is told that speech recognition often
+  drops filler sounds, so a count of zero is not evidence that none were said.
+
+  `duration: 45` at the top level of the frontmatter gives the clock a planned
+  length in minutes to measure the talk against, and a `prompter:` block sets
+  the model, how much new speech it waits for before asking again (`cadence`),
+  the quiet interval after a hint (`cooldown`) and whether cue cards are
+  allowed (`cues`). Each run writes one log beside `source.md`
+  (`prompter-<date>.jsonl`): every call, what came back, and every hint the
+  rules stopped, with the rule. The log holds the spoken words verbatim; this
+  repository's `.gitignore` covers it, and a lecture in a repository of its
+  own needs the same pattern. `--prompter-replay` reads a log back through
+  today's rules, and logs written before the prompter had its public name,
+  called `souffleuse-*.jsonl`, replay the same way. Chrome only, because the
+  listening is Chrome's Web Speech API, and only together with `--watch`,
+  because the cockpit reaches the model through that process. A lecture that
+  does not use it is untouched: without the flag none of the prompter's
+  controls are emitted, nothing of it enters the state the two windows keep in
+  step, and the four views are what they were before the flag existed.
 
 - **A fourth font role: `fonts: {display: …}` gives the cover, the closing
   slide and the section dividers a typeface nothing else in the deck wears.**

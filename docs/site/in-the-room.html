@@ -38,11 +38,11 @@
    </div>
    <div>
     <p><strong>Nothing here needs a server or a network.</strong> The two
-    windows find each other in the browser; the timer, your notes, the state of
-    the deck and anything you type stay on the machine you are standing at. A
-    lecture on a memory stick, in a room with no wifi, behaves like this one
-    &ndash; except for two things on this page that do reach out, and both are
-    yours to choose: a hosted video embed, and the prompter.</p>
+    windows find each other in the browser; the timer, your notes, where you are
+    in the lecture and anything you type stay on the machine you are standing
+    at. A lecture on a memory stick, in a room with no wifi, behaves like this
+    one &ndash; except for two things this page describes, which go online only
+    if you choose them: a hosted video embed, and the prompter.</p>
    </div>
   </div>
  </div>
@@ -284,11 +284,11 @@ where the rest of the hour is going to be spent.
        heading, lede, words beside a listing, then one row of three. It stands
        after the cue cards because it lays cards of its own. -->
   <h2 id="prompter">A prompter, if you switch one on</h2>
-  <p class="lede">This is new, and it is off unless you ask for it. In a lecture
-  built with <code>--watch --prompter</code>, the cockpit can listen while you
-  talk and, when something needs saying, whisper at most twelve words onto a
-  strip over the foot of the mirrored slide. Most of the time it says nothing.
-  Nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd> in the cockpit,
+  <p class="lede">The prompter is new, and it is off unless you ask for it. In a
+  lecture built with <code>--watch --prompter</code>, the cockpit can listen
+  while you talk and, when something needs saying, put a hint of at most twelve
+  words on a strip across the bottom of its copy of the slide. Most of the time
+  the prompter says nothing. Nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd> in the cockpit,
   or the <b>&#9676; prompter</b> button in its footer, which is the same
   switch.</p>
 
@@ -298,19 +298,21 @@ where the rest of the hour is going to be spent.
   <div class="aside-code words-first">
    <div class="said">
     <h3>What it needs</h3>
-    <p class="cue">Chrome, because the ear is the browser&rsquo;s own speech
-    recognition. A <code>--watch</code> process, because that is what the
-    cockpit talks to. And a key for openrouter.ai in
-    <code>OPENROUTER_API_KEY</code>; without one the prompter starts switched
-    off and only writes down what it heard.</p>
-    <p class="cue"><code>--prompter-dry-run</code> runs the ear, the clock and
-    the rules but never calls the model, so a rehearsal needs no key. The
-    <code>prompter:</code> block sets the model, how often it may ask, how long
-    it keeps quiet after a whisper, and whether it may lay cards.</p>
+    <p class="cue">Chrome, because the listening is done by Chrome&rsquo;s own
+    speech recognition. A <code>--watch</code> process, because the cockpit
+    hands what it hears to that process, and the process asks a language model.
+    And a key for openrouter.ai, the service that passes the request on to the
+    model, in <code>OPENROUTER_API_KEY</code>; without one the prompter starts
+    switched off and only writes down what it heard.</p>
+    <p class="cue"><code>--prompter-dry-run</code> does everything except call
+    the model &ndash; the listening, the clock, the rules on when a hint may
+    appear &ndash; so a rehearsal needs no key. The <code>prompter:</code> block
+    sets the model, how much new speech it waits for before asking again, how
+    long it stays quiet after a hint, and whether it may add cue cards.</p>
    </div>
 <pre><code><span class="t-cmt"># in the frontmatter of source.md</span>
-<span class="t-cmt"># duration in minutes is the plan the clock measures against;</span>
-<span class="t-cmt"># cooldown is the seconds of quiet after each whisper</span>
+<span class="t-cmt"># duration: the planned minutes the clock measures against;</span>
+<span class="t-cmt"># cooldown: the seconds of quiet after each hint</span>
 <span class="t-dir">duration:</span> 45
 <span class="t-dir">prompter:</span>
   <span class="t-dir">cooldown:</span> 60
@@ -326,38 +328,40 @@ where the rest of the hour is going to be spent.
        Three answers to "what am I letting into the hour", one row. -->
   <div class="pair-up trio">
    <div>
-    <p><strong>It whispers when you are behind time</strong>, when the example
-    is missing, when what you just said contradicts your own slide, when you are
+    <p><strong>It speaks up when you are behind time</strong>, when a point stays
+    abstract although your slides have an example for it, when what you just said contradicts your own slide, when you are
     speaking too fast, or when your notes planned something for this slide and
-    you have walked past it. The tempo is counted rather than guessed: words a
-    minute, filler sounds, the longest pause. The twelve words are a rule in
-    the build, and a longer answer is thrown away, not shortened.
-    <kbd>Esc</kbd> takes a whisper off the strip.</p>
-    <p>It can also lay a cue card into a slide still to come, the conclusion
-    included, for a sentence worth keeping that you said in passing.</p>
+    you have walked past it. The build counts the tempo rather than leaving the
+    model to guess it: words a minute, filler sounds, the longest pause. The
+    build also enforces the twelve words: a longer answer is thrown away, not
+    shortened. <kbd>Esc</kbd> takes a hint off the strip.</p>
+    <p>It can also add a cue card to a slide still to come, the last slide
+    included, when you said something in passing that is worth saying again
+    there.</p>
    </div>
    <div>
     <p><strong>What leaves the machine is text.</strong> The transcript and the
-    deck, speaker notes included, go to openrouter.ai to be answered. No audio
-    is sent, nothing of it reaches the projection, nothing is written into
-    <code>source.md</code>, and the key is read by the build and never written
-    into the HTML. The speech recognition itself runs on your machine where
-    Chrome can do that and through Google where it cannot; a badge in the
-    cockpit says which.</p>
+    lecture&rsquo;s text, speaker notes included, go to openrouter.ai and from
+    there to the company that runs the model. No audio is sent, nothing of it
+    reaches the projection, nothing is written into <code>source.md</code>, and
+    the key is read by the build and never written into the HTML. The speech
+    recognition itself runs on your machine where Chrome can do that and
+    through Google where it cannot; the cockpit says which.</p>
     <p>The microphone hears the room as well as you. Switch it off before
     questions, or tell the room it is on.</p>
    </div>
    <div>
-    <p><strong>The log is the debrief.</strong> Each run writes
+    <p><strong>A log says afterwards what happened.</strong> Each run writes
     <code>prompter-&lt;date&gt;.jsonl</code> beside <code>source.md</code>: what
-    it heard, what it whispered, and what it wanted to say and was held back
-    from, with the reason. Beside it,
-    <code>prompter-&lt;hash&gt;.prompt.txt</code> is the deck exactly as the
-    model received it.</p>
-    <p>During the talk, <kbd>Shift</kbd>-click on the button shows the last ten
-    whispers. For the first minute the strip shows the words it hears, and after
-    that a faint line says when it last asked the model: a prompter with nothing
-    to say looks the same as one that has stopped.</p>
+    it heard, which hints it showed, and what it wanted to say but its rules
+    stopped, with the rule that stopped it. Beside it,
+    <code>prompter-&lt;hash&gt;.prompt.txt</code> holds the lecture&rsquo;s text
+    exactly as the model received it.</p>
+    <p>During the talk, a <kbd>Shift</kbd>-click on the prompter button shows
+    the last ten hints and cards. For the first minute a faint line under the
+    strip shows the words the speech recognition picks up, and after that the
+    same line says when the prompter last asked the model: a prompter with nothing to say
+    looks the same as one that has stopped.</p>
    </div>
   </div>
  </div>
