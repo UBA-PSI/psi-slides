@@ -288,14 +288,15 @@ where the rest of the hour is going to be spent.
   <div class="beside heading-in">
    <div class="said">
     <h2 id="prompter">Ein Prompter, wenn man ihn einschaltet</h2>
-    <p class="lede">Das Cockpit kann zuhören, während man spricht, und einen
-    kurzen Hinweis auf seine Kopie der Folie legen, wenn etwas gesagt werden
-    muss. Der Prompter ist neu und bleibt aus, solange man die Vorlesung nicht
-    mit <code class="flag">--watch --prompter</code> startet. Er fragt ein
-    Sprachmodell über das Internet, braucht also eine Netzverbindung und einen
-    OpenRouter-Schlüssel, jede Anfrage kostet Geld, und sein Mikrofon hört den
-    ganzen Saal.</p>
-    <p class="cue">Der rote Streifen ist die Antwort des Modells auf eine Zahl,
+    <p class="lede">Eingeschaltet hört der Prompter zu, während man spricht,
+    und legt einen kurzen Hinweis auf die Folienkopie im Cockpit, wenn etwas
+    gesagt werden muss. Er ist neu und bleibt aus, solange man
+    <code>node build.js</code> nicht mit
+    <code class="flag">--watch --prompter</code> aufruft. Er fragt ein Sprachmodell über das Internet,
+    braucht also eine Netzverbindung und einen OpenRouter-Schlüssel, jede
+    Anfrage an das Modell kostet Geld, und das Mikrofon hört den ganzen
+    Saal.</p>
+    <p class="cue">Der rote Streifen trägt die Antwort des Modells auf eine Zahl,
     die der Sprecher falsch gesagt hat. <a href="prompter.html">Die eigene
     Seite des Prompters</a> sagt, wobei er sich meldet, was er kostet, was den
     Rechner verlässt und wie man mit ihm probt.</p>

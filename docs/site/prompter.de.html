@@ -25,27 +25,28 @@
 
   <h1>Der Prompter</h1>
 
-  <p class="lede">Das Cockpit kann zuhören, während man spricht, und wenn
-  etwas gesagt werden muss, einen kurzen Hinweis auf einen Streifen am unteren
-  Rand seiner Kopie der Folie legen. Meistens sagt der Prompter nichts.</p>
+  <p class="lede">Das Cockpit, das Fenster, das nur der Sprecher sieht,
+  kann zuhören, während man spricht. Wenn etwas gesagt werden muss, legt der
+  Prompter einen kurzen Hinweis auf einen Streifen am unteren Rand der
+  Folienkopie im Cockpit. Meistens sagt er nichts.</p>
 
   <!-- Halbleere Zeile, Antwort 1: die zwei Dinge, die man vor dem Weiterlesen
        wissen muss, gleich lang, damit die Zeile gerade steht. -->
   <div class="pair-up">
    <div>
     <p><strong>Er ist neu, und er bleibt aus, solange man ihn nicht
-    einschaltet.</strong> Man startet die Vorlesung mit
-    <code class="flag">--watch --prompter</code>, und auch dann hört er erst
+    einschaltet.</strong> Man ruft <code>node build.js</code> mit
+    <code class="flag">--watch --prompter</code> auf, und auch dann hört er erst
     zu, wenn man im Cockpit <kbd>Shift</kbd>-<kbd>S</kbd> drückt oder den Knopf
     <b>&#9676; prompter</b> in der Fußzeile, der dasselbe tut. Ein zweiter Druck
     schaltet ihn wieder ab.</p>
    </div>
    <div>
     <p><strong>Er geht online, und er kostet Geld.</strong> Er fragt ein
-    Sprachmodell über das Internet: Für den Vortrag braucht man eine
-    Netzverbindung und einen API-Schlüssel eines OpenRouter-Kontos, und jede
-    Anfrage wird diesem Konto berechnet. Sein Mikrofon hört alle im Saal, und
-    das sollte man ihnen vor dem Beginn sagen.</p>
+    Sprachmodell über das Internet, braucht also eine Netzverbindung und den
+    API-Schlüssel eines OpenRouter-Kontos, und jede Anfrage wird diesem Konto
+    berechnet. Das Mikrofon hört alle im Saal; das sollte man ihnen vor
+    Beginn sagen.</p>
    </div>
   </div>
  </div>
@@ -65,7 +66,7 @@
     wenn die eigenen Notizen für diese Folie etwas vorgesehen haben, an dem man
     vorbeigegangen ist. Das Tempo zählt psi-slides selbst und gibt dem Modell
     die Zahlen: Wörter pro Minute, Füllwörter, die längste Pause.</p>
-    <p class="cue">Auf der Folie stehen 90 Millisekunden, und der Sprecher hat
+    <p class="cue">Im Bild stehen auf der Folie 90 Millisekunden, und der Sprecher hat
     gerade &bdquo;ich glaube, es waren 250 Millisekunden&ldquo; gesagt. Auf dem
     roten Streifen steht die Antwort des Prompters, Wort für Wort so, wie das
     Modell sie gegeben hat. Rot ist er, weil das Modell ihn als dringend
@@ -82,16 +83,16 @@
 
   <div class="pair-up trio">
    <div>
-    <p><strong>Ein Hinweis bleibt im Cockpit.</strong> Er steht auf der Kopie
-    der Folie im Cockpit, wo man ohnehin hinschaut, und <kbd>Esc</kbd> nimmt
-    ihn vom Streifen. Nichts, was der Prompter sagt, erscheint auf der
+    <p><strong>Ein Hinweis bleibt im Cockpit.</strong> Er steht auf der
+    Folienkopie im Cockpit und verblasst nach 15 Sekunden, ein dringender nach
+    25; <kbd>Esc</kbd> nimmt ihn früher vom Streifen. Nichts, was der Prompter sagt, erscheint auf der
     Projektion.</p>
    </div>
    <div>
     <p><strong>Er kann einer Folie, die noch kommt, eine Karte
     hinzufügen</strong>, der letzten Folie eingeschlossen, wenn man im
-    Vorbeigehen etwas gesagt hat, das es wert ist, dort noch einmal gesagt zu
-    werden. Es sind die Karten, die <kbd>K</kbd> zeigt, beschrieben
+    Vorbeigehen etwas gesagt hat, das dort noch einmal gesagt werden sollte.
+    <kbd>K</kbd> zeigt die Sprechernotizen als Karten, beschrieben
     <a href="in-the-room.html#cue-cards">auf „Im Raum“</a>.</p>
    </div>
    <div>
@@ -122,16 +123,15 @@
     wird über openrouter.ai erreicht. Den API-Schlüssel legt man in einem
     OpenRouter-Konto an, über das auch die Anfragen bezahlt werden, und setzt
     ihn vor dem Start in die Umgebungsvariable <code>OPENROUTER_API_KEY</code>.
-    Ohne Schlüssel startet der Prompter ausgeschaltet und schreibt nur mit, was
-    er gehört hat.</p>
+    Ohne Schlüssel fragt der Prompter kein Modell und schreibt nur ins
+    Protokoll, was er hört.</p>
    </div>
    <div>
-    <p><strong>Geld.</strong> Was ein Vortrag kostet, hängt vom Modell ab und
-    davon, wie oft der Prompter fragt. Zur Größenordnung: Eine Keynote samt
-    allen Proben und Testläufen davor hat mit dem voreingestellten Modell,
-    Claude Sonnet&nbsp;5, etwa einen US-Dollar gekostet. Der Prompter stellt
-    höchstens 360 Anfragen pro Stunde, wenn man keine niedrigere Grenze
-    setzt.</p>
+    <p><strong>Geld.</strong> Eine Keynote samt allen Proben und Testläufen
+    davor hat mit dem voreingestellten Modell, Claude Sonnet&nbsp;5, etwa einen
+    US-Dollar gekostet. Was ein Vortrag kostet, hängt vom Modell ab und davon,
+    wie oft der Prompter fragt. Er stellt höchstens 360 Anfragen pro Stunde,
+    wenn man keine niedrigere Grenze setzt.</p>
    </div>
   </div>
  </div>
@@ -143,12 +143,13 @@
   <div class="aside-code words-first">
    <div class="said">
     <p class="cue"><code class="flag">--prompter-dry-run</code> erledigt alles
-    außer dem Aufruf des Modells: Er hört zu, führt die Uhr und wendet die
-    Regeln an, wann ein Hinweis erscheinen darf. An openrouter.ai geht nichts;
-    die Spracherkennung von Chrome arbeitet wie im Vortrag.</p>
+    außer dem Aufruf des Modells: Der Prompter hört zu, führt die Uhr und
+    wendet die Regeln an, wann ein Hinweis erscheinen darf. An openrouter.ai
+    geht nichts, aber Chrome schickt den Ton weiterhin an Google, wenn es
+    die Sprache nicht auf dem eigenen Rechner erkennen kann.</p>
     <p class="cue">Der Block <code>prompter:</code> in den Einstellungen oben in
-    <code>source.md</code> legt das Modell fest, wie viel neue Rede er abwartet,
-    bevor er wieder fragt, wie lange er nach einem Hinweis still ist, ob er
+    <code>source.md</code> legt das Modell fest, wie viel neue Rede der
+    Prompter abwartet, bevor er wieder fragt, wie lange er nach einem Hinweis still ist, ob er
     Karten ergänzen darf und wie oft er in einer Stunde fragen darf.</p>
    </div>
 <pre><code><span class="t-cmt"># in den Einstellungen oben in source.md</span>
@@ -174,7 +175,7 @@
    <div>
     <p><strong>Der Prompter schickt Text an openrouter.ai:</strong> das
     Transkript und den Text der Vorlesung samt Sprechernotizen. Von dort geht
-    er an das Unternehmen, das das Modell betreibt. Der Prompter verschickt
+    der Text an das Unternehmen, das das Modell betreibt. Der Prompter verschickt
     keinen Ton, aber die Spracherkennung ist die von Chrome, und Chrome schickt
     den Ton an Google, wenn es die Erkennung nicht auf dem eigenen Rechner
     ausführen kann; das Cockpit sagt, welches von beiden. Nichts davon
@@ -183,7 +184,7 @@
     Umgebung und schreibt ihn nie in die HTML-Dateien.</p>
    </div>
    <div id="log">
-    <p><strong>Jeder Lauf führt ein Protokoll</strong> neben
+    <p><strong>Jeder Lauf schreibt ein Protokoll</strong> neben
     <code>source.md</code>, in <code>prompter-&lt;date&gt;.jsonl</code>: was
     der Prompter gehört hat, welche Hinweise er gezeigt hat und was er sagen
     wollte, aber nach seinen Regeln nicht durfte, mit der Regel, die es

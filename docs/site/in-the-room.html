@@ -286,13 +286,14 @@ where the rest of the hour is going to be spent.
   <div class="beside heading-in">
    <div class="said">
     <h2 id="prompter">A prompter, if you switch one on</h2>
-    <p class="lede">The cockpit can listen while you talk and put a short hint
-    on its copy of the slide when something needs saying. The prompter is new
-    and stays off unless you start the lecture with
-    <code class="flag">--watch --prompter</code>. It asks a language model over
-    the internet, so it needs a network connection and an OpenRouter key, each
-    call costs money, and its microphone hears the whole room.</p>
-    <p class="cue">The red strip is the model&rsquo;s answer to a number the
+    <p class="lede">Switched on, the prompter listens while you talk and puts a
+    short hint on the cockpit&rsquo;s copy of the slide when something needs
+    saying. It is new and stays off unless you run <code>node build.js</code>
+    with <code class="flag">--watch --prompter</code>. It asks a language model
+    over the internet, so it needs a network connection and an OpenRouter key,
+    each call to the model costs money, and the microphone hears the whole
+    room.</p>
+    <p class="cue">The red strip carries the model&rsquo;s answer to a number the
     speaker got wrong. <a href="prompter.html">The prompter&rsquo;s own
     page</a> says what it speaks up about, what it costs, what leaves your
     computer, and how to rehearse with it.</p>

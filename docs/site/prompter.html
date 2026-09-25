@@ -29,25 +29,26 @@
 
   <h1>The prompter</h1>
 
-  <p class="lede">The cockpit can listen while you talk and, when something
-  needs saying, put a short hint on a strip across the bottom of its copy of
-  the slide. Most of the time the prompter says nothing.</p>
+  <p class="lede">The cockpit, the window only the speaker sees, can
+  listen while you talk. When something needs saying, the prompter
+  puts a short hint on a strip across the bottom of the cockpit&rsquo;s copy
+  of the slide. Most of the time it says nothing.</p>
 
   <!-- Half-empty row, answer 1: the two things a speaker has to know before
        reading on, of one length, so the row is even. -->
   <div class="pair-up">
    <div>
     <p><strong>It is new, and it stays off unless you switch it on.</strong>
-    Start the lecture with <code class="flag">--watch --prompter</code>, and
-    even then nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd> in
+    Run <code>node build.js</code> with <code class="flag">--watch --prompter</code>,
+    and even then nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd> in
     the cockpit, or the <b>&#9676; prompter</b> button in its footer, which does
     the same. Press it again and it stops listening.</p>
    </div>
    <div>
     <p><strong>It goes online, and it costs money.</strong> It asks a language
     model over the internet, so the talk needs a network connection and an API
-    key from an OpenRouter account, and each call is charged to that account.
-    Its microphone hears everyone in the room, and they should be told before
+    key from an OpenRouter account, and each call to the model is charged to
+    that account. The microphone hears everyone in the room; tell them before
     you start.</p>
    </div>
   </div>
@@ -68,9 +69,9 @@
     abstract although your slides have an example for it, when what you just
     said contradicts your own slide, when you are speaking too fast, or when
     your notes planned something for this slide and you have walked past it.
-    psi-slides counts the tempo itself and gives the model the figures: words
+    psi-slides counts the tempo itself and gives the model the numbers: words
     a minute, filler sounds, the longest pause.</p>
-    <p class="cue">The slide says 90 milliseconds, and the speaker has just
+    <p class="cue">In the picture, the slide says 90 milliseconds, and the speaker has just
     said &ldquo;I think it was 250 milliseconds&rdquo;. The red strip carries
     the prompter&rsquo;s answer, word for word as the model gave it. It is red
     because the model marked it urgent, a level kept for something that would
@@ -89,15 +90,15 @@
   <div class="pair-up trio">
    <div>
     <p><strong>A hint stays in the cockpit.</strong> It stands on the
-    cockpit&rsquo;s copy of the slide, where you are looking anyway, and
-    <kbd>Esc</kbd> takes it off the strip. Nothing the prompter says appears on
+    cockpit&rsquo;s copy of the slide and fades after 15 seconds, an urgent one
+    after 25; <kbd>Esc</kbd> takes it off the strip sooner. Nothing the prompter says appears on
     the projection.</p>
    </div>
    <div>
     <p><strong>It can add a cue card to a slide still to come</strong>, the last
     slide included, when you said something in passing that is worth saying
-    again there. The cards are the ones <kbd>K</kbd> shows, described
-    <a href="in-the-room.html#cue-cards">on In the room</a>.</p>
+    again there. <kbd>K</kbd> lays your speaker notes out as these cards,
+    described <a href="in-the-room.html#cue-cards">on In the room</a>.</p>
    </div>
    <div>
     <p><strong>The line under the strip</strong> shows, for the first minute,
@@ -116,8 +117,8 @@
        build, the account, and what the account pays. -->
   <div class="pair-up trio">
    <div>
-    <p><strong>Chrome and <code class="flag">--watch</code>.</strong> The
-    listening is done by Chrome&rsquo;s own speech recognition. The
+    <p><strong>Chrome and <code class="flag">--watch</code>.</strong>
+    Chrome&rsquo;s own speech recognition does the listening. The
     <code class="flag">--watch</code> flag keeps <code>node build.js</code>
     running and rebuilds the lecture whenever you save; the cockpit hands what
     it hears to that running program, and the program asks a language
@@ -128,15 +129,15 @@
     reached through openrouter.ai. You create an API key in an OpenRouter
     account, which is also where the calls are paid for, and put it in the
     environment variable <code>OPENROUTER_API_KEY</code> before you start.
-    Without a key the prompter starts switched off and only writes down what
-    it heard.</p>
+    Without a key the prompter asks no model and only writes what it hears
+    into its log.</p>
    </div>
    <div>
-    <p><strong>Money.</strong> What a talk costs depends on
-    the model and on how often the prompter asks. For a sense of scale: one
-    keynote, together with every rehearsal and test run before it, came to
-    about one US dollar with the default model, Claude Sonnet&nbsp;5. The
-    prompter makes at most 360 calls an hour unless you set a lower limit.</p>
+    <p><strong>Money.</strong> One keynote, together with every rehearsal
+    and test run before it, came to about one US dollar with the default
+    model, Claude Sonnet&nbsp;5. What a talk costs depends on the model and on
+    how often the prompter asks. It makes at most 360 calls an hour unless you
+    set a lower limit.</p>
    </div>
   </div>
  </div>
@@ -151,11 +152,12 @@
    <div class="said">
     <p class="cue"><code class="flag">--prompter-dry-run</code> does everything
     except call the model: it listens, keeps the clock and applies the rules on
-    when a hint may appear. Nothing goes to openrouter.ai; Chrome&rsquo;s speech
-    recognition works as it does in the talk.</p>
+    when a hint may appear. Nothing goes to openrouter.ai, but Chrome still
+    sends the audio to Google unless it can recognise speech on your
+    computer.</p>
     <p class="cue">The <code>prompter:</code> block in the settings at the top
-    of <code>source.md</code> sets the model, how much new speech it waits for
-    before asking again, how long it stays quiet after a hint, whether it may
+    of <code>source.md</code> sets the model, how much new speech the prompter
+    waits for before asking again, how long it stays quiet after a hint, whether it may
     add cue cards, and how many calls it may make in an hour.</p>
    </div>
 <pre><code><span class="t-cmt"># in the settings at the top of source.md</span>
@@ -192,7 +194,7 @@
     environment and never writes it into the HTML files.</p>
    </div>
    <div id="log">
-    <p><strong>Each run keeps a log</strong> beside <code>source.md</code>, in
+    <p><strong>Each run writes a log</strong> beside <code>source.md</code>, in
     <code>prompter-&lt;date&gt;.jsonl</code>: what the prompter heard, which
     hints it showed, and what it wanted to say but its rules stopped, with the
     rule that stopped it. Beside it, <code>prompter-&lt;hash&gt;.prompt.txt</code>
