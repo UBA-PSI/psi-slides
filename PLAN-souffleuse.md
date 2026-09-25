@@ -333,6 +333,8 @@ anything to the projection, never into the snapshot, never into
 `source.md`, never a key into the HTML. The microphone hears the room too:
 Shift-S off before a question round, or tell the room.
 
+> Correction (security review): “never audio outward” holds for the prompter only. Chrome's speech recognition sends the audio to Google unless it runs on the device, in a dry run too – see `SECURITY.md`.
+
 ## Tests
 
 - **Gate `test/gates/souffleuse.mjs`**: `deckPayload` on a fixture object,

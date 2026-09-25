@@ -327,6 +327,10 @@ From `1.0.0` the **source format is the interface**: a change that stops an exis
 - **`{#id}` attributes are frozen once authored.** They anchor cross-references, TOC entries, sync snapshots, and `localStorage`. Renaming a heading is free; renumbering an ID is not.
 - **Generated HTML is disposable.** Rebuild it, do not commit it. The only tracked outputs are the three reference lectures – `lectures/tutorial/`, `lectures/diagrams/` and `lectures/decoration/` – so the tour and the two construct references can be browsed straight from the repository.
 
+## Security
+
+**A deck you are sent is a web page from its author.** Its HTML can run JavaScript in your browser and tell a server that you opened it, and no psi-slides version can stop that, because the author controls the build; a deck made from Markdown and local files alone makes no network requests. **Build a `source.md` from someone else only with the fixes that land in 2.0.0** (on `main` until that release is tagged), and see what it may still read: pictures, clips and fonts from the folder one level above its own. [`SECURITY.md`](SECURITY.md) has the details – what a deck can reach on your computer, what the build refuses, what the live tools and the prompter expose – and how to report a vulnerability privately.
+
 ## Licence
 
 The tooling – `build.js`, `lint.js`, the documentation – is [MIT](LICENSE). The lecture content under [`lectures/`](lectures/LICENSE) is CC BY-SA 4.0, so you may reuse and adapt it with attribution under the same terms.
