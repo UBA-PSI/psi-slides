@@ -579,7 +579,9 @@ the same commit. Code comments may be translated; the commands may not.
 
 `build-site.js` checks that rather than asking for it. Four things have to
 match – the sequence of `h2`/`h3` levels and the ids the English page gives
-them, the pictures in order, the commands once the `#` comments are cut off,
+them, the pictures in order (a shot whose words are in the page's language
+comes as `img/x.webp` and `img/x-de.webp` and counts as one picture &ndash; the
+prompter's hint is the only one so far), the commands once the `#` comments are cut off,
 and the link targets with the two languages' own paths folded together. The
 prose between them is free, which is the only definition that survives a real
 translation.

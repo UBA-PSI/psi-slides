@@ -277,11 +277,14 @@ where the rest of the hour is going to be spent.
 
 <section class="band">
  <div class="wrap">
-  <!-- No picture, and on purpose: what this section describes is a strip that
-       is empty most of the hour, and a screenshot of it saying something would
-       have to be staged. The evidence is the listing - what you write and what
-       you run - so the section takes the shape of "One press at a time":
-       heading, lede, words beside a listing, then one row of three. It stands
+  <!-- One picture, and it is not staged where it matters: the hint on the
+       strip is what the model answered. docs/site/shoot-prompter.mjs feeds
+       the cockpit a speaker's words through the same door a microphone does
+       and photographs whatever comes back; it writes no hint. The words are
+       from a real rehearsal of lectures/spoken-talk, recogniser slips and
+       all. The section otherwise keeps the shape of "One press at a time":
+       heading, lede, then the picture beside the sentence that says what to
+       look at, words beside a listing, then one row of three. It stands
        after the cue cards because it lays cards of its own. -->
   <h2 id="prompter">A prompter, if you switch one on</h2>
   <p class="lede">The prompter is new, and it is off unless you ask for it. In a
@@ -291,6 +294,22 @@ where the rest of the hour is going to be spent.
   the prompter says nothing. Nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd> in the cockpit,
   or the <b>&#9676; prompter</b> button in its footer, which is the same
   switch.</p>
+
+  <div class="beside">
+   <div class="said">
+    <p class="cue">Here the slide says 90 milliseconds, and the speaker has
+    just said &ldquo;I think it was 250 milliseconds&rdquo;. The red strip is
+    the prompter&rsquo;s answer, word for word as the model gave it. It is red
+    because the model marked it urgent, which is the level meant to interrupt
+    a sentence. Under it, the line that says when the model was last asked.</p>
+   </div>
+   <div class="stage">
+    <figure class="shot">
+     <div class="bar"><b>speaker.html</b> &middot; Shift-S</div>
+     <img src="img/prompter-hint.webp" alt="The cockpit&rsquo;s copy of a slide reading &ldquo;1.4 seconds. Then 90 milliseconds.&rdquo; Across its lower edge, over the faded next slide, a red strip reads &ldquo;The number is ninety milliseconds, not 250.&rdquo;, and under it a faint line reads &ldquo;asked 5s ago &middot; 2 so far&rdquo;.">
+    </figure>
+   </div>
+  </div>
 
   <!-- Half-empty row, answer 1: the listing takes the wide half and what it
        needs the narrow one. Commands are compared by the twin gate, so only

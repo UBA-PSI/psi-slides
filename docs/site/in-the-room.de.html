@@ -283,13 +283,17 @@ where the rest of the hour is going to be spent.
 
 <section class="band">
  <div class="wrap">
-  <!-- Kein Bild, und mit Absicht: Dieser Abschnitt beschreibt einen Streifen,
-       der den größten Teil der Stunde leer ist, und eine Aufnahme, auf der er
-       etwas sagt, müsste gestellt werden. Der Beleg ist das Listing &ndash; was
-       man schreibt und was man startet &ndash;, also hat der Abschnitt die Form
-       von „Ein Druck nach dem anderen“: Überschrift, Lede, Worte neben einem
-       Listing, dann eine Zeile mit drei. Er steht hinter den Karten, weil er
-       selbst Karten legt. -->
+  <!-- Ein Bild, und wo es darauf ankommt, ist es nicht gestellt: Der Hinweis
+       auf dem Streifen ist die Antwort des Modells. docs/site/shoot-prompter.mjs
+       gibt dem Cockpit die Worte eines Sprechers durch dieselbe Tür, durch die
+       ein Mikrofon sie gibt, und fotografiert, was zurückkommt; einen Hinweis
+       schreibt es nicht. Die Worte sind die Übersetzung einer echten Probe von
+       lectures/spoken-talk, und der Vortrag ist für die Aufnahme übersetzt,
+       weil der Prompter in der Sprache der Vorlesung antwortet. Sonst hat der
+       Abschnitt die Form von „Ein Druck nach dem anderen“: Überschrift, Lede,
+       dann das Bild neben dem Satz, der sagt, worauf man schaut, Worte neben
+       einem Listing, dann eine Zeile mit drei. Er steht hinter den Karten,
+       weil er selbst Karten legt. -->
   <h2 id="prompter">Ein Prompter, wenn man ihn einschaltet</h2>
   <p class="lede">Der Prompter ist neu, und er bleibt aus, solange man ihn
   nicht einschaltet. In einer Vorlesung, die mit <code>--watch --prompter</code>
@@ -299,6 +303,23 @@ where the rest of the hour is going to be spent.
   der Prompter nichts. Er hört erst zu, wenn man im Cockpit
   <kbd>Shift</kbd>-<kbd>S</kbd> drückt oder den Knopf <b>&#9676; prompter</b>
   in der Fußzeile, der derselbe Schalter ist.</p>
+
+  <div class="beside">
+   <div class="said">
+    <p class="cue">Hier steht auf der Folie 90 Millisekunden, und der Sprecher
+    hat gerade &bdquo;ich glaube, es waren 250 Millisekunden&ldquo; gesagt. Der
+    rote Streifen ist die Antwort des Prompters, Wort für Wort so, wie das
+    Modell sie gegeben hat. Rot ist er, weil das Modell ihn als dringend
+    markiert hat, und diese Stufe darf einen Satz unterbrechen. Darunter die
+    Zeile, die sagt, wann das Modell zuletzt gefragt wurde.</p>
+   </div>
+   <div class="stage">
+    <figure class="shot">
+     <div class="bar"><b>speaker.html</b> &middot; Shift-S</div>
+     <img src="../img/prompter-hint-de.webp" alt="Die Kopie einer Folie im Cockpit, auf der &bdquo;1,4 Sekunden. Dann 90 Millisekunden.&ldquo; steht. Über ihrem unteren Rand, vor der blassen nächsten Folie, liegt ein roter Streifen mit &bdquo;Neunzig Millisekunden, nicht 250.&ldquo;, darunter eine blasse Zeile: &bdquo;asked 3s ago &middot; 2 so far&ldquo;.">
+    </figure>
+   </div>
+  </div>
 
   <!-- Halbleere Zeile, Antwort 1: Das Listing nimmt die breite Hälfte, was es
        braucht, die schmale. Die Befehle vergleicht das Zwillingstor, also

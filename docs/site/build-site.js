@@ -525,7 +525,8 @@ function checkLinks(outDir, pages) {
  *              every heading needs an id, which is why the sequence of levels
  *              is what carries the comparison.
  *   images     the same pictures in the same order. The German page lives one
- *              directory down, so its "../" is normalised away.
+ *              directory down, so its "../" is normalised away, and a
+ *              `-de` shot stands for its English file of the same name.
  *   code       the same commands. A German code block may translate its
  *              `#` comments and may not translate the command, so the
  *              comparison cuts the comments off first and strips the
@@ -547,9 +548,16 @@ function twinStructure(html) {
     headings.push({ level: m[1].toLowerCase(), id: id ? id[1] : null });
   }
   const norm = (p) => p.replace(/^(?:\.\.\/)+/, '').replace(/^de\//, '');
+  // A picture whose words are the page's language comes in two files,
+  // `img/x.webp` and `img/x-de.webp` - the prompter's hint is the model's own
+  // answer in the lecture's language, so the German page cannot show the
+  // English one. The suffix is folded away here, in the pictures and in the
+  // links (which read every src too), so the pair still counts as the same
+  // picture in the same place.
+  const langShot = (p) => p.replace(/^(img\/[^/]+)-de(\.[a-z0-9]+)$/i, '$1$2');
   const images = [];
   const imgRe = /<(?:img|source)\b[^>]*\b(?:src|srcset)\s*=\s*"([^"]+)"/gi;
-  while ((m = imgRe.exec(html))) images.push(norm(decodeEntities(m[1]).split(' ')[0]));
+  while ((m = imgRe.exec(html))) images.push(langShot(norm(decodeEntities(m[1]).split(' ')[0])));
   const code = [];
   const preRe = /<pre\b[^>]*>([\s\S]*?)<\/pre>/gi;
   while ((m = preRe.exec(html))) {
@@ -561,7 +569,7 @@ function twinStructure(html) {
   }
   const links = hrefsIn(html)
     .filter((h) => !/^(?:[a-z][a-z0-9+.-]*:|\/\/|#)/i.test(h))
-    .map(norm);
+    .map((h) => langShot(norm(h)));
   return { headings, images, code, links };
 }
 
