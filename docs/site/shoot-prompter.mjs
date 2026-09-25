@@ -5,7 +5,7 @@
  * in-the-room.de.html.
  *
  *   node --env-file=.env docs/site/shoot-prompter.mjs en
- *   node --env-file=.env docs/site/shoot-prompter.mjs de --source <german deck>/source.md
+ *   node --env-file=.env docs/site/shoot-prompter.mjs de
  *
  * **It needs OPENROUTER_API_KEY and it costs model calls** – one per try, at
  * most --max-calls (default 8) per language – because the rule for these two
@@ -29,9 +29,9 @@
  * that talk on 2026-09-12, in which the speaker said "I think it was 250
  * milliseconds" and the prompter answered "It's ninety milliseconds, not
  * 250." – quoted verbatim from its log, recogniser slips included. The German
- * deck is a translation that is not kept in the repository (the prompter
- * answers in the lecture's language, so a German shot needs a German deck);
- * pass its path with --source. Its words are the same slip in German.
+ * shot uses lectures/spoken-talk-de, a translation with the same chunk ids
+ * (the prompter answers in the lecture's language, so a German shot needs a
+ * German deck). Its words are the same slip in German.
  *
  * Both decks are copied into a temporary directory before the build, so the
  * watcher's views, the prompter's log and its prompt file land there and not
@@ -176,12 +176,10 @@ if (!process.env.OPENROUTER_API_KEY) {
   console.error('OPENROUTER_API_KEY is not set. Run with node --env-file=.env; this shot costs a model call.');
   process.exit(1);
 }
-const source = path.resolve(opt('--source') || (lang === 'en'
-  ? path.join(ROOT, 'lectures', 'spoken-talk', 'source.md') : ''));
+const source = path.resolve(opt('--source') || path.join(ROOT, 'lectures',
+  lang === 'en' ? 'spoken-talk' : 'spoken-talk-de', 'source.md'));
 if (!fs.existsSync(source) || !fs.statSync(source).isFile()) {
-  console.error(lang === 'de'
-    ? 'the German deck is not in the repository: pass --source <a German translation of spoken-talk>/source.md'
-    : `no deck at ${source}`);
+  console.error(`no deck at ${source}`);
   process.exit(1);
 }
 const maxCalls = Number(opt('--max-calls') || 8);
