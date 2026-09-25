@@ -298,20 +298,20 @@ where the rest of the hour is going to be spent.
    <div class="said">
     <h2 id="prompter">Ein Prompter, wenn man ihn einschaltet</h2>
     <p class="lede">Der Prompter ist neu, und er bleibt aus, solange man die
-    Vorlesung nicht mit <code class="flag">--watch --prompter</code> startet. Dann kann das
+    Vorlesung nicht mit <code class="flag">--watch --prompter</code> startet. Er fragt ein Sprachmodell über das Internet: Für den Vortrag braucht
+    man eine Netzverbindung und einen API-Schlüssel eines OpenRouter-Kontos, und
+    jede Anfrage wird diesem Konto berechnet. Dann kann das
     Cockpit zuhören, während man spricht, und wenn etwas gesagt werden muss,
     einen kurzen Hinweis auf einen Streifen am unteren Rand
     seiner Kopie der Folie legen. Meistens sagt er nichts. Er hört erst zu, wenn
     man im Cockpit <kbd>Shift</kbd>-<kbd>S</kbd> drückt oder den Knopf
     <b>&#9676; prompter</b> in der Fußzeile, der dasselbe tut.</p>
-    <p class="cue">Das ganze Cockpit, mit der Sprechernotiz unter der Folie und
-    den benachbarten Folien am unteren Rand. Auf der Folie stehen 90
+    <p class="cue">Auf der Folie stehen 90
     Millisekunden, und der Sprecher hat gerade &bdquo;ich glaube, es waren 250
     Millisekunden&ldquo; gesagt. Auf dem roten Streifen steht die Antwort des
     Prompters, Wort für Wort so, wie das Modell sie gegeben hat. Rot ist er,
     weil das Modell ihn als dringend markiert hat, eine Stufe für etwas, das den
-    Saal in die Irre führen würde, wenn es so stehen bliebe. Die blasse Zeile
-    darunter sagt, wann das Modell zuletzt gefragt wurde.</p>
+    Saal in die Irre führen würde, wenn es so stehen bliebe.</p>
    </div>
    <div class="stage">
     <figure class="shot">
@@ -331,9 +331,13 @@ where the rest of the hour is going to be spent.
     Chrome übernimmt. Den Schalter <code class="flag">--watch</code>, der
     <code>node build.js</code> weiterlaufen lässt und die Vorlesung bei jedem
     Speichern neu baut: Das Cockpit gibt, was es hört, an dieses laufende
-    Programm weiter, und das Programm fragt ein Sprachmodell. Und einen
-    Schlüssel für openrouter.ai, den Dienst, der die Anfrage an das Modell
-    weiterreicht, in der Umgebungsvariablen <code>OPENROUTER_API_KEY</code>.
+    Programm weiter, und das Programm fragt ein Sprachmodell. Eine Internetverbindung für den ganzen
+    Vortrag. Und einen API-Schlüssel für openrouter.ai, den Dienst, der die
+    Anfrage an das Modell weiterreicht: Man legt ihn in einem OpenRouter-Konto
+    an, über das auch die Anfragen bezahlt werden, und setzt ihn vor dem Start
+    in die Umgebungsvariable <code>OPENROUTER_API_KEY</code>. Was ein Vortrag
+    kostet, hängt vom Modell ab und davon, wie oft der Prompter fragt; er stellt
+    höchstens 360 Anfragen pro Stunde, wenn man keine niedrigere Grenze setzt.
     Ohne Schlüssel startet der Prompter ausgeschaltet und schreibt nur mit, was
     er gehört hat.</p>
     <p class="cue">Für eine Probe erledigt <code class="flag">--prompter-dry-run</code> alles

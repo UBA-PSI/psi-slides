@@ -289,19 +289,19 @@ where the rest of the hour is going to be spent.
    <div class="said">
     <h2 id="prompter">A prompter, if you switch one on</h2>
     <p class="lede">The prompter is new, and it stays off unless you start the
-    lecture with <code class="flag">--watch --prompter</code>. Then the cockpit can listen
+    lecture with <code class="flag">--watch --prompter</code>. It asks a language model over the internet, so the talk
+    needs a network connection and an API key from an OpenRouter account, and
+    each call is charged to that account. Then the cockpit can listen
     while you talk and, when something needs saying, put a short
     hint on a strip across the bottom of its copy of the slide. Most of the time
     the prompter says nothing. Nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd>
     in the cockpit, or the <b>&#9676; prompter</b> button in its footer, which
     does the same.</p>
-    <p class="cue">The whole cockpit, with the speaker note under the slide and
-    the neighbouring slides along the bottom. The slide says 90 milliseconds, and the speaker has just said
+    <p class="cue">The slide says 90 milliseconds, and the speaker has just said
     &ldquo;I think it was 250 milliseconds&rdquo;. The red strip carries the
     prompter&rsquo;s answer, word for word as the model gave it. It is red
     because the model marked it urgent, a level kept for something that would
-    mislead the room if it stood. The faint line under it says when the model
-    was last asked.</p>
+    mislead the room if it stood.</p>
    </div>
    <div class="stage">
     <figure class="shot">
@@ -321,9 +321,13 @@ where the rest of the hour is going to be spent.
     speech recognition. The <code class="flag">--watch</code> flag, which keeps
     <code>node build.js</code> running and rebuilds the lecture whenever you
     save: the cockpit hands what it hears to that running program, and the
-    program asks a language model. And a key for openrouter.ai, the service
-    that passes the request on to the model, in the environment variable
-    <code>OPENROUTER_API_KEY</code>. Without the key the prompter starts
+    program asks a language model. An internet connection for the whole talk.
+    And an API key for openrouter.ai, the service that passes the request on to
+    the model: you create it in an OpenRouter account, which is also where the
+    calls are paid for, and put it in the environment variable
+    <code>OPENROUTER_API_KEY</code> before you start. What a talk costs depends
+    on the model and on how often the prompter asks; it makes at most 360 calls
+    an hour unless you set a lower limit. Without the key the prompter starts
     switched off and only writes down what it heard.</p>
     <p class="cue">For a rehearsal, <code class="flag">--prompter-dry-run</code> does
     everything except call the model: it listens, keeps the clock and applies
