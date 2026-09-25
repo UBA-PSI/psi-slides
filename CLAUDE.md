@@ -200,7 +200,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
 # tail grammar that can, plus the cue-card grammar and the prompter's policy
-# - sixteen gates, under a second, no browser and no `npm install` (diagram-core.mjs,
+# - seventeen gates, under a second, no browser and no `npm install` (diagram-core.mjs,
 # tails.mjs, cue-cards.mjs, souffleuse.mjs and lint.js are all zero-dep).
 # It is also where a hand-mirrored list one file keeps of another's belongs,
 # figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
@@ -406,6 +406,33 @@ store between the two documents, Firefox keeps one per file (the export
 carries highlights across); under `--serve` all three share. `test/reader.mjs`
 guards it on fixture decks of its own. The decisions and the browser
 measurements, slice by slice, are in `PLAN-reader-highlights.md`.
+
+### A source.md someone sent you
+
+Building a deck must not do more than read it, and three rules in build.js's
+`// ── a source.md someone sent you ──` section keep that – each mirrored in
+`lint.js` and held by the `untrusted` gate and the matching block at the end of
+`test/settings.mjs`:
+
+- **Frontmatter is YAML only.** gray-matter picks a parser from the word after
+  the opening `---`, and `---js` is `eval`. **Call gray-matter only through
+  `safeMatter()`**, which refuses any other word and passes refusing engines as
+  a second layer; the gate fails on a bare `matter(` anywhere else.
+- **An asset is read from the lecture's folder or the folder one level up, links
+  resolved** (`assetEscape`, `assetRootOf`). One level up is the maintainer's
+  decision, so lectures side by side can share a picture folder. **Any new
+  reader of a file the source names goes through `assetAllowed()`**, which
+  records a refusal instead of reading; `assertAssetsConfined()` throws after
+  rendering and before any view is written – after rather than in the
+  pre-flight because only the renderers know which `![](…)` is an image and
+  which is an example in a code span. The two resolvers outside `marked`
+  (`resolveAssetUrl`, `dgResolveImage`) throw at once, or their own "resolves
+  to no file" message would be what the author reads.
+- **An output never follows a link.** Write a whole file with
+  `writeOutputFile()` (a fresh name, then a rename over the target), append
+  with `appendOutputFile()` (O_NOFOLLOW), and make a folder the build writes
+  into with `outputDir()` (refused when it is a link). `--optimize-images`
+  touches only the lecture's own folder, and `magick` is told its decoder.
 
 ### Asset inlining
 
@@ -705,7 +732,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 ## Reference material
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the sixteen gates guards, the four browser-spec families, and the sixteen specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the seventeen gates guards, the four browser-spec families, and the sixteen specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.

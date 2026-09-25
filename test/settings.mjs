@@ -3778,6 +3778,94 @@ console.log('\nlayout generations');
 
 }
 
+// ── building a source.md somebody sent you ─────────────────────────────
+//
+// The build-level half of test/gates/untrusted.mjs: a real build refusing a
+// real deck, and what is (and is not) on disk afterwards. Each case is one of
+// the shapes a security review built by hand - `---js` running a program, a
+// path or a link reaching past the lecture's folder, a view whose path is a
+// link - and the one layout that must keep working: a picture in a folder
+// beside the lecture, one level up.
+{
+  console.log('\nbuilding a source.md somebody sent you');
+  const base = fs.realpathSync(tmpDir('psi-untrusted-'));
+  const repo = path.join(base, 'repo');
+  const outside = path.join(base, 'outside');
+  fs.mkdirSync(path.join(repo, 'shared'), { recursive: true });
+  fs.mkdirSync(outside, { recursive: true });
+  // A real 2x1 PNG, so the allowed case inlines something and can be seen to.
+  const PNG = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAIAAAABCAIAAAB7QOjdAAAAEElEQVR4nGP4z8DAwMDAAAAHBQEBqGZ3XAAAAABJRU5ErkJggg==', 'base64');
+  fs.writeFileSync(path.join(repo, 'shared', 'pic.png'), PNG);
+  fs.writeFileSync(path.join(outside, 'secret.png'), PNG);
+  fs.writeFileSync(path.join(outside, 'key'), 'PRIVATE KEY');
+  let n = 0;
+  const deck = (fm, body, setup) => {
+    const dir = path.join(repo, `lec${++n}`);
+    fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
+    fs.writeFileSync(path.join(dir, 'source.md'), `${fm}\n## title: {#title}\n\nHi.\n\n# P {#p}\n\n`
+      + `## free: A | x {#a}\n\n${body}\n\n## free: B | y {#b}\n\nT.\n`);
+    if (setup) setup(dir);
+    const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    const l = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')],
+      { cwd: ROOT, encoding: 'utf8' });
+    return {
+      dir, code: r.status, out: (r.stdout || '') + (r.stderr || ''), lint: l.stdout || '',
+      views: ['print', 'print-notes', 'audience', 'speaker'].filter(v => fs.existsSync(path.join(dir, v + '.html'))),
+    };
+  };
+  const YAML = '---\ntitle: T\n---\n';
+
+  const marker = path.join(base, 'PWNED');
+  const js = deck(`---js\n{ title: (require('fs').writeFileSync(${JSON.stringify(marker)}, 'x'), 'T') }\n---\n`, 'Text.');
+  ok(js.code !== 0 && /YAML only/.test(js.out) && !fs.existsSync(marker) && !js.views.length,
+     '---js frontmatter is refused, and nothing in it runs', js.out.split('\n')[0]);
+  ok(/frontmatter-language/.test(js.lint), 'and lint.js says frontmatter-language');
+  const coffee = deck('---coffee\ntitle: "T"\n---\n', 'Text.');
+  ok(coffee.code !== 0 && /YAML only/.test(coffee.out), '---coffee is refused too', coffee.out.split('\n')[0]);
+  const yml = deck('---yaml\ntitle: T\n---\n', 'Text.');
+  ok(yml.code === 0 && !/frontmatter-language/.test(yml.lint), '---yaml builds and lints as YAML', yml.out.split('\n')[0]);
+
+  const shared = deck(YAML, '![](../shared/pic.png)');
+  ok(shared.code === 0 && /data:image\/(png|webp);base64,/.test(fs.readFileSync(path.join(shared.dir, 'print.html'), 'utf8')),
+     'a picture in a folder one level up is read and inlined', shared.out.split('\n').slice(-2).join(' '));
+  ok(!/asset-outside-root/.test(shared.lint), 'and lints clean');
+
+  const refused = [
+    ['a path two levels up', YAML, '![](../../outside/secret.png)'],
+    ['a link in assets/ to a file out of the root', YAML, '![](leak)',
+      (d) => fs.symlinkSync(path.join(outside, 'key'), path.join(d, 'assets', 'leak.png'))],
+    ['a cover-image two levels up', '---\ntitle: T\ncover: hero\ncover-image: ../../outside/secret.png\n---\n', 'Text.'],
+    ['a ::: backdrop two levels up', YAML, '::: backdrop ../../outside/secret.png\n\nWords.'],
+    ['a ::: draw image two levels up', YAML, '::: draw\nimage k ../../outside/secret.png at 1,1 h 2\n:::'],
+  ];
+  for (const [what, fm, body, setup] of refused) {
+    const r = deck(fm, body, setup);
+    ok(r.code !== 0 && /outside the folder a build may read from/.test(r.out) && r.out.includes(repo) && !r.views.length,
+       `${what} is refused before any view is written, naming the root`, r.out.split('\n')[0]);
+    ok(!/PRIVATE KEY|UFJJVkFURSBLRVk/.test(r.out), 'and the file is not in the message');
+    ok(/asset-outside-root/.test(r.lint), 'and lint.js says asset-outside-root', r.lint.split('\n')[0]);
+  }
+  const font = deck('---\ntitle: T\nfonts:\n  sans: Evil\n---\n', 'Text.', (d) => {
+    fs.mkdirSync(path.join(d, 'fonts'));
+    fs.symlinkSync(path.join(outside, 'key'), path.join(d, 'fonts', 'Evil-Regular.woff2'));
+  });
+  ok(font.code !== 0 && /fonts\/Evil-Regular\.woff2\s+->/.test(font.out) && !font.views.length,
+     'a face in fonts/ that links out of the root is refused', font.out.split('\n')[0]);
+  const example = deck(YAML, 'Written as `![](../../outside/secret.png)`, which is text.\n\n```\n![](../../outside/secret.png)\n```');
+  ok(example.code === 0 && !/asset-outside-root/.test(example.lint),
+     'a reference in a code span or a fence is text, and builds and lints clean', example.out.split('\n')[0]);
+
+  const victim = path.join(outside, 'profile');
+  fs.writeFileSync(victim, 'export PATH=/usr/bin\n');
+  const linked = deck(YAML, 'Text.', (d) => fs.symlinkSync(victim, path.join(d, 'print.html')));
+  ok(linked.code === 0 && fs.readFileSync(victim, 'utf8') === 'export PATH=/usr/bin\n',
+     'a print.html that is a link is not written through', linked.out.split('\n')[0]);
+  ok(!fs.lstatSync(path.join(linked.dir, 'print.html')).isSymbolicLink()
+     && !fs.readdirSync(linked.dir).some(f => f.endsWith('.tmp')),
+     'the link is replaced by the view, and no temporary file is left');
+}
+
 console.log(`\n${passed} passed, ${failures.length} failed`);
 if (failures.length) {
   console.log(failures.map(f => '  ✗ ' + f).join('\n'));

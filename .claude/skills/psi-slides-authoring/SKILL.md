@@ -65,6 +65,11 @@ fonts**. A top-level key that is none of these is a lint warning
 (`unknown-frontmatter-key`) rather than a build failure, so a lecture keeps
 building, but nothing reads the key either.
 
+The block is YAML, opened by a bare `---` (`---yaml` is accepted too). Any
+other word after the opening dashes – `---js`, `---coffee`, `---json` – fails
+the build and lints as `frontmatter-language`: the parser underneath would run
+a `---js` block as a program on the machine that builds the deck.
+
 ### Columns
 
 `# Column Heading {#column-id}` starts a column, the top-level horizontal unit
@@ -674,6 +679,18 @@ The shorthand resolves a bare target with no slash and no extension against the
 lecture's `assets/` folder, first match wins; a missing file renders a visible
 placeholder.
 
+**A picture is read from the lecture's folder or the folder one level up, and
+from nowhere else.** `![](../shared/assets/logo.png)` works – a set of
+lectures side by side can share a folder of pictures – and
+`![](../../photos/x.png)` fails the build, naming the folder it may read from.
+A symbolic link counts as the file it points to, so a link in `assets/` that
+leads out of that folder fails the same way. The rule covers every way a deck
+names a file: `![](…)`, a `::: draw` `image`, a `::: backdrop`,
+`cover-image:`, `closing-image:`, a clip and a face in `fonts/`. It is what
+keeps a deck someone sent you from copying a file from elsewhere on your
+machine into its output; the linter reports it as `asset-outside-root`. A path
+starting with `/` or a URL is not read at all and is not affected.
+
 In a `figure` chunk the heading is already the caption, and alt text becomes a
 `<figcaption>` stacked under it – three labels in a pile. Prefer `![](fig-id)`
 there unless you really want the separate caption (`figure-caption-redundant`
@@ -695,7 +712,9 @@ Needs `cwebp` or `magick` on `PATH`. It sees a picture however you named it –
 `![](path)`, `![](fig-id)`, a `::: draw` `image` statement, a `::: backdrop`,
 `cover-image:` or `closing-image:`. Shorthand refs need no edit afterwards;
 explicit paths in `source.md` are rewritten for you, in the frontmatter and on
-a directive line too, and a path inside a code fence is left alone. SVG is
+a directive line too, and a path inside a code fence is left alone. It only
+converts files inside the lecture's own folder: a shared picture one level up
+is listed as skipped, because another lecture may name it by its path. SVG is
 never touched: it is spliced inline as a real `<svg>` element so it inherits
 the theme colours. `--no-inline-images` is the escape hatch that ships external
 paths on purpose.
@@ -1631,7 +1650,10 @@ or directive – the message names which), `missing-id`, `duplicate-id`,
 words, no aside written in it, no note on it, nothing held to it by `from`),
 `orphan-column` (a column with fewer than two chunks),
 `figure-caption-redundant`, `single-word-bold`, `figure-type-without-figure`,
-`oversized-asset`, `unresolved-asset` (an explicit `![](path)` that names no
+`oversized-asset`, `asset-outside-root` (a picture, clip or backdrop that
+resolves – links followed – outside the lecture's folder and the one above it;
+the build refuses the deck), `frontmatter-language` (frontmatter opened with
+anything but `---` or `---yaml`), `unresolved-asset` (an explicit `![](path)` that names no
 file, so the build renders a placeholder rather than a broken external `src` –
 usually the fix is dropping the extension so the `assets/` shorthand resolves
 it), `deprecated-margin` (the old `::: margin` spelling of `::: footnote`),

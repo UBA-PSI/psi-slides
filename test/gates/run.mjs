@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Sixteen gates, and they prove sixteen different things – which is worth stating
+ * Seventeen gates, and they prove seventeen different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -57,6 +57,10 @@
  *              size that cannot hold its own words
  *   overlap    the overlap census measures ink and not the line box: a text
  *              is compared as the rectangles it inks, one per line
+ *   untrusted  building a source.md somebody sent you: the frontmatter is
+ *              YAML only, an asset is read from the lecture's folder or the
+ *              one above it and no further (links resolved), an output never
+ *              writes through a link, and ImageMagick is told the decoder
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -84,6 +88,7 @@ const GATES = [
   './canvas.mjs',
   './chains.mjs',
   './overlap.mjs',
+  './untrusted.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

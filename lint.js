@@ -410,6 +410,44 @@ function diagramImageRefs(src) {
   return refs;
 }
 
+// Mirrors the asset root in build.js (assetEscape, assetRootOf): a build
+// reads an asset from the lecture's folder or the folder one level up, links
+// resolved, and refuses anything further out before it writes a view. So a
+// reference out there is an error here, not a warning - it is a deck the
+// build hard-fails.
+function realpathLoose(p) {
+  const abs = path.resolve(p);
+  try { return fs.realpathSync(abs); }
+  catch (e) {
+    const parent = path.dirname(abs);
+    if (parent === abs) return abs;
+    return path.join(realpathLoose(parent), path.basename(abs));
+  }
+}
+function pathWithin(root, p) {
+  const rel = path.relative(root, p);
+  return rel === '' || (rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel));
+}
+function assetRootOf(sourceDir) {
+  return path.dirname(realpathLoose(sourceDir));
+}
+function assetEscape(abs, sourceDir) {
+  const real = realpathLoose(abs);
+  return pathWithin(assetRootOf(sourceDir), real) ? null : real;
+}
+
+// Mirrors frontmatterLanguage / FRONTMATTER_LANGUAGES in build.js: what
+// gray-matter would read as the frontmatter's language, and the ones the
+// build lets it parse. Anything else - `---js`, `---coffee` - is a program,
+// and the build refuses the deck.
+const FRONTMATTER_LANGUAGES = new Set(['', 'yaml', 'yml']);
+function frontmatterLanguage(src) {
+  const s = String(src).replace(/^\uFEFF/, '');
+  if (!s.startsWith('---') || s.charAt(3) === '-') return '';
+  const nl = s.search(/\r?\n/);
+  return (nl < 0 ? s.slice(3) : s.slice(3, nl)).trim();
+}
+
 const IMG_EXTS = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
 // Video shares the `![](clip-id)` shorthand and has its own, larger cap –
 // mirrors VIDEO_EXTS / MAX_INLINE_VIDEO_BYTES in build.js.
@@ -553,10 +591,12 @@ const DG_PLACE_STOP = new Set(['frac', 'offset', 'gap', 'flush', 'anchor', 'same
   ...Object.values(DG_KIND_OPTS).flat()]);
 
 function splitFrontmatter(src) {
-  if (!src.startsWith('---\n')) return { body: src, fmLines: 0, header: '' };
-  const end = src.indexOf('\n---\n', 4);
+  // `---yaml` and `---yml` are the same block as a bare `---` to the build.
+  const open = src.match(/^---[ \t]*(?:ya?ml[ \t]*)?\n/i);
+  if (!open) return { body: src, fmLines: 0, header: '' };
+  const end = src.indexOf('\n---\n', open[0].length);
   if (end === -1) return { body: src, fmLines: 0, header: '' };
-  const header = src.slice(4, end);
+  const header = src.slice(open[0].length, end);
   const body = src.slice(end + 5);
   const fmLines = header.split('\n').length + 2;
   return { body, fmLines, header };
@@ -2666,6 +2706,16 @@ function lintFile(filePath) {
   // LF coordinates, as parseLecture reads them: a CRLF source used to miss
   // every `$`-anchored matcher here as well as in the build.
   const src = fs.readFileSync(filePath, 'utf8').replace(/\r\n?/g, '\n');
+  // Before anything else reads the file: the build refuses it outright, so
+  // every finding after this one would be about a deck that never builds.
+  const fmLang = frontmatterLanguage(src);
+  if (!FRONTMATTER_LANGUAGES.has(fmLang.toLowerCase())) {
+    return [{
+      file: filePath, line: 1, severity: 'error', rule: 'frontmatter-language',
+      msg: `'---${fmLang}' asks for frontmatter in a language the build refuses – a '---js' or '---coffee' `
+        + 'block is run as a program on the machine that builds the deck; write a bare --- and YAML',
+    }];
+  }
   const ignores = parseIgnores(src);
   const { body, fmLines, header } = splitFrontmatter(src);
   const lines = body.split('\n');
@@ -4490,8 +4540,44 @@ function lintFile(filePath) {
            `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so it stays an external path and the output is not self-contained – run \`node build.js <source.md> --optimize-images\``);
     }
   };
+  // Every reference the build would read, held to the asset root. Resolved
+  // the way the build resolves it - the shorthand through assets/, anything
+  // else from the source's folder - and then through any link, because a
+  // link in assets/ is read as the file it points to. Skipped: a URL, a
+  // root-absolute or protocol-relative path (the build leaves those alone
+  // and reads nothing), and anything in a code fence or a code span, which
+  // the build renders as text.
+  const assetRoot = assetRootOf(sourceDir);
+  const outsideSeen = new Set();
+  const checkConfined = (href, emit) => {
+    if (!href || /^(?:https?:|data:|\/\/|\/)/i.test(href)) return;
+    const file = href.replace(/[?#].*$/, '');
+    const cands = !file.includes('/') && !path.extname(file)
+      ? [...IMG_EXTS, ...VIDEO_EXTS].map(ext => path.join(sourceDir, 'assets', `${file}.${ext}`))
+          .filter(c => fs.existsSync(c)).slice(0, 1)
+      : [path.resolve(sourceDir, file)];
+    for (const abs of cands) {
+      const out = assetEscape(abs, sourceDir);
+      if (out === null || outsideSeen.has(out)) continue;
+      outsideSeen.add(out);
+      emit('error', 'asset-outside-root',
+           `'${href}' is ${out} – the build reads assets from the lecture's folder and the folder `
+           + `one level up (${assetRoot}), links resolved, and refuses this deck; copy the file in there`);
+    }
+  };
   let assetFence = false;
+  let confineFence = false;
   lines.forEach((line, i) => {
+    if (/^\s*(```|~~~)/.test(line)) confineFence = !confineFence;
+    else if (!confineFence) {
+      const emit = (sev, rule, msg) => add(i + 1, sev, rule, msg);
+      const prose = line.replace(/`[^`\n]*`/g, '');
+      for (const m of prose.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) checkConfined(m[1], emit);
+      const im = line.trim().match(/^image\s+\S+\s+(\S+)/) || line.trim().match(/^grid\s+\S+\s+image\s+(\S+)/);
+      if (im && diagramRefs.has(im[1])) checkConfined(im[1], emit);
+      const bd = line.match(/^:::[ \t]+backdrop[ \t]+([^\s{]+)/);
+      if (bd) checkConfined(bd[1], emit);
+    }
     if (/^\s*(```|~~~)/.test(line)) assetFence = !assetFence;
     const mdHrefs = [...line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map(m => m[1]);
     // A `![](path)` whose path is an explicit relative one (it has a slash or
@@ -4538,6 +4624,7 @@ function lintFile(filePath) {
   header.split('\n').forEach((line, i) => {
     const cm = line.match(/^(?:cover-image|closing-image):[ \t]*["']?([^"'\s#]+)/);
     if (cm) checkOversized(cm[1], (sev, rule, msg) => addFm(i + 2, sev, rule, msg));
+    if (cm && cm[1] !== 'cover') checkConfined(cm[1], (sev, rule, msg) => addFm(i + 2, sev, rule, msg));
   });
 
   // Unclosed display math. A `$$` that never closes swallows the rest of the

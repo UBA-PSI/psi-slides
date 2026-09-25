@@ -7,6 +7,51 @@ from building the same way is a major version.
 
 ## [Unreleased]
 
+### Security
+
+Building a `source.md` someone sent you could run code or copy files from
+elsewhere on your machine into the output. Four fixes, one of them a
+**breaking change to the source format**:
+
+- **Breaking: a deck reads assets from its own folder and the folder one
+  level up, and from nowhere else.** A path such as `../../x.png`, and a
+  symbolic link that leads out of that folder, used to be read and inlined
+  into the HTML as a `data:` URI. A link in `assets/` pointing at a private
+  key put the key in a page the author then sent on. The rule applies after
+  links are resolved and covers every file a build reads: `![](…)`, a
+  `::: draw` `image`, a `::: backdrop`, `cover-image:`, `closing-image:`, a
+  clip, and a face in `fonts/`. A deck that breaks it fails the build before
+  any view is written, and the message names the folder it may read from; the
+  linter reports `asset-outside-root` as an error. One level up rather than
+  the lecture's folder alone, so lectures side by side keep sharing a folder
+  of pictures (`../shared/assets/logo.png`). No lecture in this repository or
+  in the content repository reads further out.
+- **Frontmatter is YAML only.** The frontmatter parser chooses a language
+  from the word after the opening `---`, and `---js` ran the block through
+  `eval` during the build. Any word other than `yaml` or `yml` now fails the
+  build, and the linter reports `frontmatter-language`. The parser is also
+  given refusing engines for JavaScript and CoffeeScript, so the block is
+  refused even if the two ever read the opening line differently.
+- **An output is never written through a link.** A folder that arrived with
+  `print.html` linked to the reader's shell profile had the build overwrite
+  the profile. The four views, `squint.txt`, the `--frames` pictures, a clip
+  staged into `videos/`, an asset the editor uploads and the prompter's
+  prompt file are written under a new name and renamed into place, which
+  replaces a link instead of following it. The prompter's log, the one file
+  appended to, refuses a link at its path (and the prompter says once that
+  this run keeps no debrief); `videos/` and `frames/` are refused when they
+  are links.
+- **`--optimize-images` converts only files inside the lecture's own folder.**
+  It replaces and deletes files, and it used to follow a reference anywhere.
+  A picture one level up is listed as shared and left alone, and one further
+  out is listed as refused. With ImageMagick as the encoder, the decoder is
+  now named from the extension (`png:`, `jpeg:`, `webp:`) instead of guessed
+  from the content, so a `.png` that is really an SVG or MVG script can no
+  longer tell it to read another file into the picture. The output is named
+  `webp:` too, which fixes a second bug: the temporary name ends in `.tmp`,
+  and ImageMagick wrote the input's own format into it, so a conversion with
+  `magick` produced PNG bytes under a `.webp` name.
+
 ### Changed
 
 - **The two documents read at a screen size in a browser.** `print.html`

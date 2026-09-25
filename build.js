@@ -133,6 +133,190 @@ function highlightCode(code, lang) {
   return html;
 }
 
+// ── a source.md someone sent you ─────────────────────────────────────
+//
+// Building a deck is something people do with a folder they were sent: a
+// colleague's lecture, a student's talk, a template off the internet. Three
+// things in this section keep that from being more than reading it.
+//
+//  - The frontmatter is YAML and nothing else. gray-matter picks its parser
+//    from whatever follows the opening `---` on the same line, and two of the
+//    parsers it ships are programs: `---js` is handed to eval and `---coffee`
+//    to CoffeeScript, so a deck opening with `---js` ran code on the machine
+//    that built it. Refused twice - by reading the line before gray-matter
+//    does, and by handing gray-matter engines for those languages that throw
+//    - because the first is a regex over someone else's parser's rules and
+//    the second holds even if the two ever read the line differently.
+//  - An asset is read only from the lecture's folder or the folder one level
+//    up, after symbolic links are resolved. `../../../` and a link in assets/
+//    pointing at a key file both used to be read and inlined as a data: URI
+//    into a page the author then sends on. One level up, and not the
+//    lecture's folder alone, because a set of lectures sharing a picture
+//    folder beside them (`../shared/assets/x.png`) is a layout people use.
+//  - An output never follows a link. A folder that arrives with
+//    `print.html -> ~/.zshrc` in it had the build overwrite the shell profile
+//    with a handout. Every whole file the build writes goes to a fresh
+//    temporary name beside it and is renamed over the target, which replaces
+//    a link rather than writing through it; the one file appended to (the
+//    prompter's log) is opened with O_NOFOLLOW, and a folder the build writes
+//    into (videos/, frames/) is refused when it is a link.
+
+// Everything gray-matter could be told after `---` that parses data rather
+// than running it. An empty name is the ordinary `---` line.
+const FRONTMATTER_LANGUAGES = new Set(['', 'yaml', 'yml']);
+
+// What gray-matter will read as the frontmatter's language: the rest of the
+// opening line, trimmed. Mirrors matter.language(), and the two cases in
+// which there is no frontmatter at all - no `---` at the head, or `----`,
+// which gray-matter reads as a rule rather than a delimiter.
+function frontmatterLanguage(src) {
+  const s = String(src).replace(/^﻿/, '');
+  if (!s.startsWith('---') || s.charAt(3) === '-') return '';
+  const nl = s.search(/\r?\n/);
+  return (nl < 0 ? s.slice(3) : s.slice(3, nl)).trim();
+}
+
+function frontmatterLanguageError(lang) {
+  const err = new Error(
+    `The frontmatter opens with "---${lang}". psi-slides reads frontmatter as YAML only:\n` +
+    'a "---js" or "---coffee" block is run as a program on the machine that builds the\n' +
+    'deck, so every language other than YAML is refused.\n' +
+    '  Fix: write the opening line as a bare "---" and the block as YAML.');
+  err.userFacing = true;
+  return err;
+}
+
+const refusedFrontmatterEngine = (lang) => ({
+  parse() { throw frontmatterLanguageError(lang); },
+  stringify() { throw frontmatterLanguageError(lang); },
+});
+
+// The only way this file calls gray-matter. Options are always passed, which
+// also keeps the result out of gray-matter's module-level cache.
+function safeMatter(src) {
+  const lang = frontmatterLanguage(src);
+  if (!FRONTMATTER_LANGUAGES.has(lang.toLowerCase())) throw frontmatterLanguageError(lang);
+  return matter(src, {
+    engines: {
+      javascript: refusedFrontmatterEngine('js'),
+      coffee: refusedFrontmatterEngine('coffee'),
+    },
+  });
+}
+
+// Whether `p` is `root` or somewhere below it. On path.relative rather than a
+// string prefix, so /lectures-old is not inside /lectures.
+function pathWithin(root, p) {
+  const rel = path.relative(root, p);
+  return rel === '' || (rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel));
+}
+
+// realpath for a path that may not exist yet: the deepest part of it that
+// does is resolved, and the rest is appended as written.
+function realpathLoose(p) {
+  const abs = path.resolve(p);
+  try { return fs.realpathSync(abs); }
+  catch (e) {
+    const parent = path.dirname(abs);
+    if (parent === abs) return abs;
+    return path.join(realpathLoose(parent), path.basename(abs));
+  }
+}
+
+// The folder a lecture may read assets from: the one above the lecture's
+// own, taken after links are resolved - above where the folder really is,
+// not above the name it was reached by. A lecture folder reached through a
+// link therefore reads its own files and its real parent's, and a `../`
+// written against the link's parent is refused (the build resolves `..`
+// lexically, so that would be a third folder).
+function assetRootOf(sourceDir) {
+  return path.dirname(realpathLoose(sourceDir));
+}
+
+// Where `abs` really lands when that is outside the asset root, or null when
+// it is inside. A link counts as the file it points to.
+function assetEscape(abs, sourceDir) {
+  const real = realpathLoose(abs);
+  return pathWithin(assetRootOf(sourceDir), real) ? null : real;
+}
+
+// Files the current build was asked to read and did not, keyed by where they
+// really are. Filled by assetAllowed at every reader, refused before any view
+// is written (assertAssetsConfined), cleared per build.
+const OUTSIDE_ASSETS = new Map();   // real path -> the path as this build met it
+
+function assetAllowed(abs) {
+  if (!currentSourceDir || !abs) return true;
+  const out = assetEscape(abs, currentSourceDir);
+  if (out === null) return true;
+  if (!OUTSIDE_ASSETS.has(out)) OUTSIDE_ASSETS.set(out, path.relative(currentSourceDir, abs));
+  return false;
+}
+
+function assetsConfinedError(outside, sourceDir) {
+  const root = assetRootOf(sourceDir);
+  const lines = [
+    `This lecture refers to ${outside.size} file(s) outside the folder a build may read from:`,
+    '',
+  ];
+  for (const [real, shown] of outside) {
+    lines.push(shown && path.resolve(sourceDir, shown) !== real ? `  ${shown}  ->  ${real}` : `  ${real}`);
+  }
+  lines.push('');
+  lines.push(`A build reads assets from the lecture's folder and from the folder one level up –`);
+  lines.push(`here ${root} – and from nowhere further out, so a deck you were sent cannot`);
+  lines.push('copy a file from elsewhere on your machine into its output. A symbolic link counts');
+  lines.push('as the file it points to.');
+  lines.push(`  Fix: copy the file into ${root} or below it, and point the reference at the copy.`);
+  const err = new Error(lines.join('\n'));
+  err.userFacing = true;
+  return err;
+}
+
+function assertAssetsConfined(sourceDir) {
+  if (OUTSIDE_ASSETS.size) throw assetsConfinedError(OUTSIDE_ASSETS, sourceDir);
+}
+
+// Write a whole output file without following a link at its path: the bytes
+// go to a new name beside it (O_EXCL, so not through a link either) and are
+// renamed over the target, which replaces a link rather than its target.
+function writeOutputFile(p, data) {
+  const tmp = path.join(path.dirname(p),
+    `.${path.basename(p)}.${crypto.randomBytes(6).toString('hex')}.tmp`);
+  try {
+    fs.writeFileSync(tmp, data, { flag: 'wx' });
+    fs.renameSync(tmp, p);
+  } catch (e) {
+    try { fs.unlinkSync(tmp); } catch { /* never written */ }
+    throw e;
+  }
+}
+
+// Append to a file, refusing (ELOOP) when the path is a link. Windows has no
+// O_NOFOLLOW, and there the flag is simply absent.
+function appendOutputFile(p, data) {
+  const c = fs.constants;
+  const fd = fs.openSync(p, c.O_WRONLY | c.O_APPEND | c.O_CREAT | (c.O_NOFOLLOW || 0), 0o666);
+  try { fs.writeSync(fd, data); } finally { fs.closeSync(fd); }
+}
+
+// A folder the build writes into, created when missing and refused when it is
+// a link - a rename inside a linked folder still lands wherever it points.
+function outputDir(dir) {
+  let st = null;
+  try { st = fs.lstatSync(dir); } catch { /* not there yet */ }
+  if (st && st.isSymbolicLink()) {
+    const err = new Error(
+      `${dir} is a symbolic link, and the build writes files into it.\n` +
+      'It does not write through a link, which could put them anywhere on this machine.\n' +
+      '  Fix: remove the link (the build creates the folder itself), or name a real folder.');
+    err.userFacing = true;
+    throw err;
+  }
+  if (!st) fs.mkdirSync(dir, { recursive: true });
+  return dir;
+}
+
 // ── image shorthand resolution ───────────────────────────────────────
 // ![](fig-id) with no extension and no slash resolves to assets/<fig-id>.<ext>
 // where <ext> is the first found among svg, png, jpg, jpeg, gif, webp.
@@ -326,6 +510,7 @@ function reportWebpInline() {
 function toDataUri(absPath) {
   if (!absPath) return null;
   if (dataUriCache.has(absPath)) return dataUriCache.get(absPath);
+  if (!assetAllowed(absPath)) { dataUriCache.set(absPath, null); return null; }
   let stat;
   try { stat = fs.statSync(absPath); }
   catch { dataUriCache.set(absPath, null); return null; }
@@ -371,6 +556,7 @@ function toDataUri(absPath) {
 // missing, oversized (caller falls back to external path), or empty.
 function inlineSvg(absPath, { alt = '', title = '', extraClass = '' } = {}) {
   if (!absPath) return null;
+  if (!assetAllowed(absPath)) return null;
   let stat;
   try { stat = fs.statSync(absPath); }
   catch { return null; }
@@ -583,6 +769,9 @@ function scanReferencedImages(src, sourceDir) {
       abs = path.resolve(sourceDir, href);
     }
     if (!abs) continue;
+    // Not weighed, not even stat'ed: a file outside the asset root is never
+    // read, and the renderer that meets it puts it on the refusal list.
+    if (assetEscape(abs, sourceDir) !== null) continue;
     try {
       const stat = fs.statSync(abs);
       // Video is deliberately kept out of the auto-inline total. That budget
@@ -691,7 +880,12 @@ const mathCache = new Map();
 // one thing this format promises not to do. Collected during rendering,
 // deduplicated, warned once - the same pattern MATH_ERRORS follows.
 const UNRESOLVED_ASSETS = new Set();
-const assetOnDisk = (abs) => { try { return fs.existsSync(abs); } catch { return false; } };
+// Outside the asset root it answers no without looking, and the path is on
+// the list assertAssetsConfined refuses before anything is written.
+const assetOnDisk = (abs) => {
+  if (!assetAllowed(abs)) return false;
+  try { return fs.existsSync(abs); } catch { return false; }
+};
 
 function renderMath(tex, displayMode) {
   const key = (displayMode ? 'd::' : 'i::') + tex;
@@ -926,6 +1120,10 @@ const stagedVideos = new Map();   // abs source path -> relative emitted path
 
 function stageVideo(absPath) {
   if (stagedVideos.has(absPath)) return stagedVideos.get(absPath);
+  if (!assetAllowed(absPath)) {
+    stagedVideos.set(absPath, { rel: null, copied: false, bytes: 0 });
+    return stagedVideos.get(absPath);
+  }
   const name = path.basename(absPath);
   const destDir = path.join(currentSourceDir, VIDEO_STAGE_DIR);
   const dest = path.join(destDir, name);
@@ -936,16 +1134,29 @@ function stageVideo(absPath) {
     return stagedVideos.get(absPath);
   }
   try {
-    fs.mkdirSync(destDir, { recursive: true });
+    // Refused when videos/ is a link, and the copy is renamed into place, so
+    // a folder that arrives with videos/ or videos/<clip> pointing elsewhere
+    // gets neither written through (see the section on a source.md someone
+    // sent you).
+    outputDir(destDir);
     const src = fs.statSync(absPath);
     let need = true;
     try {
-      const cur = fs.statSync(dest);
+      const cur = fs.lstatSync(dest);
       // Same size and no older than the source: treat as already staged.
       // Keeps --watch from re-copying a large file on every keystroke.
-      need = !(cur.size === src.size && cur.mtimeMs >= src.mtimeMs);
+      need = cur.isSymbolicLink() || !(cur.size === src.size && cur.mtimeMs >= src.mtimeMs);
     } catch { /* not there yet */ }
-    if (need) fs.copyFileSync(absPath, dest);
+    if (need) {
+      const tmp = path.join(destDir, `.${name}.${crypto.randomBytes(6).toString('hex')}.tmp`);
+      try {
+        fs.copyFileSync(absPath, tmp, fs.constants.COPYFILE_EXCL);
+        fs.renameSync(tmp, dest);
+      } catch (e) {
+        try { fs.unlinkSync(tmp); } catch { /* never written */ }
+        throw e;
+      }
+    }
     stagedVideos.set(absPath, { rel, copied: need, bytes: src.size });
   } catch (e) {
     // Staging is a convenience; if it fails, fall back to the original
@@ -1790,6 +2001,14 @@ function collectEmbeddedFonts(frontmatter = {}, srcDir) {
       bySlot.set(slot, { file, ext, face });
     }
 
+    // A face file is an asset like any other: read from the asset root and
+    // no further, a link in fonts/ counting as the file it points to.
+    const outside = new Map();
+    for (const { file } of bySlot.values()) {
+      const out = assetEscape(path.join(dir, file), srcDir);
+      if (out !== null) outside.set(out, path.join(FONT_DIR, file));
+    }
+    if (outside.size) throw assetsConfinedError(outside, srcDir);
     for (const { file, ext, face } of bySlot.values()) {
       const buf = fs.readFileSync(path.join(dir, file));
       bytes += buf.length;
@@ -2017,6 +2236,9 @@ function resolveAssetUrl(ref) {
   const rel = isShorthand ? resolveFigId(raw) : raw;
   if (!rel || !currentSourceDir) return null;
   const abs = path.resolve(currentSourceDir, rel);
+  // Thrown here and not left for the pass before the write: a null would be
+  // reported first as a backdrop or cover that "resolves to no file".
+  if (!assetAllowed(abs)) throw assetsConfinedError(OUTSIDE_ASSETS, currentSourceDir);
   if (!fs.existsSync(abs)) return null;
   if (inlineAssetsEnabled) {
     const inlined = toDataUri(abs);
@@ -2741,6 +2963,10 @@ marked.use({
         const resolved = resolveFigId(href);
         if (resolved) {
           const absResolved = path.join(currentSourceDir, resolved);
+          // Recorded whether or not this build inlines: with inlining off the
+          // file is not read, but the deck still names it, and a deck is
+          // refused or not by what it names (the linter cannot know the flag).
+          assetAllowed(absResolved);
           const isSvg = path.extname(absResolved).toLowerCase() === '.svg';
           // SVGs are spliced inline (not data-URI'd in <img>) so they
           // inherit page CSS custom properties and react to theme cycle.
@@ -2968,9 +3194,14 @@ function dgResolveImage(ref) {
   const direct = ref.includes('/') || path.extname(ref)
     ? path.join(currentSourceDir, ref) : null;
   let rel = null;
+  // Thrown rather than returned as null, which the compiler would report as
+  // an image it "cannot find".
+  const refuse = () => { throw assetsConfinedError(OUTSIDE_ASSETS, currentSourceDir); };
+  if (direct && !assetAllowed(direct)) refuse();
   if (direct && fs.existsSync(direct)) rel = ref;
   else rel = resolveFigId(ref);
   if (!rel) return null;
+  if (!assetAllowed(path.join(currentSourceDir, rel))) refuse();
   if (isVideo(rel)) return { video: true, href: rel };
   return { abs: path.join(currentSourceDir, rel), href: rel, remote: false };
 }
@@ -4398,7 +4629,7 @@ function parseLecture(src) {
   // LF coordinates; the watch server normalises the file the same way
   // before it splices.
   src = String(src).replace(/\r\n?/g, '\n');
-  const { data: frontmatter, content, matter: fmRaw } = matter(src);
+  const { data: frontmatter, content, matter: fmRaw } = safeMatter(src);
   // `duration: 45:00` is a clock to the author and a sexagesimal integer to
   // YAML 1.1, which is what gray-matter speaks: it arrives as 2700, and
   // talkDuration would read that as minutes. The one key that takes a clock
@@ -6068,7 +6299,7 @@ function lectureStats(src, lecture) {
   // blocks: `> note:` is the lecturer's, `> annot:` prints for the students.
   let quoteBucket = null;
 
-  for (const line of matter(src).content.split('\n')) {
+  for (const line of safeMatter(src).content.split('\n')) {
     if (/^\s*```/.test(line)) { inFence = !inFence; continue; }
     if (inFence) continue;
 
@@ -27255,6 +27486,16 @@ function imageSize(absPath) {
   }
 }
 
+// ImageMagick's format prefix for a source file, from its extension. Only the
+// formats the encoder is ever handed; anything else is refused rather than
+// left to content sniffing.
+const MAGICK_DECODERS = { png: 'png', jpg: 'jpeg', jpeg: 'jpeg', webp: 'webp' };
+function magickInput(src) {
+  const fmt = MAGICK_DECODERS[path.extname(src).slice(1).toLowerCase()];
+  if (!fmt) throw new Error(`magick: no decoder named for ${path.basename(src)}`);
+  return `${fmt}:${src}`;
+}
+
 function detectWebpEncoder() {
   const probe = (bin, args) => {
     try { execFileSync(bin, args, { stdio: 'ignore' }); return true; }
@@ -27276,10 +27517,15 @@ function detectWebpEncoder() {
     return {
       name: 'magick',
       encode(src, dst, resizeTo) {
-        const args = [src, '-quality', String(WEBP_QUALITY)];
+        // The decoder is named, not guessed. ImageMagick picks one from the
+        // file's content, and a "photo.png" that is really an MVG or an SVG
+        // script can tell it to read any file on the machine into the picture
+        // (`text:/path/to/key`). With `png:` in front it is a PNG or it is an
+        // error. The output is named too: the caller's dst ends in .tmp.
+        const args = [magickInput(src), '-quality', String(WEBP_QUALITY)];
         // The trailing > is belt-and-braces: the caller already filtered.
         if (resizeTo) args.push('-resize', `${resizeTo}x>`);
-        execFileSync('magick', [...args, dst], { stdio: 'ignore' });
+        execFileSync('magick', [...args, `webp:${dst}`], { stdio: 'ignore' });
       },
     };
   }
@@ -27357,7 +27603,32 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
   let src = fs.readFileSync(absIn, 'utf8');
 
   const threshold = all ? 0 : OPTIMIZE_MIN_BYTES;
-  const candidates = collectImageRefs(src, sourceDir)
+  // This verb replaces files and deletes originals, so it works only inside
+  // the lecture's own folder, links resolved. A picture one level up is one
+  // the build may read - a folder of pictures several lectures share - and
+  // converting it would delete a file the other lectures name by its path;
+  // one further out is one the build refuses to read at all.
+  const ownDir = realpathLoose(sourceDir);
+  const assetRoot = assetRootOf(sourceDir);
+  const shared = [], refused = [];
+  const refs = collectImageRefs(src, sourceDir).filter((r) => {
+    const real = realpathLoose(r.absPath);
+    if (pathWithin(ownDir, real)) return true;
+    (pathWithin(assetRoot, real) ? shared : refused).push(path.relative(sourceDir, r.absPath));
+    return false;
+  });
+  if (shared.length) {
+    console.log(`Skipped ${shared.length} shared picture(s) outside this lecture's folder – another lecture`);
+    console.log('may name them by their path, so convert them by hand if you need to:');
+    for (const n of shared) console.log(`  ${n}`);
+    console.log('');
+  }
+  if (refused.length) {
+    console.log(`Refused ${refused.length} picture(s) outside ${assetRoot}, which the build will not read either:`);
+    for (const n of refused) console.log(`  ${n}`);
+    console.log('');
+  }
+  const candidates = refs
     .filter(r => RESCUABLE_EXTS.has(r.ext))
     .map(r => ({ ...r, size: fs.statSync(r.absPath).size }))
     // A PNG or a JPEG over the size threshold is a conversion candidate. A
@@ -27403,7 +27674,11 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
     // anyway (IMG_EXTS puts png before webp), so overwriting is the right
     // move – but say so rather than clobbering silently.
     const dstExisted = !inPlace && fs.existsSync(dst);
-    const tmp = dst + '.tmp';
+    // A fresh name, not dst + '.tmp': the encoder writes wherever a path
+    // points, and a fixed name is one a folder can arrive with as a link.
+    const tmpName = (tag) => path.join(path.dirname(dst),
+      `.${path.basename(dst)}.${crypto.randomBytes(6).toString('hex')}.${tag}.tmp`);
+    const tmp = tmpName('encode');
     // Only ever shrink. cwebp -resize enlarges a narrower image without
     // complaint, which would waste bytes and invent detail.
     const dims = imageSize(ref.absPath);
@@ -27425,7 +27700,7 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
     // more pass at CAP_RESCUE_WIDTH, and the report says it happened.
     let rescued = false;
     if (outSize > MAX_INLINE_BYTES && dims && CAP_RESCUE_WIDTH < (resizeTo || dims.width)) {
-      const tmp2 = dst + '.rescue.tmp';
+      const tmp2 = tmpName('rescue');
       try {
         encoder.encode(ref.absPath, tmp2, CAP_RESCUE_WIDTH);
         const rescueSize = fs.statSync(tmp2).size;
@@ -27670,12 +27945,19 @@ async function createSouffleuse({
   // a cadence measured in seconds mean seconds and not messages.
   const nowElapsed = () => cursor.elapsed + (Date.now() - cursor.wallAt) / 1000;
 
+  let logFailed = false;
   function logLine(type, body) {
     try {
-      fs.appendFileSync(logPath,
+      appendOutputFile(logPath,
         JSON.stringify({ t: new Date().toISOString(), type, ...body }) + '\n');
     } catch (e) {
-      // A log that cannot be written is not a reason to stop a talk.
+      // A log that cannot be written is not a reason to stop a talk, but it
+      // is said once: the debrief this run promised will not be there. A
+      // link at the log's path is the refusal that lands here (ELOOP).
+      if (!logFailed) {
+        logFailed = true;
+        log(`[prompter] cannot write the log ${logPath} (${e.code || e.message}) – this run keeps no debrief`);
+      }
     }
   }
 
@@ -27765,7 +28047,7 @@ async function createSouffleuse({
         // line; one file per hash is the same text once, and a new build with
         // a changed deck writes a new one under its own name.
         const promptPath = path.join(path.dirname(absIn), `prompter-${hash}.prompt.txt`);
-        try { fs.writeFileSync(promptPath, prefix.text); } catch (e) { /* not fatal */ }
+        try { writeOutputFile(promptPath, prefix.text); } catch (e) { /* not fatal */ }
         const kb = Math.round(prefix.text.length / 1024);
         log(`[prompter] deck ${deck.chunks.length} slides, prompt ${kb} KB (${hash}), `
           + `model ${model}, cadence ${cadence}s, cues ${cuesAllowed ? 'on' : 'off'}`);
@@ -28594,6 +28876,7 @@ function buildOnce(absIn, only, opts = {}) {
   dgLectureTags.clear();
   MATH_ERRORS.length = 0;
   UNRESOLVED_ASSETS.clear();
+  OUTSIDE_ASSETS.clear();
   lastKatexSheet = null;
   // Auto-inline decision when neither --inline-images nor --no-inline-images
   // was passed: scan referenced images, inline iff total fits AUTO_INLINE_BUDGET.
@@ -28797,10 +29080,16 @@ function buildOnce(absIn, only, opts = {}) {
     inlineSvgCounter = svgIdFloor;
     return [name, render(lecture, renderOpts)];
   });
+  // A file outside the asset root was met while parsing or rendering and not
+  // read. Refused here, after every renderer and before any view is written,
+  // rather than in the pre-flight above: the renderers are the only reader
+  // that knows which `![](…)` is an image and which is an example in a code
+  // span, and a refusal of a path the deck only mentions would be a false one.
+  assertAssetsConfined(outDir);
   const written = [];
   for (const [name, html] of rendered) {
     const p = path.join(outDir, `${name}.html`);
-    fs.writeFileSync(p, html);
+    writeOutputFile(p, html);
     written.push(path.relative(process.cwd(), p));
   }
   if (embedsThisBuild.length) {
@@ -29076,7 +29365,7 @@ async function runWatch(absIn, only, baseOpts = {}) {
         }
         try {
           fs.mkdirSync(assetDir, { recursive: true });
-          fs.writeFileSync(dest, bytes);
+          writeOutputFile(dest, bytes);
         } catch (e) { return reply(false, 'cannot write the asset: ' + e.message); }
         console.log(`[asset] assets/${name} (${bytes.length < 1024 ? bytes.length + ' B' : (bytes.length / 1024).toFixed(0) + ' KB'})`);
         emitEvent({ type: 'asset', file: name, bytes: bytes.length });
@@ -29472,7 +29761,8 @@ async function runFrames(absIn, viewport, outDir) {
   if (!opened.page) return opened.code;
   const { browser, page } = opened;
   const dir = path.resolve(path.dirname(absIn), outDir || 'frames');
-  fs.mkdirSync(dir, { recursive: true });
+  try { outputDir(dir); }
+  catch (e) { await browser.close(); throw e; }
   for (const f of fs.readdirSync(dir)) {
     if (/^(\d{3}-.*\.png|sheet-\d+\.png|sheet\.html)$/.test(f)) fs.unlinkSync(path.join(dir, f));
   }
@@ -29499,7 +29789,7 @@ async function runFrames(absIn, viewport, outDir) {
       beat = id === lastId ? beat + 1 : 0;
       lastId = id;
       const name = `${String(frames.length + 1).padStart(3, '0')}-${id}-b${beat}.png`;
-      fs.writeFileSync(path.join(dir, name), shot);
+      writeOutputFile(path.join(dir, name), shot);
       frames.push({ name, id, beat });
     }
     lastHash = hash;
@@ -29522,10 +29812,10 @@ async function runFrames(absIn, viewport, outDir) {
     </style><div class="grid">${slice.map(f =>
       `<figure><img src="${pathToFileURL(path.join(dir, f.name)).href}"><figcaption>${f.name}</figcaption></figure>`).join('')}</div>`;
     const sheetHtml = path.join(dir, 'sheet.html');
-    fs.writeFileSync(sheetHtml, html);
+    writeOutputFile(sheetHtml, html);
     const sp = await browser.newPage({ viewport: { width: viewport.width, height: 2 * (cellH + 40) + 16 }, deviceScaleFactor: 1 });
     await sp.goto(pathToFileURL(sheetHtml).href, { waitUntil: 'networkidle' });
-    await sp.screenshot({ path: path.join(dir, `sheet-${s + 1}.png`), fullPage: true });
+    writeOutputFile(path.join(dir, `sheet-${s + 1}.png`), await sp.screenshot({ fullPage: true }));
     await sp.close();
     fs.unlinkSync(sheetHtml);
   }
@@ -30513,7 +30803,7 @@ async function runSquint(absIn, viewport, outArg) {
   const outPath = outArg
     ? path.resolve(outArg)
     : path.join(path.dirname(absIn), 'squint.txt');
-  fs.writeFileSync(outPath, text);
+  writeOutputFile(outPath, text);
   const bodyless = chunks.filter(c => c.tag !== 'section' && !squintPaintsBody(c)).length;
   console.log('[squint] ' + chunks.length + ' slide(s) over ' + states + ' state(s) at '
     + doc.viewport + ' → ' + (path.relative(process.cwd(), outPath) || outPath)
@@ -30600,7 +30890,7 @@ async function main() {
     }
     const souff = await import('./souffleuse.mjs');
     const { formatClock } = await import('./cue-cards.mjs');
-    const settings = souffleuseSettings(matter(fs.readFileSync(absIn, 'utf8')).data || {});
+    const settings = souffleuseSettings(safeMatter(fs.readFileSync(absIn, 'utf8')).data || {});
     const lines = fs.readFileSync(logFile, 'utf8').split('\n')
       .filter(l => l.trim()).map((l) => { try { return JSON.parse(l); } catch (e) { return null; } });
     const rows = souff.replayAnswers(lines, { cooldown: settings.cooldown });
