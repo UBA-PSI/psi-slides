@@ -21,7 +21,7 @@
  * that may say nothing. A row that fails whenever a model is restrained is a
  * row nobody can re-run with confidence. The cockpit is set up as shoot.mjs
  * sets up its cockpit shots – 1440x900 at 1.5, the lecture's own theme – and
- * then cropped to its mirror of the slide, see the note at the screenshot.
+ * taken whole, so the page's cockpit pictures are one set.
  *
  * The deck is lectures/spoken-talk, the slide #two-numbers ("1.4 seconds.
  * Then 90 milliseconds."). The English words come from a real rehearsal of
@@ -268,21 +268,13 @@ try {
   // "asked … ago" rather than "asking the model…", then take it.
   await page.waitForTimeout(1200);
   const png = path.join(IMG, spec.name + '.png');
-  // Cropped to the cockpit's mirror of the slide, which is where the strip
-  // stands. What the picture is about is twelve words on that strip; the
-  // notes panel, the film strip and the grey either side of the mirror would
-  // take the rest of a 1440x900 frame and shrink those words to nothing on
-  // the page (DESIGN.md, rule 5: crop the shot rather than arrange around it).
-  const box = await page.evaluate(() => {
-    const v = document.getElementById('stage-viewport').getBoundingClientRect();
-    const c = document.getElementById('stage-cell').getBoundingClientRect();
-    const x = Math.max(v.left, c.left), y = Math.max(v.top, c.top);
-    return { x: Math.round(x), y: Math.round(y),
-      width: Math.round(Math.min(v.right, c.right) - x),
-      height: Math.round(Math.min(v.bottom, c.bottom) - y) };
-  });
-  if (!(box.width > 400 && box.height > 300)) throw new Error('no mirror to crop to: ' + JSON.stringify(box));
-  await page.screenshot({ path: png, clip: box });
+  // The whole cockpit, as shoot.mjs takes its cockpit and cue-card frames:
+  // the 1440x900 viewport at 1.5, uncropped. It was cropped to the mirror of
+  // the slide once, which made the twelve words on the strip large and the
+  // picture unrecognisable as the cockpit; framed like the page's other
+  // cockpit shots it reads as the same window with one strip more. The
+  // strip's type is the cockpit's own and survives the page's scaling.
+  await page.screenshot({ path: png });
   const enc = encoder();
   let out = png;
   if (enc) {
