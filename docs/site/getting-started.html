@@ -250,10 +250,10 @@
   <div class="aside-code words-first second-picture">
    <div class="said">
     <h3>While you are writing</h3>
-    <p class="cue">Add <code>--watch</code> and the build reruns on every save
+    <p class="cue">Add <code class="flag">--watch</code> and the build reruns on every save
     and reloads every open tab, so the text editor, the projection and the
     cockpit stay visible at once. That is what the app does by default.</p>
-    <p class="cue"><code>--serve</code> is for what a file on disk cannot do:
+    <p class="cue"><code class="flag">--serve</code> is for what a file on disk cannot do:
     play an embedded YouTube or Vimeo player. <code>lint.js</code>,
     which reads a lecture over before you hand it out, has no button in the app
     and lives here.</p>
@@ -447,9 +447,9 @@
   <div class="aside-code words-first">
    <div class="said">
     <h3>Three commands</h3>
-    <p class="cue">Run <code>--new</code> and you get a folder with a valid
+    <p class="cue">Run <code class="flag">--new</code> and you get a folder with a valid
     settings block and a few example chunks &ndash; one chunk, one slide. Then
-    leave <code>--watch</code> running while you write.</p>
+    leave <code class="flag">--watch</code> running while you write.</p>
     <p class="cue">Run <code>lint.js</code> before you hand anything over: it
     catches repeated chunk ids, unclosed <code>:::</code> blocks, slides over
     their word budget, and files too large to embed.</p>
@@ -470,7 +470,7 @@
        different questions. Ground to the right of a paragraph is the page's
        margin here as it is under every lede. -->
   <p>In the app, <b>New lecture&hellip;</b> asks for a folder name and a place
-  to put it and writes the same starter lecture <code>--new</code> writes,
+  to put it and writes the same starter lecture <code class="flag">--new</code> writes,
   down to a small figure for the diagram editor to open. Rebuilding on save is
   the window&rsquo;s normal state rather than a switch you set, and it shows
   what the build says and no more than that, which is why

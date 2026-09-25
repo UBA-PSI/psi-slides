@@ -294,17 +294,16 @@ where the rest of the hour is going to be spent.
        dann das Bild neben dem Satz, der sagt, worauf man schaut, Worte neben
        einem Listing, dann eine Zeile mit drei. Er steht hinter den Karten,
        weil er selbst Karten legt. -->
-  <h2 id="prompter">Ein Prompter, wenn man ihn einschaltet</h2>
-  <p class="lede">Der Prompter ist neu, und er bleibt aus, solange man die
-  Vorlesung nicht mit <code>--watch --prompter</code> startet. Dann kann das
-  Cockpit zuhören, während man spricht, und wenn etwas gesagt werden muss,
-  einen kurzen Hinweis auf einen Streifen am unteren Rand
-  seiner Kopie der Folie legen. Meistens sagt er nichts. Er hört erst zu, wenn
-  man im Cockpit <kbd>Shift</kbd>-<kbd>S</kbd> drückt oder den Knopf
-  <b>&#9676; prompter</b> in der Fußzeile, der dasselbe tut.</p>
-
-  <div class="beside">
+  <div class="beside heading-in">
    <div class="said">
+    <h2 id="prompter">Ein Prompter, wenn man ihn einschaltet</h2>
+    <p class="lede">Der Prompter ist neu, und er bleibt aus, solange man die
+    Vorlesung nicht mit <code class="flag">--watch --prompter</code> startet. Dann kann das
+    Cockpit zuhören, während man spricht, und wenn etwas gesagt werden muss,
+    einen kurzen Hinweis auf einen Streifen am unteren Rand
+    seiner Kopie der Folie legen. Meistens sagt er nichts. Er hört erst zu, wenn
+    man im Cockpit <kbd>Shift</kbd>-<kbd>S</kbd> drückt oder den Knopf
+    <b>&#9676; prompter</b> in der Fußzeile, der dasselbe tut.</p>
     <p class="cue">Das ganze Cockpit, mit der Sprechernotiz unter der Folie und
     den benachbarten Folien am unteren Rand. Auf der Folie stehen 90
     Millisekunden, und der Sprecher hat gerade &bdquo;ich glaube, es waren 250
@@ -329,7 +328,7 @@ where the rest of the hour is going to be spent.
    <div class="said">
     <h3>Was er braucht</h3>
     <p class="cue">Chrome, weil das Zuhören die eigene Spracherkennung von
-    Chrome übernimmt. Den Schalter <code>--watch</code>, der
+    Chrome übernimmt. Den Schalter <code class="flag">--watch</code>, der
     <code>node build.js</code> weiterlaufen lässt und die Vorlesung bei jedem
     Speichern neu baut: Das Cockpit gibt, was es hört, an dieses laufende
     Programm weiter, und das Programm fragt ein Sprachmodell. Und einen
@@ -337,7 +336,7 @@ where the rest of the hour is going to be spent.
     weiterreicht, in der Umgebungsvariablen <code>OPENROUTER_API_KEY</code>.
     Ohne Schlüssel startet der Prompter ausgeschaltet und schreibt nur mit, was
     er gehört hat.</p>
-    <p class="cue">Für eine Probe erledigt <code>--prompter-dry-run</code> alles
+    <p class="cue">Für eine Probe erledigt <code class="flag">--prompter-dry-run</code> alles
     außer dem Aufruf des Modells: Er hört zu, führt die Uhr und wendet die
     Regeln an, wann ein Hinweis erscheinen darf, und braucht keinen Schlüssel.
     Der Block <code>prompter:</code> in den Einstellungen oben in
@@ -531,7 +530,7 @@ where the rest of the hour is going to be spent.
     Ein YouTube- oder Vimeo-Video, das in eine Folie eingebettet ist, lädt von
     YouTube oder Vimeo, als einziges an der Wand vom Server eines anderen
     Unternehmens. Ein YouTube-Video braucht die Vorlesung über
-    <code>--serve</code> geöffnet, das sie vom eigenen Rechner ausliefert; ein
+    <code class="flag">--serve</code> geöffnet, das sie vom eigenen Rechner ausliefert; ein
     Vimeo-Video spielt auch, wenn man die Datei direkt öffnet.</p>
    </div>
   </div>

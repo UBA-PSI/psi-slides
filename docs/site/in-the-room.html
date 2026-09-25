@@ -282,21 +282,19 @@ where the rest of the hour is going to be spent.
        the cockpit a speaker's words through the same door a microphone does
        and photographs whatever comes back; it writes no hint. The words are
        from a real rehearsal of lectures/spoken-talk, recogniser slips and
-       all. The section otherwise keeps the shape of "One press at a time":
-       heading, lede, then the picture beside the sentence that says what to
-       look at, words beside a listing, then one row of three. It stands
+       all. The heading and lede stand beside the picture (heading-in), the
+       cue under them; then words beside a listing, then one row of three. It stands
        after the cue cards because it lays cards of its own. -->
-  <h2 id="prompter">A prompter, if you switch one on</h2>
-  <p class="lede">The prompter is new, and it stays off unless you start the
-  lecture with <code>--watch --prompter</code>. Then the cockpit can listen
-  while you talk and, when something needs saying, put a short
-  hint on a strip across the bottom of its copy of the slide. Most of the time
-  the prompter says nothing. Nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd>
-  in the cockpit, or the <b>&#9676; prompter</b> button in its footer, which
-  does the same.</p>
-
-  <div class="beside">
+  <div class="beside heading-in">
    <div class="said">
+    <h2 id="prompter">A prompter, if you switch one on</h2>
+    <p class="lede">The prompter is new, and it stays off unless you start the
+    lecture with <code class="flag">--watch --prompter</code>. Then the cockpit can listen
+    while you talk and, when something needs saying, put a short
+    hint on a strip across the bottom of its copy of the slide. Most of the time
+    the prompter says nothing. Nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd>
+    in the cockpit, or the <b>&#9676; prompter</b> button in its footer, which
+    does the same.</p>
     <p class="cue">The whole cockpit, with the speaker note under the slide and
     the neighbouring slides along the bottom. The slide says 90 milliseconds, and the speaker has just said
     &ldquo;I think it was 250 milliseconds&rdquo;. The red strip carries the
@@ -320,14 +318,14 @@ where the rest of the hour is going to be spent.
    <div class="said">
     <h3>What it needs</h3>
     <p class="cue">Chrome, because the listening is done by Chrome&rsquo;s own
-    speech recognition. The <code>--watch</code> flag, which keeps
+    speech recognition. The <code class="flag">--watch</code> flag, which keeps
     <code>node build.js</code> running and rebuilds the lecture whenever you
     save: the cockpit hands what it hears to that running program, and the
     program asks a language model. And a key for openrouter.ai, the service
     that passes the request on to the model, in the environment variable
     <code>OPENROUTER_API_KEY</code>. Without the key the prompter starts
     switched off and only writes down what it heard.</p>
-    <p class="cue">For a rehearsal, <code>--prompter-dry-run</code> does
+    <p class="cue">For a rehearsal, <code class="flag">--prompter-dry-run</code> does
     everything except call the model: it listens, keeps the clock and applies
     the rules on when a hint may appear, and it needs no key. The
     <code>prompter:</code> block in the settings at the top of
@@ -515,7 +513,7 @@ where the rest of the hour is going to be spent.
     the two windows kept in step on play, pause and position. A YouTube or Vimeo
     video embedded in a slide loads from YouTube or Vimeo, the one thing on the
     wall that comes from another company&rsquo;s server. A YouTube video
-    needs the lecture opened through <code>--serve</code>, which delivers it
+    needs the lecture opened through <code class="flag">--serve</code>, which delivers it
     from your own computer; a Vimeo video also plays when you open the file
     directly.</p>
    </div>

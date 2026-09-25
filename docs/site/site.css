@@ -963,6 +963,10 @@ pre code { font-family: var(--mono); font-size: inherit; overflow-wrap: normal; 
 /* Inline code has no spaces to break at, so a path or a winget invocation in
    running text overflows the column unless it is allowed to break anywhere. */
 code { font-family: var(--mono); font-size: 0.9em; overflow-wrap: break-word; }
+/* A command-line flag is the exception: a browser breaks after a hyphen, so
+   `--watch` came apart as "--" at a line's end and "watch" on the next. Flags
+   are short enough to move down a line whole, even at phone width. */
+code.flag { white-space: nowrap; }
 /* Every listing on this page is psi-slides source, and its grammar spells
    things like `->` and `--` that a code ligature would fuse into one glyph -
    which is exactly the confusion the figure language turns off ligatures to
