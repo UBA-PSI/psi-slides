@@ -40,9 +40,9 @@
 // action, not a kind – a card laid into a slide that is still to come.
 //
 // `pace` is separate from `delivery` because the two are not the same job and
-// must not share a cool-down. `delivery` is manner – talking to the slide, a
-// question left hanging, an argument that has gone abstract – and it is rare
-// by design, three in a talk. Tempo is a condition rather than a moment: it
+// must not share a cool-down. `delivery` is manner – reading the slide out
+// word for word, a question left hanging, an argument that has gone abstract –
+// and it is rare by design, three in a talk. Tempo is a condition rather than a moment: it
 // lasts minutes, it comes back, and it is the one thing here the code
 // measures rather than the model judges (see `speechStats`). One cool-down
 // doing both jobs is what crippled the author's first rehearsal.
@@ -95,7 +95,7 @@ export const TOOL_SCHEMA = {
             'What the hint is about. time: behind or far ahead of the plan, and '
             + 'only when time_hint_allowed is yes. example: the point just made '
             + 'is abstract, or the example did not land. fact: what was just said '
-            + 'contradicts the deck. delivery: manner – talking to the slide, a '
+            + 'contradicts the deck. delivery: manner – reading the slide out word for word, a '
             + 'question left hanging, a term used before it was defined. pace: '
             + 'speaking too fast, filler sounds piling up, a silence that has run '
             + 'on – only from the measured numbers in the delivery line. skipped: '
