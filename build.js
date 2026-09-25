@@ -228,16 +228,32 @@ function realpathLoose(p) {
 // not above the name it was reached by. A lecture folder reached through a
 // link therefore reads its own files and its real parent's, and a `../`
 // written against the link's parent is refused (the build resolves `..`
-// lexically, so that would be a third folder).
-function assetRootOf(sourceDir) {
-  return path.dirname(realpathLoose(sourceDir));
+// lexically, so that would be a third folder). When the folder above is the
+// home folder or the top of a disk, the root is the lecture's folder alone:
+// a deck unpacked at ~/talk would otherwise read ~/anything.
+// `home` is a parameter so the untrusted gate can say where home is.
+function assetRootOf(sourceDir, home = os.homedir()) {
+  const own = realpathLoose(sourceDir);
+  const parent = path.dirname(own);
+  if (assetRootNarrowed(own, home)) return own;
+  return parent;
 }
-
-// Where `abs` really lands when that is outside the asset root, or null when
-// it is inside. A link counts as the file it points to.
-function assetEscape(abs, sourceDir) {
+// True when the folder above the lecture is the home folder or the top of a
+// disk, where "one level up" would be everything the person owns.
+function assetRootNarrowed(own, home = os.homedir()) {
+  const parent = path.dirname(own);
+  return parent === own || parent === path.parse(parent).root || parent === realpathLoose(home);
+}
+// Where `abs` really lands when the build may not read it, or null when it
+// may: outside the asset root, or inside it below a folder whose name starts
+// with a dot (.ssh, .git, .config, .env ...). A link counts as the file it
+// points to.
+function assetEscape(abs, sourceDir, home = os.homedir()) {
   const real = realpathLoose(abs);
-  return pathWithin(assetRootOf(sourceDir), real) ? null : real;
+  const root = assetRootOf(sourceDir, home);
+  if (!pathWithin(root, real)) return real;
+  const rel = path.relative(root, real);
+  return rel && rel.split(path.sep).some(c => c.startsWith('.')) ? real : null;
 }
 
 // Files the current build was asked to read and did not, keyed by where they
@@ -255,19 +271,29 @@ function assetAllowed(abs) {
 
 function assetsConfinedError(outside, sourceDir) {
   const root = assetRootOf(sourceDir);
+  const narrowed = assetRootNarrowed(realpathLoose(sourceDir));
   const lines = [
-    `This lecture refers to ${outside.size} file(s) outside the folder a build may read from:`,
+    `This lecture refers to ${outside.size} file(s) the build may not read:`,
     '',
   ];
   for (const [real, shown] of outside) {
-    lines.push(shown && path.resolve(sourceDir, shown) !== real ? `  ${shown}  ->  ${real}` : `  ${real}`);
+    const where = pathWithin(root, real) ? '  (in a folder whose name starts with a dot)' : '';
+    lines.push((shown && path.resolve(sourceDir, shown) !== real ? `  ${shown}  ->  ${real}` : `  ${real}`) + where);
   }
   lines.push('');
-  lines.push(`A build reads assets from the lecture's folder and from the folder one level up –`);
-  lines.push(`here ${root} – and from nowhere further out, so a deck you were sent cannot`);
-  lines.push('copy a file from elsewhere on your machine into its output. A symbolic link counts');
-  lines.push('as the file it points to.');
-  lines.push(`  Fix: copy the file into ${root} or below it, and point the reference at the copy.`);
+  if (narrowed) {
+    lines.push(`A build reads assets from the lecture's folder and from the folder one level up –`);
+    lines.push(`except where that folder is your home folder or the top of a disk, as it is here,`);
+    lines.push(`and then from the lecture's folder alone: ${root}.`);
+  } else {
+    lines.push(`A build reads assets from the lecture's folder and from the folder one level up –`);
+    lines.push(`here ${root} – and from nowhere further out.`);
+  }
+  lines.push('Nothing is read from a folder whose name starts with a dot (.ssh, .git, .config …),');
+  lines.push('even inside that. A symbolic link counts as the file it points to. This is what keeps');
+  lines.push('a deck you were sent from copying a file from elsewhere on your machine into its output.');
+  lines.push(`  Fix: copy the file into ${root} or below it (not into a dot-folder), and point the`);
+  lines.push('  reference at the copy.');
   const err = new Error(lines.join('\n'));
   err.userFacing = true;
   return err;
@@ -27612,9 +27638,9 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
   const assetRoot = assetRootOf(sourceDir);
   const shared = [], refused = [];
   const refs = collectImageRefs(src, sourceDir).filter((r) => {
-    const real = realpathLoose(r.absPath);
-    if (pathWithin(ownDir, real)) return true;
-    (pathWithin(assetRoot, real) ? shared : refused).push(path.relative(sourceDir, r.absPath));
+    if (assetEscape(r.absPath, sourceDir) !== null) { refused.push(path.relative(sourceDir, r.absPath)); return false; }
+    if (pathWithin(ownDir, realpathLoose(r.absPath))) return true;
+    shared.push(path.relative(sourceDir, r.absPath));
     return false;
   });
   if (shared.length) {
@@ -27624,7 +27650,7 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
     console.log('');
   }
   if (refused.length) {
-    console.log(`Refused ${refused.length} picture(s) outside ${assetRoot}, which the build will not read either:`);
+    console.log(`Refused ${refused.length} picture(s) outside ${assetRoot} or in a dot-folder, which the build will not read either:`);
     for (const n of refused) console.log(`  ${n}`);
     console.log('');
   }

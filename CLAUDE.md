@@ -420,7 +420,11 @@ Building a deck must not do more than read it, and three rules in build.js's
   a second layer; the gate fails on a bare `matter(` anywhere else.
 - **An asset is read from the lecture's folder or the folder one level up, links
   resolved** (`assetEscape`, `assetRootOf`). One level up is the maintainer's
-  decision, so lectures side by side can share a picture folder. **Any new
+  decision, so lectures side by side can share a picture folder – **except when
+  that folder is the home folder or a disk's top** (`assetRootNarrowed`), where
+  the root is the lecture's folder alone; and **never from a folder whose name
+  starts with a dot**, anywhere below the root. The home folder is a parameter
+  so the gate can inject it; a build reads `os.homedir()`, i.e. `$HOME`. **Any new
   reader of a file the source names goes through `assetAllowed()`**, which
   records a refusal instead of reading; `assertAssetsConfined()` throws after
   rendering and before any view is written – after rather than in the

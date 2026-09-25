@@ -684,7 +684,10 @@ from nowhere else.** `![](../shared/assets/logo.png)` works – a set of
 lectures side by side can share a folder of pictures – and
 `![](../../photos/x.png)` fails the build, naming the folder it may read from.
 A symbolic link counts as the file it points to, so a link in `assets/` that
-leads out of that folder fails the same way. The rule covers every way a deck
+leads out of that folder fails the same way. Two narrowings: when the folder
+above the lecture is your home folder or the top of a disk, the lecture's own
+folder is the limit, and nothing is ever read from a folder whose name starts
+with a dot (`assets/.hidden/x.png`, `../.config/…`). The rule covers every way a deck
 names a file: `![](…)`, a `::: draw` `image`, a `::: backdrop`,
 `cover-image:`, `closing-image:`, a clip and a face in `fonts/`. It is what
 keeps a deck someone sent you from copying a file from elsewhere on your
@@ -1651,7 +1654,8 @@ words, no aside written in it, no note on it, nothing held to it by `from`),
 `orphan-column` (a column with fewer than two chunks),
 `figure-caption-redundant`, `single-word-bold`, `figure-type-without-figure`,
 `oversized-asset`, `asset-outside-root` (a picture, clip or backdrop that
-resolves – links followed – outside the lecture's folder and the one above it;
+resolves – links followed – outside the lecture's folder and the one above it,
+outside the lecture's folder when the one above is home, or into a dot-folder;
 the build refuses the deck), `frontmatter-language` (frontmatter opened with
 anything but `---` or `---yaml`), `unresolved-asset` (an explicit `![](path)` that names no
 file, so the build renders a placeholder rather than a broken external `src` –

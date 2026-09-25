@@ -13,8 +13,11 @@
  *      build.js must call gray-matter only through `safeMatter`, which a new
  *      bare `matter(` call would quietly get round;
  *   2. the asset root: the lecture's folder and the one above it, links
- *      resolved. `assetEscape` in both files, on a real directory tree with
- *      real links, because a link is the case a string check gets wrong;
+ *      resolved - the lecture's folder alone when the one above is the home
+ *      folder or a disk's top - and never a folder whose name starts with a
+ *      dot. `assetEscape` in both files, on a real directory tree with real
+ *      links, because a link is the case a string check gets wrong; the home
+ *      folder is a parameter, so the gate says where it is;
  *   3. writing an output: a link at the path is replaced and never written
  *      through (`writeOutputFile`), an append refuses one (`appendOutputFile`);
  *   4. ImageMagick is told the decoder rather than left to guess it from the
@@ -29,6 +32,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
+import os from 'node:os';
 import { execFileSync } from 'node:child_process';
 import { ROOT } from './harness.mjs';
 import { tmpDir } from '../tmp.mjs';
@@ -48,7 +52,7 @@ function load(file, names, extra = '') {
   const body = names.map(n => lift(src, n, file)).join('\n') + extra
     + `\nreturn { ${names.join(', ')} };`;
   // eslint-disable-next-line no-new-func
-  return new Function('fs', 'path', 'crypto', body)(fs, path, crypto);
+  return new Function('fs', 'path', 'crypto', 'os', body)(fs, path, crypto, os);
 }
 
 const constLine = (src, name) => (src.match(new RegExp(`^const ${name} = .*$`, 'm')) || [''])[0];
@@ -97,7 +101,7 @@ export async function run({ report }) {
      'and safeMatter hands gray-matter refusing engines for javascript and coffee as a second layer');
 
   // ── 2. the asset root ─────────────────────────────────────────────
-  const containment = ['pathWithin', 'realpathLoose', 'assetRootOf', 'assetEscape'];
+  const containment = ['pathWithin', 'realpathLoose', 'assetRootOf', 'assetRootNarrowed', 'assetEscape'];
   const cb = load('build.js', containment);
   const cl = load('lint.js', containment);
   const base = fs.realpathSync(tmpDir('psi-untrusted-'));
@@ -145,6 +149,47 @@ export async function run({ report }) {
        && c.assetEscape(path.resolve(alias, '../shared/pic.png'), alias) !== null
        && c.assetEscape(path.join(alias, 'assets', 'leak.png'), alias) !== null,
        'so its own files are read, and the link\'s parent and a link out are refused');
+  }
+
+  // A folder whose name starts with a dot is never read from, inside the
+  // lecture's folder too, links resolved.
+  fs.mkdirSync(path.join(lec, 'assets', '.hidden'));
+  put(path.join(lec, 'assets', '.hidden', 'x.png'));
+  fs.mkdirSync(path.join(repo, '.ssh'));
+  put(path.join(repo, '.ssh', 'id_rsa'));
+  link(path.join(repo, '.ssh', 'id_rsa'), path.join(lec, 'assets', 'dot.png'));
+  put(path.join(lec, 'assets', '.dotfile.png'));
+  for (const [what, abs] of [
+    ['a file below assets/.hidden/', path.join(lec, 'assets', '.hidden', 'x.png')],
+    ['a dot-file in assets/', path.join(lec, 'assets', '.dotfile.png')],
+    ['../.ssh/id_rsa one level up', path.resolve(lec, '../.ssh/id_rsa')],
+    ['a link in assets/ into ../.ssh', path.join(lec, 'assets', 'dot.png')],
+  ]) {
+    ok(cb.assetEscape(abs, lec) !== null && cl.assetEscape(abs, lec) !== null,
+       `${what} is refused in both files`, cb.assetEscape(abs, lec));
+  }
+  // The home folder, injected: the review's fixture was a sibling link to a
+  // key, which one level up allows - unless one level up is home.
+  const home = path.join(base, 'home');
+  const talk = path.join(home, 'talk');
+  fs.mkdirSync(path.join(talk, 'assets'), { recursive: true });
+  fs.mkdirSync(path.join(home, 'outside'));
+  put(path.join(home, 'outside', 'id_rsa'));
+  put(path.join(talk, 'assets', 'own.png'));
+  link(path.join(home, 'outside', 'id_rsa'), path.join(talk, 'assets', 'leak.png'));
+  const other = path.join(base, 'elsewhere');
+  for (const c of [cb, cl]) {
+    ok(c.assetRootOf(talk, home) === talk && c.assetRootNarrowed(talk, home),
+       'a lecture folder directly in the home folder is its own root');
+    ok(c.assetRootOf(talk, other) === home && !c.assetRootNarrowed(talk, other),
+       'and the same folder with home elsewhere reads one level up');
+    ok(c.assetEscape(path.join(talk, 'assets', 'leak.png'), talk, home) !== null,
+       'so the review\'s sibling link to id_rsa is refused when the parent is home');
+    ok(c.assetEscape(path.join(talk, 'assets', 'leak.png'), talk, other) === null,
+       'and allowed when it is not (the one-level-up rule)');
+    ok(c.assetEscape(path.join(talk, 'assets', 'own.png'), talk, home) === null,
+       'while the lecture\'s own files are read');
+    ok(c.assetRootOf('/deck', home) === '/deck', 'a lecture folder at the top of a disk is its own root');
   }
 
   // ── 3. writing an output ──────────────────────────────────────────

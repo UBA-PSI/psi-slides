@@ -34,6 +34,7 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 
 const VALID_TAGS = new Set([
   'title', 'closing', 'outline', 'principle', 'statement', 'definition',
@@ -410,9 +411,11 @@ function diagramImageRefs(src) {
   return refs;
 }
 
-// Mirrors the asset root in build.js (assetEscape, assetRootOf): a build
-// reads an asset from the lecture's folder or the folder one level up, links
-// resolved, and refuses anything further out before it writes a view. So a
+// Mirrors the asset root in build.js (assetEscape, assetRootOf,
+// assetRootNarrowed): a build reads an asset from the lecture's folder or the
+// folder one level up - the lecture's folder alone when that one is the home
+// folder or a disk's top - links resolved, never from a dot-folder, and
+// refuses anything else before it writes a view. So a
 // reference out there is an error here, not a warning - it is a deck the
 // build hard-fails.
 function realpathLoose(p) {
@@ -428,12 +431,28 @@ function pathWithin(root, p) {
   const rel = path.relative(root, p);
   return rel === '' || (rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel));
 }
-function assetRootOf(sourceDir) {
-  return path.dirname(realpathLoose(sourceDir));
+function assetRootOf(sourceDir, home = os.homedir()) {
+  const own = realpathLoose(sourceDir);
+  const parent = path.dirname(own);
+  if (assetRootNarrowed(own, home)) return own;
+  return parent;
 }
-function assetEscape(abs, sourceDir) {
+// True when the folder above the lecture is the home folder or the top of a
+// disk, where "one level up" would be everything the person owns.
+function assetRootNarrowed(own, home = os.homedir()) {
+  const parent = path.dirname(own);
+  return parent === own || parent === path.parse(parent).root || parent === realpathLoose(home);
+}
+// Where `abs` really lands when the build may not read it, or null when it
+// may: outside the asset root, or inside it below a folder whose name starts
+// with a dot (.ssh, .git, .config, .env ...). A link counts as the file it
+// points to.
+function assetEscape(abs, sourceDir, home = os.homedir()) {
   const real = realpathLoose(abs);
-  return pathWithin(assetRootOf(sourceDir), real) ? null : real;
+  const root = assetRootOf(sourceDir, home);
+  if (!pathWithin(root, real)) return real;
+  const rel = path.relative(root, real);
+  return rel && rel.split(path.sep).some(c => c.startsWith('.')) ? real : null;
 }
 
 // Mirrors frontmatterLanguage / FRONTMATTER_LANGUAGES in build.js: what
@@ -4560,9 +4579,14 @@ function lintFile(filePath) {
       const out = assetEscape(abs, sourceDir);
       if (out === null || outsideSeen.has(out)) continue;
       outsideSeen.add(out);
-      emit('error', 'asset-outside-root',
-           `'${href}' is ${out} – the build reads assets from the lecture's folder and the folder `
-           + `one level up (${assetRoot}), links resolved, and refuses this deck; copy the file in there`);
+      const scope = assetRootNarrowed(realpathLoose(sourceDir))
+        ? `the lecture's folder alone (${assetRoot}), because the folder above it is your home folder or the top of a disk`
+        : `the lecture's folder and the folder one level up (${assetRoot})`;
+      emit('error', 'asset-outside-root', pathWithin(assetRoot, out)
+        ? `'${href}' is ${out}, in a folder whose name starts with a dot – the build reads nothing from `
+          + 'one (.ssh, .git, .config …) and refuses this deck; move the file out of it'
+        : `'${href}' is ${out} – the build reads assets from ${scope}, links resolved, and refuses `
+          + 'this deck; copy the file in there');
     }
   };
   let assetFence = false;

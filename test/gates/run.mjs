@@ -59,7 +59,8 @@
  *              is compared as the rectangles it inks, one per line
  *   untrusted  building a source.md somebody sent you: the frontmatter is
  *              YAML only, an asset is read from the lecture's folder or the
- *              one above it and no further (links resolved), an output never
+ *              one above it (not when that is home) and never from a
+ *              dot-folder, links resolved, an output never
  *              writes through a link, and ImageMagick is told the decoder
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves

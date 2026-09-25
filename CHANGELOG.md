@@ -24,8 +24,13 @@ elsewhere on your machine into the output. Four fixes, one of them a
   any view is written, and the message names the folder it may read from; the
   linter reports `asset-outside-root` as an error. One level up rather than
   the lecture's folder alone, so lectures side by side keep sharing a folder
-  of pictures (`../shared/assets/logo.png`). No lecture in this repository or
-  in the content repository reads further out.
+  of pictures (`../shared/assets/logo.png`) – except when the folder above is
+  the home folder or the top of a disk, where the root is the lecture's folder
+  alone and the message says so: a deck unpacked at `~/talk` would otherwise
+  read `~/anything`. And nothing is read from a folder whose name starts with
+  a dot (`.ssh`, `.git`, `.config`, `.env` …), inside the lecture's folder
+  too (`assets/.hidden/x.png` is refused). No lecture in this repository or
+  in the content repository reads further out or from a dot-folder.
 - **Frontmatter is YAML only.** The frontmatter parser chooses a language
   from the word after the opening `---`, and `---js` ran the block through
   `eval` during the build. Any word other than `yaml` or `yml` now fails the

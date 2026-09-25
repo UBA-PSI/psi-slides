@@ -3799,16 +3799,18 @@ console.log('\nlayout generations');
   fs.writeFileSync(path.join(outside, 'secret.png'), PNG);
   fs.writeFileSync(path.join(outside, 'key'), 'PRIVATE KEY');
   let n = 0;
-  const deck = (fm, body, setup) => {
-    const dir = path.join(repo, `lec${++n}`);
+  const deck = (fm, body, setup, { parent = repo, home } = {}) => {
+    const dir = path.join(parent, `lec${++n}`);
     fs.mkdirSync(path.join(dir, 'assets'), { recursive: true });
     fs.writeFileSync(path.join(dir, 'source.md'), `${fm}\n## title: {#title}\n\nHi.\n\n# P {#p}\n\n`
       + `## free: A | x {#a}\n\n${body}\n\n## free: B | y {#b}\n\nT.\n`);
     if (setup) setup(dir);
+    // os.homedir() reads $HOME, which is how a test says where home is.
+    const env = home ? { ...process.env, HOME: home } : process.env;
     const r = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
-      { cwd: ROOT, encoding: 'utf8' });
+      { cwd: ROOT, encoding: 'utf8', env });
     const l = spawnSync(process.execPath, [path.join(ROOT, 'lint.js'), path.join(dir, 'source.md')],
-      { cwd: ROOT, encoding: 'utf8' });
+      { cwd: ROOT, encoding: 'utf8', env });
     return {
       dir, code: r.status, out: (r.stdout || '') + (r.stderr || ''), lint: l.stdout || '',
       views: ['print', 'print-notes', 'audience', 'speaker'].filter(v => fs.existsSync(path.join(dir, v + '.html'))),
@@ -3841,11 +3843,47 @@ console.log('\nlayout generations');
   ];
   for (const [what, fm, body, setup] of refused) {
     const r = deck(fm, body, setup);
-    ok(r.code !== 0 && /outside the folder a build may read from/.test(r.out) && r.out.includes(repo) && !r.views.length,
+    ok(r.code !== 0 && /the build may not read/.test(r.out) && r.out.includes(repo) && !r.views.length,
        `${what} is refused before any view is written, naming the root`, r.out.split('\n')[0]);
     ok(!/PRIVATE KEY|UFJJVkFURSBLRVk/.test(r.out), 'and the file is not in the message');
     ok(/asset-outside-root/.test(r.lint), 'and lint.js says asset-outside-root', r.lint.split('\n')[0]);
   }
+  // Never from a folder whose name starts with a dot - inside the lecture's
+  // folder too.
+  fs.mkdirSync(path.join(repo, '.ssh'));
+  fs.writeFileSync(path.join(repo, '.ssh', 'id_rsa'), PNG);
+  const dots = [
+    ['a picture below assets/.hidden/', '![](assets/.hidden/x.png)', (d) => {
+      fs.mkdirSync(path.join(d, 'assets', '.hidden'));
+      fs.writeFileSync(path.join(d, 'assets', '.hidden', 'x.png'), PNG);
+    }],
+    ['../.ssh/id_rsa one level up', '![](../.ssh/id_rsa)'],
+    ['a link in assets/ into ../.ssh', '![](leak)',
+      (d) => fs.symlinkSync(path.join(repo, '.ssh', 'id_rsa'), path.join(d, 'assets', 'leak.png'))],
+  ];
+  for (const [what, body, setup] of dots) {
+    const r = deck(YAML, body, setup);
+    ok(r.code !== 0 && /folder whose name starts with a dot/.test(r.out) && !r.views.length,
+       `${what} is refused`, r.out.split('\n').find(x => /may not read|Wrote/.test(x)));
+    ok(/asset-outside-root/.test(r.lint) && /starts with a dot/.test(r.lint), 'and lint.js says why', r.lint.split('\n')[0]);
+  }
+  // A lecture directly in the home folder reads from its own folder alone:
+  // the review's sibling link to a key, which one level up would allow.
+  const home = path.join(base, 'home');
+  fs.mkdirSync(path.join(home, 'outside'), { recursive: true });
+  fs.writeFileSync(path.join(home, 'outside', 'id_rsa'), 'PRIVATE KEY');
+  fs.writeFileSync(path.join(home, 'pic.png'), PNG);
+  const sibling = (d) => fs.symlinkSync(path.join(home, 'outside', 'id_rsa'), path.join(d, 'assets', 'leak.png'));
+  const inHome = deck(YAML, '![](leak)', sibling, { parent: home, home });
+  ok(inHome.code !== 0 && /your home folder or the top of a disk/.test(inHome.out) && !inHome.views.length,
+     'a lecture directly in home is refused a sibling link, and told why', inHome.out.split('\n').find(x => /may not read|Wrote/.test(x)));
+  ok(/home folder/.test(inHome.lint) && /asset-outside-root/.test(inHome.lint), 'and lint.js says why too', inHome.lint.split('\n')[0]);
+  const upHome = deck(YAML, '![](../pic.png)', null, { parent: home, home });
+  ok(upHome.code !== 0 && upHome.out.includes(path.join(home, `lec${n}`)),
+     'and a picture in home itself, the root it would have had, is refused naming the lecture folder as the root', upHome.out.split('\n')[0]);
+  const notHome = deck(YAML, '![](leak)', sibling, { parent: home, home: path.join(base, 'elsewhere') });
+  ok(notHome.code === 0, 'the same layout with home elsewhere builds (one level up)', notHome.out.split('\n')[0]);
+
   const font = deck('---\ntitle: T\nfonts:\n  sans: Evil\n---\n', 'Text.', (d) => {
     fs.mkdirSync(path.join(d, 'fonts'));
     fs.symlinkSync(path.join(outside, 'key'), path.join(d, 'fonts', 'Evil-Regular.woff2'));
