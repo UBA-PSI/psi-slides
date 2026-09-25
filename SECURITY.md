@@ -166,6 +166,12 @@ hints in the cockpit.** It is off unless you switch it on. When it is on:
   the audio to Google unless it can run the recognition on your device, in a
   dry run (`--prompter-dry-run`) too. The cockpit says which of the two you
   are getting.
+- **The microphone hears the whole room.** Questions and remarks from the
+  audience are transcribed and sent on like your own words. Tell the
+  audience before the talk, switch the prompter off (`Shift`-`S`) while
+  someone from the room speaks, and check what data protection law (in the
+  EU the GDPR) and the personal rights of the people present require in your
+  setting.
 - **The key** (`OPENROUTER_API_KEY`) is read by `node build.js` and never
   written into the HTML or the logs.
 

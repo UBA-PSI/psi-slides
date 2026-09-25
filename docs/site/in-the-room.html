@@ -326,8 +326,10 @@ where the rest of the hour is going to be spent.
     the model: you create it in an OpenRouter account, which is also where the
     calls are paid for, and put it in the environment variable
     <code>OPENROUTER_API_KEY</code> before you start. What a talk costs depends
-    on the model and on how often the prompter asks; it makes at most 360 calls
-    an hour unless you set a lower limit. Without the key the prompter starts
+    on the model and on how often the prompter asks. For a sense of scale: one
+    keynote, together with every rehearsal and test run before it, came to about
+    one US dollar. The prompter makes at most 360 calls an hour unless you set a
+    lower limit. Without the key the prompter starts
     switched off and only writes down what it heard.</p>
     <p class="cue">For a rehearsal, <code class="flag">--prompter-dry-run</code> does
     everything except call the model: it listens, keeps the clock and applies
@@ -375,8 +377,14 @@ where the rest of the hour is going to be spent.
     None of this appears on the projection or is written into
     <code>source.md</code>. <code>node build.js</code> reads the key from the
     environment and never writes it into the HTML files.</p>
-    <p>The microphone also picks up everyone else in the room. Switch it off before
-    questions, or tell the room it is on.</p>
+    <p><strong>The microphone hears the whole room.</strong> Questions and
+    remarks from the audience are transcribed and sent to the model like your
+    own words. Tell the audience before the talk that the prompter is
+    listening, and switch it off with <kbd>Shift</kbd>-<kbd>S</kbd> when
+    someone from the room speaks, for example during questions. Whether you may
+    use it in your setting is for you to check: data protection law (in the EU
+    the GDPR) and the personal rights of the people in the room cover their
+    words too.</p>
    </div>
    <div>
     <p><strong>Each run keeps a log</strong> beside <code>source.md</code>, in

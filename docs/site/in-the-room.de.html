@@ -336,8 +336,10 @@ where the rest of the hour is going to be spent.
     Anfrage an das Modell weiterreicht: Man legt ihn in einem OpenRouter-Konto
     an, über das auch die Anfragen bezahlt werden, und setzt ihn vor dem Start
     in die Umgebungsvariable <code>OPENROUTER_API_KEY</code>. Was ein Vortrag
-    kostet, hängt vom Modell ab und davon, wie oft der Prompter fragt; er stellt
-    höchstens 360 Anfragen pro Stunde, wenn man keine niedrigere Grenze setzt.
+    kostet, hängt vom Modell ab und davon, wie oft der Prompter fragt. Zur
+    Größenordnung: Eine Keynote samt allen Proben und Testläufen davor hat etwa
+    einen US-Dollar gekostet. Der Prompter stellt höchstens 360 Anfragen pro
+    Stunde, wenn man keine niedrigere Grenze setzt.
     Ohne Schlüssel startet der Prompter ausgeschaltet und schreibt nur mit, was
     er gehört hat.</p>
     <p class="cue">Für eine Probe erledigt <code class="flag">--prompter-dry-run</code> alles
@@ -388,8 +390,14 @@ where the rest of the hour is going to be spent.
     Projektion oder wird in <code>source.md</code> geschrieben.
     <code>node build.js</code> liest den Schlüssel aus der Umgebung und schreibt
     ihn nie in die HTML-Dateien.</p>
-    <p>Das Mikrofon hört auch alle anderen im Saal. Vor der Fragerunde
-    ausschalten oder dem Saal sagen, dass es an ist.</p>
+    <p><strong>Das Mikrofon hört den ganzen Saal.</strong> Fragen und
+    Einwürfe aus dem Publikum werden transkribiert und wie die eigenen Worte an
+    das Modell geschickt. Deshalb sollte man dem Publikum vor dem Vortrag
+    sagen, dass der Prompter mithört, und ihn mit
+    <kbd>Shift</kbd>-<kbd>S</kbd> ausschalten, wenn jemand aus dem Saal
+    spricht, etwa in der Fragerunde. Ob man ihn im eigenen Rahmen einsetzen
+    darf, muss man selbst prüfen: Der Datenschutz (in der EU die DSGVO) und die
+    Persönlichkeitsrechte der Anwesenden gelten auch für ihre Worte.</p>
    </div>
    <div>
     <p><strong>Jeder Lauf führt ein Protokoll</strong> neben
