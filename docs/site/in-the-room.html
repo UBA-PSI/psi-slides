@@ -40,9 +40,9 @@
     <p><strong>Nothing here needs a server or a network.</strong> The two
     windows find each other in the browser; the timer, your notes, where you are
     in the lecture and anything you type stay on the machine you are standing
-    at. A lecture on a memory stick, in a room with no wifi, behaves like this
-    one &ndash; except for two things this page describes, which go online only
-    if you choose them: a hosted video embed, and the prompter.</p>
+    at. A lecture on a memory stick, in a room with no wifi, behaves the same
+    way. Two things on this page go online, and only if you choose them: a
+    YouTube or Vimeo video embedded in a slide, and the prompter.</p>
    </div>
   </div>
  </div>
@@ -287,26 +287,28 @@ where the rest of the hour is going to be spent.
        look at, words beside a listing, then one row of three. It stands
        after the cue cards because it lays cards of its own. -->
   <h2 id="prompter">A prompter, if you switch one on</h2>
-  <p class="lede">The prompter is new, and it is off unless you ask for it. In a
-  lecture built with <code>--watch --prompter</code>, the cockpit can listen
-  while you talk and, when something needs saying, put a hint of at most twelve
-  words on a strip across the bottom of its copy of the slide. Most of the time
-  the prompter says nothing. Nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd> in the cockpit,
-  or the <b>&#9676; prompter</b> button in its footer, which is the same
-  switch.</p>
+  <p class="lede">The prompter is new, and it stays off unless you start the
+  lecture with <code>--watch --prompter</code>. Then the cockpit can listen
+  while you talk and, when something needs saying, put a short
+  hint on a strip across the bottom of its copy of the slide. Most of the time
+  the prompter says nothing. Nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd>
+  in the cockpit, or the <b>&#9676; prompter</b> button in its footer, which
+  does the same.</p>
 
   <div class="beside">
    <div class="said">
-    <p class="cue">Here the slide says 90 milliseconds, and the speaker has
-    just said &ldquo;I think it was 250 milliseconds&rdquo;. The red strip is
-    the prompter&rsquo;s answer, word for word as the model gave it. It is red
-    because the model marked it urgent, which is the level meant to interrupt
-    a sentence. Under it, the line that says when the model was last asked.</p>
+    <p class="cue">The whole cockpit, with the speaker note under the slide and
+    the neighbouring slides along the bottom. The slide says 90 milliseconds, and the speaker has just said
+    &ldquo;I think it was 250 milliseconds&rdquo;. The red strip carries the
+    prompter&rsquo;s answer, word for word as the model gave it. It is red
+    because the model marked it urgent, a level kept for something that would
+    mislead the room if it stood. The faint line under it says when the model
+    was last asked.</p>
    </div>
    <div class="stage">
     <figure class="shot">
      <div class="bar"><b>speaker.html</b> &middot; Shift-S</div>
-     <img src="img/prompter-hint.webp" alt="The cockpit&rsquo;s copy of a slide reading &ldquo;1.4 seconds. Then 90 milliseconds.&rdquo; Across its lower edge, over the faded next slide, a red strip reads &ldquo;The number is ninety milliseconds, not 250.&rdquo;, and under it a faint line reads &ldquo;asked 5s ago &middot; 2 so far&rdquo;.">
+     <img src="img/prompter-hint.webp" alt="The whole cockpit. Across the top, the parts of the talk and the clock at 1:45; in the middle, its copy of the current slide, reading &ldquo;1.4 seconds. Then 90 milliseconds.&rdquo; Across the lower edge of that slide a red strip reads &ldquo;The number is ninety milliseconds, not 250.&rdquo;, and under it a faint line reads &ldquo;asked 3s ago &middot; 2 so far&rdquo;. Below the slide, the speaker note, then a row of five slide previews with the current one outlined in red, and a footer with the prompter button lit.">
     </figure>
    </div>
   </div>
@@ -318,20 +320,23 @@ where the rest of the hour is going to be spent.
    <div class="said">
     <h3>What it needs</h3>
     <p class="cue">Chrome, because the listening is done by Chrome&rsquo;s own
-    speech recognition. A <code>--watch</code> process, because the cockpit
-    hands what it hears to that process, and the process asks a language model.
-    And a key for openrouter.ai, the service that passes the request on to the
-    model, in <code>OPENROUTER_API_KEY</code>; without one the prompter starts
+    speech recognition. The <code>--watch</code> flag, which keeps
+    <code>node build.js</code> running and rebuilds the lecture whenever you
+    save: the cockpit hands what it hears to that running program, and the
+    program asks a language model. And a key for openrouter.ai, the service
+    that passes the request on to the model, in the environment variable
+    <code>OPENROUTER_API_KEY</code>. Without the key the prompter starts
     switched off and only writes down what it heard.</p>
-    <p class="cue"><code>--prompter-dry-run</code> does everything except call
-    the model &ndash; the listening, the clock, the rules on when a hint may
-    appear &ndash; so a rehearsal needs no key. The <code>prompter:</code> block
-    sets the model, how much new speech it waits for before asking again, how
-    long it stays quiet after a hint, whether it may add cue cards, and how
-    many calls it may make in an hour.</p>
+    <p class="cue">For a rehearsal, <code>--prompter-dry-run</code> does
+    everything except call the model: it listens, keeps the clock and applies
+    the rules on when a hint may appear, and it needs no key. The
+    <code>prompter:</code> block in the settings at the top of
+    <code>source.md</code> sets the model, how much new speech it waits for
+    before asking again, how long it stays quiet after a hint, whether it may
+    add cue cards, and how many calls it may make in an hour.</p>
    </div>
-<pre><code><span class="t-cmt"># in the frontmatter of source.md</span>
-<span class="t-cmt"># duration: the planned minutes the clock measures against;</span>
+<pre><code><span class="t-cmt"># in the settings at the top of source.md</span>
+<span class="t-cmt"># duration: the planned length in minutes, for the clock;</span>
 <span class="t-cmt"># cooldown: the seconds of quiet after each hint</span>
 <span class="t-dir">duration:</span> 45
 <span class="t-dir">prompter:</span>
@@ -349,40 +354,39 @@ where the rest of the hour is going to be spent.
   <div class="pair-up trio">
    <div>
     <p><strong>It speaks up when you are behind time</strong>, when a point stays
-    abstract although your slides have an example for it, when what you just said contradicts your own slide, when you are
-    speaking too fast, or when your notes planned something for this slide and
-    you have walked past it. The build counts the tempo rather than leaving the
-    model to guess it: words a minute, filler sounds, the longest pause. The
-    build also enforces the twelve words: a longer answer is thrown away, not
-    shortened. <kbd>Esc</kbd> takes a hint off the strip.</p>
+    abstract although your slides have an example for it, when what you just
+    said contradicts your own slide, when you are speaking too fast, or when
+    your notes planned something for this slide and you have walked past it.
+    psi-slides counts the tempo itself and gives the model the figures: words a
+    minute, filler sounds, the longest pause. <kbd>Esc</kbd> takes a hint off the
+    strip.</p>
     <p>It can also add a cue card to a slide still to come, the last slide
     included, when you said something in passing that is worth saying again
     there.</p>
    </div>
    <div>
-    <p><strong>What the prompter sends is text.</strong> The transcript and the
-    lecture&rsquo;s text, speaker notes included, go to openrouter.ai and from
-    there to the company that runs the model. The prompter sends no audio, but
-    the speech recognition is Chrome&rsquo;s, and Chrome sends the audio to
-    Google unless it can run the recognition on your machine; the cockpit says
-    which. Nothing of it reaches the projection, nothing is written into
-    <code>source.md</code>, and the key is read by the build and never written
-    into the HTML.</p>
-    <p>The microphone hears the room as well as you. Switch it off before
+    <p><strong>The prompter sends text to openrouter.ai:</strong> the transcript
+    and the lecture&rsquo;s text, speaker notes included. From there it goes to
+    the company that runs the model. The prompter sends no audio, but the speech
+    recognition is Chrome&rsquo;s, and Chrome sends the audio to Google unless
+    it can run the recognition on your computer; the cockpit tells you which.
+    None of this appears on the projection or is written into
+    <code>source.md</code>. <code>node build.js</code> reads the key from the
+    environment and never writes it into the HTML files.</p>
+    <p>The microphone also picks up everyone else in the room. Switch it off before
     questions, or tell the room it is on.</p>
    </div>
    <div>
-    <p><strong>A log says afterwards what happened.</strong> Each run writes
-    <code>prompter-&lt;date&gt;.jsonl</code> beside <code>source.md</code>: what
-    it heard, which hints it showed, and what it wanted to say but its rules
-    stopped, with the rule that stopped it. Beside it,
-    <code>prompter-&lt;hash&gt;.prompt.txt</code> holds the lecture&rsquo;s text
-    exactly as the model received it.</p>
-    <p>During the talk, a <kbd>Shift</kbd>-click on the prompter button shows
-    the last ten hints and cards. For the first minute a faint line under the
-    strip shows the words the speech recognition picks up, and after that the
-    same line says when the prompter last asked the model: a prompter with nothing to say
-    looks the same as one that has stopped.</p>
+    <p><strong>Each run keeps a log</strong> beside <code>source.md</code>, in
+    <code>prompter-&lt;date&gt;.jsonl</code>: what the prompter heard, which
+    hints it showed, and what it wanted to say but its rules stopped, with the
+    rule that stopped it. Beside it, <code>prompter-&lt;hash&gt;.prompt.txt</code>
+    holds the lecture&rsquo;s text exactly as the model received it.</p>
+    <p>During the talk, <kbd>Shift</kbd>-click the prompter button to see the
+    last ten hints and cards. For the first minute a faint line under the strip
+    shows the words the speech recognition picks up. After that the same line
+    says when the prompter last asked the model, so you can tell a prompter
+    with nothing to say from one that has stopped.</p>
    </div>
   </div>
  </div>
@@ -509,8 +513,11 @@ where the rest of the hour is going to be spent.
    <div>
     <p><strong>A video plays in the frame</strong>, from the file itself, with
     the two windows kept in step on play, pause and position. A YouTube or Vimeo
-    embed is the one thing on the wall that has to reach a third party, and it needs the
-    lecture served rather than opened as a file.</p>
+    video embedded in a slide loads from YouTube or Vimeo, the one thing on the
+    wall that comes from another company&rsquo;s server. A YouTube video
+    needs the lecture opened through <code>--serve</code>, which delivers it
+    from your own computer; a Vimeo video also plays when you open the file
+    directly.</p>
    </div>
   </div>
  </div>

@@ -41,10 +41,10 @@
     <p><strong>Nichts davon braucht einen Server oder ein Netz.</strong> Die
     beiden Fenster finden sich im Browser; die Uhr, die Notizen, der Stand der
     Vorlesung und alles Getippte bleiben auf dem Rechner, an dem man steht. Eine
-    Vorlesung vom USB-Stick, in einem Raum ohne WLAN, verhält sich wie diese
-    hier &ndash; bis auf zwei Dinge, die diese Seite beschreibt und die nur
-    online gehen, wenn man sie wählt: ein eingebettetes Video von einem Hoster
-    und den Prompter.</p>
+    Vorlesung vom USB-Stick, in einem Raum ohne WLAN, verhält sich genauso.
+    Zwei Dinge auf dieser Seite gehen online, und nur, wenn man sie wählt: ein
+    YouTube- oder Vimeo-Video, das in eine Folie eingebettet ist, und der
+    Prompter.</p>
    </div>
   </div>
  </div>
@@ -295,28 +295,29 @@ where the rest of the hour is going to be spent.
        einem Listing, dann eine Zeile mit drei. Er steht hinter den Karten,
        weil er selbst Karten legt. -->
   <h2 id="prompter">Ein Prompter, wenn man ihn einschaltet</h2>
-  <p class="lede">Der Prompter ist neu, und er bleibt aus, solange man ihn
-  nicht einschaltet. In einer Vorlesung, die mit <code>--watch --prompter</code>
-  gebaut wird, kann das Cockpit zuhören, während man spricht, und wenn etwas
-  gesagt werden muss, einen Hinweis von höchstens zwölf Wörtern auf einen
-  Streifen am unteren Rand seines Spiegelbilds der Folie legen. Meistens sagt
-  der Prompter nichts. Er hört erst zu, wenn man im Cockpit
-  <kbd>Shift</kbd>-<kbd>S</kbd> drückt oder den Knopf <b>&#9676; prompter</b>
-  in der Fußzeile, der derselbe Schalter ist.</p>
+  <p class="lede">Der Prompter ist neu, und er bleibt aus, solange man die
+  Vorlesung nicht mit <code>--watch --prompter</code> startet. Dann kann das
+  Cockpit zuhören, während man spricht, und wenn etwas gesagt werden muss,
+  einen kurzen Hinweis auf einen Streifen am unteren Rand
+  seiner Kopie der Folie legen. Meistens sagt er nichts. Er hört erst zu, wenn
+  man im Cockpit <kbd>Shift</kbd>-<kbd>S</kbd> drückt oder den Knopf
+  <b>&#9676; prompter</b> in der Fußzeile, der dasselbe tut.</p>
 
   <div class="beside">
    <div class="said">
-    <p class="cue">Hier steht auf der Folie 90 Millisekunden, und der Sprecher
-    hat gerade &bdquo;ich glaube, es waren 250 Millisekunden&ldquo; gesagt. Der
-    rote Streifen ist die Antwort des Prompters, Wort für Wort so, wie das
-    Modell sie gegeben hat. Rot ist er, weil das Modell ihn als dringend
-    markiert hat, und diese Stufe darf einen Satz unterbrechen. Darunter die
-    Zeile, die sagt, wann das Modell zuletzt gefragt wurde.</p>
+    <p class="cue">Das ganze Cockpit, mit der Sprechernotiz unter der Folie und
+    den benachbarten Folien am unteren Rand. Auf der Folie stehen 90
+    Millisekunden, und der Sprecher hat gerade &bdquo;ich glaube, es waren 250
+    Millisekunden&ldquo; gesagt. Auf dem roten Streifen steht die Antwort des
+    Prompters, Wort für Wort so, wie das Modell sie gegeben hat. Rot ist er,
+    weil das Modell ihn als dringend markiert hat, eine Stufe für etwas, das den
+    Saal in die Irre führen würde, wenn es so stehen bliebe. Die blasse Zeile
+    darunter sagt, wann das Modell zuletzt gefragt wurde.</p>
    </div>
    <div class="stage">
     <figure class="shot">
      <div class="bar"><b>speaker.html</b> &middot; Shift-S</div>
-     <img src="../img/prompter-hint-de.webp" alt="Die Kopie einer Folie im Cockpit, auf der &bdquo;1,4 Sekunden. Dann 90 Millisekunden.&ldquo; steht. Über ihrem unteren Rand, vor der blassen nächsten Folie, liegt ein roter Streifen mit &bdquo;Neunzig Millisekunden, nicht 250.&ldquo;, darunter eine blasse Zeile: &bdquo;asked 3s ago &middot; 2 so far&ldquo;.">
+     <img src="../img/prompter-hint-de.webp" alt="Das ganze Cockpit. Oben die Teile des Vortrags und die Uhr; in der Mitte seine Kopie der aktuellen Folie, auf der &bdquo;1,4 Sekunden. Dann 90 Millisekunden.&ldquo; steht. Über den unteren Rand dieser Folie liegt ein roter Streifen mit &bdquo;Neunzig, nicht 250 Millisekunden.&ldquo;, darunter eine blasse Zeile: &bdquo;asked 3s ago &middot; 2 so far&ldquo;. Unter der Folie die Sprechernotiz, dann eine Reihe von fünf Folienvorschauen, die aktuelle rot umrandet, und eine Fußzeile mit dem leuchtenden Prompter-Knopf.">
     </figure>
    </div>
   </div>
@@ -328,22 +329,24 @@ where the rest of the hour is going to be spent.
    <div class="said">
     <h3>Was er braucht</h3>
     <p class="cue">Chrome, weil das Zuhören die eigene Spracherkennung von
-    Chrome übernimmt. Einen Prozess mit <code>--watch</code>, weil das Cockpit
-    diesem Prozess weitergibt, was es hört, und der Prozess ein Sprachmodell
-    fragt. Und einen Schlüssel für openrouter.ai, den Dienst, der die Anfrage
-    an das Modell weiterreicht, in <code>OPENROUTER_API_KEY</code>; ohne ihn
-    startet der Prompter ausgeschaltet und schreibt nur mit, was er gehört
-    hat.</p>
-    <p class="cue"><code>--prompter-dry-run</code> erledigt alles außer dem
-    Aufruf des Modells &ndash; das Zuhören, die Uhr, die Regeln, wann ein
-    Hinweis erscheinen darf &ndash;, eine Probe braucht also keinen Schlüssel.
-    Der Block <code>prompter:</code> legt das Modell fest, wie viel neue Rede
-    er abwartet, bevor er wieder fragt, wie lange er nach einem Hinweis still
-    ist, ob er Karten ergänzen darf und wie oft er in einer Stunde fragen
-    darf.</p>
+    Chrome übernimmt. Den Schalter <code>--watch</code>, der
+    <code>node build.js</code> weiterlaufen lässt und die Vorlesung bei jedem
+    Speichern neu baut: Das Cockpit gibt, was es hört, an dieses laufende
+    Programm weiter, und das Programm fragt ein Sprachmodell. Und einen
+    Schlüssel für openrouter.ai, den Dienst, der die Anfrage an das Modell
+    weiterreicht, in der Umgebungsvariablen <code>OPENROUTER_API_KEY</code>.
+    Ohne Schlüssel startet der Prompter ausgeschaltet und schreibt nur mit, was
+    er gehört hat.</p>
+    <p class="cue">Für eine Probe erledigt <code>--prompter-dry-run</code> alles
+    außer dem Aufruf des Modells: Er hört zu, führt die Uhr und wendet die
+    Regeln an, wann ein Hinweis erscheinen darf, und braucht keinen Schlüssel.
+    Der Block <code>prompter:</code> in den Einstellungen oben in
+    <code>source.md</code> legt das Modell fest, wie viel neue Rede er abwartet,
+    bevor er wieder fragt, wie lange er nach einem Hinweis still ist, ob er
+    Karten ergänzen darf und wie oft er in einer Stunde fragen darf.</p>
    </div>
-<pre><code><span class="t-cmt"># im Frontmatter von source.md</span>
-<span class="t-cmt"># duration: die geplanten Minuten, an denen die Uhr misst;</span>
+<pre><code><span class="t-cmt"># in den Einstellungen oben in source.md</span>
+<span class="t-cmt"># duration: die geplante Dauer in Minuten, für die Uhr;</span>
 <span class="t-cmt"># cooldown: die Sekunden Ruhe nach jedem Hinweis</span>
 <span class="t-dir">duration:</span> 45
 <span class="t-dir">prompter:</span>
@@ -362,43 +365,42 @@ where the rest of the hour is going to be spent.
   <div class="pair-up trio">
    <div>
     <p><strong>Er meldet sich, wenn man hinter der Zeit ist</strong>, wenn ein
-    Punkt abstrakt bleibt, obwohl die Folien ein Beispiel dafür haben, wenn das eben Gesagte der eigenen Folie widerspricht, wenn
-    man zu schnell spricht oder wenn die eigenen Notizen für diese Folie etwas
-    vorgesehen haben, an dem man vorbeigegangen ist. Das Tempo zählt der Build,
-    statt es das Modell schätzen zu lassen: Wörter pro Minute, Füllwörter, die
-    längste Pause. Auch die zwölf Wörter setzt der Build durch: Eine längere
-    Antwort wird verworfen, nicht gekürzt. <kbd>Esc</kbd> nimmt einen Hinweis
-    vom Streifen.</p>
+    Punkt abstrakt bleibt, obwohl die Folien ein Beispiel dafür haben, wenn das
+    eben Gesagte der eigenen Folie widerspricht, wenn man zu schnell spricht
+    oder wenn die eigenen Notizen für diese Folie etwas vorgesehen haben, an dem
+    man vorbeigegangen ist. Das Tempo zählt psi-slides selbst und gibt dem
+    Modell die Zahlen: Wörter pro Minute, Füllwörter, die längste Pause.
+    <kbd>Esc</kbd> nimmt einen Hinweis vom Streifen.</p>
     <p>Er kann auch einer Folie, die noch kommt, eine Karte hinzufügen, der
     letzten Folie eingeschlossen, wenn man im Vorbeigehen etwas gesagt hat, das
     es wert ist, dort noch einmal gesagt zu werden.</p>
    </div>
    <div>
-    <p><strong>Was der Prompter verschickt, ist Text.</strong> Das Transkript und
-    der Text der Vorlesung samt Sprechernotizen gehen an openrouter.ai und von
-    dort an das Unternehmen, das das Modell betreibt. Der Prompter verschickt
-    keinen Ton, aber die Spracherkennung ist die von Chrome, und Chrome schickt
-    den Ton an Google, wenn es die Erkennung nicht auf dem eigenen Rechner
-    ausführen kann; das Cockpit sagt, welches von beiden. Nichts davon erreicht
-    die Projektion, nichts wird in <code>source.md</code> geschrieben, und der
-    Schlüssel wird vom Build gelesen und nie ins HTML geschrieben.</p>
-    <p>Das Mikrofon hört den Saal, nicht nur einen selbst. Vor der Fragerunde
+    <p><strong>Der Prompter schickt Text an openrouter.ai:</strong> das
+    Transkript und den Text der Vorlesung samt Sprechernotizen. Von dort geht er
+    an das Unternehmen, das das Modell betreibt. Der Prompter verschickt keinen
+    Ton, aber die Spracherkennung ist die von Chrome, und Chrome schickt den Ton
+    an Google, wenn es die Erkennung nicht auf dem eigenen Rechner ausführen
+    kann; das Cockpit sagt, welches von beiden. Nichts davon erscheint auf der
+    Projektion oder wird in <code>source.md</code> geschrieben.
+    <code>node build.js</code> liest den Schlüssel aus der Umgebung und schreibt
+    ihn nie in die HTML-Dateien.</p>
+    <p>Das Mikrofon hört auch alle anderen im Saal. Vor der Fragerunde
     ausschalten oder dem Saal sagen, dass es an ist.</p>
    </div>
    <div>
-    <p><strong>Ein Protokoll sagt hinterher, was geschah.</strong> Jeder Lauf
-    schreibt <code>prompter-&lt;date&gt;.jsonl</code> neben
-    <code>source.md</code>: was er gehört hat, welche Hinweise er gezeigt hat
-    und was er sagen wollte, aber nach seinen Regeln nicht durfte, mit der
-    Regel, die es verhindert hat. Daneben steht
-    <code>prompter-&lt;hash&gt;.prompt.txt</code> mit dem Text der Vorlesung,
-    genau so, wie das Modell ihn bekommen hat.</p>
+    <p><strong>Jeder Lauf führt ein Protokoll</strong> neben
+    <code>source.md</code>, in <code>prompter-&lt;date&gt;.jsonl</code>: was
+    der Prompter gehört hat, welche Hinweise er gezeigt hat und was er sagen
+    wollte, aber nach seinen Regeln nicht durfte, mit der Regel, die es
+    verhindert hat. Daneben steht <code>prompter-&lt;hash&gt;.prompt.txt</code>
+    mit dem Text der Vorlesung, genau so, wie das Modell ihn bekommen hat.</p>
     <p>Während des Vortrags zeigt ein <kbd>Shift</kbd>-Klick auf den
     Prompter-Knopf die letzten zehn Hinweise und Karten. In der ersten Minute
     zeigt eine blasse Zeile unter dem Streifen die Wörter, die die
-    Spracherkennung aufnimmt, danach sagt dieselbe Zeile, wann der Prompter
-    zuletzt das Modell gefragt hat: Ein Prompter, der nichts zu sagen hat,
-    sieht aus wie einer, der stehen geblieben ist.</p>
+    Spracherkennung aufnimmt. Danach sagt dieselbe Zeile, wann der Prompter
+    zuletzt das Modell gefragt hat, sodass man einen Prompter, der nichts zu
+    sagen hat, von einem unterscheiden kann, der stehen geblieben ist.</p>
    </div>
   </div>
  </div>
@@ -526,9 +528,11 @@ where the rest of the hour is going to be spent.
    <div>
     <p><strong>Ein Video läuft im Rahmen</strong>, aus der Datei selbst, und
     beide Fenster bleiben bei Abspielen, Pause und Position im Gleichschritt.
-    Nur ein YouTube- oder Vimeo-Embed an der Wand muss einen Dritten erreichen, und dafür
-    muss die Vorlesung über einen Server laufen statt als Datei geöffnet zu
-    werden.</p>
+    Ein YouTube- oder Vimeo-Video, das in eine Folie eingebettet ist, lädt von
+    YouTube oder Vimeo, als einziges an der Wand vom Server eines anderen
+    Unternehmens. Ein YouTube-Video braucht die Vorlesung über
+    <code>--serve</code> geöffnet, das sie vom eigenen Rechner ausliefert; ein
+    Vimeo-Video spielt auch, wenn man die Datei direkt öffnet.</p>
    </div>
   </div>
  </div>

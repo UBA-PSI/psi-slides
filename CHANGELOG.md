@@ -9,132 +9,133 @@ from building the same way is a major version.
 
 ### Security
 
-Building a `source.md` someone sent you could run code or copy files from
-elsewhere on your machine into the output. Four fixes, one of them a
-**breaking change to the source format**:
+Running `node build.js` on a `source.md` someone sent you could run code or
+copy files from elsewhere on your computer into the HTML files. Four fixes,
+one of them a **breaking change to the source format**:
 
-- **Breaking: a deck reads assets from its own folder and the folder one
-  level up, and from nowhere else.** A path such as `../../x.png`, and a
-  symbolic link that leads out of that folder, used to be read and inlined
-  into the HTML as a `data:` URI. A link in `assets/` pointing at a private
-  key put the key in a page the author then sent on. The rule applies after
-  links are resolved and covers every file a build reads: `![](…)`, a
-  `::: draw` `image`, a `::: backdrop`, `cover-image:`, `closing-image:`, a
-  clip, and a face in `fonts/`. A deck that breaks it fails the build before
-  any view is written, and the message names the folder it may read from; the
-  linter reports `asset-outside-root` as an error. One level up rather than
-  the lecture's folder alone, so lectures side by side keep sharing a folder
-  of pictures (`../shared/assets/logo.png`) – except when the folder above is
-  the home folder or the top of a disk, where the root is the lecture's folder
-  alone and the message says so: a deck unpacked at `~/talk` would otherwise
-  read `~/anything`. And nothing is read from a folder whose name starts with
-  a dot (`.ssh`, `.git`, `.config`, `.env` …), inside the lecture's folder
-  too (`assets/.hidden/x.png` is refused). No lecture in this repository or
-  in the content repository reads further out or from a dot-folder.
-- **Frontmatter is YAML only.** The frontmatter parser chooses a language
-  from the word after the opening `---`, and `---js` ran the block through
-  `eval` during the build. Any word other than `yaml` or `yml` now fails the
-  build, and the linter reports `frontmatter-language`. The parser is also
-  given refusing engines for JavaScript and CoffeeScript, so the block is
-  refused even if the two ever read the opening line differently.
-- **An output is never written through a link.** A folder that arrived with
-  `print.html` linked to the reader's shell profile had the build overwrite
-  the profile. The four views, `squint.txt`, the `--frames` pictures, a clip
-  staged into `videos/`, an asset the editor uploads and the prompter's
-  prompt file are written under a new name and renamed into place, which
-  replaces a link instead of following it. The prompter's log, the one file
-  appended to, refuses a link at its path (and the prompter says once that
-  this run keeps no debrief); `videos/` and `frames/` are refused when they
-  are links.
+- **Breaking: a lecture reads its pictures and other files from its own
+  folder and the folder one level up, and from nowhere else.** A path such as
+  `../../x.png`, and a symbolic link that leads out of that folder, used to be
+  read and inlined into the HTML as a `data:` URI. A link in `assets/`
+  pointing at a private key put the key in a page the author then sent on.
+  The rule applies after links are resolved and covers each file `node
+  build.js` reads: `![](…)`, a `::: draw` `image`, a `::: backdrop`,
+  `cover-image:`, `closing-image:`, a clip, and a face in `fonts/`. A lecture
+  that breaks it stops `node build.js` before any of the four files is
+  written, and the message names the folder it may read from; the linter
+  reports `asset-outside-root` as an error. The folder one level up is
+  allowed so that lectures side by side can keep sharing a folder of pictures
+  (`../shared/assets/logo.png`). When the folder above is the home folder or
+  the top of a disk, only the lecture's own folder is allowed and the message
+  says so, since a lecture unpacked at `~/talk` could otherwise read
+  `~/anything`. Nothing is read from a folder whose name starts with a dot
+  (`.ssh`, `.git`, `.config`, `.env` …), inside the lecture's folder too
+  (`assets/.hidden/x.png` is refused). No lecture in this repository or in the
+  content repository reads further out or from a dot-folder.
+- **The settings block at the top of `source.md` (the frontmatter) is YAML
+  only.** Its parser chooses a language from the word after the opening
+  `---`, and `---js` ran the block through `eval` inside `node build.js`. Any
+  word other than `yaml` or `yml` now stops the command, and the linter
+  reports `frontmatter-language`. The parser is also given engines for
+  JavaScript and CoffeeScript that refuse, so the block is refused even if
+  the two ever read the opening line differently.
+- **A file is never written through a link.** A folder that arrived with
+  `print.html` linked to the reader's shell profile had `node build.js`
+  overwrite the profile. The four HTML files, `squint.txt`, the `--frames`
+  pictures, a clip copied into `videos/`, a picture the editor uploads and the
+  prompter's prompt file are now written under a new name and renamed into
+  place, which replaces a link and leaves its target alone. The prompter's
+  log, the one file appended to, refuses a link at its path (and the prompter
+  says once that this run keeps no log for a debrief); `videos/` and
+  `frames/` are refused when they are links.
 - **`--optimize-images` converts only files inside the lecture's own folder.**
   It replaces and deletes files, and it used to follow a reference anywhere.
   A picture one level up is listed as shared and left alone, and one further
-  out is listed as refused. With ImageMagick as the encoder, the decoder is
-  now named from the extension (`png:`, `jpeg:`, `webp:`) instead of guessed
-  from the content, so a `.png` that is really an SVG or MVG script can no
-  longer tell it to read another file into the picture. The output is named
-  `webp:` too, which fixes a second bug: the temporary name ends in `.tmp`,
-  and ImageMagick wrote the input's own format into it, so a conversion with
-  `magick` produced PNG bytes under a `.webp` name.
+  out is listed as refused. With ImageMagick as the encoder, the input format
+  is now named from the file's extension (`png:`, `jpeg:`, `webp:`), so a
+  `.png` that is really an SVG or MVG script can no longer tell ImageMagick to
+  read another file into the picture. The output is named `webp:` too, which
+  fixes a second bug: the temporary name ends in `.tmp`, and ImageMagick wrote
+  the input's own format into it, so a conversion with `magick` produced PNG
+  bytes under a `.webp` name.
 
-A second set of fixes is about the processes `--watch`, `--serve` and
-`--prompter` leave running while you work, which any web page open in the
-same browser could reach on loopback:
+A second set of fixes concerns the programs `--watch`, `--serve` and
+`--prompter` leave running on your computer while you work. Any web page open
+in the same browser could reach them at 127.0.0.1:
 
 - **`--serve` answers only to its own name, and only with what a view can
   ask for.** A page that points its own host name at 127.0.0.1 (DNS
-  rebinding) could read `speaker.html` – and with it the watch socket's
-  secret – as well as `source.md`, the prompter's transcript and a `.env`
-  beside the deck. A request is now refused (403) unless its `Host` is
-  `localhost`, `127.0.0.1` or `[::1]` with the server's own port, and the
-  server answers only for the views, pictures, clips, faces, stylesheets,
-  scripts and PDFs, never below a name starting with a dot, never a
-  `prompter-*` or `souffleuse-*` file and never `source.md` – which no view
+  rebinding) could read `speaker.html` – and with it the secret for the
+  `--watch` connection – as well as `source.md`, the prompter's transcript and
+  a `.env` beside the lecture. A request is now refused (403) unless its
+  `Host` is `localhost`, `127.0.0.1` or `[::1]` with the server's own port.
+  The server answers only for the views, pictures, clips, faces, stylesheets,
+  scripts and PDFs: never below a name starting with a dot, never a
+  `prompter-*` or `souffleuse-*` file, and never `source.md`, which no view
   reads. A file of any other kind in the lecture's folder is no longer served.
-- **The watch socket takes a page opened from disk or delivered by
-  `--serve`, and no other.** It used to accept any web page, with the
-  build's secret as the only guard on writing: without it a page could still
-  hear every reload and every failed build's message, which quotes the
-  source. A handshake from any other origin is refused; why a rebuild failed
-  goes only to a view that has shown the secret; a message over 4 MB is
-  refused before it is read, and no longer takes the watcher down with it.
+- **The `--watch` connection takes a page opened from disk or delivered by
+  `--serve`, and no other.** It used to accept any web page, with the secret
+  as the only guard on writing, so a page without the secret could still hear
+  every reload and the message of every failed rebuild, which quotes the
+  source. A connection from any other page is now refused; why a rebuild
+  failed goes only to a view that has shown the secret; a message over 4 MB
+  is refused before it is read and no longer stops `--watch`.
 - **The two documents carry no secret.** Under `--watch`, `print.html` and
   `print-notes.html` held the same secret as the live views, which lets a
   page write to `source.md`, and they are the files an author hands on. They
-  now carry a reload and nothing that can send.
+  now carry the reload and nothing that can send.
 - **The editor's picture list and upload stay inside the lecture.** The list
-  of `assets/` named a link that leads out of the asset root, with the size
-  of the file it points to; it now leaves out, unread, every name the build
-  would refuse. An upload into an `assets/`
-  that is itself a link is refused, since the file would land wherever the
-  link points.
+  of `assets/` named a link that leads out of the allowed folders, with the
+  size of the file it points to; it now leaves out, unread, each name `node
+  build.js` would refuse. An upload into an `assets/` that is itself a link is
+  refused, since the file would land wherever the link points.
 - **A link in `assets/` is read only when its target is the kind of file its
   name says** – a picture, a clip or a face. `assets/pic.png` pointing at a
   PDF, a key or a note inside the lecture's folder was inlined into the page
-  as a picture, bytes and all. The build refuses it and the linter reports it
-  under `asset-outside-root`.
+  as a picture, bytes and all. `node build.js` now refuses it, and the linter
+  reports it under `asset-outside-root`.
 - **The prompter keeps its key to itself.** A key with a space or a line
   break in it made the HTTP client throw an error quoting the header, and the
   key went to the log, the terminal, the cockpit's badge and `--events`. A
-  key that is not printable ASCII is now refused at start in words that do
+  key that is not printable ASCII is now refused at start, in words that do
   not contain it, and the key is removed from every string the prompter
   writes anywhere, whatever produced it. The transcript and the prompt file
-  are written readable by their owner alone. A base URL that is not `https`
-  and not on this machine is warned about at start.
+  are written readable by their owner alone. A base URL that is neither
+  `https` nor on this computer gets a warning at start.
 - **The prompter spends what a talk needs, and no more.** A segment of heard
   speech is cut to 2,000 characters, and the newest one in the model's window
-  is cut to the window's word limit too – a page could hand the model a
+  is also cut to the window's word limit; a page could hand the model a
   megabyte per call. The seconds a segment claims to have been spoken in are
   held to the wall clock since the one before it, so a page cannot claim a
   minute of speech per message and earn a call per message. A new key,
-  `prompter: {calls-per-hour}` (default 360, one per ten seconds, the
-  cadence's own floor), caps the calls in any hour; spent, the prompter says
-  so on the badge and stays quiet until the hour frees up. And a call that
-  times out now counts towards the five failures after which the prompter
-  gives up.
+  `prompter: {calls-per-hour}` (default 360, one per ten seconds, the lowest
+  `cadence` allows), caps the calls in any hour; once they are spent, the
+  prompter says so on the badge and stays quiet until the hour frees up. A
+  call that times out now counts towards the five failures after which the
+  prompter gives up.
 - **Nothing from a model reaches the terminal as a control character.** A
   hint or a card containing one is refused (logged as `garbage`), and every
   line the prompter prints, `--prompter-replay` included, has control
   characters and bidi overrides replaced by spaces.
-- **The privacy wording said something false.** "No audio is sent" and, for
-  a dry run, "nothing leaves this machine" were written in the README, the
+- **The privacy wording said something false.** “No audio is sent” and, for
+  a dry run, “nothing leaves this machine” were written in the README, the
   project site, the terminal banners, the help and the cockpit's first toast.
   The prompter sends no audio, but Chrome's speech recognition sends the
-  audio to Google unless it runs on the device – in a dry run too. Every one
-  of those places now says so, and the toast is worded for the run it is
-  shown in: on-device or not, dry or not.
+  audio to Google unless it runs on the device, in a dry run too. Each of
+  those places now says so, and the toast is worded for the run it is shown
+  in: on-device or not, dry or not.
 
-A third set is about the two live views while a talk runs:
+A third set concerns the two live views while a talk runs:
 
 - **The projection and the cockpit listen only to each other.** Opened from
-  disk, both report their origin as `null`, and so does any sandboxed frame,
-  including one inside an embedded video player. Such a frame could post to
-  the projection as if it were the cockpit: it was taken as the other window,
-  could blank the projection, put an address and its QR code on it of its
-  choosing, and send an edited figure whose markup ran script there. A
-  message is now accepted only from the window that opened this one, a
-  window this one opened, or the one already connected. The cockpit still
-  reconnects after either window reloads.
+  disk, both identify themselves to other windows as `null` (their origin),
+  and so does any restricted (sandboxed) frame, including one inside an
+  embedded video player. Such a frame could send messages to the projection
+  and be taken for the cockpit: it could blank the projection, put an address
+  and QR code of its choosing on it, and send an edited figure whose markup
+  ran script there. A message is now accepted only from the window that
+  opened this one, a window this one opened, or the one already connected.
+  The cockpit still reconnects after either window reloads.
 - **An edited figure that arrives as markup keeps only what a figure is made
   of.** Under `editor: speaker` the cockpit sends the projection its edits
   compiled, and the projection used to strip event handlers and
@@ -142,14 +143,15 @@ A third set is about the two live views while a talk runs:
   `<foreignObject>` with a frame in it included. It now keeps a fixed list of
   SVG elements and attributes – what the figure compiler emits plus the
   static drawing vocabulary a vector asset may carry – and a stylesheet only
-  where it styles an image inside the figure, and it reads the markup where
-  nothing in it can load or run first. No figure in this repository changes.
-- **A `--watch` projection carries the socket's secret only when it can
-  write.** It carried it even when the diagram editor was not shipped to it
-  (`editor: speaker` or `none`, or a deck without a figure), so the window on
-  the projector held what lets a page change `source.md`. It now gets the
-  reload alone, as the two documents do. The cockpit does the same when it
-  has neither the editor nor the prompter.
+  where it styles an image inside the figure. It first reads the markup in a
+  place where nothing in it can load or run. No figure in this repository
+  changes.
+- **A `--watch` projection carries the secret only when it can write.** It
+  carried it even when the diagram editor was not included in it (`editor:
+  speaker` or `none`, or a lecture without a figure), so the window on the
+  projector held what lets a page change `source.md`. It now gets the reload
+  alone, as the two documents do. The cockpit does the same when it has
+  neither the editor nor the prompter.
 
 ### Changed
 
@@ -804,64 +806,66 @@ A third set is about the two live views while a talk runs:
 ### Added
 
 - **A live prompter in the cockpit (`--prompter`), landing with 2.0.0.** While
-  the talk runs, the cockpit listens to the room, and the `--watch` process
-  asks a language model whether anything needs saying – behind time, an
-  example missing, a probable factual slip, a word about delivery, the tempo
-  of the talk, or something the speaker's own notes planned and the talk has
-  walked past. When something does, a hint of at most twelve words appears on
-  a strip across the bottom of the cockpit's copy of the slide, and most calls
-  produce none. `Shift`-`S` is the switch, and switching on the microphone is
-  the speaker's consent: nothing listens until the switch is pressed. What
-  the prompter sends is text: the transcript plus the lecture's text
-  including the speaker notes go to openrouter.ai and from there to the
-  company that runs the model. The prompter sends no audio, but the speech
+  the talk runs, the cockpit listens to the room, and the running `--watch`
+  program asks a language model whether anything needs saying: behind time,
+  an example missing, a probable factual slip, a word about delivery, the
+  tempo of the talk, or something the speaker's own notes planned and the
+  talk has walked past. When something does, a short hint
+  appears on a strip across the bottom of the cockpit's copy of the slide, and
+  most calls produce none. `Shift`-`S` is the switch, and switching on the
+  microphone is the speaker's consent: nothing listens until the switch is
+  pressed. The prompter sends text to openrouter.ai – the transcript plus the
+  lecture's text including the speaker notes – and openrouter.ai passes it to
+  the company that runs the model. The prompter sends no audio, but the speech
   recognition is Chrome's, and Chrome sends the audio to Google unless it can
-  run the recognition on the device – the cockpit says which.
-  `OPENROUTER_API_KEY` is read by the build and never written into the HTML,
-  nothing reaches the projection, and nothing is written back into
+  run the recognition on the device; the cockpit says which.
+  `node build.js` reads `OPENROUTER_API_KEY` and never writes it into the
+  HTML, nothing reaches the projection, and nothing is written back into
   `source.md`.
 
-  **The limits are rules in code, not requests to the model.** A hint longer
-  than twelve words is discarded unread rather than shortened, one hint stands
-  at a time, each hint is followed by a quiet interval overall and a separate
-  one for its own kind, the first minute after the switch stays quiet, and a
-  hint the speaker sent away does not come back in other words. A test checks
-  each of these rules without a key, a network connection or a microphone.
+  **The limits are enforced in code, whatever the model answers.** A hint
+  longer than twelve words is discarded unread, one hint stands at a time,
+  each hint is followed by a quiet interval overall and a separate one for its
+  own kind, the first minute after the switch stays quiet, and a hint the
+  speaker sent away does not come back in other words. A test checks each of
+  these rules without a key, a network connection or a microphone.
 
   The prompter can also add a **cue card to a slide that is still to come**.
   The cockpit's `K` mode shows the speaker notes as cue cards, and an added
-  card turns up there dashed; in the cockpit's ordinary layout, which shows no
-  cards, it appears on the strip when you walk onto that slide, so there is no
-  need to present in card mode for it. The lecture's last slide is always
+  card turns up there dashed. In the cockpit's ordinary layout, which shows no
+  cards, it appears on the strip when you walk onto that slide, so you do not
+  have to present in card mode to see it. The lecture's last slide is always
   among the slides it may add a card to, however far away it is.
 
-  **The build measures the tempo; the model does not judge it.** A transcript
-  carries no speaking rate, no hesitation and no silence, so the build counts
-  them over the stretch of transcript it sends anyway – words a minute over
-  the seconds actually spoken, filler sounds, the longest pause – and sends
-  the figures as one line beside it. Each stretch of speech is timed from
-  where the speaking started, so a pause counts as silence and never lowers
-  the rate: a speaker who thinks for a minute and then says a sentence has
-  said a sentence, not spoken for a minute. The model is asked only whether
-  the figures are worth a hint, and is told that speech recognition often
-  drops filler sounds, so a count of zero is not evidence that none were said.
+  **psi-slides measures the tempo, and the model only decides whether it is
+  worth a hint.** A transcript carries no speaking rate, no hesitation and no
+  silence, so the running program counts them over the stretch of transcript
+  it sends anyway – words a minute over the seconds actually spoken, filler
+  sounds, the longest pause – and sends the figures as one line beside it.
+  Each stretch of speech is timed from where the speaking started, so a pause
+  counts as silence and never lowers the rate: a speaker who thinks for a
+  minute and then says a sentence is counted as saying one sentence. The
+  model is told that speech recognition often drops filler sounds, so a count
+  of zero is not evidence that none were said.
 
-  `duration: 45` at the top level of the frontmatter gives the clock a planned
-  length in minutes to measure the talk against, and a `prompter:` block sets
-  the model, how much new speech it waits for before asking again (`cadence`),
-  the quiet interval after a hint (`cooldown`) and whether cue cards are
-  allowed (`cues`). Each run writes one log beside `source.md`
-  (`prompter-<date>.jsonl`): every call, what came back, and every hint the
-  rules stopped, with the rule. The log holds the spoken words verbatim; this
-  repository's `.gitignore` covers it, and a lecture in a repository of its
-  own needs the same pattern. `--prompter-replay` reads a log back through
-  today's rules, and logs written before the prompter had its public name,
-  called `souffleuse-*.jsonl`, replay the same way. Chrome only, because the
-  listening is Chrome's Web Speech API, and only together with `--watch`,
-  because the cockpit reaches the model through that process. A lecture that
-  does not use it is untouched: without the flag none of the prompter's
-  controls are emitted, nothing of it enters the state the two windows keep in
-  step, and the four views are what they were before the flag existed.
+  `duration: 45` at the top level of the frontmatter, the settings at the top
+  of `source.md`, gives the clock a planned length in minutes to measure the
+  talk against. A `prompter:` block sets the model, how much new speech it
+  waits for before asking again (`cadence`), the quiet interval after a hint
+  (`cooldown`) and whether cue cards are allowed (`cues`). Each run writes one
+  log beside `source.md` (`prompter-<date>.jsonl`): every call, what came
+  back, and every hint the rules stopped, with the rule. The log holds the
+  spoken words verbatim; this repository's `.gitignore` covers it, and a
+  lecture in a repository of its own needs the same pattern.
+  `--prompter-replay` reads a log back through today's rules, and logs written
+  before the prompter had its public name, called `souffleuse-*.jsonl`,
+  replay the same way. It works in Chrome only, because the listening is
+  Chrome's Web Speech API, and only together with `--watch`, because the
+  cockpit reaches the model through that running program. A lecture that does
+  not use it is untouched: without the flag none of the prompter's controls
+  are written into the HTML, nothing of it enters the state the two windows
+  keep in step, and the four HTML files are what they were before the flag
+  existed.
 
 - **A fourth font role: `fonts: {display: …}` gives the cover, the closing
   slide and the section dividers a typeface nothing else in the deck wears.**
