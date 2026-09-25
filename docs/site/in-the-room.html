@@ -311,30 +311,38 @@ where the rest of the hour is going to be spent.
    </div>
   </div>
 
-  <!-- Half-empty row, answer 1: the listing takes the wide half and what it
-       needs the narrow one. Commands are compared by the twin gate, so only
-       the comments differ between the two pages. -->
-  <div class="aside-code words-first">
-   <div class="said">
-    <h3>What it needs</h3>
-    <p class="cue">Chrome, because the listening is done by Chrome&rsquo;s own
-    speech recognition. The <code class="flag">--watch</code> flag, which keeps
-    <code>node build.js</code> running and rebuilds the lecture whenever you
-    save: the cockpit hands what it hears to that running program, and the
-    program asks a language model. An internet connection for the whole talk.
-    And an API key for openrouter.ai, the service that passes the request on to
-    the model: you create it in an OpenRouter account, which is also where the
-    calls are paid for, and put it in the environment variable
+  <!-- What it needs, as two short blocks side by side (the requirements
+       and what they cost), then the rehearsal beside the listing. It was one
+       narrow column of eleven sentences beside a listing of twelve lines. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>It needs Chrome and <code class="flag">--watch</code>.</strong>
+    The listening is done by Chrome&rsquo;s own speech recognition. The
+    <code class="flag">--watch</code> flag keeps <code>node build.js</code>
+    running and rebuilds the lecture whenever you save; the cockpit hands what
+    it hears to that running program, and the program asks a language model.
+    Without a key the prompter starts switched off and only writes down what it
+    heard.</p>
+   </div>
+   <div>
+    <p><strong>It needs the internet and an OpenRouter key, and it costs
+    money.</strong> The model is reached through openrouter.ai. You create an
+    API key in an OpenRouter account, which is also where the calls are paid
+    for, and put it in the environment variable
     <code>OPENROUTER_API_KEY</code> before you start. What a talk costs depends
     on the model and on how often the prompter asks. For a sense of scale: one
     keynote, together with every rehearsal and test run before it, came to about
-    one US dollar. The prompter makes at most 360 calls an hour unless you set a
-    lower limit. Without the key the prompter starts
-    switched off and only writes down what it heard.</p>
-    <p class="cue">For a rehearsal, <code class="flag">--prompter-dry-run</code> does
-    everything except call the model: it listens, keeps the clock and applies
-    the rules on when a hint may appear, and it needs no key. The
-    <code>prompter:</code> block in the settings at the top of
+    one US dollar with the default model, Claude Sonnet&nbsp;5. The prompter
+    makes at most 360 calls an hour unless you set a lower limit.</p>
+   </div>
+  </div>
+
+  <div class="aside-code words-first">
+   <div class="said">
+    <p class="cue"><strong>A rehearsal needs no key.</strong>
+    <code class="flag">--prompter-dry-run</code> does everything except call the
+    model: it listens, keeps the clock and applies the rules on when a hint may
+    appear. The <code>prompter:</code> block in the settings at the top of
     <code>source.md</code> sets the model, how much new speech it waits for
     before asking again, how long it stays quiet after a hint, whether it may
     add cue cards, and how many calls it may make in an hour.</p>

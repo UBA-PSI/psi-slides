@@ -321,34 +321,42 @@ where the rest of the hour is going to be spent.
    </div>
   </div>
 
-  <!-- Halbleere Zeile, Antwort 1: Das Listing nimmt die breite Hälfte, was es
-       braucht, die schmale. Die Befehle vergleicht das Zwillingstor, also
-       unterscheiden sich die beiden Seiten nur in den Kommentaren. -->
+  <!-- Was er braucht, als zwei kurze Blöcke nebeneinander, dann die Probe
+       neben dem Listing (siehe die englische Seite). -->
+  <div class="pair-up">
+   <div>
+    <p><strong>Er braucht Chrome und <code class="flag">--watch</code>.</strong>
+    Das Zuhören übernimmt die eigene Spracherkennung von Chrome. Der Schalter
+    <code class="flag">--watch</code> lässt <code>node build.js</code>
+    weiterlaufen und baut die Vorlesung bei jedem Speichern neu; das Cockpit
+    gibt, was es hört, an dieses laufende Programm weiter, und das Programm
+    fragt ein Sprachmodell. Ohne Schlüssel startet der Prompter ausgeschaltet
+    und schreibt nur mit, was er gehört hat.</p>
+   </div>
+   <div>
+    <p><strong>Er braucht Internet und einen OpenRouter-Schlüssel, und er
+    kostet Geld.</strong> Das Modell wird über openrouter.ai erreicht. Den
+    API-Schlüssel legt man in einem OpenRouter-Konto an, über das auch die
+    Anfragen bezahlt werden, und setzt ihn vor dem Start in die
+    Umgebungsvariable <code>OPENROUTER_API_KEY</code>. Was ein Vortrag kostet,
+    hängt vom Modell ab und davon, wie oft der Prompter fragt. Zur
+    Größenordnung: Eine Keynote samt allen Proben und Testläufen davor hat mit
+    dem voreingestellten Modell, Claude Sonnet&nbsp;5, etwa einen US-Dollar
+    gekostet. Der Prompter stellt höchstens 360 Anfragen pro Stunde, wenn man
+    keine niedrigere Grenze setzt.</p>
+   </div>
+  </div>
+
   <div class="aside-code words-first">
    <div class="said">
-    <h3>Was er braucht</h3>
-    <p class="cue">Chrome, weil das Zuhören die eigene Spracherkennung von
-    Chrome übernimmt. Den Schalter <code class="flag">--watch</code>, der
-    <code>node build.js</code> weiterlaufen lässt und die Vorlesung bei jedem
-    Speichern neu baut: Das Cockpit gibt, was es hört, an dieses laufende
-    Programm weiter, und das Programm fragt ein Sprachmodell. Eine Internetverbindung für den ganzen
-    Vortrag. Und einen API-Schlüssel für openrouter.ai, den Dienst, der die
-    Anfrage an das Modell weiterreicht: Man legt ihn in einem OpenRouter-Konto
-    an, über das auch die Anfragen bezahlt werden, und setzt ihn vor dem Start
-    in die Umgebungsvariable <code>OPENROUTER_API_KEY</code>. Was ein Vortrag
-    kostet, hängt vom Modell ab und davon, wie oft der Prompter fragt. Zur
-    Größenordnung: Eine Keynote samt allen Proben und Testläufen davor hat etwa
-    einen US-Dollar gekostet. Der Prompter stellt höchstens 360 Anfragen pro
-    Stunde, wenn man keine niedrigere Grenze setzt.
-    Ohne Schlüssel startet der Prompter ausgeschaltet und schreibt nur mit, was
-    er gehört hat.</p>
-    <p class="cue">Für eine Probe erledigt <code class="flag">--prompter-dry-run</code> alles
-    außer dem Aufruf des Modells: Er hört zu, führt die Uhr und wendet die
-    Regeln an, wann ein Hinweis erscheinen darf, und braucht keinen Schlüssel.
-    Der Block <code>prompter:</code> in den Einstellungen oben in
-    <code>source.md</code> legt das Modell fest, wie viel neue Rede er abwartet,
-    bevor er wieder fragt, wie lange er nach einem Hinweis still ist, ob er
-    Karten ergänzen darf und wie oft er in einer Stunde fragen darf.</p>
+    <p class="cue"><strong>Eine Probe braucht keinen Schlüssel.</strong>
+    <code class="flag">--prompter-dry-run</code> erledigt alles außer dem
+    Aufruf des Modells: Er hört zu, führt die Uhr und wendet die Regeln an,
+    wann ein Hinweis erscheinen darf. Der Block <code>prompter:</code> in den
+    Einstellungen oben in <code>source.md</code> legt das Modell fest, wie viel
+    neue Rede er abwartet, bevor er wieder fragt, wie lange er nach einem
+    Hinweis still ist, ob er Karten ergänzen darf und wie oft er in einer
+    Stunde fragen darf.</p>
    </div>
 <pre><code><span class="t-cmt"># in den Einstellungen oben in source.md</span>
 <span class="t-cmt"># duration: die geplante Dauer in Minuten, für die Uhr;</span>
