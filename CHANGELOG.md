@@ -124,6 +124,33 @@ same browser could reach on loopback:
   of those places now says so, and the toast is worded for the run it is
   shown in: on-device or not, dry or not.
 
+A third set is about the two live views while a talk runs:
+
+- **The projection and the cockpit listen only to each other.** Opened from
+  disk, both report their origin as `null`, and so does any sandboxed frame,
+  including one inside an embedded video player. Such a frame could post to
+  the projection as if it were the cockpit: it was taken as the other window,
+  could blank the projection, put an address and its QR code on it of its
+  choosing, and send an edited figure whose markup ran script there. A
+  message is now accepted only from the window that opened this one, a
+  window this one opened, or the one already connected. The cockpit still
+  reconnects after either window reloads.
+- **An edited figure that arrives as markup keeps only what a figure is made
+  of.** Under `editor: speaker` the cockpit sends the projection its edits
+  compiled, and the projection used to strip event handlers and
+  `javascript:` addresses from them and keep everything else, a
+  `<foreignObject>` with a frame in it included. It now keeps a fixed list of
+  SVG elements and attributes – what the figure compiler emits plus the
+  static drawing vocabulary a vector asset may carry – and a stylesheet only
+  where it styles an image inside the figure, and it reads the markup where
+  nothing in it can load or run first. No figure in this repository changes.
+- **A `--watch` projection carries the socket's secret only when it can
+  write.** It carried it even when the diagram editor was not shipped to it
+  (`editor: speaker` or `none`, or a deck without a figure), so the window on
+  the projector held what lets a page change `source.md`. It now gets the
+  reload alone, as the two documents do. The cockpit does the same when it
+  has neither the editor nor the prompter.
+
 ### Changed
 
 - **The two documents read at a screen size in a browser.** `print.html`

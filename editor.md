@@ -2527,7 +2527,13 @@ compiler, so the edit message now carries the compiled figure and a shared
 `dgSwapFigure` in the diagram runtime applies it – the same function the
 editor itself uses, so the two paths cannot drift, and it refreshes the
 focus-card clone, which used to keep the pre-edit drawing on the very screen
-the room was watching.
+the room was watching. (A security review later found that markup path open
+to any sandboxed frame on a `file://` projection; `dgSwapFigure` now parses
+into a `<template>` and keeps an allow-list of SVG elements and attributes –
+what the compiler and the image leaf emit, plus the static vocabulary a
+spliced vector asset may carry – and a `<style>` only as `@scope` blocks on
+an `svg` inside the figure. Measured over 585 figures in this repository and
+the content decks, it changes none of them.)
 
 The gestures got four corrections of the same shape as the grammar's own
 no-op rule. Dragging a container or brace planned an `at` their statements

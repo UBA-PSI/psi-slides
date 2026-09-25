@@ -28,6 +28,7 @@ const SPECS = [
   './cue-cards.mjs',
   './souffleuse.mjs',
   './demo.mjs',
+  './live-trust.mjs',
   './expansion.mjs',
   './marginalia.mjs',
   './annotation.mjs',

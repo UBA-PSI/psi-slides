@@ -9667,30 +9667,156 @@ function dgStep(d, step, instant) {
   d.raf = requestAnimationFrame(tick);
 }
 
+// What may stand in a figure that arrives as markup. An allow-list, because
+// the list of what can run inside an SVG is longer than anyone keeps up to
+// date: a blocklist of on* and javascript: let a <foreignObject> through, and
+// an <iframe srcdoc> inside it ran its script on the projection. The first
+// row is what the compiler and the build's image leaf emit (measured over
+// every figure in the repository and in the content decks); the rest is the
+// static drawing vocabulary a vector asset spliced into a figure may carry -
+// shapes, gradients, clips, masks, markers, filters. Nothing that runs,
+// fetches a document, animates or links: no script, foreignObject, iframe,
+// a, animate, animateMotion, animateTransform, set, feImage.
+const DG_SAFE_EL = new Set(('svg g path rect circle text tspan image title symbol use style '
+  + 'defs desc line polyline polygon ellipse textPath linearGradient radialGradient stop '
+  + 'pattern clipPath mask marker filter feBlend feColorMatrix feComponentTransfer '
+  + 'feComposite feConvolveMatrix feDiffuseLighting feDisplacementMap feDistantLight '
+  + 'feDropShadow feFlood feFuncA feFuncB feFuncG feFuncR feGaussianBlur feMerge '
+  + 'feMergeNode feMorphology feOffset fePointLight feSpecularLighting feSpotLight '
+  + 'feTile feTurbulence').split(' '));
+// Attributes: geometry, presentation and structure. data-* and aria-* are
+// allowed by prefix; an on* handler is simply not on the list. The two href
+// spellings are judged by value in dgSafeHref.
+const DG_SAFE_ATTR = new Set(('id class style role transform xmlns xmlns:xlink xml:space '
+  + 'x y x1 y1 x2 y2 cx cy r rx ry fx fy fr width height d points dx dy rotate '
+  + 'textLength lengthAdjust startOffset method spacing side viewBox preserveAspectRatio '
+  + 'pathLength offset gradientUnits gradientTransform spreadMethod patternUnits '
+  + 'patternContentUnits patternTransform clipPathUnits maskUnits maskContentUnits '
+  + 'markerWidth markerHeight markerUnits refX refY orient filterUnits primitiveUnits '
+  + 'in in2 result stdDeviation mode operator k1 k2 k3 k4 values type tableValues slope '
+  + 'intercept amplitude exponent kernelMatrix order divisor bias targetX targetY '
+  + 'edgeMode preserveAlpha scale xChannelSelector yChannelSelector baseFrequency '
+  + 'numOctaves seed stitchTiles radius surfaceScale diffuseConstant specularConstant '
+  + 'specularExponent kernelUnitLength azimuth elevation z pointsAtX pointsAtY pointsAtZ '
+  + 'limitingConeAngle version baseProfile '
+  + 'fill fill-opacity fill-rule stroke stroke-width stroke-opacity stroke-linecap '
+  + 'stroke-linejoin stroke-miterlimit stroke-dasharray stroke-dashoffset opacity '
+  + 'clip-path clip-rule mask filter color display visibility overflow font-family '
+  + 'font-size font-size-adjust font-stretch font-style font-variant font-weight '
+  + 'text-anchor dominant-baseline alignment-baseline baseline-shift letter-spacing '
+  + 'word-spacing text-decoration paint-order vector-effect shape-rendering '
+  + 'text-rendering image-rendering color-interpolation color-interpolation-filters '
+  + 'stop-color stop-opacity marker-start marker-mid marker-end writing-mode direction '
+  + 'unicode-bidi flood-color flood-opacity lighting-color isolation mix-blend-mode '
+  + 'pointer-events transform-origin').split(' '));
+function dgSafeHref(tag, v) {
+  // Browsers drop control characters and spaces from a URL before reading
+  // its scheme, so the test does too.
+  const s = String(v || '').replace(/[\u0000-\u0020]/g, '');
+  if (s.charAt(0) === '#') return tag !== 'image';
+  if (tag !== 'image') return false;
+  // A picture: inlined, beside the page, or on the web. An <image> is drawn
+  // in a mode that runs no script, so the scheme is the whole question.
+  return /^data:image\//i.test(s) || /^https?:\/\//i.test(s) || !/^[a-z][a-z0-9+.-]*:/i.test(s);
+}
+// A spliced asset's <style> is wrapped by the build in an @scope on the
+// asset's own root (inlineSvg), with @font-face hoisted beside it. That is
+// the shape kept: every top-level block that is an @scope on an svg inside
+// this figure, or an @font-face. Anything else - a bare rule, an @import, a
+// scope on some other element - would style the page around the figure,
+// and is dropped. Returns null when nothing had to go, so a stylesheet that
+// passes keeps its text byte for byte.
+function dgScopedCss(css, ids) {
+  const n = css.length;
+  const keep = [];
+  let dropped = false;
+  const atom = (j) => {
+    const c = css[j];
+    if (c === '/' && css[j + 1] === '*') { const e = css.indexOf('*/', j + 2); return e < 0 ? n : e + 2; }
+    if (c === '"' || c === "'") {
+      let k = j + 1;
+      while (k < n && css[k] !== c) { if (css[k] === '\\') k++; k++; }
+      return k + 1;
+    }
+    if (c === '\\') return j + 2;
+    return -1;
+  };
+  let i = 0;
+  while (i < n) {
+    let p = i;
+    while (p < n && css[p] !== '{' && css[p] !== ';' && css[p] !== '}') {
+      const s = atom(p); p = s < 0 ? p + 1 : s;
+    }
+    const prelude = css.slice(i, Math.min(p, n)).replace(/\/\*[\s\S]*?\*\//g, '').trim();
+    if (p >= n) { if (prelude) dropped = true; break; }
+    if (css[p] !== '{') { dropped = true; i = p + 1; continue; }
+    let q = p + 1, depth = 1;
+    while (q < n && depth > 0) {
+      const s = atom(q);
+      if (s >= 0) { q = s; continue; }
+      if (css[q] === '{') depth++;
+      else if (css[q] === '}') depth--;
+      q++;
+    }
+    const m = /^@scope\s*\(\s*svg#([A-Za-z0-9_-]+)\s*\)$/.exec(prelude);
+    if ((m && ids.has(m[1])) || /^@font-face$/i.test(prelude)) keep.push(css.slice(i, q).trim());
+    else dropped = true;
+    i = q;
+  }
+  return dropped ? keep.join('\n') : null;
+}
+function dgCleanSvg(root) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const all = [root, ...root.querySelectorAll('*')];
+  const gone = new Set();
+  for (const el of all) {
+    if (el.parentNode && gone.has(el.parentNode)) { gone.add(el); continue; }
+    if (el.namespaceURI !== NS || !DG_SAFE_EL.has(el.localName)) { gone.add(el); continue; }
+    for (const a of [...el.attributes]) {
+      const name = a.name;
+      const ok = /^(data|aria)-[a-z0-9_.-]*$/i.test(name)
+        ? true
+        : (name === 'href' || name === 'xlink:href')
+          ? dgSafeHref(el.localName, a.value)
+          : DG_SAFE_ATTR.has(name);
+      if (!ok) el.removeAttribute(name);
+    }
+  }
+  for (const el of gone) if (el !== root) el.remove();
+  if (gone.has(root)) return false;
+  const ids = new Set([...root.querySelectorAll('svg[id]')].map((s) => s.id));
+  if (root.id) ids.add(root.id);
+  for (const st of root.querySelectorAll('style')) {
+    const css = dgScopedCss(st.textContent, ids);
+    if (css !== null) st.textContent = css;
+  }
+  return true;
+}
+
 // Swap one diagram for a freshly compiled copy of itself – the DOM half of
 // an applied edit. Shared: the editor calls it after compiling in this
 // window, and the diagram-edit receiver in a view that ships no editor
 // (editor: speaker) calls it with the markup the cockpit sent along. One
 // text, or the two swap paths would drift.
 function dgSwapFigure(oldSvg, html) {
-  const holder = document.createElement('div');
+  // Parsed into a template, never into a div: a detached div still belongs
+  // to this document, and an <img onerror> in it fires without ever being
+  // attached. A template's content has no window, so nothing in it loads or
+  // runs. Only two things are taken out of it, the drawing and its frames
+  // payload, and both are cut down to what a figure is made of before either
+  // reaches the page (dgCleanSvg). The payload is data - a script element
+  // that is not JSON is not one.
+  const holder = document.createElement('template');
   holder.innerHTML = html;
-  // Belt and braces for the remote path: the compiler never emits an event
-  // handler, an executable script or a javascript: URL, so anything of the
-  // kind in incoming markup is not a figure – scrub it rather than let it
-  // run. innerHTML does not execute script elements, but an on* attribute
-  // on a parsed element fires the moment it is in the document.
-  holder.querySelectorAll('script:not([type="application/json"])').forEach((s) => s.remove());
-  holder.querySelectorAll('*').forEach((el) => {
-    for (const a of [...el.attributes]) {
-      const n = a.name.toLowerCase();
-      const v = String(a.value || '').trim().toLowerCase();
-      if (n.indexOf('on') === 0 || v.indexOf('javascript:') === 0) el.removeAttribute(a.name);
+  const next = holder.content.querySelector('svg.psi-diagram');
+  let payload = holder.content.querySelector('script.psi-diagram-frames');
+  if (!next || !dgCleanSvg(next)) return null;
+  if (payload) {
+    if (payload.getAttribute('type') !== 'application/json') payload = null;
+    else for (const a of [...payload.attributes]) {
+      if (a.name !== 'type' && a.name !== 'class' && a.name !== 'data-for') payload.removeAttribute(a.name);
     }
-  });
-  const next = holder.querySelector('svg.psi-diagram');
-  const payload = holder.querySelector('script.psi-diagram-frames');
-  if (!next) return null;
+  }
   const live = oldSvg.psiDiagram;
   if (next.dataset.liveViewbox) dgUseLiveViewBox(next);
   const figure = oldSvg.closest('.figure-diagram');
@@ -10189,9 +10315,9 @@ function cycleTheme(dir) {
 // between two file:// pages where BroadcastChannel does not.
 //
 // Messages are always full state snapshots, never diffs. The peer
-// is auto-adopted from any inbound message, so an audience reload
-// while the speaker is alive recovers the link as soon as the
-// speaker next pushes.
+// is adopted from an inbound message whose sender is the other view
+// (isPeerWindow), so an audience reload while the speaker is alive
+// recovers the link as soon as the speaker next pushes.
 let peer = null;
 let isApplyingRemote = false;
 // Our own origin as postMessage reports it. On file:// that is the string
@@ -10200,6 +10326,24 @@ let isApplyingRemote = false;
 const SELF_ORIGIN = (typeof window.origin === 'string') ? window.origin : location.origin;
 function setPeer(w) {
   if (w && w !== window && !w.closed) peer = w;
+}
+// Is this sender the other live view? The origin alone cannot say: on
+// file:// it is the string "null" for both views, and for every sandboxed
+// frame as well - one inside an embedded player, one a player's own page
+// makes - and a frame posting "null" used to be adopted as the peer and
+// obeyed, down to a diagram-edit that put its own markup on the projection.
+// So a sender is accepted by who it is, never by where it says it is from.
+// Three windows qualify, and only top-level ones can: the peer we already
+// hold; our opener, which is how a cockpit knows its projection; and a
+// window whose opener we are, which is how the projection knows the cockpit
+// it opened with S - still true after the projection reloads, because the
+// cockpit's opener is this browsing context and not this document, which is
+// what lets a reloaded projection take the cockpit's next push. A frame has
+// no opener that is us, and a popup a frame opens has the frame for one.
+function isPeerWindow(w) {
+  if (!w || w === window) return false;
+  if (w === peer || w === window.opener) return true;
+  try { return w.opener === window; } catch (e) { return false; }
 }
 function sendToPeer(msg) {
   if (!peer || peer.closed) { peer = null; return; }
@@ -10446,6 +10590,9 @@ window.addEventListener('message', (ev) => {
   // Both live views are the same origin as each other by construction
   // (two file:// pages, or two pages off the same --serve).
   if (ev.origin !== SELF_ORIGIN) return;
+  // And the origin is not enough: a sandboxed frame is "null" too. See
+  // isPeerWindow.
+  if (!isPeerWindow(ev.source)) return;
   const m = ev.data;
   if (!m || typeof m !== 'object') return;
   if (m.source === VIEW) return; // ignore our own postings (shouldn't happen, defensive)
@@ -10456,7 +10603,7 @@ window.addEventListener('message', (ev) => {
   // booted, or the one it lost to its own reload – so that whichever
   // window holds a demo can hand it over again (demoAnnounce).
   const hadPeer = hasLivePeer();
-  if (ev.source && ev.source !== window) setPeer(ev.source);
+  setPeer(ev.source);
   if (VIEW === 'audience' && !hadPeer && hasLivePeer() && m.type !== 'hello') {
     sendToPeer({ type: 'hello', source: 'audience' });
   }

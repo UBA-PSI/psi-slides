@@ -7,7 +7,7 @@ Two suites, split by one question: **can this be decided without a browser?**
   hand-mirrored list one file keeps of another's. Seventeen gates, under a second,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 47 specs, about 1,500
+- **`test/`** – the things that only break in a built page. 48 specs, about 1,500
   assertions, about twelve minutes, one Chromium for the whole run. One of
   them, `souffleuse`, starts an engine of its own beside that browser – see
   below.
@@ -258,7 +258,7 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The sixteen specs that build a deck of their own
+### The seventeen specs that build a deck of their own
 
 Four different reasons, and the last is the one to remember.
 
@@ -320,6 +320,14 @@ site gets – a refused handshake, a 403 for a foreign `Host`, a 404 for
 `source.md` and the transcript – that a cockpit from `file://` still
 connects and both documents still reload with no nonce, and starts a second
 engine under `--prompter-dry-run` with no key to read its toast.
+`live-trust` is the other half of that security work, the part that runs in
+the two live views: a sandboxed frame posting to a projection opened from
+disk (whose origin is `null` like the frame's) is neither adopted as the
+peer nor obeyed, a hostile figure handed to `dgSwapFigure` runs nothing, the
+real cockpit still reconnects through both windows' reloads, and a `--watch`
+build carries the nonce only in a view that ships a writer. Its decks are its
+own because no lecture is `editor: speaker`, and the nonce half needs three
+`--watch` builds of one deck differing in that line.
 
 **Because a spec that hunted its shapes in a real deck would break the next time
 that deck was edited** – `squint`, whose four shapes (a promoted bold, a reveal
