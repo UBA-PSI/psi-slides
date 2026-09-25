@@ -127,8 +127,9 @@ const BAR_TEXT = {
  *             bar. A row without `nav` is a page the bar does not carry - the
  *             figure manual, the display-face roster - listed so the link gate
  *             knows what it is. The bar has no room to spare (see DESIGN.md,
- *             "The strip must never grow a second line"), and both of those
- *             pages are reached from the one page that introduces them.
+ *             "The strip must never grow a second line"), and each of those
+ *             pages - the prompter too - is reached from the one page that
+ *             introduces it.
  *   pending   the destination does not exist yet. The row stays in the table
  *             so the page it names is one flag away, and the bar leaves it
  *             out until then: an entry that 404s is worse than one that is
@@ -148,6 +149,7 @@ const SITE_PAGES = {
   figures:    { en: 'figures.html',                                                    nav: 'figures' },
   start:      { en: 'getting-started.html',       de: 'de/getting-started.html',       nav: 'start' },
   comparison: { en: 'comparison.html',                                                 nav: 'comparison' },
+  prompter:   { en: 'prompter.html',              de: 'de/prompter.html' },
   manual:     { en: 'figures-you-write.html' },
   faces:      { en: 'display-faces.html' },
 };
@@ -650,6 +652,11 @@ function main() {
   // lecture already carries on `?`.
   landing('in-the-room.html', 'in-the-room.html', 'room', 'en', '');
   landing('in-the-room.de.html', path.join('de', 'in-the-room.html'), 'room', 'de', '../');
+  // The live prompter, pulled out of in-the-room.html once its section had
+  // outgrown the page. That page keeps a teaser under #prompter and is the
+  // only way in: the page is not in the bar.
+  landing('prompter.html', 'prompter.html', 'prompter', 'en', '');
+  landing('prompter.de.html', path.join('de', 'prompter.html'), 'prompter', 'de', '../');
   // The cover, divider, card, backdrop, overlay and dock vocabulary, pulled
   // out of the front page's longest section. The `#covers` anchor stays on
   // index.html as well, because the lecture's own QR codes used to point at
@@ -730,6 +737,7 @@ function main() {
     { en: 'index.html', de: 'index.de.html' },
     { en: 'getting-started.html', de: 'getting-started.de.html' },
     { en: 'in-the-room.html', de: 'in-the-room.de.html' },
+    { en: 'prompter.html', de: 'prompter.de.html' },
     { en: 'decoration.html', de: 'decoration.de.html' },
   ]);
   if (wantWords) reportWords(written);

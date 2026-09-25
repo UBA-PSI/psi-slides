@@ -1,0 +1,259 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>psi-slides &ndash; the prompter</title>
+<link rel="alternate" hreflang="en" href="https://uba-psi.github.io/psi-slides/prompter.html">
+<link rel="alternate" hreflang="de" href="https://uba-psi.github.io/psi-slides/de/prompter.html">
+<link rel="alternate" hreflang="x-default" href="https://uba-psi.github.io/psi-slides/prompter.html">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<!--topbar-->
+<main class="banded">
+
+<!-- The prompter, pulled out of in-the-room.html, where it had grown into
+     four rows of dense prose under one picture. That page keeps a teaser
+     under the old #prompter anchor and links here. Each section below is one
+     question a speaker asks before switching it on, in the order they ask
+     it: what it does, what it needs, how to try it, what it sends and keeps,
+     and who else it hears. Not in the bar: like the figure
+     manual and the display faces, it is reached from the one page that
+     introduces it. -->
+
+<section class="band band-hero">
+ <div class="wrap">
+  <p class="mark"><b>psi-slides</b> &middot; <a href="in-the-room.html#prompter">back to In the room</a>
+  &middot; <a href="de/prompter.html" hreflang="de" lang="de">Diese Seite auf Deutsch</a></p>
+
+  <h1>The prompter</h1>
+
+  <p class="lede">The cockpit can listen while you talk and, when something
+  needs saying, put a short hint on a strip across the bottom of its copy of
+  the slide. Most of the time the prompter says nothing.</p>
+
+  <!-- Half-empty row, answer 1: the two things a speaker has to know before
+       reading on, of one length, so the row is even. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>It is new, and it stays off unless you switch it on.</strong>
+    Start the lecture with <code class="flag">--watch --prompter</code>, and
+    even then nothing listens until you press <kbd>Shift</kbd>-<kbd>S</kbd> in
+    the cockpit, or the <b>&#9676; prompter</b> button in its footer, which does
+    the same. Press it again and it stops listening.</p>
+   </div>
+   <div>
+    <p><strong>It goes online, and it costs money.</strong> It asks a language
+    model over the internet, so the talk needs a network connection and an API
+    key from an OpenRouter account, and each call is charged to that account.
+    Its microphone hears everyone in the room, and they should be told before
+    you start.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <!-- A band: what it speaks up about, beside the picture of it doing so.
+       The picture is not staged where it matters: the hint on the strip is
+       what the model answered. docs/site/shoot-prompter.mjs feeds the cockpit
+       a speaker's words through the same door a microphone does and
+       photographs whatever comes back; it writes no hint. -->
+  <h2 id="hints">What it whispers</h2>
+  <div class="beside">
+   <div class="said">
+    <p class="lede">It speaks up when you are behind time, when a point stays
+    abstract although your slides have an example for it, when what you just
+    said contradicts your own slide, when you are speaking too fast, or when
+    your notes planned something for this slide and you have walked past it.
+    psi-slides counts the tempo itself and gives the model the figures: words
+    a minute, filler sounds, the longest pause.</p>
+    <p class="cue">The slide says 90 milliseconds, and the speaker has just
+    said &ldquo;I think it was 250 milliseconds&rdquo;. The red strip carries
+    the prompter&rsquo;s answer, word for word as the model gave it. It is red
+    because the model marked it urgent, a level kept for something that would
+    mislead the room if it stood.</p>
+   </div>
+   <div class="stage">
+    <figure class="shot">
+     <div class="bar"><b>speaker.html</b> &middot; Shift-S</div>
+     <img src="img/prompter-hint.webp" alt="The whole cockpit. Across the top, the parts of the talk and the clock at 1:45; in the middle, its copy of the current slide, reading &ldquo;1.4 seconds. Then 90 milliseconds.&rdquo; Across the lower edge of that slide a red strip reads &ldquo;The number is ninety milliseconds, not 250.&rdquo;, and under it a faint line reads &ldquo;asked 3s ago &middot; 2 so far&rdquo;. Below the slide, the speaker note, then a row of five slide previews with the current one outlined in red, and a footer with the prompter button lit.">
+    </figure>
+   </div>
+  </div>
+
+  <!-- Half-empty row, answer 1: the three things a hint can do besides
+       appear, one row. -->
+  <div class="pair-up trio">
+   <div>
+    <p><strong>A hint stays in the cockpit.</strong> It stands on the
+    cockpit&rsquo;s copy of the slide, where you are looking anyway, and
+    <kbd>Esc</kbd> takes it off the strip. Nothing the prompter says appears on
+    the projection.</p>
+   </div>
+   <div>
+    <p><strong>It can add a cue card to a slide still to come</strong>, the last
+    slide included, when you said something in passing that is worth saying
+    again there. The cards are the ones <kbd>K</kbd> shows, described
+    <a href="in-the-room.html#cue-cards">on In the room</a>.</p>
+   </div>
+   <div>
+    <p><strong>The line under the strip</strong> shows, for the first minute,
+    the words the speech recognition picks up. After that it says when the
+    prompter last asked the model, so you can tell a prompter with nothing to
+    say from one that has stopped.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="needs">What it needs</h2>
+  <!-- Three requirements of one length, one row: the browser and the running
+       build, the account, and what the account pays. -->
+  <div class="pair-up trio">
+   <div>
+    <p><strong>Chrome and <code class="flag">--watch</code>.</strong> The
+    listening is done by Chrome&rsquo;s own speech recognition. The
+    <code class="flag">--watch</code> flag keeps <code>node build.js</code>
+    running and rebuilds the lecture whenever you save; the cockpit hands what
+    it hears to that running program, and the program asks a language
+    model.</p>
+   </div>
+   <div>
+    <p><strong>The internet and an OpenRouter key.</strong> The model is
+    reached through openrouter.ai. You create an API key in an OpenRouter
+    account, which is also where the calls are paid for, and put it in the
+    environment variable <code>OPENROUTER_API_KEY</code> before you start.
+    Without a key the prompter starts switched off and only writes down what
+    it heard.</p>
+   </div>
+   <div>
+    <p><strong>Money.</strong> What a talk costs depends on
+    the model and on how often the prompter asks. For a sense of scale: one
+    keynote, together with every rehearsal and test run before it, came to
+    about one US dollar with the default model, Claude Sonnet&nbsp;5. The
+    prompter makes at most 360 calls an hour unless you set a lower limit.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="rehearsal">A rehearsal needs no key</h2>
+  <!-- Half-empty row, answer 1: the listing takes the wide half and the two
+       things it shows the narrow one. -->
+  <div class="aside-code words-first">
+   <div class="said">
+    <p class="cue"><code class="flag">--prompter-dry-run</code> does everything
+    except call the model: it listens, keeps the clock and applies the rules on
+    when a hint may appear. Nothing goes to openrouter.ai; Chrome&rsquo;s speech
+    recognition works as it does in the talk.</p>
+    <p class="cue">The <code>prompter:</code> block in the settings at the top
+    of <code>source.md</code> sets the model, how much new speech it waits for
+    before asking again, how long it stays quiet after a hint, whether it may
+    add cue cards, and how many calls it may make in an hour.</p>
+   </div>
+<pre><code><span class="t-cmt"># in the settings at the top of source.md</span>
+<span class="t-cmt"># duration: the planned length in minutes, for the clock;</span>
+<span class="t-cmt"># cooldown: the seconds of quiet after each hint</span>
+<span class="t-dir">duration:</span> 45
+<span class="t-dir">prompter:</span>
+  <span class="t-dir">cooldown:</span> 60
+
+<span class="t-cmt"># the talk, with OPENROUTER_API_KEY set in the environment</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch --prompter</span>
+
+<span class="t-cmt"># a rehearsal: nothing goes to the model, no key needed</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch --prompter --prompter-dry-run</span></code></pre>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="data">What leaves your computer, and what stays on it</h2>
+  <!-- Two answers of one length, one row: what goes out and what is written
+       down at home. It used to be three sections of one short column each,
+       with the other half of the screen empty three times running. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>The prompter sends text to openrouter.ai:</strong> the
+    transcript and the lecture&rsquo;s text, speaker notes included. From there
+    it goes to the company that runs the model. The prompter sends no audio,
+    but the speech recognition is Chrome&rsquo;s, and Chrome sends the audio to
+    Google unless it can run the recognition on your computer; the cockpit
+    tells you which. None of this appears on the projection or is written into
+    <code>source.md</code>. <code>node build.js</code> reads the key from the
+    environment and never writes it into the HTML files.</p>
+   </div>
+   <div id="log">
+    <p><strong>Each run keeps a log</strong> beside <code>source.md</code>, in
+    <code>prompter-&lt;date&gt;.jsonl</code>: what the prompter heard, which
+    hints it showed, and what it wanted to say but its rules stopped, with the
+    rule that stopped it. Beside it, <code>prompter-&lt;hash&gt;.prompt.txt</code>
+    holds the lecture&rsquo;s text exactly as the model received it. The log
+    holds your spoken words verbatim, so keep it out of repositories you
+    publish. During the talk, <kbd>Shift</kbd>-click the prompter button to
+    see the last ten hints and cards.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <!-- No picture and one thought, so the block takes the measure: ground to
+       its right is the page's own margin (DESIGN.md, "Not everything is a
+       band"). Its own section because it is the one thing on this page the
+       people in the room have a stake in. -->
+  <h2 id="room">The microphone hears the whole room</h2>
+  <p>Questions and remarks from the audience are transcribed and sent to the
+  model like your own words. Tell the audience before the talk that the
+  prompter is listening, and switch it off with <kbd>Shift</kbd>-<kbd>S</kbd>
+  when someone from the room speaks, for example during questions.</p>
+  <p>Whether you may use it in your setting is for you to check: data
+  protection law (in the EU the GDPR) and the personal rights of the people in
+  the room cover their words too.</p>
+ </div>
+</section>
+
+<section class="band band-close">
+ <div class="wrap">
+  <div class="middle">
+  <h2>Where to read further</h2>
+  <ul class="reads">
+    <li><b><a href="index.html">What psi-slides is</a></b>
+      The front page: one lecture as the room sees it and as the reader gets
+      it, and why those are the same file.</li>
+    <li><b><a href="in-the-room.html">In the room</a></b>
+      The rest of the cockpit: the two windows, the steps, the cue cards the
+      prompter can add to, and the keys that take the room&rsquo;s eyes off
+      the slide.</li>
+    <li><b><a href="getting-started.html">Getting started</a></b>
+      The app and the command line, and how to build the tutorial from a
+      machine with nothing installed on it.</li>
+    <li><b><a href="https://github.com/UBA-PSI/psi-slides/blob/main/SECURITY.md">Security</a></b>
+      What <code>--watch</code>, <code>--serve</code> and
+      <code>--prompter</code> open on your computer, and where the
+      prompter&rsquo;s data goes, in one list.</li>
+  </ul>
+
+  <footer>
+    <p>By <a href="https://herdom.net">Dominik Herrmann</a>,
+    <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
+    University of Bamberg.
+    Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0. Rebuilt from
+    source on every push.</p>
+  </footer>
+  </div>
+ </div>
+</section>
+</main>
+<script src="site.js"></script>
+</body>
+</html>

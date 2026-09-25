@@ -283,143 +283,28 @@ where the rest of the hour is going to be spent.
 
 <section class="band">
  <div class="wrap">
-  <!-- Ein Bild, und wo es darauf ankommt, ist es nicht gestellt: Der Hinweis
-       auf dem Streifen ist die Antwort des Modells. docs/site/shoot-prompter.mjs
-       gibt dem Cockpit die Worte eines Sprechers durch dieselbe Tür, durch die
-       ein Mikrofon sie gibt, und fotografiert, was zurückkommt; einen Hinweis
-       schreibt es nicht. Die Worte sind die Übersetzung einer echten Probe von
-       lectures/spoken-talk, und der Vortrag ist für die Aufnahme übersetzt,
-       weil der Prompter in der Sprache der Vorlesung antwortet. Sonst hat der
-       Abschnitt die Form von „Ein Druck nach dem anderen“: Überschrift, Lede,
-       dann das Bild neben dem Satz, der sagt, worauf man schaut, Worte neben
-       einem Listing, dann eine Zeile mit drei. Er steht hinter den Karten,
-       weil er selbst Karten legt. -->
+  <!-- Ein Anriss. Der Prompter hat eine eigene Seite, prompter.html (siehe
+       die englische Seite). Die Id bleibt, damit alte Links ankommen. -->
   <div class="beside heading-in">
    <div class="said">
     <h2 id="prompter">Ein Prompter, wenn man ihn einschaltet</h2>
-    <p class="lede">Der Prompter ist neu, und er bleibt aus, solange man die
-    Vorlesung nicht mit <code class="flag">--watch --prompter</code> startet. Er fragt ein Sprachmodell über das Internet: Für den Vortrag braucht
-    man eine Netzverbindung und einen API-Schlüssel eines OpenRouter-Kontos, und
-    jede Anfrage wird diesem Konto berechnet. Dann kann das
-    Cockpit zuhören, während man spricht, und wenn etwas gesagt werden muss,
-    einen kurzen Hinweis auf einen Streifen am unteren Rand
-    seiner Kopie der Folie legen. Meistens sagt er nichts. Er hört erst zu, wenn
-    man im Cockpit <kbd>Shift</kbd>-<kbd>S</kbd> drückt oder den Knopf
-    <b>&#9676; prompter</b> in der Fußzeile, der dasselbe tut.</p>
-    <p class="cue">Auf der Folie stehen 90
-    Millisekunden, und der Sprecher hat gerade &bdquo;ich glaube, es waren 250
-    Millisekunden&ldquo; gesagt. Auf dem roten Streifen steht die Antwort des
-    Prompters, Wort für Wort so, wie das Modell sie gegeben hat. Rot ist er,
-    weil das Modell ihn als dringend markiert hat, eine Stufe für etwas, das den
-    Saal in die Irre führen würde, wenn es so stehen bliebe.</p>
+    <p class="lede">Das Cockpit kann zuhören, während man spricht, und einen
+    kurzen Hinweis auf seine Kopie der Folie legen, wenn etwas gesagt werden
+    muss. Der Prompter ist neu und bleibt aus, solange man die Vorlesung nicht
+    mit <code class="flag">--watch --prompter</code> startet. Er fragt ein
+    Sprachmodell über das Internet, braucht also eine Netzverbindung und einen
+    OpenRouter-Schlüssel, jede Anfrage kostet Geld, und sein Mikrofon hört den
+    ganzen Saal.</p>
+    <p class="cue">Der rote Streifen ist die Antwort des Modells auf eine Zahl,
+    die der Sprecher falsch gesagt hat. <a href="prompter.html">Die eigene
+    Seite des Prompters</a> sagt, wobei er sich meldet, was er kostet, was den
+    Rechner verlässt und wie man mit ihm probt.</p>
    </div>
    <div class="stage">
     <figure class="shot">
      <div class="bar"><b>speaker.html</b> &middot; Shift-S</div>
      <img src="../img/prompter-hint-de.webp" alt="Das ganze Cockpit. Oben die Teile des Vortrags und die Uhr; in der Mitte seine Kopie der aktuellen Folie, auf der &bdquo;1,4 Sekunden. Dann 90 Millisekunden.&ldquo; steht. Über den unteren Rand dieser Folie liegt ein roter Streifen mit &bdquo;Neunzig, nicht 250 Millisekunden.&ldquo;, darunter eine blasse Zeile: &bdquo;asked 3s ago &middot; 2 so far&ldquo;. Unter der Folie die Sprechernotiz, dann eine Reihe von fünf Folienvorschauen, die aktuelle rot umrandet, und eine Fußzeile mit dem leuchtenden Prompter-Knopf.">
     </figure>
-   </div>
-  </div>
-
-  <!-- Was er braucht, als zwei kurze Blöcke nebeneinander, dann die Probe
-       neben dem Listing (siehe die englische Seite). -->
-  <div class="pair-up">
-   <div>
-    <p><strong>Er braucht Chrome und <code class="flag">--watch</code>.</strong>
-    Das Zuhören übernimmt die eigene Spracherkennung von Chrome. Der Schalter
-    <code class="flag">--watch</code> lässt <code>node build.js</code>
-    weiterlaufen und baut die Vorlesung bei jedem Speichern neu; das Cockpit
-    gibt, was es hört, an dieses laufende Programm weiter, und das Programm
-    fragt ein Sprachmodell. Ohne Schlüssel startet der Prompter ausgeschaltet
-    und schreibt nur mit, was er gehört hat.</p>
-   </div>
-   <div>
-    <p><strong>Er braucht Internet und einen OpenRouter-Schlüssel, und er
-    kostet Geld.</strong> Das Modell wird über openrouter.ai erreicht. Den
-    API-Schlüssel legt man in einem OpenRouter-Konto an, über das auch die
-    Anfragen bezahlt werden, und setzt ihn vor dem Start in die
-    Umgebungsvariable <code>OPENROUTER_API_KEY</code>. Was ein Vortrag kostet,
-    hängt vom Modell ab und davon, wie oft der Prompter fragt. Zur
-    Größenordnung: Eine Keynote samt allen Proben und Testläufen davor hat mit
-    dem voreingestellten Modell, Claude Sonnet&nbsp;5, etwa einen US-Dollar
-    gekostet. Der Prompter stellt höchstens 360 Anfragen pro Stunde, wenn man
-    keine niedrigere Grenze setzt.</p>
-   </div>
-  </div>
-
-  <div class="aside-code words-first">
-   <div class="said">
-    <p class="cue"><strong>Eine Probe braucht keinen Schlüssel.</strong>
-    <code class="flag">--prompter-dry-run</code> erledigt alles außer dem
-    Aufruf des Modells: Er hört zu, führt die Uhr und wendet die Regeln an,
-    wann ein Hinweis erscheinen darf. Der Block <code>prompter:</code> in den
-    Einstellungen oben in <code>source.md</code> legt das Modell fest, wie viel
-    neue Rede er abwartet, bevor er wieder fragt, wie lange er nach einem
-    Hinweis still ist, ob er Karten ergänzen darf und wie oft er in einer
-    Stunde fragen darf.</p>
-   </div>
-<pre><code><span class="t-cmt"># in den Einstellungen oben in source.md</span>
-<span class="t-cmt"># duration: die geplante Dauer in Minuten, für die Uhr;</span>
-<span class="t-cmt"># cooldown: die Sekunden Ruhe nach jedem Hinweis</span>
-<span class="t-dir">duration:</span> 45
-<span class="t-dir">prompter:</span>
-  <span class="t-dir">cooldown:</span> 60
-
-<span class="t-cmt"># der Vortrag, mit OPENROUTER_API_KEY in der Umgebung</span>
-<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch --prompter</span>
-
-<span class="t-cmt"># eine Probe: nichts geht an das Modell, kein Schlüssel nötig</span>
-<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch --prompter --prompter-dry-run</span></code></pre>
-  </div>
-
-  <!-- Halbleere Zeile, Antwort 1: was er sagt, was er schickt, was er
-       aufhebt. Drei Antworten auf „was lasse ich da in die Stunde“, eine
-       Zeile. -->
-  <div class="pair-up trio">
-   <div>
-    <p><strong>Er meldet sich, wenn man hinter der Zeit ist</strong>, wenn ein
-    Punkt abstrakt bleibt, obwohl die Folien ein Beispiel dafür haben, wenn das
-    eben Gesagte der eigenen Folie widerspricht, wenn man zu schnell spricht
-    oder wenn die eigenen Notizen für diese Folie etwas vorgesehen haben, an dem
-    man vorbeigegangen ist. Das Tempo zählt psi-slides selbst und gibt dem
-    Modell die Zahlen: Wörter pro Minute, Füllwörter, die längste Pause.
-    <kbd>Esc</kbd> nimmt einen Hinweis vom Streifen.</p>
-    <p>Er kann auch einer Folie, die noch kommt, eine Karte hinzufügen, der
-    letzten Folie eingeschlossen, wenn man im Vorbeigehen etwas gesagt hat, das
-    es wert ist, dort noch einmal gesagt zu werden.</p>
-   </div>
-   <div>
-    <p><strong>Der Prompter schickt Text an openrouter.ai:</strong> das
-    Transkript und den Text der Vorlesung samt Sprechernotizen. Von dort geht er
-    an das Unternehmen, das das Modell betreibt. Der Prompter verschickt keinen
-    Ton, aber die Spracherkennung ist die von Chrome, und Chrome schickt den Ton
-    an Google, wenn es die Erkennung nicht auf dem eigenen Rechner ausführen
-    kann; das Cockpit sagt, welches von beiden. Nichts davon erscheint auf der
-    Projektion oder wird in <code>source.md</code> geschrieben.
-    <code>node build.js</code> liest den Schlüssel aus der Umgebung und schreibt
-    ihn nie in die HTML-Dateien.</p>
-    <p><strong>Das Mikrofon hört den ganzen Saal.</strong> Fragen und
-    Einwürfe aus dem Publikum werden transkribiert und wie die eigenen Worte an
-    das Modell geschickt. Deshalb sollte man dem Publikum vor dem Vortrag
-    sagen, dass der Prompter mithört, und ihn mit
-    <kbd>Shift</kbd>-<kbd>S</kbd> ausschalten, wenn jemand aus dem Saal
-    spricht, etwa in der Fragerunde. Ob man ihn im eigenen Rahmen einsetzen
-    darf, muss man selbst prüfen: Der Datenschutz (in der EU die DSGVO) und die
-    Persönlichkeitsrechte der Anwesenden gelten auch für ihre Worte.</p>
-   </div>
-   <div>
-    <p><strong>Jeder Lauf führt ein Protokoll</strong> neben
-    <code>source.md</code>, in <code>prompter-&lt;date&gt;.jsonl</code>: was
-    der Prompter gehört hat, welche Hinweise er gezeigt hat und was er sagen
-    wollte, aber nach seinen Regeln nicht durfte, mit der Regel, die es
-    verhindert hat. Daneben steht <code>prompter-&lt;hash&gt;.prompt.txt</code>
-    mit dem Text der Vorlesung, genau so, wie das Modell ihn bekommen hat.</p>
-    <p>Während des Vortrags zeigt ein <kbd>Shift</kbd>-Klick auf den
-    Prompter-Knopf die letzten zehn Hinweise und Karten. In der ersten Minute
-    zeigt eine blasse Zeile unter dem Streifen die Wörter, die die
-    Spracherkennung aufnimmt. Danach sagt dieselbe Zeile, wann der Prompter
-    zuletzt das Modell gefragt hat, sodass man einen Prompter, der nichts zu
-    sagen hat, von einem unterscheiden kann, der stehen geblieben ist.</p>
    </div>
   </div>
  </div>

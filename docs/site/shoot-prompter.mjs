@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 /**
- * Photographs the live prompter saying something, for the #prompter section
- * of in-the-room.html and in-the-room.de.html.
+ * Photographs the live prompter saying something, for prompter.html and
+ * prompter.de.html and for the #prompter teaser on in-the-room.html and
+ * in-the-room.de.html.
  *
  *   node --env-file=.env docs/site/shoot-prompter.mjs en
  *   node --env-file=.env docs/site/shoot-prompter.mjs de --source <german deck>/source.md

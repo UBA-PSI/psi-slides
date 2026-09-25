@@ -1,0 +1,249 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>psi-slides &ndash; der Prompter</title>
+<link rel="alternate" hreflang="en" href="https://uba-psi.github.io/psi-slides/prompter.html">
+<link rel="alternate" hreflang="de" href="https://uba-psi.github.io/psi-slides/de/prompter.html">
+<link rel="alternate" hreflang="x-default" href="https://uba-psi.github.io/psi-slides/prompter.html">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<!--topbar-->
+<main class="banded">
+
+<!-- Der Prompter, aus in-the-room.de.html herausgezogen (siehe die englische
+     Seite). Jeder Abschnitt ist eine Frage, die man vor dem Einschalten
+     stellt, in der Reihenfolge, in der man sie stellt. Nicht in der Leiste:
+     erreichbar von „Im Raum“ aus. -->
+
+<section class="band band-hero">
+ <div class="wrap">
+  <p class="mark"><b>psi-slides</b> &middot; <a href="in-the-room.html#prompter">zurück zu „Im Raum“</a>
+  &middot; <a href="../prompter.html" hreflang="en" lang="en">This page in English</a></p>
+
+  <h1>Der Prompter</h1>
+
+  <p class="lede">Das Cockpit kann zuhören, während man spricht, und wenn
+  etwas gesagt werden muss, einen kurzen Hinweis auf einen Streifen am unteren
+  Rand seiner Kopie der Folie legen. Meistens sagt der Prompter nichts.</p>
+
+  <!-- Halbleere Zeile, Antwort 1: die zwei Dinge, die man vor dem Weiterlesen
+       wissen muss, gleich lang, damit die Zeile gerade steht. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>Er ist neu, und er bleibt aus, solange man ihn nicht
+    einschaltet.</strong> Man startet die Vorlesung mit
+    <code class="flag">--watch --prompter</code>, und auch dann hört er erst
+    zu, wenn man im Cockpit <kbd>Shift</kbd>-<kbd>S</kbd> drückt oder den Knopf
+    <b>&#9676; prompter</b> in der Fußzeile, der dasselbe tut. Ein zweiter Druck
+    schaltet ihn wieder ab.</p>
+   </div>
+   <div>
+    <p><strong>Er geht online, und er kostet Geld.</strong> Er fragt ein
+    Sprachmodell über das Internet: Für den Vortrag braucht man eine
+    Netzverbindung und einen API-Schlüssel eines OpenRouter-Kontos, und jede
+    Anfrage wird diesem Konto berechnet. Sein Mikrofon hört alle im Saal, und
+    das sollte man ihnen vor dem Beginn sagen.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <!-- Ein Band: wobei er sich meldet, neben dem Bild, auf dem er es tut. Der
+       Hinweis auf dem Streifen ist die Antwort des Modells, nicht gestellt;
+       siehe docs/site/shoot-prompter.mjs. -->
+  <h2 id="hints">Was er einflüstert</h2>
+  <div class="beside">
+   <div class="said">
+    <p class="lede">Er meldet sich, wenn man hinter der Zeit ist, wenn ein Punkt
+    abstrakt bleibt, obwohl die Folien ein Beispiel dafür haben, wenn das eben
+    Gesagte der eigenen Folie widerspricht, wenn man zu schnell spricht oder
+    wenn die eigenen Notizen für diese Folie etwas vorgesehen haben, an dem man
+    vorbeigegangen ist. Das Tempo zählt psi-slides selbst und gibt dem Modell
+    die Zahlen: Wörter pro Minute, Füllwörter, die längste Pause.</p>
+    <p class="cue">Auf der Folie stehen 90 Millisekunden, und der Sprecher hat
+    gerade &bdquo;ich glaube, es waren 250 Millisekunden&ldquo; gesagt. Auf dem
+    roten Streifen steht die Antwort des Prompters, Wort für Wort so, wie das
+    Modell sie gegeben hat. Rot ist er, weil das Modell ihn als dringend
+    markiert hat, eine Stufe für etwas, das den Saal in die Irre führen würde,
+    wenn es so stehen bliebe.</p>
+   </div>
+   <div class="stage">
+    <figure class="shot">
+     <div class="bar"><b>speaker.html</b> &middot; Shift-S</div>
+     <img src="../img/prompter-hint-de.webp" alt="Das ganze Cockpit. Oben die Teile des Vortrags und die Uhr; in der Mitte seine Kopie der aktuellen Folie, auf der &bdquo;1,4 Sekunden. Dann 90 Millisekunden.&ldquo; steht. Über den unteren Rand dieser Folie liegt ein roter Streifen mit &bdquo;Neunzig, nicht 250 Millisekunden.&ldquo;, darunter eine blasse Zeile: &bdquo;asked 3s ago &middot; 2 so far&ldquo;. Unter der Folie die Sprechernotiz, dann eine Reihe von fünf Folienvorschauen, die aktuelle rot umrandet, und eine Fußzeile mit dem leuchtenden Prompter-Knopf.">
+    </figure>
+   </div>
+  </div>
+
+  <div class="pair-up trio">
+   <div>
+    <p><strong>Ein Hinweis bleibt im Cockpit.</strong> Er steht auf der Kopie
+    der Folie im Cockpit, wo man ohnehin hinschaut, und <kbd>Esc</kbd> nimmt
+    ihn vom Streifen. Nichts, was der Prompter sagt, erscheint auf der
+    Projektion.</p>
+   </div>
+   <div>
+    <p><strong>Er kann einer Folie, die noch kommt, eine Karte
+    hinzufügen</strong>, der letzten Folie eingeschlossen, wenn man im
+    Vorbeigehen etwas gesagt hat, das es wert ist, dort noch einmal gesagt zu
+    werden. Es sind die Karten, die <kbd>K</kbd> zeigt, beschrieben
+    <a href="in-the-room.html#cue-cards">auf „Im Raum“</a>.</p>
+   </div>
+   <div>
+    <p><strong>Die Zeile unter dem Streifen</strong> zeigt in der ersten Minute
+    die Wörter, die die Spracherkennung aufnimmt. Danach sagt sie, wann der
+    Prompter zuletzt das Modell gefragt hat; so unterscheidet man einen
+    Prompter, der nichts zu sagen hat, von einem, der stehen geblieben
+    ist.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="needs">Was er braucht</h2>
+  <div class="pair-up trio">
+   <div>
+    <p><strong>Chrome und <code class="flag">--watch</code>.</strong> Das
+    Zuhören übernimmt die eigene Spracherkennung von Chrome. Der Schalter
+    <code class="flag">--watch</code> lässt <code>node build.js</code>
+    weiterlaufen und baut die Vorlesung bei jedem Speichern neu; das Cockpit
+    gibt, was es hört, an dieses laufende Programm weiter, und das Programm
+    fragt ein Sprachmodell.</p>
+   </div>
+   <div>
+    <p><strong>Internet und einen OpenRouter-Schlüssel.</strong> Das Modell
+    wird über openrouter.ai erreicht. Den API-Schlüssel legt man in einem
+    OpenRouter-Konto an, über das auch die Anfragen bezahlt werden, und setzt
+    ihn vor dem Start in die Umgebungsvariable <code>OPENROUTER_API_KEY</code>.
+    Ohne Schlüssel startet der Prompter ausgeschaltet und schreibt nur mit, was
+    er gehört hat.</p>
+   </div>
+   <div>
+    <p><strong>Geld.</strong> Was ein Vortrag kostet, hängt vom Modell ab und
+    davon, wie oft der Prompter fragt. Zur Größenordnung: Eine Keynote samt
+    allen Proben und Testläufen davor hat mit dem voreingestellten Modell,
+    Claude Sonnet&nbsp;5, etwa einen US-Dollar gekostet. Der Prompter stellt
+    höchstens 360 Anfragen pro Stunde, wenn man keine niedrigere Grenze
+    setzt.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="rehearsal">Eine Probe braucht keinen Schlüssel</h2>
+  <div class="aside-code words-first">
+   <div class="said">
+    <p class="cue"><code class="flag">--prompter-dry-run</code> erledigt alles
+    außer dem Aufruf des Modells: Er hört zu, führt die Uhr und wendet die
+    Regeln an, wann ein Hinweis erscheinen darf. An openrouter.ai geht nichts;
+    die Spracherkennung von Chrome arbeitet wie im Vortrag.</p>
+    <p class="cue">Der Block <code>prompter:</code> in den Einstellungen oben in
+    <code>source.md</code> legt das Modell fest, wie viel neue Rede er abwartet,
+    bevor er wieder fragt, wie lange er nach einem Hinweis still ist, ob er
+    Karten ergänzen darf und wie oft er in einer Stunde fragen darf.</p>
+   </div>
+<pre><code><span class="t-cmt"># in den Einstellungen oben in source.md</span>
+<span class="t-cmt"># duration: die geplante Dauer in Minuten, für die Uhr;</span>
+<span class="t-cmt"># cooldown: die Sekunden Ruhe nach jedem Hinweis</span>
+<span class="t-dir">duration:</span> 45
+<span class="t-dir">prompter:</span>
+  <span class="t-dir">cooldown:</span> 60
+
+<span class="t-cmt"># der Vortrag, mit OPENROUTER_API_KEY in der Umgebung</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch --prompter</span>
+
+<span class="t-cmt"># eine Probe: nichts geht an das Modell, kein Schlüssel nötig</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch --prompter --prompter-dry-run</span></code></pre>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="data">Was den Rechner verlässt und was auf ihm bleibt</h2>
+  <div class="pair-up">
+   <div>
+    <p><strong>Der Prompter schickt Text an openrouter.ai:</strong> das
+    Transkript und den Text der Vorlesung samt Sprechernotizen. Von dort geht
+    er an das Unternehmen, das das Modell betreibt. Der Prompter verschickt
+    keinen Ton, aber die Spracherkennung ist die von Chrome, und Chrome schickt
+    den Ton an Google, wenn es die Erkennung nicht auf dem eigenen Rechner
+    ausführen kann; das Cockpit sagt, welches von beiden. Nichts davon
+    erscheint auf der Projektion oder wird in <code>source.md</code>
+    geschrieben. <code>node build.js</code> liest den Schlüssel aus der
+    Umgebung und schreibt ihn nie in die HTML-Dateien.</p>
+   </div>
+   <div id="log">
+    <p><strong>Jeder Lauf führt ein Protokoll</strong> neben
+    <code>source.md</code>, in <code>prompter-&lt;date&gt;.jsonl</code>: was
+    der Prompter gehört hat, welche Hinweise er gezeigt hat und was er sagen
+    wollte, aber nach seinen Regeln nicht durfte, mit der Regel, die es
+    verhindert hat. Daneben steht <code>prompter-&lt;hash&gt;.prompt.txt</code>
+    mit dem Text der Vorlesung, genau so, wie das Modell ihn bekommen hat. Das
+    Protokoll enthält die gesprochenen Worte wörtlich, deshalb gehört es nicht
+    in Repositorys, die man veröffentlicht. Während des Vortrags zeigt ein
+    <kbd>Shift</kbd>-Klick auf den Prompter-Knopf die letzten zehn Hinweise
+    und Karten.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="room">Das Mikrofon hört den ganzen Saal</h2>
+  <p>Fragen und Einwürfe aus dem Publikum werden transkribiert und wie die
+  eigenen Worte an das Modell geschickt. Deshalb sollte man dem Publikum vor
+  dem Vortrag sagen, dass der Prompter mithört, und ihn mit
+  <kbd>Shift</kbd>-<kbd>S</kbd> ausschalten, wenn jemand aus dem Saal spricht,
+  etwa in der Fragerunde.</p>
+  <p>Ob man ihn im eigenen Rahmen einsetzen darf, muss man selbst prüfen: Der
+  Datenschutz (in der EU die DSGVO) und die Persönlichkeitsrechte der
+  Anwesenden gelten auch für ihre Worte.</p>
+ </div>
+</section>
+
+<section class="band band-close">
+ <div class="wrap">
+  <div class="middle">
+  <h2>Wo es weitergeht</h2>
+  <ul class="reads">
+    <li><b><a href="index.html">Was psi-slides ist</a></b>
+      Die Startseite: eine Vorlesung, wie der Saal sie sieht und wie der Leser
+      sie bekommt, und warum das dieselbe Datei ist.</li>
+    <li><b><a href="in-the-room.html">Im Raum</a></b>
+      Der Rest des Cockpits: die zwei Fenster, die Schritte, die Karten, die
+      der Prompter ergänzen kann, und die Tasten, die den Blick des Saals von
+      der Folie nehmen.</li>
+    <li><b><a href="getting-started.html">Loslegen</a></b>
+      Die App und die Kommandozeile, und wie man das Tutorial auf einem Rechner
+      baut, auf dem nichts installiert ist.</li>
+    <li><b><a href="https://github.com/UBA-PSI/psi-slides/blob/main/SECURITY.md">Sicherheit</a></b>
+      Was <code>--watch</code>, <code>--serve</code> und
+      <code>--prompter</code> auf dem eigenen Rechner öffnen, und wohin die
+      Daten des Prompters gehen, in einer Liste (englisch).</li>
+  </ul>
+
+  <footer>
+    <p>Von <a href="https://herdom.net">Dominik Herrmann</a>,
+    <a href="https://psi.uni-bamberg.de/">Privatsphäre und Sicherheit in Informationssystemen</a>,
+    Universität Bamberg.
+    Werkzeug MIT-lizenziert, Vorlesungsinhalte CC&nbsp;BY-SA&nbsp;4.0. Wird bei
+    jedem Push aus der Quelle neu gebaut.</p>
+  </footer>
+  </div>
+ </div>
+</section>
+</main>
+<script src="../site.js"></script>
+</body>
+</html>
