@@ -177,7 +177,7 @@ prompter on it.
 
 ## Reporting a vulnerability
 
-Report a vulnerability privately to the maintainer, Dominik Herrmann,
-through the contact details at [herdom.net](https://herdom.net), and not in
-the public issue tracker. Say which version or commit you tested, what a
+Report a vulnerability privately to the maintainer, Dominik Herrmann, by
+e-mail or phone (both are listed at [herdom.net](https://herdom.net)), and
+not in the public issue tracker. Say which version or commit you tested, what a
 hostile deck or `source.md` can do, and how to reproduce it.
