@@ -69,8 +69,9 @@ knows the cue-card grammar, and this keeps it that way.
 | `--prompter-model ID` | an OpenRouter model id; beats the frontmatter and the default. **Refused without `--prompter`**, because it is read nowhere else: on its own it built an ordinary deck with no prompter and said nothing |
 | `--prompter-dry-run` | everything but the one call. The ear, the socket, the moves, the tick scheduler, the policy and the log all run; `ask` is skipped and logged as `answer {dryRun: true}`, **between a `thinking` and a `listening`**, so the cockpit's heartbeat counts the calls that would have gone out – a dry run that only ever said `listening` showed that one word for a whole talk, in the mode whose job is answering "is this wired up". **It needs no key** – which is the point of it: it is the rehearsal tool, and the way to read a `tick` message, with its state line and its window, on a machine with no account. Refused without `--prompter`, like the model id |
 | `--prompter-replay FILE` | no watcher, no browser, no renderer, no network: read a finished run's `prompter-*.jsonl` back through **today's** parser and **today's** policy and print, per answer, what the model proposed and what the policy would do with it now. `node build.js <source.md> --prompter-replay prompter-20260911-1015.jsonl`. It is how a threshold gets changed with evidence rather than by feel; the pure half is `replayAnswers` in `souffleuse.mjs` |
-| `OPENROUTER_API_KEY` | required. Without it the sidecar starts `disabled`: nothing is sent, the console says so once, a `hello` says so, the badge says so – and the transcript is still logged, because a missing key is not a reason to lose the debrief |
-| `OPENROUTER_BASE_URL` | another OpenAI-compatible endpoint, default `https://openrouter.ai/api/v1`. This is how the spec's fake OpenRouter is reached |
+| `OPENROUTER_API_KEY` | required. Without it the sidecar starts `disabled`: nothing is sent, the console says so once, a `hello` says so, the badge says so – and the transcript is still logged, because a missing key is not a reason to lose the debrief. **A key that is not printable ASCII (`SOUFFLEUSE_KEY_RE`, `/^[\x21-\x7e]+$/`) is refused the same way**, in words that do not contain it, and never put into a header: one with a line break in it made undici throw an error quoting the header, and the key went to the log, the terminal, the badge and `--events`. Beyond that, **every string the sidecar writes anywhere goes through `redact`** – `log`, `emit`, `sendToCockpit` and `logLine` are wrapped at the top of `createSouffleuse`, so an endpoint that echoes the request cannot put the key on a badge either |
+| `OPENROUTER_BASE_URL` | another OpenAI-compatible endpoint, default `https://openrouter.ai/api/v1`. This is how the spec's fake OpenRouter is reached. One that is not `https` and not loopback is warned about at start: the deck, the transcript and the key would cross the network in the clear |
+| `PSI_PROMPTER_FREE_CLOCK=1` | **test-only.** Turns off `clampSpan` (see *The tick scheduler*), because `test/souffleuse.mjs` moves the cockpit's clock by hand and every compressed minute would otherwise count as two seconds. Read from the environment only, so no page can throw it |
 
 Frontmatter, nested like `style:`; `SOUFFLEUSE_SPEC` is the table and the bounds
 are the build's:
@@ -82,6 +83,7 @@ are the build's:
 | `cadence` | seconds of new speech that earn a call | 25 | 10 … 120 |
 | `cooldown` | seconds a shown hint buys, across every kind | 20 | 10 … 600 |
 | `cues` | may it lay cards into upcoming slides | `on` | `on` / `off` |
+| `calls-per-hour` | the most calls in any sixty minutes, a hard ceiling on what a run can cost | 360 | 10 … 1000 |
 
 `duration:` sits at the **top level**, not in the block: it is a property of the
 talk like `lang:`, and the cockpit's clock can measure against it whether or not
@@ -101,6 +103,12 @@ tables. The one new mechanism is that the **server may speak first**, through
 never instead of it – with `psiWatch.onConnect(fn)` firing on every open
 including the silent reconnects, and `psiWatch.ask(type, body)` as the other
 direction.
+
+**Who may reach it at all** is decided before the nonce: `verifyClient` takes a
+handshake only from a page opened from disk (Origin `null` or `file://`) or one
+`--serve` delivered (`http://localhost|127.0.0.1|[::1]:<servedPort>`), and no
+Origin at all, which is not a browser. Messages over `WATCH_MAX_PAYLOAD` (4 MB)
+are refused unread. `speaker.md` §3.1 has the rest.
 
 **A reconnect says hello again, and a refused hello switches the cockpit off.**
 The socket reconnects itself, a session does not: after a reconnect the sidecar
@@ -238,6 +246,22 @@ every `move`:
   talk.
 - In the first `startQuiet` seconds after the switch, ticks run and the policy
   lets nothing through – the calls are what warms the prompt cache.
+- **What a page says is held to what a page could know.** The stamps are the
+  cockpit's, and the cadence is counted in them, so a page claiming a minute
+  of speech per message earned a call per message. `clampSpan` (pure, in
+  `souffleuse.mjs`) moves a segment's `t0` up so that `t1 - t0` is no more
+  than the wall seconds since the segment before it arrived plus
+  `SOUFFLEUSE_SPAN_SLACK_S` (2 s); `lastSayWall` is re-stamped by every `say`
+  and every `hello`. A segment is also cut to `SEGMENT_MAX_CHARS` (2,000, the
+  newest characters) on arrival, and `windowOf` cuts the newest segment of a
+  window to the window's words and to the same character count, marked `… `
+  – it used to keep that one whole, and a security review had a megabyte in
+  a tick message.
+- **The hour's budget is the backstop behind all of it.** `budgetLeft()` runs
+  before every tick, in `maybeTick` and in `finish`; `callTimes` holds the wall
+  stamps of the last sixty minutes, dry-run calls included so a rehearsal
+  shows where it would bite. Spent, it says so once (a `warn` line, a status
+  `error`) and ticks nothing until the oldest call ages out.
 
 ## The request
 
@@ -360,7 +384,7 @@ prompter on mid-talk should still buy the speaker a quiet minute.
 | duplicates | word Jaccard ≥ 0.6 against every hint shown **or dismissed** | `duplicate` |
 | a clock hint | only when `timeHintAllowed` said yes | `time-not-allowed` |
 | a cue | only an id from `cue_targets`, at most one per slide | `bad-cue`, `cue-per-chunk` |
-| anything malformed | `parseAnswer` already turned it into `nothing` | `garbage` |
+| anything malformed | `parseAnswer` already turned it into `nothing` – including a hint or a card whose text or slide id carries a control character (`\p{Cc}`) after the whitespace is folded; the refusal carries the text with them shown as `U+FFFD` | `garbage` |
 | a tool call cut off mid-JSON | the same, under its own name, because the cure is a number in this file and not a different model. `choices[0].finish_reason === 'length'` is what tells them apart, and a run of five says so in its own words on the badge | `truncated` |
 
 **A cue is not a hint.** It goes into a slide that is still to come, nobody reads
@@ -438,8 +462,9 @@ and it appears only when something is degraded.
 | 401 / 403 | `disable`, and no retries – a refused key is refused on every one. The switch cannot undo it either: `setEnabled(true)` refuses while `disabled` and the toggle answers `{on: false, enabled: false}` | `off – OpenRouter refused the key (HTTP 401) – restart the watcher with a corrected key`, because the key is read once, from the watcher's environment |
 | 429 / 5xx / network | backoff 30 s, 60 s, 120 s; `status error` meanwhile | `HTTP 500 – fake outage; trying again in 30s` – the body's own `error.message` and `error.code` ride along, because `HTTP 400` alone sends an author looking at their network when the id is mistyped |
 | a 200 carrying `{error}` and no `choices` | the same as a 5xx: `trouble`, backoff, the message on the badge. It used to reach `parseAnswer`, which found neither a tool call nor content and answered `garbage` – so a model out of credits read in the debrief like a model talking nonsense | `the model answered with an error – upstream is out of credits (code 402); trying again in 30s` |
-| five such failures in a row | `disable` for this build | `off – 5 failed calls in a row – last: …` |
-| timeout at 8 s | logged as `error: timeout`, changes nothing else. **A timeout is not a streak** – the network is not broken, the answer merely missed its sentence | – (returns to `listening`) |
+| five such failures in a row | `disable` for this build | `off – 5 failed or timed-out calls in a row – last: …` |
+| timeout at 8 s | logged as `error: timeout` with its `streak`, and **no backoff** – the answer merely missed its sentence. It does count towards the five: an endpoint that never answers in time is paid for on every call and helps with none. An abort that is not the timer (the switch, the watcher going away) is logged as `aborted` and counts for nothing | – (returns to `listening`) |
+| the hour's calls spent (`calls-per-hour`) | no tick until the oldest call of the last sixty minutes ages out; said once, as a `warn` line and a status | `360 calls in the last hour, the budget in prompter: {calls-per-hour} – quiet for about N min` |
 | five unusable answers in a row | `status error`, nothing disabled | `5 unusable answers in a row from <model>` |
 | socket gone when switching on | the switch stays off | `off – the watch socket is not connected`, or `off – no answer from the watch server` – the two strings `psiWatch.ask` really yields, one for a socket that is not open and one for a reply that never came |
 | no `webkitSpeechRecognition` | the switch stays off | `no speech recognition in this browser` |
@@ -458,7 +483,9 @@ sidecar another (`souffSideWhy`), and `souffPaintBadge` paints from the pair.
 ## The log
 
 `prompter-<YYYYMMDD-HHMM>.jsonl` beside `source.md`, one per run of the
-watcher. Every line carries `t` and `type`:
+watcher, created mode `0o600` through `appendOutputFile` – it holds the room's
+words – like `prompter-<hash>.prompt.txt` through `writeOutputFile`. `--serve`
+refuses both, by name. Every line carries `t` and `type`:
 
 | type | body |
 |---|---|
@@ -493,6 +520,12 @@ content repo of its own is one `git add -A` away from committing a transcript
 of a rehearsal, so that repo needs the same pattern. `--new` scaffolds no
 `.gitignore` to put it in, so the sidecar prints the log's full path and says
 so on every start, and the README's privacy paragraph repeats it.
+
+**Everything printed goes through `terminalSafe`**, which replaces control
+characters and bidi overrides with spaces: a model's words and an endpoint's
+error both reach the terminal, and an escape sequence in either is an
+instruction to it. `--prompter-replay` prints through it too, because a log is
+a file somebody may have sent along with a deck.
 
 **What the terminal hears, beside the states.** One line for the first answer
 of a run – `first answer in 1.4 s · 4096 of 4211 prompt tokens cached`, read
@@ -588,6 +621,13 @@ below the fold.
   recogniser may well run on this machine while the transcript does not stay on
   it – and under `--prompter-dry-run` the same line says `dry run, nothing
   leaves this machine`, which is why the `hello` reply carries `dryRun`.
+  **Each half is said only where it is true**: the recogniser is Chrome's, and
+  off the device it sends the audio to Google, dry run or not. So the four
+  toasts are `text goes to openrouter.ai` (on-device), `audio to Google, text
+  to openrouter.ai`, `dry run, nothing leaves this machine` (on-device only)
+  and `dry run, audio to Google for recognition, nothing to a model`. The
+  help row, the terminal banners and the README say the same: the prompter
+  sends no audio; Chrome's recognition does, unless it runs on the device.
 - **Storage**: `sessionStorage psi-slides:souffleuse` (on, so a `--watch` reload
   does not need the switch pressed again – and *not* `localStorage`, because the
   microphone is an act of consent and the button is where it is given; an `off`

@@ -57,6 +57,73 @@ elsewhere on your machine into the output. Four fixes, one of them a
   and ImageMagick wrote the input's own format into it, so a conversion with
   `magick` produced PNG bytes under a `.webp` name.
 
+A second set of fixes is about the processes `--watch`, `--serve` and
+`--prompter` leave running while you work, which any web page open in the
+same browser could reach on loopback:
+
+- **`--serve` answers only to its own name, and only with what a view can
+  ask for.** A page that points its own host name at 127.0.0.1 (DNS
+  rebinding) could read `speaker.html` – and with it the watch socket's
+  secret – as well as `source.md`, the prompter's transcript and a `.env`
+  beside the deck. A request is now refused (403) unless its `Host` is
+  `localhost`, `127.0.0.1` or `[::1]` with the server's own port, and the
+  server answers only for the views, pictures, clips, faces, stylesheets,
+  scripts and PDFs, never below a name starting with a dot, never a
+  `prompter-*` or `souffleuse-*` file and never `source.md` – which no view
+  reads. A file of any other kind in the lecture's folder is no longer served.
+- **The watch socket takes a page opened from disk or delivered by
+  `--serve`, and no other.** It used to accept any web page, with the
+  build's secret as the only guard on writing: without it a page could still
+  hear every reload and every failed build's message, which quotes the
+  source. A handshake from any other origin is refused; why a rebuild failed
+  goes only to a view that has shown the secret; a message over 4 MB is
+  refused before it is read, and no longer takes the watcher down with it.
+- **The two documents carry no secret.** Under `--watch`, `print.html` and
+  `print-notes.html` held the same secret as the live views, which lets a
+  page write to `source.md`, and they are the files an author hands on. They
+  now carry a reload and nothing that can send.
+- **The editor's picture list and upload stay inside the lecture.** The list
+  of `assets/` named a link that leads out of the asset root, with the size
+  of the file it points to; it now leaves out, unread, every name the build
+  would refuse. An upload into an `assets/`
+  that is itself a link is refused, since the file would land wherever the
+  link points.
+- **A link in `assets/` is read only when its target is the kind of file its
+  name says** – a picture, a clip or a face. `assets/pic.png` pointing at a
+  PDF, a key or a note inside the lecture's folder was inlined into the page
+  as a picture, bytes and all. The build refuses it and the linter reports it
+  under `asset-outside-root`.
+- **The prompter keeps its key to itself.** A key with a space or a line
+  break in it made the HTTP client throw an error quoting the header, and the
+  key went to the log, the terminal, the cockpit's badge and `--events`. A
+  key that is not printable ASCII is now refused at start in words that do
+  not contain it, and the key is removed from every string the prompter
+  writes anywhere, whatever produced it. The transcript and the prompt file
+  are written readable by their owner alone. A base URL that is not `https`
+  and not on this machine is warned about at start.
+- **The prompter spends what a talk needs, and no more.** A segment of heard
+  speech is cut to 2,000 characters, and the newest one in the model's window
+  is cut to the window's word limit too – a page could hand the model a
+  megabyte per call. The seconds a segment claims to have been spoken in are
+  held to the wall clock since the one before it, so a page cannot claim a
+  minute of speech per message and earn a call per message. A new key,
+  `prompter: {calls-per-hour}` (default 360, one per ten seconds, the
+  cadence's own floor), caps the calls in any hour; spent, the prompter says
+  so on the badge and stays quiet until the hour frees up. And a call that
+  times out now counts towards the five failures after which the prompter
+  gives up.
+- **Nothing from a model reaches the terminal as a control character.** A
+  hint or a card containing one is refused (logged as `garbage`), and every
+  line the prompter prints, `--prompter-replay` included, has control
+  characters and bidi overrides replaced by spaces.
+- **The privacy wording said something false.** "No audio is sent" and, for
+  a dry run, "nothing leaves this machine" were written in the README, the
+  project site, the terminal banners, the help and the cockpit's first toast.
+  The prompter sends no audio, but Chrome's speech recognition sends the
+  audio to Google unless it runs on the device – in a dry run too. Every one
+  of those places now says so, and the toast is worded for the run it is
+  shown in: on-device or not, dry or not.
+
 ### Changed
 
 - **The two documents read at a screen size in a browser.** `print.html`
@@ -718,13 +785,14 @@ elsewhere on your machine into the output. Four fixes, one of them a
   a strip across the bottom of the cockpit's copy of the slide, and most calls
   produce none. `Shift`-`S` is the switch, and switching on the microphone is
   the speaker's consent: nothing listens until the switch is pressed. What
-  leaves the machine is text. Speech recognition runs on the device where
-  Chrome can do it and through Google where it cannot – the cockpit says which
-  – and the transcript plus the lecture's text including the speaker notes go
-  to openrouter.ai and from there to the company that runs the model;
+  the prompter sends is text: the transcript plus the lecture's text
+  including the speaker notes go to openrouter.ai and from there to the
+  company that runs the model. The prompter sends no audio, but the speech
+  recognition is Chrome's, and Chrome sends the audio to Google unless it can
+  run the recognition on the device – the cockpit says which.
   `OPENROUTER_API_KEY` is read by the build and never written into the HTML,
-  no audio goes out at all, nothing reaches the projection, and nothing is
-  written back into `source.md`.
+  nothing reaches the projection, and nothing is written back into
+  `source.md`.
 
   **The limits are rules in code, not requests to the model.** A hint longer
   than twelve words is discarded unread rather than shortened, one hint stands

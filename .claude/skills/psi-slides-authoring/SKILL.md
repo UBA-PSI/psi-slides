@@ -1655,8 +1655,9 @@ words, no aside written in it, no note on it, nothing held to it by `from`),
 `figure-caption-redundant`, `single-word-bold`, `figure-type-without-figure`,
 `oversized-asset`, `asset-outside-root` (a picture, clip or backdrop that
 resolves – links followed – outside the lecture's folder and the one above it,
-outside the lecture's folder when the one above is home, or into a dot-folder;
-the build refuses the deck), `frontmatter-language` (frontmatter opened with
+outside the lecture's folder when the one above is home, or into a dot-folder,
+or is a link to a file that is not the kind its name says – `pic.png` pointing
+at a PDF; the build refuses the deck), `frontmatter-language` (frontmatter opened with
 anything but `---` or `---yaml`), `unresolved-asset` (an explicit `![](path)` that names no
 file, so the build renders a placeholder rather than a broken external `src` –
 usually the fix is dropping the extension so the `assets/` shorthand resolves

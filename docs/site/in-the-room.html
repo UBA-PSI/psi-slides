@@ -308,7 +308,8 @@ where the rest of the hour is going to be spent.
     the model &ndash; the listening, the clock, the rules on when a hint may
     appear &ndash; so a rehearsal needs no key. The <code>prompter:</code> block
     sets the model, how much new speech it waits for before asking again, how
-    long it stays quiet after a hint, and whether it may add cue cards.</p>
+    long it stays quiet after a hint, whether it may add cue cards, and how
+    many calls it may make in an hour.</p>
    </div>
 <pre><code><span class="t-cmt"># in the frontmatter of source.md</span>
 <span class="t-cmt"># duration: the planned minutes the clock measures against;</span>
@@ -340,13 +341,14 @@ where the rest of the hour is going to be spent.
     there.</p>
    </div>
    <div>
-    <p><strong>What leaves the machine is text.</strong> The transcript and the
+    <p><strong>What the prompter sends is text.</strong> The transcript and the
     lecture&rsquo;s text, speaker notes included, go to openrouter.ai and from
-    there to the company that runs the model. No audio is sent, nothing of it
-    reaches the projection, nothing is written into <code>source.md</code>, and
-    the key is read by the build and never written into the HTML. The speech
-    recognition itself runs on your machine where Chrome can do that and
-    through Google where it cannot; the cockpit says which.</p>
+    there to the company that runs the model. The prompter sends no audio, but
+    the speech recognition is Chrome&rsquo;s, and Chrome sends the audio to
+    Google unless it can run the recognition on your machine; the cockpit says
+    which. Nothing of it reaches the projection, nothing is written into
+    <code>source.md</code>, and the key is read by the build and never written
+    into the HTML.</p>
     <p>The microphone hears the room as well as you. Switch it off before
     questions, or tell the room it is on.</p>
    </div>

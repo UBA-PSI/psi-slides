@@ -25,6 +25,7 @@ import {
   driftSeconds, timeHintAllowed, shouldTick, createPolicy, wordCount,
   cueTargets, flattenMarks, rebaseClock, replayAnswers, START_QUIET_S, CLOCK_JUMP_S,
   speechStats, paceVerdict, PACE_WPM, DELIVERY_MIN_SAMPLE_S,
+  SEGMENT_MAX_CHARS, clampSpan,
 } from '../../souffleuse.mjs';
 import { ROOT } from './harness.mjs';
 
@@ -776,6 +777,36 @@ export async function run({ report }) {
   ok(pol.judge(hint('fact', 'Es waren zwei'), ctx()).show === true,
      'policy: so a hint may still follow it at once');
 
+  // ── what a page cannot make it do ────────────────────────────────
+  // A security review sent a megabyte as one segment and had it in the tick
+  // message whole, because the newest segment of the window was kept however
+  // large it was; it claimed a minute of speech per message and earned a call
+  // per message; and a model's text reached the terminal with its escape
+  // sequences in it.
+  const huge = { text: 'word '.repeat(200000).trim(), t0: 895, t1: 899 };
+  const bigTick = tickMessage(Object.assign({}, session, { transcript: [...session.transcript, huge] }));
+  ok(bigTick.length < 12000,
+     'a megabyte segment is cut to the window\'s words, not sent whole', bigTick.length);
+  ok(/… \S+ word word/.test(bigTick), 'and the cut says so, keeping the newest words');
+  const noSpaces = { text: 'x'.repeat(50000), t0: 895, t1: 899 };
+  const cjkTick = tickMessage(Object.assign({}, session, { transcript: [noSpaces] }));
+  ok(cjkTick.length < SEGMENT_MAX_CHARS + 2000,
+     'and one with no spaces in it is cut to SEGMENT_MAX_CHARS', cjkTick.length);
+  ok(SEGMENT_MAX_CHARS === 2000, 'SEGMENT_MAX_CHARS is 2000 – ten sentences, not a document');
+  ok(clampSpan({ t0: 100, t1: 130, wallSeconds: 40, slack: 2 }) === 100,
+     'clampSpan: a segment no longer than the wall time since the last one keeps its start');
+  ok(clampSpan({ t0: 100, t1: 160, wallSeconds: 1, slack: 2 }) === 157,
+     'clampSpan: a minute claimed one second after the last segment is three seconds');
+  ok(clampSpan({ t0: 100, t1: 160, wallSeconds: -5, slack: 2 }) === 158,
+     'clampSpan: a wall clock that went backwards allows the slack and nothing more');
+  let esc = parseAnswer(answer({ action: 'hint', kind: 'fact', text: 'Es waren \u001b[2Jzwei', severity: 'high' }), sess);
+  ok(esc.action === 'nothing' && esc.reason === 'garbage' && esc.text === 'Es waren \uFFFD[2Jzwei',
+     'parseAnswer: a hint with a control character in it is refused, and the refusal shows it', j(esc));
+  esc = parseAnswer(answer({ action: 'cue', chunk_id: 'kette\u0007', text: 'Die Kette' }),
+    Object.assign({}, sess, { cueTargets: ['kette\u0007'] }));
+  ok(esc.action === 'nothing' && esc.reason === 'garbage',
+     'parseAnswer: and so is a cue whose slide id carries one', j(esc));
+
   // ── the module's shape ───────────────────────────────────────────
   const src = fs.readFileSync(path.join(ROOT, 'souffleuse.mjs'), 'utf8');
   const code = src.replace(/^\s*\*.*$/gm, '').replace(/^\s*\/\/.*$/gm, '');
@@ -786,8 +817,8 @@ export async function run({ report }) {
   const exported = [...src.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
   ok(j(exported.slice().sort()) === j([
     'CLOCK_JUMP_S', 'DELIVERY_MIN_SAMPLE_S', 'KINDS', 'MAX_WORDS', 'PACE_WPM',
-    'SEVERITIES', 'START_QUIET_S', 'TOOL_SCHEMA',
-    'createPolicy', 'cueTargets', 'deckPayload', 'driftSeconds', 'flattenMarks',
+    'SEGMENT_MAX_CHARS', 'SEVERITIES', 'START_QUIET_S', 'TOOL_SCHEMA',
+    'clampSpan', 'createPolicy', 'cueTargets', 'deckPayload', 'driftSeconds', 'flattenMarks',
     'paceVerdict', 'parseAnswer', 'prefixHash', 'rebaseClock', 'replayAnswers',
     'shouldTick', 'speechStats', 'systemPrefix', 'tickMessage', 'timeHintAllowed',
     'wordCount',

@@ -423,7 +423,10 @@ Building a deck must not do more than read it, and three rules in build.js's
   decision, so lectures side by side can share a picture folder – **except when
   that folder is the home folder or a disk's top** (`assetRootNarrowed`), where
   the root is the lecture's folder alone; and **never from a folder whose name
-  starts with a dot**, anywhere below the root. The home folder is a parameter
+  starts with a dot**, anywhere below the root; and **a link only when its
+  target is the kind of file its name says** (`assetKindOf`: picture, clip or
+  face), so `assets/pic.png -> contract.pdf` is refused inside the root too.
+  The home folder is a parameter
   so the gate can inject it; a build reads `os.homedir()`, i.e. `$HOME`. **Any new
   reader of a file the source names goes through `assetAllowed()`**, which
   records a refusal instead of reading; `assertAssetsConfined()` throws after
@@ -437,6 +440,26 @@ Building a deck must not do more than read it, and three rules in build.js's
   with `appendOutputFile()` (O_NOFOLLOW), and make a folder the build writes
   into with `outputDir()` (refused when it is a link). `--optimize-images`
   touches only the lecture's own folder, and `magick` is told its decoder.
+
+**The processes a watch leaves running are reachable from any page in the
+browser, on loopback**, so they carry rules of their own (`runServe`,
+`runWatch`, `createSouffleuse`; exercised in `test/souffleuse.mjs`):
+
+- **`--serve` answers only to its own `Host`** (`serveHostAllowed`: localhost,
+  127.0.0.1 or [::1] with its port – DNS rebinding sends another name) and only
+  for `servePathAllowed` paths: a `SERVE_MIME` kind, no dot-name, no
+  `prompter-*` / `souffleuse-*`. `source.md` is not served: no view reads it.
+  **A view that starts fetching a new kind of file needs it in `SERVE_MIME`.**
+- **The watch socket checks Origin before the nonce** (`watchOriginAllowed`:
+  `null` / `file://`, or the served origin via `servedPort`), caps messages at
+  `WATCH_MAX_PAYLOAD`, and keeps an `error` listener on every socket – without
+  one, an oversized message killed the watcher. `build-failed` goes only to
+  sockets that showed the nonce (`hello` on open, or any valid message).
+  **The documents' `reloadScript` is `receiveOnly`**: no nonce, no `psiWatch`.
+- **The prompter's strings go through `redact` and, for the terminal,
+  `terminalSafe`**; its log and prompt file are `0o600`; `clampSpan`,
+  `SEGMENT_MAX_CHARS` and `prompter: {calls-per-hour}` bound what a page can
+  make it spend. The `psi-slides-prompter` skill has the detail.
 
 ### Asset inlining
 

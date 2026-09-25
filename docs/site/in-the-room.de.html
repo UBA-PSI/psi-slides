@@ -318,7 +318,8 @@ where the rest of the hour is going to be spent.
     Hinweis erscheinen darf &ndash;, eine Probe braucht also keinen Schlüssel.
     Der Block <code>prompter:</code> legt das Modell fest, wie viel neue Rede
     er abwartet, bevor er wieder fragt, wie lange er nach einem Hinweis still
-    ist und ob er Karten ergänzen darf.</p>
+    ist, ob er Karten ergänzen darf und wie oft er in einer Stunde fragen
+    darf.</p>
    </div>
 <pre><code><span class="t-cmt"># im Frontmatter von source.md</span>
 <span class="t-cmt"># duration: die geplanten Minuten, an denen die Uhr misst;</span>
@@ -352,13 +353,14 @@ where the rest of the hour is going to be spent.
     es wert ist, dort noch einmal gesagt zu werden.</p>
    </div>
    <div>
-    <p><strong>Was den Rechner verlässt, ist Text.</strong> Das Transkript und
+    <p><strong>Was der Prompter verschickt, ist Text.</strong> Das Transkript und
     der Text der Vorlesung samt Sprechernotizen gehen an openrouter.ai und von
-    dort an das Unternehmen, das das Modell betreibt. Kein Ton wird verschickt, nichts davon erreicht die
-    Projektion, nichts wird in <code>source.md</code> geschrieben, und der
-    Schlüssel wird vom Build gelesen und nie ins HTML geschrieben. Die
-    Spracherkennung selbst läuft auf dem eigenen Rechner, wo Chrome das kann,
-    und über Google, wo nicht; das Cockpit sagt, welches von beiden.</p>
+    dort an das Unternehmen, das das Modell betreibt. Der Prompter verschickt
+    keinen Ton, aber die Spracherkennung ist die von Chrome, und Chrome schickt
+    den Ton an Google, wenn es die Erkennung nicht auf dem eigenen Rechner
+    ausführen kann; das Cockpit sagt, welches von beiden. Nichts davon erreicht
+    die Projektion, nichts wird in <code>source.md</code> geschrieben, und der
+    Schlüssel wird vom Build gelesen und nie ins HTML geschrieben.</p>
     <p>Das Mikrofon hört den Saal, nicht nur einen selbst. Vor der Fragerunde
     ausschalten oder dem Saal sagen, dass es an ist.</p>
    </div>

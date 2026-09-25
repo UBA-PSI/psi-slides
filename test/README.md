@@ -61,14 +61,14 @@ installed. Ten gates, 884 assertions, under a second.
 | `inlined` | the two characters that mean something else inside build.js's own template literals |
 | `tails` | the one `{…}` tail parser and the `::: draw` opener parser in `tails.mjs`: every code, the written-default rule, the formatter round trip |
 | `legacy-draw-syntax` | the old braced `::: draw` opener stays out of every `source.md`; every other survivor is on the reviewed allowlist `legacy-draw-syntax.txt` |
-| `souffleuse` | the live prompter's pure half in `souffleuse.mjs`: the deck payload built off a hand-made `lecture`, the byte-stable system prefix, the tick message, the answer parser, the drift arithmetic and every row of the restraint policy |
+| `souffleuse` | the live prompter's pure half in `souffleuse.mjs`: the deck payload built off a hand-made `lecture`, the byte-stable system prefix, the tick message, the answer parser (a control character in a hint is refused), the drift arithmetic, every row of the restraint policy, and what a page cannot make it do: a megabyte segment cut to the window, a claimed minute of speech held to the wall clock (`clampSpan`) |
 | `frontmatter` | `lint.js`'s `KNOWN_FRONTMATTER_KEYS` against every top-level key `build.js` actually reads |
 | `xheight` | every text face in `BUNDLED_FONTS` carries the measured x-height that sizes inline code against the prose around it, and the roster agrees with `tools/font-playground/xheights.json` |
 | `image-refs` | every way a `source.md` names a picture, and the one collector both readers of that set go through – what the inline cap refuses and what `--optimize-images` can fix have to be the same list |
 | `canvas` | the three measured numbers behind a figure's canvas: the per-chunk-type body em (`FIG_BODY_REM` against the `--body-fs` rules it mirrors), the default `--zoom`, and the one spelling of a `frame` in two files that cannot import one another – plus the sentence shape the two canvas reports say an axis in, because the static complaint is emitted at the end of the parse and `--check-fit`'s room line is measured in a browser, so they cannot share a helper |
 | `chains` | peers share one size: which placements make two boxes peers, which axis a row shares and which a column does not, the two ways out (`{.own}`, `same as`), `row` / `col`, `same w as` / `same h as`, and the two warnings for a written size that cannot hold its own words. Every assertion is paired with a control that differs in one token, because a default that arrives for the wrong reason looks exactly like one that arrives for the right one |
 | `overlap` | the overlap census measures ink: a `text` is compared as the rectangles it inks, one per line, and not as its block of line boxes, which is `DG_LINE_H` tall where only `DG_INK_H` of it is glyphs and as wide as its *widest* line. The fixtures are transcriptions – the geometry `#ns-a41` shipped struck through, the redraw beside it, and the ragged pair in `#ns-a49` that must stay silent. That no *real* figure gains a warning is `corpus`'s ceiling, not this |
-| `untrusted` | building a `source.md` somebody sent you, the half decidable without a build: the frontmatter language (`---js` is `eval` inside gray-matter) read the same way in `build.js` and `lint.js`, and gray-matter reached only through `safeMatter`; the asset root (the lecture's folder and the one above it, the lecture's folder alone when the one above is an injected home folder, never a dot-folder) on a real tree with real links, in both files; an output written over a link replaces it and an append refuses it; ImageMagick told its decoder. The build-level half – a real build refusing a real deck, and what is on disk afterwards – is the last block of `test/settings.mjs` |
+| `untrusted` | building a `source.md` somebody sent you, the half decidable without a build: the frontmatter language (`---js` is `eval` inside gray-matter) read the same way in `build.js` and `lint.js`, and gray-matter reached only through `safeMatter`; the asset root (the lecture's folder and the one above it, the lecture's folder alone when the one above is an injected home folder, never a dot-folder, a link only to a file of the kind its name says) on a real tree with real links, in both files; an output written over a link replaces it and an append refuses it; ImageMagick told its decoder. The build-level half – a real build refusing a real deck, and what is on disk afterwards – is the last block of `test/settings.mjs` |
 
 **`frontmatter` is the one gate that is not about figures**, and it is here
 because the shape is the one this suite exists for: a closed list in one file
@@ -311,7 +311,15 @@ the opening silence is 60 s and the cadence 25 (10 here, the floor of
 `SOUFFLEUSE_SPEC`), so `window.__stt.final(text, 70)` pushes the cockpit's
 `tStart` back seventy seconds and the same arithmetic runs at once. Without
 that the spec would be two minutes of sleeping; with it the whole thing is
-about eight seconds, most of which is the build.
+about eight seconds, most of which is the build. Moving the clock is also
+what a hostile page would do, and the sidecar holds a segment's claimed
+length to the wall clock (`clampSpan`); the spec's engine runs with
+`PSI_PROMPTER_FREE_CLOCK=1`, the one switch that turns that off, read from
+the environment only. It also asks the running engine what a page off another
+site gets – a refused handshake, a 403 for a foreign `Host`, a 404 for
+`source.md` and the transcript – that a cockpit from `file://` still
+connects and both documents still reload with no nonce, and starts a second
+engine under `--prompter-dry-run` with no key to read its toast.
 
 **Because a spec that hunted its shapes in a real deck would break the next time
 that deck was edited** – `squint`, whose four shapes (a promoted bold, a reveal

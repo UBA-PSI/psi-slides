@@ -244,16 +244,38 @@ function assetRootNarrowed(own, home = os.homedir()) {
   const parent = path.dirname(own);
   return parent === own || parent === path.parse(parent).root || parent === realpathLoose(home);
 }
+// What a file is for, by its extension: a picture, a clip or a face, or
+// null for anything else. Its own table rather than IMG_EXTS / VIDEO_EXTS /
+// FONT_EXTS, so the untrusted gate can lift it alone; the gate holds it to
+// those three lists and to lint.js's copy.
+function assetKindOf(p) {
+  const ext = path.extname(String(p)).slice(1).toLowerCase();
+  if (['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) return 'image';
+  if (['mp4', 'webm', 'm4v', 'mov'].includes(ext)) return 'video';
+  if (['woff2', 'woff', 'ttf', 'otf'].includes(ext)) return 'font';
+  return null;
+}
 // Where `abs` really lands when the build may not read it, or null when it
-// may: outside the asset root, or inside it below a folder whose name starts
-// with a dot (.ssh, .git, .config, .env ...). A link counts as the file it
-// points to.
+// may: outside the asset root, inside it below a folder whose name starts
+// with a dot (.ssh, .git, .config, .env ...), or a link whose target is not
+// the kind of file its name says - `assets/pic.png -> ../contract.pdf` would
+// otherwise be inlined as a picture of a PDF, bytes and all. A link counts
+// as the file it points to.
 function assetEscape(abs, sourceDir, home = os.homedir()) {
   const real = realpathLoose(abs);
   const root = assetRootOf(sourceDir, home);
   if (!pathWithin(root, real)) return real;
   const rel = path.relative(root, real);
-  return rel && rel.split(path.sep).some(c => c.startsWith('.')) ? real : null;
+  if (rel && rel.split(path.sep).some(c => c.startsWith('.'))) return real;
+  // Only where the name and the file it lands on disagree about the
+  // extension: a folder on the way being a link (/tmp on macOS) is not this.
+  const named = path.resolve(abs);
+  if (path.extname(real).toLowerCase() !== path.extname(named).toLowerCase()) {
+    const want = assetKindOf(named);
+    const got = assetKindOf(real);
+    if (!got || (want && got !== want)) return real;
+  }
+  return null;
 }
 
 // Files the current build was asked to read and did not, keyed by where they
@@ -277,7 +299,11 @@ function assetsConfinedError(outside, sourceDir) {
     '',
   ];
   for (const [real, shown] of outside) {
-    const where = pathWithin(root, real) ? '  (in a folder whose name starts with a dot)' : '';
+    const rel = path.relative(root, real);
+    const where = !pathWithin(root, real) ? ''
+      : (rel && rel.split(path.sep).some(c => c.startsWith('.')))
+        ? '  (in a folder whose name starts with a dot)'
+        : '  (a link to a file that is not a picture, a clip or a font)';
     lines.push((shown && path.resolve(sourceDir, shown) !== real ? `  ${shown}  ->  ${real}` : `  ${real}`) + where);
   }
   lines.push('');
@@ -290,8 +316,10 @@ function assetsConfinedError(outside, sourceDir) {
     lines.push(`here ${root} – and from nowhere further out.`);
   }
   lines.push('Nothing is read from a folder whose name starts with a dot (.ssh, .git, .config …),');
-  lines.push('even inside that. A symbolic link counts as the file it points to. This is what keeps');
-  lines.push('a deck you were sent from copying a file from elsewhere on your machine into its output.');
+  lines.push('even inside that. A symbolic link counts as the file it points to, and is read only');
+  lines.push('when that file is the same kind as the link\'s name says – a picture, a clip or a font.');
+  lines.push('This is what keeps a deck you were sent from copying a file from elsewhere on your');
+  lines.push('machine into its output.');
   lines.push(`  Fix: copy the file into ${root} or below it (not into a dot-folder), and point the`);
   lines.push('  reference at the copy.');
   const err = new Error(lines.join('\n'));
@@ -306,11 +334,13 @@ function assertAssetsConfined(sourceDir) {
 // Write a whole output file without following a link at its path: the bytes
 // go to a new name beside it (O_EXCL, so not through a link either) and are
 // renamed over the target, which replaces a link rather than its target.
-function writeOutputFile(p, data) {
+// `mode` is for a file that should be the author's alone (the prompter's
+// prompt); the default leaves it to the umask, as before.
+function writeOutputFile(p, data, mode = 0o666) {
   const tmp = path.join(path.dirname(p),
     `.${path.basename(p)}.${crypto.randomBytes(6).toString('hex')}.tmp`);
   try {
-    fs.writeFileSync(tmp, data, { flag: 'wx' });
+    fs.writeFileSync(tmp, data, { flag: 'wx', mode });
     fs.renameSync(tmp, p);
   } catch (e) {
     try { fs.unlinkSync(tmp); } catch { /* never written */ }
@@ -320,9 +350,9 @@ function writeOutputFile(p, data) {
 
 // Append to a file, refusing (ELOOP) when the path is a link. Windows has no
 // O_NOFOLLOW, and there the flag is simply absent.
-function appendOutputFile(p, data) {
+function appendOutputFile(p, data, mode = 0o666) {
   const c = fs.constants;
-  const fd = fs.openSync(p, c.O_WRONLY | c.O_APPEND | c.O_CREAT | (c.O_NOFOLLOW || 0), 0o666);
+  const fd = fs.openSync(p, c.O_WRONLY | c.O_APPEND | c.O_CREAT | (c.O_NOFOLLOW || 0), mode);
   try { fs.writeSync(fd, data); } finally { fs.closeSync(fd); }
 }
 
@@ -6381,7 +6411,7 @@ function lectureStats(src, lecture) {
 // into each renderer; a non-null port emits this <script> just before
 // </head>. Production builds receive opts.watchPort = null and the
 // renderers emit nothing, keeping the output a static file.
-function reloadScript(port, nonce) {
+function reloadScript(port, nonce, opts = {}) {
   if (!port) return '';
   // Two-way now. The reload half is unchanged; the other half is what the
   // diagram editor writes back through, and it is deliberately the *same*
@@ -6393,6 +6423,23 @@ function reloadScript(port, nonce) {
   // the prompter is nobody's answer. `on(type, fn)` is the listener map for
   // those – build-failed was the precedent, hard-wired to one global, and the
   // prompter would have been a second such wire.
+  // The two documents get the reload and nothing else: no nonce, no psiWatch,
+  // nothing they could send. They are the views an author hands on, and a
+  // --watch build of one used to carry the secret that lets a page write to
+  // source.md. The server sends a bare "reload" to every socket it accepted,
+  // so this needs no message of its own.
+  if (opts.receiveOnly) {
+    return `<script>
+(() => {
+  const connect = () => {
+    const ws = new WebSocket('ws://127.0.0.1:${port}');
+    ws.addEventListener('message', e => { if (e.data === 'reload') location.reload(); });
+    ws.addEventListener('close', () => { setTimeout(connect, 500); });
+  };
+  connect();
+})();
+</script>`;
+  }
   return `<script>
 window.psiWatch = (() => {
   let sock = null;
@@ -6408,6 +6455,13 @@ window.psiWatch = (() => {
     const ws = new WebSocket('ws://127.0.0.1:${port}');
     sock = ws;
     ws.addEventListener('open', () => {
+      // The page says who it is before anything else, so the server can tell
+      // a view it built from any other page that connected: only a socket
+      // that has shown this build's nonce is told why a rebuild failed.
+      const nonce = ${JSON.stringify(nonce || '')};
+      if (nonce) {
+        try { ws.send(JSON.stringify({ type: 'hello', nonce })); } catch (err) { /* closing */ }
+      }
       for (const fn of opened) { try { fn(); } catch (err) { /* ignore */ } }
     });
     ws.addEventListener('message', e => {
@@ -7394,13 +7448,17 @@ function styleSettings(frontmatter = {}) {
 // OpenRouter model id, `language` a BCP-47 tag that defaults to `lang:`,
 // `cadence` the seconds of new speech that earn the model a call, `cooldown`
 // the seconds of silence a shown hint buys, `cues` whether the prompter may
-// lay cards into upcoming chunks. PLAN-souffleuse.md has the reasoning.
+// lay cards into upcoming chunks, `calls-per-hour` the most calls to the
+// model in any sixty minutes - a hard ceiling on what a run can cost, set at
+// one call per ten seconds, the cadence's own floor, so a talk at any legal
+// cadence stays under it. PLAN-souffleuse.md has the reasoning.
 const SOUFFLEUSE_SPEC = {
   'model':    { kind: 'text', dflt: 'anthropic/claude-sonnet-5' },
   'language': { kind: 'lang', dflt: null },
-  'cadence':  { kind: 'number', min: 10, max: 120, dflt: 25 },
-  'cooldown': { kind: 'number', min: 10, max: 600, dflt: 20 },
+  'cadence':  { kind: 'number', min: 10, max: 120, dflt: 25, unit: 'seconds' },
+  'cooldown': { kind: 'number', min: 10, max: 600, dflt: 20, unit: 'seconds' },
   'cues':     { kind: 'enum', values: ['on', 'off'], dflt: 'on' },
+  'calls-per-hour': { kind: 'number', min: 10, max: 1000, dflt: 360, unit: 'calls' },
 };
 function souffleuseSettings(frontmatter = {}) {
   const raw = frontmatter.prompter;
@@ -7437,7 +7495,7 @@ function souffleuseSettings(frontmatter = {}) {
       const n = Number(val);
       if (!val || !Number.isFinite(n) || n < spec.min || n > spec.max) {
         const err = new Error(
-          `Frontmatter: "prompter.${k}: ${val}" is not a number of seconds between ${spec.min} and ${spec.max}.`);
+          `Frontmatter: "prompter.${k}: ${val}" is not a number of ${spec.unit} between ${spec.min} and ${spec.max}.`);
         err.userFacing = true;
         throw err;
       }
@@ -8487,7 +8545,7 @@ ${fontStyleTag(opts.fontEmbed, 'print')}
 ${styleBlockCss(styleOpts)}
 ${codeTag(styleOpts, opts.codeSizing, 'print')}
 ${katexStyleTag(anonHtml + namedHtml)}
-${reloadScript(opts.watchPort, opts.watchNonce)}
+${reloadScript(opts.watchPort, null, { receiveOnly: true })}
 </head>
 <body data-slide-nums="${printNums}" ${styleBodyAttrs(styleOpts, frontmatter)}${readerOn ? ' data-reader="on"' : ''}>
 ${readerOn ? readerHtml + READER_EARLY_JS : ''}<main>
@@ -13343,7 +13401,7 @@ function renderHelpOverlay(view, withEditor, withSouffleuse) {
   // somebody would want to read before pressing anything, and at the foot of
   // the group it was the last line of a panel that scrolls.
   const souffleuseKeys = ['The prompter', [
-    ['what leaves this machine', 'speech recognition runs on this device where the browser can, otherwise through Google – the badge says which; the transcript and the deck including your notes go as text to openrouter.ai; nothing reaches the projection, nothing is written into source.md, and no audio ever leaves. The microphone hears the room too – switch it off before a question round, or tell the room'],
+    ['what leaves this machine', 'the prompter sends no audio: the transcript and the deck including your notes go as text to openrouter.ai. The speech recognition is Chrome\'s, and it sends the audio to Google unless it runs on this device – the badge says which. Nothing reaches the projection and nothing is written into source.md. The microphone hears the room too – switch it off before a question round, or tell the room'],
     ['<kbd>Shift</kbd>-<kbd>S</kbd>', 'the prompter listens, or stops – the <b>◌ prompter</b> button in the footer is the same switch'],
     ['<kbd>Esc</kbd>', 'take the hint standing on the strip away – it also goes by itself after fifteen seconds, and the × on it does the same'],
     ['where it appears', 'a line over the foot of the slide, or at the head of the card column under <kbd>K</kbd> – <code>◷</code> time · <code>◇</code> example · <code>△</code> fact · <code>◌</code> delivery · <code>≫</code> pace · <code>⋯</code> something your notes planned and you have not said · <code>▤</code> a card laid into a slide still to come'],
@@ -26713,8 +26771,13 @@ if (SOUFFLEUSE && window.psiWatch) {
         told = sessionStorage.getItem(SOUFF_TOLD_KEY) === 'on';
         sessionStorage.setItem(SOUFF_TOLD_KEY, 'on');
       } catch (e) { /* a private window is allowed to refuse */ }
+      // The two halves of where it goes, and each one only as true as the run
+      // it is said of: a dry run sends nothing to a model, but a recogniser
+      // that is not on the device sends the audio to Google in a dry run too.
       const ear = souffLocal ? 'on-device' : 'server recognition';
-      const dest = hi.dryRun ? 'dry run, nothing leaves this machine' : 'text goes to openrouter.ai';
+      const dest = hi.dryRun
+        ? (souffLocal ? 'dry run, nothing leaves this machine' : 'dry run, audio to Google for recognition, nothing to a model')
+        : (souffLocal ? 'text goes to openrouter.ai' : 'audio to Google, text to openrouter.ai');
       // The language it is about to listen in, named rather than tagged. It
       // is the thing a speaker can most easily be wrong about and least
       // easily notice: a German talk heard as English produces a transcript
@@ -27849,6 +27912,14 @@ function runOptimizeImages(absIn, { dryRun = false, all = false, maxWidth = null
 // no clock, no transcript and no occasion to call anybody.
 
 const SOUFFLEUSE_TIMEOUT_MS = 8000;
+// What an API key is made of: printable ASCII, no spaces. Anything else is
+// refused at start (see createSouffleuse) rather than put into a header.
+const SOUFFLEUSE_KEY_RE = /^[\x21-\x7e]+$/;
+// A segment's spoken seconds may not exceed the wall-clock seconds since the
+// one before it by more than this (souffleuse.mjs `clampSpan`). The
+// recogniser's stamps are the cockpit's clock, which the page controls; this
+// is the slack for two messages crossing a socket.
+const SOUFFLEUSE_SPAN_SLACK_S = 2;
 // 30 s, 60 s, then two minutes, and after five in a row the sidecar gives up
 // for this build. A prompter that keeps retrying through a talk is a prompter
 // that spends the speaker's bandwidth on nothing.
@@ -27870,6 +27941,14 @@ const SOUFFLEUSE_WINDOW_WORDS = 600;
 // nothing older than the window is ever read, so the rest is memory nobody
 // looks at.
 const SOUFFLEUSE_TRANSCRIPT_MAX = 500;
+
+// A line for the terminal, with every control character (and the bidi
+// overrides that reorder what a terminal shows) replaced by a space. The
+// prompter prints a model's words and an endpoint's errors there, and an
+// escape sequence in either is an instruction to the author's terminal.
+function terminalSafe(line) {
+  return String(line).replace(/[\p{Cc}\u202a-\u202e\u2066-\u2069]/gu, (c) => (c === '\n' ? '\n' : ' '));
+}
 
 // One log per run of the watcher, beside source.md: the debrief. Minutes
 // rather than seconds in the name, because two watchers started in the same
@@ -27897,8 +27976,8 @@ function souffleuseLogPath(absIn, when = new Date()) {
  * WebSocket closing.
  */
 async function createSouffleuse({
-  absIn, opts = {}, sendToCockpit = () => false,
-  emitEvent: emit = () => {}, log = console.log,
+  absIn, opts = {}, sendToCockpit: sendRaw = () => false,
+  emitEvent: emitRaw = () => {}, log: logRaw = console.log,
 } = {}) {
   // Dynamic, and only here. souffleuse.mjs is the pure half; cue-cards.mjs is
   // imported for `notesToCards` alone, which deckPayload takes as an injected
@@ -27906,11 +27985,50 @@ async function createSouffleuse({
   const souff = await import('./souffleuse.mjs');
   const { notesToCards } = await import('./cue-cards.mjs');
 
-  const key = String(process.env.OPENROUTER_API_KEY || '').trim();
+  let key = String(process.env.OPENROUTER_API_KEY || '').trim();
   const base = String(process.env.OPENROUTER_BASE_URL || SOUFFLEUSE_BASE_URL)
     .trim().replace(/\/+$/, '');
   const logPath = souffleuseLogPath(absIn);
   const dryRun = !!opts.dryRun;
+  // A key is printable ASCII and nothing else. One with a line break or a
+  // space inside it - pasted with its neighbour, or with the shell's quote -
+  // made the HTTP client throw an error that quoted the header, key and all,
+  // and that message went to the log, the terminal, the cockpit's badge and
+  // --events. It is refused here, in words that do not contain it, and never
+  // sent anywhere.
+  const keyUnusable = !!key && !SOUFFLEUSE_KEY_RE.test(key);
+  if (keyUnusable) key = '';
+  const unusableKey = String(process.env.OPENROUTER_API_KEY || '').trim();
+
+  // Every string that leaves this function - a log line, a terminal line, an
+  // event, a status on the cockpit's badge, a reply - goes through this, so
+  // an error that quotes the key (an HTTP client echoing the header, an
+  // endpoint echoing the request) never reaches any of them. The terminal
+  // copy is also stripped of control characters: a model's words and an
+  // endpoint's error are printed there, and an escape sequence in either is
+  // an instruction to the author's terminal.
+  const redact = (x) => {
+    let t = String(x);
+    for (const k of [key, unusableKey]) {
+      if (!k || k.length < 4) continue;
+      // And its JSON-escaped spelling, which is how a log line carries it.
+      for (const form of new Set([k, JSON.stringify(k).slice(1, -1)])) t = t.split(form).join('[key]');
+    }
+    return t;
+  };
+  const scrub = (v) => {
+    if (typeof v === 'string') return redact(v);
+    if (Array.isArray(v)) return v.map(scrub);
+    if (v && typeof v === 'object') {
+      const o = {};
+      for (const [k, x] of Object.entries(v)) o[k] = scrub(x);
+      return o;
+    }
+    return v;
+  };
+  const log = (line) => logRaw(terminalSafe(redact(line)));
+  const emit = (ev) => emitRaw(scrub(ev));
+  const sendToCockpit = (msg) => sendRaw(scrub(msg));
 
   // Disabled is not off: the transcript, the moves and the ticks that would
   // have gone out are still logged, because the log is what a rehearsal is
@@ -27919,7 +28037,11 @@ async function createSouffleuse({
   // A dry run needs no key, which is the point of it: everything but the one
   // call runs, so the scheduler, the state line and the window can be read on
   // a machine that has no account at all.
-  let disabled = (key || dryRun) ? null : { why: 'no OPENROUTER_API_KEY in the environment' };
+  let disabled = (key || dryRun) ? null : {
+    why: keyUnusable
+      ? 'OPENROUTER_API_KEY is not a usable key – it contains a space, a line break or a character outside printable ASCII'
+      : 'no OPENROUTER_API_KEY in the environment',
+  };
 
   let deck = null;            // what deckPayload made of the last build
   let prefix = null;          // {text, hash} – the cached system prompt
@@ -27939,6 +28061,7 @@ async function createSouffleuse({
   let cuesCeiling = true;
   let cuesWanted = true;
   let cuesAllowed = true;
+  let callsPerHour = SOUFFLEUSE_SPEC['calls-per-hour'].dflt;
   let durationS = null;
   let policy = null;
   let stt = null;             // what the cockpit said its ear is
@@ -27965,6 +28088,16 @@ async function createSouffleuse({
   let hintSeq = 0;
   let cueSeq = 0;
   let lastStatus = null;
+  // The calls of the last hour, as wall-clock stamps, for the budget in
+  // `prompter: {calls-per-hour}`. Dry-run calls count too, so a rehearsal
+  // shows where the budget would bite.
+  const callTimes = [];
+  let budgetSpent = false;
+  // When the last segment arrived, on this machine's clock: the reference a
+  // segment's claimed length is held to (`clampSpan`). Only a test that
+  // moves the cockpit's clock by hand turns that off.
+  let lastSayWall = Date.now();
+  const freeClock = process.env.PSI_PROMPTER_FREE_CLOCK === '1';
 
   // The cockpit's clock, carried forward between messages. Every `say` and
   // `move` stamps it; between them the wall clock runs, which is what makes
@@ -27975,7 +28108,7 @@ async function createSouffleuse({
   function logLine(type, body) {
     try {
       appendOutputFile(logPath,
-        JSON.stringify({ t: new Date().toISOString(), type, ...body }) + '\n');
+        redact(JSON.stringify({ t: new Date().toISOString(), type, ...body })) + '\n', 0o600);
     } catch (e) {
       // A log that cannot be written is not a reason to stop a talk, but it
       // is said once: the debrief this run promised will not be there. A
@@ -28007,7 +28140,7 @@ async function createSouffleuse({
   }
 
   function disable(why) {
-    disabled = { why };
+    disabled = { why: redact(why) };
     on = false;
     status('off', why);
   }
@@ -28042,6 +28175,7 @@ async function createSouffleuse({
       durationS = talkDuration(fm);
       cadence = settings.cadence;
       cooldown = settings.cooldown;
+      callsPerHour = settings['calls-per-hour'];
       cuesCeiling = settings.cues !== 'off';
       cuesAllowed = cuesCeiling && cuesWanted;
       model = cliModel || settings.model;
@@ -28073,7 +28207,7 @@ async function createSouffleuse({
         // line; one file per hash is the same text once, and a new build with
         // a changed deck writes a new one under its own name.
         const promptPath = path.join(path.dirname(absIn), `prompter-${hash}.prompt.txt`);
-        try { writeOutputFile(promptPath, prefix.text); } catch (e) { /* not fatal */ }
+        try { writeOutputFile(promptPath, prefix.text, 0o600); } catch (e) { /* not fatal */ }
         const kb = Math.round(prefix.text.length / 1024);
         log(`[prompter] deck ${deck.chunks.length} slides, prompt ${kb} KB (${hash}), `
           + `model ${model}, cadence ${cadence}s, cues ${cuesAllowed ? 'on' : 'off'}`);
@@ -28197,6 +28331,7 @@ async function createSouffleuse({
     // is exactly how the opening quiet came to be over before the prompter
     // was switched on.
     cursor.wallAt = Date.now();
+    lastSayWall = Date.now();
     // A hello is a page that has just started: whatever stood on its strip a
     // moment ago is not on this one. The standing slot is the policy's memory
     // of "one at a time", and a hint nobody is looking at holding it would
@@ -28238,9 +28373,22 @@ async function createSouffleuse({
   }
 
   function heard(msg, reply) {
-    const text = String(msg.text == null ? '' : msg.text).replace(/\s+/g, ' ').trim();
+    // Capped: a final from a recogniser is a sentence or two, and a page
+    // that sends a megabyte as one segment would otherwise have it in every
+    // tick message for ninety seconds. The newest words are the ones kept.
+    let text = String(msg.text == null ? '' : msg.text).replace(/\s+/g, ' ').trim();
+    if (text.length > souff.SEGMENT_MAX_CHARS) text = text.slice(-souff.SEGMENT_MAX_CHARS);
     const t1 = isFinite(Number(msg.t1)) ? Number(msg.t1) : nowElapsed();
-    const t0 = isFinite(Number(msg.t0)) ? Number(msg.t0) : t1;
+    const wall = Date.now();
+    // The seconds a segment claims to have been spoken in are the cockpit's
+    // to say, and the cadence is counted in them - so a page claiming a
+    // minute of speech every second would earn a call every second. Held to
+    // the wall clock since the segment before it.
+    const t0raw = isFinite(Number(msg.t0)) ? Number(msg.t0) : t1;
+    const t0 = freeClock ? t0raw : souff.clampSpan({
+      t0: t0raw, t1, wallSeconds: (wall - lastSayWall) / 1000, slack: SOUFFLEUSE_SPAN_SLACK_S,
+    });
+    lastSayWall = wall;
     // The cursor first, and the segment after it: this segment is stamped on
     // the clock the message carries, so a rebase inside setCursor must not
     // move it. Everything already in the transcript is on the old clock and is
@@ -28353,16 +28501,37 @@ async function createSouffleuse({
     } catch (e) {
       // The one place a defect in here could have reached the watcher.
       logLine('error', { why: 'handler: ' + ((e && e.message) || String(e)) });
-      try { reply(false, 'the prompter could not handle that: ' + ((e && e.message) || '')); }
+      try { reply(false, redact('the prompter could not handle that: ' + ((e && e.message) || ''))); }
       catch (e2) { /* the socket went away mid-answer */ }
     }
   }
 
   // ── the tick ───────────────────────────────────────────────────────
 
+  // The hour's budget, checked before every call. Spent, it says so once –
+  // on the badge, in the log and on the terminal – and the prompter stays
+  // quiet until the oldest call of the hour has aged out. A hard ceiling on
+  // what one run can cost, whatever the cadence or the page asks for.
+  function budgetLeft() {
+    const hourAgo = Date.now() - 3600 * 1000;
+    while (callTimes.length && callTimes[0] <= hourAgo) callTimes.shift();
+    if (callTimes.length < callsPerHour) {
+      budgetSpent = false;
+      return true;
+    }
+    if (!budgetSpent) {
+      budgetSpent = true;
+      const back = Math.max(1, Math.ceil((callTimes[0] + 3600 * 1000 - Date.now()) / 60000));
+      logLine('warn', { why: 'calls-per-hour spent', budget: callsPerHour });
+      status('error', `${callsPerHour} calls in the last hour, the budget in prompter: {calls-per-hour} – quiet for about ${back} min`);
+    }
+    return false;
+  }
+
   function maybeTick() {
     if (!on || disabled || !prefix || !policy) return;
     if (Date.now() < backoffUntil) return;
+    if (!budgetLeft()) return;
     const d = souff.shouldTick({
       now: nowElapsed(),
       lastTickAt, lastTickReason,
@@ -28388,6 +28557,7 @@ async function createSouffleuse({
   }
 
   function tick(reason) {
+    callTimes.push(Date.now());
     const elapsed = nowElapsed();
     const idx = cursor.idx;
     const chunkCount = deck.chunks.length;
@@ -28491,8 +28661,11 @@ async function createSouffleuse({
     inflight = ctrl;
     status('thinking');
     const started = Date.now();
-    const timer = setTimeout(() => { try { ctrl.abort(); } catch (e) { /* gone */ } },
-      SOUFFLEUSE_TIMEOUT_MS);
+    let timedOut = false;
+    const timer = setTimeout(() => {
+      timedOut = true;
+      try { ctrl.abort(); } catch (e) { /* gone */ }
+    }, SOUFFLEUSE_TIMEOUT_MS);
     let res = null;
     let json = null;
     let failed = null;
@@ -28553,11 +28726,19 @@ async function createSouffleuse({
     const durationMs = Date.now() - started;
 
     if (failed) {
-      if (failed.name === 'AbortError') {
-        // Too late for the sentence it was about. Not a network failure and
-        // not a streak: the answer simply missed its moment.
-        logLine('error', { why: 'timeout', durationMs });
-        if (on && !disabled) status('listening');
+      if (failed.name === 'AbortError' && !timedOut) {
+        // Switched off, or the watcher going away, while the call was out.
+        logLine('error', { why: 'aborted', durationMs });
+      } else if (failed.name === 'AbortError') {
+        // Too late for the sentence it was about. Not a network failure, and
+        // no backoff: the answer simply missed its moment. It does count
+        // towards giving up, though - an endpoint that never answers in time
+        // is paid for on every call and helps with none of them.
+        errorStreak += 1;
+        logLine('error', { why: 'timeout', durationMs, streak: errorStreak });
+        if (errorStreak >= SOUFFLEUSE_MAX_ERRORS) {
+          disable(`${SOUFFLEUSE_MAX_ERRORS} failed or timed-out calls in a row – last: no answer within ${SOUFFLEUSE_TIMEOUT_MS / 1000}s`);
+        } else if (on && !disabled) status('listening');
       } else {
         trouble('network: ' + ((failed && failed.message) || String(failed)), durationMs);
       }
@@ -28615,6 +28796,7 @@ async function createSouffleuse({
     const reason = pendingReason;
     pendingReason = null;
     if (Date.now() < backoffUntil) return;
+    if (!budgetLeft()) return;
     tick(reason);
   }
 
@@ -28622,7 +28804,7 @@ async function createSouffleuse({
     errorStreak += 1;
     logLine('error', { why, durationMs, body, streak: errorStreak });
     if (errorStreak >= SOUFFLEUSE_MAX_ERRORS) {
-      disable(`${SOUFFLEUSE_MAX_ERRORS} failed calls in a row – last: ${why}`);
+      disable(`${SOUFFLEUSE_MAX_ERRORS} failed or timed-out calls in a row – last: ${why}`);
       return;
     }
     const wait = SOUFFLEUSE_BACKOFF_MS[Math.min(errorStreak - 1, SOUFFLEUSE_BACKOFF_MS.length - 1)];
@@ -28774,17 +28956,38 @@ async function createSouffleuse({
 
   // Said once, at the start, because it is the one thing about this flag a
   // person has to know before they use it. PLAN-souffleuse.md § Privacy.
+  //
+  // The audio half is the browser's, not this process's, and it is not
+  // nothing: Chrome's speech recognition runs on the device only where it
+  // has a model for the language, and otherwise sends the audio to Google –
+  // in a dry run as much as in a live one. The cockpit says which it got.
   if (dryRun) {
     log('[prompter] dry run: everything runs except the call to the model. The ear, the');
-    log('             socket, the ticks, the policy and the log are all real; nothing leaves');
-    log('             this machine and no OPENROUTER_API_KEY is needed. Read the `tick` lines');
-    log('             of the log to see the state line and the window a model would get.');
+    log('             socket, the ticks, the policy and the log are all real; nothing goes to');
+    log('             a model and no OPENROUTER_API_KEY is needed. The speech recognition is');
+    log('             Chrome\'s: on this device where it can, otherwise it sends the audio to');
+    log('             Google – the cockpit says which. Read the `tick` lines of the log to see');
+    log('             the state line and the window a model would get.');
   } else {
-    log('[prompter] the live prompter is on. What leaves this machine, as text: the deck');
-    log('             including speaker notes, and what the cockpit hears, to ' + base + '.');
-    log('             Never audio, never to the projection, never into source.md, never a key');
-    log('             into the HTML. The microphone hears the room too – switch it off before');
-    log('             a question round, or tell the room.');
+    log('[prompter] the live prompter is on. What it sends, as text: the deck including');
+    log('             speaker notes, and what the cockpit hears, to ' + base + '.');
+    log('             The prompter sends no audio; Chrome\'s speech recognition sends the audio');
+    log('             to Google unless it runs on this device – the cockpit says which. Nothing');
+    log('             goes to the projection or into source.md, and the key never into the HTML.');
+    log('             The microphone hears the room too – switch it off before a question round,');
+    log('             or tell the room.');
+  }
+  // An endpoint that is not https carries the deck, the transcript and the
+  // key in the clear, unless it is on this machine (the spec's fake is).
+  if (!dryRun) {
+    let u = null;
+    try { u = new URL(base); } catch (e) { /* said below */ }
+    const loopback = u && /^(?:localhost|127(?:\.\d{1,3}){3}|\[::1\])$/i.test(u.hostname);
+    if (!u) log(`[prompter] OPENROUTER_BASE_URL is not an address (${base}) – every call will fail.`);
+    else if (u.protocol !== 'https:' && !loopback) {
+      log(`[prompter] warning: OPENROUTER_BASE_URL is ${u.protocol}//${u.host}, not https – the deck,`);
+      log('             what the room says and the key would cross the network unencrypted.');
+    }
   }
   // The full path, not the basename, and a sentence about it: the log holds
   // the words the room said, and it is written beside source.md wherever that
@@ -29193,12 +29396,38 @@ function buildOnce(absIn, only, opts = {}) {
 // connected clients on each successful rebuild. The reload snippet
 // reconnects on close, so the server can come and go without breaking
 // the open browser tabs.
+// The largest message the watch socket takes. The biggest thing a page sends
+// is an asset upload, capped at MAX_INLINE_BYTES before base64 (2.7 MB after
+// it); anything larger is refused by `ws` before a byte of it is parsed.
+const WATCH_MAX_PAYLOAD = 4 * 1024 * 1024;
+
+// Which pages may open the watch socket, by the Origin a browser sends with
+// the handshake: a view opened from disk (`null`, and `file://`, which is
+// what Chrome sends for a file page) and a view --serve delivered. Any other
+// web page is refused before it can listen or send - the nonce used to be
+// the only guard, and a page without it could still hear every reload and
+// every failed build's message, source lines included. No Origin at all is
+// not a browser: a local program, which could read source.md itself.
+function watchOriginAllowed(origin, port) {
+  if (origin == null || origin === '') return true;
+  const o = String(origin).trim().toLowerCase();
+  if (o === 'null' || o === 'file://') return true;
+  if (!port) return false;
+  return ['localhost', '127.0.0.1', '[::1]'].some(n => o === `http://${n}:${port}`);
+}
+
 async function runWatch(absIn, only, baseOpts = {}) {
   const { WebSocketServer } = await import('ws');
   // Loopback, explicitly. Omitting `host` listens on every interface, which
   // for a one-way reload socket was merely untidy and for a socket that can
   // write to the author's disk is not.
-  const wss = new WebSocketServer({ port: 0, host: '127.0.0.1' });
+  const wss = new WebSocketServer({
+    port: 0, host: '127.0.0.1',
+    maxPayload: WATCH_MAX_PAYLOAD,
+    // Read at every handshake rather than once: --serve starts beside this
+    // and learns its port after the socket is already listening.
+    verifyClient: ({ origin }) => watchOriginAllowed(origin, servedPort),
+  });
   await new Promise(resolve => wss.on('listening', resolve));
   const port = wss.address().port;
   // A per-build secret, required on every patch. Without it any page in the
@@ -29233,8 +29462,14 @@ async function runWatch(absIn, only, baseOpts = {}) {
   // resolved into a socket nobody is holding any more.
   if (sidecar) process.on('exit', () => sidecar.close());
 
-  const broadcast = (msg) => {
+  // Sockets that have shown this build's nonce - a live view saying hello,
+  // or any message it sent with it. A reload goes to every socket, because
+  // the two documents carry no nonce and still reload; why a build failed
+  // goes only to these, because it quotes the source.
+  const trusted = new WeakSet();
+  const broadcast = (msg, onlyTrusted = false) => {
     for (const client of wss.clients) {
+      if (onlyTrusted && !trusted.has(client)) continue;
       if (client.readyState === 1) client.send(msg);
     }
   };
@@ -29279,7 +29514,7 @@ async function runWatch(absIn, only, baseOpts = {}) {
         stack: err.userFacing ? null : (err.stack || null),
         durationMs: Date.now() - t0,
       });
-      broadcast(JSON.stringify({ type: 'build-failed', why: err.message }));
+      broadcast(JSON.stringify({ type: 'build-failed', why: err.message }), true);
     }
   };
 
@@ -29300,10 +29535,20 @@ async function runWatch(absIn, only, baseOpts = {}) {
     // sidecar would keep whispering into a socket in CLOSED, and the next
     // cockpit's hello would be the second one to be answered.
     sock.on('close', () => { if (cockpit === sock) cockpit = null; });
+    // A socket error is the socket's end, not the watcher's. Without a
+    // listener `ws` rethrows it, and one message over WATCH_MAX_PAYLOAD - or
+    // a malformed frame - took the whole watch process down with it.
+    sock.on('error', () => { try { sock.terminate(); } catch (e) { /* gone */ } });
     sock.on('message', (raw) => {
       let msg;
       try { msg = JSON.parse(String(raw)); } catch { return; }
       if (!msg || typeof msg.type !== 'string') return;
+      // A live view's first word on every connection, answered with nothing:
+      // it only marks the socket as one this build made.
+      if (msg.type === 'hello') {
+        if (typeof msg.nonce === 'string' && msg.nonce === nonce) trusted.add(sock);
+        return;
+      }
       const known = msg.type === 'patch' || msg.type === 'assets' || msg.type === 'asset'
         || msg.type.startsWith('souffleuse-');
       if (!known) return;
@@ -29313,6 +29558,7 @@ async function runWatch(absIn, only, baseOpts = {}) {
       // succeeded, the promise never resolved, and the picker sat there.
       const reply = (ok, why, extra) => sock.send(JSON.stringify({ ...extra, type: msg.type + '-result', id: msg.id, ok, why }));
       if (msg.nonce !== nonce) return reply(false, 'this page is from an older build – reload it and try again');
+      trusted.add(sock);
 
       // The live prompter, after the nonce check like everything else. A
       // second cockpit tab takes the hints over by saying hello; the one that
@@ -29345,15 +29591,22 @@ async function runWatch(absIn, only, baseOpts = {}) {
       // Everything in assets/ the resolver would find, so the editor's
       // picker can offer a file no diagram references yet. Names only – the
       // bytes stay on disk until the build inlines them.
+      //
+      // Held to the rule a build holds a reference to: a name the build
+      // would refuse - a link out of the asset root, into a dot-folder, or to
+      // a file that is not a picture - is left off the list and never
+      // stat'ed, so its size does not say anything about a file elsewhere.
       if (msg.type === 'assets') {
         let names = [];
         try {
           names = fs.readdirSync(assetDir)
             .filter(f => IMG_EXTS.includes(path.extname(f).slice(1).toLowerCase()))
+            .filter(f => assetEscape(path.join(assetDir, f), path.dirname(absIn)) === null)
             .map(f => {
               const st = fs.statSync(path.join(assetDir, f));
-              return { file: f, id: f.replace(/\.[^.]+$/, ''), bytes: st.size };
+              return st.isFile() ? { file: f, id: f.replace(/\.[^.]+$/, ''), bytes: st.size } : null;
             })
+            .filter(Boolean)
             .sort((a, b) => a.id.localeCompare(b.id));
         } catch (e) { /* no assets/ yet is not an error, it is an empty list */ }
         return reply(true, '', { assets: names });
@@ -29383,14 +29636,22 @@ async function runWatch(absIn, only, baseOpts = {}) {
           return reply(false, `${(bytes.length / 1024 / 1024).toFixed(1)} MB is over the ${MAX_INLINE_BYTES / 1024 / 1024} MB inline cap, and the next build would refuse it. `
             + 'Shrink it first – "node build.js <source.md> --optimize-images" converts to WebP q92, which measured 12-18% of the original on real lecture assets.');
         }
+        // assets/ itself may not be a link: the rename below would land
+        // wherever it points. outputDir refuses one and creates a missing one.
+        try { outputDir(assetDir); }
+        catch (e) { return reply(false, 'assets/ is a symbolic link, and the editor does not write through one – replace it with a real folder'); }
         const dest = path.join(assetDir, name);
-        if (fs.existsSync(dest) && !msg.replace) {
-          const same = (() => { try { return fs.readFileSync(dest).equals(bytes); } catch { return false; } })();
+        // lstat, not exists: a link at the name is "a different file" and is
+        // never read for the comparison, which would read wherever it points.
+        let there = null;
+        try { there = fs.lstatSync(dest); } catch { /* a new name */ }
+        if (there && !msg.replace) {
+          const same = there.isFile()
+            && (() => { try { return fs.readFileSync(dest).equals(bytes); } catch { return false; } })();
           if (!same) return reply(false, `assets/${name} already exists and is a different file`, { exists: true });
           return reply(true, '', { file: name, id: name.replace(/\.[^.]+$/, ''), unchanged: true });
         }
         try {
-          fs.mkdirSync(assetDir, { recursive: true });
           writeOutputFile(dest, bytes);
         } catch (e) { return reply(false, 'cannot write the asset: ' + e.message); }
         console.log(`[asset] assets/${name} (${bytes.length < 1024 ? bytes.length + ' B' : (bytes.length / 1024).toFixed(0) + ' KB'})`);
@@ -29588,26 +29849,70 @@ function runNew(slug, into) {
 //
 // Bound to loopback only. This serves a directory off the author's disk;
 // it has no business being reachable from the lecture-hall network.
+//
+// Loopback is not the whole of it, because a web page in the same browser
+// can reach loopback too: a site that points its own host name at 127.0.0.1
+// (DNS rebinding) reads whatever this answers as if it were its own. So a
+// request is answered only when its Host is this server's own name -
+// localhost, 127.0.0.1 or [::1] with this port - which a rebinding page
+// cannot send. And what is answered is what the four views can ask for:
+// a file of a kind in this table (the views themselves, pictures, clips,
+// faces, a PDF a slide links to), never below a name that starts with a dot
+// (.env, .git), and never the prompter's transcript or prompt, which are
+// the one thing in the folder that is the room's words rather than the
+// deck. source.md is not served either: no view reads it - the editor
+// carries the text it edits in the page and writes back over the watch
+// socket - and it holds the speaker notes the projection does not show.
 const SERVE_MIME = {
   html: 'text/html; charset=utf-8', css: 'text/css; charset=utf-8',
-  js: 'text/javascript; charset=utf-8', json: 'application/json',
+  js: 'text/javascript; charset=utf-8',
   svg: 'image/svg+xml', png: 'image/png', jpg: 'image/jpeg',
   jpeg: 'image/jpeg', gif: 'image/gif', webp: 'image/webp',
   mp4: 'video/mp4', m4v: 'video/mp4', webm: 'video/webm',
   mov: 'video/quicktime', woff2: 'font/woff2', woff: 'font/woff',
-  ttf: 'font/ttf', otf: 'font/otf', md: 'text/plain; charset=utf-8',
+  ttf: 'font/ttf', otf: 'font/otf', pdf: 'application/pdf',
 };
+
+// The port --serve listens on, once it does; null without --serve. The watch
+// socket reads it to accept a page this server delivered.
+let servedPort = null;
+
+// Whether a request's Host header names this server. Lower-cased, and the
+// port must be the one listened on: `localhost` alone is what a browser
+// sends for port 80, which is not this.
+function serveHostAllowed(host, port) {
+  const h = String(host || '').trim().toLowerCase();
+  return ['localhost', '127.0.0.1', '[::1]'].some(n => h === `${n}:${port}` || (port === 80 && h === n));
+}
+
+// Whether a path below the served root may be answered: a kind the table
+// knows, nothing below a dot-name, and not the prompter's files.
+function servePathAllowed(rel) {
+  const parts = String(rel).split(/[\\/]+/).filter(Boolean);
+  if (!parts.length) return false;
+  if (parts.some(p => p.startsWith('.'))) return false;
+  const leaf = parts[parts.length - 1];
+  if (/^(?:prompter|souffleuse)-/i.test(leaf)) return false;
+  return Object.prototype.hasOwnProperty.call(SERVE_MIME, path.extname(leaf).slice(1).toLowerCase());
+}
 
 async function runServe(rootDir, wantedPort) {
   const http = await import('node:http');
   // Canonicalise the root too, or a repo reached through a symlinked path
   // would fail its own containment check.
   try { rootDir = fs.realpathSync(rootDir); } catch { /* keep as given */ }
+  let port = null;
   const server = http.createServer((req, res) => {
+    if (!serveHostAllowed(req.headers.host, port)) {
+      res.writeHead(403); return res.end('forbidden');
+    }
     let rel;
     try { rel = decodeURIComponent(new URL(req.url, 'http://x').pathname); }
     catch { res.writeHead(400); return res.end('bad request'); }
     if (rel === '/') rel = '/audience.html';
+    // Judged on the path as asked and again on where it really is below,
+    // so a link named like a picture does not serve a transcript.
+    if (!servePathAllowed(rel)) { res.writeHead(404); return res.end('not found'); }
     // Resolve, then confirm the result is still inside the served root:
     // without this, a request for /../../.ssh/id_rsa would be honoured.
     // Resolve symlinks before the containment test, not just `..`. A prefix
@@ -29618,6 +29923,7 @@ async function runServe(rootDir, wantedPort) {
     if (abs !== rootDir && !abs.startsWith(rootDir + path.sep)) {
       res.writeHead(403); return res.end('forbidden');
     }
+    if (!servePathAllowed(path.relative(rootDir, abs))) { res.writeHead(404); return res.end('not found'); }
     let stat;
     try { stat = fs.statSync(abs); } catch { res.writeHead(404); return res.end('not found'); }
     if (stat.isDirectory()) { res.writeHead(404); return res.end('not found'); }
@@ -29658,7 +29964,8 @@ async function runServe(rootDir, wantedPort) {
     server.on('error', reject);
     server.listen(wantedPort || 0, '127.0.0.1', resolve);
   });
-  const port = server.address().port;
+  port = server.address().port;
+  servedPort = port;
   const base = `http://localhost:${port}`;
   console.log(`Serving ${path.relative(process.cwd(), rootDir) || '.'} on ${base}`);
   emitEvent({ type: 'serving', url: base });
@@ -30922,12 +31229,17 @@ async function main() {
     const rows = souff.replayAnswers(lines, { cooldown: settings.cooldown });
     console.log(`[replay] ${path.basename(logFile)} · cooldown ${settings.cooldown}s`
       + ` · ${rows.length} answer(s) the model gave`);
+    // Every field below is the model's or the log's words, and a log is a
+    // file somebody may have sent along with the deck: printed through
+    // terminalSafe, so an escape sequence in either reaches the terminal as a
+    // space.
+    const t = (x) => terminalSafe(String(x).replace(/\n/g, ' '));
     for (const r of rows) {
-      const what = r.action === 'cue' ? `cue → #${r.target}` : (r.kind || r.action);
-      console.log(`  ${String(r.n).padStart(3)} · ${formatClock(r.at)} · #${r.chunkId || '?'}`
-        + ` · ${what}${r.text ? `: "${r.text}"` : ''}`
-        + `\n        → ${r.show ? 'shown' : 'held back (' + r.reason + ')'}`
-        + (r.why ? ` · the model: ${r.why}` : ''));
+      const what = r.action === 'cue' ? `cue → #${t(r.target)}` : t(r.kind || r.action);
+      console.log(`  ${String(r.n).padStart(3)} · ${formatClock(r.at)} · #${t(r.chunkId || '?')}`
+        + ` · ${what}${r.text ? `: "${t(r.text)}"` : ''}`
+        + `\n        → ${r.show ? 'shown' : 'held back (' + t(r.reason) + ')'}`
+        + (r.why ? ` · the model: ${t(r.why)}` : ''));
     }
     const shown = rows.filter(r => r.show).length;
     console.log(`[replay] ${shown} would be whispered, ${rows.length - shown} held back.`);
@@ -30990,14 +31302,15 @@ async function main() {
     console.error('  --squint-out PATH     write it somewhere else; "-" writes to stdout.');
     console.error('');
     console.error('Live prompter (only together with --watch; the cockpit reaches it over the');
-    console.error('watch socket). What leaves the machine is text: the deck including speaker');
-    console.error('notes, and what the cockpit hears. Never audio.');
+    console.error('watch socket). What it sends is text: the deck including speaker notes, and');
+    console.error('what the cockpit hears. The prompter sends no audio; Chrome\'s speech');
+    console.error('recognition sends the audio to Google unless it runs on the device.');
     console.error('  --prompter                run the prompter sidecar beside the watch build.');
     console.error('  --prompter-model ID       an OpenRouter model id, overriding the deck\'s');
     console.error('                            `prompter: model:` and the default.');
     console.error('  --prompter-dry-run        everything but the call: the ear, the ticks, the');
-    console.error('                            policy and the log all run, nothing leaves the');
-    console.error('                            machine, and no key is needed.');
+    console.error('                            policy and the log all run, nothing goes to a');
+    console.error('                            model, and no key is needed.');
     console.error('  --prompter-replay FILE    no watcher and no browser: read a run\'s');
     console.error('                            prompter-*.jsonl (or an older souffleuse-*.jsonl)');
     console.error('                            back and print, per answer, what the model');

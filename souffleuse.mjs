@@ -603,19 +603,58 @@ export function systemPrefix(deck, opts = {}) {
 const WINDOW_S = 90;
 const WINDOW_WORDS = 600;
 
+/**
+ * The longest single segment of heard speech anything here keeps, in
+ * characters. A final from a recogniser is a sentence or two; this is ten
+ * times that. The sidecar cuts a segment to it on arrival, and `windowOf`
+ * holds to it again, so a transcript handed in by some other road cannot put
+ * a megabyte into a tick message either.
+ */
+export const SEGMENT_MAX_CHARS = 2000;
+
+// The newest `maxWords` words of a segment, and at most SEGMENT_MAX_CHARS
+// characters of them, marked as cut. Only ever applied to the newest segment
+// of a window, which used to be kept whole whatever its size.
+function tailOf(seg, maxWords) {
+  let text = String(seg.text);
+  const parts = text.split(/\s+/).filter(Boolean);
+  let cut = false;
+  if (parts.length > maxWords) { text = parts.slice(-maxWords).join(' '); cut = true; }
+  if (text.length > SEGMENT_MAX_CHARS) { text = text.slice(-SEGMENT_MAX_CHARS).trimStart(); cut = true; }
+  return cut ? Object.assign({}, seg, { text: '… ' + text }) : seg;
+}
+
 function windowOf(transcript, elapsed, windowS, windowW) {
   const segs = (Array.isArray(transcript) ? transcript : []).filter((x) => x && x.text);
   const kept = [];
   let words = 0;
   for (let i = segs.length - 1; i >= 0; i--) {
-    const seg = segs[i];
+    let seg = segs[i];
     if (num(elapsed, 0) - num(seg.t0, 0) > windowS) break;
+    if (!kept.length) seg = tailOf(seg, windowW);
     const w = wordCount(seg.text);
     if (kept.length && words + w > windowW) break;
     words += w;
     kept.unshift(seg);
   }
   return { kept, words };
+}
+
+/**
+ * The start of a heard segment, held to what the wall clock allows. `t0` and
+ * `t1` are stamps on the cockpit's clock, which the page owns; the cadence is
+ * counted in `t1 - t0`, so a page claiming a minute of speech per message
+ * would earn a call per message. A segment cannot have been spoken for
+ * longer than the time since the one before it arrived, plus `slack` for two
+ * messages crossing a socket – so a longer claim has its start moved up to
+ * fit, and everything counted from it (the cadence, the words a minute) is
+ * counted on seconds that passed. `wallSeconds` is the sidecar's to measure.
+ */
+export function clampSpan({ t0, t1, wallSeconds, slack = 2 } = {}) {
+  const end = num(t1, 0);
+  const start = num(t0, end);
+  const allowed = Math.max(0, num(wallSeconds, 0)) + Math.max(0, num(slack, 0));
+  return end - start > allowed ? end - allowed : start;
 }
 
 // Filler sounds, and only sounds. `also`, `halt`, `eigentlich`, `like` and
@@ -895,6 +934,16 @@ export function parseAnswer(response, session = {}) {
 
   const text = String(args.text == null ? '' : args.text).replace(/\s+/g, ' ').trim();
   if (!text) return no('garbage', said);
+  // A control character left after the whitespace is folded is not a word a
+  // speaker can read, and printed on the author's terminal an escape
+  // sequence is an instruction to it. Refused, not cleaned: a model writing
+  // those is not answering the question. The refusal carries the text with
+  // them made visible, so the log still shows what came.
+  if (/\p{Cc}/u.test(text) || (said.chunk_id && /\p{Cc}/u.test(said.chunk_id))) {
+    said.text = text.replace(/\p{Cc}/gu, '\uFFFD');
+    if (said.chunk_id) said.chunk_id = said.chunk_id.replace(/\p{Cc}/gu, '\uFFFD');
+    return no('garbage', said);
+  }
   said.text = text;
   if (wordCount(text) > MAX_WORDS) return no('too-long', said);
 

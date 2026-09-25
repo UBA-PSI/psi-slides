@@ -15,7 +15,8 @@
  *   2. the asset root: the lecture's folder and the one above it, links
  *      resolved - the lecture's folder alone when the one above is the home
  *      folder or a disk's top - and never a folder whose name starts with a
- *      dot. `assetEscape` in both files, on a real directory tree with real
+ *      dot, and a link only to a file of the kind its name says
+ *      (`assetKindOf`). `assetEscape` in both files, on a real directory tree with real
  *      links, because a link is the case a string check gets wrong; the home
  *      folder is a parameter, so the gate says where it is;
  *   3. writing an output: a link at the path is replaced and never written
@@ -101,7 +102,7 @@ export async function run({ report }) {
      'and safeMatter hands gray-matter refusing engines for javascript and coffee as a second layer');
 
   // ── 2. the asset root ─────────────────────────────────────────────
-  const containment = ['pathWithin', 'realpathLoose', 'assetRootOf', 'assetRootNarrowed', 'assetEscape'];
+  const containment = ['pathWithin', 'realpathLoose', 'assetRootOf', 'assetRootNarrowed', 'assetKindOf', 'assetEscape'];
   const cb = load('build.js', containment);
   const cl = load('lint.js', containment);
   const base = fs.realpathSync(tmpDir('psi-untrusted-'));
@@ -168,6 +169,45 @@ export async function run({ report }) {
     ok(cb.assetEscape(abs, lec) !== null && cl.assetEscape(abs, lec) !== null,
        `${what} is refused in both files`, cb.assetEscape(abs, lec));
   }
+  // A link is read only when its target is the kind of file its name says: a
+  // picture's name on a PDF, a key or a note is refused inside the root too,
+  // because the build would inline the bytes into the page as a data: URI.
+  put(path.join(lec, 'contract.pdf'));
+  put(path.join(lec, 'notes.txt'));
+  put(path.join(lec, 'clip.mp4'));
+  put(path.join(lec, 'assets', 'real.webp'));
+  put(path.join(lec, 'face.woff2'));
+  link(path.join(lec, 'contract.pdf'), path.join(lec, 'assets', 'pic.png'));
+  link(path.join(lec, 'notes.txt'), path.join(lec, 'assets', 'plain.svg'));
+  link(path.join(lec, 'clip.mp4'), path.join(lec, 'assets', 'still.png'));
+  link(path.join(lec, 'assets', 'real.webp'), path.join(lec, 'assets', 'alias.png'));
+  link(path.join(lec, 'clip.mp4'), path.join(lec, 'assets', 'movie.webm'));
+  link(path.join(lec, 'face.woff2'), path.join(lec, 'assets', 'face.otf'));
+  link(path.join(lec, 'notes.txt'), path.join(lec, 'assets', 'noext'));
+  for (const [what, abs, inside] of [
+    ['a picture\'s name linked to a PDF', path.join(lec, 'assets', 'pic.png'), false],
+    ['an .svg linked to a text file', path.join(lec, 'assets', 'plain.svg'), false],
+    ['a picture\'s name linked to a clip', path.join(lec, 'assets', 'still.png'), false],
+    ['a link with no extension to a text file', path.join(lec, 'assets', 'noext'), false],
+    ['a .png linked to a .webp', path.join(lec, 'assets', 'alias.png'), true],
+    ['a .webm linked to an .mp4', path.join(lec, 'assets', 'movie.webm'), true],
+    ['an .otf linked to a .woff2', path.join(lec, 'assets', 'face.otf'), true],
+  ]) {
+    ok((cb.assetEscape(abs, lec) === null) === inside && (cl.assetEscape(abs, lec) === null) === inside,
+       `${what} is ${inside ? 'read' : 'refused'} in both files`, cb.assetEscape(abs, lec));
+  }
+  // The kind table is spelled once per file and has to say what the build's
+  // own extension lists say.
+  const kinds = [['IMG_EXTS', 'image'], ['VIDEO_EXTS', 'video'], ['FONT_EXTS', 'font']];
+  for (const [list, kind] of kinds) {
+    const line = constLine(buildSrc, list);
+    const exts = (line.match(/'([a-z0-9]+)'/g) || []).map(x => x.slice(1, -1));
+    ok(exts.length > 0 && exts.every(e => cb.assetKindOf('x.' + e) === kind && cl.assetKindOf('x.' + e) === kind),
+       `assetKindOf names every one of ${list} a ${kind}, in both files`, line);
+  }
+  ok(lift(buildSrc, 'assetKindOf', 'build.js') === lift(lintSrc, 'assetKindOf', 'lint.js'),
+     'and the two copies of assetKindOf are the same text');
+
   // The home folder, injected: the review's fixture was a sibling link to a
   // key, which one level up allows - unless one level up is home.
   const home = path.join(base, 'home');
@@ -177,6 +217,8 @@ export async function run({ report }) {
   put(path.join(home, 'outside', 'id_rsa'));
   put(path.join(talk, 'assets', 'own.png'));
   link(path.join(home, 'outside', 'id_rsa'), path.join(talk, 'assets', 'leak.png'));
+  put(path.join(home, 'outside', 'pic.png'));
+  link(path.join(home, 'outside', 'pic.png'), path.join(talk, 'assets', 'near.png'));
   const other = path.join(base, 'elsewhere');
   for (const c of [cb, cl]) {
     ok(c.assetRootOf(talk, home) === talk && c.assetRootNarrowed(talk, home),
@@ -185,8 +227,10 @@ export async function run({ report }) {
        'and the same folder with home elsewhere reads one level up');
     ok(c.assetEscape(path.join(talk, 'assets', 'leak.png'), talk, home) !== null,
        'so the review\'s sibling link to id_rsa is refused when the parent is home');
-    ok(c.assetEscape(path.join(talk, 'assets', 'leak.png'), talk, other) === null,
-       'and allowed when it is not (the one-level-up rule)');
+    ok(c.assetEscape(path.join(talk, 'assets', 'near.png'), talk, home) !== null
+       && c.assetEscape(path.join(talk, 'assets', 'near.png'), talk, other) === null,
+       'and a sibling link to a picture is allowed when it is not (the one-level-up rule) –'
+       + ' the key itself is refused either way now, as a link to a file that is no picture');
     ok(c.assetEscape(path.join(talk, 'assets', 'own.png'), talk, home) === null,
        'while the lecture\'s own files are read');
     ok(c.assetRootOf('/deck', home) === '/deck', 'a lecture folder at the top of a disk is its own root');
@@ -236,6 +280,7 @@ export async function run({ report }) {
   ok(!/frontmatter-language/.test(lintOf('---yaml\ntitle: T\n---\n' + BODY.replace('IMG', ''))),
      'and passes ---yaml');
   for (const [ref, bad] of [['![](assets/leak.png)', true], ['![](leak)', true], ['![](../../outside/key)', true],
+    ['![](assets/pic.png)', true], ['![](alias)', false],
     ['![](../shared/pic.png)', false], ['`![](../../outside/key)`', false]]) {
     const out = lintOf('---\ntitle: T\n---\n' + BODY.replace('IMG', ref));
     ok(/asset-outside-root/.test(out) === bad, `lint.js ${bad ? 'reports' : 'passes'} ${ref}`, out.split('\n')[0]);

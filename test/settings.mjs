@@ -3742,6 +3742,7 @@ console.log('\nlayout generations');
       ['cues: maybe', 'prompter:\n  cues: maybe\n', /prompter\.cues: maybe/, 'unknown-prompter-setting'],
       ['cadence: fast', 'prompter: {cadence: fast}\n', /prompter\.cadence: fast/, 'unknown-prompter-setting'],
       ['language: german', 'prompter:\n  language: german\n', /prompter\.language: german/, 'unknown-prompter-setting'],
+      ['calls-per-hour: lots', 'prompter:\n  calls-per-hour: lots\n', /prompter\.calls-per-hour: lots/, 'unknown-prompter-setting'],
     ];
     for (const [name, fm, msg, code] of refusals) {
       const r = raw(FM(fm), ['--audience-only']);
@@ -3751,6 +3752,9 @@ console.log('\nlayout generations');
     // A bound is the build's alone: the linter passes it, the build refuses it.
     const wide = raw(FM('prompter:\n  cadence: 500\n'), ['--audience-only']);
     ok(wide.code !== 0 && /between 10 and 120/.test(wide.out), 'a cadence out of bounds is refused by the build', wide.out.split('\n')[0]);
+    const budget = raw(FM('prompter:\n  calls-per-hour: 5\n'), ['--audience-only']);
+    ok(budget.code !== 0 && /not a number of calls between 10 and 1000/.test(budget.out),
+       'and a budget of calls out of bounds, in calls rather than seconds', budget.out.split('\n')[0]);
     const p = raw(FM('duration: 45m\n'), ['--print-only']);
     ok(p.code !== 0 && /duration: 45m/.test(p.out) && p.files.length === 0,
        '--print-only refuses a bad duration before writing anything', p.out.split('\n')[0]);
@@ -3766,7 +3770,7 @@ console.log('\nlayout generations');
       // as a talk of 7200 minutes.
       ['a bare clock', 'duration: 45:00\n'],
       ['a bare clock past the hour', 'duration: 120:00\n'],
-      ['the whole block', 'duration: 45\nprompter:\n  model: google/gemini-2.5-flash\n  language: de-DE\n  cadence: 30\n  cooldown: 90\n  cues: off\n'],
+      ['the whole block', 'duration: 45\nprompter:\n  model: google/gemini-2.5-flash\n  language: de-DE\n  cadence: 30\n  cooldown: 90\n  cues: off\n  calls-per-hour: 120\n'],
       ['the flow form', 'prompter: {cues: off, cadence: 20}\n'],
     ];
     for (const [name, fm] of accepts) {
@@ -3881,8 +3885,23 @@ console.log('\nlayout generations');
   const upHome = deck(YAML, '![](../pic.png)', null, { parent: home, home });
   ok(upHome.code !== 0 && upHome.out.includes(path.join(home, `lec${n}`)),
      'and a picture in home itself, the root it would have had, is refused naming the lecture folder as the root', upHome.out.split('\n')[0]);
-  const notHome = deck(YAML, '![](leak)', sibling, { parent: home, home: path.join(base, 'elsewhere') });
+  // A picture, because a link to the key itself is now refused wherever it
+  // points: its target is no picture (below).
+  fs.writeFileSync(path.join(home, 'outside', 'pic.png'), PNG);
+  const siblingPic = (d) => fs.symlinkSync(path.join(home, 'outside', 'pic.png'), path.join(d, 'assets', 'near.png'));
+  const notHome = deck(YAML, '![](near)', siblingPic, { parent: home, home: path.join(base, 'elsewhere') });
   ok(notHome.code === 0, 'the same layout with home elsewhere builds (one level up)', notHome.out.split('\n')[0]);
+  // A link whose name says picture and whose target is a PDF, inside the
+  // lecture's own folder: the bytes would have gone into the page as an image.
+  const pdf = deck(YAML, '![](pic)', (d) => {
+    fs.writeFileSync(path.join(d, 'contract.pdf'), '%PDF-1.4 PRIVATE KEY');
+    fs.symlinkSync(path.join(d, 'contract.pdf'), path.join(d, 'assets', 'pic.png'));
+  });
+  ok(pdf.code !== 0 && /not a picture, a clip or a font/.test(pdf.out) && !pdf.views.length
+     && !/PRIVATE KEY/.test(pdf.out),
+     'a link named like a picture whose target is a PDF is refused, and says why', pdf.out.split('\n').find(x => /->/.test(x)));
+  ok(/asset-outside-root/.test(pdf.lint) && /not a picture, a clip or a font/.test(pdf.lint),
+     'and lint.js says the same', pdf.lint.split('\n')[0]);
 
   const font = deck('---\ntitle: T\nfonts:\n  sans: Evil\n---\n', 'Text.', (d) => {
     fs.mkdirSync(path.join(d, 'fonts'));

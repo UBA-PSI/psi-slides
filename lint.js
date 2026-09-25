@@ -306,7 +306,7 @@ const STYLE_ENUMS = {
 
 // Mirrors SOUFFLEUSE_SPEC in build.js – the nested `prompter:` block that
 // configures the live prompter (--prompter). Three tables because the
-// block has three kinds of key: one enum, two bounded numbers (bounds are
+// block has three kinds of key: one enum, three bounded numbers (bounds are
 // the build's, as with the style scales), and two free strings whose
 // *presence* is all a zero-dep reader can vouch for. An unknown key is an
 // error, because the build refuses it. test/gates/tails.mjs holds the union
@@ -314,7 +314,7 @@ const STYLE_ENUMS = {
 const SOUFFLEUSE_ENUMS = {
   'cues': ['on', 'off'],
 };
-const SOUFFLEUSE_NUM_KEYS = new Set(['cadence', 'cooldown']);
+const SOUFFLEUSE_NUM_KEYS = new Set(['cadence', 'cooldown', 'calls-per-hour']);
 const SOUFFLEUSE_FREE_KEYS = new Set(['model', 'language']);
 
 // Walks one nested frontmatter block by indentation rather than with a
@@ -443,16 +443,33 @@ function assetRootNarrowed(own, home = os.homedir()) {
   const parent = path.dirname(own);
   return parent === own || parent === path.parse(parent).root || parent === realpathLoose(home);
 }
+// Mirrors assetKindOf in build.js: a picture, a clip, a face, or null.
+function assetKindOf(p) {
+  const ext = path.extname(String(p)).slice(1).toLowerCase();
+  if (['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) return 'image';
+  if (['mp4', 'webm', 'm4v', 'mov'].includes(ext)) return 'video';
+  if (['woff2', 'woff', 'ttf', 'otf'].includes(ext)) return 'font';
+  return null;
+}
 // Where `abs` really lands when the build may not read it, or null when it
-// may: outside the asset root, or inside it below a folder whose name starts
-// with a dot (.ssh, .git, .config, .env ...). A link counts as the file it
-// points to.
+// may: outside the asset root, inside it below a folder whose name starts
+// with a dot (.ssh, .git, .config, .env ...), or a link whose target is not
+// the kind of file its name says. A link counts as the file it points to.
 function assetEscape(abs, sourceDir, home = os.homedir()) {
   const real = realpathLoose(abs);
   const root = assetRootOf(sourceDir, home);
   if (!pathWithin(root, real)) return real;
   const rel = path.relative(root, real);
-  return rel && rel.split(path.sep).some(c => c.startsWith('.')) ? real : null;
+  if (rel && rel.split(path.sep).some(c => c.startsWith('.'))) return real;
+  // Only where the name and the file it lands on disagree about the
+  // extension: a folder on the way being a link (/tmp on macOS) is not this.
+  const named = path.resolve(abs);
+  if (path.extname(real).toLowerCase() !== path.extname(named).toLowerCase()) {
+    const want = assetKindOf(named);
+    const got = assetKindOf(real);
+    if (!got || (want && got !== want)) return real;
+  }
+  return null;
 }
 
 // Mirrors frontmatterLanguage / FRONTMATTER_LANGUAGES in build.js: what
@@ -2940,7 +2957,7 @@ function lintFile(filePath) {
       if (SOUFFLEUSE_NUM_KEYS.has(key)) {
         if (!v || !Number.isFinite(Number(v))) {
           addFm(i + 2, 'error', 'unknown-prompter-setting',
-            `'prompter.${key}: ${v}' is not a number of seconds`);
+            `'prompter.${key}: ${v}' is not a number`);
         }
         return;
       }
@@ -4582,11 +4599,16 @@ function lintFile(filePath) {
       const scope = assetRootNarrowed(realpathLoose(sourceDir))
         ? `the lecture's folder alone (${assetRoot}), because the folder above it is your home folder or the top of a disk`
         : `the lecture's folder and the folder one level up (${assetRoot})`;
-      emit('error', 'asset-outside-root', pathWithin(assetRoot, out)
-        ? `'${href}' is ${out}, in a folder whose name starts with a dot – the build reads nothing from `
-          + 'one (.ssh, .git, .config …) and refuses this deck; move the file out of it'
-        : `'${href}' is ${out} – the build reads assets from ${scope}, links resolved, and refuses `
-          + 'this deck; copy the file in there');
+      const inDot = pathWithin(assetRoot, out)
+        && path.relative(assetRoot, out).split(path.sep).some(c => c.startsWith('.'));
+      emit('error', 'asset-outside-root', !pathWithin(assetRoot, out)
+        ? `'${href}' is ${out} – the build reads assets from ${scope}, links resolved, and refuses `
+          + 'this deck; copy the file in there'
+        : inDot
+          ? `'${href}' is ${out}, in a folder whose name starts with a dot – the build reads nothing from `
+            + 'one (.ssh, .git, .config …) and refuses this deck; move the file out of it'
+          : `'${href}' is a link to ${out}, which is not a picture, a clip or a font – the build reads `
+            + 'a link only when its target is the kind of file its name says, and refuses this deck');
     }
   };
   let assetFence = false;

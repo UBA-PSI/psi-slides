@@ -37,6 +37,7 @@ import os from 'node:os';
 import path from 'node:path';
 import http from 'node:http';
 import { spawn, spawnSync } from 'node:child_process';
+import { WebSocket } from 'ws';
 import { ROOT } from './harness.mjs';
 
 export const name = 'souffleuse · the live prompter, cockpit to sidecar to strip';
@@ -293,6 +294,8 @@ export async function run({ page, report }) {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-souff-'));
   const fake = fakeOpenRouter();
   let child = null;
+  let dryChild = null;
+  let dryDir = null;
   const extra = [];
 
   try {
@@ -361,6 +364,14 @@ export async function run({ page, report }) {
           ...process.env,
           OPENROUTER_API_KEY: 'test-key-never-in-the-html',
           OPENROUTER_BASE_URL: 'http://127.0.0.1:' + fakePort,
+          // This spec moves the cockpit's clock by hand (see the header), and
+          // the sidecar holds a segment's claimed length to the wall clock
+          // since the one before it - a minute of speech claimed a second
+          // later is three seconds. That is the right answer to a page, and
+          // it would turn every `final(text, 70)` below into two seconds.
+          // The switch is read from the environment only, so no page can
+          // throw it.
+          PSI_PROMPTER_FREE_CLOCK: '1',
         },
       });
     let out = '';
@@ -494,6 +505,7 @@ export async function run({ page, report }) {
       badge: document.getElementById('souffleuse-badge').hidden,
       starts: window.__stt.starts,
       title: document.getElementById('souffleuse-btn').title,
+      toast: document.getElementById('mode-badge').textContent,
     }));
     ok(sw.pressed === 'true' && sw.state === 'listening',
        'the switch reads pressed and listening', JSON.stringify(sw));
@@ -502,6 +514,10 @@ export async function run({ page, report }) {
        String(sw.starts));
     ok(sw.badge === true,
        'on-device recognition puts no badge up: the badge is for degraded states', JSON.stringify(sw));
+    // Where the words go, said of this run and no other: on-device, so the
+    // audio stays, and the text goes to the model.
+    ok(/on-device/.test(sw.toast) && /text goes to openrouter\.ai/.test(sw.toast) && !/Google/.test(sw.toast),
+       'the first switch-on says the ear is on-device and the text goes to openrouter.ai', sw.toast);
     // The language it assumed, named and not tagged. A German talk heard as
     // English produces a transcript of plausible nonsense, and the model then
     // sets about correcting the nonsense - so the one thing a speaker can be
@@ -1154,6 +1170,143 @@ export async function run({ page, report }) {
 
     ok(errs.length === 0, 'no page errors in either of the two windows', errs.join(' | '));
 
+    // ── what the socket and the server answer, and to whom ──────────
+    // A security review read speaker.html - the nonce and the socket's port
+    // with it - source.md and the transcript off --serve from a page that
+    // pointed its own host name at 127.0.0.1, and listened on the watch
+    // socket from any web page. The server now answers only to its own host
+    // name and only for what a view can ask for, the socket only to a page
+    // opened from disk or delivered by this server, and the two documents
+    // carry no nonce.
+    const speakerHtml = fs.readFileSync(path.join(dir, 'speaker.html'), 'utf8');
+    const watchPort = Number((speakerHtml.match(/ws:\/\/127\.0\.0\.1:(\d+)/) || [])[1]);
+    const nonce = (speakerHtml.match(/nonce: "([0-9a-f]+)"/) || [])[1];
+    ok(!!watchPort && !!nonce, 'the cockpit carries the socket and its nonce', String(watchPort));
+    for (const doc of ['print.html', 'print-notes.html']) {
+      const text = fs.readFileSync(path.join(dir, doc), 'utf8');
+      ok(!text.includes(nonce) && !text.includes('psiWatch') && text.includes('ws://127.0.0.1:' + watchPort),
+         `${doc} reloads over the socket and carries neither the nonce nor anything that sends`);
+    }
+    const handshake = (origin) => new Promise((resolve) => {
+      const ws = new WebSocket('ws://127.0.0.1:' + watchPort, origin ? { headers: { Origin: origin } } : {});
+      ws.on('open', () => { ws.close(); resolve('open'); });
+      ws.on('error', (e) => resolve(String(e.message)));
+    });
+    ok(/401/.test(await handshake('https://evil.example')),
+       'the socket refuses a page from another site');
+    ok(/401/.test(await handshake('http://localhost:1')),
+       'and a page on loopback that this server did not deliver');
+    ok(await handshake(serving.url) === 'open' && await handshake('null') === 'open',
+       'and takes a view --serve delivered and one opened from disk');
+    const servePort = Number(new URL(serving.url).port);
+    const get = (p, host) => new Promise((resolve) => {
+      const req = http.request({ host: '127.0.0.1', port: servePort, path: p, headers: { Host: host } },
+        (res) => { res.resume(); resolve(res.statusCode); });
+      req.on('error', () => resolve(0));
+      req.end();
+    });
+    ok(await get('/speaker.html', 'evil.example:' + servePort) === 403
+       && await get('/speaker.html', 'localhost') === 403,
+       '--serve refuses a request whose Host is not its own name and port (DNS rebinding)');
+    ok(await get('/speaker.html', 'localhost:' + servePort) === 200
+       && await get('/speaker.html', '127.0.0.1:' + servePort) === 200,
+       'and answers its own');
+    const logName = fs.readdirSync(dir).find((f) => /^prompter-.*\.jsonl$/.test(f));
+    const promptName = fs.readdirSync(dir).find((f) => /^prompter-.*\.prompt\.txt$/.test(f));
+    fs.writeFileSync(path.join(dir, '.env'), 'SECRET=1\n');
+    for (const p of ['/source.md', '/.env', '/' + logName, '/' + promptName]) {
+      ok(await get(p, 'localhost:' + servePort) === 404, `--serve does not serve ${p}`);
+    }
+    if (process.platform !== 'win32') {
+      ok((fs.statSync(path.join(dir, logName)).mode & 0o077) === 0
+         && (fs.statSync(path.join(dir, promptName)).mode & 0o077) === 0,
+         'the transcript and the prompt are readable by their owner alone',
+         (fs.statSync(path.join(dir, logName)).mode & 0o777).toString(8));
+    }
+
+    // A cockpit opened from disk still reaches the socket (Chrome sends its
+    // own Origin for a file page), and both documents - from disk and served
+    // - still reload on a save, with no nonce to show.
+    const disk = await page.context().newPage();
+    extra.push(disk);
+    disk.on('pageerror', (e) => errs.push('file cockpit: ' + e));
+    await disk.goto('file://' + path.join(dir, 'speaker.html'), { waitUntil: 'load' });
+    ok(await until(() => disk.evaluate(() => !!(window.psiWatch && window.psiWatch.ready())), 8000),
+       'a cockpit opened from file:// connects to the watch socket');
+    const docs = [];
+    for (const url of [serving.url + '/print.html', 'file://' + path.join(dir, 'print-notes.html')]) {
+      const d = await page.context().newPage();
+      extra.push(d);
+      await d.goto(url, { waitUntil: 'load' });
+      await d.waitForTimeout(400);
+      await d.evaluate(() => { window.__notReloaded = true; });
+      docs.push([url, d]);
+    }
+    fs.appendFileSync(path.join(dir, 'source.md'), '\n');
+    for (const [url, d] of docs) {
+      ok(await until(() => d.evaluate(() => !window.__notReloaded).catch(() => false), 15000),
+         `a document reloads on a save with no nonce: ${url.replace(/^.*\//, '')} (${url.slice(0, 4)})`);
+    }
+
+    // ── a dry run, with the recogniser on Google's servers ──────────
+    // A dry run sends nothing to a model, and the toast used to say "nothing
+    // leaves this machine" - which is false whenever Chrome's recognition is
+    // not on the device, because then the browser sends the audio to Google,
+    // dry run or not. The toast says what this run does, and the run still
+    // works with no key at all.
+    dryDir = fs.mkdtempSync(path.join(os.tmpdir(), 'psi-souff-dry-'));
+    fs.writeFileSync(path.join(dryDir, 'source.md'), SOURCE);
+    const dryEnv = { ...process.env };
+    delete dryEnv.OPENROUTER_API_KEY;
+    dryChild = spawn(process.execPath,
+      [path.join(ROOT, 'build.js'), path.join(dryDir, 'source.md'),
+        '--watch', '--serve', '--prompter', '--prompter-dry-run', '--events'],
+      { cwd: ROOT, env: dryEnv });
+    let dryOut = '';
+    const dryEvents = [];
+    const eatDry = (b) => {
+      dryOut += String(b);
+      for (const line of String(b).split('\n')) {
+        if (!line.startsWith('{"type":')) continue;
+        try { dryEvents.push(JSON.parse(line)); } catch (e) { /* not ours */ }
+      }
+    };
+    dryChild.stdout.on('data', eatDry);
+    dryChild.stderr.on('data', eatDry);
+    const dryServing = await until(() => dryEvents.find((e) => e.type === 'serving'), 40000);
+    ok(!!dryServing, 'a dry run serves the same deck with no key in the environment', dryOut.slice(-300));
+    await until(() => /the debrief of this run/.test(dryOut), 20000);
+    ok(/nothing goes to\s+a model/.test(dryOut) && /sends the audio to\s+Google/.test(dryOut)
+       && !/nothing leaves/.test(dryOut),
+       'its banner says nothing goes to a model, and that the recognition may send audio to Google',
+       dryOut.slice(0, 600));
+    if (dryServing) {
+      const dry = await page.context().newPage();
+      extra.push(dry);
+      dry.on('pageerror', (e) => errs.push('dry cockpit: ' + e));
+      await dry.goto(dryServing.url + '/speaker.html', { waitUntil: 'load' });
+      ok(await until(() => dry.evaluate(() => !!(window.psiWatch && window.psiWatch.ready())), 8000),
+         'the dry-run cockpit has its socket');
+      // Chrome answering that it has no on-device model: the server ear.
+      await dry.evaluate(() => { window.webkitSpeechRecognition.available = async () => 'unavailable'; });
+      await dry.evaluate(() => document.getElementById('souffleuse-btn').click());
+      ok(await until(() => dry.evaluate(() => document.getElementById('souffleuse-btn')
+         .getAttribute('aria-pressed') === 'true'), 8000),
+         'and switches on without a key');
+      const toast = await dry.evaluate(() => document.getElementById('mode-badge').textContent);
+      ok(/dry run/.test(toast) && /audio to Google/.test(toast) && !/nothing leaves/.test(toast),
+         'its toast says the audio goes to Google for recognition and nothing to a model', toast);
+      await dry.evaluate(() => window.__stt.final('the words of a dry run reach the log', 3));
+      const dryLog = await until(() => {
+        const name = fs.readdirSync(dryDir).filter((f) => /^prompter-.*\.jsonl$/.test(f)).pop();
+        if (!name) return null;
+        const text = fs.readFileSync(path.join(dryDir, name), 'utf8');
+        return /the words of a dry run reach the log/.test(text) ? text : null;
+      }, 8000);
+      ok(!!dryLog, 'and what it heard reaches the sidecar\'s log');
+    }
+    ok(errs.length === 0, 'no page errors in the pages opened since', errs.join(' | '));
+
     note(`${fake.requests.length} calls to the model, ${logLines(dir).length} lines of log, `
       + `${((Date.now() - t0) / 1000).toFixed(1)}s`);
   } finally {
@@ -1169,6 +1322,14 @@ export async function run({ page, report }) {
       await ended;
       clearTimeout(hard);
     }
+    if (dryChild) {
+      const ended = new Promise((r) => dryChild.once('exit', r));
+      try { dryChild.kill('SIGTERM'); } catch (e) { /* already gone */ }
+      const hard = setTimeout(() => { try { dryChild.kill('SIGKILL'); } catch (e) {} }, 4000);
+      await ended;
+      clearTimeout(hard);
+    }
+    if (dryDir) { try { fs.rmSync(dryDir, { recursive: true, force: true }); } catch (e) { /* leave it */ } }
     await fake.close();
     try { fs.rmSync(dir, { recursive: true, force: true }); } catch (e) { /* leave it */ }
   }
