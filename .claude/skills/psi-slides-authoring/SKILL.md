@@ -765,8 +765,8 @@ to make on your own: adding a language means editing `SHIKI_LANGS` in
 
 ## Directive vocabulary
 
-Two kinds of `:::` block exist. **Chunk-attached asides** (`expand`, `margin`)
-are lifted out of the body; **layout wrappers** (`cols`, `side`/`flip`,
+Two kinds of `:::` block exist. **Chunk-attached asides** (`expand`, `footnote`,
+`pulse`) are lifted out of the body; **layout wrappers** (`cols`, `side`/`flip`,
 `marginalia`, `slide`, `script`) stay inline in the body. A bare `:::` closes
 the innermost open layout wrapper, and if none is open, the enclosing `expand`
 or `margin`.
@@ -824,6 +824,50 @@ Weick, Educational Organizations as Loosely Coupled Systems, ASQ 1976
 `source.md` breaks. Do not write it in anything new: it was one keystroke from
 `::: marginalia`, a different construct in a different place, and it named the
 one place the block never sits.
+
+### `::: pulse`
+
+```md
+## definition: Digital signatures {.wide #signatures}
+
+A key pair: the private key signs, the public key verifies.
+
+::: pulse
+What does a signature guarantee that encryption alone does not?
+---
+**Authenticity and integrity**: only the key holder could have made it, and
+any change to the message breaks it.
+:::
+```
+
+A self-test question for the reader of the **documents only**: `print.html`
+and `print-notes.html` show it under the chunk (after the notes) with a
+button that reveals the answer and two that record whether the reader knew
+it; the projection and the cockpit never show it. Above the one line that is
+exactly `---` is the question, below it the answer, both ordinary Markdown –
+code, formulas, lists – and no directive. Printed on paper, question and
+answer stand one under the other.
+
+The widget is Pulse (pulse.psi.uni-bamberg.de): answers stay in the reader's
+browser until they sign in with an email address in the document, and from
+then on the questions come back by mail at growing intervals. A document with
+a question also gets one line of the reader's standing under the contents
+(only in a deck with `#` parts) and the full account at its end.
+
+**The key is the question's identity** – what the reader's progress is filed
+under, with the lecture's `title:` as the page. It is the chunk's id, which is
+frozen already; a second question on one chunk names itself,
+`::: pulse {#signatures-verify}`, and a key is unique across the lecture.
+Correct a question's wording freely, but do not change its key or the
+lecture's title once students have answered, or their progress starts over.
+Two lectures with the same title share the page, so a chunk id used in both
+is one question to the reader. Refused: a question on the `title:` or
+`closing:` chunk (the documents draw the cover from the frontmatter), none or
+two `---`, an empty half, a `> note:` inside it (write it after the `:::`).
+
+Pulse mails the question's text back as plain text, so a formula arrives
+there as KaTeX's glyphs run together, in the answer too. Keep formulas out of
+a question where the mail should read well.
 
 ### `::: cols 2` / `::: cols 3`
 
@@ -900,6 +944,7 @@ was a slide that rendered wrong with exit 0 before it was one.
 | inside …                    | may hold                                   | refused                                                  |
 |-----------------------------|--------------------------------------------|----------------------------------------------------------|
 | `expand` / `footnote`       | any wrapper, `draw`, prose                 | another aside, `overlay`, `cards` / `rows`               |
+| `pulse`                     | prose, lists, code, formulas, one `---`    | every directive (`directive-in-pulse`)                   |
 | `overlay`                   | prose, lists, an image, `draw`             | every other directive (`directive-in-overlay`, `cards-nested`) |
 | `cards` / `rows`            | prose, lists, an image – per item; `draw` as a card of its own | every other directive (`directive-in-cards`) |
 | `embed`                     | the caption's prose                        | every directive (`directive-in-embed`, `cards-nested`)   |
@@ -907,7 +952,7 @@ was a slide that rendered wrong with exit 0 before it was one.
 | `side` (either pane)        | prose, `draw`, `cards` / `rows`, `cols`    | a second `flip`                                          |
 | `slide` / `script`          | any wrapper, `draw`, `cards` / `rows`      | `slide` or `script` again (`explicit-nested`)            |
 | `dock`                      | prose, lists, an image, `draw`, `---`      | every other directive (`directive-in-dock`, `cards-nested`) |
-| any wrapper                 | a `---` (a beat below the top level, see *Reveal segments*) | `expand`, `footnote`, `overlay`, `dock` (`aside-in-layout`, `overlay-in-layout`, `dock-in-layout`) |
+| any wrapper                 | a `---` (a beat below the top level, see *Reveal segments*) | `expand`, `footnote`, `pulse`, `overlay`, `dock` (`aside-in-layout`, `overlay-in-layout`, `dock-in-layout`) |
 | a column heading (divider)  | prose, `backdrop`, `draw`, `cards` / `rows`, `overlay`, `dock`, `---`, `> note:` | everything else (`stray-directive`)          |
 
 `draw` is the one construct meant to go nearly everywhere – a pane, a card, an

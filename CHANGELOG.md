@@ -521,6 +521,23 @@ A third set concerns the two live views while a talk runs:
 
 ### Added
 
+- **Self-test questions in the documents (`::: pulse`).** A block of a
+  question, a line that is exactly `---` and an answer, both Markdown, becomes
+  a question in `print.html` and `print-notes.html` that the reader answers by
+  revealing the answer and saying whether they knew it; the projection and the
+  cockpit never show it. The widget is Pulse Embed v2 of the University of
+  Bamberg, inlined into the two documents that carry a question
+  (`pulse-embed.js`, a verbatim copy), so a document still opens from disk and
+  sends nothing anywhere: answers stay in the browser until the reader signs
+  in with an email address, after which Pulse mails the questions back at
+  growing intervals. The key a question is filed under is the chunk's id, or
+  `::: pulse {#key}` for a second one on a chunk; the lecture's title is the
+  page. Printed on paper, question and answer stand one under the other. The
+  linter mirrors the build's refusals: `bad-pulse`, `bad-pulse-split`,
+  `directive-in-pulse`, `duplicate-pulse-key`, `note-in-pulse` and `pulse-on-cover`, plus the
+  aside rules `::: footnote` already has. A document without a question carries
+  neither the widget nor its stylesheet; the reader's highlights skip a
+  question, since its text changes as it is answered.
 - **`--frames [DIR]`** writes every state of the projection as a PNG at
   1600x900 with contact sheets of eight – the review `--check-fit`
   (geometry) and `--squint` (text) cannot do.

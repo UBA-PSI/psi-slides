@@ -36,6 +36,7 @@ const FILES = [
   'diagram-core.mjs',
   'tails.mjs',
   'cue-cards.mjs',
+  'pulse-embed.js',
   'editor.mjs',
   'editor.css',
   'package.json',

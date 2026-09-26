@@ -708,7 +708,15 @@ A clip is a figure that moves, so it shares the `![](clip-id)` shorthand rather
 than getting a directive of its own; over `MAX_INLINE_VIDEO_BYTES` (12 MB) it is
 **staged** to `videos/` beside the output instead of failing the way an oversized
 image does. `::: embed <url>` is its own directive precisely because it is the
-single construct that makes an output fetch from a third party at run time. An
+single construct that makes an output fetch from a third party at run time –
+`::: pulse` is the other thing that reaches a server, and only from the two
+documents and only after the reader signs in to Pulse there. It is an aside
+kind (`expansions`, `kind: 'pulse'`), so the live renderers skip it by
+construction; `renderChunk` draws it, `renderDocument` inlines
+`pulse-embed.js` (a verbatim copy of the Pulse client, on the desktop stage
+list) and `PULSE_PRINT_CSS` only into a document that has one; the reader's
+`SKIP` leaves a question out of the highlightable text, since the widget
+rewrites it as it is answered. An
 external link puts its **address plus a build-time QR code** on both screens
 instead of opening a page on the projector. The live views also carry the
 encoder itself, spliced in as text like `diagram-core.mjs`, for the one address

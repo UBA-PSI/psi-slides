@@ -3414,6 +3414,17 @@ function cueCardsScript() {
 let cueCardsCache = null;
 const cueCardsJs = () => (cueCardsCache ??= cueCardsScript());
 
+// Pulse Embed v2, the self-test widget for ::: pulse, same treatment: a
+// verbatim copy of the client the Pulse server publishes (its header names
+// the version), inlined into the documents that have a question and into no
+// other view, so a document still opens from file:// and fetches nothing
+// until its reader signs in. Updating it is copying the new file over.
+const PULSE_EMBED_PATH = new URL('./pulse-embed.js', import.meta.url);
+const PULSE_HOST = 'https://pulse.psi.uni-bamberg.de';
+let pulseEmbedCache = null;
+const pulseEmbedJs = () => (pulseEmbedCache ??= fs.readFileSync(PULSE_EMBED_PATH, 'utf8')
+  .replace(/<\/(script)/gi, '<\\/$1'));
+
 // The editor UI and its chrome, same treatment and for the same reason: read
 // as text, so a backtick or a regex backslash in it means what it says.
 const EDITOR_JS_PATH = new URL('./editor.mjs', import.meta.url);
@@ -4870,6 +4881,7 @@ function parseLecture(src) {
   let bodyLines = [];
   let inFence = false;
   let currentExpansion = null; // { label, lines } while inside a ::: expand block
+  const pulseKeys = new Map(); // ::: pulse key -> the chunk that first used it (one namespace per lecture)
   let currentOverlay = null;   // { attrs, lines } while inside a ::: overlay block
   let currentDock = null;      // { edge, ground, width, height, scope, from, lines } while inside a ::: dock block
   let cardsBlock = null;      // { n, attrs, lines } while inside a ::: cards block
@@ -5101,8 +5113,39 @@ function parseLecture(src) {
     return false;
   };
 
+  // ::: pulse – one self-test question for the printed document: the question,
+  // a line that is exactly ---, the answer. The split is fence-aware for the
+  // reason the reveal split is: a --- inside a code sample is the sample's.
+  // Exactly one separator and two halves with words in them, because the
+  // widget shows the first half as the question and hides the second, and a
+  // block with nothing to hide, or with a rule in its answer, would be
+  // something else pretending to be a question. lint.js: bad-pulse-split.
+  const splitPulse = (blk) => {
+    const halves = [[]];
+    let fence = false;
+    for (const l of blk.lines) {
+      if (/^```/.test(l)) fence = !fence;
+      if (!fence && /^\s*---\s*$/.test(l)) { halves.push([]); continue; }
+      halves[halves.length - 1].push(l);
+    }
+    const [q, a] = halves.map(h => h.join('\n').trim());
+    if (halves.length !== 2 || !q || !a) {
+      refuse(
+        `::: pulse ${blk.key ? `{#${blk.key}} ` : ''}(${chunkRef()}) needs a question, one line that is\n` +
+        `  exactly ---, and an answer${halves.length !== 2 ? ` - it has ${halves.length - 1} such line${halves.length === 2 ? '' : 's'}` : ''}${halves.length === 2 ? ', and one half is empty' : ''}.\n` +
+        '  Everything above the --- is the question, everything below it the answer.\n' +
+        '  For a rule inside either half write ***.');
+    }
+    return { kind: 'pulse', key: blk.key, question: q, answer: a, at: blk.at };
+  };
+
   const flushExpansion = () => {
     if (!currentExpansion || !currentChunk) return;
+    if (currentExpansion.kind === 'pulse') {
+      currentChunk.expansions.push(splitPulse(currentExpansion));
+      currentExpansion = null;
+      return;
+    }
     currentChunk.expansions.push({
       label: currentExpansion.label,
       kind: currentExpansion.kind,
@@ -5645,6 +5688,15 @@ function parseLecture(src) {
       // in print.
       const noteOpen = line.match(/^>\s*note:\s*(.*)$/i);
       const annotOpen = line.match(/^>\s*annot:\s*(.*)$/i);
+      // lint.js: note-in-pulse. A note is peeled off wherever it stands, so
+      // one written inside a question left the question and became the
+      // chunk's speaker note - or emptied the question and failed the split.
+      if ((noteOpen || annotOpen) && currentExpansion && currentExpansion.kind === 'pulse') {
+        refuse(
+          `> ${noteOpen ? 'note' : 'annot'}: inside ::: pulse (${chunkRef()}).\n` +
+          '  A note belongs to the slide, not to a question. Close the ::: pulse\n' +
+          '  first and write the note after it.');
+      }
       if (noteOpen) {
         flushNoteBlock();
         flushAnnotBlock();
@@ -5842,6 +5894,15 @@ function parseLecture(src) {
         // figure - no other directive. One guard for the whole list, the
         // same three lines the divider path has, so the two cannot drift.
         // Read after ::: dock itself, whose own opener names the open one.
+        // lint.js: directive-in-pulse. A question and its answer are prose,
+        // a list, code or a formula; the widget splits them at the one ---,
+        // and a wrapper or a figure in either half would be cut in two.
+        if (currentExpansion && currentExpansion.kind === 'pulse' && /^:::\s+\S/.test(line)) {
+          refuse(
+            `${line.trim().split(/\s+/).slice(0, 2).join(' ')} inside ::: pulse (${chunkRef()}).\n` +
+            '  A question and its answer hold prose, a list, code or a formula, and\n' +
+            '  no directive. Close the ::: pulse first.');
+        }
         if (readDockLine(line)) continue;
         if (currentDock && /^:::\s+\S/.test(line) && !parseDrawOpener(line)) {
           refuse(
@@ -5917,8 +5978,19 @@ function parseLecture(src) {
         // unclosed block quotes the line the author actually typed.
         const expandOpen = line.match(/^:::\s+expand\s+(.+?)\s*$/);
         const marginOpen = line.match(/^:::\s+(footnote|margin)\s*$/);
-        if (expandOpen || marginOpen) {
-          const word = marginOpen ? marginOpen[1] : 'expand';
+        // ::: pulse [{#key}] – a self-test question, the third aside. It is
+        // lifted out of the body like a footnote, so every rule below holds
+        // for it unchanged, and the live renderers never draw it: they pick
+        // expansions by kind. Only the documents do (renderChunk).
+        const pulseOpen = line.match(/^:::\s+pulse\s*(?:\{\s*#([A-Za-z0-9][\w-]*)\s*\})?\s*$/);
+        if (!pulseOpen && /^:::\s+pulse\b/.test(line)) {
+          refuse(
+            `::: pulse could not be read: "${line.trim()}" (${chunkRef()}).\n` +
+            '  Write  ::: pulse  or  ::: pulse {#key}  - the key is letters, digits,\n' +
+            '  - and _, and it defaults to the chunk\'s id.');
+        }
+        if (expandOpen || marginOpen || pulseOpen) {
+          const word = marginOpen ? marginOpen[1] : pulseOpen ? 'pulse' : 'expand';
           // lint.js: nested-directive / aside-in-layout. A second aside used
           // to close the first without a word (flushExpansion ran here) and
           // print the leftover ::: as text. Inside a wrapper, the closer that
@@ -5939,9 +6011,41 @@ function parseLecture(src) {
               '  block instead. A block inside the aside is fine; write the aside\n' +
               '  after the block\'s closing :::.');
           }
+          // A self-test question is filed under its key in the reader's
+          // Pulse account, with the lecture's title as the page: the key is
+          // the question's identity, so a corrected wording keeps what the
+          // reader has learnt. The chunk id is the default because ids are
+          // frozen once authored already; a second question on one chunk has
+          // to name itself. lint.js: bad-pulse / duplicate-pulse-key.
+          let pulseKey = null;
+          if (pulseOpen) {
+            if (currentChunk.tag === 'title' || currentChunk.tag === 'closing') {
+              refuse(
+                `::: pulse on the ${currentChunk.tag} chunk (${chunkRef()}).\n` +
+                '  The documents draw the cover from the frontmatter and nothing else\n' +
+                '  of that chunk, so the question would silently vanish. Put it on\n' +
+                '  the slide it asks about.');
+            }
+            pulseKey = pulseOpen[1] || currentChunk.id || null;
+            if (!pulseKey) {
+              refuse(
+                `::: pulse in a chunk with no id, and no {#key} on the line.\n` +
+                '  The key is what the reader\'s progress is filed under, so it has to\n' +
+                '  be stable: give the chunk an {#id} or write  ::: pulse {#key}.');
+            }
+            if (pulseKeys.has(pulseKey)) {
+              refuse(
+                `::: pulse key '${pulseKey}' is used twice: first on ${pulseKeys.get(pulseKey)}, again on ${chunkRef()}.\n` +
+                '  Each question needs a key of its own - it is what the reader\'s\n' +
+                '  progress is filed under. A chunk\'s first question takes the chunk\'s\n' +
+                '  id; name any further one:  ::: pulse {#key}');
+            }
+            pulseKeys.set(pulseKey, chunkRef());
+          }
           currentExpansion = {
             label: expandOpen ? expandOpen[1].trim() : 'note',
-            kind: marginOpen ? 'margin' : 'expand',
+            kind: marginOpen ? 'margin' : pulseOpen ? 'pulse' : 'expand',
+            key: pulseKey,
             word,
             // The body position the opener stood at, which is what says
             // which reveal segment the aside was written in.
@@ -6325,7 +6429,7 @@ function parseLecture(src) {
   // build.
   if (currentDock || currentOverlay || currentExpansion) {
     const kind = currentDock ? 'dock' : currentOverlay ? 'overlay'
-      : (currentExpansion.kind === 'margin' ? currentExpansion.word : `expand ${currentExpansion.label}`);
+      : (currentExpansion.kind === 'expand' ? `expand ${currentExpansion.label}` : currentExpansion.word);
     const err = new Error(
       `::: ${kind} was never closed. Everything after it was read as that\n`
       + 'block\'s content, so any chunk below it is missing from the output.\n'
@@ -6753,6 +6857,7 @@ const STRINGS = {
     'speaker-note': 'Speaker Note',
     'presentation-note': 'Presentation Note',
     'aside-note': 'note',
+    'pulse-answer': 'Answer',
     type: { principle: 'Principle', definition: 'Definition', example: 'Example',
             question: 'Question', exercise: 'Exercise', outline: 'Outline',
             figure: 'Figure' },
@@ -6841,6 +6946,7 @@ const STRINGS = {
     contents: 'Inhalt',
     'speaker-note': 'Sprechernotiz',
     'presentation-note': 'Anmerkung',
+    'pulse-answer': 'Antwort',
     'aside-note': 'Anmerkung',
     type: { principle: 'Grundsatz', definition: 'Definition', example: 'Beispiel',
             question: 'Frage', exercise: 'Aufgabe', outline: 'Überblick',
@@ -8369,7 +8475,7 @@ function renderChunk(chunk, frontmatter, num, opts = {}) {
     `width-${width}`,
   ].join(' ');
 
-  const expansionsHtml = expansions.map(e => {
+  const expansionsHtml = expansions.filter(e => e.kind !== 'pulse').map(e => {
     const inner = marked.parse(e.body || '');
     const kind = e.kind || 'expand';
     return `<aside class="chunk-expansion chunk-expansion-${kind}" data-label="${escapeHtml(kind === 'margin' && e.label === 'note' ? S['aside-note'] : e.label)}">
@@ -8417,8 +8523,25 @@ ${inner}
   ${overlayHtml}
   ${expansionsHtml}
   ${annotationHtml}
-  ${notesHtml}
+  ${notesHtml}${expansions.filter(e => e.kind === 'pulse').map(e => '\n' + renderPulseQuestion(e, S)).join('')}
 </article>`;
+}
+
+// A ::: pulse block in the documents, in the markup Pulse Embed v2 reads:
+// everything before the <details> is the question, the details' body is the
+// answer. Before the script runs, or without it, that is what it is - a
+// question and a folded answer. Last in the chunk, after the notes, because
+// it asks about all of it.
+function renderPulseQuestion(e, S) {
+  // The id is set here because the widget otherwise numbers its questions
+  // pulse-1, pulse-2 …, in the namespace the chunk ids live in; the summary's
+  // links jump to it.
+  return `<pulse-question id="pulse-${escapeHtml(e.key)}" key="${escapeHtml(e.key)}">
+${marked.parse(e.question)}
+<details><summary>${escapeHtml(S['pulse-answer'])}</summary>
+${marked.parse(e.answer)}
+</details>
+</pulse-question>`;
 }
 
 function renderColumn(col, frontmatter, nums, chunkOpts = {}) {
@@ -8657,6 +8780,21 @@ function renderDocument(lecture, opts = {}) {
         s: Object.fromEntries(Object.entries(S).filter(([k]) => k.startsWith('reader-'))),
       }).replace(/</g, '\\u003c')}</script>\n`
     : '';
+  // ::: pulse: the widget and the reader's standing on this lecture - one
+  // line under the contents, the full account at the end - only in a
+  // document that asks something. The lecture's title is the page the
+  // questions are filed under in the reader's account and named by in the
+  // reminder mails; no address is sent, so a document opened from file://
+  // gives away no path.
+  const hasPulse = columns.some(c => (c.chunks || []).some(ch => (ch.expansions || []).some(e => e.kind === 'pulse')));
+  // The one-line standing goes where the document's body begins, after the
+  // cover and the contents. A deck with no # part has no such place - every
+  // chunk is in the anonymous column - and there the full account at the end
+  // is the only one.
+  const pulseTop = hasPulse && namedHtml.trim() ? '<pulse-summary compact></pulse-summary>\n' : '';
+  const pulseEnd = hasPulse ? '<pulse-summary></pulse-summary>\n' : '';
+  const pulseScript = hasPulse
+    ? `<script data-host="${PULSE_HOST}" data-page="${escapeHtml(title)}">${pulseEmbedJs()}</script>\n` : '';
   return `<!DOCTYPE html>
 <html lang="${escapeHtml(lectureLang(frontmatter))}">
 <head>
@@ -8666,7 +8804,7 @@ function renderDocument(lecture, opts = {}) {
 <style>
 ${PRINT_CSS}
 ${DIAGRAM_CSS}
-</style>
+${hasPulse ? PULSE_PRINT_CSS : ''}</style>
 ${fontStyleTag(opts.fontEmbed, 'print')}
 ${styleBlockCss(styleOpts)}
 ${codeTag(styleOpts, opts.codeSizing, 'print')}
@@ -8677,10 +8815,10 @@ ${reloadScript(opts.watchPort, null, { receiveOnly: true })}
 ${readerOn ? readerHtml + READER_EARLY_JS : ''}<main>
 ${anonHtml}
 ${toc}
-${namedHtml}
-</main>
+${pulseTop}${namedHtml}
+${pulseEnd}</main>
 <script>${PRINT_JS}</script>
-${readerOn ? `${readerData}<script>${PRINT_READER_JS}${PRINT_HIGHLIGHTS_JS}</script>\n` : ''}</body>
+${pulseScript}${readerOn ? `${readerData}<script>${PRINT_READER_JS}${PRINT_HIGHLIGHTS_JS}</script>\n` : ''}</body>
 </html>
 `;
 }
@@ -10758,6 +10896,32 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
 }
 `;
 
+// ::: pulse (Pulse Embed v2) in the documents, emitted only into a document
+// that asks something, so a lecture without a question is byte-identical to
+// before. The widget's own rules sit in @layer pulse behind :where(), so
+// these win without !important; the variables are its documented interface.
+// The label is set like the asides' labels, and the summary takes main's
+// measure like a chunk does.
+const PULSE_PRINT_CSS = `
+pulse-question, pulse-summary {
+  --pulse-accent: var(--emph);
+  --pulse-rule: var(--rule);
+  --pulse-radius: var(--radius-card);
+  --pulse-ui-font: var(--sans);
+  --pulse-muted: var(--ink-soft);
+  --pulse-on-accent: var(--paper);
+  --pulse-bg: color-mix(in oklch, var(--ink) 4%, transparent);
+}
+pulse-question { margin: 1.4rem 0 0.4rem; }
+pulse-question .pulse-label {
+  font-size: 0.72rem;
+  font-variant-caps: all-small-caps;
+  text-transform: none;
+  letter-spacing: 0.14em;
+}
+main > pulse-summary { display: block; margin: 2rem 0; }
+`;
+
 // ── the lightbox for the documents (screen only) ────────────────────
 // The one script the two documents carry. The same gesture the live views'
 // figure focus answers - a clone on a card, zoom under the pointer, drag to
@@ -11159,7 +11323,7 @@ const PRINT_HIGHLIGHTS_JS = `
   // caption with it - and has highlights of its own; so does a code block,
   // whose words are anchored in the block's own text, so that marking code
   // moves no offset of a slide's prose.
-  const SKIP = UI + ', .speaker-note, .chunk-num, .chunk-label, .psi-diagram, figure, '
+  const SKIP = UI + ', .speaker-note, pulse-question, pulse-summary, .chunk-num, .chunk-label, .psi-diagram, figure, '
     + '.katex, .math-display, pre, button, script, style, svg, video, iframe, textarea';
   // A whitespace node that is a child of one of these sits between two
   // blocks, and a mark round it would be an inline box in a block's place.
@@ -11549,7 +11713,7 @@ const PRINT_HIGHLIGHTS_JS = `
   // no selection: KaTeX sets one glyph per box.
   const BLOCKS = { code: 'pre', formula: '.math-display' };
   const blocksIn = (root, kind) => [...root.querySelectorAll(BLOCKS[kind] || 'x-none')]
-    .filter(b => !b.closest('#lightbox, .speaker-note, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
+    .filter(b => !b.closest('#lightbox, .speaker-note, pulse-question, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
   const blockKind = (el) => el.matches('pre') ? 'code' : 'formula';
   const codeTexts = (pre) => {
     const out = [];
@@ -29217,7 +29381,7 @@ function assertStylesheetsWellFormed() {
   // DIAGRAM_CSS ships into all four views and was the one inlined
   // stylesheet this guard did not cover – the exact gap the guard exists
   // to close.
-  const sheets = { AUDIENCE_CSS, SPEAKER_CSS, SOUFFLEUSE_CSS, PRINT_CSS, DIAGRAM_CSS, 'editor.css': editorCss() };
+  const sheets = { AUDIENCE_CSS, SPEAKER_CSS, SOUFFLEUSE_CSS, PRINT_CSS, PULSE_PRINT_CSS, DIAGRAM_CSS, 'editor.css': editorCss() };
   for (const [name, css] of Object.entries(sheets)) {
     if (typeof css !== 'string') continue;
     const opens = (css.match(/\/\*/g) || []).length;
