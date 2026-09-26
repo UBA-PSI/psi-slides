@@ -101,15 +101,15 @@ box p "Alone" at 0,0
 
 ## figure: A picture behind the words {.full #backdrop}
 
-::: backdrop pic {cover} reveal full, right 52%
+::: backdrop pic {.cover} reveal full, right 52%
 
 ### The frame closes over the ground
 
 ## figure: A block held back until a beat {.full #overlaid}
 
-::: backdrop pic {cover clear}
+::: backdrop pic {.cover .clear}
 
-::: overlay {left clear standard} from 1
+::: overlay {.left .clear .standard} from 1
 ### It arrives on the first press
 :::
 

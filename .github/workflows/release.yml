@@ -84,6 +84,16 @@ jobs:
           node build.js lectures/network-security/source.md
           node build.js docs/artifact/figure-rules/source.md
 
+      # What the staleness check below rests on: that a rebuild is a function
+      # of the source alone. It was not, for a while - the inlined-SVG id
+      # counter reset once per build rather than once per view, so the same
+      # figure came out psi-fig-6- under --audience-only and psi-fig-8- under
+      # a full build, and a view rebuilt with a partial flag read as stale
+      # here for a diff of pure id churn. Ordered before the check it
+      # protects, so a failure names the cause rather than the symptom.
+      - name: Check a view is the same bytes whichever flags wrote it
+        run: node test/reproducible.mjs
+
       # The tutorial and diagram HTML is committed; a stale copy would ship a
       # tour, or a construct reference, that does not match its own source.
       - name: Check the tracked outputs are current

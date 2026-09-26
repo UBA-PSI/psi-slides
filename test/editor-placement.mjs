@@ -109,6 +109,59 @@ export async function run({ page, report, walkTo, ed }) {
   ok(!/gap -/.test(dragged || ''), 'and never writes a negative gap', dragged);
   ok(!(await ed.problems()).includes('line '), 'the block parses after the drag', await ed.problems());
 
+  // ── an element standing in a band ──
+  //
+  // `in z` is a placement whose reference is a rectangle rather than a face or
+  // a point, and the two things it has to survive are the two an editor does
+  // to a placement: reading it back into the pane, and a drag. A drag writes an
+  // `offset` here – the one option orthogonal to every placement – so the band
+  // stays in the source. Turning it into an `at` would be the same defect the
+  // plot units above had: correct arithmetic, and the relation gone.
+  await page.evaluate(() => dgeClose());
+  await page.waitForTimeout(400);
+  await walkTo('in-zone');
+  ok(await ed.open('in-zone'), 'the editor is open on #in-zone');
+  await ed.beat(0);
+  await page.evaluate(() => {
+    const row = [...document.querySelectorAll('#dge-side .dge-list button .dge-nm')]
+      .find((b) => b.textContent === 'defence');
+    if (row) row.closest('button').click();
+  });
+  await page.waitForTimeout(320);
+  ok(await ed.selection() === 'box defence', 'the box standing in the area is selected',
+    await ed.selection());
+  const inLine = () => ed.lineWith('box defence');
+  note('in band  : ' + (await inLine()));
+  ok(await pressed('kind') === 'in a zone', 'the pane reads the placement as a band',
+    String(await pressed('kind')));
+  ok(await pressed('across') === 'left' && await pressed('down') === 'top',
+    'and reads which corner of it the element meets',
+    `${await pressed('across')} / ${await pressed('down')}`);
+
+  // A word from the pane, and the line still says `in`.
+  await clickChip('down', 'center');
+  const centred = await inLine();
+  note('centred  : ' + centred);
+  ok(/\bin room left center\b/.test(centred || ''),
+    'a band word is written onto the same placement, and the other axis is spelled out '
+    + 'because a bare "center" would have answered both', centred);
+  ok(!(await ed.problems()).includes('line '), 'and the block parses', await ed.problems());
+  await clickChip('down', 'top');
+  ok(!/\bcenter\b/.test((await inLine()) || ''),
+    'and the corner it arrives at writes no word at all', await inLine());
+
+  // The drag: an offset, and the band survives it.
+  const inBefore = await inLine();
+  const stood = await ed.centreOf('#dge-art-svg [id$="-defence"]');
+  await ed.drag(stood, 30, 24);
+  const inAfter = await inLine();
+  note('dragged  : ' + inAfter);
+  ok(inAfter !== inBefore, 'dragging it writes something', inAfter);
+  ok(/\bin room\b/.test(inAfter || ''), 'and the element is still placed in the band', inAfter);
+  ok(/\boffset [-\d.]+,[-\d.]+/.test(inAfter || ''),
+    'the drag is recorded as an offset from the corner it meets', inAfter);
+  ok(!(await ed.problems()).includes('line '), 'the block parses after the drag', await ed.problems());
+
   // ── a coordinate in a plot's own units ──
   //
   // `roc@0.35` is the one construct the model does not keep: the compiler

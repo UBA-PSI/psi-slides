@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Six gates, and they prove six different things – which is worth stating
+ * Seventeen gates, and they prove seventeen different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -17,13 +17,51 @@
  *   accepts    every construct the grammar offers still parses
  *   semantics  the emitted SVG means what the source says, and what the
  *              source means to the editor that rewrites it
- *   corpus     every block in the repository still compiles
+ *   corpus     every block in the repository still compiles, and each file
+ *              holds exactly the number of blocks it is said to
  *   step-classes  which classes a beat can actually carry, derived from the
  *              compiler's own table rather than restated
  *   inlined    the two characters that mean something else inside one of
  *              build.js's template literals: a raw backtick, which ends the
  *              literal, and a single-backslash regex escape, which the
  *              literal eats and which therefore ships
+ *   tails      the one {…} tail parser and the ::: draw opener parser in
+ *              tails.mjs: every code they can emit, the written-default rule,
+ *              and the formatter round trip
+ *   frontmatter  the top-level key set, held across build.js and lint.js in
+ *              the direction that matters: a key the build reads and the
+ *              linter does not know is a false warning on a valid deck
+ *   legacy-draw-syntax  the old braced ::: draw opener stays out of every
+ *              source.md, and every other survivor of it is on a reviewed
+ *              allowlist
+ *   cue-cards  the note-to-cards grammar in cue-cards.mjs, rule by rule,
+ *              and that the module reaches the speaker page as
+ *              window.PSI_CARDS with every export on it
+ *   souffleuse the live prompter's pure half in souffleuse.mjs: the deck
+ *              payload, the prompt, the answer, the drift arithmetic and
+ *              every row of the restraint policy - the requirement nobody
+ *              can check by watching one talk
+ *   image-refs every way a source.md names a picture, and the one collector
+ *              both readers go through - the set that decides what the inline
+ *              cap refuses and what --optimize-images can fix
+ *   xheight    every text face in BUNDLED_FONTS carries the measured
+ *              x-height that sizes inline code against the prose around
+ *              it, and the roster agrees with the JSON it was copied from
+ *   canvas     the three measured numbers behind a figure's canvas - the
+ *              per-type body em, the default zoom, and the one spelling of
+ *              a frame in two files that cannot import one another - plus
+ *              the one sentence shape the two canvas reports say an axis in
+ *   chains     peers share one size: which placements make two boxes peers,
+ *              which axis each shares, the two ways out, `row` / `col`,
+ *              `same w as` / `same h as`, and the two warnings for a written
+ *              size that cannot hold its own words
+ *   overlap    the overlap census measures ink and not the line box: a text
+ *              is compared as the rectangles it inks, one per line
+ *   untrusted  building a source.md somebody sent you: the frontmatter is
+ *              YAML only, an asset is read from the lecture's folder or the
+ *              one above it (not when that is home) and never from a
+ *              dot-folder, links resolved, an output never
+ *              writes through a link, and ImageMagick is told the decoder
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -41,6 +79,17 @@ const GATES = [
   './corpus.mjs',
   './step-classes.mjs',
   './inlined.mjs',
+  './tails.mjs',
+  './frontmatter.mjs',
+  './legacy-draw-syntax.mjs',
+  './cue-cards.mjs',
+  './souffleuse.mjs',
+  './xheight.mjs',
+  './image-refs.mjs',
+  './canvas.mjs',
+  './chains.mjs',
+  './overlap.mjs',
+  './untrusted.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

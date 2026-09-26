@@ -1,0 +1,705 @@
+# PLAN: Karteikarten-Modus im Cockpit (cue cards)
+
+Ein zweites Layout für `speaker.html`: statt Spiegel groß und Notes als
+Fließtext im Textarea zeigt das Cockpit eine Spalte aus Karten – die
+`> note:`-Blöcke des aktuellen Beats, Absatz für Absatz, mit den
+Bold-Phrasen als Bullets – und der Spiegel der Projektion wandert klein in
+eine Ecke. Space läuft über die Karten, dann über die echten Reveals, dann
+zur nächsten Folie. Anlass: eine 45-Minuten-Keynote mit ausformuliertem
+Redetext und minimalen Folien, bei der das Textarea rechts zu schmal, zu
+lang und zu scrollbedürftig ist, um aus dem Augenwinkel gelesen zu werden.
+
+Status: gebaut auf Branch `cue-cards`, im Gebrauch an einer echten Keynote
+geprüft. Fortschritt in §11, Entscheidungen unterwegs in §12, die
+beantworteten Fragen in §13 – alle drei am Ende der Datei.
+
+Gestalterische Vorgabe (aus den zwei Entwürfen gewählt): **Entwurf B
+„Spur“** – keine Kästen, eine Spur mit Punkten links neben dem Text, Klicks
+als Rauten, Cursor als roter Punkt; wenig Chrome, weil jedes Rahmenstück
+visuelle Unruhe ist. Abweichend vom Entwurf: der Spiegel deutlich kleiner,
+der Redetext bekommt den Platz; und der Redetext serifenlos (die
+Sans-Familie der Vorlesung), nicht in der Serifen.
+
+Alle sieben Slices sind gebaut und im Browser geprüft, Gates, Linter und
+Browser-Suite sind grün. Keine Änderung am Quellformat, die einen
+bestehenden `source.md` anders baut – das Feature liest nur ein Feld mehr.
+
+## 1. Die drei Entscheidungen
+
+**(a) Karten sind ein speaker-lokaler Cursor vor dem Zähler, kein
+Sync-Zustand.** `revealed[chunkId]` bleibt der einzige geteilte Reveal-Zustand
+(`chunkBeats` build.js:11882, `countSegments` :11938, `advanceReveal`
+:12513, `retreatReveal` :12645). Der Kartencursor sitzt *davor*: Space
+rückt den Cursor, solange auf dem aktuellen Beat Karten übrig sind, und
+erst danach tut Space, was es heute tut. Die Audience, `snapshot()`,
+`applyRemoteState`, die Freeze-Gate und die localStorage-Recovery werden
+nicht angefasst. Kein toter Space auf dem Projektor, kein neues Feld im
+Snapshot, `--audience-only` gegen einen älteren Peer bleibt kompatibel. Das
+ist genau die Regel aus CLAUDE.md, die Diagrammschritte auf denselben Zähler
+gesetzt hat statt auf einen eigenen: was in nur einem Fenster zählt, macht
+die zwei Fenster uneins.
+
+**(b) Alle Karten des aktuellen Beats stehen sichtbar da, der Cursor
+wandert.** Nicht eine nach der anderen einblenden. Erledigte Karten gedimmt,
+die aktuelle hell und groß, die kommenden leicht abgesetzt darunter. Man
+sieht, wo man ist *und* was kommt, und drückt nie blind.
+
+**(c) Die echten Reveals und der Folienwechsel stehen als Einträge in
+derselben Spalte.** Zwischen den Karten liegt ein schmaler Balken
+„▶ Reveal: ‹erste Worte des nächsten Segments›“ bzw. am Ende
+„▶ Folie n+1: ‹Heading›“. Den Text des nächsten Segments liefert die
+Reveal-Vorschau, die `applyReveal` (build.js:11950) heute schon mit
+`data-next` markiert und nur das Speaker-Stylesheet zeichnet (speaker.md
+§4.1 „Reveal preview“); den Folientitel liefert `flatChunks[idx+1]` so, wie
+`populatePreviewStrip` (build.js:16080) ihn schon liest. Damit ist die
+Verzahnung gelesen statt gemerkt: eine Liste von oben nach unten, jeder
+Space ein Eintrag weiter, egal ob Karte oder Klick auf dem Projektor.
+
+## 2. Quellformat
+
+Keine neue Grammatik. `> note:`-Blöcke (build.js:3667–3700, `flushNoteBlock`
+:3339) – **nicht** `> annot:`, das ist die öffentliche Annotation, die per
+`N` getippt und per `Shift-E` exportiert wird und über den Snapshot auf den
+Projektor wandert. Mehrere `> note:`-Blöcke pro Chunk gibt es längst
+(`currentChunk.speakerNotes` ist ein Array; das Content-Repo hat Dutzende
+Chunks mit mehr als einem Block).
+
+**Kartenableitung aus einem Note-Block:**
+
+| in der Note | auf der Karte |
+| --- | --- |
+| Absatz (durch Leerzeile getrennt) | eine Karte |
+| `**bold**` im Absatz | ein Bullet je Bold-Phrase, der Rest des Absatzes entfällt |
+| Absatz ohne Bold | der ganze Absatz in kleiner Type – nichts geht verloren |
+| Markdown-Liste (`- ` / `1. `) | Bullets wie geschrieben |
+| `#### Titel` | Kartentitel für die folgende Karte |
+| `@12:30` allein in einer Zeile oder am Absatzanfang | Sollzeit ab Start; das Cockpit zeigt an dieser Karte die Drift („+1:40“ / „−0:50“) |
+| `[Klick: Zeile 1 wird hell.]` allein in einem Absatz oder an dessen Kopf | eine Vorrückung: die Karte endet hier, alles dahinter wird eine Vorrückung später einsortiert, und die Worte hinter dem Doppelpunkt betiteln die Karte danach |
+| jede andere Klammerzeile (`[Pause.]`) | Regieanweisung, bleibt im Wortlaut stehen, aber an einer Karte statt als eigene (§18) |
+
+Ein Block mit mehreren Absätzen ergibt mehrere Karten; wer eine Karte pro
+Block will, schreibt einen Block pro Absatz – beides ist dasselbe.
+`print-notes.html` bleibt ein Manuskript: Bolds sind dort Hervorhebungen,
+`####` eine Zwischenüberschrift, die Zeitmarke wird als kleine Randnotiz
+gesetzt oder gestrichen (Entscheidung im Slice, nicht hier).
+
+**Die Position der Note im Chunk ist ihr Beat.** Eine Note vor dem ersten
+`---` gehört zu Beat 1, eine nach dem ersten `---` zu Beat 2 usw. Das ist
+die Regel, nach der `chunkBeats` verschachtelte Beats ordnet:
+Dokumentreihenfolge ist Reihenfolge. Heute wirft `flushNoteBlock` den Text
+in `currentChunk.speakerNotes` und vergisst die Stelle; das Splitten an
+`---` passiert erst in `flushChunk` (build.js:3413–3428), fence-aware, und
+filtert leere Segmente (`nonEmpty`, :3429).
+
+Änderung im Parser:
+
+- `speakerNotes` wird ein Array von `{text, seg}` statt Strings – oder ein
+  paralleles `speakerNoteSegs`, damit die drei bestehenden Leser
+  (`renderChunk` :5208/5277 für print-notes, das Template in
+  `renderSpeaker` :14742, die Notes-Wortzählung in `--squint` :18256)
+  weiter Strings sehen. Empfehlung: paralleles Array, dann bleibt der Diff
+  an den Lesern null.
+- `flushNoteBlock` merkt sich `bodyLines.length` (die Zeile, an der die
+  Note im Body steht) und ob gerade ein Fence offen ist. `flushChunk`
+  rechnet beim Splitten für jede Note aus, im wievielten *nicht-leeren*
+  Segment ihre Zeile lag. Liegt sie in einem leeren Segment (ein `---`,
+  hinter dem nur die Note steht), wandert sie ins vorige. Kein zweiter
+  Fence-Zähler, die Zuordnung benutzt den Lauf, der schon da ist.
+- Nur top-level `---` zählt. Ein `---` unter der Top-Ebene wird zu
+  `BEAT_MARK` (build.js:3818–3843) und ist zur Parse-Zeit im Body, nicht in
+  den Segmenten; Diagrammschritte kennt erst der Compiler. Beides sind
+  Beats, die der Runtime in `chunkBeats` zwischen zwei Segmenten
+  einsortiert. Die Karten eines Segments stehen dann *vor* diesen
+  Zwischen-Beats, die als „▶“-Einträge folgen. Das ist die dokumentierte
+  Grenze von v1; wer Karten pro Diagrammschritt will, schreibt top-level
+  `---`. Erweiterung später: der Parser zählt zusätzlich `BEAT_MARK`-Pushes
+  (:3539, :3731, :3842) und `model.steps.length` beim Compile (:3481–3507)
+  und liefert eine Positionsnummer, die `chunkBeats.pos` entspricht – das
+  ist dann eine zweite Stelle, die mit `chunkBeats` kongruent bleiben muss,
+  und deshalb nicht v1.
+- **Wo Notes heute vorkommen dürfen:** der Note-Zweig (:3679) liegt *vor*
+  den Capture-Zweigen für Overlay, Dock, Expansion und vor der
+  Layout-Verarbeitung, also wird eine Note in `::: side`, `::: cols`,
+  `::: overlay`, `::: dock` und `::: expand` erkannt und dem Chunk
+  zugeschlagen. In `::: draw` (:3458–3519) und `::: cards` / `::: rows`
+  (:3529–3562) wird die Zeile in den Block geschluckt – dort ist eine Note
+  heute schon ein Fehler und bleibt einer. Der Segment-Index einer Note in
+  einem Pane ist der des Top-Level-Segments, in dem das Pane steht. Nichts
+  davon ändert sich.
+
+**Bestandsregel: Notes nur im letzten Segment sind Chunk-Notes und
+gehören auf Beat 1.** In jedem heutigen Deck stehen die `> note:`-Blöcke am
+Chunk-Ende, also *hinter* dem Text des letzten Segments und ohne weiteres
+`---` dahinter. Die reine Positionsregel legte sie auf den letzten Beat, und
+das ist für ein Deck, das nie an Beats gedacht hat, falsch herum: die Stütze
+käme erst nach dem letzten Reveal. Die Regel ist deshalb ein Fallback auf
+Chunk-Ebene, nicht pro Note: **hat ein Chunk Notes ausschließlich in seinem
+letzten nicht-leeren Segment, bekommen alle den Segment-Index 0.** Sobald
+irgendeine Note des Chunks in einem früheren Segment steht, hat der Autor
+die Positionsregel benutzt, und dann gilt sie für jede Note des Chunks,
+auch für die im letzten Segment. Ein Chunk ohne `---` hat genau ein Segment,
+da fallen beide Lesarten zusammen. Bestehende Decks bauen identisch und
+zeigen im Kartenmodus alles auf Beat 1; feiner wird es erst, wenn jemand
+einen Block hinter ein früheres `---` schiebt. Beide Fälle als Fixture im
+Gate (§7). Wer eine Note wirklich auf dem letzten Beat allein haben will,
+setzt davor eine Note auf einen früheren Beat – ein Chunk, dessen Stütze
+erst nach dem letzten Klick beginnt, ist ohnehin keine, die man bauen will.
+
+**Wie gelandet:** „nicht-leer“ heißt *Wörter*, und das musste nachgezogen
+werden. Seit „jedes `---` ist ein Beat“ liefert `segmentsKept` für jeden
+Chunk mit zwei oder mehr Segmenten lauter `true`, also zählt auch ein leeres
+Schlusssegment – ein Chunk, der mit `---` endet und nichts dahinter hat, die
+Folie steht während weitergesprochen wird – als „letztes“. `noteSegments`
+maß sich daran und legte die Notes eines Bestandsdecks auf den letzten Klick
+statt auf Beat 1; gewarnt hat nichts. Die Regel liest jetzt das letzte
+Segment **mit Wörtern darin**. Eine Note, die allein hinter einem `---`
+steht, ist damit nicht mehr im letzten Segment: sie behält ihre Position und
+wird auf dem Beat gesagt, den das `---` öffnet – wofür der Trenner
+geschrieben wurde. Fixtures in `test/gates/cue-cards.mjs`, kein Deck in
+`lectures/` bewegt sich.
+
+**lint.js-Spiegel** (lint.js:2381 `inMetaBlock`, :3160 der `---`-Zähler
+`chunkReveals`): dieselbe Zuordnung, plus Warnung `note-in-empty-beat`,
+wenn ein Note-Block in einem Segment steht, das sonst leer ist und nicht
+das letzte ist – die Note würde ins vorige wandern, was der Autor vermutlich
+nicht meint. Kein Fehler, weil der Build es akzeptiert. Wie bei jeder
+Parser-Regel: build.js und lint.js im selben Commit.
+
+## 3. Tasten
+
+Heute (`document.addEventListener('keydown')`, build.js:14048–14262, ein
+Handler für beide Views): `Space`, `↓`, `PageDown` und `Enter` sind alle
+`goForward()` (:12685: erst `advanceReveal`, dann `nextChunk`); `Backspace`,
+`↑`, `PageUp` sind `goBack()`; `→`/`←` sind ebenfalls `goForward`/`goBack`
+(:14108), `Shift-→`/`Shift-←` die Spalten. **speaker.md §4.2 sagt, Enter sei
+lokal für Expansions – das ist veraltet, Expansions liegen auf `1`–`9`
+(:14135), Enter ist seit dem Umbau „Down, Space, Enter and a presenter's
+forward button are one key“ (:14111) ein Vorwärts-Schritt.** Die Zeile in
+speaker.md wird in diesem Zug korrigiert.
+
+Im Kartenmodus:
+
+| Taste | tut |
+| --- | --- |
+| `Space`, `↓`, `PageDown`, `→` | das Nächste: Karte, sonst Reveal, sonst nächste Folie |
+| `Backspace`, `↑`, `PageUp`, `←` | dasselbe rückwärts: Karte zurück, sonst Reveal zurück, sonst vorige Folie (Cursor landet auf der letzten Karte des Ziel-Beats) |
+| `Enter` | alle Karten dieses Chunks überspringen und zur nächsten Folie (`nextChunk()`, :12712) – die noch nicht gezeigten Reveals bleiben, wo sie sind |
+| `Shift-→` / `Shift-←` | unverändert Spalten |
+| `K` | Kartenmodus an/aus (Toggle, lokal, persistiert) |
+| `Shift-N` | schaltet in den klassischen Modus und fokussiert das Textarea (Notes tippen bleibt dort) |
+
+**Enter-Konflikt:** Es gibt keinen mit Expansions. Der einzige Konflikt ist
+mit Enter = goForward, und der wird bewusst *nur im Kartenmodus* umbelegt:
+außerhalb bleibt Enter ein Vorwärts-Schritt, weil Presenter-Fernbedienungen
+und Gewohnheit daran hängen. Risiko benennen: eine Fernbedienung, die
+„weiter“ als Enter sendet (die meisten senden PageDown oder `→`), springt im
+Kartenmodus Folien. Das steht im Help-Overlay und in speaker.md.
+
+**Toggle-Taste `K`.** Freie Buchstaben in beiden Key-Maps (nach :14176–14262
+und `renderHelpOverlay` :6742): g, h, i, j, k, m, q, r, u, w, x, y, z. `K`
+für Karten; `S` ist in der Audience das Öffnen des Cockpits und im Cockpit
+ein No-op, das lassen wir. Dazu ein Footer-Button „▤ cards“ neben
+„⇄ layout“ (:14813–14817), weil jede Cockpit-Funktion einen Mausweg braucht
+(speaker.md §4.1 „Footer“). Persistenz wie `PREVIEW_ORIENTATION_KEY`
+(:16243–16258): ein globaler localStorage-Schlüssel, kein Lecture-Präfix –
+wer den Modus mag, will ihn beim nächsten Deck wieder.
+
+**Einhängen des Cursors:** nicht im Key-Handler, sondern in `goForward` /
+`goBack` selbst über zwei neue `viewHooks` (`viewHooks.consumeForward`,
+`viewHooks.consumeBack`, Default `() => false`; die Familie existiert:
+`onActiveChange`, `shouldBroadcast`, `onN`, :11328/:15659/:16234). Dann
+laufen Tastatur, Touch-Rail und alles, was `goForward` ruft, durch denselben
+Cursor; ein zweiter Pfad wäre die Stelle, an der ein Klick anders zählt als
+eine Taste. Der Cursor ist ein einziges Objekt `{chunkId, beat, card}` im
+SPEAKER_JS, nicht persistiert; er wird in `viewHooks.onActiveChange` und
+nach jedem `applyReveal` auf Karte 1 des aktuellen Beats gesetzt, wenn er
+nicht zu diesem Chunk und Beat gehört. Ein `→` in ein anderes Segment oder
+eine andere Folie setzt ihn also auf Karte 1, übersprungene Karten werden
+nicht markiert – übersprungen heißt, man wusste es.
+
+## 4. Layout
+
+Neuer Body-Zustand `body[data-view=speaker].cue-cards`, ein dritter
+Grid-Zustand neben dem Standard (:14850–14858) und `.preview-right`
+(:15563–15575). Kartenspalte in der Mitte an Stelle von `#stage-cell`;
+`#stage-cell` wird zum Bild in einer Ecke (oben rechts, unter dem Scrubber),
+Preview-Strip und Notes-Textarea ausgeblendet, Footer und Scrubber bleiben.
+
+- **Spiegel bleibt derselbe DOM.** `sizeStageViewport` (:15633–15647) setzt
+  `--stage-scale` aus `#stage-cell`s Maßen über einen ResizeObserver; die
+  Ecke ist nur ein kleineres `#stage-cell`, mehr muss nicht passieren.
+  Reveal-Vorschau, Blank, Demo-Badge laufen darin weiter.
+- **Laserpointer per Hover bleibt.** Der Sender hängt an
+  `viewport.pointermove` (:16463–16472) und schickt `x`/`y` als Anteil der
+  `getBoundingClientRect()` des aktiven Chunks; die Audience setzt den Punkt
+  bei `r.left + px * r.width` (:11701). Der Maßstab kommt also nirgends vor,
+  ein kleiner Spiegel zeigt genauso richtig – nur mit gröberer Hand. Prüfen
+  im Spec, dass `pointerleave` im kleinen Zustand den Punkt noch löscht.
+- **Kopfzeile der Kartenspalte:** Spaltenüberschrift › Chunk-Heading;
+  fehlt das Heading (Keynote-Stil), die erste Zeile des Chunks (erster `p`
+  im ersten `.reveal-segment`, gekürzt). Rechts „Folie n/N · Beat k/K ·
+  Karte i/I“. Spaltenüberschrift steht schon im Scrubber (`.col-btn`,
+  :14752), Chunk-Heading in `.chunk-heading`.
+- **Uhr, beide Layouts.** Der Timer sitzt heute als 11-px-Mono-Span im
+  Footer (:14810, `#speaker-footer #timer` :15214) neben dem Key-Crib und
+  ist dort nicht zu sehen. Er wird ein eigenes Element `#clock` außerhalb
+  des Footers: im klassischen Layout oben rechts *über* dem Letterbox-Rand
+  von `#stage-cell` (dort steht schon `#add-note-btn`, :14795), im
+  Kartenmodus in der Kopfzeile der Spalte. Groß, mono, tabellarische
+  Ziffern. Der Footer-Span entfällt. Dazu zwei Dinge, die der alte Timer
+  nicht kann und eine Keynote braucht: `tStart` ist heute der Seitenaufruf
+  (:16218), also zehn Minuten zu früh, wenn das Cockpit vor dem Vortrag
+  offen ist – ein Klick auf die Uhr startet neu (und ein zweiter Klick
+  hält an), und mit Zeitmarken zeigt sie neben der Laufzeit die Drift an
+  der aktuellen Karte. Klick statt Taste, aus demselben Grund wie die
+  Notes-Zoom-Buttons: jede freie Taste ist eine Navigation.
+- **Karten aus demselben Text wie das Textarea.** `loadNotesFor(id)`
+  (:15953) liefert Override aus `localStorage` (`noteOverrideKey`,
+  `speakernote:<id>`, :15947) oder den Template-Text (`sourceNotesFor`,
+  :15948), `populateNotesPane` (:15992) schreibt ihn ins Textarea, der
+  `input`-Listener (:15997) speichert. Die Karten lesen denselben
+  `loadNotesFor`-Text – siehe §5 für das Wie.
+
+## 5. Rendern der Karten – Empfehlung
+
+`marked` ist im Speaker-Runtime nicht vorhanden; es läuft nur zur Build-Zeit
+(`marked.parse` in den Renderern, Templates tragen den *rohen* Notes-Text
+escaped, :14735–14746). Drei Wege:
+
+1. Karten zur Build-Zeit mit `marked` vorrendern als zweites Template pro
+   Block mit `data-seg`, Overrides aus dem Textarea im Kartenmodus mit einem
+   Mini-Parser nachrendern → zwei Renderer für einen Text, die auseinander
+   laufen.
+2. Overrides im Kartenmodus nicht unterstützen → die Probenkorrektur, die
+   das Textarea genau dafür hat, gilt dann in dem Modus nicht, in dem sie
+   gebraucht wird.
+3. **Empfehlung: ein zero-dep Modul `cue-cards.mjs` mit einer einzigen
+   reinen Funktion `notesToCards(text) → [{title, bullets, prose, at}]`**,
+   das build.js zur Build-Zeit importiert *und* als Text in `SPEAKER_JS`
+   splict – das Muster von `diagram-core.mjs` und dem QR-Encoder
+   (`qrLibJs()`, :14829): ein Text, zwei Laufzeiten. Die Kartengrammatik ist
+   absichtlich winzig (Leerzeile, `**…**`, `- `/`1. `, `####`, `@mm:ss`);
+   Inline-Code, Links, Kursiv werden auf Text reduziert. Das Textarea
+   bleibt Rohtext, die Karten werden im Runtime aus `loadNotesFor` gebaut,
+   Override und Quelle gehen denselben Weg, und die Funktion ist ohne
+   Browser und ohne `npm install` testbar (§7). Die Segment-Zuordnung
+   bleibt am Block: das Template trägt pro Block ein eigenes
+   `<template data-notes-for=id data-seg=k>`; das bestehende
+   `data-notes-for`-Template (ein Text pro Chunk, Blöcke mit Leerzeilen
+   verbunden) bleibt für Textarea, `--squint` und Overrides, wie es ist.
+   Ein Override überschreibt den ganzen Chunk-Text; seine Karten landen
+   dann alle auf Beat 1, weil ein Textarea keine Segmentgrenzen kennt –
+   akzeptiert und im Help-Text gesagt. Wer es feiner will, ändert die
+   Quelle.
+
+## 6. Nicht-Ziele
+
+- Kein Teleprompter, kein scrollender Fließtext – das ist der Modus, den es
+  schon gibt, nur größer, und er erzeugt den abgelesenen Vortrag.
+- Bullets werden nicht einzeln eingeblendet. Feinere Granularität ist ein
+  zweiter Absatz.
+- `> annot:` wird nicht angefasst.
+- `audience.html`, das Sync-Protokoll (speaker.md §2/§3), `chunkBeats`,
+  `countSegments`, `applyReveal`, `FROM_SEL`, `FOCUSABLE_SEL` werden nicht
+  angefasst. Der einzige Eingriff in `AUDIENCE_JS` sind die zwei
+  `viewHooks`-Aufrufe in `goForward`/`goBack`, deren Default `false` ist.
+- Keine Zeitmarken-Automatik (kein Verteilen der Sollzeit auf Karten).
+
+## 7. Tests
+
+`test/README.md`: was ohne Browser entscheidbar ist, gehört in `lint.js`
+oder `test/gates/`, das Browser-Suite ist keine Unit-Suite. Die Gates sind
+zero-dep – `build.js` (und damit `parseLecture`) ist dort nicht ladbar.
+
+**Gate `cue-cards`** (neu, zero-dep, weil `cue-cards.mjs` es ist):
+`notesToCards` gegen Fixtures – Absatz mit drei Bolds, Absatz ohne Bold,
+Liste, `####`, `@mm:ss` am Absatzanfang und allein, Inline-Code und Link
+zu Text reduziert, leerer Text. Dazu, wie beim `inlined`-Gate: der Text des
+Moduls kommt unverändert in `SPEAKER_JS` an (Backtick- und
+Backslash-Prüfung, §9).
+
+**Parser-Segmentindex** braucht `parseLecture`, also `node_modules`: kommt
+in die Browser-Suite als Fixture-Deck nach dem Muster der sieben Specs, die
+ein eigenes Deck bauen (`test/settings.mjs` als Vorbild) – ein Chunk mit
+drei Segmenten und Notes davor, dazwischen, dahinter, eine Note in einem
+leeren letzten Segment, eine Note in `::: side`, ein Chunk mit allen Notes
+am Ende und keinem `---`. Gelesen wird `data-seg` an den Templates in der
+gebauten `speaker.html`. Dasselbe Deck durch `lint.js` für
+`note-in-empty-beat`.
+
+**Browser-Spec `cue-cards.mjs`** (Familie Navigation, neben `nav-cockpit`):
+Audience + Cockpit über `S`; `K` schaltet um, `body.cue-cards` und die
+Persistenz; auf einem Chunk mit zwei Karten und zwei Segmenten: Space ×
+(2 Karten + 1 Reveal + Folienwechsel) und nach jedem Druck `revealed` in
+*beiden* Fenstern gleich und `activeIdx` gleich; Backspace denselben Weg
+zurück; Enter springt Folie bei stehendem `revealed`; `→` auf eine andere
+Folie setzt den Cursor auf Karte 1; Hover auf dem kleinen Spiegel erzeugt
+`cursor`-Messages mit `x`/`y` in [0, 1] und `pointerleave` löscht;
+`#clock` existiert in beiden Layouts, Klick setzt zurück; Drift-Anzeige
+bei einer `@0:00`-Karte nach zwei Sekunden „+0:02“.
+
+## 8. Doku, die mitzieht
+
+- `speaker.md` §4.1 (Layout: dritter Zustand, Uhr, Kopfzeile), §4.2
+  (Tastentabelle: `K`, Enter im Kartenmodus, die veraltete Enter-Zeile
+  korrigieren), §5 (neuer globaler localStorage-Schlüssel).
+- `renderHelpOverlay` (build.js:6742): `K` in der Speaker-Gruppe, Enter mit
+  seinem Modus-Vorbehalt, Klick auf die Uhr als Mausgeste.
+- `CLAUDE.md`: Absatz unter *Four outputs* zu `cue-cards.mjs` als drittes
+  gesplictes zero-dep Modul; `viewHooks.consumeForward` neben
+  `FOCUSABLE_SEL`/`FROM_SEL` als „eine Stelle, nicht zwei“.
+- `.claude/skills/psi-slides-authoring/SKILL.md` (Notes-Abschnitt ab
+  Zeile ~370): die Kartenregeln, die Positionsregel, `@mm:ss`.
+- `HANDOFF.md`: Slice-Eintrag; `CHANGELOG.md` unter `## [Unreleased]`.
+- `lectures/tutorial/source.md`: ein Chunk, der Notes hinter `---` und eine
+  Zeitmarke zeigt; danach alle vier Views neu bauen und committen.
+
+## 9. Risiken
+
+- **Template-Literal-Fallen** (CLAUDE.md *Conventions*): alles Neue in
+  `SPEAKER_JS` und dem Speaker-CSS liegt in Backtick-Literalen. Kein
+  Backtick, auch nicht im Kommentar; Regex-Backslashes doppelt
+  (`/\\*\\*(.+?)\\*\\*/`); `node test/gates/run.mjs inlined` vor jedem
+  Build-Urteil. Das Splicen von `cue-cards.mjs` als Text umgeht die Falle
+  für die Kartengrammatik vollständig, weshalb die Bold-Regex *dort* lebt
+  und nicht im Literal.
+- Ein unterminiertes `/*` im neuen CSS frisst Regeln bis zum nächsten
+  `*/`; `assertStylesheetsWellFormed()` fängt es, aber nur beim Build.
+- `2>&1 >/dev/null` verbirgt den SyntaxError und lässt die alte HTML
+  liegen; nach jeder Änderung `grep -F` des neuen Bezeichners in der
+  gebauten `speaker.html`.
+- Die Positionsregel dreht die Zuordnung bestehender Notes-am-Ende-Chunks
+  um, wenn die Leeres-Segment-Regel nicht greift (Note steht hinter einem
+  `---` mit Text davor). Das Fixture-Deck in §7 hat genau diesen Fall.
+- Enter im Kartenmodus und Fernbedienungen, §3.
+
+## 10. Slices, in dieser Reihenfolge
+
+1. **Parser + lint:** `seg` pro Note, Leeres-Segment-Regel, zweites
+   Template mit `data-seg`, `note-in-empty-beat`; Fixture-Deck und
+   Lint-Assertion. Baut jeden bestehenden `source.md` byte-identisch bis auf
+   die neuen Templates.
+2. **`cue-cards.mjs` + Gate:** `notesToCards`, Splice in `SPEAKER_JS`,
+   Gate mit Fixtures und Splice-Prüfung.
+3. **Uhr:** `#clock` in beiden Layouts, Klick-Reset, Footer-Span raus,
+   speaker.md §4.1. Eigener Commit, weil unabhängig nützlich.
+4. **Kartenspalte + Layout:** `.cue-cards`-Grid, Spiegel in der Ecke,
+   Kopfzeile, Karten-Rendering mit Cursor-Zuständen, `K` + Footer-Button +
+   Persistenz, Help-Overlay.
+5. **Cursor:** `viewHooks.consumeForward`/`consumeBack`, Enter im Modus,
+   Reset in `onActiveChange`, die „▶“-Einträge aus `data-next` und
+   `flatChunks[idx+1]`.
+6. **Zeitmarken + Drift.**
+7. **Browser-Spec, Tutorial-Chunk, Doku, CHANGELOG, HANDOFF.**
+
+## 11. Fortschritt
+
+- [x] Slice 1 Parser + lint – `noteSegments()` in build.js, `speakerNoteSegs` parallel zu `speakerNotes`, zweites Template `data-cards-for`/`data-seg`; lint `note-in-empty-beat`. Fixture-Deck mit fünf Fällen von Hand geprüft, Korpus und Content-Repo linten ohne neue Warnung.
+- [x] Slice 2 `cue-cards.mjs` + Gate – `notesToCards`, `parseTimeMark`, `formatClock`, `plainInline`; als `window.PSI_CARDS` in speaker.html gespleißt; Gate `cue-cards` mit 26 Prüfungen, im Runner registriert.
+- [x] Slice 3 Uhr – `#clock` als Button über dem Letterbox-Rand oben rechts, `#timer` + `#drift` darin, Klick = Neustart bei 0:00, Footer-Span raus. Im Browser geprüft.
+- [x] Slice 4 Kartenspalte + Layout – `body.cue-cards`-Grid (Spiegel links oben mit `aspect-ratio`, Preview-Strip darunter vertikal, Karten rechts), `#cue-cards` mit Kopfzeile und Spur, `K` + Footer-Knopf `▤ cards` + `psi-slides:cue-cards` in localStorage, Shift-N verlässt den Modus
+- [x] Slice 5 Cursor – `viewHooks.consumeForward/consumeBack/onEnter/onK`, `cueEntries()` als Liste in Dokumentreihenfolge, Cursor `{id, seg, card}`; im Browser durchgespielt: 9× Space und 9× Backspace über drei Segmente, jeder Backspace macht genau einen Space rückgängig
+- [x] Slice 6 Zeitmarken + Drift – `#drift` neben der Uhr, gerundet auf zehn Sekunden, rot wenn hinten, grau wenn vorn; Bezug ist die Marke der aktuellen Karte oder der letzten davor
+- [x] Slice 7 Spec, Tutorial, Doku – `test/cue-cards.mjs` (zwei Fenster, 40 Prüfungen), Tutorial-Chunk `#cue-cards` mit Notes unter den passenden `---` und einer `@0:30`-Marke, speaker.md §1/§4.1/§4.2, CLAUDE.md, Authoring-Skill, test/README, CHANGELOG, HANDOFF; alle drei getrackten Lectures neu gebaut
+
+## 12. Entscheidungen unterwegs
+
+- **Zweites Template heißt `data-cards-for`, nicht `data-notes-for`.**
+  Zwei Templates mit demselben Attribut hätten `sourceNotesFor` (liest das
+  erste per `querySelector`) umgebogen; ein eigener Name lässt Textarea,
+  Overrides und `--squint` unberührt.
+- **lint.js zählt nur top-level `---`** (`!activeDirective &&
+  !layoutStack.length`), wie der Build: ein `---` im Pane wird dort zu
+  `BEAT_MARK` und erreicht die Segment-Aufteilung nie.
+
+- **Bullet = Bold-Phrase, ohne den Satz drumherum.** Der Entwurf zeigte
+  noch „Es ist **nicht das System**“ mit Kontext; gebaut ist die strenge
+  Regel aus §2, weil sie die Autorenarbeit klar macht: was auf der Karte
+  stehen soll, wird fett. Wer den Satz will, macht ihn fett.
+- **`@12:30` ohne `@` ist Text.** „12:30 Uhr ist spät“ am Absatzanfang darf
+  keine Sollzeit sein; das `@` ist die Absicht.
+- **Uhr: Klick = Neustart, keine Pause.** Der Plan sah einen zweiten Klick
+  als Pause vor; gebaut ist nur der Neustart. Eine angehaltene Uhr ist einen
+  Fehlklick vom Rest des Vortrags mit falscher Drift entfernt, und der
+  Fall, der wirklich vorkommt, ist das zu früh geöffnete Cockpit.
+- **Zurück landet auf dem Klick, nicht auf der letzten Karte.** Der Plan
+  (§3) wollte den Cursor beim Rückwärtsgehen auf der letzten Karte des
+  Ziel-Beats; gebaut ist die Symmetrie: jeder Backspace macht genau einen
+  Space rückgängig, also steht der Cursor nach dem zurückgenommenen Reveal
+  erst auf dem „reveal“-Eintrag und dann auf der letzten Karte. Vorhersagbar
+  schlägt einen Tastendruck weniger. **Überholt, siehe §17:** die Symmetrie
+  bleibt, der Tastendruck fällt in beiden Richtungen weg.
+- **Der Spiegel im Kartenmodus ist derselbe DOM und dieselbe Kamera.** Er
+  zeigt deshalb, wie der klassische Spiegel ohne verbundene Audience, die
+  Nachbar-Chunks gedimmt oben und unten – kein Fehler des Modus.
+- **Drift auf zehn Sekunden gerundet.** Sekundengenau flackert die Zahl im
+  Augenwinkel; ob man 40 Sekunden hinten ist, reicht.
+- **Zwei Intervalle statt eines.** Die Uhr tickt weiter in ihrem Block, die
+  Drift in ihrem: die Uhr steht im Skript vor den Karten, und ein Aufruf aus
+  `renderTimer` in die Karten-Variablen lief in die TDZ (`Cannot access
+  before initialization`) – in der Konsole, nicht im Build.
+- **Enter im Kartenmodus geht zur nächsten Folie**, wie gewünscht; außerhalb
+  bleibt es ein Vorwärts-Schritt. Im Help-Overlay steht der Vorbehalt.
+- **Die Zeitmarke gilt nur am Absatzanfang oder allein in einer Zeile.**
+  Ein `@0:30` mitten im Absatz ist Text und fällt mit dem Rest des Absatzes
+  von der Karte – das ist im Tutorial einmal passiert und wurde dort
+  korrigiert. Eine Marke „irgendwo im Absatz“ wäre leicht zu lesen, aber
+  dann ist eine Uhrzeit im Redetext („um 12:30 …“) mit `@` davor eine
+  Falle; Absatzanfang ist die Absicht.
+- **Kartenspalte maximal 34em breit, linksbündig neben dem Spiegel.** Auf
+  einem breiten Cockpit-Fenster bleibt rechts Luft; das ist gewollt, weil
+  der Blick vom Spiegel nach rechts in die Karten geht und eine Zeile über
+  die halbe Bildschirmbreite nicht mehr aus dem Augenwinkel lesbar ist.
+- **Der Cursor sitzt auf 28 % der Spaltenhöhe.** Erledigtes scrollt nach
+  oben weg, Kommendes hat zwei Drittel der Höhe.
+- **Ein Teiler heißt nach seiner Spalte.** Der letzte Eintrag der Spur nennt
+  die nächste Folie; ist das ein `section:`-Teiler, hat der kein Heading, und
+  der Eintrag hieß „slide 2 · slide 2“. Jetzt „next part · ‹Spaltentitel›“.
+- **Die Consume-Hooks binden den Cursor selbst.** Beim Laden hat sich noch
+  nichts bewegt, `onActiveChange` ist nicht gefallen, und der erste Space
+  hätte gegen einen Cursor gezählt, der zu keinem Chunk gehört (`cueBind`).
+
+## 13. Die Fragen an den Autor, beantwortet
+
+Gebaut war jeweils die erste Variante. Nach der Keynote sind alle sechs
+beantwortet – fünf davon dadurch, dass sie im Gebrauch nicht auffielen.
+
+1. **Enter auf der Fernbedienung.** Enter geht im Kartenmodus zur nächsten
+   Folie. Sendet dein Presenter „weiter“ als Enter (die meisten senden
+   PageDown oder `→`), springt er Folien. Alternative: Enter nur mit einem
+   Modifier (`Shift-Enter`) springen lassen und Enter wie Space behandeln.
+2. **Preview-Strip im Kartenmodus.** Er steht links unter dem Spiegel,
+   vertikal, mit −1 / now / +1. Er kostet die halbe linke Spalte. Alternative:
+   nur die nächste Folie als eine Miniatur, oder gar keine – die Spalte
+   nennt die nächste Folie ohnehin als letzten Eintrag.
+   **Beantwortet durch den Griff statt durch eine Entscheidung:** die Naht
+   zwischen Streifen und Karten ist seit dem Nachtrag (§15) dieselbe
+   Ziehleiste, die die anderen zwei Anordnungen tragen. Wie breit der
+   Streifen ist, ist damit eine Eigenschaft des Abends, keine des Builds –
+   und weil der Spiegel im Streifen sitzt, zieht man mit ihm die
+   Projektion groß.
+3. **Karten ohne Bold zeigen den ganzen Absatz** in kleinerer Type, damit
+   beim Umstellen einer alten Vorlesung nichts verschwindet. Für einen
+   ausformulierten Redetext ohne Bolds heißt das: Fließtext auf der Karte,
+   also genau das, was der Modus vermeiden will. Alternative: die erste
+   Sätze als Bullet (wie die Collapse-Regel der Folien), der Rest weg.
+   **Bleibt wie gebaut.** Wer den Modus benutzt, fettet; wer eine alte
+   Vorlesung aufmacht, will nichts verschwinden sehen.
+4. **Bullet = Bold-Phrase ohne Kontext.** „**Erster Klick**: der Vorgesetzte
+   kommt nicht rein“ wird zur Karte „Erster Klick“. Reicht dir das als
+   Stütze, oder soll der Satz um die Bold-Phrase mitkommen (gedimmt, die
+   Phrase hell)? Letzteres wäre näher am Entwurf und ein reiner
+   Rendering-Unterschied in `notesToCards` plus CSS.
+   **Bleibt wie gebaut** – die strenge Regel macht die Autorenarbeit klar.
+5. **Textarea-Overrides landen alle auf Beat 1** (§5). Wenn du in der Probe
+   im Textarea korrigierst, verlieren die Karten dieses Chunks ihre
+   Beat-Zuordnung, bis die Quelle geändert ist. Reicht das, oder soll das
+   Textarea im Kartenmodus pro Beat editierbar sein?
+   **Reicht.** Die Probe korrigiert die Quelle, nicht das Textarea.
+6. **Uhr ohne Pause.** Siehe §12. Wenn du doch eine Pause willst: Doppelklick
+   wäre der Weg, der nicht aus Versehen passiert.
+   **Keine Pause, aber der Klick sagt jetzt, was er tut** – siehe §15.
+7. ~~Diagrammschritte tragen keine Karten.~~ **Erledigt mit
+   `> note: from N`** – siehe §14. Der Parser zählt nichts mit; die Zahl ist
+   die Absicht des Autors, und die Runtime gruppiert Karten seit dem Umbau
+   nach `consumed` statt nach Segment, also fällt jeder Beat-Typ von selbst
+   an seinen Platz.
+
+## 14. Nachtrag: `from N`, das Layout, die Schriftgröße
+
+Nach dem ersten echten Deck (`lectures/keynote-2036`, das erste Drittel einer
+45-Minuten-Keynote) vier Änderungen, alle aus dem Gebrauch:
+
+- **`> note: from N` pinnt eine Note an eine Vorrückung.** Das war die offene
+  Frage 7: eine Figur mit `step`-Blöcken hat Beats, zwischen die kein `---`
+  passt. Die Zahl zählt Drücke wie `::: overlay from N` (0 = die Folie, wie
+  sie aufgeht). Der Parser merkt sich die Zahl statt der Position
+  (`data-at` am Template statt `data-seg`), lint warnt `note-from-beyond`.
+- **Die Runtime gruppiert Karten nach `consumed`, nicht nach Segment.** Das
+  ist der Umbau, der es billig macht: `cueEntries` läuft über die
+  Vorrückungen 0…total-1 und hängt an jede die Karten und den Druck, der sie
+  verlässt – ein Reveal, ein Diagrammschritt, ein verschachtelter Beat. Die
+  Segment-Ableitung ist nur noch eine Umrechnung (`segAt`), und ein
+  Diagrammschritt zeigt den Namen, den der Autor ihm gegeben hat.
+- **Der Spiegel steht in der Mitte des Filmstreifens.** Vorher gab es die
+  aktuelle Folie zweimal: als Spiegel oben links und als Miniatur mit
+  `NOW`-Rahmen – und nur der Spiegel war so gelayoutet, wie der Raum sie
+  sieht. Jetzt ist `#stage-cell` ein Kind des Streifens an der Stelle der
+  aktuellen Miniatur, und die Miniatur ist per CSS ausgeblendet. Die linke
+  Spalte ist ein Streifen mit der echten Projektion in der Mitte. Das Grid
+  hat dafür eine Zeile weniger.
+- **Textzoom für die Karten**, zwei Knöpfe in der Kopfzeile, `--cue-scale`
+  von 0.7 bis 1.8, global gemerkt – wie der Notizfeld-Zoom und aus demselben
+  Grund keine Taste: jeder freie Buchstabe ist ein Navigationsbefehl, der
+  mitten im Satz feuern würde. Wie weit das Notebook vom Pult wegsteht, ist
+  eine Eigenschaft des Raums, nicht des Decks.
+- **Karten größer, Uhr nicht mehr abgeschnitten.** Die Basisgröße der Spur
+  ist `clamp(17px, 2.7vh, 32px)`; erledigte Karten schrumpfen stärker
+  (0.72em), damit die aktuelle mehr Kontrast hat. Die Kopfzeile hatte
+  `overflow: hidden`, und die Uhr ist zweieinhalbmal so groß wie deren
+  Zeilentyp – ihr wurde oben die Hälfte der Ziffern abgeschnitten. Jetzt
+  kürzen die zwei Textkinder selbst und die Kopfzeile schneidet nichts ab.
+
+## 15. Nachtrag: der Griff, die Uhr, die Drift, eine ID zu viel
+
+Nach dem Aufräumdurchgang vor dem Merge, alle vier aus dem Gebrauch bzw.
+aus dem Ausmessen der neuen Anordnung:
+
+- **Die Naht zwischen Streifen und Karten ist eine Ziehleiste.** Der
+  `#preview-resizer` war im Kartenmodus per CSS abgeschaltet; jetzt sitzt er
+  auf der Spaltengrenze und schreibt `--cue-strip-w`. Der Umbau ist ein
+  Deskriptor statt eines dritten Zweigs: `PREVIEW_AXES` nennt pro Anordnung
+  Achse, Wuchsrichtung, Custom Property und Schlüssel, und die drei Handler
+  lesen nur noch daraus – aus demselben Grund, aus dem die Consume-Hooks an
+  `goForward` hängen und nicht in der Key-Map. Die Obergrenze ist hier nicht
+  die Bühne, sondern die Kartenspur (`CUE_RAIL_MIN_PX`): der Spiegel *wächst*
+  in dieser Anordnung mit dem Streifen, weil er in ihm liegt.
+- **Die Uhr sagt auf Hover, was der Klick tut.** Das Zurückspringen auf 0:00
+  war die Überraschung, die der Titel-Tooltip nicht verhindert hat; jetzt
+  steht RESET im Knopf, sobald der Zeiger darauf liegt. Keine Pause, aus dem
+  Grund in §12.
+- **Die Drift misst gegen das ganze Deck, nicht gegen die aktuelle Folie.**
+  Vorher wurde sie aus den Karten des aktiven Chunks gelesen: sie erschien
+  an der ersten Marke und verschwand auf jeder Folie ohne eigene Marke
+  wieder. Eine Zahl, die kommt und geht, liest sich als Defekt. `cueMarkList`
+  sammelt jetzt alle Marken des Decks in Vortragsreihenfolge; Bezug ist die
+  letzte passierte Marke, und vor der ersten diese erste – ein Vortrag, der
+  seine 5:00-Karte noch nicht erreicht hat, ist um den Rest der fünf Minuten
+  voraus. Nichts steht nur dann da, wenn das Deck gar keine Marke trägt.
+- **`#cue-cards` war zwei Elemente.** Die Sektion des Cockpits und der
+  Tutorial-Chunk, der den Modus erklärt, hießen gleich – die IDs der
+  Cockpit-Chrome teilen sich einen Namensraum mit den Chunk-IDs der
+  Vorlesung, weil die Chunks im selben Dokument stehen (im Spiegel), und
+  `getElementById` antwortet mit dem ersten in Dokumentreihenfolge. Welcher
+  das ist, hat `cuePlaceStage` beim Umhängen der Bühne auch noch gewechselt.
+  Sichtbar wurde es an einer Ziehleiste, die nach 75 px stehenblieb, und an
+  der Regel `#cue-cards { display: none }`, die im Cockpit den Tutorial-Chunk
+  traf. Die Sektion heißt jetzt `#cue-panel`, und der Rest der Kartenchrome
+  wird innerhalb der Sektion gesucht statt über die globale ID-Tabelle.
+  **Die allgemeine Falle bleibt** – ein Chunk namens `clock` oder `timer`
+  träfe dieselbe Kollision. Wer Cockpit-Chrome benennt, wählt ein Wort, das
+  keine Folie tragen will.
+
+## 16. Nachtrag: `[Klick …]` ist ein Beat
+
+Aus der zweiten echten Keynote (`lectures/keynote-2036`, 45 Minuten,
+ausformuliert). Deren `> note:`-Blöcke tragen die Regie schon im Text – neun
+Zeilen der Form `[Klick auf dem Bauplan: Zeile 1 wird hell.]`, dazu
+`[Pause.]` und `[Pause. Lachen abwarten.]` – und **kein einziges
+`> note: from N`**. Im Cockpit war damit jeder Block eine Kartengruppe auf
+Beat 0, und die Rednerin zählte die Drücke im Kopf mit. `from N` hätte
+geholfen, verlangt aber, jeden Block von Hand durchzunummerieren; die Zahlen
+stehen dann zweimal da, einmal als `from` und einmal als Regieanweisung im
+Text.
+
+**Die Grammatik.** Ein Absatz (oder eine Zeile am Absatzkopf), der nur aus
+einer Klammerzeile besteht, deren erstes Wort `Klick`, `Click` oder ein
+blankes `>` ist, beendet die Karte und zählt eine Vorrückung. Alles dahinter
+wird `advance` Vorrückungen später einsortiert – dieselbe Arithmetik, die
+`from N` per Zahl sagt, und beide zusammen: ein Block mit `from 2` und einem
+Klick sagt seine zweite Hälfte auf Vorrückung 3. Die Worte hinter dem ersten
+Doppelpunkt betiteln die Karte danach, außer ein `####` steht näher an ihr
+(die nähere der beiden gewinnt, also die, die man zuletzt liest). Jede andere
+Klammerzeile ist Regie und bleibt als eigene Karte im Wortlaut stehen.
+
+**Drei Entscheidungen, die der Tabelle nicht anzusehen sind:**
+
+- **Die Wortliste ist fest, kein `STRINGS`-Eintrag.** `notesToCards` läuft
+  auch im Browser, über einen Probelauf-Text im Textarea, wo keine
+  Wörtertabelle der Vorlesung in Reichweite ist – und `lint.js` hat gar
+  keine. `lang:` durchzureichen hieße, die Liste ein drittes Mal von Hand zu
+  führen. Was die Autorin tippt, ist Quelle und nicht das Mobiliar, das der
+  Build erfindet; `labels:` darf es nicht umdefinieren. `>` ist die
+  Schreibweise für jede Sprache, für die die Liste kein Wort hat.
+- **`cueAdvance` ist exportiert, und `lint.js` importiert es.** Dieselbe
+  Biegung wie bei `tails.mjs` und aus demselben Grund: zwei Schreibweisen
+  desselben Regexes sind genau die Stelle, an der der Linter etwas anderes
+  zählt als die Karten zeigen. Eine Funktion, keine Tabelle, nichts dahinter.
+- **Überlauf ist eine Warnung, keine Ablehnung.** Die Runtime klemmt
+  (`put()` in `cueCardsFor`), die überzähligen Karten stehen zusammen auf dem
+  letzten Beat – sichtbar, aber nicht das Gemeinte. `note-advance-beyond`
+  nennt Zeile, Anzahl und Beats. Es zählt **auch die Blöcke unter einer
+  `#`-Überschrift**: die Beats eines Teilers sind die `step`-Blöcke seiner
+  Figur, und in dieser Keynote sitzen alle neun Klicks auf Teilern – eine
+  Prüfung, die bei Chunks aufhört, hätte den Fall, für den sie geschrieben
+  ist, nie gesehen. Der Basiswert ist `from` oder 0, also eine Untergrenze:
+  ein positionierter Block kennt sein Segment, nicht seine Vorrückung. Lieber
+  zu selten warnen als auf dem Deck, das schon stimmt.
+
+**Gates und Spec.** `test/gates/cue-cards.mjs` hält `cueAdvance` und die
+Arithmetik ohne Browser fest (Split, Titelvorrang, Lokalisierung, Regie vs.
+Klick); `test/cue-cards.mjs` läuft `#clicks` mit zwei Klicks und zwei
+Reveals in zwei Fenstern durch und `#tooclicks` durch den Linter.
+
+## 17. Nachtrag: kein toter Druck am Ende eines Beats
+
+Aus der Probe der Keynote im Kartenmodus. Jeder Druck machte die aktuelle
+Karte zur gesagten und die nächste zur aktuellen – auch auf der **letzten**
+Karte eines Beats. Dann stand der Cursor auf dem Eintrag für den Klick,
+auf dem Projektor passierte nichts, und erst der Druck danach klickte. Ein
+Druck pro Beat, an dem der Raum nichts sieht; auf `lectures/spoken-talk`
+waren es 9 von 34.
+
+**Die Regel.** `consumeForward` verbraucht einen Druck nur, wenn hinter
+dem Cursor eine weitere Karte **desselben Beats** (gleiches `consumed`)
+steht. Auf der letzten Karte geht der Druck durch zu `advanceReveal`: der
+Reveal, der Diagrammschritt oder die nächste Folie passiert, und deren
+erste Karte ist die aktuelle. Ein Beat ohne Karten hat den Klick als
+Cursor, wie bisher. `consumeBack` ist das Spiegelbild: eine Karte zurück,
+solange es auf diesem Beat eine davor gibt; auf der ersten Karte geht der
+Druck durch, der Zähler geht zurück, und `cueBind` landet auf der
+**letzten** Karte des vorigen Beats (`card: n - 1` statt `n`). Jeder
+Backspace macht damit weiter genau einen Space rückgängig – gemessen als
+Gang durch das ganze Deck und zurück, Zustand für Zustand
+(`test/cue-cards.mjs`, letzter Block).
+
+**Was sich nicht ändert.** Enter geht weiter zur nächsten Folie. Die Drift
+liest `k <= cue.card`; der Zustand „Cursor hinter der letzten Karte“ gibt
+es nicht mehr, und die letzte Karte zählt dieselben Marken als erreicht wie
+er, also misst die Uhr an jeder Stelle gegen dieselbe Marke wie vorher. Der
+Projektor erfährt nichts.
+
+**Nebenbei:** `.cue-entry.next` war gestaltet, aber nie gesetzt – die
+Bedingung traf nur Einträge *vor* dem Cursor, und die gibt es nicht. Jetzt
+trägt der Eintrag direkt hinter dem Cursor die Klasse, auf der letzten Karte
+also der Klick, den der nächste Druck auslöst. Die vier `cue-beat`-Aufnahmen
+für `in-the-room.html` sind jetzt 0, 1, 2, 3 Drücke statt 0, 2, 4, 6.
+
+## 18. Nachtrag: eine Regieanweisung kostet keinen Druck
+
+Aus derselben Probe. `[Pause.]` und `[Lachen abwarten.]` blieben seit §16
+im Wortlaut stehen – richtig –, aber ein Absatz, der *nur* aus einer
+solchen Zeile besteht, war eine eigene Karte, und jede Karte kostet einen
+Druck. Die Keynote hat 19 `[Pause …]`-Zeilen; `lectures/spoken-talk` hat
+zwei, und der Gang durchs Deck fiel mit ihnen von 25 auf 23 Drücke.
+
+**Die Regel** (`notesToCards`, also Node und Browser aus einem Text):
+
+- Ein Absatz, der nur aus Regiezeilen besteht, hängt an der **Karte davor**
+  (`tail`) – eine Pause folgt dem Gesagten, und das Lachen, auf das man
+  wartet, auch.
+- Steht auf derselben Vorrückung keine Karte davor – die Note beginnt mit
+  einer Regiezeile, oder ein `[Klick …]` kam dazwischen –, führt sie die
+  **Karte danach** an (`lead`). Eine Pause hinter einem Klick gehört zu dem
+  Beat, den der Klick öffnet, nicht zur Karte vor ihm.
+- Eine Regiezeile am Kopf oder Fuß eines Absatzes mit Worten gehört dessen
+  Karte. Das rettet nebenbei eine, die bisher verschwand: in einem Absatz
+  mit Bolds fiel alles außer den Bolds weg, die Regiezeile mit.
+- Eine Regiezeile vor einem Klick im selben Absatz wird auf ihrer
+  Vorrückung abgelegt; der Kopf-Loop liest Regiezeilen jetzt mit, sodass ein
+  `[Klick]` hinter `[Pause.]` weiter zählt – vorher brach der Loop an der
+  Pause ab und der Klick war Text.
+- Hat eine Regiezeile nichts, woran sie hängen kann – eine Note, die nur
+  eine Pause ist, oder eine Pause hinter dem letzten Klick einer Note –,
+  bleibt sie eine Karte, `stage: true`, als Regie gesetzt. Nichts
+  verschwindet.
+
+**Gesetzt** in der Kartentypografie der Spur: 0.72em, kursiv, `--ink-soft`,
+die Klammern wie geschrieben – so klein wie eine gesagte Karte, aber als
+etwas, das man liest und nicht spricht.
+
+**lint.js** zählt Drücke mit `cueAdvance` pro Zeile, keine Karten; eine
+Regiezeile ist keine Vorrückung, `note-advance-beyond` bleibt unberührt.
+`**[Pause.]**` (fett) zählt als Regie: `plainInline` nimmt das Bold ab,
+bevor gefragt wird. Eine Klammer mitten im Satz bleibt Text.
+

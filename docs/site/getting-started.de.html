@@ -1,0 +1,534 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>psi-slides &ndash; Loslegen</title>
+<link rel="alternate" hreflang="en" href="https://uba-psi.github.io/psi-slides/getting-started.html">
+<link rel="alternate" hreflang="de" href="https://uba-psi.github.io/psi-slides/de/getting-started.html">
+<link rel="alternate" hreflang="x-default" href="https://uba-psi.github.io/psi-slides/getting-started.html">
+<link rel="stylesheet" href="../site.css">
+</head>
+<body>
+<!--topbar-->
+<main class="banded">
+
+<section class="band band-hero">
+ <div class="wrap">
+  <p class="mark"><b>psi-slides</b> &middot; <a href="index.html">zurück zur Startseite</a>
+  &middot; <a href="../getting-started.html" hreflang="en" lang="en">This page in English</a></p>
+
+  <h1>Loslegen</h1>
+
+
+  <!-- Halbleere Zeile, Antwort 1, und Befund 7. Eine Überschrift und ein
+       Absatz lassen zwei Drittel des ersten Bildschirms leer, und das ist
+       genau der Fehler, gegen den diese Seite geschrieben ist, an der
+       schlechtesten Stelle. Vorher war es eine zweispaltige Zeile unter einem
+       Vorspann, der eine halbe Breite nahm und die andere leer ließ – der
+       Einstieg las sich als drei kurze Dinge in einem Bildschirm voll Grund.
+       Der Vorspann ist jetzt die erste von drei Spalten: er sagt, dass es
+       zwei Wege gibt, und die zwei Wege stehen daneben. Eine Zeile, drei
+       Spuren, keine leere Hälfte.
+       Die zwei sind nummeriert, was die Seite sonst nicht tut: 01/02/03 ist
+       verboten, wo der Inhalt keine Reihenfolge ist, und dies ist auch keine
+       Reihenfolge – es ist eine Wahl zwischen zweien, und die Nummer sagt der
+       Leserin, dass der zweite Absatz die Alternative zum ersten ist und nicht
+       der nächste Schritt danach. Deshalb steht die Marke als Wort in der
+       Zeile und nicht als Ziffer darüber. -->
+  <div class="pair-up trio hero-ways">
+   <div>
+    <p class="lede">Zwei Wege, und beide enden am selben Ort: Beide führen
+    dasselbe <code>build.js</code> aus und schreiben neben die
+    <code>source.md</code> dieselben vier Ansichten &ndash; die Projektion für den
+    Raum, das Cockpit für die Vortragenden, zwei Handouts zum Drucken.</p>
+   </div>
+   <div>
+    <p><b>Option 1:</b> Man lädt <strong><a href="#app">eine App</a></strong>
+    herunter, die die Dateien auf Knopfdruck baut. Man öffnet darin eine
+    <code>source.md</code>, und nach jedem Speichern baut sie neu. Sonst muss
+    nichts installiert werden: kein Node, kein Terminal, nicht einmal
+    psi-slides selbst &ndash; die App trägt die Kopie, mit der sie paketiert
+    wurde.</p>
+   </div>
+   <div>
+    <p><b>Option 2:</b> Man baut seine Folien auf
+    <strong><a href="#command-line">der Kommandozeile</a></strong> &ndash; oder
+    lässt einen KI-Agenten das tun. Das Repository bringt die Skills mit, die
+    einem Sprachmodell das Format beibringen. Dieser Weg beginnt mit den Quellen
+    und einem <code>npm install</code>, und so baut auch ein CI-Job
+    unbeaufsichtigt.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <!-- Ein Band. Die Worte tragen, was die App ist, das Bild ist die App, und
+       die Worte stehen senkrecht mittig dazu: Das Bild ist bei 1440 596 px
+       hoch, die Spalte fünf kurze Absätze, und der Unterschied hing früher
+       unter dem Text, mit „Herunterladen“, das in diesem Loch begann.
+       Diese Seite nimmt einen HÖHEREN Ausschnitt des Builders als die
+       Startseite – builder-lecture.webp, 1146 Zeilen gegen 790 – und der Grund
+       ist, was jeweils daneben steht. Hier sind die Worte eine eigene Spalte
+       und können einen Satz über die Zählung tragen, die das Fenster zeigt; auf
+       der Startseite sitzt die Aufnahme im Umschalter, wo derselbe Ausschnitt
+       bei 1920 792 px hoch wäre und die Karte daneben von der Kommandozeile
+       handelt und dazu nichts zu sagen hat. Dasselbe Fenster, zwei Fragen, zwei
+       Ausschnitte. Den Überschuss ab etwa 1660 px Viewport nimmt
+       .shot-lecture weg.
+       Das Bild ist außerdem größer als vorher. Es war die schmale Hälfte einer
+       textbreiten Zeile, und zwar genau deshalb, weil die Worte den ganzen
+       Abschnitt tragen mussten – Überschrift, Anriss, den Absatz über die App
+       UND die Download-Überschrift – und es keine andere Spalte für sie gab.
+       Ein Band endet auf voller Breite, also darf „Herunterladen“ sein, was es
+       ist: der nächste Block, an der linken Rahmenkante, mit den Paketen
+       direkt darunter.
+       Worte links: Dieses Band führt das Argument einen Schritt weiter, und
+       ein Schritt behält die Leserichtung. -->
+  <div class="beside heading-in">
+   <div class="said">
+    <h2 id="app">Die App</h2>
+    <p class="lede">Die <code>source.md</code> einer Vorlesung öffnen oder auf
+    das Fenster ziehen, und die vier Ansichten sind gebaut. Das Fenster neben
+    dem Texteditor offen lassen, und die App baut sie nach jedem Speichern
+    erneut.</p>
+    <p class="cue">Eine Zeile sagt, ob der letzte Build funktioniert hat, und
+    über vier Knöpfe öffnet man die Ansichten, die er geschrieben hat. Es gibt auch
+    kein Projekt einzurichten und keine Einstellungen, die vor dem ersten Build
+    auszufüllen wären.</p>
+    <p class="cue">Darunter zählt das Fenster, was in der Vorlesung steckt
+    &ndash; Abschnitte, Folien, Bilder, Zeichnungen und wie viele Wörter ins
+    Handout gegangen sind und wie viele in die Sprechernotizen &ndash; sodass
+    der Umfang eines Vortrags ablesbar ist, ohne ihn zu öffnen.</p>
+   </div>
+   <div class="stage">
+    <figure class="shot shot-lecture">
+     <div class="bar"><b>psi-slides Builder</b></div>
+     <img src="../img/builder-lecture.webp" alt="Das Builder-Fenster mit einer offenen Vorlesung: der Ordnername und der Pfad zur source.md, die Zeile „Ready. Built at 06:35 in 0.2 s.“, ein Knopf „Build now“ neben einem gesetzten Häkchen „Build again whenever source.md is saved“, vier Knöpfe für die Projektion, das Cockpit und die beiden Handouts und darunter eine Zählung der Vorlesung: 12 Abschnitte, 92 Folien, 2 Bilder, 10 Zeichnungen, 14.149 Wörter im Handout und 934 in den Sprechernotizen.">
+    </figure>
+   </div>
+  </div>
+
+  <h3>Herunterladen</h3>
+  <p>Das Paket für das eigene System aus den dreien unten holen. Bis 2.0.0
+  erscheint die App getrennt von psi-slides selbst, unter einem eigenen Tag,
+  <code>builder-0.1.3</code>, und auf GitHub als <strong>Pre-Release</strong>
+  markiert: nicht die aktuelle Version von irgendetwas, sondern ein früh
+  angebotenes Paket.</p>
+
+  <!-- Halbleere Zeile, Antwort 2: Die Pakete nehmen die Rahmenbreite, als
+       Zeile aus drei Systemen statt als Tabelle.
+       Früher war das eine dreispaltige Tabelle (System / Paket / Zustand) in
+       der Textspalte darüber. Zweierlei war daran falsch. Gesucht wird ein
+       SYSTEM, und die Tabelle begann mit einem Dateinamen als unterstrichenem
+       Monospace-Link: Die unwichtigste Spalte war die lauteste, fünf lange
+       unterstrichene Namen untereinander lesen sich als eine Wand. Und die
+       Tabelle machte die Textspalte so viel höher als das Bild daneben, dass
+       am rechten Rahmenrand ein Viertelbildschirm Nichts blieb.
+       Danach war jedes Paket ein eigener Kasten, und fünf gleichrangige Kästen
+       sind fünf Entscheidungen, wo die Leserin eine zu treffen hat. Jedes
+       System hat jetzt EINE Karte, das Paket, das die meisten nehmen - das
+       Windows-Installationsprogramm, das macOS-Disk-Image, das Linux-AppImage -
+       und die Alternative als bloßen Dateinamen darunter. Ein zweiter Kasten
+       neben dem ersten sagt, beides sei dieselbe Art Wahl; ein Link sagt, es
+       sei die Ausnahme.
+       Windows zuerst, weil in den meisten Räumen eines steht, dann macOS, dann
+       Linux. Die zwei Systeme, die nie gestartet wurden, tragen das Wort in der
+       Zeile, die sie benennt, und sonst nichts: „Von der CI gebaut, nie
+       gestartet“ unter einer Überschrift war ein Satz, der sich als Etikett
+       ausgab, und das Ganze steht mitsamt dem, was zu tun ist, unten unter
+       „Der erste Start“. -->
+  <div class="pair-up trio gets">
+   <div class="get">
+    <p class="sys">Windows <span class="size">64 Bit</span> <span class="try">(experimentell)</span></p>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.3/psi-slides-builder-win-x64.exe">
+     <b>Installationsprogramm</b><span>läuft ohne Rückfrage durch und startet die App</span>
+     <code>psi-slides-builder-win-x64.exe</code></a>
+   </div>
+   <div class="get">
+    <p class="sys">macOS <span class="size">Apple&nbsp;Silicon</span></p>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.3/psi-slides-builder-mac-arm64.dmg">
+     <b>Disk-Image</b><span>öffnen, die App in „Programme“ ziehen</span>
+     <code>psi-slides-builder-mac-arm64.dmg</code></a>
+    <p class="alt"><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.3/psi-slides-builder-mac-arm64.zip">psi-slides-builder-mac-arm64.zip</a></p>
+   </div>
+   <div class="get">
+    <p class="sys">Linux <span class="size">64 Bit</span> <span class="try">(experimentell)</span></p>
+    <a class="file" href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.3/psi-slides-builder-linux-x86_64.AppImage">
+     <b>AppImage</b><span>ausführbar machen und starten, auf jeder Distribution</span>
+     <code>psi-slides-builder-linux-x86_64.AppImage</code></a>
+    <p class="alt"><a href="https://github.com/UBA-PSI/psi-slides/releases/download/builder-0.1.3/psi-slides-builder-linux-amd64.deb">psi-slides-builder-linux-amd64.deb</a></p>
+   </div>
+  </div>
+
+  <h3>Der erste Start</h3>
+  <!-- Halbleere Zeile, Antwort 1: zwei Warnungen derselben Art nebeneinander.
+       Jede allein wäre ein Absatz mit einer leeren Hälfte daneben. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>Windows und Linux sind experimentell.</strong> Diese beiden
+    Pakete kommen vom Build-Rechner und sind auf einem echten nicht gestartet
+    worden. Gut möglich, dass sie laufen; getestet ist es nicht. Wer eines
+    ausprobiert: ob es läuft oder umfällt, ist ein
+    <a href="https://github.com/UBA-PSI/psi-slides/issues">Issue</a> wert, in
+    beide Richtungen. Das macOS-Paket ist auf einem echten Mac benutzt worden,
+    und das ist der ganze Unterschied zwischen den drei Blöcken oben.</p>
+   </div>
+   <div>
+    <p><strong>Die Pakete sind nicht signiert</strong>, außer dem für macOS: Das
+    wird vor dem Hochladen von Hand signiert und notarisiert &ndash; Apples eigene
+    Prüfung. Ist diese Signatur noch nicht erfolgt, sagt macOS
+    beim Doppelklick, der Entwickler lasse sich nicht überprüfen: die App einmal mit
+    Rechtsklick und <b>Öffnen</b> starten, dann ist die Warnung weg. Windows
+    zeigt einmal seine SmartScreen-Warnung &ndash; <b>Weitere Informationen</b>,
+    dann <b>Trotzdem ausführen</b>. Ein AppImage muss erst ausführbar sein.</p>
+   </div>
+  </div>
+
+  <h3>Was sie ist und was nicht</h3>
+  <!-- Halbleere Zeile, wieder Antwort 1: was das Fenster tut und was es
+       ablehnt, sind zwei Antworten auf eine Frage und gehören in eine Zeile. -->
+  <div class="pair-up">
+   <div>
+    <p>Schlägt ein Build fehl, steht die Meldung von <code>build.js</code>
+    unverändert da, mit der Zeile in der Quelle. Die vier Ansichten behalten
+    den letzten Build, der lief; ein kaputtes Speichern nimmt einem nicht
+    mitten in der Vorlesung die Folien weg.</p>
+    <p>Es gibt zwei Schalter. Setzt man <strong>Die Ansichten über eine lokale
+    Webadresse öffnen</strong>, bekommt man einen kleinen lokalen
+    Server: Eingebettete YouTube- und Vimeo-Player laufen aus einer Datei
+    heraus nicht, sie brauchen eine Adresse. Unter <strong>Die Ansichten
+    öffnen in</strong> wählt man Chrome oder Edge, worin psi-slides getestet
+    wird, oder das, womit das System HTML öffnet.</p>
+   </div>
+   <div>
+    <p>Die App ist <strong>kein Markdown-Editor</strong>. Die Vorlesung schreibt man
+    in dem Texteditor, den man ohnehin benutzt; das Fenster beobachtet die
+    Datei. Es gibt keine geteilte Ansicht, keine Vorschau daneben, keinen
+    Git-Client und keine Stelle, an der man Build-Befehle tippt.</p>
+    <p>Die zwei Wege sind auch nicht zwei Werkzeuge: Die App führt dasselbe
+    <code>build.js</code> auf derselben <code>source.md</code> aus und erzeugt
+    dieselben vier Ansichten. <strong>Nichts verlässt den Rechner.</strong> Kein
+    Konto, keine Telemetrie, kein Update-Aufruf, kein Netzzugriff &ndash; und die
+    lokale Webadresse oben hängt an <code>127.0.0.1</code>, erreichbar von
+    diesem Rechner und von sonst nichts.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="command-line">Die Kommandozeile</h2>
+  <p class="lede">Derselbe Build wie in der App, nur selbst getippt: für
+  einen Rechner, auf dem ohnehin ein
+  Terminal offen ist &ndash; und das, was ein CI-Job ausführt. Es braucht
+  <strong>Node 20 oder neuer</strong>, womit
+  <code>build.js</code> läuft, und sonst nichts: kein LaTeX, kein Pandoc, keinen
+  Server, nichts systemweit Installiertes. Nicht einmal git: Der Clone unten ist
+  der schnellste Weg zu den Dateien, und das
+  <a href="https://github.com/UBA-PSI/psi-slides/archive/refs/heads/main.zip">ZIP
+  der aktuellen Quellen</a> sind dieselben Dateien, nur entpackt.</p>
+
+  <!-- Halbleere Zeile, Antwort 1: das Listing ist die breite Hälfte, seine drei
+       bis vier Zeilen Erklärung die schmale. -->
+  <div class="aside-code words-first">
+   <div class="said">
+    <h3>Das Tutorial bauen</h3>
+    <p class="cue">Man führt <code>npm install</code> einmal aus. Es holt die Schriften,
+    die psi-slides in jede Vorlesung einbettet, und die Handvoll Pakete, die der
+    Build benutzt &ndash; alles in einen Ordner <code>node_modules</code> neben
+    <code>build.js</code>.</p>
+    <p class="cue">Die vier Ansichten erscheinen als HTML-Dateien neben der
+    <code>source.md</code>, und sie sind das, was man weitergibt: Jede trägt
+    ihre Schriften, Bilder und ihren Code selbst und lädt beim Öffnen nichts
+    nach.</p>
+   </div>
+<pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span>
+<span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
+
+<span class="t-cmt"># einmalig: die Schriften und die Abhängigkeiten des Builds</span>
+<span class="t-cmd">npm</span> install
+
+<span class="t-cmt"># alle vier Ansichten neben source.md bauen, dann die Projektion öffnen</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span>
+<span class="t-cmd">open</span> <span class="t-path">lectures/tutorial/audience.html</span>   <span class="t-cmt"># macOS; sonst xdg-open oder der Browser</span></code></pre>
+  </div>
+
+  <div class="aside-code words-first second-picture">
+   <div class="said">
+    <h3>Während man schreibt</h3>
+    <p class="cue">Mit <code class="flag">--watch</code> baut der Build bei jedem Speichern
+    neu und lädt jeden offenen Tab neu, sodass Texteditor, Projektion und
+    Cockpit gleichzeitig sichtbar bleiben. Das tut die App von sich aus.</p>
+    <p class="cue"><code class="flag">--serve</code> ist für das, was eine Datei auf der Platte
+    nicht kann: eingebettete YouTube- und Vimeo-Player abspielen.
+    <code>lint.js</code> prüft eine Vorlesung vor der Weitergabe, hat in der App
+    keinen Knopf und wohnt hier.</p>
+   </div>
+<pre><code><span class="t-cmt"># bei jedem Speichern neu bauen, jeden offenen Tab neu laden</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span> <span class="t-flag">--watch</span>
+
+<span class="t-cmt"># dasselbe, über http auf diesem Rechner, für eingebettete Player</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span> <span class="t-flag">--watch</span> <span class="t-flag">--serve</span>
+
+<span class="t-cmt"># Chunk-IDs, Wortbudgets, offene :::-Blöcke, zu große Dateien</span>
+<span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/tutorial/source.md</span></code></pre>
+  </div>
+
+  <!-- Zwei Spalten, und `.level` statt eines Bandes – die eine Stelle der
+       Seite, an der Zentrieren falsch wäre. Die zweite Spalte ist ein
+       Aufklapper: 64 px zugeklappt, rund acht Bildschirme offen. Eine mittig
+       gesetzte erste Spalte stünde also still, solange er zu ist, und liefe
+       vier Bildschirme nach unten, sobald jemand ihn öffnet. Ein Band ist
+       mittig, weil der Höhenunterschied feststeht; hier setzt ihn die
+       Leserin. Zugleich hält das Lesemaß: Der Kasten ist Prosa, und über den
+       ganzen Rahmen lief ein Schritt auf rund 120 Zeichen. -->
+  <div class="beside level second-picture">
+   <div class="said">
+    <h3>Von einem Rechner ohne alles</h3>
+    <p class="cue">Die Schritte führen von diesem Rechner zu einem gebauten
+    Tutorial. Der Reihe nach
+    durchgehen: Wer <code>npm install</code> vor dem <code>cd</code> aufruft, installiert in den falschen
+    Ordner.</p>
+    <p class="cue">Die App oben braucht nichts davon.</p>
+   </div>
+  <details class="setup steps">
+    <summary>Wer noch nie Node installiert oder ein Terminal benutzt hat</summary>
+    <div class="setup-body">
+      <h3>Node installieren</h3>
+      <p>Auf <a href="https://nodejs.org/">nodejs.org</a> gehen. Der Knopf bietet
+      die LTS-Fassung &ndash; die mit Langzeitunterstützung &ndash; in der richtigen Datei
+      für den Rechner an, den man vor sich hat; die nehmen. Auf macOS bekommt man
+      ein <code>.pkg</code>: doppelklicken, durch den Installer klicken, das
+      Passwort eingeben, wenn danach gefragt wird. Auf Windows bekommt man ein
+      <code>.msi</code>: doppelklicken, die Voreinstellungen übernehmen, das
+      Häkchen bei den Werkzeugen für native Module in Ruhe lassen. psi-slides
+      braucht diese Werkzeuge nicht.</p>
+      <p>Wer schon einen Paketmanager benutzt: <code>brew install node</code> auf
+      macOS und <code>winget install OpenJS.NodeJS.LTS</code> auf Windows tun
+      dasselbe.</p>
+
+      <h3>Ein Terminal öffnen</h3>
+      <p>Auf macOS Command-Leertaste drücken, <code>terminal</code> tippen,
+      Return. Auf Windows das Startmenü öffnen und <code>terminal</code> tippen:
+      Windows Terminal, wenn es erscheint, sonst PowerShell. Man bekommt ein
+      Fenster mit einem Cursor darin. Man tippt eine Zeile, drückt Return, und es
+      antwortet.</p>
+<pre><code>node --version</code></pre>
+      <p>Die Antwort ist eine Versionsnummer. Alles ab v20 passt, und ein frisches
+      LTS liegt deutlich darüber. Kommt stattdessen <code>command not found</code>
+      oder <code>ist nicht erkannt</code>, das Fenster schließen und ein neues
+      öffnen: ein Terminal, das schon lief, als Node installiert wurde, hat es
+      noch nicht gesehen.</p>
+
+      <h3>Die Dateien holen</h3>
+      <p>Wer git hat, nimmt einen <code>git clone</code>, sonst das
+      <a href="https://github.com/UBA-PSI/psi-slides/archive/refs/heads/main.zip">ZIP
+      der aktuellen Quellen</a> &ndash; dieselbe Datei, die der grüne
+      <b>Code</b>-Knopf des
+      <a href="https://github.com/UBA-PSI/psi-slides">Repositories</a> als
+      <b>Download ZIP</b> anbietet. Es ist nicht das <b>Source code (zip)</b>,
+      das an einem Release hängt: Das ist der getaggte Stand 1.0.0 und nicht der
+      aktuelle. Das ZIP
+      entpacken wie jeden anderen Download; auf beiden Systemen genügt ein Doppelklick. Man
+      bekommt einen Ordner, dessen Name mit <code>psi-slides</code> anfängt, und
+      dieser Ordner ist das ganze Werkzeug. Irgendwohin legen, wo man ihn
+      wiederfindet, denn gleich muss man das Terminal darauf zeigen.</p>
+      <p>Unter Windows das <code>.zip</code> wirklich entpacken und nicht nur per
+      Doppelklick öffnen: Windows zeigt den Inhalt eines ZIP wie einen Ordner an,
+      aber darin lassen sich keine Befehle ausführen.</p>
+
+      <h3>Das Terminal auf den Ordner zeigen</h3>
+<pre><code>cd psi-slides</code></pre>
+      <p>Die <code>cd</code>-Zeile muss benennen, wo der Ordner tatsächlich liegt:
+      unter Windows etwa <code>cd C:\Users\du\Downloads\psi-slides</code>. Statt
+      den Pfad zu tippen, <code>cd</code> und ein Leerzeichen tippen und dann den
+      Ordner aus dem Dateimanager ins Terminalfenster ziehen &ndash; der Pfad schreibt
+      sich selbst.</p>
+
+      <h3>Holen, was der Build benutzt</h3>
+<pre><code>npm install</code></pre>
+      <p>Man führt <code>npm install</code> einmal aus, in diesem Ordner, und es
+      dauert ein paar Sekunden. Es holt die Schriften, die psi-slides in jede Vorlesung
+      einbettet, und die Handvoll Pakete, die der Build benutzt. Alles landet in
+      einem Ordner <code>node_modules</code> neben <code>build.js</code>:
+      systemweit wird nichts installiert, und die gebauten Vorlesungen öffnen
+      sich auch ohne diesen Ordner.</p>
+
+      <h3>Das Tutorial bauen</h3>
+<pre><code>node build.js lectures/tutorial/source.md</code></pre>
+      <p>Der Build berichtet, was eingebettet wurde &ndash; die Bilder, die
+      Schriften, die QR-Codes, die gesetzten Formeln &ndash; und endet damit, was er
+      geschrieben hat. Dieselbe Zeile funktioniert auf Windows und macOS,
+      Schrägstriche eingeschlossen: Node nimmt sie auf beiden.</p>
+<pre class="out"><code>Wrote lectures/tutorial/print.html, lectures/tutorial/print-notes.html, lectures/tutorial/audience.html, lectures/tutorial/speaker.html (12 columns, 92 chunks)</code></pre>
+
+      <h3>Öffnen</h3>
+      <p>Doppelklick auf <code>lectures/tutorial/audience.html</code>. Es öffnet
+      sich im Browser, und ein Browser ist alles, was es braucht: mit <kbd>?</kbd> bekommt man die
+      Tastenliste, mit <kbd>S</kbd> das Cockpit. Die Datei an jemanden mailen, der
+      nichts davon installiert hat, und sie funktioniert trotzdem.</p>
+
+      <p class="tiny">Für Linux: all das kommt aus dem Paketmanager.
+      Distributionspakete hinken manchmal mehrere Versionen hinterher, ein
+      <code>node --version</code> lohnt sich also trotzdem.</p>
+    </div>
+  </details>
+  </div>
+ </div>
+</section>
+
+<!--
+  DER EINE ABSCHNITT, DEN DAS NÄCHSTE RELEASE GANZ STREICHT.
+
+  Er sagte früher, was das getaggte 1.0.0 NICHT hat – die Abbildungssprache,
+  die Titelfolien, die Karten und Zeilen, den Abbildungseditor –, und das war
+  richtig über das Release und falsch über diese Seite, denn diese Seite bietet
+  jenes Release seit einiger Zeit nicht mehr an. Sie bietet die App an, die die
+  Engine trägt, mit der sie paketiert wurde, und die Quellen, also `main`.
+  Beide haben alle vier. Ein Abschnitt, der jemandem sagt, was er nicht
+  bekommt, während er es bekommt, ist schlechter als gar kein Abschnitt.
+
+  Übrig bleibt die Hälfte, die weiterhin stimmt: Die Formatzusage deckt, was
+  1.0.0 festgeschrieben hat, und noch nicht, was danach kam. Das ist ein echter
+  Preis für jemanden, der gleich eine Vorlesung schreibt, und der einzige, der
+  noch übrig ist.
+
+  Wenn 2.0.0 getaggt ist: diesen Abschnitt löschen, die zwei `.hint`-Blöcke mit
+  derselben Aussage auf index.html und index.de.html löschen, den einen auf
+  decoration.html und die Entwicklungsstand-Notiz auf figures.html – dasselbe
+  in de/. Auf #preview zeigt von außen nur decoration.*.html.
+-->
+<section class="band">
+ <div class="wrap">
+  <h2 id="preview">Was noch nicht festgeschrieben ist</h2>
+  <p class="lede">Beide Wege oben bauen alles, was psi-slides kann. Was sie
+  noch nicht mitgeben können, ist eine Zusage über alles davon: Das Quellformat
+  liegt seit 1.0.0 fest, und was seitdem dazugekommen ist, fällt bis zum
+  nächsten Release nicht unter diese Zusage.</p>
+
+  <div class="hint wide">
+   <div class="pair-up">
+    <div>
+     <p><strong>Abbildungen</strong> als <code>::: draw</code>, die
+     <strong>Titelfolien und Trenner</strong>, <strong>Karten und
+     Zeilen</strong> und der <strong>grafische Abbildungseditor</strong> kamen
+     nach 1.0.0. Man bekommt sie auf beiden Wegen: Die App wurde mit ihnen
+     paketiert, und ein Clone oder ein Quell-ZIP ist der aktuelle Stand des
+     Projekts.</p>
+     <p>Es sind keine Experimente. Die Referenzvorlesungen auf dieser Website
+     sind damit gebaut, ebenso die sechsunddreißig Folien Netzsicherheit, für
+     die die Abbildungssprache geschrieben wurde.</p>
+    </div>
+    <div>
+     <p>Nicht zugesagt ist, dass sie genau so bleiben, wie man sie heute
+     schreibt. Alles, was eine Vorlesung schon vor 1.0.0 benutzt hat, baut
+     unverändert weiter. Eine Vorlesung mit einem <code>cover:</code>, einem
+     <code>::: dock</code> oder einem <code>::: draw</code>-Block kann eine
+     Änderung an der eigenen Quelle nötig machen, wenn diese Teile ein eigenes
+     Release erreichen.</p>
+     <p class="tiny">Beide haben eine eigene Seite hier, geschrieben gegen den
+     Stand, den man bekommt:
+     <a href="decoration.html">Eine Folie ist ein Rahmen</a> und
+     <a href="../figures.html">Figures you write</a>.</p>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="your-own">Eine eigene Vorlesung schreiben</h2>
+  <p class="lede">Eine Vorlesung ist ein Ordner mit einer <code>source.md</code>
+  darin. Diese erste Datei lieber schreiben lassen, als von einem leeren Blatt
+  anzufangen: Der Einstellungsblock oben in einer <code>source.md</code>, ihr
+  Vorspann, hat Schlüssel, die ein leeres Blatt nicht erraten kann.</p>
+
+  <!-- Was in die Datei gehört, stand früher als rechte Hälfte einer
+       zweispaltigen Zeile am Fuß dieses Abschnitts, unter einem Listing, mit
+       einer halben Bildschirmhöhe Nichts darüber und nichts daneben, wozu es
+       gehört hätte. Es ist die Antwort auf die Überschrift des Abschnitts,
+       also ist es dessen zweiter Absatz. -->
+  <p>Was in diese Datei gehört, lehrt die
+  <a href="../tutorial/audience.html">Tutorial-Vorlesung</a>, eine Vorlesung
+  über das Schreiben von Vorlesungen: das Format im Betrieb gezeigt statt
+  beschrieben, mit
+  <a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/tutorial/source.md">ihrer
+  Quelle</a> daneben.</p>
+
+  <!-- Halbleere Zeile, Antwort 1: drei Befehle in der breiten Hälfte, wofür sie
+       da sind in der schmalen, und die Seite der App darunter als Absatz. -->
+  <div class="aside-code words-first">
+   <div class="said">
+    <h3>Drei Befehle</h3>
+    <p class="cue">Mit <code class="flag">--new</code> bekommt man einen Ordner mit gültigem
+    Einstellungsblock und ein paar Beispiel-Chunks &ndash; ein Chunk, eine Folie.
+    Danach lässt man <code class="flag">--watch</code> mitlaufen.</p>
+    <p class="cue"><code>lint.js</code> laufen lassen, bevor man etwas
+    weitergibt: doppelte Chunk-IDs, offene <code>:::</code>-Blöcke, Folien über
+    ihrem Wortbudget, Dateien zu groß zum Einbetten.</p>
+   </div>
+<pre><code><span class="t-cmt"># einen neuen Vorlesungsordner anlegen, Einstellungsblock inklusive</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-flag">--new</span> my-lecture
+
+<span class="t-cmt"># bei jedem Speichern neu bauen und alle offenen Tabs neu laden</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--watch</span>
+
+<span class="t-cmt"># Chunk-IDs, Wortbudgets, offene :::-Blöcke, zu große Dateien</span>
+<span class="t-cmd">node</span> <span class="t-path">lint.js</span> <span class="t-path">lectures/my-lecture/source.md</span></code></pre>
+  </div>
+
+  <!-- Ein Absatz auf Lesebreite, und bewusst keine halbe Zeile. Die andere
+       Hälfte war der Tutorial-Absatz, der jetzt der zweite Absatz des
+       Abschnitts ist; die beiden zu paaren machte eine Zeile aus zwei Dingen,
+       die verschiedene Fragen beantworten. Der Grund rechts neben einem Absatz
+       ist hier der Rand der Seite, wie unter jedem Anriss. -->
+  <p>In der App fragt <b>Neue Vorlesung&hellip;</b> nach einem Ordnernamen und
+  einem Ort und legt dieselbe Starter-Vorlesung an, die <code class="flag">--new</code>
+  anlegt, bis hin zu einer kleinen Abbildung, die der Editor öffnen kann. Bei
+  jedem Speichern neu zu bauen ist der Normalzustand des Fensters und kein
+  Schalter, den man setzt, und es zeigt, was der Build sagt, und nicht mehr
+  als das &ndash; weshalb <code>lint.js</code> etwas bleibt, das man tippt; seine
+  Meldungen nennen die Regel und die Zeilennummer, man liest sie also neben der
+  eigenen Quelle.</p>
+ </div>
+</section>
+
+<section class="band band-close">
+ <div class="wrap">
+  <div class="middle">
+  <h2>Zum Weiterlesen</h2>
+  <ul class="reads">
+    <li><b><a href="index.html">Was psi-slides ist</a></b>
+      Die Startseite: eine Vorlesung, wie der Raum sie sieht und wie die
+      Lesenden sie bekommen, und warum das dieselbe Datei ist.</li>
+    <li><b><a href="../comparison.html">Wie psi-slides sich vergleicht</a></b>
+      Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint und andere, in beide
+      Richtungen, einschließlich der Stellen, an denen psi-slides verliert.</li>
+    <li><b><a href="../figures.html">Figures you write</a></b>
+      Die Begründung für die Abbildungssprache, und
+      <a href="../figures-you-write.html">das Handbuch</a> daneben, das eine
+      Abbildung Zeile für Zeile aufbaut und jede Anweisung auflistet.</li>
+    <li><b><a href="https://github.com/UBA-PSI/psi-slides">Das Repository</a></b>
+      Die README erklärt das Format und sagt, wofür das Werkzeug taugt und wofür
+      nicht.</li>
+  </ul>
+
+  <footer>
+    <p>Von <a href="https://herdom.net">Dominik Herrmann</a>,
+    <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
+    Universität Bamberg.
+    Werkzeug MIT-lizenziert, Vorlesungsinhalte CC&nbsp;BY-SA&nbsp;4.0. Bei jedem
+    Push aus der Quelle neu gebaut.</p>
+  </footer>
+  </div>
+ </div>
+</section>
+</main>
+<script src="../site.js"></script>
+</body>
+</html>

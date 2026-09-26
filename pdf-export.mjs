@@ -160,8 +160,12 @@ function pagePrepare() {
     return src.split('/').pop().split('?')[0] || 'video';
   };
 
+  // Only a clip inside a chunk. The live view also carries #demo-video, the
+  // element a screen capture plays into under `D`, which sits outside every
+  // chunk, never has a source here and is left out of the print DOM anyway -
+  // counting it made every deck report a placeholder it never printed.
   const videos = async () => {
-    for (const v of [...document.querySelectorAll('video')]) {
+    for (const v of [...document.querySelectorAll('.chunk video')]) {
       const uri = await stillFrom(v);
       if (uri) {
         const img = document.createElement('img');
@@ -340,8 +344,16 @@ function pageCollect(cfg) {
     // Read while the live DOM still exists: after the swap there are no
     // columns to ask, and naturalWidth is only meaningful on an <img> that
     // has been given the chance to load - which every chunk has now had.
+    // Two shapes of the same fault. A path the build could not resolve never
+    // becomes an <img>: it is drawn as a `.figure-missing` placeholder that
+    // prints its own name, and the build has already warned without saying
+    // which chunk. A path it passed through (a remote one) is an <img> the
+    // browser failed to load.
     const missingImages = [];
     for (const { el, id } of chunks) {
+      for (const fig of el.querySelectorAll('figure.figure-missing')) {
+        missingImages.push({ chunkId: id, src: fig.dataset.figId || '' });
+      }
       for (const img of el.querySelectorAll('img')) {
         if (img.naturalWidth === 0) {
           missingImages.push({ chunkId: id, src: img.getAttribute('src') || '' });

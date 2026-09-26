@@ -1,0 +1,471 @@
+/*
+ * The shared tail grammar, decided without a build.
+ *
+ * `tails.mjs` is the one parser build.js and lint.js both read a `{…}` tail
+ * and a `::: draw` opener through, so a defect here is a defect in both at
+ * once - and both of them only ever see it through their adapters, which
+ * throw on the first problem or report each under its code. This gate holds
+ * the parser to its contract directly: every code it can emit, on the input
+ * that earns it; the written-default rule that lets `::: side {.top}` mean
+ * nothing; which slot a word shared between two defaults marks as written;
+ * and the formatter round trip that the editor's payload and the migration
+ * both rely on. The adapter half - that build.js refuses what the parser
+ * refuses and lint.js names the same code - is `test/settings.mjs`.
+ */
+import {
+  CHUNK_SLOTS, COLUMN_SLOTS, CARDS_SLOTS, SIDE_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SLOT_TABLES,
+  splitTail, strayTailProblem, parseTail, parseDrawOpener, formatDrawOpener, drawCompilerAttrs, parseLegacyDrawTail,
+  parseRevealMark,
+  AUTOPLAY_MIN, AUTOPLAY_MAX, DRAW_OPENER_EXAMPLE,
+} from '../../tails.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { render, ROOT } from './harness.mjs';
+import { migrateText, isActiveSurface, LEGACY_TOKENS } from '../../tools/migrate-draw-opener.mjs';
+
+export const name = 'tails: one {…} parser and one ::: draw opener';
+
+const codes = (t) => t.problems.map(p => p.code).join(',');
+
+export async function run({ report }) {
+  const { ok } = report;
+
+  // ── splitTail ────────────────────────────────────────────────────
+  ok(JSON.stringify(splitTail('Heading {.wide #id}')) === JSON.stringify({ text: 'Heading', tail: '.wide #id', stray: null }),
+     'splitTail separates prose from the brace contents');
+  ok(splitTail('Heading').tail === null, 'and answers null when there are no braces');
+  ok(splitTail('Heading {}').tail === '', 'and the empty string when the author wrote {}');
+  ok(splitTail('type: A | B {.wide #id}').text === 'type: A | B', 'a sub-heading bar is prose, not a tail');
+  // A sigil group that does not end the line is neither prose nor a tail.
+  for (const [line, stray] of [
+    ['Two tails {.narrow}{#tt}', '{.narrow}'],
+    ['Head {.wide #tbs} | Sub', '{.wide #tbs}'],
+    ['Part {#c1} trailing', '{#c1}'],
+    ['Head {.wide', '{.wide'],
+    ['the {x} syntax {#ok}', null],
+    ['Eight tags | `## tag: Heading {.width #id}` {.narrow #grammar}', null],
+    ['plain {x} prose', null],
+  ]) {
+    ok(splitTail(line).stray === stray, `splitTail(${JSON.stringify(line)}).stray is ${JSON.stringify(stray)}`, String(splitTail(line).stray));
+  }
+  ok(/does not end the line/.test(strayTailProblem('chunk heading', '{.narrow}').msg) && strayTailProblem('x', '{#a}').code === 'stray-attribute',
+     'and the problem for it is stray-attribute, naming the group');
+  // The column-heading policy: its own short table, and a word from no slot
+  // of it is class-on-column rather than an unknown-class listing a
+  // vocabulary the line never had.
+  const column = (tail) => parseTail(tail, COLUMN_SLOTS, 'column heading', { id: 'one', classes: 'column' });
+  const col = column('.wide #p');
+  ok(codes(col) === 'class-on-column' && col.id === 'p'
+     && /takes an \{#id\} and \.stack \| \.bare, and nothing else/.test(col.problems[0].msg),
+     'a .word from no column slot is class-on-column, and the id is still read', col.problems[0].msg);
+  ok(codes(column('#p')) === '', 'and an id alone is fine');
+  const stacked = column('.stack #p');
+  ok(codes(stacked) === '' && stacked.slots.stack.written === true && stacked.id === 'p',
+     '.stack is a word the # heading takes, and it reads as written');
+  // The second word, and the one that has a namesake in the chunk table: the
+  // message above used to send .bare down to the ## chunks, so the pair is
+  // worth asserting together rather than only through the slot.
+  const bared = column('.stack .bare #p');
+  ok(codes(bared) === '' && bared.slots.bare.written === true && bared.slots.stack.written === true,
+     '.bare is the second, and the two are separate slots that combine');
+  ok(codes(column('.stack .stack #p')) === 'same-slot', 'and twice is same-slot, like any other slot');
+
+  // ── parseTail: the four codes ────────────────────────────────────
+  const heading = (tail) => parseTail(tail, CHUNK_SLOTS, 'chunk heading', { id: 'one' });
+  const side = (tail) => parseTail(tail, SIDE_SLOTS, '::: side');
+  const cards = (tail) => parseTail(tail, CARDS_SLOTS, '::: cards');
+  const rows = [
+    // [caller, tail, expected codes]
+    ['heading', 'wide #a',          'stray-attribute'],
+    ['heading', '.foo #a',          'unknown-class'],
+    ['heading', '.wide .full #a',   'same-slot'],
+    ['heading', '.wide .wide #a',   'same-slot'],
+    ['heading', '.wrap-none .wrap-balance #a', 'same-slot'],
+    ['heading', '#a #b',            'multiple-ids'],
+    ['heading', '',                 'stray-attribute'],
+    ['heading', '   ',              'stray-attribute'],
+    ['side',    'middle',           'stray-attribute'],
+    ['side',    '.sideways',        'unknown-class'],
+    ['side',    '.top .middle',     'same-slot'],
+    ['side',    '#x',               'stray-attribute'],
+    ['side',    '',                 'stray-attribute'],
+    ['cards',   '.auto .large',     'same-slot'],
+    ['cards',   '.auto .left',      ''],
+    ['cards',   '.veil',            ''],
+    ['heading', '.wide .bare .wrap-none #a', ''],
+    ['heading', null,               ''],
+    ['side',    undefined,          ''],
+  ];
+  for (const [who, tail, want] of rows) {
+    const t = ({ heading, side, cards })[who](tail);
+    ok(codes(t) === want, `${who} {${tail}} → ${want || 'no problem'}`, `got ${codes(t) || 'none'}: ${t.problems.map(p => p.msg).join(' | ')}`);
+  }
+  // No slot may invent a spelling for a flag's default.
+  for (const w of ['.shown', '.left']) {
+    ok(codes(heading(`${w} #a`)) === 'unknown-class', `${w} on a chunk heading is unknown-class`);
+  }
+  // The camera's `anchor` is the exception, and deliberately not a flag: its
+  // two words are the overrides in both directions and the *unwritten* state is
+  // a third answer - the chunk's shape decides. So `.top` is a word here,
+  // `.middle .top` is same-slot like any other pair, and neither is the slot's
+  // default, which is null. The slot is named for the question and not for
+  // either word, or the same-slot message would read "both answer middle".
+  ok(CHUNK_SLOTS.anchor.default === null,
+     'the anchor slot defers rather than defaulting to a word');
+  ok(codes(heading('.top #a')) === '' && heading('.top #a').slots.anchor.value === 'top',
+     '.top is the word a picture chunk writes to keep the old top anchoring');
+  ok(codes(heading('.middle .top #a')) === 'same-slot'
+     && /both answer "anchor"/.test(heading('.middle .top #a').problems[0].msg),
+     'and .middle .top is same-slot, naming the question rather than one of its answers',
+     heading('.middle .top #a').problems[0].msg);
+  ok(heading('#a').slots.anchor.written === false && heading('#a').slots.anchor.value === null,
+     'an unwritten anchor slot is null, which is what sends the question to the shape');
+  // The message names the tail and, for a word from no slot, the vocabulary.
+  ok(/^::: side: "\.sideways" is not a word this directive knows - anchor: \.top \| \.middle$/.test(side('.sideways').problems[0].msg),
+     'the unknown-class message names the directive and lists its slots');
+  ok(/^chunk heading: "wide" is not a \.class or an #id\. .*\{\.wide\}$/.test(heading('wide #a').problems[0].msg),
+     'the stray-attribute message spells the token with its dot');
+  ok(/both answer "anchor"/.test(side('.top .middle').problems[0].msg), 'the same-slot message names the slot');
+  ok(/takes no id/.test(side('#x').problems[0].msg), 'an id on a directive says the directive takes none');
+  ok(/Remove them/.test(side('').problems[0].msg), 'empty braces are told to go');
+
+  // ── the result shape ─────────────────────────────────────────────
+  const t = heading('.bare .wide #a');
+  ok(JSON.stringify(t.classes) === '["bare","wide"]', 'classes come back in written order, dots stripped');
+  ok(t.id === 'a' && JSON.stringify(t.ids) === '["a"]', 'the first #id is the id');
+  ok(t.slots.width.value === 'wide' && t.slots.width.written === true, 'a written slot carries its word and written: true');
+  ok(t.slots.wrap.value === null && t.slots.wrap.written === false, 'an unwritten slot carries its default and written: false');
+  ok(t.slots.bare.value === 'bare' && t.slots.center.value === false, 'a flag resolves to its word when written and to false when not');
+  ok(heading('#a #b').id === 'a' && heading('#a #b').ids.length === 2, 'multiple-ids keeps the first id and records both');
+  ok(heading('.foo #a').id === 'a', 'a problem does not stop the rest of the tail from being read');
+  // The contract: every written .word, known or not, so a caller's own
+  // contextual check (class on a column heading, width on a cover chunk)
+  // sees what the author wrote.
+  ok(JSON.stringify(heading('.foo #a').classes) === '["foo"]', 'an unknown class is still recorded in classes');
+  ok(JSON.stringify(heading('.wide .full #a').classes) === '["wide","full"]', 'and so is the second answer to one slot');
+  ok(JSON.stringify(heading('.wide .wide #a').classes) === '["wide","wide"]', 'and a repeated word, twice');
+
+  // ── the written-default rule ─────────────────────────────────────
+  const top = side('.top');
+  ok(!top.problems.length && top.slots.anchor.value === 'top' && top.slots.anchor.written === true,
+     '::: side {.top} is legal: the default, written');
+  ok(side(null).slots.anchor.written === false, 'and a bare ::: side has it unwritten');
+  const auto = cards('.auto .left');
+  ok(auto.slots.size.written === true && auto.slots.align.written === true && auto.slots.align.value === 'left',
+     '.auto marks the first slot that lists it (size), so .left can still answer align');
+  ok(cards('.auto').slots.align.written === false, 'and .auto alone leaves align unwritten');
+
+  // ── the tables ───────────────────────────────────────────────────
+  for (const [name, table] of Object.entries(SLOT_TABLES)) {
+    for (const [slot, spec] of Object.entries(table)) {
+      ok(Array.isArray(spec.words) && spec.words.length > 0 && 'default' in spec, `${name}.${slot} has words and a default`);
+      if (typeof spec.default === 'string') ok(spec.words.includes(spec.default), `${name}.${slot}: a string default is one of its words`);
+    }
+  }
+  ok(OVERLAY_SLOTS.ground.words.includes('glass') && BACKDROP_SLOTS.layer.words.includes('over'), 'the overlay and backdrop tables are the ones the renderers read');
+
+  // ── parseDrawOpener ──────────────────────────────────────────────
+  ok(parseDrawOpener('prose') === null && parseDrawOpener('::: drawing') === null && parseDrawOpener(':::draw') === null,
+     'null for a line that is not a draw opener');
+  ok(parseDrawOpener('::: draw{unit=150x56}') !== null, 'but the old opener written without a space is an opener, refused rather than dropped');
+  const valid = [
+    ['::: draw',                               { unit: null, frame: null, autoplay: null, cycle: false }],
+    ['::: draw 150x56',                        { unit: '150x56', frame: null, autoplay: null, cycle: false }],
+    ['::: draw autoplay 900',                  { unit: null, frame: null, autoplay: 900, cycle: false }],
+    ['::: draw 150x56 autoplay 1200 cycle',    { unit: '150x56', frame: null, autoplay: 1200, cycle: true }],
+    ['::: draw autoplay 200 cycle',            { unit: null, frame: null, autoplay: 200, cycle: true }],
+    ['::: draw   150x56   autoplay  60000  ',  { unit: '150x56', frame: null, autoplay: 60000, cycle: false }],
+    // The canvas, which comes between the two: a fact about the picture, and
+    // everything after it is about playback.
+    ['::: draw frame 6x4',                     { unit: null, frame: '6x4', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame 6x4',              { unit: '150x56', frame: '6x4', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame 6.5x3.5',          { unit: '150x56', frame: '6.5x3.5', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame none',             { unit: '150x56', frame: 'none', autoplay: null, cycle: false }],
+    ['::: draw 150x56 frame 6x4 autoplay 1200 cycle',
+                                               { unit: '150x56', frame: '6x4', autoplay: 1200, cycle: true }],
+  ];
+  for (const [line, want] of valid) {
+    const o = parseDrawOpener(line);
+    const got = o && { unit: o.unit, frame: o.frame, autoplay: o.autoplay, cycle: o.cycle };
+    ok(o && !o.problems.length && JSON.stringify(got) === JSON.stringify(want), `${line.trim()} parses`, JSON.stringify(o));
+    ok(formatDrawOpener(want) === line.trim().replace(/\s+/g, ' '), `and formats back to itself`);
+  }
+  // A frame written with trailing zeros still formats back to one spelling,
+  // because the payload the editor writes back is the formatted line.
+  ok(formatDrawOpener({ frame: '6.0x4.50' }) === '::: draw frame 6x4.5', 'a frame has one spelling',
+     formatDrawOpener({ frame: '6.0x4.50' }));
+  const refused = [
+    ['::: draw {unit=150x56}',              'stray-attribute', /Write  ::: draw 150x56$/],
+    ['::: draw {unit=150x56 autoplay=1400 cycle}', 'stray-attribute', /::: draw 150x56 autoplay 1400 cycle/],
+    ['::: draw {unit=150x56 #x}',           'stray-attribute', /#id was diagnostic only/],
+    ['::: draw {}',                         'stray-attribute', null],
+    ['::: draw unit=150x56',                'stray-attribute', /::: draw 150x56/],
+    ['::: draw autoplay=900',               'stray-attribute', /autoplay 900/],
+    ['::: draw 150x56 foo',                 'stray-attribute', null],
+    ['::: draw autoplay 900 150x56',        'stray-attribute', /grid comes first/],
+    ['::: draw 150X56',                     'bad-unit', null],
+    ['::: draw 150×56',                     'bad-unit', null],
+    ['::: draw 0x56',                       'bad-unit', null],
+    ['::: draw 150x56 autoplay x',          'bad-autoplay', null],
+    ['::: draw 150x56 autoplay',            'bad-autoplay', null],
+    ['::: draw 150x56 autoplay 199',        'bad-autoplay', null],
+    ['::: draw 150x56 autoplay 60001',      'bad-autoplay', null],
+    ['::: draw 150x56 cycle',               'bad-autoplay', /no autoplay to repeat/],
+    ['::: draw{unit=150x56}',               'stray-attribute', /Write  ::: draw 150x56$/],
+    ['::: draw {unit=0x56}',                'stray-attribute', /zero side/],
+    ['::: draw {autoplay=900 autoplay=1200}', 'stray-attribute', /writes autoplay twice/],
+    ['::: draw autoplay 900 autoplay 1200', 'stray-attribute', /"autoplay" is written twice/],
+    ['::: draw 150x56 cycle cycle',         'bad-autoplay', null],
+    ['::: draw 150x56 1200',                 'stray-attribute', /autoplay 1200/],
+    ['::: draw {#fig unit=0x5}',             'stray-attribute', /zero side/],
+    ['::: draw {#fig autoplay=50}',          'stray-attribute', /out of range/],
+    ['::: draw {#fig cycle}',                'stray-attribute', /no autoplay to repeat/],
+    ['::: draw {#fig unit=150x56}',          'stray-attribute', /Write  ::: draw 150x56  \(a draw #id/],
+    ['::: draw 150x56 frame',                'bad-frame', /frame 6x4/],
+    ['::: draw 150x56 frame 6X4',            'bad-frame', /lowercase x/],
+    ['::: draw 150x56 frame 0x4',            'bad-frame', null],
+    ['::: draw 150x56 frame 400x4',          'bad-frame', /at most 200/],
+    ['::: draw 150x56 frame none frame 6x4', 'stray-attribute', /"frame" is written twice/],
+    ['::: draw autoplay 900 frame 6x4',      'stray-attribute', /the canvas comes before playback/],
+    ['::: draw 150x56 frame autoplay 900',   'bad-frame', /frame none/],
+    ['::: draw 150x56 6x4',                  'stray-attribute', /A canvas is written  frame 6x4/],
+  ];
+  for (const [line, code, re] of refused) {
+    const o = parseDrawOpener(line);
+    ok(o && o.problems.length && o.problems[0].code === code, `${line} → ${code}`, JSON.stringify(o));
+    if (re) ok(o && re.test(o.problems[0].msg), `  and the message says what to write`, o && o.problems[0].msg);
+  }
+  // One authored mistake, one problem: a repeated or misplaced keyword takes
+  // its number with it rather than leaving it to be read as a grid.
+  const dupAuto = parseDrawOpener('::: draw autoplay 900 autoplay 1200');
+  ok(dupAuto.problems.length === 1 && dupAuto.autoplay === 900, 'a repeated autoplay is one problem and keeps the first delay', JSON.stringify(dupAuto));
+  const cycleFirst = parseDrawOpener('::: draw cycle autoplay 900');
+  ok(!cycleFirst.problems.some(p => p.code === 'bad-unit') && cycleFirst.problems.some(p => /after "cycle"/.test(p.msg)),
+     'autoplay after cycle is out of order, and its delay is not mistaken for a grid', JSON.stringify(cycleFirst));
+  ok(parseDrawOpener('::: draw 150x56 cycle cycle').problems.some(p => /"cycle" is written twice/.test(p.msg)), 'a repeated cycle says so');
+  const zeroBraced = parseDrawOpener('::: draw {unit=0x56}');
+  ok(!/Write  ::: draw 0x56/.test(zeroBraced.problems[0].msg), 'the old-opener refusal never recommends a line the parser would refuse next');
+  ok(AUTOPLAY_MIN === 200 && AUTOPLAY_MAX === 60000, 'the playback bounds are 200 ms and 60 s');
+  ok(parseDrawOpener(DRAW_OPENER_EXAMPLE).problems.length === 0, 'the example the messages quote parses');
+
+  // ── formatDrawOpener refuses an impossible field set ─────────────
+  const throws = (f) => { try { f(); return false; } catch { return true; } };
+  ok(throws(() => formatDrawOpener({ cycle: true })), 'cycle without autoplay is a caller defect, thrown');
+  ok(throws(() => formatDrawOpener({ unit: '150X56' })), 'a unit that is not WxH is thrown');
+  ok(throws(() => formatDrawOpener({ unit: '0x56' })) && throws(() => formatDrawOpener({ unit: '150x0' })), 'and so is a zero side');
+  ok(throws(() => formatDrawOpener({ autoplay: 100 })), 'an out-of-range autoplay is thrown');
+  ok(throws(() => formatDrawOpener({ unit: [150, 56] })), 'an array unit is thrown - one representation crosses parser, formatter and payload');
+  ok(throws(() => formatDrawOpener({ frame: '6X4' })) && throws(() => formatDrawOpener({ frame: '0x4' })),
+     'a frame that is not WxH in grid units is thrown');
+  ok(!throws(() => formatDrawOpener({ frame: 'none' })), 'and "none" is a value, not a refusal');
+
+  // ── the compiler adapter and the legacy reader ───────────────────
+  ok(drawCompilerAttrs({ unit: '150x56', autoplay: 900, cycle: true }) === 'unit=150x56', 'the compiler sees the grid and nothing else');
+  ok(drawCompilerAttrs({ unit: null }) === '', 'and an empty string when no grid was written');
+  // The compiler owns none of the host words any more: handed one, it
+  // refuses rather than skips, so no embedder can pass one through.
+  const hostWord = render('box a "A"', 'autoplay=900');
+  ok(!hostWord.ok && /unknown ::: draw option "autoplay=900"/.test(hostWord.msg), 'the compiler refuses autoplay= as an unknown option');
+  ok(!render('box a "A"', '#x').ok, 'and a #id, which it used to store and never draw');
+  ok(render('box a "A"', 'unit=150x56').ok, 'while unit=WxH is still its adapter string');
+  const old = parseLegacyDrawTail('unit=150x56 #x autoplay=1400 cycle bogus');
+  ok(old.unit === '150x56' && old.id === 'x' && old.autoplay === 1400 && old.cycle === true && old.unknown[0] === 'bogus',
+     'the legacy reader takes the old tail apart for the migration');
+  ok(parseLegacyDrawTail('unit=150x56 unit=140x50').repeated.includes('unit') && /writes unit twice/.test(parseLegacyDrawTail('unit=150x56 unit=140x50').why),
+     'and names a repeated field as the reason it cannot be rewritten');
+
+  // ── the migration transform, end to end ──────────────────────────
+  const mig = (src) => migrateText(src);
+  ok(mig('x\n::: draw {unit=150x56 autoplay=1400 cycle}\ny').text === 'x\n::: draw 150x56 autoplay 1400 cycle\ny', 'a sound old opener is rewritten to the canonical line');
+  ok(mig('::: draw{unit=150x56}').text === '::: draw 150x56', 'including one written without the space');
+  ok(mig(':::\tdraw {unit=10x10}\n:::  draw {unit=10x10}').changes.length === 2, 'and ones written with a tab or two spaces after :::');
+  const twoLines = mig('::: draw\n{unit=20x20}\nbox a');
+  ok(twoLines.changes.length === 0 && twoLines.text === '::: draw\n{unit=20x20}\nbox a', 'a bare opener above a brace line is not an opener and is left alone');
+  const unclosed = mig('::: draw {unit=150x56\nbox a "A"\ntext t "set {x}"\n:::\n::: draw {unit=10x10}');
+  ok(unclosed.changes.length === 1 && unclosed.changes[0].to === '::: draw 10x10', 'an opener missing its } never swallows the body, and the sound one after it is still rewritten');
+  ok(mig('::: draw {unit=150x56}\n::: draw {}').changes.length === 2 && mig('::: draw {}').text === '::: draw', 'and an empty old tail becomes a bare opener');
+  const refusedMig = [
+    ['::: draw {unit=0x56}',                 /zero side/],
+    ['::: draw {autoplay=900 autoplay=1200}', /writes autoplay twice/],
+    ['::: draw {unit=150x56 unit=140x50}',   /writes unit twice/],
+    ['::: draw {cycle cycle}',               /writes cycle twice/],
+    ['::: draw {unit=150x56 #x}',            /carries #x/],
+    ['::: draw {unit=150x56 cycle}',         /no autoplay to repeat/],
+    ['::: draw {autoplay=100}',              /out of range/],
+    ['::: draw {unit=WxH}',                  /does not understand/],
+  ];
+  for (const [src, re] of refusedMig) {
+    const r = mig(src);
+    ok(r.text === src && r.changes.length === 0 && r.problems.length === 1 && re.test(r.problems[0].why),
+       `${src} is left alone and named: ${re}`, JSON.stringify(r.problems));
+  }
+  ok(mig('::: draw {unit=0x56}\n::: draw {unit=150x56}').text.includes('::: draw {unit=0x56}'), 'a problem elsewhere in the text does not stop the sound ones from being reported as changes');
+  // The active-surface notion the gate and the --check share.
+  ok(isActiveSurface('lectures/x/source.md') && isActiveSurface('.claude/skills/x/SKILL.md') && isActiveSurface('CLAUDE.md') && isActiveSurface('docs/site/index.html'),
+     'a lecture source, a skill, a root document and a site page are active surfaces');
+  ok(!isActiveSurface('editor.md') && !isActiveSurface('CHANGELOG.md') && !isActiveSurface('test/settings.mjs') && !isActiveSurface('lectures/x/audience.html'),
+     'a build log, history, a test and a built view are not');
+  ok(LEGACY_TOKENS.length === 5, 'five old-form token patterns');
+
+  // ── the reveal marker ──────────────────────────────────────────────
+  // One reader behind what used to be seven hand-written `=== '---'` tests.
+  {
+    const m = (l) => parseRevealMark(l);
+    ok(m('---') && m('---').from === null && !m('---').problems.length, 'a bare --- is a beat in order');
+    ok(m('  ---  ').from === null, 'and leading or trailing space does not stop it being one');
+    ok(m('--- from 3').from === 3 && !m('--- from 3').problems.length, '--- from 3 pins the beat to the third advance');
+    ok(m('--- from 12').from === 12, 'and the number is not one digit only');
+    ok(m('----') === null, 'four dashes are not a reveal marker, so a written rule is untouched');
+    ok(m('not a mark') === null && m('') === null, 'and neither is prose or an empty line');
+    ok(m('-- from 2') === null, 'nor two dashes');
+    // Recognised and refused rather than falling through to Markdown: read as
+    // prose, `--- form 2` becomes a paragraph with nothing to say why the
+    // beat never arrived.
+    for (const bad of ['--- form 2', '--- from', '--- from x', '--- from 2 3', '--- from -1', '--- from 1.5', '--- 3']) {
+      const r = m(bad);
+      ok(r && r.problems.length === 1 && r.problems[0].code === 'bad-reveal-from',
+         `${JSON.stringify(bad)} is refused rather than read as prose`, JSON.stringify(r));
+    }
+    const zero = m('--- from 0');
+    ok(zero.problems.length === 1 && /Beat 0 is the beat the slide opens on/.test(zero.problems[0].msg),
+       'from 0 is refused, and the message says why beat 0 is not a beat');
+    ok(m('--- from 3').problems.length === 0 && m('--- from 1').from === 1,
+       'and from 1, the first advance, is the smallest one that is legal');
+  }
+
+  // ── the style block's key set, held across two files ────────────────
+  // lint.js mirrors STYLE_SPEC as STYLE_ENUMS plus STYLE_NUM_SPEC, and the
+  // unknown-key error it raises is only as right as that pair. A key added
+  // to build.js with a kind other than `enum` would be reported as unknown
+  // on a valid deck until somebody remembered the second file, which is the
+  // drift this repository keeps paying for. Read as text: build.js cannot be
+  // imported here, and lint.js calls main() at module scope.
+  {
+    const bsrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const lsrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
+    const specBody = bsrc.slice(bsrc.indexOf('const STYLE_SPEC = {'));
+    const specKeys = new Set([...specBody.slice(0, specBody.indexOf('\n};'))
+      .matchAll(/^\s{2}'?([a-z-]+)'?:\s*\{/gm)].map(m => m[1]));
+    const enumBody = lsrc.slice(lsrc.indexOf('const STYLE_ENUMS = {'));
+    const lintKeys = new Set([...enumBody.slice(0, enumBody.indexOf('\n};'))
+      .matchAll(/^\s{2}'([a-z-]+)':/gm)].map(m => m[1]));
+    const numBody = lsrc.slice(lsrc.indexOf('const STYLE_NUM_SPEC = {'));
+    for (const m of numBody.slice(0, numBody.indexOf('\n};')).matchAll(/^\s{2}'([a-z-]+)':/gm))
+      lintKeys.add(m[1]);
+    ok(specKeys.size > 5, `STYLE_SPEC's keys are findable (${specKeys.size})`, [...specKeys].join(','));
+    const missing = [...specKeys].filter(k => !lintKeys.has(k));
+    const extra = [...lintKeys].filter(k => !specKeys.has(k));
+    ok(!missing.length, 'every style key build.js accepts is one lint.js knows', missing.join(','));
+    ok(!extra.length, 'and lint.js knows no key build.js has dropped', extra.join(','));
+
+    // The same pair for the `prompter:` block, whose lint mirror is three
+    // tables (an enum, the number keys, the free keys) rather than one.
+    const sBody = bsrc.slice(bsrc.indexOf('const SOUFFLEUSE_SPEC = {'));
+    const sKeys = new Set([...sBody.slice(0, sBody.indexOf('\n};'))
+      .matchAll(/^\s{2}'?([a-z-]+)'?:\s*\{/gm)].map(m => m[1]));
+    const lBody = lsrc.slice(lsrc.indexOf('const SOUFFLEUSE_ENUMS = {'));
+    const lKeys = new Set([...lBody.slice(0, lBody.indexOf('\n};'))
+      .matchAll(/^\s{2}'([a-z-]+)':/gm)].map(m => m[1]));
+    for (const table of ['SOUFFLEUSE_NUM_KEYS', 'SOUFFLEUSE_FREE_KEYS']) {
+      const m = lsrc.match(new RegExp(table + ' = new Set\\(\\[([^\\]]*)\\]'));
+      for (const k of (m ? m[1] : '').match(/'[a-z-]+'/g) || []) lKeys.add(k.slice(1, -1));
+    }
+    ok(sKeys.size >= 5, `SOUFFLEUSE_SPEC's keys are findable (${sKeys.size})`, [...sKeys].join(','));
+    const sMissing = [...sKeys].filter(k => !lKeys.has(k));
+    const sExtra = [...lKeys].filter(k => !sKeys.has(k));
+    ok(!sMissing.length, 'every souffleuse key build.js accepts is one lint.js knows', sMissing.join(','));
+    ok(!sExtra.length, 'and lint.js knows no souffleuse key build.js has dropped', sExtra.join(','));
+  }
+
+  // ── DISPLAY_TRACK is complete ───────────────────────────────────────
+  // A display face is fitted by the person who drew it, so the conditional
+  // block resets the tracking the composition chose for the body serif. That
+  // reset is a LIST, and a list of selectors is exactly the thing that rots:
+  // add an eleventh cover with a letter-spacing of its own and the collision
+  // comes back on that composition alone, silently, on a deck nobody here
+  // builds. So the stylesheets are re-read and every rule that sets tracking
+  // on a slot the face wears has to be in the list.
+  //
+  // The eyebrow kicker is the one exclusion, and it is not an oversight: under
+  // `headline: eyebrow` the face is on the subtitle, so the kicker keeps its
+  // own tracking - 0.015em, or 0.055em when `caps: on` tracks the capitals.
+  {
+    const bsrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    // Template interpolations carry braces and break a brace-counting scan.
+    // Blanking them is not cosmetic: on the first pass they hid four rules,
+    // the -0.042em under `cover: display` among them - the one the whole
+    // reset exists for.
+    const flat = (t) => t.replace(/\$\{[^}]*\}/g, 'X').replace(/\/\*[\s\S]*?\*\//g, '');
+    const cut = (from, to) => {
+      const a = bsrc.search(from); const b = bsrc.indexOf(to, a);
+      return flat(bsrc.slice(a, b));
+    };
+    const sheets = {
+      print: cut(/const PRINT_CSS = `/, 'const AUDIENCE'),
+      live: cut(/const AUDIENCE_CSS = `/, '// \u2500\u2500 audience runtime JS'),
+    };
+    const declared = {};
+    for (const m of bsrc.slice(bsrc.indexOf('const DISPLAY_TRACK = {'))
+      .slice(0, 900).matchAll(/^\s{2}(print|live): \[([\s\S]*?)\],$/gm)) {
+      declared[m[1]] = [...m[2].matchAll(/'([^']+)'/g)].map(x => x[1]);
+    }
+    ok(declared.print && declared.live, 'DISPLAY_TRACK has both views',
+       Object.keys(declared).join(','));
+    for (const [view, css] of Object.entries(sheets)) {
+      const found = [];
+      for (const m of css.matchAll(/([^{}]+)\{([^{}]*)\}/g)) {
+        const sel = m[1].trim().replace(/\s*\n\s*/g, ' ');
+        if (!/letter-spacing/.test(m[2])) continue;
+        if (!/\.title-main|\.section-heading|\.title-subtitle/.test(sel)) continue;
+        if (/data-headline=eyebrow[^,]*\.title-main/.test(sel)) continue;  // the kicker
+        found.push(sel);
+      }
+      ok(found.length > 0, `${view}: the scan finds tracked title rules (${found.length})`);
+      const missing = found.filter(f => !(declared[view] || []).includes(f));
+      ok(!missing.length,
+         `${view}: every rule that tracks a slot the display face wears is in DISPLAY_TRACK`,
+         missing.join(' | '));
+      const stale = (declared[view] || []).filter(d => !found.includes(d));
+      ok(!stale.length, `${view}: and DISPLAY_TRACK names no rule that is gone`,
+         stale.join(' | '));
+    }
+  }
+
+  // ── the display roster, held across two files ───────────────────────
+  // lint.js mirrors the display half of BUNDLED_FONTS as DISPLAY_FONTS,
+  // name and `kind` both, and two findings ride on it: `unknown-display-font`
+  // is only as right as the names and `display-pairing` only as right as the
+  // kinds. A face added to build.js alone would be reported as a typo on a
+  // deck that builds, which is the direction a pre-commit gate must never be
+  // wrong in; a kind changed in one file alone would warn about a pairing
+  // that is fine, or say nothing about one that is not. Read as text, for
+  // the reason the style block above is.
+  {
+    const bsrc = fs.readFileSync(path.join(ROOT, 'build.js'), 'utf8');
+    const lsrc = fs.readFileSync(path.join(ROOT, 'lint.js'), 'utf8');
+    const build = new Map([...bsrc.matchAll(
+      /^ {2}'?([A-Za-z0-9][A-Za-z0-9 ]*)'?: \{ role: 'display', kind: '(\w+)'/gm)]
+      .map(m => [m[1], m[2]]));
+    const lintBody = lsrc.slice(lsrc.indexOf('const DISPLAY_FONTS = new Map(['));
+    const lint = new Map([...lintBody.slice(0, lintBody.indexOf(']);')).matchAll(
+      /\['([^']+)', '(\w+)'\]/g)].map(m => [m[1], m[2]]));
+    ok(build.size > 20, `the display roster is findable in build.js (${build.size})`);
+    ok(build.size === lint.size,
+       'lint.js mirrors exactly as many display faces as build.js bundles',
+       `build ${build.size}, lint ${lint.size}`);
+    const off = [...build].filter(([n, k]) => lint.get(n) !== k)
+      .map(([n, k]) => `${n}: build ${k}, lint ${lint.get(n) || '(absent)'}`);
+    ok(!off.length, 'and every one of them under the same name and the same kind',
+       off.join('; '));
+    // The noEszett flag is one face today and the whole of the
+    // display-no-eszett warning, so it is checked by name rather than by
+    // counting: a second face gaining the flag must reach lint.js too.
+    const bNoEs = [...bsrc.matchAll(/^ {2}'?([A-Za-z0-9][A-Za-z0-9 ]*)'?: \{ role: 'display',[^\n]*noEszett: true/gm)]
+      .map(m => m[1]).sort();
+    const lNoEs = ([...lsrc.matchAll(/DISPLAY_NO_ESZETT = new Set\(\[([^\]]*)\]/g)][0]?.[1] || '')
+      .match(/'[^']+'/g)?.map(t => t.slice(1, -1)).sort() || [];
+    ok(bNoEs.length && bNoEs.join(',') === lNoEs.join(','),
+       'the faces with no eszett are the same list in both files',
+       `build ${bNoEs.join(',')} / lint ${lNoEs.join(',')}`);
+  }
+}

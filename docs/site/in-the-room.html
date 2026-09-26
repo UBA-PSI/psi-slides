@@ -1,0 +1,512 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>psi-slides &ndash; in the room</title>
+<link rel="alternate" hreflang="en" href="https://uba-psi.github.io/psi-slides/in-the-room.html">
+<link rel="alternate" hreflang="de" href="https://uba-psi.github.io/psi-slides/de/in-the-room.html">
+<link rel="alternate" hreflang="x-default" href="https://uba-psi.github.io/psi-slides/in-the-room.html">
+<link rel="stylesheet" href="site.css">
+</head>
+<body>
+<!--topbar-->
+<main class="banded">
+
+<section class="band band-hero">
+ <div class="wrap">
+  <p class="mark"><b>psi-slides</b> &middot; <a href="index.html">back to the front page</a>
+  &middot; <a href="de/in-the-room.html" hreflang="de" lang="de">Diese Seite auf Deutsch</a></p>
+
+  <h1>In the room</h1>
+
+  <p class="lede">The lecture is running, the room is full, and what is on the
+  wall is the file you built this morning. This is the hour from behind the
+  laptop: what happens, and what you press when it does.</p>
+
+  <!-- Half-empty row, answer 1. A hero of a heading and one paragraph leaves
+       most of the first screen empty. The two paragraphs here are the two
+       things a reader has to know before the story starts: that this is not
+       the key list, and that nothing on this page needs a network. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>This is not the list of keys.</strong> The lecture carries that
+    itself, on <kbd>?</kbd>, grouped by task and with the mouse gestures beside
+    the keys. It is generated from the build, so it is never out of date. What
+    it cannot tell you is which of them you reach for when a room goes quiet,
+    and that is what is written here.</p>
+   </div>
+   <div>
+    <p><strong>Nothing here needs a server or a network.</strong> The two
+    windows find each other in the browser; the timer, your notes, where you are
+    in the lecture and anything you type stay on the machine you are standing
+    at. A lecture on a memory stick, in a room with no wifi, behaves the same
+    way. Two things on this page go online, and only if you choose them: a
+    YouTube or Vimeo video embedded in a slide, and the prompter.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <!-- A band, and the plainest one on the site: the words and the picture of
+       the cockpit, the words centred against it. The picture is 620px tall
+       and the words are 290, and the 330px of difference used to hang under
+       the text with the row of three annotations starting inside it. Split
+       over and under, the same 330px is margin.
+       Words on the LEFT. This band carries the argument a step further -
+       here is the second window - and a step keeps the reading direction.
+       It used to be mirrored, and the reason given was the hole; the hole is
+       gone, so the mirror goes with it. -->
+  <div class="beside heading-in">
+   <div class="said">
+    <h2 id="two-windows">Two windows</h2>
+    <p class="lede">The projection goes on the wall. You open the
+    cockpit in a second window with <kbd>S</kbd>; that one goes on the laptop.
+    What you press in either lands in both.</p>
+    <p class="cue">The two talk over the browser&rsquo;s own message channel,
+    between the window that opened and the one it opened. No server, no port, no
+    pairing code &ndash; and so it works from a file on a stick.</p>
+   </div>
+   <div class="stage">
+    <figure class="shot">
+     <div class="bar"><b>speaker.html</b></div>
+     <img src="img/cockpit.webp" alt="The presenter cockpit: a chapter scrubber across the top, the clock over the corner of the mirror of the projected slide, the private speaker note below it, a strip of neighbouring slides, and a footer with the live mark and the key legend.">
+    </figure>
+   </div>
+  </div>
+
+  <!-- Half-empty row, answer 1: three short answers to "what is in the cockpit
+       that is not on the wall", which is one question, so they stand in one
+       row rather than as three stubs under the narrow column. -->
+  <div class="pair-up trio">
+   <div>
+    <p><strong>Your note for this slide</strong> stands under the mirror of the
+    projection, at a size you set with the two buttons in its corner. It arrives
+    filled from the <code>&gt; note:</code> lines in the source;
+    <kbd>Shift</kbd>-<kbd>N</kbd>
+    lets you rewrite it during the talk, for yourself only.</p>
+   </div>
+   <div>
+    <p><strong>What is coming</strong> stands in the strip along the edge: the next
+    slides, fully revealed, so you can see where one lands before you get there.
+    Drag its edge to make it bigger; drag it to the right edge of the window if
+    you would rather have it as a column.</p>
+   </div>
+   <div>
+    <p><strong>The clock</strong> sits over the corner of the mirror, large
+    enough to read without leaning in. It starts when the window opens, which is
+    ten minutes early whenever you are early, so a click sets it back to zero. It
+    does not pause: a paused clock is one stray click away from being wrong for
+    the rest of the hour.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="beats">One press at a time</h2>
+  <p class="lede">A lecture moves in steps rather than in slides. Press
+  <kbd>Space</kbd> to take the slide one step further; only when nothing is left
+  on this one does the press go on to the next slide. You move by whole slides
+  with the arrow keys, by part of the lecture with <kbd>Shift</kbd> and an
+  arrow.</p>
+
+  <!-- Half-empty row, answer 1: the listing takes the wide half and what it is
+       about the narrow one. The listing is lecture source, not a command, so
+       it stays in one language on both pages. -->
+  <div class="aside-code words-first heading-in">
+   <div class="said">
+    <h3>Where the steps come from</h3>
+    <p class="cue">A line that is exactly three dashes, on its own, opens a step.
+    What comes after it waits until you ask for it, and what the room has
+    already seen stays where it was.</p>
+    <p class="cue">A drawing counts too: a figure written with steps runs them
+    on the same key, and a step inside a column, a card or a row arrives in the
+    order it stands in the file.</p>
+   </div>
+<pre><code><span class="t-dir">## example:</span> The handshake | four messages <span class="t-punct">{</span><span class="t-code">.wide #tls</span><span class="t-punct">}</span>
+
+<span class="t-punct">**</span><span class="t-strong">It opens with a client hello.</span><span class="t-punct">**</span> The client
+names the versions and the ciphers it can speak.
+
+<span class="t-dir">---</span>
+
+<span class="t-punct">**</span><span class="t-strong">The server answers with a certificate.</span><span class="t-punct">**</span> Which is
+where the rest of the hour is going to be spent.
+
+<span class="t-note">&gt; note: Ask who has ever looked at one of these.</span></code></pre>
+  </div>
+
+  <!-- Half-empty row, answer 1: two keys that both answer "how much of the
+       slide is on the wall", so they belong in one row. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>With <kbd>C</kbd> you swap the short slide for the whole
+    text.</strong> What the room normally sees is the first sentence of each
+    paragraph plus the phrases you set in bold &ndash; the rest of the prose is in
+    the handout. Press it when a question needs the sentence you left out, and
+    press it again to go back. Both windows follow.</p>
+   </div>
+   <div>
+    <p><strong>On <kbd>#</kbd> you decide what happens to a slide that is too
+    big for the frame.</strong> Three states, one press after the other: fill
+    the frame, shrink only when the slide would otherwise run off it, or leave
+    it alone at the size you chose. <kbd>+</kbd>, <kbd>-</kbd> and <kbd>0</kbd>
+    are the manual version, for the row at the back.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <!-- Half-empty row, answer 1: the section's words in the narrow column
+       and the sequence in the wide one. It used to be one still beside
+       four lines of prose, and a still cannot make this argument - what
+       the mode does is move two things on one press, which is a difference
+       between pictures. Four frames of one slide, stepped through with the
+       same chooser the front page uses for the three ways. The heading
+       count is unchanged: the frame labels are paragraphs, not headings,
+       so the twin gate still sees one h2 here. -->
+  <!-- Findings 3 and 4. A control belongs against the thing it
+       operates: site.js inserts the tab row before `.ways`, which is
+       now inside `.frames-col` and so directly above the stage. Each
+       frame's own sentence has moved under its picture rather than
+       standing between the tabs and the stage - it says what changed
+       in THIS frame, which can only be read against the frame. The
+       sequence's own cue still comes first, one column to the left.
+       And the strip takes the wide column rather than the whole
+       frame: 827px instead of 1247px, which fits one screen. -->
+  <div class="beside frames-beside heading-in">
+   <div class="said">
+    <h2 id="cue-cards">The other cockpit, for a talk you have written out</h2>
+    <p class="lede">A talk written word for word, with almost nothing on the
+    slides, is given differently from a lecture, and <kbd>K</kbd> rearranges the
+    window for it: the projection small in a strip on the left, your notes as
+    cards down a rail on the right. It is a mode you switch into and stay in
+    rather than a panel you open, and it changes what <kbd>Space</kbd> does.</p>
+    <p class="cue">You go card by card, and the press on the last card of a step
+    is the one that clicks the projector. Below are four presses of one
+    slide, one frame each. That slide carries a drawing with steps of its own, and
+    three of its cards name the press they belong to, with
+    <code>&gt; note: from 1</code>, <code>from 2</code> and <code>from 3</code>:
+    a drawing&rsquo;s steps have no three-dash line between them for a note to
+    stand after.</p>
+   </div>
+
+   <div class="frames-col">
+    <div class="ways ways-frames">
+     <div class="way" data-tie="f0">
+      <p class="way-label">as the slide arrives</p>
+      <div class="stage">
+       <figure class="shot">
+        <div class="bar"><b>speaker.html</b> &middot; K</div>
+        <img src="img/cue-beat-0.webp" alt="The cue-card cockpit as the slide arrives: on the left the projection with a drawing of three boxes, on the right the first card large and dark, and under it the diamonds and the grey cards of the presses still to come.">
+       </figure>
+      </div>
+      <p class="cue">The card being said stands large. Below it, in grey, the
+      cards still to come; between them the diamonds, one per click of the
+      projector.</p>
+     </div>
+     <div class="way" data-tie="f1">
+      <p class="way-label">one press</p>
+      <div class="stage">
+       <figure class="shot">
+        <div class="bar"><b>speaker.html</b> &middot; K</div>
+        <img src="img/cue-beat-1.webp" alt="One press further: the first card is grey above the cursor, the second card is the large one, and on the projection the third box of the drawing has faded to a dashed outline.">
+       </figure>
+      </div>
+      <p class="cue">The card above has gone grey, the press has reached the
+      projector, and a box on the drawing has faded out.</p>
+     </div>
+     <div class="way" data-tie="f2">
+      <p class="way-label">two</p>
+      <div class="stage">
+       <figure class="shot">
+        <div class="bar"><b>speaker.html</b> &middot; K</div>
+        <img src="img/cue-beat-2.webp" alt="Two presses in: the third card is the large one, and two further boxes have appeared on the drawing on the projection.">
+       </figure>
+      </div>
+      <p class="cue">The next card, and the two boxes it is about have arrived on
+      the drawing. One press moved both.</p>
+     </div>
+     <div class="way" data-tie="f3">
+      <p class="way-label">three</p>
+      <div class="stage">
+       <figure class="shot">
+        <div class="bar"><b>speaker.html</b> &middot; K</div>
+        <img src="img/cue-beat-3.webp" alt="Three presses in: the drawing on the projection is complete with its last box and its source line, and in the rail the cards already said stand grey above the cursor with the rest of the note below it.">
+       </figure>
+      </div>
+      <p class="cue">The last of the cards pinned to a step. What has been said
+      stands above the cursor, what is left stands below it.</p>
+     </div>
+    </div>
+   </div>
+  </div>
+
+  <!-- Half-empty row, answer 1: what to write so the rail is readable, and
+       what the mark beside the clock is for. Three answers, one row. -->
+  <div class="pair-up trio">
+   <div>
+    <p><strong>A paragraph in a note becomes a card, and its bold phrases become
+    its bullets.</strong> Bold the words you want to see, not the ones you want to
+    stress. A paragraph with no bold shows whole, in smaller type, and a
+    <code>####</code> heading above one gives the card a title.</p>
+   </div>
+   <div>
+    <p><strong>Where the note stands decides when it is said.</strong> A note written
+    above the first three-dash line belongs to the step the slide opens on, a
+    note under it to the step that line opens. Nothing has to be pinned by hand,
+    and a lecture written before this existed shows its notes on the first step,
+    as it did before.</p>
+   </div>
+   <div>
+    <p><strong><code>@12:30</code> at the start of a card</strong> is when you
+    meant to reach it. The cockpit then shows beside the clock how far off that
+    is, rounded to ten seconds and red when you are behind. A deck with no such
+    marks shows nothing there, so the mark stays out of your way until you want
+    it.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <!-- A teaser. The prompter has a page of its own, prompter.html, because
+       its section here had grown to four rows of dense prose under one
+       picture. What stays is what a reader needs before following the link:
+       what it does, that it is opt-in, that it goes online and costs money,
+       and that it hears the room. The id stays, so old links still land.
+       It stands after the cue cards because it lays cards of its own. -->
+  <div class="beside heading-in">
+   <div class="said">
+    <h2 id="prompter">A prompter, if you switch one on</h2>
+    <p class="lede">Switched on, the prompter listens while you talk and puts a
+    short hint on the cockpit&rsquo;s copy of the slide when something needs
+    saying. It is new and stays off unless you run <code>node build.js</code>
+    with <code class="flag">--watch --prompter</code>. It asks a language model
+    over the internet, so it needs a network connection and an OpenRouter key,
+    each call to the model costs money, and the microphone hears the whole
+    room.</p>
+    <p class="cue">The red strip carries the model&rsquo;s answer to a number the
+    speaker got wrong. <a href="prompter.html">The prompter&rsquo;s own
+    page</a> says what it speaks up about, what it costs, what leaves your
+    computer, and how to rehearse with it.</p>
+   </div>
+   <div class="stage">
+    <figure class="shot">
+     <div class="bar"><b>speaker.html</b> &middot; Shift-S</div>
+     <img src="img/prompter-hint.webp" alt="The whole cockpit. Across the top, the parts of the talk and the clock at 1:45; in the middle, its copy of the current slide, reading &ldquo;1.4 seconds. Then 90 milliseconds.&rdquo; Across the lower edge of that slide a red strip reads &ldquo;The number is ninety milliseconds, not 250.&rdquo;, and under it a faint line reads &ldquo;asked 3s ago &middot; 2 so far&rdquo;. Below the slide, the speaker note, then a row of five slide previews with the current one outlined in red, and a footer with the prompter button lit.">
+    </figure>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <!-- The one mirrored band on this page, and the reason is the content: two
+       pictures, two ways back to the same slide, on one stage. A comparison
+       puts the things being compared first and the verdict on them after, so
+       the stage takes the left and the words the right. Every other band here
+       carries the hour one step further and keeps the reading direction. -->
+  <h2 id="finding">A question about slide forty</h2>
+  <div class="beside beside-flip">
+   <div class="said">
+    <p class="lede">Somebody asks about something you said half an hour ago. Two
+    ways back to it, both over the projection itself, and both of them leave you
+    where you were when you press <kbd>Esc</kbd>.</p>
+    <p class="cue">With <kbd>O</kbd> you lay the whole lecture out as a board,
+    in both windows at once, so the room searches with you rather than watching
+    you scroll. The search on <kbd>/</kbd> stays in the cockpit until you pick a
+    hit.</p>
+   </div>
+   <div class="stage">
+    <div class="stage-pair">
+     <figure class="shot">
+      <div class="bar"><b>audience.html</b> &middot; O</div>
+      <img src="img/overview.webp" alt="The overview board: the whole 36-slide lecture laid out as a grid of readable slides, with the current one outlined.">
+      <figcaption><strong>The whole lecture at once.</strong> Not thumbnails
+      &ndash; the real slides, still legible. Drag to move around the board,
+      <kbd>Enter</kbd> opens the one you picked.</figcaption>
+     </figure>
+     <figure class="shot">
+      <div class="bar"><b>audience.html</b> &middot; /</div>
+      <img src="img/search.webp" alt="The search panel over the slide: the query async, and five results, each with its type, heading and the matching sentence.">
+      <figcaption><strong>Full-text search.</strong> Each hit shows what kind of
+      slide it came from, its heading, and the sentence the match sits
+      in.</figcaption>
+     </figure>
+    </div>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="attention">When the slide is not the point</h2>
+  <p class="lede">Half of presenting is taking attention off the wall and
+  putting it back. Three keys and one mouse gesture do that, and none of them
+  changes where you are in the lecture.</p>
+
+  <!-- Half-empty row, answer 1: three ways of pointing the room somewhere
+       else, in one row, because each is two or three sentences and any one of
+       them alone would be a paragraph with an empty half beside it. -->
+  <div class="pair-up trio">
+   <div>
+    <p><strong>Freeze the projection with <kbd>V</kbd>.</strong> The wall keeps
+    the slide it has while you go looking somewhere else &ndash; three slides
+    ahead, into a detail you folded away, wherever the answer is. Press it again
+    and the room comes to where you are now, in one step.</p>
+    <p>The readout is the button: the cockpit&rsquo;s footer says
+    <b>live</b> or <b>frozen</b> and clicking it does the same thing as the
+    key.</p>
+   </div>
+   <div>
+    <p><strong>You blank the projection with <kbd>B</kbd>.</strong> The wall
+    goes dark and the room looks at you instead. It works while the projection is frozen
+    too: it is an order to the projector rather than something the two windows
+    have to agree on.</p>
+    <p><strong>The laser has no key.</strong> Move the mouse over the mirror in
+    the cockpit and a dot appears in the same place on the wall &ndash; you point
+    at the slide on your own screen, at the size it is on yours, and the room
+    sees where.</p>
+   </div>
+   <div>
+    <p><strong>For a live demo on the projection, press <kbd>D</kbd>.</strong>
+    Pick a window or a screen of your machine and it fills the frame until you press
+    <kbd>D</kbd> again &ndash; so the terminal you are typing in can be on the wall
+    without mirroring your displays and losing your window positions on the way
+    back.</p>
+    <p>On a Mac the first capture fails while macOS is still asking for the
+    screen-recording permission, and a second press of <kbd>D</kbd> then works.
+    Worth doing once before the talk rather than finding out in front of the
+    room.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <!-- A step, so the reading direction stands: words, then the picture. It
+       used to be mirrored, for no reason but that the band before it was not.
+       The picture is a slide rather than a window, because the annotation is
+       what the room sees. -->
+  <div class="beside heading-in">
+   <div class="said">
+    <h2 id="annotation">Writing on the slide</h2>
+    <p class="lede">Press <kbd>N</kbd> and a box fills the frame; what you
+    type is the slide while you type it. One word stands large and centred,
+    several lines as a block, ASCII art keeps its columns.</p>
+    <p class="cue">Type an address into it and a QR code appears above the
+    words, drawn in the page: the room can take the link with a phone instead of
+    copying it down.</p>
+   </div>
+   <div class="stage">
+    <figure class="shot">
+     <div class="bar"><b>audience.html</b> &middot; N</div>
+     <img src="img/annotation.webp" alt="The projection while a note is being typed: the slide behind a near-opaque veil, the words in large monospace across the lower half, and above them a QR code for the address in the text.">
+    </figure>
+   </div>
+  </div>
+
+  <!-- Half-empty row, answer 1: the other two things that arrive on the wall
+       without a browser window being dragged onto the beamer. -->
+  <div class="pair-up">
+   <div>
+    <p><strong>A link in a lecture does not open a page.</strong> It puts the
+    address on both screens with its own QR code, drawn when the lecture was
+    built, and you go on. Nothing loads, and the tab you had open with your mail
+    in it stays where it was.</p>
+   </div>
+   <div>
+    <p><strong>A video plays in the frame</strong>, from the file itself, with
+    the two windows kept in step on play, pause and position. A YouTube or Vimeo
+    video embedded in a slide loads from YouTube or Vimeo, the one thing on the
+    wall that comes from another company&rsquo;s server. A YouTube video
+    needs the lecture opened through <code class="flag">--serve</code>, which delivers it
+    from your own computer; a Vimeo video also plays when you open the file
+    directly.</p>
+   </div>
+  </div>
+ </div>
+</section>
+
+<section class="band">
+ <div class="wrap">
+  <h2 id="afterwards">What you wrote in the room goes back into the source</h2>
+  <p class="lede">The notes you typed on the wall are drafts, kept in the
+  browser per lecture. They are worth keeping: what a room made you write down
+  is usually what the slide was missing.</p>
+
+  <!-- Half-empty row, answer 1: the command takes the wide half, the two
+       steps around it the narrow one. -->
+  <div class="aside-code words-first heading-in">
+   <div class="said">
+    <h3>Two steps, after the hour</h3>
+    <p class="cue">Press <kbd>Shift</kbd>-<kbd>E</kbd> in the cockpit and every
+    note you typed on the wall goes to the clipboard as one marked block; the
+    cockpit then asks before clearing the drafts. Say no and they stay, so a
+    blocked clipboard never costs you the text.</p>
+    <p class="cue">Paste the block at the end of <code>source.md</code> and run
+    the build once. Each note moves under the slide it was written on and the
+    marker goes; anything it could not place is left at the end for you.</p>
+   </div>
+<pre><code><span class="t-cmt"># what Shift-E puts on the clipboard, pasted at the end of source.md</span>
+<span class="t-dir">&lt;!-- annotations:start --&gt;</span>
+
+<span class="t-head">### why-playwright</span>
+<span class="t-note">&gt; annot: The ninety-second demo lands better than the paragraph.</span>
+
+<span class="t-head">### async-await</span>
+<span class="t-note">&gt; annot: Ask who has hit this in a real script.</span>
+
+<span class="t-dir">&lt;!-- annotations:end --&gt;</span>
+
+<span class="t-cmt"># then, once</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/my-lecture/source.md</span> <span class="t-flag">--integrate-annotations</span></code></pre>
+  </div>
+ </div>
+</section>
+
+<section class="band band-close">
+ <div class="wrap">
+  <div class="middle">
+  <h2>Where to read further</h2>
+  <ul class="reads">
+    <li><b><a href="index.html">What psi-slides is</a></b>
+      The front page: one lecture as the room sees it and as the reader gets
+      it, and why those are the same file.</li>
+    <li><b><a href="getting-started.html">Getting started</a></b>
+      The app and the command line, and how to build the tutorial from a
+      machine with nothing installed on it.</li>
+    <li><b><a href="tutorial/audience.html">The tutorial lecture</a></b>
+      A lecture about writing lectures. Open it, press <kbd>S</kbd>, and the
+      keys on this page are under your hands.</li>
+    <li><b><a href="figures.html">Figures you write</a></b>
+      The case for the figure language, and
+      <a href="figures-you-write.html">the manual</a> beside it, which builds one
+      a line at a time and lists every statement.</li>
+  </ul>
+
+  <footer>
+    <p>By <a href="https://herdom.net">Dominik Herrmann</a>,
+    <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
+    University of Bamberg.
+    Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0. Rebuilt from
+    source on every push.</p>
+  </footer>
+  </div>
+ </div>
+</section>
+</main>
+<script src="site.js"></script>
+</body>
+</html>

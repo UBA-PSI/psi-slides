@@ -38,7 +38,19 @@ You did not author two versions. You wrote the right-hand text and marked which 
 
 ## Quickstart
 
-Requires Node 20 or newer. Nothing else: no LaTeX, no Pandoc, no server, nothing installed globally.
+There are two ways in. **If you would rather not open a terminal**, take the
+desktop builder from the
+[releases page](https://github.com/UBA-PSI/psi-slides/releases): a window that
+you point at a `source.md` and leave open beside your editor, building the
+four views again on every save. It is published as a pre-release for now, it
+carries the engine inside it, and nothing about it leaves your computer.
+macOS has been tried on a real machine; the Windows and Linux packages are
+built by CI and are experimental, so a report of what breaks is welcome.
+`desktop/README.md` has the details.
+
+**The command line** is the other way, and it is what CI and this repository
+use. It requires Node 20 or newer. Nothing else: no LaTeX, no Pandoc, no
+server, nothing installed globally.
 
 ```bash
 # the latest release, unpacked into psi-slides/
@@ -60,6 +72,7 @@ Start your own:
 
 ```bash
 node build.js --new my-lecture          # scaffold lectures/my-lecture/source.md
+node build.js --new my-lecture --into ~/talks   # …or scaffold it somewhere else
 node build.js lectures/my-lecture/source.md --watch   # live reload on every save
 node lint.js lectures/my-lecture/source.md            # static checks
 ```
@@ -87,7 +100,7 @@ the two print views – those are documents, this is slides.
 
 ## How you write
 
-A lecture is columns of chunks. A column is a `#` heading; a chunk is a `##` heading with a tag, and its body is ordinary Markdown.
+A lecture is columns of chunks. A column is a `#` heading; a chunk is a `##` heading with a type, and its body is ordinary Markdown.
 
 ```markdown
 ---
@@ -110,22 +123,24 @@ of the protocol.
 > around 100 and the reasoning is always worth two minutes.
 ```
 
-The grammar is `## tag: Heading | Sub-heading {.width #id}`. Ten tags (`title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`) set the visual treatment and a word budget the linter enforces; four widths (`narrow`, `standard`, `wide`, `full`) set how much stage the chunk takes. Adding `{.bare}` to the same braces keeps a heading in the document, the contents page and the search index and takes it off the projection – for the talk that is a run of figures and still needs a name per slide.
+The grammar is `## type: Heading | Sub-heading {.width #id}`. Ten types (`title`, `closing`, `outline`, `principle`, `definition`, `example`, `question`, `figure`, `exercise`, `free`) set the visual treatment and a word budget the linter enforces; four widths (`narrow`, `standard`, `wide`, `full`) set how much stage the chunk takes. Adding `{.bare}` to the same braces keeps a heading in the document, the contents page and the search index and takes it off the projection – for the talk that is a run of figures and still needs a name per slide.
 
 **What lands on the slide** is decided per chunk, by one of two mechanisms:
 
-- **Derived** (the default): the first sentence of every paragraph, plus any `**bold**` fragments. It imposes a discipline: every paragraph has to open with a claim that stands on its own.
+- **Derived** (the default): the first sentence of every paragraph, plus any `**bold**` fragments. It imposes a discipline: every paragraph has to open with a claim that stands on its own. Bold selects rather than stresses – a promoted phrase is set plain by default, and `*em*` inside it stresses one word.
 - **Stated**: a `::: slide` block *is* the screen, everything else is narration. Or `::: script`, the other way round: the chunk is the screen and only the marked block is narration. Reach for these when the argument wants continuous prose that no first-sentence rule can carve up.
 
 Everything else is body-level directives: `---` on its own line splits a chunk into **reveal segments**; `::: expand <label>` hides detail behind a chevron; `::: cols 2`, `::: side 2:1` and `::: flip` shape internal layout; `::: cards 3` and `::: rows` lay items out as containers rather than as a text flow, so an item is whole or it is nowhere; `::: margin` and `::: marginalia` place asides; `![](fig-id)` resolves against `assets/`; `$inline$` and `$$display$$` are **math**, rendered by KaTeX during the build. Fourteen directives in all, and all of them are documented live in the tutorial.
 
-**A slide can carry more than a text column.** `::: backdrop <ref>` puts a picture behind the whole slide, edge to edge, and `::: overlay` lays a block of type over it. Both are written at chunk level rather than inside the body, because the text column cannot reach the edges of the slide. A backdrop's *window* can walk the reveal beats – `reveal full, right 45%` retreats the picture to free the paper the title is written on, and adding `over` to the same `{...}` makes the same list, run the other way, grow the picture over the title until it covers it. `::: overlay {…} from 1` is the counterpart for the words.
+**A slide can carry more than a text column.** `::: backdrop <ref>` puts a picture behind the whole slide, edge to edge, and `::: overlay` lays a block of type over it. Both are written at chunk level rather than inside the body, because the text column cannot reach the edges of the slide. A backdrop's *window* can walk the reveal beats – `reveal full, right 45%` retreats the picture to free the paper the title is written on, and adding `over` to the same `{...}` makes the same list, run the other way, grow the picture over the title until it covers it. `::: overlay {…} from 1` is the counterpart for the words. An overlay with `.panel` grows to the frame – a column the full height, a band the full width, or the whole frame veiled – which is how a photograph gets a text area set off from it. `::: dock` is the same vocabulary with the other contract: it is part of the frame and the text column yields to it, a running table of contents beside every slide of a part (`.every` under the `#` heading, with the live item lit), a line that stays under the words, a remark that arrives on a beat into a track kept free for it. A `---` inside any of these blocks is a beat on the slide's own counter.
 
 **`cover:` picks one of ten opening compositions**, ordered quiet to loud: the type in the lower-left third; a nameplate over a lede; a block centred on both axes; a title set to fill the slide; a full field of the accent colour; a claim the talk opens on; a photograph run off one edge or filling the frame; and the title chunk's own `::: draw` figure set beside the title or above it. `## closing:` draws the same composition at the end with the author's own words, so the lecture closes on the shape it opened with. `section:` gives a column's divider six treatments, every one quieter than the cover – including a **running agenda** that lists every part and marks the live one. A divider can also carry its own slide: the lines between a `#` heading and the first chunk are a quotation, a photograph or a figure, whichever the author writes there. [`lectures/decoration/`](lectures/decoration/) shows all of it in one lecture.
 
 **Figures are written, not drawn.** `::: draw` is a small boxes-and-arrows language compiled to inline SVG at build time: elements are named and placed against one another rather than on a canvas, arrows stay attached to boxes that move, and a figure's steps advance on the same key the reveal segments do. Some statements write those boxes, texts and edges for you: a column chart, a repeated cell grid, a cartesian frame, a table of labelled cells, a set of swimlanes, and `sequence`, which draws a protocol down the page &ndash; one lifeline per actor, numbered messages between them, notes and self-messages. Every part `sequence` draws keeps a name, so hanging an annotation off one message is an ordinary line of source rather than something `sequence` has to support. [`figure-design.md`](figure-design.md) is how to lay one out and [`docs/artifact/`](docs/artifact/) teaches the language from nothing. None of `::: draw` is in a tagged release yet.
 
-**Typefaces travel with the file.** Three families ship in any one output, and which three is a per-lecture decision: Literata for the serif, IBM Plex Sans or Inter Tight for the sans, JetBrains Mono or Noto Sans Mono Condensed for the monospace – all under the SIL Open Font License, which permits exactly this. Naming one of them in the `fonts:` block needs no file of your own. `ligatures:` decides separately what a listing does with `->` and `!=`: `text` keeps the ordinary fi and fl in prose and leaves code alone (the default), `all` puts the code ligatures back, `none` removes both. Safari does not expose locally installed fonts to a page at all, as an anti-fingerprinting measure, so a lecture that merely *names* its typefaces falls back to Georgia and the system sans there whatever the reader has installed. The bundle costs about 280 KB per file; `fonts: none` in the frontmatter turns it off.
+**Typefaces travel with the file.** Three families ship in any one output, and which three is a per-lecture decision: Literata, Source Serif 4, Bitter, Noto Serif or Roboto Serif for the serif, IBM Plex Sans or Inter Tight for the sans, JetBrains Mono or Noto Sans Mono Condensed for the monospace – all under the SIL Open Font License, which permits exactly this. Naming one of them in the `fonts:` block needs no file of your own. `ligatures:` decides separately what a listing does with `->` and `!=`: `text` keeps the ordinary fi and fl in prose and leaves code alone (the default), `all` puts the code ligatures back, `none` removes both. Safari does not expose locally installed fonts to a page at all, as an anti-fingerprinting measure, so a lecture that merely *names* its typefaces falls back to Georgia and the system sans there whatever the reader has installed. The bundle costs about 280 KB per file; `fonts: none` in the frontmatter turns it off.
+
+**The transition slides can have a face of their own.** `fonts: {display: Anton}` names a fourth role, and it reaches the cover, the closing slide and the section dividers and nothing else: an ordinary chunk heading, a card, a figure label all keep the body type. Those three slides are the one place in a deck where a loud typeface is not a mistake, because nobody reads a divider, they see that one has arrived. Thirty-two faces ship for it, all under the SIL Open Font License, in three flavours – handwritten, pixel grids and terminals, and poster type. Each carries a size correction measured against the body serif, because these faces differ in width by a factor of three and without it the condensed ones look timid and the wide ones run off the slide; `style: {display-scale: 1.4}` is there for when the face is right and the size is not. A deck that names no display face embeds nothing and builds exactly as before. Neither of the reader's keys can disturb it: `F` cycles the body face and `A` the accent theme, and the cover and the dividers ignore both, though their colour still follows the theme so they stay readable in dark. `lectures/display-face/` is a short deck that shows it.
 
 To use your own instead, drop the files into `fonts/` beside your source and name the families:
 
@@ -140,7 +155,7 @@ Files are matched by name, with weight and style read off the suffix (`Literata-
 
 > **Check the licence before you embed.** Embedding redistributes the font file. The SIL Open Font License and Apache-2.0 – between them nearly every family on Google Fonts – permit this; most commercial *desktop* licences do not, and require a separate webfont licence. psi-slides prints a reminder and makes no attempt to verify anything. It is your call and your responsibility.
 
-Five optional frontmatter keys pin how a lecture opens – `font`, `theme`, `collapse`, `auto-fit`, `slide-numbers`. A key that is present wins over the reader's stored preference; a key that is absent leaves it alone, so a lecture that pins nothing still follows whatever the reader last chose. The composition keys are separate and are not preferences at all: `cover`, `cover-image`, `cover-ratio`, `cover-align`, `section`, `section-mark`, `ligatures`, and a `style:` block carrying heading alignment, the hairlines, and the two type scales. A key with an unknown value fails the build rather than being ignored, because a typo there is otherwise invisible – the lecture still builds and looks fine, it just looks like the author never set anything.
+Six optional frontmatter keys pin how a lecture opens – `font`, `theme`, `collapse`, `auto-fit` (`true`, `false`, or `shrink`, which only ever makes a slide smaller), `slide-numbers`, and `print-slide-numbers`, which follows `slide-numbers` unless you say otherwise. A key that is present wins over the reader's stored preference; a key that is absent leaves it alone, so a lecture that pins nothing still follows whatever the reader last chose. The composition keys are separate and are not preferences at all: `cover`, `cover-image`, `cover-ratio`, `cover-align`, `section`, `section-mark`, `ligatures`, `lang` (which also selects the words the build invents – the TOC heading, the note labels, the type eyebrow – so a German lecture reads German furniture), a top-level `labels:` block that overrides any one of those words, and a `style:` block carrying heading alignment, the hairlines and labels, block alignment, hyphenation, the printed face, the look of a bold phrase per view, and the two type scales. A key with an unknown value fails the build rather than being ignored, because a typo there is otherwise invisible – the lecture still builds and looks fine, it just looks like the author never set anything.
 
 `editor: both | speaker | none` is checked the same way but is neither of those things: it decides which of the two live views carries the experimental figure editor, so what it changes is what ships in the file rather than how the lecture looks, and there is no reader preference for it to yield to. It defaults to `both`. The editor is built for a desktop and has substantial automated test coverage, but it has not yet been tried by many people.
 
@@ -148,12 +163,12 @@ Five optional frontmatter keys pin how a lecture opens – `font`, `theme`, `col
 
 **Hosted players** are a directive of their own, `::: embed <url>`, for YouTube and Vimeo. They are the one thing that makes an output fetch from a third party while you present, so the build says so every time. The frame loads only once its chunk is on screen and unloads when you leave it, nothing autoplays, and play/pause synchronise between projection and cockpit. YouTube additionally needs a real origin, so from a `file://` page it shows a card telling you to run `--serve`; the tutorial explains the whole thing.
 
-Two kinds of note are easy to confuse. A **note** (`> note:`) is yours, written in advance, shown in the cockpit and in the handout. An **annotation** (`N` during a talk) is typed live and the room sees it; `Shift-E` plus `--integrate-annotations` writes annotations back into `source.md` as permanent text.
+Two kinds of note are easy to confuse. A **note** (`> note:`) is yours, written in advance, shown in the cockpit and in the handout. An **annotation** (`N` during a talk) is typed live and the room sees it: while you type it fills the frame at a size the room can read, a single word large and centred, several lines as a block, an address with a QR code above it; `Esc` leaves it as a margin note. `Shift-E` plus `--integrate-annotations` writes annotations back into `source.md` as permanent text.
 
 ## Writing lectures with an LLM assistant
 
 A lecture source is a good thing to hand a language model. It is plain
-Markdown with a small, closed grammar: ten tags, four widths, fourteen `:::`
+Markdown with a small, closed grammar: eleven types, four widths, fourteen `:::`
 directives, one reveal separator. There is nothing to guess at and no binary
 format in the way, so a model that has been shown the rules produces sources
 that build and lint on the first pass. Diffs stay reviewable, because the unit
@@ -178,9 +193,10 @@ If you would rather not use the skill, the minimum useful set is:
   reference, and the one file that shows every directive in real use.
 - [`CLAUDE.md`](CLAUDE.md) – the conventions, the parsing contract, and the
   things that are easy to get wrong.
-- `node lint.js <source.md>` after every edit. It catches unknown tags and
-  widths, missing or duplicate IDs, unclosed directives, and over-budget
-  chunks, which is most of what a model gets wrong.
+- `node lint.js <source.md>` after every edit. It catches unknown types and
+  widths, missing or duplicate IDs, unclosed directives, over-budget chunks
+  and frontmatter keys that no renderer reads, which is most of what a model
+  gets wrong.
 
 Two things go wrong often enough to be worth naming. Models invent plausible
 directives that do not exist (`::: columns`, `::: note`, extra classes in
@@ -222,7 +238,7 @@ What is different here is the combination: one text rendered at two densities, a
 - **A current browser** to read. The stylesheets use `oklch()` colours, `:has()`, and `text-wrap: balance` with no fallbacks, which puts the floor at roughly **Chrome/Edge 114, Firefox 121, Safari 17.5**. Lectures with inline-styled SVG assets additionally need `@scope`: Chrome/Edge 118, Safari 17.4, Firefox 146. Development and real use are in Chrome; other browsers are untested rather than unsupported.
 - **A Chromium**, but only if you use `--slides-pdf`. `playwright-core` is an optional dependency, so `npm install` normally provides one; `$PSI_CHROME`, the Playwright cache and a system Google Chrome are searched in that order. Nothing else in the build needs a browser, and the export is the only thing that stops working without one.
 - **`cwebp` or `magick`** on `PATH`, but only if you use `--optimize-images`. macOS `sips` cannot write WebP, so there is no zero-install fallback for that one command.
-- Image assets are inlined automatically when they total under 10 MB. A single asset over 2 MB fails the build rather than silently shipping an external path – `--optimize-images` converts the offenders to WebP, and `--no-inline-images` is the escape hatch.
+- Image assets are inlined automatically when they total under 10 MB. A single asset over 2 MB fails the build rather than silently shipping an external path – `--optimize-images` converts the offenders to WebP (and downscales a photograph that WebP alone does not bring under the cap), and `--no-inline-images` is the escape hatch.
 - Math is rendered at build time, so the KaTeX fonts have to travel inside the HTML or the output stops opening from `file://`. Only the font families a lecture's formulas actually use are inlined – the tutorial's five come to 166 KB of the 254 KB the full set costs – and a lecture without math inlines none of it. The build prints what it did.
 
 ## Documentation
@@ -232,13 +248,13 @@ What is different here is the combination: one text rendered at two densities, a
 | [`lectures/tutorial/source.md`](lectures/tutorial/source.md) | The authoring reference. Build it and read it as a lecture. |
 | [`lectures/python-intro/`](lectures/python-intro/) | The richest worked example – 36 chunks, the full layout vocabulary. |
 | [`lectures/diagrams/`](lectures/diagrams/) | Every `::: draw` statement drawn rather than described, with real lecture figures among them. |
-| [`lectures/decoration/`](lectures/decoration/) | Everything that decorates a slide, drawn rather than described: the cover family, the six dividers and the three kinds of divider content, cards and rows, backdrops with a reveal, overlays, `{.bare}` headings. |
+| [`lectures/decoration/`](lectures/decoration/) | Everything that decorates a slide, drawn rather than described: the cover family, the six dividers and the three kinds of divider content, cards and rows, backdrops with a reveal, overlays and panels, docks, beats below the top level, `{.bare}` headings. |
 | [`figure-design.md`](figure-design.md) | How to lay out a `::: draw` block so a room can read it. Rules with a wrong and a right version each, in real syntax, and a checklist. |
 | [`docs/artifact/`](docs/artifact/) | The manual for the figure language, from nothing: a figure built a line at a time, then beats, then every class and statement, fifteen design rules and a gallery. Every drawing on it is compiled by the build rather than redrawn. |
 | [`docs/site/figures.html`](docs/site/figures.html) | The case for the figure language, published on the project site: why a lecture figure is not a picture, and three figures that show it. Sends the reader to the manual. |
 | [`editor.md`](editor.md) | Design and build log for the experimental graphical editor: what it edits, what it refuses to edit, and why. |
 | [`docs/comparison.md`](docs/comparison.md) | Beamer, reveal.js, Quarto, Marp, Slidev, PowerPoint and friends, compared in both directions. |
-| [`PRD.md`](PRD.md) | Design rationale. Why four views, why this tag set, why collapse has two mechanisms and not four. |
+| [`PRD.md`](PRD.md) | Design rationale. Why four views, why this type set, why collapse has two mechanisms and not four. |
 | [`speaker.md`](speaker.md) | The cockpit spec and the `postMessage` sync protocol – which fields travel, which stay local. |
 | [`CHANGELOG.md`](CHANGELOG.md) | What is in each release, and what the known limits are. |
 | [`CONTRIBUTING.md`](CONTRIBUTING.md) | What is useful to send, and what to read before touching the code. |
@@ -256,7 +272,7 @@ node build.js <source.md> --watch            # live reload
 node build.js <source.md> --serve            # serve over http on loopback
 node build.js <source.md> --watch --serve    # both
 node build.js <source.md> --audience-only    # also --print-only, --print-notes-only, --speaker-only
-node build.js --new <slug>                   # scaffold a lecture
+node build.js --new <slug> [--into <dir>]    # scaffold a lecture (default: lectures/)
 
 node build.js <source.md> --inline-images    # force inlining
 node build.js <source.md> --no-inline-images # force external asset paths
@@ -272,11 +288,35 @@ node build.js <source.md> --slides-pdf --pdf-collapse=topic-bold   # slide text,
 node build.js <source.md> --slides-pdf --pdf-zoom-max=1.6 # let pages fill more of the sheet
 node build.js <source.md> --slides-pdf --pdf-out=<path>    # default: slides.pdf beside source.md
 
+node build.js <source.md> --watch --prompter             # the live prompter in the cockpit
+node build.js <source.md> --watch --prompter --prompter-model MODEL_ID
+node build.js <source.md> --watch --prompter --prompter-dry-run
+                                             # …everything except the call to the model,
+                                             #   so a rehearsal needs no key
+node build.js <source.md> --prompter-replay prompter-DATE.jsonl
+                                             # read a finished run's log back: what the model
+                                             #   proposed, what today's rules would let through
+
+node build.js <source.md> --squint           # write what the projection paints to squint.txt
+node build.js <source.md> --check-fit        # report any slide that fits the frame and sits outside it
+
 node lint.js lectures/                       # all lectures
 node lint.js lectures/ --strict              # warnings exit 2
 ```
 
-The linter checks unknown tags and widths, duplicate or missing chunk IDs, unclosed `:::` directives and unclosed `$$` math, per-tag word budgets, duplicate explicit-slide blocks, assets over the inline cap, reveal overuse, orphan columns, and redundant figure captions. A source file can silence a check with `<!-- linter: ignore reveal-overuse, density -->`.
+The linter checks unknown types and widths, duplicate or missing chunk IDs, unclosed `:::` directives and unclosed `$$` math, per-type word budgets, duplicate explicit-slide blocks, assets over the inline cap, reveal overuse, orphan columns, and redundant figure captions. A source file can silence a check with `<!-- linter: ignore reveal-overuse, density -->`.
+
+**The live prompter (`--prompter`) is new in 2.0.0, and it is off unless you switch it on.** Run the lecture with `node build.js <source.md> --watch --prompter` and the cockpit listens while you talk. When something needs saying, it shows a short hint on a strip across the bottom of its copy of the slide: you are behind time, a point stays abstract although your slides have an example for it, what you just said contradicts your own slide, you are speaking too fast, or your notes planned something on this slide that you have walked past. It can also add a cue card to a slide still to come, the last slide included, when you said something in passing that is worth saying again there. (The cockpit's `K` mode shows your speaker notes as cue cards; in the ordinary layout the added card appears on the strip when you reach that slide.) A transcript carries no speaking rate, hesitation or silence, so psi-slides counts words a minute, filler sounds and the longest pause itself and hands the model the figures. Chrome's speech recognition often drops filler sounds, so a count of zero proves nothing.
+
+`Shift`-`S` in the cockpit switches the prompter on and off, and nothing listens until you press it. For the first minute a faint line under the strip shows the words the speech recognition picks up, so you can see that it works. After that the same line says when the prompter last asked the model, so you can tell a prompter with nothing to say from one that has stopped.
+
+**The prompter needs an internet connection and an OpenRouter account, and its calls cost money.** It also needs Chrome, because the listening is Chrome's own speech recognition (the Web Speech API), and `--watch`, which keeps `node build.js` running: the cockpit hands what it hears to that running program, and the program asks a language model through openrouter.ai. You create an API key in your OpenRouter account and put it in the environment variable `OPENROUTER_API_KEY` before the talk; each call is charged to that account. What a talk costs depends on the model and on how often the prompter asks. For a sense of scale: one keynote, together with every rehearsal and test run before it, came to about one US dollar with the default model, Claude Sonnet 5. The prompter makes at most 360 calls an hour unless `calls-per-hour` in the `prompter:` block sets a lower limit. Without the key the prompter starts switched off and only writes down what it heard.
+
+**The prompter sends text to openrouter.ai:** the transcript and the lecture's text, speaker notes included. From there it goes to the company that runs the model. The prompter sends no audio. The speech recognition is Chrome's, though, and Chrome sends the audio to Google unless it can run the recognition on your own device; the cockpit says which of the two you are getting. None of this appears on the projection or is written back into `source.md`. `node build.js` reads the key from the environment and never writes it into the HTML files. To try the prompter without calling a model, add `--prompter-dry-run`: it does everything except that call and needs no key, and with recognition on the device, nothing leaves your computer at all. A run makes at most `calls-per-hour` calls in any hour (360 unless the `prompter:` block at the top of `source.md` says otherwise). You pay for the model named in `prompter: {model: …}`, so check its price before you rehearse with an unfamiliar one.
+
+**Each run writes a log beside `source.md`** (`prompter-<date>.jsonl`): what it heard, which hints it showed, and what it wanted to say but its rules stopped, with the rule that stopped it. `--prompter-replay` reads a log back and prints, answer by answer, what the model proposed and what today's rules would do with it. Beside the log, `prompter-<hash>.prompt.txt` holds the lecture's text exactly as the model got it. The log holds your spoken words verbatim. This repository's `.gitignore` covers both files; a lecture kept in a repository of its own needs `prompter-*.jsonl` and `prompter-*.prompt.txt` in its own `.gitignore`. `node build.js` prints the log's full path each time it starts.
+
+**The microphone hears the whole room.** Questions and remarks from the audience are transcribed and sent to the model like your own words. Tell the audience before the talk that the prompter is listening, and switch it off with `Shift`-`S` when someone from the room speaks, for example during questions. Whether you may use it in your setting is for you to check: data protection law (in the EU the GDPR) and the personal rights of the people in the room cover their words too.
 
 ## Hotkeys
 
@@ -290,10 +330,12 @@ Press `?` in either live view for the full on-screen reference. The ones you nee
 - `1`–`9` open expansions – so does clicking the chevron. `Esc` backs out.
 - `O` overview (the letter, not zero – zero resets the zoom), `T` table of contents, `/` search from anywhere – a hit list of every slide that mentions the word.
 - `C` collapse, `F` font, `A` accent theme, `+` `-` `0` zoom.
-- `#` auto-fit: size every slide to the screen. `B` blanks the projection – the speaker window keeps working so you can change slide while the room sees black.
+- `#` auto-fit, in three: off, shrink a slide too big for the frame, size every slide to the screen. `B` blanks the projection – the speaker window keeps working so you can change slide while the room sees black.
+- `D` puts a live demo on the projection: a window or a screen of this machine, picked in the speaker window, shown to the room until `D` again. Serve the lecture with `--serve` and the picture crosses without an encoder; from a double-clicked file it goes through a loopback WebRTC connection. **The very first capture on a Mac does not work** – macOS asks for screen-recording rights for the browser, and that first attempt is refused or shows an empty picture that ends by itself. Allow it, press `D` again, and it works from then on; try it once before the talk.
+- `Shift`-`S` in the speaker window switches the live prompter on and off, when the lecture runs with `--watch --prompter`. The `◌ prompter` button in the footer does the same, and `Shift`-clicking it shows the last ten hints and cards. `Esc` removes the hint currently on the strip.
 - `S` open the speaker window, `P` open the print view.
 - **On a touchscreen** both live views show a small rail along the bottom: forward, back, overview and zoom, with `C`, `F`, `A`, `#`, search and text selection behind the `⋯` button. It appears only on a device with no fine pointer, so an iPad with a keyboard attached does not see it.
-- `L` slide numbers: stacked, in a row, or off.
+- `L` slide numbers: stacked, in a row, or off. `M` shows or hides the `+ note` button that sits in the slide's left gutter – the key it stands for, `N`, works either way.
 
 ## What is stable and what is not
 
@@ -301,6 +343,10 @@ From `1.0.0` the **source format is the interface**: a change that stops an exis
 
 - **`{#id}` attributes are frozen once authored.** They anchor cross-references, TOC entries, sync snapshots, and `localStorage`. Renaming a heading is free; renumbering an ID is not.
 - **Generated HTML is disposable.** Rebuild it, do not commit it. The only tracked outputs are the three reference lectures – `lectures/tutorial/`, `lectures/diagrams/` and `lectures/decoration/` – so the tour and the two construct references can be browsed straight from the repository.
+
+## Security
+
+**A lecture someone sends you is a web page written by that person.** Its HTML can run JavaScript in your browser and tell a server that you opened it, and no version of psi-slides can stop that, because the author decides what goes into the file. A lecture made from Markdown and local files alone makes no network requests. **Run `node build.js` on someone else's `source.md` only with the fixes that land in 2.0.0** (on `main` until that release is tagged), and even then it may read pictures, clips and fonts from the folder one level above its own. [`SECURITY.md`](SECURITY.md) has the details – what a lecture's files can reach on your computer, what `node build.js` refuses, what the live tools and the prompter expose – and how to report a vulnerability privately.
 
 ## Licence
 

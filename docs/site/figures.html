@@ -6,181 +6,254 @@
 <title>Figures you write &ndash; psi-slides</title>
 <link rel="stylesheet" href="site.css">
 <style>
-/* Only what the figure components need. site.css owns the typography, the
-   colours and the chrome, and the diagram stylesheet below asks for --ink,
-   --paper and --rule by those exact names, so the drawings take the site's
-   palette without a line of mapping. These are the tokens site.css has no
-   opinion about. */
+/*
+ * What this page needs and no other page does. Everything else comes from
+ * site.css: the frame, the text scale, the palette, the chrome, the stage,
+ * `.beside`, `.aside-code`, `.pair-up`, `.middle` and the tables.
+ *
+ * The compiler's stylesheet at the foot of this block asks for --ink, --paper
+ * and --rule by exactly the names site.css already defines, so the drawings
+ * take the site's colours without a line of mapping. Only two tokens are left
+ * to declare, and three components: a drawing on a stage, the bar that walks
+ * a figure's beats, and the comparison table.
+ *
+ * NOTHING HERE SETS A TEXT SIZE OF ITS OWN. This page used to carry four
+ * tokens (--t-body 89 %, --t-small 82 %, --t-code 68 %, --t-micro 66 %) and a
+ * --measure of its own, all of them written in rem against a root of 16px
+ * while the body is 19 - which is the exact mistake DESIGN.md's type section
+ * is about. The five steps in site.css are the whole scale now.
+ */
 :root {
   /* The one ink the drawings add to the site's palette. Taken from the site's
-     own accent rather than fixed, so it follows into dark mode with everything
-     else - a fixed dark teal here was legible on paper and gone on a dark
-     ground, which is the whole failure the shared tokens avoid. */
+     own accent rather than fixed, so it follows into dark mode with
+     everything else - a fixed dark teal here was legible on paper and gone on
+     a dark ground, which is the whole failure the shared tokens avoid. */
   --emph: var(--accent);
-  --panel: color-mix(in oklch, var(--ink) 6%, var(--paper));
-  --measure: 52ch;
-  --t-body: 1.0625rem;
-  --t-small: 0.975rem;
-  --t-code: 0.8125rem;
-  --t-micro: 0.78rem;
+  /* The wash that marks the piece of a line a beat changed. One colour with
+     one meaning on this page: this is the part that moved. */
   --yes-wash: color-mix(in oklch, var(--accent) 12%, var(--paper));
 }
-main { max-width: 62rem; }
-/* site.css sets h2 { margin: 0 0 1.2rem } because on index.html every h2 opens
-   a band, and the band s own 4.5rem of padding is the space above it. This page
-   has no bands, so four of its five section headings sat flush against the
-   block before them. h3 gets 2.2rem here; a heading that starts a section with
-   no change of ground under it needs more than one that starts a subsection. */
-main > h2 { margin-top: 3.6rem; }
-.scqa p { max-width: var(--measure); }
-.scqa .answer { font-size: 1.1875rem; line-height: 1.5; }
-.scqa .status {
-  margin-top: 20px; padding: 12px 14px;
-  background: var(--panel); color: var(--ink-soft); font-size: var(--t-small);
-}
-.scqa .status strong { color: var(--ink); font-weight: 500; }
-/* figures-code-fix: site.css paints inline code in its own red; on this page
-   code names things the drawings label in --emph, so the two must agree. The
-   ground is the same one the manual uses, mixed so it follows dark mode. */
+
+/* site.css paints inline code in the site's own red; on this page code names
+   things the drawings label in --emph, so the two have to agree. The ground is
+   the recess every listing sits in, mixed so it follows dark mode. */
 code { color: var(--emph);
   background: color-mix(in oklch, var(--ink) 7%, var(--paper));
   border-radius: 3px; padding: 0.08em 0.28em; word-spacing: -0.12em; }
-pre code, pre .cl, pre .kw, .demo-src code {
-  background: none; padding: 0; word-spacing: normal; }
-.figlead { color: var(--ink-soft); max-width: var(--measure); }
-.handoff { margin: 48px 0 8px; padding: 20px 22px; border: 1px solid var(--rule);
-           background: var(--panel); max-width: var(--measure); }
-.handoff p { margin: 0; }
-.measure { max-width: var(--measure); }
-.lecture-links { max-width: 48rem; margin-top: 1.5rem; }
-.lecture-links th:first-child { width: 24%; }
-.lecture-links td:last-child { color: var(--ink-soft); }
-/* The editor screenshot is the one raster on a page whose every other picture
-   is compiler output, and that is worth keeping legible rather than hiding:
-   it wears site.css's screenshot frame, the same one index.html puts round a
-   shot, so a reader can tell at a glance which pixels are the tool. Held well
-   inside the 62rem measure because it is a picture of a UI, not a figure to
-   read - the lightbox in site.js is what full size is for. */
-.shot.compact { max-width: 51rem; }
-/* The secondary voice, wherever it is used. It was defined twice, once under
-   .rule and once under .prelude, and the seven of these that sit under a
-   stepped demo belong to neither - so they took the full width of the page
-   and ran to about a hundred and fifty characters a line. */
-.why { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; margin-top: 9px; max-width: var(--measure); }
-.why.after { margin-top: 16px; }
-.why b { color: var(--ink); font-weight: 500; }
-.herofig pre .kw { color: var(--emph); }
-.herofig pre .cl { color: var(--ink-soft); }
-/* The figure at the top of the page. It sits in the answer column, in the
-   space the shorter column left empty, so it costs the hero no height. */
-.herotop { margin-top: 26px; }
-.herotop .psi-diagram { width: 100%; height: auto; display: block; }
-.hero-note { margin-top: 24px; display: flex; flex-direction: column; gap: 13px; }
-.hero-note p { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; max-width: var(--measure); }
-.hero-note b { color: var(--ink); font-weight: 500; }
-.hero-note code { color: var(--emph); }
-.tenets {
-  margin-top: 40px; display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(400px, 100%), 1fr));
-  gap: 1px; background: var(--rule); border: 1px solid var(--rule);
+/* …but not inside a listing, where the highlighter has already coloured every
+   token and a second ground under each one would draw a chequerboard. */
+pre .cl, pre .kw { background: none; padding: 0; word-spacing: normal; }
+
+/*
+ * ── A drawing stands on a stage, like a screenshot ────────────────────────
+ *
+ * DESIGN.md argues the stage from "every picture on this site is a picture of
+ * text": a shot of a slide full of prose reads as more page unless two edges
+ * separate it. A compiled drawing has that problem more weakly - it is mostly
+ * air and a dozen labels - and the temptation was to give it a quieter
+ * treatment. It gets the same stage, because it has a second problem the
+ * screenshots do not have: the compiler paints in the page's own tokens, so a
+ * box is filled --paper and outlined --ink on a page whose ground is --paper.
+ * A drawing dropped straight onto the page has no edge at all. The field is
+ * the edge, and the paper card on it is the third ground, exactly as a
+ * screenshot gets --stage under --shot-bg.
+ *
+ * What a drawing does not get is a window bar: there is no window. That is
+ * what `.shot.drawn` on index.html already says, and this is the same case.
+ *
+ * `.herotop` and `.demo-stage` are written by refresh-figures.mjs and their
+ * class names cannot change, so the card is styled through them rather than
+ * through a class of this page's own. `.fig-card` is the third caller, for
+ * the one drawing that is spliced in as a bare <svg>.
+ */
+.fig-card, .herotop, .demo-stage {
+  background: var(--paper);
+  border: 1px solid var(--frame);
+  border-radius: 6px;
+  padding: clamp(0.9rem, 1.8vw, 1.6rem);
+  display: flex;
+  justify-content: center;
 }
-.tenet { background: var(--paper); padding: 24px clamp(18px, 2.2vw, 26px) 28px; display: flex; flex-direction: column; gap: 10px; }
-.tenet .t { font-family: var(--mono); font-size: var(--t-micro); letter-spacing: 0.11em; color: var(--emph); }
-.tenet h3 { font-size: 1.22rem; max-width: none; }
-.tenet p { font-size: var(--t-body); line-height: 1.6; }
-.tenet .why { margin-top: 2px; }
-.tenet code { color: var(--emph); }
-/* The same wash the six stages use to mark the lines a step added, so one
-   colour means one thing on this page: this is the part that changed. */
-.tenet code b { background: var(--yes-wash); box-shadow: 0 0 0 2px var(--yes-wash); border-radius: 2px; color: var(--emph); font-weight: 500; }
-/* ── against the two things a reader already knows ────────────── */
-.versus { margin-top: 48px; border: 1px solid var(--rule); overflow-x: auto; }
-.versus table { border-collapse: collapse; width: 100%; min-width: 760px; background: var(--paper); }
-.versus th, .versus td {
-  text-align: left; vertical-align: top;
-  padding: 15px clamp(12px, 1.5vw, 18px);
-  border-bottom: 1px solid var(--rule);
-  font-size: var(--t-small); line-height: 1.5;
+.fig-card > .psi-diagram, .herotop > .psi-diagram, .demo-stage > .psi-diagram {
+  width: 100%; height: auto; display: block;
 }
-.versus thead th { font-family: var(--sans); font-weight: 500; color: var(--ink); font-size: var(--t-body); border-bottom: 1px solid var(--ink); }
-.versus thead th span { display: block; margin-top: 5px; font-family: var(--mono); font-size: var(--t-micro); font-weight: 400; letter-spacing: 0.02em; color: var(--ink-soft); }
-.versus tbody th { font-family: var(--sans); font-weight: 400; color: var(--ink); width: 19%; }
+/* Height caps, per figure, and the reason they differ: the two in the flow of
+   the argument are wide and shallow and are read at a glance; the passkey
+   sequence is a tall drawing that is the whole point of its section. */
+.fig-card > .psi-diagram { max-height: 34vh; }
+.herotop > .psi-diagram { max-height: 34vh; }
+.demo-stage > .psi-diagram { max-height: 48vh; }
+.demo-stage[data-demo="seq-demo"] > .psi-diagram { max-height: 76vh; }
+/* The hero figure is the one drawing that is not on a stage: it stands in the
+   hero's own column, where the two paragraphs beside it are the second thing
+   in the row and there is no picture-under-prose to separate. It keeps the
+   card so it still has an edge. */
+.herotop { margin-top: 1.4rem; }
+
+/*
+ * The one raster on the page, and the other branch of DESIGN.md's fifth rule.
+ * The editor's own interface type is 13px in a 1920px shot, so at the frame's
+ * width it renders at 7.9px and at any width this page can give it: nobody
+ * reads it, which means it is EVIDENCE rather than something to read, and
+ * evidence goes small. It is set to the width at which the arrangement is
+ * still legible as an arrangement - a toolbar, a canvas with a figure and the
+ * relations written on it, a panel down the right, a rail of beats, a strip of
+ * the lecture's other figures - and that is 46rem, 736px, 489 tall. It was
+ * 1163px wide and 957 tall, which is a screen and a half of one picture.
+ */
+figure.shot.evidence { max-width: 46rem; margin-inline: auto; }
+
+/*
+ * ── A figure, the bar that walks it, and its source ───────────────────────
+ *
+ * One object in three parts, so the hairlines between them are shared and the
+ * corners are rounded once, at the outside. The source belongs to the figure
+ * above it, not to the page, which is why it is inside the frame and not in
+ * the page's own listing recess.
+ */
+/*
+ * ── How large a drawing is, as a number ───────────────────────────────────
+ *
+ * DESIGN.md's fifth rule - a picture is as large as what it has to show, and
+ * no larger - had no number on this page, so every figure that could not be a
+ * band took the frame by default and three of them came out as posters. The
+ * three boxes under "Beats let figures come alive" were drawn 1187px wide for
+ * a drawing 719 units across: its labels rendered at 25px against 19px prose,
+ * which is a diagram shouting over the text that introduces it.
+ *
+ * The number: a drawn figure is scaled so its labels are about the size of
+ * the prose beside them. A `::: draw` label is 15 units, prose is 19px, so
+ * the target is the viewBox's width times 19/15, plus the card's own padding.
+ * That is not a house style, it is the same reasoning DESIGN.md gives for the
+ * type scale - a figure among prose is read at the prose's size.
+ *
+ *   hero (in the hero's column, 469 units)   →  646px, and it already was 631
+ *   #seven (441 units)                       →  611px, was 827
+ *   follow (719 units)                       →  963px, was 1247
+ *   seq-demo (1053 units)                    → 1386px, and the frame is 1226
+ *
+ * The passkey sequence is the one that wants MORE than the frame, so it takes
+ * all of it and its labels still come out at 16.7px, a step under the prose.
+ * That is what a figure earning the frame looks like, and it is the only one
+ * on the page.
+ *
+ * The widths below are in rem, and a rem here is the browser's 16px, not the
+ * page's 19px body size - the same trap the type scale at the top of site.css
+ * records. 38rem is 608px, 60rem is 960.
+ *
+ * Centred, not left-aligned. A stage is a field a picture stands on, and a
+ * field's margin is even; the stage itself keeps the frame's left edge, so
+ * the page's one left edge is untouched.
+ */
+.demo { display: flow-root; margin-inline: auto; }
+.demo:has(> .fig-card) { max-width: 38rem; }
+.demo:has(> [data-demo="follow"]) { max-width: 60rem; }
+/* No cap: see above. */
+.demo:has(> [data-demo="seq-demo"]) { max-width: none; }
+.demo-stage, .demo > .fig-card { border-radius: 6px 6px 0 0; }
+/* site.css caps a listing at 62rem, which is right for a listing standing on
+   the page and wrong for one that is the lower half of a framed object: it
+   left the source three rems narrower than the figure above it. */
+.demo > pre { max-width: none; }
+.demo-bar {
+  display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;
+  border: 1px solid var(--frame); border-top: 0;
+  background: var(--paper);
+  padding: 0.5rem 0.6rem;
+}
+.db {
+  font: 500 var(--fs-fine)/1 var(--mono);
+  letter-spacing: 0.06em; text-transform: uppercase;
+  color: var(--ink); background: var(--paper); border: 1px solid var(--rule);
+  padding: 0.4rem 0.6rem; cursor: pointer; min-width: 2.2rem;
+}
+.db:hover:not(:disabled) { border-color: var(--emph); color: var(--emph); }
+.db:disabled { opacity: 0.38; cursor: default; }
+/* The beat rail. Its labels are the beat names out of the lecture source, so
+   they are names rather than sentences - the fine step, and the floor. */
+.rail {
+  display: flex; flex-wrap: wrap; gap: 0.2rem;
+  list-style: none; margin: 0 auto 0 0.3rem; padding: 0;
+}
+.rail button {
+  font: var(--fs-fine)/1 var(--mono); letter-spacing: 0.03em; color: var(--ink-soft);
+  background: none; border: 0; border-bottom: 2px solid transparent;
+  padding: 0.35rem 0.4rem 0.25rem; cursor: pointer;
+}
+.rail button:hover { color: var(--emph); }
+.rail li[aria-current="true"] button { color: var(--ink); border-bottom-color: var(--emph); }
+.demo-src, pre[data-opensrc] {
+  font-family: var(--mono); font-size: var(--fs-code); line-height: 1.6; margin: 0;
+  padding: 0.8rem clamp(0.8rem, 1.6vw, 1.2rem) 0.9rem;
+  border: 1px solid var(--frame); border-top: 0; border-radius: 0 0 6px 6px;
+  background: var(--paper); color: var(--ink);
+}
+.demo-src .kw, pre[data-opensrc] .kw { color: var(--emph); }
+.demo-src .cl, pre[data-opensrc] .cl { color: var(--ink-soft); }
+.demo-src .cm { color: var(--ink-soft); font-style: italic; }
+.demo-src .st { color: var(--ink); font-weight: 500; }
+/*
+ * Every listing on this page is one source line per block-level span, with a
+ * hanging indent so a line that wraps reads as a continuation rather than as
+ * a new statement. It is what lets the listings wrap at the site's code size
+ * instead of scrolling behind their own edge, which is Punkt 12 in
+ * DESIGN.md's terms.
+ */
+pre .srcln { display: block; padding-left: 2.4em; text-indent: -2.4em; }
+/* A blank line in a diagram block is the author's own break - it is what
+   separates the drawing from the steps that move it. An empty block box is
+   zero pixels tall, so every one of those breaks was silently dropped and the
+   longest listings arrived as a single wall of source. */
+pre .srcln:empty::before { content: "\00a0"; }
+
+/*
+ * ── The comparison table ──────────────────────────────────────────────────
+ *
+ * site.css owns `table` and `.scroller`; what is left is the three things
+ * this one table does that no other does.
+ */
+.versus { min-width: 48rem; }
+.versus thead th { color: var(--ink); border-bottom: 1px solid var(--ink); }
+.versus thead th span {
+  display: block; margin-top: 0.25rem;
+  font-family: var(--mono); font-size: var(--fs-fine); font-weight: 400;
+  color: var(--ink-soft);
+}
+.versus tbody th { font-weight: 500; color: var(--ink); width: 19%; }
 .versus tbody td { color: var(--ink-soft); }
 /* The column the page is about reads in the primary ink; the two it is being
    measured against read as the secondary voice, like every other aside here. */
 .versus tbody td:last-child { color: var(--ink); }
 .versus tbody tr:last-child th, .versus tbody tr:last-child td { border-bottom: 0; }
-/* The row that says what the other two do better. It is shaded rather than
+/* The row that says what the other two do better. It is set apart rather than
    dropped, because a comparison that only runs one way is an advertisement. */
-.versus tr.fair { background: var(--panel); }
+.versus tr.fair { background: var(--code-bg); }
 .versus tr.fair th { font-style: italic; }
-.spec pre .srcln, .side pre .srcln, figure.card pre .srcln, .demo-src .srcln, .herofig pre .srcln {
-  display: block; padding-left: 2.4em; text-indent: -2.4em;
+
+/* The wash again, this time on the fragment of an inline code span that a
+   drag rewrites. Same colour, same meaning: this is the part that changed. */
+.cue code b, p code b {
+  background: var(--yes-wash); box-shadow: 0 0 0 2px var(--yes-wash);
+  border-radius: 2px; color: var(--emph); font-weight: 500;
 }
-/* A blank line in a diagram block is the author's own break - it is what
-   separates the drawing from the steps that move it. Each source line is
-   emitted as its own block-level span, and an empty block box is zero
-   pixels tall, so every one of those breaks was silently dropped and the
-   longest listings arrived as a single wall of source. */
-pre .srcln:empty::before { content: "\00a0"; }
-.spec pre .kw { color: var(--emph); }
-.spec pre .cl { color: var(--ink-soft); }
-/* Lines this step introduced. The wash is drawn with a spread shadow so
-   it hugs the text without taking part in the layout of a <pre>. */
-.spec pre .add { background: var(--yes-wash); box-shadow: 0 0 0 2px var(--yes-wash); border-radius: 2px; }
-figure.card details.src pre .kw { color: var(--emph); }
-figure.card details.src pre .cl { color: var(--ink-soft); }
-.rule .why { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; margin-top: 9px; max-width: var(--measure); }
-.rule .why.after { margin-top: 16px; }
-.rule .why b { color: var(--ink); font-weight: 500; }
-.prelude .why { color: var(--ink-soft); font-size: var(--t-body); line-height: 1.6; margin-top: 9px; max-width: var(--measure); }
-.prelude .why.after { margin-top: 16px; }
-.prelude .why b { color: var(--ink); font-weight: 500; }
-.side pre .kw { color: var(--emph); }
-.side pre .cl { color: var(--ink-soft); }
-.anatomy .measure { margin-bottom: 20px; }
-/* ── the two live demos ───────────────────────────────────────────────
-   The figure, a bar to walk its beats, and the source that produced it.
-   The runtime is the one a projected lecture ships, lifted by
-   docs/artifact/refresh-figures.mjs rather than reimplemented here. */
-.demo { margin-top: 44px; }
-.demo h3 { margin-bottom: 8px; }
-.demo .demo-lede { color: var(--ink-soft); font-size: var(--t-body); margin-bottom: 18px; }
-.demo-stage { background: var(--paper); border: 1px solid var(--rule); padding: clamp(16px, 2.4vw, 28px); display: flex; justify-content: center; }
-.demo-stage .psi-diagram { width: 100%; height: auto; max-height: 340px; }
-.demo-stage[data-demo="seq-demo"] .psi-diagram { max-height: 620px; }
-.demo-bar { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; border: 1px solid var(--rule); border-top: 0; padding: 10px 12px; }
-.db {
-  font: 500 var(--t-micro)/1 var(--mono); letter-spacing: 0.08em; text-transform: uppercase;
-  color: var(--ink); background: var(--paper); border: 1px solid var(--rule);
-  padding: 7px 11px; cursor: pointer; min-width: 34px;
-}
-.db:hover:not(:disabled) { border-color: var(--emph); color: var(--emph); }
-.db:disabled { opacity: 0.38; cursor: default; }
-.db:focus-visible { outline: 2px solid var(--emph); outline-offset: 2px; }
-.rail { display: flex; flex-wrap: wrap; gap: 6px; list-style: none; margin: 0 auto 0 4px; padding: 0; counter-reset: beat -1; }
-.rail button {
-  font: var(--t-micro)/1 var(--mono); letter-spacing: 0.05em; color: var(--ink-soft);
-  background: none; border: 0; border-bottom: 2px solid transparent;
-  padding: 5px 6px 4px; cursor: pointer;
-}
-.rail button:hover { color: var(--emph); }
-.rail button:focus-visible { outline: 2px solid var(--emph); outline-offset: 1px; }
-.rail li[aria-current="true"] button { color: var(--ink); border-bottom-color: var(--emph); }
-.demo-src {
-  font-family: var(--mono); font-size: var(--t-code); line-height: 1.6; margin: 0;
-  padding: 15px clamp(14px, 2vw, 20px) 17px; border: 1px solid var(--rule);
-  border-top: 0; color: var(--ink);
-  /* The longest line in the three demo sources is 97 characters, which at
-     this size fits the full column - so these are the one listing on the
-     page with room to stand unwrapped. Below that width they scroll inside
-     their own box, which is what the narrow columns cannot do. */
-  overflow-x: auto; white-space: pre;
-}
-.demo-src .kw { color: var(--emph); }
-.demo-src .cl { color: var(--ink-soft); }
-.demo-src .cm { color: var(--ink-soft); font-style: italic; }
-.demo-src .st { color: var(--ink); font-weight: 500; }
+
+/* The editor shot is the one raster on a page whose every other picture is
+   compiler output. It wears the site's window bar with the traffic lights,
+   which the rest of the site has dropped: here the point is that the editor is
+   an application and not a slide. It carried a 51rem cap, which on a stage
+   running the frame left a third of the field empty beside it, and a vh cap
+   after that, which did the same thing to the picture inside its own box: at
+   1920x1275 the shot is height-limited before it is width-limited on any
+   normal laptop. It takes the stage, and the lightbox is what full size is
+   for. No rule of its own is needed for that - site.css already sizes a shot.
+*/
+
+/* The closing band is one paragraph and a byline, and `.middle` centres a
+   62rem block inside the frame - which a paragraph held at the measure then
+   sits in the left half of. That is the half-empty row again, only centred.
+   Here the block IS the measure, so the space is even on both sides. */
+.band-close .middle { max-width: var(--measure); }
+.band-close .middle p { max-width: none; }
 /* dg-css-start */
 .figure-diagram { margin: 0.7em 0; }
 .psi-diagram {
@@ -205,12 +278,25 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
      with a caption and often arrives in portrait; a diagram is landscape and
      is usually the whole point of the chunk, and at 50vh a wide one was
      height-capped hard enough to leave a third of the measure empty beside
-     it. */
-  max-height: 62vh;
+     it.
+     Off --slide-h rather than off vh, for the reason every other slide-
+     internal size is: the cockpit lays the mirror out at the AUDIENCE window's
+     dimensions and then transforms it into its cell, so a raw vh there is the
+     cockpit window's and the same figure was capped at a different height in
+     the two windows. Print defines no --slide-h and falls back to the number
+     this rule has always had; it overrides the cap anyway (PRINT_CSS). */
+  max-height: calc(var(--slide-h, 100vh) * 0.62);
   height: auto;
 }
 @media print {
-  .psi-diagram { max-height: none; }
+  /* How tall a diagram may be on paper is not answered here. This block used
+     to say max-height: none, on the reasoning that a vh cap is a slide
+     proportion and a sheet of paper is not a slide - true, and it left the
+     document with no cap at all, so a portrait diagram resolved to the
+     measure times its ratio and came out taller than the page. The answer
+     now lives beside every other figure kind in PRINT_CSS, under a selector
+     specific enough to beat the cap above in both media. Do not re-add a
+     .psi-diagram max-height here without reading that rule. */
   /* A diagram is one picture; splitting it across a page break makes it
      two useless halves. */
   .figure-diagram { break-inside: avoid; page-break-inside: avoid; }
@@ -223,7 +309,7 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
    white. The tone rules below always used the child combinator; this one and
    the text rule did not, which is why the two of them were the leak. */
 .psi-diagram .dg-el > rect, .psi-diagram .dg-el > circle, .psi-diagram .dg-el > .dg-shape {
-  fill: var(--paper); stroke: var(--ink); stroke-width: 1.4; rx: 4px;
+  fill: var(--paper); stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); rx: 4px;
 }
 /* A box whose outline is not a rectangle is a <path>, so every rule below
    that paints a box has to name it too. They do it through :is(), which is
@@ -231,7 +317,7 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
    was a third copy of each one. The join is rounded so a chevron's nose is a
    point rather than a miter spike. */
 .psi-diagram .dg-shape { stroke-linejoin: round; }
-.psi-diagram .dg-stroke { stroke: var(--ink); stroke-width: 1.4; fill: none; stroke-linejoin: round; }
+.psi-diagram .dg-stroke { stroke: var(--ink); --dg-sw: 1.4px; stroke-width: var(--dg-sw); fill: none; stroke-linejoin: round; }
 .psi-diagram .dg-head { fill: var(--ink); stroke: none; }
 /* Same reason: a diagram's own labels live inside a .dg-lbl wrapper, and
    type inside an embedded drawing is the drawing's business. */
@@ -260,7 +346,7 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
    trust boundary, a segment, a machine - it has to read as a statement.
    Dashed at that weight it was barely visible on a shaded ground, which
    is exactly where these are usually drawn. */
-.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); stroke-width: 1.3; }
+.psi-diagram .dg-container > :is(rect, circle, .dg-shape) { fill: none; stroke: color-mix(in oklab, var(--ink) 42%, var(--paper)); --dg-sw: 1.3px; stroke-width: var(--dg-sw); }
 .psi-diagram .dg-caption text { fill: var(--ink-soft); }
 
 /* braces have no fill and no head */
@@ -298,11 +384,27 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
    different kind of thing. .muted is scaffolding - an axis, a leader, a zone
    outline - and scaffolding is drawn thinner as well as lighter. .dim is the
    other axis entirely: full colour at a third of the strength, which is what
-   the dim step operation reaches for when a beat moves on. */
-.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); stroke-width: 1.05; }
-.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); stroke-width: 1.05; }
+   the dim step operation reaches for when a beat moves on.
+
+   A muted *line* is --ink-soft and a muted *word* is not, and that split is
+   the correction. --ink-soft is picked against the paper, and a caption is
+   very often standing on something else: measured at 1600x900 on the default
+   theme, --ink-soft type reads 3.44:1 on the paper, 2.76:1 on a .tone-1 area
+   and 2.11:1 on a .tone-3 one, against the 3:1 anything on a projector has
+   to clear. A line has no such floor - an axis is followed, not read - so it
+   keeps the token and the 1.05 weight that say scaffolding. The words are
+   mixed straight out of the two inks instead, dark enough to hold on the
+   three light tints and still visibly quieter than --ink.
+
+   Two grounds it cannot answer for, and both are the ground being wrong
+   rather than the type: a .tone-4 area is the accent at full strength, where
+   this mix reads worse than --ink-soft did and only the inverted label two
+   rules down is legible; and a dark theme's paper, where the mix follows
+   --ink and --paper and so inverts with them. */
+.psi-diagram .muted > :is(rect, circle, .dg-shape) { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
+.psi-diagram .muted .dg-stroke { stroke: var(--ink-soft); --dg-sw: 1.05px; stroke-width: var(--dg-sw); }
 .psi-diagram .muted .dg-head { fill: var(--ink-soft); }
-.psi-diagram .muted text { fill: var(--ink-soft); }
+.psi-diagram .muted text { fill: color-mix(in oklab, var(--ink) 60%, var(--paper)); }
 
 /* .tone-4 inverts its own label, and that has to win over .accent text:
    accent ink on an accent fill is invisible, legal, and would otherwise be
@@ -329,9 +431,47 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
    rule the free text's ground already needs, for exactly the same reason. */
 .psi-diagram .dg-edge:not(.tone-1):not(.tone-2):not(.tone-3):not(.tone-4):not(.paper) > rect { fill: none; }
 
-.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke { stroke-dasharray: 6 4; }
-.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke { stroke-dasharray: 1.5 3.5; stroke-linecap: round; }
-.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { stroke-width: 2.6; }
+/* The two stroke patterns, stated as multiples of the line they pattern
+   rather than as pixels. --dg-sw is set beside every stroke-width above, on
+   the same element and by the same selector, so a .thick outline gets a
+   longer dash instead of the same dash on a fatter line - which is what 6 4
+   was: 4.3 line-widths of ink and 2.9 of paper at the normal weight, and a
+   dashed box then drew the eye harder than the solid one beside it. It also
+   stumbled at the corners: on a 13px .round corner a 10px period puts one or
+   two dashes on the whole arc, so a gap landing on the apex reads as a
+   chipped box. 2.2 and 1.5 halve the period, which does not divide a
+   perimeter evenly either - nothing does, in general - but a small dash with
+   a small gap hides the seam instead of announcing it.
+   Butt caps, deliberately: a round cap adds half a line-width of ink at each
+   end and would put the dash back where it started. */
+.psi-diagram .dashed > :is(rect, circle, .dg-shape), .psi-diagram .dashed .dg-stroke {
+  stroke-dasharray: calc(var(--dg-sw, 1.4px) * 2.2) calc(var(--dg-sw, 1.4px) * 1.5);
+}
+/* Dots, and they have to be round dots or the word means nothing: a zero-
+   length dash under a round cap draws a disc one line-width across, and the
+   gap is 2.5 of those. It used to be 1.5 3.5 with the round cap on top, which
+   is a 2.9px dash at the normal weight - a fine dashed line under another
+   name - and at .thick a 4.1px dash with 0.9px of paper between, so the
+   dotted box in the class catalogue was very nearly solid. */
+.psi-diagram .dotted > :is(rect, circle, .dg-shape), .psi-diagram .dotted .dg-stroke {
+  stroke-dasharray: 0 calc(var(--dg-sw, 1.4px) * 2.5); stroke-linecap: round;
+}
+/* A muted dot is a plain dot in the muted ink, never a smaller one. .muted
+   thins a line to 1.05 so that scaffolding reads as scaffolding, and a dot
+   is one line-width across - so .dotted .muted drew discs of 1.9px at a
+   typical figure scale, anti-aliased below their own colour: the peak pixel
+   reached 2.56:1 on the light themes where a solid muted line reaches 2.76,
+   and a band across the line carried a quarter of a muted line's ink or
+   less on all seven themes. The floor is the plain weight, so the pattern
+   is exactly .dotted's and only the ink is quieter, and the gap is stated
+   against the floored width so the dots keep their 2.5 line-widths of
+   paper. max() rather than a fixed 1.4: a .thick or .emph line keeps the
+   2.6 it set. A plot's grid is this pair, written by the compiler. */
+.psi-diagram .muted.dotted > :is(rect, circle, .dg-shape), .psi-diagram .muted.dotted .dg-stroke {
+  stroke-width: max(var(--dg-sw), 1.4px);
+  stroke-dasharray: 0 calc(max(var(--dg-sw), 1.4px) * 2.5);
+}
+.psi-diagram .thick > :is(rect, circle, .dg-shape), .psi-diagram .thick .dg-stroke { --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .bare > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .round > rect { rx: 13px; }
 .psi-diagram .sharp > rect { rx: 0; }
@@ -346,15 +486,50 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
    costs no extra font payload. */
 .psi-diagram .hand text { font-family: var(--dg-serif); font-style: italic; fill: var(--emph); }
 
-/* .ghost and .dim deliberately do NOT set opacity here. Visibility and the
-   two softening classes share one channel, and author CSS beats a
-   presentation attribute – so an element pinned at 0.45 by this stylesheet
-   could never be hidden, and its show step did nothing at all. Both the
-   emitter and the runtime resolve the channel once, in dgOpacity(). */
+/* .ghost and .dim deliberately do NOT set opacity on the group here.
+   Visibility and the two softening classes share one channel, and author CSS
+   beats a presentation attribute – so an element pinned at 0.45 by this
+   stylesheet could never be hidden, and its show step did nothing at all.
+   Both the emitter and the runtime resolve that channel once, in
+   dgOpacity().
+
+   What the two rules below touch is a *child* of the group, which is a
+   different thing and safe for the same reason: the alphas multiply, so a
+   hide still takes the whole element to zero. They exist because one alpha
+   over a whole group fades the words as hard as the box, and a word at 0.3
+   is not quiet but unreadable – 1.95:1 against its own fill on the paper,
+   1.88:1 standing on a .tone-3 area. dgOpacity() now returns the *ink*
+   number and these put the ground back where it was: 0.6 x 0.5 is the 0.3
+   that was there before, 0.75 x 0.6 the 0.45, so every existing figure's
+   outline, fill, stroke, arrowhead and picture are unmoved to the pixel and
+   only the type gains. The factors come from DG_SOFT_GROUND rather than
+   being typed here twice.
+
+   Type is what is deliberately NOT in the selector lists. Everything else a
+   softened element can draw is. */
+.psi-diagram .dim > :is(rect, circle, .dg-shape, image),
+.psi-diagram .dim .dg-stroke,
+.psi-diagram .dim .dg-head { opacity: 0.5000; }
+.psi-diagram .ghost > :is(rect, circle, .dg-shape, image),
+.psi-diagram .ghost .dg-stroke,
+.psi-diagram .ghost .dg-head { opacity: 0.6000; }
 /* emph / dim are what a step reaches for; both stay inside the palette */
-.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); stroke-width: 2.6; }
-.psi-diagram .emph .dg-stroke { stroke: var(--emph); stroke-width: 2.6; }
+.psi-diagram .emph > :is(rect, circle, .dg-shape) { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
+.psi-diagram .emph .dg-stroke { stroke: var(--emph); --dg-sw: 2.6px; stroke-width: var(--dg-sw); }
 .psi-diagram .emph .dg-head { fill: var(--emph); }
+/* A chart's column: what it is filled with, and what emph does to it. A
+   column draws no outline, so paper would make it vanish and there is nothing
+   but its fill to emphasise; the rules come from DG_BAR_FILLS in
+   diagram-core, which is also what the linter reads when it says a column is
+   too pale for a theme - one table, so the warning is about the colour that
+   is drawn. The block sits after the box tones on purpose: a column's tone
+   rule is one class more specific and has to win. */
+.psi-diagram .dg-bar > rect { fill: color-mix(in oklab, var(--ink) 55%, var(--paper)); }
+.psi-diagram .dg-bar.tone-1 > rect { fill: color-mix(in oklab, var(--emph) 70%, var(--paper)); }
+.psi-diagram .dg-bar.tone-2 > rect { fill: color-mix(in oklab, var(--ink) 45%, var(--paper)); }
+.psi-diagram .dg-bar.tone-3 > rect { fill: color-mix(in oklab, var(--ink) 68%, var(--paper)); }
+.psi-diagram .dg-bar.emph > rect { fill: var(--emph); stroke: none; }
+.psi-diagram .dg-bar.tone-4.emph > rect { stroke: none; }
 /* Words are the third thing emphasis can act on, and leaving them out left the
    emph verb on a text accepted and completely inert - the ground rule at the
    foot of this stylesheet refuses to stroke a label's rect, deliberately and
@@ -378,6 +553,20 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
    so source order does not decide it. (No backticks in here: this whole
    stylesheet is a template literal, and one would end it.) */
 .psi-diagram .tone-4.emph > :is(rect, circle, .dg-shape) { stroke: var(--ink); }
+/* emph acts in the prominence slot and .bare in the stroke-weight slot, so
+   neither may overwrite the other - and until this rule the emphasis stroke
+   two blocks up put the outline back on an element that had just taken it
+   off, at the same specificity and later in source order. On a table of type
+   on the paper (.bare .clear cells are the spelling for that) a lit row came
+   out as a row of red empty rectangles that the room reads as a form. So on
+   a .bare element emph emphasises the *ink* - the accent fill and the weight
+   the .emph text rule above already give a free text - and draws no outline.
+   That is the same correction DG_BAR_FILLS makes one channel along, where
+   emph on a column is a solid accent fill rather than the accent outline it
+   is on every other shape: emphasis has to act on whatever the element
+   actually draws. Three classes in the selector, and written after the
+   .tone-4.emph rule, so it wins where an element carries both. */
+.psi-diagram .bare.emph > :is(rect, circle, .dg-shape) { stroke: none; }
 
 /* A label's ground is never stroked, and this is where that has to be said.
    It was written up with the two rules that create the ground, above the
@@ -390,6 +579,31 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
 .psi-diagram .dg-text > :is(rect, circle, .dg-shape) { stroke: none; }
 .psi-diagram .dg-edge > :is(rect, circle, .dg-shape) { stroke: none; }
 
+/* An edge label its own line runs through. The compiler decides it from the
+   routed geometry and writes dg-halo into the beat's class string; this is
+   what the word means. The offset that lifts a label off its line clears it
+   at the *midpoint*, and an elbow's two outer runs, a doubled-back via route
+   and a curve that comes back on itself are all somewhere else on the same
+   path - so a label can be correctly beside the line it labels and still have
+   another stretch of that same line drawn through the middle of it, which the
+   room reads as struck through.
+
+   paint-order and not a rect, because a rect is as wide as the whole run
+   where the crossing is one word long, and on a curve that erases the arc the
+   label belongs to. The stroke is the paper, so it knocks out the glyph
+   shapes and nothing else. Written after every rule that sets a text fill, so
+   a muted or accented label keeps its own colour and only gains the knockout.
+
+   3.2px against a 1.4 line: the stroke is centred on the glyph outline, so
+   half of it is inside the letters and the gap the line sees is about 1.6px
+   each side. Less and a 1.4 stroke still touches the serifs. */
+.psi-diagram .dg-halo text {
+  paint-order: stroke fill;
+  stroke: var(--paper);
+  stroke-width: 3.2px;
+  stroke-linejoin: round;
+}
+
 .dg-hint { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .psi-diagram .dg-el { transition: none; }
@@ -399,16 +613,24 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
 </head>
 <body>
 <!--topbar-->
-<main>
+<main class="banded">
 
-<section class="scqa hero">
+<section class="band band-hero">
+ <div class="wrap">
   <p class="mark"><b>psi-slides</b> &middot; a figure language for lectures</p>
   <h1>Figures you write</h1>
+
+  <!-- Half-empty row, answer 1, and the one place on this page where the two
+       halves are the same weight rather than words against a picture: the
+       claim on the left, the answer to it on the right. site.css owns
+       `.hero-cols` for exactly this hero. The drawing goes into the right
+       column under the answer it illustrates, so it costs the hero no height
+       and the two columns still end on one line. -->
   <div class="hero-cols">
     <div class="hero-col">
-      <p>Every lecture needs figures, and you already have a way to make them. PowerPoint, Keynote, Illustrator, Inkscape, TikZ, Mermaid, … – and for pictures that are drawn once and looked at once those are the right tools.</p>
+      <p>You already have a way to make figures. PowerPoint, Keynote, Illustrator, Inkscape, TikZ, Mermaid, … – and for a picture that is drawn once and never revised, those are the right tools.</p>
 
-      <p>We believe <strong>lecture figures</strong> are different. They should be <strong>built up in front of a room</strong> while somebody talks over them, <strong>survive the slides being reordered</strong>, and come out of the <strong>same file as the printed handout</strong>. Ideally, changes can be tracked, invisible annotations can be added, edges move with their objects, and an LLM can read and change them.</p>
+      <p>We believe <strong>lecture figures</strong> are different. They should be <strong>built up in front of a room</strong> while you talk over them, <strong>survive the slides being reordered</strong>, and come out of the <strong>same file as the printed handout</strong>. Ideally a diff shows what changed, a comment can sit in the source without reaching the screen, arrows move with the boxes they join, and a language model can read a figure and edit it.</p>
 
       <div class="cta">
         <a class="primary" href="#seven">See it in seven lines</a>
@@ -416,11 +638,11 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
       </div>
     </div>
     <div class="hero-col">
-      <p class="answer">In psi-slides, a figure is <strong>a few lines of text in the lecture&rsquo;s own Markdown file</strong>, and <em>the build</em> &ndash; the one command that turns that file into slides &ndash; draws it.</p>
+      <p class="lede">In psi-slides, a figure is <strong>a few lines of text in the lecture&rsquo;s own Markdown file</strong>, and <em>the build</em> &ndash; the one command that turns that file into slides &ndash; draws it.</p>
 
-      <p class="status"><strong>Development status:</strong> The underlying <code>::: draw</code> mechanism is available as a preview in this repository; it is not part of version 1.0.0 of psi-slides &ndash; <a href="index.html#figures">how to get it</a> is a clone or the source zip. The <strong>graphical editor</strong> is experimental and desktop-oriented: it has not yet been tested broadly.</p>
+      <p class="hint"><strong>Development status:</strong> the <code>::: draw</code> mechanism is in <a href="getting-started.html">both ways of getting psi-slides</a>, but not yet in the format promise: it came after 1.0.0, so a figure you write today may need an edit when the language reaches a release. The <strong>graphical editor</strong> is experimental and desktop-oriented: it has not yet been tested broadly.</p>
 
-      <div class="herotop" data-autoplay><svg id="sltop-root" class="psi-diagram" viewBox="-165.54 -139.66 468.68 211.08" width="2000" height="901" data-live-viewbox="-165.54 -139.66 468.68 211.08" data-live-ratio="0.450371" data-steps="6" role="img" aria-label="the picture the site opens with" preserveAspectRatio="xMidYMid meet">
+      <div class="herotop" data-autoplay><svg id="sltop-root" class="psi-diagram" viewBox="-165.54 -139.66 468.68 211.08" style="--dg-type-w:31.245;--dg-ar:2.2204;--dg-ink-x:0.02560;--dg-live-type-w:31.245;--dg-live-ar:2.2204;--dg-live-ink-x:0.02560" width="2000" height="901" data-live-viewbox="-165.54 -139.66 468.68 211.08" data-live-ratio="0.450371" data-steps="6" role="img" aria-label="the picture the site opens with" preserveAspectRatio="xMidYMid meet">
 <g id="sltop-tcp" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-tcp--r" x="-126.18" y="-54.80" width="252.36" height="86.86" rx="4"/><g id="sltop-tcp--lw0" data-lab="tcp--l" class="dg-lwrap" transform="translate(-116.18,-42.43)"><g id="sltop-tcp--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">TCP</tspan></text></g></g></g>
 <g id="sltop-ip" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-ip--r" x="-139.86" y="-91.23" width="279.72" height="136.97" rx="4"/><g id="sltop-ip--lw0" data-lab="ip--l" class="dg-lwrap" transform="translate(-129.86,-78.86)"><g id="sltop-ip--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">IP</tspan></text></g></g></g>
 <g id="sltop-eth" data-base="dg-el dg-container" class="dg-el dg-container"><rect id="sltop-eth--r" x="-153.54" y="-127.66" width="307.08" height="187.08" rx="4"/><g id="sltop-eth--lw0" data-lab="eth--l" class="dg-lwrap" transform="translate(-143.54,-115.29)"><g id="sltop-eth--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">Ethernet</tspan></text></g></g></g>
@@ -430,82 +652,129 @@ figure.card details.src pre .cl { color: var(--ink-soft); }
 </svg><script type="application/json" class="psi-diagram-frames" data-for="sltop-root">{"p":"sltop-","n":6,"kinds":{"tcp--r":"rect","tcp--l":"text","ip--r":"rect","ip--l":"text","eth--r":"rect","eth--l":"text","link--p":"path","link--h":"path","link--l":"text","pay--r":"rect","pay--l":"text","hop--r":"rect","hop--l":"text"},"names":["payload","tcp","ip","ethernet","wire"],"frames":[{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent","hop":"turn","tcp":"","ip":"","eth":"","link":"one-head"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}},{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent emph","hop":"turn","tcp":"","ip":"","eth":"","link":"one-head"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}},{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent emph","hop":"turn","tcp":"emph","ip":"","eth":"","link":"one-head"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}},{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent emph","hop":"turn","tcp":"emph","ip":"emph","eth":"","link":"one-head"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}},{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent emph","hop":"turn","tcp":"emph","ip":"emph","eth":"emph","link":"one-head"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}},{"vis":{"pay":1,"hop":1,"tcp":1,"ip":1,"eth":1,"link":1},"cls":{"pay":"accent emph","hop":"turn emph","tcp":"emph","ip":"emph","eth":"emph","link":"one-head emph"},"lab":{"pay":0,"hop":0,"tcp":0,"ip":0,"eth":0,"link":0},"geom":{"pay--r":[-112.5,-18.37,225,36.75],"pay--l":[0,0,0],"hop--r":[237.14,-87.22,54,106.2],"hop--l":[264.14,-34.12,-90],"tcp--r":[-126.18,-54.8,252.36,86.86],"tcp--l":[-116.18,-42.43,0],"ip--r":[-139.86,-91.23,279.72,136.97],"ip--l":[-129.86,-78.86,0],"eth--r":[-153.54,-127.66,307.08,187.08],"eth--l":[-143.54,-115.29,0],"link--p":[153.54,-34.12,229.49,-34.12],"link--h":[237.14,-34.12,228.14,-30.16,228.14,-38.08],"link--l":[195.34,-45.5,0]}}]}</script></div><!--/herotop-->
     </div>
   </div>
+ </div>
 </section>
 
-<h2 id="lecture">Open it as a lecture</h2>
-<p class="measure"><strong>Animated Infographics</strong> is a complete psi-slides
-lecture. Its figures live inside its
-Markdown source, the build places them into the slides, and the same source
-becomes the projection, the speaker cockpit and both reading views.</p>
+<section class="band">
+ <div class="wrap">
+  <!-- Half-empty row, answer 1: the section's words in the narrow column and
+       the five ways into the lecture in the wide one. A table of links is
+       looked at rather than read, so it runs to the frame's edge; it is not a
+       picture, so it stands on the page's own ground rather than on a stage. -->
+  <h2 id="lecture">Open it as a lecture</h2>
+  <div class="beside">
+   <div class="said">
+    <p class="lede"><strong>Animated Infographics</strong> is a complete psi-slides
+    lecture. Its figures live inside its
+    Markdown source, the build places them into the slides, and the same source
+    becomes the projection, the speaker cockpit and both reading views.</p>
+    <p class="cue">Start with the projection: <kbd>Space</kbd> steps a figure
+    forward. <kbd>S</kbd> opens a speaker cockpit that follows the
+    projection.</p>
+   </div>
+   <div class="scroller">
+    <table class="lecture-links">
+      <thead><tr><th></th><th>Open</th><th>What it shows</th></tr></thead>
+      <tbody>
+        <tr><th>The source</th>
+            <td><a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/diagrams/source.md">source.md</a></td>
+            <td>The Markdown, prose and every <code>::: draw</code> block</td></tr>
+        <tr><th>The projection</th>
+            <td><a href="diagrams/audience.html">audience</a></td>
+            <td>The view presented to the room</td></tr>
+        <tr><th>The cockpit</th>
+            <td><a href="diagrams/speaker.html">speaker</a></td>
+            <td>The private presenter view with notes and previews</td></tr>
+        <tr><th>The document</th>
+            <td><a href="diagrams/print.html">print</a></td>
+            <td>The lecture as a reading document</td></tr>
+        <tr><th>… with private notes</th>
+            <td><a href="diagrams/print-notes.html">print-notes</a></td>
+            <td>The same document with the speaker notes folded in</td></tr>
+      </tbody>
+    </table>
+   </div>
+  </div>
+ </div>
+</section>
 
-<table class="lecture-links">
-  <thead><tr><th></th><th>Open</th><th>What it shows</th></tr></thead>
-  <tbody>
-    <tr><th>The source</th>
-        <td><a href="https://github.com/UBA-PSI/psi-slides/blob/main/lectures/diagrams/source.md">source.md</a></td>
-        <td>The Markdown, prose and every <code>::: draw</code> block</td></tr>
-    <tr><th>The projection</th>
-        <td><a href="diagrams/audience.html">audience</a></td>
-        <td>The view presented to the room</td></tr>
-    <tr><th>The cockpit</th>
-        <td><a href="diagrams/speaker.html">speaker</a></td>
-        <td>The private presenter view with notes and previews</td></tr>
-    <tr><th>The document</th>
-        <td><a href="diagrams/print.html">print</a></td>
-        <td>The lecture as a reading document</td></tr>
-    <tr><th>… with private notes</th>
-        <td><a href="diagrams/print-notes.html">print-notes</a></td>
-        <td>The same document with the speaker notes folded in</td></tr>
-  </tbody>
-</table>
-
-<p class="why after">Start with the projection. <kbd>Space</kbd> walks through
-the beats inside a figure; <kbd>S</kbd> opens a cockpit that follows it.</p>
-
-<h2 id="seven">Figures in psi-slides</h2>
-<p class="figlead">A <strong>figure</strong> is whatever a slide shows in place of plain text &ndash; such as an image or a video clip. Our focus is on <strong>relational drawings</strong> fenced off with <code>::: draw</code>. They are described with text, rendered when you <em>build</em> the slides, and can optionally be built up in beats while you present.</p>
-
-<p class="figlead">This is a whole figure just as you would insert it into a slide. Note that the positions of the objects and arrows are not stored as absolute coordinates: Eve is placed <em>against</em> Alice, Bob against Eve. The arrows are described by naming their two ends and they find their own way between them.</p>
-<div class="herofig">
-<svg id="slhero-root" class="psi-diagram" viewBox="-44.05 -32.75 440.90 63.13" width="2000" height="286" data-steps="1" role="img" aria-label="hero, the whole of a figure" preserveAspectRatio="xMidYMid meet">
+<section class="band">
+ <div class="wrap">
+  <!-- A band, and the one on this page that had the most to gain from being
+       one. The drawing used to take the frame's full width on its stage with
+       the heading, the lede and the cue stacked at the measure above it: three
+       lines of text, then half a screen of ground beside them, then a figure
+       whose three boxes came out 90px tall - a diagram of three words drawn
+       at the size of a poster. As a band the words stand beside it and the
+       figure is the width it needs.
+       Words left: this is the step that introduces the thing. -->
+  <h2 id="seven">Figures in psi-slides</h2>
+  <div class="beside">
+   <div class="said">
+    <p class="lede">A <strong>figure</strong> is whatever a slide shows in place of plain text &ndash; such as an image or a video clip. Our focus is on <strong>relational drawings</strong>, written inside a <code>::: draw</code> block. They are described in text, drawn when you <em>build</em> the slides, and can be built up stage by stage while you present.</p>
+    <p class="cue">Seven lines, and that is the whole figure, exactly as it goes into a slide. Nothing in it is placed by coordinates: Eve is placed <em>against</em> Alice, Bob against Eve. An arrow is written by naming its two ends, and it finds its own way between them.</p>
+   </div>
+    <div class="stage">
+     <div class="demo">
+      <div class="fig-card"><svg id="slhero-root" class="psi-diagram" viewBox="-44.05 -32.75 461.10 63.13" style="--dg-type-w:30.740;--dg-ar:7.3046;--dg-ink-x:0.02602" width="2000" height="274" data-steps="1" role="img" aria-label="hero, the whole of a figure" preserveAspectRatio="xMidYMid meet">
 <g id="slhero-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="slhero-edge-1--p" class="dg-stroke" d="M32.05 0.00L146.80 0.00" fill="none"/><path id="slhero-edge-1--h" class="dg-head" d="M154.45 0.00L145.45 3.96L145.45 -3.96Z"/><g id="slhero-edge-1--lw0" data-lab="edge-1--l" class="dg-lwrap" transform="translate(93.25,-11.38)"><g id="slhero-edge-1--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
-<g id="slhero-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="slhero-edge-2--p" class="dg-stroke" d="M208.45 0.00L323.20 0.00" fill="none"/><path id="slhero-edge-2--h" class="dg-head" d="M330.85 0.00L321.85 3.96L321.85 -3.96Z"/><g id="slhero-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(269.65,-11.38)"><g id="slhero-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
+<g id="slhero-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge one-head"><path id="slhero-edge-2--p" class="dg-stroke" d="M218.55 0.00L333.30 0.00" fill="none"/><path id="slhero-edge-2--h" class="dg-head" d="M340.95 0.00L331.95 3.96L331.95 -3.96Z"/><g id="slhero-edge-2--lw0" data-lab="edge-2--l" class="dg-lwrap" transform="translate(279.75,-11.38)"><g id="slhero-edge-2--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">plaintext</tspan></text></g></g></g>
 <g id="slhero-alice" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="slhero-alice--r" x="-32.05" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="slhero-alice--lw0" data-lab="alice--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="slhero-alice--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Alice</tspan></text></g></g></g>
-<g id="slhero-eve" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="slhero-eve--r" x="154.45" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="slhero-eve--lw0" data-lab="eve--l" class="dg-lwrap" transform="translate(181.45,0.00)"><g id="slhero-eve--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g></g>
-<g id="slhero-bob" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="slhero-bob--r" x="330.85" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="slhero-bob--lw0" data-lab="bob--l" class="dg-lwrap" transform="translate(357.85,0.00)"><g id="slhero-bob--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
-</svg>
-<pre data-opensrc="hero"><span class="srcln">::: draw</span><span class="srcln"><span class="kw">box</span> alice <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span> eve <span class="cl">"Eve"</span>  <span class="kw">right of</span> alice <span class="kw">gap</span> 1.7 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">box</span> bob <span class="cl">"Bob"</span>  <span class="kw">right of</span> eve <span class="kw">gap</span> 1.7</span><span class="srcln"><span class="kw">edge</span> alice -&gt; eve <span class="cl">"plaintext"</span></span><span class="srcln"><span class="kw">edge</span> eve -&gt; bob <span class="cl">"plaintext"</span></span><span class="srcln">:::</span></pre><!--/opensrc-->
-</div>
+<g id="slhero-eve" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="slhero-eve--r" x="154.45" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="slhero-eve--lw0" data-lab="eve--l" class="dg-lwrap" transform="translate(186.50,0.00)"><g id="slhero-eve--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g></g>
+<g id="slhero-bob" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="slhero-bob--r" x="340.95" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="slhero-bob--lw0" data-lab="bob--l" class="dg-lwrap" transform="translate(373.00,0.00)"><g id="slhero-bob--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
+</svg></div>
+      <pre data-opensrc="hero"><span class="srcln">::: draw</span><span class="srcln"><span class="kw">box</span> alice <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span> eve <span class="cl">"Eve"</span>  <span class="kw">right of</span> alice <span class="kw">gap</span> 1.7 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">box</span> bob <span class="cl">"Bob"</span>  <span class="kw">right of</span> eve <span class="kw">gap</span> 1.7</span><span class="srcln"><span class="kw">edge</span> alice -&gt; eve <span class="cl">"plaintext"</span></span><span class="srcln"><span class="kw">edge</span> eve -&gt; bob <span class="cl">"plaintext"</span></span><span class="srcln">:::</span></pre><!--/opensrc-->
+     </div>
+    </div>
+  </div>
+ </div>
+</section>
 
-<h2>Beats let figures come alive</h2>
-<p class="figlead">The same three boxes, with two <strong>beats</strong> added &ndash; <strong>keyframes, in the sense video editing uses the word</strong>. Step through it: the second beat renames Eve, and her box, both arrows and the outline around her move without a line of source mentioning any of them.</p>
-<div class="demo">
-  <div class="demo-stage" data-demo="follow"><svg id="sdfollow-root" class="psi-diagram" viewBox="-44.05 -30.38 718.90 169.95" width="2000" height="473" data-live-viewbox="-44.05 -32.75 718.90 172.32" data-live-ratio="0.239706" data-steps="3" role="img" aria-label="hero, one line changes and everything follows" preserveAspectRatio="xMidYMid meet">
-<g id="sdfollow-zone" data-base="dg-el dg-container" class="dg-el dg-container dashed muted"><rect id="sdfollow-zone--r" x="234.57" y="17.67" width="166.70" height="109.90" rx="4"/><g id="sdfollow-zone--lw0" data-lab="zone--l" class="dg-lwrap" transform="translate(244.57,30.05)"><g id="sdfollow-zone--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">Eve's reach</tspan></text></g></g></g>
+<section class="band">
+ <div class="wrap">
+  <h2>A figure can arrive one beat at a time</h2>
+  <p class="lede">The same three boxes, with two <strong>beats</strong> added &ndash; keyframes, in the sense video editing uses the word. Step through it: the second beat renames Eve, and her box, both arrows and the outline around her move without a line of source mentioning any of them.</p>
+
+  <!-- Half-empty row, answer 2: the figure, the bar that walks it and the
+       source it was compiled from are one object, and it takes the frame. -->
+  <div class="stage">
+   <div class="demo">
+    <div class="demo-stage" data-demo="follow"><svg id="sdfollow-root" class="psi-diagram" viewBox="-44.05 -30.38 729.00 169.95" style="--dg-type-w:48.600;--dg-ar:4.2895;--dg-ink-x:0.01646;--dg-live-type-w:48.600;--dg-live-ar:4.2304;--dg-live-ink-x:0.01646" width="2000" height="466" data-live-viewbox="-44.05 -32.75 729.00 172.32" data-live-ratio="0.236385" data-steps="3" role="img" aria-label="hero, one line changes and everything follows" preserveAspectRatio="xMidYMid meet">
+<g id="sdfollow-zone" data-base="dg-el dg-container" class="dg-el dg-container dashed muted"><rect id="sdfollow-zone--r" x="237.10" y="17.67" width="166.70" height="109.90" rx="4"/><g id="sdfollow-zone--lw0" data-lab="zone--l" class="dg-lwrap" transform="translate(247.10,30.05)"><g id="sdfollow-zone--l0" class="dg-lbl dg-caption"><text text-anchor="start" font-size="15.00"><tspan x="0" y="5.10">Eve's reach</tspan></text></g></g></g>
 <g id="sdfollow-direct" data-base="dg-el dg-edge" class="dg-el dg-edge one-head" style="opacity:0"><path id="sdfollow-direct--p" class="dg-stroke" d="M32.05 0.00L601.20 0.00" fill="none"/><path id="sdfollow-direct--h" class="dg-head" d="M608.85 0.00L599.85 3.96L599.85 -3.96Z"/><g id="sdfollow-direct--lw0" data-lab="direct--l" class="dg-lwrap" transform="translate(320.45,-11.38)"><g id="sdfollow-direct--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">message</tspan></text></g></g></g>
-<g id="sdfollow-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head"><path id="sdfollow-edge-1--p" class="dg-stroke" d="M32.05 0.00L252.60 81.35" fill="none"/><path id="sdfollow-edge-1--h" class="dg-head" d="M259.77 84.00L249.96 84.60L252.70 77.17Z"/></g>
-<g id="sdfollow-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head"><path id="sdfollow-edge-2--p" class="dg-stroke" d="M376.07 84.00L601.65 2.60" fill="none"/><path id="sdfollow-edge-2--h" class="dg-head" d="M608.85 0.00L601.73 6.78L599.04 -0.67Z"/></g>
+<g id="sdfollow-edge-1" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head"><path id="sdfollow-edge-1--p" class="dg-stroke" d="M32.05 0.00L255.11 81.38" fill="none"/><path id="sdfollow-edge-1--h" class="dg-head" d="M262.30 84.00L252.49 84.64L255.20 77.20Z"/></g>
+<g id="sdfollow-edge-2" data-base="dg-el dg-edge" class="dg-el dg-edge accent one-head"><path id="sdfollow-edge-2--p" class="dg-stroke" d="M378.60 84.00L601.66 2.62" fill="none"/><path id="sdfollow-edge-2--h" class="dg-head" d="M608.85 0.00L601.75 6.80L599.04 -0.64Z"/></g>
 <g id="sdfollow-alice" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="sdfollow-alice--r" x="-32.05" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="sdfollow-alice--lw0" data-lab="alice--l" class="dg-lwrap" transform="translate(0.00,0.00)"><g id="sdfollow-alice--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Alice</tspan></text></g></g></g>
-<g id="sdfollow-bob" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="sdfollow-bob--r" x="608.85" y="-18.38" width="54.00" height="36.75" rx="4"/><g id="sdfollow-bob--lw0" data-lab="bob--l" class="dg-lwrap" transform="translate(635.85,0.00)"><g id="sdfollow-bob--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
-<g id="sdfollow-eve" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="sdfollow-eve--r" x="259.77" y="65.63" width="116.30" height="36.75" rx="4"/><g id="sdfollow-eve--lw0" data-lab="eve--l" class="dg-lwrap dg-variant dg-off" transform="translate(317.92,84.00)"><g id="sdfollow-eve--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g><g id="sdfollow-eve--lw1" data-lab="eve--l" class="dg-lwrap dg-variant" transform="translate(317.92,84.00)"><g id="sdfollow-eve--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve, on path</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-frames" data-for="sdfollow-root">{"p":"sdfollow-","n":3,"kinds":{"zone--r":"rect","zone--l":"text","direct--p":"path","direct--h":"path","direct--l":"text","edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","alice--r":"rect","alice--l":"text","bob--r":"rect","bob--l":"text","eve--r":"rect","eve--l":"text"},"names":["intercept","relabel"],"frames":[{"vis":{"alice":1,"bob":1,"eve":0,"zone":0,"direct":1,"edge-1":0,"edge-2":0},"cls":{"alice":"","bob":"","eve":"accent","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"zone":0,"direct":0},"geom":{"alice--r":[-32.05,-18.37,64.1,36.75],"alice--l":[0,0,0],"bob--r":[608.85,-18.37,54,36.75],"bob--l":[635.85,0,0],"eve--r":[290.93,65.63,54,36.75],"eve--l":[317.93,84,0],"zone--r":[265.73,17.67,104.4,109.9],"zone--l":[275.73,30.05,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,283.65,81.64],"edge-1--h":[290.93,84,281.14,84.99,283.59,77.46],"edge-2--p":[344.93,84,601.56,2.32],"edge-2--h":[608.85,0,601.47,6.5,599.07,-1.04]}},{"vis":{"alice":1,"bob":1,"eve":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"alice":"","bob":"","eve":"accent","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"zone":0,"direct":0},"geom":{"alice--r":[-32.05,-18.37,64.1,36.75],"alice--l":[0,0,0],"bob--r":[608.85,-18.37,54,36.75],"bob--l":[635.85,0,0],"eve--r":[290.93,65.63,54,36.75],"eve--l":[317.93,84,0],"zone--r":[265.73,17.67,104.4,109.9],"zone--l":[275.73,30.05,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,283.65,81.64],"edge-1--h":[290.93,84,281.14,84.99,283.59,77.46],"edge-2--p":[344.93,84,601.56,2.32],"edge-2--h":[608.85,0,601.47,6.5,599.07,-1.04]}},{"vis":{"alice":1,"bob":1,"eve":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"alice":"","bob":"","eve":"accent emph","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":1,"zone":0,"direct":0},"geom":{"alice--r":[-32.05,-18.37,64.1,36.75],"alice--l":[0,0,0],"bob--r":[608.85,-18.37,54,36.75],"bob--l":[635.85,0,0],"eve--r":[259.77,65.63,116.3,36.75],"eve--l":[317.92,84,0],"zone--r":[234.58,17.67,166.7,109.9],"zone--l":[244.58,30.05,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,252.6,81.35],"edge-1--h":[259.77,84,249.96,84.6,252.7,77.17],"edge-2--p":[376.08,84,601.65,2.6],"edge-2--h":[608.85,0,601.73,6.78,599.04,-0.67]}}]}</script></div><!--/stage-->
-  <div class="demo-bar">
-    <button class="db" data-go="-1" aria-label="previous beat">&lsaquo;</button>
-    <button class="db" data-go="1" aria-label="next beat">&rsaquo;</button>
-    <ol class="rail" data-rail="follow">
+<g id="sdfollow-bob" data-base="dg-el dg-box" class="dg-el dg-box"><rect id="sdfollow-bob--r" x="608.85" y="-18.38" width="64.10" height="36.75" rx="4"/><g id="sdfollow-bob--lw0" data-lab="bob--l" class="dg-lwrap" transform="translate(640.90,0.00)"><g id="sdfollow-bob--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Bob</tspan></text></g></g></g>
+<g id="sdfollow-eve" data-base="dg-el dg-box" class="dg-el dg-box accent"><rect id="sdfollow-eve--r" x="262.30" y="65.63" width="116.30" height="36.75" rx="4"/><g id="sdfollow-eve--lw0" data-lab="eve--l" class="dg-lwrap dg-variant dg-off" transform="translate(320.45,84.00)"><g id="sdfollow-eve--l0" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve</tspan></text></g></g><g id="sdfollow-eve--lw1" data-lab="eve--l" class="dg-lwrap dg-variant" transform="translate(320.45,84.00)"><g id="sdfollow-eve--l1" class="dg-lbl"><text text-anchor="middle" font-size="15.00"><tspan x="0" y="5.10">Eve, on path</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-frames" data-for="sdfollow-root">{"p":"sdfollow-","n":3,"kinds":{"zone--r":"rect","zone--l":"text","direct--p":"path","direct--h":"path","direct--l":"text","edge-1--p":"path","edge-1--h":"path","edge-2--p":"path","edge-2--h":"path","alice--r":"rect","alice--l":"text","bob--r":"rect","bob--l":"text","eve--r":"rect","eve--l":"text"},"names":["intercept","relabel"],"frames":[{"vis":{"alice":1,"bob":1,"eve":0,"zone":0,"direct":1,"edge-1":0,"edge-2":0},"cls":{"alice":"","bob":"","eve":"accent","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"zone":0,"direct":0},"geom":{"alice--r":[-32.05,-18.37,64.1,36.75],"alice--l":[0,0,0],"bob--r":[608.85,-18.37,64.1,36.75],"bob--l":[640.9,0,0],"eve--r":[293.45,65.63,54,36.75],"eve--l":[320.45,84,0],"zone--r":[268.25,17.67,104.4,109.9],"zone--l":[278.25,30.05,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,286.17,81.66],"edge-1--h":[293.45,84,283.67,85.02,286.09,77.48],"edge-2--p":[347.45,84,601.57,2.34],"edge-2--h":[608.85,0,601.49,6.52,599.07,-1.02]}},{"vis":{"alice":1,"bob":1,"eve":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"alice":"","bob":"","eve":"accent","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":0,"zone":0,"direct":0},"geom":{"alice--r":[-32.05,-18.37,64.1,36.75],"alice--l":[0,0,0],"bob--r":[608.85,-18.37,64.1,36.75],"bob--l":[640.9,0,0],"eve--r":[293.45,65.63,54,36.75],"eve--l":[320.45,84,0],"zone--r":[268.25,17.67,104.4,109.9],"zone--l":[278.25,30.05,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,286.17,81.66],"edge-1--h":[293.45,84,283.67,85.02,286.09,77.48],"edge-2--p":[347.45,84,601.57,2.34],"edge-2--h":[608.85,0,601.49,6.52,599.07,-1.02]}},{"vis":{"alice":1,"bob":1,"eve":1,"zone":1,"direct":0,"edge-1":1,"edge-2":1},"cls":{"alice":"","bob":"","eve":"accent emph","zone":"dashed muted","direct":"one-head","edge-1":"accent one-head","edge-2":"accent one-head"},"lab":{"alice":0,"bob":0,"eve":1,"zone":0,"direct":0},"geom":{"alice--r":[-32.05,-18.37,64.1,36.75],"alice--l":[0,0,0],"bob--r":[608.85,-18.37,64.1,36.75],"bob--l":[640.9,0,0],"eve--r":[262.3,65.63,116.3,36.75],"eve--l":[320.45,84,0],"zone--r":[237.1,17.67,166.7,109.9],"zone--l":[247.1,30.05,0],"direct--p":[32.05,0,601.2,0],"direct--h":[608.85,0,599.85,3.96,599.85,-3.96],"direct--l":[320.45,-11.37,0],"edge-1--p":[32.05,0,255.11,81.38],"edge-1--h":[262.3,84,252.49,84.64,255.2,77.2],"edge-2--p":[378.6,84,601.66,2.62],"edge-2--h":[608.85,0,601.75,6.8,599.04,-0.64]}}]}</script></div><!--/stage-->
+    <div class="demo-bar">
+      <button class="db" data-go="-1" aria-label="previous beat">&lsaquo;</button>
+      <button class="db" data-go="1" aria-label="next beat">&rsaquo;</button>
+      <ol class="rail" data-rail="follow">
       <li><button type="button">opening</button></li>
       <li><button type="button"><b>1</b> intercept</button></li>
       <li><button type="button"><b>2</b> relabel</button></li>
     </ol><!--/rail-->
-    <button class="db play" aria-label="play the beats">play</button>
+      <button class="db play" aria-label="play the beats">play</button>
+    </div>
+    <pre class="demo-src" data-demosrc="follow"><span class="srcln">::: draw 170x56</span><span class="srcln"><span class="kw">box</span>  alice  <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span>  bob  <span class="cl">"Bob"</span>   <span class="kw">right of</span> alice <span class="kw">gap</span> 10.3</span><span class="srcln"><span class="kw">box</span>  eve  <span class="cl">"Eve"</span>   <span class="kw">between</span> alice,bob <span class="kw">offset</span> 0,1.5 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> direct alice -&gt; bob <span class="cl">"message"</span></span><span class="srcln"><span class="kw">edge</span> alice -&gt; eve <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> eve -&gt; bob <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">container</span> zone <span class="cl">"Eve's reach"</span> <span class="kw">over</span> eve <span class="kw">pad</span> 0.45 <span class="cl">{.dashed .muted}</span></span><span class="srcln"></span><span class="srcln"><span class="st">step</span> intercept</span><span class="srcln">  <span class="st">show</span> eve</span><span class="srcln">  <span class="st">hide</span> direct</span><span class="srcln"><span class="st">step</span> relabel</span><span class="srcln">  <span class="st">label</span> eve <span class="cl">"Eve, on path"</span></span><span class="srcln">  <span class="st">emph</span> eve</span><span class="srcln">:::</span></pre><!--/demosrc-->
+   </div>
   </div>
-  <pre class="demo-src" data-demosrc="follow"><span class="srcln">::: draw <span class="cl">{unit=170x56}</span></span><span class="srcln"><span class="kw">box</span>  alice  <span class="cl">"Alice"</span></span><span class="srcln"><span class="kw">box</span>  bob  <span class="cl">"Bob"</span>   <span class="kw">right of</span> alice <span class="kw">gap</span> 10.3</span><span class="srcln"><span class="kw">box</span>  eve  <span class="cl">"Eve"</span>   <span class="kw">between</span> alice,bob <span class="kw">offset</span> 0,1.5 <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> direct alice -&gt; bob <span class="cl">"message"</span></span><span class="srcln"><span class="kw">edge</span> alice -&gt; eve <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">edge</span> eve -&gt; bob <span class="cl">{.accent}</span></span><span class="srcln"><span class="kw">container</span> zone <span class="cl">"Eve's reach"</span> <span class="kw">over</span> eve <span class="kw">pad</span> 0.45 <span class="cl">{.dashed .muted}</span></span><span class="srcln"></span><span class="srcln"><span class="st">step</span> intercept</span><span class="srcln">  <span class="st">show</span> eve</span><span class="srcln">  <span class="st">hide</span> direct</span><span class="srcln"><span class="st">step</span> relabel</span><span class="srcln">  <span class="st">label</span> eve <span class="cl">"Eve, on path"</span></span><span class="srcln">  <span class="st">emph</span> eve</span><span class="srcln">:::</span></pre><!--/demosrc-->
-</div>
+ </div>
+</section>
 
-<h2>Toy examples are nice, but what about <em>real</em> figures?</h2>
-<p class="figlead">A passkey registration: four lifelines, nine messages, two notes. The numbering, the spacing and the lifelines are generated. The four beats build it the way it is read to a room, one exchange then the next, and two things arrive without a beat naming them: the brace over the CTAP leg, because a brace is only as visible as what it holds, and the note in the margin, held back a beat so it lands after the exchange it comments on.</p>
-<div class="demo">
-  <div class="demo-stage" data-demo="seq-demo"><svg id="sdseq-demo-root" class="psi-diagram" viewBox="-454.66 -323.65 1053.38 647.30" width="2000" height="1229" data-live-viewbox="-454.66 -323.65 1053.38 647.30" data-live-ratio="0.614498" data-steps="5" role="img" aria-label="a protocol, one phase at a time" preserveAspectRatio="xMidYMid meet">
+<section class="band">
+ <div class="wrap">
+  <h2>A <em>real</em> lecture figure, built in four beats</h2>
+  <p class="lede">A passkey registration: four participants, nine messages, two notes. The numbering, the spacing and the lines down the page are generated. The four beats build it the way it is read to a room, one exchange then the next, and one of the two notes is held back a beat so it lands after the exchange it comments on.</p>
+
+  <!-- Half-empty row, answer 2. This is the tallest drawing on the page and
+       the section is about what the language does at scale, so it gets the
+       whole frame rather than half of one. -->
+  <div class="stage">
+   <div class="demo">
+    <div class="demo-stage" data-demo="seq-demo"><svg id="sdseq-demo-root" class="psi-diagram" viewBox="-454.66 -323.65 1053.38 647.30" style="--dg-type-w:70.225;--dg-ar:1.6273;--dg-ink-x:0.01139;--dg-live-type-w:70.225;--dg-live-ar:1.6273;--dg-live-ink-x:0.01139" width="2000" height="1229" data-live-viewbox="-454.66 -323.65 1053.38 647.30" data-live-ratio="0.614498" data-steps="5" role="img" aria-label="a protocol, one phase at a time" preserveAspectRatio="xMidYMid meet">
 <g id="sdseq-demo-ctap" data-base="dg-el dg-brace" class="dg-el dg-brace small turn"><path id="sdseq-demo-ctap--p" class="dg-stroke" d="M-303.00 -97.70L-310.00 -97.70L-310.00 49.95L-303.00 49.95" fill="none"/><g id="sdseq-demo-ctap--lw0" data-lab="ctap--l" class="dg-lwrap" transform="translate(-318.00,-23.87) rotate(-90)"><g id="sdseq-demo-ctap--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">on the device, over CTAP</tspan></text></g></g></g>
 <g id="sdseq-demo-u-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="sdseq-demo-u-life--p" class="dg-stroke" d="M-291.00 -274.90L-291.00 311.65" fill="none"/><path id="sdseq-demo-u-life--h" class="dg-head" d="M-291.00 311.65L-291.00 311.65L-291.00 311.65Z"/></g>
 <g id="sdseq-demo-br-life" data-base="dg-el dg-edge" class="dg-el dg-edge dashed muted no-head"><path id="sdseq-demo-br-life--p" class="dg-stroke" d="M-97.00 -274.90L-97.00 311.65" fill="none"/><path id="sdseq-demo-br-life--h" class="dg-head" d="M-97.00 311.65L-97.00 311.65L-97.00 311.65Z"/></g>
@@ -541,81 +810,147 @@ the beats inside a figure; <kbd>S</kbd> opens a cockpit that follows it.</p>
 <g id="sdseq-demo-wa-n-7" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="sdseq-demo-wa-n-7--lw0" data-lab="wa-n-7--l" class="dg-lwrap" transform="translate(-439.00,235.10)"><g id="sdseq-demo-wa-n-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">8</tspan></text></g></g></g>
 <g id="sdseq-demo-wa-sub-7" data-base="dg-el dg-text" class="dg-el dg-text small muted paper"><rect id="sdseq-demo-wa-sub-7--r" x="-32.34" y="239.10" width="258.68" height="23.00" rx="4"/><g id="sdseq-demo-wa-sub-7--lw0" data-lab="wa-sub-7--l" class="dg-lwrap" transform="translate(97.00,250.60)"><g id="sdseq-demo-wa-sub-7--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">clientDataJSON carries challenge · origin</tspan></text></g></g></g>
 <g id="sdseq-demo-wa-n-8" data-base="dg-el dg-text" class="dg-el dg-text small muted"><g id="sdseq-demo-wa-n-8--lw0" data-lab="wa-n-8--l" class="dg-lwrap" transform="translate(-439.00,287.27)"><g id="sdseq-demo-wa-n-8--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">9</tspan></text></g></g></g>
-<g id="sdseq-demo-fresh" data-base="dg-el dg-text" class="dg-el dg-text small hand"><g id="sdseq-demo-fresh--lw0" data-lab="fresh--l" class="dg-lwrap" transform="translate(476.86,-162.25)"><g id="sdseq-demo-fresh--l0" class="dg-lbl"><text text-anchor="middle" font-size="12.00"><tspan x="0" y="4.08">the challenge is what makes it fresh</tspan></text></g></g></g>
-</svg><script type="application/json" class="psi-diagram-frames" data-for="sdseq-demo-root">{"p":"sdseq-demo-","n":5,"kinds":{"ctap--p":"path","ctap--l":"text","u-life--p":"path","u-life--h":"path","br-life--p":"path","br-life--h":"path","au-life--p":"path","au-life--h":"path","rp-life--p":"path","rp-life--h":"path","wa-0--p":"path","wa-0--h":"path","wa-0--r":"rect","wa-0--l":"text","wa-1--p":"path","wa-1--h":"path","wa-1--r":"rect","wa-1--l":"text","wa-2--p":"path","wa-2--h":"path","wa-2--r":"rect","wa-2--l":"text","wa-3--p":"path","wa-3--h":"path","wa-3--r":"rect","wa-3--l":"text","wa-4--p":"path","wa-4--h":"path","wa-4--r":"rect","wa-4--l":"text","wa-5--p":"path","wa-5--h":"path","wa-5--r":"rect","wa-5--l":"text","wa-6--p":"path","wa-6--h":"path","wa-6--r":"rect","wa-6--l":"text","wa-7--p":"path","wa-7--h":"path","wa-7--r":"rect","wa-7--l":"text","wa-8--p":"path","wa-8--h":"path","wa-8--r":"rect","wa-8--l":"text","fresh--lead--p":"path","fresh--lead--h":"path","wa--r":"rect","u--r":"rect","u--l":"text","br--r":"rect","br--l":"text","au--r":"rect","au--l":"text","rp--r":"rect","rp--l":"text","wa-n-0--l":"text","wa-n-1--l":"text","wa-n-2--l":"text","wa-sub-2--r":"rect","wa-sub-2--l":"text","wa-n-3--l":"text","wa-sub-3--r":"rect","wa-sub-3--l":"text","wa-note-0--r":"rect","wa-note-0--l":"text","wa-n-4--l":"text","wa-n-5--l":"text","wa-note-1--r":"rect","wa-note-1--l":"text","wa-n-6--l":"text","wa-sub-6--r":"rect","wa-sub-6--l":"text","wa-n-7--l":"text","wa-sub-7--r":"rect","wa-sub-7--l":"text","wa-n-8--l":"text","fresh--l":"text"},"names":["ask-for-options","the-challenge-is-the-point","on-the-device","back-to-the-relying-party"],"frames":[{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0,"fresh--lead":0},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head","wa-1":"paper one-head","wa-2":"dashed paper one-head","wa-3":"paper one-head","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head","wa-7":"paper one-head","wa-8":"paper one-head","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[476.86,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":1,"wa-2":1,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0,"fresh--lead":0},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted emph","wa-sub-2":"small muted paper emph","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head","wa-1":"paper one-head","wa-2":"dashed paper one-head emph","wa-3":"paper one-head","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head","wa-7":"paper one-head","wa-8":"paper one-head","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[476.86,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":0.3,"wa-n-2":0.3,"wa-sub-2":0.3,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":1,"ctap":0,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":0.3,"wa-2":0.3,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted dim","wa-n-2":"small muted dim","wa-sub-2":"small muted paper dim","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head","wa-1":"paper one-head dim","wa-2":"dashed paper one-head dim","wa-3":"paper one-head","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head","wa-7":"paper one-head","wa-8":"paper one-head","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[476.86,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":0.3,"wa-n-2":0.3,"wa-sub-2":0.3,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":0.3,"wa-2":0.3,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":0,"wa-7":0,"wa-8":0,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 emph","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted dim","wa-n-2":"small muted dim","wa-sub-2":"small muted paper dim","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head","wa-1":"paper one-head dim","wa-2":"dashed paper one-head dim","wa-3":"paper one-head","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head","wa-7":"paper one-head","wa-8":"paper one-head","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[476.86,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":0.3,"rp":1,"wa-n-0":1,"wa-n-1":0.3,"wa-n-2":0.3,"wa-sub-2":0.3,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":0.3,"wa-2":0.3,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":1,"wa-7":1,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 dim","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted dim","wa-n-2":"small muted dim","wa-sub-2":"small muted paper dim","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted emph","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head","wa-1":"paper one-head dim","wa-2":"dashed paper one-head dim","wa-3":"paper one-head","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head","wa-7":"paper one-head","wa-8":"paper one-head emph","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[476.86,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}}]}</script></div><!--/stage-->
-  <div class="demo-bar">
-    <button class="db" data-go="-1" aria-label="previous beat">&lsaquo;</button>
-    <button class="db" data-go="1" aria-label="next beat">&rsaquo;</button>
-    <ol class="rail" data-rail="seq-demo">
+<g id="sdseq-demo-fresh" data-base="dg-el dg-text" class="dg-el dg-text small hand"><g id="sdseq-demo-fresh--lw0" data-lab="fresh--l" class="dg-lwrap" transform="translate(367.00,-162.25)"><g id="sdseq-demo-fresh--l0" class="dg-lbl"><text text-anchor="start" font-size="12.00"><tspan x="0" y="4.08">the challenge is what makes it fresh</tspan></text></g></g></g>
+</svg><script type="application/json" class="psi-diagram-frames" data-for="sdseq-demo-root">{"p":"sdseq-demo-","n":5,"kinds":{"ctap--p":"path","ctap--l":"text","u-life--p":"path","u-life--h":"path","br-life--p":"path","br-life--h":"path","au-life--p":"path","au-life--h":"path","rp-life--p":"path","rp-life--h":"path","wa-0--p":"path","wa-0--h":"path","wa-0--r":"rect","wa-0--l":"text","wa-1--p":"path","wa-1--h":"path","wa-1--r":"rect","wa-1--l":"text","wa-2--p":"path","wa-2--h":"path","wa-2--r":"rect","wa-2--l":"text","wa-3--p":"path","wa-3--h":"path","wa-3--r":"rect","wa-3--l":"text","wa-4--p":"path","wa-4--h":"path","wa-4--r":"rect","wa-4--l":"text","wa-5--p":"path","wa-5--h":"path","wa-5--r":"rect","wa-5--l":"text","wa-6--p":"path","wa-6--h":"path","wa-6--r":"rect","wa-6--l":"text","wa-7--p":"path","wa-7--h":"path","wa-7--r":"rect","wa-7--l":"text","wa-8--p":"path","wa-8--h":"path","wa-8--r":"rect","wa-8--l":"text","fresh--lead--p":"path","fresh--lead--h":"path","wa--r":"rect","u--r":"rect","u--l":"text","br--r":"rect","br--l":"text","au--r":"rect","au--l":"text","rp--r":"rect","rp--l":"text","wa-n-0--l":"text","wa-n-1--l":"text","wa-n-2--l":"text","wa-sub-2--r":"rect","wa-sub-2--l":"text","wa-n-3--l":"text","wa-sub-3--r":"rect","wa-sub-3--l":"text","wa-note-0--r":"rect","wa-note-0--l":"text","wa-n-4--l":"text","wa-n-5--l":"text","wa-note-1--r":"rect","wa-note-1--l":"text","wa-n-6--l":"text","wa-sub-6--r":"rect","wa-sub-6--l":"text","wa-n-7--l":"text","wa-sub-7--r":"rect","wa-sub-7--l":"text","wa-n-8--l":"text","fresh--l":"text"},"names":["ask-for-options","the-challenge-is-the-point","on-the-device","back-to-the-relying-party"],"frames":[{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0,"fresh--lead":0},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted","wa-sub-2":"small muted paper","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head","wa-1":"paper one-head","wa-2":"dashed paper one-head","wa-3":"paper one-head","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head","wa-7":"paper one-head","wa-8":"paper one-head","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[367,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":1,"wa-n-2":1,"wa-sub-2":1,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":1,"wa-2":1,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0,"fresh--lead":0},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted","wa-n-2":"small muted emph","wa-sub-2":"small muted paper emph","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head","wa-1":"paper one-head","wa-2":"dashed paper one-head emph","wa-3":"paper one-head","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head","wa-7":"paper one-head","wa-8":"paper one-head","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[367,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":0.6,"wa-n-2":0.6,"wa-sub-2":0.6,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":1,"ctap":0,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":0.6,"wa-2":0.6,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted dim","wa-n-2":"small muted dim","wa-sub-2":"small muted paper dim","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head","wa-1":"paper one-head dim","wa-2":"dashed paper one-head dim","wa-3":"paper one-head","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head","wa-7":"paper one-head","wa-8":"paper one-head","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[367,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":1,"rp":1,"wa-n-0":1,"wa-n-1":0.6,"wa-n-2":0.6,"wa-sub-2":0.6,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":0.6,"wa-2":0.6,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":0,"wa-7":0,"wa-8":0,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 emph","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted dim","wa-n-2":"small muted dim","wa-sub-2":"small muted paper dim","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head","wa-1":"paper one-head dim","wa-2":"dashed paper one-head dim","wa-3":"paper one-head","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head","wa-7":"paper one-head","wa-8":"paper one-head","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[367,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}},{"vis":{"wa":1,"u":1,"br":1,"au":0.6,"rp":1,"wa-n-0":1,"wa-n-1":0.6,"wa-n-2":0.6,"wa-sub-2":0.6,"wa-n-3":1,"wa-sub-3":1,"wa-note-0":1,"wa-n-4":1,"wa-n-5":1,"wa-note-1":1,"wa-n-6":1,"wa-sub-6":1,"wa-n-7":1,"wa-sub-7":1,"wa-n-8":1,"fresh":1,"ctap":1,"u-life":1,"br-life":1,"au-life":1,"rp-life":1,"wa-0":1,"wa-1":0.6,"wa-2":0.6,"wa-3":1,"wa-4":1,"wa-5":1,"wa-6":1,"wa-7":1,"wa-8":1,"fresh--lead":1},"cls":{"wa":"bare clear","u":"round","br":"round","au":"round tone-3 dim","rp":"round","wa-n-0":"small muted","wa-n-1":"small muted dim","wa-n-2":"small muted dim","wa-sub-2":"small muted paper dim","wa-n-3":"small muted","wa-sub-3":"small muted paper","wa-note-0":"round","wa-n-4":"small muted","wa-n-5":"small muted","wa-note-1":"round","wa-n-6":"small muted","wa-sub-6":"small muted paper","wa-n-7":"small muted","wa-sub-7":"small muted paper","wa-n-8":"small muted emph","fresh":"small hand","ctap":"small turn","u-life":"dashed muted no-head","br-life":"dashed muted no-head","au-life":"dashed muted no-head","rp-life":"dashed muted no-head","wa-0":"paper one-head","wa-1":"paper one-head dim","wa-2":"dashed paper one-head dim","wa-3":"paper one-head","wa-4":"paper one-head","wa-5":"paper one-head","wa-6":"dashed paper one-head","wa-7":"paper one-head","wa-8":"paper one-head emph","fresh--lead":"no-head muted"},"lab":{"u":0,"br":0,"au":0,"rp":0,"wa-n-0":0,"wa-n-1":0,"wa-n-2":0,"wa-sub-2":0,"wa-n-3":0,"wa-sub-3":0,"wa-note-0":0,"wa-n-4":0,"wa-n-5":0,"wa-note-1":0,"wa-n-6":0,"wa-sub-6":0,"wa-n-7":0,"wa-sub-7":0,"wa-n-8":0,"fresh":0,"ctap":0,"wa-0":0,"wa-1":0,"wa-2":0,"wa-3":0,"wa-4":0,"wa-5":0,"wa-6":0,"wa-7":0,"wa-8":0},"geom":{"wa--r":[-388,-311.65,776,623.3],"u--r":[-354.25,-311.65,126.5,36.75],"u--l":[-291,-293.27,0],"br--r":[-160.25,-311.65,126.5,36.75],"br--l":[-97,-293.27,0],"au--r":[33.75,-311.65,126.5,36.75],"au--l":[97,-293.27,0],"rp--r":[227.75,-311.65,126.5,36.75],"rp--l":[291,-293.27,0],"wa-n-0--l":[-439,-237.35,0],"wa-n-1--l":[-439,-199.8,0],"wa-n-2--l":[-439,-162.25,0],"wa-sub-2--r":[-5.46,-158.25,204.92,23],"wa-sub-2--l":[97,-146.75,0],"wa-n-3--l":[-439,-97.7,0],"wa-sub-3--r":[-110.62,-93.7,221.24,23],"wa-sub-3--l":[0,-82.2,0],"wa-note-0--r":[-140.27,-61.9,280.55,36.75],"wa-note-0--l":[0,-43.52,0],"wa-n-4--l":[-439,12.4,0],"wa-n-5--l":[-439,49.95,0],"wa-note-1--r":[-30,58.75,254,74.25],"wa-note-1--l":[97,95.88,0],"wa-n-6--l":[-439,170.55,0],"wa-sub-6--r":[-127.36,174.55,254.72,23],"wa-sub-6--l":[0,186.05,0],"wa-n-7--l":[-439,235.1,0],"wa-sub-7--r":[-32.34,239.1,258.68,23],"wa-sub-7--l":[97,250.6,0],"wa-n-8--l":[-439,287.27,0],"fresh--l":[367,-162.25,0],"ctap--p":[-303,-97.7,-310,-97.7,-310,49.95,-303,49.95],"ctap--l":[-318,-23.87,-90],"u-life--p":[-291,-274.9,-291,311.65],"u-life--h":[-291,311.65,-291,311.65,-291,311.65],"br-life--p":[-97,-274.9,-97,311.65],"br-life--h":[-97,311.65,-97,311.65,-97,311.65],"au-life--p":[97,-274.9,97,311.65],"au-life--h":[97,311.65,97,311.65,97,311.65],"rp-life--p":[291,-274.9,291,311.65],"rp-life--h":[291,311.65,291,311.65,291,311.65],"wa-0--p":[-291,-237.35,-104.65,-237.35],"wa-0--h":[-97,-237.35,-106,-233.39,-106,-241.31],"wa-0--r":[-278.47,-266.1,168.95,26.75],"wa-0--l":[-194,-252.72,0],"wa-1--p":[-97,-199.8,283.35,-199.8],"wa-1--h":[291,-199.8,282,-195.84,282,-203.76],"wa-1--r":[-10.27,-228.55,214.55,26.75],"wa-1--l":[97,-215.17,0],"wa-2--p":[291,-162.25,-89.35,-162.25],"wa-2--h":[-97,-162.25,-88,-166.21,-88,-158.29],"wa-2--r":[19.88,-191,154.25,26.75],"wa-2--l":[97,-177.62,0],"wa-3--p":[-97,-97.7,89.35,-97.7],"wa-3--h":[97,-97.7,88,-93.74,88,-101.66],"wa-3--r":[-132.92,-126.45,265.85,26.75],"wa-3--l":[0,-113.07,0],"wa-4--p":[97,12.4,-283.35,12.4],"wa-4--h":[-291,12.4,-282,8.44,-282,16.36],"wa-4--r":[-196.32,-16.35,198.65,26.75],"wa-4--l":[-97,-2.97,0],"wa-5--p":[-291,49.95,89.35,49.95],"wa-5--h":[97,49.95,88,53.91,88,45.99],"wa-5--r":[-178.17,21.2,162.35,26.75],"wa-5--l":[-97,34.58,0],"wa-6--p":[97,170.55,-89.35,170.55],"wa-6--h":[-97,170.55,-88,166.59,-88,174.51],"wa-6--r":[-67.9,141.8,135.8,26.75],"wa-6--l":[0,155.18,0],"wa-7--p":[-97,235.1,283.35,235.1],"wa-7--h":[291,235.1,282,239.06,282,231.14],"wa-7--r":[-36.37,206.35,266.75,26.75],"wa-7--l":[97,219.73,0],"wa-8--p":[291,274.9,333,274.9,333,299.65,298.65,299.65],"wa-8--h":[291,299.65,300,295.69,300,303.61],"wa-8--r":[338.88,273.9,238.85,26.75],"wa-8--l":[458.3,287.27,0],"fresh--lead--p":[362.6,-162.25,291,-162.25],"fresh--lead--h":[291,-162.25,291,-162.25,291,-162.25]}}]}</script></div><!--/stage-->
+    <div class="demo-bar">
+      <button class="db" data-go="-1" aria-label="previous beat">&lsaquo;</button>
+      <button class="db" data-go="1" aria-label="next beat">&rsaquo;</button>
+      <ol class="rail" data-rail="seq-demo">
       <li><button type="button">opening</button></li>
       <li><button type="button"><b>1</b> ask-for-options</button></li>
       <li><button type="button"><b>2</b> the-challenge-is-the-point</button></li>
       <li><button type="button"><b>3</b> on-the-device</button></li>
       <li><button type="button"><b>4</b> back-to-the-relying-party</button></li>
     </ol><!--/rail-->
-    <button class="db play" aria-label="play the beats">play</button>
+      <button class="db play" aria-label="play the beats">play</button>
+    </div>
+    <pre class="demo-src" data-demosrc="seq-demo"><span class="srcln">::: draw 150x40</span><span class="srcln cm"># The actors are lines of their own because each needs a name later lines can</span><span class="srcln cm"># hold on to and an attribute tail of its own. Everything under them is a</span><span class="srcln cm"># message - an arrow between two names - or a note.</span><span class="srcln"><span class="kw">sequence</span> wa <span class="kw">at</span> 0,0</span><span class="srcln">  <span class="kw">actor</span> u  <span class="cl">"User"</span></span><span class="srcln">  <span class="kw">actor</span> br <span class="cl">"Browser"</span></span><span class="srcln">  <span class="kw">actor</span> au <span class="cl">"Authenticator"</span> <span class="cl">{.tone-3}</span></span><span class="srcln">  <span class="kw">actor</span> rp <span class="cl">"Relying Party"</span></span><span class="srcln"></span><span class="srcln">  u  -&gt; br <span class="cl">"clicks Create passkey"</span></span><span class="srcln">  br -&gt; rp <span class="cl">"request registration options"</span></span><span class="srcln">  br &lt;- rp <span class="cl">"registration options"</span> <span class="cl">"challenge · rp.id · user.id · algs"</span> <span class="cl">{.dashed}</span></span><span class="srcln">  br -&gt; au <span class="cl">"CTAP authenticatorMakeCredential"</span> <span class="cl">"clientDataHash · rp.id · user · algs"</span></span><span class="srcln">  <span class="kw">note</span> br,au <span class="cl">"CTAP runs over USB, NFC or BLE"</span></span><span class="srcln">  au -&gt; u  <span class="cl">"prompt: PIN or biometric"</span></span><span class="srcln">  u  -&gt; au <span class="cl">"user verified locally"</span></span><span class="srcln">  <span class="kw">note</span> au <span class="cl">"generate key pair\nbind to SHA-256(rp.id)\nstore privately · emit publicly"</span></span><span class="srcln">  au -&gt; br <span class="cl">"attestation object"</span> <span class="cl">"authData (public key, cred ID) · signature"</span> <span class="cl">{.dashed}</span></span><span class="srcln">  br -&gt; rp <span class="cl">"attestationObject + clientDataJSON"</span> <span class="cl">"clientDataJSON carries challenge · origin"</span></span><span class="srcln">  rp -&gt; rp <span class="cl">"verify signature · check origin"</span></span><span class="srcln"></span><span class="srcln cm"># Two annotations the statement knows nothing about, hung off generated</span><span class="srcln cm"># names: a brace over three messages and a note beside one of them. A beat</span><span class="srcln cm"># can show or emphasise either one exactly as it would a box.</span><span class="srcln"><span class="kw">brace</span> ctap <span class="kw">over</span> wa-3,wa-4,wa-5 <span class="kw">pad</span> 0.3 <span class="cl">"on the device, over CTAP"</span> <span class="kw">side</span> left <span class="cl">{.small .turn}</span></span><span class="srcln"><span class="kw">text</span> fresh <span class="cl">"the challenge is what makes it fresh"</span> <span class="kw">right of</span> wa-2 <span class="kw">gap</span> 1.9 <span class="cl">{.small .hand}</span> -- wa-2</span><span class="srcln"></span><span class="srcln cm"># The beats build the protocol rather than only lighting parts of a finished</span><span class="srcln cm"># one, which is how it is read in front of a room: one exchange, then the next.</span><span class="srcln cm"># Two things arrive on their own and neither is named where it appears. The</span><span class="srcln cm"># brace is never shown by a step - it holds wa-3, wa-4 and wa-5, and a brace is</span><span class="srcln cm"># only as visible as its members, so it comes in with them. The annotation is</span><span class="srcln cm"># the opposite case: it hangs off wa-2 by a leader and would arrive with it, so</span><span class="srcln cm"># an explicit `show` one beat later is what holds it back until the exchange</span><span class="srcln cm"># it comments on has been read.</span><span class="srcln"><span class="st">step</span> ask-for-options</span><span class="srcln">  <span class="st">show</span> @wa-msg-1, @wa-msg-2</span><span class="srcln">  <span class="st">emph</span> @wa-msg-2</span><span class="srcln"><span class="st">step</span> the-challenge-is-the-<span class="kw">point</span></span><span class="srcln">  <span class="st">show</span> fresh</span><span class="srcln">  <span class="st">dim</span> @wa-msg-1, @wa-msg-2</span><span class="srcln"><span class="st">step</span> on-the-device</span><span class="srcln">  <span class="st">show</span> @wa-msg-3, @wa-msg-4, @wa-msg-5</span><span class="srcln">  <span class="st">show</span> wa-<span class="kw">note</span>-0, wa-<span class="kw">note</span>-1</span><span class="srcln">  <span class="st">emph</span> au</span><span class="srcln"><span class="st">step</span> back-to-the-relying-party</span><span class="srcln">  <span class="st">show</span> @wa-msg-6, @wa-msg-7, @wa-msg-8</span><span class="srcln">  <span class="st">dim</span> au</span><span class="srcln">  <span class="st">emph</span> @wa-msg-8</span><span class="srcln">:::</span></pre><!--/demosrc-->
+   </div>
   </div>
-  <pre class="demo-src" data-demosrc="seq-demo"><span class="srcln">::: draw <span class="cl">{unit=150x40}</span></span><span class="srcln cm"># The actors are lines of their own because each needs a name later lines can</span><span class="srcln cm"># hold on to and an attribute tail of its own. Everything under them is a</span><span class="srcln cm"># message - an arrow between two names - or a note.</span><span class="srcln"><span class="kw">sequence</span> wa <span class="kw">at</span> 0,0</span><span class="srcln">  <span class="kw">actor</span> u  <span class="cl">"User"</span></span><span class="srcln">  <span class="kw">actor</span> br <span class="cl">"Browser"</span></span><span class="srcln">  <span class="kw">actor</span> au <span class="cl">"Authenticator"</span> <span class="cl">{.tone-3}</span></span><span class="srcln">  <span class="kw">actor</span> rp <span class="cl">"Relying Party"</span></span><span class="srcln"></span><span class="srcln">  u  -&gt; br <span class="cl">"clicks Create passkey"</span></span><span class="srcln">  br -&gt; rp <span class="cl">"request registration options"</span></span><span class="srcln">  br &lt;- rp <span class="cl">"registration options"</span> <span class="cl">"challenge · rp.id · user.id · algs"</span> <span class="cl">{.dashed}</span></span><span class="srcln">  br -&gt; au <span class="cl">"CTAP authenticatorMakeCredential"</span> <span class="cl">"clientDataHash · rp.id · user · algs"</span></span><span class="srcln">  <span class="kw">note</span> br,au <span class="cl">"CTAP runs over USB, NFC or BLE"</span></span><span class="srcln">  au -&gt; u  <span class="cl">"prompt: PIN or biometric"</span></span><span class="srcln">  u  -&gt; au <span class="cl">"user verified locally"</span></span><span class="srcln">  <span class="kw">note</span> au <span class="cl">"generate key pair\nbind to SHA-256(rp.id)\nstore privately · emit publicly"</span></span><span class="srcln">  au -&gt; br <span class="cl">"attestation object"</span> <span class="cl">"authData (public key, cred ID) · signature"</span> <span class="cl">{.dashed}</span></span><span class="srcln">  br -&gt; rp <span class="cl">"attestationObject + clientDataJSON"</span> <span class="cl">"clientDataJSON carries challenge · origin"</span></span><span class="srcln">  rp -&gt; rp <span class="cl">"verify signature · check origin"</span></span><span class="srcln"></span><span class="srcln cm"># Two annotations the statement knows nothing about, hung off generated</span><span class="srcln cm"># names: a brace over three messages and a note beside one of them. A beat</span><span class="srcln cm"># can show or emphasise either one exactly as it would a box.</span><span class="srcln"><span class="kw">brace</span> ctap <span class="kw">over</span> wa-3,wa-4,wa-5 <span class="kw">pad</span> 0.3 <span class="cl">"on the device, over CTAP"</span> <span class="kw">side</span> left <span class="cl">{.small .turn}</span></span><span class="srcln"><span class="kw">text</span> fresh <span class="cl">"the challenge is what makes it fresh"</span> <span class="kw">right of</span> wa-2 <span class="kw">gap</span> 1.9 <span class="cl">{.small .hand}</span> -- wa-2</span><span class="srcln"></span><span class="srcln cm"># The beats build the protocol rather than only lighting parts of a finished</span><span class="srcln cm"># one, which is how it is read in front of a room: one exchange, then the next.</span><span class="srcln cm"># Two things arrive on their own and neither is named where it appears. The</span><span class="srcln cm"># brace is never shown by a step - it holds wa-3, wa-4 and wa-5, and a brace is</span><span class="srcln cm"># only as visible as its members, so it comes in with them. The annotation is</span><span class="srcln cm"># the opposite case: it hangs off wa-2 by a leader and would arrive with it, so</span><span class="srcln cm"># an explicit `show` one beat later is what holds it back until the exchange</span><span class="srcln cm"># it comments on has been read.</span><span class="srcln"><span class="st">step</span> ask-for-options</span><span class="srcln">  <span class="st">show</span> @wa-msg-1, @wa-msg-2</span><span class="srcln">  <span class="st">emph</span> @wa-msg-2</span><span class="srcln"><span class="st">step</span> the-challenge-is-the-<span class="kw">point</span></span><span class="srcln">  <span class="st">show</span> fresh</span><span class="srcln">  <span class="st">dim</span> @wa-msg-1, @wa-msg-2</span><span class="srcln"><span class="st">step</span> on-the-device</span><span class="srcln">  <span class="st">show</span> @wa-msg-3, @wa-msg-4, @wa-msg-5</span><span class="srcln">  <span class="st">show</span> wa-<span class="kw">note</span>-0, wa-<span class="kw">note</span>-1</span><span class="srcln">  <span class="st">emph</span> au</span><span class="srcln"><span class="st">step</span> back-to-the-relying-party</span><span class="srcln">  <span class="st">show</span> @wa-msg-6, @wa-msg-7, @wa-msg-8</span><span class="srcln">  <span class="st">dim</span> au</span><span class="srcln">  <span class="st">emph</span> @wa-msg-8</span><span class="srcln">:::</span></pre><!--/demosrc-->
-</div>
+ </div>
+</section>
 
-<h2>Four design principles</h2>
-<div class="tenets">
-    <div class="tenet">
-      <span class="t">01</span>
+<section class="band">
+ <div class="wrap">
+  <h2>Four design principles</h2>
+
+  <!-- Half-empty row, answer 1: four things of the same kind in two rows of
+       two, which is what `.pair-up` is. They were a bordered grid with 01 /
+       02 / 03 / 04 down the side; four principles are not a sequence, and
+       DESIGN.md's list of what must not appear names exactly that marker. -->
+  <div class="pair-up">
+    <div>
       <h3>The text is the figure</h3>
       <p>There is no second copy of it: no drawing file beside the lecture, no exported image one edit behind its source. The figure is in the same file as the prose around it, so it travels when a slide is moved or copied, and a change to it arrives in a diff as the lines that changed.</p>
-      <p class="why">You can still drag it. The live slides carry a graphical editor, and a drag keeps the relation and changes the number inside it: <code>right of alice gap <b>1.1</b></code> becomes <code>right of alice gap <b>1.6</b></code>. Open the slides, bring up a <code>::: draw</code> figure, click it and press <kbd>E</kbd>.</p>
+      <p class="cue">You can still drag it. The live slides carry a graphical editor, and a drag keeps the relation and changes the number inside it: <code>right of alice gap <b>1.1</b></code> becomes <code>right of alice gap <b>1.6</b></code>. Open the slides, bring up a <code>::: draw</code> figure, click it and press <kbd>E</kbd>.</p>
     </div>
 
-    <div class="tenet">
-      <span class="t">02</span>
+    <div>
       <h3>Positions are relations, and stay relations</h3>
-      <p><code>right of alice gap 1.7</code> is the whole of what the file says about where Eve is, permanently &ndash; not shorthand the build resolves once and forgets. Every element but the first is placed against another, so the file is a set of dependencies and the build follows them in whichever order resolves them.</p>
-      <p class="why">Give Alice a longer label and her box grows; Eve stays 1.7 units to its right, Bob follows Eve, and both arrows find their new ends, with nothing moved by hand. If two relations point back to each other the build stops and names the placement cycle.</p>
+      <p><code>right of alice gap 1.7</code> is the whole of what the file says about where Eve is, permanently &ndash; not shorthand the build resolves once and forgets. Almost every element is placed against another, so the placements form a set of dependencies that the build resolves in whatever order works.</p>
+      <p class="cue">Give Alice a longer label and her box grows; Eve stays 1.7 units to its right, Bob follows Eve, and both arrows find their new ends, with nothing moved by hand. If two relations point back to each other the build stops and names the placement cycle.</p>
     </div>
 
-    <div class="tenet">
-      <span class="t">03</span>
-      <h3>The cast is written once; the beats say what changes</h3>
-      <p>Every element a figure will ever hold &ndash; every box, arrow, label, and outline &ndash; is written at the top of the <code>::: draw</code> block, whether or not it is initially visible when the figure comes up on the projector. A static figure stops there. If the figure has beats, one or more <code>step</code> sections follow; each names a beat and lists what it changes. Pressing the space bar when the figure is shown proceeds to the next beat. A beat can change visibility (<code>show</code>, <code>hide</code>), position (<code>move</code>), labelling (<code>label</code>), prominence (<code>emph</code>, <code>dim</code>, <code>ghost</code>) and styling (<code>style</code>).</p>
-      <p class="why">An element is hidden at the opening beat exactly when the first thing any step says about it is <code>show</code>, so there is no second list of what starts hidden &ndash; one description of the figure, and the changes to it.</p>
+    <div>
+      <h3>Each element once, then what the beats change</h3>
+      <p>Every box, arrow, label and outline the figure will ever hold is written at the top of the <code>::: draw</code> block, visible from the start or not. A static figure stops there. If it has beats, a <code>step</code> section follows for each, naming it and listing what it changes: visibility (<code>show</code>, <code>hide</code>), position (<code>move</code>), labelling (<code>label</code>), prominence (<code>emph</code>, <code>dim</code>, <code>ghost</code>) or styling (<code>style</code>).</p>
+      <p class="cue">An element starts hidden exactly when the first thing any step says about it is <code>show</code>, so nothing has to list what starts hidden.</p>
     </div>
 
-    <div class="tenet">
-      <span class="t">04</span>
+    <div>
       <h3>A beat is the whole figure laid out again</h3>
-      <p>Every beat is the same layout evaluated again with different inputs, not a movement played over a finished picture, and the build works all of them out before the page is written. The browser is handed one drawing and a table of numbers to slide between, with no layout engine to load.</p>
-      <p class="why">So an arrow stays attached to a box that walks away. The arrow never held a coordinate; it held &ldquo;the right-hand edge of <code>eve</code>&rdquo;, and that still means the right-hand edge of <code>eve</code> wherever <code>eve</code> now is.</p>
+      <p>Every beat is the same layout evaluated again with different inputs, not a movement played over a finished picture, and the build works every beat out before the page is written. The browser is handed one drawing and a table of numbers to slide between, with no layout engine to load.</p>
+      <p class="cue">So an arrow stays attached to a box that walks away. The arrow never held a coordinate; it held &ldquo;the right-hand edge of <code>eve</code>&rdquo;, and that still means the right-hand edge of <code>eve</code> wherever <code>eve</code> now is.</p>
     </div>
   </div>
+ </div>
+</section>
 
-<h2 id="editor">Dragging a box rewrites the line that placed it</h2>
-<p class="figlead">A drag changes the number inside a relation and leaves the relation standing, so a figure can be edited by hand without losing what holds it together. The editor therefore works differently from the ones you know: it shows you the relations, and it asks you to name your elements.</p>
+<section class="band">
+ <div class="wrap">
+  <h2 id="editor">Dragging a box rewrites the line that placed it</h2>
+  <p class="lede">A drag changes the number inside a relation and leaves the relation itself alone, so the figure can still be edited in its text afterwards without losing what holds it together. That makes this editor work differently from a drawing program: it shows you the relations, and it asks you to name your elements.</p>
 
-<figure class="shot compact">
-  <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>the editor, opened on a figure with beats</b></div>
-  <img src="img/editor.webp" alt="The diagram editor open over a lecture slide: a dark canvas holding a CBC decryption figure with one box selected, the relations that place it written on the canvas beside it, a panel on the right describing the beat that is standing, a rail of the figure's beats along the bottom, and a strip of the lecture's other figures under that.">
-</figure>
+  <!-- The caption belongs to its picture, and this is where it did not.
+       Both paragraphs describe a REGION of the window - the canvas and the
+       panel - and they stood in a two-column row ABOVE the picture, set as
+       cues, which put two captions between a heading and the thing they
+       caption with nothing saying which was which. DESIGN.md's second rule
+       still holds: the sentence that says what to look at goes in front. So
+       one short cue goes in front, the picture carries a caption of its own
+       naming the two regions, and the two long paragraphs stand under it,
+       each opening with the region it is about. -->
+  <p class="cue">Two places to look in the window below: the words drawn on
+  the canvas beside the box that is selected, and the panel down the
+  right-hand edge.</p>
 
-<p class="measure">The selected box is <code>c1</code>, and the words drawn beside it &ndash; <code>gap 1.15</code>, <code>flush middle</code>, <code>align y middle</code> &ndash; are the relations it was written with. A finished drawing cannot show those: a box placed <code>gap 1.15</code> from its neighbour looks exactly like one that happens to sit 1.15 away, and only one of the two moves when the neighbour does.</p>
+  <div class="stage">
+   <figure class="shot evidence">
+    <div class="bar"><span class="dots"><i></i><i></i><i></i></span> <b>the editor, opened on a figure with beats</b></div>
+    <img src="img/editor.webp" alt="The diagram editor open over a lecture slide: a dark canvas holding a CBC decryption figure with one box selected, the relations that place it written on the canvas beside it, a panel on the right describing the beat that is standing, a rail of the figure's beats along the bottom, and a strip of the lecture's other figures under that.">
+    <figcaption><strong>The editor, over a slide of a network-security
+    lecture.</strong> The selected box is <code>c1</code>; the panel on the
+    right describes the beat the figure is showing.</figcaption>
+   </figure>
+  </div>
 
-<p class="measure">The panel on the right describes the beat that is standing, and it describes it by what it <em>does</em> rather than by what it says: the beat is written <code>show @out</code> and <code>dim feed0, feed1, feed2</code>, and the panel names the three boxes that appear, the three arrows that come with their ends because an arrow is only as visible as the two things it joins, and the three lines dimmed under them. A drag at that beat writes a <code>move</code> into the step rather than moving the element.</p>
+  <div class="pair-up">
+   <div>
+    <p><strong>On the canvas</strong>, the words drawn beside the selected box <code>c1</code> &ndash; <code>gap 1.15</code>, <code>flush middle</code>, <code>align y middle</code> &ndash; are the relations it was written with. A finished drawing cannot show those: a box placed <code>gap 1.15</code> from its neighbour looks exactly like one that happens to sit 1.15 away, and only one of the two moves when the neighbour does.</p>
+   </div>
+   <div>
+    <p><strong>In the panel down the right-hand edge</strong>, the beat now showing is described by what it does, not by the source that says it. It is written <code>show @out</code> and <code>dim feed0, feed1, feed2</code>; the panel names three boxes appearing, three arrows arriving with them &ndash; an arrow is only as visible as the two things it joins &ndash; and three lines dimmed underneath. A drag there writes a <code>move</code> into that beat rather than moving the element.</p>
+   </div>
+  </div>
 
-<h3>Opening it, and where the edit goes</h3>
-<p class="measure">Click a figure in the live view and press <code>E</code>, or use the button in the corner of the card the click opens. It is on by default wherever a lecture has a diagram; <code>editor: speaker</code> in the frontmatter keeps it off the projection and <code>editor: none</code> ships the lecture without it.</p>
+  <!-- Half-empty row, answer 1: three answers to one question - how you open
+       it, what to expect of it, and where the edit lands - in one row rather
+       than as three paragraphs down the measure.
+       It had a sub-heading over it, "Opening it, and where the edit goes",
+       and the heading was the untidiness rather than the cure: it stood 8px
+       above the first of three columns, so it read as a label for that column
+       instead of for the row, and it cut the two paragraphs that describe the
+       window away from the ones that say how to open it - two halves of one
+       subject. What separates them now is air, which is what the rest of this
+       page uses between the blocks of one section. -->
+  <!-- Two rows of two, not a two and a three: the second column of the pair
+       above landed 139px from the middle column of a three, which is close
+       enough to read as a miss rather than as a different grid.
+       The third paragraph - the manual and the limit - stood alone under the
+       row for a while, three lines at a column's measure with the whole frame
+       empty beside them, which is the one shape this stylesheet is written
+       against. It is not parallel to the paragraph about where the edit goes,
+       but it is parallel to the one about how you open it: both are what a
+       reader needs before touching the thing. So the left column is now
+       getting in and what to expect, the right one is where the edit lands,
+       and the two halves come out within a line of each other. -->
+  <div class="pair-up">
+   <div>
+    <p>Click a figure in the projection and press <code>E</code>, or use the button in the corner of the card that click opens. The editor ships with any lecture that has a figure in it; <code>editor: speaker</code> at the top of the lecture file keeps it off the projection, and <code>editor: none</code> leaves it out altogether.</p>
+    <p>The gestures, the panel and the rest of it are in <a href="figures-you-write.html#editor">the manual</a>. Automated tests cover the editor, but few people have used it, and it is made for a desktop-sized authoring screen.</p>
+   </div>
+   <div>
+    <p><strong>The edit goes straight back into <code>source.md</code></strong> if you build with <code class="flag">--watch</code>, the mode that rebuilds on every save. The button in the top right then reads <em>Write to source.md</em>, the build writes the block back into the file, and the rebuild that follows reloads every open tab. Without a watching build the same button copies the whole block to the clipboard, to paste over the old one. An edit that stops the block compiling is never written: it is rolled back and the compiler&rsquo;s error message is shown.</p>
+   </div>
+  </div>
+  </div>
+ </div>
+</section>
 
-<p class="measure"><strong>Build with <code>--watch</code> and the edit goes straight back into <code>source.md</code>:</strong> the button in the top right then reads <em>Write to source.md</em>, the server splices the block into the file, and the rebuild that follows reloads every open tab. Without a watch server the same button copies the whole block to the clipboard to paste over the old one. An edit that stops the block compiling is not written anywhere &ndash; it is rolled back on the spot and the compiler&rsquo;s error message is shown.</p>
-
-<p class="measure">The gestures, the panel and the rest of it are in <a href="figures-you-write.html#editor">the manual</a>. The editor is experimental and made for a desktop-sized authoring screen: it has automated coverage, but has not been tested broadly by people.</p>
-
-<h2>What you give up, and what you get</h2>
-<div class="versus"><table>
+<section class="band">
+ <div class="wrap">
+  <h2>What you give up, and what you get</h2>
+  <!-- Half-empty row, answer 2: seven rows against three named alternatives
+       is a thing to look at, so it runs to the frame's edge and scrolls
+       inside its own box below the width its columns need. -->
+  <div class="scroller">
+   <table class="versus">
       <thead>
         <tr>
           <th></th>
           <th>A drawing program<span>PowerPoint, Keynote, Excalidraw</span></th>
           <th>An auto-layout language<span>Mermaid, Graphviz, PlantUML</span></th>
-          <th>This<span>::: draw</span></th>
+          <th>psi-slides<span>::: draw</span></th>
         </tr>
       </thead>
       <tbody>
@@ -647,7 +982,7 @@ the beats inside a figure; <kbd>S</kbd> opens a cockpit that follows it.</p>
           <th>The handout</th>
           <td>A second export, and a second thing to keep current</td>
           <td>The same picture</td>
-          <td>The last beat of the same figure, carrying the prominence written into it rather than the prominence a beat lent it</td>
+          <td>The last beat of the same figure. Emphasis a beat lent an element is gone; emphasis written into the figure itself stays</td>
         </tr>
         <tr>
           <th>Output and export</th>
@@ -657,17 +992,35 @@ the beats inside a figure; <kbd>S</kbd> opens a cockpit that follows it.</p>
         </tr>
         <tr class="fair">
           <th>When to reach for it</th>
-          <td>One figure, drawn once and not revised. Nothing to install, no build step, and everyone already has it</td>
-          <td>Forty nodes whose arrangement carries no meaning. It places everything for you, which this will never do</td>
+          <td>One figure, drawn once and not revised. Nothing to install, no build step, and most people already have it</td>
+          <td>Forty nodes whose arrangement carries no meaning. It places everything for you, which <code>::: draw</code> will never do</td>
           <td>When the arrangement is part of the argument, or the figure has to be built up in front of a room</td>
         </tr>
       </tbody>
-    </table></div>
+    </table>
+   </div>
+ </div>
+</section>
 
-<div class="handoff">
-  <p>This page argues for the language. <a href="figures-you-write.html">Figures You Write</a> is the manual: it builds a figure a line at a time, gives it beats, then lists every class and statement, fifteen design rules and a set of worked examples.</p>
-</div>
+<section class="band band-close">
+ <div class="wrap">
+  <!-- Half-empty row, answer 3: one paragraph and a byline, with nothing to
+       put beside them, so they are narrow on purpose and the space is even on
+       both sides. The change of ground is what ends the page; the box the
+       handoff used to sit in was a second frame inside a frame. -->
+  <div class="middle">
+   <p>This page argues for the language. <a href="figures-you-write.html">Figures You Write</a> is the manual: it builds a figure a line at a time, gives it beats, then lists every class and statement, fifteen design rules and a set of worked examples.</p>
 
+   <footer>
+    <p>psi-slides &middot; <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
+    University of Bamberg &middot; <a href="https://herdom.net">Dominik Herrmann</a><br>
+    Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0.</p>
+   </footer>
+  </div>
+ </div>
+</section>
+
+</main>
 <script>
 // dg-rt-start
 const DG_LIST = [];
@@ -757,6 +1110,27 @@ function dgSplineD(v) {
       + ' ' + r(px(i + 1)) + ' ' + r(py(i + 1));
   }
   return d;
+}
+
+// A live view shows the box that holds every beat, and - on an ordinary
+// figure chunk - the canvas the slide reserves for a drawing, which is wider
+// and taller than the picture inside it. Neither is the box the documents
+// show, which is tight around the finished drawing.
+//
+// Two things move together when that box is swapped in, and only two: the
+// viewBox and the intrinsic height that keeps its proportion. Both are
+// ATTRIBUTES, which is the whole reason a runtime is involved - the three
+// numbers a stylesheet needs (--dg-live-type-w, --dg-live-ar,
+// --dg-live-ink-x) are emitted beside the print ones and picked with a
+// var() fallback, so nothing about a figure's SIZE waits for this function.
+// It used to set --dg-ink-x here and the first version left the property
+// behind in the editor's path, so a figure jumped sideways the moment it was
+// edited; a value the compiler writes into the markup cannot be left behind.
+function dgUseLiveViewBox(svg) {
+  svg.setAttribute('viewBox', svg.dataset.liveViewbox);
+  const w = Number(svg.getAttribute('width'));
+  const r = Number(svg.dataset.liveRatio);
+  if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
 }
 
 function dgApplyVec(el, kind, v) {
@@ -890,37 +1264,158 @@ function dgStep(d, step, instant) {
   d.raf = requestAnimationFrame(tick);
 }
 
+// What may stand in a figure that arrives as markup. An allow-list, because
+// the list of what can run inside an SVG is longer than anyone keeps up to
+// date: a blocklist of on* and javascript: let a <foreignObject> through, and
+// an <iframe srcdoc> inside it ran its script on the projection. The first
+// row is what the compiler and the build's image leaf emit (measured over
+// every figure in the repository and in the content decks); the rest is the
+// static drawing vocabulary a vector asset spliced into a figure may carry -
+// shapes, gradients, clips, masks, markers, filters. Nothing that runs,
+// fetches a document, animates or links: no script, foreignObject, iframe,
+// a, animate, animateMotion, animateTransform, set, feImage.
+const DG_SAFE_EL = new Set(('svg g path rect circle text tspan image title symbol use style '
+  + 'defs desc line polyline polygon ellipse textPath linearGradient radialGradient stop '
+  + 'pattern clipPath mask marker filter feBlend feColorMatrix feComponentTransfer '
+  + 'feComposite feConvolveMatrix feDiffuseLighting feDisplacementMap feDistantLight '
+  + 'feDropShadow feFlood feFuncA feFuncB feFuncG feFuncR feGaussianBlur feMerge '
+  + 'feMergeNode feMorphology feOffset fePointLight feSpecularLighting feSpotLight '
+  + 'feTile feTurbulence').split(' '));
+// Attributes: geometry, presentation and structure. data-* and aria-* are
+// allowed by prefix; an on* handler is simply not on the list. The two href
+// spellings are judged by value in dgSafeHref.
+const DG_SAFE_ATTR = new Set(('id class style role transform xmlns xmlns:xlink xml:space '
+  + 'x y x1 y1 x2 y2 cx cy r rx ry fx fy fr width height d points dx dy rotate '
+  + 'textLength lengthAdjust startOffset method spacing side viewBox preserveAspectRatio '
+  + 'pathLength offset gradientUnits gradientTransform spreadMethod patternUnits '
+  + 'patternContentUnits patternTransform clipPathUnits maskUnits maskContentUnits '
+  + 'markerWidth markerHeight markerUnits refX refY orient filterUnits primitiveUnits '
+  + 'in in2 result stdDeviation mode operator k1 k2 k3 k4 values type tableValues slope '
+  + 'intercept amplitude exponent kernelMatrix order divisor bias targetX targetY '
+  + 'edgeMode preserveAlpha scale xChannelSelector yChannelSelector baseFrequency '
+  + 'numOctaves seed stitchTiles radius surfaceScale diffuseConstant specularConstant '
+  + 'specularExponent kernelUnitLength azimuth elevation z pointsAtX pointsAtY pointsAtZ '
+  + 'limitingConeAngle version baseProfile '
+  + 'fill fill-opacity fill-rule stroke stroke-width stroke-opacity stroke-linecap '
+  + 'stroke-linejoin stroke-miterlimit stroke-dasharray stroke-dashoffset opacity '
+  + 'clip-path clip-rule mask filter color display visibility overflow font-family '
+  + 'font-size font-size-adjust font-stretch font-style font-variant font-weight '
+  + 'text-anchor dominant-baseline alignment-baseline baseline-shift letter-spacing '
+  + 'word-spacing text-decoration paint-order vector-effect shape-rendering '
+  + 'text-rendering image-rendering color-interpolation color-interpolation-filters '
+  + 'stop-color stop-opacity marker-start marker-mid marker-end writing-mode direction '
+  + 'unicode-bidi flood-color flood-opacity lighting-color isolation mix-blend-mode '
+  + 'pointer-events transform-origin').split(' '));
+function dgSafeHref(tag, v) {
+  // Browsers drop control characters and spaces from a URL before reading
+  // its scheme, so the test does too.
+  const s = String(v || '').replace(/[\u0000-\u0020]/g, '');
+  if (s.charAt(0) === '#') return tag !== 'image';
+  if (tag !== 'image') return false;
+  // A picture: inlined, beside the page, or on the web. An <image> is drawn
+  // in a mode that runs no script, so the scheme is the whole question.
+  return /^data:image\//i.test(s) || /^https?:\/\//i.test(s) || !/^[a-z][a-z0-9+.-]*:/i.test(s);
+}
+// A spliced asset's <style> is wrapped by the build in an @scope on the
+// asset's own root (inlineSvg), with @font-face hoisted beside it. That is
+// the shape kept: every top-level block that is an @scope on an svg inside
+// this figure, or an @font-face. Anything else - a bare rule, an @import, a
+// scope on some other element - would style the page around the figure,
+// and is dropped. Returns null when nothing had to go, so a stylesheet that
+// passes keeps its text byte for byte.
+function dgScopedCss(css, ids) {
+  const n = css.length;
+  const keep = [];
+  let dropped = false;
+  const atom = (j) => {
+    const c = css[j];
+    if (c === '/' && css[j + 1] === '*') { const e = css.indexOf('*/', j + 2); return e < 0 ? n : e + 2; }
+    if (c === '"' || c === "'") {
+      let k = j + 1;
+      while (k < n && css[k] !== c) { if (css[k] === '\\') k++; k++; }
+      return k + 1;
+    }
+    if (c === '\\') return j + 2;
+    return -1;
+  };
+  let i = 0;
+  while (i < n) {
+    let p = i;
+    while (p < n && css[p] !== '{' && css[p] !== ';' && css[p] !== '}') {
+      const s = atom(p); p = s < 0 ? p + 1 : s;
+    }
+    const prelude = css.slice(i, Math.min(p, n)).replace(/\/\*[\s\S]*?\*\//g, '').trim();
+    if (p >= n) { if (prelude) dropped = true; break; }
+    if (css[p] !== '{') { dropped = true; i = p + 1; continue; }
+    let q = p + 1, depth = 1;
+    while (q < n && depth > 0) {
+      const s = atom(q);
+      if (s >= 0) { q = s; continue; }
+      if (css[q] === '{') depth++;
+      else if (css[q] === '}') depth--;
+      q++;
+    }
+    const m = /^@scope\s*\(\s*svg#([A-Za-z0-9_-]+)\s*\)$/.exec(prelude);
+    if ((m && ids.has(m[1])) || /^@font-face$/i.test(prelude)) keep.push(css.slice(i, q).trim());
+    else dropped = true;
+    i = q;
+  }
+  return dropped ? keep.join('\n') : null;
+}
+function dgCleanSvg(root) {
+  const NS = 'http://www.w3.org/2000/svg';
+  const all = [root, ...root.querySelectorAll('*')];
+  const gone = new Set();
+  for (const el of all) {
+    if (el.parentNode && gone.has(el.parentNode)) { gone.add(el); continue; }
+    if (el.namespaceURI !== NS || !DG_SAFE_EL.has(el.localName)) { gone.add(el); continue; }
+    for (const a of [...el.attributes]) {
+      const name = a.name;
+      const ok = /^(data|aria)-[a-z0-9_.-]*$/i.test(name)
+        ? true
+        : (name === 'href' || name === 'xlink:href')
+          ? dgSafeHref(el.localName, a.value)
+          : DG_SAFE_ATTR.has(name);
+      if (!ok) el.removeAttribute(name);
+    }
+  }
+  for (const el of gone) if (el !== root) el.remove();
+  if (gone.has(root)) return false;
+  const ids = new Set([...root.querySelectorAll('svg[id]')].map((s) => s.id));
+  if (root.id) ids.add(root.id);
+  for (const st of root.querySelectorAll('style')) {
+    const css = dgScopedCss(st.textContent, ids);
+    if (css !== null) st.textContent = css;
+  }
+  return true;
+}
+
 // Swap one diagram for a freshly compiled copy of itself – the DOM half of
 // an applied edit. Shared: the editor calls it after compiling in this
 // window, and the diagram-edit receiver in a view that ships no editor
 // (editor: speaker) calls it with the markup the cockpit sent along. One
 // text, or the two swap paths would drift.
 function dgSwapFigure(oldSvg, html) {
-  const holder = document.createElement('div');
+  // Parsed into a template, never into a div: a detached div still belongs
+  // to this document, and an <img onerror> in it fires without ever being
+  // attached. A template's content has no window, so nothing in it loads or
+  // runs. Only two things are taken out of it, the drawing and its frames
+  // payload, and both are cut down to what a figure is made of before either
+  // reaches the page (dgCleanSvg). The payload is data - a script element
+  // that is not JSON is not one.
+  const holder = document.createElement('template');
   holder.innerHTML = html;
-  // Belt and braces for the remote path: the compiler never emits an event
-  // handler, an executable script or a javascript: URL, so anything of the
-  // kind in incoming markup is not a figure – scrub it rather than let it
-  // run. innerHTML does not execute script elements, but an on* attribute
-  // on a parsed element fires the moment it is in the document.
-  holder.querySelectorAll('script:not([type="application/json"])').forEach((s) => s.remove());
-  holder.querySelectorAll('*').forEach((el) => {
-    for (const a of [...el.attributes]) {
-      const n = a.name.toLowerCase();
-      const v = String(a.value || '').trim().toLowerCase();
-      if (n.indexOf('on') === 0 || v.indexOf('javascript:') === 0) el.removeAttribute(a.name);
+  const next = holder.content.querySelector('svg.psi-diagram');
+  let payload = holder.content.querySelector('script.psi-diagram-frames');
+  if (!next || !dgCleanSvg(next)) return null;
+  if (payload) {
+    if (payload.getAttribute('type') !== 'application/json') payload = null;
+    else for (const a of [...payload.attributes]) {
+      if (a.name !== 'type' && a.name !== 'class' && a.name !== 'data-for') payload.removeAttribute(a.name);
     }
-  });
-  const next = holder.querySelector('svg.psi-diagram');
-  const payload = holder.querySelector('script.psi-diagram-frames');
-  if (!next) return null;
-  const live = oldSvg.psiDiagram;
-  if (next.dataset.liveViewbox) {
-    next.setAttribute('viewBox', next.dataset.liveViewbox);
-    const w = Number(next.getAttribute('width'));
-    const r = Number(next.dataset.liveRatio);
-    if (w && r) next.setAttribute('height', String(Math.round(w * r)));
   }
+  const live = oldSvg.psiDiagram;
+  if (next.dataset.liveViewbox) dgUseLiveViewBox(next);
   const figure = oldSvg.closest('.figure-diagram');
   oldSvg.replaceWith(next);
   // The frames payload is what the step runtime reads. Replace it alongside
@@ -981,6 +1476,14 @@ function dgMirrorIntoFocus(d, step) {
 }
 
 function initDiagrams() {
+  // Every figure that has a live box, stepped or not. It used to be done
+  // inside the loop below, which walks the FRAMES payloads - so a figure with
+  // no steps never got one, and the day a still figure acquired a live box
+  // (the slide's canvas) it was laid out at the canvas's proportion and drawn
+  // at its own: the picture sat in the middle of the reserved rectangle at
+  // whatever scale the two aspect ratios happened to differ by.
+  document.querySelectorAll('svg.psi-diagram[data-live-viewbox]')
+    .forEach(svg => dgUseLiveViewBox(svg));
   document.querySelectorAll('script.psi-diagram-frames').forEach(sc => {
     const svg = document.getElementById(sc.dataset.for);
     if (!svg) return;
@@ -989,14 +1492,8 @@ function initDiagrams() {
     // The static viewBox is the print one – tight around the finished
     // picture. A live view has to hold every frame instead, or an element
     // that walks in from outside is clipped for the whole of its journey.
-    // Swapped here rather than emitted, so a view with no JavaScript keeps
+    // Swapped above rather than emitted, so a view with no JavaScript keeps
     // the still it is going to show.
-    if (svg.dataset.liveViewbox) {
-      svg.setAttribute('viewBox', svg.dataset.liveViewbox);
-      const w = Number(svg.getAttribute('width'));
-      const r = Number(svg.dataset.liveRatio);
-      if (w && r) svg.setAttribute('height', String(Math.round(w * r)));
-    }
     const fig = svg.closest('.figure-diagram');
     const d = {
       svg, data, step: -1, raf: 0, cur: null, cache: {},
@@ -1204,11 +1701,5 @@ function initDiagrams() {
 // demo-controls-end
 </script>
 <script src="site.js"></script>
-<footer>
-  psi-slides &middot; <a href="https://psi.uni-bamberg.de/">Privacy and Security in Information Systems</a>,
-  University of Bamberg &middot; <a href="https://herdom.net">Dominik Herrmann</a><br>
-  Tooling MIT-licensed, lecture content CC&nbsp;BY-SA&nbsp;4.0.
-</footer>
-</main>
 </body>
 </html>

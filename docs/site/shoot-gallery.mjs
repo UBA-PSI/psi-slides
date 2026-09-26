@@ -80,7 +80,7 @@ const ART = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" widt
 // the documented reason those two exist - a diagram is not a file, so
 // cover-image can never name one - so showing them with a drawing rather than
 // with the SVG is showing what they are for.
-const DRAW = `::: draw {unit=150x56}
+const DRAW = `::: draw 150x56
 box src  "Source"      at 0,0
 box mid  "Measurement" right of src gap 1.4
 box out  "Finding"     right of mid gap 1.4

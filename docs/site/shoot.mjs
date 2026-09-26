@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 /**
- * Re-shoots the site's screenshots from lectures/python-intro, plus the one
- * of the diagram editor from lectures/diagrams.
+ * Re-shoots the site's screenshots from lectures/python-intro, plus the one of
+ * the diagram editor from lectures/diagrams, the five decoration.html needs
+ * from lectures/decoration, and the four-frame cue-card sequence from
+ * lectures/spoken-talk.
  *
- *   node docs/site/shoot.mjs                 # all eight, into docs/site/img/
+ *   node docs/site/shoot.mjs                 # all twenty, into docs/site/img/
  *   node docs/site/shoot.mjs cockpit search  # just those two
  *   node docs/site/shoot.mjs --keep-png      # leave the PNGs beside the WebP
  *
  * Requires the lectures to be built first (`node build.js
- * lectures/python-intro/source.md`, and the same for lectures/diagrams if the
- * editor shot is in the run), `playwright-core` from devDependencies,
- * and a Chromium: $PSI_CHROME wins, then a browser in the Playwright cache,
+ * lectures/python-intro/source.md`, and the same for lectures/diagrams and
+ * lectures/decoration if their shots are in the run), `playwright-core` from
+ * devDependencies, and a Chromium: $PSI_CHROME wins, then a browser in the Playwright cache,
  * then the system Google Chrome. Encoding needs cwebp or magick on PATH; with
  * neither, the PNGs are kept and the WebP step is skipped with a note.
  *
@@ -35,6 +37,13 @@
  * lecture nobody rebuilt. It is addressed by fragment rather than walked,
  * because what the shot is about is inside a modal that opens over whichever
  * chunk the camera is on, not the walk that got there.
+ *
+ * The cue-card sequence is four frames of one slide, and it comes from
+ * lectures/spoken-talk. It has to come from somewhere written for the mode:
+ * the cards are for a talk that is written out word for word, and the
+ * tutorial's notes are examples of note syntax, so a frame of them shows the
+ * rail and not the reason for it. spoken-talk exists for this - see the
+ * comment at the top of its source.
  *
  * The audience view is walked to the target chunk with the arrow keys rather
  * than addressed by fragment. That was a workaround for the bug where the
@@ -73,6 +82,85 @@ main { padding-top: 0 !important; margin-top: 0 !important; }
 </style>
 `;
 
+// The live view's own chrome is not part of any composition: the help button
+// and the edge arrows are controls, and a picture of a slide is a picture of a
+// slide. Same rig shoot-gallery.mjs uses on its tiles, and for the same
+// reason - the two sets stand on one page.
+const LIVE_RIG = `
+<style>#help-button, #nav-hints, .annot-add { display: none !important; }</style>
+`;
+
+// ── when these shots are stale ───────────────────────────────────────────
+//
+// Nothing checks that. The ids above are checked, because an id is the one
+// part of a shot that can be decided without drawing it; freshness cannot,
+// and a gate that pretends otherwise is worse than none, because a green run
+// is read as an assurance.
+//
+// A shot is not a function of source.md alone. It is the lecture, plus the
+// stylesheets and runtime inlined by build.js, plus this rig, plus the
+// Chromium that drew it. So the trigger to re-shoot is not a file:
+//
+//   the live views' chrome moved, a viewer default changed, or anything
+//   moved a label or an extent.
+//
+// Both drifts that reached the published site were that and not a lecture
+// edit. cockpit.webp predated the clock becoming a large button in the top
+// right corner. Six python-intro shots predated the `bold:` default changing
+// from accent-bold to plain. A hash over the lecture sources would have
+// stayed green through both.
+//
+// A change that reaches the whole deck is a re-shoot only where a shot frames
+// something it touches. python-intro went to style: {blocks: left} deck-wide,
+// which moved the code slides in it and left collapsed, full and search
+// untouched - those three frame a chunk with no code block. The same walk the other way:
+// a chunk inserted between the two the document rig frames moved the margin
+// number of the second and not the first, so printed changed and the two
+// 470-row handout crops, which stop above the second number, did not. Read the
+// number off the shot before deciding; it is four pixels of evidence against
+// an afternoon of re-encoding.
+//
+// And the trigger list above is incomplete in a way worth stating, because it
+// is what the two rules on either side of it would both miss: a shot can go
+// stale from an edit to a chunk it does not frame and does not show. The stage
+// is a continuous column and the camera's translate is computed from the active
+// chunk's offset in it, so growing an upstream chunk moves the frame. Measured:
+// rewriting two sentences in the decoration chunk directly above #reveal-close
+// took that chunk from 1001px to 1271px, which landed the frame 0.56 CSS px
+// lower and changed deco-backdrop. Three builds settled it - old engine with
+// old source, new with new, and new with only those two sentences reverted, the
+// third byte-identical to the first. So neither "did the framed chunk change"
+// nor a reading of the diff decides this. Running the rig does.
+//
+// A pixel-difference count is not that measurement, and it misleads in both
+// directions. deco-backdrop is a full-frame gradient, so a one-pixel shift lit
+// up 26 % of the image; a screenshot of text where one word changed lights up
+// almost nothing. Roll the new shot by a pixel or two and see which offset fits
+// best, then look at the two pictures. And check that the shot is reproducible
+// before blaming a change for it: two runs of deco-backdrop came back
+// byte-identical to each other and both differed from the committed file, which
+// is what turned "the rig is noisy" into "the file is out of date".
+//
+// The threshold is whether a reader would see the difference at the size the
+// page displays the shot. Both of those were visible at reading size. A prose
+// edit two tiles deep in the overview thumbnail is not, and the honest answer
+// there is to write the shot down as known-stale and let the next visible
+// reason carry it, rather than to churn twenty shots for pixels nobody reads.
+//
+// That answer is about COST, though, and the cost is not always twenty shots.
+// Where the change is real, reproducible and confined to one file, take it even
+// when it is invisible: shoot.mjs names its shots, so one is 25 KB rather than
+// eleven binaries and the manual. What that buys is a tree where running the
+// rig produces no diff - and a diff only means something where its absence
+// means something too. A repository whose shot rig always reports changes
+// teaches the next person to skip past them.
+//
+// One coupling that is easy to miss: docs/artifact/refresh-figures.mjs inlines
+// img/editor.webp into figures-you-write.html, because that page fetches
+// nothing at run time. A re-shoot therefore drifts a page under docs/artifact/,
+// and pages.yml runs refresh-figures --check before it assembles the site. Run
+// it after shooting, and commit the manual with the images.
+
 const SHOTS = [
   { name: 'collapsed', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true },
   { name: 'full', src: 'audience.html', w: 1440, h: 900, dsf: 1.5, live: true,
@@ -89,7 +177,19 @@ const SHOTS = [
     } },
   { name: 'cockpit', src: 'speaker.html', w: 1440, h: 900, dsf: 1.5, frag: true },
   { name: 'printed', src: 'print.html', w: 1000, h: 625, dsf: 2.15, rig: DOC_RIG },
-  { name: 'handout', src: 'print-notes.html', w: 860, h: 690, dsf: 2.5, rig: DOC_RIG },
+  // 470 rather than 690, and the reason is DESIGN.md's fifth rule. The frame
+  // held two chunks of the document, and the second one carries nothing the
+  // first does not: the claim beside it is hyphenation, a line length made
+  // for reading, and the margin note as an aside, and all three are in the
+  // first chunk. As two chunks the shot came out 762px tall against 240px of
+  // words in the row beside it - a picture three times its own argument.
+  { name: 'handout', src: 'print-notes.html', w: 860, h: 470, dsf: 2.5, rig: DOC_RIG },
+  // The same frame again from print.html, so the landing page can offer the
+  // two handouts as one switch rather than showing the notes version and
+  // calling it what the students take away. Identical geometry to `handout`
+  // on purpose: a switch that changes the crop as well as the file reads as
+  // two pictures, not as one file becoming another.
+  { name: 'handout-plain', src: 'print.html', w: 860, h: 470, dsf: 2.5, rig: DOC_RIG },
   // The editor, opened on a figure with beats. 1280 is the narrowest viewport
   // that still fits the whole top bar - at 1200 the Close button is cut in
   // half, and a screenshot of a clipped UI reads as a broken one.
@@ -105,7 +205,155 @@ const SHOTS = [
   { name: 'figure', src: 'print.html', w: 1200, h: 900, dsf: 2,
     lecture: 'network-security', target: 'ns-a03',
     clip: '#ns-a03 svg.psi-diagram' },
+  // ── the cue-card sequence, four frames of one slide ─────────────────────
+  // The cockpit's third arrangement, for the "In the room" page. One still
+  // frame of it does not explain itself: what a reader has to see is the
+  // cursor walking the rail while the figure on the projection walks its
+  // steps, and that is a change between two pictures, not a picture.
+  //
+  // #second-time is the case the mode was built for: a figure with three
+  // `step` blocks and four notes, three of them pinned with
+  // `> note: from N`. So the rail interleaves card, click, card, click - and
+  // the four frames are the cursor standing on each of the four cards, with
+  // the figure at the beat that card is spoken over.
+  //
+  // One press a frame. Each beat of this chunk up to the last carries one
+  // card, and the press on the last card of a beat is the projector click
+  // itself, so 0, 1, 2, 3 are the four frames where a card is current and
+  // the figure has just moved. Deriving them rather than counting them would
+  // need the rail's own model, and the count is asserted below instead.
+  ...[0, 1, 2, 3].map((presses, i) => ({
+    name: `cue-beat-${i}`, src: 'speaker.html', w: 1440, h: 900, dsf: 1.5,
+    lecture: 'spoken-talk', target: 'second-time', frag: true,
+    act: (p) => cueFrame(p, presses),
+  })),
+  // The live annotation filling the frame, with the QR code the address gets.
+  // python-intro, so it is the same lecture as the rest of the live set, and
+  // typed rather than pre-seeded: the size is derived from the text, so a
+  // shot of it has to go through the same keystrokes a lecturer makes.
+  { name: 'annotation', src: 'audience.html', w: 1440, h: 900, dsf: 1.5,
+    live: true, act: typeAnnotation },
+  // ── the decoration page's five ──────────────────────────────────────────
+  // Cards, rows, a backdrop, a panel and a dock, for decoration.html. They
+  // belong here rather than in shoot-gallery.mjs, and the split is the one
+  // that script's own header draws: the gallery writes sixteen decks because
+  // a deck has exactly one `cover:` and one `section:`, so sixteen
+  // compositions cannot share a source. These five are not one per deck -
+  // they all live together in lectures/decoration, which is a tracked build
+  // and the place every construction is shown rather than described. That is
+  // this script's case exactly, and the same one the editor shot makes from
+  // lectures/diagrams: one chunk of a tracked lecture, addressed by id.
+  //
+  // 1280x720 at 1.5, which is the gallery tile's frame and not this script's
+  // usual 1440x900, because on decoration.html these five stand among the
+  // sixteen gallery tiles. Every picture on that page is a picture of the
+  // same slide shape or the page reads as two sets.
+  ...[
+    // Three outline cards under the sentence that says what a card is not.
+    { name: 'deco-cards', target: 'cards-why' },
+    // The same vocabulary turned ninety degrees, so the two stand as one
+    // pair on the page.
+    { name: 'deco-rows', target: 'rows' },
+    // The backdrop after its window has walked one beat. #reveal-close rather
+    // than #reveal-open, which is the same construct in the other direction:
+    // there the picture retreats to a right-hand band and the words stand on
+    // paper beside it, which is the composition the panel shot below already
+    // has. Here the picture grows over the title instead, so the two tiles
+    // are two pictures rather than one twice.
+    { name: 'deco-backdrop', target: 'reveal-close',
+      act: async (p) => { await p.keyboard.press(' '); await p.waitForTimeout(1400); } },
+    // An overlay panel as a column the full height of the frame.
+    { name: 'deco-panel', target: 'panel-column' },
+    // The dock inherited by `.every`, on the slide whose own words are the
+    // distinction the page is built on.
+    { name: 'deco-dock', target: 'dock-why' },
+  ].map((s) => ({
+    src: 'audience.html', w: 1280, h: 720, dsf: 1.5,
+    lecture: 'decoration', frag: true, rig: LIVE_RIG, ...s,
+  })),
+
+  // The display role, and it needs a lecture of its own for the reason the
+  // five above need lectures/decoration: a deck carries exactly one
+  // `fonts: {display: …}`, so the face on these two slides is the only face
+  // any one build can show. lectures/decoration wears none - giving it one
+  // would repaint every divider on the page above, which are pictures of a
+  // composition and not of a typeface.
+  //
+  // Same 1280x720 at 1.5 as the five, because on decoration.html these stand
+  // in the same run of tiles and a second frame size reads as a second set.
+  ...[
+    // `cover: display` with the title filling the slide, which is the
+    // composition that shows a face rather than merely using one.
+    { name: 'deco-display-cover', target: 'cover', frag: true },
+    // A divider, and it is addressed the long way round on purpose: a
+    // divider is not a chunk and has no id, so activeId() returns null there
+    // and neither walkTo nor assertOnScreen can name it. So the walk lands on
+    // the last chunk of the part before it - which is what `live` and the
+    // on-screen assertion are checked against - and one press steps onto the
+    // divider itself. Repoint #roster and this shot follows it.
+    { name: 'deco-display-divider', target: 'roster', live: true,
+      act: async (p) => { await p.keyboard.press('ArrowRight'); await p.waitForTimeout(900); } },
+  ].map((s) => ({
+    src: 'audience.html', w: 1280, h: 720, dsf: 1.5,
+    lecture: 'display-face', rig: LIVE_RIG, ...s,
+  })),
 ];
+
+// How wide the film strip is dragged for the sequence. The mode opens at a
+// strip of about 300px, which is right for a talk whose slides are words: a
+// glance is enough to know which one is up. This slide is a drawing that
+// changes on every press, and at 300px the change is four grey rectangles
+// moving. The handle is the lecturer's own (drag the seam, double-click
+// resets), so this is a setting a room would make, not a rig.
+const CUE_STRIP_PX = 620;
+
+// One frame of the sequence: cue-card mode, the strip widened, N presses.
+async function cueFrame(p, presses) {
+  await p.keyboard.press('k');
+  await p.waitForTimeout(1200);
+  if (!(await p.locator('body.cue-cards #cue-rail .cue-card').count())) {
+    throw new Error('cue cards: the rail is empty');
+  }
+
+  const seam = await p.locator('#preview-resizer').boundingBox();
+  if (!seam) throw new Error('cue cards: no resize handle');
+  await p.mouse.move(seam.x + seam.width / 2, seam.y + seam.height / 2);
+  await p.mouse.down();
+  await p.mouse.move(CUE_STRIP_PX, seam.y + seam.height / 2, { steps: 12 });
+  await p.mouse.up();
+  // Off the handle again, or every frame carries its hover tooltip.
+  await p.mouse.move(20, 20);
+
+  for (let i = 0; i < presses; i++) {
+    await p.keyboard.press(' ');
+    await p.waitForTimeout(600);
+  }
+
+  // The frame is only the frame if a card is current. An entry for the
+  // projector click sits between two cards, and the cursor stands on it
+  // when a beat carries no card - a sequence photographed there would show
+  // the rail moving and the figure standing still.
+  const cur = await p.evaluate(() => {
+    const e = document.querySelector('#cue-rail .cue-entry.cur');
+    return e ? (e.querySelector('.cue-card') ? 'card' : 'click') : 'none';
+  });
+  if (cur !== 'card') throw new Error(`cue-cards: after ${presses} presses the cursor is on a ${cur}`);
+
+  // Long enough for the mode's toast to fade: it stands over the header,
+  // which is where the crumb, the counters, the clock and the drift are -
+  // and the drift is half of what this shot is about.
+  await p.waitForTimeout(3500);
+}
+
+async function typeAnnotation(p) {
+  await p.keyboard.press('n');
+  await p.waitForTimeout(400);
+  await p.keyboard.type('Exercise 3, due Friday\nhttps://uba-psi.github.io/psi-slides/');
+  await p.waitForTimeout(900);
+  if (!(await p.locator('.chunk.annot-visible .annot-qr svg').count())) {
+    throw new Error('annotation: no QR code for the address');
+  }
+}
 
 // What the shot has to show is not that the editor exists but what it knows:
 // the relations the figure was written with, drawn on the canvas beside the
@@ -220,6 +468,49 @@ async function assertOnScreen(p, name, target) {
   if (!r.on) throw new Error(`${name}: #${target} is off screen (x=${r.x} y=${r.y})`);
 }
 
+// ── the chunk ids this file addresses ────────────────────────────────────
+//
+// Ten shots name a chunk by id, and DOC_RIG names two more in CSS. Those ids
+// are a contract with five lecture sources that know nothing about it: the
+// `{#id}` tails are frozen once authored for other reasons, and this file is
+// not one of the places anybody looks when renaming one. A rename used to
+// surface as `never reached #foo` after a Chromium launch and a full lecture
+// build, which names the symptom and not the cause.
+//
+// So the ids are checked against the sources first, without a browser. It is
+// the only part of a shot that can be decided that way - see the note above
+// the shot table for what deliberately cannot be.
+function checkTargets(list) {
+  const need = new Map();
+  const want = (lec, id) => {
+    if (!need.has(lec)) need.set(lec, new Set());
+    need.get(lec).add(id);
+  };
+  for (const s of list) want(lectureOf(s), targetOf(s));
+  // DOC_RIG trims the document views to two chunks, and the second one is
+  // named in CSS rather than in a shot row.
+  want(LECTURE, TARGET);
+  want(LECTURE, 'playwright-install');
+
+  const missing = [];
+  for (const [dir, ids] of need) {
+    const src = path.join(dir, 'source.md');
+    if (!fs.existsSync(src)) { missing.push(`${path.relative(ROOT, src)} is missing`); continue; }
+    const have = new Set();
+    for (const line of fs.readFileSync(src, 'utf8').split('\n')) {
+      if (!line.startsWith('## ')) continue;
+      const tail = line.match(/\{([^}]*)\}\s*$/);
+      if (!tail) continue;
+      const id = tail[1].match(/#([A-Za-z0-9_-]+)/);
+      if (id) have.add(id[1]);
+    }
+    for (const id of ids) {
+      if (!have.has(id)) missing.push(`#${id} is not a chunk of ${path.relative(ROOT, src)}`);
+    }
+  }
+  return missing;
+}
+
 // ── main ─────────────────────────────────────────────────────────────────
 const argv = process.argv.slice(2);
 const keepPng = argv.includes('--keep-png');
@@ -228,6 +519,19 @@ const shots = wanted.length ? SHOTS.filter(s => wanted.includes(s.name)) : SHOTS
 if (!shots.length) {
   console.error(`unknown shot. known: ${SHOTS.map(s => s.name).join(', ')}`);
   process.exit(1);
+}
+
+// Before the browser, before the builds: the ids still exist.
+const missing = checkTargets(shots);
+if (missing.length) {
+  console.error('shoot.mjs addresses chunks that are not there:');
+  for (const m of missing) console.error(`  ${m}`);
+  console.error('A chunk id moved. Repoint the shot row, or put the id back.');
+  process.exit(2);
+}
+if (argv.includes('--check-ids')) {
+  console.log(`ids ok: ${shots.length} shot(s) address chunks that exist`);
+  process.exit(0);
 }
 
 let chromium;

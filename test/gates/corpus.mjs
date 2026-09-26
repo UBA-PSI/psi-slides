@@ -28,28 +28,85 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { makeCore, ROOT } from './harness.mjs';
+import { parseDrawOpener, drawCompilerAttrs } from '../../tails.mjs';
+import { parseDiagramDefaults } from '../../diagram-core.mjs';
 
 export const name = 'every corpus figure compiles';
 
+// Each with the number of blocks it holds, asserted exactly: a census that
+// counts whatever it finds passes vacuously the day the opener grammar moves
+// and the extractor matches nothing. When a lecture gains or loses a figure,
+// the number changes in the same commit.
 const FILES = [
-  'lectures/diagrams/source.md',
-  'lectures/network-security/source.md',
-  'docs/artifact/figure-rules/source.md',
-  // Six compiled blocks, four tracked views, published by the Pages job. Left
-  // out of a corpus census it is invisible.
-  'lectures/tutorial/source.md',
+  ['lectures/diagrams/source.md', 31],
+  ['lectures/network-security/source.md', 36],
+  ['docs/artifact/figure-rules/source.md', 55],
+  // Ten compiled blocks (an eleventh opener sits in a code fence as a syntax
+  // example), four tracked views, published by the Pages job.
+  // Left out of a corpus census it is invisible.
+  ['lectures/tutorial/source.md', 11],
+  ['lectures/decoration/source.md', 5],
+  // The site's example lecture has no figure today; the zero is the ratchet
+  // that notices the day it gets one.
+  ['docs/site/example/source.md', 0],
 ];
 
-// A ratchet, not a snapshot. Every warning below is deliberate – the figure
-// rules lecture draws a box too narrow for its label on purpose, and the
-// network-security deck carries two edges a degree and a half off the axis –
-// so the number is here to say "no *new* kind of complaint appeared", and it
-// is one line to raise when a figure earns one. Each warning is printed, so a
-// failure names itself.
+// A ratchet, not a snapshot. Three of the warnings below are deliberate – the
+// construct reference draws a box too narrow for its label on purpose, and the
+// figure-rules lecture carries two edges a degree and a half off the axis – so
+// the number is here to say "no *new* kind of complaint appeared", and it is
+// one line to raise when a figure earns one. Each warning is printed, so a
+// failure names itself. (The two decks were named the other way round here for
+// as long as nobody read the printout beside the ceiling.)
+//
+// It was briefly 5. The label-clearance check found its first defect on the
+// first source it was run against - `lectures/tutorial` `#diagram` put the
+// words `encrypted` and `recoded` between boxes 40 px apart, and they measure
+// 71 and 57, so the boxes at either end clipped both. The figure was redrawn
+// at `gap 2.1` in the same session, so the ceiling never had to hold a known
+// defect open. Raise it for a warning a figure has earned, not for one it has.
 const WARNING_CEILING = 3;
 
 // Extract `::: draw` blocks the way lint.js does: fence-aware, because a
-// block inside a code fence is a syntax example and must not be compiled.
+// block inside a code fence is a syntax example and must not be compiled,
+// and through the shared opener parser. A refused opener is still a block -
+// it is recorded with its problems rather than dropped, or a stale spelling
+// would silently shrink the corpus.
+// **Each lecture's figures compile the way that lecture compiles them.** A
+// block is not the whole input: `draw-defaults` in the frontmatter is a layer
+// under every figure in the deck, and an `image` line's box comes from the
+// asset's own proportions. Compiled without either, a figure here is a figure
+// no reader has ever seen – `lectures/network-security` sets `default text
+// {.small}`, so every label in it was measured a quarter too large, and
+// `lectures/diagrams`' avatars are 100x120 against a stub's 1.6, so they stood
+// a third too tall. Both produced overlap warnings about geometry the build
+// does not draw, which is exactly the kind of noise a ratchet must not carry.
+export function defaultsOf(src) {
+  const fm = src.match(/^---\n([\s\S]*?)\n---/);
+  const m = fm && fm[1].match(/^draw-defaults:\s*\|\s*\n((?:[ \t]+.*\n?)*)/m);
+  if (!m) return null;
+  const { layer } = parseDiagramDefaults(m[1].replace(/^[ \t]{2}/gm, ''));
+  return layer;
+}
+
+// An SVG says its proportions in its viewBox, and every `image` in the corpus
+// but one is an SVG. The odd one out (a 282-byte PNG swatch) keeps the stub's
+// answer: reading a raster header is `imageSize()` in build.js, which a gate
+// that runs without `npm install` has no business importing.
+export function aspectReader(dir) {
+  return (ref) => {
+    for (const ext of ['.svg']) {
+      const p = path.join(dir, 'assets', ref + ext);
+      if (!fs.existsSync(p)) continue;
+      const vb = fs.readFileSync(p, 'utf8').match(/viewBox="([\d.\s-]+)"/);
+      if (!vb) break;
+      const n = vb[1].trim().split(/\s+/).map(Number);
+      if (n.length === 4 && n[2] > 0) return n[3] / n[2];
+    }
+    return 1.6;
+  };
+}
+
 export function blocks(src) {
   const lines = src.split('\n');
   const out = [];
@@ -64,8 +121,8 @@ export function blocks(src) {
     }
     if (fence) { if (cur) cur.body.push(ln); continue; }
     if (!cur) {
-      const m = ln.match(/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/);
-      if (m) cur = { head: m[1] || '', body: [], line: i + 1 };
+      const o = parseDrawOpener(ln);
+      if (o) cur = { head: drawCompilerAttrs(o), problems: o.problems, body: [], line: i + 1 };
     } else if (/^:::\s*$/.test(ln)) { out.push(cur); cur = null; }
     else cur.body.push(ln);
   }
@@ -78,15 +135,22 @@ export async function run({ report }) {
   const warnings = [];
   let n = 0;
 
-  for (const rel of FILES) {
+  for (const [rel, expected] of FILES) {
     const src = fs.readFileSync(path.join(ROOT, rel), 'utf8');
     const found = blocks(src);
+    const base = defaultsOf(src);
+    const imageAspect = aspectReader(path.dirname(path.join(ROOT, rel)));
+    ok(found.length === expected, `${rel} holds ${expected} block(s)`, `found ${found.length}`);
     for (const b of found) {
       n++;
-      const { core, warns } = makeCore();
+      const { core, warns } = makeCore({ imageAspect });
       const where = `${rel}:${b.line}`;
+      if (b.problems.length) {
+        failures.push(`${where}\n      ${b.problems.map(p => p.msg).join('\n      ')}`);
+        continue;
+      }
       try {
-        core.renderDiagram(b.body.join('\n'), b.head, {});
+        core.renderDiagram(b.body.join('\n'), b.head, base ? { base } : {});
         for (const w of warns) warnings.push(`${where}  ${w}`);
       } catch (e) {
         failures.push(`${where}\n      ${String(e.message).split('\n').slice(0, 4).join('\n      ')}`);

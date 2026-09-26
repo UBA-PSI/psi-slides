@@ -1538,6 +1538,55 @@ Deckel: Zoom 0,90 → 1,25, Füllung 46 % → 59 %. Die Decke ändert daran
 `::: side` – Budget dort ist rund 36 Zeichen (siehe CLAUDE.md), die
 Zeilen laufen auf über 50.
 
+### Nachtrag: nach dem Merge von main
+
+`main` war um 583 Commits weitergelaufen. Gemergt, nicht rebased: 17
+Branch-Commits einzeln über diese Strecke zu heben hätte dieselben
+Konflikte in `build.js`, `CLAUDE.md` und den getrackten Views siebzehnmal
+gekostet. Der Export lief danach nicht, und es lag an vier Stellen, von
+denen keine eine Konfliktmarke trug:
+
+1. **`state.autoFit` gibt es nicht mehr.** Auto-Fit ist auf `main` ein
+   Modus mit drei Werten (`off`, `shrink`, `full`, `state.autoFitMode`),
+   und `test/settings.mjs` verlangt, dass nichts im Laufzeitcode das alte
+   Feld noch liest. Der Hook schreibt jetzt `autoFitMode = 'full'` und
+   fragt `autoFitOn()`; seine Schnittstelle zum Exporter
+   (`setAutoFit(true)`) bleibt ein Boolean, weil der Exporter nur „an“
+   kennt.
+2. **Ein fehlendes Bild ist kein `<img>` mehr.** Der Build zeichnet einen
+   Pfad, den er nicht auflösen kann, als `figure.figure-missing` mit dem
+   Pfad als Text und warnt selbst – ohne den Chunk zu nennen. Der Exporter
+   suchte nur `img.naturalWidth === 0` und blieb stumm. Er sammelt jetzt
+   beide Formen, sodass die zugesagte Diagnose wieder Pfad und Chunk
+   nennt.
+3. **`#demo-video` wurde als Video gezählt.** Die Live-Demo (`D`) legt in
+   jede Live-Ansicht ein `<video>` außerhalb aller Chunks. Jeder Export
+   meldete daraufhin „1 video(s) replaced“ – auch für Decks ohne Clip.
+   Gesucht wird jetzt nur `.chunk video`.
+4. **Das Fixture sprach die alte Tail-Grammatik.** `{cover clear}` ist auf
+   `main` ein Fehler, jede Einstellung in `{…}` trägt ihren Punkt.
+
+Dazu eine Nebenwirkung, die kein Test sieht: `playwright-core` war auf
+`main` inzwischen Dev-Abhängigkeit, und die Desktop-App installiert mit
+`--omit=dev`. Als optionale Abhängigkeit wäre es mit 12 MB ins App-Paket
+gewandert; `stage-engine.mjs` lässt jetzt auch `optional` weg.
+
+**Der 40em-Fix aus Defekt 2 oben ist abgelöst.** `main` hat die
+Figure-Messung neu gebaut – der Deckel gilt nur noch, solange keine
+Zeichnung im Chunk steht (`.chunk-body:has(.figure-diagram) { max-width:
+none }`) –, und das trifft `#ns-a31` auf anderem Weg. Nachgemessen über
+alle 13 Vorlesungen im Repository: kein `pre` und keine Tabelle
+abgeschnitten, `#ns-a31` nicht am Boden. Der Abschnitt oben ist damit
+Geschichte; der CHANGELOG-Eintrag dazu ist gestrichen.
+
+**Der Stand danach:** alle 13 Vorlesungen exportieren mit Exit 0. Eine
+Overflow-Meldung bleibt, `python-intro#scanner-source` auf allen drei
+Beats (1149 px bei 0,60) – ein ganzes Programm in einem Chunk, das auch
+vor dem Merge schon überlief. Am Zoom-Boden, aber auf der Seite:
+`demo-deco#bd-blur`, `diagrams#swimlane`, `diagrams#table`. Die 22
+Overflow-Meldungen aus dem Abschnitt unten waren damit vor dem Merge
+gezählt.
+
 ### Was offen ist
 
 - Defekt A oben. Bis er entschieden ist, ist die Deckfolie jedes PDFs zu

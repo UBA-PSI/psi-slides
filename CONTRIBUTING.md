@@ -175,6 +175,76 @@ the tutorial straight out of the archive. Building their own still needs
 `npm install`; the renderer depends on marked, Shiki and KaTeX, and the
 archive does not pretend otherwise.
 
+**The desktop app is packaged by a third workflow.** `.github/workflows/desktop.yml`
+runs on a push that touches `desktop/` or one of the engine files the app
+stages (`build.js`, `diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`,
+`editor.mjs`, `editor.css`, `LICENSE`, the root `package.json` and lockfile –
+`desktop/test/stage-engine.test.mjs` holds that filter against the staging
+script's own list, because it is the third hand-written copy of it): it runs the app's tests
+and its smoke test, then builds unsigned packages for macOS, Windows and Linux
+and attaches them to the run as artefacts, for testing.
+
+**Until 2.0.0 the app has its own version and its own tag.** `desktop/package.json`
+is at 0.x, and a tag `builder-<version>` runs
+`.github/workflows/desktop-release.yml`, which reuses `desktop.yml` as a
+reusable workflow and attaches the three platforms' packages to a
+**pre-release** – never a release, so `releases/latest/download/` keeps
+pointing at the last engine release. The tag is deliberately outside the
+`v*` pattern: a `v2.0.0-beta.1` would run `release.yml`, which creates
+releases without `--prerelease`, and every reader of the site would be
+handed a beta engine. The asset names carry no version (`artifactName` in
+`desktop/package.json`), so the site links
+`releases/download/builder-<version>/psi-slides-builder-mac-arm64.dmg` and
+the link is the package that was tested. From 2.0.0 the app and the engine
+carry the same version number, and the desktop packages become additional
+assets on the same release tag beside `psi-slides.tar.gz` and
+`psi-slides.zip`, whose names do not change.
+
+**The site's download links change after the tag, never with it.** The link
+gate in `docs/site/build-site.js` resolves internal targets and fragments; it
+does not fetch an external URL, so a page pointing at
+`releases/download/builder-<next>/…` passes the gate whether or not that
+release exists – and `pages.yml` redeploys on every push to `main`, which
+makes a commit that changes a download link a publish rather than a staging
+step. So: push the tag, wait for `desktop-release.yml` to attach all five
+assets, check them (`gh release view builder-<version> --json assets`, or a
+`curl -sIL -o /dev/null -w '%{http_code}'` per link), and only then commit
+the version strings in `docs/site/getting-started.html` and
+`getting-started.de.html` – six URLs and one `<code>` per page.
+
+**The macOS release is signed and notarised on the maintainer's machine**, not
+in CI – `npm run dist:signed` in `desktop/`, with the Developer ID
+certificate in the keychain and the three notarisation variables in a
+gitignored `desktop/.env`, exactly as the Booklet Tool is released;
+`desktop/README.md` has the steps. Nothing of that is a repository secret.
+The signed package is uploaded over CI's unsigned one, under the same name:
+`gh release upload builder-<version> "desktop/dist/psi-slides-builder-mac-arm64.dmg" --clobber`,
+and the `.zip` the same way.
+
+**`npm run dist:signed` notarises the app, not the disk image.** Read its log:
+it signs `psi-slides Builder.app`, notarises and staples *that*, and only then
+builds the `.zip` and the `.dmg` around it. So the app inside both is stapled
+and launches without a prompt, but the `.dmg` – the file that actually carries
+the quarantine bit off a download – has no signature of its own, and
+`spctl -a -t open --context context:primary-signature` on it says
+`rejected: no usable signature`. Close that before uploading:
+
+```bash
+cd desktop
+codesign --force --sign "Developer ID Application: <name> (<team>)" --timestamp   dist/psi-slides-builder-mac-arm64.dmg
+set -a; . ./.env; set +a
+xcrun notarytool submit dist/psi-slides-builder-mac-arm64.dmg   --apple-id "$APPLE_ID" --team-id "$APPLE_TEAM_ID"   --password "$APPLE_APP_SPECIFIC_PASSWORD" --wait
+xcrun stapler staple dist/psi-slides-builder-mac-arm64.dmg
+spctl -a -vvv -t open --context context:primary-signature   dist/psi-slides-builder-mac-arm64.dmg    # expect: accepted, Notarized Developer ID
+```
+
+The `.zip` needs none of this and cannot take a ticket of its own; the app it
+holds is stapled, which is what `xcrun stapler validate` on the extracted
+bundle confirms. Both checks are worth running before the upload rather than
+after, because the upload is what people download.
+Windows has no code-signing certificate and stays unsigned; Linux packages
+are not signed by convention.
+
 Cutting a release:
 
 1. `node lint.js lectures/ docs/site/example/source.md` – clean.

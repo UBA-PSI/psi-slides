@@ -1,0 +1,836 @@
+/*
+ * The prompter's judgement, decided without a network.
+ *
+ * `souffleuse.mjs` holds everything pure about the live prompter: the deck
+ * the model reads, the prompt it reads it in, the answer it sends back, the
+ * arithmetic of the clock, and the policy that decides whether a hint may be
+ * whispered at all. None of that needs a key, a socket or a browser, which
+ * is the whole reason it is one zero-dependency module: the restraint is the
+ * requirement, and a requirement nothing can test is a hope.
+ *
+ * So this gate walks the policy table of PLAN-souffleuse.md row by row, the
+ * drift rule at each of its four references, and the deck payload against a
+ * hand-built `lecture` object of the shape `parseLecture` returns – built
+ * here rather than read from `lectures/`, so a lecture that is re-worded
+ * cannot fail a compiler gate. `notesToCards` is injected the way build.js
+ * will inject it, which is the one thing about the module's shape worth
+ * asserting twice.
+ */
+import fs from 'node:fs';
+import path from 'node:path';
+import { notesToCards } from '../../cue-cards.mjs';
+import {
+  KINDS, MAX_WORDS, SEVERITIES, TOOL_SCHEMA,
+  deckPayload, systemPrefix, prefixHash, tickMessage, parseAnswer,
+  driftSeconds, timeHintAllowed, shouldTick, createPolicy, wordCount,
+  cueTargets, flattenMarks, rebaseClock, replayAnswers, START_QUIET_S, CLOCK_JUMP_S,
+  speechStats, paceVerdict, PACE_WPM, DELIVERY_MIN_SAMPLE_S,
+  SEGMENT_MAX_CHARS, clampSpan,
+} from '../../souffleuse.mjs';
+import { ROOT } from './harness.mjs';
+
+export const name = 'souffleuse: the prompter, decided without a network';
+
+const j = (v) => JSON.stringify(v);
+
+// A chunk of the shape the parser hands back: the fields deckPayload reads
+// and nothing else, so the fixture says what the contract is.
+const chunk = (tag, id, heading, segments, notes = [], from = [], segs = []) => ({
+  tag, id, heading, headingSub: '', segments,
+  speakerNotes: notes, speakerNoteFrom: from, speakerNoteSegs: segs,
+});
+
+const FIGURE = '<figure class="figure-diagram"><svg id="psi-fig-1" class="psi-diagram" '
+  + 'data-steps="3" viewBox="0 0 10 10">Die Kette</svg>'
+  + '<script type="application/json" class="psi-diagram-frames">[{"a":1}]</script></figure>';
+
+function fixture(note0 = '@12:30 Sekretärin **Frau K.**') {
+  return {
+    frontmatter: { title: 'Der zweite Klick', subtitle: 'ein Vortrag', lang: 'de' },
+    columns: [
+      // The anonymous opening column: no heading, so no divider slide.
+      { heading: null, id: null, body: '', chunks: [chunk('title', null, '', [])] },
+      {
+        heading: 'Warum', id: 'warum', body: 'Eine Frage zum Anfang.',
+        chunks: [
+          chunk('principle', 'vorgesetzter', 'Der Vorgesetzte',
+            ['Erster Absatz mit **fett**.', 'Zweiter Absatz.'],
+            [note0, 'Das **Postfach**'], [null, 1], [0, null]),
+          chunk('example', 'beispiel', 'Ein Fall', ['Ein Beispiel.'],
+            ['@15:00 Der **Vermerk**'], [null], [0]),
+        ],
+      },
+      {
+        heading: 'Ohne id', id: null, body: '',
+        chunks: [
+          chunk('figure', 'kette', 'Die Kette', [FIGURE]),
+          chunk('free', 'schluss', 'Schluss', ['Ende.']),
+          chunk('free', 'zugabe', 'Zugabe', ['Noch etwas.']),
+        ],
+      },
+    ],
+  };
+}
+
+const deckOf = (lec = fixture(), opts = {}) =>
+  deckPayload(lec, Object.assign({ notesToCards, durationS: 2400, lang: 'de' }, opts));
+
+export async function run({ report }) {
+  const { ok } = report;
+
+  // ── the deck payload ─────────────────────────────────────────────
+  const deck = deckOf();
+  ok(deck.title === 'Der zweite Klick' && deck.lang === 'de' && deck.durationS === 2400,
+     'the deck carries title, language and the planned duration', j({ t: deck.title, l: deck.lang, d: deck.durationS }));
+
+  const ids = deck.chunks.map(c => c.id);
+  ok(j(ids) === j(['title', 'warum', 'vorgesetzter', 'beispiel', 'col:3', 'kette', 'schluss', 'zugabe']),
+     'the flat order is the cockpit\'s: columns in order, a divider before each headed column', j(ids));
+  ok(deck.chunks.every((c, i) => c.n === i + 1),
+     'n is 1-based over that order, so n - 1 is the idx the socket carries');
+  ok(deck.chunks[1].tag === 'section' && deck.chunks[4].tag === 'section',
+     'a divider is a chunk of tag section');
+  ok(deck.chunks[1].id === 'warum', 'a divider with an id keeps it');
+  ok(deck.chunks[4].id === 'col:3', 'a divider without an id is col:N, counted over all columns');
+  ok(deck.chunks[1].beats.length === 1 && deck.chunks[1].beats[0] === 'Eine Frage zum Anfang.',
+     'what the author wrote under the heading is the divider\'s screen text', j(deck.chunks[1].beats));
+  ok(deck.chunks[0].title === 'Der zweite Klick' && deck.chunks[0].sub === 'ein Vortrag',
+     'a cover slide takes its words from the frontmatter it renders from', j(deck.chunks[0]));
+  ok(deck.chunks[2].col === 'Warum' && deck.chunks[0].col === null,
+     'a chunk names the part it is in, and the anonymous column is not a part');
+
+  const vor = deck.chunks[2];
+  ok(j(vor.beats) === j(['Erster Absatz mit **fett**.', 'Zweiter Absatz.']),
+     'one beat per reveal segment, in source order, with the bolds kept', j(vor.beats));
+  ok(deck.chunks[5].beats.length === 1 && deck.chunks[5].beats[0] === '[figure, steps: 3]',
+     'a compiled ::: draw is replaced by the one fact about it the prompter can use', j(deck.chunks[5].beats));
+
+  ok(j(vor.notes) === j([{ at: 0, cards: ['Frau K.'], prose: null }, { at: 1, cards: ['Postfach'], prose: null }]),
+     'notes arrive as cue cards, each on the beat it is said on', j(vor.notes));
+  ok(j(vor.marks) === j([{ at: 750, beat: 0 }]),
+     'an @mm:ss mark rides on the chunk with the beat it sits in', j(vor.marks));
+  const pinned = deck.chunks[2].notes[1];
+  ok(pinned.at === 1, '`> note: from 1` pins the note to that advance, not to its position');
+
+  const prose = deckPayload(fixture(), { durationS: 2400 });
+  ok(prose.chunks[2].notes[0].cards === null && /Frau K\./.test(prose.chunks[2].notes[0].prose || ''),
+     'without notesToCards injected a note still travels, as prose', j(prose.chunks[2].notes[0]));
+  ok(prose.chunks[2].marks.length === 0,
+     'and then it carries no marks, because nothing parsed the @mm:ss');
+
+  const tiny = deckOf(fixture(), { maxScreenChars: 18, maxNoteChars: 6 });
+  ok(tiny.chunks[2].beats.length === 1 && tiny.chunks[2].beats[0].length <= 18
+     && /…$/.test(tiny.chunks[2].beats[0]),
+     'the screen budget cuts the beat it runs out on and drops the rest', j(tiny.chunks[2].beats));
+  ok((tiny.chunks[2].notes[0].cards || []).join(' ').length <= 6,
+     'the note budget does the same for the cards', j(tiny.chunks[2].notes));
+
+  ok(j(deckPayload(null, {})) === j({ title: null, lang: 'en', durationS: null, chunks: [] }),
+     'a missing lecture is an empty deck, not a throw');
+
+  const marks = flattenMarks(deck);
+  ok(j(marks) === j([{ idx: 2, beat: 0, at: 750 }, { idx: 3, beat: 0, at: 900 }]),
+     'flattenMarks puts every mark on the slide it belongs to, in talk order', j(marks));
+
+  // ── cue targets ──────────────────────────────────────────────────
+  ok(j(cueTargets(deck, 2)) === j(['beispiel', 'kette', 'schluss', 'zugabe']),
+     'cue targets are the next three slides with an id, and a divider is skipped', j(cueTargets(deck, 2)));
+  ok(cueTargets(deck, 2)[3] === 'zugabe',
+     'plus the end of the deck, however far away it is: a sentence worth keeping is'
+     + ' said long before the slide it belongs in', j(cueTargets(deck, 2)));
+  ok(j(cueTargets(deck, 6)) === j(['zugabe']),
+     'near the end the two lists are the same slide, named once');
+  ok(j(cueTargets(deck, 7)) === j([]),
+     'and on the last slide there are none – a card for the slide on the screen is'
+     + ' something to say now, which is a hint and not a card');
+  // A deck with a real conclusion: the `closing:` chunk is the place a good
+  // sentence said in passing belongs, and it is offered from anywhere.
+  const withClosing = fixture();
+  withClosing.columns[2].chunks.push(chunk('closing', 'schlusswort', 'Zum Schluss', ['Ende.']));
+  const closingDeck = deckOf(withClosing);
+  ok(j(cueTargets(closingDeck, 2)) === j(['beispiel', 'kette', 'schluss', 'schlusswort']),
+     'the closing slide is a target from the third slide of nine', j(cueTargets(closingDeck, 2)));
+  ok(j(cueTargets(closingDeck, 0)) === j(['vorgesetzter', 'beispiel', 'kette', 'schlusswort']),
+     'and from the first, past the three slides the near window offers',
+     j(cueTargets(closingDeck, 0)));
+  ok(cueTargets(closingDeck, 8).length === 0,
+     'and not when the speaker is standing on it');
+
+  // ── the system prefix ────────────────────────────────────────────
+  const p1 = systemPrefix(deck, { lang: 'de' });
+  const p2 = systemPrefix(deckOf(), { lang: 'de' });
+  ok(p1 === p2, 'the prefix is byte-stable for an equal deck – it is what carries cache_control');
+  ok(prefixHash(p1) === prefixHash(p2) && /^[0-9a-f]{8}$/.test(prefixHash(p1)),
+     'and so is its hash, which rides out as session_id', prefixHash(p1));
+  const p3 = systemPrefix(deckOf(fixture('@12:30 Sekretärin **Frau M.**')), { lang: 'de' });
+  ok(prefixHash(p3) !== prefixHash(p1), 'one changed word in one note is a different prefix');
+  ok(prefixHash('') !== prefixHash('a') && prefixHash('ab') !== prefixHash('ba'),
+     'the hash separates the empty string, one character and a transposition');
+  ok(/Write the hint in de\./.test(p1), 'the output language is named in the rules', p1.slice(0, 80));
+  // A model left to itself writes em-dashes, and the first real rehearsal put
+  // one on the strip. The strip is this tool's own typography.
+  ok(p1.includes('en-dash (\u2013) never an em-dash (\u2014)'),
+     'and the rules ask for the dash this project sets');
+  ok(p1.includes('planned duration: 40:00') && p1.includes('slides: 8'),
+     'the deck header states the plan and the slide count');
+  ok(p1.includes('– 3 · #vorgesetzter · principle · part: Warum'),
+     'every slide is listed with its number, id, type and part');
+  ok(p1.includes('note (beat 1): • Postfach') && p1.includes('planned: 12:30 (beat 0)'),
+     'the notes and the marks are in the prefix, which is what the room does not hear');
+
+  // ── the tick message ─────────────────────────────────────────────
+  const session = {
+    deck,
+    idx: 2, chunkId: 'vorgesetzter', beat: 1, beats: 2, chunkCount: 8,
+    elapsed: 900, drift: 95, rough: false, timeHintAllowed: true,
+    cueTargets: cueTargets(deck, 2),
+    lastTickAt: 880,
+    hints: [
+      { at: 300, kind: 'example', text: 'Nenne den Fall', dismissed: false },
+      { at: 500, kind: 'fact', text: 'Es waren zwei', dismissed: true },
+      { at: 600, kind: 'delivery', text: 'Langsamer', dismissed: false },
+      { at: 700, kind: 'time', text: 'Zehn Minuten', dismissed: false },
+      { at: 800, kind: 'fact', text: 'Dritter Klick', dismissed: false },
+      { at: 860, kind: 'example', text: 'Das Postfach', dismissed: false },
+    ],
+    transcript: [
+      { text: 'ganz alt und weit weg', t0: 700, t1: 705 },
+      { text: 'das ist noch im Fenster', t0: 850, t1: 856 },
+      { text: 'und das ist neu', t0: 885, t1: 890 },
+    ],
+  };
+  const tick = tickMessage(session);
+  ok(tick.split('\n')[0] === 'slide 3/8 · #vorgesetzter · beat 1/2 · elapsed 15:00 · '
+     + 'drift +95s behind · time_hint_allowed=yes · '
+     + 'cue_targets=[beispiel, kette, schluss, zugabe] · conclusion=zugabe',
+     'the state line names where the talk is, how late it is and what a cue may reach', tick.split('\n')[0]);
+  // Named as a field rather than marked inside the list, because the ids in
+  // cue_targets are copied verbatim into the answer and an id carrying a
+  // decoration is an id the model gets wrong.
+  ok(!tickMessage(Object.assign({}, session, { cueTargets: [] })).includes('conclusion='),
+     'with the cards switched off there are no targets, so there is no conclusion either');
+  // Said where the number is, because a bare "-685s ahead" reads as a fact
+  // about the talk rather than as the distance to a clock it has not reached.
+  ok(/drift -685s ahead \(of the first mark, not reached yet\)/
+     .test(tickMessage(Object.assign({}, session, { drift: -685, beforeFirst: true })).split('\n')[0]),
+     'the state line says when the drift is measured against an unreached first mark',
+     tickMessage(Object.assign({}, session, { drift: -685, beforeFirst: true })).split('\n')[0]);
+  ok(!tick.includes('Nenne den Fall') && tick.includes('Das Postfach'),
+     'only the last five hints are listed', tick);
+  ok(/✕ 8:20 fact: Es waren zwei/.test(tick), 'a dismissed hint is marked ✕, so it cannot come back', tick);
+  ok(tick.includes('NEW: und das ist neu') && tick.includes('das ist noch im Fenster')
+     && !/NEW: das ist noch/.test(tick),
+     'NEW marks exactly what was said since the last call', tick);
+  ok(!tick.includes('ganz alt'), 'and the window drops what is older than 90 seconds', tick);
+  const wide = tickMessage(Object.assign({}, session, { windowWords: 4 }));
+  ok(!wide.includes('das ist noch im Fenster') && wide.includes('und das ist neu'),
+     'the word cap trims the window from the far end, keeping the newest', wide);
+  const first = tickMessage(Object.assign({}, session, { lastTickAt: null }));
+  ok(!first.includes('NEW:'), 'on the first call nothing is new, because there was no last call');
+  const bare = tickMessage({});
+  ok(typeof bare === 'string' && bare.includes('drift unknown') && bare.includes('(nothing yet)'),
+     'an empty session still yields a message rather than a throw', bare);
+
+  // ── the delivery, measured ───────────────────────────────────────
+  // The model has no tempo information at all: speaking rate, hesitation and
+  // silence are absent from a transcript, so this is missing input rather
+  // than missing prompting. Everything below is counted here and only judged
+  // there.
+  const many = (n, w = 'wort') => Array(n).fill(w).join(' ');
+  // Thirty words in fifteen seconds, forty-five seconds of thinking, thirty
+  // more in fifteen. Sixty words over thirty seconds of speech is 120 wpm;
+  // over the seventy-five seconds the wall clock saw it would be 48.
+  const talk = [
+    { text: many(30), t0: 0, t1: 15 },
+    { text: many(30), t0: 60, t1: 75 },
+  ];
+  let st = speechStats({ transcript: talk, now: 75, window: { seconds: 90, words: 600 } });
+  ok(st.words === 60 && st.seconds === 30 && st.wpm === 120,
+     'wpm is words over the seconds actually spoken, not over the wall clock', j(st));
+  ok(st.sampled === 30,
+     'and `sampled` says how much speech the figures rest on, so a number drawn from'
+     + ' eight seconds can be discounted', String(st.sampled));
+  ok(st.longestGap === 45,
+     'the longest hole between one segment and the next is its own figure: a speaker'
+     + ' who has lost the thread goes quiet', String(st.longestGap));
+  ok(speechStats({ transcript: [{ text: 'kurz', t0: 0, t1: 0 }], now: 0 }).wpm === null
+     && speechStats({}).wpm === null && speechStats().sampled === 0,
+     'with nothing to divide by there is no rate, and an empty call is not a throw');
+  ok(speechStats({ transcript: talk, now: 75, window: { seconds: 30 } }).words === 30,
+     'it rolls the same window tickMessage rolls, and the seconds cap trims the far end');
+
+  // What every figure above rests on: the stamp the ear puts on a segment. The
+  // adapter used to take `t0` from the end of the *previous* final, so the
+  // pause between two sentences sat inside `t1 - t0` - the same sixty words
+  // then come out at the wall clock's rate, `longestGap` is structurally 0
+  // however long the speaker thought, and the twenty-second sample floor is
+  // reached on silence alone. So the ear stamps the start of the utterance
+  // (speechstart, or the first interim after a final), and this row is the
+  // assertion that says why it has to.
+  const asGapless = [
+    { text: many(30), t0: 0, t1: 15 },
+    { text: many(30), t0: 15, t1: 75 },   // the same talk, stamped from the last t1
+  ];
+  const wall = speechStats({ transcript: asGapless, now: 75 });
+  ok(wall.wpm === 48 && wall.longestGap === 0 && wall.sampled === 75,
+     'a segment stamped from the end of the one before it reports the thinking as'
+     + ' speaking and hides the silence it swallowed', j(wall));
+  ok(st.wpm === 120 && st.longestGap === 45 && st.sampled === 30,
+     'while the same words stamped from the start of speech are a rate, a silence and'
+     + ' a sample - which is the difference the ear\'s stamp makes', j(st));
+
+  const fillersEn = 'ähm äh ehm öhm hm hmm uh uhm um erm';
+  ok(speechStats({ transcript: [{ text: fillersEn, t0: 0, t1: 30 }], now: 30, lang: 'en' }).fillers === 10,
+     'the filler set is the sounds a recogniser writes, in both languages', fillersEn);
+  ok(speechStats({ transcript: [{ text: 'Ähhh ummm hmmm uhm', t0: 0, t1: 30 }], now: 30, lang: 'en' }).fillers === 4,
+     'with the repetitions it writes them with');
+  ok(speechStats({ transcript: [{ text: fillersEn, t0: 0, t1: 30 }], now: 30, lang: 'de' }).fillers === 9,
+     '"um" is a hesitation in English and a preposition in German, so it counts only'
+     + ' where it cannot be the word');
+  ok(speechStats({ transcript: [{ text: 'um die Ecke, um zu zeigen', t0: 0, t1: 30 }], now: 30, lang: 'de-DE' }).fillers === 0,
+     'which is the difference between a hesitation and "um die Ecke"');
+  // A false positive here tells a lecturer to stop doing something they were
+  // not doing, which is worse than silence because it is unanswerable.
+  ok(speechStats({ transcript: [{ text: 'also halt eigentlich like you know er ah ihm', t0: 0, t1: 30 }],
+    now: 30, lang: 'en' }).fillers === 0,
+     'and real words are never fillers, whatever a habit they are');
+  ok(speechStats({ transcript: [{ text: 'ähm ' + many(58), t0: 0, t1: 30 }], now: 30, lang: 'de' }).fillersPerMin === 2,
+     'the density is per minute of speech, like the rate');
+
+  ok(paceVerdict(PACE_WPM.easy - 1) === 'slow' && paceVerdict(PACE_WPM.easy) === 'easy',
+     'paceVerdict: under the first boundary is slow, and on it easy', String(PACE_WPM.easy));
+  ok(paceVerdict(PACE_WPM.brisk - 1) === 'easy' && paceVerdict(PACE_WPM.brisk) === 'brisk',
+     'the second boundary is where a room has to keep up', String(PACE_WPM.brisk));
+  ok(paceVerdict(PACE_WPM.fast - 1) === 'brisk' && paceVerdict(PACE_WPM.fast) === 'fast',
+     'the third is fast', String(PACE_WPM.fast));
+  ok(paceVerdict(PACE_WPM.veryFast - 1) === 'fast' && paceVerdict(PACE_WPM.veryFast) === 'very-fast',
+     'and the fourth is a talk that has stopped leaving room for a thought to land',
+     String(PACE_WPM.veryFast));
+  ok(paceVerdict(null) === null && paceVerdict(undefined) === null && paceVerdict(NaN) === null,
+     'no number, no verdict – which is what an empty window answers');
+
+  // The line in the tick message, and the floor that keeps it out.
+  const fast = [
+    { text: many(60), t0: 0, t1: 18 },
+    { text: 'ähm ' + many(20) + ' ähm', t0: 24, t1: 30 },
+  ];
+  const delivered = tickMessage(Object.assign({}, session, {
+    elapsed: 30, lastTickAt: null, transcript: fast, lang: 'de',
+  })).split('\n')[1];
+  ok(/^delivery: \d+ wpm \(very-fast\) · 2 fillers in the last 24s spoken · longest silence 6s$/
+     .test(delivered), 'the tick message carries one delivery line under the state line', delivered);
+  const short = tickMessage(Object.assign({}, session, {
+    elapsed: 12, lastTickAt: null, transcript: [{ text: many(40), t0: 0, t1: 12 }], lang: 'de',
+  }));
+  ok(!/^delivery: /m.test(short) && short.split('\n')[1] === '',
+     'and none at all below the sample floor: 200 wpm off twelve seconds is noise',
+     j(DELIVERY_MIN_SAMPLE_S));
+  // A zero is not fluency. The recogniser drops these sounds more often than
+  // it keeps them, and the line says so where the number is rather than only
+  // in the rules.
+  const noFillers = tickMessage(Object.assign({}, session, {
+    elapsed: 30, lastTickAt: null, transcript: [{ text: many(60), t0: 0, t1: 30 }], lang: 'de',
+  })).split('\n')[1];
+  ok(/no fillers counted in the last 30s spoken \(a recogniser often drops them\)/.test(noFillers),
+     'a count of zero says that a recogniser strips them, so it cannot read as fluency',
+     noFillers);
+
+  // ── the answer ───────────────────────────────────────────────────
+  const answer = (args) => ({ choices: [{ message: { tool_calls: [{ function: { name: 'advise', arguments: JSON.stringify(args) } }] } }] });
+  const content = (s) => ({ choices: [{ message: { content: s } }] });
+  const sess = { cueTargets: ['beispiel', 'kette', 'schluss'] };
+
+  let a = parseAnswer(answer({ action: 'hint', kind: 'fact', text: 'Es waren zwei Klicks', severity: 'high', why: 'Folie sagt zwei' }), sess);
+  ok(a.action === 'hint' && a.kind === 'fact' && a.severity === 'high' && a.why === 'Folie sagt zwei',
+     'a forced tool call is read out of tool_calls[0]', j(a));
+  a = parseAnswer(answer({ action: 'hint', kind: 'time', text: 'Zehn Minuten' }), sess);
+  ok(a.severity === 'low', 'an unstated severity is low');
+  a = parseAnswer(content('{"action":"nothing"}'), sess);
+  ok(a.action === 'nothing' && a.reason === null, 'a model that answers in the content is still read', j(a));
+  a = parseAnswer(content('```json\n{"action":"hint","kind":"delivery","text":"Langsamer sprechen"}\n```'), sess);
+  ok(a.action === 'hint' && a.text === 'Langsamer sprechen', 'a fenced JSON body is unwrapped', j(a));
+  ok(parseAnswer(content('Ich denke, alles gut!'), sess).reason === 'garbage',
+     'prose where an object belongs is garbage');
+  // A tool call that ran into max_tokens is legible JSON with its tail
+  // missing, and the first real rehearsal filed one as nonsense. The two are
+  // answered differently - one by raising a number, one by changing the model
+  // or the prompt - so they may not share a name.
+  {
+    const cut = {
+      choices: [{
+        finish_reason: 'length',
+        message: { tool_calls: [{ function: { name: 'advise', arguments: '{"action": "hint", "kind": "fact", "text": "Neunzig Millisekunden, nicht vierhundert"' } }] },
+      }],
+    };
+    ok(parseAnswer(cut, sess).reason === 'truncated',
+       'a tool call cut off by max_tokens is truncated, not garbage', JSON.stringify(parseAnswer(cut, sess)));
+    const same = JSON.parse(JSON.stringify(cut));
+    same.choices[0].finish_reason = 'stop';
+    ok(parseAnswer(same, sess).reason === 'garbage',
+       'and the same broken JSON with a finish_reason of stop is garbage after all');
+  }
+  ok(parseAnswer(null, sess).reason === 'garbage' && parseAnswer({}, sess).reason === 'garbage',
+     'so is nothing at all');
+  ok(parseAnswer(answer({ action: 'hint', kind: 'fett', text: 'Ein Wort' }), sess).reason === 'garbage',
+     'a kind from outside the six is garbage, not a hint');
+  a = parseAnswer(answer({ action: 'hint', kind: 'pace', text: 'Langsamer, und Luft holen' }), sess);
+  ok(a.action === 'hint' && a.kind === 'pace', 'pace is one of the six', j(a));
+  a = parseAnswer(answer({ action: 'hint', kind: 'skipped', text: 'Der Vermerk fehlt noch' }), sess);
+  ok(a.action === 'hint' && a.kind === 'skipped', 'and so is skipped', j(a));
+  ok(parseAnswer(answer({ action: 'schrei', text: 'Ein Wort' }), sess).reason === 'garbage',
+     'and so is an action from outside the three');
+  const long = 'eins zwei drei vier fünf sechs sieben acht neun zehn elf zwölf dreizehn';
+  ok(wordCount(long) === 13 && parseAnswer(answer({ action: 'hint', kind: 'fact', text: long }), sess).reason === 'too-long',
+     'thirteen words is discarded, not shortened');
+  a = parseAnswer(answer({ action: 'cue', text: 'Postfach hier nennen', chunk_id: 'kette' }), sess);
+  ok(a.action === 'cue' && a.chunk_id === 'kette' && a.kind === undefined,
+     'a cue names an upcoming slide and carries no kind', j(a));
+  ok(parseAnswer(answer({ action: 'cue', text: 'Jetzt sagen', chunk_id: 'vorgesetzter' }), sess).reason === 'bad-cue',
+     'a cue for the slide the speaker is on is refused');
+  ok(parseAnswer(answer({ action: 'cue', text: 'Jetzt sagen' }), sess).reason === 'bad-cue',
+     'and so is one with no slide at all');
+  a = parseAnswer(answer({ action: 'cue', text: 'Jetzt sagen', chunk_id: 'nirgends', why: 'gehört dorthin' }), sess);
+  ok(a.reason === 'bad-cue' && a.text === 'Jetzt sagen' && a.chunk_id === 'nirgends'
+     && a.why === 'gehört dorthin',
+     'a refusal carries what was named – bad-cue used to reach the log with text: null', j(a));
+  a = parseAnswer(answer({ action: 'hint', kind: 'fact', text: long, why: 'zu lang' }), sess);
+  ok(a.reason === 'too-long' && a.text === long && a.kind === 'fact' && a.why === 'zu lang',
+     'and so does a hint that was too long, so the debrief can show what it was', j(a));
+
+  // A script that does not put a space between two words. Counted by the
+  // character, because otherwise a whole paragraph of Chinese is one word and
+  // the twelve-word gate lets it through – and the cadence, which is the same
+  // count, never reaches eight words and no speech tick can fire at all.
+  const zh = '这是一个关于共享缓存的提示它远远超过十二个词的上限所以必须被丢弃不能再使用它';
+  ok(zh.length === 38 && wordCount(zh) === 38,
+     'a Chinese sentence is counted by the character, not as one word', String(wordCount(zh)));
+  ok(parseAnswer(answer({ action: 'hint', kind: 'fact', text: zh }), sess).reason === 'too-long',
+     'so a hint of thirty-eight characters is discarded like any other too-long one');
+  const zhShort = '请先说银行的那个例子';
+  ok(zhShort.length === 10 && wordCount(zhShort) === 10
+     && parseAnswer(answer({ action: 'hint', kind: 'example', text: zhShort }), sess).action === 'hint',
+     'and one of ten is whispered', String(wordCount(zhShort)));
+  ok(wordCount('スライド said 三') === 6,
+     'kana, latin and ideographs in one line are each counted their own way',
+     String(wordCount('スライド said 三')));
+
+  // ── the clock ────────────────────────────────────────────────────
+  ok(j(driftSeconds({ elapsed: 600, marks, idx: 0, beat: 0 }))
+     === j({ drift: -150, rough: false, beforeFirst: true }),
+     'before the first mark the talk is measured against reaching it', j(driftSeconds({ elapsed: 600, marks, idx: 0, beat: 0 })));
+  // Behind is measured against the mark the talk is heading for, not against
+  // the one it has passed: the marks at 12:30 and 15:00 make everything said
+  // on the 12:30 slide before 15:00 on budget, and only the excess over 15:00
+  // late. Measuring against 12:30 made the number climb with the dwell time
+  // and read as behind to a speaker who was exactly on plan.
+  ok(j(driftSeconds({ elapsed: 900, marks, idx: 2, beat: 1 }))
+     === j({ drift: 0, rough: false, beforeFirst: false }),
+     'on a marked slide the talk is on budget until the next mark falls due',
+     j(driftSeconds({ elapsed: 900, marks, idx: 2, beat: 1 })));
+  ok(driftSeconds({ elapsed: 800, marks, idx: 2, beat: 0 }).drift === 0,
+     'so a slide whose own mark went by 50 seconds ago is still on plan');
+  ok(driftSeconds({ elapsed: 1000, marks, idx: 2, beat: 0 }).drift === 100,
+     'and behind is the excess over the next mark, not the age of the last',
+     j(driftSeconds({ elapsed: 1000, marks, idx: 2, beat: 0 })));
+  ok(driftSeconds({ elapsed: 700, marks, idx: 2, beat: 0 }).drift === -50,
+     'ahead is against the mark just passed: arriving at 12:30 at 11:40 is early',
+     j(driftSeconds({ elapsed: 700, marks, idx: 2, beat: 0 })));
+  ok(driftSeconds({ elapsed: 1000, marks, idx: 3, beat: 0 }).drift === 100
+     && driftSeconds({ elapsed: 1000, marks, idx: 3, beat: 0 }).beforeFirst === false,
+     'past the last mark there is nothing to head for, so that mark is the reference');
+  // The number is kept and the flag is added, because the number is right in
+  // one direction and about nothing in the other: with the first mark at 12:30
+  // on slide 3 - the natural way to write them - a speaker on slide 1 in the
+  // opening minute is 685 seconds "ahead" of a clock nobody has arrived at,
+  // and the prompter was invited to whisper about it on the first tick after
+  // the opening quiet. Past that mark's time and still on slide 1 is late,
+  // which is why behind still counts.
+  const unreached = driftSeconds({ elapsed: 65, marks, idx: 0, beat: 0 });
+  ok(unreached.drift === -685 && unreached.beforeFirst === true,
+     'and it says that its reference is a mark the talk has not reached', j(unreached));
+  // The talk that found this: a cover marked @0:00 with the next mark at
+  // @2:30 on the slide after it. At 2:16 of speaking the cockpit said
+  // "+2:16 behind" and the lecturer read it as a clock that had not been
+  // reset, when in fact nothing was due for another fourteen seconds.
+  const cover = [{ idx: 0, beat: 0, at: 0 }, { idx: 1, beat: 0, at: 150 }];
+  ok(driftSeconds({ elapsed: 136, marks: cover, idx: 0, beat: 0 }).drift === 0,
+     'a cover marked @0:00 is on budget until its successor falls due',
+     j(driftSeconds({ elapsed: 136, marks: cover, idx: 0, beat: 0 })));
+  ok(driftSeconds({ elapsed: 170, marks: cover, idx: 0, beat: 0 }).drift === 20,
+     'and behind only by what it overran that successor by');
+  ok(driftSeconds({ elapsed: 600, marks: [], idx: 2, beat: 0, durationS: 2400, chunkCount: 8 })
+     .beforeFirst === false,
+     'the straight line has no first mark to be short of');
+  ok(driftSeconds({ elapsed: 800, marks, idx: 3, beat: 0 }).drift === -100,
+     'a mark on the active slide counts once its beat is reached - 15:00 is then '
+     + 'the mark behind, and 13:20 is ahead of it');
+  ok(driftSeconds({ elapsed: 800, marks, idx: 3, beat: 0 }).drift === -100
+     && driftSeconds({ elapsed: 800, marks: marks.slice(), idx: 2, beat: 0 }).drift === 0,
+     'and not before it - on the slide before, 15:00 is still the mark ahead');
+  const lin = driftSeconds({ elapsed: 600, marks: [], idx: 2, beat: 0, durationS: 2400, chunkCount: 8 });
+  ok(lin.drift === 0 && lin.rough === true,
+     'with no marks but a duration the plan is a straight line, and says it is rough', j(lin));
+  ok(driftSeconds({ elapsed: 600, marks: [], idx: 2, beat: 0 }) === null,
+     'with neither there is no plan and no answer');
+  ok(driftSeconds({}) === null && driftSeconds() === null, 'and an empty call is null, not a throw');
+
+  ok(timeHintAllowed({ drift: 100, rough: false, lastTimeHint: null, elapsed: 900 }) === true,
+     '90 seconds behind is worth a word');
+  ok(timeHintAllowed({ drift: 100, rough: true, lastTimeHint: null, elapsed: 900 }) === false
+     && timeHintAllowed({ drift: 200, rough: true, lastTimeHint: null, elapsed: 900 }) === true,
+     'the rough estimate needs twice the slack before it may speak');
+  ok(timeHintAllowed({ drift: 100, rough: false, lastTimeHint: { at: 800, drift: 95 }, elapsed: 900 }) === false,
+     'a second time hint needs the drift to have grown or five minutes to have passed');
+  ok(timeHintAllowed({ drift: 160, rough: false, lastTimeHint: { at: 800, drift: 95 }, elapsed: 900 }) === true,
+     'sixty seconds more drift is enough');
+  ok(timeHintAllowed({ drift: 100, rough: false, lastTimeHint: { at: 500, drift: 95 }, elapsed: 900 }) === true,
+     'and so is five minutes');
+  ok(timeHintAllowed({ drift: -300, rough: false, lastTimeHint: null, elapsed: 900 }) === true
+     && timeHintAllowed({ drift: -200, rough: false, lastTimeHint: null, elapsed: 900 }) === false,
+     'four minutes ahead is worth a word, three are not');
+  ok(timeHintAllowed({ drift: -300, rough: false, lastTimeHint: { at: 800, drift: -290 }, elapsed: 900 }) === false
+     && timeHintAllowed({ drift: -300, rough: false, lastTimeHint: { at: 200, drift: -290 }, elapsed: 900 }) === true,
+     'and ahead is said at most once every ten minutes');
+  ok(timeHintAllowed({ drift: -685, beforeFirst: true, lastTimeHint: null, elapsed: 65 }) === false,
+     'a talk far "ahead" of a mark it has not reached is not ahead of anything, so the'
+     + ' ahead branch is closed on it');
+  ok(timeHintAllowed({ drift: 200, beforeFirst: true, lastTimeHint: null, elapsed: 900 }) === true,
+     'while behind still counts: past the first mark\'s time and still on slide one is late');
+  ok(timeHintAllowed({ drift: null }) === false && timeHintAllowed() === false,
+     'no drift, no time hint');
+
+  // ── the tick decision ────────────────────────────────────────────
+  let t = shouldTick({ now: 100, lastTickAt: 90, lastTickReason: 'speech', slideChanged: true, cadence: 25 });
+  ok(t.tick === true && t.reason === 'slide', 'a new slide is an occasion', j(t));
+  t = shouldTick({ now: 95, lastTickAt: 90, slideChanged: true, cadence: 25 });
+  ok(t.tick === false, 'but not within eight seconds of the last call – paging is not three occasions', j(t));
+  t = shouldTick({ now: 200, lastTickAt: 100, speechSecondsSince: 25, newWordsSince: 8, cadence: 25 });
+  ok(t.tick === true && t.reason === 'speech', 'a cadence of new speech is an occasion', j(t));
+  ok(shouldTick({ now: 200, lastTickAt: 100, speechSecondsSince: 24, newWordsSince: 40, cadence: 25 }).tick === false,
+     'below the cadence it is not');
+  ok(shouldTick({ now: 200, lastTickAt: 100, speechSecondsSince: 60, newWordsSince: 7, cadence: 25 }).tick === false,
+     'and neither is a cadence of near-silence: eight words at least');
+  ok(shouldTick({ now: 200, lastTickAt: 100, speechSecondsSince: 0, newWordsSince: 0, cadence: 25 }).tick === false,
+     'silence is never an occasion');
+  t = shouldTick({ now: 200, lastTickAt: 100, slideChanged: true, inflight: true, cadence: 25 });
+  ok(t.tick === false && t.coalesce === true && t.reason === 'slide',
+     'a second occasion while one is in flight is coalesced, not sent', j(t));
+  t = shouldTick({ now: 200, lastTickAt: 100, lastTickReason: 'slide', speechSecondsSince: 25, newWordsSince: 20, inflight: true, cadence: 25 });
+  ok(t.reason === 'slide', 'and a coalesced slide outranks a speech occasion behind it', j(t));
+  // The two fields are not the same question, and a caller that confuses them
+  // gets a call every few seconds for the whole talk. Under inflight `reason`
+  // is the reason of the call already out, so it is always set; `coalesce` is
+  // the one that says a new occasion arrived. The sidecar read `reason` here
+  // and scheduled a follow-up on every say and every move, which it fired the
+  // moment the answer landed, which was itself in flight when the next
+  // sentence arrived. Ten calls in forty seconds where two were due, and
+  // only against an endpoint slower than the gap between two sentences.
+  t = shouldTick({ now: 200, lastTickAt: 100, lastTickReason: 'speech', speechSecondsSince: 1, newWordsSince: 2, inflight: true, cadence: 25 });
+  ok(t.coalesce === false, 'nothing new while a call is out is nothing to coalesce', j(t));
+  ok(t.reason === 'speech', 'though the reason still names the call that is out - the two differ, and that is the trap', j(t));
+  ok(shouldTick({ now: 200, lastTickAt: null, speechSecondsSince: 25, newWordsSince: 8, cadence: 25 }).tick === true,
+     'the first call has no last call to wait for');
+  // The cockpit reloaded and its clock started again, so the last tick is
+  // stamped in what is now the future. It used to stop every slide tick for
+  // the rest of the talk: a negative gap is never the eight seconds a slide
+  // occasion wants.
+  t = shouldTick({ now: 3, lastTickAt: 400, slideChanged: true, cadence: 25 });
+  ok(t.tick === true && t.reason === 'slide',
+     'a clock that went backwards is a new clock, not a tick in the future', j(t));
+  ok(shouldTick({ now: 3, lastTickAt: 400, speechSecondsSince: 25, newWordsSince: 8, cadence: 25 }).tick === true,
+     'and the speech occasion behind it is not lost either');
+
+  // ── the clock going backwards ────────────────────────────────────
+  ok(rebaseClock({ prev: 300, next: 299 }) === null && rebaseClock({ prev: 300, next: 300 }) === null,
+     'two messages a second out of order are not a new clock');
+  ok(rebaseClock({ prev: 300, next: 300 - CLOCK_JUMP_S - 1 }) !== null,
+     'a drop past the tolerance is');
+  let rb = rebaseClock({
+    prev: 600, next: 2, onAt: 30, lastTickAt: 580, startQuiet: START_QUIET_S,
+    transcript: [{ text: 'lange her', t0: 10, t1: 14 }, { text: 'eben', t0: 594, t1: 598 }],
+  });
+  ok(rb && Math.round(rb.delta) === -598, 'everything moves by one delta', j(rb && rb.delta));
+  ok(rb && Math.round(2 - rb.onAt) === 570,
+     'a talk already past its quiet minute keeps how long it has been on, so it is not'
+     + ' made to sit through the quiet again', j(rb && rb.onAt));
+  ok(rb && rb.transcript.length === 1 && rb.transcript[0].text === 'eben' && rb.dropped === 1,
+     'what was said before the new zero is dropped, what was said just now is kept', j(rb && rb.transcript));
+  ok(rb && rb.lastTickAt === null,
+     'and a tick from before it is no reference at all', j(rb && rb.lastTickAt));
+  rb = rebaseClock({ prev: 40, next: 1, onAt: 20, lastTickAt: 30, startQuiet: START_QUIET_S });
+  ok(rb && rb.onAt === 1,
+     'inside the quiet the stamp follows the clock, which at worst buys the minute again',
+     j(rb && rb.onAt));
+
+  // ── the log, read back ───────────────────────────────────────────
+  const rows = replayAnswers([
+    { type: 'status', state: 'listening', elapsed: 0 },
+    { type: 'tick', elapsed: 120, chunkId: 'vorgesetzter', cueTargets: ['kette'], timeHintAllowed: false },
+    { type: 'answer', body: answer({ action: 'hint', kind: 'example', text: 'Den Fall jetzt nennen', why: 'abstrakt' }) },
+    { type: 'tick', elapsed: 140, chunkId: 'vorgesetzter', cueTargets: ['kette'], timeHintAllowed: false },
+    { type: 'answer', body: answer({ action: 'hint', kind: 'fact', text: 'Es waren zwei' }) },
+    { type: 'answer', dryRun: true },
+  ], { cooldown: 60 });
+  ok(rows.length === 2, 'a replay has one row per answer the model gave, and a dry run gave none', j(rows.length));
+  ok(rows[0].show === true && rows[0].kind === 'example' && rows[0].why === 'abstrakt',
+     'the first is whispered, with the reason the model gave for the log', j(rows[0]));
+  ok(rows[1].show === false && rows[1].reason === 'standing',
+     'and the second meets the policy the first one left behind', j(rows[1]));
+  ok(replayAnswers([{ type: 'tick', elapsed: 5 },
+    { type: 'answer', body: answer({ action: 'hint', kind: 'fact', text: 'Zu früh' }) }])[0].reason === 'start-quiet',
+     'a log too old to say when the switch was thrown measures the quiet from the first tick');
+
+  // ── the policy, row by row ───────────────────────────────────────
+  const hint = (kind, text, severity = 'low') => ({ action: 'hint', kind, text, severity });
+  const ctx = (extra) => Object.assign({ now: 900, elapsedSinceOn: 900, chunkId: 'vorgesetzter', cueTargets: ['kette'], timeHintAllowed: true }, extra);
+
+  let pol = createPolicy();
+  ok(pol.judge(hint('fact', long), ctx()).reason === 'too-long',
+     'policy: more than twelve words is discarded');
+  ok(pol.judge(hint('fact', 'Es waren zwei'), ctx({ elapsedSinceOn: 59 })).reason === 'start-quiet',
+     'policy: the first minute after switching on is silent');
+  ok(pol.judge(hint('fact', 'Es waren zwei'), ctx({ elapsedSinceOn: 61 })).show === true,
+     'policy: and after it the same hint passes');
+  ok(pol.judge({ action: 'nothing', reason: 'garbage' }, ctx()).show === false,
+     'policy: a nothing is not shown, whatever else is true');
+
+  // `at` is twenty seconds behind ctx()'s clock: a hint holds the slot while
+  // the strip could still be showing it, and the row below this block says
+  // what happens once it could not.
+  pol = createPolicy({ cooldown: 0 });
+  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 880 });
+  ok(pol.standing() && pol.standing().id === 'h1', 'policy: a shown hint stands until it is dismissed');
+  ok(pol.judge(hint('fact', 'Andere Zahl'), ctx()).reason === 'standing',
+     'policy: while one stands, a low one is discarded');
+  ok(pol.judge(hint('fact', 'Andere Zahl', 'high'), ctx()).show === true,
+     'policy: a high one replaces it');
+  pol.dismissed('h1');
+  ok(pol.standing() === null, 'policy: a dismissal clears the slot');
+
+  // The standing slot, when nobody ever answers for what is in it. Every way
+  // a hint leaves the strip sends a dismissal, so in the ordinary course this
+  // arithmetic is never reached; it is here for the case where the dismissal
+  // cannot arrive - the socket closed under the hint, or the page reloaded,
+  // which a --watch rebuild does on every save. One lost dismissal used to
+  // drop every low hint for the rest of the talk, under the reason
+  // `standing`, which in the log reads exactly like the policy working.
+  pol = createPolicy({ cooldown: 0 });
+  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 100 });
+  ok(pol.standing(120) && pol.standing(120).id === 'h1',
+     'policy: a hint holds the slot while the strip could still be showing it');
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 120 })).reason === 'standing',
+     'policy: and a low hint waits behind it');
+  ok(pol.standing(141) === null,
+     'policy: past standingMax it is treated as gone – the strip fades at 25 s');
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 141 })).show === true,
+     'policy: so a lost dismissal cannot lock the slot for the rest of the talk');
+  ok(pol.history().length === 1 && pol.history()[0].id === 'h1',
+     'policy: the aged hint keeps its place in the history – it was said');
+  ok(pol.judge(hint('example', 'Langsamer sprechen bitte'), ctx({ now: 141 })).reason === 'duplicate',
+     'policy: and in the duplicate rule with it');
+  pol = createPolicy({ cooldown: 0, standingMax: 5 });
+  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 100 });
+  ok(pol.standing(104) && pol.standing(110) === null,
+     'policy: standingMax is an option, because the fade it matches is the cockpit\'s');
+  ok(pol.standing() && pol.standing().id === 'h1',
+     'policy: and standing() without a clock still answers what is in the slot');
+
+  pol = createPolicy();
+  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 100 });
+  pol.dismissed('h1');
+  // The cool-down across kinds keeps two whispers from arriving on top of one
+  // another, and no longer than that: it was a minute, and in the first real
+  // rehearsal that one figure swallowed both clock warnings behind a wrong
+  // number, which is a different job and repeats nothing.
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 112 })).reason === 'cooldown',
+     'policy: a few seconds of quiet after every hint, so two never land together');
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 125 })).show === true,
+     'policy: and a different kind may come while the same kind still waits');
+  ok(pol.judge(hint('fact', 'Es waren zwei', 'high'), ctx({ now: 105 })).show === true,
+     'policy: except a factual slip at high severity, which cannot wait even for that');
+  ok(pol.judge(hint('fact', 'Es waren zwei'), ctx({ now: 105 })).reason === 'cooldown',
+     'policy: the exception is the severity, not the kind');
+
+  pol = createPolicy();
+  pol.shown({ id: 'h1', kind: 'fact', text: 'Es waren zwei', at: 100 });
+  pol.dismissed('h1');
+  // A *different* wrong number is worth saying: a speaker with the figures
+  // muddled misleads the room once per attempt, and repeating the same words
+  // is what the duplicate rule refuses. So this waits under a minute, not two.
+  ok(pol.judge(hint('fact', 'Drei Klicks, nicht vier'), ctx({ now: 130 })).reason === 'kind-cooldown',
+     'policy: a second fact waits, but in seconds');
+  ok(pol.judge(hint('fact', 'Drei Klicks, nicht vier'), ctx({ now: 150 })).show === true,
+     'policy: and then it may come');
+  ok(pol.judge(hint('fact', 'Es waren zwei'), ctx({ now: 400 })).reason === 'duplicate',
+     'policy: while the same correction in the same words stays refused for good');
+
+  pol = createPolicy();
+  pol.shown({ id: 'h1', kind: 'example', text: 'Nenne den Fall', at: 100, chunkId: 'vorgesetzter' });
+  pol.dismissed('h1');
+  ok(pol.judge(hint('example', 'Das Postfach zeigen'), ctx({ now: 400 })).reason === 'example-per-chunk',
+     'policy: one example hint per slide, however long ago it was');
+  ok(pol.judge(hint('example', 'Das Postfach zeigen'), ctx({ now: 400, chunkId: 'beispiel' })).show === true,
+     'policy: the next slide gets its own');
+
+  pol = createPolicy();
+  ['Langsamer sprechen', 'Weniger Füllwörter bitte', 'Die Frage steht noch offen'].forEach((text, i) => {
+    pol.shown({ id: 'd' + i, kind: 'delivery', text, at: 100 + i * 400 });
+    pol.dismissed('d' + i);
+  });
+  ok(pol.judge(hint('delivery', 'Ins Publikum schauen'), ctx({ now: 2000 })).reason === 'delivery-max',
+     'policy: three delivery hints in a talk, and no fourth');
+  // And the ceiling is per kind, not shared: tempo is a condition that comes
+  // back, manner is a moment. One cool-down doing both jobs is what crippled
+  // the author's first rehearsal.
+  ok(pol.judge(hint('pace', 'Langsamer, und Luft holen'), ctx({ now: 2000 })).show === true,
+     'policy: and a word about tempo is not one of the three');
+
+  pol = createPolicy();
+  pol.shown({ id: 'p1', kind: 'pace', text: 'Langsamer, und Luft holen', at: 100 });
+  pol.dismissed('p1');
+  // Two and a half minutes, because a speaker told to slow down needs long
+  // enough to have changed something before being told again.
+  ok(pol.judge(hint('pace', 'Zu schnell, kurz Luft'), ctx({ now: 200 })).reason === 'kind-cooldown',
+     'policy: a second word about tempo waits two and a half minutes');
+  ok(pol.judge(hint('pace', 'Zu schnell, kurz Luft'), ctx({ now: 260 })).show === true,
+     'policy: and then it may come');
+  ok(pol.judge(hint('skipped', 'Der Vermerk fehlt noch'), ctx({ now: 200 })).show === true,
+     'policy: while a thing the notes planned has a timer of its own');
+
+  pol = createPolicy();
+  pol.shown({ id: 's1', kind: 'skipped', text: 'Der Vermerk fehlt noch', at: 100 });
+  pol.dismissed('s1');
+  ok(pol.judge(hint('skipped', 'Das Postfach war geplant'), ctx({ now: 150 })).reason === 'kind-cooldown',
+     'policy: ninety seconds for a second thing left out');
+  ok(pol.judge(hint('skipped', 'Das Postfach war geplant'), ctx({ now: 200 })).show === true,
+     'policy: two omissions on two slides are two different facts');
+
+  pol = createPolicy();
+  ['Langsamer, und Luft holen', 'Zu schnell, kurz Luft', 'Tempo halbieren bitte', 'Noch etwas langsamer']
+    .forEach((text, i) => {
+      pol.shown({ id: 'p' + i, kind: 'pace', text, at: 100 + i * 400 });
+      pol.dismissed('p' + i);
+    });
+  ok(pol.judge(hint('pace', 'Ruhiger sprechen jetzt'), ctx({ now: 3000 })).reason === 'pace-max',
+     'policy: four words about tempo in a talk, and no fifth - past that it is a drumbeat');
+  ok(pol.judge(hint('delivery', 'Ins Publikum schauen'), ctx({ now: 3000 })).show === true,
+     'policy: and the two ceilings are counted apart');
+
+  pol = createPolicy();
+  pol.shown({ id: 'h1', kind: 'example', text: 'Nenne das Beispiel jetzt', at: 100, chunkId: 'x' });
+  pol.dismissed('h1');
+  ok(pol.judge(hint('fact', 'Nenne jetzt das Beispiel'), ctx({ now: 900 })).reason === 'duplicate',
+     'policy: the same words in another order are the same hint');
+  ok(pol.judge(hint('fact', 'Der Vermerk lag im Postfach'), ctx({ now: 900 })).show === true,
+     'policy: different words are a different hint');
+
+  // The cockpit's clock can restart under all of this - tStart is the page
+  // load, a --watch rebuild reloads the page, and a second cockpit tab taking
+  // the prompter twenty-five minutes into a talk has its own sessionStorage
+  // and starts near 0:00. `rebaseClock` moved the switch-on stamp, the last
+  // tick and the transcript; the policy stayed on the clock that died, so a
+  // hint shown at 25:00 refused every low hint for the next twenty-five
+  // minutes under the reason `cooldown`, which in the log reads exactly like
+  // the policy working. The two are called together now.
+  pol = createPolicy();
+  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 1500 });
+  pol.dismissed('h1');
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 600 })).reason === 'cooldown',
+     'policy: a hint stamped at 25:00 refuses everything on a clock that restarted -'
+     + ' ten minutes into the new one, under a cool-down of twenty seconds');
+  pol.rebase(5 - 1500);
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 30 })).show === true,
+     'policy: rebase(delta) moves its timestamps onto the new clock, beside rebaseClock');
+  ok(pol.judge(hint('example', 'Nenne den Fall'), ctx({ now: 6 })).reason === 'cooldown',
+     'policy: and the age survives the move, exactly as it does for the transcript: a'
+     + ' hint shown a second before the jump was shown a second ago, not never');
+  ok(pol.history()[0].at === 5,
+     'policy: the history rows move with them, because the tick message prints those'
+     + ' times - and exactly once, since the standing hint is one of those rows',
+     j(pol.history()[0]));
+  ok(pol.judge(hint('delivery', 'Langsamer sprechen jetzt'), ctx({ now: 40 })).reason === 'duplicate',
+     'policy: and what was said is still what was said, on either clock');
+  pol = createPolicy({ cooldown: 0 });
+  pol.shown({ id: 'h1', kind: 'delivery', text: 'Langsamer sprechen', at: 1500 });
+  pol.rebase(5 - 1500);
+  ok(pol.standing(6) && pol.standing(6).id === 'h1' && pol.standing(60) === null,
+     'policy: and the standing slot ages out on the new clock rather than holding for ever');
+  ok(pol.rebase(0) === undefined && pol.history()[0].at === 5,
+     'policy: a delta of nothing moves nothing', j(pol.history()[0]));
+
+  pol = createPolicy();
+  ok(pol.judge(hint('time', 'Zehn Minuten über'), ctx({ timeHintAllowed: false })).reason === 'time-not-allowed',
+     'policy: the clock is mentioned only when the arithmetic allows it');
+  ok(pol.judge(hint('time', 'Zehn Minuten über'), ctx({ timeHintAllowed: true })).show === true,
+     'policy: and then it may be');
+
+  pol = createPolicy();
+  ok(pol.judge({ action: 'cue', text: 'Postfach hier nennen', chunk_id: 'nirgends' }, ctx()).reason === 'bad-cue',
+     'policy: a cue reaches only a slide in cue_targets');
+  ok(pol.judge({ action: 'cue', text: 'Postfach hier nennen', chunk_id: 'kette' }, ctx()).show === true,
+     'policy: one that does is laid');
+  pol.shown({ id: 'c1', action: 'cue', text: 'Postfach hier nennen', chunk_id: 'kette', at: 900 });
+  ok(pol.judge({ action: 'cue', text: 'Den Vermerk erwähnen', chunk_id: 'kette' }, ctx()).show === false,
+     'policy: and the slide takes no second one');
+  ok(pol.standing() === null,
+     'policy: a cue is not a hint – it takes neither the standing slot nor the cool-down');
+  ok(pol.judge(hint('fact', 'Es waren zwei'), ctx()).show === true,
+     'policy: so a hint may still follow it at once');
+
+  // ── what a page cannot make it do ────────────────────────────────
+  // A security review sent a megabyte as one segment and had it in the tick
+  // message whole, because the newest segment of the window was kept however
+  // large it was; it claimed a minute of speech per message and earned a call
+  // per message; and a model's text reached the terminal with its escape
+  // sequences in it.
+  const huge = { text: 'word '.repeat(200000).trim(), t0: 895, t1: 899 };
+  const bigTick = tickMessage(Object.assign({}, session, { transcript: [...session.transcript, huge] }));
+  ok(bigTick.length < 12000,
+     'a megabyte segment is cut to the window\'s words, not sent whole', bigTick.length);
+  ok(/… \S+ word word/.test(bigTick), 'and the cut says so, keeping the newest words');
+  const noSpaces = { text: 'x'.repeat(50000), t0: 895, t1: 899 };
+  const cjkTick = tickMessage(Object.assign({}, session, { transcript: [noSpaces] }));
+  ok(cjkTick.length < SEGMENT_MAX_CHARS + 2000,
+     'and one with no spaces in it is cut to SEGMENT_MAX_CHARS', cjkTick.length);
+  ok(SEGMENT_MAX_CHARS === 2000, 'SEGMENT_MAX_CHARS is 2000 – ten sentences, not a document');
+  ok(clampSpan({ t0: 100, t1: 130, wallSeconds: 40, slack: 2 }) === 100,
+     'clampSpan: a segment no longer than the wall time since the last one keeps its start');
+  ok(clampSpan({ t0: 100, t1: 160, wallSeconds: 1, slack: 2 }) === 157,
+     'clampSpan: a minute claimed one second after the last segment is three seconds');
+  ok(clampSpan({ t0: 100, t1: 160, wallSeconds: -5, slack: 2 }) === 158,
+     'clampSpan: a wall clock that went backwards allows the slack and nothing more');
+  let esc = parseAnswer(answer({ action: 'hint', kind: 'fact', text: 'Es waren \u001b[2Jzwei', severity: 'high' }), sess);
+  ok(esc.action === 'nothing' && esc.reason === 'garbage' && esc.text === 'Es waren \uFFFD[2Jzwei',
+     'parseAnswer: a hint with a control character in it is refused, and the refusal shows it', j(esc));
+  esc = parseAnswer(answer({ action: 'cue', chunk_id: 'kette\u0007', text: 'Die Kette' }),
+    Object.assign({}, sess, { cueTargets: ['kette\u0007'] }));
+  ok(esc.action === 'nothing' && esc.reason === 'garbage',
+     'parseAnswer: and so is a cue whose slide id carries one', j(esc));
+
+  // ── the module's shape ───────────────────────────────────────────
+  const src = fs.readFileSync(path.join(ROOT, 'souffleuse.mjs'), 'utf8');
+  const code = src.replace(/^\s*\*.*$/gm, '').replace(/^\s*\/\/.*$/gm, '');
+  ok(!/^\s*import\s/m.test(src) && !/\brequire\s*\(/.test(code),
+     'souffleuse.mjs imports nothing – notesToCards is injected, the way the compiler takes its leaves');
+  ok(!/\b(process|fs|Buffer|crypto|setTimeout|setInterval|fetch)\b\s*[.(]/.test(code),
+     'and touches no Node API, no clock and no network: the sidecar owns all three');
+  const exported = [...src.matchAll(/^export\s+(?:function|const|let)\s+([A-Za-z_$][\w$]*)/gm)].map(m => m[1]);
+  ok(j(exported.slice().sort()) === j([
+    'CLOCK_JUMP_S', 'DELIVERY_MIN_SAMPLE_S', 'KINDS', 'MAX_WORDS', 'PACE_WPM',
+    'SEGMENT_MAX_CHARS', 'SEVERITIES', 'START_QUIET_S', 'TOOL_SCHEMA',
+    'clampSpan', 'createPolicy', 'cueTargets', 'deckPayload', 'driftSeconds', 'flattenMarks',
+    'paceVerdict', 'parseAnswer', 'prefixHash', 'rebaseClock', 'replayAnswers',
+    'shouldTick', 'speechStats', 'systemPrefix', 'tickMessage', 'timeHintAllowed',
+    'wordCount',
+  ]), 'the module exports exactly the names the sidecar reads', j(exported));
+  ok(!/—/.test(src), 'en-dashes only, as in every other file here');
+  ok(TOOL_SCHEMA.type === 'function' && TOOL_SCHEMA.function.name === 'advise'
+     && j(TOOL_SCHEMA.function.parameters.properties.action.enum) === j(['nothing', 'hint', 'cue'])
+     && j(TOOL_SCHEMA.function.parameters.properties.kind.enum) === j(KINDS)
+     && j(TOOL_SCHEMA.function.parameters.properties.severity.enum) === j(SEVERITIES)
+     && j(TOOL_SCHEMA.function.parameters.required) === j(['action']),
+     'the tool schema is the answer vocabulary, and it is generated from the same tables');
+  ok(MAX_WORDS === 12 && j(KINDS) === j(['time', 'example', 'fact', 'delivery', 'pace', 'skipped']),
+     'twelve words, six kinds - and `pace` is its own because it must not share a'
+     + ' cool-down with `delivery`: manner is a moment, tempo is a condition', j(KINDS));
+}

@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+  The two entitlements Electron needs under the hardened runtime: V8 compiles
+  JavaScript at run time, and the pages the engine builds are read by a
+  browser rather than by this app, so nothing else is asked for here. In
+  particular there is no network entitlement and no file-access exception:
+  the app reads and writes the folder the person chose, through the ordinary
+  file system, and talks to nothing.
+
+  entitlementsInherit points at this same file, so the build process the app
+  starts - Electron's own binary running as Node - inherits them.
+-->
+<plist version="1.0">
+<dict>
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+</dict>
+</plist>

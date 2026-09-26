@@ -1,0 +1,872 @@
+# PLAN: the good figure by default
+
+Scope: the `::: draw` language (`diagram-core.mjs`), the chunk layout round a
+figure (`build.js`), and the two mirrors (`lint.js`, `tails.mjs`). Nothing here
+is released: 2.0.0 and the drawings sit under `[Unreleased]`, so syntax,
+defaults and behaviour may still move. The maintainer's stance, which this plan
+is built against: the practice a figure ends up needing should come out of the
+engine by default, not out of remembering it after the slide looks wrong.
+
+Evidence: three generations of one talk, `lectures/keynote-2036/source.md` in
+the content repo (`source.md.bak-before-rework`, `source.md.bak-before-canvas`,
+`source.md` – 20 `::: draw` blocks, 27 chunks, 86 frames), the two review
+files beside it, the 11 contact sheets, and a scratch build of the current
+deck. That build matters as a number on its own: **0 `[diagram]` warnings, lint
+`ok – 0 error(s), 0 warning(s)`**, on a deck whose author still sees short
+arrows, gaps that are too small, peers of unequal size and a grid row whose
+cells had to be given one height by hand. The compiler's eight layout warnings
+measure collisions. None of them measures composition, and composition is what
+the three passes were spent on.
+
+## 1. What the three generations teach
+
+### The defects that recurred across all three
+
+Every count below is `grep` over the three files.
+
+| what the author had to write by hand | gen 1 | gen 2 | gen 3 (now) |
+| --- | --- | --- | --- |
+| `gap N` on a relational placement | 87 | 76 | 76 |
+| `h N` on a box, zone or table | 33 | 24 | 36 |
+| `w N` on a box or zone | 44 | 28 | 26 |
+| `same as X` | 0 | 12 | 15 |
+| `anchor tl` / `anchor bl` / `anchor left` | 2 | 36 | 37 |
+| `flush left` | 25 | 14 | 14 |
+| `.figure-type-NN` on a chunk | 0 | 7 | 8 |
+| `.middle` on a chunk | 1 | 12 | 12 |
+
+Read as a story: gen 1 is what an author writes from the skills alone; gen 2
+is the careful pass after the review (`same as`, `anchor`, `zone`, `.middle`,
+`figure-type` per chunk); gen 3 is what the canvas forced (every grid
+rewritten, sizes rewritten, `hyphenate` switched). In no generation did the
+count of hand-written sizes fall below 60, and the *kinds* of hand work did not
+change – only the numbers in them. That is the signature of a default that is
+wrong: the author keeps writing the same override.
+
+**Short arrows.** The default `gap` on a relational placement is `0.25`
+(`diagram-core.mjs` line 1651), measured in rows, and an arrowhead is 9 px
+(`DG_HEAD`). On the keynote's `100x40` grid that default is 10 px – one pixel
+of shaft past the head – which is why the corpus contains **zero** relational
+placements without a written `gap` (166 in `lectures/diagrams`, 222 in
+`network-security`, 70 in the tutorial, 14 in decoration: all written). The
+author wrote `gap 0.3` on the four-box chain in `#video` (12 px on a 40-row
+grid, 3 px of shaft), `gap 0.35` in `#klausur`, `gap 0.4` in `#umweg` and
+`#kolloquium`, and the frames show it: in `049-video-b1.png` the arrows between
+`Frage`, `30 Sekunden`, `Kamera` and `Transkript` are heads with no line. The
+canvas scales the drawing to about 2.1× on the slide, so a 12 px gap is a 25 px
+arrow on a 1600 px wall, beside boxes 200 px wide. In gen 1 the same row was
+`gap 0.12` (7 px) – the review called them "Tickmarken". The number moved three
+times; it never became a rule.
+
+**Peers of unequal size.** `#umweg`, all three generations: `sek` at the
+default width, `vor` at a written width (`w 1.1` in gen 1, `w 0.95` in gen 2,
+`w 1.3` now); `Dekan` was `w 0.7` beside five peers of 132 px until the review
+called it out. `#kolloquium` gen 1: `box arbeit … w 1.5 h 0.55` over
+`box vortrag … w 1.6 h 0.55` – two stacked peers, two widths, both written.
+`#seminar` now: `ueber w 1.0 h 0.75`, `delta w 0.7 h 0.75`. Every box in this
+grammar sizes itself from its own label (`Math.max(m.w + 2 * padX + inset,
+DG_MIN_W)`, line 6016), so a row of peers is unequal *by construction* and
+`same as` is the only way back. Gen 2 added twelve of them. `figure-design.md`
+rule 11 says "give elements of the same kind the same size, with `same as`" –
+the rule is right and it is the rule that should not need a sentence.
+
+**Box height from the label, one box at a time.** `#handbuch` gen 1:
+`default box {.tone-2} w 1.5 pad 0.16` and "Antrag" (one line) beside
+"Genehmigung: Vorgesetzter" (one line, `w 2.1`); gen 2 broke the label
+(`"Genehmigung:\nVorgesetzter"`) and had to add `h 1.15` to the default so the
+one-line box would match; gen 3 raised it to `h 1.4`. The height was written
+into `default box` on 8 of the 20 blocks. A one-line box beside a two-line box
+is the ordinary case, and the engine has no floor for it.
+
+**A grid row whose cells do not share a height.** The Bauplan
+(`#teil-2` … `#teil-5`, four copies of one drawing) is six `box` cells in a
+`right of` / `below` chain. Row 2 holds a three-line answer, so
+`z21`, `z22`, `a21`, `a22` all carry `h 4.5` while rows 1 and 3 take the
+default `h 2.5` – four hand-written heights for one row, in four copies. And
+in the last step `label a22 "Repariert die Form.\nSchließt damit den Fall.\n
+*Kosten: Glaubwürdigkeit*\n*der Zeugnisse*"` puts four lines into a cell sized
+for three; the review measured 1 px of air. The compiler knows every label a
+box will ever carry at compile time (steps are static) and sizes it for the
+first one only.
+
+**Children of a zone placed by arithmetic.** `zone` landed in gen 2 and the
+five zone figures still place every child against the zone's outer edge:
+`at raum.left+0.82,raum.cy` (`#kolloquium`), `at haus.left+0.54,haus.top+2.0`
+(`#video`), `at raum.left+0.61,raum.top+1.4` (`#klausur`),
+`at raum.left+0.685,raum.top+2.0` (`#projektmesse`), `at raum.left+1.22,…`
+(`#seminar`). Three-decimal offsets are the tell: the author is centring a
+row inside a band by hand. `DG_ZONE_PAD` (0.33) insets the caption, not the
+children.
+
+**The figure's first beat is empty.** `027-drei-orte-b0.png` paints nothing –
+`step schmerz / show schmerz` hides the only box at beat 0 – in all three
+generations, and `061-seminar-b0.png` and `048-video-b0.png` are two empty
+frames. Nothing warns; `--check-fit` reports fit, not ink.
+
+### What the canvas removed
+
+The per-slide zoom drift: heading ink height ran 25–44 px across figure
+slides in gen 2 because `fitZoomToChunk` followed each figure's own box. Gen 3
+rewrote every opener (`132x56` → `100x40`, `120x40`, `80x30`, `20x20`) and
+every size with it, dropped `.figure-type-160` on `#der-satz` and `-130` on
+`#zwei-zeiten` to `-110`, and the four Bauplan copies now share one viewBox.
+That is the one change of the week that made the deck *calmer* rather than
+*more correct*, and it is the model for the rest of this plan: a fixed box
+that the drawing is placed in, not a box derived from the drawing.
+
+It also cost `hyphenate: all` → `hyphenate: print` for the whole deck, because
+`#die-zahl` under `.center` broke `projekt-/bakule.de` and four other words in
+six lines; the fix for one centred slide was to turn hyphenation off for
+twenty-six left-set ones. See 2.9.
+
+### What only hand work removed, and which of it an engine should not need
+
+Removed by hand and rightly so: the argument of each figure (gen 2 turned the
+"Zeltdach" ring in `#umweg` into a container and one edge; `dim` on `.accent`
+became `ghost`; the region idiom was unified with `zone`). That is authoring.
+
+Removed by hand and should not have been:
+
+- 15× `same as` – peers of one kind in one chain (2.2).
+- 36× `h N` and 26× `w N` – of which the Bauplan's four `h 4.5` and every
+  `default box … h` are row-height work (2.2, 2.3).
+- 37× `anchor tl|bl|left` – 20 of them the same idiom, a `.left` caption under
+  a figure: `text z1 "…" at haus.left,haus.bottom+0.5 anchor tl {.left}` (2.12c).
+- 76× `gap` – every one, because the default is unusable (2.1).
+- 12× `.middle` – on every bare figure chunk and every statement (2.12b).
+- 8× `.figure-type-90|110` – five of them on the zone figures, which are one
+  row too wide for the canvas and were shrunk instead of narrowed; the warning
+  offered the multiplier and the author took it (2.12a).
+- 4× `{.stack .bare}` – the divider heading hidden and its text redrawn inside
+  the figure as `text f1 "1  Wer macht es grün?"` (2.7).
+- 9× `[Klick: …]` in the four Bauplan notes – beats written as prose because
+  `> note: from N` on a divider note was one thing too many (2.10).
+
+Two things did *not* recur, and both were engine fixes from the review round:
+the ragged `.left` label (`anchor` plus `dgLabelAnchorWarnings`) and `emph` on
+a `.bare` cell drawing a red rectangle. That is the precedent: a defect the
+review named twice became a rule and then stopped appearing.
+
+## 2. Defaults to change
+
+Each entry: current rule, proposed rule, why it is right by default, what it
+costs the tracked lectures (`lectures/diagrams`, `network-security`,
+`tutorial`, `decoration` all build today), and the override. Corpus counts are
+from `grep` over those four plus `python-intro`, `spoken-talk` and
+`docs/artifact/figure-rules`.
+
+### 2.1 A gap is measured in labels, and its default clears an arrow
+
+**Current.** `right of X` with no `gap` places at `0.25` rows
+(`place.gap * uh`, lines 6217–6225). A row is whatever the opener says: 20 px
+on `20x20`, 30 on `80x30`, 40 on `120x40`, 72 on the default grid. The same
+`gap 0.4` is 8 px, 12 px, 16 px or 29 px depending on a number in the opener.
+An arrowhead is 9 px.
+
+**Proposed.** Two rules. (a) The default gap is **one base label**
+(`DG_FONT × DG_LINE_H` ≈ 19 px) for an unjoined pair and **1.6 labels** (30
+px: a 9 px head plus 21 px of shaft) for a pair an `edge` joins, decided after
+the edges of the block are read – the compiler already builds a dependency
+graph before placing. (b) A written `gap` stays the author's number, and an
+edge whose *exposed* run – the part not under either endpoint – is shorter
+than 1.5 labels warns `edge-short`, naming both ends, the run in px, and the
+`gap` that would clear it. Not pushed apart: a `gap` the author wrote is a
+number other elements are chained off, and moving it silently moves them.
+
+**Why right by default.** A gap is a clearance, the skill already says its
+ruler is "square", and a clearance that depends on the opener is not one an
+author can learn. The only figures in the corpus that want a gap below an
+arrowhead are `gap 0` rows drawn as one bar, and those have no edge between
+the members.
+
+**Cost.** Nothing moves: there are 0 relational placements without a written
+`gap` in the four tracked lectures (2 in `figure-rules`, both texts). The
+`edge-short` warning would fire on the keynote's `#video` (12 px), `#klausur`
+(14 px) and `#umweg` (12 px) rows – every one a defect the maintainer named –
+and needs a corpus run to see whether a tutorial specimen trips it.
+
+**Override.** `gap N`, as today. `gap 0` stays legal and stays quiet when no
+edge joins the pair.
+
+### 2.2 Peers share one size
+
+**Current.** Every `box` sizes itself from its own label; `same as X` copies
+another's size; `default box w/h` sets a floor for the block. A chain
+`b right of a`, `c right of b` is three widths and, with one two-line label,
+two heights.
+
+**Proposed.** A **chain** – the boxes of one kind reached from each other by
+`right of` / `left of` / `below` / `above` in one axis, or by a shared
+reference (`below s3` off a chain member) – shares one size: the maximum
+width and the maximum height any member measures, *over every label a step
+will give it*. A written `w` or `h` on a member is the member's own; a
+written `w`/`h` on any member of the chain with no `same as` elsewhere is
+taken as the chain's, so `box a "…" w 1.5` at the head of a row does today's
+`same as a` for the rest without the words. A `default box w/h` remains the
+floor. Sizes are resolved after measurement and before placement; the
+topological walk already exists and only the measure step moves before it.
+
+A `row a, b, c` / `col a, b, c` statement is the explicit form for peers that
+are *not* chained (three boxes placed against three different zones) and is
+also the answer to "which of these is the set" when a chain is ambiguous. It
+is `align` with a size in it, and it belongs beside `align` and `spread` in
+`DG_KEYWORDS`.
+
+**Why right by default.** Rule 11: "relative size reads as importance … the
+usual reason it is wider is that its label happened to have more letters".
+The exception (a box that really is bigger) is the one that should cost a
+word. And the `label` in a step that overflows its cell (`a22`, four lines
+into three) stops being possible, because the cell was sized for it at beat 0.
+
+**Cost.** This is the one change in the plan that moves the corpus visibly.
+`lectures/diagrams` writes `same as` 54 times, `network-security` 71 times,
+the tutorial 26, decoration 2 – those are unchanged (an explicit `same as`
+still wins). Chains *without* `same as` grow to their widest member:
+`network-security` has 63 boxes with a written `h` and 17 step labels with
+`\n`, so a figure there will show a box that is taller at beat 0 than it used
+to be. Rebuild the three tracked lectures and read the sheets; the figures
+that change are the ones rule 11 says were wrong. The catalogue figures in
+`lectures/diagrams#look` that show a single box are one-member chains and do
+not move.
+
+**Override.** `w`/`h` on the member; `{.own}` on a box (a new word in the
+size slot) to leave the chain; `frame none` decks are not exempt, because this
+is about the drawing, not the canvas.
+
+### 2.3 A box is at least as tall as its neighbours' lines
+
+Covered by 2.2 for chained peers. The one case left: an unchained one-line
+box beside a two-line one (a `note` beside a `koll` placed against a zone).
+**Proposed.** `DG_MIN_H` = two lines at the box's font, applied to a `box`
+whose label is one line **and** which stands in a block where another box of
+the same kind has two – the block's line count, not a global floor, so a
+figure of one-liners stays as flat as it is. **Cost.** One-line boxes in
+mixed figures grow by one line height; the corpus has them in `diagrams` and
+`network-security`, and the ink edge and canvas absorb the growth. **Override.**
+`h N`, or `.snug` (one word, size slot).
+
+### 2.4 Padding relative to type
+
+**Current.** `DG_PAD_X = 13`, `DG_PAD_Y = 9` px, whatever the box's font.
+`.large` text sits in the same 13 px a base label gets; `.small` gets more air
+than its letters are tall.
+
+**Proposed.** Padding is `0.85em × 0.6em` of the box's own font, which is
+exactly 13 × 9 at `DG_FONT = 15`, so the base case is byte-identical – the
+same construction `DG_ROW_H` already uses ("the factor is exactly 1 and every
+existing table draws the same bytes"). `pad N` in rows stays the override.
+
+**Cost.** Only boxes carrying `.large`/`.small` move (2 in `network-security`,
+0 elsewhere in the tracked lectures; the keynote's `.large` tables carry
+`pad 0.04` written by hand for this reason). **Override.** `pad N`.
+
+### 2.5 An edge label on a straight run gets its ground
+
+**Current.** `.paper` on an edge is opt-in; `dgLabelGroundWarnings` reports a
+ground that covers an elbow's exposed run.
+
+**Proposed.** A label on a **straight** edge between two facing elements gets
+the paper knock-out by default – the skill already calls it "the right form"
+there. On an `.elbow` the label defaults to `side top` of the rail, where
+the ground is not needed and the route stays visible. The ground slot on an
+edge gains `none`.
+
+**Cost.** Straight labelled edges without `.paper`: 17 minus 5 in `diagrams`,
+15 in the tutorial, 21 minus 4 in `figure-rules`, 0 in `network-security`. Each
+gains a knock-out behind its word – the line stops under the label instead of
+running through it. Visible, in the direction rule 6 asks for; rebuild and
+read. **Override.** `{.none}` in the ground slot, or `side top`.
+
+### 2.6 A zone has an inner band, and children are placed in it
+
+**Current.** `zone name at X,Y w W h H "Label"` with `w`/`h` required; the
+caption is inset by `DG_ZONE_PAD`; children are placed against the zone's
+outer coordinates and an author subtracts the caption and the padding by
+hand (`raum.left+0.685`).
+
+**Proposed.** Three things. (a) A zone exposes its **inner** box – below the
+caption, inside the pad – and a child placed `in raum` lands at the inner
+top-left plus the default gap; the next `right of` chains from there. The
+zone's scalar anchors (`raum.left`, `raum.top`) stay the outer edge, because a
+frame line is what an author aims a caption at. (b) `w`/`h` become optional:
+a zone written without them **wraps its children** plus the pad and the
+caption, like a `container`, but keeps its own ground and caption and is
+drawn under its members – which is the unification finding 6 of the first
+review asked for. A zone with `w`/`h` is fixed, as today. (c) A `row`/`col`
+of children inside a zone is centred in the inner band unless `flush` says
+otherwise, so the three-decimal centring goes away.
+
+**Cost.** Additive. Every zone in the corpus carries `w`/`h` (the keyword is
+newer than the tracked lectures' figures; 10 in the keynote, 0 tracked).
+**Override.** `w`/`h` as today; `at` on a child as today.
+
+### 2.7 A stacked divider keeps its heading as a heading
+
+**Current.** `# Heading {.stack}` sets the heading as a 1.35em `--ink-soft`
+caption over the figure; `{.stack .bare}` takes it off. The keynote wrote
+`.bare` on all four and redrew the heading inside the figure
+(`text f1 "1  Wer macht es grün?"`).
+
+**Proposed.** Under `.stack` the heading is a chunk heading – the same size
+and edge a `## free:` heading gets on a `.full` chunk – and the figure stands
+under it on the `.full` canvas it already has. A part then opens on a titled
+figure with no second copy of the title. `.bare` stays for the author who
+draws the title into the figure.
+
+**Cost.** `lectures/decoration` has 4 stacked dividers (commits `3a6bda0`,
+`ab79364`); their captions become headings and the sheet moves. Nothing else
+in the tracked set uses `.stack`. **Override.** `.bare`, or a new `.quiet`
+word in `COLUMN_SLOTS` for the caption treatment.
+
+### 2.8 `::: dock` alignment
+
+**Measured, nothing to fix.** The question was whether a `left` dock's text
+edge and the chunk's heading edge are one line. On one slide they cannot be:
+the dock is a column the chunk reserves as its own left padding, so the dock's
+words stand inside that column and the heading beside it, by construction.
+What can be asked is where each edge stands, and whether `headings: left`
+moves any of them. Chromium at 1600x900, camera settled, x measured from the
+frame's left edge as the left of the first glyph (a `Range`, so a centred line
+would report its words, not its box):
+
+| slide | `headings: left` | `headings: auto` |
+| --- | --- | --- |
+| no dock, `.wide` – heading and body | 224 | 224 |
+| no dock, `.standard` – heading and body | 378.8 | 378.8 |
+| narrow left dock, a list – bullet ink / item text | ~63 / 108.1 | ~63 / 108.1 |
+| wide left dock, a paragraph – text | 56 | 56 |
+| beside either dock – heading and body | 504 (narrow), 792 (wide) | the same |
+| `lectures/decoration#dock-why`, `#dock-cols`, `#dock-slots` – item text / heading | 89.1, 83.2, 80.9 / 504 | (the lecture is `auto`) |
+
+Scratch decks: the same source under `headings: left` and `headings: auto`,
+chunks `.wide` and `.standard`, a narrow `.every` dock, a wide one with a
+paragraph, a `.clear` one. **`headings: left` changes none of the numbers**:
+a `free:` heading on a `.wide` or `.standard` chunk is left-set under `auto`
+already, so the key reaches only what `auto` centres – a `figure:` chunk and
+the title (`body[data-headings=left]` in the live stylesheet).
+
+**What the numbers say.** The dock's inset is `--dock-gap`, 56 px, on both
+sides of the column's edge – the paragraph's first glyph and the list's
+bullets stand at 56, and the heading beside the dock at 448 + 56 = 504. That
+is one rule read twice: the tinted slab's edge stands in the middle of a
+clear band of 56 on each side, and the frame at 1600 px shows exactly that.
+The only edge that does not line up with anything is a list item's *text*,
+1.1 em further in, which is how every list in the deck hangs its bullets.
+
+**Why the proposal is wrong.** It set the dock's inner padding to the slide's
+text gutter, 14 % = 224 px, so that the dock's words would stand where an
+undocked slide's words stand. A narrow dock is 448 px; with 224 on the left
+and 56 on the right its measure falls from 336 px to 168 px – 3.5 em at the
+47 px the scratch deck's zoom gave the dock, 5.6 em at the 30 px
+`lectures/decoration#dock-why` settles at, where "Beside two columns" already
+fills 280 px on one line. The alternative, widening the track by 168 px so
+the measure survives, takes those 168 px out of the text column instead,
+which is the column the dock was measured to leave (28 / 37 / 46 %). And the
+line it would buy is not one a reader follows: the dock is a panel, its words
+belong to the panel, and the edge a reader tracks on a docked slide is the
+heading-and-body edge at 504, which holds from slide to slide of the part.
+A dock that did want its words on the deck's gutter would be a `::: side`.
+
+### 2.9 `hyphenate: all` leaves centred prose and addresses alone
+
+**Current.** `all` hyphenates every `p, li, blockquote, figcaption` in the
+live views except headings, statement lines, footnotes and `a[href^=http]`
+(build.js line ≈13660). A `.center` chunk under `all` breaks
+`projekt-/bakule.de` and four words in six lines (`#die-zahl`, gen 2), and
+the deck's answer was `print` for everything.
+
+**Proposed.** Under `all`: `[data-center]` chunks, `.wrap-balance` text and
+`::: cards` terms take `hyphens: manual`; and a token that looks like an
+address (`\S+\.(de|org|com|net|edu|…)\b`, a DOI, a path) is wrapped by the
+build in a `.nobreak` span so the dictionary never sees it. The limit for
+the projection goes from `6 3 3` to `8 4 4`; print keeps `6 3 3`.
+
+**Why.** Centred ragged text is shaped by its line ends; a hyphen there makes
+a diamond. `hyphenate: all` is otherwise the right setting for a German deck
+with 26 left-set slides, and the author should not have to choose.
+
+**Cost.** Decks under `all` with centred prose lose hyphens there (none of
+the tracked lectures set `all`). **Override.** none needed; `none` and `print`
+as today.
+
+### 2.10 `[Klick …]` in a note is a beat
+
+**Current.** A `> note:` block is one card set per chunk; `> note: from N`
+pins a block to an advance. The keynote's four divider notes carry nine lines
+of the form `[Klick: Zeile 1 wird hell.]` and no `from N` at all – the beats
+are in the prose, and the cockpit shows every card at beat 0.
+
+**Proposed.** In `cue-cards.mjs`, a paragraph that is only a bracketed line
+whose first word is in a per-language list (`Klick`, `Click`, and the bare
+`>`) ends the card **and counts an advance**: the cards after it are
+`from N+1`, N counted from the block's own `from` or from the last marker.
+`noteSegments()` in the parser gets the same rule so `note-in-empty-beat` and
+the cockpit agree, and the marker line itself becomes the card's title if the
+card has none ("Zeile 1 wird hell").
+
+**Cost.** Zero for a deck without such lines; the word list is a `STRINGS`
+entry so `lang:` picks it. **Override.** write `from N`; a bracket that is a
+stage direction (`[Pause.]`) is not in the list and stays prose.
+
+### 2.11 `statement:` with a quiet line
+
+**Current.** A `statement:` chunk is the heading plus paragraphs, all at
+`--statement-size`, 600 weight, ink colour. The `| sub-heading` slot still
+renders as `.hd-sub` (HANDOFF, open). `#der-satz` – the thesis of the talk –
+is therefore a `::: draw` of two `text` elements: a `.muted .ghost`
+definition above and a `.large .bold` sentence below, the definition arriving
+at beat 1 *above* the sentence, so the loud line is set in the figure sans at
+46 px against 80 px serif on `#schluss`.
+
+**Proposed.** Two registers in a statement. (a) A paragraph set entirely in
+`*italic*` is the **quiet** line: `--ink-soft`, half the statement size, the
+prose face, no weight. (b) The chunk class `.lead` stacks quiet lines
+**above** the loud ones regardless of source order and reserves their space
+from beat 0, so a quiet line that arrives on a later `---` fades in above
+without moving the loud line – exactly `#der-satz`'s two beats, in four lines
+of Markdown and no figure. The `| sub` slot on a statement is refused
+(`statement-sub`) rather than left to `.hd-sub`, since (a) is the spelling.
+
+**Cost.** Additive; `lectures/spoken-talk` and the keynote's three statements
+have no italic-only paragraph. **Override.** none needed.
+
+### 2.12 Found on the way
+
+**a. Per-chunk `figure-type` is being used as an overflow fix.** Five of the
+eight `.figure-type-90` chunks are the zone figures, each one row wider than
+the canvas; the `figure-overflows-canvas` message offers a `frame WxH` and the
+author reached for the multiplier instead. Change the message order: first
+"one row too wide – 4 boxes at this width fit, you have 5", then the frame,
+and never the multiplier. `--check-fit` should print the deck's spread of
+per-chunk multipliers as its unevenness number. One hour.
+
+**b. `.middle` is the default for a chunk that is a picture.** 12 of the
+keynote's 27 chunks carry it: every bare figure chunk and every statement.
+Proposed: a chunk whose body is one `::: draw` and no prose, or a
+`statement:`, frames what its beat paints (`.middle`) by default; a chunk
+with prose keeps top anchoring, because prose grows downward and a reader
+expects the heading to stay. The cost the changelog names – a camera glide
+per press – is the cost of a figure that reveals, and it is the right one for
+a figure slide. Cost to the corpus: every bare figure chunk in the tutorial
+(5 `.middle`/`figure-type` mentions already) and `diagrams` re-frames; the
+`figure:` type chunks in `diagrams` are prose-plus-figure and stay. Override:
+`.top`, a new word in `CHUNK_SLOTS.middle`.
+
+**c. `.left` on a free text is an anchor.** 20 of the keynote's 37 `anchor`
+words are the caption idiom `at X.left,X.bottom+0.5 anchor tl {.left}`. The
+skill records that `.left` "aligns the lines inside the element's own box and
+the box stays centred on its `at`", and that this "is what makes it
+invisible". Proposed: a `text` carrying `.left` with no written `anchor` is
+anchored on its left edge (`.right` on its right); `anchor center` is the way
+to say the old thing. This retires `dgLabelAnchorWarnings` and lint's
+`diagram-ragged-labels`, which were the band-aid for this. Cost: `.left`/
+`.right` free texts placed with `at` and no anchor shift by half their width –
+2 in `diagrams`, 18 in `network-security`, 2 in `python-intro`, 0 in the
+tutorial and decoration (relational placements with `flush` are unaffected,
+because `flush left` already puts the ink on the edge). Read the 18 in
+`network-security` before flipping it; if most were meant as anchors, the
+change is a repair there too. Override: `anchor center`.
+
+**d. An empty beat warns.** A beat at which a figure paints nothing – every
+element hidden – is `empty-beat`, a compiler warning with the step name; the
+first beat of `#drei-orte`, `#video` and `#seminar` are three frames of paper
+in a keynote and nothing said so. One hour; no lint mirror possible.
+
+**e. A table can share columns with another.** `#vorgang` writes
+`col 1.7,2.0,0.12` twice so two stacked tables line up. `same as vg` on a
+table copies the columns (rows are its own). One hour.
+
+**f. A step `label` that lengthens a box is sized for at beat 0.** Folded
+into 2.2 – said again here because it is the single rule that makes
+`a22`'s fourth line impossible to overflow.
+
+## 3. Warnings that should become defaults, and defaults that should stay warnings
+
+The compiler's layout warnings today: `dgOverlapWarnings`,
+`dgLabelGroundWarnings`, `dgLabelClipWarnings`, `dgLabelAnchorWarnings`,
+`dgElbowRailWarnings`, the off-axis edge (line 7107), and build.js's
+`figure-overflows-canvas`, `figure-underfills-canvas` and `figure-type-small`.
+
+**Band-aids – a warning standing where a default should be:**
+
+- `dgLabelAnchorWarnings` and lint's `diagram-ragged-labels` → 2.12c. Once
+  `.left` anchors, the geometry they detect cannot arise; both retire.
+- `dgLabelClipWarnings` (a label between two boxes wider than the paper
+  between them) → 2.1. With a joined pair's default gap computed after the
+  edges are read, the default gap for a *labelled* edge is the label's width
+  plus two pads. The warning stays only for a written `gap` that is too small.
+- `dgElbowRailWarnings` (a rail on a seam of a `gap 0` row) → 2.1 makes it a
+  written-`gap 0` case only; keep, it is cheap and names the fix.
+- The off-axis edge ("runs 0.5° off the axis – its endpoints are probably
+  boxes of different heights") → 2.2. Peers share a height; the warning
+  stays for the case a written `h` produces.
+
+**Stay warnings, because intent is not decidable:**
+
+- `dgOverlapWarnings` – a zone drawn under its children *is* an overlap by
+  design (2.6 exempts a zone's members, as the container already is).
+- `figure-overflows-canvas` / `figure-underfills-canvas` – the drawing's
+  content is the author's; reword per 2.12a.
+- `figure-type-small` – a figure with no canvas has no other guard.
+- `dgLabelGroundWarnings` – after 2.5 it fires only for a written `.paper`
+  on an elbow, which is the case it was built for.
+
+**New warnings this plan adds:** `edge-short` (2.1), `empty-beat` (2.12d),
+`statement-sub` (2.11, a refusal). Three in, two out.
+
+## 4. Lint mirrors and tests each change needs
+
+`lint.js` imports tables from `diagram-core.mjs` and `tails.mjs`, never a
+function, so anything that needs a laid-out figure cannot be mirrored and must
+say so in the skill (the canvas warnings set the pattern).
+
+| change | diagram-core | tails.mjs | lint.js | gates | browser specs | docs |
+| --- | --- | --- | --- | --- | --- | --- |
+| 2.1 gap in labels, `edge-short` | default at 1651, joined-pair pass, new warning | – | – (geometry) | `semantics` fixture: chain with and without an edge, px asserted; `refusals` untouched | `figure-labels` rerun | figures skill "Six traps" → seven; `figure-design.md` rule 1 loses its `gap 0.25` example |
+| 2.2 chains share size, `row`/`col` | measure-before-place, chain detection, `.own`, `DG_KEYWORDS` | – | `diagram-statement` accepts `row`/`col`; `diagram-class` for `.own` | `semantics`: chain of 1/2/3-line labels; `step-classes`: step `label` sizes at beat 0; `corpus` | `figure-prominence`, `editor-placement` (the editor writes `same as`; it now writes nothing for a chain member) | skill slot table; rule 11 rewritten |
+| 2.3 two-line floor | `DG_MIN_H`, `.snug` | – | `diagram-class` | `semantics` | – | skill |
+| 2.4 em padding | `DG_PAD_*` derived | – | – | `semantics`: base bytes unchanged, `.large` box grows | – | skill |
+| 2.5 label ground | edge default, `none` in ground slot | – | `diagram-class` | `semantics`, `refusals` for `.paper .none` clash | `figure-labels` | rule 6, skill |
+| 2.6 zone inner band | `in` placement, optional `w/h`, wrap | – | `diagram-zone` (w/h optional), `diagram-placement` (`in`) | `refusals` (zone without w/h and without children), `semantics` | `editor-guides` (zone box in the guide layer) | skill zone section |
+| 2.7 stack heading | – | `COLUMN_SLOTS` `.quiet` | column tail via `parseTail` – automatic | `tails`, `frontmatter` unaffected | `camera-fit` (divider), rebuild `decoration` + commit two views | decoration skill |
+| 2.8 dock edge | – | – | – | – | measured: nothing to change | – |
+| 2.9 hyphenate | – | – | – | `inlined` (new regex, backslashes doubled) | `squint` or new `hyphenate.mjs`: centred chunk has no soft hyphen | appearance skill |
+| 2.10 `[Klick]` beats | – | – | `noteSegments` mirror, `note-in-empty-beat` | `cue-cards` gate: marker counts an advance | `cue-cards.mjs` spec: cockpit card N appears at beat N | authoring skill, `PLAN-cue-cards.md` §2, `STRINGS` |
+| 2.11 statement registers | – | `CHUNK_SLOTS` `.lead` | `statement-sub` refusal mirrored | `frontmatter`/`tails` for the slot | `settings.mjs` fixture pair (refusal in both files); `block-align` for `.lead` stacking | authoring skill |
+| 2.12b `.middle` default | – | `CHUNK_SLOTS.middle` gains `top` | – | `tails` | `camera-fit`: bare figure chunk opens centred; rebuild three tracked lectures | authoring skill, changelog |
+| 2.12c `.left` anchors | text anchor default; retire `dgLabelAnchorWarnings` | – | retire `diagram-ragged-labels` | `semantics`; `corpus` over `network-security` | `figure-labels` | skill "Six traps" → five |
+| 2.12d `empty-beat` | new warning | – | – | `step-classes` | – | skill |
+| 2.12e table `same as` | cols copy | – | `diagram-table` | `semantics` | – | skill |
+
+Every row that changes a byte of a tracked lecture's output ends with
+rebuilding `lectures/tutorial`, `lectures/diagrams` (`frame none`, so 2.1–2.5
+still reach it) and `lectures/decoration`, and committing the views, or
+`release.yml` fails on the stale-output check. `docs/artifact/refresh-figures.mjs --check`
+will drift on 2.1, 2.2 and 2.5; rerun it. `dgCharW` is not touched by any row.
+
+## 5. Order
+
+By slides of a real talk fixed per line of engine change. "Hour" and "day"
+are size classes for one agent, not a schedule; the two `day` items share
+`diagram-core.mjs`'s placement walk and run one after the other, the rest can
+run beside them.
+
+1. **2.1 – gap in labels, arrow-safe default, `edge-short`.** Hour. Touches
+   one constant and one pass; 0 corpus placements move; every short arrow in
+   the keynote is named. The single largest lever on the maintainer's list.
+2. **2.2 (+2.3, 2.12f) – chains share size; `row`/`col`.** Day. The measure
+   step moves before placement and chains are detected; this is the one
+   change that needs the three sheets read afterwards. Removes 15 `same as`,
+   most of the 36 `h` and the four-copies-times-four `h 4.5` from the keynote,
+   and makes the overflowing step label impossible.
+3. **2.12c – `.left` anchors; retire two warnings.** Hour of engine, plus the
+   18 `network-security` texts to read. Removes 20 of 37 `anchor` words.
+4. **2.12b – `.middle` default for picture and statement chunks; 2.7 – the
+   stacked heading is a heading.** Hour each; both are CSS and a slot word.
+   Removes 12 `.middle` and 4 `.bare`, and the redrawn title in four figures.
+5. **2.6 – zone inner band, optional `w/h`.** Day. Five keynote figures lose
+   their three-decimal arithmetic; the zone/container split closes.
+6. **2.10 – `[Klick]` beats.** Hour in `cue-cards.mjs` and `noteSegments`;
+   nine beats in the keynote start working in the cockpit.
+7. **2.11 – statement registers and `.lead`.** Hour of CSS plus a refusal;
+   `#der-satz` stops being a drawing.
+8. **2.9 – hyphenate leaves centred prose and addresses.** Hour. Lets the
+   deck go back to `all`.
+9. **2.5 – label ground by default; 2.4 – em padding.** Hour each; visible on
+   the tutorial and `diagrams`, both in rule 6's direction.
+10. **2.12a, 2.12d, 2.12e – message order, `empty-beat`, table `same as`.**
+    Hour together.
+11. **2.8 – dock edge.** Measured; the edges are consistent and the
+    proposed change would halve a narrow dock's measure. Nothing changed.
+
+After 1–5 the keynote's source should lose roughly a third of its figure
+lines (the `same as`, `anchor`, `h`, `.middle`, `.bare` rows counted in §1)
+and build with the same 0 warnings – which is the test of the plan: a deck
+written the short way should look like the deck written the long way.
+
+## 6. What the spacing pass reported
+
+The pass that set every gap, shaft and peer size in the keynote by hand
+(twenty figures, all inside their canvas, zero warnings) listed where the
+engine made it harder than it should be, ordered by time cost. It confirms
+§2 from the other side and adds five items.
+
+1. No way to say "a row of peers: one size, one gap" (§2.2 – the largest
+   lever).
+2. `same as X` copies width and height together; a one-line box beside a
+   two-line one wants the neighbour's height and its own width – `same h as`
+   / `same w as`, and `same h as` on a `zone`, which requires both numbers
+   today and so cannot take it at all.
+3. A written `h` too small for its label is silent, where a written `w` warns
+   – `#drei-orte` shipped with the text inside the padding.
+4. A visible shaft is not expressible: the head eats ~7.65 units of every
+   `gap`, a number from no document (§2.1 fixes the default; document the
+   head length either way).
+5. The label-height is the deck's real unit of spacing and is not addressable
+   – a `lh` suffix on `gap` and `pad`.
+
+   **Landed, and the editor lost the unit on a drag** – reproduced in a
+   browser on `lectures/network-security#ns-b22`: dragging `lfw` half a cell
+   down turned `below ufw gap 5lh` into `below ufw gap 4.4`, a number in
+   rows. The drawing was right, the spelling was gone: the next author to
+   change the grid moves that box and not its neighbours. Reading the editor
+   for every place that writes a `gap` found the same loss in six more, some
+   of which are worse because they *move the drawing*: three paths pass the parsed
+   `place.gap` – the number of label heights – back through `dgePlaceText`
+   with no unit, so it is read as rows.
+
+   - the drag along a relation's main axis (`dgePlanDrag`) – writes rows;
+   - re-docking past the reference's edge (`dgeRedock`) – writes rows;
+   - the `side` swatches and the `of` field in the panel – write `5` for
+     `5lh`, a different distance;
+   - `dgeRelText`, which a step's `move … to` goes through – the same;
+   - the dock chip, which keeps "the distance the element already kept" – the
+     same;
+   - the `gap` field shows the gap in rows and refuses `0.6lh` as not a
+     number, and the `in` band's gap field writes rows too;
+   - the sibling-gap guide reads `Number("0.6lh")`, gets NaN, and so never
+     offers an `lh` gap as the one to match.
+
+   `pad` is not reachable from the editor, so it has nothing to lose.
+
+   **Fixed.** A drag keeps the unit – the arithmetic stays in rows, where
+   every guide and delta already works, and `dgeGapSpelled` /
+   `dgeGapWritten` spell the result the way the line does, so `gap 5lh`
+   dragged half a cell comes back `gap 5.65lh`. Every writer goes through
+   those two; the panel's field shows `5lh` and takes `0.6lh`; the
+   sibling-gap guide offers an `lh` gap and writes the sibling's own
+   spelling. A gap nobody wrote is still written in rows – it has no unit to
+   keep, and giving one to it would change what every drag in the corpus
+   writes. Asserted at the end of `test/editor-drag-guides-network.mjs` on
+   `#ns-b22`; three of its assertions fail on the editor before the fix.
+6. No per-figure slack report: `--check-fit` speaks only past the canvas; a
+   line per figure with canvas, drawing and slack per axis is information the
+   build already has.
+7. The canvas height cannot be traded against the chunk's own caption lines
+   (§2 has no item for this: a figure chunk with four lines of prose under
+   the drawing has the same 16 labels as one with none).
+
+   **Measured** on `lectures/network-security` (`collapse: none`, auto-fit
+   off, so every word of the prose is on the projection), the deck
+   `--check-fit` names with twelve chunks taller than the 900 px frame. Each
+   one walked to its last beat at 1600x900 and taken apart: the heading, the
+   figure's box, the part of that box the drawing inks (it is anchored at the
+   canvas's top, so the rest is paper *under* the drawing), and everything
+   below it – prose, code listings, display maths and the gaps between them.
+   "Without the canvas" is the chunk with that paper taken out, which is the
+   box a hugging figure had: a figure inside its canvas is drawn at exactly
+   the size it was drawn at before. "Fits at" is the share of its own size
+   the drawing would have to come down to for the chunk to fit with its
+   prose unchanged.
+
+   | chunk | total | head | box | drawing | paper under it | prose etc. | without the canvas | fits at |
+   | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+   | `#ns-a62` | 1265 | 38 | 505 | 387 | 119 | 722 | 1146 | 0.36 |
+   | `#ns-a60` | 1221 | 38 | 505 | 459 | 46 | 678 | 1175 | 0.40 |
+   | `#ns-a14` | 1020 | 70 | 505 | 484 | 21 | 445 | 999 | 0.80 |
+   | `#ns-b57` | 1018 | 38 | 505 | 385 | 120 | 475 | 898 | 1.00 |
+   | `#ns-b59` | 956 | 38 | 505 | 498 | 7 | 413 | 949 | 0.90 |
+   | `#ns-a49` | 943 | 70 | 552 | 546 | 6 | 321 | 937 | 0.93 |
+   | `#ns-a45` | 941 | 76 | 506 | 493 | 12 | 359 | 929 | 0.94 |
+   | `#ns-b56` | 940 | 70 | 505 | 385 | 120 | 365 | 820 | 1.00 |
+   | `#ns-a08` | 935 | 70 | 505 | 484 | 21 | 360 | 914 | 0.97 |
+   | `#ns-a12` | 935 | 70 | 505 | 484 | 21 | 360 | 914 | 0.97 |
+   | `#ns-a13` | 935 | 70 | 505 | 487 | 19 | 360 | 916 | 0.97 |
+   | `#ns-a31` | 921 | 70 | 558 | – | – | 293 | 921 | – |
+
+   All in px. `#ns-a49`'s box is 552 rather than 505 because its drawing is
+   a hair past its canvas (the union is emitted); `#ns-a31`'s figure stands
+   in a `::: side` pane beside a code listing and has no canvas at all.
+
+   So **the canvas put two of the twelve over the frame**: `#ns-b56` (820
+   without it, 940 with) and `#ns-b57` (898 without, 1018 with – two px
+   inside, which is the canvas as the whole difference but no margin either
+   way). Both draw a bar chart 13.5 labels tall on a 17.8-label canvas, and
+   the 120 px band under each is the only paper of that size in the twelve.
+   **The other ten are over the frame with the canvas taken out entirely**:
+   the canvas adds 6 to 46 px to eight of them and nothing to `#ns-a31`, and
+   `#ns-a62` and `#ns-a60` carry two HTML listings each plus a paragraph –
+   678 and 722 px of text, three quarters of the frame before any drawing.
+
+   **Fill.** Nine of the twelve drawings take 95 % or more of their canvas's
+   height (17.0 to 17.6 of 17.8 labels); `#ns-a62`, `#ns-b56` and `#ns-b57`
+   take 76 %. The deck was redrawn onto the canvas, and its drawings fill it.
+
+   **Decided: the flat sixteen stays, and the tall chunks are the deck's own
+   doing.** Three reasons, each measured.
+
+   - **The candidate rule reaches only the paper, never the drawing.** A
+     canvas shorter than its drawing does not shrink it – the emitted box is
+     the union, which is the property the canvas was built on. Tried with the
+     height at twelve labels instead of sixteen: `#ns-a08` went from 935 to
+     913 px with its drawing still 484 px tall, `#ns-b56` from 940 to 819,
+     and the build raised 29 `figure-overflows-canvas` warnings across the
+     deck. So on nine of the twelve the rule would turn a chunk that scrolls
+     into a chunk that scrolls *and* a warning whose remedy (`frame WxH`)
+     changes nothing either; on `#ns-b56` and `#ns-b57` it would do what a
+     `frame` on those two figures already does.
+   - **Making it bite means the canvas scales drawings, and the numbers say
+     at what price.** The last column of the table: `#ns-a62` and `#ns-a60`
+     would draw at 0.36 and 0.40 of their size, base labels of 10 and 11 px
+     against 28.4 px of prose – under the 18 px floor. `#ns-a14` at 0.80 is
+     past the 0.85 at which `--check-fit` calls a slide out of step with its
+     deck. Only `#ns-b59`, `#ns-a49`, `#ns-a45`, `#ns-a08`, `#ns-a12` and
+     `#ns-a13` (0.90 to 0.97) would come in at a shrink a room would not
+     notice – and each of those at a different factor, set by how many words
+     its paragraph runs to, which is the one thing about a figure slide the
+     canvas exists to take out of its type. Two slides with the same prose
+     would agree; two with different prose would not, and the deck would be
+     back to a figure per zoom, in the vertical this time.
+   - **The build does not know the lines.** The canvas is decided in the
+     parse, which is why its two warnings can be emitted without a browser.
+     How many lines a paragraph wraps into, how tall a listing or a display
+     formula stands, is layout; the rule would run on an estimate, and the
+     slide it guessed wrong about would be the one that disagrees.
+
+   **What the talk deck says.** The keynote the canvas was cut for – twenty
+   figures, every one on a canvas, 59 to 98 % filled – has no chunk taller
+   than the frame (`--check-fit`, 95 states). A figure slide in a talk
+   carries a heading and a line; `network-security` carries a paragraph
+   written for a reader under every figure, under `collapse: none` and with
+   auto-fit off, and two listings on its tallest two. The remedies are the
+   deck's: the default collapse (the first sentence and the bolds), `auto-fit:
+   shrink`, `::: script` round the paragraph, or on `#ns-b56` and `#ns-b57`
+   a `frame` that says a bar chart wants 14 labels rather than 17.8. None was
+   applied here – the deck is a compiler check and is not published, and a
+   scrolling chunk is `--check-fit`'s note, not a failure.
+8. Two zones cannot be declared as one row (see 2).
+9. A container's `pad` is invisible to anything placed against its members –
+   a text hung off a member lands inside the container's edge with no
+   warning, because a container is outside the overlap census.
+10. A written table `row` below the type's own line height is silent.
+11. Placing a row inside a zone is y-arithmetic by hand (§2.6, `in zone`).
+12. A label made of two texts (a question over a verb) cannot be centred on
+    a cell as one block: each text is anchored to the cell's centre line, so
+    a two-line question over a one-line verb stands a half-line too high and
+    the author moves the split by hand (`cy+0.5` / `cy+0.7`). A `stack` of
+    texts, or a text with two registers (`"question\n~verb~"` with the
+    second line in the small muted register), would centre as one.
+
+## 7. What the rewrite onto the new defaults reported
+
+The keynote rewritten the short way against the chains, the anchor default
+and the quiet line: 7 of 9 `same as`, 3 `h`, 4 `gap` (folded into one
+`row`), 7 `.middle` gone, every figure byte-identical. Two engine gaps it
+measured:
+
+13. **A `default box w N h N` layer counts as a written size on every box**,
+    so no chain sizing reaches a figure that uses one, and a `row` statement
+    does not override a default-layer `h` either. The four build plans carry
+    eight duplicated `h` per divider because of it. A default-layer size
+    should be the chain's *floor* – the number every member has at least –
+    and the chain's or the `row`'s maximum should win over it.
+
+    Landed. The floor is neither a pin nor evidence: a peer that *needs* more
+    – its own label, or a number on its own line – raises the whole chain past
+    the floor, and a chain that needs less leaves the floor standing. A box
+    the layer sized contributes nothing to the maximum, which is what keeps
+    `lectures/diagrams#cbc` drawing: there `default box @dec w 0.48` under
+    `default box w 0.82` is written to make the Dec boxes narrower than the
+    ciphertext boxes above them, and a floor counted as evidence put 0.82 on
+    all three. The whole corpus – diagrams, network-security, tutorial,
+    decoration, figure-rules and the keynote – is byte-identical, log lines
+    included, and the keynote's four build plans then shed the eight
+    duplicated `h` with every figure unmoved. Gates in `test/gates/chains.mjs`.
+14. **An empty first segment is dropped by the build and counted by the
+    linter** (`## question:` / `---` / body): a `> note: from 1` that never
+    fires, a closing slide whose last click is dead, and lint says clean.
+    Being fixed: a leading `---` means "the heading alone is beat 0".
+15. **`.dotted .muted` is the faintest mark in the vocabulary, on every
+    theme, by a margin nothing else in it has.** Written up only in a
+    handoff note until measured: a specimen figure (six edges and six box
+    outlines – solid, `.muted`, `.dashed`, `.dashed .muted`, `.dotted`,
+    `.dotted .muted` – and a `plot`'s grid), built once per theme, shot in
+    Chromium at 1600x900 with the camera settled. The figure drew at scale
+    1.79 (a plain stroke 2.51 px, a muted one 1.88 px), the plot at 1.40 –
+    inside the corpus's own range, 0.98 (`lectures/diagrams#plot`) to 2.11
+    (`lectures/tutorial#diagram-plot`), 1.9 on `network-security`. Per line,
+    a 6 px band across the stroke over the middle 70 % of its run: its mean
+    colour against the paper (*blurred* – what a viewer too far away to
+    resolve a dot integrates; comparable across lines, not an absolute
+    legibility figure) and its most contrasting pixel (*peak*):
+
+    | line | four light themes | `dark` | `terminal-amber` / `-green` |
+    | --- | --- | --- | --- |
+    | solid | 2.61 / 13.21 | 3.57 / 13.46 | 2.65 / 9.41 |
+    | `.muted` | 1.33 / 2.76 | 1.55 / 5.18 | 1.36 / 3.98 |
+    | `.dashed` | 1.72 / 17.07 | 2.05 / 16.52 | 1.65 / 11.46 |
+    | `.dashed .muted` | 1.23 / 2.94 | 1.33 / 5.54 | 1.21 / 4.25 |
+    | `.dotted` | 1.25 / 17.07 | 1.28 / 16.52 | 1.17 / 11.46 |
+    | **`.dotted .muted`** | **1.09 / 2.56** | **1.10 / 4.58** | **1.07 / 3.57** |
+    | plot grid, horizontal / vertical | 1.05 / 2.30, 1.05 / 1.73 | 1.06 / 3.99, 1.06 / 2.50 | 1.04 / 3.10, 1.04 / 2.04 |
+
+    The four light themes are one row because they share `--ink`, `--paper`
+    and `--ink-soft` and differ only in `--emph`; box outlines read within
+    0.04 of the matching edge. Read as ink above the paper (blurred − 1):
+    `.dotted .muted` carries 0.09 on light, **27 % of a `.muted` line and
+    39 % of a `.dashed .muted` one**; 18 % and 30 % on `dark`, 19 % and 33 %
+    on the terminals. Every other pair in the table is one step apart; this
+    one is two steps multiplied. **The peak says why**: 2.56 is below the
+    2.76 a solid `.muted` line reaches in the same colour, because
+    `.muted` sets `--dg-sw` to 1.05 and `.dotted` draws a disc one `--dg-sw`
+    across – 1.9 px on screen here, 1.1 px at `lectures/diagrams#plot`'s
+    0.98 – and a disc that small is anti-aliased below its own colour. The
+    dots never reach `--ink-soft`. A vertical gridline is fainter again than
+    a horizontal one (peak 1.73 against 2.30), because it stands on a
+    fractional x and each dot is smeared across two pixel columns.
+
+    Looked at full size: on the light themes the line is visible up close
+    and gone at arm's length; on `terminal-green` it is barely there at all.
+    **Too faint on all seven**, not a dark-theme problem – the dark themes'
+    better peak buys nothing blurred, 1.06–1.10 everywhere. Corpus reach: 11
+    of 96 figures use the pair, 79 elements – `lectures/diagrams` 3 figures
+    (`#mac`'s one edge, the grids of `#plot` and `#sameframe`),
+    `lectures/tutorial` 1 (`#diagram-plot`'s grid), `lectures/network-security`
+    7 (the dotted boundary of `#ns-a08`, `#ns-a12`, `#ns-a13`, `#ns-a14` and
+    the grids of `#ns-b55`, `#ns-b60`, `#ns-b61`); decoration, python-intro
+    and spoken-talk none. **Six of the eleven are a `plot`'s grid, which the
+    compiler writes as `muted dotted no-head` itself**, so this is the
+    engine's own default and not an author's pile-up; and one `.dotted` in
+    the whole corpus is not also `.muted` (tutorial).
+
+    **Landed: a floor on the dotted stroke.** `.muted.dotted` draws at
+    `max(var(--dg-sw), 1.4px)` with the gap stated against the same `max()` –
+    `.dotted`'s own pattern in `.muted`'s ink. Three candidates were measured
+    on the same rig, injected as a stylesheet before any was written:
+
+    | candidate | light: blurred / peak | `dark` | terminals |
+    | --- | --- | --- | --- |
+    | before | 1.09 / 2.56 | 1.10 / 4.58 | 1.07 / 3.57 |
+    | floor 1.4, gap 3.5 | **1.11 / 2.94** | **1.14 / 5.54** | **1.09 / 4.25** |
+    | muted-word colour mix (`--ink` 60 %) | 1.11 / 3.49 | 1.09 / 3.99 | 1.05 / 2.87 |
+    | both | 1.15 / 4.29 | 1.13 / 4.73 | 1.07 / 3.38 |
+
+    The colour mix gains on paper and **loses on all three dark themes**,
+    where it resolves dimmer than `--ink-soft` – the inversion the skill
+    already records for the muted word. The floor gains on all seven, and its
+    peak is exactly `.dashed .muted`'s (2.94 / 5.54 / 4.25): a dot now
+    reaches its own colour. On the plot grid it doubles the ink (1.05 → 1.09
+    blurred, peak 2.30 → 2.63 horizontal and 1.73 → 2.98 vertical, the
+    smeared column gone). The pair stays the quietest mark in the vocabulary
+    – a dotted line is the lighter pattern by design and muted ink the
+    lighter colour – but it is no longer below its own colour, and on
+    `lectures/tutorial#diagram-plot` the grid reads under the dashed
+    "even pace" line rather than vanishing beside it.
+
+    **Why not a gentler `.muted` on broken strokes.** It would move every
+    `.dashed .muted` stroke, and every `zone` is one (`.clear .dashed
+    .muted`); the table shows `.dashed .muted` already one step below
+    `.muted` (1.23 against 1.33), which is the relation the vocabulary wants.
+    The defect is the dot's size, not the muted ink, so the fix is on the dot.
+
+    **Reach.** No SVG byte moves in any of the six lectures – the four views
+    of each differ from before by the 15 lines of the new rule and nothing
+    else, and the build logs are unchanged. A computed-style census of every
+    drawn element in `tutorial`, `diagrams`, `decoration`, `network-security`,
+    `python-intro` and `spoken-talk` (audience, and print for the three with
+    figures that carry the pair): 3036 styled shapes, 158 changed (the 79
+    strokes in both views), every one of them on an element carrying both
+    classes, every one 1.05 → 1.4 with the gap 2.625 → 3.5.
+    `test/figure-dotted.mjs` holds it: the real grid in `diagrams#plot`, and a
+    fixture with the controls (`.muted`, `.dashed .muted`, `.dotted`, plain)
+    unmoved and `.thick .muted .dotted` keeping 2.6.

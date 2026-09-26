@@ -290,6 +290,17 @@
 }
 #dge-guides * { vector-effect: non-scaling-stroke; }
 #dge-guides .dge-cell { stroke: var(--rule); stroke-width: 0.5; opacity: 0.4; fill: none; }
+/* The slide's canvas. Louder than a cell line and quieter than an element:
+   it is the edge of the frame, not part of the drawing, and an author has to
+   be able to see it without reading it as something they drew. Dashed for the
+   same reason a `zone` is - a line nobody drew. */
+#dge-guides .dge-canvas {
+  stroke: var(--ink-soft, var(--rule));
+  stroke-width: 1;
+  stroke-dasharray: 7 6;
+  opacity: 0.45;
+  fill: none;
+}
 #dge-guides .dge-axis { stroke: var(--rule); stroke-width: 1; opacity: 0.75; }
 #dge-guides .dge-tick { stroke: var(--ink-soft); stroke-width: 1; opacity: 0.5; }
 #dge-guides .dge-ruler-label {

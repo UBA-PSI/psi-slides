@@ -152,7 +152,40 @@ export async function run({ page, report, walkTo, ed }) {
     'and the status note says it was refused, and names the endpoint', JSON.stringify(said));
 
   // ── the parts that own no text stay with the statement ────────────
-  ok(await ed.clickPath(`${g('au-life')} path.dg-stroke`), 'a lifeline is on the canvas');
+  //
+  // Where to take hold of a lifeline is a property of the drawing and not a
+  // constant. It runs the whole height of the sequence, and the notes and the
+  // arrows stand on it: a note's box wins a click over the line beneath it,
+  // which is the hit test doing its job, so the midpoint stops being a
+  // lifeline the moment a note is laid over it – and it did, twice, once when
+  // this figure was redrawn onto the canvas and once because this spec's own
+  // earlier edits reflow the bands above. So walk the path and take the first
+  // point that is lifeline and nothing else: no box over it, and no arrow
+  // nearer to it than the line itself.
+  const lifePt = await page.evaluate((sel) => {
+    const p = document.querySelector(sel);
+    if (!p) return null;
+    const svg = document.querySelector('#dge-art-svg');
+    const m = svg.getScreenCTM();
+    const len = p.getTotalLength();
+    for (let f = 0.02; f < 0.99; f += 0.01) {
+      const at = p.getPointAtLength(len * f);
+      const pt = { x: at.x, y: at.y };
+      let clear = true;
+      for (const [id, b] of DGE.boxes) {
+        const el = dgeFind(id);
+        if (!el || el.kind === 'edge' || el.frame) continue;
+        if (pt.x >= b.x && pt.x <= b.x + b.w && pt.y >= b.y && pt.y <= b.y + b.h) clear = false;
+      }
+      const near = dgeNearestEdge(pt);
+      if (!clear || !near || dgeOwnerOf(near) !== 'wa') continue;
+      return { x: at.x * m.a + at.y * m.c + m.e, y: at.x * m.b + at.y * m.d + m.f };
+    }
+    return null;
+  }, `${g('au-life')} path.dg-stroke`);
+  ok(!!lifePt, 'a lifeline is on the canvas', JSON.stringify(lifePt));
+  await page.mouse.click(lifePt.x, lifePt.y);
+  await page.waitForTimeout(320);
   ok(await ed.selection() === 'box wa', 'a lifeline selects the statement',
     await ed.selection());
   const framePanes = await panes();

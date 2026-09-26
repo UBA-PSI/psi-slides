@@ -250,12 +250,11 @@ export async function run({ page, report, walkTo, ed }) {
   // differently on purpose. An edge handle writes a **number**, because
   // `same as` copies both dimensions and a width-only drag must not change the
   // height. A corner writes the **relation**, because there it is one.
-  await walkTo('look');
-  ok(await ed.open('look'), 'the editor is open on #look');
+  await walkTo('outlines');
+  ok(await ed.open('outlines'), 'the editor is open on #outlines');
   await ed.beat(0);
-  // #look grew a row when the class reference gained its prominence swatches,
-  // so the fit-to-frame zoom shrank the diamond below the size at which grips
-  // are drawn at all. That suppression is deliberate – a grip on something a
+  // The outline row is drawn small enough that the fit-to-frame zoom puts the
+  // diamond below the size at which grips are drawn at all. That suppression is deliberate – a grip on something a
   // few pixels across *is* the element, and a small dot could then only be
   // resized, never moved – and zooming in is what the code comment says brings
   // them back. The drags below are given in cells and converted through the

@@ -5,15 +5,18 @@
  * Zero-dep – nothing from node_modules – so it runs as a pre-commit gate
  * without the Markdown/Shiki stack, and independent of build.js so the two
  * can evolve without sharing state. It re-states the parser's ground truth
- * rather than importing it: VALID_TAGS, VALID_WIDTHS, attribute-tail syntax,
- * fence-aware reveal splits, ::: directives.
+ * rather than importing it: VALID_TAGS (the chunk types), fence-aware reveal
+ * splits, ::: directives.
  *
- * The one exception is the diagram vocabulary, which comes from
- * diagram-core.mjs. That module is pure JS with no dependencies of its own,
- * so importing its *tables* costs this file nothing it was protecting, and it
- * removes thirteen copies that had to change in two files in one commit. The
- * rule there: tables only. A function would pull the whole compiler in behind
- * it.
+ * Two exceptions. The diagram vocabulary comes from diagram-core.mjs: that
+ * module is pure JS with no dependencies of its own, so importing its
+ * *tables* costs this file nothing it was protecting, and it removes
+ * thirteen copies that had to change in two files in one commit. The rule
+ * there: tables only. A function would pull the whole compiler in behind it.
+ * The {…} tail grammar and the ::: draw opener come from tails.mjs, which is
+ * the same kind of file - zero dependencies, tables plus a few pure parsing
+ * and formatting helpers, nothing behind it - so build.js and this file read
+ * every tail through one parser and cannot disagree about one.
  *
  * Usage:
  *   node lint.js <source.md>
@@ -31,23 +34,65 @@
 
 import fs from 'node:fs';
 import path from 'node:path';
+import os from 'node:os';
 
 const VALID_TAGS = new Set([
-  'title', 'closing', 'outline', 'principle', 'definition', 'example',
-  'question', 'figure', 'exercise', 'free',
+  'title', 'closing', 'outline', 'principle', 'statement', 'definition',
+  'example', 'question', 'figure', 'exercise', 'free',
 ]);
 
-const VALID_WIDTHS = new Set(['narrow', 'standard', 'wide', 'full']);
-// The non-width classes an attribute tail may carry. Mirrors
-// VALID_CHUNK_CLASSES in build.js: `.bare` takes the heading off the slide
-// and leaves it in the TOC, in search and in the printed document;
-// `.center` sets the chunk's prose on a centre axis. Both are decisions
-// about the slide, so both are audience-only and the document is unchanged.
-const VALID_CHUNK_CLASSES = new Set(['bare', 'center']);
+// The chunk tail's vocabulary (widths, `.bare`, `.center`, the `.wrap-*` /
+// `.blocks-*` style classes) is CHUNK_SLOTS in tails.mjs, imported below.
 // Mirrors COVER_RATIO_VARIANTS / COVER_IMAGE_VARIANTS in build.js: which
 // covers divide the slide, and which draw a picture of their own.
 const COVER_RATIO_VARIANTS = new Set(['split', 'beside', 'above']);
 const COVER_IMAGE_VARIANTS = new Set(['split', 'hero', 'beside', 'above']);
+
+// Every top-level frontmatter key some renderer reads. Not a vocabulary the
+// build enforces – it deliberately does not, because refusing an unknown key
+// would stop an existing source.md from building and the source format is the
+// interface from 1.0.0. So this is a *warning* and lives only here, which is
+// the one direction the build/lint split allows: warnings this file raises
+// alone are ordinary (reveal-overuse, orphan-column, density all are), while
+// an *error* the build does not share is not.
+//
+// It exists because `author:` sat in four lectures in this repo reading like
+// metadata and rendering nothing at all – the same silent no-op the build
+// refuses everywhere it can see one (a cover-ratio on a cover that does not
+// divide, a scrim on a row with no picture). A key the renderers never read
+// is that defect one layer up, and nothing could see it.
+//
+// Keep it in step with what build.js actually reads - and don't do it by
+// hand or by grep. `node test/gates/run.mjs frontmatter` holds this set
+// against build.js in milliseconds, and it has to, because build.js reads a
+// key three structurally different ways and one of them is a *computed*
+// read (viewDefaults() loops over VIEW_DEFAULT_SPEC, so `print-slide-numbers`
+// appears nowhere near a `frontmatter[`). A fourth path is not a read at all:
+// the cover spreads the whole block into renderTitleBlock's destructured
+// parameter list, which is the only place `subtitle` is named. The obvious
+// grep over the two literal forms finds 23 of the 31 and would call this
+// list wrong where it is right.
+//
+// The direction that matters is one. A key build.js reads that is missing
+// here is a false warning on a valid deck, and exit 2 under --strict; two
+// branches that each added one half of that merged cleanly and produced
+// exactly it.
+const KNOWN_FRONTMATTER_KEYS = new Set([
+  // the cover and its credits
+  'title', 'subtitle', 'presenter', 'affiliation', 'contact', 'notice', 'info',
+  'cover', 'cover-image', 'cover-ratio', 'cover-align', 'cover-ground',
+  'closing-image', 'closing-credits',
+  // dividers, identity, type and language
+  'section', 'section-mark', 'lecture', 'course', 'lang', 'labels', 'style',
+  'fonts', 'font', 'ligatures', 'draw-defaults',
+  // viewer defaults
+  'theme', 'collapse', 'auto-fit', 'slide-numbers', 'print-slide-numbers',
+  'editor', 'note-button', 'neighbours', 'transition', 'reader',
+  // the live prompter. `duration:` sits at the top level rather than inside
+  // the block because it is a property of the talk like `lang:` – the
+  // cockpit's clock measures against it whether or not a prompter listens.
+  'duration', 'prompter',
+]);
 
 // Mirrors VIEW_DEFAULT_SPEC in build.js: frontmatter keys that pin how a
 // lecture opens. The build hard-fails on a bad value, but a typo here is
@@ -59,9 +104,36 @@ const VIEW_DEFAULTS = {
   'font': ['serif', 'sans', 'mono'],
   'theme': ['light-red', 'light-teal', 'light-blue', 'light-orange', 'dark', 'terminal-amber', 'terminal-green'],
   'collapse': ['topic-bold', 'none'],
-  'auto-fit': ['true', 'false'],
+  // Three modes, two spellings. `false` and `true` are what the key has
+  // always taken and stay exactly what they were; `shrink` is the third,
+  // where the fit is ceilinged at the lecturer's own zoom and so can only
+  // ever make a slide smaller. Mirrors AUTO_FIT_FROM_KEY.
+  'auto-fit': ['true', 'false', 'shrink'],
   'slide-numbers': ['vertical', 'horizontal', 'off'],
+  // The printed views' own numbering. Same vocabulary, and no default of
+  // its own: an absent key means "whatever the live views are set to",
+  // which the build resolves in printSlideNums(). Nothing here has to know
+  // that, because a linter's business is which words the key takes.
+  'print-slide-numbers': ['vertical', 'horizontal', 'off'],
   'editor': ['both', 'speaker', 'none'],
+  // The `+ note` affordance in the slide's left gutter. `off` hides the
+  // button; the N key it stands for is untouched. The M key writes the same
+  // thing at runtime, which is why this is a starting value and not a look.
+  'note-button': ['on', 'off'],
+  // What the projection does with the slide before and the slide after:
+  // `dim` (the default, the camera panning through a column) or `hidden`.
+  'neighbours': ['dim', 'hidden'],
+  // What a slide change looks like: `pan` (the default, the camera gliding
+  // along the column), `cut` (it lands, no motion at all) or `fade` (the
+  // stage dips through the paper and the camera jumps inside the dip).
+  // The build resolves `neighbours` against this one - cut and fade imply
+  // `hidden` - which is the build's to do, exactly as it is for
+  // print-slide-numbers: a linter's business is which words the key takes.
+  'transition': ['pan', 'cut', 'fade'],
+  // The reader's tools in the two documents: the contents sidebar now, the
+  // reader's own highlights after it. `on` is the default; `off` ships none
+  // of it and leaves the lightbox, which is not a reader tool.
+  'reader': ['on', 'off'],
   // Which cover composition the lecture opens with. Mirrors COVER_VARIANTS.
   'cover': ['classic', 'masthead', 'stack', 'display', 'panel', 'quote',
             'split', 'hero', 'beside', 'above'],
@@ -79,19 +151,98 @@ const VIEW_DEFAULTS = {
   'ligatures': ['text', 'none', 'all'],
 };
 
-// Mirrors BUNDLED_FONTS in build.js – the families that need no file in
-// fonts/. Names only: the build owns the packages, the byte counts and the
-// warning about Iosevka's size.
-const BUNDLED_FAMILIES = {
-  serif: ['Literata'],
-  sans: ['IBM Plex Sans', 'Inter Tight'],
-  mono: ['JetBrains Mono', 'Noto Sans Mono Condensed'],
-};
+// There is deliberately no mirror of the three TEXT roles of BUNDLED_FONTS
+// here. One stood in this spot from the commit that made the roster
+// per-lecture until the serif role gained its alternates, and nothing ever
+// read it: deciding a family needs the contents of `fonts/` as well as the
+// bundle, and the build already hard-fails with the list of names for that
+// role and the files it found. A table kept congruent for nobody is the
+// duplication CLAUDE.md warns about with none of the benefit that pays
+// for it.
+//
+// The display role is the exception, and for one reason: it carries a rule
+// this file has to decide anyway. `display-pairing` needs to know what each
+// face IS – a serif, a sans, a hand, a mono – so the table is here whether
+// or not it also checks the spelling, and once it is here the spelling is
+// free. The odds differ too: a serif role has five names to get right and
+// the display role has thirty-two.
+//
+// `kind` is what the face is rather than what it looks like, which is a
+// different question: Chakra Petch is a machine to look at and a sans to
+// pair with. Mirrors the display half of BUNDLED_FONTS in build.js – add a
+// face there and add it here in the same commit.
+const DISPLAY_FONTS = new Map([
+  ['Caveat', 'hand'], ['Shantell Sans', 'hand'], ['Caveat Brush', 'hand'],
+  ['Patrick Hand', 'hand'], ['Kalam', 'hand'], ['Amatic SC', 'hand'],
+  ['Press Start 2P', 'mono'], ['Silkscreen', 'mono'],
+  ['Pixelify Sans', 'sans'], ['VT323', 'mono'], ['Space Mono', 'mono'],
+  ['Rubik Mono One', 'mono'], ['Chakra Petch', 'sans'], ['Orbitron', 'sans'],
+  ['Bodoni Moda', 'serif'], ['Prata', 'serif'], ['DM Serif Display', 'serif'],
+  ['Abril Fatface', 'serif'], ['Alfa Slab One', 'serif'],
+  ['Young Serif', 'serif'], ['Instrument Serif', 'serif'],
+  ['Yeseva One', 'serif'], ['Anton', 'sans'], ['Oswald', 'sans'],
+  ['Archivo Black', 'sans'], ['Bebas Neue', 'sans'],
+  ['Big Shoulders Display', 'sans'], ['Syne', 'sans'],
+  ['Bricolage Grotesque', 'sans'], ['Space Grotesk', 'sans'],
+  ['Unbounded', 'sans'], ['Staatliches', 'sans'],
+]);
+// The one face in the roster with no eszett – a German title gets a fallback
+// glyph mid-word. Mirrors `noEszett` in build.js.
+const DISPLAY_NO_ESZETT = new Set(['Rubik Mono One']);
+// Mirrors normFontName in build.js: the build matches a family name
+// case-, space- and hyphen-insensitively, so `press start 2p` resolves and a
+// checker that compares raw strings would refuse a deck the build accepts.
+const normFontName = (s) => String(s).toLowerCase().replace(/[\s_-]/g, '');
+const DISPLAY_BY_NORM = new Map(
+  [...DISPLAY_FONTS].map(([name, kind]) => [normFontName(name), { name, kind }]));
 
-// Mirrors STYLE_SPEC in build.js – the nested `style:` block. Only the two
-// enum keys are checked: the two scales are bounded numbers, and reading a
-// number out of YAML with no parser is where a linter starts disagreeing
-// with the build. The build hard-fails on both halves either way.
+// Whether fonts/ beside source.md could hold this family. A display face is
+// a file the author dropped there just as readily as a bundled name, so the
+// spelling check has to ask. Deliberately lenient: the build reads a
+// filename as <family><separator><descriptor> through splitFontFileName and
+// this file does not re-implement that split, so it asks only whether some
+// file's name begins with the family. The leniency runs in the safe
+// direction – a name this lets through and the build refuses fails at the
+// build, where the message names the files it found; the reverse would be a
+// pre-commit gate blocking a deck that builds.
+function fontsDirHolds(srcDir, family) {
+  let entries = [];
+  try { entries = fs.readdirSync(path.join(srcDir, 'fonts')); } catch (e) { return false; }
+  const wanted = normFontName(family);
+  return entries.some(f =>
+    normFontName(path.basename(f, path.extname(f))).startsWith(wanted));
+}
+
+// Mirrors the `kind: 'num'` half of STYLE_SPEC in build.js – the keys of the
+// nested `style:` block whose value is a bounded number rather than a word,
+// with their bounds.
+//
+// The bounds used to be left to the build, on the reasoning that reading a
+// number out of YAML with no parser is where a linter starts disagreeing with
+// it. The fix for that is not silence but leniency: a value this file cannot
+// read as a finite number is not reported at all, and only a number it can
+// read AND that falls outside the range is. That runs in the safe direction –
+// what this passes and the build refuses fails at the build, where the
+// message is the same one – and it is the direction that matters, because a
+// linter which passes a deck the build then hard-fails is the thing a
+// pre-commit gate exists to prevent.
+const STYLE_NUM_SPEC = {
+  'heading-scale': [0.6, 1.8],
+  'body-scale': [0.6, 1.8],
+  // A figure's base label against the body type it stands in. Bounded more
+  // tightly than its neighbours because the figure's width is this number
+  // times its viewBox measured in labels, so a large value caps the drawing
+  // at the column and takes the slide's own type down with it. See the note
+  // at its STYLE_SPEC entry.
+  'figure-type': [0.6, 1.6],
+  // Multiplies the display face's measured size-adjust. See the note at its
+  // STYLE_SPEC entry for why the roster normalises width and this key exists.
+  'display-scale': [0.6, 1.8],
+};
+// Mirrors STYLE_KEYS_REMOVED in build.js.
+const STYLE_KEYS_REMOVED = {
+  reveal: 'every reveal reserves its space now, which is what `hold` bought, so delete the key',
+};
 const STYLE_ENUMS = {
   // `off` takes the heading off the *slide* and leaves it in the TOC, in
   // search and in the printed document. Same key as the alignment, because
@@ -99,66 +250,131 @@ const STYLE_ENUMS = {
   'headings': ['auto', 'left', 'center', 'off'],
   'rules': ['on', 'off'],
   'wrap': ['balance', 'none'],
+  // Where a code block, a figure and a display formula sit across the
+  // measure. Centred is the treatment all three have always had; `left`
+  // puts them on the prose's own axis.
+  'blocks': ['center', 'left'],
   'labels': ['on', 'off'],
+  // What hue the greys carry. The four light themes move only --emph, so a
+  // card mixed out of --ink is a cool grey under whatever accent the room
+  // gets; `tinted` puts the accent's own hue into the neutrals, `warm` and
+  // `cool` fix one. `neutral` is the default and today's rendering.
+  'neutrals': ['neutral', 'tinted', 'warm', 'cool'],
+  // The same question for the two documents, and a separate key because the
+  // grounds are not the same ground: print's palette is already warm where
+  // the live one is cool at chroma 0, so a deck can want the page warm and
+  // the projection cool, or the reverse. Unset it follows `neutrals`, which
+  // is a build-side deferral this file does not have to model - it only has
+  // to accept the same four words.
+  'print-neutrals': ['neutral', 'tinted', 'warm', 'cool'],
+  // Which of a title pair's two lines is the loud one. `stacked` is the
+  // title over a quieter subtitle (today's rendering); `eyebrow` sets the
+  // title small above a subtitle that carries the weight. One key for the
+  // cover, the dividers and the closing slide, because all three carry a
+  // pair.
+  'headline': ['stacked', 'eyebrow'],
+  // Whether the small type around a title is set in capitals. The tracking
+  // that goes with them is not a setting - build.js applies it to any slot
+  // already in capitals.
+  'caps': ['off', 'on'],
   // The mark after an external link that opens its address and QR code.
   'link-codes': ['on', 'off'],
+  // Which views break a word at the end of a line: the documents only
+  // (the default, and what the tool has always done), everywhere, or
+  // nowhere. `lang:` picks the dictionary and is a separate key, because
+  // the language is a property of the lecture and this is a preference.
+  'hyphenate': ['print', 'all', 'none'],
+  // Whether the printed document is set in the serif or the sans. The live
+  // views answer this with `F` and with `font:`; print had no answer at all.
+  'print-body': ['serif', 'sans'],
+  // How a `**bold**` phrase the derivation reads looks – live views and the
+  // documents separately. Bold is a selection mark here before it is a
+  // weight, which is why `plain` is a legal answer.
+  'bold':       ['plain', 'bold', 'italic', 'accent', 'accent-bold', 'accent-italic'],
+  'print-bold': ['plain', 'bold', 'italic', 'accent', 'accent-bold', 'accent-italic'],
+  // How an inline code span looks in running text. `plain` is the mono face
+  // at 0.92em and nothing else, which is the rendering up to 1.0.0; `spaced`
+  // is the default, which closes the hole a mono word space leaves inside a
+  // multi-token span and sizes the face to the prose face's x-height;
+  // `tint` puts a dimmed ground behind every span. The default is the one in
+  // this table that moves an existing deck, and `plain` is the way back.
+  'code': ['plain', 'tint', 'spaced'],
+  // What a top-level reveal segment does before its beat: closes up and the
+  // chunk grows (the default, and 1.0.0's behaviour), or keeps its box so
+  // the chunk stands at its final height from beat 0.
 };
 
-// Mirrors BACKDROP_SLOTS / OVERLAY_SLOTS in build.js. Two words from one
-// slot is refused for the reason the diagram grammar refuses it: the second
-// lands, the first is thrown away, and nothing in the line says which.
-const BACKDROP_SLOTS = {
-  fill:  ['cover', 'contain'],
-  crop:  ['middle', 'top', 'bottom'],
-  scrim: ['veil', 'clear', 'invert'],
-  focus: ['sharp', 'blur'],
-  // Which side of the type the picture is on. `over` is the one that covers
-  // it, which is how a title is revealed *away* rather than added to.
-  layer: ['under', 'over'],
+// Mirrors SOUFFLEUSE_SPEC in build.js – the nested `prompter:` block that
+// configures the live prompter (--prompter). Three tables because the
+// block has three kinds of key: one enum, three bounded numbers (bounds are
+// the build's, as with the style scales), and two free strings whose
+// *presence* is all a zero-dep reader can vouch for. An unknown key is an
+// error, because the build refuses it. test/gates/tails.mjs holds the union
+// of the three equal to the build's key set.
+const SOUFFLEUSE_ENUMS = {
+  'cues': ['on', 'off'],
 };
-// Mirrors CARDS_SLOTS in build.js. The auto size is the build's - it
-// counts words in the source - but the vocabulary is shared.
-const CARDS_SLOTS = {
-  size:   ['auto', 'large', 'medium', 'small'],
-  align:  ['auto', 'left', 'center'],
-  anchor: ['top', 'middle'],
-  detail: ['fold', 'show', 'page'],
-  ground: ['panel', 'outline', 'clear', 'accent', 'paper', 'photo'],
-  corner: ['round', 'square'],
-  // `plain` and not `clear`: `clear` is already a ground in this same
-  // table, and a word in two slots of one table makes the second slot
-  // unreachable. build.js asserts that invariant at load.
-  scrim: ['veil', 'invert', 'plain'],
-  // `align` is the text inside the card, `anchor` where the block sits when
-  // the row is taller than it. Two questions, two slots, no shared word.
-};
-const OVERLAY_SLOTS = {
-  place:  ['center', 'top-left', 'top', 'top-right', 'left', 'right',
-           'bottom-left', 'bottom', 'bottom-right'],
-  ground: ['paper', 'ink', 'accent', 'clear', 'glass'],
-  width:  ['standard', 'narrow', 'wide', 'full'],
-};
-// Returns [] when the tail resolves, or one message per problem.
-function slotProblems(attrs, slots) {
-  const out = [];
-  const seen = {};
-  for (const raw of String(attrs || '').trim().split(/\s+/).filter(Boolean)) {
-    const w = raw.replace(/^\./, '');
-    const slot = Object.keys(slots).find(k => slots[k].includes(w));
-    if (!slot) {
-      out.push(`'${w}' is not a word this directive knows – `
-        + Object.entries(slots).map(([k, m]) => `${k}: ${m.join('|')}`).join(', '));
-      continue;
+const SOUFFLEUSE_NUM_KEYS = new Set(['cadence', 'cooldown', 'calls-per-hour']);
+const SOUFFLEUSE_FREE_KEYS = new Set(['model', 'language']);
+
+// Walks one nested frontmatter block by indentation rather than with a
+// YAML parser - the same fifteen-line trick collectDiagramDefaults uses. A
+// `name:` line with no value opens the block, and any line indented under
+// it is one of its keys; the flow form `name: {k: v, k: v}`, which is how
+// the documentation writes these blocks, is read too - it was not, once,
+// and a typo in it passed the pre-commit gate and failed the build. `rule`
+// is called with the line index, the key and the raw value.
+function nestedBlockKeys(lines, name, rule) {
+  const open = new RegExp('^' + name + ':[ \\t]*$');
+  const flowRe = new RegExp('^' + name + ':[ \\t]*\\{(.*)\\}[ \\t]*$');
+  let inside = false;
+  lines.forEach((raw, i) => {
+    const flow = raw.match(flowRe);
+    if (flow) {
+      for (const pair of flow[1].split(',')) {
+        const kv = pair.match(/^\s*["']?([A-Za-z][A-Za-z0-9_-]*)["']?\s*:\s*(.*?)\s*$/);
+        if (kv) rule(i, kv[1], kv[2]);
+      }
+      return;
     }
-    if (seen[slot]) {
-      out.push(`'${seen[slot]}' and '${w}' both answer '${slot}', `
-        + `and one of them would be thrown away with nothing in the line to say which`);
-      continue;
-    }
-    seen[slot] = w;
-  }
-  return out;
+    if (open.test(raw)) { inside = true; return; }
+    if (!inside) return;
+    if (!/^[ \t]+\S/.test(raw)) { if (raw.trim()) inside = false; return; }
+    const m = raw.match(/^[ \t]+([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
+    if (m) rule(i, m[1], m[2]);
+  });
 }
+
+// Mirrors the role names of STRINGS.en in build.js: the closed key set of
+// the top-level `labels:` block, which localises the words the build
+// invents. Values are free text (translations), so only the keys are ruled
+// on - the same VALID_TAGS-style duplication, mirrored in the same commit.
+// `type` is the one nested map, of the tag words.
+const LABEL_KEYS = new Set([
+  'contents', 'speaker-note', 'presentation-note', 'aside-note',
+  'title-print', 'title-print-notes', 'title-lecture', 'title-speaker',
+  'untitled-lecture', 'annotation-label', 'add-note', 'reader-close',
+  'reader-mark', 'reader-note', 'reader-remove',
+  'reader-removed', 'reader-undo', 'reader-orphans',
+  'reader-orphan-remove', 'reader-session', 'reader-nav', 'reader-prev',
+  'reader-next', 'reader-filter-all', 'reader-filter-notes', 'reader-export',
+  'reader-import', 'reader-delete-all', 'reader-help', 'reader-help-what', 'reader-help-keys',
+  'reader-help-where', 'reader-help-risk', 'reader-help-backup', 'reader-fold',
+  'reader-export-file',
+  'reader-export-line', 'reader-imported', 'reader-import-none',
+  'reader-import-skipped', 'reader-deleted-all',
+  'reader-fig-mark', 'reader-lb-spot', 'reader-lb-close', 'reader-fig',
+  'reader-fig-at', 'reader-fig-spot', 'reader-fig-approx', 'reader-code-mark',
+  'reader-formula-mark', 'reader-code', 'reader-code-block', 'reader-formula',
+]);
+const LABEL_TYPE_KEYS = new Set([
+  'principle', 'definition', 'example', 'question', 'exercise', 'outline', 'figure',
+]);
+
+// The slot tables of ::: backdrop, ::: cards / ::: rows, ::: overlay and
+// ::: side, and the parser that reads a {…} tail against one, are imported
+// from tails.mjs - one parser for both files, so a linter stricter or laxer
+// than the build about a tail cannot happen by construction.
 
 // Mirrors build.js: the per-image inline cap, and the extension search order
 // used to resolve `![](fig-id)` shorthand. An asset over the cap fails the
@@ -182,7 +398,7 @@ function diagramImageRefs(src) {
     if (/^\s*(```|~~~)/.test(line)) { inFence = !inFence; continue; }
     if (inFence) continue;
     if (!inDiagram) {
-      if (/^:::\s+draw\b/.test(line)) inDiagram = true;
+      if (parseDrawOpener(line)) inDiagram = true;
       continue;
     }
     if (/^:::\s*$/.test(line)) { inDiagram = false; continue; }
@@ -193,6 +409,79 @@ function diagramImageRefs(src) {
     if (m) refs.push(m[1]);
   }
   return refs;
+}
+
+// Mirrors the asset root in build.js (assetEscape, assetRootOf,
+// assetRootNarrowed): a build reads an asset from the lecture's folder or the
+// folder one level up - the lecture's folder alone when that one is the home
+// folder or a disk's top - links resolved, never from a dot-folder, and
+// refuses anything else before it writes a view. So a
+// reference out there is an error here, not a warning - it is a deck the
+// build hard-fails.
+function realpathLoose(p) {
+  const abs = path.resolve(p);
+  try { return fs.realpathSync(abs); }
+  catch (e) {
+    const parent = path.dirname(abs);
+    if (parent === abs) return abs;
+    return path.join(realpathLoose(parent), path.basename(abs));
+  }
+}
+function pathWithin(root, p) {
+  const rel = path.relative(root, p);
+  return rel === '' || (rel !== '..' && !rel.startsWith('..' + path.sep) && !path.isAbsolute(rel));
+}
+function assetRootOf(sourceDir, home = os.homedir()) {
+  const own = realpathLoose(sourceDir);
+  const parent = path.dirname(own);
+  if (assetRootNarrowed(own, home)) return own;
+  return parent;
+}
+// True when the folder above the lecture is the home folder or the top of a
+// disk, where "one level up" would be everything the person owns.
+function assetRootNarrowed(own, home = os.homedir()) {
+  const parent = path.dirname(own);
+  return parent === own || parent === path.parse(parent).root || parent === realpathLoose(home);
+}
+// Mirrors assetKindOf in build.js: a picture, a clip, a face, or null.
+function assetKindOf(p) {
+  const ext = path.extname(String(p)).slice(1).toLowerCase();
+  if (['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) return 'image';
+  if (['mp4', 'webm', 'm4v', 'mov'].includes(ext)) return 'video';
+  if (['woff2', 'woff', 'ttf', 'otf'].includes(ext)) return 'font';
+  return null;
+}
+// Where `abs` really lands when the build may not read it, or null when it
+// may: outside the asset root, inside it below a folder whose name starts
+// with a dot (.ssh, .git, .config, .env ...), or a link whose target is not
+// the kind of file its name says. A link counts as the file it points to.
+function assetEscape(abs, sourceDir, home = os.homedir()) {
+  const real = realpathLoose(abs);
+  const root = assetRootOf(sourceDir, home);
+  if (!pathWithin(root, real)) return real;
+  const rel = path.relative(root, real);
+  if (rel && rel.split(path.sep).some(c => c.startsWith('.'))) return real;
+  // Only where the name and the file it lands on disagree about the
+  // extension: a folder on the way being a link (/tmp on macOS) is not this.
+  const named = path.resolve(abs);
+  if (path.extname(real).toLowerCase() !== path.extname(named).toLowerCase()) {
+    const want = assetKindOf(named);
+    const got = assetKindOf(real);
+    if (!got || (want && got !== want)) return real;
+  }
+  return null;
+}
+
+// Mirrors frontmatterLanguage / FRONTMATTER_LANGUAGES in build.js: what
+// gray-matter would read as the frontmatter's language, and the ones the
+// build lets it parse. Anything else - `---js`, `---coffee` - is a program,
+// and the build refuses the deck.
+const FRONTMATTER_LANGUAGES = new Set(['', 'yaml', 'yml']);
+function frontmatterLanguage(src) {
+  const s = String(src).replace(/^\uFEFF/, '');
+  if (!s.startsWith('---') || s.charAt(3) === '-') return '';
+  const nl = s.search(/\r?\n/);
+  return (nl < 0 ? s.slice(3) : s.slice(3, nl)).trim();
 }
 
 const IMG_EXTS = ['svg', 'png', 'jpg', 'jpeg', 'gif', 'webp'];
@@ -222,6 +511,11 @@ const DENSITY_BUDGET = {
   outline: 40,
   principle: 80,
   question: 80,
+  // A statement slide is a few lines of large type and nothing else, so it
+  // is held to the narrowest of the prose budgets. 80 is principle's, and
+  // deliberately the same number: both are a claim the room reads whole,
+  // and the one that is set at heading size runs out of frame first.
+  statement: 80,
   definition: 200,
   example: 250,
   exercise: 350,
@@ -259,19 +553,54 @@ import {
   DG_KIND_OPTS, DG_BRACE_SIDES, DG_SIDES, DG_ALIGN_X, DG_ALIGN_Y, DG_SCALAR_X,
   DG_SCALAR_Y, DG_DEFAULT_KINDS, DG_ANCHORS, DG_DEFINES, DG_GRID_KINDS, DG_GRID_MAX,
   DG_PLOT_MAX_TICKS, DG_POINT_DIRS, DG_POINTED, DG_SHAPE_CLASSES, DG_RESERVED_IDS,
-  dgBarName, dgTickName, dgBaseName, dgCellName, dgPlotName, dgPlotTicks,
-  dgRowTag, dgColTag, dgLaneName, dgLaneCapName,
+  DG_RESERVED_EMITTED_IDS, DG_ID_SUBNODE_SEP,
+  dgBarName, dgTickName, dgBaseName, dgKeyName, dgKeyLabelName, dgCellName, dgPlotName, dgPlotTicks,
+  DG_THEMES, DG_BAR_CONTRAST_MIN, dgBarFill, dgBarContrast,
+  dgRowTag, dgColTag, dgLaneName, dgLaneCapName, dgZoneCapName, dgZoneTag,
   DG_SEQ_ENTRIES, DG_SEQ_ARROWS,
   dgLifeName, dgMsgName, dgMsgNumName, dgMsgSubName, dgNoteName,
   dgMsgTag, dgMsgsTag, dgNotesTag, dgActorsTag, dgLivesTag,
   DG_EDGE_ARROWS, DG_STEP_NAME,
   rejectHeadClassIn, rejectSlotPair, rejectStepClass,
   rejectClassOn, DG_WORD_OPTS, dgTakes, dgArticle,
-  DG_PLACED_HEADS, DG_PLACE_INTRO, dgNoPlacement, DG_HOST_OPTS,
+  DG_PLACED_HEADS, DG_PLACE_INTRO, DG_IN_ALIGN, dgNoPlacement, DG_FRAME_RE,
 } from './diagram-core.mjs';
+import {
+  CHUNK_SLOTS, CHUNK_STYLE_CLASSES, COLUMN_SLOTS, VALID_WIDTHS, VALID_CHUNK_CLASSES,
+  CARDS_SLOTS, OVERLAY_SLOTS, BACKDROP_SLOTS, SIDE_SLOTS, DOCK_SLOTS,
+  splitTail, parseTail, strayTailProblem, parseDrawOpener, parseRevealMark,
+} from './tails.mjs';
+// The third zero-dep module, imported for the same reason as tails.mjs and
+// with nothing behind it: `cueAdvance` decides whether a bracketed line in a
+// `> note:` block is a press, and the cockpit and this file have to agree
+// about that or the warning below would count something else than the cards
+// do. One function, no tables, no compiler behind it.
+import { cueAdvance } from './cue-cards.mjs';
 
 const REVEAL_PCT_WARN = 0.5;
 const ORPHAN_MIN = 2;
+// The measure each chunk width gives its body, in em, mirroring the audience
+// CSS (`narrow` 28, `standard` 36, `wide` 52, `full` 72), and the least a
+// column, a pane or a card may be given before the linter says so. Ten em is
+// about twenty characters a line: below that a paragraph is a ribbon. The
+// widest row in the corpus, five cards in a wide chunk, is 10.4em a card and
+// passes; six would not, and six cards in a row is a table.
+const WIDTH_EM = { narrow: 28, standard: 36, wide: 52, full: 72 };
+// A side dock takes its column out of the slide, so the measure a chunk
+// beside it can have is what the slide leaves: the slide's width in em
+// (16:9 at font-size 0.026 x slide-h, the viewport --check-fit uses), less
+// the padding on the free side, the dock and its gap. The dock widths and
+// the gap mirror the audience CSS (--dock-px, --dock-gap), where both are
+// shares of the slide's width; change them together. As shares they are
+// exact here rather than an estimate: the old em values named the dock's
+// own zoomed em and were read as the chunk's, so this file put a narrow
+// dock at 13em where the page drew it at 17.4 and the warning below
+// under-reported by a third.
+const DOCK_SHARE = { narrow: 0.28, standard: 0.37, wide: 0.46 };
+const DOCK_GAP_SHARE = 0.035;
+const SLIDE_EM = 68.4;
+const SLIDE_PAD_EM = 9.6;
+const MIN_TRACK_EM = 10;
 
 // One sentence per statement, and then it stops. Until now this file had no
 // option check at all on the seven statements a newcomer meets first, so
@@ -294,28 +623,32 @@ const dgUnexpectedMsg = (head, id, tok) =>
 // 'expects exactly two elements' on a line the build accepts, which is the
 // one direction a gate must never be wrong in. A derived set cannot drift
 // the same way again.
-const DG_PLACE_STOP = new Set(['frac', 'offset', 'gap', 'flush', 'same', '--', '->', 'point',
+const DG_PLACE_STOP = new Set(['frac', 'offset', 'gap', 'flush', 'anchor', 'same', '--', '->', 'point',
   ...Object.values(DG_KIND_OPTS).flat()]);
 
 function splitFrontmatter(src) {
-  if (!src.startsWith('---\n')) return { body: src, fmLines: 0, header: '' };
-  const end = src.indexOf('\n---\n', 4);
+  // `---yaml` and `---yml` are the same block as a bare `---` to the build.
+  const open = src.match(/^---[ \t]*(?:ya?ml[ \t]*)?\n/i);
+  if (!open) return { body: src, fmLines: 0, header: '' };
+  const end = src.indexOf('\n---\n', open[0].length);
   if (end === -1) return { body: src, fmLines: 0, header: '' };
-  const header = src.slice(4, end);
+  const header = src.slice(open[0].length, end);
   const body = src.slice(end + 5);
   const fmLines = header.split('\n').length + 2;
   return { body, fmLines, header };
 }
 
-function parseAttributeTail(text) {
-  const m = text.match(/^(.*?)\s*\{([^}]*)\}\s*$/);
-  if (!m) return { text: text.trim(), classes: [], ids: [] };
-  const out = { text: m[1].trim(), classes: [], ids: [] };
-  for (const tok of m[2].trim().split(/\s+/).filter(Boolean)) {
-    if (tok.startsWith('.')) out.classes.push(tok.slice(1));
-    else if (tok.startsWith('#')) out.ids.push(tok.slice(1));
-  }
-  return out;
+// A heading line's tail through the shared parser. Every problem it found
+// is reported under the parser's own code - stray-attribute, unknown-class,
+// same-slot, multiple-ids - and the callers add what only the line's place
+// in the deck can decide (a class on a column heading, a width on a cover
+// chunk).
+function parseAttributeTail(line, what, { column = false } = {}) {
+  const { text, tail, stray } = splitTail(line);
+  const t = parseTail(tail, column ? COLUMN_SLOTS : CHUNK_SLOTS, what,
+    { id: 'one', classes: column ? 'column' : 'slots' });
+  if (stray) t.problems.unshift(strayTailProblem(what, stray));
+  return { text, classes: t.classes, ids: t.ids, slots: t.slots, problems: t.problems };
 }
 
 // A file that *documents* this directive must not thereby *use* it. The scan
@@ -479,6 +812,58 @@ function lintCollapsedBolds(entries, add) {
   }
 }
 
+
+// `figure-type-without-figure`: a chunk typed `figure:` that holds no figure.
+// It renders identically either way, so this is not about the slide - it is
+// about the `O` overview board and the speaker's own map of the deck, both of
+// which read the tag. Eight chunks in one course were tagged `figure:` while
+// holding a `::: cards` or `::: rows` list, which makes the board report a
+// deck with twice the figures it has.
+//
+// Structural, and that is why it is here when two neighbouring checks are
+// not. Whether a chunk contains a drawing is a fact about the source; whether
+// four cards will fit a `.wide` chunk is a fact about type, and estimating it
+// from the count produced false positives on the engine's own decks at the
+// first try. Measurement belongs in a browser, not in this file.
+function lintChunkShape(chunk, chunkBody, hasDrawing, add) {
+  if (chunk.tag !== 'figure') return;
+  // What counts as a figure, and the list is wider than "a picture": a
+  // photographic `::: backdrop` is the whole slide, and a code listing is
+  // what a `figure:` chunk means in a programming lecture. Both are tagged
+  // figure: in the engine's own lectures and both are right.
+  const hasFigure = hasDrawing || chunk.backdropSeen || chunkBody.some(l =>
+    /^:::\s*embed\b/.test(l.trim())
+    || /^\s*(```|~~~)/.test(l)
+    || /!\[[^\]]*\]\(/.test(l)
+    || /<(img|svg|video)\b/.test(l));
+  if (hasFigure) return;
+  add(chunk.line, 'warn', 'figure-type-without-figure',
+      'typed figure: but the body holds no ::: draw, no image and no ::: embed. The slide renders '
+      + 'the same, but the overview board and the speaker view read the type, so the deck reports more '
+      + 'figures than it has – use free:, definition: or whichever type names what this chunk is');
+}
+
+// Which of a chunk's reveal segments the build ships. Mirrors `segmentsKept`
+// in build.js, and it has to: this file counts `---` lines to say how many
+// beats a chunk has, and a segment the build does not ship is a click the
+// deck does not take. Every `---` is a beat, so every segment between two of
+// them ships, empty or not. `hasBody` is one boolean per raw segment: does
+// anything the build puts in the body stand in it (an aside it lifts out –
+// ::: footnote, ::: overlay, ::: dock – and a `> note:` block do not); it
+// decides only the two shapes that are not a `---` at all – a chunk with no
+// separator and an empty body, and a title or closing chunk, which
+// renderTitleChunk draws from `body` with no reveal segments in it.
+function segmentsKept(hasBody, rendersSegments) {
+  if (hasBody.length < 2 || !rendersSegments) return hasBody.map(t => !!t);
+  return hasBody.map(() => true);
+}
+
+// Mirrors chunkRendersSegments in build.js: a title or closing chunk wears a
+// cover composition and has no reveal segments, so no `---` in one is a beat.
+function chunkRendersSegments(chunk) {
+  return chunk.tag !== 'title' && chunk.tag !== 'closing';
+}
+
 // One `default …` line, checked the same way wherever it is written: inside
 // a block, or in the lecture's `draw-defaults` frontmatter key. Mirrors
 // dgReadDefault in build.js – a linter stricter or laxer than the build is
@@ -582,6 +967,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   const referenced = [];         // { name, ln, what }
   const setMoves = [];           // `move @tag to …`, checked once tags are known
   let inStep = false;
+  let hasStep = false;           // for `autoplay N`, which walks the steps
 
   // `carries` is false on a `default` or `step` line: a tag written there is
   // a *use*, and the compiler's lecture-tag rule still wants some element to
@@ -594,14 +980,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     for (const tok of m[1].trim().split(/\s+/).filter(Boolean)) {
       // `{#id}` is gone from the language: an element's name goes in front.
       if (tok.startsWith('#')) {
-        add(ln, 'error', 'bad-diagram-attribute', `'${tok}' – an element's name goes in front, `
+        add(ln, 'error', 'name-in-tail', `'${tok}' – an element's name goes in front, `
             + 'not in the tail. On a box, dot, text, image, container, brace or a chart it is the '
             + 'word after the statement; on an edge or a sequence message it is an optional word '
             + `before the arrow's first endpoint, as in 'edge ${tok.slice(1) || 'name'} a -> b'.`);
       }
       else if (tok.startsWith('@')) {
         if (tok.length > 1) { if (carries) tags.add(tok.slice(1)); out.tags.push(tok.slice(1)); }
-        else add(ln, 'error', 'bad-diagram-attribute', 'an empty @tag means nothing');
+        else add(ln, 'error', 'empty-tag', 'an empty @tag means nothing');
       }
       // `!class` removes that exact class – from a `default` layer, or from
       // the beat before it inside a `style` step. Additive syntax, so the only
@@ -612,7 +998,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
           add(ln, 'error', 'unknown-diagram-class',
               `unknown diagram class '${tok}' – valid: ${[...DG_CLASSES].map(c => '!' + c).join(', ')}`);
         } else if (out.removedClasses.includes(tok.slice(1))) {
-          add(ln, 'error', 'bad-diagram-attribute', `'${tok}' is written twice – one removal says it`);
+          add(ln, 'error', 'duplicate-removal', `'${tok}' is written twice – one removal says it`);
         } else out.removedClasses.push(tok.slice(1));
       }
       else if (tok.startsWith('.')) {
@@ -621,20 +1007,26 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
               `unknown diagram class '${tok}' – valid: ${[...DG_CLASSES].map(c => '.' + c).join(', ')}`);
         } else out.classes.push(tok.slice(1));
       } else {
-        add(ln, 'error', 'bad-diagram-attribute',
-            `'${tok}' in {…} is not #id, .class, !class or @tag`);
+        add(ln, 'error', 'stray-attribute',
+            `'${tok}' in {…} is not a .class, !class or @tag`);
       }
     }
     for (const c of out.removedClasses) {
       if (out.classes.includes(c)) {
-        add(ln, 'error', 'bad-diagram-attribute', `'.${c}' and '!${c}' are both written – `
+        add(ln, 'error', 'conflicting-class', `'.${c}' and '!${c}' are both written – `
             + 'one tail cannot both add and remove a class. Keep one.');
       }
     }
-    // The same-slot pair and the clash rows are both the compiler's now, and
-    // for two different reasons. A pair from one slot is an **error** raised by
-    // rejectSlotPair, decidable from the tail alone and mirrored there rather
-    // than here, so this file cannot print a second, different account of it.
+    // The same-slot pair, the void pair and the clash rows are all the
+    // compiler's now, and for two different reasons. A pair from one slot is an
+    // **error** raised by rejectSlotPair, decidable from the tail alone and
+    // mirrored there rather than here, so this file cannot print a second,
+    // different account of it. A DG_CLASS_VOIDS pair - `.bare` with `.dashed`
+    // or `.dotted`, where the first deletes the outline the second patterns and
+    // the element comes out with nothing drawn round it - is the same kind of
+    // error for the same reason, raised by rejectVoidPair; both run inside
+    // rejectClassOn, which this file calls at every statement site, so the
+    // mirror costs nothing and cannot drift.
     // A clash row is a **warning**, and it has to be beat-aware – `{.tone-4
     // .accent}` with a later `style x {.clear}` is a working figure, where the
     // accent ink is inert while the fill is there and becomes the ink the
@@ -647,7 +1039,10 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // it writes. The compiler knows this from the model; this file has to be
   // told at each declaration, which is why `define` takes it.
   const kindOf = new Map();
-  const define = (name, ln, kind) => {
+  // `generated` mirrors claim()'s fourth argument in diagram-core.mjs: a name
+  // the compiler synthesises is held to the collision rules but not to the
+  // spelling rules, because the spelling is the compiler's own.
+  const define = (name, ln, kind, generated = false) => {
     if (!name) return;
     // A name with a dot would be indistinguishable from `elem.cx` in a
     // coordinate; one with @ or # from a tag or an id token. Mirrors claim()
@@ -662,6 +1057,28 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       add(ln, 'error', 'bad-diagram-name',
           `'${name}' is reserved – it already names a property every JavaScript object has, `
           + 'and the step runtime keys its tables by element id');
+      return;
+    }
+    // Mirrors the DG_RESERVED_EMITTED_IDS branch in diagram-core.mjs's
+    // claim(). The compiler emits the figure's own <svg> under this name, so
+    // the drawing would hold two nodes with one id – and both the build and
+    // this linter used to stay silent about it while the figure rendered as
+    // black rectangles that never stepped.
+    if (DG_RESERVED_EMITTED_IDS.has(name)) {
+      add(ln, 'error', 'bad-diagram-name',
+          `'${name}' is reserved – the compiler emits the figure's own <svg> under that name, so an element `
+          + `called '${name}' gives the document two nodes with the same id; the figure renders as unstyled `
+          + 'black rectangles and its steps never run');
+      return;
+    }
+    // Mirrors the DG_ID_SUBNODE_SEP branch there: `--` separates an element
+    // from the parts it owns, so a name containing it can claim another
+    // element's rect or label line.
+    if (!generated && name.includes(DG_ID_SUBNODE_SEP)) {
+      add(ln, 'error', 'bad-diagram-name',
+          `'${name}' cannot contain '${DG_ID_SUBNODE_SEP}' – the compiler uses it to name the parts an element `
+          + "owns (a box's rect is '<name>--r', its label lines '<name>--l0'), so this name could collide with "
+          + 'another element\'s parts; use a single hyphen');
       return;
     }
     if (defined.has(name)) {
@@ -685,7 +1102,10 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         referenced.push({ name: p[1], ln, what });
         return;
       }
-      const m = raw.match(/^([A-Za-z_][\w-]*)\.([a-z]+)([+-][\d.]+)?$/);
+      // `haus.inner.top` – the band a zone reserves under its caption. The
+      // word sits between the name and the coordinate, so the reference is
+      // still the first token and the nudge still the last.
+      const m = raw.match(/^([A-Za-z_][\w-]*)(\.inner)?\.([a-z]+)([+-][\d.]+)?$/);
       if (!m) {
         // The literal is spelled out rather than left to `Number`, which is
         // the same guard dgParseCoord carries and for the same two reasons:
@@ -702,10 +1122,11 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       }
       const axis = i === 0 ? 'x' : 'y';
       const ok = axis === 'x' ? DG_SCALAR_X : DG_SCALAR_Y;
-      if (!ok.has(m[2])) {
+      if (!ok.has(m[3])) {
         add(ln, 'error', 'bad-diagram-coordinate',
-            `${what}: '.${m[2]}' is not ${dgArticle(axis)} ${axis} coordinate – use ${[...ok].map(p => '.' + p).join(' / ')}`);
+            `${what}: '.${m[3]}' is not ${dgArticle(axis)} ${axis} coordinate – use ${[...ok].map(p => '.' + p).join(' / ')}`);
       }
+      if (m[2]) bands.push({ name: m[1], ln, coord: true });
       referenced.push({ name: m[1], ln, what });
     });
   };
@@ -762,6 +1183,11 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // Returns { next, place, attempted }. `attempted` means a placement was
   // recognised and refused, and the statement stops there rather than adding
   // a second sentence about tokens it has already lost its grip on.
+  // Every `in <zone>` in this block, and every zone declared in it, both
+  // collected rather than decided on the line: a zone may be written after
+  // the things that stand in it, which is the order the statement is for.
+  const bands = [];
+  const zoneNames = new Map();     // id -> { ln, axes: {w, h} }
   const readPlacement = (words, k, ln) => {
     const t = (i) => (words[i] === undefined ? '' : words[i]);
     let place = null, next = k;
@@ -777,6 +1203,18 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       }
       place = 'between';
       next = mEnd;
+    } else if (t(k) === 'in') {
+      // `in <zone>` – the band an area reserves under its caption. The name is
+      // collected as a reference like every other operand; whether it names a
+      // zone rather than a box is decided at the end of the block, because a
+      // zone may be declared after what stands in it.
+      if (!t(k + 1)) {
+        add(ln, 'error', 'bad-diagram-placement', 'in expects the name of a zone');
+        return { next: k + 1, place: null, attempted: true };
+      }
+      bands.push({ name: t(k + 1), ln });
+      place = 'in';
+      next = k + 2;
     } else {
       let dir = null;
       // Checked *before* the direction is bound, or `above` binds happily and
@@ -809,6 +1247,20 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     while (next < words.length) {
       const key = words[next];
       if ((key === 'gap' || key === 'flush') && place === 'rel') { next += 2; continue; }
+      if (key === 'gap' && place === 'in') { next += 2; continue; }
+      // The band's own words, bare and positional: `left` / `right` across,
+      // `top` / `bottom` down, `center` for whichever axis no other word
+      // names. They are words of the placement and not classes, because on a
+      // box `.left` already says where the label sits inside the outline.
+      if (place === 'in' && DG_IN_ALIGN.has(key)) { next += 1; continue; }
+      // `flush` names a face of a reference and `anchor` a point; a band is
+      // neither, and its own words are the answer to both.
+      if ((key === 'flush' || key === 'align' || key === 'anchor') && place === 'in') {
+        add(ln, 'error', 'bad-diagram-placement', `'${key}' lines an element up with a face of `
+            + `another one or with a coordinate, and 'in' names a band rather than either. The `
+            + `words for a band are ${[...DG_IN_ALIGN].join(' / ')}, written bare after the zone.`);
+        return { next, place, attempted: true };
+      }
       // Named rather than reported as an unknown token: `align` is still a
       // word in the language, just not this one, and it is what an author who
       // learned the old spelling will type.
@@ -819,6 +1271,29 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         return { next, place, attempted: true };
       }
       if (key === 'frac' && place === 'between') { next += 2; continue; }
+      // `anchor` says which point of the element lands on the coordinate the
+      // placement resolved to, so only the two forms that resolve to a point
+      // take it. The word list and the refusal are the compiler's, mirrored
+      // here: a relative placement states a face already and its cross-axis
+      // word is `flush`.
+      if (key === 'anchor') {
+        if (place === 'rel') {
+          add(ln, 'error', 'bad-diagram-placement', `'anchor' says which point of the element `
+              + `lands on a coordinate, and a relative placement names a face rather than a `
+              + `coordinate. The cross-axis word for it is 'flush'.`);
+          return { next, place, attempted: true };
+        }
+        const a = words[next + 1];
+        if (!DG_ANCHORS.has(a)) {
+          add(ln, 'error', 'bad-diagram-placement', a === 'middle'
+            ? `the centre of one element is 'center' here – 'middle' is the centre of an axis, `
+              + `which is what 'align x middle' and 'flush middle' say`
+            : `anchor expects ${[...DG_ANCHORS].join(' / ')}, got '${a || ''}'`);
+          return { next, place, attempted: true };
+        }
+        next += 2;
+        continue;
+      }
       if (key === 'offset') { next += 2; continue; }
       break;
     }
@@ -845,11 +1320,23 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       const key = words[k];
       if (key === '->' || key === '--') { k += 2; continue; }
       if (key === 'same') {
+        // Three forms: both axes, or one of them. `same h as X` is what a
+        // one-line box beside a two-line one wants, and the only way to give a
+        // zone a height without writing the number.
+        if ((words[k + 1] === 'w' || words[k + 1] === 'h')
+          && words[k + 2] === 'as' && words[k + 3] !== undefined) {
+          k += 4;
+          continue;
+        }
         if (words[k + 1] !== 'as' || words[k + 2] === undefined) {
           add(ln, 'error', 'diagram-unexpected-token',
-              `${head} ${id}: 'same' must be written 'same as <element>'`);
+              `${head} ${id}: 'same' must be written 'same as <element>', `
+              + `'same w as <element>' or 'same h as <element>'`);
+          // One sentence per statement, as the build does: everything past a
+          // token whose shape is lost is a guess.
+          return k;
         }
-        k += (words[k + 1] === 'as' && words[k + 2] !== undefined) ? 3 : 2;
+        k += 3;
         continue;
       }
       if (['w', 'h', 'r', 'pad', 'point'].includes(key) && opts.includes(key)) { k += 2; continue; }
@@ -880,6 +1367,17 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // and never builds them, so a check the build makes and the linter does not
   // is a line that merges green and fails every later build.
   const chartsAbove = new Set();
+  // The same thing for tables, and with the column count in it: `same as vg`
+  // copies another table's columns, it is answered while the line is read for
+  // the reason a chart's `same as` is, and both halves of the refusal – "not
+  // above it" and "that many columns against this many" – are decidable from
+  // the line order and the two heading strings alone. CI lints this repo's
+  // development lectures and never builds them, so a check the build makes and
+  // this file does not merges green and fails every later build.
+  const tablesAbove = new Map();
+  // The runs of columns each chart's frame holds, by frame, so a second
+  // `emph` at one index can be answered on the line that writes it.
+  const runsOf = new Map();
   const chartSameAs = (kind, id, words, ln) => {
     const at = words.indexOf('same');
     if (at < 1 || words[at + 1] !== 'as') return;
@@ -910,6 +1408,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // frame is registered as the box it draws, so nothing else needs excluding.
   const DG_CLASS_KINDS_OK = DG_CLASS_KIND_SET;   // imported: one list, not two
   const styled = [];               // { classes, removed, targets, ln } per `style` op
+  // `sideTexts` and `alignedX` used to live here, for `diagram-ragged-labels`:
+  // a row of free texts sharing an `at` x, each carrying `.left` or `.right`,
+  // each centred on the coordinate anyway and so staggered by half the
+  // difference in label width. The rule is gone because the geometry is: a
+  // free `text` with `.left` at an absolute coordinate is anchored on that
+  // edge now (`dgPlaceAnchor`), so the row it described cannot be written.
+  // `align x left a, b, c` is still the way to hold a set to one edge, and is
+  // still worth writing where the three coordinates are not the same one.
   // Lines a `table` has already read as its own rows. It is the one statement
   // besides `step` that takes continuation lines, and they are bare quoted
   // strings – read as statements they would each report a keyword that is a
@@ -918,6 +1424,13 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
   // How many statements have drawn a node so far, which is the compiler's own
   // test for "is this the first element": it asks `model.nodes.length === 0`.
   let nodesSoFar = 0;
+  // Everything a `row` or a `col` names, and every element that read its whole
+  // line and stated no placement. The complaint is deferred to the end of the
+  // block for the reason the build defers it: a member list may be written
+  // before or after the elements it names, so a `row` three lines down is this
+  // element's placement.
+  const rowMembers = new Set();
+  const unplaced = [];
   for (let n = 0; n < block.lines.length; n++) {
     const { text, ln } = block.lines[n];
     if (n < rowsRead) continue;
@@ -943,7 +1456,10 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       } else if (head === 'edge') {
         rejectClassOn('edge', attrs.classes, ln, gate, '', attrs.removedClasses);
         rejectHeadClassIn('tail', attrs.classes, ln, gate, attrs.removedClasses);
-      } else if (head === 'box') {
+      } else if (head === 'box' || head === 'zone') {
+        // A zone's tail lands on the box it draws, minus the four corner words
+        // the caption takes - and those are box classes too, so one call
+        // answers the whole tail.
         rejectClassOn('box', attrs.classes, ln, gate, '', attrs.removedClasses);
       } else if (head === 'container' || head === 'brace') {
         rejectClassOn(head, attrs.classes, ln, gate, '', attrs.removedClasses);
@@ -1003,6 +1519,60 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       continue;
     }
 
+    // `row a, b, c [gap N]` / `col …` – the explicit spelling of a chain. It
+    // draws nothing and, like `align` and `spread`, only names elements that
+    // exist; what it adds is that its members share one size and that every
+    // member with no placement of its own is placed after the one before it.
+    // That last part is why `rowMembers` is collected: the no-placement
+    // complaint below has to wait for it, because the statement may be written
+    // after the boxes it names.
+    if (head === 'row' || head === 'col') {
+      const toks = words.slice(1);
+      const gi = toks.indexOf('gap');
+      const ii = toks.indexOf('in');
+      // Where the member list stops: at whichever option word comes first. A
+      // run placed in a zone is placed as one block, so `in` is the row's own
+      // word and not its first member's.
+      const stop = [gi, ii].filter(i => i >= 0).reduce((a, b) => Math.min(a, b), toks.length);
+      {
+        let k = stop, inZone = false;
+        while (k < toks.length) {
+          if (toks[k] === 'gap') { k += 2; continue; }
+          if (toks[k] === 'in') {
+            if (!toks[k + 1]) {
+              add(ln, 'error', 'bad-diagram-row', `${head} … in expects the name of a zone`);
+              break;
+            }
+            bands.push({ name: toks[k + 1], ln });
+            refer(toks[k + 1], ln, `${head} in`);
+            inZone = true;
+            k += 2;
+            continue;
+          }
+          if (inZone && DG_IN_ALIGN.has(toks[k])) { k += 1; continue; }
+          add(ln, 'error', 'bad-diagram-row', `unexpected '${toks[k]}' in ${head} – a ${head} `
+              + `takes its members, one optional 'gap N' and one optional 'in <zone>' with the `
+              + `band's own words (${[...DG_IN_ALIGN].join(' / ')}), and nothing else`);
+          break;
+        }
+      }
+      const members = toks.slice(0, stop)
+        .join(',').split(',').map(x => x.trim()).filter(Boolean);
+      if (members.length < 2) {
+        add(ln, 'error', 'bad-diagram-row', `${head} needs at least two elements – it says they `
+            + 'are peers, which one element cannot be');
+      }
+      // Every member after the first, and only those: the statement places
+      // each member against the one before it, so the first still has to say
+      // where the row goes. Exempting it here would be a linter laxer than the
+      // build, which is the one direction that merges green. `in <zone>` is
+      // the one form that does place the first member too – it says where the
+      // whole run goes – and then no member of it owes a placement.
+      members.forEach((m, i) => { refer(m, ln, head); if (i || ii >= 0) rowMembers.add(m); });
+      inStep = false;
+      continue;
+    }
+
     if (head === 'default') {
       lintDefaultStatement(words, ln, add, {
         defaulted, scope: 'draw', reportLine: ln + fmLines,
@@ -1022,6 +1592,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
     // later lines and the editor's beat navigation both address, and the rule
     // for it is imported rather than paraphrased so the two cannot disagree.
     if (head === 'step') {
+      hasStep = true;
       if (words[1] && !DG_STEP_NAME.test(words[1])) {
         add(ln, 'error', 'bad-diagram-step', `'${words[1]}' is not a step name – a step name `
             + 'starts with a letter or an underscore and then takes letters, digits, '
@@ -1079,8 +1650,16 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       }
       const targets = words.slice(1).join(',').split(',').map(s => s.trim()).filter(Boolean);
       const stop = new Set(['to', 'by', 'gap', 'align', 'of', 'right', 'left', 'below', 'above', 'at']);
+      // A prominence verb (emph/dim/ghost) takes element names, never column
+      // indices - `emph 1,3` means indices on a `bars` line, but in a step the
+      // same words are names, and the build refuses a numeric one as
+      // undefined. Breaking on the number left lint silent on exactly that, so
+      // refer() a numeric target for a prominence verb and let the reference
+      // check name it (the build says "refers to '2', which is not defined").
+      const isProm = DG_PROMINENCE.includes(head);
       for (const t of targets) {
-        if (stop.has(t) || /^-?[\d.]+(,-?[\d.]+)?$/.test(t)) break;
+        if (stop.has(t)) break;
+        if (/^-?[\d.]+(,-?[\d.]+)?$/.test(t) && !isProm) break;
         refer(t, ln, `step ${head}`);
       }
       continue;
@@ -1143,7 +1722,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       // build either - it reports the missing name and pushes nothing, so it
       // is not the block's first node and it is not asked where it goes.
       if (words[1] && nodesSoFar > 0 && !series && !placed && !noted.has(ln)) {
-        add(ln, 'error', 'diagram-no-placement', dgNoPlacement(head, words[1]));
+        unplaced.push({ ln, head, id: words[1] });
       }
       if (words[1]) nodesSoFar++;
     }
@@ -1222,7 +1801,19 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       // The frame of a chart is a box, whatever it repeats inside itself.
       define(id, ln, 'box');
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: id, tags: attrs.tags, ln });
-      const strings = [...trimmed.matchAll(/"([^"]*)"/g)].map(m => m[1]);
+      // `key "…"` is the one quoted string on a chart line with a keyword in
+      // front of it. The rest are positional - the values, then the tick strip
+      // - so the key's string comes out of that list before the strip is read,
+      // exactly as the compiler takes it out of its own quoted-token list.
+      const keyM = trimmed.match(/(^|\s)key\s+"/);
+      const keyQ = keyM ? keyM.index + keyM[0].length - 1 : -1;
+      const keyStr = keyM ? (trimmed.slice(keyQ).match(/^"([^"]*)"/) || [])[1] ?? null : null;
+      const strings = [...trimmed.matchAll(/"([^"]*)"/g)].filter(m => m.index !== keyQ).map(m => m[1]);
+      // Only a bars line takes a key; on a grid or a plot the build refuses
+      // the word, and a chart option the linter passes is the laxer gate.
+      if (head !== 'bars' && words.includes('key')) {
+        add(ln, 'error', 'diagram-unexpected-token', dgUnexpectedMsg(head, id, 'key'));
+      }
       // Narrow, for the reason the `table … h` check above is narrow: the
       // expanding statements have no general option check in either file, and
       // this is the one word a migrating author types. `calm` is deleted from
@@ -1238,6 +1829,12 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
               `bars ${id || ''} needs its values as one string, e.g. "18,17,15,11"`);
         }
         for (let i = 0; i < cols; i++) define(dgBarName(id, i), ln, 'box');
+        // The legend entry a key makes: a swatch that is a column of the run,
+        // and the name beside it. Both generated, so both are defined here.
+        if (words.includes('key') && keyStr === null) {
+          add(ln, 'error', 'bad-diagram-bars', `bars ${id}: "key" takes the run's name in quotes, e.g. key "2023"`);
+        }
+        if (keyStr !== null) { define(dgKeyName(id), ln, 'box'); define(dgKeyLabelName(id), ln, 'text'); }
         // `series of <chart>` is a run of columns inside somebody else's
         // frame, so it declares columns and nothing else – no ticks, no
         // baseline. Registering a `<id>-base` for one would let `hide g-base`
@@ -1310,6 +1907,60 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
                   + `this chart has ${cols}, numbered 0 to ${cols - 1}`);
             }
           }
+        }
+        // ── can a room see the columns ────────────────────────────────
+        // A column has no outline, so its fill is all there is, and the fill
+        // is a mix over the paper that changes with the theme. DG_BAR_FILLS is
+        // the table the stylesheet is generated from, so the ratio here is
+        // the ratio of the colour actually drawn. Dimmed and ghosted columns
+        // are meant to be faint and are not measured; a run that is all
+        // emphasis has no normal column to measure either.
+        {
+          const listOf = (word) => {
+            const at = words.indexOf(word);
+            return at < 2 ? [] : String(words[at + 1] ?? '').split(',').map(x => Number(x.trim())).filter(Number.isFinite);
+          };
+          const tone = (attrs.classes || []).find(c => /^tone-[1-4]$/.test(c)) || 'plain';
+          const cls = attrs.classes || [];
+          const emphIx = listOf('emph');
+          const back = new Set([...listOf('dim'), ...listOf('ghost')]);
+          const states = [];
+          const someNormal = [...Array(cols).keys()].some(i => !emphIx.includes(i) && !back.has(i));
+          if (someNormal && !cls.includes('dim') && !cls.includes('ghost')) states.push(['', dgBarFill(tone, null)]);
+          if (emphIx.length && tone !== 'tone-4') states.push(['emphasised ', dgBarFill(tone, 'emph')]);
+          const all = Object.keys(DG_THEMES);
+          for (const [what, fk] of states) {
+            const weak = all.map(t => [t, dgBarContrast(fk, t)]).filter(([, r]) => r < DG_BAR_CONTRAST_MIN);
+            if (!weak.length) continue;
+            const low = Math.min(...weak.map(([, r]) => r)).toFixed(1);
+            const where = weak.length === all.length ? 'every theme' : weak.map(([t]) => t).join(', ');
+            add(ln, 'warn', 'diagram-bar-contrast', `bars ${id}: the ${what}columns`
+                + `${tone === 'plain' ? '' : ' in .' + tone} come to as little as ${low}:1 against the paper in ${where} – `
+                + `under ${DG_BAR_CONTRAST_MIN}:1 a projector loses them. A darker tone fixes it; `
+                + `ignore this if you will not present in ${weak.length === 1 ? 'that theme' : 'those themes'}.`);
+          }
+          // A column has one channel, and in a grouped chart the fill already
+          // says which run a column belongs to. `emph` overwrites it with the
+          // accent: on a .tone-4 run that changes nothing, and on two runs at
+          // one index it paints two columns alike at exactly the place the
+          // figure is about. `dim` on the other columns says the same thing
+          // and keeps the runs apart.
+          if (emphIx.length && tone === 'tone-4') {
+            add(ln, 'warn', 'diagram-bars-emph', `bars ${id}: "emph" on a .tone-4 run changes nothing – `
+                + 'its columns are the accent already. Single the group out with "dim" on the other columns instead.');
+          }
+          const frameId = isSeries ? joined : id;
+          const runs = runsOf.get(frameId) || [];
+          for (const ix of emphIx) {
+            const other = runs.find(r => r.emph.has(ix));
+            if (!other) continue;
+            add(ln, 'warn', 'diagram-bars-emph', `bars ${id}: "emph ${ix}" is also on ${other.id}, so both `
+                + `column ${ix}s come out in the accent and the runs cannot be told apart there. `
+                + 'Single the group out with "dim" on the other columns instead.');
+            break;
+          }
+          runs.push({ id, emph: new Set(emphIx) });
+          runsOf.set(frameId, runs);
         }
       } else {
         const kindWord = words[2];
@@ -1633,9 +2284,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       // including an unterminated one – that takes the rest of the line rather
       // than being an error, and a gate stricter than the build is worse than
       // no gate.
+      // The tokenizer decodes three sequences and hands every other backslash
+      // on whole, so that `\_` reaches the span splitter, which is where a
+      // sub/superscript marker is escaped. Mirror it exactly: decoding more
+      // here would split a `\|` into two columns the build keeps as one.
       const quoted = (s) => {
         const m = String(s).match(/"((?:\\[\s\S]|[^"\\])*)"?/);
-        return m && m[1].replace(/\\([\s\S])/g, (_, c) => (c === 'n' ? '\n' : c));
+        return m && m[1].replace(/\\([\s\S])/g,
+          (all, c) => (c === 'n' ? '\n' : c === '"' ? '"' : c === '\\' ? '\\' : all));
       };
       // Not `!first`: an empty string is a heading row of one nameless
       // column, which is what the build reads it as too.
@@ -1663,6 +2319,29 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
             + "so 'w' – which divides one total equally – says the same thing a second way. Drop one.");
       }
       const heads = cellsOf(first);
+      // `same as X` on a table, mirrored from the build's three refusals. It is
+      // the columns it copies, so a `col` or a `w` beside it says the same
+      // thing twice; it is answered as the line is read, so it can only name a
+      // table above; and two tables share their columns only where they have
+      // the same number of them.
+      const sameAt = head === 'table' ? words.findIndex((w, i) => w === 'same' && words[i + 1] === 'as') : -1;
+      const sameRef = sameAt > 0 ? words[sameAt + 2] : null;
+      if (sameRef) {
+        const clash = words.includes('col') ? 'col' : words.includes('w') ? 'w' : null;
+        if (clash) {
+          add(ln, 'error', 'bad-diagram-table', `table ${id}: "same as ${sameRef}" takes the columns `
+              + `from another table, so "${clash}" says the same thing a second way. Drop one.`);
+        } else if (!tablesAbove.has(sameRef)) {
+          add(ln, 'error', 'bad-diagram-table', `table ${id}: "same as ${sameRef}" names no table `
+              + "above it. A table's cells are placed against its own frame as its line is read, so "
+              + 'it can only copy one it has already seen.');
+        } else if (tablesAbove.get(sameRef) !== heads.length) {
+          add(ln, 'error', 'bad-diagram-table', `table ${id}: "same as ${sameRef}" copies `
+              + `${tablesAbove.get(sameRef)} column(s) and this heading has ${heads.length} – two `
+              + 'tables share their columns only where they have the same number of them.');
+        }
+      }
+      if (head === 'table') tablesAbove.set(id, heads.length);
       // Every element either statement expands into carries the statement's
       // own tags, so one entry per generated element is what makes the
       // set-move count agree with the build's. The kind is the kind the
@@ -1733,7 +2412,26 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
 
     if (DG_DEFINES.has(head)) {
       if (!words[1]) { add(ln, 'error', 'bad-diagram-name', `${head} needs a name`); continue; }
-      define(words[1], ln, head);
+      // A zone draws a box and a caption, so it registers as a box: that is
+      // what the class gate on a `style` step has to be able to answer about.
+      define(words[1], ln, head === 'zone' ? 'box' : head);
+      if (head === 'zone') {
+        define(dgZoneCapName(words[1]), ln, 'text', true);
+        tags.add(dgZoneTag(words[1]));
+        // Both numbers, because an area is a fixed claim on the paper - that
+        // is the whole difference from a container, which fits its members.
+        // Unless another element states one of them: "fixed" and "written
+        // here" are two different claims, and `same h as` names where the
+        // height comes from.
+        const sameAxis = (a) => words.some((w, i) => w === 'same'
+          && (words[i + 1] === a ? words[i + 2] === 'as' : words[i + 1] === 'as'));
+        // An axis nobody states is the one what stands in the area settles, so
+        // the complaint is deferred to the end of the block: whether anything
+        // is placed `in` this zone is not decidable on its own line, and the
+        // `in` may be written above it or below it.
+        zoneNames.set(words[1], { ln,
+          auto: { w: !words.includes('w') && !sameAxis('w'), h: !words.includes('h') && !sameAxis('h') } });
+      }
       if (attrs.tags && attrs.tags.length) carries.push({ kind: head, name: words[1], tags: attrs.tags, ln });
 
       // A container and a brace hold a member list and place nothing, so they
@@ -1825,7 +2523,14 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
           for (const pn of parts) refer(pn, ln, `${head} ${words[1]}`);
           k = m - 1;
         }
-        // `same as X` copies X's geometry, so X has to exist.
+        // `same as X` copies X's geometry, so X has to exist – and so does the
+        // element a single axis is copied from.
+        if (words[k] === 'same' && (words[k + 1] === 'w' || words[k + 1] === 'h')
+          && words[k + 2] === 'as') {
+          refer(words[k + 3], ln, `${head} ${words[1]} (same ${words[k + 1]} as)`);
+          k += 3;
+          continue;
+        }
         if (words[k] === 'same' && words[k + 1] === 'as') {
           refer(words[k + 2], ln, `${head} ${words[1]} (same as)`);
           k += 2;
@@ -1834,7 +2539,7 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
         // leader line: `text n "…" above c gap 1 -- leak`
         if (words[k] === '->' || words[k] === '--') {
           refer(words[k + 1], ln, `${head} ${words[1]} leader`);
-          define(`${words[1]}--lead`, ln, 'edge');
+          define(`${words[1]}--lead`, ln, 'edge', true);
         }
       }
       continue;
@@ -1968,6 +2673,35 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
       }
     }
   }
+  // ── the band, once every zone and every `in` is known ─────────────
+  // Two refusals the build makes in the same order. A band belongs to a zone
+  // and to nothing else, so `in q` and `q.inner.left` on a box are a mistake
+  // with a plausible reading; and an area with an axis nobody stated and
+  // nothing standing in it has no size to take from anywhere.
+  // One sentence per line, whatever a coordinate pair names twice: `at
+  // q.inner.left,q.inner.top` is one mistake with two halves, and the build
+  // reports it once, off the element rather than off the coordinate.
+  const bandSaid = new Set();
+  for (const b of bands) {
+    if (!defined.has(b.name) || zoneNames.has(b.name)) continue;
+    if (bandSaid.has(`${b.name}|${b.ln}`)) continue;
+    bandSaid.add(`${b.name}|${b.ln}`);
+    add(b.ln, 'error', 'bad-diagram-zone', `'${b.name}${b.coord ? '.inner' : ''}' names `
+        + `'${b.name}', which is not a zone - a band is the room an area reserves under its `
+        + `caption, and only a 'zone' has one.`);
+  }
+  for (const [id, z] of zoneNames) {
+    if (!z.auto.w && !z.auto.h) continue;
+    if (bands.some(b => b.name === id && !b.coord)) continue;
+    const axis = z.auto.w && z.auto.h ? "'w' and 'h'" : z.auto.w ? "'w'" : "'h'";
+    add(z.ln, 'error', 'bad-diagram-zone', `zone ${id} states no ${axis} and nothing is placed `
+        + `in it, so there is nothing to take the size from - write the number, or place `
+        + `something 'in ${id}'.`);
+  }
+  // Whatever no `row` or `col` turned out to place.
+  for (const u of unplaced) {
+    if (!rowMembers.has(u.id)) add(u.ln, 'error', 'diagram-no-placement', dgNoPlacement(u.head, u.id));
+  }
   for (const c of carries) {
     const table = tagDefaults.get(c.kind);
     if (!table) continue;
@@ -1994,16 +2728,38 @@ function lintDiagram(block, addOuter, fmLines, lectureTags) {
           `${r.what} refers to '${r.raw ?? r.name}', which is not defined in this diagram${hint}`);
     }
   }
+  // Mirrors the build: autoplay on a figure with no steps is a number the
+  // drawing ignores.
+  if (block.autoplay && !hasStep) {
+    addOuter(block.open, 'error', 'bad-autoplay',
+        'autoplay walks the figure\'s steps, and this figure has no step block – write one, or drop the autoplay');
+  }
   if (lectureTags) for (const t of tags) lectureTags.add(t);
 }
 
 function lintFile(filePath) {
   let diagram = null;   // { open, lines } while inside a ::: draw block
-  const src = fs.readFileSync(filePath, 'utf8');
+  // LF coordinates, as parseLecture reads them: a CRLF source used to miss
+  // every `$`-anchored matcher here as well as in the build.
+  const src = fs.readFileSync(filePath, 'utf8').replace(/\r\n?/g, '\n');
+  // Before anything else reads the file: the build refuses it outright, so
+  // every finding after this one would be about a deck that never builds.
+  const fmLang = frontmatterLanguage(src);
+  if (!FRONTMATTER_LANGUAGES.has(fmLang.toLowerCase())) {
+    return [{
+      file: filePath, line: 1, severity: 'error', rule: 'frontmatter-language',
+      msg: `'---${fmLang}' asks for frontmatter in a language the build refuses – a '---js' or '---coffee' `
+        + 'block is run as a program on the machine that builds the deck; write a bare --- and YAML',
+    }];
+  }
   const ignores = parseIgnores(src);
   const { body, fmLines, header } = splitFrontmatter(src);
   const lines = body.split('\n');
   const findings = [];
+  // The section divider composition, for the one check that depends on it:
+  // `section: card` plates the divider's heading, so on a `.clear` backdrop
+  // the heading is readable and text-on-picture yields to it.
+  const sectionVariant = (header.match(/^section:[ \t]*["']?([a-z]+)/m) || [, 'plain'])[1];
 
   const add = (bodyLine, severity, rule, msg) => {
     if (ignores.has(rule)) return;
@@ -2021,6 +2777,13 @@ function lintFile(filePath) {
   header.split('\n').forEach((raw, i) => {
     const m = raw.match(/^([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
     if (!m) return;
+    if (!KNOWN_FRONTMATTER_KEYS.has(m[1])) {
+      addFm(i + 2, 'warn', 'unknown-frontmatter-key',
+        `'${m[1]}:' is not a key any renderer reads – it is stored and never `
+        + 'looked at, so nothing on any slide changes when you edit it. Delete '
+        + 'it, or check the spelling.');
+      return;
+    }
     const allowed = VIEW_DEFAULTS[m[1]];
     if (!allowed) return;
     // Strip a trailing YAML comment before comparing. Without this the
@@ -2082,6 +2845,25 @@ function lintFile(filePath) {
         `cover-image is set, but 'cover: ${cover}' draws no picture of its own – `
         + `it applies to: ${[...COVER_IMAGE_VARIANTS].join(', ')}; use ::: backdrop instead`);
     }
+    // closing-image is cover-image's counterpart on the last slide, and it
+    // draws into the same slot of the same composition – so it is refused
+    // on the same six covers, and `closing-image: cover` needs a
+    // cover-image to be the same as. Mirrors coverSettings in build.js.
+    const cl = header.split('\n').findIndex(l => /^closing-image:[ \t]*\S/.test(l));
+    if (cl >= 0 && !COVER_IMAGE_VARIANTS.has(cover)) {
+      addFm(cl + 2, 'error', 'bad-closing-image',
+        `closing-image is set, but 'cover: ${cover}' draws no picture of its own, and the `
+        + `closing slide draws the cover's composition – it applies to: `
+        + `${[...COVER_IMAGE_VARIANTS].join(', ')}; use ::: backdrop on the closing chunk instead`);
+    }
+    if (cl >= 0 && im < 0) {
+      const cv = header.split('\n')[cl].match(/^closing-image:[ \t]*["']?([^"'\s#]+)/);
+      if (cv && cv[1] === 'cover') {
+        addFm(cl + 2, 'error', 'bad-closing-image',
+          "'closing-image: cover' ends the deck on the picture it opened with, and no "
+          + 'cover-image is set – set one, or name the closing slide\'s own picture');
+      }
+    }
   }
 
   // cover-ratio: how much of the slide the picture takes. Bounded rather
@@ -2110,26 +2892,252 @@ function lintFile(filePath) {
     }
   });
 
+  // `style.display-scale`, picked up by the block below and ruled on by the
+  // `fonts:` block after it, which is the only place that knows whether this
+  // lecture has a display face for the key to scale.
+  let displayScale = null;
+
   // The nested `style:` block. Read by indentation rather than with a YAML
   // parser, the same fifteen-line trick collectDiagramDefaults uses: a
   // `style:` line with no value opens the block, and any line indented
-  // under it is one of its keys. Only the two enums are ruled on – see
-  // STYLE_ENUMS for why the two scales are left to the build.
+  // under it is one of its keys. The word keys are ruled on against
+  // STYLE_ENUMS and the number keys against STYLE_NUM_SPEC.
   {
     const lines = header.split('\n');
-    let inStyle = false;
+    const rule = (i, key, value) => {
+      const clean = (s) => s.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+      const allowed = STYLE_ENUMS[key];
+      // An unknown key used to return quietly here, so the build refused what
+      // the linter passed and a deck could lint clean and fail to build. The
+      // number keys are deliberately absent from STYLE_ENUMS, so they are
+      // named here rather than inferred.
+      if (!allowed) {
+        const range = STYLE_NUM_SPEC[key];
+        if (!range) {
+          addFm(i + 2, 'error', 'unknown-style-setting',
+            `'style.${key}' is not a key this block has` +
+            (STYLE_KEYS_REMOVED[key] ? ` – ${STYLE_KEYS_REMOVED[key]}` : ''));
+          return;
+        }
+        // Only a value this file can read as a finite number is ruled on;
+        // anything else is left to the build, which reads real YAML.
+        const n = Number(clean(value));
+        if (clean(value) && Number.isFinite(n) && (n < range[0] || n > range[1])) {
+          addFm(i + 2, 'error', 'unknown-style-setting',
+            `'style.${key}: ${clean(value)}' is not a number between ${range[0]} and ${range[1]} – `
+            + `1 is the tool's own scale, 1.15 is 15% larger`);
+        }
+        if (key === 'display-scale' && clean(value)) displayScale = { line: i, value: clean(value) };
+        return;
+      }
+      const v = clean(value);
+      if (!v || allowed.includes(v)) return;
+      addFm(i + 2, 'error', 'unknown-style-setting',
+        `'style.${key}: ${v}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
+    };
+    nestedBlockKeys(lines, 'style', rule);
+  }
+
+  // The nested `prompter:` block, read by the same walk. Numbers are only
+  // checked for being numbers - the bounds are the build's - and the two
+  // free keys only for being present, which is all that can be said about
+  // a model id without asking OpenRouter.
+  {
+    const lines = header.split('\n');
+    const rule = (i, key, value) => {
+      const v = value.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+      const allowed = SOUFFLEUSE_ENUMS[key];
+      if (allowed) {
+        if (v && !allowed.includes(v)) {
+          addFm(i + 2, 'error', 'unknown-prompter-setting',
+            `'prompter.${key}: ${v}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
+        }
+        return;
+      }
+      if (SOUFFLEUSE_NUM_KEYS.has(key)) {
+        if (!v || !Number.isFinite(Number(v))) {
+          addFm(i + 2, 'error', 'unknown-prompter-setting',
+            `'prompter.${key}: ${v}' is not a number`);
+        }
+        return;
+      }
+      if (SOUFFLEUSE_FREE_KEYS.has(key)) {
+        if (!v) {
+          addFm(i + 2, 'error', 'unknown-prompter-setting',
+            `'prompter.${key}' is set to nothing`);
+        } else if (key === 'language' && !/^[A-Za-z]{2,3}(-[A-Za-z0-9]{2,8})*$/.test(v)) {
+          // The same loose BCP-47 shape lectureLang holds `lang:` to.
+          addFm(i + 2, 'error', 'unknown-prompter-setting',
+            `'prompter.language: ${v}' is not a language tag – expected something like en, de, de-DE`);
+        }
+        return;
+      }
+      addFm(i + 2, 'error', 'unknown-prompter-setting',
+        `'prompter.${key}' is not a key this block has`);
+    };
+    nestedBlockKeys(lines, 'prompter', rule);
+    // A scalar where the block should be: `prompter: on` is a deck that
+    // meant to switch something on and wrote no key. The build refuses it.
     lines.forEach((raw, i) => {
-      if (/^style:[ \t]*$/.test(raw)) { inStyle = true; return; }
-      if (!inStyle) return;
-      if (!/^[ \t]+\S/.test(raw)) { if (raw.trim()) inStyle = false; return; }
+      if (/^prompter:[ \t]*[^ \t{#][^#]*$/.test(raw)) {
+        addFm(i + 2, 'error', 'unknown-prompter-setting',
+          "'prompter:' is a block of keys, not a single value – prompter: {cues: off}");
+      }
+    });
+  }
+
+  // duration: the planned length of the talk. Minutes, or a clock. The
+  // build refuses anything else, so the linter does too. The clock below is
+  // the literal of `TALK_CLOCK_SRC` in build.js, mirrored by hand like every
+  // other constant here – and it has to be the same shape in all three
+  // places, because build.js reads the key twice: once to put a bare clock
+  // back to text before YAML makes a sexagesimal integer of it, and once to
+  // read it. A narrower restore than this let `duration: 120:00` lint clean
+  // and fail the build.
+  header.split('\n').forEach((raw, i) => {
+    const m = raw.match(/^duration:[ \t]*(.*)$/);
+    if (!m) return;
+    const v = m[1].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
+    if (!v) return;
+    let secs = null;
+    if (/^\d+(\.\d+)?$/.test(v)) secs = Math.round(Number(v) * 60);
+    else {
+      const c = v.match(/^(?:(\d{1,2}):)?(\d{1,3}):(\d{2})$/);
+      if (c) secs = (c[1] ? Number(c[1]) * 3600 : 0) + Number(c[2]) * 60 + Number(c[3]);
+    }
+    if (secs == null || !(secs > 0) || secs > 12 * 3600) {
+      addFm(i + 2, 'error', 'bad-duration',
+        `'duration: ${v}' is not a length this key reads – minutes (45) or a clock (45:00, 1:30:00), up to twelve hours`);
+    }
+  });
+
+  // The nested `fonts:` block, and only its `display:` key – DISPLAY_FONTS
+  // says why the other three roles are left to the build. Read by
+  // indentation like the `style:` block above, flow form included, because
+  // `fonts: {display: Anton}` is how the one-line form gets written and a
+  // reader that only sees the indented form passes a typo in it.
+  {
+    const ls = header.split('\n');
+    let hit = null;
+    let inFonts = false;
+    for (let i = 0; i < ls.length && !hit; i++) {
+      const raw = ls[i];
+      const flow = raw.match(/^fonts:[ \t]*\{(.*)\}[ \t]*$/);
+      if (flow) {
+        for (const pair of flow[1].split(',')) {
+          const kv = pair.match(/^\s*["']?display["']?\s*:\s*(.*?)\s*$/);
+          if (kv) hit = { line: i, raw: kv[1] };
+        }
+        break;
+      }
+      if (/^fonts:[ \t]*$/.test(raw)) { inFonts = true; continue; }
+      if (!inFonts) continue;
+      if (!/^[ \t]+\S/.test(raw)) { if (raw.trim()) inFonts = false; continue; }
+      const m = raw.match(/^[ \t]+display:[ \t]*(.*)$/);
+      if (m) hit = { line: i, raw: m[1] };
+    }
+    const name = hit ? hit.raw.replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '') : '';
+    const face = name ? DISPLAY_BY_NORM.get(normFontName(name)) : null;
+    // A key that scales a face the deck does not have does nothing, and this
+    // format refuses a silent no-op – the build hard-fails on it in its
+    // pre-flight and this is the mirror. `fonts: none` counts as no display
+    // face, because it turns the whole bundle off.
+    const bundleOff = /^fonts:[ \t]*["']?none["']?[ \t]*$/m.test(header);
+    if (displayScale && (!name || bundleOff)) {
+      addFm(displayScale.line + 2, 'error', 'display-scale-without-face',
+        `'style.display-scale: ${displayScale.value}' sets the size of this lecture's display `
+        + `face, and ${bundleOff ? '`fonts: none` turns the whole bundle off, the display role '
+          + 'with it' : 'no `fonts: {display: …}` names one'} – name a display face, or delete `
+        + 'the key, which is doing nothing as it stands.');
+    }
+    if (name && !face && !fontsDirHolds(path.dirname(filePath), name)) {
+      addFm(hit.line + 2, 'error', 'unknown-display-font',
+        `'fonts.display: ${name}' is neither one of the ${DISPLAY_FONTS.size} bundled `
+        + 'display faces nor a file in fonts/ – check the spelling; the build refuses '
+        + 'it too and its message prints the whole roster.');
+    } else if (face) {
+      // The one rule `kind` exists for. A display serif over a serif body,
+      // or a display sans over a sans body, does not read as two typefaces:
+      // it reads as one typeface set badly, and the divider stops announcing
+      // itself. A hand and a mono pair with anything, which is why they are
+      // absent from this test rather than listed in it.
+      const body = (header.match(/^font:[ \t]*["']?([a-z]+)/m) || [, 'serif'])[1];
+      if ((face.kind === 'serif' && body === 'serif')
+          || (face.kind === 'sans' && body === 'sans')) {
+        addFm(hit.line + 2, 'warn', 'display-pairing',
+          `'fonts.display: ${name}' is a display ${face.kind} and this deck's `
+          + `body is ${body} too – on the cover and the dividers the two read as one `
+          + 'typeface set badly rather than as two, so the transition slide stops '
+          + `announcing itself. Set 'font: ${body === 'serif' ? 'sans' : 'serif'}', or `
+          + `pick a display face that is not a ${face.kind}.`);
+      }
+      // Only one face in the roster is missing the eszett, and only one
+      // language here notices. Raised on `lang:` rather than on finding a ß
+      // in today's headings, because the headings are the part of a deck
+      // that gets rewritten and the face is the part that does not.
+      const lang = (header.match(/^lang:[ \t]*["']?([A-Za-z]+)/m) || [, 'en'])[1];
+      if (DISPLAY_NO_ESZETT.has(face.name) && /^de$/i.test(lang)) {
+        addFm(hit.line + 2, 'warn', 'display-no-eszett',
+          `'fonts.display: ${name}' has no ß and 'lang: ${lang}' says this deck `
+          + 'is German – a cover, closing or divider heading containing one gets a '
+          + 'fallback glyph mid-word. Pick another display face, or keep ß out of '
+          + 'those three headings.');
+      }
+    }
+  }
+
+  // The top-level `labels:` block. Its keys are a closed set (the role names
+  // the build localises with `lang:`); its values are free text, so only the
+  // keys are ruled on. Mirrors mergeLabels in build.js: an unknown key is
+  // `unknown-label-key`, so a deck that lints clean is one the build accepts.
+  // Read by indentation, the same trick the style block uses; a bare `type:`
+  // opens a nested map of tag words one level deeper.
+  {
+    const lines = header.split('\n');
+    const indentOf = (s) => s.match(/^[ \t]*/)[0].length;
+    let inLabels = false;
+    let inType = false;
+    let typeIndent = -1;
+    lines.forEach((raw, i) => {
+      // The flow form, labels: {contents: X, ...} - top-level keys only; a
+      // nested `type: {…}` map is stripped and left to the build, which is
+      // the safe direction (the build refuses, the linter is silent).
+      const flow = raw.match(/^labels:[ \t]*\{(.*)\}[ \t]*$/);
+      if (flow) {
+        const flat = flow[1].replace(/\btype[ \t]*:[ \t]*\{[^}]*\}/g, '');
+        for (const pair of flat.split(',')) {
+          const kv = pair.match(/^\s*["']?([A-Za-z][A-Za-z0-9_-]*)["']?\s*:/);
+          if (kv && kv[1] !== 'type' && !LABEL_KEYS.has(kv[1])) {
+            addFm(i + 2, 'error', 'unknown-label-key',
+              `'labels.${kv[1]}' is not a key this block has – keys: ${[...LABEL_KEYS].join(', ')}, type`);
+          }
+        }
+        return;
+      }
+      if (/^labels:[ \t]*$/.test(raw)) { inLabels = true; inType = false; return; }
+      if (!inLabels) return;
+      if (raw.trim() && !/^[ \t]/.test(raw)) { inLabels = false; inType = false; return; }
+      if (!raw.trim()) return;
       const m = raw.match(/^[ \t]+([A-Za-z][A-Za-z0-9_-]*):[ \t]*(.*)$/);
       if (!m) return;
-      const allowed = STYLE_ENUMS[m[1]];
-      if (!allowed) return;
-      const value = m[2].replace(/\s+#.*$/, '').trim().replace(/^["']|["']$/g, '');
-      if (!value || allowed.includes(value)) return;
-      addFm(i + 2, 'error', 'unknown-style-setting',
-        `'style.${m[1]}: ${value}' is not a value this key accepts – valid: ${allowed.join(', ')}`);
+      const ind = indentOf(raw);
+      const key = m[1];
+      const val = m[2].replace(/\s+#.*$/, '').trim();
+      if (inType) {
+        if (ind > typeIndent) {
+          if (!LABEL_TYPE_KEYS.has(key)) {
+            addFm(i + 2, 'error', 'unknown-label-key',
+              `'labels.type.${key}' is not a tag word this block has – keys: ${[...LABEL_TYPE_KEYS].join(', ')}`);
+          }
+          return;
+        }
+        inType = false;   // this line is no deeper than type:, so type: closed
+      }
+      if (key === 'type' && !val) { inType = true; typeIndent = ind; return; }
+      if (!LABEL_KEYS.has(key)) {
+        addFm(i + 2, 'error', 'unknown-label-key',
+          `'labels.${key}' is not a key this block has – keys: ${[...LABEL_KEYS].join(', ')}, type`);
+      }
     });
   }
 
@@ -2144,13 +3152,27 @@ function lintFile(filePath) {
     for (const { text, ln } of collectDiagramDefaults(header)) {
       const trimmed = text.trim();
       if (!trimmed || trimmed.startsWith('#')) continue;
+      // The one line in this block that is not a `default`: the deck's
+      // canvas. Mirrors parseDiagramDefaults in diagram-core.mjs, which the
+      // build calls - same shape, same words, same refusal.
+      const fm = /^frame(?:[ \t]+(\S+))?[ \t]*$/.exec(trimmed);
+      if (fm) {
+        const v = fm[1] || '';
+        if (v !== 'none' && !(DG_FRAME_RE.test(v)
+              && Number(v.split('x')[0]) > 0 && Number(v.split('x')[1]) > 0)) {
+          addFm(ln, 'error', 'bad-draw-defaults',
+                `frame takes a canvas in grid units, as in 'frame 6x4', or 'frame none' to let every `
+                + `drawing set its own size${v ? ` – got '${v}'` : ' – none was written'}`);
+        }
+        continue;
+      }
       for (const m of trimmed.matchAll(/\{([^}]*)\}/g)) {
         for (const tok of m[1].trim().split(/\s+/).filter(Boolean)) {
           if (tok.startsWith('.') && !DG_CLASSES.has(tok.slice(1))) {
             addFm(ln, 'error', 'unknown-diagram-class',
                   `unknown diagram class '${tok}' – valid: ${[...DG_CLASSES].map(c => '.' + c).join(', ')}`);
           } else if (!tok.startsWith('.')) {
-            addFm(ln, 'error', 'bad-diagram-attribute',
+            addFm(ln, 'error', 'stray-attribute',
                   `'${tok}' in a draw-defaults {…} tail is not a .class`);
           }
         }
@@ -2158,7 +3180,7 @@ function lintFile(filePath) {
       const words = trimmed.replace(/"[^"]*"/g, ' ').trim().split(/\s+/).filter(Boolean);
       if (words[0] !== 'default') {
         addFm(ln, 'error', 'bad-draw-defaults',
-              `draw-defaults holds 'default …' statements only, got '${trimmed}'`);
+              `draw-defaults holds 'default …' statements and one 'frame …', got '${trimmed}'`);
         continue;
       }
       lintDefaultStatement(words, ln, addFm, {
@@ -2169,6 +3191,10 @@ function lintFile(filePath) {
   }
 
   const ids = new Map();
+  // Column ids, for the dock's #links: a link may name a part as well as a
+  // slide, and it may point forward, so links are checked after the walk.
+  const colIds = new Set();
+  const dockLinks = [];
   const columns = [];
   let col = null;
   let chunk = null;
@@ -2183,6 +3209,24 @@ function lintFile(filePath) {
   // does the density budget care where a line came from.
   let proseEntries = [];
   let chunkHasReveal = false;
+  // The chunk's own beats, counted for the one check that needs a number
+  // rather than a flag: an ::: overlay `from N` beyond the last beat adds
+  // empty advances to the slide. Segments are the --- lines, steps are the
+  // `step` blocks of every figure on the chunk, and a backdrop reveal has
+  // one place per beat, the first of which is the beat the slide opens on.
+  let chunkReveals = 0;
+  // The half of chunkReveals that splits the body into reveal segments - a
+  // `---` at the top level, unpinned. The rest are beat markers below it,
+  // which no segment the build drops can take away.
+  let topReveals = 0;
+  let chunkSteps = 0;
+  let chunkOverlays = [];
+  let chunkRevealPins = [];   // { ln, from } per `--- from N`
+  let exposedWords = 0;
+  // A ::: draw opener never reaches chunkBody - it is captured into `diagram`
+  // and its body with it - so a chunk-level flag is the only way a later check
+  // can know the chunk drew something. Same shape as chunkHasReveal.
+  let chunkHasDrawing = false;
   let inFence = false;
   let activeDirective = null;
   let layoutStack = [];
@@ -2191,9 +3235,87 @@ function lintFile(filePath) {
   // before the body is rendered. We mirror that here so density budgets
   // reflect the on-slide prose, not the meta-text.
   let inMetaBlock = false;
+  // The cue-card mode of the cockpit reads each `> note:` block as said
+  // while the reveal segment it stands in is on the screen (build.js
+  // `noteSegments`). Only a top-level `---` opens a segment - one inside a
+  // pane or a card row is a beat marker, not a split - and every one of them
+  // ships, so a note stands on the beat its `---` opened even when nothing
+  // else does. The one rule on top of the position is the build's fallback
+  // for a deck that never thought about beats: notes sitting only in the
+  // last segment WITH WORDS IN IT are chunk notes and are said on beat 1.
+  // Nothing here has to know that number - a positional block is counted
+  // from the opening beat below, which is a floor either way.
+  // A `[Klick: ...]` line inside a block is a press of its own: the cards
+  // behind it are said one advance later (cue-cards.mjs `cueAdvance`). So a
+  // block asks the slide for `from` plus its clicks, and a slide that has
+  // fewer beats than that shows the surplus cards together on its last one.
+  let noteSegs = [];        // { ln, seg, klicks } per note block, seg = raw segment index
+  let notePins = [];        // { ln, from, klicks } per `> note: from N` block
+  let curNote = null;       // the block whose lines are being read, for its click count
+  let colNotes = [];        // the same, for the blocks written under a `#` heading
+  let rawSegHasText = [];   // per raw segment: does any body line stand in it
+  let rawSegPinned = [];    // per raw segment: was the --- that opened it pinned
+  let rawSegFrom = [];      // per raw segment: the number that --- pinned it to
+  let rawSegLine = [];      // per raw segment: the line of that ---
+  let rawSegAside = [];     // per raw segment: was a ::: footnote / expand written in it
+  let rawSegNested = [];    // per raw segment: beats below the top level standing before its ---
+  let chunkDockFroms = [];  // the `from N` of every ::: dock on the chunk
+  let rawSeg = 0;
+  // Everything the build puts in the chunk body, so that "this segment is
+  // empty" here means what it means there. Prose says so at the foot of the
+  // loop, where a `> note:` block has already been peeled off; a code fence,
+  // a drawing and a layout wrapper never reach it, because their branches
+  // continue first, so they say so from theirs. An aside the parser lifts
+  // out of the body - ::: expand / footnote / overlay / dock - says nothing,
+  // which is why this is guarded on activeDirective wherever it is called.
+  const segHasBody = () => { if (chunk && !activeDirective) rawSegHasText[rawSeg] = true; };
+
+  // A `[Klick ...]` line in a note asks for a press of its own, and the
+  // cards behind it are filed one advance later (cue-cards.mjs `cueAdvance`,
+  // build.js `cueCardsFor`). A block that asks for more advances than the
+  // slide takes still shows every card - the surplus stand together on the
+  // last beat - so this is a warning rather than a refusal. The base is the
+  // block's own `from` where it has one and the opening beat where it has
+  // not, which is a floor rather than the exact number: a positional block
+  // knows its segment, not its advance. Under-reporting on purpose - a
+  // linter that guesses high cries wolf on the deck that is already right.
+  const advanceBeyond = (blocks, beats, what) => {
+    for (const n of blocks.slice().sort((a, b) => a.ln - b.ln)) {
+      const asks = (n.from ?? 0) + n.klicks;
+      if (!n.klicks || asks <= beats) continue;
+      add(n.ln, 'warn', 'note-advance-beyond',
+          `this > note: carries ${n.klicks} [Klick] line${n.klicks === 1 ? '' : 's'}`
+          + `${n.from != null ? ` after from ${n.from}` : ''}, so its last card asks for advance ${asks} – `
+          + `but the ${what} has ${beats === 0 ? 'no beats' : beats === 1 ? 'one beat' : beats + ' beats'} of its own, `
+          + `and every card past the last one is shown on it together; `
+          + `give the slide a --- or a step per click, or take ${asks - beats} [Klick] line${asks - beats === 1 ? '' : 's'} out`);
+    }
+  };
 
   const flushChunk = () => {
-    if (!chunk) return;
+    // A divider's own card row, left open: the build captures every line
+    // after it, headings included, and refuses at the end of the file. With
+    // no chunk to hang the report on, it is named here at the heading that
+    // ended the divider.
+    if (!chunk) {
+      while (layoutStack.length) {
+        const l = layoutStack.pop();
+        add(l.line, 'error', 'unclosed-directive',
+            `::: ${l.kind} not closed before next chunk or column`);
+      }
+      // A divider's overlays and its figure's steps are its own; left
+      // standing they were judged against the next chunk's beats. They are
+      // also what a divider's own cards ride: a `---` under a `#` heading is
+      // a beat marker rather than a segment, and the keynote this grammar
+      // was written for puts every one of its clicks on a divider, so a
+      // check that stopped at chunks would never have seen the case it was
+      // written for.
+      advanceBeyond(colNotes, chunkReveals + chunkSteps, 'divider');
+      colNotes = [];
+      chunkReveals = 0; topReveals = 0; chunkSteps = 0; chunkOverlays = []; chunkRevealPins = [];
+      chunkDockFroms = [];
+      return;
+    }
     const budget = DENSITY_BUDGET[chunk.tag ?? 'free'];
     if (budget !== null) {
       // What counts against the budget is the on-screen half: the ::: slide
@@ -2209,7 +3331,42 @@ function lintFile(filePath) {
             `chunk body is ${wc} words${scope} (budget for ${chunk.tag ?? 'free'}: ${budget})`);
       }
     }
-    lintCollapsedBolds(proseEntries, add);
+    // A statement chunk's paragraphs are the slide - splitSentencesIn skips
+    // them the way it skips an explicit block - so nothing written in one can
+    // be orphaned by the collapse, and a bold inside a line is a stress mark
+    // rather than a promoted bullet.
+    if (chunk.tag !== 'statement') lintCollapsedBolds(proseEntries, add);
+    lintChunkShape(chunk, chunkBody, chunkHasDrawing, add);
+    // Words on an unveiled picture: the heading unless the chunk is .bare,
+    // and any prose outside an overlay or a dock. Measured on a photograph
+    // of a chain: an agenda in grey on it was unreadable from the room.
+    if (chunk.clearBackdrop) {
+      const bare = (chunk.classes || []).includes('bare');
+      const what = [!bare && chunk.heading ? 'the heading' : null, exposedWords ? `${exposedWords} words of prose` : null].filter(Boolean);
+      if (what.length) {
+        add(chunk.clearBackdrop, 'warn', 'text-on-picture',
+            `::: backdrop {.clear} with ${what.join(' and ')} standing on the unveiled picture – `
+            + 'drop .clear (veil), write .invert, or put the words in a ::: overlay or a ::: dock'
+            + (bare ? '' : '; {.bare} on the chunk takes the heading off the slide'));
+      }
+    }
+    // Mirrors build.js: the aside extends into the right margin, which a
+    // right dock occupies - the inherited one included.
+    if (chunk.marginaliaSeen && chunk.dock && chunk.dock.edge === 'right') {
+      add(chunk.marginaliaSeen, 'error', 'marginalia-in-dock',
+          `::: marginalia on a slide with a right dock (${chunk.dock.inherited ? 'inherited from line ' : 'line '}${chunk.dock.line}) – `
+          + 'put the dock on the left, or drop the aside');
+    }
+    if (chunk.dock && (chunk.dock.edge === 'left' || chunk.dock.edge === 'right')) {
+      const w = widthWord();
+      const avail = SLIDE_EM * (1 - DOCK_SHARE[chunk.dock.width] - DOCK_GAP_SHARE) - SLIDE_PAD_EM;
+      const floor = Math.min(WIDTH_EM[w], WIDTH_EM.standard);
+      if (avail < floor) {
+        add(chunk.line, 'warn', 'dock-narrows-measure',
+            `::: dock {.${chunk.dock.width}} beside a ${w} chunk leaves the text about ${Math.round(avail)}em – `
+            + `under the ${w === 'narrow' ? 'narrow' : 'standard'} measure; use a narrower dock or a narrower chunk`);
+      }
+    }
     // Figure chunks where the image sits directly below the heading:
     // the image alt text renders as a <figcaption>, stacking a second
     // title on top of the artwork (often itself titled internally).
@@ -2256,6 +3413,114 @@ function lintFile(filePath) {
       add(l.line, 'error', 'unclosed-directive',
           `::: ${l.kind} not closed before next chunk or column`);
     }
+    // Which segments the build ships, and which `---` lines therefore buy a
+    // beat. Every `---` is one, empty segment or not, so this is the plain
+    // count - the two shapes segmentsKept still answers no for are a chunk
+    // with no separator at all and a cover slide. Mirrors segmentsKept in
+    // build.js.
+    const hasBody = Array.from({ length: rawSeg + 1 }, (_, i) => !!rawSegHasText[i]);
+    const kept = segmentsKept(hasBody, chunkRendersSegments(chunk));
+    // The segments that reach the page, in order. The first of them is the
+    // state the slide opens in and is no beat; every one after it is, and is
+    // positional unless its `---` wrote a number.
+    const keptIdx = [];
+    kept.forEach((k, i) => { if (k) keptIdx.push(i); });
+    // …and on a cover slide none of them does. `renderTitleChunk` draws from
+    // `body`, which the parser assembles as the segments joined - so a `---`
+    // in a `title:` or `closing:` chunk leaves no <hr>, no .reveal-segment
+    // and no click, and counting its position as a beat told an author that
+    // a `> note: from 1` there would fire. What a cover CAN carry is a beat
+    // the composition draws with the body: a `---` below the top level is a
+    // `.beat-mark` inside it, and a figure's `step` blocks are beats on the
+    // same counter, so `nestedBeats` and `chunkSteps` below are left alone.
+    const segBeats = chunkRendersSegments(chunk)
+      ? keptIdx.slice(1).filter(i => !rawSegPinned[i]).length : 0;
+    // A `---` below the top level - in a pane, a card row, an overlay - is a
+    // beat marker rather than a split, so it is a beat of the chunk that no
+    // segment arithmetic touches. `chunkReveals` counts both; the difference
+    // is that half.
+    const nestedBeats = chunkReveals - topReveals;
+    // Mirrors countSegments in the audience runtime: the beat count is the
+    // greater of the chunk's own beats and what the overlays ask for, so a
+    // `from` past the last beat is honoured - with nothing happening on the
+    // beats in between. `from` one past the last beat is the card arriving
+    // after everything else and is fine.
+    const beats = Math.max(nestedBeats + segBeats + chunkSteps, (chunk.bdPlaces || 1) - 1);
+    for (const ov of chunkOverlays) {
+      if (ov.from > beats + 1) {
+        add(ov.line, 'warn', 'overlay-from-beyond',
+            `::: overlay from ${ov.from}, but the chunk has ${beats === 0 ? 'no beats' : beats === 1 ? 'one beat' : beats + ' beats'} `
+            + `of its own – the projector shows ${ov.from - beats - 1} empty advance${ov.from - beats - 1 === 1 ? '' : 's'} before the card; `
+            + `write from ${beats + 1} or add a --- / step it can follow`);
+      }
+    }
+    // The beat number each top-level `---` buys, on the counter `from N`
+    // writes and `applyReveal` compares against: the beats standing before
+    // it below the top level, plus its own place among the unpinned
+    // separators. A pinned one rides the number it names instead. This
+    // mirrors `pos` in chunkBeats, which numbers the same walk in the page.
+    const beatOfSeg = [];
+    let posBeat = 0;
+    for (let i = 1; i <= rawSeg; i++) {
+      if (rawSegPinned[i]) { beatOfSeg[i] = rawSegFrom[i]; continue; }
+      posBeat += 1;
+      beatOfSeg[i] = (rawSegNested[i] || 0) + posBeat;
+    }
+    // What can arrive on a beat without putting a word in its segment. Every
+    // one of them is a thing the corpus does on purpose: an aside under the
+    // `---` comes up with it (the source line for the claim just made), a
+    // note is the speaker talking on while the slide stands, a backdrop
+    // reveal has a place per beat, and an overlay, a dock or a later
+    // segment can be held to this one by `from`.
+    const ridesBeat = (i) => {
+      if (rawSegAside[i]) return true;
+      if (noteSegs.some(n => n.seg === i)) return true;
+      const b = beatOfSeg[i];
+      if (b == null) return false;
+      if (b < (chunk.bdPlaces || 0)) return true;
+      if (notePins.some(n => n.from === b)) return true;
+      if (chunkOverlays.some(o => o.from === b)) return true;
+      if (chunkDockFroms.some(f => f === b)) return true;
+      if (chunkRevealPins.some(r => r.from === b)) return true;
+      return false;
+    };
+    // A `---` that buys a click on which nothing whatever happens. Every
+    // `---` is a beat, so this is no longer a segment the build throws away
+    // - it is a press that paints nothing, holds nothing back and gives the
+    // speaker nothing to say. The opening segment is not asked: it is the
+    // state the slide opens in, and a deck that opens blank and paints its
+    // body on the first press is a composition, not a mistake.
+    for (let i = 1; i <= rawSeg; i++) {
+      if (hasBody[i] || ridesBeat(i)) continue;
+      const at = rawSegLine[i];
+      if (at == null) continue;
+      add(at, 'warn', 'empty-beat',
+          'this --- buys a click on which nothing happens - the segment paints nothing, no '
+          + '::: footnote or ::: expand is written in it, no > note: is filed on it, the backdrop '
+          + 'has no reveal place for the beat and nothing is held to it by `from`. Give the beat '
+          + 'its content, or take the --- out');
+    }
+    // One past the last beat is this segment arriving after everything else
+    // and is fine, which is the threshold ::: overlay from N already uses.
+    for (const r of chunkRevealPins) {
+      if (r.from > beats + 1) {
+        add(r.ln, 'warn', 'reveal-from-beyond',
+            `--- from ${r.from}, but the chunk has `
+            + `${beats === 0 ? 'no other beats' : beats === 1 ? 'one other beat' : beats + ' other beats'} to ride – `
+            + `the projector shows ${r.from - beats - 1} empty advance${r.from - beats - 1 === 1 ? '' : 's'} before this segment arrives; `
+            + `write from ${beats + 1} or lower, or give the slide the beats`);
+      }
+    }
+    advanceBeyond([...noteSegs, ...notePins], beats, 'chunk');
+    for (const n of notePins) {
+      if (n.from > beats) {
+        add(n.ln, 'warn', 'note-from-beyond',
+            `> note: from ${n.from}, but the chunk has `
+            + `${beats === 0 ? 'no beats' : beats === 1 ? 'one beat' : beats + ' beats'} of its own – `
+            + 'the cue cards would file this note on an advance the slide never reaches; '
+            + `write from ${beats} or lower, or give the slide the beats`);
+      }
+    }
     chunk.hasReveal = chunkHasReveal;
     col.chunks.push(chunk);
     chunk = null;
@@ -2264,11 +3529,61 @@ function lintFile(filePath) {
     scriptBody = [];
     proseEntries = [];
     chunkHasReveal = false;
+    chunkReveals = 0;
+    topReveals = 0;
+    chunkSteps = 0;
+    chunkOverlays = []; chunkRevealPins = [];
+    exposedWords = 0;
+    chunkHasDrawing = false;
+    noteSegs = []; notePins = []; curNote = null;
+    rawSegHasText = []; rawSegPinned = []; rawSegFrom = []; rawSegLine = [];
+    rawSegAside = []; rawSegNested = []; chunkDockFroms = []; rawSeg = 0;
   };
+
+  // What is open around a line, asked the way build.js asks it. The two
+  // files have to agree here or a lecture loses a pane between a clean
+  // lint and a clean build; each refusal below names its counterpart.
+  const stackHas = (re) => layoutStack.find(l => re.test(l.kind));
+  const innermost = () => layoutStack.length ? `::: ${layoutStack[layoutStack.length - 1].kind.split(' ')[0]}` : null;
+  // The measure a new block would be given, in em: the chunk's width,
+  // divided by every open ::: cols / ::: cards, and by a ::: side pane's
+  // share of its ratio (gap ignored, panes get the benefit of the doubt).
+  // A title or closing chunk is always full width (its cover composition
+  // decides it, and a width class on it is refused), and outline defaults to
+  // wide. Measuring closing as `standard` reported layout-too-narrow on a card
+  // row that fits full width - a warning the author cannot even silence, since
+  // the width class it names is not allowed on the chunk.
+  const defaultWidthFor = (tag) =>
+    tag === 'title' || tag === 'closing' ? 'full' : tag === 'outline' ? 'wide' : 'standard';
+  const measureHere = () => {
+    if (!chunk) return Infinity;
+    const wcls = [...(chunk.classes || [])].find(c => WIDTH_EM[c]);
+    let em = WIDTH_EM[wcls || defaultWidthFor(chunk.tag)];
+    if (chunk.dock && (chunk.dock.edge === 'left' || chunk.dock.edge === 'right')) {
+      em = Math.min(em, SLIDE_EM * (1 - DOCK_SHARE[chunk.dock.width] - DOCK_GAP_SHARE) - SLIDE_PAD_EM);
+    }
+    for (const l of layoutStack) {
+      const m = l.kind.match(/^(cols|cards) (\d)/);
+      if (m) em /= Number(m[2]);
+      else if (l.kind === 'side') em *= (l.flipped ? l.ratio[1] : l.ratio[0]) / (l.ratio[0] + l.ratio[1]);
+    }
+    return em;
+  };
+  // Named the way the width was written: a chunk with no class takes its
+  // type's default (full for title/closing, wide for outline, else standard).
+  const widthWord = () => [...(chunk && chunk.classes || [])].find(c => WIDTH_EM[c])
+    || (chunk ? defaultWidthFor(chunk.tag) : 'standard');
 
   for (let i = 0; i < lines.length; i++) {
     const line = lines[i];
     const ln = i + 1;
+    // Set when this line opens a ::: cards / ::: rows with a content-dependent
+    // slot written; consumed at the layoutStack push below, same iteration.
+    let pendingCardsCheck = null;
+    // Accumulate the block-body facts a content-dependent cards refusal needs,
+    // onto the open cards/rows stack entry. Runs once the fence is settled
+    // (below), so a fenced `![]()` and a ::: draw body (captured earlier) do
+    // not count - which is exactly what the build's raw-line scan does.
 
     // A ::: draw body is captured verbatim, ahead of everything else.
     // Not an optimisation: a diagram comment starts with '#', and read as
@@ -2278,6 +3593,7 @@ function lintFile(filePath) {
     if (diagram) {
       if (/^:::\s*$/.test(line)) {
         lintDiagram(diagram, add, fmLines, lectureTags);
+        chunkSteps += diagram.lines.filter(l => /^step\b/.test(l.text)).length;
         diagram = null;
       } else {
         diagram.lines.push({ text: line, ln });
@@ -2287,55 +3603,64 @@ function lintFile(filePath) {
     if (/^```/.test(line)) {
       inFence = !inFence;
       if (chunk) chunkBody.push(line);
+      segHasBody();
       continue;
     }
     if (inFence) { if (chunk) chunkBody.push(line); continue; }
+
+    // Fence settled: a non-fenced content line of an open cards/rows block
+    // records whether the block carries a picture or a nested level, for the
+    // refusal checked at its close. A ::: draw body was captured above, so it
+    // never reaches here - a diagram is not a card picture, as in the build.
+    const cardsTop = layoutStack.length && layoutStack[layoutStack.length - 1];
+    if (cardsTop && cardsTop.cardsCheck) {
+      if (/!\[[^\]]*\]\([^)\s]+[^)]*\)/.test(line)) cardsTop.hasImage = true;
+      if (/^\s+(?:[-*+]|\d+[.)])\s+/.test(line)) cardsTop.hasNested = true;
+    }
 
     // Only now, with the fence settled: a ::: draw inside a code fence is
     // a syntax example, not a diagram. build.js guards the same way, and a
     // linter that disagrees with the build is worse than none – this one
     // failed any lecture that documented the directive.
-    const diagramOpen = line.match(/^:::\s+draw\s*(?:\{([^}]*)\})?\s*$/);
+    // Mirrors build.js: a card row's body is captured, not parsed, so any
+    // directive in a card printed itself on the slide as text and its
+    // closer ended the row early. A ::: draw is the exception the build
+    // makes - a figure is a card of its own - so it is not one here. The
+    // line is then handled as usual so the closers still balance and one
+    // mistake is one report.
+    if ((chunk || col) && /^:::\s+\S/.test(line) && !parseDrawOpener(line)) {
+      const host = stackHas(/^(cards|rows)\b/);
+      if (host) {
+        add(ln, 'error', 'directive-in-cards',
+            `${line.trim().split(/\s+/).slice(0, 2).join(' ')} inside ::: ${host.kind.split(' ')[0]} (line ${host.line}) – `
+            + 'a card holds prose and no directive; the row\'s body is read as text');
+      }
+    }
+
+    const diagramOpen = parseDrawOpener(line);
     if (diagramOpen) {
+      // A figure under a `#` heading is the divider's content, which is what
+      // {.stack} lays out - build.js splices the compiled block into colBody.
+      if (!chunk && col) col.hasBody = true;
+      // Mirrors build.js: an embed's body is its caption, and a figure
+      // opened there sits inside a <figcaption>. An overlay takes a figure -
+      // a small drawing on a card over a photograph - and so does a card.
+      if (stackHas(/^embed$/)) {
+        add(ln, 'error', 'directive-in-embed',
+            `::: draw inside ::: embed (line ${stackHas(/^embed$/).line}) – the lines under an embed are its caption`);
+      }
       // A column heading's own slide may carry a figure - that is how a part
       // opens on a drawing. Outside both a chunk and a column there is
       // nothing for it to be on.
       if (!chunk && !col) {
         add(ln, 'error', 'stray-directive', '::: draw outside any chunk');
       }
-      for (const tok of (diagramOpen[1] || '').trim().split(/\s+/).filter(Boolean)) {
-        // `autoplay=N` is build.js's, not the compiler's: playback is not
-        // part of the drawing, so build.js strips it before the block is
-        // compiled. The linter has to know the word for the same reason -
-        // it never reaches the compiler's own option error.
-        // `cycle` repeats the walk. Bare word, and meaningless without a
-        // delay to repeat - the build says so and so does this.
-        if (tok === 'cycle') {
-          if (!/(^|\s)autoplay=/.test(diagramOpen[1] || '')) {
-            add(ln, 'error', 'bad-autoplay',
-                "'cycle' has no autoplay to repeat – write {autoplay=1200 cycle}");
-          }
-          continue;
-        }
-        const auto = tok.match(/^autoplay=(.*)$/);
-        if (auto) {
-          const n = Number(auto[1]);
-          if (!Number.isFinite(n) || n < 200 || n > 60000) {
-            add(ln, 'error', 'bad-autoplay',
-                `'${tok}' is not a delay in milliseconds between 200 and 60000 – `
-                + 'it is one delay for every step of the figure');
-          }
-          continue;
-        }
-        // DG_HOST_OPTS is imported rather than restated: the two words
-        // above are checked here in detail, and this is the gate that has
-        // to agree with the compiler about which words exist at all.
-        if (!tok.startsWith('#') && !/^unit=\d+x\d+$/.test(tok)
-            && !DG_HOST_OPTS.includes(tok.split('=')[0])) {
-          add(ln, 'error', 'unknown-diagram-option',
-              `unknown ::: draw option '${tok}' – expected #id, unit=WxH, autoplay=N or cycle`);
-        }
-      }
+      // The opener's grammar is the shared parser's, so what it refuses here
+      // is exactly what the build refuses. A refused opener is still an
+      // opener: the body is captured below either way, or its lines would
+      // fall into the Markdown walker and report a cascade of unrelated
+      // errors under one authored mistake.
+      for (const p of diagramOpen.problems) add(ln, 'error', p.code, p.msg);
       // Mirrors build.js: `.cols` is `column-count`, so it is a text flow,
       // and a figure placed in it breaks the flow - the figure appears, the
       // second column never fills, and the author who wrote `cols 2` gets
@@ -2346,7 +3671,11 @@ function lintFile(filePath) {
             '::: draw inside ::: cols – a figure breaks the column flow, so the columns '
             + 'silently stop working; use ::: side to put a figure beside prose');
       }
-      diagram = { open: ln, lines: [] };
+      diagram = { open: ln, lines: [], autoplay: diagramOpen.autoplay != null };
+      chunkHasDrawing = true;
+      // The compiled <svg> goes into the body, so the segment it stands in
+      // is not an empty one - the whole of a figure slide can be one.
+      segHasBody();
       continue;
     }
 
@@ -2361,20 +3690,11 @@ function lintFile(filePath) {
 
     if (h1) {
       flushChunk();
-      const attr = parseAttributeTail(h1[1]);
-      if (attr.ids.length > 1) {
-        add(ln, 'error', 'multiple-ids',
-            `column heading has ${attr.ids.length} {#id} tokens; only the first is used`);
-      }
       // A column heading takes an {#id} and nothing else - width and .bare
-      // are a chunk's business. The build refuses them here; unmirrored, a
-      // `.bare` written one heading level up parsed, was dropped, and neither
-      // file said a word.
-      for (const cls of attr.classes) {
-        add(ln, 'error', 'class-on-column',
-            `column heading carries '.${cls}' – a # heading takes an {#id} and `
-            + 'nothing else; width and .bare belong on the ## chunks under it');
-      }
+      // are a chunk's business. The parser says so (`class-on-column`), the
+      // same way and under the same code as the build.
+      const attr = parseAttributeTail(h1[1], 'column heading', { column: true });
+      for (const p of attr.problems) add(ln, 'error', p.code, p.msg);
       const id = attr.ids[0];
       if (id) {
         if (ids.has(id)) {
@@ -2383,8 +3703,26 @@ function lintFile(filePath) {
         } else {
           ids.set(id, fmLines + ln);
         }
+        // The divider slide renders as `${id}-section` in the same
+        // getElementById namespace (renderColumnSectionChunk), so a chunk or
+        // column authored that name is a real duplicate. Mirror the build's
+        // assertDistinctIds. Registered only if not already taken, so the
+        // author's own collision on the base id is reported once, not twice.
+        const dividerId = id + '-section';
+        if (!ids.has(dividerId)) ids.set(dividerId, fmLines + ln);
       }
-      col = { line: ln, heading: attr.text, id, chunks: [], backdropSeen: 0 };
+      col = { line: ln, heading: attr.text, id, chunks: [], backdropSeen: 0, dock: null,
+        // `{.stack}` puts the divider's own content under the heading at the
+        // full measure instead of beside it, so a divider with no content has
+        // nothing for it to say. Mirrors the build's parse-time refusal
+        // (`bad-section-stack`); `hasBody` is filled in by the divider-body
+        // walk further down, which is the only place that knows.
+        stack: !!(attr.slots && attr.slots.stack && attr.slots.stack.written),
+        // `{.bare}` takes the divider's heading off the slide and is refused
+        // on the same condition, for the plainer reason: with nothing under
+        // the heading the slide is empty. Mirrors `bad-section-bare`.
+        bare: !!(attr.slots && attr.slots.bare && attr.slots.bare.written), hasBody: false };
+      if (id) colIds.add(id);
       columns.push(col);
       continue;
     }
@@ -2395,33 +3733,39 @@ function lintFile(filePath) {
         col = { line: ln, heading: null, id: null, chunks: [] };
         columns.push(col);
       }
-      const attr = parseAttributeTail(h2[1]);
+      const attr = parseAttributeTail(h2[1], 'chunk heading');
       const id = attr.ids[0];
-      if (attr.ids.length > 1) {
-        add(ln, 'error', 'multiple-ids',
-            `chunk heading has ${attr.ids.length} {#id} tokens; only the first is used`);
-      }
+      for (const p of attr.problems) add(ln, 'error', p.code, p.msg);
       const tagMatch = attr.text.match(/^([a-z]+):\s*(.*)$/);
       let tag = null, heading = attr.text;
       if (tagMatch) {
         if (VALID_TAGS.has(tagMatch[1])) {
           tag = tagMatch[1];
           heading = tagMatch[2].trim();
-        } else {
-          add(ln, 'error', 'unknown-tag',
-              `unknown tag '${tagMatch[1]}:' – valid: ${[...VALID_TAGS].join(', ')}`);
+        } else if (!tagMatch[2].startsWith('//')) {
+          // A `//` after the colon is a URL scheme (`## https://…`), not a
+          // type; mirrors the build's parseTagPrefix guard.
+          add(ln, 'error', 'unknown-type',
+              `unknown chunk type '${tagMatch[1]}:' – valid: ${[...VALID_TAGS].join(', ')}`);
         }
       }
+      // An unknown class is the parser's (`unknown-class`, above); what is
+      // left to decide here is a class the tail *knows* on a chunk that
+      // cannot act on it - so an unknown one is not reported twice.
       for (const cls of attr.classes) {
-        if (!VALID_WIDTHS.has(cls) && !VALID_CHUNK_CLASSES.has(cls)) {
-          add(ln, 'error', 'unknown-width',
-              `unknown class '.${cls}' – valid: ${[...VALID_WIDTHS].map(w => '.' + w).join(', ')}`
-              + `, or ${[...VALID_CHUNK_CLASSES].map(c => '.' + c).join(', ')}`);
-        } else if (tag === 'title' || tag === 'closing') {
+        if (!VALID_WIDTHS.has(cls) && !VALID_CHUNK_CLASSES.has(cls)) continue;
+        if ((tag === 'title' || tag === 'closing') && !(cls in CHUNK_STYLE_CLASSES)) {
           // Both are placed by the cover composition: full width, and a
           // heading that is the composition's rather than the slide's. The
           // build refuses these; unmirrored, the two disagreed about a class
           // that changes nothing either way.
+          //
+          // A `style:` override is the exception, and the build agrees: its
+          // refusal reads `width || bare || center` and lets these past. They
+          // have something to act on here - a cover title is a heading and
+          // balances like one, so .wrap-none breaks it greedily - and a rule
+          // the linter refuses while the build renders it is the direction
+          // this project does not allow.
           add(ln, 'error', 'class-on-cover-chunk',
               `'.${cls}' on a ${tag} chunk – its cover composition decides the width `
               + "and the heading, and cover-align decides where its words sit, so the "
@@ -2437,7 +3781,10 @@ function lintFile(filePath) {
       } else {
         ids.set(id, fmLines + ln);
       }
-      chunk = { line: ln, tag, heading, id, classes: attr.classes };
+      chunk = { line: ln, tag, heading, id, classes: attr.classes,
+                // Mirrors flushChunk in build.js: a part's .every dock is on
+                // every chunk of it unless the chunk writes its own.
+                dock: col && col.dock && col.dock.scope === 'every' ? { ...col.dock, inherited: true } : null };
       continue;
     }
 
@@ -2448,6 +3795,17 @@ function lintFile(filePath) {
     // file that builds. See the ::: expand branch in build.js.
     const expandOpen = line.match(/^:::\s+expand\s+(.+?)\s*$/);
     const marginOpen = line.match(/^:::\s+(footnote|margin)\s*$/);
+    if (marginOpen && marginOpen[1] === 'margin') {
+      // ::: margin is the older spelling of ::: footnote and still builds, so
+      // no existing source breaks - but it is one keystroke from ::: marginalia,
+      // a different construct in a different place, and it names the one place
+      // the block never sits. A deprecation nudge, not a refusal: the build
+      // accepts it (a warning that failed the build would break five real
+      // lectures that still write it). Planned for removal in a future major.
+      add(ln, 'warn', 'deprecated-margin',
+          '::: margin is the old spelling of ::: footnote - rename it; the alias is '
+          + 'deprecated and a future major version will drop it');
+    }
     if (expandOpen || marginOpen) {
       if (activeDirective) {
         add(ln, 'error', 'nested-directive',
@@ -2457,17 +3815,39 @@ function lintFile(filePath) {
         add(ln, 'error', 'stray-directive',
             `::: directive outside any chunk`);
       }
+      // Mirrors build.js: the aside's closing ::: popped the wrapper instead,
+      // and the prose after the aside was folded into it.
+      if (layoutStack.length) {
+        add(ln, 'error', 'aside-in-layout',
+            `::: ${expandOpen ? 'expand' : marginOpen[1]} inside ${innermost()} (line ${layoutStack[layoutStack.length - 1].line}) – `
+            + 'an expansion or footnote is folded under the whole chunk, so write it after the block\'s closing :::');
+      }
+      // Lifted out of the body, so it does not make the segment non-empty -
+      // but it is written in that segment and arrives with it, which is the
+      // whole of the `---` / ::: footnote idiom: a source line that comes up
+      // on the click it belongs to. So it rides the beat, and `empty-beat`
+      // has to know.
+      if (chunk) rawSegAside[rawSeg] = true;
       activeDirective = { kind: expandOpen ? 'expand' : marginOpen[1], line: ln };
       continue;
     }
 
-    // ::: backdrop <ref> {classes} – one line, no closer, chunk-level.
-    // ::: overlay {classes} … ::: – a text block laid over the slide.
+    // ::: backdrop <ref> {.classes} – one line, no closer, chunk-level.
+    // ::: overlay {.classes} … ::: – a text block laid over the slide.
     // Both mirror build.js; the reference is resolved there (a backdrop
     // that names no file hard-fails), so the linter rules on the shape of
     // the line and on the class tail, which is what it can decide alone.
     const backdropOpen = line.match(/^:::\s+backdrop\s+([^\s{]+)\s*(?:\{([^}]*)\})?\s*(?:reveal\s+(.+?))?\s*$/);
     if (backdropOpen) {
+      // Mirrors build.js: the line is the slide's wherever it stands, and
+      // inside a captured block it became the picture while reading as the
+      // card's.
+      if (activeDirective) {
+        const code = activeDirective.kind === 'overlay' ? 'directive-in-overlay'
+          : activeDirective.kind === 'dock' ? 'directive-in-dock' : 'nested-directive';
+        add(ln, 'error', code,
+            `::: backdrop inside ::: ${activeDirective.kind} (line ${activeDirective.line}) – a backdrop is the slide's ground, not the block's`);
+      }
       // A divider takes one too: that is the picture a part opens on. The
       // duplicate check is the same rule read against whichever slide the
       // line is on - one slide has one ground.
@@ -2481,14 +3861,34 @@ function lintFile(filePath) {
       } else {
         bdHost.backdropSeen = ln;
       }
-      for (const msg of slotProblems(backdropOpen[2], BACKDROP_SLOTS)) {
-        add(ln, 'error', 'bad-backdrop-class', `::: backdrop: ${msg}`);
+      const bdTail = parseTail(backdropOpen[2], BACKDROP_SLOTS, '::: backdrop');
+      for (const p of bdTail.problems) {
+        add(ln, 'error', p.code, p.msg);
+      }
+      // A picture with no scrim under words. On a divider the heading (or
+      // the agenda) always stands on it; on a chunk the check waits for
+      // flushChunk, which knows whether any words stand outside an overlay
+      // or a dock. The other two scrims are the two answers: veil keeps the
+      // ink readable, invert turns it light; a panel or a dock is the third.
+      if (!bdTail.problems.length && bdTail.slots.scrim.value === 'clear') {
+        if (chunk) chunk.clearBackdrop = ln;
+        // section: card plates the divider's heading, so it reads over the
+        // photo - the one thing a divider cannot do with an overlay, since the
+        // renderer owns the heading. So the card composition is a real answer
+        // here, and the warning does not fire when it is in force.
+        else if (col && sectionVariant !== 'card') {
+          add(ln, 'warn', 'text-on-picture',
+              '::: backdrop {.clear} under a column heading – the divider\'s heading and agenda stand on the '
+              + 'unveiled picture; drop .clear (veil), write .invert, set section: card to plate the heading, '
+              + 'or give any prose a ::: overlay {.panel} or a ::: dock');
+        }
       }
       // `reveal` is a comma list of places, one per beat. Mirrored because
       // the shape is decidable from the line alone; which asset it names is
       // still the build's, like every other reference in this file.
       if (backdropOpen[3] != null) {
         const places = backdropOpen[3].split(',').map(s => s.trim()).filter(Boolean);
+        if (chunk) chunk.bdPlaces = places.length;
         if (places.length < 2) {
           add(ln, 'error', 'bad-backdrop-reveal',
               '::: backdrop: reveal needs at least two places, one per beat – '
@@ -2515,9 +3915,74 @@ function lintFile(filePath) {
           + 'and an optional `reveal <place>, <place>`');
       continue;
     }
+    // ::: dock {.classes} from N … ::: – the overlay's vocabulary with the
+    // other layout contract: part of the frame, the text yields to it.
+    // Mirrors readDockLine in build.js refusal for refusal.
+    const dockOpen = line.match(/^:::\s+dock\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
+    if (!dockOpen && /^:::\s+dock\b/.test(line)) {
+      add(ln, 'error', 'bad-dock',
+          '::: dock takes an optional {.class} tail and an optional `from <beat>`, and nothing else');
+      continue;
+    }
+    if (dockOpen) {
+      const host = chunk || col;
+      if (!host) add(ln, 'error', 'stray-directive', '::: dock outside any chunk');
+      const dt = parseTail(dockOpen[1], DOCK_SLOTS, '::: dock');
+      for (const p of dt.problems) add(ln, 'error', p.code, p.msg);
+      const edge = dt.slots.edge.value, width = dt.slots.width.value,
+            height = dt.slots.height.value, scope = dt.slots.scope.value;
+      const from = dockOpen[2];
+      if (chunk && from != null && /^[1-9]\d*$/.test(from)) chunkDockFroms.push(Number(from));
+      if (from != null && !/^[1-9]\d*$/.test(from)) {
+        add(ln, 'error', 'bad-dock-from',
+            `::: dock from ${from} – \`from\` takes a whole beat number from 1 up; beat 0 is the beat `
+            + 'the slide opens on, which is what writing no `from` already says');
+      }
+      if (chunk && (chunk.tag === 'title' || chunk.tag === 'closing')) {
+        add(ln, 'error', 'dock-on-cover',
+            `::: dock on a ${chunk.tag} chunk – the cover composition frames that slide; a dock belongs on the chunks after it`);
+      }
+      if (height !== 'snug' && (edge === 'left' || edge === 'right')) {
+        add(ln, 'error', 'bad-dock-height',
+            `::: dock {.${height}} – a height belongs to a top or bottom dock; a column is as tall as the slide`);
+      }
+      if (chunk && scope === 'every') {
+        add(ln, 'error', 'dock-scope',
+            '::: dock {.every} on a chunk – a dock is inherited from the part\'s # heading; write it under the heading');
+      }
+      if (scope === 'every' && from != null) {
+        add(ln, 'error', 'bad-dock-from',
+            `::: dock {.every} from ${from} – an inherited dock is on every slide of the part from the moment each opens; drop from, or drop .every`);
+      }
+      if (activeDirective) {
+        add(ln, 'error', 'nested-directive',
+            `::: dock inside still-open ::: ${activeDirective.kind} (line ${activeDirective.line})`);
+      }
+      if (layoutStack.length) {
+        add(ln, 'error', 'dock-in-layout',
+            `::: dock inside ${innermost()} (line ${layoutStack[layoutStack.length - 1].line}) – `
+            + 'a dock is part of the slide\'s frame, so write it outside the block, at chunk level');
+      }
+      if (host && host.dock && !host.dock.inherited) {
+        add(ln, 'error', 'duplicate-dock',
+            `second ::: dock on one ${chunk ? 'chunk' : 'column heading'} (first at line ${host.dock.line}) – one slide has one dock`);
+      }
+      if (host) host.dock = { edge, width, height, scope, line: ln, inherited: false };
+      activeDirective = { kind: 'dock', line: ln, scope,
+        from: from != null && /^[1-9]\d*$/.test(from) ? Number(from) : null };
+      continue;
+    }
     const overlayOpen = line.match(/^:::\s+overlay\s*(?:\{([^}]*)\})?\s*(?:from\s+(\S+))?\s*$/);
+    if (!overlayOpen && /^:::\s+overlay\b/.test(line)) {
+      add(ln, 'error', 'bad-overlay',
+          '::: overlay takes an optional {.class} tail and an optional `from <beat>`, '
+          + 'and nothing else');
+      continue;
+    }
     if (overlayOpen) {
-      if (!chunk) {
+      // A divider takes an overlay too - a card of words over the picture a
+      // part opens on - so only a line before any heading is stray.
+      if (!chunk && !col) {
         add(ln, 'error', 'stray-directive', '::: overlay outside any chunk');
       }
       // `from 0` is the beat the slide opens on, which is what writing no
@@ -2528,14 +3993,38 @@ function lintFile(filePath) {
             + 'from 1 up; beat 0 is the beat the slide opens on, which is what writing '
             + 'no `from` already says');
       }
-      for (const msg of slotProblems(overlayOpen[1], OVERLAY_SLOTS)) {
-        add(ln, 'error', 'bad-overlay-class', `::: overlay: ${msg}`);
+      const ovTail = parseTail(overlayOpen[1], OVERLAY_SLOTS, '::: overlay');
+      for (const p of ovTail.problems) {
+        add(ln, 'error', p.code, p.msg);
+      }
+      // Mirrors build.js: a panel reaches one edge, and a corner names two.
+      const ovH = ovTail.slots.height.value, ovP = ovTail.slots.place.value;
+      if (ovH !== 'snug' && !(ovTail.slots.shape.value === 'panel' && (ovP === 'top' || ovP === 'bottom'))) {
+        add(ln, 'error', 'bad-overlay-height',
+            `::: overlay {.${ovH}} – a height belongs to a top or bottom panel; a column is as tall as the slide `
+            + 'and a card as tall as its words');
+      }
+      if (ovTail.slots.shape.value === 'panel' && /-/.test(ovTail.slots.place.value)) {
+        add(ln, 'error', 'bad-overlay-panel',
+            `::: overlay {.panel .${ovTail.slots.place.value}} – a panel reaches one edge of the frame and a corner names two; `
+            + 'write left, right, top or bottom for a column or a band, or center for the whole frame');
       }
       if (activeDirective) {
         add(ln, 'error', 'nested-directive',
             `::: overlay inside still-open ::: ${activeDirective.kind} (line ${activeDirective.line})`);
       }
-      activeDirective = { kind: 'overlay', line: ln };
+      // Mirrors build.js: the wrapper's closing ::: was read as the
+      // overlay's, and the prose after it went into the card.
+      if (layoutStack.length) {
+        add(ln, 'error', 'overlay-in-layout',
+            `::: overlay inside ${innermost()} (line ${layoutStack[layoutStack.length - 1].line}) – `
+            + 'an overlay is laid over the whole slide, so write it outside the block, at chunk level');
+      }
+      if (overlayOpen[2] != null && /^[1-9]\d*$/.test(overlayOpen[2])) {
+        chunkOverlays.push({ from: Number(overlayOpen[2]), line: ln });
+      }
+      activeDirective = { kind: 'overlay', line: ln,
+        from: overlayOpen[2] != null && /^[1-9]\d*$/.test(overlayOpen[2]) ? Number(overlayOpen[2]) : null };
       continue;
     }
 
@@ -2544,6 +4033,11 @@ function lintFile(filePath) {
     // own small stack so bare `:::` closes the innermost layout first,
     // and the outer sidebar directive only after.
     const colsOpen = line.match(/^:::\s+cols\s+(2|3)\s*$/);
+    if (!colsOpen && /^:::\s+cols\b/.test(line)) {
+      add(ln, 'error', 'bad-cols',
+          '::: cols takes 2 or 3 and nothing else – more columns than three is a table, '
+          + 'and a card row is ::: cards N');
+    }
     // `::: rows` is the same container as `::: cards`, turned ninety
     // degrees: same slots, same refusals, one column by definition.
     const rowsOpen = line.match(/^:::\s+rows\s*(?:\{([^}]*)\})?\s*$/);
@@ -2558,9 +4052,40 @@ function lintFile(filePath) {
           + 'more than six cards in a row is a table');
     }
     if (cardsOpen || rowsOpen) {
+      // As for a figure: a card row under a `#` heading is content the
+      // divider carries, so {.stack} has something to place.
+      if (!chunk && col) col.hasBody = true;
       const kind = rowsOpen ? 'rows' : 'cards';
-      for (const msg of slotProblems((rowsOpen ? rowsOpen[1] : cardsOpen[2]), CARDS_SLOTS)) {
-        add(ln, 'error', `bad-${kind}-class`, `::: ${kind}: ${msg}`);
+      const cardsTail = parseTail((rowsOpen ? rowsOpen[1] : cardsOpen[2]), CARDS_SLOTS, `::: ${kind}`);
+      for (const p of cardsTail.problems) {
+        add(ln, 'error', p.code, p.msg);
+      }
+      // Content-dependent refusals the build makes, mirrored so the pre-commit
+      // gate predicts the build: a `.photo` ground (or a scrim over it) needs a
+      // card to carry a picture, and a `detail:` needs a nested level. The
+      // block body decides these, so the flags are accumulated on the stack
+      // entry as the body's lines go by (below) and checked when the block
+      // closes. The build scans the block's raw lines the same way, so the two
+      // agree - both count a markdown image and both ignore a ::: draw.
+      pendingCardsCheck = cardsTail.problems.length ? null : {
+        ground: cardsTail.slots.ground.value,
+        scrim: cardsTail.slots.scrim.value,
+        detail: cardsTail.slots.detail.value,
+        wroteGround: cardsTail.slots.ground.written,
+        wroteScrim: cardsTail.slots.scrim.written,
+        wroteDetail: cardsTail.slots.detail.written,
+        kind,
+      };
+      // Mirrors build.js: `.baseline` lines a term up with the body beside
+      // it, and a card has no body beside it. Reported here rather than at
+      // the close with the content-dependent three above, because this one
+      // needs nothing but the tail and the word that opened the block - so
+      // the line it names is the line the author wrote.
+      if (!cardsTail.problems.length && kind === 'cards'
+          && cardsTail.slots.anchor.written && cardsTail.slots.anchor.value === 'baseline') {
+        add(ln, 'error', 'cards-baseline-no-body',
+            '::: cards {.baseline} – .baseline lines a term up with the body beside it, and a card has no body beside it;'
+            + ' use .top or .middle, or write ::: rows if the items are term-and-definition pairs');
       }
       // Mirrors build.js: a card row is N containers side by side, so it
       // needs the whole measure, and every directive that could enclose it
@@ -2581,10 +4106,21 @@ function lintFile(filePath) {
             + `${encl} has already divided it`);
       }
     }
-    const sideOpen = /^:::\s+side(?:\s+\d{1,2}\s*:\s*\d{1,2})?\s*$/.test(line);
+    // The ratio is positional, the anchor rides in a brace tail. Mirrors
+    // build.js, including the tail's vocabulary – a linter that refuses
+    // `::: side {.middle}` while the build draws it is the direction this
+    // project does not allow.
+    const sideMatch = line.match(/^:::\s+side(?:\s+\d{1,2}\s*:\s*\d{1,2})?\s*(?:\{([^}]*)\})?\s*$/);
+    const sideOpen = !!sideMatch;
     if (!sideOpen && /^:::\s+side\b/.test(line)) {
       add(ln, 'error', 'bad-side',
-          '::: side takes an optional ratio and nothing else – write ::: side or ::: side 2:1');
+          '::: side takes an optional ratio, an optional {class} tail and nothing else – '
+          + 'write ::: side, ::: side 2:1, or ::: side {.middle}');
+    }
+    if (sideOpen) {
+      for (const p of parseTail(sideMatch[1], SIDE_SLOTS, '::: side').problems) {
+        add(ln, 'error', p.code, p.msg);
+      }
     }
     const flipMark = /^:::\s+flip\s*$/.test(line);
     const marginaliaOpen = /^:::\s+marginalia\s*$/.test(line);
@@ -2609,9 +4145,17 @@ function lintFile(filePath) {
       }
     }
     if (colsOpen || cardsOpen || rowsOpen || sideOpen || marginaliaOpen || slideOpen || scriptOpen || embedOpen) {
-      if (!chunk) {
+      // Every one of these is an HTML wrapper the build writes into the
+      // body, so the segment holding it is not empty even before a word of
+      // its content is read.
+      segHasBody();
+      // A divider takes a card row or a row block beside its backdrop and
+      // its figure; every other directive there is a slide that has stopped
+      // being a divider, and the build refuses it with the same words.
+      if (!chunk && !(col && (cardsOpen || rowsOpen))) {
         add(ln, 'error', 'stray-directive',
-            `::: layout directive outside any chunk`);
+            col ? `::: layout directive under a column heading – a divider takes ::: backdrop, ::: draw, ::: cards / ::: rows and prose; anything else belongs in a ## chunk`
+                : `::: layout directive outside any chunk`);
       }
       const kind = colsOpen ? `cols ${colsOpen[1]}`
         : rowsOpen ? 'rows'
@@ -2620,6 +4164,72 @@ function lintFile(filePath) {
         : marginaliaOpen ? 'marginalia'
         : embedOpen ? 'embed'
         : slideOpen ? 'slide' : 'script';
+      const word = kind.split(' ')[0];
+      const isCards = cardsOpen || rowsOpen;
+      // Mirrors build.js, one refusal per line of it. A card row inside an
+      // overlay or an embed is already `cards-nested` above, so those two
+      // are not reported twice.
+      if (!isCards && activeDirective && activeDirective.kind === 'dock') {
+        add(ln, 'error', 'directive-in-dock',
+            `::: ${word} inside ::: dock (line ${activeDirective.line}) – a dock holds prose, a list, an image or a ::: draw, and no other directive`);
+      }
+      if (!isCards && activeDirective && activeDirective.kind === 'overlay') {
+        add(ln, 'error', 'directive-in-overlay',
+            `::: ${word} inside ::: overlay (line ${activeDirective.line}) – an overlay holds prose and no block or figure`);
+      }
+      if (!isCards && stackHas(/^embed$/)) {
+        add(ln, 'error', 'directive-in-embed',
+            `::: ${word} inside ::: embed (line ${stackHas(/^embed$/).line}) – the lines under an embed are its caption`);
+      }
+      if (sideOpen && stackHas(/^cols/)) {
+        add(ln, 'error', 'side-in-cols',
+            '::: side inside ::: cols – a two-pane grid breaks the column flow, so the columns '
+            + 'silently stop working; use one or the other');
+      }
+      if ((slideOpen || scriptOpen) && stackHas(/^(slide|script)$/)) {
+        add(ln, 'error', 'explicit-nested',
+            `::: ${word} inside ::: ${stackHas(/^(slide|script)$/).kind} – one says "this is the screen", `
+            + 'the other "this is not"; neither can hold the other or itself');
+      }
+      // From here on the build draws it and the linter has an opinion.
+      if (colsOpen && stackHas(/^cols/)) {
+        add(ln, 'warn', 'cols-in-cols',
+            '::: cols inside ::: cols – a flow balanced inside a flow; the inner block '
+            + 'is kept whole in one outer column and splits that column again');
+      }
+      if ((slideOpen || scriptOpen) && stackHas(/^side$/)) {
+        add(ln, 'warn', 'explicit-in-side',
+            `::: ${word} inside ::: side – the collapse hides the other pane on the projection `
+            + 'and the grid keeps its track, so the slide shows one pane at half width; '
+            + 'wrap the whole ::: side in the explicit block instead');
+      }
+      if (marginaliaOpen && chunk) {
+        if (chunk.marginaliaSeen) {
+          add(ln, 'warn', 'duplicate-marginalia',
+              `second ::: marginalia in one chunk (first at line ${chunk.marginaliaSeen}) – `
+              + 'both are anchored at the top of the margin and overlap; merge them');
+        } else {
+          chunk.marginaliaSeen = ln;
+        }
+      }
+      // What the measure divides down to. A ::: side ratio is read here for
+      // the pane share; the anchor tail is the slot table's business above.
+      const sideRatio = sideOpen
+        ? (line.match(/side\s+(\d{1,2})\s*:\s*(\d{1,2})/) || [, 1, 1]).slice(1, 3).map(Number)
+        : null;
+      const tracks = colsOpen ? Number(colsOpen[1]) : cardsOpen ? Number(cardsOpen[1]) : null;
+      if (chunk && (tracks || sideOpen)) {
+        const em = measureHere();
+        const track = tracks ? em / tracks
+          : em * Math.min(...sideRatio) / (sideRatio[0] + sideRatio[1]);
+        if (track < MIN_TRACK_EM) {
+          const each = tracks ? (colsOpen ? 'column' : 'card') : 'pane';
+          const host = layoutStack.length ? `${innermost()} in ` : '';
+          add(ln, 'warn', 'layout-too-narrow',
+              `::: ${kind} in ${host}a ${widthWord()} chunk gives each ${each} about ${Math.round(track)}em – `
+              + `under ${MIN_TRACK_EM}em a paragraph is a ribbon; use a wider chunk or fewer ${each}s`);
+        }
+      }
       if (slideOpen || scriptOpen) {
         // One explicit block of each kind per chunk. A second one would
         // render fine but splits the on-screen content into pieces the
@@ -2632,7 +4242,8 @@ function lintFile(filePath) {
           chunk[seen + 'Seen'] = ln;
         }
       }
-      layoutStack.push({ kind, line: ln });
+      layoutStack.push({ kind, line: ln, ratio: sideRatio, flipped: false,
+        cardsCheck: pendingCardsCheck, hasImage: false, hasNested: false });
       continue;
     }
     if (flipMark) {
@@ -2640,12 +4251,44 @@ function lintFile(filePath) {
       if (!top || top.kind !== 'side') {
         add(ln, 'error', 'stray-directive',
             `::: flip without an enclosing ::: side`);
+      } else if (top.flipped) {
+        // Mirrors build.js: a second flip opened a third pane in a two-track
+        // grid, which wrapped onto a row of its own.
+        add(ln, 'error', 'duplicate-flip',
+            `second ::: flip in one ::: side (line ${top.line}) – a side has two panes; for three things in a row write ::: cards 3`);
+      } else {
+        top.flipped = true;
       }
       continue;
     }
     if (/^:::\s*$/.test(line)) {
       if (layoutStack.length) {
-        layoutStack.pop();
+        const closed = layoutStack.pop();
+        // Not an error: the build draws one pane in a two-track grid, at
+        // half the measure with nothing beside it - which is a narrow
+        // chunk written the long way round.
+        if (closed.kind === 'side' && !closed.flipped) {
+          add(closed.line, 'warn', 'side-without-flip',
+              '::: side with no ::: flip – one pane in a two-track grid renders at half width '
+              + 'with nothing beside it; add the second pane or drop the ::: side');
+        }
+        // The content-dependent cards refusals, mirroring the build's hard
+        // errors so `lint.js` predicts the build here too (CLAUDE.md: a
+        // refusal in one file needs the same key in the other).
+        const cc = closed.cardsCheck;
+        if (cc) {
+          if (cc.wroteGround && cc.ground === 'photo' && !closed.hasImage) {
+            add(closed.line, 'error', 'cards-photo-no-image',
+                `::: ${cc.kind} {.photo} – .photo makes a card's first image its ground, and no card here carries one; add a picture or drop .photo`);
+          } else if (cc.wroteScrim && (cc.ground !== 'photo' || !closed.hasImage)) {
+            add(closed.line, 'error', 'cards-scrim-no-image',
+                `::: ${cc.kind} {.${cc.scrim}} – a scrim needs a picture to veil, and this row ${cc.ground !== 'photo' ? 'is ' + cc.ground : 'carries no image'}`);
+          }
+          if (cc.wroteDetail && !closed.hasNested) {
+            add(closed.line, 'error', 'cards-detail-no-nesting',
+                `::: ${cc.kind} {.${cc.detail}} – detail decides what happens to a card's nested level, and no card here has one; add a nested list or drop the detail word`);
+          }
+        }
         continue;
       }
       if (!activeDirective) {
@@ -2656,18 +4299,109 @@ function lintFile(filePath) {
       continue;
     }
 
-    if (chunk && !activeDirective && line.trim() === '---') {
+    if (activeDirective && activeDirective.kind === 'dock' && activeDirective.scope === 'every' && parseRevealMark(line)) {
+      add(ln, 'error', 'bad-dock-beat',
+          '--- inside ::: dock {.every} – an inherited dock is on every slide of the part, and a beat is one slide\'s; write *** for a rule, or drop .every');
+      continue;
+    }
+    // Read on every line the build reads one on, which includes a divider's
+    // body (no chunk open) and the inside of a ::: script - the build refuses
+    // a malformed marker at all of them, and a linter that is quiet where the
+    // build refuses lets a deck through the pre-commit gate and break later.
+    const revMark = (!activeDirective || activeDirective.kind === 'overlay' || activeDirective.kind === 'dock')
+      ? parseRevealMark(line) : null;
+    if (revMark) {
+      // A malformed marker is refused wherever it stands, before any question
+      // about what this one would have meant here.
+      if (revMark.problems.length) {
+        add(ln, 'error', revMark.problems[0].code, revMark.problems[0].msg.split('\n')[0].trim());
+        continue;
+      }
+      // Inside ::: script the line stays a rule, as in the build - so a
+      // number on it is a pin the drawing never takes, which is the silent
+      // no-op this format refuses everywhere else.
+      if (layoutStack.some(l => l.kind === 'script')) {
+        if (revMark.from != null) {
+          add(ln, 'error', 'bad-reveal-from',
+              `--- from ${revMark.from} inside ::: script – the block is narration and is off the `
+              + 'projection, so the line stays a rule there and the number would do nothing; write --- on its own');
+        }
+        continue;
+      }
+      // A divider's body walks the same counter, but none of the per-chunk
+      // tallies below belong to it.
+      if (!chunk) continue;
+      // At the top level the build splits the body into segments here;
+      // below it - in a pane, a card row, an overlay card - the same line is
+      // a beat marker the runtime honours in source order. Either way it is
+      // one beat on the chunk's counter, which is all this file needs.
+      // A container already held to a beat numbers its own markers, so a
+      // written one is two answers to one question. Mirrors the build.
+      if (revMark.from != null && activeDirective && activeDirective.from != null) {
+        add(ln, 'error', 'bad-reveal-from',
+            `--- from ${revMark.from} inside ::: ${activeDirective.kind} from ${activeDirective.from} – `
+            + 'a block held to a beat counts its own beats from the one it arrives on, so its markers '
+            + 'are numbered already; drop the from here, or take it off the directive');
+        continue;
+      }
       chunkHasReveal = true;
+      // What stands between the chunk's first beat and this one below the
+      // top level: a marker inside a pane or a card row, and a figure's
+      // `step` blocks. Read before the counters move, so it is the count
+      // *before* this separator - which is what turns a separator's place
+      // among its own kind into a beat number, the way `pos` in chunkBeats
+      // numbers the whole document-order walk.
+      const nestedBefore = (chunkReveals - topReveals) + chunkSteps;
+      // A pinned beat rides one the chunk already has rather than adding a
+      // position of its own - which is what chunkBeats' push() does with it.
+      if (revMark.from == null) chunkReveals += 1;
+      else chunkRevealPins.push({ ln, from: revMark.from });
       inMetaBlock = false;
+      curNote = null;
+      if (!activeDirective && !layoutStack.length) {
+        rawSeg += 1;
+        rawSegLine[rawSeg] = ln;
+        if (revMark.from == null) topReveals += 1;
+        // A pinned segment rides a beat the chunk already has, so dropping
+        // it costs no beat - which is what the arithmetic in flushChunk
+        // needs to know.
+        rawSegPinned[rawSeg] = revMark.from != null;
+        rawSegFrom[rawSeg] = revMark.from;
+        rawSegNested[rawSeg] = nestedBefore;
+      }
       continue;
     }
 
+    if (activeDirective && activeDirective.kind === 'dock') {
+      const bare = line.replace(/`[^`]*`/g, '');
+      for (const m of bare.matchAll(/\]\(#([^)\s]+)\)/g)) dockLinks.push({ id: decodeURIComponent(m[1]), ln });
+    }
     if (chunk) {
-      if (/^>\s*(note|annot):/i.test(line)) { inMetaBlock = true; continue; }
-      if (inMetaBlock) {
-        if (/^>/.test(line)) continue;
-        inMetaBlock = false;
+      // `> note: from N` pins the block to an advance by number instead of
+      // to where it stands - the escape hatch for a chunk whose beats are a
+      // diagram's steps, which no separator line can sit between. A pinned
+      // note is not judged by its position, so it stays out of noteSegs.
+      const notePin = /^>\s*note:\s*from\s+(\d+)\s*$/i.exec(line);
+      if (notePin) notePins.push(curNote = { ln, from: Number(notePin[1]), klicks: 0 });
+      else if (/^>\s*note:/i.test(line)) noteSegs.push(curNote = { ln, seg: rawSeg, klicks: 0 });
+      if (/^>\s*(note|annot):/i.test(line)) {
+        inMetaBlock = true;
+        // An annotation is not a cue card, so nothing in it counts.
+        if (!/^>\s*note:/i.test(line)) curNote = null;
+        // A block may carry its first line beside the marker, and that line
+        // may be the click - `> note: [Klick: die Zeile wird hell.]`.
+        else if (curNote && cueAdvance(line.replace(/^>\s*note:/i, ''))) curNote.klicks += 1;
+        continue;
       }
+      if (inMetaBlock) {
+        if (/^>/.test(line)) {
+          if (curNote && cueAdvance(line.replace(/^>\s?/, ''))) curNote.klicks += 1;
+          continue;
+        }
+        inMetaBlock = false;
+        curNote = null;
+      }
+      if (line.trim() && !/^:::\s*$/.test(line)) segHasBody();
       // Density is a budget on what the *projector* shows, so explicit
       // blocks are counted separately: ::: slide content is the slide,
       // ::: script content is narration that never reaches the screen.
@@ -2676,6 +4410,9 @@ function lintFile(filePath) {
       else if (inKind('script')) scriptBody.push(line);
       else {
         chunkBody.push(line);
+        // Words that stand on the slide itself, outside an overlay or a
+        // dock - what a .clear backdrop would leave on the bare picture.
+        if (!activeDirective && !/^:::|^<div class="beat-mark"/.test(line.trim()) && line.trim()) exposedWords += line.trim().split(/\s+/).length;
         // A card or a row is a list, and splitSentencesIn never abridges a
         // list item, so nothing written in one can be orphaned by the
         // collapse. An explicit block opts out of the split altogether and
@@ -2684,9 +4421,43 @@ function lintFile(filePath) {
           proseEntries.push({ text: line, ln });
         }
       }
+    } else if (col && line.trim()) {
+      // A line under a `#` heading with no chunk open yet is the divider's
+      // own content - build.js pushes exactly these into `colBody`. A note
+      // is the speaker's rather than the slide's, and a line inside an
+      // overlay or a dock belongs to that block, not to the divider's body.
+      // Only `col.stack` reads this, and only to refuse a `{.stack}` with
+      // nothing under the heading to stack.
+      if (/^>\s*(note|annot):/i.test(line)) {
+        inMetaBlock = true;
+        const pin = /^>\s*note:\s*from\s+(\d+)\s*$/i.exec(line);
+        if (!/^>\s*note:/i.test(line)) curNote = null;
+        else {
+          colNotes.push(curNote = { ln, from: pin ? Number(pin[1]) : null, klicks: 0 });
+          if (!pin && cueAdvance(line.replace(/^>\s*note:/i, ''))) curNote.klicks += 1;
+        }
+      }
+      else if (inMetaBlock && /^>/.test(line)) {
+        if (curNote && cueAdvance(line.replace(/^>\s?/, ''))) curNote.klicks += 1;
+      }
+      else {
+        inMetaBlock = false;
+        curNote = null;
+        const capture = activeDirective && (activeDirective.kind === 'dock' || activeDirective.kind === 'overlay');
+        if (!capture) col.hasBody = true;
+      }
     }
   }
   flushChunk();
+
+  // Mirrors renderDock in build.js: a #link in a dock is the live marker, so
+  // one that names no slide and no part can never light.
+  for (const l of dockLinks) {
+    if (!ids.has(l.id) && !colIds.has(l.id)) {
+      add(l.ln, 'error', 'dock-link',
+          `::: dock links #${l.id}, and no chunk or column carries that id – fix the id, or write the item without a link`);
+    }
+  }
 
   const allChunks = columns.flatMap(c => c.chunks);
   const titleChunks = allChunks.filter(c => c.tag === 'title');
@@ -2715,6 +4486,15 @@ function lintFile(filePath) {
     add(closingChunks[closingChunks.length - 1].line, 'warn', 'closing-position',
         `a 'closing:' chunk is not the last chunk in the lecture – it draws the cover's composition, which mid-deck reads as a second title slide`);
   }
+  // A picture for a slide the deck does not have. The build refuses it in
+  // its pre-flight, and this is the same fact read from the other end:
+  // whether a lecture ends on a `## closing:` chunk is a property of the
+  // body, so the frontmatter block above cannot see it.
+  if (!closingChunks.length && /^closing-image:[ \t]*\S/m.test(header)) {
+    const cl = header.split('\n').findIndex(l => /^closing-image:[ \t]*\S/.test(l));
+    addFm(cl + 2, 'error', 'bad-closing-image',
+      'closing-image is set, and the lecture has no closing: chunk for it to draw on');
+  }
   for (const c of closingChunks) {
     if (!c.heading) {
       add(c.line, 'error', 'closing-heading',
@@ -2724,6 +4504,21 @@ function lintFile(filePath) {
 
   for (const c of columns) {
     if (c.heading === null) continue;
+    // The build refuses this at parse time; a linter that let it through
+    // would be the direction this project does not allow.
+    if (c.stack && !c.hasBody) {
+      add(c.line, 'error', 'bad-section-stack',
+          `{.stack} on a divider with no content under its heading – .stack puts the part's own figure, `
+          + 'quotation or card row under the heading at full width instead of beside it; write something '
+          + 'under the # line, or drop the class');
+    }
+    if (c.bare && !c.hasBody) {
+      add(c.line, 'error', 'bad-section-bare',
+          '{.bare} on a divider with no content under its heading – .bare takes the heading off the '
+          + 'slide and leaves it in the contents, in section: outline, in the speaker view and in '
+          + 'search, so with nothing under the # line the slide has nothing on it; write the divider\'s '
+          + 'own figure, quotation or card row there, or drop the class');
+    }
     if (c.chunks.length < ORPHAN_MIN) {
       add(c.line, 'warn', 'orphan-column',
           `column '${c.heading}' has ${c.chunks.length} chunk${c.chunks.length === 1 ? '' : 's'} (min ${ORPHAN_MIN})`);
@@ -2749,8 +4544,113 @@ function lintFile(filePath) {
   // way; the build hard-fails on an oversized one, so this gate has to reach
   // them or it lets through exactly what the build will refuse.
   const diagramRefs = new Set(diagramImageRefs(body));
+  // One size check, two walks: the body below and the frontmatter after it.
+  // `emit` is how the caller says which line the finding belongs to.
+  const checkOversized = (href, emit) => {
+    if (/^[a-z]+:/i.test(href)) return;
+    let abs = null;
+    if (!href.includes('/') && !path.extname(href)) {
+      for (const ext of [...IMG_EXTS, ...VIDEO_EXTS]) {
+        const cand = path.join(sourceDir, 'assets', `${href}.${ext}`);
+        if (fs.existsSync(cand)) { abs = cand; break; }
+      }
+    } else {
+      const cand = path.resolve(sourceDir, href);
+      if (fs.existsSync(cand)) abs = cand;
+    }
+    if (!abs || seenAssets.has(abs)) return;
+    seenAssets.add(abs);
+    let size;
+    try { size = fs.statSync(abs).size; } catch (e) { return; }
+    const cap = inlineCapFor(abs);
+    if (size <= cap) return;
+    const mb = (size / 1024 / 1024).toFixed(2);
+    if (cap === MAX_INLINE_VIDEO_BYTES) {
+      // Video has a defined fallback: the build stages it into videos/
+      // beside the output. Worth saying, because it is the difference
+      // between a broken figure and one companion folder to carry.
+      emit('warn', 'oversized-asset',
+           `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so the build plays it from videos/ beside the output – keep that folder with the HTML, or re-encode the clip smaller`);
+    } else {
+      emit('warn', 'oversized-asset',
+           `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so it stays an external path and the output is not self-contained – run \`node build.js <source.md> --optimize-images\``);
+    }
+  };
+  // Every reference the build would read, held to the asset root. Resolved
+  // the way the build resolves it - the shorthand through assets/, anything
+  // else from the source's folder - and then through any link, because a
+  // link in assets/ is read as the file it points to. Skipped: a URL, a
+  // root-absolute or protocol-relative path (the build leaves those alone
+  // and reads nothing), and anything in a code fence or a code span, which
+  // the build renders as text.
+  const assetRoot = assetRootOf(sourceDir);
+  const outsideSeen = new Set();
+  const checkConfined = (href, emit) => {
+    if (!href || /^(?:https?:|data:|\/\/|\/)/i.test(href)) return;
+    const file = href.replace(/[?#].*$/, '');
+    const cands = !file.includes('/') && !path.extname(file)
+      ? [...IMG_EXTS, ...VIDEO_EXTS].map(ext => path.join(sourceDir, 'assets', `${file}.${ext}`))
+          .filter(c => fs.existsSync(c)).slice(0, 1)
+      : [path.resolve(sourceDir, file)];
+    for (const abs of cands) {
+      const out = assetEscape(abs, sourceDir);
+      if (out === null || outsideSeen.has(out)) continue;
+      outsideSeen.add(out);
+      const scope = assetRootNarrowed(realpathLoose(sourceDir))
+        ? `the lecture's folder alone (${assetRoot}), because the folder above it is your home folder or the top of a disk`
+        : `the lecture's folder and the folder one level up (${assetRoot})`;
+      const inDot = pathWithin(assetRoot, out)
+        && path.relative(assetRoot, out).split(path.sep).some(c => c.startsWith('.'));
+      emit('error', 'asset-outside-root', !pathWithin(assetRoot, out)
+        ? `'${href}' is ${out} – the build reads assets from ${scope}, links resolved, and refuses `
+          + 'this deck; copy the file in there'
+        : inDot
+          ? `'${href}' is ${out}, in a folder whose name starts with a dot – the build reads nothing from `
+            + 'one (.ssh, .git, .config …) and refuses this deck; move the file out of it'
+          : `'${href}' is a link to ${out}, which is not a picture, a clip or a font – the build reads `
+            + 'a link only when its target is the kind of file its name says, and refuses this deck');
+    }
+  };
+  let assetFence = false;
+  let confineFence = false;
   lines.forEach((line, i) => {
-    const hrefs = [...line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map(m => m[1]);
+    if (/^\s*(```|~~~)/.test(line)) confineFence = !confineFence;
+    else if (!confineFence) {
+      const emit = (sev, rule, msg) => add(i + 1, sev, rule, msg);
+      const prose = line.replace(/`[^`\n]*`/g, '');
+      for (const m of prose.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)) checkConfined(m[1], emit);
+      const im = line.trim().match(/^image\s+\S+\s+(\S+)/) || line.trim().match(/^grid\s+\S+\s+image\s+(\S+)/);
+      if (im && diagramRefs.has(im[1])) checkConfined(im[1], emit);
+      const bd = line.match(/^:::[ \t]+backdrop[ \t]+([^\s{]+)/);
+      if (bd) checkConfined(bd[1], emit);
+    }
+    if (/^\s*(```|~~~)/.test(line)) assetFence = !assetFence;
+    const mdHrefs = [...line.matchAll(/!\[[^\]]*\]\(([^)\s]+)[^)]*\)/g)].map(m => m[1]);
+    // A `![](path)` whose path is an explicit relative one (it has a slash or
+    // an extension, so it is not the assets/ shorthand) and names no file:
+    // the build now renders a placeholder for it and warns `[assets] not
+    // found`, where it used to ship the raw string as a broken external src.
+    // Mirror it, or the linter is silent on what the build now flags. Skip
+    // the shorthand (its miss is a placeholder by design), http(s)/data:
+    // (filtered below), and root-absolute / protocol-relative refs, which the
+    // build leaves untouched as intentional external paths - and skip inside a
+    // code fence, where `![](path)` is documentation the build never renders,
+    // so flagging it would be the linter stricter than the build.
+    for (const href of assetFence ? [] : mdHrefs) {
+      if (/^[a-z]+:/i.test(href) || href.startsWith('/')) continue;
+      // A ?query / #fragment is a served-URL cache-buster, not the file name -
+      // strip it before the existence test, the way the build does.
+      const hrefFile = href.replace(/[?#].*$/, '');
+      const isShorthand = !hrefFile.includes('/') && !path.extname(hrefFile);
+      if (isShorthand) continue;
+      if (!fs.existsSync(path.resolve(sourceDir, hrefFile))) {
+        const hint = href.includes('/') ? '' :
+          ` – if it is in assets/, write ![](${href.replace(/\.[a-z0-9]+$/i, '')}) without the extension`;
+        add(i + 1, 'warn', 'unresolved-asset',
+            `image path '${href}' names no file, so the build renders a placeholder${hint}`);
+      }
+    }
+    const hrefs = [...mdHrefs];
     const dm = line.trim().match(/^image\s+\S+\s+(\S+)/);
     if (dm && diagramRefs.has(dm[1])) hrefs.push(dm[1]);
     // A ::: backdrop is inlined as a data: URI exactly like a figure, so
@@ -2758,36 +4658,19 @@ function lintFile(filePath) {
     // likely to be a photograph, which is the kind that blows it.
     const bm = line.match(/^:::\s+backdrop\s+([^\s{]+)/);
     if (bm) hrefs.push(bm[1]);
-    for (const href of hrefs) {
-      if (/^[a-z]+:/i.test(href)) continue;
-      let abs = null;
-      if (!href.includes('/') && !path.extname(href)) {
-        for (const ext of [...IMG_EXTS, ...VIDEO_EXTS]) {
-          const cand = path.join(sourceDir, 'assets', `${href}.${ext}`);
-          if (fs.existsSync(cand)) { abs = cand; break; }
-        }
-      } else {
-        const cand = path.resolve(sourceDir, href);
-        if (fs.existsSync(cand)) abs = cand;
-      }
-      if (!abs || seenAssets.has(abs)) continue;
-      seenAssets.add(abs);
-      let size;
-      try { size = fs.statSync(abs).size; } catch (e) { continue; }
-      const cap = inlineCapFor(abs);
-      if (size <= cap) continue;
-      const mb = (size / 1024 / 1024).toFixed(2);
-      if (cap === MAX_INLINE_VIDEO_BYTES) {
-        // Video has a defined fallback: the build stages it into videos/
-        // beside the output. Worth saying, because it is the difference
-        // between a broken figure and one companion folder to carry.
-        add(i + 1, 'warn', 'oversized-asset',
-            `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so the build plays it from videos/ beside the output – keep that folder with the HTML, or re-encode the clip smaller`);
-      } else {
-        add(i + 1, 'warn', 'oversized-asset',
-            `${path.relative(sourceDir, abs)} is ${mb} MB (> ${cap / 1024 / 1024} MB inline cap), so it stays an external path and the output is not self-contained – run \`node build.js <source.md> --optimize-images\``);
-      }
-    }
+    for (const href of hrefs) checkOversized(href, (sev, rule, msg) => add(i + 1, sev, rule, msg));
+  });
+
+  // The two frontmatter keys that name a picture. They go into the output
+  // through the same data: URI as a figure, so they meet the same cap - and
+  // they live in the header, which the walk above does not see, so they need
+  // their own pass and their own line numbers. build.js:
+  // collectDecorationImageRefs is the same three forms in one function;
+  // `closing-image: cover` names no file and resolves to nothing here.
+  header.split('\n').forEach((line, i) => {
+    const cm = line.match(/^(?:cover-image|closing-image):[ \t]*["']?([^"'\s#]+)/);
+    if (cm) checkOversized(cm[1], (sev, rule, msg) => addFm(i + 2, sev, rule, msg));
+    if (cm && cm[1] !== 'cover') checkConfined(cm[1], (sev, rule, msg) => addFm(i + 2, sev, rule, msg));
   });
 
   // Unclosed display math. A `$$` that never closes swallows the rest of the
@@ -2851,9 +4734,14 @@ function collectFiles(inputs) {
 function main() {
   const args = process.argv.slice(2);
   const strict = args.includes('--strict');
+  // The build does not require an {#id} on a chunk - a missing one gets a
+  // positional key, which is fine while a talk is still being prototyped and
+  // ids are not yet frozen. The linter complains by default so a finished
+  // deck gets its stable ids; this flag turns that off for the prototype.
+  const allowMissingIds = args.includes('--allow-missing-ids');
   const inputs = args.filter(a => !a.startsWith('--'));
   if (inputs.length === 0) {
-    console.error('usage: node lint.js <source.md | dir> [--strict]');
+    console.error('usage: node lint.js <source.md | dir> [--strict] [--allow-missing-ids]');
     process.exit(2);
   }
   const files = collectFiles(inputs);
@@ -2865,6 +4753,7 @@ function main() {
   let errors = 0, warnings = 0;
   for (const f of files) {
     for (const x of lintFile(f)) {
+      if (allowMissingIds && x.rule === 'missing-id') continue;
       const sev = x.severity === 'error' ? 'error' : 'warn ';
       console.log(`${x.file}:${x.line}  ${sev}  ${x.rule.padEnd(22)}  ${x.msg}`);
       if (x.severity === 'error') errors++;

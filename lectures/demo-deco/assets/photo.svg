@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="A picture file">
+  <style>
+    svg { --_ink: var(--ink, #222); }
+    .s { fill: none; stroke: var(--_ink); stroke-width: 5; stroke-linecap: round; stroke-linejoin: round; }
+  </style>
+  <rect class="s" x="8" y="8" width="84" height="84" rx="9"/>
+  <circle class="s" cx="33" cy="33" r="8.5"/>
+  <g class="s">
+    <path d="M46 33h5.5M20 33h-5.5M33 46v5.5M33 20v-5.5"/>
+    <path d="M42.2 42.2l3.9 3.9M23.8 23.8l-3.9-3.9M23.8 42.2l-3.9 3.9M42.2 23.8l3.9-3.9"/>
+  </g>
+  <path class="s" d="M12 87 31 65 43 78 63 52 90 85"/>
+</svg>

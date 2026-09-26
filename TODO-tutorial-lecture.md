@@ -14,39 +14,28 @@ erledigten suchen muss, ist keine.
 
 ## Was noch offen ist
 
-Drei Punkte, und **keiner davon ist am Schreibtisch zu erledigen**. Zwei
-brauchen ein echtes iPad, einer eine Bildschirmaufnahme. Alles, was ohne beides
-zu klären war, ist geklärt – bei `[#5]` sind unten zwei Mechanismen mit Messung
+Ein Punkt, und er braucht ein echtes iPad. Die Bildschirmaufnahme (`[#30]`)
+ist gemacht, und `[#5]` ist beantwortet: es war Safaris Seitensuche. Alles, was ohne ein Gerät zu klären war, ist
+geklärt – bei `[#5]` sind unten zwei Mechanismen mit Messung
 ausgeschlossen und eine Frage formuliert, die der nächste iPad-Durchgang in
 fünf Sekunden beantwortet.
 
 ### B. Engine – größer ← hier weitermachen
 
-- [ ] **[#5] iPad, Lectern-View: `f` öffnet manchmal die Suche statt den Font
-      zu wechseln.** Auch nach Antippen der Folie.
-      *Status:* **nicht reproduziert, braucht ein echtes iPad.**
+- [x] **[#5] iPad, Lectern-View: `f` öffnet manchmal die Suche statt den Font
+      zu wechseln.** – *geschlossen, kein Fehler im Code.*
+      **Es war Safaris eigene Seitensuche**, nicht das Suchpanel der Lecture –
+      beantwortet beim iPad-Durchgang. Damit ist die Frage, die hier stand,
+      beantwortet und die Diagnose steht: `⌘F` ist durchgekommen. Wie, ist eine
+      Frage an die Tastatur (Sticky Keys, Globe-Taste, Belegung) und nicht an
+      `build.js`.
 
-      *Zwei Mechanismen sind inzwischen ausgeschlossen, beide gemessen:*
-
-      1. **Nicht der Key-Handler.** In `startSearch()` führen genau zwei Wege:
-         `case '/'` in der Key-Map und der `search`-Knopf der Touch-Palette.
-         Es gibt keinen Type-to-Search-Zweig, auch nicht im Overview-Ast, und
-         `e.metaKey || e.ctrlKey || e.altKey` steigt vorher aus. Ein `f` kann
-         den Panel über diesen Handler nicht öffnen.
-      2. **Nicht die Trefferflächen.** Die Palette an sechs iPad-Größen in
-         beiden Live-Views vermessen (`pointer: coarse` muss der Kontext
-         setzen, sonst ist die Leiste gar nicht da): zwölf Knöpfe, jeder
-         56 × 56 px, 6 px Abstand, keine Überlappung, keiner unter 44 px,
-         keiner außerhalb des Bildschirms. `F` ist der zweite Knopf, `⌕` der
-         fünfte – die beiden liegen nicht nebeneinander.
-
-      *Was der nächste Durchgang beantworten muss, bevor irgendetwas geändert
-      wird:* **welche Suche ging auf?** Das Panel der Lecture (eine Karte, die
-      Folien auflistet) oder Safaris eigene Seitensuche (Leiste am unteren
-      Rand)? War es Safaris, ist `⌘F` durchgekommen und die Frage lautet, wie
-      – Sticky Keys, Globe-Taste, Tastaturbelegung –, und der Code hier ist
-      unschuldig. War es das Panel, ist es doch der Knopf, und dann brauche ich
-      wissen, ob die Palette offen war.
+      Die zwei Ausschlüsse, die vorher hier standen, bleiben als Messung
+      wertvoll und sind der Grund, dass diese Antwort genügt: `startSearch()`
+      hat genau zwei Aufrufer (`case '/'` und den `search`-Knopf), es gibt
+      keinen Type-to-Search-Zweig, und die zwölf Knöpfe der Touch-Palette sind
+      an sechs iPad-Größen vermessen – 56 × 56 px, kein Überlappen, `F` und `⌕`
+      liegen nicht nebeneinander. Ein `f` konnte das Panel nie öffnen.
 
 - [ ] **[#41] iPad: Diagram-Steps laufen angeblich nur bei fokussierter
       Abbildung.** Bei normal geöffnetem Chunk springe Vorwärts direkt zum
@@ -58,15 +47,20 @@ fünf Sekunden beantwortet.
       wechselte den Chunk“, behoben in `e7dfc45`. **Vor jeder
       Änderung reproduzieren**, mit `revealed[chunkId]` im Blick.
 
-- [ ] **[#30] Das eingebettete Video zeigt kein bewegtes Bild.**
-      *Befund:* `assets/reveal-demo.mp4` ist intakt – 960×540, h264, 72 Frames
-      auf 6 s. Es bewegt sich, zeigt aber drei fast statische Stufen einer Folie,
-      also sieht ein Standbild fast genauso aus.
-      **Entschieden: neuer Clip**, kein Bug. Kandidat: ein Kameraschwenk über das
-      Overview-Board (`O`, dann Ziehen und Scrollen) oder ein
-      `autoplay`-Diagramm beim Durchlaufen. Muss unter `MAX_INLINE_VIDEO_BYTES`
-      (12 MB) bleiben und sollte in der Größenordnung der jetzigen 34 KB liegen,
-      sonst wächst jede der vier Views.
+- [x] **[#30] Das eingebettete Video zeigt kein bewegtes Bild.** – *erledigt.*
+      Neu aufgenommen: ein Schwenk über das Overview-Board, aufgezeichnet mit
+      Playwrights `recordVideo` über denselben Browser, den `test/harness.mjs`
+      findet, und über dieselbe `serve()`-Funktion. 640×360, 10 fps, 7,2 s,
+      h264 crf 36, **78 KB**. Im gebauten Page nachgemessen: als `data:`-URI
+      eingebettet, `readyState` 4, **null Netzwerk-Requests**, und sechs
+      Stichproben im Abstand von 0,4 s liefern sechs verschiedene Bilder – was
+      beim alten Clip gerade nicht der Fall war.
+
+      Zwei Zahlen für den nächsten, der ihn ersetzt. Ein Schwenk über dichten
+      Text ist teuer: bei 960×540 kostete derselbe Clip 212 KB bei crf 36 und
+      596 KB bei crf 28. Die Auflösung ist der Hebel, nicht die Qualität – das
+      Board liest man als Formen, nicht als Text. Und der Clip landet in
+      **jeder** der vier Views, hier +59 KB auf `audience.html`.
 
 ---
 
@@ -74,12 +68,19 @@ fünf Sekunden beantwortet.
 
 ```bash
 node lint.js lectures/                # alle fünf Lectures, zero-dep
-npm run gate                          # 422 Assertions, ~0,5 s, kein Browser
-npm run settings                      # 244 Assertions, ~1 min, baut selbst
-node test/run.mjs                     # 602 Assertions, ~6 min, baut selbst
+npm run gate                          # 440 Assertions, ~0,5 s, kein Browser
+npm run settings                      # 329 Assertions, ~1 min, baut selbst
+node test/run.mjs                     # 827 Assertions, ~7 min, baut selbst
 node test/run.mjs nav                 # nur die Specs, deren Name passt
-node test/run.mjs expansion           # der neue Spec aus Slice 12, ~10 s
+
+node build.js <source.md> --squint    # was die Projektion malt, als Text
+node build.js <source.md> --check-fit # Folien, die passen und trotzdem raushängen
 ```
+
+**Vor jeder inhaltlichen Diskussion über eine Folie: `--squint` laufen lassen
+und `squint.txt` lesen.** Der Collapse ist CSS und JS – wer `source.md` liest,
+liest nicht die Folie, und genau diese Verwechslung hat an einem Tag sechs
+Defekte produziert.
 
 Beim Anfassen der Live-Views mindestens `nav`, bei `editor.mjs` auch `editor`.
 Prosa geht durch `writing-skills:human-writing` und
@@ -137,8 +138,8 @@ CSS/JS die neue Regel per `grep -F` im gebauten HTML nachweisen.
 
 ## Was erledigt ist
 
-Zwölf Slices. Die Commit-Nachrichten tragen die Begründungen; diese Tabelle ist
-der Index. Was in C und D im Einzelnen geändert wurde, steht dort und nicht
+Dreizehn Slices. Die Commit-Nachrichten tragen die Begründungen; diese Tabelle
+ist der Index. Was in C und D im Einzelnen geändert wurde, steht dort und nicht
 mehr hier.
 
 | # | Was | Commit |
@@ -150,15 +151,16 @@ mehr hier.
 | 5 | **Nebenprodukt: `test/gates/inlined.mjs`.** Prüft die beiden statisch entscheidbaren Fallen in den Template-Literalen von `build.js`: rohes Backtick und einfacher Regex-Backslash (`/\s+/g` wird zu `/s+/g` und geht still in Produktion). Beide Hälften gegengeprüft, indem der Defekt eingebaut und das Gate fallen gesehen wurde. Die dritte Falle, unterminiertes `/*`, hat mit `assertStylesheetsWellFormed()` längst einen harten Build-Fehler und wird nicht doppelt geprüft. `CLAUDE.md` und `run.mjs` sagen jetzt beide „sechs Gates“. | `674cbcd` |
 | 6 | **[#17/#4/#10-mobile] Touch-Bedienung.** Die Leiste lag nur in `audience.html` – nicht in dem Fenster, das man am Rednerpult in der Hand hält – und trug ausgerechnet das, was Tippen und Pinchen ohnehin können. Jetzt in beiden Live-Views, mit `⋯`-Palette für `C` `F` `A` `#`, Suche und Textauswahl. Drei echte CSS-Fehler kamen erst beim Messen heraus: eine ID-Regel schlug `[hidden]`, `em` erbte die zoomskalierte Foliengröße (441 px Leiste auf einem 390-px-Telefon, und `rem` war wegen Text-Autosizing nicht besser – jetzt `clamp()` gegen die Viewportbreite, Untergrenze 44 px), und `left: 50%` gibt einem fixierten Element ohne Breite nur die halbe Viewportbreite als *Layout*raum. In zehn Konfigurationen gemessen. | `12f67d4` |
 | 7 | **Text-Slice 2 – der ganze Textdurchgang (Abschnitt C, 27 Punkte).** `#39` und `#54` zuerst, wie geplant: „document“ als Name für die Print-Views ist überall durch `print.html` / `print-notes.html` ersetzt (vorher geprüft, dass `> annot:` wirklich in *beiden* Dateien landet – `annotationHtml` hängt nicht an `withNotes`), „saying nothing“ durch „the default“. Dann die restlichen 19 Punkte. `#22` heißt jetzt „auto-fit“, weil `?`-Overlay, Frontmatter-Key und Flash-Meldung das Ding alle so nennen. `#28` zeigt ein Bild mit Alt-Text, statt die Caption-Regel zu behaupten. | `d52fd3b` |
-| 8 | **D-Block 1 – Decoration.** `#deco-cards` und `#deco-picture` sind aufgelöst: die Konstrukte werden jetzt genau einmal eingeführt, in einem Lauf, und dort *gezeigt* statt abgedruckt. Neu `#cards-look` mit `{accent}` und `{outline middle}` als sichtbaren Beispielen; die gerenderten Klassen (`cg-accent`/`cv-top` gegen `cg-outline`/`cv-middle`) bestätigen die Behauptungen. Die Cards-Demo trägt jetzt eine gefaltete zweite Ebene, damit `C` auf der Folie tut, was der Satz daneben sagt. | `c5cdd9b` |
+| 8 | **D-Block 1 – Decoration.** `#deco-cards` und `#deco-picture` sind aufgelöst: die Konstrukte werden jetzt genau einmal eingeführt, in einem Lauf, und dort *gezeigt* statt abgedruckt. Neu `#cards-look` mit `{.accent}` und `{.outline .middle}` als sichtbaren Beispielen; die gerenderten Klassen (`cg-accent`/`cv-top` gegen `cg-outline`/`cv-middle`) bestätigen die Behauptungen. Die Cards-Demo trägt jetzt eine gefaltete zweite Ebene, damit `C` auf der Folie tut, was der Satz daneben sagt. | `c5cdd9b` |
 | 9 | **D-Block 2 – Diagramme.** `#diagram` war der längste Chunk der Lecture *und* die erste Begegnung mit `::: draw`. Jetzt vier Chunks: fünf Zeilen und ihre Zeichnung, dieselbe Zeichnung mit zwei `step`-Blöcken, die sechs Slots, Placement. Im gebauten Page nachgezählt: dg1 ohne Frames-Payload (statisch), dg2 mit `n:3`. Eigene id `#diagram-beats` – `#diagram-steps` gehört der großen Alice/Eve-Figur, und ids sind eingefroren. | `3259d90` |
 | 10 | **D-Block 3 – Kernidee.** `#topic-sentence` sagte „der Topic Sentence“, Singular; PRD §4.5 und `splitSentencesIn` nehmen den ersten Satz **jedes** Absatzes. Trägt jetzt die Arbeitsreihenfolge (erst Prosa, dann die Eröffnungen schärfen), die sonst nirgends stand, und ist selbst vier Absätze – am gebauten Page nachgezählt, nicht geschätzt. `#33` gestrichen, `#19` ohne die Abbildung umformuliert, die es nie gab. | `d5d4bca` |
 | 11 | **D-Block 4 – `::: footnote`.** `::: margin` baut weiter und ist nirgends mehr dokumentiert. `word` merkt sich die geschriebene Schreibweise, damit „was never closed“ die getippte Zeile zitiert. `test/settings.mjs` sichert den Alias in **beiden** Views ab (`.margin-note` live, `.chunk-expansion-margin` auf Papier) – gegengeprüft, indem `margin` aus dem Parser entfernt und der Test fallen gesehen wurde. | `04c2921` |
 | 12 | **Abschnitt A – die drei Engine-Mini-Fixes**, alle drei anders gelagert als der Befund im Plan. `[#9]` reproduziert erst ab Zoom 1,65, dafür sicher: eine echte Prosazeile lag bei 1,65, 1,95 und 2,2 im Knopfrechteck. `[#10]` lag nicht an der `36em`-Kappe, die nie greift, sondern an den 14 % Seitenrand – beide Spalten kamen an jeder Fenstergröße und bei jeder Breitenklasse gleich breit heraus, 21,0em bei 1440, schmaler als `narrow`. Und dahinter steckte ein dritter Fehler, der in keinem Punkt stand: die Kamera zentrierte die Expansion statt des Chunks, unter 900 px auf ein `position: fixed` in einem transformierten Vorfahren, was das Deck um 40 850 px verschob. `[#1]` siehe *Entschieden*. Neu dazu `test/expansion.mjs`, 19 Assertions: der Kamerafehler hat vom ersten Audience-Renderer an gelebt, weil ein Screenshot der Karte richtig aussieht. Alle vier Defekte gegengeprüft, indem jeder einzeln wieder eingebaut und der Spec fallen gesehen wurde – jeder fällt genau an den Zeilen, die ihn benennen. | – |
+| 13 | **Zweite Runde durch die Lecture, vier Punkte.** `#four-views` zeigt jetzt den zweiten Input: drei Bildrahmen unter `source.md`, mit `images` darüber und einer gestrichelten Linie **ohne Spitze** – ein Pfeil *in* die Box hätte behauptet, die Bilder steckten in der Quelldatei, und sie stehen daneben. Neues Asset `assets/photo.svg` nach der Konvention von `avatar-alice.svg` (inline `<style>` mit `--ink`-Fallback), also färbt es auf `A` mit; ein Raster täte das nicht. `#audience-now` behauptete „This is `audience.html`“ in allen vier Views, also in zweien falsch – und `#one-source` eine Folie davor genauso („the projection you are reading“), was in keinem Punkt der Liste stand. Beide sagen jetzt, was in jeder Ansicht stimmt. `#figure-focus` erklärte im zweiten Absatz Links: die vier Absätze sind der eigene Chunk `#links`, und der Code-Block steht nicht mehr am Fuß der Folie, sondern direkt unter dem Absatz, der zum Klicken auffordert. `#search` war `.wide` zwischen zwei `.standard`-Folien – 52em nach 36em, mitten in einer Spalte, die dreimal dasselbe erklärt; jetzt `.standard`. `#overview` und `#toc` heißen „Open the Overview“ und „Open the Table of Contents“, weil die Folien einen Handgriff zeigen und keinen Gegenstand. | – |
 
 ### Beim Verifizieren nebenbei gefunden
 
-Fünf Fehler, die in keinem Punkt der Liste standen – jeder kam heraus, weil eine
+Sechs Fehler, die in keinem Punkt der Liste standen – jeder kam heraus, weil eine
 Behauptung des Tutorials oder des Stylesheets gegen den Code geprüft wurde statt
 geglaubt:
 
@@ -174,6 +176,10 @@ geglaubt:
 - **`#cards`: „`ground: photo`“ ist keine Syntax.** `parseSlotClasses` liest
   blanke Wörter in Klammern; ein `key: value` in einem Tail hätte den Build
   angehalten. (`c5cdd9b`)
+- **`#one-source`: „`audience.html` is the projection you are reading“.** Der
+  gemeldete Punkt war `#audience-now`; dieselbe Behauptung stand eine Folie
+  davor und in allen vier Views, also in `print.html` und `print-notes.html`
+  falsch. Wer nur den gemeldeten Chunk anfasst, lässt die erste Stelle stehen.
 - **Die Expansions-Kamera und das `position: fixed` darunter.** Der
   CSS-Kommentar sagte, unter 900 px decke die Karte die Folie zu. Sie deckte
   nichts zu: die Folie war 37 000 px weit weg, und die Karte stand auf leerer

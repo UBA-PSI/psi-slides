@@ -6,7 +6,7 @@ not about the syntax around them.
 ## The collapsed view is also your presenter prompt
 
 In `topic-bold` mode a derived chunk shows the heading, the first sentence of
-every paragraph, and the promoted `**bold**` fragments. That is what the room
+every paragraph, and the promoted `**bold**` fragments. That is what the audience
 reads and it is what you present from. A chunk that is not understandable from
 those three things is not finished.
 
@@ -36,6 +36,12 @@ plus the first sentences: could you recover the intended explanation in five to
 ten seconds? Then imagine every `**bold**` rendered as its own tiny bullet: if
 that looks fragmented, consolidate or remove the bolding.
 
+Neither test needs imagining. `node build.js <source.md> --squint` writes both
+out of the rendered projection: the heading and first sentences as `.` lines,
+every promoted bold as the `-` bullet it becomes, and the prose the collapse
+drops as a `~` line with its word count. Read `squint.txt` and the two tests
+are a thing you look at rather than picture.
+
 ## Anti-patterns to scan for
 
 **Meta-label bolds.** Opening a continuation paragraph with a bold connector
@@ -47,7 +53,9 @@ bullet that shows the label and hides the content.
 
 **Single-word bolds in continuation.** A standalone `**nicht**` or `**unter**`
 collapses to a cryptic one-word bullet. Lift the word into a longer bold phrase
-that stands alone, or move the emphasis into the topic sentence.
+that stands alone and stress it there with `*em*` – `**liegen sogar *unter*
+beiden KI-Bedingungen**` renders the one word upright bold in every view – or
+move the emphasis into the topic sentence.
 
 - Bad: `Die Tutor-Werte liegen sogar **unter** beiden KI-Bedingungen.`
 - Good: `Die Tutor-Werte liegen sogar unter beiden KI-Bedingungen – das war die **unerwartetste Beobachtung** des Experiments.`
@@ -59,7 +67,7 @@ alone as a paragraph's first sentence, that same bold is inside the head and the
 room reads the whole of it – which is the mechanism, not a gap in the check.
 
 **Topic sentences that are pure connectors.** „Das ist gewollt.“, „Sie haben 10
-Minuten.“ carry no claim. The presenter gets a thin prompt and the room gets
+Minuten.“ carry no claim. The presenter gets a thin prompt and the audience gets
 nothing. Rewrite so the first sentence contains the claim.
 
 **Colon-cuts in the topic sentence.** If the first sentence ends mid-thought
@@ -111,6 +119,38 @@ significance: *quietly, deeply, fundamentally, remarkably, arguably*.
 - Anaphora: the same sentence opener three times across consecutive chunks. The
   overview board (`O`) makes this glaringly visible.
 
+**Mannered prose.** A metaphor or a flourish where a literal phrase exists: *a
+dial worth turning* for *a parameter worth varying*, *this point earns its keep*
+for *this point still matters*, *the branch you take if somebody asks* for
+*material you open only if somebody asks*. The phrase displays the writer, and
+a metaphor carries connotations the writer did not choose. When a literal phrase
+is available, use it. Three forms to scan for:
+
+- Verbs that dramatise a mechanism – *travels in the file, walks in, lifts into
+  a card, escapes into the margin, fights the button, reach for `::: slide`* –
+  where the literal verb is *is embedded, moves, opens, goes, conflicts with,
+  use*.
+- Rhetorical compression that states how small or simple a thing is instead of
+  stating the thing: *its whole structure is two words*, *and nothing else*,
+  *that is the whole of it*, *two keys carry the whole lecture*. Say what it
+  consists of: *a lecture consists of one or more columns, and each column
+  holds one or more chunks*.
+- Cross-references said sideways: *the speaker view, which has a part of its
+  own later on*, *the next chunk is the way out*, *that slide is where the
+  shortening is shown happening*. Say *which is discussed later on*, *the next
+  chunk shows the alternative*, *that slide shows the shortening*.
+
+**One term per concept.** Whatever a thing is called the first time is what
+it is called every time: the projection is not later *the live view*, *the
+screen* or *the room's version*, an expansion is not *the pane* in one chunk
+and *the aside* in the next. A synonym reads as a second thing, and a reader
+who cannot tell whether it is one spends the slide finding out. Introduce a
+term once, in italics where it is the tool's own, and repeat it.
+
+**No anthropomorphised room.** *The room reads*, *the room sees*, *what the
+room must not be shown*: rooms do not read. Say *the audience*, or *people*.
+*The back of a room* and *a lit room* are places and stay.
+
 **Claim discipline:**
 
 - Every empirical claim on a slide needs a number, a figure, or a citation, or
@@ -129,7 +169,8 @@ Fixed rules, no exceptions:
 
 - Headings in sentence case, not Title Case.
 - Boldface is a slide mechanism here, not decoration. Never bold for keyword
-  highlighting.
+  highlighting. Its look per view is `style: {bold: …}` / `style: {print-bold: …}`;
+  stress inside a bold phrase is `*em*`, never a second bold.
 - No decorative unicode in prose: no arrows, stars, or check marks. Inside a
   `::: slide` bullet list the marker is the list's job.
 - **En-dash only.** Use `–` (U+2013) for parenthetical breaks, ranges

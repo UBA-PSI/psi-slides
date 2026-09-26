@@ -4,6 +4,414 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Slice: the documents got a reader (highlights, notes, contents)
+
+`print.html` and `print-notes.html` are read on screen after the lecture, and
+the ZfW course had already proved the want: it spliced a highlighter into
+psi-slides' `print.html` with a Python post-processor. This moves the idea
+into the build, in eight commits from `99aae7b` (screen type size and the
+lightbox) to `ffc4aeb` (code and formulas). `PLAN-reader-highlights.md` is the
+record – every slice appends a *Decided in slice N* list with what it
+measured, so read that before changing any of it.
+
+**What exists, under `reader: on` (the default).** A contents sidebar with
+scroll-spy; highlights on prose, on the words of a code block, on a whole
+figure / code block / formula, and pins on a spot in a figure set in the
+lightbox; an optional note on each, in the right margin; `n` / `p` and a pill
+to walk them; a Markdown export that a lecturer can read as it stands and that
+imports back; and print, yellow with numbered notes in the outer margin.
+Documents only, and deliberately nothing shared with `> annot:` – different
+owner, different store, different lifecycle.
+
+**What was not obvious going in.**
+
+The one thing the ZfW version got wrong was that a highlight whose words
+changed vanished silently. Here the anchor is the chunk's frozen id plus
+offsets, quote and context, re-anchored by search on load, and what cannot
+be placed is listed in the sidebar's foot and kept in the store and the
+export. Never deleted on load.
+
+Offsets are counted in a *reader text* that skips speaker notes, which is the
+whole reason one store serves both documents. It also skips `pre` – and when
+code became highlightable in slice 6 it got its own anchor space rather than
+joining that text, because joining would have moved every existing highlight
+on a slide with code.
+
+Diagram ids are `dg<N>-<name>` and `<N>` counts figures in the document, so a
+figure added above shifts every id below it. A pin stores the bare name.
+
+`localStorage` from `file://` was measured, not assumed: Chrome and Safari
+share one store between the two files, Firefox isolates per file. The key
+stays per lecture; the export is the way across in Firefox, and the menu says
+what holds everywhere rather than guessing which browser this is.
+
+Print notes are floats with a negative right margin, and they are written
+into the page on every layout rather than on `beforeprint`, because a PDF made
+by a script fires no print event. A float inside a table, a grid card or a
+lede lands inside it, so the note is hung before the outermost block that
+does not run to the column's edge. Measured on Chromium PDFs and by hand in
+Safari.
+
+The lightbox stays ignorant of highlights: `PRINT_JS` sends `lb:open`,
+`lb:close` and a cancelable `lb:click`, and the reader half answers. On the
+way a real bug turned up – a drag on a picture in the lightbox never panned,
+because the browser started its own image drag.
+
+A first figure design numbered the pins on screen and put a heavy numbered
+disc on a frame's corner. It read as a glitch; numbers are now paper-only, as
+they always were for text.
+
+**Tests and mirrors.** `test/reader.mjs` builds its own fixture decks (make,
+note, undo, `n`/`p`, orphan and re-anchor after a source edit, both documents
+sharing, export → clear → import, figures with the `dg<N>` shift and a renamed
+part, `reader: off` shipping no reader script). `reader` joined
+`VIEW_DEFAULT_SPEC`, mirrored in `lint.js` and held by the `frontmatter`
+gate; the 38 `reader-*` words are in `STRINGS` and in `lint.js`'s `LABEL_KEYS`.
+
+**Open.** A second colour (`kind` is in the data model already, so it costs
+no migration), and what §12 of the plan leaves out on purpose.
+
+## Slice: inline code stopped opening a hole in the sentence (`style.code`)
+
+The complaint was `async def` in prose: the mono space is about 0.55 em where
+the prose word space is about 0.25, so a span of more than one token read as
+"async  def" – the gap inside it wider than the gaps around it. Second defect
+in the same place: the mono's x-height is the larger of the two faces
+(JetBrains Mono 0.550 against Literata 0.507), so at a flat `0.92em` the code
+was the loudest thing in its own sentence.
+
+**One new `style:` key, three looks.** `spaced` (the default) gives a span
+`margin: 0 0.15em` and `word-spacing: -0.2em`, so the outer gaps come out at
+about 0.4 em and the inner ones at about 0.31 – outer wider than inner is the
+whole of it. `tint` puts a 7%-of-`--ink` ground behind every span, padded
+horizontally only, and cancels the spaced pair first. `plain` is the way back
+to the flat rule the tool drew before, which the 1.0.0 recipe names.
+
+**Three things that were not obvious going in.**
+
+The `spaced` selector is `code:not(.nb)` and cost nothing to write, because
+`class="nb"` was already on every whitespace-free span (it was there to keep
+`-->` off a line break). The rule that needs a multi-token span and the class
+that marks one turned out to be the same distinction.
+
+The size is **per lecture**, not a constant: `0.96 × xHeight(prose) /
+xHeight(mono)` out of the measured roster. So it has to be emitted after the
+stylesheet, like `fontStyleTag` – `AUDIENCE_CSS` cannot ask what this deck
+resolved to. And the live views need one rule per reading face, because `F`
+switches the prose face under the reader's hands while the code stays mono.
+
+The key is shaped like every other one in `styleBodyAttrs` – the default is
+the unattributed rule and `data-code` appears only when a deck asks for
+something else – and that was worth an argument. The first cut wrote the
+attribute out at its default so that `plain` could be the *unguarded* rules,
+reaching the element with the 1.0.0 declarations rather than with a set of
+resets. It bought byte-identical CSS for one element and paid for it with an
+attribute on every deck's body and a key that reads differently from its
+fifteen neighbours. The recipe promises a rendering, not bytes, so the resets
+won. `plain` is emitted in the same `<style>` tag as the sizes, because that
+is the only place it can outrank them: both land after the stylesheet at the
+same specificity, and a reset written into `AUDIENCE_CSS` would lose on source
+order.
+
+Mirrors: `lint.js` `STYLE_ENUMS`, the appearance skill (new section plus the
+recipe row), the tutorial (`#inline-code`, and the key in the `style:` block
+listing), and `test/settings.mjs`, which holds the guards – the spaced rule
+unattributed in both stylesheets, `tint` behind the attribute and cancelling
+the pair, the three live sizes, `plain` emitting one reset and no size, and
+`fonts: none` falling back with a log line.
+
+## Slice: Trackpad-Zoom – warum er prellte, und der Zeiger als Ankerpunkt
+
+Gemeldet als „das Zoomen ruckelt und prellt, ich kann nicht zuverlässig
+zoomen" – Overview und Figure-Focus gleichermaßen. Der Befund waren **drei**
+unabhängige Ursachen, und keine davon war die, nach der man zuerst sucht.
+
+Die Diagnose kam aus dem Code, die Kalibrierung aus einer Messung. Der Autor
+hat auf einer Wegwerf-Seite mit dem Trackpad gezoomt, während sie die Events
+mitschrieb: 991 Events über 12 Gesten, Abstand im Median **8,4 ms** (also
+119 Hz), `|deltaY|` zwischen **0,012 und 6 px**, ein Drittel echte Pinch-Events
+(`ctrlKey`), zwei Drittel Zweifinger-Scroll, und **9 Vorzeichenwechsel
+innerhalb einer Geste**. Drei Zahlen daraus sind nicht ableitbar gewesen und
+haben je eine Design-Entscheidung getragen.
+
+1. **Der Schritt ignorierte die Stärke des Events.** `deltaY > 0 ? 0.92 : 1.08`
+   machte den Zoom zu einer Funktion davon, *wie viele* Events ankamen, nicht
+   davon, wie weit die Finger gingen. 22 Events bei 1.1 durchqueren den ganzen
+   Bereich der Focus-Karte – 183 ms Kontakt bis zum Anschlag. In der Messung
+   ist Box A tatsächlich auf 8 gelaufen. Dazu die **Inertia-Schleppe**: macOS
+   sendet nach dem Abheben weiter, `deltaY` um 0,2, Lücken über 100 ms, am Ende
+   kippt das Vorzeichen – jedes davon war ein voller 8-%-Schritt. Das ist das
+   Prellen *nachdem* man aufgehört hat, und es war aus dem Code allein nicht zu
+   sehen, weil es eine Eigenschaft des Betriebssystems ist.
+2. **Die CSS-Transition kämpfte gegen den Event-Strom.** Bei 8,4 ms Abstand
+   wurde die 250-ms-Kamerakurve ~30-mal aus ihrem eigenen Zwischenwert neu
+   angesetzt. Dass das die Ursache war, verriet der Drag-Pfad: der schaltet die
+   Transition seit jeher ab (`body.overview-dragging`, `body.figure-dragging`),
+   der Wheel-Pfad hat dieselbe Behandlung nie bekommen.
+3. **Der Empfänger hatte denselben Fehler von der anderen Seite.** `figure-view`
+   ruft beim Peer `applyFigureTransform()` – mit laufender Transition. Die
+   Projektion hätte weitergeruckelt, obwohl das Cockpit glatt ist. Der
+   Pan-Empfänger daneben macht es richtig (`focusCamera(true)`); dem
+   Figure-Empfänger fehlte dieser Ausweg.
+
+Gebaut: `wheelZoomPx` / `zoomScaleFor` / `markZooming` als gemeinsamer Block
+über den beiden Handlern, `ZOOM_K = 0.01` (≈ 208 px Fingerweg für den vollen
+Bereich, der Wert, bei dem der Autor am Regler gelandet ist), Delta pro Event
+auf 12 px geklemmt – doppelt so viel wie das größte gemessene Trackpad-Event,
+damit eine Mausradraste 13 % statt 3,3× wird –, rAF-Bündelung auf einen
+Style-Write pro Frame, und `broadcastFigureView` von einer postMessage pro
+Event auf eine pro Frame.
+
+**Warum `exp()` und nicht ein Faktor pro Event:** `exp(-a·k)·exp(-b·k) =
+exp(-(a+b)·k)`. Zwei Events von 1 px landen exakt dort, wo eines von 2 px
+landet – ohne diese Eigenschaft würde die rAF-Bündelung das Ergebnis
+verändern. Die beiden Korrekturen sind also nicht unabhängig: die proportionale
+Skalierung ist die Voraussetzung dafür, dass man überhaupt bündeln darf.
+
+**Zeiger-Anker.** Beide Fälle reduzieren sich auf eine Zeile. Karte:
+`pan' = pan + (1 - r)·(Q - sichtbareMitte)`. Board: der Anker-Chunk und die
+Skala kürzen sich heraus, übrig bleibt ein Schritt auf `manualPan`. Zwei
+Fallen, beide teuer und beide unsichtbar, wenn man nur hinschaut: `r` muss das
+*erreichte* Verhältnis sein, sonst wandert die Karte am 8×-Anschlag unter einem
+Zeiger weiter, der nichts mehr zoomt; und die Board-Rechnung muss in
+**Layout-Space** passieren, weil `#stage-viewport` im Cockpit selbst durch
+`scale(--stage-scale)` gezeichnet wird – ein `clientX` ist dort ein
+geschrumpfter Pixel. `focusCamera` trägt dieselbe Warnung im Kommentar. Die
+Focus-Karte braucht die Umrechnung nicht, weil `#figure-overlay`
+`position: fixed` und ein Geschwister von `#stage-viewport` ist. `+`/`-` zoomen
+weiter mittig – in einem Tastendruck steckt kein Zeiger.
+
+**Wie geprüft wurde**, weil „sieht flüssig aus" hier kein Kriterium ist:
+Skalieren um einen Fixpunkt `Q` muss jeden Punkt `P` auf `Q + r·(P - Q)`
+abbilden. Gemessen am gebauten `audience.html` und `speaker.html`, rein und
+raus, Abweichung **0,00 px** in beiden Views und auf der Karte. Die
+Cockpit-Zeile ist der Beleg für die Layout-Space-Umrechnung: bei gleichem `r`
+wandert die Ecke dort 59,7 px statt 40,1 px, und der Anker sitzt trotzdem.
+
+Nicht gemacht, bewusst: kein Clamp auf `figurePan`. Man kann die Karte schon
+heute per Drag aus dem Bild schieben, `0` setzt zurück, und ein Clamp wäre eine
+zweite Entscheidung in einem Slice, der eine beantwortet.
+
+## Slice: the title pair, the credit ranks, and which line is loud
+
+Asked for from two real slides built with another tool: a thin tracked line of
+capitals over a heavy mixed-case line, and four clearly separated credit ranks
+underneath. The engine had neither, and the interesting part is that it turned
+out to need no new content model at all – only a treatment of a pair that has
+been there since `subtitle:` landed.
+
+### What landed
+
+- **`style: {headline: stacked | eyebrow}`.** Which line of a title pair carries
+  the weight. `stacked` is the default and byte-for-byte today's rendering.
+- **`style: {caps: off | on}`.** Capitals for the small type around a title –
+  eyebrow, presenter, affiliation, never the headline.
+- **`affiliation:`, `contact:`, `notice:`.** The credit block in four ranks
+  instead of one strong line over a run of equals, with the last two as a row
+  along the foot.
+- **`closing-credits: none | contact | cover`.** The closing slide gets those
+  fields back, graded, off by default.
+- **`cover-ground: paper | ink`.** A dark opening slide under a light deck,
+  without a photograph.
+- **The `hero` gradient reads `cover-align`.** A pre-existing bug found while
+  planning: `hero` darkens the bottom because it sets its type there, but
+  `cover-align: top` is legal on it and put reversed type on the bright half of
+  a photograph.
+- **`lectures/title-block/`**, a small source-only reference lecture that wears
+  the eyebrow and the four ranks, because `lectures/decoration` already wears
+  `cover: quote` and a deck has exactly one cover.
+
+### The decision the whole thing rests on
+
+`title:` stays the content key of whichever line is loud. It is also the
+`<title>` element, the TOC entry and what the search index reads – so inverting
+the hierarchy by telling authors to put the hook in `title:` would rename the
+browser tab to the hook and leave the lecture's own name nowhere. The words do
+not move; only their type does. That is what makes it a `style:` key rather
+than a cover variant, and therefore what lets one key serve the cover, the
+section dividers and the closing slide at once, since all three carry a pair.
+
+### What it cost
+
+**The swap could not be done with selectors, and finding that out took three
+attempts.** The compositions wrote `font-size` and `max-width` on `.title-main`,
+so the eyebrow rules had to outrank them – and `masthead`'s no-lede rule is
+`.chunk[data-cover=masthead] .chunk-content:not(:has(.title-field)) .title-main`,
+which is 0-5-0 once you notice that `:not(:has(…))` contributes a class level of
+its own. Raising specificity twice still lost. The answer was not a stronger
+selector but the realisation that **the size and the measure belong to the loud
+line, not to the element**: both are now `--title-lead` and `--title-measure`,
+declared on the chunk, and the eyebrow mode hands them to whichever line is
+carrying the weight. That is also why the swap works on all ten compositions
+rather than on the default one.
+
+Declared on the *chunk* and not on `.title-main`, because a custom property
+inherits down and not sideways and the subtitle has to read it. Neither `.chunk`
+nor `.chunk-content` sets a `font-size`, so moving the em values up was lossless
+– checked rather than assumed, and the thing to re-check if either ever gains
+one.
+
+**The measurement that proved it was needed:** masthead's 15em cap, read at the
+eyebrow's much smaller em, computed to 483px and broke
+`DATENSICHERHEIT IM DIGITALEN ALLTAG:` onto two lines. Invisible in the source.
+That is the third instance of one pattern in a single day – 75's corner radii
+(10px reading as 0.23em on one slide and 0.33em on the next) and its dock width
+(13em of one box read as 17.4em of another) were the other two. **Em is the
+right unit; *which* em is the thing to check.**
+
+**The tracking is not a setting, and that is deliberate.** Capitals set at the
+tracking of lowercase read as one jammed word – a typographic rule, not a
+preference – so `isAllCaps` marks any title slot already in capitals and the
+stylesheet tracks it out. It repairs a deck that typed `presenter: PROF. DR. …`
+years ago without being asked. Spelled as "has an uppercase letter and no
+lowercase one" rather than `s === s.toUpperCase()`, because uppercasing an ß
+yields SS and the deck most likely to want this would have silently missed it.
+
+**The gate earned its keep in half a second.** Backticks inside CSS comments in
+`AUDIENCE_CSS` – exactly what CLAUDE.md warns costs a build – were caught by
+`node test/gates/run.mjs inlined` naming the literal and the line, six of them,
+before a single build ran.
+
+### What it did not do
+
+`cover-ground: ink` was validated but unwired for part of the work, which is the
+silent no-op this format refuses everywhere; it is wired now. `lectures/decoration`
+gained the three credit slots but **not** the eyebrow, because switching it would
+restyle that reference deck's dividers and closing slide too.
+
+One thing noticed and left alone: `lectures/decoration/source.md` carries an
+`author:` key that no renderer reads. Either a relic or a silent no-op of the
+kind the pre-flight refuses elsewhere.
+
+## Slice: die Tutorial-Lecture gegen das gelesen, was der Raum sieht
+
+Ein Durchgang durch `lectures/tutorial` mit dem Autor, Folie für Folie. Der
+Ertrag ist zur Hälfte Prosa und zur Hälfte Engine, und die eine Erkenntnis, die
+alles andere sortiert, steht am Schluss dieses Abschnitts: **wer `source.md`
+liest, liest nicht die Folie.**
+
+### Was an der Lecture umgebaut wurde
+
+- **Jede Column öffnet mit genau einem `principle`**, das das Problem benennt,
+  bevor der Mechanismus kommt. Fünf sind neu. `# Beyond 1.0.0` war zwanzig
+  Chunks mit zwei Themen und ist geteilt.
+- **„tag" heißt überall „type"**, wo ein Nutzer es liest – Prosa, Meldungen,
+  zwei Lint-Regel-IDs. Der Code behält `VALID_TAGS`, `chunk.tag`, `data-tag`:
+  das Attribut steht in den ausgelieferten Views und wird vom Suchindex
+  gelesen. In `CLAUDE.md` steht jetzt, welche Hälfte welches Wort benutzt.
+- **Vier Chunks trugen je eine ganze Referenzseite** und sind gesplittet;
+  Details, die Referenz sind, stehen hinter Chevrons.
+- **`#chunks-columns` ist neu**, weil *column* nur in der unsichtbaren Hälfte
+  definiert war, während drei spätere Chunks sich darauf stützen.
+
+### Engine, sieben Änderungen
+
+Alle in eigenen Worktrees parallel gebaut und von Hand gemergt. Die Konflikte
+waren ausnahmslos „beide Seiten haben in dieselbe Liste eingetragen" – die
+Reviere hatten sich nicht überschnitten, weil sie vorher nach *Funktion und
+Tabelle* abgegrenzt wurden und nicht nach Themengebiet. Einmal war die
+Abgrenzung zu grob (`::: side` teilt `parseSlotClasses` gar nicht) und hat
+unnötig Zeit gekostet.
+
+1. **`--squint`** – schreibt, was die Projektion malt, in eine Datei. Siehe
+   unten; das ist das nachhaltigste Ergebnis des Tages.
+2. **`style: {blocks: center|left}`** plus vier Chunk-Klassen
+   (`{.blocks-left}`, `{.wrap-none}` …). Der linksbündige Code-Block deckt sich
+   exakt mit der `.wide`-Spalte: beides 72vw.
+3. **`::: side {.middle}`**, **`closing-image:`**, und die vier Viewer-Defaults
+   (eigener Abschnitt unten).
+4. **Warnung bei zu breitem Kantenlabel** im Compiler.
+5. Drei Renderer-Defekte: Marginalia-Kamera, Leader-Sichtbarkeit, Karten.
+
+### Die Fallen – der eigentliche Wert dieses Abschnitts
+
+- **`nowrapProbe` zählte den Überhang der Marginalia** als „Folie ist seitlich
+  abgeschnitten" und fuhr den Zoom auf den Boden, 0.6 gegen 1.35 auf der
+  Nachbarfolie. Die Kamera wurde beschuldigt und war unschuldig.
+- **`state.visible` trägt nur explizite `show`/`hide`.** Ein *abgeleitetes*
+  Verstecken landet dort nie, also konnte die Sichtbarkeitsregel nicht ketten:
+  Text → Leader → Kante → Box. Jetzt ein Fixpunkt.
+- **`.cards > ul > li` war ein Flex-Container**, und der blockifiziert jedes
+  Kind. Die verdächtigte `display: block`-Regel hätte man entfernen können,
+  ohne dass sich etwas ändert.
+- **`checkVisibility` antwortet `false` für `display: contents`**, was dieses
+  Projekt für Kartenzeilen, Agenda und Divider-Lead benutzt.
+- **`getComputedStyle` meldet die Akzentfarbe auf einem `display: contents`
+  Element, das sie nie malt.** Wer dem glaubt, bestätigt, dass unsichtbarer
+  Text in Ordnung ist – und genau so war die Erklärung in `::: rows {.accent}`
+  weiß auf weiß, gelayoutet und unlesbar.
+
+### Warum `--squint` gebaut wurde
+
+Dieselbe Fehlerklasse kam an einem Tag sechsmal: eine Folie kündigt eine
+Aufzählung an und hält sie zurück, eine Anweisung sagt *dass*, aber das *wie*
+steht im Fortsetzungssatz, ein Verweis zeigt auf etwas, das der Raum nicht
+sieht. Jedes Mal gefunden, indem gebaut und *hingeschaut* wurde. Der Collapse
+ist CSS und JS – man kann ihn nicht aus der Quelle ableiten, und jeder Versuch
+ist genau der Fehler, den das Werkzeug verhindern soll.
+
+`node build.js <source> --squint` schreibt `squint.txt`: `.` gemalt, `-` ein
+promoted Bold als eigener Bullet, `~` zurückgehalten mit Wortzahl. Beim ersten
+Korpus-Lauf fand es sofort einen echten Defekt (`#read-more`: drei nackte
+Dateipfade, jedes Wort des Warum zurückgehalten) – der lintet sauber und passt
+in den Rahmen, nur die Projektion zeigt ihn.
+
+**Wer an dieser Lecture arbeitet, liest zuerst `squint.txt`.**
+
+### Zahlen
+
+`npm run gate` 422 → 440, `test/settings.mjs` 244 → 329, `test/run.mjs`
+647 → 827 (sechs neue Specs). `--check-fit` nannte zu Beginn zwei
+beschnittene Folien und nennt jetzt keine.
+
+### Bewusst nicht gemacht
+
+- **Apostrophe bleiben gerade.** Alle fünf Lectures sind es; nur eine
+  umzustellen macht die fünf uneinig.
+- **Per-Zeile-Steuerung für `wrap`** gibt es nicht und soll es nicht geben:
+  `balance` bricht bei jeder Fenstergröße neu um, eine Syntax für „diese Zeile"
+  würde eine Entscheidung an einen Umbruch heften, den nur der Autorenbildschirm
+  hat. Leerzeichen am Zeilenende sind ohnehin vergeben (harter Umbruch).
+
+## Slice: was eine Vorlesung darüber sagen darf, wie sie aufgeht
+
+Vier Einstellungen aus einer Familie, in einem Durchgang, weil sie dieselben
+Tabellen anfassen (`VIEW_DEFAULT_SPEC`, `STYLE_SPEC` und ihre `lint.js`-Spiegel).
+
+1. **`auto-fit` hat einen dritten Modus, `shrink`.** Der Fit ist derselbe, nur
+   ist die Decke die eigene Zoomstufe des Vortragenden statt des globalen
+   Maximums – er kann also nur verkleinern. Aus dem Boolean wurde ein String
+   (`off | full | shrink`), und das ist die Fallgrube: **niemals
+   `if (state.autoFitMode)`**, alle drei Wörter sind truthy. `autoFitOn()` ist
+   der Test, `autoFitCeiling()` der ganze Unterschied zwischen den beiden
+   An-Modi. Der Snapshot trägt zusätzlich weiterhin ein Boolean `autoFit`, weil
+   `--audience-only` genau eines der beiden Fenster neu baut und ein älteres
+   Gegenüber das Feld mit `!!` liest. `#` ist jetzt ein Dreier-Zyklus; Shift
+   dreht ihn *nicht* um, weil `#` auf US-Layout Shift-3 ist und auf deutschem
+   eine eigene Taste – `e.shiftKey` sagt dort auf zwei Tastaturen nicht
+   dasselbe.
+2. **`slide-numbers` steht jetzt auf `horizontal`.** Die einzige Änderung hier,
+   die das Rendering fertiger Decks bewegt, bewusst und ohne Kompatibilitäts-
+   schalter. Gestapelt setzt jede Ziffer auf eine eigene Zeile, Folie 10 kommt
+   als 1 über 0 im Raum an. Zurück geht es mit `slide-numbers: vertical`.
+3. **`print-slide-numbers`** ist derselbe Wertevorrat für die Dokumentansichten,
+   und sein Default ist kein Wert, sondern eine Weiterreichung: nicht gesetzt
+   heißt „was die Live-Ansichten sagen". `printSlideNums()` ist der eine
+   dokumentierte Schritt dafür.
+4. **`style: {hyphenate: print | all | none}`.** `print` ist der Default und
+   genau das bisherige Verhalten. `lang:` bleibt eine eigene Zeile – die
+   Sprache ist eine Eigenschaft der Vorlesung, die Trennung eine Vorliebe. Die
+   Live-Regel ist auf `#stage` begrenzt (TOC, Suche und Hilfe trennen nie) und
+   trägt denselben `manual`-Reset wie PRINT_CSS. Die print-Regel ist in
+   `body:not([data-hyphenate=none])` gewickelt – ohne diese Klammer täte `none`
+   stumm nichts, und das ist die Assertion, die `test/settings.mjs` hält.
+
+Dazu neu: `viewDefaults()` und `styleSettings()` laufen in der `buildOnce`-
+Preflight neben `assertInlinable`, damit ein Tippfehler in `auto-fit` auch
+`--print-only` scheitern lässt. Und `test/auto-fit.mjs` misst, was „lässt den
+Zoom in Ruhe" heißt – eine kurze und eine zu hohe Folie, einen `#`-Druck
+auseinander.
+
 ## Review-Slice: dreißig Befunde über den ganzen Branch
 
 Ein Multi-Agent-Review über den gemergten Branch, jeder Befund einzeln
@@ -956,6 +1364,428 @@ sind.
 Nebenwirkung, dokumentiert in `CLAUDE.md`: das Zeichenbudget einer Code-Zeile
 wächst von ~57 auf ~78 Zeichen (16:9, Default-Zoom), und es ist bei **jeder**
 Chunk-Breite gleich, weil ein Top-Level-`pre` ohnehin auf 72vw ausbricht.
+
+## Frame-Slice: was in was darf, Beats unter der Oberfläche, Panels, Docks
+
+Ausgangsfrage: die post-1.0.0-Konstrukte (cols, side, cards, rows, backdrop,
+overlay, draw) lassen sich frei kombinieren – was davon geht, was bricht,
+und wer sagt es. Vierzehn Kombinationen in einem Fixture gebaut: alle
+bauten mit Exit 0, der Linter meldete eine. Zehn davon erzeugten kaputtes
+HTML (ein `::: expand` in `::: cols` gab seinen Closer den Spalten, ein
+`::: cols` in `::: overlay` zeichnete einen leeren Spaltenblock, jede
+Direktive in `::: cards` druckte sich als Text). Was daraus wurde, in
+Commit-Reihenfolge:
+
+- **Nesting-Regeln** (`4f6923c`, Review-Pass `c5600d8`): Refusals in
+  `parseLecture`, jeder mit Linter-Spiegel; sechs Warnungen nur im Linter
+  (`side-without-flip`, `layout-too-narrow` mit Maßrechnung, …). Der Korpus
+  beider Repos verschachtelt genau eine Sache, eine Figur in einem Pane.
+- **Beats unter der Oberfläche:** ein `---` in Pane, Karte, Overlay, Dock
+  oder Trenner ist `BEAT_MARK`, `chunkBeats` liest Segmente, Steps und Marker
+  in einem Document-Order-Walk; im Overlay zählen Marker ab `from`
+  (`at`, nicht positionell – doppelt gezählt gab es einen toten Beat).
+- **`draw` geht fast überall** (Overlay, Karte, Trenner-Kartenreihe);
+  Trenner nehmen `cards`/`rows`/`overlay`. Nicht in `cols` (gemessen), nicht
+  in `embed`.
+- **`::: overlay {.panel}`** (Spalte, Band, Vollfläche) mit `third`/`half`.
+  Drei Fallen: `--slide-pad-x` ist ein Prozentwert (deshalb absolute
+  Positionierung gegen den Layer, der `inset: 0` plus Padding bekam), die
+  Spaltenbreite ist ein Folienanteil und kein Schriftmaß (in em folgte sie
+  dem Zoom auf drei Viertel einer leeren Fotofolie), und das Einfahren ist
+  ein `clip-path`-Wipe, weil ein Translate über den Rahmen Auto-Fit als
+  Überlauf las.
+- **Palette, Radien, Schatten und die Zeilen-Grundlinie** (nach 2.0-Freeze,
+  drei Sessions parallel an `build.js`): vier Befunde, alle im Browser
+  gemessen statt im Stylesheet gelesen. Die SVG-ID-Präfixe hingen an den
+  Build-Flags (`--audience-only` schrieb `psi-fig-6-`, ein voller Build
+  `psi-fig-8-`), was `release.yml`s Staleness-Prüfung untergrub;
+  `test/reproducible.mjs` prüft es jetzt, und zwar **nicht** als
+  `test/gates/`-Eintrag, weil `gates.yml` ohne `npm ci` läuft und dieser
+  Check den Build startet. Der Reset-Boden ist nicht 0: `parseLecture`
+  spleißt Vektor-Assets über denselben Zähler in `::: draw`-Blöcke, und
+  dieses Markup teilen sich alle vier Views.
+
+  Auf `::: rows` erreichte das Anker-Wort den Begriff nicht (`align-self`
+  war hart `center`), also bewegte `{.top}` nur die Erklärung. Und der
+  Default folgt jetzt dem Grund: mit Fläche `middle`, mit `.clear` das neue
+  `baseline`. Die alte Notiz begründete `middle` mit der Sorge vor einem
+  oben gestrandeten Begriff – richtig für ein nacktes Wort, überholt für
+  eine getönte Karte, die es damals noch nicht gab.
+
+  **Die Regel, die dreimal unabhängig getragen hat und deshalb notiert
+  gehört:** eine Fläche, die Lesbarkeit herstellt, bleibt außerhalb der
+  Palette; eine Fläche, die gruppiert oder trennt, folgt ihr. `ov-glass`
+  (52 % Papier, 68 % im Panel – Zahlen aus einem Kontrastverhältnis auf
+  einem mitteltonigen Foto), der Invert-Text-Schatten und der Schatten
+  unter einer Überschrift auf einem Foto. Ohne sie tintet ein
+  Vereinheitlichungsdurchgang genau die Flächen mit, deren Farbe eine
+  gemessene Untergrenze ist – beinahe passiert, siehe die verworfene erste
+  Fassung des `tinted`-Blocks.
+
+- **`::: dock`** (`PLAN-dock.md`, gebaut in `e019c8a`): das Overlay-Vokabular
+  mit dem anderen Vertrag – Teil des Rahmens, der Text weicht. Seitendock
+  absolut plus Chunk-Padding, Band als Grid-Zeile; `@property --dock-px` als
+  `<length>`, weil ein em-Wert dreimal gegen drei Schriften aufgelöst wurde.
+  `.every` erbt vom Trenner, `#id`-Links sind der Live-Marker. Standardgrund
+  `tint`. Ein Implementierungs-Agent blieb dreimal am Watchdog hängen; ab dem
+  CSS ist es von Hand.
+  **Nachtrag vor 2.0.0:** die Lehre des Panels zwei Punkte weiter oben hatte
+  das Dock nicht bekommen. `--dock-em` war zwar nur einmal aufgelöst, aber
+  gegen `var(--zoom)`, also gegen Auto-Fit: dasselbe geerbte `{.every}`-Dock
+  stand auf drei aufeinanderfolgenden Folien eines Teils 406, 350 und 294 px
+  breit, und die Luft (1,2em innen, 1,6em daneben) schrumpfte mit – am
+  engsten also genau auf den textreichsten Folien. Breite jetzt 28/37/46 %
+  der Folienbreite, `--dock-gap` 3,5 % und dieselbe Zahl innen wie außen.
+  `DOCK_SHARE`/`DOCK_GAP_SHARE` in `lint.js`; dort war die Rechnung vorher um
+  ein Drittel zu optimistisch, weil sie die em des Docks als die des Chunks
+  las.
+- **Frame-Lab** (`lectures/frame-lab/`, ungetrackt): 24
+  Randfall-Chunks; fand zehn Defekte, alle behoben (`ed68ce8`, `6f20362`),
+  darunter `text-on-picture` als Lint-Warnung für Wörter auf einem
+  `.clear`-Backdrop.
+- **Beats behalten ihre Box** (`visibility: hidden`), damit Reihen und Karten
+  nicht springen. Galt zuerst nur verschachtelt; seit der Vereinheitlichung
+  gilt es auch für Top-Level-Segmente, und der Schlüssel `style: {reveal: …}`,
+  der das deckweit gekauft hat, ist weg.
+- **Decoration** zeigt jetzt Panels, sechs Dock-Folien und die Beats.
+
+Offen: ein zu langer Dock-Text schrumpft die ganze Folie (Auto-Fit misst
+das Dock mit); eine Kartenreihe im Trenner kann über die Folienhöhe
+wachsen; der Speaker-Filmstreifen rendert Bänder als Mini-Kästchen; die
+Breiten 13/18/25em sind am Fixture gemessen, nicht an einer Vorlesung.
+
+## Live-Demo-Slice (`D`)
+
+Ein Prototyp gegen das Extend/Mirror-Umschalten bei Live-Demos: `D` im Cockpit
+nimmt per `getDisplayMedia` ein Fenster oder einen Bildschirm auf, die
+Projektion zeigt das Video vollflächig, `D` beendet es von beiden Seiten. Zwei
+Transporte, zur Laufzeit gewählt: unter `--serve` (same origin) spielt die
+Audience den `MediaStream` des Cockpits direkt (`peer.psiDemoAttach`), unter
+`file://` geht er per `RTCPeerConnection` über loopback, Handshake als
+`demo-offer` / `demo-answer` / `demo-ice` über den bestehenden
+`postMessage`-Kanal. Chromium 141 transferiert keinen `MediaStreamTrack`
+zwischen Fenstern, gemessen, deshalb Aufruf statt Transfer. Ungated wie `B`,
+nicht im Snapshot. Vollständig: `speaker.md` §2, Skill `psi-slides-media`.
+
+Geprüft: `test/demo.mjs` fährt beide Transporte mit Canvas-Stream statt
+Capture, dazu die Fälle aus dem Review (D während der Picker offen ist,
+Cockpit ohne Projektion, D in der Übersicht, Reload der Projektion unter
+laufender Demo, Stop von der Projektionsseite). Nicht geprüft: der echte
+Picker und die macOS-Bildschirmaufnahme-Freigabe (Xvfb-Chromium hat keinen
+Desktop-Capturer), Firefox und Safari. Esc lässt die Demo bewusst stehen,
+weil Esc im Demo-Fenster eine andere Bedeutung hat.
+
+## Annotation-Slice: die Notiz ist die Folie, solange man tippt
+
+Ausgangswunsch: während eines Vortrags ein Wort, das noch gesagt werden
+muss, ordentlich zeigen können – nicht in der kleinen Notiz neben der
+Folie. Erster Entwurf war ein live eingefügter Chunk hinter dem aktuellen,
+mit Splice in source.md unter `--watch`. Verworfen, bevor eine Zeile stand:
+`state.activeIdx` ist ein Index in `flatChunks`, ein eingefügter Chunk hätte
+also selbst Sync-Zustand sein müssen, beide Fenster hätten ihn aus denselben
+Daten rendern müssen (ein Markdown-Subset im Browser, ein zweiter Parser, der
+von `parseLecture` wegdriftet), und der Splice hätte auf dem Beamer einen
+`location.reload()` ausgelöst. Stattdessen die Annotation (N) aufgebohrt, die
+schon alles hatte: Textarea auf der Folie, Sync per Tastenanschlag, localStorage,
+Shift-E-Export, `--integrate-annotations`.
+
+Was gebaut wurde, in vier Sätzen. Der Chunk nimmt mit `.annot-visible` die
+Folienhöhe (wie ein Backdrop-Chunk), `.chunk-content` verliert für die Dauer
+sein `position: relative`, und die bestehende `.annot-box` wird ein
+`inset: 0`-Layer mit Scrim. `fitAnnotation()` in `AUDIENCE_JS` setzt drei
+Custom Properties aus dem Text allein: Schriftgröße (längste Zeile in 85 %
+der Breite, alle Zeilen in der Höhe, Deckel 3× Folienschrift, Untergrenze
+0,35× – darunter wird umbrochen, nicht weiter geschrumpft), Blockbreite
+(genau die längste Zeile, deshalb ist ein Wort zentriert und ein Block
+linksbündig, ohne Zeilenzähler), Code-Kante (die letzte URL im Text, zwischen
+20 % und 50 % der Rahmenhöhe, aus dem, was der Text übrig lässt). Nichts
+davon reist im Snapshot: beide Fenster rechnen dasselbe aus demselben String.
+Der Kamera-Zweig für `annotEditingId` zentriert den Chunk statt ihn bei 33 %
+zu parken.
+
+Drei Entscheidungen, die man nicht aus dem Code liest:
+
+- **Die letzte URL bekommt den Code, nicht die unter dem Cursor.** Die
+  Cursorposition reist nicht mit, die Scrollposition auch nicht. Alles, was
+  die Projektion bestimmt, muss aus dem Text ableitbar sein. Deshalb auch
+  keine Scroll-Variante, bei der der Code mit der nächsten URL wechselt.
+- **Keine harte Untergrenze mit Scrollen.** Der Text schrumpft stetig; eine
+  Notiz mit dreißig Zeilen steht klein und vollständig, und das ist das
+  Signal, dass sie zu lang ist.
+- **Der Encoder kommt in die Live-Views.** Der Kommentar bei `qrSvg` nannte
+  zwei Gründe für Build-Zeit: kein selbstgeschriebenes Reed-Solomon, nichts in
+  einem Template-Literal. Beides erledigt das Muster von `diagramCoreJs()`:
+  `qrcode-generator/dist/qrcode.js` als Text gelesen, als eigenes `<script>`
+  gespleißt, dieselbe Bibliothek. 56 KB pro Live-View. Die Exports-Map des
+  Pakets versteckt den Dateipfad, daher `nodeRequire.resolve('qrcode-generator')`.
+
+Review nach dem ersten Commit, fünf Befunde, alle behoben: der Layer war die
+Chunk-Höhe statt der Rahmenhöhe (ein Chunk höher als der Rahmen bei
+`auto-fit: false` bekam einen Layer über beide Kanten hinaus – jetzt ein
+`--slide-h` hohes Band um die Chunk-Mitte, die die Kamera zentriert); ein
+zu langer Link warf aus `qr.make()` bis in den Input-Handler und stoppte
+damit Sync und localStorage (jetzt kein Code statt Exception); die Zeilen-
+zählung an der Untergrenze unterschätzte Wortumbrüche, deshalb
+`word-break: break-all` im Layer; die Bibliothek maskiert Zeichen auf ein
+Byte, also `TextEncoder` als Byte-Funktion auf Build-Seite, in den
+Live-Views und im Spec (die ESM-Variante der Bibliothek hat keine
+UTF-8-Tabelle); und `autosize` plus ein doppelter Fit pro Snapshot auf der
+Gegenseite waren verschenkte Layouts.
+
+Gemessen (1440×900, Tutorial `#chunks-columns`): ein Wort 94,8 px = 3 × 23,4 × 1,35,
+zentriert auf 720; ein fünfzeiliger Block mit ASCII-Kasten 43 px, Block 726 px
+breit = 70 % der Innenbreite; mit URL darunter 29,5 px Text und 406 px Code =
+halbe Innenhöhe. Im Cockpit ist der Layer exakt `#stage-viewport`.
+
+Nicht angefasst, aber gesehen: die ruhende Randnotiz steht bei zentriertem
+Chunk mit 21vw Breite links teilweise außerhalb des Rahmens (x = −39 bei
+1440 px). Das war vorher so – die Kamera hat sie nur beim Tippen freigelegt –
+und ist jetzt der Zustand nach Esc. Ob die Ruheposition an die neue Rolle
+angepasst gehört (unter den Text statt daneben?), ist eine offene Frage.
+
+## Cue-Cards-Slice: die Notes als Karten, der Cursor vor dem Zähler
+
+Anlass: eine 45-Minuten-Keynote mit ausformuliertem Redetext und minimalen
+Folien, bei der das Notes-Textarea im Cockpit zu schmal, zu lang und zu
+scrollbedürftig war, um aus dem Augenwinkel gelesen zu werden. Gebaut auf dem
+Branch `cue-cards`, Plan und Bautagebuch in `PLAN-cue-cards.md` (§11–13:
+Fortschritt, Entscheidungen unterwegs, offene Fragen).
+
+Was gelandet ist:
+
+- **`K` im Cockpit**: die Notes des aktiven Chunks als Karten auf einer Spur,
+  der Spiegel klein links oben, die Uhr in der Kopfzeile. Absatz = Karte,
+  Bold = Bullet, `####` = Titel, `@mm:ss` = Sollzeit mit Drift neben der Uhr.
+  Space geht über die Karten, dann über die echten Reveals (als Rauten in
+  derselben Spalte), dann zur nächsten Folie; Backspace macht genau einen
+  Space rückgängig; Enter überspringt die Karten. Entwurf „Spur“ von zwei
+  visuellen Entwürfen, gewählt wegen des geringeren Chromes.
+- **Der Cursor sitzt vor `revealed[chunkId]`** über zwei neue `viewHooks`
+  (`consumeForward`, `consumeBack`) in `goForward`/`goBack`. Kein neues
+  Sync-Feld, Audience unverändert; das ist die Entscheidung, an der alles
+  andere hängt.
+- **Parser**: `noteSegments()` gibt jeder Note ihr Segment; zwei Regeln
+  obendrauf (leeres Segment rutscht zurück; Notes nur im letzten Segment
+  sind Chunk-Notes auf Beat 1, damit kein bestehendes Deck wandert). lint.js
+  spiegelt und warnt `note-in-empty-beat`.
+- **`cue-cards.mjs`**, zero-dep, als Text ins Cockpit gespleißt wie
+  `diagram-core.mjs`; neuntes Gate; Browser-Spec `cue-cards` mit zwei
+  Fenstern.
+- **Die Uhr** ist aus dem Footer raus: großer Button über dem Letterbox-Rand,
+  Klick = Neustart. Keine Pause, absichtlich.
+
+Was unterwegs biss: die Positionsregel hätte jedes bestehende Deck auf den
+letzten Beat gelegt (daher die Chunk-Notes-Regel); ein Aufruf aus
+`renderTimer` in die Karten-Variablen lief in die TDZ, weil die Uhr im Skript
+vor den Karten steht (daher zwei Intervalle); ein `\s` im Template-Literal,
+das das `inlined`-Gate sofort fand.
+
+**Aufräumdurchgang vor dem Merge** (§15 des Plans hat die Begründungen):
+die Naht zwischen Streifen und Karten ist jetzt dieselbe Ziehleiste wie in
+den anderen zwei Anordnungen – ein Deskriptor `PREVIEW_AXES` statt eines
+dritten Zweigs in den drei Handlern, und weil der Spiegel im Streifen sitzt,
+zieht man mit ihm die Projektion groß. Die Uhr sagt auf Hover RESET, weil
+der Sprung auf 0:00 sonst wie ein Defekt aussieht. Die Drift misst gegen
+alle Marken des Decks statt gegen die der aktuellen Folie, also steht sie ab
+der ersten Folie da und verschwindet nicht auf jeder Folie ohne eigene
+Marke. Und der Fund, der die Ziehleiste nach 75 px anhalten ließ:
+**`#cue-cards` war zwei Elemente** – die Sektion des Cockpits und der
+Tutorial-Chunk über den Modus. Cockpit-Chrome und Chunk-IDs teilen sich
+einen Namensraum; die Sektion heißt jetzt `#cue-panel`, ihre Kinder werden
+über die Sektion statt über `getElementById` gesucht, und die Regel steht in
+CLAUDE.md unter *Conventions*.
+
+## Slice: Keynote lessons (branch `keynote-lessons`)
+
+The content repo's `TODO-lessons-keynote-2036.md` – fourteen findings from
+building a 31-chunk keynote – worked down in seven parallel worktrees and
+merged here. The root defect, measured rather than guessed: auto-fit grew a
+slide's words to 2.2x while its `::: draw` figure stayed width-capped, so a
+footnote stood at 40 px beside 16 px labels. Figures now follow the body
+type (the rule print had all along), auto-fit stops at a capped figure, and
+`.full` finally is wider than `.wide`. The rest is in the changelog under
+*Unreleased*: `--frames`, `statement:`, `note-button:` + `M`,
+`neighbours: hidden`, divider notes and `{.stack}`, `anchor`, `zone`,
+`unheaded`, the `.bare .dashed` refusal, literal underscores, footnotes
+riding their segment, `rows` term columns, the image optimiser seeing
+backdrops.
+
+What it cost and what bit, for whoever picks this up:
+
+- `min(100%, …)` in an svg's `width` contributes nothing to a shrink-to-fit
+  parent's intrinsic width; both terms have to be definite lengths.
+- A `figure:` chunk's `.chunk-body { max-width: 40em }` was a caption
+  measure and capped the picture in the same ems as the type; it steps
+  aside for a `.figure-diagram`.
+- The cover, the closing slide and dividers hardcode `data-width="full"`;
+  the 6% padding is scoped to author-written `.full` chunks or the title
+  stands against the edge.
+- Every agent worktree branched from `main`, not from the integration
+  branch, so `--frames` was not in their trees; they measured with their
+  own playwright scripts. Fine, but the next round should branch from the
+  integration commit.
+
+Verified: gates 925, `test/settings.mjs` 816, full browser suite 1047
+(before the `.full` change) plus the six specs it touches after, the three
+tracked lectures rebuilt, the keynote clean under `--strict`, `--check-fit`
+with every figure at 1.00x of its body type, and its contact sheets read.
+
+Second round, from a critic's pass over the 90 frames
+(`~/r/psi-slides-mylectures/TODO-keynote-frames-review.md`): figures on the
+ink edge under `blocks: left`, one block gap, `{.middle}`, per-chunk
+`figure-type` with an unevenness warning, `{.stack .bare}` dividers, `emph`
+on `.bare`, a stray-label warning, the footnote clamp, the chip label. Two of
+the critic's findings were misdiagnoses worth remembering: the "shrunk"
+backdrop was a screenshot taken 360 ms into a 620 ms reveal (the probes now
+wait for animations to settle), and the blank row in `::: rows` was a `gap`
+shorthand clobbering `row-gap`, not the beat marker.
+
+Third round, after the author went through the frames himself: the figure
+canvas. Diagnosis (his): PowerPoint has a fixed canvas per slide and the
+mess starts when someone drags one figure; here the engine dragged every
+figure by deriving its box from its content. Now every `::: draw` in a
+chunk body gets the column × 16 labels at body size, overflow and underfill
+are warned with numbers, `frame` is the exception. Two numbers that were
+load-bearing and wrong before: the em a figure stands in is 31.59 px (the
+opening zoom is 1.35, not 1), and `--body-fs` differs per tag. Plus the ink
+edge skipping invisible frames, contrast of `.muted`/`.dim` on tones, zone
+caption inset, footnotes without hyphens, edge-label halo. `lectures/diagrams`
+and `docs/artifact/figure-rules` declined the canvas (`frame none`) because
+they are catalogues of small specimens on prose slides; `lectures/tutorial`
+keeps the default and carries eight true warnings about documentation
+figures – silence with `frame none` or leave, one line either way.
+
+Fourth round, working down `PLAN-figure-defaults.md` (a Fable-written plan
+from three generations of the keynote; committed): a gap measured in labels
+with an arrow-safe default and `edge-short`; `.left` anchors a free text;
+chains of peers share one size, `row`/`col`, `{.own}`, `same w as`, a
+default-layer size as a chain's floor; a picture slide opens centred
+(`anchor` slot `.middle`/`.top` with a shape default), the stacked divider
+heading as a heading, `statement:` with a quiet italic line, `hyphenate:
+all` sparing centred prose and addresses; `[Klick …]` in a note is a beat;
+a zone's inner band and `in <zone>` placement, zones sized by their
+children; every `---` is a beat and `empty-beat` names the one nothing
+rides. Plus `G` goto, `transition: pan|cut|fade`, `W` fullscreen, elbow
+arrival runs, calmer dashes, pinned-edge relabels, table columns aligned by
+tag default. The keynote was rewritten onto each default as it landed and
+proved byte-identical each time; its figure source lost a third of its
+hand-written sizes. Two things bit: the disk filled with frames and
+scratch builds (clean the scratchpad between rounds), and a `git merge`
+aborted silently on another session's uncommitted test changes – check
+`git log -1 -- <file>` after a merge, not the merge's first line.
+
+Open: the keynote's `#umweg` figure is 66 labels wide and stays under 18 px
+at any zoom – that is the drawing's to fix. Site screenshots of the cockpit
+frames and the editor are stale. A statement chunk's `| sub-heading` still
+renders as the quiet `.hd-sub`.
+
+## Souffleuse-Slice: a prompter in the box, and the restraint in code
+
+Written in English, like the rest of the repository has moved to. Occasion: the
+idea came while presenting. The cockpit knows what is on the slide, what is in
+the notes and what time it is – what it lacked was an ear and a judgement.
+Everyone who heard the idea liked it and warned about the same thing in the same
+breath: a hint that is too long or too fundamental throws the speaker out of the
+sentence. That one requirement ordered everything else. Built on branch
+`souffleuse` in the worktree `../psi-slides-souffleuse`; the plan, the slices and
+the *Decisions along the way* are in `PLAN-souffleuse.md`, and where that
+document and the code disagree, the code is right and that section says why.
+
+Seven commits, one per slice:
+
+1. `duration:` and the `prompter:` block, refused in build.js and lint.js
+   alike – `talkDuration`, `SOUFFLEUSE_SPEC` / `souffleuseSettings` in the
+   `buildOnce` pre-flight, the three mirror tables in lint.js with the shared
+   `nestedBlockKeys` walk, the key-set check in the tails gate.
+2. `souffleuse.mjs`, the pure half, plus its gate: deck payload, system prefix,
+   tick message, answer parser, drift arithmetic, tick decision and the policy –
+   zero imports, zero Node APIs, 107 assertions.
+3. The sidecar in build.js: `createSouffleuse`, the two flags and the usage
+   block, `psiWatch.on` / `ask` / `onConnect`, the `souffleuse-*` arm of the
+   watch socket, the `prompter` `--events` type and stdin command, the JSONL
+   log, `prompter-*.jsonl` in `.gitignore`.
+4. The cockpit's ear and the switch: the Web Speech adapter behind the planned
+   interface, `SOUFFLEUSE` beside `VIEW_DEFAULTS`, the footer button and
+   `Shift`-`S`, the badge with its two reasons, the help group “The prompter”.
+5. The strip in its two homes, the `×`, the auto-fade, the Esc step, the history
+   panel behind a `Shift`-click, the interim line, and the prompter's cards
+   merged into `cueCardsFor`.
+6. `test/souffleuse.mjs`: a fixture deck, a fake OpenRouter on loopback, a fake
+   recogniser, one real `--watch --serve --prompter --events` child, and one
+   whisper followed the whole way. 51 assertions in about eight seconds.
+7. The documentation that moves with it: CLAUDE.md, `speaker.md` (§2, the new
+   §3.1, §4.1, §4.2, §5), CHANGELOG, README, the `psi-slides-prompter` skill,
+   `test/README.md` and this section.
+
+What it is: a prompter in the theatre sense. At most twelve words, one at a
+time, and the normal answer is nothing. Four kinds – `time`, `example`, `fact`,
+`delivery` – plus one action that is not a hint at all: a **cue card laid into a
+slide that is still to come**, which shows up in the rail under `K`. The
+judgement is the model's; the *restraint* is in code, which is the decision the
+whole thing rests on. A hint over twelve words is discarded unread, one stands at
+a time, cool-downs run overall and per kind, the first minute after the switch
+is quiet, and a hint the speaker sent away cannot come back in other words
+(word-Jaccard ≥ 0.6 against everything already said or dismissed). All of that is
+`createPolicy` and all of it is decided by the gate, because a talk where nothing
+came looks exactly like a talk where nothing was due.
+
+Decisions along the way that matter to whoever picks this up – the full list is
+in the plan:
+
+- **`duration: 45:00` is a sexagesimal integer to YAML 1.1**, which is what
+  gray-matter speaks: it arrived as 2700. `parseLecture` restores the string the
+  author wrote from the raw frontmatter rather than requiring quotes.
+- **The `hello` reply's refusal rides in the protocol's own `why`.** `reply`
+  spreads the payload first so no payload field can shadow a protocol one, so a
+  payload `why` would be overwritten. `ok` stays true – the hello did arrive.
+- **The cockpit's clock starts at `hello`.** Stamped when the watcher started, the
+  minutes an author spent writing slides counted as minutes of the talk and the
+  opening quiet was over before it began.
+- **`off` and `idle` are the two halves of not running**: `off` is the sidecar
+  saying it cannot work at all and carries the reason, `idle` is the speaker
+  having switched it off. The badge needs a memory for exactly that reason – a
+  status arrives every tick, and writing it straight to the badge wiped a refused
+  key's reason one message after it was given.
+- **A timeout is not a streak.** The backoff counts 429s, 5xx and network
+  failures; an eight-second abort only missed the sentence it was about.
+- **`notesToCards` is injected, not imported** (`deckPayload(lecture,
+  {notesToCards})`), so there is one `@mm:ss` grammar in the repository.
+- **A move is resolved by `idx`, never by id.** A divider's element id in the
+  cockpit is `<col-id>-section`, while the deck payload gives it the column's own
+  id: the two agree on position and not on name.
+- **`souffleuseCues` is declared up in the cue-cards section**, a long way from
+  the prompter's own, because the cue mode's restore runs first and a `const`
+  still in its temporal dead zone throws inside a `try` that swallows it whole.
+- **`#cue-rail` is `position: relative` now.** `cueRender` scrolls to
+  `curEl.offsetTop`, which was measured against whatever positioned ancestor
+  happened to be up the tree, so the strip growing above the rail moved every
+  card by its own height.
+- **A comment in `SPEAKER_JS` named the environment variable and shipped it.**
+  The spec asserts that `speaker.html` never says `OPENROUTER`; it failed on a
+  comment quoting the badge text. Reworded rather than the assertion weakened – a
+  privacy check that allows exceptions is not one.
+
+Open items:
+
+- **The classic-layout cue race**, found in slice 6 and documented rather than
+  fixed: a card that arrives while the speaker is already walking onto its slide
+  is shown by `cueSync` in the rail, but in the classic arrangement
+  `souffCueOnArrival` has already marked that slide as seen and the card is not
+  shown at all. Harmless, real, and worth a decision later.
+- **No real rehearsal has happened.** Nothing in a log has been read back from a
+  talk, and the thresholds – 90 s behind, 240 s ahead, a 60 s cool-down, a 25 s
+  cadence – are chosen rather than calibrated. The checklist for that first run
+  is `PLAN-souffleuse.md` § Open for the first rehearsal.
+- **On-device recognition is unverified on macOS.** Chromium bug 444393111
+  concerns `available({processLocally: true})` there, which is why the fallback
+  to server recognition is visible on the badge; the spec's fake claims
+  `available`, so the real path has only ever been reasoned about.
+- **The prompt cache is unmeasured.** Whether a 20 to 60 KB prefix clears the
+  provider's minimum shows up only as
+  `usage.prompt_tokens_details.cached_tokens` in the log of a real run.
+- **The desktop app knows nothing of this**, deliberately: no entitlement, no
+  flag, `stage-engine.mjs` unchanged. CLAUDE.md says what would have to move
+  together if that ever changes.
 
 ## Gaps / Bekannte Limits
 
