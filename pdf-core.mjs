@@ -80,7 +80,8 @@
  * DOM) before pdf. Because the order lives here and not in a driver, a driver
  * cannot get it wrong, and test/gates/pdf-core.mjs holds it with a driver
  * that only records its calls. exportDocument is the short form of the same
- * order: open, load, pictures decoded, diagnostics read, pdf on print media.
+ * order: open, load, self-test answers checked, pictures decoded, diagnostics
+ * read, pdf on print media.
  */
 
 // ── sizes and the ceiling ───────────────────────────────────────────
@@ -727,6 +728,35 @@ function docSettle() {
     .then(() => imgs.length);
 }
 
+// ::: pulse, the self-test questions a document carries (build.js,
+// renderPulseQuestion). The markup is a question and a closed <details>
+// holding the answer, and a closed <details> prints its summary and nothing
+// else - measured: the answer is missing from the PDF, the word Answer is
+// not. Pulse Embed v2 rebuilds each question on DOMContentLoaded, moving the
+// answer out of the <details> into a box its own @media print rule shows,
+// and hiding its buttons and the two <pulse-summary> boxes on paper. Its
+// set-up is synchronous, so docReady (readyState complete) already waits for
+// it: a question still carrying its <details> then is one the widget will
+// never touch, because it failed or was not there. Such a question is
+// opened here, so its answer prints under the summary's label, and reported.
+//
+// Nothing here reaches the network. The widget asks its server only with a
+// sign-in token in localStorage, and both drivers open every export with
+// fresh storage; test/pdf-export.mjs holds the zero.
+function docPulse() {
+  const all = [...document.querySelectorAll('pulse-question')];
+  const unread = [];
+  for (const q of all) {
+    if (q.classList.contains('pulse-ready')) continue;
+    const d = q.querySelector(':scope > details');
+    if (!d) continue;
+    d.open = true;
+    const chunk = q.closest('.chunk');
+    unread.push({ chunkId: chunk && chunk.id ? chunk.id : '?', key: q.getAttribute('key') || '' });
+  }
+  return { questions: all.length, unread };
+}
+
 // The two diagnostics that can be read off the page, in the shapes the slide
 // export reports them in. A chunk in the documents is an <article> whose id
 // is the chunk id; a link outside one (the contents, a divider) names its
@@ -820,6 +850,8 @@ export async function exportDocument(driver, opts) {
   try {
     await page.load(url);
     await page.waitFor(docReady, 30000);
+    // Before the pictures: an answer opened here may hold one.
+    const pulse = await page.evaluate(docPulse);
     const pictures = await page.evaluate(docSettle);
     const got = await page.evaluate(docCollect);
     // Print media: the documents' @media print rules are what a document is.
@@ -832,6 +864,7 @@ export async function exportDocument(driver, opts) {
       pages: facts.pages,
       pageSize: facts.pageSize,
       pictures,
+      pulse,
       version: driver.version,
       where: driver.where,
       missingImages: got.missingImages,
@@ -902,8 +935,17 @@ export function formatReport(r, { outLabel, withBrowser = true }) {
   for (const e of r.pageErrors) {
     warn(`${rel}: the page reported an error during the export: ${e}`);
   }
+  // Absent on a slide result and on a result from before the field existed.
+  const pulse = r.pulse || { questions: 0, unread: [] };
+  for (const u of pulse.unread) {
+    warn(`${rel}: ${u.chunkId} has a self-test question (${u.key}) the Pulse widget did not set up`
+      + ' – its answer prints unfolded, under the Answer label and as plain markup.', u.chunkId);
+  }
 
   if (doc) {
+    if (pulse.questions) {
+      info(`[pdf] ${pulse.questions} self-test question(s) printed with their answers.`);
+    }
     if (withBrowser) info(`[pdf] Chromium ${r.version} – ${r.where}`);
     // Points to millimetres, rounded: Chromium's A4 is 594.96 x 841.92 pt,
     // which is 210 x 297 mm to the millimetre and 209.9 x 297.0 to the tenth.

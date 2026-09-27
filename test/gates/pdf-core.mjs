@@ -55,6 +55,7 @@ function fakeDriver({ failAt = null } = {}) {
     },
     pageInstall: { dead: [], pages: 3 },
     docReady: true,
+    docPulse: { questions: 3, unread: [{ chunkId: 'q', key: 'q-two' }] },
     docSettle: 2,
     docCollect: {
       missingImages: [{ chunkId: 'm', src: './gone.png' }],
@@ -220,7 +221,9 @@ export async function run({ report }) {
     ok(cb.w === 794 && cb.h === 1123, 'document: the page is A4\'s width in CSS px', `${cb.w}x${cb.h}`);
     ok(at('load') < at('waitFor') && calls.includes('waitFn:docReady') && calls.includes('waitFor:30000'),
       'document: the load, then a bounded wait for the fonts');
-    ok(at('waitFor') < at('evaluate:docSettle') && at('evaluate:docSettle') < at('evaluate:docCollect'),
+    ok(at('waitFor') < at('evaluate:docPulse') && at('evaluate:docPulse') < at('evaluate:docSettle'),
+      'document: the self-test answers are checked after the widget has run, before the pictures are decoded');
+    ok(at('evaluate:docSettle') < at('evaluate:docCollect'),
       'document: pictures decoded before they are inspected');
     ok(at('evaluate:docCollect') < at('pdf'), 'document: the diagnostics are read before the pdf');
     ok(!order.some(o => /pagePrepare|pageSetup|pageCollect|pageInstall/.test(o)),
@@ -235,6 +238,8 @@ export async function run({ report }) {
       'document: the page count and the paper are read back out of the bytes', JSON.stringify([r.pages, r.pageSize]));
     ok(r.pictures === 2 && r.missingImages.length === 1 && r.dead.length === 1,
       'document: the diagnostics come back as the slide export shapes them');
+    ok(r.pulse && r.pulse.questions === 3 && r.pulse.unread[0].key === 'q-two',
+      'document: the self-test count and the questions the widget left alone', JSON.stringify(r.pulse));
     ok(JSON.stringify(r.blocked) === JSON.stringify([{ origin: 'https://example.invalid', count: 2 }])
       && r.reloadSockets === 1 && r.pageErrors[0] === 'boom',
       'document: blocked requests per origin, the reload socket apart, page errors');
@@ -404,6 +409,21 @@ export async function run({ report }) {
   for (let i = 0; i < docExpected.length; i++) {
     ok(docBusy[i] === docExpected[i], `document report line ${i + 1}: ${docExpected[i].slice(2, 50)}…`, docBusy[i]);
   }
+  const docPulse = docLines({ ...docBase, pulse: { questions: 4, unread: [] } });
+  ok(JSON.stringify(docPulse) === JSON.stringify([
+    'O [pdf] 4 self-test question(s) printed with their answers.',
+    ...docClean,
+  ]), 'a document with self-test questions says how many, and nothing else', docPulse.join(' | '));
+  const docPulseRaw = formatReport({ ...docBase, pulse: { questions: 2, unread: [{ chunkId: 'q', key: 'q-two' }] } },
+    { outLabel: 'deck/print.pdf', withBrowser: false });
+  ok(docPulseRaw[0].level === 'warn' && docPulseRaw[0].chunk === 'q'
+    && docPulseRaw[0].text === 'deck/print.pdf: q has a self-test question (q-two) the Pulse widget did not set up'
+      + ' – its answer prints unfolded, under the Answer label and as plain markup.',
+    'a question the widget did not set up is a warning with its chunk', JSON.stringify(docPulseRaw[0]));
+  ok(formatReport({ ...docBase, kind: undefined, prep: { stills: 0, placeholders: 0, embeds: 0 },
+    overflow: [], size: '16:9', w: 1600, h: 900, beats: 'all', zoom: null, ceiling: 1.35, chunks: 1 },
+    { outLabel: 'x' }).every(l => !/self-test/.test(l.text)),
+    'a result with no pulse field says nothing about self-tests');
   const docUnread = docLines({ ...docBase, pages: null, pageSize: null });
   ok(docUnread[1] === 'O Wrote deck/print-notes.pdf (an unread number of page(s) from print-notes.html)',
     'a file whose page tree cannot be read is said so, not guessed at', docUnread[1]);

@@ -6,7 +6,9 @@
  * link points, and the four diagnostics the export promises. And, against the
  * same fixture, --print-pdf and --print-notes-pdf: A4, the note in one file
  * and not the other, a fragment link that still lands, one browser for three
- * PDFs, and every combination that would do nothing refused by name.
+ * PDFs, and every combination that would do nothing refused by name. And, on
+ * a deck of its own, ::: pulse: the answers on paper, none of the widget's
+ * chrome, no request, and nothing of it in the slides.
  *
  * Shaped after test/settings.mjs, not after test/run.mjs, and the difference
  * is the whole design. run.mjs builds a lecture, serves it, hands a spec an
@@ -165,6 +167,41 @@ ${Array.from({ length: 40 }, (_, i) =>
 ## closing: That is the fixture {#end}
 
 The bookend, which is a cover by another name.
+`;
+
+// A deck of its own for ::: pulse, because the main fixture asks the network
+// for things on purpose and this one must be able to say it asked for
+// nothing: two questions, one keyed by its chunk and one by {#key}, and not
+// a word that the widget's chrome would print ("Answer", "Show answer",
+// "Questions on this page") in the prose, so a hit on one is the chrome.
+const PULSE_SOURCE = `---
+title: The pulse fixture
+lang: en
+---
+
+# Ciphers {#ciphers}
+
+## definition: A block cipher {.standard #cipher}
+
+A block cipher maps a fixed-size block to another block under a key.
+
+::: pulse
+What does a block cipher take besides the plaintext block?
+---
+A key, which selects one permutation from the family.
+:::
+
+## principle: Kerckhoffs {.standard #kerck}
+
+Security must rest in the key alone.
+
+> note: Kerckhoffs wrote this down in 1883.
+
+::: pulse {#kerck-rest}
+Where must the security of a cipher rest?
+---
+In the secrecy of the key, never of the algorithm.
+:::
 `;
 
 // ── running the export ──────────────────────────────────────────────
@@ -635,6 +672,49 @@ try {
   refused([`--pdf-out=${named}`],
     /^Error: --pdf-out without a PDF to write\./,
     '--pdf-out with none');
+
+  // ── ::: pulse ─────────────────────────────────────────────────────
+  console.log('\n::: pulse: the answers on paper, the widget\'s chrome not, and no request');
+  const pdir = path.join(dir, 'pulse');
+  fs.mkdirSync(pdir);
+  fs.writeFileSync(path.join(pdir, 'source.md'), PULSE_SOURCE);
+  const pdom = path.join(pdir, 'dump.html');
+  const rp = build(pdir, ['--slides-pdf', '--print-pdf', '--print-notes-pdf', `--pdf-dump-dom=${pdom}`]);
+  ok(rp.status === 0, 'the pulse deck exports all three PDFs',
+     (rp.stdout || '').slice(-400) + (rp.stderr || '').slice(-400));
+  const rpOut = rp.stdout || '';
+  const rpErr = rp.stderr || '';
+  ok(!/blocked \d+ request/.test(rpErr) && !/pulse\.psi\.uni-bamberg\.de/.test(rpOut + rpErr),
+     'the widget asks nothing of its server, or of anyone, during the export',
+     rpErr.split('\n').filter(l => /blocked/.test(l)).join(' | '));
+  ok(!/Pulse widget did not set up/.test(rpErr) && !/page reported an error/.test(rpErr),
+     'every question was set up by the widget, and the page reported no error', rpErr.slice(-300));
+  ok((rpOut.match(/^\[pdf\] 2 self-test question\(s\) printed with their answers\.$/mg) || []).length === 2,
+     'each document reports its two questions, the slides none',
+     rpOut.split('\n').filter(l => /self-test/.test(l)).join(' | '));
+  const pBody = fs.existsSync(pdom) ? fs.readFileSync(pdom, 'utf8') : '';
+  ok(pBody && !/<pulse-question|<pulse-summary|__pulseEmbedV2/.test(pBody),
+     'no pulse-question, no summary and no widget reach the slides\' print DOM');
+  if (have('pdftotext')) {
+    const textOf = (p) => spawnSync('pdftotext', [p, '-'], { encoding: 'utf8' }).stdout.replace(/\s+/g, ' ');
+    for (const name of ['print.pdf', 'print-notes.pdf']) {
+      const t = textOf(path.join(pdir, name));
+      ok(/What does a block cipher take besides the plaintext block\?/.test(t)
+         && /Where must the security of a cipher rest\?/.test(t),
+         `${name} carries both questions`);
+      ok(/A key, which selects one permutation from the family\./.test(t)
+         && /In the secrecy of the key, never of the algorithm\./.test(t),
+         `${name} carries both answers – a closed <details> would have printed neither`);
+      ok(!/\bAnswer\b|Show answer|I knew it|Did you know it|Questions on this page|None answered yet|for self-testing/.test(t),
+         `${name} carries no button, no fold label and no summary`,
+         (/.{30}(?:\bAnswer\b|Show answer|I knew it|Questions on this page|None answered yet).{30}/.exec(t) || [''])[0]);
+    }
+    const st = textOf(path.join(pdir, 'slides.pdf'));
+    ok(/Security must rest in the key alone/.test(st) && !/Where must the security|never of the algorithm/.test(st),
+       'slides.pdf has the slide and neither the question nor the answer');
+  } else {
+    note('pdftotext is not on PATH – skipping the pulse text checks.');
+  }
 } finally {
   // $PSI_PDF_KEEP leaves the fixture, the DOM dump and both PDFs in $TMPDIR.
   // A failing DOM assertion is a question about one string in a megabyte of

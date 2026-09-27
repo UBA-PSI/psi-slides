@@ -410,6 +410,9 @@ keeps the two drivers from drifting, which neither driver's own test can see.
 - **Options beyond the collapse** (beats, 16:10, the zoom ceiling). The CLI
   has them; the app gets them when somebody asks, and then in the sheet, not
   on the main screen.
+- **A self-test sheet without answers** (Pulse's `data-print=questions`).
+  Deferred to a frontmatter key rather than an export option; see
+  *Decisions along the way › Pulse*.
 - **Windows and Linux.** The app's packages there are built by CI and have
   not been tried on a real machine **[read, desktop/README.md]**. The spike
   runs on macOS; the smoke test runs on Linux in CI under a virtual display.
@@ -597,3 +600,85 @@ them only after a correction the table above now carries.
 - **The Chromium differs from the CLI's**: Electron 44 is Chromium 152, the
   Playwright cache here 153, and the text and pagination still agree. The
   report says `Chromium 152.… – Electron 44.0.0`.
+
+### Pulse
+
+main's `::: pulse` (6883816) put a self-test question into the two documents:
+`renderPulseQuestion` writes `<pulse-question id key>` with the question, then
+a `<details>` whose `<summary>` is the word Answer and whose body is the
+answer; `renderDocument` inlines `pulse-embed.js` (Pulse Embed v2, `data-host`
+the Pulse server, `data-page` the title), `PULSE_PRINT_CSS` and the two
+`<pulse-summary>` boxes only when a question exists. The live views carry none
+of it. Merged into this branch as dcc8243.
+
+- **The un-upgraded markup does not print the answer [measured].** The fixture's
+  `print.html` with the widget's `<script>` cut out, printed on print media by
+  Chromium 153: both questions, the word Answer twice, neither answer. So the
+  export cannot print the markup as the build wrote it and hope.
+- **The widget's own print behaviour is what the export wants [read, measured].**
+  On DOMContentLoaded it rebuilds each question – the answer moves out of the
+  `<details>` into `.pulse-a`, which its unlayered `@media print` rule shows
+  with `!important` (`data-print` default `answers`) – and on paper it hides
+  the buttons, the grading row, the status line and both `<pulse-summary>`
+  boxes. `PULSE_PRINT_CSS`'s `main > pulse-summary { display: block }` loses to
+  that `!important`, as it should. The PDF shows the label Self-test, the
+  question and the answer, and nothing else of the widget.
+- **The wait is `docReady`, and the check is `docPulse` in pdf-core.** The
+  widget's set-up is synchronous inside its DOMContentLoaded handler, so
+  `readyState === 'complete'` already means every question it will ever touch
+  has been touched; polling for `.pulse-ready` would only turn a broken widget
+  into a 30 s timeout. `docPulse` runs after `docReady` and before `docSettle`
+  (an answer may hold a picture): it counts the questions and opens the
+  `<details>` of any that still has one, so a question the widget missed
+  prints its answer under the Answer label rather than printing nothing. Both
+  drivers get it because it is in `exportDocument`; the gate holds its place
+  in the order.
+- **The report.** A document with questions says `[pdf] N self-test
+  question(s) printed with their answers.` (info); a question the widget did
+  not set up is a `warn` with its chunk – which the window's diagnostics list
+  picks up with no change, since `exportResult` already reads `chunk` off the
+  warn lines. The result gains `pulse: {questions, unread: [{chunkId, key}]}`
+  on a document result; `formatReport` treats its absence as none, so a slide
+  result and the desktop tests' fixed results are unaffected. **No IPC
+  change**: nothing in the `exportPdf` result shape moves.
+- **Nothing reaches the Pulse server, and the zero is measured, not special
+  cased.** The widget asks its server only with a sign-in token in
+  `localStorage` (`refresh`, `syncPending`, `logout`); both drivers open every
+  export on fresh storage (a new Playwright context, a non-`persist:`
+  partition in Electron), so there is no token and no request. The fixture's
+  run shows no `blocked` line on the command line and `blocked: []` under
+  Electron. There is therefore no Pulse-specific wording in `formatReport`:
+  a refused request to the Pulse host would mean a driver kept storage, which
+  is a defect to see, not a message to soften. The summary's links (About,
+  Privacy) are anchors inside boxes print hides, not requests.
+- **`data-print` is deferred [decided].** The widget reads it once, from its
+  `<script>` tag, at start-up, so an export flag would have to rewrite the page
+  before the script runs or override the widget's `!important` rules with
+  later ones – either way a second definition of what `questions` and `hide`
+  mean, and one that Cmd-P on the same `print.html` would not share. A
+  self-test sheet without answers is a plausible want, but it is a property of
+  the document, not of the export: if it comes, it comes as a frontmatter key
+  that build.js writes onto the script tag, and then both printing paths get it
+  for free and the export needs no option and the window no control. Until
+  then the export prints what a reader's Cmd-P prints: questions with answers.
+- **The slides never see it**: the live renderers skip `kind: 'pulse'`, and
+  the test asserts no `pulse-question`, `pulse-summary` or widget in the slide
+  export's print DOM and neither question nor answer in `slides.pdf`.
+- **Checked:** `test/pdf-export.mjs` builds a deck of its own (two questions,
+  one keyed by chunk id, one by `{#key}`, a note so print-notes differs) and
+  asserts both questions and both answers in `print.pdf` and
+  `print-notes.pdf` by `pdftotext`, no Answer / Show answer / I knew it /
+  summary text, no blocked request, no page error, and the report line
+  (139 assertions). The Electron driver on the same deck, through a throwaway
+  script: two questions, `unread: []`, `blocked: []`, both answers in the
+  text; on the script-less copy, `unread` names both chunks and the answers
+  print under Answer. The Playwright driver on that copy agrees.
+- **A throwaway Electron script has to keep a window or listen for
+  `window-all-closed`**: without either, Electron starts quitting when the
+  first export's hidden window is destroyed, and the second export's
+  `loadURL('about:blank')` fails with `ERR_FAILED`. The app has its main
+  window, so this is a trap for scripts, not a defect in the driver.
+- **For Stage 6:** the handout PDFs carry the self-test questions with their
+  answers, and never the buttons or the standing; no option chooses questions
+  only (see above); the export sends nothing to the Pulse server. SECURITY.md's
+  Pulse paragraph can say the PDF export is one more path that sends nothing.
