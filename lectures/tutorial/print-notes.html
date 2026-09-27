@@ -2430,7 +2430,7 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
 }
 
 
-pulse-question, pulse-summary {
+pulse-question, pulse-deck, pulse-summary {
   --pulse-accent: var(--emph);
   --pulse-rule: var(--rule);
   --pulse-radius: var(--radius-card);
@@ -2439,14 +2439,18 @@ pulse-question, pulse-summary {
   --pulse-on-accent: var(--paper);
   --pulse-bg: color-mix(in oklch, var(--ink) 4%, transparent);
 }
-pulse-question { margin: 1.4rem 0 0.4rem; }
-pulse-question .pulse-label {
+pulse-question, pulse-deck { margin: 1.4rem 0 0.4rem; }
+pulse-deck pulse-question { margin: 0; }
+pulse-question .pulse-label, pulse-deck .pulse-deck-pos {
   font-size: 0.72rem;
   font-variant-caps: all-small-caps;
   text-transform: none;
   letter-spacing: 0.14em;
 }
 main > pulse-summary { display: block; margin: 2rem 0; }
+@media print {
+  pulse-deck pulse-question:first-of-type .pulse-label { display: block; }
+}
 </style>
 <style>
 /* Bundled typefaces: Literata, IBM Plex Sans and JetBrains Mono, each under
@@ -6178,7 +6182,7 @@ of them are shown one per slide in
   // caption with it - and has highlights of its own; so does a code block,
   // whose words are anchored in the block's own text, so that marking code
   // moves no offset of a slide's prose.
-  const SKIP = UI + ', .speaker-note, pulse-question, pulse-summary, .chunk-num, .chunk-label, .psi-diagram, figure, '
+  const SKIP = UI + ', .speaker-note, pulse-question, pulse-deck, pulse-summary, .chunk-num, .chunk-label, .psi-diagram, figure, '
     + '.katex, .math-display, pre, button, script, style, svg, video, iframe, textarea';
   // A whitespace node that is a child of one of these sits between two
   // blocks, and a mark round it would be an inline box in a block's place.
@@ -6568,7 +6572,7 @@ of them are shown one per slide in
   // no selection: KaTeX sets one glyph per box.
   const BLOCKS = { code: 'pre', formula: '.math-display' };
   const blocksIn = (root, kind) => [...root.querySelectorAll(BLOCKS[kind] || 'x-none')]
-    .filter(b => !b.closest('#lightbox, .speaker-note, pulse-question, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
+    .filter(b => !b.closest('#lightbox, .speaker-note, pulse-question, pulse-deck, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
   const blockKind = (el) => el.matches('pre') ? 'code' : 'formula';
   const codeTexts = (pre) => {
     const out = [];

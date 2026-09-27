@@ -532,7 +532,10 @@ A third set concerns the two live views while a talk runs:
   in with an email address, after which Pulse mails the questions back at
   growing intervals. The key a question is filed under is the chunk's id, or
   `::: pulse {#key}` for a second one on a chunk; the lecture's title is the
-  page. Printed on paper, question and answer stand one under the other. The
+  page. Two or more questions on one chunk are a deck: on screen one at a
+  time, "Question 2 of 3" above it and a button to the next, the ones due
+  first; printed, every question stands under the one before, answers
+  included. Printed on paper, question and answer stand one under the other. The
   linter mirrors the build's refusals: `bad-pulse`, `bad-pulse-split`,
   `directive-in-pulse`, `duplicate-pulse-key`, `note-in-pulse` and `pulse-on-cover`, plus the
   aside rules `::: footnote` already has. A document without a question carries

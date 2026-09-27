@@ -714,7 +714,9 @@ documents and only after the reader signs in to Pulse there. It is an aside
 kind (`expansions`, `kind: 'pulse'`), so the live renderers skip it by
 construction; `renderChunk` draws it, `renderDocument` inlines
 `pulse-embed.js` (a verbatim copy of the Pulse client, on the desktop stage
-list) and `PULSE_PRINT_CSS` only into a document that has one; the reader's
+list) and `PULSE_PRINT_CSS` only into a document that has one; two or more on
+one chunk go into one `<pulse-deck>` (`renderPulseQuestions`), which the widget
+shows one at a time and prints expanded; the reader's
 `SKIP` leaves a question out of the highlightable text, since the widget
 rewrites it as it is answered. An
 external link puts its **address plus a build-time QR code** on both screens

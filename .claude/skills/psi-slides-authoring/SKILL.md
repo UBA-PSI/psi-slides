@@ -858,7 +858,10 @@ a question also gets one line of the reader's standing under the contents
 under, with the lecture's `title:` as the page. It is the chunk's id, which is
 frozen already; a second question on one chunk names itself,
 `::: pulse {#signatures-verify}`, and a key is unique across the lecture.
-Correct a question's wording freely, but do not change its key or the
+Two or more questions on one chunk become a deck: the document shows one at
+a time ("Question 2 of 3", a button to the next, due ones first) and prints
+all of them, one under the other. There is no syntax for it – put the
+questions that belong together on one chunk. Correct a question's wording freely, but do not change its key or the
 lecture's title once students have answered, or their progress starts over.
 Two lectures with the same title share the page, so a chunk id used in both
 is one question to the reader. Refused: a question on the `title:` or
