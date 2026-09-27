@@ -4,6 +4,36 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Slice: self-test questions and the PDF export reach main
+
+Two branches landed on one day, both in `## [Unreleased]` and both going out
+with 2.0.0.
+
+**`::: pulse`** (`6883816`, the stack `7aa6fb8`). A question, one line of
+`---` and an answer, drawn only in the two documents by Pulse Embed v2
+(`pulse-embed.js`, a verbatim copy of the client; the server and its docs are
+the separate repositories `~/r/psi-pulse-code` and `~/r/psi-pulse`). Two or
+more on one chunk become a `<pulse-deck>`. The key is the chunk id, and the
+lecture's `title:` is the page the answers are filed under, so neither may
+change once students have answered. The tutorial has a part on it
+(`#pulse-idea` to `#pulse-deck`) and its tracked `print.html` carries ten
+questions, one stack among them; the pictures in `assets/pulse-*.webp` are
+shots of a small deck built with `reader: off`, taken narrow so their type
+reads beside prose on a slide.
+
+**The PDF export** (`pdf-export`, merged at `0b13aa6`). `--slides-pdf`,
+`--print-pdf` and `--print-notes-pdf` on the command line and "Export as
+PDF…" in the app, one policy in `pdf-core.mjs`. The export starts from empty
+storage and refuses the network, so a document with questions prints them
+with their answers and tells Pulse nothing. `PLAN-desktop-pdf-export.md` has
+the decisions and what is open – among them a self-test sheet without answers
+(`data-print=questions`), deferred to a frontmatter key.
+
+**Builder 0.1.4** is the pre-release that carries both: tagged, the macOS pair
+signed and notarised locally and uploaded over CI's, the site's download links
+moved after the five assets answered 200. Windows and Linux are still built by
+CI only and have never been started.
+
 ## Slice: the documents got a reader (highlights, notes, contents)
 
 `print.html` and `print-notes.html` are read on screen after the lecture, and
