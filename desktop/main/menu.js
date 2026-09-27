@@ -2,8 +2,9 @@
 // rebuilt when the language changes – a menu that stayed English while the
 // window turned German would be the one place the setting did not reach.
 //
-// Two items open something inside the window rather than doing work here
-// (New lecture and Settings), so they send a command to the renderer. The
+// Five items open something inside the window rather than doing work here
+// (New lecture, Settings and the three PDF exports), so they send a command
+// to the renderer. The
 // rest call straight into the actions the app already has.
 
 const { Menu, app } = require('electron');
@@ -12,6 +13,7 @@ function buildMenu(ctx) {
   const t = (key) => ctx.t(key);
   const isDev = !app.isPackaged;
   const hasProject = ctx.builder.getState().phase !== 'closed';
+  const exporting = !!(ctx.pdfBusy && ctx.pdfBusy());
 
   const template = [];
 
@@ -30,6 +32,19 @@ function buildMenu(ctx) {
       { type: 'separator' },
       { label: t('menu.close'), accelerator: 'CmdOrCtrl+W', enabled: hasProject, click: () => ctx.actions.closeProject() },
       { label: t('menu.build'), accelerator: 'CmdOrCtrl+B', enabled: hasProject, click: () => ctx.actions.buildNow() },
+      // Each item opens the export sheet with its choice made, rather than
+      // exporting at once: the slides carry one option, and the sheet is
+      // where it is chosen. Greyed out while an export runs, because the
+      // second would be refused.
+      {
+        label: t('menu.exportPdf'),
+        enabled: hasProject && !exporting,
+        submenu: [
+          { label: t('menu.exportSlides'), click: () => ctx.actions.command('exportPdf', { kind: 'slides' }) },
+          { label: t('menu.exportPrint'), click: () => ctx.actions.command('exportPdf', { kind: 'print' }) },
+          { label: t('menu.exportPrintNotes'), click: () => ctx.actions.command('exportPdf', { kind: 'print-notes' }) },
+        ],
+      },
       { type: 'separator' },
       { label: t('menu.settings'), accelerator: 'CmdOrCtrl+,', click: () => ctx.actions.command('settings') },
       ...(process.platform === 'darwin' ? [] : [{ type: 'separator' }, { role: 'quit' }]),

@@ -682,3 +682,81 @@ of it. Merged into this branch as dcc8243.
   answers, and never the buttons or the standing; no option chooses questions
   only (see above); the export sends nothing to the Pulse server. SECURITY.md's
   Pulse paragraph can say the PDF export is one more path that sends nothing.
+
+### Stage 4
+
+- **The button shares the editor's row, second, not a row of its own.**
+  “Open source.md in your text editor” and “Export as PDF…” are two text
+  buttons on the line under the grid; the editor note follows them. A row of
+  its own under the grid put the German ready state at 767 px in the 748 px
+  viewport and failed the smoke's no-scrollbar check; English was at the
+  edge too. The editor button keeps first place, because it is the daily one.
+- **The export's line sits under the build's sentence, not in its place.**
+  The plan says “the status sentence says so”; taken literally, a slide export
+  would have hidden the build's answer for up to a minute while the author
+  keeps saving – eleven rebuilds in one export were measured in Stage 3. So
+  the build keeps its sentence and its dot, and the export has a second line
+  in the same `aria-live` region, at body size, aligned with the sentence's
+  words and without a dot of its own: “Exporting the handout as PDF…”, then
+  “print.pdf written at 08:30 – 44 pages.” with *Open PDF* and *Show in
+  folder* beside it. The slides add one soft line while they run (“Every step
+  of every slide becomes a page, so a long lecture can take a minute.”), since
+  there is no progress to show. The line stays until the next export or until
+  another lecture is open, which is why it carries the time.
+- **The collapse is two choices, not three, and slide text is the default.**
+  “On the slides: Slide text – the first sentence of each paragraph, and what
+  is set in bold / Full text – every sentence, as it stands in source.md”
+  (DE „Auf den Folien: Folientext / Volltext“). A third choice, the lecture's
+  own setting, does not read cleanly: the window does not know that setting,
+  so it could only say “whatever the lecture says”, and that is exactly the
+  setting the plan calls the one an author is least likely to remember. The
+  IPC's `collapse: null` stays for a later caller; the window never sends it.
+  Slide text is the default because a PDF deck is the fallback for the room.
+  The choice is remembered for the session, like the kind.
+- **The sheet is the app's sheet pattern**: it takes the screen's place,
+  Escape and Cancel close it, the focus lands on the chosen kind and goes back
+  to the control that opened it, Enter on a choice exports. The three kinds
+  are radios named with the grid's own strings (`outputs.audience`, …) plus a
+  soft line each; the handouts hide the collapse fieldset rather than disable
+  it. “Export…” carries an ellipsis because the save dialog follows.
+- **Busy, in the window and the menu.** While an export runs the button is
+  `aria-disabled` rather than `disabled` (a disabled button drops the focus of
+  whoever just pressed it), clicks on it do nothing, and File ▸ Export as PDF
+  is greyed out: `ipc.js` rebuilds the menu when an export starts and ends,
+  and `menu.js` asks `ctx.pdfBusy()`. The four view buttons, Build now and
+  the switches stay live. The main process still refuses a second export
+  (`pdf.busy`), which the smoke checks through the IPC.
+- **Results.** Canceled says nothing: the line returns to what it said before.
+  Each error code is one localized sentence; `pdf.failed` adds its reason in a
+  mono block. Diagnostics are the export's own words, verbatim, one per line in
+  a mono block under “Worth checking before you hand it on:”, as a build error
+  is shown; they already name the chunk (“print.pdf: dead-link links to
+  #no-such-chunk …”), so the window does not reprint the `chunk` field. A
+  stale export (last good build after a failed save) says so in the soft line.
+  An answer arriving for a lecture that is no longer open is dropped.
+- **The save dialog's title** is now the window's language
+  (`createPdfExporter({dialogTitle})`); it was the English literal.
+- **The smoke test** answers the save dialog in the main process
+  (`dialog.showSaveDialog` replaced through `electronApp.evaluate`) with the
+  path the dialog proposed, so the three PDFs land beside the working copy's
+  `source.md` – a copy of the tutorial in `$TMPDIR/psi-builder-smoke-*/
+  smoke-lecture/`, never `lectures/tutorial/`. `PSI_SMOKE_KEEP=1` leaves that
+  copy on disk and prints its path, for Stage 5. It drives the button, the
+  sheet, the menu item (Handout with notes, opening the sheet preselected), a
+  cancelled dialog, then print, slides and print-notes in turn, checking each
+  sentence, each file's `%PDF-` header, the busy state, the greyed menu, the
+  busy refusal, that the dialog proposed the CLI's names, that no export page
+  reported an error (from the report in the build details) and that the main
+  window had no page error. A second lecture of its own exports a handout with
+  a dead fragment, so the diagnostics block is exercised. Measured on macOS:
+  tutorial print.pdf 44 pages, slides.pdf 128, print-notes.pdf 47, the slide
+  export in under a minute. New shots: `pdf-sheet`, `pdf-sheet-dark`,
+  `pdf-sheet-de`, `pdf-running`, `pdf-result`, `pdf-result-dark`,
+  `pdf-result-de`, `pdf-diagnostics`. `shoot()` now moves the pointer away
+  first, so no cell shows a leftover hover.
+- **For Stage 6:** DESIGN.md's project-screen mock-up (the editor row with
+  the second button, the export line under the status sentence), a
+  subsection for the export sheet beside *Settings*, and the export's line in
+  *Motion* (no progress bar, one soft line for the slides); desktop/README.md
+  § Using it; the smoke's header in CLAUDE.md-level docs if any mention the
+  shot list; the builder's release notes.

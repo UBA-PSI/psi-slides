@@ -54,6 +54,8 @@ function register(ctx) {
     builder,
     getWindow: () => ctx.getWindow(),
     engineDir,
+    // The save dialog's title, in the window's language.
+    dialogTitle: () => ctx.t('pdf.title'),
     onReport: (res) => {
       lastPdf = res.file;
       // The report goes into the build details as the command line prints
@@ -64,6 +66,8 @@ function register(ctx) {
   });
   // Closing the window aborts a running export as closing the lecture does.
   ctx.abortPdf = () => pdf.abort();
+  // The File menu greys out its export items while one runs.
+  ctx.pdfBusy = () => pdf.busy();
 
   function openProject(input) {
     const r = resolveSource(input);
@@ -187,7 +191,17 @@ function register(ctx) {
 
   // A kind and, for the slides, the collapse – never a path. The main
   // process asks where the file goes, in its own dialog.
-  ipcMain.handle('exportPdf', (_e, kind, opts) => pdf.exportPdf(kind, opts));
+  // The menu is rebuilt when the export starts and when it ends, so that its
+  // export items are greyed out exactly while a second one would be refused.
+  ipcMain.handle('exportPdf', async (_e, kind, opts) => {
+    const running = pdf.exportPdf(kind, opts);
+    ctx.rebuildMenu();
+    try {
+      return await running;
+    } finally {
+      ctx.rebuildMenu();
+    }
+  });
 
   ipcMain.handle('openPdf', async () => {
     if (!lastPdf || !fs.existsSync(lastPdf)) return { ok: false, error: 'error.openFailed' };

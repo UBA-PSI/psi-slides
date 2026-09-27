@@ -62,7 +62,7 @@ const ctx = {
     chooseSource: () => ctx.chooseSource && ctx.chooseSource(),
     closeProject: () => ctx.closeProject && ctx.closeProject(),
     buildNow: () => builder && builder.rebuild(),
-    command: (name) => { if (win) win.webContents.send('command', { name }); },
+    command: (name, extra) => { if (win) win.webContents.send('command', { ...extra, name }); },
     openExternal: (which) => {
       const url = which === 'tutorial'
         ? 'https://uba-psi.github.io/psi-slides/tutorial/audience.html'

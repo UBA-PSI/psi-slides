@@ -281,6 +281,31 @@ button {
 }
 #status-message { margin-left: 19px; }
 
+/* The PDF export's line sits under the build's, aligned with its words rather
+   than with its dot: it is a second sentence about this lecture, not a second
+   status. No dot of its own – the dot answers for the build, and a second one
+   would make the two states look like rivals. Body size, not the status
+   sentence's 17 px, so the build stays the one thing on the screen with any
+   size. */
+.pdf-status { margin: 8px 0 0 19px; }
+.pdf-line {
+  margin: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 16px;
+  row-gap: 2px;
+  max-width: 44em;
+}
+.pdf-actions { display: inline-flex; gap: 14px; }
+#pdf-sub { margin: 4px 0 0; font-size: 13px; max-width: 44em; }
+#pdf-sub + .block, .pdf-line + .block { margin-top: 6px; }
+
+/* Export as PDF, beside the editor button under the grid. aria-disabled
+   rather than disabled while an export runs: a disabled button drops the
+   focus of the person who just pressed it. */
+.text-btn[aria-disabled=true] { color: var(--ink-soft); cursor: default; text-decoration: none; }
+
 /* ── the output grid ──────────────────────────────────────────── */
 
 /* One bordered table of four cells sharing hairlines, not four cards: the
@@ -378,7 +403,7 @@ button {
 .serve p:last-child { margin-bottom: 0; }
 .serve .check { margin-bottom: 6px; }
 
-.editor { margin: 18px 0 3px; }
+.editor { margin: 18px 0 3px; display: flex; flex-wrap: wrap; column-gap: 28px; row-gap: 4px; }
 #content .editor + .soft { margin: 0; font-size: 13px; max-width: 44em; }
 
 .details { margin-top: 16px; }
@@ -433,6 +458,12 @@ button {
 .radio { display: flex; align-items: flex-start; gap: 7px; padding: 2px 0; cursor: pointer; }
 .radio input { margin: 3px 0 0; accent-color: var(--accent); }
 .radio span { font-size: 13px; }
+/* A choice with a name and a line on what it is, as a cell in the output
+   grid has: the name in the body size, what it is for in the soft 13 px. */
+.radio.two { padding: 3px 0; }
+.radio.two > span { display: flex; flex-direction: column; }
+.radio.two .name { font-size: 14px; }
+.radio.two .hint { font-size: 13px; color: var(--ink-soft); }
 .field { display: flex; flex-direction: column; gap: 5px; margin: 0 0 14px; }
 .field label, .field .label { font-weight: 500; }
 /* The sheet is 520 px wide for the sake of the hint under this field, not for

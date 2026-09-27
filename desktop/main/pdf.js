@@ -299,7 +299,7 @@ function loadCore(engineDir) {
   return corePromise;
 }
 
-function createPdfExporter({ builder, getWindow, engineDir, onReport }) {
+function createPdfExporter({ builder, getWindow, engineDir, onReport, dialogTitle }) {
   let current = null;
 
   function abort() {
@@ -329,7 +329,7 @@ function createPdfExporter({ builder, getWindow, engineDir, onReport }) {
 
     const win = getWindow();
     const opts = {
-      title: 'Export as PDF',
+      title: dialogTitle ? dialogTitle() : 'Export as PDF',
       defaultPath: defaultPdfPath(st0.dir, kind),
       filters: [{ name: 'PDF', extensions: ['pdf'] }],
       properties: ['createDirectory', 'showOverwriteConfirmation'],

@@ -60,6 +60,19 @@
       <p id="status-sub" class="soft" hidden></p>
       <p id="status-bug" class="soft" hidden data-t="status.bug"></p>
       <pre id="status-message" class="block mono" hidden></pre>
+      <!-- The PDF export's own line, under the build's rather than in its
+           place: a slide export can take a minute, the author keeps saving,
+           and the build sentence must keep answering for every save. -->
+      <div id="pdf-status" class="pdf-status" hidden>
+        <p class="pdf-line"><span id="pdf-text"></span>
+          <span id="pdf-actions" class="pdf-actions" hidden>
+            <button type="button" id="btn-pdf-open" class="text-btn" data-t="pdf.open"></button>
+            <button type="button" id="btn-pdf-show" class="text-btn" data-t="pdf.show"></button>
+          </span>
+        </p>
+        <p id="pdf-sub" class="soft" hidden></p>
+        <pre id="pdf-message" class="block mono" hidden></pre>
+      </div>
     </div>
 
     <p class="buttons">
@@ -94,8 +107,13 @@
     <!-- The editor button belongs with the outputs: it is the other thing a
          person does every day. The web address below it is a switch they touch
          once a term, so it sits after the hairline and out of the way. -->
+    <!-- Export as PDF shares the editor's row, second: secondary like Show
+         folder, because a PDF is a file the author hands on and not a fifth
+         view, so it has no cell in the grid. A row of its own cost the German
+         ready state its fit in the window. -->
     <p class="editor">
       <button type="button" id="btn-source" class="text-btn" data-t="project.openSource"></button>
+      <button type="button" id="btn-pdf" class="text-btn" data-t="pdf.action"></button>
     </p>
     <p class="soft" data-t="project.editorNote"></p>
 
@@ -156,6 +174,29 @@
   <p class="buttons">
     <button type="button" id="btn-create" class="primary" data-t="new.create"></button>
     <button type="button" id="btn-cancel-new" class="secondary" data-t="new.cancel"></button>
+  </p>
+</div>
+
+<!-- ── export as PDF ─────────────────────────────────────────────── -->
+<!-- The three choices are worded like the grid's buttons, because they are
+     the same three things on paper. The slides carry the one option that
+     makes two different documents; the handouts carry none. -->
+<div id="sheet-pdf" class="sheet" role="dialog" data-t-aria="pdf.title" hidden>
+  <h2 data-t="pdf.title"></h2>
+  <fieldset>
+    <legend data-t="pdf.which"></legend>
+    <label class="radio two"><input type="radio" name="pdf-kind" value="slides" id="pdf-kind-slides"><span><span class="name" data-t="outputs.audience"></span><span class="hint" data-t="pdf.slidesHint"></span></span></label>
+    <label class="radio two"><input type="radio" name="pdf-kind" value="print" id="pdf-kind-print"><span><span class="name" data-t="outputs.print"></span><span class="hint" data-t="pdf.printHint"></span></span></label>
+    <label class="radio two"><input type="radio" name="pdf-kind" value="print-notes" id="pdf-kind-print-notes"><span><span class="name" data-t="outputs.printNotes"></span><span class="hint" data-t="pdf.printNotesHint"></span></span></label>
+  </fieldset>
+  <fieldset id="pdf-collapse">
+    <legend data-t="pdf.collapse"></legend>
+    <label class="radio two"><input type="radio" name="pdf-collapse" value="topic-bold" id="pdf-collapse-slide"><span><span class="name" data-t="pdf.collapseSlide"></span><span class="hint" data-t="pdf.collapseSlideHint"></span></span></label>
+    <label class="radio two"><input type="radio" name="pdf-collapse" value="none" id="pdf-collapse-full"><span><span class="name" data-t="pdf.collapseFull"></span><span class="hint" data-t="pdf.collapseFullHint"></span></span></label>
+  </fieldset>
+  <p class="buttons">
+    <button type="button" id="btn-pdf-export" class="primary" data-t="pdf.export"></button>
+    <button type="button" id="btn-pdf-cancel" class="secondary" data-t="pdf.cancel"></button>
   </p>
 </div>
 

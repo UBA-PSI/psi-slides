@@ -23,6 +23,12 @@
   // The control a sheet was opened from, so that closing it puts the focus
   // back where the person left it.
   var sheetOpener = null;
+  // The PDF export, as far as the window knows it: the last choice made in
+  // the sheet (remembered for the session, like the disclosure), the kind
+  // running now, and the outcome of the last one – a result or an error –
+  // for the lecture it was made from. The main process holds the file; the
+  // window never sees a path.
+  var pdf = { kind: 'slides', collapse: 'topic-bold', running: null, outcome: null, source: null };
 
   // ── words ────────────────────────────────────────────────────────
 
@@ -277,12 +283,68 @@
     show(times, !!saved);
   }
 
+  // Sets text only when it changed, so that a state message that arrives
+  // every few seconds during an export does not make the live region read
+  // the same sentence out again.
+  function setText(el, text) {
+    if (el.textContent !== text) el.textContent = text;
+  }
+
+  function renderPdf() {
+    var box = $('pdf-status');
+    var text = $('pdf-text');
+    var actions = $('pdf-actions');
+    var sub = $('pdf-sub');
+    var msg = $('pdf-message');
+    var built = !!state.lastSuccess;
+    var btn = $('btn-pdf');
+    btn.setAttribute('aria-disabled', pdf.running || !built ? 'true' : 'false');
+
+    var o = pdf.outcome;
+    show(box, !!(pdf.running || o));
+    show(actions, false);
+    show(sub, false);
+    show(msg, false);
+    if (pdf.running) {
+      setText(text, t('pdf.running.' + pdf.running));
+      // The slides are the export that takes long enough to wonder about,
+      // and there is no progress to show (one walk, one answer), so the
+      // line says why instead.
+      if (pdf.running === 'slides') { setText(sub, t('pdf.runningSlides')); show(sub, true); }
+      return;
+    }
+    if (!o) return;
+    if (o.ok) {
+      var vars = { name: o.name, time: fmtTime(o.at), pages: fmtCount(o.pages) };
+      setText(text, o.pages === null || o.pages === undefined ? t('pdf.doneUncounted', vars)
+        : o.pages === 1 ? t('pdf.doneOne', vars) : t('pdf.done', vars));
+      show(actions, true);
+      if (o.stale) { setText(sub, t('pdf.stale')); show(sub, true); }
+      // The diagnostics verbatim, one per line, as a build error is shown:
+      // they are the export's own words, written for the author, and each
+      // names the slide it is about.
+      if (o.diagnostics && o.diagnostics.length) {
+        setText(sub, (o.stale ? t('pdf.stale') + ' ' : '') + t('pdf.diagnostics'));
+        show(sub, true);
+        setText(msg, o.diagnostics.map(function (d) { return d.text; }).join('\n'));
+        show(msg, true);
+      }
+      return;
+    }
+    setText(text, t(o.error));
+    if (o.error === 'pdf.failed' && o.reason) {
+      setText(msg, o.reason);
+      show(msg, true);
+    }
+  }
+
   function renderProject() {
     $('project-name').textContent = state.name || '';
     $('project-path').textContent = shorten(state.source || '', 58);
     $('project-path').title = state.source || '';
 
     renderStatus();
+    renderPdf();
     renderOutputs();
     renderFacts();
 
@@ -374,9 +436,12 @@
     if (first) first.focus();
   }
 
+  function isSheetOpen(id) { return !$(id).hidden; }
+
   function closeSheets() {
     show($('sheet-new'), false);
     show($('sheet-settings'), false);
+    show($('sheet-pdf'), false);
     var content = $('content');
     content.hidden = false;
     content.removeAttribute('inert');
@@ -417,6 +482,59 @@
     });
   }
 
+  // ── the PDF export ───────────────────────────────────────────────
+
+  function pdfBlocked() {
+    return !!pdf.running || !(state && state.lastSuccess);
+  }
+
+  function syncPdfSheet() {
+    $('pdf-kind-' + pdf.kind).checked = true;
+    $('pdf-collapse-' + (pdf.collapse === 'none' ? 'full' : 'slide')).checked = true;
+    show($('pdf-collapse'), pdf.kind === 'slides');
+  }
+
+  // Opened from the button under the grid, or from File > Export as PDF
+  // with its choice made. The focus lands on the chosen kind, which is where
+  // the arrow keys then move between the three.
+  function openPdfSheet(kind, opener) {
+    if (!state || state.phase === 'closed' || pdf.running) return;
+    if (kind) pdf.kind = kind;
+    syncPdfSheet();
+    openSheet('sheet-pdf', opener);
+    $('pdf-kind-' + pdf.kind).focus();
+  }
+
+  function startPdf() {
+    if (pdf.running) return;
+    var kind = pdf.kind;
+    var source = state && state.source;
+    var opts = kind === 'slides' ? { collapse: pdf.collapse } : undefined;
+    closeSheets();
+    // Cancelling the save dialog says nothing, so the line goes back to
+    // whatever it said before.
+    var before = pdf.outcome;
+    pdf.running = kind;
+    pdf.outcome = null;
+    pdf.source = source;
+    render();
+    api.exportPdf(kind, opts).then(function (res) {
+      finishPdf(source, before, res);
+    }, function (err) {
+      finishPdf(source, before, { ok: false, error: 'pdf.failed', reason: String(err && err.message || err) });
+    });
+  }
+
+  function finishPdf(source, before, res) {
+    // An answer for a lecture that is no longer open is nobody's news: the
+    // main process aborted it when the lecture closed.
+    if (!state || state.source !== source) { pdf.running = null; return; }
+    pdf.running = null;
+    if (!res || res.canceled) pdf.outcome = before;
+    else pdf.outcome = res.ok ? Object.assign({ at: Date.now() }, res) : res;
+    render();
+  }
+
   // ── wiring ───────────────────────────────────────────────────────
 
   function wire() {
@@ -449,6 +567,30 @@
       api.openSource().then(function (res) { reportOpen(res, 'source.md'); });
     });
     $('btn-folder').addEventListener('click', function () { api.showFolder(); });
+
+    $('btn-pdf').addEventListener('click', function () {
+      if (!pdfBlocked()) openPdfSheet(null, $('btn-pdf'));
+    });
+    ['slides', 'print', 'print-notes'].forEach(function (kind) {
+      $('pdf-kind-' + kind).addEventListener('change', function () {
+        pdf.kind = kind;
+        syncPdfSheet();
+      });
+    });
+    $('pdf-collapse-slide').addEventListener('change', function () { pdf.collapse = 'topic-bold'; });
+    $('pdf-collapse-full').addEventListener('change', function () { pdf.collapse = 'none'; });
+    $('btn-pdf-export').addEventListener('click', startPdf);
+    $('btn-pdf-cancel').addEventListener('click', closeSheets);
+    // Enter on a choice is the Export button, as it is in a form.
+    $('sheet-pdf').addEventListener('keydown', function (e) {
+      if (e.key === 'Enter' && e.target && e.target.type === 'radio') { e.preventDefault(); startPdf(); }
+    });
+    $('btn-pdf-open').addEventListener('click', function () {
+      api.openPdf().then(function (res) { reportOpen(res, pdf.outcome && pdf.outcome.name); });
+    });
+    $('btn-pdf-show').addEventListener('click', function () {
+      api.showPdf().then(function (res) { reportOpen(res, pdf.outcome && pdf.outcome.name); });
+    });
 
     $('btn-details').addEventListener('click', function () {
       detailsOpen = !detailsOpen;
@@ -524,6 +666,11 @@
 
   api.onState(function (s) {
     var wasStarting = state && state.phase === 'starting';
+    // Another lecture, or none: the last export's line was about the old one.
+    if (!state || s.source !== state.source || s.phase === 'closed') {
+      pdf.outcome = null;
+      if (s.phase === 'closed' && isSheetOpen('sheet-pdf')) closeSheets();
+    }
     state = s;
     if (s.phase === 'ready' || (wasStarting && s.phase === 'build-error')) serveRestarting = false;
     render();
@@ -539,6 +686,7 @@
     var name = cmd && cmd.name;
     if (name === 'new') openNew();
     else if (name === 'settings') openSheet('sheet-settings');
+    else if (name === 'exportPdf') openPdfSheet(cmd.kind);
     else if (name === 'openFailed') notice(t(cmd.error, { path: shorten(cmd.path || '', 48) }));
   });
 

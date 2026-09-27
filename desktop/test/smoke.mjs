@@ -9,6 +9,14 @@
 // the light English shots cannot answer for, German (the longest words) and
 // dark mode (the dot, the primary button and the error block).
 //
+// It exports the three PDFs through the window as a person would – the
+// button, the sheet, Export – with the save dialog answered by the test: the
+// stub accepts the name the main process proposes, so the files land beside
+// the working copy's source.md (slides.pdf, print.pdf, print-notes.pdf), as
+// they would for a person who pressed Save. PSI_SMOKE_KEEP=1 leaves that
+// working copy on disk and prints where it is, for a comparison with the
+// command line's exports of the same source.
+//
 // Run: npm run smoke   (from desktop/)
 
 import fs from 'node:fs';
@@ -56,6 +64,9 @@ async function waitFor(page, selector, predicate, ms = 90000) {
 
 async function shoot(page, name) {
   fs.mkdirSync(shots, { recursive: true });
+  // The pointer out of the way, so a shot shows no hover left over from the
+  // last click.
+  await page.mouse.move(0, 0).catch(() => {});
   await page.screenshot({ path: path.join(shots, `${name}.png`) });
   log(`shot ${name}.png`);
 }
@@ -67,6 +78,8 @@ const app = await electron.launch({
 });
 const page = await app.firstWindow();
 await page.waitForLoadState('domcontentloaded');
+const pageErrors = [];
+page.on('pageerror', (e) => pageErrors.push(String(e && e.message ? e.message : e)));
 // The screenshots are the light-mode ones the design brief asks for, whatever
 // the machine taking them prefers.
 await page.emulateMedia({ colorScheme: 'light' }).catch(() => {});
@@ -165,6 +178,173 @@ try {
   await waitFor(page, '#status-text', v => /^Ready\./.test(v.trim()));
   check('the next good save builds again', true);
 
+  // ── the PDF exports ──────────────────────────────────────────────
+  //
+  // The save dialog is the main process's own and would block the run, so
+  // it is replaced in the main process by an answer: the path the dialog
+  // proposed (the command line's file name beside source.md), or a
+  // cancellation when the test asks for one. Every other step is the
+  // window's own – the button, the sheet, the Export button, the line that
+  // comes back. The main window stays open throughout: an Electron with no
+  // window left starts quitting when an export's hidden window closes.
+  await app.evaluate(({ dialog }) => {
+    globalThis.smokeDialog = { cancel: false, asked: [] };
+    dialog.showSaveDialog = async (a, b) => {
+      const opts = b || a;
+      globalThis.smokeDialog.asked.push({ defaultPath: opts.defaultPath, title: opts.title });
+      if (globalThis.smokeDialog.cancel) return { canceled: true, filePath: '' };
+      return { canceled: false, filePath: opts.defaultPath };
+    };
+  });
+  const dialogAsked = () => app.evaluate(() => globalThis.smokeDialog.asked);
+  const setCancel = (on) => app.evaluate((_e, v) => { globalThis.smokeDialog.cancel = v; }, on);
+  const menuItem = (label) => app.evaluate(({ Menu }, want) => {
+    const file = Menu.getApplicationMenu().items.find(i => i.label === 'File' || i.label === 'Datei');
+    const sub = file.submenu.items.find(i => i.submenu && i.submenu.items.some(j => j.label === want));
+    const item = sub && sub.submenu.items.find(j => j.label === want);
+    return item ? { enabled: sub.enabled, found: true } : { found: false };
+  }, label);
+  const clickMenu = (label) => app.evaluate(({ Menu }, want) => {
+    const file = Menu.getApplicationMenu().items.find(i => i.label === 'File' || i.label === 'Datei');
+    const sub = file.submenu.items.find(i => i.submenu && i.submenu.items.some(j => j.label === want));
+    sub.submenu.items.find(j => j.label === want).click();
+  }, label);
+  const pdfText = () => page.textContent('#pdf-text');
+
+  // The sheet, opened from the button under the grid.
+  await page.click('#btn-pdf');
+  check('the export sheet opens from the button', await page.isVisible('#sheet-pdf'));
+  check('the project screen is out of the way behind it', await page.isHidden('#content'));
+  check('the sheet offers the presentation first, with its one option',
+    await page.isChecked('#pdf-kind-slides') && await page.isVisible('#pdf-collapse')
+      && await page.isChecked('#pdf-collapse-slide'));
+  check('the sheet words its choices like the grid',
+    (await page.textContent('#sheet-pdf')).includes('Handout with notes'));
+  await shoot(page, 'pdf-sheet');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await shoot(page, 'pdf-sheet-dark');
+  await page.emulateMedia({ colorScheme: 'light' });
+  await page.check('#pdf-kind-print');
+  check('the handout carries no option', await page.isHidden('#pdf-collapse'));
+  await page.keyboard.press('Escape');
+  check('Escape closes the sheet', await page.isHidden('#sheet-pdf') && await page.isVisible('#content'));
+  check('the focus goes back to the button that opened it',
+    await page.evaluate(() => document.activeElement && document.activeElement.id === 'btn-pdf'));
+
+  // The same sheet from File > Export as PDF, with the choice made there.
+  const notesItem = await menuItem('Handout with notes…');
+  check('File > Export as PDF has the three items, enabled', notesItem.found && notesItem.enabled);
+  await clickMenu('Handout with notes…');
+  await page.waitForSelector('#sheet-pdf', { state: 'visible', timeout: 5000 });
+  check('the menu opens the sheet with its choice made', await page.isChecked('#pdf-kind-print-notes'));
+
+  // A cancelled save dialog says nothing.
+  await setCancel(true);
+  await page.click('#btn-pdf-export');
+  await page.waitForFunction(() => document.getElementById('btn-pdf').getAttribute('aria-disabled') === 'false', null, { timeout: 15000 });
+  check('a cancelled save dialog leaves no sentence behind', await page.isHidden('#pdf-status'));
+  await setCancel(false);
+
+  // The three exports, each through the sheet.
+  async function exportThrough(kind, file, ms) {
+    await page.click('#btn-pdf');
+    await page.check('#pdf-kind-' + kind);
+    await page.click('#btn-pdf-export');
+    const out = path.join(fs.realpathSync(project), file);
+    const escaped = file.replace('.', '\\.');
+    const text = await waitFor(page, '#pdf-text', v => new RegExp('^' + escaped + ' written').test(v.trim())
+      || /failed|stopped|Nothing was exported/.test(v), ms);
+    log(text.trim());
+    check(`${file}: the status sentence came back`, new RegExp('^' + escaped + ' written at \\d\\d:\\d\\d – \\d+ pages\\.$').test(text.trim()));
+    check(`${file}: the file is beside source.md`, fs.existsSync(out) && fs.statSync(out).size > 1000
+      && fs.readFileSync(out).subarray(0, 5).toString() === '%PDF-');
+    check(`${file}: open and show are offered`, await page.isVisible('#btn-pdf-open') && await page.isVisible('#btn-pdf-show'));
+  }
+
+  await exportThrough('print', 'print.pdf', 120000);
+
+  // The slides take long enough to see the busy state.
+  await page.click('#btn-pdf');
+  check('the sheet remembers the last choice', await page.isChecked('#pdf-kind-print'));
+  await page.check('#pdf-kind-slides');
+  await page.click('#btn-pdf-export');
+  await waitFor(page, '#pdf-text', v => /^Exporting the presentation/.test(v.trim()), 15000);
+  check('while it runs, the status says so', true);
+  check('while it runs, the build sentence stays', /^Ready\./.test((await page.textContent('#status-text')).trim()));
+  check('while it runs, the four buttons stay live', await page.evaluate(() =>
+    ['audience', 'speaker', 'print', 'print-notes'].every(k => !document.getElementById('out-' + k).disabled)));
+  check('while it runs, the export button is unavailable',
+    await page.getAttribute('#btn-pdf', 'aria-disabled') === 'true');
+  await page.click('#btn-pdf', { force: true });
+  check('…and pressing it opens nothing', await page.isHidden('#sheet-pdf'));
+  const busyItem = await menuItem('Presentation…');
+  check('while it runs, the menu items are greyed out', busyItem.found && busyItem.enabled === false);
+  const second = await page.evaluate(() => window.builder.exportPdf('print', {}));
+  check('a second export is refused as busy', second && second.error === 'pdf.busy');
+  await shoot(page, 'pdf-running');
+  const slidesText = await waitFor(page, '#pdf-text', v => /^slides\.pdf written|failed|stopped|Nothing was exported/.test(v.trim()), 300000);
+  log(slidesText.trim());
+  check('slides.pdf: the status sentence came back', /^slides\.pdf written at \d\d:\d\d – \d+ pages\.$/.test(slidesText.trim()));
+  check('slides.pdf: the file is beside source.md', fs.existsSync(path.join(project, 'slides.pdf')));
+  check('after it, the export button is available again',
+    await page.getAttribute('#btn-pdf', 'aria-disabled') === 'false');
+  check('after it, the menu items are enabled again', (await menuItem('Presentation…')).enabled === true);
+  await shoot(page, 'pdf-result');
+  await page.emulateMedia({ colorScheme: 'dark' });
+  await shoot(page, 'pdf-result-dark');
+  await page.emulateMedia({ colorScheme: 'light' });
+
+  await exportThrough('print-notes', 'print-notes.pdf', 120000);
+
+  const asked = await dialogAsked();
+  check('the save dialog proposed the command line\'s names beside source.md',
+    ['print-notes.pdf', 'print.pdf', 'slides.pdf', 'print-notes.pdf']
+      .every((f, i) => asked[i] && asked[i].defaultPath === path.join(fs.realpathSync(project), f)));
+  if (!asked.every(a => path.dirname(a.defaultPath) === fs.realpathSync(project))) log(JSON.stringify(asked));
+  check('the save dialog is titled in the window\'s language', asked.every(a => a.title === 'Export as PDF'));
+  const log2 = await page.evaluate(() => window.builder.getState().then(s => s.log.join('\n')));
+  check('no export page reported an error', !/the page reported an error/.test(log2));
+  check('the reports reached the build details', /Wrote slides\.pdf/.test(log2) && /Wrote print-notes\.pdf/.test(log2));
+
+  // German: the result sentence and the sheet in the longer language.
+  await page.evaluate(() => window.builder.setLanguage('de'));
+  await waitFor(page, '#pdf-text', v => /geschrieben/.test(v), 15000);
+  check('the result sentence is German', /^print-notes\.pdf um \d\d:\d\d geschrieben – \d+ Seiten\.$/.test((await pdfText()).trim()));
+  await shoot(page, 'pdf-result-de');
+  await page.click('#btn-pdf');
+  check('the German sheet is German', (await page.textContent('#sheet-pdf')).includes('Handout mit Notizen'));
+  await page.check('#pdf-kind-slides');
+  await shoot(page, 'pdf-sheet-de');
+  await page.click('#btn-pdf-cancel');
+  await page.evaluate(() => window.builder.setLanguage('en'));
+  await waitFor(page, '#status-text', v => /^Ready\./.test(v.trim()), 15000);
+
+  // The diagnostics, which the tutorial has none of: a lecture of its own
+  // with a link to a fragment that is no chunk, exported as a handout. The
+  // line under the sentence has to name the chunk, as the command line does.
+  const diag = path.join(work, 'diagnostics');
+  fs.mkdirSync(diag);
+  fs.writeFileSync(path.join(diag, 'source.md'), '---\ntitle: Diagnostics\n---\n\n'
+    + '# One\n\n## statement: A dead link {#dead-link}\n\nThis points [nowhere](#no-such-chunk).\n\n'
+    + '## statement: A second slide {#second}\n\nSo the column is not an orphan.\n');
+  await page.evaluate(p => window.builder.openProject(p), path.join(diag, 'source.md'));
+  await waitFor(page, '#status-text', v => /^Ready\./.test(v.trim()), 30000);
+  check('another lecture starts without the last one\'s export line', await page.isHidden('#pdf-status'));
+  await page.click('#btn-pdf');
+  await page.check('#pdf-kind-print');
+  await page.click('#btn-pdf-export');
+  await waitFor(page, '#pdf-text', v => /^print\.pdf written|failed|stopped|Nothing/.test(v.trim()), 120000);
+  const diagText = await page.textContent('#pdf-message').catch(() => '');
+  log(diagText.trim());
+  check('the diagnostics are shown, naming the chunk',
+    await page.isVisible('#pdf-message') && /dead-link links to #no-such-chunk/.test(diagText));
+  await shoot(page, 'pdf-diagnostics');
+  await page.evaluate(() => window.builder.closeProject());
+  await waitFor(page, '#screen-start h1', v => v.includes('Open a lecture'), 10000);
+  await page.evaluate(p => window.builder.removeRecent(p), fs.realpathSync(path.join(diag, 'source.md')));
+  await page.evaluate(p => window.builder.openProject(p), source);
+  await waitFor(page, '#status-text', v => /^Ready\./.test(v.trim()), 30000);
+
   await page.evaluate(() => window.builder.closeProject());
   await waitFor(page, '#screen-start h1', v => v.includes('Open a lecture'), 10000);
   check('the recent list has the lecture in it', await page.evaluate(() =>
@@ -252,6 +432,8 @@ try {
   console.error('  ✘', err && err.message ? err.message : err);
   await shoot(page, 'failure').catch(() => {});
 } finally {
+  check('the window reported no page error', pageErrors.length === 0);
+  if (pageErrors.length) console.error(pageErrors.join('\n'));
   await app.close();
 }
 
@@ -274,6 +456,7 @@ if (process.platform === 'win32') {
   if (survivors.trim()) console.error(survivors);
 }
 
-fs.rmSync(work, { recursive: true, force: true });
+if (process.env.PSI_SMOKE_KEEP) log(`kept the working copy: ${project}`);
+else fs.rmSync(work, { recursive: true, force: true });
 console.log(failures === 0 ? '\nsmoke: ok' : `\nsmoke: ${failures} failure(s)`);
 process.exit(failures === 0 ? 0 : 1);
