@@ -6,8 +6,8 @@
 //
 // What is copied is what the engine reads about itself: build.js, the four
 // files it splices in at run time over import.meta.url (diagram-core.mjs,
-// cue-cards.mjs, editor.mjs, editor.css), the one it imports statically
-// (tails.mjs), and the package.json and lockfile that decide the dependency
+// cue-cards.mjs, editor.mjs, editor.css), the two it imports statically
+// (tails.mjs, and pdf-core.mjs for the PDF option checks), and the package.json and lockfile that decide the dependency
 // tree. Everything else in the repository – the lectures, the tests, the site
 // – is not the engine.
 //
@@ -36,6 +36,7 @@ const FILES = [
   'diagram-core.mjs',
   'tails.mjs',
   'cue-cards.mjs',
+  'pdf-core.mjs',
   'editor.mjs',
   'editor.css',
   'package.json',

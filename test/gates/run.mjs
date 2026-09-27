@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Seventeen gates, and they prove seventeen different things – which is worth stating
+ * Eighteen gates, and they prove eighteen different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -62,6 +62,11 @@
  *              one above it (not when that is home) and never from a
  *              dot-folder, links resolved, an output never
  *              writes through a link, and ImageMagick is told the decoder
+ *   pdf-core   the PDF export's policy without a browser: the order in which
+ *              a driver is asked for anything (network refused before load,
+ *              auto-fit and collapse before the walk, print DOM before the
+ *              pdf), the option checks in the words build.js always used,
+ *              and the report's lines
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -90,6 +95,7 @@ const GATES = [
   './chains.mjs',
   './overlap.mjs',
   './untrusted.mjs',
+  './pdf-core.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

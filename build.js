@@ -31,6 +31,11 @@ import katex from 'katex';
 // Imported for the build; its *text* is also read and inlined into the live
 // views, the same way bundledFaces() reads woff2 out of node_modules.
 import { createDiagramCompiler, parseDiagramDefaults, dgShapeD, dgSplineD, dgPathD, DG_SHAPE_CLASSES, dgBarFillCss, DG_SOFT_GROUND, DG_FONT, DG_UNIT } from './diagram-core.mjs';
+// The PDF export's option checks, so --slides-pdf refuses a bad value before a
+// browser starts and in the words the desktop app uses too. Zero imports; the
+// export itself (pdf-export.mjs, which needs playwright-core) stays a dynamic
+// import behind the flag.
+import { resolvePdfOptions } from './pdf-core.mjs';
 // The {…} tail grammar and the ::: draw opener, shared with lint.js so the
 // two files cannot disagree about a tail. Tables plus small pure helpers,
 // zero dependencies - see the header of tails.mjs and CLAUDE.md.
@@ -31330,32 +31335,9 @@ async function runSquint(absIn, viewport, outArg) {
 
 // ── PDF slide export (--slides-pdf) ─────────────────────────────────
 //
-// The number pair is the contract, not the ratio. The base type is
-// clamp(20px, --slide-h * 0.026, 38px), so a 720px-high page hits the lower
-// clamp and prints type that is *larger* relative to the slide than any
-// projection above 769px; at 900px it sits in the linear range and the slide
-// has the proportions of a lecture hall. And one number serves viewport and
-// paper at once: page.pdf() lays out at paper width x 96dpi, so identical
-// numbers remove every scale calculation and the rounding that produces
-// blank trailing pages.
-const PDF_SIZES = {
-  '16:9':  { w: 1600, h: 900 },
-  '16:10': { w: 1600, h: 1000 },
-};
-
-// How large the type is allowed to get, and it is a ceiling rather than a
-// choice: the export shrinks a chunk to make it fit and never enlarges it past
-// what an ordinary slide gets.
-//
-// The live view's auto-fit ceiling is 2.2, which is right there - a lecturer
-// who presses `#` on a slide holding four words wants those four words to fill
-// the room. Printed, that same rule makes the type jump by a factor of 3.7
-// between neighbouring pages. Measured over the five lectures: 75% of
-// python-intro's states and 63% of decoration's sit above 1.6, while
-// network-security's median is 0.95. 1.35 is the runtime's own default zoom,
-// so the rule states itself - a page is at most as large as a slide nobody
-// fitted, and smaller when it has to be.
-const PDF_FIT_CEILING = 1.35;
+// The sizes, the fit ceiling and every check on a value live in pdf-core.mjs,
+// so the command line and the desktop app refuse the same values with the same
+// words. What stays here is argv: the `--name=value` form, and --watch.
 
 // A --pdf-* value flag, in the `--name=value` form. The older value flags in
 // this CLI take a separate argument (--port 8080); these do not, because a
@@ -31386,79 +31368,16 @@ function pdfOptionsFrom(argv, flags, absIn) {
     err.userFacing = true;
     throw err;
   }
-  const beats = pdfFlagValue(argv, '--pdf-beats') ?? 'all';
-  if (beats !== 'all' && beats !== 'final') {
-    const err = new Error(`Error: --pdf-beats=${beats} is not a mode. Use all (default) or final.`);
-    err.userFacing = true;
-    throw err;
-  }
-  const size = pdfFlagValue(argv, '--pdf-size') ?? '16:9';
-  if (!PDF_SIZES[size]) {
-    const err = new Error(
-      `Error: --pdf-size=${size} is not a size. Use ${Object.keys(PDF_SIZES).join(' or ')}.`);
-    err.userFacing = true;
-    throw err;
-  }
-  // `fit` shrinks what does not fit and stops at the ceiling above; a number
-  // is that number on every page, and whatever overruns is reported and
-  // printed cut. Not the other way round, and the measurement says why: at a
-  // fixed 1.35, 85% of network-security's states and 67% of the diagram
-  // lecture's run off the page. A fixed zoom is an honest choice for a deck
-  // whose slides are alike, and a bad default for one whose slides are not.
-  // The ceiling is a dial and not a truth, because the two things an author
-  // wants of it pull against each other: a low one keeps the type even across
-  // the deck, a high one fills each page. Measured on network-security under
-  // --pdf-collapse=topic-bold, the median page fill runs 85% at 1.35, 90% at
-  // 1.6 and 92% at 2.2, and the zoom range widens with it. 1.35 is the default
-  // because evenness is the thing a reader notices across a whole document.
-  const maxArg = pdfFlagValue(argv, '--pdf-zoom-max');
-  let ceiling = PDF_FIT_CEILING;
-  if (maxArg !== null) {
-    ceiling = Number(maxArg);
-    if (!Number.isFinite(ceiling) || ceiling < 0.6 || ceiling > 2.2) {
-      const err = new Error(
-        `Error: --pdf-zoom-max=${maxArg} is not a number between 0.6 and 2.2.\n`
-        + `  It is the largest zoom the fit may reach (default ${PDF_FIT_CEILING}). Raise it to`
-        + ' fill more of each page, lower it to keep the type even across the deck.');
-      err.userFacing = true;
-      throw err;
-    }
-  }
-  const zoomArg = pdfFlagValue(argv, '--pdf-zoom') ?? 'fit';
-  let zoom = null;
-  if (zoomArg !== 'fit') {
-    zoom = Number(zoomArg);
-    if (!Number.isFinite(zoom) || zoom < 0.6 || zoom > 2.2) {
-      const err = new Error(
-        `Error: --pdf-zoom=${zoomArg} is neither \`fit\` nor a number between 0.6 and 2.2.\n`
-        + '  fit (the default) sizes every chunk to the page and never enlarges past '
-        + `${PDF_FIT_CEILING}.\n`
-        + '  A number holds every page at that zoom and reports what runs off it.');
-      err.userFacing = true;
-      throw err;
-    }
-  }
-  // Which half of the text the pages carry. Unset means the lecture's own
-  // setting, which is what every other appearance option does - a deck that
-  // opens in full prose exports in full prose. The override exists because the
-  // two answers are genuinely different documents: the slide text is what the
-  // room saw, the full prose is the manuscript behind it.
-  const collapse = pdfFlagValue(argv, '--pdf-collapse');
-  if (collapse !== null && collapse !== 'topic-bold' && collapse !== 'none') {
-    const err = new Error(
-      `Error: --pdf-collapse=${collapse} is not a mode. Use topic-bold (the slide text`
-      + ' alone) or none (the full prose). Omit it to follow the lecture.');
-    err.userFacing = true;
-    throw err;
-  }
+  const resolved = resolvePdfOptions({
+    beats: pdfFlagValue(argv, '--pdf-beats'),
+    size: pdfFlagValue(argv, '--pdf-size'),
+    zoomMax: pdfFlagValue(argv, '--pdf-zoom-max'),
+    zoom: pdfFlagValue(argv, '--pdf-zoom'),
+    collapse: pdfFlagValue(argv, '--pdf-collapse'),
+  });
   const outArg = pdfFlagValue(argv, '--pdf-out');
   return {
-    beats,
-    size,
-    ...PDF_SIZES[size],
-    zoom,
-    collapse,
-    ceiling,
+    ...resolved,
     out: outArg ? path.resolve(outArg) : path.join(path.dirname(absIn), 'slides.pdf'),
     dumpDom: pdfFlagValue(argv, '--pdf-dump-dom'),
   };
