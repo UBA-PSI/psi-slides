@@ -456,3 +456,59 @@ keeps the two drivers from drifting, which neither driver's own test can see.
   `window.psiExport` in `AUDIENCE_JS` still says the policy lives in
   `pdf-export.mjs` – it ships inside the tracked views, so fixing it means
   rebuilding and committing them.
+
+### Stage 2
+
+- **`exportDocument(driver, {url})`** calls open, load, `waitFor(docReady)`
+  (load complete, fonts loaded), `docSettle` (every picture in a chunk
+  decoded, a lazy one made eager, two frames), `docCollect` (missing pictures,
+  dead fragments), then `pdf({media: 'print', css: true})`. The result is
+  `{kind: 'document', pdf, view, pages, pageSize, pictures, missingImages,
+  dead, blocked, reloadSockets, pageErrors, version, where}`; the slide result
+  gains `kind: 'slides'` and `reloadSockets`. The page opens at 794 x 1123 CSS
+  px (A4 at 96 dpi), which only the screen layout before printing sees.
+- **The Playwright driver's print path** is `emulateMedia('print')`, then
+  `page.pdf` with `preferCSSPageSize`, `printBackground` and no header or
+  footer, and no size or margins of its own. Chromium then takes size *and*
+  margins from the view's `@page` rule: measured on the fixture, every page is
+  594.96 x 841.92 pt (Chromium's A4, a point short of ISO's either way), the
+  margins are the view's, and the `@bottom-center` page number is there
+  (Chromium 153; checked by eye at 50 dpi).
+- **The page count is read out of the bytes** (`pdfFacts`, the page-tree
+  reading `test/pdf-export.mjs` already did), because a document's pagination
+  is the browser's and no DOM knows it. `null` when the file cannot be read,
+  and the report then says "an unread number of page(s)" rather than guess.
+- **A dead fragment is demoted to text in the document too**, as in the slide
+  export, so the one diagnostic reads the same in both. That is a DOM change
+  the plan's "no swapped DOM" did not foresee; nothing else is touched.
+- **`formatReport` takes `withBrowser`** (default true), so a run of several
+  exports prints the Chromium line once, with the first. The document's
+  blocked line drops "a hosted embed prints as a card", which is the slide
+  export's alone. A document report is the diagnostics, the Chromium line and
+  `Wrote … (N page(s) from print.html, 210×297 mm)`.
+- **The reload socket, which Stage 1 left for Stage 3, is settled here in
+  pdf-core:** a refused `ws(s)://` to loopback (127.0.0.1, localhost, [::1],
+  any port) is counted as `reloadSockets` and `formatReport` says nothing about
+  it. Still refused, so the page cannot reload on a save. Measured on a watch
+  build of the fixture: one socket counted per export, no line printed. The
+  one-shot CLI has no socket, and its output is byte-identical (stdout, stderr
+  and `pdftotext` of `slides.pdf`).
+- **`exportSlidesPdf` became `exportPdfs({slides, documents})`**: one driver,
+  slides first, then the documents in flag order. The missing-playwright-core
+  message names every flag asked for, and reads as before for `--slides-pdf`
+  alone. Three PDFs of the fixture in one run: 3.3 s.
+- **Refusals beyond the plan's list:** `--pdf-out` with no PDF flag at all, and
+  `--pdf-dump-dom` counted as a slide option. Slide options with no PDF flag
+  at all are refused too – before, a plain build silently ignored them; that
+  is the one behaviour change for a command that used to succeed. The order is
+  `--watch`, then an option with nothing to read it, then `--pdf-out` with two
+  files, then the slide values, so a `--slides-pdf` command names the same
+  error first it always did.
+- **Open, observed:** in `print.html` a hosted embed's `<iframe>` carries only
+  `data-src`, so on paper the frame prints as nothing and the address line
+  under it is all that is left – no provider, no card, no hint that a video
+  stood there. The fixture has no clip, so a clip on paper is still unseen.
+- **Left for Stage 6:** CLAUDE.md's command block (the two flags, one browser,
+  the refusals, `exportDocument` in the pdf-export paragraph, and the test's
+  "Eighty assertions", now 127), README, CHANGELOG (including the refusal of
+  stray `--pdf-*` options on a plain build).

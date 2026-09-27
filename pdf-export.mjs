@@ -1,5 +1,6 @@
 /**
- * --slides-pdf on the command line: the Playwright driver for pdf-core.mjs.
+ * --slides-pdf, --print-pdf and --print-notes-pdf on the command line: the
+ * Playwright driver for pdf-core.mjs.
  *
  * The second documented exception to the single-file build, and the reason is
  * different from diagram-core.mjs's. That one exists because the browser
@@ -22,7 +23,7 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { findChrome } from './chrome-path.mjs';
-import { exportSlides, formatReport } from './pdf-core.mjs';
+import { exportSlides, exportDocument, formatReport } from './pdf-core.mjs';
 
 function userError(msg) {
   const err = new Error(msg);
@@ -74,8 +75,21 @@ async function playwrightDriver(chromium, executablePath) {
         waitFor: (fn, timeoutMs) => page.waitForFunction(fn, null, { timeout: timeoutMs }),
         evaluate: (fn, arg) => page.evaluate(fn, arg),
         async pdf(how) {
+          if (how.media === 'print') {
+            // The document: the view's @page rule is the paper - A4, its
+            // margins and the page number in the @bottom-center margin box.
+            // No width, height or margin from here, or they would compete
+            // with it; preferCSSPageSize makes the rule win the size, and
+            // Chromium takes the margins from it too.
+            await page.emulateMedia({ media: 'print' });
+            return page.pdf({
+              printBackground: true,
+              preferCSSPageSize: true,
+              displayHeaderFooter: false,
+            });
+          }
           if (how.media !== 'screen') {
-            throw new Error(`pdf-export: no print path for media ${how.media} yet`);
+            throw new Error(`pdf-export: no print path for media ${how.media}`);
           }
           await page.emulateMedia({ media: 'screen' });
           return page.pdf({
@@ -111,15 +125,28 @@ function writeAtomic(out, bytes) {
 }
 
 // ── the run ─────────────────────────────────────────────────────────
-export async function exportSlidesPdf(opts) {
-  const { audienceHtml, out, dumpDom } = opts;
+//
+// One browser for every PDF the command asked for: slides first, then the
+// documents, each on a page of its own. The Chromium line is printed once,
+// with the first report.
+//
+// jobs: { slides: null | {out, dumpDom, ...resolvePdfOptions}, documents:
+// [{flag, html, out}] }, audienceHtml beside slides. build.js has refused
+// every combination that would do nothing before this is reached.
+const joinFlags = (names) => names.length < 2
+  ? names.join('')
+  : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+
+export async function exportPdfs(jobs) {
+  const { slides, documents = [] } = jobs;
+  const asked = [...(slides ? ['--slides-pdf'] : []), ...documents.map(d => d.flag)];
 
   let chromium;
   try {
     ({ chromium } = await import('playwright-core'));
   } catch (e) {
     throw userError(
-      '--slides-pdf needs playwright-core, and it is not installed.\n'
+      `${joinFlags(asked)} ${asked.length > 1 ? 'need' : 'needs'} playwright-core, and it is not installed.\n`
       + '  It is an optional dependency, so `npm install` may have skipped it:\n'
       + '    npm install playwright-core\n'
       + '  The export drives a headless Chromium; every other build target\n'
@@ -133,22 +160,36 @@ export async function exportSlidesPdf(opts) {
   const executablePath = findChrome();
 
   let driver = null;
-  try {
-    driver = await playwrightDriver(chromium, executablePath);
-    const r = await exportSlides(driver, {
-      ...opts,
-      url: pathToFileURL(audienceHtml).href,
-      dumpDom: !!dumpDom,
-    });
-
-    if (dumpDom) fs.writeFileSync(path.resolve(dumpDom), r.dom);
-    writeAtomic(out, r.pdf);
-
+  let first = true;
+  const say = (r, out) => {
     const outLabel = path.relative(process.cwd(), out) || out;
-    for (const line of formatReport(r, { outLabel })) {
+    for (const line of formatReport(r, { outLabel, withBrowser: first })) {
       (line.level === 'warn' ? console.error : console.log)(line.text);
     }
-    return { out, pages: r.pages };
+    first = false;
+  };
+  try {
+    driver = await playwrightDriver(chromium, executablePath);
+    const written = [];
+    if (slides) {
+      const { audienceHtml, out, dumpDom } = slides;
+      const r = await exportSlides(driver, {
+        ...slides,
+        url: pathToFileURL(audienceHtml).href,
+        dumpDom: !!dumpDom,
+      });
+      if (dumpDom) fs.writeFileSync(path.resolve(dumpDom), r.dom);
+      writeAtomic(out, r.pdf);
+      say(r, out);
+      written.push({ out, pages: r.pages });
+    }
+    for (const d of documents) {
+      const r = await exportDocument(driver, { url: pathToFileURL(d.html).href });
+      writeAtomic(d.out, r.pdf);
+      say(r, d.out);
+      written.push({ out: d.out, pages: r.pages });
+    }
+    return written;
   } finally {
     if (driver) await driver.close().catch(() => {});
   }

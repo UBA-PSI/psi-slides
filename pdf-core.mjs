@@ -63,7 +63,10 @@
  *                                     JSON; fn may return a promise
  *   page.pdf(how) -> bytes            backgrounds always, no browser header
  *                                     or footer. {media: 'screen', w, h}: the
- *                                     export's own page size, no margins
+ *                                     export's own page size, no margins.
+ *                                     {media: 'print', css: true}: the view's
+ *                                     own @page rule decides size, margins
+ *                                     and margin boxes (preferCSSPageSize)
  *   page.close()
  *
  * The plan sketched one flat object whose open() made the page. The split is
@@ -76,7 +79,8 @@
  * and the collapse) before pageCollect (the walk); pageInstall (the print
  * DOM) before pdf. Because the order lives here and not in a driver, a driver
  * cannot get it wrong, and test/gates/pdf-core.mjs holds it with a driver
- * that only records its calls.
+ * that only records its calls. exportDocument is the short form of the same
+ * order: open, load, pictures decoded, diagnostics read, pdf on print media.
  */
 
 // ── sizes and the ceiling ───────────────────────────────────────────
@@ -611,14 +615,48 @@ export function linkTable(got) {
 // goes and how it is written safely there.
 const psiReady = () => !!window.psiExport && document.fonts.status === 'loaded';
 
+// ── what the network refusal counted ────────────────────────────────
+//
+// Every refused request, per origin - except the one a watch build makes on
+// every load. A view built under --watch carries a reload client that opens
+// ws://127.0.0.1:<port> (reloadScript in build.js), and the desktop app only
+// ever exports watch builds. That socket is still refused, because a page
+// that kept it would reload on the author's next save, in the middle of the
+// walk or between load and print. But it is not a request the deck made, and
+// reporting it beside a remote image put advice about embeds and inlining
+// under every export the app would ever make. So it is counted on its own and
+// formatReport says nothing about it; a one-shot build has no such socket,
+// which is why the command line's output is unchanged. Loopback on any port,
+// because the watch port is not known here - a deck that talks to a socket
+// of its own on loopback is not a case this project has.
+const RELOAD_SOCKET = /^wss?:\/\/(?:127\.0\.0\.1|localhost|\[::1\])(?::\d+)?\/?$/i;
+
+function blockCounter() {
+  const blocked = new Map();      // origin -> count
+  let reloadSockets = 0;
+  return {
+    onBlocked(origin) {
+      const o = String(origin);
+      if (RELOAD_SOCKET.test(o)) { reloadSockets += 1; return; }
+      blocked.set(o, (blocked.get(o) || 0) + 1);
+    },
+    // An array rather than the Map, so a result crosses an IPC boundary as
+    // it is.
+    result: () => ({
+      blocked: [...blocked].map(([origin, count]) => ({ origin, count })),
+      reloadSockets,
+    }),
+  };
+}
+
 export async function exportSlides(driver, opts) {
   const { url, beats, size, w, h, zoom, collapse, ceiling, dumpDom } = opts;
-  const blocked = new Map();      // origin -> count
+  const net = blockCounter();
   const pageErrors = [];
 
   const page = await driver.open({
     w, h,
-    onBlocked: (origin) => blocked.set(origin, (blocked.get(origin) || 0) + 1),
+    onBlocked: net.onBlocked,
     onPageError: (msg) => pageErrors.push(String(msg)),
   });
   try {
@@ -641,6 +679,7 @@ export async function exportSlides(driver, opts) {
     const pdf = await page.pdf({ media: 'screen', w, h });
 
     return {
+      kind: 'slides',
       pdf,
       dom,
       size, w, h, beats, zoom, collapse, ceiling,
@@ -652,9 +691,152 @@ export async function exportSlides(driver, opts) {
       overflow: got.overflow,
       missingImages: got.missingImages,
       dead: installed.dead,
-      // An array rather than the Map, so a result crosses an IPC boundary
-      // as it is.
-      blocked: [...blocked].map(([origin, count]) => ({ origin, count })),
+      ...net.result(),
+      pageErrors,
+    };
+  } finally {
+    await Promise.resolve(page.close()).catch(() => {});
+  }
+}
+
+// ── in-page: the document ───────────────────────────────────────────
+//
+// The document export prints the view as it stands: no state to walk, no
+// clone, no swapped DOM, and the view's own @page rule sets the paper. What
+// it adds over Cmd-P is what the slide export promises - no network, no
+// browser header or footer, the same file on every machine with the same
+// build - and the diagnostics a printed document can have. Overflow is not
+// one of them: a paginated document has no frame to run out of.
+const docReady = () => document.readyState === 'complete' && document.fonts.status === 'loaded';
+
+// Every picture in a chunk decoded, and a lazy one told not to be: printing
+// does not scroll, so a picture waiting to be scrolled to would print empty.
+// Three seconds per picture, as the walk allows, then two frames so the
+// layout has seen them.
+function docSettle() {
+  const imgs = [...document.querySelectorAll('.chunk img')];
+  for (const img of imgs) if (img.loading === 'lazy') img.loading = 'eager';
+  return Promise.all([
+    document.fonts.ready,
+    ...imgs.map(img => Promise.race([
+      img.decode().catch(() => {}),
+      new Promise(r => setTimeout(r, 3000)),
+    ])),
+  ])
+    .then(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))))
+    .then(() => imgs.length);
+}
+
+// The two diagnostics that can be read off the page, in the shapes the slide
+// export reports them in. A chunk in the documents is an <article> whose id
+// is the chunk id; a link outside one (the contents, a divider) names its
+// column. A dead fragment is demoted to a span for the reason pageInstall
+// gives: a link that goes nowhere in a PDF is worse than no link.
+function docCollect() {
+  const where = (el) => {
+    const chunk = el.closest('.chunk');
+    if (chunk && chunk.id) return chunk.id;
+    const col = el.closest('.column');
+    return col && col.id ? col.id : '?';
+  };
+  const missingImages = [];
+  for (const fig of document.querySelectorAll('.chunk figure.figure-missing')) {
+    missingImages.push({ chunkId: where(fig), src: fig.dataset.figId || '' });
+  }
+  for (const img of document.querySelectorAll('.chunk img')) {
+    if (img.getAttribute('src') && img.naturalWidth === 0) {
+      missingImages.push({ chunkId: where(img), src: img.getAttribute('src') });
+    }
+  }
+  const dead = [];
+  for (const a of [...document.querySelectorAll('a[href^="#"]')]) {
+    const raw = a.getAttribute('href').slice(1);
+    if (!raw) continue;
+    let frag = raw;
+    try { frag = decodeURIComponent(raw); } catch (e) { /* keep it raw */ }
+    if (document.getElementById(frag)) continue;
+    dead.push({ fragment: frag, chunkId: where(a) });
+    const span = document.createElement('span');
+    span.className = a.className;
+    span.append(...a.childNodes);
+    a.replaceWith(span);
+  }
+  return { missingImages, dead };
+}
+
+// ── reading the file back ───────────────────────────────────────────
+//
+// The document's page count is the browser's pagination, so only the file
+// knows it. Chromium writes PDF 1.4 without object streams, so the page tree
+// is in the clear: the one /Type /Pages object with no /Parent carries
+// /Count, and the first /MediaBox is the first page's paper. Either can be
+// null - a browser that writes compressed objects - and the report then says
+// less rather than something wrong. Bytes as a Buffer, a Uint8Array, an
+// ArrayBuffer or (the gate's fake) a string.
+function latin1(bytes) {
+  if (typeof bytes === 'string') return bytes;
+  const u8 = bytes instanceof ArrayBuffer ? new Uint8Array(bytes) : bytes;
+  let s = '';
+  for (let i = 0; i < u8.length; i += 0x8000) {
+    s += String.fromCharCode.apply(null, u8.subarray(i, i + 0x8000));
+  }
+  return s;
+}
+
+export function pdfFacts(bytes) {
+  const text = latin1(bytes);
+  let pages = null;
+  for (const m of text.matchAll(/\d+ 0 obj([\s\S]*?)endobj/g)) {
+    const body = m[1];
+    if (!/\/Type\s*\/Pages\b/.test(body) || /\/Parent\b/.test(body)) continue;
+    const c = /\/Count\s+(\d+)/.exec(body);
+    if (c) { pages = Number(c[1]); break; }
+  }
+  const mb = /\/MediaBox\s*\[\s*([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s+([-\d.]+)\s*\]/.exec(text);
+  const pageSize = mb
+    ? { w: Number(mb[3]) - Number(mb[1]), h: Number(mb[4]) - Number(mb[2]) }
+    : null;
+  return { pages, pageSize };
+}
+
+// ── the document export ─────────────────────────────────────────────
+//
+// opts: { url }, a file: URL of a built print.html or print-notes.html. The
+// page is opened at A4's width in CSS px, which only the screen layout before
+// printing sees - the paper is the view's @page rule. Returns the bytes and
+// what formatReport says about them, and writes nothing, as exportSlides.
+export const DOC_VIEWPORT = { w: 794, h: 1123 };
+
+export async function exportDocument(driver, opts) {
+  const { url } = opts;
+  const net = blockCounter();
+  const pageErrors = [];
+
+  const page = await driver.open({
+    w: DOC_VIEWPORT.w, h: DOC_VIEWPORT.h,
+    onBlocked: net.onBlocked,
+    onPageError: (msg) => pageErrors.push(String(msg)),
+  });
+  try {
+    await page.load(url);
+    await page.waitFor(docReady, 30000);
+    const pictures = await page.evaluate(docSettle);
+    const got = await page.evaluate(docCollect);
+    // Print media: the documents' @media print rules are what a document is.
+    const pdf = await page.pdf({ media: 'print', css: true });
+    const facts = pdfFacts(pdf);
+    return {
+      kind: 'document',
+      pdf,
+      view: String(url).split(/[?#]/)[0].split('/').pop(),
+      pages: facts.pages,
+      pageSize: facts.pageSize,
+      pictures,
+      version: driver.version,
+      where: driver.where,
+      missingImages: got.missingImages,
+      dead: got.dead,
+      ...net.result(),
       pageErrors,
     };
   } finally {
@@ -670,13 +852,18 @@ export async function exportSlides(driver, opts) {
 // line, the build-error place in the app), `info` is the run's own account
 // (stdout). outLabel is how the file is named in them - a path relative to
 // the working directory on the command line.
-export function formatReport(r, { outLabel }) {
+//
+// A result of either export: exportDocument's carries kind 'document' and no
+// overflow, no still and no card. withBrowser: false drops the Chromium line,
+// for every export after the first in a run that started one browser.
+export function formatReport(r, { outLabel, withBrowser = true }) {
   const rel = outLabel;
   const lines = [];
   const warn = (text) => lines.push({ level: 'warn', text });
   const info = (text) => lines.push({ level: 'info', text });
+  const doc = r.kind === 'document';
 
-  for (const o of r.overflow) {
+  for (const o of (doc ? [] : r.overflow)) {
     warn(
       `${rel}: ${o.chunkId} beat ${o.beat} does not fit the page at zoom ${o.zoom.toFixed(2)} `
       + `(${o.content}px of content, ${o.available}px available). `
@@ -686,7 +873,7 @@ export function formatReport(r, { outLabel }) {
   }
   // One line rather than one per page when a fixed zoom is overrunning
   // wholesale: that is a decision to revisit, not a list to work through.
-  if (r.zoom !== null && r.overflow.length > r.pages * 0.2) {
+  if (!doc && r.zoom !== null && r.overflow.length > r.pages * 0.2) {
     warn(
       `${rel}: ${r.overflow.length} of ${r.pages} pages run off the page at --pdf-zoom=${r.zoom}. `
       + 'That is what a fixed zoom costs on a deck whose slides differ in length; '
@@ -700,13 +887,28 @@ export function formatReport(r, { outLabel }) {
     warn(`${rel}: ${d.chunkId} links to #${d.fragment}, which is no chunk and no column`
       + ' – the link is now plain text. Fix the fragment or drop the link.');
   }
+  // The document prints the view as it is, so the card is the slide
+  // export's alone and so is the sentence about it.
   for (const { origin, count } of r.blocked) {
     warn(`${rel}: blocked ${count} request(s) to ${origin}`
-      + ' – the export is offline by design. A hosted embed prints as a card;'
-      + ' a remote image prints empty, so inline it.');
+      + (doc
+        ? ' – the export is offline by design. A remote image prints empty, so inline it.'
+        : ' – the export is offline by design. A hosted embed prints as a card;'
+          + ' a remote image prints empty, so inline it.'));
   }
   for (const e of r.pageErrors) {
     warn(`${rel}: the page reported an error during the export: ${e}`);
+  }
+
+  if (doc) {
+    if (withBrowser) info(`[pdf] Chromium ${r.version} – ${r.where}`);
+    // Points to millimetres, rounded: Chromium's A4 is 594.96 x 841.92 pt,
+    // which is 210 x 297 mm to the millimetre and 209.9 x 297.0 to the tenth.
+    const mm = (pt) => Math.round(pt / 72 * 25.4);
+    info(`Wrote ${rel} (${r.pages === null ? 'an unread number of' : r.pages} page(s) `
+      + `from ${r.view}`
+      + `${r.pageSize ? `, ${mm(r.pageSize.w)}×${mm(r.pageSize.h)} mm` : ''})`);
+    return lines;
   }
 
   const still = r.prep.stills + r.prep.placeholders;
@@ -718,7 +920,7 @@ export function formatReport(r, { outLabel }) {
   // The browser is half the reproducibility promise the plan makes, and it
   // costs one line: the same machine with the same build produces the same
   // PDF, two machines may differ in hyphenation and fallback glyphs.
-  info(`[pdf] Chromium ${r.version} – ${r.where}`);
+  if (withBrowser) info(`[pdf] Chromium ${r.version} – ${r.where}`);
   info(`Wrote ${rel} (${r.pages} page(s) from ${r.chunks} chunk(s), `
     + `${r.size} at ${r.w}×${r.h}, beats=${r.beats}, `
     + `zoom=${r.zoom === null ? `fit≤${r.ceiling}` : r.zoom}`

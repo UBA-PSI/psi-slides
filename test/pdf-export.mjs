@@ -3,7 +3,10 @@
  * node test/pdf-export.mjs
  *
  * --slides-pdf: the states that become pages, what leaves the clone, where a
- * link points, and the four diagnostics the export promises.
+ * link points, and the four diagnostics the export promises. And, against the
+ * same fixture, --print-pdf and --print-notes-pdf: A4, the note in one file
+ * and not the other, a fragment link that still lands, one browser for three
+ * PDFs, and every combination that would do nothing refused by name.
  *
  * Shaped after test/settings.mjs, not after test/run.mjs, and the difference
  * is the whole design. run.mjs builds a lecture, serves it, hands a spec an
@@ -166,8 +169,11 @@ The bookend, which is a cover by another name.
 
 // ── running the export ──────────────────────────────────────────────
 function run(dir, flags, env = {}) {
+  return build(dir, ['--slides-pdf', ...flags], env);
+}
+function build(dir, flags, env = {}) {
   return spawnSync(process.execPath,
-    [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), '--slides-pdf', ...flags],
+    [path.join(ROOT, 'build.js'), path.join(dir, 'source.md'), ...flags],
     { cwd: ROOT, encoding: 'utf8', env: { ...process.env, ...env } });
 }
 
@@ -516,6 +522,119 @@ try {
   }
 
   note(`build log: ${log.split('\n').filter(l => l.startsWith('[pdf]')).join(' | ')}`);
+
+  // ── the document ──────────────────────────────────────────────────
+  console.log('\nthe document: --print-pdf and --print-notes-pdf');
+  // All three in one command, which is also the one-browser check: the
+  // Chromium line is printed with the first report and never again.
+  const rd = build(dir, ['--slides-pdf', '--print-pdf', '--print-notes-pdf']);
+  ok(rd.status === 0, '--slides-pdf --print-pdf --print-notes-pdf exits 0',
+     (rd.stdout || '').slice(-400) + (rd.stderr || '').slice(-400));
+  const rdOut = rd.stdout || '';
+  const rdErr = rd.stderr || '';
+  const chromiumLines = rdOut.split('\n').filter(l => l.startsWith('[pdf] Chromium'));
+  ok(chromiumLines.length === 1, 'three PDFs, one browser: the [pdf] Chromium line appears once',
+     String(chromiumLines.length));
+  ok(/Wrote \S*slides\.pdf \(/.test(rdOut) && /Wrote \S*print\.pdf \(\d+ page\(s\) from print\.html, 210×297 mm\)/.test(rdOut)
+     && /Wrote \S*print-notes\.pdf \(\d+ page\(s\) from print-notes\.html, 210×297 mm\)/.test(rdOut),
+     'each file is reported, the documents with their page count and paper',
+     rdOut.split('\n').filter(l => l.startsWith('Wrote')).join(' | '));
+  const printPdf = path.join(dir, 'print.pdf');
+  const notesPdf = path.join(dir, 'print-notes.pdf');
+  const docs = {};
+  for (const [name, p] of [['print.pdf', printPdf], ['print-notes.pdf', notesPdf]]) {
+    const there = fs.existsSync(p);
+    ok(there, `${name} is written beside source.md`);
+    if (!there) continue;
+    const bytes = fs.readFileSync(p, 'latin1');
+    docs[name] = bytes;
+    ok(bytes.startsWith('%PDF-'), `${name} is a PDF`);
+    // Chromium's A4 is 594.96 x 841.92 pt, a point short of ISO's 595 x 842
+    // on either side of the rounding.
+    const mbd = mediaBox(bytes);
+    ok(near(mbd[2], 595, 1.5) && near(mbd[3], 842, 1.5), `${name} is A4, from the view's own @page`,
+       JSON.stringify(mbd));
+    ok(pageTree(bytes) > 1, `${name} runs to more than one page`, String(pageTree(bytes)));
+    // Every page is A4, not just the first: a page the view sized for itself
+    // would stand out here.
+    const boxes = [...bytes.matchAll(/\/MediaBox\s*\[\s*[-\d.]+\s+[-\d.]+\s+([-\d.]+)\s+([-\d.]+)/g)];
+    ok(boxes.length >= pageTree(bytes) && boxes.every(b => near(Number(b[1]), 595, 1.5) && near(Number(b[2]), 842, 1.5)),
+       `and so is every page of ${name}`);
+  }
+  if (have('pdfinfo')) {
+    const info = spawnSync('pdfinfo', [printPdf], { encoding: 'utf8' }).stdout || '';
+    ok(/Page size:.*\(A4\)/.test(info), 'pdfinfo calls print.pdf A4', (/Page size:.*/.exec(info) || [''])[0]);
+  } else {
+    note('pdfinfo is not on PATH – skipping its word for the paper.');
+  }
+  if (docs['print.pdf']) {
+    // The fragment half of the link promise, read out of the file as the slide
+    // test reads it: a named destination per internal link, and none for the
+    // fragment that goes nowhere - the export demotes that one to text.
+    const dd = [...docs['print.pdf'].matchAll(/\/Dest\s+\/([\w-]+)/g)].map(m => m[1]);
+    ok(dd.includes('beatless'), 'a link to a chunk is a named destination in print.pdf', dd.join(', '));
+    ok(dd.includes('beats'), 'and so is a link to a column', dd.join(', '));
+    ok(!dd.includes('gibtsnicht'), 'the dead fragment is no destination at all');
+    ok(!/\/URI \(#/.test(docs['print.pdf']), 'no fragment was written out as an external address');
+    ok(/\/S\s*\/URI\s*\n?\/URI \(https:\/\/uba-psi\.github\.io\/psi-slides\/\)/.test(docs['print.pdf']),
+       'the external link is a clickable URI annotation');
+  }
+  ok(rdErr.split('\n').some(l => /print\.pdf: links links to #gibtsnicht/.test(l)),
+     'the document names the dead fragment and its chunk',
+     rdErr.split('\n').filter(l => /print\.pdf:.*gibtsnicht/.test(l)).join(''));
+  ok(rdErr.split('\n').some(l => /print\.pdf: missing has an image that did not load: \.\/fehlt\.png/.test(l)),
+     'and the missing image and its chunk');
+  const docBlocked = rdErr.split('\n').filter(l => /print\.pdf: blocked \d+ request/.test(l));
+  ok(docBlocked.length === 1 && /example\.invalid/.test(docBlocked[0]) && !/hosted embed/.test(docBlocked[0]),
+     'and the refused origin, without the slide export\'s advice about cards', JSON.stringify(docBlocked));
+  ok(!rdErr.split('\n').some(l => /print(-notes)?\.pdf: .*does not fit the page/.test(l)),
+     'and no overflow, which a paginated document does not have');
+  if (have('pdftotext')) {
+    const textOf = (p) => spawnSync('pdftotext', [p, '-'], { encoding: 'utf8' }).stdout.replace(/\s+/g, ' ');
+    const noteLine = /This narration belongs to print-notes\.html, never to slides\.pdf/;
+    ok(noteLine.test(textOf(notesPdf)), 'the speaker note is in print-notes.pdf');
+    ok(!noteLine.test(textOf(printPdf)), 'and not in print.pdf');
+    ok(/One paragraph, no segments, no steps, no frames/.test(textOf(printPdf)),
+       'print.pdf is text, not a raster');
+  } else {
+    note('pdftotext is not on PATH – skipping the note check.');
+  }
+
+  console.log('\nthe document: ignores --*-only, and --pdf-out names its one file');
+  fs.rmSync(path.join(dir, 'print.html'), { force: true });
+  const named = path.join(dir, 'handout.pdf');
+  const ro = build(dir, ['--audience-only', '--print-pdf', `--pdf-out=${named}`]);
+  ok(ro.status === 0, '--audience-only --print-pdf --pdf-out=<path> exits 0', (ro.stderr || '').slice(-300));
+  ok(fs.existsSync(path.join(dir, 'print.html')),
+     'print.html is rebuilt even under --audience-only – an export of a stale view is worse than none');
+  ok(fs.existsSync(named) && fs.readFileSync(named, 'latin1').startsWith('%PDF-'),
+     '--pdf-out names the one document asked for');
+
+  console.log('\nthe document: what would do nothing is refused by name');
+  const refused = (flags, re, what) => {
+    const rr = build(dir, flags);
+    ok(rr.status !== 0 && re.test(rr.stderr || ''), what, (rr.stderr || '').split('\n')[0]);
+    ok(!/\bat .*\(.*:\d+:\d+\)/.test(rr.stderr || ''), `  … without a stack trace (${flags.join(' ')})`);
+    ok(!/\[pdf\] Chromium/.test(rr.stdout || ''), `  … before a browser starts (${flags.join(' ')})`);
+  };
+  refused(['--print-pdf', '--watch'],
+    /^Error: --print-pdf and --watch are mutually exclusive\./,
+    '--print-pdf with --watch');
+  refused(['--slides-pdf', '--print-notes-pdf', '--watch'],
+    /^Error: --slides-pdf, --print-notes-pdf and --watch are mutually exclusive\./,
+    'any PDF flags with --watch, named together');
+  refused(['--print-pdf', '--pdf-zoom=1.2'],
+    /^Error: --pdf-zoom without --slides-pdf\.\n.*--print-pdf prints a document/,
+    'a slide option beside a document export');
+  refused(['--pdf-beats=final', '--pdf-collapse=none'],
+    /^Error: --pdf-beats and --pdf-collapse without --slides-pdf\./,
+    'slide options with no export at all');
+  refused(['--print-pdf', '--print-notes-pdf', `--pdf-out=${named}`],
+    /^Error: --pdf-out names one file, and --print-pdf and --print-notes-pdf write 2\./,
+    '--pdf-out with two PDFs to write');
+  refused([`--pdf-out=${named}`],
+    /^Error: --pdf-out without a PDF to write\./,
+    '--pdf-out with none');
 } finally {
   // $PSI_PDF_KEEP leaves the fixture, the DOM dump and both PDFs in $TMPDIR.
   // A failing DOM assertion is a question about one string in a megabyte of

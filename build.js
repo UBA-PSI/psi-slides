@@ -31333,11 +31333,25 @@ async function runSquint(absIn, viewport, outArg) {
   return 0;
 }
 
-// ── PDF slide export (--slides-pdf) ─────────────────────────────────
+// ── PDF export (--slides-pdf, --print-pdf, --print-notes-pdf) ────────
 //
 // The sizes, the fit ceiling and every check on a value live in pdf-core.mjs,
 // so the command line and the desktop app refuse the same values with the same
-// words. What stays here is argv: the `--name=value` form, and --watch.
+// words. What stays here is argv: the `--name=value` form, which exports were
+// asked for, and the combinations that would do nothing.
+
+// The three exports, each named after the view it prints and writing a file
+// named after it beside the source - slides.pdf being the exception that was
+// there first.
+const PDF_EXPORTS = [
+  { flag: '--slides-pdf', view: 'audience.html', file: 'slides.pdf' },
+  { flag: '--print-pdf', view: 'print.html', file: 'print.pdf' },
+  { flag: '--print-notes-pdf', view: 'print-notes.html', file: 'print-notes.pdf' },
+];
+// What only the slide deck reads. --pdf-dump-dom is the test's and is
+// documented nowhere, but it is a slide option all the same.
+const SLIDE_PDF_OPTIONS = ['--pdf-beats', '--pdf-size', '--pdf-zoom', '--pdf-zoom-max',
+  '--pdf-collapse', '--pdf-dump-dom'];
 
 // A --pdf-* value flag, in the `--name=value` form. The older value flags in
 // this CLI take a separate argument (--port 8080); these do not, because a
@@ -31354,20 +31368,21 @@ function pdfFlagValue(argv, name) {
   }
   return last.slice(name.length + 1);
 }
+const pdfFlagGiven = (argv, name) => argv.some(a => a === name || a.startsWith(name + '='));
+const joinFlagNames = (names) => names.length < 2
+  ? names.join('')
+  : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
+
+function pdfUsageError(msg) {
+  const err = new Error(msg);
+  err.userFacing = true;
+  return err;
+}
 
 // Everything --slides-pdf was told, refused early and in one place. A bad
 // value here is a typo, and a typo that reaches the browser costs a minute
 // before it says so.
-function pdfOptionsFrom(argv, flags, absIn) {
-  if (flags.has('--watch')) {
-    const err = new Error(
-      'Error: --slides-pdf and --watch are mutually exclusive.\n'
-      + '  --watch rebuilds on every save and keeps running; the export drives a\n'
-      + '  browser over one finished build and exits. Run the export when you are\n'
-      + '  done authoring, or in a second terminal.');
-    err.userFacing = true;
-    throw err;
-  }
+function pdfOptionsFrom(argv, absIn) {
   const resolved = resolvePdfOptions({
     beats: pdfFlagValue(argv, '--pdf-beats'),
     size: pdfFlagValue(argv, '--pdf-size'),
@@ -31378,8 +31393,69 @@ function pdfOptionsFrom(argv, flags, absIn) {
   const outArg = pdfFlagValue(argv, '--pdf-out');
   return {
     ...resolved,
+    audienceHtml: path.join(path.dirname(absIn), 'audience.html'),
     out: outArg ? path.resolve(outArg) : path.join(path.dirname(absIn), 'slides.pdf'),
     dumpDom: pdfFlagValue(argv, '--pdf-dump-dom'),
+  };
+}
+
+// Which PDFs the command asked for, or null for none - and every flag that
+// would otherwise do nothing, refused by name, the way the --prompter-*
+// settings are. In this order: --watch first, as it always was for
+// --slides-pdf; then an option with no export to read it; then --pdf-out
+// with more than one file to name; then the slide values.
+function pdfJobsFrom(argv, flags, absIn) {
+  const asked = PDF_EXPORTS.filter(e => flags.has(e.flag));
+  const names = asked.map(e => e.flag);
+  const slideOpts = SLIDE_PDF_OPTIONS.filter(name => pdfFlagGiven(argv, name));
+
+  if (!asked.length) {
+    if (slideOpts.length) {
+      throw pdfUsageError(
+        `Error: ${joinFlagNames(slideOpts)} without --slides-pdf.\n`
+        + '  It sets how the slide deck is printed, and no slide deck is being printed –\n'
+        + '  on its own it changes nothing about the build.\n'
+        + `  node build.js <source.md> --slides-pdf ${slideOpts.map(n => argv.filter(a => a === n || a.startsWith(n + '=')).pop()).join(' ')}`);
+    }
+    if (pdfFlagGiven(argv, '--pdf-out')) {
+      throw pdfUsageError(
+        'Error: --pdf-out without a PDF to write.\n'
+        + '  It names the file --slides-pdf, --print-pdf or --print-notes-pdf writes,\n'
+        + '  and none of them was asked for, so on its own it changes nothing.');
+    }
+    return null;
+  }
+
+  if (flags.has('--watch')) {
+    throw pdfUsageError(
+      `Error: ${joinFlagNames([...names, '--watch'])} are mutually exclusive.\n`
+      + '  --watch rebuilds on every save and keeps running; the export drives a\n'
+      + '  browser over one finished build and exits. Run the export when you are\n'
+      + '  done authoring, or in a second terminal.');
+  }
+  if (!flags.has('--slides-pdf') && slideOpts.length) {
+    throw pdfUsageError(
+      `Error: ${joinFlagNames(slideOpts)} without --slides-pdf.\n`
+      + '  It sets how the slide deck is printed. '
+      + `${joinFlagNames(names)} ${names.length > 1 ? 'print documents' : 'prints a document'} on\n`
+      + '  the paper its view\'s own @page rule sets, and takes no options.');
+  }
+  if (asked.length > 1 && pdfFlagGiven(argv, '--pdf-out')) {
+    throw pdfUsageError(
+      `Error: --pdf-out names one file, and ${joinFlagNames(names)} write ${asked.length}.\n`
+      + `  Drop --pdf-out and they are written beside source.md as ${joinFlagNames(asked.map(e => e.file))},\n`
+      + '  or run one export per command.');
+  }
+
+  const dir = path.dirname(absIn);
+  const outArg = asked.length === 1 ? pdfFlagValue(argv, '--pdf-out') : null;
+  return {
+    slides: flags.has('--slides-pdf') ? pdfOptionsFrom(argv, absIn) : null,
+    documents: asked.filter(e => e.flag !== '--slides-pdf').map(e => ({
+      flag: e.flag,
+      html: path.join(dir, e.view),
+      out: outArg ? path.resolve(outArg) : path.join(dir, e.file),
+    })),
   };
 }
 
@@ -31504,6 +31580,7 @@ async function main() {
     console.error('                                         [--pdf-zoom=fit|<n>] [--pdf-zoom-max=<n>]');
     console.error('                                         [--pdf-collapse=topic-bold|none]');
     console.error('                                         [--pdf-out=<path>]');
+    console.error('  node build.js <source.md> --print-pdf|--print-notes-pdf [--pdf-out=<path>]');
     console.error('  node build.js <source.md> --integrate-annotations');
     console.error('  node build.js <source.md> --optimize-images [--dry-run] [--all] [--max-width N]');
     console.error('  node build.js --new <slug> [--into <dir>]');
@@ -31581,6 +31658,12 @@ async function main() {
     console.error('  --pdf-collapse=none        the full prose. Default: whatever the lecture opens with');
     console.error('  --pdf-out=<path>      default: slides.pdf beside source.md');
     console.error('  Needs a Chromium (playwright-core, $PSI_CHROME or a system Chrome).');
+    console.error('');
+    console.error('PDF document export (print.html on paper, at its own A4 page, margins and numbers):');
+    console.error('  --print-pdf           print print.html to print.pdf beside source.md');
+    console.error('  --print-notes-pdf     print print-notes.html to print-notes.pdf');
+    console.error('  Any of the three PDF flags combine and start one browser. --pdf-out names the');
+    console.error('  file when exactly one is asked for; the --pdf-* options above are the slides\'.');
     console.error('');
     console.error('Annotation integration:');
     console.error('  --integrate-annotations   move `> annot:` blocks from a trailing');
@@ -31680,9 +31763,9 @@ async function main() {
   // Parsed before the --watch branch, not after: --watch returns from main()
   // without ever reaching the build, so a check that sits below it never runs
   // and `--watch --slides-pdf` would start a watcher and quietly export
-  // nothing. Everything --slides-pdf can be told wrong is refused here, in
+  // nothing. Everything a PDF flag can be told wrong is refused here, in
   // one place, before a browser is started.
-  const pdf = flags.has('--slides-pdf') ? pdfOptionsFrom(argv, flags, absIn) : null;
+  const pdf = pdfJobsFrom(argv, flags, absIn);
 
   if (flags.has('--watch')) {
     runWatch(absIn, only, opts).catch(err => {
@@ -31698,10 +31781,11 @@ async function main() {
     return;
   }
 
-  // --slides-pdf ignores the --*-only flags rather than obeying them:
+  // The PDF flags ignore the --*-only flags rather than obeying them:
   // `--print-only --slides-pdf` would otherwise export a stale audience.html,
-  // or none at all. Ignoring surprises least - the author still gets every
-  // view they would have got without the export flag, plus the PDF.
+  // or none at all, and `--audience-only --print-pdf` a stale print.html.
+  // Ignoring surprises least - the author still gets every view they would
+  // have got without the export flag, plus the PDF.
   emitEvent({ type: 'build-start', reason: 'manual' });
   oneShotStart = Date.now();
   const { written, shape, stats, sourceModifiedMs } = buildOnce(absIn, pdf ? undefined : only, opts);
@@ -31718,11 +31802,9 @@ async function main() {
     // imports playwright-core and build.js must keep running on an install
     // that has no browser binding at all (acceptance criterion 9). This is
     // the only new import in build.js, and it sits behind the flag.
-    const { exportSlidesPdf } = await import('./pdf-export.mjs');
-    await exportSlidesPdf({
-      audienceHtml: path.join(path.dirname(absIn), 'audience.html'),
-      ...pdf,
-    });
+    // One browser for every PDF asked for.
+    const { exportPdfs } = await import('./pdf-export.mjs');
+    await exportPdfs(pdf);
   }
   // After the build, because it measures what the build just wrote. Its
   // exit code is the command's: a slide that does not fit is a defect the
