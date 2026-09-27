@@ -899,6 +899,13 @@ console.log('\nlayout generations');
     for (const live of ['audience', 'speaker']) {
       ok(!/pulse-question|pulse-summary|__pulseEmbedV2/.test(v[live]), `the ${live} view carries no trace of it`);
     }
+    // Two or more on one chunk are a deck (one at a time on screen, all of
+    // them in print - the widget's own print rules); one alone is not.
+    ok(!/<pulse-deck>/.test(v.printMarkup), 'a single question is not a deck');
+    const deck = views('Body.\n\n::: pulse\nQ?\n---\nA.\n:::\n\n::: pulse {#f-2}\nQ2?\n---\nA2.\n:::\n\n## free: G {#g}\n\n::: pulse\nQ3?\n---\nA3.\n:::\n');
+    ok(/<pulse-deck>\s*<pulse-question id="pulse-f" key="f">[\s\S]*?<\/pulse-question>\s*<pulse-question id="pulse-f-2" key="f-2">[\s\S]*?<\/pulse-question>\s*<\/pulse-deck>/.test(deck.printMarkup)
+       && (deck.printMarkup.match(/<pulse-deck>/g) || []).length === 1,
+       'two questions on one chunk are one deck, a third on the next chunk stands alone');
     const none = views('Body.\n');
     // The words may appear in the reader's SKIP list, which every document
     // carries; the markup, the widget and its stylesheet may not.

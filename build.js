@@ -8528,7 +8528,7 @@ ${inner}
   ${overlayHtml}
   ${expansionsHtml}
   ${annotationHtml}
-  ${notesHtml}${expansions.filter(e => e.kind === 'pulse').map(e => '\n' + renderPulseQuestion(e, S)).join('')}
+  ${notesHtml}${renderPulseQuestions(expansions.filter(e => e.kind === 'pulse'), S)}
 </article>`;
 }
 
@@ -8537,6 +8537,16 @@ ${inner}
 // answer. Before the script runs, or without it, that is what it is - a
 // question and a folded answer. Last in the chunk, after the notes, because
 // it asks about all of it.
+// Two or more questions on one chunk are a deck: on screen the widget shows
+// one at a time with "Question 2 of 3" and a button to the next, due ones
+// first; printed, it stands every question under the one before, answers
+// included. No syntax of its own - the chunk already says they belong together.
+function renderPulseQuestions(qs, S) {
+  if (!qs.length) return '';
+  const html = qs.map(e => renderPulseQuestion(e, S)).join('\n');
+  return '\n' + (qs.length > 1 ? `<pulse-deck>\n${html}\n</pulse-deck>` : html);
+}
+
 function renderPulseQuestion(e, S) {
   // The id is set here because the widget otherwise numbers its questions
   // pulse-1, pulse-2 …, in the namespace the chunk ids live in; the summary's
@@ -10908,7 +10918,7 @@ body[data-reader=on] main :is(pre, .math-display) { position: relative; }
 // The label is set like the asides' labels, and the summary takes main's
 // measure like a chunk does.
 const PULSE_PRINT_CSS = `
-pulse-question, pulse-summary {
+pulse-question, pulse-deck, pulse-summary {
   --pulse-accent: var(--emph);
   --pulse-rule: var(--rule);
   --pulse-radius: var(--radius-card);
@@ -10917,14 +10927,18 @@ pulse-question, pulse-summary {
   --pulse-on-accent: var(--paper);
   --pulse-bg: color-mix(in oklch, var(--ink) 4%, transparent);
 }
-pulse-question { margin: 1.4rem 0 0.4rem; }
-pulse-question .pulse-label {
+pulse-question, pulse-deck { margin: 1.4rem 0 0.4rem; }
+pulse-deck pulse-question { margin: 0; }
+pulse-question .pulse-label, pulse-deck .pulse-deck-pos {
   font-size: 0.72rem;
   font-variant-caps: all-small-caps;
   text-transform: none;
   letter-spacing: 0.14em;
 }
 main > pulse-summary { display: block; margin: 2rem 0; }
+@media print {
+  pulse-deck pulse-question:first-of-type .pulse-label { display: block; }
+}
 `;
 
 // ── the lightbox for the documents (screen only) ────────────────────
@@ -11328,7 +11342,7 @@ const PRINT_HIGHLIGHTS_JS = `
   // caption with it - and has highlights of its own; so does a code block,
   // whose words are anchored in the block's own text, so that marking code
   // moves no offset of a slide's prose.
-  const SKIP = UI + ', .speaker-note, pulse-question, pulse-summary, .chunk-num, .chunk-label, .psi-diagram, figure, '
+  const SKIP = UI + ', .speaker-note, pulse-question, pulse-deck, pulse-summary, .chunk-num, .chunk-label, .psi-diagram, figure, '
     + '.katex, .math-display, pre, button, script, style, svg, video, iframe, textarea';
   // A whitespace node that is a child of one of these sits between two
   // blocks, and a mark round it would be an inline box in a block's place.
@@ -11718,7 +11732,7 @@ const PRINT_HIGHLIGHTS_JS = `
   // no selection: KaTeX sets one glyph per box.
   const BLOCKS = { code: 'pre', formula: '.math-display' };
   const blocksIn = (root, kind) => [...root.querySelectorAll(BLOCKS[kind] || 'x-none')]
-    .filter(b => !b.closest('#lightbox, .speaker-note, pulse-question, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
+    .filter(b => !b.closest('#lightbox, .speaker-note, pulse-question, pulse-deck, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
   const blockKind = (el) => el.matches('pre') ? 'code' : 'formula';
   const codeTexts = (pre) => {
     const out = [];
