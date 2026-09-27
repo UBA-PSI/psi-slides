@@ -267,8 +267,8 @@ A third set concerns the two live views while a talk runs:
   would otherwise reload in the middle of an export; that socket, refused, is
   not reported.
 
-- **The desktop builder exports the three PDFs** (builder, next
-  pre-release). “Export as PDF…”, beside the button that opens `source.md`
+- **The desktop builder exports the three PDFs** (builder 0.1.4,
+  a pre-release). “Export as PDF…”, beside the button that opens `source.md`
   and in the File menu, opens a sheet: the presentation, the handout or the
   handout with notes, and for the presentation whether the slides carry the
   slide text or the full text. The save dialog proposes the name the command
