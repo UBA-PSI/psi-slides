@@ -1606,3 +1606,9 @@ gezählt.
   geschwenkt und auf Papier abgeschnitten. Das ist das geplante Verhalten
   und keine offene Arbeit, aber es ist die Zahl, die jemand sehen wird.
   Über die 22 fremden Vorlesungen sind es zwei.
+- **Die Dokumente als PDF und der Export aus der Desktop-App** sind ein
+  eigener Plan: `PLAN-desktop-pdf-export.md`. Die Politik dieses Exports
+  steht seither in `pdf-core.mjs`, `pdf-export.mjs` ist nur noch der
+  Playwright-Treiber, und `--print-pdf` / `--print-notes-pdf` drucken die
+  beiden Dokumente. Was dort offen bleibt (Type 3 unter Electron, Clips und
+  Embeds auf Papier, Fortschritt), steht in dessen Abschnitt „Open“.

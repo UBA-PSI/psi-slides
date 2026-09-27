@@ -1,5 +1,7 @@
 # PDF exports in the desktop app: the slides and the document
 
+**Status: implemented** – Stages 0 to 6 landed on the `pdf-export` branch; what each stage decided is under *Decisions along the way*, what is still open under *Open*.
+
 The builder app should export two PDFs, each on a button press: the **slide
 deck** (`slides.pdf`, from the audience view, one page per presentation state
 – what `--slides-pdf` does today) and the **document** (`print.pdf` and

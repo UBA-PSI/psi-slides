@@ -76,6 +76,23 @@ players refuse to run from a file, and this is what makes them work. **Open
 the views in** decides between Chrome or Edge, which is what psi-slides is
 tested in, and whatever your system's default browser is.
 
+**Export as PDF…**, beside “Open source.md in your text editor” (and in the
+File menu), writes one of three PDFs: the presentation as `slides.pdf`, one
+page for every slide and every step, 16:9; the handout as `print.pdf`; or the
+handout with notes as `print-notes.pdf`, both on A4. You choose where the file
+goes, and it is the same file `node build.js --slides-pdf`, `--print-pdf` or
+`--print-notes-pdf` writes – the app prints with its own browser, so nothing
+has to be installed and nothing is fetched from the network. For the
+presentation you choose what stands on the slides: **Slide text** (the
+default, the first sentence of each paragraph and what is set in bold) or
+**Full text**. The command line instead follows the lecture's own setting
+unless `--pdf-collapse` says otherwise. The export uses the last build that
+worked; when automatic building is off and `source.md` has changed, it builds
+first. A presentation can take a minute, since every step is a page. When it
+is done, the line under the status sentence says which file was written, how
+many pages it has, and anything worth checking before you hand it on, such as
+a picture that did not load.
+
 New lectures: "New lecture…" asks for a folder name and a place to put it, and
 creates the same starter lecture `node build.js --new` creates, including a
 small `::: draw` figure so the graphical diagram editor has something to open.
@@ -91,8 +108,9 @@ npm install              # in the repository root – the engine's dependencies
 cd desktop && npm install   # Electron and electron-builder
 
 npm start                # run the app against the engine in the repository root
-npm test                 # unit tests: the event parser, settings, paths, strings
-npm run smoke            # start the app, build a real lecture, take screenshots
+npm test                 # unit tests: the event parser, the PDF export, settings, paths, strings
+npm run smoke            # start the app, build and export a real lecture, take screenshots
+npm run parity -- <dir>  # the app's three PDFs against the command line's (a folder the smoke kept)
 npm run stage-engine     # copy the engine into desktop/engine/ and install it
 npm run dist             # stage the engine, then build the installers (unsigned)
 npm run dist:signed      # the macOS release: signed and notarised, see below
@@ -105,7 +123,13 @@ the four files it splices in at run time, and a production-only
 `node_modules` – about 42 MB, over half of it the bundled fonts.
 
 The smoke test writes its screenshots to `test/shots/` (not tracked). They are
-how the interface is reviewed against `DESIGN.md`.
+how the interface is reviewed against `DESIGN.md`. It exports the three PDFs of
+a copy of the tutorial through the window and ends with the parity check: the
+command line exports the same copy, and the page count, the text of every page
+and, for the slides, the chunk and step on every page have to be equal. That
+step needs the engine's `playwright-core`, a Chromium and poppler's `pdftotext`;
+without one it says which and passes, except under CI. `PSI_SMOKE_KEEP=1 npm
+run smoke` leaves the copy on disk and prints its path for `npm run parity`.
 
 ### Signing the macOS release
 
@@ -134,14 +158,16 @@ secret is read by electron-builder as a file path, not as absent.
 
 - The window runs sandboxed with `contextIsolation`, no Node integration, and
   a `default-src 'none'` content security policy; it cannot navigate anywhere.
-- The preload exposes seventeen named commands and nothing else – no
+- The preload exposes twenty named commands and nothing else – no
   `readFile`, no `writeFile`, no `spawn`, no general IPC passthrough.
 - Every command re-validates its arguments in the main process; a path from
   the window is checked and canonicalised before anything happens to it.
 - The build runs as a separate process started with an argument array and no
   shell, so a folder name is a file name and never a command.
 - Nothing leaves the computer. There is no account, no telemetry, no update
-  check and no network access of any kind.
+  check and no network access of any kind. A PDF export prints in a hidden,
+  sandboxed window with empty storage that refuses every network request and
+  cannot navigate or open another window.
 
 ## The state the window shows
 

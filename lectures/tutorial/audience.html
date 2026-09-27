@@ -16447,9 +16447,10 @@ function wireFigureClicks() {
 // cannot be wrong about the order - only about the rendering, and that is a
 // class of fault you look at instead of hunting for. Everything the export
 // decides - which states, what leaves the clone, what the print DOM is -
-// lives in pdf-export.mjs and is injected. None of it ships here.
+// lives in pdf-core.mjs and is injected by whichever browser drives it. None
+// of it ships here.
 //
-// Reaching into the runtime's own consts from page.evaluate() would work,
+// Reaching into the runtime's own consts from an injected function would work,
 // because this is a classic script and they sit in the global lexical scope,
 // and it would save these lines at the price of a contract no reader of
 // build.js can see and a rename breaks in silence.

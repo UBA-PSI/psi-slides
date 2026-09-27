@@ -106,6 +106,8 @@ it is there.
 │  ~/Lectures/netsec-04/source.md      Show folder     │  mono soft + text button
 │                                                      │
 │  ● Ready. Built at 14:32 in 0.4 s.                   │  17 px, dot in --ok
+│    print.pdf written at 14:35 – 44 pages.            │  14 px, no dot, only after
+│    Open PDF   Show in folder                         │  an export; text buttons
 │                                                      │
 │  [ Build now ]   ☑ Build again whenever source.md    │
 │                    is saved                          │
@@ -118,7 +120,7 @@ it is there.
 │  │ the lecture as a…    │ the document plus…      │  │
 │  └──────────────────────┴─────────────────────────┘  │
 │                                                      │
-│  Open source.md in your text editor                  │  text button
+│  Open source.md in your text editor  Export as PDF…  │  two text buttons, one row
 │  Any text editor will do. Save the file, and the     │  13 px soft
 │  builder rebuilds.                                   │
 │  ───────────────────────────────────────────────     │  hairline
@@ -166,6 +168,40 @@ colour of its own on purpose; nothing is wrong.
 
 The build process gone: dot `--bad`, "The build process stopped
 unexpectedly.", and a "Restart" button in the place of "Build now".
+
+**The PDF export is secondary, so it has no cell in the grid.** A PDF is a
+file the author hands on, not a fifth view. “Export as PDF…” is a text
+button beside “Open source.md in your text editor”, second, because the
+editor is the daily one. It shares that row rather than taking one of its
+own: a row of its own put the German ready state at 767 px in a 748 px
+viewport and failed the smoke test's no-scrollbar check. The two wrap onto
+two lines when the window is narrow.
+
+**The export has a line of its own, under the status sentence and not in
+its place.** A slide export can take a minute, and the author keeps saving
+meanwhile – eleven rebuilds were measured during one export – so the
+build's sentence has to keep answering for every save. The export's line
+sits in the same `aria-live` region, at body size, aligned with the
+sentence's words rather than with its dot, and without a dot of its own: the
+dot answers for the build, and a second one would make the two look like
+rivals. While it runs it says “Exporting the handout as PDF…”; the slides
+add one soft line (“Every step of every slide becomes a page, so a long
+lecture can take a minute.”), because there is no progress to show. When it
+is done it says “print.pdf written at 14:35 – 44 pages.” with *Open PDF* and
+*Show in folder* beside it, and it stays until the next export or until
+another lecture is opened, which is why it carries the time. A cancelled
+save dialog says nothing: the line goes back to what it said before. An
+error is one sentence; a failure adds its reason in a mono block. The
+export's own diagnostics – a picture that did not load, a link to a slide
+that is not there, a slide that does not fit – stand verbatim in a mono
+block under “Worth checking before you hand it on:”, the way a build error
+is shown; they already name the chunk. When the file shows the last good
+build because the latest save failed, a soft line says so.
+
+While an export runs its button is `aria-disabled` rather than `disabled`
+(a disabled button drops the focus of whoever just pressed it) and File ▸
+Export as PDF is greyed out. The four view buttons, “Build now” and the
+switches stay live.
 
 Hints (no Chrome found; the lecture has embeds) are one paragraph each in
 `--ink-soft` under the output grid, with a hairline above. No icon, no
@@ -224,12 +260,40 @@ views in (two radio buttons), and the version line – and one "Done" button.
 The `⚙` in the bar and the app menu both open it. Language changes apply
 immediately to everything on screen, including the menu.
 
+### Export as PDF
+
+The settings sheet's pattern: it takes the screen's place, Escape and
+“Cancel” close it, the focus lands on the chosen kind and goes back to the
+control that opened it, and Enter on a choice exports. “Export as PDF…” and
+the three items under File ▸ Export as PDF open it, the menu items with
+their kind already chosen.
+
+Two fieldsets of radio choices, each with a name at body size and a soft
+13 px line on what it is, the way a cell of the output grid has:
+
+- **What to export** – Presentation, Handout, Handout with notes: the grid's
+  own three names, because they are the same three things on paper.
+- **On the slides** – *Slide text* (the first sentence of each paragraph,
+  and what is set in bold) or *Full text* (every sentence, as it stands in
+  source.md). Shown only for the presentation; the handouts hide it rather
+  than disable it, since they have no such choice. Two choices and not a
+  third for “the lecture's own setting”: the window does not know that
+  setting, and it is the one an author is least likely to remember. Slide
+  text is the default because a PDF deck is the fallback for the room.
+
+Everything else takes the command line's defaults: every step, 16:9, fitted
+to the page. The kind and the collapse are remembered for the session.
+“Export…” carries an ellipsis because the save dialog follows; the dialog
+proposes the command line's file name beside `source.md`.
+
 ## Motion
 
 None that is not an answer to an action. The disclosure opens without a
 transition; the status dot does not pulse. While building, the dot is
 `--busy` and the sentence says "Building…" – that is enough, and it is
-usually over in under a second.
+usually over in under a second. A PDF export shows no bar and no count
+either: one call in the browser walks every state, so there is nothing true
+to count, and the slides' one soft line says what the wait is for.
 
 ## Keyboard and access
 

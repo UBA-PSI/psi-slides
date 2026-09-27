@@ -54,6 +54,8 @@ them in `source.md` if you have it:
   and never the path of a file opened from disk. While signed in, each
   opening of such a document asks Pulse for the reader's standing.
   The projection and the cockpit carry neither the questions nor the widget.
+  Exporting a document as PDF sends nothing to Pulse: the export starts from
+  empty browser storage, so there is no sign-in, and refuses the network.
 
 **The browser keeps a lecture inside the limits it puts on any web page.** A
 lecture cannot start programs on your computer, short of a flaw in the
@@ -138,7 +140,12 @@ files, and its message says why:
   you share the files made from it.
 - **`--check-fit`, `--squint` and `--frames` open the finished projection in
   a browser without a window**, and the lecture's scripts run there, network
-  requests included.
+  requests included. The PDF exports (`--slides-pdf`, `--print-pdf`,
+  `--print-notes-pdf`, and “Export as PDF…” in the desktop builder) run the
+  lecture's scripts too, but refuse every request to the network – `http`,
+  `https`, `ws` and `wss` – before the page loads, and start from empty
+  browser storage. The desktop builder prints in a hidden window of its own,
+  sandboxed, that cannot navigate or open another window.
 - **Annotations are Markdown and may carry HTML.** `--integrate-annotations`
   moves the live annotations exported from a talk into `source.md`, and from
   there into each file you make. That holds for a snippet someone sends you,

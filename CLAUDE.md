@@ -115,7 +115,7 @@ node build.js <source.md> --watch --serve         # live reload over http
 # HTML will not run, and a deck to hand on; it does not replace print.html,
 # which is a document. Needs a browser (playwright-core is an *optional*
 # dependency, so a checkout without it builds every HTML target and refuses
-# only this one, by name).
+# only the PDF flags, by name).
 #
 # --pdf-zoom=fit is the default and the reason: a chunk taller than the frame
 # is panned in the hall, and paper cannot pan, so auto-fit is the honest
@@ -139,6 +139,26 @@ node build.js <source.md> --slides-pdf --pdf-zoom=1.2     # one zoom for every p
 node build.js <source.md> --slides-pdf --pdf-collapse=topic-bold   # slide text only
 node build.js <source.md> --slides-pdf --pdf-zoom-max=1.6 # let pages fill more
 node build.js <source.md> --slides-pdf --pdf-out=<path>
+
+# the two documents as PDF: print.html -> print.pdf, print-notes.html ->
+# print-notes.pdf, beside the source and named after the view. No state walk
+# and no options: the page is loaded, fonts and pictures awaited, and printed
+# on `print` media at the view's own @page (A4, its margins, its page number).
+# A ::: pulse question prints with its answer, as a reader's Cmd-P does. Any
+# of the three PDF flags combine and start Chromium once; each rebuilds the
+# view it prints and ignores the --*-only flags, because an export of a stale
+# view is worse than none. Every flag that would do nothing is refused by
+# name rather than ignored, as the --prompter-* ones are: a slide option
+# (--pdf-beats, --pdf-size, --pdf-zoom, --pdf-zoom-max, --pdf-collapse, the
+# hidden --pdf-dump-dom) without --slides-pdf – on a plain build too, where
+# it used to be silently dropped; --pdf-out without a PDF flag, and with more
+# than one, since it names one file; any PDF flag with --watch. All of them
+# refuse the network before the page loads – http(s) and ws(s), so a watch
+# build's reload socket cannot reload the page mid-export (a refused socket
+# to loopback is counted apart and not reported).
+node build.js <source.md> --print-pdf                     # print.pdf beside source.md
+node build.js <source.md> --print-notes-pdf               # print-notes.pdf
+node build.js <source.md> --slides-pdf --print-pdf --print-notes-pdf   # one browser
 
 # the live prompter, only together with --watch: the cockpit listens to the
 # room, a sidecar in Node sends the transcript plus the deck (speaker notes
@@ -229,9 +249,10 @@ node lint.js lectures/ --strict                # warnings → exit 2
 
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
-# tail grammar that can, plus the cue-card grammar and the prompter's policy
-# - seventeen gates, under a second, no browser and no `npm install` (diagram-core.mjs,
-# tails.mjs, cue-cards.mjs, souffleuse.mjs and lint.js are all zero-dep).
+# tail grammar that can, plus the cue-card grammar, the prompter's policy and
+# the PDF export's - eighteen gates, about two seconds, no browser and no
+# `npm install` (diagram-core.mjs, tails.mjs, cue-cards.mjs, souffleuse.mjs,
+# pdf-core.mjs and lint.js are all zero-dep).
 # It is also where a hand-mirrored list one file keeps of another's belongs,
 # figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
 # against what build.js reads, and `image-refs` holds the two readers of the
@@ -258,15 +279,18 @@ node test/run.mjs                              # all specs
 node test/run.mjs nav                          # specs whose name matches
 
 # the PDF export, in the shape of test/settings.mjs and not of a spec: it
-# writes one fixture into $TMPDIR, spawns build.js, and reads back the PDF and
-# a dump of the print DOM (`--pdf-dump-dom=<path>`, hidden, only for this).
+# writes its fixtures into $TMPDIR, spawns build.js, and reads back the PDFs
+# and a dump of the slide export's print DOM (`--pdf-dump-dom=<path>`,
+# hidden, only for this and the desktop parity step).
 # It drives no browser and never imports playwright-core - Chromium runs in
 # build.js's subprocess - so the whole DOM half is text search in Node. Sits
 # between settings.mjs and the browser suite in `npm test`: it cannot pass
 # without a findable browser, so it goes after the checks that need none, and
 # it takes seconds rather than minutes, so it goes before the ones that do.
-# Eighty assertions, including all four promised diagnostics and the page
-# count of the *file* rather than of the wrappers.
+# 139 assertions, including all four promised diagnostics, the page count of
+# the *file* rather than of the wrappers, the two documents (A4, the note in
+# print-notes.pdf and not in print.pdf, a fragment link that still resolves,
+# ::: pulse answers printed), the refusals, and one browser for three PDFs.
 node test/pdf-export.mjs                       # or npm run pdf
 PSI_PDF_KEEP=1 node test/pdf-export.mjs        # leave the fixture in $TMPDIR
 
@@ -321,26 +345,53 @@ A source file can silence specific lint warnings with an HTML comment anywhere i
 **`pdf-export.mjs` is the other exception**, and the reason is a different one:
 it imports `playwright-core`, and `build.js` must keep building HTML on an
 install that has no browser binding at all. So `playwright-core` is an
-**optional** dependency, `build.js` reaches the module through one
-`await import()` behind `--slides-pdf`, and that is the only new import the
-feature adds. What lives in the module is the export's *policy* – which states
-become pages, what leaves the clone, what the print DOM is, every diagnostic.
+**optional** dependency, and `build.js` reaches the module through one
+`await import()` behind the three PDF flags. **What is left in it is
+mechanism**: `findChrome` (via `chrome-path.mjs`), one `chromium.launch` for
+every PDF of the run, the driver contract written in Playwright calls, the file
+written under a fresh name and renamed into place, and the report printed where
+it has always been printed.
+
+**The export's policy is `pdf-core.mjs`, the fifth zero-import, zero-Node-API
+module**, and the reason is the one `souffleuse.mjs` has plus a second driver:
+the desktop app prints the same three PDFs through Electron's own Chromium
+(`desktop/main/pdf.js`, `webContents` plus `webContents.debugger`), so what
+decides a page cannot live beside either browser binding. It holds `PDF_SIZES`,
+`PDF_FIT_CEILING`, the value checks (`resolvePdfOptions`, which `build.js`
+imports statically so both callers refuse in the same words, and which is why
+the file is on `stage-engine.mjs`'s list), `PDF_CSS`, the in-page functions,
+`exportSlides`, `exportDocument` and `formatReport` – which states become
+pages, what leaves the clone, what the print DOM is, every diagnostic, and
+**the order in which a driver is asked for anything**. A driver is `open({w, h,
+onBlocked, onPageError})` returning a page (`load`, `waitFor`, `evaluate`,
+`pdf`, `close`) plus `version`, `where` and `close`; it decides nothing, so it
+cannot get the order wrong, and the `pdf-core` gate holds that order with a
+fake driver that records its calls. The app therefore carries no
+playwright-core and `--omit=optional` in `stage-engine.mjs` stays.
+
 The order of the beats stays in `AUDIENCE_JS`, where it has always had its one
-definition; the export calls it through a ten-line `window.psiExport` hook that
-ships in the two live views and changes no behaviour. That is what makes the
-export unable to be wrong about the order – it can only be wrong about the
-rendering. Three things are load-bearing and none should be traded away:
-auto-fit is forced on regardless of the frontmatter (a chunk taller than the
-frame is *panned* in the hall, and paper cannot pan); `page.route()` blocks
-HTTP(S) **before** the first `goto`, because `jumpTo` → `applyState` →
-`updateEmbedLoading` sets `iframe.src` and `wireEmbeds` only intercepts YouTube
-under `file://`; and the print DOM is built by **inclusion**, so the eleven
-`position: fixed` chrome elements vanish without a strike list – in a paginated
-document a missed one repeats on every page.
+definition; the slide export calls it through a ten-line `window.psiExport`
+hook that ships in the two live views and changes no behaviour. That is what
+makes the export unable to be wrong about the order – it can only be wrong
+about the rendering. Three things are load-bearing and none should be traded
+away: auto-fit is forced on regardless of the frontmatter (a chunk taller than
+the frame is *panned* in the hall, and paper cannot pan); the network – http(s)
+and ws(s) – is refused inside `open()`, **before** the first load, because
+`jumpTo` → `applyState` → `updateEmbedLoading` sets `iframe.src` and
+`wireEmbeds` only intercepts YouTube under `file://`, and because the app
+exports watch builds, whose reload socket would reload the page mid-walk on a
+save; and the print DOM is built by **inclusion**, so the eleven `position:
+fixed` chrome elements vanish without a strike list – in a paginated document
+a missed one repeats on every page. The document export is the short path:
+load, wait for fonts, open any `::: pulse` answer the widget left folded,
+decode the pictures, print on `print` media at the view's own `@page`; the page
+count is read out of the PDF's bytes (`pdfFacts`), because no DOM knows a
+document's pagination. The plan and its decisions per stage are in
+`PLAN-desktop-pdf-export.md`.
 
 **“Souffleuse” is the live prompter's internal codename.** Every name an author types says *prompter* – the four `--prompter*` flags, the `prompter:` frontmatter block, the `prompter-*.jsonl` / `prompter-*.prompt.txt` files, the `prompter` `--events` type and the `unknown-prompter-setting` lint code – while the codename survives in file and identifier names nobody types: `souffleuse.mjs`, `SOUFFLEUSE_*`, `createSouffleuse`, the `souffleuse-*` socket messages, storage keys and cockpit ids, and the two test files.
 
-**`souffleuse.mjs` is the fourth zero-dep module, and the one that never reaches a page.** The other three (`diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`) are spliced into an output as text because one text has to run in Node *and* in the browser. The live prompter's pure half runs in Node alone – the deck payload, the system prefix, the tick message, the answer parser, the drift arithmetic and the restraint policy – and `build.js` imports it **dynamically, inside `createSouffleuse`**, so a build without `--prompter` never reads the file and nothing here has to survive a template literal. It is kept zero-import and zero-Node-API anyway, for the reason the gates are fast: `test/gates/souffleuse.mjs` decides every row of the policy – twelve words, one hint at a time, the cool-downs, the opening quiet – in milliseconds, without a key, a socket or a microphone, and restraint is the one requirement no rehearsal can show you. `notesToCards` is injected rather than imported (`deckPayload(lecture, {notesToCards})`), the way `createDiagramCompiler({…})` takes its Node leaves. **The desktop app is untouched in v1** – `desktop/scripts/stage-engine.mjs`'s file list is unchanged, because the packaged app has no network entitlement and never passes the flag. If it ever grows the feature, three things move in one commit: `souffleuse.mjs` onto that list, a reducer arm for the `prompter` `--events` type in `desktop/main/builder.js`, and the entitlement plus a rewrite of the three published sentences promising that nothing leaves the machine.
+**`souffleuse.mjs` is the fourth zero-dep module, and the one that never reaches a page** (`pdf-core.mjs`, the fifth, reaches one only as functions a driver hands to the browser). The other three (`diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`) are spliced into an output as text because one text has to run in Node *and* in the browser. The live prompter's pure half runs in Node alone – the deck payload, the system prefix, the tick message, the answer parser, the drift arithmetic and the restraint policy – and `build.js` imports it **dynamically, inside `createSouffleuse`**, so a build without `--prompter` never reads the file and nothing here has to survive a template literal. It is kept zero-import and zero-Node-API anyway, for the reason the gates are fast: `test/gates/souffleuse.mjs` decides every row of the policy – twelve words, one hint at a time, the cool-downs, the opening quiet – in milliseconds, without a key, a socket or a microphone, and restraint is the one requirement no rehearsal can show you. `notesToCards` is injected rather than imported (`deckPayload(lecture, {notesToCards})`), the way `createDiagramCompiler({…})` takes its Node leaves. **The desktop app is untouched in v1** – `desktop/scripts/stage-engine.mjs`'s file list is unchanged, because the packaged app has no network entitlement and never passes the flag. If it ever grows the feature, three things move in one commit: `souffleuse.mjs` onto that list, a reducer arm for the `prompter` `--events` type in `desktop/main/builder.js`, and the entitlement plus a rewrite of the three published sentences promising that nothing leaves the machine.
 
 **The sidecar is one socket and nothing else.** `createSouffleuse` (section `// ── souffleuse (--prompter) ──`) holds the deck, the cockpit's clock and the transcript, calls one model when there is an occasion, and whispers back; the cockpit reaches it over the **existing** nonce-guarded watch socket, so the `souffleuse-*` family rides the same `<type>-result` pairing a patch does. One direction is new – the server may speak first, through `psiWatch.on(type, fn)`, the listener map consulted *after* the pairing, never instead of it. Hints and the prompter's cards are cockpit-local exactly like the cue cards: not one field of `snapshot()` moves, so a full `applyRemoteState` cannot drag them across and the projection stays ignorant. The key is read from `OPENROUTER_API_KEY` in Node and stays there – `test/souffleuse.mjs` asserts that a built `speaker.html` never contains the string `OPENROUTER`, an assertion that has already caught a *comment* inside `SPEAKER_JS` quoting a badge text. `--prompter` without `--watch` is a usage error, because that socket is the only channel there is, and `--prompter-model` without `--prompter` is one too. **The cockpit's half is `SOUFFLEUSE_CSS` and `SOUFFLEUSE_JS`, two literals spliced into `speaker.html` only under the flag** – into the *same* `<style>` and `<script>` the cockpit's own CSS and JS are in, because the runtime lives in `SPEAKER_JS`'s lexical scope. They used to be part of those two constants, which put 36 KB of prompter into every cockpit ever built; what an ordinary `speaker.html` still carries is one `const SOUFFLEUSE = null`, the `souffleuseCues` Map the cue rail is drawn from, and the two `viewHooks` the projection has as well.
 
@@ -816,14 +867,41 @@ section of `build.js` are an interface with one consumer: change one there
 and `desktop/main/builder.js` and its `events.test.mjs` change in the same
 commit. The human log lines are free to move. The engine the packaged app
 runs is a copy staged by `desktop/scripts/stage-engine.mjs` – `build.js`, the
-four files it reads relative to itself, the one it imports, plus a production
-`npm ci` – so a new runtime file that `build.js` reads via `import.meta.url`
+five files it reads relative to itself, the two more it only imports
+(`tails.mjs`, `pdf-core.mjs`), plus a production `npm ci` that omits optional dependencies – so a new runtime file that `build.js` reads via `import.meta.url`
 has to be added to that script's `FILES` or the packaged app fails **every**
 build: the read is a bare `readFileSync` inside a renderer, so it throws
 `ENOENT` before any view reaches disk rather than degrading one view.
 `desktop/test/stage-engine.test.mjs` holds the list against `build.js` as
 text in both directions, which is what `cue-cards.mjs` cost – it was off the
 list from the day it landed through builder 0.1.1.
+
+**The app exports the three PDFs itself, and never on a save.** “Export as
+PDF…” (and File ▸ Export as PDF) opens a sheet; `exportPdf(kind, {collapse})`
+is the one channel, with no path in either direction – the main process opens
+the save dialog, and `openPdf` / `showPdf` act on the last file written.
+`desktop/main/pdf.js` loads `pdf-core.mjs` from the engine directory and drives
+it with an Electron driver: per page a hidden `BrowserWindow`, `sandbox: true`,
+on a non-`persist:` partition of its own (so the audience runtime's
+`loadPersisted` finds nothing), http(s) and ws(s) cancelled at the session,
+`will-navigate` refused and `setWindowOpenHandler` denying, printed with
+`webContents.printToPDF` after the media is set over CDP (`Page.printToPDF`
+does not exist over `webContents.debugger` in a window that is not headless).
+It exports the watch build on disk; with auto-build off and a save pending it
+rebuilds first. One export at a time, refused rather than queued; closing the
+lecture or the window aborts it and leaves no temporary file. **The window's
+slide default is slide text** (`collapse: 'topic-bold'`), where the command
+line follows the lecture's own collapse unless `--pdf-collapse` says
+otherwise. `PSI_PDF_DUMP_DOM=<absolute path>` is the app's counterpart of the
+hidden `--pdf-dump-dom`, read only when `app.isPackaged` is false. **Parity is
+the last step of `npm run smoke`** (`desktop/test/parity.mjs`, also `npm run
+parity -- <folder>` on a folder `PSI_SMOKE_KEEP=1` kept): the command line
+exports a copy of the same tutorial with `--pdf-collapse=topic-bold`, and the
+page counts, `pdftotext -layout` per page and the slides' chunk-and-beat table
+must be equal. It needs the engine's playwright-core, a Chromium and
+poppler; without one it says so and passes, except under `CI`. That is why
+`desktop.yml` installs `poppler-utils` and its path filter names
+`pdf-export.mjs` and `chrome-path.mjs`, which the app does not stage.
 
 The design brief the interface is built against is `desktop/DESIGN.md`; the
 plan, its decisions and its build log are `PLAN-electron-builder.md`.
@@ -832,7 +910,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
 - `SECURITY.md` – **what a deck someone sent can do, what the build refuses from a `source.md` someone else wrote, and what `--watch`, `--serve` and `--prompter` expose** – written for lecturers and evaluators, its claims checked against the code or in a browser. Change it in the same commit as a refusal, a `--serve` rule or a prompter data flow it describes.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the seventeen gates guards, the four browser-spec families, and the seventeen specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the eighteen gates guards, the four browser-spec families, and the seventeen specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.
@@ -845,6 +923,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 - `PLAN-souffleuse.md` – the live prompter's plan, its seven slices and **§ Decisions along the way**, which is where the code and the plan parted company and why. Read that section before changing `souffleuse.mjs`, the sidecar or the cockpit's prompter runtime; where the two disagree, the code wins.
 - `figure-design.md` – **how to lay out a `::: draw` so a room reads it**, as instructions rather than principles: fifteen rules, most with a wrong/right pair in real syntax, the tone-to-role table, the four-beat step order, and a checklist to work down before a figure is finished. Written for a person and a language model equally. Read it before authoring figures; the grammar itself is in the `psi-slides-figures` skill.
 - `PLAN-slide-pdf-export.md` – **the PDF export, planned and then built against the plan**: the CLI contract, the geometry, the seven architecture decisions, the five stages, and a "Belegstand" saying which sentence was measured, which was read out of the code and which was only plausible. The **Umsetzung** section at the end records what actually happened per stage, including the four places the build departed from the plan and the two defects it uncovered. `REVIEW-slide-pdf-export{,-v2,-v3}.md` are the reviews the four drafts were checked against.
+- `PLAN-desktop-pdf-export.md` – **the PDF exports in the desktop app, and the split that made them possible**: why Electron's own Chromium rather than Playwright in the app, the driver contract, the watch-build problem (the reload socket), the command line's document export, and **§ Decisions along the way**, stage by stage, including what the Stage 0 spike measured about hidden windows and `printToPDF` and how `::: pulse` prints. Read it before changing `pdf-core.mjs`, `pdf-export.mjs` or `desktop/main/pdf.js`.
 - `HANDOFF.md` – slice-by-slice build diary in German/English mix. Latest sections describe current state and deliberate non-choices. Update when landing a substantial slice.
 - `README.md` – short public-facing intro.
 - `lectures/tutorial/source.md` – the canonical authoring reference (self-referential lecture). Build and open its `audience.html` to see every directive live.

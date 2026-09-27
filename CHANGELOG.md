@@ -221,8 +221,82 @@ A third set concerns the two live views while a talk runs:
   browser binding builds every HTML target exactly as before and refuses only
   this one, by name.
 
+- **`--print-pdf` and `--print-notes-pdf`: the two documents as PDF.**
+  `print.html` becomes `print.pdf` and `print-notes.html` becomes
+  `print-notes.pdf`, beside `source.md`. What they add over printing from a
+  browser is what the slide export already promises: the same file on each
+  machine with the same build, no print dialog, no browser header or footer,
+  and no network. The page is the view's own: A4, its margins and its page
+  number, printed on `print` media. The export waits for the fonts and for
+  every picture to decode, and reports a picture that did not load, a link to
+  a chunk that is not in the document and any request it refused, as the slide
+  export does.
+
+  ```
+  node build.js <source.md> --print-pdf
+  node build.js <source.md> --print-notes-pdf
+  node build.js <source.md> --slides-pdf --print-pdf --print-notes-pdf   # one browser
+  ```
+
+  Any of the three PDF flags combine, and Chromium starts once for all of
+  them. Each rebuilds the view it prints and ignores `--print-only` and its
+  siblings, because an export of a stale view is worse than none. The page
+  count is read out of the finished file, since a document's pagination is
+  the browser's and no page script knows it.
+
+  **A `::: pulse` question prints with its answer**, as it does when a reader
+  prints the document from a browser, and without the widget's buttons or the
+  reader's standing. The export sends nothing to the Pulse server: it starts
+  from empty browser storage, so there is no sign-in to send with. A self-test
+  sheet without answers is not an export option; if it comes, it comes as a
+  setting of the document, so a browser's print gets it too.
+
+- **The PDF export's policy is a module of its own, `pdf-core.mjs`.** Which
+  states become pages, what the print DOM is, every diagnostic, the option
+  checks and the order in which a browser is asked for anything moved out of
+  `pdf-export.mjs` into a file with no imports, so that a second browser can
+  drive the same text: the desktop builder prints with Electron's own
+  Chromium, and the command line keeps Playwright. `pdf-export.mjs` is now the
+  Playwright half – finding a browser, launching it once, writing the file.
+  The output of `--slides-pdf` did not change: page count, text and messages
+  were compared before and after on the test deck and on `network-security`.
+  A new gate, `pdf-core`, holds the order with a fake browser that records
+  what it is asked, and `--pdf-size=constructor`, which used to be accepted
+  with no size, is refused. Both drivers now refuse WebSockets as well as
+  http(s), because a page built under `--watch` carries the reload socket and
+  would otherwise reload in the middle of an export; that socket, refused, is
+  not reported.
+
+- **The desktop builder exports the three PDFs** (builder, next
+  pre-release). “Export as PDF…”, beside the button that opens `source.md`
+  and in the File menu, opens a sheet: the presentation, the handout or the
+  handout with notes, and for the presentation whether the slides carry the
+  slide text or the full text. The save dialog proposes the name the command
+  line uses, beside `source.md`, and the file is the one the command line
+  would write – the app drives `pdf-core.mjs` through its own Chromium, so it
+  needs no Chrome and no `playwright-core` and adds nothing to the package
+  beyond two small files. The slide export defaults to the slide text, where
+  `--slides-pdf` follows the lecture's own setting unless `--pdf-collapse`
+  says otherwise. The export uses the last build that worked; with automatic
+  building off and `source.md` changed, it builds first. It never runs on a
+  save, and it runs in a hidden, sandboxed window with empty storage that
+  refuses every network request and cannot navigate. The result stands on a
+  line of its own under the build's sentence, with the page count, *Open PDF*,
+  *Show in folder* and the export's diagnostics. The desktop smoke test now
+  ends by exporting the same lecture on the command line and comparing the
+  three PDFs page by page – page count, text and, for the slides, the chunk
+  and beat on every page.
+
 ### Changed
 
+- **A `--pdf-*` option that would do nothing is refused.** `--pdf-beats`,
+  `--pdf-size`, `--pdf-zoom`, `--pdf-zoom-max` and `--pdf-collapse` without
+  `--slides-pdf`, and `--pdf-out` without any PDF flag, used to be ignored by
+  a plain build; they now stop it and say which flag they belong to. With
+  `--print-pdf` or `--print-notes-pdf` alone the slide options are refused as
+  well, since a document takes none, and `--pdf-out` is refused when more than
+  one PDF is asked for, since it names one file. A command that used
+  `--slides-pdf` refuses the same things it did, in the same order.
 - **The two documents read at a screen size in a browser.** `print.html`
   and `print-notes.html` set their text at 10pt on screen, so the measure
   came out at 560 px and a figure at 450 px. On screen the root size now
