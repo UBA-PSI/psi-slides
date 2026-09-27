@@ -32,7 +32,7 @@ requests.** The fonts, pictures, formulas and QR codes are inside the file.
 We checked this for the tutorial lecture in Chrome, stepping through all
 hundred of its slides in the projection and the cockpit and opening both
 documents: no request left the file. Apart from HTML written into the
-Markdown, three things in a lecture reach a server, and you can see each of
+Markdown, four things in a lecture reach a server, and you can see each of
 them in `source.md` if you have it:
 
 - A picture or clip with an `https://` address loads from that address.
@@ -45,6 +45,15 @@ them in `source.md` if you have it:
   slide shows a card instead.
 - A link opens its page only when you click it. The QR code beside it was
   drawn when the HTML files were made.
+- A self-test question (`::: pulse`) in the two documents carries the Pulse
+  widget of the University of Bamberg inside the file. It sends nothing until
+  the reader signs in to Pulse with an email address in the document; from
+  then on it sends that address, the questions and answers of the lecture,
+  whether the reader knew them, the lecture's title and, for a document
+  served from a web address, that address to `pulse.psi.uni-bamberg.de`,
+  and never the path of a file opened from disk. While signed in, each
+  opening of such a document asks Pulse for the reader's standing.
+  The projection and the cockpit carry neither the questions nor the widget.
 
 **The browser keeps a lecture inside the limits it puts on any web page.** A
 lecture cannot start programs on your computer, short of a flaw in the
@@ -56,8 +65,10 @@ embedded frame, was refused. Safari has not been tested.
 **In Chrome and Safari, pages opened from disk share one browser storage**,
 and psi-slides keeps things there that you may not want another lecture to
 see: the highlights and notes you made in a document, the annotations you
-typed during a talk, and the speaker notes you rewrote in the cockpit, for
-each psi-slides lecture you have opened from disk. A hostile lecture can
+typed during a talk, the speaker notes you rewrote in the cockpit, and the
+self-test answers and the Pulse sign-in (valid for 90 days) of a document
+with `::: pulse` questions, for each psi-slides lecture you have opened from
+disk. A hostile lecture can
 read, change or delete them. Chrome was tested with two lectures in
 different folders; for Safari we measured only that the two documents of one
 lecture share their storage. Firefox keeps a separate storage per file. If

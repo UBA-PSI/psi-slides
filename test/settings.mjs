@@ -827,6 +827,28 @@ console.log('\nlayout generations');
     // getElementById namespace, so a chunk authored #g-section is a real
     // duplicate the id check has to see through the generated name.
     ['a generated divider-id collision', '# G {#g}\n\n## free: A {#g-section}\n\nBody.\n', /g-section' (is used twice|already defined)/, 'duplicate-id'],
+    // ::: pulse, the self-test question for the documents. An aside like
+    // ::: footnote, so it inherits the aside refusals, plus its own: one ---
+    // between two halves with words in them, no directive inside, a key that
+    // is unique across the lecture (the chunk id by default).
+    ['a question', '::: pulse\nQ?\n---\nA.\n:::\n', 'accept'],
+    ['a second question with its own key', '::: pulse\nQ?\n---\nA.\n:::\n\n::: pulse {#f-2}\nQ2?\n---\nA2.\n:::\n', 'accept'],
+    ['a --- in a code fence inside an answer', '::: pulse\nQ?\n---\n```\n---\n```\n:::\n', 'accept'],
+    ['a question after a reveal', 'A.\n\n---\n\nB.\n\n::: pulse\nQ?\n---\nA.\n:::\n', 'accept'],
+    ['a second question with no key', '::: pulse\nQ?\n---\nA.\n:::\n\n::: pulse\nQ2?\n---\nA2.\n:::\n',
+     /::: pulse key 'f' is used twice/, 'duplicate-pulse-key'],
+    ['a question key taken by another chunk', '::: pulse {#g}\nQ?\n---\nA.\n:::\n\n## free: G {#g}\n\n::: pulse\nQ2?\n---\nA2.\n:::\n',
+     /::: pulse key 'g' is used twice/, 'duplicate-pulse-key'],
+    ['a question with no ---', '::: pulse\nQ?\n:::\n', /needs a question, one line that is/, 'bad-pulse-split'],
+    ['a question with two ---', '::: pulse\nQ?\n---\nA.\n---\nB.\n:::\n', /needs a question, one line that is/, 'bad-pulse-split'],
+    ['a question with no answer', '::: pulse\nQ?\n---\n:::\n', /needs a question, one line that is/, 'bad-pulse-split'],
+    ['an unreadable ::: pulse line', '::: pulse key\nQ?\n---\nA.\n:::\n', /::: pulse could not be read/, 'bad-pulse'],
+    ['a directive inside a question', '::: pulse\nQ?\n---\n::: cols 2\nA.\n:::\n:::\n', /::: cols inside ::: pulse/, 'directive-in-pulse'],
+    ['a question inside ::: cols', '::: cols 2\nA.\n::: pulse\nQ?\n---\nA.\n:::\nB.\n:::\n', /::: pulse inside ::: cols/, 'aside-in-layout'],
+    ['a question inside an expansion', '::: expand more\nA.\n::: pulse\nQ?\n---\nA.\n:::\n:::\n', /::: pulse inside ::: expand/, 'nested-directive'],
+    ['a note inside a question', '::: pulse\nQ?\n> note: say this\n---\nA.\n:::\n', /> note: inside ::: pulse/, 'note-in-pulse'],
+    ['a note after a question', '::: pulse\nQ?\n---\nA.\n:::\n\n> note: say this\n', 'accept'],
+    ['a question on the closing slide', '## closing: Danke {#c}\n\n::: pulse\nQ?\n---\nA.\n:::\n', /::: pulse on the closing chunk/, 'pulse-on-cover'],
   ];
   for (const [name, body, msg, code] of cases) {
     const r = run(body);
@@ -838,6 +860,49 @@ console.log('\nlayout generations');
     }
     ok(r.failed && msg.test(r.out), `${name} is refused`, r.out.split('\n')[0]);
     ok(new RegExp('\\b' + code + '\\b').test(r.lint), `and the linter says ${code}`, r.lint.split('\n')[0]);
+  }
+  // Where a question lands: in the two documents, with the widget inlined and
+  // the lecture's title as its page, and in neither live view - not the
+  // markup, not the script. A lecture with no question carries no script.
+  {
+    const views = (body) => {
+      const dir = tmpDir('psi-pulse-');
+      fs.writeFileSync(path.join(dir, 'source.md'), FMX + body);
+      const b = spawnSync(process.execPath, [path.join(ROOT, 'build.js'), path.join(dir, 'source.md')],
+        { cwd: ROOT, encoding: 'utf8' });
+      // The widget's own source mentions its tags in comments, so the markup
+      // is judged with every script body taken out.
+      const read = (f) => fs.readFileSync(path.join(dir, f), 'utf8');
+      const markup = (html) => html.replace(/<script\b[^>]*>[\s\S]*?<\/script>/g, '<script></script>');
+      return { ok: b.status === 0, out: (b.stdout || '') + (b.stderr || ''),
+               print: read('print.html'), notes: read('print-notes.html'),
+               audience: read('audience.html'), speaker: read('speaker.html'),
+               printMarkup: markup(read('print.html')), notesMarkup: markup(read('print-notes.html')) };
+    };
+    const v = views('Body.\n\n::: pulse\nWhat is *Q*?\n---\nIt is **A**.\n:::\n');
+    ok(v.ok, 'a lecture with a question builds', v.out.split('\n')[0]);
+    for (const doc of ['print', 'notes']) {
+      ok(/<pulse-question id="pulse-f" key="f">\s*<p>What is <em>Q<\/em>\?<\/p>\s*<details><summary>Answer<\/summary>\s*<p>It is <strong>A<\/strong>\.<\/p>/.test(v[doc]),
+         `the ${doc} document carries the question, the answer folded`);
+      ok(/<script data-host="https:\/\/pulse\.psi\.uni-bamberg\.de" data-page="T">/.test(v[doc]) && v[doc].includes('__pulseEmbedV2'),
+         `and the widget, inlined, with the title as its page`);
+      // One line under the contents only where the body has somewhere to
+      // begin - a # part; a deck of one anonymous column gets the full
+      // account at the end alone, rather than a "top" line after everything.
+      ok(!/<pulse-summary compact>/.test(v[doc + 'Markup']) && /<pulse-summary><\/pulse-summary>/.test(v[doc + 'Markup']),
+         `and, with no # part, the reader's standing at the end only`);
+    }
+    const parts = views('Body.\n\n# Part {#p}\n\n## free: G {#g}\n\n::: pulse\nQ?\n---\nA.\n:::\n');
+    ok(/<\/nav>\s*<pulse-summary compact><\/pulse-summary>\s*<section class="column" id="p"/.test(parts.print)
+       && /<pulse-summary><\/pulse-summary>\s*<\/main>/.test(parts.print),
+       'with a # part, one line where the body begins and the full account at the end');
+    for (const live of ['audience', 'speaker']) {
+      ok(!/pulse-question|pulse-summary|__pulseEmbedV2/.test(v[live]), `the ${live} view carries no trace of it`);
+    }
+    const none = views('Body.\n');
+    // The words may appear in the reader's SKIP list, which every document
+    // carries; the markup, the widget and its stylesheet may not.
+    ok(!/<pulse-|__pulseEmbedV2|--pulse-accent/.test(none.print), 'a lecture with no question carries no widget');
   }
   // An explicit relative image path that names no file is a placeholder now,
   // not a broken external src shipped in a file that promises to travel

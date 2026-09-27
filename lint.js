@@ -351,7 +351,7 @@ function nestedBlockKeys(lines, name, rule) {
 // on - the same VALID_TAGS-style duplication, mirrored in the same commit.
 // `type` is the one nested map, of the tag words.
 const LABEL_KEYS = new Set([
-  'contents', 'speaker-note', 'presentation-note', 'aside-note',
+  'contents', 'speaker-note', 'presentation-note', 'aside-note', 'pulse-answer',
   'title-print', 'title-print-notes', 'title-lecture', 'title-speaker',
   'untitled-lecture', 'annotation-label', 'add-note', 'reader-close',
   'reader-mark', 'reader-note', 'reader-remove',
@@ -3230,6 +3230,9 @@ function lintFile(filePath) {
   let inFence = false;
   let activeDirective = null;
   let layoutStack = [];
+  // ::: pulse keys across the lecture, key -> line of first use (build.js:
+  // pulseKeys, one namespace because the lecture's title is the page).
+  const pulseKeys = new Map();
   // `> note:` (speaker notes) and `> annot:` (exported live annotations)
   // are peeled off by build.js into chunk.speakerNotes / chunk.annotation
   // before the body is rendered. We mirror that here so density budgets
@@ -3600,6 +3603,43 @@ function lintFile(filePath) {
       }
       continue;
     }
+    // A ::: pulse body is captured whole, ahead of fences and reveals: it is
+    // off the projection, so its --- is the question/answer split and not a
+    // beat, and its words count toward no slide's budget. Fence-aware, like
+    // build.js's splitPulse, and it keeps its own fence state so the global
+    // one is untouched when the block closes.
+    if (activeDirective && activeDirective.kind === 'pulse') {
+      const pd = activeDirective;
+      if (/^```/.test(line)) { pd.fence = !pd.fence; pd.words[pd.seps > 0 ? 1 : 0] = true; continue; }
+      if (pd.fence) continue;
+      if (/^:::\s*$/.test(line)) {
+        // Mirrors splitPulse: exactly one ---, words on both sides of it.
+        // A body already refused for what is in it says nothing more.
+        if (!pd.broken && (pd.seps !== 1 || !pd.words[0] || !pd.words[1])) {
+          add(pd.line, 'error', 'bad-pulse-split',
+              `::: pulse needs a question, one line that is exactly ---, and an answer`
+              + (pd.seps !== 1 ? ` – it has ${pd.seps} such lines` : ' – one half is empty')
+              + '; for a rule inside either half write ***');
+        }
+        activeDirective = null;
+        continue;
+      }
+      if (/^>\s*(note|annot):/i.test(line)) {
+        add(ln, 'error', 'note-in-pulse',
+            `> ${/annot/i.test(line) ? 'annot' : 'note'}: inside ::: pulse (line ${pd.line}) – a note belongs to the slide; write it after the question's closing :::`);
+        pd.broken = true;
+        continue;
+      }
+      if (/^:::\s+\S/.test(line)) {
+        pd.broken = true;
+        add(ln, 'error', 'directive-in-pulse',
+            `${line.trim().split(/\s+/).slice(0, 2).join(' ')} inside ::: pulse (line ${pd.line}) – a question and its answer hold prose, a list, code or a formula, and no directive`);
+        continue;
+      }
+      if (/^\s*---\s*$/.test(line)) { pd.seps += 1; continue; }
+      if (line.trim()) pd.words[pd.seps > 0 ? 1 : 0] = true;
+      continue;
+    }
     if (/^```/.test(line)) {
       inFence = !inFence;
       if (chunk) chunkBody.push(line);
@@ -3795,6 +3835,14 @@ function lintFile(filePath) {
     // file that builds. See the ::: expand branch in build.js.
     const expandOpen = line.match(/^:::\s+expand\s+(.+?)\s*$/);
     const marginOpen = line.match(/^:::\s+(footnote|margin)\s*$/);
+    // ::: pulse [{#key}] – a self-test question for the documents, the third
+    // aside; build.js reads it in the same branch as the other two.
+    const pulseOpen = line.match(/^:::\s+pulse\s*(?:\{\s*#([A-Za-z0-9][\w-]*)\s*\})?\s*$/);
+    if (!pulseOpen && /^:::\s+pulse\b/.test(line)) {
+      add(ln, 'error', 'bad-pulse',
+          `::: pulse could not be read: "${line.trim()}" – write ::: pulse or ::: pulse {#key} (letters, digits, - and _)`);
+      continue;
+    }
     if (marginOpen && marginOpen[1] === 'margin') {
       // ::: margin is the older spelling of ::: footnote and still builds, so
       // no existing source breaks - but it is one keystroke from ::: marginalia,
@@ -3806,10 +3854,11 @@ function lintFile(filePath) {
           '::: margin is the old spelling of ::: footnote - rename it; the alias is '
           + 'deprecated and a future major version will drop it');
     }
-    if (expandOpen || marginOpen) {
+    if (expandOpen || marginOpen || pulseOpen) {
+      const word = expandOpen ? 'expand' : pulseOpen ? 'pulse' : marginOpen[1];
       if (activeDirective) {
         add(ln, 'error', 'nested-directive',
-            `::: ${expandOpen ? 'expand' : marginOpen[1]} inside still-open ::: ${activeDirective.kind} (line ${activeDirective.line})`);
+            `::: ${word} inside still-open ::: ${activeDirective.kind} (line ${activeDirective.line})`);
       }
       if (!chunk) {
         add(ln, 'error', 'stray-directive',
@@ -3819,7 +3868,7 @@ function lintFile(filePath) {
       // and the prose after the aside was folded into it.
       if (layoutStack.length) {
         add(ln, 'error', 'aside-in-layout',
-            `::: ${expandOpen ? 'expand' : marginOpen[1]} inside ${innermost()} (line ${layoutStack[layoutStack.length - 1].line}) – `
+            `::: ${word} inside ${innermost()} (line ${layoutStack[layoutStack.length - 1].line}) – `
             + 'an expansion or footnote is folded under the whole chunk, so write it after the block\'s closing :::');
       }
       // Lifted out of the body, so it does not make the segment non-empty -
@@ -3827,8 +3876,28 @@ function lintFile(filePath) {
       // whole of the `---` / ::: footnote idiom: a source line that comes up
       // on the click it belongs to. So it rides the beat, and `empty-beat`
       // has to know.
+      // A question is not on the projection, so it rides no beat and a
+      // segment holding only a question is still an empty beat.
+      if (pulseOpen) {
+        if (chunk && (chunk.tag === 'title' || chunk.tag === 'closing')) {
+          add(ln, 'error', 'pulse-on-cover',
+              `::: pulse on the ${chunk.tag} chunk – the documents draw the cover from the frontmatter, so the question would vanish`);
+        }
+        const key = pulseOpen[1] || (chunk && chunk.id) || null;
+        if (chunk && !key) {
+          add(ln, 'error', 'bad-pulse',
+              '::: pulse in a chunk with no id and no {#key} – the key is what the reader\'s progress is filed under');
+        } else if (key && pulseKeys.has(key)) {
+          add(ln, 'error', 'duplicate-pulse-key',
+              `::: pulse key '${key}' already used at line ${pulseKeys.get(key)} – a chunk's first question takes the chunk's id; name any further one with {#key}`);
+        } else if (key) {
+          pulseKeys.set(key, fmLines + ln);
+        }
+        activeDirective = { kind: 'pulse', line: ln, seps: 0, words: [false, false], fence: false };
+        continue;
+      }
       if (chunk) rawSegAside[rawSeg] = true;
-      activeDirective = { kind: expandOpen ? 'expand' : marginOpen[1], line: ln };
+      activeDirective = { kind: word, line: ln };
       continue;
     }
 

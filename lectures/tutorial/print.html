@@ -5149,7 +5149,7 @@ of them are shown one per slide in
   // caption with it - and has highlights of its own; so does a code block,
   // whose words are anchored in the block's own text, so that marking code
   // moves no offset of a slide's prose.
-  const SKIP = UI + ', .speaker-note, .chunk-num, .chunk-label, .psi-diagram, figure, '
+  const SKIP = UI + ', .speaker-note, pulse-question, pulse-summary, .chunk-num, .chunk-label, .psi-diagram, figure, '
     + '.katex, .math-display, pre, button, script, style, svg, video, iframe, textarea';
   // A whitespace node that is a child of one of these sits between two
   // blocks, and a mark round it would be an inline box in a block's place.
@@ -5539,7 +5539,7 @@ of them are shown one per slide in
   // no selection: KaTeX sets one glyph per box.
   const BLOCKS = { code: 'pre', formula: '.math-display' };
   const blocksIn = (root, kind) => [...root.querySelectorAll(BLOCKS[kind] || 'x-none')]
-    .filter(b => !b.closest('#lightbox, .speaker-note, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
+    .filter(b => !b.closest('#lightbox, .speaker-note, pulse-question, ' + UI) && (root.tagName !== 'SECTION' || !b.closest('article.chunk')));
   const blockKind = (el) => el.matches('pre') ? 'code' : 'formula';
   const codeTexts = (pre) => {
     const out = [];
