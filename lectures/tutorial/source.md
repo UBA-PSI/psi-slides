@@ -1360,6 +1360,36 @@ The question's key – by default the chunk's id – and the lecture's `title:`.
 The wording itself may change.
 :::
 
+## free: More than one question on a chunk | they become a stack {.wide #pulse-deck}
+
+**Two or more `::: pulse` blocks in one chunk become a stack, and the reader answers one question at a time.** A line above the question says which of how many it is, a button leads on to the next, and a question that is due comes first. There is nothing new to write: the chunk says the questions belong together.
+
+::: side
+
+![](pulse-deck)
+
+::: flip
+
+![](pulse-deck-print)
+
+:::
+
+**On paper the stack prints in full, every question with its answer in one box**, as on the right. Each question in a stack still has a key of its own: the first takes the chunk's id, and each further one names itself.
+
+::: pulse
+How many questions does the reader see at once when a chunk has three `::: pulse` blocks?
+---
+One. The three form a stack, and a button leads from one to the next. On paper
+all three are printed, each with its answer.
+:::
+
+::: pulse {#pulse-deck-keys}
+A chunk with the id `hashes` carries two questions, and neither names a key. What happens?
+---
+The build refuses it: the first question takes the key `hashes`, and the second
+would take it too. The second has to name itself, say `::: pulse {#hashes-2}`.
+:::
+
 # Beyond 1.0.0: slide decoration {#decoration}
 
 > Newer than the 1.0.0 download as well, and out of the same clone.
