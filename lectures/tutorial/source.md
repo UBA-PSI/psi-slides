@@ -95,6 +95,15 @@ Each of the four files carries everything it needs inside itself – the picture
 
 **Every lecture consists of one or more columns, and each column holds one or more chunks.** Everything after this slide is what you may write inside a chunk.
 
+::: pulse
+What is the difference between a chunk and a column?
+---
+A chunk is one `##` heading and what is written under it – one screen in the
+projection. A column is a run of chunks on one theme, opened by a `# Heading`:
+`Shift` and an arrow moves through one per press, and the contents list on `T`
+shows columns only.
+:::
+
 > note: The rest of the tour uses these two terms constantly, so they get a slide of their own rather than a clause in the one before. An audience that has not been told what a column is cannot be told that `Shift` moves by one.
 
 ## free: What you are reading is one chunk | `P`, `S` and `?` reach the rest of the lecture {.wide #audience-now}
@@ -240,6 +249,13 @@ Search is what you want when you remember a topic but not which slide it is on. 
 **The cut shortens prose only: a list, a figure, a code block or a formula goes up whole in both versions.**
 
 **Which of those sentences survive is decided per chunk, and you choose how.** Either psi-slides works it out from your prose, or you mark the slide yourself. The next three chunks show both.
+
+::: pulse
+What does `C` switch in the projection, and what does the short version never shorten?
+---
+It switches a chunk between its short version and its full text. The cut
+shortens prose only: a list, a figure, a code block or a formula goes up whole.
+:::
 
 > note: This is the chunk to demonstrate `C` on, because the paragraph the audience cannot see is the one saying that a paragraph is being hidden.
 
@@ -426,6 +442,14 @@ If the pane is folded away because this chunk has no notes, the `+ note` button 
 
 :::
 
+::: pulse
+Who sees an annotation, and who sees a speaker note?
+---
+An annotation (`N`) is public: it appears in both windows and, once integrated
+into `source.md`, in both documents. A speaker note (`> note:`) is private: the
+speaker view and `print-notes.html` show it, the projection never does.
+:::
+
 ## free: Your notes as cue cards | `K`, and what to write so it reads from the corner of an eye {.wide #cue-cards}
 
 **A talk with a written-out script and minimal slides needs the script where you can glance at it.** `K` in the speaker view rearranges the window: your notes for this chunk as cards down a rail, the projection small in the corner, the clock in the header. `Space` says the next card; when the cards of this beat are said, it clicks the projector, and the clicks stand in the same column as diamonds, so you read one list from top to bottom. `Backspace` takes one press back, whatever it was. `Enter` skips to the next slide.
@@ -566,6 +590,14 @@ This is a footnote. The label above it always reads NOTE, and the note sits in g
 **`node build.js <source.md> --optimize-images` converts the files over the limit to WebP in place**, which on real lecture assets comes out at 12 to 18 percent of the original with no visible loss. `--no-inline-images` is there if you do want the files kept outside.
 
 It does not shrink the picture's dimensions. The large files are usually already at slide resolution and large because PNG is a poor fit for photographs. An opened figure zooms to eight times, so the extra pixels in a diagram are ones the audience gets to see. `--max-width` exists for the genuine outliers.
+:::
+
+::: pulse
+One picture in `assets/` is 3 MB. What does the build do, and what is the usual fix?
+---
+It stops, rather than ship a file whose figure breaks the moment the HTML travels
+without `assets/`. `--optimize-images` converts the picture to WebP in place,
+which usually brings it well under the 2 MB limit.
 :::
 
 ## free: Video | `![](clip-id)`, the same shorthand an image uses {.wide #video}
@@ -765,7 +797,7 @@ lang: de                # the language the lecture is written in:
 
 # Beyond 1.0.0: figures {#beyond}
 
-> Everything from here on is newer than the 1.0.0 download, so build these two
+> Everything from here on is newer than the 1.0.0 download, so build these
 > parts from a clone of the repository, and expect them to change before they
 > are tagged into a release.
 
@@ -1217,6 +1249,115 @@ edge crawler -> det "request"
 
 step probe
   emph det
+:::
+
+# Beyond 1.0.0: questions for the reader {#pulse}
+
+> Newer than the 1.0.0 download as well, and out of the same clone.
+
+## principle: A document can test its reader | the question stands under the chunk it asks about {.standard #pulse-idea}
+
+**Reading a hand-out a second time feels like knowing it, and a question is the quickest way to find out whether it is.** Trying to answer from memory also tends to keep the material longer than rereading it does.
+
+**`::: pulse` writes such a question into the lecture source, under the chunk it belongs to.** `print.html` and `print-notes.html` show it to the reader; the projection and the speaker view leave it out, so the room sees your slides and not a quiz.
+
+**This tour carries a few of them already.** Open `print.html` and you will find one under several chunks, this one included.
+
+::: pulse
+Which of the four views show a `::: pulse` question?
+---
+The two documents, `print.html` and `print-notes.html`. The projection and the
+speaker view leave it out.
+:::
+
+## free: Writing a question | the question, a line of `---`, the answer {.wide #pulse-write}
+
+**Everything above the one line that is exactly `---` is the question, everything below it the answer.** Both halves are ordinary Markdown – bold, code, a list, a formula – but no `:::` block.
+
+```markdown
+## definition: Digital signatures {.wide #signatures}
+
+A key pair: the private key signs, the public key verifies.
+
+::: pulse
+What does a signature guarantee that encryption alone does not?
+---
+**Authenticity and integrity**: only the key holder could have made it,
+and any change to the message breaks it.
+:::
+```
+
+**The question is drawn at the end of its chunk, after the speaker notes in `print-notes.html`**, because it asks about all of it. Where in the chunk you write the block does not move it.
+
+**The build refuses a block it cannot read as a question**: no `---` or two of them, an empty half, a `> note:` inside it, or a question on the `title:` or `closing:` chunk. An answer that needs a rule writes `***`.
+
+::: pulse
+A `::: pulse` block contains two lines that are exactly `---`. What happens?
+---
+The build stops and says so: a question has exactly one `---`, between question
+and answer. A rule inside either half is written `***`.
+:::
+
+## free: What the reader sees | the answer stays folded until the reader asks for it {.full #pulse-reader}
+
+**In the document, the question sits in a box of its own under the chunk, and its answer is hidden behind a button.** These two pictures are the example from the last slide, before and after the click.
+
+::: side
+
+![](pulse-closed)
+
+::: flip
+
+![](pulse-open)
+
+:::
+
+**Once the answer is open, the reader says whether they knew it.** Without a JavaScript-capable browser the same block is a question and a folded `<details>` answer, so nothing is lost.
+
+## free: Where the answers go | the reader's browser, or the reader's Pulse account {.wide #pulse-account}
+
+::: side
+
+**The box is Pulse, a self-test service at `pulse.psi.uni-bamberg.de`, and it sends nothing until the reader signs in.** Until then, whether they knew an answer is stored in their browser alone. A document opened from disk never sends its file path.
+
+**After signing in with an email address, the answers are kept in the reader's account, and the questions come back by mail at growing intervals.** The document shows the reader's standing twice: one line under the contents, and this box at the very end.
+
+::: flip
+
+![](pulse-summary)
+
+:::
+
+::: pulse
+A student answers three questions in `print.html` without signing in. What has been sent to the Pulse server?
+---
+Nothing. The answers stay in the student's browser, and they move into the
+account only once the student signs in.
+:::
+
+## free: The key, and paper | what a question is filed under, and what printing drops {.wide #pulse-key}
+
+::: side 3:2
+
+**Each question is filed under a key, and the lecture's `title:` is the page it belongs to.** The key is the chunk's id, which is frozen once written anyway. A second question on the same chunk needs a key of its own, `::: pulse {#signatures-verify}`, and no key may occur twice in a lecture.
+
+**Correct a question's wording as often as you like, but keep its key and the lecture's title** – change either once students have answered and their progress starts over.
+
+**Printed on paper, the buttons disappear and each answer stands under its question**, as beside this paragraph.
+
+::: flip
+
+![](pulse-print)
+
+:::
+
+**Keep formulas out of a question that should read well in the reminder mail**: Pulse mails the text as plain text, and a formula arrives there as KaTeX's glyphs run together.
+
+::: pulse
+You fix a typo in a question that students have already answered. What must stay the same so their progress survives?
+---
+The question's key – by default the chunk's id – and the lecture's `title:`.
+The wording itself may change.
 :::
 
 # Beyond 1.0.0: slide decoration {#decoration}
