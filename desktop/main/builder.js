@@ -169,6 +169,24 @@ class Builder {
     this.desiredAuto = true;
     this.outBuf = '';
     this.errBuf = '';
+    // Whoever needs the next event rather than the next state – the PDF
+    // export, which waits for the build it asked for. Called after the state
+    // has taken the event.
+    this.listeners = new Set();
+  }
+
+  // Returns the unsubscribe. A listener sees every event of every child,
+  // plus one of its own, `process-exit`, when a child ends that nobody
+  // asked to end.
+  onEvent(fn) {
+    this.listeners.add(fn);
+    return () => this.listeners.delete(fn);
+  }
+
+  notify(event) {
+    for (const fn of [...this.listeners]) {
+      try { fn(event, this.state); } catch { /* a listener's fault is its own */ }
+    }
   }
 
   getState() {
@@ -206,6 +224,7 @@ class Builder {
         if (c.event.type === 'watching' && this.desiredAuto === false) {
           this.send({ type: 'auto', enabled: false });
         }
+        this.notify(c.event);
       } else if (line.length) {
         this.addLog(line);
       }
@@ -273,6 +292,7 @@ class Builder {
         userFacing: false, stack: null, at: Date.now(),
       } };
       this.emit();
+      this.notify({ type: 'process-exit', code: -1 });
     });
     child.on('exit', (code, signal) => {
       if (this.child !== child) return;
@@ -287,6 +307,7 @@ class Builder {
         userFacing: false, stack: null, at: Date.now(),
       } };
       this.emit();
+      this.notify({ type: 'process-exit', code: code === null ? signal : code });
     });
   }
 

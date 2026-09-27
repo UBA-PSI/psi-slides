@@ -156,17 +156,16 @@ Sending the same commands is the shortest route to the same PDF.
 
 | Contract | Electron |
 | --- | --- |
-| page, fresh storage | hidden `BrowserWindow` on a non-persistent partition (`partition: 'pdf-<n>'`, no `persist:` prefix), `sandbox: true`, `contextIsolation: true`, no preload, `backgroundThrottling: false` |
+| page, fresh storage | hidden `BrowserWindow` on a non-persistent partition (`partition: 'pdf-<n>'`, no `persist:` prefix), `sandbox: true`, `contextIsolation: true`, no preload, `backgroundThrottling: false`, `paintWhenInitiallyHidden` left at its default (true) – without it a hidden window gets no animation frames **[measured, stage 0]** |
 | w x h at scale 1 | `Emulation.setDeviceMetricsOverride({width, height, deviceScaleFactor: 1, mobile: false})` – not the window size, which a laptop screen smaller than 1600 x 900 may clamp **[assumed]** and a Retina display doubles |
 | network refused | `session.webRequest.onBeforeRequest` for `http://*/*`, `https://*/*`, `ws://*/*`, `wss://*/*`; count by origin, cancel |
-| page errors | `Runtime.enable`, then `Runtime.exceptionThrown` |
-| `load` | `loadFile(view)` |
+| page errors | `about:blank` loaded first, then the debugger attached and `Runtime.enable` sent, then `Runtime.exceptionThrown` – sent before the first navigation, `Runtime.enable` hangs **[measured, stage 0]** |
+| `load` | `loadURL(fileUrl)` |
 | `evaluate` | `executeJavaScript('(' + fn + ')(' + JSON.stringify(arg) + ')')`, which runs in the page's main world, where `window.psiExport` is |
 | `waitFor` | the same, polled |
-| `pdf`, slides | `Emulation.setEmulatedMedia({media: 'screen'})`, then `Page.printToPDF` with the paper size in inches, zero margins and `printBackground` |
-| `pdf`, document | `Emulation.setEmulatedMedia({media: 'print'})`, then `Page.printToPDF` with `preferCSSPageSize` and `printBackground` |
-| fallback | `webContents.printToPDF` with the same numbers, if CDP printing is refused in a window that is not headless |
-| `version` | `process.versions.chrome` |
+| `pdf`, slides | `Emulation.setEmulatedMedia({media: 'screen'})` over CDP, then `webContents.printToPDF` with `pageSize` in inches (w/96 x h/96), zero margins and `printBackground` – `Page.printToPDF` does not exist over `webContents.debugger` in a window that is not headless **[measured, stage 0]** |
+| `pdf`, document | `Emulation.setEmulatedMedia({media: 'print'})` over CDP, then `webContents.printToPDF` with `preferCSSPageSize`, zero margins and `printBackground` |
+| `version` | `process.versions.chrome`; `where` is `Electron <version>` |
 | `close` | `win.destroy()` |
 
 Plus what a window needs that a Playwright page does not: `will-navigate`
@@ -417,6 +416,34 @@ keeps the two drivers from drifting, which neither driver's own test can see.
 
 ## Decisions along the way
 
+### Stage 0 (spike)
+
+Electron 44.0.0, Chromium 152, macOS. The five questions answered yes, two of
+them only after a correction the table above now carries.
+
+- **`paintWhenInitiallyHidden` stays at its default (true).** With it set to
+  false a hidden window gets no `requestAnimationFrame` frames at all and
+  `pageCollect`, which waits two per state, hangs. With the default and
+  `backgroundThrottling: false`, a hidden window runs at full frame rate.
+  Offscreen rendering was not needed.
+- **`Page.printToPDF` does not exist over `webContents.debugger`** in a window
+  that is not headless. `webContents.printToPDF` does the job: the page size
+  in inches, zero margins, `printBackground`, and for the document
+  `preferCSSPageSize`. The media is still set over CDP first
+  (`Emulation.setEmulatedMedia`), and the printout honours it.
+- **`Runtime.enable` sent before the first navigation hangs.** The window loads
+  `about:blank`, then the debugger attaches and `Runtime.enable` and
+  `Emulation.setDeviceMetricsOverride({width, height, deviceScaleFactor: 1,
+  mobile: false})` go out; the override survives the navigation to the view.
+- **The network is refused at the session** (`webRequest.onBeforeRequest` for
+  `http`, `https`, `ws`, `wss`), which sees the reload socket as a
+  `webSocket` request; counted by origin, cancelled. `will-navigate` refused,
+  `setWindowOpenHandler` denies.
+- Evaluation is `executeJavaScript` in the main world. On the fixture and the
+  tutorial, page count and `pdftotext` equal the CLI's; the document is A4
+  with the view's margins and page number; saving `source.md` during an
+  export reloaded nothing.
+
 ### Stage 1
 
 - **The driver is two levels, not one object.** `driver.open({w, h,
@@ -512,3 +539,61 @@ keeps the two drivers from drifting, which neither driver's own test can see.
   the refusals, `exportDocument` in the pdf-export paragraph, and the test's
   "Eighty assertions", now 127), README, CHANGELOG (including the refusal of
   stray `--pdf-*` options on a plain build).
+
+### Stage 3
+
+- **`desktop/main/pdf.js`** holds a pure half (the kind table, the request
+  check, `exportPlan`, `waitOutcome`, `exportResult`, `writeAtomic`), the
+  Electron driver and `createPdfExporter({builder, getWindow, engineDir,
+  onReport})`. Like `builder.js` it requires `electron` only inside the
+  functions that run, so `desktop/test/pdf.test.mjs` loads it under a bare
+  `node --test` (fourteen tests, in desktop's `npm test`). `pdf-core.mjs` is
+  imported from `engineDir()` on the first export and cached; staging needed
+  no change, since it was already on `FILES` for the static import.
+- **The IPC shape.** `exportPdf(kind, opts)` with `kind` one of `slides`,
+  `print`, `print-notes` and, for the slides only, `opts.collapse` one of
+  `topic-bold`, `none` or `null` (the lecture's own, the CLI's default);
+  anything else is `pdf.badRequest`. Everything else is `resolvePdfOptions`'s
+  default. The result is `{ok: true, kind, file, name, pages, pageSize: {w, h,
+  unit: 'px' | 'pt'} | null, stale, rebuilt, durationMs, diagnostics: [{text,
+  chunk}], report: [{level, text}]}`, or `{ok: false, canceled: true}` for a
+  cancelled dialog, or `{ok: false, error, reason?}` with `error` one of
+  `pdf.badRequest`, `pdf.busy`, `pdf.noProject`, `pdf.notBuilt`,
+  `pdf.buildFailed`, `pdf.aborted`, `pdf.failed`. `stale` is true when the
+  export printed the last good build after a failed save. No bytes and no
+  path from the window cross IPC. Two more channels beyond the plan,
+  `openPdf()` and `showPdf()`, act on the last file written, so the window's
+  two result actions need no path either; the last file is forgotten with
+  the lecture. The full report is also appended to the build details log.
+- **`formatReport`'s `warn` lines carry `chunk`** when the diagnostic names
+  one (overflow, a missing picture, a dead fragment), so the window can name
+  the chunk without parsing the sentence. The text is unchanged, and the
+  gate, which compares text, is untouched.
+- **The rebuild-first rule is `exportPlan`, decided after the save dialog**,
+  so a save made while it was open counts: `rebuild` when auto-build is off
+  and `changedSinceBuild`, `wait` when a build is already running (auto on,
+  a save seen) – the plan did not name that case – and `now` otherwise,
+  including after a failed save. The wait ends on `build-success`, or fails
+  on `build-error`, `watch-error` or a new `process-exit` the Builder emits
+  when its child ends unasked. For that the Builder gained `onEvent(fn)`,
+  which sees every event after the state has taken it.
+- **One export at a time, refused not queued.** `abort()` is called from
+  closing the lecture, opening another, the window's `closed` and
+  `before-quit`: it ends the wait, destroys the export's windows and wins a
+  race against the export's promises, which may never settle once their
+  window is gone. `writeAtomic` asks whether the job is still live before
+  the rename and removes its temporary file either way.
+- **Checked against the real module under Electron** (a throwaway script with
+  the dialog stubbed and the real Builder running `--watch --events`):
+  fixture slides 22 pages, tutorial slides 128, `print.pdf` 44 and
+  `print-notes.pdf` 47 pages, all A4 (594.96 x 841.92 pt) – page count and
+  `pdftotext -layout` equal to the CLI's for all four; the fixture's five
+  diagnostics word for word the CLI's, each with its chunk, and the reload
+  socket not reported. The tutorial slides with auto-build off and a save
+  pending rebuilt first (`rebuilt: true`). Eleven rebuilds during a 48 s
+  slide export left the PDF text-equal to the CLI's. A second request while
+  one ran got `pdf.busy`; an abort 0.7 s into an export returned
+  `pdf.aborted` and left neither a PDF nor a temporary file.
+- **The Chromium differs from the CLI's**: Electron 44 is Chromium 152, the
+  Playwright cache here 153, and the text and pagination still agree. The
+  report says `Chromium 152.… – Electron 44.0.0`.

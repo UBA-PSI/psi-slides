@@ -110,7 +110,10 @@ function createWindow() {
   win.webContents.on('will-navigate', (event) => event.preventDefault());
 
   win.once('ready-to-show', () => win.show());
-  win.on('closed', () => { win = null; });
+  win.on('closed', () => {
+    win = null;
+    if (ctx.abortPdf) ctx.abortPdf();
+  });
 
   win.loadFile(path.join(__dirname, '..', 'renderer', 'index.html'));
 }
@@ -154,6 +157,7 @@ function start() {
   });
 
   app.on('before-quit', () => {
+    if (ctx.abortPdf) ctx.abortPdf();
     if (builder) builder.stop();
   });
 

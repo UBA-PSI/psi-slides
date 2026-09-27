@@ -851,7 +851,8 @@ export async function exportDocument(driver, opts) {
 // as lines rather than printed: `warn` is a diagnostic (stderr on the command
 // line, the build-error place in the app), `info` is the run's own account
 // (stdout). outLabel is how the file is named in them - a path relative to
-// the working directory on the command line.
+// the working directory on the command line. A `warn` about one chunk also
+// carries `chunk`, its id, for the app, which shows the chunk beside the line.
 //
 // A result of either export: exportDocument's carries kind 'document' and no
 // overflow, no still and no card. withBrowser: false drops the Chromium line,
@@ -859,7 +860,9 @@ export async function exportDocument(driver, opts) {
 export function formatReport(r, { outLabel, withBrowser = true }) {
   const rel = outLabel;
   const lines = [];
-  const warn = (text) => lines.push({ level: 'warn', text });
+  // A diagnostic about one chunk carries its id as well, so the app can name
+  // the slide without reading it back out of the words.
+  const warn = (text, chunk) => lines.push(chunk && chunk !== '?' ? { level: 'warn', text, chunk } : { level: 'warn', text });
   const info = (text) => lines.push({ level: 'info', text });
   const doc = r.kind === 'document';
 
@@ -869,7 +872,7 @@ export function formatReport(r, { outLabel, withBrowser = true }) {
       + `(${o.content}px of content, ${o.available}px available). `
       + (r.zoom === null
         ? 'Shorten it or split it.'
-        : 'Shorten it, split it, or drop --pdf-zoom and let each page size itself.'));
+        : 'Shorten it, split it, or drop --pdf-zoom and let each page size itself.'), o.chunkId);
   }
   // One line rather than one per page when a fixed zoom is overrunning
   // wholesale: that is a decision to revisit, not a list to work through.
@@ -881,11 +884,11 @@ export function formatReport(r, { outLabel, withBrowser = true }) {
   }
   for (const m of r.missingImages) {
     warn(`${rel}: ${m.chunkId} has an image that did not load: ${m.src}`
-      + ' – check the path, or build with inlined images (the default).');
+      + ' – check the path, or build with inlined images (the default).', m.chunkId);
   }
   for (const d of r.dead) {
     warn(`${rel}: ${d.chunkId} links to #${d.fragment}, which is no chunk and no column`
-      + ' – the link is now plain text. Fix the fragment or drop the link.');
+      + ' – the link is now plain text. Fix the fragment or drop the link.', d.chunkId);
   }
   // The document prints the view as it is, so the card is the slide
   // export's alone and so is the sentence about it.

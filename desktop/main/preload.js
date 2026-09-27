@@ -28,6 +28,11 @@ contextBridge.exposeInMainWorld('builder', {
   openOutput: (kind) => call('openOutput', kind),
   openSource: () => call('openSource'),
   showFolder: () => call('showFolder'),
+  // kind: 'slides' | 'print' | 'print-notes'; opts: { collapse } for the
+  // slides ('topic-bold', 'none', or null for the lecture's own).
+  exportPdf: (kind, opts) => call('exportPdf', kind, opts),
+  openPdf: () => call('openPdf'),
+  showPdf: () => call('showPdf'),
   getState: () => call('getState'),
   getSettings: () => call('getSettings'),
   setLanguage: (lang) => call('setLanguage', lang),
