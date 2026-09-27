@@ -140,12 +140,8 @@ files, and its message says why:
   you share the files made from it.
 - **`--check-fit`, `--squint` and `--frames` open the finished projection in
   a browser without a window**, and the lecture's scripts run there, network
-  requests included. The PDF exports (`--slides-pdf`, `--print-pdf`,
-  `--print-notes-pdf`, and “Export as PDF…” in the desktop builder) run the
-  lecture's scripts too, but refuse every request to the network – `http`,
-  `https`, `ws` and `wss` – before the page loads, and start from empty
-  browser storage. The desktop builder prints in a hidden window of its own,
-  sandboxed, that cannot navigate or open another window.
+  requests included. The PDF exports run the lecture's scripts too, but
+  offline; see *Exporting a PDF* below.
 - **Annotations are Markdown and may carry HTML.** `--integrate-annotations`
   moves the live annotations exported from a talk into `source.md`, and from
   there into each file you make. That holds for a snippet someone sends you,
@@ -156,6 +152,25 @@ files, and its message says why:
   Running `node build.js` yourself leaves the HTML written into the source in
   place, so *Opening a lecture someone sent you* applies to the files you
   made too.
+
+## Exporting a PDF
+
+This applies to the command line (`--slides-pdf`, `--print-pdf`,
+`--print-notes-pdf`) and to “Export as PDF…” in the desktop builder alike.
+Both open the built view in a browser, so the lecture's scripts run while
+the PDF is made.
+
+- **Nothing reaches the network.** Every request – `http`, `https`, `ws` and
+  `wss` – is refused before the page loads. A hosted embed or a remote
+  picture is missing from the PDF, and the export says so; the reload
+  connection of a `--watch` build is refused as well, without a message.
+- **Nothing is carried over from an earlier session.** The page starts from
+  empty browser storage, so no sign-in to Pulse and no saved position,
+  theme or highlight reaches it.
+- **In the desktop builder, the page cannot leave its window.** It prints in
+  a hidden, sandboxed window of its own that cannot navigate or open
+  another window, and the builder, not the page, chooses where the PDF is
+  written.
 
 ## The tools that keep running on your computer during a talk
 
