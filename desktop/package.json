@@ -15,6 +15,7 @@
     "stage-engine": "node scripts/stage-engine.mjs",
     "test": "node --test test/events.test.mjs test/pdf.test.mjs test/settings.test.mjs test/stage-engine.test.mjs test/strings.test.mjs test/validation.test.mjs",
     "smoke": "node test/smoke.mjs",
+    "parity": "node test/parity.mjs",
     "dist": "node scripts/stage-engine.mjs && electron-builder",
     "dist:signed": "node scripts/stage-engine.mjs && dotenv -- electron-builder --mac --publish never"
   },

@@ -16,6 +16,11 @@
 # exactly - LICENSE included, which is staged into the app and so is on the
 # list. A matrix run on a licence edit is the price of a rule with no
 # exceptions, and it is cheap: that file changes about never.
+#
+# Two names are on it that the app does not stage: pdf-export.mjs and
+# chrome-path.mjs. The smoke test ends with desktop/test/parity.mjs, which
+# exports the same lecture on the command line and compares, so a change to
+# the command line's PDF driver can fail this job, and has to run it.
 name: Desktop
 
 on:
@@ -27,6 +32,8 @@ on:
       - 'tails.mjs'
       - 'cue-cards.mjs'
       - 'pdf-core.mjs'
+      - 'pdf-export.mjs'
+      - 'chrome-path.mjs'
       - 'pulse-embed.js'
       - 'editor.mjs'
       - 'editor.css'
@@ -42,6 +49,8 @@ on:
       - 'tails.mjs'
       - 'cue-cards.mjs'
       - 'pdf-core.mjs'
+      - 'pdf-export.mjs'
+      - 'chrome-path.mjs'
       - 'pulse-embed.js'
       - 'editor.mjs'
       - 'editor.css'
@@ -82,9 +91,13 @@ jobs:
         run: npm test
 
       # Electron needs a display even to open a window it never shows, and a
-      # headless runner has none.
-      - name: Install xvfb
-        run: sudo apt-get update && sudo apt-get install -y xvfb
+      # headless runner has none. poppler-utils is for the parity step at the
+      # end of the smoke test, which reads both drivers' PDFs with pdftotext;
+      # its command-line half uses the runner's /usr/bin/google-chrome and the
+      # engine's playwright-core from the step above. Under CI a missing one
+      # fails the step rather than skipping it.
+      - name: Install xvfb and poppler
+        run: sudo apt-get update && sudo apt-get install -y xvfb poppler-utils
 
       - name: Smoke test
         working-directory: desktop

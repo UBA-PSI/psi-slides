@@ -14,7 +14,7 @@ import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
 const {
   PDF_KINDS, isPdfKind, defaultPdfPath, withPdfExtension, pdfRequest,
-  exportPlan, waitOutcome, exportResult, writeAtomic,
+  exportPlan, waitOutcome, exportResult, writeAtomic, dumpDomPath,
 } = require('../main/pdf.js');
 const { initialState, reduceState } = require('../main/builder.js');
 const { formatReport, resolvePdfOptions } = await import('../../pdf-core.mjs');
@@ -168,6 +168,15 @@ test('a document result carries its paper, or null when unread', () => {
   const unread = exportResult({ kind: 'print', file: '/l/print.pdf', r: { ...doc, pages: null, pageSize: null }, lines: [] });
   assert.equal(unread.pages, null);
   assert.equal(unread.pageSize, null);
+});
+
+test('the DOM dump is the parity test\'s, and a packaged app never reads it', () => {
+  const at = path.join(os.tmpdir(), 'dump.html');
+  assert.equal(dumpDomPath({ PSI_PDF_DUMP_DOM: at }, false), at);
+  assert.equal(dumpDomPath({ PSI_PDF_DUMP_DOM: at }, true), null);
+  assert.equal(dumpDomPath({}, false), null);
+  assert.equal(dumpDomPath({ PSI_PDF_DUMP_DOM: '' }, false), null);
+  assert.equal(dumpDomPath({ PSI_PDF_DUMP_DOM: 'dump.html' }, false), null);
 });
 
 test('the file is written whole or not at all', async () => {

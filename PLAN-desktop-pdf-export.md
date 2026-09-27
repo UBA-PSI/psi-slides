@@ -760,3 +760,96 @@ of it. Merged into this branch as dcc8243.
   *Motion* (no progress bar, one soft line for the slides); desktop/README.md
   § Using it; the smoke's header in CLAUDE.md-level docs if any mention the
   shot list; the builder's release notes.
+
+### Stage 5
+
+- **Parity is the last step of the smoke test, in `desktop/test/parity.mjs`.**
+  The smoke already exports the three PDFs of a tutorial copy through the
+  window; a second Electron launch to export them again would double the
+  slowest part of the run for nothing. So after the app has closed – nothing
+  rebuilds the copy under the comparison – `parity()` runs the command line
+  once on the same lecture and compares. The same file also runs alone
+  (`npm run parity -- <folder>` from `desktop/`) on the working folder that
+  `PSI_SMOKE_KEEP=1 npm run smoke` keeps, which is how the drift check below
+  was made without a second smoke run.
+- **The app's dump is `PSI_PDF_DUMP_DOM=<absolute path>`, read in
+  `desktop/main/pdf.js` by `dumpDomPath(env, app.isPackaged)`** and passed to
+  `exportSlides` as `dumpDom`, the hidden CLI flag's counterpart. Not a
+  channel: the window never names a path, and a test-only IPC argument would
+  be one the renderer could send. A packaged app never reads the variable,
+  so a shell that happens to set it cannot make the shipped app write a file
+  nobody chose; a relative path is ignored too. Unit-tested in
+  `pdf.test.mjs` (55 tests now).
+- **The command line exports a second copy, not the same folder.**
+  `parity-cli/smoke-lecture/` under the smoke's folder, with the same folder
+  name (in case anything derives from it), `source.md` compared by SHA-256
+  before the run, one `build.js --slides-pdf --print-pdf --print-notes-pdf
+  --pdf-collapse=topic-bold --pdf-dump-dom=…` for all three. A second copy
+  rather than `--pdf-out`, which names one file and is refused for three, and
+  rather than moving the app's PDFs aside, which would leave a kept folder
+  that no longer looks like what the app wrote. Removed afterwards.
+- **Same options.** The window's slide default is Slide text, which the IPC
+  sends as `collapse: 'topic-bold'`; everything else is `resolvePdfOptions`'s
+  default on both sides (all beats, 16:9, fit, ceiling 1.35). The command
+  line is given `--pdf-collapse=topic-bold` and nothing else. The documents
+  take no option on either side.
+- **What is compared.** Per PDF: the page count out of the bytes
+  (`pdfFacts`), then `pdftotext -layout` split on form feeds, every page
+  equal as a string – no tolerance. For the slides, the chunk-and-beat table
+  of both dumps: one row per `.pdf-page` wrapper with its chunk id, its beat,
+  its `--zoom` and the number of elements the reveal holds back on it. **The
+  dump carries no beat number** – pdf-core records the beat in `got.pages`
+  but not on the wrapper – so the beat is the page's place in its chunk's
+  run, which is what the walk produces (beat 1 up, consecutive pages); the
+  held-back count is what tells two beats of one reveal apart. Adding a
+  `data-beat` to the wrapper was the alternative and was left alone: it
+  changes the print DOM that `test/pdf-export.mjs` reads with a fixed
+  pattern, for a number the order already gives. The zoom is compared as
+  the string the page carries, exactly, and matched exactly. No pixels: the
+  spike saw glyph antialiasing only.
+- **Measured (macOS, Electron 44 / Chromium 152 against Playwright's
+  Chromium 153):** slides 128 pages, print 44, print-notes 47 on both sides;
+  every page's text equal in all three; the beat table equal on all 128 rows
+  (109 chunks, 19 pages past beat 1, ten distinct zooms). The command-line
+  half takes 47 s.
+- **Deliberate drift:** the command line given `--pdf-collapse=none` instead
+  – the two failures it should produce and no others: slides.pdf's text
+  differs on 109 of 128 pages (first page 3, the same line at a different
+  indent), and the beat table differs at page 3 (`one-source`, zoom 1.35 vs
+  0.95). The page count still matched, which is why the text and the table
+  are there. The two documents stayed equal, as they take no collapse.
+  Reverted.
+- **Degrades like the repository's browser checks, except under CI.** No
+  playwright-core in the engine, no Chromium (`findChrome`, which honours
+  `$PSI_CHROME`), or no `pdftotext`: the step says which and passes. With
+  `CI` set it fails instead, because a comparison that quietly did not run
+  in CI is not a comparison. Checked both ways with `PSI_CHROME=/nope`.
+- **CI.** `desktop.yml`'s test job now installs `poppler-utils` beside
+  `xvfb`; the engine's `npm ci` already installs playwright-core (an
+  optional dependency, installed by default) and `findChrome` answers with
+  the runner's `/usr/bin/google-chrome`, as it does for the browser suite.
+  The path filter gains `pdf-export.mjs` and `chrome-path.mjs`: the app
+  stages neither, but the parity step runs both, so a change to the command
+  line's driver can fail this job and has to run it. `stage-engine.test.mjs`
+  checks the filter covers what is staged, one direction only, so the extra
+  names pass it. **Not yet run on a runner**: there the command line's
+  Chromium is Google Chrome stable, further from Electron's 152 than the 153
+  measured here. If pagination ever differs there, that is a Chromium
+  version showing through, and the answer is `$PSI_CHROME` pointing at a
+  Playwright Chromium of Electron's version, not a tolerance.
+- **Where the plan was wrong or silent.** It spoke of "the same dump from the
+  app's driver" as if one existed; the driver had no dump, and the app had
+  no way to ask for one without a channel or a variable. It assumed the dump
+  gives a beat per page; it gives the chunk and the zoom, and the beat has
+  to be read off the order. It did not say that the two sides default
+  differently – the window to Slide text, the command line to the lecture's
+  own setting – so "same options" needs `--pdf-collapse=topic-bold` spelled
+  out. And it did not notice that desktop CI would now run the command
+  line's PDF driver, which its path filter did not name.
+- **For Stage 6:** CLAUDE.md – the smoke's parity step and `npm run parity`
+  in the desktop paragraph, `PSI_PDF_DUMP_DOM` beside `--pdf-dump-dom` as the
+  app's hidden counterpart (development runs only), and the path filter's
+  two unstaged names; `desktop/README.md`'s testing notes (poppler for the
+  smoke, `PSI_SMOKE_KEEP` and `npm run parity`); `test/README.md` if it lists
+  what the desktop smoke covers; the builder's release notes need nothing
+  user-facing.

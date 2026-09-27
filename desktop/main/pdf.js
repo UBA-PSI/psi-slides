@@ -118,6 +118,20 @@ function exportResult({ kind, file, r, lines, stale = false, rebuilt = false, du
   };
 }
 
+// The print DOM of a slide export, for desktop/test/parity.mjs only: the
+// app's counterpart of the command line's hidden --pdf-dump-dom, so the
+// parity check can hold the app's page-by-page chunk and beat table against
+// the command line's. It is an environment variable rather than a channel,
+// because nothing in the window may ask for a path, and it is read only by
+// a development run – a packaged app never looks at it, so the variable in
+// someone's shell cannot make the shipped app write a file nobody chose.
+// Null means no dump, which is every export a person ever makes.
+function dumpDomPath(env, packaged) {
+  if (packaged) return null;
+  const p = env && env.PSI_PDF_DUMP_DOM;
+  return typeof p === 'string' && path.isAbsolute(p) ? p : null;
+}
+
 // ── writing a file ──────────────────────────────────────────────────
 //
 // As pdf-export.mjs writes it: a fresh temporary name beside the target,
@@ -370,11 +384,14 @@ function createPdfExporter({ builder, getWindow, engineDir, onReport, dialogTitl
     if (job.aborted) return { ok: false, error: 'pdf.aborted' };
     const driver = electronDriver();
     job.cancels.push(() => { driver.close().catch(() => {}); });
+    const dumpDom = kind === 'slides'
+      ? dumpDomPath(process.env, require('electron').app.isPackaged)
+      : null;
     let r;
     try {
       const url = pathToFileURL(view).href;
       const work = kind === 'slides'
-        ? core.exportSlides(driver, { ...core.resolvePdfOptions(options), url })
+        ? core.exportSlides(driver, { ...core.resolvePdfOptions(options), url, dumpDom: !!dumpDom })
         : core.exportDocument(driver, { url });
       // The export's own promises may never settle once its window is
       // destroyed, so an abort wins the race rather than waiting for them.
@@ -383,6 +400,7 @@ function createPdfExporter({ builder, getWindow, engineDir, onReport, dialogTitl
       await driver.close().catch(() => {});
     }
     if (job.aborted || !r) return { ok: false, error: 'pdf.aborted' };
+    if (dumpDom && r.dom) await fs.promises.writeFile(dumpDom, r.dom);
 
     const written = await writeAtomic(file, r.pdf, () => !job.aborted);
     if (!written) return { ok: false, error: 'pdf.aborted' };
@@ -437,6 +455,7 @@ module.exports = {
   exportPlan,
   waitOutcome,
   exportResult,
+  dumpDomPath,
   writeAtomic,
   electronDriver,
   createPdfExporter,

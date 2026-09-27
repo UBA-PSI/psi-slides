@@ -13,9 +13,11 @@
 // button, the sheet, Export – with the save dialog answered by the test: the
 // stub accepts the name the main process proposes, so the files land beside
 // the working copy's source.md (slides.pdf, print.pdf, print-notes.pdf), as
-// they would for a person who pressed Save. PSI_SMOKE_KEEP=1 leaves that
-// working copy on disk and prints where it is, for a comparison with the
-// command line's exports of the same source.
+// they would for a person who pressed Save. The slide export also dumps its
+// print DOM (PSI_PDF_DUMP_DOM, read only by a development run), and at the
+// end parity.mjs holds all three PDFs and that dump against the command
+// line's exports of the same source. PSI_SMOKE_KEEP=1 leaves the working
+// folder on disk and prints where it is, so parity.mjs can run on it alone.
 //
 // Run: npm run smoke   (from desktop/)
 
@@ -25,6 +27,7 @@ import path from 'node:path';
 import { execSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { _electron as electron } from 'playwright-core';
+import { parity, APP_DUMP } from './parity.mjs';
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 const desktop = path.resolve(here, '..');
@@ -74,7 +77,7 @@ async function shoot(page, name) {
 const app = await electron.launch({
   args: ['.', `--user-data-dir=${userData}`],
   cwd: desktop,
-  env: { ...process.env, PSI_SMOKE: '1' },
+  env: { ...process.env, PSI_SMOKE: '1', PSI_PDF_DUMP_DOM: path.join(work, APP_DUMP) },
 });
 const page = await app.firstWindow();
 await page.waitForLoadState('domcontentloaded');
@@ -286,6 +289,7 @@ try {
   log(slidesText.trim());
   check('slides.pdf: the status sentence came back', /^slides\.pdf written at \d\d:\d\d – \d+ pages\.$/.test(slidesText.trim()));
   check('slides.pdf: the file is beside source.md', fs.existsSync(path.join(project, 'slides.pdf')));
+  check('slides.pdf: the development run dumped its print DOM', fs.existsSync(path.join(work, APP_DUMP)));
   check('after it, the export button is available again',
     await page.getAttribute('#btn-pdf', 'aria-disabled') === 'false');
   check('after it, the menu items are enabled again', (await menuItem('Presentation…')).enabled === true);
@@ -456,7 +460,15 @@ if (process.platform === 'win32') {
   if (survivors.trim()) console.error(survivors);
 }
 
-if (process.env.PSI_SMOKE_KEEP) log(`kept the working copy: ${project}`);
+// ── the app's PDFs against the command line's ──────────────────────
+//
+// After the app is gone, so nothing rebuilds the working copy underneath the
+// comparison, and on the source the exports were made from: the smoke
+// restored it before exporting and has not touched it since.
+console.log('\nparity with the command line');
+await parity({ work, check, log }).catch((e) => check(`parity: ${e && e.message ? e.message : e}`, false));
+
+if (process.env.PSI_SMOKE_KEEP) log(`kept the working folder: ${work} (npm run parity -- ${work})`);
 else fs.rmSync(work, { recursive: true, force: true });
 console.log(failures === 0 ? '\nsmoke: ok' : `\nsmoke: ${failures} failure(s)`);
 process.exit(failures === 0 ? 0 : 1);
