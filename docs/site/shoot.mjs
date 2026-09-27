@@ -3,9 +3,11 @@
  * Re-shoots the site's screenshots from lectures/python-intro, plus the one of
  * the diagram editor from lectures/diagrams, the five decoration.html needs
  * from lectures/decoration, and the four-frame cue-card sequence from
- * lectures/spoken-talk.
+ * lectures/spoken-talk. One row is not a view at all: four pages of
+ * python-intro's slides.pdf, exported by build.js and rasterised by pdftoppm
+ * (poppler), which that row alone needs.
  *
- *   node docs/site/shoot.mjs                 # all twenty, into docs/site/img/
+ *   node docs/site/shoot.mjs                 # all of them, into docs/site/img/
  *   node docs/site/shoot.mjs cockpit search  # just those two
  *   node docs/site/shoot.mjs --keep-png      # leave the PNGs beside the WebP
  *
@@ -227,6 +229,26 @@ const SHOTS = [
     lecture: 'spoken-talk', target: 'second-time', frag: true,
     act: (p) => cueFrame(p, presses),
   })),
+  // ── four pages of slides.pdf ────────────────────────────────────────────
+  // For the PDF section on "In the room". What that section claims is that a
+  // press becomes a page, so the picture is consecutive pages of a real
+  // export and not a live view: #async-await, which has one `---`, and the
+  // figure after it, #async-timeline, which has one `step` - a reveal and a
+  // drawing's step, two pages each. python-intro because it is the site's
+  // shot source and those two chunks are the only neighbours in it that show
+  // both kinds of beat.
+  //
+  // The rig is different from every other row, and that is why the row
+  // carries `sheet` rather than `src`: the PDF is written by build.js (the
+  // same `--slides-pdf` an author runs, default options), its pages are
+  // rasterised by pdftoppm, and the contact sheet is an HTML page of those
+  // PNGs that the loop below photographs like any other. Which PDF pages
+  // belong to the two chunks is read from `--pdf-dump-dom`, the print DOM
+  // the export builds, where each `.pdf-page` wrapper holds one clone of its
+  // chunk - counting beats by hand would go stale the day a chunk above
+  // gained a `---`.
+  { name: 'slides-pdf', sheet: { chunks: ['async-await', 'async-timeline'] },
+    target: 'async-await', w: 1440, h: 844, dsf: 1.5 },  // h: two 16:9 pages of 682 + gap + pad
   // The live annotation filling the frame, with the QR code the address gets.
   // python-intro, so it is the same lecture as the rest of the live set, and
   // typed rather than pre-seeded: the size is derived from the text, so a
@@ -408,10 +430,68 @@ async function openEditor(p) {
   if (!/c1/.test(sel)) throw new Error(`editor: selected "${sel}", expected box c1`);
 }
 
+// ── the PDF contact sheet ────────────────────────────────────────────────
+//
+// Builds the lecture with --slides-pdf into the rig's directory, finds the
+// pages of the chunks the row names, rasterises them, and returns a page that
+// lays them out two by two on white with a hairline round each page: the
+// shot's own window is white, and a page's near-white paper needs an edge.
+// (A grey ground, the one a PDF reader puts between pages, was tried and read
+// as a second stage inside the stage.)
+function contactSheet(s, dir) {
+  if (spawnSync('which', ['pdftoppm']).status !== 0) {
+    const err = new Error(`${s.name}: needs pdftoppm (poppler) on PATH to rasterise the PDF`);
+    err.userFacing = true;
+    throw err;
+  }
+  const lecture = lectureOf(s);
+  const pdf = path.join(dir, s.name + '.pdf');
+  const dom = path.join(dir, s.name + '.dom.html');
+  const b = spawnSync(process.execPath, [path.join(ROOT, 'build.js'),
+    path.join(lecture, 'source.md'), '--slides-pdf',
+    `--pdf-out=${pdf}`, `--pdf-dump-dom=${dom}`], { encoding: 'utf8' });
+  if (b.status !== 0) throw new Error(`${s.name}: --slides-pdf failed\n${b.stderr || b.stdout}`);
+
+  // Wrapper N is PDF page N; the first id after the wrapper's own is the
+  // chunk it holds.
+  const text = fs.readFileSync(dom, 'utf8');
+  const pages = [];
+  const re = /class="pdf-page" id="pdf-p(\d+)"[\s\S]*?\bid="([^"]+)"/g;
+  for (let m; (m = re.exec(text));) {
+    if (s.sheet.chunks.includes(m[2])) pages.push(Number(m[1]));
+  }
+  if (!pages.length) throw new Error(`${s.name}: no page of ${s.sheet.chunks.join(', ')} in the PDF`);
+  const first = Math.min(...pages), last = Math.max(...pages);
+  if (last - first + 1 !== pages.length || pages.length !== 4) {
+    throw new Error(`${s.name}: expected four consecutive pages, got ${pages.join(', ')}`);
+  }
+
+  // Twice the pixels the sheet shows a page at, so the browser scales down.
+  const gap = 20, pad = 28;
+  const pw = (s.w - 2 * pad - gap) / 2;
+  spawnSync('pdftoppm', ['-f', String(first), '-l', String(last), '-png',
+    '-scale-to-x', String(Math.round(pw * s.dsf * 2)), '-scale-to-y', '-1',
+    pdf, path.join(dir, s.name + '-pg')], { stdio: 'inherit' });
+  const pngs = fs.readdirSync(dir).filter(f => f.startsWith(s.name + '-pg') && f.endsWith('.png')).sort();
+  if (pngs.length !== 4) throw new Error(`${s.name}: pdftoppm wrote ${pngs.length} page(s)`);
+  const imgs = pngs.map(f => `<img src="data:image/png;base64,${
+    fs.readFileSync(path.join(dir, f)).toString('base64')}">`).join('\n');
+  return `<!doctype html><meta charset="utf-8"><style>
+html, body { margin: 0; background: #fff; }
+body { display: grid; grid-template-columns: ${pw}px ${pw}px; gap: ${gap}px; padding: ${pad}px; }
+img { display: block; width: ${pw}px; outline: 1px solid rgba(0,0,0,.2); }
+</style>
+${imgs}`;
+}
+
 // ── the rig, and a server for it ─────────────────────────────────────────
 function buildRig(shots) {
   const dir = fs.mkdtempSync(path.join(process.env.TMPDIR || '/tmp', 'psi-shoot-'));
   for (const s of shots) {
+    if (s.sheet) {
+      fs.writeFileSync(path.join(dir, s.name + '.html'), contactSheet(s, dir));
+      continue;
+    }
     const lecture = lectureOf(s);
     const abs = path.join(lecture, s.src);
     if (!fs.existsSync(abs)) {
@@ -486,7 +566,10 @@ function checkTargets(list) {
     if (!need.has(lec)) need.set(lec, new Set());
     need.get(lec).add(id);
   };
-  for (const s of list) want(lectureOf(s), targetOf(s));
+  for (const s of list) {
+    want(lectureOf(s), targetOf(s));
+    for (const id of (s.sheet && s.sheet.chunks) || []) want(lectureOf(s), id);
+  }
   // DOC_RIG trims the document views to two chunks, and the second one is
   // named in CSS rather than in a shot row.
   want(LECTURE, TARGET);

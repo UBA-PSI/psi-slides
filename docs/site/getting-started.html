@@ -202,7 +202,9 @@
     commands.</p>
     <p>Nor are the two ways two tools: the app runs the same
     <code>build.js</code> on the same <code>source.md</code> and produces the
-    same four views. <strong>Nothing leaves the computer.</strong> No account,
+    same four views, and <b>Export as PDF&hellip;</b> writes the same three PDFs
+    the command line does (from the app release after
+    <code>builder-0.1.3</code>). <strong>Nothing leaves the computer.</strong> No account,
     no telemetry, no update check, no network access &ndash; and the local web
     address above is bound to <code>127.0.0.1</code>, reachable from this
     machine and from nothing else.</p>
@@ -235,6 +237,11 @@
     <p class="cue">The four views appear beside <code>source.md</code> as HTML
     files, and they are what you hand over: each one carries its own fonts,
     pictures and code, and fetches nothing when it is opened.</p>
+    <p class="cue">Where a PDF is asked for instead,
+    <code class="flag">--slides-pdf</code> writes the slides as one,
+    <code class="flag">--print-pdf</code> and
+    <code class="flag">--print-notes-pdf</code> the two handouts on A4. These
+    three need Chrome on the machine.</p>
    </div>
 <pre><code><span class="t-cmd">git</span> clone <span class="t-path">https://github.com/UBA-PSI/psi-slides</span>
 <span class="t-cmd">cd</span> <span class="t-path">psi-slides</span>
@@ -244,7 +251,11 @@
 
 <span class="t-cmt"># build all four views next to source.md, then open the projection</span>
 <span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span>
-<span class="t-cmd">open</span> <span class="t-path">lectures/tutorial/audience.html</span>   <span class="t-cmt"># macOS; xdg-open or your browser elsewhere</span></code></pre>
+<span class="t-cmd">open</span> <span class="t-path">lectures/tutorial/audience.html</span>   <span class="t-cmt"># macOS; xdg-open or your browser elsewhere</span>
+
+<span class="t-cmt"># the slides as a PDF, one page per step; the two handouts as A4 PDFs</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span> <span class="t-flag">--slides-pdf</span>
+<span class="t-cmd">node</span> <span class="t-path">build.js</span> <span class="t-path">lectures/tutorial/source.md</span> <span class="t-flag">--print-pdf</span> <span class="t-flag">--print-notes-pdf</span></code></pre>
   </div>
 
   <div class="aside-code words-first second-picture">
