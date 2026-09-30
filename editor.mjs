@@ -7388,6 +7388,9 @@ function dgeRenderTools() {
 // not a nicety.
 function dgeKeydown(ev) {
   if (!DGE.open) return;
+  // The ? panel's search field belongs to the panel, which answers its keys
+  // itself - Esc there empties the field before it closes anything.
+  if (ev.target.id === 'psiINT-help-search') return;
   const tag = (ev.target.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea') {
     if (ev.key === 'Escape') ev.target.blur();
@@ -7959,7 +7962,10 @@ function dgeNewFigure() {
   } else done(false);
 }
 
+// The view's own toggle when it is there, so the panel opens the way ?
+// opens it on a slide - emptied, with the search field focused.
 function dgeHelp() {
+  if (typeof window.toggleHelp === 'function') { window.toggleHelp(); return; }
   const help = document.getElementById('psiINT-help-overlay');
   if (help) help.classList.toggle('hidden');
 }

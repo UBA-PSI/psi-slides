@@ -155,6 +155,22 @@ A third set concerns the two live views while a talk runs:
 
 ### Added
 
+- **The `?` panel in both live views has a search field.** It has the focus
+  when the panel opens, and typing filters the rows by key and by what the key
+  does: every word has to match, case and accents are ignored, and a single
+  character finds keys only, so `b` finds the `B` row. While the field has the
+  focus, letters typed there do not reach the slide keys – `b` does not blank
+  the projection. `Esc` empties the field, a second `Esc` closes the panel.
+  The placeholder and the line shown when nothing matches follow `lang:`
+  (English and German; `labels:` keys `help-search` and `help-none`).
+- **Every key the live views answer is now listed in the `?` panel.** Missing
+  until now: `N` (an annotation) in the audience view, `Shift-W` (fullscreen
+  for the cockpit's own window) in the cockpit, `Backspace` in the `G` prompt,
+  clicking the column bar along the top of the cockpit, and in the diagram
+  editor's section `Backspace` (delete), `Shift-F` (the frames the other way
+  round) and `?`. A new gate, `help-keys`, reads the key handlers and fails on
+  a key with no row.
+
 - **`--slides-pdf`: a PDF slide deck, one page per presentation state.** The
   export drives `audience.html` through every state a lecturer would step
   through and prints each one as a page, so a figure that arrives in four beats

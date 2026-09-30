@@ -4,10 +4,10 @@ Two suites, split by one question: **can this be decided without a browser?**
 
 - **`test/gates/`** – everything that can, which is no longer only the figure
   language and the `{…}` tail grammar: a gate is the right home for any
-  hand-mirrored list one file keeps of another's. Nineteen gates, about two seconds,
+  hand-mirrored list one file keeps of another's. Twenty gates, about two seconds,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
-- **`test/`** – the things that only break in a built page. 48 specs, about 1,500
+- **`test/`** – the things that only break in a built page. 49 specs, about 1,500
   assertions, about twelve minutes, one Chromium for the whole run. One of
   them, `souffleuse`, starts an engine of its own beside that browser – see
   below.
@@ -50,11 +50,11 @@ node test/run.mjs nav               # specs whose name matches
 npm run reproducible                # same bytes under any flag set
 ```
 
-## The gates: nineteen contracts
+## The gates: twenty contracts
 
 `diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`, `souffleuse.mjs`, `pdf-core.mjs`
 and `lint.js` are all zero-dependency, which is what makes this suite runnable
-with nothing installed. Nineteen gates, about 1,700 assertions, about two
+with nothing installed. Twenty gates, about 1,700 assertions, about two
 seconds.
 
 | gate | the contract |
@@ -78,6 +78,7 @@ seconds.
 | `untrusted` | building a `source.md` somebody sent you, the half decidable without a build: the frontmatter language (`---js` is `eval` inside gray-matter) read the same way in `build.js` and `lint.js`, and gray-matter reached only through `safeMatter`; the asset root (the lecture's folder and the one above it, the lecture's folder alone when the one above is an injected home folder, never a dot-folder, a link only to a file of the kind its name says) on a real tree with real links, in both files; an output written over a link replaces it and an append refuses it; ImageMagick told its decoder. The build-level half – a real build refusing a real deck, and what is on disk afterwards – is the last block of `test/settings.mjs` |
 | `pdf-core` | the PDF export's policy without a browser. A driver that only records its calls holds the order `exportSlides` asks for things in – the network refused before the page loads, auto-fit and the collapse before the walk, the print DOM before the pdf, on `screen` media – because that order is what the Playwright driver and the desktop app's Electron driver must share and neither driver's own test can see. And `exportDocument`'s shorter one – open before load, pictures decoded before they are inspected, a `::: pulse` answer opened before the pictures are settled, the pdf on `print` media at the view's own `@page` size – plus the watch build's reload socket, refused but counted apart from the deck's requests. Plus the option checks, refusing in the words `pdfOptionsFrom` used before they moved, and `formatReport`'s lines for fixed results of both exports. That the pages come out right is `test/pdf-export.mjs` |
 | `id-namespace` | every id the build invents starts with `psiINT-`: each `id="…"`, `.id =`, `dgeEl({id})`, literal `getElementById` and `#word` in a literal `querySelector` in build.js, editor.mjs, diagram-core.mjs, pdf-core.mjs and cue-cards.mjs is a `psiINT-` literal or on a counted allow-list of the sites that emit the author's own ids or build one from a `psiINT-` prefix (the prefixes themselves are asserted). The author's half of the fence, `reserved-id`, is in `tails` and `test/settings.mjs` |
+| `help-keys` | every key the live views answer has a row in their `?` panel: `renderHelpOverlay` lifted out of build.js and run per view, each `<dt>` read as the key combinations its kbd elements spell, against the case labels of the shared key map in `AUDIENCE_JS` (with the Shift variant where a case group reads `e.shiftKey`), every `e.key` comparison elsewhere in `AUDIENCE_JS`, `SPEAKER_JS` and `SOUFFLEUSE_JS`, and the editor's keys out of `editor.mjs` held against the editor's own section. `NOT_A_ROW` is the reviewed list of keys answered without a row, each with its reason, and an entry that stops being answered or gains a row fails too. It fails on its own on a panel with the `B` row cut out, so it cannot pass by reading nothing |
 
 **`frontmatter` is the one gate that is not about figures**, and it is here
 because the shape is the one this suite exists for: a closed list in one file
@@ -137,7 +138,7 @@ fixture is compiled *and* linted.
 
 ## The browser suite: four families
 
-**Navigation** – `nav`, `nav-cockpit`, `nav-goto`, `nav-fullscreen`, `transition`,
+**Navigation** – `nav`, `nav-cockpit`, `nav-goto`, `nav-fullscreen`, `help-search`, `transition`,
 `cue-cards`, `autoplay`. The navigation
 model, and what a slide change looks like under `transition: pan | cut | fade` –
 the one spec here that samples per animation frame rather than after a settle,
@@ -145,7 +146,10 @@ because its whole subject is what happens between two states.
 `nav-goto` is the `G` prompt: that the number it accepts is the one the corner
 badge paints, that it holds the keyboard while it is open (`Space` would
 advance, `N` would annotate), and that `Enter` goes through `jumpTo` rather
-than assigning an index. `nav-cockpit` carries its own two lines of it, because
+than assigning an index. `help-search` is the field at the head of the `?`
+panel, in both views: it has the keyboard when the panel opens, so `b` typed
+there types a b rather than blanking the projection, and `Esc` empties it
+before it closes the panel. `nav-cockpit` carries its own two lines of it, because
 the cockpit is where the prompt's id could collide with a slide's. `demo` sits
 beside them: the two windows handing a live demo across, over both transports.
 `nav-fullscreen` is `W`, and it is here for a reason no other navigation spec
@@ -267,7 +271,7 @@ is fine. **They assert the property and never a coordinate.**
 context the bar is not in the document and a measurement of it reports no
 overlaps among no buttons.
 
-### The seventeen specs that build a deck of their own
+### The eighteen specs that build a deck of their own
 
 Four different reasons, and the last is the one to remember.
 
@@ -301,7 +305,9 @@ content centred and left, `cards` two cards differing in one character,
 frontmatter line, because the claim about each mode is a claim about what the
 other two do not do, `reader` builds one deck twice, with and without
 `reader: off`, because what the key takes away is only visible beside what it
-leaves, and a second and a third one twice with different words, because
+leaves, `help-search` builds a two-slide deck twice, with and without `lang: de`,
+because no lecture here is German and the placeholder is the one word of the
+panel that follows the language, and a second and a third one twice with different words, because
 re-anchoring is only visible across a rebuild, and `figure-dotted` draws a muted dotted line beside the
 five strokes it must leave alone.
 

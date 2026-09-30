@@ -250,14 +250,14 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # two test suites, split by one question: can this be decided without a
 # browser? test/gates/ is everything about the figure language and the {…}
 # tail grammar that can, plus the cue-card grammar, the prompter's policy and
-# the PDF export's - nineteen gates, about two seconds, no browser and no
+# the PDF export's - twenty gates, about two seconds, no browser and no
 # `npm install` (diagram-core.mjs, tails.mjs, cue-cards.mjs, souffleuse.mjs,
 # pdf-core.mjs and lint.js are all zero-dep).
 # It is also where a hand-mirrored list one file keeps of another's belongs,
 # figures or not: `frontmatter` holds lint.js's KNOWN_FRONTMATTER_KEYS
 # against what build.js reads, and `image-refs` holds the two readers of the
 # image-reference set against the one collector both go through.
-# test/ is the things that only break in a built page - 48 specs, ~12 min,
+# test/ is the things that only break in a built page - 49 specs, ~12 min,
 # one Chromium; one of them, souffleuse, starts an engine of its own beside
 # that browser. `npm test` also runs test/reproducible.mjs, which needs
 # neither: it builds a lecture under a partial flag and under a full one and
@@ -271,7 +271,7 @@ node lint.js lectures/ --strict                # warnings → exit 2
 # createSpanTable, or anything that moves a label or an extent. Anything
 # checkable without a browser belongs in lint.js or in test/gates/, never here.
 #
-# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the seventeen specs that build a
+# WHAT EACH GATE AND EACH SPEC FAMILY GUARDS, and the eighteen specs that build a
 # deck of their own rather than hunting shapes in a real one: test/README.md.
 npm run gate                                   # all gates
 node test/gates/run.mjs semantics              # gates whose name matches
@@ -400,7 +400,7 @@ lists all sixty in order, which is the map that cannot go stale. Two of them car
 a decision the name does not:
 
 - `// ── math (KaTeX, rendered at build time) ──` – the family→class map is **parsed out of `katex.min.css`** (`node_modules/katex/dist/`, reached with `nodeRequire.resolve`), never hard-coded, so it survives a KaTeX upgrade; and the stylesheet is emitted only for views that actually contain a formula, because the inlined woff2 faces are 254 KB for the full set. The live views additionally carry `KATEX_TOGGLE_FAMS` (sans + typewriter, ~46 KB) so the maths can follow the `F` toggle; print passes no `fontToggle` flag and pays nothing extra.
-- `// ── audience rendering ──` – `renderHelpOverlay(view)` generates the `?` cheat sheet for **both** live views from one data structure – edit labels there, not in the per-view HTML.
+- `// ── audience rendering ──` – `renderHelpOverlay(view)` generates the `?` cheat sheet for **both** live views from one data structure – edit labels there, not in the per-view HTML. **Every key the key map answers has a row there**, held by the `help-keys` gate: a new `case` in the switch is a new row in the same commit, or an entry with a reason on that gate's `NOT_A_ROW` list. The search field at the panel's head is shielded from the key map by the listener's input guard; its placeholder and empty line are `STRINGS` keys, the rows stay English.
 
 ### Parser
 
@@ -912,7 +912,7 @@ plan, its decisions and its build log are `PLAN-electron-builder.md`.
 
 - `CONTRIBUTING.md` – **the build and release procedure** (§ Building and releasing): what the two workflows do, what has to be true before tagging, and why the release asset names cannot change. Follow it rather than improvising a release.
 - `SECURITY.md` – **what a deck someone sent can do, what the build refuses from a `source.md` someone else wrote, and what `--watch`, `--serve` and `--prompter` expose** – written for lecturers and evaluators, its claims checked against the code or in a browser. Change it in the same commit as a refusal, a `--serve` rule or a prompter data flow it describes.
-- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the nineteen gates guards, the four browser-spec families, and the seventeen specs that build a deck of their own rather than hunting shapes in a real one.
+- `test/README.md` – **the two test suites and which one a thing belongs in**: what each of the twenty gates guards, the four browser-spec families, and the eighteen specs that build a deck of their own rather than hunting shapes in a real one.
 - `PRD.md` – §1 non-negotiables, §2 content model, §2.1 type vocabulary, §3 source format + parsing contract, §4 visual language, §7 speaker view, §9 build system. Read this before making design-shape changes.
 - `speaker.md` – speaker spec and the `window.postMessage` sync protocol (fields, direction, freeze gating, timer, localStorage recovery).
 - `editor.md` – the diagram editor: what it is for, the four decisions, the grammar contract it edits against, the drag policy, and **§15, a build log written while building** – what landed, what it cost, and what bit. Read §15 first if you are picking the work up. §13 answers the two questions the plan left open, from the running prototype, and §14 is how a picture gets into a figure.

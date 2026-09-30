@@ -6946,6 +6946,11 @@ const STRINGS = {
     'reader-code': 'Code, line {line}',
     'reader-code-block': 'Code “{key}”',
     'reader-formula': 'Formula “{key}”',
+    // The search field at the head of the ? panel in both live views, and
+    // the one line that stands in the panel when nothing matches. The rows
+    // themselves are not localised.
+    'help-search': 'find a key or an action',
+    'help-none': 'no key or action matches',
   },
   de: {
     contents: 'Inhalt',
@@ -7009,6 +7014,8 @@ const STRINGS = {
     'reader-code': 'Code, Zeile {line}',
     'reader-code-block': 'Code „{key}“',
     'reader-formula': 'Formel „{key}“',
+    'help-search': 'Taste oder Aktion suchen',
+    'help-none': 'Keine Taste und keine Aktion passt',
   },
 };
 
@@ -13586,7 +13593,16 @@ const GOTO_PROMPT_HTML = `<div id="psiINT-goto-prompt" class="hidden" role="dial
 // does V do". Mouse gestures are listed alongside the keys – several of the
 // most useful ones (resize the notes pane, click a figure to zoom, drag to
 // pan) have no key at all and were previously undiscoverable.
-function renderHelpOverlay(view, withEditor, withSouffleuse) {
+//
+// The search field at its head filters the rows as it is typed into (the
+// runtime half is beside toggleHelp in AUDIENCE_JS). Its two words come from
+// STRINGS; the rows do not, and stay English whatever lang: says.
+//
+// **Every key the key map answers has a row here**, and test/gates/help-keys.mjs
+// holds that: it reads the handlers as text, renders this function, and fails
+// on a key that is answered and not listed – so a new case in the switch is a
+// new row in the same commit, or an entry on that gate's reviewed list.
+function renderHelpOverlay(view, withEditor, withSouffleuse, S = STRINGS.en) {
   const shared = [
     ['Moving around', [
       ['<kbd>Space</kbd> · <kbd>↓</kbd> · <kbd>Enter</kbd> · <kbd>PageDown</kbd>', 'forward: the next reveal or diagram step, then the next slide'],
@@ -13603,7 +13619,7 @@ function renderHelpOverlay(view, withEditor, withSouffleuse) {
       ['click a slide', 'go there and leave the board'],
       ['<kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd>', 'move the selection (the board follows)'],
       ['<kbd>O</kbd> · <kbd>Enter</kbd>', 'land on the selected slide'],
-      ['<kbd>G</kbd>', 'go to a slide by the number in its corner – type the digits, <kbd>Enter</kbd> lands, <kbd>Esc</kbd> cancels'],
+      ['<kbd>G</kbd>', 'go to a slide by the number in its corner – type the digits, <kbd>Backspace</kbd> takes one back, <kbd>Enter</kbd> lands, <kbd>Esc</kbd> cancels'],
       ['<kbd>/</kbd>', 'search – opens from anywhere, see below'],
       ['<kbd>T</kbd>', 'column list'],
     ]],
@@ -13633,10 +13649,14 @@ function renderHelpOverlay(view, withEditor, withSouffleuse) {
       ['<kbd>#</kbd>', 'auto-fit: off → shrink a slide that is too big → size every slide to the screen'],
       ['<kbd>L</kbd>', 'slide numbers: stacked → in a row → off'],
       ['<kbd>M</kbd>', 'the <i>+ note</i> button in the slide\'s left gutter: shown ↔ hidden – pressed here it lands on the projection too, and <kbd>N</kbd> still opens an annotation either way'],
-      ...(view === 'speaker' ? [] : [['<kbd>Shift</kbd>-<kbd>E</kbd>', 'copy the annotations typed with <kbd>N</kbd> out as Markdown for source.md']]),
+      ...(view === 'speaker' ? [] : [
+        ['<kbd>N</kbd>', 'annotation on the slide itself – it fills the frame while you type; an address in it gets a QR code, and <kbd>Esc</kbd> leaves it as a margin note'],
+        ['<kbd>Shift</kbd>-<kbd>E</kbd>', 'copy the annotations typed with <kbd>N</kbd> out as Markdown for source.md'],
+      ]),
       ['<kbd>W</kbd>', 'fullscreen on the projection – nothing of the browser round the slide' + (view === 'speaker'
-        ? '. The browser only grants this to a press in the window itself, so the projection puts up a line to click once; <kbd>Shift</kbd>-<kbd>W</kbd> fills this window instead, and <kbd>Esc</kbd> leaves'
+        ? '. The browser only grants this to a press in the window itself, so the projection puts up a line to click once, and <kbd>Esc</kbd> leaves'
         : ', and <kbd>Esc</kbd> leaves it again')],
+      ...(view === 'speaker' ? [['<kbd>Shift</kbd>-<kbd>W</kbd>', 'fullscreen for this window instead of the projection']] : []),
       ['<kbd>B</kbd>', 'blank the projection – the speaker window keeps working, frozen or not'],
       ['<kbd>D</kbd>', 'live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop; the very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk'],
       ['<kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd>', 'cycle that knob backwards'],
@@ -13660,6 +13680,7 @@ function renderHelpOverlay(view, withEditor, withSouffleuse) {
       ['<kbd>&minus;</kbd> <kbd>+</kbd> in the notes corner', 'notes text size (no hotkey – you type in there)'],
       ['double-click either bar', 'back to automatic size'],
       ['drag the preview strip', 'scroll it · click a thumbnail to jump'],
+      ['click the bar along the top', 'a column name goes to that column\'s first slide, a dot to its slide'],
     ]],
     ['Notes', [
       ['<kbd>Shift</kbd>-<kbd>N</kbd>', 'private notes for this chunk – never shown to the room'],
@@ -13690,18 +13711,19 @@ function renderHelpOverlay(view, withEditor, withSouffleuse) {
     ['<kbd>Ctrl</kbd> while dragging', 'suspend snapping, for when 0.5847 is meant'],
     ['<kbd>Alt</kbd> while dragging', 'leave an align or spread set at once – or just pull half a cell clear of it'],
     ['double-click a waypoint', 'take it off the arrow – the hollow dots on the line put one back'],
-    ['<kbd>Delete</kbd>', 'delete, after listing what refers to it'],
+    ['<kbd>Delete</kbd> · <kbd>Backspace</kbd>', 'delete, after listing what refers to it'],
     ['<kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd>', 'undo · redo'],
     ['<kbd>Ctrl/Cmd</kbd>-<kbd>A</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>D</kbd>', 'select all · duplicate'],
     ['<kbd>Ctrl/Cmd</kbd>-<kbd>C</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>V</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>Shift</kbd>-<kbd>V</kbd>', 'copy · paste · paste in place'],
     ['<kbd>Ctrl/Cmd</kbd>-<kbd>S</kbd>', 'write the block back – into source.md while --watch runs, otherwise to the clipboard'],
     ['<kbd>&lt;</kbd> <kbd>&gt;</kbd>', 'walk the diagram steps – a drag inside a step writes a move into that step'],
     ['<kbd>Space</kbd>-drag · middle-drag · wheel', 'pan · pan · zoom'],
-    ['<kbd>F</kbd>', 'frame: slide → column → print, the three places the figure can land'],
+    ['<kbd>F</kbd> · <kbd>Shift</kbd>-<kbd>F</kbd>', 'frame: slide → column → print, the three places the figure can land · the same the other way round'],
     ['<kbd>,</kbd> <kbd>.</kbd> · <kbd>PageUp</kbd> <kbd>PageDown</kbd>', 'previous / next figure in the lecture'],
     ['<kbd>O</kbd>', 'the figure board'],
     ['<kbd>Shift</kbd>-<kbd>V</kbd>', 'flip the figure strip between the bottom and the right edge'],
     ['<kbd>Esc</kbd>', 'step back out: deselect, then the select tool, then close'],
+    ['<kbd>?</kbd>', 'this panel, over the editor'],
   ]];
   // The prompter's own section, emitted only where the sidecar is running.
   // Its first row is not a key: it is the one thing a person has to know
@@ -13742,12 +13764,15 @@ ${rows.map(([k, v]) => `        <dt>${k}</dt><dd>${v}</dd>`).join('\n')}
       </dl>
     </section>`).join('\n');
 
+  const find = escapeHtml(S['help-search'] || STRINGS.en['help-search']);
   return `<div id="psiINT-help-overlay" class="hidden" role="dialog" aria-label="Keyboard and mouse reference" aria-modal="false">
   <div id="psiINT-help-inner">
     <header>
       <h2>psi-slides · ${view === 'speaker' ? 'speaker cockpit' : 'audience view'}</h2>
+      <input id="psiINT-help-search" type="text" placeholder="${find}" aria-label="${find}" autocomplete="off" spellcheck="false">
       <span class="help-dismiss"><kbd>?</kbd> or <kbd>Esc</kbd> closes</span>
     </header>
+    <p class="help-none" hidden>${escapeHtml(S['help-none'] || STRINGS.en['help-none'])}</p>
     <div class="help-grid">
 ${sections}
     </div>
@@ -13843,7 +13868,7 @@ ${columnsHtml}
 <div id="psiINT-laser-pointer" aria-hidden="true"></div>
 <div id="psiINT-figure-overlay" aria-hidden="true"></div>
 ${TOUCH_CONTROLS_HTML}
-${renderHelpOverlay('audience', !!editorPayload(frontmatter, columnsHtml, 'audience'))}
+${renderHelpOverlay('audience', !!editorPayload(frontmatter, columnsHtml, 'audience'), false, S)}
 <div id="psiINT-mode-badge"></div>
 ${OVERVIEW_BADGE_HTML}
 ${SEARCH_PANEL_HTML}
@@ -18335,6 +18360,28 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
   font-weight: 600;
 }
 #psiINT-help-inner .help-dismiss { font-size: 0.7rem; color: var(--ink-soft); letter-spacing: 0.06em; }
+/* The search field: a line to type on, in the panel's own small type, and
+   nothing else - the panel is a reference, and the field is how to get to a
+   row in it, not a second thing to look at. It takes the room between the
+   title and the dismiss hint, up to a measure a phrase fits in. */
+#psiINT-help-search {
+  flex: 1 1 14em;
+  max-width: 24em;
+  margin-left: auto;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 0.15em 0.1em;
+  outline: none;
+}
+#psiINT-help-search::placeholder { color: var(--ink-soft); opacity: 0.8; }
+#psiINT-help-search:focus { border-bottom-color: var(--ink-soft); }
+#psiINT-help-inner .help-none { margin: 0 0 0.6rem; font-size: 0.78rem; color: var(--ink-soft); }
+#psiINT-help-inner [hidden] { display: none; }
 .help-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
@@ -22001,7 +22048,90 @@ function toggleHelp(force) {
   if (!helpOverlay) return;
   const show = force === undefined ? !helpVisible() : !!force;
   helpOverlay.classList.toggle('hidden', !show);
+  if (!helpSearch) return;
+  if (show) {
+    // Opened empty every time: a filter left over from the last visit would
+    // show a panel with most of its rows missing and no reason why.
+    helpSearch.value = '';
+    filterHelp();
+    // Not on a touchscreen, where focusing a field puts up a keyboard over
+    // half of the panel it was opened to read.
+    if (!(window.matchMedia && window.matchMedia('(hover: none)').matches)) {
+      helpSearch.focus({ preventScroll: true });
+    }
+  } else if (document.activeElement === helpSearch) {
+    // A hidden field that keeps the focus would keep the keyboard too, and
+    // the key map stands aside for any focused input.
+    helpSearch.blur();
+  }
 }
+
+// ── the search field at the head of the ? panel ─────────────────────
+// Filters the rows as it is typed into. A row matches when every word of
+// the query is in it: a word of two or more characters anywhere in the key
+// column, the description or the section title; a single character only as
+// a key, because B or / typed alone means that key and not every row whose
+// prose contains the letter. Case and diacritics are folded on both sides.
+// The keys are read off the rows' kbd elements, with the arrow glyphs and
+// Esc given the words a person types for them.
+//
+// While the field has the focus the key map stands aside, in the keydown
+// listener's input guard, so b types a b there rather than blanking the
+// projection. Esc empties a field with text in it and closes the panel from
+// an empty one; ? closes it from an empty one too, since the dismiss line
+// says ? closes.
+const helpSearch = helpOverlay ? helpOverlay.querySelector('#psiINT-help-search') : null;
+const helpNone = helpOverlay ? helpOverlay.querySelector('.help-none') : null;
+const HELP_KEY_WORDS = {
+  '↑': 'up arrow', '↓': 'down arrow', '←': 'left arrow', '→': 'right arrow',
+  'esc': 'escape', '/': 'slash', '?': 'question mark', '#': 'hash',
+  '+': 'plus', '-': 'minus', '−': 'minus', ',': 'comma', '.': 'period',
+};
+function helpFold(str) {
+  return String(str || '').normalize('NFD').replace(/[\\u0300-\\u036f]/g, '').toLowerCase();
+}
+let helpIndex = null;
+function helpRows() {
+  if (helpIndex) return helpIndex;
+  helpIndex = [];
+  if (!helpOverlay) return helpIndex;
+  for (const sec of helpOverlay.querySelectorAll('.help-grid section')) {
+    const h = sec.querySelector('h3');
+    const title = h ? h.textContent : '';
+    const rows = [];
+    for (const dt of sec.querySelectorAll('dt')) {
+      const dd = dt.nextElementSibling;
+      const keys = [...dt.querySelectorAll('kbd')].map((k) => helpFold(k.textContent.trim()));
+      // 1–9 is written as two keys and a dash, and means the seven between.
+      const range = dt.innerHTML.match(/<kbd>(\\d)<\\/kbd>–<kbd>(\\d)<\\/kbd>/);
+      if (range) for (let d = +range[1] + 1; d < +range[2]; d++) keys.push(String(d));
+      const words = keys.map((k) => HELP_KEY_WORDS[k] || '').join(' ');
+      rows.push({
+        dt, dd, keys,
+        hay: helpFold(dt.textContent + ' ' + (dd ? dd.textContent : '') + ' ' + words + ' ' + title),
+      });
+    }
+    helpIndex.push({ sec, rows });
+  }
+  return helpIndex;
+}
+function filterHelp() {
+  if (!helpSearch) return;
+  const terms = helpFold(helpSearch.value).trim().split(/\\s+/).filter(Boolean);
+  let shown = 0;
+  for (const { sec, rows } of helpRows()) {
+    let any = false;
+    for (const r of rows) {
+      const hit = terms.every((t) => t.length === 1 ? r.keys.includes(t) : r.hay.includes(t));
+      r.dt.hidden = !hit;
+      if (r.dd) r.dd.hidden = !hit;
+      if (hit) { any = true; shown++; }
+    }
+    sec.hidden = !any;
+  }
+  if (helpNone) helpNone.hidden = shown > 0;
+}
+if (helpSearch) helpSearch.addEventListener('input', filterHelp);
 if (helpButton) helpButton.addEventListener('click', () => toggleHelp(true));
 // Click anywhere on the scrim closes; clicks inside the panel do not, so
 // the reference stays open while you read it and try a key.
@@ -22735,6 +22865,18 @@ function announceFullscreen() {
 // Keyboard
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('.annot-textarea')) return;
+  // The ? panel's search field: every key types, except the two that close.
+  if (e.target === helpSearch) {
+    if (e.key === 'Escape') {
+      if (helpSearch.value) { helpSearch.value = ''; filterHelp(); }
+      else toggleHelp(false);
+      e.preventDefault();
+    } else if (e.key === '?' && !helpSearch.value) {
+      toggleHelp(false);
+      e.preventDefault();
+    }
+    return;
+  }
   // Search input: Enter commits, Esc exits search; other keys bubble to input.
   if (e.target === searchInput) {
     if (e.key === 'Enter') { commitSearchHit(); e.preventDefault(); }
@@ -23908,7 +24050,7 @@ ${columnsHtml}
 ${noteTemplates.join('\n')}
 </div>
 ${TOUCH_CONTROLS_HTML}
-${renderHelpOverlay('speaker', !!editorPayload(frontmatter, columnsHtml, 'speaker'), !!souffSettings)}
+${renderHelpOverlay('speaker', !!editorPayload(frontmatter, columnsHtml, 'speaker'), !!souffSettings, S)}
 <div id="psiINT-mode-badge"></div>
 <div id="psiINT-center-toast" role="status" aria-live="polite"></div>${souffleuseChrome}
 ${OVERVIEW_BADGE_HTML}

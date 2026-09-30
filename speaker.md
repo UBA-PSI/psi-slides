@@ -263,7 +263,11 @@ Without a sidecar the socket answers a `souffleuse-*` message with `ok: false` a
 
 Both live views ship a full-screen keyboard-and-mouse reference on `?` (or the small `?` button in the corner / footer). It is grouped **by task, not by key**, and lists mouse gestures next to keys: several of the most useful affordances (resize the notes pane, click a figure to zoom it, drag to pan the overview board) have no key at all and were previously undiscoverable. `Esc` closes it ahead of every other Esc target; clicking the scrim closes, clicking inside does not, so the panel can stay open while you try a key.
 
-The speaker's copy leads with “Arranging this window”, “Notes”, and “The projector”; the audience's copy omits those and adds `S`. Generated once by `renderHelpOverlay(view)` in build.js so a label change lands in both.
+**A search field heads the panel** and has the focus when it opens (except on a touchscreen, where a focused field puts a keyboard over the panel). Typing filters the rows: every word of the query has to be in a row – its key column, its description or its section title, case and diacritics folded – and a single character matches keys only, so `b` finds the `B` row and not every row with a b in it. While the field has the focus the key map stands aside (the listener's input guard), so a letter typed there is a letter. `Esc` empties a field with text in it and closes the panel from an empty one; `?` in an empty field closes it too. The placeholder and the line shown when nothing matches follow `lang:` (`help-search`, `help-none` in `STRINGS`); the rows are English. The panel opens unfiltered every time.
+
+**Every key the key map answers has a row**, and `test/gates/help-keys.mjs` holds that: it reads the handlers as text and fails on a key with no row, unless the key is on its reviewed `NOT_A_ROW` list with a reason (plain `E`, `=` and `_` as spellings of `+` and `-`, and the keys one view answers the same with and without `Shift`).
+
+The speaker's copy leads with “Arranging this window”, “Notes”, and “The projector”; the audience's copy omits those and adds `S`, and `N` and `Shift-E` for its own annotations; the cockpit's lists `Shift-W` beside `W`. Generated once by `renderHelpOverlay(view)` in build.js so a label change lands in both.
 
 ### 4.2 Keyboard (speaker)
 

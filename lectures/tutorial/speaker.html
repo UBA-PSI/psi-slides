@@ -4486,6 +4486,28 @@ body:not([data-view=speaker]).blanked #psiINT-fullscreen-hint { display: none; }
   font-weight: 600;
 }
 #psiINT-help-inner .help-dismiss { font-size: 0.7rem; color: var(--ink-soft); letter-spacing: 0.06em; }
+/* The search field: a line to type on, in the panel's own small type, and
+   nothing else - the panel is a reference, and the field is how to get to a
+   row in it, not a second thing to look at. It takes the room between the
+   title and the dismiss hint, up to a measure a phrase fits in. */
+#psiINT-help-search {
+  flex: 1 1 14em;
+  max-width: 24em;
+  margin-left: auto;
+  font: inherit;
+  font-size: 0.78rem;
+  color: var(--ink);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid var(--rule);
+  border-radius: 0;
+  padding: 0.15em 0.1em;
+  outline: none;
+}
+#psiINT-help-search::placeholder { color: var(--ink-soft); opacity: 0.8; }
+#psiINT-help-search:focus { border-bottom-color: var(--ink-soft); }
+#psiINT-help-inner .help-none { margin: 0 0 0.6rem; font-size: 0.78rem; color: var(--ink-soft); }
+#psiINT-help-inner [hidden] { display: none; }
 .help-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(330px, 1fr));
@@ -10216,8 +10238,10 @@ The sheet stays on screen when the prose around it is shortened away, so present
   <div id="psiINT-help-inner">
     <header>
       <h2>psi-slides · speaker cockpit</h2>
+      <input id="psiINT-help-search" type="text" placeholder="find a key or an action" aria-label="find a key or an action" autocomplete="off" spellcheck="false">
       <span class="help-dismiss"><kbd>?</kbd> or <kbd>Esc</kbd> closes</span>
     </header>
+    <p class="help-none" hidden>no key or action matches</p>
     <div class="help-grid">
     <section>
       <h3>Cue cards</h3>
@@ -10240,6 +10264,7 @@ The sheet stays on screen when the prose around it is shortened away, so present
         <dt><kbd>&minus;</kbd> <kbd>+</kbd> in the notes corner</dt><dd>notes text size (no hotkey – you type in there)</dd>
         <dt>double-click either bar</dt><dd>back to automatic size</dd>
         <dt>drag the preview strip</dt><dd>scroll it · click a thumbnail to jump</dd>
+        <dt>click the bar along the top</dt><dd>a column name goes to that column's first slide, a dot to its slide</dd>
       </dl>
     </section>
     <section>
@@ -10279,7 +10304,7 @@ The sheet stays on screen when the prose around it is shortened away, so present
         <dt>click a slide</dt><dd>go there and leave the board</dd>
         <dt><kbd>↑</kbd><kbd>↓</kbd><kbd>←</kbd><kbd>→</kbd></dt><dd>move the selection (the board follows)</dd>
         <dt><kbd>O</kbd> · <kbd>Enter</kbd></dt><dd>land on the selected slide</dd>
-        <dt><kbd>G</kbd></dt><dd>go to a slide by the number in its corner – type the digits, <kbd>Enter</kbd> lands, <kbd>Esc</kbd> cancels</dd>
+        <dt><kbd>G</kbd></dt><dd>go to a slide by the number in its corner – type the digits, <kbd>Backspace</kbd> takes one back, <kbd>Enter</kbd> lands, <kbd>Esc</kbd> cancels</dd>
         <dt><kbd>/</kbd></dt><dd>search – opens from anywhere, see below</dd>
         <dt><kbd>T</kbd></dt><dd>column list</dd>
       </dl>
@@ -10318,7 +10343,8 @@ The sheet stays on screen when the prose around it is shortened away, so present
         <dt><kbd>#</kbd></dt><dd>auto-fit: off → shrink a slide that is too big → size every slide to the screen</dd>
         <dt><kbd>L</kbd></dt><dd>slide numbers: stacked → in a row → off</dd>
         <dt><kbd>M</kbd></dt><dd>the <i>+ note</i> button in the slide's left gutter: shown ↔ hidden – pressed here it lands on the projection too, and <kbd>N</kbd> still opens an annotation either way</dd>
-        <dt><kbd>W</kbd></dt><dd>fullscreen on the projection – nothing of the browser round the slide. The browser only grants this to a press in the window itself, so the projection puts up a line to click once; <kbd>Shift</kbd>-<kbd>W</kbd> fills this window instead, and <kbd>Esc</kbd> leaves</dd>
+        <dt><kbd>W</kbd></dt><dd>fullscreen on the projection – nothing of the browser round the slide. The browser only grants this to a press in the window itself, so the projection puts up a line to click once, and <kbd>Esc</kbd> leaves</dd>
+        <dt><kbd>Shift</kbd>-<kbd>W</kbd></dt><dd>fullscreen for this window instead of the projection</dd>
         <dt><kbd>B</kbd></dt><dd>blank the projection – the speaker window keeps working, frozen or not</dd>
         <dt><kbd>D</kbd></dt><dd>live demo: a window or a screen of this machine on the projection, until D again – pressed in the cockpit, the picker opens on the laptop; the very first capture on a Mac fails while macOS asks for screen-recording rights, so try it once before the talk</dd>
         <dt><kbd>Shift</kbd>-<kbd>C</kbd> <kbd>F</kbd> <kbd>A</kbd> <kbd>L</kbd></dt><dd>cycle that knob backwards</dd>
@@ -10341,18 +10367,19 @@ The sheet stays on screen when the prose around it is shortened away, so present
         <dt><kbd>Ctrl</kbd> while dragging</dt><dd>suspend snapping, for when 0.5847 is meant</dd>
         <dt><kbd>Alt</kbd> while dragging</dt><dd>leave an align or spread set at once – or just pull half a cell clear of it</dd>
         <dt>double-click a waypoint</dt><dd>take it off the arrow – the hollow dots on the line put one back</dd>
-        <dt><kbd>Delete</kbd></dt><dd>delete, after listing what refers to it</dd>
+        <dt><kbd>Delete</kbd> · <kbd>Backspace</kbd></dt><dd>delete, after listing what refers to it</dd>
         <dt><kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd> · <kbd>Shift</kbd>-<kbd>Ctrl/Cmd</kbd>-<kbd>Z</kbd></dt><dd>undo · redo</dd>
         <dt><kbd>Ctrl/Cmd</kbd>-<kbd>A</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>D</kbd></dt><dd>select all · duplicate</dd>
         <dt><kbd>Ctrl/Cmd</kbd>-<kbd>C</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>V</kbd> · <kbd>Ctrl/Cmd</kbd>-<kbd>Shift</kbd>-<kbd>V</kbd></dt><dd>copy · paste · paste in place</dd>
         <dt><kbd>Ctrl/Cmd</kbd>-<kbd>S</kbd></dt><dd>write the block back – into source.md while --watch runs, otherwise to the clipboard</dd>
         <dt><kbd>&lt;</kbd> <kbd>&gt;</kbd></dt><dd>walk the diagram steps – a drag inside a step writes a move into that step</dd>
         <dt><kbd>Space</kbd>-drag · middle-drag · wheel</dt><dd>pan · pan · zoom</dd>
-        <dt><kbd>F</kbd></dt><dd>frame: slide → column → print, the three places the figure can land</dd>
+        <dt><kbd>F</kbd> · <kbd>Shift</kbd>-<kbd>F</kbd></dt><dd>frame: slide → column → print, the three places the figure can land · the same the other way round</dd>
         <dt><kbd>,</kbd> <kbd>.</kbd> · <kbd>PageUp</kbd> <kbd>PageDown</kbd></dt><dd>previous / next figure in the lecture</dd>
         <dt><kbd>O</kbd></dt><dd>the figure board</dd>
         <dt><kbd>Shift</kbd>-<kbd>V</kbd></dt><dd>flip the figure strip between the bottom and the right edge</dd>
         <dt><kbd>Esc</kbd></dt><dd>step back out: deselect, then the select tool, then close</dd>
+        <dt><kbd>?</kbd></dt><dd>this panel, over the editor</dd>
       </dl>
     </section>
     <section>
@@ -16462,7 +16489,90 @@ function toggleHelp(force) {
   if (!helpOverlay) return;
   const show = force === undefined ? !helpVisible() : !!force;
   helpOverlay.classList.toggle('hidden', !show);
+  if (!helpSearch) return;
+  if (show) {
+    // Opened empty every time: a filter left over from the last visit would
+    // show a panel with most of its rows missing and no reason why.
+    helpSearch.value = '';
+    filterHelp();
+    // Not on a touchscreen, where focusing a field puts up a keyboard over
+    // half of the panel it was opened to read.
+    if (!(window.matchMedia && window.matchMedia('(hover: none)').matches)) {
+      helpSearch.focus({ preventScroll: true });
+    }
+  } else if (document.activeElement === helpSearch) {
+    // A hidden field that keeps the focus would keep the keyboard too, and
+    // the key map stands aside for any focused input.
+    helpSearch.blur();
+  }
 }
+
+// ── the search field at the head of the ? panel ─────────────────────
+// Filters the rows as it is typed into. A row matches when every word of
+// the query is in it: a word of two or more characters anywhere in the key
+// column, the description or the section title; a single character only as
+// a key, because B or / typed alone means that key and not every row whose
+// prose contains the letter. Case and diacritics are folded on both sides.
+// The keys are read off the rows' kbd elements, with the arrow glyphs and
+// Esc given the words a person types for them.
+//
+// While the field has the focus the key map stands aside, in the keydown
+// listener's input guard, so b types a b there rather than blanking the
+// projection. Esc empties a field with text in it and closes the panel from
+// an empty one; ? closes it from an empty one too, since the dismiss line
+// says ? closes.
+const helpSearch = helpOverlay ? helpOverlay.querySelector('#psiINT-help-search') : null;
+const helpNone = helpOverlay ? helpOverlay.querySelector('.help-none') : null;
+const HELP_KEY_WORDS = {
+  '↑': 'up arrow', '↓': 'down arrow', '←': 'left arrow', '→': 'right arrow',
+  'esc': 'escape', '/': 'slash', '?': 'question mark', '#': 'hash',
+  '+': 'plus', '-': 'minus', '−': 'minus', ',': 'comma', '.': 'period',
+};
+function helpFold(str) {
+  return String(str || '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+let helpIndex = null;
+function helpRows() {
+  if (helpIndex) return helpIndex;
+  helpIndex = [];
+  if (!helpOverlay) return helpIndex;
+  for (const sec of helpOverlay.querySelectorAll('.help-grid section')) {
+    const h = sec.querySelector('h3');
+    const title = h ? h.textContent : '';
+    const rows = [];
+    for (const dt of sec.querySelectorAll('dt')) {
+      const dd = dt.nextElementSibling;
+      const keys = [...dt.querySelectorAll('kbd')].map((k) => helpFold(k.textContent.trim()));
+      // 1–9 is written as two keys and a dash, and means the seven between.
+      const range = dt.innerHTML.match(/<kbd>(\d)<\/kbd>–<kbd>(\d)<\/kbd>/);
+      if (range) for (let d = +range[1] + 1; d < +range[2]; d++) keys.push(String(d));
+      const words = keys.map((k) => HELP_KEY_WORDS[k] || '').join(' ');
+      rows.push({
+        dt, dd, keys,
+        hay: helpFold(dt.textContent + ' ' + (dd ? dd.textContent : '') + ' ' + words + ' ' + title),
+      });
+    }
+    helpIndex.push({ sec, rows });
+  }
+  return helpIndex;
+}
+function filterHelp() {
+  if (!helpSearch) return;
+  const terms = helpFold(helpSearch.value).trim().split(/\s+/).filter(Boolean);
+  let shown = 0;
+  for (const { sec, rows } of helpRows()) {
+    let any = false;
+    for (const r of rows) {
+      const hit = terms.every((t) => t.length === 1 ? r.keys.includes(t) : r.hay.includes(t));
+      r.dt.hidden = !hit;
+      if (r.dd) r.dd.hidden = !hit;
+      if (hit) { any = true; shown++; }
+    }
+    sec.hidden = !any;
+  }
+  if (helpNone) helpNone.hidden = shown > 0;
+}
+if (helpSearch) helpSearch.addEventListener('input', filterHelp);
 if (helpButton) helpButton.addEventListener('click', () => toggleHelp(true));
 // Click anywhere on the scrim closes; clicks inside the panel do not, so
 // the reference stays open while you read it and try a key.
@@ -17196,6 +17306,18 @@ function announceFullscreen() {
 // Keyboard
 document.addEventListener('keydown', (e) => {
   if (e.target.matches('.annot-textarea')) return;
+  // The ? panel's search field: every key types, except the two that close.
+  if (e.target === helpSearch) {
+    if (e.key === 'Escape') {
+      if (helpSearch.value) { helpSearch.value = ''; filterHelp(); }
+      else toggleHelp(false);
+      e.preventDefault();
+    } else if (e.key === '?' && !helpSearch.value) {
+      toggleHelp(false);
+      e.preventDefault();
+    }
+    return;
+  }
   // Search input: Enter commits, Esc exits search; other keys bubble to input.
   if (e.target === searchInput) {
     if (e.key === 'Enter') { commitSearchHit(); e.preventDefault(); }
@@ -37520,6 +37642,9 @@ function dgeRenderTools() {
 // not a nicety.
 function dgeKeydown(ev) {
   if (!DGE.open) return;
+  // The ? panel's search field belongs to the panel, which answers its keys
+  // itself - Esc there empties the field before it closes anything.
+  if (ev.target.id === 'psiINT-help-search') return;
   const tag = (ev.target.tagName || '').toLowerCase();
   if (tag === 'input' || tag === 'textarea') {
     if (ev.key === 'Escape') ev.target.blur();
@@ -38091,7 +38216,10 @@ function dgeNewFigure() {
   } else done(false);
 }
 
+// The view's own toggle when it is there, so the panel opens the way ?
+// opens it on a slide - emptied, with the search field focused.
 function dgeHelp() {
+  if (typeof window.toggleHelp === 'function') { window.toggleHelp(); return; }
   const help = document.getElementById('psiINT-help-overlay');
   if (help) help.classList.toggle('hidden');
 }

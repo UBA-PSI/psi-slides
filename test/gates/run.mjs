@@ -9,7 +9,7 @@
  * two agree – in seconds, on a bare checkout, with no `npm install` and no
  * Chromium, because both of those files are zero-dependency by design.
  *
- * Nineteen gates, and they prove nineteen different things – which is worth stating
+ * Twenty gates, and they prove twenty different things – which is worth stating
  * because a green run summarised as one number hid a wrong drawing behind a
  * passing parse:
  *
@@ -70,6 +70,9 @@
  *   id-namespace  every id the build writes or looks up by literal starts
  *              with psiINT-, or is on a reviewed list of sites that emit the
  *              author's own ids or build one from a psiINT- prefix
+ *   help-keys  every key the live views answer has a row in their ? panel:
+ *              the handlers read as text, the panel rendered, and a
+ *              reviewed list of the keys answered without one
  *
  * `test/run.mjs` is the other half and stays separate: it builds and serves
  * the lectures, launches a browser and takes about four minutes. Splitting
@@ -100,6 +103,7 @@ const GATES = [
   './untrusted.mjs',
   './pdf-core.mjs',
   './id-namespace.mjs',
+  './help-keys.mjs',
 ];
 
 const filter = process.argv.slice(2).filter(a => !a.startsWith('-'));

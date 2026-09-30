@@ -366,6 +366,7 @@ const LABEL_KEYS = new Set([
   'reader-fig-mark', 'reader-lb-spot', 'reader-lb-close', 'reader-fig',
   'reader-fig-at', 'reader-fig-spot', 'reader-fig-approx', 'reader-code-mark',
   'reader-formula-mark', 'reader-code', 'reader-code-block', 'reader-formula',
+  'help-search', 'help-none',
 ]);
 const LABEL_TYPE_KEYS = new Set([
   'principle', 'definition', 'example', 'question', 'exercise', 'outline', 'figure',
