@@ -289,6 +289,20 @@ A third set concerns the two live views while a talk runs:
 
 ### Changed
 
+- **Breaking, strictly: an `{#id}` may not start with `psiINT-`.** Every id
+  the build invents now starts with it – the cockpit's and the projection's
+  chrome (`psiINT-clock`, `psiINT-stage`, `psiINT-toc`, the prompter's
+  `psiINT-souffleuse-*`), the editor's `psiINT-dge-*`, the ids inside an
+  inlined SVG asset (`psiINT-fig-N-`) and a figure (`psiINT-dgN-`), and a
+  `::: pulse` question's element (`psiINT-pulse-<key>`, where it was
+  `pulse-<key>`; the key the Pulse server files it under is unchanged). A
+  chunk with an id such as `#clock`, `#stage` or `#toc` used to be the element
+  the chrome's code found, so the chrome acted on the slide and the build
+  exited 0; the tutorial's own `#toc` chunk needed a workaround. An author id
+  in the reserved range is refused on a `##` chunk and a `#` column heading,
+  by the build and by the linter as `reserved-id`. The match is
+  case-sensitive, as the browser's is, so `psiint-` and `psi-` stay free. No
+  lecture in this repository or in the content repository uses such an id.
 - **A `--pdf-*` option that would do nothing is refused.** `--pdf-beats`,
   `--pdf-size`, `--pdf-zoom`, `--pdf-zoom-max` and `--pdf-collapse` without
   `--slides-pdf`, and `--pdf-out` without any PDF flag, used to be ignored by

@@ -4,6 +4,26 @@ Stand nach dem Content-Fidelity-Slice + Polish-Pass. Was der letzte HANDOFF als 
 
 Nach dem Bau-Slice sind drei kleinere UX-Korrekturen gelandet (siehe §Polish-Pass unten): Focus-Overlay hat jetzt solid-paper Background, Text-Selection ist in den Live-Views unterdrückt, und das Marginalia-Vokabular ist in `python-intro` zugunsten von Expandables reduziert (2 Marginalia → 2 Expandables, plus 6 neue Expandables).
 
+## Slice: the build's ids have a namespace of their own
+
+An author's `{#id}` and the chrome's ids were one HTML namespace, and the
+chunk articles come first in document order, so a chunk called `#clock` or
+`#stage` was what the chrome's `getElementById` found – `#toc` and
+`#cue-panel` had each cost a workaround. Now **every id the build invents
+starts with `psiINT-`** (`bc8bad6`: 110 chrome ids, the editor's `dge-*`,
+`psiINT-fig-N-`, `psiINT-sym-N`, `psiINT-dgN-`, the reader's part lists, the
+PDF pages; the `nav#toc` workaround went), and **an author id that does is
+refused** as `reserved-id` – by `parseTail` in `tails.mjs`, so build and
+linter share one check on both kinds of heading. `test/gates/id-namespace.mjs`
+reads every id site in build.js, editor.mjs, diagram-core.mjs, pdf-core.mjs
+and cue-cards.mjs and holds each to a `psiINT-` literal or a counted
+allow-list of the sites that emit author ids; its first run found
+`psi-pdf-css`, which slice one had missed. A `::: pulse` question's element
+moved to `psiINT-pulse-<key>`: only the widget's summary links read it, and
+the key sent to the server is unchanged. Left in the author's namespace: a
+divider's `{id}-section` (guarded by `assertDistinctIds`) and the inner
+pieces `pulse-embed.js` names itself (`pulse-N-a`, `pulse-email-N`).
+
 ## Slice: self-test questions and the PDF export reach main
 
 Two branches landed on one day, both in `## [Unreleased]` and both going out

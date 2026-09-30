@@ -1117,7 +1117,7 @@ block in the lecture. `renderDiagram()` is called **once**, at parse time, and
 its HTML goes into all four views, so the payload rides along with it:
 
 ```html
-<script type="application/json" class="psi-diagram-source" data-for="dg3-root">
+<script type="application/json" class="psi-diagram-source" data-for="psiINT-dg3-root">
   {"body": "...", "attrs": "unit=130x76", "chunk": "cbc", "width": "full",
    "range": [4211, 4530], "images": {"alice": {"href": "data:…", "aspect": 1.4}}}
 </script>
@@ -1783,7 +1783,7 @@ would have offered each figure twice. Deduplicated by the SVG element.
 like the compiler. The editor opens from the focus card's own button or `E`,
 and everything in §4.2 is bound.
 
-**Phase 4, the frame.** Computed, not chosen. `#dge-frame` is a real
+**Phase 4, the frame.** Computed, not chosen. `#psiINT-dge-frame` is a real
 destination – the chunk's own width class at the *measured* em of a live
 `.chunk`, so it moves with the zoom key and with auto-fit – and the drawing
 inside carries the same `max-width: 100%` and `max-height: 62vh` the live
@@ -1837,7 +1837,7 @@ in the compiler.** None would have shown up in a unit test:
    frame's *size*; pan stays a transform, which is exactly the thing that
    should not affect layout.
 4. **The entry point hung the tab.** The pencil button was appended into the
-   `#figure-overlay` subtree its own `MutationObserver` was watching, so
+   `#psiINT-figure-overlay` subtree its own `MutationObserver` was watching, so
    inserting it was a mutation, which re-ran the sync, which inserted it
    again. It lives on `document.body` now – it is `position: fixed` either
    way.
@@ -1845,7 +1845,7 @@ in the compiler.** None would have shown up in a unit test:
 Two smaller ones: the guide layer was pinned to the frame rather than to the
 drawing, so it was offset by the frame's padding; and `frozen` / `state` are
 top-level `let`/`const` in a classic script and therefore **not** properties
-of `window` – the room indicator reads the cockpit's own `#freeze-btn`
+of `window` – the room indicator reads the cockpit's own `#psiINT-freeze-btn`
 instead, which is the state made visible anyway.
 
 Verified in a real browser, all on `lectures/diagrams`:

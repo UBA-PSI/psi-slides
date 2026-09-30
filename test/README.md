@@ -4,7 +4,7 @@ Two suites, split by one question: **can this be decided without a browser?**
 
 - **`test/gates/`** – everything that can, which is no longer only the figure
   language and the `{…}` tail grammar: a gate is the right home for any
-  hand-mirrored list one file keeps of another's. Eighteen gates, about two seconds,
+  hand-mirrored list one file keeps of another's. Nineteen gates, about two seconds,
   no browser and no `npm install`. Run by `gates.yml` on push and pull
   request.
 - **`test/`** – the things that only break in a built page. 48 specs, about 1,500
@@ -50,11 +50,11 @@ node test/run.mjs nav               # specs whose name matches
 npm run reproducible                # same bytes under any flag set
 ```
 
-## The gates: eighteen contracts
+## The gates: nineteen contracts
 
 `diagram-core.mjs`, `tails.mjs`, `cue-cards.mjs`, `souffleuse.mjs`, `pdf-core.mjs`
 and `lint.js` are all zero-dependency, which is what makes this suite runnable
-with nothing installed. Eighteen gates, about 1,700 assertions, about two
+with nothing installed. Nineteen gates, about 1,700 assertions, about two
 seconds.
 
 | gate | the contract |
@@ -77,6 +77,7 @@ seconds.
 | `overlap` | the overlap census measures ink: a `text` is compared as the rectangles it inks, one per line, and not as its block of line boxes, which is `DG_LINE_H` tall where only `DG_INK_H` of it is glyphs and as wide as its *widest* line. The fixtures are transcriptions – the geometry `#ns-a41` shipped struck through, the redraw beside it, and the ragged pair in `#ns-a49` that must stay silent. That no *real* figure gains a warning is `corpus`'s ceiling, not this |
 | `untrusted` | building a `source.md` somebody sent you, the half decidable without a build: the frontmatter language (`---js` is `eval` inside gray-matter) read the same way in `build.js` and `lint.js`, and gray-matter reached only through `safeMatter`; the asset root (the lecture's folder and the one above it, the lecture's folder alone when the one above is an injected home folder, never a dot-folder, a link only to a file of the kind its name says) on a real tree with real links, in both files; an output written over a link replaces it and an append refuses it; ImageMagick told its decoder. The build-level half – a real build refusing a real deck, and what is on disk afterwards – is the last block of `test/settings.mjs` |
 | `pdf-core` | the PDF export's policy without a browser. A driver that only records its calls holds the order `exportSlides` asks for things in – the network refused before the page loads, auto-fit and the collapse before the walk, the print DOM before the pdf, on `screen` media – because that order is what the Playwright driver and the desktop app's Electron driver must share and neither driver's own test can see. And `exportDocument`'s shorter one – open before load, pictures decoded before they are inspected, a `::: pulse` answer opened before the pictures are settled, the pdf on `print` media at the view's own `@page` size – plus the watch build's reload socket, refused but counted apart from the deck's requests. Plus the option checks, refusing in the words `pdfOptionsFrom` used before they moved, and `formatReport`'s lines for fixed results of both exports. That the pages come out right is `test/pdf-export.mjs` |
+| `id-namespace` | every id the build invents starts with `psiINT-`: each `id="…"`, `.id =`, `dgeEl({id})`, literal `getElementById` and `#word` in a literal `querySelector` in build.js, editor.mjs, diagram-core.mjs, pdf-core.mjs and cue-cards.mjs is a `psiINT-` literal or on a counted allow-list of the sites that emit the author's own ids or build one from a `psiINT-` prefix (the prefixes themselves are asserted). The author's half of the fence, `reserved-id`, is in `tails` and `test/settings.mjs` |
 
 **`frontmatter` is the one gate that is not about figures**, and it is here
 because the shape is the one this suite exists for: a closed list in one file

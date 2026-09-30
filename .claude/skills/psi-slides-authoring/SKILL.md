@@ -127,6 +127,11 @@ of the live deck. A chunk may appear before the first `#`; that is how the
   **IDs are frozen once authored**: they anchor cross-references, the TOC,
   speaker-sync snapshots, exported annotations, and `localStorage`. Renaming a
   heading is free; renaming an id is not.
+- **An id may not start with `psiINT-`** (capitals as written; `psiint-` and
+  `psi-` are yours). That range is the build's own – every piece of the
+  chrome, the generated figure ids – so a chunk can never be the same element
+  as the cockpit's clock or the contents list. Build and linter refuse it
+  alike, as `reserved-id`, on a `##` chunk and a `#` column heading.
 
 Types (eleven, exhaustive) and what they mean in practice:
 
@@ -1799,7 +1804,7 @@ node build.js <source.md> --check-fit [--viewport 1600x900]
 
 Walks the built `audience.html` state by state – pressing the key, so a figure
 step and a reveal each get measured – and compares each `.chunk-content` box
-against `#stage-viewport`. **1600x900 is the default because a projector is
+against `#psiINT-stage-viewport`. **1600x900 is the default because a projector is
 16:9**: `.wide` resolves through auto-fit, so the em and every wrapped card and
 row are functions of the viewport, and two chunks that measured inside the
 frame at a laptop's 1440x810 are 835 and 836 px tall in a 900 px 16:9 one.

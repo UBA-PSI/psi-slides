@@ -1,6 +1,6 @@
 ---
 name: psi-slides-prompter
-description: The live prompter in the psi-slides cockpit (`--prompter`, internal codename Souffleuse) – the pure half in `souffleuse.mjs` (`deckPayload`, `systemPrefix`, `tickMessage`, `parseAnswer`, `driftSeconds`, `shouldTick`, `createPolicy`, `TOOL_SCHEMA`), the Node sidecar `createSouffleuse` in build.js with its OpenRouter request, backoff and JSONL log, the `souffleuse-*` messages on the watch socket, the cockpit's ear and `#souffleuse-strip` under `Shift`-`S`, and the config surface (`--prompter`, `--prompter-model`, `--prompter-dry-run`, `--prompter-replay`, `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, the `prompter:` frontmatter block, `SOUFFLEUSE_SPEC`, top-level `duration:`). Use when changing any of those, their `lint.js` mirrors, `test/gates/souffleuse.mjs` or `test/souffleuse.mjs`, or when the prompter says nothing, says too much, or shows a badge.
+description: The live prompter in the psi-slides cockpit (`--prompter`, internal codename Souffleuse) – the pure half in `souffleuse.mjs` (`deckPayload`, `systemPrefix`, `tickMessage`, `parseAnswer`, `driftSeconds`, `shouldTick`, `createPolicy`, `TOOL_SCHEMA`), the Node sidecar `createSouffleuse` in build.js with its OpenRouter request, backoff and JSONL log, the `souffleuse-*` messages on the watch socket, the cockpit's ear and `#psiINT-souffleuse-strip` under `Shift`-`S`, and the config surface (`--prompter`, `--prompter-model`, `--prompter-dry-run`, `--prompter-replay`, `OPENROUTER_API_KEY`, `OPENROUTER_BASE_URL`, the `prompter:` frontmatter block, `SOUFFLEUSE_SPEC`, top-level `duration:`). Use when changing any of those, their `lint.js` mirrors, `test/gates/souffleuse.mjs` or `test/souffleuse.mjs`, or when the prompter says nothing, says too much, or shows a badge.
 ---
 
 # The live prompter (`--prompter`)
@@ -453,7 +453,7 @@ decision only worth offering while there is still something to lose.
 
 ## Failure modes – silence plus one badge, never a modal
 
-The badge is `#souffleuse-badge`, a `.cmd-badge` painted as `PROMPTER · <text>`,
+The badge is `#psiINT-souffleuse-badge`, a `.cmd-badge` painted as `PROMPTER · <text>`,
 and it appears only when something is degraded.
 
 | case | behaviour | what the badge says |
@@ -553,12 +553,12 @@ the middle of the log the author is reading.
 
 Everything is `souffleuse-*`, because the cockpit's element ids share one
 namespace with the lecture's chunk ids and no slide will ever want that word –
-the visible word is `prompter`. `#souffleuse-btn` (footer switch, `Shift`-`S`
+the visible word is `prompter`. `#psiINT-souffleuse-btn` (footer switch, `Shift`-`S`
 through `viewHooks.onShiftS`, `Shift`-click opens the history),
-`#souffleuse-badge`, `#souffleuse-strip` with `.souffleuse-glyph`,
-`.souffleuse-text` and `.souffleuse-x`, `#souffleuse-heard`, `#souffleuse-log`
-with `#souffleuse-log-list`, `#souffleuse-heard-toggle` and
-`#souffleuse-cues-toggle`, and `.cue-added` inside a card the prompter laid. The pieces of the panel are looked up **through the
+`#psiINT-souffleuse-badge`, `#psiINT-souffleuse-strip` with `.souffleuse-glyph`,
+`.souffleuse-text` and `.souffleuse-x`, `#psiINT-souffleuse-heard`, `#psiINT-souffleuse-log`
+with `#psiINT-souffleuse-log-list`, `#psiINT-souffleuse-heard-toggle` and
+`#psiINT-souffleuse-cues-toggle`, and `.cue-added` inside a card the prompter laid. The pieces of the panel are looked up **through the
 panel**, not through the global id map. Two more places carry the prompter only
 under the flag: the footer's key crib gains `Shift-S prompter`, and the help
 overlay gains the group *The prompter* – **first** in the speaker list, with
@@ -567,18 +567,18 @@ screens tall and scrolls, and in fifth place the whole group began 200 px
 below the fold.
 
 - **The strip is one element in two homes**, like the clock: absolutely
-  positioned over the bottom edge of `#stage-cell` in the classic arrangement,
-  inside `#cue-panel` immediately above `#cue-rail` under `K`. `cuePlaceStrip`
+  positioned over the bottom edge of `#psiINT-stage-cell` in the classic arrangement,
+  inside `#psiINT-cue-panel` immediately above `#psiINT-cue-rail` under `K`. `cuePlaceStrip`
   moves it and the interim line together and looks both up by id.
   `SOUFFLEUSE_JS` **wraps** `applyCueMode` rather than putting a call inside
   it, the way it chains the two `viewHooks` – a cockpit without a prompter has
   nothing to move – and then runs `cuePlaceStrip(cueOn())` once itself, because
   the cue section restored the saved arrangement before this text existed.
-  `#cue-rail { position: relative }` lives in `SOUFFLEUSE_CSS` for the same
+  `#psiINT-cue-rail { position: relative }` lives in `SOUFFLEUSE_CSS` for the same
   reason: `cueRender` scrolls to `curEl.offsetTop`, and the strip is the only
   thing that ever grows above the rail.
 - Glyphs: `◷` time, `◇` example, `△` fact, `◌` delivery, `≫` pace, `⋯` skipped, `▤` cue. `high` is red
-  like `#center-toast.warn`. Auto-fade 15 s, 25 s for `high`, and the fade is a
+  like `#psiINT-center-toast.warn`. Auto-fade 15 s, 25 s for `high`, and the fade is a
   dismissal (`how: 'fade'`). **A card carries its own figure**: the arrival
   announcement passes `fade: 30000` and the receipt `fade: 6000`, because a
   hint is glanced at and a card is read – and in the classic layout the strip
@@ -634,7 +634,7 @@ below the fold.
   or `idle` from the sidecar drops it, so a switch somebody threw is not undone
   by the next reload);
   `sessionStorage psi-slides:souffleuse-clock` (the cockpit's `tStart`, written
-  whenever the consent is written and after a click on `#clock`, restored on
+  whenever the consent is written and after a click on `#psiINT-clock`, restored on
   load only when the consent is there and the value is neither in the future
   nor twelve hours old – see *Traps*);
   `sessionStorage psi-slides:souffleuse-onat` (the switch-on moment on that
@@ -676,7 +676,7 @@ below the fold.
 
 ### The line under the strip does two jobs
 
-`#souffleuse-heard` is one element with two roles, and the switch between them
+`#psiINT-souffleuse-heard` is one element with two roles, and the switch between them
 is the opening quiet, which the `hello` reply carries as `startQuiet`.
 
 **For the first minute after the switch** it shows the words the ear is
@@ -684,7 +684,7 @@ picking up, with no checkbox touched (`souffOpeningQuiet`). That minute is
 exactly the one in which the prompter cannot say anything at all, and it is
 therefore the one in which a speaker wonders whether the thing is working. The
 words stop when the quiet ends; leaving them up for a whole talk is a moving
-line in the corner of the eye, which is what `#souffleuse-heard-toggle` is for
+line in the corner of the eye, which is what `#psiINT-souffleuse-heard-toggle` is for
 when somebody wants it anyway.
 
 **After that the same line is the heartbeat** (`.beat`, `souffBeatText`):
@@ -881,7 +881,7 @@ those, the log and a rehearsal.
   reached it in its temporal dead zone, inside the `try` that guards
   `localStorage`, which swallowed the throw whole. The same trap the cue mode's
   own restore was moved down for, seen from the other side.
-- **`#cue-rail` is `position: relative` under the flag.** `cueRender` scrolls to
+- **`#psiINT-cue-rail` is `position: relative` under the flag.** `cueRender` scrolls to
   `curEl.offsetTop`, measured against whatever positioned ancestor happened to be
   up the tree, so the strip growing above the rail moved every card by its own
   height. The rule is in `SOUFFLEUSE_CSS`, not `SPEAKER_CSS`.
@@ -903,7 +903,7 @@ those, the log and a rehearsal.
   believed it. The origin is kept in `sessionStorage` **only while the prompter
   is on**, because a cockpit opened while the room fills is meant to start at
   0:00 and the clock button is how a speaker says the talk has begun. The
-  prompter's own click listener on `#clock` is added after the cockpit's, so
+  prompter's own click listener on `#psiINT-clock` is added after the cockpit's, so
   `tStart` is already the new one when it re-writes the key. Everything the
   sidecar does about it is in `rebaseClock`, and both halves are needed: the
   sidecar must not believe a clock it did not set, whatever page it is talking
