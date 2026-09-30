@@ -640,7 +640,7 @@ function splitFrontmatter(src) {
 
 // A heading line's tail through the shared parser. Every problem it found
 // is reported under the parser's own code - stray-attribute, unknown-class,
-// same-slot, multiple-ids - and the callers add what only the line's place
+// same-slot, multiple-ids, reserved-id - and the callers add what only the line's place
 // in the deck can decide (a class on a column heading, a width on a cover
 // chunk).
 function parseAttributeTail(line, what, { column = false } = {}) {

@@ -70,7 +70,7 @@ export async function run({ report }) {
      '.bare is the second, and the two are separate slots that combine');
   ok(codes(column('.stack .stack #p')) === 'same-slot', 'and twice is same-slot, like any other slot');
 
-  // ── parseTail: the four codes ────────────────────────────────────
+  // ── parseTail: the five codes ────────────────────────────────────
   const heading = (tail) => parseTail(tail, CHUNK_SLOTS, 'chunk heading', { id: 'one' });
   const side = (tail) => parseTail(tail, SIDE_SLOTS, '::: side');
   const cards = (tail) => parseTail(tail, CARDS_SLOTS, '::: cards');
@@ -82,6 +82,9 @@ export async function run({ report }) {
     ['heading', '.wide .wide #a',   'same-slot'],
     ['heading', '.wrap-none .wrap-balance #a', 'same-slot'],
     ['heading', '#a #b',            'multiple-ids'],
+    ['heading', '#psiINT-a',        'reserved-id'],
+    ['heading', '#psiint-a',        ''],
+    ['heading', '#psi-a',           ''],
     ['heading', '',                 'stray-attribute'],
     ['heading', '   ',              'stray-attribute'],
     ['side',    'middle',           'stray-attribute'],

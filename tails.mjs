@@ -313,7 +313,7 @@ export function strayTailProblem(what, stray) {
 }
 
 // Resolve the contents of a `{…}` tail against a slot table. Never throws:
-// every failure is a `{ code, msg }` in `problems`, and the four codes are
+// every failure is a `{ code, msg }` in `problems`, and the five codes are
 // the whole family this grammar refuses everywhere. `classes` holds every
 // `.word` in written order, recognised or not, so a caller's contextual
 // check (a class on a column heading, a width on a cover chunk) sees what
@@ -324,6 +324,7 @@ export function strayTailProblem(what, stray) {
 //   unknown-class     a `.word` from no slot of this table
 //   same-slot         two `.word`s from one slot (or one written twice)
 //   multiple-ids      a second `#id` on a line that takes one
+//   reserved-id       an `#id` starting with RESERVED_ID_PREFIX
 //
 // The directive is named in the message (`what`), never in the code.
 // `opts.id` is the id policy: 'one' for a heading, 'none' for a directive -
@@ -333,6 +334,14 @@ export function strayTailProblem(what, stray) {
 // like any other tail, and a word from no slot of it is `class-on-column` -
 // said once, by the parser, naming the short vocabulary a `#` heading has
 // rather than the chunk's, which is the line it never was.
+// Every id the build invents starts with this - the chrome's fixed ids, the
+// generated figure ids, a question's element id - so an author's `{#id}` and
+// the build's can never be one element in one document. An author id that
+// starts with it is refused. Case-sensitive, because the views are standards
+// mode and the browser matches ids that way: `psiint-x` is the author's.
+// test/gates/id-namespace.mjs holds the build's side of the fence.
+export const RESERVED_ID_PREFIX = 'psiINT-';
+
 export function parseTail(tail, slots, what, { id: idPolicy = 'none', classes: classPolicy = 'slots' } = {}) {
   const out = { classes: [], id: undefined, ids: [], slots: {}, problems: [] };
   for (const [slot, spec] of Object.entries(slots)) out.slots[slot] = { value: spec.default, written: false };
@@ -375,6 +384,10 @@ export function parseTail(tail, slots, what, { id: idPolicy = 'none', classes: c
       if (!idsTaken) {
         problem('stray-attribute', `"${tok}" - this directive takes no id. Only a heading does.`);
         continue;
+      }
+      if (tok.slice(1).startsWith(RESERVED_ID_PREFIX)) {
+        problem('reserved-id', `"${tok}" - ids starting with ${RESERVED_ID_PREFIX} are the build's own ` +
+          '(the chrome and the generated figure ids live there). Name it without the prefix.');
       }
       if (out.id !== undefined) problem('multiple-ids', `#${out.id} and ${tok} are two ids for one heading.`);
       else out.id = tok.slice(1);

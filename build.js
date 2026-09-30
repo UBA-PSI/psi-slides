@@ -8550,8 +8550,11 @@ function renderPulseQuestions(qs, S) {
 function renderPulseQuestion(e, S) {
   // The id is set here because the widget otherwise numbers its questions
   // pulse-1, pulse-2 …, in the namespace the chunk ids live in; the summary's
-  // links jump to it.
-  return `<pulse-question id="pulse-${escapeHtml(e.key)}" key="${escapeHtml(e.key)}">
+  // links jump to it. It is the build's, so it is psiINT-: the key is the
+  // chunk id by default, and pulse-<key> could be another chunk's id. Only
+  // the summary's in-page links read it - the widget files the question
+  // under the key attribute, which is what reaches the server.
+  return `<pulse-question id="psiINT-pulse-${escapeHtml(e.key)}" key="${escapeHtml(e.key)}">
 ${marked.parse(e.question)}
 <details><summary>${escapeHtml(S['pulse-answer'])}</summary>
 ${marked.parse(e.answer)}

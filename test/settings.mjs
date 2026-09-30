@@ -827,6 +827,15 @@ console.log('\nlayout generations');
     // getElementById namespace, so a chunk authored #g-section is a real
     // duplicate the id check has to see through the generated name.
     ['a generated divider-id collision', '# G {#g}\n\n## free: A {#g-section}\n\nBody.\n', /g-section' (is used twice|already defined)/, 'duplicate-id'],
+    // Every id the build invents starts with psiINT- (tails.mjs,
+    // RESERVED_ID_PREFIX), so an author id there could be the same element
+    // as a piece of the chrome. Refused on both kinds of heading; matched
+    // case-sensitively as the browser matches ids, so the lower-case
+    // spelling and a plain psi- stay the author's.
+    ['a chunk id in the reserved range', '## free: G {#psiINT-clock}\n\nBody.\n', /ids starting with psiINT- are the build's own/, 'reserved-id'],
+    ['a column id in the reserved range', '# G {#psiINT-stage}\n\n## free: A {#a}\n\nBody.\n', /ids starting with psiINT- are the build's own/, 'reserved-id'],
+    ['a lower-case psiint- id', '## free: G {#psiint-clock}\n\nBody.\n', 'accept'],
+    ['a psi- id', '# G {#psi-part}\n\n## free: A {#psi-a}\n\nBody.\n', 'accept'],
     // ::: pulse, the self-test question for the documents. An aside like
     // ::: footnote, so it inherits the aside refusals, plus its own: one ---
     // between two halves with words in them, no directive inside, a key that
@@ -882,7 +891,7 @@ console.log('\nlayout generations');
     const v = views('Body.\n\n::: pulse\nWhat is *Q*?\n---\nIt is **A**.\n:::\n');
     ok(v.ok, 'a lecture with a question builds', v.out.split('\n')[0]);
     for (const doc of ['print', 'notes']) {
-      ok(/<pulse-question id="pulse-f" key="f">\s*<p>What is <em>Q<\/em>\?<\/p>\s*<details><summary>Answer<\/summary>\s*<p>It is <strong>A<\/strong>\.<\/p>/.test(v[doc]),
+      ok(/<pulse-question id="psiINT-pulse-f" key="f">\s*<p>What is <em>Q<\/em>\?<\/p>\s*<details><summary>Answer<\/summary>\s*<p>It is <strong>A<\/strong>\.<\/p>/.test(v[doc]),
          `the ${doc} document carries the question, the answer folded`);
       ok(/<script data-host="https:\/\/pulse\.psi\.uni-bamberg\.de" data-page="T">/.test(v[doc]) && v[doc].includes('__pulseEmbedV2'),
          `and the widget, inlined, with the title as its page`);
@@ -903,7 +912,7 @@ console.log('\nlayout generations');
     // them in print - the widget's own print rules); one alone is not.
     ok(!/<pulse-deck>/.test(v.printMarkup), 'a single question is not a deck');
     const deck = views('Body.\n\n::: pulse\nQ?\n---\nA.\n:::\n\n::: pulse {#f-2}\nQ2?\n---\nA2.\n:::\n\n## free: G {#g}\n\n::: pulse\nQ3?\n---\nA3.\n:::\n');
-    ok(/<pulse-deck>\s*<pulse-question id="pulse-f" key="f">[\s\S]*?<\/pulse-question>\s*<pulse-question id="pulse-f-2" key="f-2">[\s\S]*?<\/pulse-question>\s*<\/pulse-deck>/.test(deck.printMarkup)
+    ok(/<pulse-deck>\s*<pulse-question id="psiINT-pulse-f" key="f">[\s\S]*?<\/pulse-question>\s*<pulse-question id="psiINT-pulse-f-2" key="f-2">[\s\S]*?<\/pulse-question>\s*<\/pulse-deck>/.test(deck.printMarkup)
        && (deck.printMarkup.match(/<pulse-deck>/g) || []).length === 1,
        'two questions on one chunk are one deck, a third on the next chunk stands alone');
     const none = views('Body.\n');

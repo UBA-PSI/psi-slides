@@ -561,7 +561,7 @@ function pageInstall(cfg) {
   delete window.__psiPdfFrag;
 
   const style = document.createElement('style');
-  style.id = 'psi-pdf-css';
+  style.id = 'psiINT-pdf-css';
   style.textContent = cfg.css;
   document.head.appendChild(style);
   document.documentElement.setAttribute('data-psi-pdf', '');
